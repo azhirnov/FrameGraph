@@ -1,0 +1,8 @@
+/build
+/external/glfw
+/external/glslang
+/external/lodepng
+/external/SDL2
+/external/Vulkan-Headers
+/external/VulkanMemoryAllocator
+CMakeLists.txt.user
