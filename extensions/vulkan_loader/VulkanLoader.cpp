@@ -1,0 +1,267 @@
+// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+
+#include "VulkanLoader.h"
+#include "VulkanCommon.h"
+#include "stl/include/Cast.h"
+#include "stl/include/Singleton.h"
+#include "stl/include/StringUtils.h"
+
+
+# if (defined( _WIN32 ) || defined( _WIN64 ) || defined( WIN32 ) || defined( WIN64 ) || \
+	  defined( __CYGWIN__ ) || defined( __MINGW32__ ) || defined( __MINGW32__ ))
+
+#	define PLATFORM_WINDOWS		1
+
+#	define NOMINMAX
+#	define NOMCX
+#	define NOIME
+#	define NOSERVICE
+#	define WIN32_LEAN_AND_MEAN
+
+#	include <Windows.h>
+
+	using SharedLib_t	= HMODULE;
+# endif
+
+
+# ifndef PLATFORM_WINDOWS
+	using SharedLib_t	= void*;
+# endif
+
+
+namespace FG
+{
+
+#	define VKLOADER_STAGE_FNPOINTER
+#	 include "fn_vulkan_lib.h"
+#	 include "fn_vulkan_inst.h"
+#	undef  VKLOADER_STAGE_FNPOINTER
+
+#	define VKLOADER_STAGE_DUMMYFN
+#	 include "fn_vulkan_lib.h"
+#	 include "fn_vulkan_inst.h"
+#	 include "fn_vulkan_dev.h"
+#	undef  VKLOADER_STAGE_DUMMYFN
+
+/*
+=================================================
+	VulkanLib
+=================================================
+*/
+	struct VulkanLib
+	{
+		SharedLib_t		module;
+		VkInstance		instance	= VK_NULL_HANDLE;
+		int				refCounter	= 0;
+	};
+
+/*
+=================================================
+	Initialize
+=================================================
+*/
+	bool VulkanLoader::Initialize (StringView libName)
+	{
+		VulkanLib *		lib = Singleton< VulkanLib >();
+		
+		if ( lib->module and lib->refCounter > 0 )
+		{
+			++lib->refCounter;
+			return true;
+		}
+
+#	ifdef PLATFORM_WINDOWS
+		if ( not libName.empty() )
+			lib->module = ::LoadLibraryA( libName.data() );
+
+		if ( lib->module == null )
+			lib->module = ::LoadLibraryA( "vulkan-1.dll" );
+		
+		if ( lib->module == null )
+			return false;
+		
+		// write library path to log
+		{
+			char	buf[MAX_PATH] = "";
+			CHECK( ::GetModuleFileNameA( lib->module, buf, DWORD(std::size(buf)) ) != FALSE );
+
+			FG_LOGI( "Vulkan library path: \""s << buf << '"' );
+		}
+
+		const auto	Load =	[module = lib->module] (OUT auto& outResult, const char *procName, auto dummy)
+							{
+								using FN = decltype(dummy);
+								FN	result = BitCast<FN>( ::GetProcAddress( module, procName ));
+								outResult = result ? result : dummy;
+							};
+
+#	else
+		if ( not libName.empty() )
+			lib->module = ::dlopen( ibName.data(), RTLD_NOW | RTLD_LOCAL );
+
+		if ( lib->module == null )
+			lib->module = ::dlopen( "libvulkan.so", RTLD_NOW | RTLD_LOCAL );
+		
+		if ( lib->module == null )
+			lib->module = ::dlopen( "libvulkan.so.1", RTLD_NOW | RTLD_LOCAL );
+		
+		if ( lib->module == null )
+			return false;
+		
+		// write library path to log
+		{
+			char	buf[PATH_MAX] = "";
+			CHECK( dlinfo( lib->module, RTLD_DI_ORIGIN, buf ) == 0 );
+			
+			FG_LOGI( "Vulkan library path: \""s << buf << '"' );
+		}
+
+		const auto	Load =	[module = lib->module] (OUT auto& outResult, const char *procName, auto dummy)
+							{
+								using FN = decltype(dummy);
+								FN	result = BitCast<FN>( ::dlsym( module, procName ));
+								outResult = result ? result : dummy;
+							};
+#	endif
+
+		++lib->refCounter;
+		
+
+#		define VKLOADER_STAGE_GETADDRESS
+#		 include "fn_vulkan_lib.h"
+#		undef  VKLOADER_STAGE_GETADDRESS
+
+		ASSERT( _var_vkCreateInstance != &Dummy_vkCreateInstance );
+		ASSERT( _var_vkGetInstanceProcAddr != &Dummy_vkGetInstanceProcAddr );
+
+		return true;
+	}
+	
+/*
+=================================================
+	LoadInstance
+=================================================
+*/
+	void VulkanLoader::LoadInstance (VkInstance instance)
+	{
+		VulkanLib *		lib = Singleton< VulkanLib >();
+
+		ASSERT( instance );
+		ASSERT( lib->instance == null or lib->instance == instance );
+		ASSERT( _var_vkGetInstanceProcAddr != &Dummy_vkGetInstanceProcAddr );
+
+		if ( lib->instance == instance )
+			return;
+
+		lib->instance = instance;
+
+		const auto	Load =	[instance] (OUT auto& outResult, const char *procName, auto dummy)
+							{
+								using FN = decltype(dummy);
+								FN	result = (FN) vkGetInstanceProcAddr( instance, procName );
+								outResult = result ? result : dummy;
+							};
+		
+#		define VKLOADER_STAGE_GETADDRESS
+#		 include "fn_vulkan_inst.h"
+#		undef  VKLOADER_STAGE_GETADDRESS
+	}
+	
+/*
+=================================================
+	LoadDevice
+=================================================
+*/
+	void VulkanLoader::LoadDevice (VkDevice device, OUT VulkanDeviceFnTable &table)
+	{
+		ASSERT( _var_vkGetDeviceProcAddr != &Dummy_vkGetDeviceProcAddr );
+
+		const auto	Load =	[device] (OUT auto& outResult, const char *procName, auto dummy)
+							{
+								using FN = decltype(dummy);
+								FN	result = (FN) vkGetDeviceProcAddr( device, procName );
+								outResult = result ? result : dummy;
+							};
+
+#		define VKLOADER_STAGE_GETADDRESS
+#		 include "fn_vulkan_dev.h"
+#		undef  VKLOADER_STAGE_GETADDRESS
+	}
+	
+/*
+=================================================
+	ResetDevice
+=================================================
+*/
+	void VulkanLoader::ResetDevice (OUT VulkanDeviceFnTable &table)
+	{
+		const auto	Load =	[] (OUT auto& outResult, const char *, auto dummy) {
+								outResult = dummy;
+							};
+
+#		define VKLOADER_STAGE_GETADDRESS
+#		 include "fn_vulkan_dev.h"
+#		undef  VKLOADER_STAGE_GETADDRESS
+	}
+
+/*
+=================================================
+	Unload
+=================================================
+*/
+	void VulkanLoader::Unload ()
+	{
+		VulkanLib *		lib = Singleton< VulkanLib >();
+		
+		ASSERT( lib->refCounter > 0 );
+
+		if ( (--lib->refCounter) != 0 )
+			return;
+
+#	ifdef PLATFORM_WINDOWS
+		if ( lib->module != null )
+		{
+			::FreeLibrary( lib->module );
+			lib->module = null;
+		}
+
+#	else
+		if ( lib->module != null )
+		{
+			::dlclose( lib->module );
+			lib->module = null;
+		}
+
+#	endif
+		
+		const auto	Load =	[] (OUT auto& outResult, const char *, auto dummy) {
+								outResult = dummy;
+							};
+
+#		define VKLOADER_STAGE_GETADDRESS
+#		 include "fn_vulkan_lib.h"
+#		 include "fn_vulkan_inst.h"
+#		undef  VKLOADER_STAGE_GETADDRESS
+	}
+	
+/*
+=================================================
+	VulkanDeviceFn_Init
+=================================================
+*/
+	void VulkanDeviceFn::VulkanDeviceFn_Init (const VulkanDeviceFn &other)
+	{
+		_table = other._table;
+	}
+	
+/*
+=================================================
+	VulkanDeviceFn_Init
+=================================================
+*/
+	void VulkanDeviceFn::VulkanDeviceFn_Init (VulkanDeviceFnTable *table)
+	{
+		_table = table;
+	}
+
+}	// FG
