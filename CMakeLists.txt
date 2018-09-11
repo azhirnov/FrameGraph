@@ -13,12 +13,12 @@ message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VER
 
 include( "cmake/compilers.cmake" )
 
-set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
+set( FG_ENABLE_GLSLANG OFF CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_GLFW ON CACHE BOOL "use glfw (optional, required for tests)" )
-set( FG_ENABLE_SDL2 ON CACHE BOOL "use SDL2 (optional, required for tests)" )
-set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
-set( FG_ENABLE_LODEPNG ON CACHE BOOL "use lodepng (optional, may be used in tests)" )
-set( FG_ENABLE_SAMPLES ON CACHE BOOL "" )
+set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )
+set( FG_ENABLE_VMA OFF CACHE BOOL "use Vulkan Memory Allocator (required)" )
+set( FG_ENABLE_LODEPNG OFF CACHE BOOL "use lodepng (optional, may be used in tests)" )
+set( FG_ENABLE_SAMPLES OFF CACHE BOOL "" )
 set( FG_ENABLE_TESTS ON CACHE BOOL "" )
 set( CMAKE_DEBUG_POSTFIX "" )
 set( CMAKE_RELEASE_POSTFIX "" )

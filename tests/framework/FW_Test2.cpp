@@ -4,6 +4,7 @@
 #include "framework/Vulkan/VulkanSwapchain.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
+#include "stl/include/StringUtils.h"
 #include <thread>
 
 using namespace FG;

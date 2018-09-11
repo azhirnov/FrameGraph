@@ -48,12 +48,10 @@ set( SOURCES
 	"framework/Vulkan/VulkanDevice.cpp"
 	"framework/Vulkan/VulkanDevice.h"
 	"framework/Vulkan/VulkanSwapchain.cpp"
-	"framework/Vulkan/VulkanSwapchain.h"
-	"framework/README.md" )
+	"framework/Vulkan/VulkanSwapchain.h" )
 add_library( "Framework" STATIC ${SOURCES} )
 source_group( "Window" FILES "framework/Window/IWindow.h" "framework/Window/WindowGLFW.cpp" "framework/Window/WindowGLFW.h" "framework/Window/WindowSDL2.cpp" "framework/Window/WindowSDL2.h" )
 source_group( "Vulkan" FILES "framework/Vulkan/VulkanDevice.cpp" "framework/Vulkan/VulkanDevice.h" "framework/Vulkan/VulkanSwapchain.cpp" "framework/Vulkan/VulkanSwapchain.h" )
-source_group( "" FILES "framework/README.md" )
 set_property( TARGET "Framework" PROPERTY FOLDER "Extensions" )
 target_include_directories( "Framework" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "Framework" PRIVATE ".." )

@@ -27,12 +27,10 @@ set( SOURCES
 	"include/Union.h"
 	"include/Vec.h"
 	"source/Log.cpp"
-	"CMakeLists.txt"
-	"README.md" )
+	"CMakeLists.txt" )
 add_library( "STL" STATIC ${SOURCES} )
 source_group( "include" FILES "include/ArrayView.h" "include/Bytes.h" "include/Cast.h" "include/Color.h" "include/Common.h" "include/DefaultType.h" "include/Defines.h" "include/EnumUtils.h" "include/FixedArray.h" "include/Hash.h" "include/Log.h" "include/Math.h" "include/MemUtils.h" "include/PoolAllocator.h" "include/Rectangle.h" "include/Singleton.h" "include/StaticString.h" "include/StringUtils.h" "include/ToString.h" "include/Union.h" "include/Vec.h" )
 source_group( "source" FILES "source/Log.cpp" )
-source_group( "" FILES "CMakeLists.txt" "README.md" )
 target_include_directories( "STL" PUBLIC ".." )
 target_include_directories( "STL" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "STL" PRIVATE "" )
