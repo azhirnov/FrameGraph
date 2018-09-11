@@ -33,41 +33,13 @@
 
 
 #ifdef VKLOADER_STAGE_DUMMYFN
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateInstanceLayerProperties (uint32_t * , VkLayerProperties * ) {
-		FG_LOGE( "used dummy function 'vkEnumerateInstanceLayerProperties'" );
-		return VkResult(~0u);
-	}
-
-	VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL Dummy_vkGetInstanceProcAddr (VkInstance , const char * ) {
-		FG_LOGE( "used dummy function 'vkGetInstanceProcAddr'" );
-		return null;
-	}
-
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateInstance (const VkInstanceCreateInfo * , const VkAllocationCallbacks * , VkInstance * ) {
-		FG_LOGE( "used dummy function 'vkCreateInstance'" );
-		return VkResult(~0u);
-	}
-
-	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkDebugUtilsMessengerCallbackEXT (VkDebugUtilsMessageSeverityFlagBitsEXT , VkDebugUtilsMessageTypeFlagsEXT , const VkDebugUtilsMessengerCallbackDataEXT * , void * ) {
-		FG_LOGE( "used dummy function 'vkDebugUtilsMessengerCallbackEXT'" );
-		return VkBool32(0);
-	}
-
-	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkDebugReportCallbackEXT (VkDebugReportFlagsEXT , VkDebugReportObjectTypeEXT , uint64_t , size_t , int32_t , const char * , const char * , void * ) {
-		FG_LOGE( "used dummy function 'vkDebugReportCallbackEXT'" );
-		return VkBool32(0);
-	}
-
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateInstanceVersion (uint32_t * ) {
-		FG_LOGE( "used dummy function 'vkEnumerateInstanceVersion'" );
-		return VkResult(~0u);
-	}
-
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateInstanceExtensionProperties (const char * , uint32_t * , VkExtensionProperties * ) {
-		FG_LOGE( "used dummy function 'vkEnumerateInstanceExtensionProperties'" );
-		return VkResult(~0u);
-	}
-
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateInstanceLayerProperties (uint32_t * , VkLayerProperties * )			{  FG_LOGE( "used dummy function 'vkEnumerateInstanceLayerProperties'" );  return VkResult(~0u);  }
+	VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL Dummy_vkGetInstanceProcAddr (VkInstance , const char * )			{  FG_LOGE( "used dummy function 'vkGetInstanceProcAddr'" );  return null;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateInstance (const VkInstanceCreateInfo * , const VkAllocationCallbacks * , VkInstance * )			{  FG_LOGE( "used dummy function 'vkCreateInstance'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkDebugUtilsMessengerCallbackEXT (VkDebugUtilsMessageSeverityFlagBitsEXT , VkDebugUtilsMessageTypeFlagsEXT , const VkDebugUtilsMessengerCallbackDataEXT * , void * )			{  FG_LOGE( "used dummy function 'vkDebugUtilsMessengerCallbackEXT'" );  return VkBool32(0);  }
+	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkDebugReportCallbackEXT (VkDebugReportFlagsEXT , VkDebugReportObjectTypeEXT , uint64_t , size_t , int32_t , const char * , const char * , void * )			{  FG_LOGE( "used dummy function 'vkDebugReportCallbackEXT'" );  return VkBool32(0);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateInstanceVersion (uint32_t * )			{  FG_LOGE( "used dummy function 'vkEnumerateInstanceVersion'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateInstanceExtensionProperties (const char * , uint32_t * , VkExtensionProperties * )			{  FG_LOGE( "used dummy function 'vkEnumerateInstanceExtensionProperties'" );  return VkResult(~0u);  }
 #endif // VKLOADER_STAGE_DUMMYFN
 
 
