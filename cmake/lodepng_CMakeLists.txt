@@ -1,0 +1,4 @@
+
+add_library( "lodepng" STATIC "lodepng.h" "lodepng.cpp" )
+source_group( "" FILES "lodepng.h" "lodepng.cpp" )
+set_property( TARGET "lodepng" PROPERTY FOLDER "External" )
