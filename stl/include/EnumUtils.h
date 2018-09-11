@@ -1,0 +1,58 @@
+// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+
+#pragma once
+
+#include "stl/include/Common.h"
+
+namespace FG
+{
+
+	template <typename T>
+	using NearInt = std::conditional_t< (sizeof(T) <= sizeof(int32_t)), int32_t, int64_t >;
+
+	template <typename T>
+	using NearUInt = std::conditional_t< (sizeof(T) <= sizeof(uint32_t)), uint32_t, uint64_t >;
+	
+/*
+=================================================
+	EnumToUInt
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr NearUInt<T>  EnumToUInt (const T &value)
+	{
+		STATIC_ASSERT( std::is_scalar_v<T> or std::is_enum_v<T> );
+		STATIC_ASSERT( sizeof(value) <= sizeof(NearUInt<T>) );
+
+		return NearUInt<T>( value );
+	}
+
+/*
+=================================================
+	EnumToInt
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr NearInt<T>  EnumToInt (const T &value)
+	{
+		STATIC_ASSERT( std::is_scalar_v<T> or std::is_enum_v<T> );
+		STATIC_ASSERT( sizeof(value) <= sizeof(NearInt<T>) );
+
+		return NearInt<T>( value );
+	}
+
+/*
+=================================================
+	EnumEq
+=================================================
+*/
+	template <typename T1, typename T2>
+	ND_ forceinline constexpr bool  EnumEq (const T1& lhs, const T2& rhs)
+	{
+		STATIC_ASSERT( std::is_scalar_v< T1 > or std::is_enum_v< T1 > );
+		STATIC_ASSERT( std::is_scalar_v< T2 > or std::is_enum_v< T2 > );
+
+		return ( EnumToUInt(lhs) & EnumToUInt(rhs) ) == EnumToUInt(rhs);
+	}
+
+}	// FG
