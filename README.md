@@ -12,13 +12,14 @@ Dependencies:<br/>
 [Vulkan-headers](https://github.com/KhronosGroup/Vulkan-Headers) or [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) - required.<br/>
 [glfw](https://github.com/glfw/glfw) or [SDL2](https://www.libsdl.org) - required for framework.<br/>
 [glslang](https://github.com/KhronosGroup/glslang) - required for glsl compiler.<br/>
+[SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools), [SPIRV-Headers](https://github.com/KhronosGroup/SPIRV-Headers) and Python - optional, for spirv optimization.<br/>
 [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - will be required later.<br/>
-[lodepng](https://github.com/lvandeve/lodepng) - optional.<br/>
+[lodepng](https://github.com/lvandeve/lodepng) - optional, for screenshots.<br/>
 
 ## Roadmap
 ### Stage 1
 - glsl compilation to spirv + reflection. (done)<br/>
-- auto pipeline barrier placement. (done, need more tests)<br/>
+- auto pipeline barrier placement. (done)<br/>
 - render pass optimization. (WIP)<br/>
 - unit tests: stl, resource barriers, glsl compiler, resource cache, ... (WIP)<br/>
 - graph node tests: buffer copy, image copy, draw triangle, dispatch, ... (WIP)<br/>
