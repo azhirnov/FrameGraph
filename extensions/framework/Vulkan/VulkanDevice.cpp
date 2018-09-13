@@ -1,7 +1,6 @@
 // Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
 
 #include "VulkanDevice.h"
-#include "stl/include/ToString.h"
 #include "stl/include/StringUtils.h"
 #include "stl/include/StaticString.h"
 #include "stl/include/EnumUtils.h"
@@ -42,7 +41,7 @@ namespace FG
 =================================================
 */
 	bool VulkanDevice::Create (UniquePtr<IVulkanSurface> &&surf, StringView appName, uint version,
-							   StringView deviceName, ArrayView<QueueInfo> queues)
+							   StringView deviceName, ArrayView<QueueCreateInfo> queues)
 	{
 		CHECK_ERR( surf );
 
@@ -67,7 +66,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VulkanDevice::Create (VkInstance instance, UniquePtr<IVulkanSurface> &&surf, StringView deviceName, ArrayView<QueueInfo> queues)
+	bool VulkanDevice::Create (VkInstance instance, UniquePtr<IVulkanSurface> &&surf, StringView deviceName, ArrayView<QueueCreateInfo> queues)
 	{
 		CHECK_ERR( instance );
 
@@ -141,9 +140,9 @@ namespace FG
 		VkInstanceCreateInfo			instance_create_info = {};
 		instance_create_info.sType						= VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instance_create_info.pApplicationInfo			= &app_info;
-		instance_create_info.enabledExtensionCount		= uint32_t(instance_extensions.size());
+		instance_create_info.enabledExtensionCount		= uint(instance_extensions.size());
 		instance_create_info.ppEnabledExtensionNames	= instance_extensions.data();
-		instance_create_info.enabledLayerCount			= uint32_t(instance_layers.size());
+		instance_create_info.enabledLayerCount			= uint(instance_layers.size());
 		instance_create_info.ppEnabledLayerNames		= instance_layers.data();
 
 		VK_CHECK( vkCreateInstance( &instance_create_info, null, OUT &_vkInstance ) );
@@ -168,7 +167,7 @@ namespace FG
         Array<VkLayerProperties> inst_layers;
 
         // load supported layers
-        uint32_t	count = 0;
+        uint	count = 0;
         VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, null ) );
 
         if (count == 0)
@@ -218,7 +217,7 @@ namespace FG
 
 
         // load supported extensions
-		uint32_t	count = 0;
+		uint	count = 0;
 		VK_CALL( vkEnumerateInstanceExtensionProperties( null, OUT &count, null ) );
 
 		if ( count == 0 )
@@ -259,7 +258,7 @@ namespace FG
     void VulkanDevice::_ValidateDeviceExtensions (INOUT Array<const char*> &extensions) const
     {
         // load supported device extensions
-        uint32_t	count = 0;
+        uint	count = 0;
         VK_CALL( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, null ) );
 
         if ( count == 0 )
@@ -330,8 +329,8 @@ namespace FG
 		CHECK_ERR( _vkInstance );
 		CHECK_ERR( not _vkPhysicalDevice );
 		
-		uint32_t						count	= 0;
-		Array< VkPhysicalDevice >		devices;
+		uint						count	= 0;
+		Array< VkPhysicalDevice >	devices;
 		
 		VK_CALL( vkEnumeratePhysicalDevices( _vkInstance, OUT &count, null ) );
 		CHECK_ERR( count > 0 );
@@ -412,33 +411,33 @@ namespace FG
 	_SetupQueues
 =================================================
 */
-	bool VulkanDevice::_SetupQueues (ArrayView<QueueInfo> queues)
+	bool VulkanDevice::_SetupQueues (ArrayView<QueueCreateInfo> queues)
 	{
 		CHECK_ERR( _vkQueues.empty() );
 
 		// setup default queue
 		if ( queues.empty() )
 		{
-			uint			index	= 0;
-			VkQueueFlags	flags	= VkQueueFlags(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+			uint			family_index	= 0;
+			VkQueueFlags	flags			= VkQueueFlags(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 			
 			if ( _vkSurface )
 				flags |= VK_QUEUE_PRESENT_BIT;
 
-			CHECK_ERR( _ChooseQueueIndex( INOUT flags, OUT index ));
+			CHECK_ERR( _ChooseQueueIndex( INOUT flags, OUT family_index ));
 
-			_vkQueues.push_back({ flags, index, 0.0f });
+			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, ~0u, flags, 0.0f });
 			return true;
 		}
 
 
 		for (auto& q : queues)
 		{
-			uint			index	= 0;
-			VkQueueFlags	flags	= q.flags;
-			CHECK_ERR( _ChooseQueueIndex( INOUT flags, OUT index ));
+			uint			family_index	= 0;
+			VkQueueFlags	flags			= q.flags;
+			CHECK_ERR( _ChooseQueueIndex( INOUT flags, OUT family_index ));
 
-			_vkQueues.push_back({ flags, index, q.priority });
+			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, ~0u, flags, q.priority });
 		}
 
 		return true;
@@ -468,24 +467,47 @@ namespace FG
 
 		if ( not device_extensions.empty() )
 		{
-			device_info.enabledExtensionCount	= uint32_t(device_extensions.size());
+			device_info.enabledExtensionCount	= uint(device_extensions.size());
 			device_info.ppEnabledExtensionNames	= device_extensions.data();
 		}
 
 
 		// setup queues
-		FixedArray< VkDeviceQueueCreateInfo, 8 >	queue_infos;
-		
-		for (auto& q : _vkQueues)
+		Array< VkDeviceQueueCreateInfo >	queue_infos;
+		Array< FixedArray<float,16> >		priorities;
 		{
-			VkDeviceQueueCreateInfo		queue_create_info = {};
-			queue_create_info.sType				= VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queue_create_info.queueFamilyIndex	= q.index;
-			queue_create_info.queueCount		= 1;
-			queue_create_info.pQueuePriorities	= &q.priority;
-			queue_infos.push_back( queue_create_info );
-		}
+			uint	max_queue_families = 0;
+			vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &max_queue_families, null );
 
+			queue_infos.resize( max_queue_families );
+			priorities.resize( max_queue_families );
+
+			for (size_t i = 0; i < queue_infos.size(); ++i)
+			{
+				auto&	ci = queue_infos[i];
+
+				ci.sType			= VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+				ci.pNext			= null;
+				ci.queueFamilyIndex	= uint(i);
+				ci.queueCount		= 0;
+				ci.pQueuePriorities	= priorities[i].data();
+			}
+
+			for (auto& q : _vkQueues)
+			{
+				q.queueIndex = (queue_infos[ q.familyIndex ].queueCount++);
+				priorities[ q.familyIndex ].push_back( q.priority );
+			}
+
+			// remove unused queues
+			for (auto iter = queue_infos.begin(); iter != queue_infos.end();)
+			{
+				if ( iter->queueCount == 0 )
+					iter = queue_infos.erase( iter );
+				else
+					++iter;
+			}
+		}
 		device_info.queueCreateInfoCount	= uint(queue_infos.size());
 		device_info.pQueueCreateInfos		= queue_infos.data();
 
@@ -501,7 +523,7 @@ namespace FG
 		VulkanLoader::LoadDevice( _vkDevice, OUT _deviceFnTable );
 
 		for (auto& q : _vkQueues) {
-			vkGetDeviceQueue( _vkDevice, q.index, 0, OUT &q.id );
+			vkGetDeviceQueue( _vkDevice, q.familyIndex, q.queueIndex, OUT &q.id );
 		}
 
 		return true;
@@ -633,10 +655,10 @@ namespace FG
 	_ChooseQueueIndex
 =================================================
 */
-	bool VulkanDevice::_ChooseQueueIndex (INOUT VkQueueFlags &requiredFlags, OUT uint32_t &index) const
+	bool VulkanDevice::_ChooseQueueIndex (INOUT VkQueueFlags &requiredFlags, OUT uint &index) const
 	{
 		Array< VkQueueFamilyProperties >	queue_family_props;
-		uint32_t							count = 0;
+		uint								count = 0;
 
 		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, null );
 		CHECK_ERR( count > 0 );
@@ -653,7 +675,7 @@ namespace FG
 			
 			if ( _vkSurface )
 			{
-				VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, uint32_t(i), _vkSurface, OUT &supports_present ));
+				VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, uint(i), _vkSurface, OUT &supports_present ));
 
 				if ( supports_present )
 					curr_flags |= VK_QUEUE_PRESENT_BIT;
@@ -662,7 +684,7 @@ namespace FG
 			if ( EnumEq( curr_flags, requiredFlags ) )
 			{
 				requiredFlags	= curr_flags;
-				index			= uint32_t(i);
+				index			= uint(i);
 				return true;
 			}
 		}

@@ -17,21 +17,19 @@ namespace FG
 	{
 	// types
 	public:
-		struct QueueInfo
+		struct QueueCreateInfo
 		{
-			VkQueueFlags		flags;
-			float				priority;
+			VkQueueFlags			flags		= 0;
+			float					priority	= 0.0f;
 		};
 
 		struct VulkanQueue
 		{
-			VkQueue				id			= VK_NULL_HANDLE;
-			VkQueueFlags		flags		= 0;
-			uint				index		= ~0u;
-			float				priority	= 0.0f;
-
-			VulkanQueue () {}
-			VulkanQueue (VkQueueFlags flags, uint index, float priority) : flags{flags}, index{index}, priority{priority} {}
+			VkQueue					id			= VK_NULL_HANDLE;
+			uint					familyIndex	= ~0u;
+			uint					queueIndex	= ~0u;
+			VkQueueFlags			flags		= 0;
+			float					priority	= 0.0f;
 		};
 
 		struct DebugReport
@@ -43,9 +41,11 @@ namespace FG
 			StringView				message;
 		};
 
+		static constexpr uint	maxQueues = 16;
+
 		using DebugReport_t = std::function< void (const DebugReport &) >;
 		using SurfaceCtor_t = std::function< VkSurfaceKHR (VkInstance) >;
-		using Queues_t		= FixedArray< VulkanQueue, 8 >;
+		using Queues_t		= FixedArray< VulkanQueue, maxQueues >;
 
 
 	// variables
@@ -79,12 +79,12 @@ namespace FG
 					 StringView					applicationName,
 					 uint						version		= VK_API_VERSION_1_1,
 					 StringView					deviceName	= Default,
-					 ArrayView<QueueInfo>		queues		= Default);
+					 ArrayView<QueueCreateInfo>	queues		= Default);
 
 		bool Create (VkInstance					instance,
 					 UniquePtr<IVulkanSurface> &&surf,
 					 StringView					deviceName	= Default,
-					 ArrayView<QueueInfo>		queues		= Default);
+					 ArrayView<QueueCreateInfo>	queues		= Default);
 
 		bool CreateDebugCallback (VkDebugReportFlagsEXT flags, DebugReport_t &&callback = Default);
 		void Destroy ();
@@ -103,7 +103,7 @@ namespace FG
 	private:
 		bool _CreateInstance (StringView appName, Array<const char*> &&instanceExtensions, uint version);
 		bool _ChooseGpuDevice (StringView deviceName);
-		bool _SetupQueues (ArrayView<QueueInfo> queue);
+		bool _SetupQueues (ArrayView<QueueCreateInfo> queue);
 		bool _CreateDevice ();
 		bool _ChooseQueueIndex (INOUT VkQueueFlags &flags, OUT uint32_t &index) const;
 		void _DestroyDevice ();

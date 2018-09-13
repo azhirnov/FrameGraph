@@ -1,6 +1,6 @@
 // Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
 
-#include "framegraph/Public/LowLevel/Pipeline.h"
+#include "Public/LowLevel/Pipeline.h"
 
 namespace FG
 {

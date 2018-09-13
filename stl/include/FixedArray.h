@@ -8,7 +8,7 @@ namespace FG
 {
 
 	//
-	// Fixed Array
+	// Fixed Size Array
 	//
 
 	template <typename T, size_t ArraySize>

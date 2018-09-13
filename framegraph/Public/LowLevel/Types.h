@@ -14,7 +14,6 @@
 #include "stl/include/MemUtils.h"
 #include "stl/include/Rectangle.h"
 #include "stl/include/StaticString.h"
-#include "stl/include/StringUtils.h"
 #include "stl/include/Union.h"
 #include "stl/include/Vec.h"
 

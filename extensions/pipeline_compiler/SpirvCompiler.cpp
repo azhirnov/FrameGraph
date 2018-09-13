@@ -2,15 +2,10 @@
 
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
-#include "stl/include/ToString.h"
+#include "stl/include/StringUtils.h"
 
 
 // glslang includes
-#ifdef COMPILER_MSVC
-# pragma warning (push, 1)
-# pragma warning (disable: 4100)
-#endif
-
 #include "glslang/glslang/Include/revision.h"
 #include "glslang/glslang/Public/ShaderLang.h"
 #include "glslang/glslang/OSDependent/osinclude.h"
@@ -20,10 +15,6 @@
 #include "glslang/SPIRV/disassemble.h"
 #include "glslang/SPIRV/GlslangToSpv.h"
 #include "glslang/SPIRV/GLSL.std.450.h"
-
-#ifdef COMPILER_MSVC
-# pragma warning (pop)
-#endif
 
 
 namespace FG

@@ -1,7 +1,6 @@
 // Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
 
 #include "stl/include/StringUtils.h"
-#include "stl/include/ToString.h"
 #include <iostream>
 
 using namespace FG;

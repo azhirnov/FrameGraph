@@ -33,10 +33,10 @@ namespace FG
 	// types
 		struct QueueInfo
 		{
-			VkQueue_t			id			= null;
-			uint				index		= ~0u;
-			VkQueueFlags_t		family		= {};
-			float				priority	= -1.0f;
+			VkQueue_t			id				= null;
+			uint				familyIndex		= ~0u;
+			VkQueueFlags_t		familyFlags		= {};
+			float				priority		= 0.0f;
 			StaticString<64>	debugName;
 		};
 

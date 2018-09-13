@@ -12,7 +12,7 @@ namespace FG
 {
 
 	//
-	// Fixed Map
+	// Fixed Size Map
 	//
 
 	template <typename Key, typename Value, size_t ArraySize>
