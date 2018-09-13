@@ -6,7 +6,7 @@ Generate project with CMake and build.<br/>
 Required C++17 standard support.
 
 CMake version 3.11 and greater will download all dependencies during configuration time.<br/>
-If it didn't, manualy download dependencies into 'external' directory or specify FG_EXTERNAL_PATH in cmake.
+If it didn't, manualy download dependencies into 'external' directory or in cmake specify FG_EXTERNAL_xxx pathes for each dependency.
 
 Dependencies:<br/>
 [Vulkan-headers](https://github.com/KhronosGroup/Vulkan-Headers) or [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) - required.<br/>
