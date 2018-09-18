@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	Map emulation on static array with linear search.
 	Use only for small number of elements.
@@ -143,16 +143,6 @@ namespace FG
 
 namespace std
 {
-	template <typename First, typename Second>
-	struct hash< FG::Pair<First, Second> >
-	{
-		ND_ size_t  operator () (const FG::Pair<First, Second> &value) const noexcept
-		{
-			return size_t(FG::HashOf( value.first ) + FG::HashOf( value.second ));
-		}
-	};
-
-
 	template <typename Key, typename Value, size_t ArraySize>
 	struct hash< FG::FixedMap<Key, Value, ArraySize> >
 	{

@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -94,20 +94,33 @@ namespace FG
 		ASSERT( ptr and sizeInBytes );
 
 		// MS Visual C++ std implementation
-		#if defined(_MSC_VER)
+		#if defined(COMPILER_MSVC)
 		# if defined(_HASH_SEQ_DEFINED)
 			return HashVal{std::_Hash_seq( static_cast<const unsigned char*>(ptr), sizeInBytes )};
 		# elif _MSC_VER >= 1911
 			return HashVal{std::_Hash_bytes( static_cast<const unsigned char*>(ptr), sizeInBytes )};
 		# endif
-		#elif defined(__clang__)
+		#elif defined(COMPILER_CLANG)
 			return HashVal{std::__murmur2_or_cityhash<size_t>()( ptr, sizeInBytes )};
-		#elif defined(__GNUC__) or defined(__MINGW32__)
+		#elif defined(COMPILER_GCC)
 			return HashVal{std::_Hash_bytes( ptr, sizeInBytes, 0 )};
 		#else
 			#error "hash function not defined!"
 		#endif
 	}
 
-
 }	// FG
+
+
+namespace std
+{
+	template <typename First, typename Second>
+	struct hash< std::pair<First, Second> >
+	{
+		ND_ size_t  operator () (const std::pair<First, Second> &value) const noexcept
+		{
+			return size_t(FG::HashOf( value.first ) + FG::HashOf( value.second ));
+		}
+	};
+
+}	// std

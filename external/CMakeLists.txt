@@ -16,6 +16,7 @@ include( "${CMAKE_SOURCE_DIR}/cmake/download_glslang.cmake" )
 include( "${CMAKE_SOURCE_DIR}/cmake/download_vma.cmake" )
 include( "${CMAKE_SOURCE_DIR}/cmake/download_sdl2.cmake" )
 include( "${CMAKE_SOURCE_DIR}/cmake/download_glfw.cmake" )
+include( "${CMAKE_SOURCE_DIR}/cmake/download_sfml.cmake" )
 include( "${CMAKE_SOURCE_DIR}/cmake/download_lodepng.cmake" )
 
 

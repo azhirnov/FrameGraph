@@ -1,8 +1,8 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanDevice.h"
-#include "stl/include/StringUtils.h"
 #include "stl/include/StaticString.h"
+#include "stl/include/StringUtils.h"
 #include "stl/include/EnumUtils.h"
 #include "stl/include/Cast.h"
 
@@ -19,7 +19,6 @@ namespace FG
 		_vkSurface{ VK_NULL_HANDLE },
 		_vkPhysicalDevice{ VK_NULL_HANDLE },
 		_vkInstance{ VK_NULL_HANDLE },
-		_debugReportSupported{ false },
 		_usedSharedInstance{ false }
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
@@ -37,26 +36,81 @@ namespace FG
 	
 /*
 =================================================
+	GetRecomendedInstanceLayers
+=================================================
+*/
+	ArrayView<const char*>  VulkanDevice::GetRecomendedInstanceLayers ()
+	{
+		static const char*	instance_layers[] = {
+			"VK_LAYER_LUNARG_standard_validation",
+			"VK_LAYER_LUNARG_assistant_layer",
+			"VK_LAYER_LUNARG_core_validation",
+			"VK_LAYER_GOOGLE_threading",
+			"VK_LAYER_GOOGLE_unique_objects",
+			"VK_LAYER_LUNARG_parameter_validation",
+			"VK_LAYER_LUNARG_object_tracker",
+			"VK_LAYER_ARM_mali_perf_doc"
+		};
+		return instance_layers;
+	}
+	
+/*
+=================================================
+	GetRecomendedInstanceExtensions
+=================================================
+*/
+	ArrayView<const char*>  VulkanDevice::GetRecomendedInstanceExtensions ()
+	{
+		static const char*	instance_extensions[] = {
+			VK_KHR_SURFACE_EXTENSION_NAME,
+			VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+			VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+		};
+		return instance_extensions;
+	}
+
+/*
+=================================================
+	GetRecomendedDeviceExtensions
+=================================================
+*/
+	ArrayView<const char*>  VulkanDevice::GetRecomendedDeviceExtensions ()
+	{
+		static const char *	device_extensions[] = {
+			VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+			VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+			VK_EXT_DEBUG_MARKER_EXTENSION_NAME
+		};
+		return device_extensions;
+	}
+
+/*
+=================================================
 	Create
 =================================================
 */
-	bool VulkanDevice::Create (UniquePtr<IVulkanSurface> &&surf, StringView appName, uint version,
-							   StringView deviceName, ArrayView<QueueCreateInfo> queues)
+	bool VulkanDevice::Create (UniquePtr<IVulkanSurface>&&	surface,
+							   StringView					appName,
+							   const uint					version,
+							   StringView					deviceName,
+							   ArrayView<QueueCreateInfo>	queues,
+							   ArrayView<const char*>		instanceLayers,
+							   ArrayView<const char*>		instanceExtensions,
+							   ArrayView<const char*>		deviceExtensions)
 	{
-		CHECK_ERR( surf );
+		CHECK_ERR( surface );
 
-		CHECK_ERR( _CreateInstance( appName, std::move(surf->GetRequiredExtensions()), version ));
+		Array<const char*>	inst_ext { surface->GetRequiredExtensions() };
+		inst_ext.insert( inst_ext.end(), instanceExtensions.begin(), instanceExtensions.end() );
+
+		CHECK_ERR( _CreateInstance( appName, instanceLayers, std::move(inst_ext), version ));
 		CHECK_ERR( _ChooseGpuDevice( deviceName ));
 
-		_vkSurface = surf->Create( _vkInstance );
+		_vkSurface = surface->Create( _vkInstance );
 		CHECK_ERR( _vkSurface );
 		
 		CHECK_ERR( _SetupQueues( queues ));
-		CHECK_ERR( _CreateDevice() );
-		
-		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &_deviceFeatures );
-		vkGetPhysicalDeviceProperties( _vkPhysicalDevice, OUT &_deviceProperties );
-		vkGetPhysicalDeviceMemoryProperties( _vkPhysicalDevice, OUT &_deviceMemoryProperties );
+		CHECK_ERR( _CreateDevice( deviceExtensions ));
 
 		return true;
 	}
@@ -66,7 +120,11 @@ namespace FG
 	Create
 =================================================
 */
-	bool VulkanDevice::Create (VkInstance instance, UniquePtr<IVulkanSurface> &&surf, StringView deviceName, ArrayView<QueueCreateInfo> queues)
+	bool VulkanDevice::Create (VkInstance					instance,
+							   UniquePtr<IVulkanSurface>&&	surface,
+							   StringView					deviceName,
+							   ArrayView<QueueCreateInfo>	queues,
+							   ArrayView<const char*>		deviceExtensions)
 	{
 		CHECK_ERR( instance );
 
@@ -78,13 +136,13 @@ namespace FG
 
 		CHECK_ERR( _ChooseGpuDevice( deviceName ));
 
-		if ( surf ) {
-			_vkSurface = surf->Create( _vkInstance );
+		if ( surface ) {
+			_vkSurface = surface->Create( _vkInstance );
 			CHECK_ERR( _vkSurface );
 		}
 
 		CHECK_ERR( _SetupQueues( queues ));
-		CHECK_ERR( _CreateDevice() );
+		CHECK_ERR( _CreateDevice( deviceExtensions ));
 		
 		return true;
 	}
@@ -104,29 +162,16 @@ namespace FG
 	_CreateInstance
 =================================================
 */
-	bool VulkanDevice::_CreateInstance (StringView appName, Array<const char*> &&instanceExtensions, uint version)
+	bool VulkanDevice::_CreateInstance (StringView appName, ArrayView<const char*> layers, Array<const char*> &&extensions, uint version)
 	{
 		CHECK_ERR( not _vkInstance );
 		CHECK_ERR( VulkanLoader::Initialize() );
 		
-		Array< const char* >	instance_layers		= { "VK_LAYER_LUNARG_standard_validation",
-														"VK_LAYER_LUNARG_assistant_layer",
-														"VK_LAYER_LUNARG_core_validation",
-														"VK_LAYER_GOOGLE_threading",
-														"VK_LAYER_GOOGLE_unique_objects",
-														"VK_LAYER_LUNARG_parameter_validation",
-														"VK_LAYER_LUNARG_object_tracker",
-														"VK_LAYER_ARM_mali_perf_doc" };
-
-		Array< const char* >	instance_extensions	= std::move(instanceExtensions);
-		
-		instance_extensions.push_back( VK_KHR_SURFACE_EXTENSION_NAME );
-		instance_extensions.push_back( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
-		instance_extensions.push_back( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
-		instance_extensions.push_back( VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME );
+		Array< const char* >	instance_layers;
+		instance_layers.assign( layers.begin(), layers.end() );
 
         _ValidateInstanceLayers( INOUT instance_layers );
-		_ValidateInstanceExtensions( INOUT instance_extensions );
+		_ValidateInstanceExtensions( INOUT extensions );
 
 
 		VkApplicationInfo		app_info = {};
@@ -140,8 +185,8 @@ namespace FG
 		VkInstanceCreateInfo			instance_create_info = {};
 		instance_create_info.sType						= VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instance_create_info.pApplicationInfo			= &app_info;
-		instance_create_info.enabledExtensionCount		= uint(instance_extensions.size());
-		instance_create_info.ppEnabledExtensionNames	= instance_extensions.data();
+		instance_create_info.enabledExtensionCount		= uint(extensions.size());
+		instance_create_info.ppEnabledExtensionNames	= extensions.data();
 		instance_create_info.enabledLayerCount			= uint(instance_layers.size());
 		instance_create_info.ppEnabledLayerNames		= instance_layers.data();
 
@@ -149,11 +194,7 @@ namespace FG
 
 		VulkanLoader::LoadInstance( _vkInstance );
 
-		for (auto& ext : instance_extensions)
-		{
-			if ( StringView(ext) == VK_EXT_DEBUG_REPORT_EXTENSION_NAME )
-				_debugReportSupported = true;
-		}
+		_OnInstanceCreated( std::move(instance_layers), std::move(extensions) );
 		return true;
 	}
 
@@ -300,12 +341,12 @@ namespace FG
 
 /*
 =================================================
-	GetVendorNameByID
+	_GetVendorNameByID
 ----
 	from https://www.reddit.com/r/vulkan/comments/4ta9nj/is_there_a_comprehensive_list_of_the_names_and/
 =================================================
 */
-	ND_ static StringView  GetVendorNameByID (uint id)
+	StringView  VulkanDevice::_GetVendorNameByID (uint id)
 	{
 		switch ( id )
 		{
@@ -367,8 +408,8 @@ namespace FG
 										float(feat.tessellationShader + feat.geometryShader);
 
 			const bool		nmatch	=	not deviceName.empty()							and
-										HasSubStringIC( prop.deviceName, deviceName )	or
-										HasSubStringIC( GetVendorNameByID( prop.vendorID ), deviceName );
+                                        (HasSubStringIC( prop.deviceName, deviceName )	or
+                                         HasSubStringIC( _GetVendorNameByID( prop.vendorID ), deviceName ));
 
 			if ( perf > max_performance ) {
 				max_performance		= perf;
@@ -382,28 +423,8 @@ namespace FG
 			
 		_vkPhysicalDevice = (match_name_device ? match_name_device : high_perf_device);
 		CHECK_ERR( _vkPhysicalDevice );
-		
-		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &_deviceFeatures );
-		vkGetPhysicalDeviceProperties( _vkPhysicalDevice, OUT &_deviceProperties );
-		vkGetPhysicalDeviceMemoryProperties( _vkPhysicalDevice, OUT &_deviceMemoryProperties );
 
-		_WriteDeviceInfo();
 		return true;
-	}
-	
-/*
-=================================================
-	_WriteDeviceInfo
-=================================================
-*/
-	void VulkanDevice::_WriteDeviceInfo ()
-	{
-		FG_LOGI( "apiVersion:  "s << ToString(VK_VERSION_MAJOR( _deviceProperties.apiVersion )) << '.' <<
-				 ToString(VK_VERSION_MINOR( _deviceProperties.apiVersion )) << ' ' <<
-				 ToString(VK_VERSION_PATCH( _deviceProperties.apiVersion )) );
-		
-		FG_LOGI( "vendorName:  "s << GetVendorNameByID( _deviceProperties.vendorID ) );
-		FG_LOGI( "deviceName:  "s << _deviceProperties.deviceName );
 	}
 
 /*
@@ -448,7 +469,7 @@ namespace FG
 	_CreateDevice
 =================================================
 */
-	bool VulkanDevice::_CreateDevice ()
+	bool VulkanDevice::_CreateDevice (ArrayView<const char*> extensions)
 	{
 		CHECK_ERR( _vkPhysicalDevice );
 		CHECK_ERR( not _vkDevice );
@@ -460,9 +481,12 @@ namespace FG
 
 
 		// setup extensions
-		Array<const char *>		device_extensions = { VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-													  VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
-													  VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		Array<const char *>		device_extensions;
+		device_extensions.assign( extensions.begin(), extensions.end() );
+
+		if ( _vkSurface )
+			device_extensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
+
 		_ValidateDeviceExtensions( INOUT device_extensions );
 
 		if ( not device_extensions.empty() )
@@ -526,127 +550,7 @@ namespace FG
 			vkGetDeviceQueue( _vkDevice, q.familyIndex, q.queueIndex, OUT &q.id );
 		}
 
-		return true;
-	}
-
-/*
-=================================================
-	DebugReportObjectTypeToString
-=================================================
-*/
-	String  DebugReportObjectTypeToString (VkDebugReportObjectTypeEXT objType)
-	{
-		ENABLE_ENUM_CHECKS();
-		switch ( objType )
-		{
-			case VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT			: return "Instance";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT	: return "PhysicalDevice";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT				: return "Device";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT				: return "Queue";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT			: return "Semaphore";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT		: return "CommandBuffer";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT				: return "Fence";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT		: return "DeviceMemory";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT				: return "Buffer";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT				: return "Image";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT				: return "Event";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT			: return "QueryPool";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT		: return "BufferView";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT			: return "ImageView";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT		: return "ShaderModule";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_CACHE_EXT		: return "PipelineCache";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT	: return "PipelineLayout";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT		: return "RenderPass";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT			: return "Pipeline";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT	: return "DescriptorSetLayout";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT			: return "Sampler";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_POOL_EXT	: return "DescriptorPool";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT		: return "DescriptorSet";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT		: return "Framebuffer";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT		: return "CommandPool";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT		: return "Surface";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT		: return "Swapchain";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT		: return "DebugReport";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT		: return "Display";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT	: return "DisplayMode";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT	: return "ObjectTableNvx";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT	: return "IndirectCommandsLayoutNvx";
-
-			case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_RANGE_SIZE_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT :
-				break;	// used to shutup compilation warnings
-		}
-		DISABLE_ENUM_CHECKS();
-
-		CHECK(	objType >= VK_DEBUG_REPORT_OBJECT_TYPE_BEGIN_RANGE_EXT and
-				objType <= VK_DEBUG_REPORT_OBJECT_TYPE_END_RANGE_EXT );
-		return "unknown";
-	}
-
-/*
-=================================================
-	_DebugReportCallback
-=================================================
-*/
-	VkBool32 VKAPI_CALL VulkanDevice::_DebugReportCallback (VkDebugReportFlagsEXT flags,
-															VkDebugReportObjectTypeEXT objectType,
-															uint64_t object,
-															size_t /*location*/,
-															int32_t /*messageCode*/,
-															const char* pLayerPrefix,
-															const char* pMessage,
-															void* pUserData)
-	{
-		static_cast<VulkanDevice *>(pUserData)->_DebugReport( flags, DebugReportObjectTypeToString(objectType), object, pLayerPrefix, pMessage );
-		return VK_FALSE;
-	}
-	
-/*
-=================================================
-	_DebugReport
-=================================================
-*/
-	void VulkanDevice::_DebugReport (VkDebugReportFlagsEXT flags, StringView objectType, uint64_t object, StringView layerPrefix, StringView message) const
-	{
-		if ( _callback )
-			return _callback({ flags, objectType, object, layerPrefix, message });
-		
-
-		if ( (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) )
-		{
-			FG_LOGE( "Error in object '"s << objectType << "' (" << ToString(object) << "), layer: " << layerPrefix << ", message: " << message );
-		}
-		else
-		{
-			FG_LOGI( "Info message in object '"s << objectType << "' (" << ToString(object) << "), layer: " << layerPrefix << ", message: " << message );
-		}
-	}
-
-/*
-=================================================
-	CreateDebugCallback
-=================================================
-*/
-	bool VulkanDevice::CreateDebugCallback (VkDebugReportFlagsEXT flags, DebugReport_t &&callback)
-	{
-		CHECK_ERR( _vkDevice );
-		CHECK_ERR( not _debugCallback );
-		CHECK_ERR( _debugReportSupported );
-		
-		VkDebugReportCallbackCreateInfoEXT	dbg_callback_info = {};
-
-		dbg_callback_info.sType			= VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-		dbg_callback_info.flags			= flags;
-		dbg_callback_info.pfnCallback	= _DebugReportCallback;
-		dbg_callback_info.pUserData		= this;
-
-		VK_CHECK( vkCreateDebugReportCallbackEXT( _vkInstance, &dbg_callback_info, null, OUT &_debugCallback ) );
-
-		_callback = std::move(callback);
+		_OnLogicalDeviceCreated( std::move(device_extensions) );
 		return true;
 	}
 
@@ -699,9 +603,7 @@ namespace FG
 */
 	void VulkanDevice::_DestroyDevice ()
 	{
-		if ( _debugCallback ) {
-			vkDestroyDebugReportCallbackEXT( _vkInstance, _debugCallback, null );
-		}
+		_BeforeDestroy();
 
 		if ( _vkDevice ) {
 			vkDestroyDevice( _vkDevice, null );
@@ -719,12 +621,10 @@ namespace FG
 		_vkInstance				= VK_NULL_HANDLE;
 		_vkPhysicalDevice		= VK_NULL_HANDLE;
 		_vkDevice				= VK_NULL_HANDLE;
-		_debugCallback			= VK_NULL_HANDLE;
-		_debugReportSupported	= false;
 		_usedSharedInstance		= false;
-		
 		_vkQueues.clear();
-		_callback		= DebugReport_t();
+
+		_AfterDestroy();
 	}
 
 }	// FG

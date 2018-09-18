@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -89,8 +89,6 @@ struct DebugInstanceCounter
 
 	static bool CheckStatistic ()
 	{
-		using namespace std::string_literals;
-
 		String	str;
 		str << "\nObjectID:    " << ToString( UID )
 			<< "\nObj counter: " << ToString( _counter )

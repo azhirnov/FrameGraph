@@ -1,7 +1,9 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/include/StringUtils.h"
-#include "VulkanCommon.h"
+
+#	define VK_NO_PROTOTYPES
+#	include <vulkan/vulkan.h>
 
 namespace FG
 {
@@ -21,6 +23,7 @@ namespace FG
 		
 		String	msg( "Vulkan error: " );
 
+		ENABLE_ENUM_CHECKS();
 		switch ( errCode )
 		{
 			VK1_CASE_ERR( VK_NOT_READY )
@@ -49,9 +52,14 @@ namespace FG
 			VK1_CASE_ERR( VK_ERROR_INVALID_SHADER_NV )
 			VK1_CASE_ERR( VK_ERROR_OUT_OF_POOL_MEMORY )
 			VK1_CASE_ERR( VK_ERROR_INVALID_EXTERNAL_HANDLE )
-			VK1_CASE_ERR( VK_RESULT_MAX_ENUM )
+			VK1_CASE_ERR( VK_ERROR_FRAGMENTATION_EXT )
+			VK1_CASE_ERR( VK_ERROR_NOT_PERMITTED_EXT )
+			case VK_SUCCESS :
+			case VK_RESULT_RANGE_SIZE :
+			case VK_RESULT_MAX_ENUM :
 			default :	msg = msg + "unknown (" + ToString(int(errCode)) + ')';  break;
 		}
+		DISABLE_ENUM_CHECKS();
 		#undef VK1_CASE_ERR
 		
 		msg = msg + ", in " + vkcall + ", function: " + func;

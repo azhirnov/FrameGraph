@@ -6,7 +6,7 @@ if (${FG_ENABLE_GLFW})
 	# reset to default
 	if (NOT EXISTS ${FG_EXTERNAL_GLFW_PATH})
 		message( STATUS "glfw is not found in \"${FG_EXTERNAL_GLFW_PATH}\"" )
-		set( FG_EXTERNAL_GLFW_PATH "${FG_EXTERNALS_PATH}/glfw" CACHE PATH "1" FORCE )
+		set( FG_EXTERNAL_GLFW_PATH "${FG_EXTERNALS_PATH}/glfw" CACHE PATH "" FORCE )
 	endif ()
 	
 	# download
@@ -19,15 +19,15 @@ if (${FG_ENABLE_GLFW})
 		
 		FetchContent_GetProperties( ExternalDownloadGLFW )
 		if (NOT ExternalDownloadGLFW_POPULATED)
-			message( STATUS "download glfw" )
+			message( STATUS "downloading glfw" )
 			FetchContent_Populate( ExternalDownloadGLFW )
 		endif ()
 	endif ()
 		
-	set( GLFW_INSTALL OFF CACHE BOOL "glfw option" )
-	set( GLFW_BUILD_TESTS OFF CACHE BOOL "glfw option" )
-	set( GLFW_BUILD_EXAMPLES OFF CACHE BOOL "glfw option" )
-	set( GLFW_BUILD_DOCS OFF CACHE BOOL "glfw option" )
+	set( GLFW_INSTALL OFF CACHE BOOL "glfw option" FORCE )
+	set( GLFW_BUILD_TESTS OFF CACHE BOOL "glfw option" FORCE )
+	set( GLFW_BUILD_EXAMPLES OFF CACHE BOOL "glfw option" FORCE )
+	set( GLFW_BUILD_DOCS OFF CACHE BOOL "glfw option" FORCE )
 	
 	add_subdirectory( "${FG_EXTERNAL_GLFW_PATH}" "glfw" )
 	set_property( TARGET "glfw" PROPERTY FOLDER "External" )

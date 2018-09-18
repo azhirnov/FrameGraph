@@ -1,8 +1,9 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
-#include "VulkanDevice.h"
+#include "framework/Vulkan/VulkanDevice.h"
+#include <chrono>
 
 namespace FG
 {
@@ -21,6 +22,8 @@ namespace FG
 			VkImageView		view;
 		};
 		using SwapChainBuffers_t	= FixedArray< SwapchainBuffer, FG_MaxSwapchainLength >;
+
+		using TimePoint_t			= std::chrono::time_point< std::chrono::high_resolution_clock >;
 
 
 	// variables
@@ -45,6 +48,12 @@ namespace FG
 		VkPresentModeKHR				_presentMode;
 		VkCompositeAlphaFlagBitsKHR		_compositeAlpha;
 		VkImageUsageFlags				_colorImageUsage;
+
+		// FPS counter
+		TimePoint_t						_lastFpsUpdateTime;
+		uint							_frameCounter;
+		float							_currentFPS;
+		static constexpr uint			_fpsUpdateIntervalMillis	= 500;
 
 
 	// methods
@@ -73,8 +82,10 @@ namespace FG
 		bool Recreate (const uint2 &size);
 
 		ND_ VkResult  AcquireNextImage ();
+		ND_ VkResult  AcquireNextImage (VkSemaphore imageAvailable);
 
 		bool Present (VkQueue queue);
+		bool Present (VkQueue queue, VkSemaphore renderFinished);
 
 
 		ND_ VkSwapchainKHR				GetVkSwapchain ()				const	{ return _vkSwapchain; }
@@ -93,6 +104,8 @@ namespace FG
 		ND_ VkImage						GetCurrentImage ()				const;
 		ND_ VkImageView					GetCurrentImageView ()			const;
 
+		ND_ float						GetFramesPerSecond ()			const	{ return _currentFPS; }
+
 
 	private:
 		VulkanSwapchain ();
@@ -107,6 +120,8 @@ namespace FG
 
 		bool _CreateColorAttachment ();
 		bool _CreateSemaphores ();
+
+		void _UpdateFPS ();
 	};
 
 

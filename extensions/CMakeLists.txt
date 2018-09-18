@@ -8,26 +8,23 @@ set( SOURCES
 	"vulkan_loader/fn_vulkan_dev.h"
 	"vulkan_loader/fn_vulkan_inst.h"
 	"vulkan_loader/fn_vulkan_lib.h"
-	"vulkan_loader/VulkanCommon.cpp"
-	"vulkan_loader/VulkanCommon.h"
+	"vulkan_loader/VulkanCheckError.cpp"
+	"vulkan_loader/VulkanCheckError.h"
 	"vulkan_loader/VulkanLoader.cpp"
-	"vulkan_loader/vulkanloader.h" )
+	"vulkan_loader/VulkanLoader.h" )
 add_library( "VulkanLoader" STATIC ${SOURCES} )
-source_group( "" FILES "vulkan_loader/fn_vulkan_dev.h" "vulkan_loader/fn_vulkan_inst.h" "vulkan_loader/fn_vulkan_lib.h" "vulkan_loader/VulkanCommon.cpp" "vulkan_loader/VulkanCommon.h" "vulkan_loader/VulkanLoader.cpp" "vulkan_loader/vulkanloader.h" )
+source_group( "" FILES "vulkan_loader/fn_vulkan_dev.h" "vulkan_loader/fn_vulkan_inst.h" "vulkan_loader/fn_vulkan_lib.h" "vulkan_loader/VulkanCheckError.cpp" "vulkan_loader/VulkanCheckError.h" "vulkan_loader/VulkanLoader.cpp" "vulkan_loader/VulkanLoader.h" )
 set_property( TARGET "VulkanLoader" PROPERTY FOLDER "Extensions" )
 target_include_directories( "VulkanLoader" PUBLIC "${Vulkan_INCLUDE_DIRS}" )
 target_include_directories( "VulkanLoader" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "VulkanLoader" PRIVATE ".." )
 target_link_libraries( "VulkanLoader" "STL" )
 # compiler
-target_compile_options( "VulkanLoader" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUGANALYZE}> )
 target_compile_definitions( "VulkanLoader" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-target_compile_definitions( "VulkanLoader" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_DEFINES_DEBUGANALYZE}> )
 set_target_properties( "VulkanLoader" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
 target_compile_definitions( "VulkanLoader" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
 target_compile_options( "VulkanLoader" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
 set_target_properties( "VulkanLoader" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-set_target_properties( "VulkanLoader" PROPERTIES LINK_FLAGS_DEBUGANALYZE ${PROJECTS_SHARED_LINKER_FLAGS_DEBUGANALYZE} )
 target_compile_options( "VulkanLoader" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
 set_target_properties( "VulkanLoader" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
 target_compile_options( "VulkanLoader" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
@@ -55,21 +52,21 @@ if (${FG_ENABLE_GLSLANG})
 	target_include_directories( "PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "PipelineCompiler" PRIVATE ".." )
 	target_include_directories( "PipelineCompiler" PRIVATE "pipeline_compiler" )
-	target_link_libraries( "PipelineCompiler" "VulkanLoader" )
+	if (UNIX)
+		target_link_libraries( "PipelineCompiler" "pthread" )
+	endif()
+	target_link_libraries( "PipelineCompiler" "FrameGraph" )
 	target_link_libraries( "PipelineCompiler" "OSDependent" )
 	target_link_libraries( "PipelineCompiler" "HLSL" )
 	target_link_libraries( "PipelineCompiler" "SPIRV" )
 	target_link_libraries( "PipelineCompiler" "glslang" )
 	target_link_libraries( "PipelineCompiler" "OGLCompiler" )
 	# compiler
-	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUGANALYZE}> )
 	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_DEFINES_DEBUGANALYZE}> )
 	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
 	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
 	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
 	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUGANALYZE ${PROJECTS_SHARED_LINKER_FLAGS_DEBUGANALYZE} )
 	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
 	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
 	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
@@ -111,14 +108,11 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS})
 		target_link_libraries( "Tests.PipelineCompiler" "PipelineCompiler" )
 	endif()
 	# compiler
-	target_compile_options( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUGANALYZE}> )
 	target_compile_definitions( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	target_compile_definitions( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_DEFINES_DEBUGANALYZE}> )
 	set_target_properties( "Tests.PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
 	target_compile_definitions( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
 	target_compile_options( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
 	set_target_properties( "Tests.PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	set_target_properties( "Tests.PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUGANALYZE ${PROJECTS_SHARED_LINKER_FLAGS_DEBUGANALYZE} )
 	target_compile_options( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
 	set_target_properties( "Tests.PipelineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
 	target_compile_options( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
@@ -136,13 +130,19 @@ set( SOURCES
 	"framework/Window/WindowGLFW.h"
 	"framework/Window/WindowSDL2.cpp"
 	"framework/Window/WindowSDL2.h"
+	"framework/Window/WindowSFML.cpp"
+	"framework/Window/WindowSFML.h"
 	"framework/Vulkan/VulkanDevice.cpp"
 	"framework/Vulkan/VulkanDevice.h"
+	"framework/Vulkan/VulkanDeviceExt.cpp"
+	"framework/Vulkan/VulkanDeviceExt.h"
+	"framework/Vulkan/VulkanSurface.cpp"
+	"framework/Vulkan/VulkanSurface.h"
 	"framework/Vulkan/VulkanSwapchain.cpp"
 	"framework/Vulkan/VulkanSwapchain.h" )
 add_library( "Framework" STATIC ${SOURCES} )
-source_group( "Window" FILES "framework/Window/IWindow.h" "framework/Window/WindowGLFW.cpp" "framework/Window/WindowGLFW.h" "framework/Window/WindowSDL2.cpp" "framework/Window/WindowSDL2.h" )
-source_group( "Vulkan" FILES "framework/Vulkan/VulkanDevice.cpp" "framework/Vulkan/VulkanDevice.h" "framework/Vulkan/VulkanSwapchain.cpp" "framework/Vulkan/VulkanSwapchain.h" )
+source_group( "Window" FILES "framework/Window/IWindow.h" "framework/Window/WindowGLFW.cpp" "framework/Window/WindowGLFW.h" "framework/Window/WindowSDL2.cpp" "framework/Window/WindowSDL2.h" "framework/Window/WindowSFML.cpp" "framework/Window/WindowSFML.h" )
+source_group( "Vulkan" FILES "framework/Vulkan/VulkanDevice.cpp" "framework/Vulkan/VulkanDevice.h" "framework/Vulkan/VulkanDeviceExt.cpp" "framework/Vulkan/VulkanDeviceExt.h" "framework/Vulkan/VulkanSurface.cpp" "framework/Vulkan/VulkanSurface.h" "framework/Vulkan/VulkanSwapchain.cpp" "framework/Vulkan/VulkanSwapchain.h" )
 set_property( TARGET "Framework" PROPERTY FOLDER "Extensions" )
 target_include_directories( "Framework" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "Framework" PRIVATE ".." )
@@ -151,20 +151,20 @@ target_include_directories( "Framework" PRIVATE "framework" )
 if (${FG_ENABLE_GLFW})
 	target_link_libraries( "Framework" "glfw" )
 endif()
+if (${FG_ENABLE_SFML})
+	target_link_libraries( "Framework" "sfml-window" )
+endif()
 if (${FG_ENABLE_SDL2})
 	target_link_libraries( "Framework" "SDL2-static" )
 endif()
 target_link_libraries( "Framework" "VulkanLoader" )
 target_link_libraries( "Framework" "STL" )
 # compiler
-target_compile_options( "Framework" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUGANALYZE}> )
 target_compile_definitions( "Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-target_compile_definitions( "Framework" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_DEFINES_DEBUGANALYZE}> )
 set_target_properties( "Framework" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
 target_compile_definitions( "Framework" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
 target_compile_options( "Framework" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
 set_target_properties( "Framework" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-set_target_properties( "Framework" PROPERTIES LINK_FLAGS_DEBUGANALYZE ${PROJECTS_SHARED_LINKER_FLAGS_DEBUGANALYZE} )
 target_compile_options( "Framework" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
 set_target_properties( "Framework" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
 target_compile_options( "Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
@@ -196,18 +196,18 @@ if (${FG_ENABLE_TESTS})
 	target_include_directories( "Tests.Framework" PRIVATE "" )
 	target_link_libraries( "Tests.Framework" "Framework" )
 	# compiler
-	target_compile_options( "Tests.Framework" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUGANALYZE}> )
 	target_compile_definitions( "Tests.Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	target_compile_definitions( "Tests.Framework" PRIVATE $<$<CONFIG:DebugAnalyze>: ${PROJECTS_SHARED_DEFINES_DEBUGANALYZE}> )
 	set_target_properties( "Tests.Framework" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
 	target_compile_definitions( "Tests.Framework" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
 	target_compile_options( "Tests.Framework" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
 	set_target_properties( "Tests.Framework" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	set_target_properties( "Tests.Framework" PROPERTIES LINK_FLAGS_DEBUGANALYZE ${PROJECTS_SHARED_LINKER_FLAGS_DEBUGANALYZE} )
 	target_compile_options( "Tests.Framework" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
 	set_target_properties( "Tests.Framework" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
 	target_compile_options( "Tests.Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
 	target_compile_definitions( "Tests.Framework" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
 endif()
+
+
+add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
 

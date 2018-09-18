@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "Utils.h"
 #include <iostream>
@@ -31,6 +31,3 @@ int main ()
     DEBUG_ONLY( std::cin.ignore() );
 	return 0;
 }
-
-// temp
-#include "framegraph/Shared/Pipeline.cpp"

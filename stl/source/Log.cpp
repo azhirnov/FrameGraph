@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/include/StringUtils.h"
 #include <iostream>
@@ -26,7 +26,7 @@ using namespace FG;
 
 
 // Android
-#if	(defined( ANDROID ) or defined( __ANDROID__ ))
+#if	defined(PLATFORM_ANDROID)
 
 #	include <android/log.h>
 
@@ -56,10 +56,9 @@ using namespace FG;
 
 
 // Windows
-#elif (defined( _WIN32 ) || defined( _WIN64 ) || defined( WIN32 ) || defined( WIN64 ) || \
-	   defined( __CYGWIN__ ) || defined( __MINGW32__ ) || defined( __MINGW32__ ))
+#elif defined(PLATFORM_WINDOWS)
 
-# ifdef _MSC_VER
+# ifdef COMPILER_MSVC
 #	pragma warning (push, 0)
 #	include <Windows.h>
 #	pragma warning (pop)
@@ -74,7 +73,7 @@ using namespace FG;
 */
     static void IDEConsoleMessage (StringView message, StringView file, int line, bool isError)
 	{
-	#ifdef _MSC_VER
+	#ifdef COMPILER_MSVC
         const String	str = String(file) << '(' << ToString( line ) << "): " << (isError ? "Error: " : "") << message << '\n';
 
 		::OutputDebugStringA( str.data() );
@@ -127,7 +126,7 @@ using namespace FG;
 
 
 // OSX
-#elif (defined( __APPLE__ ) || defined( MACOSX )) 
+#elif defined(PLATFORM_MACOS) or defined(PLATFORM_IOS)
 
 /*
 =================================================
@@ -155,7 +154,7 @@ using namespace FG;
 
 
 // Linux
-#elif (defined( __linux__ ) || defined( __gnu_linux__ ))
+#elif defined(PLATFORM_LINUX)
 
 // sudo apt-get install lesstif2-dev
 //#include <Xm/Xm.h>
@@ -204,7 +203,7 @@ using namespace FG;
 
 
 // FreeBSD
-#elif (defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__))
+#elif 0	// TODO
 
 /*
 =================================================

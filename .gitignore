@@ -6,3 +6,4 @@
 /external/Vulkan-Headers
 /external/VulkanMemoryAllocator
 CMakeLists.txt.user
+/external/SFML

@@ -6,7 +6,7 @@ if (${FG_ENABLE_SDL2})
 	# reset to default
 	if (NOT EXISTS ${FG_EXTERNAL_SDL2_PATH})
 		message( STATUS "SDL2 is not found in ${FG_EXTERNAL_SDL2_PATH}" )
-		set( FG_EXTERNAL_SDL2_PATH "${FG_EXTERNALS_PATH}/SDL2" CACHE PATH "1" FORCE )
+		set( FG_EXTERNAL_SDL2_PATH "${FG_EXTERNALS_PATH}/SDL2" CACHE PATH "" FORCE )
 	endif ()
 	
 	# download
@@ -18,13 +18,13 @@ if (${FG_ENABLE_SDL2})
 		
 		FetchContent_GetProperties( ExternalDownloadSDL2 )
 		if (NOT ExternalDownloadSDL2_POPULATED)
-			message( STATUS "download SDL2" )
+			message( STATUS "downloading SDL2" )
 			FetchContent_Populate( ExternalDownloadSDL2 )
 		endif ()
 	endif ()
 	
-	set( SDL_SHARED OFF CACHE BOOL "SDL2 option" )
-	set( SDL_STATIC ON CACHE BOOL "SDL2 option" )
+	set( SDL_SHARED OFF CACHE BOOL "SDL2 option" FORCE )
+	set( SDL_STATIC ON CACHE BOOL "SDL2 option" FORCE )
 
 	add_subdirectory( "${FG_EXTERNAL_SDL2_PATH}" "SDL2" )
 	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "-DFG_ENABLE_SDL2" )

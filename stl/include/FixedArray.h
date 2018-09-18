@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -24,7 +24,7 @@ namespace FG
 	private:
 		union {
 			T			_array[ ArraySize ];
-			char		_data[ ArraySize * sizeof(T) ];
+			char		_data[ ArraySize * sizeof(T) ];		// debug viewer, don't use this field!
 		};
 		size_t			_count	= 0;
 

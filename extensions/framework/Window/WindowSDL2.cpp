@@ -1,6 +1,7 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framework/Window/WindowSDL2.h"
+#include "WindowSDL2.h"
+#include "framework/Vulkan/VulkanSurface.h"
 #include "stl/include/Singleton.h"
 
 #ifdef FG_ENABLE_SDL2
@@ -44,8 +45,10 @@ namespace {
 	Create
 =================================================
 */
-	bool WindowSDL2::Create (uint2 surfaceSize, StringView caption, IWindowEventListener *listener)
+	bool WindowSDL2::Create (uint2 surfaceSize, StringView title, IWindowEventListener *listener)
 	{
+		CHECK_ERR( not _window );
+
 		auto&	inst = *Singleton<SDL2Instance>();
 
 		if ( not inst.initialized )
@@ -66,7 +69,7 @@ namespace {
 
 		const uint	flags	= int(SDL_WINDOW_ALLOW_HIGHDPI) | int(SDL_WINDOW_RESIZABLE);
 
-		CHECK_ERR( (_window = SDL_CreateWindow( caption.data(),
+		CHECK_ERR( (_window = SDL_CreateWindow( title.data(),
 											    SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 											    surfaceSize.x, surfaceSize.y,
 											    flags )) != null );
@@ -195,6 +198,33 @@ namespace {
 	
 /*
 =================================================
+	SetTitle
+=================================================
+*/
+	void WindowSDL2::SetTitle (StringView value)
+	{
+		CHECK_ERR( _window, void() );
+
+		SDL_SetWindowTitle( _window, value.data() );
+	}
+	
+/*
+=================================================
+	GetSize
+=================================================
+*/
+	uint2 WindowSDL2::GetSize () const
+	{
+		CHECK_ERR( _window );
+
+		int2	size;
+		SDL_GetWindowSize( _window, OUT &size.x, OUT &size.y );
+
+		return uint2(size);
+	}
+
+/*
+=================================================
 	GetVulkanSurface
 =================================================
 */
@@ -202,29 +232,10 @@ namespace {
 	{
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( _window )};
 	}
-
-}	// FG
 //-----------------------------------------------------------------------------
 
 
-	
-	
-// Android
-#if	(defined( ANDROID ) or defined( __ANDROID__ ))
 
-#	include "vulkan/vulkan_android.h"
-//-----------------------------------------------------------------------------
-
-
-// Windows
-#elif (defined( _WIN32 ) || defined( _WIN64 ) || defined( WIN32 ) || defined( WIN64 ) || \
-	   defined( __CYGWIN__ ) || defined( __MINGW32__ ) || defined( __MINGW32__ ))
-
-#	include <Windows.h>
-#	include "vulkan/vulkan_win32.h"
-
-namespace FG
-{
 /*
 =================================================
 	GetRequiredExtensions
@@ -232,8 +243,7 @@ namespace FG
 */
 	Array<const char*>  WindowSDL2::VulkanSurface::GetRequiredExtensions () const
 	{
-		Array<const char*>	ext = { VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
-		return ext;
+		return FG::VulkanSurface::GetRequiredExtensions();
 	}
 	
 /*
@@ -243,43 +253,34 @@ namespace FG
 */
 	VkSurfaceKHR  WindowSDL2::VulkanSurface::Create (VkInstance instance) const
 	{
-		VkSurfaceKHR					surface;
-		VkWin32SurfaceCreateInfoKHR		surface_info = {};
-		SDL_SysWMinfo					info		 = {};
+		SDL_SysWMinfo	info = {};
 			
 		SDL_VERSION( OUT &info.version );
 		CHECK_ERR( SDL_GetWindowWMInfo( _window, OUT &info ) == SDL_TRUE );
-		CHECK_ERR( info.subsystem == SDL_SYSWM_WINDOWS );
-
-		surface_info.sType		= VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-		surface_info.hinstance	= info.info.win.hinstance;
-		surface_info.hwnd		= info.info.win.window;
 		
-		PFN_vkCreateWin32SurfaceKHR create_surface = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr( instance, "vkCreateWin32SurfaceKHR" );
-		CHECK_ERR( create_surface );
+		switch ( info.subsystem )
+		{
+			case SDL_SYSWM_X11 :
+				return 0;	// TODO
 
-		VK_CHECK( create_surface( instance, &surface_info, null, OUT &surface ) );
-		return surface;
+			case SDL_SYSWM_WAYLAND :
+				return 0;	// TODO
+
+			case SDL_SYSWM_MIR :
+				return 0;	// TODO
+
+			case SDL_SYSWM_ANDROID :
+				return 0;	// TODO
+				
+# if		defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
+			case SDL_SYSWM_WINDOWS :
+				return FG::VulkanSurface::CreateWin32Surface( instance, info.info.win.hinstance, info.info.win.window );
+#			endif
+		}
+
+		RETURN_ERR( "current subsystem type is not supported!" );
 	}
+
 }	// FG
-//-----------------------------------------------------------------------------
 
-
-// Linux
-#elif (defined( __linux__ ) || defined( __gnu_linux__ ))
-
-#	include "vulkan/vulkan_xlib.h"
-#	include "vulkan/vulkan_xcb.h"
-//-----------------------------------------------------------------------------
-
-
-// MacOS, iOS
-#elif (defined( __APPLE__ ) || defined( MACOSX ))
-
-#	include "vulkan/vulkan_ios.h"
-#	include "vulkan/vulkan_macos.h"
-//-----------------------------------------------------------------------------
-
-
-#endif
 #endif	// FG_ENABLE_SDL2

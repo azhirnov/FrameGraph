@@ -6,7 +6,7 @@ if (${FG_ENABLE_VMA})
 	# reset to default
 	if (NOT EXISTS ${FG_EXTERNAL_VMA_PATH})
 		message( STATUS "VulkanMemoryAllocator is not found in ${FG_EXTERNAL_VMA_PATH}" )
-		set( FG_EXTERNAL_VMA_PATH "${FG_EXTERNALS_PATH}/VulkanMemoryAllocator" CACHE PATH "1" FORCE )
+		set( FG_EXTERNAL_VMA_PATH "${FG_EXTERNALS_PATH}/VulkanMemoryAllocator" CACHE PATH "" FORCE )
 	endif ()
 	
 	# download
@@ -19,7 +19,7 @@ if (${FG_ENABLE_VMA})
 		
 		FetchContent_GetProperties( ExternalDownloadVulkanMemoryAllocator )
 		if (NOT ExternalDownloadVulkanMemoryAllocator_POPULATED)
-			message( STATUS "download VulkanMemoryAllocator" )
+			message( STATUS "downloading VulkanMemoryAllocator" )
 			FetchContent_Populate( ExternalDownloadVulkanMemoryAllocator )
 		endif ()
 	endif ()

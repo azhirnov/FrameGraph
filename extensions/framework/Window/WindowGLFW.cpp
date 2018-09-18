@@ -1,6 +1,6 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framework/Window/WindowGLFW.h"
+#include "WindowGLFW.h"
 #include "stl/include/Singleton.h"
 #include "stl/include/StringUtils.h"
 
@@ -43,8 +43,10 @@ namespace {
 	Create
 =================================================
 */
-	bool WindowGLFW::Create (uint2 size, StringView caption, IWindowEventListener *listener)
+	bool WindowGLFW::Create (uint2 size, StringView title, IWindowEventListener *listener)
 	{
+		CHECK_ERR( not _window );
+
 		auto&	inst = *Singleton<GLFWInstance>();
 
 		if ( not inst.initialized )
@@ -64,7 +66,7 @@ namespace {
 
         _window = glfwCreateWindow( int(size.x),
                                     int(size.y),
-                                    caption.data(),
+                                    title.data(),
                                     null,
                                     null );
 		CHECK_ERR( _window );
@@ -189,6 +191,33 @@ namespace {
 		}
 	}
 	
+/*
+=================================================
+	SetTitle
+=================================================
+*/
+	void WindowGLFW::SetTitle (StringView value)
+	{
+		CHECK_ERR( _window, void() );
+
+		glfwSetWindowTitle( _window, value.data() );
+	}
+	
+/*
+=================================================
+	GetSize
+=================================================
+*/
+	uint2 WindowGLFW::GetSize () const
+	{
+		CHECK_ERR( _window );
+
+		int2	size;
+		glfwGetWindowSize( _window, OUT &size.x, OUT &size.y );
+
+		return uint2(size);
+	}
+
 /*
 =================================================
 	GetVulkanSurface

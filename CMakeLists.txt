@@ -16,6 +16,7 @@ include( "cmake/compilers.cmake" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_GLFW ON CACHE BOOL "use glfw (optional, required for tests)" )
 set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )
+set( FG_ENABLE_SFML OFF CACHE BOOL "use SFML (optional, required for tests)" )
 set( FG_ENABLE_VMA OFF CACHE BOOL "use Vulkan Memory Allocator (required)" )
 set( FG_ENABLE_LODEPNG OFF CACHE BOOL "use lodepng (optional, may be used in tests)" )
 set( FG_ENABLE_SAMPLES OFF CACHE BOOL "" )
@@ -35,7 +36,6 @@ add_subdirectory( "stl" "stl" )
 #add_subdirectory( "framegraph" "framegraph" )
 
 add_subdirectory( "extensions" "extensions" )
-
 
 message( STATUS "project 'FrameGraph' generation ended" )
 message( STATUS "\n==========================================================================" )

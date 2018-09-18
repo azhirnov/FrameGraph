@@ -5,8 +5,8 @@ if (${FG_ENABLE_LODEPNG})
 	
 	# reset to default
 	if (NOT EXISTS ${FG_EXTERNAL_LODEPNG_PATH})
-		message( STATUS "LODEPNG is not found in ${FG_EXTERNAL_LODEPNG_PATH}" )
-		set( FG_EXTERNAL_LODEPNG_PATH "${FG_EXTERNALS_PATH}/LODEPNG" CACHE PATH "1" FORCE )
+		message( STATUS "lodepng is not found in ${FG_EXTERNAL_LODEPNG_PATH}" )
+		set( FG_EXTERNAL_LODEPNG_PATH "${FG_EXTERNALS_PATH}/lodepng" CACHE PATH "" FORCE )
 	endif ()
 	
 	# download
@@ -22,7 +22,7 @@ if (${FG_ENABLE_LODEPNG})
 		
 		FetchContent_GetProperties( ExternalDownloadLodePNG )
 		if (NOT ExternalDownloadLodePNG_POPULATED)
-			message( STATUS "download lodepng" )
+			message( STATUS "downloading lodepng" )
 			FetchContent_Populate( ExternalDownloadLodePNG )
 		endif ()
 	endif ()

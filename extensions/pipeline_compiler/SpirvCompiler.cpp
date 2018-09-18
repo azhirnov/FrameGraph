@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
@@ -107,18 +107,18 @@ namespace FG
 */
 	static void GenerateResources (OUT TBuiltInResource& resources)
 	{
-		resources.maxLights = 32;
+		resources.maxLights = 0;
 		resources.maxClipPlanes = 6;
 		resources.maxTextureUnits = 32;
 		resources.maxTextureCoords = 32;
-		resources.maxVertexAttribs = 64;
+		resources.maxVertexAttribs = FG_MaxAttribs;
 		resources.maxVertexUniformComponents = 4096;
 		resources.maxVaryingFloats = 64;
 		resources.maxVertexTextureImageUnits = 32;
 		resources.maxCombinedTextureImageUnits = 80;
 		resources.maxTextureImageUnits = 32;
 		resources.maxFragmentUniformComponents = 4096;
-		resources.maxDrawBuffers = 32;
+		resources.maxDrawBuffers = FG_MaxColorBuffers;
 		resources.maxVertexUniformVectors = 128;
 		resources.maxVaryingVectors = 8;
 		resources.maxFragmentUniformVectors = 16;
@@ -169,7 +169,7 @@ namespace FG
 		resources.maxTessPatchComponents = 120;
 		resources.maxPatchVertices = 32;
 		resources.maxTessGenLevel = 64;
-		resources.maxViewports = 16;
+		resources.maxViewports = FG_MaxViewports;
 		resources.maxVertexAtomicCounters = 0;
 		resources.maxTessControlAtomicCounters = 0;
 		resources.maxTessEvaluationAtomicCounters = 0;
@@ -184,8 +184,8 @@ namespace FG
 		resources.maxFragmentAtomicCounterBuffers = 1;
 		resources.maxCombinedAtomicCounterBuffers = 1;
 		resources.maxAtomicCounterBufferSize = 16384;
-		resources.maxTransformFeedbackBuffers = 4;
-		resources.maxTransformFeedbackInterleavedComponents = 64;
+		resources.maxTransformFeedbackBuffers = 0;
+		resources.maxTransformFeedbackInterleavedComponents = 0;
 		resources.maxCullDistances = 8;
 		resources.maxCombinedClipAndCullDistances = 8;
 		resources.maxSamples = 4;
@@ -245,7 +245,7 @@ namespace FG
 		EShTargetLanguageVersion	target_version	= EShTargetLanguageVersion(0);
 		
         int                         version			= 0;
-		uint						sh_version		= 450;		// TODO
+        int             			sh_version		= 450;		// TODO
 		EProfile					sh_profile		= ENoProfile;
 		EShSource					sh_source;
 		
@@ -378,94 +378,14 @@ namespace FG
 		// glslang errors format:
 		// pattern: <error/warning>: <number>:<line>: <description>
 		// pattern: <error/warning>: <file>:<line>: <description>
-		/*	// TODO
-		Array< StringView >		lines;
-		Array< StringView >		tokens;
-		Array< size_t >			num_lines;	num_lines.Resize( source.Count() );
-		String					str;		str.Reserve( log.Length() * 2 );
-		size_t					prev_line = UMax;
 
-		StringParser::DivideLines( log, OUT lines );
-		
-		FOR( i, lines )
-		{
-			bool			added = false;
-			GLSLErrorInfo	error_info;
-
-			if ( ParseGLSLError( lines[i], OUT error_info ) )
-			{
-				// unite error in same source lines
-				if ( prev_line == error_info.line )
-				{
-					str << lines[i] << "\n";
-					continue;
-				}
-
-				prev_line = error_info.line;
-
-				if ( error_info.fileName.Empty() )
-				{
-					// search in sources
-					StringCRef	cur_source	= error_info.sourceIndex < source.Count() ? source[ error_info.sourceIndex ] : "";
-					usize		lines_count	= error_info.sourceIndex < num_lines.Count() ? num_lines[ error_info.sourceIndex ] : 0;
-
-					if ( lines_count == 0 )
-					{
-						lines_count = StringParser::CalculateNumberOfLines( cur_source ) + 1;
-
-						if ( error_info.sourceIndex < num_lines.Count() )
-							num_lines[ error_info.sourceIndex ] = lines_count;
-					}
-					
-					CHECK( error_info.line < lines_count );
-
-					usize		pos = 0;
-					CHECK( StringParser::MoveToLine( cur_source, INOUT pos, error_info.line-1 ) );
-
-					StringCRef	line_str;
-					StringParser::ReadLineToEnd( cur_source, INOUT pos, OUT line_str );
-
-					str << "in source (" << error_info.sourceIndex << ": " << error_info.line << "):\n\"" << line_str << "\"\n" << lines[i] << "\n";
-					added = true;
-				}
-				else
-				{
-					// search in header
-					StringCRef	src;
-					if ( includer.GetHeaderSource( error_info.fileName, OUT src ) )
-					{
-						const usize	lines_count = StringParser::CalculateNumberOfLines( src ) + 1;
-						const usize	local_line	= error_info.line;
-						usize		pos			= 0;
-						StringCRef	line_str;
-
-						CHECK( local_line < lines_count );
-
-						CHECK( StringParser::MoveToLine( src, INOUT pos, local_line-1 ) );
-						
-						StringParser::ReadLineToEnd( src, INOUT pos, OUT line_str );
-
-						str << "in source (" << error_info.fileName << ": " << local_line << "):\n\"" << line_str << "\"\n" << lines[i] << "\n";
-						added = true;
-					}
-				}
-			}
-
-			if ( not added )
-			{
-				str << DEBUG_ONLY( "<unknown> " << ) lines[i] << "\n";
-			}
-		}
-		
-		log = std::move(str);
-
-		WARNING( log.cstr() );*/
+		// TODO
 		return false;
 	}
 	
 /*
 =================================================
-	_CompileSPIRV
+	_BuildReflection 
 =================================================
 */
 	bool SpirvCompiler::_BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &result)
@@ -477,7 +397,6 @@ namespace FG
 		TIntermNode*	root	= _intermediate->getTreeRoot();
 		
 		COMP_CHECK_ERR( _ProcessExternalObjects( null, root, OUT result ) );
-		//COMP_CHECK_ERR( _RecursiveProcessAggregateNode( null, root, OUT result ) );
 		COMP_CHECK_ERR( _ProcessShaderInfo( INOUT result ) );
 
 		_intermediate = null;
@@ -609,9 +528,9 @@ namespace FG
 	_ExtractImageFormat
 =================================================
 */
-	EPixelFormat  SpirvCompiler::_ExtractImageFormat (const TLayoutFormat &format) const
+    EPixelFormat  SpirvCompiler::_ExtractImageFormat (uint format) const
 	{
-		switch ( format )
+        switch ( BitCast<TLayoutFormat>(format) )
 		{
 			case TLayoutFormat::ElfRgba32f :		return EPixelFormat::RGBA32F;
 			case TLayoutFormat::ElfRgba16f :		return EPixelFormat::RGBA16F;
@@ -1028,9 +947,9 @@ namespace FG
 	_MergeWithGeometryInputPrimitive
 =================================================
 */
-	void SpirvCompiler::_MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, const TLayoutGeometry &type) const
+    void SpirvCompiler::_MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, uint type) const
 	{
-		switch ( type )
+        switch ( BitCast<TLayoutGeometry>(type) )
 		{
 			case TLayoutGeometry::ElgPoints : {
 				topologyBits.set( uint(EPrimitive::Point) );

@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -102,7 +102,7 @@ namespace FG
 
 
 	// Vector types
-	template <typename T, int I>
+	template <typename T, uint I>
 	struct VertexDesc < Vec<T,I> >
 	{
 		typedef Vec<T,I>				type;

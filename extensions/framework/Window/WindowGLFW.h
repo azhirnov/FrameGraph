@@ -1,11 +1,11 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "framework/Window/IWindow.h"
 
 #ifdef FG_ENABLE_GLFW
-#	include "GLFW/glfw3.h"
+# include "glfw/include/GLFW/glfw3.h"
 
 namespace FG
 {
@@ -42,11 +42,15 @@ namespace FG
 		WindowGLFW ();
 		~WindowGLFW ();
 
-		bool Create (uint2 size, StringView caption, IWindowEventListener *listener) override;
+		bool Create (uint2 size, StringView title, IWindowEventListener *listener) override;
 		bool Update () override;
 		void Quit () override;
 		void Destroy () override;
 		
+		void SetTitle (StringView value) override;
+		
+		uint2 GetSize () const override;
+
 		UniquePtr<IVulkanSurface>  GetVulkanSurface () const override;
 		
 

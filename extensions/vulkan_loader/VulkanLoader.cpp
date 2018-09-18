@@ -1,30 +1,26 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanLoader.h"
-#include "VulkanCommon.h"
+#include "VulkanCheckError.h"
 #include "stl/include/Cast.h"
 #include "stl/include/Singleton.h"
 #include "stl/include/StringUtils.h"
 
 
-# if (defined( _WIN32 ) || defined( _WIN64 ) || defined( WIN32 ) || defined( WIN64 ) || \
-	  defined( __CYGWIN__ ) || defined( __MINGW32__ ) || defined( __MINGW32__ ))
-
-#	define PLATFORM_WINDOWS		1
-
+#if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
 #	define NOMINMAX
 #	define NOMCX
 #	define NOIME
 #	define NOSERVICE
 #	define WIN32_LEAN_AND_MEAN
-
 #	include <Windows.h>
 
 	using SharedLib_t	= HMODULE;
-# endif
 
+#elif defined(PLATFORM_LINUX)
+#	include <dlfcn.h>
+#   include <linux/limits.h>
 
-# ifndef PLATFORM_WINDOWS
 	using SharedLib_t	= void*;
 # endif
 
@@ -97,7 +93,7 @@ namespace FG
 
 #	else
 		if ( not libName.empty() )
-			lib->module = ::dlopen( ibName.data(), RTLD_NOW | RTLD_LOCAL );
+            lib->module = ::dlopen( libName.data(), RTLD_NOW | RTLD_LOCAL );
 
 		if ( lib->module == null )
 			lib->module = ::dlopen( "libvulkan.so", RTLD_NOW | RTLD_LOCAL );
@@ -158,7 +154,7 @@ namespace FG
 		const auto	Load =	[instance] (OUT auto& outResult, const char *procName, auto dummy)
 							{
 								using FN = decltype(dummy);
-								FN	result = (FN) vkGetInstanceProcAddr( instance, procName );
+                                FN	result = BitCast<FN>( vkGetInstanceProcAddr( instance, procName ));
 								outResult = result ? result : dummy;
 							};
 		
@@ -179,7 +175,7 @@ namespace FG
 		const auto	Load =	[device] (OUT auto& outResult, const char *procName, auto dummy)
 							{
 								using FN = decltype(dummy);
-								FN	result = (FN) vkGetDeviceProcAddr( device, procName );
+                                FN	result = BitCast<FN>( vkGetDeviceProcAddr( device, procName ));
 								outResult = result ? result : dummy;
 							};
 

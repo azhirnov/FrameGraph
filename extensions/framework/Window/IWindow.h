@@ -1,11 +1,12 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "stl/include/Vec.h"
 #include "stl/include/FixedArray.h"
 #include "stl/include/DefaultType.h"
-#include "vulkan_loader/VulkanCommon.h"
+#include "vulkan_loader/VulkanLoader.h"
+#include "vulkan_loader/VulkanCheckError.h"
 
 namespace FG
 {
@@ -47,10 +48,13 @@ namespace FG
 	{
 	public:
 		virtual ~IWindow () {}
-		virtual bool Create (uint2 size, StringView caption, IWindowEventListener *listener) = 0;
+		virtual bool Create (uint2 size, StringView title, IWindowEventListener *listener) = 0;
 		virtual bool Update () = 0;
 		virtual void Quit () = 0;
 		virtual void Destroy () = 0;
+		virtual void SetTitle (StringView value) = 0;
+
+		ND_ virtual uint2 GetSize () const = 0;
 
 		ND_ virtual UniquePtr<IVulkanSurface>  GetVulkanSurface () const = 0;
 	};

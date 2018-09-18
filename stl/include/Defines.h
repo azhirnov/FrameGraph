@@ -1,10 +1,10 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "framegraph/Public/Config.h"
 
-#ifdef _MSC_VER
+#ifdef COMPILER_MSVC
 #	define and		&&
 #	define or		||
 #	define not		!
@@ -38,10 +38,10 @@
 # ifdef FG_DEBUG
 #	define forceinline		inline
 
-# elif defined _MSC_VER
+# elif defined COMPILER_MSVC
 #	define forceinline		__forceinline
 
-# elif defined(__clang__) or defined(__GNUC__) or defined(__MINGW32__)
+# elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
 #	define forceinline		__inline__ __attribute__((always_inline))
 
 # endif
@@ -50,10 +50,10 @@
 
 // debug break
 #ifndef FG_BREAK_POINT
-# if defined _MSC_VER
+# if defined COMPILER_MSVC
 #	define FG_PRIVATE_BREAK_POINT()		__debugbreak()
 
-# elif defined(__clang__) or defined(__GNUC__) or defined(__MINGW32__)
+# elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
 #  if 1
 #	include <exception>
 #	define FG_PRIVATE_BREAK_POINT() 	throw std::runtime_error("breakpoint")
@@ -71,6 +71,8 @@
 #define FG_PRIVATE_GETARG_2( _0_, _1_, _2_, ... )	_2_
 #define FG_PRIVATE_GETRAW( _value_ )				_value_
 #define FG_PRIVATE_TOSTRING( ... )					#__VA_ARGS__
+#define FG_PRIVATE_UNITE_RAW( _arg0_, _arg1_ )		FG_PRIVATE_UNITE( _arg0_, _arg1_ )
+#define FG_PRIVATE_UNITE( _arg0_, _arg1_ )			_arg0_ ## _arg1_
 
 
 // debug only check
@@ -86,10 +88,10 @@
 
 
 // function name
-#ifdef _MSC_VER
+#ifdef COMPILER_MSVC
 #	define FG_FUNCTION_NAME			__FUNCTION__
 
-#elif defined(__clang__) or defined(__GNUC__) or defined(__MINGW32__)
+#elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
 #	define FG_FUNCTION_NAME			__func__
 
 #else
@@ -190,20 +192,21 @@
 	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( EnumToUInt(lhs) & EnumToUInt(rhs) ); } \
 	\
 	ND_ constexpr _type_  operator ~ (_type_ lhs) noexcept					{ return _type_(~EnumToUInt(lhs)); } \
+	ND_ constexpr bool    operator ! (_type_ lhs) noexcept					{ return not EnumToUInt(lhs); } \
 	
 
 // enable/disable checks for enums
-#ifdef _MSC_VER
+#ifdef COMPILER_MSVC
 #	define ENABLE_ENUM_CHECKS() \
 		__pragma (warning (push)) \
         __pragma (warning (error: 4061)) /*enumerator 'identifier' in switch of enum 'enumeration' is not explicitly handled by a case label*/ \
         __pragma (warning (error: 4062)) /*enumerator 'identifier' in switch of enum 'enumeration' is not handled*/ \
-        __pragma (warning (error: 4063)) /*case 'number' is not a valid value for switch of enum 'type'*/
+        __pragma (warning (error: 4063)) /*case 'number' is not a valid value for switch of enum 'type'*/ \
 
 #	define DISABLE_ENUM_CHECKS() \
-		__pragma (warning (pop))
+		__pragma (warning (pop)) \
 
-#elif defined(__clang__) or defined(__GNUC__) or defined(__MINGW32__)
+#elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
 #	define ENABLE_ENUM_CHECKS()		// TODO
 #	define DISABLE_ENUM_CHECKS()	// TODO
 
@@ -215,7 +218,7 @@
 
 
 // allocator
-#ifdef _MSC_VER
+#ifdef COMPILER_MSVC
 #	define FG_ALLOCATOR		__declspec( allocator )
 #else
 #	define FG_ALLOCATOR

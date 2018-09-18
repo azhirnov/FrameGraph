@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -21,7 +21,14 @@
 #		define VK_NO_PROTOTYPES
 #	endif
 
+# ifdef COMPILER_MSVC
+#	pragma warning (push, 0)
 #	include <vulkan/vulkan.h>
+#	pragma warning (pop)
+#else
+#	include <vulkan/vulkan.h>
+#endif
+
 
 
 namespace FG
@@ -107,5 +114,70 @@ namespace FG
 	};
 
 }	// FG
+
+
+// check for 'VulkanDeviceFnTable' structure size missmatch
+#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+
+# if defined(VK_USE_PLATFORM_ANDROID_KHR) and VK_USE_PLATFORM_ANDROID_KHR
+#	pragma detect_mismatch( "VK_USE_PLATFORM_ANDROID_KHR", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_ANDROID_KHR", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_IOS_MVK) and VK_USE_PLATFORM_IOS_MVK
+#	pragma detect_mismatch( "VK_USE_PLATFORM_IOS_MVK", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_IOS_MVK", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_MACOS_MVK) and VK_USE_PLATFORM_MACOS_MVK
+#	pragma detect_mismatch( "VK_USE_PLATFORM_MACOS_MVK", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_MACOS_MVK", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_MIR_KHR) and VK_USE_PLATFORM_MIR_KHR
+#	pragma detect_mismatch( "VK_USE_PLATFORM_MIR_KHR", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_MIR_KHR", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_VI_NN) and VK_USE_PLATFORM_VI_NN
+#	pragma detect_mismatch( "VK_USE_PLATFORM_VI_NN", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_VI_NN", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_WAYLAND_KHR) and VK_USE_PLATFORM_WAYLAND_KHR
+#	pragma detect_mismatch( "VK_USE_PLATFORM_WAYLAND_KHR", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_WAYLAND_KHR", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_WIN32_KHR) and VK_USE_PLATFORM_WIN32_KHR
+#	pragma detect_mismatch( "VK_USE_PLATFORM_WIN32_KHR", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_WIN32_KHR", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_XCB_KHR) and VK_USE_PLATFORM_XCB_KHR
+#	pragma detect_mismatch( "VK_USE_PLATFORM_XCB_KHR", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_XCB_KHR", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_XLIB_KHR) and VK_USE_PLATFORM_XLIB_KHR
+#	pragma detect_mismatch( "VK_USE_PLATFORM_XLIB_KHR", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_XLIB_KHR", "0" )
+# endif
+
+# if defined(VK_USE_PLATFORM_XLIB_XRANDR_EXT) and VK_USE_PLATFORM_XLIB_XRANDR_EXT
+#	pragma detect_mismatch( "VK_USE_PLATFORM_XLIB_XRANDR_EXT", "1" )
+# else
+#	pragma detect_mismatch( "VK_USE_PLATFORM_XLIB_XRANDR_EXT", "0" )
+# endif
+#endif
 
 #endif	// not FG_VULKAN_STATIC

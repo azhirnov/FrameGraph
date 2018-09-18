@@ -1,23 +1,24 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framework/Vulkan/VulkanDevice.h"
+#include "framework/Vulkan/VulkanDeviceExt.h"
 #include "framework/Vulkan/VulkanSwapchain.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
+#include "framework/Window/WindowSFML.h"
 #include "stl/include/StringUtils.h"
 #include <thread>
 
 using namespace FG;
-using namespace std::string_literals;
 
 
 
 class FWApp2 final : public IWindowEventListener, public VulkanDeviceFn
 {
 private:
-	VulkanDevice		vulkan;
+	VulkanDeviceExt		vulkan;
 	VulkanSwapchainPtr	swapchain;
 	WindowPtr			window;
+	String				title;
 
 
 public:
@@ -67,6 +68,9 @@ public:
 
 #	 elif defined(FG_ENABLE_SDL2)
 		window.reset( new WindowSDL2() );
+		
+#	 elif defined(FG_ENABLE_SFML)
+		window.reset( new WindowSFML() );
 
 #	 else
 #		error unknown window library!
@@ -74,9 +78,10 @@ public:
 	
 
 		// create window and vulkan device
-		const uint2		wnd_size{ 800, 600 };
 		{
-			CHECK_ERR( window->Create( wnd_size, "Test"s << (inst ? "2" : "1"), null ));
+			title = "Test"s << (inst ? "2" : "1");
+
+			CHECK_ERR( window->Create( { 800, 600 }, title, null ));
 
 			if ( inst )
 			{
@@ -88,7 +93,7 @@ public:
 
 				// it is the test, so test must fail on any error
 				vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT,
-											[] (const VulkanDevice::DebugReport &rep) { CHECK_FATAL(rep.flags != VK_DEBUG_REPORT_ERROR_BIT_EXT); });
+											[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(rep.flags != VK_DEBUG_REPORT_ERROR_BIT_EXT); });
 			}
 		}
 
@@ -102,7 +107,7 @@ public:
 
 			CHECK_ERR( swapchain->ChooseColorFormat( INOUT color_fmt, INOUT color_space ));
 
-			CHECK_ERR( swapchain->Create( wnd_size, color_fmt, color_space ));
+			CHECK_ERR( swapchain->Create( window->GetSize(), color_fmt, color_space ));
 		}
 		return true;
 	}
@@ -155,6 +160,8 @@ public:
 			if ( not window->Update() )
 				break;
 
+			window->SetTitle( title + ("[FPS: "s << ToString(uint(swapchain->GetFramesPerSecond())) << ']') );
+
 			// wait and acquire next image
 			{
 				VK_CHECK( vkWaitForFences( vulkan.GetVkDevice(), 1, &fences[i&1], true, ~0ull ));
@@ -200,7 +207,7 @@ public:
 
 
 				// clear image
-				VkClearColorValue	clear_value = { color.x, color.y, color.z, 1.0f };
+                VkClearColorValue	clear_value = {{ color.x, color.y, color.z, 1.0f }};
 
 				VkImageSubresourceRange	range;
 				range.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;

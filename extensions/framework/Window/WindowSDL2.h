@@ -1,11 +1,11 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "framework/Window/IWindow.h"
 
 #ifdef FG_ENABLE_SDL2
-# ifdef _MSC_VER
+# ifdef COMPILER_MSVC
 #	pragma warning (push)
 #	pragma warning (disable: 4005)	// macros redefinition
 #	pragma warning (disable: 4668)	// '...' is not defined as a preprocessor macro
@@ -14,7 +14,7 @@
 #	define SDL_MAIN_HANDLED
 #	include "SDL2/include/SDL.h"
 
-# ifdef _MSC_VER
+# ifdef COMPILER_MSVC
 #	pragma warning (pop)
 # endif
 
@@ -55,12 +55,14 @@ namespace FG
 		WindowSDL2 ();
 		~WindowSDL2 ();
 
-
-	private:
-		bool Create (uint2 size, StringView caption, IWindowEventListener *listener) override;
+		bool Create (uint2 size, StringView title, IWindowEventListener *listener) override;
 		bool Update () override;
 		void Quit () override;
 		void Destroy () override;
+		
+		void SetTitle (StringView value) override;
+		
+		uint2 GetSize () const override;
 
 		UniquePtr<IVulkanSurface>  GetVulkanSurface () const override;
 	};

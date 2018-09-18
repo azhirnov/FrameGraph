@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -11,9 +11,7 @@ class TIntermNode;
 namespace glslang
 {
 	class TType;
-	class TIntermediate;
-	enum TLayoutGeometry;
-	enum TLayoutFormat;
+    class TIntermediate;
 }
 
 namespace FG
@@ -117,12 +115,12 @@ namespace FG
 		
         bool _CalculateStructSize (const glslang::TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride) const;
 		
-		void _MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, const glslang::TLayoutGeometry &type) const;
+        void _MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, /*TLayoutGeometry*/uint type) const;
 
 		ND_ BindingIndex	_ToBindingIndex (uint index) const;
 		ND_ EImage			_ExtractImageType (const glslang::TType &type) const;
 		ND_ EVertexType		_ExtractVertexType (const glslang::TType &type) const;
-		ND_ EPixelFormat	_ExtractImageFormat (const glslang::TLayoutFormat &format) const;
+        ND_ EPixelFormat	_ExtractImageFormat (/*TLayoutFormat*/uint format) const;
 		ND_ EFragOutput		_ExtractFragmentOutputType (const glslang::TType &type) const;
 	};
 

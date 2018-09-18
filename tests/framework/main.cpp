@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/include/Common.h"
 #include <iostream>
@@ -11,8 +11,11 @@ extern void FW_Test2 ();
 
 int main ()
 {
-	//FW_Test1();
+#ifdef PLATFORM_ANDROID
+	FW_Test1();
+#else
 	FW_Test2();
+#endif
 
     FG_LOGI( "Tests.Framework finished" );
 	

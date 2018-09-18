@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "Public/LowLevel/ImageView.h"
 
@@ -7,18 +7,11 @@ namespace FG
 
 	struct FloatBits
 	{
-		struct Bits {
-			uint	m	: 23;	// mantissa bits
-			uint	e	: 8;	// exponent bits
-			uint	s	: 1;	// sign bit
-		};
+		uint	m	: 23;	// mantissa bits
+		uint	e	: 8;	// exponent bits
+		uint	s	: 1;	// sign bit
 
-		union {
-			float	value;
-			Bits	bits;
-		};
-
-		FloatBits () : value{0.0f} {}
+		FloatBits () : m{0}, e{0}, s{0} {}
 	};
 
 /*
@@ -32,9 +25,9 @@ namespace FG
 		STATIC_ASSERT( Bits <= 32 );
 
 		FloatBits	f;
-		f.bits.e	= 127 + Bits;
+		f.e	= 127 + Bits;
 
-		return float(value) / f.value;
+		return float(value) / BitCast<float>(f);
 	}
 
 /*
@@ -48,9 +41,9 @@ namespace FG
 		STATIC_ASSERT( Bits <= 32 );
 
 		FloatBits	f;
-        f.bits.e	= uint(127 + (value >= 0 ? int(Bits) : -int(Bits)));
+        f.e	= uint(127 + (value >= 0 ? int(Bits) : -int(Bits)));
 
-		return float(value) / f.value;
+		return float(value) / BitCast<float>(f);
 	}
 
 /*
@@ -223,17 +216,17 @@ namespace FG
 
 		FloatBits	f;
 		
-		f.bits.m = bits.r_m << (23-6);
-		f.bits.e = bits.r_e + (127 - 15);
-		result.r = f.value;
+		f.m = bits.r_m << (23-6);
+		f.e = bits.r_e + (127 - 15);
+		result.r = BitCast<float>(f);
 
-		f.bits.m = bits.g_m << (23-6);
-		f.bits.e = bits.g_e + (127 - 15);
-		result.g = f.value;
+		f.m = bits.g_m << (23-6);
+		f.e = bits.g_e + (127 - 15);
+		result.g = BitCast<float>(f);
 
-		f.bits.m = bits.b_m << (23-5);
-		f.bits.e = bits.b_e + (127 - 15);
-		result.b = f.value;
+		f.m = bits.b_m << (23-5);
+		f.e = bits.b_e + (127 - 15);
+		result.b = BitCast<float>(f);
 
 		result.a = 1.0f;
 	}

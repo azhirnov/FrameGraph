@@ -1,8 +1,8 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
-#include "stl/include/Common.h"
+#include "stl/include/Cast.h"
 
 namespace FG
 {
@@ -144,7 +144,7 @@ namespace FG
 =================================================
 */
 	template <typename A, typename B>
-	ND_ constexpr forceinline BytesU  OffsetOf (A (B::*member))
+    ND_ constexpr forceinline BytesU  OffsetOf (A B::*member)
 	{
 		const union U {
 			B		b;

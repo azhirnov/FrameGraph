@@ -1,4 +1,4 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanSwapchain.h"
 #include "stl/include/EnumUtils.h"
@@ -21,7 +21,10 @@ namespace FG
 		_preTransform{ VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR },
 		_presentMode{ VK_PRESENT_MODE_MAX_ENUM_KHR },
 		_compositeAlpha{ VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR },
-		_colorImageUsage{ 0 }
+		_colorImageUsage{ 0 },
+		_lastFpsUpdateTime{ std::chrono::high_resolution_clock::now() },
+		_frameCounter{ 0 },
+		_currentFPS{ 0.0f }
 	{
 	}
 	
@@ -354,17 +357,22 @@ namespace FG
 */
 	VkResult  VulkanSwapchain::AcquireNextImage ()
 	{
-		CHECK_ERR( _vkDevice and _vkSwapchain and _imageAvailable, VK_RESULT_MAX_ENUM );
+		return AcquireNextImage( _imageAvailable );
+	}
+	
+	VkResult  VulkanSwapchain::AcquireNextImage (VkSemaphore imageAvailable)
+	{
+		CHECK_ERR( _vkDevice and _vkSwapchain and imageAvailable, VK_RESULT_MAX_ENUM );
 		CHECK_ERR( not IsImageAcquired(), VK_RESULT_MAX_ENUM );
 
 		_currImageIndex = ~0u;
 
-		VkResult	result	= vkAcquireNextImageKHR( _vkDevice, _vkSwapchain, ~0u, _imageAvailable,
+		VkResult	result	= vkAcquireNextImageKHR( _vkDevice, _vkSwapchain, ~0u, imageAvailable,
 													 VK_NULL_HANDLE, OUT &_currImageIndex );
 		
 		return result;
 	}
-	
+
 /*
 =================================================
 	Present
@@ -372,12 +380,17 @@ namespace FG
 */
 	bool VulkanSwapchain::Present (VkQueue queue)
 	{
-		CHECK_ERR( queue and _vkSwapchain and _renderFinished );
+		return Present( queue, _renderFinished );
+	}
+
+	bool VulkanSwapchain::Present (VkQueue queue, VkSemaphore renderFinished)
+	{
+		CHECK_ERR( queue and _vkSwapchain and renderFinished );
 		CHECK_ERR( IsImageAcquired() );
 
 		const VkSwapchainKHR	swap_chains[]		= { _vkSwapchain };
 		const uint				image_indices[]		= { _currImageIndex };
-		const VkSemaphore		wait_semaphores[]	= { _renderFinished };
+		const VkSemaphore		wait_semaphores[]	= { renderFinished };
 
 		STATIC_ASSERT( std::size(swap_chains) == std::size(image_indices) );
 
@@ -387,19 +400,39 @@ namespace FG
 		present_info.swapchainCount		= uint(std::size( swap_chains ));
 		present_info.pSwapchains		= swap_chains;
 		present_info.pImageIndices		= image_indices;
-
-		if ( _renderFinished != VK_NULL_HANDLE )
-		{
-			present_info.waitSemaphoreCount		= uint(std::size( wait_semaphores ));
-			present_info.pWaitSemaphores		= wait_semaphores;
-		}
+		present_info.waitSemaphoreCount	= uint(std::size( wait_semaphores ));
+		present_info.pWaitSemaphores	= wait_semaphores;
 
 		_currImageIndex	= ~0u;
 
 		VK_CHECK( vkQueuePresentKHR( queue, &present_info ) );
+
+		_UpdateFPS();
 		return true;
 	}
 	
+/*
+=================================================
+	GetCurrentImage
+=================================================
+*/
+	void VulkanSwapchain::_UpdateFPS ()
+	{
+		using namespace std::chrono;
+
+		++_frameCounter;
+
+		TimePoint_t		now			= high_resolution_clock::now();
+		int64_t			duration	= duration_cast<milliseconds>(now - _lastFpsUpdateTime).count();
+
+		if ( duration > _fpsUpdateIntervalMillis )
+		{
+			_currentFPS			= float(_frameCounter) / float(duration) * 1000.0f;
+			_lastFpsUpdateTime	= now;
+			_frameCounter		= 0;
+		}
+	}
+
 /*
 =================================================
 	GetCurrentImage

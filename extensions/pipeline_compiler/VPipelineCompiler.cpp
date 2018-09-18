@@ -1,9 +1,10 @@
-// Copyright (c)  Zhirnov Andrey. For more information see 'LICENSE.txt'
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VPipelineCompiler.h"
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
-#include "extensions/vulkan_loader/VulkanCommon.h"
+#include "extensions/vulkan_loader/VulkanLoader.h"
+#include "extensions/vulkan_loader/VulkanCheckError.h"
 
 
 namespace FG
@@ -72,8 +73,8 @@ namespace FG
 		_physicalDevice	= physicalDevice;
 		_logicalDevice	= device;
 
-		_fpCreateShaderModule = vkGetDeviceProcAddr( BitCast<VkDevice>( _logicalDevice ), "vkCreateShaderModule" );
-		_fpDestroyShaderModule = vkGetDeviceProcAddr( BitCast<VkDevice>( _logicalDevice ), "vkDestroyShaderModule" );
+        _fpCreateShaderModule  = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_logicalDevice), "vkCreateShaderModule" ));
+        _fpDestroyShaderModule = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_logicalDevice), "vkDestroyShaderModule" ));
 	}
 
 /*
