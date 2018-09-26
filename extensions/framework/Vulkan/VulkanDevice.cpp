@@ -569,7 +569,14 @@ namespace FG
 
 		queue_family_props.resize( count );
 		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, OUT queue_family_props.data() );
-		
+
+		// validate required flags
+		{
+			// if the capabilities of a queue family include VK_QUEUE_GRAPHICS_BIT or VK_QUEUE_COMPUTE_BIT,
+			// then reporting the VK_QUEUE_TRANSFER_BIT capability separately for that queue family is optional.
+			if ( requiredFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT) )
+				requiredFlags &= ~VK_QUEUE_TRANSFER_BIT;
+		}
 
 		for (size_t i = 0; i < queue_family_props.size(); ++i)
 		{

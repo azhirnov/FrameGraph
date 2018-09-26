@@ -86,7 +86,7 @@ namespace FG
 
 	// methods
 		DrawTask () :
-			BaseDrawTask<DrawTask>{ "Draw", HtmlColor::Bisque() } {}
+			BaseDrawTask<DrawTask>{ "Draw", HtmlColor::Bisque } {}
 
 		DrawTask&  SetPipeline (const PipelinePtr &ppln)							{ pipeline = ppln;  return *this; }
 		DrawTask&  SetVertices (uint first, uint count)								{ drawCmd.firstVertex = first;  drawCmd.vertexCount = count;  return *this; }
@@ -144,7 +144,7 @@ namespace FG
 
 	// methods
 		DrawIndexedTask () :
-			BaseDrawTask<DrawIndexedTask>{ "DrawIndexed", HtmlColor::Bisque() } {}
+			BaseDrawTask<DrawIndexedTask>{ "DrawIndexed", HtmlColor::Bisque } {}
 
 		DrawIndexedTask&  SetPipeline (const PipelinePtr &ppln)								{ pipeline = ppln;  return *this; }
 		DrawIndexedTask&  SetIndices (uint first, uint count)								{ drawCmd.firstIndex = first;  drawCmd.indexCount = count;  return *this; }

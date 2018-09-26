@@ -175,7 +175,7 @@ namespace FG
 
 		String	src;
 
-		std::visit(overloaded{
+		Visit( shaderData,
 			[&src] (const PipelineDescription::SharedShaderPtr<Array<uint8_t>> &data)
 			{
 				src << '"' << data->GetEntry() << "\", Array<uint8_t>{";
@@ -208,8 +208,7 @@ namespace FG
 			},
 
 			[] (const auto& ) { ASSERT(false); }
-
-		}, shaderData );
+		);
 
 		return src;
 	}
@@ -249,7 +248,7 @@ namespace FG
 
 		for (auto& un : ds.uniforms)
 		{
-			std::visit( overloaded{
+			Visit( un.second,
 				[this, &textures, id = &un.first] (const PipelineDescription::Texture &tex)
 				{
 					if ( not textures.empty() )
@@ -321,8 +320,7 @@ namespace FG
 				},
 
 				[] (const auto &) { ASSERT(false); }
-
-			}, un.second );
+			);
 		}
 
 		String	src;

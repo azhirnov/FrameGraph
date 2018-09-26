@@ -294,7 +294,7 @@ namespace FG
 
 			bool	type_missmatch = true;
 
-			std::visit( overloaded{
+			Visit( un.second,
 				[dst = &iter->second, &type_missmatch] (const PipelineDescription::Texture &lhs)
 				{
 					if ( auto* rhs = std::get_if<PipelineDescription::Texture>( dst ) )
@@ -400,8 +400,7 @@ namespace FG
 				},
 
 				[] (const auto &) { ASSERT(false); }
-
-			}, un.second );
+			);
 
 			COMP_CHECK_ERR( not type_missmatch );
 		}

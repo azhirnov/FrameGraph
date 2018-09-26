@@ -10,11 +10,11 @@ If it didn't, manualy download dependencies into 'external' directory or in cmak
 
 Dependencies:<br/>
 [Vulkan-headers](https://github.com/KhronosGroup/Vulkan-Headers) or [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) - required.<br/>
-[glfw](https://github.com/glfw/glfw) or [SDL2](https://www.libsdl.org) - required for framework.<br/>
+[glfw](https://github.com/glfw/glfw) or [SDL2](https://www.libsdl.org) or [SFML](https://github.com/SFML/SFML) - required for framework and some tests.<br/>
 [glslang](https://github.com/KhronosGroup/glslang) - required for glsl compiler.<br/>
 [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools), [SPIRV-Headers](https://github.com/KhronosGroup/SPIRV-Headers) and Python - optional, for spirv optimization.<br/>
 [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - will be required later.<br/>
-[lodepng](https://github.com/lvandeve/lodepng) - optional, for screenshots.<br/>
+[lodepng](https://github.com/lvandeve/lodepng) - optional.<br/>
 
 ## Roadmap
 ### Stage 1

@@ -82,7 +82,7 @@ namespace FG
 
 	// methods
 		explicit SubmitRenderPass (RenderPass rp) :
-			BaseTask<SubmitRenderPass>{ "SubmitRenderPass", HtmlColor::OrangeRed() }, renderPass{rp} {}
+			BaseTask<SubmitRenderPass>{ "SubmitRenderPass", HtmlColor::OrangeRed }, renderPass{rp} {}
 	};
 
 
@@ -101,7 +101,7 @@ namespace FG
 
 	// methods
 		DispatchCompute () :
-			BaseTask<DispatchCompute>{ "DispatchCompute", HtmlColor::MediumBlue() } {}
+			BaseTask<DispatchCompute>{ "DispatchCompute", HtmlColor::MediumBlue } {}
 		
 		DispatchCompute&  SetPipeline (const PipelinePtr &ppln)										{ pipeline = ppln;  return *this; }
 		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResourcesPtr &res)	{ resources.insert({ id, res });  return *this; }
@@ -130,7 +130,7 @@ namespace FG
 
 	// methods
 		DispatchIndirectCompute () :
-			BaseTask<DispatchIndirectCompute>{ "DispatchIndirectCompute", HtmlColor::MediumBlue() } {}
+			BaseTask<DispatchIndirectCompute>{ "DispatchIndirectCompute", HtmlColor::MediumBlue } {}
 		
 		DispatchIndirectCompute&  SetPipeline (const PipelinePtr &ppln)		{ pipeline = ppln;  return *this; }
 	};
@@ -160,7 +160,7 @@ namespace FG
 
 	// methods
 		CopyBuffer () :
-			BaseTask<CopyBuffer>{ "CopyBuffer", HtmlColor::Green() } {}
+			BaseTask<CopyBuffer>{ "CopyBuffer", HtmlColor::Green } {}
 
 		CopyBuffer&  From (const BufferPtr &buf)		{ srcBuffer = buf;  return *this; }
 		CopyBuffer&  To   (const BufferPtr &buf)		{ dstBuffer = buf;  return *this; }
@@ -199,7 +199,7 @@ namespace FG
 
 	// methods
 		CopyImage () :
-			BaseTask<CopyImage>{ "CopyImage", HtmlColor::Green() } {}
+			BaseTask<CopyImage>{ "CopyImage", HtmlColor::Green } {}
 
 		CopyImage&  From (const ImagePtr &img)		{ srcImage = img;  return *this; }
 		CopyImage&  To   (const ImagePtr &img)		{ dstImage = img;  return *this; }
@@ -251,7 +251,7 @@ namespace FG
 
 	// methods
 		CopyBufferToImage () :
-			BaseTask<CopyBufferToImage>{ "CopyBufferToImage", HtmlColor::Green() } {}
+			BaseTask<CopyBufferToImage>{ "CopyBufferToImage", HtmlColor::Green } {}
 
 		CopyBufferToImage&  From (const BufferPtr &buf)		{ srcBuffer = buf;  return *this; }
 		CopyBufferToImage&  To   (const ImagePtr &img)		{ dstImage = img;  return *this; }
@@ -285,7 +285,7 @@ namespace FG
 
 	// methods
 		CopyImageToBuffer () :
-			BaseTask<CopyImageToBuffer>{ "CopyImageToBuffer", HtmlColor::Green() } {}
+			BaseTask<CopyImageToBuffer>{ "CopyImageToBuffer", HtmlColor::Green } {}
 
 		CopyImageToBuffer&  From (const ImagePtr &img)		{ srcImage = img;  return *this; }
 		CopyImageToBuffer&  To   (const BufferPtr &buf)		{ dstBuffer = buf;  return *this; }
@@ -328,7 +328,7 @@ namespace FG
 
 	// methods
 		BlitImage () :
-			BaseTask<BlitImage>{ "BlitImage", HtmlColor::Green() } {}
+			BaseTask<BlitImage>{ "BlitImage", HtmlColor::Green } {}
 
 		BlitImage&  From (const ImagePtr &img)		{ srcImage = img;  return *this; }
 		BlitImage&  To   (const ImagePtr &img)		{ dstImage = img;  return *this; }
@@ -371,7 +371,7 @@ namespace FG
 
 	// methods
 		ResolveImage () :
-			BaseTask<ResolveImage>{ "ResolveImage", HtmlColor::Green() } {}
+			BaseTask<ResolveImage>{ "ResolveImage", HtmlColor::Green } {}
 
 		ResolveImage&  From (const ImagePtr &img)		{ srcImage = img;  return *this; }
 		ResolveImage&  To   (const ImagePtr &img)		{ dstImage = img;  return *this; }
@@ -401,7 +401,7 @@ namespace FG
 
 	// methods
 		FillBuffer () :
-			BaseTask<FillBuffer>{ "FillBuffer", HtmlColor::Green() } {}
+			BaseTask<FillBuffer>{ "FillBuffer", HtmlColor::Green } {}
 
 		FillBuffer&  SetBuffer (const BufferPtr &buf, BytesU off, BytesU bufSize)
 		{
@@ -446,7 +446,7 @@ namespace FG
 		
 	// methods
 		ClearColorImage () :
-			BaseTask<ClearColorImage>{ "ClearColorImage", HtmlColor::Green() } {}
+			BaseTask<ClearColorImage>{ "ClearColorImage", HtmlColor::Green } {}
 
 		ClearColorImage&  SetImage (const ImagePtr &img)	{ dstImage = img;  return *this; }
 
@@ -482,7 +482,7 @@ namespace FG
 
 	// methods
 		ClearDepthStencilImage () :
-			BaseTask<ClearDepthStencilImage>{ "ClearDepthStencilImage", HtmlColor::Green() } {}
+			BaseTask<ClearDepthStencilImage>{ "ClearDepthStencilImage", HtmlColor::Green } {}
 		
 		ClearDepthStencilImage&  SetImage (const ImagePtr &img)			{ dstImage = img;  return *this; }
 
@@ -511,7 +511,7 @@ namespace FG
 
 	// methods
 		UpdateBuffer () :
-			BaseTask<UpdateBuffer>{ "UpdateBuffer", HtmlColor::BlueViolet() } {}
+			BaseTask<UpdateBuffer>{ "UpdateBuffer", HtmlColor::BlueViolet } {}
 
 		UpdateBuffer (const BufferPtr &buf, BytesU off, ArrayView<uint8_t> data) :
 			UpdateBuffer() { SetBuffer( buf, off ).SetData( data ); }
@@ -548,7 +548,7 @@ namespace FG
 
 	// methods
 		ReadBuffer () :
-			BaseTask<ReadBuffer>{ "ReadBuffer", HtmlColor::BlueViolet() } {}
+			BaseTask<ReadBuffer>{ "ReadBuffer", HtmlColor::BlueViolet } {}
 
 		ReadBuffer&  SetBuffer (const BufferPtr &buf, const BytesU off, const BytesU dataSize)
 		{
@@ -587,7 +587,7 @@ namespace FG
 		
 	// methods
 		UpdateImage () :
-			BaseTask<UpdateImage>{ "UpdateImage", HtmlColor::BlueViolet() } {}
+			BaseTask<UpdateImage>{ "UpdateImage", HtmlColor::BlueViolet } {}
 		
 		UpdateImage&  SetImage (const ImagePtr &img, const int2 &offset, MipmapLevel mipmap = Default)
 		{
@@ -655,7 +655,7 @@ namespace FG
 		
 	// methods
 		ReadImage () :
-			BaseTask<ReadImage>{ "ReadImage", HtmlColor::BlueViolet() } {}
+			BaseTask<ReadImage>{ "ReadImage", HtmlColor::BlueViolet } {}
 		
 		ReadImage&  SetImage (const ImagePtr &img, const int2 &offset, const uint2 &size, MipmapLevel mipmap = Default)
 		{
@@ -707,7 +707,7 @@ namespace FG
 
 	// methods
 		Present () :
-			BaseTask<Present>{ "Present", HtmlColor::Red() } {}
+			BaseTask<Present>{ "Present", HtmlColor::Red } {}
 
 		explicit Present (const ImagePtr &img) :
 			Present() { srcImage = img; }
@@ -737,7 +737,7 @@ namespace FG
 
 	// methods
 		PresentVR () :
-			BaseTask<Present>{ "PresentVR", HtmlColor::Red() } {}
+			BaseTask<Present>{ "PresentVR", HtmlColor::Red } {}
 		
 		PresentVR&  SetLeftEye (const ImagePtr &img, ImageLayer imgLayer = ImageLayer())
 		{
@@ -762,7 +762,7 @@ namespace FG
 	struct TaskGroupSync final : _fg_hidden_::BaseTask<TaskGroupSync>
 	{
 		TaskGroupSync () :
-			BaseTask<TaskGroupSync>{ "TaskGroupSync", HtmlColor::Teal() } {}
+			BaseTask<TaskGroupSync>{ "TaskGroupSync", HtmlColor::Teal } {}
 	};
 
 

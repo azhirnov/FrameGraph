@@ -5,7 +5,9 @@
 #include "stl/include/Math.h"
 #include "stl/include/Vec.h"
 #include "stl/include/Bytes.h"
+#include "stl/include/EnumUtils.h"
 #include <chrono>
+#include <sstream>
 
 namespace FG
 {
@@ -70,26 +72,6 @@ namespace FG
 //-----------------------------------------------------------------------------
 
 
-	
-/*
-=================================================
-	IsNullTerminated
-=================================================
-*
-	ND_ forceinline bool IsNullTerminated (StringView str)
-	{
-		return (*str.end() == '\0');
-	}
-
-	ND_ forceinline bool IsNullTerminated (const String &str)
-	{
-		return true;
-	}
-
-	ND_ forceinline bool IsNullTerminated (const char *str)
-	{
-		return true;
-	}
 
 /*
 =================================================
@@ -298,6 +280,24 @@ namespace FG
 		return value ? "true" : "false";
 	}
 	
+/*
+=================================================
+	ToString
+=================================================
+*/
+	template <int Radix, typename T>
+	ND_ forceinline std::enable_if_t< std::is_enum_v<T> or std::is_integral_v<T>, String>  ToString (const T &value)
+	{
+		if constexpr ( Radix == 16 )
+		{
+			std::stringstream	str;
+			str << std::hex << BitCast<NearUInt<T>>( value );
+			return str.str();
+		}else{
+			STATIC_ASSERT( false, "not supported, yet" );
+		}
+	}
+
 /*
 =================================================
 	ToString (double)
