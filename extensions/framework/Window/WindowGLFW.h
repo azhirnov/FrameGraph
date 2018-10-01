@@ -30,11 +30,13 @@ namespace FG
 			ND_ VkSurfaceKHR		Create (VkInstance inst) const override;
 		};
 
+		using Listeners_t	= HashSet< IWindowEventListener *>;
+
 
 	// variables
 	private:
-	    GLFWwindow *			_window;
-		IWindowEventListener *	_listener;
+	    GLFWwindow *	_window;
+		Listeners_t		_listeners;
 
 
 	// methods
@@ -42,7 +44,9 @@ namespace FG
 		WindowGLFW ();
 		~WindowGLFW ();
 
-		bool Create (uint2 size, StringView title, IWindowEventListener *listener) override;
+		bool Create (uint2 size, StringView title) override;
+		void AddListener (IWindowEventListener *listener) override;
+		void RemoveListener (IWindowEventListener *listener) override;
 		bool Update () override;
 		void Quit () override;
 		void Destroy () override;

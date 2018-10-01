@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "stl/include/Common.h"
+#include "stl/Common.h"
 #include <iostream>
 
 using namespace FG;

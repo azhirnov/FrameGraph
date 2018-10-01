@@ -24,7 +24,7 @@ if (${FG_ENABLE_GLFW})
 		endif ()
 	endif ()
 		
-	set( GLFW_INSTALL OFF CACHE BOOL "glfw option" FORCE )
+	set( GLFW_INSTALL ON CACHE BOOL "glfw option" FORCE )
 	set( GLFW_BUILD_TESTS OFF CACHE BOOL "glfw option" FORCE )
 	set( GLFW_BUILD_EXAMPLES OFF CACHE BOOL "glfw option" FORCE )
 	set( GLFW_BUILD_DOCS OFF CACHE BOOL "glfw option" FORCE )

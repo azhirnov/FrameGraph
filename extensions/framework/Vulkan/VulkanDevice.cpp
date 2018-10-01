@@ -1,10 +1,11 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanDevice.h"
-#include "stl/include/StaticString.h"
-#include "stl/include/StringUtils.h"
-#include "stl/include/EnumUtils.h"
-#include "stl/include/Cast.h"
+#include "stl/Containers/StaticString.h"
+#include "stl/Algorithms/StringUtils.h"
+#include "stl/Algorithms/EnumUtils.h"
+#include "stl/Algorithms/Cast.h"
+#include <bitset>
 
 namespace FG
 {
@@ -91,6 +92,7 @@ namespace FG
 */
 	bool VulkanDevice::Create (UniquePtr<IVulkanSurface>&&	surface,
 							   StringView					appName,
+							   StringView					engineName,
 							   const uint					version,
 							   StringView					deviceName,
 							   ArrayView<QueueCreateInfo>	queues,
@@ -103,7 +105,7 @@ namespace FG
 		Array<const char*>	inst_ext { surface->GetRequiredExtensions() };
 		inst_ext.insert( inst_ext.end(), instanceExtensions.begin(), instanceExtensions.end() );
 
-		CHECK_ERR( _CreateInstance( appName, instanceLayers, std::move(inst_ext), version ));
+		CHECK_ERR( _CreateInstance( appName, engineName, instanceLayers, std::move(inst_ext), version ));
 		CHECK_ERR( _ChooseGpuDevice( deviceName ));
 
 		_vkSurface = surface->Create( _vkInstance );
@@ -162,7 +164,8 @@ namespace FG
 	_CreateInstance
 =================================================
 */
-	bool VulkanDevice::_CreateInstance (StringView appName, ArrayView<const char*> layers, Array<const char*> &&extensions, uint version)
+	bool VulkanDevice::_CreateInstance (StringView appName, StringView engineName,
+										ArrayView<const char*> layers, Array<const char*> &&extensions, uint version)
 	{
 		CHECK_ERR( not _vkInstance );
 		CHECK_ERR( VulkanLoader::Initialize() );
@@ -170,6 +173,7 @@ namespace FG
 		Array< const char* >	instance_layers;
 		instance_layers.assign( layers.begin(), layers.end() );
 
+		_ValidateInstanceVersion( INOUT version );
         _ValidateInstanceLayers( INOUT instance_layers );
 		_ValidateInstanceExtensions( INOUT extensions );
 
@@ -179,7 +183,7 @@ namespace FG
 		app_info.apiVersion			= version;
 		app_info.pApplicationName	= appName.data();
 		app_info.applicationVersion	= 0;
-		app_info.pEngineName		= "FrameGraph";
+		app_info.pEngineName		= engineName.data();
 		app_info.engineVersion		= 0;
 		
 		VkInstanceCreateInfo			instance_create_info = {};
@@ -196,6 +200,19 @@ namespace FG
 
 		_OnInstanceCreated( std::move(instance_layers), std::move(extensions) );
 		return true;
+	}
+	
+/*
+=================================================
+    _ValidateInstanceVersion
+=================================================
+*/
+	void VulkanDevice::_ValidateInstanceVersion (INOUT uint &version) const
+	{
+		uint	ver = 0;
+		VK_CALL( vkEnumerateInstanceVersion( OUT &ver ));
+
+		version = Min( ver, version );
 	}
 
 /*
@@ -435,6 +452,15 @@ namespace FG
 	bool VulkanDevice::_SetupQueues (ArrayView<QueueCreateInfo> queues)
 	{
 		CHECK_ERR( _vkQueues.empty() );
+		
+		uint	count = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, null );
+		CHECK_ERR( count > 0 );
+		
+		Array< VkQueueFamilyProperties >	queue_family_props;
+		queue_family_props.resize( count );
+		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, OUT queue_family_props.data() );
+
 
 		// setup default queue
 		if ( queues.empty() )
@@ -445,7 +471,7 @@ namespace FG
 			if ( _vkSurface )
 				flags |= VK_QUEUE_PRESENT_BIT;
 
-			CHECK_ERR( _ChooseQueueIndex( INOUT flags, OUT family_index ));
+			CHECK_ERR( _ChooseQueueIndex( queue_family_props, INOUT flags, OUT family_index ));
 
 			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, ~0u, flags, 0.0f });
 			return true;
@@ -456,7 +482,7 @@ namespace FG
 		{
 			uint			family_index	= 0;
 			VkQueueFlags	flags			= q.flags;
-			CHECK_ERR( _ChooseQueueIndex( INOUT flags, OUT family_index ));
+			CHECK_ERR( _ChooseQueueIndex( queue_family_props, INOUT flags, OUT family_index ));
 
 			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, ~0u, flags, q.priority });
 		}
@@ -559,16 +585,9 @@ namespace FG
 	_ChooseQueueIndex
 =================================================
 */
-	bool VulkanDevice::_ChooseQueueIndex (INOUT VkQueueFlags &requiredFlags, OUT uint &index) const
+	bool VulkanDevice::_ChooseQueueIndex (ArrayView<VkQueueFamilyProperties> queueFamilyProps, INOUT VkQueueFlags &requiredFlags, OUT uint &familyIndex) const
 	{
-		Array< VkQueueFamilyProperties >	queue_family_props;
-		uint								count = 0;
-
-		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, null );
-		CHECK_ERR( count > 0 );
-
-		queue_family_props.resize( count );
-		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, OUT queue_family_props.data() );
+		using QInfo = Pair<VkQueueFlags, uint>;
 
 		// validate required flags
 		{
@@ -578,10 +597,12 @@ namespace FG
 				requiredFlags &= ~VK_QUEUE_TRANSFER_BIT;
 		}
 
-		for (size_t i = 0; i < queue_family_props.size(); ++i)
+		QInfo	compatible {0, ~0u};
+
+		for (size_t i = 0; i < queueFamilyProps.size(); ++i)
 		{
 			VkBool32		supports_present = false;
-			const auto&		prop			 = queue_family_props[i];
+			const auto&		prop			 = queueFamilyProps[i];
 			VkQueueFlags	curr_flags		 = prop.queueFlags;
 			
 			if ( _vkSurface )
@@ -592,12 +613,24 @@ namespace FG
 					curr_flags |= VK_QUEUE_PRESENT_BIT;
 			}
 
-			if ( EnumEq( curr_flags, requiredFlags ) )
+			if ( curr_flags == requiredFlags )
 			{
 				requiredFlags	= curr_flags;
-				index			= uint(i);
+				familyIndex		= uint(i);
 				return true;
 			}
+
+			if ( EnumEq( curr_flags, requiredFlags ) and 
+				 (compatible.first == 0 or std::bitset<32>{compatible.first}.count() > std::bitset<32>{requiredFlags}.count()) )
+			{
+				compatible = { curr_flags, uint(i) };
+			}
+		}
+
+		if ( compatible.first ) {
+			requiredFlags	= compatible.first;
+			familyIndex		= compatible.second;
+			return true;
 		}
 
 		RETURN_ERR( "no suitable queue family found!" );

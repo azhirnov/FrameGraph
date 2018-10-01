@@ -1,8 +1,8 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanDeviceExt.h"
-#include "stl/include/StringUtils.h"
-#include "stl/include/EnumUtils.h"
+#include "stl/Algorithms/StringUtils.h"
+#include "stl/Algorithms/EnumUtils.h"
 
 namespace FG
 {
@@ -16,7 +16,13 @@ namespace FG
 		_debugCallback{ VK_NULL_HANDLE },
 		_debugReportSupported{ false },
 		_debugMarkersSupported{ false },
-		_breakOnValidationError{ true }
+		_breakOnValidationError{ true },
+		_deviceProperties{},
+		_deviceFeatures{},
+		_deviceMemoryProperties{},
+		_deviceIDProperties{},
+		_deviceMaintenance3Properties{},
+		_deviceSubgroupProperties{}
 	{
 	}
 	
@@ -59,6 +65,29 @@ namespace FG
 		vkGetPhysicalDeviceFeatures( GetVkPhysicalDevice(), OUT &_deviceFeatures );
 		vkGetPhysicalDeviceProperties( GetVkPhysicalDevice(), OUT &_deviceProperties );
 		vkGetPhysicalDeviceMemoryProperties( GetVkPhysicalDevice(), OUT &_deviceMemoryProperties );
+		
+		if ( VK_VERSION_MAJOR( _deviceProperties.apiVersion ) >= 1 and
+			 VK_VERSION_MINOR( _deviceProperties.apiVersion ) >  0 )
+		{
+			void **						next	= null;
+			VkPhysicalDeviceProperties2	props2	= {};
+			props2.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+			next			= &props2.pNext;
+
+			*next						= &_deviceIDProperties;
+			next						= &_deviceIDProperties.pNext;
+			_deviceIDProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+			
+			*next							= &_deviceSubgroupProperties;
+			next							= &_deviceSubgroupProperties.pNext;
+			_deviceSubgroupProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+			
+			*next								= &_deviceMaintenance3Properties;
+			next								= &_deviceMaintenance3Properties.pNext;
+			_deviceMaintenance3Properties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES;
+
+			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
+		}
 
 		_WriteDeviceInfo();
 	}
@@ -102,6 +131,7 @@ namespace FG
 		
 		FG_LOGI( "vendorName:  "s << _GetVendorNameByID( _deviceProperties.vendorID ) );
 		FG_LOGI( "deviceName:  "s << _deviceProperties.deviceName );
+
 	}
 
 /*

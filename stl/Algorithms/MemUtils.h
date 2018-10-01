@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "stl/include/Bytes.h"
-#include "stl/include/FixedArray.h"
+#include "stl/Math/Bytes.h"
+#include "stl/Containers/FixedArray.h"
 
 namespace FG
 {

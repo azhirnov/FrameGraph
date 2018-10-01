@@ -6,7 +6,7 @@
 #include "framegraph/Public/LowLevel/EResourceState.h"
 #include "framegraph/Public/LowLevel/ShaderEnums.h"
 #include "framegraph/Public/LowLevel/VertexEnums.h"
-#include "stl/include/StringUtils.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {

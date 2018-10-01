@@ -36,8 +36,6 @@ namespace FG
 		VkDevice				_vkDevice;
 		VkSurfaceKHR			_vkSurface;
 
-		VkSemaphore				_imageAvailable;
-		VkSemaphore				_renderFinished;
 		uint					_currImageIndex;
 
 		VkFormat						_colorFormat;
@@ -81,16 +79,13 @@ namespace FG
 
 		bool Recreate (const uint2 &size);
 
-		ND_ VkResult  AcquireNextImage ();
 		ND_ VkResult  AcquireNextImage (VkSemaphore imageAvailable);
 
-		bool Present (VkQueue queue);
 		bool Present (VkQueue queue, VkSemaphore renderFinished);
+		bool Present (VkQueue queue, ArrayView<VkSemaphore> renderFinished);
 
 
 		ND_ VkSwapchainKHR				GetVkSwapchain ()				const	{ return _vkSwapchain; }
-		ND_ VkSemaphore					GetImageAvailableSemaphore ()	const	{ return _imageAvailable; }
-		ND_ VkSemaphore					GetRenderFinishedSemaphore ()	const	{ return _renderFinished; }
 
 		ND_ uint2 const&				GetSurfaceSize ()				const	{ return _surfaceSize; }
 		ND_ VkPresentModeKHR			GetPresentMode ()				const	{ return _presentMode; }
@@ -119,7 +114,6 @@ namespace FG
 		void _GetSurfaceImageCount (INOUT uint &minImageCount, const VkSurfaceCapabilitiesKHR &surfaceCaps) const;
 
 		bool _CreateColorAttachment ();
-		bool _CreateSemaphores ();
 
 		void _UpdateFPS ();
 	};

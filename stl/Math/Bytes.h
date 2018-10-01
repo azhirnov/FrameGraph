@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/include/Cast.h"
+#include "stl/Algorithms/Cast.h"
 
 namespace FG
 {
@@ -52,6 +52,9 @@ namespace FG
 
 		template <typename B>	ND_ static constexpr Bytes<T>	SizeOf ()			{ return Bytes<T>( sizeof(B) ); }
 		template <typename B>	ND_ static constexpr Bytes<T>	SizeOf (const B &)	{ return Bytes<T>( sizeof(B) ); }
+		
+		template <typename B>	ND_ static constexpr Bytes<T>	AlignOf ()			{ return Bytes<T>( alignof(B) ); }
+		template <typename B>	ND_ static constexpr Bytes<T>	AlignOf (const B &)	{ return Bytes<T>( alignof(B) ); }
 
 
 		// move any pointer
@@ -130,8 +133,14 @@ namespace FG
 	
 
 	using BytesU = Bytes< uint64_t >;
-
 	
+	template <typename T>
+	inline static constexpr BytesU	SizeOf = BytesU::SizeOf<T>();
+	
+	template <typename T>
+	inline static constexpr BytesU	AlignOf = BytesU::AlignOf<T>();
+	
+
 	ND_ constexpr BytesU  operator "" _b (unsigned long long value)		{ return BytesU( value ); }
 	ND_ constexpr BytesU  operator "" _Kb (unsigned long long value)	{ return BytesU::FromKb( value ); }
 	ND_ constexpr BytesU  operator "" _Mb (unsigned long long value)	{ return BytesU::FromMb( value ); }

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "stl/include/Math.h"
-#include "stl/include/Bytes.h"
+#include "stl/Math/Math.h"
+#include "stl/Math/Bytes.h"
 
 namespace FG
 {

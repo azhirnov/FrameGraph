@@ -19,8 +19,8 @@ namespace FG
 	{
 		ENABLE_ENUM_CHECKS();
 		switch ( value ) {
-			case EIndex::UShort :	return BytesU::SizeOf<uint16_t>();
-			case EIndex::UInt :		return BytesU::SizeOf<uint32_t>();
+			case EIndex::UShort :	return SizeOf<uint16_t>;
+			case EIndex::UInt :		return SizeOf<uint32_t>;
 			case EIndex::Unknown :	break;
 		}
 		DISABLE_ENUM_CHECKS();

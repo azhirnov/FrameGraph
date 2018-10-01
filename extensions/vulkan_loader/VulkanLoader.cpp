@@ -2,9 +2,9 @@
 
 #include "VulkanLoader.h"
 #include "VulkanCheckError.h"
-#include "stl/include/Cast.h"
-#include "stl/include/Singleton.h"
-#include "stl/include/StringUtils.h"
+#include "stl/Algorithms/Cast.h"
+#include "stl/Algorithms/StringUtils.h"
+#include "stl/Containers/Singleton.h"
 
 
 #if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)

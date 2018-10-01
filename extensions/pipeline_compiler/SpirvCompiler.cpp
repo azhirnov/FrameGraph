@@ -2,7 +2,7 @@
 
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
-#include "stl/include/StringUtils.h"
+#include "stl/Algorithms/StringUtils.h"
 
 
 // glslang includes

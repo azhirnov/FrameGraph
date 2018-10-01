@@ -15,9 +15,9 @@
 #include <cstring>
 #include <cmath>
 
-#include "stl/include/Defines.h"
-#include "stl/include/Log.h"
-#include "stl/include/Hash.h"
+#include "stl/Defines.h"
+#include "stl/Log/Log.h"
+#include "stl/Algorithms/Hash.h"
 
 
 namespace FG
@@ -28,16 +28,16 @@ namespace FG
 	using String		= std::string;
 
 
-	template <typename T>			using Optional	= std::optional< T >;
+	template <typename T>	using Optional	= std::optional< T >;
 
-	template <typename T>			using Array		= std::vector< T >;
+	template <typename T>	using Array		= std::vector< T >;
 
-	template <typename T>			using UniquePtr	= std::unique_ptr< T >;
+	template <typename T>	using UniquePtr	= std::unique_ptr< T >;
 
-	template <typename T>			using SharedPtr	= std::shared_ptr< T >;
-	template <typename T>			using WeakPtr	= std::weak_ptr< T >;
+	template <typename T>	using SharedPtr	= std::shared_ptr< T >;
+	template <typename T>	using WeakPtr	= std::weak_ptr< T >;
 
-	template <typename T>			using Deque		= std::deque<T>;
+	template <typename T>	using Deque		= std::deque<T>;
 
 
 	template <typename T,

@@ -1,8 +1,8 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "WindowGLFW.h"
-#include "stl/include/Singleton.h"
-#include "stl/include/StringUtils.h"
+#include "stl/Containers/Singleton.h"
+#include "stl/Algorithms/StringUtils.h"
 
 #ifdef FG_ENABLE_GLFW
 
@@ -23,8 +23,7 @@ namespace {
 =================================================
 */
 	WindowGLFW::WindowGLFW () :
-		_window{ null },
-		_listener{ null }
+		_window{ null }
 	{
 	}
 	
@@ -43,7 +42,7 @@ namespace {
 	Create
 =================================================
 */
-	bool WindowGLFW::Create (uint2 size, StringView title, IWindowEventListener *listener)
+	bool WindowGLFW::Create (uint2 size, StringView title)
 	{
 		CHECK_ERR( not _window );
 
@@ -76,10 +75,31 @@ namespace {
 		glfwSetFramebufferSizeCallback( _window, &_GLFW_ResizeCallback );
 		glfwSetKeyCallback( _window, &_GLFW_KeyCallback );
 
-		_listener = listener;
 		return true;
 	}
 	
+/*
+=================================================
+	AddListener
+=================================================
+*/
+	void WindowGLFW::AddListener (IWindowEventListener *listener)
+	{
+		ASSERT( listener );
+		_listeners.insert( listener );
+	}
+	
+/*
+=================================================
+	RemoveListener
+=================================================
+*/
+	void WindowGLFW::RemoveListener (IWindowEventListener *listener)
+	{
+		ASSERT( listener );
+		_listeners.erase( listener );
+	}
+
 /*
 =================================================
 	_GLFW_ErrorCallback
@@ -99,8 +119,9 @@ namespace {
 	{
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 		
-		if ( self->_listener )
-			self->_listener->OnRefrash();
+		for (auto& listener : self->_listeners) {
+			listener->OnRefrash();
+		}
 	}
 	
 /*
@@ -112,8 +133,9 @@ namespace {
 	{
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 		
-		if ( self->_listener )
-			self->_listener->OnResize( uint2{int2{ w, h }} );
+		for (auto& listener : self->_listeners) {
+			listener->OnResize( uint2{int2{ w, h }} );
+		}
 	}
 
 /*
@@ -141,8 +163,9 @@ namespace {
 
 		glfwPollEvents();
 
-		if ( _listener )
-			_listener->OnUpdate();
+		for (auto& listener : _listeners) {
+			listener->OnUpdate();
+		}
 
 		return true;
 	}
@@ -167,11 +190,10 @@ namespace {
 */
 	void WindowGLFW::Destroy ()
 	{
-		if ( _listener )
-		{
-			_listener->OnDestroy();
-			_listener = null;
+		for (auto& listener : _listeners) {
+			listener->OnDestroy();
 		}
+		_listeners.clear();
 
 		if ( _window )
 		{

@@ -50,7 +50,7 @@
 
 // debug break
 #ifndef FG_BREAK_POINT
-# if defined COMPILER_MSVC
+# if defined(COMPILER_MSVC)
 #	define FG_PRIVATE_BREAK_POINT()		__debugbreak()
 
 # elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
@@ -61,6 +61,27 @@
 #	include <csignal>
 #	define FG_PRIVATE_BREAK_POINT()		std::raise(SIGINT)
 #  endif
+# endif
+#endif
+
+
+// DLL import/export
+#if !defined(FG_DLL_EXPORT) || !defined(FG_DLL_IMPORT)
+# if defined(COMPILER_MSVC)
+#	define FG_DLL_EXPORT			__declspec( dllexport )
+#	define FG_DLL_IMPORT			__declspec( dllimport )
+
+# elif defined(COMPILER_GCC) || defined(COMPILER_CLANG)
+#  ifdef PLATFORM_WINDOWS
+#	define FG_DLL_EXPORT			__attribute__ (dllexport)
+#	define FG_DLL_IMPORT			__attribute__ (dllimport)
+#  else
+#	define FG_DLL_EXPORT			__attribute__ (visibility("default"))
+#	define FG_DLL_IMPORT			__attribute__ (visibility("default"))
+#  endif
+
+# else
+#	error define FG_DLL_EXPORT and FG_DLL_IMPORT for you compiler
 # endif
 #endif
 
@@ -79,8 +100,6 @@
 #ifndef ASSERT
 # ifdef FG_DEBUG
 #	define ASSERT				CHECK
-//#	include <cassert>
-//#	define ASSERT				assert
 # else
 #	define ASSERT( ... )		{}
 # endif
@@ -185,14 +204,14 @@
 
 // bit operators
 #define FG_BIT_OPERATORS( _type_ ) \
-	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( EnumToUInt(lhs) | EnumToUInt(rhs) ); } \
-	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( EnumToUInt(lhs) & EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( FG::EnumToUInt(lhs) | FG::EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( FG::EnumToUInt(lhs) & FG::EnumToUInt(rhs) ); } \
 	\
-	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( EnumToUInt(lhs) | EnumToUInt(rhs) ); } \
-	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( EnumToUInt(lhs) & EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( FG::EnumToUInt(lhs) | FG::EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( FG::EnumToUInt(lhs) & FG::EnumToUInt(rhs) ); } \
 	\
-	ND_ constexpr _type_  operator ~ (_type_ lhs) noexcept					{ return _type_(~EnumToUInt(lhs)); } \
-	ND_ constexpr bool    operator ! (_type_ lhs) noexcept					{ return not EnumToUInt(lhs); } \
+	ND_ constexpr _type_  operator ~ (_type_ lhs) noexcept					{ return _type_(~FG::EnumToUInt(lhs)); } \
+	ND_ constexpr bool    operator ! (_type_ lhs) noexcept					{ return not FG::EnumToUInt(lhs); } \
 	
 
 // enable/disable checks for enums

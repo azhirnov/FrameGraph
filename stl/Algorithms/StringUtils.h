@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "stl/include/Math.h"
-#include "stl/include/Vec.h"
-#include "stl/include/Bytes.h"
-#include "stl/include/EnumUtils.h"
+#include "stl/Math/Math.h"
+#include "stl/Math/Vec.h"
+#include "stl/Math/Bytes.h"
+#include "stl/Algorithms/EnumUtils.h"
 #include <chrono>
 #include <sstream>
 

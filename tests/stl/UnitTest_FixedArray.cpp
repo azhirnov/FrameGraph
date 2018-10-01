@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "stl/include/FixedArray.h"
+#include "stl/Containers/FixedArray.h"
 #include "UnitTestCommon.h"
 
 

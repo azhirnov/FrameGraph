@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "stl/include/StringUtils.h"
+#include "stl/Algorithms/StringUtils.h"
 #include <iostream>
 
 using namespace FG;

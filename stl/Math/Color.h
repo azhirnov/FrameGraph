@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/include/Vec.h"
+#include "stl/Math/Vec.h"
 
 namespace FG
 {

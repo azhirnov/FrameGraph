@@ -29,7 +29,6 @@ namespace FG
 
 	// variables
 	private:
-
 		VkDebugReportCallbackEXT	_debugCallback;
 		DebugReport_t				_callback;
 
@@ -37,9 +36,12 @@ namespace FG
 		bool						_debugMarkersSupported;
 		bool						_breakOnValidationError;
 		
-		VkPhysicalDeviceProperties			_deviceProperties;
-		VkPhysicalDeviceFeatures			_deviceFeatures;
-		VkPhysicalDeviceMemoryProperties	_deviceMemoryProperties;
+		VkPhysicalDeviceProperties				_deviceProperties;
+		VkPhysicalDeviceFeatures				_deviceFeatures;
+		VkPhysicalDeviceMemoryProperties		_deviceMemoryProperties;
+		VkPhysicalDeviceIDProperties			_deviceIDProperties;
+		VkPhysicalDeviceMaintenance3Properties	_deviceMaintenance3Properties;
+		VkPhysicalDeviceSubgroupProperties		_deviceSubgroupProperties;
 
 
 	// methods

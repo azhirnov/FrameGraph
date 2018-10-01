@@ -2,20 +2,20 @@
 
 #pragma once
 
-#include "stl/include/ArrayView.h"
-#include "stl/include/Bytes.h"
-#include "stl/include/Cast.h"
-#include "stl/include/Color.h"
-#include "stl/include/DefaultType.h"
-#include "stl/include/EnumUtils.h"
-#include "stl/include/FixedArray.h"
-#include "stl/include/FixedMap.h"
-#include "stl/include/Math.h"
-#include "stl/include/MemUtils.h"
-#include "stl/include/Rectangle.h"
-#include "stl/include/StaticString.h"
-#include "stl/include/Union.h"
-#include "stl/include/Vec.h"
+#include "stl/CompileTime/DefaultType.h"
+#include "stl/Containers/ArrayView.h"
+#include "stl/Containers/StaticString.h"
+#include "stl/Containers/FixedArray.h"
+#include "stl/Containers/FixedMap.h"
+#include "stl/Containers/Union.h"
+#include "stl/Math/Bytes.h"
+#include "stl/Math/Color.h"
+#include "stl/Math/Math.h"
+#include "stl/Math/Rectangle.h"
+#include "stl/Math/Vec.h"
+#include "stl/Algorithms/Cast.h"
+#include "stl/Algorithms/EnumUtils.h"
+#include "stl/Algorithms/MemUtils.h"
 
 
 // virtual / non-virtual version

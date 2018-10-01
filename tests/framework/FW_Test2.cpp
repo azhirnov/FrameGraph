@@ -5,7 +5,7 @@
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
-#include "stl/include/StringUtils.h"
+#include "stl/Algorithms/StringUtils.h"
 #include <thread>
 
 using namespace FG;
@@ -81,7 +81,8 @@ public:
 		{
 			title = "Test"s << (inst ? "2" : "1");
 
-			CHECK_ERR( window->Create( { 800, 600 }, title, null ));
+			CHECK_ERR( window->Create( { 800, 600 }, title ));
+			window->AddListener( this );
 
 			if ( inst )
 			{
@@ -89,7 +90,7 @@ public:
 			}
 			else
 			{
-				CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", VK_API_VERSION_1_1, "nvidia" ));
+				CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_1, "nvidia" ));
 
 				// it is the test, so test must fail on any error
 				vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT,
@@ -132,6 +133,7 @@ public:
 		VkCommandPool		cmd_pool;
 		VkCommandBuffer		cmd_buffers[2]	= {};
 		VkFence				fences[2]		= {};
+		VkSemaphore			semaphores[2]	= {};
 		{
 			VkCommandPoolCreateInfo		pool_info = {};
 			pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -152,6 +154,12 @@ public:
 			fence_info.flags	= VK_FENCE_CREATE_SIGNALED_BIT;
 			VK_CHECK( vkCreateFence( vulkan.GetVkDevice(), &fence_info, null, OUT &fences[0] ));
 			VK_CHECK( vkCreateFence( vulkan.GetVkDevice(), &fence_info, null, OUT &fences[1] ));
+
+			VkSemaphoreCreateInfo	sem_info = {};
+			sem_info.sType		= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			sem_info.flags		= 0;
+			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[0] ) );
+			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[1] ) );
 		}
 	
 		// main loop
@@ -167,7 +175,7 @@ public:
 				VK_CHECK( vkWaitForFences( vulkan.GetVkDevice(), 1, &fences[i&1], true, ~0ull ));
 				VK_CHECK( vkResetFences( vulkan.GetVkDevice(), 1, &fences[i&1] ));
 
-				VK_CALL( swapchain->AcquireNextImage() );
+				VK_CALL( swapchain->AcquireNextImage( semaphores[0] ));
 			}
 
 			// build command buffer
@@ -246,8 +254,8 @@ public:
 
 			// submit commands
 			{
-				VkSemaphore				signal_semaphores[] = { swapchain->GetRenderFinishedSemaphore() };
-				VkSemaphore				wait_semaphores[]	= { swapchain->GetImageAvailableSemaphore() };
+				VkSemaphore				signal_semaphores[] = { semaphores[1] };
+				VkSemaphore				wait_semaphores[]	= { semaphores[0] };
 				VkPipelineStageFlags	wait_dst_mask[]		= { VK_PIPELINE_STAGE_TRANSFER_BIT };
 				STATIC_ASSERT( std::size(wait_semaphores) == std::size(wait_dst_mask) );
 
@@ -265,14 +273,16 @@ public:
 			}
 
 			// present
-			CHECK( swapchain->Present( cmd_queue ));
+			CHECK( swapchain->Present( cmd_queue, semaphores[1] ));
 		}
 
 
 		// destroy vulkan objects
 		{
 			VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
-
+			
+			vkDestroySemaphore( vulkan.GetVkDevice(), semaphores[0], null );
+			vkDestroySemaphore( vulkan.GetVkDevice(), semaphores[1], null );
 			vkDestroyFence( vulkan.GetVkDevice(), fences[0], null );
 			vkDestroyFence( vulkan.GetVkDevice(), fences[1], null );
 			vkDestroyCommandPool( vulkan.GetVkDevice(), cmd_pool, null );

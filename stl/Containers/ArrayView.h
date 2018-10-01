@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/include/Math.h"
+#include "stl/Math/Math.h"
 
 namespace FG
 {
@@ -41,6 +41,8 @@ namespace FG
 
 		template <size_t S>
 		ArrayView (const T (&arr)[S]) : _array{arr}, _count{S} {}
+
+		ND_ explicit operator Array<T> ()			const	{ return Array<T>{ begin(), end() }; }
 
 		ND_ size_t			size ()					const	{ return _count; }
 		ND_ bool			empty ()				const	{ return _count == 0; }

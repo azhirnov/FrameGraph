@@ -1,7 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "PipelineCppSerializer.h"
-#include "stl/include/StringUtils.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {

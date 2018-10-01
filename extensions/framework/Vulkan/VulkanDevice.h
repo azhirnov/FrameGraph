@@ -21,6 +21,10 @@ namespace FG
 		{
 			VkQueueFlags			flags		= 0;
 			float					priority	= 0.0f;
+
+			QueueCreateInfo () {}
+			QueueCreateInfo (int flags, float priority = 0.0f) : flags{VkQueueFlags(flags)}, priority{priority} {}
+			QueueCreateInfo (VkQueueFlags flags, float priority = 0.0f) : flags{flags}, priority{priority} {}
 		};
 
 		struct VulkanQueue
@@ -58,6 +62,7 @@ namespace FG
 		
 		bool Create (UniquePtr<IVulkanSurface> &&surf,
 					 StringView					applicationName,
+					 StringView					engineName,
 					 uint						version				= VK_API_VERSION_1_1,
 					 StringView					deviceName			= Default,
 					 ArrayView<QueueCreateInfo>	queues				= Default,
@@ -95,13 +100,14 @@ namespace FG
 
 
 	private:
-		bool _CreateInstance (StringView appName, ArrayView<const char*> instanceLayers, Array<const char*> &&instanceExtensions, uint version);
+		bool _CreateInstance (StringView appName, StringView engineName, ArrayView<const char*> instanceLayers, Array<const char*> &&instanceExtensions, uint version);
 		bool _ChooseGpuDevice (StringView deviceName);
 		bool _SetupQueues (ArrayView<QueueCreateInfo> queue);
 		bool _CreateDevice (ArrayView<const char*> extensions);
-		bool _ChooseQueueIndex (INOUT VkQueueFlags &flags, OUT uint32_t &index) const;
+		bool _ChooseQueueIndex (ArrayView<VkQueueFamilyProperties> props, INOUT VkQueueFlags &flags, OUT uint &index) const;
 		void _DestroyDevice ();
 
+		void _ValidateInstanceVersion (INOUT uint &version) const;
         void _ValidateInstanceLayers (INOUT Array<const char*> &layers) const;
 		void _ValidateInstanceExtensions (INOUT Array<const char*> &ext) const;
 		void _ValidateDeviceExtensions (INOUT Array<const char*> &ext) const;

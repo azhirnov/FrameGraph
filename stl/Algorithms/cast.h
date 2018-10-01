@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/include/Common.h"
+#include "stl/Common.h"
 
 namespace FG
 {
@@ -26,19 +26,25 @@ namespace FG
 	template <typename R, typename T>
 	ND_ forceinline constexpr R const volatile*  Cast (T const volatile* value)
 	{
-		return static_cast< R const volatile *>( value );
+		return static_cast< R const volatile *>( static_cast< void const volatile *>(value) );
+	}
+
+	template <typename R, typename T>
+	ND_ forceinline constexpr R volatile*  Cast (T volatile* value)
+	{
+		return static_cast< R volatile *>( static_cast< void volatile *>(value) );
 	}
 
 	template <typename R, typename T>
 	ND_ forceinline constexpr R const*  Cast (T const* value)
 	{
-		return static_cast< R const *>( value );
+		return static_cast< R const *>( static_cast< void const *>(value) );
 	}
 	
 	template <typename R, typename T>
 	ND_ forceinline constexpr R*  Cast (T* value)
 	{
-		return static_cast< R *>( value );
+		return static_cast< R *>( static_cast< void *>(value) );
 	}
 
 /*

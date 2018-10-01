@@ -5,36 +5,45 @@ cmake_minimum_required (VERSION 3.6.0)
 # project: STL
 #==================================================================================================
 set( SOURCES 
-	"include/ArrayView.h"
-	"include/Bytes.h"
-	"include/Cast.h"
-	"include/Color.h"
-	"include/Common.h"
-	"include/DefaultType.h"
-	"include/Defines.h"
-	"include/EnumUtils.h"
-	"include/File.h"
-	"include/FixedArray.h"
-	"include/FixedMap.h"
-	"include/Hash.h"
-	"include/Log.h"
-	"include/Math.h"
-	"include/MemUtils.h"
-	"include/PoolAllocator.h"
-	"include/Rectangle.h"
-	"include/Singleton.h"
-	"include/StaticString.h"
-	"include/StringUtils.h"
-	"include/TimeProfiler.h"
-	"include/Union.h"
-	"include/Vec.h"
-	"source/File.cpp"
-	"source/Log.cpp"
-	"CMakeLists.txt" )
+	"CompileTime/DefaultType.h"
+	"CompileTime/TypeList.h"
+	"Math/Bytes.h"
+	"Math/Color.h"
+	"Math/Math.h"
+	"Math/Rectangle.h"
+	"Math/Vec.h"
+	"Containers/AlignedBuffer.h"
+	"Containers/ArrayView.h"
+	"Containers/FixedArray.h"
+	"Containers/FixedMap.h"
+	"Containers/PoolAllocator.h"
+	"Containers/Singleton.h"
+	"Containers/StaticString.h"
+	"Containers/Union.h"
+	"Algorithms/Cast.h"
+	"Algorithms/EnumUtils.h"
+	"Algorithms/Hash.h"
+	"Algorithms/MemUtils.h"
+	"Algorithms/StringUtils.h"
+	"File/File.cpp"
+	"File/File.h"
+	"File/HddFile.cpp"
+	"File/HddFile.h"
+	"File/MemFile.h"
+	"Log/Log.cpp"
+	"Log/Log.h"
+	"Log/timeprofiler.h"
+	"CMakeLists.txt"
+	"Common.h"
+	"Defines.h" )
 add_library( "STL" STATIC ${SOURCES} )
-source_group( "include" FILES "include/ArrayView.h" "include/Bytes.h" "include/Cast.h" "include/Color.h" "include/Common.h" "include/DefaultType.h" "include/Defines.h" "include/EnumUtils.h" "include/File.h" "include/FixedArray.h" "include/FixedMap.h" "include/Hash.h" "include/Log.h" "include/Math.h" "include/MemUtils.h" "include/PoolAllocator.h" "include/Rectangle.h" "include/Singleton.h" "include/StaticString.h" "include/StringUtils.h" "include/TimeProfiler.h" "include/Union.h" "include/Vec.h" )
-source_group( "source" FILES "source/File.cpp" "source/Log.cpp" )
-source_group( "" FILES "CMakeLists.txt" )
+source_group( "CompileTime" FILES "CompileTime/DefaultType.h" "CompileTime/TypeList.h" )
+source_group( "Math" FILES "Math/Bytes.h" "Math/Color.h" "Math/Math.h" "Math/Rectangle.h" "Math/Vec.h" )
+source_group( "Containers" FILES "Containers/AlignedBuffer.h" "Containers/ArrayView.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/PoolAllocator.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/Union.h" )
+source_group( "Algorithms" FILES "Algorithms/Cast.h" "Algorithms/EnumUtils.h" "Algorithms/Hash.h" "Algorithms/MemUtils.h" "Algorithms/StringUtils.h" )
+source_group( "File" FILES "File/File.cpp" "File/File.h" "File/HddFile.cpp" "File/HddFile.h" "File/MemFile.h" )
+source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/timeprofiler.h" )
+source_group( "" FILES "CMakeLists.txt" "Common.h" "Defines.h" )
 target_include_directories( "STL" PUBLIC ".." )
 target_include_directories( "STL" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "STL" PRIVATE "" )

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/include/StringUtils.h"
+#include "stl/Algorithms/StringUtils.h"
 #include <chrono>
 
 namespace FG

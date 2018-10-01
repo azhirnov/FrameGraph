@@ -30,11 +30,13 @@ namespace FG
 			ND_ VkSurfaceKHR		Create (VkInstance inst) const override;
 		};
 
+		using Listeners_t	= HashSet< IWindowEventListener *>;
+
 
 	// variables
 	private:
-		sf::Window				_window;
-		IWindowEventListener *	_listener;
+		sf::Window		_window;
+		Listeners_t		_listeners;
 
 
 	// methods
@@ -42,7 +44,9 @@ namespace FG
 		WindowSFML ();
 		~WindowSFML ();
 
-		bool Create (uint2 size, StringView title, IWindowEventListener *listener) override;
+		bool Create (uint2 size, StringView title) override;
+		void AddListener (IWindowEventListener *listener) override;
+		void RemoveListener (IWindowEventListener *listener) override;
 		bool Update () override;
 		void Quit () override;
 		void Destroy () override;

@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "stl/include/Bytes.h"
-#include "stl/include/Vec.h"
-#include "stl/include/Color.h"
+#include "stl/Math/Bytes.h"
+#include "stl/Math/Vec.h"
+#include "stl/Math/Color.h"
 #include "framegraph/Public/LowLevel/BufferView.h"
 #include "framegraph/Public/LowLevel/ResourceEnums.h"
 

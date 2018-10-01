@@ -1,7 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanSwapchain.h"
-#include "stl/include/EnumUtils.h"
+#include "stl/Algorithms/EnumUtils.h"
 
 namespace FG
 {
@@ -14,7 +14,6 @@ namespace FG
 	VulkanSwapchain::VulkanSwapchain () :
 		_vkSwapchain{ VK_NULL_HANDLE },			_vkPhysicalDevice{ VK_NULL_HANDLE },
 		_vkDevice{ VK_NULL_HANDLE },			_vkSurface{ VK_NULL_HANDLE },
-		_imageAvailable{ VK_NULL_HANDLE },		_renderFinished{ VK_NULL_HANDLE },
 		_currImageIndex{ ~0u },
 		_colorFormat{ VK_FORMAT_UNDEFINED },	_colorSpace{ VK_COLOR_SPACE_MAX_ENUM_KHR },
 		_minImageCount{ 0 },					_imageArrayLayers{ 0 },
@@ -61,8 +60,6 @@ namespace FG
 	VulkanSwapchain::~VulkanSwapchain ()
 	{
 		CHECK( not _vkSwapchain );
-		CHECK( not _imageAvailable );
-		CHECK( not _renderFinished );
 	}
 	
 /*
@@ -258,7 +255,6 @@ namespace FG
 
 
 		CHECK_ERR( _CreateColorAttachment() );
-		CHECK_ERR( _CreateSemaphores() );
 
 		return true;
 	}
@@ -311,26 +307,6 @@ namespace FG
 
 		return true;
 	}
-	
-/*
-=================================================
-	_CreateSemaphores
-=================================================
-*/
-	bool VulkanSwapchain::_CreateSemaphores ()
-	{
-		VkSemaphoreCreateInfo	sem_info = {};
-		sem_info.sType		= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		sem_info.flags		= 0;
-		
-		if ( _imageAvailable == VK_NULL_HANDLE )
-			VK_CALL( vkCreateSemaphore( _vkDevice, &sem_info, null, OUT &_imageAvailable ) );
-
-		if ( _renderFinished == VK_NULL_HANDLE )
-			VK_CALL( vkCreateSemaphore( _vkDevice, &sem_info, null, OUT &_renderFinished ) );
-
-		return true;
-	}
 
 /*
 =================================================
@@ -355,11 +331,6 @@ namespace FG
 	AcquireNextImage
 =================================================
 */
-	VkResult  VulkanSwapchain::AcquireNextImage ()
-	{
-		return AcquireNextImage( _imageAvailable );
-	}
-	
 	VkResult  VulkanSwapchain::AcquireNextImage (VkSemaphore imageAvailable)
 	{
 		CHECK_ERR( _vkDevice and _vkSwapchain and imageAvailable, VK_RESULT_MAX_ENUM );
@@ -378,30 +349,36 @@ namespace FG
 	Present
 =================================================
 */
-	bool VulkanSwapchain::Present (VkQueue queue)
-	{
-		return Present( queue, _renderFinished );
-	}
-
 	bool VulkanSwapchain::Present (VkQueue queue, VkSemaphore renderFinished)
 	{
-		CHECK_ERR( queue and _vkSwapchain and renderFinished );
+		if ( renderFinished )
+			return Present( queue, {} );
+		else
+			return Present( queue, {&renderFinished, 1} );
+	}
+	
+/*
+=================================================
+	Present
+=================================================
+*/
+	bool VulkanSwapchain::Present (VkQueue queue, ArrayView<VkSemaphore> renderFinished)
+	{
+		CHECK_ERR( queue and _vkSwapchain );
 		CHECK_ERR( IsImageAcquired() );
 
 		const VkSwapchainKHR	swap_chains[]		= { _vkSwapchain };
 		const uint				image_indices[]		= { _currImageIndex };
-		const VkSemaphore		wait_semaphores[]	= { renderFinished };
 
 		STATIC_ASSERT( std::size(swap_chains) == std::size(image_indices) );
-
 
 		VkPresentInfoKHR	present_info = {};
 		present_info.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		present_info.swapchainCount		= uint(std::size( swap_chains ));
 		present_info.pSwapchains		= swap_chains;
 		present_info.pImageIndices		= image_indices;
-		present_info.waitSemaphoreCount	= uint(std::size( wait_semaphores ));
-		present_info.pWaitSemaphores	= wait_semaphores;
+		present_info.waitSemaphoreCount	= uint(renderFinished.size());
+		present_info.pWaitSemaphores	= renderFinished.data();
 
 		_currImageIndex	= ~0u;
 
@@ -474,12 +451,6 @@ namespace FG
 			{
 				vkDestroyImageView( _vkDevice, buf.view, null );
 			}
-		
-			if ( _imageAvailable != VK_NULL_HANDLE )
-				vkDestroySemaphore( _vkDevice, _imageAvailable, null );
-
-			if ( _renderFinished != VK_NULL_HANDLE )
-				vkDestroySemaphore( _vkDevice, _renderFinished, null );
 
 			if ( _vkSwapchain != VK_NULL_HANDLE )
 				vkDestroySwapchainKHR( _vkDevice, _vkSwapchain, null );
@@ -494,8 +465,6 @@ namespace FG
 		_vkSwapchain		= VK_NULL_HANDLE;
 		_surfaceSize		= uint2();
 
-		_imageAvailable		= VK_NULL_HANDLE;
-		_renderFinished		= VK_NULL_HANDLE;
 		_currImageIndex		= ~0u;
 		
 		_colorFormat		= VK_FORMAT_UNDEFINED;

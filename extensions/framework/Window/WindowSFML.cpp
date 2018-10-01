@@ -13,8 +13,7 @@ namespace FG
 	constructor
 =================================================
 */
-	WindowSFML::WindowSFML () :
-		_listener{ null }
+	WindowSFML::WindowSFML ()
 	{
 	}
 	
@@ -33,17 +32,38 @@ namespace FG
 	Create
 =================================================
 */
-	bool WindowSFML::Create (uint2 size, StringView title, IWindowEventListener *listener)
+	bool WindowSFML::Create (uint2 size, StringView title)
 	{
 		CHECK_ERR( not _window.isOpen() );
 
 		_window.create( sf::VideoMode(size.x, size.y), String(title), sf::Style::Titlebar | sf::Style::Resize | sf::Style::Close );
 		CHECK_ERR( _window.isOpen() );
-		
-		_listener = listener;
+	
 		return true;
 	}
 	
+/*
+=================================================
+	AddListener
+=================================================
+*/
+	void WindowSFML::AddListener (IWindowEventListener *listener)
+	{
+		ASSERT( listener );
+		_listeners.insert( listener );
+	}
+	
+/*
+=================================================
+	RemoveListener
+=================================================
+*/
+	void WindowSFML::RemoveListener (IWindowEventListener *listener)
+	{
+		ASSERT( listener );
+		_listeners.erase( listener );
+	}
+
 /*
 =================================================
 	Update
@@ -57,8 +77,13 @@ namespace FG
 		sf::Event	event;
 		while ( _window.pollEvent( OUT event ) )
 		{
-			if ( event.type == sf::Event::Closed )
-				_window.close();
+			if ( event.type == sf::Event::Closed ) {
+				Quit();
+			}
+		}
+
+		for (auto& listener : _listeners) {
+			listener->OnUpdate();
 		}
 		return true;
 	}
@@ -80,9 +105,12 @@ namespace FG
 */
 	void WindowSFML::Destroy ()
 	{
-		_window.close();
+		for (auto& listener : _listeners) {
+			listener->OnDestroy();
+		}
+		_listeners.clear();
 
-		_listener = null;
+		_window.close();
 	}
 		
 /*

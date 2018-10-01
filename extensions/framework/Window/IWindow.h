@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "stl/include/Vec.h"
-#include "stl/include/FixedArray.h"
-#include "stl/include/DefaultType.h"
+#include "stl/Math/Vec.h"
+#include "stl/Containers/FixedArray.h"
+#include "stl/CompileTime/DefaultType.h"
 #include "vulkan_loader/VulkanLoader.h"
 #include "vulkan_loader/VulkanCheckError.h"
 
@@ -48,7 +48,9 @@ namespace FG
 	{
 	public:
 		virtual ~IWindow () {}
-		virtual bool Create (uint2 size, StringView title, IWindowEventListener *listener) = 0;
+		virtual bool Create (uint2 size, StringView title) = 0;
+		virtual void AddListener (IWindowEventListener *listener) = 0;
+		virtual void RemoveListener (IWindowEventListener *listener) = 0;
 		virtual bool Update () = 0;
 		virtual void Quit () = 0;
 		virtual void Destroy () = 0;

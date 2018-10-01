@@ -3,7 +3,7 @@
 #pragma once
 
 #include "framegraph/Public/LowLevel/Types.h"
-#include "stl/include/EnumUtils.h"
+#include "stl/Algorithms/EnumUtils.h"
 
 namespace FG
 {

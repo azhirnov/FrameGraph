@@ -2,7 +2,7 @@
 
 #include "WindowSDL2.h"
 #include "framework/Vulkan/VulkanSurface.h"
-#include "stl/include/Singleton.h"
+#include "stl/Containers/Singleton.h"
 
 #ifdef FG_ENABLE_SDL2
 #	include "SDL2/include/SDL_syswm.h"
@@ -25,8 +25,7 @@ namespace {
 */
 	WindowSDL2::WindowSDL2 () :
 		_window{ null },
-		_wndID{ 0 },
-		_listener{ null }
+		_wndID{ 0 }
 	{
 	}
 	
@@ -45,7 +44,7 @@ namespace {
 	Create
 =================================================
 */
-	bool WindowSDL2::Create (uint2 surfaceSize, StringView title, IWindowEventListener *listener)
+	bool WindowSDL2::Create (uint2 surfaceSize, StringView title)
 	{
 		CHECK_ERR( not _window );
 
@@ -78,8 +77,29 @@ namespace {
 
 		SDL_SetWindowData( _window, "mgf", this );
 		
-		_listener = listener;
 		return true;
+	}
+	
+/*
+=================================================
+	AddListener
+=================================================
+*/
+	void WindowSDL2::AddListener (IWindowEventListener *listener)
+	{
+		ASSERT( listener );
+		_listeners.insert( listener );
+	}
+	
+/*
+=================================================
+	RemoveListener
+=================================================
+*/
+	void WindowSDL2::RemoveListener (IWindowEventListener *listener)
+	{
+		ASSERT( listener );
+		_listeners.erase( listener );
 	}
 
 /*
@@ -134,9 +154,10 @@ namespace {
 						{
 							int2	size;
 							SDL_GetWindowSize( _window, OUT &size.x, OUT &size.y );
-
-							if ( _listener )
-								_listener->OnResize( uint2(size) );
+							
+							for (auto& listener : _listeners) {
+								listener->OnResize( uint2(size) );
+							}
 							break;
 						}
 
@@ -150,10 +171,10 @@ namespace {
 				}
 			}
 		}
-
-		if ( _listener )
-			_listener->OnUpdate();
-
+		
+		for (auto& listener : _listeners) {
+			listener->OnUpdate();
+		}
 		return true;
 	}
 	
@@ -174,11 +195,10 @@ namespace {
 */
 	void WindowSDL2::Destroy ()
 	{
-		if ( _listener )
-		{
-			_listener->OnDestroy();
-			_listener = null;
+		for (auto& listener : _listeners) {
+			listener->OnDestroy();
 		}
+		_listeners.clear();
 
 		if ( _window )
 		{
