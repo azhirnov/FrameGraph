@@ -44,10 +44,11 @@ if (${FG_ENABLE_GLSLANG})
 		"pipeline_compiler/PrivateDefines.h"
 		"pipeline_compiler/SpirvCompiler.cpp"
 		"pipeline_compiler/SpirvCompiler.h"
+		"pipeline_compiler/SpirvCompiler_Resources.cpp"
 		"pipeline_compiler/VPipelineCompiler.cpp"
 		"pipeline_compiler/VPipelineCompiler.h" )
 	add_library( "PipelineCompiler" STATIC ${SOURCES} )
-	source_group( "" FILES "pipeline_compiler/EShaderCompilationFlags.h" "pipeline_compiler/PipelineCppSerializer.cpp" "pipeline_compiler/PipelineCppSerializer.h" "pipeline_compiler/PrivateDefines.h" "pipeline_compiler/SpirvCompiler.cpp" "pipeline_compiler/SpirvCompiler.h" "pipeline_compiler/VPipelineCompiler.cpp" "pipeline_compiler/VPipelineCompiler.h" )
+	source_group( "" FILES "pipeline_compiler/EShaderCompilationFlags.h" "pipeline_compiler/PipelineCppSerializer.cpp" "pipeline_compiler/PipelineCppSerializer.h" "pipeline_compiler/PrivateDefines.h" "pipeline_compiler/SpirvCompiler.cpp" "pipeline_compiler/SpirvCompiler.h" "pipeline_compiler/SpirvCompiler_Resources.cpp" "pipeline_compiler/VPipelineCompiler.cpp" "pipeline_compiler/VPipelineCompiler.h" )
 	set_property( TARGET "PipelineCompiler" PROPERTY FOLDER "Extensions" )
 	target_include_directories( "PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "PipelineCompiler" PRIVATE ".." )
@@ -55,7 +56,8 @@ if (${FG_ENABLE_GLSLANG})
 	if (UNIX)
 		target_link_libraries( "PipelineCompiler" "pthread" )
 	endif()
-	target_link_libraries( "PipelineCompiler" "FrameGraph" )
+	target_link_libraries( "PipelineCompiler" "STL" )
+	target_link_libraries( "PipelineCompiler" "VulkanLoader" )
 	target_link_libraries( "PipelineCompiler" "OSDependent" )
 	target_link_libraries( "PipelineCompiler" "HLSL" )
 	target_link_libraries( "PipelineCompiler" "SPIRV" )
@@ -90,13 +92,15 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS})
 		"../tests/pipeline_compiler/Test_Shader4.cpp"
 		"../tests/pipeline_compiler/Test_Shader5.cpp"
 		"../tests/pipeline_compiler/Test_Shader6.cpp"
+		"../tests/pipeline_compiler/Test_Shader7.cpp"
+		"../tests/pipeline_compiler/Test_Shader8.cpp"
 		"../tests/pipeline_compiler/Utils.h" )
 	if (DEFINED ANDROID)
 		add_library( "Tests.PipelineCompiler" SHARED ${SOURCES} )
 	else()
 		add_executable( "Tests.PipelineCompiler" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Serializer1.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Utils.h" )
+	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Serializer1.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Utils.h" )
 	set_property( TARGET "Tests.PipelineCompiler" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.PipelineCompiler" PRIVATE "../tests/.." )

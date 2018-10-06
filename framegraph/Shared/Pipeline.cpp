@@ -1,6 +1,5 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "Public/LowLevel/Pipeline.h"
 
 namespace FG
 {

@@ -12,8 +12,8 @@ endif ()
 
 set( CMAKE_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../cmake" )
 
-include( "${CMAKE_FOLDER}/download_vk.cmake" )
 include( "${CMAKE_FOLDER}/download_glslang.cmake" )
+include( "${CMAKE_FOLDER}/download_vk.cmake" )
 include( "${CMAKE_FOLDER}/download_vma.cmake" )
 include( "${CMAKE_FOLDER}/download_sdl2.cmake" )
 include( "${CMAKE_FOLDER}/download_glfw.cmake" )

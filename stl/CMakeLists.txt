@@ -6,8 +6,8 @@ cmake_minimum_required (VERSION 3.6.0)
 #==================================================================================================
 set( SOURCES 
 	"CompileTime/DefaultType.h"
-	"CompileTime/TypeInfo.h"
 	"CompileTime/TypeList.h"
+	"CompileTime/TypeTraits.h"
 	"Math/Bytes.h"
 	"Math/Color.h"
 	"Math/Math.h"
@@ -28,7 +28,7 @@ set( SOURCES
 	"Algorithms/StringUtils.h"
 	"Log/Log.cpp"
 	"Log/Log.h"
-	"Log/timeprofiler.h"
+	"Log/TimeProfiler.h"
 	"CMakeLists.txt"
 	"Common.h"
 	"Defines.h"
@@ -39,11 +39,11 @@ set( SOURCES
 	"Stream/Stream.cpp"
 	"Stream/Stream.h" )
 add_library( "STL" STATIC ${SOURCES} )
-source_group( "CompileTime" FILES "CompileTime/DefaultType.h" "CompileTime/TypeInfo.h" "CompileTime/TypeList.h" )
+source_group( "CompileTime" FILES "CompileTime/DefaultType.h" "CompileTime/TypeList.h" "CompileTime/TypeTraits.h" )
 source_group( "Math" FILES "Math/Bytes.h" "Math/Color.h" "Math/Math.h" "Math/Rectangle.h" "Math/Vec.h" )
 source_group( "Containers" FILES "Containers/AlignedBuffer.h" "Containers/ArrayView.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/PoolAllocator.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/Union.h" )
 source_group( "Algorithms" FILES "Algorithms/Cast.h" "Algorithms/EnumUtils.h" "Algorithms/Hash.h" "Algorithms/MemUtils.h" "Algorithms/StringUtils.h" )
-source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/timeprofiler.h" )
+source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/TimeProfiler.h" )
 source_group( "" FILES "CMakeLists.txt" "Common.h" "Defines.h" )
 source_group( "Stream" FILES "Stream/BufferedStream.h" "Stream/FileStream.cpp" "Stream/FileStream.h" "Stream/MemStream.h" "Stream/Stream.cpp" "Stream/Stream.h" )
 target_include_directories( "STL" PUBLIC ".." )
@@ -84,14 +84,16 @@ if (${FG_ENABLE_TESTS})
 		"../tests/stl/main.cpp"
 		"../tests/stl/UnitTestCommon.h"
 		"../tests/stl/UnitTest_FixedArray.cpp"
+		"../tests/stl/UnitTest_FixedMap.cpp"
 		"../tests/stl/UnitTest_Math.cpp"
-		"../tests/stl/UnitTest_StaticString.cpp" )
+		"../tests/stl/UnitTest_StaticString.cpp"
+		"../tests/stl/UnitTest_ToString.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "Tests.STL" SHARED ${SOURCES} )
 	else()
 		add_executable( "Tests.STL" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTestCommon.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_StaticString.cpp" )
+	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTestCommon.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_ToString.cpp" )
 	set_property( TARGET "Tests.STL" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.STL" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.STL" PRIVATE "../tests/.." )
