@@ -37,7 +37,7 @@ namespace FG
 
 		~PoolAllocator ()
 		{
-			Clear();
+			Release();
 		}
 
 
@@ -80,13 +80,20 @@ namespace FG
 
 
 		template <typename T>
-		FG_ALLOCATOR void*  Alloc () noexcept
+		FG_ALLOCATOR T*  Alloc (size_t count = 1) noexcept
 		{
-			return Alloc( sizeof(T), alignof(T) );
+			return BitCast<T *>( Alloc( sizeof(T) * count, alignof(T) ));
 		}
 
 
 		void Clear () noexcept
+		{
+			for (auto& block : _blocks) {
+				block.size = 0;
+			}
+		}
+
+		void Release () noexcept
 		{
 			for (auto& block : _blocks) {
 				::operator delete( block.ptr, std::nothrow_t() );

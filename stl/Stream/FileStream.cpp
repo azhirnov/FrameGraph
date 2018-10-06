@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "stl/File/HddFile.h"
+#include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringUtils.h"
 
 #ifdef PLATFORM_WINDOWS
@@ -26,7 +26,7 @@ namespace FG
     constructor
 =================================================
 */
-	HddRFile::HddRFile (StringView filename)
+	FileRStream::FileRStream (StringView filename)
 	{
 		fopen_s( OUT &_file, filename.data(), "rb" );
 		
@@ -36,10 +36,10 @@ namespace FG
 			FG_LOGE( "Can't open file: "s << filename );
 	}
 	
-	HddRFile::HddRFile (const char *filename) : HddRFile{ StringView{filename} }
+	FileRStream::FileRStream (const char *filename) : FileRStream{ StringView{filename} }
 	{}
 
-	HddRFile::HddRFile (const String &filename) : HddRFile{ StringView{filename} }
+	FileRStream::FileRStream (const String &filename) : FileRStream{ StringView{filename} }
 	{}
 
 /*
@@ -47,7 +47,7 @@ namespace FG
     constructor
 =================================================
 */
-	HddRFile::HddRFile (const std::filesystem::path &path)
+	FileRStream::FileRStream (const std::filesystem::path &path)
 	{
 #	ifdef PLATFORM_WINDOWS
 		_wfopen_s( OUT &_file, path.c_str(), L"rb" );
@@ -66,7 +66,7 @@ namespace FG
     destructor
 =================================================
 */
-	HddRFile::~HddRFile ()
+	FileRStream::~FileRStream ()
 	{
 		if ( _file ) {
 			fclose( _file );
@@ -78,7 +78,7 @@ namespace FG
     Position
 =================================================
 */
-	BytesU  HddRFile::Position () const
+	BytesU  FileRStream::Position () const
 	{
 		ASSERT( IsOpen() );
 
@@ -90,7 +90,7 @@ namespace FG
     _GetSize
 =================================================
 */
-	BytesU  HddRFile::_GetSize () const
+	BytesU  FileRStream::_GetSize () const
 	{
 		ASSERT( IsOpen() );
 
@@ -108,7 +108,7 @@ namespace FG
     SeekSet
 =================================================
 */
-	bool  HddRFile::SeekSet (BytesU pos)
+	bool  FileRStream::SeekSet (BytesU pos)
 	{
 		ASSERT( IsOpen() );
 
@@ -120,7 +120,7 @@ namespace FG
     Read2
 =================================================
 */
-	BytesU  HddRFile::Read2 (OUT void *buffer, BytesU size)
+	BytesU  FileRStream::Read2 (OUT void *buffer, BytesU size)
 	{
 		ASSERT( IsOpen() );
 
@@ -135,7 +135,7 @@ namespace FG
     constructor
 =================================================
 */
-	HddWFile::HddWFile (StringView filename)
+	FileWStream::FileWStream (StringView filename)
 	{
 		if ( fopen_s( OUT &_file, filename.data(), "wb" ) != 0 )
 		{
@@ -143,10 +143,10 @@ namespace FG
 		}
 	}
 	
-	HddWFile::HddWFile (const char *filename) : HddWFile{ StringView{filename} }
+	FileWStream::FileWStream (const char *filename) : FileWStream{ StringView{filename} }
 	{}
 
-	HddWFile::HddWFile (const String &filename) : HddWFile{ StringView{filename} }
+	FileWStream::FileWStream (const String &filename) : FileWStream{ StringView{filename} }
 	{}
 
 /*
@@ -154,7 +154,7 @@ namespace FG
     constructor
 =================================================
 */
-	HddWFile::HddWFile (const std::filesystem::path &path)
+	FileWStream::FileWStream (const std::filesystem::path &path)
 	{
 #	ifdef PLATFORM_WINDOWS
 		_wfopen_s( OUT &_file, path.c_str(), L"wb" );
@@ -171,7 +171,7 @@ namespace FG
     destructor
 =================================================
 */
-	HddWFile::~HddWFile ()
+	FileWStream::~FileWStream ()
 	{
 		if ( _file ) {
 			fclose( _file );
@@ -183,7 +183,7 @@ namespace FG
     Position
 =================================================
 */
-	BytesU  HddWFile::Position () const
+	BytesU  FileWStream::Position () const
 	{
 		ASSERT( IsOpen() );
 
@@ -195,7 +195,7 @@ namespace FG
     Size
 =================================================
 */
-	BytesU  HddWFile::Size () const
+	BytesU  FileWStream::Size () const
 	{
 		ASSERT( IsOpen() );
 
@@ -213,11 +213,24 @@ namespace FG
     Write2
 =================================================
 */
-	BytesU  HddWFile::Write2 (const void *buffer, BytesU size)
+	BytesU  FileWStream::Write2 (const void *buffer, BytesU size)
 	{
 		ASSERT( IsOpen() );
 
 		return BytesU(fwrite( buffer, 1, size_t(size), _file ));
 	}
+	
+/*
+=================================================
+    Flush
+=================================================
+*/
+	void  FileWStream::Flush ()
+	{
+		ASSERT( IsOpen() );
+
+		CHECK( fflush( _file ) == 0 );
+	}
+
 
 }	// FG

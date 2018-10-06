@@ -122,7 +122,7 @@ namespace FG
 				id{id}, data{staticSize, arrayStride, access, index, stageFlags} {}
 		};
 
-		using Uniform_t		= Union< Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer >;
+		using Uniform_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer >;
 		using UniformMap_t	= HashMap< UniformID, Uniform_t >;
 
 		struct DescriptorSet
@@ -166,14 +166,13 @@ namespace FG
 		using SharedShaderPtr	= SharedPtr< IShaderData<T> >;
 		using VkShaderPtr		= SharedShaderPtr<VkShaderModule_t>;
 
-		using ShaderDataUnion_t	= Union< SharedShaderPtr<String>, SharedShaderPtr<Array<uint8_t>>, SharedShaderPtr<Array<uint>>, VkShaderPtr >;
+		using ShaderDataUnion_t	= Union< std::monostate, SharedShaderPtr<String>, SharedShaderPtr<Array<uint8_t>>, SharedShaderPtr<Array<uint>>, VkShaderPtr >;
 		using ShaderDataMap_t	= HashMap< EShaderLangFormat, ShaderDataUnion_t >;
 		using SpecConstants_t	= FixedMap< SpecializationID, uint, FG_MaxSpecConstants >;
 
 		struct Shader
 		{
 		// variables
-			EShader				shaderType;
 			ShaderDataMap_t		data;
 			SpecConstants_t		specConstants;
 
@@ -204,7 +203,7 @@ namespace FG
 								ArrayView< _UBufferUniform >		uniformBuffers,
 								ArrayView< _StorageBufferUniform >	storageBuffers);
 
-		void _SetPushConstants (std::initializer_list< PushConstant > values);
+		void _SetPushConstants (ArrayView< PushConstant > values);
 
 	protected:
 		ND_ PipelineLayout const&	GetPipelineLayout () const		{ return _pipelineLayout; }
@@ -234,8 +233,8 @@ namespace FG
 		};
 
 		using Self				= GraphicsPipelineDesc;
-		using TopologyBits_t	= std::bitset< uint(EPrimitive::_Count) >;
-		using Shaders_t			= StaticArray< Shader, (uint(EShader::_GraphicsEnd) - uint(EShader::_GraphicsBegin) + 1) >;
+		using TopologyBits_t	= BitSet< uint(EPrimitive::_Count) >;
+		using Shaders_t			= FixedMap< EShader, Shader, 8 >;
 		using VertexAttrib		= VertexInputState::VertexAttrib;
 		using VertexAttribs_t	= FixedArray< VertexAttrib, FG_MaxAttribs >;
 		using FragmentOutputs_t	= FixedArray< FragmentOutput, FG_MaxColorBuffers >;
@@ -295,13 +294,104 @@ namespace FG
 			return *this;
 		}
 
-		Self&  SetPushConstants (std::initializer_list< PushConstant > values)
+		Self&  SetPushConstants (ArrayView< PushConstant > values)
 		{
 			_SetPushConstants( values );
 			return *this;
 		}
 		
-		Self&  SetSpecConstants (EShader shaderType, std::initializer_list< SpecConstant > values);
+		Self&  SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values);
+	};
+
+
+
+	//
+	// Mesh Processing Pipeline Description
+	//
+
+	struct MeshProcessingPipelineDesc final : PipelineDescription
+	{
+	// types
+		using Self				= MeshProcessingPipelineDesc;
+		using Shaders_t			= FixedMap< EShader, Shader, 8 >;
+		using FragmentOutput	= GraphicsPipelineDesc::FragmentOutput;
+		using FragmentOutputs_t	= FixedArray< FragmentOutput, FG_MaxColorBuffers >;
+
+
+	// variables
+		Shaders_t			_shaders;
+		FragmentOutputs_t	_fragmentOutput;
+		bool				_earlyFragmentTests	= true;
+
+
+	// methods
+		MeshProcessingPipelineDesc ();
+
+		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src);
+		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
+		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
+		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
+		
+		Self&  AddDescriptorSet (const DescriptorSetID				&id,
+								 const uint							index,
+								 ArrayView< _TextureUniform >		textures,
+								 ArrayView< _SamplerUniform >		samplers,
+								 ArrayView< _SubpassInputUniform >	subpassInputs,
+								 ArrayView< _ImageUniform >			images,
+								 ArrayView< _UBufferUniform >		uniformBuffers,
+								 ArrayView< _StorageBufferUniform >	storageBuffers)
+		{
+			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers );
+			return *this;
+		}
+
+		Self&  SetPushConstants (ArrayView< PushConstant > values)
+		{
+			_SetPushConstants( values );
+			return *this;
+		}
+
+		Self&  SetFragmentOutputs (ArrayView<FragmentOutput> outputs)
+		{
+			_fragmentOutput = outputs;
+			return *this;
+		}
+		
+		Self&  SetEarlyFragmentTests (bool value)
+		{
+			_earlyFragmentTests = value;
+			return *this;
+		}
+		
+		Self&  SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values);
+	};
+
+
+
+	//
+	// Ray Tracing Pipeline Desription
+	//
+
+	struct RayTracingPipelineDesc final : PipelineDescription
+	{
+	// types
+		using Self				= RayTracingPipelineDesc;
+		using Shaders_t			= FixedMap< EShader, Shader, 8 >;
+
+
+	// variables
+		Shaders_t			_shaders;
+
+
+	// methods
+		RayTracingPipelineDesc ();
+
+		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src);
+		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
+		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
+		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
+
+		Self&  SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values);
 	};
 
 
@@ -358,13 +448,13 @@ namespace FG
 			return *this;
 		}
 		
-		Self&  SetPushConstants (std::initializer_list< PushConstant > values)
+		Self&  SetPushConstants (ArrayView< PushConstant > values)
 		{
 			_SetPushConstants( values );
 			return *this;
 		}
 		
-		Self&  SetSpecConstants (std::initializer_list< SpecConstant > values);
+		Self&  SetSpecConstants (ArrayView< SpecConstant > values);
 	};
 
 

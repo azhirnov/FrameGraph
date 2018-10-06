@@ -11,12 +11,16 @@ if (${FG_ENABLE_LODEPNG})
 	
 	# download
 	if (NOT EXISTS "${FG_EXTERNAL_LODEPNG_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+		if (NOT DEFINED CMAKE_FOLDER)
+			message( FATAL_ERROR "CMAKE_FOLDER is not defined!" )
+		endif ()
+
 		FetchContent_Declare( ExternalDownloadLodePNG
 			GIT_REPOSITORY		https://github.com/lvandeve/lodepng.git
 			GIT_TAG				master
 			SOURCE_DIR			"${FG_EXTERNAL_LODEPNG_PATH}"
 			PATCH_COMMAND		${CMAKE_COMMAND} -E copy
-								${CMAKE_SOURCE_DIR}/cmake/lodepng_CMakeLists.txt
+								${CMAKE_FOLDER}/lodepng_CMakeLists.txt
 								${FG_EXTERNAL_LODEPNG_PATH}/CMakeLists.txt
 		)
 		
@@ -28,5 +32,5 @@ if (${FG_ENABLE_LODEPNG})
 	endif ()
 	
 	add_subdirectory( "${FG_EXTERNAL_LODEPNG_PATH}" "lodepng" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "-DFG_ENABLE_LODEPNG" )
+	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_LODEPNG" )
 endif ()

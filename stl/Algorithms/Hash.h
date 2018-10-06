@@ -4,6 +4,7 @@
 
 #include <functional>
 #include "stl/Log/Log.h"
+#include "stl/CompileTime/TypeTraits.h"
 
 namespace FG
 {
@@ -55,7 +56,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ forceinline std::enable_if_t<not std::is_floating_point_v<T>, HashVal>  HashOf (const T &value) noexcept
+	ND_ forceinline EnableIf<not IsFloatPoint<T>, HashVal>  HashOf (const T &value) noexcept
 	{
 		return HashVal( std::hash<T>()( value ));
 	}

@@ -79,7 +79,7 @@ namespace FG
 		// write library path to log
 		{
 			char	buf[MAX_PATH] = "";
-			CHECK( ::GetModuleFileNameA( lib->module, buf, DWORD(std::size(buf)) ) != FALSE );
+			CHECK( ::GetModuleFileNameA( lib->module, buf, DWORD(CountOf(buf)) ) != FALSE );
 
 			FG_LOGI( "Vulkan library path: \""s << buf << '"' );
 		}

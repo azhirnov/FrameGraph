@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/File/File.h"
+#include "stl/Stream/Stream.h"
 #include <stdio.h>
 #include <filesystem>
 
@@ -10,10 +10,10 @@ namespace FG
 {
 
 	//
-	// Memory Write-only File
+	// Memory Write-only Stream
 	//
 
-	class MemWFile final : public WFile
+	class MemWStream final : public WStream
 	{
 	// variables
 	private:
@@ -22,16 +22,17 @@ namespace FG
 
 	// methods
 	public:
-		MemWFile () {
+		MemWStream () {
 			_data.reserve( 4u << 20 );
 		}
 
-		~MemWFile () {}
+		~MemWStream () {}
 		
 		bool	IsOpen ()	const override		{ return true; }
 		BytesU	Position ()	const override		{ return BytesU(_data.size()); }
 		BytesU	Size ()		const override		{ return BytesU(_data.size()); }
 		
+
 		BytesU	Write2 (const void *buffer, BytesU size) override
 		{
 			const size_t	prev_size = _data.size();
@@ -40,6 +41,12 @@ namespace FG
 			memcpy( _data.data() + BytesU(prev_size), buffer, size_t(size) );
 
 			return size;
+		}
+
+
+		void Flush () override
+		{
+			// do nothing
 		}
 
 

@@ -59,7 +59,7 @@ void main() {
 	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_100 | EShaderLangFormat::SPIRV ));
 
 	for (auto& sh : ppln._shaders) {
-		sh.data.clear();
+		sh.second.data.clear();
 	}
 
 

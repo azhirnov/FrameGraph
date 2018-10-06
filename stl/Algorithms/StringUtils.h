@@ -6,6 +6,7 @@
 #include "stl/Math/Vec.h"
 #include "stl/Math/Bytes.h"
 #include "stl/Algorithms/EnumUtils.h"
+#include "stl/Algorithms/MemUtils.h"
 #include <chrono>
 #include <sstream>
 
@@ -262,15 +263,15 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ forceinline std::enable_if_t<not std::is_enum_v<T>, String>  ToString (const T &value)
+	ND_ forceinline EnableIf<not IsEnum<T>, String>  ToString (const T &value)
 	{
 		return std::to_string( value );
 	}
 
 	template <typename E>
-	ND_ forceinline std::enable_if_t<std::is_enum_v<E>, String>  ToString (const E &value)
+	ND_ forceinline EnableIf<IsEnum<E>, String>  ToString (const E &value)
 	{
-		using T = std::conditional_t< (sizeof(E) > sizeof(uint32_t)), uint32_t, uint64_t >;
+		using T = Conditional< (sizeof(E) > sizeof(uint32_t)), uint32_t, uint64_t >;
 
 		return std::to_string( T(value) );
 	}
@@ -286,7 +287,7 @@ namespace FG
 =================================================
 */
 	template <int Radix, typename T>
-	ND_ forceinline std::enable_if_t< std::is_enum_v<T> or std::is_integral_v<T>, String>  ToString (const T &value)
+	ND_ forceinline EnableIf< IsEnum<T> or IsInteger<T>, String>  ToString (const T &value)
 	{
 		if constexpr ( Radix == 16 )
 		{
@@ -311,7 +312,7 @@ namespace FG
 		char	fmt[8]  = {'%', '0', '.', '0' + char(fractParts/10), '0' + char(fractParts%10), 'f', '\0' };
 		char	buf[32] = {};
 
-		const int	len = std::snprintf( buf, std::size(buf), fmt, value );
+		const int	len = std::snprintf( buf, CountOf(buf), fmt, value );
 		ASSERT( len > 0 );
 		return buf;
 	}
@@ -365,7 +366,9 @@ namespace FG
 	template <typename T, typename Duration>
 	ND_ inline String  ToString (const std::chrono::duration<T,Duration> &value)
 	{
-		using SecondsD_t = std::chrono::duration<double>;
+		using SecondsD_t  = std::chrono::duration<double>;
+		using MicroSecD_t = std::chrono::duration<double, std::micro>;
+		using NanoSecD_t  = std::chrono::duration<double, std::nano>;
 
 		const auto	time = std::chrono::duration_cast<SecondsD_t>( value ).count();
 		String		str;
@@ -380,12 +383,12 @@ namespace FG
 			str << ToString( time, 2 ) << " s";
 		else
 		if ( time > 1.0e-4 )
-			str << ToString( time * 10.0e+3, 2 ) << " ms";
+			str << ToString( time * 1.0e+3, 2 ) << " ms";
 		else
 		if ( time > 1.0e-7 )
-			str << ToString( time * 10.0e+6, 2 ) << " us";
+			str << ToString( std::chrono::duration_cast<MicroSecD_t>( value ).count(), 2 ) << " us";
 		else
-			str << ToString( time * 10.0+9, 2 ) << " ns";
+			str << ToString( std::chrono::duration_cast<NanoSecD_t>( value ).count(), 2 ) << " ns";
 
 		return str;
 	}

@@ -95,6 +95,11 @@ namespace FG
 	bool VPipelineCompiler::SetCompilationFlags (EShaderCompilationFlags flags)
 	{
 		_compilerFlags = flags;
+		
+		if ( EnumEq( flags, EShaderCompilationFlags::UseCurrentDeviceLimits ) )
+			CHECK_ERR( _spirvCompiler->SetCurrentResourceLimits( _physicalDevice ))
+		else
+			CHECK_ERR( _spirvCompiler->SetDefaultResourceLimits() );
 
 		return _spirvCompiler->SetCompilationFlags( flags );
 	}
@@ -178,6 +183,52 @@ namespace FG
 		}
 		return false;
 	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VPipelineCompiler::IsSupported (const MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) const
+	{
+		if ( ppln._shaders.empty() )
+			return false;
+
+		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
+			return false;
+
+		bool	is_supported = true;
+
+		for (auto& sh : ppln._shaders)
+		{
+			is_supported &= _IsSupported( sh.second.data );
+		}
+
+		return is_supported;
+	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VPipelineCompiler::IsSupported (const RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) const
+	{
+		if ( ppln._shaders.empty() )
+			return false;
+
+		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
+			return false;
+
+		bool	is_supported = true;
+
+		for (auto& sh : ppln._shaders)
+		{
+			is_supported &= _IsSupported( sh.second.data );
+		}
+
+		return is_supported;
+	}
 
 /*
 =================================================
@@ -196,20 +247,7 @@ namespace FG
 
 		for (auto& sh : ppln._shaders)
 		{
-			if ( sh.data.empty() )
-				continue;
-			
-			bool	found = false;
-
-			for (auto& data : sh.data)
-			{
-				if ( IsSrcFormatSupported( data.first ) )
-				{
-					found = true;
-					break;
-				}
-			}
-			is_supported &= found;
+			is_supported &= _IsSupported( sh.second.data );
 		}
 
 		return is_supported;
@@ -224,21 +262,32 @@ namespace FG
 	{
 		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
 			return false;
+		
+		return _IsSupported( ppln._shader.data );
+	}
+	
+/*
+=================================================
+	_IsSupported
+=================================================
+*/
+	bool VPipelineCompiler::_IsSupported (const ShaderDataMap_t &shaderDataMap) const
+	{
+		ASSERT( not shaderDataMap.empty() );
 
 		bool	is_supported = false;
-		
-		for (auto& data : ppln._shader.data)
+
+		for (auto& data : shaderDataMap)
 		{
-			if ( IsSrcFormatSupported( data.first ) )
+			if ( data.second.index() and IsSrcFormatSupported( data.first ) )
 			{
 				is_supported = true;
 				break;
 			}
 		}
-
 		return is_supported;
 	}
-	
+
 /*
 =================================================
 	MergeShaderAccess
@@ -522,9 +571,6 @@ namespace FG
 			if ( not IsSrcFormatSupported( iter->first ) )
 				continue;
 
-			//if ( result == shaderData.end() )
-			//	result = iter;
-
 			// vulkan has most priority than opengl
 			const bool				current_is_vulkan	= (result != shaderData.end()) and (result->first & EShaderLangFormat::_ApiMask) == EShaderLangFormat::Vulkan;
 			const bool				pending_is_vulkan	= (iter->first & EShaderLangFormat::_ApiMask) == EShaderLangFormat::Vulkan;
@@ -558,6 +604,134 @@ namespace FG
 
 		return result;
 	}
+	
+/*
+=================================================
+	Compile
+=================================================
+*/
+	bool VPipelineCompiler::Compile (INOUT MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat)
+	{
+		ASSERT( IsSupported( ppln, dstFormat ) );
+		
+		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
+		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
+														((dstFormat & ~EShaderLangFormat::_StorageFormatMask) | EShaderLangFormat::SPIRV);
+		MeshProcessingPipelineDesc	new_ppln;
+
+
+		for (const auto& shader : ppln._shaders)
+		{
+			ASSERT( not shader.second.data.empty() );
+
+			auto	iter = FindHighPriorityShaderFormat( shader.second.data, spirv_format );
+
+			if ( iter == shader.second.data.end() )
+				RETURN_ERR( "no suitable shader format found!" );
+			
+
+			// compile glsl
+			if ( auto* shader_data = std::get_if< StringShaderData >( &iter->second ) )
+			{
+				SpirvCompiler::ShaderReflection	reflection;
+				String							log;
+				PipelineDescription::Shader		new_shader;
+
+				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.first, iter->first, spirv_format,
+														 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ));
+				
+				if ( create_module )
+					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ) );
+
+				COMP_CHECK_ERR( _MergePipelineResources( reflection.layout, INOUT new_ppln._pipelineLayout ));
+
+				switch ( shader.first )
+				{
+					case EShader::MeshTask :
+					case EShader::Mesh :
+						break;	// TODO
+
+					default :
+						RETURN_ERR( "unknown shader type!" );
+				}
+
+				new_ppln._shaders.insert_or_assign( shader.first, std::move(new_shader) );
+			}
+			else
+			{
+				COMP_RETURN_ERR( "invalid shader data type!" );
+			}
+		}
+
+		std::swap( ppln, new_ppln ); 
+		return true;
+	}
+	
+/*
+=================================================
+	Compile
+=================================================
+*/
+	bool VPipelineCompiler::Compile (INOUT RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat)
+	{
+		ASSERT( IsSupported( ppln, dstFormat ) );
+		
+		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
+		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
+														((dstFormat & ~EShaderLangFormat::_StorageFormatMask) | EShaderLangFormat::SPIRV);
+		RayTracingPipelineDesc		new_ppln;
+
+
+		for (const auto& shader : ppln._shaders)
+		{
+			ASSERT( not shader.second.data.empty() );
+
+			auto	iter = FindHighPriorityShaderFormat( shader.second.data, spirv_format );
+
+			if ( iter == shader.second.data.end() )
+				RETURN_ERR( "no suitable shader format found!" );
+			
+
+			// compile glsl
+			if ( auto* shader_data = std::get_if< StringShaderData >( &iter->second ) )
+			{
+				SpirvCompiler::ShaderReflection	reflection;
+				String							log;
+				PipelineDescription::Shader		new_shader;
+
+				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.first, iter->first, spirv_format,
+														 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ));
+				
+				if ( create_module )
+					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ) );
+
+				COMP_CHECK_ERR( _MergePipelineResources( reflection.layout, INOUT new_ppln._pipelineLayout ));
+
+				switch ( shader.first )
+				{
+					case EShader::RayGen :
+					case EShader::RayAnyHit :
+					case EShader::RayClosestHit :
+					case EShader::RayMiss :
+					case EShader::RayIntersection :
+					case EShader::RayCallable :
+						break;	// TODO
+
+					default :
+						RETURN_ERR( "unknown shader type!" );
+				}
+
+				new_ppln._shaders.insert_or_assign( shader.first, std::move(new_shader) );
+			}
+			else
+			{
+				COMP_RETURN_ERR( "invalid shader data type!" );
+			}
+		}
+
+		std::swap( ppln, new_ppln ); 
+		return true;
+	}
 
 /*
 =================================================
@@ -571,20 +745,18 @@ namespace FG
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
 		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
 														((dstFormat & ~EShaderLangFormat::_StorageFormatMask) | EShaderLangFormat::SPIRV);
+		GraphicsPipelineDesc		new_ppln;
 
-		GraphicsPipelineDesc	new_ppln;
 
-		for (auto& shader : ppln._shaders)
+		for (const auto& shader : ppln._shaders)
 		{
-			if ( shader.data.empty() )
-				continue;
+			ASSERT( not shader.second.data.empty() );
 
-			auto	iter = FindHighPriorityShaderFormat( shader.data, spirv_format );
+			auto	iter = FindHighPriorityShaderFormat( shader.second.data, spirv_format );
 
-			if ( iter == shader.data.end() )
-			{
+			if ( iter == shader.second.data.end() )
 				RETURN_ERR( "no suitable shader format found!" );
-			}
+			
 
 			// compile glsl
 			if ( auto* shader_data = std::get_if< StringShaderData >( &iter->second ) )
@@ -593,7 +765,7 @@ namespace FG
 				String							log;
 				PipelineDescription::Shader		new_shader;
 
-				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.shaderType, iter->first, spirv_format,
+				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.first, iter->first, spirv_format,
 														 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ));
 				
 				if ( create_module )
@@ -603,7 +775,7 @@ namespace FG
 						
 				MergePrimitiveTopology( reflection.vertex.supportedTopology, INOUT new_ppln._supportedTopology );
 
-				switch ( new_shader.shaderType )
+				switch ( shader.first )
 				{
 					case EShader::Vertex :
 						new_ppln._vertexAttribs			= reflection.vertex.vertexAttribs;
@@ -623,9 +795,12 @@ namespace FG
 						new_ppln._fragmentOutput		= reflection.fragment.fragmentOutput;
 						new_ppln._earlyFragmentTests	= reflection.fragment.earlyFragmentTests;
 						break;
+
+					default :
+						RETURN_ERR( "unknown shader type!" );
 				}
 
-				std::swap( new_ppln._shaders[ uint(new_shader.shaderType) - uint(EShader::_GraphicsBegin) ], new_shader );
+				new_ppln._shaders.insert_or_assign( shader.first, std::move(new_shader) );
 			}
 			else
 			{
@@ -665,7 +840,7 @@ namespace FG
 			String							log;
 			ComputePipelineDesc				new_ppln;
 
-			COMP_CHECK_ERR( _spirvCompiler->Compile( ppln._shader.shaderType, iter->first, spirv_format,
+			COMP_CHECK_ERR( _spirvCompiler->Compile( EShader::Compute, iter->first, spirv_format,
 													 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_ppln._shader, OUT reflection, OUT log ) );
 			
 			if ( create_module )

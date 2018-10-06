@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "stl/File/File.h"
+#include "stl/Stream/Stream.h"
 #include "stl/Algorithms/StringUtils.h"
 
 
@@ -12,7 +12,7 @@ namespace FG
     Read
 =================================================
 */
-	bool  RFile::Read (void *buffer, BytesU size)
+	bool  RStream::Read (void *buffer, BytesU size)
 	{
 		return Read2( buffer, size ) == size;
 	}
@@ -22,7 +22,7 @@ namespace FG
     Read
 =================================================
 */
-	bool  RFile::Read (size_t length, OUT String &str)
+	bool  RStream::Read (size_t length, OUT String &str)
 	{
 		str.resize( length );
 
@@ -39,7 +39,7 @@ namespace FG
     Read
 =================================================
 */
-	bool  RFile::Read (size_t count, OUT Array<uint8_t> &buf)
+	bool  RStream::Read (size_t count, OUT Array<uint8_t> &buf)
 	{
 		buf.resize( count );
 
@@ -59,7 +59,7 @@ namespace FG
     Write
 =================================================
 */
-	bool  WFile::Write (const void *buffer, BytesU size)
+	bool  WStream::Write (const void *buffer, BytesU size)
 	{
 		return Write2( buffer, size ) == size;
 	}
@@ -69,7 +69,7 @@ namespace FG
     Write
 =================================================
 */
-	bool  WFile::Write (StringView str)
+	bool  WStream::Write (StringView str)
 	{
 		BytesU	size = BytesU::SizeOf(str[0]) * str.length();
 
@@ -81,7 +81,7 @@ namespace FG
     Write
 =================================================
 */
-	bool  WFile::Write (ArrayView<uint8_t> buf)
+	bool  WStream::Write (ArrayView<uint8_t> buf)
 	{
 		BytesU	size = BytesU::SizeOf(buf[0]) * buf.size();
 

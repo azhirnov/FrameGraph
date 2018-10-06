@@ -38,6 +38,8 @@ namespace FG
 		_currentStage{ EShaderStages::Unknown }
 	{
 		glslang::InitializeProcess();
+
+		_GenerateResources( OUT _builtinResource );
 	}
 	
 /*
@@ -75,6 +77,7 @@ namespace FG
 		log.clear();
 		COMP_CHECK_ERR( (dstShaderFmt & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV );
 
+		ENABLE_ENUM_CHECKS();
 		switch ( shaderType )
 		{
 			case EShader::Vertex :			_currentStage = EShaderStages::Vertex;			break;
@@ -83,8 +86,19 @@ namespace FG
 			case EShader::Geometry :		_currentStage = EShaderStages::Geometry;		break;
 			case EShader::Fragment :		_currentStage = EShaderStages::Fragment;		break;
 			case EShader::Compute :			_currentStage = EShaderStages::Compute;			break;
+			case EShader::MeshTask :		_currentStage = EShaderStages::MeshTask;		break;
+			case EShader::Mesh :			_currentStage = EShaderStages::Mesh;			break;
+			case EShader::RayGen :			_currentStage = EShaderStages::RayGen;			break;
+			case EShader::RayAnyHit :		_currentStage = EShaderStages::RayAnyHit;		break;
+			case EShader::RayClosestHit :	_currentStage = EShaderStages::RayClosestHit;	break;
+			case EShader::RayMiss :			_currentStage = EShaderStages::RayMiss;			break;
+			case EShader::RayIntersection :	_currentStage = EShaderStages::RayIntersection;	break;
+			case EShader::RayCallable :		_currentStage = EShaderStages::RayCallable;		break;
+			case EShader::_Count :			// to shutup warnings
 			default :						COMP_RETURN_ERR( "unsupported shader type!" );
 		}
+		DISABLE_ENUM_CHECKS();
+
 
 		GLSLangResult	glslang_data;
 		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, source, OUT glslang_data, INOUT log ) );
@@ -94,111 +108,9 @@ namespace FG
 
 		COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ) );
 
-		outShader.shaderType	= shaderType;
 		outShader.specConstants	= outReflection.specConstants;
 		outShader.AddShaderData( dstShaderFmt, entry, std::move(spirv) );
 		return true;
-	}
-
-/*
-=================================================
-	GenerateResources
-=================================================
-*/
-	static void GenerateResources (OUT TBuiltInResource& resources)
-	{
-		resources.maxLights = 0;
-		resources.maxClipPlanes = 6;
-		resources.maxTextureUnits = 32;
-		resources.maxTextureCoords = 32;
-		resources.maxVertexAttribs = FG_MaxAttribs;
-		resources.maxVertexUniformComponents = 4096;
-		resources.maxVaryingFloats = 64;
-		resources.maxVertexTextureImageUnits = 32;
-		resources.maxCombinedTextureImageUnits = 80;
-		resources.maxTextureImageUnits = 32;
-		resources.maxFragmentUniformComponents = 4096;
-		resources.maxDrawBuffers = FG_MaxColorBuffers;
-		resources.maxVertexUniformVectors = 128;
-		resources.maxVaryingVectors = 8;
-		resources.maxFragmentUniformVectors = 16;
-		resources.maxVertexOutputVectors = 16;
-		resources.maxFragmentInputVectors = 15;
-		resources.minProgramTexelOffset = -8;
-		resources.maxProgramTexelOffset = 7;
-		resources.maxClipDistances = 8;
-		resources.maxComputeWorkGroupCountX = 65535;
-		resources.maxComputeWorkGroupCountY = 65535;
-		resources.maxComputeWorkGroupCountZ = 65535;
-		resources.maxComputeWorkGroupSizeX = 1024;
-		resources.maxComputeWorkGroupSizeY = 1024;
-		resources.maxComputeWorkGroupSizeZ = 64;
-		resources.maxComputeUniformComponents = 1024;
-		resources.maxComputeTextureImageUnits = 16;
-		resources.maxComputeImageUniforms = 8;
-		resources.maxComputeAtomicCounters = 8;
-		resources.maxComputeAtomicCounterBuffers = 1;
-		resources.maxVaryingComponents = 60;
-		resources.maxVertexOutputComponents = 64;
-		resources.maxGeometryInputComponents = 64;
-		resources.maxGeometryOutputComponents = 128;
-		resources.maxFragmentInputComponents = 128;
-		resources.maxImageUnits = 8;
-		resources.maxCombinedImageUnitsAndFragmentOutputs = 8;
-		resources.maxImageSamples = 0;
-		resources.maxVertexImageUniforms = 0;
-		resources.maxTessControlImageUniforms = 0;
-		resources.maxTessEvaluationImageUniforms = 0;
-		resources.maxGeometryImageUniforms = 0;
-		resources.maxFragmentImageUniforms = 8;
-		resources.maxCombinedImageUniforms = 8;
-		resources.maxGeometryTextureImageUnits = 16;
-		resources.maxGeometryOutputVertices = 256;
-		resources.maxGeometryTotalOutputComponents = 1024;
-		resources.maxGeometryUniformComponents = 1024;
-		resources.maxGeometryVaryingComponents = 64;
-		resources.maxTessControlInputComponents = 128;
-		resources.maxTessControlOutputComponents = 128;
-		resources.maxTessControlTextureImageUnits = 16;
-		resources.maxTessControlUniformComponents = 1024;
-		resources.maxTessControlTotalOutputComponents = 4096;
-		resources.maxTessEvaluationInputComponents = 128;
-		resources.maxTessEvaluationOutputComponents = 128;
-		resources.maxTessEvaluationTextureImageUnits = 16;
-		resources.maxTessEvaluationUniformComponents = 1024;
-		resources.maxTessPatchComponents = 120;
-		resources.maxPatchVertices = 32;
-		resources.maxTessGenLevel = 64;
-		resources.maxViewports = FG_MaxViewports;
-		resources.maxVertexAtomicCounters = 0;
-		resources.maxTessControlAtomicCounters = 0;
-		resources.maxTessEvaluationAtomicCounters = 0;
-		resources.maxGeometryAtomicCounters = 0;
-		resources.maxFragmentAtomicCounters = 8;
-		resources.maxCombinedAtomicCounters = 8;
-		resources.maxAtomicCounterBindings = 1;
-		resources.maxVertexAtomicCounterBuffers = 0;
-		resources.maxTessControlAtomicCounterBuffers = 0;
-		resources.maxTessEvaluationAtomicCounterBuffers = 0;
-		resources.maxGeometryAtomicCounterBuffers = 0;
-		resources.maxFragmentAtomicCounterBuffers = 1;
-		resources.maxCombinedAtomicCounterBuffers = 1;
-		resources.maxAtomicCounterBufferSize = 16384;
-		resources.maxTransformFeedbackBuffers = 0;
-		resources.maxTransformFeedbackInterleavedComponents = 0;
-		resources.maxCullDistances = 8;
-		resources.maxCombinedClipAndCullDistances = 8;
-		resources.maxSamples = 4;
-
-		resources.limits.nonInductiveForLoops = 1;
-		resources.limits.whileLoops = 1;
-		resources.limits.doWhileLoops = 1;
-		resources.limits.generalUniformIndexing = 1;
-		resources.limits.generalAttributeMatrixVectorIndexing = 1;
-		resources.limits.generalVaryingIndexing = 1;
-		resources.limits.generalSamplerIndexing = 1;
-		resources.limits.generalVariableIndexing = 1;
-		resources.limits.generalConstantMatrixVectorIndexing = 1;
 	}
 	
 /*
@@ -208,6 +120,7 @@ namespace FG
 */
 	ND_ static EShLanguage  ConvertShaderType (EShader shaderType)
 	{
+		ENABLE_ENUM_CHECKS();
 		switch ( shaderType )
 		{
 			case EShader::Vertex :			return EShLangVertex;
@@ -216,7 +129,17 @@ namespace FG
 			case EShader::Geometry :		return EShLangGeometry;
 			case EShader::Fragment :		return EShLangFragment;
 			case EShader::Compute :			return EShLangCompute;
+			case EShader::MeshTask :		return EShLangTaskNV;
+			case EShader::Mesh :			return EShLangMeshNV;
+			case EShader::RayGen :			return EShLangRayGenNV;
+			case EShader::RayAnyHit :		return EShLangAnyHitNV;
+			case EShader::RayClosestHit :	return EShLangClosestHitNV;
+			case EShader::RayMiss :			return EShLangMissNV;
+			case EShader::RayIntersection:	return EShLangIntersectNV;
+			case EShader::RayCallable :		return EShLangCallableNV;
+			case EShader::_Count :			break;	// to shutup warnings
 		}
+		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "unknown shader type", EShLangCount );
 	}
 
@@ -302,7 +225,6 @@ namespace FG
 
 
 		EShMessages			messages	= EShMsgDefault;
-		TBuiltInResource	resources;	  GenerateResources( OUT resources );
 		EShLanguage			stage		= ConvertShaderType( shaderType );
 		auto&				shader		= glslangData.shader;
 		String				temp_src	= source.data();
@@ -311,7 +233,7 @@ namespace FG
 		const bool			auto_map	= EnumEq( _compilerFlags, EShaderCompilationFlags::AutoMapLocations );
 
 		shader.reset( new TShader( stage ));
-		shader->setStrings( sources, int(std::size(sources)) );
+		shader->setStrings( sources, int(CountOf(sources)) );
 		shader->setEntryPoint( entry.data() );
         shader->setEnvInput( sh_source, stage, client, version );
 		shader->setEnvClient( client, client_version );
@@ -320,7 +242,7 @@ namespace FG
 		shader->setAutoMapLocations( auto_map );
 		shader->setAutoMapBindings( auto_map );
 
-		if ( not shader->parse( &resources, sh_version, sh_profile, false, true, messages/*, includer*/ ) )
+		if ( not shader->parse( &_builtinResource, sh_version, sh_profile, false, true, messages/*, includer*/ ) )
 		{
 			log += shader->getInfoLog();
 			_OnCompilationFailed( {source}, INOUT log );
@@ -532,6 +454,7 @@ namespace FG
 	{
         switch ( BitCast<TLayoutFormat>(format) )
 		{
+			case TLayoutFormat::ElfNone :			return EPixelFormat::Unknown;
 			case TLayoutFormat::ElfRgba32f :		return EPixelFormat::RGBA32F;
 			case TLayoutFormat::ElfRgba16f :		return EPixelFormat::RGBA16F;
 			case TLayoutFormat::ElfR32f :			return EPixelFormat::R32F;
@@ -887,6 +810,19 @@ namespace FG
 			}
 		}
 		
+		// acceleration structure
+		if ( type.getBasicType() == TBasicType::EbtAccStructNV )
+		{
+			return true;	// TODO
+		}
+
+		if ( qual.storage == TStorageQualifier::EvqPayloadNV or
+			 qual.storage == TStorageQualifier::EvqPayloadInNV or
+			 qual.storage == TStorageQualifier::EvqHitAttrNV )
+		{
+			return true;	// TODO
+		}
+
 		// uniform
 		if ( qual.storage == TStorageQualifier::EvqUniform )
 		{
@@ -937,6 +873,10 @@ namespace FG
 
 		// global variable or global constant
 		if ( qual.storage == EvqGlobal or qual.storage == EvqConst )
+			return true;
+
+		// shared variables
+		if ( qual.storage == EvqShared )
 			return true;
 
 		COMP_RETURN_ERR( "unknown external type!" );

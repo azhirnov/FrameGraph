@@ -110,3 +110,17 @@ struct DebugInstanceCounter
 		_dtorCnt		= 0;
 	}
 };
+
+
+namespace std
+{
+
+	template <typename T, size_t UID>
+	struct hash< DebugInstanceCounter<T,UID> >
+	{
+		ND_ size_t  operator () (const DebugInstanceCounter<T,UID> &value) const noexcept {
+			return hash<T>{}( value.value );
+		}
+	};
+
+}	// std

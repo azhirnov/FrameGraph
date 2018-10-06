@@ -105,10 +105,12 @@ namespace FG
 */
 	void WindowSFML::Destroy ()
 	{
-		for (auto& listener : _listeners) {
+		Listeners_t		listeners;
+		std::swap( listeners, _listeners );
+
+		for (auto& listener : listeners) {
 			listener->OnDestroy();
 		}
-		_listeners.clear();
 
 		_window.close();
 	}
@@ -124,10 +126,34 @@ namespace FG
 
 		_window.setTitle( String(value) );
 	}
+	
+/*
+=================================================
+	SetSize
+=================================================
+*/
+	void WindowSFML::SetSize (const uint2 &value)
+	{
+		CHECK_ERR( _window.isOpen(), void() );
+
+		_window.setSize({ int(value.x), int(value.y) });
+	}
+	
+/*
+=================================================
+	SetPosition
+=================================================
+*/
+	void WindowSFML::SetPosition (const int2 &value)
+	{
+		CHECK_ERR( _window.isOpen(), void() );
+
+		_window.setPosition({ value.x, value.y });
+	}
 
 /*
 =================================================
-	SetTitle
+	GetSize
 =================================================
 */
 	uint2 WindowSFML::GetSize () const

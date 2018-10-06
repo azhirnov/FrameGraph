@@ -5,15 +5,21 @@
 
 extern void UnitTest_StaticString ();
 extern void UnitTest_FixedArray ();
+extern void UnitTest_FixedMap ();
+extern void UnitTest_Math ();
+extern void UnitTest_ToString ();
 
 
 int main ()
 {
+	UnitTest_Math();
 	UnitTest_StaticString();
 	UnitTest_FixedArray();
+	UnitTest_ToString();
+	UnitTest_FixedMap();
 
     FG_LOGI( "Tests.STL finished" );
 	
-    DEBUG_ONLY( std::cin.ignore() );
+    std::cin.ignore();
 	return 0;
 }

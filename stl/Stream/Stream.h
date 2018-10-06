@@ -4,17 +4,20 @@
 
 #include "stl/Containers/ArrayView.h"
 #include "stl/Math/Bytes.h"
+#include "stl/Algorithms/MemUtils.h"
 
 namespace FG
 {
 
 	//
-	// Read-only File
+	// Read-only Stream
 	//
 	
-	class RFile : public std::enable_shared_from_this<RFile>
+	class RStream : public std::enable_shared_from_this< RStream >
 	{
 	public:
+		virtual ~RStream () {}
+
 		ND_ virtual bool	IsOpen ()	const = 0;
 		ND_ virtual BytesU	Position ()	const = 0;
 		ND_ virtual BytesU	Size ()		const = 0;
@@ -28,13 +31,13 @@ namespace FG
 
 
 		template <typename T>
-		std::enable_if_t<std::is_pod_v<T>, bool>  Read (OUT T &data)
+		EnableIf<IsPOD<T>, bool>  Read (OUT T &data)
 		{
-			return Read2( std::addressof(data), BytesU::SizeOf(data) ) == BytesU::SizeOf(data);
+			return Read2( AddressOf(data), BytesU::SizeOf(data) ) == BytesU::SizeOf(data);
 		}
 
 		template <typename T>
-		std::enable_if_t<std::is_pod_v<T>, bool>  Read (size_t count, OUT Array<T> &arr)
+		EnableIf<IsPOD<T>, bool>  Read (size_t count, OUT Array<T> &arr)
 		{
 			arr.resize( count );
 			
@@ -47,26 +50,29 @@ namespace FG
 
 
 	//
-	// Write-only File
+	// Write-only Stream
 	//
 	
-	class WFile : public std::enable_shared_from_this<WFile>
+	class WStream : public std::enable_shared_from_this< WStream >
 	{
 	public:
+		virtual ~WStream () {}
+
 		ND_ virtual bool	IsOpen ()	const = 0;
 		ND_ virtual BytesU	Position ()	const = 0;
 		ND_ virtual BytesU	Size ()		const = 0;
 		
 		ND_ virtual BytesU	Write2 (const void *buffer, BytesU size) = 0;
+			virtual void	Flush () = 0;
 
 		bool  Write (const void *buffer, BytesU size);
 		bool  Write (StringView str);
 		bool  Write (ArrayView<uint8_t> buf);
 		
 		template <typename T>
-		std::enable_if_t<std::is_pod_v<T>, bool>  Write (const T &data)
+		EnableIf<IsPOD<T>, bool>  Write (const T &data)
 		{
-			return Write2( std::addressof(data), BytesU::SizeOf(data) ) == BytesU::SizeOf(data);
+			return Write2( AddressOf(data), BytesU::SizeOf(data) ) == BytesU::SizeOf(data);
 		}
 	};
 

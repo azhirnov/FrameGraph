@@ -43,6 +43,7 @@ namespace FG
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
+		using KeyStates_t	= StaticArray< EKeyAction, SDL_NUM_SCANCODES >;
 
 
 	// variables
@@ -50,6 +51,7 @@ namespace FG
 		SDL_Window *	_window;
 		uint			_wndID;
 		Listeners_t		_listeners;
+		KeyStates_t		_keyStates;
 
 
 	// methods
@@ -65,10 +67,15 @@ namespace FG
 		void Destroy () override;
 		
 		void SetTitle (StringView value) override;
+		void SetSize (const uint2 &value) override;
+		void SetPosition (const int2 &value) override;
 		
 		uint2 GetSize () const override;
 
 		UniquePtr<IVulkanSurface>  GetVulkanSurface () const override;
+
+	private:
+		static StringView  _MapKey (SDL_Scancode code);
 	};
 
 

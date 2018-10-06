@@ -148,7 +148,7 @@ namespace std
 	size_t  hash< RenderState::ColorBuffer >::operator () (const RenderState::ColorBuffer &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value.blend );
@@ -171,7 +171,7 @@ namespace std
 	size_t  hash< RenderState::ColorBuffersState >::operator () (const RenderState::ColorBuffersState &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value.buffers );
@@ -189,7 +189,7 @@ namespace std
 	size_t  hash< RenderState::DepthBufferState >::operator () (const RenderState::DepthBufferState &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value.compareOp );
@@ -209,7 +209,7 @@ namespace std
 	size_t  hash< RenderState::StencilFaceState >::operator () (const RenderState::StencilFaceState &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value.failOp );
@@ -234,7 +234,7 @@ namespace std
 		if ( value.enabled )
 		{
 		#if FG_FAST_HASH
-			return size_t(HashOf( std::addressof(value), sizeof(value) ));
+			return size_t(HashOf( AddressOf(value), sizeof(value) ));
 		#else
 			result << HashOf( value.front );
 			result << HashOf( value.back );
@@ -251,7 +251,7 @@ namespace std
 	size_t  hash< RenderState::InputAssemblyState >::operator () (const RenderState::InputAssemblyState &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value.topology );
@@ -268,7 +268,7 @@ namespace std
 	size_t  hash< RenderState::RasterizationState >::operator () (const RenderState::RasterizationState &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value.polygonMode );
@@ -293,7 +293,7 @@ namespace std
 	size_t  hash< RenderState::MultisampleState >::operator () (const RenderState::MultisampleState &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value.sampleMask );
@@ -314,7 +314,7 @@ namespace std
 	size_t  hash< RenderState >::operator () (const RenderState &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value.color );

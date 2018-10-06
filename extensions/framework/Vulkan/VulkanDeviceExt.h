@@ -56,6 +56,8 @@ namespace FG
 		
 		bool SetObjectName (uint64_t id, StringView name, VkDebugReportObjectTypeEXT type) const;
 
+		void SetBreakOnValidationError (bool value);
+
 		ND_ VkPhysicalDeviceProperties const&		GetDeviceProperties ()		 const	{ return _deviceProperties; }
 		ND_ VkPhysicalDeviceFeatures const&			GetDeviceFeatures ()		 const	{ return _deviceFeatures; }
 		ND_ VkPhysicalDeviceMemoryProperties const&	GetDeviceMemoryProperties () const	{ return _deviceMemoryProperties; }

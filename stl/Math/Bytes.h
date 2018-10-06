@@ -14,7 +14,7 @@ namespace FG
 	template <typename T>
 	struct Bytes
 	{
-		STATIC_ASSERT( std::is_integral_v<T> and std::is_scalar_v<T>, "must be integer scalar" );
+		STATIC_ASSERT( IsInteger<T> and IsScalar<T>, "must be integer scalar" );
 
 	// variables
 	private:

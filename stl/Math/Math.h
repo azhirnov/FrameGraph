@@ -14,17 +14,11 @@ namespace FG
 */
 	namespace _fg_hidden_
 	{
-		template <typename T>
-		static constexpr bool	IsInt	= std::is_integral_v<T> and std::is_signed_v<T>;
-		
-		template <typename T>
-		static constexpr bool	IsUInt	= std::is_integral_v<T> and std::is_unsigned_v<T>;
+		template <typename T1, typename T2, typename Result>
+		using EnableForInt		= EnableIf< IsSignedInteger<T1> and IsSignedInteger<T2>, Result >;
 		
 		template <typename T1, typename T2, typename Result>
-		using EnableForInt		= std::enable_if_t< IsInt<T1> and IsInt<T2>, Result >;
-		
-		template <typename T1, typename T2, typename Result>
-		using EnableForUInt		= std::enable_if_t< IsUInt<T1> and IsUInt<T2>, Result >;
+		using EnableForUInt		= EnableIf< IsUnsignedInteger<T1> and IsUnsignedInteger<T2>, Result >;
 
 	}	// _fg_hidden_
 	
@@ -34,9 +28,9 @@ namespace FG
 =================================================
 */
 	template <typename T1, typename T2>
-	ND_ inline _fg_hidden_::EnableForInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
+	ND_ inline constexpr _fg_hidden_::EnableForInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
 	{
-		STATIC_ASSERT( std::is_scalar_v<T1> and std::is_scalar_v<T2> );
+		STATIC_ASSERT( IsScalar<T1> and IsScalar<T2> );
 
 		using T = decltype(a + b);
 
@@ -56,9 +50,9 @@ namespace FG
 =================================================
 */
 	template <typename T1, typename T2>
-	ND_ inline _fg_hidden_::EnableForUInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
+	ND_ inline constexpr _fg_hidden_::EnableForUInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
 	{
-		STATIC_ASSERT( std::is_scalar_v<T1> and std::is_scalar_v<T2> );
+		STATIC_ASSERT( IsScalar<T1> and IsScalar<T2> );
 		
 		using T = decltype(a + b);
 		
@@ -74,7 +68,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline T  AlignToSmaller (const T &value, const T &align)
+	ND_ inline constexpr T  AlignToSmaller (const T &value, const T &align)
 	{
 		return (value / align) * align;
 	}
@@ -85,7 +79,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline T  AlignToLarger (const T &value, const T &align)
+	ND_ inline constexpr T  AlignToLarger (const T &value, const T &align)
 	{
 		return ((value + align-1) / align) * align;
 	}
@@ -102,7 +96,7 @@ namespace FG
 
 /*
 =================================================
-	All
+	All/Any
 =================================================
 */
 	ND_ inline constexpr bool  All (const bool &value)
@@ -110,11 +104,6 @@ namespace FG
 		return value;
 	}
 	
-/*
-=================================================
-	Any
-=================================================
-*/
 	ND_ inline constexpr bool  Any (const bool &value)
 	{
 		return value;
@@ -128,7 +117,7 @@ namespace FG
 	template <typename LT, typename RT>
 	ND_ inline constexpr auto  Max (const LT &lhs, const RT &rhs)
 	{
-		using T = std::conditional_t< std::is_same_v<LT, RT>, LT, decltype(lhs + rhs) >;
+		using T = Conditional< IsSameTypes<LT, RT>, LT, decltype(lhs + rhs) >;
 		
 		return lhs > rhs ? T(lhs) : T(rhs);
 	}
@@ -141,7 +130,7 @@ namespace FG
 	template <typename LT, typename RT>
 	ND_ inline constexpr auto  Min (const LT &lhs, const RT &rhs)
 	{
-		using T = std::conditional_t< std::is_same_v<LT, RT>, LT, decltype(lhs + rhs) >;
+		using T = Conditional< IsSameTypes<LT, RT>, LT, decltype(lhs + rhs) >;
 		
 		return lhs > rhs ? T(rhs) : T(lhs);
 	}
@@ -160,21 +149,6 @@ namespace FG
 	
 /*
 =================================================
-	Equals
-=================================================
-*/
-	template <typename T>
-	ND_ inline constexpr std::enable_if_t<std::is_scalar_v<T>, bool>  Equals (const T &lhs, const T &rhs, const T &err = std::numeric_limits<T>::epsilon())
-	{
-		if constexpr ( std::is_integral_v<T> and std::is_unsigned_v<T> )
-		{
-			return lhs < rhs ? ((rhs - lhs) <= err) : ((lhs - rhs) <= err);
-		}else
-			return std::abs(lhs - rhs) <= err;
-	}
-	
-/*
-=================================================
 	Abs
 =================================================
 */
@@ -182,6 +156,21 @@ namespace FG
 	ND_ inline constexpr T  Abs (const T &x)
 	{
 		return std::abs( x );
+	}
+	
+/*
+=================================================
+	Equals
+=================================================
+*/
+	template <typename T>
+	ND_ inline constexpr EnableIf<IsScalar<T>, bool>  Equals (const T &lhs, const T &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	{
+		if constexpr ( IsUnsignedInteger<T> )
+		{
+			return lhs < rhs ? ((rhs - lhs) <= err) : ((lhs - rhs) <= err);
+		}else
+			return Abs(lhs - rhs) <= err;
 	}
 	
 /*
@@ -194,9 +183,34 @@ namespace FG
 	template <typename T>
 	ND_ forceinline constexpr T  Fract (const T& x)
 	{
-		STATIC_ASSERT( std::is_scalar_v<T> and std::is_floating_point_v<T> );
+		STATIC_ASSERT( IsScalar<T> and IsFloatPoint<T> );
 
 		return x - std::floor(x);
+	}
+
+/*
+=================================================
+	IsIntersects
+----
+	1D intersection check
+=================================================
+*/
+	template <typename T>
+	ND_ inline constexpr bool  IsIntersects (const T& begin1, const T& end1,
+											 const T& begin2, const T& end2)
+	{
+		return (end1 > begin2) and (begin1 < end2);
+	}
+	
+/*
+=================================================
+	IsPowerOfTwo
+=================================================
+*/
+	template <typename T>
+	inline constexpr bool  IsPowerOfTwo (const T &x)
+	{
+		return ( x != 0 and ( (x & (x - T(1))) == T(0) ) );
 	}
 
 }	// FG

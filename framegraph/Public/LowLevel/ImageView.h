@@ -121,7 +121,7 @@ namespace FG
 			
 			auto	pixel = GetPixel( point );
 
-			if constexpr ( std::is_integral_v<T> )
+			if constexpr ( IsInteger<T> )
 			{
 				ASSERT( _isNormalized );
 

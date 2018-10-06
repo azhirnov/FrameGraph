@@ -61,6 +61,7 @@ if (${FG_ENABLE_GLSLANG})
 	target_link_libraries( "PipelineCompiler" "SPIRV" )
 	target_link_libraries( "PipelineCompiler" "glslang" )
 	target_link_libraries( "PipelineCompiler" "OGLCompiler" )
+	target_compile_definitions( "PipelineCompiler" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
 	# compiler
 	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
 	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
@@ -72,10 +73,6 @@ if (${FG_ENABLE_GLSLANG})
 	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
 	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
-	#-----------------------------------
-	add_definitions( ${FG_GLOBAL_DEFINITIONS} )
-	
-	#-----------------------------------
 	install( TARGETS "PipelineCompiler" ARCHIVE DESTINATION "lib" )
 endif()
 
@@ -159,6 +156,7 @@ if (${FG_ENABLE_SDL2})
 endif()
 target_link_libraries( "Framework" "VulkanLoader" )
 target_link_libraries( "Framework" "STL" )
+target_compile_definitions( "Framework" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
 # compiler
 target_compile_definitions( "Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
 set_target_properties( "Framework" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
@@ -170,10 +168,6 @@ set_target_properties( "Framework" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHAR
 target_compile_options( "Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
 target_compile_definitions( "Framework" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 
-#-----------------------------------
-add_definitions( ${FG_GLOBAL_DEFINITIONS} )
-
-#-----------------------------------
 install( TARGETS "Framework" ARCHIVE DESTINATION "lib" )
 
 

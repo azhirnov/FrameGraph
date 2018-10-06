@@ -31,5 +31,5 @@ if (${FG_ENABLE_GLFW})
 	
 	add_subdirectory( "${FG_EXTERNAL_GLFW_PATH}" "glfw" )
 	set_property( TARGET "glfw" PROPERTY FOLDER "External" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "-DFG_ENABLE_GLFW" )
+	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_GLFW" )
 endif ()

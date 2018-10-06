@@ -26,6 +26,7 @@ namespace FG
 		};
 
 		using ShaderCache_t		= HashMap< BinaryShaderData, VkShaderPtr >;
+		using ShaderDataMap_t	= PipelineDescription::ShaderDataMap_t;
 
 
 	// variables
@@ -54,9 +55,13 @@ namespace FG
 		void ReleaseUnusedShaders ();
 		void ReleaseShaderCache ();
 
+		bool IsSupported (const MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
+		bool IsSupported (const RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		bool IsSupported (const GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		bool IsSupported (const ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		
+		bool Compile (INOUT MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
+		bool Compile (INOUT RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 		bool Compile (INOUT GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 		bool Compile (INOUT ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 
@@ -69,6 +74,8 @@ namespace FG
 							 INOUT PipelineDescription::UniformMap_t &dstUniforms) const;
 
 		bool _CreateVulkanShader (INOUT PipelineDescription::Shader &shader);
+
+		bool _IsSupported (const ShaderDataMap_t &data) const;
 	};
 
 

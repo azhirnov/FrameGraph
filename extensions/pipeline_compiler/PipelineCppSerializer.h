@@ -34,7 +34,7 @@ namespace FG
 		String  _PixelFormat_ToString (EPixelFormat value) const;
 		String  _ShaderAccess_ToString (EShaderAccess value) const;
 		String  _BindingIndex_ToString (const BindingIndex &index) const;
-		String  _SpecConstant_ToString (const PipelineDescription::SpecConstants_t::pair_t &value) const;
+		String  _SpecConstant_ToString (const PipelineDescription::SpecConstants_t::pair_type &value) const;
 
 		String  _VertexID_ToString (const VertexID &id) const;
 		String  _UniformID_ToString (const UniformID &id) const;

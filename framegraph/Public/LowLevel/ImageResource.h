@@ -130,7 +130,7 @@ namespace std
 		ND_ size_t  operator () (const FG::ImageResource::ImageDescription &value) const noexcept
 		{
 		#if FG_FAST_HASH
-			return size_t(FG::HashOf( std::addressof(value), sizeof(value) ));
+			return size_t(FG::HashOf( AddressOf(value), sizeof(value) ));
 		#else
 			FG::HashVal	result;
 			result << FG::HashOf( value.imageType );
@@ -151,7 +151,7 @@ namespace std
 		ND_ size_t  operator () (const FG::ImageResource::ImageViewDescription &value) const noexcept
 		{
 		#if FG_FAST_HASH
-			return size_t(FG::HashOf( std::addressof(value), sizeof(value) ));
+			return size_t(FG::HashOf( AddressOf(value), sizeof(value) ));
 		#else
 			FG::HashVal	result;
 			result << FG::HashOf( value.viewType );

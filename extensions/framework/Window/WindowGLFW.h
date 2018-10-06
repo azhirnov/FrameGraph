@@ -52,6 +52,8 @@ namespace FG
 		void Destroy () override;
 		
 		void SetTitle (StringView value) override;
+		void SetSize (const uint2 &value) override;
+		void SetPosition (const int2 &value) override;
 		
 		uint2 GetSize () const override;
 
@@ -63,6 +65,8 @@ namespace FG
 		static void _GLFW_RefreshCallback (GLFWwindow* wnd);
 		static void _GLFW_ResizeCallback (GLFWwindow* wnd, int w, int h);
 		static void _GLFW_KeyCallback (GLFWwindow* wnd, int key, int, int, int);
+
+		static StringView _MapKey (int key);
 	};
 
 

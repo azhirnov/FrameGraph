@@ -19,6 +19,6 @@ int main ()
 
     FG_LOGI( "Tests.Framework finished" );
 	
-    DEBUG_ONLY( std::cin.ignore() );
+    std::cin.ignore();
 	return 0;
 }

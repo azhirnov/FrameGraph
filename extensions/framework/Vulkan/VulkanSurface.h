@@ -20,7 +20,7 @@ namespace FG
 		ND_ static Array<const char*>	GetRequiredExtensions ();
 		
 		// Windows
-#	if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
+#	if defined(PLATFORM_WINDOWS)
 		ND_ static Array<const char*>	GetWin32Extensions ();
 		ND_ static VkSurfaceKHR			CreateWin32Surface (VkInstance instance, void* hinstance, void* hwnd);
 #	endif

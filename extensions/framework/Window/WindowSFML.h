@@ -52,6 +52,8 @@ namespace FG
 		void Destroy () override;
 		
 		void SetTitle (StringView value) override;
+		void SetSize (const uint2 &value) override;
+		void SetPosition (const int2 &value) override;
 		
 		uint2 GetSize () const override;
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/File/File.h"
+#include "stl/Stream/Stream.h"
 #include <stdio.h>
 #include <filesystem>
 
@@ -10,10 +10,10 @@ namespace FG
 {
 
 	//
-	// HDD Read-only File
+	// Read-only File Stream
 	//
 
-	class HddRFile final : public RFile
+	class FileRStream final : public RStream
 	{
 	// variables
 	private:
@@ -23,12 +23,12 @@ namespace FG
 
 	// methods
 	public:
-		HddRFile () {}
-		HddRFile (StringView filename);
-		HddRFile (const char *filename);
-		HddRFile (const String &filename);
-		HddRFile (const std::filesystem::path &path);
-		~HddRFile ();
+		FileRStream () {}
+		FileRStream (StringView filename);
+		FileRStream (const char *filename);
+		FileRStream (const String &filename);
+		FileRStream (const std::filesystem::path &path);
+		~FileRStream ();
 
 		bool	IsOpen ()	const override		{ return _file != null; }
 		BytesU	Position ()	const override;
@@ -44,10 +44,10 @@ namespace FG
 
 
 	//
-	// HDD Write-only File
+	// Write-only File Stream
 	//
 
-	class HddWFile final : public WFile
+	class FileWStream final : public WStream
 	{
 	// variables
 	private:
@@ -56,20 +56,20 @@ namespace FG
 
 	// methods
 	public:
-		HddWFile () {}
-		HddWFile (StringView filename);
-		HddWFile (const char *filename);
-		HddWFile (const String &filename);
-		HddWFile (const std::filesystem::path &path);
-		~HddWFile ();
+		FileWStream () {}
+		FileWStream (StringView filename);
+		FileWStream (const char *filename);
+		FileWStream (const String &filename);
+		FileWStream (const std::filesystem::path &path);
+		~FileWStream ();
 		
 		bool	IsOpen ()	const override		{ return _file != null; }
 		BytesU	Position ()	const override;
 		BytesU	Size ()		const override;
 		
 		BytesU	Write2 (const void *buffer, BytesU size) override;
+		void	Flush () override;
 	};
-
 
 }	// FG
 

@@ -10,6 +10,17 @@ namespace FG
 
 /*
 =================================================
+	AddressOf
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline decltype(auto)  AddressOf (T &value)
+	{
+		return std::addressof( value );
+	}
+
+/*
+=================================================
 	ArraySizeOf
 =================================================
 */
@@ -29,6 +40,44 @@ namespace FG
 	ND_ forceinline BytesU  ArraySizeOf (const ArrayView<T> &arr)
 	{
 		return BytesU( arr.size() * sizeof(T) );
+	}
+	
+/*
+=================================================
+	CountOf
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr size_t  CountOf (T& value)
+	{
+		return std::size( value );
+	}
+	
+/*
+=================================================
+	CheckPointerAlignment
+=================================================
+*/
+	template <typename T>
+	forceinline bool CheckPointerAlignment (void *ptr) noexcept
+	{
+		constexpr size_t	align = alignof(T);
+
+		STATIC_ASSERT( IsPowerOfTwo( align ), "Align must be power of 2" );
+
+		return (sizeof(T) < align) or not (size_t(ptr) & (align-1));
+	}
+	
+/*
+=================================================
+	PlacementNew
+=================================================
+*/
+	template <typename T, typename ...Types>
+	forceinline T *  PlacementNew (OUT void *ptr, Types&&... args) noexcept
+	{
+		ASSERT( CheckPointerAlignment<T>( ptr ) );
+		return ( new(ptr) T( std::forward<Types>(args)... ) );
 	}
 
 /*

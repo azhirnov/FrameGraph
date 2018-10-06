@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/Common.h"
+#include "stl/Algorithms/MemUtils.h"
 
 namespace FG
 {
@@ -16,7 +16,7 @@ namespace FG
 	ND_ inline static T*  Singleton () noexcept
 	{
 		static T inst;
-		return std::addressof( inst );
+		return AddressOf( inst );
 	}
 
 }	// FG

@@ -15,6 +15,8 @@ private:
 	VulkanDeviceExt		vulkan;
 	VulkanSwapchainPtr	swapchain;
 	WindowPtr			window;
+	
+	VkCommandPool		cmdPool	= VK_NULL_HANDLE;
 
 
 public:
@@ -23,14 +25,24 @@ public:
 		VulkanDeviceFn_Init( vulkan );
 	}
 
-	void OnResize (const uint2 &) override
+	void OnResize (const uint2 &size) override
 	{
-		ASSERT( !"not supported" );
+		VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
+
+		VK_CALL( vkResetCommandPool( vulkan.GetVkDevice(), cmdPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT ));
+
+		CHECK( swapchain->Recreate( size ));
 	}
 	
 	void OnRefrash () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
+	
+	void OnKey (StringView key, EKeyAction action) override
+	{
+		if ( action == EKeyAction::Down )
+			FG_LOGI( key );
+	}
 
 
 	bool Run ()
@@ -77,7 +89,6 @@ public:
 
 		// initialize vulkan objects
 		VkQueue				cmd_queue		= vulkan.GetVkQuues().front().id;
-		VkCommandPool		cmd_pool;
 		VkCommandBuffer		cmd_buffers[2]	= {};
 		VkFence				fences[2]		= {};
 		VkSemaphore			semaphores[2]	= {};
@@ -86,12 +97,12 @@ public:
 			pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			pool_info.queueFamilyIndex	= vulkan.GetVkQuues().front().familyIndex;
 			pool_info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-			VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmd_pool ));
+			VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmdPool ));
 
 			VkCommandBufferAllocateInfo	info = {};
 			info.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 			info.pNext				= null;
-			info.commandPool		= cmd_pool;
+			info.commandPool		= cmdPool;
 			info.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 			info.commandBufferCount	= 2;
 			VK_CHECK( vkAllocateCommandBuffers( vulkan.GetVkDevice(), &info, OUT cmd_buffers ));
@@ -202,23 +213,23 @@ public:
 				VkSemaphore				signal_semaphores[] = { semaphores[1] };
 				VkSemaphore				wait_semaphores[]	= { semaphores[0] };
 				VkPipelineStageFlags	wait_dst_mask[]		= { VK_PIPELINE_STAGE_TRANSFER_BIT };
-				STATIC_ASSERT( std::size(wait_semaphores) == std::size(wait_dst_mask) );
+				STATIC_ASSERT( CountOf(wait_semaphores) == CountOf(wait_dst_mask) );
 
 				VkSubmitInfo				submit_info = {};
 				submit_info.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
 				submit_info.commandBufferCount		= 1;
 				submit_info.pCommandBuffers			= &cmd_buffers[i&1];
-				submit_info.waitSemaphoreCount		= uint(std::size(wait_semaphores));
+				submit_info.waitSemaphoreCount		= uint(CountOf(wait_semaphores));
 				submit_info.pWaitSemaphores			= wait_semaphores;
 				submit_info.pWaitDstStageMask		= wait_dst_mask;
-				submit_info.signalSemaphoreCount	= uint(std::size(signal_semaphores));
+				submit_info.signalSemaphoreCount	= uint(CountOf(signal_semaphores));
 				submit_info.pSignalSemaphores		= signal_semaphores;
 
 				VK_CHECK( vkQueueSubmit( cmd_queue, 1, &submit_info, fences[i&1] ));
 			}
 
 			// present
-			CHECK( swapchain->Present( cmd_queue, semaphores[1] ));
+			CHECK( swapchain->Present( cmd_queue, {semaphores[1]} ));
 		}
 
 
@@ -230,7 +241,9 @@ public:
 			vkDestroySemaphore( vulkan.GetVkDevice(), semaphores[1], null );
 			vkDestroyFence( vulkan.GetVkDevice(), fences[0], null );
 			vkDestroyFence( vulkan.GetVkDevice(), fences[1], null );
-			vkDestroyCommandPool( vulkan.GetVkDevice(), cmd_pool, null );
+			vkDestroyCommandPool( vulkan.GetVkDevice(), cmdPool, null );
+
+			cmdPool = VK_NULL_HANDLE;
 
 			swapchain->Destroy();
 			swapchain.reset();

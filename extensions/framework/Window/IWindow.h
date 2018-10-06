@@ -5,6 +5,7 @@
 #include "stl/Math/Vec.h"
 #include "stl/Containers/FixedArray.h"
 #include "stl/CompileTime/DefaultType.h"
+#include "stl/Algorithms/MemUtils.h"
 #include "vulkan_loader/VulkanLoader.h"
 #include "vulkan_loader/VulkanCheckError.h"
 
@@ -17,11 +18,21 @@ namespace FG
 
 	class IWindowEventListener
 	{
+	// types
+	public:
+		enum class EKeyAction {
+			Down,		// single event when key down
+			Up,			// signle event when key up
+			Pressed,	// continiously event until key is pressed
+		};
+		
+	// interface
 	public:
 		virtual void OnResize (const uint2 &size) = 0;
 		virtual void OnRefrash () = 0;
 		virtual void OnDestroy () = 0;
 		virtual void OnUpdate () = 0;
+		virtual void OnKey (StringView key, EKeyAction action) = 0;
 	};
 
 
@@ -46,6 +57,11 @@ namespace FG
 
 	class IWindow
 	{
+	// types
+	public:
+		using EKeyAction = IWindowEventListener::EKeyAction;
+		
+	// interface
 	public:
 		virtual ~IWindow () {}
 		virtual bool Create (uint2 size, StringView title) = 0;
@@ -55,6 +71,8 @@ namespace FG
 		virtual void Quit () = 0;
 		virtual void Destroy () = 0;
 		virtual void SetTitle (StringView value) = 0;
+		virtual void SetSize (const uint2 &value) = 0;
+		virtual void SetPosition (const int2 &value) = 0;
 
 		ND_ virtual uint2 GetSize () const = 0;
 

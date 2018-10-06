@@ -19,7 +19,7 @@ namespace FG
 		};
 
 		template <typename T>
-		static constexpr bool	_IsEnumWithUnknown = _IsEnumWithUnknown2< T, std::is_enum_v<T> >::value;
+		static constexpr bool	_IsEnumWithUnknown = _IsEnumWithUnknown2< T, IsEnum<T> >::value;
 
 
 		template <typename T, int Index>

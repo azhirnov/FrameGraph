@@ -194,8 +194,8 @@ namespace FG
 			}
 		}
 
-		_vertices.sort();
-		_bindings.sort();
+		//_vertices.sort();
+		//_bindings.sort();
 		return true;
 	}
 
@@ -216,7 +216,7 @@ namespace std
 		ASSERT( value.index != VertexInputState::VertexIndex_Unknown );	// vertex location must be defined
 		
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		return size_t(HashOf( value.type )   + HashOf( value.index ) +
 					  HashOf( value.offset ) + HashOf( value.bindingIndex ));
@@ -231,7 +231,7 @@ namespace std
 	size_t  hash< VertexInputState::BufferBinding >::operator () (const VertexInputState::BufferBinding &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		return size_t( HashOf( value.index ) + HashOf( value.stride ) + HashOf( value.rate ));
 	#endif
@@ -245,19 +245,19 @@ namespace std
 	size_t  hash< VertexInputState >::operator () (const VertexInputState &value) const noexcept
 	{
 	#if FG_FAST_HASH
-		return size_t(HashOf( std::addressof(value), sizeof(value) ));
+		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		HashVal	result;
 		result << HashOf( value._vertices.size() );
 		result << HashOf( value._bindings.size() );
 
-		for (auto& attr : value._vertices)
+		for (const auto& attr : value._vertices)
 		{
 			result << HashOf( attr.first );
 			result << HashOf( attr.second );
 		}
 		
-		for (auto& bind : value._bindings)
+		for (const auto& bind : value._bindings)
 		{
 			result << HashOf( bind.first );
 			result << HashOf( bind.second );

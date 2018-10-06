@@ -24,7 +24,7 @@ namespace FG
 	private:
 		union {
 			T			_array[ ArraySize ];
-			char		_data[ ArraySize * sizeof(T) ];		// debug viewer, don't use this field!
+			char		_data[ ArraySize * sizeof(T) ];		// don't use this field!
 		};
 		size_t			_count	= 0;
 
@@ -34,8 +34,8 @@ namespace FG
 		FixedArray ()
 		{
 			DEBUG_ONLY( ::memset( data(), 0, sizeof(T) * capacity() ));
-
-			STATIC_ASSERT( alignof(FixedArray<T,ArraySize>) >= alignof(T) );
+			
+			STATIC_ASSERT( alignof(FixedArray<T,ArraySize>) % alignof(T) == 0 );
 		}
 
 		FixedArray (std::initializer_list<T> list) : FixedArray()
@@ -57,8 +57,10 @@ namespace FG
 
 		FixedArray (FixedArray &&other) : _count{other._count}
 		{
+			ASSERT( not _IsMemoryAliased( other.begin(), other.end() ) );
+
 			for (size_t i = 0; i < _count; ++i) {
-				new (data() + i) T( std::move(other._array[i]) );
+				PlacementNew<T>( data() + i, std::move(other._array[i]) );
 			}
 			other.clear();
 		}
@@ -113,7 +115,7 @@ namespace FG
 			_count = rhs._count;
 
 			for (size_t i = 0; i < _count; ++i) {
-				new (data() + i) T( std::move(rhs._array[i]) );
+				PlacementNew<T>( data() + i, std::move(rhs._array[i]) );
 			}
 			rhs.clear();
 			return *this;
@@ -161,7 +163,7 @@ namespace FG
 
 			for (auto iter = beginIter; _count < capacity() and iter != endIter; ++iter, ++_count)
 			{
-				new (data() + _count) T( *iter );
+				PlacementNew<T>( data() + _count, *iter );
 			}
 		}
 
@@ -169,14 +171,14 @@ namespace FG
 		void push_back (const T &value)
 		{
 			ASSERT( _count < capacity() );
-			new (data() + (_count++)) T( value );
+			PlacementNew<T>( data() + (_count++), value );
 		}
 
 		void push_back (T &&value)
 		{
 			ASSERT( _count < capacity() );
 
-			new (&_array[_count++]) T( std::move(value) );
+			PlacementNew<T>( &_array[_count++], std::move(value) );
 		}
 
 
@@ -209,7 +211,7 @@ namespace FG
 				// create elements
 				for (size_t i = _count; i < newSize; ++i)
 				{
-					new (data() + i) T();
+					PlacementNew<T>( data() + i );
 				}
 			}
 
@@ -233,7 +235,7 @@ namespace FG
 	private:
 		ND_ forceinline bool _IsMemoryAliased (const_iterator beginIter, const_iterator endIter) const
 		{
-			return (begin() < endIter) and (end() > beginIter);
+			return IsIntersects( begin(), end(), beginIter, endIter );
 		}
 	};
 

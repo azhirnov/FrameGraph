@@ -76,21 +76,21 @@ namespace FG
 
 		for (auto& sh : ppln._shaders)
 		{
-			for (auto& data : sh.data)
+			for (auto& data : sh.second.data)
 			{
-				src << "\tdesc.AddShader( " << _ShaderType_ToString( sh.shaderType ) << ", "
+				src << "\tdesc.AddShader( " << _ShaderType_ToString( sh.first ) << ", "
 					<< _ShaderLangFormat_ToString( data.first ) << ", "
 					<< _ShaderToString( data.second ) << " );\n\n";
 			}
 
-			if ( not sh.specConstants.empty() )
+			if ( not sh.second.specConstants.empty() )
 			{
 				src << "\tdesc.SetSpecConstants( "
-					<< _ShaderType_ToString( sh.shaderType ) << ", {\n";
+					<< _ShaderType_ToString( sh.first ) << ", {\n";
 
-				for (auto& spec : sh.specConstants)
+				for (auto& spec : sh.second.specConstants)
 				{
-					if ( &spec != sh.specConstants.begin() )
+					if ( &spec != sh.second.specConstants.begin() )
 						src << ",\n";
 
 					src << _SpecConstant_ToString( spec );
@@ -344,6 +344,7 @@ namespace FG
 */
 	String  PipelineCppSerializer::_ShaderType_ToString (EShader value) const
 	{
+		ENABLE_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EShader::Vertex :			return "EShader::Vertex";
@@ -352,7 +353,20 @@ namespace FG
 			case EShader::Geometry :		return "EShader::Geometry";
 			case EShader::Fragment :		return "EShader::Fragment";
 			case EShader::Compute :			return "EShader::Compute";
+				
+			case EShader::MeshTask :		return "EShader::MeshTask";
+			case EShader::Mesh :			return "EShader::Mesh";
+		
+			case EShader::RayGen :			return "EShader::RayGen";
+			case EShader::RayAnyHit :		return "EShader::RayAnyHit";
+			case EShader::RayClosestHit :	return "EShader::RayClosestHit";
+			case EShader::RayMiss :			return "EShader::RayMiss";
+			case EShader::RayIntersection :	return "EShader::RayIntersection";
+			case EShader::RayCallable :		return "EShader::RayCallable";
+
+			case EShader::_Count :			break;	// to shutup warnings
 		}
+		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "unsupported shader type!" );
 	}
 	
@@ -637,7 +651,7 @@ namespace FG
 	_SpecConstant_ToString
 =================================================
 */
-	String  PipelineCppSerializer::_SpecConstant_ToString (const PipelineDescription::SpecConstants_t::pair_t &value) const
+	String  PipelineCppSerializer::_SpecConstant_ToString (const PipelineDescription::SpecConstants_t::pair_type &value) const
 	{
 		return "\t\t\t{"s << _SpecializationID_ToString( value.first ) << ", " << IdxToString( value.second ) << "}";
 	}

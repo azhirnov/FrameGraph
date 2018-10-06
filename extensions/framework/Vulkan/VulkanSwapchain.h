@@ -81,19 +81,23 @@ namespace FG
 
 		ND_ VkResult  AcquireNextImage (VkSemaphore imageAvailable);
 
-		bool Present (VkQueue queue, VkSemaphore renderFinished);
 		bool Present (VkQueue queue, ArrayView<VkSemaphore> renderFinished);
 
 
 		ND_ VkSwapchainKHR				GetVkSwapchain ()				const	{ return _vkSwapchain; }
 
 		ND_ uint2 const&				GetSurfaceSize ()				const	{ return _surfaceSize; }
+		ND_ VkFormat					GetColorFormat ()				const	{ return _colorFormat; }
+		ND_ VkColorSpaceKHR				GetColorSpace ()				const	{ return _colorSpace; }
+		ND_ VkSurfaceTransformFlagBitsKHR	GetPreTransformFlags ()		const	{ return _preTransform; }
 		ND_ VkPresentModeKHR			GetPresentMode ()				const	{ return _presentMode; }
 		ND_ VkCompositeAlphaFlagBitsKHR	GetCompositeAlphaMode ()		const	{ return _compositeAlpha; }
 
 		ND_ uint						GetSwapchainLength ()			const	{ return uint(_imageBuffers.size()); }
 		ND_ uint						GetCurretImageIndex ()			const	{ return _currImageIndex; }
 		ND_ bool						IsImageAcquired ()				const	{ return GetCurretImageIndex() < GetSwapchainLength(); }
+
+		ND_ VkImage						GetImage (uint index)			const	{ return _imageBuffers[index].image; }
 
 		ND_ VkImageUsageFlags			GetImageUsage ()				const	{ return _colorImageUsage; }
 		ND_ VkImage						GetCurrentImage ()				const;

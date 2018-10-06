@@ -2,6 +2,7 @@
 
 #include "VulkanSwapchain.h"
 #include "stl/Algorithms/EnumUtils.h"
+#include "stl/Algorithms/MemUtils.h"
 
 namespace FG
 {
@@ -231,9 +232,7 @@ namespace FG
 
 
 		// destroy obsolete resources
-		for (auto& buf : _imageBuffers)
-		{
-			vkDestroyImage( _vkDevice, buf.image, null );
+		for (auto& buf : _imageBuffers) {
 			vkDestroyImageView( _vkDevice, buf.view, null );
 		}
 		_imageBuffers.clear();
@@ -343,19 +342,6 @@ namespace FG
 		
 		return result;
 	}
-
-/*
-=================================================
-	Present
-=================================================
-*/
-	bool VulkanSwapchain::Present (VkQueue queue, VkSemaphore renderFinished)
-	{
-		if ( renderFinished )
-			return Present( queue, {} );
-		else
-			return Present( queue, {&renderFinished, 1} );
-	}
 	
 /*
 =================================================
@@ -370,11 +356,11 @@ namespace FG
 		const VkSwapchainKHR	swap_chains[]		= { _vkSwapchain };
 		const uint				image_indices[]		= { _currImageIndex };
 
-		STATIC_ASSERT( std::size(swap_chains) == std::size(image_indices) );
+		STATIC_ASSERT( CountOf(swap_chains) == CountOf(image_indices) );
 
 		VkPresentInfoKHR	present_info = {};
 		present_info.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		present_info.swapchainCount		= uint(std::size( swap_chains ));
+		present_info.swapchainCount		= uint(CountOf( swap_chains ));
 		present_info.pSwapchains		= swap_chains;
 		present_info.pImageIndices		= image_indices;
 		present_info.waitSemaphoreCount	= uint(renderFinished.size());
@@ -390,7 +376,7 @@ namespace FG
 	
 /*
 =================================================
-	GetCurrentImage
+	_UpdateFPS
 =================================================
 */
 	void VulkanSwapchain::_UpdateFPS ()

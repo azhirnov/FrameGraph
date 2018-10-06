@@ -22,7 +22,7 @@ namespace _fg_hidden_
 	template <typename Type, size_t I, typename Head, typename... Tail>
 	struct TL_GetIndex< Type, I, std::tuple<Head, Tail...> >
 	{
-		inline static constexpr size_t	value = std::conditional_t< std::is_same_v<Type, Head>,
+		inline static constexpr size_t	value = Conditional< IsSameTypes<Type, Head>,
 													std::integral_constant<size_t, I>, TL_GetIndex< Type, I+1, std::tuple<Tail...> > >::value;
 	};
 

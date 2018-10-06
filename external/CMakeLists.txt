@@ -10,14 +10,15 @@ if (NOT CMAKE_VERSION VERSION_LESS 3.11.0)
 	set( FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "don't update externals" )
 endif ()
 
+set( CMAKE_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../cmake" )
 
-include( "${CMAKE_SOURCE_DIR}/cmake/download_vk.cmake" )
-include( "${CMAKE_SOURCE_DIR}/cmake/download_glslang.cmake" )
-include( "${CMAKE_SOURCE_DIR}/cmake/download_vma.cmake" )
-include( "${CMAKE_SOURCE_DIR}/cmake/download_sdl2.cmake" )
-include( "${CMAKE_SOURCE_DIR}/cmake/download_glfw.cmake" )
-include( "${CMAKE_SOURCE_DIR}/cmake/download_sfml.cmake" )
-include( "${CMAKE_SOURCE_DIR}/cmake/download_lodepng.cmake" )
+include( "${CMAKE_FOLDER}/download_vk.cmake" )
+include( "${CMAKE_FOLDER}/download_glslang.cmake" )
+include( "${CMAKE_FOLDER}/download_vma.cmake" )
+include( "${CMAKE_FOLDER}/download_sdl2.cmake" )
+include( "${CMAKE_FOLDER}/download_glfw.cmake" )
+include( "${CMAKE_FOLDER}/download_sfml.cmake" )
+include( "${CMAKE_FOLDER}/download_lodepng.cmake" )
 
 
 set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" CACHE INTERNAL "" FORCE )

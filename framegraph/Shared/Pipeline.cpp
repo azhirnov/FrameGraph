@@ -121,7 +121,7 @@ namespace FG
 	_SetPushConstants
 =================================================
 */
-	void PipelineDescription::_SetPushConstants (std::initializer_list< PushConstant > values)
+	void PipelineDescription::_SetPushConstants (ArrayView< PushConstant > values)
 	{
 		_pipelineLayout.pushConstants.assign( values.begin(), values.end() );
 	}
@@ -131,7 +131,7 @@ namespace FG
 	CopySpecConstants
 =================================================
 */
-	static void CopySpecConstants (std::initializer_list< PipelineDescription::SpecConstant > src, OUT PipelineDescription::SpecConstants_t &dst)
+	static void CopySpecConstants (ArrayView<PipelineDescription::SpecConstant> src, OUT PipelineDescription::SpecConstants_t &dst)
 	{
 		for (auto& val : src) {
 			dst.insert({ val.id, val.index });
@@ -155,7 +155,80 @@ namespace FG
 				type	== rhs.type;
 	}
 //-----------------------------------------------------------------------------
+	
 
+
+/*
+=================================================
+	AddShaderSource
+=================================================
+*/
+	static void AddShaderSource (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
+								 EShaderLangFormat fmt, StringView entry, String &&src)
+	{
+		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
+		ASSERT( shader.data.count( fmt ) == 0 );
+
+		shader.AddShaderData( fmt, entry, std::move(src) );
+	}
+	
+/*
+=================================================
+	AddShaderBinary8
+=================================================
+*/
+	static void AddShaderBinary8 (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
+								  EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	{
+		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
+		ASSERT( shader.data.count( fmt ) == 0 );
+
+		shader.AddShaderData( fmt, entry, std::move(bin) );
+	}
+	
+/*
+=================================================
+	AddShaderBinary32
+=================================================
+*/
+	static void AddShaderBinary32 (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
+								   EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	{
+		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
+		ASSERT( shader.data.count( fmt ) == 0 );
+
+		shader.AddShaderData( fmt, entry, std::move(bin) );
+	}
+	
+/*
+=================================================
+	AddShaderModule
+=================================================
+*/
+	static void AddShaderModule (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
+								 EShaderLangFormat fmt, const PipelineDescription::VkShaderPtr &module)
+	{
+		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
+		ASSERT( shader.data.count( fmt ) == 0 );
+
+		shader.data.insert({ fmt, module });
+	}
+
+/*
+=================================================
+	SetSpecializationConstants
+=================================================
+*/
+	static void SetSpecializationConstants (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
+											ArrayView<PipelineDescription::SpecConstant> values)
+	{
+		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
+		ASSERT( shader.data.size() > 0 );
+		ASSERT( shader.specConstants.empty() );
+
+		CopySpecConstants( values, OUT shader.specConstants );
+	}
+//-----------------------------------------------------------------------------
 
 	
 /*
@@ -165,10 +238,24 @@ namespace FG
 */
 	GraphicsPipelineDesc::GraphicsPipelineDesc ()
 	{
-		for (size_t i = 0; i < _shaders.size(); ++i)
-		{
-			_shaders[i].shaderType = EShader(i + uint(EShader::_GraphicsBegin));
+	}
+	
+/*
+=================================================
+	IsGraphicsShader
+=================================================
+*/
+	ND_ inline bool  IsGraphicsShader (EShader shaderType)
+	{
+		switch( shaderType ) { 
+			case EShader::Vertex :
+			case EShader::TessControl :
+			case EShader::TessEvaluation :
+			case EShader::Geometry :
+			case EShader::Fragment :
+				return true;
 		}
+		return false;
 	}
 
 /*
@@ -178,13 +265,9 @@ namespace FG
 */
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
 	{
-		ASSERT( shaderType >= EShader::_GraphicsBegin and shaderType <= EShader::_GraphicsEnd );
+		ASSERT( IsGraphicsShader( shaderType ) );
 
-		Shader&	shader = _shaders[ uint(shaderType) - uint(EShader::_GraphicsBegin) ];
-		ASSERT( shader.data.count( fmt ) == 0 );
-
-		shader.shaderType = shaderType;
-		shader.AddShaderData( fmt, entry, std::move(src) );
+		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src) );
 		return *this;
 	}
 	
@@ -195,13 +278,9 @@ namespace FG
 */
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
 	{
-		ASSERT( shaderType >= EShader::_GraphicsBegin and shaderType <= EShader::_GraphicsEnd );
-
-		Shader&	shader = _shaders[ uint(shaderType) - uint(EShader::_GraphicsBegin) ];
-		ASSERT( shader.data.count( fmt ) == 0 );
+		ASSERT( IsGraphicsShader( shaderType ) );
 		
-		shader.shaderType = shaderType;
-		shader.AddShaderData( fmt, entry, std::move(bin) );
+		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
 		return *this;
 	}
 	
@@ -212,13 +291,9 @@ namespace FG
 */
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
 	{
-		ASSERT( shaderType >= EShader::_GraphicsBegin and shaderType <= EShader::_GraphicsEnd );
-
-		Shader&	shader = _shaders[ uint(shaderType) - uint(EShader::_GraphicsBegin) ];
-		ASSERT( shader.data.count( fmt ) == 0 );
+		ASSERT( IsGraphicsShader( shaderType ) );
 		
-		shader.shaderType = shaderType;
-		shader.AddShaderData( fmt, entry, std::move(bin) );
+		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
 		return *this;
 	}
 	
@@ -229,13 +304,9 @@ namespace FG
 */
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
 	{
-		ASSERT( shaderType >= EShader::_GraphicsBegin and shaderType <= EShader::_GraphicsEnd );
-
-		Shader&	shader = _shaders[ uint(shaderType) - uint(EShader::_GraphicsBegin) ];
-		ASSERT( shader.data.count( fmt ) == 0 );
+		ASSERT( IsGraphicsShader( shaderType ) );
 		
-		shader.shaderType = shaderType;
-		shader.data.insert({ fmt, module });
+		AddShaderModule( INOUT _shaders, shaderType, fmt, std::move(module) );
 		return *this;
 	}
 
@@ -244,14 +315,200 @@ namespace FG
 	SetSpecConstants
 =================================================
 */
-	GraphicsPipelineDesc&  GraphicsPipelineDesc::SetSpecConstants (EShader shaderType, std::initializer_list< SpecConstant > values)
+	GraphicsPipelineDesc&  GraphicsPipelineDesc::SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values)
 	{
-		ASSERT( shaderType >= EShader::_GraphicsBegin and shaderType <= EShader::_GraphicsEnd );
+		ASSERT( IsGraphicsShader( shaderType ) );
 		
-		Shader&	shader = _shaders[ uint(shaderType) - uint(EShader::_GraphicsBegin) ];
-		ASSERT( shader.specConstants.empty() );
+		SetSpecializationConstants( INOUT _shaders, shaderType, values );
+		return *this;
+	}
+//-----------------------------------------------------------------------------
+	
 
-		CopySpecConstants( values, OUT shader.specConstants );
+
+/*
+=================================================
+	constructor
+=================================================
+*/
+	MeshProcessingPipelineDesc::MeshProcessingPipelineDesc ()
+	{
+	}
+
+/*
+=================================================
+	IsMeshProcessingShader
+=================================================
+*/
+	ND_ inline bool  IsMeshProcessingShader (EShader shaderType)
+	{
+		switch ( shaderType ) {
+			case EShader::MeshTask :
+			case EShader::Mesh :
+			case EShader::Fragment :
+				return true;
+		}
+		return false;
+	}
+
+/*
+=================================================
+	AddShader
+=================================================
+*/
+	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
+	{
+		ASSERT( IsMeshProcessingShader( shaderType ) );
+		
+		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src) );
+		return *this;
+	}
+	
+/*
+=================================================
+	AddShader
+=================================================
+*/
+	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	{
+		ASSERT( IsMeshProcessingShader( shaderType ) );
+		
+		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		return *this;
+	}
+	
+/*
+=================================================
+	AddShader
+=================================================
+*/
+	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	{
+		ASSERT( IsMeshProcessingShader( shaderType ) );
+		
+		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		return *this;
+	}
+	
+/*
+=================================================
+	AddShader
+=================================================
+*/
+	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
+	{
+		ASSERT( IsMeshProcessingShader( shaderType ) );
+		
+		AddShaderModule( INOUT _shaders, shaderType, fmt, std::move(module) );
+		return *this;
+	}
+
+/*
+=================================================
+	SetSpecConstants
+=================================================
+*/
+	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values)
+	{
+		ASSERT( IsMeshProcessingShader( shaderType ) );
+		
+		SetSpecializationConstants( INOUT _shaders, shaderType, values );
+		return *this;
+	}
+//-----------------------------------------------------------------------------
+	
+
+
+/*
+=================================================
+	constructor
+=================================================
+*/
+	RayTracingPipelineDesc::RayTracingPipelineDesc ()
+	{
+	}
+
+/*
+=================================================
+	IsRayTracingShader
+=================================================
+*/
+	ND_ inline bool  IsRayTracingShader (EShader shaderType)
+	{
+		switch ( shaderType ) {
+			case EShader::RayGen :
+			case EShader::RayAnyHit :
+			case EShader::RayClosestHit :
+			case EShader::RayMiss :
+			case EShader::RayIntersection :
+			case EShader::RayCallable :
+				return true;
+		}
+		return false;
+	}
+
+/*
+=================================================
+	AddShader
+=================================================
+*/
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
+	{
+		ASSERT( IsRayTracingShader( shaderType ) );
+		
+		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src) );
+		return *this;
+	}
+	
+/*
+=================================================
+	AddShader
+=================================================
+*/
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	{
+		ASSERT( IsRayTracingShader( shaderType ) );
+		
+		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		return *this;
+	}
+	
+/*
+=================================================
+	AddShader
+=================================================
+*/
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	{
+		ASSERT( IsRayTracingShader( shaderType ) );
+		
+		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		return *this;
+	}
+	
+/*
+=================================================
+	AddShader
+=================================================
+*/
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
+	{
+		ASSERT( IsRayTracingShader( shaderType ) );
+		
+		AddShaderModule( INOUT _shaders, shaderType, fmt, std::move(module) );
+		return *this;
+	}
+
+/*
+=================================================
+	SetSpecConstants
+=================================================
+*/
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values)
+	{
+		ASSERT( IsRayTracingShader( shaderType ) );
+		
+		SetSpecializationConstants( INOUT _shaders, shaderType, values );
 		return *this;
 	}
 //-----------------------------------------------------------------------------
@@ -267,7 +524,6 @@ namespace FG
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
 		
-		_shader.shaderType = EShader::Compute;
 		_shader.AddShaderData( fmt, entry, std::move(src) );
 		return *this;
 	}
@@ -281,7 +537,6 @@ namespace FG
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
 		
-		_shader.shaderType = EShader::Compute;
 		_shader.AddShaderData( fmt, entry, std::move(bin) );
 		return *this;
 	}
@@ -295,7 +550,6 @@ namespace FG
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
 		
-		_shader.shaderType = EShader::Compute;
 		_shader.AddShaderData( fmt, entry, std::move(bin) );
 		return *this;
 	}
@@ -309,7 +563,6 @@ namespace FG
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
 		
-		_shader.shaderType = EShader::Compute;
 		_shader.data.insert({ fmt, module });
 		return *this;
 	}
@@ -319,8 +572,9 @@ namespace FG
 	SetSpecConstants
 =================================================
 */
-	ComputePipelineDesc&  ComputePipelineDesc::SetSpecConstants (std::initializer_list< SpecConstant > values)
+	ComputePipelineDesc&  ComputePipelineDesc::SetSpecConstants (ArrayView< SpecConstant > values)
 	{
+		ASSERT( _shader.data.size() > 0 );
 		ASSERT( _shader.specConstants.empty() );
 		
 		CopySpecConstants( values, OUT _shader.specConstants );

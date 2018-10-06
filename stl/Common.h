@@ -18,6 +18,7 @@
 #include "stl/Defines.h"
 #include "stl/Log/Log.h"
 #include "stl/Algorithms/Hash.h"
+#include "stl/CompileTime/TypeTraits.h"
 
 
 namespace FG
@@ -39,6 +40,8 @@ namespace FG
 
 	template <typename T>	using Deque		= std::deque<T>;
 
+	template <size_t N>		using BitSet	= std::bitset<N>;
+
 
 	template <typename T,
 			  size_t ArraySize>
@@ -51,14 +54,14 @@ namespace FG
 	
 
 	template <typename T,
-			  typename Hash = std::hash<T>>
-	using HashSet = std::unordered_set< T, Hash >;
+			  typename Hasher = std::hash<T>>
+	using HashSet = std::unordered_set< T, Hasher >;
 
 
 	template <typename Key,
 			  typename Value,
-			  typename Hash = std::hash<Key>>
-	using HashMap = std::unordered_map< Key, Value, Hash >;
+			  typename Hasher = std::hash<Key>>
+	using HashMap = std::unordered_map< Key, Value, Hasher >;
 
 
 }	// FG

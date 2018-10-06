@@ -1,6 +1,22 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanSurface.h"
+#include "stl/Algorithms/Cast.h"
+
+#if defined(PLATFORM_WINDOWS) && !defined(VK_USE_PLATFORM_WIN32_KHR)
+# ifdef COMPILER_MSVC
+#	pragma warning (push)
+#	pragma warning (disable: 4668)
+# endif
+
+#	define VK_USE_PLATFORM_WIN32_KHR	1
+#	include <Windows.h>
+#	include <Vulkan/vulkan_win32.h>
+
+# ifdef COMPILER_MSVC
+#	pragma warning (pop)
+# endif
+#endif
 
 namespace FG
 {
@@ -71,16 +87,19 @@ namespace FG
 	CreateWin32Surface
 =================================================
 */
-	VkSurfaceKHR  VulkanSurface::CreateWin32Surface (VkInstance instance, HINSTANCE hinstance, HWND hwnd)
+	VkSurfaceKHR  VulkanSurface::CreateWin32Surface (VkInstance instance, void* hinstance, void* hwnd)
 	{
 		VkSurfaceKHR					surface;
 		VkWin32SurfaceCreateInfoKHR		surface_info = {};
 
 		surface_info.sType		= VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-		surface_info.hinstance	= hinstance;
-		surface_info.hwnd		= hwnd;
+		surface_info.hinstance	= HINSTANCE(hinstance);
+		surface_info.hwnd		= HWND(hwnd);
 		
-		VK_CHECK( vkCreateWin32SurfaceKHR( instance, &surface_info, null, OUT &surface ) );
+		PFN_vkCreateWin32SurfaceKHR  fpCreateWin32SurfaceKHR = BitCast<PFN_vkCreateWin32SurfaceKHR>( vkGetInstanceProcAddr( instance, "vkCreateWin32SurfaceKHR" ));
+		CHECK_ERR( fpCreateWin32SurfaceKHR );
+
+		VK_CHECK( fpCreateWin32SurfaceKHR( instance, &surface_info, null, OUT &surface ) );
 		return surface;
 	}
 # endif

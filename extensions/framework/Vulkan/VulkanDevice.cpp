@@ -62,10 +62,17 @@ namespace FG
 */
 	ArrayView<const char*>  VulkanDevice::GetRecomendedInstanceExtensions ()
 	{
-		static const char*	instance_extensions[] = {
-			VK_KHR_SURFACE_EXTENSION_NAME,
-			VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-			VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+		static const char*	instance_extensions[] =
+		{
+			#ifdef VK_KHR_surface
+				VK_KHR_SURFACE_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_debug_report
+				VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_get_physical_device_properties2
+				VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+			#endif
 		};
 		return instance_extensions;
 	}
@@ -77,10 +84,37 @@ namespace FG
 */
 	ArrayView<const char*>  VulkanDevice::GetRecomendedDeviceExtensions ()
 	{
-		static const char *	device_extensions[] = {
-			VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-			VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
-			VK_EXT_DEBUG_MARKER_EXTENSION_NAME
+		static const char *	device_extensions[] =
+		{
+			#ifdef VK_KHR_get_memory_requirements2
+				VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_dedicated_allocation
+				VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_debug_marker
+				VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
+			#endif
+
+			// Vendor specific extensions
+			#ifdef VK_NV_mesh_shader
+				VK_NV_MESH_SHADER_EXTENSION_NAME,
+			#endif
+			#ifdef VK_NV_shader_image_footprint
+				VK_NV_SHADER_IMAGE_FOOTPRINT_EXTENSION_NAME,
+			#endif
+			#ifdef VK_NV_shading_rate_image
+				VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME,
+			#endif
+			#ifdef VK_NV_fragment_shader_barycentric
+				VK_NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME,
+			#endif
+			#ifdef VK_NVX_raytracing
+				VK_NVX_RAYTRACING_EXTENSION_NAME,
+			#endif
+			#ifdef VK_NVX_device_generated_commands
+				VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
+			#endif
 		};
 		return device_extensions;
 	}
@@ -621,7 +655,7 @@ namespace FG
 			}
 
 			if ( EnumEq( curr_flags, requiredFlags ) and 
-				 (compatible.first == 0 or std::bitset<32>{compatible.first}.count() > std::bitset<32>{requiredFlags}.count()) )
+				 (compatible.first == 0 or BitSet<32>{compatible.first}.count() > BitSet<32>{requiredFlags}.count()) )
 			{
 				compatible = { curr_flags, uint(i) };
 			}

@@ -48,6 +48,12 @@
 #endif
 
 
+// macro for unused variables
+#ifndef FG_UNUSED
+#	define FG_UNUSED( ... )		(void)( __VA_ARGS__ )
+#endif
+
+
 // debug break
 #ifndef FG_BREAK_POINT
 # if defined(COMPILER_MSVC)

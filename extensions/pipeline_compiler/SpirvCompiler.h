@@ -5,6 +5,7 @@
 #include "EShaderCompilationFlags.h"
 #include "framegraph/Public/LowLevel/ResourceEnums.h"
 #include "framegraph/Public/LowLevel/VertexEnums.h"
+#include "glslang/Include/ResourceLimits.h"
 
 class TIntermNode;
 
@@ -77,6 +78,8 @@ namespace FG
 		EShaderStages				_currentStage;
 		bool						_targetVulkan	= true;
 
+		TBuiltInResource			_builtinResource;
+
 
 	// methods
 	public:
@@ -84,6 +87,9 @@ namespace FG
 		~SpirvCompiler ();
 		
 		bool SetCompilationFlags (EShaderCompilationFlags flags);
+
+		bool SetDefaultResourceLimits ();
+		bool SetCurrentResourceLimits (VkPhysicalDevice_t physicalDevice);
 
 		bool Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
 					  StringView entry, StringView source,
@@ -104,6 +110,8 @@ namespace FG
 
 		bool _OnCompilationFailed (ArrayView<StringView> source, INOUT String &log) const;
 		
+		static void _GenerateResources (OUT TBuiltInResource& res);
+
 
 	// GLSL deserializer
 	private:

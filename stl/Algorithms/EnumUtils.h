@@ -8,10 +8,10 @@ namespace FG
 {
 
 	template <typename T>
-	using NearInt = std::conditional_t< (sizeof(T) <= sizeof(int32_t)), int32_t, int64_t >;
+	using NearInt = Conditional< (sizeof(T) <= sizeof(int32_t)), int32_t, int64_t >;
 
 	template <typename T>
-	using NearUInt = std::conditional_t< (sizeof(T) <= sizeof(uint32_t)), uint32_t, uint64_t >;
+	using NearUInt = Conditional< (sizeof(T) <= sizeof(uint32_t)), uint32_t, uint64_t >;
 	
 /*
 =================================================
@@ -21,7 +21,7 @@ namespace FG
 	template <typename T>
 	ND_ forceinline constexpr NearUInt<T>  EnumToUInt (const T &value)
 	{
-		STATIC_ASSERT( std::is_scalar_v<T> or std::is_enum_v<T> );
+		STATIC_ASSERT( IsScalarOrEnum<T> );
 		STATIC_ASSERT( sizeof(value) <= sizeof(NearUInt<T>) );
 
 		return NearUInt<T>( value );
@@ -35,7 +35,7 @@ namespace FG
 	template <typename T>
 	ND_ forceinline constexpr NearInt<T>  EnumToInt (const T &value)
 	{
-		STATIC_ASSERT( std::is_scalar_v<T> or std::is_enum_v<T> );
+		STATIC_ASSERT( IsScalarOrEnum<T> );
 		STATIC_ASSERT( sizeof(value) <= sizeof(NearInt<T>) );
 
 		return NearInt<T>( value );
@@ -49,8 +49,8 @@ namespace FG
 	template <typename T1, typename T2>
 	ND_ forceinline constexpr bool  EnumEq (const T1& lhs, const T2& rhs)
 	{
-		STATIC_ASSERT( std::is_scalar_v< T1 > or std::is_enum_v< T1 > );
-		STATIC_ASSERT( std::is_scalar_v< T2 > or std::is_enum_v< T2 > );
+		STATIC_ASSERT( IsScalarOrEnum< T1 > );
+		STATIC_ASSERT( IsScalarOrEnum< T2 > );
 
 		return ( EnumToUInt(lhs) & EnumToUInt(rhs) ) == EnumToUInt(rhs);
 	}

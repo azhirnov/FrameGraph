@@ -15,10 +15,18 @@ namespace FG
 		Geometry,
 		Fragment,
 		Compute,
-		_Count,
 
-		_GraphicsBegin = Vertex,
-		_GraphicsEnd   = Fragment,
+		MeshTask,
+		Mesh,
+		
+		RayGen,
+		RayAnyHit,
+		RayClosestHit,
+		RayMiss,
+		RayIntersection,
+		RayCallable,
+
+		_Count,
 	};
 
 	
@@ -30,6 +38,14 @@ namespace FG
 		Geometry		= 1 << uint(EShader::Geometry),
 		Fragment		= 1 << uint(EShader::Fragment),
 		Compute			= 1 << uint(EShader::Compute),
+		MeshTask		= 1 << uint(EShader::MeshTask),
+		Mesh			= 1 << uint(EShader::Mesh),
+		RayGen			= 1 << uint(EShader::RayGen),
+		RayAnyHit		= 1 << uint(EShader::RayAnyHit),
+		RayClosestHit	= 1 << uint(EShader::RayClosestHit),
+		RayMiss			= 1 << uint(EShader::RayMiss),
+		RayIntersection	= 1 << uint(EShader::RayIntersection),
+		RayCallable		= 1 << uint(EShader::RayCallable),
 		_Last,
 
 		All				= ((_Last-1) << 1) - 1,

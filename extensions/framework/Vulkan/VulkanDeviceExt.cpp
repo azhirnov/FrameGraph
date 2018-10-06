@@ -175,7 +175,8 @@ namespace FG
 			case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT		: return "Display";
 			case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT	: return "DisplayMode";
 			case VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT	: return "ObjectTableNvx";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT	: return "IndirectCommandsLayoutNvx";
+			case VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT : return "IndirectCommandsLayoutNvx";
+			case VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NVX_EXT :	return "AccelerationStructureNvx";	
 
 			case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT :
 			case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT :
@@ -317,6 +318,16 @@ namespace FG
 
 		VK_CALL( vkDebugMarkerSetObjectNameEXT( GetVkDevice(), &info ));
 		return true;
+	}
+	
+/*
+=================================================
+	SetBreakOnValidationError
+=================================================
+*/
+	void VulkanDeviceExt::SetBreakOnValidationError (bool value)
+	{
+		_breakOnValidationError = value;
 	}
 
 

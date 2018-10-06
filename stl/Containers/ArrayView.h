@@ -88,7 +88,7 @@ namespace std
 	{
 		ND_ size_t  operator () (const FG::ArrayView<T> &value) const noexcept
 		{
-			if constexpr ( FG_FAST_HASH and std::is_pod_v<T> )
+			if constexpr ( FG_FAST_HASH and FG::IsPOD<T> )
 			{
 				return size_t(FG::HashOf( value.data(), value.size() * sizeof(T) ));
 			}
