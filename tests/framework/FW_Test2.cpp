@@ -283,7 +283,22 @@ public:
 			}
 
 			// present
-			CHECK( swapchain->Present( cmd_queue, {semaphores[1]} ));
+			VkResult	err = swapchain->Present( cmd_queue, {semaphores[1]} );
+			switch ( err ) {
+				case VK_SUCCESS :
+					break;
+
+				case VK_SUBOPTIMAL_KHR :
+				case VK_ERROR_SURFACE_LOST_KHR :
+				case VK_ERROR_OUT_OF_DATE_KHR :
+					VK_CALL( vkQueueWaitIdle( cmd_queue ));
+					VK_CALL( vkResetCommandPool( vulkan.GetVkDevice(), cmdPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT ));
+					CHECK( swapchain->Recreate( window->GetSize() ));
+					break;
+
+				default :
+					RETURN_ERR( "Present failed" );
+			}
 		}
 
 

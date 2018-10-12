@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "framework/Vulkan/VulkanDevice.h"
+#include "stl/Math/Vec.h"
+#include "stl/Containers/FixedArray.h"
+#include "stl/CompileTime/DefaultType.h"
+#include "extensions/vulkan_loader/VulkanLoader.h"
+#include "extensions/vulkan_loader/VulkanCheckError.h"
 #include <chrono>
 
 namespace FG
@@ -21,7 +25,9 @@ namespace FG
 			VkImage			image;
 			VkImageView		view;
 		};
-		using SwapChainBuffers_t	= FixedArray< SwapchainBuffer, FG_MaxSwapchainLength >;
+		static constexpr uint		MaxSwapchainLength = 8;
+
+		using SwapChainBuffers_t	= FixedArray< SwapchainBuffer, MaxSwapchainLength >;
 
 		using TimePoint_t			= std::chrono::time_point< std::chrono::high_resolution_clock >;
 
@@ -56,7 +62,7 @@ namespace FG
 
 	// methods
 	public:
-		explicit VulkanSwapchain (const VulkanDevice &dev);
+		explicit VulkanSwapchain (const class VulkanDevice &dev);
 		VulkanSwapchain (VkPhysicalDevice physicalDev, VkDevice logicalDev, VkSurfaceKHR surface);
 		~VulkanSwapchain ();
 
@@ -80,9 +86,12 @@ namespace FG
 		bool Recreate (const uint2 &size);
 
 		ND_ VkResult  AcquireNextImage (VkSemaphore imageAvailable);
+		ND_ VkResult  Present (VkQueue queue, ArrayView<VkSemaphore> renderFinished);
 
-		bool Present (VkQueue queue, ArrayView<VkSemaphore> renderFinished);
 
+		ND_ VkPhysicalDevice			GetVkPhysicalDevice ()			const	{ return _vkPhysicalDevice; }
+		ND_ VkDevice					GetVkDevice ()					const	{ return _vkDevice; }
+		ND_ VkSurfaceKHR				GetVkSurface ()					const	{ return _vkSurface; }
 
 		ND_ VkSwapchainKHR				GetVkSwapchain ()				const	{ return _vkSwapchain; }
 
@@ -98,6 +107,7 @@ namespace FG
 		ND_ bool						IsImageAcquired ()				const	{ return GetCurretImageIndex() < GetSwapchainLength(); }
 
 		ND_ VkImage						GetImage (uint index)			const	{ return _imageBuffers[index].image; }
+		ND_ VkImageView					GetImageView (uint index)		const	{ return _imageBuffers[index].view; }
 
 		ND_ VkImageUsageFlags			GetImageUsage ()				const	{ return _colorImageUsage; }
 		ND_ VkImage						GetCurrentImage ()				const;

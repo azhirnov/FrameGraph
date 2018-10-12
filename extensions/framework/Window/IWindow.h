@@ -5,7 +5,7 @@
 #include "stl/Math/Vec.h"
 #include "stl/Containers/FixedArray.h"
 #include "stl/CompileTime/DefaultType.h"
-#include "stl/Algorithms/MemUtils.h"
+#include "stl/Memory/MemUtils.h"
 #include "vulkan_loader/VulkanLoader.h"
 #include "vulkan_loader/VulkanCheckError.h"
 

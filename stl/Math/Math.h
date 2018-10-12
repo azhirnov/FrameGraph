@@ -212,5 +212,17 @@ namespace FG
 	{
 		return ( x != 0 and ( (x & (x - T(1))) == T(0) ) );
 	}
+	
+/*
+=================================================
+	IntLog2 / GetPowerOf2
+=================================================
+*/
+	template <typename T>
+	inline int IntLog2 (const T& x)
+	{
+		return std::ilogb( x );
+	}
+
 
 }	// FG

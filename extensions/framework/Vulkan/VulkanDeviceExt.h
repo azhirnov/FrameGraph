@@ -36,12 +36,12 @@ namespace FG
 		bool						_debugMarkersSupported;
 		bool						_breakOnValidationError;
 		
-		VkPhysicalDeviceProperties				_deviceProperties;
-		VkPhysicalDeviceFeatures				_deviceFeatures;
-		VkPhysicalDeviceMemoryProperties		_deviceMemoryProperties;
-		VkPhysicalDeviceIDProperties			_deviceIDProperties;
-		VkPhysicalDeviceMaintenance3Properties	_deviceMaintenance3Properties;
-		VkPhysicalDeviceSubgroupProperties		_deviceSubgroupProperties;
+		VkPhysicalDeviceProperties				_deviceProperties {};
+		VkPhysicalDeviceMemoryProperties		_deviceMemoryProperties {};
+		VkPhysicalDeviceIDProperties			_deviceIDProperties {};
+		VkPhysicalDeviceMaintenance3Properties	_deviceMaintenance3Properties {};
+		VkPhysicalDeviceSubgroupProperties		_deviceSubgroupProperties {};
+		VkPhysicalDeviceMeshShaderPropertiesNV	_deviceMeshShaderProperties {};
 
 
 	// methods
@@ -58,9 +58,12 @@ namespace FG
 
 		void SetBreakOnValidationError (bool value);
 
-		ND_ VkPhysicalDeviceProperties const&		GetDeviceProperties ()		 const	{ return _deviceProperties; }
-		ND_ VkPhysicalDeviceFeatures const&			GetDeviceFeatures ()		 const	{ return _deviceFeatures; }
-		ND_ VkPhysicalDeviceMemoryProperties const&	GetDeviceMemoryProperties () const	{ return _deviceMemoryProperties; }
+		ND_ VkPhysicalDeviceProperties const&				GetDeviceProperties ()				const	{ return _deviceProperties; }
+		ND_ VkPhysicalDeviceMemoryProperties const&			GetDeviceMemoryProperties ()		const	{ return _deviceMemoryProperties; }
+		ND_ VkPhysicalDeviceIDProperties const&				GetDeviceIDProperties ()			const	{ return _deviceIDProperties; }
+		ND_ VkPhysicalDeviceMaintenance3Properties const&	GetDeviceMaintenance3Properties ()	const	{ return _deviceMaintenance3Properties; }
+		ND_ VkPhysicalDeviceSubgroupProperties const&		GetDeviceSubgroupProperties ()		const	{ return _deviceSubgroupProperties; }
+		ND_ VkPhysicalDeviceMeshShaderPropertiesNV const&	GetDeviceMeshShaderProperties ()	const	{ return _deviceMeshShaderProperties; }
 		
 
 	private:

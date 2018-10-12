@@ -80,7 +80,7 @@ endif()
 
 
 #==================================================================================================
-# project: Tests.PipelineCompiler
+# project: UnitTests.PipelineCompiler
 #==================================================================================================
 if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS})
 	set( SOURCES 
@@ -96,28 +96,28 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS})
 		"../tests/pipeline_compiler/Test_Shader8.cpp"
 		"../tests/pipeline_compiler/Utils.h" )
 	if (DEFINED ANDROID)
-		add_library( "Tests.PipelineCompiler" SHARED ${SOURCES} )
+		add_library( "UnitTests.PipelineCompiler" SHARED ${SOURCES} )
 	else()
-		add_executable( "Tests.PipelineCompiler" ${SOURCES} )
+		add_executable( "UnitTests.PipelineCompiler" ${SOURCES} )
 	endif()
 	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Serializer1.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Utils.h" )
-	set_property( TARGET "Tests.PipelineCompiler" PROPERTY FOLDER "Tests" )
-	target_include_directories( "Tests.PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "Tests.PipelineCompiler" PRIVATE "../tests/.." )
-	target_include_directories( "Tests.PipelineCompiler" PRIVATE "" )
+	set_property( TARGET "UnitTests.PipelineCompiler" PROPERTY FOLDER "Tests" )
+	target_include_directories( "UnitTests.PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "UnitTests.PipelineCompiler" PRIVATE "../tests/.." )
+	target_include_directories( "UnitTests.PipelineCompiler" PRIVATE "" )
 	if (${FG_ENABLE_GLSLANG})
-		target_link_libraries( "Tests.PipelineCompiler" "PipelineCompiler" )
+		target_link_libraries( "UnitTests.PipelineCompiler" "PipelineCompiler" )
 	endif()
 	# compiler
-	target_compile_definitions( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "Tests.PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "Tests.PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "Tests.PipelineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "Tests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
 endif()
 
@@ -207,5 +207,5 @@ if (${FG_ENABLE_TESTS})
 endif()
 
 
-add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
+add_test( NAME "UnitTests.PipelineCompiler" COMMAND "UnitTests.PipelineCompiler" )
 

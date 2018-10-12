@@ -30,24 +30,35 @@ namespace FG
 
 	// methods
 	public:
-		TStaticString ()
+		constexpr TStaticString ()
 		{
 			DEBUG_ONLY( ::memset( _array, 0, sizeof(_array) ));
 		}
-
-		TStaticString (const View_t &view)
+		
+		/*template <size_t S>
+		constexpr TStaticString (const CharT (&str)[S]) : _array{}, _length{ 0 }
 		{
-			ASSERT( view.size() < StringSize );
+			for (; _length < S and _length < StringSize; ++_length) {
+				_array[_length] = str[_length];
+			}
+		}*/
+		
+		TStaticString (const View_t &view) : TStaticString{ view.data(), view.length() }
+		{}
+		
+		TStaticString (const CharT *str) : TStaticString{ str, str ? std::strlen(str) : 0 }
+		{}
 
-			_length = Min( view.size(), StringSize-1 );
+		TStaticString (const CharT *str, size_t length)
+		{
+			ASSERT( length < StringSize );
 
-			::memcpy( _array, view.data(), _length * sizeof(CharT) );
+			_length = Min( length, StringSize-1 );
+
+			::memcpy( _array, str, _length * sizeof(CharT) );
 
 			_array[_length] = CharT(0);
 		}
-
-		TStaticString (const CharT *str) : TStaticString{ View_t{str} }
-		{}
 
 
 		ND_ operator View_t ()						const	{ return View_t{ _array, length() }; }

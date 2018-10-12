@@ -537,6 +537,7 @@ namespace FG
 
 		// setup device create info
 		VkDeviceCreateInfo		device_info	= {};
+		const void **			next_ext	= &device_info.pNext;
 		device_info.sType		= VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
 
@@ -597,9 +598,10 @@ namespace FG
 
 
 		// setup features
-		VkPhysicalDeviceFeatures	enabled_features = {};
-		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &enabled_features );
-		device_info.pEnabledFeatures = &enabled_features;
+		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &_features );
+		device_info.pEnabledFeatures = &_features;
+
+		CHECK_ERR( _SetupDeviceFeatures( const_cast<void**>(next_ext), device_extensions ));
 
 		VK_CHECK( vkCreateDevice( _vkPhysicalDevice, &device_info, null, OUT &_vkDevice ));
 		
@@ -613,6 +615,31 @@ namespace FG
 		_OnLogicalDeviceCreated( std::move(device_extensions) );
 		return true;
 	}
+	
+/*
+=================================================
+	_SetupDeviceFeatures
+=================================================
+*/
+	bool VulkanDevice::_SetupDeviceFeatures (void** nextExt, ArrayView<const char*> extensions)
+	{
+		VkPhysicalDeviceFeatures2	feat2		= {};
+		void **						next_feat	= &feat2.pNext;;
+		feat2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		
+		for (StringView ext : extensions)
+		{
+			if ( ext == VK_NV_MESH_SHADER_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt		= &_meshShaderFeatures;
+				next_feat	= nextExt		= &_meshShaderFeatures.pNext;
+				_meshShaderFeatures.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+			}
+		}
+
+		vkGetPhysicalDeviceFeatures2( GetVkPhysicalDevice(), &feat2 );
+		return true;
+	}
 
 /*
 =================================================
@@ -621,8 +648,6 @@ namespace FG
 */
 	bool VulkanDevice::_ChooseQueueIndex (ArrayView<VkQueueFamilyProperties> queueFamilyProps, INOUT VkQueueFlags &requiredFlags, OUT uint &familyIndex) const
 	{
-		using QInfo = Pair<VkQueueFlags, uint>;
-
 		// validate required flags
 		{
 			// if the capabilities of a queue family include VK_QUEUE_GRAPHICS_BIT or VK_QUEUE_COMPUTE_BIT,
@@ -631,7 +656,7 @@ namespace FG
 				requiredFlags &= ~VK_QUEUE_TRANSFER_BIT;
 		}
 
-		QInfo	compatible {0, ~0u};
+		Pair<VkQueueFlags, uint>	compatible {0, ~0u};
 
 		for (size_t i = 0; i < queueFamilyProps.size(); ++i)
 		{
@@ -655,7 +680,7 @@ namespace FG
 			}
 
 			if ( EnumEq( curr_flags, requiredFlags ) and 
-				 (compatible.first == 0 or BitSet<32>{compatible.first}.count() > BitSet<32>{requiredFlags}.count()) )
+				 (compatible.first == 0 or BitSet<32>{compatible.first}.count() > BitSet<32>{curr_flags}.count()) )
 			{
 				compatible = { curr_flags, uint(i) };
 			}

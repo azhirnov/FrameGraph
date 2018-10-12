@@ -3,6 +3,7 @@
 #pragma once
 
 #include "EShaderCompilationFlags.h"
+#include <mutex>
 
 namespace FG
 {
@@ -31,15 +32,14 @@ namespace FG
 
 	// variables
 	private:
+		std::mutex							_lock;	
 		UniquePtr< class SpirvCompiler >	_spirvCompiler;
-
-		VkPhysicalDevice_t					_physicalDevice;
-		VkDevice_t							_logicalDevice;
-
 		ShaderCache_t						_shaderCache;
-
 		EShaderCompilationFlags				_compilerFlags			= Default;
 
+		// immutable:
+		VkPhysicalDevice_t					_physicalDevice;
+		VkDevice_t							_logicalDevice;
 		void *								_fpCreateShaderModule	= null;
 		void *								_fpDestroyShaderModule	= null;
 
@@ -55,12 +55,12 @@ namespace FG
 		void ReleaseUnusedShaders ();
 		void ReleaseShaderCache ();
 
-		bool IsSupported (const MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
+		bool IsSupported (const MeshPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		bool IsSupported (const RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		bool IsSupported (const GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		bool IsSupported (const ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		
-		bool Compile (INOUT MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
+		bool Compile (INOUT MeshPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 		bool Compile (INOUT RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 		bool Compile (INOUT GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 		bool Compile (INOUT ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) override;
@@ -75,7 +75,7 @@ namespace FG
 
 		bool _CreateVulkanShader (INOUT PipelineDescription::Shader &shader);
 
-		bool _IsSupported (const ShaderDataMap_t &data) const;
+		static bool _IsSupported (const ShaderDataMap_t &data);
 	};
 
 

@@ -54,6 +54,10 @@ namespace FG
 
 		VulkanDeviceFnTable			_deviceFnTable;
 
+		// enabled features
+		VkPhysicalDeviceFeatures				_features {};
+		VkPhysicalDeviceMeshShaderFeaturesNV	_meshShaderFeatures {};
+
 
 	// methods
 	public:
@@ -84,6 +88,8 @@ namespace FG
 		ND_ VkSurfaceKHR				GetVkSurface ()				const	{ return _vkSurface; }
 		ND_ ArrayView<VulkanQueue>		GetVkQuues ()				const	{ return _vkQueues; }
 
+		ND_ VkPhysicalDeviceFeatures const&				GetDeviceFeatures ()			const	{ return _features; }
+		ND_ VkPhysicalDeviceMeshShaderFeaturesNV const&	GetDeviceMeshShaderFeatures ()	const	{ return _meshShaderFeatures; }
 
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceLayers ();
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceExtensions ();
@@ -104,6 +110,7 @@ namespace FG
 		bool _ChooseGpuDevice (StringView deviceName);
 		bool _SetupQueues (ArrayView<QueueCreateInfo> queue);
 		bool _CreateDevice (ArrayView<const char*> extensions);
+		bool _SetupDeviceFeatures (void** next, ArrayView<const char*> extensions);
 		bool _ChooseQueueIndex (ArrayView<VkQueueFamilyProperties> props, INOUT VkQueueFlags &flags, OUT uint &index) const;
 		void _DestroyDevice ();
 

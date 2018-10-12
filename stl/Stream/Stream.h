@@ -4,7 +4,7 @@
 
 #include "stl/Containers/ArrayView.h"
 #include "stl/Math/Bytes.h"
-#include "stl/Algorithms/MemUtils.h"
+#include "stl/Memory/MemUtils.h"
 
 namespace FG
 {

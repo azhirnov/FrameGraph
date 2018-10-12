@@ -2,7 +2,14 @@
 
 #pragma once
 
-#include "framegraph/Public/Config.h"
+#if defined(DEBUG) || defined(_DEBUG)
+#	define FG_DEBUG
+#else
+#	define FG_RELEASE
+#endif
+
+#define FG_FAST_HASH	0
+
 
 #ifdef COMPILER_MSVC
 #	define and		&&
@@ -247,4 +254,11 @@
 #	define FG_ALLOCATOR		__declspec( allocator )
 #else
 #	define FG_ALLOCATOR
+#endif
+
+
+
+#ifndef SCOPELOCK
+#	define SCOPELOCK( _syncObj_ ) \
+		std::lock_guard		FG_PRIVATE_UNITE_RAW( __scopeLock, __COUNTER__ ) ( _syncObj_ )
 #endif

@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "framegraph/Public/Config.h"
 #include "stl/Common.h"
 
 

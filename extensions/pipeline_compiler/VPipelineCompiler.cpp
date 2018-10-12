@@ -94,6 +94,8 @@ namespace FG
 */
 	bool VPipelineCompiler::SetCompilationFlags (EShaderCompilationFlags flags)
 	{
+		SCOPELOCK( _lock );
+
 		_compilerFlags = flags;
 		
 		if ( EnumEq( flags, EShaderCompilationFlags::UseCurrentDeviceLimits ) )
@@ -113,7 +115,9 @@ namespace FG
 	{
 		if ( _logicalDevice == VK_NULL_HANDLE )
 			return;
-		
+	
+		SCOPELOCK( _lock );
+
 		VkDevice	dev					= BitCast<VkDevice>( _logicalDevice );
 		auto		DestroyShaderModule = BitCast<PFN_vkDestroyShaderModule>(_fpDestroyShaderModule);
 		
@@ -140,6 +144,8 @@ namespace FG
 	{
 		if ( _logicalDevice == VK_NULL_HANDLE )
 			return;
+		
+		SCOPELOCK( _lock );
 
 		VkDevice	dev					= BitCast<VkDevice>( _logicalDevice );
 		auto		DestroyShaderModule = BitCast<PFN_vkDestroyShaderModule>(_fpDestroyShaderModule);
@@ -189,8 +195,10 @@ namespace FG
 	IsSupported
 =================================================
 */
-	bool VPipelineCompiler::IsSupported (const MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) const
+	bool VPipelineCompiler::IsSupported (const MeshPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
+		// lock is not needed becouse only '_logicalDevice' read access is used
+
 		if ( ppln._shaders.empty() )
 			return false;
 
@@ -214,6 +222,8 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
+		// lock is not needed becouse only '_logicalDevice' read access is used
+
 		if ( ppln._shaders.empty() )
 			return false;
 
@@ -237,6 +247,8 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
+		// lock is not needed becouse only '_logicalDevice' read access is used
+
 		if ( ppln._shaders.empty() )
 			return false;
 
@@ -260,6 +272,8 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
+		// lock is not needed becouse only '_logicalDevice' read access is used
+
 		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
 			return false;
 		
@@ -271,7 +285,7 @@ namespace FG
 	_IsSupported
 =================================================
 */
-	bool VPipelineCompiler::_IsSupported (const ShaderDataMap_t &shaderDataMap) const
+	bool VPipelineCompiler::_IsSupported (const ShaderDataMap_t &shaderDataMap)
 	{
 		ASSERT( not shaderDataMap.empty() );
 
@@ -610,14 +624,15 @@ namespace FG
 	Compile
 =================================================
 */
-	bool VPipelineCompiler::Compile (INOUT MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat)
+	bool VPipelineCompiler::Compile (INOUT MeshPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
+		SCOPELOCK( _lock );
 		ASSERT( IsSupported( ppln, dstFormat ) );
-		
+
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
 		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
 														((dstFormat & ~EShaderLangFormat::_StorageFormatMask) | EShaderLangFormat::SPIRV);
-		MeshProcessingPipelineDesc	new_ppln;
+		MeshPipelineDesc			new_ppln;
 
 
 		for (const auto& shader : ppln._shaders)
@@ -674,6 +689,7 @@ namespace FG
 */
 	bool VPipelineCompiler::Compile (INOUT RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
+		SCOPELOCK( _lock );
 		ASSERT( IsSupported( ppln, dstFormat ) );
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
@@ -740,6 +756,7 @@ namespace FG
 */
 	bool VPipelineCompiler::Compile (INOUT GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
+		SCOPELOCK( _lock );
 		ASSERT( IsSupported( ppln, dstFormat ) );
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
@@ -821,6 +838,7 @@ namespace FG
 */
 	bool VPipelineCompiler::Compile (INOUT ComputePipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
+		SCOPELOCK( _lock );
 		ASSERT( IsSupported( ppln, dstFormat ) );
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);

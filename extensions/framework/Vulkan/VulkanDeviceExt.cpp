@@ -16,13 +16,7 @@ namespace FG
 		_debugCallback{ VK_NULL_HANDLE },
 		_debugReportSupported{ false },
 		_debugMarkersSupported{ false },
-		_breakOnValidationError{ true },
-		_deviceProperties{},
-		_deviceFeatures{},
-		_deviceMemoryProperties{},
-		_deviceIDProperties{},
-		_deviceMaintenance3Properties{},
-		_deviceSubgroupProperties{}
+		_breakOnValidationError{ true }
 	{
 	}
 	
@@ -62,29 +56,33 @@ namespace FG
 				_debugMarkersSupported = true;
 		}
 
-		vkGetPhysicalDeviceFeatures( GetVkPhysicalDevice(), OUT &_deviceFeatures );
 		vkGetPhysicalDeviceProperties( GetVkPhysicalDevice(), OUT &_deviceProperties );
 		vkGetPhysicalDeviceMemoryProperties( GetVkPhysicalDevice(), OUT &_deviceMemoryProperties );
 		
-		if ( VK_VERSION_MAJOR( _deviceProperties.apiVersion ) >= 1 and
+		if ( VK_VERSION_MAJOR( _deviceProperties.apiVersion ) == 1 and
 			 VK_VERSION_MINOR( _deviceProperties.apiVersion ) >  0 )
 		{
-			void **						next	= null;
-			VkPhysicalDeviceProperties2	props2	= {};
-			props2.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-			next			= &props2.pNext;
+			void **						next_props	= null;
+			VkPhysicalDeviceProperties2	props2		= {};
 
-			*next						= &_deviceIDProperties;
-			next						= &_deviceIDProperties.pNext;
+			props2.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+			next_props		= &props2.pNext;
+
+			*next_props					= &_deviceIDProperties;
+			next_props					= &_deviceIDProperties.pNext;
 			_deviceIDProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
 			
-			*next							= &_deviceSubgroupProperties;
-			next							= &_deviceSubgroupProperties.pNext;
+			*next_props						= &_deviceSubgroupProperties;
+			next_props						= &_deviceSubgroupProperties.pNext;
 			_deviceSubgroupProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
 			
-			*next								= &_deviceMaintenance3Properties;
-			next								= &_deviceMaintenance3Properties.pNext;
+			*next_props							= &_deviceMaintenance3Properties;
+			next_props							= &_deviceMaintenance3Properties.pNext;
 			_deviceMaintenance3Properties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES;
+			
+			*next_props							= &_deviceMeshShaderProperties;
+			next_props							= &_deviceMeshShaderProperties.pNext;
+			_deviceMeshShaderProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
 
 			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
 		}

@@ -79,6 +79,26 @@ namespace FG
 		ASSERT( CheckPointerAlignment<T>( ptr ) );
 		return ( new(ptr) T( std::forward<Types>(args)... ) );
 	}
+	
+/*
+=================================================
+	Allocate
+=================================================
+*
+	ND_ FG_ALLOCATOR forceinline void*  Allocate (BytesU size, BytesU align)
+	{
+		return ::operator new ( size_t(size), std::align_val_t(size_t(align)), std::nothrow_t{} );
+	}
+	
+/*
+=================================================
+	Deallocate
+=================================================
+*
+	forceinline void Deallocate (void *ptr, BytesU align)
+	{
+		::operator delete ( ptr, std::align_val_t(size_t(align)), std::nothrow_t() );
+	}
 
 /*
 =================================================

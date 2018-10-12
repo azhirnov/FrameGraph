@@ -18,6 +18,8 @@ if (${FG_ENABLE_GLSLANG})
 		FetchContent_Declare( ExternalDownloadGLSLang
 			GIT_REPOSITORY		https://github.com/KhronosGroup/glslang.git
 			GIT_TAG				master
+			GIT_PROGRESS		1
+			GIT_SHALLOW			1
 			SOURCE_DIR			"${FG_EXTERNAL_GLSLANG_PATH}"
 		)
 		FetchContent_GetProperties( ExternalDownloadGLSLang )
@@ -29,6 +31,8 @@ if (${FG_ENABLE_GLSLANG})
 		FetchContent_Declare( ExternalDownloadSPIRVTools
 			GIT_REPOSITORY		https://github.com/KhronosGroup/SPIRV-Tools.git
 			GIT_TAG				master
+			GIT_PROGRESS		1
+			GIT_SHALLOW			1
 			SOURCE_DIR			"${FG_EXTERNAL_GLSLANG_PATH}/External/SPIRV-Tools"
 		)
 		FetchContent_GetProperties( ExternalDownloadSPIRVTools )
@@ -40,6 +44,8 @@ if (${FG_ENABLE_GLSLANG})
 		FetchContent_Declare( ExternalDownloadSPIRVHeaders
 			GIT_REPOSITORY		https://github.com/KhronosGroup/SPIRV-Headers.git
 			GIT_TAG				master
+			GIT_PROGRESS		1
+			GIT_SHALLOW			1
 			SOURCE_DIR			"${FG_EXTERNAL_GLSLANG_PATH}/External/SPIRV-Tools/external/SPIRV-Headers"
 		)
 		FetchContent_GetProperties( ExternalDownloadSPIRVHeaders )

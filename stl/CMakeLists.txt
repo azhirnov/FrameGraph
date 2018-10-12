@@ -13,25 +13,30 @@ set( SOURCES
 	"Math/Math.h"
 	"Math/Rectangle.h"
 	"Math/Vec.h"
-	"Containers/AlignedBuffer.h"
 	"Containers/ArrayView.h"
+	"Containers/ChunkedIndexedPool.h"
 	"Containers/FixedArray.h"
 	"Containers/FixedMap.h"
-	"Containers/PoolAllocator.h"
+	"Containers/IndexedPool.h"
 	"Containers/Singleton.h"
 	"Containers/StaticString.h"
 	"Containers/Union.h"
 	"Algorithms/Cast.h"
 	"Algorithms/EnumUtils.h"
 	"Algorithms/Hash.h"
-	"Algorithms/MemUtils.h"
 	"Algorithms/StringUtils.h"
 	"Log/Log.cpp"
 	"Log/Log.h"
 	"Log/TimeProfiler.h"
+	"Memory/MemUtils.h"
+	"Memory/PoolAllocator.h"
+	"Memory/UntypedAllocator.h"
 	"CMakeLists.txt"
 	"Common.h"
 	"Defines.h"
+	"ThreadSafe/RaceConditionCheck.h"
+	"ThreadSafe/ScopeLock.h"
+	"ThreadSafe/SpinLock.h"
 	"Stream/BufferedStream.h"
 	"Stream/FileStream.cpp"
 	"Stream/FileStream.h"
@@ -41,10 +46,12 @@ set( SOURCES
 add_library( "STL" STATIC ${SOURCES} )
 source_group( "CompileTime" FILES "CompileTime/DefaultType.h" "CompileTime/TypeList.h" "CompileTime/TypeTraits.h" )
 source_group( "Math" FILES "Math/Bytes.h" "Math/Color.h" "Math/Math.h" "Math/Rectangle.h" "Math/Vec.h" )
-source_group( "Containers" FILES "Containers/AlignedBuffer.h" "Containers/ArrayView.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/PoolAllocator.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/Union.h" )
-source_group( "Algorithms" FILES "Algorithms/Cast.h" "Algorithms/EnumUtils.h" "Algorithms/Hash.h" "Algorithms/MemUtils.h" "Algorithms/StringUtils.h" )
+source_group( "Containers" FILES "Containers/ArrayView.h" "Containers/ChunkedIndexedPool.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/IndexedPool.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/Union.h" )
+source_group( "Algorithms" FILES "Algorithms/Cast.h" "Algorithms/EnumUtils.h" "Algorithms/Hash.h" "Algorithms/StringUtils.h" )
 source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/TimeProfiler.h" )
+source_group( "Memory" FILES "Memory/MemUtils.h" "Memory/PoolAllocator.h" "Memory/UntypedAllocator.h" )
 source_group( "" FILES "CMakeLists.txt" "Common.h" "Defines.h" )
+source_group( "ThreadSafe" FILES "ThreadSafe/RaceConditionCheck.h" "ThreadSafe/ScopeLock.h" "ThreadSafe/SpinLock.h" )
 source_group( "Stream" FILES "Stream/BufferedStream.h" "Stream/FileStream.cpp" "Stream/FileStream.h" "Stream/MemStream.h" "Stream/Stream.cpp" "Stream/Stream.h" )
 target_include_directories( "STL" PUBLIC ".." )
 target_include_directories( "STL" PUBLIC "${FG_EXTERNALS_PATH}" )
@@ -77,7 +84,7 @@ install( TARGETS "STL" ARCHIVE DESTINATION "lib" )
 
 
 #==================================================================================================
-# project: Tests.STL
+# project: UnitTests.STL
 #==================================================================================================
 if (${FG_ENABLE_TESTS})
 	set( SOURCES 
@@ -85,32 +92,34 @@ if (${FG_ENABLE_TESTS})
 		"../tests/stl/UnitTestCommon.h"
 		"../tests/stl/UnitTest_FixedArray.cpp"
 		"../tests/stl/UnitTest_FixedMap.cpp"
+		"../tests/stl/UnitTest_IndexedPool.cpp"
 		"../tests/stl/UnitTest_Math.cpp"
+		"../tests/stl/UnitTest_PoolAllocator.cpp"
 		"../tests/stl/UnitTest_StaticString.cpp"
 		"../tests/stl/UnitTest_ToString.cpp" )
 	if (DEFINED ANDROID)
-		add_library( "Tests.STL" SHARED ${SOURCES} )
+		add_library( "UnitTests.STL" SHARED ${SOURCES} )
 	else()
-		add_executable( "Tests.STL" ${SOURCES} )
+		add_executable( "UnitTests.STL" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTestCommon.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_ToString.cpp" )
-	set_property( TARGET "Tests.STL" PROPERTY FOLDER "Tests" )
-	target_include_directories( "Tests.STL" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "Tests.STL" PRIVATE "../tests/.." )
-	target_link_libraries( "Tests.STL" "STL" )
+	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTestCommon.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_ToString.cpp" )
+	set_property( TARGET "UnitTests.STL" PROPERTY FOLDER "Tests" )
+	target_include_directories( "UnitTests.STL" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "UnitTests.STL" PRIVATE "../tests/.." )
+	target_link_libraries( "UnitTests.STL" "STL" )
 	# compiler
-	target_compile_definitions( "Tests.STL" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "Tests.STL" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "Tests.STL" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "Tests.STL" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "Tests.STL" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "Tests.STL" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "Tests.STL" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "Tests.STL" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "Tests.STL" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	target_compile_definitions( "UnitTests.STL" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "UnitTests.STL" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "UnitTests.STL" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "UnitTests.STL" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "UnitTests.STL" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "UnitTests.STL" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "UnitTests.STL" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "UnitTests.STL" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "UnitTests.STL" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
 endif()
 
 
-add_test( NAME "Tests.STL" COMMAND "Tests.STL" )
+add_test( NAME "UnitTests.STL" COMMAND "UnitTests.STL" )
 

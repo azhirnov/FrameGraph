@@ -6,7 +6,7 @@
 
 extern void Test_Shader7 (VPipelineCompiler* compiler)
 {
-	MeshProcessingPipelineDesc	ppln;
+	MeshPipelineDesc	ppln;
 
 	ppln.AddShader( EShader::MeshTask,
 				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,

@@ -21,13 +21,13 @@ namespace FG
 
 	// methods
 	public:
-		HashVal () {}
-		explicit HashVal (size_t val) : _value{val} {}
+		constexpr HashVal () {}
+		explicit constexpr HashVal (size_t val) : _value{val} {}
 
 		ND_ constexpr bool	operator == (const HashVal &rhs)	const	{ return _value == rhs._value; }
 		ND_ constexpr bool	operator != (const HashVal &rhs)	const	{ return not (*this == rhs); }
 
-		HashVal&	operator << (const HashVal &rhs)
+		constexpr HashVal&	operator << (const HashVal &rhs)
 		{
 			const size_t	mask	= (sizeof(_value)*8 - 1);
 			size_t			val		= rhs._value;
@@ -39,7 +39,7 @@ namespace FG
 			return *this;
 		}
 
-		ND_ const HashVal	operator + (const HashVal &rhs) const
+		ND_ constexpr const HashVal  operator + (const HashVal &rhs) const
 		{
 			return HashVal(*this) << rhs;
 		}

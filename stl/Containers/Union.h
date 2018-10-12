@@ -22,17 +22,17 @@ namespace FG
 =================================================
 */
 	template <typename UnionType, typename ...Funcs>
-	inline void Visit (UnionType &un, Funcs... fn)
+	inline decltype(auto)  Visit (UnionType &un, Funcs... fn)
 	{
 		using namespace _fg_hidden_;
-		std::visit( overloaded{ std::forward<Funcs>(fn)... }, un );
+		return std::visit( overloaded{ std::forward<Funcs>(fn)... }, un );
 	}
 
 	template <typename UnionType, typename ...Funcs>
-	inline void Visit (const UnionType &un, Funcs... fn)
+	inline decltype(auto)  Visit (const UnionType &un, Funcs... fn)
 	{
 		using namespace _fg_hidden_;
-		std::visit( overloaded{ std::forward<Funcs>(fn)... }, un );
+		return std::visit( overloaded{ std::forward<Funcs>(fn)... }, un );
 	}
 
 }	// FG

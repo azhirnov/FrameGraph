@@ -2,7 +2,11 @@
 
 #include "VulkanSwapchain.h"
 #include "stl/Algorithms/EnumUtils.h"
-#include "stl/Algorithms/MemUtils.h"
+#include "stl/Memory/MemUtils.h"
+
+#ifndef FG_NO_VULKANDEVICE
+#include "VulkanDevice.h"
+#endif
 
 namespace FG
 {
@@ -22,7 +26,7 @@ namespace FG
 		_presentMode{ VK_PRESENT_MODE_MAX_ENUM_KHR },
 		_compositeAlpha{ VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR },
 		_colorImageUsage{ 0 },
-		_lastFpsUpdateTime{ std::chrono::high_resolution_clock::now() },
+		_lastFpsUpdateTime{ TimePoint_t::clock::now() },
 		_frameCounter{ 0 },
 		_currentFPS{ 0.0f }
 	{
@@ -47,11 +51,13 @@ namespace FG
 	constructor
 =================================================
 */
+#ifndef FG_NO_VULKANDEVICE
 	VulkanSwapchain::VulkanSwapchain (const VulkanDevice &dev) :
 		VulkanSwapchain( dev.GetVkPhysicalDevice(), dev.GetVkDevice(), dev.GetVkSurface())
 	{
 		VulkanDeviceFn_Init( dev );
 	}
+#endif
 
 /*
 =================================================
@@ -267,7 +273,7 @@ namespace FG
 	{
 		CHECK_ERR( _imageBuffers.empty() );
 
-		FixedArray< VkImage, FG_MaxSwapchainLength >	images;
+		FixedArray< VkImage, MaxSwapchainLength >	images;
 		
 		uint	count = 0;
 		VK_CHECK( vkGetSwapchainImagesKHR( _vkDevice, _vkSwapchain, OUT &count, null ));
@@ -337,10 +343,8 @@ namespace FG
 
 		_currImageIndex = ~0u;
 
-		VkResult	result	= vkAcquireNextImageKHR( _vkDevice, _vkSwapchain, ~0u, imageAvailable,
-													 VK_NULL_HANDLE, OUT &_currImageIndex );
-		
-		return result;
+		return vkAcquireNextImageKHR( _vkDevice, _vkSwapchain, ~0u, imageAvailable,
+									  VK_NULL_HANDLE, OUT &_currImageIndex );
 	}
 	
 /*
@@ -348,10 +352,10 @@ namespace FG
 	Present
 =================================================
 */
-	bool VulkanSwapchain::Present (VkQueue queue, ArrayView<VkSemaphore> renderFinished)
+	VkResult VulkanSwapchain::Present (VkQueue queue, ArrayView<VkSemaphore> renderFinished)
 	{
-		CHECK_ERR( queue and _vkSwapchain );
-		CHECK_ERR( IsImageAcquired() );
+		CHECK_ERR( queue and _vkSwapchain, VK_RESULT_MAX_ENUM );
+		CHECK_ERR( IsImageAcquired(), VK_RESULT_MAX_ENUM );
 
 		const VkSwapchainKHR	swap_chains[]		= { _vkSwapchain };
 		const uint				image_indices[]		= { _currImageIndex };
@@ -368,10 +372,10 @@ namespace FG
 
 		_currImageIndex	= ~0u;
 
-		VK_CHECK( vkQueuePresentKHR( queue, &present_info ) );
+		VkResult	res = vkQueuePresentKHR( queue, &present_info );
 
 		_UpdateFPS();
-		return true;
+		return res;
 	}
 	
 /*
@@ -385,7 +389,7 @@ namespace FG
 
 		++_frameCounter;
 
-		TimePoint_t		now			= high_resolution_clock::now();
+		TimePoint_t		now			= TimePoint_t::clock::now();
 		int64_t			duration	= duration_cast<milliseconds>(now - _lastFpsUpdateTime).count();
 
 		if ( duration > _fpsUpdateIntervalMillis )

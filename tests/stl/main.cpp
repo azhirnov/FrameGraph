@@ -6,6 +6,8 @@
 extern void UnitTest_StaticString ();
 extern void UnitTest_FixedArray ();
 extern void UnitTest_FixedMap ();
+extern void UnitTest_IndexedPool ();
+extern void UnitTest_PoolAllocator ();
 extern void UnitTest_Math ();
 extern void UnitTest_ToString ();
 
@@ -17,6 +19,8 @@ int main ()
 	UnitTest_FixedArray();
 	UnitTest_ToString();
 	UnitTest_FixedMap();
+	UnitTest_IndexedPool();
+	UnitTest_PoolAllocator();
 
     FG_LOGI( "Tests.STL finished" );
 	
