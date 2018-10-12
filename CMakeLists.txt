@@ -19,7 +19,8 @@ set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )
 set( FG_ENABLE_SFML OFF CACHE BOOL "use SFML (optional, required for tests)" )
 set( FG_ENABLE_VMA OFF CACHE BOOL "use Vulkan Memory Allocator (required)" )
 set( FG_ENABLE_LODEPNG OFF CACHE BOOL "use lodepng (optional, may be used in tests)" )
-set( FG_ENABLE_SAMPLES OFF CACHE BOOL "" )
+set( FG_ENABLE_ASSIMP OFF CACHE BOOL "use Assimp (optional, required for samples)" )
+set( FG_ENABLE_SAMPLES ON CACHE BOOL "" )
 set( FG_ENABLE_TESTS ON CACHE BOOL "" )
 set( CMAKE_DEBUG_POSTFIX "" )
 set( CMAKE_RELEASE_POSTFIX "" )
@@ -36,6 +37,8 @@ add_subdirectory( "stl" "stl" )
 #add_subdirectory( "framegraph" "framegraph" )
 
 add_subdirectory( "extensions" "extensions" )
+
+add_subdirectory( "samples/vulkan" "samples_vulkan" )
 
 message( STATUS "project 'FrameGraph' generation ended" )
 message( STATUS "\n==========================================================================" )
