@@ -1,5 +1,5 @@
 # FrameGraph
-Work in progress.
+This is old single-threaded version.
 
 ## Building
 Generate project with CMake and build.<br/>
