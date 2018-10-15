@@ -37,7 +37,3 @@ int main ()
     std::cin.ignore();
 	return 0;
 }
-
-// temp
-#include "../framegraph/Public/LowLevel/Pipeline.h"
-#include "../framegraph/Shared/Pipeline.cpp"

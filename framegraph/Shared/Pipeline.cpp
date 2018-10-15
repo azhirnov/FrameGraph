@@ -1,5 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
+#include "Public/LowLevel/Pipeline.h"
 
 namespace FG
 {
@@ -68,14 +69,15 @@ namespace FG
 	_AddDescriptorSet
 =================================================
 */
-	void PipelineDescription::_AddDescriptorSet (const DescriptorSetID				&id,
-												 uint								index,
-												 ArrayView< _TextureUniform >		textures,
-												 ArrayView< _SamplerUniform >		samplers,
-												 ArrayView< _SubpassInputUniform >	subpassInputs,
-												 ArrayView< _ImageUniform >			images,
-												 ArrayView< _UBufferUniform >		uniformBuffers,
-												 ArrayView< _StorageBufferUniform >	storageBuffers)
+	void PipelineDescription::_AddDescriptorSet (const DescriptorSetID						&id,
+												 uint										index,
+												 ArrayView< _TextureUniform >				textures,
+												 ArrayView< _SamplerUniform >				samplers,
+												 ArrayView< _SubpassInputUniform >			subpassInputs,
+												 ArrayView< _ImageUniform >					images,
+												 ArrayView< _UBufferUniform >				uniformBuffers,
+												 ArrayView< _StorageBufferUniform >			storageBuffers,
+												 ArrayView< _AccelerationStructureUniform>	accelerationStructures)
 	{
 		DEBUG_ONLY(
 		for (auto& item : _pipelineLayout.descriptorSets)
@@ -110,6 +112,10 @@ namespace FG
 
 		for (auto& sb : storageBuffers) {
 			ds.uniforms.insert({ sb.id, Uniform_t{ sb.data } });
+		}
+
+		for (auto& as : accelerationStructures) {
+			ds.uniforms.insert({ as.id, Uniform_t{ as.data } });
 		}
 
 		_pipelineLayout.descriptorSets.push_back( std::move(ds) );
@@ -330,7 +336,7 @@ namespace FG
 	constructor
 =================================================
 */
-	MeshProcessingPipelineDesc::MeshProcessingPipelineDesc ()
+	MeshPipelineDesc::MeshPipelineDesc ()
 	{
 	}
 
@@ -355,7 +361,7 @@ namespace FG
 	AddShader
 =================================================
 */
-	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
+	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ) );
 		
@@ -368,7 +374,7 @@ namespace FG
 	AddShader
 =================================================
 */
-	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ) );
 		
@@ -381,7 +387,7 @@ namespace FG
 	AddShader
 =================================================
 */
-	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ) );
 		
@@ -394,7 +400,7 @@ namespace FG
 	AddShader
 =================================================
 */
-	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
+	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ) );
 		
@@ -407,7 +413,7 @@ namespace FG
 	SetSpecConstants
 =================================================
 */
-	MeshProcessingPipelineDesc&  MeshProcessingPipelineDesc::SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values)
+	MeshPipelineDesc&  MeshPipelineDesc::SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values)
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ) );
 		
@@ -514,6 +520,15 @@ namespace FG
 
 
 	
+/*
+=================================================
+	constructor
+=================================================
+*/
+	ComputePipelineDesc::ComputePipelineDesc () :
+		_localSizeSpec{UNDEFINED_SPECIALIZATION}
+	{}
+
 /*
 =================================================
 	AddShader

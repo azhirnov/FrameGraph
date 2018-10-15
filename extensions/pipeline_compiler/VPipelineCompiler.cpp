@@ -189,7 +189,7 @@ namespace FG
 	IsSupported
 =================================================
 */
-	bool VPipelineCompiler::IsSupported (const MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) const
+	bool VPipelineCompiler::IsSupported (const MeshPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
 		if ( ppln._shaders.empty() )
 			return false;
@@ -610,14 +610,14 @@ namespace FG
 	Compile
 =================================================
 */
-	bool VPipelineCompiler::Compile (INOUT MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat)
+	bool VPipelineCompiler::Compile (INOUT MeshPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
 		ASSERT( IsSupported( ppln, dstFormat ) );
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
 		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
 														((dstFormat & ~EShaderLangFormat::_StorageFormatMask) | EShaderLangFormat::SPIRV);
-		MeshProcessingPipelineDesc	new_ppln;
+		MeshPipelineDesc			new_ppln;
 
 
 		for (const auto& shader : ppln._shaders)

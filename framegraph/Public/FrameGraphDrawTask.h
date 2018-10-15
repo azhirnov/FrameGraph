@@ -168,6 +168,45 @@ namespace FG
 	//
 	// Draw External Command Buffer
 	//
+
+
+	//
+	// Draw Mesh Task
+	//
+	struct DrawMeshTask final : _fg_hidden_::BaseDrawTask<DrawMeshTask>
+	{
+	// types
+		using Scissors_t	= DrawTask::Scissors_t;
+		
+		struct DrawCmd
+		{
+			uint		count;
+			uint		first;
+		};
+
+
+	// variables
+		PipelinePtr				pipeline;
+		PipelineResourceSet		resources;
+		
+		RenderState				renderState;
+		EPipelineDynamicState	dynamicStates	= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
+		
+		DrawCmd					drawCmd;
+		Scissors_t				scissors;
+
+
+	// methods
+		DrawMeshTask () :
+			BaseDrawTask<DrawMeshTask>{ "DrawMeshTask", HtmlColor::Bisque } {}
+
+		DrawMeshTask&  SetPipeline (const PipelinePtr &ppln)			{ pipeline = ppln;  return *this; }
+		DrawMeshTask&  SetCommand (uint first, uint count)				{ drawCmd.first = first;  drawCmd.count = count;  return *this; }
+		DrawMeshTask&  SetRenderState (const RenderState &rs)			{ renderState = rs;  return *this; }
+		
+		DrawMeshTask&  AddScissor (const RectI &rect)					{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }
+		DrawMeshTask&  AddScissor (const RectU &rect)					{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
+	};
 	
 
 	//

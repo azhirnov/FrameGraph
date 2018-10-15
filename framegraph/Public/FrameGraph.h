@@ -24,13 +24,7 @@ namespace FG
 		{
 		};
 		
-#		if 1
 		ND_ static FrameGraphPtr  CreateVulkanFrameGraph (const VulkanDeviceInfo &);
-#		endif
-
-#		if 0
-		ND_ static FrameGraphPtr  CreateOpenCLComputeGraph (const CLDeviceInfo &);
-#		endif
 
 
 	// interface
@@ -39,6 +33,8 @@ namespace FG
 			virtual ~FrameGraph () {}
 
 		// resource manager
+		ND_ virtual PipelinePtr			CreatePipeline (MeshPipelineDesc &&desc) = 0;
+		ND_ virtual PipelinePtr			CreatePipeline (RayTracingPipelineDesc &&desc) = 0;
 		ND_ virtual PipelinePtr			CreatePipeline (GraphicsPipelineDesc &&desc) = 0;
 		ND_ virtual PipelinePtr			CreatePipeline (ComputePipelineDesc &&desc) = 0;
 
@@ -67,6 +63,8 @@ namespace FG
 															 BytesU			size) = 0;
 
 		ND_ virtual SamplerPtr			CreateSampler (const SamplerDesc &desc) = 0;
+		
+		//ND_ virtual AccelerationStructPtr	CreateAccelerationStructure (const AccelerationStructDesc &desc) = 0;
 
 		ND_ virtual RenderPass			CreateRenderPass (const RenderPassDesc &desc) = 0;
 
@@ -112,7 +110,7 @@ namespace FG
 			virtual void				AddDrawTask (RenderPass, const DrawIndexedTask &) = 0;
 		//	virtual void				AddDrawTask (RenderPass, const ClearAttachments &) = 0;
 		//	virtual void				AddDrawTask (RenderPass, const DrawCommandBuffer &) = 0;
-
+		//	virtual void				AddDrawTask (RenderPass, const DrawMeshTask &) = 0;
 
 		// debugging
 		ND_ virtual Statistics const&	GetStatistics () const = 0;

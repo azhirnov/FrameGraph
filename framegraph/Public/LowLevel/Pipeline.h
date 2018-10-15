@@ -66,6 +66,10 @@ namespace FG
 			EShaderStages		stageFlags;
 		};
 
+		struct AccelerationStructure
+		{
+		};
+
 
 	// uniforms
 		struct _TextureUniform
@@ -121,8 +125,14 @@ namespace FG
 			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags) :
 				id{id}, data{staticSize, arrayStride, access, index, stageFlags} {}
 		};
+		
+		struct _AccelerationStructureUniform
+		{
+			UniformID		id;
+			AccelerationStructure	data;
+		};
 
-		using Uniform_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer >;
+		using Uniform_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, AccelerationStructure >;
 		using UniformMap_t	= HashMap< UniformID, Uniform_t >;
 
 		struct DescriptorSet
@@ -194,14 +204,15 @@ namespace FG
 	protected:
 		PipelineDescription () {}
 
-		void _AddDescriptorSet (const DescriptorSetID				&id,
-								uint								index,
-								ArrayView< _TextureUniform >		textures,
-								ArrayView< _SamplerUniform >		samplers,
-								ArrayView< _SubpassInputUniform >	subpassInputs,
-								ArrayView< _ImageUniform >			images,
-								ArrayView< _UBufferUniform >		uniformBuffers,
-								ArrayView< _StorageBufferUniform >	storageBuffers);
+		void _AddDescriptorSet (const DescriptorSetID						&id,
+								uint										index,
+								ArrayView< _TextureUniform >				textures,
+								ArrayView< _SamplerUniform >				samplers,
+								ArrayView< _SubpassInputUniform >			subpassInputs,
+								ArrayView< _ImageUniform >					images,
+								ArrayView< _UBufferUniform >				uniformBuffers,
+								ArrayView< _StorageBufferUniform >			storageBuffers,
+								ArrayView< _AccelerationStructureUniform >	accelerationStructures);
 
 		void _SetPushConstants (ArrayView< PushConstant > values);
 
@@ -290,7 +301,7 @@ namespace FG
 								 ArrayView< _UBufferUniform >		uniformBuffers,
 								 ArrayView< _StorageBufferUniform >	storageBuffers)
 		{
-			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers );
+			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, Default );
 			return *this;
 		}
 
@@ -309,10 +320,10 @@ namespace FG
 	// Mesh Processing Pipeline Description
 	//
 
-	struct MeshProcessingPipelineDesc final : PipelineDescription
+	struct MeshPipelineDesc final : PipelineDescription
 	{
 	// types
-		using Self				= MeshProcessingPipelineDesc;
+		using Self				= MeshPipelineDesc;
 		using Shaders_t			= FixedMap< EShader, Shader, 8 >;
 		using FragmentOutput	= GraphicsPipelineDesc::FragmentOutput;
 		using FragmentOutputs_t	= FixedArray< FragmentOutput, FG_MaxColorBuffers >;
@@ -325,7 +336,7 @@ namespace FG
 
 
 	// methods
-		MeshProcessingPipelineDesc ();
+		MeshPipelineDesc ();
 
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src);
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
@@ -341,7 +352,7 @@ namespace FG
 								 ArrayView< _UBufferUniform >		uniformBuffers,
 								 ArrayView< _StorageBufferUniform >	storageBuffers)
 		{
-			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers );
+			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, Default );
 			return *this;
 		}
 
@@ -390,6 +401,20 @@ namespace FG
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
+		
+		Self&  AddDescriptorSet (const DescriptorSetID						&id,
+								 const uint									index,
+								 ArrayView< _TextureUniform >				textures,
+								 ArrayView< _SamplerUniform >				samplers,
+								 ArrayView< _SubpassInputUniform >			subpassInputs,
+								 ArrayView< _ImageUniform >					images,
+								 ArrayView< _UBufferUniform >				uniformBuffers,
+								 ArrayView< _StorageBufferUniform >			storageBuffers,
+								 ArrayView< _AccelerationStructureUniform >	accelerationStructures)
+		{
+			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, accelerationStructures );
+			return *this;
+		}
 
 		Self&  SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values);
 	};
@@ -414,7 +439,7 @@ namespace FG
 
 
 	// methods
-		ComputePipelineDesc () : _localSizeSpec{UNDEFINED_SPECIALIZATION} {}
+		ComputePipelineDesc ();
 		
 		Self&  AddShader (EShaderLangFormat fmt, StringView entry, String &&src);
 		Self&  AddShader (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
@@ -444,7 +469,7 @@ namespace FG
 								 ArrayView< _UBufferUniform >		uniformBuffers,
 								 ArrayView< _StorageBufferUniform >	storageBuffers)
 		{
-			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers );
+			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, Default );
 			return *this;
 		}
 		

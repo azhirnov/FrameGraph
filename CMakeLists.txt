@@ -33,7 +33,7 @@ add_subdirectory( "external" "external" )
 
 add_subdirectory( "stl" "stl" )
 
-#add_subdirectory( "framegraph" "framegraph" )
+add_subdirectory( "framegraph" "framegraph" )
 
 add_subdirectory( "extensions" "extensions" )
 

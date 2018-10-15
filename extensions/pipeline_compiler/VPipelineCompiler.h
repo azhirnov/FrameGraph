@@ -55,12 +55,12 @@ namespace FG
 		void ReleaseUnusedShaders ();
 		void ReleaseShaderCache ();
 
-		bool IsSupported (const MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
+		bool IsSupported (const MeshPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		bool IsSupported (const RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		bool IsSupported (const GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		bool IsSupported (const ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) const override;
 		
-		bool Compile (INOUT MeshProcessingPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
+		bool Compile (INOUT MeshPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 		bool Compile (INOUT RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 		bool Compile (INOUT GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) override;
 		bool Compile (INOUT ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) override;
