@@ -177,8 +177,15 @@ namespace FG
 		void push_back (T &&value)
 		{
 			ASSERT( _count < capacity() );
+			PlacementNew<T>( data() + (_count++), std::move(value) );
+		}
 
-			PlacementNew<T>( &_array[_count++], std::move(value) );
+
+		template <typename ...Args>
+		void emplace_back (Args&& ...args)
+		{
+			ASSERT( _count < capacity() );
+			PlacementNew<T>( data() + (_count++), std::forward<Args &&>( args )... );
 		}
 
 

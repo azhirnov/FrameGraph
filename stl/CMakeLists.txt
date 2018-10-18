@@ -13,11 +13,17 @@ set( SOURCES
 	"Math/Math.h"
 	"Math/Rectangle.h"
 	"Math/Vec.h"
+	"Containers/Appendable.h"
 	"Containers/ArrayView.h"
+	"Containers/BitTree.h"
+	"Containers/CachedIndexedPool.h"
+	"Containers/CachedIndexedPool2.h"
 	"Containers/ChunkedIndexedPool.h"
+	"Containers/ChunkedIndexedPool2.h"
 	"Containers/FixedArray.h"
 	"Containers/FixedMap.h"
 	"Containers/IndexedPool.h"
+	"Containers/IndexedPool2.h"
 	"Containers/Singleton.h"
 	"Containers/StaticString.h"
 	"Containers/Union.h"
@@ -34,6 +40,7 @@ set( SOURCES
 	"CMakeLists.txt"
 	"Common.h"
 	"Defines.h"
+	"ThreadSafe/DummyLock.h"
 	"ThreadSafe/RaceConditionCheck.h"
 	"ThreadSafe/ScopeLock.h"
 	"ThreadSafe/SpinLock.h"
@@ -46,12 +53,12 @@ set( SOURCES
 add_library( "STL" STATIC ${SOURCES} )
 source_group( "CompileTime" FILES "CompileTime/DefaultType.h" "CompileTime/TypeList.h" "CompileTime/TypeTraits.h" )
 source_group( "Math" FILES "Math/Bytes.h" "Math/Color.h" "Math/Math.h" "Math/Rectangle.h" "Math/Vec.h" )
-source_group( "Containers" FILES "Containers/ArrayView.h" "Containers/ChunkedIndexedPool.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/IndexedPool.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/Union.h" )
+source_group( "Containers" FILES "Containers/Appendable.h" "Containers/ArrayView.h" "Containers/BitTree.h" "Containers/CachedIndexedPool.h" "Containers/CachedIndexedPool2.h" "Containers/ChunkedIndexedPool.h" "Containers/ChunkedIndexedPool2.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/IndexedPool.h" "Containers/IndexedPool2.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/Union.h" )
 source_group( "Algorithms" FILES "Algorithms/Cast.h" "Algorithms/EnumUtils.h" "Algorithms/Hash.h" "Algorithms/StringUtils.h" )
 source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/TimeProfiler.h" )
 source_group( "Memory" FILES "Memory/MemUtils.h" "Memory/PoolAllocator.h" "Memory/UntypedAllocator.h" )
 source_group( "" FILES "CMakeLists.txt" "Common.h" "Defines.h" )
-source_group( "ThreadSafe" FILES "ThreadSafe/RaceConditionCheck.h" "ThreadSafe/ScopeLock.h" "ThreadSafe/SpinLock.h" )
+source_group( "ThreadSafe" FILES "ThreadSafe/DummyLock.h" "ThreadSafe/RaceConditionCheck.h" "ThreadSafe/ScopeLock.h" "ThreadSafe/SpinLock.h" )
 source_group( "Stream" FILES "Stream/BufferedStream.h" "Stream/FileStream.cpp" "Stream/FileStream.h" "Stream/MemStream.h" "Stream/Stream.cpp" "Stream/Stream.h" )
 target_include_directories( "STL" PUBLIC ".." )
 target_include_directories( "STL" PUBLIC "${FG_EXTERNALS_PATH}" )

@@ -77,7 +77,7 @@ namespace FG
 	forceinline T *  PlacementNew (OUT void *ptr, Types&&... args) noexcept
 	{
 		ASSERT( CheckPointerAlignment<T>( ptr ) );
-		return ( new(ptr) T( std::forward<Types>(args)... ) );
+		return ( new(ptr) T( std::forward<Types &&>(args)... ) );
 	}
 	
 /*

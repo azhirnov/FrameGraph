@@ -54,6 +54,7 @@ namespace FG
 		~PoolAllocator ()
 		{
 			Release();
+			FG_LOGI( "PoolAllocator - dtor" );
 		}
 
 
@@ -101,7 +102,7 @@ namespace FG
 		void Release () noexcept
 		{
 			for (auto& block : _blocks) {
-				_alloc.Deallocate( block.ptr );
+				_alloc.Deallocate( block.ptr, block.capacity );
 			}
 			_blocks.clear();
 		}
@@ -150,6 +151,11 @@ namespace FG
 		ND_ Pool_t&  GetPool () const
 		{
 			return _pool;
+		}
+
+		ND_ bool operator == (const Self &rhs) const
+		{
+			return &_pool == &rhs._pool;
 		}
 	};
 	

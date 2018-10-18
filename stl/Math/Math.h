@@ -4,6 +4,12 @@
 
 #include "stl/Common.h"
 
+#ifdef COMPILER_MSVC
+#	include <intrin.h>
+#	pragma intrinsic( _BitScanForward, _BitScanForward64 )
+#	pragma intrinsic( _BitScanReverse, _BitScanReverse64 )
+#endif
+
 namespace FG
 {
 
@@ -219,9 +225,44 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	inline int IntLog2 (const T& x)
+	inline int  IntLog2 (const T& x)
 	{
-		return std::ilogb( x );
+		constexpr int	INVALID_INDEX = std::numeric_limits<int>::min();
+
+	#ifdef COMPILER_MSVC
+		unsigned long	index;
+
+		if constexpr ( sizeof(x) > sizeof(uint) )
+			return _BitScanReverse64( OUT &index, x ) ? index : INVALID_INDEX;
+		else
+			return _BitScanReverse( OUT &index, x ) ? index : INVALID_INDEX;
+
+	#else
+		//return std::ilogb( x );
+	#endif
+	}
+	
+/*
+=================================================
+	BitScanForward
+=================================================
+*/
+	template <typename T>
+	inline int  BitScanForward (const T& x)
+	{
+		constexpr int	INVALID_INDEX = std::numeric_limits<int>::min();
+
+	#ifdef COMPILER_MSVC
+		unsigned long	index;
+
+		if constexpr ( sizeof(x) > sizeof(uint) )
+			return _BitScanForward64( OUT &index, x ) ? index : INVALID_INDEX;
+		else
+			return _BitScanForward( OUT &index, x ) ? index : INVALID_INDEX;
+
+	#else
+		//return std::ilogb( x );
+	#endif
 	}
 
 

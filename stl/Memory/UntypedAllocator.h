@@ -31,6 +31,11 @@ namespace FG
 			::operator delete ( ptr, std::nothrow_t() );
 		}
 
+		static void  Deallocate (void *ptr, BytesU size)
+		{
+			::operator delete ( ptr, size_t(size) );
+		}
+
 		ND_ static constexpr bool  IsStdCompatible ()
 		{
 			return false;
@@ -57,6 +62,11 @@ namespace FG
 		static void  Deallocate (void *ptr, BytesU align)
 		{
 			::operator delete ( ptr, std::align_val_t(size_t(align)), std::nothrow_t() );
+		}
+
+		static void  Deallocate (void *ptr, BytesU size, BytesU align)
+		{
+			::operator delete ( ptr, size_t(size), std::align_val_t(size_t(align)) );
 		}
 
 		ND_ static constexpr bool  IsStdCompatible ()
