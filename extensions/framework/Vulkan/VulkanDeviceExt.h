@@ -32,16 +32,24 @@ namespace FG
 		VkDebugReportCallbackEXT	_debugCallback;
 		DebugReport_t				_callback;
 
+		HashSet<String>				_instanceExtensions;
+		HashSet<String>				_deviceExtensions;
+
 		bool						_debugReportSupported;
 		bool						_debugMarkersSupported;
 		bool						_breakOnValidationError;
 		
-		VkPhysicalDeviceProperties				_deviceProperties {};
 		VkPhysicalDeviceMemoryProperties		_deviceMemoryProperties {};
-		VkPhysicalDeviceIDProperties			_deviceIDProperties {};
-		VkPhysicalDeviceMaintenance3Properties	_deviceMaintenance3Properties {};
-		VkPhysicalDeviceSubgroupProperties		_deviceSubgroupProperties {};
-		VkPhysicalDeviceMeshShaderPropertiesNV	_deviceMeshShaderProperties {};
+
+		struct {
+			VkPhysicalDeviceProperties						main {};
+			VkPhysicalDeviceIDProperties					deviceID {};
+			VkPhysicalDeviceMaintenance3Properties			maintenance3 {};
+			VkPhysicalDeviceSubgroupProperties				subgroup {};
+			VkPhysicalDeviceMeshShaderPropertiesNV			meshShader {};
+			VkPhysicalDeviceShadingRateImagePropertiesNV	shadingRateImage {};
+			VkPhysicalDeviceRaytracingPropertiesNVX			rayTracing {};
+		}	_properties;
 
 
 	// methods
@@ -58,13 +66,18 @@ namespace FG
 
 		void SetBreakOnValidationError (bool value);
 
-		ND_ VkPhysicalDeviceProperties const&				GetDeviceProperties ()				const	{ return _deviceProperties; }
-		ND_ VkPhysicalDeviceMemoryProperties const&			GetDeviceMemoryProperties ()		const	{ return _deviceMemoryProperties; }
-		ND_ VkPhysicalDeviceIDProperties const&				GetDeviceIDProperties ()			const	{ return _deviceIDProperties; }
-		ND_ VkPhysicalDeviceMaintenance3Properties const&	GetDeviceMaintenance3Properties ()	const	{ return _deviceMaintenance3Properties; }
-		ND_ VkPhysicalDeviceSubgroupProperties const&		GetDeviceSubgroupProperties ()		const	{ return _deviceSubgroupProperties; }
-		ND_ VkPhysicalDeviceMeshShaderPropertiesNV const&	GetDeviceMeshShaderProperties ()	const	{ return _deviceMeshShaderProperties; }
-		
+		ND_ bool HasInstanceExtension (const String &name)	const	{ return !!_instanceExtensions.count( name ); }
+		ND_ bool HasDeviceExtension (const String &name)	const	{ return !!_deviceExtensions.count( name ); }
+
+		ND_ VkPhysicalDeviceProperties const&					GetDeviceProperties ()					const	{ return _properties.main; }
+		ND_ VkPhysicalDeviceMemoryProperties const&				GetDeviceMemoryProperties ()			const	{ return _deviceMemoryProperties; }
+		ND_ VkPhysicalDeviceIDProperties const&					GetDeviceIDProperties ()				const	{ return _properties.deviceID; }
+		ND_ VkPhysicalDeviceMaintenance3Properties const&		GetDeviceMaintenance3Properties ()		const	{ return _properties.maintenance3; }
+		ND_ VkPhysicalDeviceSubgroupProperties const&			GetDeviceSubgroupProperties ()			const	{ return _properties.subgroup; }
+		ND_ VkPhysicalDeviceMeshShaderPropertiesNV const&		GetDeviceMeshShaderProperties ()		const	{ return _properties.meshShader; }
+		ND_ VkPhysicalDeviceShadingRateImagePropertiesNV const&	GetDeviceShadingRateImageProperties ()	const	{ return _properties.shadingRateImage; }
+		ND_ VkPhysicalDeviceRaytracingPropertiesNVX const&		GetDeviceRaytracingProperties ()		const	{ return _properties.rayTracing; }
+
 
 	private:
 		void _OnInstanceCreated (Array<const char*> &&instanceLayers, Array<const char*> &&instanceExtensions) override;

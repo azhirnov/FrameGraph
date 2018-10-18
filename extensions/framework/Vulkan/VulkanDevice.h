@@ -55,8 +55,32 @@ namespace FG
 		VulkanDeviceFnTable			_deviceFnTable;
 
 		// enabled features
-		VkPhysicalDeviceFeatures				_features {};
-		VkPhysicalDeviceMeshShaderFeaturesNV	_meshShaderFeatures {};
+		struct {
+			VkPhysicalDeviceFeatures								main {};
+			//VkDeviceGeneratedCommandsFeaturesNVX					generatedCommands {};
+			VkPhysicalDeviceMultiviewFeatures						multiview {};
+			//VkPhysicalDeviceShaderAtomicInt64FeaturesKHR			shaderAtomicI64 {};
+			VkPhysicalDevice8BitStorageFeaturesKHR					storage8Bit {};
+			VkPhysicalDevice16BitStorageFeatures					storage16Bit {};
+			VkPhysicalDeviceSamplerYcbcrConversionFeatures			samplerYcbcrConversion {};
+			VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT		blendOpAdvanced {};
+			VkPhysicalDeviceConditionalRenderingFeaturesEXT			conditionalRendering {};
+			VkPhysicalDeviceShaderDrawParameterFeatures				shaderDrawParameters {};
+			VkPhysicalDeviceMeshShaderFeaturesNV					meshShader {};
+			//VkPhysicalDeviceDescriptorIndexingFeaturesEXT			descriptorIndexing {};
+			//VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT		vertexAttribDivisor {};
+			//VkPhysicalDeviceASTCDecodeFeaturesEXT					astcDecode {};
+			VkPhysicalDeviceVulkanMemoryModelFeaturesKHR			memoryModel {};
+			VkPhysicalDeviceInlineUniformBlockFeaturesEXT			inlineUniformBlock {};
+			VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV	representativeFragmentTest {};
+			//VkPhysicalDeviceExclusiveScissorFeaturesNV			exclusiveScissorTest {};
+			//VkPhysicalDeviceCornerSampledImageFeaturesNV			cornerSampledImage {};
+			//VkPhysicalDeviceComputeShaderDerivativesFeaturesNV	computeShaderDerivatives {};
+			VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV		fragmentShaderBarycentric {};
+			VkPhysicalDeviceShaderImageFootprintFeaturesNV			shaderImageFootprint {};
+			VkPhysicalDeviceShadingRateImageFeaturesNV				shadingRateImage {};
+
+		}	_features;
 
 
 	// methods
@@ -88,8 +112,20 @@ namespace FG
 		ND_ VkSurfaceKHR				GetVkSurface ()				const	{ return _vkSurface; }
 		ND_ ArrayView<VulkanQueue>		GetVkQuues ()				const	{ return _vkQueues; }
 
-		ND_ VkPhysicalDeviceFeatures const&				GetDeviceFeatures ()			const	{ return _features; }
-		ND_ VkPhysicalDeviceMeshShaderFeaturesNV const&	GetDeviceMeshShaderFeatures ()	const	{ return _meshShaderFeatures; }
+		ND_ VkPhysicalDeviceFeatures const&								GetDeviceFeatures ()							const	{ return _features.main; }
+		ND_ VkPhysicalDeviceMultiviewFeatures const&					GetDeviceMultiviewFeatures ()					const	{ return _features.multiview; }
+		ND_ VkPhysicalDevice8BitStorageFeaturesKHR const&				GetDevice8BitStorageFeatures ()					const	{ return _features.storage8Bit; }
+		ND_ VkPhysicalDevice16BitStorageFeatures const&					GetDevice16BitStorageFeatures ()				const	{ return _features.storage16Bit; }
+		ND_ VkPhysicalDeviceSamplerYcbcrConversionFeatures const&		GetDeviceSamplerYcbcrConversionFeatures ()		const	{ return _features.samplerYcbcrConversion; }
+		ND_ VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT const&	GetDeviceBlendOperationAdvancedFeatures ()		const	{ return _features.blendOpAdvanced; }
+		ND_ VkPhysicalDeviceConditionalRenderingFeaturesEXT const&		GetDeviceConditionalRenderingFeatures ()		const	{ return _features.conditionalRendering; }
+		ND_ VkPhysicalDeviceMeshShaderFeaturesNV const&					GetDeviceMeshShaderFeatures ()					const	{ return _features.meshShader; }
+		ND_ VkPhysicalDeviceVulkanMemoryModelFeaturesKHR const&			GetDeviceVulkanMemoryModelFeatures ()			const	{ return _features.memoryModel; }
+		ND_ VkPhysicalDeviceInlineUniformBlockFeaturesEXT const&		GetDeviceInlineUniformBlockFeatures ()			const	{ return _features.inlineUniformBlock; }
+		ND_ VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV const&	GetDeviceRepresentativeFragmentTestFeatures ()	const	{ return _features.representativeFragmentTest; }
+		ND_ VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV const&	GetDeviceFragmentShaderBarycentricFeatures ()	const	{ return _features.fragmentShaderBarycentric; }
+		ND_ VkPhysicalDeviceShaderImageFootprintFeaturesNV const&		GetDeviceShaderImageFootprintFeatures ()		const	{ return _features.shaderImageFootprint; }
+		ND_ VkPhysicalDeviceShadingRateImageFeaturesNV const&			GetDeviceShadingRateImageFeatures ()			const	{ return _features.shadingRateImage; }
 
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceLayers ();
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceExtensions ();

@@ -10,16 +10,8 @@
 using namespace FG;
 
 
-class MeshShaderApp final : public IWindowEventListener, public VulkanDeviceFn
+class FSBarycentricApp final : public IWindowEventListener, public VulkanDeviceFn
 {
-private:
-	struct UBuffer
-	{
-		float4		points[3];
-		float4		colors[3];
-	};
-
-
 private:
 	VulkanDeviceExt			vulkan;
 	VulkanSwapchainPtr		swapchain;
@@ -35,24 +27,16 @@ private:
 	VkRenderPass			renderPass		= VK_NULL_HANDLE;
 	VkFramebuffer			framebuffers[8]	= {};
 
-	VkPipeline				meshPipeline	= VK_NULL_HANDLE;
+	VkPipeline				pipeline		= VK_NULL_HANDLE;
 	VkPipelineLayout		pplnLayout		= VK_NULL_HANDLE;
-	VkShaderModule			meshShader		= VK_NULL_HANDLE;
+	VkShaderModule			vertShader		= VK_NULL_HANDLE;
 	VkShaderModule			fragShader		= VK_NULL_HANDLE;
 
-	VkDescriptorSetLayout	dsLayout		= VK_NULL_HANDLE;
-	VkDescriptorPool		descriptorPool	= VK_NULL_HANDLE;
-	VkDescriptorSet			descriptorSet	= VK_NULL_HANDLE;
-
-	VkBuffer				uniformBuf		= VK_NULL_HANDLE;
-	VkDeviceMemory			sharedMemory	= VK_NULL_HANDLE;
-
-	uint					frameId			= 0;
 	bool					looping			= true;
 
 
 public:
-	MeshShaderApp ()
+	FSBarycentricApp ()
 	{
 		VulkanDeviceFn_Init( vulkan );
 	}
@@ -68,18 +52,14 @@ public:
 	void Destroy ();
 	bool Run ();
 
-	void BeginRenderPass ();
-
 	bool CreateCommandBuffers ();
 	bool CreateSyncObjects ();
 	bool CreateRenderPass ();
 	bool CreateFramebuffers ();
 	void DestroyFramebuffers ();
-	bool CreateResources ();
-	bool CreateDescriptorSet ();
-	bool CreateMeshPipeline ();
+	bool CreatePipeline ();
 
-	ND_ bool IsMeshShaderSupported () const		{ return vulkan.GetDeviceMeshShaderFeatures().meshShader; }
+	bool IsFragmentShaderBarycentricSupported () const	{ return vulkan.HasDeviceExtension( VK_NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME ); }
 };
 
 
@@ -89,7 +69,7 @@ public:
 	OnKey
 =================================================
 */
-void MeshShaderApp::OnKey (StringView key, EKeyAction action)
+void FSBarycentricApp::OnKey (StringView key, EKeyAction action)
 {
 	if ( action != EKeyAction::Down )
 		return;
@@ -103,7 +83,7 @@ void MeshShaderApp::OnKey (StringView key, EKeyAction action)
 	OnResize
 =================================================
 */
-void MeshShaderApp::OnResize (const uint2 &size)
+void FSBarycentricApp::OnResize (const uint2 &size)
 {
 	VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
 
@@ -120,7 +100,7 @@ void MeshShaderApp::OnResize (const uint2 &size)
 	Initialize
 =================================================
 */
-bool MeshShaderApp::Initialize ()
+bool FSBarycentricApp::Initialize ()
 {
 # if defined(FG_ENABLE_GLFW)
 	window.reset( new WindowGLFW() );
@@ -138,20 +118,24 @@ bool MeshShaderApp::Initialize ()
 
 	// create window and vulkan device
 	{
-		CHECK_ERR( window->Create( { 800, 600 }, "Mesh Shader sample" ));
+		const char	title[] = "Fragment shader barycentric sample";
+
+		CHECK_ERR( window->Create( { 800, 600 }, title ));
 		window->AddListener( this );
 
 		CHECK_ERR( vulkan.Create( window->GetVulkanSurface(),
-								  "Mesh Shader sample", "Engine",
+								  title, "Engine",
 								  VK_API_VERSION_1_1,
 								  "",
 								  {{ VK_QUEUE_PRESENT_BIT | VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.0f }},
 								  VulkanDevice::GetRecomendedInstanceLayers(),
 								  { VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME },
-								  { VK_NV_MESH_SHADER_EXTENSION_NAME }
+								  { VK_NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME }
 			));
 		
 		vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT );
+
+		CHECK_ERR( IsFragmentShaderBarycentricSupported() );
 	}
 
 
@@ -175,9 +159,7 @@ bool MeshShaderApp::Initialize ()
 	CHECK_ERR( CreateSyncObjects() );
 	CHECK_ERR( CreateRenderPass() );
 	CHECK_ERR( CreateFramebuffers() );
-	CHECK_ERR( CreateResources() );
-	CHECK_ERR( CreateDescriptorSet() );
-	CHECK_ERR( CreateMeshPipeline() );
+	CHECK_ERR( CreatePipeline() );
 	return true;
 }
 
@@ -186,36 +168,29 @@ bool MeshShaderApp::Initialize ()
 	Destroy
 =================================================
 */
-void MeshShaderApp::Destroy ()
+void FSBarycentricApp::Destroy ()
 {
-	VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
+	VkDevice	dev = vulkan.GetVkDevice();
 
-	vkDestroySemaphore( vulkan.GetVkDevice(), semaphores[0], null );
-	vkDestroySemaphore( vulkan.GetVkDevice(), semaphores[1], null );
-	vkDestroyFence( vulkan.GetVkDevice(), fences[0], null );
-	vkDestroyFence( vulkan.GetVkDevice(), fences[1], null );
-	vkDestroyCommandPool( vulkan.GetVkDevice(), cmdPool, null );
-	vkDestroyRenderPass( vulkan.GetVkDevice(), renderPass, null );
-	vkDestroyPipeline( vulkan.GetVkDevice(), meshPipeline, null );
-	vkDestroyShaderModule( vulkan.GetVkDevice(), meshShader, null );
-	vkDestroyShaderModule( vulkan.GetVkDevice(), fragShader, null );
-	vkDestroyPipelineLayout( vulkan.GetVkDevice(), pplnLayout, null );
-	vkDestroyDescriptorSetLayout( vulkan.GetVkDevice(), dsLayout, null );
-	vkDestroyDescriptorPool( vulkan.GetVkDevice(), descriptorPool, null );
-	vkDestroyBuffer( vulkan.GetVkDevice(), uniformBuf, null );
-	vkFreeMemory( vulkan.GetVkDevice(), sharedMemory, null );
+	VK_CALL( vkDeviceWaitIdle( dev ));
+
+	vkDestroySemaphore( dev, semaphores[0], null );
+	vkDestroySemaphore( dev, semaphores[1], null );
+	vkDestroyFence( dev, fences[0], null );
+	vkDestroyFence( dev, fences[1], null );
+	vkDestroyCommandPool( dev, cmdPool, null );
+	vkDestroyRenderPass( dev, renderPass, null );
+	vkDestroyPipeline( dev, pipeline, null );
+	vkDestroyShaderModule( dev, vertShader, null );
+	vkDestroyShaderModule( dev, fragShader, null );
+	vkDestroyPipelineLayout( dev, pplnLayout, null );
 
 	cmdPool			= VK_NULL_HANDLE;
 	cmdQueue		= VK_NULL_HANDLE;
-	meshPipeline	= VK_NULL_HANDLE;
-	meshShader		= VK_NULL_HANDLE;
+	pipeline		= VK_NULL_HANDLE;
+	vertShader		= VK_NULL_HANDLE;
 	fragShader		= VK_NULL_HANDLE;
 	pplnLayout		= VK_NULL_HANDLE;
-	dsLayout		= VK_NULL_HANDLE;
-	descriptorPool	= VK_NULL_HANDLE;
-	descriptorSet	= VK_NULL_HANDLE;
-	uniformBuf		= VK_NULL_HANDLE;
-	sharedMemory	= VK_NULL_HANDLE;
 
 	DestroyFramebuffers();
 	swapchain->Destroy();
@@ -232,9 +207,9 @@ void MeshShaderApp::Destroy ()
 	Run
 =================================================
 */
-bool MeshShaderApp::Run ()
+bool FSBarycentricApp::Run ()
 {
-	for (frameId = 0; looping; frameId = ((frameId + 1) & 1))
+	for (uint frameId = 0; looping; frameId = ((frameId + 1) & 1))
 	{
 		if ( not window->Update() )
 			break;
@@ -255,11 +230,22 @@ bool MeshShaderApp::Run ()
 			begin_info.flags			= 0;
 			begin_info.pInheritanceInfo	= null;
 			VK_CALL( vkBeginCommandBuffer( cmdBuffers[frameId], &begin_info ));
-
-			BeginRenderPass();
 			
-			vkCmdBindPipeline( cmdBuffers[frameId], VK_PIPELINE_BIND_POINT_GRAPHICS, meshPipeline );
-			vkCmdBindDescriptorSets( cmdBuffers[frameId], VK_PIPELINE_BIND_POINT_GRAPHICS, pplnLayout, 0, 1, &descriptorSet, 0, null );
+			// begin render pass
+			{
+				VkClearValue			clear_value = {{ 0.0f, 0.0f, 0.0f, 1.0f }};
+				VkRenderPassBeginInfo	begin		= {};
+				begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				begin.framebuffer		= framebuffers[ swapchain->GetCurretImageIndex() ];
+				begin.renderPass		= renderPass;
+				begin.renderArea		= { {0,0}, {swapchain->GetSurfaceSize().x, swapchain->GetSurfaceSize().y} };
+				begin.clearValueCount	= 1;
+				begin.pClearValues		= &clear_value;
+
+				vkCmdBeginRenderPass( cmdBuffers[frameId], &begin, VK_SUBPASS_CONTENTS_INLINE );
+			}
+			
+			vkCmdBindPipeline( cmdBuffers[frameId], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline );
 
 			// set dynamic states
 			{
@@ -278,17 +264,8 @@ bool MeshShaderApp::Run ()
 				vkCmdSetScissor( cmdBuffers[frameId], 0, 1, &scissor_rect );
 			}
 			
-			// draw with mesh shader
-			if ( IsMeshShaderSupported() )
-			{
-				vkCmdDrawMeshTasksNV( cmdBuffers[frameId], 1, 0 );
-			}
-			else
-			// draw with vertex shader
-			{
-				vkCmdDraw( cmdBuffers[frameId], 3, 1, 0, 0 );
-			}
-
+			vkCmdDraw( cmdBuffers[frameId], 4, 1, 0, 0 );
+			
 			vkCmdEndRenderPass( cmdBuffers[frameId] );
 
 			VK_CALL( vkEndCommandBuffer( cmdBuffers[frameId] ));
@@ -324,9 +301,7 @@ bool MeshShaderApp::Run ()
 			case VK_SUBOPTIMAL_KHR :
 			case VK_ERROR_SURFACE_LOST_KHR :
 			case VK_ERROR_OUT_OF_DATE_KHR :
-				VK_CALL( vkQueueWaitIdle( cmdQueue ));
-				VK_CALL( vkResetCommandPool( vulkan.GetVkDevice(), cmdPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT ));
-				CHECK( swapchain->Recreate( window->GetSize() ));
+				OnResize( swapchain->GetSurfaceSize() );
 				break;
 
 			default :
@@ -341,7 +316,7 @@ bool MeshShaderApp::Run ()
 	CreateCommandBuffers
 =================================================
 */
-bool MeshShaderApp::CreateCommandBuffers ()
+bool FSBarycentricApp::CreateCommandBuffers ()
 {
 	VkCommandPoolCreateInfo		pool_info = {};
 	pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -365,7 +340,7 @@ bool MeshShaderApp::CreateCommandBuffers ()
 	CreateSyncObjects
 =================================================
 */
-bool MeshShaderApp::CreateSyncObjects ()
+bool FSBarycentricApp::CreateSyncObjects ()
 {
 	VkFenceCreateInfo	fence_info	= {};
 	fence_info.sType	= VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -387,7 +362,7 @@ bool MeshShaderApp::CreateSyncObjects ()
 	CreateRenderPass
 =================================================
 */
-bool MeshShaderApp::CreateRenderPass ()
+bool FSBarycentricApp::CreateRenderPass ()
 {
 	// setup attachment
 	VkAttachmentDescription		attachments[1] = {};
@@ -453,7 +428,7 @@ bool MeshShaderApp::CreateRenderPass ()
 	CreateFramebuffers
 =================================================
 */
-bool MeshShaderApp::CreateFramebuffers ()
+bool FSBarycentricApp::CreateFramebuffers ()
 {
 	VkFramebufferCreateInfo	fb_info = {};
 	fb_info.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -478,7 +453,7 @@ bool MeshShaderApp::CreateFramebuffers ()
 	DestroyFramebuffers
 =================================================
 */
-void MeshShaderApp::DestroyFramebuffers ()
+void FSBarycentricApp::DestroyFramebuffers ()
 {
 	for (uint i = 0; i < swapchain->GetSwapchainLength(); ++i)
 	{
@@ -488,254 +463,50 @@ void MeshShaderApp::DestroyFramebuffers ()
 
 /*
 =================================================
-	CreateResources
+	CreatePipeline
 =================================================
 */
-bool MeshShaderApp::CreateResources ()
+bool FSBarycentricApp::CreatePipeline ()
 {
-	VkDeviceSize					total_size		= 0;
-	uint							mem_type_bits	= 0;
-	VkMemoryPropertyFlags			mem_property	= 0;
-	Array<std::function<void ()>>	bind_mem;
-
-	// create uniform buffer
-	{
-		VkBufferCreateInfo	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		info.flags			= 0;
-		info.size			= sizeof(UBuffer);
-		info.usage			= VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
-
-		VK_CHECK( vkCreateBuffer( vulkan.GetVkDevice(), &info, null, OUT &uniformBuf ));
-
-		VkMemoryRequirements	mem_req;
-		vkGetBufferMemoryRequirements( vulkan.GetVkDevice(), uniformBuf, OUT &mem_req );
-
-		VkDeviceSize	offset = AlignToLarger( total_size, mem_req.alignment );
-		total_size		 = offset + mem_req.size;
-		mem_type_bits	|= mem_req.memoryTypeBits;
-		mem_property	|= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-
-		bind_mem.push_back( [this, offset] () {
-			VK_CALL( vkBindBufferMemory( vulkan.GetVkDevice(), uniformBuf, sharedMemory, offset ));
-		});
-	}
-
-	// allocate memory
-	{
-		VkMemoryAllocateInfo	info = {};
-		info.sType				= VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		info.allocationSize		= total_size;
-
-		CHECK_ERR( vulkan.GetMemoryTypeIndex( mem_type_bits, mem_property, OUT info.memoryTypeIndex ));
-
-		VK_CHECK( vkAllocateMemory( vulkan.GetVkDevice(), &info, null, OUT &sharedMemory ));
-	}
-
-	// bind resources
-	for (auto& bind : bind_mem) {
-		bind();
-	}
-
-	// update resources
-	{
-		VkCommandBufferBeginInfo	begin_info = {};
-		begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		begin_info.pNext			= null;
-		begin_info.flags			= 0;
-		begin_info.pInheritanceInfo	= null;
-		VK_CALL( vkBeginCommandBuffer( cmdBuffers[0], &begin_info ));
-
-		// update uniform buffer
-		{
-			UBuffer		temp;
-			temp.points[0] = {  0.0f, -0.5f,  0.0f, 1.0f };
-			temp.points[1] = {  0.5f,  0.5f,  0.0f, 1.0f };
-			temp.points[2] = { -0.5f,  0.5f,  0.0f, 1.0f };
-
-			temp.colors[0]	= {  1.0f,  0.0f,  0.0f, 1.0f };
-			temp.colors[1]	= {  0.0f,  1.0f,  0.0f, 1.0f };
-			temp.colors[2]	= {  0.0f,  0.0f,  1.0f, 1.0f };
-
-			vkCmdUpdateBuffer( cmdBuffers[0], uniformBuf, 0, sizeof(temp), &temp );
-		}
-
-		VK_CALL( vkEndCommandBuffer( cmdBuffers[0] ));
-
-		VkSubmitInfo		submit_info = {};
-		submit_info.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit_info.commandBufferCount	= 1;
-		submit_info.pCommandBuffers		= &cmdBuffers[frameId];
-
-		VK_CHECK( vkQueueSubmit( cmdQueue, 1, &submit_info, VK_NULL_HANDLE ));
-	}
-
-	VK_CALL( vkQueueWaitIdle( cmdQueue ));
-	return true;
-}
-
-/*
-=================================================
-	CreateDescriptorSet
-=================================================
-*/
-bool MeshShaderApp::CreateDescriptorSet ()
-{
-	// create layout
-	{
-		VkDescriptorSetLayoutBinding		binding[1];
-		binding[0].binding			= 0;
-		binding[0].descriptorType	= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		binding[0].descriptorCount	= 1;
-		binding[0].stageFlags		= IsMeshShaderSupported() ? VK_SHADER_STAGE_MESH_BIT_NV : VK_SHADER_STAGE_VERTEX_BIT;
-
-		VkDescriptorSetLayoutCreateInfo		info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		info.bindingCount	= uint(CountOf( binding ));
-		info.pBindings		= binding;
-
-		VK_CHECK( vkCreateDescriptorSetLayout( vulkan.GetVkDevice(), &info, null, OUT &dsLayout ));
-	}
-
-	// create pool
-	{
-		const VkDescriptorPoolSize		sizes[] = {
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 }
-		};
-
-		VkDescriptorPoolCreateInfo		info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		info.maxSets		= 100;
-		info.poolSizeCount	= uint(CountOf( sizes ));
-		info.pPoolSizes		= sizes;
-
-		VK_CHECK( vkCreateDescriptorPool( vulkan.GetVkDevice(), &info, null, OUT &descriptorPool ));
-	}
-
-	// allocate descriptor set
-	{
-		VkDescriptorSetAllocateInfo		info = {};
-		info.sType				= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		info.descriptorPool		= descriptorPool;
-		info.descriptorSetCount	= 1;
-		info.pSetLayouts		= &dsLayout;
-
-		VK_CHECK( vkAllocateDescriptorSets( vulkan.GetVkDevice(), &info, OUT &descriptorSet ));
-	}
-
-	// update descriptor set
-	{
-		VkDescriptorBufferInfo	buffers[1] = {};
-		buffers[0].buffer		= uniformBuf;
-		buffers[0].offset		= 0;
-		buffers[0].range		= VK_WHOLE_SIZE;
-
-		VkWriteDescriptorSet	writes[1] = {};
-		writes[0].sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writes[0].dstSet			= descriptorSet;
-		writes[0].dstBinding		= 0;
-		writes[0].descriptorCount	= 1;
-		writes[0].descriptorType	= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		writes[0].pBufferInfo		= &buffers[0];
-
-		vkUpdateDescriptorSets( vulkan.GetVkDevice(), 1, writes, 0, null );
-	}
-	return true;
-}
-
-/*
-=================================================
-	CreateMeshPipeline
-=================================================
-*/
-bool MeshShaderApp::CreateMeshPipeline ()
-{
-	// create mesh shader
-	if ( IsMeshShaderSupported() )
-	{
-		static const char	mesh_shader_source[] = R"#(
-#version 450 core
-#extension GL_NV_mesh_shader : enable
-#extension GL_ARB_separate_shader_objects : enable
-
-layout(local_size_x=3) in;
-layout(triangles) out;
-layout(max_vertices=3, max_primitives=1) out;
-
-//out uint gl_PrimitiveCountNV;
-//out uint gl_PrimitiveIndicesNV[]; // [max_primitives * 3 for triangles]
-
-out gl_MeshPerVertexNV {
-	vec4	gl_Position;
-} gl_MeshVerticesNV[]; // [max_vertices]
-
-layout(location = 0) out MeshOutput {
-	vec4	color;
-} Output[]; // [max_vertices]
-
-layout(binding = 0, std140) uniform UBuffer {
-	vec4	points[3];
-	vec4	colors[3];
-} ub;
-
-void main ()
-{
-	const uint I = gl_LocalInvocationID.x;
-
-	gl_MeshVerticesNV[I].gl_Position	= ub.points[I];
-	Output[I].color						= ub.colors[I];
-	gl_PrimitiveIndicesNV[I]			= I;
-
-	if ( I == 0 )
-		gl_PrimitiveCountNV = 1;
-}
-)#";
-		CHECK_ERR( spvCompiler.Compile( OUT meshShader, vulkan, mesh_shader_source, "main", EShLangMeshNV ));
-	}
-	else
-
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-#pragma shader_stage(vertex)
+#version 450 core
 #extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_shading_language_420pack : enable
 
-layout(binding = 0, std140) uniform UBuffer {
-	vec4	points[3];
-	vec4	colors[3];
-} ub;
-
-layout(location = 0) out MeshOutput {
-	vec4	color;
-} Output;
+const vec2	g_Positions[4] = {
+	vec2( -1.0,  1.0 ),
+	vec2( -1.0, -1.0 ),
+	vec2(  1.0,  1.0 ),
+	vec2(  1.0, -1.0 )
+};
 
 void main()
 {
-	gl_Position  = ub.points[gl_VertexIndex];
-	Output.color = ub.colors[gl_VertexIndex];
+	gl_Position = vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
 }
 )#";
-
-		CHECK_ERR( spvCompiler.Compile( OUT meshShader, vulkan, vert_shader_source, "main", EShLangVertex ));
+		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, vert_shader_source, "main", EShLangVertex ));
 	}
 
 	// create fragment shader
+	// see https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_fragment_shader_barycentric.txt
 	{
 		static const char	frag_shader_source[] = R"#(
 #version 450 core
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_NV_fragment_shader_barycentric : require
+
+// TODO: use pervertexNV
+
+//in vec3 gl_BaryCoordNV;
+//in vec3 gl_BaryCoordNoPerspNV;
 
 layout(location = 0) out vec4  out_Color;
 
-layout(location = 0) in MeshOutput {
-	vec4	color;
-} Input;
-
 void main ()
 {
-	out_Color = Input.color;
+	out_Color = vec4( gl_BaryCoordNV, 1.0 );
 }
 )#";
 		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
@@ -745,8 +516,8 @@ void main ()
 	{
 		VkPipelineLayoutCreateInfo	info = {};
 		info.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		info.setLayoutCount			= 1;
-		info.pSetLayouts			= &dsLayout;
+		info.setLayoutCount			= 0;
+		info.pSetLayouts			= null;
 		info.pushConstantRangeCount	= 0;
 		info.pPushConstantRanges	= null;
 
@@ -755,8 +526,8 @@ void main ()
 
 	VkPipelineShaderStageCreateInfo			stages[2] = {};
 	stages[0].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	stages[0].stage		= IsMeshShaderSupported() ? VK_SHADER_STAGE_MESH_BIT_NV : VK_SHADER_STAGE_VERTEX_BIT;
-	stages[0].module	= meshShader;
+	stages[0].stage		= VK_SHADER_STAGE_VERTEX_BIT;
+	stages[0].module	= vertShader;
 	stages[0].pName		= "main";
 	stages[1].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	stages[1].stage		= VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -768,7 +539,7 @@ void main ()
 	
 	VkPipelineInputAssemblyStateCreateInfo	input_assembly = {};
 	input_assembly.sType	= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	input_assembly.topology	= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	input_assembly.topology	= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 
 	VkPipelineViewportStateCreateInfo		viewport = {};
 	viewport.sType			= VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -815,7 +586,7 @@ void main ()
 	info.stageCount				= uint(CountOf( stages ));
 	info.pStages				= stages;
 	info.pViewportState			= &viewport;
-	info.pVertexInputState		= &vertex_input;		// ignored in mesh shader
+	info.pVertexInputState		= &vertex_input;
 	info.pInputAssemblyState	= &input_assembly;
 	info.pRasterizationState	= &rasterization;
 	info.pMultisampleState		= &multisample;
@@ -826,38 +597,18 @@ void main ()
 	info.renderPass				= renderPass;
 	info.subpass				= 0;
 
-	VK_CHECK( vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &meshPipeline ));
+	VK_CHECK( vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &pipeline ));
 	return true;
 }
 
 /*
 =================================================
-	BeginRenderPass
+	FragShaderBarycentric_Sample1
 =================================================
 */
-void MeshShaderApp::BeginRenderPass ()
+extern void FragShaderBarycentric_Sample1 ()
 {
-	VkClearValue	clear_value = {{ 0.0f, 0.0f, 0.0f, 1.0f }};
-
-	VkRenderPassBeginInfo	begin = {};
-	begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	begin.framebuffer		= framebuffers[ swapchain->GetCurretImageIndex() ];
-	begin.renderPass		= renderPass;
-	begin.renderArea		= { {0,0}, {swapchain->GetSurfaceSize().x, swapchain->GetSurfaceSize().y} };
-	begin.clearValueCount	= 1;
-	begin.pClearValues		= &clear_value;
-
-	vkCmdBeginRenderPass( cmdBuffers[frameId], &begin, VK_SUBPASS_CONTENTS_INLINE );
-}
-
-/*
-=================================================
-	MeshShader_FirstTriangle
-=================================================
-*/
-extern void MeshShader_FirstTriangle ()
-{
-	MeshShaderApp	app;
+	FSBarycentricApp	app;
 
 	CHECK_FATAL( app.Initialize() );
 	CHECK_FATAL( app.Run() );

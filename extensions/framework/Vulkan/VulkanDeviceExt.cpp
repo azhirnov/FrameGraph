@@ -36,11 +36,11 @@ namespace FG
 */
 	void VulkanDeviceExt::_OnInstanceCreated (Array<const char*> &&, Array<const char*> &&instanceExtensions)
 	{
-		for (auto& ext : instanceExtensions)
-		{
-			if ( StringView(ext) == VK_EXT_DEBUG_REPORT_EXTENSION_NAME )
-				_debugReportSupported = true;
+		for (auto& ext : instanceExtensions) {
+			_instanceExtensions.insert( ext );
 		}
+
+		_debugReportSupported = HasInstanceExtension( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
 	}
 
 /*
@@ -50,17 +50,17 @@ namespace FG
 */
 	void VulkanDeviceExt::_OnLogicalDeviceCreated (Array<const char *> &&extensions)
 	{
-		for (auto& ext : extensions)
-		{
-			if ( StringView(ext) == VK_EXT_DEBUG_MARKER_EXTENSION_NAME )
-				_debugMarkersSupported = true;
+		for (auto& ext : extensions) {
+			_deviceExtensions.insert( ext );
 		}
 
-		vkGetPhysicalDeviceProperties( GetVkPhysicalDevice(), OUT &_deviceProperties );
+		_debugMarkersSupported = HasDeviceExtension( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
+
+		vkGetPhysicalDeviceProperties( GetVkPhysicalDevice(), OUT &_properties.main );
 		vkGetPhysicalDeviceMemoryProperties( GetVkPhysicalDevice(), OUT &_deviceMemoryProperties );
 		
-		if ( VK_VERSION_MAJOR( _deviceProperties.apiVersion ) == 1 and
-			 VK_VERSION_MINOR( _deviceProperties.apiVersion ) >  0 )
+		if ( VK_VERSION_MAJOR( _properties.main.apiVersion ) == 1 and
+			 VK_VERSION_MINOR( _properties.main.apiVersion ) >  0 )
 		{
 			void **						next_props	= null;
 			VkPhysicalDeviceProperties2	props2		= {};
@@ -68,28 +68,38 @@ namespace FG
 			props2.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
 			next_props		= &props2.pNext;
 
-			*next_props					= &_deviceIDProperties;
-			next_props					= &_deviceIDProperties.pNext;
-			_deviceIDProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+			*next_props					= &_properties.deviceID;
+			next_props					= &_properties.deviceID.pNext;
+			_properties.deviceID.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
 			
-			*next_props						= &_deviceSubgroupProperties;
-			next_props						= &_deviceSubgroupProperties.pNext;
-			_deviceSubgroupProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+			*next_props					= &_properties.subgroup;
+			next_props					= &_properties.subgroup.pNext;
+			_properties.subgroup.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
 			
-			*next_props							= &_deviceMaintenance3Properties;
-			next_props							= &_deviceMaintenance3Properties.pNext;
-			_deviceMaintenance3Properties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES;
+			*next_props						= &_properties.maintenance3;
+			next_props						= &_properties.maintenance3.pNext;
+			_properties.maintenance3.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES;
 			
-			*next_props							= &_deviceMeshShaderProperties;
-			next_props							= &_deviceMeshShaderProperties.pNext;
-			_deviceMeshShaderProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
+			*next_props						= &_properties.meshShader;
+			next_props						= &_properties.meshShader.pNext;
+			_properties.meshShader.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
+			
+			*next_props							= &_properties.shadingRateImage;
+			next_props							= &_properties.shadingRateImage.pNext;
+			_properties.shadingRateImage.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
+			
+			*next_props						= &_properties.rayTracing;
+			next_props						= &_properties.rayTracing.pNext;
+			_properties.rayTracing.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAYTRACING_PROPERTIES_NVX;
+
+			
 
 			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
 		}
 
 		_WriteDeviceInfo();
 	}
-	
+
 /*
 =================================================
 	_BeforeDestroy
@@ -100,6 +110,9 @@ namespace FG
 		if ( _debugCallback ) {
 			vkDestroyDebugReportCallbackEXT( GetVkInstance(), _debugCallback, null );
 		}
+
+		_instanceExtensions.clear();
+		_deviceExtensions.clear();
 
 		_debugCallback			= VK_NULL_HANDLE;
 		_debugReportSupported	= false;
@@ -123,12 +136,12 @@ namespace FG
 */
 	void VulkanDeviceExt::_WriteDeviceInfo ()
 	{
-		FG_LOGI( "apiVersion:  "s << ToString(VK_VERSION_MAJOR( _deviceProperties.apiVersion )) << '.' <<
-				 ToString(VK_VERSION_MINOR( _deviceProperties.apiVersion )) << ' ' <<
-				 ToString(VK_VERSION_PATCH( _deviceProperties.apiVersion )) );
+		FG_LOGI( "apiVersion:  "s << ToString(VK_VERSION_MAJOR( GetDeviceProperties().apiVersion )) << '.' <<
+				 ToString(VK_VERSION_MINOR( GetDeviceProperties().apiVersion )) << ' ' <<
+				 ToString(VK_VERSION_PATCH( GetDeviceProperties().apiVersion )) );
 		
-		FG_LOGI( "vendorName:  "s << _GetVendorNameByID( _deviceProperties.vendorID ) );
-		FG_LOGI( "deviceName:  "s << _deviceProperties.deviceName );
+		FG_LOGI( "vendorName:  "s << _GetVendorNameByID( GetDeviceProperties().vendorID ) );
+		FG_LOGI( "deviceName:  "s << GetDeviceProperties().deviceName );
 
 	}
 

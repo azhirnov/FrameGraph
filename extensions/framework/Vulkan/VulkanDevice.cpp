@@ -45,12 +45,19 @@ namespace FG
 		static const char*	instance_layers[] = {
 			"VK_LAYER_LUNARG_standard_validation",
 			"VK_LAYER_LUNARG_assistant_layer",
-			"VK_LAYER_LUNARG_core_validation",
-			"VK_LAYER_GOOGLE_threading",
-			"VK_LAYER_GOOGLE_unique_objects",
-			"VK_LAYER_LUNARG_parameter_validation",
-			"VK_LAYER_LUNARG_object_tracker",
+			//"VK_LAYER_GOOGLE_threading",					// inside VK_LAYER_LUNARG_standard_validation
+			//"VK_LAYER_LUNARG_parameter_validation",		// inside VK_LAYER_LUNARG_standard_validation
+			//"VK_LAYER_LUNARG_device_limits",				// inside VK_LAYER_LUNARG_standard_validation
+			//"VK_LAYER_LUNARG_object_tracker",				// inside VK_LAYER_LUNARG_standard_validation
+			//"VK_LAYER_LUNARG_image",						// inside VK_LAYER_LUNARG_standard_validation
+			//"VK_LAYER_LUNARG_core_validation",			// inside VK_LAYER_LUNARG_standard_validation
+			//"VK_LAYER_LUNARG_swapchain",					// inside VK_LAYER_LUNARG_standard_validation
+			//"VK_LAYER_GOOGLE_unique_objects",				// inside VK_LAYER_LUNARG_standard_validation
+			//"VK_LAYER_LUNARG_device_simulation",
+			//"VK_LAYER_LUNARG_api_dump",
+		#ifdef PLATFORM_ANDROID
 			"VK_LAYER_ARM_mali_perf_doc"
+		#endif
 		};
 		return instance_layers;
 	}
@@ -97,7 +104,7 @@ namespace FG
 			#endif
 
 			// Vendor specific extensions
-			#ifdef VK_NV_mesh_shader
+			/*#ifdef VK_NV_mesh_shader
 				VK_NV_MESH_SHADER_EXTENSION_NAME,
 			#endif
 			#ifdef VK_NV_shader_image_footprint
@@ -114,7 +121,7 @@ namespace FG
 			#endif
 			#ifdef VK_NVX_device_generated_commands
 				VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
-			#endif
+			#endif*/
 		};
 		return device_extensions;
 	}
@@ -537,7 +544,7 @@ namespace FG
 
 		// setup device create info
 		VkDeviceCreateInfo		device_info	= {};
-		const void **			next_ext	= &device_info.pNext;
+		void **					next_ext	= const_cast<void **>( &device_info.pNext );
 		device_info.sType		= VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
 
@@ -598,10 +605,10 @@ namespace FG
 
 
 		// setup features
-		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &_features );
-		device_info.pEnabledFeatures = &_features;
+		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &_features.main );
+		device_info.pEnabledFeatures = &_features.main;
 
-		CHECK_ERR( _SetupDeviceFeatures( const_cast<void**>(next_ext), device_extensions ));
+		CHECK_ERR( _SetupDeviceFeatures( next_ext, device_extensions ));
 
 		VK_CHECK( vkCreateDevice( _vkPhysicalDevice, &device_info, null, OUT &_vkDevice ));
 		
@@ -631,9 +638,100 @@ namespace FG
 		{
 			if ( ext == VK_NV_MESH_SHADER_EXTENSION_NAME )
 			{
-				*next_feat	= *nextExt		= &_meshShaderFeatures;
-				next_feat	= nextExt		= &_meshShaderFeatures.pNext;
-				_meshShaderFeatures.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+				*next_feat	= *nextExt		= &_features.meshShader;
+				next_feat	= nextExt		= &_features.meshShader.pNext;
+				_features.meshShader.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+			}
+			else
+			if ( ext == VK_KHR_MULTIVIEW_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt		= &_features.multiview;
+				next_feat	= nextExt		= &_features.multiview.pNext;
+				_features.multiview.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES;
+			}
+			else
+			if ( ext == VK_KHR_8BIT_STORAGE_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt		= &_features.storage8Bit;
+				next_feat	= nextExt		= &_features.storage8Bit.pNext;
+				_features.storage8Bit.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR;
+			}
+			else
+			if ( ext == VK_KHR_16BIT_STORAGE_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt		= &_features.storage16Bit;
+				next_feat	= nextExt		= &_features.storage16Bit.pNext;
+				_features.storage16Bit.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES;
+			}
+			else
+			if ( ext == VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt					= &_features.samplerYcbcrConversion;
+				next_feat	= nextExt					= &_features.samplerYcbcrConversion.pNext;
+				_features.samplerYcbcrConversion.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
+			}
+			else
+			if ( ext == VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt			= &_features.blendOpAdvanced;
+				next_feat	= nextExt			= &_features.blendOpAdvanced.pNext;
+				_features.blendOpAdvanced.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT;
+			}
+			else
+			if ( ext == VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt					= &_features.conditionalRendering;
+				next_feat	= nextExt					= &_features.conditionalRendering.pNext;
+				_features.conditionalRendering.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT;
+			}
+			/*else
+			if ( ext ==  )
+			{
+				*next_feat	= *nextExt					= &_features.shaderDrawParameters;
+				next_feat	= nextExt					= &_features.shaderDrawParameters.pNext;
+				_features.shaderDrawParameters.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES;
+			}*/
+			else
+			if ( ext == VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt		= &_features.memoryModel;
+				next_feat	= nextExt		= &_features.memoryModel.pNext;
+				_features.memoryModel.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR;
+			}
+			else
+			if ( ext == VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt				= &_features.inlineUniformBlock;
+				next_feat	= nextExt				= &_features.inlineUniformBlock.pNext;
+				_features.inlineUniformBlock.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT;
+			}
+			else
+			if ( ext == VK_NV_REPRESENTATIVE_FRAGMENT_TEST_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt						= &_features.representativeFragmentTest;
+				next_feat	= nextExt						= &_features.representativeFragmentTest.pNext;
+				_features.representativeFragmentTest.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_REPRESENTATIVE_FRAGMENT_TEST_FEATURES_NV;
+			}
+			else
+			if ( ext == VK_NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt						= &_features.fragmentShaderBarycentric;
+				next_feat	= nextExt						= &_features.fragmentShaderBarycentric.pNext;
+				_features.fragmentShaderBarycentric.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV;
+			}
+			else
+			if ( ext == VK_NV_SHADER_IMAGE_FOOTPRINT_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt					= &_features.shaderImageFootprint;
+				next_feat	= nextExt					= &_features.shaderImageFootprint.pNext;
+				_features.shaderImageFootprint.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV;
+			}
+			else
+			if ( ext == VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt				= &_features.shadingRateImage;
+				next_feat	= nextExt				= &_features.shadingRateImage.pNext;
+				_features.shadingRateImage.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV;
 			}
 		}
 
