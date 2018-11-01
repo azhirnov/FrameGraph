@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include "stl/Algorithms/Cast.h"
 #include "stl/Containers/ArrayView.h"
+#include "stl/Memory/MemUtils.h"
 #include "stl/Math/Math.h"
 
 namespace FG
@@ -345,7 +347,7 @@ namespace _fg_hidden_
 	template <typename K, typename V, typename I, size_t N>
 	struct RecursiveBinarySearch
 	{
-		_forceinline static  void  Run (INOUT size_t& left, INOUT size_t& right, const K &key, const I* indices, const Pair<K,V>* data)
+        forceinline static  void  Run (INOUT size_t& left, INOUT size_t& right, const K &key, const I* indices, const Pair<K,V>* data)
 		{
 			if ( right - left > 1 )
 			{

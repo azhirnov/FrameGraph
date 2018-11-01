@@ -5,6 +5,7 @@
 #include "stl/Common.h"
 #include <atomic>
 #include <mutex>
+#include <thread>
 
 namespace FG
 {
@@ -18,7 +19,7 @@ namespace FG
 	{
 	// variables
 	private:
-		mutable std::atomic_flag	_flag;
+		alignas(FG_CACHE_LINE) std::atomic_flag		_flag;
 
 
 	// methods
@@ -28,13 +29,18 @@ namespace FG
 
 
 		// for std::lock_guard
-		void lock () const
+		forceinline void lock ()
 		{
-			while ( _flag.test_and_set( std::memory_order_acquire ) )
-			{}
+			for (uint i = 0; _flag.test_and_set( std::memory_order_acquire ); ++i)
+			{
+				if ( i > 100 ) {
+					i = 0;
+					std::this_thread::yield();
+				}
+			}
 		}
 
-		void unlock () const
+		forceinline void unlock ()
 		{
 			_flag.clear( std::memory_order_release );
 		}

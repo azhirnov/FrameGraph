@@ -5,6 +5,7 @@
 #include "stl/Common.h"
 #include <atomic>
 #include <mutex>
+#include <thread>
 
 namespace FG
 {
@@ -19,24 +20,36 @@ namespace FG
 	{
 	// variables
 	private:
-		mutable std::atomic_flag		_flag;
+		mutable std::atomic<size_t>		_state { 0 };
+		mutable bool					_locked {false};
 
 
 	// methods
 	public:
-		RaceConditionCheck () : _flag{ATOMIC_FLAG_INIT}
-		{}
-
+		RaceConditionCheck () {}
 
 		// for std::lock_guard
 		void lock () const
 		{
-			CHECK( not _flag.test_and_set() );
+			const size_t	id		= size_t(HashOf( std::this_thread::get_id() ));
+			size_t			curr	= _state.load();
+			
+			if ( curr == id )
+				return;	// recursive lock
+
+			curr	= 0;
+			_locked	= _state.compare_exchange_strong( INOUT curr, id );
+			CHECK( curr == 0 );		// locked by other thread - race condition detected!
+			CHECK( _locked );
 		}
 
 		void unlock () const
 		{
-			_flag.clear();
+			if ( _locked )
+			{
+				_state.store( 0 );
+				_locked = false;
+			}
 		}
 	};
 

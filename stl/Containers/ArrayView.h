@@ -33,8 +33,10 @@ namespace FG
 	public:
 		ArrayView () : _array{null} {}
 		ArrayView (T const* ptr, size_t count) : _array{ptr}, _count{count} {}
-		ArrayView (const std::vector<T> &vec) : _array{vec.data()}, _count{vec.size()} {}
 		ArrayView (std::initializer_list<T> list) : _array{list.begin()}, _count{list.size()} {}
+
+		template <typename AllocT>
+		ArrayView (const std::vector<T,AllocT> &vec) : _array{vec.data()}, _count{vec.size()} {}
 
 		template <size_t S>
 		ArrayView (const StaticArray<T,S> &arr) : _array{arr.data()}, _count{arr.size()} {}

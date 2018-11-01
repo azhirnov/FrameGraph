@@ -7,37 +7,47 @@
 namespace FG
 {
 
-	template <typename T>
-	struct Appendable;
-
 
 	//
 	// Appendable (Array)
 	//
 
-	template <typename T, typename AllocT>
-	struct Appendable< std::vector<T, AllocT> >
+	template <typename T>
+	struct Appendable
 	{
 	// types
 	private:
-		using Array_t	= std::vector<T, AllocT>;
-		using Self		= Appendable< std::vector<T, AllocT> >;
+		using Self				= Appendable< T >;
+		using PushBackFunc_t	= void (*) (void *container, T &&value);
 
 
 	// variables
 	private:
-		Array_t &	_arr;
+		void *			_ref		= null;
+		PushBackFunc_t	_pushBack	= null;
 
 
 	// methods
 	public:
-		Appendable (Array_t &arr) : _arr{arr} {}
+		template <typename AllocT>
+		Appendable (std::vector<T,AllocT> &arr) :
+			_ref{ &arr },
+			_pushBack{ &_ArrayPushBack< std::remove_reference_t<decltype(arr)> > }
+		{}
 
-		void push_back (T &&value)			{ _arr.push_back( std::move(value) ); }
-		void push_back (const T &value)		{ _arr.push_back( value ); }
-
+		void push_back (T &&value)			{ _pushBack( _ref, std::move(value) ); }
+		void push_back (const T &value)		{ _pushBack( _ref, T(value) ); }
+		
 		template <typename ...Args>
-		void emplace_back (Args&& ...args)	{ _arr.emplace_back( std::forward<Args&&>(args)... ); }
+		void emplace_back (Args&& ...args)	{ _pushBack( _ref, T{ std::forward<Args&&>(args)... }); }
+
+
+	private:
+		template <typename ArrayT>
+		static void _ArrayPushBack (void *container, T &&value)
+		{
+			BitCast< ArrayT *>( container )->push_back( std::move(value) );
+		}
 	};
 
 

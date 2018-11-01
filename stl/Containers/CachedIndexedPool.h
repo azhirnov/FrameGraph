@@ -11,27 +11,30 @@ namespace FG
 	// Cached Chunked Indexed Pool
 	//
 
-	template <typename T,
-			  typename IndexType = uint,
+	template <typename ValueType,
+			  typename IndexType,
+			  size_t ChunkSize,
+			  size_t MaxChunks = 16,
 			  typename AllocatorType = UntypedAlignedAllocator,
-			  typename AssignOpLock = DummyLock
+			  typename AssignOpLock = DummyLock,
+			  template <typename T> class AtomicChunkPtr = NonAtomicPtr
 			 >
 	struct CachedIndexedPool final
 	{
 	// types
 	public:
-		using Self			= CachedIndexedPool< T, IndexType, AllocatorType, AssignOpLock >;
+		using Self			= CachedIndexedPool< ValueType, IndexType, ChunkSize, MaxChunks, AllocatorType, AssignOpLock, AtomicChunkPtr >;
 		using Index_t		= IndexType;
-		using Value_t		= T;
+		using Value_t		= ValueType;
 		using Allocator_t	= AllocatorType;
 
 	private:
-		struct THash  { size_t operator () (const T *value) const				{ return std::hash<T>()( *value ); } };
-		struct TEqual { bool   operator () (const T *lhs, const T *rhs) const	{ return *lhs == *rhs; } };
+		struct THash  { size_t operator () (const Value_t *value) const						{ return std::hash<Value_t>()( *value ); } };
+		struct TEqual { bool   operator () (const Value_t *lhs, const Value_t *rhs) const	{ return *lhs == *rhs; } };
 
-		using Pool_t		= ChunkedIndexedPool< T, IndexType, AllocatorType, AssignOpLock >;
-		using StdAlloc_t	= typename AllocatorType::template StdAllocator_t<Pair< T const* const, Index_t >>;
-		using Cache_t		= std::unordered_map< T const*, Index_t, THash, TEqual, StdAlloc_t >;
+		using Pool_t		= ChunkedIndexedPool< Value_t, IndexType, ChunkSize, MaxChunks, AllocatorType, AssignOpLock, AtomicChunkPtr >;
+		using StdAlloc_t	= typename AllocatorType::template StdAllocator_t<Pair< Value_t const* const, Index_t >>;
+		using Cache_t		= std::unordered_map< Value_t const*, Index_t, THash, TEqual, StdAlloc_t >;
 
 
 	// variables
@@ -42,101 +45,98 @@ namespace FG
 
 	// methods
 	public:
-		CachedIndexedPool () {}
 		CachedIndexedPool (Self &&) = default;
-		explicit CachedIndexedPool (uint blockSize, const Allocator_t &alloc = Allocator_t());
-		~CachedIndexedPool() {}
 
 		Self&  operator = (Self &&) = default;
+
+
+		explicit CachedIndexedPool (const Allocator_t &alloc = Allocator_t()) :
+			_pool{ alloc },  _cache{ StdAlloc_t{alloc} }
+		{}
+
+		~CachedIndexedPool ()
+		{}
 		
-		void  Release ();
-		void  Swap (Self &other);
 
-		ND_ bool  Assign (OUT Index_t &index)							{ return _pool.Assign( OUT index ); }
-		ND_ bool  IsAssigned (Index_t index)							{ return _pool.IsAssigned( index ); }
-			bool  Unassign (Index_t index, bool removeFromcache);
+		void  Release ()
+		{
+			_pool.Release();
 
-		ND_ Pair<Index_t,bool>  Insert (Index_t index, Value_t&& value);
+			Cache_t		temp{ _cache.get_allocator() };
+			std::swap( _cache, temp );
+		}
+
+
+		void  Swap (Self &other)
+		{
+			_pool.Swap( other._pool );
+			_cache.swap( other._cache );
+		}
+
 		
-		ND_ Value_t &			operator [] (Index_t index)				{ return _pool[ index ]; }
-		ND_ Value_t const&		operator [] (Index_t index)		const	{ return _pool[ index ]; }
+		ND_ Pair<Index_t, bool>  Insert (Index_t index, Value_t&& value)
+		{
+			std::swap( _pool[index], value );
 
-		ND_ bool				Empty ()						const	{ return _pool.Empty(); }
-		ND_ size_t				Count ()						const	{ return _pool.Count(); }
-	};
-	
-	
-/*
-=================================================
-	constructor
-=================================================
-*/
-	template <typename T, typename I, typename A, typename L>
-	inline CachedIndexedPool<T,I,A,L>::CachedIndexedPool (uint blockSize, const Allocator_t &alloc) :
-		_pool{ blockSize, alloc },
-		_cache{ StdAlloc_t{alloc} }
-	{
-	}
-	
-/*
-=================================================
-	Release
-=================================================
-*/
-	template <typename T, typename I, typename A, typename L>
-	inline void  CachedIndexedPool<T,I,A,L>::Release ()
-	{
-		_pool.Release();
+			return AddToCache( index );
+		}
 
-		Cache_t		temp{ _cache.get_allocator() };
-		std::swap( _cache, temp );
-	}
-	
-/*
-=================================================
-	Swap
-=================================================
-*/
-	template <typename T, typename I, typename A, typename L>
-	inline void  CachedIndexedPool<T,I,A,L>::Swap (Self &other)
-	{
-		_pool.Swap( other._pool );
-		_cache.swap( other._cache );
-	}
 
-/*
-=================================================
-	Unassign
-=================================================
-*/
-	template <typename T, typename I, typename A, typename L>
-	inline bool  CachedIndexedPool<T,I,A,L>::Unassign (Index_t index, bool removeFromcache)
-	{
-		if ( removeFromcache )
+		ND_ Pair<Index_t, bool>  AddToCache (Index_t index)
+		{
+			auto	result = _cache.insert({ &_pool[index], index });
+
+			return { result.first->second, result.second };
+		}
+
+
+		bool  RemoveFromCache (Index_t index)
 		{
 			auto	iter = _cache.find( &_pool[index] );
 
 			if ( iter != _cache.end() and iter->second == index )
+			{
 				_cache.erase( iter );
+				return true;
+			}
+			return false;
 		}
-		return _pool.Unassign( index );
-	}
+
+		
+		ND_ Index_t  Find (const Value_t *value) const
+		{
+			auto	iter = _cache.find( value );
+
+			if ( iter != _cache.end() )
+				return iter->second;
+
+			return ~Index_t(0);
+		}
+		
+
+		ND_ BytesU  DynamicSize () const
+		{
+			BytesU	sz = _pool.SizeOf();
+			//sz += _cache.max_bucket_count() * _cache.max_size();	// TODO
+			return sz;
+		}
+
+
+		template <typename ArrayType>
+		ND_ size_t  Assign (size_t count, INOUT ArrayType &arr)			{ return _pool.Assign( count, INOUT arr ); }
+		
+		template <typename ArrayType>
+			void  Unassign (size_t count, INOUT ArrayType &arr)			{ return _pool.Unassign( count, INOUT arr ); }
+
+		ND_ bool  Assign (OUT Index_t &index)							{ return _pool.Assign( OUT index ); }
+			void  Unassign (Index_t index)								{ return _pool.Unassign( index ); }
+
+		ND_ Value_t &			operator [] (Index_t index)				{ return _pool[ index ]; }
+		ND_ Value_t const&		operator [] (Index_t index)		const	{ return _pool[ index ]; }
+
+		ND_ bool				empty ()						const	{ return _pool.empty(); }
+		ND_ size_t				size ()							const	{ return _pool.size(); }
+	};
 	
-/*
-=================================================
-	Insert
-=================================================
-*/
-	template <typename T, typename I, typename A, typename L>
-	inline Pair<typename CachedIndexedPool<T,I,A,L>::Index_t, bool>
-		CachedIndexedPool<T,I,A,L>::Insert (Index_t index, Value_t&& value)
-	{
-		_pool[index] = std::move(value);
-
-		auto	result = _cache.insert({ &_pool[index], index });
-
-		return { result.first->second, result.second };
-	}
-
-
+	
 }	// FG

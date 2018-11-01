@@ -36,9 +36,9 @@ namespace FG
 			::operator delete ( ptr, size_t(size) );
 		}
 
-		ND_ static constexpr bool  IsStdCompatible ()
+		ND_ bool  operator == (const UntypedAllocator &) const
 		{
-			return false;
+			return true;
 		}
 	};
 	
@@ -69,9 +69,9 @@ namespace FG
 			::operator delete ( ptr, size_t(size), std::align_val_t(size_t(align)) );
 		}
 
-		ND_ static constexpr bool  IsStdCompatible ()
+		ND_ bool  operator == (const UntypedAlignedAllocator &) const
 		{
-			return false;
+			return true;
 		}
 	};
 

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Containers/ArrayView.h"
+#include "stl/Memory/MemUtils.h"
 
 namespace FG
 {

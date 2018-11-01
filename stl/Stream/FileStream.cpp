@@ -15,6 +15,7 @@
 #if defined(PLATFORM_LINUX) or defined(PLATFORM_ANDROID)
 #	define fseek	fseeko
 #	define ftell	ftello
+#   define fopen_s( _outFile_, _name_, _mode_ ) (*_outFile_=fopen(_name_, _mode_))
 #endif
 
 
@@ -47,6 +48,7 @@ namespace FG
     constructor
 =================================================
 */
+#ifdef FG_STD_FILESYSTEM
 	FileRStream::FileRStream (const std::filesystem::path &path)
 	{
 #	ifdef PLATFORM_WINDOWS
@@ -60,6 +62,7 @@ namespace FG
 		else
 			FG_LOGE( "Can't open file: "s << path.string() );
 	}
+#endif
 	
 /*
 =================================================
@@ -82,7 +85,7 @@ namespace FG
 	{
 		ASSERT( IsOpen() );
 
-		return BytesU(ftell( _file ));
+        return BytesU(uint64_t(ftell( _file )));
 	}
 	
 /*
@@ -100,7 +103,7 @@ namespace FG
 		const int64_t	size = ftell( _file );
 		CHECK( fseek( _file, curr, SEEK_SET ) == 0 );
 
-		return BytesU(size);
+        return BytesU(uint64_t(size));
 	}
 	
 /*
@@ -137,7 +140,9 @@ namespace FG
 */
 	FileWStream::FileWStream (StringView filename)
 	{
-		if ( fopen_s( OUT &_file, filename.data(), "wb" ) != 0 )
+        fopen_s( OUT &_file, filename.data(), "wb" );
+
+        if ( _file )
 		{
 			FG_LOGE( "Can't open file: "s << filename );
 		}
@@ -154,6 +159,7 @@ namespace FG
     constructor
 =================================================
 */
+#ifdef FG_STD_FILESYSTEM
 	FileWStream::FileWStream (const std::filesystem::path &path)
 	{
 #	ifdef PLATFORM_WINDOWS
@@ -165,6 +171,7 @@ namespace FG
 		if ( not _file )
 			FG_LOGE( "Can't open file: "s << path.string() );
 	}
+#endif
 	
 /*
 =================================================
@@ -187,7 +194,7 @@ namespace FG
 	{
 		ASSERT( IsOpen() );
 
-		return BytesU(ftell( _file ));
+        return BytesU(uint64_t(ftell( _file )));
 	}
 	
 /*
@@ -205,7 +212,7 @@ namespace FG
 		const int64_t	size = ftell( _file );
 		CHECK( fseek( _file, curr, SEEK_SET ) == 0 );
 
-		return BytesU(size);
+        return BytesU(uint64_t(size));
 	}
 	
 /*

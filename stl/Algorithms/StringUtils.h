@@ -6,6 +6,7 @@
 #include "stl/Math/Vec.h"
 #include "stl/Math/Bytes.h"
 #include "stl/Algorithms/EnumUtils.h"
+#include "stl/Algorithms/ArrayUtils.h"
 #include "stl/Memory/MemUtils.h"
 #include <chrono>
 #include <sstream>
@@ -295,7 +296,7 @@ namespace FG
 			str << std::hex << BitCast<NearUInt<T>>( value );
 			return str.str();
 		}else{
-			STATIC_ASSERT( false, "not supported, yet" );
+            //STATIC_ASSERT( false, "not supported, yet" );
 		}
 	}
 
@@ -309,8 +310,8 @@ namespace FG
 		ASSERT( fractParts > 0 and fractParts < 100 );
 		fractParts = Clamp( fractParts, 1u, 99u );
 
-		char	fmt[8]  = {'%', '0', '.', '0' + char(fractParts/10), '0' + char(fractParts%10), 'f', '\0' };
-		char	buf[32] = {};
+        const char	fmt[8]  = {'%', '0', '.', char('0' + fractParts/10), char('0' + fractParts%10), 'f', '\0' };
+        char        buf[32] = {};
 
 		const int	len = std::snprintf( buf, CountOf(buf), fmt, value );
 		ASSERT( len > 0 );

@@ -38,19 +38,36 @@ namespace FG
 		{}
 
 		template <typename B>
-		constexpr explicit RGBAColor (const RGBAColor<B> &other) :
-			r{T(other.r)}, g{T(other.g)}, b{T(other.b)}, a{T(other.a)}
-		{}
+		constexpr explicit RGBAColor (const RGBAColor<B> &other);
+
+		explicit RGBAColor (struct HSVColor const& hsv, T alpha = MaxValue());
 
 
 		ND_ constexpr bool operator == (const RGBAColor<T> &rhs) const
 		{
-			return	Equals( r, rhs.r ) and
-					Equals( g, rhs.g ) and
-					Equals( b, rhs.b ) and
-					Equals( a, rhs.a );
+			const T  eps = Epsilon();
+			return	Equals( r, rhs.r, eps ) and
+					Equals( g, rhs.g, eps ) and
+					Equals( b, rhs.b, eps ) and
+					Equals( a, rhs.a, eps );
 		}
 		
+        ND_ static constexpr T  MaxValue ()
+        {
+            if constexpr ( IsFloatPoint<T> )
+                return T(1.0);
+            else
+                return std::numeric_limits<T>::max();
+        }
+
+        ND_ static constexpr T  Epsilon ()
+        {
+            if constexpr ( IsFloatPoint<T> )
+                return T(0.001);
+            else
+                return T(0);
+        }
+
 		ND_ static constexpr size_t		size ()			{ return 4; }
 		
 		ND_ T *			data ()							{ return std::addressof(r); }
@@ -60,6 +77,11 @@ namespace FG
 		ND_ T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(r)[i]; }
 	};
 	
+	using RGBA32f	= RGBAColor< float >;
+	using RGBA32i	= RGBAColor< int >;
+	using RGBA32u	= RGBAColor< uint >;
+	using RGBA8u	= RGBAColor< uint8_t >;
+
 
 
 	//
@@ -83,10 +105,93 @@ namespace FG
 	};
 
 
-	using RGBA32f	= RGBAColor< float >;
-	using RGBA32i	= RGBAColor< int >;
-	using RGBA32u	= RGBAColor< uint >;
-	using RGBA8u	= RGBAColor< uint8_t >;
+
+	//
+	// HSV Color
+	//
+
+	struct HSVColor
+	{
+	// variables
+		float	h, s, v;
+
+	// methods
+		constexpr HSVColor () : h{0.0f}, s{0.0f}, v{0.0f} {}
+		
+		explicit constexpr HSVColor (float h, float s = 1.0f, float v = 1.0f) : h{h}, s{s}, v{v} {}
+
+		explicit HSVColor (const RGBA32f &c)
+		{
+			// from http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
+			float4 K = float4( 0.0f, -1.0f / 3.0f, 2.0f / 3.0f, -1.0f );
+			float4 p = c.g < c.b ? float4(c.b, c.g, K.w, K.z) : float4(c.g, c.b, K.x, K.y);
+			float4 q = c.r < p.x ? float4(p.x, p.y, p.w, c.r) : float4(c.r, p.y, p.z, p.x);
+			float  d = q.x - Min(q.w, q.y);
+			float  e = 1.0e-10f;
+			h = Abs(q.z + (q.w - q.y) / (6.0f * d + e));
+			s = d / (q.x + e);
+			v = q.x;
+		}
+
+		ND_ constexpr bool  operator == (const HSVColor &rhs) const
+		{
+			const float eps = RGBA32f::Epsilon();
+
+			return Equals( h, rhs.h, eps ) and Equals( s, rhs.s, eps ) and Equals( v, rhs.v, eps );
+		}
+	};
+	
+
+
+	template <>
+	inline RGBAColor<float>::RGBAColor (struct HSVColor const& c, float alpha)
+	{
+		// from http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
+		float4 K = float4(1.0f, 2.0f / 3.0f, 1.0f / 3.0f, 3.0f);
+		float3 p = Abs(Fract(c.h + float3(K.x, K.y, K.z)) * 6.0f - K.w);
+		r = c.v * Lerp(K.x, Clamp(p.x - K.x, 0.0f, 1.0f), c.s);
+		g = c.v * Lerp(K.x, Clamp(p.y - K.x, 0.0f, 1.0f), c.s);
+		b = c.v * Lerp(K.x, Clamp(p.z - K.x, 0.0f, 1.0f), c.s);
+		a = alpha;
+	}
+	
+
+
+	template <> template <>
+	inline constexpr RGBAColor<int>::RGBAColor (const RGBAColor<uint> &other) :
+		r{int(other.r)}, g{int(other.g)}, b{int(other.b)}, a{int(other.a)}
+	{}
+
+	template <> template <>
+	inline constexpr RGBAColor<uint>::RGBAColor (const RGBAColor<int> &other) :
+		r{uint(other.r)}, g{uint(other.g)}, b{uint(other.b)}, a{uint(other.a)}
+	{}
+
+	template <> template <>
+	inline constexpr RGBAColor<int>::RGBAColor (const RGBAColor<uint8_t> &other) :
+		r{int(other.r)}, g{int(other.g)}, b{int(other.b)}, a{int(other.a)}
+	{}
+
+	template <> template <>
+	inline constexpr RGBAColor<uint>::RGBAColor (const RGBAColor<uint8_t> &other) :
+		r{uint(other.r)}, g{uint(other.g)}, b{uint(other.b)}, a{uint(other.a)}
+	{}
+	
+	template <> template <>
+	inline constexpr RGBAColor<uint8_t>::RGBAColor (const RGBAColor<int> &other) :
+		r{uint8_t(other.r)}, g{uint8_t(other.g)}, b{uint8_t(other.b)}, a{uint8_t(other.a)}
+	{}
+
+	template <> template <>
+	inline constexpr RGBAColor<uint8_t>::RGBAColor (const RGBAColor<uint> &other) :
+		r{uint8_t(other.r)}, g{uint8_t(other.g)}, b{uint8_t(other.b)}, a{uint8_t(other.a)}
+	{}
+	
+	template <> template <>
+	inline constexpr RGBAColor<uint8_t>::RGBAColor (const RGBAColor<float> &other) :
+		r{uint8_t(other.r * 255.0f + 0.5f)},  g{uint8_t(other.g * 255.0f + 0.5f)},
+		b{uint8_t(other.b * 255.0f + 0.5f)},  a{uint8_t(other.a * 255.0f + 0.5f)}
+	{}
 
 
 	

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Math/Math.h"
+#include "stl/Math/BitMath.h"
 
 namespace FG
 {
@@ -103,8 +104,8 @@ namespace _fg_hidden_
 			ASSERT( IsAssigned( index ) );
 			index -= _indexOffset;
 
-			uint  idx1 = index / BitCount;
-			uint  idx0 = index % BitCount;
+			Index_t  idx1 = index / BitCount;
+			Index_t  idx0 = index % BitCount;
 
 			_bits[idx1] |= (BitType(1) << idx0);	// 0 -> 1
 
@@ -200,7 +201,7 @@ namespace _fg_hidden_
 
 		void Unassign (Index_t index)
 		{
-			uint  idx = index / LowLevel_t::Capacity();
+			Index_t  idx = index / LowLevel_t::Capacity();
 
 			_level[idx].Unassign( index );
 			
@@ -230,7 +231,7 @@ namespace _fg_hidden_
 		using Index_t	= IndexType;
 		using Bit_t		= BitType;
 
-	private:
+	//private:
 		static constexpr uint	BitCount	= sizeof(BitType)*8;
 
 		static constexpr uint  _CalcLevel (IndexType size)

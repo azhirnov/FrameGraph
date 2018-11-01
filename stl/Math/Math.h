@@ -4,12 +4,6 @@
 
 #include "stl/Common.h"
 
-#ifdef COMPILER_MSVC
-#	include <intrin.h>
-#	pragma intrinsic( _BitScanForward, _BitScanForward64 )
-#	pragma intrinsic( _BitScanReverse, _BitScanReverse64 )
-#endif
-
 namespace FG
 {
 
@@ -34,7 +28,7 @@ namespace FG
 =================================================
 */
 	template <typename T1, typename T2>
-	ND_ inline constexpr _fg_hidden_::EnableForInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
+	ND_ forceinline constexpr _fg_hidden_::EnableForInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
 	{
 		STATIC_ASSERT( IsScalar<T1> and IsScalar<T2> );
 
@@ -56,7 +50,7 @@ namespace FG
 =================================================
 */
 	template <typename T1, typename T2>
-	ND_ inline constexpr _fg_hidden_::EnableForUInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
+	ND_ forceinline constexpr _fg_hidden_::EnableForUInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
 	{
 		STATIC_ASSERT( IsScalar<T1> and IsScalar<T2> );
 		
@@ -74,7 +68,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline constexpr T  AlignToSmaller (const T &value, const T &align)
+	ND_ forceinline constexpr T  AlignToSmaller (const T &value, const T &align)
 	{
 		return (value / align) * align;
 	}
@@ -85,7 +79,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline constexpr T  AlignToLarger (const T &value, const T &align)
+	ND_ forceinline constexpr T  AlignToLarger (const T &value, const T &align)
 	{
 		return ((value + align-1) / align) * align;
 	}
@@ -95,7 +89,7 @@ namespace FG
 	RoundToInt
 =================================================
 */
-	ND_ inline int  RoundToInt (float value)
+	ND_ forceinline int  RoundToInt (float value)
 	{
 		return int(std::round( value ));
 	}
@@ -105,12 +99,12 @@ namespace FG
 	All/Any
 =================================================
 */
-	ND_ inline constexpr bool  All (const bool &value)
+	ND_ forceinline constexpr bool  All (const bool &value)
 	{
 		return value;
 	}
 	
-	ND_ inline constexpr bool  Any (const bool &value)
+	ND_ forceinline constexpr bool  Any (const bool &value)
 	{
 		return value;
 	}
@@ -121,24 +115,36 @@ namespace FG
 =================================================
 */
 	template <typename LT, typename RT>
-	ND_ inline constexpr auto  Max (const LT &lhs, const RT &rhs)
+	ND_ forceinline constexpr auto  Max (const LT &lhs, const RT &rhs)
 	{
 		using T = Conditional< IsSameTypes<LT, RT>, LT, decltype(lhs + rhs) >;
 		
 		return lhs > rhs ? T(lhs) : T(rhs);
 	}
 
+	template <typename T1, typename ...Types>
+	ND_ forceinline constexpr auto  Max (const T1 &arg0, const Types& ...args)
+	{
+		return Max( arg0, Max( args... ));
+	}
+	
 /*
 =================================================
 	Min
 =================================================
 */
 	template <typename LT, typename RT>
-	ND_ inline constexpr auto  Min (const LT &lhs, const RT &rhs)
+	ND_ forceinline constexpr auto  Min (const LT &lhs, const RT &rhs)
 	{
 		using T = Conditional< IsSameTypes<LT, RT>, LT, decltype(lhs + rhs) >;
 		
 		return lhs > rhs ? T(rhs) : T(lhs);
+	}
+
+	template <typename T1, typename ...Types>
+	ND_ forceinline constexpr auto  Min (const T1 &arg0, const Types& ...args)
+	{
+		return Min( arg0, Min( args... ));
 	}
 	
 /*
@@ -147,9 +153,9 @@ namespace FG
 =================================================
 */
 	template <typename ValT, typename MinT, typename MaxT>
-	ND_ inline constexpr auto  Clamp (const ValT &value, const MinT &minVal, const MaxT &maxVal)
+	ND_ forceinline constexpr auto  Clamp (const ValT &value, const MinT &minVal, const MaxT &maxVal)
 	{
-		ASSERT( minVal <= maxVal );
+		ASSERT(All( minVal <= maxVal ));
 		return Min( maxVal, Max( value, minVal ) );
 	}
 	
@@ -159,7 +165,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline constexpr T  Abs (const T &x)
+	ND_ forceinline constexpr EnableIf<IsScalar<T>, T>  Abs (const T &x)
 	{
 		return std::abs( x );
 	}
@@ -170,7 +176,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline constexpr EnableIf<IsScalar<T>, bool>  Equals (const T &lhs, const T &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	ND_ forceinline constexpr EnableIf<IsScalar<T>, bool>  Equals (const T &lhs, const T &rhs, const T &err = std::numeric_limits<T>::epsilon())
 	{
 		if constexpr ( IsUnsignedInteger<T> )
 		{
@@ -181,17 +187,26 @@ namespace FG
 	
 /*
 =================================================
+	Floor
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Floor (const T& x)
+	{
+		return std::floor( x );
+	}
+	
+/*
+=================================================
 	Fract
 ----
-	GLSL-style fract wich return value in range 0..1
+	GLSL-style fract which returns value in range 0..1
 =================================================
 */
 	template <typename T>
 	ND_ forceinline constexpr T  Fract (const T& x)
 	{
-		STATIC_ASSERT( IsScalar<T> and IsFloatPoint<T> );
-
-		return x - std::floor(x);
+		return x - Floor( x );
 	}
 
 /*
@@ -202,67 +217,24 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline constexpr bool  IsIntersects (const T& begin1, const T& end1,
-											 const T& begin2, const T& end2)
+	ND_ forceinline constexpr bool  IsIntersects (const T& begin1, const T& end1,
+												  const T& begin2, const T& end2)
 	{
 		return (end1 > begin2) and (begin1 < end2);
 	}
-	
+
 /*
 =================================================
-	IsPowerOfTwo
+	Lerp
+----
+	linear interpolation
 =================================================
 */
-	template <typename T>
-	inline constexpr bool  IsPowerOfTwo (const T &x)
+	template <typename T, typename B>
+	ND_ forceinline T  Lerp (const T& x, const T& y, const B& factor)
 	{
-		return ( x != 0 and ( (x & (x - T(1))) == T(0) ) );
-	}
-	
-/*
-=================================================
-	IntLog2 / GetPowerOf2
-=================================================
-*/
-	template <typename T>
-	inline int  IntLog2 (const T& x)
-	{
-		constexpr int	INVALID_INDEX = std::numeric_limits<int>::min();
-
-	#ifdef COMPILER_MSVC
-		unsigned long	index;
-
-		if constexpr ( sizeof(x) > sizeof(uint) )
-			return _BitScanReverse64( OUT &index, x ) ? index : INVALID_INDEX;
-		else
-			return _BitScanReverse( OUT &index, x ) ? index : INVALID_INDEX;
-
-	#else
-		//return std::ilogb( x );
-	#endif
-	}
-	
-/*
-=================================================
-	BitScanForward
-=================================================
-*/
-	template <typename T>
-	inline int  BitScanForward (const T& x)
-	{
-		constexpr int	INVALID_INDEX = std::numeric_limits<int>::min();
-
-	#ifdef COMPILER_MSVC
-		unsigned long	index;
-
-		if constexpr ( sizeof(x) > sizeof(uint) )
-			return _BitScanForward64( OUT &index, x ) ? index : INVALID_INDEX;
-		else
-			return _BitScanForward( OUT &index, x ) ? index : INVALID_INDEX;
-
-	#else
-		//return std::ilogb( x );
-	#endif
+		//return T(factor) * (y - x) + x;
+		return x * (T(1) - T(factor)) + y * T(factor);
 	}
 
 

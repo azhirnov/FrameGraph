@@ -214,6 +214,18 @@ namespace FG
 		return res;
 	}
 	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<bool,I>>  operator >  (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs > Vec<T,I>( rhs );
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<bool,I>>  operator >  (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) > rhs;
+	}
+
 /*
 =================================================
 	operator <
@@ -221,6 +233,18 @@ namespace FG
 */
 	template <typename T, uint I>
 	ND_ inline constexpr Vec<bool,I>  operator < (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		return rhs > lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<bool,I>>  operator <  (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return rhs > lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<bool,I>>  operator <  (const S &lhs, const Vec<T,I> &rhs)
 	{
 		return rhs > lhs;
 	}
@@ -258,6 +282,87 @@ namespace FG
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {
 			res[i] = lhs[i] + rhs[i];
+		}
+		return res;
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator + (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs + Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator + (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) + rhs;
+	}
+
+/*
+=================================================
+	operator -
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr Vec<T,I>  operator - (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = lhs[i] - rhs[i];
+		}
+		return res;
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator - (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs - Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator - (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) - rhs;
+	}
+
+/*
+=================================================
+	operator *
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr Vec<T,I>  operator * (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = lhs[i] * rhs[i];
+		}
+		return res;
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator * (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs * Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator * (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) * rhs;
+	}
+
+/*
+=================================================
+	operator /
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr Vec<T,I>  operator / (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = lhs[i] / rhs[i];
 		}
 		return res;
 	}
@@ -382,6 +487,36 @@ namespace FG
 		Vec<bool,I>	res;
 		for (uint i = 0; i < I; ++i) {
 			res[i] = Equals( lhs[i], rhs[i], err );
+		}
+		return res;
+	}
+	
+/*
+=================================================
+	Floor
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ forceinline constexpr EnableIf<IsFloatPoint<T>, Vec<T,I>>  Floor (const Vec<T,I>& x)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Floor( x[i] );
+		}
+		return res;
+	}
+	
+/*
+=================================================
+	Abs
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ forceinline constexpr Vec<T,I>  Abs (const Vec<T,I> &x)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Abs( x[i] );
 		}
 		return res;
 	}
