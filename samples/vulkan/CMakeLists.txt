@@ -13,14 +13,15 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLSLANG})
 		"ImageFootprint1.cpp"
 		"main.cpp"
 		"MeshShader1.cpp"
-		"ShadingRate1.cpp" )
+		"ShadingRate1.cpp"
+		"SparseImage.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "Samples.Vulkan" SHARED ${SOURCES} )
 	else()
 		add_executable( "Samples.Vulkan" ${SOURCES} )
 	endif()
 	source_group( "compiler" FILES "compiler/SpvCompiler.cpp" "compiler/SpvCompiler.h" )
-	source_group( "" FILES "CMakeLists.txt" "FragShaderBarycentric1.cpp" "ImageFootprint1.cpp" "main.cpp" "MeshShader1.cpp" "ShadingRate1.cpp" )
+	source_group( "" FILES "CMakeLists.txt" "FragShaderBarycentric1.cpp" "ImageFootprint1.cpp" "main.cpp" "MeshShader1.cpp" "ShadingRate1.cpp" "SparseImage.cpp" )
 	set_property( TARGET "Samples.Vulkan" PROPERTY FOLDER "Samples" )
 	target_include_directories( "Samples.Vulkan" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Samples.Vulkan" PRIVATE "../../extensions" )

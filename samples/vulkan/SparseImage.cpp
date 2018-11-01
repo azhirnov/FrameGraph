@@ -6,13 +6,16 @@
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
 #include "compiler/SpvCompiler.h"
+#include "stl/Algorithms/StringUtils.h"
 #include "stl/Math/Color.h"
 
 using namespace FG;
 
 
-class ImageFootprintApp final : public IWindowEventListener, public VulkanDeviceFn
+class SparseImageApp final : public IWindowEventListener, public VulkanDeviceFn
 {
+	using TimePoint_t	= std::chrono::time_point< std::chrono::high_resolution_clock >;
+
 private:
 	VulkanDeviceExt			vulkan;
 	VulkanSwapchainPtr		swapchain;
@@ -23,7 +26,7 @@ private:
 	VkQueue					cmdQueue		= VK_NULL_HANDLE;
 	VkCommandBuffer			cmdBuffers[2]	= {};
 	VkFence					fences[2]		= {};
-	VkSemaphore				semaphores[2]	= {};
+	VkSemaphore				semaphores[4]	= {};
 
 	VkRenderPass			renderPass		= VK_NULL_HANDLE;
 	VkFramebuffer			framebuffers[8]	= {};
@@ -32,21 +35,25 @@ private:
 	VkPipelineLayout		pplnLayout		= VK_NULL_HANDLE;
 	VkShaderModule			vertShader		= VK_NULL_HANDLE;
 	VkShaderModule			fragShader		= VK_NULL_HANDLE;
-
+	
 	VkDescriptorSetLayout	dsLayout		= VK_NULL_HANDLE;
 	VkDescriptorPool		descriptorPool	= VK_NULL_HANDLE;
 	VkDescriptorSet			descriptorSet	= VK_NULL_HANDLE;
-
-	VkImage					texture			= VK_NULL_HANDLE;
-	VkImageView				textureView		= VK_NULL_HANDLE;
-	VkSampler				sampler			= VK_NULL_HANDLE;
+	
+	VkImage					sparseImage		= VK_NULL_HANDLE;
+	VkImageView				sparseImageView	= VK_NULL_HANDLE;
 	VkDeviceMemory			sharedMemory	= VK_NULL_HANDLE;
+	VkSampler				sampler			= VK_NULL_HANDLE;
+
+	Array<VkSparseImageMemoryBind>	imageBlocks;
 
 	bool					looping			= true;
 
+	static constexpr char	title[]			= "Sparse image sample";
+
 
 public:
-	ImageFootprintApp ()
+	SparseImageApp ()
 	{
 		VulkanDeviceFn_Init( vulkan );
 	}
@@ -67,12 +74,18 @@ public:
 	bool CreateRenderPass ();
 	bool CreateFramebuffers ();
 	void DestroyFramebuffers ();
-	bool CreateSampler ();
 	bool CreateResources ();
+	bool CreateSampler ();
 	bool CreateDescriptorSet ();
 	bool CreatePipeline ();
 
-	ND_ bool IsImageFootprintSupported () const		{ return vulkan.GetDeviceShaderImageFootprintFeatures().imageFootprint; }
+	ND_ bool IsSparseImageSupported () const
+	{
+		return	vulkan.GetDeviceFeatures().sparseBinding			and
+				vulkan.GetDeviceFeatures().sparseResidencyAliased	and
+				vulkan.GetDeviceFeatures().sparseResidencyBuffer	and
+				vulkan.GetDeviceFeatures().sparseResidencyImage2D;
+	}
 };
 
 
@@ -82,7 +95,7 @@ public:
 	OnKey
 =================================================
 */
-void ImageFootprintApp::OnKey (StringView key, EKeyAction action)
+void SparseImageApp::OnKey (StringView key, EKeyAction action)
 {
 	if ( action != EKeyAction::Down )
 		return;
@@ -96,7 +109,7 @@ void ImageFootprintApp::OnKey (StringView key, EKeyAction action)
 	OnResize
 =================================================
 */
-void ImageFootprintApp::OnResize (const uint2 &size)
+void SparseImageApp::OnResize (const uint2 &size)
 {
 	VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
 
@@ -104,7 +117,6 @@ void ImageFootprintApp::OnResize (const uint2 &size)
 	DestroyFramebuffers();
 
 	CHECK( swapchain->Recreate( size ));
-
 	CHECK( CreateFramebuffers() );
 }
 
@@ -113,7 +125,7 @@ void ImageFootprintApp::OnResize (const uint2 &size)
 	Initialize
 =================================================
 */
-bool ImageFootprintApp::Initialize ()
+bool SparseImageApp::Initialize ()
 {
 # if defined(FG_ENABLE_GLFW)
 	window.reset( new WindowGLFW() );
@@ -131,24 +143,22 @@ bool ImageFootprintApp::Initialize ()
 
 	// create window and vulkan device
 	{
-		const char	title[] = "Image footprint sample";
-
 		CHECK_ERR( window->Create( { 800, 600 }, title ));
 		window->AddListener( this );
 
 		CHECK_ERR( vulkan.Create( window->GetVulkanSurface(),
-								  title, "Engine",
+								  "sample", "Engine",
 								  VK_API_VERSION_1_1,
 								  "",
-								  {{ VK_QUEUE_PRESENT_BIT | VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.0f }},
+								  {{ VK_QUEUE_PRESENT_BIT | VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_SPARSE_BINDING_BIT, 0.0f }},
 								  VulkanDevice::GetRecomendedInstanceLayers(),
 								  { VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME },
-								  { VK_NV_SHADER_IMAGE_FOOTPRINT_EXTENSION_NAME }
+								  {}
 			));
 		
 		vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT );
 
-		CHECK( IsImageFootprintSupported() );
+		CHECK_ERR( IsSparseImageSupported() );
 	}
 
 
@@ -172,8 +182,8 @@ bool ImageFootprintApp::Initialize ()
 	CHECK_ERR( CreateSyncObjects() );
 	CHECK_ERR( CreateRenderPass() );
 	CHECK_ERR( CreateFramebuffers() );
-	CHECK_ERR( CreateSampler() );
 	CHECK_ERR( CreateResources() );
+	CHECK_ERR( CreateSampler() );
 	CHECK_ERR( CreateDescriptorSet() );
 	CHECK_ERR( CreatePipeline() );
 	return true;
@@ -184,42 +194,46 @@ bool ImageFootprintApp::Initialize ()
 	Destroy
 =================================================
 */
-void ImageFootprintApp::Destroy ()
+void SparseImageApp::Destroy ()
 {
 	VkDevice	dev = vulkan.GetVkDevice();
 
 	VK_CALL( vkDeviceWaitIdle( dev ));
 
-	vkDestroySemaphore( dev, semaphores[0], null );
-	vkDestroySemaphore( dev, semaphores[1], null );
-	vkDestroyFence( dev, fences[0], null );
-	vkDestroyFence( dev, fences[1], null );
+	for (auto& sem : semaphores) {
+		vkDestroySemaphore( dev, sem, null );
+		sem = VK_NULL_HANDLE;
+	}
+	for (auto& fen : fences) {
+		vkDestroyFence( dev, fen, null );
+		fen = VK_NULL_HANDLE;
+	}
 	vkDestroyCommandPool( dev, cmdPool, null );
 	vkDestroyRenderPass( dev, renderPass, null );
 	vkDestroyPipeline( dev, pipeline, null );
+	vkDestroyPipelineLayout( dev, pplnLayout, null );
 	vkDestroyShaderModule( dev, vertShader, null );
 	vkDestroyShaderModule( dev, fragShader, null );
-	vkDestroyPipelineLayout( dev, pplnLayout, null );
 	vkDestroyDescriptorSetLayout( dev, dsLayout, null );
 	vkDestroyDescriptorPool( dev, descriptorPool, null );
-	vkDestroyImage( dev, texture, null );
-	vkDestroyImageView( dev, textureView, null );
+	vkDestroyImage( dev, sparseImage, null );
+	vkDestroyImageView( dev, sparseImageView, null );
 	vkDestroySampler( dev, sampler, null );
 	vkFreeMemory( dev, sharedMemory, null );
 
 	cmdPool			= VK_NULL_HANDLE;
 	cmdQueue		= VK_NULL_HANDLE;
 	pipeline		= VK_NULL_HANDLE;
+	pplnLayout		= VK_NULL_HANDLE;
 	vertShader		= VK_NULL_HANDLE;
 	fragShader		= VK_NULL_HANDLE;
-	pplnLayout		= VK_NULL_HANDLE;
 	dsLayout		= VK_NULL_HANDLE;
 	descriptorPool	= VK_NULL_HANDLE;
 	descriptorSet	= VK_NULL_HANDLE;
-	texture			= VK_NULL_HANDLE;
-	textureView		= VK_NULL_HANDLE;
-	sharedMemory	= VK_NULL_HANDLE;
 	sampler			= VK_NULL_HANDLE;
+	sparseImage		= VK_NULL_HANDLE;
+	sparseImageView	= VK_NULL_HANDLE;
+	sharedMemory	= VK_NULL_HANDLE;
 
 	DestroyFramebuffers();
 	swapchain->Destroy();
@@ -236,8 +250,10 @@ void ImageFootprintApp::Destroy ()
 	Run
 =================================================
 */
-bool ImageFootprintApp::Run ()
-{
+bool SparseImageApp::Run ()
+{	
+	TimePoint_t		last_sparse_rebind = TimePoint_t::clock::now();
+
 	for (uint frameId = 0; looping; frameId = ((frameId + 1) & 1))
 	{
 		if ( not window->Update() )
@@ -249,6 +265,46 @@ bool ImageFootprintApp::Run ()
 			VK_CHECK( vkResetFences( vulkan.GetVkDevice(), 1, &fences[frameId] ));
 
 			VK_CALL( swapchain->AcquireNextImage( semaphores[0] ));
+		}
+		
+		// bind sparse memory to image
+		VkSemaphore		sparse_binding_sem = VK_NULL_HANDLE;
+		{
+			const TimePoint_t	time = TimePoint_t::clock::now();
+
+			if ( time - last_sparse_rebind > std::chrono::seconds(2) )
+			{
+				last_sparse_rebind	= time;
+				sparse_binding_sem	= semaphores[frameId + 2];
+
+				const uint	src_idx = (rand() % imageBlocks.size());
+				uint		dst_idx = src_idx;
+
+				while ( src_idx == dst_idx ) {
+					dst_idx = (rand() % imageBlocks.size());
+				}
+				
+				std::swap( imageBlocks[src_idx].memoryOffset, imageBlocks[dst_idx].memoryOffset );
+
+				const VkSparseImageMemoryBind	img_binds[] = {
+					imageBlocks[ src_idx ],
+					imageBlocks[ dst_idx ]
+				};
+
+				VkSparseImageMemoryBindInfo		img_info = {};
+				img_info.image		= sparseImage;
+				img_info.bindCount	= uint(CountOf( img_binds ));
+				img_info.pBinds		= img_binds;
+
+				VkBindSparseInfo				binding = {};
+				binding.sType				= VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+				binding.imageBindCount		= 1;
+				binding.pImageBinds			= &img_info;
+				binding.signalSemaphoreCount= 1;
+				binding.pSignalSemaphores	= &sparse_binding_sem;
+
+				VK_CALL( vkQueueBindSparse( cmdQueue, 1, &binding, VK_NULL_HANDLE ));
+			}
 		}
 
 		// build command buffer
@@ -274,9 +330,9 @@ bool ImageFootprintApp::Run ()
 				vkCmdBeginRenderPass( cmdBuffers[frameId], &begin, VK_SUBPASS_CONTENTS_INLINE );
 			}
 			
-			vkCmdBindPipeline( cmdBuffers[frameId], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline );
 			vkCmdBindDescriptorSets( cmdBuffers[frameId], VK_PIPELINE_BIND_POINT_GRAPHICS, pplnLayout, 0, 1, &descriptorSet, 0, null );
-
+			vkCmdBindPipeline( cmdBuffers[frameId], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline );
+			
 			// set dynamic states
 			{
 				VkViewport	viewport = {};
@@ -293,8 +349,11 @@ bool ImageFootprintApp::Run ()
 
 				vkCmdSetScissor( cmdBuffers[frameId], 0, 1, &scissor_rect );
 			}
-			
-			vkCmdDraw( cmdBuffers[frameId], 4, 1, 0, 0 );
+
+			// draw
+			{
+				vkCmdDraw( cmdBuffers[frameId], 4, 1, 0, 0 );
+			}
 
 			vkCmdEndRenderPass( cmdBuffers[frameId] );
 
@@ -305,18 +364,18 @@ bool ImageFootprintApp::Run ()
 		// submit commands
 		{
 			VkSemaphore				signal_semaphores[] = { semaphores[1] };
-			VkSemaphore				wait_semaphores[]	= { semaphores[0] };
-			VkPipelineStageFlags	wait_dst_mask[]		= { VK_PIPELINE_STAGE_TRANSFER_BIT };
+			VkSemaphore				wait_semaphores[]	= { semaphores[0], sparse_binding_sem };
+			VkPipelineStageFlags	wait_dst_mask[]		= { VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT };
 			STATIC_ASSERT( CountOf(wait_semaphores) == CountOf(wait_dst_mask) );
 
 			VkSubmitInfo				submit_info = {};
 			submit_info.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
 			submit_info.commandBufferCount		= 1;
 			submit_info.pCommandBuffers			= &cmdBuffers[frameId];
-			submit_info.waitSemaphoreCount		= uint(CountOf(wait_semaphores));
+			submit_info.waitSemaphoreCount		= uint(CountOf( wait_semaphores )) - uint(sparse_binding_sem == VK_NULL_HANDLE);
 			submit_info.pWaitSemaphores			= wait_semaphores;
 			submit_info.pWaitDstStageMask		= wait_dst_mask;
-			submit_info.signalSemaphoreCount	= uint(CountOf(signal_semaphores));
+			submit_info.signalSemaphoreCount	= uint(CountOf( signal_semaphores ));
 			submit_info.pSignalSemaphores		= signal_semaphores;
 
 			VK_CHECK( vkQueueSubmit( cmdQueue, 1, &submit_info, fences[frameId] ));
@@ -346,7 +405,7 @@ bool ImageFootprintApp::Run ()
 	CreateCommandBuffers
 =================================================
 */
-bool ImageFootprintApp::CreateCommandBuffers ()
+bool SparseImageApp::CreateCommandBuffers ()
 {
 	VkCommandPoolCreateInfo		pool_info = {};
 	pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -370,19 +429,23 @@ bool ImageFootprintApp::CreateCommandBuffers ()
 	CreateSyncObjects
 =================================================
 */
-bool ImageFootprintApp::CreateSyncObjects ()
+bool SparseImageApp::CreateSyncObjects ()
 {
 	VkFenceCreateInfo	fence_info	= {};
 	fence_info.sType	= VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fence_info.flags	= VK_FENCE_CREATE_SIGNALED_BIT;
-	VK_CHECK( vkCreateFence( vulkan.GetVkDevice(), &fence_info, null, OUT &fences[0] ));
-	VK_CHECK( vkCreateFence( vulkan.GetVkDevice(), &fence_info, null, OUT &fences[1] ));
+
+	for (auto& fence : fences) {
+		VK_CHECK( vkCreateFence( vulkan.GetVkDevice(), &fence_info, null, OUT &fence ));
+	}
 			
 	VkSemaphoreCreateInfo	sem_info = {};
 	sem_info.sType		= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	sem_info.flags		= 0;
-	VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[0] ) );
-	VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[1] ) );
+
+	for (auto& sem : semaphores) {
+		VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &sem ) );
+	}
 
 	return true;
 }
@@ -392,7 +455,7 @@ bool ImageFootprintApp::CreateSyncObjects ()
 	CreateRenderPass
 =================================================
 */
-bool ImageFootprintApp::CreateRenderPass ()
+bool SparseImageApp::CreateRenderPass ()
 {
 	// setup attachment
 	VkAttachmentDescription		attachments[1] = {};
@@ -458,7 +521,7 @@ bool ImageFootprintApp::CreateRenderPass ()
 	CreateFramebuffers
 =================================================
 */
-bool ImageFootprintApp::CreateFramebuffers ()
+bool SparseImageApp::CreateFramebuffers ()
 {
 	VkFramebufferCreateInfo	fb_info = {};
 	fb_info.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -483,7 +546,7 @@ bool ImageFootprintApp::CreateFramebuffers ()
 	DestroyFramebuffers
 =================================================
 */
-void ImageFootprintApp::DestroyFramebuffers ()
+void SparseImageApp::DestroyFramebuffers ()
 {
 	for (uint i = 0; i < swapchain->GetSwapchainLength(); ++i)
 	{
@@ -496,7 +559,7 @@ void ImageFootprintApp::DestroyFramebuffers ()
 	CreateSampler
 =================================================
 */
-bool ImageFootprintApp::CreateSampler ()
+bool SparseImageApp::CreateSampler ()
 {
 	VkSamplerCreateInfo		info = {};
 	info.sType				= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -525,73 +588,220 @@ bool ImageFootprintApp::CreateSampler ()
 	CreateResources
 =================================================
 */
-bool ImageFootprintApp::CreateResources ()
+bool SparseImageApp::CreateResources ()
 {
 	VkDeviceSize					total_size		= 0;
 	uint							mem_type_bits	= 0;
 	VkMemoryPropertyFlags			mem_property	= 0;
-	Array<std::function<void ()>>	bind_mem;
-	const uint2						tex_size		= { 128, 128 };
-	const uint						mipmaps			= IntLog2( Max( tex_size.x, tex_size. y ));
+	uint2							image_size;
+	const uint2						num_tiles		{ 4, 4 };
+	uint2							tile_size;
+	VkMemoryRequirements			img_mem_req		= {};
+	VkMemoryRequirements			buf_mem_req		= {};
 
-	// create texture
+	// create sparse image
 	{
+		VkFormat	img_format = VK_FORMAT_R8G8B8A8_UNORM;
+
+		// find supported format
+		{
+			VkPhysicalDeviceSparseImageFormatInfo2	fmt_info = {};
+			fmt_info.sType		= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SPARSE_IMAGE_FORMAT_INFO_2;
+			fmt_info.format		= img_format;
+			fmt_info.type		= VK_IMAGE_TYPE_2D;
+			fmt_info.samples	= VK_SAMPLE_COUNT_1_BIT;
+			fmt_info.usage		= VK_IMAGE_USAGE_SAMPLED_BIT;
+			fmt_info.tiling		= VK_IMAGE_TILING_OPTIMAL;
+
+			uint	count = 0;
+			vkGetPhysicalDeviceSparseImageFormatProperties2( vulkan.GetVkPhysicalDevice(), &fmt_info, OUT &count, null );
+			CHECK_ERR( count > 0 );
+
+			Array<VkSparseImageFormatProperties2>	fmt_properties{ count };
+			for (auto& prop : fmt_properties) {
+				prop.sType = VK_STRUCTURE_TYPE_SPARSE_IMAGE_FORMAT_PROPERTIES_2;
+				prop.pNext = null;
+			}
+			vkGetPhysicalDeviceSparseImageFormatProperties2( vulkan.GetVkPhysicalDevice(), &fmt_info, OUT &count, fmt_properties.data() );
+
+			for (auto& prop : fmt_properties) {
+				if ( prop.properties.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT ) {
+					tile_size.x = prop.properties.imageGranularity.width;
+					tile_size.y = prop.properties.imageGranularity.height;
+					image_size  = tile_size * num_tiles;
+					break;
+				}
+			}
+			CHECK_ERR(All( tile_size > 0 ));
+			CHECK_ERR(All( image_size > 0 ));
+		}
+
 		VkImageCreateInfo	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		info.flags			= 0;
+		info.flags			= VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT | VK_IMAGE_CREATE_SPARSE_ALIASED_BIT;
 		info.imageType		= VK_IMAGE_TYPE_2D;
-		info.format			= VK_FORMAT_R8G8B8A8_UNORM;
-		info.extent			= { tex_size.x, tex_size.y, 1 };
-		info.mipLevels		= mipmaps;
+		info.format			= img_format;
+		info.extent			= { image_size.x, image_size.y, 1 };
+		info.mipLevels		= 1;
 		info.arrayLayers	= 1;
 		info.samples		= VK_SAMPLE_COUNT_1_BIT;
 		info.tiling			= VK_IMAGE_TILING_OPTIMAL;
-		info.usage			= VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		info.usage			= VK_IMAGE_USAGE_SAMPLED_BIT;
 		info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
 		info.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
 
-		VK_CHECK( vkCreateImage( vulkan.GetVkDevice(), &info, null, OUT &texture ));
+		VK_CHECK( vkCreateImage( vulkan.GetVkDevice(), &info, null, OUT &sparseImage ));
 		
-		VkMemoryRequirements	mem_req;
-		vkGetImageMemoryRequirements( vulkan.GetVkDevice(), texture, OUT &mem_req );
-		
-		VkDeviceSize	offset = AlignToLarger( total_size, mem_req.alignment );
-		total_size		 = offset + mem_req.size;
-		mem_type_bits	|= mem_req.memoryTypeBits;
+		vkGetImageMemoryRequirements( vulkan.GetVkDevice(), sparseImage, OUT &img_mem_req );
+
+		uint	count = 0;
+		vkGetImageSparseMemoryRequirements( vulkan.GetVkDevice(), sparseImage, OUT &count, null );
+
+		Array<VkSparseImageMemoryRequirements>	sparse_req{ count };
+		vkGetImageSparseMemoryRequirements( vulkan.GetVkDevice(), sparseImage, OUT &count, sparse_req.data() );
+
+		VkDeviceSize	offset = AlignToLarger( total_size, img_mem_req.alignment );
+		total_size		 = offset + img_mem_req.size;
+		mem_type_bits	|= img_mem_req.memoryTypeBits;
 		mem_property	|= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-		bind_mem.push_back( [this, offset, mipmaps] () {
-			VK_CALL( vkBindImageMemory( vulkan.GetVkDevice(), texture, sharedMemory, offset ));
+		VkImageViewCreateInfo	view = {};
+		view.sType				= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		view.image				= sparseImage;
+		view.viewType			= VK_IMAGE_VIEW_TYPE_2D;
+		view.format				= img_format;
+		view.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+		view.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
-            VkImageViewCreateInfo	view = {};
-            view.sType				= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            view.image				= texture;
-            view.viewType			= VK_IMAGE_VIEW_TYPE_2D;
-            view.format				= VK_FORMAT_R8G8B8A8_UNORM;
-            view.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
-            view.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, mipmaps, 0, 1 };
+		VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &view, null, OUT &sparseImageView ));
+	}
 
-            VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &view, null, OUT &textureView ));
-		});
+	// create sparse buffer for one image tile
+	VkBuffer		temp_buffer			= VK_NULL_HANDLE;
+	VkDeviceSize	temp_buffer_size	= sizeof(float) * tile_size.x * tile_size.y;
+	{
+		VkBufferCreateInfo	info = {};
+		info.sType		= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		info.flags		= VK_BUFFER_CREATE_SPARSE_BINDING_BIT | VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT | VK_BUFFER_CREATE_SPARSE_ALIASED_BIT;
+		info.size		= temp_buffer_size;
+		info.usage		= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		info.sharingMode= VK_SHARING_MODE_EXCLUSIVE;
+
+		VK_CHECK( vkCreateBuffer( vulkan.GetVkDevice(), &info, null, OUT &temp_buffer ));
+		
+		vkGetBufferMemoryRequirements( vulkan.GetVkDevice(), temp_buffer, OUT &buf_mem_req );
+
+		ASSERT( total_size > buf_mem_req.size );
+
+		mem_type_bits	|= buf_mem_req.memoryTypeBits;
+		mem_property	|= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	}
 
 	// allocate memory
 	{
 		VkMemoryAllocateInfo	info = {};
 		info.sType				= VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		info.allocationSize		= total_size;
+		info.allocationSize		= (total_size *= 2);
 
 		CHECK_ERR( vulkan.GetMemoryTypeIndex( mem_type_bits, mem_property, OUT info.memoryTypeIndex ));
 
 		VK_CHECK( vkAllocateMemory( vulkan.GetVkDevice(), &info, null, OUT &sharedMemory ));
 	}
 
-	// bind resources
-	for (auto& bind : bind_mem) {
-		bind();
-	}
+	// initialize image data
+	VkDeviceSize	mem_offset	= 0;
 
-	// update resources
+	for (uint y = 0; y < num_tiles.y; ++y)
+	{
+		for (uint x = 0; x < num_tiles.x; ++x)
+		{
+			// bind sparse memory to buffer
+			{
+				VkSparseMemoryBind			buf_bind = {};
+				buf_bind.resourceOffset		= 0;
+				buf_bind.size				= buf_mem_req.size;
+				buf_bind.memory				= sharedMemory;
+				buf_bind.memoryOffset		= mem_offset;
+				buf_bind.flags				= 0;
+	
+				VkSparseImageMemoryBind		img_bind = {};
+				img_bind.subresource		= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+				img_bind.offset				= { int(tile_size.x * x), int(tile_size.y * y), 0 };
+				img_bind.extent				= { tile_size.x, tile_size.y, 1 };
+				img_bind.memory				= sharedMemory;
+				img_bind.memoryOffset		= buf_bind.memoryOffset;
+				
+				ASSERT( img_bind.memoryOffset % img_mem_req.alignment == 0 );
+				imageBlocks.push_back( img_bind );
+
+				VkSparseBufferMemoryBindInfo	buf_info = {};
+				buf_info.buffer				= temp_buffer;
+				buf_info.bindCount			= 1;
+				buf_info.pBinds				= &buf_bind;
+				
+				VkBindSparseInfo			binding = {};
+				binding.sType				= VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+				binding.bufferBindCount		= 1;
+				binding.pBufferBinds		= &buf_info;
+				binding.signalSemaphoreCount= 1;
+				binding.pSignalSemaphores	= &semaphores[0];
+
+				VK_CALL( vkQueueBindSparse( cmdQueue, 1, &binding, VK_NULL_HANDLE ));
+			}
+
+			// clear buffer
+			{
+				VkCommandBufferBeginInfo	begin_info = {};
+				begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				begin_info.pNext			= null;
+				begin_info.flags			= 0;
+				begin_info.pInheritanceInfo	= null;
+				VK_CALL( vkBeginCommandBuffer( cmdBuffers[0], &begin_info ));
+				
+				RGBA32f		color		{ HSVColor{float(x + y * num_tiles.x) / float(num_tiles.x * num_tiles.y)} };
+				RGBA8u		rgba		{ color };
+				uint		pattern;	MemCopy( pattern, rgba );
+
+				vkCmdFillBuffer( cmdBuffers[0], temp_buffer, 0, temp_buffer_size, pattern );
+
+				VK_CALL( vkEndCommandBuffer( cmdBuffers[0] ));
+
+				VkSubmitInfo			submit_info = {};
+				VkPipelineStageFlags	stage_mask	= VK_PIPELINE_STAGE_TRANSFER_BIT;
+				submit_info.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
+				submit_info.commandBufferCount	= 1;
+				submit_info.pCommandBuffers		= &cmdBuffers[0];
+				submit_info.waitSemaphoreCount	= 1;
+				submit_info.pWaitSemaphores		= &semaphores[0];
+				submit_info.pWaitDstStageMask	= &stage_mask;
+
+				VK_CALL( vkQueueSubmit( cmdQueue, 1, &submit_info, VK_NULL_HANDLE ));
+				VK_CALL( vkQueueWaitIdle( cmdQueue ));
+			}
+
+			mem_offset = AlignToLarger( mem_offset + buf_mem_req.size, Max(img_mem_req.alignment, buf_mem_req.alignment) );
+			ASSERT( mem_offset <= total_size );
+		}
+	}
+	vkDestroyBuffer( vulkan.GetVkDevice(), temp_buffer, null );
+
+	// bind sparse memory to image
+	{
+		VkSparseImageMemoryBindInfo		img_info = {};
+		img_info.image			= sparseImage;
+		img_info.bindCount		= uint(imageBlocks.size());
+		img_info.pBinds			= imageBlocks.data();
+
+		VkBindSparseInfo		binding = {};
+		binding.sType			= VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+		binding.imageBindCount	= 1;
+		binding.pImageBinds		= &img_info;
+
+		VK_CALL( vkQueueBindSparse( cmdQueue, 1, &binding, VK_NULL_HANDLE ));
+		VK_CALL( vkQueueWaitIdle( cmdQueue ));
+	}
+	
+	// update image
 	{
 		VkCommandBufferBeginInfo	begin_info = {};
 		begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -599,48 +809,22 @@ bool ImageFootprintApp::CreateResources ()
 		begin_info.flags			= 0;
 		begin_info.pInheritanceInfo	= null;
 		VK_CALL( vkBeginCommandBuffer( cmdBuffers[0], &begin_info ));
+		
+		// undefined -> shader_read_only_optimal
+		VkImageMemoryBarrier	barrier = {};
+		barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.image				= sparseImage;
+		barrier.oldLayout			= VK_IMAGE_LAYOUT_UNDEFINED;
+		barrier.newLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask		= 0;
+		barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
+		barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
-		// clear texture
-		{
-			// undefined -> transfer_dst
-			VkImageMemoryBarrier	barrier = {};
-			barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.image				= texture;
-			barrier.oldLayout			= VK_IMAGE_LAYOUT_UNDEFINED;
-			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.srcAccessMask		= 0;
-			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-			barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, mipmaps, 0, 1 };
-
-			vkCmdPipelineBarrier( cmdBuffers[0],
-								  VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-								  0, null, 0, null, 1, &barrier );
-
-			// clear image levels
-			VkClearColorValue		clear_value	= {};
-			VkImageSubresourceRange	range		= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-			for (uint i = 0; i < mipmaps; ++i)
-			{
-				RGBA32f		color	{ HSVColor{Fract( float(i) / float(mipmaps) )} };
-				clear_value			= {{ color.r, color.g, color.b, color.a }};
-				range.baseMipLevel	= i;
-
-				vkCmdClearColorImage( cmdBuffers[0], texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_value, 1, &range );
-			}
-
-			// transfer_dst -> shader_read_optimal
-			barrier.oldLayout		= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.newLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			barrier.srcAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask	= 0;
-
-			vkCmdPipelineBarrier( cmdBuffers[0],
-								  VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
-								  0, null, 0, null, 1, &barrier );
-		}
+		vkCmdPipelineBarrier( cmdBuffers[0],
+								VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+								0, null, 0, null, 1, &barrier );
 
 		VK_CALL( vkEndCommandBuffer( cmdBuffers[0] ));
 
@@ -650,9 +834,8 @@ bool ImageFootprintApp::CreateResources ()
 		submit_info.pCommandBuffers		= &cmdBuffers[0];
 
 		VK_CHECK( vkQueueSubmit( cmdQueue, 1, &submit_info, VK_NULL_HANDLE ));
+		VK_CALL( vkQueueWaitIdle( cmdQueue ));
 	}
-
-	VK_CALL( vkQueueWaitIdle( cmdQueue ));
 	return true;
 }
 
@@ -661,7 +844,7 @@ bool ImageFootprintApp::CreateResources ()
 	CreateDescriptorSet
 =================================================
 */
-bool ImageFootprintApp::CreateDescriptorSet ()
+bool SparseImageApp::CreateDescriptorSet ()
 {
 	// create layout
 	{
@@ -704,12 +887,12 @@ bool ImageFootprintApp::CreateDescriptorSet ()
 
 		VK_CHECK( vkAllocateDescriptorSets( vulkan.GetVkDevice(), &info, OUT &descriptorSet ));
 	}
-
+	
 	// update descriptor set
 	{
 		VkDescriptorImageInfo	textures[1] = {};
 		textures[0].imageLayout	= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		textures[0].imageView	= textureView;
+		textures[0].imageView	= sparseImageView;
 		textures[0].sampler		= sampler;
 
 		VkWriteDescriptorSet	writes[1] = {};
@@ -730,7 +913,7 @@ bool ImageFootprintApp::CreateDescriptorSet ()
 	CreatePipeline
 =================================================
 */
-bool ImageFootprintApp::CreatePipeline ()
+bool SparseImageApp::CreatePipeline ()
 {
 	// create vertex shader
 	{
@@ -744,7 +927,6 @@ const vec2	g_Positions[4] = {
 	vec2(  1.0,  1.0 ),
 	vec2(  1.0, -1.0 )
 };
-
 layout(location = 0) out vec2  v_TexCoord;
 
 void main()
@@ -755,45 +937,6 @@ void main()
 )#";
 		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, vert_shader_source, "main", EShLangVertex ));
 	}
-
-	// create fragment shader with image footprint extension
-	// see https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_shader_texture_footprint.txt
-	if ( IsImageFootprintSupported() )
-	{
-		static const char	frag_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_NV_shader_texture_footprint : enable
-
-/*struct gl_TextureFootprint2DNV {
-	uvec2 anchor;
-	uvec2 offset;
-	uvec2 mask;
-	uint  lod;
-	uint  granularity;
-};*/
-
-layout(location = 0) out vec4  out_Color;
-layout(location = 0) in  vec2  v_TexCoord;
-layout(binding = 0) uniform sampler2D un_Texture;
-
-void main ()
-{
-	gl_TextureFootprint2DNV  footprint;
-	bool result = textureFootprintNV( un_Texture, v_TexCoord, /*2x2*/1, /*higher resolution*/false, /*out*/footprint );
-
-	vec2	tex_size = vec2(textureSize( un_Texture, 0 ));
-	float	mipmaps  = float(textureQueryLevels( un_Texture ));
-
-	out_Color = vec4( float(footprint.offset.x) / tex_size.x,
-					  float(footprint.offset.y) / tex_size.y,
-					  float(footprint.lod) / mipmaps,
-					  1.0 );
-}
-)#";
-		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
-	}
-	else
 
 	// create fragment shader
 	{
@@ -807,7 +950,7 @@ layout(binding = 0) uniform sampler2D un_Texture;
 
 void main ()
 {
-	out_Color = texture( un_Texture, v_TexCoord ) * v_TexCoord.x * v_TexCoord.y;
+	out_Color = texture( un_Texture, v_TexCoord );
 }
 )#";
 		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
@@ -904,12 +1047,12 @@ void main ()
 
 /*
 =================================================
-	ImageFootprint_Sample1
+	SparseImage_Sample1
 =================================================
 */
-extern void ImageFootprint_Sample1 ()
+extern void SparseImage_Sample1 ()
 {
-	ImageFootprintApp	app;
+	SparseImageApp	app;
 
 	CHECK_FATAL( app.Initialize() );
 	CHECK_FATAL( app.Run() );

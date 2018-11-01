@@ -3,6 +3,7 @@
 #pragma once
 
 #include "framework/Vulkan/VulkanDevice.h"
+#include "stl/Algorithms/ArrayUtils.h"
 
 // glslang includes
 #include "glslang/glslang/Public/ShaderLang.h"
