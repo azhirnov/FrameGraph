@@ -6,6 +6,7 @@
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "stl/Math/Color.h"
 #include <thread>
 
 using namespace FG;
@@ -219,13 +220,9 @@ public:
 									  0, null, 0, null, 1, &image_barrier1 );
 		
 
-				// generate random color
-				float	factor	= Fract( float(i) / 60.0f );
-				float3	color	= Clamp( float3{ Abs(factor * 6.0f - 3.0f) - 1.0f, 2.0f - Abs(factor * 6.0f - 2.0f), 2.0f - Abs(factor * 6.0f - 4.0f) }, 0.0f, 1.0f );
-
-
 				// clear image
-                VkClearColorValue	clear_value = {{ color.x, color.y, color.z, 1.0f }};
+				RGBA32f				color		{ HSVColor{Fract( float(i) / 60.0f )} };
+                VkClearColorValue	clear_value {{ color.r, color.g, color.b, color.a }};
 
 				VkImageSubresourceRange	range;
 				range.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;

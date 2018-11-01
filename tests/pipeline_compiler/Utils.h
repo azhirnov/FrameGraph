@@ -3,6 +3,7 @@
 #pragma once
 
 #include "pipeline_compiler/VPipelineCompiler.h"
+#include "framegraph/Shared/EnumUtils.h"
 using namespace FG;
 
 #define TEST	CHECK_FATAL
@@ -91,7 +92,7 @@ inline const PipelineDescription::DescriptorSet*  FindDescriptorSet (const Pipel
 template <typename T>
 inline const T*  FindUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id)
 {
-	for (auto& un : ds.uniforms)
+	for (auto& un : *ds.uniforms)
 	{
 		if ( un.first == id )
 		{
@@ -117,9 +118,12 @@ inline bool TestTextureUniform (const PipelineDescription::DescriptorSet &ds, co
 	if ( not ptr )
 		return false;
 
+	EResourceState	state = EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags );
+
 	return	ptr->textureType		== textureType	and
 			ptr->index.VKBinding()	== bindingIndex	and
-			ptr->stageFlags			== stageFlags;
+			ptr->stageFlags			== stageFlags	and
+			ptr->state				== state;
 }
 
 /*
@@ -135,11 +139,13 @@ inline bool TestImageUniform (const PipelineDescription::DescriptorSet &ds, cons
 	if ( not ptr )
 		return false;
 
+	EResourceState	state = EResourceState_FromShaderAccess( access ) | EResourceState_FromShaders( stageFlags );
+
 	return	ptr->imageType			== imageType	and
 			ptr->format				== format		and
-			ptr->access				== access		and
 			ptr->index.VKBinding()	== bindingIndex	and
-			ptr->stageFlags			== stageFlags;
+			ptr->stageFlags			== stageFlags	and
+			ptr->state				== state;
 }
 
 /*
@@ -171,10 +177,13 @@ inline bool TestSubpassInputUniform (const PipelineDescription::DescriptorSet &d
 	if ( not ptr )
 		return false;
 	
+	EResourceState	state = EResourceState::InputAttachment | EResourceState_FromShaders( stageFlags );
+
 	return	ptr->attachmentIndex	== attachmentIndex	and
 			ptr->isMultisample		== isMultisample	and
 			ptr->index.VKBinding()	== bindingIndex		and
-			ptr->stageFlags			== stageFlags;
+			ptr->stageFlags			== stageFlags		and
+			ptr->state				== state;
 }
 
 /*
@@ -189,9 +198,12 @@ inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, con
 	if ( not ptr )
 		return false;
 	
+	EResourceState	state = EResourceState::UniformRead | EResourceState_FromShaders( stageFlags );
+
 	return	ptr->size				== size			and
 			ptr->index.VKBinding()	== bindingIndex	and
-			ptr->stageFlags			== stageFlags;
+			ptr->stageFlags			== stageFlags	and
+			ptr->state				== state;
 }
 
 /*
@@ -207,11 +219,13 @@ inline bool TestStorageBuffer (const PipelineDescription::DescriptorSet &ds, con
 	if ( not ptr )
 		return false;
 	
+	EResourceState	state = EResourceState_FromShaderAccess( access ) | EResourceState_FromShaders( stageFlags );
+
 	return	ptr->staticSize			== staticSize	and
 			ptr->arrayStride		== arrayStride	and
-			ptr->access				== access		and
 			ptr->index.VKBinding()	== bindingIndex	and
-			ptr->stageFlags			== stageFlags;
+			ptr->stageFlags			== stageFlags	and
+			ptr->state				== state;
 }
 
 /*
