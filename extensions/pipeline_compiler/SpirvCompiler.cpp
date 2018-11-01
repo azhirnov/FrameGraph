@@ -3,6 +3,7 @@
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "framegraph/Shared/EnumUtils.h"
 
 
 // glslang includes
@@ -388,6 +389,7 @@ namespace FG
 		PipelineDescription::DescriptorSet	ds;
 		ds.bindingIndex	= dsIndex;
 		ds.id			= DescriptorSetID( ToString(dsIndex) );
+		ds.uniforms		= MakeShared< PipelineDescription::UniformMap_t >();
 
 		reflection.layout.descriptorSets.push_back( std::move(ds) );
 
@@ -503,23 +505,23 @@ namespace FG
 	ExtractShaderAccessType
 =================================================
 */
-	ND_ static EShaderAccess  ExtractShaderAccessType (const TQualifier &q, EShaderCompilationFlags flags)
+	ND_ static EResourceState  ExtractShaderAccessType (const TQualifier &q, EShaderCompilationFlags flags)
 	{
 		if ( q.coherent or
 			 q.volatil	or
 			 q.restrict )
 		{
-			return EShaderAccess::ReadWrite;
+			return EResourceState::ShaderReadWrite;
 		}
 
 		if ( q.readonly )
-			return EShaderAccess::ReadOnly;
+			return EResourceState::ShaderRead;
 
 		if ( q.writeonly )
-			return EnumEq( flags, EShaderCompilationFlags::AlwaysWriteDiscard ) ? EShaderAccess::WriteDiscard : EShaderAccess::WriteOnly;
+			return EResourceState::ShaderWrite | (EnumEq( flags, EShaderCompilationFlags::AlwaysWriteDiscard ) ? EResourceState::InvalidateBefore : EResourceState::Unknown);
 
 		// defualt:
-		return EShaderAccess::ReadWrite;
+		return EResourceState::ShaderReadWrite;
 	}
 
 /*
@@ -719,12 +721,12 @@ namespace FG
 	{
 		using Uniform_t = PipelineDescription::Uniform_t;
 
-		TIntermTyped *		tnode			= node->getAsTyped();
-		auto const&			type			= tnode->getType();
-		auto const&			qual			= type.getQualifier();
+		TIntermTyped*	tnode			= node->getAsTyped();
+		auto const&		type			= tnode->getType();
+		auto const&		qual			= type.getQualifier();
 		
-		auto&				descriptor_set	= GetDesciptorSet( qual.hasSet() ? uint(qual.layoutSet) : 0, result );
-
+		auto&			descriptor_set	= GetDesciptorSet( qual.hasSet() ? uint(qual.layoutSet) : 0, result );
+		auto&			uniforms		= const_cast<PipelineDescription::UniformMap_t &>( *descriptor_set.uniforms );
 
 		if ( type.getBasicType() == TBasicType::EbtSampler )
 		{
@@ -735,8 +737,9 @@ namespace FG
 				tex.textureType		= _ExtractImageType( type );
 				tex.index			= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
 				tex.stageFlags		= _currentStage;
+				tex.state			= EResourceState::ShaderSample | EResourceState_FromShaders( _currentStage );
 
-				descriptor_set.uniforms.insert({ ExtractUniformID( node ), std::move(tex) });
+				uniforms.insert({ ExtractUniformID( node ), std::move(tex) });
 				return true;
 			}
 			
@@ -746,11 +749,11 @@ namespace FG
 				PipelineDescription::Image		image;
 				image.imageType		= _ExtractImageType( type );
 				image.format		= _ExtractImageFormat( qual.layoutFormat );
-				image.access		= ExtractShaderAccessType( qual, _compilerFlags );
 				image.index			= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
 				image.stageFlags	= _currentStage;
+				image.state			= ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage );
 				
-				descriptor_set.uniforms.insert({ ExtractUniformID( node ), std::move(image) });
+				uniforms.insert({ ExtractUniformID( node ), std::move(image) });
 				return true;
 			}
 			
@@ -762,8 +765,9 @@ namespace FG
 				subpass.isMultisample	= false;	// TODO
 				subpass.index			= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
 				subpass.stageFlags		= _currentStage;
+				subpass.state			= EResourceState::InputAttachment | EResourceState_FromShaders( _currentStage );
 
-				descriptor_set.uniforms.insert({ ExtractUniformID( node ), std::move(subpass) });
+				uniforms.insert({ ExtractUniformID( node ), std::move(subpass) });
 				return true;
 			}
 		}
@@ -787,11 +791,12 @@ namespace FG
 				PipelineDescription::UniformBuffer	ubuf;
 				ubuf.index			= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
 				ubuf.stageFlags		= _currentStage;
-				
+				ubuf.state			= EResourceState::UniformRead | EResourceState_FromShaders( _currentStage );
+
 				BytesU	stride;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT ubuf.size, OUT stride ));
 
-				descriptor_set.uniforms.insert({ ExtractBufferUniformID( type ), std::move(ubuf) });
+				uniforms.insert({ ExtractBufferUniformID( type ), std::move(ubuf) });
 				return true;
 			}
 
@@ -799,13 +804,13 @@ namespace FG
 			if ( qual.storage == TStorageQualifier::EvqBuffer )
 			{
 				PipelineDescription::StorageBuffer	sbuf;
-				sbuf.access			= ExtractShaderAccessType( qual, _compilerFlags );
 				sbuf.index			= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
 				sbuf.stageFlags		= _currentStage;
+				sbuf.state			= ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage );
 			
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride ));
 
-				descriptor_set.uniforms.insert({ ExtractBufferUniformID( type ), std::move(sbuf) });
+				uniforms.insert({ ExtractBufferUniformID( type ), std::move(sbuf) });
 				return true;
 			}
 		}

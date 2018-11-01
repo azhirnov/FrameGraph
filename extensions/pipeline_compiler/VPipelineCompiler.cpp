@@ -5,7 +5,7 @@
 #include "PrivateDefines.h"
 #include "extensions/vulkan_loader/VulkanLoader.h"
 #include "extensions/vulkan_loader/VulkanCheckError.h"
-
+#include "framegraph/Shared/EnumUtils.h"
 
 namespace FG
 {
@@ -307,32 +307,17 @@ namespace FG
 	MergeShaderAccess
 =================================================
 */
-	static void MergeShaderAccess (const EShaderAccess srcAccess, INOUT EShaderAccess &dstAccess)
+	static void MergeShaderAccess (const EResourceState srcAccess, INOUT EResourceState &dstAccess)
 	{
 		if ( srcAccess == dstAccess )
 			return;
 
-		bool	read_access	=	(srcAccess == EShaderAccess::ReadOnly) or (srcAccess == EShaderAccess::ReadWrite) or
-								(dstAccess == EShaderAccess::ReadOnly) or (dstAccess == EShaderAccess::ReadWrite);
-		bool	write_access =	(srcAccess == EShaderAccess::WriteOnly) or (srcAccess == EShaderAccess::WriteDiscard) or (srcAccess == EShaderAccess::ReadWrite) or
-								(dstAccess == EShaderAccess::WriteOnly) or (srcAccess == EShaderAccess::WriteDiscard) or (dstAccess == EShaderAccess::ReadWrite);
+		dstAccess |= srcAccess;
 
-		if ( read_access and write_access )
+		if ( EnumEq( dstAccess, EResourceState::InvalidateBefore ) and
+			 EnumEq( dstAccess, EResourceState::ShaderRead ) )
 		{
-			dstAccess = EShaderAccess::ReadWrite;
-			return;
-		}
-
-		if ( read_access )
-		{
-			dstAccess = EShaderAccess::ReadOnly;
-			return;
-		}
-
-		if ( write_access )
-		{
-			dstAccess = EShaderAccess::WriteOnly;
-			return;
+			dstAccess &= ~EResourceState::InvalidateBefore;
 		}
 	}
 
@@ -369,6 +354,7 @@ namespace FG
 							 lhs.index			== rhs->index )
 						{
 							rhs->stageFlags |= lhs.stageFlags;
+							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
 							type_missmatch   = false;
 						}
 					}
@@ -401,6 +387,7 @@ namespace FG
 							 lhs.index				== rhs->index )
 						{
 							rhs->stageFlags |= lhs.stageFlags;
+							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
 							type_missmatch   = false;
 						}
 					}
@@ -418,9 +405,10 @@ namespace FG
 							 lhs.format		== rhs->format		and
 							 lhs.index		== rhs->index )
 						{
-							MergeShaderAccess( lhs.access, INOUT rhs->access );
+							MergeShaderAccess( lhs.state, INOUT rhs->state );
 
 							rhs->stageFlags |= lhs.stageFlags;
+							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
 							type_missmatch   = false;
 						}
 					}
@@ -437,6 +425,7 @@ namespace FG
 							 lhs.index	== rhs->index )
 						{
 							rhs->stageFlags |= lhs.stageFlags;
+							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
 							type_missmatch   = false;
 						}
 					}
@@ -454,9 +443,10 @@ namespace FG
 							 lhs.arrayStride	== rhs->arrayStride	and
 							 lhs.index			== rhs->index )
 						{
-							MergeShaderAccess( lhs.access, INOUT rhs->access );
+							MergeShaderAccess( lhs.state, INOUT rhs->state );
 
 							rhs->stageFlags |= lhs.stageFlags;
+							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
 							type_missmatch   = false;
 						}
 					}
@@ -490,7 +480,7 @@ namespace FG
 				{
 					COMP_CHECK_ERR( src_ds.bindingIndex == dst_ds.bindingIndex );
 
-					COMP_CHECK_ERR( _MergeUniforms( src_ds.uniforms, INOUT dst_ds.uniforms ));
+					COMP_CHECK_ERR( _MergeUniforms( *src_ds.uniforms, INOUT const_cast<PipelineDescription::UniformMap_t &>(*dst_ds.uniforms) ));
 
 					found = true;
 					break;
@@ -920,6 +910,7 @@ namespace FG
 
 				_shaderCache.insert({ spv_data, base });
 
+				shader.data.clear();
 				shader.data.insert({ module_fmt, base });
 				return true;
 			}

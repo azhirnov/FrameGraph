@@ -63,7 +63,7 @@ namespace FG
 	// methods
 	public:
 		explicit VulkanSwapchain (const class VulkanDevice &dev);
-		VulkanSwapchain (VkPhysicalDevice physicalDev, VkDevice logicalDev, VkSurfaceKHR surface);
+		VulkanSwapchain (VkPhysicalDevice physicalDev, VkDevice logicalDev, VkSurfaceKHR surface, const VulkanDeviceFn &fn);
 		~VulkanSwapchain ();
 
 		bool IsSupported (uint imageArrayLayers, VkSampleCountFlags samples, VkPresentModeKHR presentMode,

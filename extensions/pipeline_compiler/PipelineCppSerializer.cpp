@@ -2,6 +2,7 @@
 
 #include "PipelineCppSerializer.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "framegraph/Shared/EnumUtils.h"
 
 namespace FG
 {
@@ -246,7 +247,7 @@ namespace FG
 		String	ubuffers;
 		String	sbuffers;
 
-		for (auto& un : ds.uniforms)
+		for (auto& un : *ds.uniforms)
 		{
 			Visit( un.second,
 				[this, &textures, id = &un.first] (const PipelineDescription::Texture &tex)
@@ -290,7 +291,7 @@ namespace FG
 					images << "{ " << _UniformID_ToString( *id ) << ", "
 							<< _ImageType_ToString( img.imageType ) << ", "
 							<< _PixelFormat_ToString( img.format ) << ", "
-							<< _ShaderAccess_ToString( img.access ) << ", "
+							<< _ShaderAccess_ToString( EResourceState_ToShaderAccess(img.state) ) << ", "
 							<< _BindingIndex_ToString( img.index ) << ", "
 							<< _ShaderStages_ToString( img.stageFlags ) << " }";
 				},
@@ -314,7 +315,7 @@ namespace FG
 					sbuffers << "{ " << _UniformID_ToString( *id ) << ", "
 							<< ToString( uint64_t(sbuf.staticSize) ) << "_b, "
 							<< ToString( uint64_t(sbuf.arrayStride) ) << "_b, "
-							<< _ShaderAccess_ToString( sbuf.access ) << ", "
+							<< _ShaderAccess_ToString( EResourceState_ToShaderAccess(sbuf.state) ) << ", "
 							<< _BindingIndex_ToString( sbuf.index ) << ", "
 							<< _ShaderStages_ToString( sbuf.stageFlags ) << " }";
 				},
