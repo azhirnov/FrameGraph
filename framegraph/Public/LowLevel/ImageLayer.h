@@ -15,18 +15,15 @@ namespace FG
 	{
 	// variables
 	private:
-		uint		_value;
+		uint		_value	= 0;
 
 
 	// methods
 	public:
-		constexpr ImageLayer () : _value(~0u) {}
-
+		constexpr ImageLayer () {}
 		explicit constexpr ImageLayer (uint value) : _value(value) {}
 
-		ND_ constexpr bool	IsDefined ()						const	{ return _value != ~0u; }
-
-		ND_ constexpr uint	Get ()								const	{ return IsDefined() ? _value : 0; }
+		ND_ constexpr uint	Get ()								const	{ return _value; }
 		
 		ND_ ImageLayer		operator + (const ImageLayer &rhs)	const	{ return ImageLayer{ Get() + rhs.Get() }; }
 

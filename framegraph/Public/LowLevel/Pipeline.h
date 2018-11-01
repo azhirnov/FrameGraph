@@ -3,11 +3,12 @@
 #pragma once
 
 #include "framegraph/Public/LowLevel/BindingIndex.h"
-#include "framegraph/Public/LowLevel/PipelineResources.h"
 #include "framegraph/Public/LowLevel/RenderState.h"
 #include "framegraph/Public/LowLevel/ShaderEnums.h"
+#include "framegraph/Public/LowLevel/ResourceEnums.h"
 #include "framegraph/Public/LowLevel/VertexInputState.h"
 #include "framegraph/Public/LowLevel/VulkanTypes.h"
+#include "framegraph/Public/LowLevel/EResourceState.h"
 
 namespace FG
 {
@@ -25,6 +26,7 @@ namespace FG
 			EImage				textureType;
 			BindingIndex		index;
 			EShaderStages		stageFlags;
+			EResourceState		state;
 		};
 
 		struct Sampler
@@ -39,15 +41,16 @@ namespace FG
 			bool				isMultisample;
 			BindingIndex		index;
 			EShaderStages		stageFlags;
+			EResourceState		state;
 		};
 
 		struct Image
 		{
 			EImage				imageType;
 			EPixelFormat		format;
-			EShaderAccess		access;
 			BindingIndex		index;
 			EShaderStages		stageFlags;
+			EResourceState		state;
 		};
 
 		struct UniformBuffer
@@ -55,19 +58,21 @@ namespace FG
 			BytesU				size;
 			BindingIndex		index;
 			EShaderStages		stageFlags;
+			EResourceState		state;
 		};
 
 		struct StorageBuffer
 		{
 			BytesU				staticSize;
 			BytesU				arrayStride;
-			EShaderAccess		access;
 			BindingIndex		index;
 			EShaderStages		stageFlags;
+			EResourceState		state;
 		};
 
 		struct AccelerationStructure
 		{
+			EShaderStages		stageFlags;
 		};
 
 
@@ -77,8 +82,7 @@ namespace FG
 			UniformID		id;
 			Texture			data;
 
-			_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, EShaderStages stageFlags) :
-				id{id}, data{textureType, index, stageFlags} {}
+			_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _SamplerUniform
@@ -86,8 +90,7 @@ namespace FG
 			UniformID		id;
 			Sampler			data;
 
-			_SamplerUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags) :
-				id{id}, data{index, stageFlags} {}
+			_SamplerUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _SubpassInputUniform
@@ -95,8 +98,7 @@ namespace FG
 			UniformID		id;
 			SubpassInput	data;
 
-			_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index, EShaderStages stageFlags) :
-				id{id}, data{attachmentIndex, isMultisample, index, stageFlags} {}
+			_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _ImageUniform
@@ -104,8 +106,7 @@ namespace FG
 			UniformID		id;
 			Image			data;
 
-			_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags) :
-				id{id}, data{imageType, format, access, index, stageFlags} {}
+			_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _UBufferUniform
@@ -113,8 +114,7 @@ namespace FG
 			UniformID		id;
 			UniformBuffer	data;
 
-			_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags) :
-				id{id}, data{size, index, stageFlags} {}
+			_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _StorageBufferUniform
@@ -122,8 +122,7 @@ namespace FG
 			UniformID		id;
 			StorageBuffer	data;
 
-			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags) :
-				id{id}, data{staticSize, arrayStride, access, index, stageFlags} {}
+			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags);
 		};
 		
 		struct _AccelerationStructureUniform
@@ -134,12 +133,13 @@ namespace FG
 
 		using Uniform_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, AccelerationStructure >;
 		using UniformMap_t	= HashMap< UniformID, Uniform_t >;
+		using UniformMapPtr	= SharedPtr< const UniformMap_t >;
 
 		struct DescriptorSet
 		{
 			DescriptorSetID		id;
 			uint				bindingIndex	= ~0u;
-			UniformMap_t		uniforms;
+			UniformMapPtr		uniforms;
 		};
 
 		struct PushConstant

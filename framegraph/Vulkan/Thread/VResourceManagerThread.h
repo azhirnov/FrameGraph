@@ -1,0 +1,283 @@
+// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+
+#pragma once
+
+#include "VResourceManager.h"
+#include "VLocalBuffer.h"
+#include "VLocalImage.h"
+#include "VLogicalRenderPass.h"
+
+namespace FG
+{
+
+	//
+	// Resource Manager Thread
+	//
+
+	class VResourceManagerThread final
+	{
+	// types
+	private:
+		using Allocator_t		= LinearAllocator<>;
+		using Index_t			= VResourceManager::Index_t;
+
+		template <typename T, size_t ChunkSize, size_t MaxChunks>
+		using PoolTmpl			= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedLinearAllocator<> >;
+
+		template <typename Resource>
+		struct ItemHash {
+			size_t  operator () (const Resource *value) const  { return size_t(value->GetHash()); }
+		};
+		
+		template <typename Resource>
+		struct ItemEqual {
+			bool  operator () (const Resource *lhs, const Resource *rhs) const  { return (*lhs == *rhs); }
+		};
+
+		template <typename ID, typename Resource>
+		using CachedResourceMap			= std::unordered_map< Resource const*, ID, ItemHash<Resource>, ItemEqual<Resource>, StdLinearAllocator<Pair<Resource const * const, ID>> >;
+
+		using SamplerMap_t				= CachedResourceMap< RawSamplerID, VSampler >;
+		using PipelineLayoutMap_t		= CachedResourceMap< RawPipelineLayoutID, VPipelineLayout >;
+		using DescriptorSetLayoutMap_t	= CachedResourceMap< RawDescriptorSetLayoutID, VDescriptorSetLayout >;
+		using RenderPassMap_t			= CachedResourceMap< RawRenderPassID, VRenderPass >;
+		using FramebufferMap_t			= CachedResourceMap< RawFramebufferID, VFramebuffer >;
+		using PipelineResourcesMap_t	= CachedResourceMap< RawPipelineResourcesID, VPipelineResources >;
+
+		using ImageToLocal_t			= std::vector< LocalImageID, StdLinearAllocator<LocalImageID> >;
+		using BufferToLocal_t			= std::vector< LocalBufferID, StdLinearAllocator<LocalBufferID> >;
+
+		using LocalImages_t				= PoolTmpl< VLocalImage, FG_MaxImageResources/16, 16 >;
+		using LocalBuffers_t			= PoolTmpl< VLocalBuffer, FG_MaxBufferResources/16, 16 >;
+		using LogicalRenderPasses_t		= PoolTmpl< VLogicalRenderPass, (1u<<10), 2 >;
+
+		using ResourceIDQueue_t			= std::vector< UntypedResourceID_t, StdLinearAllocator<UntypedResourceID_t> >;
+		using ResourceIndexCache_t		= StaticArray< FixedArray<Index_t, 128>, 20 >;
+
+
+	// variables
+	private:
+		Allocator_t&						_allocator;
+		VResourceManager&					_mainRM;
+		VPipelineCache						_pipelineCache;
+		ResourceIndexCache_t				_indexCache;
+
+		Storage<ImageToLocal_t>				_imageToLocal;
+		Storage<BufferToLocal_t>			_bufferToLocal;
+
+		Storage<LocalImages_t>				_localImages;
+		Storage<LocalBuffers_t>				_localBuffers;
+		Storage<LogicalRenderPasses_t>		_logicalRenderPasses;
+
+		Storage<SamplerMap_t>				_samplerMap;
+		Storage<PipelineLayoutMap_t>		_pplnLayoutMap;
+		Storage<DescriptorSetLayoutMap_t>	_dsLayoutMap;
+		Storage<RenderPassMap_t>			_renderPassMap;
+		Storage<FramebufferMap_t>			_framebufferMap;
+		Storage<PipelineResourcesMap_t>		_pplnResourcesMap;
+
+		Storage<ResourceIDQueue_t>			_commitIDs;
+		Storage<ResourceIDQueue_t>			_unassignIDs;
+
+		RaceConditionCheck					_rcCheck;
+
+
+	// methods
+	public:
+		explicit VResourceManagerThread (Allocator_t& alloc, VResourceManager &rm);
+		~VResourceManagerThread ();
+		
+		bool Initialize ();
+		void Deinitialize ();
+
+		void OnBeginFrame ();
+		void OnEndFrame ();
+		void OnDiscardMemory ();
+		
+		ND_ RawMPipelineID		CreatePipeline (MeshPipelineDesc &&desc, bool isAsync);
+		ND_ RawGPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, bool isAsync);
+		ND_ RawCPipelineID		CreatePipeline (ComputePipelineDesc &&desc, bool isAsync);
+		ND_ RawRTPipelineID		CreatePipeline (RayTracingPipelineDesc &&desc, bool isAsync);
+		
+		ND_ RawImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, bool isAsync);
+		ND_ RawBufferID			CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, bool isAsync);
+		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, bool isAsync);
+
+		ND_ RawRenderPassID		CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput, bool isAsync);
+		ND_ RawFramebufferID	CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers, bool isAsync);
+		ND_ RawPipelineResourcesID	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
+
+		ND_ LocalBufferID		Remap (RawBufferID id);
+		ND_ LocalImageID		Remap (RawImageID id);
+		ND_ LogicalRenderPassID	CreateLogicalRenderPass (const RenderPassDesc &desc);
+		
+		template <typename ID>
+		ND_ auto const*				GetResource (ID id)			const	{ return _mainRM.GetResource( id ); }
+
+		template <typename ID>
+		ND_ bool					IsResourceAlive (ID id)		const;
+
+		ND_ VDevice const&			GetDevice ()				const	{ return _mainRM._device; }
+
+		ND_ VLocalBuffer const*		GetState (LocalBufferID id)			{ return _GetState( *_localBuffers,  id ); }
+		ND_ VLocalImage  const*		GetState (LocalImageID id)			{ return _GetState( *_localImages,   id ); }
+		ND_ VLogicalRenderPass *	GetState (LogicalRenderPassID id)	{ return _GetState( *_logicalRenderPasses,   id ); }
+
+		template <typename ID>
+		void DestroyResource (ID id, bool isAsync);
+		
+		ND_ VPipelineCache *		GetPipelineCache ()					{ return &_pipelineCache; }
+
+
+	private:
+		bool  _CreateMemory (OUT RawMemoryID &id, OUT VMemoryObj* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc);
+		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT VPipelineLayout const* &layoutPtr, PipelineDescription::PipelineLayout &&desc, bool isAsync);
+		bool  _CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT VDescriptorSetLayout const* &layoutPtr, const PipelineDescription::UniformMapPtr &uniforms, bool isAsync);
+
+		template <typename DataT, size_t CS, size_t MC, typename ID>
+		ND_ DataT*  _GetState (PoolTmpl<DataT,CS,MC> &pool, ID id);
+
+		template <typename DataT, typename ID, typename FnInitialize, typename FnCreate>
+		ND_ ID  _CreateCachedResource (Storage<CachedResourceMap<ID, DataT>> &localCache, bool isAsync, StringView errorStr, FnInitialize&& fnInit, FnCreate&& fnCreate);
+
+		template <typename ID, typename ...IDs>
+		void  _FreeIndexCache (const Union<ID, IDs...> &);
+
+		template <typename ID>	ND_ auto&  _GetIndexCache ();
+		template <typename ID>	ND_ bool   _Assign (OUT ID &id);
+		template <typename ID>		void   _Unassign (ID id);
+		template <typename ID>		void   _Commit (ID id, bool isAsync);
+		template <typename ID>	ND_ auto&  _GetResourcePool (const ID &id)		{ return _mainRM._GetResourcePool( id ); }
+	};
+
+
+/*
+=================================================
+	_GetState
+=================================================
+*/
+	template <typename DataT, size_t CS, size_t MC, typename ID>
+	inline DataT*  VResourceManagerThread::_GetState (PoolTmpl<DataT,CS,MC> &pool, ID id)
+	{
+		ASSERT( id );
+		SCOPELOCK( _rcCheck );
+
+		auto*	data = &pool[ id.Index() ];
+		ASSERT( data->IsCreated() );
+
+		return data;
+	}
+	
+/*
+=================================================
+	DestroyResource
+=================================================
+*/
+	template <typename ID>
+	inline void  VResourceManagerThread::DestroyResource (ID id, bool isAsync)
+	{
+		ASSERT( id );
+		SCOPELOCK( _rcCheck );
+
+		if ( isAsync )
+			_unassignIDs->push_back( id );
+		else
+			_mainRM._UnassignResource( _GetResourcePool( id ), id );
+	}
+	
+/*
+=================================================
+	_GetIndexCache
+=================================================
+*/
+	template <typename ID>
+	inline auto&  VResourceManagerThread::_GetIndexCache ()
+	{
+		STATIC_ASSERT( ID::GetUID() < std::tuple_size_v<decltype(_indexCache)> );
+
+		return _indexCache[ ID::GetUID() ];
+	}
+	
+/*
+=================================================
+	_Assign
+----
+	acquire free index from cache (cache is local in thread),
+	if cache empty then acquire new indices from main pool (internaly synchronized),
+	if pool is full then return error (false).
+=================================================
+*/
+	template <typename ID>
+	inline bool  VResourceManagerThread::_Assign (OUT ID &id)
+	{
+		auto&	cache	= _GetIndexCache<ID>();
+		auto&	pool	= _mainRM._GetResourcePool( id );
+
+		if ( cache.size() )	{}	// TODO: branch prediction optimization
+		else {
+			// acquire new indices
+			CHECK_ERR( pool.Assign( cache.capacity()/2, INOUT cache ) > 0 );
+		}
+
+		Index_t		index = cache.back();
+		cache.pop_back();
+
+		id = ID( index, pool[index].GetInstanceID() );
+		return true;
+	}
+	
+/*
+=================================================
+	_Unassign
+=================================================
+*/
+	template <typename ID>
+	inline void  VResourceManagerThread::_Unassign (ID id)
+	{
+		ASSERT( id );
+		auto&	cache	= _GetIndexCache<ID>();
+
+		if ( cache.size() < cache.capacity() )
+		{
+			cache.push_back( id.Index() );
+		}
+		else
+		{
+			// cache overflow
+			_mainRM._GetResourcePool( id ).Unassign( cache.capacity()/2, INOUT cache );
+			cache.push_back( id.Index() );
+		}
+	}
+	
+/*
+=================================================
+	_Commit
+=================================================
+*/
+	template <typename ID>
+	inline void  VResourceManagerThread::_Commit (ID id, bool isAsync)
+	{
+		ASSERT( id );
+
+		if ( isAsync )
+			_commitIDs->push_back( id );
+		else
+			CHECK( _mainRM._GetResourcePool( id )[ id.Index() ].Commit() );
+	}
+	
+/*
+=================================================
+	IsResourceAlive
+=================================================
+*/
+	template <typename ID>
+	inline bool  VResourceManagerThread::IsResourceAlive (ID id) const
+	{
+		ASSERT( id );
+		auto&	res = _mainRM._GetResourceCPool(id)[ id.Index() ];
+
+		return (res.GetInstanceID() == id.InstanceID());
+	}
+
+
+}	// FG

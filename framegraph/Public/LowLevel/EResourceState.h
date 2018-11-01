@@ -42,12 +42,12 @@ namespace FG
 		_GeometryShader			= 1 << 11,
 		_FragmentShader			= 1 << 12,
 		_ComputeShader			= 1 << 13,
-		_TaskShader				= 1 << 14,
+		_MeshTaskShader			= 1 << 14,
 		_MeshShader				= 1 << 15,
 		_RayTracingShader		= 1 << 16,		// AnyHitShader, ClosestHitShader, MissShader
 		_ShaderMask				= _VertexShader | _TessControlShader | _TessEvaluationShader |
 								  _GeometryShader | _FragmentShader | _ComputeShader |
-								  _TaskShader | _MeshShader | _RayTracingShader,
+								  _MeshTaskShader | _MeshShader | _RayTracingShader,
 			
 		// for ColorAttachment, DepthStencilAttachment
 		ClearBefore				= 1 << 25,

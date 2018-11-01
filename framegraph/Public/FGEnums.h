@@ -15,8 +15,26 @@ namespace FG
 		Present			= 1 << 3,	// create swapchain
 		Transfer		= 1 << 4,	// create staging buffer for CPU <-> GPU transfer
 		MemAllocation	= 1 << 5,	// create memory allocator, required for image/buffer creation
+		Unknown			= 0,
 	};
 	FG_BIT_OPERATORS( EThreadUsage );
+
+
+	enum class EThreadSync : uint
+	{
+		Barrier,		// synchronize between batches using pipeline barrier or event, allowed only in same command queues, add ability to merge batches
+		Semaphore,		// synchronize between batches using semaphore, may be slower than barrier
+	};
+
+
+	enum class ESwapchainImage : uint
+	{
+		Primary,
+
+		// for VR:
+		LeftEye,
+		RightEye,
+	};
 
 
 	enum class EGraphVizFlags : uint

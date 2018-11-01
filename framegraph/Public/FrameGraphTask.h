@@ -94,7 +94,7 @@ namespace FG
 	struct DispatchCompute final : _fg_hidden_::BaseTask<DispatchCompute>
 	{
 	// variables
-		CPipelineID				pipeline;
+		RawCPipelineID			pipeline;
 		PipelineResourceSet		resources;
 		uint3					groupCount;
 		Optional< uint3 >		localGroupSize;
@@ -104,8 +104,8 @@ namespace FG
 		DispatchCompute () :
 			BaseTask<DispatchCompute>{ "DispatchCompute", HtmlColor::MediumBlue } {}
 		
-		DispatchCompute&  SetPipeline (CPipelineID ppln)											{ pipeline = ppln;  return *this; }
-		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res)	{ resources.insert({ id, res });  return *this; }
+		DispatchCompute&  SetPipeline (const CPipelineID &ppln)										{ pipeline = ppln.Get();  return *this; }
+		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res)	{ resources.insert_or_assign( id, res );  return *this; }
 
 		DispatchCompute&  SetGroupCount (const uint3 &value)										{ groupCount = value;  return *this; }
 		DispatchCompute&  SetGroupCount (uint x, uint y = 1, uint z = 1)							{ groupCount = {x, y, z};  return *this; }
@@ -122,9 +122,9 @@ namespace FG
 	struct DispatchIndirectCompute final : _fg_hidden_::BaseTask<DispatchIndirectCompute>
 	{
 	// variables
-		CPipelineID				pipeline;
+		RawCPipelineID			pipeline;
 		PipelineResourceSet		resources;
-		BufferID				indirectBuffer;
+		RawBufferID				indirectBuffer;
 		BytesU					indirectBufferOffset;
 		Optional< uint3 >		localGroupSize;
 		
@@ -133,7 +133,7 @@ namespace FG
 		DispatchIndirectCompute () :
 			BaseTask<DispatchIndirectCompute>{ "DispatchIndirectCompute", HtmlColor::MediumBlue } {}
 		
-		DispatchIndirectCompute&  SetPipeline (CPipelineID ppln)		{ pipeline = ppln;  return *this; }
+		DispatchIndirectCompute&  SetPipeline (const CPipelineID &ppln)		{ pipeline = ppln.Get();  return *this; }
 	};
 
 
@@ -154,17 +154,17 @@ namespace FG
 
 
 	// variables
-		BufferID	srcBuffer;
-		BufferID	dstBuffer;
-		Regions_t	regions;
+		RawBufferID		srcBuffer;
+		RawBufferID		dstBuffer;
+		Regions_t		regions;
 
 
 	// methods
 		CopyBuffer () :
 			BaseTask<CopyBuffer>{ "CopyBuffer", HtmlColor::Green } {}
 
-		CopyBuffer&  From (BufferID buf)		{ srcBuffer = buf;  return *this; }
-		CopyBuffer&  To   (BufferID buf)		{ dstBuffer = buf;  return *this; }
+		CopyBuffer&  From (const BufferID &buf)		{ srcBuffer = buf.Get();  return *this; }
+		CopyBuffer&  To   (const BufferID &buf)		{ dstBuffer = buf.Get();  return *this; }
 		
 		CopyBuffer&  AddRegion (BytesU srcOffset, BytesU dstOffset, BytesU size)
 		{
@@ -193,8 +193,8 @@ namespace FG
 
 
 	// variables
-		ImageID			srcImage;
-		ImageID			dstImage;
+		RawImageID		srcImage;
+		RawImageID		dstImage;
 		Regions_t		regions;
 
 
@@ -202,8 +202,8 @@ namespace FG
 		CopyImage () :
 			BaseTask<CopyImage>{ "CopyImage", HtmlColor::Green } {}
 
-		CopyImage&  From (ImageID img)		{ srcImage = img;  return *this; }
-		CopyImage&  To   (ImageID img)		{ dstImage = img;  return *this; }
+		CopyImage&  From (const ImageID &img)		{ srcImage = img.Get();  return *this; }
+		CopyImage&  To   (const ImageID &img)		{ dstImage = img.Get();  return *this; }
 
 		CopyImage&  AddRegion (const ImageSubresourceRange &srcSubresource, const int3 &srcOffset,
 							   const ImageSubresourceRange &dstSubresource, const int3 &dstOffset,
@@ -245,8 +245,8 @@ namespace FG
 
 
 	// variables
-		BufferID		srcBuffer;
-		ImageID			dstImage;
+		RawBufferID		srcBuffer;
+		RawImageID		dstImage;
 		Regions_t		regions;
 
 
@@ -254,8 +254,8 @@ namespace FG
 		CopyBufferToImage () :
 			BaseTask<CopyBufferToImage>{ "CopyBufferToImage", HtmlColor::Green } {}
 
-		CopyBufferToImage&  From (BufferID buf)		{ srcBuffer = buf;  return *this; }
-		CopyBufferToImage&  To   (ImageID img)		{ dstImage = img;  return *this; }
+		CopyBufferToImage&  From (const BufferID &buf)		{ srcBuffer = buf.Get();  return *this; }
+		CopyBufferToImage&  To   (const ImageID &img)		{ dstImage  = img.Get();  return *this; }
 
 		CopyBufferToImage&  AddRegion (BytesU bufferOffset, uint bufferRowLength, uint bufferImageHeight,
 									   const ImageSubresourceRange &imageLayers, const int3 &imageOffset, const uint3 &imageSize)
@@ -279,8 +279,8 @@ namespace FG
 
 
 	// variables
-		ImageID			srcImage;
-		BufferID		dstBuffer;
+		RawImageID		srcImage;
+		RawBufferID		dstBuffer;
 		Regions_t		regions;
 
 
@@ -288,8 +288,8 @@ namespace FG
 		CopyImageToBuffer () :
 			BaseTask<CopyImageToBuffer>{ "CopyImageToBuffer", HtmlColor::Green } {}
 
-		CopyImageToBuffer&  From (ImageID img)		{ srcImage = img;  return *this; }
-		CopyImageToBuffer&  To   (BufferID buf)		{ dstBuffer = buf;  return *this; }
+		CopyImageToBuffer&  From (const ImageID &img)		{ srcImage  = img.Get();  return *this; }
+		CopyImageToBuffer&  To   (const BufferID &buf)		{ dstBuffer = buf.Get();  return *this; }
 
 		CopyImageToBuffer&  AddRegion (const ImageSubresourceRange &imageLayers, const int3 &imageOffset, const uint3 &imageSize,
 									   BytesU bufferOffset, uint bufferRowLength, uint bufferImageHeight)
@@ -321,8 +321,8 @@ namespace FG
 
 
 	// variables
-		ImageID			srcImage;
-		ImageID			dstImage;
+		RawImageID		srcImage;
+		RawImageID		dstImage;
 		EFilter			filter		= EFilter::Nearest;
 		Regions_t		regions;
 
@@ -331,8 +331,8 @@ namespace FG
 		BlitImage () :
 			BaseTask<BlitImage>{ "BlitImage", HtmlColor::Green } {}
 
-		BlitImage&  From (ImageID img)				{ srcImage = img;  return *this; }
-		BlitImage&  To   (ImageID img)				{ dstImage = img;  return *this; }
+		BlitImage&  From (const ImageID &img)		{ srcImage = img.Get();  return *this; }
+		BlitImage&  To   (const ImageID &img)		{ dstImage = img.Get();  return *this; }
 		
 		BlitImage&  SetFilter (EFilter value)		{ filter = value;  return *this; }
 
@@ -365,8 +365,8 @@ namespace FG
 
 
 	// variables
-		ImageID			srcImage;
-		ImageID			dstImage;
+		RawImageID		srcImage;
+		RawImageID		dstImage;
 		Regions_t		regions;
 
 
@@ -374,8 +374,8 @@ namespace FG
 		ResolveImage () :
 			BaseTask<ResolveImage>{ "ResolveImage", HtmlColor::Green } {}
 
-		ResolveImage&  From (ImageID img)		{ srcImage = img;  return *this; }
-		ResolveImage&  To   (ImageID img)		{ dstImage = img;  return *this; }
+		ResolveImage&  From (const ImageID &img)		{ srcImage = img.Get();  return *this; }
+		ResolveImage&  To   (const ImageID &img)		{ dstImage = img.Get();  return *this; }
 		
 		ResolveImage&  AddRegion (const ImageSubresourceRange &srcSubresource, const int3 &srcOffset,
 								  const ImageSubresourceRange &dstSubresource, const int3 &dstOffset,
@@ -394,7 +394,7 @@ namespace FG
 	struct FillBuffer final : _fg_hidden_::BaseTask<FillBuffer>
 	{
 	// variables
-		BufferID		dstBuffer;
+		RawBufferID		dstBuffer;
 		BytesU			dstOffset;
 		BytesU			size;
 		uint			pattern		= 0;
@@ -404,9 +404,9 @@ namespace FG
 		FillBuffer () :
 			BaseTask<FillBuffer>{ "FillBuffer", HtmlColor::Green } {}
 
-		FillBuffer&  SetBuffer (BufferID buf, BytesU off, BytesU bufSize)
+		FillBuffer&  SetBuffer (const BufferID &buf, BytesU off, BytesU bufSize)
 		{
-			dstBuffer	= buf;
+			dstBuffer	= buf.Get();
 			dstOffset	= off;
 			size		= bufSize;
 			return *this;
@@ -435,12 +435,12 @@ namespace FG
 			ImageLayer		baseLayer;
 			uint			layerCount;
 		};
-		using Ranges_t		= FixedArray< Range, FG_MaxClearRects >;
+		using Ranges_t		= FixedArray< Range, FG_MaxClearRanges >;
 		using ClearColor_t	= Union< float4, uint4, int4 >;
 
 
 	// variables
-		ImageID				dstImage;
+		RawImageID			dstImage;
 		Ranges_t			ranges;
 		ClearColor_t		clearValue;
 		
@@ -449,7 +449,7 @@ namespace FG
 		ClearColorImage () :
 			BaseTask<ClearColorImage>{ "ClearColorImage", HtmlColor::Green } {}
 
-		ClearColorImage&  SetImage (ImageID img)			{ dstImage = img;  return *this; }
+		ClearColorImage&  SetImage (const ImageID &img)		{ dstImage = img.Get();  return *this; }
 
 		ClearColorImage&  Clear (const float4 &value)		{ clearValue = value;  return *this; }
 		ClearColorImage&  Clear (const uint4 &value)		{ clearValue = value;  return *this; }
@@ -472,11 +472,11 @@ namespace FG
 	{
 	// types
 		using Range		= ClearColorImage::Range;
-		using Ranges_t	= FixedArray< Range, FG_MaxClearRects >;
+		using Ranges_t	= FixedArray< Range, FG_MaxClearRanges >;
 
 
 	// variables
-		ImageID				dstImage;
+		RawImageID			dstImage;
 		Ranges_t			ranges;
 		DepthStencil		clearValue;
 		
@@ -485,7 +485,7 @@ namespace FG
 		ClearDepthStencilImage () :
 			BaseTask<ClearDepthStencilImage>{ "ClearDepthStencilImage", HtmlColor::Green } {}
 		
-		ClearDepthStencilImage&  SetImage (ImageID img)					{ dstImage = img;  return *this; }
+		ClearDepthStencilImage&  SetImage (const ImageID &img)			{ dstImage = img.Get();  return *this; }
 
 		ClearDepthStencilImage&  Clear (float depth, uint stencil)		{ clearValue = DepthStencil{ depth, stencil };  return *this; }
 		
@@ -505,7 +505,7 @@ namespace FG
 	struct UpdateBuffer final : _fg_hidden_::BaseTask<UpdateBuffer>
 	{
 	// variables
-		BufferID			dstBuffer;		// if buffer has gpu local memory, then staging buffer will be used
+		RawBufferID			dstBuffer;		// if buffer has gpu local memory, then staging buffer will be used
 		BytesU				offset;
 		ArrayView<uint8_t>	data;
 
@@ -514,12 +514,12 @@ namespace FG
 		UpdateBuffer () :
 			BaseTask<UpdateBuffer>{ "UpdateBuffer", HtmlColor::BlueViolet } {}
 
-		UpdateBuffer (BufferID buf, BytesU off, ArrayView<uint8_t> data) :
+		UpdateBuffer (const BufferID &buf, BytesU off, ArrayView<uint8_t> data) :
 			UpdateBuffer() { SetBuffer( buf, off ).SetData( data ); }
 
-		UpdateBuffer&  SetBuffer (BufferID buf, BytesU off)
+		UpdateBuffer&  SetBuffer (const BufferID &buf, BytesU off)
 		{
-			dstBuffer	= buf;
+			dstBuffer	= buf.Get();
 			offset		= off;
 			return *this;
 		}
@@ -542,7 +542,7 @@ namespace FG
 		using Callback_t	= std::function< void (BufferView) >;
 
 	// variables
-		BufferID		srcBuffer;
+		RawBufferID		srcBuffer;
 		BytesU			offset;
 		BytesU			size;
 		Callback_t		callback;
@@ -551,9 +551,9 @@ namespace FG
 		ReadBuffer () :
 			BaseTask<ReadBuffer>{ "ReadBuffer", HtmlColor::BlueViolet } {}
 
-		ReadBuffer&  SetBuffer (BufferID buf, const BytesU off, const BytesU dataSize)
+		ReadBuffer&  SetBuffer (const BufferID &buf, const BytesU off, const BytesU dataSize)
 		{
-			srcBuffer	= buf;
+			srcBuffer	= buf.Get();
 			offset		= off;
 			size		= dataSize;
 			return *this;
@@ -575,7 +575,7 @@ namespace FG
 	struct UpdateImage final : _fg_hidden_::BaseTask<UpdateImage>
 	{
 	// variables
-		ImageID				dstImage;
+		RawImageID			dstImage;
 		int3				imageOffset;
 		uint3				imageSize;
 		ImageLayer			arrayLayer;
@@ -590,25 +590,25 @@ namespace FG
 		UpdateImage () :
 			BaseTask<UpdateImage>{ "UpdateImage", HtmlColor::BlueViolet } {}
 		
-		UpdateImage&  SetImage (ImageID img, const int2 &offset, MipmapLevel mipmap = Default)
+		UpdateImage&  SetImage (const ImageID &img, const int2 &offset, MipmapLevel mipmap = Default)
 		{
-			dstImage		= img;
+			dstImage		= img.Get();
 			imageOffset		= int3( offset.x, offset.y, 0 );
 			mipmapLevel		= mipmap;
 			return *this;
 		}
 
-		UpdateImage&  SetImage (ImageID img, const int3 &offset = Default, MipmapLevel mipmap = Default)
+		UpdateImage&  SetImage (const ImageID &img, const int3 &offset = Default, MipmapLevel mipmap = Default)
 		{
-			dstImage		= img;
+			dstImage		= img.Get();
 			imageOffset		= offset;
 			mipmapLevel		= mipmap;
 			return *this;
 		}
 
-		UpdateImage&  SetImage (ImageID img, const int2 &offset, ImageLayer layer, MipmapLevel mipmap)
+		UpdateImage&  SetImage (const ImageID &img, const int2 &offset, ImageLayer layer, MipmapLevel mipmap)
 		{
-			dstImage		= img;
+			dstImage		= img.Get();
 			imageOffset		= int3( offset.x, offset.y, 0 );
 			arrayLayer		= layer;
 			mipmapLevel		= mipmap;
@@ -645,7 +645,7 @@ namespace FG
 
 		
 	// variables
-		ImageID			srcImage;
+		RawImageID		srcImage;
 		int3			imageOffset;
 		uint3			imageSize;
 		ImageLayer		arrayLayer;
@@ -658,27 +658,27 @@ namespace FG
 		ReadImage () :
 			BaseTask<ReadImage>{ "ReadImage", HtmlColor::BlueViolet } {}
 		
-		ReadImage&  SetImage (ImageID img, const int2 &offset, const uint2 &size, MipmapLevel mipmap = Default)
+		ReadImage&  SetImage (const ImageID &img, const int2 &offset, const uint2 &size, MipmapLevel mipmap = Default)
 		{
-			srcImage	= img;
+			srcImage	= img.Get();
 			imageOffset	= int3( offset.x, offset.y, 0 );
 			imageSize	= int3( size.x, size.y, 0 );
 			mipmapLevel	= mipmap;
 			return *this;
 		}
 
-		ReadImage&  SetImage (ImageID img, const int3 &offset, const uint3 &size, MipmapLevel mipmap = Default)
+		ReadImage&  SetImage (const ImageID &img, const int3 &offset, const uint3 &size, MipmapLevel mipmap = Default)
 		{
-			srcImage	= img;
+			srcImage	= img.Get();
 			imageOffset	= offset;
 			imageSize	= size;
 			mipmapLevel	= mipmap;
 			return *this;
 		}
 		
-		ReadImage&  SetImage (ImageID img, const int2 &offset, const uint2 &size, ImageLayer layer, MipmapLevel mipmap = Default)
+		ReadImage&  SetImage (const ImageID &img, const int2 &offset, const uint2 &size, ImageLayer layer, MipmapLevel mipmap = Default)
 		{
-			srcImage	= img;
+			srcImage	= img.Get();
 			imageOffset	= int3( offset.x, offset.y, 0 );
 			imageSize	= int3( size.x, size.y, 0 );
 			arrayLayer	= layer;
@@ -702,7 +702,7 @@ namespace FG
 	struct Present final : _fg_hidden_::BaseTask<Present>
 	{
 	// variables
-		ImageID			srcImage;
+		RawImageID		srcImage;
 		ImageLayer		layer;
 
 
@@ -710,12 +710,12 @@ namespace FG
 		Present () :
 			BaseTask<Present>{ "Present", HtmlColor::Red } {}
 
-		explicit Present (ImageID img) :
-			Present() { srcImage = img; }
+		explicit Present (const ImageID &img) :
+			Present() { srcImage = img.Get(); }
 
-		Present&  SetImage (ImageID img, ImageLayer imgLayer = ImageLayer())
+		Present&  SetImage (const ImageID &img, ImageLayer imgLayer = ImageLayer())
 		{
-			srcImage	= img;
+			srcImage	= img.Get();
 			layer		= imgLayer;
 			return *this;
 		}
@@ -729,10 +729,10 @@ namespace FG
 	struct PresentVR final : _fg_hidden_::BaseTask<Present>
 	{
 	// variables
-		ImageID			leftEye;
+		RawImageID		leftEye;
 		ImageLayer		leftEyeLayer;
 
-		ImageID			rightEye;
+		RawImageID		rightEye;
 		ImageLayer		rightEyeLayer;
 
 
@@ -740,16 +740,16 @@ namespace FG
 		PresentVR () :
 			BaseTask<Present>{ "PresentVR", HtmlColor::Red } {}
 
-		PresentVR&  SetLeftEye (ImageID img, ImageLayer imgLayer = ImageLayer())
+		PresentVR&  SetLeftEye (const ImageID &img, ImageLayer imgLayer = ImageLayer())
 		{
-			leftEye			= img;
+			leftEye			= img.Get();
 			leftEyeLayer	= imgLayer;
 			return *this;
 		}
 		
-		PresentVR&  SetRightEye (ImageID img, ImageLayer imgLayer = ImageLayer())
+		PresentVR&  SetRightEye (const ImageID &img, ImageLayer imgLayer = ImageLayer())
 		{
-			rightEye		= img;
+			rightEye		= img.Get();
 			rightEyeLayer	= imgLayer;
 			return *this;
 		}

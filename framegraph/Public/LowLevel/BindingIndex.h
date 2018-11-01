@@ -32,6 +32,7 @@ namespace FG
 		ND_ uint	VKBinding ()	const	{ return _index2; }
 		ND_ uint	CLBinding ()	const	{ return _index2; }
 		ND_ uint	SWBinding ()	const	{ return _index2; }
+		ND_ uint	Unique ()		const	{ return _index2; }
 	};
 
 

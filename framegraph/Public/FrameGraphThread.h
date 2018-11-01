@@ -11,9 +11,32 @@
 #include "framegraph/Public/LowLevel/ImageDesc.h"
 #include "framegraph/Public/LowLevel/SamplerDesc.h"
 #include "framegraph/Public/LowLevel/MemoryDesc.h"
+#include "framegraph/Public/LowLevel/PipelineResources.h"
 
 namespace FG
 {
+
+	//
+	// Thread Description
+	//
+	
+	struct ThreadDesc
+	{
+	// types
+		using Dependencies_t = FixedArray<Pair< CommandBatchID, EThreadSync >, FG_MaxThreadDependencies >;
+
+	// variables
+		EThreadUsage		usage;
+		CommandBatchID		batchId;		// threads with same batch must have same command queue
+		Dependencies_t		dependsOn;
+
+	// methods
+		ThreadDesc (EThreadUsage usage, const CommandBatchID &id) : usage{usage}, batchId{id} {}
+
+		ThreadDesc&  DependsOn (const CommandBatchID &id, EThreadSync sync = EThreadSync::Barrier)	{ dependsOn.push_back({ id, sync });  return *this; }
+	};
+
+
 
 	//
 	// Frame Graph Thread interface
@@ -31,7 +54,7 @@ namespace FG
 			virtual ~FrameGraphThread () {}
 			
 		// resource manager
-		ND_ virtual GPipelineID		CreatePipeline (MeshPipelineDesc &&desc) = 0;
+		ND_ virtual MPipelineID		CreatePipeline (MeshPipelineDesc &&desc) = 0;
 		ND_ virtual RTPipelineID	CreatePipeline (RayTracingPipelineDesc &&desc) = 0;
 		ND_ virtual GPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc) = 0;
 		ND_ virtual CPipelineID		CreatePipeline (ComputePipelineDesc &&desc) = 0;
@@ -39,21 +62,24 @@ namespace FG
 		ND_ virtual ImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc) = 0;
 		ND_ virtual BufferID		CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc) = 0;
 		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc) = 0;
+			virtual bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const = 0;
 		
-		//ND_ virtual AccelerationStructPtr	CreateAccelerationStructure (const AccelerationStructDesc &desc) = 0;
+		//ND_ virtual AccelerationStructID	CreateAccelerationStructure (const AccelerationStructDesc &desc) = 0;
 
-			virtual void			DestroyPipeline (GPipelineID id) = 0;
-			virtual void			DestroyPipeline (CPipelineID id) = 0;
-			virtual void			DestroyPipeline (RTPipelineID id) = 0;
-			virtual void			DestroyImage (ImageID id) = 0;
-			virtual void			DestroyBuffer (BufferID id) = 0;
-			virtual void			DestroySampler (SamplerID id) = 0;
+			virtual void			DestroyResource (INOUT GPipelineID &id) = 0;
+			virtual void			DestroyResource (INOUT CPipelineID &id) = 0;
+			virtual void			DestroyResource (INOUT RTPipelineID &id) = 0;
+			virtual void			DestroyResource (INOUT ImageID &id) = 0;
+			virtual void			DestroyResource (INOUT BufferID &id) = 0;
+			virtual void			DestroyResource (INOUT SamplerID &id) = 0;
 
-		ND_ virtual BufferDesc const&	GetDescription (BufferID id) const = 0;
-		ND_ virtual ImageDesc const&	GetDescription (ImageID id) const = 0;
-		//ND_ virtual SamplerDesc const&	GetDescription (SamplerID id) const = 0;
-			virtual bool			GetDescriptorSet (GPipelineID pplnId, const DescriptorSetID &id, OUT DescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
-			virtual bool			GetDescriptorSet (CPipelineID pplnId, const DescriptorSetID &id, OUT DescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
+		ND_ virtual BufferDesc const&	GetDescription (const BufferID &id) const = 0;
+		ND_ virtual ImageDesc const&	GetDescription (const ImageID &id) const = 0;
+		//ND_ virtual SamplerDesc const&	GetDescription (const SamplerID &id) const = 0;
+			virtual bool			GetDescriptorSet (const GPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
+			virtual bool			GetDescriptorSet (const CPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
+			virtual bool			GetDescriptorSet (const MPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
+			virtual bool			GetDescriptorSet (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
 		ND_ virtual EThreadUsage	GetThreadUsage () const = 0;
 
 
@@ -69,10 +95,12 @@ namespace FG
 
 
 		// resource acquiring
-			virtual bool		Acquire (ImageID id) = 0;
-			virtual bool		Acquire (ImageID id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount) = 0;
-			virtual bool		Acquire (BufferID id) = 0;
-			virtual bool		Acquire (BufferID id, BytesU offset, BytesU size) = 0;
+			virtual bool		Acquire (const ImageID &id, bool immutable) = 0;
+			virtual bool		Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable) = 0;
+			virtual bool		Acquire (const BufferID &id, bool immutable) = 0;
+			virtual bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable) = 0;
+
+		ND_ virtual ImageID		GetSwapchainImage (ESwapchainImage type) = 0;
 
 		// tasks
 		ND_ virtual Task		AddTask (const SubmitRenderPass &) = 0;

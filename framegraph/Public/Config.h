@@ -29,7 +29,7 @@ namespace FG
 	// task
 	static constexpr unsigned	FG_MaxTaskDependencies		= 8;
 	static constexpr unsigned	FG_MaxCopyRegions			= 8;
-	static constexpr unsigned	FG_MaxClearRects			= 16;
+	static constexpr unsigned	FG_MaxClearRanges			= 8;
 	static constexpr unsigned	FG_MaxBlitRegions			= 8;
 	static constexpr unsigned	FG_MaxResolveRegions		= 8;
 
@@ -38,7 +38,14 @@ namespace FG
 	static constexpr unsigned	FG_VkDevicePageSizeMb		= 256;	// Mb
 	static constexpr unsigned	FG_MaxFlushMemRanges		= 32;
 
+	// resource manager
+	static constexpr unsigned	FG_MaxImageResources		= 32u << 10;
+	static constexpr unsigned	FG_MaxBufferResources		= 32u << 10;
+	static constexpr unsigned	FG_MaxPipelines				= 1u << 10;
+
 	// frame graph
 	static constexpr unsigned	FG_MaxSwapchainLength		= 8;
+	static constexpr unsigned	FG_MaxThreadDependencies	= 8;
+
 
 }	// FG

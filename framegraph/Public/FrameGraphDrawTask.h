@@ -46,15 +46,15 @@ namespace FG
 	// types
 		struct Buffer
 		{
-			BufferID	buffer;
-			BytesU		offset;
+			RawBufferID		buffer;
+			BytesU			offset;
 		};
 
 		struct Buffers_t final : public FixedMap< VertexBufferID, Buffer, FG_MaxVertexBuffers >
 		{
-			Buffers_t&  Add (const VertexBufferID &id, BufferID vb, BytesU offset)
+			Buffers_t&  Add (const VertexBufferID &id, RawBufferID vb, BytesU offset)
 			{
-				this->insert( Pair<VertexBufferID, Buffer>{ id, Buffer{vb, offset} });
+				this->insert_or_assign( id, Buffer{vb, offset} );
 				return *this;
 			}
 		};
@@ -71,7 +71,7 @@ namespace FG
 
 
 	// variables
-		GPipelineID				pipeline;
+		RawGPipelineID			pipeline;
 		PipelineResourceSet		resources;
 
 		RenderState				renderState;
@@ -88,7 +88,7 @@ namespace FG
 		DrawTask () :
 			BaseDrawTask<DrawTask>{ "Draw", HtmlColor::Bisque } {}
 
-		DrawTask&  SetPipeline (GPipelineID ppln)									{ pipeline = ppln;  return *this; }
+		DrawTask&  SetPipeline (const GPipelineID &ppln)							{ pipeline = ppln.Get();  return *this; }
 		DrawTask&  SetVertices (uint first, uint count)								{ drawCmd.firstVertex = first;  drawCmd.vertexCount = count;  return *this; }
 		DrawTask&  SetInstances (uint first, uint count)							{ drawCmd.firstInstance = first;  drawCmd.instanceCount = count;  return *this; }
 		DrawTask&  SetRenderState (const RenderState &rs)							{ renderState = rs;  return *this; }
@@ -98,9 +98,9 @@ namespace FG
 		DrawTask&  AddScissor (const RectI &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }
 		DrawTask&  AddScissor (const RectU &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
 
-		DrawTask&  AddResources (const DescriptorSetID &id, const PipelineResources *res)	{ resources.insert({ id, res });  return *this; }
+		DrawTask&  AddResources (const DescriptorSetID &id, const PipelineResources *res)	{ resources.insert_or_assign( id, res );  return *this; }
 
-		DrawTask&  AddBuffer (const VertexBufferID &id, BufferID vb, BytesU offset = 0_b)		{ vertexBuffers.Add( id, vb, offset );  return *this; }
+		DrawTask&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b){ vertexBuffers.Add( id, vb.Get(), offset );  return *this; }
 	};
 
 
@@ -125,7 +125,7 @@ namespace FG
 
 
 	// variables
-		GPipelineID				pipeline;
+		RawGPipelineID			pipeline;
 		PipelineResourceSet		resources;
 		
 		RenderState				renderState;
@@ -134,7 +134,7 @@ namespace FG
 		VertexInputState		vertexInput;
 		Buffers_t				vertexBuffers;
 		
-		BufferID				indexBuffer;
+		RawBufferID				indexBuffer;
 		BytesU					indexBufferOffset;
 		EIndex					indexType		= Default;
 		
@@ -146,16 +146,16 @@ namespace FG
 		DrawIndexedTask () :
 			BaseDrawTask<DrawIndexedTask>{ "DrawIndexed", HtmlColor::Bisque } {}
 
-		DrawIndexedTask&  SetPipeline (GPipelineID ppln)									{ pipeline = ppln;  return *this; }
+		DrawIndexedTask&  SetPipeline (const GPipelineID &ppln)								{ pipeline = ppln.Get();  return *this; }
 		DrawIndexedTask&  SetIndices (uint first, uint count)								{ drawCmd.firstIndex = first;  drawCmd.indexCount = count;  return *this; }
 		DrawIndexedTask&  SetInstances (uint first, uint count)								{ drawCmd.firstInstance = first;  drawCmd.instanceCount = count;  return *this; }
-		DrawIndexedTask&  SetIndexBuffer (BufferID ib, BytesU off, EIndex type)				{ indexBuffer = ib;  indexBufferOffset = off;  indexType = type;  return *this; }
+		DrawIndexedTask&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)		{ indexBuffer = ib.Get();  indexBufferOffset = off;  indexType = type;  return *this; }
 		DrawIndexedTask&  SetRenderState (const RenderState &rs)							{ renderState = rs;  return *this; }
 		
 		DrawIndexedTask&  AddScissor (const RectI &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }
 		DrawIndexedTask&  AddScissor (const RectU &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
 
-		DrawIndexedTask&  AddBuffer (const VertexBufferID &id, BufferID vb, BytesU offset = 0_b)	{ vertexBuffers.Add( id, vb, offset );  return *this; }
+		DrawIndexedTask&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b)	{ vertexBuffers.Add( id, vb.Get(), offset );  return *this; }
 	};
 
 
@@ -186,7 +186,7 @@ namespace FG
 
 
 	// variables
-		GPipelineID				pipeline;
+		RawMPipelineID			pipeline;
 		PipelineResourceSet		resources;
 		
 		RenderState				renderState;
@@ -200,7 +200,7 @@ namespace FG
 		DrawMeshTask () :
 			BaseDrawTask<DrawMeshTask>{ "DrawMeshTask", HtmlColor::Bisque } {}
 
-		DrawMeshTask&  SetPipeline (GPipelineID ppln)					{ pipeline = ppln;  return *this; }
+		DrawMeshTask&  SetPipeline (const MPipelineID &ppln)			{ pipeline = ppln.Get();  return *this; }
 		DrawMeshTask&  SetCommand (uint first, uint count)				{ drawCmd.first = first;  drawCmd.count = count;  return *this; }
 		DrawMeshTask&  SetRenderState (const RenderState &rs)			{ renderState = rs;  return *this; }
 		
@@ -215,17 +215,15 @@ namespace FG
 	struct RenderPassDesc
 	{
 	// types
-		using ClearValue_t	= Union< RGBA32f, RGBA32u, RGBA32i, DepthStencil >;
+		using ClearValue_t	= Union< std::monostate, RGBA32f, RGBA32u, RGBA32i, DepthStencil >;
 		
 		struct RT
 		{
-			ImageID				image;		// may be image module in initial state (created by CreateRenderTarget or other)
-			ImageViewDesc		desc;		// may be used to specialize level, layer, different format, layout, ...
-			ClearValue_t		clearValue;	// default is black color
-			EAttachmentLoadOp	loadOp		= EAttachmentLoadOp::Load;
-			EAttachmentStoreOp	storeOp		= EAttachmentStoreOp::Store;
-
-			RT () {}
+			RawImageID					image;		// may be image module in initial state (created by CreateRenderTarget or other)
+			Optional< ImageViewDesc >	desc;		// may be used to specialize level, layer, different format, layout, ...
+			ClearValue_t				clearValue;	// default is black color
+			EAttachmentLoadOp			loadOp		= EAttachmentLoadOp::Load;
+			EAttachmentStoreOp			storeOp		= EAttachmentStoreOp::Store;
 		};
 		using Targets_t	= FixedMap< RenderTargetID, RT, FG_MaxColorBuffers+1 >;
 
@@ -257,51 +255,36 @@ namespace FG
 		{}
 
 
-		/*RenderPassDesc&  AddTarget (const RenderTargetID &id, ImageID image)
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image)
 		{
 			return AddTarget( id, image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store );
 		}
 
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, ImageID image,
-									EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
 		{
-			return AddTarget( id, image, ImageViewDesc(image->Description()), loadOp, storeOp );
+			ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
+			renderTargets.insert_or_assign( id, RT{image.Get(), {}, ClearValue_t{}, loadOp, storeOp} );
+			return *this;
 		}
 		
 		template <typename ClearVal>
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, ImageID image,
-									const ClearVal &clearValue, EAttachmentStoreOp storeOp)
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
 		{
-			return AddTarget( id, image, ImageViewDesc(image->Description()), clearValue, storeOp );
-		}*/
+			renderTargets.insert_or_assign( id, RT{image.Get(), {}, clearValue, EAttachmentLoadOp::Clear, storeOp} );
+			return *this;
+		}
 		
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, ImageID image, const ImageViewDesc &desc,
-									EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
 		{
 			ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
-
-            RT  rt;
-            rt.image        = image;
-            rt.desc		    = desc;
-            rt.loadOp       = loadOp;
-            rt.storeOp      = storeOp;
-
-            renderTargets.insert({ id, std::move(rt) });
+			renderTargets.insert_or_assign( id, RT{image.Get(), desc, ClearValue_t{}, loadOp, storeOp} );
 			return *this;
 		}
 
 		template <typename ClearVal>
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, ImageID image, const ImageViewDesc &desc,
-									const ClearVal &clearValue, EAttachmentStoreOp storeOp)
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
 		{
-            RT  rt;
-            rt.image        = image;
-            rt.desc		    = desc;
-            rt.clearValue   = clearValue;
-            rt.loadOp       = EAttachmentLoadOp::Clear;
-            rt.storeOp      = storeOp;
-
-            renderTargets.insert({ id, std::move(rt) });
+			renderTargets.insert_or_assign( id, RT{image.Get(), desc, clearValue, EAttachmentLoadOp::Clear, storeOp} );
 			return *this;
 		}
 

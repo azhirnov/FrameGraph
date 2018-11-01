@@ -29,12 +29,12 @@ namespace FG
 	public:
 			virtual ~FrameGraph () {}
 
-		ND_ virtual FGThreadPtr	CreateThread (EThreadUsage usage) = 0;
+		ND_ virtual FGThreadPtr	CreateThread (const ThreadDesc &) = 0;
 
 		// initialization
 			virtual bool		Initialize (uint ringBufferSize) = 0;
 			virtual void		Deinitialize () = 0;
-			virtual void		AddPipelineCompiler (const IPipelineCompilerPtr &comp) = 0;
+			virtual bool		AddPipelineCompiler (const IPipelineCompilerPtr &comp) = 0;
 			virtual void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags = Default) = 0;
 
 		// frame execution
