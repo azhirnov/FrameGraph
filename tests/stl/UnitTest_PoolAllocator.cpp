@@ -1,20 +1,20 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "stl/Memory/PoolAllocator.h"
+#include "stl/Memory/LinearAllocator.h"
 #include "UnitTestCommon.h"
 
 
-static void PoolAllocator_Test1 ()
+static void LinearAllocator_Test1 ()
 {
 	using T = DebugInstanceCounter<uint, 1>;
 	
-	PoolAllocator	pool;
+	LinearAllocator		pool;
 	pool.SetBlockSize( 4_Mb );
 
 
 	T::ClearStatistic();
 	{
-		std::vector< T, StdPoolAllocator<T> >	vec{ pool };
+		std::vector< T, StdLinearAllocator<T> >	vec{ pool };
 
 		vec.resize( 100 );
 		vec.push_back( T(101) );
@@ -24,8 +24,8 @@ static void PoolAllocator_Test1 ()
 
 
 
-extern void UnitTest_PoolAllocator ()
+extern void UnitTest_LinearAllocator ()
 {
-	PoolAllocator_Test1();
-    FG_LOGI( "UnitTest_PoolAllocator - passed" );
+	LinearAllocator_Test1();
+    FG_LOGI( "UnitTest_LinearAllocator - passed" );
 }

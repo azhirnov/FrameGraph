@@ -1,6 +1,8 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Math/Math.h"
+#include "stl/Math/BitMath.h"
+#include "stl/CompileTime/Math.h"
 #include "UnitTestCommon.h"
 
 
@@ -21,6 +23,12 @@ static void IntLog2_Test1 ()
 	val = IntLog2( 0x100 );			TEST( val == 8 );
 	val = IntLog2( 0x101 );			TEST( val == 8 );
 	val = IntLog2( 0x80000000u );	TEST( val == 31 );
+	
+	STATIC_ASSERT( CT_IntLog2<0> < 0 );
+	STATIC_ASSERT( CT_IntLog2<0x100> == 8 );
+	STATIC_ASSERT( CT_IntLog2<0x101> == 8 );
+	STATIC_ASSERT( CT_IntLog2<0x80000000u> == 31 );
+	STATIC_ASSERT( CT_IntLog2<0x8000000000000000ull> == 63 );
 }
 
 
