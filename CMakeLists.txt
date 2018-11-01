@@ -11,14 +11,17 @@ message( STATUS "Compiler name: ${DETECTED_COMPILER}" )
 message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" )
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
 
-include( "cmake/compilers.cmake" )
 
+include( "cmake/compilers.cmake" )
+include( "cmake/compiler_tests.cmake" )
+
+set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (required)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_GLFW ON CACHE BOOL "use glfw (optional, required for tests)" )
 set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )
 set( FG_ENABLE_SFML OFF CACHE BOOL "use SFML (optional, required for tests)" )
-set( FG_ENABLE_VMA OFF CACHE BOOL "use Vulkan Memory Allocator (required)" )
-set( FG_ENABLE_LODEPNG OFF CACHE BOOL "use lodepng (optional, may be used in tests)" )
+set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
+set( FG_ENABLE_LODEPNG ON CACHE BOOL "use lodepng (optional, may be used in tests)" )
 set( FG_ENABLE_ASSIMP OFF CACHE BOOL "use Assimp (optional, required for samples)" )
 set( FG_ENABLE_SAMPLES ON CACHE BOOL "" )
 set( FG_ENABLE_TESTS ON CACHE BOOL "" )
@@ -34,7 +37,7 @@ add_subdirectory( "external" "external" )
 
 add_subdirectory( "stl" "stl" )
 
-#add_subdirectory( "framegraph" "framegraph" )
+add_subdirectory( "framegraph" "framegraph" )
 
 add_subdirectory( "extensions" "extensions" )
 

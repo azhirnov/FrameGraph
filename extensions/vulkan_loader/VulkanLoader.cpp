@@ -218,17 +218,16 @@ namespace FG
 		if ( lib->module != null )
 		{
 			::FreeLibrary( lib->module );
-			lib->module = null;
 		}
-
 #	else
 		if ( lib->module != null )
 		{
 			::dlclose( lib->module );
-			lib->module = null;
 		}
-
 #	endif
+
+		lib->instance	= null;
+		lib->module		= null;
 		
 		const auto	Load =	[] (OUT auto& outResult, const char *, auto dummy) {
 								outResult = dummy;

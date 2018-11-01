@@ -1,7 +1,6 @@
 include( CheckCXXSourceCompiles )
 
-#set( CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} /std:c++latest" )
-#message( STATUS "CMAKE_REQUIRED_FLAGS: ${CMAKE_REQUIRED_FLAGS}" )
+set( CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}" )
 set( FG_COMPILER_DEFINITIONS "" )
 
 #------------------------------------------------------------------------------

@@ -843,8 +843,10 @@ void main ()
 extern void MeshShader_Sample1 ()
 {
 	MeshShaderApp	app;
-
-	CHECK_FATAL( app.Initialize() );
-	CHECK_FATAL( app.Run() );
-	app.Destroy();
+	
+	if ( app.Initialize() )
+	{
+		app.Run();
+		app.Destroy();
+	}
 }

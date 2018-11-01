@@ -27,6 +27,7 @@ namespace FG
 */
 	VulkanDeviceExt::~VulkanDeviceExt ()
 	{
+		_BeforeDestroy();
 	}
 		
 /*

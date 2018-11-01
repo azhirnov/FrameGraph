@@ -13,7 +13,7 @@ Dependencies:<br/>
 [glfw](https://github.com/glfw/glfw) or [SDL2](https://www.libsdl.org) or [SFML](https://github.com/SFML/SFML) - required for framework and some tests.<br/>
 [glslang](https://github.com/KhronosGroup/glslang) - required for glsl compiler.<br/>
 [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools), [SPIRV-Headers](https://github.com/KhronosGroup/SPIRV-Headers) and Python - optional, for spirv optimization.<br/>
-[VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - will be required later.<br/>
+[VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - required.<br/>
 [lodepng](https://github.com/lvandeve/lodepng) - optional.<br/>
 
 ## Roadmap
@@ -31,9 +31,16 @@ Dependencies:<br/>
 - performance tests. (WIP)<br/>
 - logical resources.<br/>
 - advanced gpu memory managment.<br/>
-- multithreading.<br/>
+- multithreading. (WIP)<br/>
 - samples.<br/>
 
 ### Stage 3
 - multi-gpu.<br/>
 - WebGL 2.0 (or WebGL-next) support.<br/>
+
+## References
+1. FrameGraph in Frostbite.
+https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in
+
+2. Handles vs pointers.
+https://floooh.github.io/2018/06/17/handles-vs-pointers.html

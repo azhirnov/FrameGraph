@@ -609,8 +609,10 @@ void main ()
 extern void FragShaderBarycentric_Sample1 ()
 {
 	FSBarycentricApp	app;
-
-	CHECK_FATAL( app.Initialize() );
-	CHECK_FATAL( app.Run() );
-	app.Destroy();
+	
+	if ( app.Initialize() )
+	{
+		app.Run();
+		app.Destroy();
+	}
 }

@@ -1,7 +1,7 @@
 # Find or download Vulkan headers
 
 if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
-	find_package( Vulkan )
+#	find_package( Vulkan )
 endif ()
 
 

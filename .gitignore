@@ -7,3 +7,5 @@
 /external/VulkanMemoryAllocator
 CMakeLists.txt.user
 /external/SFML
+/external/assimp
+/external/foonathan_memory

@@ -1053,8 +1053,10 @@ void main ()
 extern void SparseImage_Sample1 ()
 {
 	SparseImageApp	app;
-
-	CHECK_FATAL( app.Initialize() );
-	CHECK_FATAL( app.Run() );
-	app.Destroy();
+	
+	if ( app.Initialize() )
+	{
+		app.Run();
+		app.Destroy();
+	}
 }

@@ -910,8 +910,10 @@ void main ()
 extern void ImageFootprint_Sample1 ()
 {
 	ImageFootprintApp	app;
-
-	CHECK_FATAL( app.Initialize() );
-	CHECK_FATAL( app.Run() );
-	app.Destroy();
+	
+	if ( app.Initialize() )
+	{
+		app.Run();
+		app.Destroy();
+	}
 }
