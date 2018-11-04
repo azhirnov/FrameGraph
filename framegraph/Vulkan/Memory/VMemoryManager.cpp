@@ -130,7 +130,7 @@ namespace FG
 		const uint	alloc_id = *data.Cast<uint>();
 		CHECK_ERR( alloc_id < _allocators.size() );
 		
-		CHECK_ERR( _allocators[alloc_id]->GetMemoryInfo( data, OUT info ));
+		CHECK_ERR( _allocators[alloc_id]->GetMemoryInfo( _device, data, OUT info ));
 		return true;
 	}
 

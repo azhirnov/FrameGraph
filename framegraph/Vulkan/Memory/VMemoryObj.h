@@ -22,10 +22,11 @@ namespace FG
 
 		struct MemoryInfo
 		{
-			VkDeviceMemory	mem			= VK_NULL_HANDLE;
-			BytesU			offset;
-			BytesU			size;
-			void *			mappedPtr	= null;
+			VkDeviceMemory			mem			= VK_NULL_HANDLE;
+			VkMemoryPropertyFlags	flags		= 0;
+			BytesU					offset;
+			BytesU					size;
+			void *					mappedPtr	= null;
 		};
 
 

@@ -474,11 +474,11 @@ namespace FG
 */
 	Task  VFrameGraphThread::_AddReadBufferTask (const ReadBuffer &task)
 	{
-		using DataLoadedEvent = VStagingBufferManager::BufferDataLoadedEvent;
+		using OnDataLoadedEvent = VStagingBufferManager::OnBufferDataLoadedEvent;
 
 		CHECK_ERR( task.srcBuffer and task.callback );
 
-		DataLoadedEvent		load_event{ task.callback, task.size };
+		OnDataLoadedEvent	load_event{ task.callback, task.size };
 		TaskGroupSync		sync;
 
 		// copy to staging buffer
@@ -490,7 +490,7 @@ namespace FG
 			copy.depends	= task.depends;
 			copy.srcBuffer	= task.srcBuffer;
 
-			DataLoadedEvent::Range	range;
+			OnDataLoadedEvent::Range	range;
 			CHECK_ERR( _stagingMngr->AddPendingLoad( written, task.size, OUT copy.dstBuffer, OUT range ));
 			
 			copy.AddRegion( range.offset, task.offset + written, range.size );
@@ -533,7 +533,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::_AddReadImageTask (const ReadImage &task)
 	{
-		using DataLoadedEvent = VStagingBufferManager::ImageDataLoadedEvent;
+		using OnDataLoadedEvent = VStagingBufferManager::OnImageDataLoadedEvent;
 
 		CHECK_ERR( task.srcImage and task.callback );
 		ImageDesc const&	img_desc = _resourceMngr.GetResource( task.srcImage )->Description();
@@ -551,7 +551,7 @@ namespace FG
 		const uint			row_length	= uint((row_pitch * 8) / bpp);
 		const uint			img_height	= uint(slice_pitch / row_pitch);
 
-		DataLoadedEvent		load_event{ task.callback, total_size, image_size, row_pitch, slice_pitch, img_desc.format, task.aspectMask };
+		OnDataLoadedEvent	load_event{ task.callback, total_size, image_size, row_pitch, slice_pitch, img_desc.format, task.aspectMask };
 		TaskGroupSync		sync;
 		
 		// copy to staging buffer slice by slice
@@ -566,7 +566,7 @@ namespace FG
 				copy.depends	= task.depends;
 				copy.srcImage	= task.srcImage;
 		
-				DataLoadedEvent::Range	range;
+				OnDataLoadedEvent::Range	range;
 				CHECK_ERR( _stagingMngr->AddPendingLoad( written, total_size, slice_pitch, OUT copy.dstBuffer, OUT range ));
 			
 				const uint	z_size = uint(range.size / slice_pitch);
@@ -599,7 +599,7 @@ namespace FG
 				copy.depends	= task.depends;
 				copy.srcImage	= task.srcImage;
 		
-				DataLoadedEvent::Range	range;
+				OnDataLoadedEvent::Range	range;
 				CHECK_ERR( _stagingMngr->AddPendingLoad( written, total_size, row_pitch, OUT copy.dstBuffer, OUT range ));
 
 				const uint	y_size = uint(range.size / row_pitch);

@@ -61,25 +61,25 @@ namespace _fg_hidden_
 		using Index_t		= uint;
 		using InstanceID_t	= uint;
 
+
 	// variables
 	private:
-		static constexpr Index_t	_invalidValue		= ~Index_t(0);
-		static constexpr Index_t	_invalidInstance	= ~InstanceID_t(0);
+		uint64_t	_value	= ~0ull;
 
-		Index_t						_value				= _invalidValue;
-		InstanceID_t				_instanceId			= _invalidInstance;
+		STATIC_ASSERT( sizeof(_value) == sizeof(Index_t) + sizeof(InstanceID_t) );
+
 
 	// methods
 	public:
 		ResourceID () {}
-		explicit ResourceID (Index_t val, InstanceID_t inst) : _value{val}, _instanceId{inst} {}
+		explicit ResourceID (Index_t val, InstanceID_t inst) : _value{ uint64_t(val) | (uint64_t(inst) << 32) } {}
 
-		ND_ bool			IsValid ()						const	{ return _value != _invalidValue and _instanceId != _invalidInstance; }
-		ND_ Index_t			Index ()						const	{ return _value; }
-		ND_ InstanceID_t	InstanceID ()					const	{ return _instanceId; }
-		ND_ HashVal			GetHash ()						const	{ return HashVal{_value} + HashVal{_instanceId}; }
+		ND_ bool			IsValid ()						const	{ return _value != ~0ull; }
+		ND_ Index_t			Index ()						const	{ return _value & 0xFFFFFFFFull; }
+		ND_ InstanceID_t	InstanceID ()					const	{ return _value >> 32; }
+		ND_ HashVal			GetHash ()						const	{ return HashVal{_value}; }
 
-		ND_ bool			operator == (const Self &rhs)	const	{ return _value == rhs._value and _instanceId == rhs._instanceId; }
+		ND_ bool			operator == (const Self &rhs)	const	{ return _value == rhs._value; }
 		ND_ bool			operator != (const Self &rhs)	const	{ return not (*this == rhs); }
 
 		ND_ explicit		operator bool ()				const	{ return IsValid(); }
@@ -114,7 +114,7 @@ namespace _fg_hidden_
 		//ResourceIDWrap (const Self &other) : _id{other._id}		{}
 		ResourceIDWrap (Self &&other) : _id{other._id}			{ other._id = Default; }
 		explicit ResourceIDWrap (const ID_t &id) : _id{id}		{}
-		~ResourceIDWrap ()										{ ASSERT(not IsValid()); }
+		~ResourceIDWrap ()										{ ASSERT(not IsValid()); }	// ID must be released
 
 		//Self&			operator = (const Self &rhs)					{ ASSERT(not IsValid());  _id = rhs._id;  return *this; }
 		Self&			operator = (Self &&rhs)							{ ASSERT(not IsValid());  _id = rhs._id;  rhs._id = Default;  return *this; }
@@ -156,6 +156,7 @@ namespace _fg_hidden_
 	using RawRTPipelineID			= _fg_hidden_::ResourceID< 6 >;
 	using RawSamplerID				= _fg_hidden_::ResourceID< 7 >;
 	using RawDescriptorSetLayoutID	= _fg_hidden_::ResourceID< 8 >;
+	using RawPipelineResourcesID	= _fg_hidden_::ResourceID< 9 >;
 	
 	using BufferID					= _fg_hidden_::ResourceIDWrap< RawBufferID >;
 	using ImageID					= _fg_hidden_::ResourceIDWrap< RawImageID >;
@@ -164,7 +165,6 @@ namespace _fg_hidden_
 	using CPipelineID				= _fg_hidden_::ResourceIDWrap< RawCPipelineID >;
 	using RTPipelineID				= _fg_hidden_::ResourceIDWrap< RawRTPipelineID >;
 	using SamplerID					= _fg_hidden_::ResourceIDWrap< RawSamplerID >;
-	using DescriptorSetLayoutID		= _fg_hidden_::ResourceIDWrap< RawDescriptorSetLayoutID >;
 
 
 }	// FG

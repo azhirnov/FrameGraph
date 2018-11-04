@@ -133,6 +133,8 @@ namespace FG
 
 		_frames.resize( ringBufferSize );
 		_currFrame	= 0;
+
+		CHECK_ERR( _resourceMngr.Initialize( ringBufferSize ));
 		
 		CHECK_ERR( _SetState( EState::Initial, EState::Idle ));
 		return true;
@@ -164,7 +166,7 @@ namespace FG
 
 		_frames.clear();
 		_DestroyFences();
-		_resourceMngr.OnDestroy();
+		_resourceMngr.Deinitialize();
 	}
 	
 /*
@@ -247,7 +249,7 @@ namespace FG
 
 		_WaitFences( _currFrame );
 
-		_resourceMngr.OnBeginFrame();
+		_resourceMngr.OnBeginFrame( _currFrame );
 
 		CHECK_ERR( _SetState( EState::Begin, EState::RunThreads ));
 		return true;

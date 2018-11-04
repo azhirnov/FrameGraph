@@ -14,8 +14,7 @@ namespace FG
 =================================================
 */
 	VStagingBufferManager::VStagingBufferManager (VFrameGraphThread &fg) :
-		_frameGraph{ fg },
-		_currFrame{ ~0u }
+		_frameGraph{ fg }
 	{
 	}
 	
@@ -67,13 +66,17 @@ namespace FG
 	OnBeginFrame
 =================================================
 */
-	void VStagingBufferManager::OnBeginFrame (const uint frameIdx)
+	void VStagingBufferManager::OnBeginFrame (const uint frameId)
 	{
 		using T = BufferView::value_type;
 
-		_currFrame = frameIdx;
+		_memoryRanges.Create( _frameGraph.GetAllocator() );
+		_memoryRanges->reserve( 64 );
 
-		auto&	frame = _perFrame[_currFrame];
+		_frameId = frameId;
+
+		auto&	frame	= _perFrame[_frameId];
+		auto&	dev		= _frameGraph.GetDevice();
 
 		// map device-to-host staging buffers
 		for (auto& buf : frame.deviceToHost)
@@ -82,11 +85,27 @@ namespace FG
 
 			// buffer may be recreated on defragmentation pass, so we need to obtain actual pointer every frame
 			CHECK( _MapMemory( buf ));
+			
+			if ( buf.isCoherent )
+				continue;
+
+			VkMappedMemoryRange	range = {};
+			range.sType		= VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			range.memory	= buf.mem;
+			range.offset	= VkDeviceSize(buf.memOffset);
+			range.size		= VkDeviceSize(buf.size);
+			_memoryRanges->push_back( range );
+		}
+
+		if ( _memoryRanges->size() > 0 )
+		{
+			VK_CALL( dev.vkInvalidateMappedMemoryRanges( dev.GetVkDevice(), uint(_memoryRanges->size()), _memoryRanges->data() ));
+			_memoryRanges->clear();
 		}
 
 
 		// trigger buffer events
-		for (auto& ev : frame.bufferLoadEvents)
+		for (auto& ev : frame.onBufferLoadedEvents)
 		{
 			FixedArray< ArrayView<T>, MaxBufferParts >	data_parts;
 			BytesU										total_size;
@@ -103,11 +122,11 @@ namespace FG
 
 			ev.callback( BufferView{data_parts} );
 		}
-		frame.bufferLoadEvents.clear();
+		frame.onBufferLoadedEvents.clear();
 		
 
 		// trigger image events
-		for (auto& ev : frame.imageLoadEvents)
+		for (auto& ev : frame.onImageLoadedEvents)
 		{
 			FixedArray< ArrayView<T>, MaxImageParts >	data_parts;
 			BytesU										total_size;
@@ -124,7 +143,7 @@ namespace FG
 
 			ev.callback( ImageView{ data_parts, ev.imageSize, ev.rowPitch, ev.slicePitch, ev.format, ev.aspect });
 		}
-		frame.imageLoadEvents.clear();
+		frame.onImageLoadedEvents.clear();
 		
 
 		// map host-to-device staging buffers
@@ -144,6 +163,27 @@ namespace FG
 */
 	void VStagingBufferManager::OnEndFrame ()
 	{
+		auto&	frame	= _perFrame[_frameId];
+		auto&	dev		= _frameGraph.GetDevice();
+
+		for (auto& buf : frame.hostToDevice)
+		{
+			if ( buf.isCoherent )
+				continue;
+
+			VkMappedMemoryRange	range = {};
+			range.sType		= VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			range.memory	= buf.mem;
+			range.offset	= VkDeviceSize(buf.memOffset);
+			range.size		= VkDeviceSize(buf.size);
+			_memoryRanges->push_back( range );
+		}
+
+		if ( _memoryRanges->size() > 0 ) {
+			VK_CALL( dev.vkFlushMappedMemoryRanges( dev.GetVkDevice(), uint(_memoryRanges->size()), _memoryRanges->data() ));
+		}
+
+		_memoryRanges.Destroy();
 	}
 	
 /*
@@ -183,7 +223,7 @@ namespace FG
 											OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		const BytesU	required		= ArraySizeOf(srcData) - srcOffset;
-		auto&			staging_buffers = _perFrame[_currFrame].hostToDevice;
+		auto&			staging_buffers = _perFrame[_frameId].hostToDevice;
 
 
 		// search in existing
@@ -249,9 +289,9 @@ namespace FG
 =================================================
 */
 	bool VStagingBufferManager::_AddPendingLoad (const BytesU srcRequiredSize, const BytesU srcAlign, const BytesU srcMinSize,
-												 OUT RawBufferID &dstBuffer, OUT BufferDataLoadedEvent::Range &range)
+												 OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range)
 	{
-		auto&	staging_buffers = _perFrame[_currFrame].deviceToHost;
+		auto&	staging_buffers = _perFrame[_frameId].deviceToHost;
 		
 
 		// search in existing
@@ -316,7 +356,7 @@ namespace FG
 =================================================
 */
 	bool VStagingBufferManager::AddPendingLoad (const BytesU srcOffset, const BytesU srcTotalSize,
-												OUT RawBufferID &dstBuffer, OUT BufferDataLoadedEvent::Range &range)
+												OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range)
 	{
 		// skip blocks less than 1/N of data size
 		const BytesU	min_size = (srcTotalSize + MaxBufferParts-1) / MaxBufferParts;
@@ -329,11 +369,11 @@ namespace FG
 	AddDataLoadedEvent
 =================================================
 */
-	bool VStagingBufferManager::AddDataLoadedEvent (BufferDataLoadedEvent &&ev)
+	bool VStagingBufferManager::AddDataLoadedEvent (OnBufferDataLoadedEvent &&ev)
 	{
 		CHECK_ERR( ev.callback and not ev.parts.empty() );
 
-		_perFrame[_currFrame].bufferLoadEvents.push_back( std::move(ev) );
+		_perFrame[_frameId].onBufferLoadedEvents.push_back( std::move(ev) );
 		return true;
 	}
 	
@@ -343,7 +383,7 @@ namespace FG
 =================================================
 */
 	bool VStagingBufferManager::AddPendingLoad (const BytesU srcOffset, const BytesU srcTotalSize, const BytesU srcPitch,
-												OUT RawBufferID &dstBuffer, OUT ImageDataLoadedEvent::Range &range)
+												OUT RawBufferID &dstBuffer, OUT OnImageDataLoadedEvent::Range &range)
 	{
 		// skip blocks less than 1/N of total data size
 		const BytesU	min_size = Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
@@ -356,11 +396,11 @@ namespace FG
 	AddDataLoadedEvent
 =================================================
 */
-	bool VStagingBufferManager::AddDataLoadedEvent (ImageDataLoadedEvent &&ev)
+	bool VStagingBufferManager::AddDataLoadedEvent (OnImageDataLoadedEvent &&ev)
 	{
 		CHECK_ERR( ev.callback and not ev.parts.empty() );
 
-		_perFrame[_currFrame].imageLoadEvents.push_back( std::move(ev) );
+		_perFrame[_frameId].onImageLoadedEvents.push_back( std::move(ev) );
 		return true;
 	}
 	
@@ -377,6 +417,7 @@ namespace FG
 			buf.mappedPtr	= info.mappedPtr;
 			buf.memOffset	= info.offset;
 			buf.mem			= info.mem;
+			buf.isCoherent	= EnumEq( info.flags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
 			return true;
 		}
 		return false;

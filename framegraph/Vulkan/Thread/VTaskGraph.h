@@ -8,8 +8,11 @@
 
 namespace FG
 {
+	using DescriptoSetDynamicOffsets_t = std::vector< uint, StdLinearAllocator<uint> >;
+
 	template <typename TaskType>
 	class VFgTask;
+
 
 
 	//
@@ -138,21 +141,23 @@ namespace FG
 	{
 	// variables
 	private:
-		RawCPipelineID				_pipeline;
-		VPipelineResourceSet		_resources;
-		uint3						_groupCount;
-		Optional< uint3 >			_localGroupSize;
+		RawCPipelineID					_pipeline;
+		VPipelineResourceSet			_resources;
+		DescriptoSetDynamicOffsets_t	_dynamicOffsets;
+		uint3							_groupCount;
+		Optional< uint3 >				_localGroupSize;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const DispatchCompute &task, ProcessFunc_t process);
 
-		ND_ RawCPipelineID					GetPipeline ()		const	{ return _pipeline; }
-		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
+		ND_ RawCPipelineID					GetPipeline ()			const	{ return _pipeline; }
+		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
+		ND_ ArrayView< uint >				GetDynamicOffsets ()	const	{ return _dynamicOffsets; }
 
-		ND_ uint3 const&					GroupCount ()		const	{ return _groupCount; }
-		ND_ Optional< uint3 > const&		LocalSize ()		const	{ return _localGroupSize; }
+		ND_ uint3 const&					GroupCount ()			const	{ return _groupCount; }
+		ND_ Optional< uint3 > const&		LocalSize ()			const	{ return _localGroupSize; }
 	};
 
 
@@ -165,11 +170,12 @@ namespace FG
 	{
 	// variables
 	private:
-		RawCPipelineID				_pipeline;
-		VPipelineResourceSet		_resources;
-		LocalBufferID				_indirectBuffer;
-		VkDeviceSize				_indirectBufferOffset;
-		Optional< uint3 >			_localGroupSize;
+		RawCPipelineID					_pipeline;
+		VPipelineResourceSet			_resources;
+		DescriptoSetDynamicOffsets_t	_dynamicOffsets;
+		LocalBufferID					_indirectBuffer;
+		VkDeviceSize					_indirectBufferOffset;
+		Optional< uint3 >				_localGroupSize;
 
 
 	// methods
@@ -178,6 +184,7 @@ namespace FG
 		
 		ND_ RawCPipelineID					GetPipeline ()			const	{ return _pipeline; }
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
+		ND_ ArrayView< uint >				GetDynamicOffsets ()	const	{ return _dynamicOffsets; }
 
 		ND_ LocalBufferID					IndirectBuffer ()		const	{ return _indirectBuffer; }
 		ND_ VkDeviceSize					IndirectBufferOffset ()	const	{ return _indirectBufferOffset; }

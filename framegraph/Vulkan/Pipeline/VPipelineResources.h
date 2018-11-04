@@ -27,7 +27,7 @@ namespace FG
 			Array< VkWriteDescriptorSet >		descriptors;
 		};
 
-		using ResourceSet_t		= PipelineResourcesInitializer::Resources_t;
+		using ResourceSet_t		= PipelineResources::ResourceSet_t;
 
 
 	// variables
@@ -54,13 +54,14 @@ namespace FG
 		ND_ VkDescriptorSet				Handle ()		const	{ return _descriptorSet; }
 		ND_ RawDescriptorSetLayoutID	GetLayoutID ()	const	{ return _layoutId.Get(); }
 		ND_ HashVal						GetHash ()		const	{ return _hash; }
+		ND_ ResourceSet_t const&		GetData ()		const	{ return _resources; }
 
 
 	private:
-		bool _AddResource (VResourceManagerThread &, const PipelineResourcesInitializer::Buffer &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, const PipelineResourcesInitializer::Image &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, const PipelineResourcesInitializer::Texture &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, const PipelineResourcesInitializer::Sampler &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManagerThread &, const PipelineResources::Buffer &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManagerThread &, const PipelineResources::Image &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManagerThread &, const PipelineResources::Texture &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManagerThread &, const PipelineResources::Sampler &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManagerThread &, const std::monostate &, INOUT UpdateDescriptors &);
 	};
 

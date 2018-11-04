@@ -52,27 +52,13 @@ namespace FG
 
 
 	private:
-		static void _AddUniform (const PipelineDescription::Uniform_t &un, INOUT HashVal &hash, INOUT uint &maxIndex,
-								 INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize);
-
-		static void _AddImage (const PipelineDescription::Image &img, INOUT HashVal &hash, INOUT uint &maxIndex,
-								INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize);
-
-		static void _AddTexture (const PipelineDescription::Texture &tex, INOUT HashVal &hash, INOUT uint &maxIndex,
-								 INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize);
-
-		static void _AddSampler (const PipelineDescription::Sampler &samp, INOUT HashVal &hash, INOUT uint &maxIndex,
-								 INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize);
-
-		static void _AddSubpassInput (const PipelineDescription::SubpassInput &spi, INOUT HashVal &hash, INOUT uint &maxIndex,
-									  INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize);
-
-		static void _AddUniformBuffer (const PipelineDescription::UniformBuffer &ub, INOUT HashVal &hash, INOUT uint &maxIndex,
-										INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize);
-
-		static void _AddStorageBuffer (const PipelineDescription::StorageBuffer &sb, INOUT HashVal &hash, INOUT uint &maxIndex,
-										INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize);
-
+		void _AddUniform (const PipelineDescription::Uniform &un, INOUT DescriptorBinding_t &binding);
+		void _AddImage (const PipelineDescription::Image &img, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddTexture (const PipelineDescription::Texture &tex, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddSampler (const PipelineDescription::Sampler &samp, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddSubpassInput (const PipelineDescription::SubpassInput &spi, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddUniformBuffer (const PipelineDescription::UniformBuffer &ub, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddStorageBuffer (const PipelineDescription::StorageBuffer &sb, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
 	};
 
 }	// FG

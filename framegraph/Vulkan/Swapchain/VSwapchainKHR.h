@@ -20,7 +20,7 @@ namespace FG
 	{
 	// types
 	private:
-		using SwapchainImages_t		= FixedArray< ImageID, FG_MaxSwapchainLength >;
+		using SwapchainImages_t		= FixedArray< ImageID, FG_MaxRingBufferSize >;
 
 
 	// variables

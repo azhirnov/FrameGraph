@@ -24,6 +24,9 @@ namespace FG
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
 		using PoolTmpl			= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedLinearAllocator<> >;
 
+		template <typename T, size_t MaxSize>
+		using PoolTmpl2			= PoolTmpl< T, MaxSize/16, 16 >;
+
 		template <typename Resource>
 		struct ItemHash {
 			size_t  operator () (const Resource *value) const  { return size_t(value->GetHash()); }
@@ -47,9 +50,9 @@ namespace FG
 		using ImageToLocal_t			= std::vector< LocalImageID, StdLinearAllocator<LocalImageID> >;
 		using BufferToLocal_t			= std::vector< LocalBufferID, StdLinearAllocator<LocalBufferID> >;
 
-		using LocalImages_t				= PoolTmpl< VLocalImage, FG_MaxImageResources/16, 16 >;
-		using LocalBuffers_t			= PoolTmpl< VLocalBuffer, FG_MaxBufferResources/16, 16 >;
-		using LogicalRenderPasses_t		= PoolTmpl< VLogicalRenderPass, (1u<<10), 2 >;
+		using LocalImages_t				= PoolTmpl2< VLocalImage, FG_MaxImageResources >;
+		using LocalBuffers_t			= PoolTmpl2< VLocalBuffer, FG_MaxBufferResources >;
+		using LogicalRenderPasses_t		= PoolTmpl2< VLogicalRenderPass, (1u<<10) >;
 
 		using ResourceIDQueue_t			= std::vector< UntypedResourceID_t, StdLinearAllocator<UntypedResourceID_t> >;
 		using ResourceIndexCache_t		= StaticArray< FixedArray<Index_t, 128>, 20 >;
@@ -112,21 +115,21 @@ namespace FG
 		ND_ LogicalRenderPassID	CreateLogicalRenderPass (const RenderPassDesc &desc);
 		
 		template <typename ID>
-		ND_ auto const*				GetResource (ID id)			const	{ return _mainRM.GetResource( id ); }
+		ND_ auto const*			GetResource (ID id)			const	{ return _mainRM.GetResource( id ); }
 
 		template <typename ID>
-		ND_ bool					IsResourceAlive (ID id)		const;
+		ND_ bool				IsResourceAlive (ID id)		const;
 
-		ND_ VDevice const&			GetDevice ()				const	{ return _mainRM._device; }
+		ND_ VDevice const&		GetDevice ()				const	{ return _mainRM._device; }
 
-		ND_ VLocalBuffer const*		GetState (LocalBufferID id)			{ return _GetState( *_localBuffers,  id ); }
-		ND_ VLocalImage  const*		GetState (LocalImageID id)			{ return _GetState( *_localImages,   id ); }
-		ND_ VLogicalRenderPass *	GetState (LogicalRenderPassID id)	{ return _GetState( *_logicalRenderPasses,   id ); }
+		ND_ VLocalBuffer const*	GetState (LocalBufferID id)			{ return _GetState( *_localBuffers,  id ); }
+		ND_ VLocalImage  const*	GetState (LocalImageID id)			{ return _GetState( *_localImages,   id ); }
+		ND_ VLogicalRenderPass*	GetState (LogicalRenderPassID id)	{ return _GetState( *_logicalRenderPasses,   id ); }
 
 		template <typename ID>
 		void DestroyResource (ID id, bool isAsync);
 		
-		ND_ VPipelineCache *		GetPipelineCache ()					{ return &_pipelineCache; }
+		ND_ VPipelineCache *	GetPipelineCache ()					{ return &_pipelineCache; }
 
 
 	private:

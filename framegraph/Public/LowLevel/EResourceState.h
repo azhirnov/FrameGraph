@@ -14,12 +14,12 @@ namespace FG
 	{
 		Unknown = 0,
 
-		// pipeline access
+		// memory access
 		_Access_ShaderStorage,				// uniform buffer, storage buffer, image storage
 		_Access_Uniform,					// uniform buffer only
 		_Access_ShaderSample,				// texture only
 		_Access_InputAttachment,			// same as ShaderRead but without barrier
-		_Access_TransientAttachment,		// color render target in cache memory
+		_Access_TransientAttachment,		// color render target in local memory
 		_Access_Transfer,					// copy buffer/image
 		_Access_ColorAttachment,			// color render target
 		_Access_DepthStencilAttachment,		// depth/stencil write/test
@@ -48,7 +48,7 @@ namespace FG
 		_ShaderMask				= _VertexShader | _TessControlShader | _TessEvaluationShader |
 								  _GeometryShader | _FragmentShader | _ComputeShader |
 								  _MeshTaskShader | _MeshShader | _RayTracingShader,
-			
+
 		// for ColorAttachment, DepthStencilAttachment
 		ClearBefore				= 1 << 25,
 		InvalidateBefore		= 1 << 26,

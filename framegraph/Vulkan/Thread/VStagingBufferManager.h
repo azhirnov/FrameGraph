@@ -30,6 +30,7 @@ namespace FG
 			void *			mappedPtr	= null;
 			BytesU			memOffset;					// can be used to flush memory ranges
 			VkDeviceMemory	mem			= VK_NULL_HANDLE;
+			bool			isCoherent	= false;
 
 		// methods
 			StagingBuffer () {}
@@ -45,7 +46,7 @@ namespace FG
 
 		
 	public:
-		struct BufferDataLoadedEvent
+		struct OnBufferDataLoadedEvent
 		{
 		// types
 			struct Range
@@ -64,15 +65,15 @@ namespace FG
 			BytesU			totalSize;
 
 		// methods
-			BufferDataLoadedEvent () {}
-			BufferDataLoadedEvent (const Callback_t &cb, BytesU size) : callback{cb}, totalSize{size} {}
+			OnBufferDataLoadedEvent () {}
+			OnBufferDataLoadedEvent (const Callback_t &cb, BytesU size) : callback{cb}, totalSize{size} {}
 		};
 
 
-		struct ImageDataLoadedEvent
+		struct OnImageDataLoadedEvent
 		{
 		// types
-			using Range			= BufferDataLoadedEvent::Range;
+			using Range			= OnBufferDataLoadedEvent::Range;
 			using DataParts_t	= FixedArray< Range, MaxImageParts >;
 			using Callback_t	= ReadImage::Callback_t;
 
@@ -87,9 +88,9 @@ namespace FG
 			EImageAspect	aspect		= EImageAspect::Color;
 
 		// methods
-			ImageDataLoadedEvent () {}
+			OnImageDataLoadedEvent () {}
 
-			ImageDataLoadedEvent (const Callback_t &cb, BytesU size, const uint3 &imageSize, BytesU rowPitch, BytesU slicePitch, EPixelFormat fmt, EImageAspect asp) :
+			OnImageDataLoadedEvent (const Callback_t &cb, BytesU size, const uint3 &imageSize, BytesU rowPitch, BytesU slicePitch, EPixelFormat fmt, EImageAspect asp) :
 				callback{cb}, totalSize{size}, imageSize{imageSize}, rowPitch{rowPitch}, slicePitch{slicePitch}, format{fmt}, aspect{asp} {}
 		};
 
@@ -99,21 +100,24 @@ namespace FG
 		{
 			FixedArray< StagingBuffer, 32 >		hostToDevice;	// CPU write, GPU read
 			FixedArray< StagingBuffer, 32 >		deviceToHost;	// CPU read, GPU write
-			Array< BufferDataLoadedEvent >		bufferLoadEvents;
-			Array< ImageDataLoadedEvent >		imageLoadEvents;
+			Array< OnBufferDataLoadedEvent >	onBufferLoadedEvents;
+			Array< OnImageDataLoadedEvent >		onImageLoadedEvents;
 		};
 
-		using PerFrameArray_t	= FixedArray< PerFrame, FG_MaxSwapchainLength >;
+		using PerFrameArray_t	= FixedArray< PerFrame, FG_MaxRingBufferSize >;
+		using MemoryRanges_t	= std::vector< VkMappedMemoryRange, StdLinearAllocator<VkMappedMemoryRange> >;
 
 
 	// variables
 	private:
-		VFrameGraphThread&	_frameGraph;
+		VFrameGraphThread&			_frameGraph;
 
-		PerFrameArray_t		_perFrame;
-		uint				_currFrame;
+		Storage<MemoryRanges_t>		_memoryRanges;
 
-		BytesU				_stagingBufferSize	= 16_Mb;
+		PerFrameArray_t				_perFrame;
+		uint						_frameId			= 0;
+
+		BytesU						_stagingBufferSize	= 16_Mb;
 
 
 	// methods
@@ -124,7 +128,7 @@ namespace FG
 		bool Initialize ();
 		void Deinitialize ();
 
-		void OnBeginFrame (uint frameIdx);
+		void OnBeginFrame (uint frameId);
 		void OnEndFrame ();
 
 		bool StoreBufferData (ArrayView<uint8_t> srcData, BytesU srcOffset,
@@ -132,13 +136,13 @@ namespace FG
 		
 		bool StoreImageData (ArrayView<uint8_t> srcData, BytesU srcOffset, BytesU srcPitch, BytesU srcTotalSize,
 							 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
-		bool AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, OUT RawBufferID &dstBuffer, OUT BufferDataLoadedEvent::Range &range);
+		bool AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
 
 		bool AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, BytesU srcPitch,
-							 OUT RawBufferID &dstBuffer, OUT ImageDataLoadedEvent::Range &range);
+							 OUT RawBufferID &dstBuffer, OUT OnImageDataLoadedEvent::Range &range);
 
-		bool AddDataLoadedEvent (ImageDataLoadedEvent &&ev);
-		bool AddDataLoadedEvent (BufferDataLoadedEvent &&ev);
+		bool AddDataLoadedEvent (OnImageDataLoadedEvent &&ev);
+		bool AddDataLoadedEvent (OnBufferDataLoadedEvent &&ev);
 
 
 	private:
@@ -146,7 +150,7 @@ namespace FG
 						 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
 		
 		bool _AddPendingLoad (BytesU srcRequiredSize, BytesU srcAlign, BytesU srcMinSize,
-							  OUT RawBufferID &dstBuffer, OUT BufferDataLoadedEvent::Range &range);
+							  OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
 
 		bool _MapMemory (StagingBuffer &buf) const;
 	};

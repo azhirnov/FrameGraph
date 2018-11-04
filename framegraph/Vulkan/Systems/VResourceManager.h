@@ -1,8 +1,4 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
-/*
-	main	thread1		thread2
-
-*/
 
 #pragma once
 
@@ -65,6 +61,12 @@ namespace FG
 		using VkResourceQueue_t			= Array< UntypedVkResource_t >;
 		using UnassignIDQueue_t			= Array< UntypedResourceID_t >;
 
+		struct PerFrame
+		{
+			VkResourceQueue_t		readyToDelete;
+		};
+		using PerFrameArray_t			= FixedArray< PerFrame, FG_MaxRingBufferSize >;
+
 
 	// variables
 	private:
@@ -86,39 +88,42 @@ namespace FG
 		RenderPassPool_t			_renderPassCache;
 		FramebufferPool_t			_framebufferCache;
 		PipelineResourcesPool_t		_pplnResourcesCache;
-
-		VkResourceQueue_t			_readyToDelete;
+		
 		UnassignIDQueue_t			_unassignIDs;
+		PerFrameArray_t				_perFrame;
+		uint						_frameId		= 0;
 
 
 	// methods
 	public:
 		explicit VResourceManager (const VDevice &dev);
 		~VResourceManager ();
+
+		bool Initialize (uint ringBufferSize);
+		void Deinitialize ();
 		
-		void OnBeginFrame ();
+		void OnBeginFrame (uint frameId);
 		void OnEndFrame ();
-		void OnDestroy ();
 
 		template <typename ID>
 		ND_ auto const*		GetResource (ID id)	const;
 
 
 	private:
-		void  _DeleteResources ();
+		void  _DeleteResources (INOUT VkResourceQueue_t &) const;
 		void  _UnassignResourceIDs ();
 
 		template <typename ID, typename PoolT>
 		ND_ static typename PoolT::Value_t*  _GetResource (PoolT &res, ID id);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (PoolTmpl<DataT,CS,MC> &res, ID id);
+		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &res, ID id);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (CachedPoolTmpl<DataT,CS,MC> &res, ID id);
+		void _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &res, ID id);
 
 		template <typename DataT, size_t CS, size_t MC>
-		void _DestroyResourceCache (CachedPoolTmpl<DataT,CS,MC> &res);
+		void _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &res);
 
 		ND_ auto&  _GetResourcePool (const RawBufferID &)				{ return _bufferPool; }
 		ND_ auto&  _GetResourcePool (const RawImageID &)				{ return _imagePool; }
@@ -136,6 +141,8 @@ namespace FG
 
 		template <typename ID>
 		ND_ const auto&  _GetResourceCPool (const ID &id)		const	{ return const_cast<VResourceManager *>(this)->_GetResourcePool( id ); }
+
+		ND_ VkResourceQueue_t&  _GetReadyToDeleteQueue ()				{ return _perFrame[_frameId].readyToDelete; }
 	};
 
 	
@@ -181,7 +188,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (PoolTmpl<DataT,CS,MC> &res, ID id)
+	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &res, ID id)
 	{
 		// destroy if needed
 		{
@@ -189,7 +196,7 @@ namespace FG
 			ASSERT( data.GetInstanceID() == id.InstanceID() );
 
 			if ( data.GetState() != ResourceBase::EState::Initial )
-				data.Destroy( OUT _readyToDelete, OUT _unassignIDs );
+				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 		}
 
 		res.Unassign( id.Index() );
@@ -201,7 +208,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (CachedPoolTmpl<DataT,CS,MC> &res, ID id)
+	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &res, ID id)
 	{
 		// destroy if needed
 		{
@@ -213,7 +220,7 @@ namespace FG
 							   data.GetState() == ResourceBase::EState::ReadyToDelete;
 
 			if ( destroy )
-				data.Destroy( OUT _readyToDelete, OUT _unassignIDs );
+				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 			else
 				return;	// don't unassign ID
 		}

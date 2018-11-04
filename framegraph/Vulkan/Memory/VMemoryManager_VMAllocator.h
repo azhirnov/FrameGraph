@@ -22,6 +22,14 @@ namespace FG
 
 	class VMemoryManager::VulkanMemoryAllocator final : public IMemoryAllocator
 	{
+	// types
+	private:
+		struct Data
+		{
+			VmaAllocation	allocation;
+		};
+
+
 	// variables
 	private:
 		VmaAllocator		_allocator;
@@ -39,13 +47,13 @@ namespace FG
 
 		bool Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t) override;
 		
-		bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const override;
+		bool GetMemoryInfo (const VDevice &dev, const Storage_t &data, OUT MemoryInfo_t &info) const override;
 
 	private:
 		bool _CreateAllocator (const VDevice &dev, OUT VmaAllocator &alloc) const;
 
-		ND_ static VmaAllocation *			_CastStorage (Storage_t &data);
-		ND_ static VmaAllocation const*		_CastStorage (const Storage_t &data);
+		ND_ static Data *					_CastStorage (Storage_t &data);
+		ND_ static Data const*				_CastStorage (const Storage_t &data);
 		
 		ND_ static VmaAllocationCreateFlags	_ConvertToMemoryFlags (EMemoryType memType);
 		ND_ static VmaMemoryUsage			_ConvertToMemoryUsage (EMemoryType memType);
@@ -92,14 +100,16 @@ namespace FG
 	_CastStorage
 =================================================
 */
-	VmaAllocation*  VMemoryManager::VulkanMemoryAllocator::_CastStorage (Storage_t &data)
+	VMemoryManager::VulkanMemoryAllocator::Data *
+		VMemoryManager::VulkanMemoryAllocator::_CastStorage (Storage_t &data)
 	{
-		return data.Cast<VmaAllocation>( SizeOf<uint> );
+		return data.Cast<Data>( SizeOf<uint> );
 	}
 
-	VmaAllocation const*  VMemoryManager::VulkanMemoryAllocator::_CastStorage (const Storage_t &data)
+	VMemoryManager::VulkanMemoryAllocator::Data const *
+		VMemoryManager::VulkanMemoryAllocator::_CastStorage (const Storage_t &data)
 	{
-		return data.Cast<VmaAllocation>( SizeOf<uint> );
+		return data.Cast<Data>( SizeOf<uint> );
 	}
 
 /*
@@ -123,7 +133,7 @@ namespace FG
 
 		VK_CHECK( vmaBindImageMemory( _allocator, mem, image ));
 		
-		*_CastStorage( data ) = mem;
+		_CastStorage( data )->allocation = mem;
 		return true;
 	}
 	
@@ -148,7 +158,7 @@ namespace FG
 
 		VK_CHECK( vmaBindBufferMemory( _allocator, mem, buffer ));
 		
-		*_CastStorage( data ) = mem;
+		_CastStorage( data )->allocation = mem;
 		return true;
 	}
 	
@@ -159,7 +169,7 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t)
 	{
-		VmaAllocation&	mem = *_CastStorage( data );
+		VmaAllocation&	mem = _CastStorage( data )->allocation;
 
 		vmaFreeMemory( _allocator, mem );
 
@@ -172,15 +182,20 @@ namespace FG
 	GetMemoryInfo
 =================================================
 */
-	bool VMemoryManager::VulkanMemoryAllocator::GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const
+	bool VMemoryManager::VulkanMemoryAllocator::GetMemoryInfo (const VDevice &dev, const Storage_t &data, OUT MemoryInfo_t &info) const
 	{
-		VmaAllocationInfo	alloc_info = {};
-		vmaGetAllocationInfo( _allocator, *_CastStorage(data), OUT &alloc_info );
+		VmaAllocation		mem			= _CastStorage( data )->allocation;
+		VmaAllocationInfo	alloc_info	= {};
+		vmaGetAllocationInfo( _allocator, mem, OUT &alloc_info );
+		
+		const auto&		mem_props = dev.GetDeviceMemoryProperties();
+		ASSERT( alloc_info.memoryType < mem_props.memoryTypeCount );
 
-		info.mappedPtr	= alloc_info.pMappedData;
 		info.mem		= alloc_info.deviceMemory;
+		info.flags		= mem_props.memoryTypes[ alloc_info.memoryType ].propertyFlags;
 		info.offset		= BytesU(alloc_info.offset);
 		info.size		= BytesU(alloc_info.size);
+		info.mappedPtr	= alloc_info.pMappedData;
 		return true;
 	}
 	

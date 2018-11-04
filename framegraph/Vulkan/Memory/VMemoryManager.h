@@ -40,7 +40,7 @@ namespace FG
 
 			virtual bool Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t) = 0;
 			
-			virtual bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const = 0;
+			virtual bool GetMemoryInfo (const VDevice &dev, const Storage_t &data, OUT MemoryInfo_t &info) const = 0;
 		};
 
 		using AllocatorPtr	= UniquePtr< IMemoryAllocator >;
@@ -66,16 +66,6 @@ namespace FG
 		bool Deallocate (INOUT Storage_t &data, OUT AppendableVkResources_t);
 
 		bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const;
-
-		//void OnBeginFrame (uint frameIdx);
-		//void OnEndFrame ();
-
-		//bool AllocForImage (VkImage image, const MemoryDesc &mem, OUT VMemoryHandle &handle);
-		//bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &mem, OUT VMemoryHandle &handle);
-		//bool Dealloc (VMemoryHandle handle);
-		
-		//bool MapMemory (OUT void* &ptr, VMemoryHandle handle, EMemoryMapFlags flags, ArrayView<MemRange> InvalidateRanges = Default);
-		//bool UnmapMemory (VMemoryHandle handle, ArrayView<MemRange> flushRanges = Default);
 	};
 
 

@@ -61,7 +61,7 @@ namespace FG
 =================================================
 */
 	PipelineDescription::_TextureUniform::_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id}, data{textureType, index, stageFlags, EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags )}
+		id{id}, data{ EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags ), textureType }, index{index}, stageFlags{stageFlags}
 	{}
 	
 /*
@@ -70,7 +70,7 @@ namespace FG
 =================================================
 */
 	PipelineDescription::_SamplerUniform::_SamplerUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id}, data{index, stageFlags}
+		id{id}, data{}, index{index}, stageFlags{stageFlags}
 	{}
 	
 /*
@@ -79,7 +79,8 @@ namespace FG
 =================================================
 */
 	PipelineDescription::_SubpassInputUniform::_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id}, data{attachmentIndex, isMultisample, index, stageFlags, EResourceState::InputAttachment | EResourceState_FromShaders( stageFlags )}
+		id{id}, data{ EResourceState::InputAttachment | EResourceState_FromShaders( stageFlags ), attachmentIndex, isMultisample },
+		index{index}, stageFlags{stageFlags}
 	{}
 	
 /*
@@ -88,7 +89,8 @@ namespace FG
 =================================================
 */
 	PipelineDescription::_ImageUniform::_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id},  data{imageType, format, index, stageFlags, EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access )}
+		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), imageType, format },
+		index{index}, stageFlags{stageFlags}
 	{}
 	
 /*
@@ -96,8 +98,9 @@ namespace FG
 	_UBufferUniform
 =================================================
 */
-	PipelineDescription::_UBufferUniform::_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id},  data{size, index, stageFlags, EResourceState::UniformRead | EResourceState_FromShaders( stageFlags )}
+	PipelineDescription::_UBufferUniform::_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset) :
+		id{id}, data{ EResourceState::UniformRead | EResourceState_FromShaders( stageFlags ), allowDynamicOffset ? 0 : STATIC_OFFSET, size },
+		index{index}, stageFlags{stageFlags}
 	{}
 	
 /*
@@ -105,8 +108,10 @@ namespace FG
 	_StorageBufferUniform
 =================================================
 */
-	PipelineDescription::_StorageBufferUniform::_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id},  data{staticSize, arrayStride, index, stageFlags, EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access )}
+	PipelineDescription::_StorageBufferUniform::_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access,
+																	   const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset) :
+		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), allowDynamicOffset ? 0 : STATIC_OFFSET, staticSize, arrayStride },
+		index{index}, stageFlags{stageFlags}
 	{}
 //-----------------------------------------------------------------------------
 
@@ -136,41 +141,47 @@ namespace FG
 
 		DescriptorSet	ds;
 		UniformMap_t	uniforms;
+		uint			dynamic_offset_index = 0;
+
 		ds.id			= id;
 		ds.bindingIndex	= index;
 		uniforms.reserve( textures.size() + samplers.size() + subpassInputs.size() + images.size() +
 						  uniformBuffers.size() + storageBuffers.size() + accelerationStructures.size() );
 
 		for (auto& tex : textures) {
-			uniforms.insert({ tex.id, Uniform_t{ tex.data } });
+			uniforms.insert({ tex.id, {Texture{ tex.data }, tex.index, tex.stageFlags} });
 		}
 
 		for (auto& samp : samplers) {
-			uniforms.insert({ samp.id, Uniform_t{ samp.data } });
+			uniforms.insert({ samp.id, {Sampler{ samp.data }, samp.index, samp.stageFlags} });
 		}
 
 		for (auto& spi : subpassInputs) {
-			uniforms.insert({ spi.id, Uniform_t{ spi.data } });
+			uniforms.insert({ spi.id, {SubpassInput{ spi.data }, spi.index, spi.stageFlags} });
 		}
 
 		for (auto& img : images) {
-			uniforms.insert({ img.id, Uniform_t{ img.data } });
+			uniforms.insert({ img.id, {Image{ img.data }, img.index, img.stageFlags} });
 		}
 
 		for (auto& ub : uniformBuffers) {
-			uniforms.insert({ ub.id, Uniform_t{ ub.data } });
+			uniforms.insert({ ub.id, {UniformBuffer{ub.data.state, (ub.data.dynamicOffsetIndex == STATIC_OFFSET ? STATIC_OFFSET : dynamic_offset_index++),
+										ub.data.size}, ub.index, ub.stageFlags} });
 		}
 
 		for (auto& sb : storageBuffers) {
-			uniforms.insert({ sb.id, Uniform_t{ sb.data } });
+			uniforms.insert({ sb.id, {StorageBuffer{sb.data.state, (sb.data.dynamicOffsetIndex == STATIC_OFFSET ? STATIC_OFFSET : dynamic_offset_index++),
+										sb.data.staticSize, sb.data.arrayStride}, sb.index, sb.stageFlags} });
 		}
 
-		for (auto& as : accelerationStructures) {
-			uniforms.insert({ as.id, Uniform_t{ as.data } });
-		}
+		//for (auto& as : accelerationStructures) {
+		//	uniforms.insert({ as.id, Uniform_t{ as.data } });
+		//}
 
 		ds.uniforms = MakeShared<UniformMap_t>( std::move(uniforms) );
 		_pipelineLayout.descriptorSets.push_back( std::move(ds) );
+
+		ASSERT( dynamic_offset_index <= FG_MaxBufferDynamicOffsets );
 	}
 		
 /*

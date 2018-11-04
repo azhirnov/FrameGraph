@@ -14,7 +14,6 @@ namespace FG
 	VResourceManager::VResourceManager (const VDevice &dev) :
 		_device{ dev }
 	{
-		_readyToDelete.reserve( 256 );
 	}
 	
 /*
@@ -24,16 +23,54 @@ namespace FG
 */
 	VResourceManager::~VResourceManager ()
 	{
-		ASSERT( _readyToDelete.empty() );
+		ASSERT( _perFrame.empty() );
 	}
 	
+/*
+=================================================
+	Initialize
+=================================================
+*/
+	bool VResourceManager::Initialize (uint ringBufferSize)
+	{
+		CHECK_ERR( _perFrame.empty() );
+
+		_perFrame.resize( ringBufferSize );
+
+		for (auto& frame : _perFrame)
+		{
+			frame.readyToDelete.reserve( 256 );
+		}
+		return true;
+	}
+	
+/*
+=================================================
+	Deinitialize
+=================================================
+*/
+	void VResourceManager::Deinitialize ()
+	{
+		_DestroyResourceCache( INOUT _samplerCache );
+		_DestroyResourceCache( INOUT _pplnLayoutCache );
+		_DestroyResourceCache( INOUT _dsLayoutCache );
+
+		for (auto& frame : _perFrame) {
+			_DeleteResources( INOUT frame.readyToDelete );
+		}
+		_perFrame.clear();
+	}
+
 /*
 =================================================
 	OnBeginFrame
 =================================================
 */
-	void VResourceManager::OnBeginFrame ()
+	void VResourceManager::OnBeginFrame (uint frameId)
 	{
+		_frameId = frameId;
+
+		_DeleteResources( INOUT _perFrame[_frameId].readyToDelete );
 	}
 	
 /*
@@ -43,7 +80,6 @@ namespace FG
 */
 	void VResourceManager::OnEndFrame ()
 	{
-		_DeleteResources();
 		_UnassignResourceIDs();
 	}
 	
@@ -66,11 +102,11 @@ namespace FG
 	_DeleteResources
 =================================================
 */
-	void VResourceManager::_DeleteResources ()
+	void VResourceManager::_DeleteResources (INOUT VkResourceQueue_t &readyToDelete) const
 	{
 		VkDevice	dev = _device.GetVkDevice();
 		
-		for (auto& pair : _readyToDelete)
+		for (auto& pair : readyToDelete)
 		{
 			switch ( pair.first )
 			{
@@ -159,7 +195,7 @@ namespace FG
 					break;
 			}
 		}
-		_readyToDelete.clear();
+		readyToDelete.clear();
 	}
 	
 /*
@@ -168,7 +204,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC>
-	void VResourceManager::_DestroyResourceCache (CachedPoolTmpl<DataT,CS,MC> &res)
+	inline void VResourceManager::_DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &res)
 	{
 		for (size_t i = 0, count = res.size(); i < count; ++i)
 		{
@@ -178,25 +214,11 @@ namespace FG
 			if ( //res.IsAssigned( id ) and
 				 data.GetState() != ResourceBase::EState::Initial )
 			{
-				data.Destroy( OUT _readyToDelete, OUT _unassignIDs );
+				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 				res.RemoveFromCache( id );
 				res.Unassign( id );
 			}
 		}
-	}
-	
-/*
-=================================================
-	OnDestroy
-=================================================
-*/
-	void VResourceManager::OnDestroy ()
-	{
-		_DestroyResourceCache( _samplerCache );
-		_DestroyResourceCache( _pplnLayoutCache );
-		_DestroyResourceCache( _dsLayoutCache );
-
-		OnEndFrame();
 	}
 
 

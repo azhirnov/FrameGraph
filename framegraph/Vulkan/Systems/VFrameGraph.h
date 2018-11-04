@@ -51,7 +51,6 @@ namespace FG
 		
 		static constexpr uint	MaxCmdBatches		= 4;
 		static constexpr uint	MaxQueues			= 4;
-		static constexpr uint	MaxFrames			= 8;
 		static constexpr uint	MaxFences			= 32;
 
 
@@ -71,7 +70,7 @@ namespace FG
 			VkFence				waitFence	= VK_NULL_HANDLE;
 			CmdBatches_t		batches;
 		};
-		using Queues_t			= FixedMap< VkQueue, PerQueue, MaxFrames >;
+		using Queues_t			= FixedMap< VkQueue, PerQueue, FG_MaxRingBufferSize >;
 
 
 		struct PerFrame

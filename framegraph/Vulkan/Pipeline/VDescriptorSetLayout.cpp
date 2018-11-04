@@ -14,10 +14,8 @@ namespace FG
 */
 	ND_ inline bool TextureEquals (const PipelineDescription::Texture &lhs, const PipelineDescription::Texture &rhs) noexcept
 	{
-		return	lhs.textureType			== rhs.textureType			and
-				lhs.index.VKBinding()	== rhs.index.VKBinding()	and
-				lhs.stageFlags			== rhs.stageFlags			and
-				lhs.state				== rhs.state;
+		return	lhs.textureType		== rhs.textureType	and
+				lhs.state			== rhs.state;
 	}
 //-----------------------------------------------------------------------------
 
@@ -30,8 +28,7 @@ namespace FG
 */
 	ND_ inline bool SamplerEquals (const PipelineDescription::Sampler &lhs, const PipelineDescription::Sampler &rhs) noexcept
 	{
-		return	lhs.index.VKBinding()	== rhs.index.VKBinding()	and
-				lhs.stageFlags			== rhs.stageFlags;
+		return true;
 	}
 //-----------------------------------------------------------------------------
 	
@@ -46,8 +43,6 @@ namespace FG
 	{
 		return	lhs.attachmentIndex		== rhs.attachmentIndex		and
 				lhs.isMultisample		== rhs.isMultisample		and
-				lhs.index.VKBinding()	== rhs.index.VKBinding()	and
-				lhs.stageFlags			== rhs.stageFlags			and
 				lhs.state				== rhs.state;
 	}
 //-----------------------------------------------------------------------------
@@ -61,11 +56,9 @@ namespace FG
 */
 	ND_ inline bool ImageEquals (const PipelineDescription::Image &lhs, const PipelineDescription::Image &rhs) noexcept
 	{
-		return	lhs.imageType			== rhs.imageType			and
-				lhs.format				== rhs.format				and
-				lhs.index.VKBinding()	== rhs.index.VKBinding()	and
-				lhs.stageFlags			== rhs.stageFlags			and
-				lhs.state				== rhs.state;
+		return	lhs.imageType	== rhs.imageType	and
+				lhs.format		== rhs.format		and
+				lhs.state		== rhs.state;
 	}
 //-----------------------------------------------------------------------------
 
@@ -79,8 +72,7 @@ namespace FG
 	ND_ inline bool UniformBufferEquals (const PipelineDescription::UniformBuffer &lhs, const PipelineDescription::UniformBuffer &rhs) noexcept
 	{
 		return	lhs.size				== rhs.size					and
-				lhs.index.VKBinding()	== rhs.index.VKBinding()	and
-				lhs.stageFlags			== rhs.stageFlags			and
+				lhs.dynamicOffsetIndex	== rhs.dynamicOffsetIndex	and
 				lhs.state				== rhs.state;
 	}
 //-----------------------------------------------------------------------------
@@ -96,8 +88,7 @@ namespace FG
 	{
 		return	lhs.staticSize			== rhs.staticSize			and
 				lhs.arrayStride			== rhs.arrayStride			and
-				lhs.index.VKBinding()	== rhs.index.VKBinding()	and
-				lhs.stageFlags			== rhs.stageFlags			and
+				lhs.dynamicOffsetIndex	== rhs.dynamicOffsetIndex	and
 				lhs.state				== rhs.state;
 	}
 //-----------------------------------------------------------------------------
@@ -109,14 +100,20 @@ namespace FG
 	UniformEquals
 =================================================
 */
-	ND_ inline bool UniformEquals (const PipelineDescription::Uniform_t &lhsUniform, const PipelineDescription::Uniform_t &rhsUniform) noexcept
+	ND_ inline bool UniformEquals (const PipelineDescription::Uniform &lhsUniform, const PipelineDescription::Uniform &rhsUniform) noexcept
 	{
+		if ( lhsUniform.index.VKBinding()	!= rhsUniform.index.VKBinding()  or
+			 lhsUniform.stageFlags			!= rhsUniform.stageFlags )
+		{
+			return false;
+		}
+
 		bool	result = false;
 
-		Visit( lhsUniform,
+		Visit( lhsUniform.data,
 			[&rhsUniform, &result] (const PipelineDescription::Texture &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::Texture>( &rhsUniform ) )
+				if ( auto* rhs = std::get_if<PipelineDescription::Texture>( &rhsUniform.data ) )
 				{
 					result = TextureEquals( lhs, *rhs );
 				}
@@ -124,7 +121,7 @@ namespace FG
 				   
 			[&rhsUniform, &result] (const PipelineDescription::Sampler &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::Sampler>( &rhsUniform ) )
+				if ( auto* rhs = std::get_if<PipelineDescription::Sampler>( &rhsUniform.data ) )
 				{
 					result = SamplerEquals( lhs, *rhs );
 				}
@@ -132,7 +129,7 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::SubpassInput &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::SubpassInput>( &rhsUniform ) )
+				if ( auto* rhs = std::get_if<PipelineDescription::SubpassInput>( &rhsUniform.data ) )
 				{
 					result = SubpassInputEquals( lhs, *rhs );
 				}
@@ -140,7 +137,7 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::Image &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::Image>( &rhsUniform ) )
+				if ( auto* rhs = std::get_if<PipelineDescription::Image>( &rhsUniform.data ) )
 				{
 					result = ImageEquals( lhs, *rhs );
 				}
@@ -148,7 +145,7 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::UniformBuffer &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::UniformBuffer>( &rhsUniform ) )
+				if ( auto* rhs = std::get_if<PipelineDescription::UniformBuffer>( &rhsUniform.data ) )
 				{
 					result = UniformBufferEquals( lhs, *rhs );
 				}
@@ -156,7 +153,7 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::StorageBuffer &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::StorageBuffer>( &rhsUniform ) )
+				if ( auto* rhs = std::get_if<PipelineDescription::StorageBuffer>( &rhsUniform.data ) )
 				{
 					result = StorageBufferEquals( lhs, *rhs );
 				}
@@ -211,7 +208,7 @@ namespace FG
 		{
 			_hash << HashOf( un.first );
 
-			_AddUniform( un.second, INOUT _hash, INOUT _maxIndex, INOUT binding, INOUT _poolSize );
+			_AddUniform( un.second, INOUT binding );
 		}
 
 		// remove empty pool sizes
@@ -293,29 +290,30 @@ namespace FG
 	_AddUniform
 =================================================
 */
-	void VDescriptorSetLayout::_AddUniform (const PipelineDescription::Uniform_t &un, INOUT HashVal &hash, INOUT uint &maxIndex,
-											INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize)
+	void VDescriptorSetLayout::_AddUniform (const PipelineDescription::Uniform &un, INOUT DescriptorBinding_t &binding)
 	{
-		Visit( un,
-			[&hash, &maxIndex, &binding, &poolSize] (const PipelineDescription::Texture &tex) {
-				_AddTexture( tex, INOUT hash, INOUT maxIndex, INOUT binding, INOUT poolSize );
+		Visit( un.data,
+			[&] (const PipelineDescription::Texture &tex) {
+				_AddTexture( tex, un.index.VKBinding(), un.stageFlags, INOUT binding );
 			},
-			[&hash, &maxIndex, &binding, &poolSize] (const PipelineDescription::Sampler &samp) {
-				_AddSampler( samp, INOUT hash, INOUT maxIndex, INOUT binding, INOUT poolSize );
+			[&] (const PipelineDescription::Sampler &samp) {
+				_AddSampler( samp, un.index.VKBinding(), un.stageFlags, INOUT binding );
 			},
-			[&hash, &maxIndex, &binding, &poolSize] (const PipelineDescription::SubpassInput &spi) {
-				_AddSubpassInput( spi, INOUT hash, INOUT maxIndex, INOUT binding, INOUT poolSize );
+			[&] (const PipelineDescription::SubpassInput &spi) {
+				_AddSubpassInput( spi, un.index.VKBinding(), un.stageFlags, INOUT binding );
 			},
-			[&hash, &maxIndex, &binding, &poolSize] (const PipelineDescription::Image &img)	{
-				_AddImage( img, INOUT hash, INOUT maxIndex, INOUT binding, INOUT poolSize );
+			[&] (const PipelineDescription::Image &img)	{
+				_AddImage( img, un.index.VKBinding(), un.stageFlags, INOUT binding );
 			},
-			[&hash, &maxIndex, &binding, &poolSize] (const PipelineDescription::UniformBuffer &ub) {
-				_AddUniformBuffer( ub, INOUT hash, INOUT maxIndex, INOUT binding, INOUT poolSize );
+			[&] (const PipelineDescription::UniformBuffer &ub) {
+				_AddUniformBuffer( ub, un.index.VKBinding(), un.stageFlags, INOUT binding );
 			},
-			[&hash, &maxIndex, &binding, &poolSize] (const PipelineDescription::StorageBuffer &sb) {
-				_AddStorageBuffer( sb, INOUT hash, INOUT maxIndex, INOUT binding, INOUT poolSize );
+			[&] (const PipelineDescription::StorageBuffer &sb) {
+				_AddStorageBuffer( sb, un.index.VKBinding(), un.stageFlags, INOUT binding );
 			},
-			[] (const auto &) { ASSERT(false); }
+			[] (const auto &) {
+				ASSERT(false);
+			}
 		);
 	}
 
@@ -324,25 +322,25 @@ namespace FG
 	_AddImage
 =================================================
 */
-	void VDescriptorSetLayout::_AddImage (const PipelineDescription::Image &img, INOUT HashVal &hash, INOUT uint &maxIndex,
-										  INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize)
+	void VDescriptorSetLayout::_AddImage (const PipelineDescription::Image &img, uint bindingIndex,
+										  EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
 	{
 		// calculate hash
-		hash << HashOf( img.imageType );
-		hash << HashOf( img.format );
-		hash << HashOf( img.index.VKBinding() );
-		hash << HashOf( img.stageFlags );
-		hash << HashOf( img.state );
+		_hash << HashOf( img.imageType )
+			  << HashOf( img.format )
+			  << HashOf( bindingIndex )
+			  << HashOf( stageFlags )
+			  << HashOf( img.state );
 		
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
 		bind.descriptorType		= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		bind.stageFlags			= VEnumCast( img.stageFlags );
-		bind.binding			= img.index.VKBinding();
+		bind.stageFlags			= VEnumCast( stageFlags );
+		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
 
-		maxIndex = Max( maxIndex, bind.binding );
-		poolSize[ bind.descriptorType ].descriptorCount++;
+		_maxIndex = Max( _maxIndex, bind.binding );
+		_poolSize[ bind.descriptorType ].descriptorCount++;
 
 		binding.push_back( std::move(bind) );
 	}
@@ -352,24 +350,24 @@ namespace FG
 	_AddTexture
 =================================================
 */
-	void VDescriptorSetLayout::_AddTexture (const PipelineDescription::Texture &tex, INOUT HashVal &hash, INOUT uint &maxIndex,
-											INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize)
+	void VDescriptorSetLayout::_AddTexture (const PipelineDescription::Texture &tex, uint bindingIndex,
+											EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
 	{
 		// calculate hash
-		hash << HashOf( tex.textureType );
-		hash << HashOf( tex.index.VKBinding() );
-		hash << HashOf( tex.stageFlags );
-		hash << HashOf( tex.state );
+		_hash << HashOf( tex.textureType )
+			  << HashOf( bindingIndex )
+			  << HashOf( stageFlags )
+			  << HashOf( tex.state );
 
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
 		bind.descriptorType		= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		bind.stageFlags			= VEnumCast( tex.stageFlags );
-		bind.binding			= tex.index.VKBinding();
+		bind.stageFlags			= VEnumCast( stageFlags );
+		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
 		
-		maxIndex = Max( maxIndex, bind.binding );
-		poolSize[ bind.descriptorType ].descriptorCount++;
+		_maxIndex = Max( _maxIndex, bind.binding );
+		_poolSize[ bind.descriptorType ].descriptorCount++;
 
 		binding.push_back( std::move(bind) );
 	}
@@ -379,22 +377,22 @@ namespace FG
 	_AddSampler
 =================================================
 */
-	void VDescriptorSetLayout::_AddSampler (const PipelineDescription::Sampler &samp, INOUT HashVal &hash, INOUT uint &maxIndex,
-											INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize)
+	void VDescriptorSetLayout::_AddSampler (const PipelineDescription::Sampler &samp, uint bindingIndex,
+											EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
 	{
 		// calculate hash
-		hash << HashOf( samp.index.VKBinding() );
-		hash << HashOf( samp.stageFlags );
+		_hash << HashOf( bindingIndex )
+			  << HashOf( stageFlags );
 		
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
 		bind.descriptorType		= VK_DESCRIPTOR_TYPE_SAMPLER;
-		bind.stageFlags			= VEnumCast( samp.stageFlags );
-		bind.binding			= samp.index.VKBinding();
+		bind.stageFlags			= VEnumCast( stageFlags );
+		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
 		
-		maxIndex = Max( maxIndex, bind.binding );
-		poolSize[ bind.descriptorType ].descriptorCount++;
+		_maxIndex = Max( _maxIndex, bind.binding );
+		_poolSize[ bind.descriptorType ].descriptorCount++;
 
 		binding.push_back( std::move(bind) );
 	}
@@ -404,25 +402,25 @@ namespace FG
 	_AddSubpassInput
 =================================================
 */
-	void VDescriptorSetLayout::_AddSubpassInput (const PipelineDescription::SubpassInput &spi, INOUT HashVal &hash, INOUT uint &maxIndex,
-												 INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize)
+	void VDescriptorSetLayout::_AddSubpassInput (const PipelineDescription::SubpassInput &spi, uint bindingIndex,
+												 EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
 	{
 		// calculate hash
-		hash << HashOf( spi.attachmentIndex );
-		hash << HashOf( spi.isMultisample );
-		hash << HashOf( spi.index.VKBinding() );
-		hash << HashOf( spi.stageFlags );
-		hash << HashOf( spi.state );
+		_hash << HashOf( spi.attachmentIndex )
+			  << HashOf( spi.isMultisample )
+			  << HashOf( bindingIndex )
+			  << HashOf( stageFlags )
+			  << HashOf( spi.state );
 		
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
 		bind.descriptorType		= VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-		bind.stageFlags			= VEnumCast( spi.stageFlags );
-		bind.binding			= spi.index.VKBinding();
+		bind.stageFlags			= VEnumCast( stageFlags );
+		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
 		
-		maxIndex = Max( maxIndex, bind.binding );
-		poolSize[ bind.descriptorType ].descriptorCount++;
+		_maxIndex = Max( _maxIndex, bind.binding );
+		_poolSize[ bind.descriptorType ].descriptorCount++;
 
 		binding.push_back( std::move(bind) );
 	}
@@ -432,24 +430,24 @@ namespace FG
 	_AddUniformBuffer
 =================================================
 */
-	void VDescriptorSetLayout::_AddUniformBuffer (const PipelineDescription::UniformBuffer &ub, INOUT HashVal &hash, INOUT uint &maxIndex,
-												  INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize)
+	void VDescriptorSetLayout::_AddUniformBuffer (const PipelineDescription::UniformBuffer &ub, uint bindingIndex,
+												  EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
 	{
 		// calculate hash
-		hash << HashOf( ub.size );
-		hash << HashOf( ub.index.VKBinding() );
-		hash << HashOf( ub.stageFlags );
-		hash << HashOf( ub.state );
+		_hash << HashOf( ub.size )
+			  << HashOf( bindingIndex )
+			  << HashOf( stageFlags )
+			  << HashOf( ub.state );
 
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
 		bind.descriptorType		= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		bind.stageFlags			= VEnumCast( ub.stageFlags );
-		bind.binding			= ub.index.VKBinding();
+		bind.stageFlags			= VEnumCast( stageFlags );
+		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
 		
-		maxIndex = Max( maxIndex, bind.binding );
-		poolSize[ bind.descriptorType ].descriptorCount++;
+		_maxIndex = Max( _maxIndex, bind.binding );
+		_poolSize[ bind.descriptorType ].descriptorCount++;
 
 		binding.push_back( std::move(bind) );
 	}
@@ -459,25 +457,25 @@ namespace FG
 	_AddStorageBuffer
 =================================================
 */
-	void VDescriptorSetLayout::_AddStorageBuffer (const PipelineDescription::StorageBuffer &sb, INOUT HashVal &hash, INOUT uint &maxIndex,
-												  INOUT DescriptorBinding_t &binding, INOUT PoolSizeArray_t &poolSize)
+	void VDescriptorSetLayout::_AddStorageBuffer (const PipelineDescription::StorageBuffer &sb, uint bindingIndex,
+												  EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
 	{
 		// calculate hash
-		hash << HashOf( sb.staticSize );
-		hash << HashOf( sb.arrayStride );
-		hash << HashOf( sb.index.VKBinding() );
-		hash << HashOf( sb.stageFlags );
-		hash << HashOf( sb.state );
+		_hash << HashOf( sb.staticSize )
+			  << HashOf( sb.arrayStride )
+			  << HashOf( bindingIndex )
+			  << HashOf( stageFlags )
+			  << HashOf( sb.state );
 		
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
 		bind.descriptorType		= VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		bind.stageFlags			= VEnumCast( sb.stageFlags );
-		bind.binding			= sb.index.VKBinding();
+		bind.stageFlags			= VEnumCast( stageFlags );
+		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
 		
-		maxIndex = Max( maxIndex, bind.binding );
-		poolSize[ bind.descriptorType ].descriptorCount++;
+		_maxIndex = Max( _maxIndex, bind.binding );
+		_poolSize[ bind.descriptorType ].descriptorCount++;
 
 		binding.push_back( std::move(bind) );
 	}
@@ -489,14 +487,12 @@ namespace FG
 */
 	bool VDescriptorSetLayout::operator == (const VDescriptorSetLayout &rhs) const
 	{
-		if ( _hash != rhs._hash )
+		if ( _hash != rhs._hash					or
+			 not (_uniforms and rhs._uniforms)	or
+			_uniforms->size() != rhs._uniforms->size() )
+		{
 			return false;
-
-		if ( not (_uniforms and rhs._uniforms) )
-			return false;
-
-		if ( _uniforms->size() != rhs._uniforms->size() )
-			return false;
+		}
 
 		for (auto& un : *_uniforms)
 		{

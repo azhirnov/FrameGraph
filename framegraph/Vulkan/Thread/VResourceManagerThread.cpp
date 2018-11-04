@@ -134,7 +134,7 @@ namespace FG
 		{
 			auto&	image = (*_localImages)[ Index_t(i) ];
 			if ( not image.IsDestroyed() )
-				image.Destroy( OUT _mainRM._readyToDelete, OUT *_unassignIDs );
+				image.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
 		}
 		
 		// destroy local buffers
@@ -142,10 +142,10 @@ namespace FG
 		{
 			auto&	buffer = (*_localBuffers)[ Index_t(i) ];
 			if ( not buffer.IsDestroyed() )
-				buffer.Destroy( OUT _mainRM._readyToDelete, OUT *_unassignIDs );
+				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
 		}
 
-		_pipelineCache.MergePipelines( _mainRM._readyToDelete );
+		_pipelineCache.MergePipelines( _mainRM._GetReadyToDeleteQueue() );
 
 		// commit IDs
         for (auto& vid : *_commitIDs) {
@@ -626,9 +626,9 @@ namespace FG
 		ID	id;
 		CHECK_ERR( _Assign( OUT id ));
 
-		auto&	pool	 = _GetResourcePool( id );
-		DataT&	new_data = pool[ id.Index() ];
-		fnInit( INOUT new_data );
+		auto&	pool	= _GetResourcePool( id );
+		DataT&	data	= pool[ id.Index() ];
+		fnInit( INOUT data );
 		
 		if ( not isAsync )
 		{
@@ -637,45 +637,45 @@ namespace FG
 			// if not unique
 			if ( not inserted.second )
 			{
-				auto&	data = pool[ inserted.first ];
-				data.AddRef();
+				auto&	temp = pool[ inserted.first ];
+				temp.AddRef();
 				_Unassign( id );
-				return ID( inserted.first, data.GetInstanceID() );
+				return ID( inserted.first, temp.GetInstanceID() );
 			}
 		}
 		else
 		{
 			// search in main cache
-			const Index_t  temp_id = pool.Find( &new_data );
+			const Index_t  temp_id = pool.Find( &data );
 
 			if ( temp_id < pool.size() )
 			{
-				auto&	data = pool[ temp_id ];
-				data.AddRef();
+				auto&	temp = pool[ temp_id ];
+				temp.AddRef();
 				_Unassign( id );
-				return ID( temp_id, data.GetInstanceID() );
+				return ID( temp_id, temp.GetInstanceID() );
 			}
 
 			// search in local cache
-			auto	iter = localCache->find( &new_data );
+			auto	iter = localCache->find( &data );
 			if ( iter != localCache->end() )
 			{
 				iter->first->AddRef();
 				return iter->second;
 			}
 
-			auto	inserted = localCache->insert_or_assign( &new_data, id );
+			auto	inserted = localCache->insert_or_assign( &data, id );
 			ASSERT( inserted.second );
 		}
 
 		// create new
-		if ( not fnCreate( new_data ) )
+		if ( not fnCreate( data ) )
 		{
 			_Unassign( id );
 			RETURN_ERR( errorStr );
 		}
 
-		new_data.AddRef();
+		data.AddRef();
 		_Commit( id, isAsync );
 		return id;
 	}
@@ -706,11 +706,30 @@ namespace FG
 									  [&] (auto& data) { return data.Create( *this ); });
 	}
 	
+/*
+=================================================
+	CreateDescriptorSet
+=================================================
+*/
 	RawPipelineResourcesID  VResourceManagerThread::CreateDescriptorSet (const PipelineResources &desc, bool isAsync)
 	{
-		return _CreateCachedResource( _pplnResourcesMap, isAsync, "failed when creating descriptor set",
-									  [&] (auto& data) { return data.Initialize( desc ); },
-									  [&] (auto& data) { return data.Create( *this, _pipelineCache ); });
+		RawPipelineResourcesID	id = PipelineResourcesInitializer::GetCached( desc );
+		
+		if ( id and IsResourceAlive( id ) )
+		{
+			GetResource( id )->AddRef();
+			return id;
+		}
+
+		RawPipelineResourcesID	result =
+			_CreateCachedResource( _pplnResourcesMap, isAsync, "failed when creating descriptor set",
+								   [&] (auto& data) { return data.Initialize( desc ); },
+								   [&] (auto& data) { return data.Create( *this, _pipelineCache ); });
+
+		if ( result )
+			PipelineResourcesInitializer::SetCache( desc, result );
+
+		return result;
 	}
 
 /*

@@ -21,118 +21,131 @@ namespace FG
 	{
 	// types
 	public:
+		static constexpr uint	STATIC_OFFSET = ~0u;
+
 		struct Texture
 		{
-			EImage				textureType;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
 			EResourceState		state;
+			EImage				textureType;
 		};
 
 		struct Sampler
 		{
-			BindingIndex		index;
-			EShaderStages		stageFlags;
 		};
 
 		struct SubpassInput
 		{
+			EResourceState		state;
 			uint				attachmentIndex;
 			bool				isMultisample;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
-			EResourceState		state;
 		};
 
 		struct Image
 		{
+			EResourceState		state;
 			EImage				imageType;
 			EPixelFormat		format;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
-			EResourceState		state;
 		};
 
 		struct UniformBuffer
 		{
-			BytesU				size;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
 			EResourceState		state;
+			uint				dynamicOffsetIndex;
+			BytesU				size;
 		};
 
 		struct StorageBuffer
 		{
+			EResourceState		state;
+			uint				dynamicOffsetIndex;
 			BytesU				staticSize;
 			BytesU				arrayStride;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
-			EResourceState		state;
 		};
 
 		struct AccelerationStructure
 		{
-			EShaderStages		stageFlags;
 		};
 
 
 	// uniforms
 		struct _TextureUniform
 		{
-			UniformID		id;
-			Texture			data;
+			UniformID			id;
+			Texture				data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
 
 			_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _SamplerUniform
 		{
-			UniformID		id;
-			Sampler			data;
+			UniformID			id;
+			Sampler				data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
 
 			_SamplerUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _SubpassInputUniform
 		{
-			UniformID		id;
-			SubpassInput	data;
+			UniformID			id;
+			SubpassInput		data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
 
 			_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _ImageUniform
 		{
-			UniformID		id;
-			Image			data;
+			UniformID			id;
+			Image				data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
 
 			_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _UBufferUniform
 		{
-			UniformID		id;
-			UniformBuffer	data;
+			UniformID			id;
+			UniformBuffer		data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
 
-			_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags);
+			_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset);
 		};
 
 		struct _StorageBufferUniform
 		{
-			UniformID		id;
-			StorageBuffer	data;
+			UniformID			id;
+			StorageBuffer		data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
 
-			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags);
+			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset);
 		};
 		
 		struct _AccelerationStructureUniform
 		{
-			UniformID		id;
+			UniformID				id;
 			AccelerationStructure	data;
+			BindingIndex			index;
+			EShaderStages			stageFlags;
 		};
 
-		using Uniform_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, AccelerationStructure >;
-		using UniformMap_t	= HashMap< UniformID, Uniform_t >;
+		using UniformData_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, AccelerationStructure >;
+
+		struct Uniform
+		{
+			UniformData_t		data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
+		};
+
+		using UniformMap_t	= HashMap< UniformID, Uniform >;
 		using UniformMapPtr	= SharedPtr< const UniformMap_t >;
 
 		struct DescriptorSet

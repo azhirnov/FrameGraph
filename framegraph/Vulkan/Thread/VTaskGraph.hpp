@@ -76,6 +76,26 @@ namespace FG
 	{}
 //-----------------------------------------------------------------------------
 	
+	
+/*
+=================================================
+	CopyDescriptorSets
+=================================================
+*/
+	inline void CopyDescriptorSets (VFrameGraphThread *fg, INOUT DescriptoSetDynamicOffsets_t &dynamicOffsets, INOUT VPipelineResourceSet &resources,
+									const PipelineResourceSet &inResources)
+	{
+		dynamicOffsets.reserve( inResources.size() * FG_MaxBufferDynamicOffsets );
+
+		for (const auto& res : inResources)
+		{
+			ASSERT( res.second );
+			resources.insert({ res.first, fg->GetResourceManager()->CreateDescriptorSet( *res.second, true ) });
+			dynamicOffsets.insert( dynamicOffsets.end(), res.second->GetDynamicOffsets().begin(), res.second->GetDynamicOffsets().end() );
+		}
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -85,14 +105,11 @@ namespace FG
 	inline VFgTask<DispatchCompute>::VFgTask (VFrameGraphThread *fg, const DispatchCompute &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
 		_pipeline{ task.pipeline },
+		_dynamicOffsets{ fg->GetAllocator() },
 		_groupCount{ Max( task.groupCount, 1u ) },
 		_localGroupSize{ task.localGroupSize }
 	{
-		for (const auto& res : task.resources)
-		{
-			ASSERT( res.second );
-			_resources.insert({ res.first, fg->GetResourceManager()->CreateDescriptorSet( *res.second, true ) });
-		}
+		CopyDescriptorSets( fg, INOUT _dynamicOffsets, INOUT _resources, task.resources );
 	}
 //-----------------------------------------------------------------------------
 	
@@ -105,15 +122,12 @@ namespace FG
 	inline VFgTask<DispatchIndirectCompute>::VFgTask (VFrameGraphThread *fg, const DispatchIndirectCompute &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
 		_pipeline{ task.pipeline },
+		_dynamicOffsets{ fg->GetAllocator() },
 		_indirectBuffer{ fg->GetResourceManager()->Remap( task.indirectBuffer )},
 		_indirectBufferOffset{ VkDeviceSize(task.indirectBufferOffset) },
 		_localGroupSize{ task.localGroupSize }
 	{
-		for (const auto& res : task.resources)
-		{
-			ASSERT( res.second );
-			_resources.insert({ res.first, fg->GetResourceManager()->CreateDescriptorSet( *res.second, fg->GetPipelineCache() ) });
-		}
+		CopyDescriptorSets( fg, INOUT _dynamicOffsets, INOUT _resources, task.resources );
 	}
 //-----------------------------------------------------------------------------
 	

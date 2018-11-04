@@ -18,10 +18,12 @@ namespace FG
 	{
 	// types
 	public:
-		using BufferRange			= VLocalBuffer::BufferRange;
-		using ImageRange			= VLocalImage::ImageRange;
-		using BufferState			= VLocalBuffer::BufferState;
-		using ImageState			= VLocalImage::ImageState;
+		class PipelineResourceBarriers;
+
+		using BufferRange				= VLocalBuffer::BufferRange;
+		using ImageRange				= VLocalImage::ImageRange;
+		using BufferState				= VLocalBuffer::BufferState;
+		using ImageState				= VLocalImage::ImageState;
 
 		template <typename T>
 		using PendingBarriersTempl		= std::unordered_set< T const*, std::hash<T const*>, std::equal_to<T const*>, StdLinearAllocator<T const*> >;
@@ -42,7 +44,7 @@ namespace FG
 		VFrameGraphThread &			_frameGraph;
 		VDevice const&				_dev;
 
-		VkCommandBuffer				_cmdBufferId;
+		VkCommandBuffer				_cmdBuffer;
 		
 		Task						_currTask			= null;
 		bool						_isCompute			= false;
@@ -92,7 +94,7 @@ namespace FG
 		
 		void _CommitBarriers ();
 		
-		void _BindPipelineResources (RawCPipelineID pipeline, const VPipelineResourceSet &resources) const;
+		void _BindPipelineResources (RawCPipelineID pipeline, const VPipelineResourceSet &resources, ArrayView<uint> dynamicOffsets) const;
 		void _BindPipeline (RawCPipelineID pipeline, const Optional<uint3> &localSize) const;
 
 		void _AddImage (const VLocalImage &img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
@@ -128,7 +130,7 @@ namespace FG
 		VFrameGraph &				_frameGraph;
 		VDevice const&				_dev;
 
-		VkCommandBuffer				_cmdBufferId;
+		VkCommandBuffer				_cmdBuffer;
 		VCommandQueue *				_currQueue;
 		VBarrierManager				_barrierMngr;
 

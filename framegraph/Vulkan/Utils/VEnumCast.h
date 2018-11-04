@@ -833,6 +833,7 @@ namespace FG
 			case EResourceState::TransferSrc :						return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			case EResourceState::TransferDst :						return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
+			case EResourceState::TransientAttachment :
 			case EResourceState::ColorAttachmentRead :
 			case EResourceState::ColorAttachmentWrite :
 			case EResourceState::ColorAttachmentReadWrite :			return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -845,7 +846,6 @@ namespace FG
 			case EResourceState::HostWrite :
 			case EResourceState::HostReadWrite :					return VK_IMAGE_LAYOUT_GENERAL;
 
-			//case EResourceState::TransientAttachment
 			case EResourceState::PresentImage :						return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 			//case EResourceState::SharedPresentImage :				return VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
 		}

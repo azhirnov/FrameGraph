@@ -78,7 +78,7 @@ namespace FG
 	{
 		ASSERT( GetState() == EState::Initial );
 
-		_layoutId	= desc.GetLayout();
+		_layoutId	= DescriptorSetLayoutID{ desc.GetLayout() };
 		_resources	= desc.GetData();
 		_hash		= Default;
 
@@ -181,10 +181,10 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResourcesInitializer::Buffer &buf, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
 	{
 		VkDescriptorBufferInfo	info = {};
-		info.buffer	= rm.GetResource( buf.buffer )->Handle();
+		info.buffer	= rm.GetResource( buf.bufferId )->Handle();
 		info.offset	= VkDeviceSize(buf.offset);
 		info.range	= VkDeviceSize(buf.size);
 
@@ -210,9 +210,9 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResourcesInitializer::Image &img, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResources::Image &img, INOUT UpdateDescriptors &list)
 	{
-		LocalImageID		local_id	= rm.Remap( img.image );
+		LocalImageID		local_id	= rm.Remap( img.imageId );
 		VLocalImage const*	local_img	= rm.GetState( local_id );
 
 		VkDescriptorImageInfo	info = {};
@@ -242,15 +242,15 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResourcesInitializer::Texture &tex, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
 	{
-		LocalImageID		local_id	= rm.Remap( tex.image );
+		LocalImageID		local_id	= rm.Remap( tex.imageId );
 		VLocalImage const*	local_img	= rm.GetState( local_id );
 
 		VkDescriptorImageInfo	info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( tex.state );
 		info.imageView		= local_img->GetView( rm.GetDevice(), tex.desc );
-		info.sampler		= rm.GetResource( tex.sampler )->Handle();
+		info.sampler		= rm.GetResource( tex.samplerId )->Handle();
 
 		list.images.push_back( std::move(info) );
 		
@@ -274,12 +274,12 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResourcesInitializer::Sampler &samp, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
 	{
 		VkDescriptorImageInfo	info = {};
 		info.imageLayout	= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		info.imageView		= VK_NULL_HANDLE;
-		info.sampler		= rm.GetResource( samp.sampler )->Handle();
+		info.sampler		= rm.GetResource( samp.samplerId )->Handle();
 
 		list.images.push_back( std::move(info) );
 		

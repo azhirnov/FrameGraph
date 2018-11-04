@@ -22,6 +22,7 @@ namespace FG
 	static constexpr unsigned	FG_MaxPushConstants			= 8;
 	static constexpr unsigned	FG_MaxPushConstantsSize		= 128;	// bytes
 	static constexpr unsigned	FG_MaxSpecConstants			= 16;
+	static constexpr unsigned	FG_MaxBufferDynamicOffsets	= 8;
 
 	// queue
 	static constexpr unsigned	FG_MaxQueueFamilies			= 32;
@@ -36,7 +37,6 @@ namespace FG
 	// memory manager
 	static constexpr unsigned	FG_VkHostWritePageSizeMb	= 256;	// Mb
 	static constexpr unsigned	FG_VkDevicePageSizeMb		= 256;	// Mb
-	static constexpr unsigned	FG_MaxFlushMemRanges		= 32;
 
 	// resource manager
 	static constexpr unsigned	FG_MaxImageResources		= 32u << 10;
@@ -44,7 +44,7 @@ namespace FG
 	static constexpr unsigned	FG_MaxPipelines				= 1u << 10;
 
 	// frame graph
-	static constexpr unsigned	FG_MaxSwapchainLength		= 8;
+	static constexpr unsigned	FG_MaxRingBufferSize		= 8;
 	static constexpr unsigned	FG_MaxThreadDependencies	= 8;
 
 
