@@ -9,6 +9,7 @@
 #include "stl/Math/Color.h"
 
 using namespace FG;
+namespace {
 
 
 class ImageFootprintApp final : public IWindowEventListener, public VulkanDeviceFn
@@ -189,11 +190,15 @@ void ImageFootprintApp::Destroy ()
 	VkDevice	dev = vulkan.GetVkDevice();
 
 	VK_CALL( vkDeviceWaitIdle( dev ));
-
-	vkDestroySemaphore( dev, semaphores[0], null );
-	vkDestroySemaphore( dev, semaphores[1], null );
-	vkDestroyFence( dev, fences[0], null );
-	vkDestroyFence( dev, fences[1], null );
+	
+	for (auto& sem : semaphores) {
+		vkDestroySemaphore( dev, sem, null );
+		sem = VK_NULL_HANDLE;
+	}
+	for (auto& fen : fences) {
+		vkDestroyFence( dev, fen, null );
+		fen = VK_NULL_HANDLE;
+	}
 	vkDestroyCommandPool( dev, cmdPool, null );
 	vkDestroyRenderPass( dev, renderPass, null );
 	vkDestroyPipeline( dev, pipeline, null );
@@ -254,10 +259,8 @@ bool ImageFootprintApp::Run ()
 		// build command buffer
 		{
 			VkCommandBufferBeginInfo	begin_info = {};
-			begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			begin_info.pNext			= null;
-			begin_info.flags			= 0;
-			begin_info.pInheritanceInfo	= null;
+			begin_info.sType	= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			begin_info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			VK_CALL( vkBeginCommandBuffer( cmdBuffers[frameId], &begin_info ));
 			
 			// begin render pass
@@ -335,7 +338,7 @@ bool ImageFootprintApp::Run ()
 				break;
 
 			default :
-				RETURN_ERR( "Present failed" );
+				CHECK_FATAL( !"Present failed" );
 		}
 	}
 	return true;
@@ -359,7 +362,7 @@ bool ImageFootprintApp::CreateCommandBuffers ()
 	info.pNext				= null;
 	info.commandPool		= cmdPool;
 	info.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	info.commandBufferCount	= 2;
+	info.commandBufferCount	= uint(CountOf( cmdBuffers ));
 	VK_CHECK( vkAllocateCommandBuffers( vulkan.GetVkDevice(), &info, OUT cmdBuffers ));
 
 	return true;
@@ -372,17 +375,23 @@ bool ImageFootprintApp::CreateCommandBuffers ()
 */
 bool ImageFootprintApp::CreateSyncObjects ()
 {
+	VkDevice	dev = vulkan.GetVkDevice();
+
 	VkFenceCreateInfo	fence_info	= {};
 	fence_info.sType	= VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fence_info.flags	= VK_FENCE_CREATE_SIGNALED_BIT;
-	VK_CHECK( vkCreateFence( vulkan.GetVkDevice(), &fence_info, null, OUT &fences[0] ));
-	VK_CHECK( vkCreateFence( vulkan.GetVkDevice(), &fence_info, null, OUT &fences[1] ));
+
+	for (auto& fence : fences) {
+		VK_CHECK( vkCreateFence( dev, &fence_info, null, OUT &fence ));
+	}
 			
 	VkSemaphoreCreateInfo	sem_info = {};
 	sem_info.sType		= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	sem_info.flags		= 0;
-	VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[0] ) );
-	VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[1] ) );
+
+	for (auto& sem : semaphores) {
+		VK_CALL( vkCreateSemaphore( dev, &sem_info, null, OUT &sem ) );
+	}
 
 	return true;
 }
@@ -594,10 +603,8 @@ bool ImageFootprintApp::CreateResources ()
 	// update resources
 	{
 		VkCommandBufferBeginInfo	begin_info = {};
-		begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		begin_info.pNext			= null;
-		begin_info.flags			= 0;
-		begin_info.pInheritanceInfo	= null;
+		begin_info.sType	= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		begin_info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		VK_CALL( vkBeginCommandBuffer( cmdBuffers[0], &begin_info ));
 
 		// clear texture
@@ -720,7 +727,7 @@ bool ImageFootprintApp::CreateDescriptorSet ()
 		writes[0].descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		writes[0].pImageInfo		= textures;
 
-		vkUpdateDescriptorSets( vulkan.GetVkDevice(), 1, writes, 0, null );
+		vkUpdateDescriptorSets( vulkan.GetVkDevice(), uint(CountOf( writes )), writes, 0, null );
 	}
 	return true;
 }
@@ -785,10 +792,12 @@ void main ()
 	vec2	tex_size = vec2(textureSize( un_Texture, 0 ));
 	float	mipmaps  = float(textureQueryLevels( un_Texture ));
 
-	out_Color = vec4( float(footprint.offset.x) / tex_size.x,
+	out_Color = vec4( float(footprint.offset.x) / tex_size.x );
+
+	/*out_Color = vec4( float(footprint.offset.x) / tex_size.x,
 					  float(footprint.offset.y) / tex_size.y,
 					  float(footprint.lod) / mipmaps,
-					  1.0 );
+					  1.0 );*/
 }
 )#";
 		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
@@ -901,6 +910,7 @@ void main ()
 	VK_CHECK( vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &pipeline ));
 	return true;
 }
+}	// anonymous namespace
 
 /*
 =================================================

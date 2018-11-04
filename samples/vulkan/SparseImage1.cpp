@@ -10,6 +10,7 @@
 #include "stl/Math/Color.h"
 
 using namespace FG;
+namespace {
 
 
 class SparseImageApp final : public IWindowEventListener, public VulkanDeviceFn
@@ -310,10 +311,8 @@ bool SparseImageApp::Run ()
 		// build command buffer
 		{
 			VkCommandBufferBeginInfo	begin_info = {};
-			begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			begin_info.pNext			= null;
-			begin_info.flags			= 0;
-			begin_info.pInheritanceInfo	= null;
+			begin_info.sType	= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			begin_info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			VK_CALL( vkBeginCommandBuffer( cmdBuffers[frameId], &begin_info ));
 			
 			// begin render pass
@@ -394,7 +393,7 @@ bool SparseImageApp::Run ()
 				break;
 
 			default :
-				RETURN_ERR( "Present failed" );
+				CHECK_FATAL( !"Present failed" );
 		}
 	}
 	return true;
@@ -418,7 +417,7 @@ bool SparseImageApp::CreateCommandBuffers ()
 	info.pNext				= null;
 	info.commandPool		= cmdPool;
 	info.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	info.commandBufferCount	= 2;
+	info.commandBufferCount	= uint(CountOf( cmdBuffers ));
 	VK_CHECK( vkAllocateCommandBuffers( vulkan.GetVkDevice(), &info, OUT cmdBuffers ));
 
 	return true;
@@ -431,12 +430,14 @@ bool SparseImageApp::CreateCommandBuffers ()
 */
 bool SparseImageApp::CreateSyncObjects ()
 {
+	VkDevice	dev = vulkan.GetVkDevice();
+
 	VkFenceCreateInfo	fence_info	= {};
 	fence_info.sType	= VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fence_info.flags	= VK_FENCE_CREATE_SIGNALED_BIT;
 
 	for (auto& fence : fences) {
-		VK_CHECK( vkCreateFence( vulkan.GetVkDevice(), &fence_info, null, OUT &fence ));
+		VK_CHECK( vkCreateFence( dev, &fence_info, null, OUT &fence ));
 	}
 			
 	VkSemaphoreCreateInfo	sem_info = {};
@@ -444,7 +445,7 @@ bool SparseImageApp::CreateSyncObjects ()
 	sem_info.flags		= 0;
 
 	for (auto& sem : semaphores) {
-		VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &sem ) );
+		VK_CALL( vkCreateSemaphore( dev, &sem_info, null, OUT &sem ) );
 	}
 
 	return true;
@@ -752,10 +753,8 @@ bool SparseImageApp::CreateResources ()
 			// clear buffer
 			{
 				VkCommandBufferBeginInfo	begin_info = {};
-				begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-				begin_info.pNext			= null;
-				begin_info.flags			= 0;
-				begin_info.pInheritanceInfo	= null;
+				begin_info.sType	= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				begin_info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 				VK_CALL( vkBeginCommandBuffer( cmdBuffers[0], &begin_info ));
 				
 				RGBA32f		color		{ HSVColor{float(x + y * num_tiles.x) / float(num_tiles.x * num_tiles.y)} };
@@ -804,10 +803,8 @@ bool SparseImageApp::CreateResources ()
 	// update image
 	{
 		VkCommandBufferBeginInfo	begin_info = {};
-		begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		begin_info.pNext			= null;
-		begin_info.flags			= 0;
-		begin_info.pInheritanceInfo	= null;
+		begin_info.sType	= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		begin_info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		VK_CALL( vkBeginCommandBuffer( cmdBuffers[0], &begin_info ));
 		
 		// undefined -> shader_read_only_optimal
@@ -903,7 +900,7 @@ bool SparseImageApp::CreateDescriptorSet ()
 		writes[0].descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		writes[0].pImageInfo		= textures;
 
-		vkUpdateDescriptorSets( vulkan.GetVkDevice(), 1, writes, 0, null );
+		vkUpdateDescriptorSets( vulkan.GetVkDevice(), uint(CountOf( writes )), writes, 0, null );
 	}
 	return true;
 }
@@ -1044,6 +1041,7 @@ void main ()
 	VK_CHECK( vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &pipeline ));
 	return true;
 }
+}	// anonymous namespace
 
 /*
 =================================================
