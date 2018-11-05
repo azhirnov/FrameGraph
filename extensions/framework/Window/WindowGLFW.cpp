@@ -120,7 +120,7 @@ namespace {
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 		
 		for (auto& listener : self->_listeners) {
-			listener->OnRefrash();
+			listener->OnRefresh();
 		}
 	}
 	

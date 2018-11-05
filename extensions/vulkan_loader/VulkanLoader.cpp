@@ -54,6 +54,8 @@ namespace FG
 /*
 =================================================
 	Initialize
+----
+	must be externally synchronized!
 =================================================
 */
 	bool VulkanLoader::Initialize (StringView libName)
@@ -136,6 +138,8 @@ namespace FG
 /*
 =================================================
 	LoadInstance
+----
+	must be externally synchronized!
 =================================================
 */
 	void VulkanLoader::LoadInstance (VkInstance instance)
@@ -166,6 +170,8 @@ namespace FG
 /*
 =================================================
 	LoadDevice
+----
+	access to the 'vkGetDeviceProcAddr' must be externally synchronized!
 =================================================
 */
 	void VulkanLoader::LoadDevice (VkDevice device, OUT VulkanDeviceFnTable &table)
@@ -203,6 +209,8 @@ namespace FG
 /*
 =================================================
 	Unload
+----
+	must be externally synchronized!
 =================================================
 */
 	void VulkanLoader::Unload ()

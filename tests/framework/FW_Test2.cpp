@@ -38,7 +38,7 @@ public:
 		CHECK( swapchain->Recreate( size ));
 	}
 	
-	void OnRefrash () override {}
+	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
 	
@@ -53,21 +53,32 @@ public:
 	{
 		FWApp2	app2;
 
+		// Access to the vulkan library and instance functions must be thread safe!
+
+		// Here we load vulkan library and obtain instance function pointers.
 		CHECK_ERR( Initialize( 0 ));
 
 		std::thread		thread(	[&app2, inst = vulkan.GetVkInstance()] ()
 								{
+									// 'this->Initialize' and 'app2.Initialize' synchronized by execution order.
 									CHECK( app2.Initialize( inst ));
 
+									// this is thread safe, see explanation for 'this->MainLoop' below.
 									CHECK( app2.MainLoop( 10 ));
 
 									app2.Destroy();
 								});
 
+		// 'this->MainLoop' and 'app2.MainLoop' has read-only access to the 'vkGetInstanceProcAddr'.
+		// 'app2.Initialize' and 'app2.Destroy' and 'this->MainLoop' hasn't concurent access to the same memory:
+		// 'app2.Initialize' and 'app2.Destroy' modifies only vulkan library reference counter, 
+		// 'this->MainLoop' reads 'vkGetInstanceProcAddr' only.
+		// So they can be used in separate threads.
 		CHECK_ERR( MainLoop( 15 ));
 
+		// 'app2.Destroy' and 'this->Destroy()' synchronized by waiting until second thread complete execution.
 		thread.join();
-
+		
 		Destroy();
 		return true;
 	}
@@ -214,7 +225,7 @@ public:
 				image_barrier1.subresourceRange.baseArrayLayer	= 0;
 				image_barrier1.subresourceRange.layerCount		= 1;
 
-				vkCmdPipelineBarrier( cmd_buffers[i&1], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+				vkCmdPipelineBarrier( cmd_buffers[i&1], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									  0, null, 0, null, 1, &image_barrier1 );
 		
 

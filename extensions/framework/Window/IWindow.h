@@ -29,7 +29,7 @@ namespace FG
 	// interface
 	public:
 		virtual void OnResize (const uint2 &size) = 0;
-		virtual void OnRefrash () = 0;
+		virtual void OnRefresh () = 0;
 		virtual void OnDestroy () = 0;
 		virtual void OnUpdate () = 0;
 		virtual void OnKey (StringView key, EKeyAction action) = 0;

@@ -1,15 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
-	docs:
-	https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_ray_tracing.txt
-	https://github.com/KhronosGroup/Vulkan-Docs/tree/master/chapters/VK_NV_ray_tracing
-	https://devblogs.nvidia.com/vulkan-raytracing/
-	https://devblogs.nvidia.com/practical-real-time-ray-tracing-rtx/
-	https://devblogs.nvidia.com/effectively-integrating-rtx-ray-tracing-real-time-rendering-engine/
-	https://devblogs.nvidia.com/thinking-parallel-part-ii-tree-traversal-gpu/
-	https://devblogs.nvidia.com/thinking-parallel-part-iii-tree-construction-gpu/
-
-	this sample based on sample from https://github.com/iOrange/rtxON/tree/01_HappyTriangle
+	this sample based on 'PerGeometryHitShader' from https://github.com/NVIDIAGameWorks/DxrTutorials/tree/master/Tutorials/12-PerGeometryHitShader
 */
 
 #include "framework/Vulkan/VulkanDeviceExt.h"
@@ -23,7 +14,7 @@ using namespace FG;
 namespace {
 
 
-class RayTracingApp final : public IWindowEventListener, public VulkanDeviceFn
+class RayTracingApp2 final : public IWindowEventListener, public VulkanDeviceFn
 {
 private:
 	struct VkGeometryInstance
@@ -60,9 +51,12 @@ private:
 
 	enum {
 		RAYGEN_SHADER,
-		HIT_SHADER,
+		HIT_SHADER_1,
+		HIT_SHADER_2,
 		MISS_SHADER,
-		NUM_GROUPS
+		NUM_GROUPS,
+
+		NUM_INSTANCES = 3,
 	};
 
 
@@ -80,7 +74,7 @@ private:
 
 	VkShaderModule				rayGenShader		= VK_NULL_HANDLE;
 	VkShaderModule				rayMissShader		= VK_NULL_HANDLE;
-	VkShaderModule				rayClosestHitShader	= VK_NULL_HANDLE;
+	VkShaderModule				rayHitShaders[2]	= {};
 	VkPipelineLayout			pplnLayout			= VK_NULL_HANDLE;
 	VkPipeline					rtPipeline			= VK_NULL_HANDLE;
 
@@ -89,8 +83,9 @@ private:
 	VkDescriptorSet				descriptorSet[2]	= {};
 
 	VkAccelerationStructureNVX	topLevelAS			= VK_NULL_HANDLE;
-	VkAccelerationStructureNVX	bottomLevelAS		= VK_NULL_HANDLE;
-	uint64_t					bottomLevelASHandle	= 0;
+	VkAccelerationStructureNVX	bottomLevelAS[2]		= {};
+	uint64_t					bottomLevelASHandle[2]	= {};
+	VkBuffer					uniformBuffer		= VK_NULL_HANDLE;
 	VkBuffer					vertexBuffer		= VK_NULL_HANDLE;
 	VkBuffer					indexBuffer			= VK_NULL_HANDLE;
 	VkBuffer					instanceBuffer		= VK_NULL_HANDLE;
@@ -103,7 +98,7 @@ private:
 
 
 public:
-	RayTracingApp ()
+	RayTracingApp2 ()
 	{
 		VulkanDeviceFn_Init( vulkan );
 	}
@@ -124,7 +119,8 @@ public:
 	bool CreateResources ();
 	bool CreateDescriptorSet ();
 	bool CreateRayTracingPipeline ();
-
+	
+	bool CreateUniformBuffer (ResourceInit &);
 	bool CreateBottomLevelAS (ResourceInit &);
 	bool CreateTopLevelAS (ResourceInit &);
 	bool CreateBindingTable (ResourceInit &);
@@ -139,7 +135,7 @@ public:
 	OnKey
 =================================================
 */
-void RayTracingApp::OnKey (StringView key, EKeyAction action)
+void RayTracingApp2::OnKey (StringView key, EKeyAction action)
 {
 	if ( action != EKeyAction::Down )
 		return;
@@ -153,7 +149,7 @@ void RayTracingApp::OnKey (StringView key, EKeyAction action)
 	OnResize
 =================================================
 */
-void RayTracingApp::OnResize (const uint2 &size)
+void RayTracingApp2::OnResize (const uint2 &size)
 {
 	VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
 
@@ -167,7 +163,7 @@ void RayTracingApp::OnResize (const uint2 &size)
 	Initialize
 =================================================
 */
-bool RayTracingApp::Initialize ()
+bool RayTracingApp2::Initialize ()
 {
 # if defined(FG_ENABLE_GLFW)
 	window.reset( new WindowGLFW() );
@@ -235,7 +231,7 @@ bool RayTracingApp::Initialize ()
 	Destroy
 =================================================
 */
-void RayTracingApp::Destroy ()
+void RayTracingApp2::Destroy ()
 {
 	VkDevice	dev = vulkan.GetVkDevice();
 
@@ -249,21 +245,28 @@ void RayTracingApp::Destroy ()
 		vkDestroyFence( dev, fen, null );
 		fen = VK_NULL_HANDLE;
 	}
+	for (auto* sh : rayHitShaders) {
+		vkDestroyShaderModule( dev, sh, null );
+		sh = VK_NULL_HANDLE;
+	}
+	for (auto& as : bottomLevelAS) {
+		vkDestroyAccelerationStructureNVX( dev, as, null );
+		as = VK_NULL_HANDLE;
+	}
 	vkDestroyCommandPool( dev, cmdPool, null );
 	vkDestroyDescriptorSetLayout( dev, dsLayout, null );
 	vkDestroyDescriptorPool( dev, descriptorPool, null );
 	vkDestroyShaderModule( dev, rayGenShader, null );
 	vkDestroyShaderModule( dev, rayMissShader, null );
-	vkDestroyShaderModule( dev, rayClosestHitShader, null );
 	vkDestroyPipelineLayout( dev, pplnLayout, null );
 	vkDestroyPipeline( dev, rtPipeline, null );
 	vkDestroyAccelerationStructureNVX( dev, topLevelAS, null );
-	vkDestroyAccelerationStructureNVX( dev, bottomLevelAS, null );
 	vkDestroyBuffer( dev, vertexBuffer, null );
 	vkDestroyBuffer( dev, indexBuffer, null );
 	vkDestroyBuffer( dev, instanceBuffer, null );
 	vkDestroyBuffer( dev, stratchBuffer, null );
 	vkDestroyBuffer( dev, shaderBindingTable, null );
+	vkDestroyBuffer( dev, uniformBuffer, null );
 	vkFreeMemory( dev, sharedDevMemory, null );
 	vkFreeMemory( dev, sharedHostMemory, null );
 
@@ -273,16 +276,15 @@ void RayTracingApp::Destroy ()
 	descriptorPool		= VK_NULL_HANDLE;
 	rayGenShader		= VK_NULL_HANDLE;
 	rayMissShader		= VK_NULL_HANDLE;
-	rayClosestHitShader	= VK_NULL_HANDLE;
 	pplnLayout			= VK_NULL_HANDLE;
 	rtPipeline			= VK_NULL_HANDLE;
 	topLevelAS			= VK_NULL_HANDLE;
-	bottomLevelAS		= VK_NULL_HANDLE;
 	vertexBuffer		= VK_NULL_HANDLE;
 	indexBuffer			= VK_NULL_HANDLE;
 	instanceBuffer		= VK_NULL_HANDLE;
 	stratchBuffer		= VK_NULL_HANDLE;
 	shaderBindingTable	= VK_NULL_HANDLE;
+	uniformBuffer		= VK_NULL_HANDLE;
 	sharedDevMemory		= VK_NULL_HANDLE;
 	sharedHostMemory	= VK_NULL_HANDLE;
 
@@ -300,7 +302,7 @@ void RayTracingApp::Destroy ()
 	Run
 =================================================
 */
-bool RayTracingApp::Run ()
+bool RayTracingApp2::Run ()
 {
 	for (uint frameId = 0; looping; frameId = ((frameId + 1) & 1))
 	{
@@ -316,7 +318,7 @@ bool RayTracingApp::Run ()
 
 			VK_CALL( swapchain->AcquireNextImage( semaphores[0] ));
 		}
-
+		
 		// update descriptor set ('un_Output' only)
 		{
 			VkDescriptorImageInfo	images[1] = {};
@@ -370,7 +372,7 @@ bool RayTracingApp::Run ()
 				vkCmdTraceRaysNVX( cmd, 
 								   shaderBindingTable, RAYGEN_SHADER * stride,
 								   shaderBindingTable, MISS_SHADER * stride, stride,
-								   shaderBindingTable, HIT_SHADER * stride, stride,
+								   shaderBindingTable, HIT_SHADER_1 * stride, stride,
 								   swapchain->GetSurfaceSize().x, swapchain->GetSurfaceSize().y );
 			}
 
@@ -440,7 +442,7 @@ bool RayTracingApp::Run ()
 	CreateCommandBuffers
 =================================================
 */
-bool RayTracingApp::CreateCommandBuffers ()
+bool RayTracingApp2::CreateCommandBuffers ()
 {
 	VkCommandPoolCreateInfo		pool_info = {};
 	pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -463,7 +465,7 @@ bool RayTracingApp::CreateCommandBuffers ()
 	CreateSyncObjects
 =================================================
 */
-bool RayTracingApp::CreateSyncObjects ()
+bool RayTracingApp2::CreateSyncObjects ()
 {
 	VkDevice	dev = vulkan.GetVkDevice();
 
@@ -488,18 +490,82 @@ bool RayTracingApp::CreateSyncObjects ()
 
 /*
 =================================================
+	CreateUniformBuffer
+=================================================
+*/
+bool RayTracingApp2::CreateUniformBuffer (ResourceInit &res)
+{
+	VkBufferCreateInfo	info = {};
+	info.sType			= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	info.flags			= 0;
+	info.size			= sizeof(float4) * 3 * NUM_INSTANCES;	// float3x3 aligned to 16 bytes * NUM_INSTANCES
+	info.usage			= VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
+
+	VK_CHECK( vkCreateBuffer( vulkan.GetVkDevice(), &info, null, OUT &uniformBuffer ));
+		
+	VkMemoryRequirements	mem_req;
+	vkGetBufferMemoryRequirements( vulkan.GetVkDevice(), uniformBuffer, OUT &mem_req );
+		
+	VkDeviceSize	offset = AlignToLarger( res.dev.totalSize, mem_req.alignment );
+	res.dev.totalSize	 = offset + mem_req.size;
+	res.dev.memTypeBits	|= mem_req.memoryTypeBits;
+
+	res.onBind.push_back( [this, offset] (void *) -> bool
+	{
+		VK_CHECK( vkBindBufferMemory( vulkan.GetVkDevice(), uniformBuffer, sharedDevMemory, offset ));
+		return true;
+	});
+
+	res.onDraw.push_back( [this, size = info.size] (VkCommandBuffer cmd)
+	{
+		const float4  data [] = {
+			// Instance 0
+			float4(1.0f, 0.0f, 0.0f, 1.0f),
+			float4(1.0f, 1.0f, 0.0f, 1.0f),
+			float4(1.0f, 0.0f, 1.0f, 1.0f),
+
+			// Instance 1
+			float4(0.0f, 1.0f, 0.0f, 1.0f),
+			float4(0.0f, 1.0f, 1.0f, 1.0f),
+			float4(1.0f, 1.0f, 0.0f, 1.0f),
+
+			// Instance 2
+			float4(0.0f, 0.0f, 1.0f, 1.0f),
+			float4(1.0f, 0.0f, 1.0f, 1.0f),
+			float4(0.0f, 1.0f, 1.0f, 1.0f),
+		};
+		ASSERT( sizeof(data) == size );
+		
+		vkCmdUpdateBuffer( cmd, uniformBuffer, 0, sizeof(data), data );
+	});
+	return true;
+}
+
+/*
+=================================================
 	CreateBottomLevelAS
 =================================================
 */
-bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
+bool RayTracingApp2::CreateBottomLevelAS (ResourceInit &res)
 {
-	static const float3		vertices[] = {
-		{ 0.25f, 0.25f, 0.0f },
-		{ 0.75f, 0.25f, 0.0f },
-		{ 0.50f, 0.75f, 0.0f }
+	static const float3		triangle_vertices[] = {
+		{ 0.0f,    1.0f,  0.0f },
+		{ 0.866f, -0.5f,  0.0f },
+		{-0.866f, -0.5f,  0.0f }
 	};
-	static const uint		indices[] = {
+	static const uint		triangle_indices[] = {
 		0, 1, 2
+	};
+
+	static const float3		plane_vertices[] = {
+		{-100.0f,  -0.5f,  100.0f },
+		{-100.0f,  -2.0f, -100.0f },
+		{ 100.0f,  -0.5f,  100.0f },
+		{ 100.0f,  -2.0f, -100.0f }
+	};
+	static const uint		plane_indices[] = {
+		0, 1, 2, 1, 2, 3
 	};
 
 	// create vertex buffer
@@ -507,7 +573,7 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 		VkBufferCreateInfo	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		info.flags			= 0;
-		info.size			= sizeof(vertices);
+		info.size			= sizeof(triangle_vertices) + sizeof(plane_vertices);
 		info.usage			= VK_BUFFER_USAGE_RAYTRACING_BIT_NVX;
 		info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
 
@@ -516,13 +582,15 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 		VkMemoryRequirements	mem_req;
 		vkGetBufferMemoryRequirements( vulkan.GetVkDevice(), vertexBuffer, OUT &mem_req );
 		
-		VkDeviceSize	offset = AlignToLarger( res.host.totalSize, mem_req.alignment );
+		VkDeviceSize	offset	 = AlignToLarger( res.host.totalSize, mem_req.alignment );
 		res.host.totalSize		 = offset + mem_req.size;
 		res.host.memTypeBits	|= mem_req.memoryTypeBits;
 
 		res.onBind.push_back( [this, offset] (void *ptr) -> bool
 		{
-			memcpy( ptr + BytesU(offset), vertices, sizeof(vertices) );
+			memcpy( ptr + BytesU(offset), triangle_vertices, sizeof(triangle_vertices) );
+			memcpy( ptr + BytesU(offset + sizeof(triangle_vertices)), plane_vertices, sizeof(plane_vertices) );
+
 			VK_CHECK( vkBindBufferMemory( vulkan.GetVkDevice(), vertexBuffer, sharedHostMemory, offset ));
 			return true;
 		});
@@ -533,7 +601,7 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 		VkBufferCreateInfo	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		info.flags			= 0;
-		info.size			= sizeof(indices);
+		info.size			= sizeof(triangle_indices) + sizeof(plane_indices);
 		info.usage			= VK_BUFFER_USAGE_RAYTRACING_BIT_NVX;
 		info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
 
@@ -542,13 +610,15 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 		VkMemoryRequirements	mem_req;
 		vkGetBufferMemoryRequirements( vulkan.GetVkDevice(), indexBuffer, OUT &mem_req );
 		
-		VkDeviceSize	offset = AlignToLarger( res.host.totalSize, mem_req.alignment );
+		VkDeviceSize	offset	 = AlignToLarger( res.host.totalSize, mem_req.alignment );
 		res.host.totalSize		 = offset + mem_req.size;
 		res.host.memTypeBits	|= mem_req.memoryTypeBits;
 
 		res.onBind.push_back( [this, offset] (void *ptr) -> bool
 		{
-			memcpy( ptr + BytesU(offset), indices, sizeof(indices) );
+			memcpy( ptr + BytesU(offset), triangle_indices, sizeof(triangle_indices) );
+			memcpy( ptr + BytesU(offset + sizeof(triangle_indices)), plane_indices, sizeof(plane_indices) );
+
 			VK_CHECK( vkBindBufferMemory( vulkan.GetVkDevice(), indexBuffer, sharedHostMemory, offset ));
 			return true;
 		});
@@ -556,51 +626,83 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 
 	// create bottom level acceleration structure
 	{
-		VkGeometryNVX	geometry[1] = {};
-		geometry[0].sType			= VK_STRUCTURE_TYPE_GEOMETRY_NVX;
-		geometry[0].geometryType	= VK_GEOMETRY_TYPE_TRIANGLES_NVX;
-		geometry[0].flags			= VK_GEOMETRY_OPAQUE_BIT_NVX;
-		geometry[0].geometry.aabbs.sType	= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NVX;
+		VkGeometryNVX	geometry[2] = {};
+		geometry[0].sType							= VK_STRUCTURE_TYPE_GEOMETRY_NVX;
+		geometry[0].geometryType					= VK_GEOMETRY_TYPE_TRIANGLES_NVX;
+		geometry[0].flags							= VK_GEOMETRY_OPAQUE_BIT_NVX;
+		geometry[0].geometry.aabbs.sType			= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NVX;
 		geometry[0].geometry.triangles.sType		= VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NVX;
 		geometry[0].geometry.triangles.vertexData	= vertexBuffer;
 		geometry[0].geometry.triangles.vertexOffset	= 0;
-		geometry[0].geometry.triangles.vertexCount	= uint(CountOf( vertices ));
-		geometry[0].geometry.triangles.vertexStride	= sizeof(vertices[0]);
+		geometry[0].geometry.triangles.vertexCount	= uint(CountOf( triangle_vertices ));
+		geometry[0].geometry.triangles.vertexStride	= sizeof(triangle_vertices[0]);
 		geometry[0].geometry.triangles.vertexFormat	= VK_FORMAT_R32G32B32_SFLOAT;
 		geometry[0].geometry.triangles.indexData	= indexBuffer;
 		geometry[0].geometry.triangles.indexOffset	= 0;
-		geometry[0].geometry.triangles.indexCount	= uint(CountOf( indices ));
+		geometry[0].geometry.triangles.indexCount	= uint(CountOf( triangle_indices ));
 		geometry[0].geometry.triangles.indexType	= VK_INDEX_TYPE_UINT32;
-
+		
+		geometry[1].sType							= VK_STRUCTURE_TYPE_GEOMETRY_NVX;
+		geometry[1].geometryType					= VK_GEOMETRY_TYPE_TRIANGLES_NVX;
+		geometry[1].flags							= VK_GEOMETRY_OPAQUE_BIT_NVX;
+		geometry[1].geometry.aabbs.sType			= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NVX;
+		geometry[1].geometry.triangles.sType		= VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NVX;
+		geometry[1].geometry.triangles.vertexData	= vertexBuffer;
+		geometry[1].geometry.triangles.vertexOffset	= sizeof(triangle_vertices);	// must be a multiple of the component size of vertexFormat.
+		geometry[1].geometry.triangles.vertexCount	= uint(CountOf( plane_vertices ));
+		geometry[1].geometry.triangles.vertexStride	= sizeof(plane_vertices[0]);
+		geometry[1].geometry.triangles.vertexFormat	= VK_FORMAT_R32G32B32_SFLOAT;
+		geometry[1].geometry.triangles.indexData	= indexBuffer;
+		geometry[1].geometry.triangles.indexOffset	= sizeof(triangle_indices);		// must be a multiple of the element size of indexType
+		geometry[1].geometry.triangles.indexCount	= uint(CountOf( plane_indices ));
+		geometry[1].geometry.triangles.indexType	= VK_INDEX_TYPE_UINT32;
+		
 		VkAccelerationStructureCreateInfoNVX	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NVX;
 		info.type			= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NVX;
 		info.geometryCount	= uint(CountOf( geometry ));
 		info.pGeometries	= geometry;
 
-		VK_CHECK( vkCreateAccelerationStructureNVX( vulkan.GetVkDevice(), &info, null, OUT &bottomLevelAS ));
+		// create bottom-level AS for the plane and triangle
+		VK_CHECK( vkCreateAccelerationStructureNVX( vulkan.GetVkDevice(), &info, null, OUT &bottomLevelAS[0] ));
 		
+		// create bottom-level AS for the triangle only
+		info.geometryCount = 1;
+		VK_CHECK( vkCreateAccelerationStructureNVX( vulkan.GetVkDevice(), &info, null, OUT &bottomLevelAS[1] ));
+
 		VkAccelerationStructureMemoryRequirementsInfoNVX	mem_info = {};
 		mem_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NVX;
-		mem_info.accelerationStructure	= bottomLevelAS;
+		mem_info.accelerationStructure	= bottomLevelAS[0];
 
 		VkMemoryRequirements2KHR	mem_req;
 		vkGetAccelerationStructureMemoryRequirementsNVX( vulkan.GetVkDevice(), &mem_info, OUT &mem_req );
 		
-		VkDeviceSize	offset = AlignToLarger( res.dev.totalSize, mem_req.memoryRequirements.alignment );
-		res.dev.totalSize	 = offset + mem_req.memoryRequirements.size;
+		VkDeviceSize	offset1 = AlignToLarger( res.dev.totalSize, mem_req.memoryRequirements.alignment );
+		res.dev.totalSize	 = offset1 + mem_req.memoryRequirements.size;
 		res.dev.memTypeBits	|= mem_req.memoryRequirements.memoryTypeBits;
 		
-		res.onBind.push_back( [this, offset] (void *) -> bool
-		{
-			VkBindAccelerationStructureMemoryInfoNVX	bind_info = {};
-			bind_info.sType					= VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NVX;
-			bind_info.accelerationStructure	= bottomLevelAS;
-			bind_info.memory				= sharedDevMemory;
-			bind_info.memoryOffset			= offset;
-			VK_CHECK( vkBindAccelerationStructureMemoryNVX( vulkan.GetVkDevice(), 1, &bind_info ));
+		mem_info.accelerationStructure	= bottomLevelAS[1];
+		vkGetAccelerationStructureMemoryRequirementsNVX( vulkan.GetVkDevice(), &mem_info, OUT &mem_req );
 
-			VK_CHECK( vkGetAccelerationStructureHandleNVX( vulkan.GetVkDevice(), bottomLevelAS, sizeof(bottomLevelASHandle), OUT &bottomLevelASHandle ));
+		VkDeviceSize	offset2 = AlignToLarger( res.dev.totalSize, mem_req.memoryRequirements.alignment );
+		res.dev.totalSize	 = offset2 + mem_req.memoryRequirements.size;
+		res.dev.memTypeBits	|= mem_req.memoryRequirements.memoryTypeBits;
+
+		res.onBind.push_back( [this, offset1, offset2] (void *) -> bool
+		{
+            VkBindAccelerationStructureMemoryInfoNVX	bind_info = {};
+            bind_info.sType					= VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NVX;
+            bind_info.accelerationStructure	= bottomLevelAS[0];
+            bind_info.memory				= sharedDevMemory;
+            bind_info.memoryOffset			= offset1;
+            VK_CHECK( vkBindAccelerationStructureMemoryNVX( vulkan.GetVkDevice(), 1, &bind_info ));
+			
+            bind_info.accelerationStructure	= bottomLevelAS[1];
+            bind_info.memoryOffset			= offset2;
+            VK_CHECK( vkBindAccelerationStructureMemoryNVX( vulkan.GetVkDevice(), 1, &bind_info ));
+
+			VK_CHECK( vkGetAccelerationStructureHandleNVX( vulkan.GetVkDevice(), bottomLevelAS[0], sizeof(bottomLevelASHandle[0]), OUT &bottomLevelASHandle[0] ));
+			VK_CHECK( vkGetAccelerationStructureHandleNVX( vulkan.GetVkDevice(), bottomLevelAS[1], sizeof(bottomLevelASHandle[1]), OUT &bottomLevelASHandle[1] ));
 			return true;
 		});
 		
@@ -611,7 +713,19 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 												uint(CountOf( geometry )), geometry,	// geometry
 												0,										// flags
 												VK_FALSE,								// update
-												bottomLevelAS, VK_NULL_HANDLE,			// dst, src
+												bottomLevelAS[0], VK_NULL_HANDLE,		// dst, src
+												stratchBuffer, 0
+											   );
+			
+			// execution barrier for 'stratchBuffer'
+			vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_RAYTRACING_BIT_NVX, VK_PIPELINE_STAGE_RAYTRACING_BIT_NVX, 0, 0, null, 0, null, 0, null );
+
+			vkCmdBuildAccelerationStructureNVX( cmd, VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NVX,
+												0, VK_NULL_HANDLE, 0,					// instance
+												1, geometry,							// geometry
+												0,										// flags
+												VK_FALSE,								// update
+												bottomLevelAS[1], VK_NULL_HANDLE,		// dst, src
 												stratchBuffer, 0
 											   );
 		});
@@ -624,9 +738,9 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 	CreateTopLevelAS
 =================================================
 */
-bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
+bool RayTracingApp2::CreateTopLevelAS (ResourceInit &res)
 {
-	// create instance buffer
+	// create instances buffer
 	{
 		VkBufferCreateInfo	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -646,17 +760,36 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 
 		res.onBind.push_back( [this, offset] (void *ptr) -> bool
 		{
-			VkGeometryInstance	instance = {};
-			instance.transformRow0	= {1.0f, 0.0f, 0.0f, 0.0f};
-			instance.transformRow1	= {0.0f, 1.0f, 0.0f, 0.0f};
-			instance.transformRow2	= {0.0f, 0.0f, 1.0f, 0.0f};
-			instance.instanceId		= 0;
-			instance.mask			= 0xFF;
-			instance.instanceOffset	= 0;
-			instance.flags			= 0;
-			instance.accelerationStructureHandle = bottomLevelASHandle;
+			VkGeometryInstance	instances [NUM_INSTANCES] = {};
 
-			memcpy( ptr + BytesU(offset), &instance, sizeof(instance) );
+			instances[0].transformRow0	= { 1.0f, 0.0f, 0.0f,  0.0f };
+			instances[0].transformRow1	= { 0.0f, 1.0f, 0.0f,  0.0f };
+			instances[0].transformRow2	= { 0.0f, 0.0f, 1.0f,  0.0f };
+			instances[0].instanceId		= 0;
+			instances[0].mask			= 0xFF;
+			instances[0].instanceOffset	= 0;	// HIT_SHADER_1
+			instances[0].flags			= 0;
+			instances[0].accelerationStructureHandle = bottomLevelASHandle[0];
+			
+			instances[1].transformRow0	= { 1.0f, 0.0f, 0.0f, -2.0f };
+			instances[1].transformRow1	= { 0.0f, 1.0f, 0.0f,  0.0f };
+			instances[1].transformRow2	= { 0.0f, 0.0f, 1.0f,  0.0f };
+			instances[1].instanceId		= 1;
+			instances[1].mask			= 0xFF;
+			instances[1].instanceOffset	= 0;	// HIT_SHADER_1
+			instances[1].flags			= 0;
+			instances[1].accelerationStructureHandle = bottomLevelASHandle[1];
+
+			instances[2].transformRow0	= { 1.0f, 0.0f, 0.0f,  2.0f };
+			instances[2].transformRow1	= { 0.0f, 1.0f, 0.0f,  0.0f };
+			instances[2].transformRow2	= { 0.0f, 0.0f, 1.0f,  0.0f };
+			instances[2].instanceId		= 2;
+			instances[2].mask			= 0xFF;
+			instances[2].instanceOffset	= 1;	// HIT_SHADER_2
+			instances[2].flags			= 0;
+			instances[2].accelerationStructureHandle = bottomLevelASHandle[1];
+			
+			memcpy( ptr + BytesU(offset), &instances, sizeof(instances) );
 
 			VK_CHECK( vkBindBufferMemory( vulkan.GetVkDevice(), instanceBuffer, sharedHostMemory, offset ));
 			return true;
@@ -669,7 +802,7 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 		info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NVX;
 		info.type			= VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NVX;
 		info.flags			= 0;
-		info.instanceCount	= 1;
+		info.instanceCount	= NUM_INSTANCES;
 
 		VK_CHECK( vkCreateAccelerationStructureNVX( vulkan.GetVkDevice(), &info, null, OUT &topLevelAS ));
 		
@@ -686,12 +819,12 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 		
 		res.onBind.push_back( [this, offset] (void *) -> bool
 		{
-			VkBindAccelerationStructureMemoryInfoNVX	bind_info = {};
-			bind_info.sType					= VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NVX;
-			bind_info.accelerationStructure	= topLevelAS;
-			bind_info.memory				= sharedDevMemory;
-			bind_info.memoryOffset			= offset;
-			VK_CHECK( vkBindAccelerationStructureMemoryNVX( vulkan.GetVkDevice(), 1, &bind_info ));
+            VkBindAccelerationStructureMemoryInfoNVX	bind_info = {};
+            bind_info.sType					= VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NVX;
+            bind_info.accelerationStructure	= topLevelAS;
+            bind_info.memory				= sharedDevMemory;
+            bind_info.memoryOffset			= offset;
+            VK_CHECK( vkBindAccelerationStructureMemoryNVX( vulkan.GetVkDevice(), 1, &bind_info ));
 			return true;
 		});
 
@@ -707,7 +840,7 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 			vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_RAYTRACING_BIT_NVX, VK_PIPELINE_STAGE_RAYTRACING_BIT_NVX, 0, 1, &barrier, 0, null, 0, null );
 
 			vkCmdBuildAccelerationStructureNVX( cmd, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NVX,
-												1, instanceBuffer, 0,					// instance
+												NUM_INSTANCES, instanceBuffer, 0,		// instance
 												0, null,								// geometry
 												0,										// flags
 												VK_FALSE,								// update
@@ -735,7 +868,11 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 			vkGetAccelerationStructureScratchMemoryRequirementsNVX( vulkan.GetVkDevice(), &as_info, OUT &mem_req2 );
 			info.size = mem_req2.memoryRequirements.size;
 		
-			as_info.accelerationStructure	= bottomLevelAS;
+			as_info.accelerationStructure	= bottomLevelAS[0];
+			vkGetAccelerationStructureScratchMemoryRequirementsNVX( vulkan.GetVkDevice(), &as_info, OUT &mem_req2 );
+			info.size = Max( info.size, mem_req2.memoryRequirements.size );
+			
+			as_info.accelerationStructure	= bottomLevelAS[1];
 			vkGetAccelerationStructureScratchMemoryRequirementsNVX( vulkan.GetVkDevice(), &as_info, OUT &mem_req2 );
 			info.size = Max( info.size, mem_req2.memoryRequirements.size );
 		}
@@ -762,7 +899,7 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 	CreateBindingTable
 =================================================
 */
-bool RayTracingApp::CreateBindingTable (ResourceInit &res)
+bool RayTracingApp2::CreateBindingTable (ResourceInit &res)
 {
 	VkBufferCreateInfo	info = {};
 	info.sType			= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -803,12 +940,13 @@ bool RayTracingApp::CreateBindingTable (ResourceInit &res)
 	CreateResources
 =================================================
 */
-bool RayTracingApp::CreateResources ()
+bool RayTracingApp2::CreateResources ()
 {
 	ResourceInit	res;
-	res.dev.memProperty = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	res.dev.memProperty  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	res.host.memProperty = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
+	CHECK_ERR( CreateUniformBuffer( res ));
 	CHECK_ERR( CreateBottomLevelAS( res ));
 	CHECK_ERR( CreateTopLevelAS( res ));
 	CHECK_ERR( CreateBindingTable( res ));
@@ -863,15 +1001,20 @@ bool RayTracingApp::CreateResources ()
 	}
 	VK_CALL( vkQueueWaitIdle( cmdQueue ));
 	
-
+	
 	// update descriptor set
 	{
 		VkDescriptorAccelerationStructureInfoNVX	top_as = {};
 		top_as.sType						= VK_STRUCTURE_TYPE_DESCRIPTOR_ACCELERATION_STRUCTURE_INFO_NVX;
 		top_as.accelerationStructureCount	= 1;
 		top_as.pAccelerationStructures		= &topLevelAS;
+		
+		VkDescriptorBufferInfo	buffers[1] = {};
+		buffers[0].buffer		= uniformBuffer;
+		buffers[0].offset		= 0;
+		buffers[0].range		= VK_WHOLE_SIZE;
 
-		VkWriteDescriptorSet	writes[1] = {};
+		VkWriteDescriptorSet	writes[2] = {};
 
 		// un_RtScene
 		writes[0].sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -881,9 +1024,18 @@ bool RayTracingApp::CreateResources ()
 		writes[0].descriptorCount	= 1;
 		writes[0].descriptorType	= VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NVX;
 		
+		// UBuffer
+		writes[1].sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writes[1].dstSet			= descriptorSet[0];
+		writes[1].dstBinding		= 2;
+		writes[1].descriptorCount	= uint(CountOf( buffers ));
+		writes[1].descriptorType	= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		writes[1].pBufferInfo		= buffers;
+
 		vkUpdateDescriptorSets( vulkan.GetVkDevice(), uint(CountOf( writes )), writes, 0, null );
 		
 		writes[0].dstSet = descriptorSet[1];
+		writes[1].dstSet = descriptorSet[1];
 
 		vkUpdateDescriptorSets( vulkan.GetVkDevice(), uint(CountOf( writes )), writes, 0, null );
 	}
@@ -895,11 +1047,11 @@ bool RayTracingApp::CreateResources ()
 	CreateDescriptorSet
 =================================================
 */
-bool RayTracingApp::CreateDescriptorSet ()
+bool RayTracingApp2::CreateDescriptorSet ()
 {
 	// create layout
 	{
-		VkDescriptorSetLayoutBinding		binding[2] = {};
+		VkDescriptorSetLayoutBinding		binding[3] = {};
 		binding[0].binding			= 0;
 		binding[0].descriptorType	= VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NVX;
 		binding[0].descriptorCount	= 1;
@@ -909,6 +1061,11 @@ bool RayTracingApp::CreateDescriptorSet ()
 		binding[1].descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		binding[1].descriptorCount	= 1;
 		binding[1].stageFlags		= VK_SHADER_STAGE_RAYGEN_BIT_NVX;
+
+		binding[2].binding			= 2;
+		binding[2].descriptorType	= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		binding[2].descriptorCount	= 1;
+		binding[2].stageFlags		= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NVX;
 
 		VkDescriptorSetLayoutCreateInfo		info = {};
 		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -922,6 +1079,7 @@ bool RayTracingApp::CreateDescriptorSet ()
 	{
 		const VkDescriptorPoolSize		sizes[] = {
 			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NVX, 100 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
 			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 }
 		};
 
@@ -953,7 +1111,7 @@ bool RayTracingApp::CreateDescriptorSet ()
 	CreateRayTracingPipeline
 =================================================
 */
-bool RayTracingApp::CreateRayTracingPipeline ()
+bool RayTracingApp2::CreateRayTracingPipeline ()
 {
 	// create ray generation shader
 	{
@@ -969,15 +1127,22 @@ layout(location = PAYLOAD_LOC) rayPayloadNVX vec4  payload;
 
 void main ()
 {
-	const vec2 uv = vec2(gl_LaunchIDNVX.xy) / vec2(gl_LaunchSizeNVX.xy - 1);
+	uvec2 launchIndex = gl_LaunchIDNVX.xy;
+	uvec2 launchDim = gl_LaunchSizeNVX.xy;
 
-	const vec3 origin = vec3(uv.x, 1.0f - uv.y, -1.0f);
-	const vec3 direction = vec3(0.0f, 0.0f, 1.0f);
+	vec2 crd = vec2(launchIndex);
+	vec2 dims = vec2(launchDim);
+
+	vec2 d = (crd / dims) * 2.0f - 1.0f;
+	float aspectRatio = dims.x / dims.y;
+
+	vec3 origin = vec3(0.0f, 0.0f, -2.0f);
+	vec3 direction = normalize(vec3(d.x * aspectRatio, -d.y, 1.0f));
 
 	traceNVX( /*topLevel*/un_RtScene, /*rayFlags*/gl_RayFlagsNoneNVX, /*cullMask*/0xFF,
 			  /*sbtRecordOffset*/0, /*sbtRecordStride*/0, /*missIndex*/0,
 			  /*origin*/origin, /*Tmin*/0.0f,
-			  /*direction*/direction, /*Tmax*/10.0f,
+			  /*direction*/direction, /*Tmax*/100000.0f,
 			  /*payload*/PAYLOAD_LOC );
 
 	imageStore( un_Output, ivec2(gl_LaunchIDNVX), payload );
@@ -996,28 +1161,45 @@ layout(location = 0) rayPayloadInNVX vec4  payload;
 
 void main ()
 {
-	payload = vec4( 0.412f, 0.796f, 1.0f, 1.0f );
+    payload = vec4( 0.4f, 0.6f, 0.2f, 1.0f );
 }
 )#";
 		CHECK_ERR( spvCompiler.Compile( OUT rayMissShader, vulkan, raymiss_shader_source, "main", EShLangMissNV ));
 	}
 
-	// create ray closest hit shader
+	// create ray closest hit shaders
 	{
-		static const char	closesthit_shader_source[] = R"#(
+		static const char	closesthit1_shader_source[] = R"#(
 #version 460
 #extension GL_NVX_raytracing : require
 
 layout(location = 0) rayPayloadInNVX vec4  payload;
-layout(location = 1) hitAttributeNVX vec2  HitAttribs;
+layout(location = 1) hitAttributeNVX vec2  hitAttribs;
+
+layout(binding = 2, std140) uniform UBuffer {
+	mat3x4	rotation[3];	// [NUM_INSTANCES]
+} ub;
 
 void main ()
 {
-	const vec3 barycentrics = vec3(1.0f - HitAttribs.x - HitAttribs.y, HitAttribs.x, HitAttribs.y);
-	payload = vec4(barycentrics, 1.0);
+    const vec3 barycentrics = vec3(1.0f - hitAttribs.x - hitAttribs.y, hitAttribs.x, hitAttribs.y);
+
+    payload = ub.rotation[gl_InstanceCustomIndexNVX] * barycentrics;
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT rayClosestHitShader, vulkan, closesthit_shader_source, "main", EShLangClosestHitNV ));
+		static const char	closesthit2_shader_source[] = R"#(
+#version 460
+#extension GL_NVX_raytracing : require
+
+layout(location = 0) rayPayloadInNVX vec4  payload;
+
+void main ()
+{
+    payload = vec4(0.9f, 0.9f, 0.9f, 1.0f);
+}
+)#";
+		CHECK_ERR( spvCompiler.Compile( OUT rayHitShaders[0], vulkan, closesthit1_shader_source, "main", EShLangClosestHitNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT rayHitShaders[1], vulkan, closesthit2_shader_source, "main", EShLangClosestHitNV ));
 	}
 
 	// create pipeline layout
@@ -1047,11 +1229,17 @@ void main ()
 	stages[MISS_SHADER].pName		= "main";
 	group_numbers[MISS_SHADER]		= MISS_SHADER;
 
-	stages[HIT_SHADER].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	stages[HIT_SHADER].stage		= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NVX;
-	stages[HIT_SHADER].module		= rayClosestHitShader;
-	stages[HIT_SHADER].pName		= "main";
-	group_numbers[HIT_SHADER]		= HIT_SHADER;
+	stages[HIT_SHADER_1].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	stages[HIT_SHADER_1].stage		= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NVX;
+	stages[HIT_SHADER_1].module		= rayHitShaders[0];
+	stages[HIT_SHADER_1].pName		= "main";
+	group_numbers[HIT_SHADER_1]		= HIT_SHADER_1;
+	
+	stages[HIT_SHADER_2].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	stages[HIT_SHADER_2].stage		= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NVX;
+	stages[HIT_SHADER_2].module		= rayHitShaders[1];
+	stages[HIT_SHADER_2].pName		= "main";
+	group_numbers[HIT_SHADER_2]		= HIT_SHADER_2;
 
 
 	// create pipeline
@@ -1071,12 +1259,12 @@ void main ()
 
 /*
 =================================================
-	RayTracing_Sample1
+	RayTracing_Sample2
 =================================================
 */
-extern void RayTracing_Sample1 ()
+extern void RayTracing_Sample2 ()
 {
-	RayTracingApp	app;
+	RayTracingApp2	app;
 	
 	if ( app.Initialize() )
 	{

@@ -60,7 +60,7 @@ public:
 	void OnKey (StringView key, EKeyAction action) override;
 	void OnResize (const uint2 &size) override;
 	
-	void OnRefrash () override {}
+	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
 
@@ -570,9 +570,9 @@ bool MeshShaderApp::CreateResources ()
 			temp.points[1] = {  0.5f,  0.5f,  0.0f, 1.0f };
 			temp.points[2] = { -0.5f,  0.5f,  0.0f, 1.0f };
 
-			temp.colors[0]	= {  1.0f,  0.0f,  0.0f, 1.0f };
-			temp.colors[1]	= {  0.0f,  1.0f,  0.0f, 1.0f };
-			temp.colors[2]	= {  0.0f,  0.0f,  1.0f, 1.0f };
+			temp.colors[0] = {  1.0f,  0.0f,  0.0f, 1.0f };
+			temp.colors[1] = {  0.0f,  1.0f,  0.0f, 1.0f };
+			temp.colors[2] = {  0.0f,  0.0f,  1.0f, 1.0f };
 
 			vkCmdUpdateBuffer( cmdBuffers[0], uniformBuf, 0, sizeof(temp), &temp );
 		}

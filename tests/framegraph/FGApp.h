@@ -46,7 +46,7 @@ namespace FG
 	// IWindowEventListener
 	private:
 		void OnResize (const uint2 &size) override;
-		void OnRefrash () override;
+		void OnRefresh () override;
 		void OnDestroy () override;
 		void OnUpdate () override;
 		void OnKey (StringView, EKeyAction) override {}

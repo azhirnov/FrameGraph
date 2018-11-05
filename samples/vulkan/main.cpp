@@ -7,6 +7,7 @@ using namespace FG;
 
 extern void MeshShader_Sample1 ();
 extern void RayTracing_Sample1 ();
+extern void RayTracing_Sample2 ();
 extern void ShadingRateImage_Sample1 ();
 extern void ImageFootprint_Sample1 ();
 extern void FragShaderBarycentric_Sample1 ();
@@ -20,6 +21,7 @@ int main ()
 	AsyncCompute_Sample1();
 	MeshShader_Sample1();
 	RayTracing_Sample1();
+	RayTracing_Sample2();
 	ShadingRateImage_Sample1();
 	ImageFootprint_Sample1();
 	FragShaderBarycentric_Sample1();

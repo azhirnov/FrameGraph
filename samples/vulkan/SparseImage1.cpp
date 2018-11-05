@@ -62,7 +62,7 @@ public:
 	void OnKey (StringView key, EKeyAction action) override;
 	void OnResize (const uint2 &size) override;
 	
-	void OnRefrash () override {}
+	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
 

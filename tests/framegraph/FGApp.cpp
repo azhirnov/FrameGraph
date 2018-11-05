@@ -55,10 +55,10 @@ namespace FG
 	
 /*
 =================================================
-	OnRefrash
+	OnRefresh
 =================================================
 */
-	void FGApp::OnRefrash ()
+	void FGApp::OnRefresh ()
 	{
 	}
 	

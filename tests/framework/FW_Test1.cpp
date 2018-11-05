@@ -36,7 +36,7 @@ public:
 		CHECK( swapchain->Recreate( size ));
 	}
 	
-	void OnRefrash () override {}
+	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
 	
@@ -161,7 +161,7 @@ public:
 				image_barrier1.subresourceRange.baseArrayLayer	= 0;
 				image_barrier1.subresourceRange.layerCount		= 1;
 
-				vkCmdPipelineBarrier( cmd_buffers[i&1], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+				vkCmdPipelineBarrier( cmd_buffers[i&1], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									  0, null, 0, null, 1, &image_barrier1 );
 		
 
