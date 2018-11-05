@@ -198,7 +198,8 @@ namespace FG
 								  const VkSurfaceTransformFlagBitsKHR	transform,
 								  const VkPresentModeKHR				presentMode,
 								  const VkCompositeAlphaFlagBitsKHR		compositeAlpha,
-								  const VkImageUsageFlags				colorImageUsage)
+								  const VkImageUsageFlags				colorImageUsage,
+								  ArrayView<uint>						queueFamilyIndices)
 	{
 		CHECK_ERR( _vkPhysicalDevice and _vkDevice and _vkSurface );
 		CHECK_ERR( not IsImageAcquired() );
@@ -217,19 +218,23 @@ namespace FG
 		swapchain_info.imageExtent				= { viewSize.x, viewSize.y };
 		swapchain_info.imageArrayLayers			= Clamp( imageArrayLayers, 1u, surf_caps.maxImageArrayLayers );
 		swapchain_info.minImageCount			= minImageCount;
-		swapchain_info.queueFamilyIndexCount	= 0;
-		swapchain_info.pQueueFamilyIndices		= null;
 		swapchain_info.oldSwapchain				= old_swapchain;
 		swapchain_info.clipped					= VK_TRUE;
 		swapchain_info.preTransform				= transform;
 		swapchain_info.presentMode				= presentMode;
 		swapchain_info.compositeAlpha			= compositeAlpha;
+		swapchain_info.imageSharingMode			= VK_SHARING_MODE_EXCLUSIVE;
 		
+		if ( queueFamilyIndices.size() > 1 ) {
+			swapchain_info.queueFamilyIndexCount = uint(queueFamilyIndices.size());
+			swapchain_info.pQueueFamilyIndices	 = queueFamilyIndices.data();
+			swapchain_info.imageSharingMode		 = VK_SHARING_MODE_CONCURRENT;
+		}
+
 		_GetSurfaceImageCount( INOUT swapchain_info.minImageCount, surf_caps );
 		_GetSurfaceTransform( INOUT swapchain_info.preTransform, surf_caps );
 		_GetSwapChainExtent( INOUT swapchain_info.imageExtent, surf_caps );
 		_GetPresentMode( INOUT swapchain_info.presentMode );
-		_GetSharingMode( OUT swapchain_info.imageSharingMode );
 		CHECK_ERR( _GetImageUsage( OUT swapchain_info.imageUsage, swapchain_info.presentMode, colorFormat, surf_caps ));
 		CHECK_ERR( _GetCompositeAlpha( INOUT swapchain_info.compositeAlpha, surf_caps ));
 		
@@ -688,16 +693,6 @@ namespace FG
 		}
 
 		return true;
-	}
-	
-/*
-=================================================
-	_GetSharingMode
-=================================================
-*/
-	void VulkanSwapchain::_GetSharingMode (OUT VkSharingMode &sharingMode) const
-	{
-		sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	}
 
 

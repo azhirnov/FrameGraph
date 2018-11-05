@@ -244,9 +244,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		"../tests/framegraph/DrawTests/DrawTest_GLSLCompute.cpp"
 		"../tests/framegraph/FGApp.cpp"
 		"../tests/framegraph/FGApp.h"
-		"../tests/framegraph/main.cpp"
-		"../tests/framegraph/ImplTests/FGApp_Scene1.cpp"
-		"../tests/framegraph/ImplTests/FGApp_Scene2.cpp" )
+		"../tests/framegraph/main.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "IntTests.FrameGraph" SHARED ${SOURCES} )
 	else()
@@ -254,7 +252,6 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	endif()
 	source_group( "DrawTests" FILES "../tests/framegraph/DrawTests/DrawTest_CopyBuffer.cpp" "../tests/framegraph/DrawTests/DrawTest_CopyImage2D.cpp" "../tests/framegraph/DrawTests/DrawTest_FirstTriangle.cpp" "../tests/framegraph/DrawTests/DrawTest_GLSLCompute.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
-	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/FGApp_Scene1.cpp" "../tests/framegraph/ImplTests/FGApp_Scene2.cpp" )
 	set_property( TARGET "IntTests.FrameGraph" PROPERTY FOLDER "Tests" )
 	target_include_directories( "IntTests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "IntTests.FrameGraph" PRIVATE "../tests/.." )

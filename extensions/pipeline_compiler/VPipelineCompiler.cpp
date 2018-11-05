@@ -342,112 +342,112 @@ namespace FG
 
 			bool	type_missmatch = true;
 
-			Visit( un.second,
-				[dst = &iter->second, &type_missmatch] (const PipelineDescription::Texture &lhs)
+			Visit( un.second.data,
+				[&] (const PipelineDescription::Texture &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Texture>( dst ) )
+					if ( auto* rhs = std::get_if<PipelineDescription::Texture>( &iter->second.data ) )
 					{
 						ASSERT( lhs.textureType	== rhs->textureType );
-						ASSERT( lhs.index		== rhs->index );
+						ASSERT( un.second.index	== iter->second.index );
 
 						if ( lhs.textureType	== rhs->textureType and
-							 lhs.index			== rhs->index )
+							 un.second.index	== iter->second.index )
 						{
-							rhs->stageFlags |= lhs.stageFlags;
-							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
-							type_missmatch   = false;
+							iter->second.stageFlags |= un.second.stageFlags;
+							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
+							type_missmatch			 = false;
 						}
 					}
 				},
 				   
-				[dst = &iter->second, &type_missmatch] (const PipelineDescription::Sampler &lhs)
+				[&] (const PipelineDescription::Sampler &)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Sampler>( dst ) )
+					if ( auto* rhs = std::get_if<PipelineDescription::Sampler>( &iter->second.data ) )
 					{
-						ASSERT( lhs.index == rhs->index );
+						ASSERT( un.second.index == iter->second.index );
 
-						if ( lhs.index == rhs->index )
+						if ( un.second.index == iter->second.index )
 						{
-							rhs->stageFlags |= lhs.stageFlags;
-							type_missmatch   = false;
+							iter->second.stageFlags |= un.second.stageFlags;
+							type_missmatch			 = false;
 						}
 					}
 				},
 				
-				[dst = &iter->second, &type_missmatch] (const PipelineDescription::SubpassInput &lhs)
+				[&] (const PipelineDescription::SubpassInput &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::SubpassInput>( dst ) )
+					if ( auto* rhs = std::get_if<PipelineDescription::SubpassInput>( &iter->second.data ) )
 					{
 						ASSERT( lhs.attachmentIndex	== rhs->attachmentIndex );
 						ASSERT( lhs.isMultisample	== rhs->isMultisample );
-						ASSERT( lhs.index			== rhs->index );
+						ASSERT( un.second.index		== iter->second.index );
 						
 						if ( lhs.attachmentIndex	== rhs->attachmentIndex	and
 							 lhs.isMultisample		== rhs->isMultisample	and
-							 lhs.index				== rhs->index )
+							 un.second.index		== iter->second.index )
 						{
-							rhs->stageFlags |= lhs.stageFlags;
-							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
-							type_missmatch   = false;
+							iter->second.stageFlags |= un.second.stageFlags;
+							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
+							type_missmatch			 = false;
 						}
 					}
 				},
 				
-				[dst = &iter->second, &type_missmatch] (const PipelineDescription::Image &lhs)
+				[&] (const PipelineDescription::Image &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Image>( dst ) )
+					if ( auto* rhs = std::get_if<PipelineDescription::Image>( &iter->second.data ) )
 					{
 						ASSERT( lhs.imageType	== rhs->imageType );
 						ASSERT( lhs.format		== rhs->format );
-						ASSERT( lhs.index		== rhs->index );
+						ASSERT( un.second.index	== iter->second.index );
 						
-						if ( lhs.imageType	== rhs->imageType	and
-							 lhs.format		== rhs->format		and
-							 lhs.index		== rhs->index )
+						if ( lhs.imageType		== rhs->imageType	and
+							 lhs.format			== rhs->format		and
+							 un.second.index	== iter->second.index )
 						{
 							MergeShaderAccess( lhs.state, INOUT rhs->state );
 
-							rhs->stageFlags |= lhs.stageFlags;
-							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
-							type_missmatch   = false;
+							iter->second.stageFlags |= un.second.stageFlags;
+							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
+							type_missmatch			 = false;
 						}
 					}
 				},
 				
-				[dst = &iter->second, &type_missmatch] (const PipelineDescription::UniformBuffer &lhs)
+				[&] (const PipelineDescription::UniformBuffer &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::UniformBuffer>( dst ) )
+					if ( auto* rhs = std::get_if<PipelineDescription::UniformBuffer>( &iter->second.data ) )
 					{
-						ASSERT( lhs.size	== rhs->size );
-						ASSERT( lhs.index	== rhs->index );
+						ASSERT( lhs.size		== rhs->size );
+						ASSERT( un.second.index	== iter->second.index );
 
-						if ( lhs.size	== rhs->size	and
-							 lhs.index	== rhs->index )
+						if ( lhs.size			== rhs->size	and
+							 un.second.index	== iter->second.index )
 						{
-							rhs->stageFlags |= lhs.stageFlags;
-							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
-							type_missmatch   = false;
+							iter->second.stageFlags |= un.second.stageFlags;
+							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
+							type_missmatch			 = false;
 						}
 					}
 				},
 				
-				[dst = &iter->second, &type_missmatch] (const PipelineDescription::StorageBuffer &lhs)
+				[&] (const PipelineDescription::StorageBuffer &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::StorageBuffer>( dst ) )
+					if ( auto* rhs = std::get_if<PipelineDescription::StorageBuffer>( &iter->second.data ) )
 					{
 						ASSERT( lhs.staticSize	== rhs->staticSize );
 						ASSERT( lhs.arrayStride	== rhs->arrayStride );
-						ASSERT( lhs.index		== rhs->index );
+						ASSERT( un.second.index	== iter->second.index );
 						
 						if ( lhs.staticSize		== rhs->staticSize	and
 							 lhs.arrayStride	== rhs->arrayStride	and
-							 lhs.index			== rhs->index )
+							 un.second.index	== iter->second.index )
 						{
 							MergeShaderAccess( lhs.state, INOUT rhs->state );
 
-							rhs->stageFlags |= lhs.stageFlags;
-							rhs->state		|= EResourceState_FromShaders( rhs->stageFlags );
-							type_missmatch   = false;
+							iter->second.stageFlags |= un.second.stageFlags;
+							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
+							type_missmatch			 = false;
 						}
 					}
 				},

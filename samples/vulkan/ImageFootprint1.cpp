@@ -149,7 +149,7 @@ bool ImageFootprintApp::Initialize ()
 		
 		vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT );
 
-		CHECK( IsImageFootprintSupported() );
+		CHECK_ERR( IsImageFootprintSupported() );
 	}
 
 
@@ -765,7 +765,6 @@ void main()
 
 	// create fragment shader with image footprint extension
 	// see https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_shader_texture_footprint.txt
-	if ( IsImageFootprintSupported() )
 	{
 		static const char	frag_shader_source[] = R"#(
 #version 450 core
@@ -798,25 +797,6 @@ void main ()
 					  float(footprint.offset.y) / tex_size.y,
 					  float(footprint.lod) / mipmaps,
 					  1.0 );*/
-}
-)#";
-		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
-	}
-	else
-
-	// create fragment shader
-	{
-		static const char	frag_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
-layout(location = 0) out vec4  out_Color;
-layout(location = 0) in  vec2  v_TexCoord;
-layout(binding = 0) uniform sampler2D un_Texture;
-
-void main ()
-{
-	out_Color = texture( un_Texture, v_TexCoord ) * v_TexCoord.x * v_TexCoord.y;
 }
 )#";
 		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));

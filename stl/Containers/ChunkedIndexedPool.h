@@ -28,7 +28,7 @@ namespace FG
 	struct ChunkedIndexedPool final
 	{
 		STATIC_ASSERT( ChunkSize > 0 and MaxChunks > 0 );
-		STATIC_ASSERT( IsPowerOfTwo( ChunkSize ) );	// must be power of 2 to increase performance
+		//STATIC_ASSERT( IsPowerOfTwo( ChunkSize ) );	// must be power of 2 to increase performance
 
 	// types
 	public:

@@ -249,75 +249,75 @@ namespace FG
 
 		for (auto& un : *ds.uniforms)
 		{
-			Visit( un.second,
-				[this, &textures, id = &un.first] (const PipelineDescription::Texture &tex)
+			Visit( un.second.data,
+				[&] (const PipelineDescription::Texture &tex)
 				{
 					if ( not textures.empty() )
 						textures << ",\n\t\t\t  ";
 
-					textures << "{ " << _UniformID_ToString( *id ) << ", "
+					textures << "{ " << _UniformID_ToString( un.first ) << ", "
 							<< _ImageType_ToString( tex.textureType ) << ", "
-							<< _BindingIndex_ToString( tex.index ) << ", "
-							<< _ShaderStages_ToString( tex.stageFlags ) << " }";
+							<< _BindingIndex_ToString( un.second.index ) << ", "
+							<< _ShaderStages_ToString( un.second.stageFlags ) << " }";
 				},
 
-				[this, &samplers, id = &un.first] (const PipelineDescription::Sampler &samp)
+				[&] (const PipelineDescription::Sampler &samp)
 				{
 					if ( not samplers.empty() )
 						samplers << ",\n\t\t\t  ";
 
-					samplers << "{ " << _UniformID_ToString( *id ) << ", "
-							<< _BindingIndex_ToString( samp.index ) << ", "
-							<< _ShaderStages_ToString( samp.stageFlags ) << " }";
+					samplers << "{ " << _UniformID_ToString( un.first ) << ", "
+							<< _BindingIndex_ToString( un.second.index ) << ", "
+							<< _ShaderStages_ToString( un.second.stageFlags ) << " }";
 				},
 
-				[this, &subpasses, id = &un.first] (const PipelineDescription::SubpassInput &spi)
+				[&] (const PipelineDescription::SubpassInput &spi)
 				{
 					if ( not subpasses.empty() )
 						subpasses << ",\n\t\t\t  ";
 
-					subpasses << "{ " << _UniformID_ToString( *id ) << ", "
+					subpasses << "{ " << _UniformID_ToString( un.first ) << ", "
 							<< ToString( spi.attachmentIndex ) << ", "
 							<< ToString( spi.isMultisample ) << ", "
-							<< _BindingIndex_ToString( spi.index ) << ", "
-							<< _ShaderStages_ToString( spi.stageFlags ) << " }";
+							<< _BindingIndex_ToString( un.second.index ) << ", "
+							<< _ShaderStages_ToString( un.second.stageFlags ) << " }";
 				},
 
-				[this, &images, id = &un.first] (const PipelineDescription::Image &img)
+				[&] (const PipelineDescription::Image &img)
 				{
 					if ( not images.empty() )
 						images << ",\n\t\t\t  ";
 
-					images << "{ " << _UniformID_ToString( *id ) << ", "
+					images << "{ " << _UniformID_ToString( un.first ) << ", "
 							<< _ImageType_ToString( img.imageType ) << ", "
 							<< _PixelFormat_ToString( img.format ) << ", "
 							<< _ShaderAccess_ToString( EResourceState_ToShaderAccess(img.state) ) << ", "
-							<< _BindingIndex_ToString( img.index ) << ", "
-							<< _ShaderStages_ToString( img.stageFlags ) << " }";
+							<< _BindingIndex_ToString( un.second.index ) << ", "
+							<< _ShaderStages_ToString( un.second.stageFlags ) << " }";
 				},
 
-				[this, &ubuffers, id = &un.first] (const PipelineDescription::UniformBuffer &ubuf)
+				[&] (const PipelineDescription::UniformBuffer &ubuf)
 				{
 					if ( not ubuffers.empty() )
 						ubuffers << ",\n\t\t\t  ";
 
-					ubuffers << "{ " << _UniformID_ToString( *id ) << ", "
+					ubuffers << "{ " << _UniformID_ToString( un.first ) << ", "
 							<< ToString( uint64_t(ubuf.size) ) << "_b, "
-							<< _BindingIndex_ToString( ubuf.index ) << ", "
-							<< _ShaderStages_ToString( ubuf.stageFlags ) << " }";
+							<< _BindingIndex_ToString( un.second.index ) << ", "
+							<< _ShaderStages_ToString( un.second.stageFlags ) << " }";
 				},
 
-				[this, &sbuffers, id = &un.first] (const PipelineDescription::StorageBuffer &sbuf)
+				[&] (const PipelineDescription::StorageBuffer &sbuf)
 				{
 					if ( not sbuffers.empty() )
 						sbuffers << ",\n\t\t\t  ";
 
-					sbuffers << "{ " << _UniformID_ToString( *id ) << ", "
+					sbuffers << "{ " << _UniformID_ToString( un.first ) << ", "
 							<< ToString( uint64_t(sbuf.staticSize) ) << "_b, "
 							<< ToString( uint64_t(sbuf.arrayStride) ) << "_b, "
 							<< _ShaderAccess_ToString( EResourceState_ToShaderAccess(sbuf.state) ) << ", "
-							<< _BindingIndex_ToString( sbuf.index ) << ", "
-							<< _ShaderStages_ToString( sbuf.stageFlags ) << " }";
+							<< _BindingIndex_ToString( un.second.index ) << ", "
+							<< _ShaderStages_ToString( un.second.stageFlags ) << " }";
 				},
 
 				[] (const auto &) { ASSERT(false); }

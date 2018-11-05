@@ -81,7 +81,7 @@ endif()
 #==================================================================================================
 # project: UnitTests.PipelineCompiler
 #==================================================================================================
-if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS})
+if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
 	set( SOURCES 
 		"../tests/pipeline_compiler/main.cpp"
 		"../tests/pipeline_compiler/Test_Serializer1.cpp"

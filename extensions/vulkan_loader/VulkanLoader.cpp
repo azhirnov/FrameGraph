@@ -213,7 +213,7 @@ namespace FG
 
 		if ( (--lib->refCounter) != 0 )
 			return;
-
+		
 #	ifdef PLATFORM_WINDOWS
 		if ( lib->module != null )
 		{

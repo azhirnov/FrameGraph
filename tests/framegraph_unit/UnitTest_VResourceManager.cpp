@@ -45,7 +45,7 @@ static void PipelineResources_Test1 (const FGThreadPtr &fg)
 			{},
 			{{ UniformID{"un_OutImage"}, EImage::Tex2D, EPixelFormat::RGBA8_UNorm, EShaderAccess::WriteOnly, BindingIndex{~0u, 0u}, EShaderStages::Compute }},
 			{},
-			{{ UniformID{"un_SSBO"}, 16_b, 0_b, EShaderAccess::ReadOnly, BindingIndex{~0u, 1u}, EShaderStages::Compute }} );
+			{{ UniformID{"un_SSBO"}, 16_b, 0_b, EShaderAccess::ReadOnly, BindingIndex{~0u, 1u}, EShaderStages::Compute, false }} );
 
 	desc.AddShader( EShaderLangFormat::SPIRV_100, "main", Array<uint32_t>{
 			0x07230203, 0x00010000, 0x00080007, 0x0000003B, 0x00000000, 0x00020011, 0x00000001, 0x0006000B, 0x00000002, 0x4C534C47, 0x6474732E, 0x3035342E, 

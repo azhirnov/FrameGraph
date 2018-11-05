@@ -192,10 +192,8 @@ public:
 			// build command buffer
 			{
 				VkCommandBufferBeginInfo	begin_info = {};
-				begin_info.sType			= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-				begin_info.pNext			= null;
-				begin_info.flags			= 0;
-				begin_info.pInheritanceInfo	= null;
+				begin_info.sType	= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				begin_info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 				VK_CALL( vkBeginCommandBuffer( cmd_buffers[i&1], &begin_info ));
 
 
@@ -216,7 +214,7 @@ public:
 				image_barrier1.subresourceRange.baseArrayLayer	= 0;
 				image_barrier1.subresourceRange.layerCount		= 1;
 
-				vkCmdPipelineBarrier( cmd_buffers[i&1], VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+				vkCmdPipelineBarrier( cmd_buffers[i&1], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									  0, null, 0, null, 1, &image_barrier1 );
 		
 
