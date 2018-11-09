@@ -55,6 +55,7 @@ namespace FG
 */
 	void VPipelineLayout::Initialize (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets)
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( ppln.descriptorSets.size() == sets.size() );
 		ASSERT( _layout == VK_NULL_HANDLE );
 
@@ -108,6 +109,7 @@ namespace FG
 */
 	bool VPipelineLayout::Create (const VDevice &dev)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _layout == VK_NULL_HANDLE );
 		
@@ -146,6 +148,8 @@ namespace FG
 */
 	void VPipelineLayout::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
+		SCOPELOCK( _rcCheck );
+
 		if ( _layout ) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT, uint64_t(_layout) );
 		}
@@ -160,24 +164,6 @@ namespace FG
 		
 		_OnDestroy();
 	}
-	
-/*
-=================================================
-	Replace
-=================================================
-*/
-	void VPipelineLayout::Replace (INOUT VPipelineLayout &&other)
-	{
-		_hash			= other._hash;
-		_layout			= other._layout;
-		_descriptorSets	= std::move(other._descriptorSets);
-		
-		other._layout	= VK_NULL_HANDLE;
-		other._hash		= Default;
-		other._descriptorSets.clear();
-
-		ResourceBase::_Replace( std::move(other) );
-	}
 
 /*
 =================================================
@@ -186,6 +172,9 @@ namespace FG
 */
 	bool VPipelineLayout::operator == (const VPipelineLayout &rhs) const
 	{
+		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( rhs._rcCheck );
+
 		if ( _hash != rhs._hash )
 			return false;
 
@@ -217,6 +206,8 @@ namespace FG
 */
 	bool VPipelineLayout::GetDescriptorSetLayout (const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const
 	{
+		SHAREDLOCK( _rcCheck );
+
 		auto	iter = _descriptorSets.find( id );
 
 		if ( iter != _descriptorSets.end() )

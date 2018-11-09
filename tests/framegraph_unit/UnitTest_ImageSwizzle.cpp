@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framegraph/Public/LowLevel/ImageSwizzle.h"
+#include "framegraph/Public/ImageSwizzle.h"
 #include "UnitTestCommon.h"
 
 

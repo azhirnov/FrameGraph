@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framegraph/Public/LowLevel/VertexInputState.h"
+#include "framegraph/Public/VertexInputState.h"
 #include "UnitTestCommon.h"
 
 using VertexAttrib = VertexInputState::VertexAttrib;

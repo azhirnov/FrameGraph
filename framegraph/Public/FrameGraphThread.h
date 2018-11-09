@@ -5,13 +5,13 @@
 #include "framegraph/Public/FrameGraphTask.h"
 #include "framegraph/Public/FrameGraphDrawTask.h"
 #include "framegraph/Public/FGEnums.h"
-#include "framegraph/Public/LowLevel/VulkanTypes.h"
-#include "framegraph/Public/LowLevel/Pipeline.h"
-#include "framegraph/Public/LowLevel/BufferDesc.h"
-#include "framegraph/Public/LowLevel/ImageDesc.h"
-#include "framegraph/Public/LowLevel/SamplerDesc.h"
-#include "framegraph/Public/LowLevel/MemoryDesc.h"
-#include "framegraph/Public/LowLevel/PipelineResources.h"
+#include "framegraph/Public/VulkanTypes.h"
+#include "framegraph/Public/Pipeline.h"
+#include "framegraph/Public/BufferDesc.h"
+#include "framegraph/Public/ImageDesc.h"
+#include "framegraph/Public/SamplerDesc.h"
+#include "framegraph/Public/MemoryDesc.h"
+#include "framegraph/Public/PipelineResources.h"
 
 namespace FG
 {
@@ -22,18 +22,12 @@ namespace FG
 	
 	struct ThreadDesc
 	{
-	// types
-		using Dependencies_t = FixedArray<Pair< CommandBatchID, EThreadSync >, FG_MaxThreadDependencies >;
+		EThreadUsage	usage;
+		FGThreadPtr		relative;	// new thread wiil use same gpu queues as 'relative' thread
+		StringView		name;
 
-	// variables
-		EThreadUsage		usage;
-		CommandBatchID		batchId;		// threads with same batch must have same command queue
-		Dependencies_t		dependsOn;
-
-	// methods
-		ThreadDesc (EThreadUsage usage, const CommandBatchID &id) : usage{usage}, batchId{id} {}
-
-		ThreadDesc&  DependsOn (const CommandBatchID &id, EThreadSync sync = EThreadSync::Barrier)	{ dependsOn.push_back({ id, sync });  return *this; }
+		explicit ThreadDesc (EThreadUsage usage, const FGThreadPtr &relative = null, StringView name = Default) :
+			usage{usage}, relative{relative}, name{name} {}
 	};
 
 
@@ -54,14 +48,14 @@ namespace FG
 			virtual ~FrameGraphThread () {}
 			
 		// resource manager
-		ND_ virtual MPipelineID		CreatePipeline (MeshPipelineDesc &&desc) = 0;
-		ND_ virtual RTPipelineID	CreatePipeline (RayTracingPipelineDesc &&desc) = 0;
-		ND_ virtual GPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc) = 0;
-		ND_ virtual CPipelineID		CreatePipeline (ComputePipelineDesc &&desc) = 0;
+		ND_ virtual MPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName = Default) = 0;
+		ND_ virtual RTPipelineID	CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName = Default) = 0;
+		ND_ virtual GPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName = Default) = 0;
+		ND_ virtual CPipelineID		CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName = Default) = 0;
 
-		ND_ virtual ImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc) = 0;
-		ND_ virtual BufferID		CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc) = 0;
-		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc) = 0;
+		ND_ virtual ImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, StringView dbgName = Default) = 0;
+		ND_ virtual BufferID		CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, StringView dbgName = Default) = 0;
+		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName = Default) = 0;
 			virtual bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const = 0;
 		
 		//ND_ virtual AccelerationStructID	CreateAccelerationStructure (const AccelerationStructDesc &desc) = 0;
@@ -80,7 +74,9 @@ namespace FG
 			virtual bool			GetDescriptorSet (const CPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
 			virtual bool			GetDescriptorSet (const MPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
 			virtual bool			GetDescriptorSet (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
+
 		ND_ virtual EThreadUsage	GetThreadUsage () const = 0;
+		ND_ virtual bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const = 0;
 
 
 		// initialization
@@ -90,7 +86,7 @@ namespace FG
 			virtual bool		CreateSwapchain (const SwapchainInfo_t &) = 0;
 
 		// frame execution
-			virtual bool		Begin () = 0;
+			virtual bool		Begin (const CommandBatchID &id, uint index, EThreadUsage usage) = 0;
 		ND_ virtual bool		Compile () = 0;
 
 

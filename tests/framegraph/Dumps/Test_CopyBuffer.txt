@@ -1,0 +1,102 @@
+Thread {
+	batch:         "0"
+	indexInBatch:  0
+	Buffer {
+		name:    DstBuffer
+		size:    512
+		usage:   TransferSrc | TransferDst | Uniform | Storage | Index | Vertex | Indirect
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         CopyBuffer (#3)
+					dstTask:         ReadBuffer (#4)
+					srcStageMask:    Transfer
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   TransferRead
+					offset:          128
+					size:            256
+				}
+		}
+	}
+
+	Buffer {
+		name:    SrcBuffer
+		size:    256
+		usage:   TransferSrc | TransferDst | Uniform | Storage | Index | Vertex | Indirect
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         UpdateBuffer (#2)
+					dstTask:         CopyBuffer (#3)
+					srcStageMask:    Transfer
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   TransferRead
+					offset:          0
+					size:            256
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    UpdateBuffer (#2)
+		input =  {  }
+		output = { CopyBuffer (#3) }
+		resource_usage = {
+			BufferUsage {
+				name:     SrcBuffer
+				usage:    TransferDst
+				offset:   0
+				size:     256
+			}
+			BufferUsage {
+				name:     StagingWriteBuffer 0/1
+				usage:    TransferSrc
+				offset:   0
+				size:     256
+			}
+		}
+	}
+	Task {
+		name:    CopyBuffer (#3)
+		input =  { UpdateBuffer (#2) }
+		output = { ReadBuffer (#4) }
+		resource_usage = {
+			BufferUsage {
+				name:     DstBuffer
+				usage:    TransferDst
+				offset:   128
+				size:     256
+			}
+			BufferUsage {
+				name:     SrcBuffer
+				usage:    TransferSrc
+				offset:   0
+				size:     256
+			}
+		}
+	}
+	Task {
+		name:    ReadBuffer (#4)
+		input =  { CopyBuffer (#3) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     DstBuffer
+				usage:    TransferSrc
+				offset:   0
+				size:     512
+			}
+			BufferUsage {
+				name:     StagingReadBuffer 0/1
+				usage:    TransferDst
+				offset:   0
+				size:     512
+			}
+		}
+	}
+}
+===============================================================
+

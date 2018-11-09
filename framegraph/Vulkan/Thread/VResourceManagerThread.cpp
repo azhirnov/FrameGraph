@@ -416,7 +416,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawMPipelineID  VResourceManagerThread::CreatePipeline (MeshPipelineDesc &&desc, bool isAsync)
+	RawMPipelineID  VResourceManagerThread::CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _pipelineCache.CompileShaders( INOUT desc, GetDevice() ));
@@ -430,7 +430,7 @@ namespace FG
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 
-		if ( not data.Create( desc, layout_id, _pipelineCache.CreateFramentOutput(desc._fragmentOutput) ))
+		if ( not data.Create( desc, layout_id, _pipelineCache.CreateFramentOutput(desc._fragmentOutput), dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating mesh pipeline" );
@@ -446,7 +446,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawGPipelineID  VResourceManagerThread::CreatePipeline (GraphicsPipelineDesc &&desc, bool isAsync)
+	RawGPipelineID  VResourceManagerThread::CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _pipelineCache.CompileShaders( INOUT desc, GetDevice() ));
@@ -460,7 +460,7 @@ namespace FG
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		
-		if ( not data.Create( desc, layout_id, _pipelineCache.CreateFramentOutput(desc._fragmentOutput) ))
+		if ( not data.Create( desc, layout_id, _pipelineCache.CreateFramentOutput(desc._fragmentOutput), dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating graphics pipeline" );
@@ -476,7 +476,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawCPipelineID  VResourceManagerThread::CreatePipeline (ComputePipelineDesc &&desc, bool isAsync)
+	RawCPipelineID  VResourceManagerThread::CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _pipelineCache.CompileShader( INOUT desc, GetDevice() ));
@@ -490,7 +490,7 @@ namespace FG
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		
-		if ( not data.Create( desc, layout_id ) )
+		if ( not data.Create( desc, layout_id, dbgName ) )
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating compute pipeline" );
@@ -506,7 +506,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawRTPipelineID  VResourceManagerThread::CreatePipeline (RayTracingPipelineDesc &&desc, bool isAsync)
+	RawRTPipelineID  VResourceManagerThread::CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _pipelineCache.CompileShaders( INOUT desc, GetDevice() ));
@@ -520,7 +520,7 @@ namespace FG
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		
-		if ( not data.Create( desc, layout_id ) )
+		if ( not data.Create( desc, layout_id, dbgName ) )
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating ray tracing pipeline" );
@@ -536,13 +536,13 @@ namespace FG
 	_CreateMemory
 =================================================
 */
-	bool  VResourceManagerThread::_CreateMemory (OUT RawMemoryID &id, OUT VMemoryObj* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc)
+	bool  VResourceManagerThread::_CreateMemory (OUT RawMemoryID &id, OUT VMemoryObj* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName)
 	{
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 
-		if ( not data.Create( desc, alloc ) )
+		if ( not data.Create( desc, alloc, dbgName ) )
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating memory object" );
@@ -557,20 +557,20 @@ namespace FG
 	CreateImage
 =================================================
 */
-	RawImageID  VResourceManagerThread::CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, bool isAsync)
+	RawImageID  VResourceManagerThread::CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
 		RawMemoryID		mem_id;
 		VMemoryObj*		mem_obj	= null;
-		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc ));
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc, dbgName ));
 
 		RawImageID		id;
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, dbgName ))
 		{
 			DestroyResource( mem_id, isAsync );
 			_Unassign( id );
@@ -587,20 +587,20 @@ namespace FG
 	CreateBuffer
 =================================================
 */
-	RawBufferID  VResourceManagerThread::CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, bool isAsync)
+	RawBufferID  VResourceManagerThread::CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
 		RawMemoryID		mem_id;
 		VMemoryObj*		mem_obj	= null;
-		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc ));
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc, dbgName ));
 
 		RawBufferID		id;
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, dbgName ))
 		{
 			DestroyResource( mem_id, isAsync );
 			_Unassign( id );
@@ -685,25 +685,27 @@ namespace FG
 	Create***
 =================================================
 */
-	RawSamplerID  VResourceManagerThread::CreateSampler (const SamplerDesc &desc, bool isAsync)
+	RawSamplerID  VResourceManagerThread::CreateSampler (const SamplerDesc &desc, StringView dbgName, bool isAsync)
 	{
 		return _CreateCachedResource( _samplerMap, isAsync, "failed when creating sampler",
 									  [&] (auto& data) { return data.Initialize( GetDevice(), desc ); },
-									  [&] (auto& data) { return data.Create( GetDevice() ); });
+									  [&] (auto& data) { return data.Create( GetDevice(), dbgName ); });
 	}
 	
-	RawRenderPassID  VResourceManagerThread::CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput, bool isAsync)
+	RawRenderPassID  VResourceManagerThread::CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput,
+															   StringView dbgName, bool isAsync)
 	{
 		return _CreateCachedResource( _renderPassMap, isAsync, "failed when creating render pass",
 									  [&] (auto& data) { return data.Initialize( logicalPasses, fragOutput ); },
-									  [&] (auto& data) { return data.Create( GetDevice() ); });
+									  [&] (auto& data) { return data.Create( GetDevice(), dbgName ); });
 	}
 	
-	RawFramebufferID  VResourceManagerThread::CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers, bool isAsync)
+	RawFramebufferID  VResourceManagerThread::CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim,
+																 uint layers, StringView dbgName, bool isAsync)
 	{
 		return _CreateCachedResource( _framebufferMap, isAsync, "failed when creating framebuffer",
 									  [&] (auto& data) { return data.Initialize( attachments, rp, dim, layers ); },
-									  [&] (auto& data) { return data.Create( *this ); });
+									  [&] (auto& data) { return data.Create( *this, dbgName ); });
 	}
 	
 /*

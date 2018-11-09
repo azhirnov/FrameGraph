@@ -54,8 +54,11 @@ namespace FG
 	inline void  VTaskGraph<VisitorT>::OnDiscardMemory ()
 	{
 		// TODO: skip call for trivial destructors
-		for (auto& node : *_nodes) {
+		for (auto& node : *_nodes)
+		{
 			node->~IFrameGraphTask();
+
+			// TODO: clear memory
 		}
 
 		_nodes.Destroy();

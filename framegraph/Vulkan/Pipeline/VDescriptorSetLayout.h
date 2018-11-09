@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/Pipeline.h"
+#include "framegraph/Public/Pipeline.h"
 #include "framegraph/Shared/ResourceBase.h"
 #include "VCommon.h"
 
@@ -31,6 +31,7 @@ namespace FG
 		UniformMapPtr			_uniforms;
 		PoolSizeArray_t			_poolSize;
 		uint					_maxIndex	= 0;
+		DebugName_t				_debugName;
 
 
 	// methods
@@ -41,14 +42,13 @@ namespace FG
 		void Initialize (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding);
 		bool Create (const VDevice &dev, const DescriptorBinding_t &binding);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
-		void Replace (INOUT VDescriptorSetLayout &&other);
 
 		ND_ bool	operator == (const VDescriptorSetLayout &rhs) const;
 
-		ND_ VkDescriptorSetLayout	Handle ()		const	{ return _layout; }
-		ND_ HashVal					GetHash ()		const	{ return _hash; }
-		ND_ UniformMapPtr const&	GetUniforms ()	const	{ return _uniforms; }
-		ND_ uint const				GetMaxIndex ()	const	{ return _maxIndex; }
+		ND_ VkDescriptorSetLayout	Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _layout; }
+		ND_ HashVal					GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
+		ND_ UniformMapPtr const&	GetUniforms ()	const	{ SHAREDLOCK( _rcCheck );  return _uniforms; }
+		ND_ uint const				GetMaxIndex ()	const	{ SHAREDLOCK( _rcCheck );  return _maxIndex; }
 
 
 	private:

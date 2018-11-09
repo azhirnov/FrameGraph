@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "Public/LowLevel/RenderState.h"
+#include "Public/RenderState.h"
 
 namespace FG
 {

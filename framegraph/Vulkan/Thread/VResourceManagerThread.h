@@ -97,17 +97,19 @@ namespace FG
 		void OnEndFrame ();
 		void OnDiscardMemory ();
 		
-		ND_ RawMPipelineID		CreatePipeline (MeshPipelineDesc &&desc, bool isAsync);
-		ND_ RawGPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, bool isAsync);
-		ND_ RawCPipelineID		CreatePipeline (ComputePipelineDesc &&desc, bool isAsync);
-		ND_ RawRTPipelineID		CreatePipeline (RayTracingPipelineDesc &&desc, bool isAsync);
+		ND_ RawMPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName, bool isAsync);
+		ND_ RawGPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName, bool isAsync);
+		ND_ RawCPipelineID		CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName, bool isAsync);
+		ND_ RawRTPipelineID		CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName, bool isAsync);
 		
-		ND_ RawImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, bool isAsync);
-		ND_ RawBufferID			CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, bool isAsync);
-		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, bool isAsync);
+		ND_ RawImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, StringView dbgName, bool isAsync);
+		ND_ RawBufferID			CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, StringView dbgName, bool isAsync);
+		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName, bool isAsync);
 
-		ND_ RawRenderPassID		CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput, bool isAsync);
-		ND_ RawFramebufferID	CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers, bool isAsync);
+		ND_ RawRenderPassID		CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput,
+												  StringView dbgName, bool isAsync);
+		ND_ RawFramebufferID	CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers,
+												   StringView dbgName, bool isAsync);
 		ND_ RawPipelineResourcesID	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
 
 		ND_ LocalBufferID		Remap (RawBufferID id);
@@ -133,7 +135,7 @@ namespace FG
 
 
 	private:
-		bool  _CreateMemory (OUT RawMemoryID &id, OUT VMemoryObj* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc);
+		bool  _CreateMemory (OUT RawMemoryID &id, OUT VMemoryObj* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName);
 		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT VPipelineLayout const* &layoutPtr, PipelineDescription::PipelineLayout &&desc, bool isAsync);
 		bool  _CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT VDescriptorSetLayout const* &layoutPtr, const PipelineDescription::UniformMapPtr &uniforms, bool isAsync);
 

@@ -13,13 +13,39 @@ set( SOURCES
 	"Vulkan/Memory/VMemoryManager_VMAllocator.h"
 	"Vulkan/Memory/VMemoryObj.cpp"
 	"Vulkan/Memory/VMemoryObj.h"
+	"Public/BindingIndex.h"
+	"Public/BufferDesc.h"
+	"Public/BufferView.h"
 	"Public/Config.h"
+	"Public/EResourceState.h"
 	"Public/FGEnums.h"
 	"Public/FrameGraph.h"
 	"Public/FrameGraphDrawTask.h"
 	"Public/FrameGraphTask.h"
 	"Public/FrameGraphThread.h"
+	"Public/IDs.h"
+	"Public/ImageDesc.h"
+	"Public/ImageLayer.h"
+	"Public/ImageSwizzle.h"
+	"Public/ImageView.h"
 	"Public/IPipelineCompiler.h"
+	"Public/MemoryDesc.h"
+	"Public/MipmapLevel.h"
+	"Public/MultiSamples.h"
+	"Public/Pipeline.h"
+	"Public/PipelineResources.h"
+	"Public/RenderState.h"
+	"Public/RenderStateEnums.h"
+	"Public/ResourceEnums.h"
+	"Public/SamplerDesc.h"
+	"Public/SamplerEnums.h"
+	"Public/ShaderEnums.h"
+	"Public/SubmissionGraph.h"
+	"Public/Types.h"
+	"Public/VertexDesc.h"
+	"Public/VertexEnums.h"
+	"Public/VertexInputState.h"
+	"Public/VulkanTypes.h"
 	"Vulkan/VCommon.h"
 	"Vulkan/Thread/VBarrierManager.h"
 	"Vulkan/Thread/VDrawTask.h"
@@ -34,16 +60,21 @@ set( SOURCES
 	"Vulkan/Thread/VTaskGraph.hpp"
 	"Vulkan/Thread/VTaskProcessor.cpp"
 	"Vulkan/Thread/VTaskProcessor.h"
-	"Vulkan/Thread/VTransferThread.h"
 	"Vulkan/Systems/VDevice.cpp"
 	"Vulkan/Systems/VDevice.h"
 	"Vulkan/Systems/VFrameGraph.cpp"
 	"Vulkan/Systems/VFrameGraph.h"
 	"Vulkan/Systems/VResourceManager.cpp"
 	"Vulkan/Systems/VResourceManager.h"
+	"Vulkan/Systems/VSubmissionGraph.cpp"
+	"Vulkan/Systems/VSubmissionGraph.h"
+	"Vulkan/Debugger/VDebugger.cpp"
+	"Vulkan/Debugger/VDebugger.h"
+	"Vulkan/Debugger/VFrameGraphDebugger.cpp"
+	"Vulkan/Debugger/VFrameGraphDebugger.h"
 	"Vulkan/Image/VImage.cpp"
 	"Vulkan/Image/VImage.h"
-	"Vulkan/Image/VlocalImage.cpp"
+	"Vulkan/Image/VLocalImage.cpp"
 	"Vulkan/Image/VLocalImage.h"
 	"Vulkan/Image/VSampler.cpp"
 	"Vulkan/Image/VSampler.h"
@@ -78,31 +109,6 @@ set( SOURCES
 	"Vulkan/Buffer/VBuffer.h"
 	"Vulkan/Buffer/VLocalBuffer.cpp"
 	"Vulkan/Buffer/VLocalBuffer.h"
-	"Public/LowLevel/BindingIndex.h"
-	"Public/LowLevel/BufferDesc.h"
-	"Public/LowLevel/BufferView.h"
-	"Public/LowLevel/EResourceState.h"
-	"Public/LowLevel/IDs.h"
-	"Public/LowLevel/ImageDesc.h"
-	"Public/LowLevel/ImageLayer.h"
-	"Public/LowLevel/ImageSwizzle.h"
-	"Public/LowLevel/ImageView.h"
-	"Public/LowLevel/MemoryDesc.h"
-	"Public/LowLevel/MipmapLevel.h"
-	"Public/LowLevel/MultiSamples.h"
-	"Public/LowLevel/Pipeline.h"
-	"Public/LowLevel/PipelineResources.h"
-	"Public/LowLevel/RenderState.h"
-	"Public/LowLevel/RenderStateEnums.h"
-	"Public/LowLevel/ResourceEnums.h"
-	"Public/LowLevel/SamplerDesc.h"
-	"Public/LowLevel/SamplerEnums.h"
-	"Public/LowLevel/ShaderEnums.h"
-	"Public/LowLevel/Types.h"
-	"Public/LowLevel/VertexDesc.h"
-	"Public/LowLevel/VertexEnums.h"
-	"Public/LowLevel/VertexInputState.h"
-	"Public/LowLevel/VulkanTypes.h"
 	"../cmake/compilers.cmake"
 	"../cmake/compiler_tests.cmake"
 	"../cmake/download_assimp.cmake"
@@ -136,17 +142,17 @@ set( SOURCES
 	"VFG.h" )
 add_library( "FrameGraph" STATIC ${SOURCES} )
 source_group( "Vulkan\\Memory" FILES "Vulkan/Memory/VMemoryManager.cpp" "Vulkan/Memory/VMemoryManager.h" "Vulkan/Memory/VMemoryManager_VMAllocator.h" "Vulkan/Memory/VMemoryObj.cpp" "Vulkan/Memory/VMemoryObj.h" )
-source_group( "Public" FILES "Public/Config.h" "Public/FGEnums.h" "Public/FrameGraph.h" "Public/FrameGraphDrawTask.h" "Public/FrameGraphTask.h" "Public/FrameGraphThread.h" "Public/IPipelineCompiler.h" )
+source_group( "Public" FILES "Public/BindingIndex.h" "Public/BufferDesc.h" "Public/BufferView.h" "Public/Config.h" "Public/EResourceState.h" "Public/FGEnums.h" "Public/FrameGraph.h" "Public/FrameGraphDrawTask.h" "Public/FrameGraphTask.h" "Public/FrameGraphThread.h" "Public/IDs.h" "Public/ImageDesc.h" "Public/ImageLayer.h" "Public/ImageSwizzle.h" "Public/ImageView.h" "Public/IPipelineCompiler.h" "Public/MemoryDesc.h" "Public/MipmapLevel.h" "Public/MultiSamples.h" "Public/Pipeline.h" "Public/PipelineResources.h" "Public/RenderState.h" "Public/RenderStateEnums.h" "Public/ResourceEnums.h" "Public/SamplerDesc.h" "Public/SamplerEnums.h" "Public/ShaderEnums.h" "Public/SubmissionGraph.h" "Public/Types.h" "Public/VertexDesc.h" "Public/VertexEnums.h" "Public/VertexInputState.h" "Public/VulkanTypes.h" )
 source_group( "Vulkan" FILES "Vulkan/VCommon.h" )
-source_group( "Vulkan\\Thread" FILES "Vulkan/Thread/VBarrierManager.h" "Vulkan/Thread/VDrawTask.h" "Vulkan/Thread/VFrameGraphThread.cpp" "Vulkan/Thread/VFrameGraphThread.h" "Vulkan/Thread/VFrameGraphThread_Tasks.cpp" "Vulkan/Thread/VResourceManagerThread.cpp" "Vulkan/Thread/VResourceManagerThread.h" "Vulkan/Thread/VStagingBufferManager.cpp" "Vulkan/Thread/VStagingBufferManager.h" "Vulkan/Thread/VTaskGraph.h" "Vulkan/Thread/VTaskGraph.hpp" "Vulkan/Thread/VTaskProcessor.cpp" "Vulkan/Thread/VTaskProcessor.h" "Vulkan/Thread/VTransferThread.h" )
-source_group( "Vulkan\\Systems" FILES "Vulkan/Systems/VDevice.cpp" "Vulkan/Systems/VDevice.h" "Vulkan/Systems/VFrameGraph.cpp" "Vulkan/Systems/VFrameGraph.h" "Vulkan/Systems/VResourceManager.cpp" "Vulkan/Systems/VResourceManager.h" )
-source_group( "Vulkan\\Image" FILES "Vulkan/Image/VImage.cpp" "Vulkan/Image/VImage.h" "Vulkan/Image/VlocalImage.cpp" "Vulkan/Image/VLocalImage.h" "Vulkan/Image/VSampler.cpp" "Vulkan/Image/VSampler.h" )
+source_group( "Vulkan\\Thread" FILES "Vulkan/Thread/VBarrierManager.h" "Vulkan/Thread/VDrawTask.h" "Vulkan/Thread/VFrameGraphThread.cpp" "Vulkan/Thread/VFrameGraphThread.h" "Vulkan/Thread/VFrameGraphThread_Tasks.cpp" "Vulkan/Thread/VResourceManagerThread.cpp" "Vulkan/Thread/VResourceManagerThread.h" "Vulkan/Thread/VStagingBufferManager.cpp" "Vulkan/Thread/VStagingBufferManager.h" "Vulkan/Thread/VTaskGraph.h" "Vulkan/Thread/VTaskGraph.hpp" "Vulkan/Thread/VTaskProcessor.cpp" "Vulkan/Thread/VTaskProcessor.h" )
+source_group( "Vulkan\\Systems" FILES "Vulkan/Systems/VDevice.cpp" "Vulkan/Systems/VDevice.h" "Vulkan/Systems/VFrameGraph.cpp" "Vulkan/Systems/VFrameGraph.h" "Vulkan/Systems/VResourceManager.cpp" "Vulkan/Systems/VResourceManager.h" "Vulkan/Systems/VSubmissionGraph.cpp" "Vulkan/Systems/VSubmissionGraph.h" )
+source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VDebugger.cpp" "Vulkan/Debugger/VDebugger.h" "Vulkan/Debugger/VFrameGraphDebugger.cpp" "Vulkan/Debugger/VFrameGraphDebugger.h" )
+source_group( "Vulkan\\Image" FILES "Vulkan/Image/VImage.cpp" "Vulkan/Image/VImage.h" "Vulkan/Image/VLocalImage.cpp" "Vulkan/Image/VLocalImage.h" "Vulkan/Image/VSampler.cpp" "Vulkan/Image/VSampler.h" )
 source_group( "Vulkan\\Swapchain" FILES "Vulkan/Swapchain/VSwapchain.h" "Vulkan/Swapchain/VSwapchainKHR.cpp" "Vulkan/Swapchain/VSwapchainKHR.h" )
 source_group( "Shared" FILES "Shared/CreateFrameGraph.cpp" "Shared/EnumToString.h" "Shared/EnumUtils.h" "Shared/ImageDataRange.h" "Shared/ImageView.cpp" "Shared/ImageViewDesc.cpp" "Shared/ImageViewDesc.h" "Shared/LocalResourceID.h" "Shared/Pipeline.cpp" "Shared/PipelineResourcesInitializer.h" "Shared/RenderState.cpp" "Shared/ResourceBase.h" "Shared/ResourceDataRange.h" "Shared/ThreadID.h" "Shared/VertexInputState.cpp" )
 source_group( "Vulkan\\RenderPass" FILES "Vulkan/RenderPass/VFramebuffer.cpp" "Vulkan/RenderPass/VFramebuffer.h" "Vulkan/RenderPass/VLogicalRenderPass.cpp" "Vulkan/RenderPass/VLogicalRenderPass.h" "Vulkan/RenderPass/VRenderPass.cpp" "Vulkan/RenderPass/VRenderPass.h" )
 source_group( "Vulkan\\Utils" FILES "Vulkan/Utils/VEnumCast.h" "Vulkan/Utils/VEnums.h" "Vulkan/Utils/VEnumToString.h" )
 source_group( "Vulkan\\Buffer" FILES "Vulkan/Buffer/VBuffer.cpp" "Vulkan/Buffer/VBuffer.h" "Vulkan/Buffer/VLocalBuffer.cpp" "Vulkan/Buffer/VLocalBuffer.h" )
-source_group( "Public\\LowLevel" FILES "Public/LowLevel/BindingIndex.h" "Public/LowLevel/BufferDesc.h" "Public/LowLevel/BufferView.h" "Public/LowLevel/EResourceState.h" "Public/LowLevel/IDs.h" "Public/LowLevel/ImageDesc.h" "Public/LowLevel/ImageLayer.h" "Public/LowLevel/ImageSwizzle.h" "Public/LowLevel/ImageView.h" "Public/LowLevel/MemoryDesc.h" "Public/LowLevel/MipmapLevel.h" "Public/LowLevel/MultiSamples.h" "Public/LowLevel/Pipeline.h" "Public/LowLevel/PipelineResources.h" "Public/LowLevel/RenderState.h" "Public/LowLevel/RenderStateEnums.h" "Public/LowLevel/ResourceEnums.h" "Public/LowLevel/SamplerDesc.h" "Public/LowLevel/SamplerEnums.h" "Public/LowLevel/ShaderEnums.h" "Public/LowLevel/Types.h" "Public/LowLevel/VertexDesc.h" "Public/LowLevel/VertexEnums.h" "Public/LowLevel/VertexInputState.h" "Public/LowLevel/VulkanTypes.h" )
 source_group( "cmake" FILES "../cmake/compilers.cmake" "../cmake/compiler_tests.cmake" "../cmake/download_assimp.cmake" "../cmake/download_glfw.cmake" "../cmake/download_glslang.cmake" "../cmake/download_lodepng.cmake" "../cmake/download_mem.cmake" "../cmake/download_sdl2.cmake" "../cmake/download_sfml.cmake" "../cmake/download_vk.cmake" "../cmake/download_vma.cmake" "../cmake/graphviz.cmake" "../cmake/lodepng_CMakeLists.txt" )
 source_group( "Vulkan\\Pipeline" FILES "Vulkan/Pipeline/VComputePipeline.cpp" "Vulkan/Pipeline/VComputePipeline.h" "Vulkan/Pipeline/VDescriptorSetLayout.cpp" "Vulkan/Pipeline/VDescriptorSetLayout.h" "Vulkan/Pipeline/VGraphicsPipeline.cpp" "Vulkan/Pipeline/VGraphicsPipeline.h" "Vulkan/Pipeline/VMeshPipeline.cpp" "Vulkan/Pipeline/VMeshPipeline.h" "Vulkan/Pipeline/VPipelineCache.cpp" "Vulkan/Pipeline/VPipelineCache.h" "Vulkan/Pipeline/VPipelineLayout.cpp" "Vulkan/Pipeline/VPipelineLayout.h" "Vulkan/Pipeline/VPipelineResources.cpp" "Vulkan/Pipeline/VPipelineResources.h" "Vulkan/Pipeline/VRayTracingPipeline.cpp" "Vulkan/Pipeline/VRayTracingPipeline.h" )
 source_group( "" FILES "CMakeLists.txt" "VFG.h" )
@@ -161,6 +167,7 @@ target_include_directories( "FrameGraph" PRIVATE "Vulkan/Systems" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Thread" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Image" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Memory" )
+target_include_directories( "FrameGraph" PRIVATE "Vulkan/Debugger" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Buffer" )
 if (${FG_ENABLE_STDALLOC})
@@ -213,6 +220,7 @@ if (${FG_ENABLE_TESTS})
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Utils" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Systems" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Thread" )
+	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Debugger" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Swapchain" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Pipeline" )
@@ -238,10 +246,19 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_ENABLE_SDL2})
 	set( SOURCES 
-		"../tests/framegraph/DrawTests/DrawTest_CopyBuffer.cpp"
-		"../tests/framegraph/DrawTests/DrawTest_CopyImage2D.cpp"
-		"../tests/framegraph/DrawTests/DrawTest_FirstTriangle.cpp"
-		"../tests/framegraph/DrawTests/DrawTest_GLSLCompute.cpp"
+		"../tests/framegraph/Graphs/Test_Compute1.dot"
+		"../tests/framegraph/Graphs/Test_Compute1.dot.png"
+		"../tests/framegraph/Graphs/Test_CopyBuffer.dot"
+		"../tests/framegraph/Graphs/Test_CopyBuffer.dot.png"
+		"../tests/framegraph/Graphs/Test_CopyImage2D.dot"
+		"../tests/framegraph/Graphs/Test_CopyImage2D.dot.png"
+		"../tests/framegraph/Dumps/Test_Compute1.txt"
+		"../tests/framegraph/Dumps/Test_CopyBuffer.txt"
+		"../tests/framegraph/Dumps/Test_CopyImage2D.txt"
+		"../tests/framegraph/DrawingTests/Test_Compute1.cpp"
+		"../tests/framegraph/DrawingTests/Test_CopyBuffer.cpp"
+		"../tests/framegraph/DrawingTests/Test_CopyImage2D.cpp"
+		"../tests/framegraph/DrawingTests/Test_Draw1.cpp"
 		"../tests/framegraph/FGApp.cpp"
 		"../tests/framegraph/FGApp.h"
 		"../tests/framegraph/main.cpp" )
@@ -250,7 +267,9 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	else()
 		add_executable( "IntTests.FrameGraph" ${SOURCES} )
 	endif()
-	source_group( "DrawTests" FILES "../tests/framegraph/DrawTests/DrawTest_CopyBuffer.cpp" "../tests/framegraph/DrawTests/DrawTest_CopyImage2D.cpp" "../tests/framegraph/DrawTests/DrawTest_FirstTriangle.cpp" "../tests/framegraph/DrawTests/DrawTest_GLSLCompute.cpp" )
+	source_group( "Graphs" FILES "../tests/framegraph/Graphs/Test_Compute1.dot" "../tests/framegraph/Graphs/Test_Compute1.dot.png" "../tests/framegraph/Graphs/Test_CopyBuffer.dot" "../tests/framegraph/Graphs/Test_CopyBuffer.dot.png" "../tests/framegraph/Graphs/Test_CopyImage2D.dot" "../tests/framegraph/Graphs/Test_CopyImage2D.dot.png" )
+	source_group( "Dumps" FILES "../tests/framegraph/Dumps/Test_Compute1.txt" "../tests/framegraph/Dumps/Test_CopyBuffer.txt" "../tests/framegraph/Dumps/Test_CopyImage2D.txt" )
+	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2D.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
 	set_property( TARGET "IntTests.FrameGraph" PROPERTY FOLDER "Tests" )
 	target_include_directories( "IntTests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
@@ -262,6 +281,8 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	endif()
 	target_link_libraries( "IntTests.FrameGraph" "PipelineCompiler" )
 	target_link_libraries( "IntTests.FrameGraph" "Framework" )
+	target_compile_definitions( "IntTests.FrameGraph" PUBLIC "FG_TEST_GRAPHS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Graphs\"" )
+	target_compile_definitions( "IntTests.FrameGraph" PUBLIC "FG_TEST_DUMPS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Dumps\"" )
 	# compiler
 	target_compile_definitions( "IntTests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
 	set_target_properties( "IntTests.FrameGraph" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )

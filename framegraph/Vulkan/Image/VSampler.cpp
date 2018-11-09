@@ -24,6 +24,7 @@ namespace FG
 */
 	void VSampler::Initialize (const VDevice &dev, const SamplerDesc &desc)
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( GetState() == EState::Initial );
 
 		_createInfo = {};
@@ -186,13 +187,16 @@ namespace FG
 	Create
 =================================================
 */
-	bool VSampler::Create (const VDevice &dev)
+	bool VSampler::Create (const VDevice &dev, StringView dbgName)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _sampler == VK_NULL_HANDLE );
 
 		VK_CHECK( dev.vkCreateSampler( dev.GetVkDevice(), &_createInfo, null, OUT &_sampler ));
 		
+		_debugName = dbgName;
+
 		_OnCreate();
 		return true;
 	}
@@ -204,6 +208,8 @@ namespace FG
 */
 	void VSampler::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
 	{
+		SCOPELOCK( _rcCheck );
+
 		if ( _sampler ) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT, uint64_t(_sampler) );
 		}
@@ -211,6 +217,7 @@ namespace FG
 		_sampler	= VK_NULL_HANDLE;
 		_hash		= Default;
 		_createInfo	= Default;
+		_debugName.clear();
 		
 		_OnDestroy();
 	}
@@ -222,6 +229,9 @@ namespace FG
 */
 	bool VSampler::operator == (const VSampler &rhs) const
 	{
+		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( rhs._rcCheck );
+
 		if ( _hash != rhs._hash )
 			return false;
 		
@@ -249,24 +259,6 @@ namespace FG
 				Equals( lci.maxLod,			rci.maxLod )			and
 				lci.borderColor			==	rci.borderColor			and
 				lci.unnormalizedCoordinates	==	rci.unnormalizedCoordinates;
-	}
-	
-/*
-=================================================
-	Replace
-=================================================
-*/
-	void VSampler::Replace (INOUT VSampler &&other)
-	{
-		_sampler	= other._sampler;
-		_hash		= other._hash;
-		_createInfo	= other._createInfo;
-
-		other._sampler		= VK_NULL_HANDLE;
-		other._hash			= Default;
-		other._createInfo	= Default;
-
-		ResourceBase::_Replace( std::move(other) );
 	}
 
 

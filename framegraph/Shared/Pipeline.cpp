@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "Public/LowLevel/Pipeline.h"
+#include "Public/Pipeline.h"
 #include "Shared/EnumUtils.h"
 
 namespace FG

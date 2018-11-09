@@ -50,6 +50,8 @@ namespace FG
 		Instances_t				_instances;
 		
 		ShaderModules_t			_shaders;
+		
+		DebugName_t				_debugName;
 
 
 	// methods
@@ -57,10 +59,10 @@ namespace FG
 		VRayTracingPipeline () {}
 		~VRayTracingPipeline ();
 		
-		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId);
+		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
-		ND_ RawPipelineLayoutID		GetLayoutID ()	const	{ return _layoutId.Get(); }
+		ND_ RawPipelineLayoutID		GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
 	};
 
 	

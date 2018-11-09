@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/SamplerDesc.h"
+#include "framegraph/Public/SamplerDesc.h"
 #include "framegraph/Shared/ResourceBase.h"
 #include "VCommon.h"
 
@@ -20,6 +20,8 @@ namespace FG
 		VkSampler				_sampler	= VK_NULL_HANDLE;
 		HashVal					_hash;
 		VkSamplerCreateInfo		_createInfo	= {};
+		
+		DebugName_t				_debugName;
 
 
 	// methods
@@ -28,15 +30,14 @@ namespace FG
 		~VSampler ();
 
 		void Initialize (const VDevice &dev, const SamplerDesc &desc);
-		bool Create (const VDevice &dev);
+		bool Create (const VDevice &dev, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
-		void Replace (INOUT VSampler &&other);
 
 		ND_ bool	operator == (const VSampler &rhs) const;
 
-		ND_ VkSampler					Handle ()		const	{ return _sampler; }
-		ND_ HashVal						GetHash ()		const	{ return _hash; }
-		//ND_ VkSamplerCreateInfo const&	CreateInfo ()	const	{ return _createInfo; }
+		ND_ VkSampler					Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _sampler; }
+		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
+		//ND_ VkSamplerCreateInfo const&	CreateInfo ()	const	{ SHAREDLOCK( _rcCheck );  return _createInfo; }
 
 
 	private:

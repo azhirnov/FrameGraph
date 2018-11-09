@@ -4,6 +4,7 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
+#include "VFrameGraphDebugger.h"
 
 namespace FG
 {
@@ -25,6 +26,7 @@ namespace FG
 */
 	bool VLocalBuffer::Create (const VBuffer *bufferData)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _bufferData == null );
 		CHECK_ERR( bufferData and bufferData->IsCreated() );
@@ -42,6 +44,8 @@ namespace FG
 */
 	void VLocalBuffer::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
 	{
+		SCOPELOCK( _rcCheck );
+
 		_bufferData	= null;
 
 		_pendingBarriers.clear();
@@ -210,11 +214,13 @@ namespace FG
 */
 	void VLocalBuffer::AddPendingState (const BufferState &bs) const
 	{
+		ASSERT( bs.range.begin < Size() and bs.range.end <= Size() );
+		ASSERT( bs.task );
+		SCOPELOCK( _rcCheck );
+
 		//if ( _isImmutable )
 		//	return;
 
-		ASSERT( bs.range.begin < Size() and bs.range.end <= Size() );
-		ASSERT( bs.task );
 
 		BufferBarrier		barrier;
 		barrier.range		= bs.range;
@@ -266,6 +272,8 @@ namespace FG
 */
 	void VLocalBuffer::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
+		SCOPELOCK( _rcCheck );
+
 		for (const auto& pending : _pendingBarriers)
 		{
 			const auto	w_iter		= _FindFirstBarrier( _writeBarriers, pending.range );
@@ -288,8 +296,8 @@ namespace FG
 
 					barrierMngr.AddBufferBarrier( src.stages, dst.stages, 0, barrier );
 
-					//if ( debugger )
-					//	debugger->AddBufferBarrier( this, src.index, dst.index, src.stages, dst.stages, 0, barrier );
+					if ( debugger )
+						debugger->AddBufferBarrier( _bufferData, src.index, dst.index, src.stages, dst.stages, 0, barrier );
 				}
 			};
 

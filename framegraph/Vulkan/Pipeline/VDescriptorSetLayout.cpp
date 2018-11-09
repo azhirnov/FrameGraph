@@ -26,7 +26,7 @@ namespace FG
 	SamplerEquals
 =================================================
 */
-	ND_ inline bool SamplerEquals (const PipelineDescription::Sampler &lhs, const PipelineDescription::Sampler &rhs) noexcept
+	ND_ inline bool SamplerEquals (const PipelineDescription::Sampler &, const PipelineDescription::Sampler &) noexcept
 	{
 		return true;
 	}
@@ -185,6 +185,7 @@ namespace FG
 */
 	void VDescriptorSetLayout::Initialize (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding)
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( uniforms );
 		ASSERT( not _uniforms );
 		ASSERT( _layout == VK_NULL_HANDLE );
@@ -230,6 +231,7 @@ namespace FG
 */
 	bool VDescriptorSetLayout::Create (const VDevice &dev, const DescriptorBinding_t &binding)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _layout == VK_NULL_HANDLE );
 
@@ -251,6 +253,8 @@ namespace FG
 */
 	void VDescriptorSetLayout::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
 	{
+		SCOPELOCK( _rcCheck );
+
 		if ( _layout ) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT, uint64_t(_layout) );
 		}
@@ -261,28 +265,6 @@ namespace FG
 		_hash		= Default;
 		
 		_OnDestroy();
-	}
-	
-/*
-=================================================
-	Replace
-=================================================
-*/
-	void VDescriptorSetLayout::Replace (INOUT VDescriptorSetLayout &&other)
-	{
-		_hash		= other._hash;
-		_layout		= other._layout;
-		_uniforms	= std::move(other._uniforms);
-		_poolSize	= std::move(other._poolSize);
-		_maxIndex	= other._maxIndex;
-		
-		other._layout	= VK_NULL_HANDLE;
-		other._hash		= Default;
-		other._maxIndex	= 0;
-		other._uniforms	= null;
-		other._poolSize.clear();
-
-		ResourceBase::_Replace( std::move(other) );
 	}
 
 /*
@@ -377,7 +359,7 @@ namespace FG
 	_AddSampler
 =================================================
 */
-	void VDescriptorSetLayout::_AddSampler (const PipelineDescription::Sampler &samp, uint bindingIndex,
+	void VDescriptorSetLayout::_AddSampler (const PipelineDescription::Sampler &, uint bindingIndex,
 											EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
 	{
 		// calculate hash
@@ -487,6 +469,9 @@ namespace FG
 */
 	bool VDescriptorSetLayout::operator == (const VDescriptorSetLayout &rhs) const
 	{
+		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( rhs._rcCheck );
+
 		if ( _hash != rhs._hash					or
 			 not (_uniforms and rhs._uniforms)	or
 			_uniforms->size() != rhs._uniforms->size() )

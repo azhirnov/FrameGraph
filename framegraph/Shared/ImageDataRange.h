@@ -3,8 +3,8 @@
 #pragma once
 
 #include "framegraph/Shared/ResourceDataRange.h"
-#include "framegraph/Public/LowLevel/ImageLayer.h"
-#include "framegraph/Public/LowLevel/MipmapLevel.h"
+#include "framegraph/Public/ImageLayer.h"
+#include "framegraph/Public/MipmapLevel.h"
 
 namespace FG
 {

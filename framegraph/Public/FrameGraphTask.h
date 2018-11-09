@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/PipelineResources.h"
-#include "framegraph/Public/LowLevel/BufferView.h"
-#include "framegraph/Public/LowLevel/ImageView.h"
-#include "framegraph/Public/LowLevel/SamplerEnums.h"
+#include "framegraph/Public/PipelineResources.h"
+#include "framegraph/Public/BufferView.h"
+#include "framegraph/Public/ImageView.h"
+#include "framegraph/Public/SamplerEnums.h"
 #include "framegraph/Public/FrameGraphDrawTask.h"
 
 namespace FG
@@ -38,7 +38,7 @@ namespace FG
 			BaseType& SetDebugColor (RGBA8u color)				{ debugColor = color;  return static_cast<BaseType &>( *this ); }
 
 			template <typename Arg0, typename ...Args>
-            BaseType& DependsOn (Arg0 task0,  Args ...tasks)	{ depends.push_back( task0 );  return DependsOn<Args...>( tasks... ); }
+            BaseType& DependsOn (Arg0 task0, Args ...tasks)		{ depends.push_back( task0 );  return DependsOn<Args...>( tasks... ); }
 			
 			template <typename Arg0>
             BaseType& DependsOn (Arg0 task)						{ depends.push_back( task );  return static_cast<BaseType &>( *this ); }

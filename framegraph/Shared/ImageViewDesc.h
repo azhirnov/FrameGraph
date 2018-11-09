@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/ImageDesc.h"
+#include "framegraph/Public/ImageDesc.h"
 
 namespace FG
 {

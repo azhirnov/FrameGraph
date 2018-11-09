@@ -20,12 +20,14 @@ namespace FG
 	Create
 =================================================
 */
-	bool VMemoryObj::Create (const MemoryDesc &desc, VMemoryManager &alloc)
+	bool VMemoryObj::Create (const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 
 		_desc		= desc;
 		_manager	= alloc.weak_from_this();
+		_debugName	= dbgName;
 		
 		_OnCreate();
 		return true;
@@ -38,6 +40,7 @@ namespace FG
 */
 	bool VMemoryObj::AllocateForBuffer (VkBuffer buf)
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( IsCreated() );
 
 		auto	mem_mngr = _manager.lock();
@@ -53,6 +56,7 @@ namespace FG
 */
 	bool VMemoryObj::AllocateForImage (VkImage img)
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( IsCreated() );
 
 		auto	mem_mngr = _manager.lock();
@@ -68,6 +72,8 @@ namespace FG
 */
 	void VMemoryObj::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
 	{
+		SCOPELOCK( _rcCheck );
+
 		auto	mem_mngr = _manager.lock();
 		ASSERT( mem_mngr );
 
@@ -76,6 +82,7 @@ namespace FG
 		}
 
 		_manager.reset();
+		_debugName.clear();
 
 		_OnDestroy();
 	}
@@ -87,6 +94,8 @@ namespace FG
 */
 	bool VMemoryObj::GetInfo (OUT MemoryInfo &info) const
 	{
+		SHAREDLOCK( _rcCheck );
+
 		auto	mem_mngr = _manager.lock();
 		CHECK_ERR( mem_mngr );
 

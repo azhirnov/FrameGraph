@@ -21,8 +21,9 @@ namespace FG
 	Create
 =================================================
 */
-	bool VRayTracingPipeline::Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId)
+	bool VRayTracingPipeline::Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		
 		for (auto& sh : desc._shaders)
@@ -36,6 +37,7 @@ namespace FG
 		}
 		
 		_layoutId	= PipelineLayoutID{ layoutId };
+		_debugName	= dbgName;
 
 		_OnCreate();
 		return true;
@@ -48,6 +50,8 @@ namespace FG
 */
 	void VRayTracingPipeline::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
+		SCOPELOCK( _rcCheck );
+
 		for (auto& ppln : _instances) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, uint64_t(ppln.second) );
 		}
@@ -58,6 +62,7 @@ namespace FG
 
 		_shaders.clear();
 		_instances.clear();
+		_debugName.clear();
 		
 		_layoutId	= Default;
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/ResourceEnums.h"
+#include "framegraph/Public/ResourceEnums.h"
 
 namespace FG
 {

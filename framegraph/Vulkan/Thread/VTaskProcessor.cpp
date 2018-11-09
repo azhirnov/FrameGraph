@@ -4,6 +4,7 @@
 #include "VFrameGraphThread.h"
 #include "VDrawTask.h"
 //#include "VFramebuffer.h"
+#include "VFrameGraphDebugger.h"
 #include "Shared/EnumUtils.h"
 
 namespace FG
@@ -122,7 +123,7 @@ namespace FG
 =================================================
 	operator (Buffer)
 =================================================
-*
+*/
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Buffer &buf)
 	{
 		LocalBufferID		buffer_id	= _tp._frameGraph.GetResourceManager()->Remap( buf.bufferId );
@@ -142,46 +143,47 @@ namespace FG
 			}
 		)
 
-		_tp._AddBuffer( *buffer, buf.state, VkDeviceSize(buf.offset), VkDeviceSize(buf.size) );
+		_tp._AddBuffer( buffer, buf.state, VkDeviceSize(buf.offset), VkDeviceSize(buf.size) );
 	}
 		
 /*
 =================================================
 	operator (Image)
 =================================================
-*
+*/
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Image &img)
 	{
 		LocalImageID		image_id	= _tp._frameGraph.GetResourceManager()->Remap( img.imageId );
 		VLocalImage const*	image		= _tp._frameGraph.GetResourceManager()->GetState( image_id );
 
-		_tp._AddImage( *image, img.state, EResourceState_ToImageLayout( img.state ), img.desc );
+		_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state ), *img.desc );
 	}
 		
 /*
 =================================================
 	operator (Texture)
 =================================================
-*
+*/
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Texture &tex)
 	{
 		LocalImageID		image_id	= _tp._frameGraph.GetResourceManager()->Remap( tex.imageId );
 		VLocalImage const*	image		= _tp._frameGraph.GetResourceManager()->GetState( image_id );
 
 		// ignore 'tex.sampler'
-		_tp._AddImage( image, tex.state, EResourceState_ToImageLayout( tex.state ), tex.desc );
+		_tp._AddImage( image, tex.state, EResourceState_ToImageLayout( tex.state ), *tex.desc );
 	}
 	
 /*
 =================================================
 	operator (Subpass)
 =================================================
-*
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Subpass &sp)
+*/
+	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::SubpassInput &spi)
 	{
-		VImagePtr	image = Cast<VImage>( sp.image->GetReal( _currTask, sp.state ));
-
-		_tp._AddImage( image, sp.state, sp.layout, sp.desc );
+		LocalImageID		image_id	= _tp._frameGraph.GetResourceManager()->Remap( spi.imageId );
+		VLocalImage const*	image		= _tp._frameGraph.GetResourceManager()->GetState( image_id );
+		
+		_tp._AddImage( image, spi.state, EResourceState_ToImageLayout( spi.state ), *spi.desc );
 	}
 //-----------------------------------------------------------------------------
 
@@ -630,8 +632,8 @@ namespace FG
 	{
 		_CmdDebugMarker( task->Name() );
 		
-		//if ( _frameGraph.GetDebugger() )
-		//	_frameGraph.GetDebugger()->RunTask( queue, task );
+		if ( _frameGraph.GetDebugger() )
+			_frameGraph.GetDebugger()->RunTask( task );
 	}
 	
 /*
@@ -640,9 +642,9 @@ namespace FG
 =================================================
 */
 	template <typename ID>
-	forceinline auto const&  VTaskProcessor::_GetState (ID id) const
+	forceinline auto const*  VTaskProcessor::_GetState (ID id) const
 	{
-		return *_frameGraph.GetResourceManager()->GetState( id );
+		return _frameGraph.GetResourceManager()->GetState( id );
 	}
 
 /*
@@ -821,7 +823,7 @@ namespace FG
 	_BindPipelineResources
 =================================================
 */
-	void VTaskProcessor::_BindPipelineResources (RawCPipelineID pipelineId, const VPipelineResourceSet &resources, ArrayView<uint> dynamicOffsets) const
+	void VTaskProcessor::_BindPipelineResources (RawCPipelineID pipelineId, const VPipelineResourceSet &resources, ArrayView<uint> dynamicOffsets)
 	{
 		FixedArray< VkDescriptorSet, VPipelineResourceSet::capacity() >		descriptor_sets;
 		descriptor_sets.resize( resources.size() );
@@ -832,14 +834,14 @@ namespace FG
 		// update descriptor sets and add pipeline barriers
 		for (const auto& res : resources)
 		{
-			/*VPipelineResources const*	ppln_res = _frameGraph.GetResourceManager()->GetResource( res.second );
+			VPipelineResources const*	ppln_res = _frameGraph.GetResourceManager()->GetResource( res.second );
 
-			PipelineResourceBarriers	visitor{ *this, ppln_res->GetData(), _currTask };
+			PipelineResourceBarriers	visitor{ *this, _currTask };
 
-			for (auto& un : res.second->GetUniforms())
+			for (auto& un : ppln_res->GetData())
 			{
-				std::visit( visitor, un );
-			}*/
+				std::visit( visitor, un.res );
+			}
 
 			uint						idx;
 			RawDescriptorSetLayoutID	ds_layout;
@@ -936,8 +938,8 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalBuffer const &	src_buffer	= _GetState( task.SrcBuffer() );
-		VLocalBuffer const &	dst_buffer	= _GetState( task.DstBuffer() );
+		VLocalBuffer const *	src_buffer	= _GetState( task.SrcBuffer() );
+		VLocalBuffer const *	dst_buffer	= _GetState( task.DstBuffer() );
 		BufferCopyRegions_t		regions;	regions.resize( task.Regions().size() );
 
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
@@ -945,26 +947,26 @@ namespace FG
 			const auto&	src = task.Regions()[i];
 			auto&		dst = regions[i];
 
-			//if ( task.SrcBuffer()->IsMutable() or task.DstBuffer()->IsMutable() )
-			{
-				_AddBuffer( src_buffer, EResourceState::TransferSrc, dst.srcOffset, dst.size );
-				_AddBuffer( dst_buffer, EResourceState::TransferDst, dst.dstOffset, dst.size );
-			}
-
 			dst.srcOffset	= VkDeviceSize( src.srcOffset );
 			dst.dstOffset	= VkDeviceSize( src.dstOffset );
 			dst.size		= VkDeviceSize( src.size );
 
 			// TODO: check buffer intersection
-			ASSERT( src.size + src.srcOffset <= src_buffer.Size() );
-			ASSERT( src.size + src.dstOffset <= dst_buffer.Size() );
+			ASSERT( src.size + src.srcOffset <= src_buffer->Size() );
+			ASSERT( src.size + src.dstOffset <= dst_buffer->Size() );
+
+			//if ( task.SrcBuffer()->IsMutable() or task.DstBuffer()->IsMutable() )
+			{
+				_AddBuffer( src_buffer, EResourceState::TransferSrc, dst.srcOffset, dst.size );
+				_AddBuffer( dst_buffer, EResourceState::TransferDst, dst.dstOffset, dst.size );
+			}
 		}
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdCopyBuffer( _cmdBuffer,
-							  src_buffer.Handle(),
-							  dst_buffer.Handle(),
+							  src_buffer->Handle(),
+							  dst_buffer->Handle(),
 							  uint(regions.size()),
 							  regions.data() );
 	}
@@ -978,8 +980,8 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalImage const &		src_image	= _GetState( task.SrcImage() );
-		VLocalImage const &		dst_image	= _GetState( task.DstImage() );
+		VLocalImage const *		src_image	= _GetState( task.SrcImage() );
+		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
 		ImageCopyRegions_t		regions;	regions.resize( task.Regions().size() );
 
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
@@ -988,13 +990,13 @@ namespace FG
 			auto&			dst					= regions[i];
 			const uint3		image_size			= Max( src.size, 1u );
 
-			dst.srcSubresource.aspectMask		= VEnumCast( src.srcSubresource.aspectMask, src_image.PixelFormat() );
+			dst.srcSubresource.aspectMask		= VEnumCast( src.srcSubresource.aspectMask, src_image->PixelFormat() );
 			dst.srcSubresource.mipLevel			= src.srcSubresource.mipLevel.Get();
 			dst.srcSubresource.baseArrayLayer	= src.srcSubresource.baseLayer.Get();
 			dst.srcSubresource.layerCount		= src.srcSubresource.layerCount;
 			dst.srcOffset						= VkOffset3D{ src.srcOffset.x, src.srcOffset.y, src.srcOffset.z };
 
-			dst.dstSubresource.aspectMask		= VEnumCast( src.dstSubresource.aspectMask, dst_image.PixelFormat() );
+			dst.dstSubresource.aspectMask		= VEnumCast( src.dstSubresource.aspectMask, dst_image->PixelFormat() );
 			dst.dstSubresource.mipLevel			= src.dstSubresource.mipLevel.Get();
 			dst.dstSubresource.baseArrayLayer	= src.dstSubresource.baseLayer.Get();
 			dst.dstSubresource.layerCount		= src.dstSubresource.layerCount;
@@ -1002,10 +1004,10 @@ namespace FG
 
 			dst.extent							= VkExtent3D{ image_size.x, image_size.y, image_size.z };
 
-			ASSERT( src.srcSubresource.mipLevel < src_image.Description().maxLevel );
-			ASSERT( src.dstSubresource.mipLevel < dst_image.Description().maxLevel );
-			ASSERT( src.srcSubresource.baseLayer.Get() + src.srcSubresource.layerCount <= src_image.ArrayLayers() );
-			ASSERT( src.srcSubresource.baseLayer.Get() + src.dstSubresource.layerCount <= dst_image.ArrayLayers() );
+			ASSERT( src.srcSubresource.mipLevel < src_image->Description().maxLevel );
+			ASSERT( src.dstSubresource.mipLevel < dst_image->Description().maxLevel );
+			ASSERT( src.srcSubresource.baseLayer.Get() + src.srcSubresource.layerCount <= src_image->ArrayLayers() );
+			ASSERT( src.srcSubresource.baseLayer.Get() + src.dstSubresource.layerCount <= dst_image->ArrayLayers() );
 			//ASSERT(All( src.srcOffset + src.size <= Max(1u, src_image.Dimension().xyz() >> src.srcSubresource.mipLevel.Get()) ));
 			//ASSERT(All( src.dstOffset + src.size <= Max(1u, dst_image.Dimension().xyz() >> src.dstSubresource.mipLevel.Get()) ));
 
@@ -1016,9 +1018,9 @@ namespace FG
 		_CommitBarriers();
 		
 		_dev.vkCmdCopyImage( _cmdBuffer,
-							 src_image.Handle(),
+							 src_image->Handle(),
 							 task.SrcLayout(),
-							 dst_image.Handle(),
+							 dst_image->Handle(),
 							 task.DstLayout(),
 							 uint(regions.size()),
 							 regions.data() );
@@ -1033,8 +1035,8 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalBuffer const &		src_buffer	= _GetState( task.SrcBuffer() );
-		VLocalImage const &			dst_image	= _GetState( task.DstImage() );
+		VLocalBuffer const *		src_buffer	= _GetState( task.SrcBuffer() );
+		VLocalImage const *			dst_image	= _GetState( task.DstImage() );
 		BufferImageCopyRegions_t	regions;	regions.resize( task.Regions().size() );
 		
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
@@ -1048,7 +1050,7 @@ namespace FG
 			dst.bufferRowLength					= src.bufferRowLength;
 			dst.bufferImageHeight				= src.bufferImageHeight;
 
-			dst.imageSubresource.aspectMask		= VEnumCast( src.imageLayers.aspectMask, dst_image.PixelFormat() );
+			dst.imageSubresource.aspectMask		= VEnumCast( src.imageLayers.aspectMask, dst_image->PixelFormat() );
 			dst.imageSubresource.mipLevel		= src.imageLayers.mipLevel.Get();
 			dst.imageSubresource.baseArrayLayer	= src.imageLayers.baseLayer.Get();
 			dst.imageSubresource.layerCount		= src.imageLayers.layerCount;
@@ -1062,8 +1064,8 @@ namespace FG
 		_CommitBarriers();
 		
 		_dev.vkCmdCopyBufferToImage( _cmdBuffer,
-									 src_buffer.Handle(),
-									 dst_image.Handle(),
+									 src_buffer->Handle(),
+									 dst_image->Handle(),
 									 task.DstLayout(),
 									 uint(regions.size()),
 									 regions.data() );
@@ -1078,8 +1080,8 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalImage const &			src_image	= _GetState( task.SrcImage() );
-		VLocalBuffer const &		dst_buffer	= _GetState( task.DstBuffer() );
+		VLocalImage const *			src_image	= _GetState( task.SrcImage() );
+		VLocalBuffer const *		dst_buffer	= _GetState( task.DstBuffer() );
 		BufferImageCopyRegions_t	regions;	regions.resize( task.Regions().size() );
 		
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
@@ -1092,7 +1094,7 @@ namespace FG
 			dst.bufferRowLength					= src.bufferRowLength;
 			dst.bufferImageHeight				= src.bufferImageHeight;
 
-			dst.imageSubresource.aspectMask		= VEnumCast( src.imageLayers.aspectMask, src_image.PixelFormat() );
+			dst.imageSubresource.aspectMask		= VEnumCast( src.imageLayers.aspectMask, src_image->PixelFormat() );
 			dst.imageSubresource.mipLevel		= src.imageLayers.mipLevel.Get();
 			dst.imageSubresource.baseArrayLayer	= src.imageLayers.baseLayer.Get();
 			dst.imageSubresource.layerCount		= src.imageLayers.layerCount;
@@ -1106,9 +1108,9 @@ namespace FG
 		_CommitBarriers();
 		
 		_dev.vkCmdCopyImageToBuffer( _cmdBuffer,
-									 src_image.Handle(),
+									 src_image->Handle(),
 									 task.SrcLayout(),
-									 dst_buffer.Handle(),
+									 dst_buffer->Handle(),
 									 uint(regions.size()),
 									 regions.data() );
 	}
@@ -1122,8 +1124,8 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalImage const &		src_image	= _GetState( task.SrcImage() );
-		VLocalImage const &		dst_image	= _GetState( task.DstImage() );
+		VLocalImage const *		src_image	= _GetState( task.SrcImage() );
+		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
 		BlitRegions_t			regions;	regions.resize( task.Regions().size() );
 		
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
@@ -1131,14 +1133,14 @@ namespace FG
 			const auto&		src	= task.Regions()[i];
 			auto&			dst	= regions[i];
 				
-			dst.srcSubresource.aspectMask		= VEnumCast( src.srcSubresource.aspectMask, src_image.PixelFormat() );
+			dst.srcSubresource.aspectMask		= VEnumCast( src.srcSubresource.aspectMask, src_image->PixelFormat() );
 			dst.srcSubresource.mipLevel			= src.srcSubresource.mipLevel.Get();
 			dst.srcSubresource.baseArrayLayer	= src.srcSubresource.baseLayer.Get();
 			dst.srcSubresource.layerCount		= src.srcSubresource.layerCount;
 			dst.srcOffsets[0]					= VkOffset3D{ src.srcOffset0.x, src.srcOffset0.y, src.srcOffset0.z };
 			dst.srcOffsets[1]					= VkOffset3D{ src.srcOffset1.x, src.srcOffset1.y, src.srcOffset1.z };
 			
-			dst.dstSubresource.aspectMask		= VEnumCast( src.dstSubresource.aspectMask, dst_image.PixelFormat() );
+			dst.dstSubresource.aspectMask		= VEnumCast( src.dstSubresource.aspectMask, dst_image->PixelFormat() );
 			dst.dstSubresource.mipLevel			= src.dstSubresource.mipLevel.Get();
 			dst.dstSubresource.baseArrayLayer	= src.dstSubresource.baseLayer.Get();
 			dst.dstSubresource.layerCount		= src.dstSubresource.layerCount;
@@ -1152,9 +1154,9 @@ namespace FG
 		_CommitBarriers();
 		
 		_dev.vkCmdBlitImage( _cmdBuffer,
-							 src_image.Handle(),
+							 src_image->Handle(),
 							 task.SrcLayout(),
-							 dst_image.Handle(),
+							 dst_image->Handle(),
 							 task.DstLayout(),
 							 uint(regions.size()),
 							 regions.data(),
@@ -1170,8 +1172,8 @@ namespace FG
 	{
 		_OnRunTask( &task );
 		
-		VLocalImage	const &		src_image	= _GetState( task.SrcImage() );
-		VLocalImage const &		dst_image	= _GetState( task.DstImage() );
+		VLocalImage	const *		src_image	= _GetState( task.SrcImage() );
+		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
 		ResolveRegions_t		regions;	regions.resize( task.Regions().size() );
 		
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
@@ -1180,13 +1182,13 @@ namespace FG
 			auto&				dst				= regions[i];
 			const uint3			image_size		= Max( src.extent, 1u );
 
-			dst.srcSubresource.aspectMask		= VEnumCast( src.srcSubresource.aspectMask, src_image.PixelFormat() );
+			dst.srcSubresource.aspectMask		= VEnumCast( src.srcSubresource.aspectMask, src_image->PixelFormat() );
 			dst.srcSubresource.mipLevel			= src.srcSubresource.mipLevel.Get();
 			dst.srcSubresource.baseArrayLayer	= src.srcSubresource.baseLayer.Get();
 			dst.srcSubresource.layerCount		= src.srcSubresource.layerCount;
 			dst.srcOffset						= VkOffset3D{ src.srcOffset.x, src.srcOffset.y, src.srcOffset.z };
 			
-			dst.dstSubresource.aspectMask		= VEnumCast( src.dstSubresource.aspectMask, dst_image.PixelFormat() );
+			dst.dstSubresource.aspectMask		= VEnumCast( src.dstSubresource.aspectMask, dst_image->PixelFormat() );
 			dst.dstSubresource.mipLevel			= src.dstSubresource.mipLevel.Get();
 			dst.dstSubresource.baseArrayLayer	= src.dstSubresource.baseLayer.Get();
 			dst.dstSubresource.layerCount		= src.dstSubresource.layerCount;
@@ -1201,9 +1203,9 @@ namespace FG
 		_CommitBarriers();
 		
 		_dev.vkCmdResolveImage(	_cmdBuffer,
-								src_image.Handle(),
+								src_image->Handle(),
 								task.SrcLayout(),
-								dst_image.Handle(),
+								dst_image->Handle(),
 								task.DstLayout(),
 								uint(regions.size()),
 								regions.data() );
@@ -1218,14 +1220,14 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalBuffer const &	dst_buffer = _GetState( task.DstBuffer() );
+		VLocalBuffer const *	dst_buffer = _GetState( task.DstBuffer() );
 
 		_AddBuffer( dst_buffer, EResourceState::TransferDst, task.DstOffset(), task.Size() );
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdFillBuffer( _cmdBuffer,
-							  dst_buffer.Handle(),
+							  dst_buffer->Handle(),
 							  task.DstOffset(),
 							  task.Size(),
 							  task.Pattern() );
@@ -1240,7 +1242,7 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalImage const &		dst_image	= _GetState( task.DstImage() );
+		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
 		ImageClearRanges_t		ranges;		ranges.resize( task.Ranges().size() );
 		
 		for (size_t i = 0, count = ranges.size(); i < count; ++i)
@@ -1260,7 +1262,7 @@ namespace FG
 		_CommitBarriers();
 		
 		_dev.vkCmdClearColorImage( _cmdBuffer,
-								   dst_image.Handle(),
+								   dst_image->Handle(),
 								   task.DstLayout(),
 								   &task.ClearValue(),
 								   uint(ranges.size()),
@@ -1276,7 +1278,7 @@ namespace FG
 	{
 		_OnRunTask( &task );
 		
-		VLocalImage const &		dst_image	= _GetState( task.DstImage() );
+		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
 		ImageClearRanges_t		ranges;		ranges.resize( task.Ranges().size() );
 		
 		for (size_t i = 0, count = ranges.size(); i < count; ++i)
@@ -1284,7 +1286,7 @@ namespace FG
 			const auto&		src	= task.Ranges()[i];
 			auto&			dst	= ranges[i];
 			
-			dst.aspectMask		= VEnumCast( src.aspectMask, dst_image.PixelFormat() );
+			dst.aspectMask		= VEnumCast( src.aspectMask, dst_image->PixelFormat() );
 			dst.baseMipLevel	= src.baseMipLevel.Get();
 			dst.levelCount		= src.levelCount;
 			dst.baseArrayLayer	= src.baseLayer.Get();
@@ -1296,7 +1298,7 @@ namespace FG
 		_CommitBarriers();
 		
 		_dev.vkCmdClearDepthStencilImage( _cmdBuffer,
-										  dst_image.Handle(),
+										  dst_image->Handle(),
 										  task.DstLayout(),
 										  &task.ClearValue(),
 										  uint(ranges.size()),
@@ -1312,14 +1314,14 @@ namespace FG
 	{
 		_OnRunTask( &task );
 		
-		VLocalBuffer const &	dst_buffer = _GetState( task.DstBuffer() );
+		VLocalBuffer const *	dst_buffer = _GetState( task.DstBuffer() );
 
 		_AddBuffer( dst_buffer, EResourceState::TransferDst, task.DstBufferOffset(), task.DataSize() );
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdUpdateBuffer( _cmdBuffer,
-								dst_buffer.Handle(),
+								dst_buffer->Handle(),
 								task.DstBufferOffset(),
 								task.DataSize(),
 								task.DataPtr() );
@@ -1379,14 +1381,16 @@ namespace FG
 	_AddImageState
 =================================================
 */
-	inline void VTaskProcessor::_AddImageState (const VLocalImage &img, const ImageState &state)
+	inline void VTaskProcessor::_AddImageState (const VLocalImage *img, const ImageState &state)
 	{
-		_pendingImageBarriers.insert( &img );
+		ASSERT( not state.range.IsEmpty() );
 
-		img.AddPendingState( state );
+		_pendingImageBarriers.insert( img );
 
-		//if ( _frameGraph.GetDebugger() )
-		//	_frameGraph.GetDebugger()->AddImageUsage( img.operator-> (), state );
+		img->AddPendingState( state );
+
+		if ( _frameGraph.GetDebugger() )
+			_frameGraph.GetDebugger()->AddImageUsage( img->ToGlobal(), state );
 	}
 	
 /*
@@ -1394,7 +1398,7 @@ namespace FG
 	_AddImage
 =================================================
 */
-	inline void VTaskProcessor::_AddImage (const VLocalImage &img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc)
+	inline void VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc)
 	{
 		ASSERT( desc.layerCount > 0 and desc.levelCount > 0 );
 
@@ -1413,7 +1417,7 @@ namespace FG
 	_AddImage
 =================================================
 */
-	inline void VTaskProcessor::_AddImage (const VLocalImage &img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subres)
+	inline void VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subres)
 	{
 		_AddImageState( img,
 						ImageState{
@@ -1429,7 +1433,7 @@ namespace FG
 	_AddImage
 =================================================
 */
-	inline void VTaskProcessor::_AddImage (const VLocalImage &img, EResourceState state, VkImageLayout layout, const VkImageSubresourceRange &subres)
+	inline void VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceRange &subres)
 	{
 		_AddImageState( img,
 						ImageState{
@@ -1445,14 +1449,14 @@ namespace FG
 	_AddBufferState
 =================================================
 */
-	inline void VTaskProcessor::_AddBufferState (const VLocalBuffer &buf, const BufferState &state)
+	inline void VTaskProcessor::_AddBufferState (const VLocalBuffer *buf, const BufferState &state)
 	{
-		_pendingBufferBarriers.insert( &buf );
+		_pendingBufferBarriers.insert( buf );
 
-		buf.AddPendingState( state );
+		buf->AddPendingState( state );
 		
-		//if ( _frameGraph.GetDebugger() )
-		//	_frameGraph.GetDebugger()->AddBufferUsage( buf.operator-> (), state );
+		if ( _frameGraph.GetDebugger() )
+			_frameGraph.GetDebugger()->AddBufferUsage( buf->ToGlobal(), state );
 	}
 
 /*
@@ -1460,12 +1464,14 @@ namespace FG
 	_AddBuffer
 =================================================
 */
-	inline void VTaskProcessor::_AddBuffer (const VLocalBuffer &buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size)
+	inline void VTaskProcessor::_AddBuffer (const VLocalBuffer *buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size)
 	{
+		ASSERT( size > 0 );
+
 		//if ( buf->IsImmutable() )
 		//	return;
 
-		const VkDeviceSize	buf_size = VkDeviceSize(buf.Size());
+		const VkDeviceSize	buf_size = VkDeviceSize(buf->Size());
 		
 		size = Min( buf_size, (size == VK_WHOLE_SIZE ? buf_size - offset : offset + size) );
 
@@ -1477,28 +1483,35 @@ namespace FG
 	_AddBuffer
 =================================================
 */
-	inline void VTaskProcessor::_AddBuffer (const VLocalBuffer &buf, EResourceState state,
-											const VkBufferImageCopy &reg, const VLocalImage &img)
+	inline void VTaskProcessor::_AddBuffer (const VLocalBuffer *buf, EResourceState state,
+											const VkBufferImageCopy &reg, const VLocalImage *img)
 	{
 		//if ( buf->IsImmutable() )
 		//	return;
 
-		const uint			bpp			= EPixelFormat_BitPerPixel( img.PixelFormat(), VEnumRevert(reg.imageSubresource.aspectMask) );
+		const uint			bpp			= EPixelFormat_BitPerPixel( img->PixelFormat(), VEnumRevert(reg.imageSubresource.aspectMask) );
 		const VkDeviceSize	row_size	= (reg.imageExtent.width * bpp) / 8;
 		const VkDeviceSize	row_pitch	= (reg.bufferRowLength * bpp) / 8;
 		const VkDeviceSize	slice_pitch	= reg.bufferImageHeight * row_pitch;
 		const uint			dim_z		= Max( reg.imageSubresource.layerCount, reg.imageExtent.depth );
 		BufferState			buf_state	{ state, 0, row_size, _currTask };
 
+#if 1
+		// one big barrier
+		buf_state.range = BufferRange{ 0, slice_pitch * dim_z } + reg.bufferOffset;
+		
+		_AddBufferState( buf, buf_state );
+#else
 		for (uint z = 0; z < dim_z; ++z)
 		{
 			for (uint y = 0; y < reg.imageExtent.height; ++y)
 			{
-				buf_state.range = BufferRange(0, row_size) + (reg.bufferOffset + z * slice_pitch + y * row_pitch);
+				buf_state.range = BufferRange{0, row_size} + (reg.bufferOffset + z * slice_pitch + y * row_pitch);
 				
 				_AddBufferState( buf, buf_state );
 			}
 		}
+#endif
 	}
 	
 /*
@@ -1510,12 +1523,12 @@ namespace FG
 	{
 		for (auto& buf : _pendingBufferBarriers)
 		{
-			buf->CommitBarrier( _barrierMngr/*, _frameGraph.GetDebugger()*/ );
+			buf->CommitBarrier( _barrierMngr, _frameGraph.GetDebugger() );
 		}
 
 		for (auto& img : _pendingImageBarriers)
 		{
-			img->CommitBarrier( _barrierMngr/*, _frameGraph.GetDebugger()*/ );
+			img->CommitBarrier( _barrierMngr, _frameGraph.GetDebugger() );
 		}
 
 		_pendingBufferBarriers.clear();

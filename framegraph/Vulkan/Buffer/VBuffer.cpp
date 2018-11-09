@@ -24,8 +24,9 @@ namespace FG
 	Create
 =================================================
 */
-	bool VBuffer::Create (const VDevice &dev, const BufferDesc &desc, RawMemoryID memId, INOUT VMemoryObj &memObj)
+	bool VBuffer::Create (const VDevice &dev, const BufferDesc &desc, RawMemoryID memId, INOUT VMemoryObj &memObj, StringView dbgName)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
@@ -52,6 +53,8 @@ namespace FG
 			dev.SetObjectName( BitCast<uint64_t>(_buffer), _debugName, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT );
 		}
 
+		_debugName = dbgName;
+
 		_OnCreate();
 		return true;
 	}
@@ -63,6 +66,8 @@ namespace FG
 */
 	void VBuffer::Destroy (AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
+		SCOPELOCK( _rcCheck );
+
 		if ( _buffer ) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, uint64_t(_buffer) );
 		}
@@ -74,6 +79,8 @@ namespace FG
 		_buffer		= VK_NULL_HANDLE;
 		_memoryId	= Default;
 		_desc		= Default;
+
+		_debugName.clear();
 
 		_OnDestroy();
 	}

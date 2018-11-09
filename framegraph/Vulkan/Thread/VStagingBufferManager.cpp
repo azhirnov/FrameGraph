@@ -3,6 +3,7 @@
 #include "VStagingBufferManager.h"
 #include "VFrameGraphThread.h"
 #include "VMemoryManager.h"
+#include "VFrameGraphDebugger.h"
 #include "stl/Algorithms/StringUtils.h"
 
 namespace FG
@@ -184,6 +185,51 @@ namespace FG
 		}
 
 		_memoryRanges.Destroy();
+
+		/*if ( _frameGraph.GetDebugger() )
+		{
+			for (auto& buf : frame.hostToDevice)
+			{
+				if ( buf.size == 0 )
+					continue;
+
+				auto*	data = _frameGraph.GetResourceManager()->GetResource( buf.bufferId.Get() );
+
+				_frameGraph.GetDebugger()->AddBufferBarrier(
+					data,
+					ExeOrderIndex::HostWrite, ExeOrderIndex::Initial,
+					VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+					VkBufferMemoryBarrier{
+						VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+						null,
+						VK_ACCESS_HOST_WRITE_BIT, 0,
+						VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+						data->Handle(),
+						0, VkDeviceSize(buf.size)
+					});
+			}
+
+			for (auto& buf : frame.deviceToHost)
+			{
+				if ( buf.size == 0 )
+					continue;
+
+				auto*	data = _frameGraph.GetResourceManager()->GetResource( buf.bufferId.Get() );
+
+				_frameGraph.GetDebugger()->AddBufferBarrier(
+					data,
+					ExeOrderIndex::Last, ExeOrderIndex::HostRead,
+					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0,
+					VkBufferMemoryBarrier{
+						VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+						null,
+						0, VK_ACCESS_HOST_READ_BIT,
+						VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+						data->Handle(),
+						0, VkDeviceSize(buf.size)
+					});
+			}
+		}*/
 	}
 	
 /*
@@ -255,13 +301,12 @@ namespace FG
 		// allocate new buffer
 		if ( not suitable )
 		{
-			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostWrite}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer} );
+			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostWrite}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer},
+															    "StagingWriteBuffer "s << ToString(staging_buffers.size()) << '/' << ToString(_frameId) );
 			CHECK_ERR( buf_id );
 
 			RawMemoryID		mem_id  = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
 			CHECK_ERR( mem_id );
-
-			//buf->SetDebugName( "StagingWBuffer"s << ToString(staging_buffers.size()) << '/' << ToString(_currFrame) );
 
 			staging_buffers.push_back({ std::move(buf_id), mem_id, _stagingBufferSize });
 
@@ -323,13 +368,12 @@ namespace FG
 		// allocate new buffer
 		if ( not suitable )
 		{
-			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostRead}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer} );
+			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostRead}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer},
+															    "StagingReadBuffer "s << ToString(staging_buffers.size()) << '/' << ToString(_frameId) );
 			CHECK_ERR( buf_id );
 			
 			RawMemoryID		mem_id  = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
 			CHECK_ERR( mem_id );
-
-			//buf->SetDebugName( "StagingRBuffer"s << ToString(staging_buffers.size()) << '/' << ToString(_currFrame) );
 
 			staging_buffers.push_back({ std::move(buf_id), mem_id, _stagingBufferSize });
 

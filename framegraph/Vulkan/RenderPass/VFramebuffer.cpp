@@ -52,6 +52,9 @@ namespace FG
 */
 	bool VFramebuffer::operator == (const VFramebuffer &rhs) const
 	{
+		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( rhs._rcCheck );
+
 		if ( _hash != rhs._hash )
 			return false;
 
@@ -68,6 +71,7 @@ namespace FG
 */
 	bool VFramebuffer::Initialize (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( not _framebuffer );
 		CHECK_ERR( not attachments.empty() );
 		//CHECK_ERR( _attachments.empty() );
@@ -91,8 +95,9 @@ namespace FG
 	Create
 =================================================
 */
-	bool VFramebuffer::Create (const VResourceManagerThread &rm)
+	bool VFramebuffer::Create (const VResourceManagerThread &rm, StringView dbgName)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( not _framebuffer );
 		CHECK_ERR( _renderPassId );
 
@@ -116,6 +121,8 @@ namespace FG
 		
 		VK_CHECK( dev.vkCreateFramebuffer( dev.GetVkDevice(), &fb_info, null, OUT &_framebuffer ));
 		
+		_debugName = dbgName;
+
 		_OnCreate();
 		return true;
 	}
@@ -127,6 +134,8 @@ namespace FG
 */
 	void VFramebuffer::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
+		SCOPELOCK( _rcCheck );
+
 		if ( _framebuffer ) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT, uint64_t(_framebuffer) );
 		}
@@ -143,30 +152,9 @@ namespace FG
 		_hash			= Default;
 		_renderPassId	= Default;
 		//_attachments.clear();
-		
-		_OnDestroy();
-	}
-	
-/*
-=================================================
-	Destroy
-=================================================
-*/
-	void VFramebuffer::Replace (INOUT VFramebuffer &&other)
-	{
-		_hash			= other._hash;
-		_framebuffer	= other._framebuffer;
-		_renderPassId	= std::move( other._renderPassId );
-		_dimension		= other._dimension;
-		_layers			= other._layers;
-		//_attachments	= std::move( other._attachments );
+		_debugName.clear();
 
-		other._framebuffer	= VK_NULL_HANDLE;
-		other._renderPassId	= Default;
-		other._hash			= Default;
-		//other._attachments.clear();
-		
-		ResourceBase::_Replace( std::move(other) );
+		_OnDestroy();
 	}
 
 

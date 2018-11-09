@@ -5,6 +5,7 @@
 #include "framework/Window/IWindow.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "framegraph/VFG.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -58,43 +59,58 @@ namespace FG
 		bool _Update ();
 		void _Destroy ();
 
-		bool _Visualize (const FrameGraphPtr &fg, EGraphVizFlags flags, StringView name = "temp/framegraph", bool autoOpen = true) const;
-		
-		bool _SavePNG (const String &filename, const ImageView &imageData) const;
+		bool Visualize (StringView name, EGraphVizFlags flags, bool autoOpen = false) const;
+		bool CompareDumps (StringView filename) const;
+		bool SavePNG (const String &filename, const ImageView &imageData) const;
 
-		ND_ Array<uint8_t>	_CreateData (BytesU size) const;
-		ND_ BufferID	_CreateBuffer (BytesU size, StringView name = Default) const;
+		ND_ Array<uint8_t>	CreateData (BytesU size) const;
+		ND_ BufferID	CreateBuffer (BytesU size, StringView name = Default) const;
 
-		ND_ ImageID		_CreateImage2D (uint2 size, EPixelFormat fmt = EPixelFormat::RGBA8_UNorm, StringView name = Default) const;
-		ND_ ImageID		_CreateLogicalImage2D (uint2 size, EPixelFormat fmt = EPixelFormat::RGBA8_UNorm, StringView name = Default) const;
+		ND_ ImageID		CreateImage2D (uint2 size, EPixelFormat fmt = EPixelFormat::RGBA8_UNorm, StringView name = Default) const;
+		ND_ ImageID		CreateLogicalImage2D (uint2 size, EPixelFormat fmt = EPixelFormat::RGBA8_UNorm, StringView name = Default) const;
 
 		template <typename Arg0, typename ...Args>
-		void _DeleteResources (Arg0 &arg0, Args& ...args);
+		void DeleteResources (Arg0 &arg0, Args& ...args);
+
+		ND_ static String  GetFuncName (StringView src);
 
 
 	// implementation tests
 	private:
-		bool _ImplTest_Scene1 ();
-		bool _ImplTest_Scene2 ();
+		bool ImplTest_Scene1 ();
+		bool ImplTest_Scene2 ();
 
 
 	// drawing tests
 	private:
-		//bool _DrawTest_Scene1 ();
-		bool _DrawTest_CopyBuffer ();
-		bool _DrawTest_CopyImage2D ();
-		bool _DrawTest_GLSLCompute ();
-		bool _DrawTest_FirstTriangle ();
+		bool Test_CopyBuffer ();
+		bool Test_CopyImage2D ();
+		bool Test_Compute1 ();
+		bool Test_Draw1 ();
 	};
 
 	
 	template <typename Arg0, typename ...Args>
-	inline void FGApp::_DeleteResources (Arg0 &arg0, Args& ...args)
+	inline void  FGApp::DeleteResources (Arg0 &arg0, Args& ...args)
 	{
 		_frameGraph->DestroyResource( INOUT arg0 );
 
 		if constexpr ( CountOf<Args...>() )
-			_DeleteResources( std::forward<Args&>( args )... );
+			DeleteResources( std::forward<Args&>( args )... );
 	}
+	
+
+	inline String  FGApp::GetFuncName (StringView src)
+	{
+		size_t	pos = src.find_last_of( "::" );
+
+		if ( pos != StringView::npos )
+			return String{ src.substr( pos+1 )};
+		else
+			return String{ src };
+	}
+
+#	define TEST_NAME	GetFuncName( FG_FUNCTION_NAME )
+
 
 }	// FG

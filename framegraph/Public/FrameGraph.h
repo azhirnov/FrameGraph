@@ -4,6 +4,7 @@
 
 #include "framegraph/Public/FrameGraphThread.h"
 #include "framegraph/Public/IPipelineCompiler.h"
+#include "framegraph/Public/SubmissionGraph.h"
 
 namespace FG
 {
@@ -38,7 +39,7 @@ namespace FG
 			virtual void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags = Default) = 0;
 
 		// frame execution
-			virtual bool		Begin () = 0;
+			virtual bool		Begin (const SubmissionGraph &) = 0;
 			virtual bool		Execute () = 0;
 			virtual bool		WaitIdle () = 0;
 

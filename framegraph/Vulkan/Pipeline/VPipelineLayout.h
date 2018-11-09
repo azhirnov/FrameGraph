@@ -18,8 +18,8 @@ namespace FG
 		struct DescriptorSet
 		{
 			DescriptorSetLayoutID	layoutId;
-			VkDescriptorSetLayout	layout;		// TODO: remove?
-			uint					index;
+			VkDescriptorSetLayout	layout		= VK_NULL_HANDLE;	// TODO: remove?
+			uint					index		= 0;
 
 			DescriptorSet () {}
 			DescriptorSet (RawDescriptorSetLayoutID id, VkDescriptorSetLayout layout, uint index) : layoutId{id}, layout{layout}, index{index} {}
@@ -36,6 +36,8 @@ namespace FG
 		HashVal					_hash;
 		VkPipelineLayout		_layout			= VK_NULL_HANDLE;
 		DescriptorSets_t		_descriptorSets;
+		
+		DebugName_t				_debugName;
 
 		
 	// methods
@@ -46,14 +48,13 @@ namespace FG
 		void Initialize (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets);
 		bool Create (const VDevice &dev);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
-		void Replace (INOUT VPipelineLayout &&other);
 		
 		bool GetDescriptorSetLayout (const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const;
 
 		ND_ bool	operator == (const VPipelineLayout &rhs) const;
 
-		ND_ VkPipelineLayout	Handle ()	const	{ return _layout; }
-		ND_ HashVal				GetHash ()	const	{ return _hash; }
+		ND_ VkPipelineLayout	Handle ()	const	{ SHAREDLOCK( _rcCheck );  return _layout; }
+		ND_ HashVal				GetHash ()	const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 
 
 	private:

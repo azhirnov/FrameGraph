@@ -6,6 +6,7 @@
 #include "VStagingBufferManager.h"
 #include "Shared/PipelineResourcesInitializer.h"
 #include "VTaskGraph.hpp"
+#include "VFrameGraphDebugger.h"
 
 namespace FG
 {
@@ -15,17 +16,22 @@ namespace FG
 	constructor
 =================================================
 */
-	VFrameGraphThread::VFrameGraphThread (VFrameGraph &fg, EThreadUsage usage) :
-		_usage{ usage },				_state{ EState::Initial },
-		_compilationFlags{ Default },	_instance{ fg },
+	VFrameGraphThread::VFrameGraphThread (VFrameGraph &fg, EThreadUsage usage, const FGThreadPtr &relative, StringView name) :
+		_threadUsage{ usage },			_state{ EState::Initial },
+		_compilationFlags{ Default },	_relativeThread{ Cast<VFrameGraphThread>(relative) },
+		_debugName{ name },				_instance{ fg },
 		_resourceMngr{ _mainAllocator, fg.GetResourceMngr() }
 	{
-		if ( EnumEq( _usage, EThreadUsage::MemAllocation ) )
+		if ( relative ) {
+			ASSERT( !!(_threadUsage & relative->GetThreadUsage() & EThreadUsage::_QueueMask) );
+		}
+
+		if ( EnumEq( _threadUsage, EThreadUsage::MemAllocation ) )
 		{
 			_memoryMngr.reset( new VMemoryManager{ fg.GetDevice() });
 		}
 
-		if ( EnumEq( _usage, EThreadUsage::Transfer ) )
+		if ( EnumEq( _threadUsage, EThreadUsage::Transfer ) )
 		{
 			_stagingMngr.reset( new VStagingBufferManager( *this ));
 		}
@@ -48,12 +54,12 @@ namespace FG
 */
 	inline void  VFrameGraphThread::_SetState (EState newState)
 	{
-		_state.store( newState, std::memory_order_release );
+		_state.store( newState, memory_order_release );
 	}
 
 	inline bool  VFrameGraphThread::_SetState (EState expected, EState newState)
 	{
-		return _state.compare_exchange_strong( INOUT expected, newState, std::memory_order_release, std::memory_order_relaxed );
+		return _state.compare_exchange_strong( INOUT expected, newState, memory_order_release, memory_order_relaxed );
 	}
 	
 	inline bool  VFrameGraphThread::_IsInitialized () const
@@ -73,11 +79,11 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	MPipelineID  VFrameGraphThread::CreatePipeline (MeshPipelineDesc &&desc)
+	MPipelineID  VFrameGraphThread::CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName)
 	{
 		ASSERT( _IsInitialized() );
 
-		return MPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), _IsInSeparateThread() )};
+		return MPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), dbgName, _IsInSeparateThread() )};
 	}
 	
 /*
@@ -85,11 +91,11 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RTPipelineID  VFrameGraphThread::CreatePipeline (RayTracingPipelineDesc &&desc)
+	RTPipelineID  VFrameGraphThread::CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName)
 	{
 		ASSERT( _IsInitialized() );
 
-		return RTPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), _IsInSeparateThread() )};
+		return RTPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), dbgName, _IsInSeparateThread() )};
 	}
 	
 /*
@@ -97,11 +103,11 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	GPipelineID  VFrameGraphThread::CreatePipeline (GraphicsPipelineDesc &&desc)
+	GPipelineID  VFrameGraphThread::CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName)
 	{
 		ASSERT( _IsInitialized() );
 
-		return GPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), _IsInSeparateThread() )};
+		return GPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), dbgName, _IsInSeparateThread() )};
 	}
 	
 /*
@@ -109,11 +115,11 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	CPipelineID  VFrameGraphThread::CreatePipeline (ComputePipelineDesc &&desc)
+	CPipelineID  VFrameGraphThread::CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName)
 	{
 		ASSERT( _IsInitialized() );
 
-		return CPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), _IsInSeparateThread() )};
+		return CPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), dbgName, _IsInSeparateThread() )};
 	}
 
 /*
@@ -157,18 +163,58 @@ namespace FG
 		ASSERT( _IsInitialized() );
 		return _GetDescriptorSet( pplnId, id, OUT layout, OUT binding );
 	}
+	
+/*
+=================================================
+	IsCompatibleWith
+=================================================
+*/
+	bool  VFrameGraphThread::IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const
+	{
+		CHECK_ERR( thread );
+		ASSERT( !!(usage & EThreadUsage::_QueueMask) );
+
+		const auto*	other = Cast<VFrameGraphThread>( thread.operator->() );
+
+		if ( not (other->_threadUsage & _threadUsage & usage) )
+			return false;
+
+		for (auto& queue : _queues)
+		{
+			if ( EnumEq( queue.usage, usage ) )
+			{
+				bool	found = false;
+
+				// find same queue in another thread
+				for (auto& q : other->_queues)
+				{
+					if ( q.ptr == queue.ptr and EnumEq( q.usage, usage ) ) {
+						found = true;
+						break;
+					}
+				}
+
+				if ( not found )
+					return false;
+				
+				usage &= ~queue.usage;
+			}
+		}
+
+		return not usage;
+	}
 
 /*
 =================================================
 	CreateImage
 =================================================
 */
-	ImageID  VFrameGraphThread::CreateImage (const MemoryDesc &mem, const ImageDesc &desc)
+	ImageID  VFrameGraphThread::CreateImage (const MemoryDesc &mem, const ImageDesc &desc, StringView dbgName)
 	{
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _memoryMngr );
 		
-		return ImageID{ _resourceMngr.CreateImage( mem, desc, *_memoryMngr, _IsInSeparateThread() )};
+		return ImageID{ _resourceMngr.CreateImage( mem, desc, *_memoryMngr, dbgName, _IsInSeparateThread() )};
 	}
 	
 /*
@@ -186,12 +232,12 @@ namespace FG
 	CreateBuffer
 =================================================
 */
-	BufferID  VFrameGraphThread::CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc)
+	BufferID  VFrameGraphThread::CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, StringView dbgName)
 	{
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _memoryMngr );
 		
-		return BufferID{ _resourceMngr.CreateBuffer( mem, desc, *_memoryMngr, _IsInSeparateThread() )};
+		return BufferID{ _resourceMngr.CreateBuffer( mem, desc, *_memoryMngr, dbgName, _IsInSeparateThread() )};
 	}
 	
 /*
@@ -209,11 +255,11 @@ namespace FG
 	CreateSampler
 =================================================
 */
-	SamplerID  VFrameGraphThread::CreateSampler (const SamplerDesc &desc)
+	SamplerID  VFrameGraphThread::CreateSampler (const SamplerDesc &desc, StringView dbgName)
 	{
 		ASSERT( _IsInitialized() );
 
-		return SamplerID{ _resourceMngr.CreateSampler( desc, _IsInSeparateThread() )};
+		return SamplerID{ _resourceMngr.CreateSampler( desc, dbgName, _IsInSeparateThread() )};
 	}
 	
 /*
@@ -267,7 +313,6 @@ namespace FG
 	inline Desc const&  VFrameGraphThread::_GetDescription (const ID &id) const
 	{
 		ASSERT( _IsInitialized() );
-		ASSERT( _ownThread.IsCurrent() );
 
 		// read access available without synchronizations
 		return _resourceMngr.GetResource( id.Get() )->Description();
@@ -303,7 +348,7 @@ namespace FG
 		CHECK_ERR( _SetState( EState::Initial, EState::Idle ));
 
 		// swapchain must be created before initializing
-		if ( EnumEq( _usage, EThreadUsage::Present ) )
+		if ( EnumEq( _threadUsage, EThreadUsage::Present ) )
 			CHECK_ERR( _swapchain );
 		
 		CHECK_ERR( _SetupQueues() );
@@ -339,14 +384,13 @@ namespace FG
 		
 		VkCommandPoolCreateInfo		pool_info = {};
 		pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		pool_info.queueFamilyIndex	= queue.familyIndex;
-		pool_info.flags				= 0;
+		pool_info.queueFamilyIndex	= queue.ptr->familyIndex;
+		pool_info.flags				= 0; //VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		if ( EnumEq( queue.queueFlags, VK_QUEUE_PROTECTED_BIT ) )
+		if ( EnumEq( queue.ptr->familyFlags, VK_QUEUE_PROTECTED_BIT ) )
 			pool_info.flags |= VK_COMMAND_POOL_CREATE_PROTECTED_BIT;
 
 		VK_CHECK( dev.vkCreateCommandPool( dev.GetVkDevice(), &pool_info, null, OUT &queue.cmdPoolId ));
-
 		return true;
 	}
 	
@@ -357,9 +401,7 @@ namespace FG
 */
 	void VFrameGraphThread::SignalSemaphore (VkSemaphore sem)
 	{
-		auto&	queue = _queues.front();
-
-		queue.signalSemaphores.push_back( sem );
+		CHECK( _submissionGraph->SignalSemaphore( _cmdBatchId, sem ));
 	}
 
 /*
@@ -369,37 +411,51 @@ namespace FG
 */
 	void VFrameGraphThread::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
 	{
-		auto&	queue = _queues.front();
-
-		queue.waitSemaphores.push_back( sem );
-		queue.waitDstStageMasks.push_back( stage );
+		CHECK( _submissionGraph->WaitSemaphore( _cmdBatchId, sem, stage ));
 	}
 	
 /*
 =================================================
-	CreateCommandBuffer
+	_GetQueue
 =================================================
 */
-	VkCommandBuffer  VFrameGraphThread::CreateCommandBuffer ()
+	VFrameGraphThread::PerQueue*  VFrameGraphThread::_GetQueue (EThreadUsage usage)
 	{
 		ASSERT( _IsInitialized() );
+		ASSERT( !!(usage & _threadUsage) );
+		ASSERT( !!(usage & EThreadUsage::_QueueMask) );
+		
+		for (auto& queue : _queues)
+		{
+			if ( EnumEq( queue.usage, usage ) )
+				return &queue;
+		}
+		return null;
+	}
 
-		auto&			queue	= _queues.front();
-		VDevice const&	dev		= GetDevice();
-
-		CHECK_ERR( queue.cmdPoolId );
+/*
+=================================================
+	_CreateCommandBuffer
+=================================================
+*/
+	VkCommandBuffer  VFrameGraphThread::_CreateCommandBuffer (EThreadUsage usage)
+	{
+		auto*	queue = _GetQueue( usage );
+		CHECK_ERR( queue );
+		ASSERT( queue->cmdPoolId );
 
 		VkCommandBufferAllocateInfo	info = {};
 		info.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		info.pNext				= null;
-		info.commandPool		= queue.cmdPoolId;
+		info.commandPool		= queue->cmdPoolId;
 		info.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		info.commandBufferCount	= 1;
-
+				
+		VDevice const&		dev	= GetDevice();
 		VkCommandBuffer		cmd;
 		VK_CHECK( dev.vkAllocateCommandBuffers( dev.GetVkDevice(), &info, OUT &cmd ));
 
-		queue.frames[_currFrame].commands.push_back( cmd );
+		queue->frames[_frameId].commands.push_back( cmd );
 		return cmd;
 	}
 
@@ -412,25 +468,84 @@ namespace FG
 	{
 		CHECK_ERR( _queues.empty() );
 
-		if ( EnumEq( _usage, EThreadUsage::Graphics ) and EnumEq( _usage, EThreadUsage::Present ) )
-			CHECK_ERR( _AddGraphicsPresentQueue() )
-		else
-		if ( EnumEq( _usage, EThreadUsage::Graphics ) )
-			CHECK_ERR( _AddGraphicsQueue() )
-		else
-		if ( EnumEq( _usage, EThreadUsage::Transfer ) )
-			CHECK_ERR( _AddTransferQueue() );
+		const bool	graphics_present	= EnumEq( _threadUsage, EThreadUsage::Graphics ) and EnumEq( _threadUsage, EThreadUsage::Present );
+		const bool	compute_present		= EnumEq( _threadUsage, EThreadUsage::AsyncCompute ) and EnumEq( _threadUsage, EThreadUsage::Present );
 
-		if ( EnumEq( _usage, EThreadUsage::AsyncCompute ) )
-			CHECK_ERR( _AddAsyncComputeQueue() );
+		// graphics
+		if ( graphics_present )
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::Graphics | EThreadUsage::Present ))
+		else
+		if ( EnumEq( _threadUsage, EThreadUsage::Graphics ) )
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::Graphics ))
+		else
+		if ( EnumEq( _threadUsage, EThreadUsage::Transfer ) )
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::Transfer ));
 
-		if ( EnumEq( _usage, EThreadUsage::AsyncStreaming ) )
-			CHECK_ERR( _AddAsyncStreamingQueue() );
+
+		// compute only
+		if ( not graphics_present and compute_present )
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncCompute | EThreadUsage::Present ))
+		else
+		if ( EnumEq( _threadUsage, EThreadUsage::AsyncCompute ) )
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncCompute ));
+
+
+		// transfer only
+		if ( EnumEq( _threadUsage, EThreadUsage::AsyncStreaming ) )
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncStreaming ));
 
 		CHECK_ERR( not _queues.empty() );
 		return true;
 	}
 	
+/*
+=================================================
+	_AddGraphicsQueue
+=================================================
+*/
+	bool VFrameGraphThread::_AddGpuQueue (const EThreadUsage usage)
+	{
+		if ( auto thread = _relativeThread.lock() )
+		{
+			EThreadUsage	new_usage = (usage & ~EThreadUsage::Present);
+
+			if ( auto* queue = thread->_GetQueue( new_usage ) )
+			{
+				// TODO: check is swapchain can present on this queue
+
+				_queues.push_back( PerQueue{} );
+				auto&	q = _queues.back();
+
+				q.ptr	= queue->ptr;
+				q.usage	= usage;
+				return true;
+			}
+		}
+
+		switch ( usage )
+		{
+			case EThreadUsage::Graphics | EThreadUsage::Present :
+				return _AddGraphicsAndPresentQueue();
+
+			case EThreadUsage::Graphics :
+				return _AddGraphicsQueue();
+
+			case EThreadUsage::Transfer :		// TODO: remove?
+				return _AddTransferQueue();
+
+			case EThreadUsage::AsyncCompute | EThreadUsage::Present :
+				return _AddAsyncComputeAndPresentQueue();
+				
+			case EThreadUsage::AsyncCompute :
+				return _AddAsyncComputeQueue();
+
+			case EThreadUsage::AsyncStreaming :
+				return _AddAsyncStreamingQueue();
+		}
+
+		RETURN_ERR( "unsupported queue usage!" );
+	}
+
 /*
 =================================================
 	_AddGraphicsQueue
@@ -443,11 +558,10 @@ namespace FG
 			if ( EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT ) )
 			{
 				_queues.push_back( PerQueue{} );
-				auto&	dst		= _queues.back();
+				auto&	q = _queues.back();
 
-				dst.queueId		= queue.id;
-				dst.familyIndex	= queue.familyIndex;
-				dst.queueFlags	= queue.familyFlags;
+				q.ptr	= &queue;
+				q.usage	= EThreadUsage::Graphics;
 				return true;
 			}
 		}
@@ -456,10 +570,10 @@ namespace FG
 	
 /*
 =================================================
-	_AddGraphicsPresentQueue
+	_AddGraphicsAndPresentQueue
 =================================================
 */
-	bool VFrameGraphThread::_AddGraphicsPresentQueue ()
+	bool VFrameGraphThread::_AddGraphicsAndPresentQueue ()
 	{
 		CHECK_ERR( _swapchain );
 
@@ -469,13 +583,12 @@ namespace FG
 				 _swapchain->IsCompatibleWithQueue( queue.familyIndex ) )
 			{
 				_queues.push_back( PerQueue{} );
-				auto&	dst		= _queues.back();
+				auto&	q = _queues.back();
 
-				dst.queueId		= queue.id;
-				dst.familyIndex	= queue.familyIndex;
-				dst.queueFlags	= queue.familyFlags;
+				q.ptr	= &queue;
+				q.usage	= EThreadUsage::Graphics | EThreadUsage::Present;
 
-				CHECK_ERR( _swapchain->Initialize( dst.queueId ));
+				CHECK_ERR( _swapchain->Initialize( queue.id ));
 				return true;
 			}
 		}
@@ -494,11 +607,10 @@ namespace FG
 			if ( EnumEq( queue.familyFlags, VK_QUEUE_TRANSFER_BIT ) )
 			{
 				_queues.push_back( PerQueue{} );
-				auto&	dst		= _queues.back();
+				auto&	q = _queues.back();
 
-				dst.queueId		= queue.id;
-				dst.familyIndex	= queue.familyIndex;
-				dst.queueFlags	= queue.familyFlags;
+				q.ptr	= &queue;
+				q.usage	= EThreadUsage::Transfer;
 				return true;
 			}
 		}
@@ -512,8 +624,8 @@ namespace FG
 */
 	bool VFrameGraphThread::_AddAsyncComputeQueue ()
 	{
-		VDevice::QueueInfo const*	best_match = null;
-		VDevice::QueueInfo const*	compatible = null;
+		VDeviceQueueInfo const*	best_match = null;
+		VDeviceQueueInfo const*	compatible = null;
 
 		for (auto& queue : GetDevice().GetVkQueues())
 		{
@@ -536,11 +648,10 @@ namespace FG
 		if ( best_match )
 		{
 			_queues.push_back( PerQueue{} );
-			auto&	dst		= _queues.back();
+			auto&	q = _queues.back();
 
-			dst.queueId		= best_match->id;
-			dst.familyIndex	= best_match->familyIndex;
-			dst.queueFlags	= best_match->familyFlags;
+			q.ptr	= best_match;
+			q.usage	= EThreadUsage::AsyncCompute;
 			return true;
 		}
 
@@ -549,13 +660,60 @@ namespace FG
 	
 /*
 =================================================
+	_AddAsyncComputeAndPresentQueue
+=================================================
+*/
+	bool VFrameGraphThread::_AddAsyncComputeAndPresentQueue ()
+	{
+		CHECK_ERR( _swapchain );
+
+		VDeviceQueueInfo const*	best_match = null;
+		VDeviceQueueInfo const*	compatible = null;
+
+		for (auto& queue : GetDevice().GetVkQueues())
+		{
+			if ( queue.familyFlags == VK_QUEUE_COMPUTE_BIT and
+				 _swapchain->IsCompatibleWithQueue( queue.familyIndex ) )
+			{
+				best_match = &queue;
+				continue;
+			}
+			
+			if ( EnumEq( queue.familyFlags, VK_QUEUE_COMPUTE_BIT ) and 
+				 (not compatible or BitSet<32>{compatible->familyFlags}.count() > BitSet<32>{queue.familyFlags}.count()) and
+				 _swapchain->IsCompatibleWithQueue( queue.familyIndex ) )
+			{
+				compatible =  &queue;
+			}
+		}
+
+		if ( not best_match )
+			best_match = compatible;
+
+		if ( best_match )
+		{
+			_queues.push_back( PerQueue{} );
+			auto&	q = _queues.back();
+
+			q.ptr	= best_match;
+			q.usage	= EThreadUsage::AsyncCompute | EThreadUsage::Present;
+
+			CHECK_ERR( _swapchain->Initialize( best_match->id ));
+			return true;
+		}
+
+		return false;
+	}
+
+/*
+=================================================
 	_AddAsyncStreamingQueue
 =================================================
 */
 	bool VFrameGraphThread::_AddAsyncStreamingQueue ()
 	{
-		VDevice::QueueInfo const*	best_match = null;
-		VDevice::QueueInfo const*	compatible = null;
+		VDeviceQueueInfo const*	best_match = null;
+		VDeviceQueueInfo const*	compatible = null;
 
 		for (auto& queue : GetDevice().GetVkQueues())
 		{
@@ -578,11 +736,10 @@ namespace FG
 		if ( best_match )
 		{
 			_queues.push_back( PerQueue{} );
-			auto&	dst		= _queues.back();
+			auto&	q = _queues.back();
 
-			dst.queueId		= best_match->id;
-			dst.familyIndex	= best_match->familyIndex;
-			dst.queueFlags	= best_match->familyFlags;
+			q.ptr	= best_match;
+			q.usage	= EThreadUsage::AsyncStreaming;
 			return true;
 		}
 
@@ -603,13 +760,6 @@ namespace FG
 		for (auto& queue : _queues)
 		{
 			//VK_CALL( dev.vkQueueWaitIdle( queue.queueId ));
-			
-			for (auto& frame : queue.frames)
-			{
-				if ( frame.semaphore ) {
-					dev.vkDestroySemaphore( dev.GetVkDevice(), frame.semaphore, null );
-				}
-			}
 			
 			if ( queue.cmdPoolId )
 			{
@@ -648,7 +798,16 @@ namespace FG
 		ASSERT( _IsInitialOrIdleState() );
 
 		_compilationFlags = flags;
-		// TODO
+		
+		if ( EnumEq( _compilationFlags, ECompilationFlags::EnableDebugger ) )
+		{
+			if ( not _debugger )
+				_debugger.reset( new VFrameGraphDebugger( *_instance.GetDebugger() ));
+
+			_debugger->Setup( debugFlags );
+		}
+		else
+			_debugger.reset();
 	}
 	
 /*
@@ -659,7 +818,7 @@ namespace FG
 	bool VFrameGraphThread::CreateSwapchain (const SwapchainInfo_t &ci)
 	{
 		ASSERT( not _IsInitialized() );
-		CHECK_ERR( EnumEq( _usage, EThreadUsage::Present ) );
+		CHECK_ERR( EnumEq( _threadUsage, EThreadUsage::Present ) );
 
 		CHECK_ERR( Visit( ci,
 				[this] (const VulkanSwapchainInfo &sci) -> bool
@@ -689,13 +848,18 @@ namespace FG
 	SyncOnBegin
 =================================================
 */
-	bool VFrameGraphThread::SyncOnBegin ()
+	bool VFrameGraphThread::SyncOnBegin (const VSubmissionGraph *graph)
 	{
 		CHECK_ERR( _SetState( EState::Idle, EState::BeforeStart ));
+		ASSERT( graph );
 
-		_currFrame = (_currFrame + 1) % _queues.front().frames.size();
+		_frameId = (_frameId + 1) % _queues.front().frames.size();
+		_submissionGraph = graph;
 
 		_resourceMngr.OnBeginFrame();
+
+		if ( _debugger )
+			_debugger->OnBeginFrame();
 		
 		CHECK_ERR( _SetState( EState::BeforeStart, EState::Ready ));
 		return true;
@@ -706,18 +870,21 @@ namespace FG
 	Begin
 =================================================
 */
-	bool VFrameGraphThread::Begin ()
+	bool VFrameGraphThread::Begin (const CommandBatchID &id, uint index, EThreadUsage usage)
 	{
 		CHECK_ERR( _SetState( EState::Ready, EState::BeforeRecording ));
 		_ownThread.SetCurrent();
-		
+
+		ASSERT( !!(usage & _threadUsage) );
+		ASSERT( !!(usage & EThreadUsage::_QueueMask) );
+
 		VDevice const&	dev = _instance.GetDevice();
 
 		for (auto& queue : _queues)
 		{
-			auto&	frame = queue.frames[_currFrame];
+			auto&	frame = queue.frames[_frameId];
 
-			// reset commands buffers
+			// recycle commands buffers
 			if ( not frame.commands.empty() ) {
 				dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.commands.size()), frame.commands.data() );
 			}
@@ -727,10 +894,14 @@ namespace FG
 		_taskGraph.OnStart( this );
 
 		if ( _stagingMngr )
-			_stagingMngr->OnBeginFrame( _currFrame );
+			_stagingMngr->OnBeginFrame( _frameId );
 		
-		if ( _swapchain )
-			CHECK( _swapchain->Acquire( *this ));
+		//if ( _swapchain )
+		//	CHECK( _swapchain->Acquire( *this ));
+
+		_cmdBatchId		= id;
+		_indexInBatch	= index;
+		_currUsage		= (usage & _threadUsage);
 
 		CHECK_ERR( _SetState( EState::BeforeRecording, EState::Recording ));
 		return true;
@@ -745,13 +916,26 @@ namespace FG
 	{
 		CHECK_ERR( _SetState( EState::Recording, EState::Compiling ));
 		ASSERT( _ownThread.IsCurrent() );
-		
+		ASSERT( _submissionGraph );
+
 		if ( _stagingMngr )
 			_stagingMngr->OnEndFrame();
 
 		CHECK_ERR( _BuildCommandBuffers() );
 		
+		if ( _debugger )
+			_debugger->OnEndFrame( _cmdBatchId, _indexInBatch );
+
+		for (auto& queue : _queues) {
+			CHECK( _submissionGraph->Submit( queue.ptr, _cmdBatchId, _indexInBatch, queue.frames[_frameId].commands ));
+		}
+		_submissionGraph = null;
+
 		_taskGraph.OnDiscardMemory();
+		
+		_cmdBatchId		= Default;
+		_indexInBatch	= ~0u;
+		_currUsage		= Default;
 
 		CHECK_ERR( _SetState( EState::Compiling, EState::Pending ));
 		return true;
@@ -762,28 +946,18 @@ namespace FG
 	SyncOnExecute
 =================================================
 */
-	bool VFrameGraphThread::SyncOnExecute (uint batchId, uint indexInBatch)
+	bool VFrameGraphThread::SyncOnExecute ()
 	{
 		CHECK_ERR( _SetState( EState::Pending, EState::Execute ));
 		
 		_resourceMngr.OnEndFrame();
 		
-		for (auto& queue : _queues)
-		{
-			auto&	frame = queue.frames[_currFrame];
-
-			CHECK( _instance.Submit( queue.queueId, batchId, indexInBatch,
-									 frame.commands, queue.signalSemaphores,
-									 queue.waitSemaphores, queue.waitDstStageMasks, queue.fenceRequired ));
-
-			queue.signalSemaphores.clear();
-			queue.waitDstStageMasks.clear();
-			queue.waitSemaphores.clear();
-		}
+		if ( _debugger )
+			_debugger->OnSync();
 
 		_resourceMngr.OnDiscardMemory();
 		_mainAllocator.Discard();
-		
+
 		CHECK_ERR( _SetState( EState::Execute, _swapchain ? EState::WaitForPresent : EState::Idle ));
 		return true;
 	}
@@ -797,6 +971,7 @@ namespace FG
 	{
 		CHECK_ERR( _SetState( EState::WaitForPresent, EState::Presenting ));
 
+		// TODO: protect queue
 		_swapchain->Present( *this );
 		
 		CHECK_ERR( _SetState( EState::Presenting, EState::Idle ));
@@ -816,9 +991,9 @@ namespace FG
 
 		for (auto& queue : _queues)
 		{
-			auto&	frame = queue.frames[_currFrame];
+			auto&	frame = queue.frames[_frameId];
 
-			// reset commands buffers
+			// recycle commands buffers
 			if ( not frame.commands.empty() ) {
 				dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.commands.size()), frame.commands.data() );
 			}
@@ -828,7 +1003,7 @@ namespace FG
 		// to generate 'on gpu data loaded' events
 		if ( _stagingMngr )
 		{
-			_stagingMngr->OnBeginFrame( _currFrame );
+			_stagingMngr->OnBeginFrame( _frameId );
 			_stagingMngr->OnEndFrame();
 		}
 
@@ -851,7 +1026,6 @@ namespace FG
 			return true;
 		}
 
-		//ASSERT( _instance.GetThreadID().IsCurrent() );
 		return false;
 	}
 	

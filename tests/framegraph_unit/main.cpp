@@ -80,7 +80,7 @@ int main ()
 			TEST( fg_instance );
 			TEST( fg_instance->Initialize( 2 ));
 
-			ThreadDesc	desc{ EThreadUsage::Graphics | EThreadUsage::Present | EThreadUsage::Transfer, CommandBatchID{"1"} };
+			ThreadDesc	desc{ EThreadUsage::Graphics | EThreadUsage::Present | EThreadUsage::Transfer };
 
 			fg_thread = fg_instance->CreateThread( desc );
 			TEST( fg_thread );

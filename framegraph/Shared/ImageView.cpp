@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "Public/LowLevel/ImageView.h"
+#include "Public/ImageView.h"
 
 namespace FG
 {
@@ -65,7 +65,7 @@ namespace FG
 		else
 		{
 			constexpr uint	mask	= (~0u >> (32 - Bits));
-			constexpr uint	offset	= (OffsetBits & 31);
+			constexpr uint	offset	= (OffsetBits % 32);
 			constexpr uint	index	= (OffsetBits / 32);
 
 			return (data[index] >> offset) & mask;
@@ -100,7 +100,7 @@ namespace FG
 	static void ReadInt (ArrayView<ImageView::T> pixel, OUT RGBA32i &result)
 	{
 		StaticArray< uint, 4 >	bits;
-		memcpy( bits.data(), pixel.data(), Min( size_t(R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+		memcpy( bits.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
 
 		result.r = ReadIntScalar< R, 0 >( bits );
 		result.g = ReadIntScalar< G, R >( bits );
@@ -117,7 +117,7 @@ namespace FG
 	static void ReadUInt (ArrayView<ImageView::T> pixel, OUT RGBA32u &result)
 	{
 		StaticArray< uint, 4 >	bits;
-		memcpy( bits.data(), pixel.data(), Min( size_t(R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+		memcpy( bits.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
 
 		result.r = ReadUIntScalar< R, 0 >( bits );
 		result.g = ReadUIntScalar< G, R >( bits );
@@ -176,13 +176,13 @@ namespace FG
 				uint16_t	s	: 1;	// sign bit
 			};
 			StaticArray< HalfBits, 4 >	src = {};
-			memcpy( src.data(), pixel.data(), Min( size_t(R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+			memcpy( src.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
 		}
 		else
 		if constexpr ( R == 32 )
 		{
 			result = {};
-			memcpy( result.data(), pixel.data(), Min( size_t(R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+			memcpy( result.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
 		}
 		else
 		{

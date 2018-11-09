@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/IDs.h"
+#include "framegraph/Public/IDs.h"
 
 namespace FG
 {

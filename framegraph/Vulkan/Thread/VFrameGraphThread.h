@@ -16,7 +16,7 @@ namespace FG
 	// Frame Graph Thread
 	//
 
-	class VFrameGraphThread : public FrameGraphThread
+	class VFrameGraphThread final : public FrameGraphThread
 	{
 	// types
 	private:
@@ -46,31 +46,23 @@ namespace FG
 		static constexpr uint	MaxCommandsPerFrame	= 8;
 
 		using CommandBuffers_t	= FixedArray< VkCommandBuffer, MaxCommandsPerFrame >;
-		using SignalSemaphores_t= FixedArray< VkSemaphore, MaxSignalSemaphores >;
-		using WaitSemaphores_t	= FixedArray< VkSemaphore, MaxWaitSemaphores >;
-		using WaitDstStages_t	= FixedArray< VkPipelineStageFlags, MaxWaitSemaphores >;
 		using Allocator_t		= LinearAllocator<>;
 
 
 		struct PerFrame
 		{
 			CommandBuffers_t	commands;
-			VkSemaphore			semaphore	= VK_NULL_HANDLE;
+			//VkSemaphore		semaphore	= VK_NULL_HANDLE;
 		};
 		using PerFrameArray_t	= FixedArray< PerFrame, MaxFrames >;
 
 
 		struct PerQueue
 		{
-			PerFrameArray_t		frames;
-			VkCommandPool		cmdPoolId		= VK_NULL_HANDLE;
-			VkQueue				queueId			= VK_NULL_HANDLE;
-			VkQueueFlags		queueFlags		= 0;
-			uint				familyIndex		= ~0u;
-			SignalSemaphores_t	signalSemaphores;
-			WaitSemaphores_t	waitSemaphores;
-			WaitDstStages_t		waitDstStageMasks;
-			bool				fenceRequired	= true;
+			PerFrameArray_t			frames;
+			VkCommandPool			cmdPoolId	= VK_NULL_HANDLE;
+			VDeviceQueueInfo const*	ptr			= null;
+			EThreadUsage			usage		= Default;
 		};
 		using PerQueueArray_t	= FixedArray< PerQueue, MaxQueues >;
 		
@@ -81,117 +73,126 @@ namespace FG
 	// variables
 	private:
 		Allocator_t					_mainAllocator;
-		EThreadUsage				_usage;
+
+		EThreadUsage				_threadUsage		= Default;
+		EThreadUsage				_currUsage			= Default;
+
 		std::atomic<EState>			_state;
 		ECompilationFlags			_compilationFlags;
 		ThreadID					_ownThread;
 
 		PerQueueArray_t				_queues;
-		uint						_currFrame		= 0;
+		uint						_frameId			= 0;
 		
 		TaskGraph_t					_taskGraph;
-		uint						_visitorID		= 0;
-		ExeOrderIndex				_exeOrderIndex	= ExeOrderIndex::Initial;
+		uint						_visitorID			= 0;
+		ExeOrderIndex				_exeOrderIndex		= ExeOrderIndex::Initial;
+		
+		VSubmissionGraph const*		_submissionGraph	= null;
+		CommandBatchID				_cmdBatchId;
+		uint						_indexInBatch		= ~0u;
+
+		WeakPtr<VFrameGraphThread>	_relativeThread;
+		const DebugName_t			_debugName;
 
 		VFrameGraph &						_instance;
 		VResourceManagerThread				_resourceMngr;
 		SharedPtr< VMemoryManager >			_memoryMngr;		// memory manager must live until all memory objects have been destroyed
 		UniquePtr< VStagingBufferManager >	_stagingMngr;
 		UniquePtr< VSwapchain >				_swapchain;
+		UniquePtr< VFrameGraphDebugger >	_debugger;
 
 
 	// methods
 	public:
-		VFrameGraphThread (VFrameGraph &, EThreadUsage);
+		VFrameGraphThread (VFrameGraph &, EThreadUsage, const FGThreadPtr &, StringView);
 		~VFrameGraphThread () override;
 			
 		// resource manager
-		MPipelineID		CreatePipeline (MeshPipelineDesc &&desc) override final;
-		GPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc) override final;
-		CPipelineID		CreatePipeline (ComputePipelineDesc &&desc) override final;
-		RTPipelineID	CreatePipeline (RayTracingPipelineDesc &&desc) override final;
-		ImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc) override final;
-		BufferID		CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc) override final;
-		SamplerID		CreateSampler (const SamplerDesc &desc) override final;
-		bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const override final;
-		void			DestroyResource (INOUT GPipelineID &id) override final;
-		void			DestroyResource (INOUT CPipelineID &id) override final;
-		void			DestroyResource (INOUT RTPipelineID &id) override final;
-		void			DestroyResource (INOUT ImageID &id) override final;
-		void			DestroyResource (INOUT BufferID &id) override final;
-		void			DestroyResource (INOUT SamplerID &id) override final;
+		MPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName) override;
+		GPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName) override;
+		CPipelineID		CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName) override;
+		RTPipelineID	CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName) override;
+		ImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, StringView dbgName) override;
+		BufferID		CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, StringView dbgName) override;
+		SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName) override;
+		bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const override;
+		void			DestroyResource (INOUT GPipelineID &id) override;
+		void			DestroyResource (INOUT CPipelineID &id) override;
+		void			DestroyResource (INOUT RTPipelineID &id) override;
+		void			DestroyResource (INOUT ImageID &id) override;
+		void			DestroyResource (INOUT BufferID &id) override;
+		void			DestroyResource (INOUT SamplerID &id) override;
 
-		BufferDesc const&	GetDescription (const BufferID &id) const override final;
-		ImageDesc  const&	GetDescription (const ImageID &id) const override final;
-		//SamplerDesc const&	GetDescription (const SamplerID &id) const override final;
+		BufferDesc const&	GetDescription (const BufferID &id) const override;
+		ImageDesc  const&	GetDescription (const ImageID &id) const override;
+		//SamplerDesc const&	GetDescription (const SamplerID &id) const override;
 		
-		bool			GetDescriptorSet (const GPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override final;
-		bool			GetDescriptorSet (const CPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override final;
-		bool			GetDescriptorSet (const MPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override final;
-		bool			GetDescriptorSet (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override final;
+		bool			GetDescriptorSet (const GPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
+		bool			GetDescriptorSet (const CPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
+		bool			GetDescriptorSet (const MPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
+		bool			GetDescriptorSet (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
 
-		EThreadUsage	GetThreadUsage () const override final		{ return _usage; }
+		EThreadUsage	GetThreadUsage () const override		{ return _threadUsage; }
+		bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const override;
 
 		// initialization
 		bool		Initialize () override;
 		void		Deinitialize () override;
 		void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
-		bool		CreateSwapchain (const SwapchainInfo_t &) override final;
+		bool		CreateSwapchain (const SwapchainInfo_t &) override;
 
 		// frame execution
-		bool		SyncOnBegin ();
-		bool		Begin () override;
+		bool		SyncOnBegin (const VSubmissionGraph *);
+		bool		Begin (const CommandBatchID &id, uint index, EThreadUsage usage) override;
 		bool		Compile () override;
-		bool		SyncOnExecute (uint batchId, uint indexInBatch);
+		bool		SyncOnExecute ();
 		bool		Present ();
 		bool		OnWaitIdle ();
 		
 		// resource acquiring
-		bool		Acquire (const ImageID &id, bool immutable) override final;
-		bool		Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable) override final;
-		bool		Acquire (const BufferID &id, bool immutable) override final;
-		bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable) override final;
+		bool		Acquire (const ImageID &id, bool immutable) override;
+		bool		Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable) override;
+		bool		Acquire (const BufferID &id, bool immutable) override;
+		bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable) override;
 		
-		ImageID		GetSwapchainImage (ESwapchainImage type) override final;
+		ImageID		GetSwapchainImage (ESwapchainImage type) override;
 
 		// tasks
-		Task		AddTask (const SubmitRenderPass &) override final;
-		Task		AddTask (const DispatchCompute &) override final;
-		Task		AddTask (const DispatchIndirectCompute &) override final;
-		Task		AddTask (const CopyBuffer &) override final;
-		Task		AddTask (const CopyImage &) override final;
-		Task		AddTask (const CopyBufferToImage &) override final;
-		Task		AddTask (const CopyImageToBuffer &) override final;
-		Task		AddTask (const BlitImage &) override final;
-		Task		AddTask (const ResolveImage &) override final;
-		Task		AddTask (const FillBuffer &) override final;
-		Task		AddTask (const ClearColorImage &) override final;
-		Task		AddTask (const ClearDepthStencilImage &) override final;
+		Task		AddTask (const SubmitRenderPass &) override;
+		Task		AddTask (const DispatchCompute &) override;
+		Task		AddTask (const DispatchIndirectCompute &) override;
+		Task		AddTask (const CopyBuffer &) override;
+		Task		AddTask (const CopyImage &) override;
+		Task		AddTask (const CopyBufferToImage &) override;
+		Task		AddTask (const CopyImageToBuffer &) override;
+		Task		AddTask (const BlitImage &) override;
+		Task		AddTask (const ResolveImage &) override;
+		Task		AddTask (const FillBuffer &) override;
+		Task		AddTask (const ClearColorImage &) override;
+		Task		AddTask (const ClearDepthStencilImage &) override;
 		Task		AddTask (const UpdateBuffer &) override;
 		Task		AddTask (const UpdateImage &) override;
 		Task		AddTask (const ReadBuffer &) override;
 		Task		AddTask (const ReadImage &) override;
-		Task		AddTask (const FG::Present &) override final;
-		//Task		AddTask (const PresentVR &) override final;
-		//Task		AddTask (const TaskGroupSync &) override final;
+		Task		AddTask (const FG::Present &) override;
+		//Task		AddTask (const PresentVR &) override;
+		//Task		AddTask (const TaskGroupSync &) override;
 
 		// draw tasks
-		RenderPass	CreateRenderPass (const RenderPassDesc &desc) override final;
-		void		AddDrawTask (RenderPass, const DrawTask &) override final;
-		void		AddDrawTask (RenderPass, const DrawIndexedTask &) override final;
-		//void		AddDrawTask (RenderPass, const ClearAttachments &) override final;
-		//void		AddDrawTask (RenderPass, const DrawCommandBuffer &) override final;
-		//void		AddDrawTask (RenderPass, const DrawMeshTask &) override final;
+		RenderPass	CreateRenderPass (const RenderPassDesc &desc) override;
+		void		AddDrawTask (RenderPass, const DrawTask &) override;
+		void		AddDrawTask (RenderPass, const DrawIndexedTask &) override;
+		//void		AddDrawTask (RenderPass, const ClearAttachments &) override;
+		//void		AddDrawTask (RenderPass, const DrawCommandBuffer &) override;
+		//void		AddDrawTask (RenderPass, const DrawMeshTask &) override;
 		
 		void SignalSemaphore (VkSemaphore sem);
 		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
 		
 		bool AddPipelineCompiler (const IPipelineCompilerPtr &comp);
 
-		ND_ VkCommandBuffer			CreateCommandBuffer ();
-
 		ND_ bool					IsDestroyed ()				const	{ return _GetState() == EState::Destroyed; }
-		ND_ ThreadID const&			GetThreadID ()				const	{ return _ownThread; }
 		ND_ Allocator_t &			GetAllocator ()						{ return _mainAllocator; }
 		ND_ VDevice const&			GetDevice ()				const	{ return _instance.GetDevice(); }
 
@@ -199,6 +200,7 @@ namespace FG
 		ND_ VResourceManagerThread*	GetResourceManager ()				{ return &_resourceMngr; }
 		ND_ VMemoryManager*			GetMemoryManager ()					{ return _memoryMngr.operator->(); }
 		ND_ VPipelineCache *		GetPipelineCache ()					{ return _resourceMngr.GetPipelineCache(); }
+		ND_ VFrameGraphDebugger *	GetDebugger ()						{ ASSERT( _debugger );  return _debugger.get(); }
 
 
 	private:
@@ -210,10 +212,8 @@ namespace FG
 
 		template <typename ID>
 		void _DestroyResource (INOUT ID &id);
-		
-		void _WaitSemaphore (VkQueue queue, VkSemaphore sem, VkPipelineStageFlags stage);
 
-		ND_ EState	_GetState () const				{ return _state.load( std::memory_order_acquire ); }
+		ND_ EState	_GetState () const				{ return _state.load( memory_order_acquire ); }
 			void	_SetState (EState newState);
 		ND_ bool	_SetState (EState expected, EState newState);
 
@@ -221,12 +221,17 @@ namespace FG
 		ND_ bool	_IsRecording ()			const	{ return _GetState() == EState::Recording; }
 		ND_ bool	_IsInitialized ()		const;
 		ND_ bool	_IsInitialOrIdleState ()const;
+		
+		ND_ VkCommandBuffer  _CreateCommandBuffer (EThreadUsage usage);
+		ND_ PerQueue *       _GetQueue (EThreadUsage usage);
 
 		bool _SetupQueues ();
+		bool _AddGpuQueue (EThreadUsage usage);
 		bool _AddGraphicsQueue ();
-		bool _AddGraphicsPresentQueue ();
+		bool _AddGraphicsAndPresentQueue ();
 		bool _AddTransferQueue ();
 		bool _AddAsyncComputeQueue ();
+		bool _AddAsyncComputeAndPresentQueue ();
 		bool _AddAsyncStreamingQueue ();
 
 		bool _CreateCommandBuffers (INOUT PerQueue &) const;

@@ -33,6 +33,8 @@ namespace FG
 */
 	bool VLogicalRenderPass::Create (VResourceManagerThread &rm, const RenderPassDesc &rp)
 	{
+		SCOPELOCK( _rcCheck );
+
 		_area				= rp.area;
 		_parallelExecution	= rp.parallelExecution;
 		_canBeMerged		= rp.canBeMerged;
@@ -135,6 +137,8 @@ namespace FG
 */
 	VLogicalRenderPass::~VLogicalRenderPass ()
 	{
+		SCOPELOCK( _rcCheck );
+
 		for (auto& task : _drawTasks)
 		{
 			task->~IDrawTask();

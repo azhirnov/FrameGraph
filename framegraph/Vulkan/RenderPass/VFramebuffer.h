@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/ImageDesc.h"
+#include "framegraph/Public/ImageDesc.h"
 #include "framegraph/Shared/ResourceBase.h"
 #include "VRenderPass.h"
 
@@ -31,6 +31,8 @@ namespace FG
 		uint2				_dimension;
 		ImageLayer			_layers;
 		//Attachments_t		_attachments;
+		
+		DebugName_t			_debugName;
 
 		
 	// methods
@@ -39,19 +41,18 @@ namespace FG
 		~VFramebuffer ();
 		
 		bool Initialize (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers);
-		bool Create (const VResourceManagerThread &);
+		bool Create (const VResourceManagerThread &, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
-		void Replace (INOUT VFramebuffer &&other);
 
 		//ND_ bool HasImage (const VImagePtr &img) const;
 
 		ND_ bool operator == (const VFramebuffer &rhs) const;
 
-		ND_ VkFramebuffer		Handle ()			const	{ return _framebuffer; }
-		ND_ RawRenderPassID		GetRenderPassID ()	const	{ return _renderPassId.Get(); }
-		ND_ uint2 const&		Dimension ()		const	{ return _dimension; }
-		ND_ uint				Layers ()			const	{ return _layers.Get(); }
-		ND_ HashVal				GetHash ()			const	{ return _hash; }
+		ND_ VkFramebuffer		Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _framebuffer; }
+		ND_ RawRenderPassID		GetRenderPassID ()	const	{ SHAREDLOCK( _rcCheck );  return _renderPassId.Get(); }
+		ND_ uint2 const&		Dimension ()		const	{ SHAREDLOCK( _rcCheck );  return _dimension; }
+		ND_ uint				Layers ()			const	{ SHAREDLOCK( _rcCheck );  return _layers.Get(); }
+		ND_ HashVal				GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 	};
 
 

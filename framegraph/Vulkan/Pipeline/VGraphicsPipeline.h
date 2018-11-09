@@ -84,11 +84,13 @@ namespace FG
 		Instances_t				_instances;
 
 		ShaderModules_t			_shaders;
-		TopologyBits_t			_supportedTopology;		// TODO: use
-		FragmentOutputPtr		_fragmentOutput;
+		TopologyBits_t			_supportedTopology;
+		FragmentOutputPtr		_fragmentOutput			= null;
 		VertexAttribs_t			_vertexAttribs;
 		uint					_patchControlPoints		= 0;
 		bool					_earlyFragmentTests		= true;
+		
+		DebugName_t				_debugName;
 
 
 	// methods
@@ -96,11 +98,11 @@ namespace FG
 		VGraphicsPipeline () {}
 		~VGraphicsPipeline ();
 
-		bool Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput);
+		bool Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
-		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ return _layoutId.Get(); }
-		ND_ ArrayView<VertexAttrib>	GetVertexAttribs ()	const	{ return _vertexAttribs; }
+		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
+		ND_ ArrayView<VertexAttrib>	GetVertexAttribs ()	const	{ SHAREDLOCK( _rcCheck );  return _vertexAttribs; }
 	};
 
 	

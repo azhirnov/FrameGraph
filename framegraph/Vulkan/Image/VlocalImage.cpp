@@ -4,6 +4,7 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
+#include "VFrameGraphDebugger.h"
 
 namespace FG
 {
@@ -26,6 +27,7 @@ namespace FG
 */
 	bool VLocalImage::Create (const VImage *imageData)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _imageData == null );
 		CHECK_ERR( imageData and imageData->IsCreated() );
@@ -58,6 +60,8 @@ namespace FG
 */
 	void VLocalImage::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
 	{
+		SCOPELOCK( _rcCheck );
+
 		_imageData->Merge( _viewMap, OUT readyToDelete );
 
 		_imageData	= null;
@@ -71,11 +75,14 @@ namespace FG
 	GetView
 =================================================
 */
-	VkImageView  VLocalImage::GetView (const VDevice &dev, const ImageViewDesc &viewDesc) const
+	VkImageView  VLocalImage::GetView (const VDevice &dev, INOUT ImageViewDesc &viewDesc) const
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( IsCreated() );
 
-		const HashedImageViewDesc	view_desc{ viewDesc, Description() };
+		viewDesc.Validate( Description() );
+
+		const HashedImageViewDesc	view_desc{ viewDesc };
 		
 		if ( auto view = _imageData->GetView( view_desc ) )
 			return view;
@@ -97,9 +104,12 @@ namespace FG
 	GetView
 =================================================
 */
-	VkImageView  VLocalImage::GetView (const VDevice &dev, const Optional<ImageViewDesc> &viewDesc) const
+	VkImageView  VLocalImage::GetView (const VDevice &dev, INOUT Optional<ImageViewDesc> &viewDesc) const
 	{
-		return GetView( dev, viewDesc.value_or( ImageViewDesc{Description()} ));
+		if ( not viewDesc.has_value() )
+			viewDesc = ImageViewDesc{ Description() };
+
+		return GetView( dev, INOUT *viewDesc );
 	}
 
 /*
@@ -119,24 +129,25 @@ namespace FG
 			VK_COMPONENT_SWIZZLE_ONE
 		};
 
-		const uint4				swizzle		= Min( uint4(uint(CountOf(components)-1)), viewDesc.Get().swizzle.ToVec() );
+		const auto&				desc		= viewDesc.Get();
+		const uint4				swizzle		= Min( uint4(uint(CountOf(components)-1)), desc.swizzle.ToVec() );
 		VkImageViewCreateInfo	view_info	= {};
 
 		view_info.sType			= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		view_info.pNext			= null;
-		view_info.viewType		= VEnumCast( viewDesc.Get().viewType );
+		view_info.viewType		= VEnumCast( desc.viewType );
 		view_info.flags			= 0;
 		view_info.image			= Handle();
-		view_info.format		= VEnumCast( viewDesc.Get().format );
+		view_info.format		= VEnumCast( desc.format );
 		view_info.components	= { components[swizzle.x], components[swizzle.y], components[swizzle.z], components[swizzle.w] };
 
-		view_info.subresourceRange.aspectMask		= EPixelFormat_IsColor( viewDesc.Get().format ) ? VK_IMAGE_ASPECT_COLOR_BIT :
-													  ((EPixelFormat_HasDepth( viewDesc.Get().format ) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0) |
-													   (EPixelFormat_HasStencil( viewDesc.Get().format ) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0));
-		view_info.subresourceRange.baseMipLevel		= viewDesc.Get().baseLevel.Get();
-		view_info.subresourceRange.levelCount		= viewDesc.Get().levelCount;
-		view_info.subresourceRange.baseArrayLayer	= viewDesc.Get().baseLayer.Get();
-		view_info.subresourceRange.layerCount		= viewDesc.Get().layerCount;
+		view_info.subresourceRange.aspectMask		= EPixelFormat_IsColor( desc.format ) ? VK_IMAGE_ASPECT_COLOR_BIT :
+													  ((EPixelFormat_HasDepth( desc.format ) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0) |
+													   (EPixelFormat_HasStencil( desc.format ) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0));
+		view_info.subresourceRange.baseMipLevel		= desc.baseLevel.Get();
+		view_info.subresourceRange.levelCount		= desc.levelCount;
+		view_info.subresourceRange.baseArrayLayer	= desc.baseLayer.Get();
+		view_info.subresourceRange.layerCount		= desc.layerCount;
 		
 		VK_CHECK( dev.vkCreateImageView( dev.GetVkDevice(), &view_info, null, OUT &outView ));
 		return true;
@@ -252,6 +263,7 @@ namespace FG
 */
 	void VLocalImage::AddPendingState (const ImageState &is) const
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( is.range.Mipmaps().begin < MipmapLevels() and is.range.Mipmaps().end <= MipmapLevels() );
 		ASSERT( is.range.Layers().begin < ArrayLayers() and is.range.Layers().end <= ArrayLayers() );
 		ASSERT( is.task );
@@ -339,6 +351,8 @@ namespace FG
 */
 	void VLocalImage::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
+		SCOPELOCK( _rcCheck );
+
 		for (const auto& pending : _pendingBarriers)
 		{
 			// barriers: write -> write, read -> write, write -> read, layout -> layout
@@ -373,8 +387,8 @@ namespace FG
 
 					barrierMngr.AddImageBarrier( iter->stages, pending.stages, 0, barrier );
 
-					//if ( debugger )
-					//	debugger->AddImageBarrier( this, iter->index, pending.index, iter->stages, pending.stages, 0, barrier );
+					if ( debugger )
+						debugger->AddImageBarrier( _imageData, iter->index, pending.index, iter->stages, pending.stages, 0, barrier );
 				}
 			}
 

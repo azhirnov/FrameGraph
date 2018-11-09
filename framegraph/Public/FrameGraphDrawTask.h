@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/PipelineResources.h"
-#include "framegraph/Public/LowLevel/RenderState.h"
-#include "framegraph/Public/LowLevel/VertexInputState.h"
+#include "framegraph/Public/PipelineResources.h"
+#include "framegraph/Public/RenderState.h"
+#include "framegraph/Public/VertexInputState.h"
 
 namespace FG
 {
@@ -180,8 +180,8 @@ namespace FG
 		
 		struct DrawCmd
 		{
-			uint		count;
-			uint		first;
+			uint		count	= 0;
+			uint		first	= 0;
 		};
 
 

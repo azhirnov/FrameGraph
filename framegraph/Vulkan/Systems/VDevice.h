@@ -3,10 +3,35 @@
 #pragma once
 
 #include "VCommon.h"
-#include "framegraph/Public/LowLevel/ShaderEnums.h"
+#include "framegraph/Public/ShaderEnums.h"
 
 namespace FG
 {
+
+	//
+	// Device Queue
+	//
+
+	struct VDeviceQueueInfo
+	{
+	// variables
+		mutable std::mutex	lock;			// use when call vkQueueSubmit, vkQueueWaitIdle, vkQueueBindSparse, vkQueuePresentKHR
+		VkQueue				id				= null;
+		uint				familyIndex		= ~0u;
+		VkQueueFlags		familyFlags		= {};
+		float				priority		= 0.0f;
+		DebugName_t			debugName;
+		
+	// methods
+		VDeviceQueueInfo () {}
+
+		VDeviceQueueInfo (VDeviceQueueInfo &&other) :
+			id{other.id}, familyIndex{other.familyIndex}, familyFlags{other.familyFlags},
+			priority{other.priority}, debugName{std::move(other.debugName)}
+		{}
+	};
+
+
 
 	//
 	// Vulkan Device
@@ -17,18 +42,8 @@ namespace FG
 		friend class VFrameGraph;
 
 	// types
-	public:
-		struct QueueInfo
-		{
-			VkQueue				id				= null;
-			uint				familyIndex		= ~0u;
-			VkQueueFlags		familyFlags		= {};
-			float				priority		= 0.0f;
-			DebugName_t			debugName;
-		};
-
 	private:
-		using Queues_t				= FixedArray< QueueInfo, 16 >;
+		using Queues_t				= FixedArray< VDeviceQueueInfo, 16 >;
 		using InstanceLayers_t		= Array< VkLayerProperties >;
 		using ExtensionName_t		= StaticString<VK_MAX_EXTENSION_NAME_SIZE>;
 		using ExtensionSet_t		= HashSet< ExtensionName_t >;
@@ -63,7 +78,7 @@ namespace FG
 		ND_ VkPhysicalDevice						GetVkPhysicalDevice ()		const	{ return _vkPhysicalDevice; }
 		ND_ VkInstance								GetVkInstance ()			const	{ return _vkInstance; }
 		ND_ EShaderLangFormat						GetVkVersion ()				const	{ return _vkVersion; }
-		ND_ ArrayView<QueueInfo>					GetVkQueues ()				const	{ return _vkQueues; }
+		ND_ ArrayView< VDeviceQueueInfo >			GetVkQueues ()				const	{ return _vkQueues; }
 		
 		ND_ VkPhysicalDeviceProperties const&		GetDeviceProperties ()		 const	{ return _deviceProperties; }
 		ND_ VkPhysicalDeviceFeatures const&			GetDeviceFeatures ()		 const	{ return _deviceFeatures; }

@@ -3,11 +3,11 @@
 #pragma once
 
 #include "VCommon.h"
-#include "framegraph/Public/LowLevel/ResourceEnums.h"
-#include "framegraph/Public/LowLevel/RenderStateEnums.h"
-#include "framegraph/Public/LowLevel/ShaderEnums.h"
-#include "framegraph/Public/LowLevel/SamplerEnums.h"
-#include "framegraph/Public/LowLevel/EResourceState.h"
+#include "framegraph/Public/ResourceEnums.h"
+#include "framegraph/Public/RenderStateEnums.h"
+#include "framegraph/Public/ShaderEnums.h"
+#include "framegraph/Public/SamplerEnums.h"
+#include "framegraph/Public/EResourceState.h"
 #include "framegraph/Shared/EnumUtils.h"
 
 namespace FG

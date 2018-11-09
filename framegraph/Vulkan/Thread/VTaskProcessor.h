@@ -90,21 +90,21 @@ namespace FG
 		void _OnRunTask (const IFrameGraphTask *task) const;
 
 		template <typename ID>
-		ND_ auto const&  _GetState (ID id) const;
+		ND_ auto const*  _GetState (ID id) const;
 		
 		void _CommitBarriers ();
 		
-		void _BindPipelineResources (RawCPipelineID pipeline, const VPipelineResourceSet &resources, ArrayView<uint> dynamicOffsets) const;
+		void _BindPipelineResources (RawCPipelineID pipeline, const VPipelineResourceSet &resources, ArrayView<uint> dynamicOffsets);
 		void _BindPipeline (RawCPipelineID pipeline, const Optional<uint3> &localSize) const;
 
-		void _AddImage (const VLocalImage &img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
-		void _AddImage (const VLocalImage &img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);
-		void _AddImage (const VLocalImage &img, EResourceState state, VkImageLayout layout, const VkImageSubresourceRange &subres);
-		void _AddImageState (const VLocalImage &img, const ImageState &state);
+		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
+		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);
+		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceRange &subres);
+		void _AddImageState (const VLocalImage *img, const ImageState &state);
 
-		void _AddBuffer (const VLocalBuffer &buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size);
-		void _AddBuffer (const VLocalBuffer &buf, EResourceState state, const VkBufferImageCopy &reg, const VLocalImage &img);
-		void _AddBufferState (const VLocalBuffer &buf, const BufferState &state);
+		void _AddBuffer (const VLocalBuffer *buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size);
+		void _AddBuffer (const VLocalBuffer *buf, EResourceState state, const VkBufferImageCopy &reg, const VLocalImage *img);
+		void _AddBufferState (const VLocalBuffer *buf, const BufferState &state);
 	};
 
 /*

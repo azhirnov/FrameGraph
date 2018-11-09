@@ -1,6 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "Public/LowLevel/VertexInputState.h"
+#include "Public/VertexInputState.h"
 
 namespace FG
 {

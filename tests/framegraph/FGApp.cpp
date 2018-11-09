@@ -5,14 +5,19 @@
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
-#include "stl/Algorithms/StringUtils.h"
+#include "stl/Stream/FileStream.h"
 
 #ifdef FG_ENABLE_LODEPNG
 #	include "lodepng/lodepng.h"
 #endif
 
+#include "stl/Platforms/WindowsHeader.h"
+
 namespace FG
 {
+namespace {
+	static constexpr uint	UpdateAllReferenceDumps = false;
+}
 
 /*
 =================================================
@@ -21,13 +26,13 @@ namespace FG
 */
 	FGApp::FGApp ()
 	{
-		_tests.push_back({ &FGApp::_DrawTest_CopyBuffer,	1 });
-		_tests.push_back({ &FGApp::_DrawTest_CopyImage2D,	1 });
-		_tests.push_back({ &FGApp::_DrawTest_GLSLCompute,	1 });
-		//_tests.push_back({ &FGApp::_DrawTest_FirstTriangle,	1 });
+		_tests.push_back({ &FGApp::Test_CopyBuffer,		1 });
+		_tests.push_back({ &FGApp::Test_CopyImage2D,	1 });
+		_tests.push_back({ &FGApp::Test_Compute1,		1 });
+		//_tests.push_back({ &FGApp::Test_Draw1,		1 });
 
-		//_tests.push_back({ &FGApp::_ImplTest_Scene1, 1 });
-		//_tests.push_back( &FGApp::_ImplTest_Scene2 );
+		//_tests.push_back({ &FGApp::ImplTest_Scene1, 1 });
+		//_tests.push_back( &FGApp::ImplTest_Scene2 );
 	}
 	
 /*
@@ -48,6 +53,7 @@ namespace FG
 	{
 		VulkanSwapchainInfo		swapchain_info;
 		swapchain_info.surface		= BitCast<VkSurface_t>( _vulkan.GetVkSurface() );
+        swapchain_info.surfaceSize  = size;
 		swapchain_info.preTransform = {};
 
 		CHECK( _frameGraph->CreateSwapchain( swapchain_info ));
@@ -98,7 +104,13 @@ namespace FG
 
 		// initialize vulkan device
 		{
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1, "" ));
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1,
+									   "",
+									   {},
+									   VulkanDevice::GetRecomendedInstanceLayers(),
+									   VulkanDevice::GetRecomendedInstanceExtensions(),
+									   VulkanDevice::GetRecomendedDeviceExtensions()
+									));
 			_vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT );
 		}
 
@@ -131,9 +143,9 @@ namespace FG
 			_frameGraphInst = FrameGraph::CreateFrameGraph( vulkan_info );
 			CHECK_ERR( _frameGraphInst );
 			CHECK_ERR( _frameGraphInst->Initialize( 2 ));
-			_frameGraphInst->SetCompilationFlags( ECompilationFlags::EnableDebugger );
+			_frameGraphInst->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
 
-			ThreadDesc	desc{ /*EThreadUsage::Present |*/ EThreadUsage::Graphics | EThreadUsage::Transfer, CommandBatchID{"1"} };
+			ThreadDesc	desc{ /*EThreadUsage::Present |*/ EThreadUsage::Graphics | EThreadUsage::Transfer };
 
 			_frameGraph = _frameGraphInst->CreateThread( desc );
 			CHECK_ERR( _frameGraph );
@@ -210,11 +222,11 @@ namespace FG
 	
 /*
 =================================================
-	_SavePNG
+	SavePNG
 =================================================
 */
 #ifdef FG_ENABLE_LODEPNG
-	bool FGApp::_SavePNG (const String &filename, const ImageView &imageData) const
+	bool FGApp::SavePNG (const String &filename, const ImageView &imageData) const
 	{
 		LodePNGColorType	colortype	= LodePNGColorType(-1);
 		uint				bitdepth	= 0;
@@ -292,24 +304,271 @@ namespace FG
 		return true;
 	}
 #endif	// FG_ENABLE_LODEPNG
+	
+/*
+=================================================
+	DeleteFile
+=================================================
+*/
+	static bool  DeleteFile (StringView fname)
+	{
+#	ifdef FG_STD_FILESYSTEM
+		namespace fs = std::filesystem;
+
+		const fs::path	path{ fname };
+
+		if ( fs::exists( path ) )
+		{
+			bool	result = fs::remove( path );
+			std::this_thread::sleep_for( std::chrono::milliseconds(1) );
+			return result;
+		}
+		return true;
+#	else
+		// TODO
+#	endif
+	}
+	
+/*
+=================================================
+	CreateDirectory
+=================================================
+*/
+	static bool  CreateDirectory (StringView fname)
+	{
+#	ifdef FG_STD_FILESYSTEM
+		namespace fs = std::filesystem;
+
+		fs::path	path{ fname };
+
+		if ( not fs::exists( path ) )
+			return fs::create_directory( path );
+		
+		return true;
+#	else
+		// TODO
+#	endif
+	}
+	
+/*
+=================================================
+	Execute
+=================================================
+*/
+	static bool Execute (StringView commands, uint timeoutMS)
+	{
+#	ifdef PLATFORM_WINDOWS
+		char	buf[MAX_PATH] = {};
+		::GetSystemDirectoryA( buf, UINT(CountOf(buf)) );
+		
+		String		command_line;
+		command_line << '"' << buf << "\\cmd.exe\" /C " << commands;
+
+		STARTUPINFOA			startup_info = {};
+		PROCESS_INFORMATION		proc_info	 = {};
+		
+		bool process_created = ::CreateProcessA(
+			NULL,
+			command_line.data(),
+			NULL,
+			NULL,
+			FALSE,
+			CREATE_NO_WINDOW,
+			NULL,
+			NULL,
+			OUT &startup_info,
+			OUT &proc_info
+		);
+
+		if ( not process_created )
+			return false;
+
+		if ( ::WaitForSingleObject( proc_info.hThread, timeoutMS ) != WAIT_OBJECT_0 )
+			return false;
+		
+		DWORD process_exit;
+		::GetExitCodeProcess( proc_info.hProcess, OUT &process_exit );
+
+		return true;
+#	else
+		// TODO
+#	endif
+	}
 
 /*
 =================================================
-	_Visualize
+	Visualize
 =================================================
 */
-	bool FGApp::_Visualize (const FrameGraphPtr &fg, EGraphVizFlags flags, StringView name, bool autoOpen) const
+	bool FGApp::Visualize (StringView name, EGraphVizFlags flags, bool autoOpen) const
 	{
-		// TODO
+#	ifdef FG_GRAPHVIZ_DOT_EXECUTABLE
+		String	str;
+		CHECK_ERR( _frameGraphInst->DumpToGraphViz( flags, OUT str ));
+		CHECK_ERR( CreateDirectory( FG_TEST_GRAPHS_DIR ));
+		
+		const StringView	format	= "png";
+		String				path{ FG_TEST_GRAPHS_DIR };		path << '/' << name << ".dot";
+		String				graph_path;						graph_path << path << '.' << format;
+
+		// space in path is not supported
+		CHECK( path.find( ' ' ) == String::npos );
+
+		// save to '.dot' file
+		{
+			FileWStream		wfile{ path };
+			CHECK_ERR( wfile.IsOpen() );
+			CHECK_ERR( wfile.Write( StringView{str} ));
+		}
+
+		// generate graph
+		{
+			// delete previous version
+			CHECK( DeleteFile( graph_path ));
+			
+			CHECK_ERR( Execute( "\""s << FG_GRAPHVIZ_DOT_EXECUTABLE << "\" -T" << format << " -O " << path, 30'000 ));
+
+			// delete '.dot' file
+			CHECK( DeleteFile( path ));
+		}
+
+		if ( autoOpen )
+		{
+			CHECK( Execute( graph_path, 1000 ));
+		}
+		return true;
+
+#	else
+		// not supported
+		return true;
+#	endif
+	}
+	
+/*
+=================================================
+	CompareDumps
+=================================================
+*/
+	bool FGApp::CompareDumps (StringView filename) const
+	{
+		String	left;
+		String	fname {FG_TEST_DUMPS_DIR};	fname << '/' << filename << ".txt";
+
+		// read from file
+		{
+			FileRStream		rfile{ fname };
+			CHECK_ERR( rfile.IsOpen() );
+			CHECK_ERR( rfile.Read( size_t(rfile.Size()), OUT left ));
+		}
+
+		String	right;
+		CHECK_ERR( _frameGraphInst->DumpToString( OUT right ));
+		
+		// override dump
+		if ( UpdateAllReferenceDumps )
+		{
+			FileWStream		wfile{ fname };
+			CHECK_ERR( wfile.IsOpen() );
+			CHECK_ERR( wfile.Write( StringView{right} ));
+			return true;
+		}
+
+		size_t		l_pos	= 0;
+		size_t		r_pos	= 0;
+		uint2		line_number;
+		StringView	line_str[2];
+
+		const auto	LeftValid	= [&l_pos, &left ] ()	{ return l_pos < left.length(); };
+		const auto	RightValid	= [&r_pos, &right] ()	{ return r_pos < right.length(); };
+		
+		const auto	IsEmptyLine	= [] (StringView str)
+		{
+			for (auto& c : str) {
+				if ( c != '\n' and c != '\r' and c != ' ' and c != '\t' )
+					return false;
+			}
+			return true;
+		};
+
+		const auto	ReadLine	= [] (StringView str, INOUT size_t &pos, OUT StringView &result)
+		{
+			result = {};
+			
+			const size_t	prev_pos = pos;
+
+			// move to end of line
+			while ( pos < str.length() )
+			{
+				const char	n = (pos+1) >= str.length() ? 0 : str[pos+1];
+				
+				++pos;
+
+				if ( n == '\n' or n == '\r' )
+					break;
+			}
+
+			result = str.substr( prev_pos, pos - prev_pos );
+
+			// move to next line
+			while ( pos < str.length() )
+			{
+				const char	c = str[pos];
+				const char	n = (pos+1) >= str.length() ? 0 : str[pos+1];
+			
+				++pos;
+
+				// windows style "\r\n"
+				if ( c == '\r' and n == '\n' ) {
+					++pos;
+					return;
+				}
+
+				// linux style "\n" (or mac style "\r")
+				if ( c == '\n' or c == '\r' )
+					return;
+			}
+		};
+
+
+		// compare line by line
+		for (; LeftValid() and RightValid(); )
+		{
+			// read left line
+			do {
+				ReadLine( left, INOUT l_pos, OUT line_str[0] );
+				++line_number[0];
+			}
+			while ( IsEmptyLine( line_str[0] ) and LeftValid() );
+
+			// read right line
+			do {
+				ReadLine( right, INOUT r_pos, OUT line_str[1] );
+				++line_number[1];
+			}
+			while ( IsEmptyLine( line_str[1] ) and RightValid() );
+
+			if ( line_str[0] != line_str[1] )
+			{
+				RETURN_ERR( "in: "s << filename << "\n\n"
+							<< "line mismatch:" << "\n(" << ToString( line_number[0] ) << "): " << line_str[0]
+							<< "\n(" << ToString( line_number[1] ) << "): " << line_str[1] );
+			}
+		}
+
+		if ( LeftValid() != RightValid() )
+		{
+			RETURN_ERR( "in: "s << filename << "\n\n" << "sizes of dumps are not equal!" );
+		}
+		
 		return true;
 	}
 
 /*
 =================================================
-	_CreateData
+	CreateData
 =================================================
 */
-	Array<uint8_t>	FGApp::_CreateData (BytesU size) const
+	Array<uint8_t>	FGApp::CreateData (BytesU size) const
 	{
 		Array<uint8_t>	arr;
 		arr.resize( size_t(size) );
@@ -319,44 +578,38 @@ namespace FG
 
 /*
 =================================================
-	_CreateBuffer
+	CreateBuffer
 =================================================
 */
-	BufferID  FGApp::_CreateBuffer (BytesU size, StringView name) const
+	BufferID  FGApp::CreateBuffer (BytesU size, StringView name) const
 	{
 		BufferID	res = _frameGraph->CreateBuffer( MemoryDesc{ EMemoryType::Default },
 													 BufferDesc{ size, EBufferUsage::Transfer | EBufferUsage::Uniform | EBufferUsage::Storage |
-																 EBufferUsage::Vertex | EBufferUsage::Index | EBufferUsage::Indirect });
-
-		//if ( not name.empty() )
-		//	res->SetDebugName( name );
-
+																 EBufferUsage::Vertex | EBufferUsage::Index | EBufferUsage::Indirect },
+													 name );
 		return res;
 	}
 	
 /*
 =================================================
-	_CreateImage2D
+	CreateImage2D
 =================================================
 */
-	ImageID  FGApp::_CreateImage2D (uint2 size, EPixelFormat fmt, StringView name) const
+	ImageID  FGApp::CreateImage2D (uint2 size, EPixelFormat fmt, StringView name) const
 	{
 		ImageID		res = _frameGraph->CreateImage( MemoryDesc{ EMemoryType::Default },
 												    ImageDesc{ EImage::Tex2D, uint3(size.x, size.y, 0), fmt,
-															   EImageUsage::Transfer | EImageUsage::ColorAttachment | EImageUsage::Sampled | EImageUsage::Storage });
-		
-		//if ( not name.empty() )
-		//	res->SetDebugName( name );
-
+															   EImageUsage::Transfer | EImageUsage::ColorAttachment | EImageUsage::Sampled | EImageUsage::Storage },
+												    name );
 		return res;
 	}
 	
 /*
 =================================================
-	_CreateLogicalImage2D
+	CreateLogicalImage2D
 =================================================
 *
-	ImagePtr  FGApp::_CreateLogicalImage2D (uint2 size, EPixelFormat fmt, StringView name) const
+	ImagePtr  FGApp::CreateLogicalImage2D (uint2 size, EPixelFormat fmt, StringView name) const
 	{
 		ImagePtr	res = _frameGraphInst->CreateLogicalImage( EMemoryType::Default, EImage::Tex2D, uint3(size.x, size.y, 0), fmt );
 		
@@ -368,10 +621,10 @@ namespace FG
 
 /*
 =================================================
-	_CreateSampler
+	CreateSampler
 =================================================
 *
-	SamplerPtr  FGApp::_CreateSampler () const
+	SamplerPtr  FGApp::CreateSampler () const
 	{
 		return _frameGraph->CreateSampler( SamplerDesc()
 								.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear )
@@ -381,10 +634,10 @@ namespace FG
 	
 /*
 =================================================
-	_CreatePipeline
+	CreatePipeline
 =================================================
 *
-	PipelinePtr  FGApp::_CreatePipeline () const
+	PipelinePtr  FGApp::CreatePipeline () const
 	{
 		GraphicsPipelineDesc	ppln;
 

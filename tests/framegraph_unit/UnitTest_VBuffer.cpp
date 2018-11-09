@@ -53,7 +53,7 @@ static void VBuffer_Test1 ()
 	// pass 1
 	{
 		buf->AddPendingState(BufferState{ EResourceState::TransferDst, 0, 512, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 
 		auto	w_barriers = VBufferUnitTest::GetWriteBarriers( buf );
 
@@ -69,7 +69,7 @@ static void VBuffer_Test1 ()
 	// pass 2
 	{
 		buf->AddPendingState(BufferState{ EResourceState::TransferSrc, 0, 64, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 
@@ -85,7 +85,7 @@ static void VBuffer_Test1 ()
 	// pass 3
 	{
 		buf->AddPendingState(BufferState{ EResourceState::UniformRead | EResourceState::_VertexShader, 64, 64+64, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 
@@ -101,7 +101,7 @@ static void VBuffer_Test1 ()
 	// pass 4
 	{
 		buf->AddPendingState(BufferState{ EResourceState::UniformRead | EResourceState::_FragmentShader, 256, 256+64, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 
@@ -117,7 +117,7 @@ static void VBuffer_Test1 ()
 	// pass 5
 	{
 		buf->AddPendingState(BufferState{ EResourceState::ShaderWrite | EResourceState::_ComputeShader, 512, 512+64, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 		
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 		auto	w_barriers = VBufferUnitTest::GetWriteBarriers( buf );
@@ -136,7 +136,7 @@ static void VBuffer_Test1 ()
 	// pass 6
 	{
 		buf->AddPendingState(BufferState{ EResourceState::UniformRead | EResourceState::_VertexShader, 256+32, 256+64, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 
@@ -162,7 +162,7 @@ static void VBuffer_Test1 ()
 	// pass 7
 	{
 		buf->AddPendingState(BufferState{ EResourceState::UniformRead | EResourceState::_GeometryShader, 256+16, 256+16+32, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 
@@ -196,7 +196,7 @@ static void VBuffer_Test1 ()
 	// pass 8
 	{
 		buf->AddPendingState(BufferState{ EResourceState::UniformRead | EResourceState::_GeometryShader, 16, 32, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 
@@ -238,7 +238,7 @@ static void VBuffer_Test1 ()
 	// pass 9
 	{
 		buf->AddPendingState(BufferState{ EResourceState::ShaderRead | EResourceState::_ComputeShader, 0, 256+32, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 
@@ -273,7 +273,7 @@ static void VBuffer_Test1 ()
 	// pass 10
 	{
 		buf->AddPendingState(BufferState{ EResourceState::TransferDst, 64, 512, (task_iter++)->get() });
-		buf->CommitBarrier( barrier_mngr );
+		buf->CommitBarrier( barrier_mngr, null );
 		
 		auto	r_barriers = VBufferUnitTest::GetReadBarriers( buf );
 		auto	w_barriers = VBufferUnitTest::GetWriteBarriers( buf );

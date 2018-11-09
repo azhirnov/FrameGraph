@@ -59,7 +59,7 @@ static void VImage_Test1 ()
 								ImageRange{ 0_layer, 1, 0_mipmap, 1 },
 								VK_IMAGE_ASPECT_COLOR_BIT, (task_iter++)->get() });
 
-		img->CommitBarrier( barrier_mngr );
+		img->CommitBarrier( barrier_mngr, null );
 
 		auto	barriers = VImageUnitTest::GetRWBarriers( img );
 
@@ -115,7 +115,7 @@ static void VImage_Test2 ()
 								ImageRange{ 0_layer, 2, 0_mipmap, img->MipmapLevels() },
 								VK_IMAGE_ASPECT_COLOR_BIT, (task_iter++)->get() });
 
-		img->CommitBarrier( barrier_mngr );
+		img->CommitBarrier( barrier_mngr, null );
 
 		auto	barriers = VImageUnitTest::GetRWBarriers( img );
 		

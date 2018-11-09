@@ -371,7 +371,9 @@ namespace FG
 	bool  VPipelineCache::_CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module)
 	{
 		const auto*	shader_data = std::get_if< PipelineDescription::SharedShaderPtr<Array<uint>> >( &shaderData );
-		CHECK_ERR( shader_data and *shader_data, "invalid shader data format!" );
+
+		if ( not (shader_data and *shader_data) )
+			RETURN_ERR( "invalid shader data format!" );
 				
 		VkShaderModuleCreateInfo	shader_info = {};
 		shader_info.sType		= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -514,6 +516,10 @@ namespace FG
 		VGraphicsPipeline const*	gppln		= resMngr.GetResource( pplnId );
 		VPipelineLayout const*		layout		= resMngr.GetResource( gppln->GetLayoutID() );
 		VRenderPass const*			render_pass	= resMngr.GetResource( renderPassId );
+		
+		// check topology
+		CHECK_ERR(	uint(renderState.inputAssembly.topology) < gppln->_supportedTopology.size() and
+					gppln->_supportedTopology[uint(renderState.inputAssembly.topology)] );
 
 		VGraphicsPipeline::PipelineInstance		inst;
 		inst.dynamicState	= dynamicState;

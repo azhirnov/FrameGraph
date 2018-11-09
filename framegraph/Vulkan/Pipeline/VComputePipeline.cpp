@@ -29,8 +29,9 @@ namespace FG
 	Create
 =================================================
 */
-	bool VComputePipeline::Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId)
+	bool VComputePipeline::Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( desc._shader.data.size() == 1 );
 		
@@ -41,6 +42,7 @@ namespace FG
 		_layoutId				= PipelineLayoutID{ layoutId };
 		_defaultLocalGroupSize	= desc._defaultLocalGroupSize;
 		_localSizeSpec			= desc._localSizeSpec;
+		_debugName				= dbgName;
 		
 		_OnCreate();
 		return true;
@@ -53,6 +55,8 @@ namespace FG
 */
 	void VComputePipeline::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
+		SCOPELOCK( _rcCheck );
+
 		for (auto& ppln : _instances) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, uint64_t(ppln.second) );
 		}
@@ -62,6 +66,7 @@ namespace FG
 		}
 
 		_instances.clear();
+		_debugName.clear();
 		_shader					= null;
 		_layoutId				= Default;
 		_defaultLocalGroupSize	= Default;

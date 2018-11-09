@@ -4,7 +4,7 @@
 
 #include <atomic>
 #include <thread>
-#include "framegraph/Public/LowLevel/Types.h"
+#include "framegraph/Public/Types.h"
 
 namespace FG
 {
@@ -35,17 +35,17 @@ namespace FG
 
 		ND_ bool operator == (const ThreadID &rhs) const
 		{
-			return _value.load( std::memory_order_acquire ) == rhs._value.load( std::memory_order_acquire );
+			return _value.load( memory_order_acquire ) == rhs._value.load( memory_order_acquire );
 		}
 
 		ND_ bool IsCurrent () const
 		{
-			return _value.load( std::memory_order_acquire ) == _GetThreadId();
+			return _value.load( memory_order_acquire ) == _GetThreadId();
 		}
 
 		void SetCurrent ()
 		{
-			_value.store( _GetThreadId(), std::memory_order_release );
+			_value.store( _GetThreadId(), memory_order_release );
 		}
 
 

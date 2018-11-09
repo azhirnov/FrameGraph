@@ -58,8 +58,10 @@ namespace FG
 
 		ShaderModules_t			_shaders;
 		TopologyBits_t			_supportedTopology;		// TODO: use
-		FragmentOutputPtr		_fragmentOutput;
+		FragmentOutputPtr		_fragmentOutput			= null;
 		bool					_earlyFragmentTests		= true;
+		
+		DebugName_t				_debugName;
 
 
 	// methods
@@ -67,10 +69,10 @@ namespace FG
 		VMeshPipeline () {}
 		~VMeshPipeline ();
 
-		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput);
+		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
-		ND_ RawPipelineLayoutID		GetLayoutID ()	const	{ return _layoutId.Get(); }
+		ND_ RawPipelineLayoutID		GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
 	};
 
 	

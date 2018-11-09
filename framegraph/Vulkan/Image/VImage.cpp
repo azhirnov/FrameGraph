@@ -61,8 +61,9 @@ namespace FG
 	Create
 =================================================
 */
-	bool VImage::Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, INOUT VMemoryObj &memObj)
+	bool VImage::Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, INOUT VMemoryObj &memObj, StringView dbgName)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _image == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
@@ -137,6 +138,8 @@ namespace FG
 			}
 		}
 		
+		_debugName = dbgName;
+
 		_OnCreate();
 		return true;
 	}
@@ -148,6 +151,8 @@ namespace FG
 */
 	void VImage::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
+		SCOPELOCK( _rcCheck );
+
 		if ( _image ) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, uint64_t(_image) );
 		}
@@ -161,6 +166,7 @@ namespace FG
 		}
 		
 		_viewMap.clear();
+		_debugName.clear();
 		_image			= VK_NULL_HANDLE;
 		_memoryId		= Default;
 		_desc			= Default;
@@ -180,6 +186,8 @@ namespace FG
 */
 	void VImage::Merge (ImageViewMap_t &from, OUT AppendableVkResources_t readyToDelete) const
 	{
+		SCOPELOCK( _rcCheck );
+
 		for (auto& view : from)
 		{
 			auto	iter = _viewMap.find( view.first );

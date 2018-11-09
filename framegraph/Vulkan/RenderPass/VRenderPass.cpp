@@ -36,6 +36,8 @@ namespace FG
 */
 	bool VRenderPass::GetColorAttachmentIndex (const RenderTargetID &id, OUT uint &index) const
 	{
+		SHAREDLOCK( _rcCheck );
+
 		auto	iter = _mapping.find( id );
 
 		if ( iter != _mapping.end() )
@@ -55,6 +57,7 @@ namespace FG
 */
 	bool VRenderPass::Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _renderPass == VK_NULL_HANDLE );
 		CHECK_ERR( logicalPasses.size() == 1 );		// not supported yet
 		CHECK_ERR( logicalPasses.front()->GetColorTargets().size() == fragOutput.size() );
@@ -256,13 +259,16 @@ namespace FG
 	Create
 =================================================
 */
-	bool VRenderPass::Create (const VDevice &dev)
+	bool VRenderPass::Create (const VDevice &dev, StringView dbgName)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _renderPass == VK_NULL_HANDLE );
 
 		VK_CHECK( dev.vkCreateRenderPass( dev.GetVkDevice(), &_createInfo, null, OUT &_renderPass ) );
 		
+		_debugName = dbgName;
+
 		_OnCreate();
 		return true;
 	}
@@ -274,6 +280,8 @@ namespace FG
 */
 	void VRenderPass::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
 	{
+		SCOPELOCK( _rcCheck );
+
 		if ( _renderPass ) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT, uint64_t(_renderPass) );
 		}
@@ -294,47 +302,9 @@ namespace FG
 		_dependencies.clear();
 		_preserves.clear();
 
+		_debugName.clear();
+
 		_OnDestroy();
-	}
-	
-/*
-=================================================
-	Replace
-=================================================
-*/
-	void VRenderPass::Replace (INOUT VRenderPass &&other)
-	{
-		_renderPass			= other._renderPass;
-		_hash				= other._hash;
-		_attachmentHash		= other._attachmentHash;
-		_subpassesHash		= other._subpassesHash;
-		_mapping			= other._mapping;
-		_createInfo			= other._createInfo;
-		_attachments		= other._attachments;
-		_attachmentRef		= other._attachmentRef;
-		_inputAttachRef		= other._inputAttachRef;
-		_resolveAttachRef	= other._resolveAttachRef;
-		_subpasses			= other._subpasses;
-		_dependencies		= other._dependencies;
-		_preserves			= other._preserves;
-
-		_createInfo.pAttachments	= _attachments.data();
-		_createInfo.pSubpasses		= _subpasses.data();
-		_createInfo.pDependencies	= _dependencies.data();
-
-		for (size_t i = 0; i < _subpasses.size(); ++i)
-		{
-			const auto&		src = other._subpasses[i];
-			auto&			dst = _subpasses[i];
-
-			dst.pColorAttachments		= _attachmentRef.data() + Distance( src.pColorAttachments, other._attachmentRef.data() );
-			dst.pDepthStencilAttachment	= _attachmentRef.data() + Distance( src.pDepthStencilAttachment, other._attachmentRef.data() );
-			dst.pInputAttachments		= null; //_inputAttachRef.data() + Distance( src.pInputAttachments, other._inputAttachRef.data() );
-			dst.pPreserveAttachments	= null; //_preserves.data() + Distance( src.pPreserveAttachments, other._preserves.data() );
-			dst.pResolveAttachments		= null; //_resolveAttachRef.data() + Distance( src.pResolveAttachments, other._resolveAttachRef.data() );
-		}
-		
-		ResourceBase::_Replace( std::move(other) );
 	}
 
 /*
@@ -363,7 +333,7 @@ namespace FG
 	inline bool operator == (const VkAttachmentReference &lhs, const VkAttachmentReference &rhs)
 	{
 		return	lhs.attachment	== rhs.attachment	and
-				rhs.layout		== rhs.layout;
+				lhs.layout		== rhs.layout;
 	}
 
 /*
@@ -408,6 +378,9 @@ namespace FG
 */
 	bool VRenderPass::operator == (const VRenderPass &rhs) const
 	{
+		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( rhs._rcCheck );
+
         using AttachView = ArrayView<VkAttachmentDescription>;
         using SubpassView = ArrayView<VkSubpassDescription>;
         using DepsView = ArrayView<VkSubpassDependency>;

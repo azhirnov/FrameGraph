@@ -76,6 +76,7 @@ namespace FG
 */
 	void VPipelineResources::Initialize (const PipelineResources &desc)
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( GetState() == EState::Initial );
 
 		_layoutId	= DescriptorSetLayoutID{ desc.GetLayout() };
@@ -95,6 +96,7 @@ namespace FG
 */
 	bool VPipelineResources::Create (VResourceManagerThread &resMngr, VPipelineCache &pplnCache)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _descriptorSet == VK_NULL_HANDLE );
 		
@@ -125,6 +127,8 @@ namespace FG
 */
 	void VPipelineResources::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
+		SCOPELOCK( _rcCheck );
+
 		// release reference only if descriptor set was created
 		if ( _layoutId and _descriptorSet ) {
 			unassignIDs.emplace_back( _layoutId.Release() );
@@ -145,14 +149,41 @@ namespace FG
 	
 /*
 =================================================
-	Replace
+	IsAllResourcesAlive
 =================================================
 */
-	void VPipelineResources::Replace (INOUT VPipelineResources &&other)
+	bool  VPipelineResources::IsAllResourcesAlive (const VResourceManagerThread &resMngr) const
 	{
-		ResourceBase::_Replace( std::move(other) );
+		ASSERT( IsCreated() );
+		SHAREDLOCK( _rcCheck );
+
+		for (auto& un : _resources)
+		{
+			bool	alive = Visit( un.res,
+								[&resMngr] (const PipelineResources::Buffer &buf) {
+									return resMngr.IsResourceAlive( buf.bufferId );
+								},
+								[&resMngr] (const PipelineResources::Image &img) {
+									return resMngr.IsResourceAlive( img.imageId );
+								},
+								[&resMngr] (const PipelineResources::Texture &tex) {
+									return resMngr.IsResourceAlive( tex.imageId ) and resMngr.IsResourceAlive( tex.samplerId );
+								},
+								[&resMngr] (const PipelineResources::Sampler &samp) {
+									return resMngr.IsResourceAlive( samp.samplerId );
+								},
+								[] (const std::monostate &) {
+									return true;
+								}
+							);
+
+			if ( not alive )
+				return false;
+		}
+
+		return true;
 	}
-	
+
 /*
 =================================================
 	operator ==
@@ -160,6 +191,9 @@ namespace FG
 */
 	bool  VPipelineResources::operator == (const VPipelineResources &rhs) const
 	{
+		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( rhs._rcCheck );
+
 		if ( _hash				!= rhs._hash		or
 			 _layoutId			!= rhs._layoutId	or
 			 _resources.size()	!= rhs._resources.size() )
@@ -181,7 +215,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
 	{
 		VkDescriptorBufferInfo	info = {};
 		info.buffer	= rm.GetResource( buf.bufferId )->Handle();
@@ -210,14 +244,14 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResources::Image &img, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
 	{
 		LocalImageID		local_id	= rm.Remap( img.imageId );
 		VLocalImage const*	local_img	= rm.GetState( local_id );
 
 		VkDescriptorImageInfo	info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( img.state );
-		info.imageView		= local_img->GetView( rm.GetDevice(), img.desc );
+		info.imageView		= local_img->GetView( rm.GetDevice(), INOUT img.desc );
 		info.sampler		= VK_NULL_HANDLE;
 
 		list.images.push_back( std::move(info) );
@@ -242,14 +276,14 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
 	{
 		LocalImageID		local_id	= rm.Remap( tex.imageId );
 		VLocalImage const*	local_img	= rm.GetState( local_id );
 
 		VkDescriptorImageInfo	info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( tex.state );
-		info.imageView		= local_img->GetView( rm.GetDevice(), tex.desc );
+		info.imageView		= local_img->GetView( rm.GetDevice(), INOUT tex.desc );
 		info.sampler		= rm.GetResource( tex.samplerId )->Handle();
 
 		list.images.push_back( std::move(info) );

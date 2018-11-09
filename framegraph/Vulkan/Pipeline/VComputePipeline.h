@@ -49,16 +49,18 @@ namespace FG
 		uint3					_defaultLocalGroupSize;
 		uint3					_localSizeSpec;
 
+		DebugName_t				_debugName;
+
 
 	// methods
 	public:
 		VComputePipeline ();
 		~VComputePipeline ();
 		
-		bool Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId);
+		bool Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
-		ND_ RawPipelineLayoutID		GetLayoutID ()	const	{ return _layoutId.Get(); }
+		ND_ RawPipelineLayoutID		GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
 	};
 
 	

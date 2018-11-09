@@ -44,8 +44,9 @@ namespace FG
 	static constexpr unsigned	FG_MaxPipelines				= 1u << 10;
 
 	// frame graph
-	static constexpr unsigned	FG_MaxRingBufferSize		= 8;
-	static constexpr unsigned	FG_MaxThreadDependencies	= 8;
+	static constexpr unsigned	FG_MaxRingBufferSize			= 4;
+	static constexpr unsigned	FG_MaxCommandBatchCount			= 8;
+	static constexpr unsigned	FG_MaxCommandBatchDependencies	= 4;
 
 
 }	// FG

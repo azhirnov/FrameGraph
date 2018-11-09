@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/PipelineResources.h"
+#include "framegraph/Public/PipelineResources.h"
 
 namespace FG
 {

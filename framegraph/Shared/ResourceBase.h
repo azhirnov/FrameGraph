@@ -4,6 +4,7 @@
 
 #include "framegraph/Shared/LocalResourceID.h"
 #include "stl/ThreadSafe/AtomicCounter.h"
+#include "stl/ThreadSafe/RaceConditionCheck.h"
 
 namespace FG
 {
@@ -31,9 +32,12 @@ namespace FG
 		alignas(FG_CACHE_LINE) mutable AtomicCounter<int>	_refCounter;
 
 		// instance counter used to detect deprecated handles
-		std::atomic<uint>									_instanceId	= 0;
+		std::atomic<uint>		_instanceId	= 0;
 
-		EState												_state		= EState::Initial;
+		std::atomic<EState>		_state		= EState::Initial;
+
+	protected:
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
@@ -43,21 +47,14 @@ namespace FG
 
 		~ResourceBase ()
 		{
-			ASSERT( _state == EState::Initial );
-		}
-		
-		void MarkForDelete ()
-		{
-			ASSERT( IsCreated() );
-			ASSERT( GetRefCount() == 0 );
-
-			_state = EState::ReadyToDelete;
+			ASSERT( GetState() == EState::Initial );
 		}
 
+		// must be externally synchronized!
 		bool Commit ()
 		{
-			if ( _state == EState::CreatedInThread ) {
-				_state = EState::Created;
+			if ( GetState() == EState::CreatedInThread ) {
+				_state.store( EState::Created, memory_order_release );
 				return true;
 			}
 			return false;
@@ -72,19 +69,19 @@ namespace FG
 		{
 			return _refCounter.DecAndTest();
 		}
+		
+		ND_ EState		GetState ()			const	{ return _state.load( memory_order_acquire ); }
+		ND_ bool		IsCreated ()		const	{ auto state = GetState();  return state == EState::CreatedInThread or state == EState::Created; }
+		ND_ bool		IsDestroyed ()		const	{ return GetState() == EState::Initial; }
 
-		ND_ EState		GetState ()			const	{ return _state; }
-		ND_ bool		IsCreated ()		const	{ return _state == EState::CreatedInThread or _state == EState::Created; }
-		ND_ bool		IsDestroyed ()		const	{ return _state == EState::Initial; }
-
-		ND_ uint		GetInstanceID ()	const	{ return _instanceId.load( std::memory_order_acquire ); }
+		ND_ uint		GetInstanceID ()	const	{ return _instanceId.load( memory_order_acquire ); }
 		ND_ int			GetRefCount ()		const	{ return _refCounter.Load(); }
 
 
 	protected:
 		void _OnCreate ()
 		{
-			_state = EState::CreatedInThread;
+			_state.store( EState::CreatedInThread, memory_order_release );
 		}
 
 		void _OnDestroy ()
@@ -92,35 +89,10 @@ namespace FG
 			ASSERT( not IsDestroyed() );
 			//ASSERT( GetRefCount() == 0 );
 
-			_state = EState::Initial;
-			_instanceId.fetch_add( 1, std::memory_order_release );
-		}
-
-		void _Replace (INOUT ResourceBase &&other)
-		{
-			ASSERT( IsDestroyed() );
-			ASSERT( GetRefCount() == 0 );
-
-			// warning: don't swap _instanceId !
-
-			int	tmp = other._refCounter.Load();
-			other._refCounter.Store( 0 );
-			_refCounter.Store( tmp );
-
-			std::swap( _state, other._state );
+			_state.store( EState::Initial, memory_order_release );
+			_instanceId.fetch_add( 1, memory_order_release );
 		}
 	};
 
 
 }	// FG
-
-namespace std
-{
-
-	template <typename T1, typename T2>
-	inline enable_if_t<is_base_of_v<FG::ResourceBase, T1> and is_base_of_v<FG::ResourceBase, T2>, void> swap (T1 &lhs, T2 &rhs)
-	{
-		lhs.Replace( move(rhs) );
-	}
-
-}	// std

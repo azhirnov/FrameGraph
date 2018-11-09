@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/Pipeline.h"
+#include "framegraph/Public/Pipeline.h"
 #include "VLogicalRenderPass.h"
 
 namespace FG
@@ -51,6 +51,8 @@ namespace FG
 		Subpasses_t				_subpasses;
 		Dependencies_t			_dependencies;
 		Preserves_t				_preserves;
+		
+		DebugName_t				_debugName;
 
 
 	// methods
@@ -59,17 +61,16 @@ namespace FG
 		~VRenderPass ();
 
 		bool Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput);
-		bool Create (const VDevice &dev);
+		bool Create (const VDevice &dev, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
-		void Replace (INOUT VRenderPass &&other);
 
 		bool GetColorAttachmentIndex (const RenderTargetID &id, OUT uint &index) const;
 
 		ND_ bool operator == (const VRenderPass &rhs) const;
 
-		ND_ VkRenderPass					Handle ()			const	{ return _renderPass; }
-		ND_ VkRenderPassCreateInfo const&	GetCreateInfo ()	const	{ return _createInfo; }
-		ND_ HashVal							GetHash ()			const	{ return _hash; }
+		ND_ VkRenderPass					Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _renderPass; }
+		ND_ VkRenderPassCreateInfo const&	GetCreateInfo ()	const	{ SHAREDLOCK( _rcCheck );  return _createInfo; }
+		ND_ HashVal							GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 
 
 	private:

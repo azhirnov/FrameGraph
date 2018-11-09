@@ -28,10 +28,10 @@ namespace FG
 		if ( _taskGraph.Empty() )
 			return true;
 
-		VTaskProcessor	processor{ *this, CreateCommandBuffer() };
+		VTaskProcessor	processor{ *this, _CreateCommandBuffer( _currUsage )};
 
 		++_visitorID;
-		++_exeOrderIndex;
+		_exeOrderIndex = ExeOrderIndex::First;
 
 		TempTaskArray_t		pending{ GetAllocator() };
 		pending.reserve( 128 );
@@ -74,8 +74,6 @@ namespace FG
 				--i;
 			}
 		}
-
-		ASSERT( _exeOrderIndex < ExeOrderIndex::Max );	// TODO: check overflow
 		return true;
 	}
 
@@ -124,7 +122,7 @@ namespace FG
 */
 	inline LogicalRenderPassID  ConvertLRP (RenderPass rp)
 	{
-		return LogicalRenderPassID{ uint(size_t(rp)), 0 };
+		return LogicalRenderPassID{ uint(size_t(rp)), 0 };		// TODO
 	}
 
 /*
@@ -135,6 +133,7 @@ namespace FG
 	Task  VFrameGraphThread::AddTask (const SubmitRenderPass &task)
 	{
 		CHECK_ERR( _IsRecording() and task.renderPass );
+		ASSERT( EnumEq( _currUsage, EThreadUsage::Graphics ));
 		
 		auto *	rp  = _resourceMngr.GetState(ConvertLRP( task.renderPass ));
 		CHECK_ERR( rp->Submit() );
@@ -154,6 +153,7 @@ namespace FG
 	Task  VFrameGraphThread::AddTask (const DispatchCompute &task)
 	{
 		CHECK_ERR( _IsRecording() );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -166,6 +166,7 @@ namespace FG
 	Task  VFrameGraphThread::AddTask (const DispatchIndirectCompute &task)
 	{
 		CHECK_ERR( _IsRecording() );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -179,6 +180,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcBuffer and task.dstBuffer );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -192,6 +194,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -205,6 +208,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcBuffer and task.dstImage );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -218,6 +222,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstBuffer );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -231,6 +236,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
+		ASSERT( !!(_currUsage & EThreadUsage::Graphics) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -244,6 +250,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
+		ASSERT( !!(_currUsage & EThreadUsage::Graphics) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -270,6 +277,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstImage );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -283,6 +291,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstImage );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -296,6 +305,7 @@ namespace FG
 	{
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstBuffer );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
 		if ( _stagingMngr )
 			return _AddUpdateBufferTask( task );
@@ -345,6 +355,7 @@ namespace FG
 	Task  VFrameGraphThread::AddTask (const UpdateImage &task)
 	{
 		CHECK_ERR( _IsRecording() );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
 		if ( _stagingMngr )
 			return _AddUpdateImageTask( task );
@@ -460,6 +471,7 @@ namespace FG
 	Task  VFrameGraphThread::AddTask (const ReadBuffer &task)
 	{
 		CHECK_ERR( _IsRecording() );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
 		if ( _stagingMngr )
 			return _AddReadBufferTask( task );
@@ -519,6 +531,7 @@ namespace FG
 	Task  VFrameGraphThread::AddTask (const ReadImage &task)
 	{
 		CHECK_ERR( _IsRecording() );
+		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
 		if ( _stagingMngr )
 			return _AddReadImageTask( task );
@@ -636,6 +649,7 @@ namespace FG
 	Task  VFrameGraphThread::AddTask (const FG::Present &task)
 	{
 		CHECK_ERR( _IsRecording() );
+		// TODO: check thread usage
 
 		if ( _swapchain )
 			return _AddPresentTask( task );

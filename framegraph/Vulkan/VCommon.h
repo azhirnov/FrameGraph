@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/MipmapLevel.h"
-#include "framegraph/Public/LowLevel/MultiSamples.h"
-#include "framegraph/Public/LowLevel/ImageLayer.h"
-#include "framegraph/Public/LowLevel/IDs.h"
-#include "framegraph/Public/LowLevel/VulkanTypes.h"
+#include "framegraph/Public/MipmapLevel.h"
+#include "framegraph/Public/MultiSamples.h"
+#include "framegraph/Public/ImageLayer.h"
+#include "framegraph/Public/IDs.h"
+#include "framegraph/Public/VulkanTypes.h"
 #include "framegraph/Public/FGEnums.h"
 #include "framegraph/Shared/LocalResourceID.h"
 
@@ -57,21 +57,21 @@ namespace FG
 	using VPipelineResourceSet		= FixedMap< DescriptorSetID, RawPipelineResourcesID, FG_MaxDescriptorSets >;
 
 
-	// TODO: remove?
 	enum class ExeOrderIndex : uint
 	{
-		Initial	= 0,
-		First	= 1,
-		Max		= std::numeric_limits<uint>::max() >> 1,
+		Initial		= 0,
+		First		= 1,
 	};
 
 
 	class VDevice;
+	class VDebugger;
 	class VSwapchain;
 	class VMemoryObj;
 	class VMemoryManager;
 	class VStagingBufferManager;
 	class VFrameGraphThread;
+	class VSubmissionGraph;
 	class VResourceManager;
 	class VResourceManagerThread;
 	class VBarrierManager;

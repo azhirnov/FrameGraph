@@ -20,7 +20,7 @@ namespace FG
 
 		for (auto& src : vdi.queues)
 		{
-			QueueInfo	dst = {};
+			VDeviceQueueInfo	dst = {};
 			dst.id			= BitCast<VkQueue>( src.id );
 			dst.familyFlags	= BitCast<VkQueueFlags>( src.familyFlags );
 			dst.familyIndex	= src.familyIndex;

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/LowLevel/EResourceState.h"
+#include "framegraph/Public/EResourceState.h"
 #include "framegraph/Shared/ResourceDataRange.h"
 #include "VBuffer.h"
 
@@ -24,9 +24,9 @@ namespace FG
 		struct BufferState
 		{
 		// variables
-			EResourceState	state;
+			EResourceState	state		= Default;
 			BufferRange		range;
-			Task			task;
+			Task			task		= null;
 
 		// methods
 			BufferState () {}
@@ -71,12 +71,14 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		void AddPendingState (const BufferState &state) const;
-		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger = null) const;
+		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 
-		ND_ bool				IsCreated ()	const	{ return _bufferData != null; }
-		ND_ VkBuffer			Handle ()		const	{ return _bufferData->Handle(); }
-		ND_ BufferDesc const&	Description ()	const	{ return _bufferData->Description(); }
-		ND_ BytesU				Size ()			const	{ return Description().size; }
+		ND_ bool				IsCreated ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData != null; }
+		ND_ VkBuffer			Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _bufferData->Handle(); }
+		ND_ VBuffer const*		ToGlobal ()		const	{ SHAREDLOCK( _rcCheck );  return _bufferData; }
+
+		ND_ BufferDesc const&	Description ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData->Description(); }
+		ND_ BytesU				Size ()			const	{ SHAREDLOCK( _rcCheck );  return Description().size; }
 
 
 	private:

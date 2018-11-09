@@ -3,7 +3,7 @@
 #pragma once
 
 #include "framegraph/Public/FrameGraphDrawTask.h"
-#include "framegraph/Public/LowLevel/EResourceState.h"
+#include "framegraph/Public/EResourceState.h"
 #include "framegraph/Shared/ResourceBase.h"
 #include "VDrawTask.h"
 
@@ -24,11 +24,11 @@ namespace FG
 		{
 			LocalImageID			imageId;
 			ImageViewDesc			desc;
-			VkSampleCountFlagBits	samples;
+			VkSampleCountFlagBits	samples			= VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
 			VkClearValue			clearValue;
-			VkAttachmentLoadOp		loadOp;
-			VkAttachmentStoreOp		storeOp;
-			EResourceState			state;
+			VkAttachmentLoadOp		loadOp			= VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
+			VkAttachmentStoreOp		storeOp			= VK_ATTACHMENT_STORE_OP_MAX_ENUM;
+			EResourceState			state			= Default;
 			HashVal					_imageHash;		// used for fast render target comparison
 
 			ColorTarget () {}
@@ -51,7 +51,7 @@ namespace FG
 	private:
 		RawFramebufferID			_framebufferId;
 		RawRenderPassID				_renderPassId;
-		uint						_subpassIndex;
+		uint						_subpassIndex		= 0;
 
 		// TODO: DOD
 		Array< IDrawTask *>			_drawTasks;			// all draw tasks created with custom allocator in FrameGraph and
@@ -88,6 +88,7 @@ namespace FG
 
 		bool AddTask (IDrawTask *task)
 		{
+			SCOPELOCK( _rcCheck );
 			_drawTasks.push_back( std::move(task) );
 			return true;
 		}
@@ -95,6 +96,7 @@ namespace FG
 
 		bool Submit ()
 		{
+			SCOPELOCK( _rcCheck );
 			CHECK_ERR( not _isSubmited );
 
 			_isSubmited = true;
@@ -102,16 +104,16 @@ namespace FG
 		}
 
 
-		ND_ ArrayView< IDrawTask *>		GetDrawTasks ()				const	{ return _drawTasks; }
+		ND_ ArrayView< IDrawTask *>		GetDrawTasks ()				const	{ SHAREDLOCK( _rcCheck );  return _drawTasks; }
 		
-		ND_ ColorTargets_t const&		GetColorTargets ()			const	{ return _colorTargets; }
-		ND_ DepthStencilTarget const&	GetDepthStencilTarget ()	const	{ return _depthStencilTarget; }
+		ND_ ColorTargets_t const&		GetColorTargets ()			const	{ SHAREDLOCK( _rcCheck );  return _colorTargets; }
+		ND_ DepthStencilTarget const&	GetDepthStencilTarget ()	const	{ SHAREDLOCK( _rcCheck );  return _depthStencilTarget; }
 		
-		ND_ RectI const&				GetArea ()					const	{ return _area; }
+		ND_ RectI const&				GetArea ()					const	{ SHAREDLOCK( _rcCheck );  return _area; }
 
-		ND_ bool						IsSubmited ()				const	{ return _isSubmited; }
+		ND_ bool						IsSubmited ()				const	{ SHAREDLOCK( _rcCheck );  return _isSubmited; }
 
-		ND_ bool						IsMergingAvailable ()		const	{ return _canBeMerged; }
+		ND_ bool						IsMergingAvailable ()		const	{ SHAREDLOCK( _rcCheck );  return _canBeMerged; }
 
 		//ND_ bool						IsParallelDrawingSupported () const	{ return _parallelExecution; }
 		/*
