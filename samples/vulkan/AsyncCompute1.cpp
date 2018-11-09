@@ -306,7 +306,7 @@ void AsyncComputeApp::GenGraphicsCommandsNV (uint frameId)
 
 		// begin render pass
 		{
-			VkClearValue			clear_value = {{ 0.0f, 0.0f, 0.0f, 1.0f }};
+            VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 			VkRenderPassBeginInfo	begin		= {};
 			begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			begin.framebuffer		= framebuffers[frameId];
@@ -1028,9 +1028,6 @@ bool AsyncComputeApp::CreateGraphicsPipeline ()
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
 const vec2	g_Positions[4] = {
 	vec2( -1.0,  1.0 ),
 	vec2( -1.0, -1.0 ),
@@ -1043,15 +1040,12 @@ void main()
 	gl_Position = vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, vert_shader_source, "main", EShLangVertex ));
+		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, "main", EShLangVertex ));
 	}
 
 	// create fragment shader
 	{
 		static const char	frag_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
 layout(location = 0) out vec4  out_Color;
 
 void main ()
@@ -1063,7 +1057,7 @@ void main ()
 	out_Color = vec4(v, v.x||v.y, 1);
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
+		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, "main", EShLangFragment ));
 	}
 
 	// create pipeline layout
@@ -1179,7 +1173,7 @@ void main()
 	imageStore( un_SwapchainImage, ivec2(gl_GlobalInvocationID.xy), color );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT computeShader, vulkan, comp_shader_source, "main", EShLangCompute ));
+		CHECK_ERR( spvCompiler.Compile( OUT computeShader, vulkan, {comp_shader_source}, "main", EShLangCompute ));
 	}
 
 	// create pipeline layout

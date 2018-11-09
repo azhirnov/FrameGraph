@@ -21,18 +21,18 @@ public:
 	SpvCompiler ();
 	~SpvCompiler ();
 
-	bool Compile (OUT VkShaderModule&	shaderModule,
-				  const VulkanDevice&	device,
-				  const char *			source,
-				  const char *			entry,
-				  EShLanguage			shaderType,
+	bool Compile (OUT VkShaderModule&		shaderModule,
+				  const VulkanDevice&		device,
+				  ArrayView<const char *>	source,
+				  StringView				entry,
+				  EShLanguage				shaderType,
 				  glslang::EShTargetLanguageVersion	spvVersion	= glslang::EShTargetSpv_1_3,
-				  bool					autoMapLocations	= true) const;
+				  bool						autoMapLocations	= true) const;
 
-	bool Compile (OUT Array<uint>&		spirvData,
-				  const char *			source,
-				  const char *			entry,
-				  EShLanguage			shaderType,
+	bool Compile (OUT Array<uint>&			spirvData,
+				  ArrayView<const char *>	source,
+				  StringView				entry,
+				  EShLanguage				shaderType,
 				  glslang::EShTargetLanguageVersion	spvVersion	= glslang::EShTargetSpv_1_3,
-				  bool					autoMapLocations	= true) const;
+				  bool						autoMapLocations	= true) const;
 };

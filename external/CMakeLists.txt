@@ -47,6 +47,7 @@ include( "${CMAKE_FOLDER}/download_glfw.cmake" )
 include( "${CMAKE_FOLDER}/download_sfml.cmake" )
 include( "${CMAKE_FOLDER}/download_lodepng.cmake" )
 include( "${CMAKE_FOLDER}/download_assimp.cmake" )
+include( "${CMAKE_FOLDER}/graphviz.cmake" )
 
 
 set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" CACHE INTERNAL "" FORCE )

@@ -236,7 +236,7 @@ bool FSBarycentricApp::Run ()
 			
 			// begin render pass
 			{
-				VkClearValue			clear_value = {{ 0.0f, 0.0f, 0.0f, 1.0f }};
+                VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 				VkRenderPassBeginInfo	begin		= {};
 				begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 				begin.framebuffer		= framebuffers[ swapchain->GetCurretImageIndex() ];
@@ -480,9 +480,6 @@ bool FSBarycentricApp::CreatePipeline ()
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
 const vec2	g_Positions[4] = {
 	vec2( -1.0,  1.0 ),
 	vec2( -1.0, -1.0 ),
@@ -495,15 +492,13 @@ void main()
 	gl_Position = vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, vert_shader_source, "main", EShLangVertex ));
+		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, "main", EShLangVertex ));
 	}
 
 	// create fragment shader
 	// see https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_fragment_shader_barycentric.txt
 	{
 		static const char	frag_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
 #extension GL_NV_fragment_shader_barycentric : require
 
 // TODO: use pervertexNV
@@ -518,7 +513,7 @@ void main ()
 	out_Color = vec4( gl_BaryCoordNV, 1.0 );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
+		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, "main", EShLangFragment ));
 	}
 
 	// create pipeline layout

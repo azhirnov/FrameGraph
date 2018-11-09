@@ -3,8 +3,8 @@
 #pragma once
 
 #include "EShaderCompilationFlags.h"
-#include "framegraph/Public/LowLevel/ResourceEnums.h"
-#include "framegraph/Public/LowLevel/VertexEnums.h"
+#include "framegraph/Public/ResourceEnums.h"
+#include "framegraph/Public/VertexEnums.h"
 #include "glslang/Include/ResourceLimits.h"
 
 class TIntermNode;

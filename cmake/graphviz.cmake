@@ -33,8 +33,13 @@ if (WIN32)
 	endif ()
 endif ()
 
+if (UNIX)
+# TODO
+endif ()
+
+
 if (FG_GRAPHVIZ_DOT_EXECUTABLE)
-	add_definitions( -DFG_GRAPHVIZ_DOT_EXECUTABLE="${FG_GRAPHVIZ_DOT_EXECUTABLE}" )
+	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_GRAPHVIZ_DOT_EXECUTABLE=\"${FG_GRAPHVIZ_DOT_EXECUTABLE}\"" )
 else ()
 	message( WARNING "GraphViz is not found, download and instal library from https://www.graphviz.org/" )
 endif ()

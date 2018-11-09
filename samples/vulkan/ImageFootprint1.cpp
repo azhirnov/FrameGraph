@@ -265,7 +265,7 @@ bool ImageFootprintApp::Run ()
 			
 			// begin render pass
 			{
-				VkClearValue			clear_value = {{ 0.0f, 0.0f, 0.0f, 1.0f }};
+                VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 				VkRenderPassBeginInfo	begin		= {};
 				begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 				begin.framebuffer		= framebuffers[ swapchain->GetCurretImageIndex() ];
@@ -742,9 +742,6 @@ bool ImageFootprintApp::CreatePipeline ()
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
 const vec2	g_Positions[4] = {
 	vec2( -1.0,  1.0 ),
 	vec2( -1.0, -1.0 ),
@@ -760,16 +757,14 @@ void main()
 	v_TexCoord  = g_Positions[gl_VertexIndex] * 0.5 + 0.5;
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, vert_shader_source, "main", EShLangVertex ));
+		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, "main", EShLangVertex ));
 	}
 
 	// create fragment shader with image footprint extension
 	// see https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_shader_texture_footprint.txt
 	{
 		static const char	frag_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_NV_shader_texture_footprint : enable
+#extension GL_NV_shader_texture_footprint : require
 
 /*struct gl_TextureFootprint2DNV {
 	uvec2 anchor;
@@ -799,7 +794,7 @@ void main ()
 					  1.0 );*/
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
+		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, "main", EShLangFragment ));
 	}
 
 	// create pipeline layout

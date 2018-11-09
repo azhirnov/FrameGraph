@@ -792,10 +792,6 @@ bool ShadingRateApp::CreatePipelineFSQ ()
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-#version 450 core
-#pragma shader_stage(vertex)
-#extension GL_ARB_separate_shader_objects : enable
-
 const vec2	g_Positions[4] = {
 	vec2( -1.0,  1.0 ),
 	vec2( -1.0, -1.0 ),
@@ -808,16 +804,14 @@ void main()
 	gl_Position = vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, vert_shader_source, "main", EShLangVertex ));
+		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, "main", EShLangVertex ));
 	}
 
 	// create fragment shader
 	// see https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_shading_rate_image.txt
 	{
 		static const char	frag_shader_source[] = R"#(
-#version 450 core
 #extension GL_NV_shading_rate_image : require
-#extension GL_ARB_separate_shader_objects : enable
 
 layout(location = 0) out vec4  out_Color;
 
@@ -858,7 +852,7 @@ void main ()
 	}
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
+		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, "main", EShLangFragment ));
 	}
 
 	// create pipeline layout
@@ -973,7 +967,7 @@ void main()
 	imageStore( out_ShadingRateImage, ivec2(gl_GlobalInvocationID.xy), uvec4(index) );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT compShader, vulkan, comp_shader_source, "main", EShLangCompute ));
+		CHECK_ERR( spvCompiler.Compile( OUT compShader, vulkan, {comp_shader_source}, "main", EShLangCompute ));
 	}
 
 	// create pipeline layout

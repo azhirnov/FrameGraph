@@ -612,11 +612,6 @@ namespace FG
 	bool VulkanSwapchain::_GetImageUsage (OUT VkImageUsageFlags &imageUsage, const VkPresentModeKHR presentMode,
 										  const VkFormat colorFormat, const VkSurfaceCapabilitiesKHR &surfaceCaps) const
 	{
-		struct VkStructHeader { 
-			VkStructureType		sType	= VK_STRUCTURE_TYPE_MAX_ENUM;
-			void*				pNext	= null;
-		};
-
 		if ( presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR	or
 			 presentMode == VK_PRESENT_MODE_MAILBOX_KHR		or
 			 presentMode == VK_PRESENT_MODE_FIFO_KHR		or
@@ -635,7 +630,9 @@ namespace FG
 			VkSurfaceCapabilities2KHR	surf_caps2;
 			VK_CALL( vkGetPhysicalDeviceSurfaceCapabilities2KHR( _vkPhysicalDevice, &surf_info, OUT &surf_caps2 ) );
 
-			for (VkStructHeader const *iter = reinterpret_cast<VkStructHeader const *>(&surf_caps2); iter != null;)
+			for (VkBaseInStructure const *iter = reinterpret_cast<VkBaseInStructure const *>(&surf_caps2);
+				 iter != null;
+				 iter = iter->pNext)
 			{
 				if ( iter->sType == VK_STRUCTURE_TYPE_SHARED_PRESENT_SURFACE_CAPABILITIES_KHR )
 				{

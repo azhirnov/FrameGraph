@@ -179,12 +179,7 @@ namespace FG
 	
 
 # if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
-#	define NOMINMAX
-#	define NOMCX
-#	define NOIME
-#	define NOSERVICE
-#	define WIN32_LEAN_AND_MEAN
-#	include <Windows.h>
+#	include "stl/Platforms/WindowsHeader.h"
 # endif
 
 namespace FG

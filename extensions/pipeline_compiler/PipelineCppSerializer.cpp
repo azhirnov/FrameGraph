@@ -261,7 +261,7 @@ namespace FG
 							<< _ShaderStages_ToString( un.second.stageFlags ) << " }";
 				},
 
-				[&] (const PipelineDescription::Sampler &samp)
+				[&] (const PipelineDescription::Sampler &)
 				{
 					if ( not samplers.empty() )
 						samplers << ",\n\t\t\t  ";

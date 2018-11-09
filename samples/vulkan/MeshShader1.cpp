@@ -260,7 +260,7 @@ bool MeshShaderApp::Run ()
 			
 			// begin render pass
 			{
-				VkClearValue			clear_value = {{ 0.0f, 0.0f, 0.0f, 1.0f }};
+                VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 				VkRenderPassBeginInfo	begin		= {};
 				begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 				begin.framebuffer		= framebuffers[ swapchain->GetCurretImageIndex() ];
@@ -671,9 +671,7 @@ bool MeshShaderApp::CreateMeshPipeline ()
 	if ( IsMeshShaderSupported() )
 	{
 		static const char	mesh_shader_source[] = R"#(
-#version 450 core
-#extension GL_NV_mesh_shader : enable
-#extension GL_ARB_separate_shader_objects : enable
+#extension GL_NV_mesh_shader : require
 
 layout(local_size_x=3) in;
 layout(triangles) out;
@@ -707,16 +705,13 @@ void main ()
 		gl_PrimitiveCountNV = 1;
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT meshShader, vulkan, mesh_shader_source, "main", EShLangMeshNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT meshShader, vulkan, {mesh_shader_source}, "main", EShLangMeshNV ));
 	}
 	else
 
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
 layout(binding = 0, std140) uniform UBuffer {
 	vec4	points[3];
 	vec4	colors[3];
@@ -732,15 +727,12 @@ void main()
 	Output.color = ub.colors[gl_VertexIndex];
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT meshShader, vulkan, vert_shader_source, "main", EShLangVertex ));
+		CHECK_ERR( spvCompiler.Compile( OUT meshShader, vulkan, {vert_shader_source}, "main", EShLangVertex ));
 	}
 
 	// create fragment shader
 	{
 		static const char	frag_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
 layout(location = 0) out vec4  out_Color;
 
 layout(location = 0) in MeshOutput {
@@ -752,7 +744,7 @@ void main ()
 	out_Color = Input.color;
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
+		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, "main", EShLangFragment ));
 	}
 
 	// create pipeline layout

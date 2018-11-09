@@ -278,11 +278,11 @@ bool SparseImageApp::Run ()
 				last_sparse_rebind	= time;
 				sparse_binding_sem	= semaphores[frameId + 2];
 
-				const uint	src_idx = (rand() % imageBlocks.size());
+                const uint	src_idx = uint(rand() % imageBlocks.size());
 				uint		dst_idx = src_idx;
 
 				while ( src_idx == dst_idx ) {
-					dst_idx = (rand() % imageBlocks.size());
+                    dst_idx = uint(rand() % imageBlocks.size());
 				}
 				
 				std::swap( imageBlocks[src_idx].memoryOffset, imageBlocks[dst_idx].memoryOffset );
@@ -317,7 +317,7 @@ bool SparseImageApp::Run ()
 			
 			// begin render pass
 			{
-				VkClearValue			clear_value = {{ 0.0f, 0.0f, 0.0f, 1.0f }};
+                VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 				VkRenderPassBeginInfo	begin		= {};
 				begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 				begin.framebuffer		= framebuffers[ swapchain->GetCurretImageIndex() ];
@@ -915,9 +915,6 @@ bool SparseImageApp::CreatePipeline ()
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
 const vec2	g_Positions[4] = {
 	vec2( -1.0,  1.0 ),
 	vec2( -1.0, -1.0 ),
@@ -932,15 +929,12 @@ void main()
 	v_TexCoord  = g_Positions[gl_VertexIndex] * 0.5 + 0.5;
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, vert_shader_source, "main", EShLangVertex ));
+		CHECK_ERR( spvCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, "main", EShLangVertex ));
 	}
 
 	// create fragment shader
 	{
 		static const char	frag_shader_source[] = R"#(
-#version 450 core
-#extension GL_ARB_separate_shader_objects : enable
-
 layout(location = 0) out vec4  out_Color;
 layout(location = 0) in  vec2  v_TexCoord;
 layout(binding = 0) uniform sampler2D un_Texture;
@@ -950,7 +944,7 @@ void main ()
 	out_Color = texture( un_Texture, v_TexCoord );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, frag_shader_source, "main", EShLangFragment ));
+		CHECK_ERR( spvCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, "main", EShLangFragment ));
 	}
 
 	// create pipeline layout

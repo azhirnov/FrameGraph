@@ -1,6 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "SpvCompiler.h"
+#include "stl/Algorithms/StringUtils.h"
 
 // glslang includes
 #include "glslang/glslang/Include/revision.h"
@@ -30,8 +31,8 @@ SpvCompiler::~SpvCompiler ()
 
 bool SpvCompiler::Compile (OUT VkShaderModule &		shaderModule,
 						   const VulkanDevice &		vulkan,
-						   const char *				source,
-						   const char *				entry,
+						   ArrayView<const char *>	source,
+						   StringView				entry,
 						   EShLanguage				shaderType,
 						   EShTargetLanguageVersion	spvVersion,
 						   bool						autoMapLocations) const
@@ -51,8 +52,8 @@ bool SpvCompiler::Compile (OUT VkShaderModule &		shaderModule,
 
 
 bool SpvCompiler::Compile (OUT Array<uint>&			spirvData,
-						   const char *				source,
-						   const char *				entry,
+						   ArrayView<const char *>	source,
+						   StringView				entry,
 						   EShLanguage				shaderType,
 						   EShTargetLanguageVersion	spvVersion,
 						   bool						autoMapLocations) const
@@ -63,9 +64,16 @@ bool SpvCompiler::Compile (OUT Array<uint>&			spirvData,
 	TShader						shader			{ shaderType };
 	EshTargetClientVersion		client_version	= EShTargetVulkan_1_1;
 	TBuiltInResource			builtin_res		= DefaultTBuiltInResource;
+	const FG::String			header			= "#version 460 core\n"s <<
+												  "#extension GL_ARB_separate_shader_objects : require\n" <<
+												  "#extension GL_ARB_shading_language_420pack : require\n" <<
+												  (entry != "main"sv ? ("#define "s << entry << " main\n") : ""s);
+	Array<const char *>			shader_src;
+	shader_src.push_back( header.data() );
+	shader_src.insert( shader_src.end(), source.begin(), source.end() );
 
-	shader.setStrings( &source, 1 );
-	shader.setEntryPoint( entry );
+	shader.setStrings( shader_src.data(), int(shader_src.size()) );
+	shader.setEntryPoint( "main" );
     shader.setEnvInput( EShSourceGlsl, shaderType, EShClientVulkan, 110 );
 	shader.setEnvClient( EShClientVulkan, client_version );
 	shader.setEnvTarget( EshTargetSpv, spvVersion );
@@ -73,7 +81,7 @@ bool SpvCompiler::Compile (OUT Array<uint>&			spirvData,
 	shader.setAutoMapLocations( autoMapLocations );
 	shader.setAutoMapBindings( autoMapLocations );
 
-	if ( not shader.parse( &builtin_res, 450, ENoProfile, false, true, messages ) )
+	if ( not shader.parse( &builtin_res, 460, ENoProfile, false, true, messages ) )
 	{
 		FG_LOGI( shader.getInfoLog() );
 		return false;

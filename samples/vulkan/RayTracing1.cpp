@@ -955,16 +955,16 @@ bool RayTracingApp::CreateDescriptorSet ()
 */
 bool RayTracingApp::CreateRayTracingPipeline ()
 {
+	static const char	rt_shader[] = R"#(
+#extension GL_NVX_raytracing : require
+#define PAYLOAD_LOC 0
+)#";
+
 	// create ray generation shader
 	{
 		static const char	raygen_shader_source[] = R"#(
-#version 460
-#extension GL_NVX_raytracing : require
-
 layout(binding = 0) uniform accelerationStructureNVX  un_RtScene;
 layout(binding = 1, rgba8) writeonly restrict uniform image2D  un_Output;
-
-#define PAYLOAD_LOC 0
 layout(location = PAYLOAD_LOC) rayPayloadNVX vec4  payload;
 
 void main ()
@@ -983,32 +983,26 @@ void main ()
 	imageStore( un_Output, ivec2(gl_LaunchIDNVX), payload );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT rayGenShader, vulkan, raygen_shader_source, "main", EShLangRayGenNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT rayGenShader, vulkan, {rt_shader, raygen_shader_source}, "main", EShLangRayGenNV ));
 	}
 
 	// create ray miss shader
 	{
 		static const char	raymiss_shader_source[] = R"#(
-#version 460
-#extension GL_NVX_raytracing : require
-
-layout(location = 0) rayPayloadInNVX vec4  payload;
+layout(location = PAYLOAD_LOC) rayPayloadInNVX vec4  payload;
 
 void main ()
 {
 	payload = vec4( 0.412f, 0.796f, 1.0f, 1.0f );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT rayMissShader, vulkan, raymiss_shader_source, "main", EShLangMissNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT rayMissShader, vulkan, {rt_shader, raymiss_shader_source}, "main", EShLangMissNV ));
 	}
 
 	// create ray closest hit shader
 	{
 		static const char	closesthit_shader_source[] = R"#(
-#version 460
-#extension GL_NVX_raytracing : require
-
-layout(location = 0) rayPayloadInNVX vec4  payload;
+layout(location = PAYLOAD_LOC) rayPayloadInNVX vec4  payload;
 layout(location = 1) hitAttributeNVX vec2  HitAttribs;
 
 void main ()
@@ -1017,7 +1011,7 @@ void main ()
 	payload = vec4(barycentrics, 1.0);
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT rayClosestHitShader, vulkan, closesthit_shader_source, "main", EShLangClosestHitNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT rayClosestHitShader, vulkan, {rt_shader, closesthit_shader_source}, "main", EShLangClosestHitNV ));
 	}
 
 	// create pipeline layout

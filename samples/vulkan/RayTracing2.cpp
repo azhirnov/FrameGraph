@@ -51,8 +51,11 @@ private:
 
 	enum {
 		RAYGEN_SHADER,
-		HIT_SHADER_1,
+
+		HIT_SHADER,
+		HIT_SHADER_1 = HIT_SHADER,
 		HIT_SHADER_2,
+
 		MISS_SHADER,
 		NUM_GROUPS,
 
@@ -372,7 +375,7 @@ bool RayTracingApp2::Run ()
 				vkCmdTraceRaysNVX( cmd, 
 								   shaderBindingTable, RAYGEN_SHADER * stride,
 								   shaderBindingTable, MISS_SHADER * stride, stride,
-								   shaderBindingTable, HIT_SHADER_1 * stride, stride,
+								   shaderBindingTable, HIT_SHADER * stride, stride,
 								   swapchain->GetSurfaceSize().x, swapchain->GetSurfaceSize().y );
 			}
 
@@ -765,7 +768,7 @@ bool RayTracingApp2::CreateTopLevelAS (ResourceInit &res)
 			instances[0].transformRow0	= { 1.0f, 0.0f, 0.0f,  0.0f };
 			instances[0].transformRow1	= { 0.0f, 1.0f, 0.0f,  0.0f };
 			instances[0].transformRow2	= { 0.0f, 0.0f, 1.0f,  0.0f };
-			instances[0].instanceId		= 0;
+			instances[0].instanceId		= 0;	// gl_InstanceCustomIndexNVX
 			instances[0].mask			= 0xFF;
 			instances[0].instanceOffset	= 0;	// HIT_SHADER_1
 			instances[0].flags			= 0;
@@ -774,7 +777,7 @@ bool RayTracingApp2::CreateTopLevelAS (ResourceInit &res)
 			instances[1].transformRow0	= { 1.0f, 0.0f, 0.0f, -2.0f };
 			instances[1].transformRow1	= { 0.0f, 1.0f, 0.0f,  0.0f };
 			instances[1].transformRow2	= { 0.0f, 0.0f, 1.0f,  0.0f };
-			instances[1].instanceId		= 1;
+			instances[1].instanceId		= 1;	// gl_InstanceCustomIndexNVX
 			instances[1].mask			= 0xFF;
 			instances[1].instanceOffset	= 0;	// HIT_SHADER_1
 			instances[1].flags			= 0;
@@ -783,9 +786,9 @@ bool RayTracingApp2::CreateTopLevelAS (ResourceInit &res)
 			instances[2].transformRow0	= { 1.0f, 0.0f, 0.0f,  2.0f };
 			instances[2].transformRow1	= { 0.0f, 1.0f, 0.0f,  0.0f };
 			instances[2].transformRow2	= { 0.0f, 0.0f, 1.0f,  0.0f };
-			instances[2].instanceId		= 2;
+			instances[2].instanceId		= 2;	// gl_InstanceCustomIndexNVX
 			instances[2].mask			= 0xFF;
-			instances[2].instanceOffset	= 1;	// HIT_SHADER_2
+			instances[2].instanceOffset	= 0;	// HIT_SHADER_1
 			instances[2].flags			= 0;
 			instances[2].accelerationStructureHandle = bottomLevelASHandle[1];
 			
@@ -1113,16 +1116,16 @@ bool RayTracingApp2::CreateDescriptorSet ()
 */
 bool RayTracingApp2::CreateRayTracingPipeline ()
 {
+	static const char	rt_shader[] = R"#(
+#extension GL_NVX_raytracing : require
+#define PAYLOAD_LOC  0
+)#";
+
 	// create ray generation shader
 	{
 		static const char	raygen_shader_source[] = R"#(
-#version 460
-#extension GL_NVX_raytracing : require
-
 layout(binding = 0) uniform accelerationStructureNVX  un_RtScene;
 layout(binding = 1, rgba8) writeonly restrict uniform image2D  un_Output;
-
-#define PAYLOAD_LOC 0
 layout(location = PAYLOAD_LOC) rayPayloadNVX vec4  payload;
 
 void main ()
@@ -1139,8 +1142,10 @@ void main ()
 	vec3 origin = vec3(0.0f, 0.0f, -2.0f);
 	vec3 direction = normalize(vec3(d.x * aspectRatio, -d.y, 1.0f));
 
+	// current hit shader = { HIT_SHADER_1, HIT_SHADER_2 }[sbtRecordStride * geometryIndex]
+
 	traceNVX( /*topLevel*/un_RtScene, /*rayFlags*/gl_RayFlagsNoneNVX, /*cullMask*/0xFF,
-			  /*sbtRecordOffset*/0, /*sbtRecordStride*/0, /*missIndex*/0,
+			  /*sbtRecordOffset*/0, /*sbtRecordStride*/1, /*missIndex*/0,
 			  /*origin*/origin, /*Tmin*/0.0f,
 			  /*direction*/direction, /*Tmax*/100000.0f,
 			  /*payload*/PAYLOAD_LOC );
@@ -1148,58 +1153,46 @@ void main ()
 	imageStore( un_Output, ivec2(gl_LaunchIDNVX), payload );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT rayGenShader, vulkan, raygen_shader_source, "main", EShLangRayGenNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT rayGenShader, vulkan, {rt_shader, raygen_shader_source}, "main", EShLangRayGenNV ));
 	}
 
 	// create ray miss shader
 	{
 		static const char	raymiss_shader_source[] = R"#(
-#version 460
-#extension GL_NVX_raytracing : require
-
-layout(location = 0) rayPayloadInNVX vec4  payload;
+layout(location = PAYLOAD_LOC) rayPayloadInNVX vec4  payload;
 
 void main ()
 {
     payload = vec4( 0.4f, 0.6f, 0.2f, 1.0f );
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT rayMissShader, vulkan, raymiss_shader_source, "main", EShLangMissNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT rayMissShader, vulkan, {rt_shader, raymiss_shader_source}, "main", EShLangMissNV ));
 	}
 
 	// create ray closest hit shaders
 	{
-		static const char	closesthit1_shader_source[] = R"#(
-#version 460
-#extension GL_NVX_raytracing : require
-
-layout(location = 0) rayPayloadInNVX vec4  payload;
+		static const char	closesthit_shader_source[] = R"#(
+layout(location = PAYLOAD_LOC) rayPayloadInNVX vec4  payload;
 layout(location = 1) hitAttributeNVX vec2  hitAttribs;
 
 layout(binding = 2, std140) uniform UBuffer {
 	mat3x4	rotation[3];	// [NUM_INSTANCES]
 } ub;
 
-void main ()
+void triangleChs1 ()
 {
     const vec3 barycentrics = vec3(1.0f - hitAttribs.x - hitAttribs.y, hitAttribs.x, hitAttribs.y);
 
     payload = ub.rotation[gl_InstanceCustomIndexNVX] * barycentrics;
 }
-)#";
-		static const char	closesthit2_shader_source[] = R"#(
-#version 460
-#extension GL_NVX_raytracing : require
 
-layout(location = 0) rayPayloadInNVX vec4  payload;
-
-void main ()
+void triangleChs2 ()
 {
     payload = vec4(0.9f, 0.9f, 0.9f, 1.0f);
 }
 )#";
-		CHECK_ERR( spvCompiler.Compile( OUT rayHitShaders[0], vulkan, closesthit1_shader_source, "main", EShLangClosestHitNV ));
-		CHECK_ERR( spvCompiler.Compile( OUT rayHitShaders[1], vulkan, closesthit2_shader_source, "main", EShLangClosestHitNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT rayHitShaders[0], vulkan, {rt_shader, closesthit_shader_source}, "triangleChs1", EShLangClosestHitNV ));
+		CHECK_ERR( spvCompiler.Compile( OUT rayHitShaders[1], vulkan, {rt_shader, closesthit_shader_source}, "triangleChs2", EShLangClosestHitNV ));
 	}
 
 	// create pipeline layout

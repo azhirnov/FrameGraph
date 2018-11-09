@@ -4,18 +4,9 @@
 #include "stl/Algorithms/Cast.h"
 
 #if defined(PLATFORM_WINDOWS) && !defined(VK_USE_PLATFORM_WIN32_KHR)
-# ifdef COMPILER_MSVC
-#	pragma warning (push)
-#	pragma warning (disable: 4668)
-# endif
-
+#	include "stl/Platforms/WindowsHeader.h"
 #	define VK_USE_PLATFORM_WIN32_KHR	1
-#	include <Windows.h>
 #	include <Vulkan/vulkan_win32.h>
-
-# ifdef COMPILER_MSVC
-#	pragma warning (pop)
-# endif
 #endif
 
 namespace FG

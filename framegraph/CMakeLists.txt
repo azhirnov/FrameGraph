@@ -246,12 +246,6 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_ENABLE_SDL2})
 	set( SOURCES 
-		"../tests/framegraph/Graphs/Test_Compute1.dot"
-		"../tests/framegraph/Graphs/Test_Compute1.dot.png"
-		"../tests/framegraph/Graphs/Test_CopyBuffer.dot"
-		"../tests/framegraph/Graphs/Test_CopyBuffer.dot.png"
-		"../tests/framegraph/Graphs/Test_CopyImage2D.dot"
-		"../tests/framegraph/Graphs/Test_CopyImage2D.dot.png"
 		"../tests/framegraph/Dumps/Test_Compute1.txt"
 		"../tests/framegraph/Dumps/Test_CopyBuffer.txt"
 		"../tests/framegraph/Dumps/Test_CopyImage2D.txt"
@@ -267,7 +261,6 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	else()
 		add_executable( "IntTests.FrameGraph" ${SOURCES} )
 	endif()
-	source_group( "Graphs" FILES "../tests/framegraph/Graphs/Test_Compute1.dot" "../tests/framegraph/Graphs/Test_Compute1.dot.png" "../tests/framegraph/Graphs/Test_CopyBuffer.dot" "../tests/framegraph/Graphs/Test_CopyBuffer.dot.png" "../tests/framegraph/Graphs/Test_CopyImage2D.dot" "../tests/framegraph/Graphs/Test_CopyImage2D.dot.png" )
 	source_group( "Dumps" FILES "../tests/framegraph/Dumps/Test_Compute1.txt" "../tests/framegraph/Dumps/Test_CopyBuffer.txt" "../tests/framegraph/Dumps/Test_CopyImage2D.txt" )
 	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2D.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
