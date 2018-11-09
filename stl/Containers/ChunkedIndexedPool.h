@@ -266,7 +266,7 @@ namespace FG
 		ND_ BytesU  DynamicSize () const
 		{
 			SCOPELOCK( _assignOpLock );
-			BytesU	sz = sizeof(*this);
+            BytesU	sz { sizeof(*this) };
 
 			for (auto& idx : _indices) {
 				sz += (idx ? sizeof(*idx) : 0);

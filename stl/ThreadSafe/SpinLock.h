@@ -31,7 +31,7 @@ namespace FG
 		// for std::lock_guard
 		forceinline void lock ()
 		{
-			for (uint i = 0; _flag.test_and_set( std::memory_order_acquire ); ++i)
+			for (uint i = 0; _flag.test_and_set( memory_order_acquire ); ++i)
 			{
 				if ( i > 100 ) {
 					i = 0;
@@ -42,7 +42,7 @@ namespace FG
 
 		forceinline void unlock ()
 		{
-			_flag.clear( std::memory_order_release );
+			_flag.clear( memory_order_release );
 		}
 	};
 

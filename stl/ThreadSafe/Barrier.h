@@ -99,13 +99,13 @@ namespace FG
 
 		void wait ()
 		{
-			_counter.fetch_add( 1u, std::memory_order_relaxed );
+			_counter.fetch_add( 1u, memory_order_relaxed );
 
 			const uint	max_count	= _numThreads;
 			uint		expected	= max_count;
 
 			for (uint i = 0;
-				 not _counter.compare_exchange_weak( INOUT expected, 0, std::memory_order_release, std::memory_order_relaxed ) and (expected != 0);
+				 not _counter.compare_exchange_weak( INOUT expected, 0, memory_order_release, memory_order_relaxed ) and (expected != 0);
 				 ++i)
 			{
 				expected = max_count;

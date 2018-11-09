@@ -68,6 +68,7 @@ namespace FG
 	{
 		//STATIC_ASSERT( std::is_trivial_v<To> and std::is_trivial_v<From>, "must be trivial types!" );
 		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );
+		STATIC_ASSERT( alignof(To) == alignof(From), "must be same align!" );
 
 		return reinterpret_cast< To& >( from );
 	}
@@ -77,6 +78,7 @@ namespace FG
 	{
 		//STATIC_ASSERT( std::is_trivial_v<To> and std::is_trivial_v<From>, "must be trivial types!" );
 		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );
+		STATIC_ASSERT( alignof(To) == alignof(From), "must be same align!" );
 
 		return reinterpret_cast< const To& >( from );
 	}

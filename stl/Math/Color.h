@@ -156,20 +156,30 @@ namespace FG
 	}
 	
 
-
+	
+/*
+=================================================
+	RGBA32i
+=================================================
+*/
 	template <> template <>
 	inline constexpr RGBAColor<int>::RGBAColor (const RGBAColor<uint> &other) :
 		r{int(other.r)}, g{int(other.g)}, b{int(other.b)}, a{int(other.a)}
 	{}
 
 	template <> template <>
-	inline constexpr RGBAColor<uint>::RGBAColor (const RGBAColor<int> &other) :
-		r{uint(other.r)}, g{uint(other.g)}, b{uint(other.b)}, a{uint(other.a)}
-	{}
-
-	template <> template <>
 	inline constexpr RGBAColor<int>::RGBAColor (const RGBAColor<uint8_t> &other) :
 		r{int(other.r)}, g{int(other.g)}, b{int(other.b)}, a{int(other.a)}
+	{}
+	
+/*
+=================================================
+	RGBA32u
+=================================================
+*/
+	template <> template <>
+	inline constexpr RGBAColor<uint>::RGBAColor (const RGBAColor<int> &other) :
+		r{uint(other.r)}, g{uint(other.g)}, b{uint(other.b)}, a{uint(other.a)}
 	{}
 
 	template <> template <>
@@ -177,6 +187,11 @@ namespace FG
 		r{uint(other.r)}, g{uint(other.g)}, b{uint(other.b)}, a{uint(other.a)}
 	{}
 	
+/*
+=================================================
+	RGBA8u
+=================================================
+*/
 	template <> template <>
 	inline constexpr RGBAColor<uint8_t>::RGBAColor (const RGBAColor<int> &other) :
 		r{uint8_t(other.r)}, g{uint8_t(other.g)}, b{uint8_t(other.b)}, a{uint8_t(other.a)}
@@ -193,8 +208,48 @@ namespace FG
 		b{uint8_t(other.b * 255.0f + 0.5f)},  a{uint8_t(other.a * 255.0f + 0.5f)}
 	{}
 
-
+	ND_ inline constexpr RGBA8u  AdjustContrast (const RGBA8u &col, float factor)
+	{
+		constexpr float	mid = 127.0f;
+		RGBA8u			result;
+		result.r = uint8_t(mid + factor * (float(col.r) - mid) + 0.5f);
+		result.g = uint8_t(mid + factor * (float(col.g) - mid) + 0.5f);
+		result.b = uint8_t(mid + factor * (float(col.b) - mid) + 0.5f);
+		result.a = col.a;
+		return result;
+	}
 	
+	ND_ inline constexpr float  Luminance (const RGBA8u &col)
+	{
+		constexpr float  scale = 1.0f / (255.0f * 255.0f * 255.0f);
+		return (float(col.r) * 0.2126f + float(col.g) * float(col.b) * 0.7152f + 0.0722f) * scale;
+	}
+
+	ND_ inline constexpr RGBA8u  AdjustSaturation (const RGBA8u &col, float factor)
+	{
+		RGBA8u			result;
+		const float		lum		= Luminance( col );
+		result.r = uint8_t(lum + factor * (float(col.r) - lum) + 0.5f);
+		result.g = uint8_t(lum + factor * (float(col.g) - lum) + 0.5f);
+		result.b = uint8_t(lum + factor * (float(col.b) - lum) + 0.5f);
+		result.a = col.a;
+		return result;
+	}
+
+	ND_ inline constexpr RGBA8u  Lerp (const RGBA8u &x, const RGBA8u &y, float factor)
+	{
+		float4 v = Lerp( float4{float(x.r), float(x.g), float(x.b), float(x.a)},
+						 float4{float(y.r), float(y.g), float(y.b), float(y.a)}, factor );
+
+		return RGBA8u{ uint8_t(v.x + 0.5f), uint8_t(v.y + 0.5f),
+					   uint8_t(v.z + 0.5f), uint8_t(v.w + 0.5f) };
+	}
+	
+/*
+=================================================
+	HtmlColor
+=================================================
+*/
 	struct HtmlColor
 	{
 		// see https://www.w3schools.com/colors/colors_names.asp

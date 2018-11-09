@@ -25,7 +25,7 @@
 		constexpr uint						numThreads = 2;
 		StaticArray< Value1, numThreads+1 >	values1;		// DOD
 		StaticArray< Value2, numThreads+1 >	values2;		// DOD
-		DoubleBuffer< numThreads >			bufferIndex;
+		LfDoubleBuffer< numThreads >			bufferIndex;
 
 		void thread (uint id)
 		{
@@ -57,18 +57,18 @@ namespace FG
 
 
 	//
-	// Lock-Free Double Buffer
+	// Lock-free Double Buffer
 	//
 
 	template <uint MaxThreads = 2>
-	struct DoubleBuffer final
+	struct LfDoubleBuffer final
 	{
 	// types
 	public:
 		static constexpr uint		MaxItems	= MaxThreads + 1;
 		static constexpr uint		Offset		= CT_IntLog2< MaxItems > + uint(not IsPowerOfTwo( MaxItems ));
 
-		using Self			= DoubleBuffer< MaxThreads >;
+		using Self			= LfDoubleBuffer< MaxThreads >;
 		using Value_t		= Conditional< (Offset * MaxItems > sizeof(uint32_t)*8), uint64_t, uint32_t >;	// TODO: uint128_t support
 		using Atomic_t		= std::atomic< Value_t >;
 
@@ -86,13 +86,13 @@ namespace FG
 
 	// methods
 	public:
-		DoubleBuffer ()
+		LfDoubleBuffer ()
 		{
 			Value_t  value = 0;
 			for (uint i = 0; i < MaxItems; ++i) {
 				value |= i << (Offset * i);
 			}
-			_mode.store( value, std::memory_order_release );
+			_mode.store( value, memory_order_release );
 		}
 
 
@@ -100,7 +100,7 @@ namespace FG
 		{
 			ASSERT( id < MaxThreads );
 
-			Value_t  index = _mode.load( std::memory_order_acquire );
+			Value_t  index = _mode.load( memory_order_acquire );
 			index = (index >> (Offset*id)) & Mask;
 			
 			return index;
@@ -118,7 +118,7 @@ namespace FG
 			const Value_t	mask2		= (Mask << offset2);
 			const Value_t	inv_mask12	= ~(mask1 | mask2);
 
-			Value_t			expected	= _mode.load( std::memory_order_relaxed );
+			Value_t			expected	= _mode.load( memory_order_relaxed );
 			Value_t			next		= 0;
 			uint			i			= 0;
 
@@ -132,7 +132,7 @@ namespace FG
 					std::this_thread::yield();
 				}
 			}
-			while ( not _mode.compare_exchange_weak( INOUT expected, next, std::memory_order_release, std::memory_order_relaxed ));
+			while ( not _mode.compare_exchange_weak( INOUT expected, next, memory_order_release, memory_order_relaxed ));
 
 			return (next >> offset2) & Mask;
 		}

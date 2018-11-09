@@ -17,7 +17,7 @@ namespace FG
 	{
 	// variables
 	private:
-		std::atomic< T *>		_ptr;
+		alignas(FG_CACHE_LINE) std::atomic< T *>	_ptr;
 
 
 	// methods
@@ -25,8 +25,8 @@ namespace FG
 		AtomicPtr () : _ptr{null} {}
 		AtomicPtr (T *ptr) : _ptr{ptr} {}
 
-			void  Store (T *ptr)						{ _ptr.store( ptr, std::memory_order_release ); }
-		ND_ T *   Load ()						const	{ return _ptr.load( std::memory_order_acquire ); }
+			void  Store (T *ptr)						{ _ptr.store( ptr, memory_order_release ); }
+		ND_ T *   Load ()						const	{ return _ptr.load( memory_order_acquire ); }
 
 		AtomicPtr&	operator = (T *ptr)					{ Store( ptr );  return *this; }
 

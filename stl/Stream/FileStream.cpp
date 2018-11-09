@@ -71,9 +71,8 @@ namespace FG
 */
 	FileRStream::~FileRStream ()
 	{
-		if ( _file ) {
+		if ( _file )
 			fclose( _file );
-		}
 	}
 	
 /*
@@ -142,10 +141,8 @@ namespace FG
 	{
         fopen_s( OUT &_file, filename.data(), "wb" );
 
-        if ( _file )
-		{
+        if ( not _file )
 			FG_LOGE( "Can't open file: "s << filename );
-		}
 	}
 	
 	FileWStream::FileWStream (const char *filename) : FileWStream{ StringView{filename} }
@@ -180,9 +177,8 @@ namespace FG
 */
 	FileWStream::~FileWStream ()
 	{
-		if ( _file ) {
+		if ( _file )
 			fclose( _file );
-		}
 	}
 	
 /*

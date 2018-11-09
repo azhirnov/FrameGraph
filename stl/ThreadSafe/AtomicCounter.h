@@ -25,7 +25,7 @@ namespace FG
 
 	// variables
 	private:
-		std::atomic<T>		_value;
+		alignas(FG_CACHE_LINE) std::atomic<T>		_value;
 		
 
 	// methods
@@ -37,20 +37,20 @@ namespace FG
 		void		operator ++ ()				{ Inc(); }
 		void		operator -- ()				{ Dec(); }
 
-		void		Inc ()						{ _value.fetch_add( 1, std::memory_order_relaxed ); }
-		void		Dec ()						{ _value.fetch_sub( 1, std::memory_order_relaxed ); }
+		void		Inc ()						{ _value.fetch_add( 1, memory_order_relaxed ); }
+		void		Dec ()						{ _value.fetch_sub( 1, memory_order_relaxed ); }
 
-		ND_ const T	Load ()				const	{ return _value.load( std::memory_order_acquire ); }
-		void		Store (const T &value)		{ _value.store( value, std::memory_order_release ); }
+		ND_ const T	Load ()				const	{ return _value.load( memory_order_acquire ); }
+		void		Store (const T &value)		{ _value.store( value, memory_order_release ); }
 		
 
 		ND_ bool	DecAndTest ()
 		{
-			const T  res = _value.fetch_sub( 1, std::memory_order_release );
+			const T  res = _value.fetch_sub( 1, memory_order_release );
 			ASSERT( res > 0 );
 
 			if ( res == 1 ) {
-				std::atomic_thread_fence( std::memory_order_acquire );
+				std::atomic_thread_fence( memory_order_acquire );
 				return true;
 			}
 			return false;
@@ -60,7 +60,7 @@ namespace FG
 		ND_ const T	CmpExch (const T& val, const T& compare)
 		{
 			T	tmp = compare;
-			_value.compare_exchange_strong( INOUT tmp, val, std::memory_order_acq_rel );
+			_value.compare_exchange_strong( INOUT tmp, val, memory_order_acq_rel );
 			return tmp;
 		}
 	};

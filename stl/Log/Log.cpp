@@ -57,14 +57,8 @@ using namespace FG;
 
 // Windows
 #elif defined(PLATFORM_WINDOWS)
-
-# ifdef COMPILER_MSVC
-#	pragma warning (push, 0)
-#	include <Windows.h>
-#	pragma warning (pop)
-# else
-#	include <Windows.h>
-# endif
+	
+#	include "stl/Platforms/WindowsHeader.h"
 
 /*
 =================================================

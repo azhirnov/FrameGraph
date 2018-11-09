@@ -231,7 +231,7 @@ namespace FG
 =================================================
 */
 	template <typename T, typename B>
-	ND_ forceinline T  Lerp (const T& x, const T& y, const B& factor)
+	ND_ forceinline constexpr T  Lerp (const T& x, const T& y, const B& factor)
 	{
 		//return T(factor) * (y - x) + x;
 		return x * (T(1) - T(factor)) + y * T(factor);

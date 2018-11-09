@@ -296,7 +296,7 @@ namespace FG
 		
 			_isSorted	= false;
 			_indices[i]	= Index_t(i);
-			PlacementNew<pair_type>( &_array[i], pair_type{ key, std::forward<M>(obj) });
+			PlacementNew<pair_type>( &_array[i], pair_type{ key, std::forward<M &&>(obj) });
 
 			return { BitCast< iterator >( &_array[i] ), true };
 		}
@@ -326,7 +326,7 @@ namespace FG
 		
 			_isSorted	= false;
 			_indices[i]	= Index_t(i);
-			PlacementNew<pair_type>( &_array[i], pair_type{ std::move(key), std::forward<M>(obj) });
+			PlacementNew<pair_type>( &_array[i], pair_type{ std::move(key), std::forward<M &&>(obj) });
 
 			return { BitCast< iterator >( &_array[i] ), true };
 		}

@@ -261,5 +261,10 @@
 
 #ifndef SCOPELOCK
 #	define SCOPELOCK( _syncObj_ ) \
-		std::lock_guard		FG_PRIVATE_UNITE_RAW( __scopeLock, __COUNTER__ ) ( _syncObj_ )
+		std::unique_lock	FG_PRIVATE_UNITE_RAW( __scopeLock, __COUNTER__ ) { _syncObj_ }
+#endif
+
+#ifndef SHAREDLOCK
+#	define SHAREDLOCK( _syncObj_ ) \
+		std::shared_lock	FG_PRIVATE_UNITE_RAW( __sharedLock, __COUNTER__ ) { _syncObj_ }
 #endif

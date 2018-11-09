@@ -20,6 +20,12 @@
 #include "stl/Algorithms/Hash.h"
 #include "stl/CompileTime/TypeTraits.h"
 
+#ifdef FG_DEBUG
+#	define FG_ENABLE_RACE_CONDITION_CHECK
+#else
+//#	define FG_OPTIMAL_MEMORY_ORDER
+#endif
+
 
 namespace FG
 {
@@ -62,6 +68,19 @@ namespace FG
 			  typename Value,
 			  typename Hasher = std::hash<Key>>
 	using HashMap = std::unordered_map< Key, Value, Hasher >;
+
+
+#	ifdef FG_OPTIMAL_MEMORY_ORDER
+	static constexpr std::memory_order	memory_order_acquire	= std::memory_order_acquire;
+	static constexpr std::memory_order	memory_order_release	= std::memory_order_release;
+	static constexpr std::memory_order	memory_order_acq_rel	= std::memory_order_acq_rel;
+	static constexpr std::memory_order	memory_order_relaxed	= std::memory_order_relaxed;
+#	else
+	static constexpr std::memory_order	memory_order_acquire	= std::memory_order_seq_cst;
+	static constexpr std::memory_order	memory_order_release	= std::memory_order_seq_cst;
+	static constexpr std::memory_order	memory_order_acq_rel	= std::memory_order_seq_cst;
+	static constexpr std::memory_order	memory_order_relaxed	= std::memory_order_seq_cst;
+#	endif	// FG_OPTIMAL_MEMORY_ORDER
 
 
 }	// FG

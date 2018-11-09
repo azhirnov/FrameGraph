@@ -9,6 +9,7 @@ extern void UnitTest_FixedMap ();
 extern void UnitTest_IndexedPool ();
 extern void UnitTest_LinearAllocator ();
 extern void UnitTest_Math ();
+extern void UnitTest_Matrix ();
 extern void UnitTest_Color ();
 extern void UnitTest_ToString ();
 extern void UnitTest_DoubleBuffer ();
@@ -18,6 +19,7 @@ extern void UnitTest_BitTree ();
 int main ()
 {
 	UnitTest_Math();
+	UnitTest_Matrix();
 	UnitTest_Color();
 	UnitTest_StaticString();
 	UnitTest_FixedArray();
