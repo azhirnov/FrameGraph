@@ -36,7 +36,7 @@ namespace FG
 		};
 
 	private:
-		struct BufferBarrier
+		struct BufferAccess
 		{
 		// variables
 			BufferRange				range;
@@ -47,19 +47,20 @@ namespace FG
 			bool					isWritable : 1;
 
 		// methods
-			BufferBarrier () : isReadable{false}, isWritable{false} {}
+			BufferAccess () : isReadable{false}, isWritable{false} {}
 		};
 
-		using BarrierArray_t	= Array< BufferBarrier >;	// TODO: fixed size array or custom allocator
+		using AccessRecords_t	= Array< BufferAccess >;	// TODO: fixed size array or custom allocator
+		using AccessIter_t		= AccessRecords_t::iterator;
 
 
 	// variables
 	private:
-		VBuffer const*			_bufferData		= null;
+		VBuffer const*				_bufferData		= null;		// readonly access is thread safe
 
-		mutable BarrierArray_t	_pendingBarriers;
-		mutable BarrierArray_t	_writeBarriers;
-		mutable BarrierArray_t	_readBarriers;
+		mutable AccessRecords_t		_pendingAccesses;
+		mutable AccessRecords_t		_accessForWrite;
+		mutable AccessRecords_t		_accessForRead;
 		
 
 	// methods
@@ -71,6 +72,7 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		void AddPendingState (const BufferState &state) const;
+		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 
 		ND_ bool				IsCreated ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData != null; }
@@ -82,9 +84,9 @@ namespace FG
 
 
 	private:
-		ND_ static BarrierArray_t::iterator	_FindFirstBarrier (BarrierArray_t &arr, const BufferRange &range);
-			static void						_ReplaceBarrier (BarrierArray_t &arr, BarrierArray_t::iterator iter, const BufferBarrier &barrier);
-			static BarrierArray_t::iterator	_EraseBarriers (BarrierArray_t &arr, BarrierArray_t::iterator iter, const BufferRange &range);
+		ND_ static AccessIter_t	_FindFirstAccess (AccessRecords_t &arr, const BufferRange &range);
+			static void			_ReplaceAccessRecords (INOUT AccessRecords_t &arr, AccessIter_t iter, const BufferAccess &barrier);
+			static AccessIter_t	_EraseAccessRecords (INOUT AccessRecords_t &arr, AccessIter_t iter, const BufferRange &range);
 	};
 
 

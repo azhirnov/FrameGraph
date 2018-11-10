@@ -24,7 +24,8 @@ namespace FG
 	Create
 =================================================
 */
-	bool VBuffer::Create (const VDevice &dev, const BufferDesc &desc, RawMemoryID memId, INOUT VMemoryObj &memObj, StringView dbgName)
+	bool VBuffer::Create (const VDevice &dev, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
+						  EQueueFamily queueFamily, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
@@ -36,7 +37,6 @@ namespace FG
 
 		// create buffer
 		VkBufferCreateInfo	info = {};
-
 		info.sType			= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		info.pNext			= null;
 		info.flags			= 0;
@@ -53,7 +53,8 @@ namespace FG
 			dev.SetObjectName( BitCast<uint64_t>(_buffer), _debugName, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT );
 		}
 
-		_debugName = dbgName;
+		_currQueueFamily	= queueFamily;
+		_debugName			= dbgName;
 
 		_OnCreate();
 		return true;
@@ -76,9 +77,10 @@ namespace FG
 			unassignIDs.emplace_back( _memoryId.Release() );
 		}
 
-		_buffer		= VK_NULL_HANDLE;
-		_memoryId	= Default;
-		_desc		= Default;
+		_buffer				= VK_NULL_HANDLE;
+		_memoryId			= Default;
+		_desc				= Default;
+		_currQueueFamily	= Default;
 
 		_debugName.clear();
 

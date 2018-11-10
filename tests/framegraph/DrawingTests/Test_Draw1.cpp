@@ -101,7 +101,7 @@ void main() {
 		};
 
 		
-		CommandBatchID		batch_id{"0"};
+		CommandBatchID		batch_id {"main"};
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
@@ -120,7 +120,7 @@ void main() {
 
 		Task	t_draw	= _frameGraph->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_read	= _frameGraph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
-		(void)(t_read);
+		FG_UNUSED( t_read );
 
 		CHECK_ERR( _frameGraph->Compile() );		
 		CHECK_ERR( _frameGraphInst->Execute() );

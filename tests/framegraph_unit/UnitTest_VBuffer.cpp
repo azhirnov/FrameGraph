@@ -12,7 +12,7 @@ namespace FG
 	class VBufferUnitTest
 	{
 	public:
-		using Barrier = VLocalBuffer::BufferBarrier;
+		using Barrier = VLocalBuffer::BufferAccess;
 
 		static bool Create (VBuffer &buf, const BufferDesc &desc)
 		{
@@ -22,11 +22,11 @@ namespace FG
 		}
 
 		static ArrayView<Barrier>  GetReadBarriers (const VLocalBuffer *buf) {
-			return buf->_readBarriers;
+			return buf->_accessForRead;
 		}
 		
 		static ArrayView<Barrier>  GetWriteBarriers (const VLocalBuffer *buf) {
-			return buf->_writeBarriers;
+			return buf->_accessForWrite;
 		}
 	};
 
@@ -313,6 +313,8 @@ static void VBuffer_Test1 ()
 		TEST( w_barriers[2].isWritable == true );
 		TEST( w_barriers[2].index == ExeOrderIndex(5) );
 	}
+
+	local_buffer.ResetState( ExeOrderIndex::Final, barrier_mngr, null );
 
 	Array<UntypedVkResource_t>	ready_to_delete;
 	Array<UntypedResourceID_t>	unassign_ids;

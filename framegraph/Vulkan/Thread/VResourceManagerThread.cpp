@@ -1,6 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VResourceManagerThread.h"
+#include "VBarrierManager.h"
 
 namespace FG
 {
@@ -130,7 +131,7 @@ namespace FG
 		}
 
 		// destroy local images
-		for (size_t i = 0; i < _localImages->size(); ++i)
+		for (size_t i = 0; i < _localImagesCount; ++i)
 		{
 			auto&	image = (*_localImages)[ Index_t(i) ];
 			if ( not image.IsDestroyed() )
@@ -138,7 +139,7 @@ namespace FG
 		}
 		
 		// destroy local buffers
-		for (size_t i = 0; i < _localBuffers->size(); ++i)
+		for (size_t i = 0; i < _localBuffersCount; ++i)
 		{
 			auto&	buffer = (*_localBuffers)[ Index_t(i) ];
 			if ( not buffer.IsDestroyed() )
@@ -170,6 +171,9 @@ namespace FG
 		_pplnResourcesMap.Destroy();
 		_commitIDs.Destroy();
 		_unassignIDs.Destroy();
+		
+		_localImagesCount	= 0;
+		_localBuffersCount	= 0;
 	}
 
 /*
@@ -557,7 +561,8 @@ namespace FG
 	CreateImage
 =================================================
 */
-	RawImageID  VResourceManagerThread::CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, StringView dbgName, bool isAsync)
+	RawImageID  VResourceManagerThread::CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc,
+													 EQueueFamily queueFamily, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -570,7 +575,7 @@ namespace FG
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
 			DestroyResource( mem_id, isAsync );
 			_Unassign( id );
@@ -587,7 +592,8 @@ namespace FG
 	CreateBuffer
 =================================================
 */
-	RawBufferID  VResourceManagerThread::CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, StringView dbgName, bool isAsync)
+	RawBufferID  VResourceManagerThread::CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc,
+													   EQueueFamily queueFamily, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -600,7 +606,7 @@ namespace FG
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
 			DestroyResource( mem_id, isAsync );
 			_Unassign( id );
@@ -755,6 +761,8 @@ namespace FG
 		auto&		data = (*_localBuffers)[ index ];
 		CHECK_ERR( data.Create( GetResource( id ) ));
 
+		_localBuffersCount = Max( index+1, _localBuffersCount );
+
 		local = LocalBufferID( index, 0 );
 		return local;
 	}
@@ -780,6 +788,8 @@ namespace FG
 		auto&		data = (*_localImages)[ index ];
 		CHECK_ERR( data.Create( GetResource( id ) ));
 
+		_localImagesCount = Max( index+1, _localImagesCount );
+
 		local = LocalImageID( index, 0 );
 		return local;
 	}
@@ -800,6 +810,32 @@ namespace FG
 		CHECK_ERR( data.Create( *this, desc ));
 
 		return LogicalRenderPassID( index, 0 );
+	}
+	
+/*
+=================================================
+	FlushLocalResourceStates
+=================================================
+*/
+	void  VResourceManagerThread::FlushLocalResourceStates (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger)
+	{
+		for (size_t i = 0; i < _localImagesCount; ++i)
+		{
+			auto&	image = (*_localImages)[ Index_t(i) ];
+			if ( not image.IsDestroyed() )
+			{
+				image.ResetState( index, barrierMngr, debugger );
+			}
+		}
+		
+		for (size_t i = 0; i < _localBuffersCount; ++i)
+		{
+			auto&	buffer = (*_localBuffers)[ Index_t(i) ];
+			if ( not buffer.IsDestroyed() )
+			{
+				buffer.ResetState( index, barrierMngr, debugger );
+			}
+		}
 	}
 
 

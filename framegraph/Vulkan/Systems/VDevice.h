@@ -17,7 +17,7 @@ namespace FG
 	// variables
 		mutable std::mutex	lock;			// use when call vkQueueSubmit, vkQueueWaitIdle, vkQueueBindSparse, vkQueuePresentKHR
 		VkQueue				id				= null;
-		uint				familyIndex		= ~0u;
+		EQueueFamily		familyIndex		= Default;
 		VkQueueFlags		familyFlags		= {};
 		float				priority		= 0.0f;
 		DebugName_t			debugName;
@@ -66,13 +66,19 @@ namespace FG
 		
 		VulkanDeviceFnTable					_deviceFnTable;
 
-		bool								_enableDebugMarkers;
+		bool								_enableDebugMarkers	: 1;
+		bool								_enableMeshShaderNV	: 1;
+		bool								_enableRayTracingNV	: 1;
 
 
 	// methods
 	public:
 		explicit VDevice (const VulkanDeviceInfo &vdi);
 		~VDevice ();
+
+		ND_ bool									EnableDebugMarkers ()		const	{ return _enableDebugMarkers; }
+		ND_ bool									EnableMeshShader ()			const	{ return _enableMeshShaderNV; }
+		ND_ bool									EnableRayTracing ()			const	{ return _enableRayTracingNV; }
 
 		ND_ VkDevice								GetVkDevice ()				const	{ return _vkDevice; }
 		ND_ VkPhysicalDevice						GetVkPhysicalDevice ()		const	{ return _vkPhysicalDevice; }

@@ -13,7 +13,7 @@
 namespace FG
 {
 
-	bool FGApp::Test_CopyImage2D ()
+	bool FGApp::Test_CopyImage1 ()
 	{
 		const uint2		src_dim			= {64, 64};
 		const uint2		dst_dim			= {128, 128};
@@ -67,8 +67,8 @@ namespace FG
 				}
 			}
 		};
-
-		CommandBatchID		batch_id{"0"};
+		
+		CommandBatchID		batch_id {"main"};
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
@@ -78,7 +78,7 @@ namespace FG
 		Task	t_update	= _frameGraph->AddTask( UpdateImage().SetImage( src_image ).SetData( src_data, src_dim ) );
 		Task	t_copy		= _frameGraph->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, src_dim ).DependsOn( t_update ) );
 		Task	t_read		= _frameGraph->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
-		(void)(t_read);
+		FG_UNUSED( t_read );
 		
         CHECK_ERR( _frameGraph->Compile() );
         CHECK_ERR( _frameGraphInst->Execute() );

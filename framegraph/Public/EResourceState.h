@@ -77,7 +77,7 @@ namespace FG
 		TransientAttachment				= _Access_TransientAttachment,
 
 		TransferSrc						= _Access_Transfer | _Read,
-		TransferDst						= _Access_Transfer | _Write,	// InvalidateBefore
+		TransferDst						= _Access_Transfer | _Write,
 			
 		ColorAttachmentRead				= _Access_ColorAttachment | _Read,
 		ColorAttachmentWrite			= _Access_ColorAttachment | _Write,
@@ -88,7 +88,7 @@ namespace FG
 		DepthStencilAttachmentReadWrite	= _Access_DepthStencilAttachment | _ReadWrite,
 
 		HostRead						= _Access_Host | _Read,
-		HostWrite						= _Access_Host | _Write,		// InvalidateBefore
+		HostWrite						= _Access_Host | _Write,
 		HostReadWrite					= _Access_Host | _ReadWrite,
 			
 		PresentImage					= _Access_Present | _Read,

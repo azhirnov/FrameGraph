@@ -71,6 +71,8 @@ namespace FG
 		Storage<LocalImages_t>				_localImages;
 		Storage<LocalBuffers_t>				_localBuffers;
 		Storage<LogicalRenderPasses_t>		_logicalRenderPasses;
+		uint								_localImagesCount	= 0;
+		uint								_localBuffersCount	= 0;
 
 		Storage<SamplerMap_t>				_samplerMap;
 		Storage<PipelineLayoutMap_t>		_pplnLayoutMap;
@@ -102,8 +104,8 @@ namespace FG
 		ND_ RawCPipelineID		CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName, bool isAsync);
 		ND_ RawRTPipelineID		CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName, bool isAsync);
 		
-		ND_ RawImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, StringView dbgName, bool isAsync);
-		ND_ RawBufferID			CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, StringView dbgName, bool isAsync);
+		ND_ RawImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
+		ND_ RawBufferID			CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName, bool isAsync);
 
 		ND_ RawRenderPassID		CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput,
@@ -131,6 +133,8 @@ namespace FG
 		template <typename ID>
 		void DestroyResource (ID id, bool isAsync);
 		
+		void FlushLocalResourceStates (ExeOrderIndex, VBarrierManager &, VFrameGraphDebugger *);
+
 		ND_ VPipelineCache *	GetPipelineCache ()					{ return &_pipelineCache; }
 
 

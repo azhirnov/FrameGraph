@@ -26,8 +26,9 @@ namespace {
 */
 	FGApp::FGApp ()
 	{
-		_tests.push_back({ &FGApp::Test_CopyBuffer,		1 });
-		_tests.push_back({ &FGApp::Test_CopyImage2D,	1 });
+		_tests.push_back({ &FGApp::Test_CopyBuffer1,	1 });
+		_tests.push_back({ &FGApp::Test_CopyImage1,		1 });
+		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
 		//_tests.push_back({ &FGApp::Test_Draw1,		1 });
 
@@ -389,6 +390,7 @@ namespace {
 		DWORD process_exit;
 		::GetExitCodeProcess( proc_info.hProcess, OUT &process_exit );
 
+		//std::this_thread::sleep_for( std::chrono::milliseconds(1) );
 		return true;
 #	else
 		// TODO
@@ -429,7 +431,7 @@ namespace {
 			CHECK_ERR( Execute( "\""s << FG_GRAPHVIZ_DOT_EXECUTABLE << "\" -T" << format << " -O " << path, 30'000 ));
 
 			// delete '.dot' file
-			CHECK( DeleteFile( path ));
+			//CHECK( DeleteFile( path ));
 		}
 
 		if ( autoOpen )
@@ -451,15 +453,7 @@ namespace {
 */
 	bool FGApp::CompareDumps (StringView filename) const
 	{
-		String	left;
 		String	fname {FG_TEST_DUMPS_DIR};	fname << '/' << filename << ".txt";
-
-		// read from file
-		{
-			FileRStream		rfile{ fname };
-			CHECK_ERR( rfile.IsOpen() );
-			CHECK_ERR( rfile.Read( size_t(rfile.Size()), OUT left ));
-		}
 
 		String	right;
 		CHECK_ERR( _frameGraphInst->DumpToString( OUT right ));
@@ -471,6 +465,14 @@ namespace {
 			CHECK_ERR( wfile.IsOpen() );
 			CHECK_ERR( wfile.Write( StringView{right} ));
 			return true;
+		}
+
+		// read from file
+		String	left;
+		{
+			FileRStream		rfile{ fname };
+			CHECK_ERR( rfile.IsOpen() );
+			CHECK_ERR( rfile.Read( size_t(rfile.Size()), OUT left ));
 		}
 
 		size_t		l_pos	= 0;

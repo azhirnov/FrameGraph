@@ -40,7 +40,7 @@ namespace FG
 	private:
 		using SubRange	= ImageRange::SubRange_t;
 
-		struct ImageBarrier
+		struct ImageAccess
 		{
 		// variables
 			SubRange				range;
@@ -52,21 +52,22 @@ namespace FG
 			bool					isWritable : 1;
 
 		// methods
-			ImageBarrier () : isReadable{false}, isWritable{false} {}
+			ImageAccess () : isReadable{false}, isWritable{false} {}
 		};
 
 		using ImageViewMap_t	= VImage::ImageViewMap_t;
-		using BarrierArray_t	= Array< ImageBarrier >;		// TODO: fixed size array or custom allocator
+		using AccessRecords_t	= Array< ImageAccess >;		// TODO: fixed size array or custom allocator
+		using AccessIter_t		= AccessRecords_t::iterator;
 
 		
 	// variables
 	private:
-		mutable BarrierArray_t	_pendingBarriers;
-		mutable BarrierArray_t	_readWriteBarriers;
+		mutable ImageViewMap_t		_viewMap;
+		VImage const*				_imageData		= null;		// readonly access is thread safe
+		VkImageLayout				_finalLayout	= VK_IMAGE_LAYOUT_GENERAL;
 
-		mutable ImageViewMap_t	_viewMap;
-		VImage const*			_imageData		= null;						// readonly access is thread safe
-		VkImageLayout			_finalLayout	= VK_IMAGE_LAYOUT_GENERAL;
+		mutable AccessRecords_t		_pendingAccesses;
+		mutable AccessRecords_t		_accessForReadWrite;
 		
 
 	// methods
@@ -78,6 +79,7 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		void AddPendingState (const ImageState &) const;
+		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 		
 		ND_ VkImageView			GetView (const VDevice &, INOUT ImageViewDesc &) const;
@@ -103,8 +105,8 @@ namespace FG
 	private:
 		bool _CreateView (const VDevice &, const HashedImageViewDesc &, OUT VkImageView &) const;
 
-		ND_ static BarrierArray_t::iterator	_FindFirstBarrier (BarrierArray_t &arr, const SubRange &range);
-			static void						_ReplaceBarrier (BarrierArray_t &arr, BarrierArray_t::iterator iter, const ImageBarrier &barrier);
+		ND_ static AccessIter_t	_FindFirstAccess (AccessRecords_t &arr, const SubRange &range);
+			static void			_ReplaceAccessRecords (INOUT AccessRecords_t &arr, AccessIter_t iter, const ImageAccess &barrier);
 
 	};
 

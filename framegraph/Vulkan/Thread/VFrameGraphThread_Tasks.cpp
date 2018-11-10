@@ -28,7 +28,54 @@ namespace FG
 		if ( _taskGraph.Empty() )
 			return true;
 
-		VTaskProcessor	processor{ *this, _CreateCommandBuffer( _currUsage )};
+		VkCommandBuffer		cmd	= _CreateCommandBuffer( _currUsage );
+		VDevice const&		dev	= GetDevice();
+		
+		// begin
+		{
+			VkCommandBufferBeginInfo	info = {};
+			info.sType	= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+			VK_CALL( dev.vkBeginCommandBuffer( cmd, &info ));
+		}
+		
+		// TODO: is it realy needed?
+		// add global memory and execution barrier between command buffers in same batch
+		/*if ( _indexInBatch > 0 )
+		{
+			VkMemoryBarrier	barrier = {};
+			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+			barrier.srcAccessMask	= VK_ACCESS_MEMORY_WRITE_BIT;
+			barrier.dstAccessMask	= VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+
+			_barrierMngr.AddMemoryBarrier( VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, barrier );
+		}*/
+
+		// commit image layout transition and other
+		_barrierMngr.Commit( dev, cmd );
+
+		CHECK( _ProcessTasks( cmd ));
+
+		// transit image layout to default state
+		// add memory dependency to flush caches
+		{
+			_resourceMngr.FlushLocalResourceStates( ExeOrderIndex::Final, _barrierMngr, GetDebugger() );
+			_barrierMngr.Commit( dev, cmd );
+		}
+
+		VK_CALL( dev.vkEndCommandBuffer( cmd ));
+		return true;
+	}
+	
+/*
+=================================================
+	_ProcessTasks
+=================================================
+*/
+	bool VFrameGraphThread::_ProcessTasks (VkCommandBuffer cmd)
+	{
+		VTaskProcessor	processor{ *this, _barrierMngr, cmd, _cmdBatchId, _indexInBatch };
 
 		++_visitorID;
 		_exeOrderIndex = ExeOrderIndex::First;
@@ -132,6 +179,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const SubmitRenderPass &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() and task.renderPass );
 		ASSERT( EnumEq( _currUsage, EThreadUsage::Graphics ));
 		
@@ -152,6 +200,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const DispatchCompute &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
 
@@ -165,6 +214,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const DispatchIndirectCompute &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
 
@@ -178,6 +228,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const CopyBuffer &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcBuffer and task.dstBuffer );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
@@ -192,6 +243,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const CopyImage &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
@@ -206,6 +258,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const CopyBufferToImage &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcBuffer and task.dstImage );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
@@ -220,6 +273,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const CopyImageToBuffer &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstBuffer );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
@@ -234,6 +288,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const BlitImage &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
 		ASSERT( !!(_currUsage & EThreadUsage::Graphics) );
@@ -248,6 +303,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const ResolveImage &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
 		ASSERT( !!(_currUsage & EThreadUsage::Graphics) );
@@ -262,6 +318,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const FillBuffer &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstBuffer );
 
@@ -275,6 +332,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const ClearColorImage &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstImage );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
@@ -289,6 +347,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const ClearDepthStencilImage &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstImage );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
@@ -303,6 +362,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const UpdateBuffer &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstBuffer );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
@@ -354,6 +414,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const UpdateImage &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
@@ -470,6 +531,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const ReadBuffer &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
@@ -530,6 +592,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const ReadImage &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
 
@@ -648,6 +711,7 @@ namespace FG
 */
 	Task  VFrameGraphThread::AddTask (const FG::Present &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		// TODO: check thread usage
 
@@ -678,6 +742,7 @@ namespace FG
 *
 	Task  VFrameGraphThread::AddTask (const PresentVR &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 
 		return _taskGraph.Add( this, task );
@@ -690,6 +755,7 @@ namespace FG
 *
 	Task  VFrameGraphThread::AddTask (const TaskGroupSync &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 
 		return _taskGraph.Add( this, task );
@@ -702,6 +768,7 @@ namespace FG
 */
 	void  VFrameGraphThread::AddDrawTask (RenderPass renderPass, const DrawTask &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() and renderPass, void() );
 		
 		auto *	rp  = _resourceMngr.GetState(ConvertLRP( renderPass ));
@@ -721,6 +788,7 @@ namespace FG
 */
 	void  VFrameGraphThread::AddDrawTask (RenderPass renderPass, const DrawIndexedTask &task)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState(ConvertLRP( renderPass ));
@@ -740,6 +808,7 @@ namespace FG
 */
 	RenderPass  VFrameGraphThread::CreateRenderPass (const RenderPassDesc &desc)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 
 		LogicalRenderPassID	id = _resourceMngr.CreateLogicalRenderPass( desc );
@@ -755,6 +824,7 @@ namespace FG
 */
 	bool  VFrameGraphThread::Acquire (const ImageID &id, bool immutable)
 	{
+		SCOPELOCK( _rcCheck );
 		return false;
 	}
 	
@@ -765,6 +835,7 @@ namespace FG
 */
 	bool  VFrameGraphThread::Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable)
 	{
+		SCOPELOCK( _rcCheck );
 		return false;
 	}
 	
@@ -775,6 +846,7 @@ namespace FG
 */
 	bool  VFrameGraphThread::Acquire (const BufferID &id, bool immutable)
 	{
+		SCOPELOCK( _rcCheck );
 		return false;
 	}
 	
@@ -785,6 +857,7 @@ namespace FG
 */
 	bool  VFrameGraphThread::Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable)
 	{
+		SCOPELOCK( _rcCheck );
 		return false;
 	}
 

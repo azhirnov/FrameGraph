@@ -2,7 +2,7 @@
 cmake_minimum_required (VERSION 3.6.0)
 
 set( FrameGraph_VERSION_MAJOR 0 )
-set( FrameGraph_VERSION_MINOR 3 )
+set( FrameGraph_VERSION_MINOR 5 )
 
 #==================================================================================================
 # project: FrameGraph
@@ -72,6 +72,7 @@ set( SOURCES
 	"Vulkan/Debugger/VDebugger.h"
 	"Vulkan/Debugger/VFrameGraphDebugger.cpp"
 	"Vulkan/Debugger/VFrameGraphDebugger.h"
+	"Vulkan/Debugger/VFrameGraphDebugger2.cpp"
 	"Vulkan/Image/VImage.cpp"
 	"Vulkan/Image/VImage.h"
 	"Vulkan/Image/VLocalImage.cpp"
@@ -146,7 +147,7 @@ source_group( "Public" FILES "Public/BindingIndex.h" "Public/BufferDesc.h" "Publ
 source_group( "Vulkan" FILES "Vulkan/VCommon.h" )
 source_group( "Vulkan\\Thread" FILES "Vulkan/Thread/VBarrierManager.h" "Vulkan/Thread/VDrawTask.h" "Vulkan/Thread/VFrameGraphThread.cpp" "Vulkan/Thread/VFrameGraphThread.h" "Vulkan/Thread/VFrameGraphThread_Tasks.cpp" "Vulkan/Thread/VResourceManagerThread.cpp" "Vulkan/Thread/VResourceManagerThread.h" "Vulkan/Thread/VStagingBufferManager.cpp" "Vulkan/Thread/VStagingBufferManager.h" "Vulkan/Thread/VTaskGraph.h" "Vulkan/Thread/VTaskGraph.hpp" "Vulkan/Thread/VTaskProcessor.cpp" "Vulkan/Thread/VTaskProcessor.h" )
 source_group( "Vulkan\\Systems" FILES "Vulkan/Systems/VDevice.cpp" "Vulkan/Systems/VDevice.h" "Vulkan/Systems/VFrameGraph.cpp" "Vulkan/Systems/VFrameGraph.h" "Vulkan/Systems/VResourceManager.cpp" "Vulkan/Systems/VResourceManager.h" "Vulkan/Systems/VSubmissionGraph.cpp" "Vulkan/Systems/VSubmissionGraph.h" )
-source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VDebugger.cpp" "Vulkan/Debugger/VDebugger.h" "Vulkan/Debugger/VFrameGraphDebugger.cpp" "Vulkan/Debugger/VFrameGraphDebugger.h" )
+source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VDebugger.cpp" "Vulkan/Debugger/VDebugger.h" "Vulkan/Debugger/VFrameGraphDebugger.cpp" "Vulkan/Debugger/VFrameGraphDebugger.h" "Vulkan/Debugger/VFrameGraphDebugger2.cpp" )
 source_group( "Vulkan\\Image" FILES "Vulkan/Image/VImage.cpp" "Vulkan/Image/VImage.h" "Vulkan/Image/VLocalImage.cpp" "Vulkan/Image/VLocalImage.h" "Vulkan/Image/VSampler.cpp" "Vulkan/Image/VSampler.h" )
 source_group( "Vulkan\\Swapchain" FILES "Vulkan/Swapchain/VSwapchain.h" "Vulkan/Swapchain/VSwapchainKHR.cpp" "Vulkan/Swapchain/VSwapchainKHR.h" )
 source_group( "Shared" FILES "Shared/CreateFrameGraph.cpp" "Shared/EnumToString.h" "Shared/EnumUtils.h" "Shared/ImageDataRange.h" "Shared/ImageView.cpp" "Shared/ImageViewDesc.cpp" "Shared/ImageViewDesc.h" "Shared/LocalResourceID.h" "Shared/Pipeline.cpp" "Shared/PipelineResourcesInitializer.h" "Shared/RenderState.cpp" "Shared/ResourceBase.h" "Shared/ResourceDataRange.h" "Shared/ThreadID.h" "Shared/VertexInputState.cpp" )
@@ -246,12 +247,10 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_ENABLE_SDL2})
 	set( SOURCES 
-		"../tests/framegraph/Dumps/Test_Compute1.txt"
-		"../tests/framegraph/Dumps/Test_CopyBuffer.txt"
-		"../tests/framegraph/Dumps/Test_CopyImage2D.txt"
 		"../tests/framegraph/DrawingTests/Test_Compute1.cpp"
-		"../tests/framegraph/DrawingTests/Test_CopyBuffer.cpp"
-		"../tests/framegraph/DrawingTests/Test_CopyImage2D.cpp"
+		"../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp"
+		"../tests/framegraph/DrawingTests/Test_CopyImage1.cpp"
+		"../tests/framegraph/DrawingTests/Test_CopyImage2.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw1.cpp"
 		"../tests/framegraph/FGApp.cpp"
 		"../tests/framegraph/FGApp.h"
@@ -261,8 +260,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	else()
 		add_executable( "IntTests.FrameGraph" ${SOURCES} )
 	endif()
-	source_group( "Dumps" FILES "../tests/framegraph/Dumps/Test_Compute1.txt" "../tests/framegraph/Dumps/Test_CopyBuffer.txt" "../tests/framegraph/Dumps/Test_CopyImage2D.txt" )
-	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2D.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" )
+	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
 	set_property( TARGET "IntTests.FrameGraph" PROPERTY FOLDER "Tests" )
 	target_include_directories( "IntTests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )

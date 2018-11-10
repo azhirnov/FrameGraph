@@ -16,7 +16,7 @@ namespace FG
 	// Vulkan Default Swapchain (KHR)
 	//
 
-	class VSwapchainKHR : public VSwapchain
+	class VSwapchainKHR final : public VSwapchain
 	{
 	// types
 	private:
@@ -43,7 +43,7 @@ namespace FG
 		bool Initialize (VkQueue queue) override;
 		void Deinitialize () override;
 
-		bool IsCompatibleWithQueue (uint familyIndex) const override;
+		bool IsCompatibleWithQueue (EQueueFamily familyIndex) const override;
 		
 		RawImageID  GetImage (ESwapchainImage type) override;
 	};

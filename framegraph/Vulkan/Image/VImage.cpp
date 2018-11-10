@@ -61,7 +61,8 @@ namespace FG
 	Create
 =================================================
 */
-	bool VImage::Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, INOUT VMemoryObj &memObj, StringView dbgName)
+	bool VImage::Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
+						 EQueueFamily queueFamily, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( GetState() == EState::Initial );
@@ -70,9 +71,8 @@ namespace FG
 		
 		const bool		opt_tiling	= not uint(memObj.MemoryType() & EMemoryTypeExt::HostVisible);
 
-		_initialLayout	= opt_tiling ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PREINITIALIZED;
-		_desc			= desc;		_desc.Validate();
-		_memoryId		= MemoryID{ memId };
+		_desc		= desc;		_desc.Validate();
+		_memoryId	= MemoryID{ memId };
 		
 		// create image
 		VkImageCreateInfo	info = {};
@@ -89,7 +89,7 @@ namespace FG
 		info.samples		= VEnumCast( _desc.samples );
 		info.tiling			= (opt_tiling ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR);
 		info.usage			= VEnumCast( _desc.usage );
-		info.initialLayout	= _initialLayout;
+		info.initialLayout	= (opt_tiling ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PREINITIALIZED);
 		info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
 
 		if ( EImage_IsCube( _desc.imageType ) )
@@ -138,7 +138,8 @@ namespace FG
 			}
 		}
 		
-		_debugName = dbgName;
+		_currQueueFamily	= queueFamily;
+		_debugName			= dbgName;
 
 		_OnCreate();
 		return true;
@@ -167,12 +168,12 @@ namespace FG
 		
 		_viewMap.clear();
 		_debugName.clear();
-		_image			= VK_NULL_HANDLE;
-		_memoryId		= Default;
-		_desc			= Default;
-		_aspectMask		= 0;
-		_initialLayout	= VK_IMAGE_LAYOUT_MAX_ENUM;
-		_defaultLayout	= VK_IMAGE_LAYOUT_MAX_ENUM;
+		_image				= VK_NULL_HANDLE;
+		_memoryId			= Default;
+		_desc				= Default;
+		_aspectMask			= 0;
+		_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
+		_currQueueFamily	= Default;
 		
 		_OnDestroy();
 	}

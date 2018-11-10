@@ -83,8 +83,9 @@ namespace FG
 
 	// drawing tests
 	private:
-		bool Test_CopyBuffer ();
-		bool Test_CopyImage2D ();
+		bool Test_CopyBuffer1 ();
+		bool Test_CopyImage1 ();
+		bool Test_CopyImage2 ();
 		bool Test_Compute1 ();
 		bool Test_Draw1 ();
 	};

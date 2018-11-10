@@ -128,15 +128,37 @@ namespace FG
 		// TODO: sort?
 		for (auto& batch : _batches)
 		{
+			str << "	subgraph cluster_Batch" << ToString<16>( size_t(&batch) ) << " {\n"
+				<< "		style=filled;\n"
+				<< "		color=\"#181818\";\n"
+				<< "		fontcolor=\"#dcdcdc\";\n"
+				<< "		label=\"" << batch.first.GetName() << "\";\n";
+
 			for (uint i = 0; i < batch.second.threadCount; ++i)
 			{
 				ASSERT( not batch.second.graphs[i].empty() );
 
 				str << batch.second.graphs[i];
 			}
+
+			str << "	}\n";
 		}
 		str << "}\n";
 	}
+	
+/*
+=================================================
+	BuildSubBatchName
+=================================================
+*/
+	String  VDebugger::BuildSubBatchName (const CommandBatchID &batchId, uint indexInBatch)
+	{
+		String	result {batchId.GetName()};
 
+		FindAndReplace( INOUT result, " ", "_" );
+		result << "_Index" << ToString( indexInBatch );
+
+		return result;
+	}
 
 }	// FG

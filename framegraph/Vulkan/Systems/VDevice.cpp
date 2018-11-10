@@ -23,7 +23,7 @@ namespace FG
 			VDeviceQueueInfo	dst = {};
 			dst.id			= BitCast<VkQueue>( src.id );
 			dst.familyFlags	= BitCast<VkQueueFlags>( src.familyFlags );
-			dst.familyIndex	= src.familyIndex;
+			dst.familyIndex	= EQueueFamily(src.familyIndex);
 			dst.priority	= src.priority;
 			dst.debugName	= src.debugName;
 
@@ -50,11 +50,13 @@ namespace FG
 			CHECK( _vkVersion != EShaderLangFormat::Unknown );
 		}
 
-		_enableDebugMarkers = HasExtension( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
-
 		CHECK( _LoadInstanceLayers() );
 		CHECK( _LoadInstanceExtensions() );
 		CHECK( _LoadDeviceExtensions() );
+
+		_enableDebugMarkers	= HasExtension( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
+		_enableMeshShaderNV	= HasDeviceExtension( VK_NV_MESH_SHADER_EXTENSION_NAME );
+		_enableRayTracingNV	= HasDeviceExtension( VK_NVX_RAYTRACING_EXTENSION_NAME );
 
 
 		// validate constants

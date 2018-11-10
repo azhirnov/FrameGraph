@@ -52,6 +52,8 @@ namespace FG
 
 		void GetFrameDump (OUT String &) const;
 		void GetGraphDump (OUT String &) const;
+
+		ND_ static String  BuildSubBatchName (const CommandBatchID &batchId, uint indexInBatch);
 	};
 
 

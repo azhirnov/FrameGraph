@@ -18,6 +18,7 @@ namespace FG
 		_defaultCompilationFlags{ Default },
 		_defaultDebugFlags{ Default }
 	{
+		SCOPELOCK( _rcCheck );
 		_threads.reserve( 32 );
 	}
 	

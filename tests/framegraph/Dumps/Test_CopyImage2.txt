@@ -1,8 +1,8 @@
 Thread {
-	batch:         "0"
+	batch:         "main"
 	indexInBatch:  0
 	Image {
-		name:         DstImage
+		name:         "DstImage"
 		iamgeType:    Image2D
 		dimension:    ( 128, 128, 1 )
 		format:       RGBA8_UNorm
@@ -19,7 +19,7 @@ Thread {
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   TransferWrite
-					oldLayout:       Undefined
+					oldLayout:       General
 					newLayout:       TransferDstOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
@@ -43,11 +43,27 @@ Thread {
 					baseArrayLayer:  0
 					layerCount:      1
 				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
 		}
 	}
 
 	Image {
-		name:         SrcImage
+		name:         "SrcImage"
 		iamgeType:    Image2D
 		dimension:    ( 64, 64, 1 )
 		format:       RGBA8_UNorm
@@ -64,7 +80,7 @@ Thread {
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   TransferWrite
-					oldLayout:       Undefined
+					oldLayout:       General
 					newLayout:       TransferDstOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
@@ -88,17 +104,52 @@ Thread {
 					baseArrayLayer:  0
 					layerCount:      1
 				}
+				ImageMemoryBarrier {
+					srcTask:         CopyImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "StagingReadBuffer "
+		size:    16 Mb
+		usage:   TransferSrc | TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
+				}
 		}
 	}
 
 	-----------------------------------------------------------
 	Task {
-		name:    UpdateImage (#2)
+		name:    "UpdateImage (#2)"
 		input =  {  }
 		output = { CopyImage (#3) }
 		resource_usage = {
 			ImageUsage {
-				name:           SrcImage
+				name:           "SrcImage"
 				usage:          TransferDst
 				baseMipLevel:   0
 				levelCount:     1
@@ -106,20 +157,20 @@ Thread {
 				layerCount:     1
 			}
 			BufferUsage {
-				name:     StagingWriteBuffer 0/0
+				name:     "StagingWriteBuffer "
 				usage:    TransferSrc
-				offset:   0
-				size:     16384
+				offset:   0 b
+				size:     8192 b
 			}
 		}
 	}
 	Task {
-		name:    CopyImage (#3)
+		name:    "CopyImage (#3)"
 		input =  { UpdateImage (#2) }
 		output = { ReadImage (#4) }
 		resource_usage = {
 			ImageUsage {
-				name:           DstImage
+				name:           "DstImage"
 				usage:          TransferDst
 				baseMipLevel:   0
 				levelCount:     1
@@ -127,7 +178,7 @@ Thread {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           SrcImage
+				name:           "SrcImage"
 				usage:          TransferSrc
 				baseMipLevel:   0
 				levelCount:     1
@@ -137,12 +188,12 @@ Thread {
 		}
 	}
 	Task {
-		name:    ReadImage (#4)
+		name:    "ReadImage (#4)"
 		input =  { CopyImage (#3) }
 		output = {  }
 		resource_usage = {
 			ImageUsage {
-				name:           DstImage
+				name:           "DstImage"
 				usage:          TransferSrc
 				baseMipLevel:   0
 				levelCount:     1
@@ -150,10 +201,10 @@ Thread {
 				layerCount:     1
 			}
 			BufferUsage {
-				name:     StagingReadBuffer 0/0
+				name:     "StagingReadBuffer "
 				usage:    TransferDst
-				offset:   0
-				size:     65536
+				offset:   0 b
+				size:     64 Kb
 			}
 		}
 	}

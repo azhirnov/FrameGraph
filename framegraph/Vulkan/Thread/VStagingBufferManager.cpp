@@ -302,7 +302,7 @@ namespace FG
 		if ( not suitable )
 		{
 			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostWrite}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer},
-															    "StagingWriteBuffer "s << ToString(staging_buffers.size()) << '/' << ToString(_frameId) );
+															    "StagingWriteBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
 			CHECK_ERR( buf_id );
 
 			RawMemoryID		mem_id  = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
@@ -369,7 +369,7 @@ namespace FG
 		if ( not suitable )
 		{
 			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostRead}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer},
-															    "StagingReadBuffer "s << ToString(staging_buffers.size()) << '/' << ToString(_frameId) );
+															    "StagingReadBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
 			CHECK_ERR( buf_id );
 			
 			RawMemoryID		mem_id  = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();

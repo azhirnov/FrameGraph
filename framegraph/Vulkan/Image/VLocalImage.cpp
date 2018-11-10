@@ -33,20 +33,20 @@ namespace FG
 		CHECK_ERR( imageData and imageData->IsCreated() );
 
 		_imageData		= imageData;
-		_finalLayout	= _imageData->DefaultLayout();	// TODO
+		_finalLayout	= _imageData->DefaultLayout();
 		
 		// set initial state
 		{
-			ImageBarrier	barrier;
-			barrier.isReadable	= true;
-			barrier.isWritable	= true;
-			barrier.stages		= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			barrier.access		= 0;
-			barrier.layout		= _imageData->InitialLayout();	// TODO
-			barrier.index		= ExeOrderIndex::Initial;
-			barrier.range		= SubRange{ 0, ArrayLayers() * MipmapLevels() };
+			ImageAccess		pending;
+			pending.isReadable	= false;
+			pending.isWritable	= false;
+			pending.stages		= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			pending.access		= 0;
+			pending.layout		= _imageData->DefaultLayout();
+			pending.index		= ExeOrderIndex::Initial;
+			pending.range		= SubRange{ 0, ArrayLayers() * MipmapLevels() };
 
-			_readWriteBarriers.push_back( barrier );
+			_accessForReadWrite.push_back( std::move(pending) );
 		}
 
 		_OnCreate();
@@ -67,6 +67,13 @@ namespace FG
 		_imageData	= null;
 		_viewMap.clear();
 		
+		// check for uncommited barriers
+		ASSERT( _pendingAccesses.empty() );
+		ASSERT( _accessForReadWrite.empty() );
+
+		_pendingAccesses.clear();
+		_accessForReadWrite.clear();
+
 		_OnDestroy();
 	}
 	
@@ -155,11 +162,11 @@ namespace FG
 
 /*
 =================================================
-	_FindFirstBarrier
+	_FindFirstAccess
 =================================================
 */
-	inline VLocalImage::BarrierArray_t::iterator
-		VLocalImage::_FindFirstBarrier (BarrierArray_t &arr, const SubRange &otherRange)
+	inline VLocalImage::AccessIter_t
+		VLocalImage::_FindFirstAccess (AccessRecords_t &arr, const SubRange &otherRange)
 	{
 		auto iter = arr.begin();
 		auto end  = arr.end();
@@ -171,10 +178,10 @@ namespace FG
 	
 /*
 =================================================
-	_ReplaceBarrier
+	_ReplaceAccessRecords
 =================================================
 */
-	void VLocalImage::_ReplaceBarrier (BarrierArray_t &arr, BarrierArray_t::iterator iter, const ImageBarrier &barrier)
+	void VLocalImage::_ReplaceAccessRecords (INOUT AccessRecords_t &arr, AccessIter_t iter, const ImageAccess &barrier)
 	{
 		ASSERT( iter >= arr.begin() and iter <= arr.end() );
 
@@ -271,13 +278,13 @@ namespace FG
 		//if ( _isImmutable )
 		//	return;
 
-		ImageBarrier	barrier;
-		barrier.isReadable	= EResourceState_IsReadable( is.state );
-		barrier.isWritable	= EResourceState_IsWritable( is.state );
-		barrier.stages		= EResourceState_ToPipelineStages( is.state );
-		barrier.access		= EResourceState_ToAccess( is.state );
-		barrier.layout		= is.layout;
-		barrier.index		= is.task->ExecutionOrder();
+		ImageAccess		pending;
+		pending.isReadable	= EResourceState_IsReadable( is.state );
+		pending.isWritable	= EResourceState_IsWritable( is.state );
+		pending.stages		= EResourceState_ToPipelineStages( is.state );
+		pending.access		= EResourceState_ToAccess( is.state );
+		pending.layout		= is.layout;
+		pending.index		= is.task->ExecutionOrder();
 		
 
 		// extract sub ranges
@@ -310,40 +317,72 @@ namespace FG
 		// merge with pending
 		for (auto& range : sub_ranges)
 		{
-			auto	iter = _FindFirstBarrier( _pendingBarriers, range );
+			auto	iter = _FindFirstAccess( _pendingAccesses, range );
 
-			if ( iter != _pendingBarriers.end() and iter->range.begin > range.begin )
+			if ( iter != _pendingAccesses.end() and iter->range.begin > range.begin )
 			{
-				barrier.range = { range.begin, iter->range.begin };
+				pending.range = { range.begin, iter->range.begin };
 
-				iter = _pendingBarriers.insert( iter, barrier );
+				iter = _pendingAccesses.insert( iter, pending );
 				++iter;
 
 				range.begin = iter->range.begin;
 			}
 
-			for (; iter != _pendingBarriers.end() and iter->range.IsIntersects( range ); ++iter)
+			for (; iter != _pendingAccesses.end() and iter->range.IsIntersects( range ); ++iter)
 			{
 				iter->range.begin	= Min( iter->range.begin, range.begin );
 				range.begin			= iter->range.end;
 				
-				ASSERT( iter->index == barrier.index );
-				ASSERT( iter->layout == barrier.layout );
+				ASSERT( iter->index == pending.index );
+				ASSERT( iter->layout == pending.layout );
 								
-				iter->stages		|= barrier.stages;
-				iter->access		|= barrier.access;
-				iter->isReadable	|= barrier.isReadable;
-				iter->isWritable	|= barrier.isWritable;
+				iter->stages		|= pending.stages;
+				iter->access		|= pending.access;
+				iter->isReadable	|= pending.isReadable;
+				iter->isWritable	|= pending.isWritable;
 			}
 
 			if ( not range.IsEmpty() )
 			{
-				barrier.range = range;
-				_pendingBarriers.insert( iter, barrier );
+				pending.range = range;
+				_pendingAccesses.insert( iter, pending );
 			}
 		}
 	}
 	
+/*
+=================================================
+	ResetState
+----
+	
+=================================================
+*/
+	void VLocalImage::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	{
+		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
+		SCOPELOCK( _rcCheck );
+		
+		// add full range barrier
+		{
+			ImageAccess		pending;
+			pending.isReadable	= true;
+			pending.isWritable	= false;
+			pending.stages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			pending.access		= 0;
+			pending.layout		= _finalLayout;
+			pending.index		= index;
+			pending.range		= SubRange{ 0, ArrayLayers() * MipmapLevels() };
+
+			_pendingAccesses.push_back( std::move(pending) );
+		}
+
+		CommitBarrier( barrierMngr, debugger );
+
+		// flush
+		_accessForReadWrite.clear();
+	}
+
 /*
 =================================================
 	CommitBarrier
@@ -353,18 +392,17 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 
-		for (const auto& pending : _pendingBarriers)
+		for (const auto& pending : _pendingAccesses)
 		{
-			// barriers: write -> write, read -> write, write -> read, layout -> layout
-			const auto	first = _FindFirstBarrier( _readWriteBarriers, pending.range );
+			const auto	first = _FindFirstAccess( _accessForReadWrite, pending.range );
 
-			for (auto iter = first; iter != _readWriteBarriers.end() and iter->range.begin < pending.range.end; ++iter)
+			for (auto iter = first; iter != _accessForReadWrite.end() and iter->range.begin < pending.range.end; ++iter)
 			{
 				const SubRange	range		= iter->range.Intersect( pending.range );
 
-				const bool		is_modified = iter->layout != pending.layout	or 
-											  iter->isWritable					or
-											  pending.isWritable;
+				const bool		is_modified = (iter->layout != pending.layout)			or		// layout -> layout 
+											  (iter->isReadable and pending.isWritable)	or		// read -> write
+											  iter->isWritable;									// write -> read/write
 
 				if ( not range.IsEmpty() and is_modified )
 				{
@@ -392,10 +430,10 @@ namespace FG
 				}
 			}
 
-			_ReplaceBarrier( _readWriteBarriers, first, pending );
+			_ReplaceAccessRecords( _accessForReadWrite, first, pending );
 		}
 
-		_pendingBarriers.clear();
+		_pendingAccesses.clear();
 	}
 
 

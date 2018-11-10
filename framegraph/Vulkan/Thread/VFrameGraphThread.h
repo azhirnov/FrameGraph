@@ -41,18 +41,13 @@ namespace FG
 		
 		static constexpr uint	MaxQueues			= 4;
 		static constexpr uint	MaxFrames			= 8;
-		static constexpr uint	MaxSignalSemaphores	= 8;
-		static constexpr uint	MaxWaitSemaphores	= 8;
 		static constexpr uint	MaxCommandsPerFrame	= 8;
 
 		using CommandBuffers_t	= FixedArray< VkCommandBuffer, MaxCommandsPerFrame >;
-		using Allocator_t		= LinearAllocator<>;
-
 
 		struct PerFrame
 		{
 			CommandBuffers_t	commands;
-			//VkSemaphore		semaphore	= VK_NULL_HANDLE;
 		};
 		using PerFrameArray_t	= FixedArray< PerFrame, MaxFrames >;
 
@@ -68,6 +63,7 @@ namespace FG
 		
 		using TempTaskArray_t	= std::vector< Task, StdLinearAllocator<Task> >;
 		using TaskGraph_t		= VTaskGraph< VTaskProcessor >;
+		using Allocator_t		= LinearAllocator<>;
 
 
 	// variables
@@ -79,7 +75,6 @@ namespace FG
 
 		std::atomic<EState>			_state;
 		ECompilationFlags			_compilationFlags;
-		ThreadID					_ownThread;
 
 		PerQueueArray_t				_queues;
 		uint						_frameId			= 0;
@@ -97,10 +92,13 @@ namespace FG
 
 		VFrameGraph &						_instance;
 		VResourceManagerThread				_resourceMngr;
+		VBarrierManager						_barrierMngr;
 		SharedPtr< VMemoryManager >			_memoryMngr;		// memory manager must live until all memory objects have been destroyed
 		UniquePtr< VStagingBufferManager >	_stagingMngr;
 		UniquePtr< VSwapchain >				_swapchain;
 		UniquePtr< VFrameGraphDebugger >	_debugger;
+
+		RaceConditionCheck					_rcCheck;
 
 
 	// methods
@@ -133,7 +131,7 @@ namespace FG
 		bool			GetDescriptorSet (const MPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
 		bool			GetDescriptorSet (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
 
-		EThreadUsage	GetThreadUsage () const override		{ return _threadUsage; }
+		EThreadUsage	GetThreadUsage () const override		{ SCOPELOCK( _rcCheck );  return _threadUsage; }
 		bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const override;
 
 		// initialization
@@ -192,15 +190,15 @@ namespace FG
 		
 		bool AddPipelineCompiler (const IPipelineCompilerPtr &comp);
 
-		ND_ bool					IsDestroyed ()				const	{ return _GetState() == EState::Destroyed; }
-		ND_ Allocator_t &			GetAllocator ()						{ return _mainAllocator; }
-		ND_ VDevice const&			GetDevice ()				const	{ return _instance.GetDevice(); }
+		ND_ bool					IsDestroyed ()				const	{ SCOPELOCK( _rcCheck );  return _GetState() == EState::Destroyed; }
+		ND_ Allocator_t &			GetAllocator ()						{ SCOPELOCK( _rcCheck );  return _mainAllocator; }
+		ND_ VDevice const&			GetDevice ()				const	{ SCOPELOCK( _rcCheck );  return _instance.GetDevice(); }
 
-		ND_ VFrameGraph const*		GetInstance ()				const	{ return &_instance; }
-		ND_ VResourceManagerThread*	GetResourceManager ()				{ return &_resourceMngr; }
-		ND_ VMemoryManager*			GetMemoryManager ()					{ return _memoryMngr.operator->(); }
-		ND_ VPipelineCache *		GetPipelineCache ()					{ return _resourceMngr.GetPipelineCache(); }
-		ND_ VFrameGraphDebugger *	GetDebugger ()						{ ASSERT( _debugger );  return _debugger.get(); }
+		ND_ VFrameGraph const*		GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
+		ND_ VResourceManagerThread*	GetResourceManager ()				{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
+		ND_ VMemoryManager*			GetMemoryManager ()					{ SCOPELOCK( _rcCheck );  return _memoryMngr.operator->(); }
+		ND_ VPipelineCache *		GetPipelineCache ()					{ SCOPELOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
+		ND_ VFrameGraphDebugger *	GetDebugger ()						{ SCOPELOCK( _rcCheck );  ASSERT( _debugger );  return _debugger.get(); }
 
 
 	private:
@@ -222,8 +220,9 @@ namespace FG
 		ND_ bool	_IsInitialized ()		const;
 		ND_ bool	_IsInitialOrIdleState ()const;
 		
-		ND_ VkCommandBuffer  _CreateCommandBuffer (EThreadUsage usage);
-		ND_ PerQueue *       _GetQueue (EThreadUsage usage);
+		ND_ VkCommandBuffer			_CreateCommandBuffer (EThreadUsage usage);
+		ND_ PerQueue *				_GetQueue (EThreadUsage usage);
+		ND_ VDeviceQueueInfo const*	_GetAnyGraphicsQueue () const;
 
 		bool _SetupQueues ();
 		bool _AddGpuQueue (EThreadUsage usage);
@@ -235,7 +234,9 @@ namespace FG
 		bool _AddAsyncStreamingQueue ();
 
 		bool _CreateCommandBuffers (INOUT PerQueue &) const;
+
 		bool _BuildCommandBuffers ();
+		bool _ProcessTasks (VkCommandBuffer cmd);
 		
 		ND_ Task  _AddUpdateBufferTask (const UpdateBuffer &task);
 		ND_ Task  _AddUpdateImageTask (const UpdateImage &task);

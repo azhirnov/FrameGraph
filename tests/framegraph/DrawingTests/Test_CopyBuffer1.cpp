@@ -13,7 +13,7 @@
 namespace FG
 {
 
-	bool FGApp::Test_CopyBuffer ()
+	bool FGApp::Test_CopyBuffer1 ()
 	{
 		const BytesU	src_buffer_size = 256_b;
 		const BytesU	dst_buffer_size = 512_b;
@@ -44,7 +44,7 @@ namespace FG
 			}
 		};
 		
-		CommandBatchID		batch_id{"0"};
+		CommandBatchID		batch_id {"main"};
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
@@ -54,7 +54,7 @@ namespace FG
 		Task	t_update	= _frameGraph->AddTask( UpdateBuffer().SetBuffer( src_buffer, 0_b ).SetData( src_data ) );
 		Task	t_copy		= _frameGraph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 128_b, 256_b ).DependsOn( t_update ) );
 		Task	t_read		= _frameGraph->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, 512_b ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
-		(void)(t_read);
+		FG_UNUSED( t_read );
 
         CHECK_ERR( _frameGraph->Compile() );
         CHECK_ERR( _frameGraphInst->Execute() );

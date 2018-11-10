@@ -6,6 +6,7 @@
 //#include "VFramebuffer.h"
 #include "VFrameGraphDebugger.h"
 #include "Shared/EnumUtils.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -544,23 +545,16 @@ namespace FG
 	constructor
 =================================================
 */
-	VTaskProcessor::VTaskProcessor (VFrameGraphThread &fg, VkCommandBuffer cmdbuf) :
+	VTaskProcessor::VTaskProcessor (VFrameGraphThread &fg, VBarrierManager &barrierMngr, VkCommandBuffer cmdbuf, const CommandBatchID &batchId, uint indexInBatch) :
 		_frameGraph{ fg },		_dev{ fg.GetDevice() },
-		_cmdBuffer{ cmdbuf },
+		_cmdBuffer{ cmdbuf },	_isDebugMarkerSupported{ _dev.EnableDebugMarkers() },
 		_pendingBufferBarriers{ fg.GetAllocator() },
-		_pendingImageBarriers{ fg.GetAllocator() }
+		_pendingImageBarriers{ fg.GetAllocator() },
+		_barrierMngr{ barrierMngr }
 	{
 		ASSERT( _cmdBuffer );
 
-		VkCommandBufferBeginInfo	info = {};
-		info.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		info.pNext				= null;
-		info.flags				= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		info.pInheritanceInfo	= null;
-
-		VK_CALL( _dev.vkBeginCommandBuffer( _cmdBuffer, &info ));
-	
-		_isDebugMarkerSupported = _dev.HasExtension( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );		// TODO: cache
+		_CmdPushDebugGroup( "SubBatch: "s << batchId.GetName() << ", index: " << ToString(indexInBatch) );
 	}
 	
 /*
@@ -570,10 +564,7 @@ namespace FG
 */
 	VTaskProcessor::~VTaskProcessor ()
 	{
-		if ( _cmdBuffer )
-		{
-			VK_CALL( _dev.vkEndCommandBuffer( _cmdBuffer ));
-		}
+		_CmdPopDebugGroup();
 	}
 	
 /*
@@ -621,6 +612,36 @@ namespace FG
 		info.pMarkerName	= text.data();
 
 		_dev.vkCmdDebugMarkerInsertEXT( _cmdBuffer, &info );
+	}
+
+/*
+=================================================
+	_CmdPushDebugGroup
+=================================================
+*/
+	void VTaskProcessor::_CmdPushDebugGroup (StringView text) const
+	{
+		if ( not _isDebugMarkerSupported )
+			return;
+
+		VkDebugMarkerMarkerInfoEXT	info = {};
+		info.sType			= VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
+		info.pMarkerName	= text.data();
+
+		_dev.vkCmdDebugMarkerBeginEXT( _cmdBuffer, &info );
+	}
+
+/*
+=================================================
+	_CmdPopDebugGroup
+=================================================
+*/
+	void VTaskProcessor::_CmdPopDebugGroup () const
+	{
+		if ( not _isDebugMarkerSupported )
+			return;
+
+		_dev.vkCmdDebugMarkerEndEXT( _cmdBuffer );
 	}
 	
 /*

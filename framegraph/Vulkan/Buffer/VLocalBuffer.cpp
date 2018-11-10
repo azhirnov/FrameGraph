@@ -48,20 +48,25 @@ namespace FG
 
 		_bufferData	= null;
 
-		_pendingBarriers.clear();
-		_writeBarriers.clear();
-		_readBarriers.clear();
+		// check for uncommited barriers
+		ASSERT( _pendingAccesses.empty() );
+		ASSERT( _accessForWrite.empty() );
+		ASSERT( _accessForRead.empty() );
+
+		_pendingAccesses.clear();
+		_accessForWrite.clear();
+		_accessForRead.clear();
 
 		_OnDestroy();
 	}
 
 /*
 =================================================
-	_FindFirstBarrier
+	_FindFirstAccess
 =================================================
 */
-	inline VLocalBuffer::BarrierArray_t::iterator
-		VLocalBuffer::_FindFirstBarrier (BarrierArray_t &arr, const BufferRange &otherRange)
+	inline VLocalBuffer::AccessIter_t
+		VLocalBuffer::_FindFirstAccess (AccessRecords_t &arr, const BufferRange &otherRange)
 	{
 		auto iter = arr.begin();
 		auto end  = arr.end();
@@ -73,10 +78,10 @@ namespace FG
 	
 /*
 =================================================
-	_ReplaceBarrier
+	_ReplaceAccessRecords
 =================================================
 */
-	inline void VLocalBuffer::_ReplaceBarrier (BarrierArray_t &arr, BarrierArray_t::iterator iter, const BufferBarrier &barrier)
+	inline void VLocalBuffer::_ReplaceAccessRecords (INOUT AccessRecords_t &arr, AccessIter_t iter, const BufferAccess &barrier)
 	{
 		ASSERT( iter >= arr.begin() and iter <= arr.end() );
 
@@ -160,11 +165,11 @@ namespace FG
 	
 /*
 =================================================
-	_EraseBarriers
+	_EraseAccessRecords
 =================================================
 */
-	inline VLocalBuffer::BarrierArray_t::iterator
-		VLocalBuffer::_EraseBarriers (BarrierArray_t &arr, BarrierArray_t::iterator iter, const BufferRange &range)
+	inline VLocalBuffer::AccessIter_t
+		VLocalBuffer::_EraseAccessRecords (INOUT AccessRecords_t &arr, AccessIter_t iter, const BufferRange &range)
 	{
 		if ( arr.empty() )
 			return iter;
@@ -221,50 +226,81 @@ namespace FG
 		//if ( _isImmutable )
 		//	return;
 
-
-		BufferBarrier		barrier;
-		barrier.range		= bs.range;
-		barrier.stages		= EResourceState_ToPipelineStages( bs.state );
-		barrier.access		= EResourceState_ToAccess( bs.state );
-		barrier.isReadable	= EResourceState_IsReadable( bs.state );
-		barrier.isWritable	= EResourceState_IsWritable( bs.state );
-		barrier.index		= bs.task->ExecutionOrder();
+		BufferAccess		pending;
+		pending.range		= bs.range;
+		pending.stages		= EResourceState_ToPipelineStages( bs.state );
+		pending.access		= EResourceState_ToAccess( bs.state );
+		pending.isReadable	= EResourceState_IsReadable( bs.state );
+		pending.isWritable	= EResourceState_IsWritable( bs.state );
+		pending.index		= bs.task->ExecutionOrder();
 		
 		
 		// merge with pending
-		BufferRange	range	= barrier.range;
-		auto		iter	= _FindFirstBarrier( _pendingBarriers, range );
+		BufferRange	range	= pending.range;
+		auto		iter	= _FindFirstAccess( _pendingAccesses, range );
 
-		if ( iter != _pendingBarriers.end() and iter->range.begin > range.begin )
+		if ( iter != _pendingAccesses.end() and iter->range.begin > range.begin )
 		{
-			barrier.range = BufferRange{ range.begin, iter->range.begin };
+			pending.range = BufferRange{ range.begin, iter->range.begin };
 			
-			iter = _pendingBarriers.insert( iter, barrier );
+			iter = _pendingAccesses.insert( iter, pending );
 			++iter;
 
 			range.begin = iter->range.begin;
 		}
 
-		for (; iter != _pendingBarriers.end() and iter->range.IsIntersects( range ); ++iter)
+		for (; iter != _pendingAccesses.end() and iter->range.IsIntersects( range ); ++iter)
 		{
-			ASSERT( iter->index == barrier.index );
+			ASSERT( iter->index == pending.index );
 
 			iter->range.begin	= Min( iter->range.begin, range.begin );
 			range.begin			= iter->range.end;
 							
-			iter->stages		|= barrier.stages;
-			iter->access		|= barrier.access;
-			iter->isReadable	|= barrier.isReadable;
-			iter->isWritable	|= barrier.isWritable;
+			iter->stages		|= pending.stages;
+			iter->access		|= pending.access;
+			iter->isReadable	|= pending.isReadable;
+			iter->isWritable	|= pending.isWritable;
 		}
 
 		if ( not range.IsEmpty() )
 		{
-			barrier.range = range;
-			_pendingBarriers.insert( iter, barrier );
+			pending.range = range;
+			_pendingAccesses.insert( iter, pending );
 		}
 	}
 	
+/*
+=================================================
+	ResetState
+----
+	
+=================================================
+*/
+	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	{
+		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
+		SCOPELOCK( _rcCheck );
+		
+		// add full range barrier
+		{
+			BufferAccess		pending;
+			pending.range		= BufferRange{ 0, VkDeviceSize(Size()) };
+			pending.stages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			pending.access		= 0;
+			pending.isReadable	= true;
+			pending.isWritable	= false;
+			pending.index		= index;
+
+			_pendingAccesses.push_back( std::move(pending) );
+		}
+
+		CommitBarrier( barrierMngr, debugger );
+
+		// flush
+		_accessForWrite.clear();
+		_accessForRead.clear();
+	}
+
 /*
 =================================================
 	CommitBarrier
@@ -274,82 +310,81 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 
-		for (const auto& pending : _pendingBarriers)
+		const auto	AddBarrier	= [this, &barrierMngr, debugger] (const BufferRange &sharedRange, const BufferAccess &src, const BufferAccess &dst)
 		{
-			const auto	w_iter		= _FindFirstBarrier( _writeBarriers, pending.range );
-			const auto	r_iter		= _FindFirstBarrier( _readBarriers, pending.range );
-
-			const auto	AddBarrier	= [this, &barrierMngr, debugger] (const BufferRange &sharedRange, const BufferBarrier &src, const BufferBarrier &dst)
+			if ( not sharedRange.IsEmpty() )
 			{
-				if ( not sharedRange.IsEmpty() )
-				{
-					VkBufferMemoryBarrier	barrier = {};
-					barrier.sType				= VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-					barrier.pNext				= null;
-					barrier.buffer				= Handle();
-					barrier.offset				= sharedRange.begin;
-					barrier.size				= sharedRange.Count();
-					barrier.srcAccessMask		= src.access;
-					barrier.dstAccessMask		= dst.access;
-					barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-					barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+				VkBufferMemoryBarrier	barrier = {};
+				barrier.sType				= VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+				barrier.pNext				= null;
+				barrier.buffer				= Handle();
+				barrier.offset				= sharedRange.begin;
+				barrier.size				= sharedRange.Count();
+				barrier.srcAccessMask		= src.access;
+				barrier.dstAccessMask		= dst.access;
+				barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+				barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 
-					barrierMngr.AddBufferBarrier( src.stages, dst.stages, 0, barrier );
+				barrierMngr.AddBufferBarrier( src.stages, dst.stages, 0, barrier );
 
-					if ( debugger )
-						debugger->AddBufferBarrier( _bufferData, src.index, dst.index, src.stages, dst.stages, 0, barrier );
-				}
-			};
+				if ( debugger )
+					debugger->AddBufferBarrier( _bufferData, src.index, dst.index, src.stages, dst.stages, 0, barrier );
+			}
+		};
 
+		for (const auto& pending : _pendingAccesses)
+		{
+			const auto	w_iter	= _FindFirstAccess( _accessForWrite, pending.range );
+			const auto	r_iter	= _FindFirstAccess( _accessForRead, pending.range );
 
 			if ( pending.isWritable )
 			{
 				// write -> write, read -> write barriers
 				bool	ww_barrier	= true;
 
-				if ( w_iter != _writeBarriers.end() and r_iter != _readBarriers.end() )
+				if ( w_iter != _accessForWrite.end() and r_iter != _accessForRead.end() )
 				{
 					ww_barrier = (w_iter->index >= r_iter->index);
 				}
 
-				if ( ww_barrier and w_iter != _writeBarriers.end() )
+				if ( ww_barrier and w_iter != _accessForWrite.end() )
 				{
 					// write -> write barrier
-					for (auto iter = w_iter; iter != _writeBarriers.end() and iter->range.begin < pending.range.end; ++iter)
+					for (auto iter = w_iter; iter != _accessForWrite.end() and iter->range.begin < pending.range.end; ++iter)
 					{
 						AddBarrier( iter->range.Intersect( pending.range ), *iter, pending );
 					}
 				}
 				else
-				if ( r_iter != _readBarriers.end() )
+				if ( r_iter != _accessForRead.end() )
 				{
 					// read -> write barrier
-					for (auto iter = r_iter; iter != _readBarriers.end() and iter->range.begin < pending.range.end; ++iter)
+					for (auto iter = r_iter; iter != _accessForRead.end() and iter->range.begin < pending.range.end; ++iter)
 					{
 						AddBarrier( iter->range.Intersect( pending.range ), *iter, pending );
 					}
 				}
 
 				
-				// store to '_writeBarriers'
-				_ReplaceBarrier( _writeBarriers, w_iter, pending );
-				_EraseBarriers( _readBarriers, r_iter, pending.range );
+				// store to '_accessForWrite'
+				_ReplaceAccessRecords( _accessForWrite, w_iter, pending );
+				_EraseAccessRecords( _accessForRead, r_iter, pending.range );
 			}
 			else
 			{
 				// write -> read barrier only
-				for (auto iter = w_iter; iter != _writeBarriers.end() and iter->range.begin < pending.range.end; ++iter)
+				for (auto iter = w_iter; iter != _accessForWrite.end() and iter->range.begin < pending.range.end; ++iter)
 				{
 					AddBarrier( iter->range.Intersect( pending.range ), *iter, pending );
 				}
 
 
-				// store to '_readBarriers'
-				_ReplaceBarrier( _readBarriers, r_iter, pending );
+				// store to '_accessForRead'
+				_ReplaceAccessRecords( _accessForRead, r_iter, pending );
 			}
 		}
 
-		_pendingBarriers.clear();
+		_pendingAccesses.clear();
 	}
 
 

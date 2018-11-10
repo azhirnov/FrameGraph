@@ -23,7 +23,7 @@ namespace FG
 			virtual bool Initialize (VkQueue) = 0;
 			virtual void Deinitialize () = 0;
 
-		ND_ virtual bool IsCompatibleWithQueue (uint familyIndex) const = 0;
+		ND_ virtual bool IsCompatibleWithQueue (EQueueFamily familyIndex) const = 0;
 
 		ND_ virtual RawImageID  GetImage (ESwapchainImage type) = 0;
 	};

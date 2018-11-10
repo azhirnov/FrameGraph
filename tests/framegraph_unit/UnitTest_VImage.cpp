@@ -12,7 +12,7 @@ namespace FG
 	class VImageUnitTest
 	{
 	public:
-		using Barrier = VLocalImage::ImageBarrier;
+		using Barrier = VLocalImage::ImageAccess;
 
 		static bool Create (VImage &img, const ImageDesc &desc)
 		{
@@ -25,7 +25,7 @@ namespace FG
 		}
 
 		static ArrayView<Barrier>  GetRWBarriers (const VLocalImage *img) {
-			return img->_readWriteBarriers;
+			return img->_accessForReadWrite;
 		}
 	};
 
@@ -84,6 +84,8 @@ static void VImage_Test1 ()
 		TEST( barriers[1].index == ExeOrderIndex::Initial );
 	}
 	
+	local_image.ResetState( ExeOrderIndex::Final, barrier_mngr, null );
+
 	Array<UntypedVkResource_t>	ready_to_delete;
 	Array<UntypedResourceID_t>	unassign_ids;
 	local_image.Destroy( OUT ready_to_delete, OUT unassign_ids );
@@ -140,6 +142,8 @@ static void VImage_Test2 ()
 		TEST( barriers[1].index == ExeOrderIndex::Initial );
 	}
 	
+	local_image.ResetState( ExeOrderIndex::Final, barrier_mngr, null );
+
 	Array<UntypedVkResource_t>	ready_to_delete;
 	Array<UntypedResourceID_t>	unassign_ids;
 	local_image.Destroy( OUT ready_to_delete, OUT unassign_ids );

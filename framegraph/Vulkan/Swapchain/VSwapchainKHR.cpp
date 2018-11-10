@@ -115,10 +115,10 @@ namespace FG
 	IsCompatibleWithQueue
 =================================================
 */
-	bool VSwapchainKHR::IsCompatibleWithQueue (uint familyIndex) const
+	bool VSwapchainKHR::IsCompatibleWithQueue (EQueueFamily familyIndex) const
 	{
 		VkBool32	supports_present = 0;
-		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _swapchain.GetVkPhysicalDevice(), familyIndex, _swapchain.GetVkSurface(), OUT &supports_present ));
+		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _swapchain.GetVkPhysicalDevice(), uint(familyIndex), _swapchain.GetVkSurface(), OUT &supports_present ));
 		return !!supports_present;
 	}
 	

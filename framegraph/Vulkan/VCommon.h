@@ -61,6 +61,15 @@ namespace FG
 	{
 		Initial		= 0,
 		First		= 1,
+		Final		= 0x80000000,
+	};
+
+	enum class EQueueFamily : uint
+	{
+		External	= VK_QUEUE_FAMILY_EXTERNAL,
+		Foreign		= VK_QUEUE_FAMILY_FOREIGN_EXT,
+		Ignored		= VK_QUEUE_FAMILY_IGNORED,
+		Unknown		= Ignored,
 	};
 
 

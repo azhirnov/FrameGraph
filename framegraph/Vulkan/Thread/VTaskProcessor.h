@@ -26,7 +26,7 @@ namespace FG
 		using ImageState				= VLocalImage::ImageState;
 
 		template <typename T>
-		using PendingBarriersTempl		= std::unordered_set< T const*, std::hash<T const*>, std::equal_to<T const*>, StdLinearAllocator<T const*> >;
+		using PendingBarriersTempl		= std::unordered_set< T const*, std::hash<T const*>, std::equal_to<T const*>, StdLinearAllocator<T const*> >;	// TODO: use temp allocator
 
 		using PendingBufferBarriers_t	= PendingBarriersTempl< VLocalBuffer >;
 		using PendingImageBarriers_t	= PendingBarriersTempl< VLocalImage >;
@@ -42,22 +42,23 @@ namespace FG
 	// variables
 	private:
 		VFrameGraphThread &			_frameGraph;
-		VDevice const&				_dev;
+		VDevice const &				_dev;
 
 		VkCommandBuffer				_cmdBuffer;
 		
 		Task						_currTask			= null;
 		bool						_isCompute			= false;
+		bool						_isDebugMarkerSupported	= false;
 
 		PendingBufferBarriers_t		_pendingBufferBarriers;
 		PendingImageBarriers_t		_pendingImageBarriers;
-		VBarrierManager				_barrierMngr;
-		bool						_isDebugMarkerSupported	= false;
+		VBarrierManager &			_barrierMngr;
 
 
 	// methods
 	public:
-		VTaskProcessor (VFrameGraphThread &fg, VkCommandBuffer cmd);
+		VTaskProcessor (VFrameGraphThread &fg, VBarrierManager &barrierMngr, VkCommandBuffer cmd,
+						const CommandBatchID &batchId, uint indexInBatch);
 		~VTaskProcessor ();
 
 		void Visit (const VFgTask<SubmitRenderPass> &);
@@ -87,6 +88,9 @@ namespace FG
 
 	private:
 		void _CmdDebugMarker (StringView text) const;
+		void _CmdPushDebugGroup (StringView text) const;
+		void _CmdPopDebugGroup () const;
+
 		void _OnRunTask (const IFrameGraphTask *task) const;
 
 		template <typename ID>
