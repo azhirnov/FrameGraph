@@ -48,38 +48,27 @@ namespace {
 	OnEndFrame
 =================================================
 */
-	void VFrameGraphDebugger::OnEndFrame (const CommandBatchID &batchId, uint index)
+	void VFrameGraphDebugger::OnEndFrame (const CommandBatchID &batchId, uint indexInBatch)
 	{
 		constexpr auto	DumpFlags =	ECompilationDebugFlags::LogTasks		|
 									ECompilationDebugFlags::LogBarriers		|
 									ECompilationDebugFlags::LogResourceUsage;
 		
-		_cmdBatchId		= batchId;
-		_indexInBatch	= index;
-
 		if ( EnumEq( _flags, DumpFlags ) )
 		{
-			_DumpFrame( OUT _frameDump );
-			_DumpGraph( OUT _graphViz );
+			_DumpFrame( batchId, indexInBatch, OUT _frameDump );
+			_DumpGraph( batchId, indexInBatch, OUT _graphViz );
+
+			_mainDbg.AddFrameDump( batchId, indexInBatch, INOUT _frameDump );
+			_mainDbg.AddGraphDump( batchId, indexInBatch, INOUT _graphViz );
 		}
+
+		_frameDump.clear();
+		_graphViz.clear();
 
 		_tasks.clear();
 		_images.clear();
 		_buffers.clear();
-	}
-	
-/*
-=================================================
-	OnSync
-=================================================
-*/
-	void VFrameGraphDebugger::OnSync ()
-	{
-		_mainDbg.AddFrameDump( _cmdBatchId, _indexInBatch, INOUT _frameDump );
-		_mainDbg.AddGraphDump( _cmdBatchId, _indexInBatch, INOUT _graphViz );
-		
-		_frameDump.clear();
-		_graphViz.clear();
 	}
 
 /*
@@ -194,12 +183,12 @@ namespace {
 	- dump resources info & frame barriers.
 =================================================
 */
-	void VFrameGraphDebugger::_DumpFrame (OUT String &str) const
+	void VFrameGraphDebugger::_DumpFrame (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const
 	{
 		str.clear();
 		str << "Thread {\n"
-			<< "	batch:         \"" << _cmdBatchId.GetName() << "\"\n"
-			<< "	indexInBatch:  " << ToString(_indexInBatch) << '\n';
+			<< "	batch:         \"" << batchId.GetName() << "\"\n"
+			<< "	indexInBatch:  " << ToString(indexInBatch) << '\n';
 
 		_DumpImages( INOUT str );
 		_DumpBuffers( INOUT str );

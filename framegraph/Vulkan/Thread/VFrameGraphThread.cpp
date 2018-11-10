@@ -1030,34 +1030,24 @@ namespace FG
 	bool VFrameGraphThread::SyncOnExecute ()
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _SetState( EState::Pending, EState::Execute ));
-		
-		_resourceMngr.OnEndFrame();
-		
-		if ( _debugger )
-			_debugger->OnSync();
 
+		if ( not _SetState( EState::Pending, EState::Execute ) )
+		{
+			// if thread is not used in current frame
+			CHECK_ERR( _SetState( EState::Ready, EState::Execute ));
+		}
+		
+		// check for uncommited barriers
+		CHECK( _barrierMngr.Empty() );
+
+		_resourceMngr.OnEndFrame();
 		_resourceMngr.OnDiscardMemory();
 		_mainAllocator.Discard();
-
-		CHECK_ERR( _SetState( EState::Execute, _swapchain ? EState::WaitForPresent : EState::Idle ));
-		return true;
-	}
-	
-/*
-=================================================
-	Present
-=================================================
-*/
-	bool VFrameGraphThread::Present ()
-	{
-		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _SetState( EState::WaitForPresent, EState::Presenting ));
-
-		// TODO: protect queue
-		_swapchain->Present( *this );
 		
-		CHECK_ERR( _SetState( EState::Presenting, EState::Idle ));
+		if ( _swapchain )
+			_swapchain->Present( *this );
+
+		CHECK_ERR( _SetState( EState::Execute, EState::Idle ));
 		return true;
 	}
 	

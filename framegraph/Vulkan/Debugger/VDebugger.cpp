@@ -66,8 +66,11 @@ namespace FG
 
 		if ( iter != _batches.end() )
 		{
-			ASSERT( iter->second.dumps[indexInBatch].empty() );
-			std::swap( iter->second.dumps[indexInBatch], str );
+			auto&	sub_batch = iter->second.subBatches[indexInBatch];
+			SCOPELOCK( sub_batch.rcCheck );
+
+			ASSERT( sub_batch.dump.empty() );
+			std::swap( sub_batch.dump, str );
 		}
 	}
 
@@ -85,9 +88,11 @@ namespace FG
 		{
 			for (uint i = 0; i < batch.second.threadCount; ++i)
 			{
-				ASSERT( not batch.second.dumps[i].empty() );
+				auto&	sub_batch = batch.second.subBatches[i];
+				SCOPELOCK( sub_batch.rcCheck );
 
-				str << batch.second.dumps[i];
+				ASSERT( not sub_batch.dump.empty() );
+				str << sub_batch.dump;
 			}
 		}
 	}
@@ -104,8 +109,11 @@ namespace FG
 
 		if ( iter != _batches.end() )
 		{
-			ASSERT( iter->second.graphs[indexInBatch].empty() );
-			std::swap( iter->second.graphs[indexInBatch], str );
+			auto&	sub_batch = iter->second.subBatches[indexInBatch];
+			SCOPELOCK( sub_batch.rcCheck );
+
+			ASSERT( sub_batch.graph.empty() );
+			std::swap( sub_batch.graph, str );
 		}
 	}
 
@@ -136,9 +144,11 @@ namespace FG
 
 			for (uint i = 0; i < batch.second.threadCount; ++i)
 			{
-				ASSERT( not batch.second.graphs[i].empty() );
+				auto&	sub_batch = batch.second.subBatches[i];
+				SCOPELOCK( sub_batch.rcCheck );
 
-				str << batch.second.graphs[i];
+				ASSERT( not sub_batch.graph.empty() );
+				str << sub_batch.graph;
 			}
 
 			str << "	}\n";

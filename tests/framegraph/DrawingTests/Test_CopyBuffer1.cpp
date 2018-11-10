@@ -17,7 +17,8 @@ namespace FG
 	{
 		const BytesU	src_buffer_size = 256_b;
 		const BytesU	dst_buffer_size = 512_b;
-
+		
+		FGThreadPtr		frame_graph	= _frameGraph1;
 		BufferID		src_buffer = CreateBuffer( src_buffer_size, "SrcBuffer" );
 		BufferID		dst_buffer = CreateBuffer( dst_buffer_size, "DstBuffer" );
 
@@ -49,14 +50,14 @@ namespace FG
 		submission_graph.AddBatch( batch_id );
 		
         CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-        CHECK_ERR( _frameGraph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+        CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
-		Task	t_update	= _frameGraph->AddTask( UpdateBuffer().SetBuffer( src_buffer, 0_b ).SetData( src_data ) );
-		Task	t_copy		= _frameGraph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 128_b, 256_b ).DependsOn( t_update ) );
-		Task	t_read		= _frameGraph->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, 512_b ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
+		Task	t_update	= frame_graph->AddTask( UpdateBuffer().SetBuffer( src_buffer, 0_b ).SetData( src_data ) );
+		Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 128_b, 256_b ).DependsOn( t_update ) );
+		Task	t_read		= frame_graph->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, 512_b ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 		FG_UNUSED( t_read );
 
-        CHECK_ERR( _frameGraph->Compile() );
+        CHECK_ERR( frame_graph->Compile() );
         CHECK_ERR( _frameGraphInst->Execute() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));

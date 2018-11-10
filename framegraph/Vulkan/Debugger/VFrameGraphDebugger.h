@@ -86,8 +86,7 @@ namespace FG
 		void Setup (ECompilationDebugFlags flags);
 
 		void OnBeginFrame ();
-		void OnEndFrame (const CommandBatchID &id, uint index);
-		void OnSync ();
+		void OnEndFrame (const CommandBatchID &batchId, uint indexInBatch);
 		
 		void AddBufferBarrier (const VBuffer *				buffer,
 							   ExeOrderIndex				srcIndex,
@@ -113,7 +112,7 @@ namespace FG
 
 	// dump to string
 	private:
-		void _DumpFrame (OUT String &str) const;
+		void _DumpFrame (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const;
 
 		void _DumpImages (INOUT String &str) const;
 		void _DumpImageInfo (const VImage *image, const ImageInfo_t &info, INOUT String &str) const;
@@ -127,7 +126,7 @@ namespace FG
 
 	// dump to graphviz format
 	private:
-		void _DumpGraph (OUT String &str) const;
+		void _DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const;
 
 		void _GetResourceUsage (ArrayView<ResourceUsage_t> resources, OUT String &resStyle,
 								INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const;

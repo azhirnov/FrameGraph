@@ -64,6 +64,14 @@ namespace FG
 		}
 
 
+		ND_ bool  Empty () const
+		{
+			return	_imageBarriers.empty()	and
+					_bufferBarriers.empty()	and
+					_memoryBarriers.empty();
+		}
+
+
 		void AddBufferBarrier (VkPipelineStageFlags			srcStageMask,
 							   VkPipelineStageFlags			dstStageMask,
 							   VkDependencyFlags			dependencyFlags,

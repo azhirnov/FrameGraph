@@ -61,10 +61,12 @@ void main() {
 }
 )#" );
 		
+		FGThreadPtr		frame_graph	= _frameGraph1;
+
 		uint2			view_size	= {800, 600};
 		ImageID			image		= CreateImage2D( view_size, EPixelFormat::RGBA8_UNorm, "DstImage" );
 
-		GPipelineID		pipeline	= _frameGraph->CreatePipeline( std::move(ppln) );
+		GPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
 
 		
 		bool		data_is_correct = false;
@@ -106,23 +108,23 @@ void main() {
 		submission_graph.AddBatch( batch_id );
 		
         CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-        CHECK_ERR( _frameGraph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+        CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
-		RenderPass		render_pass	= _frameGraph->CreateRenderPass( RenderPassDesc( view_size )
+		RenderPass		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 											.AddViewport( view_size ) );
 		
-		_frameGraph->AddDrawTask( render_pass,
+		frame_graph->AddDrawTask( render_pass,
 								  DrawTask()
 									.SetPipeline( pipeline ).SetVertices( 0, 3 )
 									.SetRenderState( RenderState().SetTopology( EPrimitive::TriangleList ) )
 		);
 
-		Task	t_draw	= _frameGraph->AddTask( SubmitRenderPass{ render_pass });
-		Task	t_read	= _frameGraph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
+		Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
+		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( _frameGraph->Compile() );		
+		CHECK_ERR( frame_graph->Compile() );		
 		CHECK_ERR( _frameGraphInst->Execute() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));

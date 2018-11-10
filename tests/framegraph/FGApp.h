@@ -28,7 +28,8 @@ namespace FG
 		VulkanDeviceExt		_vulkan;
 		WindowPtr			_window;
 		FrameGraphPtr		_frameGraphInst;
-		FGThreadPtr			_frameGraph;
+		FGThreadPtr			_frameGraph1;
+		FGThreadPtr			_frameGraph2;
 
 		TestQueue_t			_tests;
 		uint				_testInvocations	= 0;
@@ -86,6 +87,7 @@ namespace FG
 		bool Test_CopyBuffer1 ();
 		bool Test_CopyImage1 ();
 		bool Test_CopyImage2 ();
+		bool Test_CopyImage3 ();
 		bool Test_Compute1 ();
 		bool Test_Draw1 ();
 	};
@@ -94,7 +96,7 @@ namespace FG
 	template <typename Arg0, typename ...Args>
 	inline void  FGApp::DeleteResources (Arg0 &arg0, Args& ...args)
 	{
-		_frameGraph->DestroyResource( INOUT arg0 );
+		_frameGraph1->DestroyResource( INOUT arg0 );
 
 		if constexpr ( CountOf<Args...>() )
 			DeleteResources( std::forward<Args&>( args )... );

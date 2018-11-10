@@ -246,7 +246,7 @@ namespace {
 	docs: https://graphviz.gitlab.io/_pages/pdf/dotguide.pdf
 =================================================
 */
-	void VFrameGraphDebugger::_DumpGraph (OUT String &str) const
+	void VFrameGraphDebugger::_DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const
 	{
 		str.clear();
 		
@@ -257,11 +257,11 @@ namespace {
 		String	deps;
 		String	subgraphs;
 
-		str << indent << "subgraph cluster_SubBatch" << VDebugger::BuildSubBatchName( _cmdBatchId, _indexInBatch ) << " {\n"
+		str << indent << "subgraph cluster_SubBatch" << VDebugger::BuildSubBatchName( batchId, indexInBatch ) << " {\n"
 			<< indent << "	style=filled;\n"
 			<< indent << "	color=\"#282828\";\n"
 			<< indent << "	fontcolor=\"#dcdcdc\";\n"
-			<< indent << "	label=\"" << _cmdBatchId.GetName() << " / " << ToString(_indexInBatch) << "\";\n";
+			<< indent << "	label=\"" << batchId.GetName() << " / " << ToString(indexInBatch) << "\";\n";
 		
 		for (auto& info : _tasks)
 		{

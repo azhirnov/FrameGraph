@@ -82,6 +82,7 @@ namespace FG
 				ASSERT( _batches.count( dep ) );
 			})
 
+			ASSERT( not batchId.GetName().empty() );
 			ASSERT( !!(usage & EThreadUsage::_QueueMask) );
 
 			CHECK( _batches.insert_or_assign( batchId, Batch{threadCount, usage, dependsOn} ).second );
@@ -89,6 +90,7 @@ namespace FG
 		}
 
 
+		// helper function to acquire batch for thread
 		bool Acquire (INOUT EThreadUsage &usage, OUT CommandBatchID &batchId, OUT uint &index) const
 		{
 			for (auto& batch : _batches) {
@@ -103,7 +105,7 @@ namespace FG
 		}
 
 
-		void ResetCounters () const
+		void Reset () const
 		{
 			for (auto& batch : _batches) {
 				batch.second._acquired = 0;

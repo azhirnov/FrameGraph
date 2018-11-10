@@ -31,8 +31,6 @@ namespace FG
 			Compiling,
 			Pending,		// if compilation succeded
 			Execute,
-			WaitForPresent,	// if present supported
-			Presenting,
 			WaitIdle,
 			BeforeDestroy,
 			Failed,			// if compilation failed
@@ -145,7 +143,6 @@ namespace FG
 		bool		Begin (const CommandBatchID &id, uint index, EThreadUsage usage) override;
 		bool		Compile () override;
 		bool		SyncOnExecute ();
-		bool		Present ();
 		bool		OnWaitIdle ();
 		
 		// resource acquiring

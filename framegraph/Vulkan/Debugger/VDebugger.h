@@ -18,18 +18,26 @@ namespace FG
 	private:
 		static constexpr uint	MaxSubBatches	= 32;
 
+		struct SubBatch
+		{
+			String				dump;
+			String				graph;
+			RaceConditionCheck	rcCheck;
+		};
+
 		struct Batch;
 		using Dependencies_t	= FixedArray< const Batch*, FG_MaxCommandBatchDependencies >;
-		using SubBatches_t		= StaticArray< String, MaxSubBatches >;
+		using SubBatches_t		= StaticArray< SubBatch, MaxSubBatches >;
 
 		struct Batch
 		{
-			mutable SubBatches_t	dumps;
-			mutable SubBatches_t	graphs;
-
+			mutable SubBatches_t	subBatches;
 			uint					threadCount	= 0;
 			Dependencies_t			input;
 			Dependencies_t			output;
+
+			Batch () {}
+			Batch (Batch &&) {}
 		};
 		
 		using Batches_t = FixedMap< CommandBatchID, Batch, FG_MaxCommandBatchCount >;

@@ -29,6 +29,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyBuffer1,	1 });
 		_tests.push_back({ &FGApp::Test_CopyImage1,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
+		_tests.push_back({ &FGApp::Test_CopyImage3,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
 		//_tests.push_back({ &FGApp::Test_Draw1,		1 });
 
@@ -57,7 +58,7 @@ namespace {
         swapchain_info.surfaceSize  = size;
 		swapchain_info.preTransform = {};
 
-		CHECK( _frameGraph->CreateSwapchain( swapchain_info ));
+		CHECK( _frameGraph1->CreateSwapchain( swapchain_info ));
 	}
 	
 /*
@@ -148,10 +149,17 @@ namespace {
 
 			ThreadDesc	desc{ /*EThreadUsage::Present |*/ EThreadUsage::Graphics | EThreadUsage::Transfer };
 
-			_frameGraph = _frameGraphInst->CreateThread( desc );
-			CHECK_ERR( _frameGraph );
-			//CHECK_ERR( _frameGraph->CreateSwapchain( swapchain_info ));
-			CHECK_ERR( _frameGraph->Initialize() );
+			_frameGraph1 = _frameGraphInst->CreateThread( desc );
+			CHECK_ERR( _frameGraph1 );
+			//CHECK_ERR( frame_graph->CreateSwapchain( swapchain_info ));
+			CHECK_ERR( _frameGraph1->Initialize() );
+
+			desc.relative = _frameGraph1;
+			_frameGraph2 = _frameGraphInst->CreateThread( desc );
+			CHECK_ERR( _frameGraph2 );
+			CHECK_ERR( _frameGraph2->Initialize() );
+
+			CHECK_ERR( _frameGraph1->IsCompatibleWith( _frameGraph2, EThreadUsage::Graphics ));
 		}
 
 		// add glsl pipeline compiler
@@ -211,8 +219,11 @@ namespace {
 */
 	void FGApp::_Destroy ()
 	{
-		_frameGraph->Deinitialize();
-		_frameGraph = null;
+		_frameGraph1->Deinitialize();
+		_frameGraph2->Deinitialize();
+
+		_frameGraph1 = null;
+		_frameGraph2 = null;
 
 		_frameGraphInst->Deinitialize();
 		_frameGraphInst = null;
@@ -585,9 +596,9 @@ namespace {
 */
 	BufferID  FGApp::CreateBuffer (BytesU size, StringView name) const
 	{
-		BufferID	res = _frameGraph->CreateBuffer( MemoryDesc{ EMemoryType::Default },
-													 BufferDesc{ size, EBufferUsage::Transfer | EBufferUsage::Uniform | EBufferUsage::Storage |
-																 EBufferUsage::Vertex | EBufferUsage::Index | EBufferUsage::Indirect },
+		BufferID	res = _frameGraph1->CreateBuffer( MemoryDesc{ EMemoryType::Default },
+													  BufferDesc{ size, EBufferUsage::Transfer | EBufferUsage::Uniform | EBufferUsage::Storage |
+																  EBufferUsage::Vertex | EBufferUsage::Index | EBufferUsage::Indirect },
 													 name );
 		return res;
 	}
@@ -599,9 +610,9 @@ namespace {
 */
 	ImageID  FGApp::CreateImage2D (uint2 size, EPixelFormat fmt, StringView name) const
 	{
-		ImageID		res = _frameGraph->CreateImage( MemoryDesc{ EMemoryType::Default },
-												    ImageDesc{ EImage::Tex2D, uint3(size.x, size.y, 0), fmt,
-															   EImageUsage::Transfer | EImageUsage::ColorAttachment | EImageUsage::Sampled | EImageUsage::Storage },
+		ImageID		res = _frameGraph1->CreateImage( MemoryDesc{ EMemoryType::Default },
+												     ImageDesc{ EImage::Tex2D, uint3(size.x, size.y, 0), fmt,
+															    EImageUsage::Transfer | EImageUsage::ColorAttachment | EImageUsage::Sampled | EImageUsage::Storage },
 												    name );
 		return res;
 	}
@@ -628,45 +639,10 @@ namespace {
 *
 	SamplerPtr  FGApp::CreateSampler () const
 	{
-		return _frameGraph->CreateSampler( SamplerDesc()
+		return frame_graph->CreateSampler( SamplerDesc()
 								.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear )
 								.SetAddressMode( EAddressMode::ClampToEdge, EAddressMode::ClampToEdge, EAddressMode::ClampToEdge )
 					);
-	}
-	
-/*
-=================================================
-	CreatePipeline
-=================================================
-*
-	PipelinePtr  FGApp::CreatePipeline () const
-	{
-		GraphicsPipelineDesc	ppln;
-
-		ppln.AddDescriptorSet(
-				DescriptorSetID("1"), 0,
-				{{ UniformID("un_ColorTexture"), EImage::Tex2D, BindingIndex{0,0}, EShaderStages::Fragment }},
-				{},
-				{},
-				{},
-				{{ UniformID("un_ConstBuf"), 256_b, BindingIndex{0,1}, EShaderStages::Fragment | EShaderStages::Vertex }},
-				{} );
-
-		ppln.SetVertexInput( VertexAttribs()
-				.Add( "at_Position", EVertexType::Float2, 0, "" )
-				.Add( "at_Texcoord", EVertexType::Float2, 1, "" ));
-		
-		ppln.SetFragmentOutput( FragmentOutput()
-				.Add( RenderTargetID("out_Color"), EFragOutput::Float4, 0 ));
-		
-		ppln.AddTopology( EPrimitive::TriangleList )
-			.AddTopology( EPrimitive::TriangleStrip );
-
-		ppln.SetDynamicStates( EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor );
-
-		ppln.SetRenderState( RenderState() );
-
-		return _frameGraph->CreatePipeline( std::move(ppln) );
 	}
 
 /*

@@ -20,7 +20,8 @@ namespace FG
 		const int2		img_offset		= {16, 27};
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
-
+		
+		FGThreadPtr		frame_graph		= _frameGraph1;
 		ImageID			src_image		= CreateImage2D( src_dim, EPixelFormat::RGBA8_UNorm, "SrcImage" );
 		ImageID			dst_image		= CreateImage2D( dst_dim, EPixelFormat::RGBA8_UNorm, "DstImage" );
 
@@ -73,14 +74,14 @@ namespace FG
 		submission_graph.AddBatch( batch_id );
 		
         CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-        CHECK_ERR( _frameGraph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+        CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
-		Task	t_update	= _frameGraph->AddTask( UpdateImage().SetImage( src_image ).SetData( src_data, src_dim ) );
-		Task	t_copy		= _frameGraph->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, src_dim ).DependsOn( t_update ) );
-		Task	t_read		= _frameGraph->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
+		Task	t_update	= frame_graph->AddTask( UpdateImage().SetImage( src_image ).SetData( src_data, src_dim ) );
+		Task	t_copy		= frame_graph->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, src_dim ).DependsOn( t_update ) );
+		Task	t_read		= frame_graph->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 		FG_UNUSED( t_read );
 		
-        CHECK_ERR( _frameGraph->Compile() );
+        CHECK_ERR( frame_graph->Compile() );
         CHECK_ERR( _frameGraphInst->Execute() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));

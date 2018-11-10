@@ -219,7 +219,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::RunThreads, EState::Execute ));
 
-		Array< VFrameGraphThread *>		present_threads;
+		CHECK_ERR( _submissionGraph.IsAllBatchesSubmitted() );
 
 		// complete thread execution
 		{
@@ -233,21 +233,8 @@ namespace FG
 					continue;
 				}
 
-				if ( EnumEq( thread->GetThreadUsage(), EThreadUsage::Present ) )
-					present_threads.push_back( thread.get() );
-
 				CHECK( thread->SyncOnExecute() );
 				++iter;
-			}
-		}
-
-		CHECK_ERR( _submissionGraph.IsAllBatchesSubmitted() );
-
-		// present swapchains
-		{
-			for (auto& thread : present_threads)
-			{
-				CHECK( thread->Present() );
 			}
 		}
 

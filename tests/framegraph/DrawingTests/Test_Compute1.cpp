@@ -40,19 +40,20 @@ void main ()
 }
 )#" );
 		
+		FGThreadPtr			frame_graph	= _frameGraph1;
 		const uint2			image_dim	= { 16, 16 };
 		ImageID				image0		= CreateImage2D( image_dim, EPixelFormat::RGBA8_UNorm, "MyImage_0" );
 		ImageID				image1		= CreateImage2D( image_dim, EPixelFormat::RGBA8_UNorm, "MyImage_1" );
 		ImageID				image2		= CreateImage2D( image_dim, EPixelFormat::RGBA8_UNorm, "MyImage_2" );
 
-		CPipelineID			pipeline	= _frameGraph->CreatePipeline( std::move(ppln) );
+		CPipelineID			pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
 		
 		RawDescriptorSetLayoutID	ds_layout;
 		uint						binding;
-		CHECK( _frameGraph->GetDescriptorSet( pipeline, DescriptorSetID("0"), OUT ds_layout, OUT binding ));
+		CHECK( frame_graph->GetDescriptorSet( pipeline, DescriptorSetID("0"), OUT ds_layout, OUT binding ));
 
 		PipelineResources	resources;
-		CHECK( _frameGraph->InitPipelineResources( ds_layout, OUT resources ));
+		CHECK( frame_graph->InitPipelineResources( ds_layout, OUT resources ));
 
 		
 		const auto	CheckData = [] (const ImageView &imageData, uint blockSize, OUT bool &isCorrect)
@@ -100,24 +101,24 @@ void main ()
 		submission_graph.AddBatch( batch_id );
 		
         CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-        CHECK_ERR( _frameGraph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+        CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_OutImage"), image0 );
-		Task	t_run0	= _frameGraph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetGroupCount( 2, 2 ) );
+		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetGroupCount( 2, 2 ) );
 
 		resources.BindImage( UniformID("un_OutImage"), image1 );
-		Task	t_run1	= _frameGraph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).SetGroupCount( 4, 4 ) );
+		Task	t_run1	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).SetGroupCount( 4, 4 ) );
 		
 		resources.BindImage( UniformID("un_OutImage"), image2 );
-		Task	t_run2	= _frameGraph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).SetGroupCount( 1, 1 ) );
+		Task	t_run2	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).SetGroupCount( 1, 1 ) );
 		
-		Task	t_read0	= _frameGraph->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ) );
-		Task	t_read1	= _frameGraph->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );
-		Task	t_read2	= _frameGraph->AddTask( ReadImage().SetImage( image2, int2(), image_dim ).SetCallback( OnLoaded2 ).DependsOn( t_run2 ) );
+		Task	t_read0	= frame_graph->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ) );
+		Task	t_read1	= frame_graph->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );
+		Task	t_read2	= frame_graph->AddTask( ReadImage().SetImage( image2, int2(), image_dim ).SetCallback( OnLoaded2 ).DependsOn( t_run2 ) );
 		
         FG_UNUSED( t_read0 and t_read1 and t_read2 );
 		
-		CHECK( _frameGraph->Compile() );		
+		CHECK( frame_graph->Compile() );		
 		CHECK( _frameGraphInst->Execute() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));

@@ -251,6 +251,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		"../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp"
 		"../tests/framegraph/DrawingTests/Test_CopyImage1.cpp"
 		"../tests/framegraph/DrawingTests/Test_CopyImage2.cpp"
+		"../tests/framegraph/DrawingTests/Test_CopyImage3.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw1.cpp"
 		"../tests/framegraph/FGApp.cpp"
 		"../tests/framegraph/FGApp.h"
@@ -260,7 +261,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	else()
 		add_executable( "IntTests.FrameGraph" ${SOURCES} )
 	endif()
-	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" )
+	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
 	set_property( TARGET "IntTests.FrameGraph" PROPERTY FOLDER "Tests" )
 	target_include_directories( "IntTests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
