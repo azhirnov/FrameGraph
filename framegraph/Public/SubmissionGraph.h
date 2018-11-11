@@ -22,6 +22,9 @@
   |                      graphics, compute, present queue                        |        | compute queue  |
   '------------------------------------------------------------------------------'        '----------------'
 
+
+  Each batch may be sabmitted independently from any CPU thread.
+  The recommended number of batches is 3-5, it can be used for optimal GPU workload.
 */
 
 #pragma once

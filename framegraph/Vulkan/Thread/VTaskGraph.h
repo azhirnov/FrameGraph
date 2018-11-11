@@ -8,7 +8,6 @@
 
 namespace FG
 {
-	using DescriptoSetDynamicOffsets_t = std::vector< uint, StdLinearAllocator<uint> >;
 
 	template <typename TaskType>
 	class VFgTask;
@@ -83,7 +82,7 @@ namespace FG
 	};
 
 
-
+	/*
 	//
 	// Empty Task
 	//
@@ -96,7 +95,7 @@ namespace FG
 			_taskName = "Begin";
 		}
 	};
-
+	*/
 
 
 	//
@@ -141,23 +140,18 @@ namespace FG
 	{
 	// variables
 	private:
-		RawCPipelineID					_pipeline;
 		VPipelineResourceSet			_resources;
-		DescriptoSetDynamicOffsets_t	_dynamicOffsets;
-		uint3							_groupCount;
-		Optional< uint3 >				_localGroupSize;
+	public:
+		const RawCPipelineID			pipeline;
+		const uint3						groupCount;
+		const Optional< uint3 >			localGroupSize;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const DispatchCompute &task, ProcessFunc_t process);
 
-		ND_ RawCPipelineID					GetPipeline ()			const	{ return _pipeline; }
-		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ ArrayView< uint >				GetDynamicOffsets ()	const	{ return _dynamicOffsets; }
-
-		ND_ uint3 const&					GroupCount ()			const	{ return _groupCount; }
-		ND_ Optional< uint3 > const&		LocalSize ()			const	{ return _localGroupSize; }
+		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
 
 
@@ -170,26 +164,19 @@ namespace FG
 	{
 	// variables
 	private:
-		RawCPipelineID					_pipeline;
-		VPipelineResourceSet			_resources;
-		DescriptoSetDynamicOffsets_t	_dynamicOffsets;
-		LocalBufferID					_indirectBuffer;
-		VkDeviceSize					_indirectBufferOffset;
-		Optional< uint3 >				_localGroupSize;
+		VPipelineResourceSet		_resources;
+	public:
+		const RawCPipelineID		pipeline;
+		VLocalBuffer const* const	indirectBuffer;
+		const VkDeviceSize			indirectBufferOffset;
+		const Optional< uint3 >		localGroupSize;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const DispatchIndirectCompute &task, ProcessFunc_t process);
 		
-		ND_ RawCPipelineID					GetPipeline ()			const	{ return _pipeline; }
-		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ ArrayView< uint >				GetDynamicOffsets ()	const	{ return _dynamicOffsets; }
-
-		ND_ LocalBufferID					IndirectBuffer ()		const	{ return _indirectBuffer; }
-		ND_ VkDeviceSize					IndirectBufferOffset ()	const	{ return _indirectBufferOffset; }
-
-		ND_ Optional< uint3 > const&		LocalSize ()			const	{ return _localGroupSize; }
+		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
 
 
@@ -207,19 +194,15 @@ namespace FG
 
 
 	// variables
-	private:
-		LocalBufferID	_srcBuffer;
-		LocalBufferID	_dstBuffer;
-		Regions_t		_regions;
+	public:
+		VLocalBuffer const* const	srcBuffer;
+		VLocalBuffer const* const	dstBuffer;
+		const Regions_t				regions;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const CopyBuffer &task, ProcessFunc_t process);
-
-		ND_ LocalBufferID			SrcBuffer ()	const	{ return _srcBuffer; }
-		ND_ LocalBufferID			DstBuffer ()	const	{ return _dstBuffer; }
-		ND_ ArrayView< Region >		Regions ()		const	{ return _regions; }
 	};
 
 
@@ -237,25 +220,17 @@ namespace FG
 
 
 	// variables
-	private:
-		LocalImageID			_srcImage;
-		const VkImageLayout		_srcLayout;
-		LocalImageID			_dstImage;
-		const VkImageLayout		_dstLayout;
-		Regions_t				_regions;
+	public:
+		VLocalImage const* const	srcImage;
+		const VkImageLayout			srcLayout;
+		VLocalImage const* const	dstImage;
+		const VkImageLayout			dstLayout;
+		const Regions_t				regions;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const CopyImage &task, ProcessFunc_t process);
-
-		ND_ LocalImageID			SrcImage ()		const	{ return _srcImage; }
-		ND_ VkImageLayout			SrcLayout ()	const	{ return _srcLayout; }
-
-		ND_ LocalImageID			DstImage ()		const	{ return _dstImage; }
-		ND_ VkImageLayout			DstLayout ()	const	{ return _dstLayout; }
-
-		ND_ ArrayView< Region >		Regions ()		const	{ return _regions; }
 	};
 
 
@@ -273,23 +248,16 @@ namespace FG
 
 
 	// variables
-	private:
-		LocalBufferID			_srcBuffer;
-		LocalImageID			_dstImage;
-		const VkImageLayout		_dstLayout;
-		Regions_t				_regions;
+	public:
+		VLocalBuffer const* const	srcBuffer;
+		VLocalImage const* const	dstImage;
+		const VkImageLayout			dstLayout;
+		const Regions_t				regions;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const CopyBufferToImage &task, ProcessFunc_t process);
-
-		ND_ LocalBufferID			SrcBuffer ()	const	{ return _srcBuffer; }
-
-		ND_ LocalImageID			DstImage ()		const	{ return _dstImage; }
-		ND_ VkImageLayout			DstLayout ()	const	{ return _dstLayout; }
-
-		ND_ ArrayView< Region >		Regions ()		const	{ return _regions; }
 	};
 
 
@@ -307,23 +275,16 @@ namespace FG
 
 
 	// variables
-	private:
-		LocalImageID			_srcImage;
-		const VkImageLayout		_srcLayout;
-		LocalBufferID			_dstBuffer;
-		Regions_t				_regions;
+	public:
+		VLocalImage const* const	srcImage;
+		const VkImageLayout			srcLayout;
+		VLocalBuffer const* const	dstBuffer;
+		const Regions_t				regions;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const CopyImageToBuffer &task, ProcessFunc_t process);
-
-		ND_ LocalImageID			SrcImage ()		const	{ return _srcImage; }
-		ND_ VkImageLayout			SrcLayout ()	const	{ return _srcLayout; }
-
-		ND_ LocalBufferID			DstBuffer ()	const	{ return _dstBuffer; }
-
-		ND_ ArrayView< Region >		Regions ()		const	{ return _regions; }
 	};
 
 
@@ -341,27 +302,18 @@ namespace FG
 
 
 	// variables
-	private:
-		LocalImageID			_srcImage;
-		const VkImageLayout		_srcLayout;
-		LocalImageID			_dstImage;
-		const VkImageLayout		_dstLayout;
-		VkFilter				_filter;
-		Regions_t				_regions;
+	public:
+		VLocalImage const* const	srcImage;
+		const VkImageLayout			srcLayout;
+		VLocalImage const* const	dstImage;
+		const VkImageLayout			dstLayout;
+		const VkFilter				filter;
+		const Regions_t				regions;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const BlitImage &task, ProcessFunc_t process);
-
-		ND_ LocalImageID			SrcImage ()		const	{ return _srcImage; }
-		ND_ VkImageLayout			SrcLayout ()	const	{ return _srcLayout; }
-
-		ND_ LocalImageID			DstImage ()		const	{ return _dstImage; }
-		ND_ VkImageLayout			DstLayout ()	const	{ return _dstLayout; }
-
-		ND_ ArrayView< Region >		Regions ()		const	{ return _regions; }
-		ND_ VkFilter				Filter ()		const	{ return _filter; }
 	};
 
 
@@ -379,25 +331,19 @@ namespace FG
 
 
 	// variables
-	private:
-		LocalImageID			_srcImage;
-		const VkImageLayout		_srcLayout;
-		LocalImageID			_dstImage;
-		const VkImageLayout		_dstLayout;
-		Regions_t				_regions;
+	public:
+		VLocalImage const* const	srcImage;
+		const VkImageLayout			srcLayout;
+
+		VLocalImage const* const	dstImage;
+		const VkImageLayout			dstLayout;
+
+		const Regions_t				regions;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const ResolveImage &task, ProcessFunc_t process);
-
-		ND_ LocalImageID			SrcImage ()		const	{ return _srcImage; }
-		ND_ VkImageLayout			SrcLayout ()	const	{ return _srcLayout; }
-
-		ND_ LocalImageID			DstImage ()		const	{ return _dstImage; }
-		ND_ VkImageLayout			DstLayout ()	const	{ return _dstLayout; }
-
-		ND_ ArrayView< Region >		Regions ()		const	{ return _regions; }
 	};
 
 
@@ -409,21 +355,16 @@ namespace FG
 	class VFgTask< FillBuffer > final : public IFrameGraphTask
 	{
 	// variables
-	private:
-		LocalBufferID	_dstBuffer;
-		VkDeviceSize	_dstOffset;
-		VkDeviceSize	_size;
-		uint			_pattern	= 0;
+	public:
+		VLocalBuffer const* const	dstBuffer;
+		const VkDeviceSize			dstOffset;
+		const VkDeviceSize			size;
+		const uint					pattern;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const FillBuffer &task, ProcessFunc_t process);
-
-		ND_ LocalBufferID		DstBuffer ()	const	{ return _dstBuffer; }
-		ND_ VkDeviceSize		DstOffset ()	const	{ return _dstOffset; }
-		ND_ VkDeviceSize		Size ()			const	{ return _size; }
-		ND_ uint				Pattern ()		const	{ return _pattern; }
 	};
 
 
@@ -441,21 +382,19 @@ namespace FG
 	
 
 	// variables
+	public:
+		VLocalImage const* const	dstImage;
+		const VkImageLayout			dstLayout;
+		const Ranges_t				ranges;
 	private:
-		LocalImageID			_dstImage;
-		const VkImageLayout		_dstLayout;
-		VkClearColorValue		_clearValue;
-		Ranges_t				_ranges;
+		VkClearColorValue			_clearValue;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const ClearColorImage &task, ProcessFunc_t process);
 
-		ND_ LocalImageID				DstImage ()		const	{ return _dstImage; }
-		ND_ VkImageLayout				DstLayout ()	const	{ return _dstLayout; }
 		ND_ VkClearColorValue const&	ClearValue ()	const	{ return _clearValue; }
-		ND_ ArrayView< Range >			Ranges ()		const	{ return _ranges; }
 	};
 
 
@@ -473,21 +412,16 @@ namespace FG
 	
 
 	// variables
-	private:
-		LocalImageID					_dstImage;
-		const VkImageLayout				_dstLayout;
-		const VkClearDepthStencilValue	_clearValue;
-		Ranges_t						_ranges;
+	public:
+		VLocalImage const* const		dstImage;
+		const VkImageLayout				dstLayout;
+		const VkClearDepthStencilValue	clearValue;
+		const Ranges_t					ranges;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const ClearDepthStencilImage &task, ProcessFunc_t process);
-		
-		ND_ LocalImageID					DstImage ()		const	{ return _dstImage; }
-		ND_ VkImageLayout					DstLayout ()	const	{ return _dstLayout; }
-		ND_ VkClearDepthStencilValue const&	ClearValue ()	const	{ return _clearValue; }
-		ND_ ArrayView< Range >				Ranges ()		const	{ return _ranges; }
 	};
 
 
@@ -498,21 +432,24 @@ namespace FG
 	template <>
 	class VFgTask< UpdateBuffer > final : public IFrameGraphTask
 	{
-	// variables
+	// types
 	private:
-		LocalBufferID	_buffer;	// local in gpu only
-		VkDeviceSize	_offset;
-		Array<char>		_data;		// TODO: optimize
+		using Data_t	= std::vector< uint8_t, StdLinearAllocator<uint8_t> >;
+
+	// variables
+	public:
+		VLocalBuffer const* const	dstBuffer;		// local in gpu only
+		const VkDeviceSize			dstOffset;
+	private:
+		Data_t						_data;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const UpdateBuffer &task, ProcessFunc_t process);
 
-		ND_ LocalBufferID		DstBuffer ()		const	{ return _buffer; }
-		ND_ VkDeviceSize		DstBufferOffset ()	const	{ return _offset; }
-		ND_ VkDeviceSize		DataSize ()			const	{ return VkDeviceSize(ArraySizeOf(_data)); }
-		ND_ void const*			DataPtr ()			const	{ return _data.data(); }
+		ND_ VkDeviceSize	DataSize ()		const	{ return VkDeviceSize(ArraySizeOf( _data )); }
+		ND_ void const*		DataPtr ()		const	{ return _data.data(); }
 	};
 
 
@@ -524,17 +461,14 @@ namespace FG
 	class VFgTask< Present > final : public IFrameGraphTask
 	{
 	// variables
-	private:
-		LocalImageID	_image;
-		ImageLayer		_layer;
+	public:
+		VLocalImage const* const	image;
+		const ImageLayer			layer;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const Present &task, ProcessFunc_t process);
-
-		ND_ LocalImageID		SrcImage ()			const	{ return _image; }
-		ND_ ImageLayer			SrcImageLayer ()	const	{ return _layer; }
 	};
 
 
@@ -546,23 +480,17 @@ namespace FG
 	class VFgTask< PresentVR > final : public IFrameGraphTask
 	{
 	// variables
-	private:
-		LocalImageID	_leftEyeImage;
-		ImageLayer		_leftEyeLayer;
+	public:
+		VLocalImage const* const	leftEyeImage;
+		const ImageLayer			leftEyeLayer;
 
-		LocalImageID	_rightEyeImage;
-		ImageLayer		_rightEyeLayer;
+		VLocalImage const* const	rightEyeImage;
+		const ImageLayer			rightEyeLayer;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const PresentVR &task, ProcessFunc_t process);
-
-		ND_ LocalImageID	LeftEyeImage ()		const	{ return _leftEyeImage; }
-		ND_ ImageLayer		LeftEyeLayer ()		const	{ return _leftEyeLayer; }
-		
-		ND_ LocalImageID	RightEyeImage ()	const	{ return _rightEyeImage; }
-		ND_ ImageLayer		RightEyeLayer ()	const	{ return _rightEyeLayer; }
 	};
 
 

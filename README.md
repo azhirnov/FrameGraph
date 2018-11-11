@@ -1,6 +1,14 @@
 # FrameGraph
 Work in progress.
 
+## Features
+* multithreaded command buffer building and submitting.
+* frame graph visualization.
+
+## Suported Platforms
+* Windows (with MSVC 2017)
+* Linux (with GCC 7.3)
+
 ## Branches
 `dev` - development branch<br/>
 `master` - contains last stable version<br/>
@@ -20,6 +28,7 @@ Dependencies:<br/>
 [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools), [SPIRV-Headers](https://github.com/KhronosGroup/SPIRV-Headers) and Python - optional, for spirv optimization.<br/>
 [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - required.<br/>
 [lodepng](https://github.com/lvandeve/lodepng) - optional.<br/>
+[graphviz](https://www.graphviz.org/) - (optional) for graph visualization.<br/>
 
 ## Roadmap
 ### Stage 1

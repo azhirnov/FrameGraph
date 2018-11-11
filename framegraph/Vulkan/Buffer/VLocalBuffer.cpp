@@ -272,8 +272,6 @@ namespace FG
 /*
 =================================================
 	ResetState
-----
-	
 =================================================
 */
 	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const

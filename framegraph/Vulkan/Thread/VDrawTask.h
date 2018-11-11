@@ -9,7 +9,7 @@ namespace FG
 {
 
 	template <typename Task>
-	class FGDrawTask;
+	class VFgDrawTask;
 
 
 	
@@ -21,7 +21,7 @@ namespace FG
 	{
 	// types
 	public:
-		using TaskName_t		= DrawTask::TaskName_t;
+		using Name_t			= DrawTask::TaskName_t;
 		using ProcessFunc_t		= void (*) (void *visitor, void *taskData);
 		
 
@@ -29,6 +29,8 @@ namespace FG
 	private:
 		ProcessFunc_t	_pass1	= null;
 		ProcessFunc_t	_pass2	= null;
+		Name_t			_taskName;
+		RGBA8u			_debugColor;
 
 
 	// interface
@@ -37,12 +39,12 @@ namespace FG
 			_pass1{pass1}, _pass2{pass2} {}
 
 		virtual ~IDrawTask () {}
-
-		ND_ virtual StringView	GetName () const = 0;
-		ND_ virtual RGBA8u		GetDebugColor () const = 0;
 		
-		void Process1 (void *visitor)		{ ASSERT( _pass1 );  _pass1( visitor, this ); }
-		void Process2 (void *visitor)		{ ASSERT( _pass2 );  _pass2( visitor, this ); }
+		ND_ StringView	GetName ()			const	{ return _taskName; }
+		ND_ RGBA8u		GetDebugColor ()	const	{ return _debugColor; }
+		
+		void Process1 (void *visitor)				{ ASSERT( _pass1 );  _pass1( visitor, this ); }
+		void Process2 (void *visitor)				{ ASSERT( _pass2 );  _pass2( visitor, this ); }
 	};
 
 
@@ -51,24 +53,104 @@ namespace FG
 	// Draw Task
 	//
 
-	template <typename Task>
-	class FGDrawTask final : public IDrawTask
+	template <>
+	class VFgDrawTask< DrawTask > final : public IDrawTask
 	{
+	// types
+	public:
+		using VertexBuffers_t	= StaticArray< VLocalBuffer const*, FG_MaxVertexBuffers >;
+		using VertexOffsets_t	= StaticArray< VkDeviceSize, FG_MaxVertexBuffers >;
+		using VertexStrides_t	= StaticArray< Bytes<uint>, FG_MaxVertexBuffers >;
+		using Scissors_t		= DrawTask::Scissors_t;
+		using DrawCmd			= DrawTask::DrawCmd;
+
+
 	// variables
 	private:
-		Task			_task;
+		VPipelineResourceSet			_resources;
+
+		VertexBuffers_t					_vertexBuffers;
+		VertexOffsets_t					_vbOffsets;
+		VertexStrides_t					_vbStrides;
+		const uint						_vbCount;
+
+	public:
+		const RawGPipelineID			pipeline;
+
+		const RenderState				renderState;
+		const EPipelineDynamicState		dynamicStates;
+
+		const VertexInputState			vertexInput;
+		const DrawCmd					drawCmd;
+		const Scissors_t				scissors;
+
+		mutable VkDescriptorSets_t		descriptorSets;
 
 
 	// methods
 	public:
-		FGDrawTask (const Task &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-			IDrawTask{pass1, pass2}, _task{task} {}
+		VFgDrawTask (VFrameGraphThread *fg, const DrawTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 		
-		StringView	GetName ()			const override	{ return _task.taskName; }
-		RGBA8u		GetDebugColor ()	const override	{ return _task.debugColor; }
+		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
 
-		Task &		Data ()								{ return _task; }
-		Task const&	Data ()				const			{ return _task; }
+		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()	const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
+		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()		const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
+		ND_ ArrayView< Bytes<uint> >		GetVBStrides ()		const	{ return ArrayView{ _vbStrides.data(), _vbCount }; }
+	};
+
+
+
+	//
+	// Draw Indexed Task
+	//
+
+	template <>
+	class VFgDrawTask< DrawIndexedTask > final : public IDrawTask
+	{
+	// types
+	public:
+		using VertexBuffers_t	= VFgDrawTask<DrawTask>::VertexBuffers_t;
+		using VertexOffsets_t	= VFgDrawTask<DrawTask>::VertexOffsets_t;
+		using VertexStrides_t	= VFgDrawTask<DrawTask>::VertexStrides_t;
+		using Scissors_t		= DrawIndexedTask::Scissors_t;
+		using DrawCmd			= DrawIndexedTask::DrawCmd;
+
+
+	// variables
+	private:
+		VPipelineResourceSet			_resources;
+		
+		VertexBuffers_t					_vertexBuffers;
+		VertexOffsets_t					_vbOffsets;
+		VertexStrides_t					_vbStrides;
+		const uint						_vbCount;
+
+	public:
+		const RawGPipelineID			pipeline;
+
+		const RenderState				renderState;
+		const EPipelineDynamicState		dynamicStates;
+		
+		VLocalBuffer const* const		indexBuffer;
+		const BytesU					indexBufferOffset;
+		const EIndex					indexType;
+		
+		const VertexInputState			vertexInput;
+		const DrawCmd					drawCmd;
+		const Scissors_t				scissors;
+		
+		mutable VkDescriptorSets_t		descriptorSets;
+
+
+	// methods
+	public:
+		VFgDrawTask (VFrameGraphThread *fg, const DrawIndexedTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		
+		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
+		
+		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()	const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
+		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()		const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
+		ND_ ArrayView< Bytes<uint> >		GetVBStrides ()		const	{ return ArrayView{ _vbStrides.data(), _vbCount }; }
 	};
 
 

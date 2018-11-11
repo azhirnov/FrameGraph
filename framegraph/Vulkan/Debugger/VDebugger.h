@@ -17,12 +17,14 @@ namespace FG
 	// types
 	private:
 		static constexpr uint	MaxSubBatches	= 32;
+		using SubBatchName_t	= StaticString< 32 >;
 
 		struct SubBatch
 		{
-			String				dump;
-			String				graph;
+			mutable String		dump;
+			mutable String		graph;
 			RaceConditionCheck	rcCheck;
+			SubBatchName_t		name;
 		};
 
 		struct Batch;
@@ -31,7 +33,7 @@ namespace FG
 
 		struct Batch
 		{
-			mutable SubBatches_t	subBatches;
+			SubBatches_t			subBatches;
 			uint					threadCount	= 0;
 			Dependencies_t			input;
 			Dependencies_t			output;
@@ -55,8 +57,8 @@ namespace FG
 		void OnBeginFrame (const SubmissionGraph &);
 		void OnEndFrame ();
 
-		void AddFrameDump (const CommandBatchID &batchId, uint indexInBatch, INOUT String &str) const;
-		void AddGraphDump (const CommandBatchID &batchId, uint indexInBatch, INOUT String &str) const;
+		void GetSubBatchInfo (const CommandBatchID &batchId, uint indexInBatch,
+							  OUT StringView &uid, OUT String* &dump, OUT String* &graph) const;
 
 		void GetFrameDump (OUT String &) const;
 		void GetGraphDump (OUT String &) const;

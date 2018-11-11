@@ -11,6 +11,21 @@
 namespace FG
 {
 
+	template <typename ID>
+	forceinline auto const*  VTaskProcessor::_GetState (ID id) const
+	{
+		return _frameGraph.GetResourceManager()->GetState( id );
+	}
+	
+	template <typename ID>
+	forceinline auto const*  VTaskProcessor::_GetResource (ID id) const
+	{
+		return _frameGraph.GetResourceManager()->GetResource( id );
+	}
+//-----------------------------------------------------------------------------
+
+
+
 	//
 	// Pipeline Resource Barriers
 	//
@@ -23,8 +38,8 @@ namespace FG
 
 	// variables
 	private:
-		VTaskProcessor &		_tp;
-		const Task				_currTask;
+		VTaskProcessor &	_tp;
+		const Task			_currTask;
 
 
 	// methods
@@ -34,13 +49,13 @@ namespace FG
 		// ResourceGraph //
 		void operator () (const PipelineResources::Buffer &buf);
 		void operator () (const PipelineResources::Image &img);
-		void operator () (const PipelineResources::Texture &tex);
-		void operator () (const PipelineResources::SubpassInput &sp);
+		//void operator () (const PipelineResources::Texture &tex);
+		//void operator () (const PipelineResources::SubpassInput &sp);
 		void operator () (const PipelineResources::Sampler &) {}
 		void operator () (const std::monostate &) {}
 	};
 
-	/*
+	
 	
 	//
 	// Draw Task Barriers
@@ -76,11 +91,10 @@ namespace FG
 	public:
 		explicit DrawTaskBarriers (VTaskProcessor &tp, Task task);
 
-		inline void Visit (DrawTask &task);
-		inline void Visit (DrawIndexedTask &task);
+		void Visit (const VFgDrawTask<DrawTask> &task);
+		void Visit (const VFgDrawTask<DrawIndexedTask> &task);
 
-		inline void _ProcessPipeline (const PipelinePtr &ppln, const RenderState &rs);
-		inline void _AddPipelineResourceBarriers (const PipelineResourceSet &);
+		void _MergePipeline (RawGPipelineID pplnId, const RenderState &rs);
 
 		ND_ bool						IsEarlyFragmentTests () const	{ return _earlyFragmentTests; }
 		ND_ bool						IsLateFragmentTests ()	const	{ return _lateFragmentTests; }
@@ -107,14 +121,14 @@ namespace FG
 	public:
 		explicit DrawTaskCommands (VTaskProcessor &tp, VFgTask<SubmitRenderPass> const* task, VkCommandBuffer cmd);
 
-		inline void Visit (const DrawTask &task);
-		inline void Visit (const DrawIndexedTask &task);
+		void Visit (const VFgDrawTask<DrawTask> &task);
+		void Visit (const VFgDrawTask<DrawIndexedTask> &task);
 
-		inline void _BindVertexBuffers (const DrawTask::Buffers_t &vertexBuffers, const VertexInputState &vertexInput) const;
-		inline void _BindPipeline (const VLogicalRenderPass *logicalRP, const PipelinePtr &pipeline, const RenderState &renderState,
-								   EPipelineDynamicState dynamicStates, const VertexInputState &vertexInput, VPipelineCache &pplnCache) const;
-		inline void _BindPipelineResources (const PipelinePtr &pipeline, const PipelineResourceSet &resources) const;
-		inline void _SetScissor (const DrawTask::Scissors_t &sc) const;
+		void _BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const;
+		void _BindPipeline (const VLogicalRenderPass *logicalRP, RawGPipelineID pipelineId, const RenderState &renderState,
+							EPipelineDynamicState dynamicStates, const VertexInputState &vertexInput) const;
+		void _BindPipelineResources (RawGPipelineID pipelineId, const VkDescriptorSets_t &descriptorSets, ArrayView<uint> dynamicOffsets) const;
+		void _SetScissor (const DrawTask::Scissors_t &sc) const;
 	};
 //-----------------------------------------------------------------------------
 	
@@ -127,8 +141,7 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Buffer &buf)
 	{
-		LocalBufferID		buffer_id	= _tp._frameGraph.GetResourceManager()->Remap( buf.bufferId );
-		VLocalBuffer const*	buffer		= _tp._frameGraph.GetResourceManager()->GetState( buffer_id );
+		VLocalBuffer const*  buffer = _tp._GetState( buf.bufferId );
 
 		// validation
 		DEBUG_ONLY(
@@ -149,42 +162,14 @@ namespace FG
 		
 /*
 =================================================
-	operator (Image)
+	operator (Image / Texture / SubpassInput)
 =================================================
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Image &img)
 	{
-		LocalImageID		image_id	= _tp._frameGraph.GetResourceManager()->Remap( img.imageId );
-		VLocalImage const*	image		= _tp._frameGraph.GetResourceManager()->GetState( image_id );
+		VLocalImage const*  image = _tp._GetState( img.imageId );
 
 		_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state ), *img.desc );
-	}
-		
-/*
-=================================================
-	operator (Texture)
-=================================================
-*/
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Texture &tex)
-	{
-		LocalImageID		image_id	= _tp._frameGraph.GetResourceManager()->Remap( tex.imageId );
-		VLocalImage const*	image		= _tp._frameGraph.GetResourceManager()->GetState( image_id );
-
-		// ignore 'tex.sampler'
-		_tp._AddImage( image, tex.state, EResourceState_ToImageLayout( tex.state ), *tex.desc );
-	}
-	
-/*
-=================================================
-	operator (Subpass)
-=================================================
-*/
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::SubpassInput &spi)
-	{
-		LocalImageID		image_id	= _tp._frameGraph.GetResourceManager()->Remap( spi.imageId );
-		VLocalImage const*	image		= _tp._frameGraph.GetResourceManager()->GetState( image_id );
-		
-		_tp._AddImage( image, spi.state, EResourceState_ToImageLayout( spi.state ), *spi.desc );
 	}
 //-----------------------------------------------------------------------------
 
@@ -194,7 +179,7 @@ namespace FG
 =================================================
 	constructor
 =================================================
-*
+*/
 	VTaskProcessor::DrawTaskBarriers::DrawTaskBarriers (VTaskProcessor &tp, Task task) :
 		_tp{ tp },						_currTask{ task },
 		_maxFragCount{ 0 },
@@ -210,84 +195,54 @@ namespace FG
 			frag.type	= EFragOutput::Unknown;
 		}
 	}
-	
-/*
-=================================================
-	_AddPipelineResourceBarriers
-=================================================
-*
-	void VTaskProcessor::DrawTaskBarriers::_AddPipelineResourceBarriers (const PipelineResourceSet &resources)
-	{
-		for (const auto& res : resources)
-		{
-			VPipelineResourcesPtr		ppln_res = Cast<VPipelineResources>(res.second);
-
-			PipelineResourceBarriers	visitor{ _tp, ppln_res, _currTask };
-
-			for (auto& un : ppln_res->GetUniforms())
-			{
-				std::visit( visitor, un );
-			}
-		}
-	}
 
 /*
 =================================================
 	Visit (DrawTask)
 =================================================
-*
-	void VTaskProcessor::DrawTaskBarriers::Visit (DrawTask &task)
+*/
+	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawTask> &task)
 	{
-		// add pipeline resources
-		_AddPipelineResourceBarriers( task.resources );
+		// update descriptor sets and add pipeline barriers
+		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
 
 		// add vertex buffers
-		for (auto& vb : task.vertexBuffers)
+		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
 		{
-			VkDeviceSize	offset	= VkDeviceSize(vb.second.offset);
+			VkDeviceSize	offset	= task.GetVBOffsets()[i];
 			VkDeviceSize	size	= VK_WHOLE_SIZE;
-			auto			iter	= task.vertexInput.BufferBindings().find( vb.first );
+			Bytes<uint>		stride	= task.GetVBStrides()[i];
 
-			if ( iter != task.vertexInput.BufferBindings().end() )
-			{
-				offset += VkDeviceSize(iter->second.stride) * task.drawCmd.firstVertex;
-				size    = VkDeviceSize(iter->second.stride) * task.drawCmd.vertexCount;	// TODO: instance
-			}
-			
-			vb.second.buffer = vb.second.buffer->GetReal( _currTask, EResourceState::VertexBuffer );
+			offset += VkDeviceSize(stride) * task.drawCmd.firstVertex;
+			size    = VkDeviceSize(stride) * task.drawCmd.vertexCount;	// TODO: instance
 
-			_tp._AddBuffer( Cast<VBuffer>(vb.second.buffer), EResourceState::VertexBuffer, offset, size );
+			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, offset, size );
 		}
 		
-		_ProcessPipeline( task.pipeline, task.renderState );
+		_MergePipeline( task.pipeline, task.renderState );
 	}
 
 /*
 =================================================
 	Visit (DrawIndexedTask)
 =================================================
-*
-	void VTaskProcessor::DrawTaskBarriers::Visit (DrawIndexedTask &task)
+*/
+	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawIndexedTask> &task)
 	{
-		// add pipeline resources
-		_AddPipelineResourceBarriers( task.resources );
+		// update descriptor sets and add pipeline barriers
+		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
 		
 		// add vertex buffers
-		for (auto& vb : task.vertexBuffers)
+		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
 		{
-			VkDeviceSize	offset	= VkDeviceSize(vb.second.offset);
+			VkDeviceSize	offset	= task.GetVBOffsets()[i];
 			VkDeviceSize	size	= VK_WHOLE_SIZE;
-			auto			iter	= task.vertexInput.BufferBindings().find( vb.first );
+			Bytes<uint>		stride	= task.GetVBStrides()[i];
 			
-			if ( iter != task.vertexInput.BufferBindings().end() )
-			{
-				offset += VkDeviceSize(iter->second.stride) * task.drawCmd.vertexOffset;
-				//size    = VkDeviceSize(iter->second.stride) * EIndex::MaxValue( task.indexBuffer.indexType );	// TODO: instance
-			}
-			
-			vb.second.buffer = vb.second.buffer->GetReal( _currTask, EResourceState::VertexBuffer );
+			offset += VkDeviceSize(stride) * task.drawCmd.vertexOffset;
+			//size    = VkDeviceSize(stride) * EIndex::MaxValue( task.indexBuffer.indexType );	// TODO: instance
 
-			_tp._AddBuffer( Cast<VBuffer>(vb.second.buffer), EResourceState::VertexBuffer, offset, size );
+			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, offset, size );
 		}
 		
 		// add index buffer
@@ -296,22 +251,20 @@ namespace FG
 			VkDeviceSize		offset		= VkDeviceSize(task.indexBufferOffset);
 			VkDeviceSize		size		= index_size * task.drawCmd.indexCount;
 
-			task.indexBuffer = task.indexBuffer->GetReal( _currTask, EResourceState::IndexBuffer );
-
-			_tp._AddBuffer( Cast<VBuffer>(task.indexBuffer), EResourceState::IndexBuffer, offset, size );
+			_tp._AddBuffer( task.indexBuffer, EResourceState::IndexBuffer, offset, size );
 		}
 		
-		_ProcessPipeline( task.pipeline, task.renderState );
+		_MergePipeline( task.pipeline, task.renderState );
 	}
 	
 /*
 =================================================
-	_ProcessPipeline
+	_MergePipeline
 =================================================
-*
-	void VTaskProcessor::DrawTaskBarriers::_ProcessPipeline (const PipelinePtr &ppln, const RenderState &renderState)
+*/
+	void VTaskProcessor::DrawTaskBarriers::_MergePipeline (RawGPipelineID pplnId, const RenderState &renderState)
 	{
-		VGraphicsPipelinePtr	pipeline = Cast<VGraphicsPipeline>(ppln);
+		VGraphicsPipeline const*	pipeline = _tp._GetResource( pplnId );
 
 		// merge fragment output
 		auto	inst = pipeline->GetFragmentOutput();
@@ -369,7 +322,7 @@ namespace FG
 =================================================
 	constructor
 =================================================
-*
+*/
 	VTaskProcessor::DrawTaskCommands::DrawTaskCommands (VTaskProcessor &tp, VFgTask<SubmitRenderPass> const* task, VkCommandBuffer cmd) :
 		_tp{ tp },	_dev{ tp._dev },	_currTask{ task },	_cmdBuffer{ cmd }
 	{
@@ -379,43 +332,35 @@ namespace FG
 =================================================
 	_BindVertexBuffers
 =================================================
-*
-	void VTaskProcessor::DrawTaskCommands::_BindVertexBuffers (const DrawTask::Buffers_t &vertexBuffers, const VertexInputState &vertexInput) const
+*/
+	void VTaskProcessor::DrawTaskCommands::_BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const
 	{
 		if ( vertexBuffers.empty() )
 			return;
 
-		static constexpr size_t	size	= DrawTask::Buffers_t::capacity();
+		FixedArray<VkBuffer, FG_MaxVertexBuffers>	buffers;	buffers.resize( vertexBuffers.size() );
 
-		FixedArray< VkBuffer, size >		buffers;	buffers.resize( vertexBuffers.size() );
-		FixedArray< VkDeviceSize, size >	offsets;	offsets.resize( vertexBuffers.size() );
-
-		for (const auto& buf : vertexBuffers)
+		for (size_t i = 0; i < vertexBuffers.size(); ++i)
 		{
-			auto	iter = vertexInput.BufferBindings().find( buf.first );
-			ASSERT( iter != vertexInput.BufferBindings().end() );
-
-			if ( iter != vertexInput.BufferBindings().end() )
-			{
-				buffers[ iter->second.index ] = Cast<VBuffer>( buf.second.buffer )->GetBufferID();
-				offsets[ iter->second.index ] = VkDeviceSize( buf.second.offset );
-			}
+			buffers[i] = vertexBuffers[i]->Handle();
 		}
 
-		_dev.vkCmdBindVertexBuffers( _cmdBuffer, 0, uint(buffers.size()), buffers.data(), offsets.data() );
+		_dev.vkCmdBindVertexBuffers( _cmdBuffer, 0, uint(buffers.size()), buffers.data(), vertexOffsets.data() );
 	}
 	
 /*
 =================================================
 	_BindPipeline
 =================================================
-*
-	void VTaskProcessor::DrawTaskCommands::_BindPipeline (const VLogicalRenderPass *logicalRP, const PipelinePtr &pipeline,
+*/
+	void VTaskProcessor::DrawTaskCommands::_BindPipeline (const VLogicalRenderPass *logicalRP, RawGPipelineID pipelineId,
 														  const RenderState &renderState, EPipelineDynamicState dynamicStates,
-														  const VertexInputState &vertexInput, VPipelineCache &pplnCache) const
+														  const VertexInputState &vertexInput) const
 	{
-		VkPipeline	ppln_id = pplnCache.CreatePipelineInstance( Cast<VGraphicsPipeline>(pipeline), logicalRP->GetRenderPass(), logicalRP->GetSubpassIndex(),
-															    renderState, vertexInput, dynamicStates, 0, uint(logicalRP->GetViewports().size()) );
+		VkPipeline	ppln_id = _tp._frameGraph.GetPipelineCache()->CreatePipelineInstance(
+									*_tp._frameGraph.GetResourceManager(), pipelineId,
+									logicalRP->GetRenderPassID(), logicalRP->GetSubpassIndex(),
+									renderState, vertexInput, dynamicStates, 0, uint(logicalRP->GetViewports().size()) );
 		
 		_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_id );
 	}
@@ -424,39 +369,28 @@ namespace FG
 =================================================
 	_BindPipelineResources
 =================================================
-*
-	void VTaskProcessor::DrawTaskCommands::_BindPipelineResources (const PipelinePtr &pipeline, const PipelineResourceSet &resources) const
+*/
+	void VTaskProcessor::DrawTaskCommands::_BindPipelineResources (RawGPipelineID pipelineId, const VkDescriptorSets_t &descriptorSets, ArrayView<uint> dynamicOffsets) const
 	{
-		if ( resources.empty() )
+		if ( descriptorSets.empty() )
 			return;
 
-		FixedArray< VkDescriptorSet, VPipelineResourceSet::capacity() >		descriptor_sets;
-		descriptor_sets.resize( resources.size() );
-
-		VGraphicsPipelinePtr	gpipeline = Cast<VGraphicsPipeline>(pipeline);
-
-		for (const auto& res : resources)
-		{
-			uint	idx = gpipeline->GetBindingIndex( res.first );
-			ASSERT( idx < descriptor_sets.size() );
-
-			descriptor_sets[idx] = Cast<VPipelineResources>(res.second)->GetDescriptorSetID();
-		}
+		VGraphicsPipeline const*	gppln	= _tp._GetResource( pipelineId );
+		VPipelineLayout const*		layout	= _tp._GetResource( gppln->GetLayoutID() );
 
 		_dev.vkCmdBindDescriptorSets( _cmdBuffer,
 									  VK_PIPELINE_BIND_POINT_GRAPHICS,
-									  gpipeline->GetLayout()->GetLayoutID(),
+									  layout->Handle(),
 									  0,
-									  uint(descriptor_sets.size()),
-									  descriptor_sets.data(),
-									  0, null );
+									  uint(descriptorSets.size()), descriptorSets.data(),
+									  uint(dynamicOffsets.size()), dynamicOffsets.data() );
 	}
 	
 /*
 =================================================
 	_SetScissor
 =================================================
-*
+*/
 	void VTaskProcessor::DrawTaskCommands::_SetScissor (const DrawTask::Scissors_t &srcScissors) const
 	{
 		if ( not srcScissors.empty() )
@@ -487,16 +421,16 @@ namespace FG
 =================================================
 	Visit (DrawTask)
 =================================================
-*
-	void VTaskProcessor::DrawTaskCommands::Visit (const DrawTask &task)
+*/
+	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawTask> &task)
 	{
-		_tp._CmdDebugMarker( task.taskName );
+		_tp._CmdDebugMarker( task.GetName() );
 
 		_BindPipeline( _currTask->GetLogicalPass(), task.pipeline, task.renderState,
-					   task.dynamicStates, task.vertexInput, _tp._frameGraph.GetPipelineCache() );
+					   task.dynamicStates, task.vertexInput );
 
-		_BindPipelineResources( task.pipeline, task.resources );
-		_BindVertexBuffers( task.vertexBuffers, task.vertexInput );
+		_BindPipelineResources( task.pipeline, task.descriptorSets, task.GetResources().dynamicOffsets );
+		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
 		
 		_SetScissor( task.scissors );
 
@@ -511,21 +445,21 @@ namespace FG
 =================================================
 	Visit (DrawIndexedTask)
 =================================================
-*
-	void VTaskProcessor::DrawTaskCommands::Visit (const DrawIndexedTask &task)
+*/
+	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawIndexedTask> &task)
 	{
-		_tp._CmdDebugMarker( task.taskName );
+		_tp._CmdDebugMarker( task.GetName() );
 		
 		_BindPipeline( _currTask->GetLogicalPass(), task.pipeline, task.renderState,
-					   task.dynamicStates, task.vertexInput, _tp._frameGraph.GetPipelineCache() );
-
-		_BindPipelineResources( task.pipeline, task.resources );
-		_BindVertexBuffers( task.vertexBuffers, task.vertexInput );
+					   task.dynamicStates, task.vertexInput );
+		
+		_BindPipelineResources( task.pipeline, task.descriptorSets, task.GetResources().dynamicOffsets );
+		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
 		
 		_SetScissor( task.scissors );
 
 		_dev.vkCmdBindIndexBuffer( _cmdBuffer,
-									Cast<VBuffer>( task.indexBuffer )->GetBufferID(),
+									task.indexBuffer->Handle(),
 									VkDeviceSize( task.indexBufferOffset ),
 									VEnumCast( task.indexType ) );
 
@@ -571,30 +505,30 @@ namespace FG
 =================================================
 	Visit*_DrawTask
 =================================================
-*
+*/
 	void VTaskProcessor::Visit1_DrawTask (void *visitor, void *taskData)
 	{
-		static_cast<DrawTaskBarriers *>(visitor)->Visit( static_cast<FGDrawTask<DrawTask>*>( taskData )->Data() );
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawTask>*>( taskData ) );
 	}
 	
 	void VTaskProcessor::Visit2_DrawTask (void *visitor, void *taskData)
 	{
-		static_cast<DrawTaskCommands *>(visitor)->Visit( static_cast<FGDrawTask<DrawTask>*>( taskData )->Data() );
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawTask>*>( taskData ) );
 	}
 	
 /*
 =================================================
 	Visit*_DrawIndexedTask
 =================================================
-*
+*/
 	void VTaskProcessor::Visit1_DrawIndexedTask (void *visitor, void *taskData)
 	{
-		static_cast<DrawTaskBarriers *>(visitor)->Visit( static_cast<FGDrawTask<DrawIndexedTask>*>( taskData )->Data() );
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawIndexedTask>*>( taskData ) );
 	}
 
 	void VTaskProcessor::Visit2_DrawIndexedTask (void *visitor, void *taskData)
 	{
-		static_cast<DrawTaskCommands *>(visitor)->Visit( static_cast<FGDrawTask<DrawIndexedTask>*>( taskData )->Data() );
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawIndexedTask>*>( taskData ) );
 	}
 
 /*
@@ -656,30 +590,18 @@ namespace FG
 		if ( _frameGraph.GetDebugger() )
 			_frameGraph.GetDebugger()->RunTask( task );
 	}
-	
-/*
-=================================================
-	_GetState
-=================================================
-*/
-	template <typename ID>
-	forceinline auto const*  VTaskProcessor::_GetState (ID id) const
-	{
-		return _frameGraph.GetResourceManager()->GetState( id );
-	}
 
 /*
 =================================================
 	_AddRenderTargetBarriers
 =================================================
-*
+*/
 	void VTaskProcessor::_AddRenderTargetBarriers (const VLogicalRenderPass *logicalRP, const DrawTaskBarriers &info)
 	{
 		if ( logicalRP->GetDepthStencilTarget().IsDefined() )
 		{
 			const auto &	rt		= logicalRP->GetDepthStencilTarget();
 			EResourceState	state	= rt.state;
-			VImagePtr		image	= Cast<VImage>( rt.image->GetReal( _currTask, state ));
 			VkImageLayout	layout	= EResourceState_ToImageLayout( rt.state );
 
 			if ( info.IsEarlyFragmentTests() )
@@ -688,15 +610,14 @@ namespace FG
 			if ( info.IsLateFragmentTests() )
 				state |= EResourceState::LateFragmentTests;
 			
-			_AddImage( image, state, layout, rt.desc );
+			_AddImage( rt.imagePtr, state, layout, rt.desc );
 		}
 
 		for (const auto& rt : logicalRP->GetColorTargets())
 		{
-			VImagePtr		image	= Cast<VImage>( rt.second.image->GetReal( _currTask, rt.second.state ));
-			VkImageLayout	layout	= EResourceState_ToImageLayout( rt.second.state );
+			VkImageLayout	layout = EResourceState_ToImageLayout( rt.second.state );
 
-			_AddImage( image, rt.second.state, layout, rt.second.desc );
+			_AddImage( rt.second.imagePtr, rt.second.state, layout, rt.second.desc );
 		}
 	}
 	
@@ -704,8 +625,8 @@ namespace FG
 =================================================
 	_ExtractClearValues
 =================================================
-*
-	void VTaskProcessor::_ExtractClearValues (const VLogicalRenderPass *logicalRP, OUT VkClearValues_t &clearValues) const
+*/
+	void VTaskProcessor::_ExtractClearValues (const VLogicalRenderPass *logicalRP, const VRenderPass *rp, OUT VkClearValues_t &clearValues) const
 	{
 		clearValues.resize( logicalRP->GetColorTargets().size() + uint(logicalRP->GetDepthStencilTarget().IsDefined()) );
 
@@ -717,7 +638,7 @@ namespace FG
 		for (const auto& ct : logicalRP->GetColorTargets())
 		{
 			uint	index;
-			CHECK( logicalRP->GetRenderPass()->GetColorAttachmentIndex( ct.first, OUT index ));
+			CHECK( rp->GetColorAttachmentIndex( ct.first, OUT index ));
 
 			clearValues[index] = ct.second.clearValue;
 		}
@@ -727,7 +648,7 @@ namespace FG
 =================================================
 	_BeginRenderPass
 =================================================
-*
+*/
 	void VTaskProcessor::_BeginRenderPass (const VFgTask<SubmitRenderPass> &task)
 	{
 		ASSERT( not task.IsSubpass() );
@@ -753,31 +674,32 @@ namespace FG
 
 
 		// create render pass and framebuffer
-		CHECK( _frameGraph.GetRenderPassCache().CreateRenderPasses( logical_passes, barrier_visitor.GetFragOutputs() ));
+		CHECK( _frameGraph.GetResourceManager()->GetRenderPassCache()->
+					CreateRenderPasses( *_frameGraph.GetResourceManager(), logical_passes, barrier_visitor.GetFragOutputs() ));
 		
-		VFramebufferPtr	framebuffer	= task.GetLogicalPass()->GetFramebuffer();
+		VFramebuffer const*	framebuffer = _GetResource( task.GetLogicalPass()->GetFramebufferID() );
 
 		_AddRenderTargetBarriers( task.GetLogicalPass(), barrier_visitor );
 		_CommitBarriers();
 
 
 		// begin render pass
-		VRenderPassPtr	render_pass = task.GetLogicalPass()->GetRenderPass();
-		RectI const&	area		= task.GetLogicalPass()->GetArea();
+		VRenderPass const*	render_pass = _GetResource( task.GetLogicalPass()->GetRenderPassID() );
+		RectI const&		area		= task.GetLogicalPass()->GetArea();
 
 		VkClearValues_t		clear_values;
-		_ExtractClearValues( task.GetLogicalPass(), OUT clear_values );
+		_ExtractClearValues( task.GetLogicalPass(), render_pass, OUT clear_values );
 
 		VkRenderPassBeginInfo	pass_info = {};
 		pass_info.sType						= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		pass_info.renderPass				= render_pass->GetRenderPassID();
+		pass_info.renderPass				= render_pass->Handle();
 		pass_info.renderArea.offset.x		= area.left;
 		pass_info.renderArea.offset.y		= area.top;
         pass_info.renderArea.extent.width	= uint(area.Width());
         pass_info.renderArea.extent.height	= uint(area.Height());
 		pass_info.clearValueCount			= uint(clear_values.size());
 		pass_info.pClearValues				= clear_values.data();
-		pass_info.framebuffer				= framebuffer->GetFramebufferID();
+		pass_info.framebuffer				= framebuffer->Handle();
 		
 		_dev.vkCmdBeginRenderPass( _cmdBuffer, &pass_info, VK_SUBPASS_CONTENTS_INLINE );
 	}
@@ -786,7 +708,7 @@ namespace FG
 =================================================
 	_BeginSubpass
 =================================================
-*
+*/
 	void VTaskProcessor::_BeginSubpass (const VFgTask<SubmitRenderPass> &task)
 	{
 		ASSERT( task.IsSubpass() );
@@ -794,13 +716,13 @@ namespace FG
 		// TODO: barriers for attachments
 
 		_dev.vkCmdNextSubpass( _cmdBuffer, VK_SUBPASS_CONTENTS_INLINE );
-		
+		/*
 		// TODO
-		/*vkCmdClearAttachments( _cmdId,
+		vkCmdClearAttachments( _cmdBuffer,
 							   uint( attachments.Count() ),
 							   attachments.ptr(),
 							   uint( clear_rects.Count() ),
-							   clear_rects.ptr() );* /
+							   clear_rects.ptr() );*/
 	}
 
 /*
@@ -811,13 +733,13 @@ namespace FG
 	void VTaskProcessor::Visit (const VFgTask<SubmitRenderPass> &task)
 	{
 		_OnRunTask( &task );
-		/*
+		
 		if ( task.IsSubpass() )
 			_BeginSubpass( task );
 		else
 			_BeginRenderPass( task );
 
-
+		
 		// set viewports
 		const auto&	viewports = task.GetLogicalPass()->GetViewports();
 		if ( not viewports.empty() ) {
@@ -836,7 +758,29 @@ namespace FG
 		// end render pass
 		if ( task.IsLastSubpass() ) {
 			_dev.vkCmdEndRenderPass( _cmdBuffer );
-		}*/
+		}
+	}
+	
+/*
+=================================================
+	_ExtractDescriptorSets
+=================================================
+*/
+	void VTaskProcessor::_ExtractDescriptorSets (const VPipelineResourceSet &resourceSet, OUT VkDescriptorSets_t &descriptorSets)
+	{
+		descriptorSets.resize( resourceSet.resources.size() );
+
+		for (size_t i = 0; i < resourceSet.resources.size(); ++i)
+		{
+			const auto &				res		 = resourceSet.resources[i];
+			VPipelineResources const*	ppln_res = _GetResource( res );
+			PipelineResourceBarriers	visitor	 { *this, _currTask };
+
+			for (auto& un : ppln_res->GetData()) {
+				std::visit( visitor, un.res );
+			}
+			descriptorSets[i] = ppln_res->Handle();
+		}
 	}
 	
 /*
@@ -844,32 +788,14 @@ namespace FG
 	_BindPipelineResources
 =================================================
 */
-	void VTaskProcessor::_BindPipelineResources (RawCPipelineID pipelineId, const VPipelineResourceSet &resources, ArrayView<uint> dynamicOffsets)
+	void VTaskProcessor::_BindPipelineResources (RawCPipelineID pipelineId, const VPipelineResourceSet &resourceSet)
 	{
-		FixedArray< VkDescriptorSet, VPipelineResourceSet::capacity() >		descriptor_sets;
-		descriptor_sets.resize( resources.size() );
+		VComputePipeline const*		cppln	= _GetResource( pipelineId );
+		VPipelineLayout const*		layout	= _GetResource( cppln->GetLayoutID() );
 
-		VComputePipeline const*		cppln	= _frameGraph.GetResourceManager()->GetResource( pipelineId );
-		VPipelineLayout const*		layout	= _frameGraph.GetResourceManager()->GetResource( cppln->GetLayoutID() );
-		
 		// update descriptor sets and add pipeline barriers
-		for (const auto& res : resources)
-		{
-			VPipelineResources const*	ppln_res = _frameGraph.GetResourceManager()->GetResource( res.second );
-
-			PipelineResourceBarriers	visitor{ *this, _currTask };
-
-			for (auto& un : ppln_res->GetData())
-			{
-				std::visit( visitor, un.res );
-			}
-
-			uint						idx;
-			RawDescriptorSetLayoutID	ds_layout;
-			CHECK( layout->GetDescriptorSetLayout( res.first, OUT ds_layout, OUT idx ));
-
-			descriptor_sets[idx] = _frameGraph.GetResourceManager()->GetResource( res.second )->Handle();
-		}
+		VkDescriptorSets_t	descriptor_sets;
+		_ExtractDescriptorSets( resourceSet, OUT descriptor_sets );
 
 		_dev.vkCmdBindDescriptorSets( _cmdBuffer,
 									  VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -877,8 +803,8 @@ namespace FG
 									  0,
 									  uint(descriptor_sets.size()),
 									  descriptor_sets.data(),
-									  uint(dynamicOffsets.size()),
-									  dynamicOffsets.data() );
+									  uint(resourceSet.dynamicOffsets.size()),
+									  resourceSet.dynamicOffsets.data() );
 	}
 	
 /*
@@ -904,13 +830,11 @@ namespace FG
 
 		_isCompute = true;
 
-		_BindPipelineResources( task.GetPipeline(), task.GetResources(), task.GetDynamicOffsets() );
-		_BindPipeline( task.GetPipeline(), task.LocalSize() );
+		_BindPipelineResources( task.pipeline, task.GetResources() );
+		_BindPipeline( task.pipeline, task.localGroupSize );
 		_CommitBarriers();
 
-		const uint3		group_count	= task.GroupCount();
-
-		_dev.vkCmdDispatch( _cmdBuffer, group_count.x, group_count.y, group_count.z );
+		_dev.vkCmdDispatch( _cmdBuffer, task.groupCount.x, task.groupCount.y, task.groupCount.z );
 	}
 	
 /*
@@ -959,13 +883,13 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalBuffer const *	src_buffer	= _GetState( task.SrcBuffer() );
-		VLocalBuffer const *	dst_buffer	= _GetState( task.DstBuffer() );
-		BufferCopyRegions_t		regions;	regions.resize( task.Regions().size() );
+		VLocalBuffer const *	src_buffer	= task.srcBuffer;
+		VLocalBuffer const *	dst_buffer	= task.dstBuffer;
+		BufferCopyRegions_t		regions;	regions.resize( task.regions.size() );
 
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
 		{
-			const auto&	src = task.Regions()[i];
+			const auto&	src = task.regions[i];
 			auto&		dst = regions[i];
 
 			dst.srcOffset	= VkDeviceSize( src.srcOffset );
@@ -1001,13 +925,13 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalImage const *		src_image	= _GetState( task.SrcImage() );
-		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
-		ImageCopyRegions_t		regions;	regions.resize( task.Regions().size() );
+		VLocalImage const *		src_image	= task.srcImage;
+		VLocalImage const *		dst_image	= task.dstImage;
+		ImageCopyRegions_t		regions;	regions.resize( task.regions.size() );
 
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
 		{
-			const auto&		src					= task.Regions()[i];
+			const auto&		src					= task.regions[i];
 			auto&			dst					= regions[i];
 			const uint3		image_size			= Max( src.size, 1u );
 
@@ -1032,17 +956,17 @@ namespace FG
 			//ASSERT(All( src.srcOffset + src.size <= Max(1u, src_image.Dimension().xyz() >> src.srcSubresource.mipLevel.Get()) ));
 			//ASSERT(All( src.dstOffset + src.size <= Max(1u, dst_image.Dimension().xyz() >> src.dstSubresource.mipLevel.Get()) ));
 
-			_AddImage( src_image, EResourceState::TransferSrc, task.SrcLayout(), dst.srcSubresource );
-			_AddImage( dst_image, EResourceState::TransferDst, task.DstLayout(), dst.dstSubresource );
+			_AddImage( src_image, EResourceState::TransferSrc, task.srcLayout, dst.srcSubresource );
+			_AddImage( dst_image, EResourceState::TransferDst, task.dstLayout, dst.dstSubresource );
 		}
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdCopyImage( _cmdBuffer,
 							 src_image->Handle(),
-							 task.SrcLayout(),
+							 task.srcLayout,
 							 dst_image->Handle(),
-							 task.DstLayout(),
+							 task.dstLayout,
 							 uint(regions.size()),
 							 regions.data() );
 	}
@@ -1056,13 +980,13 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalBuffer const *		src_buffer	= _GetState( task.SrcBuffer() );
-		VLocalImage const *			dst_image	= _GetState( task.DstImage() );
-		BufferImageCopyRegions_t	regions;	regions.resize( task.Regions().size() );
+		VLocalBuffer const *		src_buffer	= task.srcBuffer;
+		VLocalImage const *			dst_image	= task.dstImage;
+		BufferImageCopyRegions_t	regions;	regions.resize( task.regions.size() );
 		
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
 		{
-			const auto&			src			= task.Regions()[i];
+			const auto&			src			= task.regions[i];
 			auto&				dst			= regions[i];
 			const int3			img_offset	= int3(src.imageOffset);
 			const uint3			img_size	= Max( src.imageSize, 1u );
@@ -1079,7 +1003,7 @@ namespace FG
 			dst.imageExtent						= VkExtent3D{ img_size.x, img_size.y, img_size.z };
 
 			_AddBuffer( src_buffer, EResourceState::TransferSrc, dst, dst_image );
-			_AddImage(  dst_image,  EResourceState::TransferDst, task.DstLayout(), dst.imageSubresource );
+			_AddImage(  dst_image,  EResourceState::TransferDst, task.dstLayout, dst.imageSubresource );
 		}
 		
 		_CommitBarriers();
@@ -1087,7 +1011,7 @@ namespace FG
 		_dev.vkCmdCopyBufferToImage( _cmdBuffer,
 									 src_buffer->Handle(),
 									 dst_image->Handle(),
-									 task.DstLayout(),
+									 task.dstLayout,
 									 uint(regions.size()),
 									 regions.data() );
 	}
@@ -1101,13 +1025,13 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalImage const *			src_image	= _GetState( task.SrcImage() );
-		VLocalBuffer const *		dst_buffer	= _GetState( task.DstBuffer() );
-		BufferImageCopyRegions_t	regions;	regions.resize( task.Regions().size() );
+		VLocalImage const *			src_image	= task.srcImage;
+		VLocalBuffer const *		dst_buffer	= task.dstBuffer;
+		BufferImageCopyRegions_t	regions;	regions.resize( task.regions.size() );
 		
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
 		{
-			const auto&			src			= task.Regions()[i];
+			const auto&			src			= task.regions[i];
 			auto&				dst			= regions[i];
 			const uint3			image_size	= Max( src.imageSize, 1u );
 
@@ -1122,7 +1046,7 @@ namespace FG
 			dst.imageOffset						= VkOffset3D{ src.imageOffset.x, src.imageOffset.y, src.imageOffset.z };
 			dst.imageExtent						= VkExtent3D{ image_size.x, image_size.y, image_size.z };
 
-			_AddImage(  src_image,  EResourceState::TransferSrc, task.SrcLayout(), dst.imageSubresource );
+			_AddImage(  src_image,  EResourceState::TransferSrc, task.srcLayout, dst.imageSubresource );
 			_AddBuffer( dst_buffer, EResourceState::TransferDst, dst, src_image );
 		}
 		
@@ -1130,7 +1054,7 @@ namespace FG
 		
 		_dev.vkCmdCopyImageToBuffer( _cmdBuffer,
 									 src_image->Handle(),
-									 task.SrcLayout(),
+									 task.srcLayout,
 									 dst_buffer->Handle(),
 									 uint(regions.size()),
 									 regions.data() );
@@ -1145,13 +1069,13 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalImage const *		src_image	= _GetState( task.SrcImage() );
-		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
-		BlitRegions_t			regions;	regions.resize( task.Regions().size() );
+		VLocalImage const *		src_image	= task.srcImage;
+		VLocalImage const *		dst_image	= task.dstImage;
+		BlitRegions_t			regions;	regions.resize( task.regions.size() );
 		
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
 		{
-			const auto&		src	= task.Regions()[i];
+			const auto&		src	= task.regions[i];
 			auto&			dst	= regions[i];
 				
 			dst.srcSubresource.aspectMask		= VEnumCast( src.srcSubresource.aspectMask, src_image->PixelFormat() );
@@ -1168,20 +1092,20 @@ namespace FG
 			dst.dstOffsets[0]					= VkOffset3D{ src.dstOffset0.x, src.dstOffset0.y, src.dstOffset0.z };
 			dst.dstOffsets[1]					= VkOffset3D{ src.dstOffset1.x, src.dstOffset1.y, src.dstOffset1.z };
 
-			_AddImage( src_image, EResourceState::TransferSrc, task.SrcLayout(), dst.srcSubresource );
-			_AddImage( dst_image, EResourceState::TransferDst, task.DstLayout(), dst.dstSubresource );
+			_AddImage( src_image, EResourceState::TransferSrc, task.srcLayout, dst.srcSubresource );
+			_AddImage( dst_image, EResourceState::TransferDst, task.dstLayout, dst.dstSubresource );
 		}
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdBlitImage( _cmdBuffer,
 							 src_image->Handle(),
-							 task.SrcLayout(),
+							 task.srcLayout,
 							 dst_image->Handle(),
-							 task.DstLayout(),
+							 task.dstLayout,
 							 uint(regions.size()),
 							 regions.data(),
-							 task.Filter() );
+							 task.filter );
 	}
 	
 /*
@@ -1193,13 +1117,13 @@ namespace FG
 	{
 		_OnRunTask( &task );
 		
-		VLocalImage	const *		src_image	= _GetState( task.SrcImage() );
-		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
-		ResolveRegions_t		regions;	regions.resize( task.Regions().size() );
+		VLocalImage	const *		src_image	= task.srcImage;
+		VLocalImage const *		dst_image	= task.dstImage;
+		ResolveRegions_t		regions;	regions.resize( task.regions.size() );
 		
 		for (size_t i = 0, count = regions.size(); i < count; ++i)
 		{
-			const auto&			src				= task.Regions()[i];
+			const auto&			src				= task.regions[i];
 			auto&				dst				= regions[i];
 			const uint3			image_size		= Max( src.extent, 1u );
 
@@ -1217,17 +1141,17 @@ namespace FG
 			
 			dst.extent							= VkExtent3D{ image_size.x, image_size.y, image_size.z };
 
-			_AddImage( src_image, EResourceState::TransferSrc, task.SrcLayout(), dst.srcSubresource );
-			_AddImage( dst_image, EResourceState::TransferDst, task.DstLayout(), dst.dstSubresource );
+			_AddImage( src_image, EResourceState::TransferSrc, task.srcLayout, dst.srcSubresource );
+			_AddImage( dst_image, EResourceState::TransferDst, task.dstLayout, dst.dstSubresource );
 		}
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdResolveImage(	_cmdBuffer,
 								src_image->Handle(),
-								task.SrcLayout(),
+								task.srcLayout,
 								dst_image->Handle(),
-								task.DstLayout(),
+								task.dstLayout,
 								uint(regions.size()),
 								regions.data() );
 	}
@@ -1241,17 +1165,17 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalBuffer const *	dst_buffer = _GetState( task.DstBuffer() );
+		VLocalBuffer const *	dst_buffer = task.dstBuffer;
 
-		_AddBuffer( dst_buffer, EResourceState::TransferDst, task.DstOffset(), task.Size() );
+		_AddBuffer( dst_buffer, EResourceState::TransferDst, task.dstOffset, task.size );
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdFillBuffer( _cmdBuffer,
 							  dst_buffer->Handle(),
-							  task.DstOffset(),
-							  task.Size(),
-							  task.Pattern() );
+							  task.dstOffset,
+							  task.size,
+							  task.pattern );
 	}
 	
 /*
@@ -1263,12 +1187,12 @@ namespace FG
 	{
 		_OnRunTask( &task );
 
-		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
-		ImageClearRanges_t		ranges;		ranges.resize( task.Ranges().size() );
+		VLocalImage const *		dst_image	= task.dstImage;
+		ImageClearRanges_t		ranges;		ranges.resize( task.ranges.size() );
 		
 		for (size_t i = 0, count = ranges.size(); i < count; ++i)
 		{
-			const auto&		src	= task.Ranges()[i];
+			const auto&		src	= task.ranges[i];
 			auto&			dst	= ranges[i];
 			
 			dst.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1277,14 +1201,14 @@ namespace FG
 			dst.baseArrayLayer	= src.baseLayer.Get();
 			dst.layerCount		= src.layerCount;
 
-			_AddImage( dst_image, EResourceState::TransferDst, task.DstLayout(), dst );
+			_AddImage( dst_image, EResourceState::TransferDst, task.dstLayout, dst );
 		}
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdClearColorImage( _cmdBuffer,
 								   dst_image->Handle(),
-								   task.DstLayout(),
+								   task.dstLayout,
 								   &task.ClearValue(),
 								   uint(ranges.size()),
 								   ranges.data() );
@@ -1299,12 +1223,12 @@ namespace FG
 	{
 		_OnRunTask( &task );
 		
-		VLocalImage const *		dst_image	= _GetState( task.DstImage() );
-		ImageClearRanges_t		ranges;		ranges.resize( task.Ranges().size() );
+		VLocalImage const *		dst_image	= task.dstImage;
+		ImageClearRanges_t		ranges;		ranges.resize( task.ranges.size() );
 		
 		for (size_t i = 0, count = ranges.size(); i < count; ++i)
 		{
-			const auto&		src	= task.Ranges()[i];
+			const auto&		src	= task.ranges[i];
 			auto&			dst	= ranges[i];
 			
 			dst.aspectMask		= VEnumCast( src.aspectMask, dst_image->PixelFormat() );
@@ -1313,15 +1237,15 @@ namespace FG
 			dst.baseArrayLayer	= src.baseLayer.Get();
 			dst.layerCount		= src.layerCount;
 
-			_AddImage( dst_image, EResourceState::TransferDst, task.DstLayout(), dst );
+			_AddImage( dst_image, EResourceState::TransferDst, task.dstLayout, dst );
 		}
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdClearDepthStencilImage( _cmdBuffer,
 										  dst_image->Handle(),
-										  task.DstLayout(),
-										  &task.ClearValue(),
+										  task.dstLayout,
+										  &task.clearValue,
 										  uint(ranges.size()),
 										  ranges.data() );
 	}
@@ -1335,15 +1259,15 @@ namespace FG
 	{
 		_OnRunTask( &task );
 		
-		VLocalBuffer const *	dst_buffer = _GetState( task.DstBuffer() );
+		VLocalBuffer const *	dst_buffer = task.dstBuffer;
 
-		_AddBuffer( dst_buffer, EResourceState::TransferDst, task.DstBufferOffset(), task.DataSize() );
+		_AddBuffer( dst_buffer, EResourceState::TransferDst, task.dstOffset, task.DataSize() );
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdUpdateBuffer( _cmdBuffer,
 								dst_buffer->Handle(),
-								task.DstBufferOffset(),
+								task.dstOffset,
 								task.DataSize(),
 								task.DataPtr() );
 	}

@@ -54,7 +54,14 @@ namespace FG
 											 RawPipelineLayoutID, RawRenderPassID, RawFramebufferID, RawPipelineResourcesID >;
 	using AppendableResourceIDs_t	= Appendable< UntypedResourceID_t >;
 	
-	using VPipelineResourceSet		= FixedMap< DescriptorSetID, RawPipelineResourcesID, FG_MaxDescriptorSets >;
+	using VkDescriptorSets_t		= FixedArray< VkDescriptorSet, FG_MaxDescriptorSets >;
+
+
+	struct VPipelineResourceSet
+	{
+		FixedArray< RawPipelineResourcesID, FG_MaxDescriptorSets >	resources;
+		FixedArray< uint, 64 >										dynamicOffsets;
+	};
 
 
 	enum class ExeOrderIndex : uint
@@ -88,6 +95,9 @@ namespace FG
 	class VRenderPass;
 	class VLogicalRenderPass;
 	class VPipelineCache;
+	class VLocalBuffer;
+	class VLocalImage;
+	class VRenderPassCache;
 
 
 }	// FG

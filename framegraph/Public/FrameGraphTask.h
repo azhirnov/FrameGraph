@@ -104,14 +104,14 @@ namespace FG
 		DispatchCompute () :
 			BaseTask<DispatchCompute>{ "DispatchCompute", HtmlColor::MediumBlue } {}
 		
-		DispatchCompute&  SetPipeline (const CPipelineID &ppln)										{ pipeline = ppln.Get();  return *this; }
-		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res)	{ resources.insert_or_assign( id, res );  return *this; }
+		DispatchCompute&  SetPipeline (const CPipelineID &ppln)								{ pipeline = ppln.Get();  return *this; }
+		DispatchCompute&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
 
-		DispatchCompute&  SetGroupCount (const uint3 &value)										{ groupCount = value;  return *this; }
-		DispatchCompute&  SetGroupCount (uint x, uint y = 1, uint z = 1)							{ groupCount = {x, y, z};  return *this; }
+		DispatchCompute&  SetGroupCount (const uint3 &value)								{ groupCount = value;  return *this; }
+		DispatchCompute&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
 
-		DispatchCompute&  SetLocalSize (const uint3 &value)											{ localGroupSize = value;  return *this; }
-		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)								{ localGroupSize = {x, y, z};  return *this; }
+		DispatchCompute&  SetLocalSize (const uint3 &value)									{ localGroupSize = value;  return *this; }
+		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)						{ localGroupSize = {x, y, z};  return *this; }
 	};
 
 

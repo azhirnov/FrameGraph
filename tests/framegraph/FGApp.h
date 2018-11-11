@@ -70,8 +70,11 @@ namespace FG
 		ND_ ImageID		CreateImage2D (uint2 size, EPixelFormat fmt = EPixelFormat::RGBA8_UNorm, StringView name = Default) const;
 		ND_ ImageID		CreateLogicalImage2D (uint2 size, EPixelFormat fmt = EPixelFormat::RGBA8_UNorm, StringView name = Default) const;
 
+		template <typename ...Args>
+		void DeleteResources (Args& ...args);
+
 		template <typename Arg0, typename ...Args>
-		void DeleteResources (Arg0 &arg0, Args& ...args);
+		void _RecursiveDeleteResources (Arg0 &arg0, Args& ...args);
 
 		ND_ static String  GetFuncName (StringView src);
 
@@ -93,13 +96,21 @@ namespace FG
 	};
 
 	
+	template <typename ...Args>
+	inline void FGApp::DeleteResources (Args& ...args)
+	{
+		_RecursiveDeleteResources( std::forward<Args&>( args )... );
+		CHECK( _frameGraphInst->WaitIdle() );
+	}
+
+
 	template <typename Arg0, typename ...Args>
-	inline void  FGApp::DeleteResources (Arg0 &arg0, Args& ...args)
+	inline void  FGApp::_RecursiveDeleteResources (Arg0 &arg0, Args& ...args)
 	{
 		_frameGraph1->DestroyResource( INOUT arg0 );
 
 		if constexpr ( CountOf<Args...>() )
-			DeleteResources( std::forward<Args&>( args )... );
+			_RecursiveDeleteResources( std::forward<Args&>( args )... );
 	}
 	
 

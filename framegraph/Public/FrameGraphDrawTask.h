@@ -98,7 +98,7 @@ namespace FG
 		DrawTask&  AddScissor (const RectI &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }
 		DrawTask&  AddScissor (const RectU &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
 
-		DrawTask&  AddResources (const DescriptorSetID &id, const PipelineResources *res)	{ resources.insert_or_assign( id, res );  return *this; }
+		DrawTask&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
 
 		DrawTask&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b){ vertexBuffers.Add( id, vb.Get(), offset );  return *this; }
 	};

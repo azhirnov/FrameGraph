@@ -88,7 +88,7 @@ namespace FG
 		Unknown							= 0,
 
 		Default		= LogTasks | LogBarriers | LogResourceUsage |
-					  VisTasks | VisDrawTasks | VisResources | VisBarriers | VisBarrierLabels,
+					  VisTasks | VisDrawTasks | VisResources | VisBarriers,
 	};
 	FG_BIT_OPERATORS( ECompilationDebugFlags );
 

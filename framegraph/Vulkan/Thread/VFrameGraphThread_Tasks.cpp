@@ -180,7 +180,7 @@ namespace FG
 	Task  VFrameGraphThread::AddTask (const SubmitRenderPass &task)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _IsRecording() and task.renderPass );
+		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( _currUsage, EThreadUsage::Graphics ));
 		
 		auto *	rp  = _resourceMngr.GetState(ConvertLRP( task.renderPass ));
@@ -769,16 +769,16 @@ namespace FG
 	void  VFrameGraphThread::AddDrawTask (RenderPass renderPass, const DrawTask &task)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _IsRecording() and renderPass, void() );
+		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState(ConvertLRP( renderPass ));
-		void *	ptr = _mainAllocator.Alloc< FGDrawTask<DrawTask> >();
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawTask> >();
 
-		rp->AddTask( PlacementNew< FGDrawTask<DrawTask> >(
-					ptr,
-					task,
-					VTaskProcessor::Visit1_DrawTask,
-					VTaskProcessor::Visit2_DrawTask ));
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawTask> >(
+					 ptr,
+					 this, task,
+					 VTaskProcessor::Visit1_DrawTask,
+					 VTaskProcessor::Visit2_DrawTask ));
 	}
 	
 /*
@@ -792,13 +792,13 @@ namespace FG
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState(ConvertLRP( renderPass ));
-		void *	ptr = _mainAllocator.Alloc< FGDrawTask<DrawIndexedTask> >();
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawIndexedTask> >();
 
-		rp->AddTask( PlacementNew< FGDrawTask<DrawIndexedTask> >(
-					ptr,
-					task,
-					VTaskProcessor::Visit1_DrawIndexedTask,
-					VTaskProcessor::Visit2_DrawIndexedTask ));
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawIndexedTask> >(
+					 ptr,
+					 this, task,
+					 VTaskProcessor::Visit1_DrawIndexedTask,
+					 VTaskProcessor::Visit2_DrawIndexedTask ));
 	}
 	
 /*

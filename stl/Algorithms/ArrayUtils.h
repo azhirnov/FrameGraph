@@ -30,8 +30,8 @@ namespace FG
 	ArraySizeOf
 =================================================
 */
-	template <typename T>
-	ND_ forceinline BytesU  ArraySizeOf (const Array<T> &arr)
+	template <typename T, typename A>
+	ND_ forceinline BytesU  ArraySizeOf (const std::vector<T,A> &arr)
 	{
 		return BytesU( arr.size() * sizeof(T) );
 	}

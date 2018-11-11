@@ -49,11 +49,11 @@ void main ()
 		CPipelineID			pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
 		
 		RawDescriptorSetLayoutID	ds_layout;
-		uint						binding;
-		CHECK( frame_graph->GetDescriptorSet( pipeline, DescriptorSetID("0"), OUT ds_layout, OUT binding ));
+		uint						ds_index;
+		CHECK_ERR( frame_graph->GetDescriptorSet( pipeline, DescriptorSetID("0"), OUT ds_layout, OUT ds_index ));
 
 		PipelineResources	resources;
-		CHECK( frame_graph->InitPipelineResources( ds_layout, OUT resources ));
+		CHECK_ERR( frame_graph->InitPipelineResources( ds_layout, OUT resources ));
 
 		
 		const auto	CheckData = [] (const ImageView &imageData, uint blockSize, OUT bool &isCorrect)
@@ -104,13 +104,13 @@ void main ()
         CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_OutImage"), image0 );
-		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetGroupCount( 2, 2 ) );
+		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetGroupCount( 2, 2 ) );
 
 		resources.BindImage( UniformID("un_OutImage"), image1 );
-		Task	t_run1	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).SetGroupCount( 4, 4 ) );
+		Task	t_run1	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetLocalSize( 4, 4 ).SetGroupCount( 4, 4 ) );
 		
 		resources.BindImage( UniformID("un_OutImage"), image2 );
-		Task	t_run2	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).SetGroupCount( 1, 1 ) );
+		Task	t_run2	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetLocalSize( 16, 16 ).SetGroupCount( 1, 1 ) );
 		
 		Task	t_read0	= frame_graph->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ) );
 		Task	t_read1	= frame_graph->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );
@@ -118,13 +118,13 @@ void main ()
 		
         FG_UNUSED( t_read0 and t_read1 and t_read2 );
 		
-		CHECK( frame_graph->Compile() );		
-		CHECK( _frameGraphInst->Execute() );
+		CHECK_ERR( frame_graph->Compile() );		
+		CHECK_ERR( _frameGraphInst->Execute() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME, EGraphVizFlags::Default ));
 
-        CHECK( _frameGraphInst->WaitIdle() );
+        CHECK_ERR( _frameGraphInst->WaitIdle() );
 
 		CHECK_ERR( data0_is_correct and data1_is_correct and data2_is_correct );
 		

@@ -31,7 +31,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage3,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
-		//_tests.push_back({ &FGApp::Test_Draw1,		1 });
+		_tests.push_back({ &FGApp::Test_Draw1,			1 });
 
 		//_tests.push_back({ &FGApp::ImplTest_Scene1, 1 });
 		//_tests.push_back( &FGApp::ImplTest_Scene2 );
@@ -58,7 +58,7 @@ namespace {
         swapchain_info.surfaceSize  = size;
 		swapchain_info.preTransform = {};
 
-		CHECK( _frameGraph1->CreateSwapchain( swapchain_info ));
+		CHECK_FATAL( _frameGraph1->CreateSwapchain( swapchain_info ));
 	}
 	
 /*
@@ -425,7 +425,7 @@ namespace {
 		String				graph_path;						graph_path << path << '.' << format;
 
 		// space in path is not supported
-		CHECK( path.find( ' ' ) == String::npos );
+		CHECK_ERR( path.find( ' ' ) == String::npos );
 
 		// save to '.dot' file
 		{
@@ -442,7 +442,7 @@ namespace {
 			CHECK_ERR( Execute( "\""s << FG_GRAPHVIZ_DOT_EXECUTABLE << "\" -T" << format << " -O " << path, 30'000 ));
 
 			// delete '.dot' file
-			//CHECK( DeleteFile( path ));
+			CHECK( DeleteFile( path ));
 		}
 
 		if ( autoOpen )

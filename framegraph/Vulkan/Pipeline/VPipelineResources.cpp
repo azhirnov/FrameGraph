@@ -246,8 +246,7 @@ namespace FG
 */
 	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
 	{
-		LocalImageID		local_id	= rm.Remap( img.imageId );
-		VLocalImage const*	local_img	= rm.GetState( local_id );
+		VLocalImage const*	local_img	= rm.GetState( img.imageId );
 
 		VkDescriptorImageInfo	info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( img.state );
@@ -278,8 +277,7 @@ namespace FG
 */
 	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
 	{
-		LocalImageID		local_id	= rm.Remap( tex.imageId );
-		VLocalImage const*	local_img	= rm.GetState( local_id );
+		VLocalImage const*	local_img	= rm.GetState( tex.imageId );
 
 		VkDescriptorImageInfo	info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( tex.state );

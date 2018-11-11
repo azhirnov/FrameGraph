@@ -36,7 +36,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		_area				= rp.area;
-		_parallelExecution	= rp.parallelExecution;
+		//_parallelExecution= rp.parallelExecution;
 		_canBeMerged		= rp.canBeMerged;
 
 		for (const auto& src : rp.renderTargets)
@@ -44,7 +44,8 @@ namespace FG
 			ColorTarget		dst;
 			VImage const*	image = rm.GetResource( src.second.image );
 
-			dst.imageId		= rm.Remap( src.second.image );
+			dst.imageId		= src.second.image;
+			dst.imagePtr	= rm.GetState( src.second.image );
 			dst.desc		= src.second.desc.has_value() ? *src.second.desc : ImageViewDesc{image->Description()};
 			dst.samples		= VEnumCast( image->Description().samples );
 			dst.loadOp		= VEnumCast( src.second.loadOp );
@@ -52,7 +53,7 @@ namespace FG
 			dst.state		= EResourceState::Unknown;
 
 			dst.desc.Validate( image->Description() );
-			dst._imageHash	= HashOf(src.second.image) + HashOf(dst.desc);
+			dst._imageHash	= HashOf( dst.imageId ) + HashOf( dst.desc );
 
 			ConvertClearValue( src.second.clearValue, OUT dst.clearValue );
 
@@ -127,6 +128,8 @@ namespace FG
 			rect.extent.height	= rp.area.Height();
 			_defaultScissors.push_back( rect );
 		}
+		
+		_OnCreate();
 		return true;
 	}
 	

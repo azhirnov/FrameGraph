@@ -157,7 +157,7 @@ namespace FG
 	};
 
 
-	using PipelineResourceSet	= FixedMap< DescriptorSetID, PipelineResources const*, FG_MaxDescriptorSets >;
+	using PipelineResourceSet	= FixedArray< PipelineResources const*, FG_MaxDescriptorSets >;
 
 	
 

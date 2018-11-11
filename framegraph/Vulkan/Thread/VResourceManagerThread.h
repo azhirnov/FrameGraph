@@ -6,6 +6,8 @@
 #include "VLocalBuffer.h"
 #include "VLocalImage.h"
 #include "VLogicalRenderPass.h"
+#include "VPipelineCache.h"
+#include "VRenderPassCache.h"
 
 namespace FG
 {
@@ -63,6 +65,8 @@ namespace FG
 		Allocator_t&						_allocator;
 		VResourceManager&					_mainRM;
 		VPipelineCache						_pipelineCache;
+		VRenderPassCache					_renderPassCache;
+
 		ResourceIndexCache_t				_indexCache;
 
 		Storage<ImageToLocal_t>				_imageToLocal;
@@ -126,9 +130,12 @@ namespace FG
 
 		ND_ VDevice const&		GetDevice ()				const	{ return _mainRM._device; }
 
-		ND_ VLocalBuffer const*	GetState (LocalBufferID id)			{ return _GetState( *_localBuffers,  id ); }
-		ND_ VLocalImage  const*	GetState (LocalImageID id)			{ return _GetState( *_localImages,   id ); }
-		ND_ VLogicalRenderPass*	GetState (LogicalRenderPassID id)	{ return _GetState( *_logicalRenderPasses,   id ); }
+		ND_ VLocalBuffer const*	GetState (LocalBufferID id)			{ return _GetState( *_localBuffers, id ); }
+		ND_ VLocalImage  const*	GetState (LocalImageID id)			{ return _GetState( *_localImages,  id ); }
+		ND_ VLogicalRenderPass*	GetState (LogicalRenderPassID id)	{ return _GetState( *_logicalRenderPasses, id ); }
+
+		ND_ VLocalBuffer const*	GetState (RawBufferID id)			{ return _GetState( *_localBuffers, Remap( id )); }
+		ND_ VLocalImage  const*	GetState (RawImageID id)			{ return _GetState( *_localImages,  Remap( id )); }
 
 		template <typename ID>
 		void DestroyResource (ID id, bool isAsync);
@@ -136,6 +143,7 @@ namespace FG
 		void FlushLocalResourceStates (ExeOrderIndex, VBarrierManager &, VFrameGraphDebugger *);
 
 		ND_ VPipelineCache *	GetPipelineCache ()					{ return &_pipelineCache; }
+		ND_ VRenderPassCache*	GetRenderPassCache ()				{ return &_renderPassCache; }
 
 
 	private:

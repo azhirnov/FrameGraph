@@ -60,7 +60,7 @@ namespace FG
 
 		return	All( _dimension	== rhs._dimension )	and
 				_layers			== rhs._layers		and
-				//_attachments	== rhs._attachments	and
+				_attachments	== rhs._attachments	and
 				_renderPassId	== rhs._renderPassId;
 	}
 
@@ -74,15 +74,18 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( not _framebuffer );
 		CHECK_ERR( not attachments.empty() );
-		//CHECK_ERR( _attachments.empty() );
+		CHECK_ERR( _attachments.empty() );
 
-		//_attachments	= attachments;
+		for (auto& item : attachments) {
+			_attachments.push_back({ ImageID(item.first), item.second });
+		}
+
 		_renderPassId	= RenderPassID{ rp };
 		_dimension		= dim;
 		_layers			= ImageLayer(layers);
 
 		// calc hash
-		//_hash =  HashOf( _attachments );
+		_hash =  HashOf( _attachments );
 		_hash << HashOf( _renderPassId );
 		_hash << HashOf( _dimension );
 		_hash << HashOf( _layers );
@@ -95,24 +98,28 @@ namespace FG
 	Create
 =================================================
 */
-	bool VFramebuffer::Create (const VResourceManagerThread &rm, StringView dbgName)
+	bool VFramebuffer::Create (VResourceManagerThread &resMngr, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( not _framebuffer );
 		CHECK_ERR( _renderPassId );
 
 		FixedArray< VkImageView, FG_MaxColorBuffers+1 >		image_views;
-		VDevice const &										dev = rm.GetDevice();
+		VDevice const &										dev = resMngr.GetDevice();
 
-		//for (auto& rt : _attachments) {
-		//	image_views.push_back( rm.GetResource( rt.first.Get() )->GetView( rt.second ));
-		//}
+		for (auto& rt : _attachments)
+		{
+			VkImageView	view = resMngr.GetState( rt.first.Get() )->GetView( dev, INOUT rt.second );
+			CHECK_ERR( view );
+
+			image_views.push_back( view );
+		}
 
 		// create framebuffer
 		VkFramebufferCreateInfo		fb_info	= {};
 		
 		fb_info.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fb_info.renderPass		= rm.GetResource( _renderPassId.Get() )->Handle();
+		fb_info.renderPass		= resMngr.GetResource( _renderPassId.Get() )->Handle();
 		fb_info.attachmentCount	= uint(image_views.size());
 		fb_info.pAttachments	= image_views.data();
 		fb_info.width			= _dimension.x;
@@ -144,14 +151,14 @@ namespace FG
 			unassignIDs.emplace_back( _renderPassId.Release() );
 		}
 
-		//for (auto& att : _attachments) {
-		//	unassignIDs.emplace_back( att.first.Release() );
-		//}
+		for (auto& att : _attachments) {
+			unassignIDs.emplace_back( att.first.Release() );
+		}
 
 		_framebuffer	= VK_NULL_HANDLE;
 		_hash			= Default;
 		_renderPassId	= Default;
-		//_attachments.clear();
+		_attachments.clear();
 		_debugName.clear();
 
 		_OnDestroy();

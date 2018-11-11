@@ -19,7 +19,8 @@ namespace FG
 			img._desc	= desc;
 			img._desc.Validate();
 
-			img._initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
+			img._defaultLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
 			img._OnCreate();
 			return true;
 		}
@@ -78,8 +79,8 @@ static void VImage_Test1 ()
 		TEST( barriers[1].range.end == 7 );
 		TEST( barriers[1].stages == VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
 		TEST( barriers[1].access == 0 );
-		TEST( barriers[1].isReadable == true );
-		TEST( barriers[1].isWritable == true );
+		TEST( barriers[1].isReadable == false );
+		TEST( barriers[1].isWritable == false );
 		TEST( barriers[1].layout == VK_IMAGE_LAYOUT_UNDEFINED );
 		TEST( barriers[1].index == ExeOrderIndex::Initial );
 	}
@@ -136,8 +137,8 @@ static void VImage_Test2 ()
 		TEST( barriers[1].range.end == 8 );
 		TEST( barriers[1].stages == VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
 		TEST( barriers[1].access == 0 );
-		TEST( barriers[1].isReadable == true );
-		TEST( barriers[1].isWritable == true );
+		TEST( barriers[1].isReadable == false );
+		TEST( barriers[1].isWritable == false );
 		TEST( barriers[1].layout == VK_IMAGE_LAYOUT_UNDEFINED );
 		TEST( barriers[1].index == ExeOrderIndex::Initial );
 	}

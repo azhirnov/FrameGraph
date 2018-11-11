@@ -54,6 +54,9 @@ namespace FG
 		_DestroyResourceCache( INOUT _samplerCache );
 		_DestroyResourceCache( INOUT _pplnLayoutCache );
 		_DestroyResourceCache( INOUT _dsLayoutCache );
+		_DestroyResourceCache( INOUT _renderPassCache );
+		_DestroyResourceCache( INOUT _framebufferCache );
+		_DestroyResourceCache( INOUT _pplnResourcesCache );
 
 		for (auto& frame : _perFrame) {
 			_DeleteResources( INOUT frame.readyToDelete );
@@ -90,11 +93,21 @@ namespace FG
 */
 	void VResourceManager::_UnassignResourceIDs ()
 	{
-		for (auto& vid : _unassignIDs)
+		UnassignIDQueue_t	temp;
+
+		for (; not _unassignIDs.empty();)
 		{
-			std::visit( [this] (auto id) { _UnassignResource( _GetResourcePool(id), id ); }, vid );
+			std::swap( _unassignIDs, temp );
+
+			for (auto& vid : temp)
+			{
+				std::visit( [this] (auto id) { _UnassignResource( _GetResourcePool(id), id ); }, vid );
+			}
+			temp.clear();
 		}
-		_unassignIDs.clear();
+
+		if ( temp.capacity() > _unassignIDs.capacity() )
+			std::swap( _unassignIDs, temp );
 	}
 	
 /*

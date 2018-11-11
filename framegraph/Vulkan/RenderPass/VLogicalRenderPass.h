@@ -22,7 +22,8 @@ namespace FG
 	public:
 		struct ColorTarget
 		{
-			LocalImageID			imageId;
+			RawImageID				imageId;
+			VLocalImage const*		imagePtr		= null;
 			ImageViewDesc			desc;
 			VkSampleCountFlagBits	samples			= VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
 			VkClearValue			clearValue;
@@ -64,17 +65,17 @@ namespace FG
 		Scissors_t					_defaultScissors;
 
 		RectI						_area;
-		bool						_parallelExecution	= true;
+		//bool						_parallelExecution	= true;
 		bool						_canBeMerged		= true;
 		bool						_isSubmited			= false;
 
 
 	// methods
 	private:
-		void _SetRenderPass (const RenderPassID &rp, uint subpass, const FramebufferID &fb)
+		void _SetRenderPass (const RawRenderPassID &rp, uint subpass, const RawFramebufferID &fb)
 		{
-			_framebufferId	= fb.Get();
-			_renderPassId	= rp.Get();
+			_framebufferId	= fb;
+			_renderPassId	= rp;
 			_subpassIndex	= subpass;
 		}
 
@@ -114,15 +115,13 @@ namespace FG
 		ND_ bool						IsSubmited ()				const	{ SHAREDLOCK( _rcCheck );  return _isSubmited; }
 
 		ND_ bool						IsMergingAvailable ()		const	{ SHAREDLOCK( _rcCheck );  return _canBeMerged; }
-
-		//ND_ bool						IsParallelDrawingSupported () const	{ return _parallelExecution; }
-		/*
-		ND_ VRenderPassPtr const&		GetRenderPass ()			const	{ return _renderPass; }
+		
+		ND_ RawFramebufferID			GetFramebufferID ()			const	{ return _framebufferId; }
+		ND_ RawRenderPassID				GetRenderPassID ()			const	{ return _renderPassId; }
 		ND_ uint						GetSubpassIndex ()			const	{ return _subpassIndex; }
-		ND_ VFramebufferPtr const&		GetFramebuffer ()			const	{ return _framebuffer; }
 
 		ND_ ArrayView<VkViewport>		GetViewports ()				const	{ return _viewports; }
-		ND_ ArrayView<VkRect2D>			GetScissors ()				const	{ return _defaultScissors; }*/
+		ND_ ArrayView<VkRect2D>			GetScissors ()				const	{ return _defaultScissors; }
 	};
 
 

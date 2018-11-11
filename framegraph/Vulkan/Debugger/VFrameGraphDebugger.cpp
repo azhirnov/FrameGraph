@@ -56,16 +56,16 @@ namespace {
 		
 		if ( EnumEq( _flags, DumpFlags ) )
 		{
-			_DumpFrame( batchId, indexInBatch, OUT _frameDump );
-			_DumpGraph( batchId, indexInBatch, OUT _graphViz );
+			String *	dump	= null;
+			String *	graph	= null;
 
-			_mainDbg.AddFrameDump( batchId, indexInBatch, INOUT _frameDump );
-			_mainDbg.AddGraphDump( batchId, indexInBatch, INOUT _graphViz );
+			_mainDbg.GetSubBatchInfo( batchId, indexInBatch, OUT _subBatchUID, OUT dump, OUT graph );
+
+			_DumpFrame( batchId, indexInBatch, OUT *dump );
+			_DumpGraph( batchId, indexInBatch, OUT *graph );
 		}
 
-		_frameDump.clear();
-		_graphViz.clear();
-
+		_subBatchUID = Default;
 		_tasks.clear();
 		_images.clear();
 		_buffers.clear();

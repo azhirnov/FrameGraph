@@ -30,7 +30,7 @@ namespace FG
 
 		uint2				_dimension;
 		ImageLayer			_layers;
-		//Attachments_t		_attachments;
+		Attachments_t		_attachments;
 		
 		DebugName_t			_debugName;
 
@@ -41,7 +41,7 @@ namespace FG
 		~VFramebuffer ();
 		
 		bool Initialize (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers);
-		bool Create (const VResourceManagerThread &, StringView dbgName);
+		bool Create (VResourceManagerThread &, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		//ND_ bool HasImage (const VImagePtr &img) const;

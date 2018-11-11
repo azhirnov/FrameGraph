@@ -69,30 +69,30 @@ namespace FG
 
 	// variables
 	private:
-		VkPipelineCache			_pipelinesCache;
-		FragmentOutputCache_t	_fragmentOutputCache;
+		VkPipelineCache				_pipelinesCache;
+		FragmentOutputCache_t		_fragmentOutputCache;
 		
-		ShaderModules_t			_shaderCache;
-		PipelineCompilers_t		_compilers;
-		DescriptorPoolArray_t	_descriptorPools;
+		ShaderModules_t				_shaderCache;
+		PipelineCompilers_t			_compilers;
+		DescriptorPoolArray_t		_descriptorPools;
 		
 		// pipeline cache
-		GPipelineInstanceMap_t	_graphicsPipelines;
-		CPipelineInstanceMap_t	_computePipelines;
-		MPipelineInstanceMap_t	_meshPipelines;
-		RTPipelineInstanceMap_t	_rayTracingPipelines;
+		GPipelineInstanceMap_t		_graphicsPipelines;
+		CPipelineInstanceMap_t		_computePipelines;
+		MPipelineInstanceMap_t		_meshPipelines;
+		RTPipelineInstanceMap_t		_rayTracingPipelines;
 
 		// temporary arrays
-		ShaderStages_t			_tempStages;			// TODO: use custom allocator?
-		Specializations_t		_tempSpecialization;
-		DynamicStates_t			_tempDynamicStates;
-		Viewports_t				_tempViewports;
-		Scissors_t				_tempScissors;
-		VertexInputAttributes_t	_tempVertexAttribs;
-		VertexInputBindings_t	_tempVertexBinding;
-		ColorAttachments_t		_tempAttachments;
-		SpecializationEntries_t	_tempSpecEntries;
-		SpecializationData_t	_tempSpecData;
+		ShaderStages_t				_tempStages;			// TODO: use custom allocator?
+		Specializations_t			_tempSpecialization;
+		DynamicStates_t				_tempDynamicStates;
+		Viewports_t					_tempViewports;
+		Scissors_t					_tempScissors;
+		VertexInputAttributes_t		_tempVertexAttribs;
+		VertexInputBindings_t		_tempVertexBinding;
+		ColorAttachments_t			_tempAttachments;
+		SpecializationEntries_t		_tempSpecEntries;
+		SpecializationData_t		_tempSpecData;
 
 
 	// methods

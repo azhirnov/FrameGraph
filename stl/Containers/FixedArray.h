@@ -169,6 +169,14 @@ namespace FG
 		}
 
 
+		void append (ArrayView<T> items)
+		{
+			for (auto& item : items) {
+				push_back( item );
+			}
+		}
+
+
 		void push_back (const T &value)
 		{
 			ASSERT( _count < capacity() );

@@ -24,6 +24,8 @@ namespace FG
 	{
 		_batches.clear();
 		
+		uint	uid = 0;
+
 		// build graph
 		for (auto& src : graph.Batches())
 		{
@@ -33,6 +35,11 @@ namespace FG
 
 			Batch&	dst = inserted.first->second;
 			dst.threadCount = src.second.threadCount;
+		
+			for (size_t i = 0; i < dst.threadCount; ++i, ++uid)
+			{
+				dst.subBatches[i].name = StringView{"sb"s << ToString(uid)};
+			}
 
 			for (auto& dep : src.second.dependsOn)
 			{
@@ -56,10 +63,11 @@ namespace FG
 	
 /*
 =================================================
-	AddFrameDump
+	GetSubBatchInfo
 =================================================
 */
-	void VDebugger::AddFrameDump (const CommandBatchID &batchId, uint indexInBatch, INOUT String &str) const
+	void VDebugger::GetSubBatchInfo (const CommandBatchID &batchId, uint indexInBatch,
+									 OUT StringView &uid, OUT String* &dump, OUT String* &graph) const
 	{
 		auto	iter = _batches.find( batchId );
 		ASSERT( iter != _batches.end() );
@@ -70,7 +78,11 @@ namespace FG
 			SCOPELOCK( sub_batch.rcCheck );
 
 			ASSERT( sub_batch.dump.empty() );
-			std::swap( sub_batch.dump, str );
+			ASSERT( sub_batch.graph.empty() );
+
+			uid   = sub_batch.name;
+			dump  = &sub_batch.dump;
+			graph = &sub_batch.graph;
 		}
 	}
 
@@ -97,26 +109,6 @@ namespace FG
 		}
 	}
 	
-/*
-=================================================
-	AddGraphDump
-=================================================
-*/
-	void VDebugger::AddGraphDump (const CommandBatchID &batchId, uint indexInBatch, INOUT String &str) const
-	{
-		auto	iter = _batches.find( batchId );
-		ASSERT( iter != _batches.end() );
-
-		if ( iter != _batches.end() )
-		{
-			auto&	sub_batch = iter->second.subBatches[indexInBatch];
-			SCOPELOCK( sub_batch.rcCheck );
-
-			ASSERT( sub_batch.graph.empty() );
-			std::swap( sub_batch.graph, str );
-		}
-	}
-
 /*
 =================================================
 	GetGraphDump

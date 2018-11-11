@@ -69,11 +69,7 @@ namespace FG
 		BufferResources_t		_buffers;
 
 		VDebugger const&		_mainDbg;
-		String					_frameDump;
-		String					_graphViz;
-		
-		CommandBatchID			_cmdBatchId;
-		uint					_indexInBatch		= ~0u;
+		StringView				_subBatchUID;
 
 		// settings
 		ECompilationDebugFlags	_flags;

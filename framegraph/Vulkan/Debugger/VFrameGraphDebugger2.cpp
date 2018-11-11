@@ -1,4 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	docs: https://graphviz.gitlab.io/_pages/pdf/dotguide.pdf
+*/
 
 #include "VFrameGraphDebugger.h"
 #include "VEnumToString.h"
@@ -35,10 +38,15 @@ namespace {
 */
 	struct VFrameGraphDebugger::NodeUniqueNames
 	{
+		const StringView		_uid;
+
+		explicit NodeUniqueNames (StringView uid) : _uid{uid}
+		{}
+
 		// task
 		ND_ String  operator () (TaskPtr task) const
 		{
-			return "n"s << ToString<16>( uint(task ? task->ExecutionOrder() : ExeOrderIndex::Initial) );
+			return "n"s << ToString<16>( uint(task ? task->ExecutionOrder() : ExeOrderIndex::Initial) ) << '_' << _uid;
 		}
 
 		// resource
@@ -49,7 +57,7 @@ namespace {
 
 		ND_ String  operator () (const VBuffer *buffer, ExeOrderIndex index) const
 		{
-			return "buf"s << ToString<16>( uint64_t(buffer->Handle()) ) << '_' << ToString<16>( uint(index) );
+			return "buf"s << ToString<16>( uint64_t(buffer->Handle()) ) << '_' << ToString<16>( uint(index) ) << '_' << _uid;
 		}
 
 		ND_ String  operator () (const VImage *image, TaskPtr task) const
@@ -59,7 +67,7 @@ namespace {
 
 		ND_ String  operator () (const VImage *image, ExeOrderIndex index) const
 		{
-			return "img"s << ToString<16>( uint64_t(image->Handle()) ) << '_' << ToString<16>( uint(index) );
+			return "img"s << ToString<16>( uint64_t(image->Handle()) ) << '_' << ToString<16>( uint(index) ) << '_' << _uid;
 		}
 
 		// resource -> resource barrier name
@@ -67,14 +75,16 @@ namespace {
 		{
 			return "bufBar"s << ToString<16>( uint64_t(buffer->Handle()) )
 							<< '_' << ToString<16>( uint(srcIndex) )
-							<< '_' << ToString<16>( uint(dstIndex) );
+							<< '_' << ToString<16>( uint(dstIndex) )
+							<< '_' << _uid;
 		}
 
 		ND_ String  operator () (const VImage *image, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const
 		{
 			return "imgBuf"s << ToString<16>( uint64_t(image->Handle()) )
 							<< '_' << ToString<16>( uint(srcIndex) )
-							<< '_' << ToString<16>( uint(dstIndex) );
+							<< '_' << ToString<16>( uint(dstIndex) )
+							<< '_' << _uid;
 		}
 
 		// draw task
@@ -191,7 +201,7 @@ namespace {
 =================================================
 	VkImageLayoutToString
 =================================================
-*/
+*
 	ND_ static String  VkImageLayoutToString (VkImageLayout layout)
 	{
 		ENABLE_ENUM_CHECKS();
@@ -242,15 +252,13 @@ namespace {
 /*
 =================================================
 	_DumpGraph
-----
-	docs: https://graphviz.gitlab.io/_pages/pdf/dotguide.pdf
 =================================================
 */
 	void VFrameGraphDebugger::_DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const
 	{
 		str.clear();
 		
-		const NodeUniqueNames	node_name;
+		const NodeUniqueNames	node_name {_subBatchUID};
 		const ColorScheme		color_scheme;
 		HashSet<String>			existing_barriers;
 
@@ -313,8 +321,8 @@ namespace {
 						<< indent << "\t	color=\"#" << color_scheme.ResGroupBG( info.task ) << "\";\n"
 						<< indent << "\t	fontcolor=\"#" << color_scheme.TaskLabelColor( info.task->DebugColor() ) << "\";\n"
 						<< indent << "\t	label=\"" << info.task->Name() << "\";\n"
-						<< res_style << '\n'
-						<< indent << "\t}\n";
+						<< res_style
+						<< indent << "\t}\n\n";
 				}
 			}
 			else
@@ -341,9 +349,9 @@ namespace {
 		}
 		
 		str << '\n'
-			<< subgraphs << '\n'
+			<< subgraphs
 			<< deps
-			<< indent << "}\n";
+			<< indent << "}\n\n";
 	}
 	
 /*
@@ -354,7 +362,7 @@ namespace {
 	void VFrameGraphDebugger::_GetResourceUsage (ArrayView<ResourceUsage_t> resources, OUT String &resStyle,
 												 INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
 	{
-		const NodeUniqueNames	node_name;
+		const NodeUniqueNames	node_name {_subBatchUID};
 		const ColorScheme		color_scheme;
 
 		for (auto& res : resources)
@@ -394,6 +402,54 @@ namespace {
 			{
 				ASSERT( !"unknown resource type!" );
 			}
+		}
+	}
+	
+/*
+=================================================
+	_GetBufferBarrier
+=================================================
+*/
+	void VFrameGraphDebugger::_GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &style, INOUT String &deps,
+												 INOUT HashSet<String> &existingBarriers) const
+	{
+		auto iter = _buffers.find( buffer );
+		if ( iter == _buffers.end() )
+			return;
+		
+		for (auto& bar : iter->second.barriers)
+		{
+			if ( bar.dstIndex != task->ExecutionOrder() )
+				continue;
+
+			ASSERT( bar.info.buffer == buffer->Handle() );
+			
+			_GetResourceBarrier( buffer, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED,
+								 INOUT style, INOUT deps, INOUT existingBarriers );
+		}
+	}
+
+/*
+=================================================
+	_GetImageBarrier
+=================================================
+*/
+	void VFrameGraphDebugger::_GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &style, INOUT String &deps,
+												INOUT HashSet<String> &existingBarriers) const
+	{
+		auto iter = _images.find( image );
+		if ( iter == _images.end() )
+			return;
+
+		for (auto& bar : iter->second.barriers)
+		{
+			if ( bar.dstIndex != task->ExecutionOrder() )
+				continue;
+
+			ASSERT( bar.info.image == image->Handle() );
+
+			_GetResourceBarrier( image, bar, bar.info.oldLayout, bar.info.newLayout,
+								 INOUT style, INOUT deps, INOUT existingBarriers );
 		}
 	}
 	
@@ -454,25 +510,120 @@ namespace {
 		}
 		return result;
 	}
+	
+/*
+=================================================
+	AddPipelineStages
+----
+	make pipeline barrier visualization like in
+	image https://32ipi028l5q82yhj72224m8j-wpengine.netdna-ssl.com/wp-content/uploads/2016/10/vulkan-good-barrier-1024x771.png
+	from https://gpuopen.com/vulkan-barriers-explained/
+	or
+	image https://i1.wp.com/cpp-rendering.io/wp-content/uploads/2016/11/Barrier-3.png?fit=943%2C1773
+	from http://cpp-rendering.io/barriers-vulkan-not-difficult/
+=================================================
+*/
+	static void  AddPipelineStages (VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
+									StringView barrierStyle, INOUT String &style)
+	{
+		static constexpr VkPipelineStageFlags	all_graphics =
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV |
+			VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV | VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+			VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT |
+			VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT |
+			VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT | VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT | VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV;
+
+		static const VkPipelineStageFlagBits	all_stages[] = {
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+			VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+			VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT,
+			VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT,
+			VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			//VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT,
+			//VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT,
+			//VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX,
+			VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV,
+			VK_PIPELINE_STAGE_RAYTRACING_BIT_NVX,
+			VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV,
+			VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		};
+
+		auto	TestStage = [] (VkPipelineStageFlags stages, size_t i)
+							{
+								return	EnumEq( stages, all_stages[i] ) or
+										(EnumEq( stages, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT ) and EnumEq( all_graphics, all_stages[i] )) or
+										EnumEq( stages, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
+							};
+
+		// colors for empty, exists and skip cells
+		const String	cell_color[] = { ColToStr( HtmlColor::Gray ), ColToStr( HtmlColor::Red ), ColToStr( HtmlColor::LimeGreen ) };
+		const char		space[]		 = "  ";
+
+		bool	src_bits [CountOf(all_stages)] = {};
+		bool	dst_bits [CountOf(all_stages)] = {};
+
+		size_t	last_src_cell	= 0;
+		size_t	first_dst_cell	= ~0u;
+
+		for (size_t i = 0; i < CountOf(all_stages); ++i)
+		{
+			src_bits[i] = TestStage( srcStageMask, i );
+			dst_bits[i] = TestStage( dstStageMask, i );
+
+			if ( src_bits[i] )
+				last_src_cell  = Max( last_src_cell,  i );
+
+			if ( dst_bits[i] )
+				first_dst_cell = Min( first_dst_cell, i );
+		}
+		
+		for (size_t i = 0; i < CountOf(all_stages); ++i)
+		{
+			uint	src = src_bits[i] ? 1 : (i < last_src_cell ? 0 : 2);
+			uint	dst = dst_bits[i] ? 1 : (i < first_dst_cell ? 2 : 0);
+			
+				  //<< (i == first_cell ? "PORT=\"src\"" : "")
+
+			style << "<TR><TD bgcolor=\"#" << cell_color[src] << "\">" << space << "</TD>";
+
+			if ( i == 0 ) {
+				style << "<TD ROWSPAN=\"" << ToString( CountOf(all_stages) )
+					  << "\" bgcolor=\"#000000\">"
+					  << barrierStyle << "</TD>";
+			}
+			style << "<TD bgcolor=\"#" << cell_color[dst] << "\">" << space << "</TD></TR>";
+		}
+	}
 
 /*
 =================================================
-	GetBarrierType
+	BuildBarrierStyle
 =================================================
 */
-	static void GetBarrierType (VkPipelineStageFlags /*srcStageMask*/, VkPipelineStageFlags /*dstStageMask*/,
-								VkDependencyFlags /*dependencyFlags*/,
-								VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
-								VkImageLayout oldLayout, VkImageLayout newLayout,
-								OUT String &outLabel, OUT RGBA8u &outColor)
+	static void BuildBarrierStyle (VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
+								   VkDependencyFlags /*dependencyFlags*/,
+								   VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+								   VkImageLayout oldLayout, VkImageLayout newLayout,
+								   INOUT String &style)
 	{
 		const EAccessType	src_access = GetAccessType( srcAccessMask );
 		const EAccessType	dst_access = GetAccessType( dstAccessMask );
 
+		String	label = "<FONT COLOR=\"#fefeee\" POINT-SIZE=\"8\">";
+
 		if ( oldLayout != newLayout )
 		{
-			outLabel = "L\\nA\\nY\\n";
-			outColor = HtmlColor::Yellow;
+			label << " L <BR/> A <BR/> Y ";
 		}
 		else
 		
@@ -480,8 +631,7 @@ namespace {
 		if ( EnumEq( src_access, EAccessType::Write ) and
 			 EnumEq( dst_access, EAccessType::Write ) )
 		{
-			outLabel = "w\\n--\\nW\\n";
-			outColor = HtmlColor::DodgerBlue;
+			label << " W <BR/>--<BR/> W ";
 		}
 		else
 
@@ -489,8 +639,7 @@ namespace {
 		if ( EnumEq( src_access, EAccessType::Read ) and
 			 EnumEq( dst_access, EAccessType::Write ) )
 		{
-			outLabel = "R\\n--\\nW\\n";
-			outColor = HtmlColor::LimeGreen;
+			label << " R <BR/>--<BR/> W ";
 		}
 		else
 
@@ -498,66 +647,23 @@ namespace {
 		if ( EnumEq( src_access, EAccessType::Write ) and
 			 EnumEq( dst_access, EAccessType::Read ) )
 		{
-			outLabel = "W\\n--\\nR\\n";
-			outColor = HtmlColor::Red;
+			label << " W <BR/>--<BR/> R ";
 		}
 		else
 
 		// unknown
 		{
-			outLabel = "|\\n|\\n|\\n";
-			outColor = HtmlColor::Pink;
+			label << " | <BR/> | <BR/> | ";
 		}
-	}
-	
-/*
-=================================================
-	_GetBufferBarrier
-=================================================
-*/
-	void VFrameGraphDebugger::_GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &style, INOUT String &deps,
-												 INOUT HashSet<String> &existingBarriers) const
-	{
-		auto iter = _buffers.find( buffer );
-		if ( iter == _buffers.end() )
-			return;
-		
-		for (auto& bar : iter->second.barriers)
-		{
-			if ( bar.dstIndex != task->ExecutionOrder() )
-				continue;
 
-			ASSERT( bar.info.buffer == buffer->Handle() );
+		label << "</FONT>";
+		style << " [shape=none, width=.1, margin=0, fontsize=2, label=<<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">\n";
+	
+		AddPipelineStages( srcStageMask, dstStageMask, label, INOUT style );
 			
-			_GetResourceBarrier( buffer, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED,
-								 INOUT style, INOUT deps, INOUT existingBarriers );
-		}
+		style << "</TABLE>>];\n";
 	}
 
-/*
-=================================================
-	_GetImageBarrier
-=================================================
-*/
-	void VFrameGraphDebugger::_GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &style, INOUT String &deps,
-												INOUT HashSet<String> &existingBarriers) const
-	{
-		auto iter = _images.find( image );
-		if ( iter == _images.end() )
-			return;
-
-		for (auto& bar : iter->second.barriers)
-		{
-			if ( bar.dstIndex != task->ExecutionOrder() )
-				continue;
-
-			ASSERT( bar.info.image == image->Handle() );
-
-			_GetResourceBarrier( image, bar, bar.info.oldLayout, bar.info.newLayout,
-								 INOUT style, INOUT deps, INOUT existingBarriers );
-		}
-	}
-	
 /*
 =================================================
 	_GetImageBarrier
@@ -567,7 +673,7 @@ namespace {
 	inline void VFrameGraphDebugger::_GetResourceBarrier (const T *res, const Barrier<B> &bar, VkImageLayout oldLayout, VkImageLayout newLayout,
 														  INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
 	{
-		const NodeUniqueNames	node_name;
+		const NodeUniqueNames	node_name {_subBatchUID};
 		const ColorScheme		color_scheme;
 
 		const String	barrier_name = node_name( res, bar.srcIndex, bar.dstIndex );
@@ -579,17 +685,14 @@ namespace {
 		// add barrier style
 		if ( not existingBarriers.count( barrier_name ) )
 		{
-			ASSERT( bar.info.srcQueueFamilyIndex == bar.info.dstQueueFamilyIndex );
+			ASSERT( bar.info.srcQueueFamilyIndex == bar.info.dstQueueFamilyIndex );	// not supported yet
 
-			String		label;
-			RGBA8u		color;
-			GetBarrierType( bar.srcStageMask, bar.dstStageMask, bar.dependencyFlags,
-							bar.info.srcAccessMask, bar.info.dstAccessMask,
-							oldLayout, newLayout,
-							OUT label, OUT color );
+			style << indent << '\t' << barrier_name;
 
-			style << "\t\t" << barrier_name << " [label=\"" << label
-					<< "\", width=.1, fontsize=12, fillcolor=\"#" << ColToStr( color ) << "\"];\n";
+			BuildBarrierStyle( bar.srcStageMask, bar.dstStageMask, bar.dependencyFlags,
+							   bar.info.srcAccessMask, bar.info.dstAccessMask,
+							   oldLayout, newLayout,
+							   INOUT style );
 
 			existingBarriers.insert( barrier_name );
 		}
@@ -603,16 +706,16 @@ namespace {
 			FindAndReplace( INOUT src_stage, " | ", "\\n" );
 			FindAndReplace( INOUT dst_stage, " | ", "\\n" );
 
-			deps << "\t\t" << node_name( res, bar.srcIndex ) << ":e -> " << barrier_name
+			deps << indent << '\t' << node_name( res, bar.srcIndex ) << ":e -> " << barrier_name
 				 << ":w [color=\"#" << edge_color1 << "\", label=\"" << src_stage << "\", minlen=2, labelfloat=true, decorate=false];\n";
 
-			deps << "\t\t" << barrier_name << ":e -> " << node_name( res, bar.dstIndex )
+			deps << indent << '\t' << barrier_name << ":e -> " << node_name( res, bar.dstIndex )
 				 << ":w [color=\"#" << edge_color2 << "\", label=\"" << dst_stage << "\", minlen=2, labelfloat=true, decorate=false];\n";
 		}
 		else
 		{
-			deps << "\t\t" << node_name( res, bar.srcIndex ) << ":e -> " << barrier_name << ":w [color=\"#" << edge_color1 << "\"];\n";
-			deps << "\t\t" << barrier_name << ":e -> " << node_name( res, bar.dstIndex ) << ":w [color=\"#" << edge_color2 << "\"];\n";
+			deps << indent << '\t' << node_name( res, bar.srcIndex ) << ":e -> " << barrier_name << ":w [color=\"#" << edge_color1 << "\"];\n";
+			deps << indent << '\t' << barrier_name << ":e -> " << node_name( res, bar.dstIndex ) << ":w [color=\"#" << edge_color2 << "\"];\n";
 		}
 	}
 

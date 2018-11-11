@@ -1,6 +1,12 @@
 include( CheckCXXSourceCompiles )
 
-set( CMAKE_REQUIRED_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}" )
+if ( COMPILER_MSVC )
+	set( CMAKE_REQUIRED_FLAGS "/std:c++latest" )
+
+elseif ( COMPILER_GCC OR COMPILER_CLANG OR COMPILER_CLANG_APPLE OR COMPILER_CLANG_ANDROID )
+	set( CMAKE_REQUIRED_FLAGS "-std=c++1z" )
+endif ()
+
 set( FG_COMPILER_DEFINITIONS "" )
 
 #------------------------------------------------------------------------------

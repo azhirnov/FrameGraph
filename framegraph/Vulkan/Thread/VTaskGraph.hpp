@@ -85,17 +85,71 @@ namespace FG
 	CopyDescriptorSets
 =================================================
 */
-	inline void CopyDescriptorSets (VFrameGraphThread *fg, INOUT DescriptoSetDynamicOffsets_t &dynamicOffsets, INOUT VPipelineResourceSet &resources,
-									const PipelineResourceSet &inResources)
+	inline void CopyDescriptorSets (VFrameGraphThread *fg, const PipelineResourceSet &inResourceSet, OUT VPipelineResourceSet &resourceSet)
 	{
-		dynamicOffsets.reserve( inResources.size() * FG_MaxBufferDynamicOffsets );
-
-		for (const auto& res : inResources)
+		for (const auto& res : inResourceSet)
 		{
-			ASSERT( res.second );
-			resources.insert({ res.first, fg->GetResourceManager()->CreateDescriptorSet( *res.second, true ) });
-			dynamicOffsets.insert( dynamicOffsets.end(), res.second->GetDynamicOffsets().begin(), res.second->GetDynamicOffsets().end() );
+			ASSERT( res );
+			resourceSet.resources.push_back( fg->GetResourceManager()->CreateDescriptorSet( *res, true ));
+			resourceSet.dynamicOffsets.append( res->GetDynamicOffsets() );
 		}
+	}
+	
+/*
+=================================================
+	RemapVertexBuffers
+=================================================
+*/
+	inline void RemapVertexBuffers (VFrameGraphThread *fg, const DrawTask::Buffers_t &inBuffers, const VertexInputState &vertexInput,
+									OUT VFgDrawTask<DrawTask>::VertexBuffers_t &vertexBuffers,
+									OUT VFgDrawTask<DrawTask>::VertexOffsets_t &vertexOffsets,
+									OUT VFgDrawTask<DrawTask>::VertexStrides_t &vertexStrides)
+	{
+		for (auto& vb : inBuffers)
+		{
+			auto				iter	= vertexInput.BufferBindings().find( vb.first );
+			VLocalBuffer const*	buffer	= fg->GetResourceManager()->GetState( vb.second.buffer );
+			
+			CHECK_ERR( iter != vertexInput.BufferBindings().end(), void());
+			
+			vertexBuffers[ iter->second.index ]	= buffer;
+			vertexOffsets[ iter->second.index ]	= VkDeviceSize( vb.second.offset );
+			vertexStrides[ iter->second.index ] = iter->second.stride;
+		}
+	}
+//-----------------------------------------------------------------------------
+	
+	
+/*
+=================================================
+	VFgDrawTask< DrawTask >
+=================================================
+*/
+	inline VFgDrawTask<DrawTask>::VFgDrawTask (VFrameGraphThread *fg, const DrawTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		IDrawTask{ pass1, pass2 },				_vbCount{ uint(task.vertexBuffers.size()) },
+		pipeline{ task.pipeline },				renderState{ task.renderState },
+		dynamicStates{ task.dynamicStates },	vertexInput{ task.vertexInput },
+		drawCmd{ task.drawCmd },				scissors{ task.scissors }
+	{
+		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		RemapVertexBuffers( fg, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
+	}
+
+/*
+=================================================
+	VFgDrawTask< DrawIndexedTask >
+=================================================
+*/
+	inline VFgDrawTask<DrawIndexedTask>::VFgDrawTask (VFrameGraphThread *fg, const DrawIndexedTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		IDrawTask{ pass1, pass2 },						_vbCount{ uint(task.vertexBuffers.size()) },
+		pipeline{ task.pipeline },						renderState{ task.renderState },
+		dynamicStates{ task.dynamicStates },			indexBuffer{ fg->GetResourceManager()->GetState( task.indexBuffer )},
+		indexBufferOffset{ task.indexBufferOffset },	indexType{ task.indexType },
+		vertexInput{ task.vertexInput },				drawCmd{ task.drawCmd },
+		scissors{ task.scissors }
+	{
+		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		RemapVertexBuffers( fg, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
 	}
 //-----------------------------------------------------------------------------
 
@@ -107,15 +161,12 @@ namespace FG
 */
 	inline VFgTask<DispatchCompute>::VFgTask (VFrameGraphThread *fg, const DispatchCompute &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_pipeline{ task.pipeline },
-		_dynamicOffsets{ fg->GetAllocator() },
-		_groupCount{ Max( task.groupCount, 1u ) },
-		_localGroupSize{ task.localGroupSize }
+		pipeline{ task.pipeline },
+		groupCount{ Max( task.groupCount, 1u ) },
+		localGroupSize{ task.localGroupSize }
 	{
-		CopyDescriptorSets( fg, INOUT _dynamicOffsets, INOUT _resources, task.resources );
+		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
-//-----------------------------------------------------------------------------
-	
 
 /*
 =================================================
@@ -124,13 +175,12 @@ namespace FG
 */
 	inline VFgTask<DispatchIndirectCompute>::VFgTask (VFrameGraphThread *fg, const DispatchIndirectCompute &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_pipeline{ task.pipeline },
-		_dynamicOffsets{ fg->GetAllocator() },
-		_indirectBuffer{ fg->GetResourceManager()->Remap( task.indirectBuffer )},
-		_indirectBufferOffset{ VkDeviceSize(task.indirectBufferOffset) },
-		_localGroupSize{ task.localGroupSize }
+		pipeline{ task.pipeline },
+		indirectBuffer{ fg->GetResourceManager()->GetState( task.indirectBuffer )},
+		indirectBufferOffset{ VkDeviceSize(task.indirectBufferOffset) },
+		localGroupSize{ task.localGroupSize }
 	{
-		CopyDescriptorSets( fg, INOUT _dynamicOffsets, INOUT _resources, task.resources );
+		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
 //-----------------------------------------------------------------------------
 	
@@ -142,13 +192,11 @@ namespace FG
 */
 	inline VFgTask<CopyBuffer>::VFgTask (VFrameGraphThread *fg, const CopyBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_srcBuffer{ fg->GetResourceManager()->Remap( task.srcBuffer )},
-		_dstBuffer{ fg->GetResourceManager()->Remap( task.dstBuffer )},
-		_regions{ task.regions }
+		srcBuffer{ fg->GetResourceManager()->GetState( task.srcBuffer )},
+		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},
+		regions{ task.regions }
 	{
 	}
-//-----------------------------------------------------------------------------
-	
 
 /*
 =================================================
@@ -157,16 +205,14 @@ namespace FG
 */
 	inline VFgTask<CopyImage>::VFgTask (VFrameGraphThread *fg, const CopyImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_srcImage{ fg->GetResourceManager()->Remap( task.srcImage )},
-		_srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
-		_dstImage{ fg->GetResourceManager()->Remap( task.dstImage )},
-		_dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
-		_regions{ task.regions }
+		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
+		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
+		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 	}
-//-----------------------------------------------------------------------------
-	
 
 /*
 =================================================
@@ -175,15 +221,13 @@ namespace FG
 */
 	inline VFgTask<CopyBufferToImage>::VFgTask (VFrameGraphThread *fg, const CopyBufferToImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_srcBuffer{ fg->GetResourceManager()->Remap( task.srcBuffer )},
-		_dstImage{ fg->GetResourceManager()->Remap( task.dstImage )},
-		_dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
-		_regions{ task.regions }
+		srcBuffer{ fg->GetResourceManager()->GetState( task.srcBuffer )},
+		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
+		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 	}
-//-----------------------------------------------------------------------------
-	
 
 /*
 =================================================
@@ -192,10 +236,10 @@ namespace FG
 */
 	inline VFgTask<CopyImageToBuffer>::VFgTask (VFrameGraphThread *fg, const CopyImageToBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_srcImage{ fg->GetResourceManager()->Remap( task.srcImage )},
-		_srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
-		_dstBuffer{ fg->GetResourceManager()->Remap( task.dstBuffer )},
-		_regions{ task.regions }
+		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
+		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},
+		regions{ task.regions }
 	{
 	}
 //-----------------------------------------------------------------------------
@@ -208,12 +252,12 @@ namespace FG
 */
 	inline VFgTask<BlitImage>::VFgTask (VFrameGraphThread *fg, const BlitImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_srcImage{ fg->GetResourceManager()->Remap( task.srcImage )},
-		_srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
-		_dstImage{ fg->GetResourceManager()->Remap( task.dstImage )},
-		_dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
-		_filter{ VEnumCast( task.filter ) },
-		_regions{ task.regions }
+		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
+		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
+		filter{ VEnumCast( task.filter ) },
+		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 
@@ -223,8 +267,6 @@ namespace FG
 	//		_filter = VK_FILTER_NEAREST;
 	//	}
 	}
-//-----------------------------------------------------------------------------
-	
 
 /*
 =================================================
@@ -233,11 +275,11 @@ namespace FG
 */
 	inline VFgTask<ResolveImage>::VFgTask (VFrameGraphThread *fg, const ResolveImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_srcImage{ fg->GetResourceManager()->Remap( task.srcImage )},
-		_srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
-		_dstImage{ fg->GetResourceManager()->Remap( task.dstImage )},
-		_dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
-		_regions{ task.regions }
+		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
+		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
+		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 	}
@@ -251,13 +293,11 @@ namespace FG
 */
 	inline VFgTask<FillBuffer>::VFgTask (VFrameGraphThread *fg, const FillBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_dstBuffer{ fg->GetResourceManager()->Remap( task.dstBuffer )},
-		_dstOffset{ VkDeviceSize(task.dstOffset) },
-		_size{ VkDeviceSize(task.size) },
-		_pattern{ task.pattern }
+		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},
+		dstOffset{ VkDeviceSize(task.dstOffset) },
+		size{ VkDeviceSize(task.size) },
+		pattern{ task.pattern }
 	{}
-//-----------------------------------------------------------------------------
-	
 
 /*
 =================================================
@@ -266,10 +306,10 @@ namespace FG
 */
 	inline VFgTask<ClearColorImage>::VFgTask (VFrameGraphThread *fg, const ClearColorImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_dstImage{ fg->GetResourceManager()->Remap( task.dstImage )},
-		_dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
-		_clearValue{},
-		_ranges{ task.ranges }
+		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
+		ranges{ task.ranges },
+		_clearValue{}
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 
@@ -282,8 +322,6 @@ namespace FG
 		if ( auto* uval = std::get_if<uint4>( &task.clearValue ) )
 			::memcpy( _clearValue.uint32, uval, sizeof(_clearValue.uint32) );
 	}
-//-----------------------------------------------------------------------------
-	
 
 /*
 =================================================
@@ -292,9 +330,9 @@ namespace FG
 */
 	inline VFgTask<ClearDepthStencilImage>::VFgTask (VFrameGraphThread *fg, const ClearDepthStencilImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_dstImage{ fg->GetResourceManager()->Remap( task.dstImage )},
-		_dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
-		_clearValue{ task.clearValue.depth, task.clearValue.stencil }
+		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
+		clearValue{ task.clearValue.depth, task.clearValue.stencil }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 	}
@@ -308,9 +346,9 @@ namespace FG
 */
 	inline VFgTask<UpdateBuffer>::VFgTask (VFrameGraphThread *fg, const UpdateBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_buffer{ fg->GetResourceManager()->Remap( task.dstBuffer )},
-		_offset{ VkDeviceSize(task.offset) },
-		_data{ task.data.begin(), task.data.end() }
+		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},
+		dstOffset{ VkDeviceSize(task.offset) },
+		_data{ task.data.begin(), task.data.end(), fg->GetAllocator() }
 	{}
 //-----------------------------------------------------------------------------
 	
@@ -322,8 +360,8 @@ namespace FG
 */
 	inline VFgTask<Present>::VFgTask (VFrameGraphThread *fg, const Present &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_image{ fg->GetResourceManager()->Remap( task.srcImage )},
-		_layer{ task.layer }
+		image{ fg->GetResourceManager()->GetState( task.srcImage )},
+		layer{ task.layer }
 	{}
 //-----------------------------------------------------------------------------
 	
@@ -335,10 +373,10 @@ namespace FG
 */
 	inline VFgTask<PresentVR>::VFgTask (VFrameGraphThread *fg, const PresentVR &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_leftEyeImage{ fg->GetResourceManager()->Remap( task.leftEye )},
-		_leftEyeLayer{ task.leftEyeLayer },
-		_rightEyeImage{ fg->GetResourceManager()->Remap( task.rightEye )},
-		_rightEyeLayer{ task.rightEyeLayer }
+		leftEyeImage{ fg->GetResourceManager()->GetState( task.leftEye )},
+		leftEyeLayer{ task.leftEyeLayer },
+		rightEyeImage{ fg->GetResourceManager()->GetState( task.rightEye )},
+		rightEyeLayer{ task.rightEyeLayer }
 	{}
 
 
