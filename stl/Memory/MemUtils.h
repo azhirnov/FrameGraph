@@ -43,7 +43,7 @@ namespace FG
 	forceinline T *  PlacementNew (OUT void *ptr, Types&&... args) noexcept
 	{
 		ASSERT( CheckPointerAlignment<T>( ptr ) );
-		return ( new(ptr) T( std::forward<Types &&>(args)... ) );
+		return ( new(ptr) T{ std::forward<Types &&>(args)... } );
 	}
 
 /*
@@ -65,7 +65,7 @@ namespace FG
 		ASSERT( srcSize <= dstSize );
 		ASSERT( dst and src );
 
-        ::memcpy( dst, src, size_t(srcSize) );
+        ::memcpy( dst, src, size_t(std::min(srcSize, dstSize)) );
 	}
 
 

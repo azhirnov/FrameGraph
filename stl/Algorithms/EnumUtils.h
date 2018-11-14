@@ -44,6 +44,8 @@ namespace FG
 /*
 =================================================
 	EnumEq
+----
+	returns 'true' if 'lhs' has ALL bits that presented in 'rhs'
 =================================================
 */
 	template <typename T1, typename T2>
@@ -53,6 +55,22 @@ namespace FG
 		STATIC_ASSERT( IsScalarOrEnum< T2 > );
 
 		return ( EnumToUInt(lhs) & EnumToUInt(rhs) ) == EnumToUInt(rhs);
+	}
+
+/*
+=================================================
+	EnumAny
+----
+	returns 'true' if 'lhs' has ANY bit that presented in 'rhs'
+=================================================
+*/
+	template <typename T1, typename T2>
+	ND_ forceinline constexpr bool  EnumAny (const T1& lhs, const T2& rhs)
+	{
+		STATIC_ASSERT( IsScalarOrEnum< T1 > );
+		STATIC_ASSERT( IsScalarOrEnum< T2 > );
+
+		return !!( EnumToUInt(lhs) & EnumToUInt(rhs) );
 	}
 
 }	// FG

@@ -86,9 +86,9 @@ namespace FG
 
 		ND_ size_t			count (const key_type &key) const;
 		
-		void clear ();
+			void clear ();
 
-		void sort () const;
+			void sort () const;
 
 
 	private:

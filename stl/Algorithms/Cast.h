@@ -20,6 +20,17 @@ namespace FG
 
 /*
 =================================================
+	DynCast
+=================================================
+*/
+	template <typename R, typename T>
+	ND_ forceinline SharedPtr<R>  DynCast (const SharedPtr<T> &other)
+	{
+		return std::dynamic_pointer_cast<R>( other );
+	}
+
+/*
+=================================================
 	Cast
 =================================================
 */

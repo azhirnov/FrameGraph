@@ -12,8 +12,9 @@ extern void UnitTest_Math ();
 extern void UnitTest_Matrix ();
 extern void UnitTest_Color ();
 extern void UnitTest_ToString ();
-extern void UnitTest_DoubleBuffer ();
+extern void UnitTest_LfDoubleBuffer ();
 extern void UnitTest_BitTree ();
+extern void UnitTest_LfFixedStack ();
 
 
 int main ()
@@ -27,7 +28,8 @@ int main ()
 	UnitTest_FixedMap();
 	UnitTest_IndexedPool();
 	UnitTest_LinearAllocator();
-	UnitTest_DoubleBuffer();
+	UnitTest_LfDoubleBuffer();
+	UnitTest_LfFixedStack();
 	UnitTest_BitTree();
 
     FG_LOGI( "Tests.STL finished" );

@@ -4,12 +4,13 @@
 
 #include "stl/Common.h"
 
+#include <shared_mutex>
+
 #ifdef FG_ENABLE_RACE_CONDITION_CHECK
 
 #include <atomic>
 #include <mutex>
 #include <thread>
-#include <shared_mutex>
 
 namespace FG
 {
@@ -230,8 +231,8 @@ namespace FG
 	//
 	struct RaceConditionCheck
 	{
-		void lock ()	{}
-		void unlock ()	{}
+		void lock () const		{}
+		void unlock () const	{}
 	};
 	
 
@@ -240,11 +241,11 @@ namespace FG
 	//
 	struct RWRaceConditionCheck
 	{
-		void lock ()			{}
-		void unlock ()			{}
+		void lock () const			{}
+		void unlock () const		{}
 
-		void lock_shared ()		{}
-		void unlock_shared ()	{}
+		void lock_shared () const	{}
+		void unlock_shared () const	{}
 	};
 
 }	// FG
