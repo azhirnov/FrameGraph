@@ -382,7 +382,7 @@ bool RayTracingApp::Run ()
 				barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
 				barrier.newLayout			= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 				barrier.srcAccessMask		= VK_ACCESS_SHADER_WRITE_BIT;
-				barrier.dstAccessMask		= VK_ACCESS_MEMORY_READ_BIT;
+				barrier.dstAccessMask		= 0;
 				barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 				barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 				barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };

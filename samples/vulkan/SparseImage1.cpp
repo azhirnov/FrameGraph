@@ -498,7 +498,7 @@ bool SparseImageApp::CreateRenderPass ()
 	dependencies[1].srcStageMask	= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	dependencies[1].dstStageMask	= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 	dependencies[1].srcAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask	= VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[1].dstAccessMask	= 0;
 	dependencies[1].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
 
 

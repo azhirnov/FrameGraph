@@ -7,7 +7,7 @@
 
 // glslang includes
 #include "glslang/glslang/Public/ShaderLang.h"
-#include "glslang/Include/ResourceLimits.h"
+#include "glslang/glslang/Include/ResourceLimits.h"
 
 using namespace FG;
 
