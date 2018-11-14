@@ -10,3 +10,4 @@ CMakeLists.txt.user
 /external/assimp
 /external/foonathan_memory
 /tests/framegraph/Graphs
+/external/imgui

@@ -24,7 +24,6 @@ namespace FG
 	bool VMeshPipeline::Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		
 		for (auto& sh : desc._shaders)
 		{
@@ -42,7 +41,6 @@ namespace FG
 		_earlyFragmentTests	= desc._earlyFragmentTests;
 		_debugName			= dbgName;
 		
-		_OnCreate();
 		return true;
 	}
 
@@ -70,8 +68,6 @@ namespace FG
 		_supportedTopology	= Default;
 		_fragmentOutput		= null;
 		_earlyFragmentTests	= false;
-		
-		_OnDestroy();
 	}
 
 

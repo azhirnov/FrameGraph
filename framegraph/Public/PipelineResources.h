@@ -157,7 +157,7 @@ namespace FG
 	};
 
 
-	using PipelineResourceSet	= FixedArray< PipelineResources const*, FG_MaxDescriptorSets >;
+	using PipelineResourceSet	= StaticArray< Ptr<const PipelineResources>, FG_MaxDescriptorSets >;
 
 	
 
@@ -367,6 +367,7 @@ namespace FG
 	{
 		auto&	buf = std::get<Buffer>( curr.res );
 		ASSERT( (un.size == size) or (size == ~0_b) );
+		FG_UNUSED( size );
 		
 		bool	changed = (buf.bufferId != id);
 		

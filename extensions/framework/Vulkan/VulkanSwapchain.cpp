@@ -86,11 +86,11 @@ namespace FG
 		const VkFormat				required_format		= colorFormat;
 		const VkColorSpaceKHR		required_colorspace	= colorSpace;
 
-		VK_CHECK( vkGetPhysicalDeviceSurfaceFormatsKHR( _vkPhysicalDevice, _vkSurface, OUT &count, null ) );
+		VK_CHECK( vkGetPhysicalDeviceSurfaceFormatsKHR( _vkPhysicalDevice, _vkSurface, OUT &count, null ));
 		CHECK_ERR( count > 0 );
 
 		surf_formats.resize( count );
-		VK_CHECK( vkGetPhysicalDeviceSurfaceFormatsKHR( _vkPhysicalDevice, _vkSurface, OUT &count, OUT surf_formats.data() ) );
+		VK_CHECK( vkGetPhysicalDeviceSurfaceFormatsKHR( _vkPhysicalDevice, _vkSurface, OUT &count, OUT surf_formats.data() ));
 		
 		if ( count == 1		and
 			 surf_formats[0].format == VK_FORMAT_UNDEFINED )
@@ -164,7 +164,7 @@ namespace FG
 		CHECK_ERR( _vkPhysicalDevice and _vkSurface );
 
 		VkSurfaceCapabilitiesKHR	surf_caps;
-		VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( _vkPhysicalDevice, _vkSurface, OUT &surf_caps ) );
+		VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( _vkPhysicalDevice, _vkSurface, OUT &surf_caps ));
 		
 		VkImageUsageFlags	image_usage = 0;
 		_GetImageUsage( OUT image_usage, presentMode, colorFormat, surf_caps );
@@ -174,7 +174,7 @@ namespace FG
 
 		VkImageFormatProperties	image_props = {};
 		VK_CALL( vkGetPhysicalDeviceImageFormatProperties( _vkPhysicalDevice, colorFormat, VK_IMAGE_TYPE_2D,
-														   VK_IMAGE_TILING_OPTIMAL, colorImageUsage, 0, OUT &image_props ) );
+														   VK_IMAGE_TILING_OPTIMAL, colorImageUsage, 0, OUT &image_props ));
 
 		if ( not EnumEq( image_props.sampleCounts, samples ) )
 			return false;
@@ -533,11 +533,11 @@ namespace FG
 		uint						count		= 0;
 		Array< VkPresentModeKHR >	present_modes;
 
-		VK_CALL( vkGetPhysicalDeviceSurfacePresentModesKHR( _vkPhysicalDevice, _vkSurface, OUT &count, null ) );
+		VK_CALL( vkGetPhysicalDeviceSurfacePresentModesKHR( _vkPhysicalDevice, _vkSurface, OUT &count, null ));
 		CHECK_ERR( count > 0, void() );
 
 		present_modes.resize( count );
-		VK_CALL( vkGetPhysicalDeviceSurfacePresentModesKHR( _vkPhysicalDevice, _vkSurface, OUT &count, OUT present_modes.data() ) );
+		VK_CALL( vkGetPhysicalDeviceSurfacePresentModesKHR( _vkPhysicalDevice, _vkSurface, OUT &count, OUT present_modes.data() ));
 
 		bool	required_mode_supported		= false;
 		bool	fifo_mode_supported			= false;

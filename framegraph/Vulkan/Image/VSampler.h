@@ -13,7 +13,7 @@ namespace FG
 	// Vulkan Sampler immutable data
 	//
 
-	class VSampler final : public ResourceBase
+	class VSampler final
 	{
 	// variables
 	private:
@@ -22,14 +22,17 @@ namespace FG
 		VkSamplerCreateInfo		_createInfo	= {};
 		
 		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
 	public:
 		VSampler () {}
+		VSampler (VSampler &&) = default;
+		VSampler (const VDevice &dev, const SamplerDesc &desc);
 		~VSampler ();
 
-		void Initialize (const VDevice &dev, const SamplerDesc &desc);
 		bool Create (const VDevice &dev, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 

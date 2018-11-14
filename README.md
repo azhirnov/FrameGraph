@@ -33,20 +33,30 @@ Dependencies:<br/>
 ## Roadmap
 ### Stage 1
 - glsl compilation to spirv + reflection. (done)<br/>
-- auto pipeline barrier placement. (WIP)<br/>
-- render pass optimization. (WIP)<br/>
-- unit tests: stl, resource barriers, glsl compiler, resource cache, ... (WIP)<br/>
-- graph node tests: buffer copy, image copy, draw triangle, dispatch, ... (WIP)<br/>
+- automatic placement of pipeline barrier. (done<br/>
+- unit tests: stl, resource barriers, glsl compiler, resource cache, ... (done)<br/>
+- graph node tests: buffer copy, image copy, draw triangle, dispatch, ... (done)<br/>
 - implementation tests:<br/>
     correct and optimal barrier placement. (WIP)<br/>
     correct render pass optimization. (WIP)
+- multithreading. (WIP)<br/>
+- render pass optimization. (WIP)<br/>
+- debug visualizations. (WIP)<br/>
 
 ### Stage 2
-- multithreading. (WIP)<br/>
-- performance tests. (WIP)<br/>
+- mesh shader support.<br/>
+- ray tracing support.<br/>
+- custom RAM allocators.<br/>
 - logical resources.<br/>
-- advanced gpu memory managment.<br/>
+- advanced VRAM managment.<br/>
 - samples.<br/>
+- performance tests:<br/>
+	for samples.<br/>
+	use vkTraceConverter to generate FG API calls and run perftests with any vktrace.<br/>
+- multithreading optimizations:<br/>
+	remove synchronization stage<br/>
+	lockfree image view map<br/>
+	lockfree pipelines? descriptor set, layout, ... maps<br/>
 
 ### Stage 3
 - multi-gpu.<br/>

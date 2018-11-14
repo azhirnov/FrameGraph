@@ -23,13 +23,11 @@ namespace FG
 	bool VMemoryObj::Create (const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 
 		_desc		= desc;
 		_manager	= alloc.weak_from_this();
 		_debugName	= dbgName;
 		
-		_OnCreate();
 		return true;
 	}
 	
@@ -41,7 +39,6 @@ namespace FG
 	bool VMemoryObj::AllocateForBuffer (VkBuffer buf)
 	{
 		SCOPELOCK( _rcCheck );
-		ASSERT( IsCreated() );
 
 		auto	mem_mngr = _manager.lock();
 		CHECK_ERR( mem_mngr and mem_mngr->AllocateForBuffer( buf, _desc, INOUT _storage ));
@@ -57,7 +54,6 @@ namespace FG
 	bool VMemoryObj::AllocateForImage (VkImage img)
 	{
 		SCOPELOCK( _rcCheck );
-		ASSERT( IsCreated() );
 
 		auto	mem_mngr = _manager.lock();
 		CHECK_ERR( mem_mngr and mem_mngr->AllocateForImage( img, _desc, INOUT _storage ));
@@ -83,8 +79,6 @@ namespace FG
 
 		_manager.reset();
 		_debugName.clear();
-
-		_OnDestroy();
 	}
 	
 /*

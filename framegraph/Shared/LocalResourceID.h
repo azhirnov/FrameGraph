@@ -15,7 +15,6 @@ namespace FG
 
 	using LocalBufferID				= _fg_hidden_::ResourceID<1001>;
 	using LocalImageID				= _fg_hidden_::ResourceID<1002>;
-	using LogicalRenderPassID		= _fg_hidden_::ResourceID<1003>;
 	
 	using MemoryID					= _fg_hidden_::ResourceIDWrap< RawMemoryID >;
 	using PipelineLayoutID			= _fg_hidden_::ResourceIDWrap< RawPipelineLayoutID >;

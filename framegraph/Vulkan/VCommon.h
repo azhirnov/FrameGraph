@@ -26,17 +26,6 @@
 #include <foonathan/memory/std_allocator.hpp>
 #endif
 
-STATIC_ASSERT( sizeof(FG::VkInstance_t)			== sizeof(VkInstance) );
-STATIC_ASSERT( sizeof(FG::VkPhysicalDevice_t)	== sizeof(VkPhysicalDevice) );
-STATIC_ASSERT( sizeof(FG::VkDevice_t)			== sizeof(VkDevice) );
-STATIC_ASSERT( sizeof(FG::VkQueue_t)			== sizeof(VkQueue) );
-STATIC_ASSERT( sizeof(FG::VkCommandBuffer_t)	== sizeof(VkCommandBuffer) );
-STATIC_ASSERT( sizeof(FG::VkSurface_t)			== sizeof(VkSurfaceKHR) );
-STATIC_ASSERT( sizeof(FG::VkEvent_t)			== sizeof(VkEvent) );
-STATIC_ASSERT( sizeof(FG::VkFence_t)			== sizeof(VkFence) );
-STATIC_ASSERT( sizeof(FG::VkBuffer_t)			== sizeof(VkBuffer) );
-STATIC_ASSERT( sizeof(FG::VkImage_t)			== sizeof(VkImage) );
-
 
 namespace FG
 {
@@ -55,6 +44,8 @@ namespace FG
 	using AppendableResourceIDs_t	= Appendable< UntypedResourceID_t >;
 	
 	using VkDescriptorSets_t		= FixedArray< VkDescriptorSet, FG_MaxDescriptorSets >;
+	
+	using VDeviceQueueInfoPtr		= Ptr< const struct VDeviceQueueInfo >;
 
 
 	struct VPipelineResourceSet

@@ -79,10 +79,10 @@ namespace FG
 	struct SubmitRenderPass final : _fg_hidden_::BaseTask<SubmitRenderPass>
 	{
 	// variables
-		RenderPass			renderPass = null;		// must be not null
+		LogicalPassID		renderPass;
 
 	// methods
-		explicit SubmitRenderPass (RenderPass rp) :
+		explicit SubmitRenderPass (LogicalPassID rp) :
 			BaseTask<SubmitRenderPass>{ "SubmitRenderPass", HtmlColor::OrangeRed }, renderPass{rp} {}
 	};
 
@@ -335,6 +335,14 @@ namespace FG
 		BlitImage&  To   (const ImageID &img)		{ dstImage = img.Get();  return *this; }
 		
 		BlitImage&  SetFilter (EFilter value)		{ filter = value;  return *this; }
+		
+		BlitImage&  AddRegion (const ImageSubresourceRange &srcSubresource, const int2 &srcOffset0, const int2 &srcOffset1,
+							   const ImageSubresourceRange &dstSubresource, const int2 &dstOffset0, const int2 &dstOffset1)
+		{
+			regions.push_back(Region{ srcSubresource, int3{srcOffset0.x, srcOffset0.y, 0}, int3{srcOffset1.x, srcOffset1.y, 1},
+									  dstSubresource, int3{dstOffset0.x, dstOffset0.y, 0}, int3{dstOffset1.x, dstOffset1.y, 1} });
+			return *this;
+		}
 
 		BlitImage&  AddRegion (const ImageSubresourceRange &srcSubresource, const int3 &srcOffset0, const int3 &srcOffset1,
 							   const ImageSubresourceRange &dstSubresource, const int3 &dstOffset0, const int3 &dstOffset1)

@@ -16,7 +16,7 @@
 namespace FG
 {
 namespace {
-	static constexpr uint	UpdateAllReferenceDumps = false;
+	static constexpr uint	UpdateAllReferenceDumps = true;
 }
 
 /*
@@ -32,6 +32,8 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyImage3,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
+		
+		//_tests.push_back({ &FGApp::Test_Draw2,			1000000 });
 
 		//_tests.push_back({ &FGApp::ImplTest_Scene1, 1 });
 		//_tests.push_back( &FGApp::ImplTest_Scene2 );
@@ -53,12 +55,11 @@ namespace {
 */
 	void FGApp::OnResize (const uint2 &size)
 	{
-		VulkanSwapchainInfo		swapchain_info;
-		swapchain_info.surface		= BitCast<VkSurface_t>( _vulkan.GetVkSurface() );
+		VulkanSwapchainCreateInfo	swapchain_info;
+		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
         swapchain_info.surfaceSize  = size;
-		swapchain_info.preTransform = {};
 
-		CHECK_FATAL( _frameGraph1->CreateSwapchain( swapchain_info ));
+		CHECK_FATAL( _frameGraph1->RecreateSwapchain( swapchain_info ));
 	}
 	
 /*
@@ -117,21 +118,23 @@ namespace {
 		}
 
 		// setup device info
-		VulkanDeviceInfo		vulkan_info;
-		VulkanSwapchainInfo		swapchain_info;
+		VulkanDeviceInfo						vulkan_info;
+		FrameGraphThread::SwapchainCreateInfo	swapchain_info;
 		{
-			vulkan_info.instance		= BitCast<VkInstance_t>( _vulkan.GetVkInstance() );
-			vulkan_info.physicalDevice	= BitCast<VkPhysicalDevice_t>( _vulkan.GetVkPhysicalDevice() );
-			vulkan_info.device			= BitCast<VkDevice_t>( _vulkan.GetVkDevice() );
-
-			swapchain_info.surface		= BitCast<VkSurface_t>( _vulkan.GetVkSurface() );
-			swapchain_info.preTransform = {};
+			vulkan_info.instance		= BitCast<InstanceVk_t>( _vulkan.GetVkInstance() );
+			vulkan_info.physicalDevice	= BitCast<PhysicalDeviceVk_t>( _vulkan.GetVkPhysicalDevice() );
+			vulkan_info.device			= BitCast<DeviceVk_t>( _vulkan.GetVkDevice() );
+			
+			VulkanSwapchainCreateInfo	swapchain_ci;
+			swapchain_ci.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
+			swapchain_ci.surfaceSize	= _window->GetSize();
+			swapchain_info				= swapchain_ci;
 
 			for (auto& q : _vulkan.GetVkQuues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
-				qi.id			= BitCast<VkQueue_t>( q.id );
-				qi.familyFlags	= BitCast<VkQueueFlags_t>( q.flags );
+				qi.id			= BitCast<QueueVk_t>( q.id );
+				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.flags );
 				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;
 				qi.debugName	= "";
@@ -147,14 +150,15 @@ namespace {
 			CHECK_ERR( _frameGraphInst->Initialize( 2 ));
 			_frameGraphInst->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
 
-			ThreadDesc	desc{ /*EThreadUsage::Present |*/ EThreadUsage::Graphics | EThreadUsage::Transfer };
+			ThreadDesc	desc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer };
 
 			_frameGraph1 = _frameGraphInst->CreateThread( desc );
 			CHECK_ERR( _frameGraph1 );
-			//CHECK_ERR( frame_graph->CreateSwapchain( swapchain_info ));
-			CHECK_ERR( _frameGraph1->Initialize() );
+			CHECK_ERR( _frameGraph1->Initialize( &swapchain_info ));
 
+			desc.usage   &= ~EThreadUsage::Present;
 			desc.relative = _frameGraph1;
+
 			_frameGraph2 = _frameGraphInst->CreateThread( desc );
 			CHECK_ERR( _frameGraph2 );
 			CHECK_ERR( _frameGraph2->Initialize() );
@@ -442,7 +446,7 @@ namespace {
 			CHECK_ERR( Execute( "\""s << FG_GRAPHVIZ_DOT_EXECUTABLE << "\" -T" << format << " -O " << path, 30'000 ));
 
 			// delete '.dot' file
-			CHECK( DeleteFile( path ));
+			//CHECK( DeleteFile( path ));
 		}
 
 		if ( autoOpen )

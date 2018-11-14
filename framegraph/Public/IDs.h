@@ -157,6 +157,7 @@ namespace _fg_hidden_
 	using RawSamplerID				= _fg_hidden_::ResourceID< 7 >;
 	using RawDescriptorSetLayoutID	= _fg_hidden_::ResourceID< 8 >;
 	using RawPipelineResourcesID	= _fg_hidden_::ResourceID< 9 >;
+	using LogicalPassID				= _fg_hidden_::ResourceID< 10 >;
 	
 	using BufferID					= _fg_hidden_::ResourceIDWrap< RawBufferID >;
 	using ImageID					= _fg_hidden_::ResourceIDWrap< RawImageID >;

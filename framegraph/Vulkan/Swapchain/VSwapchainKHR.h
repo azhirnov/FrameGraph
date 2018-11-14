@@ -4,11 +4,6 @@
 
 #include "VSwapchain.h"
 
-// TODO: ...
-#define VulkanSwapchain  KHRSwapchainImpl
-#include "extensions/framework/Vulkan/VulkanSwapchain.h"
-#undef  VulkanSwapchain
-
 namespace FG
 {
 
@@ -25,27 +20,63 @@ namespace FG
 
 	// variables
 	protected:
-		KHRSwapchainImpl	_swapchain;
-		VkSemaphore			_imageAvailable		= VK_NULL_HANDLE;
-		VkSemaphore			_renderFinished		= VK_NULL_HANDLE;
-		VkQueue				_presentQueue		= VK_NULL_HANDLE;
-		SwapchainImages_t	_imageIDs;
+		VFrameGraphThread &				_frameGraph;
+		VDeviceQueueInfoPtr				_presentQueue;
+		SwapchainImages_t				_imageIDs;
+		uint2							_surfaceSize;
+
+		VkSwapchainKHR					_vkSwapchain		= VK_NULL_HANDLE;
+		VkSurfaceKHR					_vkSurface			= VK_NULL_HANDLE;
+		uint							_currImageIndex		= ~0u;
+		VkSemaphore						_imageAvailable		= VK_NULL_HANDLE;
+		VkSemaphore						_renderFinished		= VK_NULL_HANDLE;
+
+		VkFormat						_colorFormat		= VK_FORMAT_UNDEFINED;
+		VkColorSpaceKHR					_colorSpace			= VK_COLOR_SPACE_MAX_ENUM_KHR;
+		uint							_minImageCount		= 2;
+		VkSurfaceTransformFlagBitsKHR	_preTransform		= VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+		VkPresentModeKHR				_presentMode		= VK_PRESENT_MODE_FIFO_KHR;
+		VkCompositeAlphaFlagBitsKHR		_compositeAlpha		= VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		VkImageUsageFlags				_colorImageUsage	= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 
 	// methods
 	public:
-		VSwapchainKHR (const VDevice &dev, const VulkanSwapchainInfo &ci);
+		explicit VSwapchainKHR (VFrameGraphThread &fg);
 		~VSwapchainKHR () override;
+
+		bool Create (const VulkanSwapchainCreateInfo &info, uint minImageCount);
+
+
+	// VSwapchain
+	public:
+		bool Acquire (ESwapchainImage type, OUT RawImageID &outImageId) override;
+		bool Present (RawImageID) override;
 		
-		bool Acquire (VFrameGraphThread &) override;
-		bool Present (VFrameGraphThread &) override;
-		
-		bool Initialize (VkQueue queue) override;
+		bool Initialize (VDeviceQueueInfoPtr queue) override;
 		void Deinitialize () override;
 
 		bool IsCompatibleWithQueue (EQueueFamily familyIndex) const override;
-		
-		RawImageID  GetImage (ESwapchainImage type) override;
+
+
+	private:
+		bool _CreateSwapchain ();
+		bool _CreateImages ();
+		void _DestroyImages ();
+
+		bool _CreateSemaphores ();
+
+		bool _IsSupported (const VkSurfaceCapabilities2KHR &surfaceCaps, const uint2 &surfaceSize, VkPresentModeKHR presentMode,
+						   VkFormat colorFormat, INOUT VkImageUsageFlags &colorImageUsage) const;
+
+		bool _GetImageUsage (OUT VkImageUsageFlags &imageUsage,	VkPresentModeKHR presentMode,
+							 VkFormat colorFormat, const VkSurfaceCapabilities2KHR &surfaceCaps) const;
+
+		ND_ bool _IsImageAcquired () const;
+
+		ND_ VDevice const&		_GetDevice ()			const;
+		ND_ VkDevice			_GetVkDevice ()			const;
+		ND_ VkPhysicalDevice	_GetVkPhysicalDevice ()	const;
 	};
 
 

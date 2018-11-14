@@ -11,7 +11,7 @@ namespace FG
 	// Graphics Pipeline
 	//
 
-	class VGraphicsPipeline final : public ResourceBase
+	class VGraphicsPipeline final
 	{
 		friend class VPipelineCache;
 		
@@ -91,11 +91,14 @@ namespace FG
 		bool					_earlyFragmentTests		= true;
 		
 		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
 	public:
 		VGraphicsPipeline () {}
+		VGraphicsPipeline (VGraphicsPipeline &&) = default;
 		~VGraphicsPipeline ();
 
 		bool Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);

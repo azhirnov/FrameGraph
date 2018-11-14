@@ -80,6 +80,12 @@ namespace FG
 			#ifdef VK_KHR_get_physical_device_properties2
 				VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
 			#endif
+			#ifdef VK_KHR_get_surface_capabilities2
+				VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_create_renderpass2
+				VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+			#endif
 		};
 		return instance_extensions;
 	}
@@ -121,7 +127,12 @@ namespace FG
 			#endif
 			#ifdef VK_NVX_device_generated_commands
 				VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
-			#endif*/
+			#endif
+			#ifdef VK_EXT_conservative_rasterization
+			#endif
+			#ifdef VK_EXT_sample_locations
+			#endif
+			*/
 		};
 		return device_extensions;
 	}

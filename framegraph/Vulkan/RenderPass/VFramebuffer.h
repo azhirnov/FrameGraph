@@ -13,34 +13,37 @@ namespace FG
 	// Vulkan Framebuffer
 	//
 
-	class VFramebuffer final : public ResourceBase
+	class VFramebuffer final
 	{
 		friend class VRenderPassCache;
 
 	// types
 	private:
-		using Attachments_t	= FixedArray< Pair<ImageID, ImageViewDesc>, FG_MaxColorBuffers+1 >;
+		using Attachments_t	= FixedArray< Pair<RawImageID, ImageViewDesc>, FG_MaxColorBuffers+1 >;
 
 		
 	// variables
 	private:
-		HashVal				_hash;
-		VkFramebuffer		_framebuffer;
-		RenderPassID		_renderPassId;
+		HashVal					_hash;
+		VkFramebuffer			_framebuffer;
+		RawRenderPassID			_renderPassId;
 
-		uint2				_dimension;
-		ImageLayer			_layers;
-		Attachments_t		_attachments;
+		uint2					_dimension;
+		ImageLayer				_layers;
+		Attachments_t			_attachments;
 		
-		DebugName_t			_debugName;
+		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 		
 	// methods
 	public:
 		VFramebuffer ();
+		VFramebuffer (VFramebuffer &&) = default;
+		VFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers);
 		~VFramebuffer ();
 		
-		bool Initialize (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers);
 		bool Create (VResourceManagerThread &, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
@@ -49,7 +52,7 @@ namespace FG
 		ND_ bool operator == (const VFramebuffer &rhs) const;
 
 		ND_ VkFramebuffer		Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _framebuffer; }
-		ND_ RawRenderPassID		GetRenderPassID ()	const	{ SHAREDLOCK( _rcCheck );  return _renderPassId.Get(); }
+		ND_ RawRenderPassID		GetRenderPassID ()	const	{ SHAREDLOCK( _rcCheck );  return _renderPassId; }
 		ND_ uint2 const&		Dimension ()		const	{ SHAREDLOCK( _rcCheck );  return _dimension; }
 		ND_ uint				Layers ()			const	{ SHAREDLOCK( _rcCheck );  return _layers.Get(); }
 		ND_ HashVal				GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }

@@ -14,7 +14,7 @@ namespace FG
 	// Vulkan Memory Object
 	//
 
-	class VMemoryObj final : public ResourceBase
+	class VMemoryObj final
 	{
 	// types
 	public:
@@ -37,11 +37,14 @@ namespace FG
 		MemoryDesc					_desc;
 		
 		DebugName_t					_debugName;
+		
+		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods
 	public:
 		VMemoryObj () {}
+		VMemoryObj (VMemoryObj &&) = default;
 		~VMemoryObj ();
 
 		bool Create (const MemoryDesc &, VMemoryManager &, StringView dbgName);

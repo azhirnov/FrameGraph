@@ -187,7 +187,7 @@ namespace FG
 
 		template <typename T>
 		using SharedShaderPtr	= SharedPtr< IShaderData<T> >;
-		using VkShaderPtr		= SharedShaderPtr<VkShaderModule_t>;
+		using VkShaderPtr		= SharedShaderPtr< ShaderModuleVk_t >;
 
 		using ShaderDataUnion_t	= Union< std::monostate, SharedShaderPtr<String>, SharedShaderPtr<Array<uint8_t>>, SharedShaderPtr<Array<uint>>, VkShaderPtr >;
 		using ShaderDataMap_t	= HashMap< EShaderLangFormat, ShaderDataUnion_t >;

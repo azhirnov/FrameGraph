@@ -13,7 +13,7 @@ namespace FG
 	// Vulkan Buffer thread local
 	//
 
-	class VLocalBuffer final : public ResourceBase
+	class VLocalBuffer final
 	{
 		friend class VBufferUnitTest;
 
@@ -24,9 +24,9 @@ namespace FG
 		struct BufferState
 		{
 		// variables
-			EResourceState	state		= Default;
+			EResourceState	state	= Default;
 			BufferRange		range;
-			Task			task		= null;
+			Task			task;
 
 		// methods
 			BufferState () {}
@@ -61,11 +61,15 @@ namespace FG
 		mutable AccessRecords_t		_pendingAccesses;
 		mutable AccessRecords_t		_accessForWrite;
 		mutable AccessRecords_t		_accessForRead;
+		mutable bool				_isFirstBarrier	= false;
 		
+		RWRaceConditionCheck		_rcCheck;
+
 
 	// methods
 	public:
 		VLocalBuffer () {}
+		VLocalBuffer (VLocalBuffer &&) = delete;
 		~VLocalBuffer ();
 
 		bool Create (const VBuffer *);

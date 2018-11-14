@@ -8,6 +8,7 @@
 #include "stl/Containers/FixedArray.h"
 #include "stl/Containers/FixedMap.h"
 #include "stl/Containers/Union.h"
+#include "stl/Containers/Ptr.h"
 #include "stl/Math/Bytes.h"
 #include "stl/Math/Color.h"
 #include "stl/Math/Math.h"
@@ -27,8 +28,7 @@ namespace FG
 	using IPipelineCompilerPtr		= SharedPtr< class IPipelineCompiler >;
 	using FrameGraphPtr				= SharedPtr< class FrameGraph >;
 
-	using Task						= class IFrameGraphTask *;
-	using RenderPass				= class LogicalRenderPass *;
+	using Task						= Ptr< class IFrameGraphTask >;
 
 
 }	// FG

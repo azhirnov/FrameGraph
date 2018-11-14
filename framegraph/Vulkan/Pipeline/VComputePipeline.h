@@ -11,7 +11,7 @@ namespace FG
 	// Compute Pipeline
 	//
 
-	class VComputePipeline final : public ResourceBase
+	class VComputePipeline final
 	{
 		friend class VPipelineCache;
 		
@@ -22,11 +22,11 @@ namespace FG
 		// variables
 			HashVal					_hash;
 			uint3					localGroupSize;
-			VkPipelineCreateFlags	flags;
+			VkPipelineCreateFlags	flags	= 0;
 			// TODO: specialization constants
 
 		// methods
-			PipelineInstance ();
+			PipelineInstance () {}
 
 			ND_ bool  operator == (const PipelineInstance &rhs) const;
 		};
@@ -50,11 +50,14 @@ namespace FG
 		uint3					_localSizeSpec;
 
 		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
 	public:
 		VComputePipeline ();
+		VComputePipeline (VComputePipeline &&) = default;
 		~VComputePipeline ();
 		
 		bool Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
@@ -63,15 +66,6 @@ namespace FG
 		ND_ RawPipelineLayoutID		GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
 	};
 
-	
-/*
-=================================================
-	PipelineInstance
-=================================================
-*/
-	inline VComputePipeline::PipelineInstance::PipelineInstance () :
-		_hash{ 0 },		flags{ 0 }
-	{}
 	
 /*
 =================================================

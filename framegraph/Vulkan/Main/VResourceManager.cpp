@@ -224,8 +224,7 @@ namespace FG
 			Index_t	id	 = Index_t(i);
 			auto&	data = res[id];
 				
-			if ( //res.IsAssigned( id ) and
-				 data.GetState() != ResourceBase::EState::Initial )
+			if ( data.IsCreated() )
 			{
 				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 				res.RemoveFromCache( id );

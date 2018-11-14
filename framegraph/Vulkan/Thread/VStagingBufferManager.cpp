@@ -38,7 +38,7 @@ namespace FG
 	{
 		CHECK_ERR( _perFrame.empty() );
 
-		_perFrame.resize( _frameGraph.GetInstance()->GetRingBufferSize() );
+		_perFrame.resize( _frameGraph.GetRingBufferSize() );
 		return true;
 	}
 	

@@ -14,7 +14,7 @@ namespace FG
 	// Vulkan Cached Shader Module
 	//
 
-	class VCachedShaderModule final : public PipelineDescription::IShaderData< VkShaderModule_t >
+	class VCachedShaderModule final : public PipelineDescription::IShaderData< ShaderModuleVk_t >
 	{
 	// variables
 	private:
@@ -40,7 +40,7 @@ namespace FG
 			}
 		}
 		
-		VkShaderModule_t const&		GetData () const override		{ return BitCast<VkShaderModule_t>( _module ); }
+		ShaderModuleVk_t const&		GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
 
 		StringView					GetEntry () const override		{ return _entry; }
 
@@ -67,7 +67,7 @@ namespace FG
 	constructor
 =================================================
 */
-	VPipelineCompiler::VPipelineCompiler (VkPhysicalDevice_t physicalDevice, VkDevice_t device) :
+	VPipelineCompiler::VPipelineCompiler (PhysicalDeviceVk_t physicalDevice, DeviceVk_t device) :
 		VPipelineCompiler()
 	{
 		_physicalDevice	= physicalDevice;
@@ -906,7 +906,7 @@ namespace FG
 				COMP_CHECK_ERR( CreateShaderModule( BitCast<VkDevice>( _logicalDevice ), &shader_info, null, OUT &shader_id ) == VK_SUCCESS );
 
 				auto	module	= MakeShared<VCachedShaderModule>( shader_id, spv_data->GetEntry() );
-				auto	base	= Cast< PipelineDescription::IShaderData<VkShaderModule_t> >( module );
+				auto	base	= Cast< PipelineDescription::IShaderData<ShaderModuleVk_t> >( module );
 
 				_shaderCache.insert({ spv_data, base });
 

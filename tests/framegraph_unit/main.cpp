@@ -51,21 +51,23 @@ int main ()
 		}
 
 		// setup device info
-		VulkanDeviceInfo		vulkan_info;
-		VulkanSwapchainInfo		swapchain_info;
+		VulkanDeviceInfo						vulkan_info;
+		FrameGraphThread::SwapchainCreateInfo	swapchain_info;
 		{
-			vulkan_info.instance		= BitCast<VkInstance_t>( vulkan.GetVkInstance() );
-			vulkan_info.physicalDevice	= BitCast<VkPhysicalDevice_t>( vulkan.GetVkPhysicalDevice() );
-			vulkan_info.device			= BitCast<VkDevice_t>( vulkan.GetVkDevice() );
+			vulkan_info.instance		= BitCast<InstanceVk_t>( vulkan.GetVkInstance() );
+			vulkan_info.physicalDevice	= BitCast<PhysicalDeviceVk_t>( vulkan.GetVkPhysicalDevice() );
+			vulkan_info.device			= BitCast<DeviceVk_t>( vulkan.GetVkDevice() );
 			
-			swapchain_info.surface		= BitCast<VkSurface_t>( vulkan.GetVkSurface() );
-			swapchain_info.preTransform = {};
+			VulkanSwapchainCreateInfo	swapchain_ci;
+			swapchain_ci.surface		= BitCast<SurfaceVk_t>( vulkan.GetVkSurface() );
+			swapchain_ci.surfaceSize	= window->GetSize();
+			swapchain_info				= swapchain_ci;
 
 			for (auto& q : vulkan.GetVkQuues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
-				qi.id			= BitCast<VkQueue_t>( q.id );
-				qi.familyFlags	= BitCast<VkQueueFlags_t>( q.flags );
+				qi.id			= BitCast<QueueVk_t>( q.id );
+				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.flags );
 				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;
 				qi.debugName	= "";
@@ -84,8 +86,7 @@ int main ()
 
 			fg_thread = fg_instance->CreateThread( desc );
 			TEST( fg_thread );
-			TEST( fg_thread->CreateSwapchain( swapchain_info ));
-			TEST( fg_thread->Initialize() );
+			TEST( fg_thread->Initialize( &swapchain_info ));
 
 			fg_instance->SetCompilationFlags( ECompilationFlags::EnableDebugger );
 			fg_thread->SetCompilationFlags( ECompilationFlags::EnableDebugger );

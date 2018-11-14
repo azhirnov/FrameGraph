@@ -15,13 +15,13 @@ namespace FG
 	// Vulkan Pipeline Resources
 	//
 
-	class VPipelineResources final : public ResourceBase
+	class VPipelineResources final
 	{
 	// types
 	private:
 		struct UpdateDescriptors
 		{
-			Deque< VkDescriptorBufferInfo >		buffers;
+			Deque< VkDescriptorBufferInfo >		buffers;	// TODO: custom allocator
 			Deque< VkDescriptorImageInfo >		images;
 			Deque< VkBufferView >				bufferViews;
 			Array< VkWriteDescriptorSet >		descriptors;
@@ -39,14 +39,17 @@ namespace FG
 		ResourceSet_t				_resources;			// all resource ids has a weak reference
 		
 		DebugName_t					_debugName;
+		
+		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods
 	public:
 		VPipelineResources () {}
+		VPipelineResources (VPipelineResources &&) = default;
+		VPipelineResources (const PipelineResources &desc);
 		~VPipelineResources ();
 
-		void Initialize (const PipelineResources &desc);
 		bool Create (VResourceManagerThread &, VPipelineCache &);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 

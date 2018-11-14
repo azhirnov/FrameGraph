@@ -180,10 +180,10 @@ namespace FG
 	
 /*
 =================================================
-	Initialize
+	constructor
 =================================================
 */
-	void VDescriptorSetLayout::Initialize (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding)
+	VDescriptorSetLayout::VDescriptorSetLayout (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( uniforms );
@@ -232,7 +232,6 @@ namespace FG
 	bool VDescriptorSetLayout::Create (const VDevice &dev, const DescriptorBinding_t &binding)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _layout == VK_NULL_HANDLE );
 
 		VkDescriptorSetLayoutCreateInfo	descriptor_info = {};
@@ -241,8 +240,6 @@ namespace FG
 		descriptor_info.bindingCount	= uint(binding.size());
 
 		VK_CHECK( dev.vkCreateDescriptorSetLayout( dev.GetVkDevice(), &descriptor_info, null, OUT &_layout ) );
-		
-		_OnCreate();
 		return true;
 	}
 	
@@ -263,8 +260,6 @@ namespace FG
 		_uniforms	= null;
 		_layout		= VK_NULL_HANDLE;
 		_hash		= Default;
-		
-		_OnDestroy();
 	}
 
 /*

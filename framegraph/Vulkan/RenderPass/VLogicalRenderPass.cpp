@@ -129,7 +129,6 @@ namespace FG
 			_defaultScissors.push_back( rect );
 		}
 		
-		_OnCreate();
 		return true;
 	}
 	

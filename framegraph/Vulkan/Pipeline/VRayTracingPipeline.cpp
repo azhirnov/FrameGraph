@@ -24,7 +24,6 @@ namespace FG
 	bool VRayTracingPipeline::Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		
 		for (auto& sh : desc._shaders)
 		{
@@ -39,7 +38,6 @@ namespace FG
 		_layoutId	= PipelineLayoutID{ layoutId };
 		_debugName	= dbgName;
 
-		_OnCreate();
 		return true;
 	}
 	
@@ -65,8 +63,6 @@ namespace FG
 		_debugName.clear();
 		
 		_layoutId	= Default;
-
-		_OnDestroy();
 	}
 
 

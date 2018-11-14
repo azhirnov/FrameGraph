@@ -13,7 +13,7 @@ namespace FG
 	// Vulkan Image thread local
 	//
 
-	class VLocalImage final : public ResourceBase
+	class VLocalImage final
 	{
 		friend class VImageUnitTest;
 
@@ -28,7 +28,7 @@ namespace FG
 			VkImageLayout		layout		= VK_IMAGE_LAYOUT_MAX_ENUM;
 			VkImageAspectFlags	aspect		= 0;
 			ImageRange			range;
-			Task				task		= null;
+			Task				task;
 			
 		// methods
 			ImageState () {}
@@ -62,17 +62,20 @@ namespace FG
 		
 	// variables
 	private:
-		mutable ImageViewMap_t		_viewMap;
 		VImage const*				_imageData		= null;		// readonly access is thread safe
 		VkImageLayout				_finalLayout	= VK_IMAGE_LAYOUT_GENERAL;
 
 		mutable AccessRecords_t		_pendingAccesses;
 		mutable AccessRecords_t		_accessForReadWrite;
+		mutable bool				_isFirstBarrier	= false;
 		
+		RWRaceConditionCheck		_rcCheck;
+
 
 	// methods
 	public:
 		VLocalImage () {}
+		VLocalImage (VLocalImage &&) = delete;
 		~VLocalImage ();
 
 		bool Create (const VImage *);

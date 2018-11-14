@@ -45,7 +45,11 @@ namespace FG
 
 		// debugging
 		ND_ virtual Statistics const&	GetStatistics () const = 0;
+
+			// can be used for regression testing
 			virtual bool				DumpToString (OUT String &result) const = 0;
+
+			// for graph visualization
 			virtual bool				DumpToGraphViz (EGraphVizFlags flags, OUT String &result) const = 0;
 	};
 

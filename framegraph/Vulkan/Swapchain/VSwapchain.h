@@ -17,15 +17,13 @@ namespace FG
 	public:
 			virtual ~VSwapchain () {}
 
-			virtual bool Acquire (VFrameGraphThread &) = 0;
-			virtual bool Present (VFrameGraphThread &) = 0;
+			virtual bool Acquire (ESwapchainImage, OUT RawImageID &) = 0;
+			virtual bool Present (RawImageID) = 0;
 
-			virtual bool Initialize (VkQueue) = 0;
+			virtual bool Initialize (VDeviceQueueInfoPtr) = 0;
 			virtual void Deinitialize () = 0;
 
 		ND_ virtual bool IsCompatibleWithQueue (EQueueFamily familyIndex) const = 0;
-
-		ND_ virtual RawImageID  GetImage (ESwapchainImage type) = 0;
 	};
 
 

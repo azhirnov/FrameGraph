@@ -243,10 +243,50 @@ namespace {
 			batch.signalSemaphores[idx] = sem;
 
 			// batch already submited and this function has no effect
-			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_acquire ) < READY_TO_SUBMIT );
+			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_acquire ) < SUBMITTED );
 			return true;
 		}
 		RETURN_ERR( "overflow!" );
+	}
+	
+/*
+=================================================
+	_AddSharedSemaphore
+=================================================
+*
+	bool VSubmissionGraph::_AddSharedSemaphore (VkSemaphore sem, OUT uint &index) const
+	{
+		SCOPELOCK( _sharedSemaphores.lock );	// TODO: lock-free
+
+		auto	inserted = _sharedSemaphores.map.insert({ sem, ~0u });
+		if ( not inserted.second )
+		{
+			index = inserted.first->second;
+			return inserted.first->second != ~0u;
+		}
+
+		index = uint( (size_t(inserted.first) - size_t(_sharedSemaphores.map.begin())) / sizeof(inserted.first) );
+		inserted.first->second = index;
+		return true;
+	}
+	
+/*
+=================================================
+	_RemoveSharedSemaphore
+=================================================
+*
+	bool VSubmissionGraph::_RemoveSharedSemaphore (uint index, OUT VkSemaphore &sem) const
+	{
+		SCOPELOCK( _sharedSemaphores.lock );
+
+		auto&	item = *(_sharedSemaphores.map.begin() + index);
+
+		if ( item.second == ~0u )
+			return false;
+
+		sem = item.first;
+		item.second = ~0u;
+		return true;
 	}
 
 /*
@@ -257,25 +297,25 @@ namespace {
 	calling 'Submit' with same 'batchId'
 =================================================
 */
-	bool VSubmissionGraph::WaitSemaphore (const CommandBatchID &batchId, VkSemaphore sem, VkPipelineStageFlags stage) const
+	bool VSubmissionGraph::WaitSemaphore (const CommandBatchID &batchId, VkSemaphore sem, VkPipelineStageFlags dstStageMask) const
 	{
 		auto	batch_iter = _batches.find( batchId );
 		CHECK_ERR( batch_iter != _batches.end() );
 		
-		return _WaitSemaphore( batch_iter->second, sem, stage );
+		return _WaitSemaphore( batch_iter->second, sem, dstStageMask );
 	}
 
-	bool VSubmissionGraph::_WaitSemaphore (const Batch &batch, VkSemaphore sem, VkPipelineStageFlags stage) const
+	bool VSubmissionGraph::_WaitSemaphore (const Batch &batch, VkSemaphore sem, VkPipelineStageFlags dstStageMask) const
 	{
 		const uint	idx = batch.atomics.waitSemaphoreCount.fetch_add( 1, memory_order_release );
 		
 		if ( idx < MaxSemaphores )
 		{
 			batch.waitSemaphores[idx] = sem;
-			batch.waitDstStages[idx]  = stage;
+			batch.waitDstStages[idx]  = dstStageMask;
 			
 			// batch already submited and this function has no effect
-			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_acquire ) < READY_TO_SUBMIT );
+			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_acquire ) < SUBMITTED );
 			return true;
 		}
 		RETURN_ERR( "overflow!" );
@@ -283,15 +323,60 @@ namespace {
 
 /*
 =================================================
+	SignalSharedSemaphore
+----
+	you can add same semaphore to different batches and
+	only first batch will generate semaphore signal operation
+=================================================
+*
+	bool VSubmissionGraph::SignalSharedSemaphore (const CommandBatchID &batchId, VkSemaphore sem) const
+	{
+		uint	index;
+		CHECK_ERR( _AddSharedSemaphore( sem, OUT index ));
+
+		auto	batch_iter = _batches.find( batchId );
+		CHECK_ERR( batch_iter != _batches.end() );
+
+		auto &		batch	= batch_iter->second;
+		const uint	idx		= batch.atomics.sharedSemaphoreCount.fetch_add( 1, memory_order_release );
+		
+		if ( idx < MaxSemaphores )
+		{
+			batch.sharedSemaphores[idx] = index;
+
+			// batch already submited and this function has no effect
+			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_acquire ) < READY_TO_SUBMIT );
+			return true;
+		}
+		RETURN_ERR( "overflow!" );
+	}
+	
+/*
+=================================================
+	WaitSharedSemaphore
+----
+	you can add same semaphore to different batches and
+	only first batch will generate semaphore wait operation
+=================================================
+*
+	bool VSubmissionGraph::WaitSharedSemaphore (const CommandBatchID &batchId, VkSemaphore sem, VkPipelineStageFlags dstStageMask) const
+	{
+		// TODO
+		return false;
+	}
+
+/*
+=================================================
 	Submit
 =================================================
 */
-	bool VSubmissionGraph::Submit (const QueuePtr queue, const CommandBatchID &batchId, uint indexInBatch, ArrayView<VkCommandBuffer> commands) const
+	bool VSubmissionGraph::Submit (const VDeviceQueueInfoPtr queuePtr, const CommandBatchID &batchId, uint indexInBatch, ArrayView<VkCommandBuffer> commands) const
 	{
 		auto	batch_iter = _batches.find( batchId );
 		CHECK_ERR( batch_iter != _batches.end() );
 
-		auto&	batch = batch_iter->second;
+		auto&			batch = batch_iter->second;
+		const QueuePtr	queue = QueuePtr(queuePtr);
 
 		// set current queue
 		{
@@ -358,6 +443,16 @@ namespace {
 				}
 			}
 
+			// append shared semaphores
+			/*for (size_t i = 0, count = batch.atomics.sharedSemaphoreCount.load( memory_order_relaxed );
+				 i < count; ++i)
+			{
+				VkSemaphore		sem;
+				if ( _RemoveSharedSemaphore( batch.sharedSemaphores[i], OUT sem ) )
+					CHECK( _SignalSemaphore( batch, sem ));
+			}*/
+
+
 			// submit commands
 			VkSubmitInfo	info = {};
 			info.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -373,7 +468,7 @@ namespace {
 			QueuePtr	queue = batch.atomics.queue.load( memory_order_relaxed );
 
 			SCOPELOCK( queue->lock );
-			VK_CALL( _device.vkQueueSubmit( queue->id, 1, &info, OUT batch.waitFence ));
+			VK_CALL( _device.vkQueueSubmit( queue->handle, 1, &info, OUT batch.waitFence ));
 		}
 		
 		// only one thread can set 'SUBMITTED' flag!

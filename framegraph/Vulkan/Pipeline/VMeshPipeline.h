@@ -11,7 +11,7 @@ namespace FG
 	// Mesh Pipeline
 	//
 
-	class VMeshPipeline final : public ResourceBase
+	class VMeshPipeline final
 	{
 		friend class VPipelineCache;
 		
@@ -22,11 +22,11 @@ namespace FG
 		// variables
 			HashVal						_hash;
 			RawRenderPassID				renderPassId;
-			uint						subpassIndex;
+			uint						subpassIndex	= 0;
 			RenderState					renderState;
-			EPipelineDynamicState		dynamicState;
-			VkPipelineCreateFlags		flags;
-			uint						viewportCount;
+			EPipelineDynamicState		dynamicState	= EPipelineDynamicState::None;
+			VkPipelineCreateFlags		flags			= 0;
+			uint						viewportCount	= 0;
 			// TODO: specialization constants
 
 		// methods
@@ -62,11 +62,14 @@ namespace FG
 		bool					_earlyFragmentTests		= true;
 		
 		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
 	public:
 		VMeshPipeline () {}
+		VMeshPipeline (VMeshPipeline &&) = default;
 		~VMeshPipeline ();
 
 		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);
@@ -76,18 +79,6 @@ namespace FG
 	};
 
 	
-/*
-=================================================
-	PipelineInstance
-=================================================
-*/
-	inline VMeshPipeline::PipelineInstance::PipelineInstance () :
-		_hash{ 0 },
-		subpassIndex{ 0 },
-		dynamicState{ EPipelineDynamicState::None },
-		flags{ 0 },
-		viewportCount{ 0 }
-	{}
 	
 /*
 =================================================

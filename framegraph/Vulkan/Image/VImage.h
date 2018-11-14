@@ -5,7 +5,9 @@
 #include "framegraph/Public/MemoryDesc.h"
 #include "framegraph/Shared/ImageViewDesc.h"
 #include "framegraph/Shared/ResourceBase.h"
+#include "framegraph/Public/FrameGraphThread.h"
 #include "VCommon.h"
+#include <shared_mutex>
 
 namespace FG
 {
@@ -14,42 +16,52 @@ namespace FG
 	// Vulkan Image immutable data
 	//
 
-	class VImage final : public ResourceBase
+	class VImage final
 	{
 		friend class VImageUnitTest;
 
 	// types
 	public:
 		using ImageViewMap_t	= HashMap< HashedImageViewDesc, VkImageView, HashOfImageViewDesc >;
+		using OnRelease_t		= FrameGraphThread::OnExternalImageReleased_t;
 
 
 	// variables
 	private:
 		VkImage					_image				= VK_NULL_HANDLE;
 		ImageDesc				_desc;
-		mutable ImageViewMap_t	_viewMap;
+
+		mutable std::shared_mutex	_viewMapLock;
+		mutable ImageViewMap_t		_viewMap;
 
 		MemoryID				_memoryId;
 		VkImageAspectFlags		_aspectMask			= 0;
 		VkImageLayout			_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
 		EQueueFamily			_currQueueFamily	= Default;
+		
+		// insert a semaphore to the command batch before using this image
+		//VkSemaphore				_semaphore			= VK_NULL_HANDLE;
 
 		DebugName_t				_debugName;
+		OnRelease_t				_onRelease;
+
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
 	public:
 		VImage () {}
+		VImage (VImage &&) = default;
 		~VImage ();
 
 		bool Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 					 EQueueFamily queueFamily, StringView dbgName);
 
+		bool Create (const VDevice &dev, const VulkanImageDesc &desc, StringView dbgName, OnRelease_t &&onRelease);
+
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
-		void Merge (ImageViewMap_t &, OUT AppendableVkResources_t) const;
-
-		ND_ VkImageView			GetView (const HashedImageViewDesc &) const;
+		ND_ VkImageView			GetView (const VDevice &, const HashedImageViewDesc &) const;
 
 		ND_ VkImage				Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _image; }
 		ND_ RawMemoryID			GetMemoryID ()			const	{ SHAREDLOCK( _rcCheck );  return _memoryId.Get(); }
@@ -70,6 +82,15 @@ namespace FG
 		
 		ND_ EQueueFamily		CurrentQueueFamily ()	const	{ SHAREDLOCK( _rcCheck );  return _currQueueFamily; }
 		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		
+		//ND_ VkSemaphore			GetSemaphore ()			const	{ SHAREDLOCK( _rcCheck );  return _semaphore; }
+
+
+	private:
+		bool _CreateView (const VDevice &, const HashedImageViewDesc &, OUT VkImageView &) const;
+
+		ND_ VkImageAspectFlags	_ChooseAspect () const;
+		ND_ VkImageLayout		_ChooseDefaultLayout () const;
 	};
 	
 

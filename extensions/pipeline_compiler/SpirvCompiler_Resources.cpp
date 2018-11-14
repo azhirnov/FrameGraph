@@ -134,7 +134,7 @@ namespace FG
 	SetCurrentResourceLimits
 =================================================
 */
-	bool SpirvCompiler::SetCurrentResourceLimits (VkPhysicalDevice_t physicalDevice)
+	bool SpirvCompiler::SetCurrentResourceLimits (PhysicalDeviceVk_t physicalDevice)
 	{
 		CHECK_ERR( physicalDevice );
 

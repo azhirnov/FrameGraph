@@ -1280,25 +1280,57 @@ namespace FG
 	void VTaskProcessor::Visit (const VFgTask<Present> &task)
 	{
 		_OnRunTask( &task );
+		
+		RawImageID	swapchain_image;
+		CHECK( _frameGraph.GetSwapchain()->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
 
-		/*_AddImage( task.GetImage(), EResourceState::TransferSrc | EResourceState::_InvalidateAfter, EImageLayout::TransferSrcOptimal,
-				   RangeU(0, 1) + task.GetLayer().Get(), RangeU(0, 1), EImageAspect::Color );
+		VLocalImage const *		src_image	= task.image;
+		VLocalImage const *		dst_image	= _GetState( swapchain_image );
+		VkImageBlit				region;
+		
+		region.srcSubresource.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+		region.srcSubresource.mipLevel			= 0;
+		region.srcSubresource.baseArrayLayer	= task.layer.Get();
+		region.srcSubresource.layerCount		= 1;
+		region.srcOffsets[0]					= VkOffset3D{ 0, 0, 0 };
+		region.srcOffsets[1]					= VkOffset3D{ int(src_image->Width()), int(src_image->Height()), 1 };
+			
+		region.dstSubresource.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+		region.dstSubresource.mipLevel			= 0;
+		region.dstSubresource.baseArrayLayer	= 0;
+		region.dstSubresource.layerCount		= 1;
+		region.dstOffsets[0]					= VkOffset3D{ 0, 0, 0 };
+		region.dstOffsets[1]					= VkOffset3D{ int(dst_image->Width()), int(dst_image->Height()), 1 };
 
-		GpuMsg::ThreadBeginFrame	begin_frame;
-		_gpuThread->Send( begin_frame );
+		_AddImage( src_image, EResourceState::TransferSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region.srcSubresource );
 
-		_barrierMngr.AddBarrier( GpuMsg::CmdPipelineBarrier{}.AddImage({}) );
+		VkImageMemoryBarrier	barrier = {};
+		barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.srcAccessMask		= 0;
+		barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.oldLayout			= VK_IMAGE_LAYOUT_UNDEFINED;
+		barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+		barrier.image				= dst_image->Handle();
+		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		_barrierMngr.AddImageBarrier( VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, barrier );
 
-		_cmdBuilder->Send( GpuMsg::CmdBlitImage{ task.GetImage(), EImageLayout::TransferSrcOptimal,
-												 begin_frame.result->image, EImageLayout::TransferDstOptimal, true }
-								.AddRegion(	{}, uint3(), uint3(),
-											{}, uint3(), uint3() ));
-											
 		_CommitBarriers();
 		
-		_gpuThread->Send( GpuMsg::ThreadEndFrame{} );
-
-		// TODO*/
+		_dev.vkCmdBlitImage( _cmdBuffer,
+							 src_image->Handle(),
+							 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+							 dst_image->Handle(),
+							 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+							 1, &region,
+							 VK_FILTER_NEAREST );
+		
+		barrier.srcAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask	= 0;
+		barrier.oldLayout		= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout		= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		_barrierMngr.AddImageBarrier( VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, barrier );
 	}
 
 /*

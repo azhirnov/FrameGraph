@@ -17,7 +17,7 @@ namespace FG
 	{
 		ASSERT( _image == VK_NULL_HANDLE );
 		ASSERT( _viewMap.empty() );
-		//ASSERT( _memoryId );
+		ASSERT( not _memoryId );
 	}
 
 /*
@@ -55,6 +55,51 @@ namespace FG
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "not supported", VK_IMAGE_TYPE_MAX_ENUM );
 	}
+	
+/*
+=================================================
+	_ChooseAspect
+=================================================
+*/
+	VkImageAspectFlags  VImage::_ChooseAspect () const
+	{
+		VkImageAspectFlags	result = 0;
+
+		if ( EPixelFormat_IsColor( _desc.format ) )
+			result |= VK_IMAGE_ASPECT_COLOR_BIT;
+		else
+		{
+			if ( EPixelFormat_HasDepth( _desc.format ) )
+				result |= VK_IMAGE_ASPECT_DEPTH_BIT;
+
+			if ( EPixelFormat_HasStencil( _desc.format ) )
+				result |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+		return result;
+	}
+	
+/*
+=================================================
+	_ChooseDefaultLayout
+=================================================
+*/
+	VkImageLayout  VImage::_ChooseDefaultLayout () const
+	{
+		VkImageLayout	result = VK_IMAGE_LAYOUT_GENERAL;
+
+		if ( BitSet<32>(uint( _desc.usage )).count() == 1 )
+		{
+			if ( EnumEq( _desc.usage, EImageUsage::Sampled ) )
+				result = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			else
+			if ( EnumEq( _desc.usage, EImageUsage::ColorAttachment ) )
+				result = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			else
+			if ( EnumEq( _desc.usage, EImageUsage::DepthStencilAttachment ) )
+				result = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		}
+		return result;
+	}
 
 /*
 =================================================
@@ -65,7 +110,6 @@ namespace FG
 						 EQueueFamily queueFamily, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _image == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		
@@ -104,47 +148,124 @@ namespace FG
 			dev.SetObjectName( BitCast<uint64_t>(_image), _debugName, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT );
 		}
 
-		
-		// set aspect mask
-		{
-			_aspectMask	= 0;
-
-			if ( EPixelFormat_IsColor( _desc.format ) )
-				_aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
-			else
-			{
-				if ( EPixelFormat_HasDepth( _desc.format ) )
-					_aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
-
-				if ( EPixelFormat_HasStencil( _desc.format ) )
-					_aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-			}
-		}
-
-		// set default layout
-		{
-			_defaultLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-			if ( BitSet<32>(uint( _desc.usage )).count() == 1 )
-			{
-				if ( EnumEq( _desc.usage, EImageUsage::Sampled ) )
-					_defaultLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				else
-				if ( EnumEq( _desc.usage, EImageUsage::ColorAttachment ) )
-					_defaultLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				else
-				if ( EnumEq( _desc.usage, EImageUsage::DepthStencilAttachment ) )
-					_defaultLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			}
-		}
-		
+		_aspectMask			= _ChooseAspect();
+		_defaultLayout		= _ChooseDefaultLayout();
 		_currQueueFamily	= queueFamily;
 		_debugName			= dbgName;
 
-		_OnCreate();
 		return true;
 	}
-	
+
+/*
+=================================================
+	EImage_FromVk
+=================================================
+*/
+	ND_ static EImage  EImage_FromVk (VkImageType type, uint arrayLayers, VkSampleCountFlagBits samples)
+	{
+		const bool	is_array		= arrayLayers > 1;
+		const bool	is_multisampled	= samples > VK_SAMPLE_COUNT_1_BIT;
+
+		ENABLE_ENUM_CHECKS();
+		switch ( type )
+		{
+			case VK_IMAGE_TYPE_1D :
+				return is_array ? EImage::Tex1DArray : EImage::Tex1D;
+
+			case VK_IMAGE_TYPE_2D :
+				return is_multisampled ?
+							(is_array ? EImage::Tex2DMSArray : EImage::Tex2DMS) :
+							(is_array ? EImage::Tex2DArray : EImage::Tex2D);
+
+			case VK_IMAGE_TYPE_3D :
+				ASSERT( arrayLayers == 1 );
+				return EImage::Tex3D;
+
+			case VK_IMAGE_TYPE_RANGE_SIZE :
+			case VK_IMAGE_TYPE_MAX_ENUM :	break;
+		}
+		DISABLE_ENUM_CHECKS();
+		RETURN_ERR( "not supported" );
+	}
+
+/*
+=================================================
+	EImageUsage_FromVk
+=================================================
+*/
+	ND_ static EImageUsage  EImageUsage_FromVk (VkImageUsageFlags usage)
+	{
+		EImageUsage		result = Default;
+
+		for (VkImageUsageFlags t = 1; t < VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM; t <<= 1)
+		{
+			if ( not EnumEq( usage, t ) )
+				continue;
+			
+			ENABLE_ENUM_CHECKS();
+			switch ( t )
+			{
+				case VK_IMAGE_USAGE_TRANSFER_SRC_BIT :				result |= EImageUsage::TransferSrc;				break;
+				case VK_IMAGE_USAGE_TRANSFER_DST_BIT :				result |= EImageUsage::TransferDst;				break;
+				case VK_IMAGE_USAGE_SAMPLED_BIT :					result |= EImageUsage::Sampled;					break;
+				case VK_IMAGE_USAGE_STORAGE_BIT :					result |= EImageUsage::Storage;					break;
+				case VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT :			result |= EImageUsage::ColorAttachment;			break;
+				case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT :	result |= EImageUsage::DepthStencilAttachment;	break;
+				case VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT :		result |= EImageUsage::TransientAttachment;		break;
+				case VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT :			result |= EImageUsage::InputAttachment;			break;
+				case VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV :
+				case VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM :			RETURN_ERR( "not supported" );
+			}
+			DISABLE_ENUM_CHECKS();
+		}
+		return result;
+	}
+
+/*
+=================================================
+	MultiSamples_FromVk
+=================================================
+*/
+	ND_ static  MultiSamples  MultiSamples_FromVk (VkSampleCountFlagBits samples)
+	{
+		ASSERT( IsPowerOfTwo( samples ) );
+		return MultiSamples{ uint(samples) };
+	}
+
+/*
+=================================================
+	Create
+=================================================
+*/
+	bool VImage::Create (const VDevice &dev, const VulkanImageDesc &desc, StringView dbgName, OnRelease_t &&onRelease)
+	{
+		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _image == VK_NULL_HANDLE );
+		
+		_image				= BitCast<VkImage>( desc.image );
+		_desc.imageType		= EImage_FromVk( BitCast<VkImageType>( desc.imageType ), desc.arrayLayers, BitCast<VkSampleCountFlagBits>( desc.samples ));
+		_desc.dimension		= desc.dimension;
+		_desc.format		= EPixelFormat_FromVk( BitCast<VkFormat>( desc.format ));
+		_desc.usage			= EImageUsage_FromVk( BitCast<VkImageUsageFlags>( desc.usage ));
+		_desc.arrayLayers	= ImageLayer{ desc.arrayLayers };
+		_desc.maxLevel		= MipmapLevel{ desc.maxLevels };
+		_desc.samples		= MultiSamples_FromVk( BitCast<VkSampleCountFlagBits>( desc.samples ));
+		_desc.isExternal	= true;
+
+		if ( not _debugName.empty() )
+		{
+			dev.SetObjectName( BitCast<uint64_t>(_image), _debugName, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT );
+		}
+		
+		_aspectMask			= _ChooseAspect();
+		_defaultLayout		= _ChooseDefaultLayout();
+		_currQueueFamily	= BitCast<EQueueFamily>( desc.queueFamily );
+		_debugName			= dbgName;
+		_onRelease			= std::move(onRelease);
+
+		return true;
+	}
+
 /*
 =================================================
 	Destroy
@@ -154,12 +275,16 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 
-		if ( _image ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, uint64_t(_image) );
-		}
-
 		for (auto& view : _viewMap) {
 			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT, uint64_t(view.second) );
+		}
+		
+		if ( _desc.isExternal and _onRelease ) {
+			_onRelease( BitCast<ImageVk_t>(_image) );
+		}
+
+		if ( not _desc.isExternal and _image ) {
+			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, uint64_t(_image) );
 		}
 
 		if ( _memoryId ) {
@@ -174,30 +299,7 @@ namespace FG
 		_aspectMask			= 0;
 		_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
 		_currQueueFamily	= Default;
-		
-		_OnDestroy();
-	}
-	
-/*
-=================================================
-	Merge
-----
-	this method must be externaly synchronized!
-=================================================
-*/
-	void VImage::Merge (ImageViewMap_t &from, OUT AppendableVkResources_t readyToDelete) const
-	{
-		SCOPELOCK( _rcCheck );
-
-		for (auto& view : from)
-		{
-			auto	iter = _viewMap.find( view.first );
-
-			if ( iter == _viewMap.end() )
-				_viewMap.insert( std::move(view) );
-			else
-				readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT, uint64_t(view.second) );
-		}
+		_onRelease			= {};
 	}
 	
 /*
@@ -205,14 +307,70 @@ namespace FG
 	GetView
 =================================================
 */
-	VkImageView  VImage::GetView (const HashedImageViewDesc &desc) const
+	VkImageView  VImage::GetView (const VDevice &dev, const HashedImageViewDesc &desc) const
 	{
-		auto	iter = _viewMap.find( desc );
+		// find already created image view
+		{
+			SHAREDLOCK( _viewMapLock );
 
-		if ( iter != _viewMap.end() )
-			return iter->second;
+			auto	iter = _viewMap.find( desc );
 
-		return VK_NULL_HANDLE;
+			if ( iter != _viewMap.end() )
+				return iter->second;
+		}
+
+		// create new image view
+		SCOPELOCK( _viewMapLock );
+
+		auto	inserted = _viewMap.insert({ desc, VK_NULL_HANDLE });
+
+		if ( not inserted.second )
+			return inserted.first->second;	// other thread create view before
+		
+		CHECK_ERR( _CreateView( dev, desc, OUT inserted.first->second ));
+
+		return inserted.first->second;
+	}
+
+/*
+=================================================
+	_CreateView
+=================================================
+*/
+	bool VImage::_CreateView (const VDevice &dev, const HashedImageViewDesc &viewDesc, OUT VkImageView &outView) const
+	{
+		const VkComponentSwizzle	components[] = {
+			VK_COMPONENT_SWIZZLE_IDENTITY,	// unknown
+			VK_COMPONENT_SWIZZLE_R,
+			VK_COMPONENT_SWIZZLE_G,
+			VK_COMPONENT_SWIZZLE_B,
+			VK_COMPONENT_SWIZZLE_A,
+			VK_COMPONENT_SWIZZLE_ZERO,
+			VK_COMPONENT_SWIZZLE_ONE
+		};
+
+		const auto&				desc		= viewDesc.Get();
+		const uint4				swizzle		= Min( uint4(uint(CountOf(components)-1)), desc.swizzle.ToVec() );
+		VkImageViewCreateInfo	view_info	= {};
+
+		view_info.sType			= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		view_info.pNext			= null;
+		view_info.viewType		= VEnumCast( desc.viewType );
+		view_info.flags			= 0;
+		view_info.image			= Handle();
+		view_info.format		= VEnumCast( desc.format );
+		view_info.components	= { components[swizzle.x], components[swizzle.y], components[swizzle.z], components[swizzle.w] };
+
+		view_info.subresourceRange.aspectMask		= EPixelFormat_IsColor( desc.format ) ? VK_IMAGE_ASPECT_COLOR_BIT :
+													  ((EPixelFormat_HasDepth( desc.format ) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0) |
+													   (EPixelFormat_HasStencil( desc.format ) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0));
+		view_info.subresourceRange.baseMipLevel		= desc.baseLevel.Get();
+		view_info.subresourceRange.levelCount		= desc.levelCount;
+		view_info.subresourceRange.baseArrayLayer	= desc.baseLayer.Get();
+		view_info.subresourceRange.layerCount		= desc.layerCount;
+		
+		VK_CHECK( dev.vkCreateImageView( dev.GetVkDevice(), &view_info, null, OUT &outView ));
+		return true;
 	}
 
 

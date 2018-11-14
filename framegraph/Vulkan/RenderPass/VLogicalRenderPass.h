@@ -14,7 +14,7 @@ namespace FG
 	// Vulkan Logical Render Pass
 	//
 
-	class VLogicalRenderPass final : public ResourceBase
+	class VLogicalRenderPass final
 	{
 		friend class VRenderPassCache;
 
@@ -68,6 +68,8 @@ namespace FG
 		//bool						_parallelExecution	= true;
 		bool						_canBeMerged		= true;
 		bool						_isSubmited			= false;
+		
+		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods
@@ -82,6 +84,7 @@ namespace FG
 
 	public:
 		VLogicalRenderPass () {}
+		VLogicalRenderPass (VLogicalRenderPass &&) = delete;
 		~VLogicalRenderPass ();
 
 		bool Create (VResourceManagerThread &rm, const RenderPassDesc &rp);

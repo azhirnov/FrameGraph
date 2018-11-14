@@ -19,17 +19,15 @@ namespace FG
 	
 /*
 =================================================
-	Initialize
+	constructor
 =================================================
 */
-	void VSampler::Initialize (const VDevice &dev, const SamplerDesc &desc)
+	VSampler::VSampler (const VDevice &dev, const SamplerDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
-		ASSERT( GetState() == EState::Initial );
 
 		_createInfo = {};
 		_createInfo.sType					= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		_createInfo.pNext					= null;
 		_createInfo.flags					= 0;
 		_createInfo.magFilter				= VEnumCast( desc.magFilter );
 		_createInfo.minFilter				= VEnumCast( desc.minFilter );
@@ -190,14 +188,12 @@ namespace FG
 	bool VSampler::Create (const VDevice &dev, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _sampler == VK_NULL_HANDLE );
 
 		VK_CHECK( dev.vkCreateSampler( dev.GetVkDevice(), &_createInfo, null, OUT &_sampler ));
 		
 		_debugName = dbgName;
 
-		_OnCreate();
 		return true;
 	}
 
@@ -218,8 +214,6 @@ namespace FG
 		_hash		= Default;
 		_createInfo	= Default;
 		_debugName.clear();
-		
-		_OnDestroy();
 	}
 	
 /*

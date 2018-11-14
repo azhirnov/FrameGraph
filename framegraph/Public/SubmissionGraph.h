@@ -86,7 +86,7 @@ namespace FG
 			})
 
 			ASSERT( not batchId.GetName().empty() );
-			ASSERT( !!(usage & EThreadUsage::_QueueMask) );
+			ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
 
 			CHECK( _batches.insert_or_assign( batchId, Batch{threadCount, usage, dependsOn} ).second );
 			return *this;

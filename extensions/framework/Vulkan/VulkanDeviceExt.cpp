@@ -234,7 +234,7 @@ namespace FG
 			return _callback({ flags, objectType, object, layerPrefix, message });
 		
 
-		if ( _breakOnValidationError and !!(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) )
+		if ( _breakOnValidationError and EnumAny( flags, VK_DEBUG_REPORT_ERROR_BIT_EXT ) )
 		{
 			FG_LOGE( "Error in object '"s << objectType << "' (" << ToString(object) << "), layer: " << layerPrefix << ", message: " << message );
 		}

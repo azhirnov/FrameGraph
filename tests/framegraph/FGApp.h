@@ -93,6 +93,7 @@ namespace FG
 		bool Test_CopyImage3 ();
 		bool Test_Compute1 ();
 		bool Test_Draw1 ();
+		bool Test_Draw2 ();
 	};
 
 	

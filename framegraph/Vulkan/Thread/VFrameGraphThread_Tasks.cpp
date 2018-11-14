@@ -6,6 +6,11 @@
 
 namespace FG
 {
+namespace {
+	static constexpr EThreadUsage	GraphicsBit		= EThreadUsage::Graphics;
+	static constexpr EThreadUsage	ComputeBit		= EThreadUsage::Graphics | EThreadUsage::AsyncCompute;
+	static constexpr EThreadUsage	TransferBit		= EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming;
+}
 	
 /*
 =================================================
@@ -161,16 +166,6 @@ namespace FG
 
 		return counter;
 	}
-	
-/*
-=================================================
-	AddTask (SubmitRenderPass)
-=================================================
-*/
-	inline LogicalRenderPassID  ConvertLRP (RenderPass rp)
-	{
-		return LogicalRenderPassID{ uint(size_t(rp)), 0 };		// TODO
-	}
 
 /*
 =================================================
@@ -181,9 +176,9 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( _currUsage, EThreadUsage::Graphics ));
+		ASSERT( EnumEq( _currUsage, GraphicsBit ));
 		
-		auto *	rp  = _resourceMngr.GetState(ConvertLRP( task.renderPass ));
+		auto *	rp  = _resourceMngr.GetState( task.renderPass );
 		CHECK_ERR( rp->Submit() );
 
 		auto*	rp_task = static_cast< VFgTask<SubmitRenderPass> *>(_taskGraph.Add( this, task ));
@@ -202,7 +197,7 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
+		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -216,7 +211,7 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
+		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -231,7 +226,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcBuffer and task.dstBuffer );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
+		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -246,7 +241,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
+		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -261,7 +256,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcBuffer and task.dstImage );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
+		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -276,7 +271,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstBuffer );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
+		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -291,7 +286,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
-		ASSERT( !!(_currUsage & EThreadUsage::Graphics) );
+		ASSERT( EnumAny( _currUsage, GraphicsBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -306,7 +301,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.srcImage and task.dstImage );
-		ASSERT( !!(_currUsage & EThreadUsage::Graphics) );
+		ASSERT( EnumAny( _currUsage, GraphicsBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -335,7 +330,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstImage );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
+		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -350,7 +345,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstImage );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute)) );
+		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -365,7 +360,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( task.dstBuffer );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
+		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		if ( _stagingMngr )
 			return _AddUpdateBufferTask( task );
@@ -416,7 +411,7 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
+		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		if ( _stagingMngr )
 			return _AddUpdateImageTask( task );
@@ -533,7 +528,7 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
+		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		if ( _stagingMngr )
 			return _AddReadBufferTask( task );
@@ -594,7 +589,7 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( !!(_currUsage & (EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming)) );
+		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		if ( _stagingMngr )
 			return _AddReadImageTask( task );
@@ -713,7 +708,6 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		// TODO: check thread usage
 
 		if ( _swapchain )
 			return _AddPresentTask( task );
@@ -729,9 +723,25 @@ namespace FG
 	Task  VFrameGraphThread::_AddPresentTask (const FG::Present &task)
 	{
 		CHECK_ERR( task.srcImage );
-		
-		//task.srcImage->AddUsage( EImageUsage::ColorAttachment );
+		/*
+		RawImageID	swapchain_image;
+		CHECK_ERR( _swapchain->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
 
+		auto*	src_data = _resourceMngr.GetResource( task.srcImage );
+		auto*	dst_data = _resourceMngr.GetResource( swapchain_image );
+
+		BlitImage	blit;
+		blit.debugColor	= task.debugColor;
+		blit.depends	= task.depends;
+		blit.taskName	= task.taskName;
+
+		blit.srcImage	= task.srcImage;
+		blit.dstImage	= swapchain_image;
+		blit.filter		= EFilter::Nearest;
+		blit.AddRegion( {}, int3{}, int3{src_data->Dimension()}, {}, int3{}, int3{dst_data->Dimension()} );
+
+		//CHECK_ERR( _swapchain->Present( swapchain_image ));
+		*/
 		return _taskGraph.Add( this, task );
 	}
 	
@@ -766,19 +776,19 @@ namespace FG
 	AddDrawTask (DrawTask)
 =================================================
 */
-	void  VFrameGraphThread::AddDrawTask (RenderPass renderPass, const DrawTask &task)
+	void  VFrameGraphThread::AddDrawTask (LogicalPassID renderPass, const DrawTask &task)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void() );
 		
-		auto *	rp  = _resourceMngr.GetState(ConvertLRP( renderPass ));
+		auto *	rp  = _resourceMngr.GetState( renderPass );
 		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawTask> >();
 
 		rp->AddTask( PlacementNew< VFgDrawTask<DrawTask> >(
-					 ptr,
-					 this, task,
-					 VTaskProcessor::Visit1_DrawTask,
-					 VTaskProcessor::Visit2_DrawTask ));
+						 ptr,
+						 this, task,
+						 VTaskProcessor::Visit1_DrawTask,
+						 VTaskProcessor::Visit2_DrawTask ));
 	}
 	
 /*
@@ -786,19 +796,19 @@ namespace FG
 	AddDrawTask (DrawIndexedTask)
 =================================================
 */
-	void  VFrameGraphThread::AddDrawTask (RenderPass renderPass, const DrawIndexedTask &task)
+	void  VFrameGraphThread::AddDrawTask (LogicalPassID renderPass, const DrawIndexedTask &task)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void() );
 		
-		auto *	rp  = _resourceMngr.GetState(ConvertLRP( renderPass ));
+		auto *	rp  = _resourceMngr.GetState( renderPass );
 		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawIndexedTask> >();
 
 		rp->AddTask( PlacementNew< VFgDrawTask<DrawIndexedTask> >(
-					 ptr,
-					 this, task,
-					 VTaskProcessor::Visit1_DrawIndexedTask,
-					 VTaskProcessor::Visit2_DrawIndexedTask ));
+						 ptr,
+						 this, task,
+						 VTaskProcessor::Visit1_DrawIndexedTask,
+						 VTaskProcessor::Visit2_DrawIndexedTask ));
 	}
 	
 /*
@@ -806,15 +816,13 @@ namespace FG
 	CreateRenderPass
 =================================================
 */
-	RenderPass  VFrameGraphThread::CreateRenderPass (const RenderPassDesc &desc)
+	LogicalPassID  VFrameGraphThread::CreateRenderPass (const RenderPassDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumAny( _threadUsage, GraphicsBit ));
 
-		LogicalRenderPassID	id = _resourceMngr.CreateLogicalRenderPass( desc );
-		CHECK_ERR( id );
-
-		return RenderPass( size_t(id.Index()) );
+		return _resourceMngr.CreateLogicalRenderPass( desc );
 	}
 	
 /*
@@ -825,6 +833,7 @@ namespace FG
 	bool  VFrameGraphThread::Acquire (const ImageID &id, bool immutable)
 	{
 		SCOPELOCK( _rcCheck );
+		// TODO
 		return false;
 	}
 	
@@ -836,6 +845,7 @@ namespace FG
 	bool  VFrameGraphThread::Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable)
 	{
 		SCOPELOCK( _rcCheck );
+		// TODO
 		return false;
 	}
 	
@@ -847,6 +857,7 @@ namespace FG
 	bool  VFrameGraphThread::Acquire (const BufferID &id, bool immutable)
 	{
 		SCOPELOCK( _rcCheck );
+		// TODO
 		return false;
 	}
 	
@@ -858,6 +869,7 @@ namespace FG
 	bool  VFrameGraphThread::Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable)
 	{
 		SCOPELOCK( _rcCheck );
+		// TODO
 		return false;
 	}
 

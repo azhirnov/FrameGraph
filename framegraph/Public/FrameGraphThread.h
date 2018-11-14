@@ -40,7 +40,14 @@ namespace FG
 	{
 	// types
 	public:
-		using SwapchainInfo_t	= Union< std::monostate, VulkanSwapchainInfo, VulkanVREmulatorSwapchainInfo >;
+		using SwapchainCreateInfo	= Union< std::monostate, VulkanSwapchainCreateInfo, VulkanVREmulatorSwapchainCreateInfo >;
+		using ExternalImageDesc		= Union< std::monostate, VulkanImageDesc >;
+		using ExternalBufferDesc	= Union< std::monostate, VulkanBufferDesc >;
+		using ExternalImage_t		= Union< std::monostate, ImageVk_t >;
+		using ExternalBuffer_t		= Union< std::monostate, BufferVk_t >;
+
+		using OnExternalImageReleased_t		= std::function< void (const ExternalImage_t &) >;
+		using OnExternalBufferReleased_t	= std::function< void (const ExternalBuffer_t &) >;
 
 
 	// interface
@@ -55,6 +62,8 @@ namespace FG
 
 		ND_ virtual ImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual BufferID		CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, StringView dbgName = Default) = 0;
+		ND_ virtual ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName = Default) = 0;
+		ND_ virtual BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName = Default) = 0;
 			virtual bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const = 0;
 		
@@ -80,10 +89,10 @@ namespace FG
 
 
 		// initialization
-			virtual bool		Initialize () = 0;
+			virtual bool		Initialize (const SwapchainCreateInfo *swapchainCI = null) = 0;
 			virtual void		Deinitialize () = 0;
 			virtual void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags = Default) = 0;
-			virtual bool		CreateSwapchain (const SwapchainInfo_t &) = 0;
+			virtual bool		RecreateSwapchain (const SwapchainCreateInfo &) = 0;
 
 		// frame execution
 			virtual bool		Begin (const CommandBatchID &id, uint index, EThreadUsage usage) = 0;
@@ -96,7 +105,7 @@ namespace FG
 			virtual bool		Acquire (const BufferID &id, bool immutable) = 0;
 			virtual bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable) = 0;
 
-		ND_ virtual ImageID		GetSwapchainImage (ESwapchainImage type) = 0;
+		//ND_ virtual ImageID		GetSwapchainImage (ESwapchainImage type) = 0;
 
 		// tasks
 		ND_ virtual Task		AddTask (const SubmitRenderPass &) = 0;
@@ -120,12 +129,13 @@ namespace FG
 		//ND_ virtual Task		AddTask (const TaskGroupSync &) = 0;
 
 		// draw tasks
-		ND_ virtual RenderPass	CreateRenderPass (const RenderPassDesc &desc) = 0;
-			virtual void		AddDrawTask (RenderPass, const DrawTask &) = 0;
-			virtual void		AddDrawTask (RenderPass, const DrawIndexedTask &) = 0;
-		//	virtual void		AddDrawTask (RenderPass, const ClearAttachments &) = 0;
-		//	virtual void		AddDrawTask (RenderPass, const DrawCommandBuffer &) = 0;
-		//	virtual void		AddDrawTask (RenderPass, const DrawMeshTask &) = 0;
+		ND_ virtual LogicalPassID  CreateRenderPass (const RenderPassDesc &desc) = 0;
+
+			virtual void		AddDrawTask (LogicalPassID, const DrawTask &) = 0;
+			virtual void		AddDrawTask (LogicalPassID, const DrawIndexedTask &) = 0;
+		//	virtual void		AddDrawTask (LogicalPassID, const ClearAttachments &) = 0;
+		//	virtual void		AddDrawTask (LogicalPassID, const DrawCommandBuffer &) = 0;
+		//	virtual void		AddDrawTask (LogicalPassID, const DrawMeshTask &) = 0;
 	};
 
 

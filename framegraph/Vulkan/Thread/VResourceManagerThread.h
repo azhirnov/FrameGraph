@@ -24,23 +24,24 @@ namespace FG
 		using Index_t			= VResourceManager::Index_t;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
-		using PoolTmpl			= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedLinearAllocator<> >;
+		using PoolTmpl			= ChunkedIndexedPool< ResourceBase<T>, Index_t, ChunkSize, MaxChunks, UntypedLinearAllocator<> >;
 
 		template <typename T, size_t MaxSize>
 		using PoolTmpl2			= PoolTmpl< T, MaxSize/16, 16 >;
 
 		template <typename Resource>
 		struct ItemHash {
-			size_t  operator () (const Resource *value) const  { return size_t(value->GetHash()); }
+			size_t  operator () (const ResourceBase<Resource> *value) const  { return size_t(value->Data().GetHash()); }
 		};
 		
 		template <typename Resource>
 		struct ItemEqual {
-			bool  operator () (const Resource *lhs, const Resource *rhs) const  { return (*lhs == *rhs); }
+			bool  operator () (const ResourceBase<Resource> *lhs, const ResourceBase<Resource> *rhs) const  { return (*lhs == *rhs); }
 		};
 
 		template <typename ID, typename Resource>
-		using CachedResourceMap			= std::unordered_map< Resource const*, ID, ItemHash<Resource>, ItemEqual<Resource>, StdLinearAllocator<Pair<Resource const * const, ID>> >;
+		using CachedResourceMap			= std::unordered_map< ResourceBase<Resource> const*, ID, ItemHash<Resource>, ItemEqual<Resource>,
+																StdLinearAllocator<Pair<ResourceBase<Resource> const * const, ID>> >;
 
 		using SamplerMap_t				= CachedResourceMap< RawSamplerID, VSampler >;
 		using PipelineLayoutMap_t		= CachedResourceMap< RawPipelineLayoutID, VPipelineLayout >;
@@ -85,7 +86,6 @@ namespace FG
 		Storage<FramebufferMap_t>			_framebufferMap;
 		Storage<PipelineResourcesMap_t>		_pplnResourcesMap;
 
-		Storage<ResourceIDQueue_t>			_commitIDs;
 		Storage<ResourceIDQueue_t>			_unassignIDs;
 
 		RaceConditionCheck					_rcCheck;
@@ -111,6 +111,9 @@ namespace FG
 		ND_ RawImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 		ND_ RawBufferID			CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName, bool isAsync);
+		
+		ND_ RawImageID			CreateImage (const VulkanImageDesc &desc, FrameGraphThread::OnExternalImageReleased_t &&onRelease, StringView dbgName);
+		ND_ RawBufferID			CreateBuffer (const VulkanBufferDesc &desc, FrameGraphThread::OnExternalBufferReleased_t &&onRelease, StringView dbgName);
 
 		ND_ RawRenderPassID		CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput,
 												  StringView dbgName, bool isAsync);
@@ -120,7 +123,7 @@ namespace FG
 
 		ND_ LocalBufferID		Remap (RawBufferID id);
 		ND_ LocalImageID		Remap (RawImageID id);
-		ND_ LogicalRenderPassID	CreateLogicalRenderPass (const RenderPassDesc &desc);
+		ND_ LogicalPassID		CreateLogicalRenderPass (const RenderPassDesc &desc);
 		
 		template <typename ID>
 		ND_ auto const*			GetResource (ID id)			const	{ return _mainRM.GetResource( id ); }
@@ -132,7 +135,7 @@ namespace FG
 
 		ND_ VLocalBuffer const*	GetState (LocalBufferID id)			{ return _GetState( *_localBuffers, id ); }
 		ND_ VLocalImage  const*	GetState (LocalImageID id)			{ return _GetState( *_localImages,  id ); }
-		ND_ VLogicalRenderPass*	GetState (LogicalRenderPassID id)	{ return _GetState( *_logicalRenderPasses, id ); }
+		ND_ VLogicalRenderPass*	GetState (LogicalPassID id)			{ return _GetState( *_logicalRenderPasses, id ); }
 
 		ND_ VLocalBuffer const*	GetState (RawBufferID id)			{ return _GetState( *_localBuffers, Remap( id )); }
 		ND_ VLocalImage  const*	GetState (RawImageID id)			{ return _GetState( *_localImages,  Remap( id )); }
@@ -148,8 +151,12 @@ namespace FG
 
 	private:
 		bool  _CreateMemory (OUT RawMemoryID &id, OUT VMemoryObj* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName);
-		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT VPipelineLayout const* &layoutPtr, PipelineDescription::PipelineLayout &&desc, bool isAsync);
-		bool  _CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT VDescriptorSetLayout const* &layoutPtr, const PipelineDescription::UniformMapPtr &uniforms, bool isAsync);
+
+		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
+									 PipelineDescription::PipelineLayout &&desc, bool isAsync);
+
+		bool  _CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout> const* &layoutPtr,
+										  const PipelineDescription::UniformMapPtr &uniforms, bool isAsync);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
 		ND_ DataT*  _GetState (PoolTmpl<DataT,CS,MC> &pool, ID id);
@@ -163,7 +170,6 @@ namespace FG
 		template <typename ID>	ND_ auto&  _GetIndexCache ();
 		template <typename ID>	ND_ bool   _Assign (OUT ID &id);
 		template <typename ID>		void   _Unassign (ID id);
-		template <typename ID>		void   _Commit (ID id, bool isAsync);
 		template <typename ID>	ND_ auto&  _GetResourcePool (const ID &id)		{ return _mainRM._GetResourcePool( id ); }
 	};
 
@@ -179,10 +185,10 @@ namespace FG
 		ASSERT( id );
 		SCOPELOCK( _rcCheck );
 
-		auto*	data = &pool[ id.Index() ];
-		ASSERT( data->IsCreated() );
+		auto&	data = pool[ id.Index() ];
+		ASSERT( data.IsCreated() );
 
-		return data;
+		return &data.Data();
 	}
 	
 /*
@@ -264,22 +270,6 @@ namespace FG
 			_mainRM._GetResourcePool( id ).Unassign( cache.capacity()/2, INOUT cache );
 			cache.push_back( id.Index() );
 		}
-	}
-	
-/*
-=================================================
-	_Commit
-=================================================
-*/
-	template <typename ID>
-	inline void  VResourceManagerThread::_Commit (ID id, bool isAsync)
-	{
-		ASSERT( id );
-
-		if ( isAsync )
-			_commitIDs->push_back( id );
-		else
-			CHECK( _mainRM._GetResourcePool( id )[ id.Index() ].Commit() );
 	}
 	
 /*

@@ -32,7 +32,6 @@ namespace FG
 	bool VComputePipeline::Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( desc._shader.data.size() == 1 );
 		
 		auto*	vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &desc._shader.data.begin()->second );
@@ -44,7 +43,6 @@ namespace FG
 		_localSizeSpec			= desc._localSizeSpec;
 		_debugName				= dbgName;
 		
-		_OnCreate();
 		return true;
 	}
 	
@@ -71,8 +69,6 @@ namespace FG
 		_layoutId				= Default;
 		_defaultLocalGroupSize	= Default;
         _localSizeSpec			= uint3{ ComputePipelineDesc::UNDEFINED_SPECIALIZATION };
-		
-		_OnDestroy();
 	}
 
 

@@ -241,6 +241,7 @@ namespace FG
 		_rowPitch{ size_t(rowPitch) },	_slicePitch{ size_t(slicePitch) },
 		_format{ format }
 	{
+		FG_UNUSED( aspect );
 		ENABLE_ENUM_CHECKS();
 		switch ( _format )
 		{

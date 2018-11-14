@@ -18,6 +18,7 @@ namespace FG
 		using MemoryBarriers_t			= Array< VkMemoryBarrier >;		// TODO: custom allocator
 		using ImageMemoryBarriers_t		= Array< VkImageMemoryBarrier >;
 		using BufferMemoryBarriers_t	= Array< VkBufferMemoryBarrier >;
+		//using SharedSemaphoreMap_t		= HashMap< VkSemaphore, VkPipelineStageFlags >;
 
 
 	// variables
@@ -25,6 +26,7 @@ namespace FG
 		ImageMemoryBarriers_t		_imageBarriers;
 		BufferMemoryBarriers_t		_bufferBarriers;
 		MemoryBarriers_t			_memoryBarriers;
+		//SharedSemaphoreMap_t		_semaphores;
 
 		VkPipelineStageFlags		_srcStageMask		= 0;
 		VkPipelineStageFlags		_dstStageMask		= 0;
@@ -50,17 +52,18 @@ namespace FG
 										  uint(_bufferBarriers.size()), _bufferBarriers.data(),
 										  uint(_imageBarriers.size()), _imageBarriers.data() );
 			}
-			Clear();
+			ClearBarriers();
 		}
 
 
-		void Clear ()
+		void ClearBarriers ()
 		{
 			_imageBarriers.clear();
 			_bufferBarriers.clear();
 			_memoryBarriers.clear();
 			_srcStageMask = _dstStageMask = 0;
 			_dependencyFlags = 0;
+			// TODO: clear _semaphores ?
 		}
 
 
@@ -68,7 +71,8 @@ namespace FG
 		{
 			return	_imageBarriers.empty()	and
 					_bufferBarriers.empty()	and
-					_memoryBarriers.empty();
+					_memoryBarriers.empty()	/*and
+					_semaphores.empty()*/;
 		}
 
 
@@ -109,6 +113,19 @@ namespace FG
 
 			_memoryBarriers.push_back( barrier );
 		}
+
+		/*
+		void WaitSharedSemaphore (VkSemaphore sem, VkPipelineStageFlags dstStageMask)
+		{
+			auto	inserted = _semaphores.insert({ sem, dstStageMask });
+
+			if ( inserted.second )
+				inserted.first->second |= dstStageMask;
+		}
+
+		ND_ SharedSemaphoreMap_t const&  GetWaitSemaphores () const
+		{
+		}*/
 	};
 
 }	// FG

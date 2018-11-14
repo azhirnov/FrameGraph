@@ -18,7 +18,7 @@ namespace FG
 	{
 	// types
 	private:
-		using TaskPtr	= class IFrameGraphTask const*;
+		using TaskPtr	= Ptr<const IFrameGraphTask>;
 
 		template <typename BarrierType>
 		struct Barrier
@@ -49,7 +49,7 @@ namespace FG
 
 		struct TaskInfo
 		{
-			TaskPtr					task	= null;
+			TaskPtr					task;
 			Array<ResourceUsage_t>	resources;
 
 			TaskInfo () {}
@@ -142,6 +142,8 @@ namespace FG
 	private:
 		ND_ String  _GetTaskName (ExeOrderIndex idx) const;
 		ND_ String  _GetTaskName (TaskPtr task) const;
+		ND_ String  _GetTaskName (Task task) const			{ return _GetTaskName( TaskPtr(task) ); }
+
 		ND_ TaskPtr  _GetTask (ExeOrderIndex idx) const;
 	};
 

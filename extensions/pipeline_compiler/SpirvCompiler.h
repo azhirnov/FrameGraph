@@ -5,7 +5,7 @@
 #include "EShaderCompilationFlags.h"
 #include "framegraph/Public/ResourceEnums.h"
 #include "framegraph/Public/VertexEnums.h"
-#include "glslang/Include/ResourceLimits.h"
+#include "glslang/glslang/Include/ResourceLimits.h"
 
 class TIntermNode;
 
@@ -89,7 +89,7 @@ namespace FG
 		bool SetCompilationFlags (EShaderCompilationFlags flags);
 
 		bool SetDefaultResourceLimits ();
-		bool SetCurrentResourceLimits (VkPhysicalDevice_t physicalDevice);
+		bool SetCurrentResourceLimits (PhysicalDeviceVk_t physicalDevice);
 
 		bool Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
 					  StringView entry, StringView source,

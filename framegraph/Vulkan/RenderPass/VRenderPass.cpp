@@ -10,17 +10,6 @@ namespace FG
 
 /*
 =================================================
-	constructor
-=================================================
-*/
-	VRenderPass::VRenderPass () :
-		_renderPass{ VK_NULL_HANDLE },
-		_createInfo{}
-	{
-	}
-
-/*
-=================================================
 	destructor
 =================================================
 */
@@ -52,13 +41,17 @@ namespace FG
 
 /*
 =================================================
-	Initialize
+	constructor
 =================================================
 */
-	bool VRenderPass::Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput)
+	VRenderPass::VRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput)
+	{
+		_Initialize( logicalPasses, fragOutput );
+	}
+		
+	bool VRenderPass::_Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _renderPass == VK_NULL_HANDLE );
 		CHECK_ERR( logicalPasses.size() == 1 );		// not supported yet
 		CHECK_ERR( logicalPasses.front()->GetColorTargets().size() == fragOutput.size() );
 
@@ -146,8 +139,8 @@ namespace FG
 
 
 		// setup create info
+		_createInfo					= {};
 		_createInfo.sType			= VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		_createInfo.pNext			= null;
 		_createInfo.flags			= 0;
 		_createInfo.attachmentCount	= uint(_attachments.size());
 		_createInfo.pAttachments	= _attachments.data();
@@ -262,14 +255,11 @@ namespace FG
 	bool VRenderPass::Create (const VDevice &dev, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _renderPass == VK_NULL_HANDLE );
 
 		VK_CHECK( dev.vkCreateRenderPass( dev.GetVkDevice(), &_createInfo, null, OUT &_renderPass ) );
 		
 		_debugName = dbgName;
-
-		_OnCreate();
 		return true;
 	}
 
@@ -303,8 +293,6 @@ namespace FG
 		_preserves.clear();
 
 		_debugName.clear();
-
-		_OnDestroy();
 	}
 
 /*
@@ -345,11 +333,15 @@ namespace FG
 	{
         using AttachView = ArrayView<VkAttachmentReference>;
         using PreserveView = ArrayView<uint>;
+
+		auto	lhs_resolve_attachments = lhs.pResolveAttachments ? AttachView{lhs.pResolveAttachments, lhs.colorAttachmentCount} : AttachView{};
+		auto	rhs_resolve_attachments = rhs.pResolveAttachments ? AttachView{rhs.pResolveAttachments, rhs.colorAttachmentCount} : AttachView{};
+
 		return	lhs.flags															== rhs.flags														and
 				lhs.pipelineBindPoint												== rhs.pipelineBindPoint											and
                 AttachView{lhs.pInputAttachments, lhs.inputAttachmentCount}			== AttachView{rhs.pInputAttachments, rhs.inputAttachmentCount}		and
                 AttachView{lhs.pColorAttachments, lhs.colorAttachmentCount}			== AttachView{rhs.pColorAttachments, rhs.colorAttachmentCount}		and
-                AttachView{lhs.pResolveAttachments, lhs.colorAttachmentCount}		== AttachView{rhs.pResolveAttachments, rhs.colorAttachmentCount}	and
+                lhs_resolve_attachments												== rhs_resolve_attachments	and
 				not lhs.pDepthStencilAttachment										== not rhs.pDepthStencilAttachment									and
 				(not lhs.pDepthStencilAttachment or *lhs.pDepthStencilAttachment	== *rhs.pDepthStencilAttachment)									and
                 PreserveView{lhs.pPreserveAttachments, lhs.preserveAttachmentCount}	== PreserveView{rhs.pPreserveAttachments, rhs.preserveAttachmentCount};

@@ -11,15 +11,15 @@ namespace FG
 	// Vulkan Pipeline Layout
 	//
 
-	class VPipelineLayout final : public ResourceBase
+	class VPipelineLayout final
 	{
 	// types
 	private:
 		struct DescriptorSet
 		{
-			DescriptorSetLayoutID	layoutId;
-			VkDescriptorSetLayout	layout		= VK_NULL_HANDLE;	// TODO: remove?
-			uint					index		= 0;
+			RawDescriptorSetLayoutID	layoutId;
+			VkDescriptorSetLayout		layout		= VK_NULL_HANDLE;	// TODO: remove?
+			uint						index		= 0;
 
 			DescriptorSet () {}
 			DescriptorSet (RawDescriptorSetLayoutID id, VkDescriptorSetLayout layout, uint index) : layoutId{id}, layout{layout}, index{index} {}
@@ -28,7 +28,7 @@ namespace FG
 		using DescriptorSets_t			= FixedMap< DescriptorSetID, DescriptorSet, FG_MaxDescriptorSets >;
 		using VkDescriptorSetLayouts_t	= FixedArray< VkDescriptorSetLayout, FG_MaxDescriptorSets >;
 		using VkPushConstantRanges_t	= FixedArray< VkPushConstantRange, FG_MaxPushConstants >;
-		using DSLayoutArray_t			= ArrayView<Pair<RawDescriptorSetLayoutID, const VDescriptorSetLayout *>>;
+		using DSLayoutArray_t			= ArrayView<Pair<RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>>;
 
 
 	// variables
@@ -38,14 +38,17 @@ namespace FG
 		DescriptorSets_t		_descriptorSets;
 		
 		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 		
 	// methods
 	public:
 		VPipelineLayout () {}
+		VPipelineLayout (VPipelineLayout &&) = default;
+		VPipelineLayout (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets);
 		~VPipelineLayout ();
 
-		void Initialize (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets);
 		bool Create (const VDevice &dev);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		

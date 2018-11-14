@@ -67,17 +67,17 @@ namespace FG
 */
 	VPipelineResources::~VPipelineResources ()
 	{
+		CHECK( _descriptorSet == VK_NULL_HANDLE );
 	}
 	
 /*
 =================================================
-	Initialize
+	constructor
 =================================================
 */
-	void VPipelineResources::Initialize (const PipelineResources &desc)
+	VPipelineResources::VPipelineResources (const PipelineResources &desc)
 	{
 		SCOPELOCK( _rcCheck );
-		ASSERT( GetState() == EState::Initial );
 
 		_layoutId	= DescriptorSetLayoutID{ desc.GetLayout() };
 		_resources	= desc.GetData();
@@ -97,7 +97,6 @@ namespace FG
 	bool VPipelineResources::Create (VResourceManagerThread &resMngr, VPipelineCache &pplnCache)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _descriptorSet == VK_NULL_HANDLE );
 		
 		VDevice const&					dev			= resMngr.GetDevice();
@@ -116,7 +115,6 @@ namespace FG
 									update.descriptors.data(),
 									0, null );
 
-		_OnCreate();
 		return true;
 	}
 	
@@ -135,7 +133,8 @@ namespace FG
 		}
 
 		if ( _descriptorSet ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT, uint64_t(_descriptorSet) );
+			// TODO
+		//	readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT, uint64_t(_descriptorSet) );
 		}
 
 		_descriptorSet		= VK_NULL_HANDLE;
@@ -143,8 +142,6 @@ namespace FG
 		//_descriptorPoolId	= Default;
 		_hash				= Default;
 		_resources.clear();
-
-		_OnDestroy();
 	}
 	
 /*
@@ -154,7 +151,6 @@ namespace FG
 */
 	bool  VPipelineResources::IsAllResourcesAlive (const VResourceManagerThread &resMngr) const
 	{
-		ASSERT( IsCreated() );
 		SHAREDLOCK( _rcCheck );
 
 		for (auto& un : _resources)

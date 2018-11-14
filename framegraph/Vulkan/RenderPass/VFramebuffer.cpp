@@ -66,21 +66,16 @@ namespace FG
 
 /*
 =================================================
-	Initialize
+	constructor
 =================================================
 */
-	bool VFramebuffer::Initialize (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers)
+	VFramebuffer::VFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( not _framebuffer );
-		CHECK_ERR( not attachments.empty() );
-		CHECK_ERR( _attachments.empty() );
+		ASSERT( not attachments.empty() );
 
-		for (auto& item : attachments) {
-			_attachments.push_back({ ImageID(item.first), item.second });
-		}
-
-		_renderPassId	= RenderPassID{ rp };
+		_attachments	= attachments;
+		_renderPassId	= rp;
 		_dimension		= dim;
 		_layers			= ImageLayer(layers);
 
@@ -89,8 +84,6 @@ namespace FG
 		_hash << HashOf( _renderPassId );
 		_hash << HashOf( _dimension );
 		_hash << HashOf( _layers );
-
-		return true;
 	}
 
 /*
@@ -109,7 +102,7 @@ namespace FG
 
 		for (auto& rt : _attachments)
 		{
-			VkImageView	view = resMngr.GetState( rt.first.Get() )->GetView( dev, INOUT rt.second );
+			VkImageView	view = resMngr.GetState( rt.first )->GetView( dev, INOUT rt.second );
 			CHECK_ERR( view );
 
 			image_views.push_back( view );
@@ -119,7 +112,7 @@ namespace FG
 		VkFramebufferCreateInfo		fb_info	= {};
 		
 		fb_info.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fb_info.renderPass		= resMngr.GetResource( _renderPassId.Get() )->Handle();
+		fb_info.renderPass		= resMngr.GetResource( _renderPassId )->Handle();
 		fb_info.attachmentCount	= uint(image_views.size());
 		fb_info.pAttachments	= image_views.data();
 		fb_info.width			= _dimension.x;
@@ -129,8 +122,6 @@ namespace FG
 		VK_CHECK( dev.vkCreateFramebuffer( dev.GetVkDevice(), &fb_info, null, OUT &_framebuffer ));
 		
 		_debugName = dbgName;
-
-		_OnCreate();
 		return true;
 	}
 	
@@ -148,11 +139,11 @@ namespace FG
 		}
 
 		if ( _renderPassId ) {
-			unassignIDs.emplace_back( _renderPassId.Release() );
+			unassignIDs.emplace_back( _renderPassId );
 		}
 
 		for (auto& att : _attachments) {
-			unassignIDs.emplace_back( att.first.Release() );
+			unassignIDs.emplace_back( att.first );
 		}
 
 		_framebuffer	= VK_NULL_HANDLE;
@@ -160,8 +151,6 @@ namespace FG
 		_renderPassId	= Default;
 		_attachments.clear();
 		_debugName.clear();
-
-		_OnDestroy();
 	}
 
 

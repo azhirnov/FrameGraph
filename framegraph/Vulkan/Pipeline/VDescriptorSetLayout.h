@@ -13,7 +13,7 @@ namespace FG
 	// Vulkan Descriptor Set Layout
 	//
 
-	class VDescriptorSetLayout final : public ResourceBase
+	class VDescriptorSetLayout final
 	{
 	// types
 	public:
@@ -32,14 +32,17 @@ namespace FG
 		PoolSizeArray_t			_poolSize;
 		uint					_maxIndex	= 0;
 		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
 	public:
 		VDescriptorSetLayout () {}
+		VDescriptorSetLayout (VDescriptorSetLayout &&) = default;
+		VDescriptorSetLayout (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding);
 		~VDescriptorSetLayout ();
 
-		void Initialize (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding);
 		bool Create (const VDevice &dev, const DescriptorBinding_t &binding);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 

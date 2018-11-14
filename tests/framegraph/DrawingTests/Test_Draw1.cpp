@@ -110,9 +110,9 @@ void main() {
         CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
         CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
-		RenderPass		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
-											.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-											.AddViewport( view_size ) );
+		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
+												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+												.AddViewport( view_size ) );
 		
 		frame_graph->AddDrawTask( render_pass,
 								  DrawTask()

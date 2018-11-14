@@ -46,14 +46,15 @@ namespace FG
 */
 	VPipelineLayout::~VPipelineLayout ()
 	{
+		CHECK( _layout == VK_NULL_HANDLE );
 	}
 
 /*
 =================================================
-	Initialize
+	constructor
 =================================================
 */
-	void VPipelineLayout::Initialize (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets)
+	VPipelineLayout::VPipelineLayout (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( ppln.descriptorSets.size() == sets.size() );
@@ -77,12 +78,12 @@ namespace FG
 		{
 			auto&	ds = ppln.descriptorSets[i];
 
-			setsInfo.insert({ ds.id, DescriptorSet{ sets[i].first, sets[i].second->Handle(), ds.bindingIndex }});
+			setsInfo.insert({ ds.id, DescriptorSet{ sets[i].first, sets[i].second->Data().Handle(), ds.bindingIndex }});
 			
 			// calculate hash
 			hash << HashOf( ds.id );
 			hash << HashOf( ds.bindingIndex );
-			hash << sets[i].second->GetHash();
+			hash << sets[i].second->Data().GetHash();
 		}
 
 		setsInfo.sort();
@@ -110,7 +111,6 @@ namespace FG
 	bool VPipelineLayout::Create (const VDevice &dev)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _layout == VK_NULL_HANDLE );
 		
 		VkDescriptorSetLayouts_t	vk_sets;		vk_sets.resize( _descriptorSets.size() );
@@ -136,8 +136,6 @@ namespace FG
 		layout_info.pPushConstantRanges		= vk_ranges.data();
 
 		VK_CHECK( dev.vkCreatePipelineLayout( dev.GetVkDevice(), &layout_info, null, OUT &_layout ) );
-		
-		_OnCreate();
 		return true;
 	}
 	
@@ -155,14 +153,12 @@ namespace FG
 		}
 
 		for (auto& ds : _descriptorSets) {
-			unassignIDs.push_back( ds.second.layoutId.Release() );
+			unassignIDs.push_back( ds.second.layoutId );
 		}
 
 		_descriptorSets.clear();
 		_layout = VK_NULL_HANDLE;
 		_hash	= Default;
-		
-		_OnDestroy();
 	}
 
 /*
@@ -212,7 +208,7 @@ namespace FG
 
 		if ( iter != _descriptorSets.end() )
 		{
-			layout	= iter->second.layoutId.Get();
+			layout	= iter->second.layoutId;
 			binding	= iter->second.index;
 			return true;
 		}

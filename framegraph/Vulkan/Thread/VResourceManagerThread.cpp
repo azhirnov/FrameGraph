@@ -54,7 +54,6 @@ namespace FG
 		_framebufferMap.Create( _allocator );
 		_pplnResourcesMap.Create( _allocator );
 
-		_commitIDs.Create( _allocator )->reserve( 256 );
 		_unassignIDs.Create( _allocator )->reserve( 256 );
 
 		// init default ID
@@ -148,11 +147,6 @@ namespace FG
 
 		_pipelineCache.MergePipelines( _mainRM._GetReadyToDeleteQueue() );
 
-		// commit IDs
-        for (auto& vid : *_commitIDs) {
-            std::visit( [this] (auto id) { _Commit( id, false ); }, vid );
-		}
-
 		// unassign IDs
         for (auto& vid : *_unassignIDs) {
             std::visit( [this] (auto id) { DestroyResource( id, false ); }, vid );
@@ -169,7 +163,6 @@ namespace FG
 		_renderPassMap.Destroy();
 		_framebufferMap.Destroy();
 		_pplnResourcesMap.Destroy();
-		_commitIDs.Destroy();
 		_unassignIDs.Destroy();
 		
 		_localImagesCount	= 0;
@@ -199,7 +192,6 @@ namespace FG
 		ASSERT( not _renderPassMap.IsCreated() );
 		ASSERT( not _framebufferMap.IsCreated() );
 		ASSERT( not _pplnResourcesMap.IsCreated() );
-		ASSERT( not _commitIDs.IsCreated() );
 		ASSERT( not _unassignIDs.IsCreated() );
 	}
 	
@@ -253,15 +245,30 @@ namespace FG
 
 		_mainRM.OnEndFrame();
 	}
+
+/*
+=================================================
+	Replace
+----
+	destroy previous resource instance and construct new instance
+=================================================
+*/
+	template <typename ResType, typename ...Args>
+	inline void Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
+	{
+		target.Data().~ResType();
+		new (&target.Data()) ResType{ std::forward<Args &&>(args)... };
+	}
 	
 /*
 =================================================
 	_CreatePipelineLayout
 =================================================
 */
-	bool  VResourceManagerThread::_CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT VPipelineLayout const* &layoutPtr, PipelineDescription::PipelineLayout &&desc, bool isAsync)
+	bool  VResourceManagerThread::_CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
+														 PipelineDescription::PipelineLayout &&desc, bool isAsync)
 	{
-		using DSLayouts_t = FixedArray<Pair< RawDescriptorSetLayoutID, const VDescriptorSetLayout *>, FG_MaxDescriptorSets >;
+		using DSLayouts_t = FixedArray<Pair< RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets >;
 		
 		CHECK_ERR( _Assign( OUT id ));
 		
@@ -269,16 +276,16 @@ namespace FG
 		DSLayouts_t  ds_layouts;
 		for (auto& ds : desc.descriptorSets)
 		{
-			RawDescriptorSetLayoutID	ds_id;
-			VDescriptorSetLayout const*	ds_layout = null;
+			RawDescriptorSetLayoutID					ds_id;
+			ResourceBase<VDescriptorSetLayout> const*	ds_layout = null;
 			CHECK_ERR( _CreateDescriptorSetLayout( OUT ds_id, OUT ds_layout, ds.uniforms, isAsync ));
 
 			ds_layouts.push_back({ ds_id, ds_layout });
 		}
 
-		auto&				pool	= _GetResourcePool( id );
-		VPipelineLayout&	layout	= pool[ id.Index() ];
-		layout.Initialize( desc, ds_layouts );
+		auto&	pool	= _GetResourcePool( id );
+		auto&	layout	= pool[ id.Index() ];
+		Replace( layout, desc, ds_layouts );
 
 
 		if ( not isAsync )
@@ -338,7 +345,6 @@ namespace FG
 		}
 
 		layoutPtr = &layout;
-		_Commit( id, isAsync );
 		return true;
 	}
 	
@@ -347,17 +353,17 @@ namespace FG
 	_CreateDescriptorSetLayout
 =================================================
 */
-	bool  VResourceManagerThread::_CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT VDescriptorSetLayout const* &layoutPtr,
+	bool  VResourceManagerThread::_CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout> const* &layoutPtr,
 															  const PipelineDescription::UniformMapPtr &uniforms, bool isAsync)
 	{
 		CHECK_ERR( _Assign( OUT id ));
 		
 		// init descriptor set layout create info
 		VDescriptorSetLayout::DescriptorBinding_t	binding;		// TODO: use custom allocator
-		auto&										pool		= _GetResourcePool( id );
-		VDescriptorSetLayout&						ds_layout	= pool[ id.Index() ];
 
-		ds_layout.Initialize( uniforms, OUT binding );
+		auto&	pool		= _GetResourcePool( id );
+		auto&	ds_layout	= pool[ id.Index() ];
+		Replace( ds_layout, uniforms, OUT binding );
 
 		if ( not isAsync )
 		{
@@ -411,7 +417,6 @@ namespace FG
 		}
 
 		layoutPtr = &ds_layout;
-		_Commit( id, isAsync );
 		return true;
 	}
 
@@ -425,14 +430,15 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _pipelineCache.CompileShaders( INOUT desc, GetDevice() ));
 
-		RawPipelineLayoutID		layout_id;
-		VPipelineLayout const*	layout	= null;
+		RawPipelineLayoutID						layout_id;
+		ResourceBase<VPipelineLayout> const*	layout	= null;
 		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout), isAsync ));
 		
 		RawMPipelineID		id;
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
 
 		if ( not data.Create( desc, layout_id, _pipelineCache.CreateFramentOutput(desc._fragmentOutput), dbgName ))
 		{
@@ -441,7 +447,6 @@ namespace FG
 		}
 
 		layout->AddRef();
-		_Commit( id, isAsync );
 		return id;
 	}
 	
@@ -455,14 +460,15 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _pipelineCache.CompileShaders( INOUT desc, GetDevice() ));
 		
-		RawPipelineLayoutID		layout_id;
-		VPipelineLayout const*	layout	= null;
+		RawPipelineLayoutID						layout_id;
+		ResourceBase<VPipelineLayout> const*	layout	= null;
 		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout), isAsync ));
 
 		RawGPipelineID		id;
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
 		
 		if ( not data.Create( desc, layout_id, _pipelineCache.CreateFramentOutput(desc._fragmentOutput), dbgName ))
 		{
@@ -471,7 +477,6 @@ namespace FG
 		}
 		
 		layout->AddRef();
-		_Commit( id, isAsync );
 		return id;
 	}
 	
@@ -485,14 +490,15 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _pipelineCache.CompileShader( INOUT desc, GetDevice() ));
 		
-		RawPipelineLayoutID		layout_id;
-		VPipelineLayout const*	layout	= null;
+		RawPipelineLayoutID						layout_id;
+		ResourceBase<VPipelineLayout> const*	layout	= null;
 		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout), isAsync ));
 
 		RawCPipelineID		id;
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
 		
 		if ( not data.Create( desc, layout_id, dbgName ) )
 		{
@@ -501,7 +507,6 @@ namespace FG
 		}
 
 		layout->AddRef();
-		_Commit( id, isAsync );
 		return id;
 	}
 	
@@ -515,14 +520,15 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _pipelineCache.CompileShaders( INOUT desc, GetDevice() ));
 		
-		RawPipelineLayoutID		layout_id;
-		VPipelineLayout const*	layout	= null;
+		RawPipelineLayoutID						layout_id;
+		ResourceBase<VPipelineLayout> const*	layout	= null;
 		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout), isAsync ));
 
 		RawRTPipelineID		id;
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
 		
 		if ( not data.Create( desc, layout_id, dbgName ) )
 		{
@@ -531,7 +537,6 @@ namespace FG
 		}
 		
 		layout->AddRef();
-		_Commit( id, isAsync );
 		return id;
 	}
 	
@@ -545,6 +550,7 @@ namespace FG
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
 
 		if ( not data.Create( desc, alloc, dbgName ) )
 		{
@@ -552,7 +558,7 @@ namespace FG
 			RETURN_ERR( "failed when creating memory object" );
 		}
 		
-		memPtr = &data;
+		memPtr = &data.Data();
 		return true;
 	}
 
@@ -574,6 +580,10 @@ namespace FG
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
+		Replace( data );
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
 
 		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
@@ -581,9 +591,8 @@ namespace FG
 			_Unassign( id );
 			RETURN_ERR( "failed when creating image" );
 		}
-		
-		_Commit( mem_id, isAsync );
-		_Commit( id, isAsync );
+
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
 		return id;
 	}
 	
@@ -605,6 +614,7 @@ namespace FG
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
 		
 		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
@@ -613,11 +623,57 @@ namespace FG
 			RETURN_ERR( "failed when creating buffer" );
 		}
 		
-		_Commit( mem_id, isAsync );
-		_Commit( id, isAsync );
 		return id;
 	}
 	
+/*
+=================================================
+	CreateImage
+=================================================
+*/
+	RawImageID  VResourceManagerThread::CreateImage (const VulkanImageDesc &desc, FrameGraphThread::OnExternalImageReleased_t &&onRelease, StringView dbgName)
+	{
+		SCOPELOCK( _rcCheck );
+		
+		RawImageID		id;
+		CHECK_ERR( _Assign( OUT id ));
+		
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+		
+		if ( not data.Create( GetDevice(), desc, dbgName, std::move(onRelease) ))
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating external image" );
+		}
+		
+		return id;
+	}
+	
+/*
+=================================================
+	CreateBuffer
+=================================================
+*/
+	RawBufferID  VResourceManagerThread::CreateBuffer (const VulkanBufferDesc &desc, FrameGraphThread::OnExternalBufferReleased_t &&onRelease, StringView dbgName)
+	{
+		SCOPELOCK( _rcCheck );
+		
+		RawBufferID		id;
+		CHECK_ERR( _Assign( OUT id ));
+		
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+		
+		if ( not data.Create( GetDevice(), desc, dbgName, std::move(onRelease) ))
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating external buffer" );
+		}
+		
+		return id;
+	}
+
 /*
 =================================================
 	_CreateCachedResource
@@ -633,7 +689,7 @@ namespace FG
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	pool	= _GetResourcePool( id );
-		DataT&	data	= pool[ id.Index() ];
+		auto&	data	= pool[ id.Index() ];
 		fnInit( INOUT data );
 		
 		if ( not isAsync )
@@ -682,7 +738,6 @@ namespace FG
 		}
 
 		data.AddRef();
-		_Commit( id, isAsync );
 		return id;
 	}
 
@@ -694,7 +749,7 @@ namespace FG
 	RawSamplerID  VResourceManagerThread::CreateSampler (const SamplerDesc &desc, StringView dbgName, bool isAsync)
 	{
 		return _CreateCachedResource( _samplerMap, isAsync, "failed when creating sampler",
-									  [&] (auto& data) { return data.Initialize( GetDevice(), desc ); },
+									  [&] (auto& data) { return Replace( data, GetDevice(), desc ); },
 									  [&] (auto& data) { return data.Create( GetDevice(), dbgName ); });
 	}
 	
@@ -702,7 +757,7 @@ namespace FG
 															   StringView dbgName, bool isAsync)
 	{
 		return _CreateCachedResource( _renderPassMap, isAsync, "failed when creating render pass",
-									  [&] (auto& data) { return data.Initialize( logicalPasses, fragOutput ); },
+									  [&] (auto& data) { return Replace( data, logicalPasses, fragOutput ); },
 									  [&] (auto& data) { return data.Create( GetDevice(), dbgName ); });
 	}
 	
@@ -710,7 +765,7 @@ namespace FG
 																 uint layers, StringView dbgName, bool isAsync)
 	{
 		return _CreateCachedResource( _framebufferMap, isAsync, "failed when creating framebuffer",
-									  [&] (auto& data) { return data.Initialize( attachments, rp, dim, layers ); },
+									  [&] (auto& data) { return Replace( data, attachments, rp, dim, layers ); },
 									  [&] (auto& data) { return data.Create( *this, dbgName ); });
 	}
 	
@@ -723,15 +778,20 @@ namespace FG
 	{
 		RawPipelineResourcesID	id = PipelineResourcesInitializer::GetCached( desc );
 		
-		if ( id and IsResourceAlive( id ) )
+		if ( id )
 		{
-			GetResource( id )->AddRef();
-			return id;
+			auto&	res = _GetResourcePool( id )[ id.Index() ];
+
+			if ( res.GetInstanceID() == id.InstanceID() )
+			{
+				res.AddRef();
+				return id;
+			}
 		}
 
 		RawPipelineResourcesID	result =
 			_CreateCachedResource( _pplnResourcesMap, isAsync, "failed when creating descriptor set",
-								   [&] (auto& data) { return data.Initialize( desc ); },
+								   [&] (auto& data) { return Replace( data, desc ); },
 								   [&] (auto& data) { return data.Create( *this, _pipelineCache ); });
 
 		if ( result )
@@ -799,7 +859,7 @@ namespace FG
 	CreateLogicalRenderPass
 =================================================
 */
-	LogicalRenderPassID  VResourceManagerThread::CreateLogicalRenderPass (const RenderPassDesc &desc)
+	LogicalPassID  VResourceManagerThread::CreateLogicalRenderPass (const RenderPassDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -809,7 +869,7 @@ namespace FG
 		auto&		data = (*_logicalRenderPasses)[ index ];
 		CHECK_ERR( data.Create( *this, desc ));
 
-		return LogicalRenderPassID( index, 0 );
+		return LogicalPassID( index, 0 );
 	}
 	
 /*
@@ -824,7 +884,7 @@ namespace FG
 			auto&	image = (*_localImages)[ Index_t(i) ];
 			if ( not image.IsDestroyed() )
 			{
-				image.ResetState( index, barrierMngr, debugger );
+				image.Data().ResetState( index, barrierMngr, debugger );
 			}
 		}
 		
@@ -833,10 +893,10 @@ namespace FG
 			auto&	buffer = (*_localBuffers)[ Index_t(i) ];
 			if ( not buffer.IsDestroyed() )
 			{
-				buffer.ResetState( index, barrierMngr, debugger );
+				buffer.Data().ResetState( index, barrierMngr, debugger );
 			}
 		}
 	}
-
+	
 
 }	// FG

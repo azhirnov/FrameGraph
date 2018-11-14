@@ -11,7 +11,7 @@ namespace FG
 	// Ray Tracing Pipeline
 	//
 
-	class VRayTracingPipeline final : public ResourceBase
+	class VRayTracingPipeline final
 	{
 		friend class VPipelineCache;
 		
@@ -52,11 +52,14 @@ namespace FG
 		ShaderModules_t			_shaders;
 		
 		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
 	public:
 		VRayTracingPipeline () {}
+		VRayTracingPipeline (VRayTracingPipeline &&) = default;
 		~VRayTracingPipeline ();
 		
 		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);

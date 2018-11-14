@@ -75,7 +75,7 @@ namespace FG
 */
 	inline VFgTask<SubmitRenderPass>::VFgTask (VFrameGraphThread *fg, const SubmitRenderPass &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_renderPass{ fg->GetResourceManager()->GetState(LogicalRenderPassID{ uint(size_t(task.renderPass)), 0 }) }
+		_renderPass{ fg->GetResourceManager()->GetState( task.renderPass )}
 	{}
 //-----------------------------------------------------------------------------
 	
@@ -89,7 +89,9 @@ namespace FG
 	{
 		for (const auto& res : inResourceSet)
 		{
-			ASSERT( res );
+			if ( not res )
+				return;
+
 			resourceSet.resources.push_back( fg->GetResourceManager()->CreateDescriptorSet( *res, true ));
 			resourceSet.dynamicOffsets.append( res->GetDynamicOffsets() );
 		}

@@ -13,7 +13,7 @@ namespace FG
 	//
 	// Vulkan Shader Module
 	//
-	class VShaderModule final : public PipelineDescription::IShaderData< VkShaderModule_t >
+	class VShaderModule final : public PipelineDescription::IShaderData< ShaderModuleVk_t >
 	{
 	// variables
 	private:
@@ -39,7 +39,7 @@ namespace FG
 			}
 		}
 		
-		VkShaderModule_t const&		GetData () const override		{ return BitCast<VkShaderModule_t>( _module ); }
+		ShaderModuleVk_t const&		GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
 
 		StringView					GetEntry () const override		{ return _entry; }
 

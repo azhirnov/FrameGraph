@@ -29,13 +29,13 @@ namespace FG
 
 	// variables
 	protected:
-		ProcessFunc_t	_processFunc	= null;
-		Dependencies_t	_inputs;
-		Dependencies_t	_outputs;
-		Name_t			_taskName;
-		RGBA8u			_debugColor;
-		uint			_visitorID		= 0;
-		ExeOrderIndex	_exeOrderIdx	= ExeOrderIndex::Initial;
+		ProcessFunc_t		_processFunc	= null;
+		Dependencies_t		_inputs;
+		Dependencies_t		_outputs;
+		Name_t				_taskName;
+		RGBA8u				_debugColor;
+		uint				_visitorID		= 0;
+		ExeOrderIndex		_exeOrderIdx	= ExeOrderIndex::Initial;
 
 
 	// methods
@@ -64,8 +64,8 @@ namespace FG
 		ND_ uint								VisitorID ()		const	{ return _visitorID; }
 		ND_ ExeOrderIndex						ExecutionOrder ()	const	{ return _exeOrderIdx; }
 
-		ND_ ArrayView<Task>						Inputs ()			const	{ return _inputs; }
-		ND_ ArrayView<Task>						Outputs ()			const	{ return _outputs; }
+		ND_ ArrayView< Task >					Inputs ()			const	{ return _inputs; }
+		ND_ ArrayView< Task >					Outputs ()			const	{ return _outputs; }
 
 		ND_ virtual VFgTask<SubmitRenderPass>*	GetSubmitRenderPassTask ()	{ return null; }
 
@@ -529,7 +529,7 @@ namespace FG
 	private:
 		using Self					= VTaskGraph< VisitorT >;
 		using Allocator_t			= LinearAllocator<>;
-		using SearchableNodes_t		= std::unordered_set< IFrameGraphTask*, std::hash<IFrameGraphTask*>, std::equal_to<IFrameGraphTask*>, StdLinearAllocator<IFrameGraphTask*> >;
+		using SearchableNodes_t		= std::unordered_set< Task, std::hash<Task>, std::equal_to<Task>, StdLinearAllocator<Task> >;
 		using Entries_t				= std::vector< Task, StdLinearAllocator<Task> >;
 
 

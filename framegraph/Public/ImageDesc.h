@@ -26,7 +26,7 @@ namespace FG
 		MipmapLevel		maxLevel;
 		MultiSamples	samples;	// if > 1 then enabled multisampling
 		//bool			isLogical	= false;
-		//bool			isExternal	= false;
+		bool			isExternal	= false;
 
 	// methods
 		ImageDesc () {}

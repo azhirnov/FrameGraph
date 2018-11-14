@@ -27,13 +27,12 @@ namespace FG
 	bool VLocalBuffer::Create (const VBuffer *bufferData)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		CHECK_ERR( _bufferData == null );
-		CHECK_ERR( bufferData and bufferData->IsCreated() );
+		CHECK_ERR( bufferData );
 
-		_bufferData	= bufferData;
+		_bufferData		= bufferData;
+		_isFirstBarrier	= true;
 
-		_OnCreate();
 		return true;
 	}
 	
@@ -56,8 +55,6 @@ namespace FG
 		_pendingAccesses.clear();
 		_accessForWrite.clear();
 		_accessForRead.clear();
-
-		_OnDestroy();
 	}
 
 /*
@@ -308,7 +305,9 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 
-		const auto	AddBarrier	= [this, &barrierMngr, debugger] (const BufferRange &sharedRange, const BufferAccess &src, const BufferAccess &dst)
+		VkPipelineStageFlags	dst_stages = 0;
+
+		const auto	AddBarrier	= [this, &barrierMngr, debugger, &dst_stages] (const BufferRange &sharedRange, const BufferAccess &src, const BufferAccess &dst)
 		{
 			if ( not sharedRange.IsEmpty() )
 			{
@@ -323,6 +322,7 @@ namespace FG
 				barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 				barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 
+				dst_stages |= dst.stages;
 				barrierMngr.AddBufferBarrier( src.stages, dst.stages, 0, barrier );
 
 				if ( debugger )
@@ -380,6 +380,12 @@ namespace FG
 				// store to '_accessForRead'
 				_ReplaceAccessRecords( _accessForRead, r_iter, pending );
 			}
+		}
+
+		if ( dst_stages and _isFirstBarrier )
+		{
+			//barrierMngr.WaitSharedSemaphore( _bufferData->GetSemaphore(), dst_stages );
+			_isFirstBarrier = false;
 		}
 
 		_pendingAccesses.clear();

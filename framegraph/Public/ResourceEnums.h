@@ -21,16 +21,16 @@ namespace FG
 
 
 	enum class EBufferUsage : uint
-	{								//	cpu read  |  cpu write  |  shader read  |  shader write  |
-		TransferSrc		= 1 << 0,	//            |             |      no       |      no        |
-		TransferDst		= 1 << 1,	//            |             |      no       |      no        |  
-		UniformTexel	= 1 << 2,	//            |             |      yes      |      no        |
-		StorageTexel	= 1 << 3,	//            |             |      yes      |      no        |
-		Uniform			= 1 << 4,	//            |             |      fast     |      no        |
-		Storage			= 1 << 5,	//            |             |      yes      |      yes       |
-		Index			= 1 << 6,	//            |             |      no       |      no        |
-		Vertex			= 1 << 7,	//            |             |      no       |      no        |
-		Indirect		= 1 << 8,	//            |             |      no       |      no        |
+	{
+		TransferSrc		= 1 << 0,
+		TransferDst		= 1 << 1,
+		UniformTexel	= 1 << 2,
+		StorageTexel	= 1 << 3,
+		Uniform			= 1 << 4,
+		Storage			= 1 << 5,
+		Index			= 1 << 6,
+		Vertex			= 1 << 7,
+		Indirect		= 1 << 8,
 		_Last,
 		
 		All				= ((_Last-1) << 1) - 1,
@@ -65,7 +65,7 @@ namespace FG
 		ColorAttachment			= 1 << 4,		// color or resolve attachment
 		DepthStencilAttachment	= 1 << 5,		// depth/stencil attachment
 		TransientAttachment		= 1 << 6,		// color, resolve, depth/stencil, input attachment
-		InputAttachment			= 1 << 7,		// input attachment in fb and shader
+		InputAttachment			= 1 << 7,		// input attachment in shader
 		_Last,
 
 		All						= ((_Last-1) << 1) - 1,

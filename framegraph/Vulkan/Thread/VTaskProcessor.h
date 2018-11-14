@@ -50,8 +50,8 @@ namespace FG
 
 		VkCommandBuffer				_cmdBuffer;
 		
-		Task						_currTask			= null;
-		bool						_isCompute			= false;
+		Task						_currTask;
+		bool						_isCompute				= false;
 		bool						_isDebugMarkerSupported	= false;
 
 		PendingBufferBarriers_t		_pendingBufferBarriers;

@@ -41,7 +41,7 @@ namespace FG
 		using CachedPoolTmpl = CachedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, Lock_t, AtomicPtr >;
 
 		template <typename T, size_t MaxSize, template <typename, size_t, size_t> class PoolT>
-		using PoolHelper	= PoolT< T, MaxSize/16, 16 >;
+		using PoolHelper	= PoolT< ResourceBase<T>, MaxSize/16, 16 >;
 
 		using ImagePool_t				= PoolHelper< VImage,				FG_MaxImageResources,	PoolTmpl >;
 		using BufferPool_t				= PoolHelper< VBuffer,				FG_MaxBufferResources,	PoolTmpl >;
@@ -158,12 +158,12 @@ namespace FG
 		ASSERT( id );
 
 		auto&	pool = _GetResourceCPool( id );
-		auto*	data = &pool[ id.Index() ];
+		auto&	data = pool[ id.Index() ];
 
-		ASSERT( data->IsCreated() );
-		ASSERT( data->GetInstanceID() == id.InstanceID() );
+		ASSERT( data.IsCreated() );
+		ASSERT( data.GetInstanceID() == id.InstanceID() );
 
-		return data;
+		return &data.Data();
 	}
 	
 /*
@@ -176,10 +176,10 @@ namespace FG
 	{
 		ASSERT( id );
 		
-		auto*	data = &res[ id.Index() ];
-		ASSERT( data->GetInstanceID() == id.InstanceID() );
+		auto&	data = res[ id.Index() ];
+		ASSERT( data.GetInstanceID() == id.InstanceID() );
 		
-		return data;
+		return &data.Data();
 	}
 	
 /*
@@ -195,7 +195,7 @@ namespace FG
 			auto&	data = res[ id.Index() ];
 			ASSERT( data.GetInstanceID() == id.InstanceID() );
 
-			if ( data.GetState() != ResourceBase::EState::Initial )
+			if ( data.IsCreated() )
 				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 		}
 
@@ -216,8 +216,7 @@ namespace FG
 
 			ASSERT( not data.IsCreated() or data.GetInstanceID() == id.InstanceID() );
 
-			bool	destroy	= (data.IsCreated() and data.ReleaseRef()) or
-							   data.GetState() == ResourceBase::EState::ReadyToDelete;
+			bool	destroy	= (data.IsCreated() and data.ReleaseRef());
 
 			if ( destroy )
 				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );

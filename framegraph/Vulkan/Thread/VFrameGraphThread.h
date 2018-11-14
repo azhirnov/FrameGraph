@@ -23,6 +23,7 @@ namespace FG
 		enum class EState : uint
 		{
 			Initial,
+			Initializing,
 			Idle,
 			BeforeStart,
 			Ready,
@@ -54,7 +55,7 @@ namespace FG
 		{
 			PerFrameArray_t			frames;
 			VkCommandPool			cmdPoolId	= VK_NULL_HANDLE;
-			VDeviceQueueInfo const*	ptr			= null;
+			VDeviceQueueInfoPtr		ptr;
 			EThreadUsage			usage		= Default;
 		};
 		using PerQueueArray_t	= FixedArray< PerQueue, MaxQueues >;
@@ -111,6 +112,8 @@ namespace FG
 		RTPipelineID	CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName) override;
 		ImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, StringView dbgName) override;
 		BufferID		CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, StringView dbgName) override;
+		ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName) override;
+		BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName) override;
 		SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName) override;
 		bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const override;
 		void			DestroyResource (INOUT GPipelineID &id) override;
@@ -133,10 +136,10 @@ namespace FG
 		bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const override;
 
 		// initialization
-		bool		Initialize () override;
+		bool		Initialize (const SwapchainCreateInfo *swapchainCI) override;
 		void		Deinitialize () override;
 		void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
-		bool		CreateSwapchain (const SwapchainInfo_t &) override;
+		bool		RecreateSwapchain (const SwapchainCreateInfo &) override;
 
 		// frame execution
 		bool		SyncOnBegin (const VSubmissionGraph *);
@@ -151,7 +154,7 @@ namespace FG
 		bool		Acquire (const BufferID &id, bool immutable) override;
 		bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable) override;
 		
-		ImageID		GetSwapchainImage (ESwapchainImage type) override;
+		//ImageID		GetSwapchainImage (ESwapchainImage type) override;
 
 		// tasks
 		Task		AddTask (const SubmitRenderPass &) override;
@@ -175,27 +178,34 @@ namespace FG
 		//Task		AddTask (const TaskGroupSync &) override;
 
 		// draw tasks
-		RenderPass	CreateRenderPass (const RenderPassDesc &desc) override;
-		void		AddDrawTask (RenderPass, const DrawTask &) override;
-		void		AddDrawTask (RenderPass, const DrawIndexedTask &) override;
-		//void		AddDrawTask (RenderPass, const ClearAttachments &) override;
-		//void		AddDrawTask (RenderPass, const DrawCommandBuffer &) override;
-		//void		AddDrawTask (RenderPass, const DrawMeshTask &) override;
+		LogicalPassID  CreateRenderPass (const RenderPassDesc &desc) override;
+		void		AddDrawTask (LogicalPassID, const DrawTask &) override;
+		void		AddDrawTask (LogicalPassID, const DrawIndexedTask &) override;
+		//void		AddDrawTask (LogicalPassID, const ClearAttachments &) override;
+		//void		AddDrawTask (LogicalPassID, const DrawCommandBuffer &) override;
+		//void		AddDrawTask (LogicalPassID, const DrawMeshTask &) override;
 		
 		void SignalSemaphore (VkSemaphore sem);
 		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
 		
 		bool AddPipelineCompiler (const IPipelineCompilerPtr &comp);
+		
+		void TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily,
+										  VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
 
+		
+		ND_ bool					IsInSeparateThread ()		const;
 		ND_ bool					IsDestroyed ()				const	{ SCOPELOCK( _rcCheck );  return _GetState() == EState::Destroyed; }
 		ND_ Allocator_t &			GetAllocator ()						{ SCOPELOCK( _rcCheck );  return _mainAllocator; }
 		ND_ VDevice const&			GetDevice ()				const	{ SCOPELOCK( _rcCheck );  return _instance.GetDevice(); }
+		ND_ uint					GetRingBufferSize ()		const	{ SCOPELOCK( _rcCheck );  return _instance.GetRingBufferSize(); }
 
 		ND_ VFrameGraph const*		GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
 		ND_ VResourceManagerThread*	GetResourceManager ()				{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
 		ND_ VMemoryManager*			GetMemoryManager ()					{ SCOPELOCK( _rcCheck );  return _memoryMngr.operator->(); }
 		ND_ VPipelineCache *		GetPipelineCache ()					{ SCOPELOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
 		ND_ VFrameGraphDebugger *	GetDebugger ()						{ SCOPELOCK( _rcCheck );  ASSERT( _debugger );  return _debugger.get(); }
+		ND_ VSwapchain *			GetSwapchain ()						{ SCOPELOCK( _rcCheck );  return _swapchain.get(); }	// temp
 
 
 	private:
@@ -212,14 +222,13 @@ namespace FG
 			void	_SetState (EState newState);
 		ND_ bool	_SetState (EState expected, EState newState);
 
-		ND_ bool	_IsInSeparateThread ()	const;
 		ND_ bool	_IsRecording ()			const	{ return _GetState() == EState::Recording; }
 		ND_ bool	_IsInitialized ()		const;
 		ND_ bool	_IsInitialOrIdleState ()const;
 		
-		ND_ VkCommandBuffer			_CreateCommandBuffer (EThreadUsage usage);
-		ND_ PerQueue *				_GetQueue (EThreadUsage usage);
-		ND_ VDeviceQueueInfo const*	_GetAnyGraphicsQueue () const;
+		ND_ VkCommandBuffer		_CreateCommandBuffer (EThreadUsage usage);
+		ND_ PerQueue *			_GetQueue (EThreadUsage usage);
+		ND_ VDeviceQueueInfoPtr	_GetAnyGraphicsQueue () const;
 
 		bool _SetupQueues ();
 		bool _AddGpuQueue (EThreadUsage usage);
@@ -235,6 +244,8 @@ namespace FG
 		bool _BuildCommandBuffers ();
 		bool _ProcessTasks (VkCommandBuffer cmd);
 		
+		bool _RecreateSwapchain (const VulkanSwapchainCreateInfo &);
+
 		ND_ Task  _AddUpdateBufferTask (const UpdateBuffer &task);
 		ND_ Task  _AddUpdateImageTask (const UpdateImage &task);
 		ND_ Task  _AddReadBufferTask (const ReadBuffer &task);

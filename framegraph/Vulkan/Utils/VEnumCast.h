@@ -754,7 +754,7 @@ namespace FG
 			case EResourceState::_Access_ShaderStorage :
 			case EResourceState::_Access_Uniform :
 			case EResourceState::_Access_ShaderSample : {
-				ASSERT( !!(uint(value) & uint(EResourceState::_ShaderMask)) );
+				ASSERT( EnumAny( value, EResourceState::_ShaderMask ));
 				VkPipelineStageFlags	result = 0;
 				if ( EnumEq( value, EResourceState::_VertexShader ) )			result |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
 				if ( EnumEq( value, EResourceState::_TessControlShader ) )		result |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
@@ -766,7 +766,7 @@ namespace FG
 			}
 
 			case EResourceState::_Access_DepthStencilAttachment : {
-				ASSERT( !!(uint(value) & uint(EResourceState::EarlyFragmentTests | EResourceState::LateFragmentTests)) );
+				ASSERT( EnumAny( value, EResourceState::EarlyFragmentTests | EResourceState::LateFragmentTests ));
 				VkPipelineStageFlags	result = 0;
 				if ( EnumEq( value, EResourceState::EarlyFragmentTests ) )		result |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 				if ( EnumEq( value, EResourceState::LateFragmentTests ) )		result |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
@@ -996,5 +996,27 @@ namespace FG
 
 		RETURN_ERR( "invalid pixel format", VK_FORMAT_MAX_ENUM );
 	}
+
+/*
+=================================================
+	Format
+=================================================
+*/
+	ND_ inline EPixelFormat  EPixelFormat_FromVk (VkFormat value)
+	{
+#		define FMT_BUILDER( _engineFmt_, _vkFormat_ ) \
+			case _vkFormat_ : return EPixelFormat::_engineFmt_;
+		
+		switch ( value )
+		{
+			VK_PIXEL_FORMATS( FMT_BUILDER )
+		}
+
+#		undef FMT_BUILDER
+
+		RETURN_ERR( "invalid pixel format" );
+	}
+
+#	undef VK_PIXEL_FORMATS
 
 }	// FG

@@ -2,7 +2,9 @@ cmake_minimum_required (VERSION 3.6.0)
 
 set( FG_GLOBAL_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" )
 set( FG_EXTERNALS_PATH "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH "Path to external projects sources" )
-message( STATUS "FG_EXTERNALS_PATH: ${FG_EXTERNALS_PATH}" )
+set( FG_EXTERNALS_INSTALL_PATH "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Path to install external projects libraries" )
+#message( STATUS "FG_EXTERNALS_PATH: ${FG_EXTERNALS_PATH}" )
+#message( STATUS "FG_EXTERNALS_INSTALL_PATH: ${FG_EXTERNALS_INSTALL_PATH}" )
 
 
 # prepare for FetchContent
@@ -47,6 +49,7 @@ include( "${CMAKE_FOLDER}/download_glfw.cmake" )
 include( "${CMAKE_FOLDER}/download_sfml.cmake" )
 include( "${CMAKE_FOLDER}/download_lodepng.cmake" )
 include( "${CMAKE_FOLDER}/download_assimp.cmake" )
+include( "${CMAKE_FOLDER}/download_imgui.cmake" )
 include( "${CMAKE_FOLDER}/graphviz.cmake" )
 
 

@@ -90,7 +90,6 @@ namespace FG
 	bool VGraphicsPipeline::Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( GetState() == EState::Initial );
 		
 		for (auto& sh : desc._shaders)
 		{
@@ -110,7 +109,6 @@ namespace FG
 		_earlyFragmentTests	= desc._earlyFragmentTests;
 		_debugName			= dbgName;
 		
-		_OnCreate();
 		return true;
 	}
 
@@ -141,8 +139,6 @@ namespace FG
 		_fragmentOutput		= null;
 		_patchControlPoints	= 0;
 		_earlyFragmentTests	= false;
-		
-		_OnDestroy();
 	}
 
 

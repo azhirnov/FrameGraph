@@ -12,7 +12,7 @@ namespace FG
 	// Vulkan Render Pass
 	//
 
-	class VRenderPass final : public ResourceBase
+	class VRenderPass final
 	{
 		friend class VRenderPassCache;
 
@@ -35,7 +35,7 @@ namespace FG
 
 	// variables
 	private:
-		VkRenderPass			_renderPass;
+		VkRenderPass			_renderPass		= VK_NULL_HANDLE;
 
 		HashVal					_hash;
 		HashVal					_attachmentHash;
@@ -43,7 +43,7 @@ namespace FG
 
 		AttachmentMapping_t		_mapping;
 		
-		VkRenderPassCreateInfo	_createInfo;
+		VkRenderPassCreateInfo	_createInfo		= {};
 		Attachments_t			_attachments;
 		AttachmentsRef_t		_attachmentRef;
 		AttachmentsRef_t		_inputAttachRef;
@@ -53,14 +53,17 @@ namespace FG
 		Preserves_t				_preserves;
 		
 		DebugName_t				_debugName;
+		
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
 	public:
-		VRenderPass ();
+		VRenderPass () {}
+		VRenderPass (VRenderPass &&) = default;
+		VRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput);
 		~VRenderPass ();
 
-		bool Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput);
 		bool Create (const VDevice &dev, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
@@ -74,6 +77,8 @@ namespace FG
 
 
 	private:
+		bool _Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput);
+
 		static void  _CalcHash (const VkRenderPassCreateInfo &ci, OUT HashVal &hash, OUT HashVal &attachmentHash,
 								OUT SubpassesHash_t &subpassesHash);
 	};

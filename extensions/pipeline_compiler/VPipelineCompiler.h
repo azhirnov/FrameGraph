@@ -38,8 +38,8 @@ namespace FG
 		EShaderCompilationFlags				_compilerFlags			= Default;
 
 		// immutable:
-		VkPhysicalDevice_t					_physicalDevice;
-		VkDevice_t							_logicalDevice;
+		PhysicalDeviceVk_t					_physicalDevice;
+		DeviceVk_t							_logicalDevice;
 		void *								_fpCreateShaderModule	= null;
 		void *								_fpDestroyShaderModule	= null;
 
@@ -47,7 +47,7 @@ namespace FG
 	// methods
 	public:
 		VPipelineCompiler ();
-		VPipelineCompiler (VkPhysicalDevice_t physicalDevice, VkDevice_t device);
+		VPipelineCompiler (PhysicalDeviceVk_t physicalDevice, DeviceVk_t device);
 		~VPipelineCompiler ();
 
 		bool SetCompilationFlags (EShaderCompilationFlags flags);

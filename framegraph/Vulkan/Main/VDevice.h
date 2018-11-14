@@ -16,7 +16,7 @@ namespace FG
 	{
 	// variables
 		mutable std::mutex	lock;			// use when call vkQueueSubmit, vkQueueWaitIdle, vkQueueBindSparse, vkQueuePresentKHR
-		VkQueue				id				= null;
+		VkQueue				handle			= VK_NULL_HANDLE;
 		EQueueFamily		familyIndex		= Default;
 		VkQueueFlags		familyFlags		= {};
 		float				priority		= 0.0f;
@@ -26,7 +26,7 @@ namespace FG
 		VDeviceQueueInfo () {}
 
 		VDeviceQueueInfo (VDeviceQueueInfo &&other) :
-			id{other.id}, familyIndex{other.familyIndex}, familyFlags{other.familyFlags},
+			handle{other.handle}, familyIndex{other.familyIndex}, familyFlags{other.familyFlags},
 			priority{other.priority}, debugName{std::move(other.debugName)}
 		{}
 	};

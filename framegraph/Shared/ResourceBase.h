@@ -10,34 +10,35 @@ namespace FG
 {
 
 	//
-	// Resource Base class
+	// Resource Wrapper
 	//
 
-	class ResourceBase
+	template <typename ResType>
+	class ResourceBase final
 	{
 	// types
 	public:
 		enum class EState : uint
 		{
 			Initial			= 0,
-			CreatedInThread,		// in
-			Created,				// created and commited
-			ReadyToDelete,
+			Failed,
+			Created,
 		};
+
+		using Self	= ResourceBase< ResType >;
 
 
 	// variables
 	private:
 		// reference counter may be used for cached resources like samples, pipeline layout and other
-		alignas(FG_CACHE_LINE) mutable AtomicCounter<int>	_refCounter;
+		mutable AtomicCounter<int>	_refCounter;
 
 		// instance counter used to detect deprecated handles
 		std::atomic<uint>		_instanceId	= 0;
 
 		std::atomic<EState>		_state		= EState::Initial;
 
-	protected:
-		RWRaceConditionCheck	_rcCheck;
+		ResType					_data;
 
 
 	// methods
@@ -45,19 +46,15 @@ namespace FG
 		ResourceBase ()
 		{}
 
+		ResourceBase (Self &&) = delete;
+		ResourceBase (const Self &) = delete;
+
+		Self& operator = (Self &&) = delete;
+		Self& operator = (const Self &) = delete;
+
 		~ResourceBase ()
 		{
-			ASSERT( GetState() == EState::Initial );
-		}
-
-		// must be externally synchronized!
-		bool Commit ()
-		{
-			if ( GetState() == EState::CreatedInThread ) {
-				_state.store( EState::Created, memory_order_release );
-				return true;
-			}
-			return false;
+			ASSERT( IsDestroyed() );
 		}
 
 		void AddRef () const
@@ -70,29 +67,60 @@ namespace FG
 			return _refCounter.DecAndTest();
 		}
 		
-		ND_ EState		GetState ()			const	{ return _state.load( memory_order_acquire ); }
-		ND_ bool		IsCreated ()		const	{ auto state = GetState();  return state == EState::CreatedInThread or state == EState::Created; }
-		ND_ bool		IsDestroyed ()		const	{ return GetState() == EState::Initial; }
+		ND_ EState			_GetState ()		const	{ return _state.load( memory_order_acquire ); }
+		ND_ bool			IsCreated ()		const	{ return _GetState() == EState::Created; }
+		ND_ bool			IsDestroyed ()		const	{ return _GetState() <= EState::Failed; }
 
-		ND_ uint		GetInstanceID ()	const	{ return _instanceId.load( memory_order_acquire ); }
-		ND_ int			GetRefCount ()		const	{ return _refCounter.Load(); }
+		ND_ uint			GetInstanceID ()	const	{ return _instanceId.load( memory_order_acquire ); }
+		ND_ int				GetRefCount ()		const	{ return _refCounter.Load(); }
+
+		ND_ ResType&		Data ()						{ return _data; }
+		ND_ ResType const&	Data ()				const	{ return _data; }
 
 
-	protected:
-		void _OnCreate ()
+		ND_ bool  operator == (const Self &rhs) const	{ return _data == rhs._data; }
+		ND_ bool  operator != (const Self &rhs) const	{ return _data == rhs._data; }
+
+
+		template <typename ...Args>
+		bool Create (Args&& ...args)
 		{
-			_state.store( EState::CreatedInThread, memory_order_release );
+			ASSERT( IsDestroyed() );
+
+			bool	result = _data.Create( std::forward<Args &&>( args )... );
+			if ( result )
+				_state.store( EState::Created, memory_order_release );
+			else
+				_state.store( EState::Failed, memory_order_release );
+
+			return result;
 		}
 
-		void _OnDestroy ()
+		template <typename ...Args>
+		void Destroy (Args&& ...args)
 		{
 			ASSERT( not IsDestroyed() );
 			//ASSERT( GetRefCount() == 0 );
 
+			_data.Destroy( std::forward<Args &&>( args )... );
+
 			_state.store( EState::Initial, memory_order_release );
-			_instanceId.fetch_add( 1, memory_order_release );
+			_instanceId.fetch_add( 1, memory_order_relaxed );
 		}
 	};
 
 
 }	// FG
+
+
+namespace std
+{
+	template <typename T>
+	struct hash< FG::ResourceBase<T> >
+	{
+		ND_ size_t  operator () (const FG::ResourceBase<T> &value) const noexcept {
+			return std::hash<T>{}( value.Data() );
+		}
+	};
+
+}	// std
