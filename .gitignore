@@ -9,7 +9,6 @@ CMakeLists.txt.user
 /external/SFML
 /external/assimp
 /external/foonathan_memory
-/tests/framegraph/Graphs
 /external/imgui
 /external/glm
 /external/DevIL
