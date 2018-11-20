@@ -7,7 +7,7 @@
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
 #include <iostream>
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 
 using namespace FG;
 
@@ -47,7 +47,8 @@ int main ()
 		// initialize vulkan device
 		{
 			TEST( vulkan.Create( window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1, "" ));
-			vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT );
+			//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
+			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 		}
 
 		// setup device info

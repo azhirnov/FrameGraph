@@ -67,6 +67,7 @@ namespace FG
 	// variables
 	private:
 		Batches_t		_batches;
+		uint			_maxThreads	= 0;
 
 
 	// methods
@@ -82,13 +83,15 @@ namespace FG
 		{
 			DEBUG_ONLY(
 			for (auto& dep : dependsOn) {
-				ASSERT( _batches.count( dep ) );
+				ASSERT( _batches.count( dep ) );	// dependency doesb't exists
 			})
 
 			ASSERT( not batchId.GetName().empty() );
 			ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
+			ASSERT( threadCount > 0 );
 
 			CHECK( _batches.insert_or_assign( batchId, Batch{threadCount, usage, dependsOn} ).second );
+			_maxThreads += threadCount;
 			return *this;
 		}
 
@@ -119,10 +122,12 @@ namespace FG
 		void Clear ()
 		{
 			_batches.clear();
+			_maxThreads = 0;
 		}
 
 
-		ND_ Batches_t const&	Batches ()	const	{ return _batches; }
+		ND_ Batches_t const&	Batches ()			const	{ return _batches; }
+		ND_ uint				MaxThreadCount ()	const	{ return _maxThreads; }
 	};
 
 

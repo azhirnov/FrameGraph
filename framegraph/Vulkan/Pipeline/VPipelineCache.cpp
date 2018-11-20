@@ -151,7 +151,7 @@ namespace FG
 
 			// delete if not inserted
 			if ( not inserted.second )
-				readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, uint64_t(cached.second) );
+				readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(cached.second) );
 		}
 		map.Destroy();
 	}
@@ -456,7 +456,7 @@ namespace FG
 		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,		MaxDescriptorPoolSize });
 		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,		MaxDescriptorPoolSize });
 		
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NVX,	MaxDescriptorPoolSize });
+		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV,	MaxDescriptorPoolSize });
 
 		
 		VkDescriptorPoolCreateInfo	info = {};

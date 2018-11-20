@@ -2,7 +2,7 @@
 
 #include "VFrameGraphThread.h"
 #include "VResourceManager.h"
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 
 
 static void SamplerCache_Test1 (const FGThreadPtr &fg)

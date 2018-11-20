@@ -24,7 +24,7 @@ namespace FG
 
 	// variables
 	private:
-		CharT		_array [StringSize];
+		CharT		_array [StringSize] = {};
 		size_t		_length	= 0;
 
 
@@ -35,53 +35,54 @@ namespace FG
 			DEBUG_ONLY( ::memset( _array, 0, sizeof(_array) ));
 		}
 		
-		/*template <size_t S>
-		constexpr TStaticString (const CharT (&str)[S]) : _array{}, _length{ 0 }
-		{
-			for (; _length < S and _length < StringSize; ++_length) {
-				_array[_length] = str[_length];
-			}
-		}*/
-		
 		TStaticString (const View_t &view) : TStaticString{ view.data(), view.length() }
 		{}
 		
-		TStaticString (const CharT *str) : TStaticString{ str, str ? std::strlen(str) : 0 }
-		{}
+		constexpr TStaticString (const CharT *str)
+		{
+			for (; str[_length] and _length < StringSize; ++_length) {
+				_array[_length] = str[_length];
+			}
+			_array[_length] = CharT(0);
+		}
 
-		TStaticString (const CharT *str, size_t length)
+		constexpr TStaticString (const CharT *str, size_t length)
 		{
 			ASSERT( length < StringSize );
+			
+			for (; _length < length and _length < StringSize; ++_length) {
+				_array[_length] = str[_length];
+			}
+			_array[_length] = CharT(0);
 
-			_length = Min( length, StringSize-1 );
-
-			::memcpy( _array, str, _length * sizeof(CharT) );
+			//_length = Min( length, StringSize-1 );
+			//::memcpy( _array, str, _length * sizeof(CharT) );
 
 			_array[_length] = CharT(0);
 		}
 
 
-		ND_ operator View_t ()						const	{ return View_t{ _array, length() }; }
+		ND_ operator View_t ()								const	{ return View_t{ _array, length() }; }
 
-		ND_ size_t			size ()					const	{ return _length; }
-		ND_ size_t			length ()				const	{ return size(); }
-		ND_ size_t			capacity ()				const	{ return StringSize; }
-		ND_ bool			empty ()				const	{ return _length == 0; }
-		ND_ CharT const *	c_str ()				const	{ return _array; }
-		ND_ CharT const *	data ()					const	{ return _array; }
+		ND_ constexpr size_t		size ()					const	{ return _length; }
+		ND_ constexpr size_t		length ()				const	{ return size(); }
+		ND_ constexpr size_t		capacity ()				const	{ return StringSize; }
+		ND_ constexpr bool			empty ()				const	{ return _length == 0; }
+		ND_ constexpr CharT const *	c_str ()				const	{ return _array; }
+		ND_ constexpr CharT const *	data ()					const	{ return _array; }
 
-		ND_ CharT &			operator [] (size_t i)			{ ASSERT( i < _length );  return _array[i]; }
-		ND_ CharT const &	operator [] (size_t i)	const	{ ASSERT( i < _length );  return _array[i]; }
+		ND_ constexpr CharT &		operator [] (size_t i)			{ ASSERT( i < _length );  return _array[i]; }
+		ND_ constexpr CharT const &	operator [] (size_t i)	const	{ ASSERT( i < _length );  return _array[i]; }
 
-		ND_ bool	operator == (const View_t &rhs)	const	{ return View_t(*this) == rhs; }
-		ND_ bool	operator != (const View_t &rhs)	const	{ return not (*this == rhs); }
-		ND_ bool	operator >  (const View_t &rhs)	const	{ return View_t(*this) > rhs; }
-		ND_ bool	operator <  (const View_t &rhs)	const	{ return View_t(*this) < rhs; }
+		ND_ bool	operator == (const View_t &rhs)			const	{ return View_t(*this) == rhs; }
+		ND_ bool	operator != (const View_t &rhs)			const	{ return not (*this == rhs); }
+		ND_ bool	operator >  (const View_t &rhs)			const	{ return View_t(*this) > rhs; }
+		ND_ bool	operator <  (const View_t &rhs)			const	{ return View_t(*this) < rhs; }
 
-		ND_ iterator		begin ()						{ return &_array[0]; }
-		ND_ const_iterator	begin ()				const	{ return &_array[0]; }
-		ND_ iterator		end ()							{ return &_array[_length]; }
-		ND_ const_iterator	end ()					const	{ return &_array[_length]; }
+		ND_ iterator		begin ()								{ return &_array[0]; }
+		ND_ const_iterator	begin ()						const	{ return &_array[0]; }
+		ND_ iterator		end ()									{ return &_array[_length]; }
+		ND_ const_iterator	end ()							const	{ return &_array[_length]; }
 
 
 		void clear ()

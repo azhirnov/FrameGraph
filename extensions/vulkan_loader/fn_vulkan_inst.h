@@ -48,6 +48,7 @@
 	extern PFN_vkEnumeratePhysicalDevices  _var_vkEnumeratePhysicalDevices;
 	extern PFN_vkEnumeratePhysicalDeviceGroupsKHR  _var_vkEnumeratePhysicalDeviceGroupsKHR;
 	extern PFN_vkGetPhysicalDeviceFormatProperties2KHR  _var_vkGetPhysicalDeviceFormatProperties2KHR;
+	extern PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT  _var_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT;
 	extern PFN_vkGetDisplayModeProperties2KHR  _var_vkGetDisplayModeProperties2KHR;
 	extern PFN_vkDestroyDebugUtilsMessengerEXT  _var_vkDestroyDebugUtilsMessengerEXT;
 	extern PFN_vkGetPhysicalDeviceExternalBufferPropertiesKHR  _var_vkGetPhysicalDeviceExternalBufferPropertiesKHR;
@@ -158,6 +159,7 @@
 	PFN_vkEnumeratePhysicalDevices  _var_vkEnumeratePhysicalDevices = null;
 	PFN_vkEnumeratePhysicalDeviceGroupsKHR  _var_vkEnumeratePhysicalDeviceGroupsKHR = null;
 	PFN_vkGetPhysicalDeviceFormatProperties2KHR  _var_vkGetPhysicalDeviceFormatProperties2KHR = null;
+	PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT  _var_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT = null;
 	PFN_vkGetDisplayModeProperties2KHR  _var_vkGetDisplayModeProperties2KHR = null;
 	PFN_vkDestroyDebugUtilsMessengerEXT  _var_vkDestroyDebugUtilsMessengerEXT = null;
 	PFN_vkGetPhysicalDeviceExternalBufferPropertiesKHR  _var_vkGetPhysicalDeviceExternalBufferPropertiesKHR = null;
@@ -268,6 +270,7 @@
 	ND_ forceinline VkResult vkEnumeratePhysicalDevices (VkInstance instance, uint32_t * pPhysicalDeviceCount, VkPhysicalDevice * pPhysicalDevices)								{ return _var_vkEnumeratePhysicalDevices( instance, pPhysicalDeviceCount, pPhysicalDevices ); }
 	ND_ forceinline VkResult vkEnumeratePhysicalDeviceGroupsKHR (VkInstance instance, uint32_t * pPhysicalDeviceGroupCount, VkPhysicalDeviceGroupProperties * pPhysicalDeviceGroupProperties)								{ return _var_vkEnumeratePhysicalDeviceGroupsKHR( instance, pPhysicalDeviceGroupCount, pPhysicalDeviceGroupProperties ); }
 		forceinline void vkGetPhysicalDeviceFormatProperties2KHR (VkPhysicalDevice physicalDevice, VkFormat format, VkFormatProperties2 * pFormatProperties)								{ return _var_vkGetPhysicalDeviceFormatProperties2KHR( physicalDevice, format, pFormatProperties ); }
+	ND_ forceinline VkResult vkGetPhysicalDeviceCalibrateableTimeDomainsEXT (VkPhysicalDevice physicalDevice, uint32_t * pTimeDomainCount, VkTimeDomainEXT * pTimeDomains)								{ return _var_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT( physicalDevice, pTimeDomainCount, pTimeDomains ); }
 	ND_ forceinline VkResult vkGetDisplayModeProperties2KHR (VkPhysicalDevice physicalDevice, VkDisplayKHR display, uint32_t * pPropertyCount, VkDisplayModeProperties2KHR * pProperties)								{ return _var_vkGetDisplayModeProperties2KHR( physicalDevice, display, pPropertyCount, pProperties ); }
 		forceinline void vkDestroyDebugUtilsMessengerEXT (VkInstance instance, VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks * pAllocator)								{ return _var_vkDestroyDebugUtilsMessengerEXT( instance, messenger, pAllocator ); }
 		forceinline void vkGetPhysicalDeviceExternalBufferPropertiesKHR (VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo * pExternalBufferInfo, VkExternalBufferProperties * pExternalBufferProperties)								{ return _var_vkGetPhysicalDeviceExternalBufferPropertiesKHR( physicalDevice, pExternalBufferInfo, pExternalBufferProperties ); }
@@ -330,111 +333,112 @@
 
 
 #ifdef VKLOADER_STAGE_DUMMYFN
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDevice (VkPhysicalDevice , const VkDeviceCreateInfo * , const VkAllocationCallbacks * , VkDevice * )			{  FG_LOGE( "used dummy function 'vkCreateDevice'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDisplayPlaneSurfaceKHR (VkInstance , const VkDisplaySurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGE( "used dummy function 'vkCreateDisplayPlaneSurfaceKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalFencePropertiesKHR (VkPhysicalDevice , const VkPhysicalDeviceExternalFenceInfo * , VkExternalFenceProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceExternalFencePropertiesKHR'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceImageFormatProperties2KHR (VkPhysicalDevice , const VkPhysicalDeviceImageFormatInfo2 * , VkImageFormatProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceImageFormatProperties2KHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceMemoryProperties2KHR (VkPhysicalDevice , VkPhysicalDeviceMemoryProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceMemoryProperties2KHR'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceQueueFamilyProperties (VkPhysicalDevice , uint32_t * , VkQueueFamilyProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceQueueFamilyProperties'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceDisplayProperties2KHR (VkPhysicalDevice , uint32_t * , VkDisplayProperties2KHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceDisplayProperties2KHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceCapabilities2EXT (VkPhysicalDevice , VkSurfaceKHR , VkSurfaceCapabilities2EXT * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSurfaceCapabilities2EXT'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayPlaneSupportedDisplaysKHR (VkPhysicalDevice , uint32_t , uint32_t * , VkDisplayKHR * )			{  FG_LOGE( "used dummy function 'vkGetDisplayPlaneSupportedDisplaysKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayModePropertiesKHR (VkPhysicalDevice , VkDisplayKHR , uint32_t * , VkDisplayModePropertiesKHR * )			{  FG_LOGE( "used dummy function 'vkGetDisplayModePropertiesKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceProperties2KHR (VkPhysicalDevice , VkPhysicalDeviceProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceProperties2KHR'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceFormats2KHR (VkPhysicalDevice , const VkPhysicalDeviceSurfaceInfo2KHR * , uint32_t * , VkSurfaceFormat2KHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSurfaceFormats2KHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkDebugReportMessageEXT (VkInstance , VkDebugReportFlagsEXT , VkDebugReportObjectTypeEXT , uint64_t , size_t , int32_t , const char * , const char * )			{  FG_LOGE( "used dummy function 'vkDebugReportMessageEXT'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX (VkPhysicalDevice , VkDeviceGeneratedCommandsFeaturesNVX * , VkDeviceGeneratedCommandsLimitsNVX * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayPlaneCapabilitiesKHR (VkPhysicalDevice , VkDisplayModeKHR , uint32_t , VkDisplayPlaneCapabilitiesKHR * )			{  FG_LOGE( "used dummy function 'vkGetDisplayPlaneCapabilitiesKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceSupportKHR (VkPhysicalDevice , uint32_t , VkSurfaceKHR , VkBool32 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSurfaceSupportKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceDisplayPlaneProperties2KHR (VkPhysicalDevice , uint32_t * , VkDisplayPlaneProperties2KHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceDisplayPlaneProperties2KHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalSemaphoreProperties (VkPhysicalDevice , const VkPhysicalDeviceExternalSemaphoreInfo * , VkExternalSemaphoreProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceExternalSemaphoreProperties'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceQueueFamilyProperties2 (VkPhysicalDevice , uint32_t * , VkQueueFamilyProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceQueueFamilyProperties2'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkDestroyDebugReportCallbackEXT (VkInstance , VkDebugReportCallbackEXT , const VkAllocationCallbacks * )			{  FG_LOGE( "used dummy function 'vkDestroyDebugReportCallbackEXT'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayPlaneCapabilities2KHR (VkPhysicalDevice , const VkDisplayPlaneInfo2KHR * , VkDisplayPlaneCapabilities2KHR * )			{  FG_LOGE( "used dummy function 'vkGetDisplayPlaneCapabilities2KHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalFenceProperties (VkPhysicalDevice , const VkPhysicalDeviceExternalFenceInfo * , VkExternalFenceProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceExternalFenceProperties'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDebugUtilsMessengerEXT (VkInstance , const VkDebugUtilsMessengerCreateInfoEXT * , const VkAllocationCallbacks * , VkDebugUtilsMessengerEXT * )			{  FG_LOGE( "used dummy function 'vkCreateDebugUtilsMessengerEXT'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceImageFormatProperties (VkPhysicalDevice , VkFormat , VkImageType , VkImageTiling , VkImageUsageFlags , VkImageCreateFlags , VkImageFormatProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceImageFormatProperties'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateDeviceExtensionProperties (VkPhysicalDevice , const char * , uint32_t * , VkExtensionProperties * )			{  FG_LOGE( "used dummy function 'vkEnumerateDeviceExtensionProperties'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR (VkPhysicalDevice , const VkPhysicalDeviceExternalSemaphoreInfo * , VkExternalSemaphoreProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceExternalSemaphorePropertiesKHR'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceCapabilities2KHR (VkPhysicalDevice , const VkPhysicalDeviceSurfaceInfo2KHR * , VkSurfaceCapabilities2KHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSurfaceCapabilities2KHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceMemoryProperties (VkPhysicalDevice , VkPhysicalDeviceMemoryProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceMemoryProperties'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDisplayModeKHR (VkPhysicalDevice , VkDisplayKHR , const VkDisplayModeCreateInfoKHR * , const VkAllocationCallbacks * , VkDisplayModeKHR * )			{  FG_LOGE( "used dummy function 'vkCreateDisplayModeKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFeatures (VkPhysicalDevice , VkPhysicalDeviceFeatures * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceFeatures'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceMemoryProperties2 (VkPhysicalDevice , VkPhysicalDeviceMemoryProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceMemoryProperties2'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceProperties2 (VkPhysicalDevice , VkPhysicalDeviceProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceProperties2'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceQueueFamilyProperties2KHR (VkPhysicalDevice , uint32_t * , VkQueueFamilyProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceQueueFamilyProperties2KHR'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceProperties (VkPhysicalDevice , VkPhysicalDeviceProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceProperties'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFormatProperties (VkPhysicalDevice , VkFormat , VkFormatProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceFormatProperties'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfacePresentModesKHR (VkPhysicalDevice , VkSurfaceKHR , uint32_t * , VkPresentModeKHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSurfacePresentModesKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkDestroyInstance (VkInstance , const VkAllocationCallbacks * )			{  FG_LOGE( "used dummy function 'vkDestroyInstance'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFeatures2KHR (VkPhysicalDevice , VkPhysicalDeviceFeatures2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceFeatures2KHR'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceDisplayPlanePropertiesKHR (VkPhysicalDevice , uint32_t * , VkDisplayPlanePropertiesKHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceDisplayPlanePropertiesKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalImageFormatPropertiesNV (VkPhysicalDevice , VkFormat , VkImageType , VkImageTiling , VkImageUsageFlags , VkImageCreateFlags , VkExternalMemoryHandleTypeFlagsNV , VkExternalImageFormatPropertiesNV * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceExternalImageFormatPropertiesNV'" );  return VkResult(~0u);  }
-	VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL Dummy_vkGetDeviceProcAddr (VkDevice , const char * )			{  FG_LOGE( "used dummy function 'vkGetDeviceProcAddr'" );  return null;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceMultisamplePropertiesEXT (VkPhysicalDevice , VkSampleCountFlagBits , VkMultisamplePropertiesEXT * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceMultisamplePropertiesEXT'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceCapabilitiesKHR (VkPhysicalDevice , VkSurfaceKHR , VkSurfaceCapabilitiesKHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSurfaceCapabilitiesKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumeratePhysicalDeviceGroups (VkInstance , uint32_t * , VkPhysicalDeviceGroupProperties * )			{  FG_LOGE( "used dummy function 'vkEnumeratePhysicalDeviceGroups'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceSparseImageFormatProperties2KHR (VkPhysicalDevice , const VkPhysicalDeviceSparseImageFormatInfo2 * , uint32_t * , VkSparseImageFormatProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSparseImageFormatProperties2KHR'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumeratePhysicalDevices (VkInstance , uint32_t * , VkPhysicalDevice * )			{  FG_LOGE( "used dummy function 'vkEnumeratePhysicalDevices'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumeratePhysicalDeviceGroupsKHR (VkInstance , uint32_t * , VkPhysicalDeviceGroupProperties * )			{  FG_LOGE( "used dummy function 'vkEnumeratePhysicalDeviceGroupsKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFormatProperties2KHR (VkPhysicalDevice , VkFormat , VkFormatProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceFormatProperties2KHR'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayModeProperties2KHR (VkPhysicalDevice , VkDisplayKHR , uint32_t * , VkDisplayModeProperties2KHR * )			{  FG_LOGE( "used dummy function 'vkGetDisplayModeProperties2KHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkDestroyDebugUtilsMessengerEXT (VkInstance , VkDebugUtilsMessengerEXT , const VkAllocationCallbacks * )			{  FG_LOGE( "used dummy function 'vkDestroyDebugUtilsMessengerEXT'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalBufferPropertiesKHR (VkPhysicalDevice , const VkPhysicalDeviceExternalBufferInfo * , VkExternalBufferProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceExternalBufferPropertiesKHR'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceImageFormatProperties2 (VkPhysicalDevice , const VkPhysicalDeviceImageFormatInfo2 * , VkImageFormatProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceImageFormatProperties2'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceSparseImageFormatProperties (VkPhysicalDevice , VkFormat , VkImageType , VkSampleCountFlagBits , VkImageUsageFlags , VkImageTiling , uint32_t * , VkSparseImageFormatProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSparseImageFormatProperties'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDevicePresentRectanglesKHR (VkPhysicalDevice , VkSurfaceKHR , uint32_t * , VkRect2D * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDevicePresentRectanglesKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFormatProperties2 (VkPhysicalDevice , VkFormat , VkFormatProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceFormatProperties2'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalBufferProperties (VkPhysicalDevice , const VkPhysicalDeviceExternalBufferInfo * , VkExternalBufferProperties * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceExternalBufferProperties'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkSubmitDebugUtilsMessageEXT (VkInstance , VkDebugUtilsMessageSeverityFlagBitsEXT , VkDebugUtilsMessageTypeFlagsEXT , const VkDebugUtilsMessengerCallbackDataEXT * )			{  FG_LOGE( "used dummy function 'vkSubmitDebugUtilsMessageEXT'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDebugReportCallbackEXT (VkInstance , const VkDebugReportCallbackCreateInfoEXT * , const VkAllocationCallbacks * , VkDebugReportCallbackEXT * )			{  FG_LOGE( "used dummy function 'vkCreateDebugReportCallbackEXT'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkDestroySurfaceKHR (VkInstance , VkSurfaceKHR , const VkAllocationCallbacks * )			{  FG_LOGE( "used dummy function 'vkDestroySurfaceKHR'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceDisplayPropertiesKHR (VkPhysicalDevice , uint32_t * , VkDisplayPropertiesKHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceDisplayPropertiesKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceFormatsKHR (VkPhysicalDevice , VkSurfaceKHR , uint32_t * , VkSurfaceFormatKHR * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSurfaceFormatsKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkReleaseDisplayEXT (VkPhysicalDevice , VkDisplayKHR )			{  FG_LOGE( "used dummy function 'vkReleaseDisplayEXT'" );  return VkResult(~0u);  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFeatures2 (VkPhysicalDevice , VkPhysicalDeviceFeatures2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceFeatures2'" );  return;  }
-	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceSparseImageFormatProperties2 (VkPhysicalDevice , const VkPhysicalDeviceSparseImageFormatInfo2 * , uint32_t * , VkSparseImageFormatProperties2 * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceSparseImageFormatProperties2'" );  return;  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateDeviceLayerProperties (VkPhysicalDevice , uint32_t * , VkLayerProperties * )			{  FG_LOGE( "used dummy function 'vkEnumerateDeviceLayerProperties'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDevice (VkPhysicalDevice , const VkDeviceCreateInfo * , const VkAllocationCallbacks * , VkDevice * )			{  FG_LOGI( "used dummy function 'vkCreateDevice'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDisplayPlaneSurfaceKHR (VkInstance , const VkDisplaySurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateDisplayPlaneSurfaceKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalFencePropertiesKHR (VkPhysicalDevice , const VkPhysicalDeviceExternalFenceInfo * , VkExternalFenceProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceExternalFencePropertiesKHR'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceImageFormatProperties2KHR (VkPhysicalDevice , const VkPhysicalDeviceImageFormatInfo2 * , VkImageFormatProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceImageFormatProperties2KHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceMemoryProperties2KHR (VkPhysicalDevice , VkPhysicalDeviceMemoryProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceMemoryProperties2KHR'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceQueueFamilyProperties (VkPhysicalDevice , uint32_t * , VkQueueFamilyProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceQueueFamilyProperties'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceDisplayProperties2KHR (VkPhysicalDevice , uint32_t * , VkDisplayProperties2KHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceDisplayProperties2KHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceCapabilities2EXT (VkPhysicalDevice , VkSurfaceKHR , VkSurfaceCapabilities2EXT * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSurfaceCapabilities2EXT'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayPlaneSupportedDisplaysKHR (VkPhysicalDevice , uint32_t , uint32_t * , VkDisplayKHR * )			{  FG_LOGI( "used dummy function 'vkGetDisplayPlaneSupportedDisplaysKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayModePropertiesKHR (VkPhysicalDevice , VkDisplayKHR , uint32_t * , VkDisplayModePropertiesKHR * )			{  FG_LOGI( "used dummy function 'vkGetDisplayModePropertiesKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceProperties2KHR (VkPhysicalDevice , VkPhysicalDeviceProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceProperties2KHR'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceFormats2KHR (VkPhysicalDevice , const VkPhysicalDeviceSurfaceInfo2KHR * , uint32_t * , VkSurfaceFormat2KHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSurfaceFormats2KHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkDebugReportMessageEXT (VkInstance , VkDebugReportFlagsEXT , VkDebugReportObjectTypeEXT , uint64_t , size_t , int32_t , const char * , const char * )			{  FG_LOGI( "used dummy function 'vkDebugReportMessageEXT'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX (VkPhysicalDevice , VkDeviceGeneratedCommandsFeaturesNVX * , VkDeviceGeneratedCommandsLimitsNVX * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayPlaneCapabilitiesKHR (VkPhysicalDevice , VkDisplayModeKHR , uint32_t , VkDisplayPlaneCapabilitiesKHR * )			{  FG_LOGI( "used dummy function 'vkGetDisplayPlaneCapabilitiesKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceSupportKHR (VkPhysicalDevice , uint32_t , VkSurfaceKHR , VkBool32 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSurfaceSupportKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceDisplayPlaneProperties2KHR (VkPhysicalDevice , uint32_t * , VkDisplayPlaneProperties2KHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceDisplayPlaneProperties2KHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalSemaphoreProperties (VkPhysicalDevice , const VkPhysicalDeviceExternalSemaphoreInfo * , VkExternalSemaphoreProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceExternalSemaphoreProperties'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceQueueFamilyProperties2 (VkPhysicalDevice , uint32_t * , VkQueueFamilyProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceQueueFamilyProperties2'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkDestroyDebugReportCallbackEXT (VkInstance , VkDebugReportCallbackEXT , const VkAllocationCallbacks * )			{  FG_LOGI( "used dummy function 'vkDestroyDebugReportCallbackEXT'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayPlaneCapabilities2KHR (VkPhysicalDevice , const VkDisplayPlaneInfo2KHR * , VkDisplayPlaneCapabilities2KHR * )			{  FG_LOGI( "used dummy function 'vkGetDisplayPlaneCapabilities2KHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalFenceProperties (VkPhysicalDevice , const VkPhysicalDeviceExternalFenceInfo * , VkExternalFenceProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceExternalFenceProperties'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDebugUtilsMessengerEXT (VkInstance , const VkDebugUtilsMessengerCreateInfoEXT * , const VkAllocationCallbacks * , VkDebugUtilsMessengerEXT * )			{  FG_LOGI( "used dummy function 'vkCreateDebugUtilsMessengerEXT'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceImageFormatProperties (VkPhysicalDevice , VkFormat , VkImageType , VkImageTiling , VkImageUsageFlags , VkImageCreateFlags , VkImageFormatProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceImageFormatProperties'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateDeviceExtensionProperties (VkPhysicalDevice , const char * , uint32_t * , VkExtensionProperties * )			{  FG_LOGI( "used dummy function 'vkEnumerateDeviceExtensionProperties'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR (VkPhysicalDevice , const VkPhysicalDeviceExternalSemaphoreInfo * , VkExternalSemaphoreProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceExternalSemaphorePropertiesKHR'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceCapabilities2KHR (VkPhysicalDevice , const VkPhysicalDeviceSurfaceInfo2KHR * , VkSurfaceCapabilities2KHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSurfaceCapabilities2KHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceMemoryProperties (VkPhysicalDevice , VkPhysicalDeviceMemoryProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceMemoryProperties'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDisplayModeKHR (VkPhysicalDevice , VkDisplayKHR , const VkDisplayModeCreateInfoKHR * , const VkAllocationCallbacks * , VkDisplayModeKHR * )			{  FG_LOGI( "used dummy function 'vkCreateDisplayModeKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFeatures (VkPhysicalDevice , VkPhysicalDeviceFeatures * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceFeatures'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceMemoryProperties2 (VkPhysicalDevice , VkPhysicalDeviceMemoryProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceMemoryProperties2'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceProperties2 (VkPhysicalDevice , VkPhysicalDeviceProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceProperties2'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceQueueFamilyProperties2KHR (VkPhysicalDevice , uint32_t * , VkQueueFamilyProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceQueueFamilyProperties2KHR'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceProperties (VkPhysicalDevice , VkPhysicalDeviceProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceProperties'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFormatProperties (VkPhysicalDevice , VkFormat , VkFormatProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceFormatProperties'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfacePresentModesKHR (VkPhysicalDevice , VkSurfaceKHR , uint32_t * , VkPresentModeKHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSurfacePresentModesKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkDestroyInstance (VkInstance , const VkAllocationCallbacks * )			{  FG_LOGI( "used dummy function 'vkDestroyInstance'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFeatures2KHR (VkPhysicalDevice , VkPhysicalDeviceFeatures2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceFeatures2KHR'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceDisplayPlanePropertiesKHR (VkPhysicalDevice , uint32_t * , VkDisplayPlanePropertiesKHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceDisplayPlanePropertiesKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalImageFormatPropertiesNV (VkPhysicalDevice , VkFormat , VkImageType , VkImageTiling , VkImageUsageFlags , VkImageCreateFlags , VkExternalMemoryHandleTypeFlagsNV , VkExternalImageFormatPropertiesNV * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceExternalImageFormatPropertiesNV'" );  return VkResult(~0u);  }
+	VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL Dummy_vkGetDeviceProcAddr (VkDevice , const char * )			{  FG_LOGI( "used dummy function 'vkGetDeviceProcAddr'" );  return null;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceMultisamplePropertiesEXT (VkPhysicalDevice , VkSampleCountFlagBits , VkMultisamplePropertiesEXT * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceMultisamplePropertiesEXT'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceCapabilitiesKHR (VkPhysicalDevice , VkSurfaceKHR , VkSurfaceCapabilitiesKHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSurfaceCapabilitiesKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumeratePhysicalDeviceGroups (VkInstance , uint32_t * , VkPhysicalDeviceGroupProperties * )			{  FG_LOGI( "used dummy function 'vkEnumeratePhysicalDeviceGroups'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceSparseImageFormatProperties2KHR (VkPhysicalDevice , const VkPhysicalDeviceSparseImageFormatInfo2 * , uint32_t * , VkSparseImageFormatProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSparseImageFormatProperties2KHR'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumeratePhysicalDevices (VkInstance , uint32_t * , VkPhysicalDevice * )			{  FG_LOGI( "used dummy function 'vkEnumeratePhysicalDevices'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumeratePhysicalDeviceGroupsKHR (VkInstance , uint32_t * , VkPhysicalDeviceGroupProperties * )			{  FG_LOGI( "used dummy function 'vkEnumeratePhysicalDeviceGroupsKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFormatProperties2KHR (VkPhysicalDevice , VkFormat , VkFormatProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceFormatProperties2KHR'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT (VkPhysicalDevice , uint32_t * , VkTimeDomainEXT * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceCalibrateableTimeDomainsEXT'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetDisplayModeProperties2KHR (VkPhysicalDevice , VkDisplayKHR , uint32_t * , VkDisplayModeProperties2KHR * )			{  FG_LOGI( "used dummy function 'vkGetDisplayModeProperties2KHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkDestroyDebugUtilsMessengerEXT (VkInstance , VkDebugUtilsMessengerEXT , const VkAllocationCallbacks * )			{  FG_LOGI( "used dummy function 'vkDestroyDebugUtilsMessengerEXT'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalBufferPropertiesKHR (VkPhysicalDevice , const VkPhysicalDeviceExternalBufferInfo * , VkExternalBufferProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceExternalBufferPropertiesKHR'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceImageFormatProperties2 (VkPhysicalDevice , const VkPhysicalDeviceImageFormatInfo2 * , VkImageFormatProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceImageFormatProperties2'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceSparseImageFormatProperties (VkPhysicalDevice , VkFormat , VkImageType , VkSampleCountFlagBits , VkImageUsageFlags , VkImageTiling , uint32_t * , VkSparseImageFormatProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSparseImageFormatProperties'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDevicePresentRectanglesKHR (VkPhysicalDevice , VkSurfaceKHR , uint32_t * , VkRect2D * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDevicePresentRectanglesKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFormatProperties2 (VkPhysicalDevice , VkFormat , VkFormatProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceFormatProperties2'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceExternalBufferProperties (VkPhysicalDevice , const VkPhysicalDeviceExternalBufferInfo * , VkExternalBufferProperties * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceExternalBufferProperties'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkSubmitDebugUtilsMessageEXT (VkInstance , VkDebugUtilsMessageSeverityFlagBitsEXT , VkDebugUtilsMessageTypeFlagsEXT , const VkDebugUtilsMessengerCallbackDataEXT * )			{  FG_LOGI( "used dummy function 'vkSubmitDebugUtilsMessageEXT'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateDebugReportCallbackEXT (VkInstance , const VkDebugReportCallbackCreateInfoEXT * , const VkAllocationCallbacks * , VkDebugReportCallbackEXT * )			{  FG_LOGI( "used dummy function 'vkCreateDebugReportCallbackEXT'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkDestroySurfaceKHR (VkInstance , VkSurfaceKHR , const VkAllocationCallbacks * )			{  FG_LOGI( "used dummy function 'vkDestroySurfaceKHR'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceDisplayPropertiesKHR (VkPhysicalDevice , uint32_t * , VkDisplayPropertiesKHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceDisplayPropertiesKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetPhysicalDeviceSurfaceFormatsKHR (VkPhysicalDevice , VkSurfaceKHR , uint32_t * , VkSurfaceFormatKHR * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSurfaceFormatsKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkReleaseDisplayEXT (VkPhysicalDevice , VkDisplayKHR )			{  FG_LOGI( "used dummy function 'vkReleaseDisplayEXT'" );  return VkResult(~0u);  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceFeatures2 (VkPhysicalDevice , VkPhysicalDeviceFeatures2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceFeatures2'" );  return;  }
+	VKAPI_ATTR void VKAPI_CALL Dummy_vkGetPhysicalDeviceSparseImageFormatProperties2 (VkPhysicalDevice , const VkPhysicalDeviceSparseImageFormatInfo2 * , uint32_t * , VkSparseImageFormatProperties2 * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceSparseImageFormatProperties2'" );  return;  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkEnumerateDeviceLayerProperties (VkPhysicalDevice , uint32_t * , VkLayerProperties * )			{  FG_LOGI( "used dummy function 'vkEnumerateDeviceLayerProperties'" );  return VkResult(~0u);  }
 
 
 # ifdef VULKAN_WIN32_H_
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateWin32SurfaceKHR (VkInstance , const VkWin32SurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGE( "used dummy function 'vkCreateWin32SurfaceKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceWin32PresentationSupportKHR (VkPhysicalDevice , uint32_t )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceWin32PresentationSupportKHR'" );  return VkBool32(0);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateWin32SurfaceKHR (VkInstance , const VkWin32SurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateWin32SurfaceKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceWin32PresentationSupportKHR (VkPhysicalDevice , uint32_t )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceWin32PresentationSupportKHR'" );  return VkBool32(0);  }
 # endif // VULKAN_WIN32_H_
 
 
 # ifdef VULKAN_ANDROID_H_
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateAndroidSurfaceKHR (VkInstance , const VkAndroidSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGE( "used dummy function 'vkCreateAndroidSurfaceKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateAndroidSurfaceKHR (VkInstance , const VkAndroidSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateAndroidSurfaceKHR'" );  return VkResult(~0u);  }
 # endif // VULKAN_ANDROID_H_
 
 
 # ifdef VULKAN_XLIB_H_
-	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceXlibPresentationSupportKHR (VkPhysicalDevice , uint32_t , Display * , VisualID )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceXlibPresentationSupportKHR'" );  return VkBool32(0);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateXlibSurfaceKHR (VkInstance , const VkXlibSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGE( "used dummy function 'vkCreateXlibSurfaceKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceXlibPresentationSupportKHR (VkPhysicalDevice , uint32_t , Display * , VisualID )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceXlibPresentationSupportKHR'" );  return VkBool32(0);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateXlibSurfaceKHR (VkInstance , const VkXlibSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateXlibSurfaceKHR'" );  return VkResult(~0u);  }
 # endif // VULKAN_XLIB_H_
 
 
 # ifdef VULKAN_XLIB_XRANDR_H_
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkAcquireXlibDisplayEXT (VkPhysicalDevice , Display * , VkDisplayKHR )			{  FG_LOGE( "used dummy function 'vkAcquireXlibDisplayEXT'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetRandROutputDisplayEXT (VkPhysicalDevice , Display * , RROutput , VkDisplayKHR * )			{  FG_LOGE( "used dummy function 'vkGetRandROutputDisplayEXT'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkAcquireXlibDisplayEXT (VkPhysicalDevice , Display * , VkDisplayKHR )			{  FG_LOGI( "used dummy function 'vkAcquireXlibDisplayEXT'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkGetRandROutputDisplayEXT (VkPhysicalDevice , Display * , RROutput , VkDisplayKHR * )			{  FG_LOGI( "used dummy function 'vkGetRandROutputDisplayEXT'" );  return VkResult(~0u);  }
 # endif // VULKAN_XLIB_XRANDR_H_
 
 
 # ifdef VULKAN_XCB_H_
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateXcbSurfaceKHR (VkInstance , const VkXcbSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGE( "used dummy function 'vkCreateXcbSurfaceKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceXcbPresentationSupportKHR (VkPhysicalDevice , uint32_t , xcb_connection_t * , xcb_visualid_t )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceXcbPresentationSupportKHR'" );  return VkBool32(0);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateXcbSurfaceKHR (VkInstance , const VkXcbSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateXcbSurfaceKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceXcbPresentationSupportKHR (VkPhysicalDevice , uint32_t , xcb_connection_t * , xcb_visualid_t )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceXcbPresentationSupportKHR'" );  return VkBool32(0);  }
 # endif // VULKAN_XCB_H_
 
 
 # ifdef VULKAN_MIR_H_
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateMirSurfaceKHR (VkInstance , const VkMirSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGE( "used dummy function 'vkCreateMirSurfaceKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceMirPresentationSupportKHR (VkPhysicalDevice , uint32_t , MirConnection * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceMirPresentationSupportKHR'" );  return VkBool32(0);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateMirSurfaceKHR (VkInstance , const VkMirSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateMirSurfaceKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceMirPresentationSupportKHR (VkPhysicalDevice , uint32_t , MirConnection * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceMirPresentationSupportKHR'" );  return VkBool32(0);  }
 # endif // VULKAN_MIR_H_
 
 
 # ifdef VULKAN_WAYLAND_H_
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateWaylandSurfaceKHR (VkInstance , const VkWaylandSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGE( "used dummy function 'vkCreateWaylandSurfaceKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceWaylandPresentationSupportKHR (VkPhysicalDevice , uint32_t , struct wl_display * )			{  FG_LOGE( "used dummy function 'vkGetPhysicalDeviceWaylandPresentationSupportKHR'" );  return VkBool32(0);  }
+	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateWaylandSurfaceKHR (VkInstance , const VkWaylandSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateWaylandSurfaceKHR'" );  return VkResult(~0u);  }
+	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceWaylandPresentationSupportKHR (VkPhysicalDevice , uint32_t , struct wl_display * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceWaylandPresentationSupportKHR'" );  return VkBool32(0);  }
 # endif // VULKAN_WAYLAND_H_
 #endif // VKLOADER_STAGE_DUMMYFN
 
@@ -488,6 +492,7 @@
 	Load( OUT _var_vkEnumeratePhysicalDevices, "vkEnumeratePhysicalDevices", Dummy_vkEnumeratePhysicalDevices );
 	Load( OUT _var_vkEnumeratePhysicalDeviceGroupsKHR, "vkEnumeratePhysicalDeviceGroupsKHR", Dummy_vkEnumeratePhysicalDeviceGroupsKHR );
 	Load( OUT _var_vkGetPhysicalDeviceFormatProperties2KHR, "vkGetPhysicalDeviceFormatProperties2KHR", Dummy_vkGetPhysicalDeviceFormatProperties2KHR );
+	Load( OUT _var_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT", Dummy_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT );
 	Load( OUT _var_vkGetDisplayModeProperties2KHR, "vkGetDisplayModeProperties2KHR", Dummy_vkGetDisplayModeProperties2KHR );
 	Load( OUT _var_vkDestroyDebugUtilsMessengerEXT, "vkDestroyDebugUtilsMessengerEXT", Dummy_vkDestroyDebugUtilsMessengerEXT );
 	Load( OUT _var_vkGetPhysicalDeviceExternalBufferPropertiesKHR, "vkGetPhysicalDeviceExternalBufferPropertiesKHR", Dummy_vkGetPhysicalDeviceExternalBufferPropertiesKHR );

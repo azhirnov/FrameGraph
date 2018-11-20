@@ -98,7 +98,6 @@ namespace FG
 	private:
 		Batches_t			_batches;
 		VDevice const&		_device;
-		uint				_totalCount	= 0;
 
 		Frames_t			_frames;
 		FenceCache_t		_freeFences;
@@ -130,7 +129,7 @@ namespace FG
 		bool Submit (VDeviceQueueInfoPtr queue, const CommandBatchID &batchId, uint indexInBatch,
 					 ArrayView<VkCommandBuffer> commands) const;
 
-		ND_ uint  TotalCount ()	const	{ return _totalCount; }
+		bool SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch) const;
 
 
 	private:
@@ -143,6 +142,7 @@ namespace FG
 		bool _AddSharedSemaphore (VkSemaphore sem, OUT uint &index) const;
 		bool _RemoveSharedSemaphore (uint index, OUT VkSemaphore &sem) const;
 
+		bool _OnSubBatchSubmittion (const Batch &batch, uint indexInBatch) const;
 		bool _SubmitBatch (const Batch &batch) const;
 	};
 

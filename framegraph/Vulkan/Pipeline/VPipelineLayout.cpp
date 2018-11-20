@@ -149,7 +149,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		if ( _layout ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT, uint64_t(_layout) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE_LAYOUT, uint64_t(_layout) );
 		}
 
 		for (auto& ds : _descriptorSets) {

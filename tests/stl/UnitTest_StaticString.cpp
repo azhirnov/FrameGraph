@@ -1,7 +1,8 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Containers/StaticString.h"
-#include "UnitTestCommon.h"
+#include "stl/CompileTime/Hash.h"
+#include "UnitTest_Common.h"
 
 
 static void StaticString_Test1 ()

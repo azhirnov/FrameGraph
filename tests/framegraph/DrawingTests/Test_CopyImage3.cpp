@@ -66,9 +66,10 @@ namespace FG
 		
 		CommandBatchID		batch_id {"main"};
 		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id, 2 );
+		submission_graph.AddBatch( batch_id, 3 );
 		
 		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( _frameGraphInst->SkipSubBatch( batch_id, 2 ));
 
 		// thread 1
 		{

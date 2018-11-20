@@ -24,7 +24,7 @@ namespace FG
 	private:
 		union {
 			T const *	_array;
-			T const		(*_view)[400];		// debug viewer, don't use this field!
+			T const		(*_dbgView)[400];		// debug viewer, don't use this field!
 		};
 		size_t		_count	= 0;
 

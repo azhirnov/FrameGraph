@@ -73,28 +73,25 @@ namespace {
 		CHECK_ERR( frame.waitFences.empty() );
 
 		_batches.clear();
-		_totalCount = 0;
 
 		// build graph
 		for (auto& src : graph.Batches())
 		{
-			auto	inserted = _batches.insert({ src.first, Batch{} });
-			CHECK_ERR( inserted.second );
+			auto[iter, inserted] = _batches.insert({ src.first, Batch{} });
+			CHECK_ERR( inserted );
 			ASSERT( src.second.threadCount <= Batch::MaxSubBatches );
 
-			Batch&	dst = inserted.first->second;
+			Batch&	dst = iter->second;
 			dst.threadCount = src.second.threadCount;
 
 			for (auto& dep : src.second.dependsOn)
 			{
-				auto	iter = _batches.find( dep );
-				CHECK_ERR( iter != _batches.end() );
+				auto	dep_iter = _batches.find( dep );
+				CHECK_ERR( dep_iter != _batches.end() );
 
-				dst.input.push_back( &iter->second );
-				iter->second.output.push_back( &dst );
+				dst.input.push_back( &dep_iter->second );
+				dep_iter->second.output.push_back( &dst );
 			}
-
-			_totalCount += src.second.threadCount;
 		}
 
 		// add synchronizations
@@ -367,6 +364,21 @@ namespace {
 
 /*
 =================================================
+	SkipSubBatch
+=================================================
+*/
+	bool VSubmissionGraph::SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch) const
+	{
+		auto	batch_iter = _batches.find( batchId );
+		CHECK_ERR( batch_iter != _batches.end() );
+		
+		ASSERT( batch_iter->second.subBatches[indexInBatch].empty() );
+
+		return _OnSubBatchSubmittion( batch_iter->second, indexInBatch );
+	}
+	
+/*
+=================================================
 	Submit
 =================================================
 */
@@ -391,13 +403,23 @@ namespace {
 
 		batch.subBatches[indexInBatch].assign( commands.begin(), commands.end() );
 
+		return _OnSubBatchSubmittion( batch, indexInBatch );
+	}
+	
+/*
+=================================================
+	_OnSubBatchSubmittion
+=================================================
+*/
+	bool VSubmissionGraph::_OnSubBatchSubmittion (const Batch &batch, uint indexInBatch) const
+	{
 		const uint	all_bits	= (1u << batch.threadCount) - 1;
 		const uint	new_bit		= (1u << indexInBatch);
 		const uint	prev_bits	= batch.atomics.existsSubBatchBits.fetch_or( new_bit, memory_order_release );
 		const uint	curr_bits	= prev_bits | new_bit;
 
 		ASSERT( curr_bits <= all_bits );
-		ASSERT( not (prev_bits & new_bit) );
+		ASSERT( not (prev_bits & new_bit) );	// subbatch already submitted, something goes wrong...
 
 		if ( curr_bits < all_bits )
 			return true;	// not all subbatches had been submitted yet
@@ -408,7 +430,7 @@ namespace {
 
 		return _SubmitBatch( batch );
 	}
-	
+
 /*
 =================================================
 	_SubmitBatch
@@ -436,8 +458,6 @@ namespace {
 
 			for (uint i = 0; i < batch.threadCount; ++i)
 			{
-				ASSERT( not batch.subBatches[i].empty() );
-
 				for (auto& cmd : batch.subBatches[i]) {
 					all_commands.push_back( cmd );
 				}

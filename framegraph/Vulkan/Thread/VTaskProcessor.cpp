@@ -481,7 +481,8 @@ namespace FG
 */
 	VTaskProcessor::VTaskProcessor (VFrameGraphThread &fg, VBarrierManager &barrierMngr, VkCommandBuffer cmdbuf, const CommandBatchID &batchId, uint indexInBatch) :
 		_frameGraph{ fg },		_dev{ fg.GetDevice() },
-		_cmdBuffer{ cmdbuf },	_isDebugMarkerSupported{ _dev.EnableDebugMarkers() },
+		_cmdBuffer{ cmdbuf },	_isCompute{ true },
+		_enableDebugUtils{ _dev.EnableDebugUtils() },
 		_pendingBufferBarriers{ fg.GetAllocator() },
 		_pendingImageBarriers{ fg.GetAllocator() },
 		_barrierMngr{ barrierMngr }
@@ -538,14 +539,18 @@ namespace FG
 */
 	void VTaskProcessor::_CmdDebugMarker (StringView text) const
 	{
-		if ( not _isDebugMarkerSupported )
+		if ( text.empty() )
 			return;
 
-		VkDebugMarkerMarkerInfoEXT	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-		info.pMarkerName	= text.data();
-
-		_dev.vkCmdDebugMarkerInsertEXT( _cmdBuffer, &info );
+		/*if ( _enableDebugUtils )
+		{
+			VkDebugUtilsLabelEXT	info = {};
+			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+			info.pLabelName	= text.data();
+			//MemCopy( info.color, _dbgColor );
+			
+			_dev.vkCmdInsertDebugUtilsLabelEXT( _cmdBuffer, &info );
+		}*/
 	}
 
 /*
@@ -555,14 +560,17 @@ namespace FG
 */
 	void VTaskProcessor::_CmdPushDebugGroup (StringView text) const
 	{
-		if ( not _isDebugMarkerSupported )
-			return;
+		ASSERT( not text.empty() );
 
-		VkDebugMarkerMarkerInfoEXT	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-		info.pMarkerName	= text.data();
+		/*if ( _enableDebugUtils )
+		{
+			VkDebugUtilsLabelEXT	info = {};
+			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+			info.pLabelName	= text.data();
+			//MemCopy( info.color, _dbgColor );
 
-		_dev.vkCmdDebugMarkerBeginEXT( _cmdBuffer, &info );
+			_dev.vkCmdBeginDebugUtilsLabelEXT( _cmdBuffer, &info );
+		}*/
 	}
 
 /*
@@ -572,10 +580,10 @@ namespace FG
 */
 	void VTaskProcessor::_CmdPopDebugGroup () const
 	{
-		if ( not _isDebugMarkerSupported )
-			return;
-
-		_dev.vkCmdDebugMarkerEndEXT( _cmdBuffer );
+		/*if ( _enableDebugUtils )
+		{
+			_dev.vkCmdEndDebugUtilsLabelEXT( _cmdBuffer );
+		}*/
 	}
 	
 /*

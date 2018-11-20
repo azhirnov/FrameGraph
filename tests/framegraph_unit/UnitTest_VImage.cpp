@@ -3,7 +3,7 @@
 #include "VLocalImage.h"
 #include "VBarrierManager.h"
 #include "framegraph/Public/FrameGraph.h"
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 #include "DummyTask.h"
 
 
@@ -20,8 +20,6 @@ namespace FG
 			img._desc.Validate();
 
 			img._defaultLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-			img._OnCreate();
 			return true;
 		}
 

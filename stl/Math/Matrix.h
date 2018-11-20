@@ -21,7 +21,7 @@ namespace FG
 	};
 
 
-	template <typename T, uint I, uint J, EMatrixOrder Order, size_t Align = alignof(T)>
+	template <typename T, uint Columns, uint Rows, EMatrixOrder Order, size_t Align = alignof(T)>
 	struct Matrix;
 
 
@@ -271,7 +271,7 @@ namespace FG
 		ND_ constexpr Row_t&			operator [] (uint index)		{ return _rows [index].data; }
 
 		ND_ static constexpr size_t		size ()							{ return Rows; }
-		ND_ static constexpr uint2		Dimension ()					{ return {Rows, Columns}; }
+		ND_ static constexpr uint2		Dimension ()					{ return {Columns, Rows}; }
 		
 		ND_ static constexpr bool		IsColumnMajor ()				{ return false; }
 		ND_ static constexpr bool		IsRowMajor ()					{ return not IsColumnMajor(); }

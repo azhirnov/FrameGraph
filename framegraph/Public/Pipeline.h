@@ -330,6 +330,69 @@ namespace FG
 
 
 	//
+	// Compute Pipeline Description
+	//
+
+	struct ComputePipelineDesc final : PipelineDescription
+	{
+	// types
+		using Self = ComputePipelineDesc;
+		
+		static constexpr uint	UNDEFINED_SPECIALIZATION = ~0u;
+
+	// variables
+		Shader		_shader;
+		uint3		_defaultLocalGroupSize;
+		uint3		_localSizeSpec;
+
+
+	// methods
+		ComputePipelineDesc ();
+		
+		Self&  AddShader (EShaderLangFormat fmt, StringView entry, String &&src);
+		Self&  AddShader (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
+		Self&  AddShader (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
+		Self&  AddShader (EShaderLangFormat fmt, const VkShaderPtr &module);
+
+		Self&  SetLocalGroupSize (uint x, uint y, uint z)
+		{
+			_defaultLocalGroupSize = { x, y, z };
+			return *this;
+		}
+
+		Self&  SetLocalGroupSpecialization (uint x = UNDEFINED_SPECIALIZATION,
+											uint y = UNDEFINED_SPECIALIZATION,
+											uint z = UNDEFINED_SPECIALIZATION)
+		{
+			_localSizeSpec = { x, y, z };
+			return *this;
+		}
+		
+		Self&  AddDescriptorSet (const DescriptorSetID				&id,
+								 const uint							index,
+								 ArrayView< _TextureUniform >		textures,
+								 ArrayView< _SamplerUniform >		samplers,
+								 ArrayView< _SubpassInputUniform >	subpassInputs,
+								 ArrayView< _ImageUniform >			images,
+								 ArrayView< _UBufferUniform >		uniformBuffers,
+								 ArrayView< _StorageBufferUniform >	storageBuffers)
+		{
+			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, Default );
+			return *this;
+		}
+		
+		Self&  SetPushConstants (ArrayView< PushConstant > values)
+		{
+			_SetPushConstants( values );
+			return *this;
+		}
+		
+		Self&  SetSpecConstants (ArrayView< SpecConstant > values);
+	};
+
+
+
+	//
 	// Mesh Processing Pipeline Description
 	//
 
@@ -341,12 +404,20 @@ namespace FG
 		using Shaders_t			= FixedMap< EShader, Shader, 8 >;
 		using FragmentOutput	= GraphicsPipelineDesc::FragmentOutput;
 		using FragmentOutputs_t	= FixedArray< FragmentOutput, FG_MaxColorBuffers >;
+		
+		static constexpr uint	UNDEFINED_SPECIALIZATION = ~0u;
 
 
 	// variables
 		Shaders_t			_shaders;
 		TopologyBits_t		_supportedTopology;
 		FragmentOutputs_t	_fragmentOutput;
+		uint				_maxVertices		= 0;
+		uint				_maxIndices			= 0;
+		uint3				_defaultTaskGroupSize;
+		uint3				_taskSizeSpec;
+		uint3				_defaultMeshGroupSize;
+		uint3				_meshSizeSpec;
 		bool				_earlyFragmentTests	= true;
 
 
@@ -438,69 +509,6 @@ namespace FG
 		}
 
 		Self&  SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values);
-	};
-
-
-
-	//
-	// Compute Pipeline Description
-	//
-
-	struct ComputePipelineDesc final : PipelineDescription
-	{
-	// types
-		using Self = ComputePipelineDesc;
-		
-		static constexpr uint	UNDEFINED_SPECIALIZATION = ~0u;
-
-	// variables
-		Shader		_shader;
-		uint3		_defaultLocalGroupSize;
-		uint3		_localSizeSpec;
-
-
-	// methods
-		ComputePipelineDesc ();
-		
-		Self&  AddShader (EShaderLangFormat fmt, StringView entry, String &&src);
-		Self&  AddShader (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
-		Self&  AddShader (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
-		Self&  AddShader (EShaderLangFormat fmt, const VkShaderPtr &module);
-
-		Self&  SetLocalGroupSize (uint x, uint y, uint z)
-		{
-			_defaultLocalGroupSize = { x, y, z };
-			return *this;
-		}
-
-		Self&  SetLocalGroupSpecialization (uint x = UNDEFINED_SPECIALIZATION,
-											uint y = UNDEFINED_SPECIALIZATION,
-											uint z = UNDEFINED_SPECIALIZATION)
-		{
-			_localSizeSpec = { x, y, z };
-			return *this;
-		}
-		
-		Self&  AddDescriptorSet (const DescriptorSetID				&id,
-								 const uint							index,
-								 ArrayView< _TextureUniform >		textures,
-								 ArrayView< _SamplerUniform >		samplers,
-								 ArrayView< _SubpassInputUniform >	subpassInputs,
-								 ArrayView< _ImageUniform >			images,
-								 ArrayView< _UBufferUniform >		uniformBuffers,
-								 ArrayView< _StorageBufferUniform >	storageBuffers)
-		{
-			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, Default );
-			return *this;
-		}
-		
-		Self&  SetPushConstants (ArrayView< PushConstant > values)
-		{
-			_SetPushConstants( values );
-			return *this;
-		}
-		
-		Self&  SetSpecConstants (ArrayView< SpecConstant > values);
 	};
 
 

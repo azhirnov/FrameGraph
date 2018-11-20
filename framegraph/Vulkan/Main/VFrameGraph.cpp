@@ -197,8 +197,6 @@ namespace FG
 				CHECK( thread->SyncOnBegin( &_submissionGraph ));
 				++iter;
 			}
-
-			CHECK_ERR( _submissionGraph.TotalCount() <= _threads.size() );
 		}
 
 
@@ -206,6 +204,19 @@ namespace FG
 		_resourceMngr.OnBeginFrame( _frameId );
 
 		CHECK_ERR( _SetState( EState::Begin, EState::RunThreads ));
+		return true;
+	}
+	
+/*
+=================================================
+	SkipSubBatch
+=================================================
+*/
+	bool  VFrameGraph::SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch)
+	{
+		CHECK_ERR( _GetState() == EState::RunThreads );
+
+		CHECK_ERR( _submissionGraph.SkipSubBatch( batchId, indexInBatch ));
 		return true;
 	}
 

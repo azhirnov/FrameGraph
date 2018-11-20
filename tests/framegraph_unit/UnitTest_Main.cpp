@@ -9,6 +9,7 @@ using namespace FG;
 
 extern void UnitTest_VertexInput ();
 extern void UnitTest_ImageSwizzle ();
+extern void UnitTest_ID ();
 extern void UnitTest_VBuffer ();
 extern void UnitTest_VImage ();
 
@@ -16,6 +17,7 @@ extern void UnitTest_Main ()
 {
 	UnitTest_VertexInput();
 	UnitTest_ImageSwizzle();
+	UnitTest_ID();
 	UnitTest_VBuffer();
 	UnitTest_VImage();
     FG_LOGI( "UnitTest_Main - finished" );

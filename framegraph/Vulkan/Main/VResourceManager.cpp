@@ -123,84 +123,84 @@ namespace FG
 		{
 			switch ( pair.first )
 			{
-				case VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT :
+				case VK_OBJECT_TYPE_SEMAPHORE :
 					_device.vkDestroySemaphore( dev, VkSemaphore(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT :
+				case VK_OBJECT_TYPE_FENCE :
 					_device.vkDestroyFence( dev, VkFence(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT :
+				case VK_OBJECT_TYPE_DEVICE_MEMORY :
 					_device.vkFreeMemory( dev, VkDeviceMemory(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT :
+				case VK_OBJECT_TYPE_IMAGE :
 					_device.vkDestroyImage( dev, VkImage(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT :
+				case VK_OBJECT_TYPE_EVENT :
 					_device.vkDestroyEvent( dev, VkEvent(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT :
+				case VK_OBJECT_TYPE_QUERY_POOL :
 					_device.vkDestroyQueryPool( dev, VkQueryPool(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT :
+				case VK_OBJECT_TYPE_BUFFER :
 					_device.vkDestroyBuffer( dev, VkBuffer(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT :
+				case VK_OBJECT_TYPE_BUFFER_VIEW :
 					_device.vkDestroyBufferView( dev, VkBufferView(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT :
+				case VK_OBJECT_TYPE_IMAGE_VIEW :
 					_device.vkDestroyImageView( dev, VkImageView(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT :
+				case VK_OBJECT_TYPE_PIPELINE_LAYOUT :
 					_device.vkDestroyPipelineLayout( dev, VkPipelineLayout(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT :
+				case VK_OBJECT_TYPE_RENDER_PASS :
 					_device.vkDestroyRenderPass( dev, VkRenderPass(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT :
+				case VK_OBJECT_TYPE_PIPELINE :
 					_device.vkDestroyPipeline( dev, VkPipeline(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT :
+				case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT :
 					_device.vkDestroyDescriptorSetLayout( dev, VkDescriptorSetLayout(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT :
+				case VK_OBJECT_TYPE_SAMPLER :
 					_device.vkDestroySampler( dev, VkSampler(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_POOL_EXT :
+				case VK_OBJECT_TYPE_DESCRIPTOR_POOL :
 					_device.vkDestroyDescriptorPool( dev, VkDescriptorPool(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT :
+				case VK_OBJECT_TYPE_FRAMEBUFFER :
 					_device.vkDestroyFramebuffer( dev, VkFramebuffer(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT :
+				case VK_OBJECT_TYPE_COMMAND_POOL :
 					_device.vkDestroyCommandPool( dev, VkCommandPool(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT :
+				case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION :
 					_device.vkDestroySamplerYcbcrConversion( dev, VkSamplerYcbcrConversion(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT :
+				case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE :
 					_device.vkDestroyDescriptorUpdateTemplate( dev, VkDescriptorUpdateTemplate(pair.second), null );
 					break;
 
-				case VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NVX_EXT :
-					_device.vkDestroyAccelerationStructureNVX( dev, VkAccelerationStructureNVX(pair.second), null );
+				case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV :
+					_device.vkDestroyAccelerationStructureNV( dev, VkAccelerationStructureNV(pair.second), null );
 					break;
 
 				default :

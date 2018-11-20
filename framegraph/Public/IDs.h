@@ -3,6 +3,7 @@
 #pragma once
 
 #include "framegraph/Public/Types.h"
+#include "stl/CompileTime/Hash.h"
 
 namespace FG
 {
@@ -24,26 +25,20 @@ namespace _fg_hidden_
 
 	// methods
 	public:
-		IDWithString () {}
-		explicit IDWithString (StringView name) : _name{name}, _hash{HashOf(_name)} {}
-		explicit IDWithString (const char *name) : _name{name}, _hash{HashOf(_name)} {}
-		//explicit constexpr IDWithString (const char *name) : _name{ name }, _hash{ name ? _CalcHash( name, 0 ) : HashVal() } {}	// TODO
+		constexpr IDWithString () {}
+		explicit constexpr IDWithString (StringView name)  : _name{name}, _hash{CT_Hash( name.data() )} {}
+		explicit constexpr IDWithString (const char *name) : _name{name}, _hash{CT_Hash( name )} {}
 
-		ND_ bool operator == (const IDWithString &rhs) const		{ return _hash == rhs._hash and _name == rhs._name; }
-		ND_ bool operator != (const IDWithString &rhs) const		{ return not (*this == rhs); }
-		ND_ bool operator >  (const IDWithString &rhs) const		{ return _hash != rhs._hash ? _hash > rhs._hash : _name >  rhs._name; }
-		ND_ bool operator <  (const IDWithString &rhs) const		{ return rhs > *this; }
-		ND_ bool operator >= (const IDWithString &rhs) const		{ return not (*this <  rhs); }
-		ND_ bool operator <= (const IDWithString &rhs) const		{ return not (*this >  rhs); }
+		ND_ constexpr bool operator == (const IDWithString &rhs) const		{ return _hash == rhs._hash and _name == rhs._name; }
+		ND_ constexpr bool operator != (const IDWithString &rhs) const		{ return not (*this == rhs); }
+		ND_ constexpr bool operator >  (const IDWithString &rhs) const		{ return _hash != rhs._hash ? _hash > rhs._hash : _name >  rhs._name; }
+		ND_ constexpr bool operator <  (const IDWithString &rhs) const		{ return rhs > *this; }
+		ND_ constexpr bool operator >= (const IDWithString &rhs) const		{ return not (*this <  rhs); }
+		ND_ constexpr bool operator <= (const IDWithString &rhs) const		{ return not (*this >  rhs); }
 
-		ND_ StringView  GetName ()		const						{ return _name; }
-		ND_ HashVal		GetHash ()		const						{ return _hash; }
-		ND_ bool		IsDefined ()	const						{ return not _name.empty(); }
-
-	private:
-		constexpr HashVal _CalcHash (const char *str, const size_t idx) {
-			return *str ? _CalcHash( str+1, idx+1 ) + HashVal( size_t(*str) << ((idx*7) % 28) ) : HashVal(idx);
-		}
+		ND_ constexpr StringView	GetName ()		const					{ return _name; }
+		ND_ constexpr HashVal		GetHash ()		const					{ return _hash; }
+		ND_ constexpr bool			IsDefined ()	const					{ return not _name.empty(); }
 	};
 
 
@@ -71,20 +66,20 @@ namespace _fg_hidden_
 
 	// methods
 	public:
-		ResourceID () {}
-		explicit ResourceID (Index_t val, InstanceID_t inst) : _value{ uint64_t(val) | (uint64_t(inst) << 32) } {}
+		constexpr ResourceID () {}
+		explicit constexpr ResourceID (Index_t val, InstanceID_t inst) : _value{uint64_t(val) | (uint64_t(inst) << 32)} {}
 
-		ND_ bool			IsValid ()						const	{ return _value != ~0ull; }
-		ND_ Index_t			Index ()						const	{ return _value & 0xFFFFFFFFull; }
-		ND_ InstanceID_t	InstanceID ()					const	{ return _value >> 32; }
-		ND_ HashVal			GetHash ()						const	{ return HashVal{_value}; }
+		ND_ constexpr bool			IsValid ()						const	{ return _value != ~0ull; }
+		ND_ constexpr Index_t		Index ()						const	{ return _value & 0xFFFFFFFFull; }
+		ND_ constexpr InstanceID_t	InstanceID ()					const	{ return _value >> 32; }
+		ND_ constexpr HashVal		GetHash ()						const	{ return HashVal{_value}; }
 
-		ND_ bool			operator == (const Self &rhs)	const	{ return _value == rhs._value; }
-		ND_ bool			operator != (const Self &rhs)	const	{ return not (*this == rhs); }
+		ND_ constexpr bool			operator == (const Self &rhs)	const	{ return _value == rhs._value; }
+		ND_ constexpr bool			operator != (const Self &rhs)	const	{ return not (*this == rhs); }
 
-		ND_ explicit		operator bool ()				const	{ return IsValid(); }
+		ND_ explicit constexpr		operator bool ()				const	{ return IsValid(); }
 
-		ND_ static constexpr uint GetUID ()							{ return UID; }
+		ND_ static constexpr uint	GetUID ()								{ return UID; }
 	};
 	
 
@@ -111,14 +106,11 @@ namespace _fg_hidden_
 	// methods
 	public:
 		ResourceIDWrap ()										{}
-		//ResourceIDWrap (const Self &other) : _id{other._id}		{}
 		ResourceIDWrap (Self &&other) : _id{other._id}			{ other._id = Default; }
 		explicit ResourceIDWrap (const ID_t &id) : _id{id}		{}
 		~ResourceIDWrap ()										{ ASSERT(not IsValid()); }	// ID must be released
 
-		//Self&			operator = (const Self &rhs)					{ ASSERT(not IsValid());  _id = rhs._id;  return *this; }
 		Self&			operator = (Self &&rhs)							{ ASSERT(not IsValid());  _id = rhs._id;  rhs._id = Default;  return *this; }
-		//Self&			operator = (const ID_t &rhs)					{ ASSERT(not IsValid());  _id = rhs;  return *this; }
 
 		ND_ bool		IsValid ()						const			{ return _id.IsValid(); }
 		ND_ auto		Index ()						const			{ return _id.Index(); }

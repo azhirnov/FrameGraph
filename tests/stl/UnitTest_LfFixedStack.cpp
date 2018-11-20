@@ -1,7 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/ThreadSafe/LfFixedStack.h"
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 
 
 static void LfFixedStack_Test1 ()

@@ -73,6 +73,7 @@ namespace FG
 		VisResources					= 1 << 12,
 		VisBarriers						= 1 << 13,
 		VisBarrierLabels				= 1 << 14,
+		VisTaskDependencies				= 1 << 15,
 
 		/*LogUnreleasedResources			= 1 << 3,	// 
 		
@@ -88,7 +89,7 @@ namespace FG
 		Unknown							= 0,
 
 		Default		= LogTasks | LogBarriers | LogResourceUsage |
-					  VisTasks | VisDrawTasks | VisResources | VisBarriers,
+					  VisTasks | VisDrawTasks | VisResources | VisBarriers | VisTaskDependencies,
 	};
 	FG_BIT_OPERATORS( ECompilationDebugFlags );
 

@@ -54,9 +54,9 @@ namespace FG
 		CHECK( _LoadInstanceExtensions() );
 		CHECK( _LoadDeviceExtensions() );
 
-		_enableDebugMarkers	= HasExtension( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
+		_enableDebugUtils	= HasExtension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
 		_enableMeshShaderNV	= HasDeviceExtension( VK_NV_MESH_SHADER_EXTENSION_NAME );
-		_enableRayTracingNV	= HasDeviceExtension( VK_NVX_RAYTRACING_EXTENSION_NAME );
+		_enableRayTracingNV	= HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME );
 
 
 		// validate constants
@@ -197,19 +197,24 @@ namespace FG
 	SetObjectName
 =================================================
 */
-	bool VDevice::SetObjectName (uint64_t id, StringView name, VkDebugReportObjectTypeEXT type) const
+	bool VDevice::SetObjectName (uint64_t id, StringView name, VkObjectType type) const
 	{
-		if ( name.empty() or id == VK_NULL_HANDLE or not _enableDebugMarkers )
+		if ( name.empty() or id == VK_NULL_HANDLE )
 			return false;
 
-		VkDebugMarkerObjectNameInfoEXT	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
-		info.objectType		= type;
-		info.object			= id;
-		info.pObjectName	= name.data();
+		if ( _enableDebugUtils )
+		{
+			VkDebugUtilsObjectNameInfoEXT	info = {};
+			info.sType			= VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			info.objectType		= type;
+			info.objectHandle	= id;
+			info.pObjectName	= name.data();
 
-		VK_CALL( vkDebugMarkerSetObjectNameEXT( _vkDevice, &info ) );
-		return true;
+			VK_CALL( vkSetDebugUtilsObjectNameEXT( _vkDevice, &info ));
+			return true;
+		}
+
+		return false;
 	}
 
 

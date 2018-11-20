@@ -29,11 +29,11 @@ namespace FG
 		// build graph
 		for (auto& src : graph.Batches())
 		{
-			auto	inserted = _batches.insert({ src.first, Batch{} });
-			CHECK_ERR( inserted.second, void());
+			auto[iter, inserted] = _batches.insert({ src.first, Batch{} });
+			CHECK_ERR( inserted, void());
 			ASSERT( src.second.threadCount <= MaxSubBatches );
 
-			Batch&	dst = inserted.first->second;
+			Batch&	dst = iter->second;
 			dst.threadCount = src.second.threadCount;
 		
 			for (size_t i = 0; i < dst.threadCount; ++i, ++uid)
@@ -43,11 +43,11 @@ namespace FG
 
 			for (auto& dep : src.second.dependsOn)
 			{
-				auto	iter = _batches.find( dep );
-				CHECK_ERR( iter != _batches.end(), void());
+				auto	dep_iter = _batches.find( dep );
+				CHECK_ERR( dep_iter != _batches.end(), void());
 
-				dst.input.push_back( &iter->second );
-				iter->second.output.push_back( &dst );
+				dst.input.push_back( &dep_iter->second );
+				dep_iter->second.output.push_back( &dst );
 			}
 		}
 	}
@@ -103,7 +103,6 @@ namespace FG
 				auto&	sub_batch = batch.second.subBatches[i];
 				SCOPELOCK( sub_batch.rcCheck );
 
-				ASSERT( not sub_batch.dump.empty() );
 				str << sub_batch.dump;
 			}
 		}
@@ -120,30 +119,30 @@ namespace FG
 		str	<< "digraph FrameGraph {\n"
 			<< "	rankdir = LR;\n"
 			<< "	bgcolor = black;\n"
-			<< "	node [shape=rectangle, fontname=\"helvetica\", style=filled, layer=all, penwidth=0.0];\n"
-			<< "	edge [fontname=\"helvetica\", fontsize=8, fontcolor=white, layer=all];\n"
-			//<< "	concentrate=true;\n"
-			<< "	compound=true;\n\n";
+			<< "	labelloc = top;\n"
+			//<< "	concentrate = true;\n"
+			<< "	compound = true;\n"
+			<< "	node [shape=rectangle, margin=\"0.1,0.1\" fontname=\"helvetica\", style=filled, layer=all, penwidth=0.0];\n"
+			<< "	edge [fontname=\"helvetica\", fontsize=8, fontcolor=white, layer=all];\n\n";
 		
 		// TODO: sort?
 		for (auto& batch : _batches)
 		{
 			str << "	subgraph cluster_Batch" << ToString<16>( size_t(&batch) ) << " {\n"
-				<< "		style=filled;\n"
-				<< "		color=\"#181818\";\n"
-				<< "		fontcolor=\"#dcdcdc\";\n"
-				<< "		label=\"" << batch.first.GetName() << "\";\n";
+				<< "		style = filled;\n"
+				<< "		color = \"#181818\";\n"
+				<< "		fontcolor = \"#dcdcdc\";\n"
+				<< "		label = \"" << batch.first.GetName() << "\";\n";
 
 			for (uint i = 0; i < batch.second.threadCount; ++i)
 			{
 				auto&	sub_batch = batch.second.subBatches[i];
 				SCOPELOCK( sub_batch.rcCheck );
 
-				ASSERT( not sub_batch.graph.empty() );
 				str << sub_batch.graph;
 			}
 
-			str << "	}\n";
+			str << "	}\n\n";
 		}
 		str << "}\n";
 	}

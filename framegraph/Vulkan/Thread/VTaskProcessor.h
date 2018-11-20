@@ -51,12 +51,14 @@ namespace FG
 		VkCommandBuffer				_cmdBuffer;
 		
 		Task						_currTask;
-		bool						_isCompute				= false;
-		bool						_isDebugMarkerSupported	= false;
+		bool						_isCompute			: 1;
+		bool						_enableDebugUtils	: 1;
 
 		PendingBufferBarriers_t		_pendingBufferBarriers;
 		PendingImageBarriers_t		_pendingImageBarriers;
 		VBarrierManager &			_barrierMngr;
+
+		static constexpr float		_dbgColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 
 	// methods

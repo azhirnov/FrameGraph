@@ -4,6 +4,7 @@
 
 #include "stl/Math/Bytes.h"
 #include "stl/Math/BitMath.h"
+#include "stl/CompileTime/TypeTraits.h"
 
 namespace FG
 {
@@ -56,6 +57,7 @@ namespace FG
 	{
 		STATIC_ASSERT( sizeof(dst) == sizeof(src) );
 		//STATIC_ASSERT( std::is_trivial_v<T1> and std::is_trivial_v<T2> );	// TODO
+		STATIC_ASSERT( not IsConst<T1> );
 
         ::memcpy( &dst, &src, sizeof(src) );
 	}

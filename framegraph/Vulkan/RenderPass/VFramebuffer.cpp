@@ -135,7 +135,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		if ( _framebuffer ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT, uint64_t(_framebuffer) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_FRAMEBUFFER, uint64_t(_framebuffer) );
 		}
 
 		if ( _renderPassId ) {

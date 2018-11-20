@@ -21,10 +21,10 @@ int main ()
 {
 	//SparseImage_Sample1();
 	//AsyncCompute_Sample1();
-	//MeshShader_Sample1();
+	MeshShader_Sample1();
 	//RayTracing_Sample1();
 	//RayTracing_Sample2();
-	RayTracing_Sample3();
+	//RayTracing_Sample3();
 	//FragShaderBarycentric_Sample1();
 	//GeneratedCommands_Sample1();
 	//SparseImage_Sample1();

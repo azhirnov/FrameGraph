@@ -66,7 +66,7 @@ namespace FG
 		
 		VulkanDeviceFnTable					_deviceFnTable;
 
-		bool								_enableDebugMarkers	: 1;
+		bool								_enableDebugUtils	: 1;
 		bool								_enableMeshShaderNV	: 1;
 		bool								_enableRayTracingNV	: 1;
 
@@ -76,7 +76,7 @@ namespace FG
 		explicit VDevice (const VulkanDeviceInfo &vdi);
 		~VDevice ();
 
-		ND_ bool									EnableDebugMarkers ()		const	{ return _enableDebugMarkers; }
+		ND_ bool									EnableDebugUtils ()			const	{ return _enableDebugUtils; }
 		ND_ bool									EnableMeshShader ()			const	{ return _enableMeshShaderNV; }
 		ND_ bool									EnableRayTracing ()			const	{ return _enableRayTracingNV; }
 
@@ -98,7 +98,7 @@ namespace FG
 		ND_ bool HasExtension (StringView name) const;
 		ND_ bool HasDeviceExtension (StringView name) const;
 		
-		bool SetObjectName (uint64_t id, StringView name, VkDebugReportObjectTypeEXT type) const;
+		bool SetObjectName (uint64_t id, StringView name, VkObjectType type) const;
 
 
 	private:

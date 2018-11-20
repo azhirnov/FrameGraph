@@ -12,12 +12,10 @@ namespace FG
 	constructor
 =================================================
 */
-	VulkanDeviceExt::VulkanDeviceExt () :
-		_debugCallback{ VK_NULL_HANDLE },
-		_debugReportSupported{ false },
-		_debugMarkersSupported{ false },
-		_breakOnValidationError{ true }
+	VulkanDeviceExt::VulkanDeviceExt ()
 	{
+		_tempObjectDbgInfos.reserve( 16 );
+		_tempString.reserve( 1024 );
 	}
 	
 /*
@@ -41,7 +39,8 @@ namespace FG
 			_instanceExtensions.insert( ext );
 		}
 
-		_debugReportSupported = HasInstanceExtension( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
+		_debugReportSupported	= HasInstanceExtension( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
+		_debugUtilsSupported	= HasInstanceExtension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
 	}
 
 /*
@@ -91,9 +90,7 @@ namespace FG
 			
 			*next_props						= &_properties.rayTracing;
 			next_props						= &_properties.rayTracing.pNext;
-			_properties.rayTracing.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAYTRACING_PROPERTIES_NVX;
-
-			
+			_properties.rayTracing.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 
 			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
 		}
@@ -108,16 +105,22 @@ namespace FG
 */
 	void VulkanDeviceExt::_BeforeDestroy ()
 	{
-		if ( _debugCallback ) {
-			vkDestroyDebugReportCallbackEXT( GetVkInstance(), _debugCallback, null );
+		if ( _debugReportCallback ) {
+			vkDestroyDebugReportCallbackEXT( GetVkInstance(), _debugReportCallback, null );
+		}
+
+		if ( _debugUtilsMessenger ) {
+			vkDestroyDebugUtilsMessengerEXT( GetVkInstance(), _debugUtilsMessenger, null );
 		}
 
 		_instanceExtensions.clear();
 		_deviceExtensions.clear();
 
-		_debugCallback			= VK_NULL_HANDLE;
-		_debugReportSupported	= false;
+		_debugReportCallback	= VK_NULL_HANDLE;
+		_debugUtilsMessenger	= VK_NULL_HANDLE;
 		_callback				= DebugReport_t();
+		_debugReportSupported	= false;
+		_debugUtilsSupported	= false;
 		_debugMarkersSupported	= false;
 	}
 	
@@ -148,61 +151,116 @@ namespace FG
 
 /*
 =================================================
-	DebugReportObjectTypeToString
+	ObjectTypeToString
 =================================================
 */
-	static String  DebugReportObjectTypeToString (VkDebugReportObjectTypeEXT objType)
+	ND_ static StringView  ObjectTypeToString (VkObjectType objType)
 	{
 		ENABLE_ENUM_CHECKS();
 		switch ( objType )
 		{
-			case VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT			: return "Instance";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT	: return "PhysicalDevice";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT				: return "Device";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT				: return "Queue";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT			: return "Semaphore";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT		: return "CommandBuffer";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT				: return "Fence";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT		: return "DeviceMemory";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT				: return "Buffer";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT				: return "Image";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT				: return "Event";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT			: return "QueryPool";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT		: return "BufferView";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT			: return "ImageView";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT		: return "ShaderModule";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_CACHE_EXT		: return "PipelineCache";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT	: return "PipelineLayout";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT		: return "RenderPass";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT			: return "Pipeline";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT	: return "DescriptorSetLayout";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT			: return "Sampler";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_POOL_EXT	: return "DescriptorPool";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT		: return "DescriptorSet";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT		: return "Framebuffer";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT		: return "CommandPool";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT		: return "Surface";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT		: return "Swapchain";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT		: return "DebugReport";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT		: return "Display";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT	: return "DisplayMode";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT	: return "ObjectTableNvx";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT : return "IndirectCommandsLayoutNvx";
-			case VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NVX_EXT :	return "AccelerationStructureNvx";	
+			case VK_OBJECT_TYPE_INSTANCE			: return "Instance";
+			case VK_OBJECT_TYPE_PHYSICAL_DEVICE		: return "PhysicalDevice";
+			case VK_OBJECT_TYPE_DEVICE				: return "Device";
+			case VK_OBJECT_TYPE_QUEUE				: return "Queue";
+			case VK_OBJECT_TYPE_SEMAPHORE			: return "Semaphore";
+			case VK_OBJECT_TYPE_COMMAND_BUFFER		: return "CommandBuffer";
+			case VK_OBJECT_TYPE_FENCE				: return "Fence";
+			case VK_OBJECT_TYPE_DEVICE_MEMORY		: return "DeviceMemory";
+			case VK_OBJECT_TYPE_BUFFER				: return "Buffer";
+			case VK_OBJECT_TYPE_IMAGE				: return "Image";
+			case VK_OBJECT_TYPE_EVENT				: return "Event";
+			case VK_OBJECT_TYPE_QUERY_POOL			: return "QueryPool";
+			case VK_OBJECT_TYPE_BUFFER_VIEW			: return "BufferView";
+			case VK_OBJECT_TYPE_IMAGE_VIEW			: return "ImageView";
+			case VK_OBJECT_TYPE_SHADER_MODULE		: return "ShaderModule";
+			case VK_OBJECT_TYPE_PIPELINE_CACHE		: return "PipelineCache";
+			case VK_OBJECT_TYPE_PIPELINE_LAYOUT		: return "PipelineLayout";
+			case VK_OBJECT_TYPE_RENDER_PASS			: return "RenderPass";
+			case VK_OBJECT_TYPE_PIPELINE			: return "Pipeline";
+			case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT: return "DescriptorSetLayout";
+			case VK_OBJECT_TYPE_SAMPLER				: return "Sampler";
+			case VK_OBJECT_TYPE_DESCRIPTOR_POOL		: return "DescriptorPool";
+			case VK_OBJECT_TYPE_DESCRIPTOR_SET		: return "DescriptorSet";
+			case VK_OBJECT_TYPE_FRAMEBUFFER			: return "Framebuffer";
+			case VK_OBJECT_TYPE_COMMAND_POOL		: return "CommandPool";
+			case VK_OBJECT_TYPE_SURFACE_KHR			: return "Surface";
+			case VK_OBJECT_TYPE_SWAPCHAIN_KHR		: return "Swapchain";
+			case VK_OBJECT_TYPE_DISPLAY_KHR			: return "Display";
+			case VK_OBJECT_TYPE_DISPLAY_MODE_KHR	: return "DisplayMode";
+			case VK_OBJECT_TYPE_OBJECT_TABLE_NVX	: return "ObjectTableNvx";
+			case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX: return "IndirectCommandsLayoutNvx";
+			case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV	: return "AccelerationStructureNv";
+			case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT	: return "DebugReportCallback";
+			case VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT	: return "DebugUtilsMessenger";
+			case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION	: return "SamplerYcBr";
 
-			case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_RANGE_SIZE_EXT :
-			case VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT :
+			case VK_OBJECT_TYPE_UNKNOWN :
+			case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE :
+			case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT :
+			case VK_OBJECT_TYPE_RANGE_SIZE :
+			case VK_OBJECT_TYPE_MAX_ENUM :
 				break;	// used to shutup compilation warnings
 		}
 		DISABLE_ENUM_CHECKS();
 
-		CHECK(	objType >= VK_DEBUG_REPORT_OBJECT_TYPE_BEGIN_RANGE_EXT and
-				objType <= VK_DEBUG_REPORT_OBJECT_TYPE_END_RANGE_EXT );
+		CHECK(	objType >= VK_OBJECT_TYPE_BEGIN_RANGE and
+				objType <= VK_OBJECT_TYPE_END_RANGE );
 		return "unknown";
+	}
+
+/*
+=================================================
+	DebugReportObjectTypeToString
+=================================================
+*/
+	ND_ static VkObjectType  DebugReportObjectTypeToObjectType (VkDebugReportObjectTypeEXT objType)
+	{
+		ENABLE_ENUM_CHECKS();
+		switch ( objType )
+		{
+			case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT :				return VK_OBJECT_TYPE_UNKNOWN;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT :				return VK_OBJECT_TYPE_INSTANCE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT :		return VK_OBJECT_TYPE_PHYSICAL_DEVICE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT :				return VK_OBJECT_TYPE_DEVICE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT :				return VK_OBJECT_TYPE_QUEUE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT :			return VK_OBJECT_TYPE_SEMAPHORE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT :		return VK_OBJECT_TYPE_COMMAND_BUFFER;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT :				return VK_OBJECT_TYPE_FENCE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT :		return VK_OBJECT_TYPE_DEVICE_MEMORY;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT :				return VK_OBJECT_TYPE_BUFFER;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT :				return VK_OBJECT_TYPE_IMAGE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT :				return VK_OBJECT_TYPE_EVENT;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT :			return VK_OBJECT_TYPE_QUERY_POOL;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT :			return VK_OBJECT_TYPE_BUFFER_VIEW;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT :			return VK_OBJECT_TYPE_IMAGE_VIEW;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT :		return VK_OBJECT_TYPE_SHADER_MODULE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_CACHE_EXT :		return VK_OBJECT_TYPE_PIPELINE_CACHE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT :		return VK_OBJECT_TYPE_PIPELINE_LAYOUT;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT :			return VK_OBJECT_TYPE_RENDER_PASS;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT :				return VK_OBJECT_TYPE_PIPELINE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT : return VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT :				return VK_OBJECT_TYPE_SAMPLER;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_POOL_EXT :		return VK_OBJECT_TYPE_DESCRIPTOR_POOL;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT :		return VK_OBJECT_TYPE_DESCRIPTOR_SET;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT :			return VK_OBJECT_TYPE_FRAMEBUFFER;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT :			return VK_OBJECT_TYPE_COMMAND_POOL;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT :			return VK_OBJECT_TYPE_SURFACE_KHR;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT :		return VK_OBJECT_TYPE_SWAPCHAIN_KHR;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT :	return VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT :					return VK_OBJECT_TYPE_DISPLAY_KHR;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT :				return VK_OBJECT_TYPE_DISPLAY_MODE_KHR;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT :				return VK_OBJECT_TYPE_OBJECT_TABLE_NVX;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT :	return VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT :			return VK_OBJECT_TYPE_VALIDATION_CACHE_EXT;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT :		return VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT :	return VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT :	return VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV;
+			case VK_DEBUG_REPORT_OBJECT_TYPE_RANGE_SIZE_EXT :
+			case VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT :					break;
+		}
+		DISABLE_ENUM_CHECKS();
+		return VK_OBJECT_TYPE_MAX_ENUM;
 	}
 
 /*
@@ -215,61 +273,132 @@ namespace FG
 																uint64_t object,
 																size_t /*location*/,
 																int32_t /*messageCode*/,
-																const char* pLayerPrefix,
+																const char* /*pLayerPrefix*/,
 																const char* pMessage,
 																void* pUserData)
 	{
-		static_cast<VulkanDeviceExt *>(pUserData)->_DebugReport( flags, DebugReportObjectTypeToString(objectType), object, pLayerPrefix, pMessage );
+		auto* self = static_cast<VulkanDeviceExt *>(pUserData);
+		
+		self->_tempObjectDbgInfos.resize( 1 );
+		self->_tempObjectDbgInfos[0] = { ObjectTypeToString(DebugReportObjectTypeToObjectType( objectType )), "", object };
+
+		self->_DebugReport({ self->_tempObjectDbgInfos, pMessage,
+							 EnumEq( flags, VK_DEBUG_REPORT_ERROR_BIT_EXT )
+						   });
 		return VK_FALSE;
 	}
 	
 /*
 =================================================
-	_DebugReport
+	_DebugUtilsCallback
 =================================================
 */
-	void VulkanDeviceExt::_DebugReport (VkDebugReportFlagsEXT flags, StringView objectType, uint64_t object, StringView layerPrefix, StringView message) const
+	VkBool32 VKAPI_CALL VulkanDeviceExt::_DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+															  VkDebugUtilsMessageTypeFlagsEXT                  /*messageTypes*/,
+															  const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+															  void*                                            pUserData)
 	{
-		if ( _callback )
-			return _callback({ flags, objectType, object, layerPrefix, message });
+		auto* self = static_cast<VulkanDeviceExt *>(pUserData);
 		
+		self->_tempObjectDbgInfos.resize( pCallbackData->objectCount );
 
-		if ( _breakOnValidationError and EnumAny( flags, VK_DEBUG_REPORT_ERROR_BIT_EXT ) )
+		for (uint i = 0; i < pCallbackData->objectCount; ++i)
 		{
-			FG_LOGE( "Error in object '"s << objectType << "' (" << ToString(object) << "), layer: " << layerPrefix << ", message: " << message );
+			auto&	obj = pCallbackData->pObjects[i];
+
+			self->_tempObjectDbgInfos[i] = { ObjectTypeToString( obj.objectType ),
+											 obj.pObjectName ? StringView{obj.pObjectName} : StringView{},
+											 obj.objectHandle };
 		}
-		else
-		{
-			FG_LOGI( "Info message in object '"s << objectType << "' (" << ToString(object) << "), layer: " << layerPrefix << ", message: " << message );
-		}
+		
+		self->_DebugReport({ self->_tempObjectDbgInfos, pCallbackData->pMessage,
+							 EnumEq( messageSeverity, VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT )
+						   });
+		return VK_FALSE;
 	}
 
 /*
 =================================================
-	CreateDebugCallback
+	_DebugReport
 =================================================
 */
-	bool VulkanDeviceExt::CreateDebugCallback (VkDebugReportFlagsEXT flags, DebugReport_t &&callback)
+	void VulkanDeviceExt::_DebugReport (const DebugReport &msg)
+	{
+		if ( _callback )
+			return _callback( msg );
+		
+		String&		str = _tempString;
+		str.clear();
+
+		str << (msg.isError ? "Error: " : "Message: ") << msg.message << '\n';
+
+		for (auto& obj : msg.objects)
+		{
+			str << "object{ " << obj.type << ", \"" << obj.name << "\", " << ToString(obj.handle) << " }\n";
+		}
+		str << "----------------------------\n";
+
+		if ( _breakOnValidationError and msg.isError )
+			FG_LOGE( str )
+		else
+			FG_LOGI( str );
+	}
+
+/*
+=================================================
+	CreateDebugReportCallback
+=================================================
+*/
+	bool VulkanDeviceExt::CreateDebugReportCallback (VkDebugReportFlagsEXT flags, DebugReport_t &&callback)
 	{
 		CHECK_ERR( GetVkInstance() );
-		CHECK_ERR( not _debugCallback );
+		CHECK_ERR( not _debugReportCallback );
+		CHECK_ERR( not _debugUtilsMessenger );
 	
 		if ( not _debugReportSupported )
 			return false;
 
-		VkDebugReportCallbackCreateInfoEXT	dbg_callback_info = {};
+		VkDebugReportCallbackCreateInfoEXT	info = {};
+		info.sType			= VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+		info.flags			= flags;
+		info.pfnCallback	= _DebugReportCallback;
+		info.pUserData		= this;
 
-		dbg_callback_info.sType			= VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-		dbg_callback_info.flags			= flags;
-		dbg_callback_info.pfnCallback	= _DebugReportCallback;
-		dbg_callback_info.pUserData		= this;
-
-		VK_CHECK( vkCreateDebugReportCallbackEXT( GetVkInstance(), &dbg_callback_info, null, OUT &_debugCallback ) );
+		VK_CHECK( vkCreateDebugReportCallbackEXT( GetVkInstance(), &info, null, OUT &_debugReportCallback ) );
 
 		_callback = std::move(callback);
 		return true;
 	}
 	
+/*
+=================================================
+	CreateDebugUtilsCallback
+=================================================
+*/
+	bool VulkanDeviceExt::CreateDebugUtilsCallback (VkDebugUtilsMessageSeverityFlagsEXT severity, DebugReport_t &&callback)
+	{
+		CHECK_ERR( GetVkInstance() );
+		CHECK_ERR( not _debugReportCallback );
+		CHECK_ERR( not _debugUtilsMessenger );
+	
+		if ( not _debugUtilsSupported )
+			return false;
+
+		VkDebugUtilsMessengerCreateInfoEXT	info = {};
+		info.sType				= VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+		info.messageSeverity	= severity;
+		info.messageType		= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT     |
+								  VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT  |
+								  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		info.pfnUserCallback	= _DebugUtilsCallback;
+		info.pUserData			= this;
+
+		VK_CHECK( vkCreateDebugUtilsMessengerEXT( GetVkInstance(), &info, NULL, &_debugUtilsMessenger ));
+
+		_callback = std::move(callback);
+		return true;
+	}
+
 /*
 =================================================
 	GetMemoryTypeIndex

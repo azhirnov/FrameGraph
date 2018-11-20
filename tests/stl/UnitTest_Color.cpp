@@ -1,7 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Math/Color.h"
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 
 
 static void RGBAColor_Test1 ()

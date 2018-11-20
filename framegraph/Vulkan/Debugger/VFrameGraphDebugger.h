@@ -49,17 +49,15 @@ namespace FG
 
 		struct TaskInfo
 		{
-			TaskPtr					task;
+			TaskPtr					task		= null;
 			Array<ResourceUsage_t>	resources;
+			mutable String			anyNode;
 
 			TaskInfo () {}
 			explicit TaskInfo (TaskPtr task) : task{task} {}
 		};
 
 		using TaskMap_t	= Array< TaskInfo >;
-		
-		struct NodeUniqueNames;
-		struct ColorScheme;
 
 
 	// variables
@@ -123,19 +121,42 @@ namespace FG
 	// dump to graphviz format
 	private:
 		void _DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const;
+		void _AddInitialStates (INOUT String &str) const;
+		void _AddFinalStates (INOUT String &str, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const;
 
-		void _GetResourceUsage (ArrayView<ResourceUsage_t> resources, OUT String &resStyle,
-								INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const;
+		void _GetResourceUsage (const TaskInfo &info, OUT String &resStyle,
+								OUT String &barStyle, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const;
 
-		void _GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &style, INOUT String &deps,
+		void _GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &barStyle, INOUT String &deps,
 								INOUT HashSet<String> &existingBarriers) const;
 
-		void _GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &style, INOUT String &deps,
+		void _GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &barStyle, INOUT String &deps,
 							   INOUT HashSet<String> &existingBarriers) const;
 
 		template <typename T, typename B>
 		void _GetResourceBarrier (const T *res, const Barrier<B> &bar, VkImageLayout oldLayout, VkImageLayout newLayout,
 								  INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const;
+
+		ND_ String  _VisTaskName (TaskPtr task) const;
+		ND_ String  _VisBarrierGroupName (TaskPtr task) const;
+		ND_ String  _VisBarrierGroupName (ExeOrderIndex index) const;
+		ND_ String  _VisDrawTaskName (TaskPtr task) const;
+		ND_ String  _VisResourceName (const VBuffer *buffer, TaskPtr task) const;
+		ND_ String  _VisResourceName (const VBuffer *buffer, ExeOrderIndex index) const;
+		ND_ String  _VisResourceName (const VImage *image, TaskPtr task) const;
+		ND_ String  _VisResourceName (const VImage *image, ExeOrderIndex index) const;
+		ND_ String  _VisBarrierName (const VBuffer *buffer, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const;
+		ND_ String  _VisBarrierName (const VImage *image, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const;
+
+		ND_ String  _SubBatchBG () const;
+		ND_ String  _TaskLabelColor (RGBA8u) const;
+		ND_ String  _DrawTaskBG () const;
+		ND_ String  _DrawTaskLabelColor () const;
+		ND_ String  _ResourceBG (const VBuffer *) const;
+		ND_ String  _ResourceBG (const VImage *) const;
+		ND_ String  _ResourceToResourceEdgeColor (TaskPtr task) const;
+		ND_ String  _ResourceGroupBG (TaskPtr task) const;
+		ND_ String  _BarrierGroupBorderColor () const;
 
 
 	// utils

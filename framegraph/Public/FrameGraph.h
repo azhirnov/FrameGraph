@@ -40,6 +40,7 @@ namespace FG
 
 		// frame execution
 			virtual bool		Begin (const SubmissionGraph &) = 0;
+			virtual bool		SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch) = 0;
 			virtual bool		Execute () = 0;
 			virtual bool		WaitIdle () = 0;
 

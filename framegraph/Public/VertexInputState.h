@@ -23,7 +23,6 @@ namespace FG
 			EVertexType		type;		// float|int|uint <1,2,3,4,...> are available
 		};
 
-	private:
 		using Self	= VertexInputState;
 		
 		struct VertexInput
@@ -140,17 +139,17 @@ namespace std
 	
 	template <>
 	struct hash < FG::VertexInputState::VertexInput > {
-		ND_ size_t  operator () (const FG::VertexInputState::VertexInput &x) const noexcept;
+		ND_ size_t  operator () (const FG::VertexInputState::VertexInput &) const noexcept;
 	};
 	
 	template <>
 	struct hash < FG::VertexInputState::BufferBinding > {
-		ND_ size_t  operator () (const FG::VertexInputState::BufferBinding &x) const noexcept;
+		ND_ size_t  operator () (const FG::VertexInputState::BufferBinding &) const noexcept;
 	};
 	
 	template <>
 	struct hash < FG::VertexInputState > {
-		ND_ size_t  operator () (const FG::VertexInputState &x) const noexcept;
+		ND_ size_t  operator () (const FG::VertexInputState &) const noexcept;
 	};
 
 }	// std

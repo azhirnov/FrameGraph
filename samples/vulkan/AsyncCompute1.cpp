@@ -168,8 +168,9 @@ bool AsyncComputeApp::Initialize ()
 			));
 		
 		presentInComputeQueueSupported = EnumEq( vulkan.GetVkQuues()[1].flags, VK_QUEUE_PRESENT_BIT );
-
-		vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT );
+		
+		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
+		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 	}
 
 

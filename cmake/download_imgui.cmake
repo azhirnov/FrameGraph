@@ -4,7 +4,7 @@ if (${FG_ENABLE_IMGUI})
 	set( FG_EXTERNAL_IMGUI_PATH "" CACHE PATH "path to imgui source" )
 
 	# reset to default
-	if (NOT EXISTS "${FG_EXTERNAL_IMGUI_PATH}/include/imgui")
+	if (NOT EXISTS "${FG_EXTERNAL_IMGUI_PATH}/imgui.h")
 		message( STATUS "imgui is not found in \"${FG_EXTERNAL_IMGUI_PATH}\"" )
 		set( FG_EXTERNAL_IMGUI_PATH "${FG_EXTERNALS_PATH}/imgui" CACHE PATH "" FORCE )
 		set( FG_IMGUI_REPOSITORY "https://github.com/ocornut/imgui.git" )
@@ -35,10 +35,7 @@ if (${FG_ENABLE_IMGUI})
 		LOG_CONFIGURE 		1
 		# build
 		BINARY_DIR			"${CMAKE_BINARY_DIR}/build-imgui"
-		BUILD_COMMAND		"${CMAKE_COMMAND}"
-							--build .
-							--target ALL_BUILD
-							--config $<CONFIG>
+		BUILD_COMMAND		""
 		LOG_BUILD 			1
 		# install
 		INSTALL_DIR 		""

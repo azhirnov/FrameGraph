@@ -116,8 +116,9 @@ public:
 				CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_1, "nvidia" ));
 
 				// it is the test, so test must fail on any error
-				vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT,
-											[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(rep.flags != VK_DEBUG_REPORT_ERROR_BIT_EXT); });
+				//vulkan.CreateDebugReportCallback( DebugReportFlags_All,
+				vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
+												[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
 			}
 		}
 

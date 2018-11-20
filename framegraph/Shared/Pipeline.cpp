@@ -380,7 +380,9 @@ namespace FG
 	constructor
 =================================================
 */
-	MeshPipelineDesc::MeshPipelineDesc ()
+	MeshPipelineDesc::MeshPipelineDesc () :
+		_taskSizeSpec{ UNDEFINED_SPECIALIZATION },
+		_meshSizeSpec{ UNDEFINED_SPECIALIZATION }
 	{
 	}
 

@@ -11,6 +11,8 @@ namespace FG
 	{
 		Nearest,
 		Linear,
+
+		Unknown	= ~0u,
 	};
 
 
@@ -18,6 +20,8 @@ namespace FG
 	{
 		Nearest,
 		Linear,
+		
+		Unknown	= ~0u,
 	};
 
 
@@ -28,6 +32,8 @@ namespace FG
 		ClampToEdge,
 		ClampToBorder,
 		MirrorClampToEdge,
+		
+		Unknown	= ~0u,
 	};
 
 
@@ -40,6 +46,8 @@ namespace FG
 		IntTransparentBlack,
 		IntOpaqueBlack,
 		IntOpaqueWhite,
+		
+		Unknown	= ~0u,
 	};
 
 }	// FG

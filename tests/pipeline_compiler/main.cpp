@@ -32,7 +32,7 @@ int main ()
 	Test_Shader5( &compiler );
 	Test_Shader6( &compiler );
 	Test_Shader7( &compiler );
-	//Test_Shader8( &compiler );
+	Test_Shader8( &compiler );
 	Test_Shader9( &compiler );
 
     FG_LOGI( "Tests.PipelineCompiler finished" );

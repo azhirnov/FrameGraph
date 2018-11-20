@@ -157,7 +157,8 @@ bool SparseImageApp::Initialize ()
 								  {}
 			));
 		
-		vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT );
+		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
+		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 
 		CHECK_ERR( IsSparseImageSupported() );
 	}

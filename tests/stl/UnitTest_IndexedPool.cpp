@@ -3,7 +3,7 @@
 #include "stl/Containers/ChunkedIndexedPool.h"
 #include "stl/Containers/CachedIndexedPool.h"
 #include "stl/CompileTime/Math.h"
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 
 
 static void ChunkedIndexedPool_Test1 ()

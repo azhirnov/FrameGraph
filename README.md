@@ -3,6 +3,7 @@ Work in progress.
 
 ## Features
 * multithreaded command buffer building and submitting.
+* simple API, hides memory allocation, host to/from device transfers.
 * frame graph visualization.
 
 ## Suported Platforms
@@ -29,6 +30,10 @@ Dependencies:<br/>
 [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - required.<br/>
 [lodepng](https://github.com/lvandeve/lodepng) - optional.<br/>
 [graphviz](https://www.graphviz.org/) - (optional) for graph visualization.<br/>
+[Assimp](https://github.com/assimp/assimp) - (optional) for Scene extension.<br/>
+[DevIL](http://openil.sourceforge.net/) - (optional) for Scene extension.<br/>
+[FreeImage](http://freeimage.sourceforge.net/) - (optional) for Scene extension.<br/>
+[imgui](https://github.com/ocornut/imgui) - (optional) for UI extension.<br/>
 
 ## Roadmap
 ### Stage 1
@@ -46,6 +51,7 @@ Dependencies:<br/>
 ### Stage 2
 - mesh shader support.<br/>
 - ray tracing support.<br/>
+- sparse memory support.<br/>
 - custom RAM allocators.<br/>
 - logical resources.<br/>
 - advanced VRAM managment.<br/>

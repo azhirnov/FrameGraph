@@ -43,6 +43,9 @@ namespace FG
 	template <typename T>
 	static constexpr bool	IsUnion				= std::is_union_v<T>;
 
+	template <typename T>
+	static constexpr bool	IsConst				= std::is_const_v<T>;
+
 	template <typename T1, typename T2>
 	static constexpr bool	IsSameTypes			= std::is_same_v<T1, T2>;
 

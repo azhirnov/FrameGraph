@@ -219,12 +219,12 @@ namespace FG
 			case EShader::MeshTask :		return VK_SHADER_STAGE_TASK_BIT_NV;
 			case EShader::Mesh :			return VK_SHADER_STAGE_MESH_BIT_NV;
 				
-			case EShader::RayGen :			return VK_SHADER_STAGE_RAYGEN_BIT_NVX;
-			case EShader::RayAnyHit :		return VK_SHADER_STAGE_ANY_HIT_BIT_NVX;
-			case EShader::RayClosestHit :	return VK_SHADER_STAGE_CLOSEST_HIT_BIT_NVX;
-			case EShader::RayMiss :			return VK_SHADER_STAGE_MISS_BIT_NVX;
-			case EShader::RayIntersection :	return VK_SHADER_STAGE_INTERSECTION_BIT_NVX;
-			case EShader::RayCallable :		return VK_SHADER_STAGE_CALLABLE_BIT_NVX;
+			case EShader::RayGen :			return VK_SHADER_STAGE_RAYGEN_BIT_NV;
+			case EShader::RayAnyHit :		return VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+			case EShader::RayClosestHit :	return VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+			case EShader::RayMiss :			return VK_SHADER_STAGE_MISS_BIT_NV;
+			case EShader::RayIntersection :	return VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+			case EShader::RayCallable :		return VK_SHADER_STAGE_CALLABLE_BIT_NV;
 
 			case EShader::_Count :			break;
 		}
@@ -257,12 +257,12 @@ namespace FG
 				case EShaderStages::Compute :			flags |= VK_SHADER_STAGE_COMPUTE_BIT;					break;
 				case EShaderStages::MeshTask :			flags |= VK_SHADER_STAGE_TASK_BIT_NV;					break;
 				case EShaderStages::Mesh :				flags |= VK_SHADER_STAGE_MESH_BIT_NV;					break;
-				case EShaderStages::RayGen :			flags |= VK_SHADER_STAGE_RAYGEN_BIT_NVX;				break;
-				case EShaderStages::RayAnyHit :			flags |= VK_SHADER_STAGE_ANY_HIT_BIT_NVX;				break;
-				case EShaderStages::RayClosestHit :		flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NVX;			break;
-				case EShaderStages::RayMiss :			flags |= VK_SHADER_STAGE_MISS_BIT_NVX;					break;
-				case EShaderStages::RayIntersection :	flags |= VK_SHADER_STAGE_INTERSECTION_BIT_NVX;			break;
-				case EShaderStages::RayCallable :		flags |= VK_SHADER_STAGE_CALLABLE_BIT_NVX;				break;
+				case EShaderStages::RayGen :			flags |= VK_SHADER_STAGE_RAYGEN_BIT_NV;					break;
+				case EShaderStages::RayAnyHit :			flags |= VK_SHADER_STAGE_ANY_HIT_BIT_NV;				break;
+				case EShaderStages::RayClosestHit :		flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;			break;
+				case EShaderStages::RayMiss :			flags |= VK_SHADER_STAGE_MISS_BIT_NV;					break;
+				case EShaderStages::RayIntersection :	flags |= VK_SHADER_STAGE_INTERSECTION_BIT_NV;			break;
+				case EShaderStages::RayCallable :		flags |= VK_SHADER_STAGE_CALLABLE_BIT_NV;				break;
 				case EShaderStages::_Last :
 				case EShaderStages::Unknown :
 				case EShaderStages::AllGraphics :
@@ -437,6 +437,7 @@ namespace FG
 		{
 			case EFilter::Nearest :	return VK_FILTER_NEAREST;
 			case EFilter::Linear :	return VK_FILTER_LINEAR;
+			case EFilter::Unknown :	break;
 		}
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "unknown filter mode", VK_FILTER_MAX_ENUM );
@@ -454,6 +455,7 @@ namespace FG
 		{
 			case EMipmapFilter::Nearest :	return VK_SAMPLER_MIPMAP_MODE_NEAREST;
 			case EMipmapFilter::Linear :	return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			case EMipmapFilter::Unknown :	break;
 		}
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "unknown sampler mipmap mode", VK_SAMPLER_MIPMAP_MODE_MAX_ENUM );
@@ -474,6 +476,7 @@ namespace FG
 			case EAddressMode::ClampToEdge :		return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 			case EAddressMode::ClampToBorder :		return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
 			case EAddressMode::MirrorClampToEdge :	return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+			case EAddressMode::Unknown :			break;
 		}
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "unknown sampler address mode", VK_SAMPLER_ADDRESS_MODE_MAX_ENUM );
@@ -495,6 +498,7 @@ namespace FG
 			case EBorderColor::IntTransparentBlack :	return VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
 			case EBorderColor::IntOpaqueBlack :			return VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 			case EBorderColor::IntOpaqueWhite :			return VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+			case EBorderColor::Unknown :				break;
 		}
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "unknown border color type", VK_BORDER_COLOR_MAX_ENUM );
@@ -551,6 +555,7 @@ namespace FG
 				case EImageUsage::DepthStencilAttachment	: flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;	break;
 				case EImageUsage::TransientAttachment		: flags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;		break;
 				case EImageUsage::InputAttachment			: flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;			break;
+				case EImageUsage::ShadingRate				: flags |= VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV;	break;
 				case EImageUsage::_Last						:
 				case EImageUsage::Unknown					:
 				case EImageUsage::Transfer					:
@@ -674,6 +679,7 @@ namespace FG
 				case EBufferUsage::Index		:	result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;			break;
 				case EBufferUsage::Vertex		:	result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;		break;
 				case EBufferUsage::Indirect		:	result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;		break;
+				case EBufferUsage::RayTracing	:	result |= VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;		break;
 				case EBufferUsage::_Last		:
 				case EBufferUsage::Transfer		:
 				case EBufferUsage::Unknown		:

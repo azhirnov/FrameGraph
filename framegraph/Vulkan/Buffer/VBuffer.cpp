@@ -47,9 +47,9 @@ namespace FG
 
 		CHECK_ERR( memObj.AllocateForBuffer( _buffer ));
 
-		if ( not _debugName.empty() )
+		if ( not dbgName.empty() )
 		{
-			dev.SetObjectName( BitCast<uint64_t>(_buffer), _debugName, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT );
+			dev.SetObjectName( BitCast<uint64_t>(_buffer), dbgName, VK_OBJECT_TYPE_BUFFER );
 		}
 
 		_currQueueFamily	= queueFamily;
@@ -84,10 +84,10 @@ namespace FG
 				case VK_BUFFER_USAGE_INDEX_BUFFER_BIT :			result |= EBufferUsage::Index;			break;
 				case VK_BUFFER_USAGE_VERTEX_BUFFER_BIT :		result |= EBufferUsage::Vertex;			break;
 				case VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT :		result |= EBufferUsage::Indirect;		break;
+				case VK_BUFFER_USAGE_RAY_TRACING_BIT_NV :		result |= EBufferUsage::RayTracing;		break;
 				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT :
 				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT :	// TODO
 				case VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT :
-				case VK_BUFFER_USAGE_RAYTRACING_BIT_NVX :
 				case VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM :
 				default :										RETURN_ERR( "invalid buffer usage" );
 			}
@@ -111,9 +111,9 @@ namespace FG
 		_desc.usage			= EBufferUsage_FromVk( desc.usage );
 		_desc.isExternal	= true;
 
-		if ( not _debugName.empty() )
+		if ( not dbgName.empty() )
 		{
-			dev.SetObjectName( BitCast<uint64_t>(_buffer), _debugName, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT );
+			dev.SetObjectName( BitCast<uint64_t>(_buffer), dbgName, VK_OBJECT_TYPE_BUFFER );
 		}
 
 		//_semaphore		= BitCast<VkSemaphore>( desc.semaphore );
@@ -138,7 +138,7 @@ namespace FG
 		}
 
 		if ( not _desc.isExternal and _buffer ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, uint64_t(_buffer) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_BUFFER, uint64_t(_buffer) );
 		}
 
 		if ( _memoryId ) {

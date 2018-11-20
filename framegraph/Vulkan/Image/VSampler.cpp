@@ -207,7 +207,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		if ( _sampler ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT, uint64_t(_sampler) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_SAMPLER, uint64_t(_sampler) );
 		}
 
 		_sampler	= VK_NULL_HANDLE;

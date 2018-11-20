@@ -253,7 +253,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		if ( _layout ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT, uint64_t(_layout) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, uint64_t(_layout) );
 		}
 
 		_poolSize.clear();

@@ -35,7 +35,7 @@ namespace FG
 
 	using DebugName_t				= StaticString<64>;
 
-	using UntypedVkResource_t		= Pair< VkDebugReportObjectTypeEXT, uint64_t >;
+	using UntypedVkResource_t		= Pair< VkObjectType, uint64_t >;
 	using AppendableVkResources_t	= Appendable< UntypedVkResource_t >;
 	
 	using UntypedResourceID_t		= Union< RawImageID, RawSamplerID, RawBufferID, RawGPipelineID, RawCPipelineID,
@@ -60,6 +60,7 @@ namespace FG
 		Initial		= 0,
 		First		= 1,
 		Final		= 0x80000000,
+		Unknown		= ~0u,
 	};
 
 	enum class EQueueFamily : uint

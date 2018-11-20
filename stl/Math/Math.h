@@ -176,7 +176,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ forceinline constexpr EnableIf<IsScalar<T>, bool>  Equals (const T &lhs, const T &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	ND_ forceinline constexpr EnableIf<IsScalar<T>, bool>  Equals (const T &lhs, const T &rhs, const T &err = std::numeric_limits<T>::epsilon() * T(2))
 	{
 		if constexpr ( IsUnsignedInteger<T> )
 		{

@@ -122,7 +122,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		for (auto& ppln : _instances) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, uint64_t(ppln.second) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(ppln.second) );
 		}
 		
 		if ( _layoutId ) {

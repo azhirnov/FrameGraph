@@ -112,6 +112,11 @@ if (${FG_ENABLE_GLSLANG})
 		message( STATUS "glslang is not found in ${FG_EXTERNAL_GLSLANG_PATH}" )
 		set( FG_EXTERNAL_GLSLANG_PATH "${FG_EXTERNALS_PATH}/glslang" CACHE PATH "" FORCE )
 	endif ()
+	
+	set( ENABLE_HLSL ON CACHE BOOL "glslang option" )
+	set( ENABLE_OPT ON CACHE BOOL "glslang option" )
+	set( ENABLE_AMD_EXTENSIONS ON CACHE BOOL "glslang option" )
+	set( ENABLE_NV_EXTENSIONS ON CACHE BOOL "glslang option" )
 
 	ExternalProject_Add( "External.glslang"
 		# download
@@ -195,10 +200,10 @@ if (${FG_ENABLE_GLSLANG})
 							"-DCMAKE_DEBUG_POSTFIX="
 							"-DCMAKE_RELEASE_POSTFIX="
 							"-DCMAKE_INSTALL_PREFIX=${FG_GLSLANG_INSTALL_DIR}"
-							"-DENABLE_AMD_EXTENSIONS=ON"
-							"-DENABLE_NV_EXTENSIONS=ON"
-							"-DENABLE_HLSL=ON"
-							"-DENABLE_OPT=ON"
+							"-DENABLE_AMD_EXTENSIONS=${ENABLE_AMD_EXTENSIONS}"
+							"-DENABLE_NV_EXTENSIONS=${ENABLE_NV_EXTENSIONS}"
+							"-DENABLE_HLSL=${ENABLE_HLSL}"
+							"-DENABLE_OPT=${ENABLE_OPT}"
 							"-DENABLE_SPVREMAPPER=ON"
 							"-DENABLE_GLSLANG_BINARIES=ON"
 							"-DSKIP_GLSLANG_INSTALL=OFF"
@@ -227,8 +232,12 @@ if (${FG_ENABLE_GLSLANG})
 	set_property( TARGET "External.glslang" PROPERTY FOLDER "External" )
 	set_property( TARGET "External.glslang-main" PROPERTY FOLDER "External" )
 	
-	if (NOT UNIX AND ${ENABLE_OPT})  # TODO: fix fir linux
+	if (NOT UNIX AND ${ENABLE_OPT})
 		set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "ENABLE_OPT" )
+	endif ()
+
+	if (${ENABLE_HLSL})
+		set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "ENABLE_HLSL" )
 	endif ()
 
 	if (${ENABLE_AMD_EXTENSIONS})

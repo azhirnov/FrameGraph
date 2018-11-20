@@ -45,7 +45,7 @@ namespace FG
 			return HashVal(*this) << rhs;
 		}
 
-		ND_ explicit operator size_t () const	{ return _value; }
+		ND_ explicit constexpr operator size_t () const	{ return _value; }
 	};
 //-----------------------------------------------------------------------------
 
@@ -99,9 +99,12 @@ namespace FG
 		#if defined(COMPILER_MSVC)
 		# if defined(_HASH_SEQ_DEFINED)
 			return HashVal{std::_Hash_seq( static_cast<const unsigned char*>(ptr), sizeInBytes )};
+		# elif _MSC_VER >= 1916
+			return HashVal{std::_Hash_array_representation( static_cast<const unsigned char*>(ptr), sizeInBytes )};
 		# elif _MSC_VER >= 1911
 			return HashVal{std::_Hash_bytes( static_cast<const unsigned char*>(ptr), sizeInBytes )};
 		# endif
+
 		#elif defined(COMPILER_CLANG)
 			return HashVal{std::__murmur2_or_cityhash<size_t>()( ptr, sizeInBytes )};
 		#elif defined(COMPILER_GCC)

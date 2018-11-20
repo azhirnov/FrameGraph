@@ -2,7 +2,7 @@
 
 #include "stl/Containers/FixedMap.h"
 #include "stl/Containers/StaticString.h"
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 
 
 static void FixedMap_Test1 ()

@@ -273,7 +273,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		if ( _renderPass ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT, uint64_t(_renderPass) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_RENDER_PASS, uint64_t(_renderPass) );
 		}
 
 		_renderPass		= VK_NULL_HANDLE;

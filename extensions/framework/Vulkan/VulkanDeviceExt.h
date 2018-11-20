@@ -15,13 +15,18 @@ namespace FG
 	{
 	// types
 	public:
+		struct ObjectDbgInfo
+		{
+			StringView				type;
+			StringView				name;
+			uint64_t				handle;
+		};
+
 		struct DebugReport
 		{
-			VkDebugReportFlagsEXT	flags;
-			StringView				objectType;
-			uint64_t				object;
-			StringView				layerPrefix;
-			StringView				message;
+			ArrayView<ObjectDbgInfo>	objects;
+			StringView					message;
+			bool						isError		= false;
 		};
 
 		using DebugReport_t = std::function< void (const DebugReport &) >;
@@ -29,16 +34,23 @@ namespace FG
 
 	// variables
 	private:
-		VkDebugReportCallbackEXT	_debugCallback;
+		VkDebugReportCallbackEXT	_debugReportCallback	= VK_NULL_HANDLE;
+		VkDebugUtilsMessengerEXT	_debugUtilsMessenger	= VK_NULL_HANDLE;
+
 		DebugReport_t				_callback;
 
 		HashSet<String>				_instanceExtensions;
 		HashSet<String>				_deviceExtensions;
 
-		bool						_debugReportSupported;
-		bool						_debugMarkersSupported;
-		bool						_breakOnValidationError;
+		bool						_debugReportSupported	= false;
+		bool						_debugUtilsSupported	= false;
+		bool						_debugMarkersSupported	= false;
+
+		bool						_breakOnValidationError	= true;
 		
+		Array<ObjectDbgInfo>		_tempObjectDbgInfos;
+		String						_tempString;
+
 		VkPhysicalDeviceMemoryProperties		_deviceMemoryProperties {};
 
 		struct {
@@ -48,7 +60,7 @@ namespace FG
 			VkPhysicalDeviceSubgroupProperties				subgroup {};
 			VkPhysicalDeviceMeshShaderPropertiesNV			meshShader {};
 			VkPhysicalDeviceShadingRateImagePropertiesNV	shadingRateImage {};
-			VkPhysicalDeviceRaytracingPropertiesNVX			rayTracing {};
+			VkPhysicalDeviceRayTracingPropertiesNV			rayTracing {};
 		}	_properties;
 
 
@@ -57,7 +69,8 @@ namespace FG
 		VulkanDeviceExt ();
 		~VulkanDeviceExt ();
 		
-		bool CreateDebugCallback (VkDebugReportFlagsEXT flags, DebugReport_t &&callback = Default);
+		bool CreateDebugReportCallback (VkDebugReportFlagsEXT flags, DebugReport_t &&callback = Default);
+		bool CreateDebugUtilsCallback (VkDebugUtilsMessageSeverityFlagsEXT severity, DebugReport_t &&callback = Default);
 		
 		bool GetMemoryTypeIndex (uint memoryTypeBits, VkMemoryPropertyFlags flags, OUT uint &memoryTypeIndex) const;
 		bool CompareMemoryTypes (uint memoryTypeBits, VkMemoryPropertyFlags flags, uint memoryTypeIndex) const;
@@ -76,7 +89,7 @@ namespace FG
 		ND_ VkPhysicalDeviceSubgroupProperties const&			GetDeviceSubgroupProperties ()			const	{ return _properties.subgroup; }
 		ND_ VkPhysicalDeviceMeshShaderPropertiesNV const&		GetDeviceMeshShaderProperties ()		const	{ return _properties.meshShader; }
 		ND_ VkPhysicalDeviceShadingRateImagePropertiesNV const&	GetDeviceShadingRateImageProperties ()	const	{ return _properties.shadingRateImage; }
-		ND_ VkPhysicalDeviceRaytracingPropertiesNVX const&		GetDeviceRaytracingProperties ()		const	{ return _properties.rayTracing; }
+		ND_ VkPhysicalDeviceRayTracingPropertiesNV const&		GetDeviceRayTracingProperties ()		const	{ return _properties.rayTracing; }
 
 
 	private:
@@ -90,14 +103,30 @@ namespace FG
 		static VkBool32 VKAPI_CALL _DebugReportCallback (VkDebugReportFlagsEXT flags,
 														 VkDebugReportObjectTypeEXT objectType,
 														 uint64_t object,
-														 size_t /*location*/,
-														 int32_t /*messageCode*/,
+														 size_t location,
+														 int32_t messageCode,
 														 const char* pLayerPrefix,
 														 const char* pMessage,
 														 void* pUserData);
 
-		void _DebugReport (VkDebugReportFlagsEXT flags, StringView objectType, uint64_t object, StringView layerPrefix, StringView message) const;
+		static VkBool32 VKAPI_CALL _DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+														VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
+														const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+														void*                                            pUserData);
+
+		void _DebugReport (const DebugReport &);
 	};
 
+	
+	static constexpr VkDebugReportFlagsEXT		DebugReportFlags_All =	//VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
+																		VK_DEBUG_REPORT_WARNING_BIT_EXT |
+																		VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+																		VK_DEBUG_REPORT_ERROR_BIT_EXT |
+																		VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+
+	static constexpr VkDebugUtilsMessageSeverityFlagsEXT	DebugUtilsMessageSeverity_All = //VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+																							//VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+																							VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+																							VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
 }	// FG

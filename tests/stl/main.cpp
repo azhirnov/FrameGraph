@@ -15,6 +15,7 @@ extern void UnitTest_ToString ();
 extern void UnitTest_LfDoubleBuffer ();
 extern void UnitTest_BitTree ();
 extern void UnitTest_LfFixedStack ();
+extern void UnitTest_StructView ();
 
 
 int main ()
@@ -31,6 +32,7 @@ int main ()
 	UnitTest_LfDoubleBuffer();
 	UnitTest_LfFixedStack();
 	UnitTest_BitTree();
+	UnitTest_StructView();
 
     FG_LOGI( "Tests.STL finished" );
 	

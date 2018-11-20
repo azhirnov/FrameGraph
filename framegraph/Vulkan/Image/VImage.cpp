@@ -143,9 +143,9 @@ namespace FG
 
 		CHECK_ERR( memObj.AllocateForImage( _image ));
 		
-		if ( not _debugName.empty() )
+		if ( not dbgName.empty() )
 		{
-			dev.SetObjectName( BitCast<uint64_t>(_image), _debugName, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT );
+			dev.SetObjectName( BitCast<uint64_t>(_image), dbgName, VK_OBJECT_TYPE_IMAGE );
 		}
 
 		_aspectMask			= _ChooseAspect();
@@ -252,9 +252,9 @@ namespace FG
 		_desc.samples		= MultiSamples_FromVk( BitCast<VkSampleCountFlagBits>( desc.samples ));
 		_desc.isExternal	= true;
 
-		if ( not _debugName.empty() )
+		if ( not dbgName.empty() )
 		{
-			dev.SetObjectName( BitCast<uint64_t>(_image), _debugName, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT );
+			dev.SetObjectName( BitCast<uint64_t>(_image), dbgName, VK_OBJECT_TYPE_IMAGE );
 		}
 		
 		_aspectMask			= _ChooseAspect();
@@ -276,7 +276,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		for (auto& view : _viewMap) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT, uint64_t(view.second) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_IMAGE_VIEW, uint64_t(view.second) );
 		}
 		
 		if ( _desc.isExternal and _onRelease ) {
@@ -284,7 +284,7 @@ namespace FG
 		}
 
 		if ( not _desc.isExternal and _image ) {
-			readyToDelete.emplace_back( VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, uint64_t(_image) );
+			readyToDelete.emplace_back( VK_OBJECT_TYPE_IMAGE, uint64_t(_image) );
 		}
 
 		if ( _memoryId ) {
@@ -322,14 +322,14 @@ namespace FG
 		// create new image view
 		SCOPELOCK( _viewMapLock );
 
-		auto	inserted = _viewMap.insert({ desc, VK_NULL_HANDLE });
+		auto[iter, inserted] = _viewMap.insert({ desc, VK_NULL_HANDLE });
 
-		if ( not inserted.second )
-			return inserted.first->second;	// other thread create view before
+		if ( not inserted )
+			return iter->second;	// other thread create view before
 		
-		CHECK_ERR( _CreateView( dev, desc, OUT inserted.first->second ));
+		CHECK_ERR( _CreateView( dev, desc, OUT iter->second ));
 
-		return inserted.first->second;
+		return iter->second;
 	}
 
 /*

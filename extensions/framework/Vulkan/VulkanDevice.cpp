@@ -74,9 +74,6 @@ namespace FG
 			#ifdef VK_KHR_surface
 				VK_KHR_SURFACE_EXTENSION_NAME,
 			#endif
-			#ifdef VK_EXT_debug_report
-				VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-			#endif
 			#ifdef VK_KHR_get_physical_device_properties2
 				VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
 			#endif
@@ -85,6 +82,9 @@ namespace FG
 			#endif
 			#ifdef VK_KHR_create_renderpass2
 				VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_debug_utils
+				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 			#endif
 		};
 		return instance_extensions;
@@ -105,8 +105,8 @@ namespace FG
 			#ifdef VK_KHR_dedicated_allocation
 				VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 			#endif
-			#ifdef VK_EXT_debug_marker
-				VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
+			#ifdef VK_EXT_debug_utils
+				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 			#endif
 
 			// Vendor specific extensions

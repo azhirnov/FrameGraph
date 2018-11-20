@@ -62,7 +62,7 @@ void main()
 #define MAX_VER  81
 #define MAX_PRIM 32
 
-layout(local_size_x = 32) in;
+layout(local_size_x_id = 0) in;
 
 layout(max_vertices=MAX_VER) out;
 layout(max_primitives=MAX_PRIM) out;
@@ -95,6 +95,18 @@ void main()
 	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_110 | EShaderLangFormat::SPIRV ) );
 	
 	// TODO
+
+	MeshPipelineDesc::TopologyBits_t	expected_topology;
+	expected_topology[uint(EPrimitive::TriangleList)] = true;
+	TEST( ppln._supportedTopology == expected_topology );
+
+	TEST( ppln._maxIndices == 32*3 );
+	TEST( ppln._maxVertices == 81 );
+
+	TEST(All( ppln._defaultTaskGroupSize == uint3{ 32, 1, 1 } ));
+	TEST(All( ppln._defaultMeshGroupSize == uint3{ 1, 1, 1 } ));
+	TEST(All( ppln._taskSizeSpec == uint3{ ~0u } ));
+	TEST(All( ppln._meshSizeSpec == uint3{ 0, ~0u, ~0u } ));
 
     FG_LOGI( "Test_Shader7 - passed" );
 }

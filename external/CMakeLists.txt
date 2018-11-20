@@ -50,6 +50,9 @@ include( "${CMAKE_FOLDER}/download_sfml.cmake" )
 include( "${CMAKE_FOLDER}/download_lodepng.cmake" )
 include( "${CMAKE_FOLDER}/download_assimp.cmake" )
 include( "${CMAKE_FOLDER}/download_imgui.cmake" )
+include( "${CMAKE_FOLDER}/download_glm.cmake" )
+include( "${CMAKE_FOLDER}/download_devil.cmake" )
+include( "${CMAKE_FOLDER}/download_freeimage.cmake" )
 include( "${CMAKE_FOLDER}/graphviz.cmake" )
 
 

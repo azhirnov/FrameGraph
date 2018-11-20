@@ -84,48 +84,48 @@ namespace FG
 		// merge samplers
 		for (auto& sampler : *_samplerMap)
 		{
-			auto	inserted = _mainRM._samplerCache.AddToCache( sampler.second.Index() );
-			if ( not inserted.second )
+			auto[index, inserted] = _mainRM._samplerCache.AddToCache( sampler.second.Index() );
+			if ( not inserted )
 				DestroyResource( sampler.second, false );
 		}
 
 		// merge descriptor set layouts
 		for (auto& ds : *_dsLayoutMap)
 		{
-			auto	inserted = _mainRM._dsLayoutCache.AddToCache( ds.second.Index() );
-			if ( not inserted.second )
+			auto[index, inserted] = _mainRM._dsLayoutCache.AddToCache( ds.second.Index() );
+			if ( not inserted )
 				DestroyResource( ds.second, false );
 		}
 
 		// merge pipeline layouts
 		for (auto& layout : *_pplnLayoutMap)
 		{
-			auto	inserted = _mainRM._pplnLayoutCache.AddToCache( layout.second.Index() );
-			if ( not inserted.second )
+			auto[index, inserted] = _mainRM._pplnLayoutCache.AddToCache( layout.second.Index() );
+			if ( not inserted )
 				DestroyResource( layout.second, false );
 		}
 
 		// merge render passes
 		for (auto& rp : *_renderPassMap)
 		{
-			auto	inserted = _mainRM._renderPassCache.AddToCache( rp.second.Index() );
-			if ( not inserted.second )
+			auto[index, inserted] = _mainRM._renderPassCache.AddToCache( rp.second.Index() );
+			if ( not inserted )
 				DestroyResource( rp.second, false );
 		}
 
 		// merge framebuffers
 		for (auto& fb : *_framebufferMap)
 		{
-			auto	inserted = _mainRM._framebufferCache.AddToCache( fb.second.Index() );
-			if ( not inserted.second )
+			auto[index, inserted] = _mainRM._framebufferCache.AddToCache( fb.second.Index() );
+			if ( not inserted )
 				DestroyResource( fb.second, false );
 		}
 
 		// merge pipeline resources
 		for (auto& res : *_pplnResourcesMap)
 		{
-			auto	inserted = _mainRM._pplnResourcesCache.AddToCache( res.second.Index() );
-			if ( not inserted.second )
+			auto[index, inserted] = _mainRM._pplnResourcesCache.AddToCache( res.second.Index() );
+			if ( not inserted )
 				DestroyResource( res.second, false );
 		}
 
@@ -290,14 +290,14 @@ namespace FG
 
 		if ( not isAsync )
 		{
-			auto	inserted = pool.AddToCache( id.Index() );
+			auto[index, inserted] = pool.AddToCache( id.Index() );
 		
 			// if not unique
-			if ( not inserted.second )
+			if ( not inserted )
 			{
 				_Unassign( id );
-				layoutPtr	= &pool[ inserted.first ];
-				id			= RawPipelineLayoutID( inserted.first, layoutPtr->GetInstanceID() );
+				layoutPtr	= &pool[ index ];
+				id			= RawPipelineLayoutID( index, layoutPtr->GetInstanceID() );
 				layoutPtr->AddRef();
 				return true;
 			}
@@ -325,8 +325,8 @@ namespace FG
 				return true;
 			}
 		
-			auto	inserted = _pplnLayoutMap->insert_or_assign( &layout, id );
-			ASSERT( inserted.second );
+			auto[index, inserted] = _pplnLayoutMap->insert_or_assign( &layout, id );
+			ASSERT( inserted );
 		}
 
 
@@ -367,14 +367,14 @@ namespace FG
 
 		if ( not isAsync )
 		{
-			auto	inserted = pool.AddToCache( id.Index() );
+			auto[index, inserted] = pool.AddToCache( id.Index() );
 
 			// if not unique
-			if ( not inserted.second )
+			if ( not inserted )
 			{
 				_Unassign( id );
-				layoutPtr	= &pool[ inserted.first ];
-				id			= RawDescriptorSetLayoutID( inserted.first, layoutPtr->GetInstanceID() );
+				layoutPtr	= &pool[ index ];
+				id			= RawDescriptorSetLayoutID( index, layoutPtr->GetInstanceID() );
 				layoutPtr->AddRef();
 				return true;
 			}
@@ -402,8 +402,8 @@ namespace FG
 				return true;
 			}
 		
-			auto	inserted = _dsLayoutMap->insert_or_assign( &ds_layout, id );
-			ASSERT( inserted.second );
+			auto[index, inserted] = _dsLayoutMap->insert_or_assign( &ds_layout, id );
+			ASSERT( inserted );
 		}
 
 		// create new descriptor set layout
@@ -694,15 +694,15 @@ namespace FG
 		
 		if ( not isAsync )
 		{
-			auto	inserted = pool.AddToCache( id.Index() );
+			auto[index, inserted] = pool.AddToCache( id.Index() );
 		
 			// if not unique
-			if ( not inserted.second )
+			if ( not inserted )
 			{
-				auto&	temp = pool[ inserted.first ];
+				auto&	temp = pool[ index ];
 				temp.AddRef();
 				_Unassign( id );
-				return ID( inserted.first, temp.GetInstanceID() );
+				return ID( index, temp.GetInstanceID() );
 			}
 		}
 		else
@@ -726,8 +726,8 @@ namespace FG
 				return iter->second;
 			}
 
-			auto	inserted = localCache->insert_or_assign( &data, id );
-			ASSERT( inserted.second );
+			auto[index, inserted] = localCache->insert_or_assign( &data, id );
+			ASSERT( inserted );
 		}
 
 		// create new

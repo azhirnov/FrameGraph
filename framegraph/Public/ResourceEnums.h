@@ -31,6 +31,7 @@ namespace FG
 		Index			= 1 << 6,
 		Vertex			= 1 << 7,
 		Indirect		= 1 << 8,
+		RayTracing		= 1 << 9,
 		_Last,
 		
 		All				= ((_Last-1) << 1) - 1,
@@ -66,6 +67,7 @@ namespace FG
 		DepthStencilAttachment	= 1 << 5,		// depth/stencil attachment
 		TransientAttachment		= 1 << 6,		// color, resolve, depth/stencil, input attachment
 		InputAttachment			= 1 << 7,		// input attachment in shader
+		ShadingRate				= 1 << 8,
 		_Last,
 
 		All						= ((_Last-1) << 1) - 1,

@@ -653,8 +653,22 @@ namespace FG
 				switch ( shader.first )
 				{
 					case EShader::MeshTask :
+						new_ppln._defaultTaskGroupSize	= reflection.mesh.taskGroupSize;
+						new_ppln._taskSizeSpec			= reflection.mesh.taskGroupSpecialization;
+						break;
+
 					case EShader::Mesh :
-						break;	// TODO
+						new_ppln._maxIndices			= reflection.mesh.maxIndices;
+						new_ppln._maxVertices			= reflection.mesh.maxVertices;
+						new_ppln._supportedTopology		= reflection.mesh.supportedTopology;
+						new_ppln._defaultMeshGroupSize	= reflection.mesh.meshGroupSize;
+						new_ppln._meshSizeSpec			= reflection.mesh.meshGroupSpecialization;
+						break;
+						
+					case EShader::Fragment :
+						new_ppln._fragmentOutput		= reflection.fragment.fragmentOutput;
+						new_ppln._earlyFragmentTests	= reflection.fragment.earlyFragmentTests;
+						break;
 
 					default :
 						RETURN_ERR( "unknown shader type!" );

@@ -74,6 +74,7 @@ namespace FG
 		
 		// frame execution
 		bool  Begin (const SubmissionGraph &) override;
+		bool  SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch) override;
 		bool  Execute () override;
 		bool  WaitIdle () override;
 

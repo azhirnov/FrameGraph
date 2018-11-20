@@ -8,6 +8,7 @@
 #include "Shared/EnumToString.h"
 #include "VTaskGraph.h"
 #include "VDebugger.h"
+#include "stl/Containers/Iterators.h"
 
 namespace FG
 {
@@ -30,112 +31,112 @@ namespace {
 		}
 		return str;
 	}
-
+	
 /*
 =================================================
-	NodeUniqueNames
+	_Vis***
 =================================================
 */
-	struct VFrameGraphDebugger::NodeUniqueNames
+	String  VFrameGraphDebugger::_VisTaskName (TaskPtr task) const
 	{
-		const StringView		_uid;
+		return "n"s << ToString<16>( uint(task ? task->ExecutionOrder() : ExeOrderIndex::Initial) ) << '_' << _subBatchUID;
+	}
+	
+	String  VFrameGraphDebugger::_VisBarrierGroupName (TaskPtr task) const
+	{
+		return _VisBarrierGroupName( task ? task->ExecutionOrder() : ExeOrderIndex::Initial );
+	}
+	
+	String  VFrameGraphDebugger::_VisBarrierGroupName (ExeOrderIndex index) const
+	{
+		return "barGr"s << ToString<16>( uint(index) ) << '_' << _subBatchUID;
+	}
 
-		explicit NodeUniqueNames (StringView uid) : _uid{uid}
-		{}
+	String  VFrameGraphDebugger::_VisResourceName (const VBuffer *buffer, TaskPtr task) const
+	{
+		return _VisResourceName( buffer, task ? task->ExecutionOrder() : ExeOrderIndex::Initial );
+	}
 
-		// task
-		ND_ String  operator () (TaskPtr task) const
-		{
-			return "n"s << ToString<16>( uint(task ? task->ExecutionOrder() : ExeOrderIndex::Initial) ) << '_' << _uid;
-		}
+	String  VFrameGraphDebugger::_VisResourceName (const VBuffer *buffer, ExeOrderIndex index) const
+	{
+		return "buf"s << ToString<16>( uint64_t(buffer->Handle()) ) << '_' << ToString<16>( uint(index) ) << '_' << _subBatchUID;
+	}
+	
+	String  VFrameGraphDebugger::_VisResourceName (const VImage *image, TaskPtr task) const
+	{
+		return _VisResourceName( image, task ? task->ExecutionOrder() : ExeOrderIndex::Initial );
+	}
 
-		// resource
-		ND_ String  operator () (const VBuffer *buffer, TaskPtr task) const
-		{
-			return operator() ( buffer, task ? task->ExecutionOrder() : ExeOrderIndex::Initial );
-		}
-
-		ND_ String  operator () (const VBuffer *buffer, ExeOrderIndex index) const
-		{
-			return "buf"s << ToString<16>( uint64_t(buffer->Handle()) ) << '_' << ToString<16>( uint(index) ) << '_' << _uid;
-		}
-
-		ND_ String  operator () (const VImage *image, TaskPtr task) const
-		{
-			return operator() ( image, task ? task->ExecutionOrder() : ExeOrderIndex::Initial );
-		}
-
-		ND_ String  operator () (const VImage *image, ExeOrderIndex index) const
-		{
-			return "img"s << ToString<16>( uint64_t(image->Handle()) ) << '_' << ToString<16>( uint(index) ) << '_' << _uid;
-		}
-
-		// resource -> resource barrier name
-		ND_ String  operator () (const VBuffer *buffer, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const
-		{
+	String  VFrameGraphDebugger::_VisResourceName (const VImage *image, ExeOrderIndex index) const
+	{
+		return "img"s << ToString<16>( uint64_t(image->Handle()) ) << '_' << ToString<16>( uint(index) ) << '_' << _subBatchUID;
+	}
+	
+	String  VFrameGraphDebugger::_VisBarrierName (const VBuffer *buffer, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const
+	{
 			return "bufBar"s << ToString<16>( uint64_t(buffer->Handle()) )
 							<< '_' << ToString<16>( uint(srcIndex) )
 							<< '_' << ToString<16>( uint(dstIndex) )
-							<< '_' << _uid;
-		}
+							<< '_' << _subBatchUID;
+	}
 
-		ND_ String  operator () (const VImage *image, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const
-		{
+	String  VFrameGraphDebugger::_VisBarrierName (const VImage *image, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const
+	{
 			return "imgBuf"s << ToString<16>( uint64_t(image->Handle()) )
 							<< '_' << ToString<16>( uint(srcIndex) )
 							<< '_' << ToString<16>( uint(dstIndex) )
-							<< '_' << _uid;
-		}
+							<< '_' << _subBatchUID;
+	}
 
-		// draw task
-		/*ND_ String  operator () (const UniquePtr<IDrawTask> &task) const
-		{
-			return "d"_str	<< String().FormatAlignedI( usize(task.RawPtr()), sizeof(usize)*2, '0', 16 );
-		}*/
-	};
-	
 /*
 =================================================
 	ColorScheme
 =================================================
 */
-	struct VFrameGraphDebugger::ColorScheme
+	String  VFrameGraphDebugger::_SubBatchBG () const
 	{
-		ND_ static String  TaskLabelColor (RGBA8u)
-		{
-			return ColToStr( HtmlColor::White );
-		}
+		return "282828";
+	}
 
-		ND_ static String  DrawTaskBG ()
-		{
-			return ColToStr( HtmlColor::Bisque );
-		}
+	String  VFrameGraphDebugger::_TaskLabelColor (RGBA8u) const
+	{
+		return ColToStr( HtmlColor::White );
+	}
 
-		ND_ static String  DrawTaskLabelColor ()
-		{
-			return ColToStr( HtmlColor::Black );
-		}
+	String  VFrameGraphDebugger::_DrawTaskBG () const
+	{
+		return ColToStr( HtmlColor::Bisque );
+	}
+	
+	String  VFrameGraphDebugger::_DrawTaskLabelColor () const
+	{
+		return ColToStr( HtmlColor::Black );
+	}
+	
+	String  VFrameGraphDebugger::_ResourceBG (const VBuffer *) const
+	{
+		return ColToStr( HtmlColor::Silver );
+	}
 
-		ND_ static String  ResourceBG (const VBuffer *)
-		{
-			return ColToStr( HtmlColor::Silver );
-		}
-
-		ND_ static String  ResourceBG (const VImage *)
-		{
-			return ColToStr( HtmlColor::Silver );
-		}
-
-		ND_ static String  ResourceToResourceEdge (TaskPtr task)
-		{
-			return ColToStr( task ? task->DebugColor() : HtmlColor::Pink );
-		}
-
-		ND_ static String  ResGroupBG (TaskPtr task)
-		{
-			return ColToStr( task ? Lerp( HtmlColor::Black, task->DebugColor(), 0.5f ) : HtmlColor::Pink );
-		}
-	};
+	String  VFrameGraphDebugger::_ResourceBG (const VImage *) const
+	{
+		return ColToStr( HtmlColor::Silver );
+	}
+	
+	String  VFrameGraphDebugger::_ResourceToResourceEdgeColor (TaskPtr task) const
+	{
+		return ColToStr( task ? task->DebugColor() : HtmlColor::Silver );
+	}
+	
+	String  VFrameGraphDebugger::_ResourceGroupBG (TaskPtr task) const
+	{
+		return ColToStr( task ? Lerp( HtmlColor::Black, task->DebugColor(), 0.5f ) : HtmlColor::Pink );
+	}
+	
+	String  VFrameGraphDebugger::_BarrierGroupBorderColor () const
+	{
+		return ColToStr( HtmlColor::DarkGray );
+	}
 
 /*
 =================================================
@@ -201,7 +202,7 @@ namespace {
 =================================================
 	VkImageLayoutToString
 =================================================
-*
+*/
 	ND_ static String  VkImageLayoutToString (VkImageLayout layout)
 	{
 		ENABLE_ENUM_CHECKS();
@@ -258,19 +259,19 @@ namespace {
 	{
 		str.clear();
 		
-		const NodeUniqueNames	node_name {_subBatchUID};
-		const ColorScheme		color_scheme;
-		HashSet<String>			existing_barriers;
+		HashSet<String>		existing_barriers;
 
 		String	deps;
 		String	subgraphs;
 
-		str << indent << "subgraph cluster_SubBatch" << VDebugger::BuildSubBatchName( batchId, indexInBatch ) << " {\n"
-			<< indent << "	style=filled;\n"
-			<< indent << "	color=\"#282828\";\n"
-			<< indent << "	fontcolor=\"#dcdcdc\";\n"
-			<< indent << "	label=\"" << batchId.GetName() << " / " << ToString(indexInBatch) << "\";\n";
+		str << indent << "subgraph cluster_SubBatch" << VDebugger::BuildSubBatchName( batchId, indexInBatch ) << " {\n"		// TODO: replace by _subBatchUID ?
+			<< indent << "	style = filled;\n"
+			<< indent << "	color = \"#" << _SubBatchBG() << "\";\n"
+			<< indent << "	fontcolor = \"#dcdcdc\";\n"
+			<< indent << "	label = \"" << batchId.GetName() << " / " << ToString(indexInBatch) << "\";\n";
 		
+		_AddInitialStates( INOUT subgraphs );
+
 		for (auto& info : _tasks)
 		{
 			if ( not info.task )
@@ -281,12 +282,12 @@ namespace {
 			{
 				if ( auto* submit_rp = DynCast< FGTask<FGMsg::SubmitRenderPass> *>(node) )
 				{
-					const String	root	= node_name( node ) + "_draw";
+					const String	root	= _VisTaskName( node ) + "_draw";
 					String			ending;
 
 					if ( auto next_pass = submit_rp->GetNextSubpass() )
 					{
-						ending = node_name( next_pass );
+						ending = _VisTaskName( next_pass );
 					}
 					
 					str << '\t' << root << " [shape=record, label=\"";
@@ -297,31 +298,63 @@ namespace {
 					{
 						const auto&	draw = draw_tasks[i];
 
-						str << (i ? "|<" : "<") << node_name( draw ) << "> " << draw->GetName();
+						str << (i ? "|<" : "<") << _VisDrawTaskName( draw ) << "> " << draw->GetName();
 					}
-					str << "\", fontsize=12, fillcolor=\"#" << color_scheme.DrawTaskBG() << "\"];\n";
+					str << "\", fontsize=12, fillcolor=\"#" << _DrawTaskBG() << "\"];\n";
 
-					deps << '\t' << node_name( node ) << " -> " << root << " [color=\"#" << color_scheme.DrawTaskBG() << "\", style=dotted];\n";
+					deps << '\t' << _VisTaskName( node ) << " -> " << root << " [color=\"#" << _DrawTaskBG() << "\", style=dotted];\n";
 				}
 			}*/
 			
 
 			// add task with resource usage
-			if ( EnumEq( _flags, ECompilationDebugFlags::VisResources ) and
-				 not info.resources.empty() )
+			if ( EnumEq( _flags, ECompilationDebugFlags::VisResources ) )
 			{
 				String	res_style;
-				_GetResourceUsage( info.resources, OUT res_style, INOUT str, INOUT deps, INOUT existing_barriers );
+				String	bar_style;
+				_GetResourceUsage( info, OUT res_style, OUT bar_style, INOUT deps, INOUT existing_barriers );
 
-				if ( res_style.size() )
+				if ( res_style.empty() )
+				{
+					info.anyNode = _VisTaskName( info.task );
+					res_style << indent << "\t	" << info.anyNode << " [shape=point, style=invis];\n";
+				}
+
+				subgraphs
+					<< indent << "\tsubgraph cluster_" << _VisTaskName( info.task ) << " {\n"
+					<< indent << "\t	style = filled;\n"
+					<< indent << "\t	rankdir = TB;\n"
+					<< indent << "\t	color = \"#" << _ResourceGroupBG( info.task ) << "\";\n"
+					<< indent << "\t	fontcolor = \"#" << _TaskLabelColor( info.task->DebugColor() ) << "\";\n"
+					<< indent << "\t	label = \"" << info.task->Name() << "\";\n"
+					<< res_style
+					<< indent << "\t}\n\n";
+				
+				// add dependencies
+				if ( EnumEq( _flags, ECompilationDebugFlags::VisTaskDependencies ) )
+				{
+					for (auto& in_node : info.task->Inputs())
+					{
+						auto&	in_info = _tasks[ uint(in_node->ExecutionOrder()) ];
+						ASSERT( in_info.task == in_node );
+						ASSERT( not in_info.anyNode.empty() );
+
+						deps << indent << '\t' << in_info.anyNode << ":ne -> " << info.anyNode << ":nw"
+								<< " [ltail=cluster_" << _VisTaskName( in_node ) << ", lhead=cluster_" << _VisTaskName( info.task )
+								<< ", color=\"#d3d3d3\", style=dotted, weight=1];\n";
+					}
+				}
+
+				if ( bar_style.size() )
 				{
 					subgraphs
-						<< indent << "\tsubgraph cluster_" << node_name( info.task ) << " {\n"
-						<< indent << "\t	style=filled;\n"
-						<< indent << "\t	color=\"#" << color_scheme.ResGroupBG( info.task ) << "\";\n"
-						<< indent << "\t	fontcolor=\"#" << color_scheme.TaskLabelColor( info.task->DebugColor() ) << "\";\n"
-						<< indent << "\t	label=\"" << info.task->Name() << "\";\n"
-						<< res_style
+						<< indent << "\tsubgraph cluster_" << _VisBarrierGroupName( info.task ) << " {\n"
+						<< indent << "\t	style = filled;\n"
+						<< indent << "\t	pencolor = \"#" << _BarrierGroupBorderColor() << "\";\n"
+						<< indent << "\t	penwidth = 1.0;\n"
+						<< indent << "\t	color = \"#" << _SubBatchBG() << "\";\n"
+						<< indent << "\t	label = \"\";\n"
+						<< bar_style
 						<< indent << "\t}\n\n";
 				}
 			}
@@ -331,22 +364,25 @@ namespace {
 				const String	color = ColToStr( info.task->DebugColor() );
 
 				// add style
-				str << indent << '\t' << node_name( info.task ) << " [label=\"" << info.task->Name() << "\", fontsize=24, fillcolor=\"#" << color
-					<< "\", fontcolor=\"#" << color_scheme.TaskLabelColor( info.task->DebugColor() ) << "\"];\n";
+				str << indent << '\t' << _VisTaskName( info.task ) << " [label=\"" << info.task->Name() << "\", fontsize=24, fillcolor=\"#" << color
+					<< "\", fontcolor=\"#" << _TaskLabelColor( info.task->DebugColor() ) << "\"];\n";
 
 				// add dependencies
-				if ( not info.task->Outputs().empty() )
+				if ( EnumEq( _flags, ECompilationDebugFlags::VisTaskDependencies ) and
+					 not info.task->Outputs().empty() )
 				{
-					deps << indent << '\t' << node_name( info.task ) << ":e -> { ";
+					deps << indent << '\t' << _VisTaskName( info.task ) << ":e -> { ";
 				
 					for (auto& out_node : info.task->Outputs())
 					{
-						deps << node_name( out_node ) << ":w; ";
+						deps << _VisTaskName( out_node ) << ":w; ";
 					}
 					deps << "} [color=\"#" << color << "\", style=bold];\n";
 				}
 			}
 		}
+
+		_AddFinalStates( INOUT subgraphs, INOUT deps, INOUT existing_barriers );
 		
 		str << '\n'
 			<< subgraphs
@@ -356,47 +392,162 @@ namespace {
 	
 /*
 =================================================
+	_AddInitialStates
+=================================================
+*/
+	void VFrameGraphDebugger::_AddInitialStates (INOUT String &str) const
+	{
+		str << indent << "\tsubgraph cluster_Initial_" << _subBatchUID << " {\n"
+			<< indent << "\t	style = filled;\n"
+			<< indent << "\t	pencolor = \"#" << _BarrierGroupBorderColor() << "\";\n"
+			<< indent << "\t	penwidth = 1.0;\n"
+			<< indent << "\t	color = \"#" << _SubBatchBG() << "\";\n"
+			<< indent << "\t	label = \"Initial\";\n";
+
+		for (auto& image : _images)
+		{
+			for (auto& bar : image.second.barriers)
+			{
+				if ( bar.srcIndex > ExeOrderIndex::Initial )
+					break;
+
+				auto&	range = bar.info.subresourceRange;
+
+				str << indent << "\t\t" << _VisResourceName( image.first, ExeOrderIndex::Initial ) << " [label=\"" << GetImageName( image.first ) << "\\n"
+					<< VkImageLayoutToString( bar.info.oldLayout ) << "\\n"
+					<< "layer: " << ToString(range.baseArrayLayer) << (range.layerCount == VK_REMAINING_ARRAY_LAYERS ? "..whole" : range.layerCount > 1 ? ".."s << ToString(range.layerCount) : "") << "\\n"
+					<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
+					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
+			}
+		}
+
+		for (auto& buffer : _buffers)
+		{
+			for (auto& bar : buffer.second.barriers)
+			{
+				if ( bar.srcIndex > ExeOrderIndex::Initial )
+					break;
+
+				str << indent << "\t\t" << _VisResourceName( buffer.first, ExeOrderIndex::Initial ) << " [label=\"" << GetBufferName( buffer.first ) << "\\n"
+					<< "[" << ToString(BytesU{bar.info.offset}) << ", " << (bar.info.size == VK_WHOLE_SIZE ? "whole" : ToString(BytesU{bar.info.size})) << ")"
+					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer.first ) << "\"];\n";
+			}
+		}
+
+		str << indent << "\t}\n\n";
+	}
+	
+/*
+=================================================
+	_AddFinalStates
+=================================================
+*/
+	void VFrameGraphDebugger::_AddFinalStates (INOUT String &str, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
+	{
+		str << indent << "\tsubgraph cluster_Final_" << _subBatchUID << " {\n"
+			<< indent << "\t	style = filled;\n"
+			<< indent << "\t	pencolor = \"#" << _BarrierGroupBorderColor() << "\";\n"
+			<< indent << "\t	penwidth = 1.0;\n"
+			<< indent << "\t	color = \"#" << _SubBatchBG() << "\";\n"
+			<< indent << "\t	label = \"Final\";\n";
+		
+		String	bar_style;
+
+		for (auto& image : _images)
+		{
+			for (auto& bar : Reverse(image.second.barriers))
+			{
+				if ( bar.dstIndex < ExeOrderIndex::Final )
+					break;
+
+				auto&	range = bar.info.subresourceRange;
+
+				str << indent << "\t\t" << _VisResourceName( image.first, ExeOrderIndex::Final ) << " [label=\"" << GetImageName( image.first ) << "\\n"
+					<< VkImageLayoutToString( bar.info.newLayout ) << "\\n"
+					<< "layer: " << ToString(range.baseArrayLayer) << (range.layerCount == VK_REMAINING_ARRAY_LAYERS ? "..whole" : range.layerCount > 1 ? ".."s << ToString(range.layerCount) : "") << "\\n"
+					<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
+					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
+				
+				_GetResourceBarrier( image.first, bar, bar.info.oldLayout, bar.info.newLayout, INOUT bar_style, INOUT deps, INOUT existingBarriers );
+			}
+		}
+
+		for (auto& buffer : _buffers)
+		{
+			for (auto& bar : Reverse(buffer.second.barriers))
+			{
+				if ( bar.dstIndex < ExeOrderIndex::Final )
+					break;
+
+				str << indent << "\t\t" << _VisResourceName( buffer.first, ExeOrderIndex::Final ) << " [label=\"" << GetBufferName( buffer.first ) << "\\n"
+					<< "[" << ToString(BytesU{bar.info.offset}) << ", " << (bar.info.size == VK_WHOLE_SIZE ? "whole" : ToString(BytesU{bar.info.size})) << ")"
+					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer.first ) << "\"];\n";
+				
+				_GetResourceBarrier( buffer.first, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED, INOUT bar_style, INOUT deps, INOUT existingBarriers );
+			}
+		}
+
+		str << indent << "\t}\n\n";
+		
+		if ( bar_style.size() )
+		{
+			str	<< indent << "\tsubgraph cluster_" << _VisBarrierGroupName( ExeOrderIndex::Final ) << " {\n"
+				<< indent << "\t	style = filled;\n"
+				<< indent << "\t	pencolor = \"#" << _BarrierGroupBorderColor() << "\";\n"
+				<< indent << "\t	penwidth = 1.0;\n"
+				<< indent << "\t	color = \"#" << _SubBatchBG() << "\";\n"
+				<< indent << "\t	label = \"\";\n"
+				<< bar_style
+				<< indent << "\t}\n\n";
+		}
+	}
+
+/*
+=================================================
 	_GetResourceUsage
 =================================================
 */
-	void VFrameGraphDebugger::_GetResourceUsage (ArrayView<ResourceUsage_t> resources, OUT String &resStyle,
-												 INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
+	void VFrameGraphDebugger::_GetResourceUsage (const TaskInfo &info, OUT String &resStyle,
+												 OUT String &barStyle, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
 	{
-		const NodeUniqueNames	node_name {_subBatchUID};
-		const ColorScheme		color_scheme;
-
-		for (auto& res : resources)
+		for (auto& res : info.resources)
 		{
 			if ( auto* image = std::get_if<ImageUsage_t>( &res ) )
 			{
 				auto&	range = image->second.range;
+				String	name  = _VisResourceName( image->first, image->second.task );
 
-				// add style
+				// add image style
 				resStyle
-					<< indent << "\t\t" << node_name( image->first, image->second.task ) << " [label=\"" << GetImageName( image->first ) << "\\n"
+					<< indent << "\t\t" << name << " [label=\"" << GetImageName( image->first ) << "\\n"
 					<< ToString( image->second.state ) << "\\n"
 					//<< VkImageLayoutToString( image->second.layout ) << "\\n"
-					<< "layer " << ToString(range.Layers().begin) << (range.IsWholeLayers() ? "..whole" : range.Layers().Count() > 1 ? ".."s << ToString(range.Layers().end) : "") << "\\n"
-					<< "mipmap " << ToString(range.Mipmaps().begin) << (range.IsWholeMipmaps() ? "..whole" : range.Mipmaps().Count() > 1 ? ".."s << ToString(range.Mipmaps().end) : "") << "\\n"
-					<< "\", fontsize=10, fillcolor=\"#" << color_scheme.ResourceBG( image->first )
-					<< "\"];\n";
+					<< "layer: " << ToString(range.Layers().begin) << (range.IsWholeLayers() ? "..whole" : range.Layers().Count() > 1 ? ".."s << ToString(range.Layers().end) : "") << "\\n"
+					<< "mipmap: " << ToString(range.Mipmaps().begin) << (range.IsWholeMipmaps() ? "..whole" : range.Mipmaps().Count() > 1 ? ".."s << ToString(range.Mipmaps().end) : "")
+					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image->first ) << "\"];\n";
 
-				_GetImageBarrier( image->first, image->second.task, INOUT style, INOUT deps, INOUT existingBarriers );
+				if ( info.anyNode.empty() )
+					info.anyNode = std::move(name);
+
+				_GetImageBarrier( image->first, image->second.task, INOUT barStyle, INOUT deps, INOUT existingBarriers );
 			}
 			else
 			if ( auto* buffer = std::get_if<BufferUsage_t>( &res ) )
 			{
 				auto&	range = buffer->second.range;
+				String	name  = _VisResourceName( buffer->first, buffer->second.task );
 
-				// add style
+				// add buffer style
 				resStyle
-					<< indent << "\t\t" << node_name( buffer->first, buffer->second.task ) << " [label=\"" << GetBufferName( buffer->first ) << "\\n"
+					<< indent << "\t\t" << name << " [label=\"" << GetBufferName( buffer->first ) << "\\n"
 					<< ToString( buffer->second.state ) << "\\n"
-					<< "range " << ToString(range.begin) << ".." << (range.IsWhole() ? "whole" : ToString(range.end-1)) << "\\n"
-					<< "\", fontsize=10, fillcolor=\"#" << color_scheme.ResourceBG( buffer->first )
-					<< "\"];\n";
+					<< "[" << ToString(BytesU{range.begin}) << ", " << (range.IsWhole() ? "whole" : ToString(BytesU{range.end})) << ")"
+					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer->first ) << "\"];\n";
+				
+				if ( info.anyNode.empty() )
+					info.anyNode = std::move(name);
 
-				_GetBufferBarrier( buffer->first, buffer->second.task, INOUT style, INOUT deps, INOUT existingBarriers );
+				_GetBufferBarrier( buffer->first, buffer->second.task, INOUT barStyle, INOUT deps, INOUT existingBarriers );
 			}
 			else
 			{
@@ -410,7 +561,7 @@ namespace {
 	_GetBufferBarrier
 =================================================
 */
-	void VFrameGraphDebugger::_GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &style, INOUT String &deps,
+	void VFrameGraphDebugger::_GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &barStyle, INOUT String &deps,
 												 INOUT HashSet<String> &existingBarriers) const
 	{
 		auto iter = _buffers.find( buffer );
@@ -425,7 +576,7 @@ namespace {
 			ASSERT( bar.info.buffer == buffer->Handle() );
 			
 			_GetResourceBarrier( buffer, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED,
-								 INOUT style, INOUT deps, INOUT existingBarriers );
+								 INOUT barStyle, INOUT deps, INOUT existingBarriers );
 		}
 	}
 
@@ -434,7 +585,7 @@ namespace {
 	_GetImageBarrier
 =================================================
 */
-	void VFrameGraphDebugger::_GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &style, INOUT String &deps,
+	void VFrameGraphDebugger::_GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &barStyle, INOUT String &deps,
 												INOUT HashSet<String> &existingBarriers) const
 	{
 		auto iter = _images.find( image );
@@ -449,7 +600,7 @@ namespace {
 			ASSERT( bar.info.image == image->Handle() );
 
 			_GetResourceBarrier( image, bar, bar.info.oldLayout, bar.info.newLayout,
-								 INOUT style, INOUT deps, INOUT existingBarriers );
+								 INOUT barStyle, INOUT deps, INOUT existingBarriers );
 		}
 	}
 	
@@ -501,8 +652,8 @@ namespace {
 				case VK_ACCESS_COMMAND_PROCESS_WRITE_BIT_NVX :				result |= EAccessType::Write;	break;
 				case VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT :	result |= EAccessType::Read;	break;
 				case VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV :				result |= EAccessType::Read;	break;
-				case VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NVX :		result |= EAccessType::Read;	break;
-				case VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NVX :		result |= EAccessType::Write;	break;
+				case VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV :			result |= EAccessType::Read;	break;
+				case VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV :		result |= EAccessType::Write;	break;
 				case VK_ACCESS_FLAG_BITS_MAX_ENUM :
 				default :													ASSERT(false);  break;
 			}
@@ -551,8 +702,8 @@ namespace {
 			//VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT,
 			//VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT,
 			//VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX,
-			VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV,
-			VK_PIPELINE_STAGE_RAYTRACING_BIT_NVX,
+			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
+			VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
 			VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV,
 			VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV,
 			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
@@ -619,49 +770,98 @@ namespace {
 		const EAccessType	src_access = GetAccessType( srcAccessMask );
 		const EAccessType	dst_access = GetAccessType( dstAccessMask );
 
-		String	label = "<FONT COLOR=\"#fefeee\" POINT-SIZE=\"8\">";
+		// new style
+		#if 1
+			String	label = "<FONT COLOR=\"#fefeee\" POINT-SIZE=\"8\">";
 
-		if ( oldLayout != newLayout )
-		{
-			label << " L <BR/> A <BR/> Y ";
-		}
-		else
+			if ( oldLayout != newLayout )
+			{
+				label << " L <BR/> A <BR/> Y ";
+			}
+			else
 		
-		// write -> write
-		if ( EnumEq( src_access, EAccessType::Write ) and
-			 EnumEq( dst_access, EAccessType::Write ) )
-		{
-			label << " W <BR/>--<BR/> W ";
-		}
-		else
+			// write -> write
+			if ( EnumEq( src_access, EAccessType::Write ) and
+				 EnumEq( dst_access, EAccessType::Write ) )
+			{
+				label << " W <BR/>--<BR/> W ";
+			}
+			else
 
-		// read -> write
-		if ( EnumEq( src_access, EAccessType::Read ) and
-			 EnumEq( dst_access, EAccessType::Write ) )
-		{
-			label << " R <BR/>--<BR/> W ";
-		}
-		else
+			// read -> write
+			if ( EnumEq( dst_access, EAccessType::Write ) )
+			{
+				label << " R <BR/>--<BR/> W ";
+			}
+			else
 
-		// write -> read
-		if ( EnumEq( src_access, EAccessType::Write ) and
-			 EnumEq( dst_access, EAccessType::Read ) )
-		{
-			label << " W <BR/>--<BR/> R ";
-		}
-		else
+			// write -> read
+			if ( EnumEq( src_access, EAccessType::Write ) )
+			{
+				label << " W <BR/>--<BR/> R ";
+			}
+			else
 
-		// unknown
-		{
-			label << " | <BR/> | <BR/> | ";
-		}
+			// unknown
+			{
+				label << " ? <BR/> ? <BR/> ? ";
+			}
 
-		label << "</FONT>";
-		style << " [shape=none, width=.1, margin=0, fontsize=2, label=<<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">\n";
+			label << "</FONT>";
+			style << " [shape=none, width=.1, margin=0, fontsize=2, label=<<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">\n";
 	
-		AddPipelineStages( srcStageMask, dstStageMask, label, INOUT style );
+			AddPipelineStages( srcStageMask, dstStageMask, label, INOUT style );
 			
-		style << "</TABLE>>];\n";
+			style << "</TABLE>>];\n";
+
+
+		// old style
+		#else
+			String		label;
+			RGBA8u		color;
+
+			if ( oldLayout != newLayout )
+			{
+				label = "L\\nA\\nY\\n";
+				color = HtmlColor::Yellow;
+			}
+			else
+		
+			// write -> write
+			if ( EnumEq( src_access, EAccessType::Write ) and
+				 EnumEq( dst_access, EAccessType::Write ) )
+			{
+				label = "w\\n--\\nW\\n";
+				color = HtmlColor::DodgerBlue;
+			}
+			else
+
+			// read -> write
+			if ( EnumEq( src_access, EAccessType::Read ) and
+				 EnumEq( dst_access, EAccessType::Write ) )
+			{
+				label = "R\\n--\\nW\\n";
+				color = HtmlColor::LimeGreen;
+			}
+			else
+
+			// write -> read
+			if ( EnumEq( src_access, EAccessType::Write ) and
+				 EnumEq( dst_access, EAccessType::Read ) )
+			{
+				label = "W\\n--\\nR\\n";
+				color = HtmlColor::Red;
+			}
+			else
+
+			// unknown
+			{
+				label = "|\\n|\\n|\\n";
+				color = HtmlColor::Pink;
+			}
+
+			style << " [label=\"" << label << "\", width=.1, fontsize=12, fillcolor=\"#" << ColToStr( color ) << "\"];\n";
+		#endif
 	}
 
 /*
@@ -673,16 +873,15 @@ namespace {
 	inline void VFrameGraphDebugger::_GetResourceBarrier (const T *res, const Barrier<B> &bar, VkImageLayout oldLayout, VkImageLayout newLayout,
 														  INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
 	{
-		const NodeUniqueNames	node_name {_subBatchUID};
-		const ColorScheme		color_scheme;
-
-		const String	barrier_name = node_name( res, bar.srcIndex, bar.dstIndex );
+		const String	barrier_name = _VisBarrierName( res, bar.srcIndex, bar.dstIndex );
 		const TaskPtr	src_task	 = _GetTask( bar.srcIndex );
 		const TaskPtr	dst_task	 = _GetTask( bar.dstIndex );
-		const String	edge_color1	 = color_scheme.ResourceToResourceEdge( src_task );
-		const String	edge_color2	 = color_scheme.ResourceToResourceEdge( dst_task );
+		const String	edge_color1	 = _ResourceToResourceEdgeColor( src_task );
+		const String	edge_color2	 = _ResourceToResourceEdgeColor( dst_task );
 
 		// add barrier style
+		ASSERT( existingBarriers.count( barrier_name ) == 0 );	// TODO: remove 'existingBarriers'
+
 		if ( not existingBarriers.count( barrier_name ) )
 		{
 			ASSERT( bar.info.srcQueueFamilyIndex == bar.info.dstQueueFamilyIndex );	// not supported yet
@@ -706,16 +905,16 @@ namespace {
 			FindAndReplace( INOUT src_stage, " | ", "\\n" );
 			FindAndReplace( INOUT dst_stage, " | ", "\\n" );
 
-			deps << indent << '\t' << node_name( res, bar.srcIndex ) << ":e -> " << barrier_name
-				 << ":w [color=\"#" << edge_color1 << "\", label=\"" << src_stage << "\", minlen=2, labelfloat=true, decorate=false];\n";
+			deps << indent << '\t' << _VisResourceName( res, bar.srcIndex ) << ":e -> " << barrier_name
+				 << ":w [color=\"#" << edge_color1 << "\", label=\"" << src_stage << "\", minlen=2, labelfloat=true, decorate=false, weight=2];\n";
 
-			deps << indent << '\t' << barrier_name << ":e -> " << node_name( res, bar.dstIndex )
-				 << ":w [color=\"#" << edge_color2 << "\", label=\"" << dst_stage << "\", minlen=2, labelfloat=true, decorate=false];\n";
+			deps << indent << '\t' << barrier_name << ":e -> " << _VisResourceName( res, bar.dstIndex )
+				 << ":w [color=\"#" << edge_color2 << "\", label=\"" << dst_stage << "\", minlen=2, labelfloat=true, decorate=false, weight=2];\n";
 		}
 		else
 		{
-			deps << indent << '\t' << node_name( res, bar.srcIndex ) << ":e -> " << barrier_name << ":w [color=\"#" << edge_color1 << "\"];\n";
-			deps << indent << '\t' << barrier_name << ":e -> " << node_name( res, bar.dstIndex ) << ":w [color=\"#" << edge_color2 << "\"];\n";
+			deps << indent << '\t' << _VisResourceName( res, bar.srcIndex ) << ":e -> " << barrier_name << ":w [color=\"#" << edge_color1 << "\", weight=2];\n";
+			deps << indent << '\t' << barrier_name << ":e -> " << _VisResourceName( res, bar.dstIndex ) << ":w [color=\"#" << edge_color2 << "\", weight=2];\n";
 		}
 	}
 

@@ -114,7 +114,8 @@ namespace {
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetRecomendedDeviceExtensions()
 									));
-			_vulkan.CreateDebugCallback( VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT );
+			//_vulkan.CreateDebugReportCallback( DebugReportFlags_All );
+			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 		}
 
 		// setup device info

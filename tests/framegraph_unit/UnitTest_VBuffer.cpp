@@ -3,7 +3,7 @@
 #include "VLocalBuffer.h"
 #include "VBarrierManager.h"
 #include "framegraph/Public/FrameGraph.h"
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 #include "DummyTask.h"
 
 
@@ -16,8 +16,7 @@ namespace FG
 
 		static bool Create (VBuffer &buf, const BufferDesc &desc)
 		{
-			buf._desc	= desc;
-			buf._OnCreate();
+			buf._desc = desc;
 			return true;
 		}
 

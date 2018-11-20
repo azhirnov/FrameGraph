@@ -64,6 +64,20 @@ namespace FG
 				uint3				localGroupSpecialization;
 
 			}				compute;
+
+			struct {
+				uint3				taskGroupSize;
+				uint3				taskGroupSpecialization;
+
+				uint3				meshGroupSize;
+				uint3				meshGroupSpecialization;
+
+				TopologyBits_t		supportedTopology;
+				uint				maxPrimitives	= 0;
+				uint				maxIndices		= 0;
+				uint				maxVertices		= 0;
+
+			}				mesh;
 		};
 
 	private:

@@ -3,7 +3,7 @@
 #include "stl/Math/Math.h"
 #include "stl/Math/BitMath.h"
 #include "stl/CompileTime/Math.h"
-#include "UnitTestCommon.h"
+#include "UnitTest_Common.h"
 
 
 static void IsIntersects_Test1 ()
