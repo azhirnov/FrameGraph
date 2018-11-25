@@ -129,6 +129,45 @@ endif()
 
 
 #==================================================================================================
+# project: OfflineCompiler
+#==================================================================================================
+if (${FG_ENABLE_GLSLANG})
+	set( SOURCES 
+		"offline_compiler/main.cpp" )
+	if (DEFINED ANDROID)
+		add_library( "OfflineCompiler" SHARED ${SOURCES} )
+	else()
+		add_executable( "OfflineCompiler" ${SOURCES} )
+	endif()
+	source_group( "" FILES "offline_compiler/main.cpp" )
+	set_property( TARGET "OfflineCompiler" PROPERTY FOLDER "Extensions" )
+	target_include_directories( "OfflineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "OfflineCompiler" PRIVATE "offline_compiler" )
+	target_include_directories( "OfflineCompiler" PRIVATE ".." )
+	target_link_libraries( "OfflineCompiler" "PipelineCompiler" )
+	# compiler
+	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+	#-----------------------------------
+	if ( CONFIGURATION_DEPENDENT_PATH )
+		set( OFFLINE_COMPILER_EXE "${MAIN_BINARY_DIR}/$<CONFIG>/OfflineCompiler${CMAKE_EXECUTABLE_SUFFIX}" CACHE INTERNAL "" FORCE )
+	else ()
+		set( OFFLINE_COMPILER_EXE "${MAIN_BINARY_DIR}/OfflineCompiler${CMAKE_EXECUTABLE_SUFFIX}" CACHE INTERNAL "" FORCE )
+	endif ()
+	
+	#-----------------------------------
+endif()
+
+
+#==================================================================================================
 # project: Framework
 #==================================================================================================
 set( SOURCES 

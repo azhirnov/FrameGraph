@@ -22,14 +22,14 @@ namespace FG
 
 /*
 =================================================
-	Serialize
+	Serialize (GraphicsPipelineDesc)
 =================================================
 */
 	bool PipelineCppSerializer::Serialize (const GraphicsPipelineDesc &ppln, StringView name, OUT String &src) const
 	{
 		src.clear();
 
-		src = "PipelinePtr  Create_"s << name << " (const VFrameGraphPtr &fg)\n"
+		src = "GPipelineID  Create_"s << name << " (const FGThreadPtr &fg)\n"
 			<< "{\n"
 			<< "	GraphicsPipelineDesc  desc;\n\n";
 
@@ -108,14 +108,94 @@ namespace FG
 	
 /*
 =================================================
-	Serialize
+	Serialize (MeshPipelineDesc)
+=================================================
+*/
+	bool PipelineCppSerializer::Serialize (const MeshPipelineDesc &ppln, StringView name, OUT String &src) const
+	{
+		src.clear();
+
+		src = "MPipelineID  Create_"s << name << " (const FGThreadPtr &fg)\n"
+			<< "{\n"
+			<< "	MeshPipelineDesc  desc;\n\n";
+
+		for (size_t i = 0; i < ppln._supportedTopology.size(); ++i)
+		{
+			if ( ppln._supportedTopology.test( i ) )
+				src << "\tdesc.AddTopology( " << _Topology_ToString( EPrimitive(i) ) << " );\n";
+		}
+
+		if ( not ppln._fragmentOutput.empty() )
+		{
+			src << "\tdesc.SetFragmentOutputs({\n";
+
+			for (auto& frag : ppln._fragmentOutput)
+			{
+				if ( &frag != ppln._fragmentOutput.begin() )
+					src << ",\n";
+
+				src << "\t\t\t{ " << _RenderTargetID_ToString( frag.id ) << ", "
+					<< ToString( frag.index ) << ", "
+					<< _FragOutput_ToString( frag.type ) << " }";
+			}
+			src << " });\n\n";
+		}
+		
+		src << "\tdesc.SetEarlyFragmentTests( " << ToString( ppln._earlyFragmentTests ) << " );\n\n";
+
+		src << _SerializePipelineLayout( ppln._pipelineLayout );
+
+		for (auto& sh : ppln._shaders)
+		{
+			for (auto& data : sh.second.data)
+			{
+				src << "\tdesc.AddShader( " << _ShaderType_ToString( sh.first ) << ", "
+					<< _ShaderLangFormat_ToString( data.first ) << ", "
+					<< _ShaderToString( data.second ) << " );\n\n";
+			}
+
+			if ( not sh.second.specConstants.empty() )
+			{
+				src << "\tdesc.SetSpecConstants( "
+					<< _ShaderType_ToString( sh.first ) << ", {\n";
+
+				for (auto& spec : sh.second.specConstants)
+				{
+					if ( &spec != sh.second.specConstants.begin() )
+						src << ",\n";
+
+					src << _SpecConstant_ToString( spec );
+				}
+				src << " });\n\n";
+			}
+		}
+
+		src << "\treturn fg->CreatePipeline( std::move(desc) );\n"
+			<< "}\n";
+
+		return true;
+	}
+	
+/*
+=================================================
+	Serialize (RayTracingPipelineDesc)
+=================================================
+*/
+	bool PipelineCppSerializer::Serialize (const RayTracingPipelineDesc &ppln, StringView name, OUT String &src) const
+	{
+		return false;
+	}
+
+/*
+=================================================
+	Serialize (ComputePipelineDesc)
 =================================================
 */
 	bool PipelineCppSerializer::Serialize (const ComputePipelineDesc &ppln, StringView name, OUT String &src) const
 	{
 		src.clear();
 
-		src << "PipelinePtr  Create_" << name << " (const VFrameGraphPtr &fg)\n"
+		src << "CPipelineID  Create_" << name << " (const FGThreadPtr &fg)\n"
 			<< "{\n"
 			<< "	ComputePipelineDesc  desc;\n\n";
 
@@ -365,6 +445,7 @@ namespace FG
 			case EShader::RayIntersection :	return "EShader::RayIntersection";
 			case EShader::RayCallable :		return "EShader::RayCallable";
 
+			case EShader::Unknown :
 			case EShader::_Count :			break;	// to shutup warnings
 		}
 		DISABLE_ENUM_CHECKS();

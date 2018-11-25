@@ -554,6 +554,36 @@ namespace FG
 	
 /*
 =================================================
+	UpdateBufferDynamicOffsets
+=================================================
+*/
+	static void UpdateBufferDynamicOffsets (INOUT PipelineDescription::DescriptorSets_t &descriptorSets)
+	{
+		uint	index = 0;
+
+		for (auto& ds : descriptorSets)
+		{
+			for (auto& un : *ds.uniforms)
+			{
+				if ( auto* ubuf = std::get_if<PipelineDescription::UniformBuffer>( &un.second.data ) )
+				{
+					if ( ubuf->dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
+						const_cast<PipelineDescription::UniformBuffer *>(ubuf)->dynamicOffsetIndex = index++;
+				}
+				else
+				if ( auto* sbuf = std::get_if<PipelineDescription::StorageBuffer>( &un.second.data ) )
+				{
+					if ( sbuf->dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
+						const_cast<PipelineDescription::StorageBuffer *>(sbuf)->dynamicOffsetIndex = index++;
+				}
+			}
+		}
+
+		ASSERT( index <= FG_MaxBufferDynamicOffsets );
+	}
+
+/*
+=================================================
 	FindHighPriorityShaderFormat
 =================================================
 */
@@ -682,6 +712,8 @@ namespace FG
 			}
 		}
 
+		UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
+
 		std::swap( ppln, new_ppln ); 
 		return true;
 	}
@@ -748,6 +780,8 @@ namespace FG
 				COMP_RETURN_ERR( "invalid shader data type!" );
 			}
 		}
+		
+		UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
 
 		std::swap( ppln, new_ppln ); 
 		return true;
@@ -830,6 +864,7 @@ namespace FG
 		}
 
 		ValidatePrimitiveTopology( INOUT new_ppln._supportedTopology );
+		UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
 
 		std::swap( ppln, new_ppln ); 
 		return true;
@@ -871,6 +906,8 @@ namespace FG
 			new_ppln._defaultLocalGroupSize = reflection.compute.localGroupSize;
 			new_ppln._localSizeSpec			= reflection.compute.localGroupSpecialization;
 			new_ppln._pipelineLayout		= std::move(reflection.layout);
+			
+			UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
 
 			std::swap( ppln, new_ppln ); 
 			return true;

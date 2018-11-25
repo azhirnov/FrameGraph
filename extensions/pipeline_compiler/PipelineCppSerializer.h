@@ -17,6 +17,8 @@ namespace FG
 	public:
 		bool Serialize (const GraphicsPipelineDesc &ppln, StringView name, OUT String &src) const;
 		bool Serialize (const ComputePipelineDesc &ppln, StringView name, OUT String &src) const;
+		bool Serialize (const MeshPipelineDesc &ppln, StringView name, OUT String &src) const;
+		bool Serialize (const RayTracingPipelineDesc &ppln, StringView name, OUT String &src) const;
 
 	private:
 		String  _ShaderToString (const PipelineDescription::ShaderDataUnion_t &shaderData) const;
