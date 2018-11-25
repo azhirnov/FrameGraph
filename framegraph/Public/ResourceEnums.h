@@ -87,6 +87,7 @@ namespace FG
 
 		DepthStencil	= Depth | Stencil,
 		Auto			= ~0u,
+		Unknown			= 0,
 	};
 	FG_BIT_OPERATORS( EImageAspect );
 	

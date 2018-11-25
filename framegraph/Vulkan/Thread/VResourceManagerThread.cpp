@@ -799,6 +799,74 @@ namespace FG
 
 		return result;
 	}
+	
+/*
+=================================================
+	CreateRayTracingGeometry
+=================================================
+*/
+	RawRTGeometryID  VResourceManagerThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily,
+																	   StringView dbgName, bool isAsync)
+	{
+		SCOPELOCK( _rcCheck );
+
+		RawMemoryID		mem_id;
+		VMemoryObj*		mem_obj	= null;
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, MemoryDesc{}, alloc, dbgName ));
+
+		RawRTGeometryID		id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
+		Replace( data );
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
+
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		{
+			DestroyResource( mem_id, isAsync );
+			_Unassign( id );
+			RETURN_ERR( "failed when creating raytracing geometry" );
+		}
+
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
+		return id;
+	}
+	
+/*
+=================================================
+	CreateRayTracingScene
+=================================================
+*/
+	RawRTSceneID  VResourceManagerThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily,
+																 StringView dbgName, bool isAsync)
+	{
+		SCOPELOCK( _rcCheck );
+
+		RawMemoryID		mem_id;
+		VMemoryObj*		mem_obj	= null;
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, MemoryDesc{}, alloc, dbgName ));
+
+		RawRTSceneID	id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
+		Replace( data );
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
+
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		{
+			DestroyResource( mem_id, isAsync );
+			_Unassign( id );
+			RETURN_ERR( "failed when creating raytracing scene" );
+		}
+
+		ASSERT( id.InstanceID() == data.GetInstanceID() );
+		return id;
+	}
 
 /*
 =================================================

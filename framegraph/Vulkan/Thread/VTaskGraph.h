@@ -110,7 +110,7 @@ namespace FG
 
 	// variables
 	private:
-		VLogicalRenderPass *	_renderPass		= null;
+		VLogicalRenderPass *	_logicalPass	= null;
 		Self *					_prevSubpass	= null;
 		Self *					_nextSubpass	= null;
 
@@ -119,7 +119,7 @@ namespace FG
 	public:
 		VFgTask (VFrameGraphThread *fg, const SubmitRenderPass &task, ProcessFunc_t process);
 
-		ND_ VLogicalRenderPass *		GetLogicalPass ()	const	{ return _renderPass; }
+		ND_ VLogicalRenderPass *		GetLogicalPass ()	const	{ return _logicalPass; }
 
 		ND_ Self const *				GetPrevSubpass ()	const	{ return _prevSubpass; }
 		ND_ Self const *				GetNextSubpass ()	const	{ return _nextSubpass; }

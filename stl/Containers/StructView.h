@@ -111,14 +111,14 @@ namespace FG
 		{
 			DEBUG_ONLY( std::swap( _dbgView, other._dbgView ));
 		}
-/*
+
 		template <typename Class>
 		StructView (ArrayView<Class> arr, T (Class::*member)) :
 			_array{ arr.data() + OffsetOf(member) }, _count{ arr.size() }, _stride{ sizeof(Class) }
 		{
 			DEBUG_ONLY( _dbgView = _CreateView<Class, sizeof(Class)>( _array ));
 		}
-		*/
+		
 		StructView (const void *ptr, size_t count, uint stride) :
 			_array{ptr}, _count{count}, _stride{stride}
 		{}

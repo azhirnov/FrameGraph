@@ -82,7 +82,6 @@ namespace FG
 	// implementation tests
 	private:
 		bool ImplTest_Scene1 ();
-		bool ImplTest_Scene2 ();
 
 
 	// drawing tests
@@ -94,6 +93,7 @@ namespace FG
 		bool Test_Compute1 ();
 		bool Test_Draw1 ();
 		bool Test_Draw2 ();
+		bool Test_Draw3 ();
 	};
 
 	

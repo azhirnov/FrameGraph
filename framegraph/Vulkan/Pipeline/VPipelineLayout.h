@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "framegraph/Shared/ResourceBase.h"
 #include "VDescriptorSetLayout.h"
 
 namespace FG

@@ -92,4 +92,10 @@ namespace FG
 #  endif
 # endif
 
+#  ifdef FG_STD_FILESYSTEM
+#	pragma detect_mismatch( "FG_STD_FILESYSTEM", "1" )
+#  else
+#	pragma detect_mismatch( "FG_STD_FILESYSTEM", "0" )
+#  endif
+
 #endif	// COMPILER_MSVC or COMPILER_CLANG

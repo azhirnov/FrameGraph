@@ -1,0 +1,608 @@
+Thread {
+	batch:         "main"
+	indexInBatch:  0
+	Image {
+		name:         "color_target"
+		iamgeType:    Image2D
+		dimension:    ( 1024, 1024, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         OpaquePass (#7)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    ColorAttachmentOutput
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					oldLayout:       General
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         OpaquePass (#7)
+					dstTask:         TransparentPass (#8)
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    ColorAttachmentOutput
+					dependencyFlags: 
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         TransparentPass (#8)
+					dstTask:         Present (#9)
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         Present (#9)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "depth_target"
+		iamgeType:    Image2D
+		dimension:    ( 1024, 1024, 1 )
+		format:       Depth32F
+		usage:        DepthStencilAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         DepthOnlyPass (#6)
+					dstTask:         OpaquePass (#7)
+					srcStageMask:    EarlyFragmentTests
+					dstStageMask:    EarlyFragmentTests
+					dependencyFlags: 
+					srcAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
+					dstAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
+					oldLayout:       DepthStencilAttachmentOptimal
+					newLayout:       DepthStencilAttachmentOptimal
+					aspectMask:      Depth
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         OpaquePass (#7)
+					dstTask:         TransparentPass (#8)
+					srcStageMask:    EarlyFragmentTests
+					dstStageMask:    EarlyFragmentTests
+					dependencyFlags: 
+					srcAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
+					dstAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
+					oldLayout:       DepthStencilAttachmentOptimal
+					newLayout:       DepthStencilAttachmentOptimal
+					aspectMask:      Depth
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         TransparentPass (#8)
+					dstTask:         <final>
+					srcStageMask:    EarlyFragmentTests
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
+					dstAccessMask:   
+					oldLayout:       DepthStencilAttachmentOptimal
+					newLayout:       DepthStencilAttachmentOptimal
+					aspectMask:      Depth
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "texture1"
+		iamgeType:    Image2D
+		dimension:    ( 512, 512, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         DepthOnlyPass (#6)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    FragmentShader
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   ShaderRead
+					oldLayout:       General
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         TransparentPass (#8)
+					dstTask:         <final>
+					srcStageMask:    FragmentShader
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   ShaderRead
+					dstAccessMask:   
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "const_buf1"
+		size:    256 b
+		usage:   TransferSrc | TransferDst | Uniform | Storage | Index | Vertex | Indirect
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         update_buf1 (#3)
+					dstTask:         OpaquePass (#7)
+					srcStageMask:    Transfer
+					dstStageMask:    VertexShader | FragmentShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          0 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf1 (#3)
+					dstTask:         TransparentPass (#8)
+					srcStageMask:    Transfer
+					dstStageMask:    VertexShader | FragmentShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          0 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf1 (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            256 b
+				}
+		}
+	}
+
+	Buffer {
+		name:    "const_buf2"
+		size:    512 b
+		usage:   TransferSrc | TransferDst | Uniform | Storage | Index | Vertex | Indirect
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         update_buf0 (#2)
+					dstTask:         update_buf3 (#5)
+					srcStageMask:    Transfer
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   TransferWrite
+					offset:          0 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf3 (#5)
+					dstTask:         DepthOnlyPass (#6)
+					srcStageMask:    Transfer
+					dstStageMask:    VertexShader | FragmentShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          0 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf2 (#4)
+					dstTask:         OpaquePass (#7)
+					srcStageMask:    Transfer
+					dstStageMask:    VertexShader | FragmentShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          256 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf3 (#5)
+					dstTask:         TransparentPass (#8)
+					srcStageMask:    Transfer
+					dstStageMask:    VertexShader | FragmentShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          0 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf2 (#4)
+					dstTask:         TransparentPass (#8)
+					srcStageMask:    Transfer
+					dstStageMask:    VertexShader | FragmentShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          256 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf3 (#5)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf2 (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          256 b
+					size:            256 b
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "update_buf0 (#2)"
+		input =  {  }
+		output = { DepthOnlyPass (#6) }
+		resource_usage = {
+			BufferUsage {
+				name:     "StagingWriteBuffer "
+				usage:    TransferSrc
+				offset:   0 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf2"
+				usage:    TransferDst
+				offset:   0 b
+				size:     256 b
+			}
+		}
+	}
+	Task {
+		name:    "update_buf1 (#3)"
+		input =  {  }
+		output = { OpaquePass (#7) }
+		resource_usage = {
+			BufferUsage {
+				name:     "StagingWriteBuffer "
+				usage:    TransferSrc
+				offset:   256 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf1"
+				usage:    TransferDst
+				offset:   0 b
+				size:     256 b
+			}
+		}
+	}
+	Task {
+		name:    "update_buf2 (#4)"
+		input =  {  }
+		output = { OpaquePass (#7) }
+		resource_usage = {
+			BufferUsage {
+				name:     "StagingWriteBuffer "
+				usage:    TransferSrc
+				offset:   512 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf2"
+				usage:    TransferDst
+				offset:   256 b
+				size:     256 b
+			}
+		}
+	}
+	Task {
+		name:    "update_buf3 (#5)"
+		input =  {  }
+		output = { TransparentPass (#8) }
+		resource_usage = {
+			BufferUsage {
+				name:     "StagingWriteBuffer "
+				usage:    TransferSrc
+				offset:   768 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf2"
+				usage:    TransferDst
+				offset:   0 b
+				size:     256 b
+			}
+		}
+	}
+	Task {
+		name:    "DepthOnlyPass (#6)"
+		input =  { update_buf0 (#2) }
+		output = { OpaquePass (#7) }
+		resource_usage = {
+			BufferUsage {
+				name:     "const_buf2"
+				usage:    UniformRead, VS, FS
+				offset:   0 b
+				size:     256 b
+			}
+			ImageUsage {
+				name:           "depth_target"
+				usage:          DepthStencilRT-ReadWrite, ClearBefore, EarlyFragmentTests
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "texture1"
+				usage:          ShaderSample, FS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "vbuffer1"
+				usage:    VertexBuffer
+				offset:   0 b
+				size:     46 Kb
+			}
+		}
+	}
+	Task {
+		name:    "OpaquePass (#7)"
+		input =  { DepthOnlyPass (#6), update_buf1 (#3), update_buf2 (#4) }
+		output = { TransparentPass (#8) }
+		resource_usage = {
+			ImageUsage {
+				name:           "color_target"
+				usage:          ColorRT-ReadWrite
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "const_buf1"
+				usage:    UniformRead, VS, FS
+				offset:   0 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf2"
+				usage:    UniformRead, VS, FS
+				offset:   256 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf3"
+				usage:    UniformRead, VS, FS
+				offset:   0 b
+				size:     256 b
+			}
+			ImageUsage {
+				name:           "depth_target"
+				usage:          DepthStencilRT-ReadWrite, EarlyFragmentTests
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "texture1"
+				usage:          ShaderSample, FS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "texture1"
+				usage:          ShaderSample, FS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "texture1"
+				usage:          ShaderSample, FS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "vbuffer1"
+				usage:    VertexBuffer
+				offset:   0 b
+				size:     46 Kb
+			}
+			BufferUsage {
+				name:     "vbuffer1"
+				usage:    VertexBuffer
+				offset:   0 b
+				size:     46 Kb
+			}
+			BufferUsage {
+				name:     "vbuffer2"
+				usage:    VertexBuffer
+				offset:   0 b
+				size:     46 Kb
+			}
+		}
+	}
+	Task {
+		name:    "TransparentPass (#8)"
+		input =  { OpaquePass (#7), update_buf3 (#5) }
+		output = { Present (#9) }
+		resource_usage = {
+			ImageUsage {
+				name:           "color_target"
+				usage:          ColorRT-ReadWrite
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "const_buf1"
+				usage:    UniformRead, VS, FS
+				offset:   0 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf2"
+				usage:    UniformRead, VS, FS
+				offset:   0 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf2"
+				usage:    UniformRead, VS, FS
+				offset:   256 b
+				size:     256 b
+			}
+			ImageUsage {
+				name:           "depth_target"
+				usage:          DepthStencilRT-ReadWrite, InvalidateAfter, EarlyFragmentTests
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "texture1"
+				usage:          ShaderSample, FS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "texture1"
+				usage:          ShaderSample, FS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "texture1"
+				usage:          ShaderSample, FS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "vbuffer1"
+				usage:    VertexBuffer
+				offset:   0 b
+				size:     46 Kb
+			}
+			BufferUsage {
+				name:     "vbuffer2"
+				usage:    VertexBuffer
+				offset:   0 b
+				size:     46 Kb
+			}
+			BufferUsage {
+				name:     "vbuffer2"
+				usage:    VertexBuffer
+				offset:   0 b
+				size:     93 Kb
+			}
+		}
+	}
+	Task {
+		name:    "Present (#9)"
+		input =  { TransparentPass (#8) }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "color_target"
+				usage:          TransferSrc
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+

@@ -29,6 +29,38 @@ namespace FG
 //-----------------------------------------------------------------------------
 
 	
+/*
+=================================================
+	EShaderStages_FromShader
+=================================================
+*/
+	ND_ inline EShaderStages  EShaderStages_FromShader (EShader value)
+	{
+		ENABLE_ENUM_CHECKS();
+		switch ( value )
+		{
+			case EShader::Vertex :			return EShaderStages::Vertex;
+			case EShader::TessControl :		return EShaderStages::TessControl;
+			case EShader::TessEvaluation :	return EShaderStages::TessEvaluation;
+			case EShader::Geometry :		return EShaderStages::Geometry;
+			case EShader::Fragment :		return EShaderStages::Fragment;
+			case EShader::Compute :			return EShaderStages::Compute;
+			case EShader::MeshTask :		return EShaderStages::MeshTask;
+			case EShader::Mesh :			return EShaderStages::Mesh;
+			case EShader::RayGen :			return EShaderStages::RayGen;
+			case EShader::RayAnyHit :		return EShaderStages::RayAnyHit;
+			case EShader::RayClosestHit :	return EShaderStages::RayClosestHit;
+			case EShader::RayMiss :			return EShaderStages::RayMiss;
+			case EShader::RayIntersection :	return EShaderStages::RayIntersection;
+			case EShader::RayCallable :		return EShaderStages::RayCallable;
+			case EShader::Unknown :
+			case EShader::_Count :			break;	// to shutup warnings
+		}
+		DISABLE_ENUM_CHECKS();
+		RETURN_ERR( "unsupported shader type!" );
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================

@@ -68,7 +68,7 @@ void main() {
 	String	src;
 	TEST( serializer.Serialize( ppln, "default", OUT src ));
 
-	const String	serialized_ref = R"##(PipelinePtr  Create_default (const VFrameGraphPtr &fg)
+	const String	serialized_ref = R"##(GPipelineID  Create_default (const FGThreadPtr &fg)
 {
 	GraphicsPipelineDesc  desc;
 

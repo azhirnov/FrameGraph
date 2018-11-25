@@ -76,9 +76,9 @@ namespace FG
 		explicit VDevice (const VulkanDeviceInfo &vdi);
 		~VDevice ();
 
-		ND_ bool									EnableDebugUtils ()			const	{ return _enableDebugUtils; }
-		ND_ bool									EnableMeshShader ()			const	{ return _enableMeshShaderNV; }
-		ND_ bool									EnableRayTracing ()			const	{ return _enableRayTracingNV; }
+		ND_ bool									IsDebugUtilsEnabled ()		const	{ return _enableDebugUtils; }
+		ND_ bool									IsMeshShaderEnabled ()		const	{ return _enableMeshShaderNV; }
+		ND_ bool									IsRayTracingEnabled ()		const	{ return _enableRayTracingNV; }
 
 		ND_ VkDevice								GetVkDevice ()				const	{ return _vkDevice; }
 		ND_ VkPhysicalDevice						GetVkPhysicalDevice ()		const	{ return _vkPhysicalDevice; }

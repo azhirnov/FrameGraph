@@ -612,6 +612,122 @@ namespace FG
 		CHECK( _graphicsPipelines->insert_or_assign( {gppln, std::move(inst)}, ppln_id ).second );
 		return ppln_id;
 	}
+/*
+=================================================
+	CreatePipelineInstance
+=================================================
+*/
+	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread	&resMngr,
+														RawMPipelineID			 pplnId,
+														RawRenderPassID			 renderPassId,
+														uint					 subpassIndex,
+														const RenderState		&renderState,
+														EPipelineDynamicState	 dynamicState,
+														VkPipelineCreateFlags	 pipelineFlags,
+														uint					 viewportCount)
+	{
+		CHECK_ERR( resMngr.GetDevice().IsMeshShaderEnabled() );
+		CHECK_ERR( pplnId and renderPassId and viewportCount > 0 );
+
+		// not supported yet
+		ASSERT( EnumEq( dynamicState, EPipelineDynamicState::Viewport ));
+		ASSERT( EnumEq( dynamicState, EPipelineDynamicState::Scissor ));
+
+		VDevice const&				dev			= resMngr.GetDevice();
+		VMeshPipeline const*		mppln		= resMngr.GetResource( pplnId );
+		VPipelineLayout const*		layout		= resMngr.GetResource( mppln->GetLayoutID() );
+		VRenderPass const*			render_pass	= resMngr.GetResource( renderPassId );
+		
+		// check topology
+		CHECK_ERR(	uint(renderState.inputAssembly.topology) < mppln->_supportedTopology.size() and
+					mppln->_supportedTopology[uint(renderState.inputAssembly.topology)] );
+
+		VMeshPipeline::PipelineInstance		inst;
+		inst.dynamicState	= dynamicState;
+		inst.renderPassId	= renderPassId;
+		inst.subpassIndex	= subpassIndex;
+		inst.renderState	= renderState;
+		inst.flags			= pipelineFlags;
+		inst.viewportCount	= viewportCount;
+
+		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
+
+		inst._hash			= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
+							  HashOf( inst.renderState )	+ HashOf( inst.dynamicState )	+
+							  HashOf( inst.viewportCount )	+ HashOf( inst.flags );
+
+
+		// find existing instance
+		{
+			auto iter1 = mppln->_instances.find( inst );
+			if ( iter1 != mppln->_instances.end() )
+				return iter1->second;
+			
+			auto iter2 = _meshPipelines->find({ mppln, inst });
+			if ( iter2 != _meshPipelines->end() )
+				return iter2->second;
+		}
+
+
+		// create new instance
+		_ClearTemp();
+
+		VkGraphicsPipelineCreateInfo			pipeline_info		= {};
+		VkPipelineInputAssemblyStateCreateInfo	input_assembly_info	= {};
+		VkPipelineColorBlendStateCreateInfo		blend_info			= {};
+		VkPipelineDepthStencilStateCreateInfo	depth_stencil_info	= {};
+		VkPipelineMultisampleStateCreateInfo	multisample_info	= {};
+		VkPipelineRasterizationStateCreateInfo	rasterization_info	= {};
+		VkPipelineDynamicStateCreateInfo		dynamic_state_info	= {};
+		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
+		VkPipelineViewportStateCreateInfo		viewport_info		= {};
+
+		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln->_shaders );
+		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
+		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
+		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
+		_SetDepthStencilState( OUT depth_stencil_info, inst.renderState.depth, inst.renderState.stencil );
+		_SetRasterizationState( OUT rasterization_info, inst.renderState.rasterization );
+		_SetupPipelineInputAssemblyState( OUT input_assembly_info, inst.renderState.inputAssembly );
+		_SetViewportState( OUT viewport_info, OUT _tempViewports, OUT _tempScissors,
+						   uint2(1024, 1024), inst.viewportCount, inst.dynamicState );
+
+		vertex_input_info.sType	= VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+		pipeline_info.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipeline_info.pNext					= null;
+		pipeline_info.flags					= pipelineFlags;
+		pipeline_info.pInputAssemblyState	= &input_assembly_info;
+		pipeline_info.pRasterizationState	= &rasterization_info;
+		pipeline_info.pColorBlendState		= &blend_info;
+		pipeline_info.pDepthStencilState	= &depth_stencil_info;
+		pipeline_info.pMultisampleState		= &multisample_info;
+		pipeline_info.pVertexInputState		= &vertex_input_info;
+		pipeline_info.pDynamicState			= (_tempDynamicStates.empty() ? null : &dynamic_state_info);
+		pipeline_info.basePipelineIndex		= -1;
+		pipeline_info.basePipelineHandle	= VK_NULL_HANDLE;
+		pipeline_info.layout				= layout->Handle();
+		pipeline_info.stageCount			= uint(_tempStages.size());
+		pipeline_info.pStages				= _tempStages.data();
+		pipeline_info.renderPass			= render_pass->Handle();
+		pipeline_info.subpass				= subpassIndex;
+		
+		if ( not rasterization_info.rasterizerDiscardEnable )
+		{
+			pipeline_info.pViewportState		= &viewport_info;
+		}else{
+			pipeline_info.pViewportState		= null;
+			pipeline_info.pMultisampleState		= null;
+			pipeline_info.pDepthStencilState	= null;
+			pipeline_info.pColorBlendState		= null;
+		}
+
+		VkPipeline	ppln_id = {};
+		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &ppln_id ));
+
+		CHECK( _meshPipelines->insert_or_assign( {mppln, std::move(inst)}, ppln_id ).second );
+		return ppln_id;
+	}
 
 /*
 =================================================
@@ -867,7 +983,7 @@ namespace FG
 		outState.pNext	= null;
 		outState.flags	= 0;
 
-		for (const auto& src : inState.Vertices())
+		for (auto& src : inState.Vertices())
 		{
 			VkVertexInputAttributeDescription	dst = {};
 
@@ -881,7 +997,7 @@ namespace FG
 			vertexAttribs.push_back( std::move(dst) );
 		}
 
-		for (const auto& src : inState.BufferBindings())
+		for (auto& src : inState.BufferBindings())
 		{
 			VkVertexInputBindingDescription	dst = {};
 
@@ -978,8 +1094,11 @@ namespace FG
 			attachments.push_back( color_state );
 		}
 
-		for (const auto& cb : inState.buffers)
+		for (auto& cb : inState.buffers)
 		{
+			if ( not cb.first.IsDefined() )
+				continue;
+
 			uint	index;
 			CHECK( renderPass.GetColorAttachmentIndex( cb.first, OUT index ) );
 

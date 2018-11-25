@@ -208,7 +208,8 @@ inline bool TestSubpassInputUniform (const PipelineDescription::DescriptorSet &d
 =================================================
 */
 inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
-								BytesU size, uint bindingIndex, EShaderStages stageFlags)
+								BytesU size, uint bindingIndex, EShaderStages stageFlags,
+							    uint dynamicOffsetIndex = PipelineDescription::STATIC_OFFSET)
 {
 	auto	ptr = FindUniform< PipelineDescription::UniformBuffer >( ds, id, bindingIndex, stageFlags );
 	if ( not ptr )
@@ -216,8 +217,9 @@ inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, con
 	
 	EResourceState	state = EResourceState::UniformRead | EResourceState_FromShaders( stageFlags );
 
-	return	ptr->size	== size		and
-			ptr->state	== state;
+	return	ptr->size				== size		and
+			ptr->state				== state	and
+			ptr->dynamicOffsetIndex	== dynamicOffsetIndex;
 }
 
 /*
@@ -227,7 +229,8 @@ inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, con
 */
 inline bool TestStorageBuffer (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
 								BytesU staticSize, BytesU arrayStride, EShaderAccess access,
-								uint bindingIndex, EShaderStages stageFlags)
+								uint bindingIndex, EShaderStages stageFlags,
+							    uint dynamicOffsetIndex = PipelineDescription::STATIC_OFFSET)
 {
 	auto	ptr = FindUniform< PipelineDescription::StorageBuffer >( ds, id, bindingIndex, stageFlags );
 	if ( not ptr )
@@ -235,9 +238,10 @@ inline bool TestStorageBuffer (const PipelineDescription::DescriptorSet &ds, con
 	
 	EResourceState	state = EResourceState_FromShaderAccess( access ) | EResourceState_FromShaders( stageFlags );
 
-	return	ptr->staticSize		== staticSize	and
-			ptr->arrayStride	== arrayStride	and
-			ptr->state			== state;
+	return	ptr->staticSize			== staticSize	and
+			ptr->arrayStride		== arrayStride	and
+			ptr->state				== state		and
+			ptr->dynamicOffsetIndex	== dynamicOffsetIndex;
 }
 
 /*

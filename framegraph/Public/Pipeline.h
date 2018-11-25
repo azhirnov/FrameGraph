@@ -128,7 +128,7 @@ namespace FG
 			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset);
 		};
 		
-		struct _AccelerationStructureUniform
+		struct _AccelerationStructureUniform	// TODO: rename to TopLevelAS
 		{
 			UniformID				id;
 			AccelerationStructure	data;
@@ -195,13 +195,10 @@ namespace FG
 
 		struct Shader
 		{
-		// variables
 			ShaderDataMap_t		data;
 			SpecConstants_t		specConstants;
 
-		// methods
 			Shader () {}
-
 			void AddShaderData (EShaderLangFormat fmt, StringView entry, String &&src);
 			void AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
 			void AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
@@ -228,9 +225,6 @@ namespace FG
 								ArrayView< _AccelerationStructureUniform >	accelerationStructures);
 
 		void _SetPushConstants (ArrayView< PushConstant > values);
-
-	protected:
-		ND_ PipelineLayout const&	GetPipelineLayout () const		{ return _pipelineLayout; }
 	};
 
 

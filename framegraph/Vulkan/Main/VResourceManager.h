@@ -3,6 +3,7 @@
 #pragma once
 
 #include "framegraph/Public/FrameGraphThread.h"
+#include "framegraph/Shared/ResourceBase.h"
 #include "stl/Memory/LinearAllocator.h"
 #include "stl/Containers/ChunkedIndexedPool.h"
 #include "stl/Containers/CachedIndexedPool.h"
@@ -14,6 +15,8 @@
 #include "VRenderPass.h"
 #include "VFramebuffer.h"
 #include "VPipelineResources.h"
+#include "VRayTracingGeometry.h"
+#include "VRayTracingScene.h"
 #include <shared_mutex>
 
 namespace FG
@@ -57,6 +60,8 @@ namespace FG
 		using RenderPassPool_t			= PoolHelper< VRenderPass,			(1u<<10),			CachedPoolTmpl >;
 		using FramebufferPool_t			= PoolHelper< VFramebuffer,			(1u<<10),			CachedPoolTmpl >;
 		using PipelineResourcesPool_t	= PoolHelper< VPipelineResources,	(1u<<10),			CachedPoolTmpl >;
+		using RTGeometryPool_t			= PoolHelper< VRayTracingGeometry,	(16u<<10),			PoolTmpl >;
+		using RTScenePool_t				= PoolHelper< VRayTracingScene,		(16u<<10),			PoolTmpl >;
 
 		using VkResourceQueue_t			= Array< UntypedVkResource_t >;
 		using UnassignIDQueue_t			= Array< UntypedResourceID_t >;
@@ -88,6 +93,9 @@ namespace FG
 		RenderPassPool_t			_renderPassCache;
 		FramebufferPool_t			_framebufferCache;
 		PipelineResourcesPool_t		_pplnResourcesCache;
+
+		RTGeometryPool_t			_rtGeometryPool;
+		RTScenePool_t				_rtScenePool;
 		
 		UnassignIDQueue_t			_unassignIDs;
 		PerFrameArray_t				_perFrame;
@@ -138,6 +146,8 @@ namespace FG
 		ND_ auto&  _GetResourcePool (const RawRenderPassID &)			{ return _renderPassCache; }
 		ND_ auto&  _GetResourcePool (const RawFramebufferID &)			{ return _framebufferCache; }
 		ND_ auto&  _GetResourcePool (const RawPipelineResourcesID &)	{ return _pplnResourcesCache; }
+		ND_ auto&  _GetResourcePool (const RawRTGeometryID &)			{ return _rtGeometryPool; }
+		ND_ auto&  _GetResourcePool (const RawRTSceneID &)				{ return _rtScenePool; }
 
 		template <typename ID>
 		ND_ const auto&  _GetResourceCPool (const ID &id)		const	{ return const_cast<VResourceManager *>(this)->_GetResourcePool( id ); }

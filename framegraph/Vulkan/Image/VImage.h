@@ -4,7 +4,6 @@
 
 #include "framegraph/Public/MemoryDesc.h"
 #include "framegraph/Shared/ImageViewDesc.h"
-#include "framegraph/Shared/ResourceBase.h"
 #include "framegraph/Public/FrameGraphThread.h"
 #include "VCommon.h"
 #include <shared_mutex>

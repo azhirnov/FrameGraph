@@ -21,6 +21,8 @@ namespace FG
 			VertexID		id;
 			uint			index;
 			EVertexType		type;		// float|int|uint <1,2,3,4,...> are available
+
+			ND_ bool  operator == (const VertexAttrib &rhs) const;
 		};
 
 		using Self	= VertexInputState;

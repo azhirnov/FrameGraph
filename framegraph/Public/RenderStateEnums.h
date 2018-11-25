@@ -55,7 +55,7 @@ namespace FG
 		Set,				// 1
 		Copy,				// S
 		CopyInverted,		// ~S
-		Noop,				// D
+		NoOp,				// D
 		Invert,				// ~D
 		And,				// S & D
 		NotAnd,				// ~ ( S & D )

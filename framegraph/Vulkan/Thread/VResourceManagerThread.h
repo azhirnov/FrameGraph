@@ -120,6 +120,9 @@ namespace FG
 		ND_ RawFramebufferID	CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers,
 												   StringView dbgName, bool isAsync);
 		ND_ RawPipelineResourcesID	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
+		
+		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
+		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 
 		ND_ LocalBufferID		Remap (RawBufferID id);
 		ND_ LocalImageID		Remap (RawImageID id);

@@ -66,15 +66,18 @@ namespace FG
 		ND_ virtual BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName = Default) = 0;
 			virtual bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const = 0;
-		
-		//ND_ virtual AccelerationStructID	CreateAccelerationStructure (const AccelerationStructDesc &desc) = 0;
+		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, StringView dbgName = Default) = 0;
+		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, StringView dbgName = Default) = 0;
 
 			virtual void			DestroyResource (INOUT GPipelineID &id) = 0;
 			virtual void			DestroyResource (INOUT CPipelineID &id) = 0;
+			virtual void			DestroyResource (INOUT MPipelineID &id) = 0;
 			virtual void			DestroyResource (INOUT RTPipelineID &id) = 0;
 			virtual void			DestroyResource (INOUT ImageID &id) = 0;
 			virtual void			DestroyResource (INOUT BufferID &id) = 0;
 			virtual void			DestroyResource (INOUT SamplerID &id) = 0;
+			virtual void			DestroyResource (INOUT RTGeometryID &id) = 0;
+			virtual void			DestroyResource (INOUT RTSceneID &id) = 0;
 
 		ND_ virtual BufferDesc const&	GetDescription (const BufferID &id) const = 0;
 		ND_ virtual ImageDesc const&	GetDescription (const ImageID &id) const = 0;
@@ -135,7 +138,7 @@ namespace FG
 			virtual void		AddDrawTask (LogicalPassID, const DrawIndexedTask &) = 0;
 		//	virtual void		AddDrawTask (LogicalPassID, const ClearAttachments &) = 0;
 		//	virtual void		AddDrawTask (LogicalPassID, const DrawCommandBuffer &) = 0;
-		//	virtual void		AddDrawTask (LogicalPassID, const DrawMeshTask &) = 0;
+			virtual void		AddDrawTask (LogicalPassID, const DrawMeshTask &) = 0;
 	};
 
 

@@ -35,8 +35,9 @@ namespace FG
 
 	// interface
 	public:
-		IDrawTask (ProcessFunc_t pass1, ProcessFunc_t pass2) :
-			_pass1{pass1}, _pass2{pass2} {}
+		template <typename TaskType>
+		IDrawTask (const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+			_pass1{pass1}, _pass2{pass2}, _taskName{task.taskName}, _debugColor{task.debugColor} {}
 
 		virtual ~IDrawTask () {}
 		
@@ -151,6 +152,44 @@ namespace FG
 		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()	const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
 		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()		const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
 		ND_ ArrayView< Bytes<uint> >		GetVBStrides ()		const	{ return ArrayView{ _vbStrides.data(), _vbCount }; }
+	};
+	
+
+
+	//
+	// Draw Mesh Task
+	//
+
+	template <>
+	class VFgDrawTask< DrawMeshTask > final : public IDrawTask
+	{
+	// types
+	public:
+		using Scissors_t	= DrawMeshTask::Scissors_t;
+		using DrawCmd		= DrawMeshTask::DrawCmd;
+
+
+	// variables
+	private:
+		VPipelineResourceSet			_resources;
+
+	public:
+		const RawMPipelineID			pipeline;
+
+		const RenderState				renderState;
+		const EPipelineDynamicState		dynamicStates;
+
+		const DrawCmd					drawCmd;
+		const Scissors_t				scissors;
+
+		mutable VkDescriptorSets_t		descriptorSets;
+
+
+	// methods
+	public:
+		VFgDrawTask (VFrameGraphThread *fg, const DrawMeshTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		
+		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
 	};
 
 

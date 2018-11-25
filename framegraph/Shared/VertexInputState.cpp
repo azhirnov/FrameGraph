@@ -7,6 +7,21 @@ namespace FG
 
 /*
 =================================================
+	VertexAttrib::operator ==
+=================================================
+*/
+	bool  VertexInputState::VertexAttrib::operator == (const VertexAttrib &rhs) const
+	{
+		return	id		== rhs.id		and
+				index	== rhs.index	and
+				type	== rhs.type;
+	}
+//-----------------------------------------------------------------------------
+
+
+
+/*
+=================================================
 	constructor
 =================================================
 */
@@ -251,13 +266,13 @@ namespace std
 		result << HashOf( value._vertices.size() );
 		result << HashOf( value._bindings.size() );
 
-		for (const auto& attr : value._vertices)
+		for (auto& attr : value._vertices)
 		{
 			result << HashOf( attr.first );
 			result << HashOf( attr.second );
 		}
 		
-		for (const auto& bind : value._bindings)
+		for (auto& bind : value._bindings)
 		{
 			result << HashOf( bind.first );
 			result << HashOf( bind.second );

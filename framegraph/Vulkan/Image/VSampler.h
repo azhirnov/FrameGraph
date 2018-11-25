@@ -3,7 +3,6 @@
 #pragma once
 
 #include "framegraph/Public/SamplerDesc.h"
-#include "framegraph/Shared/ResourceBase.h"
 #include "VCommon.h"
 
 namespace FG

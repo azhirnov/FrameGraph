@@ -379,6 +379,38 @@ namespace FG
 		CHECK_ERR( PipelineResourcesInitializer::Initialize( OUT resources, layoutId, ds_layout->GetUniforms(), ds_layout->GetMaxIndex()+1 ));
 		return true;
 	}
+	
+/*
+=================================================
+	CreateRayTracingGeometry
+=================================================
+*/
+	RTGeometryID  VFrameGraphThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, StringView dbgName)
+	{
+		SCOPELOCK( _rcCheck );
+		ASSERT( _IsInitialized() );
+		
+		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
+		CHECK_ERR( queue );
+
+		return RTGeometryID{ _resourceMngr.CreateRayTracingGeometry( desc, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
+	}
+	
+/*
+=================================================
+	CreateRayTracingScene
+=================================================
+*/
+	RTSceneID  VFrameGraphThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, StringView dbgName)
+	{
+		SCOPELOCK( _rcCheck );
+		ASSERT( _IsInitialized() );
+		
+		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
+		CHECK_ERR( queue );
+
+		return RTSceneID{ _resourceMngr.CreateRayTracingScene( desc, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
+	}
 
 /*
 =================================================
@@ -401,10 +433,13 @@ namespace FG
 */
 	void VFrameGraphThread::DestroyResource (INOUT GPipelineID &id)		{ _DestroyResource( INOUT id ); }
 	void VFrameGraphThread::DestroyResource (INOUT CPipelineID &id)		{ _DestroyResource( INOUT id ); }
+	void VFrameGraphThread::DestroyResource (INOUT MPipelineID &id)		{ _DestroyResource( INOUT id ); }
 	void VFrameGraphThread::DestroyResource (INOUT RTPipelineID &id)	{ _DestroyResource( INOUT id ); }
 	void VFrameGraphThread::DestroyResource (INOUT ImageID &id)			{ _DestroyResource( INOUT id ); }
 	void VFrameGraphThread::DestroyResource (INOUT BufferID &id)		{ _DestroyResource( INOUT id ); }
 	void VFrameGraphThread::DestroyResource (INOUT SamplerID &id)		{ _DestroyResource( INOUT id ); }
+	void VFrameGraphThread::DestroyResource (INOUT RTGeometryID &id)	{ _DestroyResource( INOUT id ); }
+	void VFrameGraphThread::DestroyResource (INOUT RTSceneID &id)		{ _DestroyResource( INOUT id ); }
 
 /*
 =================================================

@@ -39,6 +39,12 @@ namespace FG
 			ND_ HashVal						GetHash ()	const	{ return _hash; }
 		};
 
+		struct ShaderModule
+		{
+			VkShaderStageFlagBits				stage;
+			PipelineDescription::VkShaderPtr	module;
+		};
+
 
 	private:
 		struct PipelineInstance
@@ -46,28 +52,22 @@ namespace FG
 		// variables
 			HashVal						_hash;
 			RawRenderPassID				renderPassId;
-			uint						subpassIndex;
+			uint						subpassIndex	= 0;
 			RenderState					renderState;
 			VertexInputState			vertexInput;
-			EPipelineDynamicState		dynamicState;
-			VkPipelineCreateFlags		flags;
-			uint						viewportCount;
+			EPipelineDynamicState		dynamicState	= EPipelineDynamicState::None;
+			VkPipelineCreateFlags		flags			= 0;
+			uint						viewportCount	= 0;
 			// TODO: specialization constants
 
 		// methods
-			PipelineInstance ();
+			PipelineInstance () {}
 
 			ND_ bool  operator == (const PipelineInstance &rhs) const;
 		};
 
 		struct PipelineInstanceHash {
 			ND_ size_t	operator () (const PipelineInstance &value) const noexcept	{ return size_t(value._hash); }
-		};
-
-		struct ShaderModule
-		{
-			VkShaderStageFlagBits				stage;
-			PipelineDescription::VkShaderPtr	module;
 		};
 
 		using Instances_t			= HashMap< PipelineInstance, VkPipeline, PipelineInstanceHash >;
@@ -111,19 +111,6 @@ namespace FG
 		ND_ bool					IsEarlyFragmentTests ()	const	{ SHAREDLOCK( _rcCheck );  return _earlyFragmentTests; }
 	};
 
-	
-/*
-=================================================
-	PipelineInstance
-=================================================
-*/
-	inline VGraphicsPipeline::PipelineInstance::PipelineInstance () :
-		_hash{ 0 },
-		subpassIndex{ 0 },
-		dynamicState{ EPipelineDynamicState::None },
-		flags{ 0 },
-		viewportCount{ 0 }
-	{}
 	
 /*
 =================================================

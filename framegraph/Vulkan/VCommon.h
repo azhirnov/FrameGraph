@@ -40,7 +40,8 @@ namespace FG
 	
 	using UntypedResourceID_t		= Union< RawImageID, RawSamplerID, RawBufferID, RawGPipelineID, RawCPipelineID,
 											 RawMPipelineID, RawRTPipelineID, RawMemoryID, RawDescriptorSetLayoutID,
-											 RawPipelineLayoutID, RawRenderPassID, RawFramebufferID, RawPipelineResourcesID >;
+											 RawPipelineLayoutID, RawRenderPassID, RawFramebufferID, RawPipelineResourcesID,
+											 RawRTGeometryID, RawRTSceneID >;
 	using AppendableResourceIDs_t	= Appendable< UntypedResourceID_t >;
 	
 	using VkDescriptorSets_t		= FixedArray< VkDescriptorSet, FG_MaxDescriptorSets >;

@@ -65,6 +65,7 @@ namespace FG
 		TaskMap_t				_tasks;
 		ImageResources_t		_images;
 		BufferResources_t		_buffers;
+		mutable HashSet<String>	_existingBarriers;
 
 		VDebugger const&		_mainDbg;
 		StringView				_subBatchUID;
@@ -122,20 +123,16 @@ namespace FG
 	private:
 		void _DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const;
 		void _AddInitialStates (INOUT String &str) const;
-		void _AddFinalStates (INOUT String &str, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const;
+		void _AddFinalStates (INOUT String &str, INOUT String &deps) const;
 
-		void _GetResourceUsage (const TaskInfo &info, OUT String &resStyle,
-								OUT String &barStyle, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const;
+		void _GetResourceUsage (const TaskInfo &info, OUT String &resStyle, OUT String &barStyle, INOUT String &deps) const;
 
-		void _GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &barStyle, INOUT String &deps,
-								INOUT HashSet<String> &existingBarriers) const;
-
-		void _GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &barStyle, INOUT String &deps,
-							   INOUT HashSet<String> &existingBarriers) const;
+		void _GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &barStyle, INOUT String &deps) const;
+		void _GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &barStyle, INOUT String &deps) const;
 
 		template <typename T, typename B>
 		void _GetResourceBarrier (const T *res, const Barrier<B> &bar, VkImageLayout oldLayout, VkImageLayout newLayout,
-								  INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const;
+								  INOUT String &style, INOUT String &deps) const;
 
 		ND_ String  _VisTaskName (TaskPtr task) const;
 		ND_ String  _VisBarrierGroupName (TaskPtr task) const;

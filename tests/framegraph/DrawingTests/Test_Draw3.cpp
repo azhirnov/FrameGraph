@@ -2,7 +2,7 @@
 /*
 	This test affects:
 		- frame graph building and execution
-		- tasks: SubmitRenderPass, DrawTask, ReadImage
+		- tasks: SubmitRenderPass, DrawMeshTask, ReadImage
 		- resources: render pass, image, framebuffer, pipeline, pipeline resources
 		- staging buffers
 		- memory managment
@@ -13,19 +13,32 @@
 namespace FG
 {
 
-	bool FGApp::Test_Draw1 ()
+	bool FGApp::Test_Draw3 ()
 	{
-		GraphicsPipelineDesc	ppln;
+		if ( not _vulkan.GetDeviceMeshShaderFeatures().meshShader )
+			return true;
 
-		ppln.AddShader( EShader::Vertex,
+		MeshPipelineDesc	ppln;
+
+		ppln.AddShader( EShader::Mesh,
 						EShaderLangFormat::GLSL_450,
 						"main",
 R"#(
-#pragma shader_stage(vertex)
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
+#extension GL_NV_mesh_shader : require
 
-out vec3	v_Color;
+layout(local_size_x=3) in;
+layout(triangles) out;
+layout(max_vertices=3, max_primitives=1) out;
+
+out gl_MeshPerVertexNV {
+	vec4	gl_Position;
+} gl_MeshVerticesNV[]; // [max_vertices]
+
+layout(location = 0) out MeshOutput {
+	vec4	color;
+} Output[]; // [max_vertices]
 
 const vec2	g_Positions[3] = vec2[](
     vec2(0.0, -0.5),
@@ -39,9 +52,16 @@ const vec3	g_Colors[3] = vec3[](
     vec3(0.0, 0.0, 1.0)
 );
 
-void main() {
-    gl_Position	= vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
-    v_Color		= g_Colors[gl_VertexIndex];
+void main ()
+{
+	const uint I = gl_LocalInvocationID.x;
+
+    gl_MeshVerticesNV[I].gl_Position	= vec4( g_Positions[I], 0.0, 1.0 );
+    Output[I].color						= vec4( g_Colors[I], 1.0 );
+	gl_PrimitiveIndicesNV[I]			= I;
+
+	if ( I == 0 )
+		gl_PrimitiveCountNV = 1;
 }
 )#" );
 		
@@ -49,15 +69,17 @@ void main() {
 						EShaderLangFormat::GLSL_450,
 						"main",
 R"#(
-#pragma shader_stage(fragment)
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-in  vec3	v_Color;
+layout(location = 0) in MeshOutput {
+	vec4	color;
+} Input;
+
 out vec4	out_Color;
 
 void main() {
-	out_Color = vec4(v_Color, 1.0);
+	out_Color = Input.color;
 }
 )#" );
 		
@@ -66,7 +88,7 @@ void main() {
 		uint2			view_size	= {800, 600};
 		ImageID			image		= CreateImage2D( view_size, EPixelFormat::RGBA8_UNorm, "DstImage" );
 
-		GPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		MPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
 
 		
 		bool		data_is_correct = false;
@@ -115,8 +137,8 @@ void main() {
 												.AddViewport( view_size ) );
 		
 		frame_graph->AddDrawTask( render_pass,
-								  DrawTask()
-									.SetPipeline( pipeline ).SetVertices( 0, 3 )
+								  DrawMeshTask()
+									.SetPipeline( pipeline ).SetTaskCount( 1 )
 									.SetRenderState( RenderState().SetTopology( EPrimitive::TriangleList ) )
 		);
 

@@ -258,8 +258,7 @@ namespace {
 	void VFrameGraphDebugger::_DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const
 	{
 		str.clear();
-		
-		HashSet<String>		existing_barriers;
+		_existingBarriers.clear();
 
 		String	deps;
 		String	subgraphs;
@@ -312,7 +311,7 @@ namespace {
 			{
 				String	res_style;
 				String	bar_style;
-				_GetResourceUsage( info, OUT res_style, OUT bar_style, INOUT deps, INOUT existing_barriers );
+				_GetResourceUsage( info, OUT res_style, OUT bar_style, INOUT deps );
 
 				if ( res_style.empty() )
 				{
@@ -382,7 +381,7 @@ namespace {
 			}
 		}
 
-		_AddFinalStates( INOUT subgraphs, INOUT deps, INOUT existing_barriers );
+		_AddFinalStates( INOUT subgraphs, INOUT deps );
 		
 		str << '\n'
 			<< subgraphs
@@ -442,7 +441,7 @@ namespace {
 	_AddFinalStates
 =================================================
 */
-	void VFrameGraphDebugger::_AddFinalStates (INOUT String &str, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
+	void VFrameGraphDebugger::_AddFinalStates (INOUT String &str, INOUT String &deps) const
 	{
 		str << indent << "\tsubgraph cluster_Final_" << _subBatchUID << " {\n"
 			<< indent << "\t	style = filled;\n"
@@ -468,7 +467,7 @@ namespace {
 					<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
 				
-				_GetResourceBarrier( image.first, bar, bar.info.oldLayout, bar.info.newLayout, INOUT bar_style, INOUT deps, INOUT existingBarriers );
+				_GetResourceBarrier( image.first, bar, bar.info.oldLayout, bar.info.newLayout, INOUT bar_style, INOUT deps );
 			}
 		}
 
@@ -483,7 +482,7 @@ namespace {
 					<< "[" << ToString(BytesU{bar.info.offset}) << ", " << (bar.info.size == VK_WHOLE_SIZE ? "whole" : ToString(BytesU{bar.info.size})) << ")"
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer.first ) << "\"];\n";
 				
-				_GetResourceBarrier( buffer.first, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED, INOUT bar_style, INOUT deps, INOUT existingBarriers );
+				_GetResourceBarrier( buffer.first, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED, INOUT bar_style, INOUT deps );
 			}
 		}
 
@@ -507,8 +506,7 @@ namespace {
 	_GetResourceUsage
 =================================================
 */
-	void VFrameGraphDebugger::_GetResourceUsage (const TaskInfo &info, OUT String &resStyle,
-												 OUT String &barStyle, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
+	void VFrameGraphDebugger::_GetResourceUsage (const TaskInfo &info, OUT String &resStyle, OUT String &barStyle, INOUT String &deps) const
 	{
 		for (auto& res : info.resources)
 		{
@@ -529,7 +527,7 @@ namespace {
 				if ( info.anyNode.empty() )
 					info.anyNode = std::move(name);
 
-				_GetImageBarrier( image->first, image->second.task, INOUT barStyle, INOUT deps, INOUT existingBarriers );
+				_GetImageBarrier( image->first, image->second.task, INOUT barStyle, INOUT deps );
 			}
 			else
 			if ( auto* buffer = std::get_if<BufferUsage_t>( &res ) )
@@ -547,7 +545,7 @@ namespace {
 				if ( info.anyNode.empty() )
 					info.anyNode = std::move(name);
 
-				_GetBufferBarrier( buffer->first, buffer->second.task, INOUT barStyle, INOUT deps, INOUT existingBarriers );
+				_GetBufferBarrier( buffer->first, buffer->second.task, INOUT barStyle, INOUT deps );
 			}
 			else
 			{
@@ -561,8 +559,7 @@ namespace {
 	_GetBufferBarrier
 =================================================
 */
-	void VFrameGraphDebugger::_GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &barStyle, INOUT String &deps,
-												 INOUT HashSet<String> &existingBarriers) const
+	void VFrameGraphDebugger::_GetBufferBarrier (const VBuffer *buffer, TaskPtr task, INOUT String &barStyle, INOUT String &deps) const
 	{
 		auto iter = _buffers.find( buffer );
 		if ( iter == _buffers.end() )
@@ -576,7 +573,7 @@ namespace {
 			ASSERT( bar.info.buffer == buffer->Handle() );
 			
 			_GetResourceBarrier( buffer, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED,
-								 INOUT barStyle, INOUT deps, INOUT existingBarriers );
+								 INOUT barStyle, INOUT deps );
 		}
 	}
 
@@ -585,8 +582,7 @@ namespace {
 	_GetImageBarrier
 =================================================
 */
-	void VFrameGraphDebugger::_GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &barStyle, INOUT String &deps,
-												INOUT HashSet<String> &existingBarriers) const
+	void VFrameGraphDebugger::_GetImageBarrier (const VImage *image, TaskPtr task, INOUT String &barStyle, INOUT String &deps) const
 	{
 		auto iter = _images.find( image );
 		if ( iter == _images.end() )
@@ -599,8 +595,7 @@ namespace {
 
 			ASSERT( bar.info.image == image->Handle() );
 
-			_GetResourceBarrier( image, bar, bar.info.oldLayout, bar.info.newLayout,
-								 INOUT barStyle, INOUT deps, INOUT existingBarriers );
+			_GetResourceBarrier( image, bar, bar.info.oldLayout, bar.info.newLayout, INOUT barStyle, INOUT deps );
 		}
 	}
 	
@@ -871,7 +866,7 @@ namespace {
 */
 	template <typename T, typename B>
 	inline void VFrameGraphDebugger::_GetResourceBarrier (const T *res, const Barrier<B> &bar, VkImageLayout oldLayout, VkImageLayout newLayout,
-														  INOUT String &style, INOUT String &deps, INOUT HashSet<String> &existingBarriers) const
+														  INOUT String &style, INOUT String &deps) const
 	{
 		const String	barrier_name = _VisBarrierName( res, bar.srcIndex, bar.dstIndex );
 		const TaskPtr	src_task	 = _GetTask( bar.srcIndex );
@@ -880,9 +875,7 @@ namespace {
 		const String	edge_color2	 = _ResourceToResourceEdgeColor( dst_task );
 
 		// add barrier style
-		ASSERT( existingBarriers.count( barrier_name ) == 0 );	// TODO: remove 'existingBarriers'
-
-		if ( not existingBarriers.count( barrier_name ) )
+		if ( not _existingBarriers.count( barrier_name ) )
 		{
 			ASSERT( bar.info.srcQueueFamilyIndex == bar.info.dstQueueFamilyIndex );	// not supported yet
 
@@ -893,7 +886,7 @@ namespace {
 							   oldLayout, newLayout,
 							   INOUT style );
 
-			existingBarriers.insert( barrier_name );
+			_existingBarriers.insert( barrier_name );
 		}
 
 		// add barrier dependency

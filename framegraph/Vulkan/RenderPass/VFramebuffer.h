@@ -3,7 +3,6 @@
 #pragma once
 
 #include "framegraph/Public/ImageDesc.h"
-#include "framegraph/Shared/ResourceBase.h"
 #include "VRenderPass.h"
 
 namespace FG

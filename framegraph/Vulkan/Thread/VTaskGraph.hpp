@@ -75,8 +75,10 @@ namespace FG
 */
 	inline VFgTask<SubmitRenderPass>::VFgTask (VFrameGraphThread *fg, const SubmitRenderPass &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_renderPass{ fg->GetResourceManager()->GetState( task.renderPass )}
-	{}
+		_logicalPass{ fg->GetResourceManager()->GetState( task.renderPassId )}
+	{
+		CHECK( _logicalPass->Submit() );
+	}
 //-----------------------------------------------------------------------------
 	
 	
@@ -87,7 +89,7 @@ namespace FG
 */
 	inline void CopyDescriptorSets (VFrameGraphThread *fg, const PipelineResourceSet &inResourceSet, OUT VPipelineResourceSet &resourceSet)
 	{
-		for (const auto& res : inResourceSet)
+		for (auto& res : inResourceSet)
 		{
 			if ( not res )
 				return;
@@ -128,7 +130,7 @@ namespace FG
 =================================================
 */
 	inline VFgDrawTask<DrawTask>::VFgDrawTask (VFrameGraphThread *fg, const DrawTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		IDrawTask{ pass1, pass2 },				_vbCount{ uint(task.vertexBuffers.size()) },
+		IDrawTask{ task, pass1, pass2 },		_vbCount{ uint(task.vertexBuffers.size()) },
 		pipeline{ task.pipeline },				renderState{ task.renderState },
 		dynamicStates{ task.dynamicStates },	vertexInput{ task.vertexInput },
 		drawCmd{ task.drawCmd },				scissors{ task.scissors }
@@ -143,7 +145,7 @@ namespace FG
 =================================================
 */
 	inline VFgDrawTask<DrawIndexedTask>::VFgDrawTask (VFrameGraphThread *fg, const DrawIndexedTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		IDrawTask{ pass1, pass2 },						_vbCount{ uint(task.vertexBuffers.size()) },
+		IDrawTask{ task, pass1, pass2 },				_vbCount{ uint(task.vertexBuffers.size()) },
 		pipeline{ task.pipeline },						renderState{ task.renderState },
 		dynamicStates{ task.dynamicStates },			indexBuffer{ fg->GetResourceManager()->GetState( task.indexBuffer )},
 		indexBufferOffset{ task.indexBufferOffset },	indexType{ task.indexType },
@@ -152,6 +154,19 @@ namespace FG
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 		RemapVertexBuffers( fg, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
+	}
+
+/*
+=================================================
+	VFgDrawTask< DrawMeshTask >
+=================================================
+*/
+	inline VFgDrawTask<DrawMeshTask>::VFgDrawTask (VFrameGraphThread *fg, const DrawMeshTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		IDrawTask{ task, pass1, pass2 },		pipeline{ task.pipeline },
+		renderState{ task.renderState },		dynamicStates{ task.dynamicStates },
+		drawCmd{ task.drawCmd },				scissors{ task.scissors }
+	{
+		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
 //-----------------------------------------------------------------------------
 

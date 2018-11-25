@@ -66,36 +66,28 @@ void main() {
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		//for (;;)
-		{
-			CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
-			LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
-													.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-													.AddViewport( view_size ) );
+		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
+												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+												.AddViewport( view_size ) );
 		
-			frame_graph->AddDrawTask( render_pass,
-									  DrawTask()
-										.SetPipeline( pipeline ).SetVertices( 0, 3 )
-										.SetRenderState( RenderState().SetTopology( EPrimitive::TriangleList ) )
-			);
+		frame_graph->AddDrawTask( render_pass,
+									DrawTask()
+									.SetPipeline( pipeline ).SetVertices( 0, 3 )
+									.SetRenderState( RenderState().SetTopology( EPrimitive::TriangleList ) )
+		);
 
-			Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
-			Task	t_read	= frame_graph->AddTask( Present{ image } );
-			FG_UNUSED( t_read );
+		Task	t_draw		= frame_graph->AddTask( SubmitRenderPass{ render_pass });
+		Task	t_present	= frame_graph->AddTask( Present{ image } );
+		FG_UNUSED( t_present );
 
-			CHECK_ERR( frame_graph->Compile() );
-			CHECK_ERR( _frameGraphInst->Execute() );
-
-			//std::this_thread::sleep_for( std::chrono::milliseconds(10) );
-		}
-
-		//CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( frame_graph->Compile() );
+		CHECK_ERR( _frameGraphInst->Execute() );
 
 		frame_graph->DestroyResource( image );
 		frame_graph->DestroyResource( pipeline );
-		//DeleteResources( image, pipeline );
 
         //FG_LOGI( TEST_NAME << " - passed" );
 		return true;

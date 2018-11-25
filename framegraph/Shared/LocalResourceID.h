@@ -7,10 +7,10 @@
 namespace FG
 {
 
-	using RawMemoryID				= _fg_hidden_::ResourceID<12>;
-	using RawPipelineLayoutID		= _fg_hidden_::ResourceID<13>;
-	using RawRenderPassID			= _fg_hidden_::ResourceID<14>;
-	using RawFramebufferID			= _fg_hidden_::ResourceID<15>;
+	using RawMemoryID				= _fg_hidden_::ResourceID<13>;
+	using RawPipelineLayoutID		= _fg_hidden_::ResourceID<14>;
+	using RawRenderPassID			= _fg_hidden_::ResourceID<15>;
+	using RawFramebufferID			= _fg_hidden_::ResourceID<16>;
 	//using DescriptorPoolID		= _fg_hidden_::ResourceID<17>;
 
 	using LocalBufferID				= _fg_hidden_::ResourceID<1001>;

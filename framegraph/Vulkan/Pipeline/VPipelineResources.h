@@ -4,7 +4,6 @@
 
 #include "framegraph/Public/PipelineResources.h"
 #include "framegraph/Public/Pipeline.h"
-#include "framegraph/Shared/ResourceBase.h"
 #include "framegraph/Shared/PipelineResourcesInitializer.h"
 #include "VCommon.h"
 

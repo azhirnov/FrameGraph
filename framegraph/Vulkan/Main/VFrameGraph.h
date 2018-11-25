@@ -74,9 +74,10 @@ namespace FG
 		
 		// frame execution
 		bool  Begin (const SubmissionGraph &) override;
-		bool  SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch) override;
 		bool  Execute () override;
 		bool  WaitIdle () override;
+		bool  SkipBatch (const CommandBatchID &batchId, uint indexInBatch) override;
+		bool  SubmitBatch (const CommandBatchID &batchId, uint indexInBatch, const ExternalCmdBatch_t &data) override;
 
 		// debugging
 		Statistics const&  GetStatistics () const override;

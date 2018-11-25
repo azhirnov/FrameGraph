@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "framegraph/Shared/ResourceBase.h"
 #include "framegraph/Public/BufferDesc.h"
 #include "framegraph/Public/MemoryDesc.h"
 #include "framegraph/Public/FrameGraphThread.h"

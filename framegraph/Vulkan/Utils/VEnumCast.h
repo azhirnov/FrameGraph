@@ -37,7 +37,7 @@ namespace FG
 			case ELogicOp::Set			: return VK_LOGIC_OP_SET;
 			case ELogicOp::Copy			: return VK_LOGIC_OP_COPY;
 			case ELogicOp::CopyInverted	: return VK_LOGIC_OP_COPY_INVERTED;
-			case ELogicOp::Noop			: return VK_LOGIC_OP_NO_OP;
+			case ELogicOp::NoOp			: return VK_LOGIC_OP_NO_OP;
 			case ELogicOp::Invert		: return VK_LOGIC_OP_INVERT;
 			case ELogicOp::And			: return VK_LOGIC_OP_AND;
 			case ELogicOp::NotAnd		: return VK_LOGIC_OP_NAND;
@@ -226,6 +226,7 @@ namespace FG
 			case EShader::RayIntersection :	return VK_SHADER_STAGE_INTERSECTION_BIT_NV;
 			case EShader::RayCallable :		return VK_SHADER_STAGE_CALLABLE_BIT_NV;
 
+			case EShader::Unknown :
 			case EShader::_Count :			break;
 		}
 		DISABLE_ENUM_CHECKS();
@@ -590,7 +591,8 @@ namespace FG
 				case EImageAspect::Metadata		: flags |= VK_IMAGE_ASPECT_METADATA_BIT;	break;
 				case EImageAspect::_Last		:
 				case EImageAspect::Auto			:
-				case EImageAspect::DepthStencil	: // to shutup warnings
+				case EImageAspect::DepthStencil	:
+				case EImageAspect::Unknown		: // to shutup warnings
 				default							: RETURN_ERR( "invalid image aspect type", VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM );
 			}
 			DISABLE_ENUM_CHECKS();

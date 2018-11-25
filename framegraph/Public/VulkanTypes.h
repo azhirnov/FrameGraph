@@ -32,6 +32,7 @@ namespace FG
 	enum ImageLayoutVk_t			: uint {};
 	enum ImageTypeVk_t				: uint {};
 	enum SampleCountFlagBitsVk_t	: uint {};
+	enum PipelineStageFlags_t		: uint {};
 
 
 
@@ -132,6 +133,18 @@ namespace FG
 
 		// wait semaphore before use buffer
 		SemaphoreVk_t			semaphore	= {};
+	};
+
+
+	//
+	// Vulkan Command Batch
+	//
+	struct VulkanCommandBatch
+	{
+		QueueVk_t												queue = {};
+		ArrayView<CommandBufferVk_t>							commands;
+		ArrayView<SemaphoreVk_t>								signalSemaphores;
+		ArrayView<Pair<SemaphoreVk_t, PipelineStageFlags_t>>	waitSemaphores;
 	};
 
 

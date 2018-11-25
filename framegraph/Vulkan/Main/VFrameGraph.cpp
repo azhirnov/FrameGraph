@@ -209,14 +209,49 @@ namespace FG
 	
 /*
 =================================================
-	SkipSubBatch
+	SkipBatch
 =================================================
 */
-	bool  VFrameGraph::SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch)
+	bool  VFrameGraph::SkipBatch (const CommandBatchID &batchId, uint indexInBatch)
 	{
 		CHECK_ERR( _GetState() == EState::RunThreads );
 
 		CHECK_ERR( _submissionGraph.SkipSubBatch( batchId, indexInBatch ));
+		return true;
+	}
+	
+/*
+=================================================
+	SubmitBatch
+=================================================
+*/
+	bool  VFrameGraph::SubmitBatch (const CommandBatchID &batchId, uint indexInBatch, const ExternalCmdBatch_t &data)
+	{
+		CHECK_ERR( _GetState() == EState::RunThreads );
+
+		auto*	batch_data = std::get_if<VulkanCommandBatch>( &data );
+		CHECK_ERR( batch_data );
+
+		for (auto& sem : batch_data->signalSemaphores) {
+			CHECK( _submissionGraph.SignalSemaphore( batchId, BitCast<VkSemaphore>(sem) ));
+		}
+
+		for (auto& wait_sem : batch_data->waitSemaphores) {
+			CHECK( _submissionGraph.WaitSemaphore( batchId, BitCast<VkSemaphore>(wait_sem.first), BitCast<VkPipelineStageFlags>(wait_sem.second) ));
+		}
+
+		VDeviceQueueInfoPtr		queue_ptr = null;
+
+		for (auto& queue : _device.GetVkQueues())
+		{
+			if ( queue.handle == BitCast<VkQueue>(batch_data->queue) )
+				queue_ptr = &queue;
+		}
+		CHECK_ERR( queue_ptr );
+
+		CHECK_ERR( _submissionGraph.Submit( queue_ptr, batchId, indexInBatch,
+										    ArrayView{ Cast<VkCommandBuffer>(batch_data->commands.data()), batch_data->commands.size() }
+					));
 		return true;
 	}
 

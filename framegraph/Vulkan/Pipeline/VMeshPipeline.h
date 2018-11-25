@@ -30,7 +30,7 @@ namespace FG
 			// TODO: specialization constants
 
 		// methods
-			PipelineInstance ();
+			PipelineInstance () {}
 
 			ND_ bool  operator == (const PipelineInstance &rhs) const;
 		};
@@ -39,13 +39,8 @@ namespace FG
 			ND_ size_t	operator () (const PipelineInstance &value) const noexcept	{ return size_t(value._hash); }
 		};
 
-		struct ShaderModule
-		{
-			VkShaderStageFlagBits				stage;
-			PipelineDescription::VkShaderPtr	module;
-		};
-
 		using Instances_t			= HashMap< PipelineInstance, VkPipeline, PipelineInstanceHash >;
+		using ShaderModule			= VGraphicsPipeline::ShaderModule;
 		using ShaderModules_t		= FixedArray< ShaderModule, 4 >;
 		using TopologyBits_t		= GraphicsPipelineDesc::TopologyBits_t;
 		using FragmentOutputPtr		= const VGraphicsPipeline::FragmentOutputInstance *;
@@ -75,7 +70,10 @@ namespace FG
 		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
-		ND_ RawPipelineLayoutID		GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
+		ND_ RawPipelineLayoutID		GetLayoutID ()			const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
+
+		ND_ FragmentOutputPtr		GetFragmentOutput ()	const	{ SHAREDLOCK( _rcCheck );  return _fragmentOutput; }
+		ND_ bool					IsEarlyFragmentTests ()	const	{ SHAREDLOCK( _rcCheck );  return _earlyFragmentTests; }
 	};
 
 	

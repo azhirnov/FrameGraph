@@ -19,7 +19,8 @@ namespace FG
 			[&result] (const RGBA32u &src)		{ MemCopy( result.color.uint32, src ); },
 			[&result] (const RGBA32i &src)		{ MemCopy( result.color.int32, src ); },
 			[&result] (const DepthStencil &src)	{ result.depthStencil = {src.depth, src.stencil}; },
-			[] (const auto&)					{ ASSERT(false); }
+			[&result] (const std::monostate &)	{ memset( &result, 0, sizeof(result) ); },
+			[] (const auto&)					{ ASSERT(!"unsupported"); }
 		);
 	}
 //-----------------------------------------------------------------------------
@@ -39,7 +40,7 @@ namespace FG
 		//_parallelExecution= rp.parallelExecution;
 		_canBeMerged		= rp.canBeMerged;
 
-		for (const auto& src : rp.renderTargets)
+		for (auto& src : rp.renderTargets)
 		{
 			ColorTarget		dst;
 			VImage const*	image = rm.GetResource( src.second.image );

@@ -4,7 +4,6 @@
 
 #include "framegraph/Public/FrameGraphDrawTask.h"
 #include "framegraph/Public/EResourceState.h"
-#include "framegraph/Shared/ResourceBase.h"
 #include "VDrawTask.h"
 
 namespace FG

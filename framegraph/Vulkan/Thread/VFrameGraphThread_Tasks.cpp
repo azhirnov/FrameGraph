@@ -177,9 +177,6 @@ namespace {
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( _currUsage, GraphicsBit ));
-		
-		auto *	rp  = _resourceMngr.GetState( task.renderPass );
-		CHECK_ERR( rp->Submit() );
 
 		auto*	rp_task = static_cast< VFgTask<SubmitRenderPass> *>(_taskGraph.Add( this, task ));
 
@@ -811,6 +808,26 @@ namespace {
 						 VTaskProcessor::Visit2_DrawIndexedTask ));
 	}
 	
+/*
+=================================================
+	AddDrawTask (DrawMeshTask)
+=================================================
+*/
+	void  VFrameGraphThread::AddDrawTask (LogicalPassID renderPass, const DrawMeshTask &task)
+	{
+		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _IsRecording(), void() );
+		
+		auto *	rp  = _resourceMngr.GetState( renderPass );
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawMeshTask> >();
+
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawMeshTask> >(
+						 ptr,
+						 this, task,
+						 VTaskProcessor::Visit1_DrawMeshTask,
+						 VTaskProcessor::Visit2_DrawMeshTask ));
+	}
+
 /*
 =================================================
 	CreateRenderPass

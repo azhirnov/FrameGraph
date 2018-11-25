@@ -1,0 +1,123 @@
+Thread {
+	batch:         "main"
+	indexInBatch:  0
+	Image {
+		name:         "DstImage"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         SubmitRenderPass (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    ColorAttachmentOutput
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					oldLayout:       General
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         SubmitRenderPass (#2)
+					dstTask:         ReadImage (#3)
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "StagingReadBuffer "
+		size:    16 Mb
+		usage:   TransferSrc | TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            1875 Kb
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "SubmitRenderPass (#2)"
+		input =  {  }
+		output = { ReadImage (#3) }
+		resource_usage = {
+			ImageUsage {
+				name:           "DstImage"
+				usage:          ColorRT-ReadWrite, ClearBefore
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#3)"
+		input =  { SubmitRenderPass (#2) }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "DstImage"
+				usage:          TransferSrc
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "StagingReadBuffer "
+				usage:    TransferDst
+				offset:   0 b
+				size:     1875 Kb
+			}
+		}
+	}
+}
+===============================================================
+

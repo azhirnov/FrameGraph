@@ -150,6 +150,8 @@ namespace _fg_hidden_
 	using RawDescriptorSetLayoutID	= _fg_hidden_::ResourceID< 8 >;
 	using RawPipelineResourcesID	= _fg_hidden_::ResourceID< 9 >;
 	using LogicalPassID				= _fg_hidden_::ResourceID< 10 >;
+	using RawRTSceneID				= _fg_hidden_::ResourceID< 11 >;
+	using RawRTGeometryID			= _fg_hidden_::ResourceID< 12 >;
 	
 	using BufferID					= _fg_hidden_::ResourceIDWrap< RawBufferID >;
 	using ImageID					= _fg_hidden_::ResourceIDWrap< RawImageID >;
@@ -158,6 +160,8 @@ namespace _fg_hidden_
 	using CPipelineID				= _fg_hidden_::ResourceIDWrap< RawCPipelineID >;
 	using RTPipelineID				= _fg_hidden_::ResourceIDWrap< RawRTPipelineID >;
 	using SamplerID					= _fg_hidden_::ResourceIDWrap< RawSamplerID >;
+	using RTSceneID					= _fg_hidden_::ResourceIDWrap< RawRTSceneID >;
+	using RTGeometryID				= _fg_hidden_::ResourceIDWrap< RawRTGeometryID >;
 
 
 }	// FG

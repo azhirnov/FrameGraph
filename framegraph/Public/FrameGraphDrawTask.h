@@ -198,10 +198,10 @@ namespace FG
 
 	// methods
 		DrawMeshTask () :
-			BaseDrawTask<DrawMeshTask>{ "DrawMeshTask", HtmlColor::Bisque } {}
+			BaseDrawTask<DrawMeshTask>{ "DrawMesh", HtmlColor::Bisque } {}
 
 		DrawMeshTask&  SetPipeline (const MPipelineID &ppln)			{ pipeline = ppln.Get();  return *this; }
-		DrawMeshTask&  SetCommand (uint first, uint count)				{ drawCmd.first = first;  drawCmd.count = count;  return *this; }
+		DrawMeshTask&  SetTaskCount (uint count, uint first = 0)		{ drawCmd.first = first;  drawCmd.count = count;  return *this; }
 		DrawMeshTask&  SetRenderState (const RenderState &rs)			{ renderState = rs;  return *this; }
 		
 		DrawMeshTask&  AddScissor (const RectI &rect)					{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }

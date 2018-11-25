@@ -17,7 +17,8 @@ namespace FG
 	{
 	// types
 	public:
-		using DeviceInfo_t		= Union< std::monostate, VulkanDeviceInfo >;
+		using DeviceInfo_t			= Union< std::monostate, VulkanDeviceInfo >;
+		using ExternalCmdBatch_t	= Union< std::monostate, VulkanCommandBatch >;
 
 		struct Statistics
 		{
@@ -40,9 +41,10 @@ namespace FG
 
 		// frame execution
 			virtual bool		Begin (const SubmissionGraph &) = 0;
-			virtual bool		SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch) = 0;
 			virtual bool		Execute () = 0;
 			virtual bool		WaitIdle () = 0;
+			virtual bool		SkipBatch (const CommandBatchID &batchId, uint indexInBatch) = 0;
+			virtual bool		SubmitBatch (const CommandBatchID &batchId, uint indexInBatch, const ExternalCmdBatch_t &data) = 0;
 
 		// debugging
 		ND_ virtual Statistics const&	GetStatistics () const = 0;

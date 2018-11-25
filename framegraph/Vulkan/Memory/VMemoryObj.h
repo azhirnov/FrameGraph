@@ -4,7 +4,6 @@
 
 #include "stl/Containers/UntypedStorage.h"
 #include "framegraph/Public/MemoryDesc.h"
-#include "framegraph/Shared/ResourceBase.h"
 #include "VCommon.h"
 
 namespace FG

@@ -108,9 +108,31 @@ namespace FG
 			#ifdef VK_EXT_debug_utils
 				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 			#endif
+		};
+		return device_extensions;
+	}
+
+/*
+=================================================
+	GetAllDeviceExtensions
+=================================================
+*/
+	ArrayView<const char*>  VulkanDevice::GetAllDeviceExtensions ()
+	{
+		static const char *	device_extensions[] =
+		{
+			#ifdef VK_KHR_get_memory_requirements2
+				VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_dedicated_allocation
+				VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_debug_utils
+				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+			#endif
 
 			// Vendor specific extensions
-			/*#ifdef VK_NV_mesh_shader
+			#ifdef VK_NV_mesh_shader
 				VK_NV_MESH_SHADER_EXTENSION_NAME,
 			#endif
 			#ifdef VK_NV_shader_image_footprint
@@ -122,17 +144,19 @@ namespace FG
 			#ifdef VK_NV_fragment_shader_barycentric
 				VK_NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME,
 			#endif
-			#ifdef VK_NVX_raytracing
-				VK_NVX_RAYTRACING_EXTENSION_NAME,
+			#ifdef VK_NV_ray_tracing
+				VK_NV_RAY_TRACING_EXTENSION_NAME,
 			#endif
 			#ifdef VK_NVX_device_generated_commands
 				VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
 			#endif
 			#ifdef VK_EXT_conservative_rasterization
+				VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME,
 			#endif
 			#ifdef VK_EXT_sample_locations
+				VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME,
 			#endif
-			*/
+			
 		};
 		return device_extensions;
 	}

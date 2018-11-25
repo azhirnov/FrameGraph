@@ -27,6 +27,7 @@ namespace FG
 		RayCallable,
 
 		_Count,
+		Unknown		= ~0u,
 	};
 
 	

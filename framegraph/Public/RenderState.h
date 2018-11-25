@@ -245,6 +245,7 @@ namespace FG
 		RenderState () {}
 
 		ND_ bool  operator == (const RenderState &rhs) const;
+		ND_ bool  operator != (const RenderState &rhs) const	{ return not (*this == rhs); }
 
 		// color
 		RenderState&  AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask = bool4{true});

@@ -88,6 +88,8 @@ namespace FG
 		static void Visit2_DrawTask (void *, void *);
 		static void Visit1_DrawIndexedTask (void *, void *);
 		static void Visit2_DrawIndexedTask (void *, void *);
+		static void Visit1_DrawMeshTask (void *, void *);
+		static void Visit2_DrawMeshTask (void *, void *);
 
 		void Run (Task);
 

@@ -59,7 +59,7 @@ namespace FG
 		Attachment_t		render_targets;	render_targets.resize( render_pass->GetCreateInfo().attachmentCount );
 		Optional<RectI>		total_area;
 
-		for (auto& lrp : logicalPasses)
+		for (const auto& lrp : logicalPasses)
 		{
 			// merge rendering areas
 			if ( total_area.has_value() )

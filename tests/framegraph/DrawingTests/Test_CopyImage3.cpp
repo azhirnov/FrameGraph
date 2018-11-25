@@ -69,7 +69,7 @@ namespace FG
 		submission_graph.AddBatch( batch_id, 3 );
 		
 		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-		CHECK_ERR( _frameGraphInst->SkipSubBatch( batch_id, 2 ));
+		CHECK_ERR( _frameGraphInst->SkipBatch( batch_id, 2 ));
 
 		// thread 1
 		{

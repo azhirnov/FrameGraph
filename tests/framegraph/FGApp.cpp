@@ -16,7 +16,7 @@
 namespace FG
 {
 namespace {
-	static constexpr uint	UpdateAllReferenceDumps = true;
+	static constexpr uint	UpdateAllReferenceDumps = false;
 }
 
 /*
@@ -32,11 +32,9 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyImage3,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
-		
-		//_tests.push_back({ &FGApp::Test_Draw2,			1000000 });
+		_tests.push_back({ &FGApp::Test_Draw3,			1 });
 
-		//_tests.push_back({ &FGApp::ImplTest_Scene1, 1 });
-		//_tests.push_back( &FGApp::ImplTest_Scene2 );
+		_tests.push_back({ &FGApp::ImplTest_Scene1,		1 });
 	}
 	
 /*
@@ -112,7 +110,7 @@ namespace {
 									   {},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
-									   VulkanDevice::GetRecomendedDeviceExtensions()
+									   VulkanDevice::GetAllDeviceExtensions()
 									));
 			//_vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
@@ -169,7 +167,7 @@ namespace {
 
 		// add glsl pipeline compiler
 		{
-			auto	ppln_compiler = std::make_shared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
+			auto	ppln_compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
 
 			ppln_compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
 
@@ -447,7 +445,7 @@ namespace {
 			CHECK_ERR( Execute( "\""s << FG_GRAPHVIZ_DOT_EXECUTABLE << "\" -T" << format << " -O " << path, 30'000 ));
 
 			// delete '.dot' file
-			//CHECK( DeleteFile( path ));
+			CHECK( DeleteFile( path ));
 		}
 
 		if ( autoOpen )

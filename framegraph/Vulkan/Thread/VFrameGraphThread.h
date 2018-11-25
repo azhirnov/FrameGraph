@@ -116,12 +116,17 @@ namespace FG
 		BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName) override;
 		SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName) override;
 		bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const override;
+		RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, StringView dbgName) override;
+		RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, StringView dbgName) override;
 		void			DestroyResource (INOUT GPipelineID &id) override;
 		void			DestroyResource (INOUT CPipelineID &id) override;
+		void			DestroyResource (INOUT MPipelineID &id) override;
 		void			DestroyResource (INOUT RTPipelineID &id) override;
 		void			DestroyResource (INOUT ImageID &id) override;
 		void			DestroyResource (INOUT BufferID &id) override;
 		void			DestroyResource (INOUT SamplerID &id) override;
+		void			DestroyResource (INOUT RTGeometryID &id) override;
+		void			DestroyResource (INOUT RTSceneID &id) override;
 
 		BufferDesc const&	GetDescription (const BufferID &id) const override;
 		ImageDesc  const&	GetDescription (const ImageID &id) const override;
@@ -183,7 +188,7 @@ namespace FG
 		void		AddDrawTask (LogicalPassID, const DrawIndexedTask &) override;
 		//void		AddDrawTask (LogicalPassID, const ClearAttachments &) override;
 		//void		AddDrawTask (LogicalPassID, const DrawCommandBuffer &) override;
-		//void		AddDrawTask (LogicalPassID, const DrawMeshTask &) override;
+		void		AddDrawTask (LogicalPassID, const DrawMeshTask &) override;
 		
 		void SignalSemaphore (VkSemaphore sem);
 		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);

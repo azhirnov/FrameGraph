@@ -71,6 +71,7 @@ namespace FG
 			Self&	operator = (const Self &);
 
 		ND_ bool	operator == (const Self &rhs) const;
+		ND_ bool	operator != (const Self &rhs) const		{ return not (*this == rhs); }
 
 			Pair<iterator,bool>  insert (const pair_type &value);
 			Pair<iterator,bool>  insert (pair_type &&value);

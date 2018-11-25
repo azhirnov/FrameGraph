@@ -4,6 +4,7 @@
 
 #include "stl/Common.h"
 #include <tuple>
+#include <variant>
 
 namespace FG
 {
@@ -48,5 +49,16 @@ namespace _fg_hidden_
 		template <typename T>
 		inline static constexpr bool	HasType	= (Index<T> != ~size_t(0));
 	};
+
+	
+	template <typename... Types>
+	struct TypeList< std::tuple<Types...> > final : TypeList< Types... >
+	{};
+	
+
+	template <typename... Types>
+	struct TypeList< std::variant<Types...> > final : TypeList< Types... >
+	{};
+
 
 }	// FG

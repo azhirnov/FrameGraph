@@ -6,6 +6,8 @@
 #include "framegraph/Public/BufferView.h"
 #include "framegraph/Public/ImageView.h"
 #include "framegraph/Public/SamplerEnums.h"
+#include "framegraph/Public/RayTracingGeometryDesc.h"
+#include "framegraph/Public/RayTracingSceneDesc.h"
 #include "framegraph/Public/FrameGraphDrawTask.h"
 
 namespace FG
@@ -79,11 +81,11 @@ namespace FG
 	struct SubmitRenderPass final : _fg_hidden_::BaseTask<SubmitRenderPass>
 	{
 	// variables
-		LogicalPassID		renderPass;
+		LogicalPassID		renderPassId;
 
 	// methods
 		explicit SubmitRenderPass (LogicalPassID rp) :
-			BaseTask<SubmitRenderPass>{ "SubmitRenderPass", HtmlColor::OrangeRed }, renderPass{rp} {}
+			BaseTask<SubmitRenderPass>{ "SubmitRenderPass", HtmlColor::OrangeRed }, renderPassId{rp} {}
 	};
 
 
@@ -761,6 +763,52 @@ namespace FG
 			rightEyeLayer	= imgLayer;
 			return *this;
 		}
+	};
+
+
+
+	//
+	// Build Ray Tracing Geometry (experimental)
+	//
+	struct BuildRayTracingGeometry final : _fg_hidden_::BaseTask<BuildRayTracingGeometry>
+	{
+	// variables
+
+	// methods
+		BuildRayTracingGeometry () :
+			BaseTask<BuildRayTracingGeometry>{ "BuildRayTracingGeometry", HtmlColor::Lime } {}
+	};
+
+
+
+	//
+	// Build Ray Tracing Scene (experimental)
+	//
+	struct BuildRayTracingScene final : _fg_hidden_::BaseTask<BuildRayTracingScene>
+	{
+	// variables
+
+	// methods
+		BuildRayTracingScene () :
+			BaseTask<BuildRayTracingScene>{ "BuildRayTracingScene", HtmlColor::Lime } {}
+	};
+
+
+
+	//
+	// Trace Rays (experimental)
+	//
+	struct TraceRays final : _fg_hidden_::BaseTask<TraceRays>
+	{
+	// variables
+		RawRTPipelineID			pipeline;
+		PipelineResourceSet		resources;
+		uint3					groupCount;
+
+
+	// methods
+		TraceRays () :
+			BaseTask<TraceRays>{ "TraceRays", HtmlColor::Lime } {}
 	};
 
 
