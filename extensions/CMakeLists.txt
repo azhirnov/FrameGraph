@@ -54,18 +54,8 @@ if (${FG_ENABLE_GLSLANG})
 	target_include_directories( "PipelineCompiler" PRIVATE ".." )
 	target_include_directories( "PipelineCompiler" PRIVATE "pipeline_compiler" )
 	target_include_directories( "PipelineCompiler" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
-	if (UNIX)
-		target_link_libraries( "PipelineCompiler" "pthread" )
-	endif()
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARY_DIR}/OGLCompiler${CMAKE_STATIC_LIBRARY_SUFFIX}" )
 	target_link_libraries( "PipelineCompiler" "FrameGraph" )
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARY_DIR}/glslang${CMAKE_STATIC_LIBRARY_SUFFIX}" )
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARY_DIR}/SPIRV-Tools-opt${CMAKE_STATIC_LIBRARY_SUFFIX}" )
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARY_DIR}/OSDependent${CMAKE_STATIC_LIBRARY_SUFFIX}" )
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARY_DIR}/SPIRV${CMAKE_STATIC_LIBRARY_SUFFIX}" )
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARY_DIR}/HLSL${CMAKE_STATIC_LIBRARY_SUFFIX}" )
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARY_DIR}/SPVRemapper${CMAKE_STATIC_LIBRARY_SUFFIX}" )
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARY_DIR}/SPIRV-Tools${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARIES}" )
 	target_compile_definitions( "PipelineCompiler" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
 	add_dependencies( "PipelineCompiler" External.glslang-main )
 	# compiler
@@ -248,6 +238,83 @@ if (${FG_ENABLE_TESTS})
 	set_target_properties( "Tests.Framework" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
 	target_compile_options( "Tests.Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
 	target_compile_definitions( "Tests.Framework" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+
+
+#==================================================================================================
+# project: UI
+#==================================================================================================
+if (${FG_ENABLE_IMGUI})
+	set( SOURCES 
+		"ui/ImguiRenderer.cpp"
+		"ui/ImguiRenderer.h"
+		"ui/main.cpp" )
+	add_library( "UI" STATIC ${SOURCES} )
+	source_group( "" FILES "ui/ImguiRenderer.cpp" "ui/ImguiRenderer.h" "ui/main.cpp" )
+	set_property( TARGET "UI" PROPERTY FOLDER "Extensions" )
+	target_include_directories( "UI" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "UI" PUBLIC "${FG_IMGUI_SOURCE_DIR}" )
+	target_link_libraries( "UI" "FrameGraph" )
+	target_link_libraries( "UI" "Framework" )
+	add_dependencies( "UI" External.imgui )
+	# compiler
+	target_compile_definitions( "UI" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "UI" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "UI" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "UI" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "UI" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "UI" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "UI" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "UI" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "UI" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
+# project: Tests.UI
+#==================================================================================================
+if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_IMGUI})
+	set( SOURCES 
+		"${FG_IMGUI_SOURCE_DIR}/imconfig.h"
+		"${FG_IMGUI_SOURCE_DIR}/imgui.h"
+		"${FG_IMGUI_SOURCE_DIR}/imgui.cpp"
+		"${FG_IMGUI_SOURCE_DIR}/imgui_internal.h"
+		"${FG_IMGUI_SOURCE_DIR}/imgui_draw.cpp"
+		"${FG_IMGUI_SOURCE_DIR}/imgui_demo.cpp"
+		"${FG_IMGUI_SOURCE_DIR}/imgui_widgets.cpp"
+		"../tests/ui/main.cpp"
+		"../tests/ui/UIApp.cpp"
+		"../tests/ui/UIApp.h" )
+	if (DEFINED ANDROID)
+		add_library( "Tests.UI" SHARED ${SOURCES} )
+	else()
+		add_executable( "Tests.UI" ${SOURCES} )
+	endif()
+	source_group( "imgui" FILES "${FG_IMGUI_SOURCE_DIR}/imconfig.h" "${FG_IMGUI_SOURCE_DIR}/imgui.h" "${FG_IMGUI_SOURCE_DIR}/imgui.cpp" "${FG_IMGUI_SOURCE_DIR}/imgui_internal.h" "${FG_IMGUI_SOURCE_DIR}/imgui_draw.cpp" "${FG_IMGUI_SOURCE_DIR}/imgui_demo.cpp" "${FG_IMGUI_SOURCE_DIR}/imgui_widgets.cpp" )
+	source_group( "" FILES "../tests/ui/main.cpp" "../tests/ui/UIApp.cpp" "../tests/ui/UIApp.h" )
+	set_property( TARGET "Tests.UI" PROPERTY FOLDER "Tests" )
+	target_include_directories( "Tests.UI" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "Tests.UI" PRIVATE "" )
+	if (${FG_ENABLE_IMGUI})
+		target_link_libraries( "Tests.UI" "UI" )
+	endif()
+	if (${FG_ENABLE_GLSLANG})
+		target_link_libraries( "Tests.UI" "PipelineCompiler" )
+	endif()
+	# compiler
+	target_compile_definitions( "Tests.UI" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "Tests.UI" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "Tests.UI" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "Tests.UI" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "Tests.UI" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "Tests.UI" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "Tests.UI" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "Tests.UI" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "Tests.UI" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
 endif()
 
