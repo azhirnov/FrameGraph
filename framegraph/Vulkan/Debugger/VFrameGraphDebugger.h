@@ -6,6 +6,7 @@
 #include "Public/FGEnums.h"
 #include "VLocalImage.h"
 #include "VLocalBuffer.h"
+#include "VTaskGraph.h"
 
 namespace FG
 {
@@ -62,21 +63,22 @@ namespace FG
 
 	// variables
 	private:
-		TaskMap_t				_tasks;
-		ImageResources_t		_images;
-		BufferResources_t		_buffers;
-		mutable HashSet<String>	_existingBarriers;
+		TaskMap_t					_tasks;
+		ImageResources_t			_images;
+		BufferResources_t			_buffers;
+		mutable HashSet<String>		_existingBarriers;
 
-		VDebugger const&		_mainDbg;
-		StringView				_subBatchUID;
+		VDebugger const&			_mainDbg;
+		VFrameGraphThread const&	_frameGraph;
+		StringView					_subBatchUID;
 
 		// settings
-		ECompilationDebugFlags	_flags;
+		ECompilationDebugFlags		_flags;
 
 
 	// methods
 	public:
-		explicit VFrameGraphDebugger (const VDebugger &);
+		explicit VFrameGraphDebugger (const VDebugger &, const VFrameGraphThread &);
 
 		void Setup (ECompilationDebugFlags flags);
 
@@ -117,6 +119,23 @@ namespace FG
 
 		void _DumpQueue (const TaskMap_t &tasks, INOUT String &str) const;
 		void _DumpResourceUsage (ArrayView<ResourceUsage_t> resources, INOUT String &str) const;
+		void _DumpTaskData (TaskPtr task, INOUT String &str) const;
+		
+		void _SubmitRenderPassTaskToString (Ptr<const VFgTask<SubmitRenderPass>>, INOUT String &) const;
+		void _DispatchComputeTaskToString (Ptr<const VFgTask<DispatchCompute>>, INOUT String &) const;
+		void _DispatchIndirectComputeTaskToString (Ptr<const VFgTask<DispatchIndirectCompute>>, INOUT String &) const;
+		void _CopyBufferTaskToString (Ptr<const VFgTask<CopyBuffer>>, INOUT String &) const;
+		void _CopyImageTaskToString (Ptr<const VFgTask<CopyImage>>, INOUT String &) const;
+		void _CopyBufferToImageTaskToString (Ptr<const VFgTask<CopyBufferToImage>>, INOUT String &) const;
+		void _CopyImageToBufferTaskToString (Ptr<const VFgTask<CopyImageToBuffer>>, INOUT String &) const;
+		void _BlitImageTaskToString (Ptr<const VFgTask<BlitImage>>, INOUT String &) const;
+		void _ResolveImageTaskToString (Ptr<const VFgTask<ResolveImage>>, INOUT String &) const;
+		void _FillBufferTaskToString (Ptr<const VFgTask<FillBuffer>>, INOUT String &) const;
+		void _ClearColorImageTaskToString (Ptr<const VFgTask<ClearColorImage>>, INOUT String &) const;
+		void _ClearDepthStencilImageTaskToString (Ptr<const VFgTask<ClearDepthStencilImage>>, INOUT String &) const;
+		void _UpdateBufferTaskToString (Ptr<const VFgTask<UpdateBuffer>>, INOUT String &) const;
+		void _PresentTaskToString (Ptr<const VFgTask<Present>>, INOUT String &) const;
+		void _PresentVRTaskToString (Ptr<const VFgTask<PresentVR>>, INOUT String &) const;
 
 
 	// dump to graphviz format
@@ -154,6 +173,7 @@ namespace FG
 		ND_ String  _ResourceToResourceEdgeColor (TaskPtr task) const;
 		ND_ String  _ResourceGroupBG (TaskPtr task) const;
 		ND_ String  _BarrierGroupBorderColor () const;
+		ND_ String  _GroupBorderColor () const;
 
 
 	// utils

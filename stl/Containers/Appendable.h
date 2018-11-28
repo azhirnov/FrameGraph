@@ -36,7 +36,7 @@ namespace FG
 			_pushBack{ &_ArrayPushBack< std::remove_reference_t<decltype(arr)> > }
 		{}
 
-		template <typename T, size_t ArraySize>
+		template <size_t ArraySize>
 		Appendable (FixedArray<T,ArraySize> &arr) :
 			_ref{ &arr },
 			_pushBack{ &_ArrayPushBack< std::remove_reference_t<decltype(arr)> > }

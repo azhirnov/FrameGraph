@@ -46,7 +46,8 @@ namespace FG
 
 		struct PerFrame
 		{
-			CommandBuffers_t	commands;
+			CommandBuffers_t	pending;
+			CommandBuffers_t	executed;
 		};
 		using PerFrameArray_t	= FixedArray< PerFrame, MaxFrames >;
 
@@ -77,6 +78,7 @@ namespace FG
 
 		PerQueueArray_t				_queues;
 		uint						_frameId			= 0;
+		bool						_isFirstUsage		= true;		// 'true' if it is first call of 'Begin' in current frame
 		
 		TaskGraph_t					_taskGraph;
 		uint						_visitorID			= 0;
@@ -199,18 +201,19 @@ namespace FG
 										  VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
 
 		
-		ND_ bool					IsInSeparateThread ()		const;
-		ND_ bool					IsDestroyed ()				const	{ SCOPELOCK( _rcCheck );  return _GetState() == EState::Destroyed; }
-		ND_ Allocator_t &			GetAllocator ()						{ SCOPELOCK( _rcCheck );  return _mainAllocator; }
-		ND_ VDevice const&			GetDevice ()				const	{ SCOPELOCK( _rcCheck );  return _instance.GetDevice(); }
-		ND_ uint					GetRingBufferSize ()		const	{ SCOPELOCK( _rcCheck );  return _instance.GetRingBufferSize(); }
+		ND_ bool							IsInSeparateThread ()		const;
+		ND_ bool							IsDestroyed ()				const	{ SCOPELOCK( _rcCheck );  return _GetState() == EState::Destroyed; }
+		ND_ Allocator_t &					GetAllocator ()						{ SCOPELOCK( _rcCheck );  return _mainAllocator; }
+		ND_ VDevice const&					GetDevice ()				const	{ SCOPELOCK( _rcCheck );  return _instance.GetDevice(); }
+		ND_ uint							GetRingBufferSize ()		const	{ SCOPELOCK( _rcCheck );  return _instance.GetRingBufferSize(); }
 
-		ND_ VFrameGraph const*		GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
-		ND_ VResourceManagerThread*	GetResourceManager ()				{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
-		ND_ VMemoryManager*			GetMemoryManager ()					{ SCOPELOCK( _rcCheck );  return _memoryMngr.operator->(); }
-		ND_ VPipelineCache *		GetPipelineCache ()					{ SCOPELOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
-		ND_ VFrameGraphDebugger *	GetDebugger ()						{ SCOPELOCK( _rcCheck );  ASSERT( _debugger );  return _debugger.get(); }
-		ND_ VSwapchain *			GetSwapchain ()						{ SCOPELOCK( _rcCheck );  return _swapchain.get(); }	// temp
+		ND_ VFrameGraph const*				GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
+		ND_ VResourceManagerThread*			GetResourceManager ()				{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
+		ND_ VResourceManagerThread const*	GetResourceManager ()		const	{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
+		ND_ VMemoryManager*					GetMemoryManager ()					{ SCOPELOCK( _rcCheck );  return _memoryMngr.operator->(); }
+		ND_ VPipelineCache *				GetPipelineCache ()					{ SCOPELOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
+		ND_ VFrameGraphDebugger *			GetDebugger ()						{ SCOPELOCK( _rcCheck );  return _debugger.get(); }
+		ND_ VSwapchain *					GetSwapchain ()						{ SCOPELOCK( _rcCheck );  return _swapchain.get(); }	// temp
 
 
 	private:

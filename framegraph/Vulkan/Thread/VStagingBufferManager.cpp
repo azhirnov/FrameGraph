@@ -67,14 +67,27 @@ namespace FG
 	OnBeginFrame
 =================================================
 */
-	void VStagingBufferManager::OnBeginFrame (const uint frameId)
+	void VStagingBufferManager::OnBeginFrame (const uint frameId, bool isFirst)
 	{
-		using T = BufferView::value_type;
-
 		_memoryRanges.Create( _frameGraph.GetAllocator() );
 		_memoryRanges->reserve( 64 );
 
 		_frameId = frameId;
+
+		if ( isFirst )
+			_OnFirstUsageInFrame();
+		else
+			_OnNextUsageInFrame();
+	}
+	
+/*
+=================================================
+	_OnFirstUsageInFrame
+=================================================
+*/
+	void VStagingBufferManager::_OnFirstUsageInFrame ()
+	{
+		using T = BufferView::value_type;
 
 		auto&	frame	= _perFrame[_frameId];
 		auto&	dev		= _frameGraph.GetDevice();
@@ -82,23 +95,22 @@ namespace FG
 		// map device-to-host staging buffers
 		for (auto& buf : frame.deviceToHost)
 		{
-			buf.size = 0_b;
-
 			// buffer may be recreated on defragmentation pass, so we need to obtain actual pointer every frame
 			CHECK( _MapMemory( buf ));
 			
-			if ( buf.isCoherent )
+			if ( buf.isCoherent or buf.Empty() )
 				continue;
 
 			VkMappedMemoryRange	range = {};
 			range.sType		= VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 			range.memory	= buf.mem;
-			range.offset	= VkDeviceSize(buf.memOffset);
+			range.offset	= VkDeviceSize(buf.memOffset + buf.offset);
 			range.size		= VkDeviceSize(buf.size);
 			_memoryRanges->push_back( range );
 		}
 
-		if ( _memoryRanges->size() > 0 )
+		// device to host synchronization
+		if ( _memoryRanges->size() )
 		{
 			VK_CALL( dev.vkInvalidateMappedMemoryRanges( dev.GetVkDevice(), uint(_memoryRanges->size()), _memoryRanges->data() ));
 			_memoryRanges->clear();
@@ -113,7 +125,7 @@ namespace FG
 
 			for (auto& part : ev.parts)
 			{
-				ArrayView<T>	view{ static_cast<T*>(part.buffer->mappedPtr) + part.offset, size_t(part.size) };
+				ArrayView<T>	view{ Cast<T>(part.buffer->mappedPtr) + part.offset, size_t(part.size) };
 
 				data_parts.push_back( view );
 				total_size += part.size;
@@ -134,7 +146,7 @@ namespace FG
 
 			for (auto& part : ev.parts)
 			{
-				ArrayView<T>	view{ static_cast<T*>(part.buffer->mappedPtr) + part.offset, size_t(part.size) };
+				ArrayView<T>	view{ Cast<T>(part.buffer->mappedPtr) + part.offset, size_t(part.size) };
 
 				data_parts.push_back( view );
 				total_size += part.size;
@@ -150,37 +162,59 @@ namespace FG
 		// map host-to-device staging buffers
 		for (auto& buf : frame.hostToDevice)
 		{
-			buf.size = 0_b;
+			buf.offset = buf.size = 0_b;
 
 			// buffer may be recreated on defragmentation pass, so we need to obtain actual pointer every frame
 			CHECK( _MapMemory( buf ));
+		}
+		
+		// recycle
+		for (auto& buf : frame.deviceToHost)
+		{
+			buf.offset = buf.size = 0_b;
 		}
 	}
 	
 /*
 =================================================
+	_OnNextUsageInFrame
+=================================================
+*/
+	void VStagingBufferManager::_OnNextUsageInFrame ()
+	{
+		auto&	frame = _perFrame[_frameId];
+
+		for (auto& buf : frame.hostToDevice)
+		{
+			buf.offset = buf.size;
+		}
+	}
+
+/*
+=================================================
 	OnEndFrame
 =================================================
 */
-	void VStagingBufferManager::OnEndFrame ()
+	void VStagingBufferManager::OnEndFrame (bool)
 	{
 		auto&	frame	= _perFrame[_frameId];
 		auto&	dev		= _frameGraph.GetDevice();
 
 		for (auto& buf : frame.hostToDevice)
 		{
-			if ( buf.isCoherent )
+			if ( buf.isCoherent or buf.Empty() )
 				continue;
 
 			VkMappedMemoryRange	range = {};
 			range.sType		= VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 			range.memory	= buf.mem;
-			range.offset	= VkDeviceSize(buf.memOffset);
+			range.offset	= VkDeviceSize(buf.memOffset + buf.offset);
 			range.size		= VkDeviceSize(buf.size);
 			_memoryRanges->push_back( range );
 		}
 
-		if ( _memoryRanges->size() > 0 ) {
+		// host to device synchronization
+		if ( _memoryRanges->size() ) {
 			VK_CALL( dev.vkFlushMappedMemoryRanges( dev.GetVkDevice(), uint(_memoryRanges->size()), _memoryRanges->data() ));
 		}
 
@@ -302,7 +336,7 @@ namespace FG
 		if ( not suitable )
 		{
 			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostWrite}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer},
-															    "StagingWriteBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
+																"StagingWriteBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
 			CHECK_ERR( buf_id );
 
 			RawMemoryID		mem_id  = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
@@ -322,7 +356,7 @@ namespace FG
 		if ( srcAlign > 1_b )
 			size = AlignToSmaller( size, srcAlign );
 
-		MemCopy( suitable->mappedPtr, suitable->Available(), srcData.data() + srcOffset, size );
+		MemCopy( suitable->mappedPtr + dstOffset, suitable->Available(), srcData.data() + srcOffset, size );
 
 		suitable->size += size;
 		return true;
@@ -369,7 +403,7 @@ namespace FG
 		if ( not suitable )
 		{
 			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostRead}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer},
-															    "StagingReadBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
+																"StagingReadBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
 			CHECK_ERR( buf_id );
 			
 			RawMemoryID		mem_id  = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();

@@ -91,7 +91,7 @@ namespace FG
 
 #	else
 		if ( not libName.empty() )
-            lib->module = ::dlopen( libName.data(), RTLD_NOW | RTLD_LOCAL );
+			lib->module = ::dlopen( libName.data(), RTLD_NOW | RTLD_LOCAL );
 
 		if ( lib->module == null )
 			lib->module = ::dlopen( "libvulkan.so", RTLD_NOW | RTLD_LOCAL );
@@ -154,7 +154,7 @@ namespace FG
 		const auto	Load =	[instance] (OUT auto& outResult, const char *procName, auto dummy)
 							{
 								using FN = decltype(dummy);
-                                FN	result = BitCast<FN>( vkGetInstanceProcAddr( instance, procName ));
+								FN	result = BitCast<FN>( vkGetInstanceProcAddr( instance, procName ));
 								outResult = result ? result : dummy;
 							};
 		
@@ -177,7 +177,7 @@ namespace FG
 		const auto	Load =	[device] (OUT auto& outResult, const char *procName, auto dummy)
 							{
 								using FN = decltype(dummy);
-                                FN	result = BitCast<FN>( vkGetDeviceProcAddr( device, procName ));
+								FN	result = BitCast<FN>( vkGetDeviceProcAddr( device, procName ));
 								outResult = result ? result : dummy;
 							};
 

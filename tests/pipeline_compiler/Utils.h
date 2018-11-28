@@ -209,7 +209,7 @@ inline bool TestSubpassInputUniform (const PipelineDescription::DescriptorSet &d
 */
 inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
 								BytesU size, uint bindingIndex, EShaderStages stageFlags,
-							    uint dynamicOffsetIndex = PipelineDescription::STATIC_OFFSET)
+								uint dynamicOffsetIndex = PipelineDescription::STATIC_OFFSET)
 {
 	auto	ptr = FindUniform< PipelineDescription::UniformBuffer >( ds, id, bindingIndex, stageFlags );
 	if ( not ptr )
@@ -230,7 +230,7 @@ inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, con
 inline bool TestStorageBuffer (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
 								BytesU staticSize, BytesU arrayStride, EShaderAccess access,
 								uint bindingIndex, EShaderStages stageFlags,
-							    uint dynamicOffsetIndex = PipelineDescription::STATIC_OFFSET)
+								uint dynamicOffsetIndex = PipelineDescription::STATIC_OFFSET)
 {
 	auto	ptr = FindUniform< PipelineDescription::StorageBuffer >( ds, id, bindingIndex, stageFlags );
 	if ( not ptr )

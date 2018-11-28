@@ -8,18 +8,18 @@ using namespace FG;
 
 /*
 =================================================
-    ConsoleOutput
+	ConsoleOutput
 =================================================
 */
-    static void ConsoleOutput (StringView message, StringView file, int line, bool isError)
-    {
+	static void ConsoleOutput (StringView message, StringView file, int line, bool isError)
+	{
 		const String str = String(file) << '(' << ToString( line ) << "): " << message;
 
-        if ( isError )
-            std::cerr << str << std::endl;
-        else
-            std::cout << str << std::endl;
-    }
+		if ( isError )
+			std::cerr << str << std::endl;
+		else
+			std::cout << str << std::endl;
+	}
 
 //-----------------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ using namespace FG;
 */
 	Log::EResult  FG::Log::Info (StringView msg, StringView func, StringView file, int line)
 	{
-        ConsoleOutput( msg, file, line, false );
+		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
 	}
 	
@@ -48,7 +48,7 @@ using namespace FG;
 */
 	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
 	{
-        ConsoleOutput( msg, file, line, true );
+		ConsoleOutput( msg, file, line, true );
 		return EResult::Abort;
 	}
 //-----------------------------------------------------------------------------
@@ -65,10 +65,10 @@ using namespace FG;
 	IDEConsoleMessage
 =================================================
 */
-    static void IDEConsoleMessage (StringView message, StringView file, int line, bool isError)
+	static void IDEConsoleMessage (StringView message, StringView file, int line, bool isError)
 	{
 	#ifdef COMPILER_MSVC
-        const String	str = String(file) << '(' << ToString( line ) << "): " << (isError ? "Error: " : "") << message << '\n';
+		const String	str = String(file) << '(' << ToString( line ) << "): " << (isError ? "Error: " : "") << message << '\n';
 
 		::OutputDebugStringA( str.data() );
 	#endif
@@ -81,8 +81,8 @@ using namespace FG;
 */
 	Log::EResult  FG::Log::Info (StringView msg, StringView, StringView file, int line)
 	{
-        IDEConsoleMessage( msg, file, line, false );
-        ConsoleOutput( msg, file, line, false );
+		IDEConsoleMessage( msg, file, line, false );
+		ConsoleOutput( msg, file, line, false );
 
 		return EResult::Continue;
 	}
@@ -94,8 +94,8 @@ using namespace FG;
 */
 	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
 	{
-        IDEConsoleMessage( msg, file, line, true );
-        ConsoleOutput( msg, file, line, true );
+		IDEConsoleMessage( msg, file, line, true );
+		ConsoleOutput( msg, file, line, true );
 
 		const String	caption	= "Error message";
 
@@ -129,7 +129,7 @@ using namespace FG;
 */
 	Log::EResult  FG::Log::Info (StringView msg, StringView func, StringView file, int line)
 	{
-        ConsoleOutput( msg, file, line, false );
+		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
 	}
 
@@ -140,7 +140,7 @@ using namespace FG;
 */
 	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
 	{
-        ConsoleOutput( msg, file, line, true );
+		ConsoleOutput( msg, file, line, true );
 		return EResult::Abort;
 	}
 //-----------------------------------------------------------------------------
@@ -160,8 +160,8 @@ using namespace FG;
 =================================================
 */
 	Log::EResult  FG::Log::Info (StringView msg, StringView func, StringView file, int line)
-    {
-        ConsoleOutput( msg, file, line, false );
+	{
+		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
 	}
 	
@@ -171,26 +171,26 @@ using namespace FG;
 =================================================
 */
 	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
-    {
-        /*Widget top_wid, button;
-        XtAppContext  app;
+	{
+		/*Widget top_wid, button;
+		XtAppContext  app;
 
-        top_wid = XtVaAppInitialize(&app, "Push", NULL, 0,
-            &argc, argv, NULL, NULL);
+		top_wid = XtVaAppInitialize(&app, "Push", NULL, 0,
+			&argc, argv, NULL, NULL);
 
-        button = XmCreatePushButton(top_wid, "Push_me", NULL, 0);
+		button = XmCreatePushButton(top_wid, "Push_me", NULL, 0);
 
-        /* tell Xt to manage button * /
-                    XtManageChild(button);
+		/* tell Xt to manage button * /
+					XtManageChild(button);
 
-                    /* attach fn to widget * /
-        XtAddCallback(button, XmNactivateCallback, pushed_fn, NULL);
+					/* attach fn to widget * /
+		XtAddCallback(button, XmNactivateCallback, pushed_fn, NULL);
 
-        XtRealizeWidget(top_wid); /* display widget hierarchy * /
-        XtAppMainLoop(app); /* enter processing loop * /
-    */
-        ConsoleOutput( msg, file, line, true );
-        return EResult::Break;
+		XtRealizeWidget(top_wid); /* display widget hierarchy * /
+		XtAppMainLoop(app); /* enter processing loop * /
+	*/
+		ConsoleOutput( msg, file, line, true );
+		return EResult::Break;
 	}
 //-----------------------------------------------------------------------------
 
@@ -206,7 +206,7 @@ using namespace FG;
 */
 	Log::EResult  FG::Log::Info (StringView msg, StringView func, StringView file, int line)
 	{
-        ConsoleOutput( msg, file, line, false );
+		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
 	}
 	
@@ -217,7 +217,7 @@ using namespace FG;
 */
 	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
 	{
-        ConsoleOutput( msg, file, line, true );
+		ConsoleOutput( msg, file, line, true );
 		return EResult::Abort;
 	}
 //-----------------------------------------------------------------------------

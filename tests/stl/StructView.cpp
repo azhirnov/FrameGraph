@@ -73,5 +73,5 @@ extern void UnitTest_StructView ()
 	StructView_Test2();
 	StructView_Test3();
 
-    FG_LOGI( "UnitTest_StructView - passed" );
+	FG_LOGI( "UnitTest_StructView - passed" );
 }

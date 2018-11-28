@@ -26,36 +26,6 @@ namespace FG
 	{
 		return HashOf( image.sampler ) + HashOf( image.imageView ) + HashOf( image.imageLayout );
 	}
-	
-/*
-=================================================
-	HashOf (VkBufferView)
-=================================================
-*
-	inline HashVal  HashOf (const VkBufferView &view)
-	{
-	}
-	
-/*
-=================================================
-	HashOf (VkWriteDescriptorSet)
-=================================================
-*
-	inline HashVal  HashOf (const VkWriteDescriptorSet &ds)
-	{
-    VkStructureType                  sType;
-    const void*                      pNext;
-    VkDescriptorSet                  dstSet;
-    uint32_t                         dstBinding;
-    uint32_t                         dstArrayElement;
-    uint32_t                         descriptorCount;
-    VkDescriptorType                 descriptorType;
-    const VkDescriptorImageInfo*     pImageInfo;
-    const VkDescriptorBufferInfo*    pBufferInfo;
-    const VkBufferView*              pTexelBufferView;
-
-		
-	}
 //-----------------------------------------------------------------------------
 
 

@@ -60,6 +60,8 @@ namespace FG
 		ND_ RawDescriptorSetLayoutID	GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
 		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 		ND_ ResourceSet_t const&		GetData ()		const	{ SHAREDLOCK( _rcCheck );  return _resources; }
+		
+		ND_ StringView					GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 
 
 	private:

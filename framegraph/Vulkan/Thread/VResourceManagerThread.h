@@ -24,7 +24,7 @@ namespace FG
 		using Index_t			= VResourceManager::Index_t;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
-		using PoolTmpl			= ChunkedIndexedPool< ResourceBase<T>, Index_t, ChunkSize, MaxChunks, UntypedLinearAllocator<> >;
+		using PoolTmpl			= ChunkedIndexedPool< ResourceBase<T>, Index_t, ChunkSize, MaxChunks >;
 
 		template <typename T, size_t MaxSize>
 		using PoolTmpl2			= PoolTmpl< T, MaxSize/16, 16 >;
@@ -50,8 +50,8 @@ namespace FG
 		using FramebufferMap_t			= CachedResourceMap< RawFramebufferID, VFramebuffer >;
 		using PipelineResourcesMap_t	= CachedResourceMap< RawPipelineResourcesID, VPipelineResources >;
 
-		using ImageToLocal_t			= std::vector< LocalImageID, StdLinearAllocator<LocalImageID> >;
-		using BufferToLocal_t			= std::vector< LocalBufferID, StdLinearAllocator<LocalBufferID> >;
+		using ImageToLocal_t			= std::vector< LocalImageID >;
+		using BufferToLocal_t			= std::vector< LocalBufferID >;
 
 		using LocalImages_t				= PoolTmpl2< VLocalImage, FG_MaxImageResources >;
 		using LocalBuffers_t			= PoolTmpl2< VLocalBuffer, FG_MaxBufferResources >;
@@ -70,12 +70,12 @@ namespace FG
 
 		ResourceIndexCache_t				_indexCache;
 
-		Storage<ImageToLocal_t>				_imageToLocal;
-		Storage<BufferToLocal_t>			_bufferToLocal;
+		ImageToLocal_t						_imageToLocal;
+		BufferToLocal_t						_bufferToLocal;
 
-		Storage<LocalImages_t>				_localImages;
-		Storage<LocalBuffers_t>				_localBuffers;
-		Storage<LogicalRenderPasses_t>		_logicalRenderPasses;
+		LocalImages_t						_localImages;
+		LocalBuffers_t						_localBuffers;
+		LogicalRenderPasses_t				_logicalRenderPasses;
 		uint								_localImagesCount	= 0;
 		uint								_localBuffersCount	= 0;
 
@@ -101,6 +101,7 @@ namespace FG
 
 		void OnBeginFrame ();
 		void OnEndFrame ();
+		void DestroyLocalResources ();
 		void OnDiscardMemory ();
 		
 		ND_ RawMPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName, bool isAsync);
@@ -136,12 +137,12 @@ namespace FG
 
 		ND_ VDevice const&		GetDevice ()				const	{ return _mainRM._device; }
 
-		ND_ VLocalBuffer const*	GetState (LocalBufferID id)			{ return _GetState( *_localBuffers, id ); }
-		ND_ VLocalImage  const*	GetState (LocalImageID id)			{ return _GetState( *_localImages,  id ); }
-		ND_ VLogicalRenderPass*	GetState (LogicalPassID id)			{ return _GetState( *_logicalRenderPasses, id ); }
+		ND_ VLocalBuffer const*	GetState (LocalBufferID id)			{ return _GetState( _localBuffers, id ); }
+		ND_ VLocalImage  const*	GetState (LocalImageID id)			{ return _GetState( _localImages,  id ); }
+		ND_ VLogicalRenderPass*	GetState (LogicalPassID id)			{ return _GetState( _logicalRenderPasses, id ); }
 
-		ND_ VLocalBuffer const*	GetState (RawBufferID id)			{ return _GetState( *_localBuffers, Remap( id )); }
-		ND_ VLocalImage  const*	GetState (RawImageID id)			{ return _GetState( *_localImages,  Remap( id )); }
+		ND_ VLocalBuffer const*	GetState (RawBufferID id)			{ return _GetState( _localBuffers, Remap( id )); }
+		ND_ VLocalImage  const*	GetState (RawImageID id)			{ return _GetState( _localImages,  Remap( id )); }
 
 		template <typename ID>
 		void DestroyResource (ID id, bool isAsync);

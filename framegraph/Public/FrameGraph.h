@@ -53,7 +53,7 @@ namespace FG
 			virtual bool				DumpToString (OUT String &result) const = 0;
 
 			// for graph visualization
-			virtual bool				DumpToGraphViz (EGraphVizFlags flags, OUT String &result) const = 0;
+			virtual bool				DumpToGraphViz (OUT String &result) const = 0;
 	};
 
 

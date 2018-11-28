@@ -24,7 +24,7 @@ namespace FG
 
 /*
 =================================================
-    constructor
+	constructor
 =================================================
 */
 	FileRStream::FileRStream (StringView filename)
@@ -45,7 +45,7 @@ namespace FG
 
 /*
 =================================================
-    constructor
+	constructor
 =================================================
 */
 #ifdef FG_STD_FILESYSTEM
@@ -66,7 +66,7 @@ namespace FG
 	
 /*
 =================================================
-    destructor
+	destructor
 =================================================
 */
 	FileRStream::~FileRStream ()
@@ -77,19 +77,19 @@ namespace FG
 	
 /*
 =================================================
-    Position
+	Position
 =================================================
 */
 	BytesU  FileRStream::Position () const
 	{
 		ASSERT( IsOpen() );
 
-        return BytesU(uint64_t(ftell( _file )));
+		return BytesU(uint64_t(ftell( _file )));
 	}
 	
 /*
 =================================================
-    _GetSize
+	_GetSize
 =================================================
 */
 	BytesU  FileRStream::_GetSize () const
@@ -102,12 +102,12 @@ namespace FG
 		const int64_t	size = ftell( _file );
 		CHECK( fseek( _file, curr, SEEK_SET ) == 0 );
 
-        return BytesU(uint64_t(size));
+		return BytesU(uint64_t(size));
 	}
 	
 /*
 =================================================
-    SeekSet
+	SeekSet
 =================================================
 */
 	bool  FileRStream::SeekSet (BytesU pos)
@@ -119,7 +119,7 @@ namespace FG
 	
 /*
 =================================================
-    Read2
+	Read2
 =================================================
 */
 	BytesU  FileRStream::Read2 (OUT void *buffer, BytesU size)
@@ -134,14 +134,14 @@ namespace FG
 	
 /*
 =================================================
-    constructor
+	constructor
 =================================================
 */
 	FileWStream::FileWStream (StringView filename)
 	{
-        fopen_s( OUT &_file, filename.data(), "wb" );
+		fopen_s( OUT &_file, filename.data(), "wb" );
 
-        if ( not _file )
+		if ( not _file )
 			FG_LOGE( "Can't open file: "s << filename );
 	}
 	
@@ -153,7 +153,7 @@ namespace FG
 
 /*
 =================================================
-    constructor
+	constructor
 =================================================
 */
 #ifdef FG_STD_FILESYSTEM
@@ -172,7 +172,7 @@ namespace FG
 	
 /*
 =================================================
-    destructor
+	destructor
 =================================================
 */
 	FileWStream::~FileWStream ()
@@ -183,19 +183,19 @@ namespace FG
 	
 /*
 =================================================
-    Position
+	Position
 =================================================
 */
 	BytesU  FileWStream::Position () const
 	{
 		ASSERT( IsOpen() );
 
-        return BytesU(uint64_t(ftell( _file )));
+		return BytesU(uint64_t(ftell( _file )));
 	}
 	
 /*
 =================================================
-    Size
+	Size
 =================================================
 */
 	BytesU  FileWStream::Size () const
@@ -208,12 +208,12 @@ namespace FG
 		const int64_t	size = ftell( _file );
 		CHECK( fseek( _file, curr, SEEK_SET ) == 0 );
 
-        return BytesU(uint64_t(size));
+		return BytesU(uint64_t(size));
 	}
 	
 /*
 =================================================
-    Write2
+	Write2
 =================================================
 */
 	BytesU  FileWStream::Write2 (const void *buffer, BytesU size)
@@ -225,7 +225,7 @@ namespace FG
 	
 /*
 =================================================
-    Flush
+	Flush
 =================================================
 */
 	void  FileWStream::Flush ()

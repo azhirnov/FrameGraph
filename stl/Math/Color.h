@@ -52,21 +52,21 @@ namespace FG
 					Equals( a, rhs.a, eps );
 		}
 		
-        ND_ static constexpr T  MaxValue ()
-        {
-            if constexpr ( IsFloatPoint<T> )
-                return T(1.0);
-            else
-                return std::numeric_limits<T>::max();
-        }
+		ND_ static constexpr T  MaxValue ()
+		{
+			if constexpr ( IsFloatPoint<T> )
+				return T(1.0);
+			else
+				return std::numeric_limits<T>::max();
+		}
 
-        ND_ static constexpr T  Epsilon ()
-        {
-            if constexpr ( IsFloatPoint<T> )
-                return T(0.001);
-            else
-                return T(0);
-        }
+		ND_ static constexpr T  Epsilon ()
+		{
+			if constexpr ( IsFloatPoint<T> )
+				return T(0.001);
+			else
+				return T(0);
+		}
 
 		ND_ static constexpr size_t		size ()			{ return 4; }
 		

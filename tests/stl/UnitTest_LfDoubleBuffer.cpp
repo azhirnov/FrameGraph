@@ -59,5 +59,5 @@ extern void UnitTest_LfDoubleBuffer ()
 {
 	DoubleBuffer_Test1();
 	DoubleBuffer_Test2();
-    FG_LOGI( "UnitTest_LfDoubleBuffer - passed" );
+	FG_LOGI( "UnitTest_LfDoubleBuffer - passed" );
 }

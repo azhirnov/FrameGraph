@@ -121,6 +121,7 @@ namespace FG
 			return true;
 		}
 
+#if 0
 		VkAcquireNextImageInfoKHR	info = {};
 		info.sType		= VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR;
 		info.swapchain	= _vkSwapchain;
@@ -129,6 +130,9 @@ namespace FG
 		info.deviceMask	= 1;
 
 		VK_CHECK( _GetDevice().vkAcquireNextImage2KHR( _GetVkDevice(), &info, OUT &_currImageIndex ));
+#else
+		VK_CHECK( _GetDevice().vkAcquireNextImageKHR( _GetVkDevice(), _vkSwapchain, ~0ull, _imageAvailable, VK_NULL_HANDLE, OUT &_currImageIndex ));
+#endif
 
 		outImageId = _imageIDs[ _currImageIndex ].Get();
 
@@ -448,7 +452,7 @@ namespace FG
 		const VkFormat	default_fmt = VK_FORMAT_B8G8R8A8_UNORM;
 
 		// add first 3 formats
-		for (size_t i = 0; i < Min(formats.size(), 3); ++i)
+		for (size_t i = 0; i < Min(formats.size(), 3u); ++i)
 		{
 			auto&	item = formats[i].surfaceFormat;
 

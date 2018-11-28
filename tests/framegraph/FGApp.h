@@ -52,6 +52,7 @@ namespace FG
 		void OnDestroy () override;
 		void OnUpdate () override;
 		void OnKey (StringView, EKeyAction) override {}
+		void OnMouseMove (const float2 &) override {}
 		
 
 	// helpers
@@ -60,7 +61,7 @@ namespace FG
 		bool _Update ();
 		void _Destroy ();
 
-		bool Visualize (StringView name, EGraphVizFlags flags, bool autoOpen = false) const;
+		bool Visualize (StringView name, bool autoOpen = false) const;
 		bool CompareDumps (StringView filename) const;
 		bool SavePNG (const String &filename, const ImageView &imageData) const;
 
@@ -90,6 +91,7 @@ namespace FG
 		bool Test_CopyImage1 ();
 		bool Test_CopyImage2 ();
 		bool Test_CopyImage3 ();
+		bool Test_CopyImage4 ();
 		bool Test_Compute1 ();
 		bool Test_Draw1 ();
 		bool Test_Draw2 ();

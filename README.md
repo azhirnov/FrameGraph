@@ -46,11 +46,11 @@ Dependencies:<br/>
     correct render pass optimization. (WIP)
 - multithreading. (WIP)<br/>
 - render pass optimization. (WIP)<br/>
-- debug visualizations. (WIP)<br/>
+- graph visualizations. (done)<br/>
 
 ### Stage 2
-- mesh shader support.<br/>
-- ray tracing support.<br/>
+- mesh shader support. (done)<br/>
+- ray tracing support. (WIP)<br/>
 - sparse memory support.<br/>
 - custom RAM allocators.<br/>
 - logical resources.<br/>
@@ -62,7 +62,7 @@ Dependencies:<br/>
 - multithreading optimizations:<br/>
 	remove synchronization stage<br/>
 	lockfree image view map<br/>
-	lockfree pipelines? descriptor set, layout, ... maps<br/>
+	lockfree pipelines, descriptor set, layout, ... maps<br/>
 
 ### Stage 3
 - multi-gpu.<br/>

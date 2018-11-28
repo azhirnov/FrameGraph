@@ -427,5 +427,5 @@ extern void PerformanceTest_FixedMap ()
 	FixedMap_PerformanceTest1();
 	FixedMap_PerformanceTest2();
 
-    FG_LOGI( "PerformanceTest_FixedMap - finished" );
+	FG_LOGI( "PerformanceTest_FixedMap - finished" );
 }

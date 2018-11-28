@@ -8,8 +8,8 @@ extern void Test_Shader6 (VPipelineCompiler* compiler)
 	GraphicsPipelineDesc	ppln;
 
 	ppln.AddShader( EShader::Vertex,
-				    EShaderLangFormat::Vulkan_100 | EShaderLangFormat::HighLevel,
-				    "main",
+					EShaderLangFormat::Vulkan_100 | EShaderLangFormat::HighLevel,
+					"main",
 R"#(
 #version 450 core
 #pragma shader_stage(fragment)
@@ -21,28 +21,28 @@ in  vec2	at_Texcoord;
 out vec2	v_Texcoord;
 
 void main() {
-    gl_Position	= vec4( at_Position, 0.0, 1.0 );
+	gl_Position	= vec4( at_Position, 0.0, 1.0 );
 	v_Texcoord	= at_Texcoord;
 }
 )#" );
 
 	ppln.AddShader( EShader::Vertex,
-				    EShaderLangFormat::OpenGL_450 | EShaderLangFormat::HighLevel,
-				    "main",
+					EShaderLangFormat::OpenGL_450 | EShaderLangFormat::HighLevel,
+					"main",
 R"#(
 #error 1
 )#" );
 
 	ppln.AddShader( EShader::Vertex,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main",
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main",
 R"#(
 #error 2
 )#" );
 
 	ppln.AddShader( EShader::Fragment,
-				    EShaderLangFormat::OpenGL_450 | EShaderLangFormat::HighLevel,
-				    "main",
+					EShaderLangFormat::OpenGL_450 | EShaderLangFormat::HighLevel,
+					"main",
 R"#(
 #version 450 core
 #pragma shader_stage(vertex)
@@ -61,13 +61,13 @@ in  vec2	v_Texcoord;
 out vec4	out_Color;
 
 void main() {
-    out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
+	out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
 }
 )#" );
 	
 	ppln.AddShader( EShader::Fragment,
-				    EShaderLangFormat::OpenGL_440 | EShaderLangFormat::HighLevel,
-				    "main",
+					EShaderLangFormat::OpenGL_440 | EShaderLangFormat::HighLevel,
+					"main",
 R"#(
 #error 3
 )#" );
@@ -79,11 +79,11 @@ R"#(
 
 	compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
 
-	TEST(     compiler->Compile( INOUT ppln1, EShaderLangFormat::Vulkan_100 | EShaderLangFormat::SPIRV ) );
+	TEST(	 compiler->Compile( INOUT ppln1, EShaderLangFormat::Vulkan_100 | EShaderLangFormat::SPIRV ) );
 	TEST( not compiler->Compile( INOUT ppln2, EShaderLangFormat::Vulkan_110 | EShaderLangFormat::SPIRV ) );
 	
 
 	// restore previous state
-    compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
-    FG_LOGI( "Test_Shader6 - passed" );
+	compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
+	FG_LOGI( "Test_Shader6 - passed" );
 }

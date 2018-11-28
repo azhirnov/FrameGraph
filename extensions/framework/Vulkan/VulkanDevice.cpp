@@ -250,7 +250,7 @@ namespace FG
 		instance_layers.assign( layers.begin(), layers.end() );
 
 		_ValidateInstanceVersion( INOUT version );
-        _ValidateInstanceLayers( INOUT instance_layers );
+		_ValidateInstanceLayers( INOUT instance_layers );
 		_ValidateInstanceExtensions( INOUT extensions );
 
 
@@ -280,7 +280,7 @@ namespace FG
 	
 /*
 =================================================
-    _ValidateInstanceVersion
+	_ValidateInstanceVersion
 =================================================
 */
 	void VulkanDevice::_ValidateInstanceVersion (INOUT uint &version) const
@@ -293,50 +293,50 @@ namespace FG
 
 /*
 =================================================
-    _ValidateInstanceLayers
+	_ValidateInstanceLayers
 =================================================
 */
-    void VulkanDevice::_ValidateInstanceLayers (INOUT Array<const char*> &layers) const
-    {
-        Array<VkLayerProperties> inst_layers;
+	void VulkanDevice::_ValidateInstanceLayers (INOUT Array<const char*> &layers) const
+	{
+		Array<VkLayerProperties> inst_layers;
 
-        // load supported layers
-        uint	count = 0;
-        VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, null ) );
+		// load supported layers
+		uint	count = 0;
+		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, null ) );
 
-        if (count == 0)
-        {
-            layers.clear();
-            return;
-        }
+		if (count == 0)
+		{
+			layers.clear();
+			return;
+		}
 
-        inst_layers.resize( count );
-        VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, OUT inst_layers.data() ) );
+		inst_layers.resize( count );
+		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, OUT inst_layers.data() ) );
 
 
-        // validate
-        for (auto iter = layers.begin(); iter != layers.end();)
-        {
-            bool    found = false;
+		// validate
+		for (auto iter = layers.begin(); iter != layers.end();)
+		{
+			bool	found = false;
 
-            for (auto& prop : inst_layers)
-            {
-                if ( StringView(*iter) == prop.layerName ) {
-                    found = true;
-                    break;
-                }
-            }
+			for (auto& prop : inst_layers)
+			{
+				if ( StringView(*iter) == prop.layerName ) {
+					found = true;
+					break;
+				}
+			}
 
-            if ( not found )
-            {
-                FG_LOGI( "Vulkan layer \""s << (*iter) << "\" not supported and will be removed" );
+			if ( not found )
+			{
+				FG_LOGI( "Vulkan layer \""s << (*iter) << "\" not supported and will be removed" );
 
-                iter = layers.erase( iter );
-            }
+				iter = layers.erase( iter );
+			}
 			else
 				++iter;
-        }
-    }
+		}
+	}
 
 /*
 =================================================
@@ -350,7 +350,7 @@ namespace FG
 		HashSet<ExtName_t>	instance_extensions;
 
 
-        // load supported extensions
+		// load supported extensions
 		uint	count = 0;
 		VK_CALL( vkEnumerateInstanceExtensionProperties( null, OUT &count, null ) );
 
@@ -389,47 +389,47 @@ namespace FG
 	_ValidateDeviceExtensions
 =================================================
 */
-    void VulkanDevice::_ValidateDeviceExtensions (INOUT Array<const char*> &extensions) const
-    {
-        // load supported device extensions
-        uint	count = 0;
-        VK_CALL( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, null ) );
+	void VulkanDevice::_ValidateDeviceExtensions (INOUT Array<const char*> &extensions) const
+	{
+		// load supported device extensions
+		uint	count = 0;
+		VK_CALL( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, null ) );
 
-        if ( count == 0 )
-        {
-            extensions.clear();
-            return;
-        }
+		if ( count == 0 )
+		{
+			extensions.clear();
+			return;
+		}
 
-        Array< VkExtensionProperties >	dev_ext;
-        dev_ext.resize( count );
+		Array< VkExtensionProperties >	dev_ext;
+		dev_ext.resize( count );
 
-        VK_CALL( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, OUT dev_ext.data() ));
+		VK_CALL( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, OUT dev_ext.data() ));
 
 
-        // validate
-        for (auto iter = extensions.begin(); iter != extensions.end();)
-        {
-            bool    found = false;
+		// validate
+		for (auto iter = extensions.begin(); iter != extensions.end();)
+		{
+			bool	found = false;
 
-            for (auto& ext : dev_ext)
-            {
-                if ( StringView(*iter) == ext.extensionName )
-                {
-                    found = true;
-                    break;
-                }
-            }
+			for (auto& ext : dev_ext)
+			{
+				if ( StringView(*iter) == ext.extensionName )
+				{
+					found = true;
+					break;
+				}
+			}
 
-            if ( not found )
-            {
-                FG_LOGI( "Vulkan device extension \""s << (*iter) << "\" not supported and will be removed" );
+			if ( not found )
+			{
+				FG_LOGI( "Vulkan device extension \""s << (*iter) << "\" not supported and will be removed" );
 
-                iter = extensions.erase( iter );
-            }
+				iter = extensions.erase( iter );
+			}
 			else
 				++iter;
-        }
+		}
 	}
 
 /*
@@ -472,8 +472,8 @@ namespace FG
 		devices.resize( count );
 		VK_CALL( vkEnumeratePhysicalDevices( _vkInstance, OUT &count, OUT devices.data() ) );
 		
-        VkPhysicalDevice	match_name_device	= VK_NULL_HANDLE;
-        VkPhysicalDevice	high_perf_device	= VK_NULL_HANDLE;
+		VkPhysicalDevice	match_name_device	= VK_NULL_HANDLE;
+		VkPhysicalDevice	high_perf_device	= VK_NULL_HANDLE;
 		float				max_performance		= 0.0f;
 
 		for (auto& dev : devices)
@@ -501,8 +501,8 @@ namespace FG
 										float(feat.tessellationShader + feat.geometryShader);
 
 			const bool		nmatch	=	not deviceName.empty()							and
-                                        (HasSubStringIC( prop.deviceName, deviceName )	or
-                                         HasSubStringIC( _GetVendorNameByID( prop.vendorID ), deviceName ));
+										(HasSubStringIC( prop.deviceName, deviceName )	or
+										 HasSubStringIC( _GetVendorNameByID( prop.vendorID ), deviceName ));
 
 			if ( perf > max_performance ) {
 				max_performance		= perf;

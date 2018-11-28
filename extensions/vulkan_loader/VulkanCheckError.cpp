@@ -19,7 +19,7 @@ namespace FG
 			return true;
 
 		#define VK1_CASE_ERR( _code_ ) \
-            case _code_ :	msg += FG_PRIVATE_TOSTRING( _code_ ); break;
+			case _code_ :	msg += FG_PRIVATE_TOSTRING( _code_ ); break;
 		
 		String	msg( "Vulkan error: " );
 

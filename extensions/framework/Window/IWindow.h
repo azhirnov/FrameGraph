@@ -21,8 +21,8 @@ namespace FG
 	// types
 	public:
 		enum class EKeyAction {
-			Down,		// single event when key down
 			Up,			// signle event when key up
+			Down,		// single event when key down
 			Pressed,	// continiously event until key is pressed
 		};
 		
@@ -33,6 +33,7 @@ namespace FG
 		virtual void OnDestroy () = 0;
 		virtual void OnUpdate () = 0;
 		virtual void OnKey (StringView key, EKeyAction action) = 0;
+		virtual void OnMouseMove (const float2 &pos) = 0;
 	};
 
 

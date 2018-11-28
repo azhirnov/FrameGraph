@@ -28,20 +28,20 @@ R"#(
 out vec3	v_Color;
 
 const vec2	g_Positions[3] = vec2[](
-    vec2(0.0, -0.5),
-    vec2(0.5, 0.5),
-    vec2(-0.5, 0.5)
+	vec2(0.0, -0.5),
+	vec2(0.5, 0.5),
+	vec2(-0.5, 0.5)
 );
 
 const vec3	g_Colors[3] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
+	vec3(1.0, 0.0, 0.0),
+	vec3(0.0, 1.0, 0.0),
+	vec3(0.0, 0.0, 1.0)
 );
 
 void main() {
-    gl_Position	= vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
-    v_Color		= g_Colors[gl_VertexIndex];
+	gl_Position	= vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
+	v_Color		= g_Colors[gl_VertexIndex];
 }
 )#" );
 		
@@ -71,7 +71,7 @@ void main() {
 		
 		bool		data_is_correct = false;
 
-        const auto	OnLoaded =	[this, OUT &data_is_correct] (const ImageView &imageData)
+		const auto	OnLoaded =	[this, OUT &data_is_correct] (const ImageView &imageData)
 		{
 			const auto	TestPixel = [&imageData] (float x, float y, const RGBA32f &color)
 			{
@@ -107,8 +107,8 @@ void main() {
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-        CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-        CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
@@ -128,7 +128,7 @@ void main() {
 		CHECK_ERR( _frameGraphInst->Execute() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		CHECK_ERR( Visualize( TEST_NAME, EGraphVizFlags::Default ));
+		CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( _frameGraphInst->WaitIdle() );
 
@@ -136,7 +136,7 @@ void main() {
 
 		DeleteResources( image, pipeline );
 
-        FG_LOGI( TEST_NAME << " - passed" );
+		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
 

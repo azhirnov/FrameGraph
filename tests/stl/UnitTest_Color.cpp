@@ -43,5 +43,5 @@ extern void UnitTest_Color ()
 {
 	RGBAColor_Test1();
 	HSVColor_Test1();
-    FG_LOGI( "UnitTest_Color - passed" );
+	FG_LOGI( "UnitTest_Color - passed" );
 }

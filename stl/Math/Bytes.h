@@ -153,7 +153,7 @@ namespace FG
 =================================================
 */
 	template <typename A, typename B>
-    ND_ constexpr forceinline BytesU  OffsetOf (A B::*member)
+	ND_ constexpr forceinline BytesU  OffsetOf (A B::*member)
 	{
 		const union U {
 			B		b;

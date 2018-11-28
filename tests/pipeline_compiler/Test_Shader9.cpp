@@ -8,8 +8,8 @@ extern void Test_Shader9 (VPipelineCompiler* compiler)
 	GraphicsPipelineDesc	ppln;
 
 	ppln.AddShader( EShader::Fragment,
-				    EShaderLangFormat::GLSL_450,
-				    "main",
+					EShaderLangFormat::GLSL_450,
+					"main",
 R"#(
 #version 450 core
 #extension GL_ARB_separate_shader_objects : enable
@@ -29,5 +29,5 @@ void main ()
 
 	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_100 | EShaderLangFormat::SPIRV ));
 
-    FG_LOGI( "Test_Shader9 - passed" );
+	FG_LOGI( "Test_Shader9 - passed" );
 }

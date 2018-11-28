@@ -85,6 +85,8 @@ namespace FG
 
 		ND_ BufferDesc const&	Description ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData->Description(); }
 		ND_ BytesU				Size ()			const	{ SHAREDLOCK( _rcCheck );  return Description().size; }
+		
+		ND_ StringView			GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData->GetDebugName(); }
 
 
 	private:

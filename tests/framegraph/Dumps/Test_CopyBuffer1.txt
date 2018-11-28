@@ -99,6 +99,11 @@ Thread {
 				size:     256 b
 			}
 		}
+		srcBuffer:    "StagingWriteBuffer "
+		dstBuffer:    "SrcBuffer"
+		regions = {
+			{ 0 b, 0 b, 256 b }
+		}
 	}
 	Task {
 		name:    "CopyBuffer (#3)"
@@ -118,6 +123,11 @@ Thread {
 				size:     256 b
 			}
 		}
+		srcBuffer:    "SrcBuffer"
+		dstBuffer:    "DstBuffer"
+		regions = {
+			{ 0 b, 128 b, 256 b }
+		}
 	}
 	Task {
 		name:    "ReadBuffer (#4)"
@@ -136,6 +146,11 @@ Thread {
 				offset:   0 b
 				size:     512 b
 			}
+		}
+		srcBuffer:    "DstBuffer"
+		dstBuffer:    "StagingReadBuffer "
+		regions = {
+			{ 0 b, 0 b, 512 b }
 		}
 	}
 }

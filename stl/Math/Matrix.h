@@ -70,8 +70,8 @@ namespace FG
 			if constexpr ( CountOf<Arg0, Args...>() == Columns )
 				_CopyColumns<0>( arg0, args... );
 			else
-                STATIC_ASSERT(  (CountOf<Arg0, Args...>() == Columns * Rows) or
-                                (CountOf<Arg0, Args...>() == Columns) );
+				STATIC_ASSERT(  (CountOf<Arg0, Args...>() == Columns * Rows) or
+								(CountOf<Arg0, Args...>() == Columns) );
 		}
 
 		template <size_t Align2>
@@ -209,8 +209,8 @@ namespace FG
 			if constexpr ( CountOf<Arg0, Args...>() == Rows )
 				_CopyRows<0>( arg0, args... );
 			else
-                STATIC_ASSERT(  (CountOf<Arg0, Args...>() == Columns * Rows) or
-                                (CountOf<Arg0, Args...>() == Rows) );
+				STATIC_ASSERT(  (CountOf<Arg0, Args...>() == Columns * Rows) or
+								(CountOf<Arg0, Args...>() == Rows) );
 		}
 		
 		template <size_t Align2>

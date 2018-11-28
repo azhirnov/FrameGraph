@@ -108,6 +108,55 @@ namespace FG
 	
 /*
 =================================================
+	AllocateForAccelStruct
+=================================================
+*/
+	bool VMemoryManager::AllocateForAccelStruct (VkAccelerationStructureNV accelStruct, const MemoryDesc &desc, OUT Storage_t &data)
+	{
+		ASSERT( not _allocators.empty() );
+
+		for (size_t i = 0; i < _allocators.size(); ++i)
+		{
+			auto&	alloc = _allocators[i];
+
+			if ( alloc->IsSupported( desc.type ) )
+			{
+				CHECK_ERR( alloc->AllocateForAccelStruct( accelStruct, desc, OUT data ));
+				
+				*data.Cast<uint>() = uint(i);
+				return true;
+			}
+		}
+		RETURN_ERR( "unsupported memory type" );
+	}
+	
+/*
+=================================================
+	AllocateForStratchBuffer
+=================================================
+*/
+	bool VMemoryManager::AllocateForStratchBuffer (VkAccelerationStructureNV accelStruct, VkAccelerationStructureMemoryRequirementsTypeNV reqType,
+												   VkBuffer stratchBuffer, const MemoryDesc &desc, OUT Storage_t &data)
+	{
+		ASSERT( not _allocators.empty() );
+
+		for (size_t i = 0; i < _allocators.size(); ++i)
+		{
+			auto&	alloc = _allocators[i];
+
+			if ( alloc->IsSupported( desc.type ) )
+			{
+				CHECK_ERR( alloc->AllocateForStratchBuffer( accelStruct, reqType, stratchBuffer, desc, OUT data ));
+				
+				*data.Cast<uint>() = uint(i);
+				return true;
+			}
+		}
+		RETURN_ERR( "unsupported memory type" );
+	}
+
+/*
+=================================================
 	Deallocate
 =================================================
 */
@@ -130,7 +179,7 @@ namespace FG
 		const uint	alloc_id = *data.Cast<uint>();
 		CHECK_ERR( alloc_id < _allocators.size() );
 		
-		CHECK_ERR( _allocators[alloc_id]->GetMemoryInfo( _device, data, OUT info ));
+		CHECK_ERR( _allocators[alloc_id]->GetMemoryInfo( data, OUT info ));
 		return true;
 	}
 

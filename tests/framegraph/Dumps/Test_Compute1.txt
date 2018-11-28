@@ -192,6 +192,8 @@ Thread {
 				layerCount:     1
 			}
 		}
+		pipeline:    ""
+		groupCount:  ( 2, 2, 1 )
 	}
 	Task {
 		name:    "DispatchCompute (#3)"
@@ -207,6 +209,9 @@ Thread {
 				layerCount:     1
 			}
 		}
+		pipeline:    ""
+		groupCount:  ( 4, 4, 1 )
+		localGroupSize:  ( 4, 4, 1 )
 	}
 	Task {
 		name:    "DispatchCompute (#4)"
@@ -222,6 +227,9 @@ Thread {
 				layerCount:     1
 			}
 		}
+		pipeline:    ""
+		groupCount:  ( 1, 1, 1 )
+		localGroupSize:  ( 16, 16, 1 )
 	}
 	Task {
 		name:    "ReadImage (#5)"
@@ -241,6 +249,22 @@ Thread {
 				usage:    TransferDst
 				offset:   0 b
 				size:     1024 b
+			}
+		}
+		srcImage:    "MyImage_0"
+		srcLayout:   TransferSrcOptimal
+		dstBuffer:   "StagingReadBuffer "
+		regions = {
+			Region {
+				bufferOffset:        0 b
+				bufferRowLength:     16
+				bufferImageHeight:   16
+				imageAspectMask:     Color
+				imageMipLevel:       0
+				imageBaseArrayLayer: 0
+				imageLayerCount:     1
+				imageOffset:         ( 0, 0, 0 )
+				imageSize:           ( 16, 16, 1 )
 			}
 		}
 	}
@@ -264,6 +288,22 @@ Thread {
 				size:     1024 b
 			}
 		}
+		srcImage:    "MyImage_1"
+		srcLayout:   TransferSrcOptimal
+		dstBuffer:   "StagingReadBuffer "
+		regions = {
+			Region {
+				bufferOffset:        1024 b
+				bufferRowLength:     16
+				bufferImageHeight:   16
+				imageAspectMask:     Color
+				imageMipLevel:       0
+				imageBaseArrayLayer: 0
+				imageLayerCount:     1
+				imageOffset:         ( 0, 0, 0 )
+				imageSize:           ( 16, 16, 1 )
+			}
+		}
 	}
 	Task {
 		name:    "ReadImage (#7)"
@@ -283,6 +323,22 @@ Thread {
 				usage:    TransferDst
 				offset:   2048 b
 				size:     1024 b
+			}
+		}
+		srcImage:    "MyImage_2"
+		srcLayout:   TransferSrcOptimal
+		dstBuffer:   "StagingReadBuffer "
+		regions = {
+			Region {
+				bufferOffset:        2048 b
+				bufferRowLength:     16
+				bufferImageHeight:   16
+				imageAspectMask:     Color
+				imageMipLevel:       0
+				imageBaseArrayLayer: 0
+				imageLayerCount:     1
+				imageOffset:         ( 0, 0, 0 )
+				imageSize:           ( 16, 16, 1 )
 			}
 		}
 	}

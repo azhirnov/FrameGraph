@@ -9,7 +9,7 @@ namespace FG
 	
 /*
 =================================================
-    Read
+	Read
 =================================================
 */
 	bool  RStream::Read (void *buffer, BytesU size)
@@ -19,7 +19,7 @@ namespace FG
 	
 /*
 =================================================
-    Read
+	Read
 =================================================
 */
 	bool  RStream::Read (size_t length, OUT String &str)
@@ -36,7 +36,7 @@ namespace FG
 	
 /*
 =================================================
-    Read
+	Read
 =================================================
 */
 	bool  RStream::Read (size_t count, OUT Array<uint8_t> &buf)
@@ -56,7 +56,7 @@ namespace FG
 
 /*
 =================================================
-    Write
+	Write
 =================================================
 */
 	bool  WStream::Write (const void *buffer, BytesU size)
@@ -66,7 +66,7 @@ namespace FG
 	
 /*
 =================================================
-    Write
+	Write
 =================================================
 */
 	bool  WStream::Write (StringView str)
@@ -78,7 +78,7 @@ namespace FG
 	
 /*
 =================================================
-    Write
+	Write
 =================================================
 */
 	bool  WStream::Write (ArrayView<uint8_t> buf)

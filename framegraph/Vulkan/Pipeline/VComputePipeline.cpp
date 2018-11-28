@@ -68,7 +68,7 @@ namespace FG
 		_shader					= null;
 		_layoutId				= Default;
 		_defaultLocalGroupSize	= Default;
-        _localSizeSpec			= uint3{ ComputePipelineDesc::UNDEFINED_SPECIALIZATION };
+		_localSizeSpec			= uint3{ ComputePipelineDesc::UNDEFINED_SPECIALIZATION };
 	}
 
 

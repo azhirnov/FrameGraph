@@ -1,9 +1,9 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VFrameGraphDebugger.h"
+#include "VFrameGraphThread.h"
 #include "VEnumToString.h"
 #include "Shared/EnumToString.h"
-#include "VTaskGraph.h"
 #include "VDebugger.h"
 
 namespace FG
@@ -17,8 +17,8 @@ namespace {
 	constructor
 =================================================
 */
-	VFrameGraphDebugger::VFrameGraphDebugger (const VDebugger &dbg) :
-		_mainDbg{ dbg },
+	VFrameGraphDebugger::VFrameGraphDebugger (const VDebugger &dbg, const VFrameGraphThread &fg) :
+		_mainDbg{ dbg },		_frameGraph{ fg },
 		_flags{ Default }
 	{
 		_tasks.reserve( 256 );
@@ -420,6 +420,8 @@ namespace {
 			str << " }\n";
 
 			_DumpResourceUsage( info.resources, INOUT str );
+
+			_DumpTaskData( info.task, INOUT str );
 			
 			str << indent << "}\n";
 		}
@@ -494,6 +496,365 @@ namespace {
 		}
 
 		str << indent << "\t}\n";
+	}
+
+/*
+=================================================
+	_SubmitRenderPassTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_SubmitRenderPassTaskToString (Ptr<const VFgTask<SubmitRenderPass>>, INOUT String &) const
+	{
+	}
+	
+/*
+=================================================
+	_DispatchComputeTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_DispatchComputeTaskToString (Ptr<const VFgTask<DispatchCompute>> task, INOUT String &str) const
+	{
+		str << indent << "	pipeline:    \"" << _frameGraph.GetResourceManager()->GetResource( task->pipeline )->GetDebugName() << "\"\n"
+			<< indent << "	groupCount:  " << ToString( task->groupCount ) << '\n';
+
+		if ( task->localGroupSize.has_value() )
+			str << indent << "	localGroupSize:  " << ToString( *task->localGroupSize ) << '\n';
+	}
+	
+/*
+=================================================
+	_DispatchIndirectComputeTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_DispatchIndirectComputeTaskToString (Ptr<const VFgTask<DispatchIndirectCompute>> task, INOUT String &str) const
+	{
+		str << indent << "	pipeline:       \"" << _frameGraph.GetResourceManager()->GetResource( task->pipeline )->GetDebugName() << "\"\n"
+			<< indent << "	indirectBuffer: \"" << task->indirectBuffer->GetDebugName() << "\"\n"
+			<< indent << "	indirectBufferOffset: " << ToString( BytesU{task->indirectBufferOffset} ) << '\n';
+		
+		if ( task->localGroupSize.has_value() )
+			str << indent << "	localGroupSize:  " << ToString( *task->localGroupSize ) << '\n';
+	}
+	
+/*
+=================================================
+	_CopyBufferTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_CopyBufferTaskToString (Ptr<const VFgTask<CopyBuffer>> task, INOUT String &str) const
+	{
+		str << indent << "	srcBuffer:    \"" << task->srcBuffer->GetDebugName() << "\"\n"
+			<< indent << "	dstBuffer:    \"" << task->dstBuffer->GetDebugName() << "\"\n"
+			<< indent << "	regions = {\n";
+
+		for (auto& reg : task->regions) {
+			str << indent << "\t\t{ " << ToString( reg.srcOffset ) << ", " << ToString( reg.dstOffset ) << ", " << ToString( reg.size ) << " }\n";
+		}
+		str << indent << "	}\n";
+	}
+	
+/*
+=================================================
+	_CopyImageTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_CopyImageTaskToString (Ptr<const VFgTask<CopyImage>> task, INOUT String &str) const
+	{
+		str << indent << "	srcImage:    \"" << task->srcImage->GetDebugName() << "\"\n"
+			<< indent << "	srcLayout:   " << VkImageLayout_ToString( task->srcLayout ) << '\n'
+			<< indent << "	dstImage:    \"" << task->dstImage->GetDebugName() << "\"\n"
+			<< indent << "	dstLayout:   " << VkImageLayout_ToString( task->dstLayout ) << '\n'
+			<< indent << "	regions = {\n";
+
+		for (auto& reg : task->regions) {
+			str << indent << "\t\tRegion {\n"
+				<< indent << "\t\t	src.aspectMask:  " << ToString( reg.srcSubresource.aspectMask ) << '\n'
+				<< indent << "\t\t	src.mipLevel:    " << ToString( reg.srcSubresource.mipLevel.Get() ) << '\n'
+				<< indent << "\t\t	src.baseLayer:   " << ToString( reg.srcSubresource.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	src.layerCount:  " << ToString( reg.srcSubresource.layerCount ) << '\n'
+				<< indent << "\t\t	src.offset:      " << ToString( reg.srcOffset ) << '\n'
+				<< indent << "\t\t	dst.aspectMask:  " << ToString( reg.dstSubresource.aspectMask ) << '\n'
+				<< indent << "\t\t	dst.mipLevel:    " << ToString( reg.dstSubresource.mipLevel.Get() ) << '\n'
+				<< indent << "\t\t	dst.baseLayer:   " << ToString( reg.dstSubresource.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	dst.layerCount:  " << ToString( reg.dstSubresource.layerCount ) << '\n'
+				<< indent << "\t\t	dst.offset:      " << ToString( reg.dstOffset ) << '\n'
+				<< indent << "\t\t	size:            " << ToString( reg.size ) << '\n'
+				<< indent << "\t\t}\n";
+		}
+		str << indent << "	}\n";
+	}
+	
+/*
+=================================================
+	_CopyBufferToImageTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_CopyBufferToImageTaskToString (Ptr<const VFgTask<CopyBufferToImage>> task, INOUT String &str) const
+	{
+		str << indent << "	srcBuffer:   \"" << task->srcBuffer->GetDebugName() << "\"\n"
+			<< indent << "	dstImage:    \"" << task->dstImage->GetDebugName() << "\"\n"
+			<< indent << "	dstLayout:   " << VkImageLayout_ToString( task->dstLayout ) << '\n'
+			<< indent << "	regions = {\n";
+
+		for (auto& reg : task->regions) {
+			str << indent << "\t\tRegion {\n"
+				<< indent << "\t\t	bufferOffset:        " << ToString( reg.bufferOffset ) << '\n'
+				<< indent << "\t\t	bufferRowLength:     " << ToString( reg.bufferRowLength ) << '\n'
+				<< indent << "\t\t	bufferImageHeight:   " << ToString( reg.bufferImageHeight ) << '\n'
+				<< indent << "\t\t	imageAspectMask:     " << ToString( reg.imageLayers.aspectMask ) << '\n'
+				<< indent << "\t\t	imageMipLevel:       " << ToString( reg.imageLayers.mipLevel.Get() ) << '\n'
+				<< indent << "\t\t	imageBaseArrayLayer: " << ToString( reg.imageLayers.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	imageLayerCount:     " << ToString( reg.imageLayers.layerCount ) << '\n'
+				<< indent << "\t\t	imageOffset:         " << ToString( reg.imageOffset ) << '\n'
+				<< indent << "\t\t	imageSize:           " << ToString( reg.imageSize ) << '\n'
+				<< indent << "\t\t}\n";
+		}
+		str << indent << "	}\n";
+	}
+	
+/*
+=================================================
+	_CopyImageToBufferTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_CopyImageToBufferTaskToString (Ptr<const VFgTask<CopyImageToBuffer>> task, INOUT String &str) const
+	{
+		str << indent << "	srcImage:    \"" << task->srcImage->GetDebugName() << "\"\n"
+			<< indent << "	srcLayout:   " << VkImageLayout_ToString( task->srcLayout ) << '\n'
+			<< indent << "	dstBuffer:   \"" << task->dstBuffer->GetDebugName() << "\"\n"
+			<< indent << "	regions = {\n";
+
+		for (auto& reg : task->regions) {
+			str << indent << "\t\tRegion {\n"
+				<< indent << "\t\t	bufferOffset:        " << ToString( reg.bufferOffset ) << '\n'
+				<< indent << "\t\t	bufferRowLength:     " << ToString( reg.bufferRowLength ) << '\n'
+				<< indent << "\t\t	bufferImageHeight:   " << ToString( reg.bufferImageHeight ) << '\n'
+				<< indent << "\t\t	imageAspectMask:     " << ToString( reg.imageLayers.aspectMask ) << '\n'
+				<< indent << "\t\t	imageMipLevel:       " << ToString( reg.imageLayers.mipLevel.Get() ) << '\n'
+				<< indent << "\t\t	imageBaseArrayLayer: " << ToString( reg.imageLayers.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	imageLayerCount:     " << ToString( reg.imageLayers.layerCount ) << '\n'
+				<< indent << "\t\t	imageOffset:         " << ToString( reg.imageOffset ) << '\n'
+				<< indent << "\t\t	imageSize:           " << ToString( reg.imageSize ) << '\n'
+				<< indent << "\t\t}\n";
+		}
+		str << indent << "	}\n";
+	}
+	
+/*
+=================================================
+	_BlitImageTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_BlitImageTaskToString (Ptr<const VFgTask<BlitImage>> task, INOUT String &str) const
+	{
+		str << indent << "	srcImage:    \"" << task->srcImage->GetDebugName() << "\"\n"
+			<< indent << "	srcLayout:   " << VkImageLayout_ToString( task->srcLayout ) << '\n'
+			<< indent << "	dstImage:    \"" << task->dstImage->GetDebugName() << "\"\n"
+			<< indent << "	dstLayout:   " << VkImageLayout_ToString( task->dstLayout ) << '\n'
+			<< indent << "	filter:      " << VkFilter_ToString( task->filter ) << '\n'
+			<< indent << "	regions = {\n";
+
+		for (auto& reg : task->regions) {
+			str << indent << "\t\tRegion {\n"
+				<< indent << "\t\t	src.aspectMask:  " << ToString( reg.srcSubresource.aspectMask ) << '\n'
+				<< indent << "\t\t	src.mipLevel:    " << ToString( reg.srcSubresource.mipLevel.Get() ) << '\n'
+				<< indent << "\t\t	src.baseLayer:   " << ToString( reg.srcSubresource.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	src.layerCount:  " << ToString( reg.srcSubresource.layerCount ) << '\n'
+				<< indent << "\t\t	src.offset0:     " << ToString( reg.srcOffset0 ) << '\n'
+				<< indent << "\t\t	src.offset1:     " << ToString( reg.srcOffset1 ) << '\n'
+				<< indent << "\t\t	dst.aspectMask:  " << ToString( reg.dstSubresource.aspectMask ) << '\n'
+				<< indent << "\t\t	dst.mipLevel:    " << ToString( reg.dstSubresource.mipLevel.Get() ) << '\n'
+				<< indent << "\t\t	dst.baseLayer:   " << ToString( reg.dstSubresource.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	dst.layerCount:  " << ToString( reg.dstSubresource.layerCount ) << '\n'
+				<< indent << "\t\t	dst.offset0:     " << ToString( reg.dstOffset0 ) << '\n'
+				<< indent << "\t\t	dst.offset1:     " << ToString( reg.dstOffset1 ) << '\n'
+				<< indent << "\t\t}\n";
+		}
+		str << indent << "	}\n";
+	}
+	
+/*
+=================================================
+	_ResolveImageTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_ResolveImageTaskToString (Ptr<const VFgTask<ResolveImage>> task, INOUT String &str) const
+	{
+		str << indent << "	srcImage:   \"" << task->srcImage->GetDebugName() << "\"\n"
+			<< indent << "	srcLayout:  " << VkImageLayout_ToString( task->srcLayout ) << '\n'
+			<< indent << "	dstImage:   \"" << task->dstImage->GetDebugName() << "\"\n"
+			<< indent << "	dstLayout:  " << VkImageLayout_ToString( task->dstLayout ) << '\n'
+			<< indent << "	regions = {\n";
+
+		for (auto& reg : task->regions) {
+			str << indent << "\t\tRegion {\n"
+				<< indent << "\t\t	src.aspectMask:  " << ToString( reg.srcSubresource.aspectMask ) << '\n'
+				<< indent << "\t\t	src.mipLevel:    " << ToString( reg.srcSubresource.mipLevel.Get() ) << '\n'
+				<< indent << "\t\t	src.baseLayer:   " << ToString( reg.srcSubresource.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	src.layerCount:  " << ToString( reg.srcSubresource.layerCount ) << '\n'
+				<< indent << "\t\t	src.offset:      " << ToString( reg.srcOffset ) << '\n'
+				<< indent << "\t\t	dst.aspectMask:  " << ToString( reg.dstSubresource.aspectMask ) << '\n'
+				<< indent << "\t\t	dst.mipLevel:    " << ToString( reg.dstSubresource.mipLevel.Get() ) << '\n'
+				<< indent << "\t\t	dst.baseLayer:   " << ToString( reg.dstSubresource.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	dst.layerCount:  " << ToString( reg.dstSubresource.layerCount ) << '\n'
+				<< indent << "\t\t	dst.offset:      " << ToString( reg.dstOffset ) << '\n'
+				<< indent << "\t\t	extent:          " << ToString( reg.extent ) << '\n'
+				<< indent << "\t\t}\n";
+		}
+
+		str << indent << "	}\n";
+	}
+	
+/*
+=================================================
+	_FillBufferTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_FillBufferTaskToString (Ptr<const VFgTask<FillBuffer>> task, INOUT String &str) const
+	{
+		str << indent << "	dstBuffer:   \"" << task->dstBuffer->GetDebugName() << "\"\n"
+			<< indent << "	dstOffset:   " << ToString( BytesU{task->dstOffset} ) << '\n'
+			<< indent << "	size:        " << ToString( BytesU{task->size} ) << '\n'
+			<< indent << "	pattern:     " << ToString<16>( task->pattern ) << '\n';
+	}
+	
+/*
+=================================================
+	_ClearColorImageTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_ClearColorImageTaskToString (Ptr<const VFgTask<ClearColorImage>> task, INOUT String &str) const
+	{
+		str << indent << "	dstImage:   \"" << task->dstImage->GetDebugName() << "\"\n"
+			<< indent << "	dstLayout:  " << VkImageLayout_ToString( task->dstLayout ) << '\n'
+			<< indent << "	ranges = {\n";
+
+		for (auto& range : task->ranges) {
+			str << indent << "\t\tRange {\n"
+				<< indent << "\t\t	aspectMask:     " << ToString( range.aspectMask ) << '\n'
+				<< indent << "\t\t	baseMipLevel:   " << ToString( range.baseMipLevel.Get() ) << '\n'
+				<< indent << "\t\t	levelCount:     " << ToString( range.levelCount ) << '\n'
+				<< indent << "\t\t	baseArrayLayer: " << ToString( range.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	layerCount:     " << ToString( range.layerCount ) << '\n'
+				<< indent << "\t\t}\n";
+		}
+		str << indent << "	}\n";
+	}
+	
+/*
+=================================================
+	_ClearDepthStencilImageTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_ClearDepthStencilImageTaskToString (Ptr<const VFgTask<ClearDepthStencilImage>> task, INOUT String &str) const
+	{
+		str << indent << "	dstImage:   \"" << task->dstImage->GetDebugName() << "\"\n"
+			<< indent << "	dstLayout:  " << VkImageLayout_ToString( task->dstLayout ) << '\n'
+			<< indent << "	clearValue: " << ToString( task->clearValue.depth ) << ", " << ToString( task->clearValue.stencil ) << '\n'
+			<< indent << "	ranges = {\n";
+
+		for (auto& range : task->ranges) {
+			str << indent << "\t\tRange {\n"
+				<< indent << "\t\t	aspectMask:     " << ToString( range.aspectMask ) << '\n'
+				<< indent << "\t\t	baseMipLevel:   " << ToString( range.baseMipLevel.Get() ) << '\n'
+				<< indent << "\t\t	levelCount:     " << ToString( range.levelCount ) << '\n'
+				<< indent << "\t\t	baseArrayLayer: " << ToString( range.baseLayer.Get() ) << '\n'
+				<< indent << "\t\t	layerCount:     " << ToString( range.layerCount ) << '\n'
+				<< indent << "\t\t}\n";
+		}
+		str << indent << "	}\n";
+	}
+	
+/*
+=================================================
+	_UpdateBufferTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_UpdateBufferTaskToString (Ptr<const VFgTask<UpdateBuffer>> task, INOUT String &str) const
+	{
+		str << indent << "	dstBuffer:   \"" << task->dstBuffer->GetDebugName() << "\"\n"
+			<< indent << "	dstOffset:   " << ToString( BytesU{task->dstOffset} ) << '\n'
+			<< indent << "	size:        " << ToString( BytesU{task->DataSize()} ) << '\n';
+	}
+	
+/*
+=================================================
+	_PresentTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_PresentTaskToString (Ptr<const VFgTask<Present>> task, INOUT String &str) const
+	{
+		str << indent << "	srcImage:   \"" << task->srcImage->GetDebugName() << "\"\n"
+			<< indent << "	layer:      " << ToString( task->layer.Get() ) << '\n';
+	}
+	
+/*
+=================================================
+	_PresentVRTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_PresentVRTaskToString (Ptr<const VFgTask<PresentVR>> task, INOUT String &str) const
+	{
+		str << indent << "	leftEyeImage:   \"" << task->leftEyeImage->GetDebugName() << "\"\n"
+			<< indent << "	leftEyeLayer:   " << ToString( task->leftEyeLayer.Get() ) << '\n'
+			<< indent << "	rightEyeImage:  \"" << task->rightEyeImage->GetDebugName() << "\"\n"
+			<< indent << "	rightEyeLayer:  " << ToString( task->rightEyeLayer.Get() ) << '\n';
+	}
+	
+/*
+=================================================
+	_DumpTaskData
+=================================================
+*/
+	void VFrameGraphDebugger::_DumpTaskData (TaskPtr taskPtr, INOUT String &str) const
+	{
+		if ( auto task = DynCast< VFgTask<SubmitRenderPass> >(taskPtr) )
+			return _SubmitRenderPassTaskToString( task, INOUT str );
+
+		if ( auto task = DynCast< VFgTask<DispatchCompute> >(taskPtr) )
+			return _DispatchComputeTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<DispatchIndirectCompute> >(taskPtr) )
+			return _DispatchIndirectComputeTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<CopyBuffer> >(taskPtr) )
+			return _CopyBufferTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<CopyImage> >(taskPtr) )
+			return _CopyImageTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<CopyBufferToImage> >(taskPtr) )
+			return _CopyBufferToImageTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<CopyImageToBuffer> >(taskPtr) )
+			return _CopyImageToBufferTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<BlitImage> >(taskPtr) )
+			return _BlitImageTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<ResolveImage> >(taskPtr) )
+			return _ResolveImageTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<FillBuffer> >(taskPtr) )
+			return _FillBufferTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<ClearColorImage> >(taskPtr) )
+			return _ClearColorImageTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<ClearDepthStencilImage> >(taskPtr) )
+			return _ClearDepthStencilImageTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<UpdateBuffer> >(taskPtr) )
+			return _UpdateBufferTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<Present> >(taskPtr) )
+			return _PresentTaskToString( task, INOUT str );
+		
+		if ( auto task = DynCast< VFgTask<PresentVR> >(taskPtr) )
+			return _PresentVRTaskToString( task, INOUT str );
+		
+		ASSERT(false);
+		// TODO
 	}
 
 

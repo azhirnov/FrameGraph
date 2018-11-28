@@ -9,8 +9,8 @@ extern void Test_Shader7 (VPipelineCompiler* compiler)
 	MeshPipelineDesc	ppln;
 
 	ppln.AddShader( EShader::MeshTask,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main", R"#(
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main", R"#(
 #version 450
 #extension GL_NV_mesh_shader : enable
 
@@ -18,44 +18,44 @@ layout(local_size_x = 32) in;
 
 layout(binding=0) writeonly uniform image2D uni_image;
 uniform block0 {
-    uint uni_value;
+	uint uni_value;
 };
 shared vec4 mem[10];
 
 taskNV out Task {
-    vec2 dummy;
-    vec2 submesh[3];
+	vec2 dummy;
+	vec2 submesh[3];
 } mytask;
 
 void main()
 {
-    uint iid = gl_LocalInvocationID.x;
-    uint gid = gl_WorkGroupID.x;
+	uint iid = gl_LocalInvocationID.x;
+	uint gid = gl_WorkGroupID.x;
 
-    for (uint i = 0; i < 10; ++i) {
-        mem[i] = vec4(i + uni_value);
-    }
-    imageStore(uni_image, ivec2(iid), mem[gid]);
-    imageStore(uni_image, ivec2(iid), mem[gid+1]);
+	for (uint i = 0; i < 10; ++i) {
+		mem[i] = vec4(i + uni_value);
+	}
+	imageStore(uni_image, ivec2(iid), mem[gid]);
+	imageStore(uni_image, ivec2(iid), mem[gid+1]);
 
-    memoryBarrierShared();
-    barrier();
+	memoryBarrierShared();
+	barrier();
 
-    mytask.dummy      = vec2(30.0, 31.0);
-    mytask.submesh[0] = vec2(32.0, 33.0);
-    mytask.submesh[1] = vec2(34.0, 35.0);
-    mytask.submesh[2] = mytask.submesh[gid%2];
+	mytask.dummy	  = vec2(30.0, 31.0);
+	mytask.submesh[0] = vec2(32.0, 33.0);
+	mytask.submesh[1] = vec2(34.0, 35.0);
+	mytask.submesh[2] = mytask.submesh[gid%2];
 
-    memoryBarrierShared();
-    barrier();
+	memoryBarrierShared();
+	barrier();
 
-    gl_TaskCountNV = 3;
+	gl_TaskCountNV = 3;
 }
 )#" );
 
 	ppln.AddShader( EShader::Mesh,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main", R"#(
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main", R"#(
 #version 450
 #extension GL_NV_mesh_shader : enable
 
@@ -69,26 +69,26 @@ layout(max_primitives=MAX_PRIM) out;
 layout(triangles) out;
 
 taskNV in taskBlock {
-    float gid1[2];
-    vec4 gid2;
+	float gid1[2];
+	vec4 gid2;
 } mytask;
 
 buffer bufferBlock {
-    float gid3[2];
-    vec4 gid4;
+	float gid3[2];
+	vec4 gid4;
 } mybuf;
 
 layout(location=0) out outBlock {
-    float gid5;
-    vec4 gid6;
+	float gid5;
+	vec4 gid6;
 } myblk[];
 
 void main()
 {
-    uint iid = gl_LocalInvocationID.x;
+	uint iid = gl_LocalInvocationID.x;
 
-    myblk[iid].gid5 = mytask.gid1[1] + mybuf.gid3[1];
-    myblk[iid].gid6 = mytask.gid2    + mybuf.gid4;
+	myblk[iid].gid5 = mytask.gid1[1] + mybuf.gid3[1];
+	myblk[iid].gid6 = mytask.gid2	+ mybuf.gid4;
 }
 )#" );
 
@@ -108,5 +108,5 @@ void main()
 	TEST(All( ppln._taskSizeSpec == uint3{ ~0u } ));
 	TEST(All( ppln._meshSizeSpec == uint3{ 0, ~0u, ~0u } ));
 
-    FG_LOGI( "Test_Shader7 - passed" );
+	FG_LOGI( "Test_Shader7 - passed" );
 }

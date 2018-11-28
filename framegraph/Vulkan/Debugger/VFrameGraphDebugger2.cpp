@@ -135,6 +135,11 @@ namespace {
 	
 	String  VFrameGraphDebugger::_BarrierGroupBorderColor () const
 	{
+		return ColToStr( HtmlColor::Olive );
+	}
+	
+	String  VFrameGraphDebugger::_GroupBorderColor () const
+	{
 		return ColToStr( HtmlColor::DarkGray );
 	}
 
@@ -196,38 +201,6 @@ namespace {
 			case EResourceState::PresentImage :						return "Present";
 		}
 		RETURN_ERR( "unknown state!" );
-	}
-	
-/*
-=================================================
-	VkImageLayoutToString
-=================================================
-*/
-	ND_ static String  VkImageLayoutToString (VkImageLayout layout)
-	{
-		ENABLE_ENUM_CHECKS();
-		switch ( layout )
-		{
-			case VK_IMAGE_LAYOUT_UNDEFINED :									return "Undefined";
-			case VK_IMAGE_LAYOUT_GENERAL :										return "General";
-			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL :						return "ColorAttachment";
-			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL :				return "DepthStencilAttachment";
-			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL :				return "DepthStencilReadOnly";
-			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL :						return "ShaderReadOnly";
-			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL :							return "TransferSrc";
-			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL :							return "TransferDst";
-			case VK_IMAGE_LAYOUT_PREINITIALIZED :								return "Preintialized";
-			case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL :	return "DepthReadOnlyStencilAttachment";
-			case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL :	return "DepthAttachmentStencilReadOnly";
-			case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR :								return "PresentSrc";
-			case VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR :							return "SharedPresent";
-			case VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV :						return "ShadingRate";
-			case VK_IMAGE_LAYOUT_RANGE_SIZE :									// to shutup warnings
-			case VK_IMAGE_LAYOUT_MAX_ENUM :
-			default :															break;
-		}
-		DISABLE_ENUM_CHECKS();
-		RETURN_ERR( "unknown image layout" );
 	}
 
 /*
@@ -398,7 +371,7 @@ namespace {
 	{
 		str << indent << "\tsubgraph cluster_Initial_" << _subBatchUID << " {\n"
 			<< indent << "\t	style = filled;\n"
-			<< indent << "\t	pencolor = \"#" << _BarrierGroupBorderColor() << "\";\n"
+			<< indent << "\t	pencolor = \"#" << _GroupBorderColor() << "\";\n"
 			<< indent << "\t	penwidth = 1.0;\n"
 			<< indent << "\t	color = \"#" << _SubBatchBG() << "\";\n"
 			<< indent << "\t	label = \"Initial\";\n";
@@ -413,7 +386,7 @@ namespace {
 				auto&	range = bar.info.subresourceRange;
 
 				str << indent << "\t\t" << _VisResourceName( image.first, ExeOrderIndex::Initial ) << " [label=\"" << GetImageName( image.first ) << "\\n"
-					<< VkImageLayoutToString( bar.info.oldLayout ) << "\\n"
+					<< VkImageLayout_ToString( bar.info.oldLayout ) << "\\n"
 					<< "layer: " << ToString(range.baseArrayLayer) << (range.layerCount == VK_REMAINING_ARRAY_LAYERS ? "..whole" : range.layerCount > 1 ? ".."s << ToString(range.layerCount) : "") << "\\n"
 					<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
@@ -445,7 +418,7 @@ namespace {
 	{
 		str << indent << "\tsubgraph cluster_Final_" << _subBatchUID << " {\n"
 			<< indent << "\t	style = filled;\n"
-			<< indent << "\t	pencolor = \"#" << _BarrierGroupBorderColor() << "\";\n"
+			<< indent << "\t	pencolor = \"#" << _GroupBorderColor() << "\";\n"
 			<< indent << "\t	penwidth = 1.0;\n"
 			<< indent << "\t	color = \"#" << _SubBatchBG() << "\";\n"
 			<< indent << "\t	label = \"Final\";\n";
@@ -462,7 +435,7 @@ namespace {
 				auto&	range = bar.info.subresourceRange;
 
 				str << indent << "\t\t" << _VisResourceName( image.first, ExeOrderIndex::Final ) << " [label=\"" << GetImageName( image.first ) << "\\n"
-					<< VkImageLayoutToString( bar.info.newLayout ) << "\\n"
+					<< VkImageLayout_ToString( bar.info.newLayout ) << "\\n"
 					<< "layer: " << ToString(range.baseArrayLayer) << (range.layerCount == VK_REMAINING_ARRAY_LAYERS ? "..whole" : range.layerCount > 1 ? ".."s << ToString(range.layerCount) : "") << "\\n"
 					<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
@@ -519,7 +492,7 @@ namespace {
 				resStyle
 					<< indent << "\t\t" << name << " [label=\"" << GetImageName( image->first ) << "\\n"
 					<< ToString( image->second.state ) << "\\n"
-					//<< VkImageLayoutToString( image->second.layout ) << "\\n"
+					//<< VkImageLayout_ToString( image->second.layout ) << "\\n"
 					<< "layer: " << ToString(range.Layers().begin) << (range.IsWholeLayers() ? "..whole" : range.Layers().Count() > 1 ? ".."s << ToString(range.Layers().end) : "") << "\\n"
 					<< "mipmap: " << ToString(range.Mipmaps().begin) << (range.IsWholeMipmaps() ? "..whole" : range.Mipmaps().Count() > 1 ? ".."s << ToString(range.Mipmaps().end) : "")
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image->first ) << "\"];\n";

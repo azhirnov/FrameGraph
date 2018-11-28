@@ -21,5 +21,5 @@ static void ImageSwizzle_Test1 ()
 extern void UnitTest_ImageSwizzle ()
 {
 	ImageSwizzle_Test1();
-    FG_LOGI( "UnitTest_ImageSwizzle - passed" );
+	FG_LOGI( "UnitTest_ImageSwizzle - passed" );
 }

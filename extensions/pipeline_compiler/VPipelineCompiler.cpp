@@ -73,8 +73,8 @@ namespace FG
 		_physicalDevice	= physicalDevice;
 		_logicalDevice	= device;
 
-        _fpCreateShaderModule  = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_logicalDevice), "vkCreateShaderModule" ));
-        _fpDestroyShaderModule = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_logicalDevice), "vkDestroyShaderModule" ));
+		_fpCreateShaderModule  = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_logicalDevice), "vkCreateShaderModule" ));
+		_fpDestroyShaderModule = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_logicalDevice), "vkDestroyShaderModule" ));
 	}
 
 /*

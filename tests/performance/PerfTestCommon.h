@@ -19,7 +19,7 @@ template <size_t N>
 inline void RandomString (OUT StaticString<N> &str)
 {
 	String	str2;
-    size_t	len		= Min( size_t(rand() & 0xFF) + 12, str.capacity()-1 );
+	size_t	len		= Min( size_t(rand() & 0xFF) + 12, str.capacity()-1 );
 	uint	range	= ('Z' - 'A');
 
 	for (uint i = 0; i < len; ++i) {

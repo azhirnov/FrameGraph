@@ -462,7 +462,7 @@ namespace FG
 	{
 	// variables
 	public:
-		VLocalImage const* const	image;
+		VLocalImage const* const	srcImage;
 		const ImageLayer			layer;
 
 

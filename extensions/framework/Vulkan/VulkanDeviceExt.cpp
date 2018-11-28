@@ -293,10 +293,10 @@ namespace FG
 	_DebugUtilsCallback
 =================================================
 */
-	VkBool32 VKAPI_CALL VulkanDeviceExt::_DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
-															  VkDebugUtilsMessageTypeFlagsEXT                  /*messageTypes*/,
-															  const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
-															  void*                                            pUserData)
+	VkBool32 VKAPI_CALL VulkanDeviceExt::_DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT		messageSeverity,
+															  VkDebugUtilsMessageTypeFlagsEXT				/*messageTypes*/,
+															  const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
+															  void*											pUserData)
 	{
 		auto* self = static_cast<VulkanDeviceExt *>(pUserData);
 		
@@ -387,7 +387,7 @@ namespace FG
 		VkDebugUtilsMessengerCreateInfoEXT	info = {};
 		info.sType				= VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 		info.messageSeverity	= severity;
-		info.messageType		= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT     |
+		info.messageType		= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT	 |
 								  VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT  |
 								  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 		info.pfnUserCallback	= _DebugUtilsCallback;

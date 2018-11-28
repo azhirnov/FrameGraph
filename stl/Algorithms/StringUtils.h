@@ -144,7 +144,7 @@ namespace FG
 		for (size_t i = 0, j = 0; i < str.length(); ++i)
 		{
 			while ( i+j < str.length() and j < substr.length() and
-				    ToLowerCase( substr[j] ) == ToLowerCase( str[i+j] ) )
+					ToLowerCase( substr[j] ) == ToLowerCase( str[i+j] ) )
 			{
 				++j;
 				if ( j >= substr.length() )
@@ -296,7 +296,7 @@ namespace FG
 			str << std::hex << BitCast<NearUInt<T>>( value );
 			return str.str();
 		}else{
-            //STATIC_ASSERT( false, "not supported, yet" );
+			//STATIC_ASSERT( false, "not supported, yet" );
 		}
 	}
 
@@ -310,8 +310,8 @@ namespace FG
 		ASSERT( fractParts > 0 and fractParts < 100 );
 		fractParts = Clamp( fractParts, 1u, 99u );
 
-        const char	fmt[8]  = {'%', '0', '.', char('0' + fractParts/10), char('0' + fractParts%10), 'f', '\0' };
-        char        buf[32] = {};
+		const char	fmt[8]  = {'%', '0', '.', char('0' + fractParts/10), char('0' + fractParts%10), 'f', '\0' };
+		char		buf[32] = {};
 
 		const int	len = std::snprintf( buf, CountOf(buf), fmt, value );
 		ASSERT( len > 0 );
@@ -345,9 +345,9 @@ namespace FG
 	template <typename T>
 	ND_ inline String  ToString (const Bytes<T> &value)
 	{
-		const T	kb	= T(1) << 14;
-		const T mb	= T(1) << 24;
-		const T	gb	= T(1) << Min( T(34), T(sizeof(T)*8)-1 );
+		const T	kb	= T(1) << 12;
+		const T mb	= T(1) << 22;
+		const T	gb	= T(1) << Min( T(32), T(sizeof(T)*8)-1 );
 		const T	val	= T(value);
 
 		String	str;

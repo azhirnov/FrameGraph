@@ -112,5 +112,5 @@ extern void PerformanceTest_IndexPool ()
 	IndexPool_Test2( count );
 	IndexPool2_Test2( count );
 
-    FG_LOGI( "PerformanceTest_IndexPool - finished" );
+	FG_LOGI( "PerformanceTest_IndexPool - finished" );
 }

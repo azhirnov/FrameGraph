@@ -331,20 +331,20 @@ namespace FG
 */
 	inline bool operator == (const VkSubpassDescription &lhs, const VkSubpassDescription &rhs)
 	{
-        using AttachView = ArrayView<VkAttachmentReference>;
-        using PreserveView = ArrayView<uint>;
+		using AttachView = ArrayView<VkAttachmentReference>;
+		using PreserveView = ArrayView<uint>;
 
 		auto	lhs_resolve_attachments = lhs.pResolveAttachments ? AttachView{lhs.pResolveAttachments, lhs.colorAttachmentCount} : AttachView{};
 		auto	rhs_resolve_attachments = rhs.pResolveAttachments ? AttachView{rhs.pResolveAttachments, rhs.colorAttachmentCount} : AttachView{};
 
 		return	lhs.flags															== rhs.flags														and
 				lhs.pipelineBindPoint												== rhs.pipelineBindPoint											and
-                AttachView{lhs.pInputAttachments, lhs.inputAttachmentCount}			== AttachView{rhs.pInputAttachments, rhs.inputAttachmentCount}		and
-                AttachView{lhs.pColorAttachments, lhs.colorAttachmentCount}			== AttachView{rhs.pColorAttachments, rhs.colorAttachmentCount}		and
-                lhs_resolve_attachments												== rhs_resolve_attachments	and
+				AttachView{lhs.pInputAttachments, lhs.inputAttachmentCount}			== AttachView{rhs.pInputAttachments, rhs.inputAttachmentCount}		and
+				AttachView{lhs.pColorAttachments, lhs.colorAttachmentCount}			== AttachView{rhs.pColorAttachments, rhs.colorAttachmentCount}		and
+				lhs_resolve_attachments												== rhs_resolve_attachments	and
 				not lhs.pDepthStencilAttachment										== not rhs.pDepthStencilAttachment									and
 				(not lhs.pDepthStencilAttachment or *lhs.pDepthStencilAttachment	== *rhs.pDepthStencilAttachment)									and
-                PreserveView{lhs.pPreserveAttachments, lhs.preserveAttachmentCount}	== PreserveView{rhs.pPreserveAttachments, rhs.preserveAttachmentCount};
+				PreserveView{lhs.pPreserveAttachments, lhs.preserveAttachmentCount}	== PreserveView{rhs.pPreserveAttachments, rhs.preserveAttachmentCount};
 	}
 
 /*
@@ -373,16 +373,16 @@ namespace FG
 		SHAREDLOCK( _rcCheck );
 		SHAREDLOCK( rhs._rcCheck );
 
-        using AttachView = ArrayView<VkAttachmentDescription>;
-        using SubpassView = ArrayView<VkSubpassDescription>;
-        using DepsView = ArrayView<VkSubpassDependency>;
-        return	_hash																== rhs._hash                                                                    and
-                _attachmentHash														== rhs._attachmentHash                                                          and
-                _subpassesHash														== rhs._subpassesHash                                                           and
-                _createInfo.flags													== rhs._createInfo.flags                                                        and
-                AttachView{_createInfo.pAttachments, _createInfo.attachmentCount}	== AttachView{rhs._createInfo.pAttachments, rhs._createInfo.attachmentCount}	and
-                SubpassView{_createInfo.pSubpasses, _createInfo.subpassCount}		== SubpassView{rhs._createInfo.pSubpasses, rhs._createInfo.subpassCount}		and
-                DepsView{_createInfo.pDependencies, _createInfo.dependencyCount}	== DepsView{rhs._createInfo.pDependencies, rhs._createInfo.dependencyCount};
+		using AttachView = ArrayView<VkAttachmentDescription>;
+		using SubpassView = ArrayView<VkSubpassDescription>;
+		using DepsView = ArrayView<VkSubpassDependency>;
+		return	_hash																== rhs._hash																	and
+				_attachmentHash														== rhs._attachmentHash															and
+				_subpassesHash														== rhs._subpassesHash															and
+				_createInfo.flags													== rhs._createInfo.flags														and
+				AttachView{_createInfo.pAttachments, _createInfo.attachmentCount}	== AttachView{rhs._createInfo.pAttachments, rhs._createInfo.attachmentCount}	and
+				SubpassView{_createInfo.pSubpasses, _createInfo.subpassCount}		== SubpassView{rhs._createInfo.pSubpasses, rhs._createInfo.subpassCount}		and
+				DepsView{_createInfo.pDependencies, _createInfo.dependencyCount}	== DepsView{rhs._createInfo.pDependencies, rhs._createInfo.dependencyCount};
 	}
 
 

@@ -11,7 +11,29 @@
 #define VMA_STATIC_VULKAN_FUNCTIONS	0
 #define VMA_RECORDING_ENABLED		0
 #define VMA_DEDICATED_ALLOCATION	1
+
+#ifdef COMPILER_GCC
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
+#ifdef COMPILER_MSVC
+#	pragma warning (push)
+#	pragma warning (disable: 4100)
+#	pragma warning (disable: 4127)
+#endif
+
+#define VMA_IMPLEMENTATION	1
 #include "VulkanMemoryAllocator/src/vk_mem_alloc.h"
+
+#ifdef COMPILER_GCC
+#   pragma GCC diagnostic pop
+#endif
+
+#ifdef COMPILER_MSVC
+#	pragma warning (pop)
+#endif
+
 
 namespace FG
 {
@@ -32,25 +54,29 @@ namespace FG
 
 	// variables
 	private:
+		VDevice const&		_device;
 		VmaAllocator		_allocator;
 
 
 	// methods
 	public:
 		VulkanMemoryAllocator (const VDevice &dev, EMemoryTypeExt memType);
-        ~VulkanMemoryAllocator () override;
+		~VulkanMemoryAllocator () override;
 
 		bool IsSupported (EMemoryType memType) const override;
 			
 		bool AllocForImage (VkImage image, const MemoryDesc &mem, OUT Storage_t &data) override;
 		bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &mem, OUT Storage_t &data) override;
+		bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) override;
+		bool AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
+									   VkBuffer buf, const MemoryDesc &desc, OUT Storage_t &data) override;
 
 		bool Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t) override;
 		
-		bool GetMemoryInfo (const VDevice &dev, const Storage_t &data, OUT MemoryInfo_t &info) const override;
+		bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const override;
 
 	private:
-		bool _CreateAllocator (const VDevice &dev, OUT VmaAllocator &alloc) const;
+		bool _CreateAllocator (OUT VmaAllocator &alloc) const;
 
 		ND_ static Data *					_CastStorage (Storage_t &data);
 		ND_ static Data const*				_CastStorage (const Storage_t &data);
@@ -68,9 +94,9 @@ namespace FG
 =================================================
 */
 	VMemoryManager::VulkanMemoryAllocator::VulkanMemoryAllocator (const VDevice &dev, EMemoryTypeExt) :
-		_allocator{ null }
+		_device{ dev },		_allocator{ null }
 	{
-		CHECK( _CreateAllocator( dev, OUT _allocator ) );
+		CHECK( _CreateAllocator( OUT _allocator ) );
 	}
 	
 /*
@@ -164,6 +190,58 @@ namespace FG
 	
 /*
 =================================================
+	AllocateForAccelStruct
+=================================================
+*/
+	bool VMemoryManager::VulkanMemoryAllocator::AllocateForAccelStruct (VkAccelerationStructureNV accelStruct, const MemoryDesc &desc, OUT Storage_t &data)
+	{
+		VkAccelerationStructureMemoryRequirementsInfoNV	mem_info = {};
+		mem_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+		mem_info.type					= VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
+		mem_info.accelerationStructure	= accelStruct;
+
+		VkMemoryRequirements2	mem_req = {};
+		_device.vkGetAccelerationStructureMemoryRequirementsNV( _device.GetVkDevice(), &mem_info, OUT &mem_req );
+		
+		VmaAllocationCreateInfo		info = {};
+		info.flags			= _ConvertToMemoryFlags( desc.type );
+		info.usage			= _ConvertToMemoryUsage( desc.type );
+		info.requiredFlags	= _ConvertToMemoryProperties( desc.type );
+		info.preferredFlags	= 0;
+		info.memoryTypeBits	= 0;
+		info.pool			= VK_NULL_HANDLE;
+		info.pUserData		= null;
+		
+		VmaAllocation	mem = null;
+		VK_CHECK( _allocator->AllocateMemory( mem_req.memoryRequirements, false, false, VK_NULL_HANDLE, VK_NULL_HANDLE, info, VMA_SUBALLOCATION_TYPE_UNKNOWN, OUT &mem ));
+		
+		VmaAllocationInfo	alloc_info	= {};
+		vmaGetAllocationInfo( _allocator, mem, OUT &alloc_info );
+		
+		VkBindAccelerationStructureMemoryInfoNV		bind_info = {};
+		bind_info.sType					= VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
+		bind_info.accelerationStructure	= accelStruct;
+		bind_info.memory				= alloc_info.deviceMemory;
+		bind_info.memoryOffset			= alloc_info.offset;
+		VK_CHECK( _device.vkBindAccelerationStructureMemoryNV( _device.GetVkDevice(), 1, &bind_info ));
+
+		_CastStorage( data )->allocation = mem;
+		return true;
+	}
+	
+/*
+=================================================
+	AllocateForStratchBuffer
+=================================================
+*/
+	bool VMemoryManager::VulkanMemoryAllocator::AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
+																		  VkBuffer buf, const MemoryDesc &desc, OUT Storage_t &data)
+	{
+		return false;
+	}
+
+/*
+=================================================
 	Dealloc
 =================================================
 */
@@ -182,13 +260,13 @@ namespace FG
 	GetMemoryInfo
 =================================================
 */
-	bool VMemoryManager::VulkanMemoryAllocator::GetMemoryInfo (const VDevice &dev, const Storage_t &data, OUT MemoryInfo_t &info) const
+	bool VMemoryManager::VulkanMemoryAllocator::GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const
 	{
 		VmaAllocation		mem			= _CastStorage( data )->allocation;
 		VmaAllocationInfo	alloc_info	= {};
 		vmaGetAllocationInfo( _allocator, mem, OUT &alloc_info );
 		
-		const auto&		mem_props = dev.GetDeviceMemoryProperties();
+		const auto&		mem_props = _device.GetDeviceMemoryProperties();
 		ASSERT( alloc_info.memoryType < mem_props.memoryTypeCount );
 
 		info.mem		= alloc_info.deviceMemory;
@@ -279,32 +357,34 @@ namespace FG
 	_CreateAllocator
 =================================================
 */
-	bool VMemoryManager::VulkanMemoryAllocator::_CreateAllocator (const VDevice &dev, OUT VmaAllocator &alloc) const
+	bool VMemoryManager::VulkanMemoryAllocator::_CreateAllocator (OUT VmaAllocator &alloc) const
 	{
+		VkDevice				dev = _device.GetVkDevice();
 		VmaVulkanFunctions		funcs = {};
+
 		funcs.vkGetPhysicalDeviceProperties			= vkGetPhysicalDeviceProperties;
 		funcs.vkGetPhysicalDeviceMemoryProperties	= vkGetPhysicalDeviceMemoryProperties;
-        funcs.vkAllocateMemory						= BitCast<PFN_vkAllocateMemory>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkAllocateMemory" ));
-        funcs.vkFreeMemory							= BitCast<PFN_vkFreeMemory>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkFreeMemory" ));
-        funcs.vkMapMemory							= BitCast<PFN_vkMapMemory>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkMapMemory" ));
-        funcs.vkUnmapMemory							= BitCast<PFN_vkUnmapMemory>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkUnmapMemory" ));
-        funcs.vkBindBufferMemory					= BitCast<PFN_vkBindBufferMemory>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkBindBufferMemory" ));
-        funcs.vkBindImageMemory						= BitCast<PFN_vkBindImageMemory>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkBindImageMemory" ));
-        funcs.vkGetBufferMemoryRequirements			= BitCast<PFN_vkGetBufferMemoryRequirements>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkGetBufferMemoryRequirements" ));
-        funcs.vkGetImageMemoryRequirements			= BitCast<PFN_vkGetImageMemoryRequirements>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkGetImageMemoryRequirements" ));
+		funcs.vkAllocateMemory						= BitCast<PFN_vkAllocateMemory>(vkGetDeviceProcAddr( dev, "vkAllocateMemory" ));
+		funcs.vkFreeMemory							= BitCast<PFN_vkFreeMemory>(vkGetDeviceProcAddr( dev, "vkFreeMemory" ));
+		funcs.vkMapMemory							= BitCast<PFN_vkMapMemory>(vkGetDeviceProcAddr( dev, "vkMapMemory" ));
+		funcs.vkUnmapMemory							= BitCast<PFN_vkUnmapMemory>(vkGetDeviceProcAddr( dev, "vkUnmapMemory" ));
+		funcs.vkBindBufferMemory					= BitCast<PFN_vkBindBufferMemory>(vkGetDeviceProcAddr( dev, "vkBindBufferMemory" ));
+		funcs.vkBindImageMemory						= BitCast<PFN_vkBindImageMemory>(vkGetDeviceProcAddr( dev, "vkBindImageMemory" ));
+		funcs.vkGetBufferMemoryRequirements			= BitCast<PFN_vkGetBufferMemoryRequirements>(vkGetDeviceProcAddr( dev, "vkGetBufferMemoryRequirements" ));
+		funcs.vkGetImageMemoryRequirements			= BitCast<PFN_vkGetImageMemoryRequirements>(vkGetDeviceProcAddr( dev, "vkGetImageMemoryRequirements" ));
 		funcs.vkCreateBuffer						= null;
 		funcs.vkDestroyBuffer						= null;
 		funcs.vkCreateImage							= null;
 		funcs.vkDestroyImage						= null;
-        funcs.vkGetBufferMemoryRequirements2KHR		= BitCast<PFN_vkGetBufferMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkGetBufferMemoryRequirements2KHR" ));
-        funcs.vkGetImageMemoryRequirements2KHR		= BitCast<PFN_vkGetImageMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkGetImageMemoryRequirements2KHR" ));
-        funcs.vkFlushMappedMemoryRanges             = BitCast<PFN_vkFlushMappedMemoryRanges>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkFlushMappedMemoryRanges" ));
-        funcs.vkInvalidateMappedMemoryRanges        = BitCast<PFN_vkInvalidateMappedMemoryRanges>(vkGetDeviceProcAddr( dev.GetVkDevice(), "vkInvalidateMappedMemoryRanges" ));
+		funcs.vkGetBufferMemoryRequirements2KHR		= BitCast<PFN_vkGetBufferMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetBufferMemoryRequirements2KHR" ));
+		funcs.vkGetImageMemoryRequirements2KHR		= BitCast<PFN_vkGetImageMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetImageMemoryRequirements2KHR" ));
+		funcs.vkFlushMappedMemoryRanges				= BitCast<PFN_vkFlushMappedMemoryRanges>(vkGetDeviceProcAddr( dev, "vkFlushMappedMemoryRanges" ));
+		funcs.vkInvalidateMappedMemoryRanges		= BitCast<PFN_vkInvalidateMappedMemoryRanges>(vkGetDeviceProcAddr( dev, "vkInvalidateMappedMemoryRanges" ));
 
 		VmaAllocatorCreateInfo	info = {};
 		info.flags			= VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
-		info.physicalDevice	= dev.GetVkPhysicalDevice();
-		info.device			= dev.GetVkDevice();
+		info.physicalDevice	= _device.GetVkPhysicalDevice();
+		info.device			= dev;
 
 		info.preferredLargeHeapBlockSize	= VkDeviceSize(FG_VkDevicePageSizeMb) << 20;
 		info.pAllocationCallbacks			= null;
@@ -319,28 +399,5 @@ namespace FG
 
 
 }	// FG
-
-
-#ifdef COMPILER_GCC
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
-
-#ifdef COMPILER_MSVC
-#	pragma warning (push)
-#	pragma warning (disable: 4100)
-#	pragma warning (disable: 4127)
-#endif
-
-#define VMA_IMPLEMENTATION	1
-#include "VulkanMemoryAllocator/src/vk_mem_alloc.h"
-
-#ifdef COMPILER_GCC
-#   pragma GCC diagnostic pop
-#endif
-
-#ifdef COMPILER_MSVC
-#	pragma warning (pop)
-#endif
 
 #endif	// FG_ENABLE_VULKAN_MEMORY_ALLOCATOR

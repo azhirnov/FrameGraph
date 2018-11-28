@@ -64,11 +64,11 @@ static void ImmutableStoragePerfTest1 (const uint count, const uint count2, Stri
 				ASSERT( not local[idx].dataCopy.empty() );
 			}
 
-            for (uint j = 0; j < count2; ++j)
+			for (uint j = 0; j < count2; ++j)
 			{
 				for (auto idx : indices)
 				{
-                    *hash << HashVal(local[idx].dataCopy.length()) << HashVal(uid + j);
+					*hash << HashVal(local[idx].dataCopy.length()) << HashVal(uid + j);
 				}
 			}
 
@@ -150,11 +150,11 @@ static void ImmutableStoragePerfTest2 (const uint count, const uint count2, Stri
 				ASSERT( local[idx].dataPtr != null );
 			}
 
-            for (uint j = 0; j < count2; ++j)
+			for (uint j = 0; j < count2; ++j)
 			{
 				for (auto idx : indices)
 				{
-                    *hash << HashVal(local[idx].dataPtr->length()) << HashVal(uid + j);
+					*hash << HashVal(local[idx].dataPtr->length()) << HashVal(uid + j);
 				}
 			}
 
@@ -208,14 +208,14 @@ static void ImmutableStoragePerfTest3 (const uint count, const uint count2, Stri
 		{
 			auto	t_start = TimePoint_t::clock::now();
 
-            for (uint j = 0; j < count2; ++j)
+			for (uint j = 0; j < count2; ++j)
 			{
 				for (auto idx : indices)
 				{
 					auto	iter = resources.find( idx );
 					ASSERT( iter != resources.end() );
 
-                    *hash << HashVal(iter->second.data.length()) << HashVal(uid + j);
+					*hash << HashVal(iter->second.data.length()) << HashVal(uid + j);
 				}
 			}
 
@@ -258,5 +258,5 @@ extern void PerformanceTest_Immutable ()
 	ImmutableStoragePerfTest2< 12 >( count, count2, "LocalPtr" );
 	ImmutableStoragePerfTest3< 12 >( count, count2, "Map" );
 
-    FG_LOGI( "PerformanceTest_Immutable - finished" );
+	FG_LOGI( "PerformanceTest_Immutable - finished" );
 }

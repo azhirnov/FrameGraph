@@ -8,7 +8,7 @@ extern void Test_Shader5 (VPipelineCompiler* compiler)
 	ComputePipelineDesc	ppln;
 
 	ppln.AddShader( EShaderLangFormat::GLSL_450,
-				    "main",
+					"main",
 R"#(
 #pragma shader_stage(compute)
 #extension GL_ARB_separate_shader_objects : enable
@@ -54,5 +54,5 @@ void main ()
 	TEST( ppln._shader.specConstants.size() == 1 );
 	TEST( TestSpecializationConstant( ppln._shader, SpecializationID("SCALE"), 2 ));
 
-    FG_LOGI( "Test_Shader5 - passed" );
+	FG_LOGI( "Test_Shader5 - passed" );
 }

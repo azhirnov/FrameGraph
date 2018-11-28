@@ -100,8 +100,8 @@ void main ()
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-        CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-        CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_OutImage"), image0 );
 		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetGroupCount( 2, 2 ) );
@@ -116,21 +116,21 @@ void main ()
 		Task	t_read1	= frame_graph->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );
 		Task	t_read2	= frame_graph->AddTask( ReadImage().SetImage( image2, int2(), image_dim ).SetCallback( OnLoaded2 ).DependsOn( t_run2 ) );
 		
-        FG_UNUSED( t_read0 and t_read1 and t_read2 );
+		FG_UNUSED( t_read0 and t_read1 and t_read2 );
 		
 		CHECK_ERR( frame_graph->Compile() );		
 		CHECK_ERR( _frameGraphInst->Execute() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		CHECK_ERR( Visualize( TEST_NAME, EGraphVizFlags::Default ));
+		CHECK_ERR( Visualize( TEST_NAME ));
 
-        CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _frameGraphInst->WaitIdle() );
 
 		CHECK_ERR( data0_is_correct and data1_is_correct and data2_is_correct );
 		
 		DeleteResources( pipeline, image0, image1, image2 );
 
-        FG_LOGI( TEST_NAME << " - passed" );
+		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
 

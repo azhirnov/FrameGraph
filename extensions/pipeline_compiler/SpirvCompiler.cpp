@@ -129,9 +129,9 @@ namespace FG
 	EShaderLangFormat_GetVersion
 =================================================
 */
-    ND_ static int  EShaderLangFormat_GetVersion (EShaderLangFormat fmt)
+	ND_ static int  EShaderLangFormat_GetVersion (EShaderLangFormat fmt)
 	{
-        return int(fmt & EShaderLangFormat::_VersionMask) >> uint(EShaderLangFormat::_VersionOffset);
+		return int(fmt & EShaderLangFormat::_VersionMask) >> uint(EShaderLangFormat::_VersionOffset);
 	}
 
 /*
@@ -148,8 +148,8 @@ namespace FG
 		EShTargetLanguage			target			= EShTargetNone;
 		EShTargetLanguageVersion	target_version	= EShTargetLanguageVersion(0);
 		
-        int                         version			= 0;
-        int             			sh_version		= 450;		// TODO
+		int							version			= 0;
+		int			 				sh_version		= 450;		// TODO
 		EProfile					sh_profile		= ENoProfile;
 		EShSource					sh_source;
 		
@@ -216,7 +216,7 @@ namespace FG
 		shader.reset( new TShader( stage ));
 		shader->setStrings( sources, int(CountOf(sources)) );
 		shader->setEntryPoint( entry.data() );
-        shader->setEnvInput( sh_source, stage, client, version );
+		shader->setEnvInput( sh_source, stage, client, version );
 		shader->setEnvClient( client, client_version );
 		shader->setEnvTarget( target, target_version );
 		
@@ -438,10 +438,10 @@ namespace FG
 	_ExtractImageFormat
 =================================================
 */
-    EPixelFormat  SpirvCompiler::_ExtractImageFormat (uint format) const
+	EPixelFormat  SpirvCompiler::_ExtractImageFormat (uint format) const
 	{
 		ENABLE_ENUM_CHECKS();
-        switch ( BitCast<TLayoutFormat>(format) )
+		switch ( BitCast<TLayoutFormat>(format) )
 		{
 			case TLayoutFormat::ElfNone :			return EPixelFormat::Unknown;
 			case TLayoutFormat::ElfRgba32f :		return EPixelFormat::RGBA32F;
@@ -866,7 +866,7 @@ namespace FG
 			if ( _currentStage != EShaderStages::Vertex )
 				return true;	// skip
 
-            GraphicsPipelineDesc::VertexAttrib	attrib;
+			GraphicsPipelineDesc::VertexAttrib	attrib;
 			attrib.id		= ExtractVertexID( node );
 			attrib.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : ~0u);
 			attrib.type		= _ExtractVertexType( type );
@@ -918,10 +918,10 @@ namespace FG
 	_MergeWithGeometryInputPrimitive
 =================================================
 */
-    void SpirvCompiler::_MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, uint type) const
+	void SpirvCompiler::_MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, uint type) const
 	{
 		ENABLE_ENUM_CHECKS();
-        switch ( BitCast<TLayoutGeometry>(type) )
+		switch ( BitCast<TLayoutGeometry>(type) )
 		{
 			case TLayoutGeometry::ElgPoints : {
 				topologyBits.set( uint(EPrimitive::Point) );

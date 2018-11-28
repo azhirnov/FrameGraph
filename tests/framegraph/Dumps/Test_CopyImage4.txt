@@ -13,6 +13,240 @@ Thread {
 		barriers = {
 				ImageMemoryBarrier {
 					srcTask:         <initial>
+					dstTask:         ClearColorImage (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       General
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#2)
+					dstTask:         CopyImage (#4)
+					srcStageMask:    Transfer
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   TransferWrite
+					oldLayout:       TransferDstOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         CopyImage (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					oldLayout:       TransferDstOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "SrcImage"
+		iamgeType:    Image2D
+		dimension:    ( 64, 64, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         UpdateImage (#3)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       General
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         UpdateImage (#3)
+					dstTask:         CopyImage (#4)
+					srcStageMask:    Transfer
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         CopyImage (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "ClearColorImage (#2)"
+		input =  {  }
+		output = { CopyImage (#4) }
+		resource_usage = {
+			ImageUsage {
+				name:           "DstImage"
+				usage:          TransferDst
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+		dstImage:   "DstImage"
+		dstLayout:  TransferDstOptimal
+		ranges = {
+			Range {
+				aspectMask:     Color
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "UpdateImage (#3)"
+		input =  {  }
+		output = { CopyImage (#4) }
+		resource_usage = {
+			ImageUsage {
+				name:           "SrcImage"
+				usage:          TransferDst
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "StagingWriteBuffer "
+				usage:    TransferSrc
+				offset:   0 b
+				size:     8 Kb
+			}
+		}
+		srcBuffer:   "StagingWriteBuffer "
+		dstImage:    "SrcImage"
+		dstLayout:   TransferDstOptimal
+		regions = {
+			Region {
+				bufferOffset:        0 b
+				bufferRowLength:     64
+				bufferImageHeight:   32
+				imageAspectMask:     Color
+				imageMipLevel:       0
+				imageBaseArrayLayer: 0
+				imageLayerCount:     1
+				imageOffset:         ( 0, 0, 0 )
+				imageSize:           ( 64, 32, 1 )
+			}
+		}
+	}
+	Task {
+		name:    "CopyImage (#4)"
+		input =  { UpdateImage (#3), ClearColorImage (#2) }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "DstImage"
+				usage:          TransferDst
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "SrcImage"
+				usage:          TransferSrc
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+		srcImage:    "SrcImage"
+		srcLayout:   TransferSrcOptimal
+		dstImage:    "DstImage"
+		dstLayout:   TransferDstOptimal
+		regions = {
+			Region {
+				src.aspectMask:  Auto
+				src.mipLevel:    0
+				src.baseLayer:   0
+				src.layerCount:  1
+				src.offset:      ( 0, 0, 0 )
+				dst.aspectMask:  Auto
+				dst.mipLevel:    0
+				dst.baseLayer:   0
+				dst.layerCount:  1
+				dst.offset:      ( 16, 27, 0 )
+				size:            ( 64, 32, 0 )
+			}
+		}
+	}
+}
+===============================================================
+
+Thread {
+	batch:         "main"
+	indexInBatch:  1
+	Image {
+		name:         "DstImage"
+		iamgeType:    Image2D
+		dimension:    ( 128, 128, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
 					dstTask:         CopyImage (#3)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
@@ -159,8 +393,8 @@ Thread {
 			BufferUsage {
 				name:     "StagingWriteBuffer "
 				usage:    TransferSrc
-				offset:   0 b
-				size:     16 Kb
+				offset:   8 Kb
+				size:     8 Kb
 			}
 		}
 		srcBuffer:   "StagingWriteBuffer "
@@ -168,15 +402,15 @@ Thread {
 		dstLayout:   TransferDstOptimal
 		regions = {
 			Region {
-				bufferOffset:        0 b
+				bufferOffset:        8 Kb
 				bufferRowLength:     64
-				bufferImageHeight:   64
+				bufferImageHeight:   32
 				imageAspectMask:     Color
 				imageMipLevel:       0
 				imageBaseArrayLayer: 0
 				imageLayerCount:     1
-				imageOffset:         ( 0, 0, 0 )
-				imageSize:           ( 64, 64, 1 )
+				imageOffset:         ( 0, 32, 0 )
+				imageSize:           ( 64, 32, 1 )
 			}
 		}
 	}
@@ -212,13 +446,13 @@ Thread {
 				src.mipLevel:    0
 				src.baseLayer:   0
 				src.layerCount:  1
-				src.offset:      ( 0, 0, 0 )
+				src.offset:      ( 0, 32, 0 )
 				dst.aspectMask:  Auto
 				dst.mipLevel:    0
 				dst.baseLayer:   0
 				dst.layerCount:  1
-				dst.offset:      ( 16, 27, 0 )
-				size:            ( 64, 64, 0 )
+				dst.offset:      ( 16, 59, 0 )
+				size:            ( 64, 32, 0 )
 			}
 		}
 	}

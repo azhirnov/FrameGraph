@@ -109,10 +109,10 @@ namespace FG
 														 const char* pMessage,
 														 void* pUserData);
 
-		static VkBool32 VKAPI_CALL _DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
-														VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
-														const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
-														void*                                            pUserData);
+		static VkBool32 VKAPI_CALL _DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT		messageSeverity,
+														VkDebugUtilsMessageTypeFlagsEXT				messageTypes,
+														const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
+														void*										pUserData);
 
 		void _DebugReport (const DebugReport &);
 	};

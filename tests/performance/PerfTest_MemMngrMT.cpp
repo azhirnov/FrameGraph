@@ -42,9 +42,9 @@ static void MemManagerPerfTest1 (const uint count, const uint frames, StringView
 
 			for (uint f = 0; f < frames; ++f)
 			{
-                for (uint k = 0; k < count; ++k)
+				for (uint k = 0; k < count; ++k)
 				{
-                    const uint64_t	j	 = uint64_t(uid) + k + f;
+					const uint64_t	j	 = uint64_t(uid) + k + f;
 					const uint		idx1 = uint(j % resources.size());
 					const auto&		pool = resources[idx1];
 					const size_t	idx0 = size_t(j % pool.size());
@@ -115,5 +115,5 @@ extern void PerformanceTest_MemMngrMT ()
 
 	MemManagerPerfTest1< std::mutex, 12 >( count, frames, "mutex" );
 
-    FG_LOGI( "PerformanceTest_MemMngrMT - finished" );
+	FG_LOGI( "PerformanceTest_MemMngrMT - finished" );
 }

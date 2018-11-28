@@ -26,5 +26,5 @@ static void ID_Test1 ()
 extern void UnitTest_ID ()
 {
 	ID_Test1();
-    FG_LOGI( "UnitTest_ID - passed" );
+	FG_LOGI( "UnitTest_ID - passed" );
 }

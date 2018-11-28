@@ -41,7 +41,7 @@ namespace FG
 		STATIC_ASSERT( Bits <= 32 );
 
 		FloatBits	f;
-        f.e	= uint(127 + (value >= 0 ? int(Bits) : -int(Bits)));
+		f.e	= uint(127 + (value >= 0 ? int(Bits) : -int(Bits)));
 
 		return float(value) / BitCast<float>(f);
 	}
@@ -186,7 +186,7 @@ namespace FG
 		}
 		else
 		{
-            ASSERT( !"not supported" );
+			ASSERT( !"not supported" );
 		}
 	}
 	
@@ -477,6 +477,8 @@ namespace FG
 			case EPixelFormat::BGRA8_UNorm :
 			case EPixelFormat::sRGB8 :
 			case EPixelFormat::sRGB8_A8 :
+			case EPixelFormat::sBGR8 :
+			case EPixelFormat::sBGR8_A8 :
 			case EPixelFormat::BC1_RGB8_UNorm :
 			case EPixelFormat::BC1_RGB8_A1_UNorm :
 			case EPixelFormat::BC2_RGBA8_UNorm :

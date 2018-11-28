@@ -35,12 +35,15 @@ namespace FG
 			
 			virtual bool IsSupported (EMemoryType memType) const = 0;
 			
-			virtual bool AllocForImage (VkImage image, const MemoryDesc &mem, OUT Storage_t &data) = 0;
-			virtual bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &mem, OUT Storage_t &data) = 0;
+			virtual bool AllocForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data) = 0;
+			virtual bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data) = 0;
+			virtual bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) = 0;
+			virtual bool AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
+												   VkBuffer buf, const MemoryDesc &desc, OUT Storage_t &data) = 0;
 
 			virtual bool Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t) = 0;
 			
-			virtual bool GetMemoryInfo (const VDevice &dev, const Storage_t &data, OUT MemoryInfo_t &info) const = 0;
+			virtual bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const = 0;
 		};
 
 		using AllocatorPtr	= UniquePtr< IMemoryAllocator >;
@@ -61,8 +64,11 @@ namespace FG
 		bool Initialize ();
 		void Deinitialize ();
 
-		bool AllocateForImage (VkImage image, const MemoryDesc &mem, OUT Storage_t &data);
-		bool AllocateForBuffer (VkBuffer buffer, const MemoryDesc &mem, OUT Storage_t &data);
+		bool AllocateForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data);
+		bool AllocateForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data);
+		bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data);
+		bool AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
+									   VkBuffer buf, const MemoryDesc &desc, OUT Storage_t &data);
 		bool Deallocate (INOUT Storage_t &data, OUT AppendableVkResources_t);
 
 		bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const;

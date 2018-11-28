@@ -8,7 +8,7 @@ extern void Test_Shader4 (VPipelineCompiler* compiler)
 	ComputePipelineDesc	ppln;
 
 	ppln.AddShader( EShaderLangFormat::GLSL_450,
-				    "main",
+					"main",
 R"#(
 #pragma shader_stage(compute)
 #extension GL_ARB_separate_shader_objects : enable
@@ -58,5 +58,5 @@ void main ()
 
 	TEST(All( ppln._defaultLocalGroupSize == uint3(16, 8, 1) ));
 
-    FG_LOGI( "Test_Shader4 - passed" );
+	FG_LOGI( "Test_Shader4 - passed" );
 }

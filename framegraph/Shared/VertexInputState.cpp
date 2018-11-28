@@ -32,7 +32,7 @@ namespace FG
 
 	VertexInputState::VertexInput::VertexInput (EVertexType type, Bytes<uint> offset, uint bindingIndex) :
 		type( type ),
-        index( VertexIndex_Unknown ),
+		index( VertexIndex_Unknown ),
 		offset( offset ),
 		bindingIndex( bindingIndex )
 	{}

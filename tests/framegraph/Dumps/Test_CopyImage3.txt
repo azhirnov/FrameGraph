@@ -125,7 +125,23 @@ Thread {
 				name:     "StagingWriteBuffer "
 				usage:    TransferSrc
 				offset:   0 b
-				size:     8192 b
+				size:     8 Kb
+			}
+		}
+		srcBuffer:   "StagingWriteBuffer "
+		dstImage:    "SrcImage"
+		dstLayout:   TransferDstOptimal
+		regions = {
+			Region {
+				bufferOffset:        0 b
+				bufferRowLength:     64
+				bufferImageHeight:   32
+				imageAspectMask:     Color
+				imageMipLevel:       0
+				imageBaseArrayLayer: 0
+				imageLayerCount:     1
+				imageOffset:         ( 0, 0, 0 )
+				imageSize:           ( 64, 32, 1 )
 			}
 		}
 	}
@@ -149,6 +165,25 @@ Thread {
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
+			}
+		}
+		srcImage:    "SrcImage"
+		srcLayout:   TransferSrcOptimal
+		dstImage:    "DstImage"
+		dstLayout:   TransferDstOptimal
+		regions = {
+			Region {
+				src.aspectMask:  Auto
+				src.mipLevel:    0
+				src.baseLayer:   0
+				src.layerCount:  1
+				src.offset:      ( 0, 0, 0 )
+				dst.aspectMask:  Auto
+				dst.mipLevel:    0
+				dst.baseLayer:   0
+				dst.layerCount:  1
+				dst.offset:      ( 16, 27, 0 )
+				size:            ( 64, 32, 0 )
 			}
 		}
 	}
@@ -317,7 +352,23 @@ Thread {
 				name:     "StagingWriteBuffer "
 				usage:    TransferSrc
 				offset:   0 b
-				size:     8192 b
+				size:     8 Kb
+			}
+		}
+		srcBuffer:   "StagingWriteBuffer "
+		dstImage:    "SrcImage"
+		dstLayout:   TransferDstOptimal
+		regions = {
+			Region {
+				bufferOffset:        0 b
+				bufferRowLength:     64
+				bufferImageHeight:   32
+				imageAspectMask:     Color
+				imageMipLevel:       0
+				imageBaseArrayLayer: 0
+				imageLayerCount:     1
+				imageOffset:         ( 0, 32, 0 )
+				imageSize:           ( 64, 32, 1 )
 			}
 		}
 	}
@@ -343,6 +394,25 @@ Thread {
 				layerCount:     1
 			}
 		}
+		srcImage:    "SrcImage"
+		srcLayout:   TransferSrcOptimal
+		dstImage:    "DstImage"
+		dstLayout:   TransferDstOptimal
+		regions = {
+			Region {
+				src.aspectMask:  Auto
+				src.mipLevel:    0
+				src.baseLayer:   0
+				src.layerCount:  1
+				src.offset:      ( 0, 32, 0 )
+				dst.aspectMask:  Auto
+				dst.mipLevel:    0
+				dst.baseLayer:   0
+				dst.layerCount:  1
+				dst.offset:      ( 16, 59, 0 )
+				size:            ( 64, 32, 0 )
+			}
+		}
 	}
 	Task {
 		name:    "ReadImage (#4)"
@@ -362,6 +432,22 @@ Thread {
 				usage:    TransferDst
 				offset:   0 b
 				size:     64 Kb
+			}
+		}
+		srcImage:    "DstImage"
+		srcLayout:   TransferSrcOptimal
+		dstBuffer:   "StagingReadBuffer "
+		regions = {
+			Region {
+				bufferOffset:        0 b
+				bufferRowLength:     128
+				bufferImageHeight:   128
+				imageAspectMask:     Color
+				imageMipLevel:       0
+				imageBaseArrayLayer: 0
+				imageLayerCount:     1
+				imageOffset:         ( 0, 0, 0 )
+				imageSize:           ( 128, 128, 1 )
 			}
 		}
 	}

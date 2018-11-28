@@ -53,7 +53,8 @@ namespace FG
 
 			if ( not result.empty() )
 				result << " | ";
-
+			
+			ENABLE_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EImageUsage::TransferSrc				: result << "TransferSrc";				break;
@@ -64,8 +65,14 @@ namespace FG
 				case EImageUsage::DepthStencilAttachment	: result << "DepthStencilAttachment";	break;
 				case EImageUsage::TransientAttachment		: result << "TransientAttachment";		break;
 				case EImageUsage::InputAttachment			: result << "InputAttachment";			break;
+				case EImageUsage::ShadingRate				: result << "ShadingRate";				break;
+				case EImageUsage::_Last						:
+				case EImageUsage::All						:	// to shutup warnings
+				case EImageUsage::Transfer					:
+				case EImageUsage::Unknown					:
 				default										: RETURN_ERR( "invalid image usage type!" );
 			}
+			DISABLE_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -86,7 +93,8 @@ namespace FG
 
 			if ( not result.empty() )
 				result << " | ";
-
+			
+			ENABLE_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EBufferUsage::TransferSrc	: result << "TransferSrc";		break;
@@ -98,8 +106,54 @@ namespace FG
 				case EBufferUsage::Index		: result << "Index";			break;
 				case EBufferUsage::Vertex		: result << "Vertex";			break;
 				case EBufferUsage::Indirect		: result << "Indirect";			break;
+				case EBufferUsage::RayTracing	: result << "RayTracing";		break;
+				case EBufferUsage::_Last		:
+				case EBufferUsage::All			:	// to shutup warnings
+				case EBufferUsage::Transfer		:
+				case EBufferUsage::Unknown		:
 				default							: RETURN_ERR( "invalid buffer usage type!" );
 			}
+			DISABLE_ENUM_CHECKS();
+		}
+		return result;
+	}
+
+/*
+=================================================
+	ToString (EImageAspect)
+=================================================
+*/
+	ND_ inline String  ToString (const EImageAspect values)
+	{
+		switch ( values ) {
+			case EImageAspect::Auto :			return "Auto";
+			case EImageAspect::Unknown :		return "None";
+			case EImageAspect::DepthStencil :	return "DepthStencil";
+		}
+
+		String	result;
+		for (EImageAspect t = EImageAspect(1 << 0); t < EImageAspect::_Last; t = EImageAspect(uint(t) << 1)) 
+		{
+			if ( not EnumEq( values, t ) )
+				continue;
+
+			if ( not result.empty() )
+				result << " | ";
+			
+			ENABLE_ENUM_CHECKS();
+			switch ( t )
+			{
+				case EImageAspect::Color		: result << "Color";	break;
+				case EImageAspect::Depth		: result << "Depth";	break;
+				case EImageAspect::Stencil		: result << "Stencil";	break;
+				case EImageAspect::Metadata		: result << "Metadata";	break;
+				case EImageAspect::_Last		:
+				case EImageAspect::DepthStencil :	// to shutup warnings
+				case EImageAspect::Auto			:
+				case EImageAspect::Unknown		:
+				default							: RETURN_ERR( "invalid image aspect type!" );
+			}
+			DISABLE_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -146,13 +200,16 @@ namespace FG
 		if ( EnumEq( value, EResourceState::_GeometryShader ) )			str << ", GS";
 		if ( EnumEq( value, EResourceState::_FragmentShader ) )			str << ", FS";
 		if ( EnumEq( value, EResourceState::_ComputeShader ) )			str << ", CS";
+		if ( EnumEq( value, EResourceState::_MeshTaskShader ) )			str << ", MTS";
+		if ( EnumEq( value, EResourceState::_MeshShader ) )				str << ", MS";
+		if ( EnumEq( value, EResourceState::_RayTracingShader ) )		str << ", RTS";
 		
 		if ( EnumEq( value, EResourceState::ClearBefore ) )				str << ", ClearBefore";
 		if ( EnumEq( value, EResourceState::InvalidateBefore ) )		str << ", InvalidateBefore";
 		if ( EnumEq( value, EResourceState::InvalidateAfter ) )			str << ", InvalidateAfter";
 
-		if ( EnumEq( value, EResourceState::EarlyFragmentTests ) )		str << ", EarlyFragmentTests";
-		if ( EnumEq( value, EResourceState::LateFragmentTests ) )		str << ", LateFragmentTests";
+		//if ( EnumEq( value, EResourceState::EarlyFragmentTests ) )		str << ", EarlyFragmentTests";
+		//if ( EnumEq( value, EResourceState::LateFragmentTests ) )		str << ", LateFragmentTests";
 
 		return str;
 	}
@@ -191,6 +248,8 @@ namespace FG
 			case EPixelFormat::BGRA8_UNorm : return "BGRA8_UNorm";
 			case EPixelFormat::sRGB8 : return "sRGB8";
 			case EPixelFormat::sRGB8_A8 : return "sRGB8_A8";
+			case EPixelFormat::sBGR8 : return "sBGR8";
+			case EPixelFormat::sBGR8_A8 : return "sBGR8_A8";
 			case EPixelFormat::R8I : return "R8I";
 			case EPixelFormat::RG8I : return "RG8I";
 			case EPixelFormat::RGB8I : return "RGB8I";

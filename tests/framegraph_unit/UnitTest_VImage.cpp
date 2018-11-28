@@ -154,5 +154,5 @@ extern void UnitTest_VImage ()
 {
 	VImage_Test1();
 	VImage_Test2();
-    FG_LOGI( "UnitTest_VImage - passed" );
+	FG_LOGI( "UnitTest_VImage - passed" );
 }

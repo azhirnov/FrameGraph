@@ -87,6 +87,7 @@ namespace FG
 		~VLogicalRenderPass ();
 
 		bool Create (VResourceManagerThread &rm, const RenderPassDesc &rp);
+		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 
 		bool AddTask (IDrawTask *task)

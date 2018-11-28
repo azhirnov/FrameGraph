@@ -105,8 +105,8 @@ int main ()
 		window->Destroy();
 	}
 
-    FG_LOGI( "Tests.FrameGraph finished" );
+	FG_LOGI( "Tests.FrameGraph finished" );
 	
-    std::cin.ignore();
+	std::cin.ignore();
 	return 0;
 }

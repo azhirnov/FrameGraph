@@ -121,8 +121,8 @@ int main ()
 	//PerformanceTest_ResourceMT();
 	//PerformanceTest_MemMngrMT();
 
-    FG_LOGI( "Tests.Performance finished" );
+	FG_LOGI( "Tests.Performance finished" );
 	
-    std::cin.ignore();
+	std::cin.ignore();
 	return 0;
 }

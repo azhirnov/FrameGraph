@@ -103,6 +103,8 @@ namespace FG
 		ND_ EPixelFormat		PixelFormat ()		const	{ return Description().format; }
 		ND_ EImage				ImageType ()		const	{ return Description().imageType; }
 		ND_ uint const			Samples ()			const	{ return Description().samples.Get(); }
+		
+		ND_ StringView			GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _imageData->GetDebugName(); }
 
 
 	private:

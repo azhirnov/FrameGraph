@@ -131,7 +131,7 @@ namespace {
 			const uint	bits = batch.second.atomics.existsSubBatchBits.load( memory_order_acquire );
 
 			ASSERT( bits < mask or
-				    bits == READY_TO_SUBMIT or
+					bits == READY_TO_SUBMIT or
 					bits == BEFORE_SUBMITTING or
 					bits == SUBMITTED );
 

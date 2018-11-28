@@ -170,7 +170,7 @@ namespace FG
 
 	template <typename T,
 			  typename AllocatorType = UntypedAllocator>
-    struct StdLinearAllocator
+	struct StdLinearAllocator
 	{
 	// types
 	public:
@@ -202,7 +202,7 @@ namespace FG
 		
 		ND_ FG_ALLOCATOR T*  allocate (const size_t count)
 		{
-            return _alloc.template Alloc<T>( count );
+			return _alloc.template Alloc<T>( count );
 		}
 
 		void deallocate (T * const, const size_t) noexcept

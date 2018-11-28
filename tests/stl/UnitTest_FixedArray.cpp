@@ -83,5 +83,5 @@ extern void UnitTest_FixedArray ()
 	FixedArray_Test1();
 	FixedArray_Test2();
 	FixedArray_Test3();
-    FG_LOGI( "UnitTest_FixedArray - passed" );
+	FG_LOGI( "UnitTest_FixedArray - passed" );
 }

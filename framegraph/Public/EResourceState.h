@@ -31,7 +31,7 @@ namespace FG
 		_Access_ConditionalRendering,
 		_Access_CommandProcess,
 		_Access_ShadingRateImage,
-		_Access_AccelerationStructure,		// raytracing
+		_Access_BuildRayTracingAS,			// build/update acceleration structure for ray tracing
 		_AccessLast,
 		_AccessMask				= (1 << 8) - 1,
 

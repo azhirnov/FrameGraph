@@ -35,7 +35,7 @@ namespace FG
 
 	// variables
 	private:
-	    GLFWwindow *	_window;
+		GLFWwindow *	_window;
 		Listeners_t		_listeners;
 
 
@@ -65,8 +65,11 @@ namespace FG
 		static void _GLFW_RefreshCallback (GLFWwindow* wnd);
 		static void _GLFW_ResizeCallback (GLFWwindow* wnd, int w, int h);
 		static void _GLFW_KeyCallback (GLFWwindow* wnd, int key, int, int, int);
+		static void _GLFW_MouseButtonCallback (GLFWwindow* wnd, int button, int action, int mods);
+		static void _GLFW_CursorPos (GLFWwindow* wnd, double xpos, double ypos);
 
-		static StringView _MapKey (int key);
+		ND_ static StringView  _MapKey (int key);
+		ND_ static StringView  _MapMouseButton (int button);
 	};
 
 

@@ -9,6 +9,8 @@
 #include "framegraph/Public/SamplerEnums.h"
 #include "framegraph/Public/EResourceState.h"
 #include "framegraph/Shared/EnumUtils.h"
+#include "framegraph/Public/RayTracingGeometryDesc.h"
+#include "framegraph/Public/RayTracingSceneDesc.h"
 
 namespace FG
 {
@@ -741,6 +743,68 @@ namespace FG
 	
 /*
 =================================================
+	GeometryFlags
+=================================================
+*/
+	ND_ inline VkGeometryFlagsNV  VEnumCast (ERayTracingGeometryFlags values)
+	{
+		VkGeometryFlagsNV	result = 0;
+		
+		for (ERayTracingGeometryFlags t = ERayTracingGeometryFlags(1 << 0);
+			 t < ERayTracingGeometryFlags::_Last;
+			 t = ERayTracingGeometryFlags(uint(t) << 1)) 
+		{
+			if ( not EnumEq( values, t ) )
+				continue;
+			
+			ENABLE_ENUM_CHECKS();
+			switch ( t )
+			{
+				case ERayTracingGeometryFlags::Opaque						: result |= VK_GEOMETRY_OPAQUE_BIT_NV;							break;
+				case ERayTracingGeometryFlags::NoDuplicateAnyHitInvocation	: result |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NV;	break;
+				case ERayTracingGeometryFlags::_Last						:
+				case ERayTracingGeometryFlags::Unknown						:
+				default														: RETURN_ERR( "invalid geometry flags", 0 );
+			}
+			DISABLE_ENUM_CHECKS();
+		}
+		return result;
+	}
+	
+/*
+=================================================
+	GeometryInstanceFlags
+=================================================
+*/
+	ND_ inline VkGeometryInstanceFlagsNV   VEnumCast (ERayTracingInstanceFlags values)
+	{
+		VkGeometryInstanceFlagsNV	result = 0;
+		
+		for (ERayTracingInstanceFlags t = ERayTracingInstanceFlags(1 << 0);
+			 t < ERayTracingInstanceFlags::_Last;
+			 t = ERayTracingInstanceFlags(uint(t) << 1)) 
+		{
+			if ( not EnumEq( values, t ) )
+				continue;
+		
+			ENABLE_ENUM_CHECKS();
+			switch ( t )
+			{
+				case ERayTracingInstanceFlags::TriangleCullDisable	: return VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
+				case ERayTracingInstanceFlags::TriangleFrontCCW		: return VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV;
+				case ERayTracingInstanceFlags::ForceOpaque			: return VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV;
+				case ERayTracingInstanceFlags::ForceNonOpaque		: return VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
+				case ERayTracingInstanceFlags::_Last				:
+				case ERayTracingInstanceFlags::Unknown				:
+				default												: RETURN_ERR( "invalid geometry instance flags", 0 );
+			}
+			DISABLE_ENUM_CHECKS();
+		}
+		return result;
+	}
+
+/*
+=================================================
 	EResourceState_ToPipelineStages
 =================================================
 */
@@ -749,7 +813,7 @@ namespace FG
 		switch ( value & EResourceState::_AccessMask )
 		{								  
 			case EResourceState::Unknown :						return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			case EResourceState::_Access_InputAttachment :		return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			case EResourceState::_Access_InputAttachment :		return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	// TODO: check
 			//case EResourceState::_Access_TransientAttachment :		
 			case EResourceState::_Access_Transfer :				return VK_PIPELINE_STAGE_TRANSFER_BIT;
 			case EResourceState::_Access_ColorAttachment :		return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -758,6 +822,10 @@ namespace FG
 			case EResourceState::_Access_Host :					return VK_PIPELINE_STAGE_HOST_BIT;
 			case EResourceState::_Access_IndexBuffer :			return VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 			case EResourceState::_Access_VertexBuffer :			return VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+			case EResourceState::_Access_ConditionalRendering :	return VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT;
+			case EResourceState::_Access_CommandProcess :		return VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX;
+			case EResourceState::_Access_ShadingRateImage :		return VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV;
+			case EResourceState::_Access_BuildRayTracingAS :	return VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
 
 			case EResourceState::_Access_ShaderStorage :
 			case EResourceState::_Access_Uniform :
@@ -770,6 +838,9 @@ namespace FG
 				if ( EnumEq( value, EResourceState::_GeometryShader ) )			result |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
 				if ( EnumEq( value, EResourceState::_FragmentShader ) )			result |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 				if ( EnumEq( value, EResourceState::_ComputeShader ) )			result |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+				if ( EnumEq( value, EResourceState::_MeshTaskShader ) )			result |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;
+				if ( EnumEq( value, EResourceState::_MeshShader ) )				result |= VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;
+				if ( EnumEq( value, EResourceState::_RayTracingShader ) )		result |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
 				return result;
 			}
 
@@ -891,6 +962,8 @@ namespace FG
 		_builder_( BGRA8_UNorm,			VK_FORMAT_B8G8R8A8_UNORM ) \
 		_builder_( sRGB8,				VK_FORMAT_R8G8B8_SRGB ) \
 		_builder_( sRGB8_A8,			VK_FORMAT_R8G8B8A8_SRGB ) \
+		_builder_( sBGR8,				VK_FORMAT_B8G8R8_SRGB ) \
+		_builder_( sBGR8_A8,			VK_FORMAT_B8G8R8A8_SRGB ) \
 		_builder_( R8I,					VK_FORMAT_R8_SINT ) \
 		_builder_( RG8I,				VK_FORMAT_R8G8_SINT ) \
 		_builder_( RGB8I,				VK_FORMAT_R8G8B8_SINT ) \

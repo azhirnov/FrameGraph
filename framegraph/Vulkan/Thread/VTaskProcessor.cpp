@@ -101,7 +101,7 @@ namespace FG
 		ND_ bool						IsEarlyFragmentTests () const	{ return _earlyFragmentTests; }
 		ND_ bool						IsLateFragmentTests ()	const	{ return _lateFragmentTests; }
 
-        ND_ ArrayView<FragmentOutput>	GetFragOutputs ()		const	{ return ArrayView<FragmentOutput>{ _fragOutput.data(), _maxFragCount }; }
+		ND_ ArrayView<FragmentOutput>	GetFragOutputs ()		const	{ return ArrayView<FragmentOutput>{ _fragOutput.data(), _maxFragCount }; }
 	};
 
 
@@ -445,8 +445,8 @@ namespace FG
 				VkRect2D		dst = {};
 				dst.offset.x		= src.left;
 				dst.offset.y		= src.top;
-                dst.extent.width	= uint(src.Width());
-                dst.extent.height	= uint(src.Height());
+				dst.extent.width	= uint(src.Width());
+				dst.extent.height	= uint(src.Height());
 				vk_scissors.push_back( dst );
 			}
 
@@ -779,8 +779,8 @@ namespace FG
 		pass_info.renderPass				= render_pass->Handle();
 		pass_info.renderArea.offset.x		= area.left;
 		pass_info.renderArea.offset.y		= area.top;
-        pass_info.renderArea.extent.width	= uint(area.Width());
-        pass_info.renderArea.extent.height	= uint(area.Height());
+		pass_info.renderArea.extent.width	= uint(area.Width());
+		pass_info.renderArea.extent.height	= uint(area.Height());
 		pass_info.clearValueCount			= uint(clear_values.size());
 		pass_info.pClearValues				= clear_values.data();
 		pass_info.framebuffer				= framebuffer->Handle();
@@ -1368,7 +1368,7 @@ namespace FG
 		RawImageID	swapchain_image;
 		CHECK( _frameGraph.GetSwapchain()->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
 
-		VLocalImage const *		src_image	= task.image;
+		VLocalImage const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= _GetState( swapchain_image );
 		VkImageBlit				region;
 		

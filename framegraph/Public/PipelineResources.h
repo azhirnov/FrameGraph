@@ -105,23 +105,23 @@ namespace FG
 		ResourceSet_t				_resources;
 		DynamicOffsets_t			_dynamicOffsets;
 
-        mutable CachedID			_cachedId;
+		mutable CachedID			_cachedId;
 
 
 	// methods
 	public:
 		PipelineResources ()
 		{
-            _ResetCachedID();
+			_ResetCachedID();
 		}
 
 		PipelineResources (PipelineResources &&other) :
-		    _layoutId{ std::move(other._layoutId) },
-		    _uniforms{ std::move(other._uniforms) },
-		    _resources{ std::move(other._resources) },
-		    _dynamicOffsets{ std::move(other._dynamicOffsets) }
+			_layoutId{ std::move(other._layoutId) },
+			_uniforms{ std::move(other._uniforms) },
+			_resources{ std::move(other._resources) },
+			_dynamicOffsets{ std::move(other._dynamicOffsets) }
 		{
-            _SetCachedID(other._GetCachedID());
+			_SetCachedID(other._GetCachedID());
 		}
 
 		Self&	BindImage (const UniformID &id, const ImageID &image) noexcept;

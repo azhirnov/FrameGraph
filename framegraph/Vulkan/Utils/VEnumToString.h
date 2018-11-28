@@ -193,5 +193,26 @@ namespace FG
 		}
 		return result;
 	}
+	
+/*
+=================================================
+	VkFilter_ToString
+=================================================
+*/
+	ND_ inline StringView  VkFilter_ToString (const VkFilter value)
+	{
+		ENABLE_ENUM_CHECKS();
+		switch ( value )
+		{
+			case VK_FILTER_NEAREST :		return "Nearest";
+			case VK_FILTER_LINEAR :			return "Linear";
+			case VK_FILTER_CUBIC_IMG :		return "CubicImg";
+			case VK_FILTER_RANGE_SIZE :
+			case VK_FILTER_MAX_ENUM :		break;
+		}
+		DISABLE_ENUM_CHECKS();
+		RETURN_ERR( "unknown filter type!" );
+	}
+
 
 }	// FG

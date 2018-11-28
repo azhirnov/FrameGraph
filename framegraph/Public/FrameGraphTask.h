@@ -40,10 +40,10 @@ namespace FG
 			BaseType& SetDebugColor (RGBA8u color)				{ debugColor = color;  return static_cast<BaseType &>( *this ); }
 
 			template <typename Arg0, typename ...Args>
-            BaseType& DependsOn (Arg0 task0, Args ...tasks)		{ depends.push_back( task0 );  return DependsOn<Args...>( tasks... ); }
+			BaseType& DependsOn (Arg0 task0, Args ...tasks)		{ if ( task0 ) depends.push_back( task0 );  return DependsOn<Args...>( tasks... ); }
 			
 			template <typename Arg0>
-            BaseType& DependsOn (Arg0 task)						{ depends.push_back( task );  return static_cast<BaseType &>( *this ); }
+			BaseType& DependsOn (Arg0 task)						{ if ( task ) depends.push_back( task );  return static_cast<BaseType &>( *this ); }
 		};
 
 	}	// _fg_hidden_
@@ -466,7 +466,7 @@ namespace FG
 		ClearColorImage&  Clear (const int4 &value)			{ clearValue = value;  return *this; }
 		
 		ClearColorImage&  AddRange (MipmapLevel baseMipLevel, uint levelCount,
-								    ImageLayer baseLayer, uint layerCount)
+									ImageLayer baseLayer, uint layerCount)
 		{
 			ranges.push_back(Range{ EImageAspect::Color, baseMipLevel, levelCount, baseLayer, layerCount });
 			return *this;
@@ -527,16 +527,31 @@ namespace FG
 		UpdateBuffer (const BufferID &buf, BytesU off, ArrayView<uint8_t> data) :
 			UpdateBuffer() { SetBuffer( buf, off ).SetData( data ); }
 
-		UpdateBuffer&  SetBuffer (const BufferID &buf, BytesU off)
+		UpdateBuffer&  SetBuffer (const BufferID &buf, BytesU off = 0_b)
 		{
 			dstBuffer	= buf.Get();
 			offset		= off;
 			return *this;
 		}
 
-		UpdateBuffer&  SetData (ArrayView<uint8_t> value)
+		template <typename T>
+		UpdateBuffer&  SetData (const Array<T> &value)
 		{
-			data = value;
+			data = ArrayView{ Cast<uint8_t>(value.data()), value.size()*sizeof(T) };
+			return *this;
+		}
+
+		template <typename T>
+		UpdateBuffer&  SetData (ArrayView<T> value)
+		{
+			data = ArrayView{ Cast<uint8_t>(value.data()), value.size()*sizeof(T) };
+			return *this;
+		}
+
+		template <typename T>
+		UpdateBuffer&  SetData (const T* ptr, size_t count)
+		{
+			data = ArrayView{ Cast<uint8_t>(ptr), count*sizeof(T) };
 			return *this;
 		}
 	};
@@ -625,21 +640,33 @@ namespace FG
 			return *this;
 		}
 
-		UpdateImage&  SetData (ArrayView<uint8_t> value, const uint2 &size, BytesU rowPitch = 0_b)
+		UpdateImage&  SetData (ArrayView<uint8_t> value, const uint2 &dimension, BytesU rowPitch = 0_b)
 		{
 			data			= value;
-			imageSize		= uint3( size.x, size.y, 0 );
+			imageSize		= uint3( dimension.x, dimension.y, 0 );
 			dataRowPitch	= rowPitch;
 			return *this;
 		}
+		
+		template <typename T>
+		UpdateImage&  SetData (const T* ptr, size_t count, const uint2 &dimension, BytesU rowPitch = 0_b)
+		{
+			return SetData( ArrayView<uint8_t>{ Cast<uint8_t>(ptr), count*sizeof(T) }, dimension, rowPitch );
+		}
 
-		UpdateImage&  SetData (ArrayView<uint8_t> value, const uint3 &size, BytesU rowPitch = 0_b, BytesU slicePitch = 0_b)
+		UpdateImage&  SetData (ArrayView<uint8_t> value, const uint3 &dimension, BytesU rowPitch = 0_b, BytesU slicePitch = 0_b)
 		{
 			data			= value;
-			imageSize		= size;
+			imageSize		= dimension;
 			dataRowPitch	= rowPitch;
 			dataSlicePitch	= slicePitch;
 			return *this;
+		}
+		
+		template <typename T>
+		UpdateImage&  SetData (const T* ptr, size_t count, const uint3 &dimension, BytesU rowPitch = 0_b, BytesU slicePitch = 0_b)
+		{
+			return SetData( ArrayView<uint8_t>{ Cast<uint8_t>(ptr), count*sizeof(T) }, dimension, rowPitch );
 		}
 	};
 

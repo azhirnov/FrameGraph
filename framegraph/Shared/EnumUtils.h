@@ -15,7 +15,7 @@ namespace FG
 	EIndex_SizeOf
 =================================================
 */
-    ND_ inline BytesU  EIndex_SizeOf (EIndex value)
+	ND_ inline BytesU  EIndex_SizeOf (EIndex value)
 	{
 		ENABLE_ENUM_CHECKS();
 		switch ( value ) {
@@ -87,7 +87,7 @@ namespace FG
 	EResourceState_FromShaders
 =================================================
 */
-    ND_ inline EResourceState  EResourceState_FromShaders (EShaderStages values)
+	ND_ inline EResourceState  EResourceState_FromShaders (EShaderStages values)
 	{
 		EResourceState	result = EResourceState(0);
 		
@@ -129,7 +129,7 @@ namespace FG
 	EResourceState_ToShaderAccess
 =================================================
 */
-    ND_ inline EShaderAccess  EResourceState_ToShaderAccess (EResourceState state)
+	ND_ inline EShaderAccess  EResourceState_ToShaderAccess (EResourceState state)
 	{
 		if ( EnumEq( state, EResourceState::ShaderReadWrite ) )
 			return EShaderAccess::ReadWrite;
@@ -151,7 +151,7 @@ namespace FG
 	EResourceState_FromShaderAccess
 =================================================
 */
-    ND_ inline EResourceState  EResourceState_FromShaderAccess (EShaderAccess access)
+	ND_ inline EResourceState  EResourceState_FromShaderAccess (EShaderAccess access)
 	{
 		ENABLE_ENUM_CHECKS();
 		switch ( access ) {
@@ -292,7 +292,7 @@ namespace FG
 	EPixelFormat_BitPerPixel
 =================================================
 */
-    ND_ inline uint EPixelFormat_BitPerPixel (EPixelFormat value, EImageAspect aspect)
+	ND_ inline uint EPixelFormat_BitPerPixel (EPixelFormat value, EImageAspect aspect)
 	{
 		ENABLE_ENUM_CHECKS();
 		switch ( value )
@@ -324,6 +324,7 @@ namespace FG
 			case EPixelFormat::RGB8_UNorm :
 			case EPixelFormat::BGR8_UNorm :
 			case EPixelFormat::sRGB8 :
+			case EPixelFormat::sBGR8 :
 			case EPixelFormat::RGB8I :
 			case EPixelFormat::RGB8U :
 				ASSERT( aspect == EImageAspect::Color );
@@ -338,6 +339,7 @@ namespace FG
 			case EPixelFormat::RGBA8_UNorm :
 			case EPixelFormat::BGRA8_UNorm :
 			case EPixelFormat::sRGB8_A8 :
+			case EPixelFormat::sBGR8_A8 :
 			case EPixelFormat::RGBA8I :
 			case EPixelFormat::RGBA8U :
 			case EPixelFormat::R32I :

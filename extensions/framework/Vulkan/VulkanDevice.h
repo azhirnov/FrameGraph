@@ -152,7 +152,7 @@ namespace FG
 		void _DestroyDevice ();
 
 		void _ValidateInstanceVersion (INOUT uint &version) const;
-        void _ValidateInstanceLayers (INOUT Array<const char*> &layers) const;
+		void _ValidateInstanceLayers (INOUT Array<const char*> &layers) const;
 		void _ValidateInstanceExtensions (INOUT Array<const char*> &ext) const;
 		void _ValidateDeviceExtensions (INOUT Array<const char*> &ext) const;
 	};

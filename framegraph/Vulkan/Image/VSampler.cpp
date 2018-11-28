@@ -56,9 +56,9 @@ namespace FG
 			ASSERT( _createInfo.mipmapMode == VK_SAMPLER_MIPMAP_MODE_NEAREST );
 			ASSERT( _createInfo.minLod == 0.0f and _createInfo.maxLod == 0.0f );
 			ASSERT( _createInfo.addressModeU == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE or
-				    _createInfo.addressModeU == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER );
+					_createInfo.addressModeU == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER );
 			ASSERT( _createInfo.addressModeV == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE or
-				    _createInfo.addressModeV == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER );
+					_createInfo.addressModeV == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER );
 
 			_createInfo.magFilter			= _createInfo.minFilter;
 			_createInfo.mipmapMode			= VK_SAMPLER_MIPMAP_MODE_NEAREST;

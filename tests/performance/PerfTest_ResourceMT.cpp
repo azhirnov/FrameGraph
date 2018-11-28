@@ -60,9 +60,9 @@ static void ResourceRWPerfTest1 (const uint count, const uint frames, const uint
 				frame_begin_lock.wait();
 				*dt2 += TimePoint_t::clock::now() - t2_start;
 
-                for (uint k = 0; k < count; ++k)
+				for (uint k = 0; k < count; ++k)
 				{
-                    const uint64_t	j	= uint64_t(uid) + k + f;
+					const uint64_t	j	= uint64_t(uid) + k + f;
 
 					if ( (j & 1) or shared_indices.empty() )
 					{
@@ -107,9 +107,9 @@ static void ResourceRWPerfTest1 (const uint count, const uint frames, const uint
 
 						//FG_LOGI( "del_size: "s << ToString(del_size) );
 
-                        for (size_t j = 0; j < del_size; ++j)
+						for (size_t j = 0; j < del_size; ++j)
 						{
-                            auto&	idx		= shared_indices[j];
+							auto&	idx		= shared_indices[j];
 							auto&	pool	= resources[ idx.resIndex ];
 							auto&	res		= pool[ idx.itemIndex ];
 						
@@ -185,9 +185,9 @@ static void ResourceRWPerfTest2 (const uint count, const uint frames, const uint
 					idx_size = indices.size();
 				}
 
-                for (uint k = 0; k < count; ++k)
+				for (uint k = 0; k < count; ++k)
 				{
-                    const uint64_t	j			= uint64_t(uid) + k + f;
+					const uint64_t	j			= uint64_t(uid) + k + f;
 					bool			idx_empty	= false;
 					
 					{
@@ -235,9 +235,9 @@ static void ResourceRWPerfTest2 (const uint count, const uint frames, const uint
 					
 					//FG_LOGI( "del_size: "s << ToString(del_size) );
 
-                    for (size_t c = 0; c < del_size; ++c)
+					for (size_t c = 0; c < del_size; ++c)
 					{
-                        const auto	idx	= indices[c];
+						const auto	idx	= indices[c];
 
 						auto&	pool	= resources[ idx.resIndex ];
 						auto&	res		= pool[ idx.itemIndex ];
@@ -308,9 +308,9 @@ static void ResourceRWPerfTest3 (const uint count, const uint frames, const uint
 					idx_size = indices.size();
 				}
 
-                for (uint k = 0; k < count; ++k)
+				for (uint k = 0; k < count; ++k)
 				{
-                    const uint64_t	j			= uint64_t(uid) + k + f;
+					const uint64_t	j			= uint64_t(uid) + k + f;
 					bool			idx_empty	= false;
 					
 					{
@@ -361,12 +361,12 @@ static void ResourceRWPerfTest3 (const uint count, const uint frames, const uint
 					
 					//FG_LOGI( "del_size: "s << ToString(del_size) );
 
-                    for (size_t c = 0; c < del_size; ++c)
+					for (size_t c = 0; c < del_size; ++c)
 					{
 						SCOPELOCK( index_lock );
 						SCOPELOCK( res_lock );
 
-                        const auto	idx = indices[c];
+						const auto	idx = indices[c];
 
 						auto&	pool	= resources[ idx.resIndex ];
 						auto&	res		= pool[ idx.itemIndex ];
@@ -441,9 +441,9 @@ static void ResourceRWPerfTest4 (const uint count, const uint frames, const uint
 					index_lock.unlock_shared();
 				}
 
-                for (uint k = 0; k < count; ++k)
+				for (uint k = 0; k < count; ++k)
 				{
-                    const uint64_t	j			= uint64_t(uid) + k + f;
+					const uint64_t	j			= uint64_t(uid) + k + f;
 					bool			idx_empty	= false;
 					
 					{
@@ -498,12 +498,12 @@ static void ResourceRWPerfTest4 (const uint count, const uint frames, const uint
 					
 					//FG_LOGI( "del_size: "s << ToString(del_size) );
 
-                    for (size_t c = 0; c < del_size; ++c)
+					for (size_t c = 0; c < del_size; ++c)
 					{
 						index_lock.lock_shared();
 						res_lock.lock_shared();
 
-                        const auto	idx = indices[c];
+						const auto	idx = indices[c];
 
 						auto&	pool	= resources[ idx.resIndex ];
 						auto&	res		= pool[ idx.itemIndex ];
@@ -576,9 +576,9 @@ static void ResourceRWPerfTest5 (const uint count, const uint frames, const uint
 				frame_begin_lock.wait();
 				*dt2 += TimePoint_t::clock::now() - t2_start;
 
-                for (uint k = 0; k < count; ++k)
+				for (uint k = 0; k < count; ++k)
 				{
-                    const uint64_t	j	= uint64_t(uid) + k + f;
+					const uint64_t	j	= uint64_t(uid) + k + f;
 
 					if ( (j & 1) or shared_indices.empty() )
 					{
@@ -627,9 +627,9 @@ static void ResourceRWPerfTest5 (const uint count, const uint frames, const uint
 
 						//FG_LOGI( "del_size: "s << ToString(del_size) );
 
-                        for (size_t c = 0; c < del_size; ++c)
+						for (size_t c = 0; c < del_size; ++c)
 						{
-                            auto&	idx		= shared_indices[c];
+							auto&	idx		= shared_indices[c];
 							auto&	pool	= resources[ idx.resIndex ];
 							auto&	res		= pool[ Index_t(idx.itemIndex) ];
 						
@@ -691,5 +691,5 @@ extern void PerformanceTest_ResourceMT ()
 	ResourceRWPerfTest5< SpinLock, 12 >( count, frames, readCount, "staged_2 - SpinLock" );
 	ResourceRWPerfTest5< std::shared_mutex, 12 >( count, frames, readCount, "staged_2 - shared_mutex" );
 
-    FG_LOGI( "PerformanceTest_ResourceMT - finished" );
+	FG_LOGI( "PerformanceTest_ResourceMT - finished" );
 }

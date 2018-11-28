@@ -3,7 +3,6 @@
 #pragma once
 
 #include "framegraph/Public/FrameGraph.h"
-#include "framegraph/Shared/ThreadID.h"
 #include "VResourceManager.h"
 #include "VDevice.h"
 #include "VDebugger.h"
@@ -82,7 +81,7 @@ namespace FG
 		// debugging
 		Statistics const&  GetStatistics () const override;
 		bool  DumpToString (OUT String &result) const override;
-		bool  DumpToGraphViz (EGraphVizFlags flags, OUT String &result) const override;
+		bool  DumpToGraphViz (OUT String &result) const override;
 
 		ND_ VResourceManager&	GetResourceMngr ()				{ SHAREDLOCK( _rcCheck );  return _resourceMngr; }
 		ND_ VDevice const&		GetDevice ()			const	{ SHAREDLOCK( _rcCheck );  return _device; }

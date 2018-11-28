@@ -34,8 +34,8 @@ int main ()
 	UnitTest_BitTree();
 	UnitTest_StructView();
 
-    FG_LOGI( "Tests.STL finished" );
+	FG_LOGI( "Tests.STL finished" );
 	
-    std::cin.ignore();
+	std::cin.ignore();
 	return 0;
 }

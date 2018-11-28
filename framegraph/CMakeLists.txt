@@ -101,7 +101,6 @@ set( SOURCES
 	"Shared/RenderState.cpp"
 	"Shared/ResourceBase.h"
 	"Shared/ResourceDataRange.h"
-	"Shared/ThreadID.h"
 	"Shared/VertexInputState.cpp"
 	"Vulkan/RenderPass/VFramebuffer.cpp"
 	"Vulkan/RenderPass/VFramebuffer.h"
@@ -163,7 +162,7 @@ source_group( "Vulkan\\Main" FILES "Vulkan/Main/VDevice.cpp" "Vulkan/Main/VDevic
 source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VDebugger.cpp" "Vulkan/Debugger/VDebugger.h" "Vulkan/Debugger/VFrameGraphDebugger.cpp" "Vulkan/Debugger/VFrameGraphDebugger.h" "Vulkan/Debugger/VFrameGraphDebugger2.cpp" )
 source_group( "Vulkan\\Image" FILES "Vulkan/Image/VImage.cpp" "Vulkan/Image/VImage.h" "Vulkan/Image/VLocalImage.cpp" "Vulkan/Image/VLocalImage.h" "Vulkan/Image/VSampler.cpp" "Vulkan/Image/VSampler.h" )
 source_group( "Vulkan\\Swapchain" FILES "Vulkan/Swapchain/VSwapchain.h" "Vulkan/Swapchain/VSwapchainKHR.cpp" "Vulkan/Swapchain/VSwapchainKHR.h" )
-source_group( "Shared" FILES "Shared/CreateFrameGraph.cpp" "Shared/EnumToString.h" "Shared/EnumUtils.h" "Shared/ImageDataRange.h" "Shared/ImageView.cpp" "Shared/ImageViewDesc.cpp" "Shared/ImageViewDesc.h" "Shared/LocalResourceID.h" "Shared/Pipeline.cpp" "Shared/PipelineResourcesInitializer.h" "Shared/RenderState.cpp" "Shared/ResourceBase.h" "Shared/ResourceDataRange.h" "Shared/ThreadID.h" "Shared/VertexInputState.cpp" )
+source_group( "Shared" FILES "Shared/CreateFrameGraph.cpp" "Shared/EnumToString.h" "Shared/EnumUtils.h" "Shared/ImageDataRange.h" "Shared/ImageView.cpp" "Shared/ImageViewDesc.cpp" "Shared/ImageViewDesc.h" "Shared/LocalResourceID.h" "Shared/Pipeline.cpp" "Shared/PipelineResourcesInitializer.h" "Shared/RenderState.cpp" "Shared/ResourceBase.h" "Shared/ResourceDataRange.h" "Shared/VertexInputState.cpp" )
 source_group( "Vulkan\\RenderPass" FILES "Vulkan/RenderPass/VFramebuffer.cpp" "Vulkan/RenderPass/VFramebuffer.h" "Vulkan/RenderPass/VLogicalRenderPass.cpp" "Vulkan/RenderPass/VLogicalRenderPass.h" "Vulkan/RenderPass/VRenderPass.cpp" "Vulkan/RenderPass/VRenderPass.h" "Vulkan/RenderPass/VRenderPassCache.cpp" "Vulkan/RenderPass/VRenderPassCache.h" )
 source_group( "Vulkan\\Utils" FILES "Vulkan/Utils/VEnumCast.h" "Vulkan/Utils/VEnums.h" "Vulkan/Utils/VEnumToString.h" )
 source_group( "Vulkan\\Buffer" FILES "Vulkan/Buffer/VBuffer.cpp" "Vulkan/Buffer/VBuffer.h" "Vulkan/Buffer/VLocalBuffer.cpp" "Vulkan/Buffer/VLocalBuffer.h" )
@@ -268,6 +267,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		"../tests/framegraph/DrawingTests/Test_CopyImage1.cpp"
 		"../tests/framegraph/DrawingTests/Test_CopyImage2.cpp"
 		"../tests/framegraph/DrawingTests/Test_CopyImage3.cpp"
+		"../tests/framegraph/DrawingTests/Test_CopyImage4.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw1.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw2.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw3.cpp"
@@ -280,7 +280,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	else()
 		add_executable( "IntTests.FrameGraph" ${SOURCES} )
 	endif()
-	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" "../tests/framegraph/DrawingTests/Test_Draw2.cpp" "../tests/framegraph/DrawingTests/Test_Draw3.cpp" )
+	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage4.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" "../tests/framegraph/DrawingTests/Test_Draw2.cpp" "../tests/framegraph/DrawingTests/Test_Draw3.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
 	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
 	set_property( TARGET "IntTests.FrameGraph" PROPERTY FOLDER "Tests" )

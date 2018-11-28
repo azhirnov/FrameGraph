@@ -82,7 +82,7 @@ namespace FG
 		ND_ ArrayView<T> section (size_t first, size_t count) const
 		{
 			return first < size() ?
-                    ArrayView<T>{ data() + first, Min(size() - first, count) } :
+					ArrayView<T>{ data() + first, Min(size() - first, count) } :
 					ArrayView<T>{};
 		}
 	};

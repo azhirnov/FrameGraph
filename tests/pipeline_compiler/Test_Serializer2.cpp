@@ -9,7 +9,7 @@ extern void Test_Serializer2 (VPipelineCompiler* compiler)
 	ComputePipelineDesc	ppln;
 
 	ppln.AddShader( EShaderLangFormat::GLSL_450,
-				    "main",
+					"main",
 R"#(
 #pragma shader_stage(compute)
 #extension GL_ARB_separate_shader_objects : enable
@@ -66,5 +66,5 @@ void main ()
 
 	TEST( serialized_ref == src );
 
-    FG_LOGI( "Test_Serializer2 - passed" );
+	FG_LOGI( "Test_Serializer2 - passed" );
 }

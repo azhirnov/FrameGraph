@@ -140,8 +140,8 @@ namespace FG
 		// sRGB
 		sRGB8,
 		sRGB8_A8,
-		//sBGR8,
-		//sBGR8_A8,
+		sBGR8,
+		sBGR8_A8,
 
 		// signed integer
 		R8I,

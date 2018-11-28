@@ -44,5 +44,5 @@ extern void UnitTest_LfFixedStack ()
 {
 	LfFixedStack_Test1();
 	LfFixedStack_Test2();
-    FG_LOGI( "UnitTest_LfFixedStack - passed" );
+	FG_LOGI( "UnitTest_LfFixedStack - passed" );
 }

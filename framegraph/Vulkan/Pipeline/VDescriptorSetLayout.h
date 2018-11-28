@@ -51,6 +51,8 @@ namespace FG
 		ND_ HashVal					GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 		ND_ UniformMapPtr const&	GetUniforms ()	const	{ SHAREDLOCK( _rcCheck );  return _uniforms; }
 		ND_ uint const				GetMaxIndex ()	const	{ SHAREDLOCK( _rcCheck );  return _maxIndex; }
+		
+		ND_ StringView				GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 
 
 	private:

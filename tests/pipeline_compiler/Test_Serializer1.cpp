@@ -9,8 +9,8 @@ extern void Test_Serializer1 (VPipelineCompiler* compiler)
 	GraphicsPipelineDesc	ppln;
 
 	ppln.AddShader( EShader::Vertex,
-				    EShaderLangFormat::GLSL_450,
-				    "main",
+					EShaderLangFormat::GLSL_450,
+					"main",
 R"#(
 #version 450 core
 #pragma shader_stage(fragment)
@@ -25,14 +25,14 @@ in  vec2	at_Texcoord;
 out vec2	v_Texcoord;
 
 void main() {
-    gl_Position	= vec4( at_Position, POS_Z, POS_W );
+	gl_Position	= vec4( at_Position, POS_Z, POS_W );
 	v_Texcoord	= at_Texcoord;
 }
 )#" );
 
 	ppln.AddShader( EShader::Fragment,
-				    EShaderLangFormat::GLSL_450,
-				    "main",
+					EShaderLangFormat::GLSL_450,
+					"main",
 R"#(
 #version 450 core
 #pragma shader_stage(vertex)
@@ -51,7 +51,7 @@ in  vec2	v_Texcoord;
 out vec4	out_Color;
 
 void main() {
-    out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
+	out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
 }
 )#" );
 
@@ -107,5 +107,5 @@ void main() {
 
 	TEST( serialized_ref == src );
 
-    FG_LOGI( "Test_Serializer1 - passed" );
+	FG_LOGI( "Test_Serializer1 - passed" );
 }

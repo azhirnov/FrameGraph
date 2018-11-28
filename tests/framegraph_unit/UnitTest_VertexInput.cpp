@@ -91,5 +91,5 @@ extern void UnitTest_VertexInput ()
 {
 	VertexInput_Test1();
 	VertexInput_Test2();
-    FG_LOGI( "UnitTest_VertexInput - passed" );
+	FG_LOGI( "UnitTest_VertexInput - passed" );
 }

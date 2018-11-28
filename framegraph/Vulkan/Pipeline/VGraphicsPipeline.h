@@ -109,6 +109,8 @@ namespace FG
 
 		ND_ FragmentOutputPtr		GetFragmentOutput ()	const	{ SHAREDLOCK( _rcCheck );  return _fragmentOutput; }
 		ND_ bool					IsEarlyFragmentTests ()	const	{ SHAREDLOCK( _rcCheck );  return _earlyFragmentTests; }
+		
+		ND_ StringView				GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 	};
 
 	

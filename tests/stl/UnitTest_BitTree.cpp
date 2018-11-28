@@ -12,7 +12,7 @@ static void BitTree_Test1 ()
 
 	for (uint i = 0; i < bit_count+1; ++i)
 	{
-		uint	index;
+		uint	index = 0;
 		TEST( bit.Assign( OUT index ) == (i < bit_count) );
 		TEST( (index == i) == (i < bit_count) );
 	}
@@ -25,7 +25,7 @@ static void BitTree_Test1 ()
 
 	for (uint i = 0; i < bit_count+1; ++i)
 	{
-		uint	index;
+		uint	index = 0;
 		TEST( bit.Assign( OUT index ) == (i < bit_count) );
 		TEST( (index == i) == (i < bit_count) );
 	}
@@ -37,7 +37,7 @@ static void BitTree_Test1 ()
 
 	for (uint i = 0; i < bit2_count+1; ++i)
 	{
-		uint	index;
+		uint	index = 0;
 		TEST( bit2.Assign( OUT index ) == (i < bit2_count) );
 		TEST( (index == i) == (i < bit2_count) );
 	}
@@ -86,5 +86,5 @@ extern void UnitTest_BitTree ()
 {
 	BitTree_Test1();
 
-    FG_LOGI( "UnitTest_BitTree - passed" );
+	FG_LOGI( "UnitTest_BitTree - passed" );
 }

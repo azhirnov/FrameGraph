@@ -9,8 +9,8 @@ extern void Test_Shader8 (VPipelineCompiler* compiler)
 	RayTracingPipelineDesc	ppln;
 	
 	ppln.AddShader( EShader::RayGen,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main", R"#(
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;
@@ -22,19 +22,19 @@ layout(shaderRecordNV) buffer block
 };
 void main()
 {
-    uint lx = gl_LaunchIDNV.x;
-    uint ly = gl_LaunchIDNV.y;
-    uint sx = gl_LaunchSizeNV.x;
-    uint sy = gl_LaunchSizeNV.y;
-    traceNV(accNV, lx, ly, sx, sy, 0u, vec3(0.0f), 0.5f, vec3(1.0f), 0.75f, 1);
-    arr[3] = 1.0f;
-    pad = payload;
+	uint lx = gl_LaunchIDNV.x;
+	uint ly = gl_LaunchIDNV.y;
+	uint sx = gl_LaunchSizeNV.x;
+	uint sy = gl_LaunchSizeNV.y;
+	traceNV(accNV, lx, ly, sx, sy, 0u, vec3(0.0f), 0.5f, vec3(1.0f), 0.75f, 1);
+	arr[3] = 1.0f;
+	pad = payload;
 }
 )#" );
 
 	ppln.AddShader( EShader::RayAnyHit,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main", R"#(
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(location = 1) rayPayloadInNV vec4 incomingPayload;
@@ -57,15 +57,15 @@ void main()
 	mat4x3 v14 = gl_WorldToObjectNV;
 	incomingPayload = vec4(0.5f);
 	if (v2 == 1)
-	    ignoreIntersectionNV();
+		ignoreIntersectionNV();
 	else
-	    terminateRayNV();
+		terminateRayNV();
 }
 )#" );
 
 	ppln.AddShader( EShader::RayCallable,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main", R"#(
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(location = 0) callableDataNV vec4 data0;
@@ -76,7 +76,7 @@ void main()
 {
 	uvec3 id = gl_LaunchIDNV;
 	uvec3 size = gl_LaunchSizeNV;
-    uint curFlags = gl_IncomingRayFlagsNV;
+	uint curFlags = gl_IncomingRayFlagsNV;
 	curFlags = curFlags & gl_RayFlagsOpaqueNV;
 	data1 = 256U;
 	executeCallableNV(2,1);
@@ -84,8 +84,8 @@ void main()
 )#" );
 
 	ppln.AddShader( EShader::RayClosestHit,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main", R"#(
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;
@@ -113,8 +113,8 @@ void main()
 )#" );
 
 	ppln.AddShader( EShader::RayMiss,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main", R"#(
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;
@@ -135,8 +135,8 @@ void main()
 )#" );
 
 	ppln.AddShader( EShader::RayIntersection,
-				    EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-				    "main", R"#(
+					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
+					"main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 hitAttributeNV vec4 iAttr;
@@ -165,5 +165,5 @@ void main()
 	
 	// TODO
 
-    FG_LOGI( "Test_Shader8 - passed" );
+	FG_LOGI( "Test_Shader8 - passed" );
 }

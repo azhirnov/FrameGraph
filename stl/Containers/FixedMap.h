@@ -103,7 +103,7 @@ namespace FG
 	
 /*
 =================================================
-    constructor
+	constructor
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -115,7 +115,7 @@ namespace FG
 	
 /*
 =================================================
-    constructor
+	constructor
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -135,7 +135,7 @@ namespace FG
 	
 /*
 =================================================
-    constructor
+	constructor
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -156,7 +156,7 @@ namespace FG
 	
 /*
 =================================================
-    operator =
+	operator =
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -182,7 +182,7 @@ namespace FG
 	
 /*
 =================================================
-    operator =
+	operator =
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -206,7 +206,7 @@ namespace FG
 
 /*
 =================================================
-    operator ==
+	operator ==
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -228,7 +228,7 @@ namespace FG
 	
 /*
 =================================================
-    insert
+	insert
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -254,7 +254,7 @@ namespace FG
 	
 /*
 =================================================
-    insert
+	insert
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -280,7 +280,7 @@ namespace FG
 	
 /*
 =================================================
-    insert_or_assign
+	insert_or_assign
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -310,7 +310,7 @@ namespace FG
 	
 /*
 =================================================
-    insert_or_assign
+	insert_or_assign
 =================================================
 */
 	template <typename K, typename V, size_t S>		
@@ -340,7 +340,7 @@ namespace FG
 
 /*
 =================================================
-    RecursiveBinarySearch
+	RecursiveBinarySearch
 =================================================
 */
 namespace _fg_hidden_
@@ -348,7 +348,7 @@ namespace _fg_hidden_
 	template <typename K, typename V, typename I, size_t N>
 	struct RecursiveBinarySearch
 	{
-        forceinline static  void  Run (INOUT size_t& left, INOUT size_t& right, const K &key, const I* indices, const Pair<K,V>* data)
+		forceinline static  void  Run (INOUT size_t& left, INOUT size_t& right, const K &key, const I* indices, const Pair<K,V>* data)
 		{
 			if ( right - left > 1 )
 			{
@@ -375,7 +375,7 @@ namespace _fg_hidden_
 
 /*
 =================================================
-    find
+	find
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -404,7 +404,7 @@ namespace _fg_hidden_
 	
 /*
 =================================================
-    find
+	find
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -433,7 +433,7 @@ namespace _fg_hidden_
 	
 /*
 =================================================
-    count
+	count
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -463,7 +463,7 @@ namespace _fg_hidden_
 
 /*
 =================================================
-    clear
+	clear
 =================================================
 */
 	template <typename K, typename V, size_t S>
@@ -482,7 +482,7 @@ namespace _fg_hidden_
 	
 /*
 =================================================
-    sort
+	sort
 =================================================
 */
 	template <typename K, typename V, size_t S>

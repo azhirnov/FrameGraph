@@ -329,6 +329,11 @@ Thread {
 				size:     256 b
 			}
 		}
+		srcBuffer:    "StagingWriteBuffer "
+		dstBuffer:    "const_buf2"
+		regions = {
+			{ 0 b, 0 b, 256 b }
+		}
 	}
 	Task {
 		name:    "update_buf1 (#3)"
@@ -347,6 +352,11 @@ Thread {
 				offset:   0 b
 				size:     256 b
 			}
+		}
+		srcBuffer:    "StagingWriteBuffer "
+		dstBuffer:    "const_buf1"
+		regions = {
+			{ 256 b, 0 b, 256 b }
 		}
 	}
 	Task {
@@ -367,6 +377,11 @@ Thread {
 				size:     256 b
 			}
 		}
+		srcBuffer:    "StagingWriteBuffer "
+		dstBuffer:    "const_buf2"
+		regions = {
+			{ 512 b, 256 b, 256 b }
+		}
 	}
 	Task {
 		name:    "update_buf3 (#5)"
@@ -386,6 +401,11 @@ Thread {
 				size:     256 b
 			}
 		}
+		srcBuffer:    "StagingWriteBuffer "
+		dstBuffer:    "const_buf2"
+		regions = {
+			{ 768 b, 0 b, 256 b }
+		}
 	}
 	Task {
 		name:    "DepthOnlyPass (#6)"
@@ -400,7 +420,7 @@ Thread {
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencilRT-ReadWrite, ClearBefore, EarlyFragmentTests
+				usage:          DepthStencilRT-ReadWrite, ClearBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -455,7 +475,7 @@ Thread {
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencilRT-ReadWrite, EarlyFragmentTests
+				usage:          DepthStencilRT-ReadWrite
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -538,7 +558,7 @@ Thread {
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencilRT-ReadWrite, InvalidateAfter, EarlyFragmentTests
+				usage:          DepthStencilRT-ReadWrite, InvalidateAfter
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -602,6 +622,8 @@ Thread {
 				layerCount:     1
 			}
 		}
+		srcImage:   "color_target"
+		layer:      0
 	}
 }
 ===============================================================

@@ -27,8 +27,8 @@ namespace FG
 		float					mipLodBias				= 0.0f;
 		Optional<float>			maxAnisotropy;
 		Optional<ECompareOp>	compareOp;
-		float					minLod					= 0.0f;
-		float					maxLod					= 0.0f;
+		float					minLod					= -1000.0f;
+		float					maxLod					= 1000.0f;
 		EBorderColor			borderColor				= EBorderColor::FloatTransparentBlack;
 		bool					unnormalizedCoordinates	= false;
 

@@ -29,7 +29,7 @@ Thread {
 				}
 				ImageMemoryBarrier {
 					srcTask:         SubmitRenderPass (#2)
-					dstTask:         ReadImage (#3)
+					dstTask:         Present (#3)
 					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    Transfer
 					dependencyFlags: 
@@ -44,7 +44,7 @@ Thread {
 					layerCount:      1
 				}
 				ImageMemoryBarrier {
-					srcTask:         ReadImage (#3)
+					srcTask:         Present (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
 					dstStageMask:    BottomOfPipe
@@ -62,30 +62,11 @@ Thread {
 		}
 	}
 
-	Buffer {
-		name:    "StagingReadBuffer "
-		size:    16 Mb
-		usage:   TransferSrc | TransferDst
-		barriers = {
-				BufferMemoryBarrier {
-					srcTask:         ReadImage (#3)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
-					dependencyFlags: 
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   
-					offset:          0 b
-					size:            1875 Kb
-				}
-		}
-	}
-
 	-----------------------------------------------------------
 	Task {
 		name:    "SubmitRenderPass (#2)"
 		input =  {  }
-		output = { ReadImage (#3) }
+		output = {  }
 		resource_usage = {
 			ImageUsage {
 				name:           "DstImage"
@@ -98,8 +79,8 @@ Thread {
 		}
 	}
 	Task {
-		name:    "ReadImage (#3)"
-		input =  { SubmitRenderPass (#2) }
+		name:    "Present (#3)"
+		input =  {  }
 		output = {  }
 		resource_usage = {
 			ImageUsage {
@@ -110,29 +91,9 @@ Thread {
 				baseArrayLayer: 0
 				layerCount:     1
 			}
-			BufferUsage {
-				name:     "StagingReadBuffer "
-				usage:    TransferDst
-				offset:   0 b
-				size:     1875 Kb
-			}
 		}
-		srcImage:    "DstImage"
-		srcLayout:   TransferSrcOptimal
-		dstBuffer:   "StagingReadBuffer "
-		regions = {
-			Region {
-				bufferOffset:        0 b
-				bufferRowLength:     800
-				bufferImageHeight:   600
-				imageAspectMask:     Color
-				imageMipLevel:       0
-				imageBaseArrayLayer: 0
-				imageLayerCount:     1
-				imageOffset:         ( 0, 0, 0 )
-				imageSize:           ( 800, 600, 1 )
-			}
-		}
+		srcImage:   "DstImage"
+		layer:      0
 	}
 }
 ===============================================================

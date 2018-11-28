@@ -60,6 +60,36 @@ namespace FG
 		
 		return true;
 	}
+	
+/*
+=================================================
+	AllocateForAccelStruct
+=================================================
+*/
+	bool VMemoryObj::AllocateForAccelStruct (VkAccelerationStructureNV accelStruct)
+	{
+		SCOPELOCK( _rcCheck );
+		
+		auto	mem_mngr = _manager.lock();
+		CHECK_ERR( mem_mngr and mem_mngr->AllocateForAccelStruct( accelStruct, _desc, INOUT _storage ));
+
+		return true;
+	}
+	
+/*
+=================================================
+	AllocateForStratchBuffer
+=================================================
+*/
+	bool VMemoryObj::AllocateForStratchBuffer (VkAccelerationStructureNV accelStruct, VkAccelerationStructureMemoryRequirementsTypeNV reqType, VkBuffer stratchBuffer)
+	{
+		SCOPELOCK( _rcCheck );
+		
+		auto	mem_mngr = _manager.lock();
+		CHECK_ERR( mem_mngr and mem_mngr->AllocateForStratchBuffer( accelStruct, reqType, stratchBuffer, _desc, INOUT _storage ));
+
+		return true;
+	}
 
 /*
 =================================================

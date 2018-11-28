@@ -23,7 +23,7 @@ if (${FG_ENABLE_DEVIL})
 	endif()
 
 	ExternalProject_Add( "External.DevIL"
-        LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
+		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
 		# download
 		URL					"${FG_DEVIL_DOWNLOAD_LINK}"
 		DOWNLOAD_DIR		"${FG_EXTERNAL_DEVIL_PATH}"

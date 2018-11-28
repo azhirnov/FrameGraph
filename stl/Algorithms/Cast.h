@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Common.h"
+#include "stl/Containers/Ptr.h"
 
 namespace FG
 {
@@ -56,6 +57,47 @@ namespace FG
 	ND_ forceinline constexpr R*  Cast (T* value)
 	{
 		return static_cast< R *>( static_cast< void *>(value) );
+	}
+
+	template <typename R, typename T>
+	ND_ forceinline constexpr Ptr<R const>  Cast (Ptr<T const> value)
+	{
+		return Cast<R>( value.operator->() );
+	}
+	
+	template <typename R, typename T>
+	ND_ forceinline constexpr Ptr<R>  Cast (Ptr<T> value)
+	{
+		return Cast<R>( value.operator->() );
+	}
+	
+/*
+=================================================
+	DynCast
+=================================================
+*/
+	template <typename R, typename T>
+	ND_ forceinline constexpr R const*  DynCast (T const* value)
+	{
+		return dynamic_cast< R const *>( value );
+	}
+	
+	template <typename R, typename T>
+	ND_ forceinline constexpr R*  DynCast (T* value)
+	{
+		return dynamic_cast< R *>( value );
+	}
+
+	template <typename R, typename T>
+	ND_ forceinline constexpr Ptr<R const>  DynCast (Ptr<T const> value)
+	{
+		return DynCast<R>( value.operator->() );
+	}
+	
+	template <typename R, typename T>
+	ND_ forceinline constexpr Ptr<R>  DynCast (Ptr<T> value)
+	{
+		return DynCast<R>( value.operator->() );
 	}
 
 /*

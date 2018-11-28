@@ -250,7 +250,7 @@ namespace FG
 		CHECK_ERR( queue_ptr );
 
 		CHECK_ERR( _submissionGraph.Submit( queue_ptr, batchId, indexInBatch,
-										    ArrayView{ Cast<VkCommandBuffer>(batch_data->commands.data()), batch_data->commands.size() }
+											ArrayView{ Cast<VkCommandBuffer>(batch_data->commands.data()), batch_data->commands.size() }
 					));
 		return true;
 	}
@@ -353,7 +353,7 @@ namespace FG
 	DumpToGraphViz
 =================================================
 */
-	bool  VFrameGraph::DumpToGraphViz (EGraphVizFlags, OUT String &result) const
+	bool  VFrameGraph::DumpToGraphViz (OUT String &result) const
 	{
 		SHAREDLOCK( _rcCheck );
 

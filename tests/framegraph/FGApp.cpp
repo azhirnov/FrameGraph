@@ -6,6 +6,7 @@
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
 #include "stl/Stream/FileStream.h"
+#include <thread>
 
 #ifdef FG_ENABLE_LODEPNG
 #	include "lodepng/lodepng.h"
@@ -30,8 +31,10 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyImage1,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage3,		1 });
+		_tests.push_back({ &FGApp::Test_CopyImage4,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
+		_tests.push_back({ &FGApp::Test_Draw2,			1 });
 		_tests.push_back({ &FGApp::Test_Draw3,			1 });
 
 		_tests.push_back({ &FGApp::ImplTest_Scene1,		1 });
@@ -55,7 +58,7 @@ namespace {
 	{
 		VulkanSwapchainCreateInfo	swapchain_info;
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
-        swapchain_info.surfaceSize  = size;
+		swapchain_info.surfaceSize  = size;
 
 		CHECK_FATAL( _frameGraph1->RecreateSwapchain( swapchain_info ));
 	}
@@ -222,17 +225,31 @@ namespace {
 */
 	void FGApp::_Destroy ()
 	{
-		_frameGraph1->Deinitialize();
-		_frameGraph2->Deinitialize();
+		if ( _frameGraph1 )
+		{
+			_frameGraph1->Deinitialize();
+			_frameGraph1 = null;
+		}
 
-		_frameGraph1 = null;
-		_frameGraph2 = null;
+		if ( _frameGraph2 )
+		{
+			_frameGraph2->Deinitialize();
+			_frameGraph2 = null;
+		}
 
-		_frameGraphInst->Deinitialize();
-		_frameGraphInst = null;
+		if ( _frameGraphInst )
+		{
+			_frameGraphInst->Deinitialize();
+			_frameGraphInst = null;
+		}
 
 		_vulkan.Destroy();
-		_window->Destroy();
+		
+		if ( _window )
+		{
+			_window->Destroy();
+			_window.reset();
+		}
 	}
 	
 /*
@@ -407,7 +424,7 @@ namespace {
 		//std::this_thread::sleep_for( std::chrono::milliseconds(1) );
 		return true;
 #	else
-		// TODO
+		return false;
 #	endif
 	}
 
@@ -416,11 +433,11 @@ namespace {
 	Visualize
 =================================================
 */
-	bool FGApp::Visualize (StringView name, EGraphVizFlags flags, bool autoOpen) const
+	bool FGApp::Visualize (StringView name, bool autoOpen) const
 	{
 #	ifdef FG_GRAPHVIZ_DOT_EXECUTABLE
 		String	str;
-		CHECK_ERR( _frameGraphInst->DumpToGraphViz( flags, OUT str ));
+		CHECK_ERR( _frameGraphInst->DumpToGraphViz( OUT str ));
 		CHECK_ERR( CreateDirectory( FG_TEST_GRAPHS_DIR ));
 		
 		const StringView	format	= "png";
@@ -614,9 +631,9 @@ namespace {
 	ImageID  FGApp::CreateImage2D (uint2 size, EPixelFormat fmt, StringView name) const
 	{
 		ImageID		res = _frameGraph1->CreateImage( MemoryDesc{ EMemoryType::Default },
-												     ImageDesc{ EImage::Tex2D, uint3(size.x, size.y, 0), fmt,
-															    EImageUsage::Transfer | EImageUsage::ColorAttachment | EImageUsage::Sampled | EImageUsage::Storage },
-												    name );
+													 ImageDesc{ EImage::Tex2D, uint3(size.x, size.y, 0), fmt,
+																EImageUsage::Transfer | EImageUsage::ColorAttachment | EImageUsage::Sampled | EImageUsage::Storage },
+													name );
 		return res;
 	}
 	

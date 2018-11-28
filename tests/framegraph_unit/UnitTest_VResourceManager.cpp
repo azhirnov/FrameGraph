@@ -7,15 +7,15 @@
 
 static void SamplerCache_Test1 (const FGThreadPtr &fg)
 {
-    SamplerDesc		desc;
-    desc.SetAddressMode( EAddressMode::ClampToEdge );
-    desc.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear );
+	SamplerDesc		desc;
+	desc.SetAddressMode( EAddressMode::ClampToEdge );
+	desc.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear );
 
 	SamplerID	samp1 = fg->CreateSampler( desc );
 	SamplerID	samp2 = fg->CreateSampler( desc );
 	TEST( samp1 == samp2 );
 	
-    desc.SetAddressMode( EAddressMode::Repeat );
+	desc.SetAddressMode( EAddressMode::Repeat );
 	
 	SamplerID	samp3 = fg->CreateSampler( desc );
 	TEST( samp2 != samp3 );
@@ -111,5 +111,5 @@ extern void UnitTest_VResourceManager (const FGThreadPtr &fg)
 	PipelineCache_Test1( fg );
 	PipelineResources_Test1( fg );
 
-    FG_LOGI( "UnitTest_VResourceManager - passed" );
+	FG_LOGI( "UnitTest_VResourceManager - passed" );
 }

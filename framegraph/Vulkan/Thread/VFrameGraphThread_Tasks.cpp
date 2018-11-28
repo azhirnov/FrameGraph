@@ -467,8 +467,8 @@ namespace {
 				const uint	z_size = uint(size / slice_pitch);
 
 				copy.AddRegion( off, row_length, img_height,
-							    ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
-							    task.imageOffset + int3(0, 0, z_offset), uint3(image_size.x, image_size.y, z_size) );
+								ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
+								task.imageOffset + int3(0, 0, z_offset), uint3(image_size.x, image_size.y, z_size) );
 				readn += size;
 				z_offset += z_size;
 			
@@ -499,8 +499,8 @@ namespace {
 				const uint	y_size = uint(size / row_pitch);
 
 				copy.AddRegion( off, row_length, img_height,
-							    ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
-							    task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, image_size.y, 1) );
+								ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
+								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, image_size.y, 1) );
 				readn += size;
 			
 				sync.depends.push_back( AddTask( copy ));
@@ -640,7 +640,7 @@ namespace {
 				const uint	z_size = uint(range.size / slice_pitch);
 
 				copy.AddRegion( ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
-							    task.imageOffset + int3(0, 0, z_offset), uint3(image_size.x, image_size.y, z_size),
+								task.imageOffset + int3(0, 0, z_offset), uint3(image_size.x, image_size.y, z_size),
 								range.offset, row_length, img_height );
 				
 				load_event.parts.push_back( range );
@@ -673,7 +673,7 @@ namespace {
 				const uint	y_size = uint(range.size / row_pitch);
 
 				copy.AddRegion( ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
-							    task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, image_size.y, 1),
+								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, image_size.y, 1),
 								range.offset, row_length, img_height );
 				
 				load_event.parts.push_back( range );

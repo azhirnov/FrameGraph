@@ -40,7 +40,7 @@ namespace FG
 		bool	cb_was_called	= false;
 		bool	data_is_correct	= false;
 
-        const auto	OnLoaded =	[bpp, src_dim, src_row_pitch, img_offset, &src_data, OUT &cb_was_called, OUT &data_is_correct] (const ImageView &imageData)
+		const auto	OnLoaded =	[bpp, src_dim, src_row_pitch, img_offset, &src_data, OUT &cb_was_called, OUT &data_is_correct] (const ImageView &imageData)
 		{
 			cb_was_called	= true;
 			data_is_correct	= true;
@@ -104,18 +104,18 @@ namespace FG
 		}
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		CHECK_ERR( Visualize( TEST_NAME, EGraphVizFlags::Default ));
+		CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( not cb_was_called );
 		
-        CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _frameGraphInst->WaitIdle() );
 
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 
 		DeleteResources( src_image, dst_image );
 
-        FG_LOGI( TEST_NAME << " - passed" );
+		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
 

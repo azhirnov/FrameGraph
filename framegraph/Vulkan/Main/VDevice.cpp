@@ -11,9 +11,9 @@ namespace FG
 =================================================
 */
 	VDevice::VDevice (const VulkanDeviceInfo &vdi) :
-        _vkInstance{ BitCast<VkInstance>( vdi.instance )},
-        _vkPhysicalDevice{ BitCast<VkPhysicalDevice>( vdi.physicalDevice )},
-        _vkDevice{ BitCast<VkDevice>( vdi.device )},
+		_vkInstance{ BitCast<VkInstance>( vdi.instance )},
+		_vkPhysicalDevice{ BitCast<VkPhysicalDevice>( vdi.physicalDevice )},
+		_vkDevice{ BitCast<VkDevice>( vdi.device )},
 		_vkVersion{ EShaderLangFormat::Unknown }
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );

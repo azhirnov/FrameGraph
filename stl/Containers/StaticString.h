@@ -11,7 +11,7 @@ namespace FG
 	// Static String
 	//
 
-    template <typename CharT, size_t StringSize>
+	template <typename CharT, size_t StringSize>
 	struct TStaticString
 	{
 	// type
@@ -93,7 +93,7 @@ namespace FG
 	};
 
 
-    template <size_t StringSize>
+	template <size_t StringSize>
 	using StaticString = TStaticString< char, StringSize >;
 
 }	// FG
@@ -102,7 +102,7 @@ namespace FG
 namespace std
 {
 
-    template <typename CharT, size_t StringSize>
+	template <typename CharT, size_t StringSize>
 	struct hash< FG::TStaticString< CharT, StringSize > >
 	{
 		ND_ size_t  operator () (const FG::TStaticString<CharT, StringSize> &value) const noexcept

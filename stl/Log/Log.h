@@ -31,7 +31,7 @@ namespace FG
 	{switch ( ::FG::Log::_level_( (_msg_), (FG_FUNCTION_NAME), (_file_), (_line_) ) ) \
 	{ \
 		case ::FG::Log::EResult::Continue :	break; \
-        case ::FG::Log::EResult::Break :	FG_PRIVATE_BREAK_POINT();		break; \
+		case ::FG::Log::EResult::Break :	FG_PRIVATE_BREAK_POINT();		break; \
 		case ::FG::Log::EResult::Abort :	::exit( EXIT_FAILURE );	break; \
 	}}
 

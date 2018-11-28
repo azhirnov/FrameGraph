@@ -21,20 +21,20 @@ R"#(
 out vec3	v_Color;
 
 const vec2	g_Positions[3] = vec2[](
-    vec2(0.0, -0.5),
-    vec2(0.5, 0.5),
-    vec2(-0.5, 0.5)
+	vec2(0.0, -0.5),
+	vec2(0.5, 0.5),
+	vec2(-0.5, 0.5)
 );
 
 const vec3	g_Colors[3] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
+	vec3(1.0, 0.0, 0.0),
+	vec3(0.0, 1.0, 0.0),
+	vec3(0.0, 0.0, 1.0)
 );
 
 void main() {
-    gl_Position	= vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
-    v_Color		= g_Colors[gl_VertexIndex];
+	gl_Position	= vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
+	v_Color		= g_Colors[gl_VertexIndex];
 }
 )#" );
 		
@@ -75,21 +75,24 @@ void main() {
 		
 		frame_graph->AddDrawTask( render_pass,
 									DrawTask()
-									.SetPipeline( pipeline ).SetVertices( 0, 3 )
-									.SetRenderState( RenderState().SetTopology( EPrimitive::TriangleList ) )
-		);
+										.SetPipeline( pipeline ).SetVertices( 0, 3 )
+										.SetRenderState( RenderState().SetTopology( EPrimitive::TriangleList ) ));
 
 		Task	t_draw		= frame_graph->AddTask( SubmitRenderPass{ render_pass });
-		Task	t_present	= frame_graph->AddTask( Present{ image } );
+		Task	t_present	= frame_graph->AddTask( Present{ image }.DependsOn( t_draw ));
 		FG_UNUSED( t_present );
 
 		CHECK_ERR( frame_graph->Compile() );
 		CHECK_ERR( _frameGraphInst->Execute() );
+		
+		CHECK_ERR( CompareDumps( TEST_NAME ));
+		CHECK_ERR( Visualize( TEST_NAME ));
 
-		frame_graph->DestroyResource( image );
-		frame_graph->DestroyResource( pipeline );
+		CHECK_ERR( _frameGraphInst->WaitIdle() );
 
-        //FG_LOGI( TEST_NAME << " - passed" );
+		DeleteResources( image, pipeline );
+
+		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
 

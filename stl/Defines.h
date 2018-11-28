@@ -147,52 +147,52 @@
 // (text, file, line)
 #ifndef FG_LOGI
 #	define FG_LOGI( ... ) \
-            FG_PRIVATE_LOGI(FG_PRIVATE_GETARG_0( __VA_ARGS__, "" ), \
-                            FG_PRIVATE_GETARG_1( __VA_ARGS__, __FILE__ ), \
-                            FG_PRIVATE_GETARG_2( __VA_ARGS__, __FILE__, __LINE__ ))
+			FG_PRIVATE_LOGI(FG_PRIVATE_GETARG_0( __VA_ARGS__, "" ), \
+							FG_PRIVATE_GETARG_1( __VA_ARGS__, __FILE__ ), \
+							FG_PRIVATE_GETARG_2( __VA_ARGS__, __FILE__, __LINE__ ))
 #endif
 
 #ifndef FG_LOGE
 #	define FG_LOGE( ... ) \
-            FG_PRIVATE_LOGE(FG_PRIVATE_GETARG_0( __VA_ARGS__, "" ), \
-                            FG_PRIVATE_GETARG_1( __VA_ARGS__, __FILE__ ), \
-                            FG_PRIVATE_GETARG_2( __VA_ARGS__, __FILE__, __LINE__ ))
+			FG_PRIVATE_LOGE(FG_PRIVATE_GETARG_0( __VA_ARGS__, "" ), \
+							FG_PRIVATE_GETARG_1( __VA_ARGS__, __FILE__ ), \
+							FG_PRIVATE_GETARG_2( __VA_ARGS__, __FILE__, __LINE__ ))
 #endif
 
 
 // check function return value
 #ifndef CHECK
 #	define FG_PRIVATE_CHECK( _expr_, _text_ ) \
-        {if (( _expr_ )) {} \
+		{if (( _expr_ )) {} \
 		 else { \
 			FG_LOGE( _text_ ); \
 		}}
 
 #   define CHECK( _func_ ) \
-        FG_PRIVATE_CHECK( (_func_), FG_PRIVATE_TOSTRING( _func_ ) )
+		FG_PRIVATE_CHECK( (_func_), FG_PRIVATE_TOSTRING( _func_ ) )
 #endif
 
 
 // check function return value and return error code
 #ifndef CHECK_ERR
 #	define FG_PRIVATE_CHECK_ERR( _expr_, _ret_ ) \
-        {if (( _expr_ )) {}\
+		{if (( _expr_ )) {}\
 		  else { \
-            FG_LOGE( FG_PRIVATE_TOSTRING( _expr_ ) ); \
+			FG_LOGE( FG_PRIVATE_TOSTRING( _expr_ ) ); \
 			return (_ret_); \
 		}}
 
 #	define CHECK_ERR( ... ) \
-        FG_PRIVATE_CHECK_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FG::Default ) )
+		FG_PRIVATE_CHECK_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FG::Default ) )
 #endif
 
 
 // check function return value and exit
 #ifndef CHECK_FATAL
 #	define CHECK_FATAL( _expr_ ) \
-        {if (( _expr_ )) {}\
+		{if (( _expr_ )) {}\
 		  else { \
-            FG_LOGE( FG_PRIVATE_TOSTRING( _expr_ ) ); \
+			FG_LOGE( FG_PRIVATE_TOSTRING( _expr_ ) ); \
 			::exit( EXIT_FAILURE ); \
 		}}
 #endif
@@ -204,15 +204,15 @@
 		{ FG_LOGE( _text_ );  return (_ret_); }
 
 #	define RETURN_ERR( ... ) \
-        FG_PRIVATE_RETURN_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FG::Default ) )
+		FG_PRIVATE_RETURN_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FG::Default ) )
 #endif
 
 
 // compile time assert
 #ifndef STATIC_ASSERT
 #	define STATIC_ASSERT( ... ) \
-        static_assert(	FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_0( __VA_ARGS__ ) ), \
-                        FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_1( __VA_ARGS__, FG_PRIVATE_TOSTRING(__VA_ARGS__) ) ) )
+		static_assert(	FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_0( __VA_ARGS__ ) ), \
+						FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_1( __VA_ARGS__, FG_PRIVATE_TOSTRING(__VA_ARGS__) ) ) )
 #endif
 
 
@@ -232,9 +232,9 @@
 #ifdef COMPILER_MSVC
 #	define ENABLE_ENUM_CHECKS() \
 		__pragma (warning (push)) \
-        __pragma (warning (error: 4061)) /*enumerator 'identifier' in switch of enum 'enumeration' is not explicitly handled by a case label*/ \
-        __pragma (warning (error: 4062)) /*enumerator 'identifier' in switch of enum 'enumeration' is not handled*/ \
-        __pragma (warning (error: 4063)) /*case 'number' is not a valid value for switch of enum 'type'*/ \
+		__pragma (warning (error: 4061)) /*enumerator 'identifier' in switch of enum 'enumeration' is not explicitly handled by a case label*/ \
+		__pragma (warning (error: 4062)) /*enumerator 'identifier' in switch of enum 'enumeration' is not handled*/ \
+		__pragma (warning (error: 4063)) /*case 'number' is not a valid value for switch of enum 'type'*/ \
 
 #	define DISABLE_ENUM_CHECKS() \
 		__pragma (warning (pop)) \

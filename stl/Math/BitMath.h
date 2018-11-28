@@ -42,9 +42,9 @@ namespace FG
 		
 	#elif defined(COMPILER_GCC) or defined(COMPILER_CLANG)
 		if constexpr ( sizeof(x) > sizeof(uint) )
-            return x ? (sizeof(x)*8)-1 - __builtin_clzll( x ) : INVALID_INDEX;
+			return x ? (sizeof(x)*8)-1 - __builtin_clzll( x ) : INVALID_INDEX;
 		else
-            return x ? (sizeof(x)*8)-1 - __builtin_clz( x ) : INVALID_INDEX;
+			return x ? (sizeof(x)*8)-1 - __builtin_clz( x ) : INVALID_INDEX;
 
 	#else
 		//return std::ilogb( x );

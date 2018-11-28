@@ -27,5 +27,5 @@ static void LinearAllocator_Test1 ()
 extern void UnitTest_LinearAllocator ()
 {
 	LinearAllocator_Test1();
-    FG_LOGI( "UnitTest_LinearAllocator - passed" );
+	FG_LOGI( "UnitTest_LinearAllocator - passed" );
 }

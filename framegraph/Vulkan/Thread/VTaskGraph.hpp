@@ -377,7 +377,7 @@ namespace FG
 */
 	inline VFgTask<Present>::VFgTask (VFrameGraphThread *fg, const Present &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		image{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
 		layer{ task.layer }
 	{}
 //-----------------------------------------------------------------------------

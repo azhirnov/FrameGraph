@@ -25,6 +25,7 @@ namespace FG
 			BufferID		bufferId;
 			RawMemoryID		memoryId;
 			BytesU			capacity;
+			BytesU			offset;
 			BytesU			size;
 			
 			void *			mappedPtr	= null;
@@ -41,7 +42,7 @@ namespace FG
 			ND_ BytesU	Capacity ()		const	{ return capacity; }
 			ND_ BytesU	Available ()	const	{ return Capacity() - size; }
 			ND_ bool	IsFull ()		const	{ return size >= Capacity(); }
-			ND_ bool	Empty ()		const	{ return size == 0_b; }
+			ND_ bool	Empty ()		const	{ return size == offset; }
 		};
 
 		
@@ -128,8 +129,8 @@ namespace FG
 		bool Initialize ();
 		void Deinitialize ();
 
-		void OnBeginFrame (uint frameId);
-		void OnEndFrame ();
+		void OnBeginFrame (uint frameId, bool isFirst);
+		void OnEndFrame (bool isFirst);
 
 		bool StoreBufferData (ArrayView<uint8_t> srcData, BytesU srcOffset,
 							  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
@@ -153,6 +154,9 @@ namespace FG
 							  OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
 
 		bool _MapMemory (StagingBuffer &buf) const;
+
+		void _OnFirstUsageInFrame ();
+		void _OnNextUsageInFrame ();
 	};
 
 

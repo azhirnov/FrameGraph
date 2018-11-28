@@ -325,5 +325,5 @@ static void VBuffer_Test1 ()
 extern void UnitTest_VBuffer ()
 {
 	VBuffer_Test1();
-    FG_LOGI( "UnitTest_VBuffer - passed" );
+	FG_LOGI( "UnitTest_VBuffer - passed" );
 }

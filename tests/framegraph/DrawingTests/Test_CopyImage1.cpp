@@ -44,7 +44,7 @@ namespace FG
 		bool	cb_was_called	= false;
 		bool	data_is_correct	= false;
 
-        const auto	OnLoaded =	[bpp, src_dim, src_row_pitch, img_offset, &src_data, OUT &cb_was_called, OUT &data_is_correct] (const ImageView &imageData)
+		const auto	OnLoaded =	[bpp, src_dim, src_row_pitch, img_offset, &src_data, OUT &cb_was_called, OUT &data_is_correct] (const ImageView &imageData)
 		{
 			cb_was_called	= true;
 			data_is_correct	= true;
@@ -73,32 +73,32 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-        CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-        CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 		Task	t_update	= frame_graph->AddTask( UpdateImage().SetImage( src_image ).SetData( src_data, src_dim ) );
 		Task	t_copy		= frame_graph->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, src_dim ).DependsOn( t_update ) );
 		Task	t_read		= frame_graph->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 		FG_UNUSED( t_read );
 		
-        CHECK_ERR( frame_graph->Compile() );
-        CHECK_ERR( _frameGraphInst->Execute() );
+		CHECK_ERR( frame_graph->Compile() );
+		CHECK_ERR( _frameGraphInst->Execute() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		CHECK_ERR( Visualize( TEST_NAME, EGraphVizFlags::Default ));
+		CHECK_ERR( Visualize( TEST_NAME ));
 
 		// after execution 'src_data' was copied to 'src_image', 'src_image' copied to 'dst_image', 'dst_image' copied to staging buffer...
 		CHECK_ERR( not cb_was_called );
 		
 		// all staging buffers will be synchronized, all 'ReadImage' callbacks will be called.
-        CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _frameGraphInst->WaitIdle() );
 
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 
 		DeleteResources( src_image, dst_image );
 
-        FG_LOGI( TEST_NAME << " - passed" );
+		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
 

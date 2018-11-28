@@ -20,7 +20,7 @@ extern void UnitTest_Main ()
 	UnitTest_ID();
 	UnitTest_VBuffer();
 	UnitTest_VImage();
-    FG_LOGI( "UnitTest_Main - finished" );
+	FG_LOGI( "UnitTest_Main - finished" );
 }
 //-----------------------------------------------------------------------------
 
@@ -31,5 +31,5 @@ extern void UnitTest_VResourceManager (const FGThreadPtr &fg);
 extern void UnitTest_FGMain (const FGThreadPtr &fg)
 {
 	UnitTest_VResourceManager( fg );
-    FG_LOGI( "UnitTest_FGMain - finished" );
+	FG_LOGI( "UnitTest_FGMain - finished" );
 }

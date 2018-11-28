@@ -72,7 +72,7 @@ namespace FG
 			if ( EPixelFormat_HasDepthOrStencil( dst.desc.format ) )
 			{
 				ASSERT( src.first == RenderTargetID()			or
-					    src.first == RenderTargetID("depth")	or
+						src.first == RenderTargetID("depth")	or
 						src.first == RenderTargetID("depthStencil") );
 				
 				dst.state |= EResourceState::DepthStencilAttachmentReadWrite;	// TODO: support other layouts
@@ -133,6 +133,16 @@ namespace FG
 		return true;
 	}
 	
+/*
+=================================================
+	Destroy
+=================================================
+*/
+	void VLogicalRenderPass::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
+	{
+		// TODO
+	}
+
 /*
 =================================================
 	destructor

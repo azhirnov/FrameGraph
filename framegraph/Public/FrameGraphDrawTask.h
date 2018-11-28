@@ -59,6 +59,17 @@ namespace FG
 			}
 		};
 
+		struct PushConstantData
+		{
+			PushConstantID		id;
+			union {
+				float4			fdata;
+				int4			idata;
+			};
+		};
+
+		using PushConstants_t = FixedArray< PushConstantData, 2 >;
+
 		using Scissors_t = FixedArray< RectI, FG_MaxViewports >;
 
 		struct DrawCmd
@@ -83,6 +94,8 @@ namespace FG
 		DrawCmd					drawCmd;
 		Scissors_t				scissors;
 
+		PushConstants_t			pushConstants;
+
 
 	// methods
 		DrawTask () :
@@ -101,6 +114,9 @@ namespace FG
 		DrawTask&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
 
 		DrawTask&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b){ vertexBuffers.Add( id, vb.Get(), offset );  return *this; }
+
+		DrawTask&  AddPushConstant (const PushConstantID &id, const float4 &data)	{ pushConstants.push_back({ id, {data} });  return *this; }
+		DrawTask&  AddPushConstant (const PushConstantID &id, const int4 &data)		{ pushConstants.push_back({ id, {data} });  return *this; }
 	};
 
 
@@ -111,8 +127,9 @@ namespace FG
 	struct DrawIndexedTask final : _fg_hidden_::BaseDrawTask<DrawIndexedTask>
 	{
 	// types
-		using Buffers_t		= DrawTask::Buffers_t;
-		using Scissors_t	= DrawTask::Scissors_t;
+		using Buffers_t			= DrawTask::Buffers_t;
+		using Scissors_t		= DrawTask::Scissors_t;
+		using PushConstants_t	= DrawTask::PushConstants_t;
 
 		struct DrawCmd
 		{
@@ -140,6 +157,8 @@ namespace FG
 		
 		DrawCmd					drawCmd;
 		Scissors_t				scissors;
+		
+		PushConstants_t			pushConstants;
 
 
 	// methods
@@ -151,11 +170,19 @@ namespace FG
 		DrawIndexedTask&  SetInstances (uint first, uint count)								{ drawCmd.firstInstance = first;  drawCmd.instanceCount = count;  return *this; }
 		DrawIndexedTask&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)		{ indexBuffer = ib.Get();  indexBufferOffset = off;  indexType = type;  return *this; }
 		DrawIndexedTask&  SetRenderState (const RenderState &rs)							{ renderState = rs;  return *this; }
+		DrawIndexedTask&  SetVertexInput (const VertexInputState &value)					{ vertexInput = value;  return *this; }
+		DrawIndexedTask&  SetDynamicStates (EPipelineDynamicState value)					{ dynamicStates = value;  return *this; }
+		DrawIndexedTask&  SetDrawCmd(const DrawCmd &value)									{ drawCmd = value;  return *this; }
 		
 		DrawIndexedTask&  AddScissor (const RectI &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }
 		DrawIndexedTask&  AddScissor (const RectU &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
+		
+		DrawIndexedTask&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
 
 		DrawIndexedTask&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b)	{ vertexBuffers.Add( id, vb.Get(), offset );  return *this; }
+		
+		DrawIndexedTask&  AddPushConstant (const PushConstantID &id, const float4 &data)	{ pushConstants.push_back({ id, {data} });  return *this; }
+		DrawIndexedTask&  AddPushConstant (const PushConstantID &id, const int4 &data)		{ pushConstants.push_back({ id, {data} });  return *this; }
 	};
 
 
@@ -163,11 +190,13 @@ namespace FG
 	//
 	// Clear Attachments
 	//
+	struct ClearAttachments final : _fg_hidden_::BaseDrawTask<ClearAttachments>
+	{
+	// methods
+		ClearAttachments () :
+			BaseDrawTask<ClearAttachments>{ "ClearAttachments", HtmlColor::Bisque } {}
+	};
 
-
-	//
-	// Draw External Command Buffer
-	//
 
 
 	//
@@ -208,6 +237,7 @@ namespace FG
 		DrawMeshTask&  AddScissor (const RectU &rect)					{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
 	};
 	
+
 
 	//
 	// Render Pass Description

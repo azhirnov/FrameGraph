@@ -40,13 +40,6 @@ namespace FG
 
 		_pipelineCache.OnBegin( _allocator );
 
-		_imageToLocal.Create( _allocator )->resize( _mainRM._imagePool.size() );
-		_bufferToLocal.Create( _allocator )->resize( _mainRM._bufferPool.size() );
-		
-		_localImages.Create( _allocator );
-		_localBuffers.Create( _allocator );
-		_logicalRenderPasses.Create( _allocator );
-
 		_samplerMap.Create( _allocator );
 		_pplnLayoutMap.Create( _allocator );
 		_dsLayoutMap.Create( _allocator );
@@ -55,18 +48,6 @@ namespace FG
 		_pplnResourcesMap.Create( _allocator );
 
 		_unassignIDs.Create( _allocator )->reserve( 256 );
-
-		// init default ID
-		/*{
-			Index_t		index;
-			CHECK( _localImages.Assign( OUT index ));
-			CHECK( index == 0 );
-
-			CHECK( _localBuffers.Assign( OUT index ));
-			CHECK( index == 0 );
-		}*/
-
-		// TODO
 	}
 	
 /*
@@ -129,34 +110,13 @@ namespace FG
 				DestroyResource( res.second, false );
 		}
 
-		// destroy local images
-		for (size_t i = 0; i < _localImagesCount; ++i)
-		{
-			auto&	image = (*_localImages)[ Index_t(i) ];
-			if ( not image.IsDestroyed() )
-				image.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
-		}
-		
-		// destroy local buffers
-		for (size_t i = 0; i < _localBuffersCount; ++i)
-		{
-			auto&	buffer = (*_localBuffers)[ Index_t(i) ];
-			if ( not buffer.IsDestroyed() )
-				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
-		}
-
 		_pipelineCache.MergePipelines( _mainRM._GetReadyToDeleteQueue() );
 
 		// unassign IDs
-        for (auto& vid : *_unassignIDs) {
-            std::visit( [this] (auto id) { DestroyResource( id, false ); }, vid );
+		for (auto& vid : *_unassignIDs) {
+			std::visit( [this] (auto id) { DestroyResource( id, false ); }, vid );
 		}
 		
-		_imageToLocal.Destroy();
-		_bufferToLocal.Destroy();
-		_localImages.Destroy();
-		_localBuffers.Destroy();
-		_logicalRenderPasses.Destroy();
 		_samplerMap.Destroy();
 		_pplnLayoutMap.Destroy();
 		_dsLayoutMap.Destroy();
@@ -165,6 +125,44 @@ namespace FG
 		_pplnResourcesMap.Destroy();
 		_unassignIDs.Destroy();
 		
+	}
+	
+/*
+=================================================
+	DestroyLocalResources
+=================================================
+*/
+	void VResourceManagerThread::DestroyLocalResources ()
+	{
+		// destroy local images
+		for (size_t i = 0; i < _localImagesCount; ++i)
+		{
+			auto&	image = _localImages[ Index_t(i) ];
+			if ( not image.IsDestroyed() )
+				image.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+		}
+		
+		// destroy local buffers
+		for (size_t i = 0; i < _localBuffersCount; ++i)
+		{
+			auto&	buffer = _localBuffers[ Index_t(i) ];
+			if ( not buffer.IsDestroyed() )
+				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+		}
+
+		for (size_t i = 0; i < _logicalRenderPasses.size(); ++i)
+		{
+			auto&	rp = _logicalRenderPasses[ Index_t(i) ];
+			if ( not rp.IsDestroyed() )
+				rp.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+		}
+
+		_imageToLocal.clear();
+		_bufferToLocal.clear();
+		_localImages.Release();
+		_localBuffers.Release();
+		_logicalRenderPasses.Release();
+
 		_localImagesCount	= 0;
 		_localBuffersCount	= 0;
 	}
@@ -181,11 +179,6 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		
-		ASSERT( not _imageToLocal.IsCreated() );
-		ASSERT( not _bufferToLocal.IsCreated() );
-		ASSERT( not _localImages.IsCreated() );
-		ASSERT( not _localBuffers.IsCreated() );
-		ASSERT( not _logicalRenderPasses.IsCreated() );
 		ASSERT( not _samplerMap.IsCreated() );
 		ASSERT( not _pplnLayoutMap.IsCreated() );
 		ASSERT( not _dsLayoutMap.IsCreated() );
@@ -221,7 +214,7 @@ namespace FG
 		_GetResourcePool(ID()).Unassign( cache.size(), INOUT cache );
 		ASSERT( cache.empty() );
 
-        if constexpr ( CountOf<IDs...>() > 0 )
+		if constexpr ( CountOf<IDs...>() > 0 )
 			_FreeIndexCache( Union<IDs...>() );
 	}
 
@@ -823,7 +816,7 @@ namespace FG
 		Replace( data );
 		ASSERT( id.InstanceID() == data.GetInstanceID() );
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		if ( not data.Create( *this, desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
 			DestroyResource( mem_id, isAsync );
 			_Unassign( id );
@@ -857,7 +850,7 @@ namespace FG
 		Replace( data );
 		ASSERT( id.InstanceID() == data.GetInstanceID() );
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		if ( not data.Create( *this, desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
 			DestroyResource( mem_id, isAsync );
 			_Unassign( id );
@@ -878,15 +871,17 @@ namespace FG
 		ASSERT( id );
 		SCOPELOCK( _rcCheck );
 
-		auto&	local = (*_bufferToLocal)[ id.Index() ];
+		_bufferToLocal.resize(Max( id.Index()+1, _bufferToLocal.size() ));
+
+		auto&	local = _bufferToLocal[ id.Index() ];
 
 		if ( local )
 			return local;
 
-		Index_t		index;
-		CHECK_ERR( _localBuffers->Assign( OUT index ));
+		Index_t		index = 0;
+		CHECK_ERR( _localBuffers.Assign( OUT index ));
 
-		auto&		data = (*_localBuffers)[ index ];
+		auto&		data = _localBuffers[ index ];
 		CHECK_ERR( data.Create( GetResource( id ) ));
 
 		_localBuffersCount = Max( index+1, _localBuffersCount );
@@ -905,15 +900,17 @@ namespace FG
 		ASSERT( id );
 		SCOPELOCK( _rcCheck );
 
-		auto&	local = (*_imageToLocal)[ id.Index() ];
+		_imageToLocal.resize(Max( id.Index()+1, _imageToLocal.size() ));
+
+		auto&	local = _imageToLocal[ id.Index() ];
 
 		if ( local )
 			return local;
 
-		Index_t		index;
-		CHECK_ERR( _localImages->Assign( OUT index ));
+		Index_t		index = 0;
+		CHECK_ERR( _localImages.Assign( OUT index ));
 
-		auto&		data = (*_localImages)[ index ];
+		auto&		data = _localImages[ index ];
 		CHECK_ERR( data.Create( GetResource( id ) ));
 
 		_localImagesCount = Max( index+1, _localImagesCount );
@@ -931,10 +928,10 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 
-        Index_t		index = 0;
-		CHECK_ERR( _logicalRenderPasses->Assign( OUT index ));
+		Index_t		index = 0;
+		CHECK_ERR( _logicalRenderPasses.Assign( OUT index ));
 		
-		auto&		data = (*_logicalRenderPasses)[ index ];
+		auto&		data = _logicalRenderPasses[ index ];
 		CHECK_ERR( data.Create( *this, desc ));
 
 		return LogicalPassID( index, 0 );
@@ -949,20 +946,16 @@ namespace FG
 	{
 		for (size_t i = 0; i < _localImagesCount; ++i)
 		{
-			auto&	image = (*_localImages)[ Index_t(i) ];
+			auto&	image = _localImages[ Index_t(i) ];
 			if ( not image.IsDestroyed() )
-			{
 				image.Data().ResetState( index, barrierMngr, debugger );
-			}
 		}
 		
 		for (size_t i = 0; i < _localBuffersCount; ++i)
 		{
-			auto&	buffer = (*_localBuffers)[ Index_t(i) ];
+			auto&	buffer = _localBuffers[ Index_t(i) ];
 			if ( not buffer.IsDestroyed() )
-			{
 				buffer.Data().ResetState( index, barrierMngr, debugger );
-			}
 		}
 	}
 	

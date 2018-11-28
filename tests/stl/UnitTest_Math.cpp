@@ -46,5 +46,5 @@ extern void UnitTest_Math ()
 	IsIntersects_Test1();
 	IntLog2_Test1();
 	BitScanForward_Test1();
-    FG_LOGI( "UnitTest_Math - passed" );
+	FG_LOGI( "UnitTest_Math - passed" );
 }

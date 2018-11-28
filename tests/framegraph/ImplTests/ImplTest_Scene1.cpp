@@ -64,7 +64,7 @@ in  vec2	at_Texcoord;
 out vec2	v_Texcoord;
 
 void main() {
-    gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
+	gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
 	v_Texcoord	= at_Texcoord;
 }
 )#" );
@@ -96,7 +96,7 @@ in  vec2	v_Texcoord;
 out vec4	out_Color;
 
 void main() {
-    out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
+	out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
 }
 )#" );
 
@@ -129,7 +129,7 @@ in  vec2	at_Texcoord;
 out vec2	v_Texcoord;
 
 void main() {
-    gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
+	gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
 	v_Texcoord	= at_Texcoord;
 }
 )#" );
@@ -159,7 +159,7 @@ layout (binding=1) uniform sampler2D un_ColorTexture;
 in  vec2	v_Texcoord;
 
 void main() {
-    if ( texture(un_ColorTexture, v_Texcoord).a * ub.color.a < 0.1f )
+	if ( texture(un_ColorTexture, v_Texcoord).a * ub.color.a < 0.1f )
 		discard;
 }
 )#" );
@@ -185,8 +185,8 @@ void main() {
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-        CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
-        CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		ImageID		color_target = frame_graph->CreateImage( MemoryDesc{},
 															 ImageDesc{ EImage::Tex2D,
@@ -323,14 +323,14 @@ void main() {
 		CHECK_ERR( _frameGraphInst->Execute() );
 	
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		CHECK_ERR( Visualize( TEST_NAME, EGraphVizFlags::Default ));
+		CHECK_ERR( Visualize( TEST_NAME ));
 		
-        CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _frameGraphInst->WaitIdle() );
 		
 		DeleteResources( const_buf1, const_buf2, const_buf3, vbuffer1, vbuffer2, texture1, texture2,
 						 color_target, depth_target, pipeline1, pipeline2, sampler1 );
 
-        FG_LOGI( TEST_NAME << " - passed" );
+		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
 

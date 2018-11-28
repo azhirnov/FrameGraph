@@ -75,5 +75,5 @@ extern void UnitTest_FixedMap ()
 	FixedMap_Test3();
 	FixedMap_Test4();
 
-    FG_LOGI( "UnitTest_FixedMap - passed" );
+	FG_LOGI( "UnitTest_FixedMap - passed" );
 }

@@ -112,9 +112,9 @@ namespace FG
 	inline VertexInputState&  VertexInputState::Add (const VertexID &id, ValueType ClassType:: *vertex, const VertexBufferID &bufferId)
 	{
 		return Add( id,
-				    VertexDesc< ValueType >::attrib,
-				    OffsetOf( vertex ),
-				    bufferId );
+					VertexDesc< ValueType >::attrib,
+					OffsetOf( vertex ),
+					bufferId );
 	}
 
 /*
@@ -128,9 +128,9 @@ namespace FG
 		const EVertexType	attrib = VertexDesc< ValueType >::attrib;
 
 		return Add( id,
-				    norm ? (attrib | EVertexType::NormalizedFlag) : (attrib & ~EVertexType::NormalizedFlag),
-				    OffsetOf( vertex ),
-				    bufferId );
+					norm ? (attrib | EVertexType::NormalizedFlag) : (attrib & ~EVertexType::NormalizedFlag),
+					OffsetOf( vertex ),
+					bufferId );
 	}
 
 }	// FG

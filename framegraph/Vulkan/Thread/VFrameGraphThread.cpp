@@ -420,6 +420,9 @@ namespace FG
 	template <typename ID>
 	inline void VFrameGraphThread::_DestroyResource (INOUT ID &id)
 	{
+		if ( not id )
+			return;
+
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
@@ -631,7 +634,7 @@ namespace FG
 		VkCommandBuffer		cmd;
 		VK_CHECK( dev.vkAllocateCommandBuffers( dev.GetVkDevice(), &info, OUT &cmd ));
 
-		queue->frames[_frameId].commands.push_back( cmd );
+		queue->frames[_frameId].pending.push_back( cmd );
 		return cmd;
 	}
 
@@ -983,7 +986,7 @@ namespace FG
 		if ( EnumEq( _compilationFlags, ECompilationFlags::EnableDebugger ) )
 		{
 			if ( not _debugger )
-				_debugger.reset( new VFrameGraphDebugger( *_instance.GetDebugger() ));
+				_debugger.reset( new VFrameGraphDebugger( *_instance.GetDebugger(), *this ));
 
 			_debugger->Setup( debugFlags );
 		}
@@ -1087,28 +1090,39 @@ namespace FG
 	bool VFrameGraphThread::Begin (const CommandBatchID &id, uint index, EThreadUsage usage)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _SetState( EState::Ready, EState::BeforeRecording ));
-
 		ASSERT( EnumAny( usage, _threadUsage ));
 		ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
-
-		VDevice const&	dev = _instance.GetDevice();
-
-		for (auto& queue : _queues)
+		
+		if ( _SetState( EState::Ready, EState::BeforeRecording ) )
 		{
-			auto&	frame = queue.frames[_frameId];
-
 			// recycle commands buffers
-			if ( not frame.commands.empty() ) {
-				dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.commands.size()), frame.commands.data() );
+			for (auto& queue : _queues)
+			{
+				auto&	frame	= queue.frames[_frameId];
+				auto&	dev		= _instance.GetDevice();
+
+				if ( not frame.executed.empty() ) {
+					dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.executed.size()), frame.executed.data() );
+				}
+
+				frame.executed.clear();
+				ASSERT( frame.pending.empty() );
 			}
-			frame.commands.clear();
+
+			_isFirstUsage = true;
+		}
+		else
+		{
+			// if current thread used for another batch
+			CHECK_ERR( _SetState( EState::Pending, EState::BeforeRecording ));
+
+			_isFirstUsage = false;
 		}
 
 		_taskGraph.OnStart( this );
 
 		if ( _stagingMngr )
-			_stagingMngr->OnBeginFrame( _frameId );
+			_stagingMngr->OnBeginFrame( _frameId, _isFirstUsage );
 
 		_cmdBatchId		= id;
 		_indexInBatch	= index;
@@ -1130,19 +1144,25 @@ namespace FG
 		ASSERT( _submissionGraph );
 
 		if ( _stagingMngr )
-			_stagingMngr->OnEndFrame();
+			_stagingMngr->OnEndFrame( _isFirstUsage );
 
 		CHECK_ERR( _BuildCommandBuffers() );
 		
 		if ( _debugger )
 			_debugger->OnEndFrame( _cmdBatchId, _indexInBatch );
 
-		for (auto& queue : _queues) {
-			CHECK( _submissionGraph->Submit( queue.ptr, _cmdBatchId, _indexInBatch, queue.frames[_frameId].commands ));
+		for (auto& queue : _queues)
+		{
+			auto&	frame = queue.frames[_frameId];
+
+			CHECK( _submissionGraph->Submit( queue.ptr, _cmdBatchId, _indexInBatch, frame.pending ));
+
+			frame.executed.append( frame.pending );
+			frame.pending.clear();
 		}
-		_submissionGraph = null;
 
 		_taskGraph.OnDiscardMemory();
+		_resourceMngr.DestroyLocalResources();
 		
 		_cmdBatchId		= Default;
 		_indexInBatch	= ~0u;
@@ -1170,12 +1190,14 @@ namespace FG
 		// check for uncommited barriers
 		CHECK( _barrierMngr.Empty() );
 
+		_submissionGraph = null;
+
 		_resourceMngr.OnEndFrame();
 		_resourceMngr.OnDiscardMemory();
 		_mainAllocator.Discard();
 		
 		if ( _swapchain )
-			_swapchain->Present( RawImageID() );	// TODO
+			_swapchain->Present( RawImageID() );	// TODO: move to 'Compile'
 
 		CHECK_ERR( _SetState( EState::Execute, EState::Idle ));
 		return true;
@@ -1191,24 +1213,25 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Idle, EState::WaitIdle ));
 		
-		VDevice const&	dev = _instance.GetDevice();
-
 		for (auto& queue : _queues)
 		{
-			auto&	frame = queue.frames[_frameId];
+			auto&	frame	= queue.frames[_frameId];
+			auto&	dev		= _instance.GetDevice();
 
 			// recycle commands buffers
-			if ( not frame.commands.empty() ) {
-				dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.commands.size()), frame.commands.data() );
+			if ( not frame.executed.empty() ) {
+				dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.executed.size()), frame.executed.data() );
 			}
-			frame.commands.clear();
+
+			frame.executed.clear();
+			ASSERT( frame.pending.empty() );
 		}
 
 		// to generate 'on gpu data loaded' events
 		if ( _stagingMngr )
 		{
-			_stagingMngr->OnBeginFrame( _frameId );
-			_stagingMngr->OnEndFrame();
+			_stagingMngr->OnBeginFrame( _frameId, true );
+			_stagingMngr->OnEndFrame( true );
 		}
 
 		CHECK_ERR( _SetState( EState::WaitIdle, EState::Idle ));

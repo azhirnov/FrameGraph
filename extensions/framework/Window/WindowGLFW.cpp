@@ -63,17 +63,19 @@ namespace {
 
 		glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
 
-        _window = glfwCreateWindow( int(size.x),
-                                    int(size.y),
-                                    title.data(),
-                                    null,
-                                    null );
+		_window = glfwCreateWindow( int(size.x),
+									int(size.y),
+									title.data(),
+									null,
+									null );
 		CHECK_ERR( _window );
 
 		glfwSetWindowUserPointer( _window, this );
 		glfwSetWindowRefreshCallback( _window, &_GLFW_RefreshCallback );
 		glfwSetFramebufferSizeCallback( _window, &_GLFW_ResizeCallback );
 		glfwSetKeyCallback( _window, &_GLFW_KeyCallback );
+		glfwSetMouseButtonCallback( _window, &_GLFW_MouseButtonCallback );
+		glfwSetCursorPosCallback( _window, &_GLFW_CursorPos );
 
 		return true;
 	}
@@ -147,9 +149,9 @@ namespace {
 	{
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 
-		StringView	key_name	= _MapKey( key );;
-		EKeyAction	key_action	= (action == GLFW_PRESS ? EKeyAction::Down :
-									action == GLFW_RELEASE ? EKeyAction::Up :
+		StringView	key_name	= _MapKey( key );
+		EKeyAction	key_action	= (action == GLFW_PRESS    ? EKeyAction::Down :
+									action == GLFW_RELEASE ? EKeyAction::Up   :
 									EKeyAction::Pressed);
 
 		if ( key_name.empty() )
@@ -157,6 +159,40 @@ namespace {
 
 		for (auto& listener : self->_listeners) {
 			listener->OnKey( key_name, key_action );
+		}
+	}
+	
+/*
+=================================================
+	_GLFW_MouseButtonCallback
+=================================================
+*/
+	void WindowGLFW::_GLFW_MouseButtonCallback (GLFWwindow* wnd, int button, int action, int)
+	{
+		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
+		
+		StringView	key_name	= _MapMouseButton( button );
+		EKeyAction	key_action	= (action == GLFW_PRESS    ? EKeyAction::Down :
+									action == GLFW_RELEASE ? EKeyAction::Up   :
+									EKeyAction::Pressed);
+
+		for (auto& listener : self->_listeners) {
+			listener->OnKey( key_name, key_action );
+		}
+	}
+	
+/*
+=================================================
+	_GLFW_CursorPos
+=================================================
+*/
+	void WindowGLFW::_GLFW_CursorPos (GLFWwindow* wnd, double xpos, double ypos)
+	{
+		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
+		float2	pos  = { float(xpos), float(ypos) };
+
+		for (auto& listener : self->_listeners) {
+			listener->OnMouseMove( pos );
 		}
 	}
 
@@ -368,6 +404,27 @@ namespace {
 			case GLFW_KEY_F10 :			return "F10";
 			case GLFW_KEY_F11 :			return "F11";
 			case GLFW_KEY_F12 :			return "F12";
+		}
+		return "";
+	}
+	
+/*
+=================================================
+	_MapMouseButton
+=================================================
+*/
+	StringView  WindowGLFW::_MapMouseButton (int button)
+	{
+		switch ( button )
+		{
+			case GLFW_MOUSE_BUTTON_LEFT :		return "left mb";
+			case GLFW_MOUSE_BUTTON_RIGHT :		return "right mb";
+			case GLFW_MOUSE_BUTTON_MIDDLE :		return "middle mb";
+			case GLFW_MOUSE_BUTTON_4 :			return "mouse btn 4";
+			case GLFW_MOUSE_BUTTON_5 :			return "mouse btn 5";
+			case GLFW_MOUSE_BUTTON_6 :			return "mouse btn 6";
+			case GLFW_MOUSE_BUTTON_7 :			return "mouse btn 7";
+			case GLFW_MOUSE_BUTTON_8 :			return "mouse btn 8";
 		}
 		return "";
 	}

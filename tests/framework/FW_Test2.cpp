@@ -41,6 +41,7 @@ public:
 	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
+	void OnMouseMove (const float2 &) override {}
 	
 	void OnKey (StringView key, EKeyAction action) override
 	{
@@ -232,7 +233,7 @@ public:
 
 				// clear image
 				RGBA32f				color		{ HSVColor{Fract( float(i) / 60.0f )} };
-                VkClearColorValue	clear_value {{ color.r, color.g, color.b, color.a }};
+				VkClearColorValue	clear_value {{ color.r, color.g, color.b, color.a }};
 
 				VkImageSubresourceRange	range;
 				range.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;

@@ -152,7 +152,7 @@ namespace FG
 		ND_ StructView<T>  section (size_t first, size_t count) const
 		{
 			return first < size() ?
-                    StructView<T>{ _array + BytesU(first * _stride), Min(size() - first, count) } :
+					StructView<T>{ _array + BytesU(first * _stride), Min(size() - first, count) } :
 					StructView<T>{};
 		}
 

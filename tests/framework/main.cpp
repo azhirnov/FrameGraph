@@ -19,8 +19,8 @@ int main ()
 	FW_Test2();
 #endif
 
-    FG_LOGI( "Tests.Framework finished" );
+	FG_LOGI( "Tests.Framework finished" );
 	
-    std::cin.ignore();
+	std::cin.ignore();
 	return 0;
 }

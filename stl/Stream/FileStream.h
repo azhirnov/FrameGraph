@@ -30,9 +30,9 @@ namespace FG
 		FileRStream (StringView filename);
 		FileRStream (const char *filename);
 		FileRStream (const String &filename);
-    #ifdef FG_STD_FILESYSTEM
+	#ifdef FG_STD_FILESYSTEM
 		FileRStream (const std::filesystem::path &path);
-    #endif
+	#endif
 		~FileRStream ();
 
 		bool	IsOpen ()	const override		{ return _file != null; }
@@ -65,9 +65,9 @@ namespace FG
 		FileWStream (StringView filename);
 		FileWStream (const char *filename);
 		FileWStream (const String &filename);
-    #ifdef FG_STD_FILESYSTEM
+	#ifdef FG_STD_FILESYSTEM
 		FileWStream (const std::filesystem::path &path);
-    #endif
+	#endif
 		~FileWStream ();
 		
 		bool	IsOpen ()	const override		{ return _file != null; }

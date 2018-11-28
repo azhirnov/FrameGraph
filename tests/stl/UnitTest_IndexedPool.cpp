@@ -65,5 +65,5 @@ extern void UnitTest_IndexedPool ()
 	ChunkedIndexedPool_Test2();
 	CachedIndexedPool_Test1();
 
-    FG_LOGI( "UnitTest_IndexedPool - passed" );
+	FG_LOGI( "UnitTest_IndexedPool - passed" );
 }

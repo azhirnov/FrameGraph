@@ -58,12 +58,12 @@ namespace _fg_hidden_
 				{
 					const Index_t	size = totalSize - off;
 
-					_bits[i]    = ~(BitCount < size ? BitType(0) : ((BitType(1) << (BitCount - size)) - 1) << size);
+					_bits[i]	= ~(BitCount < size ? BitType(0) : ((BitType(1) << (BitCount - size)) - 1) << size);
 					_highLevel &= ~(BitType(_bits[i] == 0) << i);
 				}
 				else
 				{
-					_bits[i]    = 0;
+					_bits[i]	= 0;
 					_highLevel &= ~(BitType(1) << i);
 				}
 			}

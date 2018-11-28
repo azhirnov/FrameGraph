@@ -72,9 +72,9 @@ namespace {
 		const uint	flags	= int(SDL_WINDOW_ALLOW_HIGHDPI) | int(SDL_WINDOW_RESIZABLE);
 
 		CHECK_ERR( (_window = SDL_CreateWindow( title.data(),
-											    SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-											    surfaceSize.x, surfaceSize.y,
-											    flags )) != null );
+												SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+												surfaceSize.x, surfaceSize.y,
+												flags )) != null );
 
 		_wndID = SDL_GetWindowID( _window );
 
