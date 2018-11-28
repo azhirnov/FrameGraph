@@ -19,7 +19,7 @@ int main ()
 {
 	MeshShader_Sample1();
 	RayTracing_Sample1();
-	//RayTracing_Sample2();
+	RayTracing_Sample2();
 	ShadingRateImage_Sample1();
 	ImageFootprint_Sample1();
 	FragShaderBarycentric_Sample1();

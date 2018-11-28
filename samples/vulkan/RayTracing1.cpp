@@ -114,6 +114,7 @@ public:
 	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
+	void OnMouseMove (const float2 &) override {}
 
 	bool Initialize ();
 	void Destroy ();
@@ -196,7 +197,7 @@ bool RayTracingApp::Initialize ()
 								  " RTX ",	// only RTX device is supported
 								  {{ VK_QUEUE_PRESENT_BIT | VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.0f }},
 								  VulkanDevice::GetRecomendedInstanceLayers(),
-								  { VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME },
+								  VulkanDevice::GetRecomendedInstanceExtensions(),
 								  { VK_NV_RAY_TRACING_EXTENSION_NAME }
 			));
 		
@@ -574,19 +575,20 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 		geometry[0].geometry.triangles.indexCount	= uint(CountOf( indices ));
 		geometry[0].geometry.triangles.indexType	= VK_INDEX_TYPE_UINT32;
 
-		VkAccelerationStructureCreateInfoNV	info = {};
-		info.sType				= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
-		info.info.type			= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-		info.info.geometryCount	= uint(CountOf( geometry ));
-		info.info.pGeometries	= geometry;
+		VkAccelerationStructureCreateInfoNV	createinfo = {};
+		createinfo.sType				= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
+		createinfo.info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+		createinfo.info.type			= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+		createinfo.info.geometryCount	= uint(CountOf( geometry ));
+		createinfo.info.pGeometries		= geometry;
 
-		VK_CHECK( vkCreateAccelerationStructureNV( vulkan.GetVkDevice(), &info, null, OUT &bottomLevelAS ));
+		VK_CHECK( vkCreateAccelerationStructureNV( vulkan.GetVkDevice(), &createinfo, null, OUT &bottomLevelAS ));
 		
 		VkAccelerationStructureMemoryRequirementsInfoNV	mem_info = {};
 		mem_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
 		mem_info.accelerationStructure	= bottomLevelAS;
 
-		VkMemoryRequirements2KHR	mem_req;
+		VkMemoryRequirements2	mem_req = {};
 		vkGetAccelerationStructureMemoryRequirementsNV( vulkan.GetVkDevice(), &mem_info, OUT &mem_req );
 		
 		VkDeviceSize	offset = AlignToLarger( res.dev.totalSize, mem_req.memoryRequirements.alignment );
@@ -609,6 +611,7 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 		res.onDraw.push_back( [this, geometry] (VkCommandBuffer cmd)
 		{
 			VkAccelerationStructureInfoNV	info = {};
+			info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
 			info.type			= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
 			info.geometryCount	= uint(CountOf( geometry ));
 			info.pGeometries	= geometry;
@@ -670,16 +673,18 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 
 	// create top level acceleration structure
 	{
-		VkAccelerationStructureCreateInfoNV	info = {};
-		info.sType				= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
-		info.info.type			= VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-		info.info.flags			= 0;
-		info.info.instanceCount	= 1;
+		VkAccelerationStructureCreateInfoNV	createinfo = {};
+		createinfo.sType				= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
+		createinfo.info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+		createinfo.info.type			= VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
+		createinfo.info.flags			= 0;
+		createinfo.info.instanceCount	= 1;
 
-		VK_CHECK( vkCreateAccelerationStructureNV( vulkan.GetVkDevice(), &info, null, OUT &topLevelAS ));
+		VK_CHECK( vkCreateAccelerationStructureNV( vulkan.GetVkDevice(), &createinfo, null, OUT &topLevelAS ));
 		
 		VkAccelerationStructureMemoryRequirementsInfoNV	mem_info = {};
 		mem_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+		mem_info.type					= VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
 		mem_info.accelerationStructure	= topLevelAS;
 
 		VkMemoryRequirements2	mem_req = {};
@@ -713,6 +718,7 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 								  0, 1, &barrier, 0, null, 0, null );
 			
 			VkAccelerationStructureInfoNV	info = {};
+			info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
 			info.type			= VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
 			info.flags			= 0;
 			info.instanceCount	= 1;

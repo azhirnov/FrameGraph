@@ -63,6 +63,7 @@ public:
 	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
+	void OnMouseMove (const float2 &) override {}
 
 	bool Initialize ();
 	void Destroy ();
@@ -149,7 +150,7 @@ bool ShadingRateApp::Initialize ()
 								  "",
 								  {{ VK_QUEUE_PRESENT_BIT | VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.0f }},
 								  VulkanDevice::GetRecomendedInstanceLayers(),
-								  { VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME },
+								  VulkanDevice::GetRecomendedInstanceExtensions(),
 								  { VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME }
 			));
 		
@@ -271,7 +272,7 @@ bool ShadingRateApp::Run ()
 			
 			// begin render pass
 			{
-                VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
+				VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 				VkRenderPassBeginInfo	begin		= {};
 				begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 				begin.framebuffer		= framebuffers[ swapchain->GetCurretImageIndex() ];
@@ -574,15 +575,15 @@ bool ShadingRateApp::CreateResources ()
 		bind_mem.push_back( [this, offset] () {
 			VK_CALL( vkBindImageMemory( vulkan.GetVkDevice(), shadingRateImg, sharedMemory, offset ));
 
-            VkImageViewCreateInfo	view = {};
-            view.sType				= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            view.image				= shadingRateImg;
-            view.viewType			= VK_IMAGE_VIEW_TYPE_2D;
-            view.format				= VK_FORMAT_R8_UINT;
-            view.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
-            view.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			VkImageViewCreateInfo	view = {};
+			view.sType				= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			view.image				= shadingRateImg;
+			view.viewType			= VK_IMAGE_VIEW_TYPE_2D;
+			view.format				= VK_FORMAT_R8_UINT;
+			view.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+			view.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
-            VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &view, null, OUT &shadingRateView ));
+			VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &view, null, OUT &shadingRateView ));
 		});
 	}
 

@@ -74,7 +74,7 @@ bool SpvCompiler::Compile (OUT Array<uint>&			spirvData,
 
 	shader.setStrings( shader_src.data(), int(shader_src.size()) );
 	shader.setEntryPoint( "main" );
-    shader.setEnvInput( EShSourceGlsl, shaderType, EShClientVulkan, 110 );
+	shader.setEnvInput( EShSourceGlsl, shaderType, EShClientVulkan, 110 );
 	shader.setEnvClient( EShClientVulkan, client_version );
 	shader.setEnvTarget( EshTargetSpv, spvVersion );
 		

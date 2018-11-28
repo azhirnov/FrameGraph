@@ -72,6 +72,7 @@ public:
 	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
+	void OnMouseMove (const float2 &) override {}
 
 	bool Initialize ();
 	void Destroy ();
@@ -163,7 +164,7 @@ bool AsyncComputeApp::Initialize ()
 								  {{ VK_QUEUE_PRESENT_BIT | VK_QUEUE_GRAPHICS_BIT, 0.0f },
 								   { VK_QUEUE_COMPUTE_BIT, 0.0f }},
 								  VulkanDevice::GetRecomendedInstanceLayers(),
-								  { VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME },
+								  VulkanDevice::GetRecomendedInstanceExtensions(),
 								  {}
 			));
 		
@@ -307,7 +308,7 @@ void AsyncComputeApp::GenGraphicsCommandsNV (uint frameId)
 
 		// begin render pass
 		{
-            VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
+			VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 			VkRenderPassBeginInfo	begin		= {};
 			begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			begin.framebuffer		= framebuffers[frameId];
@@ -833,15 +834,15 @@ bool AsyncComputeApp::CreateResources ()
 		bind_mem.push_back( [this, rt, offset, rt_view = &renderTargetView[i]] () {
 			VK_CALL( vkBindImageMemory( vulkan.GetVkDevice(), rt, sharedMemory, offset ));
 
-            VkImageViewCreateInfo	view = {};
-            view.sType				= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            view.image				= rt;
-            view.viewType			= VK_IMAGE_VIEW_TYPE_2D;
-            view.format				= VK_FORMAT_R8G8B8A8_UNORM;
-            view.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
-            view.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			VkImageViewCreateInfo	view = {};
+			view.sType				= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			view.image				= rt;
+			view.viewType			= VK_IMAGE_VIEW_TYPE_2D;
+			view.format				= VK_FORMAT_R8G8B8A8_UNORM;
+			view.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+			view.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
-            VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &view, null, OUT rt_view ));
+			VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &view, null, OUT rt_view ));
 		});
 	}
 
@@ -1162,8 +1163,8 @@ bool AsyncComputeApp::CreateComputePipeline ()
 		static const char	comp_shader_source[] = R"#(
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;	// == computeGroupSize
 
-layout(binding = 0)           uniform sampler2D  un_Texture;
-layout(binding = 1) writeonly uniform image2D    un_SwapchainImage;
+layout(binding = 0)				uniform sampler2D  un_Texture;
+layout(binding = 1) writeonly	uniform image2D	un_SwapchainImage;
 
 void main()
 {

@@ -48,6 +48,7 @@ public:
 	void OnRefresh () override {}
 	void OnDestroy () override {}
 	void OnUpdate () override {}
+	void OnMouseMove (const float2 &) override {}
 
 	bool Initialize ();
 	void Destroy ();
@@ -130,7 +131,7 @@ bool FSBarycentricApp::Initialize ()
 								  "",
 								  {{ VK_QUEUE_PRESENT_BIT | VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.0f }},
 								  VulkanDevice::GetRecomendedInstanceLayers(),
-								  { VK_KHR_SURFACE_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_EXTENSION_NAME },
+								  VulkanDevice::GetRecomendedInstanceExtensions(),
 								  { VK_NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME }
 			));
 		
@@ -237,7 +238,7 @@ bool FSBarycentricApp::Run ()
 			
 			// begin render pass
 			{
-                VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
+				VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 				VkRenderPassBeginInfo	begin		= {};
 				begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 				begin.framebuffer		= framebuffers[ swapchain->GetCurretImageIndex() ];
