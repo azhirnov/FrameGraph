@@ -19,8 +19,8 @@ namespace FG
 		const BytesU	dst_buffer_size = 512_b;
 		
 		FGThreadPtr		frame_graph	= _frameGraph1;
-		BufferID		src_buffer = CreateBuffer( src_buffer_size, "SrcBuffer" );
-		BufferID		dst_buffer = CreateBuffer( dst_buffer_size, "DstBuffer" );
+		BufferID		src_buffer	= frame_graph->CreateBuffer( BufferDesc{ src_buffer_size, EBufferUsage::Transfer }, Default, "SrcBuffer" );
+		BufferID		dst_buffer	= frame_graph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Transfer }, Default, "DstBuffer" );
 
 		Array<uint8_t>	src_data;	src_data.resize( size_t(src_buffer_size) );
 

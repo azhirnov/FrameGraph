@@ -91,6 +91,8 @@ namespace FG
 	class VLocalBuffer;
 	class VLocalImage;
 	class VRenderPassCache;
+	class VBaseDrawVerticesTask;
+	class VBaseDrawMeshes;
 
 
 }	// FG

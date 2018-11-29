@@ -67,8 +67,9 @@ namespace FG
 			else
 				total_area = lrp->GetArea();
 
+			const uint	col_offset = lrp->GetDepthStencilTarget().IsDefined() ? 1 : 0;
 
-			if ( lrp->GetDepthStencilTarget().IsDefined() )
+			if ( col_offset )
 			{
 				auto&	src = lrp->GetDepthStencilTarget();
 				auto&	dst = render_targets[0];
@@ -85,7 +86,7 @@ namespace FG
 				uint	index;
 				CHECK_ERR( render_pass->GetColorAttachmentIndex( rt.first, OUT index ));
 				
-				auto&	dst = render_targets[index];
+				auto&	dst = render_targets[ col_offset + index ];
 				
 				// compare attachments
 				CHECK_ERR( not dst.first or (dst.first == rt.second.imageId and dst.second == rt.second.desc) );

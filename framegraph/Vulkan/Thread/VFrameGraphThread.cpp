@@ -251,7 +251,7 @@ namespace FG
 	CreateImage
 =================================================
 */
-	ImageID  VFrameGraphThread::CreateImage (const MemoryDesc &mem, const ImageDesc &desc, StringView dbgName)
+	ImageID  VFrameGraphThread::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
@@ -260,7 +260,7 @@ namespace FG
 		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
 		CHECK_ERR( queue );
 
-		RawImageID	result = _resourceMngr.CreateImage( mem, desc, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() );
+		RawImageID	result = _resourceMngr.CreateImage( desc, mem, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() );
 		
 		// add first image layout transition
 		if ( result )
@@ -286,7 +286,7 @@ namespace FG
 	CreateBuffer
 =================================================
 */
-	BufferID  VFrameGraphThread::CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, StringView dbgName)
+	BufferID  VFrameGraphThread::CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
@@ -295,7 +295,7 @@ namespace FG
 		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
 		CHECK_ERR( queue );
 
-		return BufferID{ _resourceMngr.CreateBuffer( mem, desc, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
+		return BufferID{ _resourceMngr.CreateBuffer( desc, mem, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
 	}
 	
 /*
@@ -385,7 +385,7 @@ namespace FG
 	CreateRayTracingGeometry
 =================================================
 */
-	RTGeometryID  VFrameGraphThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, StringView dbgName)
+	RTGeometryID  VFrameGraphThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
@@ -393,7 +393,7 @@ namespace FG
 		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
 		CHECK_ERR( queue );
 
-		return RTGeometryID{ _resourceMngr.CreateRayTracingGeometry( desc, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
+		return RTGeometryID{ _resourceMngr.CreateRayTracingGeometry( desc, mem, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
 	}
 	
 /*
@@ -401,7 +401,7 @@ namespace FG
 	CreateRayTracingScene
 =================================================
 */
-	RTSceneID  VFrameGraphThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, StringView dbgName)
+	RTSceneID  VFrameGraphThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
@@ -409,7 +409,7 @@ namespace FG
 		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
 		CHECK_ERR( queue );
 
-		return RTSceneID{ _resourceMngr.CreateRayTracingScene( desc, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
+		return RTSceneID{ _resourceMngr.CreateRayTracingScene( desc, mem, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
 	}
 
 /*

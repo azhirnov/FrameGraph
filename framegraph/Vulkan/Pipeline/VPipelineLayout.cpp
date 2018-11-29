@@ -2,6 +2,7 @@
 
 #include "VPipelineLayout.h"
 #include "VDevice.h"
+#include "VEnumCast.h"
 
 namespace FG
 {
@@ -33,7 +34,7 @@ namespace FG
 */
 	ND_ inline HashVal PushConstantHash (const PipelineDescription::PushConstant &pc)
 	{
-		return HashOf( pc.offset );
+		return HashOf( pc.id ) + HashOf( pc.stageFlags ) + HashOf( pc.offset ) + HashOf( pc.size );
 	}
 //-----------------------------------------------------------------------------
 
@@ -61,7 +62,7 @@ namespace FG
 		ASSERT( _layout == VK_NULL_HANDLE );
 
 		_AddDescriptorSets( ppln, sets, INOUT _hash, OUT _descriptorSets );
-		_AddPushConstants( ppln, INOUT _hash );
+		_AddPushConstants( ppln, INOUT _hash, OUT _pushConstants );
 	}
 	
 /*
@@ -94,8 +95,11 @@ namespace FG
 	_AddPushConstants
 =================================================
 */
-	void VPipelineLayout::_AddPushConstants (const PipelineDescription::PipelineLayout &ppln, INOUT HashVal &hash) const
+	void VPipelineLayout::_AddPushConstants (const PipelineDescription::PipelineLayout &ppln, INOUT HashVal &hash,
+											 OUT PushConstants_t &pushConst) const
 	{
+		pushConst = ppln.pushConstants;
+
 		for (auto& pc : ppln.pushConstants)
 		{
 			// calculate hash
@@ -127,6 +131,16 @@ namespace FG
 
 			vk_sets[ ds.index ] = ds.layout;
 		}
+
+		for (auto& pc : _pushConstants)
+		{
+			VkPushConstantRange	range = {};
+			range.offset		= uint( pc.offset );
+			range.size			= uint( pc.size );
+			range.stageFlags	= VEnumCast( pc.stageFlags );
+
+			vk_ranges.push_back( range );
+		}
 		
 		VkPipelineLayoutCreateInfo			layout_info = {};
 		layout_info.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -157,6 +171,8 @@ namespace FG
 		}
 
 		_descriptorSets.clear();
+		_pushConstants.clear();
+
 		_layout = VK_NULL_HANDLE;
 		_hash	= Default;
 	}

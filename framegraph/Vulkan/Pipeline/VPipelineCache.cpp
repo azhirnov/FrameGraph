@@ -493,50 +493,72 @@ namespace FG
 	
 /*
 =================================================
+	OverrideColorStates
+=================================================
+*/
+	void OverrideColorStates (INOUT RenderState::ColorBuffersState &currColorStates, const _fg_hidden_::ColorBuffers_t &newStates)
+	{
+		for (auto& cb : newStates)
+		{
+			auto	iter = currColorStates.buffers.find( cb.first );
+			ASSERT( iter != currColorStates.buffers.end() );
+
+			if ( iter != currColorStates.buffers.end() )
+			{
+				iter->second = cb.second;
+			}
+		}
+	}
+
+/*
+=================================================
 	CreatePipelineInstance
 =================================================
 */
-	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread	&resMngr,
-														RawGPipelineID			 pplnId,
-														RawRenderPassID			 renderPassId,
-														uint					 subpassIndex,
-														const RenderState		&renderState,
-														const VertexInputState	&vertexInput,
-														EPipelineDynamicState	 dynamicState,
-														VkPipelineCreateFlags	 pipelineFlags,
-														uint					 viewportCount)
+	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
+														const VLogicalRenderPass	&logicalRP,
+														const VBaseDrawVerticesTask	&drawTask)
 	{
-		CHECK_ERR( pplnId and renderPassId and viewportCount > 0 );
+		CHECK_ERR( drawTask.pipeline and logicalRP.GetRenderPassID() );
 
 		// not supported yet
-		ASSERT( EnumEq( dynamicState, EPipelineDynamicState::Viewport ));
-		ASSERT( EnumEq( dynamicState, EPipelineDynamicState::Scissor ));
+		ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Viewport ));
+		//ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Scissor ));
 
 		VDevice const&				dev			= resMngr.GetDevice();
-		VGraphicsPipeline const*	gppln		= resMngr.GetResource( pplnId );
+		VGraphicsPipeline const*	gppln		= resMngr.GetResource( drawTask.pipeline );
 		VPipelineLayout const*		layout		= resMngr.GetResource( gppln->GetLayoutID() );
-		VRenderPass const*			render_pass	= resMngr.GetResource( renderPassId );
+		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
 		
 		// check topology
-		CHECK_ERR(	uint(renderState.inputAssembly.topology) < gppln->_supportedTopology.size() and
-					gppln->_supportedTopology[uint(renderState.inputAssembly.topology)] );
+		CHECK_ERR(	uint(drawTask.topology) < gppln->_supportedTopology.size() and
+					gppln->_supportedTopology[uint(drawTask.topology)] );
 
 		VGraphicsPipeline::PipelineInstance		inst;
-		inst.dynamicState	= dynamicState;
-		inst.renderPassId	= renderPassId;
-		inst.subpassIndex	= subpassIndex;
-		inst.renderState	= renderState;
-		inst.vertexInput	= vertexInput;
-		inst.flags			= pipelineFlags;
-		inst.viewportCount	= viewportCount;
+		inst.dynamicState				= drawTask.dynamicStates | EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
+		inst.renderPassId				= logicalRP.GetRenderPassID();
+		inst.subpassIndex				= logicalRP.GetSubpassIndex();
+		inst.vertexInput				= drawTask.vertexInput;
+		inst.flags						= 0;	//pipelineFlags;	// TODO
+		inst.viewportCount				= uint(logicalRP.GetViewports().size());
+		inst.renderState.color			= logicalRP.GetColorState();
+		inst.renderState.depth			= logicalRP.GetDepthState();
+		inst.renderState.stencil		= logicalRP.GetStencilState();
+		inst.renderState.rasterization	= logicalRP.GetRasterizationState();
+		inst.renderState.multisample	= logicalRP.GetMultisampleState();
+
+		inst.renderState.inputAssembly.topology			= drawTask.topology;
+		inst.renderState.inputAssembly.primitiveRestart = drawTask.primitiveRestart;
 
 		inst.vertexInput.ApplyAttribs( gppln->GetVertexAttribs() );
+		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
+
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
-		inst._hash			= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
-							  HashOf( inst.renderState )	+ HashOf( inst.vertexInput )	+
-							  HashOf( inst.dynamicState )	+ HashOf( inst.viewportCount )	+
-							  HashOf( inst.flags );
+		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
+					  HashOf( inst.renderState )	+ HashOf( inst.vertexInput )	+
+					  HashOf( inst.dynamicState )	+ HashOf( inst.viewportCount )	+
+					  HashOf( inst.flags );
 
 
 		// find existing instance
@@ -579,7 +601,7 @@ namespace FG
 
 		pipeline_info.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipeline_info.pNext					= null;
-		pipeline_info.flags					= pipelineFlags;
+		pipeline_info.flags					= inst.flags;
 		pipeline_info.pInputAssemblyState	= &input_assembly_info;
 		pipeline_info.pRasterizationState	= &rasterization_info;
 		pipeline_info.pColorBlendState		= &blend_info;
@@ -594,7 +616,7 @@ namespace FG
 		pipeline_info.stageCount			= uint(_tempStages.size());
 		pipeline_info.pStages				= _tempStages.data();
 		pipeline_info.renderPass			= render_pass->Handle();
-		pipeline_info.subpass				= subpassIndex;
+		pipeline_info.subpass				= inst.subpassIndex;
 		
 		if ( not rasterization_info.rasterizerDiscardEnable )
 		{
@@ -617,44 +639,45 @@ namespace FG
 	CreatePipelineInstance
 =================================================
 */
-	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread	&resMngr,
-														RawMPipelineID			 pplnId,
-														RawRenderPassID			 renderPassId,
-														uint					 subpassIndex,
-														const RenderState		&renderState,
-														EPipelineDynamicState	 dynamicState,
-														VkPipelineCreateFlags	 pipelineFlags,
-														uint					 viewportCount)
+	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
+														const VLogicalRenderPass	&logicalRP,
+														const VBaseDrawMeshes		&drawTask)
 	{
 		CHECK_ERR( resMngr.GetDevice().IsMeshShaderEnabled() );
-		CHECK_ERR( pplnId and renderPassId and viewportCount > 0 );
+		CHECK_ERR( drawTask.pipeline and logicalRP.GetRenderPassID() );
 
 		// not supported yet
-		ASSERT( EnumEq( dynamicState, EPipelineDynamicState::Viewport ));
-		ASSERT( EnumEq( dynamicState, EPipelineDynamicState::Scissor ));
+		ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Viewport ));
+		ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Scissor ));
 
 		VDevice const&				dev			= resMngr.GetDevice();
-		VMeshPipeline const*		mppln		= resMngr.GetResource( pplnId );
+		VMeshPipeline const*		mppln		= resMngr.GetResource( drawTask.pipeline );
 		VPipelineLayout const*		layout		= resMngr.GetResource( mppln->GetLayoutID() );
-		VRenderPass const*			render_pass	= resMngr.GetResource( renderPassId );
+		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
 		
 		// check topology
-		CHECK_ERR(	uint(renderState.inputAssembly.topology) < mppln->_supportedTopology.size() and
-					mppln->_supportedTopology[uint(renderState.inputAssembly.topology)] );
+		//CHECK_ERR(	uint(renderState.inputAssembly.topology) < mppln->_supportedTopology.size() and
+		//			mppln->_supportedTopology[uint(renderState.inputAssembly.topology)] );
 
 		VMeshPipeline::PipelineInstance		inst;
-		inst.dynamicState	= dynamicState;
-		inst.renderPassId	= renderPassId;
-		inst.subpassIndex	= subpassIndex;
-		inst.renderState	= renderState;
-		inst.flags			= pipelineFlags;
-		inst.viewportCount	= viewportCount;
+		inst.dynamicState				= drawTask.dynamicStates | EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
+		inst.renderPassId				= logicalRP.GetRenderPassID();
+		inst.subpassIndex				= logicalRP.GetSubpassIndex();
+		inst.flags						= 0;	//pipelineFlags;	// TODO
+		inst.viewportCount				= uint(logicalRP.GetViewports().size());
+		inst.renderState.color			= logicalRP.GetColorState();
+		inst.renderState.depth			= logicalRP.GetDepthState();
+		inst.renderState.stencil		= logicalRP.GetStencilState();
+		inst.renderState.rasterization	= logicalRP.GetRasterizationState();
+		inst.renderState.multisample	= logicalRP.GetMultisampleState();
+		inst.renderState.inputAssembly.topology	= EPrimitive::TriangleList;		// TODO
 
+		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
-		inst._hash			= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
-							  HashOf( inst.renderState )	+ HashOf( inst.dynamicState )	+
-							  HashOf( inst.viewportCount )	+ HashOf( inst.flags );
+		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
+					  HashOf( inst.renderState )	+ HashOf( inst.dynamicState )	+
+					  HashOf( inst.viewportCount )	+ HashOf( inst.flags );
 
 
 		// find existing instance
@@ -696,7 +719,7 @@ namespace FG
 
 		pipeline_info.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipeline_info.pNext					= null;
-		pipeline_info.flags					= pipelineFlags;
+		pipeline_info.flags					= inst.flags;
 		pipeline_info.pInputAssemblyState	= &input_assembly_info;
 		pipeline_info.pRasterizationState	= &rasterization_info;
 		pipeline_info.pColorBlendState		= &blend_info;
@@ -710,7 +733,7 @@ namespace FG
 		pipeline_info.stageCount			= uint(_tempStages.size());
 		pipeline_info.pStages				= _tempStages.data();
 		pipeline_info.renderPass			= render_pass->Handle();
-		pipeline_info.subpass				= subpassIndex;
+		pipeline_info.subpass				= inst.subpassIndex;
 		
 		if ( not rasterization_info.rasterizerDiscardEnable )
 		{
@@ -1096,8 +1119,7 @@ namespace FG
 
 		for (auto& cb : inState.buffers)
 		{
-			if ( not cb.first.IsDefined() )
-				continue;
+			ASSERT( cb.first.IsDefined() );
 
 			uint	index;
 			CHECK( renderPass.GetColorAttachmentIndex( cb.first, OUT index ) );
@@ -1256,7 +1278,7 @@ namespace FG
 			}
 		}
 	}
-	
+
 /*
 =================================================
 	_AddLocalGroupSizeSpecialization

@@ -84,12 +84,18 @@ namespace FG
 		void Visit (const VFgTask<PresentVR> &);
 		void Visit (const VFgTask<TaskGroupSync> &) {}
 
-		static void Visit1_DrawTask (void *, void *);
-		static void Visit2_DrawTask (void *, void *);
-		static void Visit1_DrawIndexedTask (void *, void *);
-		static void Visit2_DrawIndexedTask (void *, void *);
-		static void Visit1_DrawMeshTask (void *, void *);
-		static void Visit2_DrawMeshTask (void *, void *);
+		static void Visit1_DrawVertices (void *, void *);
+		static void Visit2_DrawVertices (void *, void *);
+		static void Visit1_DrawIndexed (void *, void *);
+		static void Visit2_DrawIndexed (void *, void *);
+		static void Visit1_DrawMeshes (void *, void *);
+		static void Visit2_DrawMeshes (void *, void *);
+		static void Visit1_DrawVerticesIndirect (void *, void *);
+		static void Visit2_DrawVerticesIndirect (void *, void *);
+		static void Visit1_DrawIndexedIndirect (void *, void *);
+		static void Visit2_DrawIndexedIndirect (void *, void *);
+		static void Visit1_DrawMeshesIndirect (void *, void *);
+		static void Visit2_DrawMeshesIndirect (void *, void *);
 
 		void Run (Task);
 
@@ -106,8 +112,8 @@ namespace FG
 		
 		void _CommitBarriers ();
 		
-		void _AddRenderTargetBarriers (const VLogicalRenderPass *logicalRP, const DrawTaskBarriers &info);
-		void _ExtractClearValues (const VLogicalRenderPass *logicalRP, const VRenderPass *rp, OUT VkClearValues_t &clearValues) const;
+		void _AddRenderTargetBarriers (const VLogicalRenderPass &logicalRP, const DrawTaskBarriers &info);
+		void _ExtractClearValues (const VLogicalRenderPass &logicalRP, const VRenderPass *rp, OUT VkClearValues_t &clearValues) const;
 		void _BeginRenderPass (const VFgTask<SubmitRenderPass> &task);
 		void _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
 

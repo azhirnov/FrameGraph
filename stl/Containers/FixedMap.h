@@ -44,7 +44,7 @@ namespace FG
 			char			_buffer [sizeof(pair_type) * ArraySize];	// don't use this field!
 		};
 		Index_t				_count		= 0;
-		mutable bool		_isSorted	= false;
+		mutable bool		_isSorted	= false;		// TODO: this is not thread safe!
 
 
 	// methods
@@ -510,7 +510,7 @@ namespace std
 			FG::HashVal	result;
 
 			for (auto& item : value) {
-				result << FG::HashOf( item );
+				result << FG::HashOf( item );	// TODO: hash of same data may be different if values placed in different order, use cycle by index instead
 			}
 			return size_t(result);
 		}

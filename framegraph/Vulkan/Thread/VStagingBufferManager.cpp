@@ -335,7 +335,7 @@ namespace FG
 		// allocate new buffer
 		if ( not suitable )
 		{
-			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostWrite}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer},
+			BufferID		buf_id  = _frameGraph.CreateBuffer( BufferDesc{_stagingBufferSize, EBufferUsage::Transfer}, MemoryDesc{EMemoryType::HostWrite},
 																"StagingWriteBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
 			CHECK_ERR( buf_id );
 
@@ -402,7 +402,7 @@ namespace FG
 		// allocate new buffer
 		if ( not suitable )
 		{
-			BufferID		buf_id  = _frameGraph.CreateBuffer( MemoryDesc{EMemoryType::HostRead}, BufferDesc{_stagingBufferSize, EBufferUsage::Transfer},
+			BufferID		buf_id  = _frameGraph.CreateBuffer( BufferDesc{_stagingBufferSize, EBufferUsage::Transfer}, MemoryDesc{EMemoryType::HostRead},
 																"StagingReadBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
 			CHECK_ERR( buf_id );
 			

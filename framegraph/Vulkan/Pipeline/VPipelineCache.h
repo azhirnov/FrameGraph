@@ -21,7 +21,7 @@ namespace FG
 	// types
 	private:
 		struct FragmentOutputHash {
-			ND_ size_t operator () (const VGraphicsPipeline::FragmentOutputInstance &value) const {
+			ND_ size_t  operator () (const VGraphicsPipeline::FragmentOutputInstance &value) const {
 				return size_t(value.GetHash());
 			}
 		};
@@ -39,7 +39,7 @@ namespace FG
 
 		template <typename T>
 		struct PipelineInstancePairHash {
-			ND_ size_t operator () (const Pair<T const*, typename T::PipelineInstance> &value) const {
+			ND_ size_t  operator () (const Pair<T const*, typename T::PipelineInstance> &value) const {
 				return size_t(HashOf(value.first) + value.second._hash);
 			}
 		};
@@ -118,24 +118,13 @@ namespace FG
 
 		ND_ FragmentOutputPtr  CreateFramentOutput (ArrayView<GraphicsPipelineDesc::FragmentOutput> values);
 
-		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread	&resMngr,
-												RawGPipelineID			 ppln,
-												RawRenderPassID			 renderPass,
-												uint					 subpassIndex,
-												const RenderState		&renderState,
-												const VertexInputState	&vertexInput,
-												EPipelineDynamicState	 dynamicState,
-												VkPipelineCreateFlags	 pipelineFlags,
-												uint					 viewportCount);
+		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread		&resMngr,
+												const VLogicalRenderPass	&logicalRP,
+												const VBaseDrawVerticesTask	&drawTask);
 		
-		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread	&resMngr,
-												RawMPipelineID			 ppln,
-												RawRenderPassID			 renderPass,
-												uint					 subpassIndex,
-												const RenderState		&renderState,
-												EPipelineDynamicState	 dynamicState,
-												VkPipelineCreateFlags	 pipelineFlags,
-												uint					 viewportCount);
+		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread		&resMngr,
+												const VLogicalRenderPass	&logicalRP,
+												const VBaseDrawMeshes		&drawTask);
 
 		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread	&resMngr,
 												RawCPipelineID			 ppln,

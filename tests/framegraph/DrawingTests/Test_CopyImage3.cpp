@@ -16,9 +16,11 @@ namespace FG
 		const int2		img_offset		= {16, 27};
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
-
-		ImageID			src_image		= CreateImage2D( src_dim, EPixelFormat::RGBA8_UNorm, "SrcImage" );
-		ImageID			dst_image		= CreateImage2D( dst_dim, EPixelFormat::RGBA8_UNorm, "DstImage" );
+		
+		ImageID			src_image		= _frameGraph1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+																				EImageUsage::Transfer }, Default, "SrcImage" );
+		ImageID			dst_image		= _frameGraph1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+																				EImageUsage::Transfer }, Default, "DstImage" );
 
 		Array<uint8_t>	src_data;		src_data.resize( size_t(src_row_pitch * src_dim.y) );
 

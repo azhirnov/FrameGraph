@@ -4,7 +4,7 @@ Thread {
 	Buffer {
 		name:    "DstBuffer"
 		size:    512 b
-		usage:   TransferSrc | TransferDst | Uniform | Storage | Index | Vertex | Indirect
+		usage:   TransferSrc | TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         CopyBuffer (#3)
@@ -34,7 +34,7 @@ Thread {
 	Buffer {
 		name:    "SrcBuffer"
 		size:    256 b
-		usage:   TransferSrc | TransferDst | Uniform | Storage | Index | Vertex | Indirect
+		usage:   TransferSrc | TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         UpdateBuffer (#2)

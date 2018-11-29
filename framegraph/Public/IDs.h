@@ -118,7 +118,7 @@ namespace _fg_hidden_
 		ND_ HashVal		GetHash ()						const			{ return _id.GetHash(); }
 		
 		ND_ ID_t		Release ()										{ ASSERT(IsValid());  ID_t temp{_id};  _id = Default;  return temp; }
-		ND_ ID_t const&	Get ()							const			{ ASSERT(IsValid());  return _id; }
+		ND_ ID_t const&	Get ()							const			{ return _id; }
 
 		ND_ bool		operator == (const Self &rhs)	const			{ return _id == rhs._id; }
 		ND_ bool		operator != (const Self &rhs)	const			{ return _id != rhs._id; }

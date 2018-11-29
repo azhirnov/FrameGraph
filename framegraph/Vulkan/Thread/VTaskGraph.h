@@ -140,11 +140,13 @@ namespace FG
 	{
 	// variables
 	private:
-		VPipelineResourceSet			_resources;
+		VPipelineResourceSet				_resources;
 	public:
-		const RawCPipelineID			pipeline;
-		const uint3						groupCount;
-		const Optional< uint3 >			localGroupSize;
+		const RawCPipelineID				pipeline;
+		const _fg_hidden_::PushConstants_t	pushConstants;
+
+		const uint3							groupCount;
+		const Optional< uint3 >				localGroupSize;
 
 
 	// methods
@@ -164,12 +166,14 @@ namespace FG
 	{
 	// variables
 	private:
-		VPipelineResourceSet		_resources;
+		VPipelineResourceSet				_resources;
 	public:
-		const RawCPipelineID		pipeline;
-		VLocalBuffer const* const	indirectBuffer;
-		const VkDeviceSize			indirectBufferOffset;
-		const Optional< uint3 >		localGroupSize;
+		const RawCPipelineID				pipeline;
+		const _fg_hidden_::PushConstants_t	pushConstants;
+
+		VLocalBuffer const* const			indirectBuffer;
+		const VkDeviceSize					indirectBufferOffset;
+		const Optional< uint3 >				localGroupSize;
 
 
 	// methods

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/FrameGraphDrawTask.h"
+#include "framegraph/Public/RenderPassDesc.h"
 #include "framegraph/Public/EResourceState.h"
 #include "VDrawTask.h"
 
@@ -45,6 +45,7 @@ namespace FG
 		using ColorTargets_t	= FixedMap< RenderTargetID, ColorTarget, FG_MaxColorBuffers >;
 		using Viewports_t		= FixedArray< VkViewport, FG_MaxViewports >;
 		using Scissors_t		= FixedArray< VkRect2D, FG_MaxViewports >;
+		using RS				= RenderState;
 		
 
 	// variables
@@ -62,6 +63,12 @@ namespace FG
 
 		Viewports_t					_viewports;
 		Scissors_t					_defaultScissors;
+		
+		RS::ColorBuffersState		_colorState;
+		RS::DepthBufferState		_depthState;
+		RS::StencilBufferState		_stencilState;
+		RS::RasterizationState		_rasterizationState;
+		RS::MultisampleState		_multisampleState;
 
 		RectI						_area;
 		//bool						_parallelExecution	= true;
@@ -108,23 +115,28 @@ namespace FG
 		}
 
 
-		ND_ ArrayView< IDrawTask *>		GetDrawTasks ()				const	{ SHAREDLOCK( _rcCheck );  return _drawTasks; }
+		ND_ ArrayView< IDrawTask *>			GetDrawTasks ()				const	{ SHAREDLOCK( _rcCheck );  return _drawTasks; }
 		
-		ND_ ColorTargets_t const&		GetColorTargets ()			const	{ SHAREDLOCK( _rcCheck );  return _colorTargets; }
-		ND_ DepthStencilTarget const&	GetDepthStencilTarget ()	const	{ SHAREDLOCK( _rcCheck );  return _depthStencilTarget; }
+		ND_ ColorTargets_t const&			GetColorTargets ()			const	{ SHAREDLOCK( _rcCheck );  return _colorTargets; }
+		ND_ DepthStencilTarget const&		GetDepthStencilTarget ()	const	{ SHAREDLOCK( _rcCheck );  return _depthStencilTarget; }
 		
-		ND_ RectI const&				GetArea ()					const	{ SHAREDLOCK( _rcCheck );  return _area; }
+		ND_ RectI const&					GetArea ()					const	{ SHAREDLOCK( _rcCheck );  return _area; }
 
-		ND_ bool						IsSubmited ()				const	{ SHAREDLOCK( _rcCheck );  return _isSubmited; }
-
-		ND_ bool						IsMergingAvailable ()		const	{ SHAREDLOCK( _rcCheck );  return _canBeMerged; }
+		ND_ bool							IsSubmited ()				const	{ SHAREDLOCK( _rcCheck );  return _isSubmited; }
+		ND_ bool							IsMergingAvailable ()		const	{ SHAREDLOCK( _rcCheck );  return _canBeMerged; }
 		
-		ND_ RawFramebufferID			GetFramebufferID ()			const	{ return _framebufferId; }
-		ND_ RawRenderPassID				GetRenderPassID ()			const	{ return _renderPassId; }
-		ND_ uint						GetSubpassIndex ()			const	{ return _subpassIndex; }
+		ND_ RawFramebufferID				GetFramebufferID ()			const	{ SHAREDLOCK( _rcCheck );  return _framebufferId; }
+		ND_ RawRenderPassID					GetRenderPassID ()			const	{ SHAREDLOCK( _rcCheck );  return _renderPassId; }
+		ND_ uint							GetSubpassIndex ()			const	{ SHAREDLOCK( _rcCheck );  return _subpassIndex; }
 
-		ND_ ArrayView<VkViewport>		GetViewports ()				const	{ return _viewports; }
-		ND_ ArrayView<VkRect2D>			GetScissors ()				const	{ return _defaultScissors; }
+		ND_ ArrayView<VkViewport>			GetViewports ()				const	{ SHAREDLOCK( _rcCheck );  return _viewports; }
+		ND_ ArrayView<VkRect2D>				GetScissors ()				const	{ SHAREDLOCK( _rcCheck );  return _defaultScissors; }
+		
+		ND_ RS::ColorBuffersState const&	GetColorState ()			const	{ SHAREDLOCK( _rcCheck );  return _colorState; }
+		ND_ RS::DepthBufferState const&		GetDepthState ()			const	{ SHAREDLOCK( _rcCheck );  return _depthState; }
+		ND_ RS::StencilBufferState const&	GetStencilState ()			const	{ SHAREDLOCK( _rcCheck );  return _stencilState; }
+		ND_ RS::RasterizationState const&	GetRasterizationState ()	const	{ SHAREDLOCK( _rcCheck );  return _rasterizationState; }
+		ND_ RS::MultisampleState const&		GetMultisampleState ()		const	{ SHAREDLOCK( _rcCheck );  return _multisampleState; }
 	};
 
 

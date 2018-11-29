@@ -76,8 +76,9 @@ namespace FG
 		LocalImages_t						_localImages;
 		LocalBuffers_t						_localBuffers;
 		LogicalRenderPasses_t				_logicalRenderPasses;
-		uint								_localImagesCount	= 0;
-		uint								_localBuffersCount	= 0;
+		uint								_localImagesCount		= 0;
+		uint								_localBuffersCount		= 0;
+		uint								_logicalRenderPassCount	= 0;
 
 		Storage<SamplerMap_t>				_samplerMap;
 		Storage<PipelineLayoutMap_t>		_pplnLayoutMap;
@@ -109,8 +110,8 @@ namespace FG
 		ND_ RawCPipelineID		CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName, bool isAsync);
 		ND_ RawRTPipelineID		CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName, bool isAsync);
 		
-		ND_ RawImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
-		ND_ RawBufferID			CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
+		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
+		ND_ RawBufferID			CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName, bool isAsync);
 		
 		ND_ RawImageID			CreateImage (const VulkanImageDesc &desc, FrameGraphThread::OnExternalImageReleased_t &&onRelease, StringView dbgName);
@@ -122,8 +123,8 @@ namespace FG
 												   StringView dbgName, bool isAsync);
 		ND_ RawPipelineResourcesID	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
 		
-		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
-		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
+		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
+		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 
 		ND_ LocalBufferID		Remap (RawBufferID id);
 		ND_ LocalImageID		Remap (RawImageID id);

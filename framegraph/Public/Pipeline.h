@@ -157,8 +157,13 @@ namespace FG
 
 		struct PushConstant
 		{
-			BytesU				offset;
-			// TODO
+			PushConstantID		id;
+			EShaderStages		stageFlags;
+			Bytes<uint16_t>		offset;
+			Bytes<uint16_t>		size;
+
+			PushConstant () {}
+			PushConstant (const PushConstantID &id, EShaderStages stages, BytesU offset, BytesU size) : id{id}, stageFlags{stages}, offset{offset}, size{size} {}
 		};
 
 		struct SpecConstant

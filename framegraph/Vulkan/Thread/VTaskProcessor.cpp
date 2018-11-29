@@ -71,32 +71,35 @@ namespace FG
 
 	// variables
 	private:
-		VTaskProcessor &	_tp;
-		Task				_currTask;
+		VTaskProcessor &			_tp;
+		VLogicalRenderPass const&	_logicalRP;
 
-		FragOutputs_t		_fragOutput;
-		UniqFragOutputs_t	_uniqueOutputs;
-		uint				_maxFragCount;
+		FragOutputs_t				_fragOutput;
+		UniqFragOutputs_t			_uniqueOutputs;
+		uint						_maxFragCount;
 
-		bool				_earlyFragmentTests		: 1;
-		bool				_lateFragmentTests		: 1;
-		bool				_depthRead				: 1;
-		bool				_depthWrite				: 1;
-		bool				_stencilReadWrite		: 1;
-		bool				_rasterizerDiscard		: 1;
-		bool				_compatibleFragOutput	: 1;
+		bool						_earlyFragmentTests		: 1;
+		bool						_lateFragmentTests		: 1;
+		bool						_depthRead				: 1;
+		bool						_depthWrite				: 1;
+		bool						_stencilReadWrite		: 1;
+		bool						_rasterizerDiscard		: 1;
+		bool						_compatibleFragOutput	: 1;
 
 
 	// methods
 	public:
-		explicit DrawTaskBarriers (VTaskProcessor &tp, Task task);
+		explicit DrawTaskBarriers (VTaskProcessor &tp, const VLogicalRenderPass &);
 
-		void Visit (const VFgDrawTask<DrawTask> &task);
-		void Visit (const VFgDrawTask<DrawIndexedTask> &task);
-		void Visit (const VFgDrawTask<DrawMeshTask> &task);
+		void Visit (const VFgDrawTask<DrawVertices> &task);
+		void Visit (const VFgDrawTask<DrawIndexed> &task);
+		void Visit (const VFgDrawTask<DrawMeshes> &task);
+		void Visit (const VFgDrawTask<DrawVerticesIndirect> &task);
+		void Visit (const VFgDrawTask<DrawIndexedIndirect> &task);
+		void Visit (const VFgDrawTask<DrawMeshesIndirect> &task);
 
 		template <typename PplnID>
-		void _MergePipeline (PplnID pplnId, const RenderState &rs);
+		void _MergePipeline (PplnID pplnId);
 
 		ND_ bool						IsEarlyFragmentTests () const	{ return _earlyFragmentTests; }
 		ND_ bool						IsLateFragmentTests ()	const	{ return _lateFragmentTests; }
@@ -123,17 +126,18 @@ namespace FG
 	public:
 		explicit DrawTaskCommands (VTaskProcessor &tp, VFgTask<SubmitRenderPass> const* task, VkCommandBuffer cmd);
 
-		void Visit (const VFgDrawTask<DrawTask> &task);
-		void Visit (const VFgDrawTask<DrawIndexedTask> &task);
-		void Visit (const VFgDrawTask<DrawMeshTask> &task);
+		void Visit (const VFgDrawTask<DrawVertices> &task);
+		void Visit (const VFgDrawTask<DrawIndexed> &task);
+		void Visit (const VFgDrawTask<DrawMeshes> &task);
+		void Visit (const VFgDrawTask<DrawVerticesIndirect> &task);
+		void Visit (const VFgDrawTask<DrawIndexedIndirect> &task);
+		void Visit (const VFgDrawTask<DrawMeshesIndirect> &task);
 
 		void _BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const;
-		void _SetScissor (const DrawTask::Scissors_t &sc) const;
+		void _SetScissor (const _fg_hidden_::Scissors_t &sc) const;
 
-		void _BindPipeline (const VLogicalRenderPass *logicalRP, RawGPipelineID pipelineId, const RenderState &renderState,
-							EPipelineDynamicState dynamicStates, const VertexInputState &vertexInput) const;
-		void _BindPipeline (const VLogicalRenderPass *logicalRP, RawMPipelineID pipelineId, const RenderState &renderState,
-							EPipelineDynamicState dynamicStates) const;
+		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task) const;
+		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task) const;
 		
 		template <typename PplnID>
 		void _BindPipelineResources (PplnID pipelineId, const VkDescriptorSets_t &descriptorSets, ArrayView<uint> dynamicOffsets) const;
@@ -188,8 +192,8 @@ namespace FG
 	constructor
 =================================================
 */
-	VTaskProcessor::DrawTaskBarriers::DrawTaskBarriers (VTaskProcessor &tp, Task task) :
-		_tp{ tp },						_currTask{ task },
+	VTaskProcessor::DrawTaskBarriers::DrawTaskBarriers (VTaskProcessor &tp, const VLogicalRenderPass &logicalRP) :
+		_tp{ tp },						_logicalRP{ logicalRP },
 		_maxFragCount{ 0 },
 		_earlyFragmentTests{false},		_lateFragmentTests{false},
 		_depthRead{false},				_depthWrite{false},
@@ -206,10 +210,10 @@ namespace FG
 
 /*
 =================================================
-	Visit (DrawTask)
+	Visit (DrawVertices)
 =================================================
 */
-	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawTask> &task)
+	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawVertices> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
@@ -217,65 +221,100 @@ namespace FG
 		// add vertex buffers
 		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
 		{
-			VkDeviceSize	offset	= task.GetVBOffsets()[i];
-			VkDeviceSize	size	= VK_WHOLE_SIZE;
-			Bytes<uint>		stride	= task.GetVBStrides()[i];
+			const VkDeviceSize	vb_offset	= task.GetVBOffsets()[i];
+			const VkDeviceSize	stride		= VkDeviceSize(task.GetVBStrides()[i]);
 
-			offset += VkDeviceSize(stride) * task.drawCmd.firstVertex;
-			size    = VkDeviceSize(stride) * task.drawCmd.vertexCount;	// TODO: instance
+			for (auto& cmd : task.commands)
+			{
+				VkDeviceSize	offset	= vb_offset + stride * cmd.firstVertex;
+				VkDeviceSize	size	= stride * cmd.vertexCount;			// TODO: instance
 
-			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, offset, size );
+				_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, offset, size );
+			}
 		}
 		
-		_MergePipeline( task.pipeline, task.renderState );
+		_MergePipeline( task.pipeline );
 	}
 
 /*
 =================================================
-	Visit (DrawIndexedTask)
+	Visit (DrawIndexed)
 =================================================
 */
-	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawIndexedTask> &task)
+	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawIndexed> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
-		
-		// add vertex buffers
-		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
+
+		for (auto& cmd : task.commands)
 		{
-			VkDeviceSize	offset	= task.GetVBOffsets()[i];
-			VkDeviceSize	size	= VK_WHOLE_SIZE;
-			Bytes<uint>		stride	= task.GetVBStrides()[i];
+			// add vertex buffers
+			for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
+			{
+				VkDeviceSize		offset	= task.GetVBOffsets()[i];
+				VkDeviceSize		size	= VK_WHOLE_SIZE;
+				const VkDeviceSize	stride	= VkDeviceSize(task.GetVBStrides()[i]);
 			
-			offset += VkDeviceSize(stride) * task.drawCmd.vertexOffset;
-			//size    = VkDeviceSize(stride) * EIndex::MaxValue( task.indexBuffer.indexType );	// TODO: instance
+				offset += VkDeviceSize(stride) * cmd.vertexOffset;
+				//size    = VkDeviceSize(stride) * EIndex::MaxValue( task.indexBuffer.indexType );	// TODO: instance
 
-			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, offset, size );
+				_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, offset, size );
+			}
+		
+			// add index buffer
+			{
+				const VkDeviceSize	index_size	= VkDeviceSize(EIndex_SizeOf( task.indexType ));
+				const VkDeviceSize	offset		= VkDeviceSize(task.indexBufferOffset);
+				const VkDeviceSize	size		= index_size * cmd.indexCount;
+
+				_tp._AddBuffer( task.indexBuffer, EResourceState::IndexBuffer, offset, size );
+			}
 		}
 		
-		// add index buffer
-		{
-			const VkDeviceSize	index_size	= VkDeviceSize(EIndex_SizeOf( task.indexType ));
-			VkDeviceSize		offset		= VkDeviceSize(task.indexBufferOffset);
-			VkDeviceSize		size		= index_size * task.drawCmd.indexCount;
-
-			_tp._AddBuffer( task.indexBuffer, EResourceState::IndexBuffer, offset, size );
-		}
-		
-		_MergePipeline( task.pipeline, task.renderState );
+		_MergePipeline( task.pipeline );
 	}
 	
 /*
 =================================================
-	Visit (DrawMeshTask)
+	Visit (DrawMeshes)
 =================================================
 */
-	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawMeshTask> &task)
+	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawMeshes> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
 		
-		_MergePipeline( task.pipeline, task.renderState );
+		_MergePipeline( task.pipeline );
+	}
+	
+/*
+=================================================
+	Visit (DrawVerticesIndirect)
+=================================================
+*/
+	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawVerticesIndirect> &task)
+	{
+		ASSERT(false);
+	}
+	
+/*
+=================================================
+	Visit (DrawIndexedIndirect)
+=================================================
+*/
+	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawIndexedIndirect> &task)
+	{
+		ASSERT(false);
+	}
+	
+/*
+=================================================
+	Visit (DrawMeshesIndirect)
+=================================================
+*/
+	void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawMeshesIndirect> &task)
+	{
+		ASSERT(false);
 	}
 
 /*
@@ -284,7 +323,7 @@ namespace FG
 =================================================
 */
 	template <typename PplnID>
-	void VTaskProcessor::DrawTaskBarriers::_MergePipeline (PplnID pplnId, const RenderState &renderState)
+	void VTaskProcessor::DrawTaskBarriers::_MergePipeline (PplnID pplnId)
 	{
 		STATIC_ASSERT( (IsSameTypes<PplnID, RawGPipelineID>) or (IsSameTypes<PplnID, RawMPipelineID>) );
 
@@ -326,16 +365,16 @@ namespace FG
 		else
 			_lateFragmentTests = true;
 
-		if ( renderState.depth.test )
+		if ( _logicalRP.GetDepthState().test )
 			_depthRead = true;
 
-		if ( renderState.depth.write )
+		if ( _logicalRP.GetDepthState().write )
 			_depthWrite = true;
 
-		if ( renderState.stencil.enabled )
+		if ( _logicalRP.GetStencilState().enabled )
 			_stencilReadWrite = true;
 
-		if ( renderState.rasterization.rasterizerDiscard )
+		if ( _logicalRP.GetRasterizationState().rasterizerDiscard )
 			_rasterizerDiscard = true;
 	}
 //-----------------------------------------------------------------------------
@@ -377,14 +416,9 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	void VTaskProcessor::DrawTaskCommands::_BindPipeline (const VLogicalRenderPass *logicalRP, RawGPipelineID pipelineId,
-														  const RenderState &renderState, EPipelineDynamicState dynamicStates,
-														  const VertexInputState &vertexInput) const
+	void VTaskProcessor::DrawTaskCommands::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task) const
 	{
-		VkPipeline	ppln_id = _tp._frameGraph.GetPipelineCache()->CreatePipelineInstance(
-									*_tp._frameGraph.GetResourceManager(), pipelineId,
-									logicalRP->GetRenderPassID(), logicalRP->GetSubpassIndex(),
-									renderState, vertexInput, dynamicStates, 0, uint(logicalRP->GetViewports().size()) );
+		VkPipeline	ppln_id = _tp._frameGraph.GetPipelineCache()->CreatePipelineInstance( *_tp._frameGraph.GetResourceManager(), logicalRP, task );
 		
 		_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_id );
 	}
@@ -394,13 +428,9 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	void VTaskProcessor::DrawTaskCommands::_BindPipeline (const VLogicalRenderPass *logicalRP, RawMPipelineID pipelineId, const RenderState &renderState,
-														  EPipelineDynamicState dynamicStates) const
+	void VTaskProcessor::DrawTaskCommands::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task) const
 	{
-		VkPipeline	ppln_id = _tp._frameGraph.GetPipelineCache()->CreatePipelineInstance(
-									*_tp._frameGraph.GetResourceManager(), pipelineId,
-									logicalRP->GetRenderPassID(), logicalRP->GetSubpassIndex(),
-									renderState, dynamicStates, 0, uint(logicalRP->GetViewports().size()) );
+		VkPipeline	ppln_id = _tp._frameGraph.GetPipelineCache()->CreatePipelineInstance( *_tp._frameGraph.GetResourceManager(), logicalRP, task );
 		
 		_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_id );
 	}
@@ -434,7 +464,7 @@ namespace FG
 	_SetScissor
 =================================================
 */
-	void VTaskProcessor::DrawTaskCommands::_SetScissor (const DrawTask::Scissors_t &srcScissors) const
+	void VTaskProcessor::DrawTaskCommands::_SetScissor (const _fg_hidden_::Scissors_t &srcScissors) const
 	{
 		if ( not srcScissors.empty() )
 		{
@@ -462,40 +492,35 @@ namespace FG
 
 /*
 =================================================
-	Visit (DrawTask)
+	Visit (DrawVertices)
 =================================================
 */
-	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawTask> &task)
+	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawVertices> &task)
 	{
 		_tp._CmdDebugMarker( task.GetName() );
 
-		_BindPipeline( _currTask->GetLogicalPass(), task.pipeline, task.renderState,
-					   task.dynamicStates, task.vertexInput );
-
+		_BindPipeline( *_currTask->GetLogicalPass(), task );
 		_BindPipelineResources( task.pipeline, task.descriptorSets, task.GetResources().dynamicOffsets );
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
 		
 		_SetScissor( task.scissors );
 
-		_dev.vkCmdDraw( _cmdBuffer,
-						task.drawCmd.vertexCount,
-						task.drawCmd.instanceCount,
-						task.drawCmd.firstVertex,
-						task.drawCmd.firstInstance );
+		for (auto& cmd : task.commands)
+		{
+			_dev.vkCmdDraw( _cmdBuffer, cmd.vertexCount, cmd.instanceCount, cmd.firstVertex, cmd.firstInstance );
+		}
 	}
 	
 /*
 =================================================
-	Visit (DrawIndexedTask)
+	Visit (DrawIndexed)
 =================================================
 */
-	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawIndexedTask> &task)
+	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawIndexed> &task)
 	{
 		_tp._CmdDebugMarker( task.GetName() );
 		
-		_BindPipeline( _currTask->GetLogicalPass(), task.pipeline, task.renderState,
-					   task.dynamicStates, task.vertexInput );
-		
+		_BindPipeline( *_currTask->GetLogicalPass(), task );
 		_BindPipelineResources( task.pipeline, task.descriptorSets, task.GetResources().dynamicOffsets );
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
 		
@@ -506,30 +531,61 @@ namespace FG
 									VkDeviceSize( task.indexBufferOffset ),
 									VEnumCast( task.indexType ) );
 
-		_dev.vkCmdDrawIndexed( _cmdBuffer,
-								task.drawCmd.indexCount,
-								task.drawCmd.instanceCount,
-								task.drawCmd.firstIndex,
-								task.drawCmd.vertexOffset,
-								task.drawCmd.firstInstance );
+		for (auto& cmd : task.commands)
+		{
+			_dev.vkCmdDrawIndexed( _cmdBuffer, cmd.indexCount, cmd.instanceCount,
+								   cmd.firstIndex, cmd.vertexOffset, cmd.firstInstance );
+		}
 	}
 		
 /*
 =================================================
-	Visit (DrawMeshTask)
+	Visit (DrawMeshes)
 =================================================
 */
-	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawMeshTask> &task)
+	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawMeshes> &task)
 	{
 		_tp._CmdDebugMarker( task.GetName() );
 		
-		_BindPipeline( _currTask->GetLogicalPass(), task.pipeline, task.renderState, task.dynamicStates );
-		
+		_BindPipeline( *_currTask->GetLogicalPass(), task );
 		_BindPipelineResources( task.pipeline, task.descriptorSets, task.GetResources().dynamicOffsets );
 		
 		_SetScissor( task.scissors );
 
-		_dev.vkCmdDrawMeshTasksNV( _cmdBuffer, task.drawCmd.count, task.drawCmd.first );
+		for (auto& cmd : task.commands)
+		{
+			_dev.vkCmdDrawMeshTasksNV( _cmdBuffer, cmd.count, cmd.first );
+		}
+	}
+	
+/*
+=================================================
+	Visit (DrawVerticesIndirect)
+=================================================
+*/
+	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawVerticesIndirect> &task)
+	{
+		ASSERT(false);
+	}
+	
+/*
+=================================================
+	Visit (DrawIndexedIndirect)
+=================================================
+*/
+	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawIndexedIndirect> &task)
+	{
+		ASSERT(false);
+	}
+	
+/*
+=================================================
+	Visit (DrawMeshesIndirect)
+=================================================
+*/
+	void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawMeshesIndirect> &task)
+	{
+		ASSERT(false);
 	}
 //-----------------------------------------------------------------------------
 
@@ -565,47 +621,92 @@ namespace FG
 	
 /*
 =================================================
-	Visit*_DrawTask
+	Visit*_DrawVertices
 =================================================
 */
-	void VTaskProcessor::Visit1_DrawTask (void *visitor, void *taskData)
+	void VTaskProcessor::Visit1_DrawVertices (void *visitor, void *taskData)
 	{
-		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawTask>*>( taskData ) );
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawVertices>*>( taskData ) );
 	}
 	
-	void VTaskProcessor::Visit2_DrawTask (void *visitor, void *taskData)
+	void VTaskProcessor::Visit2_DrawVertices (void *visitor, void *taskData)
 	{
-		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawTask>*>( taskData ) );
-	}
-	
-/*
-=================================================
-	Visit*_DrawIndexedTask
-=================================================
-*/
-	void VTaskProcessor::Visit1_DrawIndexedTask (void *visitor, void *taskData)
-	{
-		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawIndexedTask>*>( taskData ) );
-	}
-
-	void VTaskProcessor::Visit2_DrawIndexedTask (void *visitor, void *taskData)
-	{
-		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawIndexedTask>*>( taskData ) );
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawVertices>*>( taskData ) );
 	}
 	
 /*
 =================================================
-	Visit*Visit1_DrawMeshTask
+	Visit*_DrawIndexed
 =================================================
 */
-	void VTaskProcessor::Visit1_DrawMeshTask (void *visitor, void *taskData)
+	void VTaskProcessor::Visit1_DrawIndexed (void *visitor, void *taskData)
 	{
-		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawMeshTask>*>( taskData ) );
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawIndexed>*>( taskData ) );
 	}
 
-	void VTaskProcessor::Visit2_DrawMeshTask (void *visitor, void *taskData)
+	void VTaskProcessor::Visit2_DrawIndexed (void *visitor, void *taskData)
 	{
-		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawMeshTask>*>( taskData ) );
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawIndexed>*>( taskData ) );
+	}
+	
+/*
+=================================================
+	Visit*_DrawMeshes
+=================================================
+*/
+	void VTaskProcessor::Visit1_DrawMeshes (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawMeshes>*>( taskData ) );
+	}
+
+	void VTaskProcessor::Visit2_DrawMeshes (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawMeshes>*>( taskData ) );
+	}
+	
+/*
+=================================================
+	Visit*_DrawVerticesIndirect
+=================================================
+*/
+	void VTaskProcessor::Visit1_DrawVerticesIndirect (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawVerticesIndirect>*>( taskData ) );
+	}
+
+	void VTaskProcessor::Visit2_DrawVerticesIndirect (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawVerticesIndirect>*>( taskData ) );
+	}
+	
+/*
+=================================================
+	Visit*_DrawIndexedIndirect
+=================================================
+*/
+	void VTaskProcessor::Visit1_DrawIndexedIndirect (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawIndexedIndirect>*>( taskData ) );
+	}
+
+	void VTaskProcessor::Visit2_DrawIndexedIndirect (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawIndexedIndirect>*>( taskData ) );
+	}
+	
+/*
+=================================================
+	Visit*_DrawMeshesIndirect
+=================================================
+*/
+	void VTaskProcessor::Visit1_DrawMeshesIndirect (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawMeshesIndirect>*>( taskData ) );
+	}
+
+	void VTaskProcessor::Visit2_DrawMeshesIndirect (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<DrawMeshesIndirect>*>( taskData ) );
 	}
 
 /*
@@ -680,11 +781,11 @@ namespace FG
 	_AddRenderTargetBarriers
 =================================================
 */
-	void VTaskProcessor::_AddRenderTargetBarriers (const VLogicalRenderPass *logicalRP, const DrawTaskBarriers &info)
+	void VTaskProcessor::_AddRenderTargetBarriers (const VLogicalRenderPass &logicalRP, const DrawTaskBarriers &info)
 	{
-		if ( logicalRP->GetDepthStencilTarget().IsDefined() )
+		if ( logicalRP.GetDepthStencilTarget().IsDefined() )
 		{
-			const auto &	rt		= logicalRP->GetDepthStencilTarget();
+			const auto &	rt		= logicalRP.GetDepthStencilTarget();
 			EResourceState	state	= rt.state;
 			VkImageLayout	layout	= EResourceState_ToImageLayout( rt.state );
 
@@ -697,7 +798,7 @@ namespace FG
 			_AddImage( rt.imagePtr, state, layout, rt.desc );
 		}
 
-		for (const auto& rt : logicalRP->GetColorTargets())
+		for (const auto& rt : logicalRP.GetColorTargets())
 		{
 			VkImageLayout	layout = EResourceState_ToImageLayout( rt.second.state );
 
@@ -710,16 +811,16 @@ namespace FG
 	_ExtractClearValues
 =================================================
 */
-	void VTaskProcessor::_ExtractClearValues (const VLogicalRenderPass *logicalRP, const VRenderPass *rp, OUT VkClearValues_t &clearValues) const
+	void VTaskProcessor::_ExtractClearValues (const VLogicalRenderPass &logicalRP, const VRenderPass *rp, OUT VkClearValues_t &clearValues) const
 	{
-		clearValues.resize( logicalRP->GetColorTargets().size() + uint(logicalRP->GetDepthStencilTarget().IsDefined()) );
+		clearValues.resize( logicalRP.GetColorTargets().size() + uint(logicalRP.GetDepthStencilTarget().IsDefined()) );
 
-		if ( logicalRP->GetDepthStencilTarget().IsDefined() )
+		if ( logicalRP.GetDepthStencilTarget().IsDefined() )
 		{
-			clearValues[0] = logicalRP->GetDepthStencilTarget().clearValue;
+			clearValues[0] = logicalRP.GetDepthStencilTarget().clearValue;
 		}
 
-		for (const auto& ct : logicalRP->GetColorTargets())
+		for (const auto& ct : logicalRP.GetColorTargets())
 		{
 			uint	index;
 			CHECK( rp->GetColorAttachmentIndex( ct.first, OUT index ));
@@ -746,7 +847,7 @@ namespace FG
 
 		
 		// add barriers
-		DrawTaskBarriers	barrier_visitor{ *this, _currTask };
+		DrawTaskBarriers	barrier_visitor{ *this, *logical_passes.front() };
 
 		for (auto& pass : logical_passes)
 		{
@@ -763,7 +864,7 @@ namespace FG
 		
 		VFramebuffer const*	framebuffer = _GetResource( task.GetLogicalPass()->GetFramebufferID() );
 
-		_AddRenderTargetBarriers( task.GetLogicalPass(), barrier_visitor );
+		_AddRenderTargetBarriers( *task.GetLogicalPass(), barrier_visitor );
 		_CommitBarriers();
 
 
@@ -772,7 +873,7 @@ namespace FG
 		RectI const&		area		= task.GetLogicalPass()->GetArea();
 
 		VkClearValues_t		clear_values;
-		_ExtractClearValues( task.GetLogicalPass(), render_pass, OUT clear_values );
+		_ExtractClearValues( *task.GetLogicalPass(), render_pass, OUT clear_values );
 
 		VkRenderPassBeginInfo	pass_info = {};
 		pass_info.sType						= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -914,8 +1015,10 @@ namespace FG
 
 		_isCompute = true;
 
-		_BindPipelineResources( task.pipeline, task.GetResources() );
 		_BindPipeline( task.pipeline, task.localGroupSize );
+		_BindPipelineResources( task.pipeline, task.GetResources() );
+		//_SetPushConstants( task.pipeline, task. );
+
 		_CommitBarriers();
 
 		_dev.vkCmdDispatch( _cmdBuffer, task.groupCount.x, task.groupCount.y, task.groupCount.z );

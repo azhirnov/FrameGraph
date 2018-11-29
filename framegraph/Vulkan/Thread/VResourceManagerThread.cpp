@@ -150,7 +150,7 @@ namespace FG
 				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
 		}
 
-		for (size_t i = 0; i < _logicalRenderPasses.size(); ++i)
+		for (size_t i = 0; i < _logicalRenderPassCount; ++i)
 		{
 			auto&	rp = _logicalRenderPasses[ Index_t(i) ];
 			if ( not rp.IsDestroyed() )
@@ -163,8 +163,9 @@ namespace FG
 		_localBuffers.Release();
 		_logicalRenderPasses.Release();
 
-		_localImagesCount	= 0;
-		_localBuffersCount	= 0;
+		_localImagesCount		= 0;
+		_localBuffersCount		= 0;
+		_logicalRenderPassCount	= 0;
 	}
 
 /*
@@ -560,7 +561,7 @@ namespace FG
 	CreateImage
 =================================================
 */
-	RawImageID  VResourceManagerThread::CreateImage (const MemoryDesc &mem, const ImageDesc &desc, VMemoryManager &alloc,
+	RawImageID  VResourceManagerThread::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
 													 EQueueFamily queueFamily, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
@@ -573,10 +574,7 @@ namespace FG
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
-		
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 		Replace( data );
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 
 		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
@@ -585,7 +583,6 @@ namespace FG
 			RETURN_ERR( "failed when creating image" );
 		}
 
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 		return id;
 	}
 	
@@ -594,7 +591,7 @@ namespace FG
 	CreateBuffer
 =================================================
 */
-	RawBufferID  VResourceManagerThread::CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, VMemoryManager &alloc,
+	RawBufferID  VResourceManagerThread::CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
 													   EQueueFamily queueFamily, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
@@ -798,23 +795,20 @@ namespace FG
 	CreateRayTracingGeometry
 =================================================
 */
-	RawRTGeometryID  VResourceManagerThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily,
-																	   StringView dbgName, bool isAsync)
+	RawRTGeometryID  VResourceManagerThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
+																	   EQueueFamily queueFamily, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
 		RawMemoryID		mem_id;
 		VMemoryObj*		mem_obj	= null;
-		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, MemoryDesc{}, alloc, dbgName ));
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc, dbgName ));
 
 		RawRTGeometryID		id;
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
-		
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 		Replace( data );
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 
 		if ( not data.Create( *this, desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
@@ -823,7 +817,6 @@ namespace FG
 			RETURN_ERR( "failed when creating raytracing geometry" );
 		}
 
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 		return id;
 	}
 	
@@ -832,23 +825,20 @@ namespace FG
 	CreateRayTracingScene
 =================================================
 */
-	RawRTSceneID  VResourceManagerThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, VMemoryManager &alloc, EQueueFamily queueFamily,
-																 StringView dbgName, bool isAsync)
+	RawRTSceneID  VResourceManagerThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
+																 EQueueFamily queueFamily, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
 		RawMemoryID		mem_id;
 		VMemoryObj*		mem_obj	= null;
-		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, MemoryDesc{}, alloc, dbgName ));
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc, dbgName ));
 
 		RawRTSceneID	id;
 		CHECK_ERR( _Assign( OUT id ));
 
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
-		
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 		Replace( data );
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 
 		if ( not data.Create( *this, desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
@@ -857,7 +847,6 @@ namespace FG
 			RETURN_ERR( "failed when creating raytracing scene" );
 		}
 
-		ASSERT( id.InstanceID() == data.GetInstanceID() );
 		return id;
 	}
 
@@ -882,7 +871,13 @@ namespace FG
 		CHECK_ERR( _localBuffers.Assign( OUT index ));
 
 		auto&		data = _localBuffers[ index ];
-		CHECK_ERR( data.Create( GetResource( id ) ));
+		Replace( data );
+		
+		if ( not data.Create( GetResource( id ) ) )
+		{
+			_localBuffers.Unassign( index );
+			RETURN_ERR( "failed when creating local buffer" );
+		}
 
 		_localBuffersCount = Max( index+1, _localBuffersCount );
 
@@ -911,7 +906,13 @@ namespace FG
 		CHECK_ERR( _localImages.Assign( OUT index ));
 
 		auto&		data = _localImages[ index ];
-		CHECK_ERR( data.Create( GetResource( id ) ));
+		Replace( data );
+		
+		if ( not data.Create( GetResource( id ) ) )
+		{
+			_localImages.Unassign( index );
+			RETURN_ERR( "failed when creating local image" );
+		}
 
 		_localImagesCount = Max( index+1, _localImagesCount );
 
@@ -932,7 +933,15 @@ namespace FG
 		CHECK_ERR( _logicalRenderPasses.Assign( OUT index ));
 		
 		auto&		data = _logicalRenderPasses[ index ];
-		CHECK_ERR( data.Create( *this, desc ));
+		Replace( data );
+
+		if ( not data.Create( *this, desc ) )
+		{
+			_logicalRenderPasses.Unassign( index );
+			RETURN_ERR( "failed when creating logical render pass" );
+		}
+
+		_logicalRenderPassCount = Max( index+1, _logicalRenderPassCount );
 
 		return LogicalPassID( index, 0 );
 	}

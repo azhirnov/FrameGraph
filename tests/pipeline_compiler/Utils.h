@@ -258,3 +258,22 @@ inline bool TestSpecializationConstant (const PipelineDescription::Shader &shade
 
 	return	iter->second == index;
 }
+
+/*
+=================================================
+	TestPushConstant
+=================================================
+*/
+inline bool TestPushConstant (const PipelineDescription &desc, const PushConstantID &id, EShaderStages stageFlags, BytesU offset, BytesU size)
+{
+	for (auto& pc : desc._pipelineLayout.pushConstants)
+	{
+		if ( pc.id == id )
+		{
+			return	pc.offset		== uint16_t(offset)	and
+					pc.size			== uint16_t(size)	and
+					pc.stageFlags	== stageFlags;
+		}
+	}
+	return false;
+}

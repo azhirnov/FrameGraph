@@ -11,6 +11,7 @@
 #include "framegraph/Public/ImageDesc.h"
 #include "framegraph/Public/SamplerDesc.h"
 #include "framegraph/Public/MemoryDesc.h"
+#include "framegraph/Public/RenderPassDesc.h"
 #include "framegraph/Public/PipelineResources.h"
 
 namespace FG
@@ -60,14 +61,14 @@ namespace FG
 		ND_ virtual GPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName = Default) = 0;
 		ND_ virtual CPipelineID		CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName = Default) = 0;
 
-		ND_ virtual ImageID			CreateImage (const MemoryDesc &mem, const ImageDesc &desc, StringView dbgName = Default) = 0;
-		ND_ virtual BufferID		CreateBuffer (const MemoryDesc &mem, const BufferDesc &desc, StringView dbgName = Default) = 0;
+		ND_ virtual ImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
+		ND_ virtual BufferID		CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName = Default) = 0;
 			virtual bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const = 0;
-		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, StringView dbgName = Default) = 0;
-		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, StringView dbgName = Default) = 0;
+		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
+		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 
 			virtual void			DestroyResource (INOUT GPipelineID &id) = 0;
 			virtual void			DestroyResource (INOUT CPipelineID &id) = 0;
@@ -134,11 +135,14 @@ namespace FG
 		// draw tasks
 		ND_ virtual LogicalPassID  CreateRenderPass (const RenderPassDesc &desc) = 0;
 
-			virtual void		AddDrawTask (LogicalPassID, const DrawTask &) = 0;
-			virtual void		AddDrawTask (LogicalPassID, const DrawIndexedTask &) = 0;
-		//	virtual void		AddDrawTask (LogicalPassID, const ClearAttachments &) = 0;
-		//	virtual void		AddDrawTask (LogicalPassID, const DrawCommandBuffer &) = 0;
-			virtual void		AddDrawTask (LogicalPassID, const DrawMeshTask &) = 0;
+			virtual void		AddTask (LogicalPassID, const DrawVertices &) = 0;
+			virtual void		AddTask (LogicalPassID, const DrawIndexed &) = 0;
+			virtual void		AddTask (LogicalPassID, const DrawVerticesIndirect &) = 0;
+			virtual void		AddTask (LogicalPassID, const DrawIndexedIndirect &) = 0;
+			virtual void		AddTask (LogicalPassID, const DrawMeshes &) = 0;
+			virtual void		AddTask (LogicalPassID, const DrawMeshesIndirect &) = 0;
+		//	virtual void		AddTask (LogicalPassID, const ClearAttachments &) = 0;
+		//	virtual void		AddTask (LogicalPassID, const DrawCommandBuffer &) = 0;
 	};
 
 

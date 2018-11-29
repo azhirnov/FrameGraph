@@ -144,7 +144,7 @@ Thread {
 		iamgeType:    Image2D
 		dimension:    ( 512, 512, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		usage:        TransferDst | Sampled
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
@@ -187,7 +187,7 @@ Thread {
 	Buffer {
 		name:    "const_buf1"
 		size:    256 b
-		usage:   TransferSrc | TransferDst | Uniform | Storage | Index | Vertex | Indirect
+		usage:   TransferDst | Uniform
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         update_buf1 (#3)
@@ -228,7 +228,7 @@ Thread {
 	Buffer {
 		name:    "const_buf2"
 		size:    512 b
-		usage:   TransferSrc | TransferDst | Uniform | Storage | Index | Vertex | Indirect
+		usage:   TransferDst | Uniform
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         update_buf0 (#2)

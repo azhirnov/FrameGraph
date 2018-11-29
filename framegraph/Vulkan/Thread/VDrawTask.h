@@ -16,12 +16,11 @@ namespace FG
 	//
 	// Draw Task interface
 	//
-
 	class IDrawTask
 	{
 	// types
 	public:
-		using Name_t			= DrawTask::TaskName_t;
+		using Name_t			= DrawVertices::TaskName_t;
 		using ProcessFunc_t		= void (*) (void *visitor, void *taskData);
 		
 
@@ -34,11 +33,12 @@ namespace FG
 
 
 	// interface
-	public:
+	protected:
 		template <typename TaskType>
 		IDrawTask (const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 			_pass1{pass1}, _pass2{pass2}, _taskName{task.taskName}, _debugColor{task.debugColor} {}
 
+	public:
 		virtual ~IDrawTask () {}
 		
 		ND_ StringView	GetName ()			const	{ return _taskName; }
@@ -51,47 +51,49 @@ namespace FG
 
 
 	//
-	// Draw Task
+	// Base Draw Vertices Task
 	//
-
-	template <>
-	class VFgDrawTask< DrawTask > final : public IDrawTask
+	class VBaseDrawVerticesTask : public IDrawTask
 	{
 	// types
 	public:
 		using VertexBuffers_t	= StaticArray< VLocalBuffer const*, FG_MaxVertexBuffers >;
 		using VertexOffsets_t	= StaticArray< VkDeviceSize, FG_MaxVertexBuffers >;
 		using VertexStrides_t	= StaticArray< Bytes<uint>, FG_MaxVertexBuffers >;
-		using Scissors_t		= DrawTask::Scissors_t;
-		using DrawCmd			= DrawTask::DrawCmd;
 
 
 	// variables
 	private:
-		VPipelineResourceSet			_resources;
+		VPipelineResourceSet				_resources;
 
-		VertexBuffers_t					_vertexBuffers;
-		VertexOffsets_t					_vbOffsets;
-		VertexStrides_t					_vbStrides;
-		const uint						_vbCount;
+		VertexBuffers_t						_vertexBuffers;
+		VertexOffsets_t						_vbOffsets;
+		VertexStrides_t						_vbStrides;
+		const uint							_vbCount;
 
 	public:
-		const RawGPipelineID			pipeline;
+		const RawGPipelineID				pipeline;
+		const _fg_hidden_::PushConstants_t	pushConstants;
 
-		const RenderState				renderState;
-		const EPipelineDynamicState		dynamicStates;
+		const VertexInputState				vertexInput;
 
-		const VertexInputState			vertexInput;
-		const DrawCmd					drawCmd;
-		const Scissors_t				scissors;
+		const _fg_hidden_::Scissors_t		scissors;
+		const _fg_hidden_::ColorBuffers_t	colorBuffers;
+		const _fg_hidden_::StencilState		stencilState;
+		
+		const EPipelineDynamicState			dynamicStates;
+		const EPrimitive					topology;
+		const bool							primitiveRestart;
 
-		mutable VkDescriptorSets_t		descriptorSets;
-
+		mutable VkDescriptorSets_t			descriptorSets;
+		
 
 	// methods
+	protected:
+		template <typename TaskType>
+		VBaseDrawVerticesTask (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+
 	public:
-		VFgDrawTask (VFrameGraphThread *fg, const DrawTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
-		
 		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
 
 		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()	const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
@@ -102,94 +104,141 @@ namespace FG
 
 
 	//
-	// Draw Indexed Task
+	// Draw Vertices
 	//
-
 	template <>
-	class VFgDrawTask< DrawIndexedTask > final : public IDrawTask
+	class VFgDrawTask< DrawVertices > final : public VBaseDrawVerticesTask
 	{
-	// types
 	public:
-		using VertexBuffers_t	= VFgDrawTask<DrawTask>::VertexBuffers_t;
-		using VertexOffsets_t	= VFgDrawTask<DrawTask>::VertexOffsets_t;
-		using VertexStrides_t	= VFgDrawTask<DrawTask>::VertexStrides_t;
-		using Scissors_t		= DrawIndexedTask::Scissors_t;
-		using DrawCmd			= DrawIndexedTask::DrawCmd;
-
-
 	// variables
-	private:
-		VPipelineResourceSet			_resources;
-		
-		VertexBuffers_t					_vertexBuffers;
-		VertexOffsets_t					_vbOffsets;
-		VertexStrides_t					_vbStrides;
-		const uint						_vbCount;
-
-	public:
-		const RawGPipelineID			pipeline;
-
-		const RenderState				renderState;
-		const EPipelineDynamicState		dynamicStates;
-		
-		VLocalBuffer const* const		indexBuffer;
-		const BytesU					indexBufferOffset;
-		const EIndex					indexType;
-		
-		const VertexInputState			vertexInput;
-		const DrawCmd					drawCmd;
-		const Scissors_t				scissors;
-		
-		mutable VkDescriptorSets_t		descriptorSets;
-
+		const DrawVertices::DrawCommands_t		commands;
 
 	// methods
+		VFgDrawTask (VFrameGraphThread *fg, const DrawVertices &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+	};
+
+
+
+	//
+	// Draw Indexed Vertices
+	//
+	template <>
+	class VFgDrawTask< DrawIndexed > final : public VBaseDrawVerticesTask
+	{
 	public:
-		VFgDrawTask (VFrameGraphThread *fg, const DrawIndexedTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
-		
-		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
-		
-		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()	const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
-		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()		const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
-		ND_ ArrayView< Bytes<uint> >		GetVBStrides ()		const	{ return ArrayView{ _vbStrides.data(), _vbCount }; }
+	// variables
+		const DrawIndexed::DrawCommands_t	commands;
+
+		VLocalBuffer const* const			indexBuffer;
+		const BytesU						indexBufferOffset;
+		const EIndex						indexType;
+
+	// methods
+		VFgDrawTask (VFrameGraphThread *fg, const DrawIndexed &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+	};
+
+
+
+	//
+	// Draw Vertices Indirect
+	//
+	template <>
+	class VFgDrawTask< DrawVerticesIndirect > final : public VBaseDrawVerticesTask
+	{
+	public:
+	// variables
+		const DrawVerticesIndirect::DrawCommands_t		commands;
+		VLocalBuffer const* const						indirectBuffer;
+
+	// methods
+		VFgDrawTask (VFrameGraphThread *fg, const DrawVerticesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+	};
+
+
+
+	//
+	// Draw Indexed Vertices Indirect
+	//
+	template <>
+	class VFgDrawTask< DrawIndexedIndirect > final : public VBaseDrawVerticesTask
+	{
+	public:
+	// variables
+		const DrawIndexedIndirect::DrawCommands_t	commands;
+		VLocalBuffer const* const					indirectBuffer;
+
+		VLocalBuffer const* const					indexBuffer;
+		const BytesU								indexBufferOffset;
+		const EIndex								indexType;
+
+	// methods
+		VFgDrawTask (VFrameGraphThread *fg, const DrawIndexedIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 	
 
 
 	//
-	// Draw Mesh Task
+	// Base Draw Meshes
 	//
-
-	template <>
-	class VFgDrawTask< DrawMeshTask > final : public IDrawTask
+	class VBaseDrawMeshes : public IDrawTask
 	{
-	// types
-	public:
-		using Scissors_t	= DrawMeshTask::Scissors_t;
-		using DrawCmd		= DrawMeshTask::DrawCmd;
-
-
 	// variables
 	private:
-		VPipelineResourceSet			_resources;
+		VPipelineResourceSet				_resources;
 
 	public:
-		const RawMPipelineID			pipeline;
+		const RawMPipelineID				pipeline;
+		const _fg_hidden_::PushConstants_t	pushConstants;
 
-		const RenderState				renderState;
-		const EPipelineDynamicState		dynamicStates;
+		const _fg_hidden_::Scissors_t		scissors;
+		const _fg_hidden_::ColorBuffers_t	colorBuffers;
+		const _fg_hidden_::StencilState		stencilState;
+		
+		const EPipelineDynamicState			dynamicStates;
 
-		const DrawCmd					drawCmd;
-		const Scissors_t				scissors;
-
-		mutable VkDescriptorSets_t		descriptorSets;
+		mutable VkDescriptorSets_t			descriptorSets;
 
 
 	// methods
+	protected:
+		template <typename TaskType>
+		VBaseDrawMeshes (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+
 	public:
-		VFgDrawTask (VFrameGraphThread *fg, const DrawMeshTask &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
-		
 		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
+	};
+
+
+
+	//
+	// Draw Meshes
+	//
+	template <>
+	class VFgDrawTask< DrawMeshes > final : public VBaseDrawMeshes
+	{
+	public:
+	// variables
+		const DrawMeshes::DrawCommands_t	commands;
+
+	// methods
+		VFgDrawTask (VFrameGraphThread *fg, const DrawMeshes &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+	};
+	
+
+
+	//
+	// Draw Meshes Indirect
+	//
+	template <>
+	class VFgDrawTask< DrawMeshesIndirect > final : public VBaseDrawMeshes
+	{
+	public:
+	// variables
+		const DrawMeshesIndirect::DrawCommands_t	commands;
+		VLocalBuffer const* const					indirectBuffer;
+
+	// methods
+		VFgDrawTask (VFrameGraphThread *fg, const DrawMeshesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 
 

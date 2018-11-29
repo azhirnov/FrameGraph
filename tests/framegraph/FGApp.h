@@ -48,9 +48,9 @@ namespace FG
 	// IWindowEventListener
 	private:
 		void OnResize (const uint2 &size) override;
-		void OnRefresh () override;
-		void OnDestroy () override;
-		void OnUpdate () override;
+		void OnRefresh () override {}
+		void OnDestroy () override {}
+		void OnUpdate () override {}
 		void OnKey (StringView, EKeyAction) override {}
 		void OnMouseMove (const float2 &) override {}
 		
@@ -65,17 +65,13 @@ namespace FG
 		bool CompareDumps (StringView filename) const;
 		bool SavePNG (const String &filename, const ImageView &imageData) const;
 
-		ND_ Array<uint8_t>	CreateData (BytesU size) const;
-		ND_ BufferID	CreateBuffer (BytesU size, StringView name = Default) const;
-
-		ND_ ImageID		CreateImage2D (uint2 size, EPixelFormat fmt = EPixelFormat::RGBA8_UNorm, StringView name = Default) const;
-		ND_ ImageID		CreateLogicalImage2D (uint2 size, EPixelFormat fmt = EPixelFormat::RGBA8_UNorm, StringView name = Default) const;
-
 		template <typename ...Args>
 		void DeleteResources (Args& ...args);
 
 		template <typename Arg0, typename ...Args>
 		void _RecursiveDeleteResources (Arg0 &arg0, Args& ...args);
+
+		ND_ Array<uint8_t>	CreateData (BytesU size) const;
 
 		ND_ static String  GetFuncName (StringView src);
 
@@ -92,10 +88,12 @@ namespace FG
 		bool Test_CopyImage2 ();
 		bool Test_CopyImage3 ();
 		bool Test_CopyImage4 ();
-		bool Test_Compute1 ();
+		bool Test_PushConst1 ();
+		bool Test_Compute1 ();		// compute + specialization
 		bool Test_Draw1 ();
-		bool Test_Draw2 ();
-		bool Test_Draw3 ();
+		bool Test_Draw2 ();			// with swapchain
+		bool Test_Draw3 ();			// with mesh shader
+		bool Test_TraceRays1 ();
 	};
 
 	

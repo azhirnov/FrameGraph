@@ -40,13 +40,19 @@ void main ()
 }
 )#" );
 		
-		FGThreadPtr			frame_graph	= _frameGraph1;
-		const uint2			image_dim	= { 16, 16 };
-		ImageID				image0		= CreateImage2D( image_dim, EPixelFormat::RGBA8_UNorm, "MyImage_0" );
-		ImageID				image1		= CreateImage2D( image_dim, EPixelFormat::RGBA8_UNorm, "MyImage_1" );
-		ImageID				image2		= CreateImage2D( image_dim, EPixelFormat::RGBA8_UNorm, "MyImage_2" );
+		FGThreadPtr		frame_graph	= _frameGraph1;
+		const uint2		image_dim	= { 16, 16 };
 
-		CPipelineID			pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		ImageID			image0		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_0" );
+
+		ImageID			image1		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_1" );
+
+		ImageID			image2		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_2" );
+
+		CPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
 		
 		RawDescriptorSetLayoutID	ds_layout;
 		uint						ds_index;

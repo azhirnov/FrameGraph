@@ -8,70 +8,150 @@
 
 namespace FG
 {
-	namespace _fg_hidden_
-	{
-		struct _BaseDrawTask {};
-
-
-		//
-		// Base Draw Task
-		//
-		template <typename BaseType>
-		struct BaseDrawTask : _BaseDrawTask
-		{
-		// types
-			using TaskName_t = StaticString<64>;
-
-		// variables
-			TaskName_t		taskName;
-			RGBA8u			debugColor;
-			
-		// methods
-			BaseDrawTask () {}
-			BaseDrawTask (StringView name, RGBA8u color) : taskName{name}, debugColor{color} {}
-
-			BaseType& SetName (StringView name)			{ taskName = name;  return static_cast<BaseType &>( *this ); }
-			BaseType& SetDebugColor (RGBA8u color)		{ debugColor = color;  return static_cast<BaseType &>( *this ); }
-		};
-
-	}	// _fg_hidden_
-
-
+namespace _fg_hidden_
+{
 
 	//
-	// Draw
+	// Base Draw Task
 	//
-	struct DrawTask final : _fg_hidden_::BaseDrawTask<DrawTask>
+	template <typename TaskType>
+	struct BaseDrawTask
 	{
 	// types
-		struct Buffer
-		{
-			RawBufferID		buffer;
-			BytesU			offset;
-		};
+		using TaskName_t = StaticString<64>;
 
-		struct Buffers_t final : public FixedMap< VertexBufferID, Buffer, FG_MaxVertexBuffers >
-		{
-			Buffers_t&  Add (const VertexBufferID &id, RawBufferID vb, BytesU offset)
-			{
-				this->insert_or_assign( id, Buffer{vb, offset} );
-				return *this;
-			}
-		};
+	// variables
+		TaskName_t		taskName;
+		RGBA8u			debugColor;
+			
+	// methods
+		BaseDrawTask () {}
+		BaseDrawTask (StringView name, RGBA8u color) : taskName{name}, debugColor{color} {}
 
-		struct PushConstantData
-		{
-			PushConstantID		id;
-			union {
-				float4			fdata;
-				int4			idata;
-			};
-		};
+		TaskType& SetName (StringView name)			{ taskName = name;  return static_cast<TaskType &>( *this ); }
+		TaskType& SetDebugColor (RGBA8u color)		{ debugColor = color;  return static_cast<TaskType &>( *this ); }
+	};
+	
+	
+	struct VertexBuffer
+	{
+		RawBufferID		buffer;
+		BytesU			offset;
+	};
 
-		using PushConstants_t = FixedArray< PushConstantData, 2 >;
 
-		using Scissors_t = FixedArray< RectI, FG_MaxViewports >;
+	struct PushConstantData
+	{
+		PushConstantID		id;
+		uint8_t				data[ FG_MaxPushConstantsSize ];
+	};
+	using PushConstants_t	= FixedArray< PushConstantData, 4 >;
+	
 
+	struct StencilState
+	{
+		using Value_t = uint8_t;
+
+		Vec<Value_t, 2>		reference, writeMask, compareMask;
+	};
+	
+	using ColorBuffers_t	= FixedMap< RenderTargetID, RenderState::ColorBuffer, 4 >;
+	using Scissors_t		= FixedArray< RectI, FG_MaxViewports >;
+
+
+	//
+	// Base Draw Call
+	//
+	template <typename TaskType>
+	struct BaseDrawCall : BaseDrawTask<TaskType>
+	{
+	// types
+		using StencilValue_t	= StencilState::Value_t;
+
+
+	// variables
+		PipelineResourceSet		resources;
+		PushConstants_t			pushConstants;
+		
+		EPipelineDynamicState	dynamicStates	= EPipelineDynamicState::Viewport;
+		Scissors_t				scissors;
+		ColorBuffers_t			colorBuffers;
+		StencilState			stencilState;
+			
+
+	// methods
+		BaseDrawCall () : BaseDrawTask<TaskType>{} {}
+		BaseDrawCall (StringView name, RGBA8u color) : BaseDrawTask<TaskType>{ name, color } {}
+
+		TaskType&  AddResources (uint bindingIndex, const PipelineResources *res);
+
+		TaskType&  AddScissor (const RectI &rect);
+		TaskType&  AddScissor (const RectU &rect);
+			
+		TaskType&  AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask);
+		TaskType&  AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
+									EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
+									EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask);
+		TaskType&  AddColorBuffer (const RenderTargetID &id, bool4 colorMask);
+
+		TaskType&  SetStencilRef (uint front, uint back);
+		TaskType&  SetStencilRef (uint value)						{ return SetStencilRef( value, value ); }
+
+		TaskType&  SetStencilCompareMask (uint front, uint back);
+		TaskType&  SetStencilCompareMask (uint value)				{ return SetStencilCompareMask( value, value ); }
+
+		TaskType&  SetStencilWriteMask (uint front, uint back);
+		TaskType&  SetStencilWriteMask (uint value)					{ return SetStencilWriteMask( value, value ); }
+
+		template <typename ValueType>
+		TaskType&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
+		TaskType&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
+	};
+	
+
+	//
+	// Base Draw Vertices
+	//
+	template <typename TaskType>
+	struct BaseDrawVertices : BaseDrawCall<TaskType>
+	{
+	// types
+		using Buffers_t = FixedMap< VertexBufferID, VertexBuffer, FG_MaxVertexBuffers >;
+
+
+	// variables
+		RawGPipelineID			pipeline;
+		
+		VertexInputState		vertexInput;
+		Buffers_t				vertexBuffers;
+
+		EPrimitive				topology			= Default;
+		bool					primitiveRestart	= false;	// if 'true' then index with -1 value will restarting the assembly of primitives
+
+
+	// methods
+		BaseDrawVertices () : BaseDrawCall<TaskType>{} {}
+		BaseDrawVertices (StringView name, RGBA8u color) : BaseDrawCall<TaskType>{ name, color } {}
+
+		TaskType&  SetTopology (EPrimitive value)					{ topology = value;  return static_cast<TaskType &>( *this ); }
+		TaskType&  SetPipeline (const GPipelineID &ppln)			{ ASSERT( ppln );  pipeline = ppln.Get();  return static_cast<TaskType &>( *this ); }
+
+		TaskType&  SetVertexInput (const VertexInputState &value)	{ vertexInput = value;  return static_cast<TaskType &>( *this ); }
+		TaskType&  SetPrimitiveRestartEnabled (bool value)			{ primitiveRestart = value;  return static_cast<TaskType &>( *this ); }
+
+		TaskType&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b);
+	};
+
+}	// _fg_hidden_
+
+
+
+	//
+	// Draw Vertices
+	//
+	struct DrawVertices final : _fg_hidden_::BaseDrawVertices<DrawVertices>
+	{
+	// types
 		struct DrawCmd
 		{
 			uint		vertexCount		= 0;
@@ -79,58 +159,33 @@ namespace FG
 			uint		firstVertex		= 0;
 			uint		firstInstance	= 0;
 		};
+		using DrawCommands_t	= FixedArray< DrawCmd, 16 >;
 
 
 	// variables
-		RawGPipelineID			pipeline;
-		PipelineResourceSet		resources;
-
-		RenderState				renderState;
-		EPipelineDynamicState	dynamicStates	= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
-
-		VertexInputState		vertexInput;
-		Buffers_t				vertexBuffers;
-		
-		DrawCmd					drawCmd;
-		Scissors_t				scissors;
-
-		PushConstants_t			pushConstants;
+		DrawCommands_t			commands;
 
 
 	// methods
-		DrawTask () :
-			BaseDrawTask<DrawTask>{ "Draw", HtmlColor::Bisque } {}
+		DrawVertices () :
+			BaseDrawVertices<DrawVertices>{ "DrawVertices", HtmlColor::Bisque } {}
 
-		DrawTask&  SetPipeline (const GPipelineID &ppln)							{ pipeline = ppln.Get();  return *this; }
-		DrawTask&  SetVertices (uint first, uint count)								{ drawCmd.firstVertex = first;  drawCmd.vertexCount = count;  return *this; }
-		DrawTask&  SetInstances (uint first, uint count)							{ drawCmd.firstInstance = first;  drawCmd.instanceCount = count;  return *this; }
-		DrawTask&  SetRenderState (const RenderState &rs)							{ renderState = rs;  return *this; }
-		DrawTask&  SetVertexInput (const VertexInputState &value)					{ vertexInput = value;  return *this; }
-		DrawTask&  SetDynamicStates (EPipelineDynamicState value)					{ dynamicStates = value;  return *this; }
-
-		DrawTask&  AddScissor (const RectI &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }
-		DrawTask&  AddScissor (const RectU &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
-
-		DrawTask&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
-
-		DrawTask&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b){ vertexBuffers.Add( id, vb.Get(), offset );  return *this; }
-
-		DrawTask&  AddPushConstant (const PushConstantID &id, const float4 &data)	{ pushConstants.push_back({ id, {data} });  return *this; }
-		DrawTask&  AddPushConstant (const PushConstantID &id, const int4 &data)		{ pushConstants.push_back({ id, {data} });  return *this; }
+		DrawVertices&  AddDrawCmd (uint vertexCount, uint instanceCount	= 1, uint firstVertex = 0, uint firstInstance = 0)
+		{
+			ASSERT( vertexCount > 0 );
+			commands.emplace_back( vertexCount, instanceCount, firstVertex, firstInstance );
+			return *this;
+		}
 	};
 
 
 
 	//
-	// Draw Indexed
+	// Draw Indexed Vertices
 	//
-	struct DrawIndexedTask final : _fg_hidden_::BaseDrawTask<DrawIndexedTask>
+	struct DrawIndexed final : _fg_hidden_::BaseDrawVertices<DrawIndexed>
 	{
 	// types
-		using Buffers_t			= DrawTask::Buffers_t;
-		using Scissors_t		= DrawTask::Scissors_t;
-		using PushConstants_t	= DrawTask::PushConstants_t;
-
 		struct DrawCmd
 		{
 			uint		indexCount		= 0;
@@ -139,52 +194,224 @@ namespace FG
 			int			vertexOffset	= 0;
 			uint		firstInstance	= 0;
 		};
+		using DrawCommands_t	= FixedArray< DrawCmd, 16 >;
 
 
 	// variables
-		RawGPipelineID			pipeline;
-		PipelineResourceSet		resources;
-		
-		RenderState				renderState;
-		EPipelineDynamicState	dynamicStates	= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
-
-		VertexInputState		vertexInput;
-		Buffers_t				vertexBuffers;
-		
 		RawBufferID				indexBuffer;
 		BytesU					indexBufferOffset;
 		EIndex					indexType		= Default;
 		
-		DrawCmd					drawCmd;
-		Scissors_t				scissors;
-		
-		PushConstants_t			pushConstants;
+		DrawCommands_t			commands;
 
 
 	// methods
-		DrawIndexedTask () :
-			BaseDrawTask<DrawIndexedTask>{ "DrawIndexed", HtmlColor::Bisque } {}
+		DrawIndexed () :
+			BaseDrawVertices<DrawIndexed>{ "DrawIndexed", HtmlColor::Bisque } {}
 
-		DrawIndexedTask&  SetPipeline (const GPipelineID &ppln)								{ pipeline = ppln.Get();  return *this; }
-		DrawIndexedTask&  SetIndices (uint first, uint count)								{ drawCmd.firstIndex = first;  drawCmd.indexCount = count;  return *this; }
-		DrawIndexedTask&  SetInstances (uint first, uint count)								{ drawCmd.firstInstance = first;  drawCmd.instanceCount = count;  return *this; }
-		DrawIndexedTask&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)		{ indexBuffer = ib.Get();  indexBufferOffset = off;  indexType = type;  return *this; }
-		DrawIndexedTask&  SetRenderState (const RenderState &rs)							{ renderState = rs;  return *this; }
-		DrawIndexedTask&  SetVertexInput (const VertexInputState &value)					{ vertexInput = value;  return *this; }
-		DrawIndexedTask&  SetDynamicStates (EPipelineDynamicState value)					{ dynamicStates = value;  return *this; }
-		DrawIndexedTask&  SetDrawCmd(const DrawCmd &value)									{ drawCmd = value;  return *this; }
-		
-		DrawIndexedTask&  AddScissor (const RectI &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }
-		DrawIndexedTask&  AddScissor (const RectU &rect)									{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
-		
-		DrawIndexedTask&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
+		DrawIndexed&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)
+		{
+			ASSERT( ib );
+			indexBuffer			= ib.Get();
+			indexBufferOffset	= off;
+			indexType			= type;
+			return *this;
+		}
 
-		DrawIndexedTask&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b)	{ vertexBuffers.Add( id, vb.Get(), offset );  return *this; }
-		
-		DrawIndexedTask&  AddPushConstant (const PushConstantID &id, const float4 &data)	{ pushConstants.push_back({ id, {data} });  return *this; }
-		DrawIndexedTask&  AddPushConstant (const PushConstantID &id, const int4 &data)		{ pushConstants.push_back({ id, {data} });  return *this; }
+		DrawIndexed&  AddDrawCmd (uint indexCount, uint instanceCount = 1, uint firstIndex = 0, int vertexOffset = 0, uint firstInstance = 0)
+		{
+			ASSERT( indexCount > 0 );
+			commands.emplace_back( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+			return *this;
+		}
 	};
 
+
+
+	//
+	// Draw Vertices indirect
+	//
+	struct DrawVerticesIndirect final : _fg_hidden_::BaseDrawVertices<DrawVerticesIndirect>
+	{
+	// types
+		struct DrawCmd
+		{
+			BytesU			indirectBufferOffset;
+			uint			drawCount;
+			Bytes<uint>		stride;
+		};
+		using DrawCommands_t	= FixedArray< DrawCmd, 16 >;
+		
+		struct DrawIndirectCommand
+		{
+			uint	vertexCount;
+			uint	instanceCount;
+			uint	firstVertex;
+			uint	firstInstance;
+		};
+
+
+	// variables
+		DrawCommands_t			commands;
+		RawBufferID				indirectBuffer;		// contains array of 'DrawIndirectCommand'
+
+
+	// methods
+		DrawVerticesIndirect () :
+			BaseDrawVertices<DrawVerticesIndirect>{ "DrawVerticesIndirect", HtmlColor::Bisque } {}
+
+		DrawVerticesIndirect&  SetIndirectBuffer (const BufferID &buffer)
+		{
+			ASSERT( buffer );
+			indirectBuffer = buffer.Get();
+			return *this;
+		}
+
+		DrawVerticesIndirect&  AddDrawCmd (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndirectCommand>)
+		{
+			ASSERT( drawCount > 0 );
+			commands.emplace_back( indirectBufferOffset, drawCount, Bytes<uint>{stride} );
+			return *this;
+		}
+	};
+
+
+
+	//
+	// Draw Indexed Vertices Indirect
+	//
+	struct DrawIndexedIndirect final : _fg_hidden_::BaseDrawVertices<DrawIndexedIndirect>
+	{
+	// types
+		using DrawCommands_t = DrawVerticesIndirect::DrawCommands_t;
+		
+		struct DrawIndexedIndirectCommand
+		{
+			uint	indexCount;
+			uint	instanceCount;
+			uint	firstIndex;
+			int		vertexOffset;
+			uint	firstInstance;
+		};
+
+
+	// variables
+		RawBufferID				indexBuffer;
+		BytesU					indexBufferOffset;
+		EIndex					indexType		= Default;
+
+		DrawCommands_t			commands;
+
+		RawBufferID				indirectBuffer;		// contains array of 'DrawIndexedIndirectCommand'
+
+
+	// methods
+		DrawIndexedIndirect () :
+			BaseDrawVertices<DrawIndexedIndirect>{ "DrawIndexedIndirect", HtmlColor::Bisque } {}
+		
+		DrawIndexedIndirect&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)
+		{
+			ASSERT( ib );
+			indexBuffer			= ib.Get();
+			indexBufferOffset	= off;
+			indexType			= type;
+			return *this;
+		}
+
+		DrawIndexedIndirect&  SetIndirectBuffer (const BufferID &buffer)
+		{
+			ASSERT( buffer );
+			indirectBuffer = buffer.Get();
+			return *this;
+		}
+
+		DrawIndexedIndirect&  AddDrawCmd (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndexedIndirectCommand>)
+		{
+			ASSERT( drawCount > 0 );
+			commands.emplace_back( indirectBufferOffset, drawCount, Bytes<uint>{stride} );
+			return *this;
+		}
+	};
+
+
+
+	//
+	// Draw Meshes
+	//
+	struct DrawMeshes final : _fg_hidden_::BaseDrawCall<DrawMeshes>
+	{
+	// types
+		struct DrawCmd
+		{
+			uint		count	= 0;
+			uint		first	= 0;
+		};
+		using DrawCommands_t	= FixedArray< DrawCmd, 16 >;
+
+
+	// variables
+		RawMPipelineID			pipeline;
+		DrawCommands_t			commands;
+
+
+	// methods
+		DrawMeshes () :
+			BaseDrawCall<DrawMeshes>{ "DrawMeshes", HtmlColor::Bisque } {}
+
+		DrawMeshes&  SetPipeline (const MPipelineID &ppln)			{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
+
+		DrawMeshes&  AddDrawCmd (uint count, uint first = 0)		{ ASSERT( count > 0 );  commands.push_back({ count, first });  return *this; }
+	};
+
+
+
+	//
+	// Draw Meshes Indirect
+	//
+	struct DrawMeshesIndirect final : _fg_hidden_::BaseDrawCall<DrawMeshesIndirect>
+	{
+	// types
+		using DrawCommands_t = DrawVerticesIndirect::DrawCommands_t;
+		
+		struct DrawMeshTasksIndirectCommand
+		{
+			uint		taskCount;
+			uint		firstTask;
+		};
+
+
+	// variables
+		RawMPipelineID			pipeline;
+		DrawCommands_t			commands;
+		RawBufferID				indirectBuffer;		// contains array of 'DrawMeshTasksIndirectCommand'
+
+
+	// methods
+		DrawMeshesIndirect () :
+			BaseDrawCall<DrawMeshesIndirect>{ "DrawMeshesIndirect", HtmlColor::Bisque } {}
+
+		DrawMeshesIndirect&  SetPipeline (const MPipelineID &ppln)
+		{
+			ASSERT( ppln );
+			pipeline = ppln.Get();
+			return *this;
+		}
+		
+		DrawMeshesIndirect&  SetIndirectBuffer (const BufferID &buffer)
+		{
+			ASSERT( buffer );
+			indirectBuffer = buffer.Get();
+			return *this;
+		}
+
+		DrawMeshesIndirect&  AddDrawCmd (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawMeshTasksIndirectCommand>)
+		{
+			ASSERT( drawCount > 0 );
+			commands.emplace_back( indirectBufferOffset, drawCount, Bytes<uint>{stride} );
+			return *this;
+		}
+	};
+	
 
 
 	//
@@ -198,141 +425,117 @@ namespace FG
 	};
 
 
-
-	//
-	// Draw Mesh Task
-	//
-	struct DrawMeshTask final : _fg_hidden_::BaseDrawTask<DrawMeshTask>
-	{
-	// types
-		using Scissors_t	= DrawTask::Scissors_t;
-		
-		struct DrawCmd
-		{
-			uint		count	= 0;
-			uint		first	= 0;
-		};
-
-
-	// variables
-		RawMPipelineID			pipeline;
-		PipelineResourceSet		resources;
-		
-		RenderState				renderState;
-		EPipelineDynamicState	dynamicStates	= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
-		
-		DrawCmd					drawCmd;
-		Scissors_t				scissors;
-
-
-	// methods
-		DrawMeshTask () :
-			BaseDrawTask<DrawMeshTask>{ "DrawMesh", HtmlColor::Bisque } {}
-
-		DrawMeshTask&  SetPipeline (const MPipelineID &ppln)			{ pipeline = ppln.Get();  return *this; }
-		DrawMeshTask&  SetTaskCount (uint count, uint first = 0)		{ drawCmd.first = first;  drawCmd.count = count;  return *this; }
-		DrawMeshTask&  SetRenderState (const RenderState &rs)			{ renderState = rs;  return *this; }
-		
-		DrawMeshTask&  AddScissor (const RectI &rect)					{ ASSERT( rect.IsValid() );  scissors.push_back( rect );  return *this; }
-		DrawMeshTask&  AddScissor (const RectU &rect)					{ ASSERT( rect.IsValid() );  scissors.push_back( RectI{rect} );  return *this; }
-	};
 	
-
-
-	//
-	// Render Pass Description
-	//
-	struct RenderPassDesc
+namespace _fg_hidden_
+{
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::AddResources (uint bindingIndex, const PipelineResources *res)
 	{
-	// types
-		using ClearValue_t	= Union< std::monostate, RGBA32f, RGBA32u, RGBA32i, DepthStencil >;
+		ASSERT( bindingIndex < resources.size() );
+		resources[bindingIndex] = res;
+		return static_cast<TaskType &>( *this );
+	}
+
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::AddScissor (const RectI &rect)
+	{
+		ASSERT( rect.IsValid() );
+		scissors.push_back( rect );
+		dynamicStates |= EPipelineDynamicState::Scissor;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::AddScissor (const RectU &rect)
+	{
+		ASSERT( rect.IsValid() );
+		scissors.push_back( RectI{rect} );
+		dynamicStates |= EPipelineDynamicState::Scissor;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask)
+	{
+		return AddColorBuffer( id, srcBlendFactor, srcBlendFactor, dstBlendFactor, dstBlendFactor, blendOp, blendOp, colorMask );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
+																EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
+																EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask)
+	{
+		ASSERT( id );
+
+		RenderState::ColorBuffer	cb;
+		cb.blend			= true;
+		cb.srcBlendFactor	= { srcBlendFactorColor, srcBlendFactorAlpha };
+		cb.dstBlendFactor	= { dstBlendFactorColor, dstBlendFactorAlpha };
+		cb.blendOp			= { blendOpColor, blendOpAlpha };
+		cb.colorMask		= colorMask;
+
+		colorBuffers.insert({ id, std::move(cb) });
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (const RenderTargetID &id, bool4 colorMask)
+	{
+		ASSERT( id );
+
+		RenderState::ColorBuffer	cb;
+		cb.colorMask = colorMask;
 		
-		struct RT
-		{
-			RawImageID					image;		// may be image module in initial state (created by CreateRenderTarget or other)
-			Optional< ImageViewDesc >	desc;		// may be used to specialize level, layer, different format, layout, ...
-			ClearValue_t				clearValue;	// default is black color
-			EAttachmentLoadOp			loadOp		= EAttachmentLoadOp::Load;
-			EAttachmentStoreOp			storeOp		= EAttachmentStoreOp::Store;
-		};
-		using Targets_t	= FixedMap< RenderTargetID, RT, FG_MaxColorBuffers+1 >;
+		colorBuffers.insert({ id, std::move(cb) });
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilRef (uint front, uint back)
+	{
+		stencilState.reference.x = StencilValue_t(front);
+		stencilState.reference.y = StencilValue_t(back);
+		dynamicStates |= EPipelineDynamicState::StencilReference;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilCompareMask (uint front, uint back)
+	{
+		stencilState.compareMask.x = StencilValue_t(front);
+		stencilState.compareMask.y = StencilValue_t(back);
+		dynamicStates |= EPipelineDynamicState::StencilCompareMask;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilWriteMask (uint front, uint back)
+	{
+		stencilState.writeMask.x = StencilValue_t(front);
+		stencilState.writeMask.y = StencilValue_t(back);
+		dynamicStates |= EPipelineDynamicState::StencilWriteMask;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
+	{
+		ASSERT( id.IsDefined() );
+		pushConstants.emplace_back( id );
+		MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
+		return static_cast<TaskType &>( *this );
+	}
+//-----------------------------------------------------------------------------
 
-		struct Viewport
-		{
-			RectF	rect;
-			float	minDepth	= 0.0f;
-			float	maxDepth	= 1.0f;
-		};
-		using Viewports_t = FixedArray< Viewport, FG_MaxViewports >;
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawVertices<TaskType>::AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset)
+	{
+		//ASSERT( id.IsDefined() );	// one buffer may be unnamed
+		ASSERT( vb );
+		vertexBuffers.insert_or_assign( id, _fg_hidden_::VertexBuffer{vb.Get(), offset} );
+		return static_cast<TaskType &>( *this );
+	}
 
-
-	// variables
-		Targets_t				renderTargets;
-		Viewports_t				viewports;
-		RectI					area;
-		bool					parallelExecution	= true;		// (optimization) if 'false' all draw and compute tasks will be executed in initial order
-		bool					canBeMerged			= true;		// (optimization) g-buffer render passes can be merged, but don't merge conditional passes
-		// TODO: push constants, specialization constants
-
-
-	// methods
-		explicit RenderPassDesc (const RectI &area) : area{area}
-		{
-			ASSERT( area.IsValid() );
-		}
-
-		explicit RenderPassDesc (const int2 &size) : RenderPassDesc{ RectI{int2(), size} }
-		{}
-
-
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image)
-		{
-			return AddTarget( id, image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store );
-		}
-
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
-		{
-			ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
-			renderTargets.insert_or_assign( id, RT{image.Get(), {}, ClearValue_t{}, loadOp, storeOp} );
-			return *this;
-		}
-		
-		template <typename ClearVal>
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
-		{
-			renderTargets.insert_or_assign( id, RT{image.Get(), {}, clearValue, EAttachmentLoadOp::Clear, storeOp} );
-			return *this;
-		}
-		
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
-		{
-			ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
-			renderTargets.insert_or_assign( id, RT{image.Get(), desc, ClearValue_t{}, loadOp, storeOp} );
-			return *this;
-		}
-
-		template <typename ClearVal>
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
-		{
-			renderTargets.insert_or_assign( id, RT{image.Get(), desc, clearValue, EAttachmentLoadOp::Clear, storeOp} );
-			return *this;
-		}
-
-
-		template <typename T>
-		RenderPassDesc&  AddViewport (const Rectangle<T> &rect, float minDepth = 0.0f, float maxDepth = 1.0f)
-		{
-			ASSERT( rect.IsValid() );
-			viewports.push_back({ RectF{rect}, minDepth, maxDepth });
-			return *this;
-		}
-
-		template <typename T>
-		RenderPassDesc&  AddViewport (const Vec<T,2> &size, float minDepth = 0.0f, float maxDepth = 1.0f)
-		{
-			viewports.push_back({ RectF{float2(), float2(size)}, minDepth, maxDepth });
-			return *this;
-		}
-	};
-
+}	// _fg_hidden_
 }	// FG

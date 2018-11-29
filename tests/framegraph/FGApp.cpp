@@ -17,7 +17,7 @@
 namespace FG
 {
 namespace {
-	static constexpr uint	UpdateAllReferenceDumps = false;
+	static constexpr uint	UpdateAllReferenceDumps = true;
 }
 
 /*
@@ -32,10 +32,12 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage3,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage4,		1 });
+		//_tests.push_back({ &FGApp::Test_PushConst1,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
 		_tests.push_back({ &FGApp::Test_Draw2,			1 });
 		_tests.push_back({ &FGApp::Test_Draw3,			1 });
+		//_tests.push_back({ &FGApp::Test_TraceRays1,		1 });
 
 		_tests.push_back({ &FGApp::ImplTest_Scene1,		1 });
 	}
@@ -61,33 +63,6 @@ namespace {
 		swapchain_info.surfaceSize  = size;
 
 		CHECK_FATAL( _frameGraph1->RecreateSwapchain( swapchain_info ));
-	}
-	
-/*
-=================================================
-	OnRefresh
-=================================================
-*/
-	void FGApp::OnRefresh ()
-	{
-	}
-	
-/*
-=================================================
-	OnDestroy
-=================================================
-*/
-	void FGApp::OnDestroy ()
-	{
-	}
-	
-/*
-=================================================
-	OnUpdate
-=================================================
-*/
-	void FGApp::OnUpdate ()
-	{
 	}
 
 /*
@@ -462,7 +437,7 @@ namespace {
 			CHECK_ERR( Execute( "\""s << FG_GRAPHVIZ_DOT_EXECUTABLE << "\" -T" << format << " -O " << path, 30'000 ));
 
 			// delete '.dot' file
-			CHECK( DeleteFile( path ));
+			//CHECK( DeleteFile( path ));
 		}
 
 		if ( autoOpen )
@@ -607,62 +582,6 @@ namespace {
 		arr.resize( size_t(size) );
 
 		return arr;
-	}
-
-/*
-=================================================
-	CreateBuffer
-=================================================
-*/
-	BufferID  FGApp::CreateBuffer (BytesU size, StringView name) const
-	{
-		BufferID	res = _frameGraph1->CreateBuffer( MemoryDesc{ EMemoryType::Default },
-													  BufferDesc{ size, EBufferUsage::Transfer | EBufferUsage::Uniform | EBufferUsage::Storage |
-																  EBufferUsage::Vertex | EBufferUsage::Index | EBufferUsage::Indirect },
-													 name );
-		return res;
-	}
-	
-/*
-=================================================
-	CreateImage2D
-=================================================
-*/
-	ImageID  FGApp::CreateImage2D (uint2 size, EPixelFormat fmt, StringView name) const
-	{
-		ImageID		res = _frameGraph1->CreateImage( MemoryDesc{ EMemoryType::Default },
-													 ImageDesc{ EImage::Tex2D, uint3(size.x, size.y, 0), fmt,
-																EImageUsage::Transfer | EImageUsage::ColorAttachment | EImageUsage::Sampled | EImageUsage::Storage },
-													name );
-		return res;
-	}
-	
-/*
-=================================================
-	CreateLogicalImage2D
-=================================================
-*
-	ImagePtr  FGApp::CreateLogicalImage2D (uint2 size, EPixelFormat fmt, StringView name) const
-	{
-		ImagePtr	res = _frameGraphInst->CreateLogicalImage( EMemoryType::Default, EImage::Tex2D, uint3(size.x, size.y, 0), fmt );
-		
-		if ( not name.empty() )
-			res->SetDebugName( name );
-
-		return res;
-	}
-
-/*
-=================================================
-	CreateSampler
-=================================================
-*
-	SamplerPtr  FGApp::CreateSampler () const
-	{
-		return frame_graph->CreateSampler( SamplerDesc()
-								.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear )
-								.SetAddressMode( EAddressMode::ClampToEdge, EAddressMode::ClampToEdge, EAddressMode::ClampToEdge )
-					);
 	}
 
 /*

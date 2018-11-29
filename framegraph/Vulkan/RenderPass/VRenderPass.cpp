@@ -88,7 +88,7 @@ namespace FG
 			_attachmentRef.push_back({ (col_offset + frag.index), layout });
 			++subpass.colorAttachmentCount;
 
-			_mapping.insert({ frag.id, col_offset + frag.index });
+			_mapping.insert({ frag.id, frag.index });
 		}
 
 		CHECK( subpass.colorAttachmentCount == fragOutput.size() );

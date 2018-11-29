@@ -2,7 +2,7 @@
 /*
 	This test affects:
 		- frame graph building and execution
-		- tasks: SubmitRenderPass, DrawTask, ReadImage
+		- tasks: SubmitRenderPass, DrawVertices, ReadImage
 		- resources: render pass, image, framebuffer, pipeline, pipeline resources
 		- staging buffers
 		- memory managment
@@ -64,7 +64,8 @@ void main() {
 		FGThreadPtr		frame_graph	= _frameGraph1;
 
 		uint2			view_size	= {800, 600};
-		ImageID			image		= CreateImage2D( view_size, EPixelFormat::RGBA8_UNorm, "DstImage" );
+		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
+																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
 		GPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
 
@@ -114,11 +115,7 @@ void main() {
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ) );
 		
-		frame_graph->AddDrawTask( render_pass,
-								  DrawTask()
-									.SetPipeline( pipeline ).SetVertices( 0, 3 )
-									.SetRenderState( RenderState().SetTopology( EPrimitive::TriangleList ) )
-		);
+		frame_graph->AddTask( render_pass, DrawVertices().AddDrawCmd( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
 		Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );

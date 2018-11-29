@@ -32,15 +32,21 @@ namespace FG
 	Create
 =================================================
 */
-	bool VLogicalRenderPass::Create (VResourceManagerThread &rm, const RenderPassDesc &rp)
+	bool VLogicalRenderPass::Create (VResourceManagerThread &rm, const RenderPassDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
+		
+		_colorState			= desc.colorState;
+		_depthState			= desc.depthState;
+		_stencilState		= desc.stencilState;
+		_rasterizationState	= desc.rasterizationState;
+		_multisampleState	= desc.multisampleState;
 
-		_area				= rp.area;
-		//_parallelExecution= rp.parallelExecution;
-		_canBeMerged		= rp.canBeMerged;
+		_area				= desc.area;
+		//_parallelExecution= desc.parallelExecution;
+		_canBeMerged		= desc.canBeMerged;
 
-		for (auto& src : rp.renderTargets)
+		for (auto& src : desc.renderTargets)
 		{
 			ColorTarget		dst;
 			VImage const*	image = rm.GetResource( src.second.image );
@@ -88,10 +94,10 @@ namespace FG
 		}
 
 		// create viewports and default scissors
-		for (auto& src : rp.viewports)
+		for (auto& src : desc.viewports)
 		{
-			ASSERT( src.rect.left >= float(rp.area.left) and src.rect.right  <= float(rp.area.right)  );
-			ASSERT( src.rect.top  >= float(rp.area.top)  and src.rect.bottom <= float(rp.area.bottom) );
+			ASSERT( src.rect.left >= float(desc.area.left) and src.rect.right  <= float(desc.area.right)  );
+			ASSERT( src.rect.top  >= float(desc.area.top)  and src.rect.bottom <= float(desc.area.bottom) );
 
 			VkViewport		dst;
 			dst.x			= src.rect.left;
@@ -111,22 +117,22 @@ namespace FG
 		}
 
 		// create default viewport
-		if ( rp.viewports.empty() )
+		if ( desc.viewports.empty() )
 		{
 			VkViewport		dst;
-			dst.x			= float(rp.area.left);
-			dst.y			= float(rp.area.top);
-			dst.width		= float(rp.area.Width());
-			dst.height		= float(rp.area.Height());
+			dst.x			= float(desc.area.left);
+			dst.y			= float(desc.area.top);
+			dst.width		= float(desc.area.Width());
+			dst.height		= float(desc.area.Height());
 			dst.minDepth	= 0.0f;
 			dst.maxDepth	= 1.0f;
 			_viewports.push_back( dst );
 
 			VkRect2D		rect;
-			rect.offset.x		= rp.area.left;
-			rect.offset.y		= rp.area.top;
-			rect.extent.width	= rp.area.Width();
-			rect.extent.height	= rp.area.Height();
+			rect.offset.x		= desc.area.left;
+			rect.offset.y		= desc.area.top;
+			rect.extent.width	= desc.area.Width();
+			rect.extent.height	= desc.area.Height();
 			_defaultScissors.push_back( rect );
 		}
 		

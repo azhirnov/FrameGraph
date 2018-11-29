@@ -27,6 +27,7 @@ namespace FG
 		};
 
 		using DescriptorSets_t			= FixedMap< DescriptorSetID, DescriptorSet, FG_MaxDescriptorSets >;
+		using PushConstants_t			= PipelineDescription::PushConstants_t;
 		using VkDescriptorSetLayouts_t	= FixedArray< VkDescriptorSetLayout, FG_MaxDescriptorSets >;
 		using VkPushConstantRanges_t	= FixedArray< VkPushConstantRange, FG_MaxPushConstants >;
 		using DSLayoutArray_t			= ArrayView<Pair<RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>>;
@@ -37,7 +38,8 @@ namespace FG
 		HashVal					_hash;
 		VkPipelineLayout		_layout			= VK_NULL_HANDLE;
 		DescriptorSets_t		_descriptorSets;
-		
+		PushConstants_t			_pushConstants;
+
 		DebugName_t				_debugName;
 		
 		RWRaceConditionCheck	_rcCheck;
@@ -67,7 +69,7 @@ namespace FG
 		void _AddDescriptorSets (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets,
 								 INOUT HashVal &hash, OUT DescriptorSets_t &setsInfo) const;
 		void _AddPushConstants (const PipelineDescription::PipelineLayout &ppln, 
-								INOUT HashVal &hash) const;
+								INOUT HashVal &hash, OUT PushConstants_t &pushConst) const;
 	};
 
 }	// FG

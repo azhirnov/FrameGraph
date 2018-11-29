@@ -770,62 +770,122 @@ namespace {
 
 /*
 =================================================
-	AddDrawTask (DrawTask)
+	AddTask (DrawVertices)
 =================================================
 */
-	void  VFrameGraphThread::AddDrawTask (LogicalPassID renderPass, const DrawTask &task)
+	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawVertices &task)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawTask> >();
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawVertices> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawTask> >(
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawVertices> >(
 						 ptr,
 						 this, task,
-						 VTaskProcessor::Visit1_DrawTask,
-						 VTaskProcessor::Visit2_DrawTask ));
+						 VTaskProcessor::Visit1_DrawVertices,
+						 VTaskProcessor::Visit2_DrawVertices ));
 	}
 	
 /*
 =================================================
-	AddDrawTask (DrawIndexedTask)
+	AddTask (DrawIndexed)
 =================================================
 */
-	void  VFrameGraphThread::AddDrawTask (LogicalPassID renderPass, const DrawIndexedTask &task)
+	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawIndexed &task)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawIndexedTask> >();
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawIndexed> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawIndexedTask> >(
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawIndexed> >(
 						 ptr,
 						 this, task,
-						 VTaskProcessor::Visit1_DrawIndexedTask,
-						 VTaskProcessor::Visit2_DrawIndexedTask ));
+						 VTaskProcessor::Visit1_DrawIndexed,
+						 VTaskProcessor::Visit2_DrawIndexed ));
 	}
 	
 /*
 =================================================
-	AddDrawTask (DrawMeshTask)
+	AddTask (DrawMeshes)
 =================================================
 */
-	void  VFrameGraphThread::AddDrawTask (LogicalPassID renderPass, const DrawMeshTask &task)
+	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawMeshes &task)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawMeshTask> >();
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawMeshes> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawMeshTask> >(
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawMeshes> >(
 						 ptr,
 						 this, task,
-						 VTaskProcessor::Visit1_DrawMeshTask,
-						 VTaskProcessor::Visit2_DrawMeshTask ));
+						 VTaskProcessor::Visit1_DrawMeshes,
+						 VTaskProcessor::Visit2_DrawMeshes ));
+	}
+	
+/*
+=================================================
+	AddTask (DrawVerticesIndirect)
+=================================================
+*/
+	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawVerticesIndirect &task)
+	{
+		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _IsRecording(), void() );
+		
+		auto *	rp  = _resourceMngr.GetState( renderPass );
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawVerticesIndirect> >();
+
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawVerticesIndirect> >(
+						 ptr,
+						 this, task,
+						 VTaskProcessor::Visit1_DrawVerticesIndirect,
+						 VTaskProcessor::Visit2_DrawVerticesIndirect ));
+	}
+	
+/*
+=================================================
+	AddTask (DrawIndexedIndirect)
+=================================================
+*/
+	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawIndexedIndirect &task)
+	{
+		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _IsRecording(), void() );
+		
+		auto *	rp  = _resourceMngr.GetState( renderPass );
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawIndexedIndirect> >();
+
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawIndexedIndirect> >(
+						 ptr,
+						 this, task,
+						 VTaskProcessor::Visit1_DrawIndexedIndirect,
+						 VTaskProcessor::Visit2_DrawIndexedIndirect ));
+	}
+	
+/*
+=================================================
+	AddTask (DrawMeshesIndirect)
+=================================================
+*/
+	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawMeshesIndirect &task)
+	{
+		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _IsRecording(), void() );
+		
+		auto *	rp  = _resourceMngr.GetState( renderPass );
+		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawMeshesIndirect> >();
+
+		rp->AddTask( PlacementNew< VFgDrawTask<DrawMeshesIndirect> >(
+						 ptr,
+						 this, task,
+						 VTaskProcessor::Visit1_DrawMeshesIndirect,
+						 VTaskProcessor::Visit2_DrawMeshesIndirect ));
 	}
 
 /*
@@ -851,6 +911,7 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		// TODO
+		FG_UNUSED( id, immutable );
 		return false;
 	}
 	
@@ -863,6 +924,7 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		// TODO
+		FG_UNUSED( id, baseLevel, levelCount, baseLayer, layerCount, immutable );
 		return false;
 	}
 	
@@ -875,6 +937,7 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		// TODO
+		FG_UNUSED( id, immutable );
 		return false;
 	}
 	
@@ -887,6 +950,8 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		// TODO
+
+		FG_UNUSED( id, offset, size, immutable );
 		return false;
 	}
 

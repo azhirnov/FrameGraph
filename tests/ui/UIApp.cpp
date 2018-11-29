@@ -231,8 +231,9 @@ namespace FG
 
 		if ( not _renderTarget )
 		{
-			_renderTarget = _frameGraph->CreateImage( MemoryDesc{}, ImageDesc{ EImage::Tex2D, uint3{_window->GetSize().x, _window->GetSize().y, 1},
-																				EPixelFormat::RGBA8_UNorm, EImageUsage::ColorAttachment | EImageUsage::Transfer });
+			_renderTarget = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{_window->GetSize().x, _window->GetSize().y, 1},
+																 EPixelFormat::RGBA8_UNorm, EImageUsage::ColorAttachment | EImageUsage::Transfer },
+													  Default, "UI.ColorRenderTarget" );
 		}
 
 		CommandBatchID		batch_id {"main"};

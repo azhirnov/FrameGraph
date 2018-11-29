@@ -2,11 +2,11 @@ Thread {
 	batch:         "main"
 	indexInBatch:  0
 	Image {
-		name:         "DstImage"
+		name:         "RenderTarget"
 		iamgeType:    Image2D
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		usage:        TransferSrc | ColorAttachment
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
@@ -66,10 +66,10 @@ Thread {
 	Task {
 		name:    "SubmitRenderPass (#2)"
 		input =  {  }
-		output = {  }
+		output = { Present (#3) }
 		resource_usage = {
 			ImageUsage {
-				name:           "DstImage"
+				name:           "RenderTarget"
 				usage:          ColorRT-ReadWrite, ClearBefore
 				baseMipLevel:   0
 				levelCount:     1
@@ -80,11 +80,11 @@ Thread {
 	}
 	Task {
 		name:    "Present (#3)"
-		input =  {  }
+		input =  { SubmitRenderPass (#2) }
 		output = {  }
 		resource_usage = {
 			ImageUsage {
-				name:           "DstImage"
+				name:           "RenderTarget"
 				usage:          TransferSrc
 				baseMipLevel:   0
 				levelCount:     1
@@ -92,7 +92,7 @@ Thread {
 				layerCount:     1
 			}
 		}
-		srcImage:   "DstImage"
+		srcImage:   "RenderTarget"
 		layer:      0
 	}
 }

@@ -19,6 +19,7 @@ namespace FG
 	public:
 		using iterator			= T *;
 		using const_iterator	= const T *;
+		using Self				= FixedArray< T, ArraySize >;
 
 
 	// variables
@@ -36,7 +37,7 @@ namespace FG
 		{
 			DEBUG_ONLY( ::memset( data(), 0, sizeof(T) * capacity() ));
 			
-			STATIC_ASSERT( alignof(FixedArray<T,ArraySize>) % alignof(T) == 0 );
+			STATIC_ASSERT( alignof(Self) % alignof(T) == 0 );
 		}
 
 		FixedArray (std::initializer_list<T> list) : FixedArray()
@@ -51,12 +52,12 @@ namespace FG
 			assign( view.begin(), view.end() );
 		}
 
-		FixedArray (const FixedArray &other) : FixedArray()
+		FixedArray (const Self &other) : FixedArray()
 		{
 			assign( other.begin(), other.end() );
 		}
 
-		FixedArray (FixedArray &&other) : _count{other._count}
+		FixedArray (Self &&other) : _count{other._count}
 		{
 			ASSERT( not _IsMemoryAliased( other.begin(), other.end() ) );
 
@@ -95,7 +96,7 @@ namespace FG
 		ND_ static constexpr size_t	capacity ()				{ return ArraySize; }
 		
 
-		FixedArray& operator = (const FixedArray &rhs)
+		FixedArray& operator = (const Self &rhs)
 		{
 			assign( rhs.begin(), rhs.end() );
 			return *this;
@@ -108,7 +109,7 @@ namespace FG
 			return *this;
 		}
 
-		FixedArray& operator = (FixedArray &&rhs)
+		FixedArray& operator = (Self &&rhs)
 		{
 			ASSERT( not _IsMemoryAliased( rhs.begin(), rhs.end() ) );
 

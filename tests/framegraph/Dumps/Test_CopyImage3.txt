@@ -6,7 +6,7 @@ Thread {
 		iamgeType:    Image2D
 		dimension:    ( 128, 128, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		usage:        TransferSrc | TransferDst
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
@@ -51,7 +51,7 @@ Thread {
 		iamgeType:    Image2D
 		dimension:    ( 64, 64, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		usage:        TransferSrc | TransferDst
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
@@ -198,7 +198,7 @@ Thread {
 		iamgeType:    Image2D
 		dimension:    ( 128, 128, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		usage:        TransferSrc | TransferDst
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
@@ -259,7 +259,7 @@ Thread {
 		iamgeType:    Image2D
 		dimension:    ( 64, 64, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment
+		usage:        TransferSrc | TransferDst
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
