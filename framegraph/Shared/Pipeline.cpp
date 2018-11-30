@@ -189,9 +189,12 @@ namespace FG
 	_SetPushConstants
 =================================================
 */
-	void PipelineDescription::_SetPushConstants (ArrayView< PushConstant > values)
+	void PipelineDescription::_SetPushConstants (ArrayView< _PushConstant > values)
 	{
-		_pipelineLayout.pushConstants.assign( values.begin(), values.end() );
+		for (auto& pc : values)
+		{
+			_pipelineLayout.pushConstants.insert({ pc.id, pc.data });
+		}
 	}
 
 /*

@@ -32,7 +32,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage3,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage4,		1 });
-		//_tests.push_back({ &FGApp::Test_PushConst1,		1 });
+		_tests.push_back({ &FGApp::Test_PushConst1,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
 		_tests.push_back({ &FGApp::Test_Draw2,			1 });

@@ -98,8 +98,8 @@ namespace FG
 		void Visit (const VFgDrawTask<DrawIndexedIndirect> &task);
 		void Visit (const VFgDrawTask<DrawMeshesIndirect> &task);
 
-		template <typename PplnID>
-		void _MergePipeline (PplnID pplnId);
+		template <typename PipelineType>
+		void _MergePipeline (const PipelineType* ppln);
 
 		ND_ bool						IsEarlyFragmentTests () const	{ return _earlyFragmentTests; }
 		ND_ bool						IsLateFragmentTests ()	const	{ return _lateFragmentTests; }
@@ -139,8 +139,8 @@ namespace FG
 		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task) const;
 		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task) const;
 		
-		template <typename PplnID>
-		void _BindPipelineResources (PplnID pipelineId, const VkDescriptorSets_t &descriptorSets, ArrayView<uint> dynamicOffsets) const;
+		template <typename PipelineType>
+		void _BindPipelineResources (const PipelineType* ppln, const VkDescriptorSets_t &descriptorSets, ArrayView<uint> dynamicOffsets) const;
 	};
 //-----------------------------------------------------------------------------
 	
@@ -153,21 +153,25 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Buffer &buf)
 	{
-		VLocalBuffer const*  buffer = _tp._GetState( buf.bufferId );
+		VLocalBuffer const *	buffer	= _tp._GetState( buf.bufferId );
+		VkDeviceSize const		size	= VkDeviceSize( buf.size == ~0_b ? buffer->Size() - buf.offset : buf.size );
 
 		// validation
-		DEBUG_ONLY(
+		{
+			ASSERT( buf.offset < buffer->Size() );
+			ASSERT( buf.offset + size <= buffer->Size() );
+
 			auto&	limits	= _tp._frameGraph.GetDevice().GetDeviceProperties().limits;
 
 			if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
 			{
 				ASSERT( (buf.offset % limits.minUniformBufferOffsetAlignment) == 0 );
-				ASSERT( buf.size <= limits.maxUniformBufferRange );
+				ASSERT( size <= limits.maxUniformBufferRange );
 			}else{
 				ASSERT( (buf.offset % limits.minStorageBufferOffsetAlignment) == 0 );
-				ASSERT( buf.size <= limits.maxStorageBufferRange );
+				ASSERT( size <= limits.maxStorageBufferRange );
 			}
-		)
+		}
 
 		_tp._AddBuffer( buffer, buf.state, VkDeviceSize(buf.offset), VkDeviceSize(buf.size) );
 	}
@@ -322,12 +326,11 @@ namespace FG
 	_MergePipeline
 =================================================
 */
-	template <typename PplnID>
-	void VTaskProcessor::DrawTaskBarriers::_MergePipeline (PplnID pplnId)
+	template <typename PipelineType>
+	void VTaskProcessor::DrawTaskBarriers::_MergePipeline (const PipelineType* pipeline)
 	{
-		STATIC_ASSERT( (IsSameTypes<PplnID, RawGPipelineID>) or (IsSameTypes<PplnID, RawMPipelineID>) );
-
-		auto const*		pipeline = _tp._GetResource( pplnId );
+		STATIC_ASSERT(	(IsSameTypes<PipelineType, VGraphicsPipeline>) or
+						(IsSameTypes<PipelineType, VMeshPipeline>) );
 
 		// merge fragment output
 		auto const*		inst = pipeline->GetFragmentOutput();
@@ -440,16 +443,16 @@ namespace FG
 	_BindPipelineResources
 =================================================
 */
-	template <typename PplnID>
-	void VTaskProcessor::DrawTaskCommands::_BindPipelineResources (PplnID pipelineId, const VkDescriptorSets_t &descriptorSets, ArrayView<uint> dynamicOffsets) const
+	template <typename PipelineType>
+	void VTaskProcessor::DrawTaskCommands::_BindPipelineResources (const PipelineType* ppln, const VkDescriptorSets_t &descriptorSets, ArrayView<uint> dynamicOffsets) const
 	{
-		STATIC_ASSERT( (IsSameTypes<PplnID, RawGPipelineID>) or (IsSameTypes<PplnID, RawMPipelineID>) );
+		STATIC_ASSERT(	(IsSameTypes<PipelineType, VGraphicsPipeline>) or
+						(IsSameTypes<PipelineType, VMeshPipeline>) );
 
 		if ( descriptorSets.empty() )
 			return;
 
-		auto const*				gppln	= _tp._GetResource( pipelineId );
-		VPipelineLayout const*	layout	= _tp._GetResource( gppln->GetLayoutID() );
+		VPipelineLayout const*	layout	= _tp._GetResource( ppln->GetLayoutID() );	// TODO: optimize
 
 		_dev.vkCmdBindDescriptorSets( _cmdBuffer,
 									  VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -501,8 +504,9 @@ namespace FG
 
 		_BindPipeline( *_currTask->GetLogicalPass(), task );
 		_BindPipelineResources( task.pipeline, task.descriptorSets, task.GetResources().dynamicOffsets );
+		_tp._PushConstants( task.pipeline->GetLayoutID(), task.pushConstants );
+
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		
 		_SetScissor( task.scissors );
 
 		for (auto& cmd : task.commands)
@@ -522,8 +526,9 @@ namespace FG
 		
 		_BindPipeline( *_currTask->GetLogicalPass(), task );
 		_BindPipelineResources( task.pipeline, task.descriptorSets, task.GetResources().dynamicOffsets );
+		_tp._PushConstants( task.pipeline->GetLayoutID(), task.pushConstants );
+
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		
 		_SetScissor( task.scissors );
 
 		_dev.vkCmdBindIndexBuffer( _cmdBuffer,
@@ -973,10 +978,9 @@ namespace FG
 	_BindPipelineResources
 =================================================
 */
-	void VTaskProcessor::_BindPipelineResources (RawCPipelineID pipelineId, const VPipelineResourceSet &resourceSet)
+	void VTaskProcessor::_BindPipelineResources (const VComputePipeline* cppln, const VPipelineResourceSet &resourceSet)
 	{
-		VComputePipeline const*		cppln	= _GetResource( pipelineId );
-		VPipelineLayout const*		layout	= _GetResource( cppln->GetLayoutID() );
+		VPipelineLayout const*	layout	= _GetResource( cppln->GetLayoutID() );
 
 		// update descriptor sets and add pipeline barriers
 		VkDescriptorSets_t	descriptor_sets;
@@ -994,12 +998,40 @@ namespace FG
 	
 /*
 =================================================
+	_PushConstants
+=================================================
+*/
+	void VTaskProcessor::_PushConstants (RawPipelineLayoutID layoutId, const _fg_hidden_::PushConstants_t &pushConstants) const
+	{
+		if ( pushConstants.empty() )
+			return;
+
+		VPipelineLayout const*	layout	= _GetResource( layoutId );
+		auto const&				pc_map	= layout->GetPushConstants();
+
+		for (auto& pc : pushConstants)
+		{
+			auto	iter = pc_map.find( pc.id );
+			ASSERT( iter != pc_map.end() );
+
+			if ( iter != pc_map.end() )
+			{
+				ASSERT( pc.size == iter->second.size );
+
+				_dev.vkCmdPushConstants( _cmdBuffer, layout->Handle(), VEnumCast( iter->second.stageFlags ), uint(iter->second.offset),
+										 uint(iter->second.size), pc.data );
+			}
+		}
+	}
+
+/*
+=================================================
 	_BindPipeline
 =================================================
 */
-	void VTaskProcessor::_BindPipeline (RawCPipelineID pipelineId, const Optional<uint3> &localSize) const
+	void VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize) const
 	{
-		VkPipeline	ppln_id = _frameGraph.GetPipelineCache()->CreatePipelineInstance( *_frameGraph.GetResourceManager(), pipelineId, localSize, 0 );
+		VkPipeline	ppln_id = _frameGraph.GetPipelineCache()->CreatePipelineInstance( *_frameGraph.GetResourceManager(), *pipeline, localSize, 0 );
 		
 		_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_id );
 	}
@@ -1012,12 +1044,11 @@ namespace FG
 	void VTaskProcessor::Visit (const VFgTask<DispatchCompute> &task)
 	{
 		_OnRunTask( &task );
-
 		_isCompute = true;
 
 		_BindPipeline( task.pipeline, task.localGroupSize );
 		_BindPipelineResources( task.pipeline, task.GetResources() );
-		//_SetPushConstants( task.pipeline, task. );
+		_PushConstants( task.pipeline->GetLayoutID(), task.pushConstants );
 
 		_CommitBarriers();
 
@@ -1026,39 +1057,24 @@ namespace FG
 	
 /*
 =================================================
-	Visit (DispatchIndirectCompute)
+	Visit (DispatchComputeIndirect)
 =================================================
-*
-	void VTaskProcessor::Visit (const VFgTask<DispatchIndirectCompute> &task)
+*/
+	void VTaskProcessor::Visit (const VFgTask<DispatchComputeIndirect> &task)
 	{
-		_OnRunTask( _currQueue, &task );
-
+		_OnRunTask( &task );
 		_isCompute = true;
 		
-		// update descriptor sets and add pipeline barriers
-		for (const auto& res : task.GetResources())
-		{
-			PipelineResourceBarriers	visitor{ *this, res.second, _currTask };
+		_BindPipeline( task.pipeline, task.localGroupSize );
+		_BindPipelineResources( task.pipeline, task.GetResources() );
+		_PushConstants( task.pipeline->GetLayoutID(), task.pushConstants );
 
-			for (auto& un : res.second->GetUniforms())
-			{
-				std::visit( visitor, un );
-			}
-		}
-		
-		VBufferPtr	indirect_buffer = Cast<VBuffer>( task.IndirectBuffer()->GetReal( _currTask, EResourceState::IndirectBuffer ));
-
-		_AddBuffer( indirect_buffer, EResourceState::IndirectBuffer, task.IndirectBufferOffset(), VK_WHOLE_SIZE );		
+		_AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, task.indirectBufferOffset, VK_WHOLE_SIZE );	// TODO: buffer size
 		_CommitBarriers();
-
-		
-		// prepare & dispatch
-		_BindPipeline( task.GetPipeline(), task.LocalSize() );
-		_BindPipelineResources( task.GetPipeline(), task.GetResources() );
 		
 		_dev.vkCmdDispatchIndirect( _cmdBuffer,
-									indirect_buffer->GetBufferID(),
-									task.IndirectBufferOffset() );
+								    task.indirectBuffer->Handle(),
+									task.indirectBufferOffset );
 	}
 
 /*

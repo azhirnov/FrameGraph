@@ -123,7 +123,7 @@ namespace FG
 		
 		void _SubmitRenderPassTaskToString (Ptr<const VFgTask<SubmitRenderPass>>, INOUT String &) const;
 		void _DispatchComputeTaskToString (Ptr<const VFgTask<DispatchCompute>>, INOUT String &) const;
-		void _DispatchIndirectComputeTaskToString (Ptr<const VFgTask<DispatchIndirectCompute>>, INOUT String &) const;
+		void _DispatchComputeIndirectTaskToString (Ptr<const VFgTask<DispatchComputeIndirect>>, INOUT String &) const;
 		void _CopyBufferTaskToString (Ptr<const VFgTask<CopyBuffer>>, INOUT String &) const;
 		void _CopyImageTaskToString (Ptr<const VFgTask<CopyImage>>, INOUT String &) const;
 		void _CopyBufferToImageTaskToString (Ptr<const VFgTask<CopyBufferToImage>>, INOUT String &) const;

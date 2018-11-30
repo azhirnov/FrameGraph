@@ -157,13 +157,20 @@ namespace FG
 
 		struct PushConstant
 		{
-			PushConstantID		id;
 			EShaderStages		stageFlags;
 			Bytes<uint16_t>		offset;
 			Bytes<uint16_t>		size;
 
 			PushConstant () {}
-			PushConstant (const PushConstantID &id, EShaderStages stages, BytesU offset, BytesU size) : id{id}, stageFlags{stages}, offset{offset}, size{size} {}
+			PushConstant (EShaderStages stages, BytesU offset, BytesU size) : stageFlags{stages}, offset{offset}, size{size} {}
+		};
+
+		struct _PushConstant
+		{
+			PushConstantID		id;
+			PushConstant		data;
+
+			_PushConstant (const PushConstantID &id, EShaderStages stages, BytesU offset, BytesU size) : id{id}, data{stages, offset, size} {}
 		};
 
 		struct SpecConstant
@@ -173,7 +180,7 @@ namespace FG
 		};
 
 		using DescriptorSets_t	= FixedArray< DescriptorSet, FG_MaxDescriptorSets >;
-		using PushConstants_t	= FixedArray< PushConstant, FG_MaxPushConstants >;
+		using PushConstants_t	= FixedMap< PushConstantID, PushConstant, FG_MaxPushConstants >;
 
 		struct PipelineLayout
 		{
@@ -229,7 +236,7 @@ namespace FG
 								ArrayView< _StorageBufferUniform >			storageBuffers,
 								ArrayView< _AccelerationStructureUniform >	accelerationStructures);
 
-		void _SetPushConstants (ArrayView< PushConstant > values);
+		void _SetPushConstants (ArrayView< _PushConstant > values);
 	};
 
 
@@ -317,7 +324,7 @@ namespace FG
 			return *this;
 		}
 
-		Self&  SetPushConstants (ArrayView< PushConstant > values)
+		Self&  SetPushConstants (ArrayView< _PushConstant > values)
 		{
 			_SetPushConstants( values );
 			return *this;
@@ -380,7 +387,7 @@ namespace FG
 			return *this;
 		}
 		
-		Self&  SetPushConstants (ArrayView< PushConstant > values)
+		Self&  SetPushConstants (ArrayView< _PushConstant > values)
 		{
 			_SetPushConstants( values );
 			return *this;
@@ -409,7 +416,7 @@ namespace FG
 
 	// variables
 		Shaders_t			_shaders;
-		TopologyBits_t		_supportedTopology;
+		EPrimitive			_topology			= Default;
 		FragmentOutputs_t	_fragmentOutput;
 		uint				_maxVertices		= 0;
 		uint				_maxIndices			= 0;
@@ -428,9 +435,9 @@ namespace FG
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
 		
-		Self&  AddTopology (EPrimitive primitive)
+		Self&  SetTopology (EPrimitive value)
 		{
-			_supportedTopology[uint(primitive)] = true;
+			_topology = value;
 			return *this;
 		}
 
@@ -447,13 +454,13 @@ namespace FG
 			return *this;
 		}
 
-		Self&  SetPushConstants (ArrayView< PushConstant > values)
+		Self&  SetPushConstants (ArrayView< _PushConstant > values)
 		{
 			_SetPushConstants( values );
 			return *this;
 		}
 
-		Self&  SetFragmentOutputs (ArrayView<FragmentOutput> outputs)
+		Self&  SetFragmentOutputs (ArrayView< FragmentOutput > outputs)
 		{
 			_fragmentOutput = outputs;
 			return *this;
@@ -504,6 +511,12 @@ namespace FG
 								 ArrayView< _AccelerationStructureUniform >	accelerationStructures)
 		{
 			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, accelerationStructures );
+			return *this;
+		}
+		
+		Self&  SetPushConstants (ArrayView< _PushConstant > values)
+		{
+			_SetPushConstants( values );
 			return *this;
 		}
 

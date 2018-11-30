@@ -166,7 +166,7 @@ namespace FG
 		// tasks
 		Task		AddTask (const SubmitRenderPass &) override;
 		Task		AddTask (const DispatchCompute &) override;
-		Task		AddTask (const DispatchIndirectCompute &) override;
+		Task		AddTask (const DispatchComputeIndirect &) override;
 		Task		AddTask (const CopyBuffer &) override;
 		Task		AddTask (const CopyImage &) override;
 		Task		AddTask (const CopyBufferToImage &) override;

@@ -526,7 +526,7 @@ namespace FG
 		//ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Scissor ));
 
 		VDevice const&				dev			= resMngr.GetDevice();
-		VGraphicsPipeline const*	gppln		= resMngr.GetResource( drawTask.pipeline );
+		VGraphicsPipeline const*	gppln		= drawTask.pipeline;
 		VPipelineLayout const*		layout		= resMngr.GetResource( gppln->GetLayoutID() );
 		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
 		
@@ -651,13 +651,9 @@ namespace FG
 		ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Scissor ));
 
 		VDevice const&				dev			= resMngr.GetDevice();
-		VMeshPipeline const*		mppln		= resMngr.GetResource( drawTask.pipeline );
+		VMeshPipeline const*		mppln		= drawTask.pipeline;
 		VPipelineLayout const*		layout		= resMngr.GetResource( mppln->GetLayoutID() );
 		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
-		
-		// check topology
-		//CHECK_ERR(	uint(renderState.inputAssembly.topology) < mppln->_supportedTopology.size() and
-		//			mppln->_supportedTopology[uint(renderState.inputAssembly.topology)] );
 
 		VMeshPipeline::PipelineInstance		inst;
 		inst.dynamicState				= drawTask.dynamicStates | EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
@@ -670,7 +666,7 @@ namespace FG
 		inst.renderState.stencil		= logicalRP.GetStencilState();
 		inst.renderState.rasterization	= logicalRP.GetRasterizationState();
 		inst.renderState.multisample	= logicalRP.GetMultisampleState();
-		inst.renderState.inputAssembly.topology	= EPrimitive::TriangleList;		// TODO
+		inst.renderState.inputAssembly.topology	= mppln->_topology;
 
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
@@ -758,32 +754,29 @@ namespace FG
 =================================================
 */
 	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread	&resMngr,
-														RawCPipelineID			 pplnId,
+														const VComputePipeline	&cppln,
 														const Optional<uint3>	&localGroupSize,
 														VkPipelineCreateFlags	 pipelineFlags)
 	{
-		CHECK_ERR( pplnId );
-
 		VDevice const &			dev		= resMngr.GetDevice();
-		VComputePipeline const*	cppln	= resMngr.GetResource( pplnId );
-		VPipelineLayout const*	layout	= resMngr.GetResource( cppln->GetLayoutID() );
+		VPipelineLayout const*	layout	= resMngr.GetResource( cppln.GetLayoutID() );
 
 		VComputePipeline::PipelineInstance		inst;
 		inst.flags			= pipelineFlags;
-		inst.localGroupSize	= localGroupSize.value_or( cppln->_defaultLocalGroupSize );
-		inst.localGroupSize = { cppln->_localSizeSpec.x != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.x : cppln->_defaultLocalGroupSize.x,
-								cppln->_localSizeSpec.y != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.y : cppln->_defaultLocalGroupSize.y,
-								cppln->_localSizeSpec.z != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.z : cppln->_defaultLocalGroupSize.z };
+		inst.localGroupSize	= localGroupSize.value_or( cppln._defaultLocalGroupSize );
+		inst.localGroupSize = { cppln._localSizeSpec.x != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.x : cppln._defaultLocalGroupSize.x,
+								cppln._localSizeSpec.y != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.y : cppln._defaultLocalGroupSize.y,
+								cppln._localSizeSpec.z != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.z : cppln._defaultLocalGroupSize.z };
 		inst._hash			= (HashOf( inst.localGroupSize ) + HashOf( inst.flags ));
 
 
 		// find existing instance
 		{
-			auto iter1 = cppln->_instances.find( inst );
-			if ( iter1 != cppln->_instances.end() )
+			auto iter1 = cppln._instances.find( inst );
+			if ( iter1 != cppln._instances.end() )
 				return iter1->second;
 
-			auto iter2 = _computePipelines->find({ cppln, inst });
+			auto iter2 = _computePipelines->find({ &cppln, inst });
 			if ( iter2 != _computePipelines->end() )
 				return iter2->second;
 		}
@@ -791,7 +784,7 @@ namespace FG
 
 		// create new instance
 		_ClearTemp();
-		CHECK_ERR( cppln->_shader );
+		CHECK_ERR( cppln._shader );
 
 		VkSpecializationInfo			spec = {};
 		VkComputePipelineCreateInfo		pipeline_info = {};
@@ -800,12 +793,12 @@ namespace FG
 		pipeline_info.layout		= layout->Handle();
 		pipeline_info.flags			= inst.flags;
 		pipeline_info.stage.sType	= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		pipeline_info.stage.module	= BitCast<VkShaderModule>( cppln->_shader->GetData() );
-		pipeline_info.stage.pName	= cppln->_shader->GetEntry().data();
+		pipeline_info.stage.module	= BitCast<VkShaderModule>( cppln._shader->GetData() );
+		pipeline_info.stage.pName	= cppln._shader->GetEntry().data();
 		pipeline_info.stage.flags	= 0;
 		pipeline_info.stage.stage	= VK_SHADER_STAGE_COMPUTE_BIT;
 
-		_AddLocalGroupSizeSpecialization( OUT _tempSpecEntries, OUT _tempSpecData, cppln->_localSizeSpec, inst.localGroupSize );
+		_AddLocalGroupSizeSpecialization( OUT _tempSpecEntries, OUT _tempSpecData, cppln._localSizeSpec, inst.localGroupSize );
 
 		if ( not _tempSpecEntries.empty() )
 		{
@@ -820,7 +813,7 @@ namespace FG
 		VkPipeline	ppln_id = {};
 		VK_CHECK( dev.vkCreateComputePipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &ppln_id ));
 
-		CHECK( _computePipelines->insert_or_assign( {cppln, std::move(inst)}, ppln_id ).second );
+		CHECK( _computePipelines->insert_or_assign( {&cppln, std::move(inst)}, ppln_id ).second );
 		return ppln_id;
 	}
 

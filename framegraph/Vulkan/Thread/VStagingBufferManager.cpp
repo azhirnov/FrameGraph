@@ -125,7 +125,7 @@ namespace FG
 
 			for (auto& part : ev.parts)
 			{
-				ArrayView<T>	view{ Cast<T>(part.buffer->mappedPtr) + part.offset, size_t(part.size) };
+				ArrayView<T>	view{ Cast<T>(part.buffer->mappedPtr + part.offset), size_t(part.size) };
 
 				data_parts.push_back( view );
 				total_size += part.size;
@@ -146,7 +146,7 @@ namespace FG
 
 			for (auto& part : ev.parts)
 			{
-				ArrayView<T>	view{ Cast<T>(part.buffer->mappedPtr) + part.offset, size_t(part.size) };
+				ArrayView<T>	view{ Cast<T>(part.buffer->mappedPtr + part.offset), size_t(part.size) };
 
 				data_parts.push_back( view );
 				total_size += part.size;

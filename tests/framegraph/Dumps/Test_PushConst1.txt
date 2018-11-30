@@ -1,0 +1,95 @@
+Thread {
+	batch:         "main"
+	indexInBatch:  0
+	Buffer {
+		name:    "DstBuffer"
+		size:    32 b
+		usage:   TransferSrc | Storage
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         DispatchCompute (#2)
+					dstTask:         ReadBuffer (#3)
+					srcStageMask:    ComputeShader
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ShaderWrite
+					dstAccessMask:   TransferRead
+					offset:          0 b
+					size:            32 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         DispatchCompute (#2)
+					dstTask:         <final>
+					srcStageMask:    ComputeShader
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   ShaderWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            32 b
+				}
+		}
+	}
+
+	Buffer {
+		name:    "StagingReadBuffer "
+		size:    16 Mb
+		usage:   TransferSrc | TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadBuffer (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    BottomOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            32 b
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "DispatchCompute (#2)"
+		input =  {  }
+		output = { ReadBuffer (#3) }
+		resource_usage = {
+			BufferUsage {
+				name:     "DstBuffer"
+				usage:    ShaderWrite, CS
+				offset:   0 b
+				size:     32 b
+			}
+		}
+		pipeline:    ""
+		groupCount:  ( 1, 1, 1 )
+	}
+	Task {
+		name:    "ReadBuffer (#3)"
+		input =  { DispatchCompute (#2) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     "DstBuffer"
+				usage:    TransferSrc
+				offset:   0 b
+				size:     32 b
+			}
+			BufferUsage {
+				name:     "StagingReadBuffer "
+				usage:    TransferDst
+				offset:   0 b
+				size:     32 b
+			}
+		}
+		srcBuffer:    "DstBuffer"
+		dstBuffer:    "StagingReadBuffer "
+		regions = {
+			{ 0 b, 0 b, 32 b }
+		}
+	}
+}
+===============================================================
+

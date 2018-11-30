@@ -142,7 +142,7 @@ namespace FG
 	private:
 		VPipelineResourceSet				_resources;
 	public:
-		const RawCPipelineID				pipeline;
+		VComputePipeline const* const		pipeline;
 		const _fg_hidden_::PushConstants_t	pushConstants;
 
 		const uint3							groupCount;
@@ -162,13 +162,13 @@ namespace FG
 	// Dispatch Indirect Compute
 	//
 	template <>
-	class VFgTask< DispatchIndirectCompute > final : public IFrameGraphTask
+	class VFgTask< DispatchComputeIndirect > final : public IFrameGraphTask
 	{
 	// variables
 	private:
 		VPipelineResourceSet				_resources;
 	public:
-		const RawCPipelineID				pipeline;
+		VComputePipeline const* const		pipeline;
 		const _fg_hidden_::PushConstants_t	pushConstants;
 
 		VLocalBuffer const* const			indirectBuffer;
@@ -178,7 +178,7 @@ namespace FG
 
 	// methods
 	public:
-		VFgTask (VFrameGraphThread *fg, const DispatchIndirectCompute &task, ProcessFunc_t process);
+		VFgTask (VFrameGraphThread *fg, const DispatchComputeIndirect &task, ProcessFunc_t process);
 		
 		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
@@ -522,7 +522,7 @@ namespace FG
 	// types
 	public:
 		static constexpr BytesU		BlockSize	{ Max(	sizeof(VFgTask<SubmitRenderPass>),		sizeof(VFgTask<DispatchCompute>),
-														sizeof(VFgTask<DispatchIndirectCompute>),sizeof(VFgTask<CopyBuffer>),
+														sizeof(VFgTask<DispatchComputeIndirect>),sizeof(VFgTask<CopyBuffer>),
 														sizeof(VFgTask<CopyImage>),				sizeof(VFgTask<CopyBufferToImage>),
 														sizeof(VFgTask<CopyImageToBuffer>),		sizeof(VFgTask<BlitImage>),
 														sizeof(VFgTask<ResolveImage>),			sizeof(VFgTask<FillBuffer>),

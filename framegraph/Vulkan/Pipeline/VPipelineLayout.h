@@ -59,10 +59,12 @@ namespace FG
 
 		ND_ bool	operator == (const VPipelineLayout &rhs) const;
 
-		ND_ VkPipelineLayout	Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _layout; }
-		ND_ HashVal				GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
+		ND_ VkPipelineLayout		Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _layout; }
+		ND_ HashVal					GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 		
-		ND_ StringView			GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+
+		ND_ PushConstants_t const&	GetPushConstants ()	const	{ SHAREDLOCK( _rcCheck );  return _pushConstants; }
 
 
 	private:

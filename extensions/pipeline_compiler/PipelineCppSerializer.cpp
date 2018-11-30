@@ -117,13 +117,9 @@ namespace FG
 
 		src = "MPipelineID  Create_"s << name << " (const FGThreadPtr &fg)\n"
 			<< "{\n"
-			<< "	MeshPipelineDesc  desc;\n\n";
-
-		for (size_t i = 0; i < ppln._supportedTopology.size(); ++i)
-		{
-			if ( ppln._supportedTopology.test( i ) )
-				src << "\tdesc.AddTopology( " << _Topology_ToString( EPrimitive(i) ) << " );\n";
-		}
+			<< "	MeshPipelineDesc  desc;\n\n"
+			<< "	desc.SetTopology( " << _Topology_ToString( ppln._topology ) << " );\n";
+		
 
 		if ( not ppln._fragmentOutput.empty() )
 		{
@@ -308,8 +304,19 @@ namespace FG
 			src << _SerializeDescriptorSet( ds );
 		}
 
-		// TODO: push constants
-
+		if ( layout.pushConstants.size() )
+		{
+			src << "\tdesc.SetPushConstants({ ";
+			for (auto& pc : layout.pushConstants)
+			{
+				src << (&pc != layout.pushConstants.begin() ? ",\n\t\t\t\t\t\t\t" : "")
+					<< "{PushConstantID(\"" << pc.first.GetName() << "\"), "
+					<< _ShaderStages_ToString( pc.second.stageFlags ) << ", "
+					<< ToString( uint(pc.second.offset) ) << "_b, "
+					<< ToString( uint(pc.second.size) ) << "_b}";
+			}
+			src << "});\n\n";
+		}
 		return src;
 	}
 	

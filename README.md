@@ -8,7 +8,7 @@ Work in progress.
 
 ## Suported Platforms
 * Windows (with MSVC 2017)
-* Linux (with GCC 7.3)
+* Linux (with GCC 8.2)
 
 ## Branches
 `dev` - development branch<br/>
@@ -66,6 +66,7 @@ Dependencies:<br/>
 
 ### Stage 3
 - multi-gpu.<br/>
+- software renderer for debugging<br/>
 - WebGL 2.0 (or WebGL-next) support.<br/>
 
 ## References

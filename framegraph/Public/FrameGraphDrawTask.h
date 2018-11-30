@@ -43,6 +43,7 @@ namespace _fg_hidden_
 	struct PushConstantData
 	{
 		PushConstantID		id;
+		Bytes<uint16_t>		size;
 		uint8_t				data[ FG_MaxPushConstantsSize ];
 	};
 	using PushConstants_t	= FixedArray< PushConstantData, 4 >;
@@ -521,7 +522,7 @@ namespace _fg_hidden_
 	inline TaskType&  BaseDrawCall<TaskType>::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 	{
 		ASSERT( id.IsDefined() );
-		pushConstants.emplace_back( id );
+		pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
 		MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
 		return static_cast<TaskType &>( *this );
 	}

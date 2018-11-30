@@ -127,7 +127,7 @@ namespace FG
 												const VBaseDrawMeshes		&drawTask);
 
 		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread	&resMngr,
-												RawCPipelineID			 ppln,
+												const VComputePipeline	&ppln,
 												const Optional<uint3>	&localGroupSize,
 												VkPipelineCreateFlags	 pipelineFlags);
 

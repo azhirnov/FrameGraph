@@ -22,7 +22,6 @@ namespace FG
 						"main",
 R"#(
 #pragma shader_stage(compute)
-#extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;

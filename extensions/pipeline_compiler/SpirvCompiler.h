@@ -38,9 +38,9 @@ namespace FG
 
 
 		// variables
-			Shader			shader;
-			PipelineLayout	layout;
-			SpecConstants_t	specConstants;
+			Shader				shader;
+			PipelineLayout		layout;
+			SpecConstants_t		specConstants;
 
 			struct {
 				TopologyBits_t		supportedTopology;
@@ -72,7 +72,7 @@ namespace FG
 				uint3				meshGroupSize;
 				uint3				meshGroupSpecialization;
 
-				TopologyBits_t		supportedTopology;
+				EPrimitive			topology		= Default;
 				uint				maxPrimitives	= 0;
 				uint				maxIndices		= 0;
 				uint				maxVertices		= 0;
@@ -89,7 +89,7 @@ namespace FG
 		EShaderCompilationFlags		_compilerFlags	= Default;
 
 		glslang::TIntermediate *	_intermediate	= null;
-		EShaderStages				_currentStage;
+		EShaderStages				_currentStage	= Default;
 		bool						_targetVulkan	= true;
 
 		TBuiltInResource			_builtinResource;
@@ -135,7 +135,7 @@ namespace FG
 
 		bool _ProcessShaderInfo (INOUT ShaderReflection &result) const;
 		
-		bool _CalculateStructSize (const glslang::TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride) const;
+		bool _CalculateStructSize (const glslang::TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride, OUT BytesU &offset) const;
 		
 		void _MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, /*TLayoutGeometry*/uint type) const;
 

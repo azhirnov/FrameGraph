@@ -514,7 +514,7 @@ namespace {
 */
 	void VFrameGraphDebugger::_DispatchComputeTaskToString (Ptr<const VFgTask<DispatchCompute>> task, INOUT String &str) const
 	{
-		str << indent << "	pipeline:    \"" << _frameGraph.GetResourceManager()->GetResource( task->pipeline )->GetDebugName() << "\"\n"
+		str << indent << "	pipeline:    \"" << task->pipeline->GetDebugName() << "\"\n"
 			<< indent << "	groupCount:  " << ToString( task->groupCount ) << '\n';
 
 		if ( task->localGroupSize.has_value() )
@@ -523,12 +523,12 @@ namespace {
 	
 /*
 =================================================
-	_DispatchIndirectComputeTaskToString
+	_DispatchComputeIndirectTaskToString
 =================================================
 */
-	void VFrameGraphDebugger::_DispatchIndirectComputeTaskToString (Ptr<const VFgTask<DispatchIndirectCompute>> task, INOUT String &str) const
+	void VFrameGraphDebugger::_DispatchComputeIndirectTaskToString (Ptr<const VFgTask<DispatchComputeIndirect>> task, INOUT String &str) const
 	{
-		str << indent << "	pipeline:       \"" << _frameGraph.GetResourceManager()->GetResource( task->pipeline )->GetDebugName() << "\"\n"
+		str << indent << "	pipeline:       \"" << task->pipeline->GetDebugName() << "\"\n"
 			<< indent << "	indirectBuffer: \"" << task->indirectBuffer->GetDebugName() << "\"\n"
 			<< indent << "	indirectBufferOffset: " << ToString( BytesU{task->indirectBufferOffset} ) << '\n';
 		
@@ -814,8 +814,8 @@ namespace {
 		if ( auto task = DynCast< VFgTask<DispatchCompute> >(taskPtr) )
 			return _DispatchComputeTaskToString( task, INOUT str );
 		
-		if ( auto task = DynCast< VFgTask<DispatchIndirectCompute> >(taskPtr) )
-			return _DispatchIndirectComputeTaskToString( task, INOUT str );
+		if ( auto task = DynCast< VFgTask<DispatchComputeIndirect> >(taskPtr) )
+			return _DispatchComputeIndirectTaskToString( task, INOUT str );
 		
 		if ( auto task = DynCast< VFgTask<CopyBuffer> >(taskPtr) )
 			return _CopyBufferTaskToString( task, INOUT str );

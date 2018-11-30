@@ -123,7 +123,7 @@ namespace FG
 		DispatchCompute&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 		{
 			ASSERT( id.IsDefined() );
-			pushConstants.emplace_back( id );
+			pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
 			MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
 			return *this;
 		}
@@ -132,9 +132,9 @@ namespace FG
 
 
 	//
-	// Dispatch Indirect Compute
+	// Dispatch Compute Indirect
 	//
-	struct DispatchIndirectCompute final : _fg_hidden_::BaseTask<DispatchIndirectCompute>
+	struct DispatchComputeIndirect final : _fg_hidden_::BaseTask<DispatchComputeIndirect>
 	{
 	// types
 		using PushConstants_t	= _fg_hidden_::PushConstants_t;
@@ -150,22 +150,22 @@ namespace FG
 		
 
 	// methods
-		DispatchIndirectCompute () :
-			BaseTask<DispatchIndirectCompute>{ "DispatchIndirectCompute", HtmlColor::MediumBlue } {}
+		DispatchComputeIndirect () :
+			BaseTask<DispatchComputeIndirect>{ "DispatchComputeIndirect", HtmlColor::MediumBlue } {}
 		
-		DispatchIndirectCompute&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
+		DispatchComputeIndirect&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
 
-		DispatchIndirectCompute&  SetLocalSize (const uint3 &value)									{ localGroupSize = value;  return *this; }
-		DispatchIndirectCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)						{ localGroupSize = {x, y, z};  return *this; }
+		DispatchComputeIndirect&  SetLocalSize (const uint3 &value)									{ localGroupSize = value;  return *this; }
+		DispatchComputeIndirect&  SetLocalSize (uint x, uint y = 1, uint z = 1)						{ localGroupSize = {x, y, z};  return *this; }
 		
-		DispatchIndirectCompute&  SetPipeline (const CPipelineID &ppln)
+		DispatchComputeIndirect&  SetPipeline (const CPipelineID &ppln)
 		{
 			ASSERT( ppln );
 			pipeline = ppln.Get();
 			return *this;
 		}
 		
-		DispatchIndirectCompute&  SetIndirectBuffer (const BufferID &buffer)
+		DispatchComputeIndirect&  SetIndirectBuffer (const BufferID &buffer)
 		{
 			ASSERT( buffer );
 			indirectBuffer = buffer.Get();
@@ -173,15 +173,15 @@ namespace FG
 		}
 
 		template <typename ValueType>
-		DispatchIndirectCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value)
+		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const ValueType &value)
 		{
 			return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> );
 		}
 
-		DispatchIndirectCompute&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
+		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 		{
 			ASSERT( id.IsDefined() );
-			pushConstants.emplace_back( id );
+			pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
 			MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
 			return *this;
 		}

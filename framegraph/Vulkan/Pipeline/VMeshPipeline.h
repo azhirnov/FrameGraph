@@ -52,7 +52,7 @@ namespace FG
 		Instances_t				_instances;
 
 		ShaderModules_t			_shaders;
-		TopologyBits_t			_supportedTopology;		// TODO: use
+		EPrimitive				_topology				= Default;
 		FragmentOutputPtr		_fragmentOutput			= null;
 		bool					_earlyFragmentTests		= true;
 		

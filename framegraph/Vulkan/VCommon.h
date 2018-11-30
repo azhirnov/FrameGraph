@@ -93,6 +93,9 @@ namespace FG
 	class VRenderPassCache;
 	class VBaseDrawVerticesTask;
 	class VBaseDrawMeshes;
+	class VComputePipeline;
+	class VGraphicsPipeline;
+	class VMeshPipeline;
 
 
 }	// FG

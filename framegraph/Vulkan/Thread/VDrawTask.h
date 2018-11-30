@@ -72,7 +72,7 @@ namespace FG
 		const uint							_vbCount;
 
 	public:
-		const RawGPipelineID				pipeline;
+		VGraphicsPipeline const* const		pipeline;
 		const _fg_hidden_::PushConstants_t	pushConstants;
 
 		const VertexInputState				vertexInput;
@@ -187,7 +187,7 @@ namespace FG
 		VPipelineResourceSet				_resources;
 
 	public:
-		const RawMPipelineID				pipeline;
+		VMeshPipeline const* const			pipeline;
 		const _fg_hidden_::PushConstants_t	pushConstants;
 
 		const _fg_hidden_::Scissors_t		scissors;

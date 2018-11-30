@@ -114,7 +114,7 @@ namespace FG
 		// tasks
 		ND_ virtual Task		AddTask (const SubmitRenderPass &) = 0;
 		ND_ virtual Task		AddTask (const DispatchCompute &) = 0;
-		ND_ virtual Task		AddTask (const DispatchIndirectCompute &) = 0;
+		ND_ virtual Task		AddTask (const DispatchComputeIndirect &) = 0;
 		ND_ virtual Task		AddTask (const CopyBuffer &) = 0;
 		ND_ virtual Task		AddTask (const CopyImage &) = 0;
 		ND_ virtual Task		AddTask (const CopyBufferToImage &) = 0;

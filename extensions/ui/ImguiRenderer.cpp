@@ -113,14 +113,14 @@ namespace FG
 
 					_resources.BindTexture( UniformID("sTexture"), _fontTexture, _fontSampler );
 
-					fg->AddDrawTask( passId, DrawIndexedTask{}
-								.SetRenderState( rs ).SetPipeline( _pipeline ).AddResources( 0, &_resources )
-								.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input )
-								.SetIndexBuffer( _indexBuffer, 0_b, EIndex::UShort )
-								.SetDrawCmd({ cmd.ElemCount, 1, idx_offset, int(vtx_offset), 0 })
-								.AddScissor( scissor ).SetDynamicStates( EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor )
-								//.AddPushConstant( PushConstantID("pc"), pc_data )
-							);
+					fg->AddTask( passId, DrawIndexed{}
+									.SetRenderState( rs ).SetPipeline( _pipeline ).AddResources( 0, &_resources )
+									.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input )
+									.SetIndexBuffer( _indexBuffer, 0_b, EIndex::UShort )
+									.SetDrawCmd({ cmd.ElemCount, 1, idx_offset, int(vtx_offset), 0 })
+									.AddScissor( scissor ).SetDynamicStates( EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor )
+									//.AddPushConstant( PushConstantID("pc"), pc_data )
+								);
 				}
 				idx_offset += cmd.ElemCount;
 			}
@@ -235,8 +235,9 @@ namespace FG
 
 		size_t		upload_size = width * height * 4 * sizeof(char);
 
-		_fontTexture = fg->CreateImage( MemoryDesc{}, ImageDesc{ EImage::Tex2D, uint3{uint(width), uint(height), 1},
-																 EPixelFormat::RGBA8_UNorm, EImageUsage::Sampled | EImageUsage::TransferDst });
+		_fontTexture = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{uint(width), uint(height), 1},
+													EPixelFormat::RGBA8_UNorm, EImageUsage::Sampled | EImageUsage::TransferDst },
+										Default, "UI.FontTexture" );
 		CHECK_ERR( _fontTexture );
 
 		return fg->AddTask( UpdateImage{}.SetImage( _fontTexture ).SetData( pixels, upload_size, uint2{int2{ width, height }} ));
@@ -253,7 +254,8 @@ namespace FG
 
 		if ( not _uniformBuffer )
 		{
-			_uniformBuffer = fg->CreateBuffer( MemoryDesc{}, BufferDesc{ 16_b, EBufferUsage::Uniform | EBufferUsage::TransferDst });
+			_uniformBuffer = fg->CreateBuffer( BufferDesc{ 16_b, EBufferUsage::Uniform | EBufferUsage::TransferDst },
+											   Default, "UI.UniformBuffer" );
 			CHECK_ERR( _uniformBuffer );
 		}
 		
@@ -284,7 +286,8 @@ namespace FG
 			fg->DestroyResource( INOUT _vertexBuffer );
 
 			_vertexBufSize	= vertex_size;
-			_vertexBuffer	= fg->CreateBuffer( MemoryDesc{}, BufferDesc{ BytesU(vertex_size), EBufferUsage::TransferDst | EBufferUsage::Vertex });
+			_vertexBuffer	= fg->CreateBuffer( BufferDesc{ BytesU(vertex_size), EBufferUsage::TransferDst | EBufferUsage::Vertex },
+											    Default, "UI.VertexBuffer" );
 		}
 
 		if ( not _indexBuffer or index_size > _indexBufSize )
@@ -292,7 +295,8 @@ namespace FG
 			fg->DestroyResource( INOUT _indexBuffer );
 
 			_indexBufSize	= index_size;
-			_indexBuffer	= fg->CreateBuffer( MemoryDesc{}, BufferDesc{ BytesU(index_size), EBufferUsage::TransferDst | EBufferUsage::Index });
+			_indexBuffer	= fg->CreateBuffer( BufferDesc{ BytesU(index_size), EBufferUsage::TransferDst | EBufferUsage::Index },
+												Default, "UI.IndexBuffer" );
 		}
 
 		BytesU	vb_offset;

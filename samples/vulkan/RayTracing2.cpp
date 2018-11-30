@@ -378,7 +378,7 @@ bool RayTracingApp2::Run ()
 								   shaderBindingTable, RAYGEN_SHADER * stride,
 								   shaderBindingTable, MISS_SHADER * stride, stride,
 								   shaderBindingTable, HIT_SHADER * stride, stride,
-								   shaderBindingTable, 0, stride,
+								   VK_NULL_HANDLE, 0, 0,
 								   swapchain->GetSurfaceSize().x, swapchain->GetSurfaceSize().y, 1 );
 			}
 

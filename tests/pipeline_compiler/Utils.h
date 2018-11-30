@@ -266,14 +266,12 @@ inline bool TestSpecializationConstant (const PipelineDescription::Shader &shade
 */
 inline bool TestPushConstant (const PipelineDescription &desc, const PushConstantID &id, EShaderStages stageFlags, BytesU offset, BytesU size)
 {
-	for (auto& pc : desc._pipelineLayout.pushConstants)
-	{
-		if ( pc.id == id )
-		{
-			return	pc.offset		== uint16_t(offset)	and
-					pc.size			== uint16_t(size)	and
-					pc.stageFlags	== stageFlags;
-		}
-	}
-	return false;
+	auto	iter = desc._pipelineLayout.pushConstants.find( id );
+
+	if ( iter == desc._pipelineLayout.pushConstants.end() )
+		return false;
+
+	return	iter->second.offset		== uint16_t(offset)	and
+			iter->second.size		== uint16_t(size)	and
+			iter->second.stageFlags	== stageFlags;
 }

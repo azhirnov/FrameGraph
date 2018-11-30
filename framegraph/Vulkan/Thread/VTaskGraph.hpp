@@ -132,8 +132,8 @@ namespace FG
 	template <typename TaskType>
 	VBaseDrawVerticesTask::VBaseDrawVerticesTask (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		IDrawTask{ task, pass1, pass2 },		_vbCount{ uint(task.vertexBuffers.size()) },
-		pipeline{ task.pipeline },				pushConstants{ task.pushConstants },
-		vertexInput{ task.vertexInput },
+		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
+		pushConstants{ task.pushConstants },	vertexInput{ task.vertexInput },
 		scissors{ task.scissors },				colorBuffers{ task.colorBuffers },
 		stencilState{ task.stencilState },		dynamicStates{ task.dynamicStates },
 		topology{ task.topology },				primitiveRestart{ task.primitiveRestart }
@@ -193,10 +193,10 @@ namespace FG
 */	
 	template <typename TaskType>
 	inline VBaseDrawMeshes::VBaseDrawMeshes (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		IDrawTask{ task, pass1, pass2 },
-		pipeline{ task.pipeline },				pushConstants{ task.pushConstants },
-		scissors{ task.scissors },				colorBuffers{ task.colorBuffers },
-		stencilState{ task.stencilState },		dynamicStates{ task.dynamicStates }
+		IDrawTask{ task, pass1, pass2 },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
+		pushConstants{ task.pushConstants },	scissors{ task.scissors },
+		colorBuffers{ task.colorBuffers },		stencilState{ task.stencilState },
+		dynamicStates{ task.dynamicStates }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
@@ -228,21 +228,21 @@ namespace FG
 =================================================
 */
 	inline VFgTask<DispatchCompute>::VFgTask (VFrameGraphThread *fg, const DispatchCompute &task, ProcessFunc_t process) :
-		IFrameGraphTask{ task, process },
-		pipeline{ task.pipeline },					pushConstants{ task.pushConstants },
-		groupCount{ Max( task.groupCount, 1u ) },	localGroupSize{ task.localGroupSize }
+		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
+		pushConstants{ task.pushConstants },	groupCount{ Max( task.groupCount, 1u )},
+		localGroupSize{ task.localGroupSize }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
 
 /*
 =================================================
-	VFgTask< DispatchIndirectCompute >
+	VFgTask< DispatchComputeIndirect >
 =================================================
 */
-	inline VFgTask<DispatchIndirectCompute>::VFgTask (VFrameGraphThread *fg, const DispatchIndirectCompute &task, ProcessFunc_t process) :
-		IFrameGraphTask{ task, process },
-		pipeline{ task.pipeline },				pushConstants{ task.pushConstants },
+	inline VFgTask<DispatchComputeIndirect>::VFgTask (VFrameGraphThread *fg, const DispatchComputeIndirect &task, ProcessFunc_t process) :
+		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
+		pushConstants{ task.pushConstants },
 		indirectBuffer{ fg->GetResourceManager()->GetState( task.indirectBuffer )},
 		indirectBufferOffset{ VkDeviceSize(task.indirectBufferOffset) },
 		localGroupSize{ task.localGroupSize }

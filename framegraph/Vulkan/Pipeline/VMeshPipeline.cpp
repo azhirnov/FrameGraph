@@ -36,7 +36,7 @@ namespace FG
 		}
 
 		_layoutId			= PipelineLayoutID{ layoutId };
-		_supportedTopology	= desc._supportedTopology;
+		_topology			= desc._topology;
 		_fragmentOutput		= fragOutput;
 		_earlyFragmentTests	= desc._earlyFragmentTests;
 		_debugName			= dbgName;
@@ -65,7 +65,7 @@ namespace FG
 		_instances.clear();
 		_debugName.clear();
 		_layoutId			= Default;
-		_supportedTopology	= Default;
+		_topology			= Default;
 		_fragmentOutput		= null;
 		_earlyFragmentTests	= false;
 	}

@@ -32,9 +32,9 @@ namespace FG
 	PushConstantHash
 =================================================
 */
-	ND_ inline HashVal PushConstantHash (const PipelineDescription::PushConstant &pc)
+	ND_ inline HashVal PushConstantHash (const Pair<PushConstantID, PipelineDescription::PushConstant> &pc)
 	{
-		return HashOf( pc.id ) + HashOf( pc.stageFlags ) + HashOf( pc.offset ) + HashOf( pc.size );
+		return HashOf( pc.first ) + HashOf( pc.second.stageFlags ) + HashOf( pc.second.offset ) + HashOf( pc.second.size );
 	}
 //-----------------------------------------------------------------------------
 
@@ -118,7 +118,7 @@ namespace FG
 		CHECK_ERR( _layout == VK_NULL_HANDLE );
 		
 		VkDescriptorSetLayouts_t	vk_sets;		vk_sets.resize( _descriptorSets.size() );
-		VkPushConstantRanges_t		vk_ranges;		// TODO
+		VkPushConstantRanges_t		vk_ranges;
 
 		auto	ds_iter = _descriptorSets.begin();
 
@@ -135,9 +135,9 @@ namespace FG
 		for (auto& pc : _pushConstants)
 		{
 			VkPushConstantRange	range = {};
-			range.offset		= uint( pc.offset );
-			range.size			= uint( pc.size );
-			range.stageFlags	= VEnumCast( pc.stageFlags );
+			range.offset		= uint( pc.second.offset );
+			range.size			= uint( pc.second.size );
+			range.stageFlags	= VEnumCast( pc.second.stageFlags );
 
 			vk_ranges.push_back( range );
 		}

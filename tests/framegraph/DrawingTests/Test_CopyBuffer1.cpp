@@ -52,9 +52,9 @@ namespace FG
 		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
-		Task	t_update	= frame_graph->AddTask( UpdateBuffer().SetBuffer( src_buffer, 0_b ).SetData( src_data ) );
+		Task	t_update	= frame_graph->AddTask( UpdateBuffer().SetBuffer( src_buffer ).SetData( src_data ) );
 		Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 128_b, 256_b ).DependsOn( t_update ) );
-		Task	t_read		= frame_graph->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, 512_b ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
+		Task	t_read		= frame_graph->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 		FG_UNUSED( t_read );
 
 		CHECK_ERR( frame_graph->Compile() );

@@ -94,11 +94,7 @@ void main()
 
 	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_110 | EShaderLangFormat::SPIRV ) );
 	
-	// TODO
-
-	MeshPipelineDesc::TopologyBits_t	expected_topology;
-	expected_topology[uint(EPrimitive::TriangleList)] = true;
-	TEST( ppln._supportedTopology == expected_topology );
+	TEST( ppln._topology == EPrimitive::TriangleList );
 
 	TEST( ppln._maxIndices == 32*3 );
 	TEST( ppln._maxVertices == 81 );

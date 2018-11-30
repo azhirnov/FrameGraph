@@ -201,10 +201,10 @@ namespace {
 	
 /*
 =================================================
-	AddTask (DispatchIndirectCompute)
+	AddTask (DispatchComputeIndirect)
 =================================================
 */
-	Task  VFrameGraphThread::AddTask (const DispatchIndirectCompute &task)
+	Task  VFrameGraphThread::AddTask (const DispatchComputeIndirect &task)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );

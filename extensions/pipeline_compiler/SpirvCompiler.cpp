@@ -35,8 +35,7 @@ namespace FG
 	constructor
 =================================================
 */
-	SpirvCompiler::SpirvCompiler () :
-		_currentStage{ EShaderStages::Unknown }
+	SpirvCompiler::SpirvCompiler ()
 	{
 		glslang::InitializeProcess();
 
@@ -358,7 +357,7 @@ namespace FG
 	GetDesciptorSet
 =================================================
 */
-	ND_ PipelineDescription::DescriptorSet&  GetDesciptorSet (uint dsIndex, INOUT SpirvCompiler::ShaderReflection &reflection)
+	ND_ static PipelineDescription::DescriptorSet&  GetDesciptorSet (uint dsIndex, INOUT SpirvCompiler::ShaderReflection &reflection)
 	{
 		for (auto& ds : reflection.layout.descriptorSets)
 		{
@@ -661,23 +660,25 @@ namespace FG
 	based on TParseContext::fixBlockUniformOffsets
 =================================================
 */
-	bool SpirvCompiler::_CalculateStructSize (const TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride) const
+	bool SpirvCompiler::_CalculateStructSize (const TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride, OUT BytesU &minOffset) const
 	{
 		staticSize = arrayStride = 0_b;
+		minOffset = ~0_b;
 
 		COMP_CHECK_ERR( bufferType.isStruct() );
-		COMP_CHECK_ERR( bufferType.getQualifier().isUniformOrBuffer() );
+		COMP_CHECK_ERR( bufferType.getQualifier().isUniformOrBuffer() or bufferType.getQualifier().layoutPushConstant );
 		COMP_CHECK_ERR( bufferType.getQualifier().layoutPacking == ElpStd140 or
 						bufferType.getQualifier().layoutPacking == ElpStd430 );
 
-		int member_size = 0;
-		int offset = 0;
+		int		member_size		= 0;
+		int		offset			= 0;
+		auto&	struct_fields	= *bufferType.getStruct();
 
-		for (size_t member = 0; member < bufferType.getStruct()->size(); ++member)
+		for (size_t member = 0; member < struct_fields.size(); ++member)
 		{
-			const TType&		member_type			= *(*bufferType.getStruct())[member].type;
-			const TQualifier&	member_qualifier	= (*bufferType.getStruct())[member].type->getQualifier();
-			TLayoutMatrix		sub_matrix_layout	= (*bufferType.getStruct())[member].type->getQualifier().layoutMatrix;
+			const TType&		member_type			= *struct_fields[member].type;
+			const TQualifier&	member_qualifier	= member_type.getQualifier();
+			TLayoutMatrix		sub_matrix_layout	= member_qualifier.layoutMatrix;
 
 			int dummy_stride;
 			int member_alignment = _intermediate->getBaseAlignment( member_type, OUT member_size, OUT dummy_stride,
@@ -704,11 +705,14 @@ namespace FG
 				member_alignment = std::max( member_alignment, member_qualifier.layoutAlign );
 
 			RoundToPow2( offset, member_alignment );
-			//(*bufferType.getStruct())[member].type->getQualifier().layoutOffset = offset;
+			//member_type.getQualifier().layoutOffset = offset;
+
+			minOffset = Min( minOffset, uint(offset) );
+
 			offset += member_size;
 
 			// for last member
-			if ( member+1 == bufferType.getStruct()->size() and member_type.isUnsizedArray() )
+			if ( member+1 == struct_fields.size() and member_type.isUnsizedArray() )
 			{
 				ASSERT( member_size == 0 );
 
@@ -789,7 +793,10 @@ namespace FG
 		// push constants
 		if ( qual.layoutPushConstant )
 		{
-			// TODO
+			BytesU	size, stride, offset;
+			COMP_CHECK_ERR( _CalculateStructSize( type, OUT size, OUT stride, OUT offset ));
+
+			result.layout.pushConstants.insert({ PushConstantID(type.getTypeName().c_str()), {_currentStage, offset, size} });
 			return true;
 		}
 		
@@ -806,8 +813,8 @@ namespace FG
 				ubuf.state = EResourceState::UniformRead | EResourceState_FromShaders( _currentStage );
 				ubuf.dynamicOffsetIndex = EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset ) ? 0 : PipelineDescription::STATIC_OFFSET;
 
-				BytesU	stride;
-				COMP_CHECK_ERR( _CalculateStructSize( type, OUT ubuf.size, OUT stride ));
+				BytesU	stride, offset;
+				COMP_CHECK_ERR( _CalculateStructSize( type, OUT ubuf.size, OUT stride, OUT offset ));
 				
 				PipelineDescription::Uniform	un;
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
@@ -825,7 +832,8 @@ namespace FG
 				sbuf.state = ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage );
 				sbuf.dynamicOffsetIndex = EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset ) ? 0 : PipelineDescription::STATIC_OFFSET;
 			
-				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride ));
+				BytesU	offset;
+				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride, OUT offset ));
 				
 				PipelineDescription::Uniform	un;
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
@@ -1057,17 +1065,17 @@ namespace FG
 				switch ( _intermediate->getOutputPrimitive() )
 				{
 					case TLayoutGeometry::ElgPoints :
-						result.mesh.supportedTopology[uint(EPrimitive::Point)] = true;
+						result.mesh.topology = EPrimitive::Point;
 						result.mesh.maxIndices *= 1;
 						break;
 
 					case TLayoutGeometry::ElgLines :
-						result.mesh.supportedTopology[uint(EPrimitive::LineList)] = true;
+						result.mesh.topology = EPrimitive::LineList;
 						result.mesh.maxIndices *= 2;
 						break;
 
 					case TLayoutGeometry::ElgTriangles :
-						result.mesh.supportedTopology[uint(EPrimitive::TriangleList)] = true;
+						result.mesh.topology = EPrimitive::TriangleList;
 						result.mesh.maxIndices *= 3;
 						break;
 

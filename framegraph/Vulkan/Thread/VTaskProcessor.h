@@ -69,7 +69,7 @@ namespace FG
 
 		void Visit (const VFgTask<SubmitRenderPass> &);
 		void Visit (const VFgTask<DispatchCompute> &);
-		void Visit (const VFgTask<DispatchIndirectCompute> &) {}
+		void Visit (const VFgTask<DispatchComputeIndirect> &);
 		void Visit (const VFgTask<CopyBuffer> &);
 		void Visit (const VFgTask<CopyImage> &);
 		void Visit (const VFgTask<CopyBufferToImage> &);
@@ -118,8 +118,9 @@ namespace FG
 		void _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
 
 		void _ExtractDescriptorSets (const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
-		void _BindPipelineResources (RawCPipelineID pipeline, const VPipelineResourceSet &resourceSet);
-		void _BindPipeline (RawCPipelineID pipeline, const Optional<uint3> &localSize) const;
+		void _BindPipelineResources (const VComputePipeline* pipeline, const VPipelineResourceSet &resourceSet);
+		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize) const;
+		void _PushConstants (RawPipelineLayoutID layoutId, const _fg_hidden_::PushConstants_t &pc) const;
 
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);

@@ -492,7 +492,24 @@ namespace FG
 				dstLayout.descriptorSets.push_back( src_ds );
 		}
 
-		// TODO: merge push constants
+		// merge push constants
+		for (auto& src_pc : srcLayout.pushConstants)
+		{
+			auto	iter = dstLayout.pushConstants.find( src_pc.first );
+
+			// add new push constant
+			if ( iter == dstLayout.pushConstants.end() )
+			{
+				dstLayout.pushConstants.insert( src_pc );
+				continue;
+			}
+			
+			// compare and merge
+			COMP_CHECK_ERR( src_pc.second.offset == iter->second.offset );
+			COMP_CHECK_ERR( src_pc.second.size == iter->second.size );
+
+			iter->second.stageFlags |= src_pc.second.stageFlags;
+		}
 
 		return true;
 	}
@@ -690,7 +707,7 @@ namespace FG
 					case EShader::Mesh :
 						new_ppln._maxIndices			= reflection.mesh.maxIndices;
 						new_ppln._maxVertices			= reflection.mesh.maxVertices;
-						new_ppln._supportedTopology		= reflection.mesh.supportedTopology;
+						new_ppln._topology				= reflection.mesh.topology;
 						new_ppln._defaultMeshGroupSize	= reflection.mesh.meshGroupSize;
 						new_ppln._meshSizeSpec			= reflection.mesh.meshGroupSpecialization;
 						break;
