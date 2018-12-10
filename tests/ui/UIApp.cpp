@@ -34,7 +34,7 @@ namespace FG
 
 		CHECK_FATAL( _frameGraph->RecreateSwapchain( swapchain_info ));
 
-		_frameGraph->DestroyResource( INOUT _renderTarget );
+		_frameGraph->ReleaseResource( INOUT _renderTarget );
 	}
 
 /*
@@ -245,7 +245,9 @@ namespace FG
 		{
 			LogicalPassID	pass_id = _frameGraph->CreateRenderPass( RenderPassDesc{ int2{float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y }} }
 											.AddViewport(float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y })
-											.AddTarget( RenderTargetID("out_Color0"), _renderTarget, _clearColor, EAttachmentStoreOp::Store ));
+											.AddTarget( RenderTargetID("out_Color0"), _renderTarget, _clearColor, EAttachmentStoreOp::Store )
+											.AddColorBuffer( RenderTargetID("out_Color0"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
+											.SetDepthTestEnabled( false ).SetCullMode( ECullMode::None ));
 
 			Task	draw_ui	= _uiRenderer.Draw( _frameGraph, pass_id );
 			Task	present	= _frameGraph->AddTask( Present{ _renderTarget }.DependsOn( draw_ui ));
@@ -308,7 +310,7 @@ namespace FG
 	{
 		if ( _frameGraph )
 		{
-			_frameGraph->DestroyResource( _renderTarget );
+			_frameGraph->ReleaseResource( _renderTarget );
 			_uiRenderer.Deinitialize( _frameGraph );
 
 			_frameGraph->Deinitialize();

@@ -82,6 +82,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
 		"../tests/pipeline_compiler/Test_Serializer1.cpp"
 		"../tests/pipeline_compiler/Test_Serializer2.cpp"
 		"../tests/pipeline_compiler/Test_Shader1.cpp"
+		"../tests/pipeline_compiler/Test_Shader10.cpp"
 		"../tests/pipeline_compiler/Test_Shader2.cpp"
 		"../tests/pipeline_compiler/Test_Shader3.cpp"
 		"../tests/pipeline_compiler/Test_Shader4.cpp"
@@ -96,7 +97,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
 	else()
 		add_executable( "UnitTests.PipelineCompiler" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Serializer1.cpp" "../tests/pipeline_compiler/Test_Serializer2.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Test_Shader9.cpp" "../tests/pipeline_compiler/Utils.h" )
+	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Serializer1.cpp" "../tests/pipeline_compiler/Test_Serializer2.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader10.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Test_Shader9.cpp" "../tests/pipeline_compiler/Utils.h" )
 	set_property( TARGET "UnitTests.PipelineCompiler" PROPERTY FOLDER "Tests" )
 	target_include_directories( "UnitTests.PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "UnitTests.PipelineCompiler" PRIVATE "../tests/.." )
@@ -242,6 +243,31 @@ if (${FG_ENABLE_TESTS})
 endif()
 
 
+#==================================================================================================
+# project: GraphViz
+#==================================================================================================
+if (${FG_ENABLE_GRAPHVIZ})
+	set( SOURCES 
+		"graphviz/GraphViz.cpp"
+		"graphviz/GraphViz.h" )
+	add_library( "GraphViz" STATIC ${SOURCES} )
+	source_group( "" FILES "graphviz/GraphViz.cpp" "graphviz/GraphViz.h" )
+	set_property( TARGET "GraphViz" PROPERTY FOLDER "Extensions" )
+	target_include_directories( "GraphViz" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_link_libraries( "GraphViz" "STL" )
+	target_compile_definitions( "GraphViz" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
+	# compiler
+	target_compile_definitions( "GraphViz" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "GraphViz" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "GraphViz" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "GraphViz" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "GraphViz" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "GraphViz" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "GraphViz" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "GraphViz" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "GraphViz" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
 
 
 #==================================================================================================
@@ -299,6 +325,9 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_IMGUI})
 	set_property( TARGET "Tests.UI" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.UI" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.UI" PRIVATE "" )
+	if (${FG_ENABLE_GRAPHVIZ})
+		target_link_libraries( "Tests.UI" "GraphViz" )
+	endif()
 	if (${FG_ENABLE_IMGUI})
 		target_link_libraries( "Tests.UI" "UI" )
 	endif()

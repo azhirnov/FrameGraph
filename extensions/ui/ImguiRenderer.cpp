@@ -45,12 +45,12 @@ namespace FG
 */
 	void ImguiRenderer::Deinitialize (const FGThreadPtr &fg)
 	{
-		fg->DestroyResource( INOUT _fontTexture );
-		fg->DestroyResource( INOUT _fontSampler );
-		fg->DestroyResource( INOUT _pipeline );
-		fg->DestroyResource( INOUT _vertexBuffer );
-		fg->DestroyResource( INOUT _indexBuffer );
-		fg->DestroyResource( INOUT _uniformBuffer );
+		fg->ReleaseResource( INOUT _fontTexture );
+		fg->ReleaseResource( INOUT _fontSampler );
+		fg->ReleaseResource( INOUT _pipeline );
+		fg->ReleaseResource( INOUT _vertexBuffer );
+		fg->ReleaseResource( INOUT _indexBuffer );
+		fg->ReleaseResource( INOUT _uniformBuffer );
 
 		_context = null;
 	}
@@ -72,12 +72,6 @@ namespace FG
 		submit.DependsOn( _CreateFontTexture( fg ));
 		submit.DependsOn( _RecreateBuffers( fg ));
 		submit.DependsOn( _UpdateUniformBuffer( fg ));
-
-		RenderState		rs;
-		rs.AddColorBuffer( RenderTargetID("out_Color0"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add );
-		rs.SetDepthTestEnabled( false );
-		rs.SetCullMode( ECullMode::None );
-		rs.SetTopology( EPrimitive::TriangleList );
 
 		VertexInputState	vert_input;
 		vert_input.Bind( VertexBufferID(), SizeOf<ImDrawVert> );
@@ -114,13 +108,10 @@ namespace FG
 					_resources.BindTexture( UniformID("sTexture"), _fontTexture, _fontSampler );
 
 					fg->AddTask( passId, DrawIndexed{}
-									.SetRenderState( rs ).SetPipeline( _pipeline ).AddResources( 0, &_resources )
-									.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input )
+									.SetPipeline( _pipeline ).AddResources( 0, &_resources )
+									.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input ).SetTopology( EPrimitive::TriangleList )
 									.SetIndexBuffer( _indexBuffer, 0_b, EIndex::UShort )
-									.SetDrawCmd({ cmd.ElemCount, 1, idx_offset, int(vtx_offset), 0 })
-									.AddScissor( scissor ).SetDynamicStates( EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor )
-									//.AddPushConstant( PushConstantID("pc"), pc_data )
-								);
+									.AddDrawCmd( cmd.ElemCount, 1, idx_offset, int(vtx_offset), 0 ).AddScissor( scissor ));
 				}
 				idx_offset += cmd.ElemCount;
 			}
@@ -283,7 +274,7 @@ namespace FG
 
 		if ( not _vertexBuffer or vertex_size > _vertexBufSize )
 		{
-			fg->DestroyResource( INOUT _vertexBuffer );
+			fg->ReleaseResource( INOUT _vertexBuffer );
 
 			_vertexBufSize	= vertex_size;
 			_vertexBuffer	= fg->CreateBuffer( BufferDesc{ BytesU(vertex_size), EBufferUsage::TransferDst | EBufferUsage::Vertex },
@@ -292,7 +283,7 @@ namespace FG
 
 		if ( not _indexBuffer or index_size > _indexBufSize )
 		{
-			fg->DestroyResource( INOUT _indexBuffer );
+			fg->ReleaseResource( INOUT _indexBuffer );
 
 			_indexBufSize	= index_size;
 			_indexBuffer	= fg->CreateBuffer( BufferDesc{ BytesU(index_size), EBufferUsage::TransferDst | EBufferUsage::Index },
