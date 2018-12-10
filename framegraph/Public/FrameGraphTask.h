@@ -605,6 +605,13 @@ namespace FG
 			data = ArrayView{ Cast<uint8_t>(ptr), count*sizeof(T) };
 			return *this;
 		}
+
+		template <typename T>
+		UpdateBuffer&  SetData (const void* ptr, BytesU size)
+		{
+			data = ArrayView{ Cast<uint8_t>(ptr), size_t(size) };
+			return *this;
+		}
 	};
 
 
@@ -860,11 +867,105 @@ namespace FG
 	//
 	struct BuildRayTracingGeometry final : _fg_hidden_::BaseTask<BuildRayTracingGeometry>
 	{
+	// types
+		using EFlags	= ERayTracingGeometryFlags;
+		using Matrix3x4	= Matrix< float, 3, 4, EMatrixOrder::RowMajor >;
+
+		struct Triangles
+		{
+		// variables
+			GeometryID			geometryId;
+			EFlags				flags				= Default;
+
+			ArrayView<uint8_t>	vertexData;
+			RawBufferID			vertexBuffer;
+			BytesU				vertexOffset;
+			Bytes<uint>			vertexStride;
+			uint				vertexCount			= 0;
+			EVertexType			vertexFormat		= Default;
+
+			// optional:
+			ArrayView<uint8_t>	indexData;
+			RawBufferID			indexBuffer;
+			BytesU				indexOffset;
+			uint				indexCount			= 0;
+			EIndex				indexType			= Default;
+
+			// optional:
+			Optional<Matrix3x4>	transformData;
+			RawBufferID			transformBuffer;	// 3x4 row major affine transformation matrix for this geometry.
+			BytesU				transformOffset;
+
+		// methods
+			Triangles () {}
+			explicit Triangles (const GeometryID &id) : geometryId{id} {}
+
+			template <typename T, typename Idx>
+			Triangles&  SetVertices (Idx count, BytesU stride = 0_b);
+			template <typename Idx>
+			Triangles&  SetVertices (Idx count, EVertexType format, BytesU stride = 0_b);
+			Triangles&  SetVertexBuffer (const BufferID &id, BytesU offset = 0_b);
+			Triangles&  SetVertexData (ArrayView<uint8_t> data);
+			template <typename VertexT>
+			Triangles&  SetVertices (ArrayView<VertexT> vertices);
+			template <typename Idx>
+			Triangles&  SetIndices (Idx count, EIndex type);
+			template <typename IndexT>
+			Triangles&  SetIndices (ArrayView<IndexT> indices);
+			Triangles&  SetIndexBuffer (const BufferID &id, BytesU offset = 0_b);
+			Triangles&  SetIndexData (ArrayView<uint8_t> data);
+			Triangles&  SetTransform (const BufferID &id, BytesU offset = 0_b);
+			Triangles&  SetTransform (const Matrix3x4 &mat);
+			Triangles&  AddFlags (EFlags value)					{ flags |= value;  return *this; }
+			Triangles&  SetID (const GeometryID &id)			{ geometryId = id;  return *this; }
+		};
+
+
+		struct AABBData
+		{
+			float3		min;
+			float3		max;
+		};
+
+		struct AABB
+		{
+		// variables
+			GeometryID			geometryId;
+			EFlags				flags			= Default;
+
+			ArrayView<uint8_t>	aabbData;
+			RawBufferID			aabbBuffer;		// array of 'AABBData'
+			BytesU				aabbOffset;
+			Bytes<uint>			aabbStride;
+			uint				aabbCount		= 0;
+
+		// methods
+			AABB () {}
+			explicit AABB (const GeometryID &id) : geometryId{id} {}
+
+			template <typename Idx>
+			AABB&  SetCount (Idx count, BytesU stride = 0_b);
+			AABB&  SetBuffer (const BufferID &id, BytesU offset = 0_b);
+			AABB&  SetData (ArrayView<uint8_t> data);
+			AABB&  AddFlags (EFlags value)						{ flags |= value;  return *this; }
+			AABB&  SetID (const GeometryID &id)					{ geometryId = id;  return *this; }
+		};
+
+
 	// variables
+		RawRTGeometryID			rtGeometry;
+		Array< Triangles >		triangles;
+		Array< AABB >			aabbs;
+
 
 	// methods
 		BuildRayTracingGeometry () :
 			BaseTask<BuildRayTracingGeometry>{ "BuildRayTracingGeometry", HtmlColor::Lime } {}
+
+		BuildRayTracingGeometry&  SetTarget (const RTGeometryID &id)	{ ASSERT( id );  rtGeometry = id.Get();  return *this; }
+
+		BuildRayTracingGeometry&  Add (const Triangles &value)			{ triangles.push_back( value );  return *this; }
+		BuildRayTracingGeometry&  Add (const AABB &value)				{ aabbs.push_back( value );  return *this; }
 	};
 
 
@@ -874,11 +975,152 @@ namespace FG
 	//
 	struct BuildRayTracingScene final : _fg_hidden_::BaseTask<BuildRayTracingScene>
 	{
+	// types
+		using Matrix4x3		= Matrix< float, 4, 3, EMatrixOrder::RowMajor >;
+		using EFlags		= ERayTracingInstanceFlags;
+
+		struct Instance
+		{
+		// variables
+			RawRTGeometryID		geometryId;
+			Matrix4x3			transform		= Matrix4x3::Identity();
+			uint				instanceID		= 0;
+			EFlags				flags			= Default;
+			uint8_t				mask			= 0xFF;
+
+		// methods
+			Instance () {}
+
+			Instance&  SetGeometry (const RTGeometryID &id);
+			Instance&  SetInstance (const Matrix4x3 &transform, uint id);
+			Instance&  AddFlags (EFlags value)			{ flags |= value;  return *this; }
+			Instance&  SetMask (uint8_t value)			{ mask   = value;  return *this; }
+		};
+
+
 	// variables
+		RawRTSceneID		rtScene;
+		Array< Instance >	instances;
+		uint				hitShadersPerGeometry = 1;		// same as 'sbtRecordStride' in ray gen shader
+
 
 	// methods
 		BuildRayTracingScene () :
 			BaseTask<BuildRayTracingScene>{ "BuildRayTracingScene", HtmlColor::Lime } {}
+
+		BuildRayTracingScene&  SetTarget (const RTSceneID &id)			{ ASSERT( id );  rtScene = id.Get();  return *this; }
+		BuildRayTracingScene&  SetHitShadersPerGeometry (uint count)	{ ASSERT( count > 0 );  hitShadersPerGeometry = count;  return *this; }
+		BuildRayTracingScene&  Add (const Instance &value)				{ instances.push_back( value );  return *this; }
+	};
+
+
+
+	//
+	// Update Ray Tracing Shader Table (experimental)
+	//
+	struct UpdateRayTracingShaderTable final : _fg_hidden_::BaseTask<UpdateRayTracingShaderTable>
+	{
+	// types
+		struct ShaderTable
+		{
+			RawBufferID			buffer;
+			//BytesU			bufferSize;
+			
+			BytesU				rayGenOffset;
+			BytesU				rayMissOffset;
+			BytesU				rayHitOffset;
+			BytesU				callableOffset;
+
+			Bytes<uint16_t>		rayMissStride;
+			Bytes<uint16_t>		rayHitStride;
+			Bytes<uint16_t>		callableStride;
+
+			uint16_t			maxMissShaders;
+			//uint16_t			hitShadersPerGeometry;	// in ray gen shader the 'sbtRecordStride' parameter of 'traceNV()' must equal to 'hitShadersPerGeometry'
+			//											// and 'sbtRecordOffset' must be less then 'hitShadersPerGeometry'
+		};
+		
+		struct RayGenShaderGroup
+		{
+			RTShaderGroupID		groupId;
+		};
+
+		struct MissShaderGroup
+		{
+			RTShaderGroupID		groupId;
+		};
+
+		struct HitShaderGroup
+		{
+			RTShaderGroupID		groupId;
+			GeometryID			geometryId;
+			uint				instance	= 0;
+		};
+		
+		using MissShaderGroups_t	= Array< MissShaderGroup >;
+		using HitShaderGroups_t		= Array< HitShaderGroup >;
+
+
+	// variables
+		ShaderTable &			result;
+		RawRTPipelineID			pipeline;
+		RawRTSceneID			rtScene;
+		RawBufferID				dstBuffer;
+		BytesU					dstOffset;
+		RayGenShaderGroup		rayGenShader;
+		MissShaderGroups_t		missShaders;
+		HitShaderGroups_t		hitShaders;
+		//ShaderGroups_t		callableShaders;
+
+
+	// methods
+		UpdateRayTracingShaderTable (OUT ShaderTable &result) :
+			BaseTask<UpdateRayTracingShaderTable>{ "UpdateRayTracingShaderTable", HtmlColor::BlueViolet },
+			result{result} {}
+
+		UpdateRayTracingShaderTable&  SetPipeline (const RTPipelineID &ppln)
+		{
+			ASSERT( ppln );
+			pipeline = ppln.Get();
+			return *this;
+		}
+
+		UpdateRayTracingShaderTable&  SetScene (const RTSceneID &scene)
+		{
+			ASSERT( scene );
+			rtScene = scene.Get();
+			return *this;
+		}
+		
+		UpdateRayTracingShaderTable&  SetBuffer (const BufferID &buffer, BytesU offset = 0_b)
+		{
+			ASSERT( buffer );
+			dstBuffer	= buffer.Get();
+			dstOffset	= offset;
+			return *this;
+		}
+
+		UpdateRayTracingShaderTable&  SetRayGenShader (const RTShaderGroupID &group)
+		{
+			ASSERT( group.IsDefined() );
+			rayGenShader = RayGenShaderGroup{ group };
+			return *this;
+		}
+
+		UpdateRayTracingShaderTable&  AddMissShader (const RTShaderGroupID &group)
+		{
+			ASSERT( group.IsDefined() );
+			missShaders.push_back(MissShaderGroup{ group });
+			return *this;
+		}
+
+		UpdateRayTracingShaderTable&  AddHitShader (const GeometryID &geom, const RTShaderGroupID &group, uint instance = 0)
+		{
+			ASSERT( geom.IsDefined() );
+			ASSERT( group.IsDefined() );
+			hitShaders.push_back(HitShaderGroup{ group, geom, instance });
+			return *this;
+		}
 	};
 
 
@@ -888,27 +1130,209 @@ namespace FG
 	//
 	struct TraceRays final : _fg_hidden_::BaseTask<TraceRays>
 	{
+	// types
+		using PushConstants_t	= _fg_hidden_::PushConstants_t;
+		using ShaderTable		= UpdateRayTracingShaderTable::ShaderTable;
+
+
 	// variables
 		RawRTPipelineID			pipeline;
 		PipelineResourceSet		resources;
 		uint3					groupCount;
+		PushConstants_t			pushConstants;
+		ShaderTable				shaderTable;
 
 
 	// methods
 		TraceRays () :
 			BaseTask<TraceRays>{ "TraceRays", HtmlColor::Lime } {}
+		
+		TraceRays&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
+		TraceRays&  SetPipeline (const RTPipelineID &ppln)							{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
+		
+		TraceRays&  SetGroupCount (const uint3 &value)								{ groupCount = value;  return *this; }
+		TraceRays&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
+
+		TraceRays&  SetShaderTable (const ShaderTable &value)
+		{
+			ASSERT( value.buffer );
+			ASSERT( value.rayMissStride > 0 and value.rayHitStride > 0 );
+			shaderTable = value;
+			return *this;
+		}
+
+		template <typename ValueType>
+		TraceRays&  AddPushConstant (const PushConstantID &id, const ValueType &value)
+		{
+			return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> );
+		}
+
+		TraceRays&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
+		{
+			ASSERT( id.IsDefined() );
+			pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
+			MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
+			return *this;
+		}
 	};
+//-----------------------------------------------------------------------------
 
-
-
-	//
-	// Synchronization Point
-	//
-	struct TaskGroupSync final : _fg_hidden_::BaseTask<TaskGroupSync>
+	
+	
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetVertexBuffer (const BufferID &id, BytesU offset)
 	{
-		TaskGroupSync () :
-			BaseTask<TaskGroupSync>{ "TaskGroupSync", HtmlColor::Teal } {}
-	};
+		ASSERT( vertexData.empty() );
+		vertexBuffer	= id.Get();
+		vertexOffset	= offset;
+		return *this;
+	}
+	
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetVertexData (ArrayView<uint8_t> data)
+	{
+		ASSERT( not vertexBuffer );
+		vertexData	= data;
+		return *this;
+	}
+	
+	template <typename VertexT>
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetVertices (ArrayView<VertexT> vertices)
+	{
+		ASSERT( vertices.size() );
+		vertexBuffer	= Default;
+		vertexData		= ArrayView<uint8_t>{ Cast<uint8_t>(vertices.data()), vertices.size() * sizeof(VertexT) };
+		vertexCount		= uint(vertices.size());
+		vertexFormat	= VertexDesc<VertexT>::attrib;
+		vertexStride	= Bytes<uint>::SizeOf<VertexT>();
+		return *this;
+	}
+
+	template <typename T, typename Idx>
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetVertices (Idx count, BytesU stride)
+	{
+		STATIC_ASSERT( IsInteger<Idx> );
+		vertexCount		= uint(count);
+		vertexStride	= Bytes<uint>{ uint(stride) };
+		vertexFormat	= VertexDesc<T>::attrib;
+		return *this;
+	}
+	
+	template <typename Idx>
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetVertices (Idx count, EVertexType format, BytesU stride)
+	{
+		STATIC_ASSERT( IsInteger<Idx> );
+		vertexCount		= uint(count);
+		vertexStride	= Bytes<uint>{ uint(stride) };
+		vertexFormat	= format;
+		return *this;
+	}
+
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetIndexBuffer (const BufferID &id, BytesU offset)
+	{
+		ASSERT( indexData.empty() );
+		indexBuffer	= id.Get();
+		indexOffset	= offset;
+		return *this;
+	}
+	
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetIndexData (ArrayView<uint8_t> data)
+	{
+		ASSERT( not indexBuffer );
+		indexData	= data;
+		return *this;
+	}
+
+	template <typename Idx>
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetIndices (Idx count, EIndex type)
+	{
+		STATIC_ASSERT( IsInteger<Idx> );
+		indexCount	= uint(count);
+		indexType	= type;
+		return *this;
+	}
+	
+	template <typename IndexT>
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetIndices (ArrayView<IndexT> indices)
+	{
+		ASSERT( indices.size() );
+		indexBuffer	= Default;
+		indexData	= ArrayView<uint8_t>{ Cast<uint8_t>(indices.data()), indices.size() * sizeof(IndexT) };
+		indexCount	= uint(indices.size());
+		indexType	= (IsSameTypes<IndexT, uint32_t> ? EIndex::UInt : (IsSameTypes<IndexT, uint16_t> ? EIndex::UShort : EIndex::Unknown));
+		return *this;
+	}
+
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetTransform (const BufferID &id, BytesU offset)
+	{
+		ASSERT( not transformData.has_value() );
+		transformBuffer	= id.Get();
+		transformOffset	= offset;
+		return *this;
+	}
+
+	inline BuildRayTracingGeometry::Triangles&
+		BuildRayTracingGeometry::Triangles::SetTransform (const Matrix3x4 &mat)
+	{
+		ASSERT( not transformBuffer );
+		transformData	= mat;
+		return *this;
+	}
+//-----------------------------------------------------------------------------
+
+	
+	inline BuildRayTracingGeometry::AABB&
+		BuildRayTracingGeometry::AABB::SetBuffer (const BufferID &id, BytesU offset)
+	{
+		ASSERT( aabbData.empty() );
+		aabbBuffer	= id.Get();
+		aabbOffset	= offset;
+		return *this;
+	}
+	
+	inline BuildRayTracingGeometry::AABB&
+		BuildRayTracingGeometry::AABB::SetData (ArrayView<uint8_t> data)
+	{
+		ASSERT( not aabbBuffer );
+		aabbData	= data;
+		return *this;
+	}
+
+	template <typename Idx>
+	inline BuildRayTracingGeometry::AABB&
+		BuildRayTracingGeometry::AABB::SetCount (Idx count, BytesU stride)
+	{
+		STATIC_ASSERT( IsInteger<Idx> );
+		aabbCount	= uint(count);
+		aabbStride	= Bytes<uint>{ uint(stride) };
+		return *this;
+	}
+//-----------------------------------------------------------------------------
+	
+
+	inline BuildRayTracingScene::Instance&
+		BuildRayTracingScene::Instance::SetGeometry (const RTGeometryID &id)
+	{
+		geometryId = id.Get();
+		return *this;
+	}
+
+	inline BuildRayTracingScene::Instance&
+		BuildRayTracingScene::Instance::SetInstance (const Matrix4x3 &mat, uint id)
+	{
+		this->transform	 = mat;
+		this->instanceID = id;
+		return *this;
+	}
+//-----------------------------------------------------------------------------
 
 
 }	// FG

@@ -17,10 +17,7 @@ namespace FG
 		return	lhs.textureType		== rhs.textureType	and
 				lhs.state			== rhs.state;
 	}
-//-----------------------------------------------------------------------------
 
-
-	
 /*
 =================================================
 	SamplerEquals
@@ -30,10 +27,7 @@ namespace FG
 	{
 		return true;
 	}
-//-----------------------------------------------------------------------------
-	
 
-	
 /*
 =================================================
 	SubpassInputEquals
@@ -45,9 +39,6 @@ namespace FG
 				lhs.isMultisample		== rhs.isMultisample		and
 				lhs.state				== rhs.state;
 	}
-//-----------------------------------------------------------------------------
-
-
 	
 /*
 =================================================
@@ -60,9 +51,6 @@ namespace FG
 				lhs.format		== rhs.format		and
 				lhs.state		== rhs.state;
 	}
-//-----------------------------------------------------------------------------
-
-
 	
 /*
 =================================================
@@ -75,9 +63,6 @@ namespace FG
 				lhs.dynamicOffsetIndex	== rhs.dynamicOffsetIndex	and
 				lhs.state				== rhs.state;
 	}
-//-----------------------------------------------------------------------------
-
-	
 	
 /*
 =================================================
@@ -90,6 +75,16 @@ namespace FG
 				lhs.arrayStride			== rhs.arrayStride			and
 				lhs.dynamicOffsetIndex	== rhs.dynamicOffsetIndex	and
 				lhs.state				== rhs.state;
+	}
+	
+/*
+=================================================
+	RayTracingSceneEquals
+=================================================
+*/
+	ND_ inline bool RayTracingSceneEquals (const PipelineDescription::RayTracingScene &lhs, const PipelineDescription::RayTracingScene &rhs) noexcept
+	{
+		return	lhs.state	== rhs.state;
 	}
 //-----------------------------------------------------------------------------
 	
@@ -158,8 +153,16 @@ namespace FG
 					result = StorageBufferEquals( lhs, *rhs );
 				}
 			},
+				
+			[&rhsUniform, &result] (const PipelineDescription::RayTracingScene &lhs)
+			{
+				if ( auto* rhs = std::get_if<PipelineDescription::RayTracingScene>( &rhsUniform.data ) )
+				{
+					result = RayTracingSceneEquals( lhs, *rhs );
+				}
+			},
 
-			[] (const auto &) { ASSERT(false); }
+			[] (const std::monostate &) { ASSERT(false); }
 		);
 
 		return result;
@@ -192,35 +195,17 @@ namespace FG
 
 		_uniforms = uniforms;
 
-		// initialize pool size
-		_poolSize.resize( VK_DESCRIPTOR_TYPE_RANGE_SIZE );
-
-		for (size_t i = 0; i < _poolSize.size(); ++i)
-		{
-			_poolSize[i].type = VkDescriptorType(i);
-			_poolSize[i].descriptorCount = 0;
-		}
-
 		// bind uniforms
 		binding.clear();
 		binding.reserve( _uniforms->size() );
 
 		for (auto& un : *_uniforms)
 		{
+			ASSERT( un.first.IsDefined() );
+
 			_hash << HashOf( un.first );
 
 			_AddUniform( un.second, INOUT binding );
-		}
-
-		// remove empty pool sizes
-		for (size_t i = 0; i < _poolSize.size(); ++i)
-		{
-			if ( _poolSize[i].descriptorCount == 0 )
-			{
-				std::swap( _poolSize[i], _poolSize.back() );
-				_poolSize.pop_back();
-				--i;
-			}
 		}
 	}
 	
@@ -269,6 +254,8 @@ namespace FG
 */
 	void VDescriptorSetLayout::_AddUniform (const PipelineDescription::Uniform &un, INOUT DescriptorBinding_t &binding)
 	{
+		ASSERT( un.index.VKBinding() != ~0u );
+
 		Visit( un.data,
 			[&] (const PipelineDescription::Texture &tex) {
 				_AddTexture( tex, un.index.VKBinding(), un.stageFlags, INOUT binding );
@@ -288,10 +275,32 @@ namespace FG
 			[&] (const PipelineDescription::StorageBuffer &sb) {
 				_AddStorageBuffer( sb, un.index.VKBinding(), un.stageFlags, INOUT binding );
 			},
-			[] (const auto &) {
+			[&] (const PipelineDescription::RayTracingScene &rts) {
+				_AddRayTracingScene( rts, un.index.VKBinding(), un.stageFlags, INOUT binding );
+			},
+			[] (const std::monostate &) {
 				ASSERT(false);
 			}
 		);
+	}
+	
+/*
+=================================================
+	_IncDescriptorCount
+=================================================
+*/
+	void VDescriptorSetLayout::_IncDescriptorCount (VkDescriptorType type)
+	{
+		for (auto& size : _poolSize)
+		{
+			if ( size.type == type )
+			{
+				++size.descriptorCount;
+				return;
+			}
+		}
+
+		_poolSize.emplace_back( type, 1u );
 	}
 
 /*
@@ -317,7 +326,7 @@ namespace FG
 		bind.descriptorCount	= 1;
 
 		_maxIndex = Max( _maxIndex, bind.binding );
-		_poolSize[ bind.descriptorType ].descriptorCount++;
+		_IncDescriptorCount( bind.descriptorType );
 
 		binding.push_back( std::move(bind) );
 	}
@@ -344,7 +353,7 @@ namespace FG
 		bind.descriptorCount	= 1;
 		
 		_maxIndex = Max( _maxIndex, bind.binding );
-		_poolSize[ bind.descriptorType ].descriptorCount++;
+		_IncDescriptorCount( bind.descriptorType );
 
 		binding.push_back( std::move(bind) );
 	}
@@ -369,7 +378,7 @@ namespace FG
 		bind.descriptorCount	= 1;
 		
 		_maxIndex = Max( _maxIndex, bind.binding );
-		_poolSize[ bind.descriptorType ].descriptorCount++;
+		_IncDescriptorCount( bind.descriptorType );
 
 		binding.push_back( std::move(bind) );
 	}
@@ -397,7 +406,7 @@ namespace FG
 		bind.descriptorCount	= 1;
 		
 		_maxIndex = Max( _maxIndex, bind.binding );
-		_poolSize[ bind.descriptorType ].descriptorCount++;
+		_IncDescriptorCount( bind.descriptorType );
 
 		binding.push_back( std::move(bind) );
 	}
@@ -418,13 +427,14 @@ namespace FG
 
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
-		bind.descriptorType		= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bind.descriptorType		= (ub.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ?
+									VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
 		bind.stageFlags			= VEnumCast( stageFlags );
 		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
 		
 		_maxIndex = Max( _maxIndex, bind.binding );
-		_poolSize[ bind.descriptorType ].descriptorCount++;
+		_IncDescriptorCount( bind.descriptorType );
 
 		binding.push_back( std::move(bind) );
 	}
@@ -446,13 +456,38 @@ namespace FG
 		
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
-		bind.descriptorType		= VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		bind.descriptorType		= (sb.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ?
+									VK_DESCRIPTOR_TYPE_STORAGE_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
 		bind.stageFlags			= VEnumCast( stageFlags );
 		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
 		
 		_maxIndex = Max( _maxIndex, bind.binding );
-		_poolSize[ bind.descriptorType ].descriptorCount++;
+		_IncDescriptorCount( bind.descriptorType );
+
+		binding.push_back( std::move(bind) );
+	}
+	
+/*
+=================================================
+	_AddRayTracingScene
+=================================================
+*/
+	void VDescriptorSetLayout::_AddRayTracingScene (const PipelineDescription::RayTracingScene &rts, uint bindingIndex,
+													EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
+	{
+		// calculate hash
+		_hash << HashOf( rts.state );
+
+		// add binding
+		VkDescriptorSetLayoutBinding	bind = {};
+		bind.descriptorType		= VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+		bind.stageFlags			= VEnumCast( stageFlags );
+		bind.binding			= bindingIndex;
+		bind.descriptorCount	= 1;
+
+		_maxIndex = Max( _maxIndex, bind.binding );
+		_IncDescriptorCount( bind.descriptorType );
 
 		binding.push_back( std::move(bind) );
 	}

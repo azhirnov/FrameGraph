@@ -133,6 +133,48 @@ namespace {
 	
 /*
 =================================================
+	AddRayTracingBarrier
+=================================================
+*/
+	void VFrameGraphDebugger::AddRayTracingBarrier (const VRayTracingGeometry*	rtGeometry,
+													ExeOrderIndex				srcIndex,
+													ExeOrderIndex				dstIndex,
+													VkPipelineStageFlags		srcStageMask,
+													VkPipelineStageFlags		dstStageMask,
+													VkDependencyFlags			dependencyFlags,
+													const VkMemoryBarrier		&barrier)
+	{
+		if ( not EnumEq( _flags, ECompilationDebugFlags::LogBarriers ) )
+			return;
+
+		auto&	barriers = _rtGeometries.insert({ rtGeometry, {} }).first->second.barriers;
+
+		barriers.push_back({ srcIndex, dstIndex, srcStageMask, dstStageMask, dependencyFlags, barrier });
+	}
+		
+/*
+=================================================
+	AddRayTracingBarrier
+=================================================
+*/
+	void VFrameGraphDebugger::AddRayTracingBarrier (const VRayTracingScene*		rtScene,
+													ExeOrderIndex				srcIndex,
+													ExeOrderIndex				dstIndex,
+													VkPipelineStageFlags		srcStageMask,
+													VkPipelineStageFlags		dstStageMask,
+													VkDependencyFlags			dependencyFlags,
+													const VkMemoryBarrier		&barrier)
+	{
+		if ( not EnumEq( _flags, ECompilationDebugFlags::LogBarriers ) )
+			return;
+
+		auto&	barriers = _rtScenes.insert({ rtScene, {} }).first->second.barriers;
+
+		barriers.push_back({ srcIndex, dstIndex, srcStageMask, dstStageMask, dependencyFlags, barrier });
+	}
+
+/*
+=================================================
 	AddBufferUsage
 =================================================
 */
@@ -173,6 +215,50 @@ namespace {
 		}
 		
 		_tasks[idx].resources.push_back(ImageUsage_t{ image, state });
+	}
+	
+/*
+=================================================
+	AddRTGeometryUsage
+=================================================
+*/
+	void VFrameGraphDebugger::AddRTGeometryUsage (const VRayTracingGeometry *geometry, const VLocalRTGeometry::GeometryState &state)
+	{
+		if ( not EnumEq( _flags, ECompilationDebugFlags::LogResourceUsage ) )
+			return;
+
+		ASSERT( geometry and state.task );
+		const size_t	idx = size_t(state.task->ExecutionOrder());
+		
+		if ( idx >= _tasks.size() or _tasks[idx].task == null )
+		{
+			ASSERT( !"task doesn't exists!" );
+			return;
+		}
+		
+		_tasks[idx].resources.push_back(RTGeometryUsage_t{ geometry, state });
+	}
+	
+/*
+=================================================
+	AddRTSceneUsage
+=================================================
+*/
+	void VFrameGraphDebugger::AddRTSceneUsage (const VRayTracingScene *scene, const VLocalRTScene::SceneState &state)
+	{
+		if ( not EnumEq( _flags, ECompilationDebugFlags::LogResourceUsage ) )
+			return;
+
+		ASSERT( scene and state.task );
+		const size_t	idx = size_t(state.task->ExecutionOrder());
+		
+		if ( idx >= _tasks.size() or _tasks[idx].task == null )
+		{
+			ASSERT( !"task doesn't exists!" );
+			return;
+		}
+		
+		_tasks[idx].resources.push_back(RTSceneUsage_t{ scene, state });
 	}
 
 /*
@@ -421,7 +507,7 @@ namespace {
 
 			_DumpResourceUsage( info.resources, INOUT str );
 
-			_DumpTaskData( info.task, INOUT str );
+			//_DumpTaskData( info.task, INOUT str );
 			
 			str << indent << "}\n";
 		}
@@ -803,6 +889,42 @@ namespace {
 	
 /*
 =================================================
+	_BuildRayTracingGeometryTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_BuildRayTracingGeometryTaskToString (Ptr<const VFgTask<BuildRayTracingGeometry>>, INOUT String &) const
+	{
+	}
+	
+/*
+=================================================
+	_BuildRayTracingSceneTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_BuildRayTracingSceneTaskToString (Ptr<const VFgTask<BuildRayTracingScene>>, INOUT String &) const
+	{
+	}
+	
+/*
+=================================================
+	_UpdateRayTracingShaderTableTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_UpdateRayTracingShaderTableTaskToString (Ptr<const VFgTask<UpdateRayTracingShaderTable>>, INOUT String &) const
+	{
+	}
+	
+/*
+=================================================
+	_TraceRaysTaskToString
+=================================================
+*/
+	void VFrameGraphDebugger::_TraceRaysTaskToString (Ptr<const VFgTask<TraceRays>>, INOUT String &) const
+	{
+	}
+
+/*
+=================================================
 	_DumpTaskData
 =================================================
 */
@@ -852,7 +974,19 @@ namespace {
 		
 		if ( auto task = DynCast< VFgTask<PresentVR> >(taskPtr) )
 			return _PresentVRTaskToString( task, INOUT str );
-		
+
+		if ( auto task = DynCast< VFgTask<BuildRayTracingGeometry> >(taskPtr) )
+			return _BuildRayTracingGeometryTaskToString( task, INOUT str );
+
+		if ( auto task = DynCast< VFgTask<BuildRayTracingScene> >(taskPtr) )
+			return _BuildRayTracingSceneTaskToString( task, INOUT str );
+
+		if ( auto task = DynCast< VFgTask<UpdateRayTracingShaderTable> >(taskPtr) )
+			return _UpdateRayTracingShaderTableTaskToString( task, INOUT str );
+
+		if ( auto task = DynCast< VFgTask<TraceRays> >(taskPtr) )
+			return _TraceRaysTaskToString( task, INOUT str );
+
 		ASSERT(false);
 		// TODO
 	}

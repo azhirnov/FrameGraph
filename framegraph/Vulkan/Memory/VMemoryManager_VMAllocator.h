@@ -68,7 +68,7 @@ namespace FG
 		bool AllocForImage (VkImage image, const MemoryDesc &mem, OUT Storage_t &data) override;
 		bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &mem, OUT Storage_t &data) override;
 		bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) override;
-		bool AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
+		bool AllocateForScratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
 									   VkBuffer buf, const MemoryDesc &desc, OUT Storage_t &data) override;
 
 		bool Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t) override;
@@ -231,10 +231,10 @@ namespace FG
 	
 /*
 =================================================
-	AllocateForStratchBuffer
+	AllocateForScratchBuffer
 =================================================
 */
-	bool VMemoryManager::VulkanMemoryAllocator::AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
+	bool VMemoryManager::VulkanMemoryAllocator::AllocateForScratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
 																		  VkBuffer buf, const MemoryDesc &desc, OUT Storage_t &data)
 	{
 		return false;

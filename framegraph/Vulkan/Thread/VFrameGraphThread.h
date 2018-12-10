@@ -88,7 +88,6 @@ namespace FG
 		CommandBatchID				_cmdBatchId;
 		uint						_indexInBatch		= ~0u;
 
-		WeakPtr<VFrameGraphThread>	_relativeThread;
 		const DebugName_t			_debugName;
 
 		VFrameGraph &						_instance;
@@ -104,7 +103,7 @@ namespace FG
 
 	// methods
 	public:
-		VFrameGraphThread (VFrameGraph &, EThreadUsage, const FGThreadPtr &, StringView);
+		VFrameGraphThread (VFrameGraph &, EThreadUsage, StringView);
 		~VFrameGraphThread () override;
 			
 		// resource manager
@@ -120,15 +119,16 @@ namespace FG
 		bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const override;
 		RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
-		void			DestroyResource (INOUT GPipelineID &id) override;
-		void			DestroyResource (INOUT CPipelineID &id) override;
-		void			DestroyResource (INOUT MPipelineID &id) override;
-		void			DestroyResource (INOUT RTPipelineID &id) override;
-		void			DestroyResource (INOUT ImageID &id) override;
-		void			DestroyResource (INOUT BufferID &id) override;
-		void			DestroyResource (INOUT SamplerID &id) override;
-		void			DestroyResource (INOUT RTGeometryID &id) override;
-		void			DestroyResource (INOUT RTSceneID &id) override;
+
+		void			ReleaseResource (INOUT GPipelineID &id) override;
+		void			ReleaseResource (INOUT CPipelineID &id) override;
+		void			ReleaseResource (INOUT MPipelineID &id) override;
+		void			ReleaseResource (INOUT RTPipelineID &id) override;
+		void			ReleaseResource (INOUT ImageID &id) override;
+		void			ReleaseResource (INOUT BufferID &id) override;
+		void			ReleaseResource (INOUT SamplerID &id) override;
+		void			ReleaseResource (INOUT RTGeometryID &id) override;
+		void			ReleaseResource (INOUT RTSceneID &id) override;
 
 		BufferDesc const&	GetDescription (const BufferID &id) const override;
 		ImageDesc  const&	GetDescription (const ImageID &id) const override;
@@ -143,7 +143,7 @@ namespace FG
 		bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const override;
 
 		// initialization
-		bool		Initialize (const SwapchainCreateInfo *swapchainCI) override;
+		bool		Initialize (const SwapchainCreateInfo *swapchainCI, ArrayView<FGThreadPtr> relativeThreads, ArrayView<FGThreadPtr> parallelThreads) override;
 		void		Deinitialize () override;
 		void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
 		bool		RecreateSwapchain (const SwapchainCreateInfo &) override;
@@ -182,7 +182,10 @@ namespace FG
 		Task		AddTask (const ReadImage &) override;
 		Task		AddTask (const FG::Present &) override;
 		//Task		AddTask (const PresentVR &) override;
-		//Task		AddTask (const TaskGroupSync &) override;
+		Task		AddTask (const UpdateRayTracingShaderTable &) override;
+		Task		AddTask (const BuildRayTracingGeometry &) override;
+		Task		AddTask (const BuildRayTracingScene &) override;
+		Task		AddTask (const TraceRays &) override;
 
 		// draw tasks
 		LogicalPassID  CreateRenderPass (const RenderPassDesc &desc) override;
@@ -215,6 +218,7 @@ namespace FG
 		ND_ VPipelineCache *				GetPipelineCache ()					{ SCOPELOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
 		ND_ VFrameGraphDebugger *			GetDebugger ()						{ SCOPELOCK( _rcCheck );  return _debugger.get(); }
 		ND_ VSwapchain *					GetSwapchain ()						{ SCOPELOCK( _rcCheck );  return _swapchain.get(); }	// temp
+		ND_ VStagingBufferManager *			GetStagingBufferManager ()			{ SCOPELOCK( _rcCheck );  return _stagingMngr.get(); }
 
 
 	private:
@@ -225,7 +229,11 @@ namespace FG
 		bool _GetDescriptorSet (const PplnID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const;
 
 		template <typename ID>
-		void _DestroyResource (INOUT ID &id);
+		void _ReleaseResource (INOUT ID &id);
+
+		template <typename T>
+		bool _AllocStorage (size_t count, OUT const VLocalBuffer* &buf, OUT VkDeviceSize &offset, OUT T* &ptr);
+		bool _StoreData (const void *dataPtr, BytesU dataSize, OUT const VLocalBuffer* &buf, OUT VkDeviceSize &offset);
 
 		ND_ EState	_GetState () const				{ return _state.load( memory_order_acquire ); }
 			void	_SetState (EState newState);
@@ -239,8 +247,8 @@ namespace FG
 		ND_ PerQueue *			_GetQueue (EThreadUsage usage);
 		ND_ VDeviceQueueInfoPtr	_GetAnyGraphicsQueue () const;
 
-		bool _SetupQueues ();
-		bool _AddGpuQueue (EThreadUsage usage);
+		bool _SetupQueues (const SharedPtr<VFrameGraphThread> &);
+		bool _AddGpuQueue (EThreadUsage usage, const SharedPtr<VFrameGraphThread> &);
 		bool _AddGraphicsQueue ();
 		bool _AddGraphicsAndPresentQueue ();
 		bool _AddTransferQueue ();

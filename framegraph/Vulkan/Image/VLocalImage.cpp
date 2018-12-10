@@ -303,15 +303,15 @@ namespace FG
 */
 	void VLocalImage::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		SCOPELOCK( _rcCheck );
+		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
 		// add full range barrier
 		{
 			ImageAccess		pending;
 			pending.isReadable	= true;
 			pending.isWritable	= false;
-			pending.stages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			pending.stages		= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			pending.access		= 0;
 			pending.layout		= _finalLayout;
 			pending.index		= index;

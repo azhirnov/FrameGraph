@@ -1,6 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VResourceManager.h"
+#include "VResourceManagerThread.h"
 #include "VDevice.h"
 
 namespace FG
@@ -41,6 +42,8 @@ namespace FG
 		{
 			frame.readyToDelete.reserve( 256 );
 		}
+
+		_startTime = TimePoint_t::clock::now();
 		return true;
 	}
 	
@@ -71,9 +74,12 @@ namespace FG
 */
 	void VResourceManager::OnBeginFrame (uint frameId)
 	{
-		_frameId = frameId;
+		_frameId	= frameId;
+		_currTime	= uint(std::chrono::duration_cast< std::chrono::seconds >( TimePoint_t::clock::now() - _startTime ).count());
 
 		_DeleteResources( INOUT _perFrame[_frameId].readyToDelete );
+
+		_CreateValidationTasks();
 	}
 	
 /*
@@ -84,6 +90,7 @@ namespace FG
 	void VResourceManager::OnEndFrame ()
 	{
 		_UnassignResourceIDs();
+		_DestroyValidationTasks();
 	}
 	
 /*
@@ -226,10 +233,270 @@ namespace FG
 				
 			if ( data.IsCreated() )
 			{
-				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 				res.RemoveFromCache( id );
+				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 				res.Unassign( id );
 			}
+		}
+	}
+	
+/*
+=================================================
+	_AddValidationTasks
+=================================================
+*/
+	template <typename T, size_t ChunkSize, size_t MaxChunks>
+	inline bool  VResourceManager::_AddValidationTasks (const CachedPoolTmpl<T, ChunkSize, MaxChunks> &cache, INOUT PoolRanges &ranges,
+														void (VResourceManager::*fn) (VResourceManagerThread &, Index_t, Index_t) const)
+	{
+		constexpr uint		MaxBits	= sizeof(ranges.bits) * 8;
+		constexpr Index_t	Step	= (MaxChunks * ChunkSize) / MaxBits;
+		const auto			bits	= ranges.bits.load( memory_order_relaxed );
+
+		STATIC_ASSERT( (MaxChunks * ChunkSize) % MaxBits == 0 );
+
+
+		for (uint i = 0; i < MaxBits; ++i)
+		{
+			if ( _validationTasks.size() == _validationTasks.capacity() )
+				return false;	// array is full
+
+			if ( i*Step >= cache.size() )
+			{
+				const uint64_t	mask = (1ull << i)-1;
+				return (bits & mask) == mask;
+			}
+
+			if ( bits & (1ull << i) )
+				continue;
+
+			_validationTasks.emplace_back(	[this, i, Step, fn, &ranges] (VResourceManagerThread &rm)
+											{
+												(this->*fn)( rm, i*Step, i*Step + Step );
+												ranges.bits.fetch_or( 1ull << i, memory_order_relaxed );
+											});
+		}
+		return false;
+	}
+
+/*
+=================================================
+	_CreateValidationTasks
+=================================================
+*/
+	void  VResourceManager::_CreateValidationTasks ()
+	{
+		for (ECachedResource pos = _currentValidationPos; pos < ECachedResource::End;)
+		{
+			if ( _validationTasks.size() == _validationTasks.capacity() )
+				return;	// array is full
+
+			auto&	range		= _validationRanges[ uint(pos) ];
+			bool	is_complete	= false;
+
+			ENABLE_ENUM_CHECKS();
+			switch ( pos )
+			{
+				//case ECachedResource::Sampler :
+				//	is_complete = _AddValidationTasks( _samplerCache, INOUT range, &VResourceManager::_ValidateSamplers );
+				//	break;
+
+				//case ECachedResource::PipelineLayout :
+				//	is_complete = _AddValidationTasks( _pplnLayoutCache, INOUT range, &VResourceManager::_ValidatePipelineLayouts );
+				//	break;
+
+				//case ECachedResource::DescriptorSetLayout :
+				//	is_complete = _AddValidationTasks( _dsLayoutCache, INOUT range, &VResourceManager::_ValidateDescriptorSetLayouts );
+				//	break;
+
+				//case ECachedResource::RenderPass :
+				//	is_complete = _AddValidationTasks( _renderPassCache, INOUT range, &VResourceManager::_ValidateRenderPasses );
+				//	break;
+
+				case ECachedResource::Framebuffer :
+					is_complete = _AddValidationTasks( _framebufferCache, INOUT range, &VResourceManager::_ValidateFramebuffers );
+					break;
+
+				case ECachedResource::PipelineResources :
+					is_complete = _AddValidationTasks( _pplnResourcesCache, INOUT range, &VResourceManager::_ValidatePipelineResources );
+					break;
+
+				case ECachedResource::End :
+					break;
+			}
+			DISABLE_ENUM_CHECKS();
+
+			pos = ECachedResource(uint(pos) + 1);
+
+			if ( is_complete )
+			{
+				range.bits.store( 0, memory_order_relaxed );
+				_currentValidationPos = (pos == ECachedResource::End ? ECachedResource::Begin : pos);
+			}
+		}
+	}
+	
+/*
+=================================================
+	_DestroyValidationTasks
+=================================================
+*/
+	void  VResourceManager::_DestroyValidationTasks ()
+	{
+		_validationTasks.clear();
+		_validationTaskPos.store( 0, memory_order_release );
+	}
+	
+/*
+=================================================
+	_ProcessValidationTask
+=================================================
+*/
+	bool  VResourceManager::_ProcessValidationTask (VResourceManagerThread &resMngr)
+	{
+		if ( _validationTasks.empty() )
+			return false;
+
+		uint	expected = 0;
+
+		while ( not _validationTaskPos.compare_exchange_weak( INOUT expected, expected+1, memory_order_release, memory_order_relaxed ))
+		{
+			if ( expected >= _validationTasks.size() )
+				return false;
+		}
+
+		_validationTasks[expected].task( resMngr );
+		return true;
+	}
+
+/*
+=================================================
+	_ValidateSamplers
+----
+	find unused samplers
+=================================================
+*/
+	void  VResourceManager::_ValidateSamplers (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
+	{
+		for (Index_t i = first; i < last; ++i)
+		{
+			auto&	samp = _samplerCache[i];
+			
+			if ( not samp.IsCreated() )
+				continue;
+			
+			const bool	is_deprecated	= samp.GetRefCount() <= 1 and (_currTime - samp.GetLastUsage() > _maxTimeDelta);
+
+			if ( is_deprecated )
+				resMngr.ReleaseResource( RawSamplerID{ i, samp.GetInstanceID() }, true );
+		}
+	}
+	
+/*
+=================================================
+	_ValidatePipelineLayouts
+=================================================
+*/
+	void  VResourceManager::_ValidatePipelineLayouts (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
+	{
+		for (Index_t i = first; i < last; ++i)
+		{
+			auto&	layout = _pplnLayoutCache[i];
+			
+			if ( not layout.IsCreated() )
+				continue;
+			
+			const bool	is_deprecated	= layout.GetRefCount() <= 1 and (_currTime - layout.GetLastUsage() > _maxTimeDelta);
+			const bool	is_invalid		= not layout.Data().IsAllResourcesAlive( resMngr );
+
+			if ( is_deprecated or is_invalid )
+				resMngr.ReleaseResource( RawPipelineLayoutID{ i, layout.GetInstanceID() }, true );
+		}
+	}
+	
+/*
+=================================================
+	_ValidateDescriptorSetLayouts
+=================================================
+*/
+	void  VResourceManager::_ValidateDescriptorSetLayouts (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
+	{
+		for (Index_t i = first; i < last; ++i)
+		{
+			auto&	layout = _dsLayoutCache[i];
+			
+			if ( not layout.IsCreated() )
+				continue;
+			
+			const bool	is_deprecated	= layout.GetRefCount() <= 1 and (_currTime - layout.GetLastUsage() > _maxTimeDelta);
+
+			if ( is_deprecated )
+				resMngr.ReleaseResource( RawDescriptorSetLayoutID{ i, layout.GetInstanceID() }, true );
+		}
+	}
+	
+/*
+=================================================
+	_ValidateRenderPasses
+=================================================
+*/
+	void  VResourceManager::_ValidateRenderPasses (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
+	{
+		for (Index_t i = first; i < last; ++i)
+		{
+			auto&	rp = _renderPassCache[i];
+			
+			if ( not rp.IsCreated() )
+				continue;
+			
+			const bool	is_deprecated	= rp.GetRefCount() <= 1 and (_currTime - rp.GetLastUsage() > _maxTimeDelta);
+
+			if ( is_deprecated )
+				resMngr.ReleaseResource( RawRenderPassID{ i, rp.GetInstanceID() }, true );
+		}
+	}
+	
+/*
+=================================================
+	_ValidateFramebuffers
+=================================================
+*/
+	void  VResourceManager::_ValidateFramebuffers (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
+	{
+		for (Index_t i = first; i < last; ++i)
+		{
+			auto&	fb = _framebufferCache[i];
+			
+			if ( not fb.IsCreated() )
+				continue;
+
+			const bool	is_deprecated	= fb.GetRefCount() <= 1 and (_currTime - fb.GetLastUsage() > _maxTimeDelta);
+			const bool	is_invalid		= not fb.Data().IsAllResourcesAlive( resMngr );
+
+			if ( is_deprecated or is_invalid )
+				resMngr.ReleaseResource( RawFramebufferID{ i, fb.GetInstanceID() }, true );
+		}
+	}
+	
+/*
+=================================================
+	_ValidatePipelineResources
+=================================================
+*/
+	void  VResourceManager::_ValidatePipelineResources (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
+	{
+		for (Index_t i = first; i < last; ++i)
+		{
+			auto&	res = _pplnResourcesCache[i];
+			
+			if ( not res.IsCreated() )
+				continue;
+
+			const bool	is_deprecated	= res.GetRefCount() <= 1 and (_currTime - res.GetLastUsage() > _maxTimeDelta);
+			const bool	is_invalid		= not res.Data().IsAllResourcesAlive( resMngr );
+
+			if ( is_deprecated or is_invalid )
+				resMngr.ReleaseResource( RawPipelineResourcesID{ i, res.GetInstanceID() }, true );
 		}
 	}
 

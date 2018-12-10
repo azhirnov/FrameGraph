@@ -52,7 +52,6 @@ namespace FG
 		using CPipelineInstanceMap_t	= Storage< PipelineInstanceCacheTempl< VComputePipeline > >;
 		using GPipelineInstanceMap_t	= Storage< PipelineInstanceCacheTempl< VGraphicsPipeline > >;
 		using MPipelineInstanceMap_t	= Storage< PipelineInstanceCacheTempl< VMeshPipeline > >;
-		using RTPipelineInstanceMap_t	= Storage< PipelineInstanceCacheTempl< VRayTracingPipeline > >;
 		
 		static constexpr uint	MaxStages = 8;
 		using DynamicStates_t			= FixedArray< VkDynamicState, 32 >;
@@ -80,7 +79,6 @@ namespace FG
 		GPipelineInstanceMap_t		_graphicsPipelines;
 		CPipelineInstanceMap_t		_computePipelines;
 		MPipelineInstanceMap_t		_meshPipelines;
-		RTPipelineInstanceMap_t		_rayTracingPipelines;
 
 		// temporary arrays
 		ShaderStages_t				_tempStages;			// TODO: use custom allocator?
@@ -126,13 +124,9 @@ namespace FG
 												const VLogicalRenderPass	&logicalRP,
 												const VBaseDrawMeshes		&drawTask);
 
-		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread	&resMngr,
-												const VComputePipeline	&ppln,
-												const Optional<uint3>	&localGroupSize,
-												VkPipelineCreateFlags	 pipelineFlags);
-
 		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread		&resMngr,
-												RawRTPipelineID				 ppln,
+												const VComputePipeline		&ppln,
+												const Optional<uint3>		&localGroupSize,
 												VkPipelineCreateFlags		 pipelineFlags);
 
 

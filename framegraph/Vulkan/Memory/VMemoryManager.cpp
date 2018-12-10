@@ -132,11 +132,11 @@ namespace FG
 	
 /*
 =================================================
-	AllocateForStratchBuffer
+	AllocateForScratchBuffer
 =================================================
 */
-	bool VMemoryManager::AllocateForStratchBuffer (VkAccelerationStructureNV accelStruct, VkAccelerationStructureMemoryRequirementsTypeNV reqType,
-												   VkBuffer stratchBuffer, const MemoryDesc &desc, OUT Storage_t &data)
+	bool VMemoryManager::AllocateForScratchBuffer (VkAccelerationStructureNV accelStruct, VkAccelerationStructureMemoryRequirementsTypeNV reqType,
+												   VkBuffer scratchBuffer, const MemoryDesc &desc, OUT Storage_t &data)
 	{
 		ASSERT( not _allocators.empty() );
 
@@ -146,7 +146,7 @@ namespace FG
 
 			if ( alloc->IsSupported( desc.type ) )
 			{
-				CHECK_ERR( alloc->AllocateForStratchBuffer( accelStruct, reqType, stratchBuffer, desc, OUT data ));
+				CHECK_ERR( alloc->AllocateForScratchBuffer( accelStruct, reqType, scratchBuffer, desc, OUT data ));
 				
 				*data.Cast<uint>() = uint(i);
 				return true;

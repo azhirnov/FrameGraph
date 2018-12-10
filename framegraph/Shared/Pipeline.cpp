@@ -62,7 +62,9 @@ namespace FG
 */
 	PipelineDescription::_TextureUniform::_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, EShaderStages stageFlags) :
 		id{id}, data{ EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags ), textureType }, index{index}, stageFlags{stageFlags}
-	{}
+	{
+		ASSERT( id.IsDefined() );
+	}
 	
 /*
 =================================================
@@ -71,7 +73,9 @@ namespace FG
 */
 	PipelineDescription::_SamplerUniform::_SamplerUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags) :
 		id{id}, data{}, index{index}, stageFlags{stageFlags}
-	{}
+	{
+		ASSERT( id.IsDefined() );
+	}
 	
 /*
 =================================================
@@ -81,7 +85,9 @@ namespace FG
 	PipelineDescription::_SubpassInputUniform::_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index, EShaderStages stageFlags) :
 		id{id}, data{ EResourceState::InputAttachment | EResourceState_FromShaders( stageFlags ), attachmentIndex, isMultisample },
 		index{index}, stageFlags{stageFlags}
-	{}
+	{
+		ASSERT( id.IsDefined() );
+	}
 	
 /*
 =================================================
@@ -91,7 +97,9 @@ namespace FG
 	PipelineDescription::_ImageUniform::_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags) :
 		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), imageType, format },
 		index{index}, stageFlags{stageFlags}
-	{}
+	{
+		ASSERT( id.IsDefined() );
+	}
 	
 /*
 =================================================
@@ -99,9 +107,13 @@ namespace FG
 =================================================
 */
 	PipelineDescription::_UBufferUniform::_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset) :
-		id{id}, data{ EResourceState::UniformRead | EResourceState_FromShaders( stageFlags ), allowDynamicOffset ? 0 : STATIC_OFFSET, size },
+		id{id},
+		data{ EResourceState::UniformRead | EResourceState_FromShaders( stageFlags ) | (allowDynamicOffset ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown),
+			  allowDynamicOffset ? 0 : STATIC_OFFSET, size },
 		index{index}, stageFlags{stageFlags}
-	{}
+	{
+		ASSERT( id.IsDefined() );
+	}
 	
 /*
 =================================================
@@ -110,9 +122,24 @@ namespace FG
 */
 	PipelineDescription::_StorageBufferUniform::_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access,
 																	   const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset) :
-		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), allowDynamicOffset ? 0 : STATIC_OFFSET, staticSize, arrayStride },
+		id{id},
+		data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ) | (allowDynamicOffset ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown),
+			  allowDynamicOffset ? 0 : STATIC_OFFSET, staticSize, arrayStride },
 		index{index}, stageFlags{stageFlags}
-	{}
+	{
+		ASSERT( id.IsDefined() );
+	}
+	
+/*
+=================================================
+	_RayTracingSceneUniform
+=================================================
+*/
+	PipelineDescription::_RayTracingSceneUniform::_RayTracingSceneUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags) :
+		id{id}, data{ EResourceState::_RayTracingShader | EResourceState::_Access_ShaderStorage }, index{index}, stageFlags{stageFlags}
+	{
+		ASSERT( id.IsDefined() );
+	}
 //-----------------------------------------------------------------------------
 
 
@@ -122,16 +149,19 @@ namespace FG
 	_AddDescriptorSet
 =================================================
 */
-	void PipelineDescription::_AddDescriptorSet (const DescriptorSetID						&id,
-												 uint										index,
-												 ArrayView< _TextureUniform >				textures,
-												 ArrayView< _SamplerUniform >				samplers,
-												 ArrayView< _SubpassInputUniform >			subpassInputs,
-												 ArrayView< _ImageUniform >					images,
-												 ArrayView< _UBufferUniform >				uniformBuffers,
-												 ArrayView< _StorageBufferUniform >			storageBuffers,
-												 ArrayView< _AccelerationStructureUniform>	accelerationStructures)
+	void PipelineDescription::_AddDescriptorSet (const DescriptorSetID					&id,
+												 uint									index,
+												 ArrayView< _TextureUniform >			textures,
+												 ArrayView< _SamplerUniform >			samplers,
+												 ArrayView< _SubpassInputUniform >		subpassInputs,
+												 ArrayView< _ImageUniform >				images,
+												 ArrayView< _UBufferUniform >			uniformBuffers,
+												 ArrayView< _StorageBufferUniform >		storageBuffers,
+												 ArrayView< _RayTracingSceneUniform>	rtScenes)
 	{
+		ASSERT( id.IsDefined() );
+		ASSERT( index < FG_MaxDescriptorSets );
+
 		DEBUG_ONLY(
 		for (auto& item : _pipelineLayout.descriptorSets)
 		{
@@ -146,7 +176,7 @@ namespace FG
 		ds.id			= id;
 		ds.bindingIndex	= index;
 		uniforms.reserve( textures.size() + samplers.size() + subpassInputs.size() + images.size() +
-						  uniformBuffers.size() + storageBuffers.size() + accelerationStructures.size() );
+						  uniformBuffers.size() + storageBuffers.size() + rtScenes.size() );
 
 		for (auto& tex : textures) {
 			uniforms.insert({ tex.id, {Texture{ tex.data }, tex.index, tex.stageFlags} });
@@ -174,9 +204,9 @@ namespace FG
 										sb.data.staticSize, sb.data.arrayStride}, sb.index, sb.stageFlags} });
 		}
 
-		//for (auto& as : accelerationStructures) {
-		//	uniforms.insert({ as.id, Uniform_t{ as.data } });
-		//}
+		for (auto& rts : rtScenes) {
+			uniforms.insert({ rts.id, {RayTracingScene{ rts.data.state }, rts.index, rts.stageFlags} });
+		}
 
 		ds.uniforms = MakeShared<UniformMap_t>( std::move(uniforms) );
 		_pipelineLayout.descriptorSets.push_back( std::move(ds) );
@@ -336,28 +366,28 @@ namespace FG
 */
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
 	{
-		ASSERT( IsGraphicsShader( shaderType ) );
+		ASSERT( IsGraphicsShader( shaderType ));
 		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src) );
 		return *this;
 	}
 	
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
 	{
-		ASSERT( IsGraphicsShader( shaderType ) );
+		ASSERT( IsGraphicsShader( shaderType ));
 		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
 		return *this;
 	}
 	
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
 	{
-		ASSERT( IsGraphicsShader( shaderType ) );
+		ASSERT( IsGraphicsShader( shaderType ));
 		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
 		return *this;
 	}
 	
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
 	{
-		ASSERT( IsGraphicsShader( shaderType ) );
+		ASSERT( IsGraphicsShader( shaderType ));
 		AddShaderModule( INOUT _shaders, shaderType, fmt, std::move(module) );
 		return *this;
 	}
@@ -369,7 +399,7 @@ namespace FG
 */
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values)
 	{
-		ASSERT( IsGraphicsShader( shaderType ) );
+		ASSERT( IsGraphicsShader( shaderType ));
 		
 		SetSpecializationConstants( INOUT _shaders, shaderType, values );
 		return *this;
@@ -412,28 +442,28 @@ namespace FG
 */
 	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
 	{
-		ASSERT( IsMeshProcessingShader( shaderType ) );
+		ASSERT( IsMeshProcessingShader( shaderType ));
 		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src) );
 		return *this;
 	}
 	
 	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
 	{
-		ASSERT( IsMeshProcessingShader( shaderType ) );
+		ASSERT( IsMeshProcessingShader( shaderType ));
 		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
 		return *this;
 	}
 	
 	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
 	{
-		ASSERT( IsMeshProcessingShader( shaderType ) );
+		ASSERT( IsMeshProcessingShader( shaderType ));
 		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
 		return *this;
 	}
 	
 	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
 	{
-		ASSERT( IsMeshProcessingShader( shaderType ) );
+		ASSERT( IsMeshProcessingShader( shaderType ));
 		AddShaderModule( INOUT _shaders, shaderType, fmt, std::move(module) );
 		return *this;
 	}
@@ -445,7 +475,7 @@ namespace FG
 */
 	MeshPipelineDesc&  MeshPipelineDesc::SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values)
 	{
-		ASSERT( IsMeshProcessingShader( shaderType ) );
+		ASSERT( IsMeshProcessingShader( shaderType ));
 		
 		SetSpecializationConstants( INOUT _shaders, shaderType, values );
 		return *this;
@@ -487,31 +517,51 @@ namespace FG
 	AddShader
 =================================================
 */
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
 	{
-		ASSERT( IsRayTracingShader( shaderType ) );
-		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src) );
+		ASSERT( IsRayTracingShader( shaderType ));
+
+		auto&	shader = _shaders.insert({ id, {} }).first->second;
+		ASSERT( shader.data.count( fmt ) == 0 );
+		
+		shader.shaderType = shaderType;
+		shader.AddShaderData( fmt, entry, std::move(src) );
 		return *this;
 	}
 	
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
 	{
-		ASSERT( IsRayTracingShader( shaderType ) );
-		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		ASSERT( IsRayTracingShader( shaderType ));
+
+		auto&	shader = _shaders.insert({ id, {} }).first->second;
+		ASSERT( shader.data.count( fmt ) == 0 );
+		
+		shader.shaderType = shaderType;
+		shader.AddShaderData( fmt, entry, std::move(bin) );
 		return *this;
 	}
 	
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
 	{
-		ASSERT( IsRayTracingShader( shaderType ) );
-		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		ASSERT( IsRayTracingShader( shaderType ));
+
+		auto&	shader = _shaders.insert({ id, {} }).first->second;
+		ASSERT( shader.data.count( fmt ) == 0 );
+		
+		shader.shaderType = shaderType;
+		shader.AddShaderData( fmt, entry, std::move(bin) );
 		return *this;
 	}
 	
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module)
 	{
-		ASSERT( IsRayTracingShader( shaderType ) );
-		AddShaderModule( INOUT _shaders, shaderType, fmt, std::move(module) );
+		ASSERT( IsRayTracingShader( shaderType ));
+
+		auto&	shader = _shaders.insert({ id, {} }).first->second;
+		ASSERT( shader.data.count( fmt ) == 0 );
+
+		shader.shaderType = shaderType;
+		shader.data.insert({ fmt, module });
 		return *this;
 	}
 
@@ -520,11 +570,68 @@ namespace FG
 	SetSpecConstants
 =================================================
 */
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values)
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::SetSpecConstants (const RTShaderID &id, ArrayView< SpecConstant > values)
 	{
-		ASSERT( IsRayTracingShader( shaderType ) );
-		
-		SetSpecializationConstants( INOUT _shaders, shaderType, values );
+		auto&	shader = _shaders.insert({ id, {} }).first->second;
+		ASSERT( shader.data.size() > 0 );
+		ASSERT( shader.specConstants.empty() );
+
+		CopySpecConstants( values, OUT shader.specConstants );
+		return *this;
+	}
+	
+/*
+=================================================
+	add shader groups
+=================================================
+*/
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddRayGenShader (const RTShaderGroupID &name, const RTShaderID &id)
+	{
+		ASSERT( name.IsDefined() );
+		ASSERT( id.IsDefined() );
+		ASSERT( _groups.count( name ) == 0 );
+
+		_groups.insert_or_assign( name, GeneralGroup{id} );
+		return *this;
+	}
+
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddRayMissShader (const RTShaderGroupID &name, const RTShaderID &id)
+	{
+		ASSERT( name.IsDefined() );
+		ASSERT( id.IsDefined() );
+		ASSERT( _groups.count( name ) == 0 );
+
+		_groups.insert_or_assign( name, GeneralGroup{id} );
+		return *this;
+	}
+
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddCallableShader (const RTShaderGroupID &name, const RTShaderID &id)
+	{
+		ASSERT( name.IsDefined() );
+		ASSERT( id.IsDefined() );
+		ASSERT( _groups.count( name ) == 0 );
+
+		_groups.insert_or_assign( name, GeneralGroup{id} );
+		return *this;
+	}
+
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddTriangleHitShaders (const RTShaderGroupID &name, const RTShaderID &closestHit, const RTShaderID &anyHit)
+	{
+		ASSERT( name.IsDefined() );
+		ASSERT( closestHit.IsDefined() or anyHit.IsDefined() );
+		ASSERT( _groups.count( name ) == 0 );
+
+		_groups.insert_or_assign( name, TriangleHitGroup{closestHit, anyHit} );
+		return *this;
+	}
+
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddProceduralHitShaders (const RTShaderGroupID &name, const RTShaderID &closestHit, const RTShaderID &anyHit, const RTShaderID &inersection)
+	{
+		ASSERT( name.IsDefined() );
+		ASSERT( inersection.IsDefined() and (closestHit.IsDefined() or anyHit.IsDefined()) );
+		ASSERT( _groups.count( name ) == 0 );
+
+		_groups.insert_or_assign( name, ProceduralHitGroup{closestHit, anyHit, inersection} );
 		return *this;
 	}
 //-----------------------------------------------------------------------------

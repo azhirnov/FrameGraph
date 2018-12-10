@@ -7,14 +7,16 @@
 namespace FG
 {
 
-	using RawMemoryID				= _fg_hidden_::ResourceID<13>;
-	using RawPipelineLayoutID		= _fg_hidden_::ResourceID<14>;
-	using RawRenderPassID			= _fg_hidden_::ResourceID<15>;
-	using RawFramebufferID			= _fg_hidden_::ResourceID<16>;
-	//using DescriptorPoolID		= _fg_hidden_::ResourceID<17>;
+	using RawMemoryID				= _fg_hidden_::ResourceID<14>;
+	using RawPipelineLayoutID		= _fg_hidden_::ResourceID<15>;
+	using RawRenderPassID			= _fg_hidden_::ResourceID<16>;
+	using RawFramebufferID			= _fg_hidden_::ResourceID<17>;
+	//using DescriptorPoolID		= _fg_hidden_::ResourceID<18>;
 
 	using LocalBufferID				= _fg_hidden_::ResourceID<1001>;
 	using LocalImageID				= _fg_hidden_::ResourceID<1002>;
+	using LocalRTGeometryID			= _fg_hidden_::ResourceID<1003>;
+	using LocalRTSceneID			= _fg_hidden_::ResourceID<1004>;
 	
 	using MemoryID					= _fg_hidden_::ResourceIDWrap< RawMemoryID >;
 	using PipelineLayoutID			= _fg_hidden_::ResourceIDWrap< RawPipelineLayoutID >;

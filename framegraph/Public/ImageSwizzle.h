@@ -23,6 +23,16 @@ namespace FG
 		constexpr ImageSwizzle ()
 		{}
 
+		explicit constexpr ImageSwizzle (const uint4 &comp) : _value{0}
+		{
+			ASSERT(All( comp < 7 ));
+
+			_value |= (comp.x & 0xF);
+			_value |= (comp.y & 0xF) << 4;
+			_value |= (comp.z & 0xF) << 8;
+			_value |= (comp.w & 0xF) << 12;
+		}
+
 		ND_ constexpr uint Get () const
 		{
 			return _value;

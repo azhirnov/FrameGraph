@@ -32,6 +32,8 @@ namespace FG
 		_Access_CommandProcess,
 		_Access_ShadingRateImage,
 		_Access_BuildRayTracingAS,			// build/update acceleration structure for ray tracing
+		_Access_RTASBuildingBuffer,			// vertex, index, ..., scratch buffer that used when build/update acceleration structure
+		_Access_RayTracingShaderBingingBuffer,
 		_AccessLast,
 		_AccessMask				= (1 << 8) - 1,
 
@@ -48,6 +50,9 @@ namespace FG
 		_ShaderMask				= _VertexShader | _TessControlShader | _TessEvaluationShader |
 								  _GeometryShader | _FragmentShader | _ComputeShader |
 								  _MeshTaskShader | _MeshShader | _RayTracingShader,
+
+		// flags
+		_BufferDynamicOffset	= 1 << 24,
 
 		// for ColorAttachment, DepthStencilAttachment
 		ClearBefore				= 1 << 25,
@@ -71,7 +76,13 @@ namespace FG
 		ShaderWrite						= _Access_ShaderStorage | _Write,
 		ShaderReadWrite					= _Access_ShaderStorage | _ReadWrite,
 
+		StorageBufferRead				= _Access_ShaderStorage | _Read | _BufferDynamicOffset,
+		StorageBufferWrite				= _Access_ShaderStorage | _Write | _BufferDynamicOffset,
+		StorageBufferReadWrite			= _Access_ShaderStorage | _ReadWrite | _BufferDynamicOffset,
+
 		UniformRead						= _Access_Uniform | _Read,
+		UniformBufferDynamic			= _Access_Uniform | _Read | _BufferDynamicOffset,
+
 		ShaderSample					= _Access_ShaderSample | _Read,
 		InputAttachment					= _Access_InputAttachment | _Read,
 		TransientAttachment				= _Access_TransientAttachment,
@@ -96,6 +107,15 @@ namespace FG
 		IndirectBuffer					= _Access_IndirectBuffer | _Read,
 		IndexBuffer						= _Access_IndexBuffer | _Read,
 		VertexBuffer					= _Access_VertexBuffer | _Read,
+		
+		BuildRayTracingStructRead		= _Access_BuildRayTracingAS | _Read,
+		BuildRayTracingStructWrite		= _Access_BuildRayTracingAS | _Write,
+		BuildRayTracingStructReadWrite	= _Access_BuildRayTracingAS | _Read | _Write,
+		
+		RTASBuildingBufferRead			= _Access_RTASBuildingBuffer | _Read,
+		RTASBuildingBufferReadWrite		= _Access_RTASBuildingBuffer | _Read | _Write,
+
+		ShaderBindingBufferRead			= _Access_RayTracingShaderBingingBuffer | _Read,
 	};
 
 	FG_BIT_OPERATORS( EResourceState );

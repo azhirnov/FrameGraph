@@ -1,7 +1,6 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VRayTracingGeometry.h"
-#include "VResourceManagerThread.h"
 #include "VDevice.h"
 #include "VMemoryObj.h"
 #include "VEnumCast.h"
@@ -21,26 +20,80 @@ namespace FG
 	
 /*
 =================================================
-	Create
+	CopyAndSortGeometry
 =================================================
 */
-	bool VRayTracingGeometry::Create (const VResourceManagerThread &resMngr, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
+	static void CopyAndSortGeometry (const RayTracingGeometryDesc &desc,
+									 OUT Array<VRayTracingGeometry::Triangles> &outTriangles,
+									 OUT Array<VRayTracingGeometry::AABB> &outAabbs)
+	{
+		outTriangles.resize( desc.triangles.size() );
+		outAabbs.resize( desc.aabbs.size() );
+
+		// add triangles
+		for (size_t i = 0; i < desc.triangles.size(); ++i)
+		{
+			auto&	src	= desc.triangles[i];
+			auto&	dst	= outTriangles[i];
+
+			ASSERT( src.vertexCount > 0 );
+			ASSERT( src.geometryId.IsDefined() );
+
+			dst.geometryId		= src.geometryId;
+			dst.vertexSize		= Bytes<uint16_t>{ EVertexType_SizeOf( src.vertexFormat )};
+			dst.indexSize		= Bytes<uint16_t>{ EIndex_SizeOf( src.indexType )};
+			dst.maxVertexCount	= src.vertexCount;
+			dst.maxIndexCount	= src.indexCount;
+			dst.vertexFormat	= src.vertexFormat;
+			dst.indexType		= src.indexType;
+			dst.flags			= src.flags;
+		}
+
+		// add AABBs
+		for (size_t i = 0; i < desc.aabbs.size(); ++i)
+		{
+			auto&	src = desc.aabbs[i];
+			auto&	dst = outAabbs[i];
+			
+			ASSERT( src.aabbCount > 0 );
+			ASSERT( src.geometryId.IsDefined() );
+
+			dst.geometryId		= src.geometryId;
+			dst.maxAabbCount	= src.aabbCount;
+			dst.flags			= src.flags;
+		}
+
+		std::sort( outTriangles.begin(), outTriangles.end() );
+		std::sort( outAabbs.begin(), outAabbs.end() );
+	}
+
+/*
+=================================================
+	Create
+----
+	from specs: "Acceleration structure creation uses the count and type information from the geometries"
+=================================================
+*/
+	bool VRayTracingGeometry::Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 									  EQueueFamily queueFamily, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _bottomLevelAS == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
-		CHECK_ERR( desc.geometry.size() or desc.aabb.size() );
+		CHECK_ERR( desc.triangles.size() or desc.aabbs.size() );
 
-		_geometry.resize( desc.geometry.size() + desc.aabb.size() );
+		ASSERT( (desc.triangles.size() + desc.aabbs.size()) <= dev.GetDeviceRayTracingProperties().maxGeometryCount );
 
-		for (size_t i = 0; i < desc.geometry.size(); ++i)
+		CopyAndSortGeometry( desc, OUT _triangles, OUT _aabbs );
+
+		Array<VkGeometryNV>		geometries;
+		geometries.resize( _triangles.size() + _aabbs.size() );
+
+		// add triangles
+		for (size_t i = 0; i < _triangles.size(); ++i)
 		{
-			auto&	src = desc.geometry[i];
-			auto&	dst = _geometry[i];
-
-			ASSERT( src.vertexBuffer );
-			ASSERT( src.vertexCount > 0 );
+			auto&	src	= _triangles[i];
+			auto&	dst	= geometries[i];
 
 			dst = {};
 			dst.sType								= VK_STRUCTURE_TYPE_GEOMETRY_NV;
@@ -48,41 +101,26 @@ namespace FG
 			dst.flags								= VEnumCast( src.flags );
 			dst.geometry.aabbs.sType				= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
 			dst.geometry.triangles.sType			= VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
-			dst.geometry.triangles.vertexData		= resMngr.GetResource( src.vertexBuffer )->Handle();
-			dst.geometry.triangles.vertexOffset		= VkDeviceSize(src.vertexOffset);
-			dst.geometry.triangles.vertexCount		= src.vertexCount;
-			dst.geometry.triangles.vertexStride		= VkDeviceSize(src.vertexStride);
+			dst.geometry.triangles.vertexCount		= src.maxVertexCount;
 			dst.geometry.triangles.vertexFormat		= VEnumCast( src.vertexFormat );
 
-			if ( src.indexBuffer )
+			if ( src.maxIndexCount > 0 )
 			{
-				ASSERT( src.indexCount > 0 );
-				dst.geometry.triangles.indexData	= resMngr.GetResource( src.indexBuffer )->Handle();
-				dst.geometry.triangles.indexOffset	= VkDeviceSize(src.indexOffset);
-				dst.geometry.triangles.indexCount	= src.indexCount;
+				dst.geometry.triangles.indexCount	= src.maxIndexCount;
 				dst.geometry.triangles.indexType	= VEnumCast( src.indexType );
 			}
 			else
 			{
-				ASSERT( src.indexCount == 0 );
 				ASSERT( src.indexType == EIndex::Unknown );
 				dst.geometry.triangles.indexType	= VK_INDEX_TYPE_NONE_NV;
 			}
-
-			if ( src.transformBuffer )
-			{
-				dst.geometry.triangles.transformData	= resMngr.GetResource( src.transformBuffer )->Handle();
-				dst.geometry.triangles.transformOffset	= VkDeviceSize(src.transformOffset);
-			}
 		}
 
-		for (size_t i = 0; i < desc.aabb.size(); ++i)
+		// add AABBs
+		for (size_t i = 0; i < _aabbs.size(); ++i)
 		{
-			auto&	src = desc.aabb[i];
-			auto&	dst = _geometry[i + desc.geometry.size()];
-			
-			ASSERT( src.aabbBuffer );
-			ASSERT( src.aabbCount );
+			auto&	src = _aabbs[i];
+			auto&	dst = geometries[i + _triangles.size()];
 
 			dst = {};
 			dst.sType						= VK_STRUCTURE_TYPE_GEOMETRY_NV;
@@ -90,25 +128,22 @@ namespace FG
 			dst.flags						= VEnumCast( src.flags );
 			dst.geometry.triangles.sType	= VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
 			dst.geometry.aabbs.sType		= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
-			dst.geometry.aabbs.aabbData		= resMngr.GetResource( src.aabbBuffer )->Handle();
-			dst.geometry.aabbs.numAABBs		= src.aabbCount;
-			dst.geometry.aabbs.offset		= VkDeviceSize(src.aabbOffset);
-			dst.geometry.aabbs.stride		= uint(src.aabbStride);
+			dst.geometry.aabbs.numAABBs		= src.maxAabbCount;
 		}
 		
 		VkAccelerationStructureCreateInfoNV		info = {};
 		info.sType				= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV;
 		info.info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
 		info.info.type			= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-		info.info.geometryCount	= uint(_geometry.size());
-		info.info.pGeometries	= _geometry.data();
+		info.info.geometryCount	= uint(geometries.size());
+		info.info.pGeometries	= geometries.data();
+		info.info.flags			= VEnumCast( desc.flags );
 		
-		VDevice const&	dev = resMngr.GetDevice();
-
 		VK_CHECK( dev.vkCreateAccelerationStructureNV( dev.GetVkDevice(), &info, null, OUT &_bottomLevelAS ));
+
 		CHECK_ERR( memObj.AllocateForAccelStruct( _bottomLevelAS ));
 
-		VK_CHECK( dev.vkGetAccelerationStructureHandleNV( dev.GetVkDevice(), _bottomLevelAS, sizeof(_handle), OUT Cast<uint64_t>(&_handle) ));
+		VK_CHECK( dev.vkGetAccelerationStructureHandleNV( dev.GetVkDevice(), _bottomLevelAS, sizeof(_handle), OUT &BitCast<uint64_t>(_handle) ));
 
 		if ( not dbgName.empty() )
 		{
@@ -118,6 +153,7 @@ namespace FG
 		_memoryId			= MemoryID{ memId };
 		_currQueueFamily	= queueFamily;
 		_debugName			= dbgName;
+		_flags				= desc.flags;
 
 		return true;
 	}
@@ -143,11 +179,31 @@ namespace FG
 		_memoryId			= Default;
 		_handle				= BLASHandle_t(0);
 		_currQueueFamily	= Default;
+		_flags				= Default;
 		
-		Array<VkGeometryNV>		temp;
-		std::swap( _geometry, temp );
-
+		{
+			Array<Triangles>	temp;
+			std::swap( _triangles, temp );
+		}{
+			Array<AABB>		temp;
+			std::swap( _aabbs, temp );
+		}
 		_debugName.clear();
+	}
+	
+/*
+=================================================
+	GetGeometryIndex
+=================================================
+*/
+	size_t  VRayTracingGeometry::GetGeometryIndex (const GeometryID &id) const
+	{
+		size_t	pos = BinarySearch( ArrayView<Triangles>{_triangles}, id );
+		if ( pos < _triangles.size() )
+			return pos;
+
+		pos = BinarySearch( ArrayView<AABB>{_aabbs}, id );
+		return pos;
 	}
 
 

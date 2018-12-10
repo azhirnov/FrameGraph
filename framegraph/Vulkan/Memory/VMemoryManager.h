@@ -38,7 +38,7 @@ namespace FG
 			virtual bool AllocForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data) = 0;
 			virtual bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data) = 0;
 			virtual bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) = 0;
-			virtual bool AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
+			virtual bool AllocateForScratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
 												   VkBuffer buf, const MemoryDesc &desc, OUT Storage_t &data) = 0;
 
 			virtual bool Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t) = 0;
@@ -67,7 +67,7 @@ namespace FG
 		bool AllocateForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data);
 		bool AllocateForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data);
 		bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data);
-		bool AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
+		bool AllocateForScratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type,
 									   VkBuffer buf, const MemoryDesc &desc, OUT Storage_t &data);
 		bool Deallocate (INOUT Storage_t &data, OUT AppendableVkResources_t);
 

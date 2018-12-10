@@ -9,6 +9,7 @@ namespace FG
 namespace {
 	static constexpr EThreadUsage	GraphicsBit		= EThreadUsage::Graphics;
 	static constexpr EThreadUsage	ComputeBit		= EThreadUsage::Graphics | EThreadUsage::AsyncCompute;
+	static constexpr EThreadUsage	RayTracingBit	= EThreadUsage::Graphics | EThreadUsage::AsyncCompute;
 	static constexpr EThreadUsage	TransferBit		= EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming;
 }
 	
@@ -44,18 +45,6 @@ namespace {
 
 			VK_CALL( dev.vkBeginCommandBuffer( cmd, &info ));
 		}
-		
-		// TODO: is it realy needed?
-		// add global memory and execution barrier between command buffers in same batch
-		/*if ( _indexInBatch > 0 )
-		{
-			VkMemoryBarrier	barrier = {};
-			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-			barrier.srcAccessMask	= VK_ACCESS_MEMORY_WRITE_BIT;
-			barrier.dstAccessMask	= VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-
-			_barrierMngr.AddMemoryBarrier( VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, barrier );
-		}*/
 
 		// commit image layout transition and other
 		_barrierMngr.Commit( dev, cmd );
@@ -178,7 +167,7 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( _currUsage, GraphicsBit ));
 
-		auto*	rp_task = static_cast< VFgTask<SubmitRenderPass> *>(_taskGraph.Add( this, task ));
+		auto*	rp_task = _taskGraph.Add( this, task );
 
 		//_renderPassGraph.Add( rp_task );
 
@@ -222,7 +211,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.srcBuffer and task.dstBuffer );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		return _taskGraph.Add( this, task );
@@ -237,7 +225,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.srcImage and task.dstImage );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		return _taskGraph.Add( this, task );
@@ -252,7 +239,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.srcBuffer and task.dstImage );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		return _taskGraph.Add( this, task );
@@ -267,7 +253,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.srcImage and task.dstBuffer );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		return _taskGraph.Add( this, task );
@@ -282,7 +267,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.srcImage and task.dstImage );
 		ASSERT( EnumAny( _currUsage, GraphicsBit ));
 
 		return _taskGraph.Add( this, task );
@@ -297,7 +281,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.srcImage and task.dstImage );
 		ASSERT( EnumAny( _currUsage, GraphicsBit ));
 
 		return _taskGraph.Add( this, task );
@@ -312,7 +295,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.dstBuffer );
 
 		return _taskGraph.Add( this, task );
 	}
@@ -326,7 +308,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.dstImage );
 		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
 		return _taskGraph.Add( this, task );
@@ -341,7 +322,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.dstImage );
 		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
 		return _taskGraph.Add( this, task );
@@ -356,7 +336,6 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( task.dstBuffer );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
 		if ( _stagingMngr )
@@ -372,31 +351,33 @@ namespace {
 */
 	Task  VFrameGraphThread::_AddUpdateBufferTask (const UpdateBuffer &task)
 	{
-		TaskGroupSync	sync;
+		CopyBuffer		copy;
+		copy.taskName	= task.taskName;
+		copy.debugColor	= task.debugColor;
+		copy.depends	= task.depends;
+		copy.dstBuffer	= task.dstBuffer;
 
 		// copy to staging buffer
 		for (BytesU readn; readn < ArraySizeOf(task.data);)
 		{
-			CopyBuffer	copy;
-			copy.taskName	= task.taskName;
-			copy.debugColor	= task.debugColor;
-			copy.depends	= task.depends;
-			copy.dstBuffer	= task.dstBuffer;
-
-			BytesU		off, size;
-			CHECK_ERR( _stagingMngr->StoreBufferData( task.data, readn, OUT copy.srcBuffer, OUT off, OUT size ));
+			RawBufferID		src_buffer;
+			BytesU			off, size;
+			CHECK_ERR( _stagingMngr->StoreBufferData( task.data, readn, OUT src_buffer, OUT off, OUT size ));
+			
+			if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
+			{
+				Task	last_task = AddTask( copy );
+				copy.depends.clear();
+				copy.depends.push_back( last_task );
+			}
 
 			copy.AddRegion( off, task.offset + readn, size );
-			readn += size;
 
-			sync.depends.push_back( AddTask( copy ));
+			readn		  += size;
+			copy.srcBuffer = src_buffer;
 		}
 
-		// return task handle
-		if ( sync.depends.size() > 1 )
-			return _taskGraph.Add( this, sync );
-		else
-			return sync.depends.front();
+		return AddTask( copy );
 	}
 	
 /*
@@ -438,14 +419,19 @@ namespace {
 		ASSERT( ArraySizeOf(task.data) == slice_pitch * image_size.z );
 		
 
-		TaskGroupSync		sync;
 		const BytesU		min_size	= 16_Mb;		// TODO
 		const uint			row_length	= uint((row_pitch * 8) / bpp);
 		const uint			img_height	= uint(slice_pitch / row_pitch); //task.dstImage->Height();
 		const BytesU		total_size	= ArraySizeOf(task.data);
+		CopyBufferToImage	copy;
 
 		ASSERT( (row_pitch * 8) % bpp == 0 );
 		ASSERT( slice_pitch % row_pitch == 0 );
+
+		copy.taskName	= task.taskName;
+		copy.debugColor	= task.debugColor;
+		copy.depends	= task.depends;
+		copy.dstImage	= task.dstImage;
 
 
 		// copy to staging buffer slice by slice
@@ -454,25 +440,27 @@ namespace {
 			uint	z_offset = 0;
 			for (BytesU readn; readn < total_size;)
 			{
-				CopyBufferToImage	copy;
-				copy.taskName	= task.taskName;
-				copy.debugColor	= task.debugColor;
-				copy.depends	= task.depends;
-				copy.dstImage	= task.dstImage;
-		
-				BytesU		off, size;
+				RawBufferID		src_buffer;
+				BytesU			off, size;
 				CHECK_ERR( _stagingMngr->StoreImageData( task.data, readn, slice_pitch, total_size,
-														 OUT copy.srcBuffer, OUT off, OUT size ));
+														 OUT src_buffer, OUT off, OUT size ));
+				
+				if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
+				{
+					Task	last_task = AddTask( copy );
+					copy.depends.clear();
+					copy.depends.push_back( last_task );
+				}
 
 				const uint	z_size = uint(size / slice_pitch);
 
 				copy.AddRegion( off, row_length, img_height,
 								ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
 								task.imageOffset + int3(0, 0, z_offset), uint3(image_size.x, image_size.y, z_size) );
-				readn += size;
-				z_offset += z_size;
-			
-				sync.depends.push_back( AddTask( copy ));
+
+				readn		  += size;
+				z_offset	  += z_size;
+				copy.srcBuffer = src_buffer;
 			}
 			ASSERT( z_offset == image_size.z );
 		}
@@ -486,34 +474,31 @@ namespace {
 
 			for (BytesU readn; readn < ArraySizeOf(data);)
 			{
-				CopyBufferToImage	copy;
-				copy.taskName	= task.taskName;
-				copy.debugColor	= task.debugColor;
-				copy.depends	= task.depends;
-				copy.dstImage	= task.dstImage;
-		
-				BytesU		off, size;
+				RawBufferID		src_buffer;
+				BytesU			off, size;
 				CHECK_ERR( _stagingMngr->StoreImageData( data, readn, row_pitch, total_size,
-														 OUT copy.srcBuffer, OUT off, OUT size ));
+														 OUT src_buffer, OUT off, OUT size ));
+				
+				if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
+				{
+					Task	last_task = AddTask( copy );
+					copy.depends.clear();
+					copy.depends.push_back( last_task );
+				}
 
 				const uint	y_size = uint(size / row_pitch);
 
 				copy.AddRegion( off, row_length, img_height,
 								ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
 								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, image_size.y, 1) );
-				readn += size;
-			
-				sync.depends.push_back( AddTask( copy ));
+
+				readn		  += size;
+				copy.srcBuffer = src_buffer;
 			}
 			ASSERT( y_offset == image_size.y );
 		}
 
-
-		// return task handle
-		if ( sync.depends.size() > 1 )
-			return _taskGraph.Add( this, sync );
-		else
-			return sync.depends.front();
+		return AddTask( copy );
 	}
 	
 /*
@@ -545,36 +530,37 @@ namespace {
 		CHECK_ERR( task.srcBuffer and task.callback );
 
 		OnDataLoadedEvent	load_event{ task.callback, task.size };
-		TaskGroupSync		sync;
+		CopyBuffer			copy;
+
+		copy.taskName	= task.taskName;
+		copy.debugColor	= task.debugColor;
+		copy.depends	= task.depends;
+		copy.srcBuffer	= task.srcBuffer;
 
 		// copy to staging buffer
 		for (BytesU written; written < task.size;)
 		{
-			CopyBuffer	copy;
-			copy.taskName	= task.taskName;
-			copy.debugColor	= task.debugColor;
-			copy.depends	= task.depends;
-			copy.srcBuffer	= task.srcBuffer;
-
+			RawBufferID					dst_buffer;
 			OnDataLoadedEvent::Range	range;
-			CHECK_ERR( _stagingMngr->AddPendingLoad( written, task.size, OUT copy.dstBuffer, OUT range ));
+			CHECK_ERR( _stagingMngr->AddPendingLoad( written, task.size, OUT dst_buffer, OUT range ));
 			
-			copy.AddRegion( range.offset, task.offset + written, range.size );
-			written += range.size;
-
+			if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
+			{
+				Task	last_task = AddTask( copy );
+				copy.depends.clear();
+				copy.depends.push_back( last_task );
+			}
+			
+			copy.AddRegion( task.offset + written, range.offset, range.size );
 			load_event.parts.push_back( range );
 
-			sync.depends.push_back( AddTask( copy ));
+			written		  += range.size;
+			copy.dstBuffer = dst_buffer;
 		}
 
 		_stagingMngr->AddDataLoadedEvent( std::move(load_event) );
 		
-
-		// return task handle
-		if ( sync.depends.size() > 1 )
-			return _taskGraph.Add( this, sync );
-		else
-			return sync.depends.front();
+		return AddTask( copy );
 	}
 	
 /*
@@ -620,7 +606,12 @@ namespace {
 		const uint			img_height	= uint(slice_pitch / row_pitch);
 
 		OnDataLoadedEvent	load_event{ task.callback, total_size, image_size, row_pitch, slice_pitch, img_desc.format, task.aspectMask };
-		TaskGroupSync		sync;
+		CopyImageToBuffer	copy;
+
+		copy.taskName	= task.taskName;
+		copy.debugColor	= task.debugColor;
+		copy.depends	= task.depends;
+		copy.srcImage	= task.srcImage;
 		
 		// copy to staging buffer slice by slice
 		if ( total_size < min_size )
@@ -628,15 +619,17 @@ namespace {
 			uint	z_offset = 0;
 			for (BytesU written; written < total_size;)
 			{
-				CopyImageToBuffer	copy;
-				copy.taskName	= task.taskName;
-				copy.debugColor	= task.debugColor;
-				copy.depends	= task.depends;
-				copy.srcImage	= task.srcImage;
-		
+				RawBufferID					dst_buffer;
 				OnDataLoadedEvent::Range	range;
-				CHECK_ERR( _stagingMngr->AddPendingLoad( written, total_size, slice_pitch, OUT copy.dstBuffer, OUT range ));
+				CHECK_ERR( _stagingMngr->AddPendingLoad( written, total_size, slice_pitch, OUT dst_buffer, OUT range ));
 			
+				if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
+				{
+					Task	last_task = AddTask( copy );
+					copy.depends.clear();
+					copy.depends.push_back( last_task );
+				}
+
 				const uint	z_size = uint(range.size / slice_pitch);
 
 				copy.AddRegion( ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
@@ -645,10 +638,9 @@ namespace {
 				
 				load_event.parts.push_back( range );
 
-				written  += range.size;
-				z_offset += z_size;
-			
-				sync.depends.push_back( AddTask( copy ));
+				written		  += range.size;
+				z_offset	  += z_size;
+				copy.dstBuffer = dst_buffer;
 			}
 			ASSERT( z_offset == image_size.z );
 		}
@@ -661,14 +653,16 @@ namespace {
 
 			for (BytesU written; written < slice_pitch;)
 			{
-				CopyImageToBuffer	copy;
-				copy.taskName	= task.taskName;
-				copy.debugColor	= task.debugColor;
-				copy.depends	= task.depends;
-				copy.srcImage	= task.srcImage;
-		
+				RawBufferID					dst_buffer;
 				OnDataLoadedEvent::Range	range;
-				CHECK_ERR( _stagingMngr->AddPendingLoad( written, total_size, row_pitch, OUT copy.dstBuffer, OUT range ));
+				CHECK_ERR( _stagingMngr->AddPendingLoad( written, total_size, row_pitch, OUT dst_buffer, OUT range ));
+				
+				if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
+				{
+					Task	last_task = AddTask( copy );
+					copy.depends.clear();
+					copy.depends.push_back( last_task );
+				}
 
 				const uint	y_size = uint(range.size / row_pitch);
 
@@ -678,22 +672,16 @@ namespace {
 				
 				load_event.parts.push_back( range );
 
-				written  += range.size;
-				y_offset += y_size;
-			
-				sync.depends.push_back( AddTask( copy ));
+				written		  += range.size;
+				y_offset	  += y_size;
+				copy.dstBuffer = dst_buffer;
 			}
 			ASSERT( y_offset == image_size.y );
 		}
 
 		_stagingMngr->AddDataLoadedEvent( std::move(load_event) );
 
-
-		// return task handle
-		if ( sync.depends.size() > 1 )
-			return _taskGraph.Add( this, sync );
-		else
-			return sync.depends.front();
+		return AddTask( copy );
 	}
 
 /*
@@ -719,8 +707,8 @@ namespace {
 */
 	Task  VFrameGraphThread::_AddPresentTask (const FG::Present &task)
 	{
-		CHECK_ERR( task.srcImage );
-		/*
+		/*CHECK_ERR( task.srcImage );
+	
 		RawImageID	swapchain_image;
 		CHECK_ERR( _swapchain->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
 
@@ -754,16 +742,310 @@ namespace {
 
 		return _taskGraph.Add( this, task );
 	}
-
+	
 /*
 =================================================
-	AddTask (TaskGroupSync)
+	_AllocStorage
 =================================================
-*
-	Task  VFrameGraphThread::AddTask (const TaskGroupSync &task)
+*/
+	template <typename T>
+	inline bool VFrameGraphThread::_AllocStorage (size_t count, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset, OUT T* &outPtr)
+	{
+		CHECK_ERR( _stagingMngr );
+
+		RawBufferID		buffer;
+		BytesU			buf_offset, buf_size;
+		CHECK_ERR( _stagingMngr->GetWritableBuffer( SizeOf<T> * count, SizeOf<T> * count, OUT buffer, OUT buf_offset, OUT buf_size, OUT BitCast<void *>(outPtr) ));
+		
+		outBuffer	= GetResourceManager()->GetState( buffer );
+		outOffset	= VkDeviceSize(buf_offset);
+		return true;
+	}
+	
+/*
+=================================================
+	_StoreData
+=================================================
+*/
+	inline bool VFrameGraphThread::_StoreData (const void *dataPtr, BytesU dataSize, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset)
+	{
+		CHECK_ERR( _stagingMngr );
+		
+		RawBufferID		buffer;
+		BytesU			buf_offset, buf_size;
+		CHECK_ERR( _stagingMngr->StoreBufferData( dataPtr, dataSize, OUT buffer, OUT buf_offset, OUT buf_size ));
+		
+		outBuffer	= GetResourceManager()->GetState( buffer );
+		outOffset	= VkDeviceSize(buf_offset);
+		return true;
+	}
+	
+/*
+=================================================
+	AddTask (UpdateRayTracingShaderTable)
+=================================================
+*/
+	Task  VFrameGraphThread::AddTask (const UpdateRayTracingShaderTable &task)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
+		CHECK_ERR( _stagingMngr );
+		ASSERT( EnumAny( _currUsage, RayTracingBit ));
+
+		auto			result	= _taskGraph.Add( this, task );
+		const BytesU	sh_size	= result->pipeline->ShaderHandleSize();
+		
+		task.result.buffer			= task.dstBuffer;
+		task.result.rayGenOffset	= task.dstOffset;
+		task.result.rayMissOffset	= task.result.rayGenOffset + sh_size;
+		task.result.rayMissStride	= Bytes<uint16_t>{ sh_size };
+		task.result.callableOffset	= task.result.rayMissOffset;			// TODO
+		task.result.callableStride	= Bytes<uint16_t>{ 0 };
+		task.result.rayHitOffset	= task.result.rayMissOffset + sh_size * task.missShaders.size();
+		task.result.rayHitStride	= Bytes<uint16_t>{ sh_size };
+		task.result.maxMissShaders	= uint16_t(task.missShaders.size());
+
+		return result;
+	}
+
+/*
+=================================================
+	AddTask (BuildRayTracingGeometry)
+=================================================
+*/
+	Task  VFrameGraphThread::AddTask (const BuildRayTracingGeometry &task)
+	{
+		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumAny( _currUsage, RayTracingBit ));
+		
+		auto*	result = _taskGraph.Add( this, task );
+		result->_rtGeometry = GetResourceManager()->GetState( task.rtGeometry );
+
+		auto	triangles	= result->_rtGeometry->GetTriangles();
+		auto	aabbs		= result->_rtGeometry->GetAABBs();
+
+		CHECK_ERR( task.triangles.size() <= triangles.size() );
+		CHECK_ERR( task.aabbs.size() <= aabbs.size() );
+
+		VkMemoryRequirements2								mem_req	= {};
+		VkAccelerationStructureMemoryRequirementsInfoNV		as_info	= {};
+		as_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+		as_info.type					= VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
+		as_info.accelerationStructure	= result->_rtGeometry->Handle();
+		GetDevice().vkGetAccelerationStructureMemoryRequirementsNV( GetDevice().GetVkDevice(), &as_info, OUT &mem_req );
+
+		// TODO: virtual buffer or buffer cache
+		BufferID	buf = CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, Default );
+		result->_scratchBuffer = GetResourceManager()->GetState( buf.Get() );
+		ReleaseResource( buf );
+		
+		result->_geometryCount	= task.triangles.size() + task.aabbs.size();
+		result->_geometry		= _mainAllocator.Alloc<VkGeometryNV>( result->_geometryCount );
+
+		// initialize geometry
+		for (uint i = 0; i < result->_geometryCount; ++i)
+		{
+			auto&	dst = result->_geometry[i];
+
+			dst = {};
+			dst.sType						= VK_STRUCTURE_TYPE_GEOMETRY_NV;
+			dst.geometry.aabbs.sType		= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
+			dst.geometry.triangles.sType	= VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
+			dst.geometryType				= (i < task.triangles.size() ? VK_GEOMETRY_TYPE_TRIANGLES_NV : VK_GEOMETRY_TYPE_AABBS_NV);
+		}
+
+		// add triangles
+		for (size_t i = 0; i < task.triangles.size(); ++i)
+		{
+			auto&	src		= task.triangles[i];
+			size_t	pos		= BinarySearch( triangles, src.geometryId );
+			CHECK_ERR( pos < triangles.size() );
+
+			auto&	dst		= result->_geometry[pos];
+			auto&	ref		= triangles[pos];
+
+			ASSERT( src.vertexBuffer or src.vertexData.size() );
+			ASSERT( src.vertexCount > 0 );
+			ASSERT( src.vertexCount <= ref.maxVertexCount );
+			ASSERT( src.indexCount <= ref.maxIndexCount );
+			ASSERT( src.vertexFormat == ref.vertexFormat );
+			ASSERT( src.indexType == ref.indexType );
+			ASSERT( src.flags == ref.flags );
+
+			dst.flags = VEnumCast( src.flags );
+
+			// vertices
+			dst.geometry.triangles.vertexCount		= src.vertexCount;
+			dst.geometry.triangles.vertexStride		= VkDeviceSize(src.vertexStride);
+			dst.geometry.triangles.vertexFormat		= VEnumCast( src.vertexFormat );
+
+			if ( src.vertexData.size() )
+			{
+				VLocalBuffer const*	vb = null;
+				CHECK_ERR( _StoreData( src.vertexData.data(), ArraySizeOf(src.vertexData), OUT vb, OUT dst.geometry.triangles.vertexOffset ));
+				dst.geometry.triangles.vertexData = vb->Handle();
+			}
+			else
+			{
+				auto*	vb = GetResourceManager()->GetState( src.vertexBuffer );
+				dst.geometry.triangles.vertexData	= vb->Handle();
+				dst.geometry.triangles.vertexOffset	= VkDeviceSize(src.vertexOffset);
+			}
+			
+			// indices
+			if ( src.indexCount > 0 )
+			{
+				ASSERT( src.indexBuffer or src.indexData.size() );
+				dst.geometry.triangles.indexCount	= src.indexCount;
+				dst.geometry.triangles.indexType	= VEnumCast( src.indexType );
+			}
+			else
+			{
+				ASSERT( not src.indexBuffer or src.indexData.empty() );
+				ASSERT( src.indexType == EIndex::Unknown );
+				dst.geometry.triangles.indexType	= VK_INDEX_TYPE_NONE_NV;
+			}
+
+			if ( src.indexData.size() )
+			{
+				VLocalBuffer const*	ib = null;
+				CHECK_ERR( _StoreData( src.indexData.data(), ArraySizeOf(src.indexData), OUT ib, OUT dst.geometry.triangles.indexOffset ));
+				dst.geometry.triangles.indexData = ib->Handle();
+			}
+			else
+			if ( src.indexBuffer )
+			{
+				auto*	ib = GetResourceManager()->GetState( src.indexBuffer );
+				dst.geometry.triangles.indexData	= ib->Handle();
+				dst.geometry.triangles.indexOffset	= VkDeviceSize(src.indexOffset);
+			}
+
+			// transformation
+			if ( src.transformBuffer )
+			{
+				dst.geometry.triangles.transformData	= GetResourceManager()->GetResource( src.transformBuffer )->Handle();
+				dst.geometry.triangles.transformOffset	= VkDeviceSize(src.transformOffset);
+			}
+			else
+			if ( src.transformData.has_value() )
+			{
+				VLocalBuffer const*	tb = null;
+				CHECK_ERR( _StoreData( &src.transformData.value(), BytesU::SizeOf(src.transformData.value()), OUT tb, OUT dst.geometry.triangles.transformOffset ));
+				dst.geometry.triangles.transformData = tb->Handle();
+			}
+		}
+
+		// add AABBs
+		for (size_t i = 0; i < task.aabbs.size(); ++i)
+		{
+			auto&	src		= task.aabbs[i];
+			size_t	pos		= BinarySearch( aabbs, src.geometryId );
+			CHECK_ERR( pos < aabbs.size() );
+
+			auto&	dst		= result->_geometry[pos + task.triangles.size()];
+			auto&	ref		= aabbs[pos];
+			
+			ASSERT( src.aabbBuffer or src.aabbData.size() );
+			ASSERT( src.aabbCount > 0 );
+			ASSERT( src.aabbCount <= ref.maxAabbCount );
+			ASSERT( src.flags == ref.flags );
+
+			dst.flags						= VEnumCast( src.flags );
+			dst.geometry.aabbs.sType		= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
+			dst.geometry.aabbs.numAABBs		= src.aabbCount;
+			dst.geometry.aabbs.stride		= uint(src.aabbStride);
+
+			if ( src.aabbData.size() )
+			{
+				VLocalBuffer const*	ab = null;
+				CHECK_ERR( _StoreData( src.aabbData.data(), ArraySizeOf(src.aabbData), OUT ab, OUT dst.geometry.aabbs.offset ));
+				dst.geometry.aabbs.aabbData = ab->Handle();
+			}
+			else
+			{
+				dst.geometry.aabbs.aabbData	= GetResourceManager()->GetResource( src.aabbBuffer )->Handle();
+				dst.geometry.aabbs.offset	= VkDeviceSize(src.aabbOffset);
+			}
+		}
+
+		return result;
+	}
+
+/*
+=================================================
+	AddTask (BuildRayTracingScene)
+=================================================
+*/
+	Task  VFrameGraphThread::AddTask (const BuildRayTracingScene &task)
+	{
+		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumAny( _currUsage, RayTracingBit ));
+		
+		auto*	result = _taskGraph.Add( this, task );
+		result->_rtScene = GetResourceManager()->GetState( task.rtScene );
+
+		CHECK_ERR( task.instances.size() <= result->_rtScene->InstanceCount() );
+
+		VkMemoryRequirements2								mem_req	= {};
+		VkAccelerationStructureMemoryRequirementsInfoNV		as_info	= {};
+		as_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
+		as_info.type					= VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
+		as_info.accelerationStructure	= result->_rtScene->Handle();
+		GetDevice().vkGetAccelerationStructureMemoryRequirementsNV( GetDevice().GetVkDevice(), &as_info, OUT &mem_req );
+		
+		// TODO: virtual buffer or buffer cache
+		BufferID	buf = CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, Default );
+		result->_scratchBuffer = GetResourceManager()->GetState( buf.Get() );
+		ReleaseResource( buf );
+
+		VkGeometryInstance*	instances;
+		CHECK_ERR( _AllocStorage<VkGeometryInstance>( task.instances.size(), OUT result->_instanceBuffer, OUT result->_instanceBufferOffset, OUT instances ));
+
+		result->_rtGeometryCount		= task.instances.size();
+		result->_rtGeometries			= _mainAllocator.Alloc< VLocalRTGeometry const *>( result->_rtGeometryCount );
+		result->_rtGeometryIDs			= _mainAllocator.Alloc< RawRTGeometryID >( result->_rtGeometryCount );
+		result->_instanceCount			= uint(task.instances.size());
+		result->_hitShadersPerGeometry	= Max( 1u, task.hitShadersPerGeometry );
+
+		for (size_t i = 0; i < task.instances.size(); ++i)
+		{
+			auto&	src  = task.instances[i];
+			auto&	dst  = instances[i];
+			auto&	blas = result->_rtGeometries[i];
+
+			result->_rtGeometries[i]  = GetResourceManager()->GetState( src.geometryId );
+			result->_rtGeometryIDs[i] = src.geometryId;
+
+			ASSERT( src.geometryId );
+			ASSERT( (src.instanceID >> 24) == 0 );
+
+			dst.blasHandle		= blas->BLASHandle();
+			dst.transformRow0	= src.transform[0];
+			dst.transformRow1	= src.transform[1];
+			dst.transformRow2	= src.transform[2];
+			dst.instanceId		= src.instanceID;
+			dst.mask			= src.mask;
+			dst.instanceOffset	= result->_maxHitShaderCount * result->_hitShadersPerGeometry;
+			dst.flags			= VEnumCast( src.flags );
+
+			result->_maxHitShaderCount += blas->MaxGeometryCount();
+		}
+		
+		return result;
+	}
+	
+/*
+=================================================
+	AddTask (TraceRays)
+=================================================
+*/
+	Task  VFrameGraphThread::AddTask (const TraceRays &task)
+	{
+		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 
 		return _taskGraph.Add( this, task );
 	}
@@ -779,13 +1061,11 @@ namespace {
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawVertices> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawVertices> >(
-						 ptr,
-						 this, task,
-						 VTaskProcessor::Visit1_DrawVertices,
-						 VTaskProcessor::Visit2_DrawVertices ));
+		rp->AddTask< VFgDrawTask<DrawVertices> >( 
+						this, task,
+						VTaskProcessor::Visit1_DrawVertices,
+						VTaskProcessor::Visit2_DrawVertices );
 	}
 	
 /*
@@ -799,13 +1079,11 @@ namespace {
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawIndexed> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawIndexed> >(
-						 ptr,
-						 this, task,
-						 VTaskProcessor::Visit1_DrawIndexed,
-						 VTaskProcessor::Visit2_DrawIndexed ));
+		rp->AddTask< VFgDrawTask<DrawIndexed> >(
+						this, task,
+						VTaskProcessor::Visit1_DrawIndexed,
+						VTaskProcessor::Visit2_DrawIndexed );
 	}
 	
 /*
@@ -819,13 +1097,11 @@ namespace {
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawMeshes> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawMeshes> >(
-						 ptr,
-						 this, task,
-						 VTaskProcessor::Visit1_DrawMeshes,
-						 VTaskProcessor::Visit2_DrawMeshes ));
+		rp->AddTask< VFgDrawTask<DrawMeshes> >(
+						this, task,
+						VTaskProcessor::Visit1_DrawMeshes,
+						VTaskProcessor::Visit2_DrawMeshes );
 	}
 	
 /*
@@ -839,13 +1115,11 @@ namespace {
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawVerticesIndirect> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawVerticesIndirect> >(
-						 ptr,
-						 this, task,
-						 VTaskProcessor::Visit1_DrawVerticesIndirect,
-						 VTaskProcessor::Visit2_DrawVerticesIndirect ));
+		rp->AddTask< VFgDrawTask<DrawVerticesIndirect> >(
+						this, task,
+						VTaskProcessor::Visit1_DrawVerticesIndirect,
+						VTaskProcessor::Visit2_DrawVerticesIndirect );
 	}
 	
 /*
@@ -859,13 +1133,11 @@ namespace {
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawIndexedIndirect> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawIndexedIndirect> >(
-						 ptr,
-						 this, task,
-						 VTaskProcessor::Visit1_DrawIndexedIndirect,
-						 VTaskProcessor::Visit2_DrawIndexedIndirect ));
+		rp->AddTask< VFgDrawTask<DrawIndexedIndirect> >(
+						this, task,
+						VTaskProcessor::Visit1_DrawIndexedIndirect,
+						VTaskProcessor::Visit2_DrawIndexedIndirect );
 	}
 	
 /*
@@ -879,13 +1151,11 @@ namespace {
 		CHECK_ERR( _IsRecording(), void() );
 		
 		auto *	rp  = _resourceMngr.GetState( renderPass );
-		void *	ptr = _mainAllocator.Alloc< VFgDrawTask<DrawMeshesIndirect> >();
 
-		rp->AddTask( PlacementNew< VFgDrawTask<DrawMeshesIndirect> >(
-						 ptr,
-						 this, task,
-						 VTaskProcessor::Visit1_DrawMeshesIndirect,
-						 VTaskProcessor::Visit2_DrawMeshesIndirect ));
+		rp->AddTask< VFgDrawTask<DrawMeshesIndirect> >(
+						this, task,
+						VTaskProcessor::Visit1_DrawMeshesIndirect,
+						VTaskProcessor::Visit2_DrawMeshesIndirect );
 	}
 
 /*

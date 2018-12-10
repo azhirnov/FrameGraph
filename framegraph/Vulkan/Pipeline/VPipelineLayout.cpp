@@ -1,6 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VPipelineLayout.h"
+#include "VResourceManagerThread.h"
 #include "VDevice.h"
 #include "VEnumCast.h"
 
@@ -79,6 +80,9 @@ namespace FG
 		{
 			auto&	ds = ppln.descriptorSets[i];
 
+			ASSERT( ds.id.IsDefined() );
+			ASSERT( ds.bindingIndex < FG_MaxDescriptorSets );
+
 			setsInfo.insert({ ds.id, DescriptorSet{ sets[i].first, sets[i].second->Data().Handle(), ds.bindingIndex }});
 			
 			// calculate hash
@@ -102,6 +106,8 @@ namespace FG
 
 		for (auto& pc : ppln.pushConstants)
 		{
+			ASSERT( pc.first.IsDefined() );
+
 			// calculate hash
 			hash << PushConstantHash( pc );
 		}
@@ -175,6 +181,23 @@ namespace FG
 
 		_layout = VK_NULL_HANDLE;
 		_hash	= Default;
+	}
+	
+/*
+=================================================
+	IsAllResourcesAlive
+=================================================
+*/
+	bool VPipelineLayout::IsAllResourcesAlive (const VResourceManagerThread &resMngr) const
+	{
+		SHAREDLOCK( _rcCheck );
+
+		for (auto& ds : _descriptorSets)
+		{
+			if ( not resMngr.IsResourceAlive( ds.second.layoutId ) )
+				return false;
+		}
+		return true;
 	}
 
 /*

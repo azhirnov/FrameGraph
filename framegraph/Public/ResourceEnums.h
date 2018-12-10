@@ -97,6 +97,7 @@ namespace FG
 		Invalidate,
 		Load,
 		Clear,
+		Unknown		= ~0u,
 	};
 
 
@@ -104,6 +105,7 @@ namespace FG
 	{
 		Invalidate,
 		Store,
+		Unknown		= ~0u,
 	};
 
 

@@ -39,9 +39,7 @@ namespace FG
 	static constexpr unsigned	FG_VkDevicePageSizeMb		= 256;	// Mb
 
 	// resource manager
-	static constexpr unsigned	FG_MaxImageResources		= 32u << 10;
-	static constexpr unsigned	FG_MaxBufferResources		= 32u << 10;
-	static constexpr unsigned	FG_MaxPipelines				= 1u << 10;
+	static constexpr unsigned	FG_MaxResources				= 32u << 10;
 
 	// frame graph
 	static constexpr unsigned	FG_MaxRingBufferSize			= 4;

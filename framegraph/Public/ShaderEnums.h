@@ -129,6 +129,7 @@ namespace FG
 		_ApiVersionMask			= _ApiMask | _VersionMask,
 
 		// default
+		GLSL_440		= OpenGL_440 | HighLevel,
 		GLSL_450		= OpenGL_450 | HighLevel,
 		GLSL_460		= OpenGL_460 | HighLevel,
 		VKSL_100		= Vulkan_100 | HighLevel,

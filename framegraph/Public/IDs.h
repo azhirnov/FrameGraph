@@ -67,6 +67,7 @@ namespace _fg_hidden_
 	// methods
 	public:
 		constexpr ResourceID () {}
+		constexpr ResourceID (const ResourceID &other) : _value{other._value} {}
 		explicit constexpr ResourceID (Index_t val, InstanceID_t inst) : _value{uint64_t(val) | (uint64_t(inst) << 32)} {}
 
 		ND_ constexpr bool			IsValid ()						const	{ return _value != ~0ull; }
@@ -110,35 +111,38 @@ namespace _fg_hidden_
 		explicit ResourceIDWrap (const ID_t &id) : _id{id}		{}
 		~ResourceIDWrap ()										{ ASSERT(not IsValid()); }	// ID must be released
 
-		Self&			operator = (Self &&rhs)							{ ASSERT(not IsValid());  _id = rhs._id;  rhs._id = Default;  return *this; }
+		Self&			operator = (Self &&rhs)					{ ASSERT(not IsValid());  _id = rhs._id;  rhs._id = Default;  return *this; }
 
-		ND_ bool		IsValid ()						const			{ return _id.IsValid(); }
-		ND_ auto		Index ()						const			{ return _id.Index(); }
-		ND_ auto		InstanceID ()					const			{ return _id.InstanceID(); }
-		ND_ HashVal		GetHash ()						const			{ return _id.GetHash(); }
+		ND_ bool		IsValid ()						const	{ return _id.IsValid(); }
+		//ND_ auto		Index ()						const	{ return _id.Index(); }
+		//ND_ auto		InstanceID ()					const	{ return _id.InstanceID(); }
+		ND_ HashVal		GetHash ()						const	{ return _id.GetHash(); }
 		
-		ND_ ID_t		Release ()										{ ASSERT(IsValid());  ID_t temp{_id};  _id = Default;  return temp; }
-		ND_ ID_t const&	Get ()							const			{ return _id; }
+		ND_ ID_t		Release ()								{ ASSERT(IsValid());  ID_t temp{_id};  _id = Default;  return temp; }
+		ND_ ID_t const&	Get ()							const	{ return _id; }
 
-		ND_ bool		operator == (const Self &rhs)	const			{ return _id == rhs._id; }
-		ND_ bool		operator != (const Self &rhs)	const			{ return _id != rhs._id; }
+		ND_ bool		operator == (const Self &rhs)	const	{ return _id == rhs._id; }
+		ND_ bool		operator != (const Self &rhs)	const	{ return _id != rhs._id; }
 		
-		ND_ explicit	operator bool ()				const			{ return IsValid(); }
+		ND_ explicit	operator bool ()				const	{ return IsValid(); }
 	};
 
 }	// _fg_hidden_
 
 
 
-	using UniformID					= _fg_hidden_::IDWithString< 64, 1 >;
-	using PushConstantID			= _fg_hidden_::IDWithString< 64, 2 >;
-	using RenderTargetID			= _fg_hidden_::IDWithString< 64, 3 >;
-	using DescriptorSetID			= _fg_hidden_::IDWithString< 64, 4 >;
-	using SpecializationID			= _fg_hidden_::IDWithString< 64, 5 >;
-	using VertexID					= _fg_hidden_::IDWithString< 64, 6 >;
-	using VertexBufferID			= _fg_hidden_::IDWithString< 64, 7 >;
+	using UniformID					= _fg_hidden_::IDWithString< 32, 1 >;
+	using PushConstantID			= _fg_hidden_::IDWithString< 32, 2 >;
+	using RenderTargetID			= _fg_hidden_::IDWithString< 32, 3 >;
+	using DescriptorSetID			= _fg_hidden_::IDWithString< 32, 4 >;
+	using SpecializationID			= _fg_hidden_::IDWithString< 32, 5 >;
+	using VertexID					= _fg_hidden_::IDWithString< 32, 6 >;
+	using VertexBufferID			= _fg_hidden_::IDWithString< 32, 7 >;
 	using MemPoolID					= _fg_hidden_::IDWithString< 32, 8 >;
 	using CommandBatchID			= _fg_hidden_::IDWithString< 32, 9 >;
+	using RTShaderID				= _fg_hidden_::IDWithString< 32, 10 >;
+	using RTShaderGroupID			= _fg_hidden_::IDWithString< 32, 11 >;
+	using GeometryID				= _fg_hidden_::IDWithString< 32, 12 >;
 	
 	using RawBufferID				= _fg_hidden_::ResourceID< 1 >;
 	using RawImageID				= _fg_hidden_::ResourceID< 2 >;

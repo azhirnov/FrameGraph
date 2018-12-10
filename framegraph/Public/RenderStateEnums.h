@@ -144,13 +144,13 @@ namespace FG
 
 	enum class EPipelineDynamicState : uint
 	{
-		None					= 0,
+		Unknown					= 0,
 		Viewport				= 1 << 0,
 		Scissor					= 1 << 1,
 		LineWidth				= 1 << 2,
 		DepthBias				= 1 << 3,
 		BlendConstants			= 1 << 4,
-		DepthBounds				= 1 << 5,
+		DepthBounds				= 1 << 5,	// TODO: remove unsupported states
 		StencilCompareMask		= 1 << 6,
 		StencilWriteMask		= 1 << 7,
 		StencilReference		= 1 << 8,

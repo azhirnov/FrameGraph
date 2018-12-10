@@ -52,7 +52,7 @@ namespace FG
 		bool AllocateForImage (VkImage img);
 		bool AllocateForBuffer (VkBuffer buf);
 		bool AllocateForAccelStruct (VkAccelerationStructureNV as);
-		bool AllocateForStratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type, VkBuffer buf);
+		bool AllocateForScratchBuffer (VkAccelerationStructureNV as, VkAccelerationStructureMemoryRequirementsTypeNV type, VkBuffer buf);
 
 		bool GetInfo (OUT MemoryInfo &) const;
 

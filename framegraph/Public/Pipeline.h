@@ -62,8 +62,9 @@ namespace FG
 			BytesU				arrayStride;
 		};
 
-		struct AccelerationStructure
+		struct RayTracingScene
 		{
+			EResourceState		state;
 		};
 
 
@@ -128,15 +129,17 @@ namespace FG
 			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset);
 		};
 		
-		struct _AccelerationStructureUniform	// TODO: rename to TopLevelAS
+		struct _RayTracingSceneUniform
 		{
-			UniformID				id;
-			AccelerationStructure	data;
-			BindingIndex			index;
-			EShaderStages			stageFlags;
+			UniformID			id;
+			RayTracingScene		data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
+
+			_RayTracingSceneUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
-		using UniformData_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, AccelerationStructure >;
+		using UniformData_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, RayTracingScene >;
 
 		struct Uniform
 		{
@@ -226,15 +229,15 @@ namespace FG
 	protected:
 		PipelineDescription () {}
 
-		void _AddDescriptorSet (const DescriptorSetID						&id,
-								uint										index,
-								ArrayView< _TextureUniform >				textures,
-								ArrayView< _SamplerUniform >				samplers,
-								ArrayView< _SubpassInputUniform >			subpassInputs,
-								ArrayView< _ImageUniform >					images,
-								ArrayView< _UBufferUniform >				uniformBuffers,
-								ArrayView< _StorageBufferUniform >			storageBuffers,
-								ArrayView< _AccelerationStructureUniform >	accelerationStructures);
+		void _AddDescriptorSet (const DescriptorSetID					&id,
+								uint									index,
+								ArrayView< _TextureUniform >			textures,
+								ArrayView< _SamplerUniform >			samplers,
+								ArrayView< _SubpassInputUniform >		subpassInputs,
+								ArrayView< _ImageUniform >				images,
+								ArrayView< _UBufferUniform >			uniformBuffers,
+								ArrayView< _StorageBufferUniform >		storageBuffers,
+								ArrayView< _RayTracingSceneUniform >	rtScenes);
 
 		void _SetPushConstants (ArrayView< _PushConstant > values);
 	};
@@ -484,33 +487,60 @@ namespace FG
 	struct RayTracingPipelineDesc final : PipelineDescription
 	{
 	// types
+		struct RTShader final : Shader
+		{
+			EShader			shaderType	= Default;
+		};
+
+		struct GeneralGroup
+		{
+			RTShaderID		shader;		// ray generation, ray miss or callable shader
+		};
+
+		struct TriangleHitGroup
+		{
+			RTShaderID		closestHitShader;
+			RTShaderID		anyHitShader;
+		};
+
+		struct ProceduralHitGroup
+		{
+			RTShaderID		closestHitShader;
+			RTShaderID		anyHitShader;
+			RTShaderID		intersectionShader;
+		};
+
 		using Self				= RayTracingPipelineDesc;
-		using Shaders_t			= FixedMap< EShader, Shader, 8 >;
+		using Shaders_t			= HashMap< RTShaderID, RTShader >;
+		using ShaderGroup_t		= Union< std::monostate, GeneralGroup, TriangleHitGroup, ProceduralHitGroup >;
+		using ShaderGroupMap_t	= HashMap< RTShaderGroupID, ShaderGroup_t >;
 
 
 	// variables
 		Shaders_t			_shaders;
+		ShaderGroupMap_t	_groups;
+		uint				_maxRecursionDepth	= 0;
 
 
 	// methods
 		RayTracingPipelineDesc ();
 
-		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src);
-		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
-		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
-		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
+		Self&  AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src);
+		Self&  AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin);
+		Self&  AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin);
+		Self&  AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
 		
-		Self&  AddDescriptorSet (const DescriptorSetID						&id,
-								 const uint									index,
-								 ArrayView< _TextureUniform >				textures,
-								 ArrayView< _SamplerUniform >				samplers,
-								 ArrayView< _SubpassInputUniform >			subpassInputs,
-								 ArrayView< _ImageUniform >					images,
-								 ArrayView< _UBufferUniform >				uniformBuffers,
-								 ArrayView< _StorageBufferUniform >			storageBuffers,
-								 ArrayView< _AccelerationStructureUniform >	accelerationStructures)
+		Self&  AddDescriptorSet (const DescriptorSetID					&id,
+								 const uint								index,
+								 ArrayView< _TextureUniform >			textures,
+								 ArrayView< _SamplerUniform >			samplers,
+								 ArrayView< _SubpassInputUniform >		subpassInputs,
+								 ArrayView< _ImageUniform >				images,
+								 ArrayView< _UBufferUniform >			uniformBuffers,
+								 ArrayView< _StorageBufferUniform >		storageBuffers,
+								 ArrayView< _RayTracingSceneUniform >	rtScenes)
 		{
-			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, accelerationStructures );
+			_AddDescriptorSet( id, index, textures, samplers, subpassInputs, images, uniformBuffers, storageBuffers, rtScenes );
 			return *this;
 		}
 		
@@ -520,7 +550,13 @@ namespace FG
 			return *this;
 		}
 
-		Self&  SetSpecConstants (EShader shaderType, ArrayView< SpecConstant > values);
+		Self&  SetSpecConstants (const RTShaderID &id, ArrayView< SpecConstant > values);
+
+		Self&  AddRayGenShader (const RTShaderGroupID &name, const RTShaderID &id);
+		Self&  AddRayMissShader (const RTShaderGroupID &name, const RTShaderID &id);
+		Self&  AddCallableShader (const RTShaderGroupID &name, const RTShaderID &id);
+		Self&  AddTriangleHitShaders (const RTShaderGroupID &name, const RTShaderID &closestHit, const RTShaderID &anyHit = Default);
+		Self&  AddProceduralHitShaders (const RTShaderGroupID &name, const RTShaderID &closestHit, const RTShaderID &anyHit, const RTShaderID &inersection);
 	};
 
 

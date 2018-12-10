@@ -3,21 +3,12 @@
 #pragma once
 
 #include "framegraph/Public/VertexEnums.h"
+#include "framegraph/Public/RayTracingEnums.h"
 #include "framegraph/Public/IDs.h"
+#include "stl/Math/Matrix.h"
 
 namespace FG
 {
-
-	enum class ERayTracingGeometryFlags
-	{
-		Opaque						= 1 << 0,
-		NoDuplicateAnyHitInvocation	= 1 << 1,
-		_Last,
-		Unknown						= 0,
-	};
-	FG_BIT_OPERATORS( ERayTracingGeometryFlags );
-
-
 
 	//
 	// Ray Tracing Geometry Description (experimental)
@@ -28,53 +19,58 @@ namespace FG
 	// types
 		using EFlags = ERayTracingGeometryFlags;
 
-		struct Geometry
+		struct Triangles
 		{
-			RawBufferID		vertexBuffer;
-			BytesU			vertexOffset;
-			Bytes<uint>		vertexStride;
-			uint			vertexCount			= 0;
-			EVertexType		vertexFormat		= Default;
+		// variables
+			GeometryID		geometryId;
+			EFlags			flags			= Default;
+
+			uint			vertexCount		= 0;
+			EVertexType		vertexFormat	= Default;
 
 			// optional:
-			RawBufferID		indexBuffer;
-			BytesU			indexOffset;
-			uint			indexCount			= 0;
-			EIndex			indexType			= Default;
+			uint			indexCount		= 0;
+			EIndex			indexType		= Default;
 
-			// optional:
-			RawBufferID		transformBuffer;
-			BytesU			transformOffset;
+		// methods
+			Triangles () {}
+			explicit Triangles (const GeometryID &id) : geometryId{id} {}
 
-			EFlags			flags				= Default;
-		};
-
-		struct AABBData
-		{
-			float3		min;
-			float3		max;
+			template <typename T, typename Idx>	Triangles&  SetVertices (Idx count)					{ STATIC_ASSERT(IsInteger<Idx>);  vertexCount = uint(count);  vertexFormat = VertexDesc<T>::attrib;  return *this; }
+			template <typename Idx>				Triangles&  SetVertices (Idx count, EVertexType fmt){ STATIC_ASSERT(IsInteger<Idx>);  vertexCount = uint(count);  vertexFormat = fmt;  return *this; }
+			template <typename Idx>				Triangles&  SetIndices (Idx count, EIndex type)		{ STATIC_ASSERT(IsInteger<Idx>);  indexCount = uint(count);  indexType = type;  return *this; }
+												Triangles&  AddFlags (EFlags value)					{ flags |= value;  return *this; }
+												Triangles&  SetID (const GeometryID &id)			{ geometryId = id;  return *this; }
 		};
 
 		struct AABB
 		{
-			RawBufferID		aabbBuffer;			// array of 'AABBData'
-			BytesU			aabbOffset;
-			Bytes<uint>		aabbStride;
-			uint			aabbCount			= 0;
-			EFlags			flags				= Default;
+		// variables
+			GeometryID		geometryId;
+			EFlags			flags			= Default;
+			uint			aabbCount		= 0;
+
+		// methods
+			AABB () {}
+			explicit AABB (const GeometryID &id) : geometryId{id} {}
+
+			template <typename Idx>	AABB&  SetCount (Idx count)			{ STATIC_ASSERT(IsInteger<Idx>);  aabbCount = uint(count);  return *this; }
+									AABB&  AddFlags (EFlags value)		{ flags |= value;  return *this; }
+									AABB&  SetID (const GeometryID &id)	{ geometryId = id;  return *this; }
 		};
 
 
 	// variables
-		ArrayView< Geometry >	geometry;
-		ArrayView< AABB >		aabb;
+		ArrayView< Triangles >	triangles;
+		ArrayView< AABB >		aabbs;
+		ERayTracingFlags		flags		= Default;
 
 
 	// methods
 		RayTracingGeometryDesc () {}
-		explicit RayTracingGeometryDesc (ArrayView<AABB> aabb) : aabb{aabb} {}
-		explicit RayTracingGeometryDesc (ArrayView<Geometry> geometry) : geometry{geometry} {}
-		RayTracingGeometryDesc (ArrayView<Geometry> geometry, ArrayView<AABB> aabb) : geometry{geometry}, aabb{aabb} {}
+		explicit RayTracingGeometryDesc (ArrayView<AABB> aabbs) : aabbs{aabbs} {}
+		explicit RayTracingGeometryDesc (ArrayView<Triangles> triangles) : triangles{triangles} {}
+		RayTracingGeometryDesc (ArrayView<Triangles> triangles, ArrayView<AABB> aabbs) : triangles{triangles}, aabbs{aabbs} {}
 	};
 
 

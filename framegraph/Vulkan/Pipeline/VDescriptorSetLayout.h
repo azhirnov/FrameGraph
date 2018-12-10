@@ -20,7 +20,7 @@ namespace FG
 
 	private:
 		using UniformMapPtr			= PipelineDescription::UniformMapPtr;
-		using PoolSizeArray_t		= FixedArray< VkDescriptorPoolSize, VK_DESCRIPTOR_TYPE_RANGE_SIZE >;
+		using PoolSizeArray_t		= FixedArray< VkDescriptorPoolSize, 10 >;
 
 
 	// variables
@@ -63,6 +63,8 @@ namespace FG
 		void _AddSubpassInput (const PipelineDescription::SubpassInput &spi, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
 		void _AddUniformBuffer (const PipelineDescription::UniformBuffer &ub, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
 		void _AddStorageBuffer (const PipelineDescription::StorageBuffer &sb, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddRayTracingScene (const PipelineDescription::RayTracingScene &rts, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _IncDescriptorCount (VkDescriptorType type);
 	};
 
 }	// FG

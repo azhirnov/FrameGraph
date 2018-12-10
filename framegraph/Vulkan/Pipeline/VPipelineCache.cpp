@@ -122,7 +122,6 @@ namespace FG
 		_graphicsPipelines.Create( alloc );
 		_computePipelines.Create( alloc );
 		_meshPipelines.Create( alloc );
-		_rayTracingPipelines.Create( alloc );
 	}
 	
 /*
@@ -166,7 +165,6 @@ namespace FG
 		_MergePipelines( INOUT _graphicsPipelines, OUT readyToDelete );
 		_MergePipelines( INOUT _computePipelines, OUT readyToDelete );
 		_MergePipelines( INOUT _meshPipelines, OUT readyToDelete );
-		_MergePipelines( INOUT _rayTracingPipelines, OUT readyToDelete );
 	}
 
 /*
@@ -1204,7 +1202,7 @@ namespace FG
 					renderState.stencil.back.reference  = 0;
 					break;
 
-				case EPipelineDynamicState::None :
+				case EPipelineDynamicState::Unknown :
 				case EPipelineDynamicState::_Last :
 				case EPipelineDynamicState::All :
 					break;	// to shutup warnings

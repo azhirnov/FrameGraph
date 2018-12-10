@@ -19,8 +19,7 @@ namespace FG
 			[&result] (const RGBA32u &src)		{ MemCopy( result.color.uint32, src ); },
 			[&result] (const RGBA32i &src)		{ MemCopy( result.color.int32, src ); },
 			[&result] (const DepthStencil &src)	{ result.depthStencil = {src.depth, src.stencil}; },
-			[&result] (const std::monostate &)	{ memset( &result, 0, sizeof(result) ); },
-			[] (const auto&)					{ ASSERT(!"unsupported"); }
+			[&result] (const std::monostate &)	{ memset( &result, 0, sizeof(result) ); }
 		);
 	}
 //-----------------------------------------------------------------------------
@@ -35,6 +34,8 @@ namespace FG
 	bool VLogicalRenderPass::Create (VResourceManagerThread &rm, const RenderPassDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
+
+		_allocator.SetBlockSize( 4_Mb );
 		
 		_colorState			= desc.colorState;
 		_depthState			= desc.depthState;
@@ -146,7 +147,15 @@ namespace FG
 */
 	void VLogicalRenderPass::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
 	{
-		// TODO
+		SCOPELOCK( _rcCheck );
+		
+		for (auto& task : _drawTasks)
+		{
+			task->~IDrawTask();
+		}
+		_drawTasks.clear();
+
+		_allocator.Discard();
 	}
 
 /*
@@ -156,13 +165,7 @@ namespace FG
 */
 	VLogicalRenderPass::~VLogicalRenderPass ()
 	{
-		SCOPELOCK( _rcCheck );
-
-		for (auto& task : _drawTasks)
-		{
-			task->~IDrawTask();
-		}
-		_drawTasks.clear();
+		ASSERT( _drawTasks.empty() );
 	}
 
 

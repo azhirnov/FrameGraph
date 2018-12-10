@@ -2,6 +2,7 @@
 
 #include "VImage.h"
 #include "VEnumCast.h"
+#include "FGEnumCast.h"
 #include "VDevice.h"
 #include "VMemoryObj.h"
 
@@ -87,17 +88,18 @@ namespace FG
 	{
 		VkImageLayout	result = VK_IMAGE_LAYOUT_GENERAL;
 
-		if ( BitSet<32>(uint( _desc.usage )).count() == 1 )
-		{
-			if ( EnumEq( _desc.usage, EImageUsage::Sampled ) )
-				result = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			else
-			if ( EnumEq( _desc.usage, EImageUsage::ColorAttachment ) )
-				result = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			else
-			if ( EnumEq( _desc.usage, EImageUsage::DepthStencilAttachment ) )
-				result = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		}
+		if ( EnumEq( _desc.usage, EImageUsage::Sampled ) )
+			result = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		else
+		if ( EnumEq( _desc.usage, EImageUsage::Storage ) )
+			result = VK_IMAGE_LAYOUT_GENERAL;
+		else
+		if ( EnumEq( _desc.usage, EImageUsage::ColorAttachment ) )
+			result = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		else
+		if ( EnumEq( _desc.usage, EImageUsage::DepthStencilAttachment ) )
+			result = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		return result;
 	}
 
@@ -112,6 +114,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _image == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
+		CHECK_ERR( not desc.isExternal );
 		
 		const bool		opt_tiling	= not uint(memObj.MemoryType() & EMemoryTypeExt::HostVisible);
 
@@ -158,82 +161,6 @@ namespace FG
 
 /*
 =================================================
-	EImage_FromVk
-=================================================
-*/
-	ND_ static EImage  EImage_FromVk (VkImageType type, uint arrayLayers, VkSampleCountFlagBits samples)
-	{
-		const bool	is_array		= arrayLayers > 1;
-		const bool	is_multisampled	= samples > VK_SAMPLE_COUNT_1_BIT;
-
-		ENABLE_ENUM_CHECKS();
-		switch ( type )
-		{
-			case VK_IMAGE_TYPE_1D :
-				return is_array ? EImage::Tex1DArray : EImage::Tex1D;
-
-			case VK_IMAGE_TYPE_2D :
-				return is_multisampled ?
-							(is_array ? EImage::Tex2DMSArray : EImage::Tex2DMS) :
-							(is_array ? EImage::Tex2DArray : EImage::Tex2D);
-
-			case VK_IMAGE_TYPE_3D :
-				ASSERT( arrayLayers == 1 );
-				return EImage::Tex3D;
-
-			case VK_IMAGE_TYPE_RANGE_SIZE :
-			case VK_IMAGE_TYPE_MAX_ENUM :	break;
-		}
-		DISABLE_ENUM_CHECKS();
-		RETURN_ERR( "not supported" );
-	}
-
-/*
-=================================================
-	EImageUsage_FromVk
-=================================================
-*/
-	ND_ static EImageUsage  EImageUsage_FromVk (VkImageUsageFlags usage)
-	{
-		EImageUsage		result = Default;
-
-		for (VkImageUsageFlags t = 1; t < VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM; t <<= 1)
-		{
-			if ( not EnumEq( usage, t ) )
-				continue;
-			
-			ENABLE_ENUM_CHECKS();
-			switch ( t )
-			{
-				case VK_IMAGE_USAGE_TRANSFER_SRC_BIT :				result |= EImageUsage::TransferSrc;				break;
-				case VK_IMAGE_USAGE_TRANSFER_DST_BIT :				result |= EImageUsage::TransferDst;				break;
-				case VK_IMAGE_USAGE_SAMPLED_BIT :					result |= EImageUsage::Sampled;					break;
-				case VK_IMAGE_USAGE_STORAGE_BIT :					result |= EImageUsage::Storage;					break;
-				case VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT :			result |= EImageUsage::ColorAttachment;			break;
-				case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT :	result |= EImageUsage::DepthStencilAttachment;	break;
-				case VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT :		result |= EImageUsage::TransientAttachment;		break;
-				case VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT :			result |= EImageUsage::InputAttachment;			break;
-				case VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV :
-				case VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM :			RETURN_ERR( "not supported" );
-			}
-			DISABLE_ENUM_CHECKS();
-		}
-		return result;
-	}
-
-/*
-=================================================
-	MultiSamples_FromVk
-=================================================
-*/
-	ND_ static  MultiSamples  MultiSamples_FromVk (VkSampleCountFlagBits samples)
-	{
-		ASSERT( IsPowerOfTwo( samples ) );
-		return MultiSamples{ uint(samples) };
-	}
-
-/*
-=================================================
 	Create
 =================================================
 */
@@ -243,13 +170,13 @@ namespace FG
 		CHECK_ERR( _image == VK_NULL_HANDLE );
 		
 		_image				= BitCast<VkImage>( desc.image );
-		_desc.imageType		= EImage_FromVk( BitCast<VkImageType>( desc.imageType ), desc.arrayLayers, BitCast<VkSampleCountFlagBits>( desc.samples ));
+		_desc.imageType		= FGEnumCast( BitCast<VkImageType>( desc.imageType ), desc.arrayLayers, BitCast<VkSampleCountFlagBits>( desc.samples ));
 		_desc.dimension		= desc.dimension;
-		_desc.format		= EPixelFormat_FromVk( BitCast<VkFormat>( desc.format ));
-		_desc.usage			= EImageUsage_FromVk( BitCast<VkImageUsageFlags>( desc.usage ));
+		_desc.format		= FGEnumCast( BitCast<VkFormat>( desc.format ));
+		_desc.usage			= FGEnumCast( BitCast<VkImageUsageFlagBits>( desc.usage ));
 		_desc.arrayLayers	= ImageLayer{ desc.arrayLayers };
 		_desc.maxLevel		= MipmapLevel{ desc.maxLevels };
-		_desc.samples		= MultiSamples_FromVk( BitCast<VkSampleCountFlagBits>( desc.samples ));
+		_desc.samples		= FGEnumCast( BitCast<VkSampleCountFlagBits>( desc.samples ));
 		_desc.isExternal	= true;
 
 		if ( not dbgName.empty() )

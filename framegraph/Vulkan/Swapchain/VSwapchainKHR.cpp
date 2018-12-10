@@ -286,7 +286,7 @@ namespace FG
 	{
 		for (auto& id : _imageIDs)
 		{
-			_frameGraph.DestroyResource( INOUT id );
+			_frameGraph.ReleaseResource( INOUT id );
 		}
 		_imageIDs.clear();
 	}

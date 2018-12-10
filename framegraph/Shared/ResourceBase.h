@@ -33,6 +33,9 @@ namespace FG
 		// reference counter may be used for cached resources like samples, pipeline layout and other
 		mutable AtomicCounter<int>	_refCounter;
 
+		// cached resource may be deleted if reference counter is 1 and last usage was a long ago
+		mutable std::atomic<uint>	_lastUsage	= 0;
+
 		// instance counter used to detect deprecated handles
 		std::atomic<uint>		_instanceId	= 0;
 
@@ -62,17 +65,19 @@ namespace FG
 			++_refCounter;
 		}
 
-		ND_ bool ReleaseRef () const
+		ND_ bool ReleaseRef (uint timestamp) const
 		{
+			_lastUsage.store( timestamp, memory_order_relaxed );
+
 			return _refCounter.DecAndTest();
 		}
 		
-		ND_ EState			_GetState ()		const	{ return _state.load( memory_order_acquire ); }
 		ND_ bool			IsCreated ()		const	{ return _GetState() == EState::Created; }
 		ND_ bool			IsDestroyed ()		const	{ return _GetState() <= EState::Failed; }
 
 		ND_ uint			GetInstanceID ()	const	{ return _instanceId.load( memory_order_acquire ); }
 		ND_ int				GetRefCount ()		const	{ return _refCounter.Load(); }
+		ND_ uint			GetLastUsage ()		const	{ return _lastUsage.load( memory_order_relaxed ); }
 
 		ND_ ResType&		Data ()						{ return _data; }
 		ND_ ResType const&	Data ()				const	{ return _data; }
@@ -86,6 +91,8 @@ namespace FG
 		bool Create (Args&& ...args)
 		{
 			ASSERT( IsDestroyed() );
+
+			_refCounter.Store( 1 );
 
 			bool	result = _data.Create( std::forward<Args &&>( args )... );
 			if ( result )
@@ -107,6 +114,9 @@ namespace FG
 			_state.store( EState::Initial, memory_order_release );
 			_instanceId.fetch_add( 1, memory_order_relaxed );
 		}
+
+	private:
+		ND_ EState	_GetState ()	const	{ return _state.load( memory_order_acquire ); }
 	};
 
 

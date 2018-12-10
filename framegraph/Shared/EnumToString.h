@@ -165,52 +165,61 @@ namespace FG
 */
 	ND_ inline String  ToString (const EResourceState value)
 	{
+		const auto	mask = EResourceState::_StateMask;
+
 		String	str;
 		switch ( value & EResourceState::_StateMask )
 		{
 			case EResourceState::Unknown :								str << "Unknown";					break;
-			case EResourceState::ShaderRead :							str << "ShaderRead";				break;
-			case EResourceState::ShaderWrite :							str << "ShaderWrite";				break;
-			case EResourceState::ShaderReadWrite :						str << "ShaderReadWrite";			break;
-			case EResourceState::UniformRead :							str << "UniformRead";				break;
+			case EResourceState::ShaderRead :							str << "Storage-R";					break;
+			case EResourceState::ShaderWrite :							str << "Storage-W";					break;
+			case EResourceState::ShaderReadWrite :						str << "Storage-RW";				break;
+			case EResourceState::UniformRead :							str << "Uniform";					break;
 			case EResourceState::ShaderSample :							str << "ShaderSample";				break;
-			case EResourceState::InputAttachment :						str << "InputAttachment";			break;
-			case EResourceState::TransientAttachment :					str << "TransientAttachment";		break;
-			case EResourceState::TransferSrc :							str << "TransferSrc";				break;
-			case EResourceState::TransferDst :							str << "TransferDst";				break;
-			case EResourceState::ColorAttachmentRead :					str << "ColorRT-Read";				break;
-			case EResourceState::ColorAttachmentWrite :					str << "ColorRT-Write";				break;
-			case EResourceState::ColorAttachmentReadWrite :				str << "ColorRT-ReadWrite";			break;
-			case EResourceState::DepthStencilAttachmentRead :			str << "DepthStencilRT-Read";		break;
-			case EResourceState::DepthStencilAttachmentWrite :			str << "DepthStencilRT-Write";		break;
-			case EResourceState::DepthStencilAttachmentReadWrite :		str << "DepthStencilRT-ReadWrite";	break;
-			case EResourceState::HostRead :								str << "HostRead";					break;
-			case EResourceState::HostWrite :							str << "HostWrite";					break;
-			case EResourceState::HostReadWrite :						str << "HostReadWrite";				break;
+			case EResourceState::InputAttachment :						str << "SubpassInput";				break;
+			case EResourceState::TransientAttachment :					str << "Transient";					break;
+			case EResourceState::TransferSrc :							str << "Transfer-R";				break;
+			case EResourceState::TransferDst :							str << "Transfer-W";				break;
+			case EResourceState::ColorAttachmentRead :					str << "Color-R";					break;
+			case EResourceState::ColorAttachmentWrite :					str << "Color-W";					break;
+			case EResourceState::ColorAttachmentReadWrite :				str << "Color-RW";					break;
+			case EResourceState::DepthStencilAttachmentRead :			str << "DepthStencil-R";			break;
+			case EResourceState::DepthStencilAttachmentWrite :			str << "DepthStencil-W";			break;
+			case EResourceState::DepthStencilAttachmentReadWrite :		str << "DepthStencil-R";			break;
+			case EResourceState::HostRead :								str << "Host-R";					break;
+			case EResourceState::HostWrite :							str << "Host-W";					break;
+			case EResourceState::HostReadWrite :						str << "Host-RW";					break;
 			case EResourceState::PresentImage :							str << "PresentImage";				break;
 			case EResourceState::IndirectBuffer :						str << "IndirectBuffer";			break;
 			case EResourceState::IndexBuffer :							str << "IndexBuffer";				break;
 			case EResourceState::VertexBuffer :							str << "VertexBuffer";				break;
+			case EResourceState::BuildRayTracingStructWrite :			str << "BuildRTAS-W";				break;
+			case EResourceState::BuildRayTracingStructReadWrite :		str << "BuildRTAS-RW";				break;
+			case EResourceState::RTASBuildingBufferRead :				str << "RTASBuild-Buffer-R";		break;
+			case EResourceState::RTASBuildingBufferReadWrite :			str << "RTASBuild-Buffer-RW";		break;
+			case EResourceState::ShaderBindingBufferRead :				str << "ShaderBindingTable-R";		break;
 			default :													RETURN_ERR( "unknown resource state!" );
 		}
-		
-		if ( EnumEq( value, EResourceState::_VertexShader ) )			str << ", VS";
-		if ( EnumEq( value, EResourceState::_TessControlShader ) )		str << ", TCS";
-		if ( EnumEq( value, EResourceState::_TessEvaluationShader ) )	str << ", TES";
-		if ( EnumEq( value, EResourceState::_GeometryShader ) )			str << ", GS";
-		if ( EnumEq( value, EResourceState::_FragmentShader ) )			str << ", FS";
-		if ( EnumEq( value, EResourceState::_ComputeShader ) )			str << ", CS";
-		if ( EnumEq( value, EResourceState::_MeshTaskShader ) )			str << ", MTS";
-		if ( EnumEq( value, EResourceState::_MeshShader ) )				str << ", MS";
-		if ( EnumEq( value, EResourceState::_RayTracingShader ) )		str << ", RTS";
-		
-		if ( EnumEq( value, EResourceState::ClearBefore ) )				str << ", ClearBefore";
-		if ( EnumEq( value, EResourceState::InvalidateBefore ) )		str << ", InvalidateBefore";
-		if ( EnumEq( value, EResourceState::InvalidateAfter ) )			str << ", InvalidateAfter";
 
-		//if ( EnumEq( value, EResourceState::EarlyFragmentTests ) )		str << ", EarlyFragmentTests";
-		//if ( EnumEq( value, EResourceState::LateFragmentTests ) )		str << ", LateFragmentTests";
+		if ( EnumEq( value, EResourceState::_VertexShader ))			str << ", VS";
+		if ( EnumEq( value, EResourceState::_TessControlShader ))		str << ", TCS";
+		if ( EnumEq( value, EResourceState::_TessEvaluationShader ))	str << ", TES";
+		if ( EnumEq( value, EResourceState::_GeometryShader ))			str << ", GS";
+		if ( EnumEq( value, EResourceState::_FragmentShader ))			str << ", FS";
+		if ( EnumEq( value, EResourceState::_ComputeShader ))			str << ", CS";
+		if ( EnumEq( value, EResourceState::_MeshTaskShader ))			str << ", MTS";
+		if ( EnumEq( value, EResourceState::_MeshShader ))				str << ", MS";
+		if ( EnumEq( value, EResourceState::_RayTracingShader ))		str << ", RTS";
+		
+		if ( EnumEq( value, EResourceState::ClearBefore ))				str << ", ClearBefore";
+		if ( EnumEq( value, EResourceState::InvalidateBefore ))			str << ", InvalidateBefore";
+		if ( EnumEq( value, EResourceState::InvalidateAfter ))			str << ", InvalidateAfter";
+		if ( EnumEq( value, EResourceState::_BufferDynamicOffset ))		str << ", Dynamic";
 
+		if ( not EnumEq( value, EResourceState::EarlyFragmentTests | EResourceState::LateFragmentTests )) {
+			if ( EnumEq( value, EResourceState::EarlyFragmentTests ) )	str << ", EarlyTests";
+			if ( EnumEq( value, EResourceState::LateFragmentTests ) )	str << ", LateTests";
+		}
 		return str;
 	}
 	

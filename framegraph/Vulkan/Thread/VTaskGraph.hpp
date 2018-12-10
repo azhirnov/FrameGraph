@@ -4,6 +4,7 @@
 
 #include "VTaskGraph.h"
 #include "VFrameGraphThread.h"
+#include "VEnumCast.h"
 
 namespace FG
 {
@@ -15,7 +16,7 @@ namespace FG
 */
 	template <typename VisitorT>
 	template <typename T>
-	inline Task  VTaskGraph<VisitorT>::Add (VFrameGraphThread *fg, const T &task)
+	inline VFgTask<T>*  VTaskGraph<VisitorT>::Add (VFrameGraphThread *fg, const T &task)
 	{
 		void *	ptr  = fg->GetAllocator().Alloc< VFgTask<T> >();
 		auto	iter = *_nodes->insert( PlacementNew< VFgTask<T> >( ptr, fg, task, &_Visitor<T> )).first;
@@ -29,7 +30,7 @@ namespace FG
 
 			in_node->Attach( iter );
 		}
-		return iter;
+		return Cast< VFgTask<T> >( iter.operator->() );
 	}
 	
 /*
@@ -445,6 +446,45 @@ namespace FG
 		rightEyeImage{ fg->GetResourceManager()->GetState( task.rightEye )},
 		rightEyeLayer{ task.rightEyeLayer }
 	{}
+//-----------------------------------------------------------------------------
+	
+	
+/*
+=================================================
+	VFgTask< UpdateRayTracingShaderTable >
+=================================================
+*/
+	inline VFgTask<UpdateRayTracingShaderTable>::VFgTask (VFrameGraphThread *fg, const UpdateRayTracingShaderTable &task, ProcessFunc_t process) :
+		IFrameGraphTask{ task, process },
+		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},	rtScene{ fg->GetResourceManager()->GetState( task.rtScene )},
+		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},	dstOffset{ VkDeviceSize( task.dstOffset )},
+		rayGenShader{ task.rayGenShader },									missShaders{ task.missShaders },
+		hitShaders{ task.hitShaders }
+		//,	callableShaders{ task.callableShaders }
+	{}
+//-----------------------------------------------------------------------------
+
+
+/*
+=================================================
+	VFgTask< TraceRays >
+=================================================
+*/
+	inline VFgTask<TraceRays>::VFgTask (VFrameGraphThread *fg, const TraceRays &task, ProcessFunc_t process) :
+		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
+		pushConstants{ task.pushConstants },	groupCount{ Max( task.groupCount, 1u )},
+		sbtBuffer{ fg->GetResourceManager()->GetState( task.shaderTable.buffer )},
+		rayGenOffset{ VkDeviceSize( task.shaderTable.rayGenOffset )},
+		rayMissOffset{ VkDeviceSize( task.shaderTable.rayMissOffset )},
+		rayHitOffset{ VkDeviceSize( task.shaderTable.rayHitOffset )},
+		callableOffset{ VkDeviceSize( task.shaderTable.callableOffset )},
+		rayMissStride{ uint16_t( task.shaderTable.rayMissStride )},
+		rayHitStride{ uint16_t( task.shaderTable.rayHitStride )},
+		callableStride{ uint16_t( task.shaderTable.callableStride )}
+	{
+		CopyDescriptorSets( fg, task.resources, OUT _resources );
+	}
+//-----------------------------------------------------------------------------
 
 
 }	// FG

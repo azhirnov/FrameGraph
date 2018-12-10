@@ -14,43 +14,29 @@ namespace FG
 	class VRayTracingPipeline final
 	{
 		friend class VPipelineCache;
-		
+
 	// types
 	private:
-		struct PipelineInstance
+		struct GroupInfo
 		{
-		// variables
-			HashVal					_hash;
-			VkPipelineCreateFlags	flags;
+			RTShaderGroupID		id;
+			uint				offset	= ~0u;
 
-		// methods
-			PipelineInstance ();
-
-			ND_ bool  operator == (const PipelineInstance &rhs) const;
+			ND_ bool  operator == (const RTShaderGroupID &rhs)	const	{ return id == rhs; }
+			ND_ bool  operator <  (const RTShaderGroupID &rhs)	const	{ return id < rhs; }
+			ND_ bool  operator <  (const GroupInfo &rhs)		const	{ return id < rhs.id; }
 		};
-
-		struct PipelineInstanceHash {
-			ND_ size_t	operator () (const PipelineInstance &value) const noexcept	{ return size_t(value._hash); }
-		};
-		
-		struct ShaderModule
-		{
-			VkShaderStageFlagBits				stage;
-			PipelineDescription::VkShaderPtr	module;
-		};
-
-		using Instances_t			= HashMap< PipelineInstance, VkPipeline, PipelineInstanceHash >;
-		using VkShaderPtr			= PipelineDescription::VkShaderPtr;
-		using ShaderModules_t		= FixedArray< ShaderModule, 8 >;
 
 
 	// variables
 	private:
 		PipelineLayoutID		_layoutId;
-		Instances_t				_instances;
+		VkPipeline				_pipeline			= VK_NULL_HANDLE;
 		
-		ShaderModules_t			_shaders;
-		
+		Array<uint8_t>			_groupData;
+		uint					_groupInfoOffset	= 0;
+		uint					_shaderHandleSize	= 0;
+
 		DebugName_t				_debugName;
 		
 		RWRaceConditionCheck	_rcCheck;
@@ -62,34 +48,16 @@ namespace FG
 		VRayTracingPipeline (VRayTracingPipeline &&) = default;
 		~VRayTracingPipeline ();
 		
-		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
+		bool Create (const VResourceManagerThread &, const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+
+		ND_ ArrayView<uint8_t>		GetShaderGroupHandle (const RTShaderGroupID &id) const;
 		
 		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
-		
+		ND_ VkPipeline				Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _pipeline; }
+		ND_ BytesU					ShaderHandleSize ()	const	{ SHAREDLOCK( _rcCheck );  return BytesU{_shaderHandleSize}; }
 		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 	};
-
-	
-	
-/*
-=================================================
-	PipelineInstance
-=================================================
-*/
-	inline VRayTracingPipeline::PipelineInstance::PipelineInstance () :
-		_hash{ 0 },		flags{ 0 }
-	{}
-	
-/*
-=================================================
-	PipelineInstance::operator ==
-=================================================
-*/
-	inline bool VRayTracingPipeline::PipelineInstance::operator == (const PipelineInstance &rhs) const
-	{
-		return	flags	== rhs.flags;
-	}
 
 
 }	// FG

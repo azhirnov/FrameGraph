@@ -6,6 +6,8 @@
 #include "Public/FGEnums.h"
 #include "VLocalImage.h"
 #include "VLocalBuffer.h"
+#include "VLocalRTGeometry.h"
+#include "VLocalRTScene.h"
 #include "VTaskGraph.h"
 
 namespace FG
@@ -38,15 +40,21 @@ namespace FG
 			Array< Barrier<BarrierType>>	barriers;
 		};
 
-		using ImageInfo_t		= ResourceInfo< VkImageMemoryBarrier >;
-		using BufferInfo_t		= ResourceInfo< VkBufferMemoryBarrier >;
+		using ImageInfo_t			= ResourceInfo< VkImageMemoryBarrier >;
+		using BufferInfo_t			= ResourceInfo< VkBufferMemoryBarrier >;
+		using RTSceneInfo_t			= ResourceInfo< VkMemoryBarrier >;
+		using RTGeometryInfo_t		= ResourceInfo< VkMemoryBarrier >;
 
-		using ImageUsage_t		= Pair< const VImage *,  VLocalImage::ImageState   >;
-		using BufferUsage_t		= Pair< const VBuffer *, VLocalBuffer::BufferState >;
-		using ResourceUsage_t	= Union< std::monostate, ImageUsage_t, BufferUsage_t >;
+		using ImageUsage_t			= Pair< const VImage *, VLocalImage::ImageState >;
+		using BufferUsage_t			= Pair< const VBuffer *, VLocalBuffer::BufferState >;
+		using RTSceneUsage_t		= Pair< const VRayTracingScene *, VLocalRTScene::SceneState >;
+		using RTGeometryUsage_t		= Pair< const VRayTracingGeometry *, VLocalRTGeometry::GeometryState >;
+		using ResourceUsage_t		= Union< std::monostate, ImageUsage_t, BufferUsage_t, RTSceneUsage_t, RTGeometryUsage_t >;
 
-		using ImageResources_t	= HashMap< const VImage *, ImageInfo_t >;
-		using BufferResources_t	= HashMap< const VBuffer *, BufferInfo_t >;
+		using ImageResources_t		= HashMap< const VImage *, ImageInfo_t >;
+		using BufferResources_t		= HashMap< const VBuffer *, BufferInfo_t >;
+		using RTSceneResources_t	= HashMap< const VRayTracingScene *, RTSceneInfo_t >;
+		using RTGeometryResources_t	= HashMap< const VRayTracingGeometry *, RTGeometryInfo_t >;
 
 		struct TaskInfo
 		{
@@ -66,6 +74,8 @@ namespace FG
 		TaskMap_t					_tasks;
 		ImageResources_t			_images;
 		BufferResources_t			_buffers;
+		RTSceneResources_t			_rtScenes;			// top-level AS
+		RTGeometryResources_t		_rtGeometries;		// bottom-level AS
 		mutable HashSet<String>		_existingBarriers;
 
 		VDebugger const&			_mainDbg;
@@ -100,9 +110,27 @@ namespace FG
 							  VkPipelineStageFlags			dstStageMask,
 							  VkDependencyFlags				dependencyFlags,
 							  const VkImageMemoryBarrier	&barrier);
+		
+		void AddRayTracingBarrier (const VRayTracingGeometry*	rtGeometry,
+								   ExeOrderIndex				srcIndex,
+								   ExeOrderIndex				dstIndex,
+								   VkPipelineStageFlags			srcStageMask,
+								   VkPipelineStageFlags			dstStageMask,
+								   VkDependencyFlags			dependencyFlags,
+								   const VkMemoryBarrier		&barrier);
+		
+		void AddRayTracingBarrier (const VRayTracingScene*		rtScene,
+								   ExeOrderIndex				srcIndex,
+								   ExeOrderIndex				dstIndex,
+								   VkPipelineStageFlags			srcStageMask,
+								   VkPipelineStageFlags			dstStageMask,
+								   VkDependencyFlags			dependencyFlags,
+								   const VkMemoryBarrier		&barrier);
 
 		void AddBufferUsage (const VBuffer* bufferId, const VLocalBuffer::BufferState &state);
 		void AddImageUsage (const VImage* imageId, const VLocalImage::ImageState &state);
+		void AddRTGeometryUsage (const VRayTracingGeometry *, const VLocalRTGeometry::GeometryState &state);
+		void AddRTSceneUsage (const VRayTracingScene *, const VLocalRTScene::SceneState &state);
 
 		void RunTask (TaskPtr task);
 
@@ -136,6 +164,10 @@ namespace FG
 		void _UpdateBufferTaskToString (Ptr<const VFgTask<UpdateBuffer>>, INOUT String &) const;
 		void _PresentTaskToString (Ptr<const VFgTask<Present>>, INOUT String &) const;
 		void _PresentVRTaskToString (Ptr<const VFgTask<PresentVR>>, INOUT String &) const;
+		void _BuildRayTracingGeometryTaskToString (Ptr<const VFgTask<BuildRayTracingGeometry>>, INOUT String &) const;
+		void _BuildRayTracingSceneTaskToString (Ptr<const VFgTask<BuildRayTracingScene>>, INOUT String &) const;
+		void _UpdateRayTracingShaderTableTaskToString (Ptr<const VFgTask<UpdateRayTracingShaderTable>>, INOUT String &) const;
+		void _TraceRaysTaskToString (Ptr<const VFgTask<TraceRays>>, INOUT String &) const;
 
 
 	// dump to graphviz format
@@ -153,6 +185,7 @@ namespace FG
 		void _GetResourceBarrier (const T *res, const Barrier<B> &bar, VkImageLayout oldLayout, VkImageLayout newLayout,
 								  INOUT String &style, INOUT String &deps) const;
 
+		// graphviz node names
 		ND_ String  _VisTaskName (TaskPtr task) const;
 		ND_ String  _VisBarrierGroupName (TaskPtr task) const;
 		ND_ String  _VisBarrierGroupName (ExeOrderIndex index) const;
@@ -164,6 +197,7 @@ namespace FG
 		ND_ String  _VisBarrierName (const VBuffer *buffer, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const;
 		ND_ String  _VisBarrierName (const VImage *image, ExeOrderIndex srcIndex, ExeOrderIndex dstIndex) const;
 
+		// color style
 		ND_ String  _SubBatchBG () const;
 		ND_ String  _TaskLabelColor (RGBA8u) const;
 		ND_ String  _DrawTaskBG () const;

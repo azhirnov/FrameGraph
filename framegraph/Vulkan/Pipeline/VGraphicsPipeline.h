@@ -55,7 +55,7 @@ namespace FG
 			uint						subpassIndex	= 0;
 			RenderState					renderState;
 			VertexInputState			vertexInput;
-			EPipelineDynamicState		dynamicState	= EPipelineDynamicState::None;
+			EPipelineDynamicState		dynamicState	= Default;
 			VkPipelineCreateFlags		flags			= 0;
 			uint						viewportCount	= 0;
 			// TODO: specialization constants

@@ -5,6 +5,8 @@
 #include "VTaskGraph.h"
 #include "VLocalBuffer.h"
 #include "VLocalImage.h"
+#include "VLocalRTGeometry.h"
+#include "VLocalRTScene.h"
 #include "VBarrierManager.h"
 
 namespace FG
@@ -17,7 +19,7 @@ namespace FG
 	class VTaskProcessor final
 	{
 	// types
-	public:
+	private:
 		class DrawTaskBarriers;
 		class DrawTaskCommands;
 		class PipelineResourceBarriers;
@@ -26,21 +28,25 @@ namespace FG
 		using ImageRange				= VLocalImage::ImageRange;
 		using BufferState				= VLocalBuffer::BufferState;
 		using ImageState				= VLocalImage::ImageState;
+		using RTGeometryState			= VLocalRTGeometry::GeometryState;
+		using RTSceneState				= VLocalRTScene::SceneState;
+
+		using CommitBarrierFn_t			= void (*) (const void *, VBarrierManager &, VFrameGraphDebugger *);
+		using PendingResourceBarriers_t	= std::unordered_map< void const*, CommitBarrierFn_t, std::hash<void const*>, std::equal_to<void const*>,
+															  StdLinearAllocator<Pair<void const* const, CommitBarrierFn_t>> >;	// TODO: use temp allocator
 		
 		using VkClearValues_t			= FixedArray< VkClearValue, FG_MaxColorBuffers+1 >;
-
-		template <typename T>
-		using PendingBarriersTempl		= std::unordered_set< T const*, std::hash<T const*>, std::equal_to<T const*>, StdLinearAllocator<T const*> >;	// TODO: use temp allocator
-
-		using PendingBufferBarriers_t	= PendingBarriersTempl< VLocalBuffer >;
-		using PendingImageBarriers_t	= PendingBarriersTempl< VLocalImage >;
-		
 		using BufferCopyRegions_t		= FixedArray< VkBufferCopy, FG_MaxCopyRegions >;
 		using ImageCopyRegions_t		= FixedArray< VkImageCopy, FG_MaxCopyRegions >;
 		using BufferImageCopyRegions_t	= FixedArray< VkBufferImageCopy, FG_MaxCopyRegions >;
 		using BlitRegions_t				= FixedArray< VkImageBlit, FG_MaxBlitRegions >;
 		using ResolveRegions_t			= FixedArray< VkImageResolve, FG_MaxResolveRegions >;
 		using ImageClearRanges_t		= FixedArray< VkImageSubresourceRange, FG_MaxClearRanges >;
+
+		struct PipelineState
+		{
+			VkPipeline		pipeline	= VK_NULL_HANDLE;
+		};
 
 
 	// variables
@@ -51,12 +57,19 @@ namespace FG
 		VkCommandBuffer				_cmdBuffer;
 		
 		Task						_currTask;
-		bool						_isCompute			: 1;
 		bool						_enableDebugUtils	: 1;
 
-		PendingBufferBarriers_t		_pendingBufferBarriers;
-		PendingImageBarriers_t		_pendingImageBarriers;
+		PendingResourceBarriers_t	_pendingResourceBarriers;
 		VBarrierManager &			_barrierMngr;
+
+		PipelineState				_graphicsPipeline;
+		PipelineState				_computePipeline;
+		PipelineState				_rayTracingPipeline;
+
+		// index bufer state
+		VkBuffer					_indexBuffer		= VK_NULL_HANDLE;
+		VkDeviceSize				_indexBufferOffset	= ~0ull;
+		VkIndexType					_indexType			= VK_INDEX_TYPE_MAX_ENUM;
 
 		static constexpr float		_dbgColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
@@ -82,7 +95,10 @@ namespace FG
 		void Visit (const VFgTask<UpdateBuffer> &);
 		void Visit (const VFgTask<Present> &);
 		void Visit (const VFgTask<PresentVR> &);
-		void Visit (const VFgTask<TaskGroupSync> &) {}
+		void Visit (const VFgTask<UpdateRayTracingShaderTable> &);
+		void Visit (const VFgTask<BuildRayTracingGeometry> &);
+		void Visit (const VFgTask<BuildRayTracingScene> &);
+		void Visit (const VFgTask<TraceRays> &);
 
 		static void Visit1_DrawVertices (void *, void *);
 		static void Visit2_DrawVertices (void *, void *);
@@ -105,7 +121,7 @@ namespace FG
 		void _CmdPushDebugGroup (StringView text) const;
 		void _CmdPopDebugGroup () const;
 
-		void _OnRunTask (const IFrameGraphTask *task) const;
+		void _OnRunTask () const;
 		
 		template <typename ID>	ND_ auto const*  _GetState (ID id) const;
 		template <typename ID>	ND_ auto const*  _GetResource (ID id) const;
@@ -118,9 +134,10 @@ namespace FG
 		void _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
 
 		void _ExtractDescriptorSets (const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
-		void _BindPipelineResources (const VComputePipeline* pipeline, const VPipelineResourceSet &resourceSet);
-		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize) const;
-		void _PushConstants (RawPipelineLayoutID layoutId, const _fg_hidden_::PushConstants_t &pc) const;
+		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint);
+		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize);
+		void _BindPipeline (const VRayTracingPipeline* pipeline);
+		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
 
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);
@@ -130,6 +147,11 @@ namespace FG
 		void _AddBuffer (const VLocalBuffer *buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size);
 		void _AddBuffer (const VLocalBuffer *buf, EResourceState state, const VkBufferImageCopy &reg, const VLocalImage *img);
 		void _AddBufferState (const VLocalBuffer *buf, const BufferState &state);
+
+		void _AddRTGeometry (const VLocalRTGeometry *geom, const RTGeometryState &state);
+		void _AddRTScene (const VLocalRTScene *scene, const RTSceneState &state);
+
+		void _BindIndexBuffer (VkBuffer indexBuffer, VkDeviceSize indexOffset, VkIndexType indexType);
 	};
 	
 
@@ -142,7 +164,6 @@ namespace FG
 	{
 		// reset states
 		_currTask	= node;
-		_isCompute	= false;
 
 		node->Process( this );
 	}

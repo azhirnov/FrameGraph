@@ -60,6 +60,36 @@ namespace FG
 		RETURN_ERR( "unsupported shader type!" );
 	}
 //-----------------------------------------------------------------------------
+	
+	
+/*
+=================================================
+	EVertexType_SizeOf
+=================================================
+*/
+	ND_ inline BytesU  EVertexType_SizeOf (EVertexType type)
+	{
+		const EVertexType	scalar_type	= (type & EVertexType::_TypeMask);
+		const uint			vec_size	= uint(type & EVertexType::_VecMask) >> uint(EVertexType::_VecOffset);
+
+		switch ( scalar_type )
+		{
+			case EVertexType::_Byte :
+			case EVertexType::_UByte :	return SizeOf<uint8_t> * vec_size;
+			case EVertexType::_Short :
+			case EVertexType::_UShort :	return SizeOf<uint16_t> * vec_size;
+			case EVertexType::_Int :
+			case EVertexType::_UInt :	return SizeOf<uint32_t> * vec_size;
+			case EVertexType::_Long :
+			case EVertexType::_ULong :	return SizeOf<uint64_t> * vec_size;
+
+			case EVertexType::_Half :	return SizeOf<uint16_t> * vec_size;
+			case EVertexType::_Float :	return SizeOf<uint32_t> * vec_size;
+			case EVertexType::_Double :	return SizeOf<uint64_t> * vec_size;
+		}
+		RETURN_ERR( "not supported" );
+	}
+//-----------------------------------------------------------------------------
 
 
 /*

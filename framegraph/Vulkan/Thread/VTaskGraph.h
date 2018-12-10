@@ -4,7 +4,7 @@
 
 #include "framegraph/Public/FrameGraph.h"
 #include "framegraph/Shared/EnumUtils.h"
-#include "VEnumCast.h"
+#include "VCommon.h"
 
 namespace FG
 {
@@ -82,21 +82,6 @@ namespace FG
 	};
 
 
-	/*
-	//
-	// Empty Task
-	//
-	class EmptyTask final : public IFrameGraphTask
-	{
-	// methods
-	public:
-		EmptyTask () : IFrameGraphTask{}
-		{
-			_taskName = "Begin";
-		}
-	};
-	*/
-
 
 	//
 	// Submit Render Pass
@@ -125,7 +110,7 @@ namespace FG
 		ND_ Self const *				GetNextSubpass ()	const	{ return _nextSubpass; }
 
 		ND_ bool						IsSubpass ()		const	{ return _prevSubpass != null; }
-		ND_ bool						IsLastSubpass ()	const	{ return _nextSubpass == null; }
+		ND_ bool						IsLastPass ()		const	{ return _nextSubpass == null; }
 		
 		ND_ VFgTask<SubmitRenderPass>*	GetSubmitRenderPassTask ()	{ return this; }
 	};
@@ -478,7 +463,7 @@ namespace FG
 
 
 	//
-	// PresentVR
+	// Present VR
 	//
 	template <>
 	class VFgTask< PresentVR > final : public IFrameGraphTask
@@ -500,15 +485,135 @@ namespace FG
 
 
 	//
-	// Task Group Synchronization
+	// Update Ray Tracing Shader Table
 	//
 	template <>
-	class VFgTask< TaskGroupSync > final : public IFrameGraphTask
+	class VFgTask< UpdateRayTracingShaderTable > final : public IFrameGraphTask
 	{
+		friend class VFrameGraphThread;
+		
+		using RayGenShaderGroup		= UpdateRayTracingShaderTable::RayGenShaderGroup;
+		using MissShaderGroups_t	= Array< UpdateRayTracingShaderTable::MissShaderGroup >;
+		using HitShaderGroups_t		= Array< UpdateRayTracingShaderTable::HitShaderGroup >;
+
+	// variables
+	public:
+		VRayTracingPipeline const* const	pipeline;
+		VLocalRTScene const* const			rtScene;
+		VLocalBuffer const* const			dstBuffer;
+		VkDeviceSize						dstOffset;
+		const RayGenShaderGroup				rayGenShader;
+		const MissShaderGroups_t			missShaders;
+		const HitShaderGroups_t				hitShaders;
+		//const ShaderGroups_t				callableShaders;
+
 	// methods
 	public:
-		VFgTask (VFrameGraphThread *, const TaskGroupSync &task, ProcessFunc_t process) :
-			IFrameGraphTask{ task, process } {}
+		VFgTask (VFrameGraphThread *, const UpdateRayTracingShaderTable &task, ProcessFunc_t process);
+	};
+
+
+
+	//
+	// Build Ray Tracing Geometry
+	//
+	template <>
+	class VFgTask< BuildRayTracingGeometry > final : public IFrameGraphTask
+	{
+		friend class VFrameGraphThread;
+
+	// variables
+	private:
+		VLocalRTGeometry const*		_rtGeometry				= null;
+		VLocalBuffer const*			_scratchBuffer			= null;
+		VkDeviceSize				_scratchBufferOffset	= 0;
+		VkGeometryNV *				_geometry				= null;
+		size_t						_geometryCount			= 0;
+
+
+	// methods
+	public:
+		VFgTask (VFrameGraphThread *, const BuildRayTracingGeometry &task, ProcessFunc_t process) : IFrameGraphTask{task, process} {}
+
+		ND_ VLocalRTGeometry const*		RTGeometry ()			const	{ return _rtGeometry; }
+		ND_ VLocalBuffer const*			ScratchBuffer ()		const	{ return _scratchBuffer; }
+		ND_ VkDeviceSize				ScratchBufferOffset ()	const	{ return _scratchBufferOffset; }
+		ND_ ArrayView<VkGeometryNV>		GetGeometry ()			const	{ return ArrayView{ _geometry, _geometryCount }; }
+	};
+
+
+
+	//
+	// Build Ray Tracing Scene
+	//
+	template <>
+	class VFgTask< BuildRayTracingScene > final : public IFrameGraphTask
+	{
+		friend class VFrameGraphThread;
+
+	// variables
+	private:
+		VLocalRTScene const*		_rtScene				= null;
+		VLocalBuffer const*			_scratchBuffer			= null;
+		VkDeviceSize				_scratchBufferOffset	= 0;
+		VLocalBuffer const*			_instanceBuffer			= null;
+		VkDeviceSize				_instanceBufferOffset	= 0;
+		VLocalRTGeometry const**	_rtGeometries			= null;
+		RawRTGeometryID *			_rtGeometryIDs			= null;
+		size_t						_rtGeometryCount		= 0;
+		uint						_instanceCount			= 0;
+		uint						_hitShadersPerGeometry	= 0;
+		uint						_maxHitShaderCount		= 0;
+
+
+	// methods
+	public:
+		VFgTask (VFrameGraphThread *, const BuildRayTracingScene &task, ProcessFunc_t process) : IFrameGraphTask{task, process} {}
+		
+		ND_ VLocalRTScene const*				RTScene ()				const	{ return _rtScene; }
+		ND_ VLocalBuffer const*					ScratchBuffer ()		const	{ return _scratchBuffer; }
+		ND_ VkDeviceSize						ScratchBufferOffset ()	const	{ return _scratchBufferOffset; }
+		ND_ VLocalBuffer const*					InstanceBuffer ()		const	{ return _instanceBuffer; }
+		ND_ VkDeviceSize						InstanceBufferOffset ()	const	{ return _instanceBufferOffset; }
+		ND_ uint								InstanceCount ()		const	{ return _instanceCount; }
+		ND_ ArrayView<VLocalRTGeometry const*>	Geometries ()			const	{ return ArrayView{ _rtGeometries, _rtGeometryCount }; }
+		ND_ ArrayView<RawRTGeometryID>			GeometryIDs ()			const	{ return ArrayView{ _rtGeometryIDs, _rtGeometryCount }; }
+		ND_ uint								HitShadersPerGeometry ()const	{ return _hitShadersPerGeometry; }
+		ND_ uint								MaxHitShaderCount ()	const	{ return _maxHitShaderCount; }
+	};
+
+
+
+	//
+	// Trace Rays
+	//
+	template <>
+	class VFgTask< TraceRays > final : public IFrameGraphTask
+	{
+	// variables
+	private:
+		VPipelineResourceSet				_resources;
+	public:
+		VRayTracingPipeline const* const	pipeline;
+		const _fg_hidden_::PushConstants_t	pushConstants;
+
+		const uint3							groupCount;
+
+		VLocalBuffer const* const			sbtBuffer;
+		const VkDeviceSize					rayGenOffset;
+		const VkDeviceSize					rayMissOffset;
+		const VkDeviceSize					rayHitOffset;
+		const VkDeviceSize					callableOffset;
+		const uint16_t						rayMissStride;
+		const uint16_t						rayHitStride;
+		const uint16_t						callableStride;
+
+
+	// methods
+	public:
+		VFgTask (VFrameGraphThread *fg, const TraceRays &task, ProcessFunc_t process);
+
+		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
 	
 
@@ -520,16 +625,6 @@ namespace FG
 	class VTaskGraph
 	{
 	// types
-	public:
-		static constexpr BytesU		BlockSize	{ Max(	sizeof(VFgTask<SubmitRenderPass>),		sizeof(VFgTask<DispatchCompute>),
-														sizeof(VFgTask<DispatchComputeIndirect>),sizeof(VFgTask<CopyBuffer>),
-														sizeof(VFgTask<CopyImage>),				sizeof(VFgTask<CopyBufferToImage>),
-														sizeof(VFgTask<CopyImageToBuffer>),		sizeof(VFgTask<BlitImage>),
-														sizeof(VFgTask<ResolveImage>),			sizeof(VFgTask<FillBuffer>),
-														sizeof(VFgTask<ClearColorImage>),		sizeof(VFgTask<ClearDepthStencilImage>),
-														sizeof(VFgTask<UpdateBuffer>),			sizeof(VFgTask<Present>),
-														sizeof(VFgTask<PresentVR>),				sizeof(VFgTask<TaskGroupSync>) )};
-
 	private:
 		using Self					= VTaskGraph< VisitorT >;
 		using Allocator_t			= LinearAllocator<>;
@@ -549,7 +644,7 @@ namespace FG
 		~VTaskGraph () {}
 
 		template <typename T>
-		ND_ Task  Add (VFrameGraphThread *fg, const T &task);
+		ND_ VFgTask<T>*  Add (VFrameGraphThread *fg, const T &task);
 
 		void OnStart (VFrameGraphThread *fg);
 		void OnDiscardMemory ();
@@ -568,7 +663,7 @@ namespace FG
 	};
 
 
-
+	/*
 	//
 	// Render Pass Graph
 	//
@@ -583,7 +678,7 @@ namespace FG
 		void Clear ()
 		{
 		}
-	};
+	};*/
 
 
 }	// FG

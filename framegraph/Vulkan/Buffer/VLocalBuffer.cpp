@@ -273,14 +273,14 @@ namespace FG
 */
 	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		SCOPELOCK( _rcCheck );
+		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
 		// add full range barrier
 		{
 			BufferAccess		pending;
 			pending.range		= BufferRange{ 0, VkDeviceSize(Size()) };
-			pending.stages		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			pending.stages		= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			pending.access		= 0;
 			pending.isReadable	= true;
 			pending.isWritable	= false;
@@ -362,7 +362,6 @@ namespace FG
 						AddBarrier( iter->range.Intersect( pending.range ), *iter, pending );
 					}
 				}
-
 				
 				// store to '_accessForWrite'
 				_ReplaceAccessRecords( _accessForWrite, w_iter, pending );
@@ -375,7 +374,6 @@ namespace FG
 				{
 					AddBarrier( iter->range.Intersect( pending.range ), *iter, pending );
 				}
-
 
 				// store to '_accessForRead'
 				_ReplaceAccessRecords( _accessForRead, r_iter, pending );

@@ -24,7 +24,6 @@ namespace FG
 			EAttachmentLoadOp			loadOp		= EAttachmentLoadOp::Load;
 			EAttachmentStoreOp			storeOp		= EAttachmentStoreOp::Store;
 		};
-		using Targets_t	= FixedMap< RenderTargetID, RT, FG_MaxColorBuffers+1 >;
 
 		struct Viewport
 		{
@@ -32,13 +31,14 @@ namespace FG
 			float	minDepth	= 0.0f;
 			float	maxDepth	= 1.0f;
 		};
-		using Viewports_t = FixedArray< Viewport, FG_MaxViewports >;
-		
-		using RS = RenderState;
+
+		using Targets_t		= FixedMap< RenderTargetID, RT, FG_MaxColorBuffers+1 >;
+		using Viewports_t	= FixedArray< Viewport, FG_MaxViewports >;
+		using RS			= RenderState;
 
 
 	// variables
-		RS::ColorBuffersState		colorState;
+		RS::ColorBuffersState		colorState;			// TODO: merge 'colorState' + 'renderTargets'
 		RS::DepthBufferState		depthState;
 		RS::StencilBufferState		stencilState;
 		RS::RasterizationState		rasterizationState;
@@ -53,6 +53,8 @@ namespace FG
 
 
 	// methods
+		RenderPassDesc () {}
+
 		explicit RenderPassDesc (const RectI &area) : area{area}
 		{
 			ASSERT( area.IsValid() );

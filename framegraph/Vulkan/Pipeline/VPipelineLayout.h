@@ -55,9 +55,11 @@ namespace FG
 		bool Create (const VDevice &dev);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
-		bool GetDescriptorSetLayout (const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const;
+		bool  GetDescriptorSetLayout (const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const;
 
-		ND_ bool	operator == (const VPipelineLayout &rhs) const;
+		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
+
+		ND_ bool  operator == (const VPipelineLayout &rhs) const;
 
 		ND_ VkPipelineLayout		Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _layout; }
 		ND_ HashVal					GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }

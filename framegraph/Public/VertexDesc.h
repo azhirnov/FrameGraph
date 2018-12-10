@@ -141,4 +141,13 @@ namespace FG
 	};
 	
 
+	template <typename T>
+	struct VertexDesc< const T &> : VertexDesc<T>
+	{};
+	
+	template <typename T>
+	struct VertexDesc< T &> : VertexDesc<T>
+	{};
+
+
 }	// FG

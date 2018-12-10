@@ -8,6 +8,8 @@
 #include "VLogicalRenderPass.h"
 #include "VPipelineCache.h"
 #include "VRenderPassCache.h"
+#include "VLocalRTGeometry.h"
+#include "VLocalRTScene.h"
 
 namespace FG
 {
@@ -52,10 +54,16 @@ namespace FG
 
 		using ImageToLocal_t			= std::vector< LocalImageID >;
 		using BufferToLocal_t			= std::vector< LocalBufferID >;
+		using RTGeometryToLocal_t		= std::vector< LocalRTGeometryID >;
+		using RTSceneToLocal_t			= std::vector< LocalRTSceneID >;
 
-		using LocalImages_t				= PoolTmpl2< VLocalImage, FG_MaxImageResources >;
-		using LocalBuffers_t			= PoolTmpl2< VLocalBuffer, FG_MaxBufferResources >;
-		using LogicalRenderPasses_t		= PoolTmpl2< VLogicalRenderPass, (1u<<10) >;
+		static constexpr uint			MaxLocalResources = FG_MaxResources/4;
+
+		using LocalImages_t				= PoolTmpl2< VLocalImage, MaxLocalResources >;
+		using LocalBuffers_t			= PoolTmpl2< VLocalBuffer, MaxLocalResources >;
+		using LogicalRenderPasses_t		= PoolTmpl2< VLogicalRenderPass, MaxLocalResources >;
+		using LocalRTGeometries_t		= PoolTmpl2< VLocalRTGeometry, MaxLocalResources >;
+		using LocalRTScenes_t			= PoolTmpl2< VLocalRTScene, MaxLocalResources >;
 
 		using ResourceIDQueue_t			= std::vector< UntypedResourceID_t, StdLinearAllocator<UntypedResourceID_t> >;
 		using ResourceIndexCache_t		= StaticArray< FixedArray<Index_t, 128>, 20 >;
@@ -72,13 +80,20 @@ namespace FG
 
 		ImageToLocal_t						_imageToLocal;
 		BufferToLocal_t						_bufferToLocal;
+		RTGeometryToLocal_t					_rtGeometryToLocal;
+		RTSceneToLocal_t					_rtSceneToLocal;
 
 		LocalImages_t						_localImages;
 		LocalBuffers_t						_localBuffers;
 		LogicalRenderPasses_t				_logicalRenderPasses;
+		LocalRTGeometries_t					_localRTGeometries;
+		LocalRTScenes_t						_localRTScenes;
+
 		uint								_localImagesCount		= 0;
 		uint								_localBuffersCount		= 0;
 		uint								_logicalRenderPassCount	= 0;
+		uint								_localRTGeometryCount	= 0;
+		uint								_localRTSceneCount		= 0;
 
 		Storage<SamplerMap_t>				_samplerMap;
 		Storage<PipelineLayoutMap_t>		_pplnLayoutMap;
@@ -102,7 +117,7 @@ namespace FG
 
 		void OnBeginFrame ();
 		void OnEndFrame ();
-		void DestroyLocalResources ();
+		void AfterFrameCompilation ();
 		void OnDiscardMemory ();
 		
 		ND_ RawMPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName, bool isAsync);
@@ -128,6 +143,8 @@ namespace FG
 
 		ND_ LocalBufferID		Remap (RawBufferID id);
 		ND_ LocalImageID		Remap (RawImageID id);
+		ND_ LocalRTGeometryID	Remap (RawRTGeometryID id);
+		ND_ LocalRTSceneID		Remap (RawRTSceneID id);
 		ND_ LogicalPassID		CreateLogicalRenderPass (const RenderPassDesc &desc);
 		
 		template <typename ID>
@@ -138,15 +155,19 @@ namespace FG
 
 		ND_ VDevice const&		GetDevice ()				const	{ return _mainRM._device; }
 
-		ND_ VLocalBuffer const*	GetState (LocalBufferID id)			{ return _GetState( _localBuffers, id ); }
-		ND_ VLocalImage  const*	GetState (LocalImageID id)			{ return _GetState( _localImages,  id ); }
-		ND_ VLogicalRenderPass*	GetState (LogicalPassID id)			{ return _GetState( _logicalRenderPasses, id ); }
+		ND_ VLocalBuffer const*		GetState (LocalBufferID id)		{ return _GetState( _localBuffers, id ); }
+		ND_ VLocalImage  const*		GetState (LocalImageID id)		{ return _GetState( _localImages,  id ); }
+		ND_ VLogicalRenderPass*		GetState (LogicalPassID id)		{ return _GetState( _logicalRenderPasses, id ); }
+		ND_ VLocalRTGeometry const*	GetState (LocalRTGeometryID id)	{ return _GetState( _localRTGeometries, id ); }
+		ND_ VLocalRTScene const*	GetState (LocalRTSceneID id)	{ return _GetState( _localRTScenes, id ); }
 
-		ND_ VLocalBuffer const*	GetState (RawBufferID id)			{ return _GetState( _localBuffers, Remap( id )); }
-		ND_ VLocalImage  const*	GetState (RawImageID id)			{ return _GetState( _localImages,  Remap( id )); }
+		ND_ VLocalBuffer const*		GetState (RawBufferID id)		{ return _GetState( _localBuffers, Remap( id )); }
+		ND_ VLocalImage  const*		GetState (RawImageID id)		{ return _GetState( _localImages,  Remap( id )); }
+		ND_ VLocalRTGeometry const*	GetState (RawRTGeometryID id)	{ return _GetState( _localRTGeometries, Remap( id )); }
+		ND_ VLocalRTScene const*	GetState (RawRTSceneID id)		{ return _GetState( _localRTScenes, Remap( id )); }
 
 		template <typename ID>
-		void DestroyResource (ID id, bool isAsync);
+		void ReleaseResource (ID id, bool isAsync);
 		
 		void FlushLocalResourceStates (ExeOrderIndex, VBarrierManager &, VFrameGraphDebugger *);
 
@@ -198,11 +219,11 @@ namespace FG
 	
 /*
 =================================================
-	DestroyResource
+	ReleaseResource
 =================================================
 */
 	template <typename ID>
-	inline void  VResourceManagerThread::DestroyResource (ID id, bool isAsync)
+	inline void  VResourceManagerThread::ReleaseResource (ID id, bool isAsync)
 	{
 		ASSERT( id );
 		SCOPELOCK( _rcCheck );

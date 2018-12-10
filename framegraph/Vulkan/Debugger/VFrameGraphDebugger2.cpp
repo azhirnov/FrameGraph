@@ -378,32 +378,27 @@ namespace {
 
 		for (auto& image : _images)
 		{
-			for (auto& bar : image.second.barriers)
-			{
-				if ( bar.srcIndex > ExeOrderIndex::Initial )
-					break;
+			str << indent << "\t\t" << _VisResourceName( image.first, ExeOrderIndex::Initial ) << " [label=\"" << GetImageName( image.first ) << "\\n";
 
-				auto&	range = bar.info.subresourceRange;
-
-				str << indent << "\t\t" << _VisResourceName( image.first, ExeOrderIndex::Initial ) << " [label=\"" << GetImageName( image.first ) << "\\n"
-					<< VkImageLayout_ToString( bar.info.oldLayout ) << "\\n"
-					<< "layer: " << ToString(range.baseArrayLayer) << (range.layerCount == VK_REMAINING_ARRAY_LAYERS ? "..whole" : range.layerCount > 1 ? ".."s << ToString(range.layerCount) : "") << "\\n"
-					<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
-					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
+			for (auto& bar : image.second.barriers) {
+				str << VkImageLayout_ToString( bar.info.oldLayout );
+				break;
 			}
+			str << "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
 		}
 
 		for (auto& buffer : _buffers)
 		{
+			str << indent << "\t\t" << _VisResourceName( buffer.first, ExeOrderIndex::Initial ) << " [label=\"" << GetBufferName( buffer.first );
+
 			for (auto& bar : buffer.second.barriers)
 			{
 				if ( bar.srcIndex > ExeOrderIndex::Initial )
 					break;
 
-				str << indent << "\t\t" << _VisResourceName( buffer.first, ExeOrderIndex::Initial ) << " [label=\"" << GetBufferName( buffer.first ) << "\\n"
-					<< "[" << ToString(BytesU{bar.info.offset}) << ", " << (bar.info.size == VK_WHOLE_SIZE ? "whole" : ToString(BytesU{bar.info.size})) << ")"
-					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer.first ) << "\"];\n";
+				str << "\\n[" << ToString(BytesU{bar.info.offset}) << ", " << (bar.info.size == VK_WHOLE_SIZE ? "whole" : ToString(BytesU{bar.info.size})) << ")";
 			}
+			str << "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer.first ) << "\"];\n";
 		}
 
 		str << indent << "\t}\n\n";
@@ -432,12 +427,12 @@ namespace {
 				if ( bar.dstIndex < ExeOrderIndex::Final )
 					break;
 
-				auto&	range = bar.info.subresourceRange;
+				//auto&	range = bar.info.subresourceRange;
 
 				str << indent << "\t\t" << _VisResourceName( image.first, ExeOrderIndex::Final ) << " [label=\"" << GetImageName( image.first ) << "\\n"
 					<< VkImageLayout_ToString( bar.info.newLayout ) << "\\n"
-					<< "layer: " << ToString(range.baseArrayLayer) << (range.layerCount == VK_REMAINING_ARRAY_LAYERS ? "..whole" : range.layerCount > 1 ? ".."s << ToString(range.layerCount) : "") << "\\n"
-					<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
+					//<< "layer: " << ToString(range.baseArrayLayer) << (range.layerCount == VK_REMAINING_ARRAY_LAYERS ? "..whole" : range.layerCount > 1 ? ".."s << ToString(range.layerCount) : "") << "\\n"
+					//<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
 				
 				_GetResourceBarrier( image.first, bar, bar.info.oldLayout, bar.info.newLayout, INOUT bar_style, INOUT deps );
@@ -452,7 +447,7 @@ namespace {
 					break;
 
 				str << indent << "\t\t" << _VisResourceName( buffer.first, ExeOrderIndex::Final ) << " [label=\"" << GetBufferName( buffer.first ) << "\\n"
-					<< "[" << ToString(BytesU{bar.info.offset}) << ", " << (bar.info.size == VK_WHOLE_SIZE ? "whole" : ToString(BytesU{bar.info.size})) << ")"
+					//<< "[" << ToString(BytesU{bar.info.offset}) << ", " << (bar.info.size == VK_WHOLE_SIZE ? "whole" : ToString(BytesU{bar.info.size})) << ")"
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer.first ) << "\"];\n";
 				
 				_GetResourceBarrier( buffer.first, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED, INOUT bar_style, INOUT deps );
@@ -483,47 +478,53 @@ namespace {
 	{
 		for (auto& res : info.resources)
 		{
-			if ( auto* image = std::get_if<ImageUsage_t>( &res ) )
-			{
-				auto&	range = image->second.range;
-				String	name  = _VisResourceName( image->first, image->second.task );
+			Visit( res,
+					[&] (const ImageUsage_t &image)
+					{
+						auto&	range = image.second.range;
+						String	name  = _VisResourceName( image.first, image.second.task );
 
-				// add image style
-				resStyle
-					<< indent << "\t\t" << name << " [label=\"" << GetImageName( image->first ) << "\\n"
-					<< ToString( image->second.state ) << "\\n"
-					//<< VkImageLayout_ToString( image->second.layout ) << "\\n"
-					<< "layer: " << ToString(range.Layers().begin) << (range.IsWholeLayers() ? "..whole" : range.Layers().Count() > 1 ? ".."s << ToString(range.Layers().end) : "") << "\\n"
-					<< "mipmap: " << ToString(range.Mipmaps().begin) << (range.IsWholeMipmaps() ? "..whole" : range.Mipmaps().Count() > 1 ? ".."s << ToString(range.Mipmaps().end) : "")
-					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image->first ) << "\"];\n";
+						// add image style
+						resStyle
+							<< indent << "\t\t" << name << " [label=\"" << GetImageName( image.first ) << "\\n"
+							<< ToString( image.second.state ) << "\\n"
+							//<< VkImageLayout_ToString( image.second.layout ) << "\\n"
+							<< "layer: " << ToString(range.Layers().begin) << (range.IsWholeLayers() ? "..whole" : range.Layers().Count() > 1 ? ".."s << ToString(range.Layers().end) : "") << ", "
+							<< "mip: " << ToString(range.Mipmaps().begin) << (range.IsWholeMipmaps() ? "..whole" : range.Mipmaps().Count() > 1 ? ".."s << ToString(range.Mipmaps().end) : "")
+							<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
 
-				if ( info.anyNode.empty() )
-					info.anyNode = std::move(name);
+						if ( info.anyNode.empty() )
+							info.anyNode = std::move(name);
 
-				_GetImageBarrier( image->first, image->second.task, INOUT barStyle, INOUT deps );
-			}
-			else
-			if ( auto* buffer = std::get_if<BufferUsage_t>( &res ) )
-			{
-				auto&	range = buffer->second.range;
-				String	name  = _VisResourceName( buffer->first, buffer->second.task );
+						_GetImageBarrier( image.first, image.second.task, INOUT barStyle, INOUT deps );
+					},
 
-				// add buffer style
-				resStyle
-					<< indent << "\t\t" << name << " [label=\"" << GetBufferName( buffer->first ) << "\\n"
-					<< ToString( buffer->second.state ) << "\\n"
-					<< "[" << ToString(BytesU{range.begin}) << ", " << (range.IsWhole() ? "whole" : ToString(BytesU{range.end})) << ")"
-					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer->first ) << "\"];\n";
+					[&] (const BufferUsage_t &buffer)
+					{
+						auto&	range = buffer.second.range;
+						String	name  = _VisResourceName( buffer.first, buffer.second.task );
+
+						// add buffer style
+						resStyle
+							<< indent << "\t\t" << name << " [label=\"" << GetBufferName( buffer.first ) << "\\n"
+							<< ToString( buffer.second.state ) << "\\n"
+							<< "[" << ToString(BytesU{range.begin}) << ", " << (range.IsWhole() ? "whole" : ToString(BytesU{range.end})) << ")"
+							<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer.first ) << "\"];\n";
 				
-				if ( info.anyNode.empty() )
-					info.anyNode = std::move(name);
+						if ( info.anyNode.empty() )
+							info.anyNode = std::move(name);
 
-				_GetBufferBarrier( buffer->first, buffer->second.task, INOUT barStyle, INOUT deps );
-			}
-			else
-			{
-				ASSERT( !"unknown resource type!" );
-			}
+						_GetBufferBarrier( buffer.first, buffer.second.task, INOUT barStyle, INOUT deps );
+					},
+
+					[] (const RTGeometryUsage_t &geometry)
+					{
+					},
+					[] (const RTSceneUsage_t &scene)
+					{
+					},
+					[] (const std::monostate &) { ASSERT(false); }
+				);
 		}
 	}
 	
@@ -638,7 +639,7 @@ namespace {
 	image https://32ipi028l5q82yhj72224m8j-wpengine.netdna-ssl.com/wp-content/uploads/2016/10/vulkan-good-barrier-1024x771.png
 	from https://gpuopen.com/vulkan-barriers-explained/
 	or
-	image https://i1.wp.com/cpp-rendering.io/wp-content/uploads/2016/11/Barrier-3.png?fit=943%2C1773
+	image https://i1.wp.com/cpp-rendering.io/wp-content/uploads/2016/11/Barrier-3.png
 	from http://cpp-rendering.io/barriers-vulkan-not-difficult/
 =================================================
 */
@@ -660,6 +661,8 @@ namespace {
 			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
 			VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT,
 			VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT,
+			VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV,
+			VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV,
 			VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
@@ -667,14 +670,12 @@ namespace {
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
+			VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 			//VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT,
 			//VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT,
 			//VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX,
-			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
-			VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
-			VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV,
-			VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV,
-			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 		};
 
 		auto	TestStage = [] (VkPipelineStageFlags stages, size_t i)
@@ -710,8 +711,6 @@ namespace {
 		{
 			uint	src = src_bits[i] ? 1 : (i < last_src_cell ? 0 : 2);
 			uint	dst = dst_bits[i] ? 1 : (i < first_dst_cell ? 2 : 0);
-			
-				  //<< (i == first_cell ? "PORT=\"src\"" : "")
 
 			style << "<TR><TD bgcolor=\"#" << cell_color[src] << "\">" << space << "</TD>";
 

@@ -50,7 +50,30 @@ namespace FG
 			CHECK( _vkVersion != EShaderLangFormat::Unknown );
 		}
 
-		CHECK( _LoadInstanceLayers() );
+		// load extensions
+		if ( _vkVersion >= EShaderLangFormat::Vulkan_110 )
+		{
+			void **						next_props	= null;
+			VkPhysicalDeviceProperties2	props2		= {};
+			props2.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+			next_props		= &props2.pNext;
+
+			_deviceMeshShaderProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
+			_deviceRayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+			_deviceShadingRateImageProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
+			
+			*next_props	= &_deviceMeshShaderProperties;
+			next_props	= &_deviceMeshShaderProperties.pNext;
+			
+			*next_props	= &_deviceShadingRateImageProperties;
+			next_props	= &_deviceShadingRateImageProperties.pNext;
+			
+			*next_props	= &_deviceRayTracingProperties;
+			next_props	= &_deviceRayTracingProperties.pNext;
+
+			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
+		}
+
 		CHECK( _LoadInstanceExtensions() );
 		CHECK( _LoadDeviceExtensions() );
 
@@ -79,22 +102,6 @@ namespace FG
 
 /*
 =================================================
-	HasLayer
-=================================================
-*/
-	bool VDevice::HasLayer (StringView name) const
-	{
-		// TODO: optimize search
-		for (auto& layer : _instanceLayers)
-		{
-			if ( name == layer.layerName )
-				return true;
-		}
-		return false;
-	}
-
-/*
-=================================================
 	HasExtension
 =================================================
 */
@@ -111,28 +118,6 @@ namespace FG
 	bool VDevice::HasDeviceExtension (StringView name) const
 	{
 		return !!_deviceExtensions.count( name );
-	}
-	
-/*
-=================================================
-	_LoadInstanceLayers
-=================================================
-*/
-	bool VDevice::_LoadInstanceLayers () const
-	{
-		if ( not _instanceLayers.empty() )
-			return true;
-		
-		uint	count = 0;
-		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, null ) );
-
-		if ( count == 0 )
-			return true;
-
-		_instanceLayers.resize( count );
-		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, OUT _instanceLayers.data() ) );
-
-		return true;
 	}
 	
 /*

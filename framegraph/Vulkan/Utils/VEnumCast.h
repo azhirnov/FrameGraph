@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "VCommon.h"
 #include "framegraph/Public/ResourceEnums.h"
 #include "framegraph/Public/RenderStateEnums.h"
 #include "framegraph/Public/ShaderEnums.h"
@@ -296,7 +295,7 @@ namespace FG
 			case EPipelineDynamicState::StencilCompareMask:	return VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
 			case EPipelineDynamicState::StencilWriteMask :	return VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
 			case EPipelineDynamicState::StencilReference :	return VK_DYNAMIC_STATE_STENCIL_REFERENCE;
-			case EPipelineDynamicState::None :
+			case EPipelineDynamicState::Unknown :
 			case EPipelineDynamicState::All :
 			case EPipelineDynamicState::_Last :				break;	// to shutup warnings
 			//VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV
@@ -320,6 +319,7 @@ namespace FG
 			case EAttachmentLoadOp::Invalidate :	return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			case EAttachmentLoadOp::Load :			return VK_ATTACHMENT_LOAD_OP_LOAD;
 			case EAttachmentLoadOp::Clear :			return VK_ATTACHMENT_LOAD_OP_CLEAR;
+			case EAttachmentLoadOp::Unknown :		break;
 		}
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "invalid load op type", VK_ATTACHMENT_LOAD_OP_MAX_ENUM );
@@ -337,6 +337,7 @@ namespace FG
 		{
 			case EAttachmentStoreOp::Invalidate :	return VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			case EAttachmentStoreOp::Store :		return VK_ATTACHMENT_STORE_OP_STORE;
+			case EAttachmentStoreOp::Unknown :		break;
 		}
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "invalid store op type", VK_ATTACHMENT_STORE_OP_MAX_ENUM );
@@ -631,34 +632,6 @@ namespace FG
 	
 /*
 =================================================
-	ImageAspectFlags
-=================================================
-*/
-	ND_ inline EImageAspect  VEnumRevert (VkImageAspectFlags values)
-	{
-		EImageAspect	result = EImageAspect(0);
-
-		for (VkImageAspectFlags t = 1; t <= VK_IMAGE_ASPECT_METADATA_BIT; t <<= 1)
-		{
-			if ( not EnumEq( values, t ) )
-				continue;
-			
-			ENABLE_ENUM_CHECKS();
-			switch ( t )
-			{
-				case VK_IMAGE_ASPECT_COLOR_BIT		: result |= EImageAspect::Color;		break;
-				case VK_IMAGE_ASPECT_DEPTH_BIT		: result |= EImageAspect::Depth;		break;
-				case VK_IMAGE_ASPECT_STENCIL_BIT	: result |= EImageAspect::Stencil;		break;
-				case VK_IMAGE_ASPECT_METADATA_BIT	: result |= EImageAspect::Metadata;		break;
-				default								: RETURN_ERR( "invalid image aspect type", EImageAspect::Auto );
-			}
-			DISABLE_ENUM_CHECKS();
-		}
-		return result;
-	}
-	
-/*
-=================================================
 	BufferUsage
 =================================================
 */
@@ -802,6 +775,39 @@ namespace FG
 		}
 		return result;
 	}
+	
+/*
+=================================================
+	AccelerationStructureFlags
+=================================================
+*/
+	ND_ inline VkBuildAccelerationStructureFlagsNV   VEnumCast (ERayTracingFlags values)
+	{
+		VkBuildAccelerationStructureFlagsNV	result = 0;
+		
+		for (ERayTracingFlags t = ERayTracingFlags(1 << 0);
+			 t < ERayTracingFlags::_Last;
+			 t = ERayTracingFlags(uint(t) << 1)) 
+		{
+			if ( not EnumEq( values, t ) )
+				continue;
+		
+			ENABLE_ENUM_CHECKS();
+			switch ( t )
+			{
+				case ERayTracingFlags::AllowUpdate		: result |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;		break;
+				case ERayTracingFlags::AllowCompaction	: result |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NV;	break;
+				case ERayTracingFlags::PreferFastTrace	: result |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;	break;
+				case ERayTracingFlags::PreferFastBuild	: result |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NV;	break;
+				case ERayTracingFlags::LowMemory		: result |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;			break;
+				case ERayTracingFlags::_Last			:
+				case ERayTracingFlags::Unknown			:
+				default									: RETURN_ERR( "invalid flags", 0 );
+			}
+			DISABLE_ENUM_CHECKS();
+		}
+		return result;
+	}
 
 /*
 =================================================
@@ -825,7 +831,8 @@ namespace FG
 			case EResourceState::_Access_ConditionalRendering :	return VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT;
 			case EResourceState::_Access_CommandProcess :		return VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX;
 			case EResourceState::_Access_ShadingRateImage :		return VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV;
-			case EResourceState::_Access_BuildRayTracingAS :	return VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
+			case EResourceState::_Access_BuildRayTracingAS :
+			case EResourceState::_Access_RTASBuildingBuffer :	return VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
 
 			case EResourceState::_Access_ShaderStorage :
 			case EResourceState::_Access_Uniform :
@@ -887,6 +894,12 @@ namespace FG
 			case EResourceState::VertexBuffer :						return VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
 			//case EResourceState::TransientAttachment
 			case EResourceState::PresentImage :						return VK_ACCESS_MEMORY_READ_BIT;
+			case EResourceState::BuildRayTracingStructRead :		return VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+			case EResourceState::BuildRayTracingStructWrite :		return VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
+			case EResourceState::BuildRayTracingStructReadWrite :	return VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
+			case EResourceState::RTASBuildingBufferRead :
+			case EResourceState::RTASBuildingBufferReadWrite :
+			case EResourceState::ShaderBindingBufferRead :			return 0;	// ceche invalidation is not needed for buffers
 		}
 		RETURN_ERR( "unknown resource state!" );
 	}
@@ -933,10 +946,10 @@ namespace FG
 
 /*
 =================================================
-	Format
+	FG_PRIVATE_VKPIXELFORMATS
 =================================================
 */
-#	define VK_PIXEL_FORMATS( _builder_ ) \
+#	define FG_PRIVATE_VKPIXELFORMATS( _builder_ ) \
 		_builder_( Unknown,				VK_FORMAT_UNDEFINED ) \
 		_builder_( RGBA16_SNorm,		VK_FORMAT_R16G16B16A16_SNORM ) \
 		_builder_( RGBA8_SNorm,			VK_FORMAT_R8G8B8A8_SNORM ) \
@@ -1069,7 +1082,7 @@ namespace FG
 		ENABLE_ENUM_CHECKS();
 		switch ( value )
 		{
-			VK_PIXEL_FORMATS( FMT_BUILDER )
+			FG_PRIVATE_VKPIXELFORMATS( FMT_BUILDER )
 		}
 		DISABLE_ENUM_CHECKS();
 
@@ -1077,27 +1090,5 @@ namespace FG
 
 		RETURN_ERR( "invalid pixel format", VK_FORMAT_MAX_ENUM );
 	}
-
-/*
-=================================================
-	Format
-=================================================
-*/
-	ND_ inline EPixelFormat  EPixelFormat_FromVk (VkFormat value)
-	{
-#		define FMT_BUILDER( _engineFmt_, _vkFormat_ ) \
-			case _vkFormat_ : return EPixelFormat::_engineFmt_;
-		
-		switch ( value )
-		{
-			VK_PIXEL_FORMATS( FMT_BUILDER )
-		}
-
-#		undef FMT_BUILDER
-
-		RETURN_ERR( "invalid pixel format" );
-	}
-
-#	undef VK_PIXEL_FORMATS
 
 }	// FG

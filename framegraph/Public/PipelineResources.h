@@ -82,7 +82,17 @@ namespace FG
 			}
 		};
 
-		using Resource_t	= Union< std::monostate, Buffer, Image, Texture, Sampler, SubpassInput >;
+		struct RayTracingScene
+		{
+			BindingIndex			index;
+			RawRTSceneID			sceneId;
+
+			ND_ bool  operator == (const RayTracingScene &rhs) const {
+				return	sceneId == rhs.sceneId;
+			}
+		};
+
+		using Resource_t	= Union< std::monostate, Buffer, Image, Texture, Sampler, SubpassInput, RayTracingScene >;
 
 		struct ResourceInfo
 		{
@@ -115,6 +125,15 @@ namespace FG
 			_ResetCachedID();
 		}
 
+		explicit PipelineResources (const PipelineResources &other) :
+			_layoutId{ other._layoutId },
+			_uniforms{ other._uniforms },
+			_resources{ other._resources },
+			_dynamicOffsets{ other._dynamicOffsets }
+		{
+			_SetCachedID(other._GetCachedID());
+		}
+
 		PipelineResources (PipelineResources &&other) :
 			_layoutId{ std::move(other._layoutId) },
 			_uniforms{ std::move(other._uniforms) },
@@ -124,22 +143,25 @@ namespace FG
 			_SetCachedID(other._GetCachedID());
 		}
 
-		Self&	BindImage (const UniformID &id, const ImageID &image) noexcept;
-		Self&	BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc) noexcept;
+		Self&  BindImage (const UniformID &id, const ImageID &image) noexcept;
+		Self&  BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc) noexcept;
 
-		Self&	BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler) noexcept;
-		Self&	BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc) noexcept;
+		Self&  BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler) noexcept;
+		Self&  BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc) noexcept;
 
-		Self&	BindSampler (const UniformID &id, const SamplerID &sampler) noexcept;
+		Self&  BindSampler (const UniformID &id, const SamplerID &sampler) noexcept;
 
-		Self&	BindBuffer (const UniformID &id, const BufferID &buffer) noexcept;
-		Self&	BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size) noexcept;
-		Self&	SetBufferBase (const UniformID &id, BytesU offset) noexcept;
+		Self&  BindBuffer (const UniformID &id, const BufferID &buffer) noexcept;
+		Self&  BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size) noexcept;
+		Self&  SetBufferBase (const UniformID &id, BytesU offset) noexcept;
 
-		ND_ bool  HasImage (const UniformID &id)	const noexcept;
-		ND_ bool  HasSampler (const UniformID &id)	const noexcept;
-		ND_ bool  HasTexture (const UniformID &id)	const noexcept;
-		ND_ bool  HasBuffer (const UniformID &id)	const noexcept;
+		Self&  BindRayTracingScene (const UniformID &id, const RTSceneID &scene) noexcept;
+
+		ND_ bool  HasImage (const UniformID &id)			const noexcept;
+		ND_ bool  HasSampler (const UniformID &id)			const noexcept;
+		ND_ bool  HasTexture (const UniformID &id)			const noexcept;
+		ND_ bool  HasBuffer (const UniformID &id)			const noexcept;
+		ND_ bool  HasRayTracingScene (const UniformID &id)	const noexcept;
 
 		ND_ RawDescriptorSetLayoutID	GetLayout ()			const	{ return _layoutId; }
 		ND_ ResourceSet_t const&		GetData ()				const	{ return _resources; }
@@ -168,7 +190,7 @@ namespace FG
 */
 	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, const ImageID &image) noexcept
 	{
-		ASSERT( HasImage( id ) );
+		ASSERT( HasImage( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
 		auto&	img		= std::get<Image>( curr.res );
@@ -190,7 +212,7 @@ namespace FG
 */
 	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc) noexcept
 	{
-		ASSERT( HasImage( id ) );
+		ASSERT( HasImage( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
 		auto&	img		= std::get<Image>( curr.res );
@@ -227,7 +249,7 @@ namespace FG
 */
 	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler) noexcept
 	{
-		ASSERT( HasTexture( id ) );
+		ASSERT( HasTexture( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
 		auto&	tex		= std::get<Texture>( curr.res );
@@ -250,7 +272,7 @@ namespace FG
 */
 	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc) noexcept
 	{
-		ASSERT( HasTexture( id ) );
+		ASSERT( HasTexture( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
 		auto&	tex		= std::get<Texture>( curr.res );
@@ -287,7 +309,7 @@ namespace FG
 */
 	inline PipelineResources&  PipelineResources::BindSampler (const UniformID &id, const SamplerID &sampler) noexcept
 	{
-		ASSERT( HasSampler( id ) );
+		ASSERT( HasSampler( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
 		auto&	samp	= std::get<Sampler>( curr.res );
@@ -322,7 +344,7 @@ namespace FG
 */
 	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, const BufferID &buffer) noexcept
 	{
-		ASSERT( HasBuffer( id ) );
+		ASSERT( HasBuffer( id ));
 		auto	un = _uniforms->find( id );
 
 		if ( auto* ubuf = std::get_if<PipelineDescription::UniformBuffer>( &un->second.data ) )
@@ -344,7 +366,7 @@ namespace FG
 */
 	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size) noexcept
 	{
-		ASSERT( HasBuffer( id ) );
+		ASSERT( HasBuffer( id ));
 		auto	un = _uniforms->find( id );
 		
 		if ( auto* ubuf = std::get_if<PipelineDescription::UniformBuffer>( &un->second.data ) )
@@ -429,7 +451,7 @@ namespace FG
 */
 	inline PipelineResources&  PipelineResources::SetBufferBase (const UniformID &id, BytesU offset) noexcept
 	{
-		ASSERT( HasBuffer( id ) );
+		ASSERT( HasBuffer( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
 		auto&	buf		= std::get<Buffer>( curr.res );
@@ -448,6 +470,7 @@ namespace FG
 		buf.offset = offset;
 		
 		curr.hash = HashOf( buf.bufferId ) + HashOf( buf.size ) + HashOf( buf.offset );
+		return *this;
 	}
 
 /*
@@ -461,6 +484,41 @@ namespace FG
 			auto	un = _uniforms->find( id );
 			return (un != _uniforms->end() and (std::holds_alternative<PipelineDescription::UniformBuffer>( un->second.data ) or
 												std::holds_alternative<PipelineDescription::StorageBuffer>( un->second.data )) );
+		}
+		return false;
+	}
+	
+/*
+=================================================
+	BindRayTracingScene
+=================================================
+*/
+	inline PipelineResources&  PipelineResources::BindRayTracingScene (const UniformID &id, const RTSceneID &scene) noexcept
+	{
+		ASSERT( HasRayTracingScene( id ));
+		auto	un		= _uniforms->find( id );
+		auto&	curr	= _resources[ un->second.index.Unique() ];
+		auto&	rts		= std::get<RayTracingScene>( curr.res );
+		
+		if ( rts.sceneId != scene.Get() )
+			_ResetCachedID();
+
+		rts.sceneId = scene.Get();
+		
+		curr.hash = HashOf( rts.sceneId );
+		return *this;
+	}
+
+/*
+=================================================
+	HasRayTracingScene
+=================================================
+*/
+	inline bool  PipelineResources::HasRayTracingScene (const UniformID &id) const noexcept
+	{
+		if ( _uniforms ) {
+			auto	un = _uniforms->find( id );
+			return (un != _uniforms->end() and std::holds_alternative<PipelineDescription::RayTracingScene>( un->second.data ));
 		}
 		return false;
 	}

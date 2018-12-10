@@ -75,16 +75,14 @@ namespace FG
 		CHECK_ERR( pplnCache.AllocDescriptorSet( dev, ds_layout->Handle(), OUT _descriptorSet ));
 
 		UpdateDescriptors	update;
-		
+		update.descriptors		= update.allocator.Alloc< VkWriteDescriptorSet >( _resources.size() + 1 );
+		update.descriptorIndex	= 0;
+
 		for (auto& un : _resources) {
 			std::visit( [&] (auto& data) { _AddResource( resMngr, data, update ); }, un.res );
 		}
 		
-		dev.vkUpdateDescriptorSets( dev.GetVkDevice(),
-									uint(update.descriptors.size()),
-									update.descriptors.data(),
-									0, null );
-
+		dev.vkUpdateDescriptorSets( dev.GetVkDevice(), update.descriptorIndex, update.descriptors, 0, null );
 		return true;
 	}
 	
@@ -138,6 +136,9 @@ namespace FG
 								[&resMngr] (const PipelineResources::Sampler &samp) {
 									return resMngr.IsResourceAlive( samp.samplerId );
 								},
+								[&resMngr] (const PipelineResources::RayTracingScene &rts) {
+									return resMngr.IsResourceAlive( rts.sceneId );
+								},
 								[] (const std::monostate &) {
 									return true;
 								}
@@ -181,27 +182,28 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
 	{
-		VkDescriptorBufferInfo	info = {};
-		info.buffer	= rm.GetResource( buf.bufferId )->Handle();
-		info.offset	= VkDeviceSize(buf.offset);
-		info.range	= VkDeviceSize(buf.size);
+		auto&	info = *list.allocator.Alloc< VkDescriptorBufferInfo >( 1 );
+		info = {};
+		info.buffer		= resMngr.GetResource( buf.bufferId )->Handle();
+		info.offset		= VkDeviceSize(buf.offset);
+		info.range		= VkDeviceSize(buf.size);
 
-		list.buffers.push_back( std::move(info) );
+		const bool	is_uniform	= ((buf.state & EResourceState::_StateMask) == EResourceState::UniformRead);
+		const bool	is_dynamic	= EnumEq( buf.state, EResourceState::_BufferDynamicOffset );
 
-
-		VkWriteDescriptorSet	wds = {};
+		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
+		wds = {};
 		wds.sType			= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		wds.pNext			= null;
-		wds.descriptorType	= ((buf.state & EResourceState::_StateMask) == EResourceState::UniformRead) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		wds.descriptorType	= (is_uniform ?
+								(is_dynamic ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) :
+								(is_dynamic ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER));
 		wds.descriptorCount	= 1;
-		wds.dstArrayElement	= 0;
 		wds.dstBinding		= buf.index.VKBinding();
 		wds.dstSet			= _descriptorSet;
-		wds.pBufferInfo		= &list.buffers.back();
+		wds.pBufferInfo		= &info;
 
-		list.descriptors.push_back( std::move(wds) );
 		return true;
 	}
 	
@@ -210,29 +212,27 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
 	{
-		VLocalImage const*	local_img	= rm.GetState( img.imageId );
+		VLocalImage const*	local_img	= resMngr.GetState( img.imageId );
 
-		VkDescriptorImageInfo	info = {};
+		auto&	info = *list.allocator.Alloc< VkDescriptorImageInfo >( 1 );
+		info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( img.state );
-		info.imageView		= local_img->GetView( rm.GetDevice(), INOUT img.desc );
+		info.imageView		= local_img->GetView( resMngr.GetDevice(), INOUT img.desc );
 		info.sampler		= VK_NULL_HANDLE;
-
-		list.images.push_back( std::move(info) );
 		
-
-		VkWriteDescriptorSet	wds = {};
+		
+		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
+		wds = {};
 		wds.sType			= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		wds.pNext			= null;
-		wds.descriptorType	= ((img.state & EResourceState::_StateMask) == EResourceState::InputAttachment) ? VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		wds.descriptorType	= ((img.state & EResourceState::_StateMask) == EResourceState::InputAttachment) ?
+								VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		wds.descriptorCount	= 1;
-		wds.dstArrayElement	= 0;
 		wds.dstBinding		= img.index.VKBinding();
 		wds.dstSet			= _descriptorSet;
-		wds.pImageInfo		= &list.images.back();
+		wds.pImageInfo		= &info;
 
-		list.descriptors.push_back( std::move(wds) );
 		return true;
 	}
 	
@@ -241,29 +241,26 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
 	{
-		VLocalImage const*	local_img	= rm.GetState( tex.imageId );
+		VLocalImage const*	local_img	= resMngr.GetState( tex.imageId );
 
-		VkDescriptorImageInfo	info = {};
+		auto&	info = *list.allocator.Alloc< VkDescriptorImageInfo >( 1 );
+		info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( tex.state );
-		info.imageView		= local_img->GetView( rm.GetDevice(), INOUT tex.desc );
-		info.sampler		= rm.GetResource( tex.samplerId )->Handle();
-
-		list.images.push_back( std::move(info) );
+		info.imageView		= local_img->GetView( resMngr.GetDevice(), INOUT tex.desc );
+		info.sampler		= resMngr.GetResource( tex.samplerId )->Handle();
 		
-
-		VkWriteDescriptorSet	wds = {};
+		
+		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
+		wds = {};
 		wds.sType			= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		wds.pNext			= null;
 		wds.descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		wds.descriptorCount	= 1;
-		wds.dstArrayElement	= 0;
 		wds.dstBinding		= tex.index.VKBinding();
 		wds.dstSet			= _descriptorSet;
-		wds.pImageInfo		= &list.images.back();
+		wds.pImageInfo		= &info;
 
-		list.descriptors.push_back( std::move(wds) );
 		return true;
 	}
 	
@@ -272,30 +269,56 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &rm, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
 	{
-		VkDescriptorImageInfo	info = {};
+		auto&	info = *list.allocator.Alloc< VkDescriptorImageInfo >( 1 );
+		info = {};
 		info.imageLayout	= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		info.imageView		= VK_NULL_HANDLE;
-		info.sampler		= rm.GetResource( samp.samplerId )->Handle();
-
-		list.images.push_back( std::move(info) );
+		info.sampler		= resMngr.GetResource( samp.samplerId )->Handle();
 		
-
-		VkWriteDescriptorSet	wds = {};
+		
+		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
+		wds = {};
 		wds.sType			= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		wds.pNext			= null;
 		wds.descriptorType	= VK_DESCRIPTOR_TYPE_SAMPLER;
 		wds.descriptorCount	= 1;
-		wds.dstArrayElement	= 0;
 		wds.dstBinding		= samp.index.VKBinding();
 		wds.dstSet			= _descriptorSet;
-		wds.pImageInfo		= &list.images.back();
+		wds.pImageInfo		= &info;
 
-		list.descriptors.push_back( std::move(wds) );
 		return true;
 	}
 	
+/*
+=================================================
+	_AddResource
+=================================================
+*/
+	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, const PipelineResources::RayTracingScene &rtScene, INOUT UpdateDescriptors &list)
+	{
+		auto&	tlas = *list.allocator.Alloc<VkAccelerationStructureNV>( 1 );
+		tlas = resMngr.GetResource( rtScene.sceneId )->Handle();
+
+		auto& 	top_as = *list.allocator.Alloc<VkWriteDescriptorSetAccelerationStructureNV>( 1 );
+		top_as = {};
+		top_as.sType						= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+		top_as.accelerationStructureCount	= 1;
+		top_as.pAccelerationStructures		= &tlas;
+		
+		
+		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
+		wds = {};
+		wds.sType			= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		wds.pNext			= &top_as;
+		wds.descriptorType	= VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+		wds.descriptorCount	= 1;
+		wds.dstBinding		= rtScene.index.VKBinding();
+		wds.dstSet			= _descriptorSet;
+
+		return true;
+	}
+
 /*
 =================================================
 	_AddResource

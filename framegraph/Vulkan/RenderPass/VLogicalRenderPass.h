@@ -46,10 +46,13 @@ namespace FG
 		using Viewports_t		= FixedArray< VkViewport, FG_MaxViewports >;
 		using Scissors_t		= FixedArray< VkRect2D, FG_MaxViewports >;
 		using RS				= RenderState;
+		using Allocator_t		= LinearAllocator<>;
 		
 
 	// variables
 	private:
+		Allocator_t					_allocator;
+
 		RawFramebufferID			_framebufferId;
 		RawRenderPassID				_renderPassId;
 		uint						_subpassIndex		= 0;
@@ -97,10 +100,12 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 
-		bool AddTask (IDrawTask *task)
+		template <typename DrawTaskType, typename ...Args>
+		bool AddTask (Args&& ...args)
 		{
 			SCOPELOCK( _rcCheck );
-			_drawTasks.push_back( std::move(task) );
+			auto*	ptr = _allocator.Alloc<DrawTaskType>();
+			_drawTasks.push_back( PlacementNew<DrawTaskType>( ptr, std::forward<Args&&>(args)... ));
 			return true;
 		}
 

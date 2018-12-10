@@ -24,7 +24,7 @@ namespace FG
 			RawRenderPassID				renderPassId;
 			uint						subpassIndex	= 0;
 			RenderState					renderState;
-			EPipelineDynamicState		dynamicState	= EPipelineDynamicState::None;
+			EPipelineDynamicState		dynamicState	= Default;
 			VkPipelineCreateFlags		flags			= 0;
 			uint						viewportCount	= 0;
 			// TODO: specialization constants

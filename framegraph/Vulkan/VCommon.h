@@ -71,6 +71,23 @@ namespace FG
 		Ignored		= VK_QUEUE_FAMILY_IGNORED,
 		Unknown		= Ignored,
 	};
+	
+
+	enum BLASHandle_t : uint64_t {};
+	
+	struct VkGeometryInstance
+	{
+		// 4x3 row-major matrix
+		float4			transformRow0;
+		float4			transformRow1;
+		float4			transformRow2;
+
+		uint			instanceId		: 24;
+		uint			mask			: 8;
+		uint			instanceOffset	: 24;
+		uint			flags			: 8;
+		BLASHandle_t	blasHandle;
+	};
 
 
 	class VDevice;
@@ -90,12 +107,16 @@ namespace FG
 	class VPipelineCache;
 	class VLocalBuffer;
 	class VLocalImage;
+	class VLocalRTGeometry;
+	class VLocalRTScene;
 	class VRenderPassCache;
 	class VBaseDrawVerticesTask;
 	class VBaseDrawMeshes;
 	class VComputePipeline;
 	class VGraphicsPipeline;
 	class VMeshPipeline;
+	class VRayTracingPipeline;
+	class VPipelineLayout;
 
 
 }	// FG

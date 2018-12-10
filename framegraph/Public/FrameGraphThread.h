@@ -24,11 +24,10 @@ namespace FG
 	struct ThreadDesc
 	{
 		EThreadUsage	usage;
-		FGThreadPtr		relative;	// new thread wiil use same gpu queues as 'relative' thread
 		StringView		name;
 
-		explicit ThreadDesc (EThreadUsage usage, const FGThreadPtr &relative = null, StringView name = Default) :
-			usage{usage}, relative{relative}, name{name} {}
+		ThreadDesc () {}
+		explicit ThreadDesc (EThreadUsage usage, StringView name = Default) : usage{usage}, name{name} {}
 	};
 
 
@@ -55,7 +54,7 @@ namespace FG
 	public:
 			virtual ~FrameGraphThread () {}
 			
-		// resource manager
+	// resource manager //
 		ND_ virtual MPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName = Default) = 0;
 		ND_ virtual RTPipelineID	CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName = Default) = 0;
 		ND_ virtual GPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName = Default) = 0;
@@ -70,15 +69,16 @@ namespace FG
 		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 
-			virtual void			DestroyResource (INOUT GPipelineID &id) = 0;
-			virtual void			DestroyResource (INOUT CPipelineID &id) = 0;
-			virtual void			DestroyResource (INOUT MPipelineID &id) = 0;
-			virtual void			DestroyResource (INOUT RTPipelineID &id) = 0;
-			virtual void			DestroyResource (INOUT ImageID &id) = 0;
-			virtual void			DestroyResource (INOUT BufferID &id) = 0;
-			virtual void			DestroyResource (INOUT SamplerID &id) = 0;
-			virtual void			DestroyResource (INOUT RTGeometryID &id) = 0;
-			virtual void			DestroyResource (INOUT RTSceneID &id) = 0;
+			// release reference to resource, if reference counter is 0 then resource will be destroyed after frame execution
+			virtual void			ReleaseResource (INOUT GPipelineID &id) = 0;
+			virtual void			ReleaseResource (INOUT CPipelineID &id) = 0;
+			virtual void			ReleaseResource (INOUT MPipelineID &id) = 0;
+			virtual void			ReleaseResource (INOUT RTPipelineID &id) = 0;
+			virtual void			ReleaseResource (INOUT ImageID &id) = 0;
+			virtual void			ReleaseResource (INOUT BufferID &id) = 0;
+			virtual void			ReleaseResource (INOUT SamplerID &id) = 0;
+			virtual void			ReleaseResource (INOUT RTGeometryID &id) = 0;
+			virtual void			ReleaseResource (INOUT RTSceneID &id) = 0;
 
 		ND_ virtual BufferDesc const&	GetDescription (const BufferID &id) const = 0;
 		ND_ virtual ImageDesc const&	GetDescription (const ImageID &id) const = 0;
@@ -92,18 +92,25 @@ namespace FG
 		ND_ virtual bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const = 0;
 
 
-		// initialization
-			virtual bool		Initialize (const SwapchainCreateInfo *swapchainCI = null) = 0;
+	// initialization //
+			// current thread will use same GPU queues as 'relativeThreads' and
+			// will try not to use same GPU queues as 'parallelThreads'
+			virtual bool		Initialize (const SwapchainCreateInfo *swapchainCI = null,
+											ArrayView<FGThreadPtr> relativeThreads = Default,
+											ArrayView<FGThreadPtr> parallelThreads = Default) = 0;
 			virtual void		Deinitialize () = 0;
 			virtual void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags = Default) = 0;
 			virtual bool		RecreateSwapchain (const SwapchainCreateInfo &) = 0;
 
-		// frame execution
+	// frame execution //
+			// start frame graph recording
 			virtual bool		Begin (const CommandBatchID &id, uint index, EThreadUsage usage) = 0;
+
+			// compile frame graph and submit command buffers
 		ND_ virtual bool		Compile () = 0;
 
 
-		// resource acquiring
+	// resource acquiring //
 			virtual bool		Acquire (const ImageID &id, bool immutable) = 0;
 			virtual bool		Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable) = 0;
 			virtual bool		Acquire (const BufferID &id, bool immutable) = 0;
@@ -111,7 +118,7 @@ namespace FG
 
 		//ND_ virtual ImageID		GetSwapchainImage (ESwapchainImage type) = 0;
 
-		// tasks
+	// tasks //
 		ND_ virtual Task		AddTask (const SubmitRenderPass &) = 0;
 		ND_ virtual Task		AddTask (const DispatchCompute &) = 0;
 		ND_ virtual Task		AddTask (const DispatchComputeIndirect &) = 0;
@@ -130,11 +137,13 @@ namespace FG
 		ND_ virtual Task		AddTask (const ReadImage &) = 0;
 		ND_ virtual Task		AddTask (const Present &) = 0;
 		//ND_ virtual Task		AddTask (const PresentVR &) = 0;
-		//ND_ virtual Task		AddTask (const TaskGroupSync &) = 0;
+		ND_ virtual Task		AddTask (const UpdateRayTracingShaderTable &) = 0;
+		ND_ virtual Task		AddTask (const BuildRayTracingGeometry &) = 0;
+		ND_ virtual Task		AddTask (const BuildRayTracingScene &) = 0;
+		ND_ virtual Task		AddTask (const TraceRays &) = 0;
 
-		// draw tasks
+	// draw tasks //
 		ND_ virtual LogicalPassID  CreateRenderPass (const RenderPassDesc &desc) = 0;
-
 			virtual void		AddTask (LogicalPassID, const DrawVertices &) = 0;
 			virtual void		AddTask (LogicalPassID, const DrawIndexed &) = 0;
 			virtual void		AddTask (LogicalPassID, const DrawVerticesIndirect &) = 0;

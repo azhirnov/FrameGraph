@@ -133,6 +133,7 @@ namespace FG
 */
 	VertexInputState&  VertexInputState::Add (const VertexID &id, EVertexType type, BytesU offset, const VertexBufferID &bufferId)
 	{
+		ASSERT( id.IsDefined() );
 		ASSERT( _vertices.count( id ) == 0 );
 
 		auto	iter = _bindings.find( bufferId );

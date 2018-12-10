@@ -54,8 +54,7 @@ namespace FG
 =================================================
 	OnEndFrame
 ----
-	called when all render threads synchronized
-	with main thread
+	called when all render threads synchronized with main thread
 =================================================
 */
 	void VResourceManagerThread::OnEndFrame ()
@@ -67,7 +66,7 @@ namespace FG
 		{
 			auto[index, inserted] = _mainRM._samplerCache.AddToCache( sampler.second.Index() );
 			if ( not inserted )
-				DestroyResource( sampler.second, false );
+				ReleaseResource( sampler.second, false );
 		}
 
 		// merge descriptor set layouts
@@ -75,7 +74,7 @@ namespace FG
 		{
 			auto[index, inserted] = _mainRM._dsLayoutCache.AddToCache( ds.second.Index() );
 			if ( not inserted )
-				DestroyResource( ds.second, false );
+				ReleaseResource( ds.second, false );
 		}
 
 		// merge pipeline layouts
@@ -83,7 +82,7 @@ namespace FG
 		{
 			auto[index, inserted] = _mainRM._pplnLayoutCache.AddToCache( layout.second.Index() );
 			if ( not inserted )
-				DestroyResource( layout.second, false );
+				ReleaseResource( layout.second, false );
 		}
 
 		// merge render passes
@@ -91,7 +90,7 @@ namespace FG
 		{
 			auto[index, inserted] = _mainRM._renderPassCache.AddToCache( rp.second.Index() );
 			if ( not inserted )
-				DestroyResource( rp.second, false );
+				ReleaseResource( rp.second, false );
 		}
 
 		// merge framebuffers
@@ -99,7 +98,7 @@ namespace FG
 		{
 			auto[index, inserted] = _mainRM._framebufferCache.AddToCache( fb.second.Index() );
 			if ( not inserted )
-				DestroyResource( fb.second, false );
+				ReleaseResource( fb.second, false );
 		}
 
 		// merge pipeline resources
@@ -107,14 +106,29 @@ namespace FG
 		{
 			auto[index, inserted] = _mainRM._pplnResourcesCache.AddToCache( res.second.Index() );
 			if ( not inserted )
-				DestroyResource( res.second, false );
+				ReleaseResource( res.second, false );
 		}
+
+		// merge & destroy ray tracing scenes
+		for (uint i = 0; i < _localRTSceneCount; ++i)
+		{
+			auto&	scene = _localRTScenes[ Index_t(i) ];
+
+			if ( not scene.IsDestroyed() )
+			{
+				//scene.Data().ToGlobal()->Merge(  );
+
+				scene.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				_localRTScenes.Unassign( Index_t(i) );
+			}
+		}
+		_localRTSceneCount = 0;
 
 		_pipelineCache.MergePipelines( _mainRM._GetReadyToDeleteQueue() );
 
 		// unassign IDs
 		for (auto& vid : *_unassignIDs) {
-			std::visit( [this] (auto id) { DestroyResource( id, false ); }, vid );
+			std::visit( [this] (auto id) { ReleaseResource( id, false ); }, vid );
 		}
 		
 		_samplerMap.Destroy();
@@ -125,46 +139,41 @@ namespace FG
 		_pplnResourcesMap.Destroy();
 		_unassignIDs.Destroy();
 		
+		ASSERT( _localRTScenes.empty() );
 	}
 	
 /*
 =================================================
-	DestroyLocalResources
+	AfterFrameCompilation
+----
+	TODO: delete some resource in 'FlushLocalResourceStates'
 =================================================
 */
-	void VResourceManagerThread::DestroyLocalResources ()
+	void VResourceManagerThread::AfterFrameCompilation ()
 	{
-		// destroy local images
-		for (size_t i = 0; i < _localImagesCount; ++i)
-		{
-			auto&	image = _localImages[ Index_t(i) ];
-			if ( not image.IsDestroyed() )
-				image.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
-		}
-		
-		// destroy local buffers
-		for (size_t i = 0; i < _localBuffersCount; ++i)
-		{
-			auto&	buffer = _localBuffers[ Index_t(i) ];
-			if ( not buffer.IsDestroyed() )
-				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
-		}
+		// process tasks
+		for (uint i = 0; i < 10 and _mainRM._ProcessValidationTask( *this ); ++i)
+		{}
 
-		for (size_t i = 0; i < _logicalRenderPassCount; ++i)
+		// destroy logical render passes
+		for (uint i = 0; i < _logicalRenderPassCount; ++i)
 		{
 			auto&	rp = _logicalRenderPasses[ Index_t(i) ];
+
 			if ( not rp.IsDestroyed() )
+			{
 				rp.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				_logicalRenderPasses.Unassign( Index_t(i) );
+			}
 		}
 
-		_imageToLocal.clear();
-		_bufferToLocal.clear();
-		_localImages.Release();
-		_localBuffers.Release();
-		_logicalRenderPasses.Release();
+		_rtSceneToLocal.clear();
 
-		_localImagesCount		= 0;
-		_localBuffersCount		= 0;
+		ASSERT( _localImages.empty() );
+		ASSERT( _localBuffers.empty() );
+		ASSERT( _logicalRenderPasses.empty() );
+		ASSERT( _localRTGeometries.empty() );
+		
 		_logicalRenderPassCount	= 0;
 	}
 
@@ -524,7 +533,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( desc, layout_id, dbgName ) )
+		if ( not data.Create( *this, desc, layout_id, dbgName ) )
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating ray tracing pipeline" );
@@ -578,7 +587,7 @@ namespace FG
 
 		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
-			DestroyResource( mem_id, isAsync );
+			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
 			RETURN_ERR( "failed when creating image" );
 		}
@@ -608,7 +617,7 @@ namespace FG
 		
 		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
-			DestroyResource( mem_id, isAsync );
+			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
 			RETURN_ERR( "failed when creating buffer" );
 		}
@@ -810,9 +819,9 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( *this, desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
-			DestroyResource( mem_id, isAsync );
+			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
 			RETURN_ERR( "failed when creating raytracing geometry" );
 		}
@@ -840,9 +849,9 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( *this, desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
 		{
-			DestroyResource( mem_id, isAsync );
+			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
 			RETURN_ERR( "failed when creating raytracing scene" );
 		}
@@ -922,6 +931,76 @@ namespace FG
 	
 /*
 =================================================
+	Remap (RTGeometryID)
+=================================================
+*/
+	LocalRTGeometryID  VResourceManagerThread::Remap (RawRTGeometryID id)
+	{
+		ASSERT( id );
+		SCOPELOCK( _rcCheck );
+
+		_rtGeometryToLocal.resize(Max( id.Index()+1, _rtGeometryToLocal.size() ));
+
+		auto&	local = _rtGeometryToLocal[ id.Index() ];
+
+		if ( local )
+			return local;
+
+		Index_t		index = 0;
+		CHECK_ERR( _localRTGeometries.Assign( OUT index ));
+
+		auto&		data = _localRTGeometries[ index ];
+		Replace( data );
+		
+		if ( not data.Create( GetResource( id ) ) )
+		{
+			_localRTGeometries.Unassign( index );
+			RETURN_ERR( "failed when creating local ray tracing geometry" );
+		}
+
+		_localRTGeometryCount = Max( index+1, _localRTGeometryCount );
+
+		local = LocalRTGeometryID( index, 0 );
+		return local;
+	}
+	
+/*
+=================================================
+	Remap (RTSceneID)
+=================================================
+*/
+	LocalRTSceneID  VResourceManagerThread::Remap (RawRTSceneID id)
+	{
+		ASSERT( id );
+		SCOPELOCK( _rcCheck );
+
+		_rtSceneToLocal.resize(Max( id.Index()+1, _rtSceneToLocal.size() ));
+
+		auto&	local = _rtSceneToLocal[ id.Index() ];
+
+		if ( local )
+			return local;
+
+		Index_t		index = 0;
+		CHECK_ERR( _localRTScenes.Assign( OUT index ));
+
+		auto&		data = _localRTScenes[ index ];
+		Replace( data );
+		
+		if ( not data.Create( GetResource( id ) ) )
+		{
+			_localRTScenes.Unassign( index );
+			RETURN_ERR( "failed when creating local ray tracing scene" );
+		}
+
+		_localRTSceneCount = Max( index+1, _localRTSceneCount );
+
+		local = LocalRTSceneID( index, 0 );
+		return local;
+	}
+
+/*
+=================================================
 	CreateLogicalRenderPass
 =================================================
 */
@@ -953,19 +1032,61 @@ namespace FG
 */
 	void  VResourceManagerThread::FlushLocalResourceStates (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger)
 	{
-		for (size_t i = 0; i < _localImagesCount; ++i)
+		// reset state & destroy local images
+		for (uint i = 0; i < _localImagesCount; ++i)
 		{
 			auto&	image = _localImages[ Index_t(i) ];
+
 			if ( not image.IsDestroyed() )
+			{
 				image.Data().ResetState( index, barrierMngr, debugger );
+				image.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				_localImages.Unassign( Index_t(i) );
+			}
 		}
 		
-		for (size_t i = 0; i < _localBuffersCount; ++i)
+		// reset state & destroy local buffers
+		for (uint i = 0; i < _localBuffersCount; ++i)
 		{
 			auto&	buffer = _localBuffers[ Index_t(i) ];
+
 			if ( not buffer.IsDestroyed() )
+			{
 				buffer.Data().ResetState( index, barrierMngr, debugger );
+				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				_localBuffers.Unassign( Index_t(i) );
+			}
 		}
+	
+		// reset state & destroy local ray tracing geometries
+		for (uint i = 0; i < _localRTGeometryCount; ++i)
+		{
+			auto&	geometry = _localRTGeometries[ Index_t(i) ];
+
+			if ( not geometry.IsDestroyed() )
+			{
+				geometry.Data().ResetState( index, barrierMngr, debugger );
+				geometry.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				_localRTGeometries.Unassign( Index_t(i) );
+			}
+		}
+
+		// reset state of local ray tracing scenes
+		for (uint i = 0; i < _localRTSceneCount; ++i)
+		{
+			auto&	scene = _localRTScenes[ Index_t(i) ];
+
+			if ( not scene.IsDestroyed() )
+				scene.Data().ResetState( index, barrierMngr, debugger );
+		}	
+		
+		_imageToLocal.clear();
+		_bufferToLocal.clear();
+		_rtGeometryToLocal.clear();
+
+		_localImagesCount		= 0;
+		_localBuffersCount		= 0;
+		_localRTGeometryCount	= 0;
 	}
 	
 

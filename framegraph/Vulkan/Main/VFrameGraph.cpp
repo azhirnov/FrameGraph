@@ -55,7 +55,7 @@ namespace FG
 			usage |= EThreadUsage::MemAllocation;
 
 		// create thread
-		SharedPtr<VFrameGraphThread>	thread{ new VFrameGraphThread{ *this, usage, desc.relative, desc.name }};
+		SharedPtr<VFrameGraphThread>	thread{ new VFrameGraphThread{ *this, usage, desc.name }};
 
 		for (auto& comp : _pplnCompilers) {
 			thread->AddPipelineCompiler( comp );

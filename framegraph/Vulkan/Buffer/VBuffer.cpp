@@ -2,6 +2,7 @@
 
 #include "VBuffer.h"
 #include "VEnumCast.h"
+#include "FGEnumCast.h"
 #include "VDevice.h"
 #include "VMemoryObj.h"
 
@@ -30,6 +31,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
+		CHECK_ERR( not desc.isExternal );
 
 		_desc		= desc;
 		_memoryId	= MemoryID{ memId };
@@ -60,44 +62,6 @@ namespace FG
 	
 /*
 =================================================
-	EBufferUsage_FromVk
-=================================================
-*/
-	ND_ static EBufferUsage  EBufferUsage_FromVk (VkBufferUsageFlags flags)
-	{
-		EBufferUsage	result = Default;
-
-		for (VkBufferUsageFlags t = 0; t < VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM; t <<= 1)
-		{
-			if ( not EnumEq( flags, t ) )
-				continue;
-			
-			ENABLE_ENUM_CHECKS();
-			switch ( t )
-			{
-				case VK_BUFFER_USAGE_TRANSFER_SRC_BIT :			result |= EBufferUsage::TransferSrc;	break;
-				case VK_BUFFER_USAGE_TRANSFER_DST_BIT :			result |= EBufferUsage::TransferDst;	break;
-				case VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT :	result |= EBufferUsage::UniformTexel;	break;
-				case VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT :	result |= EBufferUsage::StorageTexel;	break;
-				case VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT :		result |= EBufferUsage::Uniform;		break;
-				case VK_BUFFER_USAGE_STORAGE_BUFFER_BIT :		result |= EBufferUsage::Storage;		break;
-				case VK_BUFFER_USAGE_INDEX_BUFFER_BIT :			result |= EBufferUsage::Index;			break;
-				case VK_BUFFER_USAGE_VERTEX_BUFFER_BIT :		result |= EBufferUsage::Vertex;			break;
-				case VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT :		result |= EBufferUsage::Indirect;		break;
-				case VK_BUFFER_USAGE_RAY_TRACING_BIT_NV :		result |= EBufferUsage::RayTracing;		break;
-				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT :
-				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT :	// TODO
-				case VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT :
-				case VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM :
-				default :										RETURN_ERR( "invalid buffer usage" );
-			}
-			DISABLE_ENUM_CHECKS();
-		}
-		return result;
-	}
-	
-/*
-=================================================
 	Create
 =================================================
 */
@@ -108,7 +72,7 @@ namespace FG
 
 		_buffer				= BitCast<VkBuffer>( desc.buffer );
 		_desc.size			= desc.size;
-		_desc.usage			= EBufferUsage_FromVk( desc.usage );
+		_desc.usage			= FGEnumCast( BitCast<VkBufferUsageFlagBits>( desc.usage ));
 		_desc.isExternal	= true;
 
 		if ( not dbgName.empty() )

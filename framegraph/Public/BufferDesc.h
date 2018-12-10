@@ -16,7 +16,7 @@ namespace FG
 	// variables
 		BytesU			size;
 		EBufferUsage	usage		= Default;
-		bool			isLogical	= false;
+		//bool			isLogical	= false;
 		bool			isExternal	= false;
 
 	// methods

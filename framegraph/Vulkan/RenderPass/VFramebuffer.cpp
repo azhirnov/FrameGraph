@@ -47,6 +47,23 @@ namespace FG
 	
 /*
 =================================================
+	IsAllResourcesAlive
+=================================================
+*/
+	bool VFramebuffer::IsAllResourcesAlive (const VResourceManagerThread &resMngr) const
+	{
+		SHAREDLOCK( _rcCheck );
+
+		for (auto& attach : _attachments)
+		{
+			if ( not resMngr.IsResourceAlive( attach.first ) )
+				return false;
+		}
+		return true;
+	}
+
+/*
+=================================================
 	operator ==
 =================================================
 */
@@ -149,6 +166,9 @@ namespace FG
 		_framebuffer	= VK_NULL_HANDLE;
 		_hash			= Default;
 		_renderPassId	= Default;
+		_dimension		= Default;
+		_layers			= Default;
+
 		_attachments.clear();
 		_debugName.clear();
 	}

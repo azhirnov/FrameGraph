@@ -20,10 +20,9 @@ namespace FG
 	private:
 		struct UpdateDescriptors
 		{
-			Deque< VkDescriptorBufferInfo >		buffers;	// TODO: custom allocator
-			Deque< VkDescriptorImageInfo >		images;
-			Deque< VkBufferView >				bufferViews;
-			Array< VkWriteDescriptorSet >		descriptors;
+			LinearAllocator<>			allocator;
+			VkWriteDescriptorSet *		descriptors;
+			uint						descriptorIndex;
 		};
 
 		using ResourceSet_t		= PipelineResources::ResourceSet_t;
@@ -52,9 +51,9 @@ namespace FG
 		bool Create (VResourceManagerThread &, VPipelineCache &);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
-		ND_ bool	IsAllResourcesAlive (const VResourceManagerThread &) const;
+		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
 
-		ND_ bool	operator == (const VPipelineResources &rhs) const;
+		ND_ bool  operator == (const VPipelineResources &rhs) const;
 
 		ND_ VkDescriptorSet				Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _descriptorSet; }
 		ND_ RawDescriptorSetLayoutID	GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
@@ -69,6 +68,7 @@ namespace FG
 		bool _AddResource (VResourceManagerThread &, INOUT PipelineResources::Image &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManagerThread &, INOUT PipelineResources::Texture &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManagerThread &, const PipelineResources::Sampler &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManagerThread &, const PipelineResources::RayTracingScene &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManagerThread &, const std::monostate &, INOUT UpdateDescriptors &);
 	};
 

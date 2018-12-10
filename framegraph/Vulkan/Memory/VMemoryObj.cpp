@@ -78,15 +78,15 @@ namespace FG
 	
 /*
 =================================================
-	AllocateForStratchBuffer
+	AllocateForScratchBuffer
 =================================================
 */
-	bool VMemoryObj::AllocateForStratchBuffer (VkAccelerationStructureNV accelStruct, VkAccelerationStructureMemoryRequirementsTypeNV reqType, VkBuffer stratchBuffer)
+	bool VMemoryObj::AllocateForScratchBuffer (VkAccelerationStructureNV accelStruct, VkAccelerationStructureMemoryRequirementsTypeNV reqType, VkBuffer scratchBuffer)
 	{
 		SCOPELOCK( _rcCheck );
 		
 		auto	mem_mngr = _manager.lock();
-		CHECK_ERR( mem_mngr and mem_mngr->AllocateForStratchBuffer( accelStruct, reqType, stratchBuffer, _desc, INOUT _storage ));
+		CHECK_ERR( mem_mngr and mem_mngr->AllocateForScratchBuffer( accelStruct, reqType, scratchBuffer, _desc, INOUT _storage ));
 
 		return true;
 	}

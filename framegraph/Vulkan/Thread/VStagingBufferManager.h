@@ -39,10 +39,8 @@ namespace FG
 			StagingBuffer (BufferID &&buf, RawMemoryID mem, BytesU capacity) :
 				bufferId{std::move(buf)}, memoryId{mem}, capacity{capacity} {}
 
-			ND_ BytesU	Capacity ()		const	{ return capacity; }
-			ND_ BytesU	Available ()	const	{ return Capacity() - size; }
-			ND_ bool	IsFull ()		const	{ return size >= Capacity(); }
-			ND_ bool	Empty ()		const	{ return size == offset; }
+			ND_ bool	IsFull ()	const	{ return size >= capacity; }
+			ND_ bool	Empty ()	const	{ return size == offset; }
 		};
 
 		
@@ -134,6 +132,12 @@ namespace FG
 
 		bool StoreBufferData (ArrayView<uint8_t> srcData, BytesU srcOffset,
 							  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
+
+		bool StoreBufferData (const void *dataPtr, BytesU dataSize,
+							  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
+
+		bool GetWritableBuffer (BytesU srcDataSize, BytesU dstMinSize, OUT RawBufferID &dstBuffer,
+								OUT BytesU &dstOffset, OUT BytesU &size, OUT void* &mappedPtr);
 		
 		bool StoreImageData (ArrayView<uint8_t> srcData, BytesU srcOffset, BytesU srcPitch, BytesU srcTotalSize,
 							 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
@@ -147,10 +151,10 @@ namespace FG
 
 
 	private:
-		bool _StoreData (ArrayView<uint8_t> srcData, BytesU srcOffset, BytesU srcAlign, BytesU srcMinSize,
-						 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
+		bool _GetWritable (BytesU srcDataSize, BytesU blockAlign, BytesU offsetAlign, BytesU dstMinSize,
+						   OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size, OUT void* &mappedPtr);
 		
-		bool _AddPendingLoad (BytesU srcRequiredSize, BytesU srcAlign, BytesU srcMinSize,
+		bool _AddPendingLoad (BytesU srcRequiredSize, BytesU blockAlign, BytesU offsetAlign, BytesU dstMinSize,
 							  OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
 
 		bool _MapMemory (StagingBuffer &buf) const;

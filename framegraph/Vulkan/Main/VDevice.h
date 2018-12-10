@@ -51,24 +51,28 @@ namespace FG
 
 	// variables
 	private:
-		VkInstance							_vkInstance;
-		VkPhysicalDevice					_vkPhysicalDevice;
-		VkDevice							_vkDevice;
-		EShaderLangFormat					_vkVersion;
-		Queues_t							_vkQueues;
+		VkInstance								_vkInstance;
+		VkPhysicalDevice						_vkPhysicalDevice;
+		VkDevice								_vkDevice;
+		EShaderLangFormat						_vkVersion;
+		Queues_t								_vkQueues;
 
-		VkPhysicalDeviceProperties			_deviceProperties;
-		VkPhysicalDeviceFeatures			_deviceFeatures;
-		VkPhysicalDeviceMemoryProperties	_deviceMemoryProperties;
-		mutable InstanceLayers_t			_instanceLayers;
-		mutable ExtensionSet_t				_instanceExtensions;
-		mutable ExtensionSet_t				_deviceExtensions;
+		VkPhysicalDeviceProperties				_deviceProperties;
+		VkPhysicalDeviceFeatures				_deviceFeatures;
+		VkPhysicalDeviceMemoryProperties		_deviceMemoryProperties;
+
+		VkPhysicalDeviceMeshShaderPropertiesNV			_deviceMeshShaderProperties;
+		VkPhysicalDeviceRayTracingPropertiesNV			_deviceRayTracingProperties;
+		VkPhysicalDeviceShadingRateImagePropertiesNV	_deviceShadingRateImageProperties;
+
+		mutable ExtensionSet_t					_instanceExtensions;
+		mutable ExtensionSet_t					_deviceExtensions;
 		
-		VulkanDeviceFnTable					_deviceFnTable;
+		VulkanDeviceFnTable						_deviceFnTable;
 
-		bool								_enableDebugUtils	: 1;
-		bool								_enableMeshShaderNV	: 1;
-		bool								_enableRayTracingNV	: 1;
+		bool									_enableDebugUtils	: 1;
+		bool									_enableMeshShaderNV	: 1;
+		bool									_enableRayTracingNV	: 1;
 
 
 	// methods
@@ -76,25 +80,28 @@ namespace FG
 		explicit VDevice (const VulkanDeviceInfo &vdi);
 		~VDevice ();
 
-		ND_ bool									IsDebugUtilsEnabled ()		const	{ return _enableDebugUtils; }
-		ND_ bool									IsMeshShaderEnabled ()		const	{ return _enableMeshShaderNV; }
-		ND_ bool									IsRayTracingEnabled ()		const	{ return _enableRayTracingNV; }
+		ND_ bool							IsDebugUtilsEnabled ()		const	{ return _enableDebugUtils; }
+		ND_ bool							IsMeshShaderEnabled ()		const	{ return _enableMeshShaderNV; }
+		ND_ bool							IsRayTracingEnabled ()		const	{ return _enableRayTracingNV; }
 
-		ND_ VkDevice								GetVkDevice ()				const	{ return _vkDevice; }
-		ND_ VkPhysicalDevice						GetVkPhysicalDevice ()		const	{ return _vkPhysicalDevice; }
-		ND_ VkInstance								GetVkInstance ()			const	{ return _vkInstance; }
-		ND_ EShaderLangFormat						GetVkVersion ()				const	{ return _vkVersion; }
-		ND_ ArrayView< VDeviceQueueInfo >			GetVkQueues ()				const	{ return _vkQueues; }
+		ND_ VkDevice						GetVkDevice ()				const	{ return _vkDevice; }
+		ND_ VkPhysicalDevice				GetVkPhysicalDevice ()		const	{ return _vkPhysicalDevice; }
+		ND_ VkInstance						GetVkInstance ()			const	{ return _vkInstance; }
+		ND_ EShaderLangFormat				GetVkVersion ()				const	{ return _vkVersion; }
+		ND_ ArrayView< VDeviceQueueInfo >	GetVkQueues ()				const	{ return _vkQueues; }
 		
-		ND_ VkPhysicalDeviceProperties const&		GetDeviceProperties ()		 const	{ return _deviceProperties; }
-		ND_ VkPhysicalDeviceFeatures const&			GetDeviceFeatures ()		 const	{ return _deviceFeatures; }
-		ND_ VkPhysicalDeviceMemoryProperties const&	GetDeviceMemoryProperties () const	{ return _deviceMemoryProperties; }
-		ND_ VkPhysicalDeviceLimits const&			GetDeviceLimits ()			 const	{ return _deviceProperties.limits; }
-		ND_ VkPhysicalDeviceSparseProperties const&	GetDeviceSparseProperties () const	{ return _deviceProperties.sparseProperties; }
+
+		ND_ VkPhysicalDeviceProperties const&					GetDeviceProperties ()					const	{ return _deviceProperties; }
+		ND_ VkPhysicalDeviceFeatures const&						GetDeviceFeatures ()					const	{ return _deviceFeatures; }
+		ND_ VkPhysicalDeviceMemoryProperties const&				GetDeviceMemoryProperties ()			const	{ return _deviceMemoryProperties; }
+		ND_ VkPhysicalDeviceLimits const&						GetDeviceLimits ()						const	{ return _deviceProperties.limits; }
+		ND_ VkPhysicalDeviceSparseProperties const&				GetDeviceSparseProperties ()			const	{ return _deviceProperties.sparseProperties; }
+		ND_ VkPhysicalDeviceMeshShaderPropertiesNV const&		GetDeviceMeshShaderProperties ()		const	{ return _deviceMeshShaderProperties; }
+		ND_ VkPhysicalDeviceRayTracingPropertiesNV const&		GetDeviceRayTracingProperties ()		const	{ return _deviceRayTracingProperties; }
+		ND_ VkPhysicalDeviceShadingRateImagePropertiesNV const&	GetDeviceShadingRateImageProperties ()	const	{ return _deviceShadingRateImageProperties; }
 
 
 		// check extensions
-		ND_ bool HasLayer (StringView name) const;
 		ND_ bool HasExtension (StringView name) const;
 		ND_ bool HasDeviceExtension (StringView name) const;
 		
@@ -102,7 +109,6 @@ namespace FG
 
 
 	private:
-		bool _LoadInstanceLayers () const;
 		bool _LoadInstanceExtensions () const;
 		bool _LoadDeviceExtensions () const;
 	};

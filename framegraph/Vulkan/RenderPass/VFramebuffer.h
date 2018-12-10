@@ -47,8 +47,10 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		//ND_ bool HasImage (const VImagePtr &img) const;
+		
+		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
 
-		ND_ bool operator == (const VFramebuffer &rhs) const;
+		ND_ bool  operator == (const VFramebuffer &rhs) const;
 
 		ND_ VkFramebuffer		Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _framebuffer; }
 		ND_ RawRenderPassID		GetRenderPassID ()	const	{ SHAREDLOCK( _rcCheck );  return _renderPassId; }

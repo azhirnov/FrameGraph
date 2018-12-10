@@ -52,11 +52,11 @@ namespace FG
 		for (auto& frame : _perFrame)
 		{
 			for (auto& buf : frame.deviceToHost) {
-				_frameGraph.DestroyResource( buf.bufferId );
+				_frameGraph.ReleaseResource( buf.bufferId );
 			}
 
 			for (auto& buf : frame.hostToDevice) {
-				_frameGraph.DestroyResource( buf.bufferId );
+				_frameGraph.ReleaseResource( buf.bufferId );
 			}
 		}
 		_perFrame.clear();
@@ -276,8 +276,42 @@ namespace FG
 	{
 		// skip blocks less than 1/N of data size
 		const BytesU	min_size = (ArraySizeOf(srcData) + MaxBufferParts-1) / MaxBufferParts;
+		void *			ptr		 = null;
 
-		return _StoreData( srcData, srcOffset, 0_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size );
+		if ( _GetWritable( ArraySizeOf(srcData), 1_b, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		{
+			MemCopy( ptr, size, srcData.data() + srcOffset, size );
+			return true;
+		}
+		return false;
+	}
+	
+/*
+=================================================
+	StoreBufferData
+=================================================
+*/
+	bool VStagingBufferManager::StoreBufferData (const void *dataPtr, BytesU dataSize,
+												 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
+	{
+		void *	ptr = null;
+		if ( _GetWritable( dataSize, 1_b, 16_b, dataSize, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		{
+			MemCopy( ptr, size, dataPtr, size );
+			return true;
+		}
+		return false;
+	}
+	
+/*
+=================================================
+	GetWritableBuffer
+=================================================
+*/
+	bool VStagingBufferManager::GetWritableBuffer (BytesU srcDataSize, BytesU dstMinSize, OUT RawBufferID &dstBuffer,
+												   OUT BytesU &dstOffset, OUT BytesU &size, OUT void* &mappedPtr)
+	{
+		return _GetWritable( srcDataSize, 1_b, 16_b, dstMinSize, OUT dstBuffer, OUT dstOffset, OUT size, OUT mappedPtr );
 	}
 
 /*
@@ -290,44 +324,55 @@ namespace FG
 	{
 		// skip blocks less than 1/N of total data size
 		const BytesU	min_size = Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
+		void *			ptr		 = null;
 
-		return _StoreData( srcData, srcOffset, srcPitch, srcPitch, OUT dstBuffer, OUT dstOffset, OUT size );
+		if ( _GetWritable( ArraySizeOf(srcData), srcPitch, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		{
+			MemCopy( ptr, size, srcData.data() + srcOffset, size );
+			return true;
+		}
+		return false;
 	}
 
 /*
 =================================================
-	_StoreData
+	_GetWritable
 =================================================
 */
-	bool VStagingBufferManager::_StoreData (ArrayView<uint8_t> srcData, const BytesU srcOffset, const BytesU srcAlign, const BytesU srcMinSize,
-											OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
+	bool VStagingBufferManager::_GetWritable (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
+											  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &outSize, OUT void* &mappedPtr)
 	{
-		const BytesU	required		= ArraySizeOf(srcData) - srcOffset;
-		auto&			staging_buffers = _perFrame[_frameId].hostToDevice;
+		ASSERT( blockAlign > 0_b and offsetAlign > 0_b );
+		ASSERT( dstMinSize == AlignToSmaller( dstMinSize, blockAlign ));
+
+		auto&	staging_buffers = _perFrame[_frameId].hostToDevice;
 
 
 		// search in existing
 		StagingBuffer*	suitable		= null;
 		StagingBuffer*	max_available	= null;
+		BytesU			max_size;
 
 		for (auto& buf : staging_buffers)
 		{
-			const BytesU	av = buf.Available();
+			const BytesU	off	= AlignToLarger( buf.size, offsetAlign );
+			const BytesU	av	= AlignToSmaller( buf.capacity - off, blockAlign );
 
-			if ( av >= required )
+			if ( av >= srcRequiredSize )
 			{
 				suitable = &buf;
 				break;
 			}
 
-			if ( not max_available or av > max_available->Available() )
+			if ( not max_available or av > max_size )
 			{
-				max_available = &buf;
+				max_available	= &buf;
+				max_size		= av;
 			}
 		}
 
 		// no suitable space, try to use max available block
-		if ( not suitable and max_available and max_available->Available() >= srcMinSize )
+		if ( not suitable and max_available and max_size >= dstMinSize )
 		{
 			suitable = max_available;
 		}
@@ -335,11 +380,12 @@ namespace FG
 		// allocate new buffer
 		if ( not suitable )
 		{
-			BufferID		buf_id  = _frameGraph.CreateBuffer( BufferDesc{_stagingBufferSize, EBufferUsage::Transfer}, MemoryDesc{EMemoryType::HostWrite},
-																"StagingWriteBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
+			ASSERT( dstMinSize < _stagingBufferSize );
+
+			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{_stagingBufferSize, EBufferUsage::Transfer}, MemoryDesc{EMemoryType::HostWrite}, "StagingWriteBuffer"s );
 			CHECK_ERR( buf_id );
 
-			RawMemoryID		mem_id  = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
+			RawMemoryID	mem_id = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
 			staging_buffers.push_back({ std::move(buf_id), mem_id, _stagingBufferSize });
@@ -349,16 +395,12 @@ namespace FG
 		}
 
 		// write data to buffer
-		dstOffset	= suitable->size;
-		size		= Min( suitable->Available(), required );
+		dstOffset	= AlignToLarger( suitable->size, offsetAlign );
+		outSize		= Min( AlignToSmaller( suitable->capacity - dstOffset, blockAlign ), srcRequiredSize );
 		dstBuffer	= suitable->bufferId.Get();
+		mappedPtr	= suitable->mappedPtr + dstOffset;
 
-		if ( srcAlign > 1_b )
-			size = AlignToSmaller( size, srcAlign );
-
-		MemCopy( suitable->mappedPtr + dstOffset, suitable->Available(), srcData.data() + srcOffset, size );
-
-		suitable->size += size;
+		suitable->size += outSize;
 		return true;
 	}
 	
@@ -367,34 +409,40 @@ namespace FG
 	_AddPendingLoad
 =================================================
 */
-	bool VStagingBufferManager::_AddPendingLoad (const BytesU srcRequiredSize, const BytesU srcAlign, const BytesU srcMinSize,
+	bool VStagingBufferManager::_AddPendingLoad (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
 												 OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range)
 	{
+		ASSERT( blockAlign > 0_b and offsetAlign > 0_b );
+		ASSERT( dstMinSize == AlignToSmaller( dstMinSize, blockAlign ));
+
 		auto&	staging_buffers = _perFrame[_frameId].deviceToHost;
 		
 
 		// search in existing
 		StagingBuffer*	suitable		= null;
 		StagingBuffer*	max_available	= null;
+		BytesU			max_size;
 
 		for (auto& buf : staging_buffers)
 		{
-			const BytesU	av = buf.Available();
+			const BytesU	off	= AlignToLarger( buf.size, offsetAlign );
+			const BytesU	av	= AlignToSmaller( buf.capacity - off, blockAlign );
 
 			if ( av >= srcRequiredSize )
 			{
 				suitable = &buf;
 				break;
 			}
-
-			if ( not max_available or av > max_available->Available() )
+			
+			if ( not max_available or av > max_size )
 			{
-				max_available = &buf;
+				max_available	= &buf;
+				max_size		= av;
 			}
 		}
 
 		// no suitable space, try to use max available block
-		if ( not suitable and max_available and max_available->Available() >= srcMinSize )
+		if ( not suitable and max_available and max_size >= dstMinSize )
 		{
 			suitable = max_available;
 		}
@@ -402,11 +450,12 @@ namespace FG
 		// allocate new buffer
 		if ( not suitable )
 		{
-			BufferID		buf_id  = _frameGraph.CreateBuffer( BufferDesc{_stagingBufferSize, EBufferUsage::Transfer}, MemoryDesc{EMemoryType::HostRead},
-																"StagingReadBuffer "s /*<< ToString(staging_buffers.size()) << '/' << ToString(_frameId)*/ );
+			ASSERT( dstMinSize < _stagingBufferSize );
+
+			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{_stagingBufferSize, EBufferUsage::Transfer}, MemoryDesc{EMemoryType::HostRead}, "StagingReadBuffer"s );
 			CHECK_ERR( buf_id );
 			
-			RawMemoryID		mem_id  = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
+			RawMemoryID	mem_id = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
 			staging_buffers.push_back({ std::move(buf_id), mem_id, _stagingBufferSize });
@@ -417,12 +466,9 @@ namespace FG
 		
 		// write data to buffer
 		range.buffer	= suitable;
-		range.offset	= suitable->size;
-		range.size		= Min( suitable->Available(), srcRequiredSize );
+		range.offset	= AlignToLarger( suitable->size, offsetAlign );
+		range.size		= Min( AlignToSmaller( suitable->capacity - range.offset, blockAlign ), srcRequiredSize );
 		dstBuffer		= suitable->bufferId.Get();
-		
-		if ( srcAlign > 1_b )
-			range.size = AlignToSmaller( range.size, srcAlign );
 
 		suitable->size += range.size;
 		return true;
@@ -439,7 +485,7 @@ namespace FG
 		// skip blocks less than 1/N of data size
 		const BytesU	min_size = (srcTotalSize + MaxBufferParts-1) / MaxBufferParts;
 
-		return _AddPendingLoad( srcTotalSize - srcOffset, 0_b, min_size, OUT dstBuffer, OUT range );
+		return _AddPendingLoad( srcTotalSize - srcOffset, 1_b, 16_b, min_size, OUT dstBuffer, OUT range );
 	}
 
 /*
@@ -466,7 +512,7 @@ namespace FG
 		// skip blocks less than 1/N of total data size
 		const BytesU	min_size = Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
 
-		return _AddPendingLoad( srcTotalSize - srcOffset, srcPitch, min_size, OUT dstBuffer, OUT range );
+		return _AddPendingLoad( srcTotalSize - srcOffset, srcPitch, 16_b, min_size, OUT dstBuffer, OUT range );
 	}
 
 /*

@@ -17,7 +17,6 @@
 #include "VPipelineResources.h"
 #include "VRayTracingGeometry.h"
 #include "VRayTracingScene.h"
-#include <shared_mutex>
 
 namespace FG
 {
@@ -32,10 +31,8 @@ namespace FG
 
 	// types
 	private:
-		using Index_t	= uint;
-
-		// shared mutex is much faster than mutex or spinlock
-		using Lock_t	= std::shared_mutex;
+		using Index_t		= uint;
+		using Lock_t		= std::mutex;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
 		using PoolTmpl		= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, Lock_t, AtomicPtr >;
@@ -46,31 +43,63 @@ namespace FG
 		template <typename T, size_t MaxSize, template <typename, size_t, size_t> class PoolT>
 		using PoolHelper	= PoolT< ResourceBase<T>, MaxSize/16, 16 >;
 
-		using ImagePool_t				= PoolHelper< VImage,				FG_MaxImageResources,	PoolTmpl >;
-		using BufferPool_t				= PoolHelper< VBuffer,				FG_MaxBufferResources,	PoolTmpl >;
-		using MemoryPool_t				= PoolHelper< VMemoryObj,			(FG_MaxImageResources + FG_MaxBufferResources), PoolTmpl >;
+		using ImagePool_t				= PoolHelper< VImage,				FG_MaxResources,	PoolTmpl >;
+		using BufferPool_t				= PoolHelper< VBuffer,				FG_MaxResources,	PoolTmpl >;
+		using MemoryPool_t				= PoolHelper< VMemoryObj,			FG_MaxResources*2,	PoolTmpl >;
 
-		using SamplerPool_t				= PoolHelper< VSampler,				(1u<<10),			CachedPoolTmpl >;
-		using GPipelinePool_t			= PoolHelper< VGraphicsPipeline,	FG_MaxPipelines,	PoolTmpl >;
-		using CPipelinePool_t			= PoolHelper< VComputePipeline,		FG_MaxPipelines,	PoolTmpl >;
-		using MPipelinePool_t			= PoolHelper< VMeshPipeline,		FG_MaxPipelines,	PoolTmpl >;
-		using RTPipelinePool_t			= PoolHelper< VRayTracingPipeline,	FG_MaxPipelines,	PoolTmpl >;
-		using PplnLayoutPool_t			= PoolHelper< VPipelineLayout,		FG_MaxPipelines,	CachedPoolTmpl >;
-		using DescriptorSetLayoutPool_t	= PoolHelper< VDescriptorSetLayout,	FG_MaxPipelines,	CachedPoolTmpl >;
-		using RenderPassPool_t			= PoolHelper< VRenderPass,			(1u<<10),			CachedPoolTmpl >;
-		using FramebufferPool_t			= PoolHelper< VFramebuffer,			(1u<<10),			CachedPoolTmpl >;
-		using PipelineResourcesPool_t	= PoolHelper< VPipelineResources,	(1u<<10),			CachedPoolTmpl >;
-		using RTGeometryPool_t			= PoolHelper< VRayTracingGeometry,	(16u<<10),			PoolTmpl >;
-		using RTScenePool_t				= PoolHelper< VRayTracingScene,		(16u<<10),			PoolTmpl >;
+		using SamplerPool_t				= PoolHelper< VSampler,				FG_MaxResources,	CachedPoolTmpl >;
+		using GPipelinePool_t			= PoolHelper< VGraphicsPipeline,	FG_MaxResources,	PoolTmpl >;
+		using CPipelinePool_t			= PoolHelper< VComputePipeline,		FG_MaxResources,	PoolTmpl >;
+		using MPipelinePool_t			= PoolHelper< VMeshPipeline,		FG_MaxResources,	PoolTmpl >;
+		using RTPipelinePool_t			= PoolHelper< VRayTracingPipeline,	FG_MaxResources,	PoolTmpl >;
+		using PplnLayoutPool_t			= PoolHelper< VPipelineLayout,		FG_MaxResources,	CachedPoolTmpl >;
+		using DescriptorSetLayoutPool_t	= PoolHelper< VDescriptorSetLayout,	FG_MaxResources,	CachedPoolTmpl >;
+		using RenderPassPool_t			= PoolHelper< VRenderPass,			FG_MaxResources,	CachedPoolTmpl >;
+		using FramebufferPool_t			= PoolHelper< VFramebuffer,			FG_MaxResources,	CachedPoolTmpl >;
+		using PipelineResourcesPool_t	= PoolHelper< VPipelineResources,	FG_MaxResources,	CachedPoolTmpl >;
+		using RTGeometryPool_t			= PoolHelper< VRayTracingGeometry,	FG_MaxResources,	PoolTmpl >;
+		using RTScenePool_t				= PoolHelper< VRayTracingScene,		FG_MaxResources,	PoolTmpl >;
 
 		using VkResourceQueue_t			= Array< UntypedVkResource_t >;
 		using UnassignIDQueue_t			= Array< UntypedResourceID_t >;
+
+		using TimePoint_t				= std::chrono::high_resolution_clock::time_point;
+
 
 		struct PerFrame
 		{
 			VkResourceQueue_t		readyToDelete;
 		};
 		using PerFrameArray_t			= FixedArray< PerFrame, FG_MaxRingBufferSize >;
+
+
+		struct TaskData
+		{
+			using TaskFn = std::function< void (VResourceManagerThread &) >;
+
+			//std::atomic_flag	lock  { ATOMIC_FLAG_INIT };
+			TaskFn				task;
+		};
+
+		struct PoolRanges
+		{
+			std::atomic<uint64_t>	bits { 0 };		// 0 - require validation, 1 - valid
+		};
+
+		enum class ECachedResource
+		{
+			Begin = 0,
+			//Sampler = Begin,
+			//PipelineLayout,
+			//DescriptorSetLayout,
+			//RenderPass,
+			Framebuffer = Begin,
+			PipelineResources,
+			End
+		};
+		
+		using ValidationTasks_t		= FixedArray< TaskData, 128 >;
+		using ValidationRanges_t	= StaticArray< PoolRanges, uint(ECachedResource::End) >;
 
 
 	// variables
@@ -89,17 +118,28 @@ namespace FG
 
 		PplnLayoutPool_t			_pplnLayoutCache;
 		DescriptorSetLayoutPool_t	_dsLayoutCache;
+		PipelineResourcesPool_t		_pplnResourcesCache;
 
 		RenderPassPool_t			_renderPassCache;
 		FramebufferPool_t			_framebufferCache;
-		PipelineResourcesPool_t		_pplnResourcesCache;
 
 		RTGeometryPool_t			_rtGeometryPool;
 		RTScenePool_t				_rtScenePool;
-		
+
 		UnassignIDQueue_t			_unassignIDs;
 		PerFrameArray_t				_perFrame;
 		uint						_frameId		= 0;
+
+		TimePoint_t					_startTime;
+		uint						_currTime		= 0;		// in seconds
+		static constexpr uint		_maxTimeDelta	= 60*5;		// in seconds
+
+		// cached resources validation
+		ValidationRanges_t			_validationRanges;
+		ECachedResource				_currentValidationPos = ECachedResource::Begin;
+
+		ValidationTasks_t			_validationTasks;
+		std::atomic<uint>			_validationTaskPos	= 0;
 
 
 	// methods
@@ -118,6 +158,22 @@ namespace FG
 
 
 	private:
+		void  _CreateValidationTasks ();
+		void  _DestroyValidationTasks ();
+		
+		bool  _ProcessValidationTask (VResourceManagerThread &);
+
+		template <typename T, size_t ChunkSize, size_t MaxChunks>
+		bool  _AddValidationTasks (const CachedPoolTmpl<T, ChunkSize, MaxChunks> &, INOUT PoolRanges &,
+								   void (VResourceManager::*) (VResourceManagerThread &, Index_t, Index_t) const);
+
+		void  _ValidateSamplers (VResourceManagerThread &, Index_t, Index_t) const;
+		void  _ValidatePipelineLayouts (VResourceManagerThread &, Index_t, Index_t) const;
+		void  _ValidateDescriptorSetLayouts (VResourceManagerThread &, Index_t, Index_t) const;
+		void  _ValidateRenderPasses (VResourceManagerThread &, Index_t, Index_t) const;
+		void  _ValidateFramebuffers (VResourceManagerThread &, Index_t, Index_t) const;
+		void  _ValidatePipelineResources (VResourceManagerThread &, Index_t, Index_t) const;
+
 		void  _DeleteResources (INOUT VkResourceQueue_t &) const;
 		void  _UnassignResourceIDs ();
 
@@ -201,13 +257,13 @@ namespace FG
 	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &res, ID id)
 	{
 		// destroy if needed
-		{
-			auto&	data = res[ id.Index() ];
-			ASSERT( data.GetInstanceID() == id.InstanceID() );
+		auto&	data = res[ id.Index() ];
 
-			if ( data.IsCreated() )
-				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
-		}
+		if ( data.GetInstanceID() != id.InstanceID() )
+			return;
+
+		if ( data.IsCreated() )
+			data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 
 		res.Unassign( id.Index() );
 	}
@@ -221,20 +277,18 @@ namespace FG
 	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &res, ID id)
 	{
 		// destroy if needed
-		{
-			auto&	data	= res[ id.Index() ];
+		auto&	data = res[ id.Index() ];
+		
+		if ( data.GetInstanceID() != id.InstanceID() )
+			return;
 
-			ASSERT( not data.IsCreated() or data.GetInstanceID() == id.InstanceID() );
+		const bool	destroy = (data.IsCreated() and data.ReleaseRef( _currTime ));
 
-			bool	destroy	= (data.IsCreated() and data.ReleaseRef());
-
-			if ( destroy )
-				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
-			else
-				return;	// don't unassign ID
-		}
+		if ( not destroy )
+			return;	// don't unassign ID
 
 		res.RemoveFromCache( id.Index() );
+		data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 		res.Unassign( id.Index() );
 	}
 

@@ -16,17 +16,12 @@ namespace FG
 	constructor
 =================================================
 */
-	VFrameGraphThread::VFrameGraphThread (VFrameGraph &fg, EThreadUsage usage, const FGThreadPtr &relative, StringView name) :
+	VFrameGraphThread::VFrameGraphThread (VFrameGraph &fg, EThreadUsage usage, StringView name) :
 		_threadUsage{ usage },			_state{ EState::Initial },
-		_compilationFlags{ Default },	_relativeThread{ DynCast<VFrameGraphThread>(relative) },
-		_debugName{ name },				_instance{ fg },
-		_resourceMngr{ _mainAllocator, fg.GetResourceMngr() }
+		_compilationFlags{ Default },	_debugName{ name },
+		_instance{ fg },				_resourceMngr{ _mainAllocator, fg.GetResourceMngr() }
 	{
 		SCOPELOCK( _rcCheck );
-
-		if ( relative ) {
-			ASSERT( EnumAny( _threadUsage, relative->GetThreadUsage() & EThreadUsage::_QueueMask ));
-		}
 
 		if ( EnumEq( _threadUsage, EThreadUsage::MemAllocation ) )
 		{
@@ -183,12 +178,11 @@ namespace FG
 	bool  VFrameGraphThread::IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const
 	{
 		ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
-		CHECK_ERR( thread );
 		SCOPELOCK( _rcCheck );
 
-		const auto*	other = Cast<VFrameGraphThread>( thread.operator->() );
-
-		if ( not (other->_threadUsage & _threadUsage & usage) )
+		const auto*	other = DynCast<VFrameGraphThread>( thread.operator->() );
+		
+		if ( not other or not (other->_threadUsage & _threadUsage & usage) )
 			return false;
 
 		for (auto& queue : _queues)
@@ -414,11 +408,11 @@ namespace FG
 
 /*
 =================================================
-	_DestroyResource
+	_ReleaseResource
 =================================================
 */
 	template <typename ID>
-	inline void VFrameGraphThread::_DestroyResource (INOUT ID &id)
+	inline void VFrameGraphThread::_ReleaseResource (INOUT ID &id)
 	{
 		if ( not id )
 			return;
@@ -426,23 +420,23 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
-		return _resourceMngr.DestroyResource( id.Release(), IsInSeparateThread() );
+		return _resourceMngr.ReleaseResource( id.Release(), IsInSeparateThread() );
 	}
 	
 /*
 =================================================
-	DestroyResource
+	ReleaseResource
 =================================================
 */
-	void VFrameGraphThread::DestroyResource (INOUT GPipelineID &id)		{ _DestroyResource( INOUT id ); }
-	void VFrameGraphThread::DestroyResource (INOUT CPipelineID &id)		{ _DestroyResource( INOUT id ); }
-	void VFrameGraphThread::DestroyResource (INOUT MPipelineID &id)		{ _DestroyResource( INOUT id ); }
-	void VFrameGraphThread::DestroyResource (INOUT RTPipelineID &id)	{ _DestroyResource( INOUT id ); }
-	void VFrameGraphThread::DestroyResource (INOUT ImageID &id)			{ _DestroyResource( INOUT id ); }
-	void VFrameGraphThread::DestroyResource (INOUT BufferID &id)		{ _DestroyResource( INOUT id ); }
-	void VFrameGraphThread::DestroyResource (INOUT SamplerID &id)		{ _DestroyResource( INOUT id ); }
-	void VFrameGraphThread::DestroyResource (INOUT RTGeometryID &id)	{ _DestroyResource( INOUT id ); }
-	void VFrameGraphThread::DestroyResource (INOUT RTSceneID &id)		{ _DestroyResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT GPipelineID &id)		{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT CPipelineID &id)		{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT MPipelineID &id)		{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT RTPipelineID &id)	{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT ImageID &id)			{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT BufferID &id)		{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT SamplerID &id)		{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT RTGeometryID &id)	{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT RTSceneID &id)		{ _ReleaseResource( INOUT id ); }
 
 /*
 =================================================
@@ -484,10 +478,12 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool VFrameGraphThread::Initialize (const SwapchainCreateInfo *swapchainCI)
+	bool VFrameGraphThread::Initialize (const SwapchainCreateInfo *swapchainCI, ArrayView<FGThreadPtr> relativeThreads, ArrayView<FGThreadPtr> parallelThreads)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Initial, EState::Initializing ));
+		ASSERT( parallelThreads.empty() );		// not supported yet
+		ASSERT( relativeThreads.size() <= 1 );	// only 1 thread supported yet
 
 		// create swapchain
 		if ( swapchainCI )
@@ -500,7 +496,7 @@ namespace FG
 				));
 		}
 		
-		CHECK_ERR( _SetupQueues() );
+		CHECK_ERR( _SetupQueues( relativeThreads.empty() ? null : DynCast<VFrameGraphThread>(relativeThreads.front()) ));
 
 		for (auto& queue : _queues)
 		{
@@ -643,7 +639,7 @@ namespace FG
 	_SetupQueues
 =================================================
 */
-	bool VFrameGraphThread::_SetupQueues ()
+	bool VFrameGraphThread::_SetupQueues (const SharedPtr<VFrameGraphThread> &relativeThread)
 	{
 		CHECK_ERR( _queues.empty() );
 
@@ -652,26 +648,26 @@ namespace FG
 
 		// graphics
 		if ( graphics_present )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::Graphics | EThreadUsage::Present ))
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::Graphics | EThreadUsage::Present, relativeThread ))
 		else
 		if ( EnumEq( _threadUsage, EThreadUsage::Graphics ) )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::Graphics ))
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::Graphics, relativeThread ))
 		else
 		if ( EnumEq( _threadUsage, EThreadUsage::Transfer ) )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::Transfer ));
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::Transfer, relativeThread ));
 
 
 		// compute only
 		if ( not graphics_present and compute_present )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncCompute | EThreadUsage::Present ))
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncCompute | EThreadUsage::Present, relativeThread ))
 		else
 		if ( EnumEq( _threadUsage, EThreadUsage::AsyncCompute ) )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncCompute ));
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncCompute, relativeThread ));
 
 
 		// transfer only
 		if ( EnumEq( _threadUsage, EThreadUsage::AsyncStreaming ) )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncStreaming ));
+			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncStreaming, relativeThread ));
 
 		CHECK_ERR( not _queues.empty() );
 		return true;
@@ -682,14 +678,13 @@ namespace FG
 	_AddGraphicsQueue
 =================================================
 */
-	bool VFrameGraphThread::_AddGpuQueue (const EThreadUsage usage)
+	bool VFrameGraphThread::_AddGpuQueue (const EThreadUsage usage, const SharedPtr<VFrameGraphThread> &relativeThread)
 	{
-		// TODO:race condition protection for '_relativeThread'
-		if ( auto thread = _relativeThread.lock() )
+		if ( relativeThread )
 		{
 			EThreadUsage	new_usage = (usage & ~EThreadUsage::Present);
 
-			if ( auto* queue = thread->_GetQueue( new_usage ) )
+			if ( auto* queue = relativeThread->_GetQueue( new_usage ) )
 			{
 				// TODO: check is swapchain can present on this queue
 
@@ -1143,10 +1138,10 @@ namespace FG
 		CHECK_ERR( _SetState( EState::Recording, EState::Compiling ));
 		ASSERT( _submissionGraph );
 
+		CHECK_ERR( _BuildCommandBuffers() );
+
 		if ( _stagingMngr )
 			_stagingMngr->OnEndFrame( _isFirstUsage );
-
-		CHECK_ERR( _BuildCommandBuffers() );
 		
 		if ( _debugger )
 			_debugger->OnEndFrame( _cmdBatchId, _indexInBatch );
@@ -1162,7 +1157,7 @@ namespace FG
 		}
 
 		_taskGraph.OnDiscardMemory();
-		_resourceMngr.DestroyLocalResources();
+		_resourceMngr.AfterFrameCompilation();
 		
 		_cmdBatchId		= Default;
 		_indexInBatch	= ~0u;
