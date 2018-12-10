@@ -20,9 +20,9 @@ static void SamplerCache_Test1 (const FGThreadPtr &fg)
 	SamplerID	samp3 = fg->CreateSampler( desc );
 	TEST( samp2 != samp3 );
 
-	fg->DestroyResource( samp1 );
-	fg->DestroyResource( samp2 );
-	fg->DestroyResource( samp3 );
+	fg->ReleaseResource( samp1 );
+	fg->ReleaseResource( samp2 );
+	fg->ReleaseResource( samp3 );
 }
 
 
@@ -101,7 +101,7 @@ static void PipelineResources_Test1 (const FGThreadPtr &fg)
 
 	// TODO
 
-	fg->DestroyResource( ppln );
+	fg->ReleaseResource( ppln );
 }
 
 

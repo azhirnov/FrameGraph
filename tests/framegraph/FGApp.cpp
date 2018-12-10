@@ -1,6 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "FGApp.h"
+#include "graphviz/GraphViz.h"
 #include "pipeline_compiler/VPipelineCompiler.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
@@ -12,12 +13,10 @@
 #	include "lodepng/lodepng.h"
 #endif
 
-#include "stl/Platforms/WindowsHeader.h"
-
 namespace FG
 {
 namespace {
-	static constexpr uint	UpdateAllReferenceDumps = true;
+	static constexpr uint	UpdateAllReferenceDumps = false;
 }
 
 /*
@@ -26,7 +25,7 @@ namespace {
 =================================================
 */
 	FGApp::FGApp ()
-	{
+	{	
 		_tests.push_back({ &FGApp::Test_CopyBuffer1,	1 });
 		_tests.push_back({ &FGApp::Test_CopyImage1,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
@@ -34,10 +33,11 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyImage4,		1 });
 		_tests.push_back({ &FGApp::Test_PushConst1,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
+		_tests.push_back({ &FGApp::Test_DynamicOffset,	1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
 		_tests.push_back({ &FGApp::Test_Draw2,			1 });
 		_tests.push_back({ &FGApp::Test_Draw3,			1 });
-		//_tests.push_back({ &FGApp::Test_TraceRays1,		1 });
+		_tests.push_back({ &FGApp::Test_TraceRays1,		1 });
 
 		_tests.push_back({ &FGApp::ImplTest_Scene1,		1 });
 	}
@@ -133,23 +133,21 @@ namespace {
 			CHECK_ERR( _frameGraph1 );
 			CHECK_ERR( _frameGraph1->Initialize( &swapchain_info ));
 
-			desc.usage   &= ~EThreadUsage::Present;
-			desc.relative = _frameGraph1;
+			desc.usage &= ~EThreadUsage::Present;
 
 			_frameGraph2 = _frameGraphInst->CreateThread( desc );
 			CHECK_ERR( _frameGraph2 );
-			CHECK_ERR( _frameGraph2->Initialize() );
+			CHECK_ERR( _frameGraph2->Initialize( null, {_frameGraph1} ));
 
 			CHECK_ERR( _frameGraph1->IsCompatibleWith( _frameGraph2, EThreadUsage::Graphics ));
 		}
 
 		// add glsl pipeline compiler
 		{
-			auto	ppln_compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
+			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
+			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
 
-			ppln_compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
-
-			_frameGraphInst->AddPipelineCompiler( ppln_compiler );
+			_frameGraphInst->AddPipelineCompiler( _pplnCompiler );
 		}
 
 		return true;
@@ -200,6 +198,8 @@ namespace {
 */
 	void FGApp::_Destroy ()
 	{
+		_pplnCompiler = null;
+
 		if ( _frameGraph1 )
 		{
 			_frameGraph1->Deinitialize();
@@ -311,145 +311,27 @@ namespace {
 		return true;
 	}
 #endif	// FG_ENABLE_LODEPNG
-	
-/*
-=================================================
-	DeleteFile
-=================================================
-*/
-	static bool  DeleteFile (StringView fname)
-	{
-#	ifdef FG_STD_FILESYSTEM
-		namespace fs = std::filesystem;
-
-		const fs::path	path{ fname };
-
-		if ( fs::exists( path ) )
-		{
-			bool	result = fs::remove( path );
-			std::this_thread::sleep_for( std::chrono::milliseconds(1) );
-			return result;
-		}
-		return true;
-#	else
-		// TODO
-#	endif
-	}
-	
-/*
-=================================================
-	CreateDirectory
-=================================================
-*/
-	static bool  CreateDirectory (StringView fname)
-	{
-#	ifdef FG_STD_FILESYSTEM
-		namespace fs = std::filesystem;
-
-		fs::path	path{ fname };
-
-		if ( not fs::exists( path ) )
-			return fs::create_directory( path );
-		
-		return true;
-#	else
-		// TODO
-#	endif
-	}
-	
-/*
-=================================================
-	Execute
-=================================================
-*/
-	static bool Execute (StringView commands, uint timeoutMS)
-	{
-#	ifdef PLATFORM_WINDOWS
-		char	buf[MAX_PATH] = {};
-		::GetSystemDirectoryA( buf, UINT(CountOf(buf)) );
-		
-		String		command_line;
-		command_line << '"' << buf << "\\cmd.exe\" /C " << commands;
-
-		STARTUPINFOA			startup_info = {};
-		PROCESS_INFORMATION		proc_info	 = {};
-		
-		bool process_created = ::CreateProcessA(
-			NULL,
-			command_line.data(),
-			NULL,
-			NULL,
-			FALSE,
-			CREATE_NO_WINDOW,
-			NULL,
-			NULL,
-			OUT &startup_info,
-			OUT &proc_info
-		);
-
-		if ( not process_created )
-			return false;
-
-		if ( ::WaitForSingleObject( proc_info.hThread, timeoutMS ) != WAIT_OBJECT_0 )
-			return false;
-		
-		DWORD process_exit;
-		::GetExitCodeProcess( proc_info.hProcess, OUT &process_exit );
-
-		//std::this_thread::sleep_for( std::chrono::milliseconds(1) );
-		return true;
-#	else
-		return false;
-#	endif
-	}
 
 /*
 =================================================
 	Visualize
 =================================================
 */
-	bool FGApp::Visualize (StringView name, bool autoOpen) const
+	bool FGApp::Visualize (StringView name) const
 	{
-#	ifdef FG_GRAPHVIZ_DOT_EXECUTABLE
+#	if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FG_STD_FILESYSTEM)
+
 		String	str;
 		CHECK_ERR( _frameGraphInst->DumpToGraphViz( OUT str ));
-		CHECK_ERR( CreateDirectory( FG_TEST_GRAPHS_DIR ));
 		
-		const StringView	format	= "png";
-		String				path{ FG_TEST_GRAPHS_DIR };		path << '/' << name << ".dot";
-		String				graph_path;						graph_path << path << '.' << format;
+		auto	path = std::filesystem::path{FG_TEST_GRAPHS_DIR}.append(name).replace_extension("dot");
 
-		// space in path is not supported
-		CHECK_ERR( path.find( ' ' ) == String::npos );
-
-		// save to '.dot' file
-		{
-			FileWStream		wfile{ path };
-			CHECK_ERR( wfile.IsOpen() );
-			CHECK_ERR( wfile.Write( StringView{str} ));
-		}
-
-		// generate graph
-		{
-			// delete previous version
-			CHECK( DeleteFile( graph_path ));
-			
-			CHECK_ERR( Execute( "\""s << FG_GRAPHVIZ_DOT_EXECUTABLE << "\" -T" << format << " -O " << path, 30'000 ));
-
-			// delete '.dot' file
-			//CHECK( DeleteFile( path ));
-		}
-
-		if ( autoOpen )
-		{
-			CHECK( Execute( graph_path, 1000 ));
-		}
-		return true;
+		CHECK( GraphViz::Visualize( str, path, "png", false, true ));
 
 #	else
 		// not supported
-		return true;
 #	endif
+		return true;
 	}
 	
 /*

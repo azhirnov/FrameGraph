@@ -18,9 +18,7 @@ namespace FG
 	{
 		ComputePipelineDesc	ppln;
 
-		ppln.AddShader( EShaderLangFormat::GLSL_450,
-						"main",
-R"#(
+		ppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
 #pragma shader_stage(compute)
 #extension GL_ARB_shading_language_420pack : enable
 

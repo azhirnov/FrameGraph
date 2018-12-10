@@ -18,23 +18,25 @@ namespace FG
 	{
 	// types
 	private:
-		using TestFunc_t	= bool (FGApp::*) ();
-		using TestQueue_t	= Deque<Pair< TestFunc_t, uint >>;
-		using DebugReport	= VulkanDeviceExt::DebugReport;
+		using TestFunc_t			= bool (FGApp::*) ();
+		using TestQueue_t			= Deque<Pair< TestFunc_t, uint >>;
+		using DebugReport			= VulkanDeviceExt::DebugReport;
+		using VPipelineCompilerPtr	= SharedPtr< class VPipelineCompiler >;
 
 
 	// variables
 	private:
-		VulkanDeviceExt		_vulkan;
-		WindowPtr			_window;
-		FrameGraphPtr		_frameGraphInst;
-		FGThreadPtr			_frameGraph1;
-		FGThreadPtr			_frameGraph2;
+		VulkanDeviceExt			_vulkan;
+		WindowPtr				_window;
+		FrameGraphPtr			_frameGraphInst;
+		FGThreadPtr				_frameGraph1;
+		FGThreadPtr				_frameGraph2;
+		VPipelineCompilerPtr	_pplnCompiler;
 
-		TestQueue_t			_tests;
-		uint				_testInvocations	= 0;
-		uint				_testsPassed		= 0;
-		uint				_testsFailed		= 0;
+		TestQueue_t				_tests;
+		uint					_testInvocations	= 0;
+		uint					_testsPassed		= 0;
+		uint					_testsFailed		= 0;
 
 
 	// methods
@@ -61,7 +63,7 @@ namespace FG
 		bool _Update ();
 		void _Destroy ();
 
-		bool Visualize (StringView name, bool autoOpen = false) const;
+		bool Visualize (StringView name) const;
 		bool CompareDumps (StringView filename) const;
 		bool SavePNG (const String &filename, const ImageView &imageData) const;
 
@@ -90,6 +92,7 @@ namespace FG
 		bool Test_CopyImage4 ();
 		bool Test_PushConst1 ();
 		bool Test_Compute1 ();		// compute + specialization
+		bool Test_DynamicOffset ();	// buffer dynamic offset
 		bool Test_Draw1 ();
 		bool Test_Draw2 ();			// with swapchain
 		bool Test_Draw3 ();			// with mesh shader
@@ -108,7 +111,7 @@ namespace FG
 	template <typename Arg0, typename ...Args>
 	inline void  FGApp::_RecursiveDeleteResources (Arg0 &arg0, Args& ...args)
 	{
-		_frameGraph1->DestroyResource( INOUT arg0 );
+		_frameGraph1->ReleaseResource( INOUT arg0 );
 
 		if constexpr ( CountOf<Args...>() )
 			_RecursiveDeleteResources( std::forward<Args&>( args )... );

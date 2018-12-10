@@ -13,9 +13,7 @@ namespace FG
 	{
 		ComputePipelineDesc	ppln;
 
-		ppln.AddShader( EShaderLangFormat::VKSL_100,
-						"main",
-R"#(
+		ppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
@@ -69,20 +67,18 @@ void main ()
 		{
 			cb_was_called	= true;
 			data_is_correct	= (data.size() == size_t(dst_buffer_size));
-
-			ASSERT( data_is_correct );
 			ASSERT( data.Parts().size() == 1 );
 
 			const float*	ptr = Cast<float>( data.Parts().front().data() );
 			float			rhs;
-			rhs = *(ptr +  0_b);	data_is_correct &= (pc.f3.x == rhs);			ASSERT( data_is_correct );
-			rhs = *(ptr +  4_b);	data_is_correct &= (pc.f3.y == rhs);			ASSERT( data_is_correct );
-			rhs = *(ptr +  8_b);	data_is_correct &= (pc.f3.z == rhs);			ASSERT( data_is_correct );
-			rhs = *(ptr + 12_b);	data_is_correct &= (pc.f1   == rhs);			ASSERT( data_is_correct );
-			rhs = *(ptr + 16_b);	data_is_correct &= (float(pc.i2.x) == rhs);		ASSERT( data_is_correct );
-			rhs = *(ptr + 20_b);	data_is_correct &= (float(pc.i2.y) == rhs);		ASSERT( data_is_correct );
-			rhs = *(ptr + 24_b);	data_is_correct &= (0.0f == rhs);				ASSERT( data_is_correct );
-			rhs = *(ptr + 28_b);	data_is_correct &= (1.0f == rhs);				ASSERT( data_is_correct );
+			rhs = *(ptr +  0_b);	data_is_correct &= (pc.f3.x == rhs);
+			rhs = *(ptr +  4_b);	data_is_correct &= (pc.f3.y == rhs);
+			rhs = *(ptr +  8_b);	data_is_correct &= (pc.f3.z == rhs);
+			rhs = *(ptr + 12_b);	data_is_correct &= (pc.f1   == rhs);
+			rhs = *(ptr + 16_b);	data_is_correct &= (float(pc.i2.x) == rhs);
+			rhs = *(ptr + 20_b);	data_is_correct &= (float(pc.i2.y) == rhs);
+			rhs = *(ptr + 24_b);	data_is_correct &= (0.0f == rhs);
+			rhs = *(ptr + 28_b);	data_is_correct &= (1.0f == rhs);
 		};
 
 		

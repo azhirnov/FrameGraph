@@ -12,22 +12,6 @@ Thread {
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         <initial>
-					dstTask:         OpaquePass (#7)
-					srcStageMask:    TopOfPipe
-					dstStageMask:    ColorAttachmentOutput
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
-					oldLayout:       General
-					newLayout:       ColorAttachmentOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
 					srcTask:         OpaquePass (#7)
 					dstTask:         TransparentPass (#8)
 					srcStageMask:    ColorAttachmentOutput
@@ -63,12 +47,12 @@ Thread {
 					srcTask:         Present (#9)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   
 					oldLayout:       TransferSrcOptimal
-					newLayout:       General
+					newLayout:       ColorAttachmentOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
@@ -124,58 +108,13 @@ Thread {
 					srcTask:         TransparentPass (#8)
 					dstTask:         <final>
 					srcStageMask:    EarlyFragmentTests
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
 					dstAccessMask:   
 					oldLayout:       DepthStencilAttachmentOptimal
 					newLayout:       DepthStencilAttachmentOptimal
 					aspectMask:      Depth
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-		}
-	}
-
-	Image {
-		name:         "texture1"
-		iamgeType:    Image2D
-		dimension:    ( 512, 512, 1 )
-		format:       RGBA8_UNorm
-		usage:        TransferDst | Sampled
-		arrayLayers:  1
-		maxLevel:     1
-		samples:      1
-		barriers = {
-				ImageMemoryBarrier {
-					srcTask:         <initial>
-					dstTask:         DepthOnlyPass (#6)
-					srcStageMask:    TopOfPipe
-					dstStageMask:    FragmentShader
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   ShaderRead
-					oldLayout:       General
-					newLayout:       ShaderReadOnlyOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         TransparentPass (#8)
-					dstTask:         <final>
-					srcStageMask:    FragmentShader
-					dstStageMask:    BottomOfPipe
-					dependencyFlags: 
-					srcAccessMask:   ShaderRead
-					dstAccessMask:   
-					oldLayout:       ShaderReadOnlyOptimal
-					newLayout:       General
-					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
 					baseArrayLayer:  0
@@ -202,20 +141,9 @@ Thread {
 				}
 				BufferMemoryBarrier {
 					srcTask:         update_buf1 (#3)
-					dstTask:         TransparentPass (#8)
-					srcStageMask:    Transfer
-					dstStageMask:    VertexShader | FragmentShader
-					dependencyFlags: 
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   UniformRead
-					offset:          0 b
-					size:            256 b
-				}
-				BufferMemoryBarrier {
-					srcTask:         update_buf1 (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -232,18 +160,18 @@ Thread {
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         update_buf0 (#2)
-					dstTask:         update_buf3 (#5)
+					dstTask:         DepthOnlyPass (#6)
 					srcStageMask:    Transfer
-					dstStageMask:    Transfer
+					dstStageMask:    VertexShader | FragmentShader
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
 					offset:          0 b
 					size:            256 b
 				}
 				BufferMemoryBarrier {
-					srcTask:         update_buf3 (#5)
-					dstTask:         DepthOnlyPass (#6)
+					srcTask:         update_buf0 (#2)
+					dstTask:         OpaquePass (#7)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
 					dependencyFlags: 
@@ -264,7 +192,7 @@ Thread {
 					size:            256 b
 				}
 				BufferMemoryBarrier {
-					srcTask:         update_buf3 (#5)
+					srcTask:         update_buf0 (#2)
 					dstTask:         TransparentPass (#8)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
@@ -286,10 +214,10 @@ Thread {
 					size:            256 b
 				}
 				BufferMemoryBarrier {
-					srcTask:         update_buf3 (#5)
+					srcTask:         update_buf0 (#2)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -300,11 +228,41 @@ Thread {
 					srcTask:         update_buf2 (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
 					offset:          256 b
+					size:            256 b
+				}
+		}
+	}
+
+	Buffer {
+		name:    "const_buf3"
+		size:    256 b
+		usage:   TransferDst | Uniform
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         update_buf3 (#5)
+					dstTask:         TransparentPass (#8)
+					srcStageMask:    Transfer
+					dstStageMask:    VertexShader | FragmentShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          0 b
+					size:            256 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         update_buf3 (#5)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
 					size:            256 b
 				}
 		}
@@ -317,22 +275,17 @@ Thread {
 		output = { DepthOnlyPass (#6) }
 		resource_usage = {
 			BufferUsage {
-				name:     "StagingWriteBuffer "
-				usage:    TransferSrc
+				name:     "StagingWriteBuffer"
+				usage:    Transfer-R
 				offset:   0 b
 				size:     256 b
 			}
 			BufferUsage {
 				name:     "const_buf2"
-				usage:    TransferDst
+				usage:    Transfer-W
 				offset:   0 b
 				size:     256 b
 			}
-		}
-		srcBuffer:    "StagingWriteBuffer "
-		dstBuffer:    "const_buf2"
-		regions = {
-			{ 0 b, 0 b, 256 b }
 		}
 	}
 	Task {
@@ -341,22 +294,17 @@ Thread {
 		output = { OpaquePass (#7) }
 		resource_usage = {
 			BufferUsage {
-				name:     "StagingWriteBuffer "
-				usage:    TransferSrc
+				name:     "StagingWriteBuffer"
+				usage:    Transfer-R
 				offset:   256 b
 				size:     256 b
 			}
 			BufferUsage {
 				name:     "const_buf1"
-				usage:    TransferDst
+				usage:    Transfer-W
 				offset:   0 b
 				size:     256 b
 			}
-		}
-		srcBuffer:    "StagingWriteBuffer "
-		dstBuffer:    "const_buf1"
-		regions = {
-			{ 256 b, 0 b, 256 b }
 		}
 	}
 	Task {
@@ -365,22 +313,17 @@ Thread {
 		output = { OpaquePass (#7) }
 		resource_usage = {
 			BufferUsage {
-				name:     "StagingWriteBuffer "
-				usage:    TransferSrc
+				name:     "StagingWriteBuffer"
+				usage:    Transfer-R
 				offset:   512 b
 				size:     256 b
 			}
 			BufferUsage {
 				name:     "const_buf2"
-				usage:    TransferDst
+				usage:    Transfer-W
 				offset:   256 b
 				size:     256 b
 			}
-		}
-		srcBuffer:    "StagingWriteBuffer "
-		dstBuffer:    "const_buf2"
-		regions = {
-			{ 512 b, 256 b, 256 b }
 		}
 	}
 	Task {
@@ -389,22 +332,17 @@ Thread {
 		output = { TransparentPass (#8) }
 		resource_usage = {
 			BufferUsage {
-				name:     "StagingWriteBuffer "
-				usage:    TransferSrc
+				name:     "StagingWriteBuffer"
+				usage:    Transfer-R
 				offset:   768 b
 				size:     256 b
 			}
 			BufferUsage {
-				name:     "const_buf2"
-				usage:    TransferDst
+				name:     "const_buf3"
+				usage:    Transfer-W
 				offset:   0 b
 				size:     256 b
 			}
-		}
-		srcBuffer:    "StagingWriteBuffer "
-		dstBuffer:    "const_buf2"
-		regions = {
-			{ 768 b, 0 b, 256 b }
 		}
 	}
 	Task {
@@ -414,13 +352,13 @@ Thread {
 		resource_usage = {
 			BufferUsage {
 				name:     "const_buf2"
-				usage:    UniformRead, VS, FS
+				usage:    Uniform, VS, FS
 				offset:   0 b
 				size:     256 b
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencilRT-ReadWrite, ClearBefore
+				usage:          DepthStencil-R, ClearBefore, EarlyTests
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -449,7 +387,7 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "color_target"
-				usage:          ColorRT-ReadWrite
+				usage:          Color-RW
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -457,25 +395,25 @@ Thread {
 			}
 			BufferUsage {
 				name:     "const_buf1"
-				usage:    UniformRead, VS, FS
+				usage:    Uniform, VS, FS
 				offset:   0 b
 				size:     256 b
 			}
 			BufferUsage {
 				name:     "const_buf2"
-				usage:    UniformRead, VS, FS
+				usage:    Uniform, VS, FS
 				offset:   256 b
 				size:     256 b
 			}
 			BufferUsage {
-				name:     "const_buf3"
-				usage:    UniformRead, VS, FS
+				name:     "const_buf2"
+				usage:    Uniform, VS, FS
 				offset:   0 b
 				size:     256 b
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencilRT-ReadWrite
+				usage:          DepthStencil-R, EarlyTests
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -498,7 +436,7 @@ Thread {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "texture1"
+				name:           "texture2"
 				usage:          ShaderSample, FS
 				baseMipLevel:   0
 				levelCount:     1
@@ -532,33 +470,33 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "color_target"
-				usage:          ColorRT-ReadWrite
+				usage:          Color-RW
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 			BufferUsage {
-				name:     "const_buf1"
-				usage:    UniformRead, VS, FS
+				name:     "const_buf2"
+				usage:    Uniform, VS, FS
 				offset:   0 b
 				size:     256 b
 			}
 			BufferUsage {
 				name:     "const_buf2"
-				usage:    UniformRead, VS, FS
-				offset:   0 b
-				size:     256 b
-			}
-			BufferUsage {
-				name:     "const_buf2"
-				usage:    UniformRead, VS, FS
+				usage:    Uniform, VS, FS
 				offset:   256 b
+				size:     256 b
+			}
+			BufferUsage {
+				name:     "const_buf3"
+				usage:    Uniform, VS, FS
+				offset:   0 b
 				size:     256 b
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencilRT-ReadWrite, InvalidateAfter
+				usage:          DepthStencil-R, InvalidateAfter, EarlyTests
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -581,7 +519,7 @@ Thread {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "texture1"
+				name:           "texture2"
 				usage:          ShaderSample, FS
 				baseMipLevel:   0
 				levelCount:     1
@@ -615,15 +553,13 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "color_target"
-				usage:          TransferSrc
+				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 		}
-		srcImage:   "color_target"
-		layer:      0
 	}
 }
 ===============================================================

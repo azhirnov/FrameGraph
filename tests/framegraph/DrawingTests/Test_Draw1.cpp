@@ -17,10 +17,7 @@ namespace FG
 	{
 		GraphicsPipelineDesc	ppln;
 
-		ppln.AddShader( EShader::Vertex,
-						EShaderLangFormat::GLSL_450,
-						"main",
-R"#(
+		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
 #pragma shader_stage(vertex)
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
@@ -45,10 +42,7 @@ void main() {
 }
 )#" );
 		
-		ppln.AddShader( EShader::Fragment,
-						EShaderLangFormat::GLSL_450,
-						"main",
-R"#(
+		ppln.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100, "main", R"#(
 #pragma shader_stage(fragment)
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
@@ -63,7 +57,7 @@ void main() {
 		
 		FGThreadPtr		frame_graph	= _frameGraph1;
 
-		uint2			view_size	= {800, 600};
+		const uint2		view_size	= {800, 600};
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
@@ -72,7 +66,7 @@ void main() {
 		
 		bool		data_is_correct = false;
 
-		const auto	OnLoaded =	[this, OUT &data_is_correct] (const ImageView &imageData)
+		const auto	OnLoaded =	[OUT &data_is_correct] (const ImageView &imageData)
 		{
 			const auto	TestPixel = [&imageData] (float x, float y, const RGBA32f &color)
 			{
@@ -121,7 +115,7 @@ void main() {
 		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( frame_graph->Compile() );		
+		CHECK_ERR( frame_graph->Compile() );
 		CHECK_ERR( _frameGraphInst->Execute() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));

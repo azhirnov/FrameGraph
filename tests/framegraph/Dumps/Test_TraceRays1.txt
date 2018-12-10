@@ -1,0 +1,231 @@
+Thread {
+	batch:         "main"
+	indexInBatch:  0
+	Image {
+		name:         "OutputImage"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         TraceRays (#5)
+					dstTask:         ReadImage (#6)
+					srcStageMask:    RayTracing
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ShaderWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       General
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#6)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    ""
+		size:    4 Kb
+		usage:   TransferDst | RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         UpdateRayTracingShaderTable (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            48 b
+				}
+		}
+	}
+
+	Buffer {
+		name:    ""
+		size:    64 Kb
+		usage:   RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingGeometry (#2)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
+				}
+		}
+	}
+
+	Buffer {
+		name:    ""
+		size:    64 Kb
+		usage:   RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingScene (#3)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
+				}
+		}
+	}
+
+	Buffer {
+		name:    "StagingReadBuffer"
+		size:    16 Mb
+		usage:   TransferSrc | TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#6)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            1875 Kb
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "BuildRayTracingGeometry (#2)"
+		input =  {  }
+		output = { BuildRayTracingScene (#3) }
+		resource_usage = {
+			BufferUsage {
+				name:     ""
+				usage:    RTASBuild-Buffer-RW
+				offset:   0 b
+				size:     64 Kb
+			}
+		}
+	}
+	Task {
+		name:    "BuildRayTracingScene (#3)"
+		input =  { BuildRayTracingGeometry (#2) }
+		output = { UpdateRayTracingShaderTable (#4), TraceRays (#5) }
+		resource_usage = {
+			BufferUsage {
+				name:     ""
+				usage:    RTASBuild-Buffer-RW
+				offset:   0 b
+				size:     64 Kb
+			}
+			BufferUsage {
+				name:     "StagingWriteBuffer"
+				usage:    RTASBuild-Buffer-R
+				offset:   0 b
+				size:     16 Mb
+			}
+		}
+	}
+	Task {
+		name:    "UpdateRayTracingShaderTable (#4)"
+		input =  { BuildRayTracingScene (#3) }
+		output = { TraceRays (#5) }
+		resource_usage = {
+			BufferUsage {
+				name:     ""
+				usage:    Transfer-W
+				offset:   0 b
+				size:     48 b
+			}
+			BufferUsage {
+				name:     "StagingWriteBuffer"
+				usage:    Transfer-R
+				offset:   112 b
+				size:     48 b
+			}
+		}
+	}
+	Task {
+		name:    "TraceRays (#5)"
+		input =  { BuildRayTracingScene (#3), UpdateRayTracingShaderTable (#4) }
+		output = { ReadImage (#6) }
+		resource_usage = {
+			ImageUsage {
+				name:           "OutputImage"
+				usage:          Storage-W, RTS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#6)"
+		input =  { TraceRays (#5) }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "OutputImage"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "StagingReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
+		}
+		srcImage:    "OutputImage"
+		srcLayout:   TransferSrcOptimal
+		dstBuffer:   "StagingReadBuffer"
+		regions = {
+			Region {
+				bufferOffset:        0 b
+				bufferRowLength:     800
+				bufferImageHeight:   600
+				imageAspectMask:     Color
+				imageMipLevel:       0
+				imageBaseArrayLayer: 0
+				imageLayerCount:     1
+				imageOffset:         ( 0, 0, 0 )
+				imageSize:           ( 800, 600, 1 )
+			}
+		}
+	}
+}
+===============================================================
+

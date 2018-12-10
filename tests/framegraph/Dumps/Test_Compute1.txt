@@ -31,7 +31,7 @@ Thread {
 					srcTask:         ReadImage (#5)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   
@@ -76,7 +76,7 @@ Thread {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   
@@ -121,7 +121,7 @@ Thread {
 					srcTask:         ReadImage (#7)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   
@@ -137,7 +137,7 @@ Thread {
 	}
 
 	Buffer {
-		name:    "StagingReadBuffer "
+		name:    "StagingReadBuffer"
 		size:    16 Mb
 		usage:   TransferSrc | TransferDst
 		barriers = {
@@ -145,7 +145,7 @@ Thread {
 					srcTask:         ReadImage (#5)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -156,7 +156,7 @@ Thread {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -167,7 +167,7 @@ Thread {
 					srcTask:         ReadImage (#7)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -185,15 +185,13 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "MyImage_0"
-				usage:          ShaderWrite, CS
+				usage:          Storage-W, CS
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 		}
-		pipeline:    ""
-		groupCount:  ( 2, 2, 1 )
 	}
 	Task {
 		name:    "DispatchCompute (#3)"
@@ -202,16 +200,13 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "MyImage_1"
-				usage:          ShaderWrite, CS
+				usage:          Storage-W, CS
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 		}
-		pipeline:    ""
-		groupCount:  ( 4, 4, 1 )
-		localGroupSize:  ( 4, 4, 1 )
 	}
 	Task {
 		name:    "DispatchCompute (#4)"
@@ -220,16 +215,13 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "MyImage_2"
-				usage:          ShaderWrite, CS
+				usage:          Storage-W, CS
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 		}
-		pipeline:    ""
-		groupCount:  ( 1, 1, 1 )
-		localGroupSize:  ( 16, 16, 1 )
 	}
 	Task {
 		name:    "ReadImage (#5)"
@@ -238,33 +230,17 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "MyImage_0"
-				usage:          TransferSrc
+				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 			BufferUsage {
-				name:     "StagingReadBuffer "
-				usage:    TransferDst
+				name:     "StagingReadBuffer"
+				usage:    Transfer-W
 				offset:   0 b
 				size:     1024 b
-			}
-		}
-		srcImage:    "MyImage_0"
-		srcLayout:   TransferSrcOptimal
-		dstBuffer:   "StagingReadBuffer "
-		regions = {
-			Region {
-				bufferOffset:        0 b
-				bufferRowLength:     16
-				bufferImageHeight:   16
-				imageAspectMask:     Color
-				imageMipLevel:       0
-				imageBaseArrayLayer: 0
-				imageLayerCount:     1
-				imageOffset:         ( 0, 0, 0 )
-				imageSize:           ( 16, 16, 1 )
 			}
 		}
 	}
@@ -275,33 +251,17 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "MyImage_1"
-				usage:          TransferSrc
+				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 			BufferUsage {
-				name:     "StagingReadBuffer "
-				usage:    TransferDst
+				name:     "StagingReadBuffer"
+				usage:    Transfer-W
 				offset:   1024 b
 				size:     1024 b
-			}
-		}
-		srcImage:    "MyImage_1"
-		srcLayout:   TransferSrcOptimal
-		dstBuffer:   "StagingReadBuffer "
-		regions = {
-			Region {
-				bufferOffset:        1024 b
-				bufferRowLength:     16
-				bufferImageHeight:   16
-				imageAspectMask:     Color
-				imageMipLevel:       0
-				imageBaseArrayLayer: 0
-				imageLayerCount:     1
-				imageOffset:         ( 0, 0, 0 )
-				imageSize:           ( 16, 16, 1 )
 			}
 		}
 	}
@@ -312,33 +272,17 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "MyImage_2"
-				usage:          TransferSrc
+				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 			BufferUsage {
-				name:     "StagingReadBuffer "
-				usage:    TransferDst
+				name:     "StagingReadBuffer"
+				usage:    Transfer-W
 				offset:   2048 b
 				size:     1024 b
-			}
-		}
-		srcImage:    "MyImage_2"
-		srcLayout:   TransferSrcOptimal
-		dstBuffer:   "StagingReadBuffer "
-		regions = {
-			Region {
-				bufferOffset:        2048 b
-				bufferRowLength:     16
-				bufferImageHeight:   16
-				imageAspectMask:     Color
-				imageMipLevel:       0
-				imageBaseArrayLayer: 0
-				imageLayerCount:     1
-				imageOffset:         ( 0, 0, 0 )
-				imageSize:           ( 16, 16, 1 )
 			}
 		}
 	}

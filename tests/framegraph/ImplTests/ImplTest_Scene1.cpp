@@ -7,6 +7,122 @@ namespace FG
 
 	bool FGApp::ImplTest_Scene1 ()
 	{
+		GraphicsPipelineDesc	ppln1;
+
+		ppln1.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
+#version 450 core
+#pragma shader_stage(fragment)
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (binding=0, std140) uniform un_ConstBuf
+{
+	mat4	mvp;
+	mat4	projection;
+	mat4	view;
+	vec4	color;
+	vec4	color1;
+	vec4	color2;
+	vec4	color3;
+
+} ub;
+
+in  vec3	at_Position;
+in  vec2	at_Texcoord;
+
+out vec2	v_Texcoord;
+
+void main() {
+	gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
+	v_Texcoord	= at_Texcoord;
+}
+)#" );
+
+		ppln1.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100, "main", R"#(
+#version 450 core
+#pragma shader_stage(vertex)
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (binding=0, std140) uniform un_ConstBuf
+{
+	mat4	mvp;
+	mat4	projection;
+	mat4	view;
+	vec4	color;
+	vec4	color1;
+	vec4	color2;
+	vec4	color3;
+
+} ub;
+
+layout (binding=1) uniform sampler2D un_ColorTexture;
+
+in  vec2	v_Texcoord;
+
+out vec4	out_Color;
+
+void main() {
+	out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
+}
+)#" );
+
+		
+		GraphicsPipelineDesc	ppln2;
+
+		ppln2.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
+#version 450 core
+#pragma shader_stage(fragment)
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (binding=0, std140) uniform un_ConstBuf
+{
+	mat4	mvp;
+	mat4	projection;
+	mat4	view;
+	vec4	color;
+	vec4	color1;
+	vec4	color2;
+	vec4	color3;
+
+} ub;
+
+in  vec3	at_Position;
+in  vec2	at_Texcoord;
+
+out vec2	v_Texcoord;
+
+void main() {
+	gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
+	v_Texcoord	= at_Texcoord;
+}
+)#" );
+
+		ppln2.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100, "main", R"#(
+#version 450 core
+#pragma shader_stage(vertex)
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (binding=0, std140) uniform un_ConstBuf
+{
+	mat4	mvp;
+	mat4	projection;
+	mat4	view;
+	vec4	color;
+	vec4	color1;
+	vec4	color2;
+	vec4	color3;
+
+} ub;
+
+layout (binding=1) uniform sampler2D un_ColorTexture;
+
+in  vec2	v_Texcoord;
+
+void main() {
+	if ( texture(un_ColorTexture, v_Texcoord).a * ub.color.a < 0.1f )
+		discard;
+}
+)#" );
+
 		struct Vertex1
 		{
 			float3		position;
@@ -38,134 +154,6 @@ namespace FG
 														.Add( VertexID("at_Position"),	&Vertex1::position )
 														.Add( VertexID("at_Texcoord"),	&Vertex1::texcoord, true );
 		
-		GraphicsPipelineDesc	ppln1;
-
-		ppln1.AddShader( EShader::Vertex,
-						 EShaderLangFormat::GLSL_450,
-						 "main",
-R"#(
-#version 450 core
-#pragma shader_stage(fragment)
-#extension GL_ARB_separate_shader_objects : enable
-
-layout (binding=0, std140) uniform un_ConstBuf
-{
-	mat4	mvp;
-	mat4	projection;
-	mat4	view;
-	vec4	color;
-	vec4	color1;
-	vec4	color2;
-	vec4	color3;
-
-} ub;
-
-in  vec3	at_Position;
-in  vec2	at_Texcoord;
-
-out vec2	v_Texcoord;
-
-void main() {
-	gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
-	v_Texcoord	= at_Texcoord;
-}
-)#" );
-
-		ppln1.AddShader( EShader::Fragment,
-						 EShaderLangFormat::GLSL_450,
-						 "main",
-R"#(
-#version 450 core
-#pragma shader_stage(vertex)
-#extension GL_ARB_separate_shader_objects : enable
-
-layout (binding=0, std140) uniform un_ConstBuf
-{
-	mat4	mvp;
-	mat4	projection;
-	mat4	view;
-	vec4	color;
-	vec4	color1;
-	vec4	color2;
-	vec4	color3;
-
-} ub;
-
-layout (binding=1) uniform sampler2D un_ColorTexture;
-
-in  vec2	v_Texcoord;
-
-out vec4	out_Color;
-
-void main() {
-	out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
-}
-)#" );
-
-		
-		GraphicsPipelineDesc	ppln2;
-
-		ppln2.AddShader( EShader::Vertex,
-						 EShaderLangFormat::GLSL_450,
-						 "main",
-R"#(
-#version 450 core
-#pragma shader_stage(fragment)
-#extension GL_ARB_separate_shader_objects : enable
-
-layout (binding=0, std140) uniform un_ConstBuf
-{
-	mat4	mvp;
-	mat4	projection;
-	mat4	view;
-	vec4	color;
-	vec4	color1;
-	vec4	color2;
-	vec4	color3;
-
-} ub;
-
-in  vec3	at_Position;
-in  vec2	at_Texcoord;
-
-out vec2	v_Texcoord;
-
-void main() {
-	gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
-	v_Texcoord	= at_Texcoord;
-}
-)#" );
-
-		ppln2.AddShader( EShader::Fragment,
-						 EShaderLangFormat::GLSL_450,
-						 "main",
-R"#(
-#version 450 core
-#pragma shader_stage(vertex)
-#extension GL_ARB_separate_shader_objects : enable
-
-layout (binding=0, std140) uniform un_ConstBuf
-{
-	mat4	mvp;
-	mat4	projection;
-	mat4	view;
-	vec4	color;
-	vec4	color1;
-	vec4	color2;
-	vec4	color3;
-
-} ub;
-
-layout (binding=1) uniform sampler2D un_ColorTexture;
-
-in  vec2	v_Texcoord;
-
-void main() {
-	if ( texture(un_ColorTexture, v_Texcoord).a * ub.color.a < 0.1f )
-		discard;
-}
-)#" );
-
 		GPipelineID		pipeline1	= frame_graph->CreatePipeline( std::move(ppln1) );
 		GPipelineID		pipeline2	= frame_graph->CreatePipeline( std::move(ppln2) );
 		
@@ -201,20 +189,18 @@ void main() {
 	
 		LogicalPassID	depth_pass = frame_graph->CreateRenderPass( RenderPassDesc{ view_size }
 											.AddTarget( RenderTargetID(),				depth_target, DepthStencil(), EAttachmentStoreOp::Store )
-											.SetDepthTestEnabled(true)
-											.SetDepthWriteEnabled(true) );
+											.SetDepthTestEnabled(true).SetDepthWriteEnabled(true) );
 
 		LogicalPassID	opaque_pass = frame_graph->CreateRenderPass( RenderPassDesc{ view_size }
 											.AddTarget(  RenderTargetID("out_Color"),	color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 											.AddTarget(  RenderTargetID(),				depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
-											.SetDepthTestEnabled(true)
-											.SetDepthWriteEnabled(false) );
+											.SetDepthTestEnabled(true).SetDepthWriteEnabled(false) );
 	
 		LogicalPassID	transparent_pass = frame_graph->CreateRenderPass( RenderPassDesc{ view_size }
 											.AddTarget(  RenderTargetID("out_Color"),	color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 											.AddTarget(  RenderTargetID(),				depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Invalidate )
-											.SetDepthTestEnabled(true).SetDepthWriteEnabled(false)
-											.AddColorBuffer( RenderTargetID("out_Color"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add ) );
+											.AddColorBuffer( RenderTargetID("out_Color"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
+											.SetDepthTestEnabled(true).SetDepthWriteEnabled(false) );
 
 		{
 			// depth pass
@@ -236,7 +222,7 @@ void main() {
 			// opaque pass
 			Task	t_submit_opaque;
 			{
-				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
+				resources.BindTexture( UniformID("un_ColorTexture"), texture2, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, cbuf_offset, cbuf_size );
 
 				frame_graph->AddTask( opaque_pass,
@@ -245,7 +231,7 @@ void main() {
 						.SetPipeline( pipeline1 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
-						 .BindBuffer( UniformID("un_ConstBuf"), const_buf3 );
+						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, 0_b, cbuf_size );
 
 				frame_graph->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw2_Opaque" )
@@ -269,8 +255,8 @@ void main() {
 			// transparent pass
 			Task	t_submit_transparent;
 			{
-				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
-						 .BindBuffer( UniformID("un_ConstBuf"), const_buf1 );
+				resources.BindTexture( UniformID("un_ColorTexture"), texture2, sampler1 )
+						 .BindBuffer( UniformID("un_ConstBuf"), const_buf3 );
 
 				frame_graph->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw1_Transparent" )
@@ -293,7 +279,7 @@ void main() {
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).AddDrawCmd( 3*2000 )
 						.SetPipeline( pipeline1 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
 				
-				Task	update_buf3 = frame_graph->AddTask( UpdateBuffer{ const_buf2, 0_b, CreateData( 256_b ) }.SetName( "update_buf3" ) );
+				Task	update_buf3 = frame_graph->AddTask( UpdateBuffer{ const_buf3, 0_b, CreateData( 256_b ) }.SetName( "update_buf3" ) );
 
 				t_submit_transparent = frame_graph->AddTask( SubmitRenderPass{ transparent_pass }.SetName( "TransparentPass" ).DependsOn( t_submit_opaque, update_buf3 ));
 			}
