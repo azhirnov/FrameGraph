@@ -27,6 +27,7 @@ namespace FG
 		ND_ constexpr bool	operator == (const HashVal &rhs)	const	{ return _value == rhs._value; }
 		ND_ constexpr bool	operator != (const HashVal &rhs)	const	{ return not (*this == rhs); }
 		ND_ constexpr bool	operator >  (const HashVal &rhs)	const	{ return _value > rhs._value; }
+		ND_ constexpr bool  operator <  (const HashVal &rhs)	const	{ return _value < rhs._value; }
 
 		constexpr HashVal&	operator << (const HashVal &rhs)
 		{

@@ -70,6 +70,35 @@ namespace FG
 	{
 		return std::distance< T const *>( lhs, rhs );
 	}
+	
+/*
+=================================================
+	BinarySearch
+=================================================
+*/
+	template <typename T, typename Key>
+	ND_ forceinline size_t  BinarySearch (ArrayView<T> arr, const Key &key)
+	{
+		size_t	left	= 0;
+		size_t	right	= arr.size()-1;
 
+		for (; right - left > 1; )
+		{
+			size_t	mid = (left + right) >> 1;
+
+			if ( arr[mid] < key )
+				left = mid;
+			else
+				right = mid;
+		}
+
+		if ( arr[left] == key )
+			return left;
+		
+		if ( arr[right] == key )
+			return right;
+
+		return ~size_t(0);
+	}
 
 }	// FG

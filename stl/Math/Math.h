@@ -161,6 +161,17 @@ namespace FG
 	
 /*
 =================================================
+	Square
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr T  Square (const T &value)
+	{
+		return value * value;
+	}
+
+/*
+=================================================
 	Abs
 =================================================
 */
@@ -221,6 +232,21 @@ namespace FG
 												  const T& begin2, const T& end2)
 	{
 		return (end1 > begin2) and (begin1 < end2);
+	}
+
+/*
+=================================================
+	GetIntersection
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr bool  GetIntersection (const T& begin1, const T& end1,
+													 const T& begin2, const T& end2,
+													 OUT T& outBegin, OUT T& outEnd)
+	{
+		outBegin = Max( begin1, begin2 );
+		outEnd   = Min( end1, end2 );
+		return outBegin < outEnd;
 	}
 
 /*

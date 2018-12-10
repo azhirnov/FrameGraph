@@ -54,11 +54,6 @@ namespace FG
 				_array[_length] = str[_length];
 			}
 			_array[_length] = CharT(0);
-
-			//_length = Min( length, StringSize-1 );
-			//::memcpy( _array, str, _length * sizeof(CharT) );
-
-			_array[_length] = CharT(0);
 		}
 
 

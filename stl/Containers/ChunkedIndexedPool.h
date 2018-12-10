@@ -257,9 +257,21 @@ namespace FG
 			return _indexCount.size() * ChunkSize;
 		}
 
-		ND_ size_t  capacity () const
+		ND_ constexpr size_t  capacity () const
 		{
-			return _values.size() * ChunkSize;
+			return MaxChunks * ChunkSize;
+		}
+
+		ND_ bool  empty () const
+		{
+			SCOPELOCK( _assignOpLock );
+
+			for (auto cnt : _indexCount)
+			{
+				if ( cnt != ChunkSize )
+					return false;
+			}
+			return true;
 		}
 
 

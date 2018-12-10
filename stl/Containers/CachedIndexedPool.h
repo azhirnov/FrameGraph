@@ -29,8 +29,8 @@ namespace FG
 		using Allocator_t	= AllocatorType;
 
 	private:
-		struct THash  { size_t operator () (const Value_t *value) const						{ return std::hash<Value_t>()( *value ); } };
-		struct TEqual { bool   operator () (const Value_t *lhs, const Value_t *rhs) const	{ return *lhs == *rhs; } };
+		struct THash  { size_t operator () (const Value_t *value) const						{ return std::hash<Value_t>()( *value ); }};
+		struct TEqual { bool   operator () (const Value_t *lhs, const Value_t *rhs) const	{ return *lhs == *rhs; }};
 
 		using Pool_t		= ChunkedIndexedPool< Value_t, IndexType, ChunkSize, MaxChunks, AllocatorType, AssignOpLock, AtomicChunkPtr >;
 		using StdAlloc_t	= typename AllocatorType::template StdAllocator_t<Pair< Value_t const* const, Index_t >>;
@@ -116,7 +116,7 @@ namespace FG
 
 		ND_ BytesU  DynamicSize () const
 		{
-			BytesU	sz = _pool.SizeOf();
+			BytesU	sz = _pool.DynamicSize();
 			//sz += _cache.max_bucket_count() * _cache.max_size();	// TODO
 			return sz;
 		}
@@ -136,6 +136,7 @@ namespace FG
 
 		ND_ bool				empty ()						const	{ return _pool.empty(); }
 		ND_ size_t				size ()							const	{ return _pool.size(); }
+		ND_ constexpr size_t	capacity ()						const	{ return _pool.capacity(); }
 	};
 	
 	

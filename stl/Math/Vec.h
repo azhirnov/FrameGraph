@@ -62,13 +62,13 @@ namespace FG
 		template <typename B>
 		constexpr Vec (const Vec<B,2> &other) : x{T(other.x)}, y{T(other.y)} {}
 
-		ND_ static constexpr size_t		size ()			{ return 2; }
+		ND_ static constexpr size_t		size ()					{ return 2; }
 
-		ND_ T *			data ()							{ return std::addressof(x); }
-		ND_ T const *	data ()					const	{ return std::addressof(x); }
+		ND_ constexpr T *		data ()							{ return std::addressof(x); }
+		ND_ constexpr T const *	data ()					const	{ return std::addressof(x); }
 
-		ND_ T &			operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
-		ND_ T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+		ND_ constexpr T &		operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+		ND_ constexpr T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
 	};
 
 
@@ -96,20 +96,23 @@ namespace FG
 			STATIC_ASSERT( sizeof(T[size()-1]) == (offsetof(Self, z) - offsetof(Self, x)) );
 		}
 
-		constexpr Vec (T x, T y, T z) : x{x}, y{y}, z{z} {}
-
 		explicit constexpr Vec (T val) : x{val}, y{val}, z{val} {}
+
+		constexpr Vec (T x, T y, T z) : x{x}, y{y}, z{z} {}
+		constexpr Vec (const Vec<T,2> &xy, T z) : x{xy[0]}, y{xy[1]}, z{z} {}
 		
 		template <typename B>
 		constexpr Vec (const Vec<B,3> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)} {}
 
-		ND_ static constexpr size_t		size ()			{ return 3; }
+		ND_ static constexpr size_t		size ()					{ return 3; }
 		
-		ND_ T *			data ()							{ return std::addressof(x); }
-		ND_ T const *	data ()					const	{ return std::addressof(x); }
+		ND_ constexpr T *		data ()							{ return std::addressof(x); }
+		ND_ constexpr T const *	data ()					const	{ return std::addressof(x); }
 
-		ND_ T &			operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
-		ND_ T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+		ND_ constexpr T &		operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+		ND_ constexpr T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+
+		ND_ const Vec<T,2>		xy ()					const	{ return {x, y}; }
 	};
 
 
@@ -138,20 +141,24 @@ namespace FG
 			STATIC_ASSERT( sizeof(T[size()-1]) == (offsetof(Self, w) - offsetof(Self, x)) );
 		}
 
-		constexpr Vec (T x, T y, T z, T w) : x{x}, y{y}, z{z}, w{w} {}
-
 		explicit constexpr Vec (T val) : x{val}, y{val}, z{val}, w{val} {}
+
+		constexpr Vec (T x, T y, T z, T w) : x{x}, y{y}, z{z}, w{w} {}
+		constexpr Vec (const Vec<T,3> &xyz, T w) : x{xyz[0]}, y{xyz[1]}, z{xyz[2]}, w{w} {}
 		
 		template <typename B>
 		constexpr Vec (const Vec<B,4> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)}, w{T(other.w)} {}
 
-		ND_ static constexpr size_t		size ()			{ return 4; }
+		ND_ static constexpr size_t		size ()					{ return 4; }
 		
-		ND_ T *			data ()							{ return std::addressof(x); }
-		ND_ T const *	data ()					const	{ return std::addressof(x); }
+		ND_ constexpr T *		data ()							{ return std::addressof(x); }
+		ND_ constexpr T const *	data ()					const	{ return std::addressof(x); }
 
-		ND_ T &			operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
-		ND_ T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+		ND_ constexpr T &		operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+		ND_ constexpr T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+		
+		ND_ const Vec<T,2>		xy ()					const	{ return {x, y}; }
+		ND_ const Vec<T,3>		xyz ()					const	{ return {x, y, z}; }
 	};
 
 	
@@ -497,7 +504,7 @@ namespace FG
 =================================================
 */
 	template <typename T, uint I>
-	ND_ forceinline constexpr EnableIf<IsFloatPoint<T>, Vec<T,I>>  Floor (const Vec<T,I>& x)
+	ND_ inline constexpr EnableIf<IsFloatPoint<T>, Vec<T,I>>  Floor (const Vec<T,I>& x)
 	{
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {
@@ -512,7 +519,7 @@ namespace FG
 =================================================
 */
 	template <typename T, uint I>
-	ND_ forceinline constexpr Vec<T,I>  Abs (const Vec<T,I> &x)
+	ND_ inline constexpr Vec<T,I>  Abs (const Vec<T,I> &x)
 	{
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {

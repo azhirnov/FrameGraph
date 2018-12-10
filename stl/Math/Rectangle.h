@@ -12,6 +12,7 @@ namespace FG
 	{
 	// types
 		using Vec2_t	= Vec<T,2>;
+		using Self		= Rectangle<T>;
 
 
 	// variables
@@ -47,6 +48,22 @@ namespace FG
 		ND_ constexpr bool			IsInvalid ()	const	{ return right < left or bottom < top; }
 		ND_ constexpr bool			IsValid ()		const	{ return not IsEmpty() and not IsInvalid(); }
 
+		ND_ Self  operator + (const Vec2_t &rhs)	const	{ return Self{*this} += rhs; }
+		ND_ Self  operator - (const Vec2_t &rhs)	const	{ return Self{*this} -= rhs; }
+
+		Self&  operator += (const Vec2_t &rhs)
+		{
+			left += rhs.x;		right  += rhs.x;
+			top  += rhs.y;		bottom += rhs.y;
+			return *this;
+		}
+		
+		Self&  operator -= (const Vec2_t &rhs)
+		{
+			left -= rhs.x;		right  -= rhs.x;
+			top  -= rhs.y;		bottom -= rhs.y;
+			return *this;
+		}
 
 		void Merge (const Rectangle<T> &other)
 		{

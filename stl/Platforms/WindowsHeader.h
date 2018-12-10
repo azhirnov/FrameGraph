@@ -23,5 +23,6 @@
 
 #undef DeleteFile
 #undef CreateWindow
+#undef CreateDirectory
 
 #endif	// PLATFORM_WINDOWS

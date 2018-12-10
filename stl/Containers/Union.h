@@ -7,7 +7,7 @@ namespace FG
 {
 	namespace _fg_hidden_
 	{
-		template <typename... Types>	struct overloaded : Types... { using Types::operator()...; };
+		template <typename... Types>	struct overloaded final : Types... { using Types::operator()...; };
 
 		template <typename... Types>	overloaded (Types...) -> overloaded<Types...>;
 	}
@@ -22,17 +22,17 @@ namespace FG
 =================================================
 */
 	template <typename UnionType, typename ...Funcs>
-	inline decltype(auto)  Visit (UnionType &un, Funcs... fn)
+	inline constexpr decltype(auto)  Visit (UnionType &un, Funcs&&... fn)
 	{
 		using namespace _fg_hidden_;
-		return std::visit( overloaded{ std::forward<Funcs>(fn)... }, un );
+		return std::visit( overloaded{ std::forward<Funcs &&>(fn)... }, un );
 	}
 
 	template <typename UnionType, typename ...Funcs>
-	inline decltype(auto)  Visit (const UnionType &un, Funcs... fn)
+	inline constexpr decltype(auto)  Visit (const UnionType &un, Funcs&&... fn)
 	{
 		using namespace _fg_hidden_;
-		return std::visit( overloaded{ std::forward<Funcs>(fn)... }, un );
+		return std::visit( overloaded{ std::forward<Funcs &&>(fn)... }, un );
 	}
 
 }	// FG

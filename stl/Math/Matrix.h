@@ -59,10 +59,10 @@ namespace FG
 
 	// methods
 	public:
-		Matrix () {}
+		constexpr Matrix () : _columns{} {}
 		
 		template <typename Arg0, typename ...Args>
-		explicit Matrix (const Arg0 &arg0, const Args& ...args)
+		constexpr explicit Matrix (const Arg0 &arg0, const Args& ...args)
 		{
 			if constexpr ( CountOf<Arg0, Args...>() == Columns * Rows )
 				_CopyScalars<0>( arg0, args... );
@@ -75,7 +75,7 @@ namespace FG
 		}
 
 		template <size_t Align2>
-		explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align2 > &other)
+		constexpr explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align2 > &other)
 		{
 			for (uint c = 0; c < Columns; ++c)
 			for (uint r = 0; r < Rows; ++r) {
@@ -84,7 +84,7 @@ namespace FG
 		}
 
 		template <size_t Align2>
-		explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::RowMajor, Align2 > &other)
+		constexpr explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::RowMajor, Align2 > &other)
 		{
 			for (uint c = 0; c < Columns; ++c)
 			for (uint r = 0; r < Rows; ++r) {
@@ -126,7 +126,17 @@ namespace FG
 			}
 			return result;
 		}
+		
+		ND_ static Self  Identity ()
+		{
+			constexpr uint	cnt = Min(Columns, Rows);
+			Self			result;
 
+			for (uint i = 0; i < cnt; ++i) {
+				result[i][i] = T(1);
+			}
+			return result;
+		}
 
 		ND_ constexpr Column_t const&	operator [] (uint index) const	{ return _columns [index].data; }
 		ND_ constexpr Column_t&			operator [] (uint index)		{ return _columns [index].data; }
@@ -198,10 +208,10 @@ namespace FG
 
 	// methods
 	public:
-		Matrix () {}
+		constexpr Matrix () : _rows{} {}
 
 		template <typename Arg0, typename ...Args>
-		explicit Matrix (const Arg0 &arg0, const Args& ...args)
+		constexpr explicit Matrix (const Arg0 &arg0, const Args& ...args)
 		{
 			if constexpr ( CountOf<Arg0, Args...>() == Columns * Rows )
 				_CopyScalars<0>( arg0, args... );
@@ -214,7 +224,7 @@ namespace FG
 		}
 		
 		template <size_t Align2>
-		explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::RowMajor, Align2 > &other)
+		constexpr explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::RowMajor, Align2 > &other)
 		{
 			for (uint r = 0; r < Rows; ++r)
 			for (uint c = 0; c < Columns; ++c) {
@@ -223,7 +233,7 @@ namespace FG
 		}
 
 		template <size_t Align2>
-		explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align2 > &other)
+		constexpr explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align2 > &other)
 		{
 			for (uint r = 0; r < Rows; ++r)
 			for (uint c = 0; c < Columns; ++c) {
@@ -266,6 +276,16 @@ namespace FG
 			return result;
 		}
 
+		ND_ static Self  Identity ()
+		{
+			constexpr uint	cnt = Min(Columns, Rows);
+			Self			result;
+
+			for (uint i = 0; i < cnt; ++i) {
+				result[i][i] = T(1);
+			}
+			return result;
+		}
 
 		ND_ constexpr Row_t const&		operator [] (uint index) const	{ return _rows [index].data; }
 		ND_ constexpr Row_t&			operator [] (uint index)		{ return _rows [index].data; }

@@ -83,7 +83,7 @@ namespace FG
 */
 	bool  WStream::Write (ArrayView<uint8_t> buf)
 	{
-		BytesU	size = BytesU::SizeOf(buf[0]) * buf.size();
+		const BytesU	size = BytesU::SizeOf(buf[0]) * buf.size();
 
 		return Write2( buf.data(), size ) == size;
 	}

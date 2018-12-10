@@ -109,7 +109,7 @@ install( TARGETS "STL" ARCHIVE DESTINATION "lib" )
 if (${FG_ENABLE_TESTS})
 	set( SOURCES 
 		"../tests/stl/main.cpp"
-		"../tests/stl/StructView.cpp"
+		"../tests/stl/UnitTest_Array.cpp"
 		"../tests/stl/UnitTest_BitTree.cpp"
 		"../tests/stl/UnitTest_Color.cpp"
 		"../tests/stl/UnitTest_Common.h"
@@ -122,13 +122,14 @@ if (${FG_ENABLE_TESTS})
 		"../tests/stl/UnitTest_Matrix.cpp"
 		"../tests/stl/UnitTest_PoolAllocator.cpp"
 		"../tests/stl/UnitTest_StaticString.cpp"
+		"../tests/stl/UnitTest_StructView.cpp"
 		"../tests/stl/UnitTest_ToString.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "UnitTests.STL" SHARED ${SOURCES} )
 	else()
 		add_executable( "UnitTests.STL" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/StructView.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_ToString.cpp" )
+	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTest_Array.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_StructView.cpp" "../tests/stl/UnitTest_ToString.cpp" )
 	set_property( TARGET "UnitTests.STL" PROPERTY FOLDER "Tests" )
 	target_include_directories( "UnitTests.STL" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "UnitTests.STL" PRIVATE "../tests/.." )
