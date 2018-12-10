@@ -8,9 +8,7 @@ extern void Test_Shader7 (VPipelineCompiler* compiler)
 {
 	MeshPipelineDesc	ppln;
 
-	ppln.AddShader( EShader::MeshTask,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main", R"#(
+	ppln.AddShader( EShader::MeshTask, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 450
 #extension GL_NV_mesh_shader : enable
 
@@ -53,9 +51,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( EShader::Mesh,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main", R"#(
+	ppln.AddShader( EShader::Mesh, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 450
 #extension GL_NV_mesh_shader : enable
 
@@ -92,7 +88,7 @@ void main()
 }
 )#" );
 
-	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_110 | EShaderLangFormat::SPIRV ) );
+	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_110 ));
 	
 	TEST( ppln._topology == EPrimitive::TriangleList );
 

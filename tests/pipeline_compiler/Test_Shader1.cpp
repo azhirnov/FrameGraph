@@ -7,10 +7,7 @@ extern void Test_Shader1 (VPipelineCompiler* compiler)
 {
 	GraphicsPipelineDesc	ppln;
 
-	ppln.AddShader( EShader::Vertex,
-					EShaderLangFormat::GLSL_450,
-					"main",
-R"#(
+	ppln.AddShader( EShader::Vertex, EShaderLangFormat::GLSL_450, "main", R"#(
 #version 450 core
 #pragma shader_stage(fragment)
 #extension GL_ARB_separate_shader_objects : enable
@@ -26,10 +23,7 @@ void main() {
 }
 )#" );
 
-	ppln.AddShader( EShader::Fragment,
-					EShaderLangFormat::GLSL_450,
-					"main",
-R"#(
+	ppln.AddShader( EShader::Fragment, EShaderLangFormat::GLSL_450, "main", R"#(
 #version 450 core
 #pragma shader_stage(vertex)
 #extension GL_ARB_separate_shader_objects : enable
@@ -52,7 +46,7 @@ void main() {
 )#" );
 
 
-	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_100 | EShaderLangFormat::SPIRV ) );
+	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_100 ));
 
 	TEST( FindVertexInput( ppln, VertexID("at_Position") ));
 	TEST( FindVertexInput( ppln, VertexID("at_Texcoord") ));

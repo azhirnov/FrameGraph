@@ -52,6 +52,8 @@ namespace FG
 
 		bool SetCompilationFlags (EShaderCompilationFlags flags);
 
+		ND_ EShaderCompilationFlags  GetCompilationFlags () const	{ return _compilerFlags; }
+
 		void ReleaseUnusedShaders ();
 		void ReleaseShaderCache ();
 

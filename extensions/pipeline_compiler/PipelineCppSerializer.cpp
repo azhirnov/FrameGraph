@@ -333,6 +333,7 @@ namespace FG
 		String	images;
 		String	ubuffers;
 		String	sbuffers;
+		String	rtscenes;
 
 		for (auto& un : *ds.uniforms)
 		{
@@ -407,7 +408,17 @@ namespace FG
 							<< _ShaderStages_ToString( un.second.stageFlags ) << " }";
 				},
 
-				[] (const auto &) { ASSERT(false); }
+				[&] (const PipelineDescription::RayTracingScene &rts)
+				{
+					if ( not rtscenes.empty() )
+						rtscenes << ",\n\t\t\t  ";
+
+					rtscenes << "{ " << _UniformID_ToString( un.first ) << ", "
+							 << _BindingIndex_ToString( un.second.index ) << ", "
+							 << _ShaderStages_ToString( un.second.stageFlags ) << " }";
+				},
+
+				[] (const std::monostate &) { ASSERT(false); }
 			);
 		}
 
@@ -420,7 +431,15 @@ namespace FG
 			<< "\t\t\t{" << subpasses << "},\n"
 			<< "\t\t\t{" << images << "},\n"
 			<< "\t\t\t{" << ubuffers << "},\n"
-			<< "\t\t\t{" << sbuffers << "} );\n\n";
+			<< "\t\t\t{" << sbuffers << "}";
+
+		if ( not rtscenes.empty() )
+		{
+			src << ",\n"
+				<< "\t\t\t{" << rtscenes << "}";
+		}
+		
+		src << " );\n\n";
 
 		return src;
 	}

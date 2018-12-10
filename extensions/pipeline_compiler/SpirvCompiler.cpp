@@ -733,7 +733,8 @@ namespace FG
 		TIntermTyped*	tnode			= node->getAsTyped();
 		auto const&		type			= tnode->getType();
 		auto const&		qual			= type.getQualifier();
-		
+		const bool		is_dynamic		= EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset );
+
 		auto&			descriptor_set	= GetDesciptorSet( qual.hasSet() ? uint(qual.layoutSet) : 0, result );
 		auto&			uniforms		= const_cast<PipelineDescription::UniformMap_t &>( *descriptor_set.uniforms );
 
@@ -805,13 +806,17 @@ namespace FG
 			 (qual.storage == TStorageQualifier::EvqUniform	or qual.storage == TStorageQualifier::EvqBuffer) )
 		{
 			COMP_CHECK_ERR( type.isStruct() );
+
+			if ( qual.layoutShaderRecordNV )
+				return true;
 			
 			// uniform block
 			if ( qual.storage == TStorageQualifier::EvqUniform )
 			{
 				PipelineDescription::UniformBuffer	ubuf;
-				ubuf.state = EResourceState::UniformRead | EResourceState_FromShaders( _currentStage );
-				ubuf.dynamicOffsetIndex = EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset ) ? 0 : PipelineDescription::STATIC_OFFSET;
+				ubuf.state = EResourceState::UniformRead | EResourceState_FromShaders( _currentStage ) |
+							 (is_dynamic ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown);
+				ubuf.dynamicOffsetIndex = is_dynamic ? 0 : PipelineDescription::STATIC_OFFSET;
 
 				BytesU	stride, offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT ubuf.size, OUT stride, OUT offset ));
@@ -829,8 +834,9 @@ namespace FG
 			if ( qual.storage == TStorageQualifier::EvqBuffer )
 			{
 				PipelineDescription::StorageBuffer	sbuf;
-				sbuf.state = ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage );
-				sbuf.dynamicOffsetIndex = EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset ) ? 0 : PipelineDescription::STATIC_OFFSET;
+				sbuf.state = ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage ) |
+							 (is_dynamic ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown);
+				sbuf.dynamicOffsetIndex = is_dynamic ? 0 : PipelineDescription::STATIC_OFFSET;
 			
 				BytesU	offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride, OUT offset ));
@@ -849,7 +855,16 @@ namespace FG
 		#ifdef NV_EXTENSIONS
 		if ( type.getBasicType() == TBasicType::EbtAccStructNV )
 		{
-			return true;	// TODO
+			PipelineDescription::RayTracingScene	rt_scene;
+			rt_scene.state = EResourceState::_RayTracingShader | EResourceState::ShaderRead;
+			
+			PipelineDescription::Uniform	un;
+			un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+			un.stageFlags	= _currentStage;
+			un.data			= std::move(rt_scene);
+
+			uniforms.insert({ ExtractUniformID( node ), std::move(un) });
+			return true;
 		}
 
 		if ( qual.storage == TStorageQualifier::EvqPayloadNV		or

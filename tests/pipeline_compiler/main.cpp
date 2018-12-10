@@ -12,6 +12,7 @@ extern void Test_Shader6 (VPipelineCompiler* compiler);
 extern void Test_Shader7 (VPipelineCompiler* compiler);
 extern void Test_Shader8 (VPipelineCompiler* compiler);
 extern void Test_Shader9 (VPipelineCompiler* compiler);
+extern void Test_Shader10 (VPipelineCompiler* compiler);
 extern void Test_Serializer1 (VPipelineCompiler* compiler);
 extern void Test_Serializer2 (VPipelineCompiler* compiler);
 
@@ -22,7 +23,7 @@ int main ()
 	compiler.SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations |
 								  EShaderCompilationFlags::GenerateDebugInfo /*|
 								  EShaderCompilationFlags::UseCurrentDeviceLimits*/ );
-
+	
 	Test_Serializer1( &compiler );
 	Test_Serializer2( &compiler );
 	Test_Shader1( &compiler );
@@ -34,7 +35,8 @@ int main ()
 	Test_Shader7( &compiler );
 	Test_Shader8( &compiler );
 	Test_Shader9( &compiler );
-
+	Test_Shader10( &compiler );
+	
 	FG_LOGI( "Tests.PipelineCompiler finished" );
 	
 	std::cin.ignore();

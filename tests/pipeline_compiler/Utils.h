@@ -215,7 +215,8 @@ inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, con
 	if ( not ptr )
 		return false;
 	
-	EResourceState	state = EResourceState::UniformRead | EResourceState_FromShaders( stageFlags );
+	EResourceState	state = EResourceState::UniformRead | EResourceState_FromShaders( stageFlags ) |
+							(dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ? EResourceState::Unknown : EResourceState::_BufferDynamicOffset);
 
 	return	ptr->size				== size		and
 			ptr->state				== state	and
@@ -236,12 +237,30 @@ inline bool TestStorageBuffer (const PipelineDescription::DescriptorSet &ds, con
 	if ( not ptr )
 		return false;
 	
-	EResourceState	state = EResourceState_FromShaderAccess( access ) | EResourceState_FromShaders( stageFlags );
+	EResourceState	state = EResourceState_FromShaderAccess( access ) | EResourceState_FromShaders( stageFlags ) |
+							(dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ? EResourceState::Unknown : EResourceState::_BufferDynamicOffset);
 
 	return	ptr->staticSize			== staticSize	and
 			ptr->arrayStride		== arrayStride	and
 			ptr->state				== state		and
 			ptr->dynamicOffsetIndex	== dynamicOffsetIndex;
+}
+
+/*
+=================================================
+	TestRayTracingScene
+=================================================
+*/
+inline bool TestRayTracingScene (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
+								 uint bindingIndex, EShaderStages stageFlags)
+{
+	auto	ptr = FindUniform< PipelineDescription::RayTracingScene >( ds, id, bindingIndex, stageFlags );
+	if ( not ptr )
+		return false;
+
+	EResourceState	state = EResourceState::_RayTracingShader | EResourceState::ShaderRead;
+
+	return	ptr->state	== state;
 }
 
 /*

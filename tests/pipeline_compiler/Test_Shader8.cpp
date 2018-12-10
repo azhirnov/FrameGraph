@@ -8,9 +8,7 @@ extern void Test_Shader8 (VPipelineCompiler* compiler)
 {
 	RayTracingPipelineDesc	ppln;
 	
-	ppln.AddShader( EShader::RayGen,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main", R"#(
+	ppln.AddShader( RTShaderID("main"), EShader::RayGen, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;
@@ -32,9 +30,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( EShader::RayAnyHit,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main", R"#(
+	ppln.AddShader( RTShaderID("PrimiryAnyHit"), EShader::RayAnyHit, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(location = 1) rayPayloadInNV vec4 incomingPayload;
@@ -63,9 +59,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( EShader::RayCallable,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main", R"#(
+	ppln.AddShader( RTShaderID("Callable"), EShader::RayCallable, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(location = 0) callableDataNV vec4 data0;
@@ -83,9 +77,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( EShader::RayClosestHit,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main", R"#(
+	ppln.AddShader( RTShaderID("PrimiryClosestHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;
@@ -112,9 +104,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( EShader::RayMiss,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main", R"#(
+	ppln.AddShader( RTShaderID("PrimiryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;
@@ -134,9 +124,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( EShader::RayIntersection,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main", R"#(
+	ppln.AddShader( RTShaderID("Intersection"), EShader::RayIntersection, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 hitAttributeNV vec4 iAttr;
@@ -161,9 +149,12 @@ void main()
 )#" );
 
 
-	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_110 | EShaderLangFormat::SPIRV ) );
+	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_110 ));
 	
-	// TODO
+	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
+	TEST( ds );
+
+	TEST( TestRayTracingScene( *ds, UniformID("accNV"), 0, EShaderStages::RayGen | EShaderStages::RayClosestHit | EShaderStages::RayMiss ));
 
 	FG_LOGI( "Test_Shader8 - passed" );
 }

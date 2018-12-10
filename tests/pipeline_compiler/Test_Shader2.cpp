@@ -7,9 +7,7 @@ extern void Test_Shader2 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
-	ppln.AddShader( EShaderLangFormat::GLSL_450,
-					"main",
-R"#(
+	ppln.AddShader( EShaderLangFormat::GLSL_450, "main", R"#(
 #pragma shader_stage(compute)
 #extension GL_ARB_separate_shader_objects : enable
 
@@ -33,7 +31,7 @@ void main ()
 )#" );
 
 
-	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_100 | EShaderLangFormat::SPIRV ));
+	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_100 ));
 
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );

@@ -8,9 +8,7 @@ extern void Test_Serializer2 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
-	ppln.AddShader( EShaderLangFormat::GLSL_450,
-					"main",
-R"#(
+	ppln.AddShader( EShaderLangFormat::GLSL_450, "main", R"#(
 #pragma shader_stage(compute)
 #extension GL_ARB_separate_shader_objects : enable
 
@@ -40,7 +38,7 @@ void main ()
 )#" );
 
 
-	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::Vulkan_100 | EShaderLangFormat::SPIRV ));
+	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_100 ));
 
 	ppln._shader.data.clear();
 

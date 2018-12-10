@@ -451,8 +451,22 @@ namespace FG
 						}
 					}
 				},
+				
+				[&] (const PipelineDescription::RayTracingScene &lhs)
+				{
+					if ( auto* rhs = std::get_if<PipelineDescription::RayTracingScene>( &iter->second.data ) )
+					{
+						ASSERT( lhs.state == rhs->state );
 
-				[] (const auto &) { ASSERT(false); }
+						if ( lhs.state == rhs->state )
+						{
+							iter->second.stageFlags |= un.second.stageFlags;
+							type_missmatch			 = false;
+						}
+					}
+				},
+
+				[] (const std::monostate &) { ASSERT(false); }
 			);
 
 			COMP_CHECK_ERR( not type_missmatch );
@@ -750,6 +764,9 @@ namespace FG
 														((dstFormat & ~EShaderLangFormat::_StorageFormatMask) | EShaderLangFormat::SPIRV);
 		RayTracingPipelineDesc		new_ppln;
 
+		std::swap( new_ppln._groups, ppln._groups );
+		new_ppln._maxRecursionDepth = ppln._maxRecursionDepth;
+
 
 		for (const auto& shader : ppln._shaders)
 		{
@@ -764,11 +781,11 @@ namespace FG
 			// compile glsl
 			if ( auto* shader_data = std::get_if< StringShaderData >( &iter->second ) )
 			{
-				SpirvCompiler::ShaderReflection	reflection;
-				String							log;
-				PipelineDescription::Shader		new_shader;
+				SpirvCompiler::ShaderReflection		reflection;
+				String								log;
+				RayTracingPipelineDesc::RTShader	new_shader;
 
-				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.first, iter->first, spirv_format,
+				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.second.shaderType, iter->first, spirv_format,
 														 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ));
 				
 				if ( create_module )
@@ -776,7 +793,7 @@ namespace FG
 
 				COMP_CHECK_ERR( _MergePipelineResources( reflection.layout, INOUT new_ppln._pipelineLayout ));
 
-				switch ( shader.first )
+				switch ( shader.second.shaderType )
 				{
 					case EShader::RayGen :
 					case EShader::RayAnyHit :
@@ -790,6 +807,7 @@ namespace FG
 						RETURN_ERR( "unknown shader type!" );
 				}
 
+				new_shader.shaderType = shader.second.shaderType;
 				new_ppln._shaders.insert_or_assign( shader.first, std::move(new_shader) );
 			}
 			else
@@ -800,7 +818,7 @@ namespace FG
 		
 		UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
 
-		std::swap( ppln, new_ppln ); 
+		std::swap( ppln, new_ppln );
 		return true;
 	}
 

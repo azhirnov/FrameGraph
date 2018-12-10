@@ -7,10 +7,7 @@ extern void Test_Shader6 (VPipelineCompiler* compiler)
 {
 	GraphicsPipelineDesc	ppln;
 
-	ppln.AddShader( EShader::Vertex,
-					EShaderLangFormat::Vulkan_100 | EShaderLangFormat::HighLevel,
-					"main",
-R"#(
+	ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
 #version 450 core
 #pragma shader_stage(fragment)
 #extension GL_ARB_separate_shader_objects : enable
@@ -26,24 +23,17 @@ void main() {
 }
 )#" );
 
-	ppln.AddShader( EShader::Vertex,
-					EShaderLangFormat::OpenGL_450 | EShaderLangFormat::HighLevel,
-					"main",
+	ppln.AddShader( EShader::Vertex, EShaderLangFormat::GLSL_450, "main",
 R"#(
 #error 1
 )#" );
 
-	ppln.AddShader( EShader::Vertex,
-					EShaderLangFormat::Vulkan_110 | EShaderLangFormat::HighLevel,
-					"main",
+	ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_110, "main",
 R"#(
 #error 2
 )#" );
 
-	ppln.AddShader( EShader::Fragment,
-					EShaderLangFormat::OpenGL_450 | EShaderLangFormat::HighLevel,
-					"main",
-R"#(
+	ppln.AddShader( EShader::Fragment, EShaderLangFormat::GLSL_450, "main", R"#(
 #version 450 core
 #pragma shader_stage(vertex)
 #extension GL_ARB_separate_shader_objects : enable
@@ -65,9 +55,7 @@ void main() {
 }
 )#" );
 	
-	ppln.AddShader( EShader::Fragment,
-					EShaderLangFormat::OpenGL_440 | EShaderLangFormat::HighLevel,
-					"main",
+	ppln.AddShader( EShader::Fragment, EShaderLangFormat::GLSL_440, "main",
 R"#(
 #error 3
 )#" );
@@ -79,8 +67,8 @@ R"#(
 
 	compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
 
-	TEST(	 compiler->Compile( INOUT ppln1, EShaderLangFormat::Vulkan_100 | EShaderLangFormat::SPIRV ) );
-	TEST( not compiler->Compile( INOUT ppln2, EShaderLangFormat::Vulkan_110 | EShaderLangFormat::SPIRV ) );
+	TEST(	 compiler->Compile( INOUT ppln1, EShaderLangFormat::SPIRV_100 ));
+	TEST( not compiler->Compile( INOUT ppln2, EShaderLangFormat::SPIRV_110 ));
 	
 
 	// restore previous state
