@@ -94,7 +94,7 @@ private:
 	VkBuffer					vertexBuffer		= VK_NULL_HANDLE;
 	VkBuffer					indexBuffer			= VK_NULL_HANDLE;
 	VkBuffer					instanceBuffer		= VK_NULL_HANDLE;
-	VkBuffer					stratchBuffer		= VK_NULL_HANDLE;
+	VkBuffer					scratchBuffer		= VK_NULL_HANDLE;
 	VkBuffer					shaderBindingTable	= VK_NULL_HANDLE;
 	VkDeviceMemory				sharedDevMemory		= VK_NULL_HANDLE;
 	VkDeviceMemory				sharedHostMemory	= VK_NULL_HANDLE;
@@ -264,7 +264,7 @@ void RayTracingApp::Destroy ()
 	vkDestroyBuffer( dev, vertexBuffer, null );
 	vkDestroyBuffer( dev, indexBuffer, null );
 	vkDestroyBuffer( dev, instanceBuffer, null );
-	vkDestroyBuffer( dev, stratchBuffer, null );
+	vkDestroyBuffer( dev, scratchBuffer, null );
 	vkDestroyBuffer( dev, shaderBindingTable, null );
 	vkFreeMemory( dev, sharedDevMemory, null );
 	vkFreeMemory( dev, sharedHostMemory, null );
@@ -283,7 +283,7 @@ void RayTracingApp::Destroy ()
 	vertexBuffer		= VK_NULL_HANDLE;
 	indexBuffer			= VK_NULL_HANDLE;
 	instanceBuffer		= VK_NULL_HANDLE;
-	stratchBuffer		= VK_NULL_HANDLE;
+	scratchBuffer		= VK_NULL_HANDLE;
 	shaderBindingTable	= VK_NULL_HANDLE;
 	sharedDevMemory		= VK_NULL_HANDLE;
 	sharedHostMemory	= VK_NULL_HANDLE;
@@ -620,7 +620,7 @@ bool RayTracingApp::CreateBottomLevelAS (ResourceInit &res)
 												VK_NULL_HANDLE, 0,					// instance
 												VK_FALSE,							// update
 												bottomLevelAS, VK_NULL_HANDLE,		// dst, src
-												stratchBuffer, 0
+												scratchBuffer, 0
 											   );
 		});
 	}
@@ -708,7 +708,7 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 		res.onDraw.push_back( [this] (VkCommandBuffer cmd)
 		{
 			// write-read memory barrier for 'bottomLevelAS'
-			// execution barrier for 'stratchBuffer'
+			// execution barrier for 'scratchBuffer'
 			VkMemoryBarrier		barrier = {};
 			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 			barrier.srcAccessMask	= VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
@@ -727,12 +727,12 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 												instanceBuffer, 0,					// instance
 												VK_FALSE,							// update
 												topLevelAS, VK_NULL_HANDLE,			// dst, src
-												stratchBuffer, 0
+												scratchBuffer, 0
 											   );
 		});
 	}
 	
-	// create stratch buffer
+	// create scratch buffer
 	{
 		VkBufferCreateInfo	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -756,17 +756,17 @@ bool RayTracingApp::CreateTopLevelAS (ResourceInit &res)
 			info.size = Max( info.size, mem_req2.memoryRequirements.size );
 		}
 
-		VK_CHECK( vkCreateBuffer( vulkan.GetVkDevice(), &info, null, OUT &stratchBuffer ));
+		VK_CHECK( vkCreateBuffer( vulkan.GetVkDevice(), &info, null, OUT &scratchBuffer ));
 		
 		VkMemoryRequirements	mem_req;
-		vkGetBufferMemoryRequirements( vulkan.GetVkDevice(), stratchBuffer, OUT &mem_req );
+		vkGetBufferMemoryRequirements( vulkan.GetVkDevice(), scratchBuffer, OUT &mem_req );
 		
 		VkDeviceSize	offset = AlignToLarger( res.dev.totalSize, mem_req.alignment );
 		res.dev.totalSize	 = offset + mem_req.size;
 		res.dev.memTypeBits	|= mem_req.memoryTypeBits;
 
 		res.onBind.push_back( [this, offset] (void *) -> bool {
-			VK_CHECK( vkBindBufferMemory( vulkan.GetVkDevice(), stratchBuffer, sharedDevMemory, offset ));
+			VK_CHECK( vkBindBufferMemory( vulkan.GetVkDevice(), scratchBuffer, sharedDevMemory, offset ));
 			return true;
 		});
 	}
