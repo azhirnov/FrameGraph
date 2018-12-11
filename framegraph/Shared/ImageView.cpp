@@ -490,7 +490,7 @@ namespace FG
 			case EPixelFormat::BC7_RGBA8_UNorm :
 			case EPixelFormat::BC7_SRGB8_A8_UNorm :
 			case EPixelFormat::BC6H_RGB16F :
-			case EPixelFormat::BC6H_RGB16F_Unsigned :
+			case EPixelFormat::BC6H_RGB16UF :
 			case EPixelFormat::ETC2_RGB8_UNorm :
 			case EPixelFormat::ECT2_SRGB8_UNorm :
 			case EPixelFormat::ETC2_RGB8_A1_UNorm :
@@ -533,6 +533,7 @@ namespace FG
 				ASSERT(false);
 				break;	// TODO
 
+			case EPixelFormat::_Count :
 			case EPixelFormat::Unknown :
 				break;	// to shutup warnings
 		}

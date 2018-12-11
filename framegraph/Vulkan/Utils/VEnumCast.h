@@ -950,7 +950,6 @@ namespace FG
 =================================================
 */
 #	define FG_PRIVATE_VKPIXELFORMATS( _builder_ ) \
-		_builder_( Unknown,				VK_FORMAT_UNDEFINED ) \
 		_builder_( RGBA16_SNorm,		VK_FORMAT_R16G16B16A16_SNORM ) \
 		_builder_( RGBA8_SNorm,			VK_FORMAT_R8G8B8A8_SNORM ) \
 		_builder_( RGB16_SNorm,			VK_FORMAT_R16G16B16_SNORM ) \
@@ -1029,7 +1028,7 @@ namespace FG
 		_builder_( BC7_RGBA8_UNorm,		VK_FORMAT_BC7_UNORM_BLOCK ) \
 		_builder_( BC7_SRGB8_A8_UNorm,	VK_FORMAT_BC7_SRGB_BLOCK ) \
 		_builder_( BC6H_RGB16F,			VK_FORMAT_BC6H_SFLOAT_BLOCK ) \
-		_builder_( BC6H_RGB16F_Unsigned,VK_FORMAT_BC6H_UFLOAT_BLOCK ) \
+		_builder_( BC6H_RGB16UF,		VK_FORMAT_BC6H_UFLOAT_BLOCK ) \
 		_builder_( ETC2_RGB8_UNorm,		VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK ) \
 		_builder_( ECT2_SRGB8_UNorm,	VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK ) \
 		_builder_( ETC2_RGB8_A1_UNorm,	VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK ) \
@@ -1083,6 +1082,8 @@ namespace FG
 		switch ( value )
 		{
 			FG_PRIVATE_VKPIXELFORMATS( FMT_BUILDER )
+			case EPixelFormat::_Count :
+			case EPixelFormat::Unknown :	break;
 		}
 		DISABLE_ENUM_CHECKS();
 

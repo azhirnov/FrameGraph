@@ -496,7 +496,7 @@ namespace FG
 			uint			layerCount;
 		};
 		using Ranges_t		= FixedArray< Range, FG_MaxClearRanges >;
-		using ClearColor_t	= Union< float4, uint4, int4 >;
+		using ClearColor_t	= Union< std::monostate, RGBA32f, RGBA32u, RGBA32i >;
 
 
 	// variables
@@ -511,9 +511,9 @@ namespace FG
 
 		ClearColorImage&  SetImage (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
 
-		ClearColorImage&  Clear (const float4 &value)		{ clearValue = value;  return *this; }
-		ClearColorImage&  Clear (const uint4 &value)		{ clearValue = value;  return *this; }
-		ClearColorImage&  Clear (const int4 &value)			{ clearValue = value;  return *this; }
+		ClearColorImage&  Clear (const RGBA32f &value)		{ clearValue = value;  return *this; }
+		ClearColorImage&  Clear (const RGBA32u &value)		{ clearValue = value;  return *this; }
+		ClearColorImage&  Clear (const RGBA32i &value)		{ clearValue = value;  return *this; }
 		
 		ClearColorImage&  AddRange (MipmapLevel baseMipLevel, uint levelCount,
 									ImageLayer baseLayer, uint layerCount)

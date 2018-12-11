@@ -381,14 +381,12 @@ namespace FG
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 
-		if ( auto* fval = std::get_if<float4>( &task.clearValue ) )
-			::memcpy( _clearValue.float32, fval, sizeof(_clearValue.float32) );
-		else
-		if ( auto* ival = std::get_if<int4>( &task.clearValue ) )
-			::memcpy( _clearValue.int32, ival, sizeof(_clearValue.int32) );
-		else
-		if ( auto* uval = std::get_if<uint4>( &task.clearValue ) )
-			::memcpy( _clearValue.uint32, uval, sizeof(_clearValue.uint32) );
+		Visit(	task.clearValue,
+				[&] (const RGBA32f &col)		{ memcpy( _clearValue.float32, &col, sizeof(_clearValue.float32) ); },
+				[&] (const RGBA32u &col)		{ memcpy( _clearValue.uint32, &col, sizeof(_clearValue.uint32) ); },
+				[&] (const RGBA32i &col)		{ memcpy( _clearValue.int32, &col, sizeof(_clearValue.int32) );} ,
+				[&] (const std::monostate &)	{}
+			);
 	}
 
 /*

@@ -188,7 +188,6 @@ namespace FG
 		// depth stencil
 		Depth16,
 		Depth24,
-		//Depth32,
 		Depth32F,
 		Depth16_Stencil8,
 		Depth24_Stencil8,
@@ -206,7 +205,7 @@ namespace FG
 		BC7_RGBA8_UNorm,
 		BC7_SRGB8_A8_UNorm,
 		BC6H_RGB16F,
-		BC6H_RGB16F_Unsigned,
+		BC6H_RGB16UF,
 		ETC2_RGB8_UNorm,
 		ECT2_SRGB8_UNorm,
 		ETC2_RGB8_A1_UNorm,
@@ -246,6 +245,7 @@ namespace FG
 		ASTC_SRGB8_A8_12x10,
 		ASTC_SRGB8_A8_12x12,
 
+		_Count,
 		Unknown					= ~0u,
 	};
 	

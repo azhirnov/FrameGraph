@@ -235,315 +235,241 @@ namespace FG
 	
 /*
 =================================================
-	EPixelFormat_IsDepth
+	EPixelFormat_GetInfo
 =================================================
 */
-	ND_ inline constexpr bool EPixelFormat_IsDepth (EPixelFormat value)
+	struct PixelFormatInfo
 	{
-		switch ( value ) {
-			case EPixelFormat::Depth16 :
-			case EPixelFormat::Depth24 :
-			//case EPixelFormat::Depth32 :
-			case EPixelFormat::Depth32F :	return true;
-		}
-		return false;
-	}
-	
-/*
-=================================================
-	EPixelFormat_IsStencil
-=================================================
-*/
-	ND_ inline constexpr bool EPixelFormat_IsStencil (EPixelFormat)
-	{
-		// TODO
-		return false;
-	}
-	
-/*
-=================================================
-	EPixelFormat_IsDepthStencil
-=================================================
-*/
-	ND_ inline constexpr bool EPixelFormat_IsDepthStencil (EPixelFormat value)
-	{
-		switch ( value ) {
-			case EPixelFormat::Depth16_Stencil8 :
-			case EPixelFormat::Depth24_Stencil8 :
-			case EPixelFormat::Depth32F_Stencil8 :	return true;
-		}
-		return false;
-	}
-	
-/*
-=================================================
-	EPixelFormat_IsColor
-=================================================
-*/
-	ND_ inline constexpr bool EPixelFormat_IsColor (EPixelFormat value)
-	{
-		return not (EPixelFormat_IsDepth( value )		or
-					EPixelFormat_IsStencil( value )		or
-					EPixelFormat_IsDepthStencil( value ));
-	}
+		enum class EType
+		{
+			SFloat		= 1 << 0,
+			UFloat		= 1 << 1,
+			UNorm		= 1 << 2,
+			SNorm		= 1 << 3,
+			Int			= 1 << 4,
+			UInt		= 1 << 5,
+			Depth		= 1 << 6,
+			Stencil		= 1 << 7,
+			DepthStencil= Depth | Stencil,
+			_ValueMask	= 0xFFFF,
 
-/*
-=================================================
-	EPixelFormat_HasDepth
-=================================================
-*/
-	ND_ inline constexpr bool EPixelFormat_HasDepth (EPixelFormat value)
-	{
-		return EPixelFormat_IsDepth( value ) or EPixelFormat_IsDepthStencil( value );
-	}
-	
-/*
-=================================================
-	EPixelFormat_HasStencil
-=================================================
-*/
-	ND_ inline constexpr bool EPixelFormat_HasStencil (EPixelFormat value)
-	{
-		return EPixelFormat_IsStencil( value ) or EPixelFormat_IsDepthStencil( value );
-	}
-	
-/*
-=================================================
-	EPixelFormat_HasDepthOrStencil
-=================================================
-*/
-	ND_ inline constexpr bool EPixelFormat_HasDepthOrStencil (EPixelFormat value)
-	{
-		return EPixelFormat_IsDepth( value ) or EPixelFormat_IsStencil( value ) or EPixelFormat_IsDepthStencil( value );
-	}
+			// flags
+			sRGB		= 1 << 16,
 
+			Unknown		= 0
+		};
+
+		EPixelFormat		format			= Default;
+		uint				bitPerPixel		= 0;		// for color and depth
+		uint				bitPerPixel2	= 0;		// for stencil
+		EImageAspect		aspectMask		= Default;
+		EType				valueType		= Default;
+		uint2				blockSize		= {1,1};
+
+		constexpr PixelFormatInfo () {}
+
+		constexpr PixelFormatInfo (EPixelFormat fmt, uint bpp, EType type, EImageAspect aspect = EImageAspect::Color) :
+			format{fmt}, bitPerPixel{bpp}, aspectMask{aspect}, valueType{type} {}
+
+		constexpr PixelFormatInfo (EPixelFormat fmt, uint bpp, const uint2 &size, EType type, EImageAspect aspect = EImageAspect::Color) :
+			format{fmt}, bitPerPixel{bpp}, aspectMask{aspect}, valueType{type}, blockSize{size} {}
+
+		constexpr PixelFormatInfo (EPixelFormat fmt, uint depthBPP, uint stencilBPP, EType type = EType::DepthStencil, EImageAspect aspect = EImageAspect::DepthStencil) :
+			format{fmt}, bitPerPixel{depthBPP}, bitPerPixel2{stencilBPP}, aspectMask{aspect}, valueType{type} {}
+	};
+	FG_BIT_OPERATORS( PixelFormatInfo::EType );
+
+
+	ND_ inline constexpr PixelFormatInfo const&  EPixelFormat_GetInfo (EPixelFormat value)
+	{
+		using EType = PixelFormatInfo::EType;
+
+		static constexpr PixelFormatInfo	fmt_infos[] = {
+			{ EPixelFormat::RGBA16_SNorm,			16*4,			EType::SNorm },
+			{ EPixelFormat::RGBA8_SNorm,			8*4,			EType::SNorm },
+			{ EPixelFormat::RGB16_SNorm,			16*3,			EType::SNorm },
+			{ EPixelFormat::RGB8_SNorm,				8*3,			EType::SNorm },
+			{ EPixelFormat::RG16_SNorm,				16*2,			EType::SNorm },
+			{ EPixelFormat::RG8_SNorm,				8*2,			EType::SNorm },
+			{ EPixelFormat::R16_SNorm,				16*1,			EType::SNorm },
+			{ EPixelFormat::R8_SNorm,				8*1,			EType::SNorm },
+			{ EPixelFormat::RGBA16_UNorm,			16*4,			EType::UNorm },
+			{ EPixelFormat::RGBA8_UNorm,			8*4,			EType::UNorm },
+			{ EPixelFormat::RGB16_UNorm,			16*3,			EType::UNorm },
+			{ EPixelFormat::RGB8_UNorm,				8*3,			EType::UNorm },
+			{ EPixelFormat::RG16_UNorm,				16*2,			EType::UNorm },
+			{ EPixelFormat::RG8_UNorm,				8*2,			EType::UNorm },
+			{ EPixelFormat::R16_UNorm,				16*1,			EType::UNorm },
+			{ EPixelFormat::R8_UNorm,				8*1,			EType::UNorm },
+			{ EPixelFormat::RGB10_A2_UNorm,			10*3+2,			EType::UNorm },
+			{ EPixelFormat::RGBA4_UNorm,			4*4,			EType::UNorm },
+			{ EPixelFormat::RGB5_A1_UNorm,			5*3+1,			EType::UNorm },
+			{ EPixelFormat::RGB_5_6_5_UNorm,		5+6+5,			EType::UNorm },
+			{ EPixelFormat::BGR8_UNorm,				8*3,			EType::UNorm },
+			{ EPixelFormat::BGRA8_UNorm,			8*4,			EType::UNorm },
+			{ EPixelFormat::sRGB8,					8*3,			EType::UNorm | EType::sRGB },
+			{ EPixelFormat::sRGB8_A8,				8*4,			EType::UNorm | EType::sRGB },
+			{ EPixelFormat::sBGR8,					8*3,			EType::UNorm | EType::sRGB },
+			{ EPixelFormat::sBGR8_A8,				8*4,			EType::UNorm | EType::sRGB },
+			{ EPixelFormat::R8I,					8*1,			EType::Int },
+			{ EPixelFormat::RG8I,					8*2,			EType::Int },
+			{ EPixelFormat::RGB8I,					8*3,			EType::Int },
+			{ EPixelFormat::RGBA8I,					8*4,			EType::Int },
+			{ EPixelFormat::R16I,					16*1,			EType::Int },
+			{ EPixelFormat::RG16I,					16*2,			EType::Int },
+			{ EPixelFormat::RGB16I,					16*3,			EType::Int },
+			{ EPixelFormat::RGBA16I,				16*4,			EType::Int },
+			{ EPixelFormat::R32I,					32*1,			EType::Int },
+			{ EPixelFormat::RG32I,					32*2,			EType::Int },
+			{ EPixelFormat::RGB32I,					32*3,			EType::Int },
+			{ EPixelFormat::RGBA32I,				32*4,			EType::Int },
+			{ EPixelFormat::R8U,					8*1,			EType::UInt },
+			{ EPixelFormat::RG8U,					8*2,			EType::UInt },
+			{ EPixelFormat::RGB8U,					8*3,			EType::UInt },
+			{ EPixelFormat::RGBA8U,					8*4,			EType::UInt },
+			{ EPixelFormat::R16U,					16*1,			EType::UInt },
+			{ EPixelFormat::RG16U,					16*2,			EType::UInt },
+			{ EPixelFormat::RGB16U,					16*3,			EType::UInt },
+			{ EPixelFormat::RGBA16U,				16*4,			EType::UInt },
+			{ EPixelFormat::R32U,					32*1,			EType::UInt },
+			{ EPixelFormat::RG32U,					32*2,			EType::UInt },
+			{ EPixelFormat::RGB32U,					32*3,			EType::UInt },
+			{ EPixelFormat::RGBA32U,				32*4,			EType::UInt },
+			{ EPixelFormat::RGB10_A2U,				10*3+2,			EType::UInt },
+			{ EPixelFormat::R16F,					16*1,			EType::SFloat },
+			{ EPixelFormat::RG16F,					16*2,			EType::SFloat },
+			{ EPixelFormat::RGB16F,					16*3,			EType::SFloat },
+			{ EPixelFormat::RGBA16F,				16*4,			EType::SFloat },
+			{ EPixelFormat::R32F,					32*1,			EType::SFloat },
+			{ EPixelFormat::RG32F,					32*2,			EType::SFloat },
+			{ EPixelFormat::RGB32F,					32*3,			EType::SFloat },
+			{ EPixelFormat::RGBA32F,				32*4,			EType::SFloat },
+			{ EPixelFormat::RGB_11_11_10F,			11+11+10,		EType::SFloat },
+			{ EPixelFormat::Depth16,				16,				EType::UNorm | EType::Depth,			EImageAspect::Depth },
+			{ EPixelFormat::Depth24,				24,				EType::UNorm | EType::Depth,			EImageAspect::Depth },
+			{ EPixelFormat::Depth32F,				32,				EType::SFloat | EType::Depth,			EImageAspect::Depth },
+			{ EPixelFormat::Depth16_Stencil8,		16,	8,			EType::UNorm | EType::DepthStencil,		EImageAspect::DepthStencil },
+			{ EPixelFormat::Depth24_Stencil8,		24,	8,			EType::UNorm | EType::DepthStencil,		EImageAspect::DepthStencil },
+			{ EPixelFormat::Depth32F_Stencil8,		32,	8,			EType::SFloat | EType::DepthStencil,	EImageAspect::DepthStencil },
+			{ EPixelFormat::BC1_RGB8_UNorm,			64,		{4,4},	EType::UNorm },
+			{ EPixelFormat::BC1_RGB8_A1_UNorm,		64,		{4,4},	EType::UNorm },
+			{ EPixelFormat::BC2_RGBA8_UNorm,		128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::BC3_RGBA8_UNorm,		128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::BC4_RED8_SNorm,			128,	{4,4},	EType::SNorm },
+			{ EPixelFormat::BC4_RED8_UNorm,			128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::BC5_RG8_SNorm,			128,	{4,4},	EType::SNorm },
+			{ EPixelFormat::BC5_RG8_UNorm,			128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::BC7_RGBA8_UNorm,		128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::BC7_SRGB8_A8_UNorm,		128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::BC6H_RGB16F,			128,	{4,4},	EType::SFloat },
+			{ EPixelFormat::BC6H_RGB16UF,			128,	{4,4},	EType::UInt },
+			{ EPixelFormat::ETC2_RGB8_UNorm,		64,		{4,4},	EType::UNorm },
+			{ EPixelFormat::ECT2_SRGB8_UNorm,		64,		{4,4},	EType::UNorm },
+			{ EPixelFormat::ETC2_RGB8_A1_UNorm,		64,		{4,4},	EType::UNorm },
+			{ EPixelFormat::ETC2_SRGB8_A1_UNorm,	64,		{4,4},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ETC2_RGBA8_UNorm,		64,		{4,4},	EType::UNorm },
+			{ EPixelFormat::ETC2_SRGB8_A8_UNorm,	64,		{4,4},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::EAC_R11_SNorm,			64,		{4,4},	EType::SNorm },
+			{ EPixelFormat::EAC_R11_UNorm,			64,		{4,4},	EType::UNorm },
+			{ EPixelFormat::EAC_RG11_SNorm,			128,	{4,4},	EType::SNorm },
+			{ EPixelFormat::EAC_RG11_UNorm,			128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_4x4,			128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_5x4,			128,	{5,4},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_5x5,			128,	{5,5},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_6x5,			128,	{6,5},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_6x6,			128,	{6,6},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_8x5,			128,	{8,5},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_8x6,			128,	{8,6},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_8x8,			128,	{8,8},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_10x5,			128,	{10,5},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_10x6,			128,	{10,6},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_10x8,			128,	{10,8},	EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_10x10,		128,	{10,10},EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_12x10,		128,	{12,10},EType::UNorm },
+			{ EPixelFormat::ASTC_RGBA_12x12,		128,	{12,12},EType::UNorm },
+			{ EPixelFormat::ASTC_SRGB8_A8_4x4,		128,	{4,4},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_5x4,		128,	{5,4},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_5x5,		128,	{5,5},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_6x5,		128,	{6,5},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_6x6,		128,	{6,6},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_8x5,		128,	{8,5},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_8x6,		128,	{8,6},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_8x8,		128,	{8,8},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_10x5,		128,	{10,5},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_10x6,		128,	{10,6},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_10x8,		128,	{10,8},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_10x10,	128,	{10,10},EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_12x10,	128,	{12,10},EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ASTC_SRGB8_A8_12x12,	128,	{12,12},EType::UNorm | EType::sRGB },
+			{ EPixelFormat::Unknown,				0,				EType::Unknown }
+		};
+		STATIC_ASSERT( CountOf(fmt_infos) == uint(EPixelFormat::_Count)+1 );
+
+		auto&	result = fmt_infos[ value < EPixelFormat::_Count ? uint(value) : uint(EPixelFormat::_Count) ];
+		ASSERT( result.format == value );
+
+		return result;
+	}
+	
 /*
 =================================================
 	EPixelFormat_BitPerPixel
 =================================================
 */
-	ND_ inline uint EPixelFormat_BitPerPixel (EPixelFormat value, EImageAspect aspect)
+	ND_ inline constexpr uint  EPixelFormat_BitPerPixel (EPixelFormat value, EImageAspect aspect)
 	{
-		ENABLE_ENUM_CHECKS();
-		switch ( value )
-		{
-		// uncompressed color formats:
-			case EPixelFormat::R8_SNorm :
-			case EPixelFormat::R8_UNorm :
-			case EPixelFormat::R8I :
-			case EPixelFormat::R8U :
-				ASSERT( aspect == EImageAspect::Color );
-				return 8;
+		auto	info = EPixelFormat_GetInfo( value );
+		ASSERT( EnumEq( info.aspectMask, aspect ) );
 
-			case EPixelFormat::R16_SNorm :
-			case EPixelFormat::R16_UNorm :
-			case EPixelFormat::R16I :
-			case EPixelFormat::R16U :
-			case EPixelFormat::R16F :
-			case EPixelFormat::RG8_SNorm :
-			case EPixelFormat::RG8_UNorm :
-			case EPixelFormat::RG8I :
-			case EPixelFormat::RG8U :
-			case EPixelFormat::RGBA4_UNorm :
-			case EPixelFormat::RGB5_A1_UNorm :
-			case EPixelFormat::RGB_5_6_5_UNorm :
-				ASSERT( aspect == EImageAspect::Color );
-				return 16;
+		if ( aspect != EImageAspect::Stencil )
+			return info.bitPerPixel / (info.blockSize.x * info.blockSize.y);
+		else
+			return info.bitPerPixel2 / (info.blockSize.x * info.blockSize.y);
+	}
 
-			case EPixelFormat::RGB8_SNorm :
-			case EPixelFormat::RGB8_UNorm :
-			case EPixelFormat::BGR8_UNorm :
-			case EPixelFormat::sRGB8 :
-			case EPixelFormat::sBGR8 :
-			case EPixelFormat::RGB8I :
-			case EPixelFormat::RGB8U :
-				ASSERT( aspect == EImageAspect::Color );
-				return 8*3;
+/*
+=================================================
+	EPixelFormat_Is***
+=================================================
+*/
+	ND_ inline constexpr bool  EPixelFormat_IsDepth (EPixelFormat value)
+	{
+		return EPixelFormat_GetInfo( value ).valueType == PixelFormatInfo::EType::Depth;
+	}
+	
+	ND_ inline constexpr bool  EPixelFormat_IsStencil (EPixelFormat value)
+	{
+		return EPixelFormat_GetInfo( value ).valueType == PixelFormatInfo::EType::Stencil;
+	}
+	
+	ND_ inline constexpr bool  EPixelFormat_IsDepthStencil (EPixelFormat value)
+	{
+		return EPixelFormat_GetInfo( value ).valueType == PixelFormatInfo::EType::DepthStencil;
+	}
+	
+	ND_ inline constexpr bool  EPixelFormat_IsColor (EPixelFormat value)
+	{
+		return not EnumAny( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
+	}
 
-			case EPixelFormat::RG16_SNorm :
-			case EPixelFormat::RG16_UNorm :
-			case EPixelFormat::RG16I :
-			case EPixelFormat::RG16U :
-			case EPixelFormat::RG16F :
-			case EPixelFormat::RGBA8_SNorm :
-			case EPixelFormat::RGBA8_UNorm :
-			case EPixelFormat::BGRA8_UNorm :
-			case EPixelFormat::sRGB8_A8 :
-			case EPixelFormat::sBGR8_A8 :
-			case EPixelFormat::RGBA8I :
-			case EPixelFormat::RGBA8U :
-			case EPixelFormat::R32I :
-			case EPixelFormat::R32U :
-			case EPixelFormat::R32F :
-			case EPixelFormat::RGB10_A2_UNorm :
-			case EPixelFormat::RGB10_A2U :
-			case EPixelFormat::RGB_11_11_10F :
-				ASSERT( aspect == EImageAspect::Color );
-				return 32;
-
-			case EPixelFormat::RGB16_SNorm :
-			case EPixelFormat::RGB16_UNorm :
-			case EPixelFormat::RGB16I :
-			case EPixelFormat::RGB16U :
-			case EPixelFormat::RGB16F :
-				ASSERT( aspect == EImageAspect::Color );
-				return 16*3;
-
-			case EPixelFormat::RGBA16_SNorm :
-			case EPixelFormat::RGBA16_UNorm :
-			case EPixelFormat::RGBA16I :
-			case EPixelFormat::RGBA16U :
-			case EPixelFormat::RGBA16F :
-			case EPixelFormat::RG32I :
-			case EPixelFormat::RG32U :
-			case EPixelFormat::RG32F :
-				ASSERT( aspect == EImageAspect::Color );
-				return 16*4;
-
-			case EPixelFormat::RGB32I :
-			case EPixelFormat::RGB32U :
-			case EPixelFormat::RGB32F :
-				ASSERT( aspect == EImageAspect::Color );
-				return 32*3;
-
-			case EPixelFormat::RGBA32I :
-			case EPixelFormat::RGBA32U :
-			case EPixelFormat::RGBA32F :
-				ASSERT( aspect == EImageAspect::Color );
-				return 32*4;
-
-		// uncompressed depth/stencil formats:
-			case EPixelFormat::Depth16 :
-				ASSERT( aspect == EImageAspect::Depth );
-				return 16;
-
-			case EPixelFormat::Depth24 :
-			case EPixelFormat::Depth32F :
-				ASSERT( aspect == EImageAspect::Depth );
-				return 32;
-
-			case EPixelFormat::Depth16_Stencil8	:
-				ASSERT( aspect == EImageAspect::Depth or aspect == EImageAspect::Stencil );
-				return aspect == EImageAspect::Stencil ? 8 : 16;
-
-			case EPixelFormat::Depth24_Stencil8 :
-			case EPixelFormat::Depth32F_Stencil8 :
-				ASSERT( aspect == EImageAspect::Depth or aspect == EImageAspect::Stencil );
-				return aspect == EImageAspect::Stencil ? 8 : 32;
-
-		// compressed formats:
-			case EPixelFormat::BC1_RGB8_UNorm :
-			case EPixelFormat::BC1_RGB8_A1_UNorm :
-				ASSERT( aspect == EImageAspect::Color );
-				return 64 / (4*4);
-
-			case EPixelFormat::BC2_RGBA8_UNorm :
-			case EPixelFormat::BC3_RGBA8_UNorm :
-			case EPixelFormat::BC4_RED8_SNorm :
-			case EPixelFormat::BC4_RED8_UNorm :
-			case EPixelFormat::BC5_RG8_SNorm :
-			case EPixelFormat::BC5_RG8_UNorm :
-			case EPixelFormat::BC7_RGBA8_UNorm :
-			case EPixelFormat::BC7_SRGB8_A8_UNorm :
-			case EPixelFormat::BC6H_RGB16F :
-			case EPixelFormat::BC6H_RGB16F_Unsigned :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (4*4);
-
-			case EPixelFormat::ETC2_RGB8_UNorm :
-			case EPixelFormat::ECT2_SRGB8_UNorm :
-			case EPixelFormat::ETC2_RGB8_A1_UNorm :
-			case EPixelFormat::ETC2_SRGB8_A1_UNorm :
-			case EPixelFormat::ETC2_RGBA8_UNorm :
-			case EPixelFormat::ETC2_SRGB8_A8_UNorm :
-				ASSERT( aspect == EImageAspect::Color );
-				return 64 / (4*4);
-
-			case EPixelFormat::EAC_R11_SNorm :
-			case EPixelFormat::EAC_R11_UNorm :
-				ASSERT( aspect == EImageAspect::Color );
-				return 64 / (4*4);
-
-			case EPixelFormat::EAC_RG11_SNorm :
-			case EPixelFormat::EAC_RG11_UNorm :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (4*4);
-
-			case EPixelFormat::ASTC_RGBA_4x4 :
-			case EPixelFormat::ASTC_SRGB8_A8_4x4 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (4*4);
-
-			case EPixelFormat::ASTC_RGBA_5x4 :
-			case EPixelFormat::ASTC_SRGB8_A8_5x4 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (5*4);
-
-			case EPixelFormat::ASTC_RGBA_5x5 :
-			case EPixelFormat::ASTC_SRGB8_A8_5x5 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (5*5);
-
-			case EPixelFormat::ASTC_RGBA_6x5 :
-			case EPixelFormat::ASTC_SRGB8_A8_6x5 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (6*5);
-
-			case EPixelFormat::ASTC_RGBA_6x6 :
-			case EPixelFormat::ASTC_SRGB8_A8_6x6 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (6*6);
-
-			case EPixelFormat::ASTC_RGBA_8x5 :
-			case EPixelFormat::ASTC_SRGB8_A8_8x5 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (8*5);
-
-			case EPixelFormat::ASTC_RGBA_8x6 :
-			case EPixelFormat::ASTC_SRGB8_A8_8x6 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (8*6);
-
-			case EPixelFormat::ASTC_RGBA_8x8 :
-			case EPixelFormat::ASTC_SRGB8_A8_8x8 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (8*8);
-
-			case EPixelFormat::ASTC_RGBA_10x5 :
-			case EPixelFormat::ASTC_SRGB8_A8_10x5 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (10*5);
-
-			case EPixelFormat::ASTC_RGBA_10x6 :
-			case EPixelFormat::ASTC_SRGB8_A8_10x6 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (10*6);
-
-			case EPixelFormat::ASTC_RGBA_10x8 :
-			case EPixelFormat::ASTC_SRGB8_A8_10x8 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (10*8);
-
-			case EPixelFormat::ASTC_RGBA_10x10 :
-			case EPixelFormat::ASTC_SRGB8_A8_10x10 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (10*10);
-
-			case EPixelFormat::ASTC_RGBA_12x10 :
-			case EPixelFormat::ASTC_SRGB8_A8_12x10 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (12*10);
-
-			case EPixelFormat::ASTC_RGBA_12x12 :
-			case EPixelFormat::ASTC_SRGB8_A8_12x12 :
-				ASSERT( aspect == EImageAspect::Color );
-				return 128 / (12*12);
-
-			case EPixelFormat::Unknown :
-				break;	// to shutup warnings
-		}
-		DISABLE_ENUM_CHECKS();
-		RETURN_ERR( "unknown pixel format" );
+/*
+=================================================
+	EPixelFormat_Has***
+=================================================
+*/
+	ND_ inline constexpr bool  EPixelFormat_HasDepth (EPixelFormat value)
+	{
+		return EnumEq( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::Depth );
+	}
+	
+	ND_ inline constexpr bool  EPixelFormat_HasStencil (EPixelFormat value)
+	{
+		return EnumEq( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::Stencil );
+	}
+	
+	ND_ inline constexpr bool  EPixelFormat_HasDepthOrStencil (EPixelFormat value)
+	{
+		return EnumAny( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
 	}
 
 
