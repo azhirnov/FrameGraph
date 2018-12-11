@@ -41,8 +41,8 @@ if (${FG_ENABLE_DEVIL})
 		BUILD_COMMAND		""
 		LOG_BUILD 			1
 		# install
-		INSTALL_COMMAND		${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/DevIL.dll" "${MAIN_BINARY_DIR}/DevIL.dll"
-							COMMAND  ${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/ILU.dll" "${MAIN_BINARY_DIR}/ILU.dll"
+		INSTALL_COMMAND		${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/DevIL.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/DevIL.dll"
+							COMMAND  ${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/ILU.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/ILU.dll"
 		INSTALL_DIR 		""
 		LOG_INSTALL 		1
 		# test

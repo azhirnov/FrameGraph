@@ -271,6 +271,162 @@ endif()
 
 
 #==================================================================================================
+# project: Scene
+#==================================================================================================
+if (${FG_ENABLE_GLM})
+	set( SOURCES 
+		"scene/SceneManager/Simple/SimpleScene.cpp"
+		"scene/SceneManager/Simple/SimpleScene.h"
+		"scene/SceneManager/Simple/SimpleScene.Model.cpp"
+		"scene/SceneManager/Simple/SimpleScene.Model.h"
+		"scene/ThreadPool/FGThread.h"
+		"scene/ThreadPool/IOThread.h"
+		"scene/ThreadPool/ThreadPool.cpp"
+		"scene/ThreadPool/ThreadPool.h"
+		"scene/Pipelines/ForwardPlus/default.gppln"
+		"scene/SceneManager/Octree/OctreeScene.h"
+		"scene/Loader/Intermediate/IntermediateImage.h"
+		"scene/Loader/Intermediate/IntermediateLight.h"
+		"scene/Loader/Intermediate/IntermediateMaterial.h"
+		"scene/Loader/Intermediate/IntermediateMesh.h"
+		"scene/Loader/Intermediate/IntermediateScene.h"
+		"scene/Loader/Intermediate/VertexAttributes.h"
+		"scene/Renderer/Enums.h"
+		"scene/Renderer/IRenderTechnique.h"
+		"scene/Renderer/RenderQueue.h"
+		"scene/Renderer/ScenePreRender.h"
+		"scene/Utils/Math/AABB.h"
+		"scene/Utils/Math/Camera.h"
+		"scene/Utils/Math/Frustum.h"
+		"scene/Utils/Math/GLM.h"
+		"scene/Utils/Math/OOBB.h"
+		"scene/Utils/Math/Radians.h"
+		"scene/Utils/Math/Sphere.h"
+		"scene/Utils/Math/Transform.h"
+		"scene/Renderer/Prototype/RendererPrototype.cpp"
+		"scene/Renderer/Prototype/RendererPrototype.h"
+		"scene/Common.h"
+		"scene/SceneManager/Resources/FpsCamera.h"
+		"scene/SceneManager/Resources/LightSource.h"
+		"scene/SceneManager/Resources/Material.h"
+		"scene/SceneManager/Resources/Model.cpp"
+		"scene/SceneManager/Resources/Model.h"
+		"scene/SceneManager/Resources/ParticleEmitter.h"
+		"scene/SceneManager/Resources/SceletalModel.h"
+		"scene/App/BaseApp.h"
+		"scene/Loader/Assimp/AssimpLoader.cpp"
+		"scene/Loader/Assimp/AssimpLoader.h"
+		"scene/SceneManager/IDrawable3D.h"
+		"scene/SceneManager/ISceneHierarchy.h"
+		"scene/SceneManager/ISceneManager.h"
+		"scene/SceneManager/IViewport.h"
+		"scene/SceneManager/SceneManager.cpp"
+		"scene/SceneManager/SceneManager.h"
+		"scene/Loader/DevIL/DevILLoader.cpp"
+		"scene/Loader/DevIL/DevILLoader.h" )
+	add_library( "Scene" STATIC ${SOURCES} )
+	source_group( "SceneManager\\Simple" FILES "scene/SceneManager/Simple/SimpleScene.cpp" "scene/SceneManager/Simple/SimpleScene.h" "scene/SceneManager/Simple/SimpleScene.Model.cpp" "scene/SceneManager/Simple/SimpleScene.Model.h" )
+	source_group( "ThreadPool" FILES "scene/ThreadPool/FGThread.h" "scene/ThreadPool/IOThread.h" "scene/ThreadPool/ThreadPool.cpp" "scene/ThreadPool/ThreadPool.h" )
+	source_group( "Pipelines\\ForwardPlus" FILES "scene/Pipelines/ForwardPlus/default.gppln" )
+	source_group( "SceneManager\\Octree" FILES "scene/SceneManager/Octree/OctreeScene.h" )
+	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermediateImage.h" "scene/Loader/Intermediate/IntermediateLight.h" "scene/Loader/Intermediate/IntermediateMaterial.h" "scene/Loader/Intermediate/IntermediateMesh.h" "scene/Loader/Intermediate/IntermediateScene.h" "scene/Loader/Intermediate/VertexAttributes.h" )
+	source_group( "Renderer" FILES "scene/Renderer/Enums.h" "scene/Renderer/IRenderTechnique.h" "scene/Renderer/RenderQueue.h" "scene/Renderer/ScenePreRender.h" )
+	source_group( "Utils\\Math" FILES "scene/Utils/Math/AABB.h" "scene/Utils/Math/Camera.h" "scene/Utils/Math/Frustum.h" "scene/Utils/Math/GLM.h" "scene/Utils/Math/OOBB.h" "scene/Utils/Math/Radians.h" "scene/Utils/Math/Sphere.h" "scene/Utils/Math/Transform.h" )
+	source_group( "Renderer\\Prototype" FILES "scene/Renderer/Prototype/RendererPrototype.cpp" "scene/Renderer/Prototype/RendererPrototype.h" )
+	source_group( "" FILES "scene/Common.h" )
+	source_group( "SceneManager\\Resources" FILES "scene/SceneManager/Resources/FpsCamera.h" "scene/SceneManager/Resources/LightSource.h" "scene/SceneManager/Resources/Material.h" "scene/SceneManager/Resources/Model.cpp" "scene/SceneManager/Resources/Model.h" "scene/SceneManager/Resources/ParticleEmitter.h" "scene/SceneManager/Resources/SceletalModel.h" )
+	source_group( "App" FILES "scene/App/BaseApp.h" )
+	source_group( "Loader\\Assimp" FILES "scene/Loader/Assimp/AssimpLoader.cpp" "scene/Loader/Assimp/AssimpLoader.h" )
+	source_group( "SceneManager" FILES "scene/SceneManager/IDrawable3D.h" "scene/SceneManager/ISceneHierarchy.h" "scene/SceneManager/ISceneManager.h" "scene/SceneManager/IViewport.h" "scene/SceneManager/SceneManager.cpp" "scene/SceneManager/SceneManager.h" )
+	source_group( "Loader\\DevIL" FILES "scene/Loader/DevIL/DevILLoader.cpp" "scene/Loader/DevIL/DevILLoader.h" )
+	set_property( TARGET "Scene" PROPERTY FOLDER "Extensions" )
+	target_include_directories( "Scene" PUBLIC "${FG_GLM_INCLUDE_DIR}" )
+	target_include_directories( "Scene" PUBLIC "scene/.." )
+	target_include_directories( "Scene" PUBLIC "${FG_EXTERNALS_PATH}" )
+	if (${FG_ENABLE_DEVIL})
+		target_include_directories( "Scene" PRIVATE "${FG_DEVIL_INCLUDE_DIR}" )
+	endif()
+	if (${FG_ENABLE_ASSIMP})
+		target_include_directories( "Scene" PRIVATE "${FG_ASSIMP_INCLUDE_DIR}" )
+	endif()
+	target_link_libraries( "Scene" "FrameGraph" )
+	if (${FG_ENABLE_DEVIL})
+		target_link_libraries( "Scene" "${FG_DEVIL_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}ILU${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+	endif()
+	target_link_libraries( "Scene" "Framework" )
+	if (${FG_ENABLE_ASSIMP})
+		target_link_libraries( "Scene" "${FG_ASSIMP_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}assimp-vc140-mt${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+	endif()
+	if (${FG_ENABLE_ASSIMP})
+		target_link_libraries( "Scene" "${FG_ASSIMP_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}IrrXML${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+	endif()
+	if (${FG_ENABLE_ASSIMP})
+		target_link_libraries( "Scene" "${FG_ASSIMP_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}zlibstatic${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+	endif()
+	if (${FG_ENABLE_DEVIL})
+		target_link_libraries( "Scene" "${FG_DEVIL_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}DevIL${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+	endif()
+	if (${FG_ENABLE_ASSIMP})
+		add_dependencies( "Scene" External.Assimp )
+	endif()
+	if (${FG_ENABLE_DEVIL})
+		add_dependencies( "Scene" External.DevIL )
+	endif()
+	add_dependencies( "Scene" External.GLM )
+	# compiler
+	target_compile_definitions( "Scene" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "Scene" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "Scene" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "Scene" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "Scene" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "Scene" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "Scene" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "Scene" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "Scene" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
+# project: Tests.Scene
+#==================================================================================================
+if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLM})
+	set( SOURCES 
+		"../tests/scene/main.cpp"
+		"../tests/scene/SceneApp.cpp"
+		"../tests/scene/SceneApp.h"
+		"../tests/scene/UnitTest_Common.h"
+		"../tests/scene/UnitTest_Frustum.cpp"
+		"../tests/scene/UnitTest_Transformation.cpp" )
+	if (DEFINED ANDROID)
+		add_library( "Tests.Scene" SHARED ${SOURCES} )
+	else()
+		add_executable( "Tests.Scene" ${SOURCES} )
+	endif()
+	source_group( "" FILES "../tests/scene/main.cpp" "../tests/scene/SceneApp.cpp" "../tests/scene/SceneApp.h" "../tests/scene/UnitTest_Common.h" "../tests/scene/UnitTest_Frustum.cpp" "../tests/scene/UnitTest_Transformation.cpp" )
+	set_property( TARGET "Tests.Scene" PROPERTY FOLDER "Tests" )
+	target_include_directories( "Tests.Scene" PUBLIC "${FG_EXTERNALS_PATH}" )
+	if (${FG_ENABLE_GRAPHVIZ})
+		target_link_libraries( "Tests.Scene" "GraphViz" )
+	endif()
+	if (${FG_ENABLE_GLM})
+		target_link_libraries( "Tests.Scene" "Scene" )
+	endif()
+	# compiler
+	target_compile_definitions( "Tests.Scene" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "Tests.Scene" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "Tests.Scene" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "Tests.Scene" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "Tests.Scene" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "Tests.Scene" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "Tests.Scene" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "Tests.Scene" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "Tests.Scene" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
 # project: UI
 #==================================================================================================
 if (${FG_ENABLE_IMGUI})

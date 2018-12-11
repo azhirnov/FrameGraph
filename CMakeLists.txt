@@ -26,6 +26,7 @@ set( FG_ENABLE_GLFW ON CACHE BOOL "use glfw (optional, required for tests)" )
 set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )
 set( FG_ENABLE_SFML OFF CACHE BOOL "use SFML (optional, required for tests)" )
 set( FG_ENABLE_LODEPNG OFF CACHE BOOL "use lodepng (optional, may be used in tests)" )
+set( FG_ENABLE_GRAPHVIZ ON CACHE BOOL "use graphviz (optional)" )
 
 # UI dependencies
 set( FG_ENABLE_IMGUI OFF CACHE BOOL "use imgui (optional, required for UI extension)" )
