@@ -80,9 +80,6 @@ namespace FG
 			#ifdef VK_KHR_get_surface_capabilities2
 				VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
 			#endif
-			#ifdef VK_KHR_create_renderpass2
-				VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
-			#endif
 			#ifdef VK_EXT_debug_utils
 				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 			#endif
@@ -105,8 +102,36 @@ namespace FG
 			#ifdef VK_KHR_dedicated_allocation
 				VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 			#endif
-			#ifdef VK_EXT_debug_utils
-				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+		};
+		return device_extensions;
+	}
+
+/*
+=================================================
+	GetAllDeviceExtensions_v100
+=================================================
+*/
+	ArrayView<const char*>  VulkanDevice::GetAllDeviceExtensions_v100 ()
+	{
+		static const char *	device_extensions[] =
+		{
+			#ifdef VK_KHR_get_memory_requirements2
+				VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_bind_memory2
+				VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_dedicated_allocation
+				VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_create_renderpass2
+				VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_sampler_ycbcr_conversion
+				VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_descriptor_update_template
+				VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME,
 			#endif
 		};
 		return device_extensions;
@@ -121,14 +146,41 @@ namespace FG
 	{
 		static const char *	device_extensions[] =
 		{
-			#ifdef VK_KHR_get_memory_requirements2
-				VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+			#ifdef VK_KHR_create_renderpass2
+				VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
 			#endif
-			#ifdef VK_KHR_dedicated_allocation
-				VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+			#ifdef VK_KHR_draw_indirect_count
+				VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
 			#endif
-			#ifdef VK_EXT_debug_utils
-				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+			#ifdef VK_KHR_8bit_storage
+				VK_KHR_8BIT_STORAGE_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_conservative_rasterization
+				VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_sample_locations
+				VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_push_descriptor
+				VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_shader_atomic_int64
+				VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_shader_float16_int8
+				VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_shader_float_controls
+				VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_blend_operation_advanced
+				VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_conditional_rendering
+				VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_inline_uniform_block
+				VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME,
 			#endif
 
 			// Vendor specific extensions
@@ -150,13 +202,6 @@ namespace FG
 			#ifdef VK_NVX_device_generated_commands
 				VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
 			#endif
-			#ifdef VK_EXT_conservative_rasterization
-				VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME,
-			#endif
-			#ifdef VK_EXT_sample_locations
-				VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME,
-			#endif
-			
 		};
 		return device_extensions;
 	}

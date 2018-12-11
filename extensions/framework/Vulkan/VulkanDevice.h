@@ -130,6 +130,7 @@ namespace FG
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceLayers ();
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceExtensions ();
 		ND_ static ArrayView<const char*>	GetRecomendedDeviceExtensions ();
+		ND_ static ArrayView<const char*>	GetAllDeviceExtensions_v100 ();
 		ND_ static ArrayView<const char*>	GetAllDeviceExtensions ();
 
 
