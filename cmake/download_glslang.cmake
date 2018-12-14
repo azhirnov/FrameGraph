@@ -12,6 +12,13 @@ if (${FG_ENABLE_GLSLANG})
 	if (NOT EXISTS ${FG_EXTERNAL_GLSLANG_PATH})
 		message( STATUS "glslang is not found in ${FG_EXTERNAL_GLSLANG_PATH}" )
 		set( FG_EXTERNAL_GLSLANG_PATH "${FG_EXTERNALS_PATH}/glslang" CACHE PATH "" FORCE )
+		set( FG_GLSLANG_REPOSITORY "https://github.com/KhronosGroup/glslang.git" )
+		set( FG_SPIRVTOOLS_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Tools.git" )
+		set( FG_SPIRVHEADERS_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Headers.git" )
+	else ()
+		set( FG_GLSLANG_REPOSITORY "" )
+		set( FG_SPIRVTOOLS_REPOSITORY "" )
+		set( FG_SPIRVHEADERS_REPOSITORY "" )
 	endif ()
 	
 	set( ENABLE_HLSL ON CACHE BOOL "glslang option" )
@@ -21,7 +28,7 @@ if (${FG_ENABLE_GLSLANG})
 
 	ExternalProject_Add( "External.glslang"
 		# download
-		GIT_REPOSITORY		https://github.com/KhronosGroup/glslang.git
+		GIT_REPOSITORY		${FG_GLSLANG_REPOSITORY}
 		GIT_TAG				master
 		GIT_PROGRESS		1
 		EXCLUDE_FROM_ALL	1
@@ -43,7 +50,7 @@ if (${FG_ENABLE_GLSLANG})
 	ExternalProject_Add( "External.SPIRV-Tools"
 		DEPENDS				"External.glslang"
 		# download
-		GIT_REPOSITORY		https://github.com/KhronosGroup/SPIRV-Tools.git
+		GIT_REPOSITORY		${FG_SPIRVTOOLS_REPOSITORY}
 		GIT_TAG				master
 		GIT_PROGRESS		1
 		EXCLUDE_FROM_ALL	1
@@ -66,7 +73,7 @@ if (${FG_ENABLE_GLSLANG})
 		DEPENDS				"External.glslang"
 							"External.SPIRV-Tools"
 		# download
-		GIT_REPOSITORY		https://github.com/KhronosGroup/SPIRV-Headers.git
+		GIT_REPOSITORY		${FG_SPIRVHEADERS_REPOSITORY}
 		GIT_TAG				master
 		GIT_PROGRESS		1
 		EXCLUDE_FROM_ALL	1

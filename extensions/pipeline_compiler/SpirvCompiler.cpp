@@ -740,7 +740,7 @@ namespace FG
 
 		if ( type.getBasicType() == TBasicType::EbtSampler )
 		{
-			// sampler
+			// texture
 			if ( type.getSampler().isCombined() )
 			{
 				PipelineDescription::Texture	tex;
@@ -785,6 +785,18 @@ namespace FG
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(subpass);
+
+				uniforms.insert({ ExtractUniformID( node ), std::move(un) });
+				return true;
+			}
+			
+			// sampler
+			if ( qual.storage == TStorageQualifier::EvqUniform )
+			{
+				PipelineDescription::Uniform	un;
+				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+				un.stageFlags	= _currentStage;
+				un.data			= PipelineDescription::Sampler{};
 
 				uniforms.insert({ ExtractUniformID( node ), std::move(un) });
 				return true;
