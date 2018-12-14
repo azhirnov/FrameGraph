@@ -494,7 +494,7 @@ namespace FG
 	OverrideColorStates
 =================================================
 */
-	void OverrideColorStates (INOUT RenderState::ColorBuffersState &currColorStates, const _fg_hidden_::ColorBuffers_t &newStates)
+	static void OverrideColorStates (INOUT RenderState::ColorBuffersState &currColorStates, const _fg_hidden_::ColorBuffers_t &newStates)
 	{
 		for (auto& cb : newStates)
 		{
@@ -506,6 +506,19 @@ namespace FG
 				iter->second = cb.second;
 			}
 		}
+	}
+	
+/*
+=================================================
+	OverrideDepthStencilStates
+=================================================
+*/
+	static void OverrideDepthStencilStates (INOUT RenderState::DepthBufferState &currDepthState, INOUT RenderState::StencilBufferState &currStencilState,
+											const _fg_hidden_::DepthStencilState &newStates)
+	{
+		currDepthState.test			= newStates.depthTest.value_or( currDepthState.test );
+		currDepthState.write		= newStates.depthWrite.value_or( currDepthState.write );
+		currStencilState.enabled	= newStates.stencilTest.value_or( currStencilState.enabled );
 	}
 
 /*
@@ -519,21 +532,23 @@ namespace FG
 	{
 		CHECK_ERR( drawTask.pipeline and logicalRP.GetRenderPassID() );
 
-		// not supported yet
-		ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Viewport ));
-		//ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Scissor ));
 
 		VDevice const&				dev			= resMngr.GetDevice();
 		VGraphicsPipeline const*	gppln		= drawTask.pipeline;
 		VPipelineLayout const*		layout		= resMngr.GetResource( gppln->GetLayoutID() );
 		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
+		EPipelineDynamicState		dynamic_state = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		
+		dynamic_state |= drawTask.depthStencilState.compareMask ? EPipelineDynamicState::StencilCompareMask : Default;
+		dynamic_state |= drawTask.depthStencilState.reference   ? EPipelineDynamicState::StencilReference   : Default;
+		dynamic_state |= drawTask.depthStencilState.writeMask   ? EPipelineDynamicState::StencilWriteMask   : Default;
+
 		// check topology
 		CHECK_ERR(	uint(drawTask.topology) < gppln->_supportedTopology.size() and
 					gppln->_supportedTopology[uint(drawTask.topology)] );
 
 		VGraphicsPipeline::PipelineInstance		inst;
-		inst.dynamicState				= drawTask.dynamicStates | EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
+		inst.dynamicState				= dynamic_state;
 		inst.renderPassId				= logicalRP.GetRenderPassID();
 		inst.subpassIndex				= logicalRP.GetSubpassIndex();
 		inst.vertexInput				= drawTask.vertexInput;
@@ -550,6 +565,7 @@ namespace FG
 
 		inst.vertexInput.ApplyAttribs( gppln->GetVertexAttribs() );
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
+		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil, drawTask.depthStencilState );
 
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
@@ -644,17 +660,18 @@ namespace FG
 		CHECK_ERR( resMngr.GetDevice().IsMeshShaderEnabled() );
 		CHECK_ERR( drawTask.pipeline and logicalRP.GetRenderPassID() );
 
-		// not supported yet
-		ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Viewport ));
-		ASSERT( EnumEq( drawTask.dynamicStates, EPipelineDynamicState::Scissor ));
-
 		VDevice const&				dev			= resMngr.GetDevice();
 		VMeshPipeline const*		mppln		= drawTask.pipeline;
 		VPipelineLayout const*		layout		= resMngr.GetResource( mppln->GetLayoutID() );
 		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
+		EPipelineDynamicState		dynamic_state = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
+		
+		dynamic_state |= drawTask.depthStencilState.compareMask ? EPipelineDynamicState::StencilCompareMask : Default;
+		dynamic_state |= drawTask.depthStencilState.reference   ? EPipelineDynamicState::StencilReference   : Default;
+		dynamic_state |= drawTask.depthStencilState.writeMask   ? EPipelineDynamicState::StencilWriteMask   : Default;
 
 		VMeshPipeline::PipelineInstance		inst;
-		inst.dynamicState				= drawTask.dynamicStates | EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
+		inst.dynamicState				= dynamic_state;
 		inst.renderPassId				= logicalRP.GetRenderPassID();
 		inst.subpassIndex				= logicalRP.GetSubpassIndex();
 		inst.flags						= 0;	//pipelineFlags;	// TODO
@@ -667,6 +684,7 @@ namespace FG
 		inst.renderState.inputAssembly.topology	= mppln->_topology;
 
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
+		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil, drawTask.depthStencilState );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
@@ -1164,25 +1182,25 @@ namespace FG
 				case EPipelineDynamicState::Scissor :
 					break;
 
-				case EPipelineDynamicState::LineWidth :
-					renderState.rasterization.lineWidth = 1.0f;
-					break;
+				//case EPipelineDynamicState::LineWidth :
+				//	renderState.rasterization.lineWidth = 1.0f;
+				//	break;
 
-				case EPipelineDynamicState::DepthBias :
-					ASSERT( renderState.rasterization.depthBias );
-					renderState.rasterization.depthBiasConstFactor	= 0.0f;
-					renderState.rasterization.depthBiasClamp		= 0.0f;
-					renderState.rasterization.depthBiasSlopeFactor	= 0.0f;
-					break;
+				//case EPipelineDynamicState::DepthBias :
+				//	ASSERT( renderState.rasterization.depthBias );
+				//	renderState.rasterization.depthBiasConstFactor	= 0.0f;
+				//	renderState.rasterization.depthBiasClamp		= 0.0f;
+				//	renderState.rasterization.depthBiasSlopeFactor	= 0.0f;
+				//	break;
 
-				case EPipelineDynamicState::BlendConstants :
-					renderState.color.blendColor = RGBA32f{ 1.0f };
-					break;
+				//case EPipelineDynamicState::BlendConstants :
+				//	renderState.color.blendColor = RGBA32f{ 1.0f };
+				//	break;
 
-				case EPipelineDynamicState::DepthBounds :
-					ASSERT( renderState.depth.boundsEnabled );
-					renderState.depth.bounds = { 0.0f, 1.0f };
-					break;
+				//case EPipelineDynamicState::DepthBounds :
+				//	ASSERT( renderState.depth.boundsEnabled );
+				//	renderState.depth.bounds = { 0.0f, 1.0f };
+				//	break;
 
 				case EPipelineDynamicState::StencilCompareMask :
 					ASSERT( renderState.stencil.enabled ); 

@@ -361,12 +361,15 @@ namespace FG
 					barrier.dstAccessMask		= pending.access;
 					barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 					barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-
+			
 					barrier.subresourceRange.aspectMask		= AspectMask();
 					barrier.subresourceRange.baseMipLevel	= (range.begin / ArrayLayers());
-					barrier.subresourceRange.levelCount		= ((range.end - range.begin) / ArrayLayers());
+					barrier.subresourceRange.levelCount		= Max( 1u, (range.end - range.begin) / ArrayLayers() );
 					barrier.subresourceRange.baseArrayLayer	= (range.begin % ArrayLayers());
-					barrier.subresourceRange.layerCount		= ((range.end - range.begin) % ArrayLayers() + 1);
+					barrier.subresourceRange.layerCount		= Max( 1u, (range.end - range.begin) % ArrayLayers() );
+
+					ASSERT( barrier.subresourceRange.levelCount > 0 );
+					ASSERT( barrier.subresourceRange.layerCount > 0 );
 
 					dst_stages |= pending.stages;
 					barrierMngr.AddImageBarrier( iter->stages, pending.stages, 0, barrier );

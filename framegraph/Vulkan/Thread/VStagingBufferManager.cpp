@@ -275,10 +275,11 @@ namespace FG
 												 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		// skip blocks less than 1/N of data size
-		const BytesU	min_size = (ArraySizeOf(srcData) + MaxBufferParts-1) / MaxBufferParts;
-		void *			ptr		 = null;
+		const BytesU	src_size	= ArraySizeOf(srcData);
+		const BytesU	min_size	= Min( (src_size + MaxBufferParts-1) / MaxBufferParts, Min( src_size, MinBufferPart ));
+		void *			ptr			= null;
 
-		if ( _GetWritable( ArraySizeOf(srcData), 1_b, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		if ( _GetWritable( src_size, 1_b, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
 		{
 			MemCopy( ptr, size, srcData.data() + srcOffset, size );
 			return true;
@@ -291,11 +292,11 @@ namespace FG
 	StoreBufferData
 =================================================
 */
-	bool VStagingBufferManager::StoreBufferData (const void *dataPtr, BytesU dataSize,
+	bool VStagingBufferManager::StoreBufferData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign,
 												 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		void *	ptr = null;
-		if ( _GetWritable( dataSize, 1_b, 16_b, dataSize, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		if ( _GetWritable( dataSize, 1_b, offsetAlign, dataSize, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
 		{
 			MemCopy( ptr, size, dataPtr, size );
 			return true;
@@ -323,10 +324,11 @@ namespace FG
 												OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		// skip blocks less than 1/N of total data size
-		const BytesU	min_size = Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
-		void *			ptr		 = null;
+		const BytesU	src_size	= ArraySizeOf(srcData);
+		const BytesU	min_size	= Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
+		void *			ptr			= null;
 
-		if ( _GetWritable( ArraySizeOf(srcData), srcPitch, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		if ( _GetWritable( src_size, srcPitch, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
 		{
 			MemCopy( ptr, size, srcData.data() + srcOffset, size );
 			return true;

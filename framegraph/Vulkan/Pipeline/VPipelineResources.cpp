@@ -326,7 +326,8 @@ namespace FG
 */
 	bool VPipelineResources::_AddResource (VResourceManagerThread &, const std::monostate &, INOUT UpdateDescriptors &)
 	{
-		RETURN_ERR( "uninitialized uniform!" );
+		//RETURN_ERR( "uninitialized uniform!" );
+		return true;
 	}
 
 

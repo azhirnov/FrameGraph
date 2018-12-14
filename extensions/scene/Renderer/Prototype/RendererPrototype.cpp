@@ -99,8 +99,8 @@ namespace {
 			queue.Submit();
 
 			// present on viewport
-			if ( cam.viewport )
-				cam.viewport->AfterRender();
+			//if ( cam.viewport )
+			//	cam.viewport->AfterRender();	// TODO
 
 			CHECK_ERR( _frameGraph->Compile() );
 		}

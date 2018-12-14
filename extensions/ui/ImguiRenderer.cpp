@@ -258,7 +258,7 @@ namespace FG
 		pc_data[2] = -1.0f - draw_data.DisplayPos.x * pc_data[0];
 		pc_data[3] = -1.0f - draw_data.DisplayPos.y * pc_data[1];
 
-		return fg->AddTask( UpdateBuffer{}.SetBuffer( _uniformBuffer ).SetData( &pc_data, 1 ));
+		return fg->AddTask( UpdateBuffer{}.SetBuffer( _uniformBuffer ).AddData( &pc_data, 1 ));
 	}
 
 /*
@@ -299,8 +299,8 @@ namespace FG
 		{
 			const ImDrawList &	cmd_list = *draw_data.CmdLists[i];
 			
-			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _vertexBuffer, vb_offset ).SetData( cmd_list.VtxBuffer.Data, cmd_list.VtxBuffer.Size ).DependsOn( last_task ));
-			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _indexBuffer, ib_offset ).SetData( cmd_list.IdxBuffer.Data, cmd_list.IdxBuffer.Size ).DependsOn( last_task ));
+			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _vertexBuffer ).AddData( cmd_list.VtxBuffer.Data, cmd_list.VtxBuffer.Size, vb_offset ).DependsOn( last_task ));
+			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _indexBuffer ).AddData( cmd_list.IdxBuffer.Data, cmd_list.IdxBuffer.Size, ib_offset ).DependsOn( last_task ));
 
 			vb_offset += cmd_list.VtxBuffer.Size * SizeOf<ImDrawVert>;
 			ib_offset += cmd_list.IdxBuffer.Size * SizeOf<ImDrawIdx>;

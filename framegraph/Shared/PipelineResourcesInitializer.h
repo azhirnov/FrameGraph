@@ -20,6 +20,8 @@ namespace FG
 
 			res._layoutId	= layoutId;
 			res._uniforms	= uniforms;
+
+			res._resources.clear();
 			res._resources.resize( count );
 			
 			for (auto& un : *res._uniforms)

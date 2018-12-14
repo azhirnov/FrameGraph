@@ -20,6 +20,7 @@ namespace FG
 		EQueueFamily		familyIndex		= Default;
 		VkQueueFlags		familyFlags		= {};
 		float				priority		= 0.0f;
+		uint3				minImageTransferGranularity;
 		DebugName_t			debugName;
 		
 	// methods
@@ -27,7 +28,8 @@ namespace FG
 
 		VDeviceQueueInfo (VDeviceQueueInfo &&other) :
 			handle{other.handle}, familyIndex{other.familyIndex}, familyFlags{other.familyFlags},
-			priority{other.priority}, debugName{std::move(other.debugName)}
+			priority{other.priority}, minImageTransferGranularity{other.minImageTransferGranularity},
+			debugName{std::move(other.debugName)}
 		{}
 	};
 

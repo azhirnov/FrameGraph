@@ -35,7 +35,7 @@ void main ()
 			 /*origin*/origin, /*Tmin*/0.0f, /*direction*/direction, /*Tmax*/10.0f,
 			 /*payload*/0 );
 
-	imageStore( un_Output, ivec2(gl_LaunchIDNV), payload * 0.00001 + vec4(1.0, 0.0, 0.0, 1.0) );
+	imageStore( un_Output, ivec2(gl_LaunchIDNV), payload );
 }
 )#");
 		
@@ -116,12 +116,11 @@ void main ()
 				ASSERT( is_equal );
 				return is_equal;
 			};
-			SavePNG( "ray_tracing.png", imageData );
 
 			data_is_correct  = true;
-			data_is_correct &= TestPixel( 0.00f, -0.49f, RGBA32f{1.0f, 0.0f, 0.0f, 1.0f} );
+			data_is_correct &= TestPixel( 0.00f, -0.49f, RGBA32f{0.0f, 0.0f, 1.0f, 1.0f} );
 			data_is_correct &= TestPixel( 0.49f,  0.49f, RGBA32f{0.0f, 1.0f, 0.0f, 1.0f} );
-			data_is_correct &= TestPixel(-0.49f,  0.49f, RGBA32f{0.0f, 0.0f, 1.0f, 1.0f} );
+			data_is_correct &= TestPixel(-0.49f,  0.49f, RGBA32f{1.0f, 0.0f, 0.0f, 1.0f} );
 			
 			data_is_correct &= TestPixel( 0.00f, -0.51f, RGBA32f{0.0f} );
 			data_is_correct &= TestPixel( 0.51f,  0.51f, RGBA32f{0.0f} );

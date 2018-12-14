@@ -233,7 +233,7 @@ namespace FG
 
 		template <typename T>
 		bool _AllocStorage (size_t count, OUT const VLocalBuffer* &buf, OUT VkDeviceSize &offset, OUT T* &ptr);
-		bool _StoreData (const void *dataPtr, BytesU dataSize, OUT const VLocalBuffer* &buf, OUT VkDeviceSize &offset);
+		bool _StoreData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign, OUT const VLocalBuffer* &buf, OUT VkDeviceSize &offset);
 
 		ND_ EState	_GetState () const				{ return _state.load( memory_order_acquire ); }
 			void	_SetState (EState newState);

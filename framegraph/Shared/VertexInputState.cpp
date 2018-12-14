@@ -46,26 +46,27 @@ namespace FG
 	{
 		const EVertexType	scalar_type	= (type & EVertexType::_TypeMask);
 		const EVertexType	vec_size	= (type & EVertexType::_VecMask);
-		const bool			norm		= EnumEq( type, EVertexType::NormalizedFlag );
-		const EVertexType	norm_type	= (EVertexType::_Float | vec_size);
+		const bool			is_float	= EnumEq( type, EVertexType::NormalizedFlag ) or
+										  EnumEq( type, EVertexType::ScaledFlag );
+		const EVertexType	float_type	= (EVertexType::_Float | vec_size);
 
 		switch ( scalar_type )
 		{
 			case EVertexType::_Byte :
 			case EVertexType::_Short :
 			case EVertexType::_Int :
-				return norm ? norm_type : (EVertexType::_Int | vec_size);
+				return is_float ? float_type : (EVertexType::_Int | vec_size);
 
 			case EVertexType::_UByte :
 			case EVertexType::_UShort :
 			case EVertexType::_UInt :
-				return norm ? norm_type : (EVertexType::_UInt | vec_size);
+				return is_float ? float_type : (EVertexType::_UInt | vec_size);
 
 			case EVertexType::_Long :
-				return norm ? norm_type : (EVertexType::_Long | vec_size);
+				return is_float ? float_type : (EVertexType::_Long | vec_size);
 
 			case EVertexType::_ULong :
-				return norm ? norm_type : (EVertexType::_ULong | vec_size);
+				return is_float ? float_type : (EVertexType::_ULong | vec_size);
 
 			case EVertexType::_Half :
 			case EVertexType::_Float :
@@ -75,7 +76,7 @@ namespace FG
 				return (EVertexType::_Double | vec_size);
 		}
 
-		RETURN_ERR( "invalid vertex type", norm_type );
+		RETURN_ERR( "invalid vertex type", float_type );
 	}
 			
 /*

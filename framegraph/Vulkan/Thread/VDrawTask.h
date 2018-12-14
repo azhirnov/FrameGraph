@@ -64,28 +64,27 @@ namespace FG
 
 	// variables
 	private:
-		VPipelineResourceSet				_resources;
+		VPipelineResourceSet					_resources;
 
-		VertexBuffers_t						_vertexBuffers;
-		VertexOffsets_t						_vbOffsets;
-		VertexStrides_t						_vbStrides;
-		const uint							_vbCount;
+		VertexBuffers_t							_vertexBuffers;
+		VertexOffsets_t							_vbOffsets;
+		VertexStrides_t							_vbStrides;
+		const uint								_vbCount;
 
 	public:
-		VGraphicsPipeline const* const		pipeline;
-		const _fg_hidden_::PushConstants_t	pushConstants;
+		VGraphicsPipeline const* const			pipeline;
+		const _fg_hidden_::PushConstants_t		pushConstants;
 
-		const VertexInputState				vertexInput;
+		const VertexInputState					vertexInput;
 
-		const _fg_hidden_::Scissors_t		scissors;
-		const _fg_hidden_::ColorBuffers_t	colorBuffers;
-		const _fg_hidden_::StencilState		stencilState;
+		const _fg_hidden_::Scissors_t			scissors;
+		const _fg_hidden_::ColorBuffers_t		colorBuffers;
+		const _fg_hidden_::DepthStencilState	depthStencilState;
 		
-		const EPipelineDynamicState			dynamicStates;
-		const EPrimitive					topology;
-		const bool							primitiveRestart;
+		const EPrimitive						topology;
+		const bool								primitiveRestart;
 
-		mutable VkDescriptorSets_t			descriptorSets;
+		mutable VkDescriptorSets_t				descriptorSets;
 		
 
 	// methods
@@ -184,19 +183,17 @@ namespace FG
 	{
 	// variables
 	private:
-		VPipelineResourceSet				_resources;
+		VPipelineResourceSet					_resources;
 
 	public:
-		VMeshPipeline const* const			pipeline;
-		const _fg_hidden_::PushConstants_t	pushConstants;
+		VMeshPipeline const* const				pipeline;
+		const _fg_hidden_::PushConstants_t		pushConstants;
 
-		const _fg_hidden_::Scissors_t		scissors;
-		const _fg_hidden_::ColorBuffers_t	colorBuffers;
-		const _fg_hidden_::StencilState		stencilState;
-		
-		const EPipelineDynamicState			dynamicStates;
+		const _fg_hidden_::Scissors_t			scissors;
+		const _fg_hidden_::ColorBuffers_t		colorBuffers;
+		const _fg_hidden_::DepthStencilState	depthStencilState;
 
-		mutable VkDescriptorSets_t			descriptorSets;
+		mutable VkDescriptorSets_t				descriptorSets;
 
 
 	// methods

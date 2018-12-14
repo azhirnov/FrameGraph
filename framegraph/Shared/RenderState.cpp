@@ -12,11 +12,12 @@ namespace FG
 */
 	bool  RenderState::ColorBuffer::operator == (const ColorBuffer &rhs) const
 	{
-		return	srcBlendFactor	== rhs.srcBlendFactor	and
-				dstBlendFactor	== rhs.dstBlendFactor	and
-				blendOp			== rhs.blendOp		and
-				All( colorMask	== rhs.colorMask )		and
-				blend			== rhs.blend;
+		return	blend == rhs.blend	and
+				(blend ?
+					(srcBlendFactor	== rhs.srcBlendFactor	and
+					 dstBlendFactor	== rhs.dstBlendFactor	and
+					 blendOp		== rhs.blendOp			and
+					 All( colorMask	== rhs.colorMask )) : true);
 	}
 
 /*
@@ -54,9 +55,10 @@ namespace FG
 */
 	bool  RenderState::StencilBufferState::operator == (const StencilBufferState &rhs) const
 	{
-		return	front	== rhs.front	and
-				back	== rhs.back		and
-				enabled	== rhs.enabled;
+		return	enabled		== rhs.enabled	and
+				(enabled ? 
+					(front	== rhs.front	and
+					 back	== rhs.back)	: true);
 	}
 	
 /*
@@ -66,11 +68,11 @@ namespace FG
 */
 	bool  RenderState::DepthBufferState::operator == (const DepthBufferState &rhs) const
 	{
-		return	compareOp			== rhs.compareOp		and
-				boundsEnabled		== rhs.boundsEnabled	and
-				All( bounds			== rhs.bounds )			and
-				write				== rhs.write			and
-				test				== rhs.test;
+		return	compareOp		== rhs.compareOp		and
+				boundsEnabled	== rhs.boundsEnabled	and
+				(boundsEnabled ? All(Equals( bounds, rhs.bounds )) : true)	and
+				write			== rhs.write			and
+				test			== rhs.test;
 	}
 	
 /*

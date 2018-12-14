@@ -72,6 +72,11 @@ namespace FG
 			right	= Max( right,  other.right  );
 			bottom	= Max( bottom, other.bottom );
 		}
+
+		ND_ bool4  operator == (const Self &rhs) const
+		{
+			return { left == rhs.left, top == rhs.top, right == rhs.right, bottom == rhs.bottom };
+		}
 	};
 
 

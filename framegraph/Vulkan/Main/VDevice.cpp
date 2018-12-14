@@ -18,14 +18,23 @@ namespace FG
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
 
+		StaticArray<VkQueueFamilyProperties, 16>	queue_properties;
+		uint										count = uint(queue_properties.size());
+		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, INOUT &count, OUT queue_properties.data() );
+
 		for (auto& src : vdi.queues)
 		{
+			auto&	props = queue_properties[src.familyIndex];
+
 			VDeviceQueueInfo	dst = {};
 			dst.handle		= BitCast<VkQueue>( src.id );
 			dst.familyFlags	= BitCast<VkQueueFlags>( src.familyFlags );
 			dst.familyIndex	= EQueueFamily(src.familyIndex);
 			dst.priority	= src.priority;
 			dst.debugName	= src.debugName;
+			dst.minImageTransferGranularity	= { props.minImageTransferGranularity.width,
+												props.minImageTransferGranularity.height,
+												props.minImageTransferGranularity.depth };
 
 			_vkQueues.push_back( std::move(dst) );
 		}

@@ -35,8 +35,8 @@ namespace _fg_hidden_
 	
 	struct VertexBuffer
 	{
-		RawBufferID		buffer;
-		BytesU			offset;
+		RawBufferID			buffer;
+		BytesU				offset;
 	};
 
 
@@ -49,11 +49,12 @@ namespace _fg_hidden_
 	using PushConstants_t	= FixedArray< PushConstantData, 4 >;
 	
 
-	struct StencilState
+	struct DepthStencilState
 	{
 		using Value_t = uint8_t;
 
-		Vec<Value_t, 2>		reference, writeMask, compareMask;
+		Optional<Vec<Value_t, 2>>	reference, writeMask, compareMask;
+		Optional<bool>				depthWrite, depthTest, stencilTest;
 	};
 	
 	using ColorBuffers_t	= FixedMap< RenderTargetID, RenderState::ColorBuffer, 4 >;
@@ -67,17 +68,15 @@ namespace _fg_hidden_
 	struct BaseDrawCall : BaseDrawTask<TaskType>
 	{
 	// types
-		using StencilValue_t	= StencilState::Value_t;
+		using StencilValue_t	= DepthStencilState::Value_t;
 
 
 	// variables
 		PipelineResourceSet		resources;
 		PushConstants_t			pushConstants;
-		
-		EPipelineDynamicState	dynamicStates	= EPipelineDynamicState::Viewport;
 		Scissors_t				scissors;
 		ColorBuffers_t			colorBuffers;
-		StencilState			stencilState;
+		DepthStencilState		depthStencilState;
 			
 
 	// methods
@@ -103,6 +102,10 @@ namespace _fg_hidden_
 
 		TaskType&  SetStencilWriteMask (uint front, uint back);
 		TaskType&  SetStencilWriteMask (uint value)					{ return SetStencilWriteMask( value, value ); }
+		
+		TaskType&  SetDepthTestEnabled (bool value);
+		TaskType&  SetDepthWriteEnabled (bool value);
+		TaskType&  SetStencilTestEnabled (bool value);
 
 		template <typename ValueType>
 		TaskType&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
@@ -284,7 +287,8 @@ namespace _fg_hidden_
 	struct DrawIndexedIndirect final : _fg_hidden_::BaseDrawVertices<DrawIndexedIndirect>
 	{
 	// types
-		using DrawCommands_t = DrawVerticesIndirect::DrawCommands_t;
+		using DrawCmd			= DrawVerticesIndirect::DrawCmd;
+		using DrawCommands_t	= DrawVerticesIndirect::DrawCommands_t;
 		
 		struct DrawIndexedIndirectCommand
 		{
@@ -442,7 +446,6 @@ namespace _fg_hidden_
 	{
 		ASSERT( rect.IsValid() );
 		scissors.push_back( rect );
-		dynamicStates |= EPipelineDynamicState::Scissor;
 		return static_cast<TaskType &>( *this );
 	}
 	
@@ -451,7 +454,6 @@ namespace _fg_hidden_
 	{
 		ASSERT( rect.IsValid() );
 		scissors.push_back( RectI{rect} );
-		dynamicStates |= EPipelineDynamicState::Scissor;
 		return static_cast<TaskType &>( *this );
 	}
 	
@@ -492,29 +494,44 @@ namespace _fg_hidden_
 	}
 	
 	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetDepthTestEnabled (bool value)
+	{
+		depthStencilState.depthTest = value;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetDepthWriteEnabled (bool value)
+	{
+		depthStencilState.depthWrite = value;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilTestEnabled (bool value)
+	{
+		depthStencilState.stencilTest = value;
+		return static_cast<TaskType &>( *this );
+	}
+
+	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::SetStencilRef (uint front, uint back)
 	{
-		stencilState.reference.x = StencilValue_t(front);
-		stencilState.reference.y = StencilValue_t(back);
-		dynamicStates |= EPipelineDynamicState::StencilReference;
+		depthStencilState.reference = { StencilValue_t(front), StencilValue_t(back) };
 		return static_cast<TaskType &>( *this );
 	}
 	
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::SetStencilCompareMask (uint front, uint back)
 	{
-		stencilState.compareMask.x = StencilValue_t(front);
-		stencilState.compareMask.y = StencilValue_t(back);
-		dynamicStates |= EPipelineDynamicState::StencilCompareMask;
+		depthStencilState.compareMask = { StencilValue_t(front), StencilValue_t(back) };
 		return static_cast<TaskType &>( *this );
 	}
 	
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::SetStencilWriteMask (uint front, uint back)
 	{
-		stencilState.writeMask.x = StencilValue_t(front);
-		stencilState.writeMask.y = StencilValue_t(back);
-		dynamicStates |= EPipelineDynamicState::StencilWriteMask;
+		depthStencilState.writeMask = { StencilValue_t(front), StencilValue_t(back) };
 		return static_cast<TaskType &>( *this );
 	}
 	

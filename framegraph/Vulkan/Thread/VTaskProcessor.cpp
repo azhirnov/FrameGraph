@@ -287,6 +287,53 @@ namespace FG
 	
 /*
 =================================================
+	Visit (DrawVerticesIndirect)
+=================================================
+*/
+	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawVerticesIndirect> &task)
+	{
+		// update descriptor sets and add pipeline barriers
+		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+
+		// add vertex buffers
+		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
+		{
+			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
+		}
+		
+		_MergePipeline( task.pipeline );
+	}
+	
+/*
+=================================================
+	Visit (DrawIndexedIndirect)
+=================================================
+*/
+	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawIndexedIndirect> &task)
+	{
+		// update descriptor sets and add pipeline barriers
+		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+		
+		// add vertex buffers
+		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
+		{
+			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
+		}
+		
+		// add index buffer
+		_tp._AddBuffer( task.indexBuffer, EResourceState::IndexBuffer, VkDeviceSize(task.indexBufferOffset), VK_WHOLE_SIZE );
+
+		// add indirect buffer
+		for (auto& cmd : task.commands)
+		{
+			_tp._AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset), VkDeviceSize(cmd.stride) * cmd.drawCount );
+		}
+		
+		_MergePipeline( task.pipeline );
+	}
+	
+/*
+=================================================
 	Visit (DrawMeshes)
 =================================================
 */
@@ -300,32 +347,21 @@ namespace FG
 	
 /*
 =================================================
-	Visit (DrawVerticesIndirect)
-=================================================
-*/
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawVerticesIndirect> &task)
-	{
-		ASSERT(false);
-	}
-	
-/*
-=================================================
-	Visit (DrawIndexedIndirect)
-=================================================
-*/
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawIndexedIndirect> &task)
-	{
-		ASSERT(false);
-	}
-	
-/*
-=================================================
 	Visit (DrawMeshesIndirect)
 =================================================
 */
 	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawMeshesIndirect> &task)
 	{
-		ASSERT(false);
+		// update descriptor sets and add pipeline barriers
+		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+		
+		// add indirect buffer
+		for (auto& cmd : task.commands)
+		{
+			_tp._AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset), VkDeviceSize(cmd.stride) * cmd.drawCount );
+		}
+
+		_MergePipeline( task.pipeline );
 	}
 
 /*
@@ -547,6 +583,64 @@ namespace FG
 								   cmd.firstIndex, cmd.vertexOffset, cmd.firstInstance );
 		}
 	}
+	
+/*
+=================================================
+	Visit (DrawVerticesIndirect)
+=================================================
+*/
+	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawVerticesIndirect> &task)
+	{
+		_tp._CmdDebugMarker( task.GetName() );
+
+		auto*	layout = _tp._GetResource( task.pipeline->GetLayoutID() );
+
+		_BindPipeline( *_currTask->GetLogicalPass(), task );
+		_BindPipelineResources( *layout, task.descriptorSets, task.GetResources().dynamicOffsets );
+		_tp._PushConstants( *layout, task.pushConstants );
+
+		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
+		_SetScissor( task.scissors );
+
+		for (auto& cmd : task.commands)
+		{
+			_dev.vkCmdDrawIndirect( _cmdBuffer,
+									task.indirectBuffer->Handle(),
+									VkDeviceSize(cmd.indirectBufferOffset),
+								    cmd.drawCount,
+								    uint(cmd.stride) );
+		}
+	}
+	
+/*
+=================================================
+	Visit (DrawIndexedIndirect)
+=================================================
+*/
+	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawIndexedIndirect> &task)
+	{
+		_tp._CmdDebugMarker( task.GetName() );
+		
+		auto*	layout = _tp._GetResource( task.pipeline->GetLayoutID() );
+
+		_BindPipeline( *_currTask->GetLogicalPass(), task );
+		_BindPipelineResources( *layout, task.descriptorSets, task.GetResources().dynamicOffsets );
+		_tp._PushConstants( *layout, task.pushConstants );
+
+		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
+		_SetScissor( task.scissors );
+
+		_tp._BindIndexBuffer( task.indexBuffer->Handle(), VkDeviceSize(task.indexBufferOffset), VEnumCast(task.indexType) );
+
+		for (auto& cmd : task.commands)
+		{
+			_dev.vkCmdDrawIndexedIndirect( _cmdBuffer,
+										   task.indirectBuffer->Handle(),
+										   VkDeviceSize(cmd.indirectBufferOffset),
+										   cmd.drawCount,
+										   uint(cmd.stride) );
+		}
+	}
 		
 /*
 =================================================
@@ -573,32 +667,29 @@ namespace FG
 	
 /*
 =================================================
-	Visit (DrawVerticesIndirect)
-=================================================
-*/
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawVerticesIndirect> &task)
-	{
-		ASSERT(false);
-	}
-	
-/*
-=================================================
-	Visit (DrawIndexedIndirect)
-=================================================
-*/
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawIndexedIndirect> &task)
-	{
-		ASSERT(false);
-	}
-	
-/*
-=================================================
 	Visit (DrawMeshesIndirect)
 =================================================
 */
 	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawMeshesIndirect> &task)
 	{
-		ASSERT(false);
+		_tp._CmdDebugMarker( task.GetName() );
+		
+		auto*	layout = _tp._GetResource( task.pipeline->GetLayoutID() );
+
+		_BindPipeline( *_currTask->GetLogicalPass(), task );
+		_BindPipelineResources( *layout, task.descriptorSets, task.GetResources().dynamicOffsets );
+		_tp._PushConstants( *layout, task.pushConstants );
+		
+		_SetScissor( task.scissors );
+
+		for (auto& cmd : task.commands)
+		{
+			_dev.vkCmdDrawMeshTasksIndirectNV( _cmdBuffer,
+											   task.indirectBuffer->Handle(),
+											   VkDeviceSize(cmd.indirectBufferOffset),
+											   cmd.drawCount,
+											   uint(cmd.stride) );
+		}
 	}
 //-----------------------------------------------------------------------------
 
@@ -823,7 +914,9 @@ namespace FG
 */
 	void VTaskProcessor::_ExtractClearValues (const VLogicalRenderPass &logicalRP, const VRenderPass *rp, OUT VkClearValues_t &clearValues) const
 	{
-		clearValues.resize( logicalRP.GetColorTargets().size() + uint(logicalRP.GetDepthStencilTarget().IsDefined()) );
+		const uint	col_offset = uint(logicalRP.GetDepthStencilTarget().IsDefined());
+
+		clearValues.resize( logicalRP.GetColorTargets().size() + col_offset );
 
 		if ( logicalRP.GetDepthStencilTarget().IsDefined() )
 		{
@@ -835,7 +928,7 @@ namespace FG
 			uint	index;
 			CHECK( rp->GetColorAttachmentIndex( ct.first, OUT index ));
 
-			clearValues[index] = ct.second.clearValue;
+			clearValues[index + col_offset] = ct.second.clearValue;
 		}
 	}
 
@@ -1482,15 +1575,14 @@ namespace FG
 		
 		VLocalBuffer const *	dst_buffer = task.dstBuffer;
 
-		_AddBuffer( dst_buffer, EResourceState::TransferDst, task.dstOffset, task.DataSize() );
-		
+		for (auto& reg : task.Regions()) {
+			_AddBuffer( dst_buffer, EResourceState::TransferDst, reg.bufferOffset, reg.dataSize );
+		}	
 		_CommitBarriers();
 		
-		_dev.vkCmdUpdateBuffer( _cmdBuffer,
-								dst_buffer->Handle(),
-								task.dstOffset,
-								task.DataSize(),
-								task.DataPtr() );
+		for (auto& reg : task.Regions()) {
+			_dev.vkCmdUpdateBuffer( _cmdBuffer, dst_buffer->Handle(), reg.bufferOffset, reg.dataSize, reg.dataPtr );
+		}
 	}
 
 /*

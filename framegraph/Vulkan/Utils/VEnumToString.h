@@ -51,6 +51,7 @@ namespace FG
 				case VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV:	result << "AccelerationStructureBuild";	break;
 				case VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV :					result << "TaskShader";					break;
 				case VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV :					result << "MeshShader";					break;
+				case VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT :	result << "FragmentDensityProcess";		break;
 				case VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM :
 				default :													RETURN_ERR( "unknown pipeline stage!" );
 			}
@@ -135,6 +136,7 @@ namespace FG
 				case VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV :				result << "ShadingRateImageRead";				break;
 				case VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV :			result << "AccelerationStructureRead";			break;
 				case VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV :		result << "AccelerationStructureWrite";			break;
+				case VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT :			result << "FragmentDensityRead";				break;
 				case VK_ACCESS_FLAG_BITS_MAX_ENUM :
 				default :													RETURN_ERR( "unknown access flags!" );
 			}
@@ -167,6 +169,7 @@ namespace FG
 			case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR :								return "PresentSrc";
 			case VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR :							return "SharedPresent";
 			case VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV :						return "ShadingRateOptimal";
+			case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT :				return "FragmentDensityMapOptimal";
 			case VK_IMAGE_LAYOUT_RANGE_SIZE :
 			case VK_IMAGE_LAYOUT_MAX_ENUM :										break;
 		}

@@ -109,7 +109,7 @@ void main ()
 		resources.BindBuffer( UniformID("UB"),  buffer, base_off + buf_off,  src_size );
 		resources.BindBuffer( UniformID("SSB"), buffer, buf_off + src_size,  dst_size );
 
-		Task	t_write		= frame_graph->AddTask( UpdateBuffer{}.SetBuffer( buffer, base_off + buf_off ).SetData( src_data, CountOf(src_data) ));
+		Task	t_write		= frame_graph->AddTask( UpdateBuffer{}.SetBuffer( buffer ).AddData( src_data, CountOf(src_data), base_off + buf_off ));
 		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetGroupCount( 1 ).DependsOn( t_write ));
 		Task	t_read		= frame_graph->AddTask( ReadBuffer{}.SetBuffer( buffer, base_off + buf_off + src_size, dst_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
 

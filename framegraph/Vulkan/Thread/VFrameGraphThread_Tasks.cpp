@@ -358,23 +358,26 @@ namespace {
 		copy.dstBuffer	= task.dstBuffer;
 
 		// copy to staging buffer
-		for (BytesU readn; readn < ArraySizeOf(task.data);)
+		for (auto& reg : task.regions)
 		{
-			RawBufferID		src_buffer;
-			BytesU			off, size;
-			CHECK_ERR( _stagingMngr->StoreBufferData( task.data, readn, OUT src_buffer, OUT off, OUT size ));
-			
-			if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
+			for (BytesU readn; readn < ArraySizeOf(reg.data);)
 			{
-				Task	last_task = AddTask( copy );
-				copy.depends.clear();
-				copy.depends.push_back( last_task );
+				RawBufferID		src_buffer;
+				BytesU			off, size;
+				CHECK_ERR( _stagingMngr->StoreBufferData( reg.data, readn, OUT src_buffer, OUT off, OUT size ));
+			
+				if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
+				{
+					Task	last_task = AddTask( copy );
+					copy.depends.clear();
+					copy.depends.push_back( last_task );
+				}
+
+				copy.AddRegion( off, reg.offset + readn, size );
+
+				readn		  += size;
+				copy.srcBuffer = src_buffer;
 			}
-
-			copy.AddRegion( off, task.offset + readn, size );
-
-			readn		  += size;
-			copy.srcBuffer = src_buffer;
 		}
 
 		return AddTask( copy );
@@ -412,17 +415,19 @@ namespace {
 		ASSERT(Any( task.imageSize > uint3(0) ));
 
 		const uint3		image_size		= Max( task.imageSize, 1u );
+		const auto&		fmt_info		= EPixelFormat_GetInfo( img_desc.format );
+		const auto&		block_size		= fmt_info.blockSize;
 		const uint		bpp				= EPixelFormat_BitPerPixel( img_desc.format, task.aspectMask );
-		const BytesU	row_pitch		= Max( task.dataRowPitch, (image_size.x * BytesU(bpp)) / 8 );
+		const BytesU	row_pitch		= Max( task.dataRowPitch, BytesU(image_size.x * bpp) / 8 );
 		const BytesU	slice_pitch		= Max( task.dataSlicePitch, (image_size.y * row_pitch) );
 
 		ASSERT( ArraySizeOf(task.data) == slice_pitch * image_size.z );
-		
 
 		const BytesU		min_size	= 16_Mb;		// TODO
 		const uint			row_length	= uint((row_pitch * 8) / bpp);
-		const uint			img_height	= uint(slice_pitch / row_pitch); //task.dstImage->Height();
+		const uint			img_height	= uint(slice_pitch / row_pitch);
 		const BytesU		total_size	= ArraySizeOf(task.data);
+		VDeviceQueueInfoPtr	queue		= _queues.front().ptr;
 		CopyBufferToImage	copy;
 
 		ASSERT( (row_pitch * 8) % bpp == 0 );
@@ -453,6 +458,11 @@ namespace {
 				}
 
 				const uint	z_size = uint(size / slice_pitch);
+
+				ASSERT( task.imageOffset.x % block_size.x == 0 );
+				ASSERT( task.imageOffset.y % block_size.y == 0 );
+				ASSERT( image_size.x % block_size.x == 0 );
+				ASSERT( image_size.y % block_size.y == 0 );
 
 				copy.AddRegion( off, row_length, img_height,
 								ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
@@ -767,13 +777,13 @@ namespace {
 	_StoreData
 =================================================
 */
-	inline bool VFrameGraphThread::_StoreData (const void *dataPtr, BytesU dataSize, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset)
+	inline bool VFrameGraphThread::_StoreData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset)
 	{
 		CHECK_ERR( _stagingMngr );
 		
 		RawBufferID		buffer;
 		BytesU			buf_offset, buf_size;
-		CHECK_ERR( _stagingMngr->StoreBufferData( dataPtr, dataSize, OUT buffer, OUT buf_offset, OUT buf_size ));
+		CHECK_ERR( _stagingMngr->StoreBufferData( dataPtr, dataSize, offsetAlign, OUT buffer, OUT buf_offset, OUT buf_size ));
 		
 		outBuffer	= GetResourceManager()->GetState( buffer );
 		outOffset	= VkDeviceSize(buf_offset);
@@ -883,7 +893,7 @@ namespace {
 			if ( src.vertexData.size() )
 			{
 				VLocalBuffer const*	vb = null;
-				CHECK_ERR( _StoreData( src.vertexData.data(), ArraySizeOf(src.vertexData), OUT vb, OUT dst.geometry.triangles.vertexOffset ));
+				CHECK_ERR( _StoreData( src.vertexData.data(), ArraySizeOf(src.vertexData), BytesU{ref.vertexSize}, OUT vb, OUT dst.geometry.triangles.vertexOffset ));
 				dst.geometry.triangles.vertexData = vb->Handle();
 			}
 			else
@@ -910,7 +920,7 @@ namespace {
 			if ( src.indexData.size() )
 			{
 				VLocalBuffer const*	ib = null;
-				CHECK_ERR( _StoreData( src.indexData.data(), ArraySizeOf(src.indexData), OUT ib, OUT dst.geometry.triangles.indexOffset ));
+				CHECK_ERR( _StoreData( src.indexData.data(), ArraySizeOf(src.indexData), BytesU{ref.indexSize}, OUT ib, OUT dst.geometry.triangles.indexOffset ));
 				dst.geometry.triangles.indexData = ib->Handle();
 			}
 			else
@@ -931,7 +941,7 @@ namespace {
 			if ( src.transformData.has_value() )
 			{
 				VLocalBuffer const*	tb = null;
-				CHECK_ERR( _StoreData( &src.transformData.value(), BytesU::SizeOf(src.transformData.value()), OUT tb, OUT dst.geometry.triangles.transformOffset ));
+				CHECK_ERR( _StoreData( &src.transformData.value(), BytesU::SizeOf(src.transformData.value()), 16_b, OUT tb, OUT dst.geometry.triangles.transformOffset ));
 				dst.geometry.triangles.transformData = tb->Handle();
 			}
 		}
@@ -950,6 +960,7 @@ namespace {
 			ASSERT( src.aabbCount > 0 );
 			ASSERT( src.aabbCount <= ref.maxAabbCount );
 			ASSERT( src.flags == ref.flags );
+			ASSERT( src.aabbStride % 8 == 0 );
 
 			dst.flags						= VEnumCast( src.flags );
 			dst.geometry.aabbs.sType		= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
@@ -959,7 +970,7 @@ namespace {
 			if ( src.aabbData.size() )
 			{
 				VLocalBuffer const*	ab = null;
-				CHECK_ERR( _StoreData( src.aabbData.data(), ArraySizeOf(src.aabbData), OUT ab, OUT dst.geometry.aabbs.offset ));
+				CHECK_ERR( _StoreData( src.aabbData.data(), ArraySizeOf(src.aabbData), 8_b, OUT ab, OUT dst.geometry.aabbs.offset ));
 				dst.geometry.aabbs.aabbData = ab->Handle();
 			}
 			else

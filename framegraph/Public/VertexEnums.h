@@ -34,7 +34,8 @@ namespace FG
 		
 		// flags
 		_FlagsOffset	= 16,
-		NormalizedFlag	= 1 << _FlagsOffset,
+		NormalizedFlag	= 1 << _FlagsOffset,	// convert integer to normalized float value (-1..+1)
+		ScaledFlag		= 2 << _FlagsOffset,	// convert integer to float value (min..max)
 
 
 		// default types
@@ -48,6 +49,11 @@ namespace FG
 		Byte3_Norm		= Byte3 | NormalizedFlag,
 		Byte4_Norm		= Byte4 | NormalizedFlag,
 
+		Byte_Scaled		= Byte  | ScaledFlag,
+		Byte2_Scaled	= Byte2 | ScaledFlag,
+		Byte3_Scaled	= Byte3 | ScaledFlag,
+		Byte4_Scaled	= Byte4 | ScaledFlag,
+
 		UByte			= _UByte | _Vec1,
 		UByte2			= _UByte | _Vec2,
 		UByte3			= _UByte | _Vec3,
@@ -57,6 +63,11 @@ namespace FG
 		UByte2_Norm		= UByte2 | NormalizedFlag,
 		UByte3_Norm		= UByte3 | NormalizedFlag,
 		UByte4_Norm		= UByte4 | NormalizedFlag,
+
+		UByte_Scaled	= UByte  | ScaledFlag,
+		UByte2_Scaled	= UByte2 | ScaledFlag,
+		UByte3_Scaled	= UByte3 | ScaledFlag,
+		UByte4_Scaled	= UByte4 | ScaledFlag,
 			
 		Short			= _Short | _Vec1,
 		Short2			= _Short | _Vec2,
@@ -68,6 +79,11 @@ namespace FG
 		Short3_Norm		= Short3 | NormalizedFlag,
 		Short4_Norm		= Short4 | NormalizedFlag,
 			
+		Short_Scaled	= Short  | ScaledFlag,
+		Short2_Scaled	= Short2 | ScaledFlag,
+		Short3_Scaled	= Short3 | ScaledFlag,
+		Short4_Scaled	= Short4 | ScaledFlag,
+
 		UShort			= _UShort | _Vec1,
 		UShort2			= _UShort | _Vec2,
 		UShort3			= _UShort | _Vec3,
@@ -78,6 +94,11 @@ namespace FG
 		UShort3_Norm	= UShort3 | NormalizedFlag,
 		UShort4_Norm	= UShort4 | NormalizedFlag,
 			
+		UShort_Scaled	= UShort  | ScaledFlag,
+		UShort2_Scaled	= UShort2 | ScaledFlag,
+		UShort3_Scaled	= UShort3 | ScaledFlag,
+		UShort4_Scaled	= UShort4 | ScaledFlag,
+
 		Int				= _Int | _Vec1,
 		Int2			= _Int | _Vec2,
 		Int3			= _Int | _Vec3,

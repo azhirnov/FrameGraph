@@ -3,6 +3,7 @@
 #ifdef FG_ENABLE_ASSIMP
 
 #include "scene/Loader/Assimp/AssimpLoader.h"
+#include "framegraph/Shared/EnumUtils.h"
 
 #include "assimp/Importer.hpp"
 #include "assimp/PostProcess.h"

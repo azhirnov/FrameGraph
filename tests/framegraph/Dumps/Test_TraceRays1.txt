@@ -53,6 +53,17 @@ Thread {
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         UpdateRayTracingShaderTable (#4)
+					dstTask:         TraceRays (#5)
+					srcStageMask:    Transfer
+					dstStageMask:    RayTracing
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            48 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         UpdateRayTracingShaderTable (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
 					dstStageMask:    TopOfPipe
@@ -139,7 +150,7 @@ Thread {
 	Task {
 		name:    "BuildRayTracingScene (#3)"
 		input =  { BuildRayTracingGeometry (#2) }
-		output = { UpdateRayTracingShaderTable (#4), TraceRays (#5) }
+		output = { UpdateRayTracingShaderTable (#4) }
 		resource_usage = {
 			BufferUsage {
 				name:     ""
@@ -176,9 +187,15 @@ Thread {
 	}
 	Task {
 		name:    "TraceRays (#5)"
-		input =  { BuildRayTracingScene (#3), UpdateRayTracingShaderTable (#4) }
+		input =  { UpdateRayTracingShaderTable (#4) }
 		output = { ReadImage (#6) }
 		resource_usage = {
+			BufferUsage {
+				name:     ""
+				usage:    ShaderBindingTable-R
+				offset:   0 b
+				size:     4 Kb
+			}
 			ImageUsage {
 				name:           "OutputImage"
 				usage:          Storage-W, RTS
@@ -207,22 +224,6 @@ Thread {
 				usage:    Transfer-W
 				offset:   0 b
 				size:     1875 Kb
-			}
-		}
-		srcImage:    "OutputImage"
-		srcLayout:   TransferSrcOptimal
-		dstBuffer:   "StagingReadBuffer"
-		regions = {
-			Region {
-				bufferOffset:        0 b
-				bufferRowLength:     800
-				bufferImageHeight:   600
-				imageAspectMask:     Color
-				imageMipLevel:       0
-				imageBaseArrayLayer: 0
-				imageLayerCount:     1
-				imageOffset:         ( 0, 0, 0 )
-				imageSize:           ( 800, 600, 1 )
 			}
 		}
 	}

@@ -423,22 +423,26 @@ namespace FG
 	{
 	// types
 	private:
-		using Data_t	= std::vector< uint8_t, StdLinearAllocator<uint8_t> >;
+		struct Region
+		{
+			void *			dataPtr;
+			VkDeviceSize	dataSize;
+			VkDeviceSize	bufferOffset;
+		};
+
 
 	// variables
 	public:
 		VLocalBuffer const* const	dstBuffer;		// local in gpu only
-		const VkDeviceSize			dstOffset;
 	private:
-		Data_t						_data;
+		ArrayView<Region>			_regions;
 
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const UpdateBuffer &task, ProcessFunc_t process);
 
-		ND_ VkDeviceSize	DataSize ()		const	{ return VkDeviceSize(ArraySizeOf( _data )); }
-		ND_ void const*		DataPtr ()		const	{ return _data.data(); }
+		ND_ ArrayView<Region>	Regions ()	const	{ return _regions; }
 	};
 
 

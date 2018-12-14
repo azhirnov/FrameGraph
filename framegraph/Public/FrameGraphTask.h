@@ -118,7 +118,7 @@ namespace FG
 		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)						{ localGroupSize = {x, y, z};  return *this; }
 		
 		template <typename ValueType>
-		DispatchCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value){ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
+		DispatchCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value) { return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
 
 		DispatchCompute&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 		{
@@ -564,10 +564,18 @@ namespace FG
 	//
 	struct UpdateBuffer final : _fg_hidden_::BaseTask<UpdateBuffer>
 	{
+	// types
+		struct Region
+		{
+			BytesU				offset;
+			ArrayView<uint8_t>	data;
+		};
+		using Regions_t	= FixedArray< Region, FG_MaxCopyRegions >;
+
+
 	// variables
-		RawBufferID			dstBuffer;		// if buffer has gpu local memory, then staging buffer will be used
-		BytesU				offset;
-		ArrayView<uint8_t>	data;
+		RawBufferID		dstBuffer;		// if buffer has gpu local memory, then staging buffer will be used
+		Regions_t		regions;
 
 
 	// methods
@@ -575,41 +583,40 @@ namespace FG
 			BaseTask<UpdateBuffer>{ "UpdateBuffer", HtmlColor::BlueViolet } {}
 
 		UpdateBuffer (const BufferID &buf, BytesU off, ArrayView<uint8_t> data) :
-			UpdateBuffer() { SetBuffer( buf, off ).SetData( data ); }
+			UpdateBuffer() { SetBuffer( buf ).AddData( data, off ); }
 
-		UpdateBuffer&  SetBuffer (const BufferID &buf, BytesU off = 0_b)
+		UpdateBuffer&  SetBuffer (const BufferID &buf)
 		{
 			ASSERT( buf );
-			dstBuffer	= buf.Get();
-			offset		= off;
+			dstBuffer = buf.Get();
 			return *this;
 		}
 
 		template <typename T>
-		UpdateBuffer&  SetData (const Array<T> &value)
+		UpdateBuffer&  AddData (const Array<T> &value, BytesU bufferOffset = 0_b)
 		{
-			data = ArrayView{ Cast<uint8_t>(value.data()), value.size()*sizeof(T) };
+			regions.emplace_back( bufferOffset, ArrayView{ Cast<uint8_t>(value.data()), value.size()*sizeof(T) });
 			return *this;
 		}
 
 		template <typename T>
-		UpdateBuffer&  SetData (ArrayView<T> value)
+		UpdateBuffer&  AddData (ArrayView<T> value, BytesU bufferOffset = 0_b)
 		{
-			data = ArrayView{ Cast<uint8_t>(value.data()), value.size()*sizeof(T) };
+			regions.emplace_back( bufferOffset, ArrayView{ Cast<uint8_t>(value.data()), value.size()*sizeof(T) });
 			return *this;
 		}
 
 		template <typename T>
-		UpdateBuffer&  SetData (const T* ptr, size_t count)
+		UpdateBuffer&  AddData (const T* ptr, size_t count, BytesU bufferOffset = 0_b)
 		{
-			data = ArrayView{ Cast<uint8_t>(ptr), count*sizeof(T) };
+			regions.emplace_back( bufferOffset, ArrayView{ Cast<uint8_t>(ptr), count*sizeof(T) });
 			return *this;
 		}
 
 		template <typename T>
-		UpdateBuffer&  SetData (const void* ptr, BytesU size)
+		UpdateBuffer&  AddData (const void* ptr, BytesU size, BytesU bufferOffset = 0_b)
 		{
-			data = ArrayView{ Cast<uint8_t>(ptr), size_t(size) };
+			regions.emplace_back( bufferOffset, ArrayView{ Cast<uint8_t>(ptr), size_t(size) });
 			return *this;
 		}
 	};

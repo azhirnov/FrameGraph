@@ -18,6 +18,7 @@ namespace FG
 	private:
 		static constexpr uint	MaxBufferParts	= 3;
 		static constexpr uint	MaxImageParts	= 4;
+		static constexpr BytesU	MinBufferPart	= 4_Kb;
 
 		struct StagingBuffer
 		{
@@ -133,7 +134,7 @@ namespace FG
 		bool StoreBufferData (ArrayView<uint8_t> srcData, BytesU srcOffset,
 							  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
 
-		bool StoreBufferData (const void *dataPtr, BytesU dataSize,
+		bool StoreBufferData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign,
 							  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
 
 		bool GetWritableBuffer (BytesU srcDataSize, BytesU dstMinSize, OUT RawBufferID &dstBuffer,

@@ -130,6 +130,10 @@ namespace FG
 			case EVertexType::Byte2_Norm	: return VK_FORMAT_R8G8_SNORM;
 			case EVertexType::Byte3_Norm	: return VK_FORMAT_R8G8B8_SNORM;
 			case EVertexType::Byte4_Norm	: return VK_FORMAT_R8G8B8A8_SNORM;
+			case EVertexType::Byte_Scaled	: return VK_FORMAT_R8_SSCALED;
+			case EVertexType::Byte2_Scaled	: return VK_FORMAT_R8G8_SSCALED;
+			case EVertexType::Byte3_Scaled	: return VK_FORMAT_R8G8B8_SSCALED;
+			case EVertexType::Byte4_Scaled	: return VK_FORMAT_R8G8B8A8_SSCALED;
 			case EVertexType::UByte			: return VK_FORMAT_R8_UINT;
 			case EVertexType::UByte2		: return VK_FORMAT_R8G8_UINT;
 			case EVertexType::UByte3		: return VK_FORMAT_R8G8B8_UINT;
@@ -138,6 +142,10 @@ namespace FG
 			case EVertexType::UByte2_Norm	: return VK_FORMAT_R8G8_UNORM;
 			case EVertexType::UByte3_Norm	: return VK_FORMAT_R8G8B8_UNORM;
 			case EVertexType::UByte4_Norm	: return VK_FORMAT_R8G8B8A8_UNORM;
+			case EVertexType::UByte_Scaled	: return VK_FORMAT_R8_USCALED;
+			case EVertexType::UByte2_Scaled	: return VK_FORMAT_R8G8_USCALED;
+			case EVertexType::UByte3_Scaled	: return VK_FORMAT_R8G8B8_USCALED;
+			case EVertexType::UByte4_Scaled	: return VK_FORMAT_R8G8B8A8_USCALED;
 			case EVertexType::Short			: return VK_FORMAT_R16_SINT;
 			case EVertexType::Short2		: return VK_FORMAT_R16G16_SINT;
 			case EVertexType::Short3		: return VK_FORMAT_R16G16B16_SINT;
@@ -146,6 +154,10 @@ namespace FG
 			case EVertexType::Short2_Norm	: return VK_FORMAT_R16G16_SNORM;
 			case EVertexType::Short3_Norm	: return VK_FORMAT_R16G16B16_SNORM;
 			case EVertexType::Short4_Norm	: return VK_FORMAT_R16G16B16A16_SNORM;
+			case EVertexType::Short_Scaled	: return VK_FORMAT_R16_SSCALED;
+			case EVertexType::Short2_Scaled	: return VK_FORMAT_R16G16_SSCALED;
+			case EVertexType::Short3_Scaled	: return VK_FORMAT_R16G16B16_SSCALED;
+			case EVertexType::Short4_Scaled	: return VK_FORMAT_R16G16B16A16_SSCALED;
 			case EVertexType::UShort		: return VK_FORMAT_R16_UINT;
 			case EVertexType::UShort2		: return VK_FORMAT_R16G16_UINT;
 			case EVertexType::UShort3		: return VK_FORMAT_R16G16B16_UINT;
@@ -154,6 +166,10 @@ namespace FG
 			case EVertexType::UShort2_Norm	: return VK_FORMAT_R16G16_UNORM;
 			case EVertexType::UShort3_Norm	: return VK_FORMAT_R16G16B16_UNORM;
 			case EVertexType::UShort4_Norm	: return VK_FORMAT_R16G16B16A16_UNORM;
+			case EVertexType::UShort_Scaled	: return VK_FORMAT_R16_USCALED;
+			case EVertexType::UShort2_Scaled: return VK_FORMAT_R16G16_USCALED;
+			case EVertexType::UShort3_Scaled: return VK_FORMAT_R16G16B16_USCALED;
+			case EVertexType::UShort4_Scaled: return VK_FORMAT_R16G16B16A16_USCALED;
 			case EVertexType::Int			: return VK_FORMAT_R32_SINT;
 			case EVertexType::Int2			: return VK_FORMAT_R32G32_SINT;
 			case EVertexType::Int3			: return VK_FORMAT_R32G32B32_SINT;
@@ -288,10 +304,10 @@ namespace FG
 		{
 			case EPipelineDynamicState::Viewport :			return VK_DYNAMIC_STATE_VIEWPORT;
 			case EPipelineDynamicState::Scissor :			return VK_DYNAMIC_STATE_SCISSOR;
-			case EPipelineDynamicState::LineWidth :			return VK_DYNAMIC_STATE_LINE_WIDTH;
-			case EPipelineDynamicState::DepthBias :			return VK_DYNAMIC_STATE_DEPTH_BIAS;
-			case EPipelineDynamicState::BlendConstants :	return VK_DYNAMIC_STATE_BLEND_CONSTANTS;
-			case EPipelineDynamicState::DepthBounds :		return VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+			//case EPipelineDynamicState::LineWidth :		return VK_DYNAMIC_STATE_LINE_WIDTH;
+			//case EPipelineDynamicState::DepthBias :		return VK_DYNAMIC_STATE_DEPTH_BIAS;
+			//case EPipelineDynamicState::BlendConstants :	return VK_DYNAMIC_STATE_BLEND_CONSTANTS;
+			//case EPipelineDynamicState::DepthBounds :		return VK_DYNAMIC_STATE_DEPTH_BOUNDS;
 			case EPipelineDynamicState::StencilCompareMask:	return VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
 			case EPipelineDynamicState::StencilWriteMask :	return VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
 			case EPipelineDynamicState::StencilReference :	return VK_DYNAMIC_STATE_STENCIL_REFERENCE;
@@ -831,6 +847,7 @@ namespace FG
 			case EResourceState::_Access_ConditionalRendering :	return VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT;
 			case EResourceState::_Access_CommandProcess :		return VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX;
 			case EResourceState::_Access_ShadingRateImage :		return VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV;
+			case EResourceState::_Access_RayTracingShaderBingingBuffer:	return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
 			case EResourceState::_Access_BuildRayTracingAS :
 			case EResourceState::_Access_RTASBuildingBuffer :	return VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
 
@@ -1021,20 +1038,21 @@ namespace FG
 		_builder_( BC1_RGB8_A1_UNorm,	VK_FORMAT_BC1_RGBA_UNORM_BLOCK ) \
 		_builder_( BC2_RGBA8_UNorm,		VK_FORMAT_BC2_UNORM_BLOCK ) \
 		_builder_( BC3_RGBA8_UNorm,		VK_FORMAT_BC3_UNORM_BLOCK ) \
+		_builder_( BC3_sRGB,			VK_FORMAT_BC3_SRGB_BLOCK ) \
 		_builder_( BC4_RED8_SNorm,		VK_FORMAT_BC4_SNORM_BLOCK ) \
 		_builder_( BC4_RED8_UNorm,		VK_FORMAT_BC4_UNORM_BLOCK ) \
 		_builder_( BC5_RG8_SNorm,		VK_FORMAT_BC5_SNORM_BLOCK ) \
 		_builder_( BC5_RG8_UNorm,		VK_FORMAT_BC5_UNORM_BLOCK ) \
 		_builder_( BC7_RGBA8_UNorm,		VK_FORMAT_BC7_UNORM_BLOCK ) \
-		_builder_( BC7_SRGB8_A8_UNorm,	VK_FORMAT_BC7_SRGB_BLOCK ) \
+		_builder_( BC7_SRGB8_A8,		VK_FORMAT_BC7_SRGB_BLOCK ) \
 		_builder_( BC6H_RGB16F,			VK_FORMAT_BC6H_SFLOAT_BLOCK ) \
 		_builder_( BC6H_RGB16UF,		VK_FORMAT_BC6H_UFLOAT_BLOCK ) \
 		_builder_( ETC2_RGB8_UNorm,		VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK ) \
-		_builder_( ECT2_SRGB8_UNorm,	VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK ) \
+		_builder_( ECT2_SRGB8,			VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK ) \
 		_builder_( ETC2_RGB8_A1_UNorm,	VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK ) \
-		_builder_( ETC2_SRGB8_A1_UNorm,	VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK ) \
+		_builder_( ETC2_SRGB8_A1,		VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK ) \
 		_builder_( ETC2_RGBA8_UNorm,	VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK ) \
-		_builder_( ETC2_SRGB8_A8_UNorm,	VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK ) \
+		_builder_( ETC2_SRGB8_A8,		VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK ) \
 		_builder_( EAC_R11_SNorm,		VK_FORMAT_EAC_R11_SNORM_BLOCK ) \
 		_builder_( EAC_R11_UNorm,		VK_FORMAT_EAC_R11_UNORM_BLOCK ) \
 		_builder_( EAC_RG11_SNorm,		VK_FORMAT_EAC_R11G11_SNORM_BLOCK ) \

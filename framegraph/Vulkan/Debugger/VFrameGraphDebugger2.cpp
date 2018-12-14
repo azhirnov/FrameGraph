@@ -623,6 +623,7 @@ namespace {
 				case VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV :				result |= EAccessType::Read;	break;
 				case VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV :			result |= EAccessType::Read;	break;
 				case VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV :		result |= EAccessType::Write;	break;
+				case VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT :			result |= EAccessType::Read;	break;
 				case VK_ACCESS_FLAG_BITS_MAX_ENUM :
 				default :													ASSERT(false);  break;
 			}

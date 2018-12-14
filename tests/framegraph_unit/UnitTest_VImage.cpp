@@ -33,6 +33,21 @@ namespace FG
 }	// FG
 
 
+static void CheckLayers (const VImageUnitTest::Barrier &barrier, uint arrayLayers,
+						 uint baseMipLevel, uint levelCount, uint baseArrayLayer, uint layerCount)
+{
+	uint	base_mip_level		= (barrier.range.begin / arrayLayers);
+	uint	level_count			= Max( 1u, (barrier.range.end - barrier.range.begin) / arrayLayers );
+	uint	base_array_layer	= (barrier.range.begin % arrayLayers);
+	uint	layer_count			= Max( 1u, (barrier.range.end - barrier.range.begin) % arrayLayers );
+
+	TEST( base_mip_level == baseMipLevel );
+	TEST( level_count == levelCount );
+	TEST( base_array_layer == baseArrayLayer );
+	TEST( layer_count == layerCount );
+}
+
+
 static void VImage_Test1 ()
 {
 	VBarrierManager		barrier_mngr;
@@ -72,6 +87,8 @@ static void VImage_Test1 ()
 		TEST( barriers[0].isWritable == true );
 		TEST( barriers[0].layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
 		TEST( barriers[0].index == ExeOrderIndex(1) );
+
+		CheckLayers( barriers[0], img->ArrayLayers(), 0, 1, 0, img->ArrayLayers() );
 		
 		TEST( barriers[1].range.begin == 1 );
 		TEST( barriers[1].range.end == 7 );
@@ -81,6 +98,8 @@ static void VImage_Test1 ()
 		TEST( barriers[1].isWritable == false );
 		TEST( barriers[1].layout == VK_IMAGE_LAYOUT_UNDEFINED );
 		TEST( barriers[1].index == ExeOrderIndex::Initial );
+
+		CheckLayers( barriers[1], img->ArrayLayers(), 1, img->MipmapLevels()-1, 0, img->ArrayLayers() );
 	}
 	
 	local_image.ResetState( ExeOrderIndex::Final, barrier_mngr, null );
@@ -131,6 +150,8 @@ static void VImage_Test2 ()
 		TEST( barriers[0].layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
 		TEST( barriers[0].index == ExeOrderIndex(1) );
 		
+		CheckLayers( barriers[0], img->ArrayLayers(), 0, 1, 0, 2 );
+
 		TEST( barriers[1].range.begin == 2 );
 		TEST( barriers[1].range.end == 8 );
 		TEST( barriers[1].stages == VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
@@ -139,6 +160,11 @@ static void VImage_Test2 ()
 		TEST( barriers[1].isWritable == false );
 		TEST( barriers[1].layout == VK_IMAGE_LAYOUT_UNDEFINED );
 		TEST( barriers[1].index == ExeOrderIndex::Initial );
+
+		CheckLayers( barriers[1], img->ArrayLayers(), 0, 1, 2, img->ArrayLayers()-2 );
+		
+		CheckLayers( barriers[2], img->ArrayLayers(), 1, 1, 0, 2 );
+		CheckLayers( barriers[3], img->ArrayLayers(), 1, 1, 2, img->ArrayLayers()-2 );
 	}
 	
 	local_image.ResetState( ExeOrderIndex::Final, barrier_mngr, null );

@@ -132,12 +132,12 @@ namespace FG
 */
 	template <typename TaskType>
 	VBaseDrawVerticesTask::VBaseDrawVerticesTask (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		IDrawTask{ task, pass1, pass2 },		_vbCount{ uint(task.vertexBuffers.size()) },
+		IDrawTask{ task, pass1, pass2 },				_vbCount{ uint(task.vertexBuffers.size()) },
 		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
-		pushConstants{ task.pushConstants },	vertexInput{ task.vertexInput },
-		scissors{ task.scissors },				colorBuffers{ task.colorBuffers },
-		stencilState{ task.stencilState },		dynamicStates{ task.dynamicStates },
-		topology{ task.topology },				primitiveRestart{ task.primitiveRestart }
+		pushConstants{ task.pushConstants },			vertexInput{ task.vertexInput },
+		scissors{ task.scissors },						colorBuffers{ task.colorBuffers },
+		depthStencilState{ task.depthStencilState },	topology{ task.topology },
+		primitiveRestart{ task.primitiveRestart }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 		RemapVertexBuffers( fg, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
@@ -196,8 +196,7 @@ namespace FG
 	inline VBaseDrawMeshes::VBaseDrawMeshes (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		IDrawTask{ task, pass1, pass2 },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },	scissors{ task.scissors },
-		colorBuffers{ task.colorBuffers },		stencilState{ task.stencilState },
-		dynamicStates{ task.dynamicStates }
+		colorBuffers{ task.colorBuffers },		depthStencilState{ task.depthStencilState }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
@@ -412,10 +411,24 @@ namespace FG
 */
 	inline VFgTask<UpdateBuffer>::VFgTask (VFrameGraphThread *fg, const UpdateBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},
-		dstOffset{ VkDeviceSize(task.offset) },
-		_data{ task.data.begin(), task.data.end(), fg->GetAllocator() }
-	{}
+		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )}
+	{
+		size_t	cnt = task.regions.size();
+		Region*	dst = fg->GetAllocator().Alloc<Region>( cnt );
+
+		for (size_t i = 0; i < cnt; ++i)
+		{
+			auto&	src = task.regions[i];
+
+			dst[i].dataPtr		= fg->GetAllocator().Alloc( ArraySizeOf(src.data), AlignOf<uint8_t> );
+			dst[i].dataSize		= VkDeviceSize(ArraySizeOf(src.data));
+			dst[i].bufferOffset	= VkDeviceSize(src.offset);
+
+			memcpy( dst[i].dataPtr, src.data.data(), dst[i].dataSize );
+		}
+
+		_regions = ArrayView{ dst, cnt };
+	}
 //-----------------------------------------------------------------------------
 	
 

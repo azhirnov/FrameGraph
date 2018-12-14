@@ -129,31 +129,6 @@ namespace FG
 		}
 		RETURN_ERR( "unsupported memory type" );
 	}
-	
-/*
-=================================================
-	AllocateForScratchBuffer
-=================================================
-*/
-	bool VMemoryManager::AllocateForScratchBuffer (VkAccelerationStructureNV accelStruct, VkAccelerationStructureMemoryRequirementsTypeNV reqType,
-												   VkBuffer scratchBuffer, const MemoryDesc &desc, OUT Storage_t &data)
-	{
-		ASSERT( not _allocators.empty() );
-
-		for (size_t i = 0; i < _allocators.size(); ++i)
-		{
-			auto&	alloc = _allocators[i];
-
-			if ( alloc->IsSupported( desc.type ) )
-			{
-				CHECK_ERR( alloc->AllocateForScratchBuffer( accelStruct, reqType, scratchBuffer, desc, OUT data ));
-				
-				*data.Cast<uint>() = uint(i);
-				return true;
-			}
-		}
-		RETURN_ERR( "unsupported memory type" );
-	}
 
 /*
 =================================================
