@@ -240,7 +240,7 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
 		CHECK_ERR( _frameGraph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		{
 			LogicalPassID	pass_id = _frameGraph->CreateRenderPass( RenderPassDesc{ int2{float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y }} }
@@ -253,8 +253,8 @@ namespace FG
 			Task	present	= _frameGraph->AddTask( Present{ _renderTarget }.DependsOn( draw_ui ));
 			FG_UNUSED( present );
 		}
-		CHECK_ERR( _frameGraph->Compile() );
-		CHECK_ERR( _frameGraphInst->Execute() );
+		CHECK_ERR( _frameGraph->Execute() );
+		CHECK_ERR( _frameGraphInst->EndFrame() );
 
 		return true;
 	}
