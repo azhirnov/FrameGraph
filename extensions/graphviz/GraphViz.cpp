@@ -108,6 +108,20 @@ namespace FG
 		}
 		return true;
 	}
+	
+/*
+=================================================
+	Visualize
+=================================================
+*/
+	bool GraphViz::Visualize (const FrameGraphPtr &instance, const std::filesystem::path &filepath, StringView format, bool autoOpen, bool deleteOrigin)
+	{
+		String	str;
+		CHECK_ERR( instance->DumpToGraphViz( OUT str ));
+
+		CHECK_ERR( Visualize( str, filepath, "png", autoOpen, deleteOrigin ));
+		return true;
+	}
 
 
 }	// FG

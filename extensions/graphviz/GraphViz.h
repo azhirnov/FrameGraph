@@ -5,6 +5,8 @@
 #if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) && defined(FG_STD_FILESYSTEM)
 #include <filesystem>
 
+#include "framegraph/VFG.h"
+
 namespace FG
 {
 
@@ -15,6 +17,9 @@ namespace FG
 	struct GraphViz
 	{
 		static bool Visualize (StringView graph, const std::filesystem::path &filepath,
+							   StringView format = "png", bool autoOpen = false, bool deleteOrigin = false);
+
+		static bool Visualize (const FrameGraphPtr &instance, const std::filesystem::path &filepath,
 							   StringView format = "png", bool autoOpen = false, bool deleteOrigin = false);
 	};
 
