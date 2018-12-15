@@ -68,7 +68,6 @@ namespace FG
 	{
 		CHECK( _pipelinesCache == VK_NULL_HANDLE );
 		CHECK( _shaderCache.empty() );
-		CHECK( _descriptorPools.empty() );
 	}
 	
 /*
@@ -79,7 +78,6 @@ namespace FG
 	bool VPipelineCache::Initialize (const VDevice &dev)
 	{
 		CHECK_ERR( _CreatePipelineCache( dev ));
-		CHECK_ERR( _CreateDescriptorPool( dev ));
 		return true;
 	}
 	
@@ -105,11 +103,6 @@ namespace FG
 			dev.vkDestroyPipelineCache( dev.GetVkDevice(), _pipelinesCache, null );
 			_pipelinesCache = VK_NULL_HANDLE;
 		}
-
-		for (auto& pool : _descriptorPools) {
-			dev.vkDestroyDescriptorPool( dev.GetVkDevice(), pool, null );
-		}
-		_descriptorPools.clear();
 	}
 
 /*
@@ -404,69 +397,6 @@ namespace FG
 		info.pInitialData		= null;
 
 		VK_CHECK( dev.vkCreatePipelineCache( dev.GetVkDevice(), &info, null, OUT &_pipelinesCache ));
-		return true;
-	}
-	
-/*
-=================================================
-	AllocDescriptorSet
-=================================================
-*/
-	bool  VPipelineCache::AllocDescriptorSet (const VDevice &dev, VkDescriptorSetLayout layout, OUT VkDescriptorSet &ds)
-	{
-		VkDescriptorSetAllocateInfo		info = {};
-		info.sType				= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		info.descriptorSetCount	= 1;
-		info.pSetLayouts		= &layout;
-
-		for (auto& pool : _descriptorPools)
-		{
-			info.descriptorPool = pool;
-			
-			if ( dev.vkAllocateDescriptorSets( dev.GetVkDevice(), &info, OUT &ds ) == VK_SUCCESS )
-				return true;
-		}
-
-		CHECK_ERR( _CreateDescriptorPool( dev ));
-		
-		info.descriptorPool = _descriptorPools.back();
-		VK_CHECK( dev.vkAllocateDescriptorSets( dev.GetVkDevice(), &info, OUT &ds ));
-
-		return true;
-	}
-
-/*
-=================================================
-	_CreateDescriptorPool
-=================================================
-*/
-	bool  VPipelineCache::_CreateDescriptorPool (const VDevice &dev)
-	{
-		FixedArray< VkDescriptorPoolSize, 32 >	pool_sizes;
-
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_SAMPLER,						MaxDescriptorPoolSize });
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,		MaxDescriptorPoolSize * 2 });
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,				MaxDescriptorPoolSize });
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,				MaxDescriptorPoolSize });
-
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,				MaxDescriptorPoolSize * 2 });
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,				MaxDescriptorPoolSize * 2 });
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,		MaxDescriptorPoolSize });
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,		MaxDescriptorPoolSize });
-		
-		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV,	MaxDescriptorPoolSize });
-
-		
-		VkDescriptorPoolCreateInfo	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		info.poolSizeCount	= uint(pool_sizes.size());
-		info.pPoolSizes		= pool_sizes.data();
-		info.maxSets		= MaxDescriptorSets;
-
-		VkDescriptorPool			ds_pool;
-		VK_CHECK( dev.vkCreateDescriptorPool( dev.GetVkDevice(), &info, null, OUT &ds_pool ));
-
-		_descriptorPools.push_back( ds_pool );
 		return true;
 	}
 

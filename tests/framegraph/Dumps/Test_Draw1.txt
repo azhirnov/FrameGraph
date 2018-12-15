@@ -48,7 +48,7 @@ Thread {
 
 	Buffer {
 		name:    "StagingReadBuffer"
-		size:    16 Mb
+		size:    256 Mb
 		usage:   TransferSrc | TransferDst
 		barriers = {
 				BufferMemoryBarrier {

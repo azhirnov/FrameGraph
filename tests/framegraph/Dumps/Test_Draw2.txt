@@ -12,22 +12,6 @@ Thread {
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         <initial>
-					dstTask:         SubmitRenderPass (#2)
-					srcStageMask:    TopOfPipe
-					dstStageMask:    ColorAttachmentOutput
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
-					oldLayout:       General
-					newLayout:       ColorAttachmentOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
 					srcTask:         SubmitRenderPass (#2)
 					dstTask:         Present (#3)
 					srcStageMask:    ColorAttachmentOutput
@@ -47,12 +31,12 @@ Thread {
 					srcTask:         Present (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    BottomOfPipe
+					dstStageMask:    TopOfPipe
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   
 					oldLayout:       TransferSrcOptimal
-					newLayout:       General
+					newLayout:       ColorAttachmentOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
@@ -70,7 +54,7 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "RenderTarget"
-				usage:          ColorRT-ReadWrite, ClearBefore
+				usage:          Color-RW, ClearBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -85,15 +69,13 @@ Thread {
 		resource_usage = {
 			ImageUsage {
 				name:           "RenderTarget"
-				usage:          TransferSrc
+				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 		}
-		srcImage:   "RenderTarget"
-		layer:      0
 	}
 }
 ===============================================================

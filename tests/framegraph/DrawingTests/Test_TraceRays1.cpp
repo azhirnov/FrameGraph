@@ -135,7 +135,7 @@ void main ()
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_Output"), dst_image );
@@ -162,8 +162,8 @@ void main ()
 		Task	t_read			= frame_graph->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( frame_graph->Compile() );		
-		CHECK_ERR( _frameGraphInst->Execute() );
+		CHECK_ERR( frame_graph->Execute() );		
+		CHECK_ERR( _frameGraphInst->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));

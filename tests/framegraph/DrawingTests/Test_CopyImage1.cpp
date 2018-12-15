@@ -75,7 +75,7 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 		Task	t_update	= frame_graph->AddTask( UpdateImage().SetImage( src_image ).SetData( src_data, src_dim ) );
@@ -83,8 +83,8 @@ namespace FG
 		Task	t_read		= frame_graph->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 		FG_UNUSED( t_read );
 		
-		CHECK_ERR( frame_graph->Compile() );
-		CHECK_ERR( _frameGraphInst->Execute() );
+		CHECK_ERR( frame_graph->Execute() );
+		CHECK_ERR( _frameGraphInst->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));

@@ -169,10 +169,10 @@ namespace FG
 	
 /*
 =================================================
-	Begin
+	BeginFrame
 =================================================
 */
-	bool  VFrameGraph::Begin (const SubmissionGraph &graph)
+	bool  VFrameGraph::BeginFrame (const SubmissionGraph &graph)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Idle, EState::Begin ));
@@ -210,6 +210,8 @@ namespace FG
 /*
 =================================================
 	SkipBatch
+----
+	thread safe and lock-free
 =================================================
 */
 	bool  VFrameGraph::SkipBatch (const CommandBatchID &batchId, uint indexInBatch)
@@ -223,6 +225,8 @@ namespace FG
 /*
 =================================================
 	SubmitBatch
+----
+	thread safe and wait-free
 =================================================
 */
 	bool  VFrameGraph::SubmitBatch (const CommandBatchID &batchId, uint indexInBatch, const ExternalCmdBatch_t &data)
@@ -257,13 +261,13 @@ namespace FG
 
 /*
 =================================================
-	Execute
+	EndFrame
 =================================================
 */
-	bool  VFrameGraph::Execute ()
+	bool  VFrameGraph::EndFrame ()
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _SetState( EState::RunThreads, EState::Execute ));
+		CHECK_ERR( _SetState( EState::RunThreads, EState::End ));
 
 		CHECK_ERR( _submissionGraph.IsAllBatchesSubmitted() );
 
@@ -287,7 +291,7 @@ namespace FG
 		_resourceMngr.OnEndFrame();
 		_debugger.OnEndFrame();
 		
-		CHECK_ERR( _SetState( EState::Execute, EState::Idle ));
+		CHECK_ERR( _SetState( EState::End, EState::Idle ));
 		return true;
 	}
 
@@ -299,6 +303,8 @@ namespace FG
 	bool  VFrameGraph::WaitIdle ()
 	{
 		SCOPELOCK( _rcCheck );
+		CHECK_ERR( _GetState() == EState::Idle );
+
 		return _WaitIdle();
 	}
 
@@ -312,12 +318,17 @@ namespace FG
 			
 			CHECK_ERR( _submissionGraph.WaitFences( frame_id ));
 
-			for (auto iter = _threads.begin(); iter != _threads.end(); ++iter)
+			for (auto iter = _threads.begin(); iter != _threads.end();)
 			{
 				auto	thread = iter->lock();
-				if ( thread ) {
-					CHECK( thread->OnWaitIdle() );
+				
+				if ( not thread or thread->IsDestroyed() ) {
+					iter = _threads.erase( iter );
+					continue;
 				}
+
+				CHECK( thread->OnWaitIdle() );
+				++iter;
 			}
 		}
 		return true;
@@ -328,11 +339,13 @@ namespace FG
 	GetStatistics
 =================================================
 */
-	VFrameGraph::Statistics const&  VFrameGraph::GetStatistics () const
+	bool  VFrameGraph::GetStatistics (OUT Statistics &result) const
 	{
 		SHAREDLOCK( _rcCheck );
+		CHECK_ERR( _GetState() == EState::Idle );
 		// TODO
-		return _statistics;
+		result = _statistics;
+		return true;
 	}
 	
 /*
@@ -343,6 +356,7 @@ namespace FG
 	bool  VFrameGraph::DumpToString (OUT String &result) const
 	{
 		SHAREDLOCK( _rcCheck );
+		CHECK_ERR( _GetState() == EState::Idle );
 
 		_debugger.GetFrameDump( OUT result );
 		return true;
@@ -356,6 +370,7 @@ namespace FG
 	bool  VFrameGraph::DumpToGraphViz (OUT String &result) const
 	{
 		SHAREDLOCK( _rcCheck );
+		CHECK_ERR( _GetState() == EState::Idle );
 
 		_debugger.GetGraphDump( OUT result );
 		return true;

@@ -25,7 +25,7 @@ namespace FG
 			Idle,
 			Begin,
 			RunThreads,
-			Execute,
+			End,
 			Destroyed,
 		};
 
@@ -61,7 +61,7 @@ namespace FG
 	// methods
 	public:
 		explicit VFrameGraph (const VulkanDeviceInfo &);
-		~VFrameGraph () override;
+		~VFrameGraph ();
 
 		FGThreadPtr  CreateThread (const ThreadDesc &) override;
 
@@ -72,14 +72,14 @@ namespace FG
 		void  SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
 		
 		// frame execution
-		bool  Begin (const SubmissionGraph &) override;
-		bool  Execute () override;
+		bool  BeginFrame (const SubmissionGraph &) override;
+		bool  EndFrame () override;
 		bool  WaitIdle () override;
 		bool  SkipBatch (const CommandBatchID &batchId, uint indexInBatch) override;
 		bool  SubmitBatch (const CommandBatchID &batchId, uint indexInBatch, const ExternalCmdBatch_t &data) override;
 
 		// debugging
-		Statistics const&  GetStatistics () const override;
+		bool  GetStatistics (OUT Statistics &result) const override;
 		bool  DumpToString (OUT String &result) const override;
 		bool  DumpToGraphViz (OUT String &result) const override;
 

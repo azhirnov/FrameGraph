@@ -102,7 +102,7 @@ void main() {
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
@@ -115,8 +115,8 @@ void main() {
 		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( frame_graph->Compile() );
-		CHECK_ERR( _frameGraphInst->Execute() );
+		CHECK_ERR( frame_graph->Execute() );
+		CHECK_ERR( _frameGraphInst->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));

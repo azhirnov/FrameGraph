@@ -971,22 +971,27 @@ namespace FG
 	SetCompilationFlags
 =================================================
 */
-	void VFrameGraphThread::SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags)
+	bool VFrameGraphThread::SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags)
 	{
 		SCOPELOCK( _rcCheck );
-		ASSERT( _IsInitialOrIdleState() );
+		CHECK_ERR( _IsInitialOrIdleState() );
 
 		_compilationFlags = flags;
 		
 		if ( EnumEq( _compilationFlags, ECompilationFlags::EnableDebugger ) )
 		{
 			if ( not _debugger )
+			{
+				CHECK_ERR( _instance.GetDebugger() );
 				_debugger.reset( new VFrameGraphDebugger( *_instance.GetDebugger(), *this ));
+			}
 
 			_debugger->Setup( debugFlags );
 		}
 		else
 			_debugger.reset();
+
+		return true;
 	}
 	
 /*
@@ -1129,10 +1134,10 @@ namespace FG
 	
 /*
 =================================================
-	Compile
+	Execute
 =================================================
 */
-	bool VFrameGraphThread::Compile ()
+	bool VFrameGraphThread::Execute ()
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Recording, EState::Compiling ));

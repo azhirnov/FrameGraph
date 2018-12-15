@@ -175,7 +175,7 @@ void main() {
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		ImageID		color_target = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::RGBA8_UNorm,
@@ -289,8 +289,8 @@ void main() {
 			FG_UNUSED( t_present );
 		}
 		
-		CHECK_ERR( frame_graph->Compile() );		
-		CHECK_ERR( _frameGraphInst->Execute() );
+		CHECK_ERR( frame_graph->Execute() );		
+		CHECK_ERR( _frameGraphInst->EndFrame() );
 	
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));

@@ -260,8 +260,8 @@ namespace FG
 		};
 
 		EPixelFormat		format			= Default;
-		uint				bitPerPixel		= 0;		// for color and depth
-		uint				bitPerPixel2	= 0;		// for stencil
+		uint				bitsPerBlock	= 0;		// for color and depth
+		uint				bitsPerBlock2	= 0;		// for stencil
 		EImageAspect		aspectMask		= Default;
 		EType				valueType		= Default;
 		uint2				blockSize		= {1,1};
@@ -269,22 +269,22 @@ namespace FG
 		constexpr PixelFormatInfo () {}
 
 		constexpr PixelFormatInfo (EPixelFormat fmt, uint bpp, EType type, EImageAspect aspect = EImageAspect::Color) :
-			format{fmt}, bitPerPixel{bpp}, aspectMask{aspect}, valueType{type} {}
+			format{fmt}, bitsPerBlock{bpp}, aspectMask{aspect}, valueType{type} {}
 
 		constexpr PixelFormatInfo (EPixelFormat fmt, uint bpp, const uint2 &size, EType type, EImageAspect aspect = EImageAspect::Color) :
-			format{fmt}, bitPerPixel{bpp}, aspectMask{aspect}, valueType{type}, blockSize{size} {}
+			format{fmt}, bitsPerBlock{bpp}, aspectMask{aspect}, valueType{type}, blockSize{size} {}
 
 		constexpr PixelFormatInfo (EPixelFormat fmt, uint depthBPP, uint stencilBPP, EType type = EType::DepthStencil, EImageAspect aspect = EImageAspect::DepthStencil) :
-			format{fmt}, bitPerPixel{depthBPP}, bitPerPixel2{stencilBPP}, aspectMask{aspect}, valueType{type} {}
+			format{fmt}, bitsPerBlock{depthBPP}, bitsPerBlock2{stencilBPP}, aspectMask{aspect}, valueType{type} {}
 	};
 	FG_BIT_OPERATORS( PixelFormatInfo::EType );
 
 
-	ND_ inline constexpr PixelFormatInfo const&  EPixelFormat_GetInfo (EPixelFormat value)
+	ND_ inline PixelFormatInfo const&  EPixelFormat_GetInfo (EPixelFormat value)
 	{
 		using EType = PixelFormatInfo::EType;
 
-		static constexpr PixelFormatInfo	fmt_infos[] = {
+		static const PixelFormatInfo	fmt_infos[] = {
 			{ EPixelFormat::RGBA16_SNorm,			16*4,			EType::SNorm },
 			{ EPixelFormat::RGBA8_SNorm,			8*4,			EType::SNorm },
 			{ EPixelFormat::RGB16_SNorm,			16*3,			EType::SNorm },
@@ -348,16 +348,16 @@ namespace FG
 			{ EPixelFormat::Depth16,				16,				EType::UNorm | EType::Depth,			EImageAspect::Depth },
 			{ EPixelFormat::Depth24,				24,				EType::UNorm | EType::Depth,			EImageAspect::Depth },
 			{ EPixelFormat::Depth32F,				32,				EType::SFloat | EType::Depth,			EImageAspect::Depth },
-			{ EPixelFormat::Depth16_Stencil8,		16,	8,			EType::UNorm | EType::DepthStencil,		EImageAspect::DepthStencil },
-			{ EPixelFormat::Depth24_Stencil8,		24,	8,			EType::UNorm | EType::DepthStencil,		EImageAspect::DepthStencil },
-			{ EPixelFormat::Depth32F_Stencil8,		32,	8,			EType::SFloat | EType::DepthStencil,	EImageAspect::DepthStencil },
+			{ EPixelFormat::Depth16_Stencil8,		16,		8,		EType::UNorm | EType::DepthStencil,		EImageAspect::DepthStencil },
+			{ EPixelFormat::Depth24_Stencil8,		24,		8,		EType::UNorm | EType::DepthStencil,		EImageAspect::DepthStencil },
+			{ EPixelFormat::Depth32F_Stencil8,		32,		8,		EType::SFloat | EType::DepthStencil,	EImageAspect::DepthStencil },
 			{ EPixelFormat::BC1_RGB8_UNorm,			64,		{4,4},	EType::UNorm },
 			{ EPixelFormat::BC1_RGB8_A1_UNorm,		64,		{4,4},	EType::UNorm },
 			{ EPixelFormat::BC2_RGBA8_UNorm,		128,	{4,4},	EType::UNorm },
 			{ EPixelFormat::BC3_RGBA8_UNorm,		128,	{4,4},	EType::UNorm },
 			{ EPixelFormat::BC3_sRGB,				128,	{4,4},	EType::UNorm | EType::sRGB },
-			{ EPixelFormat::BC4_RED8_SNorm,			128,	{4,4},	EType::SNorm },
-			{ EPixelFormat::BC4_RED8_UNorm,			128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::BC4_RED8_SNorm,			64,		{4,4},	EType::SNorm },
+			{ EPixelFormat::BC4_RED8_UNorm,			64,		{4,4},	EType::UNorm },
 			{ EPixelFormat::BC5_RG8_SNorm,			128,	{4,4},	EType::SNorm },
 			{ EPixelFormat::BC5_RG8_UNorm,			128,	{4,4},	EType::UNorm },
 			{ EPixelFormat::BC7_RGBA8_UNorm,		128,	{4,4},	EType::UNorm },
@@ -368,8 +368,8 @@ namespace FG
 			{ EPixelFormat::ECT2_SRGB8,				64,		{4,4},	EType::UNorm | EType::sRGB },
 			{ EPixelFormat::ETC2_RGB8_A1_UNorm,		64,		{4,4},	EType::UNorm },
 			{ EPixelFormat::ETC2_SRGB8_A1,			64,		{4,4},	EType::UNorm | EType::sRGB },
-			{ EPixelFormat::ETC2_RGBA8_UNorm,		64,		{4,4},	EType::UNorm },
-			{ EPixelFormat::ETC2_SRGB8_A8,			64,		{4,4},	EType::UNorm | EType::sRGB },
+			{ EPixelFormat::ETC2_RGBA8_UNorm,		128,	{4,4},	EType::UNorm },
+			{ EPixelFormat::ETC2_SRGB8_A8,			128,	{4,4},	EType::UNorm | EType::sRGB },
 			{ EPixelFormat::EAC_R11_SNorm,			64,		{4,4},	EType::SNorm },
 			{ EPixelFormat::EAC_R11_UNorm,			64,		{4,4},	EType::UNorm },
 			{ EPixelFormat::EAC_RG11_SNorm,			128,	{4,4},	EType::SNorm },
@@ -417,15 +417,15 @@ namespace FG
 	EPixelFormat_BitPerPixel
 =================================================
 */
-	ND_ inline constexpr uint  EPixelFormat_BitPerPixel (EPixelFormat value, EImageAspect aspect)
+	ND_ inline uint  EPixelFormat_BitPerPixel (EPixelFormat value, EImageAspect aspect)
 	{
 		auto	info = EPixelFormat_GetInfo( value );
 		ASSERT( EnumEq( info.aspectMask, aspect ) );
 
 		if ( aspect != EImageAspect::Stencil )
-			return info.bitPerPixel / (info.blockSize.x * info.blockSize.y);
+			return info.bitsPerBlock / (info.blockSize.x * info.blockSize.y);
 		else
-			return info.bitPerPixel2 / (info.blockSize.x * info.blockSize.y);
+			return info.bitsPerBlock2 / (info.blockSize.x * info.blockSize.y);
 	}
 
 /*
@@ -433,22 +433,22 @@ namespace FG
 	EPixelFormat_Is***
 =================================================
 */
-	ND_ inline constexpr bool  EPixelFormat_IsDepth (EPixelFormat value)
+	ND_ inline bool  EPixelFormat_IsDepth (EPixelFormat value)
 	{
 		return EPixelFormat_GetInfo( value ).valueType == PixelFormatInfo::EType::Depth;
 	}
 	
-	ND_ inline constexpr bool  EPixelFormat_IsStencil (EPixelFormat value)
+	ND_ inline bool  EPixelFormat_IsStencil (EPixelFormat value)
 	{
 		return EPixelFormat_GetInfo( value ).valueType == PixelFormatInfo::EType::Stencil;
 	}
 	
-	ND_ inline constexpr bool  EPixelFormat_IsDepthStencil (EPixelFormat value)
+	ND_ inline bool  EPixelFormat_IsDepthStencil (EPixelFormat value)
 	{
 		return EPixelFormat_GetInfo( value ).valueType == PixelFormatInfo::EType::DepthStencil;
 	}
 	
-	ND_ inline constexpr bool  EPixelFormat_IsColor (EPixelFormat value)
+	ND_ inline bool  EPixelFormat_IsColor (EPixelFormat value)
 	{
 		return not EnumAny( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
 	}
@@ -458,17 +458,17 @@ namespace FG
 	EPixelFormat_Has***
 =================================================
 */
-	ND_ inline constexpr bool  EPixelFormat_HasDepth (EPixelFormat value)
+	ND_ inline bool  EPixelFormat_HasDepth (EPixelFormat value)
 	{
 		return EnumEq( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::Depth );
 	}
 	
-	ND_ inline constexpr bool  EPixelFormat_HasStencil (EPixelFormat value)
+	ND_ inline bool  EPixelFormat_HasStencil (EPixelFormat value)
 	{
 		return EnumEq( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::Stencil );
 	}
 	
-	ND_ inline constexpr bool  EPixelFormat_HasDepthOrStencil (EPixelFormat value)
+	ND_ inline bool  EPixelFormat_HasDepthOrStencil (EPixelFormat value)
 	{
 		return EnumAny( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
 	}

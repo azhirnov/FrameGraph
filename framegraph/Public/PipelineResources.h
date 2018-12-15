@@ -114,6 +114,7 @@ namespace FG
 		UniformMapPtr				_uniforms;
 		ResourceSet_t				_resources;
 		DynamicOffsets_t			_dynamicOffsets;
+		bool						_allowEmptyResources	= false;
 
 		mutable CachedID			_cachedId;
 
@@ -157,15 +158,18 @@ namespace FG
 
 		Self&  BindRayTracingScene (const UniformID &id, const RTSceneID &scene) noexcept;
 
+		void  AllowEmptyResources (bool value) noexcept;
+
 		ND_ bool  HasImage (const UniformID &id)			const noexcept;
 		ND_ bool  HasSampler (const UniformID &id)			const noexcept;
 		ND_ bool  HasTexture (const UniformID &id)			const noexcept;
 		ND_ bool  HasBuffer (const UniformID &id)			const noexcept;
 		ND_ bool  HasRayTracingScene (const UniformID &id)	const noexcept;
 
-		ND_ RawDescriptorSetLayoutID	GetLayout ()			const	{ return _layoutId; }
-		ND_ ResourceSet_t const&		GetData ()				const	{ return _resources; }
-		ND_ ArrayView< uint >			GetDynamicOffsets ()	const	{ return _dynamicOffsets; }
+		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ return _layoutId; }
+		ND_ ResourceSet_t const&		GetData ()					const	{ return _resources; }
+		ND_ ArrayView< uint >			GetDynamicOffsets ()		const	{ return _dynamicOffsets; }
+		ND_ bool						IsEmptyResourcesAllowed ()	const	{ return _allowEmptyResources; }
 
 
 	private:
@@ -182,6 +186,16 @@ namespace FG
 	using PipelineResourceSet	= StaticArray< Ptr<const PipelineResources>, FG_MaxDescriptorSets >;
 
 	
+	
+/*
+=================================================
+	AllowEmptyResources
+=================================================
+*/
+	inline void  PipelineResources::AllowEmptyResources (bool value) noexcept
+	{
+		_allowEmptyResources = value;
+	}
 
 /*
 =================================================

@@ -63,6 +63,7 @@ namespace FG
 			case EImage::Tex1DArray :
 			{
 				ASSERT( dim.x > 0 and layers.Get() > 0 );
+				[[fallthrough]];
 			}
 			case EImage::Tex2DMSArray :
 			case EImage::Tex2DArray :
@@ -79,6 +80,7 @@ namespace FG
 				ASSERT( layers.Get() <= 1 );
 				dim		= Max( uint3( dim.x, dim.y, dim.z ), 1u );
 				layers	= 1_layer;
+				return true;
 			}
 			case EImage::TexCubeArray :
 			{

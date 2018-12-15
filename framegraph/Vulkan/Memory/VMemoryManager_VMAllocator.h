@@ -211,7 +211,7 @@ namespace FG
 		info.pUserData		= null;
 		
 		VmaAllocation	mem = null;
-		VK_CHECK( _allocator->AllocateMemory( mem_req.memoryRequirements, false, false, VK_NULL_HANDLE, VK_NULL_HANDLE, info, VMA_SUBALLOCATION_TYPE_UNKNOWN, OUT &mem ));
+		VK_CHECK( _allocator->AllocateMemory( mem_req.memoryRequirements, false, false, VK_NULL_HANDLE, VK_NULL_HANDLE, info, VMA_SUBALLOCATION_TYPE_UNKNOWN, 1, OUT &mem ));
 		
 		VmaAllocationInfo	alloc_info	= {};
 		vmaGetAllocationInfo( _allocator, mem, OUT &alloc_info );

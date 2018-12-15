@@ -210,9 +210,6 @@ namespace FG
 				ASSERT( attr.type == iter->second.ToDstType() );
 			}
 		}
-
-		//_vertices.sort();
-		//_bindings.sort();
 		return true;
 	}
 

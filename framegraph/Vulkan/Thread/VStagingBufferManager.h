@@ -117,7 +117,7 @@ namespace FG
 		PerFrameArray_t				_perFrame;
 		uint						_frameId			= 0;
 
-		BytesU						_stagingBufferSize	= 16_Mb;
+		BytesU						_stagingBufferSize	= BytesU{FG_VkHostWritePageSizeMb << 20};
 
 
 	// methods
@@ -149,6 +149,9 @@ namespace FG
 
 		bool AddDataLoadedEvent (OnImageDataLoadedEvent &&ev);
 		bool AddDataLoadedEvent (OnBufferDataLoadedEvent &&ev);
+
+		ND_ BytesU  GetMaxWritableStoregeSize () const		{ return _stagingBufferSize / 8; }
+		ND_ BytesU  GetMaxReadableStorageSize () const		{ return _stagingBufferSize / 8; }
 
 
 	private:

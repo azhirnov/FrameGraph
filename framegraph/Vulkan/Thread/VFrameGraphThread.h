@@ -104,7 +104,7 @@ namespace FG
 	// methods
 	public:
 		VFrameGraphThread (VFrameGraph &, EThreadUsage, StringView);
-		~VFrameGraphThread () override;
+		~VFrameGraphThread ();
 			
 		// resource manager
 		MPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName) override;
@@ -145,13 +145,13 @@ namespace FG
 		// initialization
 		bool		Initialize (const SwapchainCreateInfo *swapchainCI, ArrayView<FGThreadPtr> relativeThreads, ArrayView<FGThreadPtr> parallelThreads) override;
 		void		Deinitialize () override;
-		void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
+		bool		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
 		bool		RecreateSwapchain (const SwapchainCreateInfo &) override;
 
 		// frame execution
 		bool		SyncOnBegin (const VSubmissionGraph *);
 		bool		Begin (const CommandBatchID &id, uint index, EThreadUsage usage) override;
-		bool		Compile () override;
+		bool		Execute () override;
 		bool		SyncOnExecute ();
 		bool		OnWaitIdle ();
 		

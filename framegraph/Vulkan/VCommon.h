@@ -105,6 +105,7 @@ namespace FG
 	class VRenderPass;
 	class VLogicalRenderPass;
 	class VPipelineCache;
+	class VDescriptorManager;
 	class VLocalBuffer;
 	class VLocalImage;
 	class VLocalRTGeometry;

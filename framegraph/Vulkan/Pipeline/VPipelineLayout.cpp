@@ -90,8 +90,6 @@ namespace FG
 			hash << HashOf( ds.bindingIndex );
 			hash << sets[i].second->Data().GetHash();
 		}
-
-		setsInfo.sort();
 	}
 	
 /*

@@ -71,7 +71,7 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id, 2 );
 		
-		CHECK_ERR( _frameGraphInst->Begin( submission_graph ));
+		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
 
 		// thread 1
 		{
@@ -85,10 +85,10 @@ namespace FG
 			Task	t_copy		= frame_graph->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update, t_fill ) );
 			FG_UNUSED( t_copy );
 
-			CHECK_ERR( frame_graph->Compile() );
+			CHECK_ERR( frame_graph->Execute() );
 		}
 		
-		// thread 1
+		// thread 1 again
 		{
 			CHECK_ERR( frame_graph->Begin( batch_id, 1, EThreadUsage::Graphics ));
 			
@@ -101,10 +101,10 @@ namespace FG
 			Task	t_read		= frame_graph->AddTask( ReadImage{}.SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 			FG_UNUSED( t_read );
 		
-			CHECK_ERR( frame_graph->Compile() );
+			CHECK_ERR( frame_graph->Execute() );
 		}
 
-		CHECK_ERR( _frameGraphInst->Execute() );
+		CHECK_ERR( _frameGraphInst->EndFrame() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));

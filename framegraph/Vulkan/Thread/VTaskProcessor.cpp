@@ -60,7 +60,7 @@ namespace FG
 		//void operator () (const PipelineResources::Texture &tex);
 		//void operator () (const PipelineResources::SubpassInput &sp);
 		void operator () (const PipelineResources::Sampler &) {}
-		void operator () (const PipelineResources::RayTracingScene &) {}
+		void operator () (const PipelineResources::RayTracingScene &) {}	// TODO
 		void operator () (const std::monostate &) {}
 	};
 
@@ -160,6 +160,9 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Buffer &buf)
 	{
+		if ( not buf.bufferId )
+			return;
+
 		VLocalBuffer const *	buffer	= _tp._GetState( buf.bufferId );
 		VkDeviceSize const		size	= VkDeviceSize( buf.size == ~0_b ? buffer->Size() - buf.offset : buf.size );
 
@@ -190,6 +193,9 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Image &img)
 	{
+		if ( not img.imageId )
+			return;
+
 		VLocalImage const*  image = _tp._GetState( img.imageId );
 
 		_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state ), *img.desc );

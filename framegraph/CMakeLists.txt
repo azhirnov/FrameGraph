@@ -143,8 +143,6 @@ set( SOURCES
 	"../cmake/lodepng_CMakeLists.txt"
 	"Vulkan/Pipeline/VComputePipeline.cpp"
 	"Vulkan/Pipeline/VComputePipeline.h"
-	"Vulkan/Pipeline/VDescriptorSetLayout.cpp"
-	"Vulkan/Pipeline/VDescriptorSetLayout.h"
 	"Vulkan/Pipeline/VGraphicsPipeline.cpp"
 	"Vulkan/Pipeline/VGraphicsPipeline.h"
 	"Vulkan/Pipeline/VMeshPipeline.cpp"
@@ -153,12 +151,16 @@ set( SOURCES
 	"Vulkan/Pipeline/VPipelineCache.h"
 	"Vulkan/Pipeline/VPipelineLayout.cpp"
 	"Vulkan/Pipeline/VPipelineLayout.h"
-	"Vulkan/Pipeline/VPipelineResources.cpp"
-	"Vulkan/Pipeline/VPipelineResources.h"
 	"Vulkan/Pipeline/VRayTracingPipeline.cpp"
 	"Vulkan/Pipeline/VRayTracingPipeline.h"
 	"CMakeLists.txt"
-	"VFG.h" )
+	"VFG.h"
+	"Vulkan/Descriptors/VDescriptorManager.cpp"
+	"Vulkan/Descriptors/VDescriptorManager.h"
+	"Vulkan/Descriptors/VDescriptorSetLayout.cpp"
+	"Vulkan/Descriptors/VDescriptorSetLayout.h"
+	"Vulkan/Descriptors/VPipelineResources.cpp"
+	"Vulkan/Descriptors/VPipelineResources.h" )
 add_library( "FrameGraph" STATIC ${SOURCES} )
 source_group( "Vulkan\\Memory" FILES "Vulkan/Memory/VMemoryManager.cpp" "Vulkan/Memory/VMemoryManager.h" "Vulkan/Memory/VMemoryManager_VMAllocator.h" "Vulkan/Memory/VMemoryObj.cpp" "Vulkan/Memory/VMemoryObj.h" )
 source_group( "Vulkan\\RayTracing" FILES "Vulkan/RayTracing/VLocalRTGeometry.cpp" "Vulkan/RayTracing/VLocalRTGeometry.h" "Vulkan/RayTracing/VLocalRTScene.cpp" "Vulkan/RayTracing/VLocalRTScene.h" "Vulkan/RayTracing/VRayTracingGeometry.cpp" "Vulkan/RayTracing/VRayTracingGeometry.h" "Vulkan/RayTracing/VRayTracingScene.cpp" "Vulkan/RayTracing/VRayTracingScene.h" )
@@ -174,8 +176,9 @@ source_group( "Vulkan\\RenderPass" FILES "Vulkan/RenderPass/VFramebuffer.cpp" "V
 source_group( "Vulkan\\Utils" FILES "Vulkan/Utils/FGEnumCast.h" "Vulkan/Utils/VEnumCast.h" "Vulkan/Utils/VEnums.h" "Vulkan/Utils/VEnumToString.h" )
 source_group( "Vulkan\\Buffer" FILES "Vulkan/Buffer/VBuffer.cpp" "Vulkan/Buffer/VBuffer.h" "Vulkan/Buffer/VLocalBuffer.cpp" "Vulkan/Buffer/VLocalBuffer.h" )
 source_group( "cmake" FILES "../cmake/compilers.cmake" "../cmake/compiler_tests.cmake" "../cmake/download_assimp.cmake" "../cmake/download_devil.cmake" "../cmake/download_freeimage.cmake" "../cmake/download_glfw.cmake" "../cmake/download_glm.cmake" "../cmake/download_glslang.cmake" "../cmake/download_imgui.cmake" "../cmake/download_lodepng.cmake" "../cmake/download_mem.cmake" "../cmake/download_sdl2.cmake" "../cmake/download_sfml.cmake" "../cmake/download_vk.cmake" "../cmake/download_vma.cmake" "../cmake/graphviz.cmake" "../cmake/lodepng_CMakeLists.txt" )
-source_group( "Vulkan\\Pipeline" FILES "Vulkan/Pipeline/VComputePipeline.cpp" "Vulkan/Pipeline/VComputePipeline.h" "Vulkan/Pipeline/VDescriptorSetLayout.cpp" "Vulkan/Pipeline/VDescriptorSetLayout.h" "Vulkan/Pipeline/VGraphicsPipeline.cpp" "Vulkan/Pipeline/VGraphicsPipeline.h" "Vulkan/Pipeline/VMeshPipeline.cpp" "Vulkan/Pipeline/VMeshPipeline.h" "Vulkan/Pipeline/VPipelineCache.cpp" "Vulkan/Pipeline/VPipelineCache.h" "Vulkan/Pipeline/VPipelineLayout.cpp" "Vulkan/Pipeline/VPipelineLayout.h" "Vulkan/Pipeline/VPipelineResources.cpp" "Vulkan/Pipeline/VPipelineResources.h" "Vulkan/Pipeline/VRayTracingPipeline.cpp" "Vulkan/Pipeline/VRayTracingPipeline.h" )
+source_group( "Vulkan\\Pipeline" FILES "Vulkan/Pipeline/VComputePipeline.cpp" "Vulkan/Pipeline/VComputePipeline.h" "Vulkan/Pipeline/VGraphicsPipeline.cpp" "Vulkan/Pipeline/VGraphicsPipeline.h" "Vulkan/Pipeline/VMeshPipeline.cpp" "Vulkan/Pipeline/VMeshPipeline.h" "Vulkan/Pipeline/VPipelineCache.cpp" "Vulkan/Pipeline/VPipelineCache.h" "Vulkan/Pipeline/VPipelineLayout.cpp" "Vulkan/Pipeline/VPipelineLayout.h" "Vulkan/Pipeline/VRayTracingPipeline.cpp" "Vulkan/Pipeline/VRayTracingPipeline.h" )
 source_group( "" FILES "CMakeLists.txt" "VFG.h" )
+source_group( "Vulkan\\Descriptors" FILES "Vulkan/Descriptors/VDescriptorManager.cpp" "Vulkan/Descriptors/VDescriptorManager.h" "Vulkan/Descriptors/VDescriptorSetLayout.cpp" "Vulkan/Descriptors/VDescriptorSetLayout.h" "Vulkan/Descriptors/VPipelineResources.cpp" "Vulkan/Descriptors/VPipelineResources.h" )
 target_include_directories( "FrameGraph" PUBLIC ".." )
 target_include_directories( "FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Utils" )
@@ -191,6 +194,7 @@ target_include_directories( "FrameGraph" PRIVATE "Vulkan/Memory" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Debugger" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Buffer" )
+target_include_directories( "FrameGraph" PRIVATE "Vulkan/Descriptors" )
 if (${FG_ENABLE_STDALLOC})
 	target_link_libraries( "FrameGraph" "foonathan_memory" )
 endif()
@@ -221,7 +225,7 @@ if (${FG_ENABLE_TESTS})
 		"../tests/framegraph_unit/UnitTest_Common.h"
 		"../tests/framegraph_unit/UnitTest_ID.cpp"
 		"../tests/framegraph_unit/UnitTest_ImageSwizzle.cpp"
-		"../tests/framegraph_unit/UnitTest_Main.cpp"
+		"../tests/framegraph_unit/UnitTest_PixelFormat.cpp"
 		"../tests/framegraph_unit/UnitTest_VBuffer.cpp"
 		"../tests/framegraph_unit/UnitTest_VertexInput.cpp"
 		"../tests/framegraph_unit/UnitTest_VImage.cpp"
@@ -231,7 +235,7 @@ if (${FG_ENABLE_TESTS})
 	else()
 		add_executable( "UnitTests.FrameGraph" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/framegraph_unit/DummyTask.h" "../tests/framegraph_unit/main.cpp" "../tests/framegraph_unit/UnitTest_Common.h" "../tests/framegraph_unit/UnitTest_ID.cpp" "../tests/framegraph_unit/UnitTest_ImageSwizzle.cpp" "../tests/framegraph_unit/UnitTest_Main.cpp" "../tests/framegraph_unit/UnitTest_VBuffer.cpp" "../tests/framegraph_unit/UnitTest_VertexInput.cpp" "../tests/framegraph_unit/UnitTest_VImage.cpp" "../tests/framegraph_unit/UnitTest_VResourceManager.cpp" )
+	source_group( "" FILES "../tests/framegraph_unit/DummyTask.h" "../tests/framegraph_unit/main.cpp" "../tests/framegraph_unit/UnitTest_Common.h" "../tests/framegraph_unit/UnitTest_ID.cpp" "../tests/framegraph_unit/UnitTest_ImageSwizzle.cpp" "../tests/framegraph_unit/UnitTest_PixelFormat.cpp" "../tests/framegraph_unit/UnitTest_VBuffer.cpp" "../tests/framegraph_unit/UnitTest_VertexInput.cpp" "../tests/framegraph_unit/UnitTest_VImage.cpp" "../tests/framegraph_unit/UnitTest_VResourceManager.cpp" )
 	set_property( TARGET "UnitTests.FrameGraph" PROPERTY FOLDER "Tests" )
 	target_include_directories( "UnitTests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Buffer" )
@@ -247,6 +251,7 @@ if (${FG_ENABLE_TESTS})
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Swapchain" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Pipeline" )
+	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Descriptors" )
 	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../extensions" )
 	target_link_libraries( "UnitTests.FrameGraph" "FrameGraph" )
 	target_link_libraries( "UnitTests.FrameGraph" "Framework" )

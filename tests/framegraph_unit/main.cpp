@@ -11,8 +11,37 @@
 
 using namespace FG;
 
-extern void UnitTest_Main ();
-extern void UnitTest_FGMain (const FGThreadPtr &fg);
+
+extern void UnitTest_VertexInput ();
+extern void UnitTest_ImageSwizzle ();
+extern void UnitTest_PixelFormat ();
+extern void UnitTest_ID ();
+extern void UnitTest_VBuffer ();
+extern void UnitTest_VImage ();
+
+static void UnitTest_Main ()
+{
+	UnitTest_VertexInput();
+	UnitTest_ImageSwizzle();
+	UnitTest_PixelFormat();
+	UnitTest_ID();
+	UnitTest_VBuffer();
+	UnitTest_VImage();
+	FG_LOGI( "UnitTest_Main - finished" );
+}
+//-----------------------------------------------------------------------------
+
+
+
+extern void UnitTest_VResourceManager (const FGThreadPtr &fg);
+
+static void UnitTest_FGMain (const FGThreadPtr &fg)
+{
+	UnitTest_VResourceManager( fg );
+	FG_LOGI( "UnitTest_FGMain - finished" );
+}
+//-----------------------------------------------------------------------------
+
 
 
 int main ()

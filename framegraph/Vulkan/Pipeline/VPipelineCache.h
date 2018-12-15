@@ -33,10 +33,6 @@ namespace FG
 		using FragmentOutputPtr			= const VGraphicsPipeline::FragmentOutputInstance *;
 		using ShaderModule_t			= VGraphicsPipeline::ShaderModule;
 
-		static constexpr uint			MaxDescriptorPoolSize	= 1024;
-		static constexpr uint			MaxDescriptorSets		= 512;
-		using DescriptorPoolArray_t		= Array< VkDescriptorPool >;
-
 		template <typename T>
 		struct PipelineInstancePairHash {
 			ND_ size_t  operator () (const Pair<T const*, typename T::PipelineInstance> &value) const {
@@ -73,7 +69,6 @@ namespace FG
 		
 		ShaderModules_t				_shaderCache;
 		PipelineCompilers_t			_compilers;
-		DescriptorPoolArray_t		_descriptorPools;
 		
 		// pipeline cache
 		GPipelineInstanceMap_t		_graphicsPipelines;
@@ -112,8 +107,6 @@ namespace FG
 		bool CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev);
 		bool CompileShaders (INOUT RayTracingPipelineDesc &desc, const VDevice &dev);
 
-		bool AllocDescriptorSet (const VDevice &dev, VkDescriptorSetLayout layout, OUT VkDescriptorSet &ds);
-
 		ND_ FragmentOutputPtr  CreateFramentOutput (ArrayView<GraphicsPipelineDesc::FragmentOutput> values);
 
 		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread		&resMngr,
@@ -141,7 +134,6 @@ namespace FG
 		bool _CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module);
 
 		bool _CreatePipelineCache (const VDevice &dev);
-		bool _CreateDescriptorPool (const VDevice &dev);
 
 		void _ClearTemp ();
 

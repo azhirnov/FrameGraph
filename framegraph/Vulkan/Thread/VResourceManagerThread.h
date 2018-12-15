@@ -7,6 +7,7 @@
 #include "VLocalImage.h"
 #include "VLogicalRenderPass.h"
 #include "VPipelineCache.h"
+#include "VDescriptorManager.h"
 #include "VRenderPassCache.h"
 #include "VLocalRTGeometry.h"
 #include "VLocalRTScene.h"
@@ -75,6 +76,7 @@ namespace FG
 		VResourceManager&					_mainRM;
 		VPipelineCache						_pipelineCache;
 		VRenderPassCache					_renderPassCache;
+		VDescriptorManager					_descriptorMngr;
 
 		ResourceIndexCache_t				_indexCache;
 

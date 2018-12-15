@@ -416,22 +416,19 @@ namespace {
 
 		const uint3		image_size		= Max( task.imageSize, 1u );
 		const auto&		fmt_info		= EPixelFormat_GetInfo( img_desc.format );
-		const auto&		block_size		= fmt_info.blockSize;
-		const uint		bpp				= EPixelFormat_BitPerPixel( img_desc.format, task.aspectMask );
-		const BytesU	row_pitch		= Max( task.dataRowPitch, BytesU(image_size.x * bpp) / 8 );
-		const BytesU	slice_pitch		= Max( task.dataSlicePitch, (image_size.y * row_pitch) );
+		const auto&		block_dim		= fmt_info.blockSize;
+		const uint		block_size		= task.aspectMask != EImageAspect::Stencil ? fmt_info.bitsPerBlock : fmt_info.bitsPerBlock2;
+		const BytesU	row_pitch		= Max( task.dataRowPitch, BytesU(image_size.x * block_size + block_dim.x-1) / (block_dim.x * 8) );
+		const BytesU	slice_pitch		= Max( task.dataSlicePitch, (image_size.y * row_pitch + block_dim.y-1) / block_dim.y );
 
 		ASSERT( ArraySizeOf(task.data) == slice_pitch * image_size.z );
 
-		const BytesU		min_size	= 16_Mb;		// TODO
-		const uint			row_length	= uint((row_pitch * 8) / bpp);
-		const uint			img_height	= uint(slice_pitch / row_pitch);
+		const BytesU		min_size	= _stagingMngr->GetMaxWritableStoregeSize();
+		const uint			row_length	= uint((row_pitch * block_dim.x * 8) / block_size);
+		const uint			img_height	= uint((slice_pitch * block_dim.y) / row_pitch);
 		const BytesU		total_size	= ArraySizeOf(task.data);
 		VDeviceQueueInfoPtr	queue		= _queues.front().ptr;
 		CopyBufferToImage	copy;
-
-		ASSERT( (row_pitch * 8) % bpp == 0 );
-		ASSERT( slice_pitch % row_pitch == 0 );
 
 		copy.taskName	= task.taskName;
 		copy.debugColor	= task.debugColor;
@@ -459,10 +456,10 @@ namespace {
 
 				const uint	z_size = uint(size / slice_pitch);
 
-				ASSERT( task.imageOffset.x % block_size.x == 0 );
-				ASSERT( task.imageOffset.y % block_size.y == 0 );
-				ASSERT( image_size.x % block_size.x == 0 );
-				ASSERT( image_size.y % block_size.y == 0 );
+				ASSERT( task.imageOffset.x % block_dim.x == 0 );
+				ASSERT( task.imageOffset.y % block_dim.y == 0 );
+				ASSERT( image_size.x % block_dim.x == 0 );
+				ASSERT( image_size.y % block_dim.y == 0 );
 
 				copy.AddRegion( off, row_length, img_height,
 								ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
@@ -486,7 +483,7 @@ namespace {
 			{
 				RawBufferID		src_buffer;
 				BytesU			off, size;
-				CHECK_ERR( _stagingMngr->StoreImageData( data, readn, row_pitch, total_size,
+				CHECK_ERR( _stagingMngr->StoreImageData( data, readn, row_pitch * block_dim.y, total_size,
 														 OUT src_buffer, OUT off, OUT size ));
 				
 				if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
@@ -606,14 +603,16 @@ namespace {
 		ASSERT( task.arrayLayer < img_desc.arrayLayers );
 		ASSERT(Any( task.imageSize > uint3(0) ));
 		
-		const uint3			image_size	= Max( task.imageSize, 1u );
-		const BytesU		min_size	= 16_Mb;		// TODO
-		const uint			bpp			= EPixelFormat_BitPerPixel( img_desc.format, task.aspectMask );
-		const BytesU		row_pitch	= (image_size.x * BytesU(bpp)) / 8;
-		const BytesU		slice_pitch	= row_pitch * image_size.y;
-		const BytesU		total_size	= slice_pitch * image_size.z;
-		const uint			row_length	= uint((row_pitch * 8) / bpp);
-		const uint			img_height	= uint(slice_pitch / row_pitch);
+		const uint3			image_size		= Max( task.imageSize, 1u );
+		const BytesU		min_size		= _stagingMngr->GetMaxReadableStorageSize();
+		const auto&			fmt_info		= EPixelFormat_GetInfo( img_desc.format );
+		const auto&			block_dim		= fmt_info.blockSize;
+		const uint			block_size		= task.aspectMask != EImageAspect::Stencil ? fmt_info.bitsPerBlock : fmt_info.bitsPerBlock2;
+		const BytesU		row_pitch		= BytesU(image_size.x * block_size + block_dim.x-1) / (block_dim.x * 8);
+		const BytesU		slice_pitch		= (image_size.y * row_pitch + block_dim.y-1) / block_dim.y;
+		const BytesU		total_size		= slice_pitch * image_size.z;
+		const uint			row_length		= image_size.x;
+		const uint			img_height		= image_size.y;
 
 		OnDataLoadedEvent	load_event{ task.callback, total_size, image_size, row_pitch, slice_pitch, img_desc.format, task.aspectMask };
 		CopyImageToBuffer	copy;
@@ -665,7 +664,7 @@ namespace {
 			{
 				RawBufferID					dst_buffer;
 				OnDataLoadedEvent::Range	range;
-				CHECK_ERR( _stagingMngr->AddPendingLoad( written, total_size, row_pitch, OUT dst_buffer, OUT range ));
+				CHECK_ERR( _stagingMngr->AddPendingLoad( written, total_size, row_pitch * block_dim.y, OUT dst_buffer, OUT range ));
 				
 				if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
 				{

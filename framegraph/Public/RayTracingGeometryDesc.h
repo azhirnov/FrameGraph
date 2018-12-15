@@ -5,6 +5,7 @@
 #include "framegraph/Public/VertexEnums.h"
 #include "framegraph/Public/RayTracingEnums.h"
 #include "framegraph/Public/IDs.h"
+#include "framegraph/Public/VertexDesc.h"
 #include "stl/Math/Matrix.h"
 
 namespace FG

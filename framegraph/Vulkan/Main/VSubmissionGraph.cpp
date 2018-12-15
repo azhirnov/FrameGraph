@@ -394,7 +394,7 @@ namespace {
 		{
 			QueuePtr	expected = null;
 			batch.atomics.queue.compare_exchange_strong( INOUT expected, queue, memory_order_release, memory_order_relaxed );
-			CHECK_ERR( expected == VK_NULL_HANDLE or expected == queue );
+			CHECK_ERR( expected == null or expected == queue );
 		}
 
 		ASSERT( not commands.empty() );
@@ -419,7 +419,9 @@ namespace {
 		const uint	curr_bits	= prev_bits | new_bit;
 
 		ASSERT( curr_bits <= all_bits );
-		ASSERT( not (prev_bits & new_bit) );	// subbatch already submitted, something goes wrong...
+		
+		if ( prev_bits & new_bit )
+			RETURN_ERR( "subbatch already submitted" );
 
 		if ( curr_bits < all_bits )
 			return true;	// not all subbatches had been submitted yet

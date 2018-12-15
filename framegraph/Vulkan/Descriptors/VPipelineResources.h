@@ -34,7 +34,8 @@ namespace FG
 		DescriptorSetLayoutID		_layoutId;
 		//DescriptorPoolID			_descriptorPoolId;
 		HashVal						_hash;
-		ResourceSet_t				_resources;			// all resource ids has a weak reference
+		ResourceSet_t				_resources;				// all resource ids has a weak reference
+		const bool					_allowEmptyResources;
 		
 		DebugName_t					_debugName;
 		
@@ -43,12 +44,12 @@ namespace FG
 
 	// methods
 	public:
-		VPipelineResources () {}
+		VPipelineResources () : _allowEmptyResources{false} {}
 		VPipelineResources (VPipelineResources &&) = default;
 		VPipelineResources (const PipelineResources &desc);
 		~VPipelineResources ();
 
-		bool Create (VResourceManagerThread &, VPipelineCache &);
+		bool Create (VResourceManagerThread &, VDescriptorManager &);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;

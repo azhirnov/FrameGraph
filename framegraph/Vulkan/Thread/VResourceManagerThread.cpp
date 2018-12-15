@@ -208,6 +208,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		CHECK_ERR( _pipelineCache.Initialize( GetDevice() ));
+		CHECK_ERR( _descriptorMngr.Initialize( GetDevice() ));
 		return true;
 	}
 
@@ -238,6 +239,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		_pipelineCache.Deinitialize( GetDevice() );
+		_descriptorMngr.Deinitialize( GetDevice() );
 
 		_FreeIndexCache( UntypedResourceID_t() );
 
@@ -791,7 +793,7 @@ namespace FG
 		RawPipelineResourcesID	result =
 			_CreateCachedResource( _pplnResourcesMap, isAsync, "failed when creating descriptor set",
 								   [&] (auto& data) { return Replace( data, desc ); },
-								   [&] (auto& data) { return data.Create( *this, _pipelineCache ); });
+								   [&] (auto& data) { return data.Create( *this, _descriptorMngr ); });
 
 		if ( result )
 			PipelineResourcesInitializer::SetCache( desc, result );

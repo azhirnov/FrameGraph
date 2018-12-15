@@ -123,8 +123,10 @@ namespace FG
 		DispatchCompute&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 		{
 			ASSERT( id.IsDefined() );
-			pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
-			MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
+			auto&	pc = pushConstants.emplace_back();
+			pc.id = id;
+			pc.size = Bytes<uint16_t>{size};
+			MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
 			return *this;
 		}
 	};
@@ -181,8 +183,10 @@ namespace FG
 		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 		{
 			ASSERT( id.IsDefined() );
-			pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
-			MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
+			auto&	pc = pushConstants.emplace_back();
+			pc.id = id;
+			pc.size = Bytes<uint16_t>{size};
+			MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
 			return *this;
 		}
 	};
@@ -735,7 +739,7 @@ namespace FG
 		template <typename T>
 		UpdateImage&  SetData (const T* ptr, size_t count, const uint3 &dimension, BytesU rowPitch = 0_b, BytesU slicePitch = 0_b)
 		{
-			return SetData( ArrayView<uint8_t>{ Cast<uint8_t>(ptr), count*sizeof(T) }, dimension, rowPitch );
+			return SetData( ArrayView<uint8_t>{ Cast<uint8_t>(ptr), count*sizeof(T) }, dimension, rowPitch, slicePitch );
 		}
 	};
 
@@ -769,7 +773,7 @@ namespace FG
 			ASSERT( img );
 			srcImage	= img.Get();
 			imageOffset	= int3( offset.x, offset.y, 0 );
-			imageSize	= int3( size.x, size.y, 0 );
+			imageSize	= uint3( size.x, size.y, 0 );
 			mipmapLevel	= mipmap;
 			return *this;
 		}
@@ -789,7 +793,7 @@ namespace FG
 			ASSERT( img );
 			srcImage	= img.Get();
 			imageOffset	= int3( offset.x, offset.y, 0 );
-			imageSize	= int3( size.x, size.y, 0 );
+			imageSize	= uint3( size.x, size.y, 0 );
 			arrayLayer	= layer;
 			mipmapLevel	= mipmap;
 			return *this;
@@ -1177,8 +1181,10 @@ namespace FG
 		TraceRays&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 		{
 			ASSERT( id.IsDefined() );
-			pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
-			MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
+			auto&	pc = pushConstants.emplace_back();
+			pc.id = id;
+			pc.size = Bytes<uint16_t>{size};
+			MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
 			return *this;
 		}
 	};
