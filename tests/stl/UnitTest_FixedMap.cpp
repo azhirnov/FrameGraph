@@ -68,12 +68,34 @@ static void FixedMap_Test4 ()
 }
 
 
+static void FixedMap_Test5 ()
+{
+	FixedMap<int, int, 32>	map1;
+	FixedMap<int, int, 32>	map2;
+
+	map1.insert({  1, 1 });
+	map1.insert({ 11, 2 });
+	map1.insert({  6, 3 });
+	map1.insert({  9, 4 });
+	map1.insert({  3, 5 });
+
+	map2.insert({ 11, 1 });
+	map2.insert({  3, 2 });
+	map2.insert({  6, 3 });
+	map2.insert({  1, 4 });
+	map2.insert({  9, 5 });
+
+	TEST( map1.CalcHash() == map2.CalcHash() );
+}
+
+
 extern void UnitTest_FixedMap ()
 {
 	FixedMap_Test1();
 	FixedMap_Test2();
 	FixedMap_Test3();
 	FixedMap_Test4();
+	FixedMap_Test5();
 
 	FG_LOGI( "UnitTest_FixedMap - passed" );
 }

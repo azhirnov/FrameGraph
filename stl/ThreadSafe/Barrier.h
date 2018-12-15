@@ -11,7 +11,9 @@
 
 #include "stl/Common.h"
 
-#ifdef PLATFORM_WINDOWS
+#ifdef FG_STD_BARRIER
+#	define FG_BARRIER_MODE	3
+#elif defined(PLATFORM_WINDOWS)
 #	define FG_BARRIER_MODE	0
 #else
 #	define FG_BARRIER_MODE	2
@@ -184,9 +186,7 @@ namespace FG
 
 #elif (FG_BARRIER_MODE == 3)
 
-// TODO
-//#include <barrier>
-//#include <experimental/barrier>
+#include <barrier>
 
 namespace FG
 {

@@ -38,6 +38,21 @@ if (STD_CACHELINESIZE_SUPPORTED)
 else ()
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_CACHE_LINE=64" ) # TODO
 endif ()
+
+#------------------------------------------------------------------------------
+check_cxx_source_compiles(
+	"#include <barrier>
+	int main () {
+		std::barrier  temp;
+		return 0;
+	}"
+	STD_BARRIER_SUPPORTED
+)
+
+if (STD_BARRIER_SUPPORTED)
+	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_BARRIER" )
+endif ()
+
 #------------------------------------------------------------------------------
 
 set( CMAKE_REQUIRED_FLAGS "" )

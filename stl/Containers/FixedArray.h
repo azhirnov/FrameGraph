@@ -192,10 +192,12 @@ namespace FG
 
 
 		template <typename ...Args>
-		void emplace_back (Args&& ...args)
+		T&  emplace_back (Args&& ...args)
 		{
 			ASSERT( _count < capacity() );
-			PlacementNew<T>( data() + (_count++), std::forward<Args &&>( args )... );
+			T* ptr = data() + (_count++);
+			PlacementNew<T>( ptr, std::forward<Args &&>( args )... );
+			return *ptr;
 		}
 
 

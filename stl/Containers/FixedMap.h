@@ -26,7 +26,7 @@ namespace FG
 	// types
 	private:
 		using Self				= FixedMap< Key, Value, ArraySize >;
-		using Index_t			= uint32_t; //Conditional< (ArraySize < 0xFF), uint8_t, Conditional< (ArraySize < 0xFFFF), uint16_t, uint32_t >>;
+		using Index_t			= Conditional< (ArraySize < 0xFF), uint8_t, Conditional< (ArraySize < 0xFFFF), uint16_t, uint32_t >>;
 
 	public:
 		using iterator			= Pair< const Key, Value > *;
@@ -40,11 +40,10 @@ namespace FG
 	private:
 		mutable Index_t		_indices [ArraySize];
 		union {
-			pair_type		_array [ArraySize];
+			pair_type		_array  [ArraySize];
 			char			_buffer [sizeof(pair_type) * ArraySize];	// don't use this field!
 		};
 		Index_t				_count		= 0;
-		mutable bool		_isSorted	= false;		// TODO: this is not thread safe!
 
 
 	// methods
@@ -86,13 +85,15 @@ namespace FG
 		ND_ iterator		find (const key_type &key);
 
 		ND_ size_t			count (const key_type &key) const;
+
+		ND_ HashVal			CalcHash () const;
 		
 			void clear ();
 
-			void sort () const;
-
 
 	private:
+			void _sort ();
+
 		ND_ forceinline bool _IsMemoryAliased (const Self* other) const
 		{
 			return IsIntersects( this, this+1, other, other+1 );
@@ -119,9 +120,7 @@ namespace FG
 =================================================
 */
 	template <typename K, typename V, size_t S>
-	inline FixedMap<K,V,S>::FixedMap (const Self &other) :
-		_count{ other._count },
-		_isSorted{ other._isSorted }
+	inline FixedMap<K,V,S>::FixedMap (const Self &other) : _count{ other._count }
 	{
 		ASSERT( not _IsMemoryAliased( &other ) );
 
@@ -130,7 +129,7 @@ namespace FG
 			PlacementNew< pair_type >( &_array[i], other._array[i] );
 			_indices[i] = other._indices[i];
 		}
-		sort();
+		_sort();
 	}
 	
 /*
@@ -139,9 +138,7 @@ namespace FG
 =================================================
 */
 	template <typename K, typename V, size_t S>
-	inline FixedMap<K,V,S>::FixedMap (Self &&other) :
-		_count{ other._count },
-		_isSorted{ other._isSorted }
+	inline FixedMap<K,V,S>::FixedMap (Self &&other) : _count{ other._count }
 	{
 		ASSERT( not _IsMemoryAliased( &other ) );
 
@@ -151,7 +148,7 @@ namespace FG
 			_indices[i] = other._indices[i];
 		}
 		other.clear();
-		sort();
+		_sort();
 	}
 	
 /*
@@ -165,8 +162,7 @@ namespace FG
 		ASSERT( not _IsMemoryAliased( &rhs ) );
 
 		clear();
-		_count		= rhs._count;
-		_isSorted	= rhs._isSorted;
+		_count = rhs._count;
 
 		for (size_t i = 0; i < _count; ++i)
 		{
@@ -175,7 +171,7 @@ namespace FG
 		}
 
 		rhs.clear();
-		sort();
+		_sort();
 
 		return *this;
 	}
@@ -191,15 +187,14 @@ namespace FG
 		ASSERT( not _IsMemoryAliased( &rhs ) );
 
 		clear();
-		_count		= rhs._count;
-		_isSorted	= rhs._isSorted;
+		_count = rhs._count;
 
 		for (size_t i = 0; i < _count; ++i)
 		{
 			PlacementNew< pair_type >( &_array[i], rhs._array[i] );
 			_indices[i] = rhs._indices[i];
 		}
-		sort();
+		_sort();
 
 		return *this;
 	}
@@ -214,9 +209,6 @@ namespace FG
 	{
 		if ( _count != rhs._count )
 			return false;
-		
-		sort();
-		rhs.sort();
 
 		for (size_t i = 0; i < _count; ++i)
 		{
@@ -242,10 +234,10 @@ namespace FG
 
 			const size_t	i = _count++;
 		
-			_isSorted	= false;
 			_indices[i]	= Index_t(i);
 			PlacementNew<pair_type>( &_array[i], value );
-
+			
+			_sort();
 			return { BitCast< iterator >( &_array[i] ), true };
 		}
 
@@ -268,10 +260,10 @@ namespace FG
 	
 			const size_t	i = _count++;
 		
-			_isSorted	= false;
 			_indices[i]	= Index_t(i);
 			PlacementNew<pair_type>( &_array[i], std::move(value) );
-
+			
+			_sort();
 			return { BitCast< iterator >( &_array[i] ), true };
 		}
 
@@ -295,10 +287,10 @@ namespace FG
 	
 			const size_t	i = _count++;
 		
-			_isSorted	= false;
 			_indices[i]	= Index_t(i);
 			PlacementNew<pair_type>( &_array[i], pair_type{ key, std::forward<M &&>(obj) });
 
+			_sort();
 			return { BitCast< iterator >( &_array[i] ), true };
 		}
 		else
@@ -325,10 +317,10 @@ namespace FG
 	
 			const size_t	i = _count++;
 		
-			_isSorted	= false;
 			_indices[i]	= Index_t(i);
 			PlacementNew<pair_type>( &_array[i], pair_type{ std::move(key), std::forward<M &&>(obj) });
-
+			
+			_sort();
 			return { BitCast< iterator >( &_array[i] ), true };
 		}
 		else
@@ -386,8 +378,6 @@ namespace _fg_hidden_
 
 		if ( not empty() )
 		{
-			sort();
-
 			size_t	left	= 0;
 			size_t	right	= _count-1;
 
@@ -415,8 +405,6 @@ namespace _fg_hidden_
 
 		if ( not empty() )
 		{
-			sort();
-
 			size_t	left	= 0;
 			size_t	right	= _count-1;
 
@@ -445,8 +433,6 @@ namespace _fg_hidden_
 
 		if ( not empty() )
 		{
-			sort();
-
 			size_t	left	= 0;
 			size_t	right	= _count-1;
 
@@ -473,8 +459,7 @@ namespace _fg_hidden_
 			_array[i].~pair_type();
 		}
 
-		_count		= 0;
-		_isSorted	= true;
+		_count = 0;
 		
 		DEBUG_ONLY( ::memset( _indices, 0, sizeof(_indices) ));
 		DEBUG_ONLY( ::memset( _array,   0, sizeof(_array)   ));
@@ -482,19 +467,31 @@ namespace _fg_hidden_
 	
 /*
 =================================================
-	sort
+	_sort
 =================================================
 */
 	template <typename K, typename V, size_t S>
-	inline void  FixedMap<K,V,S>::sort () const
+	inline void  FixedMap<K,V,S>::_sort ()
 	{
-		if ( _isSorted )
-			return;
-
-		_isSorted = true;
 		std::sort( &_indices[0], &_indices[_count],
 				   [this] (Index_t lhs, Index_t rhs) { return _array[lhs].first < _array[rhs].first; }
-			);
+				 );
+	}
+	
+/*
+=================================================
+	CalcHash
+=================================================
+*/
+	template <typename K, typename V, size_t S>
+	inline HashVal  FixedMap<K,V,S>::CalcHash () const
+	{
+		HashVal		result = HashOf( size() );
+
+		for (uint i = 0; i < size(); ++i) {
+			result << HashOf( _array[ _indices[i] ].first );
+		}
+		return result;
 	}
 
 }	// FG
@@ -507,12 +504,7 @@ namespace std
 	{
 		ND_ size_t  operator () (const FG::FixedMap<Key, Value, ArraySize> &value) const noexcept
 		{
-			FG::HashVal	result;
-
-			for (auto& item : value) {
-				result << FG::HashOf( item );	// TODO: hash of same data may be different if values placed in different order, use cycle by index instead
-			}
-			return size_t(result);
+			return size_t(value.CalcHash());
 		}
 	};
 
