@@ -47,7 +47,7 @@ void main ()
 	TEST(All( ppln._defaultLocalGroupSize == uint3(8, 8, 1) ));
 	TEST( ppln._localSizeSpec.x == 0 );
 	TEST( ppln._localSizeSpec.y == 1 );
-	TEST( ppln._localSizeSpec.z == ~0u );
+	TEST( ppln._localSizeSpec.z == UMax );
 
 	TEST( ppln._shader.specConstants.size() == 1 );
 	TEST( TestSpecializationConstant( ppln._shader, SpecializationID("SCALE"), 2 ));

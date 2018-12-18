@@ -1165,7 +1165,7 @@ namespace FG
 		_resourceMngr.AfterFrameCompilation();
 		
 		_cmdBatchId		= Default;
-		_indexInBatch	= ~0u;
+		_indexInBatch	= UMax;
 		_currUsage		= Default;
 
 		CHECK_ERR( _SetState( EState::Compiling, EState::Pending ));

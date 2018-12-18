@@ -594,7 +594,7 @@ namespace FG
 
 			CHECK_ERR( _ChooseQueueIndex( queue_family_props, INOUT flags, OUT family_index ));
 
-			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, ~0u, flags, 0.0f });
+			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, UMax, flags, 0.0f });
 			return true;
 		}
 
@@ -605,7 +605,7 @@ namespace FG
 			VkQueueFlags	flags			= q.flags;
 			CHECK_ERR( _ChooseQueueIndex( queue_family_props, INOUT flags, OUT family_index ));
 
-			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, ~0u, flags, q.priority });
+			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, UMax, flags, q.priority });
 		}
 
 		return true;
@@ -834,7 +834,7 @@ namespace FG
 				requiredFlags &= ~VK_QUEUE_TRANSFER_BIT;
 		}
 
-		Pair<VkQueueFlags, uint>	compatible {0, ~0u};
+		Pair<VkQueueFlags, uint>	compatible {0, UMax};
 
 		for (size_t i = 0; i < queueFamilyProps.size(); ++i)
 		{

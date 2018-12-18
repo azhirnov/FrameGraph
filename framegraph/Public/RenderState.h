@@ -99,8 +99,8 @@ namespace FG
 			StencilFaceState () :
 				failOp{ EStencilOp::Keep },		depthFailOp{ EStencilOp::Keep },
 				passOp{ EStencilOp::Keep },		compareOp{ ECompareOp::Always },
-				reference{ 0 },					writeMask{ ~0u },
-				compareMask{ ~0u }
+				reference{ 0 },					writeMask{ UMax },
+				compareMask{ UMax }
 			{}
 
 			ND_ bool  operator == (const StencilFaceState &rhs) const;

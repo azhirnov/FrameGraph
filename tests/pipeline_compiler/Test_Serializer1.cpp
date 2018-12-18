@@ -84,11 +84,11 @@ void main() {
 	desc.AddDescriptorSet(
 			DescriptorSetID{"0"},
 			0,
-			{{ UniformID{"un_ColorTexture"}, EImage::Tex2D, BindingIndex{~0u, 1u}, EShaderStages::Fragment }},
+			{{ UniformID{"un_ColorTexture"}, EImage::Tex2D, BindingIndex{UMax, 1u}, EShaderStages::Fragment }},
 			{},
 			{},
 			{},
-			{{ UniformID{"UB"}, 16_b, BindingIndex{~0u, 0u}, EShaderStages::Fragment }},
+			{{ UniformID{"UB"}, 16_b, BindingIndex{UMax, 0u}, EShaderStages::Fragment }},
 			{} );
 
 	desc.SetSpecConstants( EShader::Vertex, {

@@ -43,9 +43,11 @@ namespace FG
 		explicit IntermediateImage (StringView path) : _srcPath{path} {}
 		explicit IntermediateImage (Mipmaps_t &&data, StringView path = Default) : _srcPath{path}, _data{std::move(data)} {}
 
-		void SetData (Mipmaps_t &&data)		{ _data = std::move(data); }
+		void SetData (Mipmaps_t &&data)				{ _data = std::move(data); }
 
-		ND_ StringView	GetPath ()	const	{ return _srcPath; }
+		ND_ StringView			GetPath ()	const	{ return _srcPath; }
+
+		ND_ Mipmaps_t const&	GetData ()	const	{ return _data; }
 	};
 	
 	using IntermediateImagePtr = SharedPtr< IntermediateImage >;

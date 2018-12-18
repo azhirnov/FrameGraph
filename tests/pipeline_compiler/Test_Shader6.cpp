@@ -64,7 +64,7 @@ R"#(
 	GraphicsPipelineDesc	ppln2 = ppln;
 	GraphicsPipelineDesc	ppln3 = ppln;
 
-
+	auto	old_flags = compiler->GetCompilationFlags();
 	compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
 
 	TEST(	 compiler->Compile( INOUT ppln1, EShaderLangFormat::SPIRV_100 ));
@@ -72,6 +72,6 @@ R"#(
 	
 
 	// restore previous state
-	compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
+	compiler->SetCompilationFlags( old_flags );
 	FG_LOGI( "Test_Shader6 - passed" );
 }

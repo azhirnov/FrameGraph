@@ -17,6 +17,7 @@ extern void UnitTest_BitTree ();
 extern void UnitTest_LfFixedStack ();
 extern void UnitTest_StructView ();
 extern void UnitTest_Array ();
+extern void UnitTest_StringParser ();
 
 
 int main ()
@@ -35,6 +36,7 @@ int main ()
 	UnitTest_BitTree();
 	UnitTest_StructView();
 	UnitTest_Array();
+	UnitTest_StringParser();
 
 	FG_LOGI( "Tests.STL finished" );
 	

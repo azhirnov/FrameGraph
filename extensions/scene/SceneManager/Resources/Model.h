@@ -22,7 +22,7 @@ namespace FG
 		{
 			BytesU			vbOffset;
 			EPrimitive		topology		= Default;
-			uint			attribsIndex	= ~0u;
+			uint			attribsIndex	= UMax;
 			uint			patchSize		= 0;		// for tessellation
 
 			BytesU			ibOffset;
@@ -35,7 +35,7 @@ namespace FG
 		struct SubModel
 		{
 			MaterialPtr		mtr;
-			uint			meshIndex		= ~0u;
+			uint			meshIndex		= UMax;
 			ERenderLayer	layer			= Default;
 			uint			detailLevel		= 0;
 

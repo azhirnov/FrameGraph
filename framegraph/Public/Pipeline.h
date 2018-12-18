@@ -21,7 +21,7 @@ namespace FG
 	{
 	// types
 	public:
-		static constexpr uint	STATIC_OFFSET = ~0u;
+		static constexpr uint	STATIC_OFFSET = UMax;
 
 		struct Texture
 		{
@@ -154,7 +154,7 @@ namespace FG
 		struct DescriptorSet
 		{
 			DescriptorSetID		id;
-			uint				bindingIndex	= ~0u;
+			uint				bindingIndex	= UMax;
 			UniformMapPtr		uniforms;
 		};
 
@@ -255,7 +255,7 @@ namespace FG
 		{
 		// variables
 			RenderTargetID	id;
-			uint			index	= ~0u;
+			uint			index	= UMax;
 			EFragOutput		type	= Default;
 
 		// methods
@@ -347,7 +347,7 @@ namespace FG
 	// types
 		using Self = ComputePipelineDesc;
 		
-		static constexpr uint	UNDEFINED_SPECIALIZATION = ~0u;
+		static constexpr uint	UNDEFINED_SPECIALIZATION = UMax;
 
 	// variables
 		Shader		_shader;
@@ -414,7 +414,7 @@ namespace FG
 		using FragmentOutput	= GraphicsPipelineDesc::FragmentOutput;
 		using FragmentOutputs_t	= FixedArray< FragmentOutput, FG_MaxColorBuffers >;
 		
-		static constexpr uint	UNDEFINED_SPECIALIZATION = ~0u;
+		static constexpr uint	UNDEFINED_SPECIALIZATION = UMax;
 
 
 	// variables

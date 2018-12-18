@@ -60,9 +60,9 @@ void main ()
 			{},
 			{},
 			{},
-			{{ UniformID{"un_OutImage"}, EImage::Tex2D, EPixelFormat::RGBA8_UNorm, EShaderAccess::WriteOnly, BindingIndex{~0u, 0u}, EShaderStages::Compute }},
+			{{ UniformID{"un_OutImage"}, EImage::Tex2D, EPixelFormat::RGBA8_UNorm, EShaderAccess::WriteOnly, BindingIndex{UMax, 0u}, EShaderStages::Compute }},
 			{},
-			{{ UniformID{"un_SSBO"}, 16_b, 0_b, EShaderAccess::ReadOnly, BindingIndex{~0u, 1u}, EShaderStages::Compute }} );
+			{{ UniformID{"un_SSBO"}, 16_b, 0_b, EShaderAccess::ReadOnly, BindingIndex{UMax, 1u}, EShaderStages::Compute }} );
 
 	desc.SetPushConstants({ {PushConstantID("PushConst"), EShaderStages::Compute, 0_b, 32_b}});
 

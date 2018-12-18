@@ -20,7 +20,7 @@ namespace FG
 	VulkanSwapchain::VulkanSwapchain () :
 		_vkSwapchain{ VK_NULL_HANDLE },			_vkPhysicalDevice{ VK_NULL_HANDLE },
 		_vkDevice{ VK_NULL_HANDLE },			_vkSurface{ VK_NULL_HANDLE },
-		_currImageIndex{ ~0u },
+		_currImageIndex{ UMax },
 		_colorFormat{ VK_FORMAT_UNDEFINED },	_colorSpace{ VK_COLOR_SPACE_MAX_ENUM_KHR },
 		_minImageCount{ 0 },					_imageArrayLayers{ 0 },
 		_preTransform{ VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR },
@@ -100,7 +100,7 @@ namespace FG
 		}
 		else
 		{
-			const size_t	max_idx		= ~size_t(0);
+			const size_t	max_idx		= UMax;
 
 			size_t	both_match_idx		= max_idx;
 			size_t	format_match_idx	= max_idx;
@@ -347,9 +347,9 @@ namespace FG
 		CHECK_ERR( _vkDevice and _vkSwapchain and imageAvailable, VK_RESULT_MAX_ENUM );
 		CHECK_ERR( not IsImageAcquired(), VK_RESULT_MAX_ENUM );
 
-		_currImageIndex = ~0u;
+		_currImageIndex = UMax;
 
-		return vkAcquireNextImageKHR( _vkDevice, _vkSwapchain, ~0u, imageAvailable,
+		return vkAcquireNextImageKHR( _vkDevice, _vkSwapchain, UMax, imageAvailable,
 									  VK_NULL_HANDLE, OUT &_currImageIndex );
 	}
 	
@@ -376,7 +376,7 @@ namespace FG
 		present_info.waitSemaphoreCount	= uint(renderFinished.size());
 		present_info.pWaitSemaphores	= renderFinished.data();
 
-		_currImageIndex	= ~0u;
+		_currImageIndex	= UMax;
 
 		VkResult	res = vkQueuePresentKHR( queue, &present_info );
 
@@ -461,7 +461,7 @@ namespace FG
 		_vkSwapchain		= VK_NULL_HANDLE;
 		_surfaceSize		= uint2();
 
-		_currImageIndex		= ~0u;
+		_currImageIndex		= UMax;
 		
 		_colorFormat		= VK_FORMAT_UNDEFINED;
 		_colorSpace			= VK_COLOR_SPACE_MAX_ENUM_KHR;
@@ -511,8 +511,8 @@ namespace FG
 */
 	void VulkanSwapchain::_GetSwapChainExtent (INOUT VkExtent2D &extent, const VkSurfaceCapabilitiesKHR &surfaceCaps) const
 	{
-		if ( surfaceCaps.currentExtent.width  == ~0u and
-			 surfaceCaps.currentExtent.height == ~0u )
+		if ( surfaceCaps.currentExtent.width  == UMax and
+			 surfaceCaps.currentExtent.height == UMax )
 		{
 			// keep window size
 		}

@@ -22,9 +22,6 @@ namespace FG
 		using Value_t		= T;
 		using SubRange_t	= Self;
 
-	private:
-		static constexpr T	MAX = ~T(0);
-
 
 	// variables
 	public:
@@ -34,12 +31,12 @@ namespace FG
 
 	// methods
 	public:
-		ResourceDataRange () : begin{MAX}, end{T(0)} {}
+		ResourceDataRange () : begin{UMax}, end{T(0)} {}
 		ResourceDataRange (T begin, T end) : begin{begin}, end{end} {}
 
-		ND_ T		Count ()							const	{ ASSERT( not IsEmpty() );  return end == MAX ? MAX : end - begin; }
+		ND_ T		Count ()							const	{ ASSERT( not IsEmpty() );  return end == UMax ? UMax : end - begin; }
 
-		ND_ bool	IsWhole ()							const	{ return end == MAX; }
+		ND_ bool	IsWhole ()							const	{ return end == UMax; }
 		ND_ bool	IsEmpty ()							const	{ return end <= begin; }
 
 		ND_ bool	operator == (const Self &rhs)		const	{ return begin == rhs.begin and end == rhs.end; }
@@ -53,8 +50,8 @@ namespace FG
 
 		Self &		operator += (T rhs)
 		{
-			begin = AdditionIsSafe( begin, rhs ) ? begin + rhs : MAX;
-			end   = AdditionIsSafe( end,   rhs ) ? end   + rhs : MAX;
+			begin = AdditionIsSafe( begin, rhs ) ? begin + rhs : UMax;
+			end   = AdditionIsSafe( end,   rhs ) ? end   + rhs : UMax;
 			return *this;
 		}
 

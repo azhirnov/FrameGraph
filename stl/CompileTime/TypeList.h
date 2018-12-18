@@ -17,7 +17,7 @@ namespace _fg_hidden_
 	template <typename Type, size_t I>
 	struct TL_GetIndex< Type, I, std::tuple<> >
 	{
-		inline static constexpr size_t	value = ~size_t(0);
+		inline static constexpr size_t	value = UMax;
 	};
 
 	template <typename Type, size_t I, typename Head, typename... Tail>
@@ -47,7 +47,7 @@ namespace _fg_hidden_
 		inline static constexpr size_t	Count	= std::tuple_size< std::tuple<Types...> >::value;
 
 		template <typename T>
-		inline static constexpr bool	HasType	= (Index<T> != ~size_t(0));
+		inline static constexpr bool	HasType	= (Index<T> != UMax);
 	};
 
 	

@@ -48,7 +48,7 @@ namespace _fg_hidden_
 			if constexpr (Size != BitCount)
 				_highLevel = ~(((BitType(1) << (BitCount - Size)) - 1) << Size);
 			else
-				_highLevel = ~BitType(0);
+				_highLevel = UMax;
 
 			for (uint i = 0; i < Size; ++i)
 			{
@@ -165,7 +165,7 @@ namespace _fg_hidden_
 			if constexpr (Size != BitCount)
 				_highLevel = ~(((BitType(1) << (BitCount - Size)) - 1) << Size);
 			else
-				_highLevel = ~BitType(0);
+				_highLevel = UMax;
 
 			for (uint i = 0; i < Size; ++i)
 			{

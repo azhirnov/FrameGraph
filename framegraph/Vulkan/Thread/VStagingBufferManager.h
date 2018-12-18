@@ -150,8 +150,8 @@ namespace FG
 		bool AddDataLoadedEvent (OnImageDataLoadedEvent &&ev);
 		bool AddDataLoadedEvent (OnBufferDataLoadedEvent &&ev);
 
-		ND_ BytesU  GetMaxWritableStoregeSize () const		{ return _stagingBufferSize / 8; }
-		ND_ BytesU  GetMaxReadableStorageSize () const		{ return _stagingBufferSize / 8; }
+		ND_ BytesU  GetMaxWritableStoregeSize () const		{ return _stagingBufferSize / 4; }
+		ND_ BytesU  GetMaxReadableStorageSize () const		{ return _stagingBufferSize / 4; }
 
 
 	private:

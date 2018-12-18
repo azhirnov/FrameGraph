@@ -140,6 +140,8 @@ namespace FG
 
 		ValidationTasks_t			_validationTasks;
 		std::atomic<uint>			_validationTaskPos	= 0;
+		
+		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods
@@ -178,16 +180,19 @@ namespace FG
 		void  _UnassignResourceIDs ();
 
 		template <typename ID, typename PoolT>
-		ND_ static typename PoolT::Value_t*  _GetResource (PoolT &res, ID id);
+		ND_ static typename PoolT::Value_t*  _GetResource (PoolT &pool, ID id);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &res, ID id);
+		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &res, ID id);
+		void _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force);
 
 		template <typename DataT, size_t CS, size_t MC>
-		void _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &res);
+		void _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &pool);
+		
+		template <typename ID>
+		ND_ bool  _AddToResourceCache (const ID &id);
 
 		ND_ auto&  _GetResourcePool (const RawBufferID &)				{ return _bufferPool; }
 		ND_ auto&  _GetResourcePool (const RawImageID &)				{ return _imagePool; }
@@ -222,6 +227,7 @@ namespace FG
 	inline auto const*  VResourceManager::GetResource (ID id) const
 	{
 		ASSERT( id );
+		SHAREDLOCK( _rcCheck );
 
 		auto&	pool = _GetResourceCPool( id );
 		auto&	data = pool[ id.Index() ];
@@ -238,11 +244,12 @@ namespace FG
 =================================================
 */
 	template <typename ID, typename PoolT>
-	inline typename PoolT::Value_t*  VResourceManager::_GetResource (PoolT &res, ID id)
+	inline typename PoolT::Value_t*  VResourceManager::_GetResource (PoolT &pool, ID id)
 	{
 		ASSERT( id );
+		SHAREDLOCK( _rcCheck );
 		
-		auto&	data = res[ id.Index() ];
+		auto&	data = pool[ id.Index() ];
 		ASSERT( data.GetInstanceID() == id.InstanceID() );
 		
 		return &data.Data();
@@ -254,18 +261,20 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &res, ID id)
+	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool)
 	{
+		SCOPELOCK( _rcCheck );
+
 		// destroy if needed
-		auto&	data = res[ id.Index() ];
+		auto&	data = pool[ id.Index() ];
 
 		if ( data.GetInstanceID() != id.InstanceID() )
-			return;
+			return;	// this instance is already destroyed
 
 		if ( data.IsCreated() )
 			data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
 
-		res.Unassign( id.Index() );
+		pool.Unassign( id.Index() );
 	}
 	
 /*
@@ -274,22 +283,39 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &res, ID id)
+	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force)
 	{
+		SCOPELOCK( _rcCheck );
+
 		// destroy if needed
-		auto&	data = res[ id.Index() ];
+		auto&	data = pool[ id.Index() ];
 		
 		if ( data.GetInstanceID() != id.InstanceID() )
-			return;
+			return;	// this instance is already destroyed
 
-		const bool	destroy = (data.IsCreated() and data.ReleaseRef( _currTime ));
+		const bool	destroy = data.IsCreated() and (force or data.ReleaseRef( _currTime ));
 
 		if ( not destroy )
 			return;	// don't unassign ID
 
-		res.RemoveFromCache( id.Index() );
+		pool.RemoveFromCache( id.Index() );
 		data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
-		res.Unassign( id.Index() );
+		pool.Unassign( id.Index() );
+	}
+	
+/*
+=================================================
+	_AddToResourceCache
+=================================================
+*/
+	template <typename ID>
+	inline bool  VResourceManager::_AddToResourceCache (const ID &id)
+	{
+		SCOPELOCK( _rcCheck );
+
+		auto&	pool = _GetResourcePool( id );
+
+		return pool.AddToCache( id.Index() ).second;
 	}
 
 

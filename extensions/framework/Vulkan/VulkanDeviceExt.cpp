@@ -406,7 +406,7 @@ namespace FG
 */
 	bool VulkanDeviceExt::GetMemoryTypeIndex (const uint memoryTypeBits, const VkMemoryPropertyFlags flags, OUT uint &memoryTypeIndex) const
 	{
-		memoryTypeIndex = ~0u;
+		memoryTypeIndex = UMax;
 
 		for (uint32_t i = 0; i < _deviceMemoryProperties.memoryTypeCount; ++i)
 		{

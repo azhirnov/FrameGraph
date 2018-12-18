@@ -59,8 +59,8 @@ namespace FG
 			ND_ bool  operator == (const BufferBinding &rhs) const;
 		};
 
-		static constexpr uint	BindingIndex_Auto	= ~0u;
-		static constexpr uint	VertexIndex_Unknown	= ~0u;
+		static constexpr uint	BindingIndex_Auto	= UMax;
+		static constexpr uint	VertexIndex_Unknown	= UMax;
 
 		
 		using Vertices_t	= FixedMap< VertexID, VertexInput, FG_MaxAttribs >;

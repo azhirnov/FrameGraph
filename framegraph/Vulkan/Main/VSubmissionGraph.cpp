@@ -152,7 +152,7 @@ namespace {
 		
 		if ( not frame.waitFences.empty() )
 		{
-			VK_CALL( _device.vkWaitForFences( _device.GetVkDevice(), uint(frame.waitFences.size()), frame.waitFences.data(), VK_TRUE, ~0ull ));		// TODO: set timeout ?
+			VK_CALL( _device.vkWaitForFences( _device.GetVkDevice(), uint(frame.waitFences.size()), frame.waitFences.data(), VK_TRUE, UMax ));		// TODO: set timeout ?
 			VK_CALL( _device.vkResetFences( _device.GetVkDevice(), uint(frame.waitFences.size()), frame.waitFences.data() ));
 
 			// recycle fences
@@ -255,11 +255,11 @@ namespace {
 	{
 		SCOPELOCK( _sharedSemaphores.lock );	// TODO: lock-free
 
-		auto	inserted = _sharedSemaphores.map.insert({ sem, ~0u });
+		auto	inserted = _sharedSemaphores.map.insert({ sem, UMax });
 		if ( not inserted.second )
 		{
 			index = inserted.first->second;
-			return inserted.first->second != ~0u;
+			return inserted.first->second != UMax;
 		}
 
 		index = uint( (size_t(inserted.first) - size_t(_sharedSemaphores.map.begin())) / sizeof(inserted.first) );
@@ -278,11 +278,11 @@ namespace {
 
 		auto&	item = *(_sharedSemaphores.map.begin() + index);
 
-		if ( item.second == ~0u )
+		if ( item.second == UMax )
 			return false;
 
 		sem = item.first;
-		item.second = ~0u;
+		item.second = UMax;
 		return true;
 	}
 

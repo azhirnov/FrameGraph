@@ -59,7 +59,7 @@ namespace _fg_hidden_
 
 	// variables
 	private:
-		uint64_t	_value	= ~0ull;
+		uint64_t	_value	= UMax;
 
 		STATIC_ASSERT( sizeof(_value) == (sizeof(Index_t) + sizeof(InstanceID_t)) );
 
@@ -70,7 +70,7 @@ namespace _fg_hidden_
 		constexpr ResourceID (const ResourceID &other) : _value{other._value} {}
 		explicit constexpr ResourceID (Index_t val, InstanceID_t inst) : _value{uint64_t(val) | (uint64_t(inst) << 32)} {}
 
-		ND_ constexpr bool			IsValid ()						const	{ return _value != ~0ull; }
+		ND_ constexpr bool			IsValid ()						const	{ return _value != UMax; }
 		ND_ constexpr Index_t		Index ()						const	{ return _value & 0xFFFFFFFFull; }
 		ND_ constexpr InstanceID_t	InstanceID ()					const	{ return _value >> 32; }
 		ND_ constexpr HashVal		GetHash ()						const	{ return HashVal{_value}; }

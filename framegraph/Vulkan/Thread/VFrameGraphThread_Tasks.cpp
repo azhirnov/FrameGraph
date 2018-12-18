@@ -419,14 +419,14 @@ namespace {
 		const auto&		block_dim		= fmt_info.blockSize;
 		const uint		block_size		= task.aspectMask != EImageAspect::Stencil ? fmt_info.bitsPerBlock : fmt_info.bitsPerBlock2;
 		const BytesU	row_pitch		= Max( task.dataRowPitch, BytesU(image_size.x * block_size + block_dim.x-1) / (block_dim.x * 8) );
-		const BytesU	slice_pitch		= Max( task.dataSlicePitch, (image_size.y * row_pitch + block_dim.y-1) / block_dim.y );
+		const BytesU	slice_pitch		= Max( /*task.dataSlicePitch*/ 0_b, (image_size.y * row_pitch + block_dim.y-1) / block_dim.y );
+		const BytesU	total_size		= ArraySizeOf(task.data);
 
-		ASSERT( ArraySizeOf(task.data) == slice_pitch * image_size.z );
+		ASSERT( total_size == slice_pitch * image_size.z );
 
-		const BytesU		min_size	= _stagingMngr->GetMaxWritableStoregeSize();
+		const BytesU		min_size	= _stagingMngr->GetMaxWritableStoregeSize() * 4;
 		const uint			row_length	= uint((row_pitch * block_dim.x * 8) / block_size);
 		const uint			img_height	= uint((slice_pitch * block_dim.y) / row_pitch);
-		const BytesU		total_size	= ArraySizeOf(task.data);
 		VDeviceQueueInfoPtr	queue		= _queues.front().ptr;
 		CopyBufferToImage	copy;
 

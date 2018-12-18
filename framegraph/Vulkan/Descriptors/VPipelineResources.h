@@ -31,7 +31,7 @@ namespace FG
 	// variables
 	private:
 		VkDescriptorSet				_descriptorSet		= VK_NULL_HANDLE;
-		DescriptorSetLayoutID		_layoutId;
+		RawDescriptorSetLayoutID	_layoutId;
 		//DescriptorPoolID			_descriptorPoolId;
 		HashVal						_hash;
 		ResourceSet_t				_resources;				// all resource ids has a weak reference
@@ -49,7 +49,7 @@ namespace FG
 		VPipelineResources (const PipelineResources &desc);
 		~VPipelineResources ();
 
-		bool Create (VResourceManagerThread &, VDescriptorManager &);
+		bool Create (VResourceManagerThread &);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
@@ -57,7 +57,7 @@ namespace FG
 		ND_ bool  operator == (const VPipelineResources &rhs) const;
 
 		ND_ VkDescriptorSet				Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _descriptorSet; }
-		ND_ RawDescriptorSetLayoutID	GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
+		ND_ RawDescriptorSetLayoutID	GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId; }
 		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 		ND_ ResourceSet_t const&		GetData ()		const	{ SHAREDLOCK( _rcCheck );  return _resources; }
 		

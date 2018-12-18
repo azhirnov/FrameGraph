@@ -264,7 +264,7 @@ bool SparseImageApp::Run ()
 
 		// wait and acquire next image
 		{
-			VK_CHECK( vkWaitForFences( vulkan.GetVkDevice(), 1, &fences[frameId], true, ~0ull ));
+			VK_CHECK( vkWaitForFences( vulkan.GetVkDevice(), 1, &fences[frameId], true, UMax ));
 			VK_CHECK( vkResetFences( vulkan.GetVkDevice(), 1, &fences[frameId] ));
 
 			VK_CALL( swapchain->AcquireNextImage( semaphores[0] ));

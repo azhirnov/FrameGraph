@@ -132,7 +132,7 @@ public:
 
 			// wait and acquire next image
 			{
-				VK_CHECK( vkWaitForFences( vulkan.GetVkDevice(), 1, &fences[i&1], true, ~0ull ));
+				VK_CHECK( vkWaitForFences( vulkan.GetVkDevice(), 1, &fences[i&1], true, UMax ));
 				VK_CHECK( vkResetFences( vulkan.GetVkDevice(), 1, &fences[i&1] ));
 
 				VK_CALL( swapchain->AcquireNextImage( semaphores[0] ));

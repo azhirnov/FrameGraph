@@ -98,7 +98,7 @@ void main()
 	TEST(All( ppln._defaultTaskGroupSize == uint3{ 32, 1, 1 } ));
 	TEST(All( ppln._defaultMeshGroupSize == uint3{ 1, 1, 1 } ));
 	TEST(All( ppln._taskSizeSpec == uint3{ ~0u } ));
-	TEST(All( ppln._meshSizeSpec == uint3{ 0, ~0u, ~0u } ));
+	TEST(All( ppln._meshSizeSpec == uint3{ 0, UMax, UMax } ));
 
 	FG_LOGI( "Test_Shader7 - passed" );
 }

@@ -20,7 +20,7 @@ namespace FG
 		struct GroupInfo
 		{
 			RTShaderGroupID		id;
-			uint				offset	= ~0u;
+			uint				offset	= UMax;
 
 			ND_ bool  operator == (const RTShaderGroupID &rhs)	const	{ return id == rhs; }
 			ND_ bool  operator <  (const RTShaderGroupID &rhs)	const	{ return id < rhs; }

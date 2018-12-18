@@ -61,10 +61,10 @@ namespace {
 		uint	mr_counter	= 0;
 
 		_submissionGraph.Clear();
-		_submissionGraph.AddBatch( ShadowMapBatch, cameras.size() );
+		_submissionGraph.AddBatch( ShadowMapBatch, uint(cameras.size()) );
 		_submissionGraph.AddBatch( MainRendererBatch, 1 );
 
-		CHECK_ERR( _fgInstance->Begin( _submissionGraph ));
+		CHECK_ERR( _fgInstance->BeginFrame( _submissionGraph ));
 
 		for (auto& cam : cameras)
 		{
@@ -102,10 +102,10 @@ namespace {
 			//if ( cam.viewport )
 			//	cam.viewport->AfterRender();	// TODO
 
-			CHECK_ERR( _frameGraph->Compile() );
+			CHECK_ERR( _frameGraph->Execute() );
 		}
 
-		CHECK_ERR( _fgInstance->Execute() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 		return true;
 	}
 

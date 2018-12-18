@@ -20,8 +20,7 @@ extern void Test_Serializer2 (VPipelineCompiler* compiler);
 int main ()
 {
 	VPipelineCompiler	compiler;
-	compiler.SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations |
-								  EShaderCompilationFlags::GenerateDebugInfo /*|
+	compiler.SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations /*|
 								  EShaderCompilationFlags::UseCurrentDeviceLimits*/ );
 	
 	Test_Serializer1( &compiler );

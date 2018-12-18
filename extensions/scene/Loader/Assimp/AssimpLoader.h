@@ -23,8 +23,8 @@ namespace FG
 	public:
 		struct Config
 		{
-			uint	maxTrianglesPerMesh	= ~0u;
-			uint	maxVerticesPerMesh	= ~0u;
+			uint	maxTrianglesPerMesh	= UMax;
+			uint	maxVerticesPerMesh	= UMax;
 
 			bool	calculateTBN		= true;
 			bool	smoothNormals		= false;

@@ -1,6 +1,7 @@
 // Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Algorithms/ArrayUtils.h"
+#include "stl/Containers/Appendable.h"
 #include "UnitTest_Common.h"
 
 
@@ -17,9 +18,45 @@ static void BinarySearch_Test1 ()
 }
 
 
+static void Appendable_Test1 ()
+{
+	Array<int>		arr;
+	Appendable<int>	app{ arr };
+
+	app.push_back( 1 );
+	app.push_back( 2 );
+
+	TEST( arr.size() == 2 );
+	TEST( arr[0] == 1 );
+	TEST( arr[1] == 2 );
+}
+
+
+static void Appendable_Test2 ()
+{
+	struct Utils {
+		static Pair<int, float> Conv (int &&i) {
+			return { i, float(i) };
+		}
+	};
+
+	Array<Pair<int, float>>		arr;
+	Appendable<int>				app{ arr, std::integral_constant< decltype(&Utils::Conv), &Utils::Conv >{} };
+
+	app.push_back( 1 );
+	app.push_back( 2 );
+
+	TEST( arr.size() == 2 );
+	TEST( arr[0].first == 1 );
+	TEST( arr[1].first == 2 );
+}
+
+
 extern void UnitTest_Array ()
 {
 	BinarySearch_Test1();
+	Appendable_Test1();
+	Appendable_Test2();
 
 	FG_LOGI( "UnitTest_Array - passed" );
 }

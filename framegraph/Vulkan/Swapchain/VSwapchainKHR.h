@@ -27,7 +27,7 @@ namespace FG
 
 		VkSwapchainKHR					_vkSwapchain		= VK_NULL_HANDLE;
 		VkSurfaceKHR					_vkSurface			= VK_NULL_HANDLE;
-		uint							_currImageIndex		= ~0u;
+		uint							_currImageIndex		= UMax;
 		VkSemaphore						_imageAvailable		= VK_NULL_HANDLE;
 		VkSemaphore						_renderFinished		= VK_NULL_HANDLE;
 

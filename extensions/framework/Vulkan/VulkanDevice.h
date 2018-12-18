@@ -30,8 +30,8 @@ namespace FG
 		struct VulkanQueue
 		{
 			VkQueue					id			= VK_NULL_HANDLE;
-			uint					familyIndex	= ~0u;
-			uint					queueIndex	= ~0u;
+			uint					familyIndex	= UMax;
+			uint					queueIndex	= UMax;
 			VkQueueFlags			flags		= 0;
 			float					priority	= 0.0f;
 		};

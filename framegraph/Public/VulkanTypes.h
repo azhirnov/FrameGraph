@@ -45,7 +45,7 @@ namespace FG
 		struct QueueInfo
 		{
 			QueueVk_t			id				= null;
-			uint				familyIndex		= ~0u;
+			uint				familyIndex		= UMax;
 			QueueFlagsVk_t		familyFlags		= {};
 			float				priority		= 0.0f;
 			StaticString<64>	debugName;
@@ -112,7 +112,7 @@ namespace FG
 		uint					maxLevels	= 0;
 
 		// queue family that owns image
-		uint					queueFamily	= ~0u;
+		uint					queueFamily	= UMax;
 
 		// wait semaphore before use image
 		SemaphoreVk_t			semaphore	= {};
@@ -129,7 +129,7 @@ namespace FG
 		BytesU					size;
 		
 		// queue family that owns buffer
-		uint					queueFamily	= ~0u;
+		uint					queueFamily	= UMax;
 
 		// wait semaphore before use buffer
 		SemaphoreVk_t			semaphore	= {};

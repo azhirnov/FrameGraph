@@ -36,7 +36,7 @@ namespace FG
 			EAddressMode			addressModeV	= Default;
 			EAddressMode			addressModeW	= Default;
 			EFilter					filter			= Default;
-			uint					uvIndex			= ~0u;
+			uint					uvIndex			= UMax;
 		};
 
 		struct Settings

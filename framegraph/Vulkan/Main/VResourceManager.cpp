@@ -3,6 +3,7 @@
 #include "VResourceManager.h"
 #include "VResourceManagerThread.h"
 #include "VDevice.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -24,6 +25,7 @@ namespace FG
 */
 	VResourceManager::~VResourceManager ()
 	{
+		SCOPELOCK( _rcCheck );
 		ASSERT( _perFrame.empty() );
 	}
 	
@@ -34,6 +36,7 @@ namespace FG
 */
 	bool VResourceManager::Initialize (uint ringBufferSize)
 	{
+		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _perFrame.empty() );
 
 		_perFrame.resize( ringBufferSize );
@@ -54,6 +57,8 @@ namespace FG
 */
 	void VResourceManager::Deinitialize ()
 	{
+		SCOPELOCK( _rcCheck );
+
 		_DestroyResourceCache( INOUT _samplerCache );
 		_DestroyResourceCache( INOUT _pplnLayoutCache );
 		_DestroyResourceCache( INOUT _dsLayoutCache );
@@ -74,12 +79,22 @@ namespace FG
 */
 	void VResourceManager::OnBeginFrame (uint frameId)
 	{
+		SCOPELOCK( _rcCheck );
+
 		_frameId	= frameId;
 		_currTime	= uint(std::chrono::duration_cast< std::chrono::seconds >( TimePoint_t::clock::now() - _startTime ).count());
 
 		_DeleteResources( INOUT _perFrame[_frameId].readyToDelete );
 
 		_CreateValidationTasks();
+
+		size_t	desc_count = 0;
+		for (auto& cnt : _pplnResourcesCache._pool._indexCount)
+		{
+			desc_count += ((FG_MaxResources/16) - cnt);
+		}
+
+		FG_LOGI( "Descriptor sets count: " + ToString(desc_count) );
 	}
 	
 /*
@@ -89,6 +104,8 @@ namespace FG
 */
 	void VResourceManager::OnEndFrame ()
 	{
+		SCOPELOCK( _rcCheck );
+
 		_UnassignResourceIDs();
 		_DestroyValidationTasks();
 	}
@@ -108,7 +125,7 @@ namespace FG
 
 			for (auto& vid : temp)
 			{
-				std::visit( [this] (auto id) { _UnassignResource( _GetResourcePool(id), id ); }, vid );
+				std::visit( [this] (auto id) { _UnassignResource( _GetResourcePool(id), id, true ); }, vid );
 			}
 			temp.clear();
 		}

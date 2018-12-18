@@ -68,7 +68,7 @@ namespace FG
 
 		// index bufer state
 		VkBuffer					_indexBuffer		= VK_NULL_HANDLE;
-		VkDeviceSize				_indexBufferOffset	= ~0ull;
+		VkDeviceSize				_indexBufferOffset	= UMax;
 		VkIndexType					_indexType			= VK_INDEX_TYPE_MAX_ENUM;
 
 		static constexpr float		_dbgColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -138,6 +138,8 @@ namespace FG
 		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize);
 		void _BindPipeline (const VRayTracingPipeline* pipeline);
 		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
+		void _SetScissor (const VLogicalRenderPass *, const _fg_hidden_::Scissors_t &) const;
+		void _SetStencilDynamicStates (const RenderState::StencilBufferState &, const _fg_hidden_::DepthStencilState &) const;
 
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);

@@ -402,7 +402,7 @@ namespace FG
 		dstBuffer	= suitable->bufferId.Get();
 		mappedPtr	= suitable->mappedPtr + dstOffset;
 
-		suitable->size += outSize;
+		suitable->size = dstOffset + outSize;
 		return true;
 	}
 	
@@ -472,7 +472,7 @@ namespace FG
 		range.size		= Min( AlignToSmaller( suitable->capacity - range.offset, blockAlign ), srcRequiredSize );
 		dstBuffer		= suitable->bufferId.Get();
 
-		suitable->size += range.size;
+		suitable->size = range.offset + range.size;
 		return true;
 	}
 	

@@ -222,6 +222,17 @@ namespace FG
 	template <typename DescT>
 	bool  VPipelineCache::_CompileShaders (INOUT DescT &desc, const VDevice &dev)
 	{
+		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+
+		// try to use external compilers
+		for (auto& comp : _compilers)
+		{
+			if ( comp->IsSupported( desc, req_format ) )
+			{
+				return comp->Compile( INOUT desc, req_format );
+			}
+		}
+
 		// check is shaders supported by default compiler
 		const auto	formats		 = _GetBuiltinFormats( dev );
 		bool		is_supported = true;
@@ -266,21 +277,10 @@ namespace FG
 			is_supported &= found;
 		}
 
-		if ( is_supported )
-			return true;
+		if ( not is_supported )
+			RETURN_ERR( "unsuported shader format!" );
 
-
-		// try to compile
-		for (auto& comp : _compilers)
-		{
-			if ( comp->IsSupported( desc, formats.front() ) )
-			{
-				CHECK_ERR( comp->Compile( INOUT desc, formats.front() ));
-				return true;
-			}
-		}
-
-		RETURN_ERR( "unsuported shader format!" );
+		return true;
 	}
 	
 /*
@@ -949,7 +949,7 @@ namespace FG
 		{
 			VkVertexInputAttributeDescription	dst = {};
 
-			ASSERT( src.second.index != ~0U );
+			ASSERT( src.second.index != UMax );
 
 			dst.binding		= src.second.bindingIndex;
 			dst.format		= VEnumCast( src.second.type );
@@ -1134,14 +1134,14 @@ namespace FG
 
 				case EPipelineDynamicState::StencilCompareMask :
 					ASSERT( renderState.stencil.enabled ); 
-					renderState.stencil.front.compareMask = ~0u;
-					renderState.stencil.back.compareMask  = ~0u;
+					renderState.stencil.front.compareMask = UMax;
+					renderState.stencil.back.compareMask  = UMax;
 					break;
 
 				case EPipelineDynamicState::StencilWriteMask :
 					ASSERT( renderState.stencil.enabled ); 
-					renderState.stencil.front.writeMask = ~0u;
-					renderState.stencil.back.writeMask  = ~0u;
+					renderState.stencil.front.writeMask = UMax;
+					renderState.stencil.back.writeMask  = UMax;
 					break;
 
 				case EPipelineDynamicState::StencilReference :

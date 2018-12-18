@@ -64,7 +64,7 @@ namespace FG
 
 		struct SubpassInput final : Image
 		{
-			uint					attachmentIndex	= ~0u;
+			uint					attachmentIndex	= UMax;
 
 			ND_ bool  operator == (const SubpassInput &rhs) const {
 				return	Image::operator== (rhs) and
@@ -394,6 +394,7 @@ namespace FG
 		}
 		return *this;
 	}
+
 /*
 =================================================
 	_BindUniformBuffer
@@ -445,8 +446,8 @@ namespace FG
 		}
 		else
 		{
-			ASSERT( offset < std::numeric_limits<uint>::max() );
-			_dynamicOffsets[un.dynamicOffsetIndex] = uint(offset);
+			ASSERT( offset > buf.offset and buf.offset - offset < std::numeric_limits<uint>::max() );
+			_dynamicOffsets[un.dynamicOffsetIndex] = uint(buf.offset - offset);
 		}
 		
 		if ( changed )

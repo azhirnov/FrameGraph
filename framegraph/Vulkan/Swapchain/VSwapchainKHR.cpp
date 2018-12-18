@@ -94,7 +94,7 @@ namespace FG
 		_surfaceSize	= Default;
 		_vkSwapchain	= VK_NULL_HANDLE;
 		_vkSurface		= VK_NULL_HANDLE;
-		_currImageIndex	= ~0u;
+		_currImageIndex	= UMax;
 
 		_colorFormat	= VK_FORMAT_UNDEFINED;
 		_colorSpace		= VK_COLOR_SPACE_MAX_ENUM_KHR;
@@ -121,18 +121,13 @@ namespace FG
 			return true;
 		}
 
-#if 0
 		VkAcquireNextImageInfoKHR	info = {};
 		info.sType		= VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR;
 		info.swapchain	= _vkSwapchain;
-		info.timeout	= ~0ull;
+		info.timeout	= UMax;
 		info.semaphore	= _imageAvailable;
 		info.deviceMask	= 1;
-
 		VK_CHECK( _GetDevice().vkAcquireNextImage2KHR( _GetVkDevice(), &info, OUT &_currImageIndex ));
-#else
-		VK_CHECK( _GetDevice().vkAcquireNextImageKHR( _GetVkDevice(), _vkSwapchain, ~0ull, _imageAvailable, VK_NULL_HANDLE, OUT &_currImageIndex ));
-#endif
 
 		outImageId = _imageIDs[ _currImageIndex ].Get();
 
@@ -171,7 +166,7 @@ namespace FG
 			err = _GetDevice().vkQueuePresentKHR( _presentQueue->handle, &present_info );
 		}
 
-		_currImageIndex	= ~0u;
+		_currImageIndex	= UMax;
 		
 		switch ( err ) {
 			case VK_SUCCESS :
@@ -268,11 +263,14 @@ namespace FG
 		desc.queueFamily	= VK_QUEUE_FAMILY_IGNORED;
 		//desc.semaphore		= BitCast<SemaphoreVk_t>( _imageAvailable );
 
+		char	image_name[] = "SwapchainImage-0";
+
 		for (size_t i = 0; i < images.size(); ++i)
 		{
 			desc.image = BitCast<ImageVk_t>( images[i] );
+			image_name[ sizeof(image_name)-2 ] = char('0' + i);
 
-			_imageIDs[i] = ImageID{ _frameGraph.GetResourceManager()->CreateImage( desc, {}, "SwapchainImage" )};
+			_imageIDs[i] = ImageID{ _frameGraph.GetResourceManager()->CreateImage( desc, {}, image_name )};
 		}
 		return true;
 	}
@@ -388,8 +386,8 @@ namespace FG
 */
 	static void GetSwapChainExtent (INOUT uint2 &extent, const VkSurfaceCapabilitiesKHR &surfaceCaps)
 	{
-		if ( surfaceCaps.currentExtent.width  == ~0u and
-			 surfaceCaps.currentExtent.height == ~0u )
+		if ( surfaceCaps.currentExtent.width  == UMax and
+			 surfaceCaps.currentExtent.height == UMax )
 		{
 			// keep window size
 		}

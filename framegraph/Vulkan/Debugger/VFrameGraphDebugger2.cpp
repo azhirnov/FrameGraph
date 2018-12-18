@@ -694,7 +694,7 @@ namespace {
 		bool	dst_bits [CountOf(all_stages)] = {};
 
 		size_t	last_src_cell	= 0;
-		size_t	first_dst_cell	= ~0u;
+		size_t	first_dst_cell	= UMax;
 
 		for (size_t i = 0; i < CountOf(all_stages); ++i)
 		{

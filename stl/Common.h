@@ -19,6 +19,7 @@
 #include "stl/Log/Log.h"
 #include "stl/Algorithms/Hash.h"
 #include "stl/CompileTime/TypeTraits.h"
+#include "stl/CompileTime/UMax.h"
 
 #ifdef FG_DEBUG
 #	define FG_ENABLE_RACE_CONDITION_CHECK

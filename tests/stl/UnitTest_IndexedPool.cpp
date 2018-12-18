@@ -33,9 +33,9 @@ static void ChunkedIndexedPool_Test2 ()
 	
 	for (size_t i = 0; i < count; i += arr.capacity())
 	{
-		TEST( pool.Assign( ~0u, INOUT arr ) > 0 );
+		TEST( pool.Assign( UMax, INOUT arr ) > 0 );
 		TEST( arr.size() == arr.capacity() );
-		pool.Unassign( ~0u, INOUT arr );
+		pool.Unassign( UMax, INOUT arr );
 	}
 }
 

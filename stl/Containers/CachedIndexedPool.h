@@ -110,7 +110,7 @@ namespace FG
 			if ( iter != _cache.end() )
 				return iter->second;
 
-			return ~Index_t(0);
+			return UMax;
 		}
 		
 

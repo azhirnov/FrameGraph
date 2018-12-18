@@ -98,7 +98,7 @@ namespace FG
 		if ( arr[right] == key )
 			return right;
 
-		return ~size_t(0);
+		return UMax;
 	}
 
 }	// FG

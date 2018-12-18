@@ -40,9 +40,9 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 
-		_layoutId	= DescriptorSetLayoutID{ desc.GetLayout() };
 		_resources	= desc.GetData();
-		_hash		= Default;
+		_layoutId	= desc.GetLayout();
+		_hash		= HashOf( _layoutId );
 
 		for (auto& un : _resources)
 		{
@@ -57,7 +57,7 @@ namespace FG
 */
 	VPipelineResources::~VPipelineResources ()
 	{
-		CHECK( _descriptorSet == VK_NULL_HANDLE );
+		CHECK( not _descriptorSet );
 	}
 	
 /*
@@ -65,15 +65,15 @@ namespace FG
 	Create
 =================================================
 */
-	bool VPipelineResources::Create (VResourceManagerThread &resMngr, VDescriptorManager &descriptorMngr)
+	bool VPipelineResources::Create (VResourceManagerThread &resMngr)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _descriptorSet == VK_NULL_HANDLE );
-		
+		CHECK_ERR( not _descriptorSet );
+
 		VDevice const&					dev			= resMngr.GetDevice();
-		VDescriptorSetLayout const*		ds_layout	= resMngr.GetResource( _layoutId.Get() );
+		VDescriptorSetLayout const*		ds_layout	= resMngr.GetResource( _layoutId );
 		
-		CHECK_ERR( descriptorMngr.AllocDescriptorSet( dev, ds_layout->Handle(), OUT _descriptorSet ));
+		CHECK_ERR( resMngr.GetDescriptorManager()->AllocDescriptorSet( dev, ds_layout->Handle(), OUT _descriptorSet ));
 
 		UpdateDescriptors	update;
 		update.descriptors		= update.allocator.Alloc< VkWriteDescriptorSet >( _resources.size() + 1 );
@@ -98,7 +98,7 @@ namespace FG
 
 		// release reference only if descriptor set was created
 		if ( _layoutId and _descriptorSet ) {
-			unassignIDs.emplace_back( _layoutId.Release() );
+			unassignIDs.emplace_back( _layoutId );
 		}
 
 		if ( _descriptorSet ) {

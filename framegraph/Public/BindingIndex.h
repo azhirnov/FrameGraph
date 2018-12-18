@@ -16,8 +16,8 @@ namespace FG
 
 	// variables
 	private:
-		uint	_index1		= ~0u;	// resource dependend index, may be optimized to minimize resource switches between pipelines, used in OpenGL, DirectX
-		uint	_index2		= ~0u;	// resource unique index in current pipeline, used in Vulkan, OpenCL, software renderer
+		uint	_index1		= UMax;	// resource dependend index, may be optimized to minimize resource switches between pipelines, used in OpenGL, DirectX
+		uint	_index2		= UMax;	// resource unique index in current pipeline, used in Vulkan, OpenCL, software renderer
 
 	// methods
 	public:

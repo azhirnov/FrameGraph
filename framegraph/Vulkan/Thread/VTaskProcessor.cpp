@@ -142,6 +142,7 @@ namespace FG
 		void Visit (const VFgDrawTask<DrawIndexedIndirect> &task);
 		void Visit (const VFgDrawTask<DrawMeshesIndirect> &task);
 
+	private:
 		void _BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const;
 		void _SetScissor (const _fg_hidden_::Scissors_t &sc) const;
 
@@ -220,7 +221,7 @@ namespace FG
 		// invalidate fragment output
 		for (auto& frag : _fragOutput)
 		{
-			frag.index	= ~0u;
+			frag.index	= UMax;
 			frag.type	= EFragOutput::Unknown;
 		}
 	}
@@ -394,7 +395,7 @@ namespace FG
 
 				_maxFragCount = Max( _maxFragCount, src.index+1 );
 
-				if ( dst.type == EFragOutput::Unknown and dst.index == ~0u )
+				if ( dst.type == EFragOutput::Unknown and dst.index == UMax )
 				{
 					dst = src;
 					continue;
@@ -510,37 +511,6 @@ namespace FG
 
 /*
 =================================================
-	_SetScissor
-=================================================
-*/
-	void VTaskProcessor::DrawTaskCommands::_SetScissor (const _fg_hidden_::Scissors_t &srcScissors) const
-	{
-		if ( not srcScissors.empty() )
-		{
-			FixedArray< VkRect2D, FG_MaxViewports >		vk_scissors;
-
-			for (auto& src : srcScissors)
-			{
-				VkRect2D		dst = {};
-				dst.offset.x		= src.left;
-				dst.offset.y		= src.top;
-				dst.extent.width	= uint(src.Width());
-				dst.extent.height	= uint(src.Height());
-				vk_scissors.push_back( dst );
-			}
-
-			_dev.vkCmdSetScissor( _cmdBuffer, 0, uint(vk_scissors.size()), vk_scissors.data() );
-		}
-		else
-		{
-			const auto&	vk_scissors = _currTask->GetLogicalPass()->GetScissors();
-
-			_dev.vkCmdSetScissor( _cmdBuffer, 0, uint(vk_scissors.size()), vk_scissors.data() );
-		}
-	}
-
-/*
-=================================================
 	Visit (DrawVertices)
 =================================================
 */
@@ -555,7 +525,8 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		_SetScissor( task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
 
 		for (auto& cmd : task.commands)
 		{
@@ -579,9 +550,9 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		_SetScissor( task.scissors );
-
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
 		_tp._BindIndexBuffer( task.indexBuffer->Handle(), VkDeviceSize(task.indexBufferOffset), VEnumCast(task.indexType) );
+		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
 
 		for (auto& cmd : task.commands)
 		{
@@ -606,7 +577,8 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		_SetScissor( task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
 
 		for (auto& cmd : task.commands)
 		{
@@ -634,9 +606,9 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		_SetScissor( task.scissors );
-
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
 		_tp._BindIndexBuffer( task.indexBuffer->Handle(), VkDeviceSize(task.indexBufferOffset), VEnumCast(task.indexType) );
+		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
 
 		for (auto& cmd : task.commands)
 		{
@@ -663,7 +635,8 @@ namespace FG
 		_BindPipelineResources( *layout, task.descriptorSets, task.GetResources().dynamicOffsets );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
-		_SetScissor( task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
 
 		for (auto& cmd : task.commands)
 		{
@@ -686,7 +659,8 @@ namespace FG
 		_BindPipelineResources( *layout, task.descriptorSets, task.GetResources().dynamicOffsets );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
-		_SetScissor( task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
 
 		for (auto& cmd : task.commands)
 		{
@@ -881,6 +855,66 @@ namespace FG
 		
 		if ( _frameGraph.GetDebugger() )
 			_frameGraph.GetDebugger()->RunTask( _currTask );
+	}
+	
+/*
+=================================================
+	_SetScissor
+=================================================
+*/
+	void VTaskProcessor::_SetScissor (const VLogicalRenderPass *logicalPsss, const _fg_hidden_::Scissors_t &srcScissors) const
+	{
+		if ( not srcScissors.empty() )
+		{
+			FixedArray< VkRect2D, FG_MaxViewports >		vk_scissors;
+
+			for (auto& src : srcScissors)
+			{
+				VkRect2D		dst = {};
+				dst.offset.x		= src.left;
+				dst.offset.y		= src.top;
+				dst.extent.width	= uint(src.Width());
+				dst.extent.height	= uint(src.Height());
+				vk_scissors.push_back( dst );
+			}
+
+			_dev.vkCmdSetScissor( _cmdBuffer, 0, uint(vk_scissors.size()), vk_scissors.data() );
+		}
+		else
+		{
+			const auto&	vk_scissors = logicalPsss->GetScissors();
+
+			_dev.vkCmdSetScissor( _cmdBuffer, 0, uint(vk_scissors.size()), vk_scissors.data() );
+		}
+	}
+	
+/*
+=================================================
+	_SetStencilDynamicStates
+=================================================
+*/
+	void VTaskProcessor::_SetStencilDynamicStates (const RenderState::StencilBufferState &currState, const _fg_hidden_::DepthStencilState &state) const
+	{
+		if ( not state.stencilTest.value_or( currState.enabled ) )
+			return;
+
+		if ( state.compareMask.has_value() )
+		{
+			_dev.vkCmdSetStencilCompareMask( _cmdBuffer, VK_STENCIL_FACE_FRONT_BIT, state.compareMask.value().x );
+			_dev.vkCmdSetStencilCompareMask( _cmdBuffer, VK_STENCIL_FACE_BACK_BIT, state.compareMask.value().y );
+		}
+
+		if ( state.reference.has_value() )
+		{
+			_dev.vkCmdSetStencilReference( _cmdBuffer, VK_STENCIL_FACE_FRONT_BIT, state.reference.value().x );
+			_dev.vkCmdSetStencilReference( _cmdBuffer, VK_STENCIL_FACE_BACK_BIT, state.reference.value().y );
+		}
+
+		if ( state.writeMask.has_value() )
+		{
+			_dev.vkCmdSetStencilWriteMask( _cmdBuffer, VK_STENCIL_FACE_FRONT_BIT, state.writeMask.value().x );
+			_dev.vkCmdSetStencilWriteMask( _cmdBuffer, VK_STENCIL_FACE_BACK_BIT, state.writeMask.value().x );
+		}
 	}
 
 /*

@@ -86,7 +86,7 @@ namespace FG
 		
 		VSubmissionGraph const*		_submissionGraph	= null;
 		CommandBatchID				_cmdBatchId;
-		uint						_indexInBatch		= ~0u;
+		uint						_indexInBatch		= UMax;
 
 		const DebugName_t			_debugName;
 

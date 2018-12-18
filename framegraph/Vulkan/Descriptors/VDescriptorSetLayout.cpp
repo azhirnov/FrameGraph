@@ -254,7 +254,7 @@ namespace FG
 */
 	void VDescriptorSetLayout::_AddUniform (const PipelineDescription::Uniform &un, INOUT DescriptorBinding_t &binding)
 	{
-		ASSERT( un.index.VKBinding() != ~0u );
+		ASSERT( un.index.VKBinding() != UMax );
 
 		Visit( un.data,
 			[&] (const PipelineDescription::Texture &tex) {
