@@ -3,7 +3,6 @@
 #include "VResourceManager.h"
 #include "VResourceManagerThread.h"
 #include "VDevice.h"
-#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -87,14 +86,6 @@ namespace FG
 		_DeleteResources( INOUT _perFrame[_frameId].readyToDelete );
 
 		_CreateValidationTasks();
-
-		size_t	desc_count = 0;
-		for (auto& cnt : _pplnResourcesCache._pool._indexCount)
-		{
-			desc_count += ((FG_MaxResources/16) - cnt);
-		}
-
-		FG_LOGI( "Descriptor sets count: " + ToString(desc_count) );
 	}
 	
 /*
@@ -125,7 +116,7 @@ namespace FG
 
 			for (auto& vid : temp)
 			{
-				std::visit( [this] (auto id) { _UnassignResource( _GetResourcePool(id), id, true ); }, vid );
+				std::visit( [this] (auto id) { _UnassignResource( _GetResourcePool(id), id ); }, vid );
 			}
 			temp.clear();
 		}

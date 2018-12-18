@@ -49,7 +49,7 @@ namespace FG
 		{}
 
 		void push_back (Value_t &&value)		{ _pushBack( _ref, std::move(value) ); }
-		void push_back (const Value_t &value)	{ _pushBack( _ref, Value_t{value} ); }
+		void push_back (const Value_t &value)	{ _pushBack( _ref, std::move(Value_t{value}) ); }
 		
 		template <typename ...Args>
 		void emplace_back (Args&& ...args)		{ _pushBack( _ref, Value_t{ std::forward<Args&&>(args)... }); }

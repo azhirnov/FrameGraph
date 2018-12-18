@@ -7,6 +7,7 @@
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
 #include "stl/Stream/FileStream.h"
+#include "stl/Algorithms/StringParser.h"
 #include <thread>
 
 #ifdef FG_ENABLE_LODEPNG
@@ -145,7 +146,7 @@ namespace {
 		// add glsl pipeline compiler
 		{
 			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
-			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
+			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
 
 			_frameGraphInst->AddPipelineCompiler( _pplnCompiler );
 		}
@@ -380,59 +381,20 @@ namespace {
 			return true;
 		};
 
-		const auto	ReadLine	= [] (StringView str, INOUT size_t &pos, OUT StringView &result)
-		{
-			result = {};
-			
-			const size_t	prev_pos = pos;
-
-			// move to end of line
-			while ( pos < str.length() )
-			{
-				const char	n = (pos+1) >= str.length() ? 0 : str[pos+1];
-				
-				++pos;
-
-				if ( n == '\n' or n == '\r' )
-					break;
-			}
-
-			result = str.substr( prev_pos, pos - prev_pos );
-
-			// move to next line
-			while ( pos < str.length() )
-			{
-				const char	c = str[pos];
-				const char	n = (pos+1) >= str.length() ? 0 : str[pos+1];
-			
-				++pos;
-
-				// windows style "\r\n"
-				if ( c == '\r' and n == '\n' ) {
-					++pos;
-					return;
-				}
-
-				// linux style "\n" (or mac style "\r")
-				if ( c == '\n' or c == '\r' )
-					return;
-			}
-		};
-
 
 		// compare line by line
 		for (; LeftValid() and RightValid(); )
 		{
 			// read left line
 			do {
-				ReadLine( left, INOUT l_pos, OUT line_str[0] );
+				StringParser::ReadLineToEnd( left, INOUT l_pos, OUT line_str[0] );
 				++line_number[0];
 			}
 			while ( IsEmptyLine( line_str[0] ) and LeftValid() );
 
 			// read right line
 			do {
-				ReadLine( right, INOUT r_pos, OUT line_str[1] );
+				StringParser::ReadLineToEnd( right, INOUT r_pos, OUT line_str[1] );
 				++line_number[1];
 			}
 			while ( IsEmptyLine( line_str[1] ) and RightValid() );

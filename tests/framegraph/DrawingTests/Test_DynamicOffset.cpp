@@ -107,7 +107,7 @@ void main ()
 		resources.SetBufferBase( UniformID("SSB"), base_off );
 
 		resources.BindBuffer( UniformID("UB"),  buffer, base_off + buf_off,  src_size );
-		resources.BindBuffer( UniformID("SSB"), buffer, buf_off + src_size,  dst_size );
+		resources.BindBuffer( UniformID("SSB"), buffer, base_off + buf_off + src_size,  dst_size );
 
 		Task	t_write		= frame_graph->AddTask( UpdateBuffer{}.SetBuffer( buffer ).AddData( src_data, CountOf(src_data), base_off + buf_off ));
 		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetGroupCount( 1 ).DependsOn( t_write ));

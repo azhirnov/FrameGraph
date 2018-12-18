@@ -183,10 +183,10 @@ namespace FG
 		ND_ static typename PoolT::Value_t*  _GetResource (PoolT &pool, ID id);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool);
+		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force);
+		void _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id);
 
 		template <typename DataT, size_t CS, size_t MC>
 		void _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &pool);
@@ -261,7 +261,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool)
+	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -283,7 +283,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force)
+	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -292,8 +292,8 @@ namespace FG
 		
 		if ( data.GetInstanceID() != id.InstanceID() )
 			return;	// this instance is already destroyed
-
-		const bool	destroy = data.IsCreated() and (force or data.ReleaseRef( _currTime ));
+		
+		const bool	destroy = (data.IsCreated() and data.ReleaseRef( _currTime ));
 
 		if ( not destroy )
 			return;	// don't unassign ID

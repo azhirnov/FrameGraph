@@ -446,8 +446,8 @@ namespace FG
 		}
 		else
 		{
-			ASSERT( offset > buf.offset and buf.offset - offset < std::numeric_limits<uint>::max() );
-			_dynamicOffsets[un.dynamicOffsetIndex] = uint(buf.offset - offset);
+			ASSERT( offset >= buf.offset and offset - buf.offset < std::numeric_limits<uint>::max() );
+			_dynamicOffsets[un.dynamicOffsetIndex] = uint(offset - buf.offset);
 		}
 		
 		if ( changed )

@@ -65,8 +65,8 @@ namespace FG
 		using LogicalRenderPasses_t		= PoolTmpl2< VLogicalRenderPass, MaxLocalResources >;
 		using LocalRTGeometries_t		= PoolTmpl2< VLocalRTGeometry, MaxLocalResources >;
 		using LocalRTScenes_t			= PoolTmpl2< VLocalRTScene, MaxLocalResources >;
-
-		using ResourceIDQueue_t			= std::vector< Pair<UntypedResourceID_t, bool>, StdLinearAllocator<Pair<UntypedResourceID_t, bool>> >;
+		
+		using ResourceIDQueue_t			= std::vector< UntypedResourceID_t, StdLinearAllocator<UntypedResourceID_t> >;
 		using ResourceIndexCache_t		= StaticArray< FixedArray<Index_t, 128>, 20 >;
 
 
@@ -169,7 +169,7 @@ namespace FG
 		ND_ VLocalRTScene const*	GetState (RawRTSceneID id)		{ return _GetState( _localRTScenes, Remap( id )); }
 
 		template <typename ID>
-		void ReleaseResource (ID id, bool isAsync, bool force = false);
+		void ReleaseResource (ID id, bool isAsync);
 		
 		void FlushLocalResourceStates (ExeOrderIndex, VBarrierManager &, VFrameGraphDebugger *);
 
@@ -200,9 +200,6 @@ namespace FG
 		template <typename ID>	ND_ bool   _Assign (OUT ID &id);
 		template <typename ID>		void   _Unassign (ID id);
 		template <typename ID>	ND_ auto&  _GetResourcePool (const ID &id)		{ return _mainRM._GetResourcePool( id ); }
-
-		ND_ AppendableResourceIDs_t				_GetResourceIDs ()				{ return AppendableResourceIDs_t{ *_unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
-		static Pair<UntypedResourceID_t, bool>  _AppendResourceID (UntypedResourceID_t &&id)	{ return { std::move(id), false }; }
 	};
 
 
@@ -229,23 +226,15 @@ namespace FG
 =================================================
 */
 	template <typename ID>
-	inline void  VResourceManagerThread::ReleaseResource (ID id, bool isAsync, bool force)
+	inline void  VResourceManagerThread::ReleaseResource (ID id, bool isAsync)
 	{
 		ASSERT( id );
 		SCOPELOCK( _rcCheck );
 
 		if ( isAsync )
-		{
-			auto&	pool = _GetResourceCPool( id );
-			auto&	data = pool[ id.Index() ];
-			
-			if ( data.GetInstanceID() != id.InstanceID() )
-				return;	// this instance is already destroyed
-
-			_unassignIDs->push_back({ id, force });
-		}
+			_unassignIDs->push_back( id );
 		else
-			_mainRM._UnassignResource( _GetResourcePool( id ), id, force );
+			_mainRM._UnassignResource( _GetResourcePool( id ), id );
 	}
 	
 /*
