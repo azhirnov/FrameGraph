@@ -16,7 +16,8 @@ namespace FG
 	constructor
 =================================================
 */
-	UIApp::UIApp ()
+	UIApp::UIApp () :
+		_clearColor{ 0.45f, 0.55f, 0.60f, 1.00f }
 	{
 		_mouseJustPressed.fill( EKeyAction::Up );
 	}
@@ -110,7 +111,7 @@ namespace FG
 		{
 			auto	ppln_compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
 
-			ppln_compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
+			ppln_compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
 
 			_frameGraphInst->AddPipelineCompiler( ppln_compiler );
 		}
@@ -167,7 +168,7 @@ namespace FG
 		
 		bool	show_demo_window	= true;
 		bool	show_another_window	= false;
-		ImVec4	clear_color			= ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+		auto&	clear_color			= BitCast<ImVec4>( _clearColor );
 
 		ImGui::NewFrame();
 		
@@ -187,7 +188,7 @@ namespace FG
 			ImGui::Checkbox("Another Window", OUT &show_another_window);
 
 			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);			// Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+			ImGui::ColorEdit3("clear color", &clear_color.x);		// Edit 3 floats representing a color
 
 			if (ImGui::Button("Button"))							// Buttons return true when clicked (most widgets return true when edited/activated)
 				counter++;
@@ -213,7 +214,6 @@ namespace FG
 		//if ( not show_demo_window )
 		//	return false;
 
-		_clearColor = {clear_color.x, clear_color.y, clear_color.z, clear_color.w};
 		return true;
 	}
 

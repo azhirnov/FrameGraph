@@ -78,12 +78,12 @@ namespace FG
 		vert_input.Add( VertexID("aPos"),   EVertexType::Float2,  OffsetOf( &ImDrawVert::pos ) );
 		vert_input.Add( VertexID("aUV"),    EVertexType::Float2,  OffsetOf( &ImDrawVert::uv  ) );
 		vert_input.Add( VertexID("aColor"), EVertexType::UByte4_Norm, OffsetOf( &ImDrawVert::col ) );
-		  
 
 		uint	idx_offset	= 0;
 		uint	vtx_offset	= 0;
 
 		_resources.BindBuffer( UniformID("uPushConstant"), _uniformBuffer );
+		_resources.BindTexture( UniformID("sTexture"), _fontTexture, _fontSampler );
 		
 		for (int i = 0; i < draw_data.CmdListsCount; ++i)
 		{
@@ -100,12 +100,10 @@ namespace FG
 				else
 				{
 					RectI	scissor;
-					scissor.left	= int(cmd.ClipRect.x - draw_data.DisplayPos.x + 0.5f) > 0 ? int(cmd.ClipRect.x - draw_data.DisplayPos.x + 0.5f) : 0;
-					scissor.top		= int(cmd.ClipRect.y - draw_data.DisplayPos.y + 0.5f) > 0 ? int(cmd.ClipRect.y - draw_data.DisplayPos.y + 0.5f) : 0;
+					scissor.left	= int(cmd.ClipRect.x + 0.5f);
+					scissor.top		= int(cmd.ClipRect.y + 0.5f);
 					scissor.right	= int(cmd.ClipRect.z + 0.5f);
 					scissor.bottom	= int(cmd.ClipRect.w + 0.5f);
-
-					_resources.BindTexture( UniformID("sTexture"), _fontTexture, _fontSampler );
 
 					fg->AddTask( passId, DrawIndexed{}
 									.SetPipeline( _pipeline ).AddResources( 0, &_resources )
@@ -269,15 +267,15 @@ namespace FG
 	Task  ImguiRenderer::_RecreateBuffers (const FGThreadPtr &fg)
 	{
 		ImDrawData &	draw_data	= _context->DrawData;
-		size_t			vertex_size	= draw_data.TotalVtxCount * sizeof(ImDrawVert);
-		size_t			index_size	= draw_data.TotalIdxCount * sizeof(ImDrawIdx);
+		BytesU			vertex_size	= draw_data.TotalVtxCount * SizeOf<ImDrawVert>;
+		BytesU			index_size	= draw_data.TotalIdxCount * SizeOf<ImDrawIdx>;
 
 		if ( not _vertexBuffer or vertex_size > _vertexBufSize )
 		{
 			fg->ReleaseResource( INOUT _vertexBuffer );
 
 			_vertexBufSize	= vertex_size;
-			_vertexBuffer	= fg->CreateBuffer( BufferDesc{ BytesU(vertex_size), EBufferUsage::TransferDst | EBufferUsage::Vertex },
+			_vertexBuffer	= fg->CreateBuffer( BufferDesc{ vertex_size, EBufferUsage::TransferDst | EBufferUsage::Vertex },
 											    Default, "UI.VertexBuffer" );
 		}
 
@@ -286,7 +284,7 @@ namespace FG
 			fg->ReleaseResource( INOUT _indexBuffer );
 
 			_indexBufSize	= index_size;
-			_indexBuffer	= fg->CreateBuffer( BufferDesc{ BytesU(index_size), EBufferUsage::TransferDst | EBufferUsage::Index },
+			_indexBuffer	= fg->CreateBuffer( BufferDesc{ index_size, EBufferUsage::TransferDst | EBufferUsage::Index },
 												Default, "UI.IndexBuffer" );
 		}
 
@@ -306,6 +304,8 @@ namespace FG
 			ib_offset += cmd_list.IdxBuffer.Size * SizeOf<ImDrawIdx>;
 		}
 
+		ASSERT( vertex_size == vb_offset );
+		ASSERT( index_size == ib_offset );
 		return last_task;
 	}
 

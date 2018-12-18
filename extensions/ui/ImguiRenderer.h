@@ -24,8 +24,8 @@ namespace FG
 		BufferID			_indexBuffer;
 		BufferID			_uniformBuffer;
 
-		size_t				_vertexBufSize	= 0;
-		size_t				_indexBufSize	= 0;
+		BytesU				_vertexBufSize;
+		BytesU				_indexBufSize;
 
 		PipelineResources	_resources;
 
