@@ -54,6 +54,8 @@ add_subdirectory( "extensions" "extensions" )
 
 add_subdirectory( "samples/vulkan" "samples_vulkan" )
 
+add_subdirectory( "samples/framegraph" "samples_framegraph" )
+
 message( STATUS "project 'FrameGraph' generation ended" )
 message( STATUS "\n==========================================================================" )
 
