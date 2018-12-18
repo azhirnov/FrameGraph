@@ -3,8 +3,8 @@
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "stl/Algorithms/StringParser.h"
 #include "framegraph/Shared/EnumUtils.h"
-
 
 // glslang includes
 #include "glslang/glslang/Include/revision.h"
@@ -16,6 +16,10 @@
 #include "glslang/SPIRV/disassemble.h"
 #include "glslang/SPIRV/GlslangToSpv.h"
 #include "glslang/SPIRV/GLSL.std.450.h"
+
+// SPIRV-Tools includes
+#include "spirv-tools/optimizer.hpp"
+#include "spirv-tools/libspirv.h"
 
 
 namespace FG
@@ -80,12 +84,12 @@ namespace FG
 		_currentStage = EShaderStages_FromShader( shaderType );
 
 		GLSLangResult	glslang_data;
-		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, source, OUT glslang_data, INOUT log ) );
+		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, source, OUT glslang_data, INOUT log ));
 
 		Array<uint>		spirv;
-		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ) );
+		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
-		COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ) );
+		COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
 
 		outShader.specConstants	= outReflection.specConstants;
 		outShader.AddShaderData( dstShaderFmt, entry, std::move(spirv) );
@@ -139,7 +143,7 @@ namespace FG
 =================================================
 */
 	bool SpirvCompiler::_ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-									StringView entry, StringView source, OUT GLSLangResult &glslangData, OUT String &log) const
+									StringView entry, StringView source, OUT GLSLangResult &glslangData, OUT String &log)
 	{
 		EShClient					client			= EShClientOpenGL;
 		EshTargetClientVersion		client_version	= EShTargetOpenGL_450;
@@ -151,6 +155,9 @@ namespace FG
 		int			 				sh_version		= 450;		// TODO
 		EProfile					sh_profile		= ENoProfile;
 		EShSource					sh_source;
+
+		_spirvTraget	= SPV_ENV_UNIVERSAL_1_0;
+		_targetVulkan	= false;
 		
 		switch ( srcShaderFmt & EShaderLangFormat::_ApiMask )
 		{
@@ -189,16 +196,19 @@ namespace FG
 				version			= EShaderLangFormat_GetVersion( dstShaderFmt );
 				client			= EShClientVulkan;
 				client_version	= (version == 110 ? EShTargetVulkan_1_1 : EShTargetVulkan_1_0);
-				target			= EshTargetSpv;
-				target_version	= (version == 110 ? EShTargetSpv_1_3 : EShTargetSpv_1_0);
+				target			= EShTargetSpv;
+				target_version	= (version == 110 ? EShTargetSpv_1_2 : EShTargetSpv_1_0);
+				_spirvTraget	= (version == 110 ? SPV_ENV_VULKAN_1_1 : SPV_ENV_VULKAN_1_0);
+				_targetVulkan	= true;
 				break;
 			}
 
 			case EShaderLangFormat::OpenGL :
 				if ( (dstShaderFmt & EShaderLangFormat::_FormatMask) == EShaderLangFormat::SPIRV )
 				{
-					target			= EshTargetSpv;
+					target			= EShTargetSpv;
 					target_version	= EShTargetSpv_1_0;
+					_spirvTraget	= SPV_ENV_OPENGL_4_5;
 				}
 				break;
 		}
@@ -260,13 +270,230 @@ namespace FG
 		SpvOptions				spv_options;
 		spv::SpvBuildLogger		logger;
 
-		spv_options.generateDebugInfo	= EnumEq( _compilerFlags, EShaderCompilationFlags::GenerateDebugInfo );
-		spv_options.disableOptimizer	= EnumEq( _compilerFlags, EShaderCompilationFlags::DisableOptimizer );
+		spv_options.generateDebugInfo	= false;
+		spv_options.disableOptimizer	= not EnumEq( _compilerFlags, EShaderCompilationFlags::Optimize );
 		spv_options.optimizeSize		= EnumEq( _compilerFlags, EShaderCompilationFlags::OptimizeSize );
 		
 		GlslangToSpv( *intermediate, OUT spirv, &logger, &spv_options );
-
 		log += logger.getAllMessages();
+
+		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::StrongOptimization ) )
+			CHECK_ERR( _OptimizeSPIRV( INOUT spirv, OUT log ));
+
+		return true;
+	}
+	
+/*
+=================================================
+	DisassempleSPIRV
+=================================================
+*/
+	inline bool DisassempleSPIRV (spv_target_env targetEnv, const Array<uint> &spirv, OUT String &result)
+	{
+		result.clear();
+
+		spv_context	ctx = spvContextCreate( targetEnv );
+		CHECK_ERR( ctx != null );
+
+		spv_text		text		= null;
+		spv_diagnostic	diagnostic	= null;
+
+		if ( spvBinaryToText( ctx, spirv.data(), spirv.size(), 0, &text, &diagnostic ) == SPV_SUCCESS )
+		{
+			result = String{ text->str, text->length };
+		}
+		
+		spvTextDestroy( text );
+		spvDiagnosticDestroy( diagnostic );
+		spvContextDestroy( ctx );
+
+		return true;
+	}
+
+/*
+=================================================
+	_OptimizeSPIRV
+=================================================
+*/
+	bool SpirvCompiler::_OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const
+	{
+		spv_target_env	target_env = BitCast<spv_target_env>( _spirvTraget );
+
+		spvtools::Optimizer	optimizer{ target_env };
+		optimizer.SetMessageConsumer(
+			[&log] (spv_message_level_t level, const char *source, const spv_position_t &position, const char *message) {
+				switch (level)
+				{
+				case SPV_MSG_FATAL:
+				case SPV_MSG_INTERNAL_ERROR:
+				case SPV_MSG_ERROR:
+					log << "error: ";
+					break;
+				case SPV_MSG_WARNING:
+					log << "warning: ";
+					break;
+				case SPV_MSG_INFO:
+				case SPV_MSG_DEBUG:
+					log << "info: ";
+					break;
+				}
+
+				if (source)
+					log << source << ":";
+				
+				log << ToString(position.line) << ":" << ToString(position.column) << ":" << ToString(position.index) << ":";
+				if (message)
+					log << " " << message;
+			});
+
+		optimizer.RegisterLegalizationPasses();
+		optimizer.RegisterSizePasses();
+		optimizer.RegisterPerformancePasses();
+
+		optimizer.RegisterPass(spvtools::CreateCompactIdsPass());
+		optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());;
+		optimizer.RegisterPass(spvtools::CreateRemoveDuplicatesPass());
+		optimizer.RegisterPass(spvtools::CreateCFGCleanupPass());
+
+		//Array<uint>		temp = spirv;
+		optimizer.Run(spirv.data(), spirv.size(), &spirv);
+
+		//String	origin, optimized;
+		//DisassempleSPIRV( target_env, temp, OUT origin );
+		//DisassempleSPIRV( target_env, spirv, OUT optimized );
+
+		return true;
+	}
+	
+/*
+=================================================
+	ReadLine
+=================================================
+*/
+	inline bool ReadLine (StringView log, INOUT size_t &pos, OUT StringView &line)
+	{
+		size_t	begin = pos;
+
+		line = Default;
+
+		// find new line
+		for (; pos < log.size(); ++pos)
+		{
+			const char	c = log[pos];
+
+			if ( c == '/r' or c == '/n' )
+				break;
+		}
+
+		if ( pos == begin )
+			return false;
+
+		line = log.substr( begin, pos - begin );
+
+		// skip empty lines
+		for (; pos < log.size(); ++pos)
+		{
+			const char	c = log[pos];
+
+			if ( c != '/r' and c != '/n' )
+				break;
+		}
+		return true;
+	}
+	
+/*
+=================================================
+	ParseGLSLError
+=================================================
+*/
+	struct GLSLErrorInfo
+	{
+		StringView	description;
+		StringView	fileName;
+		uint		sourceIndex;
+		size_t		line;
+		bool		isError;
+
+		GLSLErrorInfo () : sourceIndex{0}, line{UMax}, isError{false} {}
+	};
+	
+	static bool ParseGLSLError (StringView line, OUT GLSLErrorInfo &info)
+	{
+		const StringView	c_error		= "error";
+		const StringView	c_warning	= "warning";
+
+		size_t				pos = 0;
+
+		const auto			ReadToken	= [&line, &pos] (OUT bool &isNumber)
+		{{
+							isNumber= true;
+			const size_t	start	= pos;
+
+			for (; pos < line.length() and line[pos] != ':'; ++pos) {
+				isNumber &= (line[pos] >= '0' and line[pos] <= '9');
+			}
+			return line.substr( start, pos - start );
+		}};
+
+		const auto			SkipSeparator = [&line, &pos] ()
+		{{
+			if ( line[pos] == ':' and line[pos+1] == ' ' )
+				pos += 2;
+			else if ( line[pos] == ':' )
+				pos += 1;
+			else
+				return false;
+
+			return true;
+		}};
+
+		
+		// parse error/warning/...
+		if ( StartsWithIC( line, c_error ))
+		{
+			pos			+= c_error.length();
+			info.isError = true;
+		}
+		else
+		if ( StartsWithIC( line, c_warning ))
+		{
+			pos			+= c_warning.length();
+			info.isError = false;
+		}
+		else
+			return false;
+
+		if ( not SkipSeparator() )
+			return false;
+
+
+		// parse source index or header name
+		{
+			bool				is_number;
+			const StringView	src		= ReadToken( OUT is_number );
+
+			if ( not SkipSeparator() )
+				return false;
+
+			if ( not is_number )
+				info.fileName = src;
+			else
+				info.sourceIndex = std::stoi( String(src) );
+		}
+
+
+		// parse line number
+		{
+			bool				is_number;
+			const StringView	src		= ReadToken( OUT is_number );
+
+			if ( not SkipSeparator() or not is_number )
+				return false;
+
+			info.line = std::stoi( String(src) );
+		}
+
+		info.description = line.substr( pos );
 		return true;
 	}
 
@@ -280,9 +507,83 @@ namespace FG
 		// glslang errors format:
 		// pattern: <error/warning>: <number>:<line>: <description>
 		// pattern: <error/warning>: <file>:<line>: <description>
+		
+		StringView		line;
+		uint			line_number = 0;
+		size_t			prev_line	= UMax;
+		size_t			pos			= 0;
+		String			str;		str.reserve( log.length() );
+		Array<size_t>	num_lines;	num_lines.resize( source.size() );
 
-		// TODO
-		return false;
+		for (; ReadLine( log, INOUT pos, OUT line ); ++line_number)
+		{
+			GLSLErrorInfo	error_info;
+			bool			added = false;
+
+			if ( ParseGLSLError( line, OUT error_info ))
+			{
+				// unite error in same source lines
+				if ( prev_line == error_info.line )
+				{
+					str << line << "\n";
+					continue;
+				}
+
+				prev_line = error_info.line;
+
+				if ( error_info.fileName.empty() )
+				{
+					// search in sources
+					StringView	cur_source	= error_info.sourceIndex < source.size() ? source[ error_info.sourceIndex ] : "";
+					size_t		lines_count	= error_info.sourceIndex < num_lines.size() ? num_lines[ error_info.sourceIndex ] : 0;
+
+					if ( lines_count == 0 and error_info.sourceIndex < num_lines.size() )
+					{
+						lines_count = StringParser::CalculateNumberOfLines( cur_source ) + 1;
+						num_lines[ error_info.sourceIndex ] = lines_count;
+					}
+					
+					CHECK( error_info.line < lines_count );
+
+					size_t	line_pos = 0;
+					CHECK( StringParser::MoveToLine( cur_source, INOUT line_pos, error_info.line-1 ));
+
+					StringView	line_str;
+					StringParser::ReadLineToEnd( cur_source, INOUT line_pos, OUT line_str );
+
+					str << "in source (" << ToString(error_info.sourceIndex) << ": " << ToString(error_info.line) << "):\n\"" << line_str << "\"\n" << line << "\n";
+					added = true;
+				}
+				else
+				{
+					// search in header
+					/*StringView	src;
+					if ( includer.GetHeaderSource( error_info.fileName, OUT src ))
+					{
+						const size_t	lines_count = StringParser::CalculateNumberOfLines( src ) + 1;
+						const size_t	local_line	= error_info.line;
+						size_t			line_pos	= 0;
+						StringView		line_str;
+
+						CHECK( local_line < lines_count );
+						CHECK( StringParser::MoveToLine( src, INOUT line_pos, local_line-1 ));
+						
+						StringParser::ReadLineToEnd( src, INOUT line_pos, OUT line_str );
+
+						str << "in source (" << error_info.fileName << ": " << ToString(local_line) << "):\n\"" << line_str << "\"\n" << line << "\n";
+						added = true;
+					}*/
+				}
+			}
+			
+			if ( not added )
+			{
+				str << DEBUG_ONLY( "<unknown> " << ) line << "\n";
+			}
+		}
+
+		std::swap( log, str );
+		return true;
 	}
 	
 /*
@@ -298,8 +599,8 @@ namespace FG
 		// deserialize shader
 		TIntermNode*	root	= _intermediate->getTreeRoot();
 		
-		COMP_CHECK_ERR( _ProcessExternalObjects( null, root, OUT result ) );
-		COMP_CHECK_ERR( _ProcessShaderInfo( INOUT result ) );
+		COMP_CHECK_ERR( _ProcessExternalObjects( null, root, OUT result ));
+		COMP_CHECK_ERR( _ProcessShaderInfo( INOUT result ));
 
 		_intermediate = null;
 		return true;
@@ -314,6 +615,9 @@ namespace FG
 	{
 		TIntermAggregate* aggr = node->getAsAggregate();
 		
+		if ( not aggr )
+			return true;
+
 		switch ( aggr->getOp() )
 		{
 			// continue deserializing
@@ -321,7 +625,7 @@ namespace FG
 			{
 				for (auto& seq : aggr->getSequence())
 				{
-					COMP_CHECK_ERR( _ProcessExternalObjects( aggr, seq, INOUT result ) );
+					COMP_CHECK_ERR( _ProcessExternalObjects( aggr, seq, INOUT result ));
 				}
 				return true;
 			}
@@ -331,7 +635,7 @@ namespace FG
 			{
 				for (auto& seq : aggr->getSequence())
 				{
-					COMP_CHECK_ERR( _DeserializeExternalObjects( seq, INOUT result ) );
+					COMP_CHECK_ERR( _DeserializeExternalObjects( seq, INOUT result ));
 				}
 				return true;
 			}
@@ -347,9 +651,9 @@ namespace FG
 	BindingIndex  SpirvCompiler::_ToBindingIndex (uint index) const
 	{
 		if ( _targetVulkan )
-			return BindingIndex{ ~0u, index };
+			return BindingIndex{ UMax, index };
 		else
-			return BindingIndex{ index, ~0u };
+			return BindingIndex{ index, UMax };
 	}
 	
 /*
@@ -529,7 +833,7 @@ namespace FG
 		String				name	= node->getAsSymbolNode()->getName().c_str();
 		const StringView	prefix	= "anon@";
 
-		if ( not name.compare( 0, prefix.size(), prefix ) )
+		if ( not name.compare( 0, prefix.size(), prefix ))
 			name.clear();
 
 		return name;
@@ -542,22 +846,22 @@ namespace FG
 */
 	ND_ static UniformID  ExtractUniformID (TIntermNode *node)
 	{
-		return UniformID( ExtractNodeName( node ) );
+		return UniformID( ExtractNodeName( node ));
 	}
 	
 	ND_ static VertexID  ExtractVertexID (TIntermNode *node)
 	{
-		return VertexID( ExtractNodeName( node ) );
+		return VertexID( ExtractNodeName( node ));
 	}
 
 	ND_ static RenderTargetID  ExtractRenderTargetID (TIntermNode *node)
 	{
-		return RenderTargetID( ExtractNodeName( node ) );
+		return RenderTargetID( ExtractNodeName( node ));
 	}
 
 	ND_ static SpecializationID  ExtractSpecializationID (TIntermNode *node)
 	{
-		return SpecializationID( ExtractNodeName( node ) );
+		return SpecializationID( ExtractNodeName( node ));
 	}
 
 /*
@@ -748,7 +1052,7 @@ namespace FG
 				tex.state		= EResourceState::ShaderSample | EResourceState_FromShaders( _currentStage );
 
 				PipelineDescription::Uniform	un;
-				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(tex);
 
@@ -765,7 +1069,7 @@ namespace FG
 				image.state		= ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage );
 				
 				PipelineDescription::Uniform	un;
-				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(image);
 
@@ -777,12 +1081,12 @@ namespace FG
 			if ( type.getSampler().isSubpass() )
 			{
 				PipelineDescription::SubpassInput	subpass;
-				subpass.attachmentIndex	= qual.hasAttachment() ? uint(qual.layoutAttachment) : ~0u;
+				subpass.attachmentIndex	= qual.hasAttachment() ? uint(qual.layoutAttachment) : UMax;
 				subpass.isMultisample	= false;	// TODO
 				subpass.state			= EResourceState::InputAttachment | EResourceState_FromShaders( _currentStage );
 				
 				PipelineDescription::Uniform	un;
-				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(subpass);
 
@@ -794,7 +1098,7 @@ namespace FG
 			if ( qual.storage == TStorageQualifier::EvqUniform )
 			{
 				PipelineDescription::Uniform	un;
-				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= PipelineDescription::Sampler{};
 
@@ -834,7 +1138,7 @@ namespace FG
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT ubuf.size, OUT stride, OUT offset ));
 				
 				PipelineDescription::Uniform	un;
-				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(ubuf);
 
@@ -854,7 +1158,7 @@ namespace FG
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride, OUT offset ));
 				
 				PipelineDescription::Uniform	un;
-				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(sbuf);
 
@@ -871,7 +1175,7 @@ namespace FG
 			rt_scene.state = EResourceState::_RayTracingShader | EResourceState::ShaderRead;
 			
 			PipelineDescription::Uniform	un;
-			un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : ~0u );
+			un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 			un.stageFlags	= _currentStage;
 			un.data			= std::move(rt_scene);
 
@@ -903,7 +1207,7 @@ namespace FG
 
 			GraphicsPipelineDesc::VertexAttrib	attrib;
 			attrib.id		= ExtractVertexID( node );
-			attrib.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : ~0u);
+			attrib.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : UMax);
 			attrib.type		= _ExtractVertexType( type );
 
 			result.vertex.vertexAttribs.push_back( std::move(attrib) );
@@ -918,7 +1222,7 @@ namespace FG
 
 			GraphicsPipelineDesc::FragmentOutput	frag_out;
 			frag_out.id		= ExtractRenderTargetID( node );
-			frag_out.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : ~0u);
+			frag_out.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : UMax);
 			frag_out.type	= _ExtractFragmentOutputType( type );
 
 			result.fragment.fragmentOutput.push_back( std::move(frag_out) );

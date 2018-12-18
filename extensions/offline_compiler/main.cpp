@@ -43,7 +43,7 @@ static bool AddShaderSource (OUT PipelineDescription::Shader &shaderData, const 
 
 	String	temp;			temp.reserve( src.length() + 20 );
 	size_t	insertion_pos	= 0;
-	size_t	first_include	= ~size_t(0);
+	size_t	first_include	= UMax;
 	uint	mode			= 0;
 	bool	keyword_found	= false;
 

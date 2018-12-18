@@ -733,8 +733,11 @@ namespace FG
 				String							log;
 				PipelineDescription::Shader		new_shader;
 
-				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.first, iter->first, spirv_format,
-														 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ));
+				if ( not _spirvCompiler->Compile( shader.first, iter->first, spirv_format, (*shader_data)->GetEntry(),
+												  (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ))
+				{
+					COMP_RETURN_ERR( log );
+				}
 				
 				if ( create_module )
 					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ) );
@@ -815,8 +818,11 @@ namespace FG
 				String								log;
 				RayTracingPipelineDesc::RTShader	new_shader;
 
-				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.second.shaderType, iter->first, spirv_format,
-														 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ));
+				if ( not _spirvCompiler->Compile( shader.second.shaderType, iter->first, spirv_format, (*shader_data)->GetEntry(),
+												  (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ))
+				{
+					COMP_RETURN_ERR( log );
+				}
 				
 				if ( create_module )
 					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ) );
@@ -885,8 +891,11 @@ namespace FG
 				String							log;
 				PipelineDescription::Shader		new_shader;
 
-				COMP_CHECK_ERR( _spirvCompiler->Compile( shader.first, iter->first, spirv_format,
-														 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ));
+				if ( not _spirvCompiler->Compile( shader.first, iter->first, spirv_format, (*shader_data)->GetEntry(),
+												  (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ))
+				{
+					COMP_RETURN_ERR( log );
+				}
 				
 				if ( create_module )
 					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ) );
@@ -962,8 +971,11 @@ namespace FG
 			String							log;
 			ComputePipelineDesc				new_ppln;
 
-			COMP_CHECK_ERR( _spirvCompiler->Compile( EShader::Compute, iter->first, spirv_format,
-													 (*shader_data)->GetEntry(), (*shader_data)->GetData(), OUT new_ppln._shader, OUT reflection, OUT log ) );
+			if ( not _spirvCompiler->Compile( EShader::Compute, iter->first, spirv_format, (*shader_data)->GetEntry(),
+											  (*shader_data)->GetData(), OUT new_ppln._shader, OUT reflection, OUT log ))
+			{
+				COMP_RETURN_ERR( log );
+			}
 			
 			if ( create_module )
 				COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_ppln._shader ) );

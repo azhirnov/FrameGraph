@@ -91,6 +91,7 @@ namespace FG
 		glslang::TIntermediate *	_intermediate	= null;
 		EShaderStages				_currentStage	= Default;
 		bool						_targetVulkan	= true;
+		uint						_spirvTraget	= 0;		// spv_target_env
 
 		TBuiltInResource			_builtinResource;
 
@@ -116,9 +117,10 @@ namespace FG
 
 	private:
 		bool _ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-						 StringView entry, StringView source, OUT GLSLangResult &glslangData, INOUT String &log) const;
+						 StringView entry, StringView source, OUT GLSLangResult &glslangData, INOUT String &log);
 
 		bool _CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, INOUT String &log) const;
+		bool _OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const;
 
 		bool _BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &reflection);
 

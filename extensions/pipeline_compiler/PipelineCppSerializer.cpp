@@ -14,8 +14,8 @@ namespace FG
 */
 	static String  IdxToString (uint idx)
 	{
-		if ( idx == ~0u )
-			return "~0u"s;
+		if ( idx == UMax )
+			return "UMax"s;
 
 		return ToString( idx ) << 'u';
 	};

@@ -42,8 +42,14 @@ namespace FG
 			_pushBack{ &_ArrayPushBack< std::remove_reference_t<decltype(arr)> > }
 		{}
 
+		template <typename B, typename AllocT, auto FnPtr>
+		Appendable (std::vector<B,AllocT> &arr, const std::integral_constant<B (*)(T &&), FnPtr> &) :
+			_ref{ &arr },
+			_pushBack{ &_ArrayCustomPushBack< std::remove_reference_t<decltype(arr)>, FnPtr > }
+		{}
+
 		void push_back (Value_t &&value)		{ _pushBack( _ref, std::move(value) ); }
-		void push_back (const Value_t &value)	{ _pushBack( _ref, std::move(Value_t{value}) ); }
+		void push_back (const Value_t &value)	{ _pushBack( _ref, Value_t{value} ); }
 		
 		template <typename ...Args>
 		void emplace_back (Args&& ...args)		{ _pushBack( _ref, Value_t{ std::forward<Args&&>(args)... }); }
@@ -54,6 +60,12 @@ namespace FG
 		static void _ArrayPushBack (void *container, Value_t &&value)
 		{
 			BitCast< ArrayT *>( container )->push_back( std::move(value) );
+		}
+
+		template <typename ArrayT, auto FnPtr>
+		static void _ArrayCustomPushBack (void *container, Value_t &&value)
+		{
+			BitCast< ArrayT *>( container )->push_back( FnPtr( std::move(value) ));
 		}
 	};
 
