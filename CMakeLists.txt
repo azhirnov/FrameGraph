@@ -53,7 +53,7 @@ add_subdirectory( "framegraph" "framegraph" )
 add_subdirectory( "extensions" "extensions" )
 
 add_subdirectory( "samples/vulkan" "samples_vulkan" )
-
+add_subdirectory( "samples/glsl_debugger" "glsl_debugger" )
 add_subdirectory( "samples/framegraph" "samples_framegraph" )
 
 message( STATUS "project 'FrameGraph' generation ended" )
