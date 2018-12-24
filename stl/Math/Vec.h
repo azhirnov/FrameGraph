@@ -374,6 +374,16 @@ namespace FG
 		return res;
 	}
 
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr Vec<T,I>  operator / (const Vec<T,I> &lhs, const S &rhs)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = lhs[i] / rhs;
+		}
+		return res;
+	}
+
 /*
 =================================================
 	operator <<

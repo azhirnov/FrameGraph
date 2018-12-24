@@ -620,27 +620,39 @@ namespace FG
 */
 	static void UpdateBufferDynamicOffsets (INOUT PipelineDescription::DescriptorSets_t &descriptorSets)
 	{
-		uint	index = 0;
-
-		for (auto& ds : descriptorSets)
+		FixedArray< PipelineDescription::Uniform *, FG_MaxBufferDynamicOffsets >	sorted;
+		
+		for (auto& ds_layout : descriptorSets)
 		{
-			for (auto& un : *ds.uniforms)
+			for (auto& un : *ds_layout.uniforms)
 			{
-				if ( auto* ubuf = std::get_if<PipelineDescription::UniformBuffer>( &un.second.data ) )
+				if ( auto* ubuf = std::get_if< PipelineDescription::UniformBuffer >( &un.second.data );
+					 ubuf and EnumEq( ubuf->state, EResourceState::_BufferDynamicOffset ) )
 				{
-					if ( ubuf->dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
-						const_cast<PipelineDescription::UniformBuffer *>(ubuf)->dynamicOffsetIndex = index++;
+					sorted.push_back( const_cast< PipelineDescription::Uniform *>( &un.second ));
 				}
 				else
-				if ( auto* sbuf = std::get_if<PipelineDescription::StorageBuffer>( &un.second.data ) )
+				if ( auto* sbuf = std::get_if< PipelineDescription::StorageBuffer >( &un.second.data );
+					sbuf and EnumEq( sbuf->state, EResourceState::_BufferDynamicOffset ) )
 				{
-					if ( sbuf->dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
-						const_cast<PipelineDescription::StorageBuffer *>(sbuf)->dynamicOffsetIndex = index++;
+					sorted.push_back( const_cast< PipelineDescription::Uniform *>( &un.second ));
 				}
 			}
 		}
+		
+		std::sort( sorted.begin(), sorted.end(), [](auto& lhs, auto& rhs) { return lhs->index.VKBinding() < rhs->index.VKBinding(); });
+		
+		uint	index = 0;
+		for (auto* un : sorted)
+		{
+			if ( auto* ubuf = std::get_if< PipelineDescription::UniformBuffer >( &un->data ))
+				ubuf->dynamicOffsetIndex = index++;
+			else
+			if ( auto* sbuf = std::get_if< PipelineDescription::StorageBuffer >( &un->data ))
+				sbuf->dynamicOffsetIndex = index++;
+		}
 
-		ASSERT( index <= FG_MaxBufferDynamicOffsets );
+		CHECK( index <= FG_MaxBufferDynamicOffsets );
 	}
 
 /*

@@ -21,8 +21,6 @@ namespace FG
 			EResourceState		state;
 			Task				task;
 		};
-
-		using Instance = VRayTracingScene::Instance;
 		
 	private:
 		struct SceneAccess
@@ -39,15 +37,15 @@ namespace FG
 		};
 
 		using AccessRecords_t	= FixedArray< SceneAccess, 16 >;
+		using InstancesData_t	= VRayTracingScene::InstancesData;
+		using CurrentData_t		= Optional< InstancesData_t >;
 
 
 	// variables
 	private:
 		VRayTracingScene const *		_rtSceneData			= null;		// readonly access is thread safe
 
-		mutable Array<RawRTGeometryID>	_geometryInstances;
-		mutable uint					_hitShadersPerGeometry	= 0;
-		mutable uint					_maxHitShaderCount		= 0;
+		mutable CurrentData_t			_instancesData;
 
 		mutable SceneAccess				_pendingAccesses;
 		mutable SceneAccess				_accessForReadWrite;
@@ -62,7 +60,7 @@ namespace FG
 		~VLocalRTScene ();
 		
 		bool Create (const VRayTracingScene *);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t, ExeOrderIndex, uint);
 		
 		void AddPendingState (const SceneState &state) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
@@ -73,10 +71,14 @@ namespace FG
 		ND_ VkAccelerationStructureNV	Handle ()					const	{ SHAREDLOCK( _rcCheck );  return _rtSceneData->Handle(); }
 		ND_ ERayTracingFlags			GetFlags ()					const	{ SHAREDLOCK( _rcCheck );  return _rtSceneData->GetFlags(); }
 		ND_ uint						InstanceCount ()			const	{ SHAREDLOCK( _rcCheck );  return _rtSceneData->InstanceCount(); }
-		ND_ ArrayView<RawRTGeometryID>	GeometryInstances ()		const	{ SHAREDLOCK( _rcCheck );  return _geometryInstances; }
-		ND_ uint						HitShadersPerGeometry ()	const	{ SHAREDLOCK( _rcCheck );  return _hitShadersPerGeometry; }
-		ND_ uint						MaxHitShaderCount ()		const	{ SHAREDLOCK( _rcCheck );  return _maxHitShaderCount; }
+		ND_ ArrayView<RawRTGeometryID>	GeometryInstances ()		const	{ SHAREDLOCK( _rcCheck );  return _GetData().geometryInstances; }
+		ND_ uint						HitShadersPerGeometry ()	const	{ SHAREDLOCK( _rcCheck );  return _GetData().hitShadersPerGeometry; }
+		ND_ uint						MaxHitShaderCount ()		const	{ SHAREDLOCK( _rcCheck );  return _GetData().maxHitShaderCount; }
 		ND_ VRayTracingScene const*		ToGlobal ()					const	{ SHAREDLOCK( _rcCheck );  return _rtSceneData; }
+		ND_ bool						HasUncommitedChanges ()		const	{ SHAREDLOCK( _rcCheck );  return _instancesData.has_value(); }
+
+	private:
+		ND_ InstancesData_t const&		_GetData ()					const	{ return _instancesData.has_value() ? _instancesData.value() : _rtSceneData->CurrentData(); }
 	};
 
 

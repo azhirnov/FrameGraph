@@ -444,11 +444,37 @@ namespace FG
 =================================================
 */
 	static void OverrideDepthStencilStates (INOUT RenderState::DepthBufferState &currDepthState, INOUT RenderState::StencilBufferState &currStencilState,
-											const _fg_hidden_::DepthStencilState &newStates)
+											INOUT RenderState::RasterizationState &currRasterState, INOUT EPipelineDynamicState &dynamicState,
+											const _fg_hidden_::DynamicStates &newStates)
 	{
-		currDepthState.test			= newStates.depthTest.value_or( currDepthState.test );
-		currDepthState.write		= newStates.depthWrite.value_or( currDepthState.write );
-		currStencilState.enabled	= newStates.stencilTest.value_or( currStencilState.enabled );
+		currDepthState.test					= newStates.hasDepthTest ? newStates.depthTest : currDepthState.test;
+		currDepthState.write				= newStates.hasDepthWrite ? newStates.depthWrite : currDepthState.write;
+		currStencilState.enabled			= newStates.hasStencilTest ? newStates.stencilTest : currStencilState.enabled;
+		currRasterState.cullMode			= newStates.hasCullMode ? newStates.cullMode : currRasterState.cullMode;
+		currRasterState.rasterizerDiscard	= newStates.hasRasterizedDiscard ? newStates.rasterizerDiscard : currRasterState.rasterizerDiscard;
+		currRasterState.frontFaceCCW		= newStates.hasFrontFaceCCW ? newStates.frontFaceCCW : currRasterState.frontFaceCCW;
+
+		if ( currDepthState.test )
+		{
+			currDepthState.compareOp = newStates.hasDepthCompareOp ? newStates.depthCompareOp : currDepthState.compareOp;
+		}
+
+		// override stencil states
+		if ( currStencilState.enabled )
+		{
+			if ( newStates.hasStencilFailOp )
+				currStencilState.front.failOp = currStencilState.back.failOp = newStates.stencilFailOp;
+
+			if ( newStates.hasStencilDepthFailOp )
+				currStencilState.front.depthFailOp = currStencilState.back.depthFailOp = newStates.stencilDepthFailOp;
+
+			if ( newStates.hasStencilPassOp )
+				currStencilState.front.passOp = currStencilState.back.passOp = newStates.stencilPassOp;
+
+			dynamicState |= newStates.hasStencilCompareMask ? EPipelineDynamicState::StencilCompareMask : Default;
+			dynamicState |= newStates.hasStencilReference   ? EPipelineDynamicState::StencilReference   : Default;
+			dynamicState |= newStates.hasStencilWriteMask   ? EPipelineDynamicState::StencilWriteMask   : Default;
+		}
 	}
 
 /*
@@ -467,18 +493,14 @@ namespace FG
 		VGraphicsPipeline const*	gppln		= drawTask.pipeline;
 		VPipelineLayout const*		layout		= resMngr.GetResource( gppln->GetLayoutID() );
 		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
-		EPipelineDynamicState		dynamic_state = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		
-		dynamic_state |= drawTask.depthStencilState.compareMask ? EPipelineDynamicState::StencilCompareMask : Default;
-		dynamic_state |= drawTask.depthStencilState.reference   ? EPipelineDynamicState::StencilReference   : Default;
-		dynamic_state |= drawTask.depthStencilState.writeMask   ? EPipelineDynamicState::StencilWriteMask   : Default;
 
 		// check topology
 		CHECK_ERR(	uint(drawTask.topology) < gppln->_supportedTopology.size() and
 					gppln->_supportedTopology[uint(drawTask.topology)] );
 
 		VGraphicsPipeline::PipelineInstance		inst;
-		inst.dynamicState				= dynamic_state;
+		inst.dynamicState				= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		inst.renderPassId				= logicalRP.GetRenderPassID();
 		inst.subpassIndex				= logicalRP.GetSubpassIndex();
 		inst.vertexInput				= drawTask.vertexInput;
@@ -495,8 +517,8 @@ namespace FG
 
 		inst.vertexInput.ApplyAttribs( gppln->GetVertexAttribs() );
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
-		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil, drawTask.depthStencilState );
-
+		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil,
+									INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
@@ -575,6 +597,8 @@ namespace FG
 		VkPipeline	ppln_id = {};
 		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &ppln_id ));
 
+		resMngr.EditStatistic().newGraphicsPipelineCount++;
+
 		CHECK( _graphicsPipelines->insert_or_assign( {gppln, std::move(inst)}, ppln_id ).second );
 		return ppln_id;
 	}
@@ -594,14 +618,9 @@ namespace FG
 		VMeshPipeline const*		mppln		= drawTask.pipeline;
 		VPipelineLayout const*		layout		= resMngr.GetResource( mppln->GetLayoutID() );
 		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
-		EPipelineDynamicState		dynamic_state = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		
-		dynamic_state |= drawTask.depthStencilState.compareMask ? EPipelineDynamicState::StencilCompareMask : Default;
-		dynamic_state |= drawTask.depthStencilState.reference   ? EPipelineDynamicState::StencilReference   : Default;
-		dynamic_state |= drawTask.depthStencilState.writeMask   ? EPipelineDynamicState::StencilWriteMask   : Default;
-
 		VMeshPipeline::PipelineInstance		inst;
-		inst.dynamicState				= dynamic_state;
+		inst.dynamicState				= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		inst.renderPassId				= logicalRP.GetRenderPassID();
 		inst.subpassIndex				= logicalRP.GetSubpassIndex();
 		inst.flags						= 0;	//pipelineFlags;	// TODO
@@ -614,7 +633,8 @@ namespace FG
 		inst.renderState.inputAssembly.topology	= mppln->_topology;
 
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
-		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil, drawTask.depthStencilState );
+		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil,
+									INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
@@ -689,6 +709,8 @@ namespace FG
 
 		VkPipeline	ppln_id = {};
 		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &ppln_id ));
+		
+		resMngr.EditStatistic().newGraphicsPipelineCount++;
 
 		CHECK( _meshPipelines->insert_or_assign( {mppln, std::move(inst)}, ppln_id ).second );
 		return ppln_id;
@@ -758,6 +780,8 @@ namespace FG
 
 		VkPipeline	ppln_id = {};
 		VK_CHECK( dev.vkCreateComputePipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &ppln_id ));
+		
+		resMngr.EditStatistic().newComputePipelineCount++;
 
 		CHECK( _computePipelines->insert_or_assign( {&cppln, std::move(inst)}, ppln_id ).second );
 		return ppln_id;

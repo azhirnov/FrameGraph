@@ -49,12 +49,43 @@ namespace _fg_hidden_
 	using PushConstants_t	= FixedArray< PushConstantData, 4 >;
 	
 
-	struct DepthStencilState
+	struct DynamicStates
 	{
-		using Value_t = uint8_t;
+		EStencilOp		stencilFailOp;					// stencil test failed
+		EStencilOp		stencilDepthFailOp;				// depth and stencil tests are passed
+		EStencilOp		stencilPassOp;					// stencil test passed and depth test failed
+		uint8_t			stencilReference;				// front & back
+		uint8_t			stencilWriteMask;				// front & back
+		uint8_t			stencilCompareMask;				// front & back
 
-		Optional<Vec<Value_t, 2>>	reference, writeMask, compareMask;
-		Optional<bool>				depthWrite, depthTest, stencilTest;
+		ECullMode		cullMode;
+
+		ECompareOp		depthCompareOp;
+		bool			depthTest				: 1;
+		bool			depthWrite				: 1;
+		bool			stencilTest				: 1;	// enable stencil test
+
+		bool			rasterizerDiscard		: 1;
+		bool			frontFaceCCW			: 1;
+
+		bool			hasStencilTest			: 1;
+		bool			hasStencilFailOp		: 1;
+		bool			hasStencilDepthFailOp	: 1;
+		bool			hasStencilPassOp		: 1;
+		bool			hasStencilReference		: 1;
+		bool			hasStencilWriteMask		: 1;
+		bool			hasStencilCompareMask	: 1;
+		bool			hasDepthCompareOp		: 1;
+		bool			hasDepthTest			: 1;
+		bool			hasDepthWrite			: 1;
+		bool			hasCullMode				: 1;
+		bool			hasRasterizedDiscard	: 1;
+		bool			hasFrontFaceCCW			: 1;
+
+		DynamicStates ()
+		{
+			memset( this, 0, sizeof(*this) );
+		}
 	};
 	
 	using ColorBuffers_t	= FixedMap< RenderTargetID, RenderState::ColorBuffer, 4 >;
@@ -68,7 +99,7 @@ namespace _fg_hidden_
 	struct BaseDrawCall : BaseDrawTask<TaskType>
 	{
 	// types
-		using StencilValue_t	= DepthStencilState::Value_t;
+		using StencilValue_t	= decltype(DynamicStates::stencilReference);
 
 
 	// variables
@@ -76,7 +107,7 @@ namespace _fg_hidden_
 		PushConstants_t			pushConstants;
 		Scissors_t				scissors;
 		ColorBuffers_t			colorBuffers;
-		DepthStencilState		depthStencilState;
+		DynamicStates			dynamicStates;
 			
 
 	// methods
@@ -94,18 +125,22 @@ namespace _fg_hidden_
 									EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask);
 		TaskType&  AddColorBuffer (const RenderTargetID &id, bool4 colorMask);
 
-		TaskType&  SetStencilRef (uint front, uint back);
-		TaskType&  SetStencilRef (uint value)						{ return SetStencilRef( value, value ); }
+		TaskType&  SetStencilTestEnabled (bool value);
+		TaskType&  SetStencilRef (uint value);
+		TaskType&  SetStencilCompareMask (uint value);
+		TaskType&  SetStencilWriteMask (uint value);
+		TaskType&  SetStencilFailOp (EStencilOp value);
+		TaskType&  SetStencilDepthFailOp (EStencilOp value);
+		TaskType&  SetStencilPassOp (EStencilOp value);
+		//TaskType&  SetStencilCompareOp (ECompareOp value);
 
-		TaskType&  SetStencilCompareMask (uint front, uint back);
-		TaskType&  SetStencilCompareMask (uint value)				{ return SetStencilCompareMask( value, value ); }
-
-		TaskType&  SetStencilWriteMask (uint front, uint back);
-		TaskType&  SetStencilWriteMask (uint value)					{ return SetStencilWriteMask( value, value ); }
-		
+		TaskType&  SetDepthCompareOp (ECompareOp value);
 		TaskType&  SetDepthTestEnabled (bool value);
 		TaskType&  SetDepthWriteEnabled (bool value);
-		TaskType&  SetStencilTestEnabled (bool value);
+		
+		TaskType&  SetCullMode (ECullMode value);
+		TaskType&  SetRasterizerDiscard (bool value);
+		TaskType&  SetFrontFaceCCW (bool value);
 
 		template <typename ValueType>
 		TaskType&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
@@ -494,47 +529,109 @@ namespace _fg_hidden_
 	}
 	
 	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetDepthCompareOp (ECompareOp value)
+	{
+		dynamicStates.depthCompareOp = value;
+		dynamicStates.hasDepthCompareOp = true;
+		return static_cast<TaskType &>( *this );
+	}
+
+	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::SetDepthTestEnabled (bool value)
 	{
-		depthStencilState.depthTest = value;
+		dynamicStates.depthTest = value;
+		dynamicStates.hasDepthTest = true;
 		return static_cast<TaskType &>( *this );
 	}
 	
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::SetDepthWriteEnabled (bool value)
 	{
-		depthStencilState.depthWrite = value;
+		dynamicStates.depthWrite = value;
+		dynamicStates.hasDepthWrite = true;
 		return static_cast<TaskType &>( *this );
 	}
 	
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::SetStencilTestEnabled (bool value)
 	{
-		depthStencilState.stencilTest = value;
+		dynamicStates.stencilTest = value;
+		dynamicStates.hasStencilTest = true;
 		return static_cast<TaskType &>( *this );
 	}
 
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::SetStencilRef (uint front, uint back)
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilRef (uint value)
 	{
-		depthStencilState.reference = { StencilValue_t(front), StencilValue_t(back) };
+		dynamicStates.stencilReference = StencilValue_t(value);
+		dynamicStates.hasStencilReference = true;
 		return static_cast<TaskType &>( *this );
 	}
 	
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::SetStencilCompareMask (uint front, uint back)
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilCompareMask (uint value)
 	{
-		depthStencilState.compareMask = { StencilValue_t(front), StencilValue_t(back) };
+		dynamicStates.stencilCompareMask = StencilValue_t(value);
+		dynamicStates.hasStencilCompareMask = true;
 		return static_cast<TaskType &>( *this );
 	}
 	
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::SetStencilWriteMask (uint front, uint back)
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilWriteMask (uint value)
 	{
-		depthStencilState.writeMask = { StencilValue_t(front), StencilValue_t(back) };
+		dynamicStates.stencilWriteMask = StencilValue_t(value);
+		dynamicStates.hasStencilWriteMask = true;
 		return static_cast<TaskType &>( *this );
 	}
 	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilFailOp (EStencilOp value)
+	{
+		dynamicStates.stencilFailOp = value;
+		dynamicStates.hasStencilFailOp = true;
+		return static_cast<TaskType &>( *this );
+	}
+
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilDepthFailOp (EStencilOp value)
+	{
+		dynamicStates.stencilDepthFailOp = value;
+		dynamicStates.hasStencilDepthFailOp = true;
+		return static_cast<TaskType &>( *this );
+	}
+
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilPassOp (EStencilOp value)
+	{
+		dynamicStates.stencilPassOp = value;
+		dynamicStates.hasStencilPassOp = true;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetCullMode (ECullMode value)
+	{
+		dynamicStates.cullMode = value;
+		dynamicStates.hasCullMode = true;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetRasterizerDiscard (bool value)
+	{
+		dynamicStates.rasterizerDiscard = value;
+		dynamicStates.hasRasterizedDiscard = true;
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::SetFrontFaceCCW (bool value)
+	{
+		dynamicStates.frontFaceCCW = value;
+		dynamicStates.hasFrontFaceCCW = true;
+		return static_cast<TaskType &>( *this );
+	}
+
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 	{

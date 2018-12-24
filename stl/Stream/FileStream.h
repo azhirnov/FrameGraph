@@ -22,6 +22,7 @@ namespace FG
 	private:
 		FILE*		_file	= null;
 		BytesU		_fileSize;
+		BytesU		_position;
 
 
 	// methods
@@ -36,7 +37,7 @@ namespace FG
 		~FileRStream ();
 
 		bool	IsOpen ()	const override		{ return _file != null; }
-		BytesU	Position ()	const override;
+		BytesU	Position ()	const override		{ return _position; }
 		BytesU	Size ()		const override		{ return _fileSize; }
 		
 		bool	SeekSet (BytesU pos) override;

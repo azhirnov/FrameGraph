@@ -56,6 +56,8 @@ namespace FG
 
 		//ND_ VkBufferView		GetView (const HashedBufferViewDesc &) const;
 
+		ND_ bool				IsReadOnly ()			const;
+
 		ND_ VkBuffer			Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _buffer; }
 		ND_ RawMemoryID			GetMemoryID ()			const	{ SHAREDLOCK( _rcCheck );  return _memoryId.Get(); }
 

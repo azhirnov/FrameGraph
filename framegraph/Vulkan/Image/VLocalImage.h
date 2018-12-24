@@ -68,6 +68,7 @@ namespace FG
 		mutable AccessRecords_t		_pendingAccesses;
 		mutable AccessRecords_t		_accessForReadWrite;
 		mutable bool				_isFirstBarrier	= false;
+		bool						_isImmutable	= false;
 		
 		RWRaceConditionCheck		_rcCheck;
 

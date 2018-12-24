@@ -33,6 +33,7 @@ namespace FG
 		_imageData		= imageData;
 		_finalLayout	= _imageData->DefaultLayout();
 		_isFirstBarrier	= true;
+		_isImmutable	= false; //_imageData->IsReadOnly();	// TODO
 		
 		// set initial state
 		{
@@ -220,8 +221,8 @@ namespace FG
 		ASSERT( is.range.Layers().begin < ArrayLayers() and is.range.Layers().end <= ArrayLayers() );
 		ASSERT( is.task );
 
-		//if ( _isImmutable )
-		//	return;
+		if ( _isImmutable )
+			return;
 
 		ImageAccess		pending;
 		pending.isReadable	= EResourceState_IsReadable( is.state );
@@ -276,12 +277,11 @@ namespace FG
 
 			for (; iter != _pendingAccesses.end() and iter->range.IsIntersects( range ); ++iter)
 			{
-				iter->range.begin	= Min( iter->range.begin, range.begin );
-				range.begin			= iter->range.end;
-				
 				ASSERT( iter->index == pending.index );
 				ASSERT( iter->layout == pending.layout );
-								
+
+				iter->range.begin	= Min( iter->range.begin, range.begin );
+				range.begin			= iter->range.end;
 				iter->stages		|= pending.stages;
 				iter->access		|= pending.access;
 				iter->isReadable	|= pending.isReadable;

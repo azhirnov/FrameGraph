@@ -64,6 +64,7 @@ namespace FG
 		using TempTaskArray_t	= std::vector< Task, StdLinearAllocator<Task> >;
 		using TaskGraph_t		= VTaskGraph< VTaskProcessor >;
 		using Allocator_t		= LinearAllocator<>;
+		using Statistic_t		= FrameGraph::Statistics;
 
 
 	// variables
@@ -74,7 +75,7 @@ namespace FG
 		EThreadUsage				_currUsage			= Default;
 
 		std::atomic<EState>			_state;
-		ECompilationFlags			_compilationFlags;
+		ECompilationFlags			_compilationFlags	= Default;
 
 		PerQueueArray_t				_queues;
 		uint						_frameId			= 0;
@@ -82,11 +83,12 @@ namespace FG
 		
 		TaskGraph_t					_taskGraph;
 		uint						_visitorID			= 0;
-		ExeOrderIndex				_exeOrderIndex		= ExeOrderIndex::Initial;
 		
 		VSubmissionGraph const*		_submissionGraph	= null;
 		CommandBatchID				_cmdBatchId;
 		uint						_indexInBatch		= UMax;
+
+		Statistic_t					_statistic;
 
 		const DebugName_t			_debugName;
 
@@ -152,7 +154,7 @@ namespace FG
 		bool		SyncOnBegin (const VSubmissionGraph *);
 		bool		Begin (const CommandBatchID &id, uint index, EThreadUsage usage) override;
 		bool		Execute () override;
-		bool		SyncOnExecute ();
+		bool		SyncOnExecute (INOUT Statistic_t &);
 		bool		OnWaitIdle ();
 		
 		// resource acquiring
@@ -162,6 +164,9 @@ namespace FG
 		bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable) override;
 		
 		//ImageID		GetSwapchainImage (ESwapchainImage type) override;
+		
+		bool		UpdateUniformBuffer (INOUT PipelineResources &res, const UniformID &id, const void *dataPtr, BytesU dataSize) override;
+		bool		UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data) override;
 
 		// tasks
 		Task		AddTask (const SubmitRenderPass &) override;
@@ -210,6 +215,7 @@ namespace FG
 		ND_ Allocator_t &					GetAllocator ()						{ SCOPELOCK( _rcCheck );  return _mainAllocator; }
 		ND_ VDevice const&					GetDevice ()				const	{ SCOPELOCK( _rcCheck );  return _instance.GetDevice(); }
 		ND_ uint							GetRingBufferSize ()		const	{ SCOPELOCK( _rcCheck );  return _instance.GetRingBufferSize(); }
+		ND_ Statistic_t &					EditStatistic ()					{ SCOPELOCK( _rcCheck );  return _statistic; }
 
 		ND_ VFrameGraph const*				GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
 		ND_ VResourceManagerThread*			GetResourceManager ()				{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }

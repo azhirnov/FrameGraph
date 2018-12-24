@@ -61,6 +61,8 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		ND_ VkImageView			GetView (const VDevice &, const HashedImageViewDesc &) const;
+		
+		ND_ bool				IsReadOnly ()			const;
 
 		ND_ VkImage				Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _image; }
 		ND_ RawMemoryID			GetMemoryID ()			const	{ SHAREDLOCK( _rcCheck );  return _memoryId.Get(); }

@@ -25,8 +25,8 @@ namespace FG
 
 		struct Texture
 		{
-			EResourceState		state;
-			EImage				textureType;
+			EResourceState		state				= Default;
+			EImage				textureType			= Default;
 		};
 
 		struct Sampler
@@ -35,106 +35,106 @@ namespace FG
 
 		struct SubpassInput
 		{
-			EResourceState		state;
-			uint				attachmentIndex;
-			bool				isMultisample;
+			EResourceState		state				= Default;
+			uint				attachmentIndex		= UMax;
+			bool				isMultisample		= false;
 		};
 
 		struct Image
 		{
-			EResourceState		state;
-			EImage				imageType;
-			EPixelFormat		format;
+			EResourceState		state				= Default;
+			EImage				imageType			= Default;
+			EPixelFormat		format				= Default;
 		};
 
 		struct UniformBuffer
 		{
-			EResourceState		state;
-			uint				dynamicOffsetIndex;
+			EResourceState		state				= Default;
+			uint				dynamicOffsetIndex	= STATIC_OFFSET;
 			BytesU				size;
 		};
 
 		struct StorageBuffer
 		{
-			EResourceState		state;
-			uint				dynamicOffsetIndex;
+			EResourceState		state				= Default;
+			uint				dynamicOffsetIndex	= STATIC_OFFSET;
 			BytesU				staticSize;
 			BytesU				arrayStride;
 		};
 
 		struct RayTracingScene
 		{
-			EResourceState		state;
+			EResourceState		state				= Default;
 		};
 
 
 	// uniforms
 		struct _TextureUniform
 		{
-			UniformID			id;
-			Texture				data;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
+			const UniformID			id;
+			const Texture			data;
+			const BindingIndex		index;
+			const EShaderStages		stageFlags;
 
 			_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _SamplerUniform
 		{
-			UniformID			id;
-			Sampler				data;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
+			const UniformID			id;
+			const Sampler			data;
+			const BindingIndex		index;
+			const EShaderStages		stageFlags;
 
 			_SamplerUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _SubpassInputUniform
 		{
-			UniformID			id;
-			SubpassInput		data;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
+			const UniformID			id;
+			const SubpassInput		data;
+			const BindingIndex		index;
+			const EShaderStages		stageFlags;
 
 			_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _ImageUniform
 		{
-			UniformID			id;
-			Image				data;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
+			const UniformID			id;
+			const Image				data;
+			const BindingIndex		index;
+			const EShaderStages		stageFlags;
 
 			_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
 		struct _UBufferUniform
 		{
-			UniformID			id;
-			UniformBuffer		data;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
+			const UniformID			id;
+			const UniformBuffer		data;
+			const BindingIndex		index;
+			const EShaderStages		stageFlags;
 
-			_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset);
+			_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, uint dynamicOffsetIndex = STATIC_OFFSET);
 		};
 
 		struct _StorageBufferUniform
 		{
-			UniformID			id;
-			StorageBuffer		data;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
+			const UniformID			id;
+			const StorageBuffer		data;
+			const BindingIndex		index;
+			const EShaderStages		stageFlags;
 
-			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset);
+			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags, uint dynamicOffsetIndex = STATIC_OFFSET);
 		};
 		
 		struct _RayTracingSceneUniform
 		{
-			UniformID			id;
-			RayTracingScene		data;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
+			const UniformID			id;
+			const RayTracingScene	data;
+			const BindingIndex		index;
+			const EShaderStages		stageFlags;
 
 			_RayTracingSceneUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags);
 		};

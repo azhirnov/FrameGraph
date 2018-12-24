@@ -472,6 +472,21 @@ namespace FG
 	{
 		return EnumAny( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
 	}
+	
+/*
+=================================================
+	EPixelFormat_ToImageAspect
+=================================================
+*/
+	ND_ inline EImageAspect  EPixelFormat_ToImageAspect (EPixelFormat format)
+	{
+		auto&	fmt_info	= EPixelFormat_GetInfo( format );
+		auto	depth_bit	= EnumEq( fmt_info.valueType, PixelFormatInfo::EType::Depth ) ? EImageAspect::Depth : Default;
+		auto	stencil_bit	= EnumEq( fmt_info.valueType, PixelFormatInfo::EType::Stencil ) ? EImageAspect::Stencil : Default;
+		auto	color_bit	= (not (depth_bit | stencil_bit) ? EImageAspect::Color : Default);
+
+		return depth_bit | stencil_bit | color_bit;
+	}
 
 
 }	// FG

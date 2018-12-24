@@ -71,10 +71,11 @@ namespace FG
 	FGEnumCast (VkImageType)
 =================================================
 */
-	ND_ inline EImage  FGEnumCast (VkImageType type, uint arrayLayers, VkSampleCountFlagBits samples)
+	ND_ inline EImage  FGEnumCast (VkImageType type, VkImageCreateFlags flags, uint arrayLayers, VkSampleCountFlagBits samples)
 	{
 		const bool	is_array		= arrayLayers > 1;
 		const bool	is_multisampled	= samples > VK_SAMPLE_COUNT_1_BIT;
+		const bool	is_cube			= is_array and EnumEq( flags, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT );
 
 		ENABLE_ENUM_CHECKS();
 		switch ( type )
@@ -83,9 +84,9 @@ namespace FG
 				return is_array ? EImage::Tex1DArray : EImage::Tex1D;
 
 			case VK_IMAGE_TYPE_2D :
-				return is_multisampled ?
-							(is_array ? EImage::Tex2DMSArray : EImage::Tex2DMS) :
-							(is_array ? EImage::Tex2DArray : EImage::Tex2D);
+				if ( is_multisampled )	return is_array ? EImage::Tex2DMSArray : EImage::Tex2DMS;
+				if ( is_cube )			return arrayLayers == 6 ? EImage::TexCube : EImage::TexCubeArray;
+				return is_array ? EImage::Tex2DArray : EImage::Tex2D;
 
 			case VK_IMAGE_TYPE_3D :
 				ASSERT( arrayLayers == 1 );

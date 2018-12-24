@@ -275,7 +275,7 @@ Thread {
 		output = { DepthOnlyPass (#6) }
 		resource_usage = {
 			BufferUsage {
-				name:     "StagingWriteBuffer"
+				name:     "HostWriteBuffer"
 				usage:    Transfer-R
 				offset:   0 b
 				size:     256 b
@@ -294,7 +294,7 @@ Thread {
 		output = { OpaquePass (#7) }
 		resource_usage = {
 			BufferUsage {
-				name:     "StagingWriteBuffer"
+				name:     "HostWriteBuffer"
 				usage:    Transfer-R
 				offset:   256 b
 				size:     256 b
@@ -313,7 +313,7 @@ Thread {
 		output = { OpaquePass (#7) }
 		resource_usage = {
 			BufferUsage {
-				name:     "StagingWriteBuffer"
+				name:     "HostWriteBuffer"
 				usage:    Transfer-R
 				offset:   512 b
 				size:     256 b
@@ -332,7 +332,7 @@ Thread {
 		output = { TransparentPass (#8) }
 		resource_usage = {
 			BufferUsage {
-				name:     "StagingWriteBuffer"
+				name:     "HostWriteBuffer"
 				usage:    Transfer-R
 				offset:   768 b
 				size:     256 b

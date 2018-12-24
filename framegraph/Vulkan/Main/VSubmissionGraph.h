@@ -61,6 +61,7 @@ namespace FG
 			uint						threadCount		= 0;
 			Dependencies_t				input;
 			Dependencies_t				output;
+			ExeOrderIndex				exeOrderIndex	= Default;
 		};
 		using Batches_t	= FixedMap< CommandBatchID, Batch, FG_MaxCommandBatchCount >;
 
@@ -131,10 +132,12 @@ namespace FG
 
 		bool SkipSubBatch (const CommandBatchID &batchId, uint indexInBatch) const;
 
+		ND_ ExeOrderIndex  GetExecutionOrder (const CommandBatchID &batchId, uint indexInBatch) const;
+
 
 	private:
 		ND_ VkFence		 _CreateFence ();
-		ND_ VkSemaphore  _CreateSemaphores ();
+		ND_ VkSemaphore  _CreateSemaphore ();
 
 		bool _SignalSemaphore (const Batch &batch, VkSemaphore sem) const;
 		bool _WaitSemaphore (const Batch &batch, VkSemaphore sem, VkPipelineStageFlags dstStageMask) const;

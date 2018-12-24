@@ -74,6 +74,19 @@ namespace FG
 			unassignIDs.emplace_back( _memoryId.Release() );
 		}
 
+		for (auto& data : _instanceData)
+		{
+			SCOPELOCK( data.lock );
+
+			Array<RawRTGeometryID>	temp;
+			std::swap( data.geometryInstances, temp );
+
+			data.frameIdx	= 0;
+			data.exeOrder	= Default;
+
+			data.lock.unlock();
+		}
+
 		_topLevelAS			= VK_NULL_HANDLE;
 		_memoryId			= Default;
 		_currQueueFamily	= Default;
@@ -81,6 +94,45 @@ namespace FG
 		
 		_instances.clear();
 		_debugName.clear();
+	}
+	
+/*
+=================================================
+	Merge
+=================================================
+*/
+	void VRayTracingScene::Merge (INOUT InstancesData &newData, ExeOrderIndex batchExeOrder, uint frameIndex) const
+	{
+		const uint	idx		= (_currStateIndex + 1) & 1;
+		auto&		pending	= _instanceData[idx];
+
+		SCOPELOCK( pending.lock );
+
+		if ( frameIndex == pending.frameIdx and batchExeOrder <= pending.exeOrder )
+			return;	// 'newData' is older than 'pending'
+
+		std::swap( pending.geometryInstances, newData.geometryInstances );
+		pending.exeOrder				= batchExeOrder;
+		pending.frameIdx				= frameIndex;
+		pending.hitShadersPerGeometry	= newData.hitShadersPerGeometry;
+		pending.maxHitShaderCount		= newData.maxHitShaderCount;
+	}
+	
+/*
+=================================================
+	CommitChanges
+=================================================
+*/
+	void VRayTracingScene::CommitChanges (uint frameIndex) const
+	{
+		const uint	idx		= (_currStateIndex + 1) & 1;
+		auto&		curr	= _instanceData[ _currStateIndex ];
+		auto&		pending	= _instanceData[ idx ];
+
+		if ( curr.frameIdx != frameIndex and pending.frameIdx == frameIndex )
+		{
+			++_currStateIndex;
+		}
 	}
 
 

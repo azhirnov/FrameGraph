@@ -16,7 +16,7 @@ namespace FG
 	public:
 		static bool Initialize (OUT PipelineResources &res, RawDescriptorSetLayoutID layoutId, const PipelineDescription::UniformMapPtr &uniforms, uint count)
 		{
-			uint	max_offsets = 0;
+			uint	dbo_count	= 0;
 
 			res._layoutId	= layoutId;
 			res._uniforms	= uniforms;
@@ -53,18 +53,18 @@ namespace FG
 
 						[&] (const PipelineDescription::UniformBuffer &ubuf)
 						{
-							max_offsets = (ubuf.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ? 0 : ubuf.dynamicOffsetIndex+1);
+							dbo_count += uint(ubuf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET);
 
 							res._resources[un.second.index.Unique()].res =
-								PipelineResources::Buffer{ un.second.index, ubuf.state, RawBufferID(), 0_b, ubuf.size };
+								PipelineResources::Buffer{ un.second.index, ubuf.state, ubuf.dynamicOffsetIndex, RawBufferID(), 0_b, ubuf.size };
 						},
 
 						[&] (const PipelineDescription::StorageBuffer &sbuf)
 						{
-							max_offsets = (sbuf.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ? 0 : sbuf.dynamicOffsetIndex+1);
+							dbo_count += uint(sbuf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET);
 
 							res._resources[un.second.index.Unique()].res =
-								PipelineResources::Buffer{ un.second.index, sbuf.state, RawBufferID(), 0_b, sbuf.arrayStride > 0 ? sbuf.staticSize : 0_b };
+								PipelineResources::Buffer{ un.second.index, sbuf.state, sbuf.dynamicOffsetIndex, RawBufferID(), 0_b, sbuf.arrayStride > 0 ? sbuf.staticSize : 0_b };
 						},
 
 						[&] (const PipelineDescription::RayTracingScene &)
@@ -77,7 +77,9 @@ namespace FG
 					);
 			}
 
-			res._dynamicOffsets.resize( max_offsets );
+			ASSERT( dbo_count <= FG_MaxBufferDynamicOffsets );
+
+			res._dynamicOffsets.resize( dbo_count );
 			return true;
 		}
 

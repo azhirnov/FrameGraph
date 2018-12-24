@@ -54,13 +54,14 @@ namespace FG
 		VkPhysicalDeviceMemoryProperties		_deviceMemoryProperties {};
 
 		struct {
-			VkPhysicalDeviceProperties						main {};
-			VkPhysicalDeviceIDProperties					deviceID {};
-			VkPhysicalDeviceMaintenance3Properties			maintenance3 {};
-			VkPhysicalDeviceSubgroupProperties				subgroup {};
-			VkPhysicalDeviceMeshShaderPropertiesNV			meshShader {};
-			VkPhysicalDeviceShadingRateImagePropertiesNV	shadingRateImage {};
-			VkPhysicalDeviceRayTracingPropertiesNV			rayTracing {};
+			VkPhysicalDeviceProperties						main;
+			VkPhysicalDeviceIDProperties					deviceID;
+			VkPhysicalDeviceMaintenance3Properties			maintenance3;
+			VkPhysicalDeviceSubgroupProperties				subgroup;
+			VkPhysicalDeviceMeshShaderPropertiesNV			meshShader;
+			VkPhysicalDeviceShadingRateImagePropertiesNV	shadingRateImage;
+			VkPhysicalDeviceRayTracingPropertiesNV			rayTracing;
+
 		}	_properties;
 
 

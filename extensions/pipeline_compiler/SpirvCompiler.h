@@ -117,15 +117,15 @@ namespace FG
 
 	private:
 		bool _ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-						 StringView entry, StringView source, OUT GLSLangResult &glslangData, INOUT String &log);
+						 StringView entry, ArrayView<const char *> source, OUT GLSLangResult &glslangData, INOUT String &log);
 
 		bool _CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, INOUT String &log) const;
 		bool _OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const;
 
 		bool _BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &reflection);
 
-		bool _OnCompilationFailed (ArrayView<StringView> source, INOUT String &log) const;
-		
+		bool _OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const;
+
 		static void _GenerateResources (OUT TBuiltInResource& res);
 
 

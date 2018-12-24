@@ -84,6 +84,9 @@ namespace {
 			Batch&	dst = iter->second;
 			dst.threadCount = src.second.threadCount;
 
+			if ( src.second.dependsOn.empty() )
+				iter->second.exeOrderIndex = ExeOrderIndex::First;
+
 			for (auto& dep : src.second.dependsOn)
 			{
 				auto	dep_iter = _batches.find( dep );
@@ -94,9 +97,37 @@ namespace {
 			}
 		}
 
+		// set batch execution order
+		for (bool complete = false; not complete;)
+		{
+			complete = true;
+
+			for (auto& batch : _batches)
+			{
+				if ( batch.second.exeOrderIndex != ExeOrderIndex::Unknown )
+					continue;
+			
+				// wait for inputs
+				ExeOrderIndex	max_index = ExeOrderIndex::First;
+
+				for (auto in_batch : batch.second.input) {
+					max_index = std::max( in_batch->exeOrderIndex, max_index );
+				}
+				
+				if ( max_index == ExeOrderIndex::Unknown ) {
+					complete = false;
+					continue;
+				}
+
+				batch.second.exeOrderIndex = ++max_index;
+			}
+		}
+
 		// add synchronizations
 		for (auto& batch : _batches)
 		{
+			batch.second.exeOrderIndex = ExeOrderIndex(uint(batch.second.exeOrderIndex) * Batch::MaxSubBatches);
+
 			if ( batch.second.output.empty() )
 			{
 				auto	fence = _CreateFence();
@@ -108,7 +139,7 @@ namespace {
 
 			for (auto* out : batch.second.output)
 			{
-				auto	sem = _CreateSemaphores();
+				auto	sem = _CreateSemaphore();
 				frame.semaphores.push_back( sem );
 
 				CHECK( _SignalSemaphore( batch.second, sem ));
@@ -130,9 +161,9 @@ namespace {
 			const uint	mask = (1u << batch.second.threadCount) - 1;
 			const uint	bits = batch.second.atomics.existsSubBatchBits.load( memory_order_acquire );
 
-			ASSERT( bits < mask or
-					bits == READY_TO_SUBMIT or
-					bits == BEFORE_SUBMITTING or
+			ASSERT( bits <  mask				or
+					bits == READY_TO_SUBMIT		or
+					bits == BEFORE_SUBMITTING	or
 					bits == SUBMITTED );
 
 			if ( bits != SUBMITTED )
@@ -195,10 +226,10 @@ namespace {
 	
 /*
 =================================================
-	_CreateSemaphores
+	_CreateSemaphore
 =================================================
 */
-	VkSemaphore  VSubmissionGraph::_CreateSemaphores ()
+	VkSemaphore  VSubmissionGraph::_CreateSemaphore ()
 	{
 		if ( not _freeSemaphores.empty() )
 		{
@@ -507,5 +538,19 @@ namespace {
 		}
 		return true;
 	}
+	
+/*
+=================================================
+	GetExecutionOrder
+=================================================
+*/
+	ExeOrderIndex  VSubmissionGraph::GetExecutionOrder (const CommandBatchID &batchId, uint indexInBatch) const
+	{
+		auto	batch_iter = _batches.find( batchId );
+		CHECK_ERR( batch_iter != _batches.end() );
+
+		return ExeOrderIndex( uint(batch_iter->second.exeOrderIndex) + Min( indexInBatch, batch_iter->second.threadCount ));
+	}
+
 
 }	// FG

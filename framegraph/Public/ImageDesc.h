@@ -58,6 +58,7 @@ namespace FG
 		ImageLayer			baseLayer;
 		uint				layerCount	= 1;
 		ImageSwizzle		swizzle;
+		EImageAspect		aspectMask	= Default;
 
 	// methods
 		ImageViewDesc () {}
@@ -68,7 +69,8 @@ namespace FG
 					   uint				levelCount	= 1,
 					   ImageLayer		baseLayer	= Default,
 					   uint				layerCount	= 1,
-					   ImageSwizzle		swizzle		= Default);
+					   ImageSwizzle		swizzle		= Default,
+					   EImageAspect		aspectMask	= Default);
 
 		explicit ImageViewDesc (const ImageDesc &desc);
 

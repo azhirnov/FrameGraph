@@ -119,7 +119,7 @@ namespace FG
 
 		for (auto& rt : _attachments)
 		{
-			VkImageView	view = resMngr.GetState( rt.first )->GetView( dev, INOUT rt.second );
+			VkImageView		view = resMngr.ToLocal( rt.first )->GetView( dev, INOUT rt.second );
 			CHECK_ERR( view );
 
 			image_views.push_back( view );

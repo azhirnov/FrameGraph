@@ -31,6 +31,7 @@ namespace FG
 	enum BufferUsageFlagsVk_t		: uint {};
 	enum ImageLayoutVk_t			: uint {};
 	enum ImageTypeVk_t				: uint {};
+	enum ImageFlagsVk_t				: uint {};
 	enum SampleCountFlagBitsVk_t	: uint {};
 	enum PipelineStageFlags_t		: uint {};
 
@@ -103,6 +104,7 @@ namespace FG
 	{
 		ImageVk_t				image		= {};
 		ImageTypeVk_t			imageType	= {};
+		ImageFlagsVk_t			flags		= {};
 		ImageUsageVk_t			usage		= {};
 		FormatVk_t				format		= {};
 		ImageLayoutVk_t			layout		= {};

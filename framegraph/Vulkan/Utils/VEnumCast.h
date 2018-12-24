@@ -847,7 +847,6 @@ namespace FG
 			case EResourceState::_Access_ConditionalRendering :	return VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT;
 			case EResourceState::_Access_CommandProcess :		return VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX;
 			case EResourceState::_Access_ShadingRateImage :		return VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV;
-			case EResourceState::_Access_RayTracingShaderBingingBuffer:	return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
 			case EResourceState::_Access_BuildRayTracingAS :
 			case EResourceState::_Access_RTASBuildingBuffer :	return VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
 
@@ -915,8 +914,7 @@ namespace FG
 			case EResourceState::BuildRayTracingStructWrite :		return VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
 			case EResourceState::BuildRayTracingStructReadWrite :	return VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
 			case EResourceState::RTASBuildingBufferRead :
-			case EResourceState::RTASBuildingBufferReadWrite :
-			case EResourceState::ShaderBindingBufferRead :			return 0;	// ceche invalidation is not needed for buffers
+			case EResourceState::RTASBuildingBufferReadWrite :		return 0;	// ceche invalidation is not needed for buffers
 		}
 		RETURN_ERR( "unknown resource state!" );
 	}
@@ -926,16 +924,16 @@ namespace FG
 	EResourceState_ToImageLayout
 =================================================
 */
-	ND_ inline VkImageLayout  EResourceState_ToImageLayout (EResourceState value)
+	ND_ inline VkImageLayout  EResourceState_ToImageLayout (EResourceState value, VkImageAspectFlags aspect)
 	{
 		switch ( value & EResourceState::_StateMask )
 		{
 			case EResourceState::Unknown :							return VK_IMAGE_LAYOUT_UNDEFINED;
 
 			case EResourceState::ShaderSample :
+			case EResourceState::InputAttachment :					return EnumEq( aspect, VK_IMAGE_ASPECT_COLOR_BIT ) ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL :
+																														 VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			case EResourceState::ShaderRead :
-			case EResourceState::InputAttachment :					return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
 			case EResourceState::ShaderWrite :
 			case EResourceState::ShaderReadWrite :					return VK_IMAGE_LAYOUT_GENERAL;
 

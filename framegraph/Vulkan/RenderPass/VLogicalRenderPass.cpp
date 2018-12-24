@@ -31,11 +31,12 @@ namespace FG
 	Create
 =================================================
 */
-	bool VLogicalRenderPass::Create (VResourceManagerThread &rm, const RenderPassDesc &desc)
+	bool VLogicalRenderPass::Create (VResourceManagerThread &resMngr, const RenderPassDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
 
-		_allocator.SetBlockSize( 4_Mb );
+		_allocator.Create( resMngr.GetAllocator() );
+		_allocator->SetBlockSize( 4_Mb );
 		
 		_colorState			= desc.colorState;
 		_depthState			= desc.depthState;
@@ -50,24 +51,28 @@ namespace FG
 		for (auto& src : desc.renderTargets)
 		{
 			ColorTarget		dst;
-			VImage const*	image = rm.GetResource( src.second.image );
+			dst.imagePtr	= resMngr.ToLocal( src.second.image );
+			CHECK_ERR( dst.imagePtr );
+
+			if ( src.second.desc.has_value() ) {
+				dst.desc = *src.second.desc;
+				dst.desc.Validate( dst.imagePtr->Description() );
+			}else
+				dst.desc = ImageViewDesc{dst.imagePtr->Description()};
 
 			dst.imageId		= src.second.image;
-			dst.imagePtr	= rm.GetState( src.second.image );
-			dst.desc		= src.second.desc.has_value() ? *src.second.desc : ImageViewDesc{image->Description()};
-			dst.samples		= VEnumCast( image->Description().samples );
+			dst.samples		= VEnumCast( dst.imagePtr->Description().samples );
 			dst.loadOp		= VEnumCast( src.second.loadOp );
 			dst.storeOp		= VEnumCast( src.second.storeOp );
 			dst.state		= EResourceState::Unknown;
 
-			dst.desc.Validate( image->Description() );
 			dst._imageHash	= HashOf( dst.imageId ) + HashOf( dst.desc );
 
 			ConvertClearValue( src.second.clearValue, OUT dst.clearValue );
 
 			// validate image view description
 			if ( dst.desc.format == EPixelFormat::Unknown )
-				dst.desc.format = image->Description().format;
+				dst.desc.format = dst.imagePtr->Description().format;
 
 			// add resource state flags
 			if ( src.second.loadOp  == EAttachmentLoadOp::Clear )		dst.state |= EResourceState::ClearBefore;
@@ -155,7 +160,7 @@ namespace FG
 		}
 		_drawTasks.clear();
 
-		_allocator.Discard();
+		_allocator.Destroy();
 	}
 
 /*

@@ -32,9 +32,9 @@ Thread {
 	}
 
 	Buffer {
-		name:    "StagingReadBuffer"
+		name:    "HostReadBuffer"
 		size:    256 Mb
-		usage:   TransferSrc | TransferDst
+		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         ReadBuffer (#3)
@@ -76,7 +76,7 @@ Thread {
 				size:     32 b
 			}
 			BufferUsage {
-				name:     "StagingReadBuffer"
+				name:     "HostReadBuffer"
 				usage:    Transfer-W
 				offset:   0 b
 				size:     32 b

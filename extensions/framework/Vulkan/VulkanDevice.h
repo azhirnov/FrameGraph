@@ -56,29 +56,29 @@ namespace FG
 
 		// enabled features
 		struct {
-			VkPhysicalDeviceFeatures								main {};
-			//VkDeviceGeneratedCommandsFeaturesNVX					generatedCommands {};
-			VkPhysicalDeviceMultiviewFeatures						multiview {};
-			//VkPhysicalDeviceShaderAtomicInt64FeaturesKHR			shaderAtomicI64 {};
-			VkPhysicalDevice8BitStorageFeaturesKHR					storage8Bit {};
-			VkPhysicalDevice16BitStorageFeatures					storage16Bit {};
-			VkPhysicalDeviceSamplerYcbcrConversionFeatures			samplerYcbcrConversion {};
-			VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT		blendOpAdvanced {};
-			VkPhysicalDeviceConditionalRenderingFeaturesEXT			conditionalRendering {};
-			VkPhysicalDeviceShaderDrawParameterFeatures				shaderDrawParameters {};
-			VkPhysicalDeviceMeshShaderFeaturesNV					meshShader {};
-			//VkPhysicalDeviceDescriptorIndexingFeaturesEXT			descriptorIndexing {};
-			//VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT		vertexAttribDivisor {};
-			//VkPhysicalDeviceASTCDecodeFeaturesEXT					astcDecode {};
-			VkPhysicalDeviceVulkanMemoryModelFeaturesKHR			memoryModel {};
-			VkPhysicalDeviceInlineUniformBlockFeaturesEXT			inlineUniformBlock {};
-			VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV	representativeFragmentTest {};
-			//VkPhysicalDeviceExclusiveScissorFeaturesNV			exclusiveScissorTest {};
-			//VkPhysicalDeviceCornerSampledImageFeaturesNV			cornerSampledImage {};
-			//VkPhysicalDeviceComputeShaderDerivativesFeaturesNV	computeShaderDerivatives {};
-			VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV		fragmentShaderBarycentric {};
-			VkPhysicalDeviceShaderImageFootprintFeaturesNV			shaderImageFootprint {};
-			VkPhysicalDeviceShadingRateImageFeaturesNV				shadingRateImage {};
+			VkPhysicalDeviceFeatures								main;
+			//VkDeviceGeneratedCommandsFeaturesNVX					generatedCommands;
+			VkPhysicalDeviceMultiviewFeatures						multiview;
+			//VkPhysicalDeviceShaderAtomicInt64FeaturesKHR			shaderAtomicI64;
+			VkPhysicalDevice8BitStorageFeaturesKHR					storage8Bit;
+			VkPhysicalDevice16BitStorageFeatures					storage16Bit;
+			VkPhysicalDeviceSamplerYcbcrConversionFeatures			samplerYcbcrConversion;
+			VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT		blendOpAdvanced;
+			VkPhysicalDeviceConditionalRenderingFeaturesEXT			conditionalRendering;
+			VkPhysicalDeviceShaderDrawParameterFeatures				shaderDrawParameters;
+			VkPhysicalDeviceMeshShaderFeaturesNV					meshShader;
+			//VkPhysicalDeviceDescriptorIndexingFeaturesEXT			descriptorIndexing;
+			//VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT		vertexAttribDivisor;
+			//VkPhysicalDeviceASTCDecodeFeaturesEXT					astcDecode;
+			VkPhysicalDeviceVulkanMemoryModelFeaturesKHR			memoryModel;
+			VkPhysicalDeviceInlineUniformBlockFeaturesEXT			inlineUniformBlock;
+			VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV	representativeFragmentTest;
+			//VkPhysicalDeviceExclusiveScissorFeaturesNV			exclusiveScissorTest;
+			//VkPhysicalDeviceCornerSampledImageFeaturesNV			cornerSampledImage;
+			//VkPhysicalDeviceComputeShaderDerivativesFeaturesNV	computeShaderDerivatives;
+			VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV		fragmentShaderBarycentric;
+			VkPhysicalDeviceShaderImageFootprintFeaturesNV			shaderImageFootprint;
+			VkPhysicalDeviceShadingRateImageFeaturesNV				shadingRateImage;
 
 		}	_features;
 

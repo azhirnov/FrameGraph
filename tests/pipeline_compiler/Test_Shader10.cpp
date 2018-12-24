@@ -12,11 +12,11 @@ extern void Test_Shader10 (VPipelineCompiler* compiler)
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout (std140, binding=0) uniform UB {
+layout (std140, binding=1) uniform UB {
 	vec4	data[4];
 } ub;
 
-layout (std430, binding=1) writeonly buffer SSB {
+layout (std430, binding=0) writeonly buffer SSB {
 	vec4	data[4];
 } ssb;
 
@@ -40,8 +40,8 @@ void main ()
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );
 
-	TEST( TestUniformBuffer( *ds, UniformID("UB"),  64_b, 0, EShaderStages::Compute, 0 ));
-	TEST( TestStorageBuffer( *ds, UniformID("SSB"), 64_b, 0_b, EShaderAccess::WriteDiscard, 1, EShaderStages::Compute, 1 ));
+	TEST( TestUniformBuffer( *ds, UniformID("UB"),  64_b, 1, EShaderStages::Compute, 1 ));
+	TEST( TestStorageBuffer( *ds, UniformID("SSB"), 64_b, 0_b, EShaderAccess::WriteDiscard, 0, EShaderStages::Compute, 0 ));
 
 	TEST(All( ppln._defaultLocalGroupSize == uint3(1, 1, 1) ));
 

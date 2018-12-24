@@ -11,6 +11,7 @@
 #include "VRenderPassCache.h"
 #include "VLocalRTGeometry.h"
 #include "VLocalRTScene.h"
+#include "framegraph/Public/FrameGraph.h"
 
 namespace FG
 {
@@ -53,21 +54,23 @@ namespace FG
 		using FramebufferMap_t			= CachedResourceMap< RawFramebufferID, VFramebuffer >;
 		using PipelineResourcesMap_t	= CachedResourceMap< RawPipelineResourcesID, VPipelineResources >;
 
-		using ImageToLocal_t			= std::vector< LocalImageID >;
-		using BufferToLocal_t			= std::vector< LocalBufferID >;
-		using RTGeometryToLocal_t		= std::vector< LocalRTGeometryID >;
-		using RTSceneToLocal_t			= std::vector< LocalRTSceneID >;
+		using ImageToLocal_t			= StaticArray< Index_t, FG_MaxResources >;
+		using BufferToLocal_t			= StaticArray< Index_t, FG_MaxResources >;
+		using RTGeometryToLocal_t		= StaticArray< Index_t, FG_MaxResources >;
+		using RTSceneToLocal_t			= StaticArray< Index_t, FG_MaxResources >;
 
-		static constexpr uint			MaxLocalResources = FG_MaxResources/4;
+		static constexpr uint			MaxLocalResources = FG_MaxResources;
 
 		using LocalImages_t				= PoolTmpl2< VLocalImage, MaxLocalResources >;
 		using LocalBuffers_t			= PoolTmpl2< VLocalBuffer, MaxLocalResources >;
 		using LogicalRenderPasses_t		= PoolTmpl2< VLogicalRenderPass, MaxLocalResources >;
 		using LocalRTGeometries_t		= PoolTmpl2< VLocalRTGeometry, MaxLocalResources >;
 		using LocalRTScenes_t			= PoolTmpl2< VLocalRTScene, MaxLocalResources >;
-		
+
 		using ResourceIDQueue_t			= std::vector< UntypedResourceID_t, StdLinearAllocator<UntypedResourceID_t> >;
 		using ResourceIndexCache_t		= StaticArray< FixedArray<Index_t, 128>, 20 >;
+		using SyncTasks_t				= Array< std::function< void() > >;
+		using Statistics_t				= FrameGraph::ResourceStatistics;
 
 
 	// variables
@@ -77,6 +80,7 @@ namespace FG
 		VPipelineCache						_pipelineCache;
 		VRenderPassCache					_renderPassCache;
 		VDescriptorManager					_descriptorMngr;
+		Statistics_t&						_resourceStat;
 
 		ResourceIndexCache_t				_indexCache;
 
@@ -105,13 +109,14 @@ namespace FG
 		Storage<PipelineResourcesMap_t>		_pplnResourcesMap;
 
 		Storage<ResourceIDQueue_t>			_unassignIDs;
+		SyncTasks_t							_syncTasks;
 
 		RaceConditionCheck					_rcCheck;
 
 
 	// methods
 	public:
-		explicit VResourceManagerThread (Allocator_t& alloc, VResourceManager &rm);
+		explicit VResourceManagerThread (Allocator_t& alloc, Statistics_t& stat, VResourceManager &rm);
 		~VResourceManagerThread ();
 		
 		bool Initialize ();
@@ -143,39 +148,36 @@ namespace FG
 		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 
-		ND_ LocalBufferID		Remap (RawBufferID id);
-		ND_ LocalImageID		Remap (RawImageID id);
-		ND_ LocalRTGeometryID	Remap (RawRTGeometryID id);
-		ND_ LocalRTSceneID		Remap (RawRTSceneID id);
 		ND_ LogicalPassID		CreateLogicalRenderPass (const RenderPassDesc &desc);
 		
 		template <typename ID>
 		ND_ auto const*			GetResource (ID id)			const	{ return _mainRM.GetResource( id ); }
 
 		template <typename ID>
+		ND_ auto const&			GetDescription (ID id)		const	{ return _mainRM.GetDescription( id ); }
+
+		template <typename ID>
 		ND_ bool				IsResourceAlive (ID id)		const;
 
 		ND_ VDevice const&		GetDevice ()				const	{ return _mainRM._device; }
+		ND_ Statistics_t&		EditStatistic ()			const	{ return _resourceStat; }
+		ND_ uint				GetFrameIndex ()			const	{ return _mainRM.GetFrameIndex(); }
 
-		ND_ VLocalBuffer const*		GetState (LocalBufferID id)		{ return _GetState( _localBuffers, id ); }
-		ND_ VLocalImage  const*		GetState (LocalImageID id)		{ return _GetState( _localImages,  id ); }
-		ND_ VLogicalRenderPass*		GetState (LogicalPassID id)		{ return _GetState( _logicalRenderPasses, id ); }
-		ND_ VLocalRTGeometry const*	GetState (LocalRTGeometryID id)	{ return _GetState( _localRTGeometries, id ); }
-		ND_ VLocalRTScene const*	GetState (LocalRTSceneID id)	{ return _GetState( _localRTScenes, id ); }
-
-		ND_ VLocalBuffer const*		GetState (RawBufferID id)		{ return _GetState( _localBuffers, Remap( id )); }
-		ND_ VLocalImage  const*		GetState (RawImageID id)		{ return _GetState( _localImages,  Remap( id )); }
-		ND_ VLocalRTGeometry const*	GetState (RawRTGeometryID id)	{ return _GetState( _localRTGeometries, Remap( id )); }
-		ND_ VLocalRTScene const*	GetState (RawRTSceneID id)		{ return _GetState( _localRTScenes, Remap( id )); }
+		ND_ VLogicalRenderPass*		ToLocal (LogicalPassID id)		{ return _GetState( _logicalRenderPasses, id ); }
+		ND_ VLocalBuffer const*		ToLocal (RawBufferID id);
+		ND_ VLocalImage  const*		ToLocal (RawImageID id);
+		ND_ VLocalRTGeometry const*	ToLocal (RawRTGeometryID id);
+		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id);
 
 		template <typename ID>
 		void ReleaseResource (ID id, bool isAsync);
 		
-		void FlushLocalResourceStates (ExeOrderIndex, VBarrierManager &, VFrameGraphDebugger *);
+		void FlushLocalResourceStates (ExeOrderIndex, ExeOrderIndex, VBarrierManager &, VFrameGraphDebugger *);
 
 		ND_ VPipelineCache *	GetPipelineCache ()					{ return &_pipelineCache; }
 		ND_ VRenderPassCache*	GetRenderPassCache ()				{ return &_renderPassCache; }
 		ND_ VDescriptorManager*	GetDescriptorManager ()				{ return &_descriptorMngr; }
+		ND_ Allocator_t&		GetAllocator ()						{ return _allocator; }
 
 
 	private:
@@ -186,6 +188,8 @@ namespace FG
 
 		bool  _CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout> const* &layoutPtr,
 										  const PipelineDescription::UniformMapPtr &uniforms, bool isAsync);
+
+		void _ResetLocalRemaping ();
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
 		ND_ DataT*  _GetState (PoolTmpl<DataT,CS,MC> &pool, ID id);
@@ -232,7 +236,15 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		if ( isAsync )
+		{
+			auto&	pool = _GetResourcePool( id );
+			auto&	data = pool[ id.Index() ];
+			
+			if ( data.GetInstanceID() != id.InstanceID() )
+				return;	// this instance is already destroyed
+
 			_unassignIDs->push_back( id );
+		}
 		else
 			_mainRM._UnassignResource( _GetResourcePool( id ), id );
 	}

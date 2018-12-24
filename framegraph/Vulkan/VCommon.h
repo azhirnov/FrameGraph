@@ -52,7 +52,7 @@ namespace FG
 	struct VPipelineResourceSet
 	{
 		FixedArray< RawPipelineResourcesID, FG_MaxDescriptorSets >	resources;
-		FixedArray< uint, 64 >										dynamicOffsets;
+		FixedArray< uint, FG_MaxBufferDynamicOffsets >				dynamicOffsets;
 	};
 
 
@@ -63,6 +63,9 @@ namespace FG
 		Final		= 0x80000000,
 		Unknown		= ~0u,
 	};
+
+	forceinline ExeOrderIndex&  operator ++ (ExeOrderIndex &value)	{ return (value = BitCast<ExeOrderIndex>( BitCast<uint>( value ) + 1 )); }
+
 
 	enum class EQueueFamily : uint
 	{

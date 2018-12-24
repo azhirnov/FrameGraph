@@ -9,7 +9,7 @@
 namespace FG
 {
 
-	bool FGApp::Test_TraceRays1 ()
+	bool FGApp::Test_TraceRays2 ()
 	{
 		if ( not _vulkan.HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME ) )
 			return true;
@@ -133,37 +133,63 @@ void main ()
 
 		CommandBatchID		batch_id {"main"};
 		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
-		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
-		
-		resources.BindImage( UniformID("un_Output"), dst_image );
-		resources.BindRayTracingScene( UniformID("un_RtScene"), rt_scene );
-		
-		BuildRayTracingScene::Instance		instance;
-		instance.SetGeometry( rt_geometry );
+		submission_graph.AddBatch( batch_id, 1 );
 		
 		TraceRays::ShaderTable		shader_table;
 
-		Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-		Task	t_build_scene	= frame_graph->AddTask( BuildRayTracingScene{}.SetTarget( rt_scene ).Add( instance ).DependsOn( t_build_geom ));
+		// frame 1
+		{
+			CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		
+			resources.BindImage( UniformID("un_Output"), dst_image );
+			resources.BindRayTracingScene( UniformID("un_RtScene"), rt_scene );
+		
+			BuildRayTracingScene::Instance		instance;
+			instance.SetGeometry( rt_geometry );
 
-		Task	t_update_table	= frame_graph->AddTask( UpdateRayTracingShaderTable{ OUT shader_table }.SetPipeline( pipeline ).SetScene( rt_scene )
-															.SetBuffer( sbt_buffer ).SetRayGenShader(RTShaderGroupID{"Main"})
-															.AddMissShader(RTShaderGroupID{"PrimiryMiss"})
-															.AddHitShader( GeometryID{"Triangle"}, RTShaderGroupID{"TriangleHit"} )
-															.DependsOn( t_build_scene ));
+			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
+			Task	t_build_scene	= frame_graph->AddTask( BuildRayTracingScene{}.SetTarget( rt_scene ).Add( instance ).DependsOn( t_build_geom ));
 
-		Task	t_trace			= frame_graph->AddTask( TraceRays{}.SetPipeline( pipeline ).AddResources( ds_index, &resources )
-															.SetGroupCount( view_size.x, view_size.y ).SetShaderTable( shader_table )
-															.DependsOn( t_update_table ));
+			Task	t_update_table	= frame_graph->AddTask( UpdateRayTracingShaderTable{ OUT shader_table }.SetPipeline( pipeline ).SetScene( rt_scene )
+																.SetBuffer( sbt_buffer ).SetRayGenShader(RTShaderGroupID{"Main"})
+																.AddMissShader(RTShaderGroupID{"PrimiryMiss"})
+																.AddHitShader( GeometryID{"Triangle"}, RTShaderGroupID{"TriangleHit"} )
+																.DependsOn( t_build_scene ));
+			FG_UNUSED( t_update_table );
 
-		Task	t_read			= frame_graph->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
-		FG_UNUSED( t_read );
+			CHECK_ERR( frame_graph->Execute() );
+			CHECK_ERR( _frameGraphInst->EndFrame() );
+		}
 
-		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		// frame 2
+		{
+			CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			
+			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
+			Task	t_trace			= frame_graph->AddTask( TraceRays{}.SetPipeline( pipeline ).AddResources( ds_index, &resources )
+																.SetGroupCount( view_size.x, view_size.y ).SetShaderTable( shader_table ).DependsOn( t_build_geom ));
+			FG_UNUSED( t_trace );
+			
+			CHECK_ERR( frame_graph->Execute() );
+			CHECK_ERR( _frameGraphInst->EndFrame() );
+		}
+
+		// frame 3
+		{
+			CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			
+			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
+			Task	t_trace			= frame_graph->AddTask( TraceRays{}.SetPipeline( pipeline ).AddResources( ds_index, &resources )
+																.SetGroupCount( view_size.x, view_size.y ).SetShaderTable( shader_table ).DependsOn( t_build_geom ));
+			Task	t_read			= frame_graph->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
+			FG_UNUSED( t_read );
+			
+			CHECK_ERR( frame_graph->Execute() );
+			CHECK_ERR( _frameGraphInst->EndFrame() );
+		}
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));

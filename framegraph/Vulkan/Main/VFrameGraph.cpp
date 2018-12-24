@@ -177,7 +177,8 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Idle, EState::Begin ));
 
-		_frameId = (_frameId + 1) % _ringBufferSize;
+		_frameId	= (_frameId + 1) % _ringBufferSize;
+		_statistics	= Default;
 
 		CHECK_ERR( _submissionGraph.WaitFences( _frameId ));
 		CHECK_ERR( _submissionGraph.Recreate( _frameId, graph ));
@@ -283,7 +284,7 @@ namespace FG
 					continue;
 				}
 
-				CHECK( thread->SyncOnExecute() );
+				CHECK( thread->SyncOnExecute( INOUT _statistics ));
 				++iter;
 			}
 		}
@@ -333,7 +334,7 @@ namespace FG
 		}
 		return true;
 	}
-	
+
 /*
 =================================================
 	GetStatistics

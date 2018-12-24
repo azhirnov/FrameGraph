@@ -14,9 +14,9 @@ namespace FG
 {
 
 	template <typename ID>
-	forceinline auto const*  VTaskProcessor::_GetState (ID id) const
+	forceinline auto const*  VTaskProcessor::_ToLocal (ID id) const
 	{
-		return _frameGraph.GetResourceManager()->GetState( id );
+		return _frameGraph.GetResourceManager()->ToLocal( id );
 	}
 	
 	template <typename ID>
@@ -30,6 +30,11 @@ namespace FG
 	{
 		return static_cast<ResType const*>(res)->CommitBarrier( barrierMngr, debugger );
 	}
+
+	inline VTaskProcessor::Statistic_t&  VTaskProcessor::Stat () const
+	{
+		return _frameGraph.EditStatistic().renderer;
+	}
 //-----------------------------------------------------------------------------
 
 
@@ -39,20 +44,14 @@ namespace FG
 	//
 	class VTaskProcessor::PipelineResourceBarriers
 	{
-	// types
-	private:
-		using ResourceSet_t	= PipelineResources::ResourceSet_t;
-
-
 	// variables
 	private:
 		VTaskProcessor &	_tp;
-		const Task			_currTask;
-
+		ArrayView<uint>		_dynamicOffsets;
 
 	// methods
 	public:
-		PipelineResourceBarriers (VTaskProcessor &tp, Task task) : _tp{tp}, _currTask{task} {}
+		PipelineResourceBarriers (VTaskProcessor &tp, ArrayView<uint> offsets) : _tp{tp}, _dynamicOffsets{offsets} {}
 
 		// ResourceGraph //
 		void operator () (const PipelineResources::Buffer &buf);
@@ -60,7 +59,7 @@ namespace FG
 		//void operator () (const PipelineResources::Texture &tex);
 		//void operator () (const PipelineResources::SubpassInput &sp);
 		void operator () (const PipelineResources::Sampler &) {}
-		void operator () (const PipelineResources::RayTracingScene &) {}	// TODO
+		void operator () (const PipelineResources::RayTracingScene &);
 		void operator () (const std::monostate &) {}
 	};
 
@@ -161,30 +160,31 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Buffer &buf)
 	{
-		if ( not buf.bufferId )
+		VLocalBuffer const*	buffer	= _tp._ToLocal( buf.bufferId );
+		if ( not buffer )
 			return;
 
-		VLocalBuffer const *	buffer	= _tp._GetState( buf.bufferId );
-		VkDeviceSize const		size	= VkDeviceSize( buf.size == ~0_b ? buffer->Size() - buf.offset : buf.size );
+		const VkDeviceSize	offset	= VkDeviceSize(buf.offset) + (buf.dynamicOffsetIndex < _dynamicOffsets.size() ? _dynamicOffsets[buf.dynamicOffsetIndex] : 0);		
+		const VkDeviceSize	size	= VkDeviceSize( buf.size == ~0_b ? buffer->Size() - offset : buf.size );
 
 		// validation
 		{
-			ASSERT( buf.offset < buffer->Size() );
-			ASSERT( buf.offset + size <= buffer->Size() );
+			ASSERT( offset < buffer->Size() );
+			ASSERT( offset + size <= buffer->Size() );
 
 			auto&	limits	= _tp._frameGraph.GetDevice().GetDeviceProperties().limits;
 
 			if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
 			{
-				ASSERT( (buf.offset % limits.minUniformBufferOffsetAlignment) == 0 );
+				ASSERT( (offset % limits.minUniformBufferOffsetAlignment) == 0 );
 				ASSERT( size <= limits.maxUniformBufferRange );
 			}else{
-				ASSERT( (buf.offset % limits.minStorageBufferOffsetAlignment) == 0 );
+				ASSERT( (offset % limits.minStorageBufferOffsetAlignment) == 0 );
 				ASSERT( size <= limits.maxStorageBufferRange );
 			}
 		}
 
-		_tp._AddBuffer( buffer, buf.state, VkDeviceSize(buf.offset), VkDeviceSize(buf.size) );
+		_tp._AddBuffer( buffer, buf.state, offset, size );
 	}
 		
 /*
@@ -194,12 +194,33 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Image &img)
 	{
-		if ( not img.imageId )
+		VLocalImage const*  image = _tp._ToLocal( img.imageId );
+
+		if ( image )
+			_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state, image->AspectMask() ), *img.desc );
+	}
+		
+/*
+=================================================
+	operator (RayTracingScene)
+=================================================
+*/
+	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::RayTracingScene &rts)
+	{
+		VLocalRTScene const*	scene = _tp._ToLocal( rts.sceneId );
+		if ( not scene )
 			return;
 
-		VLocalImage const*  image = _tp._GetState( img.imageId );
+		_tp._AddRTScene( scene, EResourceState::RayTracingShaderRead );
+		ASSERT( scene->GeometryInstances().size() );
 
-		_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state ), *img.desc );
+		for (auto& inst : scene->GeometryInstances())
+		{
+			VLocalRTGeometry const*		geom = _tp._ToLocal( inst );
+
+			if ( geom )
+				_tp._AddRTGeometry( geom, EResourceState::RayTracingShaderRead );
+		}
 	}
 //-----------------------------------------------------------------------------
 
@@ -462,6 +483,7 @@ namespace FG
 		}
 
 		_dev.vkCmdBindVertexBuffers( _cmdBuffer, 0, uint(buffers.size()), buffers.data(), vertexOffsets.data() );
+		_tp.Stat().vertexBufferBindings++;
 	}
 	
 /*
@@ -477,6 +499,7 @@ namespace FG
 		{
 			_tp._graphicsPipeline.pipeline = ppln_id;
 			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_id );
+			_tp.Stat().graphicsPipelineBindings++;
 		}
 	}
 	
@@ -488,6 +511,7 @@ namespace FG
 		{
 			_tp._graphicsPipeline.pipeline = ppln_id;
 			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_id );
+			_tp.Stat().graphicsPipelineBindings++;
 		}
 	}
 
@@ -507,6 +531,8 @@ namespace FG
 									  0,
 									  uint(descriptorSets.size()), descriptorSets.data(),
 									  uint(dynamicOffsets.size()), dynamicOffsets.data() );
+
+		_tp.Stat().descriptorBinds++;
 	}
 
 /*
@@ -526,11 +552,12 @@ namespace FG
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
 		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
-		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
+		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
 		{
 			_dev.vkCmdDraw( _cmdBuffer, cmd.vertexCount, cmd.instanceCount, cmd.firstVertex, cmd.firstInstance );
+			_tp.Stat().drawCalls++;
 		}
 	}
 	
@@ -552,12 +579,13 @@ namespace FG
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
 		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
 		_tp._BindIndexBuffer( task.indexBuffer->Handle(), VkDeviceSize(task.indexBufferOffset), VEnumCast(task.indexType) );
-		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
+		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
 		{
 			_dev.vkCmdDrawIndexed( _cmdBuffer, cmd.indexCount, cmd.instanceCount,
 								   cmd.firstIndex, cmd.vertexOffset, cmd.firstInstance );
+			_tp.Stat().drawCalls++;
 		}
 	}
 	
@@ -578,7 +606,7 @@ namespace FG
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
 		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
-		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
+		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
 		{
@@ -587,6 +615,7 @@ namespace FG
 									VkDeviceSize(cmd.indirectBufferOffset),
 								    cmd.drawCount,
 								    uint(cmd.stride) );
+			_tp.Stat().drawCalls++;
 		}
 	}
 	
@@ -608,7 +637,7 @@ namespace FG
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
 		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
 		_tp._BindIndexBuffer( task.indexBuffer->Handle(), VkDeviceSize(task.indexBufferOffset), VEnumCast(task.indexType) );
-		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
+		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
 		{
@@ -617,6 +646,7 @@ namespace FG
 										   VkDeviceSize(cmd.indirectBufferOffset),
 										   cmd.drawCount,
 										   uint(cmd.stride) );
+			_tp.Stat().drawCalls++;
 		}
 	}
 		
@@ -636,11 +666,12 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 		
 		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
-		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
+		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
 		{
 			_dev.vkCmdDrawMeshTasksNV( _cmdBuffer, cmd.count, cmd.first );
+			_tp.Stat().drawCalls++;
 		}
 	}
 	
@@ -660,7 +691,7 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 		
 		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
-		_tp._SetStencilDynamicStates( _currTask->GetLogicalPass()->GetStencilState(), task.depthStencilState );
+		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
 		{
@@ -669,6 +700,7 @@ namespace FG
 											   VkDeviceSize(cmd.indirectBufferOffset),
 											   cmd.drawCount,
 											   uint(cmd.stride) );
+			_tp.Stat().drawCalls++;
 		}
 	}
 //-----------------------------------------------------------------------------
@@ -680,9 +712,10 @@ namespace FG
 	constructor
 =================================================
 */
-	VTaskProcessor::VTaskProcessor (VFrameGraphThread &fg, VBarrierManager &barrierMngr, VkCommandBuffer cmdbuf, const CommandBatchID &batchId, uint indexInBatch) :
+	VTaskProcessor::VTaskProcessor (VFrameGraphThread &fg, VBarrierManager &barrierMngr,
+									VkCommandBuffer cmdbuf, const CommandBatchID &batchId, uint indexInBatch) :
 		_frameGraph{ fg },								_dev{ fg.GetDevice() },
-		_cmdBuffer{ cmdbuf },							_enableDebugUtils{ _dev.IsDebugUtilsEnabled() },
+		_cmdBuffer{ cmdbuf },							_enableDebugUtils{ false },  //_dev.IsDebugUtilsEnabled() },
 		_pendingResourceBarriers{ fg.GetAllocator() },	_barrierMngr{ barrierMngr }
 	{
 		ASSERT( _cmdBuffer );
@@ -797,18 +830,15 @@ namespace FG
 */
 	void VTaskProcessor::_CmdDebugMarker (StringView text) const
 	{
-		if ( text.empty() )
-			return;
-
-		/*if ( _enableDebugUtils )
+		if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
 			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 			info.pLabelName	= text.data();
-			//MemCopy( info.color, _dbgColor );
+			MemCopy( info.color, _dbgColor );
 			
 			_dev.vkCmdInsertDebugUtilsLabelEXT( _cmdBuffer, &info );
-		}*/
+		}
 	}
 
 /*
@@ -818,17 +848,15 @@ namespace FG
 */
 	void VTaskProcessor::_CmdPushDebugGroup (StringView text) const
 	{
-		ASSERT( not text.empty() );
-
-		/*if ( _enableDebugUtils )
+		if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
 			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 			info.pLabelName	= text.data();
-			//MemCopy( info.color, _dbgColor );
+			MemCopy( info.color, _dbgColor );
 
 			_dev.vkCmdBeginDebugUtilsLabelEXT( _cmdBuffer, &info );
-		}*/
+		}
 	}
 
 /*
@@ -838,10 +866,10 @@ namespace FG
 */
 	void VTaskProcessor::_CmdPopDebugGroup () const
 	{
-		/*if ( _enableDebugUtils )
+		if ( _enableDebugUtils )
 		{
 			_dev.vkCmdEndDebugUtilsLabelEXT( _cmdBuffer );
-		}*/
+		}
 	}
 	
 /*
@@ -890,30 +918,23 @@ namespace FG
 	
 /*
 =================================================
-	_SetStencilDynamicStates
+	_SetDynamicStates
 =================================================
 */
-	void VTaskProcessor::_SetStencilDynamicStates (const RenderState::StencilBufferState &currState, const _fg_hidden_::DepthStencilState &state) const
+	void VTaskProcessor::_SetDynamicStates (const _fg_hidden_::DynamicStates &state) const
 	{
-		if ( not state.stencilTest.value_or( currState.enabled ) )
-			return;
-
-		if ( state.compareMask.has_value() )
+		if ( state.hasStencilTest and state.stencilTest )
 		{
-			_dev.vkCmdSetStencilCompareMask( _cmdBuffer, VK_STENCIL_FACE_FRONT_BIT, state.compareMask.value().x );
-			_dev.vkCmdSetStencilCompareMask( _cmdBuffer, VK_STENCIL_FACE_BACK_BIT, state.compareMask.value().y );
-		}
+			if ( state.hasStencilCompareMask )
+				_dev.vkCmdSetStencilCompareMask( _cmdBuffer, VK_STENCIL_FRONT_AND_BACK, state.stencilCompareMask );
 
-		if ( state.reference.has_value() )
-		{
-			_dev.vkCmdSetStencilReference( _cmdBuffer, VK_STENCIL_FACE_FRONT_BIT, state.reference.value().x );
-			_dev.vkCmdSetStencilReference( _cmdBuffer, VK_STENCIL_FACE_BACK_BIT, state.reference.value().y );
-		}
+			if ( state.hasStencilReference )
+				_dev.vkCmdSetStencilReference( _cmdBuffer, VK_STENCIL_FRONT_AND_BACK, state.stencilReference );
 
-		if ( state.writeMask.has_value() )
-		{
-			_dev.vkCmdSetStencilWriteMask( _cmdBuffer, VK_STENCIL_FACE_FRONT_BIT, state.writeMask.value().x );
-			_dev.vkCmdSetStencilWriteMask( _cmdBuffer, VK_STENCIL_FACE_BACK_BIT, state.writeMask.value().x );
+			if ( state.hasStencilWriteMask )
+				_dev.vkCmdSetStencilWriteMask( _cmdBuffer, VK_STENCIL_FRONT_AND_BACK, state.stencilWriteMask );
+
+			Stat().dynamicStateChanges += uint(state.hasStencilCompareMask) + uint(state.hasStencilReference) + uint(state.hasStencilWriteMask);
 		}
 	}
 
@@ -928,7 +949,7 @@ namespace FG
 		{
 			const auto &	rt		= logicalRP.GetDepthStencilTarget();
 			EResourceState	state	= rt.state;
-			VkImageLayout	layout	= EResourceState_ToImageLayout( rt.state );
+			VkImageLayout	layout	= EResourceState_ToImageLayout( rt.state, rt.imagePtr->AspectMask() );
 
 			if ( info.IsEarlyFragmentTests() )
 				state |= EResourceState::EarlyFragmentTests;
@@ -941,7 +962,7 @@ namespace FG
 
 		for (const auto& rt : logicalRP.GetColorTargets())
 		{
-			VkImageLayout	layout = EResourceState_ToImageLayout( rt.second.state );
+			VkImageLayout	layout = EResourceState_ToImageLayout( rt.second.state, rt.second.imagePtr->AspectMask() );
 
 			_AddImage( rt.second.imagePtr, rt.second.state, layout, rt.second.desc );
 		}
@@ -1109,7 +1130,7 @@ namespace FG
 		{
 			const auto &				res		 = resourceSet.resources[i];
 			VPipelineResources const*	ppln_res = _GetResource( res );
-			PipelineResourceBarriers	visitor	 { *this, _currTask };
+			PipelineResourceBarriers	visitor	 { *this, resourceSet.dynamicOffsets };
 
 			for (auto& un : ppln_res->GetData()) {
 				std::visit( visitor, un.res );
@@ -1140,6 +1161,8 @@ namespace FG
 									  descriptor_sets.data(),
 									  uint(resourceSet.dynamicOffsets.size()),
 									  resourceSet.dynamicOffsets.data() );
+
+		Stat().descriptorBinds++;
 	}
 
 /*
@@ -1165,6 +1188,7 @@ namespace FG
 
 				_dev.vkCmdPushConstants( _cmdBuffer, layout.Handle(), VEnumCast( iter->second.stageFlags ), uint(iter->second.offset),
 										 uint(iter->second.size), pc.data );
+				Stat().pushConstants++;
 			}
 		}
 	}
@@ -1182,6 +1206,7 @@ namespace FG
 		{
 			_computePipeline.pipeline = ppln_id;
 			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_id );
+			Stat().computePipelineBindings++;
 		}
 	}
 
@@ -1203,6 +1228,7 @@ namespace FG
 		_CommitBarriers();
 
 		_dev.vkCmdDispatch( _cmdBuffer, task.groupCount.x, task.groupCount.y, task.groupCount.z );
+		Stat().dispatchCalls++;
 	}
 	
 /*
@@ -1226,6 +1252,7 @@ namespace FG
 		_dev.vkCmdDispatchIndirect( _cmdBuffer,
 								    task.indirectBuffer->Handle(),
 									task.indirectBufferOffset );
+		Stat().dispatchCalls++;
 	}
 
 /*
@@ -1268,6 +1295,8 @@ namespace FG
 							  dst_buffer->Handle(),
 							  uint(regions.size()),
 							  regions.data() );
+
+		Stat().transferOps++;
 	}
 	
 /*
@@ -1323,6 +1352,8 @@ namespace FG
 							 task.dstLayout,
 							 uint(regions.size()),
 							 regions.data() );
+		
+		Stat().transferOps++;
 	}
 	
 /*
@@ -1368,6 +1399,8 @@ namespace FG
 									 task.dstLayout,
 									 uint(regions.size()),
 									 regions.data() );
+		
+		Stat().transferOps++;
 	}
 	
 /*
@@ -1412,6 +1445,8 @@ namespace FG
 									 dst_buffer->Handle(),
 									 uint(regions.size()),
 									 regions.data() );
+		
+		Stat().transferOps++;
 	}
 	
 /*
@@ -1460,6 +1495,8 @@ namespace FG
 							 uint(regions.size()),
 							 regions.data(),
 							 task.filter );
+		
+		Stat().transferOps++;
 	}
 	
 /*
@@ -1508,6 +1545,8 @@ namespace FG
 								task.dstLayout,
 								uint(regions.size()),
 								regions.data() );
+		
+		Stat().transferOps++;
 	}
 	
 /*
@@ -1530,6 +1569,8 @@ namespace FG
 							  task.dstOffset,
 							  task.size,
 							  task.pattern );
+		
+		Stat().transferOps++;
 	}
 	
 /*
@@ -1566,6 +1607,8 @@ namespace FG
 								   &task.ClearValue(),
 								   uint(ranges.size()),
 								   ranges.data() );
+		
+		Stat().transferOps++;
 	}
 	
 /*
@@ -1602,6 +1645,8 @@ namespace FG
 										  &task.clearValue,
 										  uint(ranges.size()),
 										  ranges.data() );
+		
+		Stat().transferOps++;
 	}
 
 /*
@@ -1620,8 +1665,10 @@ namespace FG
 		}	
 		_CommitBarriers();
 		
-		for (auto& reg : task.Regions()) {
+		for (auto& reg : task.Regions())
+		{
 			_dev.vkCmdUpdateBuffer( _cmdBuffer, dst_buffer->Handle(), reg.bufferOffset, reg.dataSize, reg.dataPtr );
+			Stat().transferOps++;
 		}
 	}
 
@@ -1638,7 +1685,7 @@ namespace FG
 		CHECK( _frameGraph.GetSwapchain()->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
 
 		VLocalImage const *		src_image	= task.srcImage;
-		VLocalImage const *		dst_image	= _GetState( swapchain_image );
+		VLocalImage const *		dst_image	= _ToLocal( swapchain_image );
 		VkImageBlit				region;
 		
 		region.srcSubresource.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1768,13 +1815,15 @@ namespace FG
 		region.dstOffset	= task.dstOffset;
 		region.size			= VkDeviceSize( req_size );
 
-		VLocalBuffer const*		src_buffer = _GetState( staging_buffer );
+		VLocalBuffer const*		src_buffer = _ToLocal( staging_buffer );
 		_AddBuffer( src_buffer, EResourceState::TransferSrc, region.srcOffset, region.size );
 		_AddBuffer( task.dstBuffer, EResourceState::TransferDst, region.dstOffset, region.size );
 		
 		_CommitBarriers();
 		
 		_dev.vkCmdCopyBuffer( _cmdBuffer, src_buffer->Handle(), task.dstBuffer->Handle(), 1, &region );
+		
+		Stat().transferOps++;
 	}
 
 /*
@@ -1786,7 +1835,7 @@ namespace FG
 	{
 		_OnRunTask();
 		
-		_AddRTGeometry( task.RTGeometry(), { EResourceState::BuildRayTracingStructWrite, _currTask });
+		_AddRTGeometry( task.RTGeometry(), EResourceState::BuildRayTracingStructWrite );
 		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VkDeviceSize(task.ScratchBuffer()->Size()) );
 		// TODO: vertex, index, transform, aabb buffer usage
 		_CommitBarriers();
@@ -1805,6 +1854,7 @@ namespace FG
 												task.ScratchBuffer()->Handle(),
 												task.ScratchBufferOffset()
 											);
+		Stat().buildASCalls++;
 	}
 	
 /*
@@ -1818,12 +1868,12 @@ namespace FG
 		
 		task.RTScene()->SetGeometryInstances( task.GeometryIDs(), task.HitShadersPerGeometry(), task.MaxHitShaderCount() );
 
-		_AddRTScene( task.RTScene(), { EResourceState::BuildRayTracingStructWrite, _currTask });
+		_AddRTScene( task.RTScene(), EResourceState::BuildRayTracingStructWrite );
 		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VkDeviceSize(task.ScratchBuffer()->Size()) );
 		_AddBuffer( task.InstanceBuffer(), EResourceState::RTASBuildingBufferRead, 0, VkDeviceSize(task.InstanceBuffer()->Size()) );
 
 		for (auto& blas : task.Geometries()) {
-			_AddRTGeometry( blas, { EResourceState::BuildRayTracingStructRead, _currTask });
+			_AddRTGeometry( blas, EResourceState::BuildRayTracingStructRead );
 		}
 
 		_CommitBarriers();
@@ -1841,6 +1891,7 @@ namespace FG
 												task.ScratchBuffer()->Handle(),
 												task.ScratchBufferOffset()
 											);
+		Stat().buildASCalls++;
 	}
 	
 /*
@@ -1856,6 +1907,7 @@ namespace FG
 		{
 			_rayTracingPipeline.pipeline = ppln_id;
 			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, ppln_id );
+			Stat().rayTracingPipelineBindings++;
 		}
 	}
 	
@@ -1874,7 +1926,8 @@ namespace FG
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV );
 		_PushConstants( *layout, task.pushConstants );
 
-		_AddBuffer( task.sbtBuffer, EResourceState::ShaderBindingBufferRead, Min( task.rayGenOffset, task.rayMissOffset, task.rayHitOffset ), VK_WHOLE_SIZE );
+		_AddBuffer( task.sbtBuffer, EResourceState::UniformRead | EResourceState::_RayTracingShader,
+				    Min( task.rayGenOffset, task.rayMissOffset, task.rayHitOffset ), VK_WHOLE_SIZE );
 
 		_CommitBarriers();
 		
@@ -1884,6 +1937,8 @@ namespace FG
 								task.sbtBuffer->Handle(), task.rayHitOffset,  task.rayHitStride,
 								VK_NULL_HANDLE, 0, 0,
 								task.groupCount.x, task.groupCount.y, task.groupCount.z );
+
+		Stat().traceRaysCalls++;
 	}
 
 /*
@@ -1893,6 +1948,7 @@ namespace FG
 */
 	inline void VTaskProcessor::_AddImageState (const VLocalImage *img, const ImageState &state)
 	{
+		ASSERT( img );
 		ASSERT( not state.range.IsEmpty() );
 
 		_pendingResourceBarriers.insert({ img, &CommitResourceBarrier<VLocalImage> });
@@ -1961,6 +2017,7 @@ namespace FG
 */
 	inline void VTaskProcessor::_AddBufferState (const VLocalBuffer *buf, const BufferState &state)
 	{
+		ASSERT( buf );
 		_pendingResourceBarriers.insert({ buf, &CommitResourceBarrier<VLocalBuffer> });
 
 		buf->AddPendingState( state );
@@ -1976,6 +2033,7 @@ namespace FG
 */
 	inline void VTaskProcessor::_AddBuffer (const VLocalBuffer *buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size)
 	{
+		ASSERT( buf );
 		ASSERT( size > 0 );
 
 		//if ( buf->IsImmutable() )
@@ -1996,6 +2054,8 @@ namespace FG
 	inline void VTaskProcessor::_AddBuffer (const VLocalBuffer *buf, EResourceState state,
 											const VkBufferImageCopy &reg, const VLocalImage *img)
 	{
+		ASSERT( img );
+
 		//if ( buf->IsImmutable() )
 		//	return;
 
@@ -2031,14 +2091,15 @@ namespace FG
 	_AddRTGeometry
 =================================================
 */
-	void VTaskProcessor::_AddRTGeometry (const VLocalRTGeometry *geom, const RTGeometryState &state)
+	void VTaskProcessor::_AddRTGeometry (const VLocalRTGeometry *geom, EResourceState state)
 	{
+		ASSERT( geom );
 		_pendingResourceBarriers.insert({ geom, &CommitResourceBarrier<VLocalRTGeometry> });
 
-		geom->AddPendingState( state );
+		geom->AddPendingState(RTGeometryState{ state, _currTask });
 
 		if ( _frameGraph.GetDebugger() )
-			_frameGraph.GetDebugger()->AddRTGeometryUsage( geom->ToGlobal(), state );
+			_frameGraph.GetDebugger()->AddRTGeometryUsage( geom->ToGlobal(), RTGeometryState{ state, _currTask });
 	}
 	
 /*
@@ -2046,14 +2107,15 @@ namespace FG
 	_AddRTScene
 =================================================
 */
-	void VTaskProcessor::_AddRTScene (const VLocalRTScene *scene, const RTSceneState &state)
+	void VTaskProcessor::_AddRTScene (const VLocalRTScene *scene, EResourceState state)
 	{
+		ASSERT( scene );
 		_pendingResourceBarriers.insert({ scene, &CommitResourceBarrier<VLocalRTScene> });
 
-		scene->AddPendingState( state );
+		scene->AddPendingState(RTSceneState{ state, _currTask });
 
 		if ( _frameGraph.GetDebugger() )
-			_frameGraph.GetDebugger()->AddRTSceneUsage( scene->ToGlobal(), state );
+			_frameGraph.GetDebugger()->AddRTSceneUsage( scene->ToGlobal(), RTSceneState{ state, _currTask });
 	}
 
 /*
@@ -2089,6 +2151,7 @@ namespace FG
 			_indexType			= indexType;
 
 			_dev.vkCmdBindIndexBuffer( _cmdBuffer, _indexBuffer, _indexBufferOffset, _indexType );
+			Stat().indexBufferBindings++;
 		}
 	}
 	

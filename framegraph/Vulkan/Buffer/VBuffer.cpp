@@ -118,6 +118,17 @@ namespace FG
 
 		_debugName.clear();
 	}
+	
+/*
+=================================================
+	IsReadOnly
+=================================================
+*/
+	bool VBuffer::IsReadOnly () const
+	{
+		SHAREDLOCK( _rcCheck );
+		return not EnumAny( _desc.usage, EBufferUsage::TransferDst | EBufferUsage::StorageTexel | EBufferUsage::Storage | EBufferUsage::RayTracing );
+	}
 
 
 }	// FG

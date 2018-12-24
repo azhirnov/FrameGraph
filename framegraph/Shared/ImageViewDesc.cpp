@@ -152,7 +152,9 @@ namespace FG
 			maxLevel = MipmapLevel( Clamp( maxLevel.Get(), 1u, NumberOfMipmaps( imageType, dimension ) ));
 		}
 	}
-		
+//-----------------------------------------------------------------------------
+
+
 /*
 =================================================
 	ImageViewDesc
@@ -164,11 +166,12 @@ namespace FG
 								  uint				levelCount,
 								  ImageLayer		baseLayer,
 								  uint				layerCount,
-								  ImageSwizzle		swizzle) :
+								  ImageSwizzle		swizzle,
+								  EImageAspect		aspectMask) :
 		viewType{viewType},		format{format},
 		baseLevel{baseLevel},	levelCount{levelCount},
 		baseLayer{baseLayer},	layerCount{layerCount},
-		swizzle{swizzle}
+		swizzle{swizzle},		aspectMask{aspectMask}
 	{}
 	
 /*
@@ -177,10 +180,10 @@ namespace FG
 =================================================
 */
 	ImageViewDesc::ImageViewDesc (const ImageDesc &desc) :
-		viewType{ desc.imageType },		format{ desc.format },
-		baseLevel{},					levelCount{ desc.maxLevel.Get() },
-		baseLayer{},					layerCount{ desc.arrayLayers.Get() }
-		//swizzle{ "RGBA"_Swizzle }
+		viewType{ desc.imageType },	format{ desc.format },
+		baseLevel{},				levelCount{ desc.maxLevel.Get() },
+		baseLayer{},				layerCount{ desc.arrayLayers.Get() },
+		swizzle{ "RGBA"_swizzle },	aspectMask{EPixelFormat_ToImageAspect(format)}
 	{}
 	
 /*
@@ -198,11 +201,16 @@ namespace FG
 
 		uint	max_layers	= desc.imageType == EImage::Tex3D ? 1 : desc.arrayLayers.Get();
 
-		baseLayer	= ImageLayer(Clamp( baseLayer.Get(), 0u, max_layers-1 ));
+		baseLayer	= ImageLayer{Clamp( baseLayer.Get(), 0u, max_layers-1 )};
 		layerCount	= Clamp( layerCount, 1u, max_layers - baseLayer.Get() );
 
-		baseLevel	= MipmapLevel(Clamp( baseLevel.Get(), 0u, desc.maxLevel.Get()-1 ));
+		baseLevel	= MipmapLevel{Clamp( baseLevel.Get(), 0u, desc.maxLevel.Get()-1 )};
 		levelCount	= Clamp( levelCount, 1u, desc.maxLevel.Get() - baseLevel.Get() );
+
+		auto	mask = EPixelFormat_ToImageAspect( format );
+		aspectMask   = (aspectMask == Default ? mask : aspectMask & mask);
+
+		ASSERT( aspectMask != Default );
 	}
 
 /*
@@ -218,6 +226,7 @@ namespace FG
 				this->levelCount	== rhs.levelCount	and
 				this->baseLayer		== rhs.baseLayer	and
 				this->layerCount	== rhs.layerCount	and
+				this->aspectMask	== rhs.aspectMask	and
 				this->swizzle		== rhs.swizzle;
 	}
 

@@ -130,7 +130,8 @@ if (${FG_ENABLE_GLSLANG})
 							--config $<CONFIG>
 		LOG_BUILD 			1
 		# install
-		INSTALL_DIR 		"${FG_GLSLANG_INSTALL_DIR}"
+		INSTALL_DIR 		"" #"${FG_GLSLANG_INSTALL_DIR}"
+		INSTALL_COMMAND		""
 		LOG_INSTALL 		1
 		# test
 		TEST_COMMAND		""

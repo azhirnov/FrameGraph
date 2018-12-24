@@ -64,8 +64,40 @@ namespace FG
 		using DeviceInfo_t			= Union< std::monostate, VulkanDeviceInfo >;
 		using ExternalCmdBatch_t	= Union< std::monostate, VulkanCommandBatch >;
 
+		struct RenderingStatistics
+		{
+			uint		descriptorBinds				= 0;
+			uint		pushConstants				= 0;
+			uint		pipelineBarriers			= 0;
+			uint		transferOps					= 0;
+
+			uint		indexBufferBindings			= 0;
+			uint		vertexBufferBindings		= 0;
+			uint		drawCalls					= 0;
+			uint		graphicsPipelineBindings	= 0;
+			uint		dynamicStateChanges			= 0;
+
+			uint		dispatchCalls				= 0;
+			uint		computePipelineBindings		= 0;
+
+			uint		rayTracingPipelineBindings	= 0;
+			uint		traceRaysCalls				= 0;
+			uint		buildASCalls				= 0;
+		};
+
+		struct ResourceStatistics
+		{
+			uint		newGraphicsPipelineCount	= 0;
+			uint		newComputePipelineCount		= 0;
+			uint		newRayTracingPipelineCount	= 0;
+		};
+
 		struct Statistics
 		{
+			RenderingStatistics		renderer;
+			ResourceStatistics		resources;
+
+			void Merge (const Statistics &);
 		};
 		
 		ND_ static FrameGraphPtr  CreateFrameGraph (const DeviceInfo_t &);

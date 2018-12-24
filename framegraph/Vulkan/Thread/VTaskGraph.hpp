@@ -18,19 +18,23 @@ namespace FG
 	template <typename T>
 	inline VFgTask<T>*  VTaskGraph<VisitorT>::Add (VFrameGraphThread *fg, const T &task)
 	{
-		void *	ptr  = fg->GetAllocator().Alloc< VFgTask<T> >();
-		auto	iter = *_nodes->insert( PlacementNew< VFgTask<T> >( ptr, fg, task, &_Visitor<T> )).first;
+		auto*	ptr  = fg->GetAllocator().Alloc< VFgTask<T> >();
 
-		if ( iter->Inputs().empty() )
-			_entries->push_back( iter );
+		PlacementNew< VFgTask<T> >( OUT ptr, fg, task, &_Visitor<T> );
+		CHECK_ERR( ptr->IsValid() );
 
-		for (auto in_node : iter->Inputs())
+		_nodes->insert( ptr );
+
+		if ( ptr->Inputs().empty() )
+			_entries->push_back( ptr );
+
+		for (auto in_node : ptr->Inputs())
 		{
 			ASSERT( !!_nodes->count( in_node ) );
 
-			in_node->Attach( iter );
+			in_node->Attach( ptr );
 		}
-		return Cast< VFgTask<T> >( iter.operator->() );
+		return ptr;
 	}
 	
 /*
@@ -76,9 +80,20 @@ namespace FG
 */
 	inline VFgTask<SubmitRenderPass>::VFgTask (VFrameGraphThread *fg, const SubmitRenderPass &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		_logicalPass{ fg->GetResourceManager()->GetState( task.renderPassId )}
+		_logicalPass{ fg->GetResourceManager()->ToLocal( task.renderPassId )}
 	{
-		CHECK( _logicalPass->Submit() );
+		if ( _logicalPass )
+			CHECK( _logicalPass->Submit() );
+	}
+	
+/*
+=================================================
+	VFgTask< SubmitRenderPass >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<SubmitRenderPass>::IsValid () const
+	{
+		return _logicalPass;
 	}
 //-----------------------------------------------------------------------------
 	
@@ -113,7 +128,7 @@ namespace FG
 		for (auto& vb : inBuffers)
 		{
 			auto				iter	= vertexInput.BufferBindings().find( vb.first );
-			VLocalBuffer const*	buffer	= fg->GetResourceManager()->GetState( vb.second.buffer );
+			VLocalBuffer const*	buffer	= fg->GetResourceManager()->ToLocal( vb.second.buffer );
 			
 			CHECK_ERR( iter != vertexInput.BufferBindings().end(), void());
 			
@@ -136,7 +151,7 @@ namespace FG
 		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },			vertexInput{ task.vertexInput },
 		scissors{ task.scissors },						colorBuffers{ task.colorBuffers },
-		depthStencilState{ task.depthStencilState },	topology{ task.topology },
+		dynamicStates{ task.dynamicStates },			topology{ task.topology },
 		primitiveRestart{ task.primitiveRestart }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
@@ -159,7 +174,7 @@ namespace FG
 */
 	inline VFgDrawTask<DrawIndexed>::VFgDrawTask (VFrameGraphThread *fg, const DrawIndexed &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		VBaseDrawVerticesTask{ fg, task, pass1, pass2 },	commands{ task.commands },
-		indexBuffer{ fg->GetResourceManager()->GetState( task.indexBuffer )},
+		indexBuffer{ fg->GetResourceManager()->ToLocal( task.indexBuffer )},
 		indexBufferOffset{ task.indexBufferOffset },		indexType{ task.indexType }
 	{}
 	
@@ -170,7 +185,7 @@ namespace FG
 */
 	inline VFgDrawTask<DrawVerticesIndirect>::VFgDrawTask (VFrameGraphThread *fg, const DrawVerticesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		VBaseDrawVerticesTask{ fg, task, pass1, pass2 },	commands{ task.commands },
-		indirectBuffer{ fg->GetResourceManager()->GetState( task.indirectBuffer )}
+		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )}
 	{}
 	
 /*
@@ -180,8 +195,8 @@ namespace FG
 */
 	inline VFgDrawTask<DrawIndexedIndirect>::VFgDrawTask (VFrameGraphThread *fg, const DrawIndexedIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		VBaseDrawVerticesTask{ fg, task, pass1, pass2 },	commands{ task.commands },
-		indirectBuffer{ fg->GetResourceManager()->GetState( task.indirectBuffer )},
-		indexBuffer{ fg->GetResourceManager()->GetState( task.indexBuffer )},
+		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )},
+		indexBuffer{ fg->GetResourceManager()->ToLocal( task.indexBuffer )},
 		indexBufferOffset{ task.indexBufferOffset },		indexType{ task.indexType }
 	{}
 //-----------------------------------------------------------------------------
@@ -196,7 +211,7 @@ namespace FG
 	inline VBaseDrawMeshes::VBaseDrawMeshes (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		IDrawTask{ task, pass1, pass2 },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },	scissors{ task.scissors },
-		colorBuffers{ task.colorBuffers },		depthStencilState{ task.depthStencilState }
+		colorBuffers{ task.colorBuffers },		dynamicStates{ task.dynamicStates }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
@@ -217,7 +232,7 @@ namespace FG
 */
 	inline VFgDrawTask<DrawMeshesIndirect>::VFgDrawTask (VFrameGraphThread *fg, const DrawMeshesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		VBaseDrawMeshes{ fg, task, pass1, pass2 },	commands{ task.commands },
-		indirectBuffer{ fg->GetResourceManager()->GetState( task.indirectBuffer )}
+		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )}
 	{}
 //-----------------------------------------------------------------------------
 
@@ -234,6 +249,18 @@ namespace FG
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
+	
+/*
+=================================================
+	VFgTask< DispatchCompute >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<DispatchCompute>::IsValid () const
+	{
+		return pipeline;
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -243,11 +270,21 @@ namespace FG
 	inline VFgTask<DispatchComputeIndirect>::VFgTask (VFrameGraphThread *fg, const DispatchComputeIndirect &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },
-		indirectBuffer{ fg->GetResourceManager()->GetState( task.indirectBuffer )},
+		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )},
 		indirectBufferOffset{ VkDeviceSize(task.indirectBufferOffset) },
 		localGroupSize{ task.localGroupSize }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
+	}
+	
+/*
+=================================================
+	VFgTask< DispatchComputeIndirect >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<DispatchComputeIndirect>::IsValid () const
+	{
+		return pipeline and indirectBuffer;
 	}
 //-----------------------------------------------------------------------------
 	
@@ -259,11 +296,23 @@ namespace FG
 */
 	inline VFgTask<CopyBuffer>::VFgTask (VFrameGraphThread *fg, const CopyBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		srcBuffer{ fg->GetResourceManager()->GetState( task.srcBuffer )},
-		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},
+		srcBuffer{ fg->GetResourceManager()->ToLocal( task.srcBuffer )},
+		dstBuffer{ fg->GetResourceManager()->ToLocal( task.dstBuffer )},
 		regions{ task.regions }
 	{
 	}
+	
+/*
+=================================================
+	VFgTask< CopyBuffer >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<CopyBuffer>::IsValid () const
+	{
+		return srcBuffer and dstBuffer and regions.size();
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -272,14 +321,26 @@ namespace FG
 */
 	inline VFgTask<CopyImage>::VFgTask (VFrameGraphThread *fg, const CopyImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcImage{ fg->GetResourceManager()->ToLocal( task.srcImage )},
 		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
-		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstImage{ fg->GetResourceManager()->ToLocal( task.dstImage )},
 		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
 		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 	}
+	
+/*
+=================================================
+	VFgTask< CopyImage >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<CopyImage>::IsValid () const
+	{
+		return srcImage and dstImage and regions.size();
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -288,13 +349,25 @@ namespace FG
 */
 	inline VFgTask<CopyBufferToImage>::VFgTask (VFrameGraphThread *fg, const CopyBufferToImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		srcBuffer{ fg->GetResourceManager()->GetState( task.srcBuffer )},
-		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		srcBuffer{ fg->GetResourceManager()->ToLocal( task.srcBuffer )},
+		dstImage{ fg->GetResourceManager()->ToLocal( task.dstImage )},
 		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
 		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 	}
+	
+/*
+=================================================
+	VFgTask< CopyBufferToImage >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<CopyBufferToImage>::IsValid () const
+	{
+		return srcBuffer and dstImage and regions.size();
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -303,11 +376,21 @@ namespace FG
 */
 	inline VFgTask<CopyImageToBuffer>::VFgTask (VFrameGraphThread *fg, const CopyImageToBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcImage{ fg->GetResourceManager()->ToLocal( task.srcImage )},
 		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
-		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},
+		dstBuffer{ fg->GetResourceManager()->ToLocal( task.dstBuffer )},
 		regions{ task.regions }
 	{
+	}
+	
+/*
+=================================================
+	VFgTask< CopyImageToBuffer >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<CopyImageToBuffer>::IsValid () const
+	{
+		return srcImage and dstBuffer and regions.size();
 	}
 //-----------------------------------------------------------------------------
 	
@@ -319,9 +402,9 @@ namespace FG
 */
 	inline VFgTask<BlitImage>::VFgTask (VFrameGraphThread *fg, const BlitImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcImage{ fg->GetResourceManager()->ToLocal( task.srcImage )},
 		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
-		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstImage{ fg->GetResourceManager()->ToLocal( task.dstImage )},
 		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
 		filter{ VEnumCast( task.filter ) },
 		regions{ task.regions }
@@ -334,6 +417,18 @@ namespace FG
 	//		_filter = VK_FILTER_NEAREST;
 	//	}
 	}
+	
+/*
+=================================================
+	VFgTask< BlitImage >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<BlitImage>::IsValid () const
+	{
+		return srcImage and dstImage and regions.size();
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -342,13 +437,23 @@ namespace FG
 */
 	inline VFgTask<ResolveImage>::VFgTask (VFrameGraphThread *fg, const ResolveImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcImage{ fg->GetResourceManager()->ToLocal( task.srcImage )},
 		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
-		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstImage{ fg->GetResourceManager()->ToLocal( task.dstImage )},
 		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
 		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
+	}
+	
+/*
+=================================================
+	VFgTask< ResolveImage >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<ResolveImage>::IsValid () const
+	{
+		return srcImage and dstImage and regions.size();
 	}
 //-----------------------------------------------------------------------------
 	
@@ -360,11 +465,23 @@ namespace FG
 */
 	inline VFgTask<FillBuffer>::VFgTask (VFrameGraphThread *fg, const FillBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},
+		dstBuffer{ fg->GetResourceManager()->ToLocal( task.dstBuffer )},
 		dstOffset{ VkDeviceSize(task.dstOffset) },
 		size{ VkDeviceSize(task.size) },
 		pattern{ task.pattern }
 	{}
+	
+/*
+=================================================
+	VFgTask< FillBuffer >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<FillBuffer>::IsValid () const
+	{
+		return dstBuffer and size > 0;
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -373,7 +490,7 @@ namespace FG
 */
 	inline VFgTask<ClearColorImage>::VFgTask (VFrameGraphThread *fg, const ClearColorImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstImage{ fg->GetResourceManager()->ToLocal( task.dstImage )},
 		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
 		ranges{ task.ranges },
 		_clearValue{}
@@ -387,6 +504,18 @@ namespace FG
 				[&] (const std::monostate &)	{}
 			);
 	}
+	
+/*
+=================================================
+	VFgTask< ClearColorImage >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<ClearColorImage>::IsValid () const
+	{
+		return dstImage and ranges.size();
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -395,11 +524,22 @@ namespace FG
 */
 	inline VFgTask<ClearDepthStencilImage>::VFgTask (VFrameGraphThread *fg, const ClearDepthStencilImage &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		dstImage{ fg->GetResourceManager()->GetState( task.dstImage )},
+		dstImage{ fg->GetResourceManager()->ToLocal( task.dstImage )},
 		dstLayout{ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL },
-		clearValue{ task.clearValue.depth, task.clearValue.stencil }
+		clearValue{ task.clearValue.depth, task.clearValue.stencil },
+		ranges{ task.ranges }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
+	}
+	
+/*
+=================================================
+	VFgTask< ClearDepthStencilImage >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<ClearDepthStencilImage>::IsValid () const
+	{
+		return dstImage and ranges.size();
 	}
 //-----------------------------------------------------------------------------
 	
@@ -411,7 +551,7 @@ namespace FG
 */
 	inline VFgTask<UpdateBuffer>::VFgTask (VFrameGraphThread *fg, const UpdateBuffer &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )}
+		dstBuffer{ fg->GetResourceManager()->ToLocal( task.dstBuffer )}
 	{
 		size_t	cnt = task.regions.size();
 		Region*	dst = fg->GetAllocator().Alloc<Region>( cnt );
@@ -429,6 +569,16 @@ namespace FG
 
 		_regions = ArrayView{ dst, cnt };
 	}
+
+/*
+=================================================
+	VFgTask< UpdateBuffer >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<UpdateBuffer>::IsValid () const
+	{
+		return dstBuffer and _regions.size();
+	}
 //-----------------------------------------------------------------------------
 	
 
@@ -439,9 +589,19 @@ namespace FG
 */
 	inline VFgTask<Present>::VFgTask (VFrameGraphThread *fg, const Present &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		srcImage{ fg->GetResourceManager()->GetState( task.srcImage )},
+		srcImage{ fg->GetResourceManager()->ToLocal( task.srcImage )},
 		layer{ task.layer }
 	{}
+	
+/*
+=================================================
+	VFgTask< Present >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<Present>::IsValid () const
+	{
+		return srcImage;
+	}
 //-----------------------------------------------------------------------------
 	
 
@@ -452,11 +612,21 @@ namespace FG
 */
 	inline VFgTask<PresentVR>::VFgTask (VFrameGraphThread *fg, const PresentVR &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		leftEyeImage{ fg->GetResourceManager()->GetState( task.leftEye )},
+		leftEyeImage{ fg->GetResourceManager()->ToLocal( task.leftEye )},
 		leftEyeLayer{ task.leftEyeLayer },
-		rightEyeImage{ fg->GetResourceManager()->GetState( task.rightEye )},
+		rightEyeImage{ fg->GetResourceManager()->ToLocal( task.rightEye )},
 		rightEyeLayer{ task.rightEyeLayer }
 	{}
+	
+/*
+=================================================
+	VFgTask< PresentVR >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<PresentVR>::IsValid () const
+	{
+		return leftEyeImage and rightEyeImage;
+	}
 //-----------------------------------------------------------------------------
 	
 	
@@ -467,12 +637,22 @@ namespace FG
 */
 	inline VFgTask<UpdateRayTracingShaderTable>::VFgTask (VFrameGraphThread *fg, const UpdateRayTracingShaderTable &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },
-		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},	rtScene{ fg->GetResourceManager()->GetState( task.rtScene )},
-		dstBuffer{ fg->GetResourceManager()->GetState( task.dstBuffer )},	dstOffset{ VkDeviceSize( task.dstOffset )},
+		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},	rtScene{ fg->GetResourceManager()->ToLocal( task.rtScene )},
+		dstBuffer{ fg->GetResourceManager()->ToLocal( task.dstBuffer )},	dstOffset{ VkDeviceSize( task.dstOffset )},
 		rayGenShader{ task.rayGenShader },									missShaders{ task.missShaders },
 		hitShaders{ task.hitShaders }
 		//,	callableShaders{ task.callableShaders }
 	{}
+	
+/*
+=================================================
+	VFgTask< UpdateRayTracingShaderTable >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<UpdateRayTracingShaderTable>::IsValid () const
+	{
+		return pipeline and rtScene and dstBuffer;
+	}
 //-----------------------------------------------------------------------------
 
 
@@ -484,7 +664,7 @@ namespace FG
 	inline VFgTask<TraceRays>::VFgTask (VFrameGraphThread *fg, const TraceRays &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },	groupCount{ Max( task.groupCount, 1u )},
-		sbtBuffer{ fg->GetResourceManager()->GetState( task.shaderTable.buffer )},
+		sbtBuffer{ fg->GetResourceManager()->ToLocal( task.shaderTable.buffer )},
 		rayGenOffset{ VkDeviceSize( task.shaderTable.rayGenOffset )},
 		rayMissOffset{ VkDeviceSize( task.shaderTable.rayMissOffset )},
 		rayHitOffset{ VkDeviceSize( task.shaderTable.rayHitOffset )},
@@ -494,6 +674,16 @@ namespace FG
 		callableStride{ uint16_t( task.shaderTable.callableStride )}
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
+	}
+	
+/*
+=================================================
+	VFgTask< TraceRays >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<TraceRays>::IsValid () const
+	{
+		return pipeline and sbtBuffer;
 	}
 //-----------------------------------------------------------------------------
 

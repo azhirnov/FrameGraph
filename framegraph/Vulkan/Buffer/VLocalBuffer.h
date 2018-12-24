@@ -62,6 +62,7 @@ namespace FG
 		mutable AccessRecords_t		_accessForWrite;
 		mutable AccessRecords_t		_accessForRead;
 		mutable bool				_isFirstBarrier	= false;
+		bool						_isImmutable	= false;
 		
 		RWRaceConditionCheck		_rcCheck;
 
@@ -84,7 +85,7 @@ namespace FG
 		ND_ VBuffer const*		ToGlobal ()		const	{ SHAREDLOCK( _rcCheck );  return _bufferData; }
 
 		ND_ BufferDesc const&	Description ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData->Description(); }
-		ND_ BytesU				Size ()			const	{ SHAREDLOCK( _rcCheck );  return Description().size; }
+		ND_ BytesU				Size ()			const	{ return Description().size; }
 		
 		ND_ StringView			GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData->GetDebugName(); }
 

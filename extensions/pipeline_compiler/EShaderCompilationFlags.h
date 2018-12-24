@@ -19,9 +19,13 @@ namespace FG
 		UseCurrentDeviceLimits		= 1 << 10,	// get current device properties and use it to setup spirv compiler
 
 		// SPIRV compilation flags:
-		Optimize					= 1 << 21,
-		OptimizeSize				= 1 << 22,
-		StrongOptimization			= 1 << 23,	// very slow, may be usable for offline compilation
+		Optimize					= 1 << 16,
+		OptimizeSize				= 1 << 17,
+		StrongOptimization			= 1 << 18,	// very slow, may be usable for offline compilation
+
+		// Profiling & Debugging
+		//GenerateDebugInfo			= 1 << 24,	// (experimental)
+		//GenerateProfilingInfo		= 1 << 25,	// (experimental)
 
 		_Last,
 		Unknown						= 0,

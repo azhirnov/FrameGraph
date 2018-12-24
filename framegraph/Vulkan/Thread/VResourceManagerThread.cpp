@@ -11,10 +11,12 @@ namespace FG
 	constructor
 =================================================
 */
-	VResourceManagerThread::VResourceManagerThread (Allocator_t& alloc, VResourceManager &rm) :
+	VResourceManagerThread::VResourceManagerThread (Allocator_t& alloc, Statistics_t& stat, VResourceManager &rm) :
 		_allocator{ alloc },
-		_mainRM{ rm }
+		_mainRM{ rm },
+		_resourceStat{ stat }
 	{
+		_ResetLocalRemaping();
 	}
 
 /*
@@ -30,7 +32,8 @@ namespace FG
 =================================================
 	OnBeginFrame
 ----
-	called when all render threads synchronized with main thread
+	called when all render threads synchronized
+	with main thread
 =================================================
 */
 	void VResourceManagerThread::OnBeginFrame ()
@@ -59,6 +62,11 @@ namespace FG
 	void VResourceManagerThread::OnEndFrame ()
 	{
 		SCOPELOCK( _rcCheck );
+
+		for (auto& task : _syncTasks) {
+			task();
+		}
+		_syncTasks.clear();
 
 		// merge samplers
 		for (auto& sampler : *_samplerMap)
@@ -102,21 +110,6 @@ namespace FG
 				ReleaseResource( res.second, false );
 		}
 
-		// merge & destroy ray tracing scenes
-		for (uint i = 0; i < _localRTSceneCount; ++i)
-		{
-			auto&	scene = _localRTScenes[ Index_t(i) ];
-
-			if ( not scene.IsDestroyed() )
-			{
-				//scene.Data().ToGlobal()->Merge(  );
-				
-				scene.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
-				_localRTScenes.Unassign( Index_t(i) );
-			}
-		}
-		_localRTSceneCount = 0;
-
 		_pipelineCache.MergePipelines( _mainRM._GetReadyToDeleteQueue() );
 
 		// unassign IDs
@@ -131,8 +124,6 @@ namespace FG
 		_framebufferMap.Destroy();
 		_pplnResourcesMap.Destroy();
 		_unassignIDs.Destroy();
-		
-		ASSERT( _localRTScenes.empty() );
 	}
 	
 /*
@@ -158,12 +149,11 @@ namespace FG
 			}
 		}
 
-		_rtSceneToLocal.clear();
-
 		ASSERT( _localImages.empty() );
 		ASSERT( _localBuffers.empty() );
 		ASSERT( _logicalRenderPasses.empty() );
 		ASSERT( _localRTGeometries.empty() );
+		ASSERT( _localRTScenes.empty() );
 		
 		_logicalRenderPassCount	= 0;
 	}
@@ -791,18 +781,14 @@ namespace FG
 		}
 		
 		auto&	layout = _GetResourcePool( desc.GetLayout() )[ desc.GetLayout().Index() ];
-		CHECK_ERR( desc.GetLayout().InstanceID() == layout.GetInstanceID() );
+		CHECK_ERR( layout.IsCreated() and desc.GetLayout().InstanceID() == layout.GetInstanceID() );
 
 		RawPipelineResourcesID	result =
 			_CreateCachedResource( _pplnResourcesMap, isAsync, "failed when creating descriptor set",
 								   [&] (auto& data) { return Replace( data, desc ); },
-								   [&] (auto& data) { return data.Create( *this ); });
+								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
 
-		if ( result )
-		{
-			layout.AddRef();
-			PipelineResourcesInitializer::SetCache( desc, result );
-		}
+		PipelineResourcesInitializer::SetCache( desc, result );
 		return result;
 	}
 	
@@ -868,142 +854,142 @@ namespace FG
 
 /*
 =================================================
-	Remap (BufferID)
+	ToLocal (BufferID)
 =================================================
 */
-	LocalBufferID  VResourceManagerThread::Remap (RawBufferID id)
+	VLocalBuffer const*  VResourceManagerThread::ToLocal (RawBufferID id)
 	{
-		ASSERT( id );
 		SCOPELOCK( _rcCheck );
 
-		_bufferToLocal.resize(Max( id.Index()+1, _bufferToLocal.size() ));
+		if ( id.Index() >= _bufferToLocal.size() )
+			return null;
 
-		auto&	local = _bufferToLocal[ id.Index() ];
+		Index_t&	local = _bufferToLocal[ id.Index() ];
+		if ( local != UMax )
+			return &_localBuffers[ local ].Data();
 
-		if ( local )
-			return local;
+		auto*	res  = GetResource( id );
+		if ( not res )
+			return null;
 
-		Index_t		index = 0;
-		CHECK_ERR( _localBuffers.Assign( OUT index ));
+		CHECK_ERR( _localBuffers.Assign( OUT local ));
 
-		auto&		data = _localBuffers[ index ];
+		auto&	data = _localBuffers[ local ];
 		Replace( data );
 		
-		if ( not data.Create( GetResource( id ) ) )
+		if ( not data.Create( res ) )
 		{
-			_localBuffers.Unassign( index );
+			_localBuffers.Unassign( local );
 			RETURN_ERR( "failed when creating local buffer" );
 		}
 
-		_localBuffersCount = Max( index+1, _localBuffersCount );
-
-		local = LocalBufferID( index, 0 );
-		return local;
+		_localBuffersCount = Max( local+1, _localBuffersCount );
+		return &data.Data();
 	}
 	
 /*
 =================================================
-	Remap (ImageID)
+	ToLocal (ImageID)
 =================================================
 */
-	LocalImageID  VResourceManagerThread::Remap (RawImageID id)
+	VLocalImage  const*  VResourceManagerThread::ToLocal (RawImageID id)
 	{
-		ASSERT( id );
 		SCOPELOCK( _rcCheck );
+		
+		if ( id.Index() >= _imageToLocal.size() )
+			return null;
 
-		_imageToLocal.resize(Max( id.Index()+1, _imageToLocal.size() ));
+		Index_t&	local = _imageToLocal[ id.Index() ];
+		if ( local != UMax )
+			return &_localImages[ local ].Data();
+		
+		auto*	res  = GetResource( id );
+		if ( not res )
+			return null;
 
-		auto&	local = _imageToLocal[ id.Index() ];
+		CHECK_ERR( _localImages.Assign( OUT local ));
 
-		if ( local )
-			return local;
-
-		Index_t		index = 0;
-		CHECK_ERR( _localImages.Assign( OUT index ));
-
-		auto&		data = _localImages[ index ];
+		auto&	data = _localImages[ local ];
 		Replace( data );
 		
-		if ( not data.Create( GetResource( id ) ) )
+		if ( not data.Create( res ) )
 		{
-			_localImages.Unassign( index );
+			_localImages.Unassign( local );
 			RETURN_ERR( "failed when creating local image" );
 		}
 
-		_localImagesCount = Max( index+1, _localImagesCount );
-
-		local = LocalImageID( index, 0 );
-		return local;
+		_localImagesCount = Max( local+1, _localImagesCount );
+		return &data.Data();
 	}
 	
 /*
 =================================================
-	Remap (RTGeometryID)
+	ToLocal (RTGeometryID)
 =================================================
 */
-	LocalRTGeometryID  VResourceManagerThread::Remap (RawRTGeometryID id)
+	VLocalRTGeometry const*  VResourceManagerThread::ToLocal (RawRTGeometryID id)
 	{
-		ASSERT( id );
 		SCOPELOCK( _rcCheck );
+		
+		if ( id.Index() >= _rtGeometryToLocal.size() )
+			return null;
 
-		_rtGeometryToLocal.resize(Max( id.Index()+1, _rtGeometryToLocal.size() ));
+		Index_t&	local = _rtGeometryToLocal[ id.Index() ];
+		if ( local != UMax )
+			return &_localRTGeometries[ local ].Data();
+		
+		auto*	res  = GetResource( id );
+		if ( not res )
+			return null;
 
-		auto&	local = _rtGeometryToLocal[ id.Index() ];
+		CHECK_ERR( _localRTGeometries.Assign( OUT local ));
 
-		if ( local )
-			return local;
-
-		Index_t		index = 0;
-		CHECK_ERR( _localRTGeometries.Assign( OUT index ));
-
-		auto&		data = _localRTGeometries[ index ];
+		auto&	data = _localRTGeometries[ local ];
 		Replace( data );
 		
-		if ( not data.Create( GetResource( id ) ) )
+		if ( not data.Create( res ) )
 		{
-			_localRTGeometries.Unassign( index );
+			_localRTGeometries.Unassign( local );
 			RETURN_ERR( "failed when creating local ray tracing geometry" );
 		}
 
-		_localRTGeometryCount = Max( index+1, _localRTGeometryCount );
-
-		local = LocalRTGeometryID( index, 0 );
-		return local;
+		_localRTGeometryCount = Max( local+1, _localRTGeometryCount );
+		return &data.Data();
 	}
 	
 /*
 =================================================
-	Remap (RTSceneID)
+	ToLocal (RTSceneID)
 =================================================
 */
-	LocalRTSceneID  VResourceManagerThread::Remap (RawRTSceneID id)
+	VLocalRTScene const*  VResourceManagerThread::ToLocal (RawRTSceneID id)
 	{
-		ASSERT( id );
 		SCOPELOCK( _rcCheck );
+		
+		if ( id.Index() >= _rtGeometryToLocal.size() )
+			return null;
 
-		_rtSceneToLocal.resize(Max( id.Index()+1, _rtSceneToLocal.size() ));
+		Index_t&	local = _rtSceneToLocal[ id.Index() ];
+		if ( local != UMax )
+			return &_localRTScenes[ local ].Data();
+		
+		auto*	res  = GetResource( id );
+		if ( not res )
+			return null;
 
-		auto&	local = _rtSceneToLocal[ id.Index() ];
+		CHECK_ERR( _localRTScenes.Assign( OUT local ));
 
-		if ( local )
-			return local;
-
-		Index_t		index = 0;
-		CHECK_ERR( _localRTScenes.Assign( OUT index ));
-
-		auto&		data = _localRTScenes[ index ];
+		auto&	data = _localRTScenes[ local ];
 		Replace( data );
 		
-		if ( not data.Create( GetResource( id ) ) )
+		if ( not data.Create( res ) )
 		{
-			_localRTScenes.Unassign( index );
+			_localRTScenes.Unassign( local );
 			RETURN_ERR( "failed when creating local ray tracing scene" );
 		}
 
-		_localRTSceneCount = Max( index+1, _localRTSceneCount );
-
-		local = LocalRTSceneID( index, 0 );
-		return local;
+		_localRTSceneCount = Max( local+1, _localRTSceneCount );
+		return &data.Data();
 	}
 
 /*
@@ -1037,7 +1023,8 @@ namespace FG
 	FlushLocalResourceStates
 =================================================
 */
-	void  VResourceManagerThread::FlushLocalResourceStates (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger)
+	void  VResourceManagerThread::FlushLocalResourceStates (ExeOrderIndex index, ExeOrderIndex batchExeOrder,
+															VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger)
 	{
 		// reset state & destroy local images
 		for (uint i = 0; i < _localImagesCount; ++i)
@@ -1078,23 +1065,45 @@ namespace FG
 			}
 		}
 
-		// reset state of local ray tracing scenes
+		// merge & destroy ray tracing scenes
 		for (uint i = 0; i < _localRTSceneCount; ++i)
 		{
 			auto&	scene = _localRTScenes[ Index_t(i) ];
 
 			if ( not scene.IsDestroyed() )
+			{
+				if ( scene.Data().HasUncommitedChanges() )
+				{
+					_syncTasks.emplace_back( [this, obj = scene.Data().ToGlobal()] () {
+												obj->CommitChanges( this->GetFrameIndex() );
+											});
+				}
 				scene.Data().ResetState( index, barrierMngr, debugger );
-		}	
+				scene.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs, batchExeOrder, GetFrameIndex() );
+				_localRTScenes.Unassign( Index_t(i) );
+			}
+		}
 		
-		_imageToLocal.clear();
-		_bufferToLocal.clear();
-		_rtGeometryToLocal.clear();
+		_ResetLocalRemaping();
+	}
+	
+/*
+=================================================
+	_ResetLocalRemaping
+=================================================
+*/
+	void VResourceManagerThread::_ResetLocalRemaping ()
+	{
+		memset( _imageToLocal.data(), ~0u, size_t(ArraySizeOf(_imageToLocal)) );
+		memset( _bufferToLocal.data(), ~0u, size_t(ArraySizeOf(_bufferToLocal)) );
+		memset( _rtSceneToLocal.data(), ~0u, size_t(ArraySizeOf(_rtSceneToLocal)) );
+		memset( _rtGeometryToLocal.data(), ~0u, size_t(ArraySizeOf(_rtGeometryToLocal)) );
 
 		_localImagesCount		= 0;
 		_localBuffersCount		= 0;
 		_localRTGeometryCount	= 0;
+		_localRTSceneCount		= 0;
 	}
-	
+
 
 }	// FG

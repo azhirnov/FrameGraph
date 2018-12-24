@@ -42,6 +42,8 @@ namespace FG
 		using BlitRegions_t				= FixedArray< VkImageBlit, FG_MaxBlitRegions >;
 		using ResolveRegions_t			= FixedArray< VkImageResolve, FG_MaxResolveRegions >;
 		using ImageClearRanges_t		= FixedArray< VkImageSubresourceRange, FG_MaxClearRanges >;
+		
+		using Statistic_t				= FrameGraph::RenderingStatistics;
 
 		struct PipelineState
 		{
@@ -71,7 +73,7 @@ namespace FG
 		VkDeviceSize				_indexBufferOffset	= UMax;
 		VkIndexType					_indexType			= VK_INDEX_TYPE_MAX_ENUM;
 
-		static constexpr float		_dbgColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		static constexpr float		_dbgColor[4]		= { 1.0f, 1.0f, 1.0f, 1.0f };
 
 
 	// methods
@@ -123,7 +125,7 @@ namespace FG
 
 		void _OnRunTask () const;
 		
-		template <typename ID>	ND_ auto const*  _GetState (ID id) const;
+		template <typename ID>	ND_ auto const*  _ToLocal (ID id) const;
 		template <typename ID>	ND_ auto const*  _GetResource (ID id) const;
 		
 		void _CommitBarriers ();
@@ -139,7 +141,7 @@ namespace FG
 		void _BindPipeline (const VRayTracingPipeline* pipeline);
 		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
 		void _SetScissor (const VLogicalRenderPass *, const _fg_hidden_::Scissors_t &) const;
-		void _SetStencilDynamicStates (const RenderState::StencilBufferState &, const _fg_hidden_::DepthStencilState &) const;
+		void _SetDynamicStates (const _fg_hidden_::DynamicStates &) const;
 
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);
@@ -150,10 +152,12 @@ namespace FG
 		void _AddBuffer (const VLocalBuffer *buf, EResourceState state, const VkBufferImageCopy &reg, const VLocalImage *img);
 		void _AddBufferState (const VLocalBuffer *buf, const BufferState &state);
 
-		void _AddRTGeometry (const VLocalRTGeometry *geom, const RTGeometryState &state);
-		void _AddRTScene (const VLocalRTScene *scene, const RTSceneState &state);
+		void _AddRTGeometry (const VLocalRTGeometry *geom, EResourceState state);
+		void _AddRTScene (const VLocalRTScene *scene, EResourceState state);
 
 		void _BindIndexBuffer (VkBuffer indexBuffer, VkDeviceSize indexOffset, VkIndexType indexType);
+
+		ND_ Statistic_t&  Stat () const;
 	};
 	
 

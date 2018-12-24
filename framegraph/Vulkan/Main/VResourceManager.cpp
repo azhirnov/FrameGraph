@@ -82,6 +82,7 @@ namespace FG
 
 		_frameId	= frameId;
 		_currTime	= uint(std::chrono::duration_cast< std::chrono::seconds >( TimePoint_t::clock::now() - _startTime ).count());
+		++_frameCounter;
 
 		_DeleteResources( INOUT _perFrame[_frameId].readyToDelete );
 

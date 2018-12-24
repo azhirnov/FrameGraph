@@ -23,6 +23,7 @@ namespace FG
 		_usedSharedInstance{ false }
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
+		memset( &_features, 0, sizeof(_features) );
 	}
 	
 /*
@@ -94,16 +95,10 @@ namespace FG
 */
 	ArrayView<const char*>  VulkanDevice::GetRecomendedDeviceExtensions ()
 	{
-		static const char *	device_extensions[] =
-		{
-			#ifdef VK_KHR_get_memory_requirements2
-				VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-			#endif
-			#ifdef VK_KHR_dedicated_allocation
-				VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
-			#endif
-		};
-		return device_extensions;
+		//static const char *	device_extensions[] =
+		//{};
+		//return device_extensions;
+		return {};
 	}
 
 /*
@@ -764,13 +759,6 @@ namespace FG
 				next_feat	= nextExt					= &_features.conditionalRendering.pNext;
 				_features.conditionalRendering.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT;
 			}
-			/*else
-			if ( ext ==  )
-			{
-				*next_feat	= *nextExt					= &_features.shaderDrawParameters;
-				next_feat	= nextExt					= &_features.shaderDrawParameters.pNext;
-				_features.shaderDrawParameters.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES;
-			}*/
 			else
 			if ( ext == VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME )
 			{
@@ -814,6 +802,10 @@ namespace FG
 				_features.shadingRateImage.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV;
 			}
 		}
+		
+		*next_feat	= *nextExt					= &_features.shaderDrawParameters;
+		next_feat	= nextExt					= &_features.shaderDrawParameters.pNext;
+		_features.shaderDrawParameters.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES;
 
 		vkGetPhysicalDeviceFeatures2( GetVkPhysicalDevice(), &feat2 );
 		return true;

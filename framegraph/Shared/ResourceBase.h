@@ -25,7 +25,8 @@ namespace FG
 			Created,
 		};
 
-		using Self	= ResourceBase< ResType >;
+		using Self			= ResourceBase< ResType >;
+		using Resource_t	= ResType;
 
 
 	// variables
@@ -91,8 +92,7 @@ namespace FG
 		bool Create (Args&& ...args)
 		{
 			ASSERT( IsDestroyed() );
-
-			_refCounter.Store( 1 );
+			ASSERT( GetRefCount() == 0 );
 
 			bool	result = _data.Create( std::forward<Args &&>( args )... );
 			if ( result )
@@ -110,7 +110,8 @@ namespace FG
 			//ASSERT( GetRefCount() == 0 );
 
 			_data.Destroy( std::forward<Args &&>( args )... );
-
+			
+			_refCounter.Store( 0 );
 			_state.store( EState::Initial, memory_order_release );
 			_instanceId.fetch_add( 1, memory_order_relaxed );
 		}

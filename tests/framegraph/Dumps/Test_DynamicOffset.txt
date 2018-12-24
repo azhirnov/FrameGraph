@@ -2,39 +2,9 @@ Thread {
 	batch:         "main"
 	indexInBatch:  0
 	Buffer {
-		name:    "SharedBuffer"
-		size:    384 b
-		usage:   TransferSrc | TransferDst | Uniform | Storage
-		barriers = {
-				BufferMemoryBarrier {
-					srcTask:         DispatchCompute (#3)
-					dstTask:         <final>
-					srcStageMask:    ComputeShader
-					dstStageMask:    TopOfPipe
-					dependencyFlags: 
-					srcAccessMask:   ShaderWrite
-					dstAccessMask:   
-					offset:          128 b
-					size:            64 b
-				}
-				BufferMemoryBarrier {
-					srcTask:         UpdateBuffer (#2)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
-					dependencyFlags: 
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   
-					offset:          256 b
-					size:            64 b
-				}
-		}
-	}
-
-	Buffer {
-		name:    "StagingReadBuffer"
+		name:    "HostReadBuffer"
 		size:    256 Mb
-		usage:   TransferSrc | TransferDst
+		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         ReadBuffer (#4)
@@ -50,6 +20,58 @@ Thread {
 		}
 	}
 
+	Buffer {
+		name:    "SharedBuffer"
+		size:    384 b
+		usage:   TransferSrc | TransferDst | Uniform | Storage
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         UpdateBuffer (#2)
+					dstTask:         DispatchCompute (#3)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          256 b
+					size:            64 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         DispatchCompute (#3)
+					dstTask:         ReadBuffer (#4)
+					srcStageMask:    ComputeShader
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ShaderWrite
+					dstAccessMask:   TransferRead
+					offset:          320 b
+					size:            64 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         UpdateBuffer (#2)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          256 b
+					size:            64 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         DispatchCompute (#3)
+					dstTask:         <final>
+					srcStageMask:    ComputeShader
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   ShaderWrite
+					dstAccessMask:   
+					offset:          320 b
+					size:            64 b
+				}
+		}
+	}
+
 	-----------------------------------------------------------
 	Task {
 		name:    "UpdateBuffer (#2)"
@@ -57,15 +79,15 @@ Thread {
 		output = { DispatchCompute (#3) }
 		resource_usage = {
 			BufferUsage {
-				name:     "SharedBuffer"
-				usage:    Transfer-W
-				offset:   256 b
+				name:     "HostWriteBuffer"
+				usage:    Transfer-R
+				offset:   0 b
 				size:     64 b
 			}
 			BufferUsage {
-				name:     "StagingWriteBuffer"
-				usage:    Transfer-R
-				offset:   0 b
+				name:     "SharedBuffer"
+				usage:    Transfer-W
+				offset:   256 b
 				size:     64 b
 			}
 		}
@@ -78,13 +100,13 @@ Thread {
 			BufferUsage {
 				name:     "SharedBuffer"
 				usage:    Uniform, CS, Dynamic
-				offset:   0 b
+				offset:   256 b
 				size:     64 b
 			}
 			BufferUsage {
 				name:     "SharedBuffer"
 				usage:    Storage-W, CS, Dynamic
-				offset:   128 b
+				offset:   320 b
 				size:     64 b
 			}
 		}
@@ -95,15 +117,15 @@ Thread {
 		output = {  }
 		resource_usage = {
 			BufferUsage {
-				name:     "SharedBuffer"
-				usage:    Transfer-R
-				offset:   320 b
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
 				size:     64 b
 			}
 			BufferUsage {
-				name:     "StagingReadBuffer"
-				usage:    Transfer-W
-				offset:   0 b
+				name:     "SharedBuffer"
+				usage:    Transfer-R
+				offset:   320 b
 				size:     64 b
 			}
 		}

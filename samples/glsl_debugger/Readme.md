@@ -1,8 +1,9 @@
+This is simple example how to create GLSL debugger.</br>
 In demo press `D` to run debugger for pixel under the cursor.</br>
 The output will be stored in the `shader_debug_output.glsl` file.</br>
 </br>
-This is simple example how to create GLSL debugger.</br>
-I am patch the glslang AST to add hook on operators `= += -= *=` etc. In hook I check pixel coordinate (gl_FragCoord.xy) to debug only selected pixel, then write data into the `DebugOutputStorage` shader storage buffer.</br>
+How it works:</br>
+Glslang parse shader source and return AST, then injected some hooks on assign operators `= += -= *=` etc. In hook current pixel coordinate (gl_FragCoord.xy) compared with selected pixel (fs_Coord), it is needed to debug only one pixel. Hook input data and location in source writes into storage buffer `DebugOutputStorage` and will be processed by host. In this sample only fragment shader are supported.</br>
 Patched shader code looks like that:
 ```cpp
 layout(std430) buffer DebugOutputStorage

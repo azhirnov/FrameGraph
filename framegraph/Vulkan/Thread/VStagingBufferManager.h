@@ -131,10 +131,10 @@ namespace FG
 		void OnBeginFrame (uint frameId, bool isFirst);
 		void OnEndFrame (bool isFirst);
 
-		bool StoreBufferData (ArrayView<uint8_t> srcData, BytesU srcOffset,
-							  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
+		bool StorePartialData (ArrayView<uint8_t> srcData, BytesU srcOffset,
+								OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
 
-		bool StoreBufferData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign,
+		bool StoreSolidData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign,
 							  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
 
 		bool GetWritableBuffer (BytesU srcDataSize, BytesU dstMinSize, OUT RawBufferID &dstBuffer,
@@ -142,6 +142,7 @@ namespace FG
 		
 		bool StoreImageData (ArrayView<uint8_t> srcData, BytesU srcOffset, BytesU srcPitch, BytesU srcTotalSize,
 							 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
+
 		bool AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
 
 		bool AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, BytesU srcPitch,

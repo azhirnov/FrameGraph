@@ -97,12 +97,6 @@
 # endif // VULKAN_XCB_H_
 
 
-# ifdef VULKAN_MIR_H_
-	extern PFN_vkCreateMirSurfaceKHR  _var_vkCreateMirSurfaceKHR;
-	extern PFN_vkGetPhysicalDeviceMirPresentationSupportKHR  _var_vkGetPhysicalDeviceMirPresentationSupportKHR;
-# endif // VULKAN_MIR_H_
-
-
 # ifdef VULKAN_WAYLAND_H_
 	extern PFN_vkCreateWaylandSurfaceKHR  _var_vkCreateWaylandSurfaceKHR;
 	extern PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR  _var_vkGetPhysicalDeviceWaylandPresentationSupportKHR;
@@ -206,12 +200,6 @@
 	PFN_vkCreateXcbSurfaceKHR  _var_vkCreateXcbSurfaceKHR = null;
 	PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR  _var_vkGetPhysicalDeviceXcbPresentationSupportKHR = null;
 # endif // VULKAN_XCB_H_
-
-
-# ifdef VULKAN_MIR_H_
-	PFN_vkCreateMirSurfaceKHR  _var_vkCreateMirSurfaceKHR = null;
-	PFN_vkGetPhysicalDeviceMirPresentationSupportKHR  _var_vkGetPhysicalDeviceMirPresentationSupportKHR = null;
-# endif // VULKAN_MIR_H_
 
 
 # ifdef VULKAN_WAYLAND_H_
@@ -319,12 +307,6 @@
 # endif // VULKAN_XCB_H_
 
 
-# ifdef VULKAN_MIR_H_
-	ND_ forceinline VkResult vkCreateMirSurfaceKHR (VkInstance instance, const VkMirSurfaceCreateInfoKHR * pCreateInfo, const VkAllocationCallbacks * pAllocator, VkSurfaceKHR * pSurface)								{ return _var_vkCreateMirSurfaceKHR( instance, pCreateInfo, pAllocator, pSurface ); }
-	ND_ forceinline VkBool32 vkGetPhysicalDeviceMirPresentationSupportKHR (VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, MirConnection * connection)								{ return _var_vkGetPhysicalDeviceMirPresentationSupportKHR( physicalDevice, queueFamilyIndex, connection ); }
-# endif // VULKAN_MIR_H_
-
-
 # ifdef VULKAN_WAYLAND_H_
 	ND_ forceinline VkResult vkCreateWaylandSurfaceKHR (VkInstance instance, const VkWaylandSurfaceCreateInfoKHR * pCreateInfo, const VkAllocationCallbacks * pAllocator, VkSurfaceKHR * pSurface)								{ return _var_vkCreateWaylandSurfaceKHR( instance, pCreateInfo, pAllocator, pSurface ); }
 	ND_ forceinline VkBool32 vkGetPhysicalDeviceWaylandPresentationSupportKHR (VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, struct wl_display * display)								{ return _var_vkGetPhysicalDeviceWaylandPresentationSupportKHR( physicalDevice, queueFamilyIndex, display ); }
@@ -430,12 +412,6 @@
 # endif // VULKAN_XCB_H_
 
 
-# ifdef VULKAN_MIR_H_
-	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateMirSurfaceKHR (VkInstance , const VkMirSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateMirSurfaceKHR'" );  return VkResult(~0u);  }
-	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceMirPresentationSupportKHR (VkPhysicalDevice , uint32_t , MirConnection * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceMirPresentationSupportKHR'" );  return VkBool32(0);  }
-# endif // VULKAN_MIR_H_
-
-
 # ifdef VULKAN_WAYLAND_H_
 	VKAPI_ATTR VkResult VKAPI_CALL Dummy_vkCreateWaylandSurfaceKHR (VkInstance , const VkWaylandSurfaceCreateInfoKHR * , const VkAllocationCallbacks * , VkSurfaceKHR * )			{  FG_LOGI( "used dummy function 'vkCreateWaylandSurfaceKHR'" );  return VkResult(~0u);  }
 	VKAPI_ATTR VkBool32 VKAPI_CALL Dummy_vkGetPhysicalDeviceWaylandPresentationSupportKHR (VkPhysicalDevice , uint32_t , struct wl_display * )			{  FG_LOGI( "used dummy function 'vkGetPhysicalDeviceWaylandPresentationSupportKHR'" );  return VkBool32(0);  }
@@ -539,12 +515,6 @@
 	Load( OUT _var_vkCreateXcbSurfaceKHR, "vkCreateXcbSurfaceKHR", Dummy_vkCreateXcbSurfaceKHR );
 	Load( OUT _var_vkGetPhysicalDeviceXcbPresentationSupportKHR, "vkGetPhysicalDeviceXcbPresentationSupportKHR", Dummy_vkGetPhysicalDeviceXcbPresentationSupportKHR );
 # endif // VULKAN_XCB_H_
-
-
-# ifdef VULKAN_MIR_H_
-	Load( OUT _var_vkCreateMirSurfaceKHR, "vkCreateMirSurfaceKHR", Dummy_vkCreateMirSurfaceKHR );
-	Load( OUT _var_vkGetPhysicalDeviceMirPresentationSupportKHR, "vkGetPhysicalDeviceMirPresentationSupportKHR", Dummy_vkGetPhysicalDeviceMirPresentationSupportKHR );
-# endif // VULKAN_MIR_H_
 
 
 # ifdef VULKAN_WAYLAND_H_

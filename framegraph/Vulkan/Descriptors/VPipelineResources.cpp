@@ -222,11 +222,11 @@ namespace FG
 		if ( _allowEmptyResources and not img.imageId )
 			return false;
 
-		VLocalImage const*	local_img	= resMngr.GetState( img.imageId );
+		VLocalImage const*	local_img	= resMngr.ToLocal( img.imageId );
 
 		auto&	info = *list.allocator.Alloc< VkDescriptorImageInfo >( 1 );
 		info = {};
-		info.imageLayout	= EResourceState_ToImageLayout( img.state );
+		info.imageLayout	= EResourceState_ToImageLayout( img.state, local_img->AspectMask() );
 		info.imageView		= local_img->GetView( resMngr.GetDevice(), INOUT img.desc );
 		info.sampler		= VK_NULL_HANDLE;
 		
@@ -254,11 +254,11 @@ namespace FG
 		if ( _allowEmptyResources and not (tex.imageId and tex.samplerId) )
 			return false;
 
-		VLocalImage const*	local_img	= resMngr.GetState( tex.imageId );
+		VLocalImage const*	local_img	= resMngr.ToLocal( tex.imageId );
 
 		auto&	info = *list.allocator.Alloc< VkDescriptorImageInfo >( 1 );
 		info = {};
-		info.imageLayout	= EResourceState_ToImageLayout( tex.state );
+		info.imageLayout	= EResourceState_ToImageLayout( tex.state, local_img->AspectMask() );
 		info.imageView		= local_img->GetView( resMngr.GetDevice(), INOUT tex.desc );
 		info.sampler		= resMngr.GetResource( tex.samplerId )->Handle();
 		

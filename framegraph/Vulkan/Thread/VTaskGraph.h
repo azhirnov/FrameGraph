@@ -104,6 +104,8 @@ namespace FG
 	public:
 		VFgTask (VFrameGraphThread *fg, const SubmitRenderPass &task, ProcessFunc_t process);
 
+		ND_ bool  IsValid () const;
+
 		ND_ VLogicalRenderPass *		GetLogicalPass ()	const	{ return _logicalPass; }
 
 		ND_ Self const *				GetPrevSubpass ()	const	{ return _prevSubpass; }
@@ -137,6 +139,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const DispatchCompute &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 
 		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
@@ -165,6 +169,8 @@ namespace FG
 	public:
 		VFgTask (VFrameGraphThread *fg, const DispatchComputeIndirect &task, ProcessFunc_t process);
 		
+		ND_ bool  IsValid () const;
+
 		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
 
@@ -192,6 +198,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const CopyBuffer &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -220,6 +228,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const CopyImage &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -247,6 +257,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const CopyBufferToImage &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -274,6 +286,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const CopyImageToBuffer &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -303,6 +317,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const BlitImage &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -333,6 +349,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const ResolveImage &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -354,6 +372,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const FillBuffer &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -382,6 +402,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const ClearColorImage &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 
 		ND_ VkClearColorValue const&	ClearValue ()	const	{ return _clearValue; }
 	};
@@ -411,6 +433,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const ClearDepthStencilImage &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -441,6 +465,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const UpdateBuffer &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 
 		ND_ ArrayView<Region>	Regions ()	const	{ return _regions; }
 	};
@@ -462,6 +488,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const Present &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -484,6 +512,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const PresentVR &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -514,6 +544,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *, const UpdateRayTracingShaderTable &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 	};
 
 
@@ -538,6 +570,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *, const BuildRayTracingGeometry &task, ProcessFunc_t process) : IFrameGraphTask{task, process} {}
+		
+		ND_ bool  IsValid () const	{ return true; }
 
 		ND_ VLocalRTGeometry const*		RTGeometry ()			const	{ return _rtGeometry; }
 		ND_ VLocalBuffer const*			ScratchBuffer ()		const	{ return _scratchBuffer; }
@@ -574,6 +608,8 @@ namespace FG
 	public:
 		VFgTask (VFrameGraphThread *, const BuildRayTracingScene &task, ProcessFunc_t process) : IFrameGraphTask{task, process} {}
 		
+		ND_ bool  IsValid () const	{ return true; }
+
 		ND_ VLocalRTScene const*				RTScene ()				const	{ return _rtScene; }
 		ND_ VLocalBuffer const*					ScratchBuffer ()		const	{ return _scratchBuffer; }
 		ND_ VkDeviceSize						ScratchBufferOffset ()	const	{ return _scratchBufferOffset; }
@@ -616,6 +652,8 @@ namespace FG
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *fg, const TraceRays &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
 
 		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};

@@ -427,8 +427,8 @@ namespace FG
 
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
-		bind.descriptorType		= (ub.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ?
-									VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
+		bind.descriptorType		= EnumEq( ub.state, EResourceState::_BufferDynamicOffset ) ?
+									VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		bind.stageFlags			= VEnumCast( stageFlags );
 		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;
@@ -456,8 +456,8 @@ namespace FG
 		
 		// add binding
 		VkDescriptorSetLayoutBinding	bind = {};
-		bind.descriptorType		= (sb.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ?
-									VK_DESCRIPTOR_TYPE_STORAGE_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
+		bind.descriptorType		= EnumEq( sb.state, EResourceState::_BufferDynamicOffset ) ?
+									VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		bind.stageFlags			= VEnumCast( stageFlags );
 		bind.binding			= bindingIndex;
 		bind.descriptorCount	= 1;

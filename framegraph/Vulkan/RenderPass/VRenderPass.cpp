@@ -74,7 +74,7 @@ namespace FG
 			auto	iter = pass->GetColorTargets().find( frag.id );
 			CHECK_ERR( iter != pass->GetColorTargets().end() );
 			
-			const VkImageLayout			layout	= EResourceState_ToImageLayout( iter->second.state );
+			const VkImageLayout			layout	= EResourceState_ToImageLayout( iter->second.state, VK_IMAGE_ASPECT_COLOR_BIT );
 			VkAttachmentDescription&	desc	= _attachments[ col_offset + frag.index ];
 
 			desc.flags			= 0;			// TODO: VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT
@@ -101,7 +101,7 @@ namespace FG
 		if ( pass->GetDepthStencilTarget().IsDefined() )
 		{
 			const auto&					ds_target	= pass->GetDepthStencilTarget();
-			const VkImageLayout			layout		= EResourceState_ToImageLayout( ds_target.state );
+			const VkImageLayout			layout		= EResourceState_ToImageLayout( ds_target.state, VK_IMAGE_ASPECT_DEPTH_BIT );
 			VkAttachmentDescription&	desc		= _attachments[0];
 
 			desc.flags			= 0;

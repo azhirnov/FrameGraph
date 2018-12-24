@@ -27,6 +27,11 @@ namespace FG
 		SpinLock () : _flag{ATOMIC_FLAG_INIT}
 		{}
 
+		ND_ forceinline bool try_lock ()
+		{
+			return not _flag.test_and_set( memory_order_acquire );
+		}
+
 
 		// for std::lock_guard
 		forceinline void lock ()

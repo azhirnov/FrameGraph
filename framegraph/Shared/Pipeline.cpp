@@ -106,10 +106,11 @@ namespace FG
 	_UBufferUniform
 =================================================
 */
-	PipelineDescription::_UBufferUniform::_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset) :
+	PipelineDescription::_UBufferUniform::_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, uint dynamicOffsetIndex) :
 		id{id},
-		data{ EResourceState::UniformRead | EResourceState_FromShaders( stageFlags ) | (allowDynamicOffset ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown),
-			  allowDynamicOffset ? 0 : STATIC_OFFSET, size },
+		data{ EResourceState::UniformRead | EResourceState_FromShaders( stageFlags )
+			  | (dynamicOffsetIndex != STATIC_OFFSET ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown),
+			  dynamicOffsetIndex, size },
 		index{index}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
@@ -121,10 +122,11 @@ namespace FG
 =================================================
 */
 	PipelineDescription::_StorageBufferUniform::_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access,
-																	   const BindingIndex &index, EShaderStages stageFlags, bool allowDynamicOffset) :
+																	   const BindingIndex &index, EShaderStages stageFlags, uint dynamicOffsetIndex) :
 		id{id},
-		data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ) | (allowDynamicOffset ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown),
-			  allowDynamicOffset ? 0 : STATIC_OFFSET, staticSize, arrayStride },
+		data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access )
+			  | (dynamicOffsetIndex != STATIC_OFFSET ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown),
+			  dynamicOffsetIndex, staticSize, arrayStride },
 		index{index}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
@@ -171,7 +173,6 @@ namespace FG
 
 		DescriptorSet	ds;
 		UniformMap_t	uniforms;
-		uint			dynamic_offset_index = 0;
 
 		ds.id			= id;
 		ds.bindingIndex	= index;
@@ -195,13 +196,11 @@ namespace FG
 		}
 
 		for (auto& ub : uniformBuffers) {
-			uniforms.insert({ ub.id, {UniformBuffer{ub.data.state, (ub.data.dynamicOffsetIndex == STATIC_OFFSET ? STATIC_OFFSET : dynamic_offset_index++),
-										ub.data.size}, ub.index, ub.stageFlags} });
+			uniforms.insert({ ub.id, {UniformBuffer{ ub.data }, ub.index, ub.stageFlags} });
 		}
 
 		for (auto& sb : storageBuffers) {
-			uniforms.insert({ sb.id, {StorageBuffer{sb.data.state, (sb.data.dynamicOffsetIndex == STATIC_OFFSET ? STATIC_OFFSET : dynamic_offset_index++),
-										sb.data.staticSize, sb.data.arrayStride}, sb.index, sb.stageFlags} });
+			uniforms.insert({ sb.id, {StorageBuffer{ sb.data }, sb.index, sb.stageFlags} });
 		}
 
 		for (auto& rts : rtScenes) {
@@ -210,8 +209,6 @@ namespace FG
 
 		ds.uniforms = MakeShared<UniformMap_t>( std::move(uniforms) );
 		_pipelineLayout.descriptorSets.push_back( std::move(ds) );
-
-		ASSERT( dynamic_offset_index <= FG_MaxBufferDynamicOffsets );
 	}
 		
 /*

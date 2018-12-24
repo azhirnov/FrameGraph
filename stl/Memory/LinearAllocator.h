@@ -18,7 +18,7 @@ namespace FG
 	// Linear Pool Allocator
 	//
 
-	template <typename AllocatorType = UntypedAllocator>
+	template <typename AllocatorType = UntypedAlignedAllocator>
 	struct LinearAllocator final
 	{
 	// types
@@ -31,19 +31,25 @@ namespace FG
 		};
 
 		using Allocator_t	= AllocatorType;
+		using Blocks_t		= std::vector< Block >;
 
 
 	// variables
 	private:
-		Array< Block >		_blocks;
-		BytesU				_blockSize	= 1024_b;
-		Allocator_t			_alloc;
+		Blocks_t					_blocks;
+		BytesU						_blockSize	= 1024_b;
+		Allocator_t					_alloc;
+		static constexpr BytesU		_ptrAlign	= SizeOf<void *>;
 
 
 	// methods
 	public:
 		LinearAllocator () {}
-		explicit LinearAllocator (const Allocator_t &alloc) : _alloc{alloc} {}
+		
+		explicit LinearAllocator (const Allocator_t &alloc) : _alloc{alloc}
+		{
+			_blocks.reserve( 16 );
+		}
 
 		LinearAllocator (const LinearAllocator &) = delete;
 		LinearAllocator (LinearAllocator &&) = delete;
@@ -65,24 +71,23 @@ namespace FG
 
 		ND_ FG_ALLOCATOR void*  Alloc (const BytesU size, const BytesU align) noexcept
 		{
-			for (;;)
+			for (auto& block : _blocks)
 			{
-				if ( not _blocks.empty() )
+				BytesU	offset	= AlignToLarger( size_t(block.ptr) + block.size, align ) - size_t(block.ptr);
+
+				if ( size <= (block.capacity - offset) )
 				{
-					auto&	block	= _blocks.back();
-					BytesU	offset	= AlignToLarger( size_t(block.ptr) + block.size, align ) - size_t(block.ptr);
-
-					if ( size <= (block.capacity - offset) )
-					{
-						block.size = offset + size;
-						return block.ptr + offset;
-					}
+					block.size = offset + size;
+					return block.ptr + offset;
 				}
-
-				BytesU	block_size = size*2 < _blockSize ? _blockSize : size*2;
-
-				_blocks.push_back(Block{ _alloc.Allocate( block_size ), 0_b, block_size });	// TODO: check for null
 			}
+
+			BytesU	block_size	= size*2 < _blockSize ? _blockSize : size*2;
+			auto&	block		= _blocks.emplace_back(Block{ _alloc.Allocate( block_size, _ptrAlign ), 0_b, block_size });	// TODO: check for null
+			BytesU	offset		= AlignToLarger( size_t(block.ptr) + block.size, align ) - size_t(block.ptr);
+
+			block.size = offset + size;
+			return block.ptr + offset;
 		}
 
 
@@ -103,7 +108,7 @@ namespace FG
 		void Release () noexcept
 		{
 			for (auto& block : _blocks) {
-				_alloc.Deallocate( block.ptr, block.capacity );
+				_alloc.Deallocate( block.ptr, block.capacity, _ptrAlign );
 			}
 			_blocks.clear();
 		}
@@ -115,7 +120,7 @@ namespace FG
 	// Untyped Linear Pool Allocator
 	//
 	
-	template <typename AllocatorType = UntypedAllocator>
+	template <typename AllocatorType = UntypedAlignedAllocator>
 	struct UntypedLinearAllocator final
 	{
 	// types
@@ -125,7 +130,7 @@ namespace FG
 		using Self				= UntypedLinearAllocator< AllocatorType >;
 
 		template <typename T>
-		using StdAllocator_t = StdLinearAllocator< T, AllocatorType >;
+		using StdAllocator_t	= StdLinearAllocator< T, AllocatorType >;
 
 
 	// variables
@@ -169,7 +174,7 @@ namespace FG
 	//
 
 	template <typename T,
-			  typename AllocatorType = UntypedAllocator>
+			  typename AllocatorType = UntypedAlignedAllocator>
 	struct StdLinearAllocator
 	{
 	// types

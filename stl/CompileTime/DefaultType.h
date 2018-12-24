@@ -71,6 +71,18 @@ namespace FG
 			{
 				return _GetDefaultValueForUninitialized<T>::GetDefault();
 			}
+
+			template <typename T>
+			ND_ friend constexpr bool  operator == (const T& lhs, const DefaultType &)
+			{
+				return lhs == _GetDefaultValueForUninitialized<T>::GetDefault();
+			}
+
+			template <typename T>
+			ND_ friend constexpr bool  operator != (const T& lhs, const DefaultType &rhs)
+			{
+				return not (lhs == rhs);
+			}
 		};
 
 	}	// _fg_hidden_

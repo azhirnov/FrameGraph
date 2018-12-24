@@ -32,6 +32,7 @@ namespace FG
 
 		_bufferData		= bufferData;
 		_isFirstBarrier	= true;
+		_isImmutable	= _bufferData->IsReadOnly();
 
 		return true;
 	}
@@ -220,8 +221,8 @@ namespace FG
 		ASSERT( bs.task );
 		SCOPELOCK( _rcCheck );
 
-		//if ( _isImmutable )
-		//	return;
+		if ( _isImmutable )
+			return;
 
 		BufferAccess		pending;
 		pending.range		= bs.range;
@@ -276,6 +277,9 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
+		if ( _isImmutable )
+			return;
+
 		// add full range barrier
 		{
 			BufferAccess		pending;
@@ -304,6 +308,9 @@ namespace FG
 	void VLocalBuffer::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
 		SCOPELOCK( _rcCheck );
+
+		if ( _isImmutable )
+			return;
 
 		VkPipelineStageFlags	dst_stages = 0;
 

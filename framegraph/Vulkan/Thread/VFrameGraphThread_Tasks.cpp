@@ -12,17 +12,6 @@ namespace {
 	static constexpr EThreadUsage	RayTracingBit	= EThreadUsage::Graphics | EThreadUsage::AsyncCompute;
 	static constexpr EThreadUsage	TransferBit		= EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming;
 }
-	
-/*
-=================================================
-	operator ++ (ExeOrderIndex)
-=================================================
-*/
-	ExeOrderIndex&  operator ++ (ExeOrderIndex &value)
-	{
-		value = BitCast<ExeOrderIndex>( BitCast<uint>( value ) + 1 );
-		return value;
-	}
 
 /*
 =================================================
@@ -54,7 +43,9 @@ namespace {
 		// transit image layout to default state
 		// add memory dependency to flush caches
 		{
-			_resourceMngr.FlushLocalResourceStates( ExeOrderIndex::Final, _barrierMngr, GetDebugger() );
+			auto	batch_exe_order = _submissionGraph->GetExecutionOrder( _cmdBatchId, _indexInBatch );
+
+			_resourceMngr.FlushLocalResourceStates( ExeOrderIndex::Final, batch_exe_order, _barrierMngr, GetDebugger() );
 			_barrierMngr.Commit( dev, cmd );
 		}
 
@@ -72,7 +63,8 @@ namespace {
 		VTaskProcessor	processor{ *this, _barrierMngr, cmd, _cmdBatchId, _indexInBatch };
 
 		++_visitorID;
-		_exeOrderIndex = ExeOrderIndex::First;
+		
+		ExeOrderIndex	exe_order_index = ExeOrderIndex::First;
 
 		TempTaskArray_t		pending{ GetAllocator() };
 		pending.reserve( 128 );
@@ -80,12 +72,14 @@ namespace {
 
 		for (uint k = 0; k < 10 and not pending.empty(); ++k)
 		{
-			for (size_t i = 0; i < pending.size(); ++i)
+			for (auto iter = pending.begin(); iter != pending.end();)
 			{
-				auto&	node = pending[i];
+				auto&	node = (*iter);
 				
-				if ( node->VisitorID() == _visitorID )
+				if ( node->VisitorID() == _visitorID ) {
+					++iter;
 					continue;
+				}
 
 				// wait for input
 				bool	input_processed = true;
@@ -98,11 +92,13 @@ namespace {
 					}
 				}
 
-				if ( not input_processed )
+				if ( not input_processed ) {
+					++iter;
 					continue;
-			
+				}
+
 				node->SetVisitorID( _visitorID );
-				node->SetExecutionOrder( ++_exeOrderIndex );
+				node->SetExecutionOrder( ++exe_order_index );
 				
 				processor.Run( node );
 
@@ -111,49 +107,10 @@ namespace {
 					pending.push_back( out_node );
 				}
 
-				pending.erase( pending.begin() + i );
-				--i;
+				iter = pending.erase( iter );
 			}
 		}
 		return true;
-	}
-
-/*
-=================================================
-	CompareRenderTargets
-=================================================
-*
-	ND_ static bool CompareRenderTargets (const VLogicalRenderPass::ColorTarget &lhs, const VLogicalRenderPass::ColorTarget &rhs)
-	{
-		if ( lhs._hash != rhs._hash )
-			return false;
-
-		return	lhs.image	== rhs.image	and
-				lhs.desc	== rhs.desc;
-	}
-
-/*
-=================================================
-	CompareRenderPasses
-=================================================
-*
-	ND_ static uint CompareRenderPasses (const VLogicalRenderPass *prev, const VLogicalRenderPass *curr)
-	{
-		uint	counter = 0;
-
-		counter += uint(CompareRenderTargets( curr->GetDepthStencilTarget(), prev->GetDepthStencilTarget() ));
-
-		for (auto& ct : prev->GetColorTargets())
-		{
-			auto	iter = curr->GetColorTargets().find( ct.first );
-
-			if ( iter == curr->GetColorTargets().end() )
-				continue;
-			
-			counter += uint(CompareRenderTargets( ct.second, iter->second ));
-		}
-
-		return counter;
 	}
 
 /*
@@ -169,6 +126,7 @@ namespace {
 
 		auto*	rp_task = _taskGraph.Add( this, task );
 
+		// TODO
 		//_renderPassGraph.Add( rp_task );
 
 		return rp_task;
@@ -364,7 +322,7 @@ namespace {
 			{
 				RawBufferID		src_buffer;
 				BytesU			off, size;
-				CHECK_ERR( _stagingMngr->StoreBufferData( reg.data, readn, OUT src_buffer, OUT off, OUT size ));
+				CHECK_ERR( _stagingMngr->StorePartialData( reg.data, readn, OUT src_buffer, OUT off, OUT size ));
 			
 				if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
 				{
@@ -419,15 +377,15 @@ namespace {
 		const auto&		block_dim		= fmt_info.blockSize;
 		const uint		block_size		= task.aspectMask != EImageAspect::Stencil ? fmt_info.bitsPerBlock : fmt_info.bitsPerBlock2;
 		const BytesU	row_pitch		= Max( task.dataRowPitch, BytesU(image_size.x * block_size + block_dim.x-1) / (block_dim.x * 8) );
-		const BytesU	slice_pitch		= Max( /*task.dataSlicePitch*/ 0_b, (image_size.y * row_pitch + block_dim.y-1) / block_dim.y );
-		const BytesU	total_size		= ArraySizeOf(task.data);
+		const BytesU	min_slice_pitch	= (image_size.y * row_pitch + block_dim.y-1) / block_dim.y;
+		const BytesU	slice_pitch		= Max( task.dataSlicePitch, min_slice_pitch );
+		const BytesU	total_size		= image_size.z > 1 ? slice_pitch * image_size.z : min_slice_pitch;
 
-		ASSERT( total_size == slice_pitch * image_size.z );
+		CHECK_ERR( total_size == ArraySizeOf(task.data) );
 
-		const BytesU		min_size	= _stagingMngr->GetMaxWritableStoregeSize() * 4;
+		const BytesU		min_size	= _stagingMngr->GetMaxWritableStoregeSize();
 		const uint			row_length	= uint((row_pitch * block_dim.x * 8) / block_size);
 		const uint			img_height	= uint((slice_pitch * block_dim.y) / row_pitch);
-		VDeviceQueueInfoPtr	queue		= _queues.front().ptr;
 		CopyBufferToImage	copy;
 
 		copy.taskName	= task.taskName;
@@ -435,6 +393,8 @@ namespace {
 		copy.depends	= task.depends;
 		copy.dstImage	= task.dstImage;
 
+		ASSERT( task.imageOffset.x % block_dim.x == 0 );
+		ASSERT( task.imageOffset.y % block_dim.y == 0 );
 
 		// copy to staging buffer slice by slice
 		if ( total_size < min_size )
@@ -456,8 +416,6 @@ namespace {
 
 				const uint	z_size = uint(size / slice_pitch);
 
-				ASSERT( task.imageOffset.x % block_dim.x == 0 );
-				ASSERT( task.imageOffset.y % block_dim.y == 0 );
 				ASSERT( image_size.x % block_dim.x == 0 );
 				ASSERT( image_size.y % block_dim.y == 0 );
 
@@ -469,7 +427,7 @@ namespace {
 				z_offset	  += z_size;
 				copy.srcBuffer = src_buffer;
 			}
-			ASSERT( z_offset == image_size.z );
+			CHECK( z_offset == image_size.z );
 		}
 		else
 
@@ -493,16 +451,21 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	y_size = uint(size / row_pitch);
+				const uint	y_size = uint((size * block_dim.y) / row_pitch);
+
+				ASSERT( (task.imageOffset.y + y_offset) % block_dim.y == 0 );
+				ASSERT( image_size.x % block_dim.x == 0 );
+				ASSERT( y_size % block_dim.y == 0 );
 
 				copy.AddRegion( off, row_length, img_height,
 								ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
-								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, image_size.y, 1) );
+								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, y_size, 1) );
 
 				readn		  += size;
+				y_offset	  += y_size;
 				copy.srcBuffer = src_buffer;
 			}
-			ASSERT( y_offset == image_size.y );
+			CHECK( y_offset == image_size.y );
 		}
 
 		return AddTask( copy );
@@ -673,10 +636,10 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	y_size = uint(range.size / row_pitch);
+				const uint	y_size = uint((range.size * block_dim.y) / row_pitch);
 
 				copy.AddRegion( ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
-								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, image_size.y, 1),
+								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, y_size, 1),
 								range.offset, row_length, img_height );
 				
 				load_event.parts.push_back( range );
@@ -766,7 +729,7 @@ namespace {
 		BytesU			buf_offset, buf_size;
 		CHECK_ERR( _stagingMngr->GetWritableBuffer( SizeOf<T> * count, SizeOf<T> * count, OUT buffer, OUT buf_offset, OUT buf_size, OUT BitCast<void *>(outPtr) ));
 		
-		outBuffer	= GetResourceManager()->GetState( buffer );
+		outBuffer	= GetResourceManager()->ToLocal( buffer );
 		outOffset	= VkDeviceSize(buf_offset);
 		return true;
 	}
@@ -782,9 +745,9 @@ namespace {
 		
 		RawBufferID		buffer;
 		BytesU			buf_offset, buf_size;
-		CHECK_ERR( _stagingMngr->StoreBufferData( dataPtr, dataSize, offsetAlign, OUT buffer, OUT buf_offset, OUT buf_size ));
+		CHECK_ERR( _stagingMngr->StoreSolidData( dataPtr, dataSize, offsetAlign, OUT buffer, OUT buf_offset, OUT buf_size ));
 		
-		outBuffer	= GetResourceManager()->GetState( buffer );
+		outBuffer	= GetResourceManager()->ToLocal( buffer );
 		outOffset	= VkDeviceSize(buf_offset);
 		return true;
 	}
@@ -801,7 +764,9 @@ namespace {
 		CHECK_ERR( _stagingMngr );
 		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 
-		auto			result	= _taskGraph.Add( this, task );
+		auto	result	= _taskGraph.Add( this, task );
+		CHECK_ERR( result );
+
 		const BytesU	sh_size	= result->pipeline->ShaderHandleSize();
 		
 		task.result.buffer			= task.dstBuffer;
@@ -828,25 +793,25 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 		
-		auto*	result = _taskGraph.Add( this, task );
-		result->_rtGeometry = GetResourceManager()->GetState( task.rtGeometry );
+		auto*	result	= _taskGraph.Add( this, task );
+		auto*	geom	= GetResourceManager()->ToLocal( task.rtGeometry );
 
-		auto	triangles	= result->_rtGeometry->GetTriangles();
-		auto	aabbs		= result->_rtGeometry->GetAABBs();
+		CHECK_ERR( result and geom );
+		CHECK_ERR( task.triangles.size() <= geom->GetTriangles().size() );
+		CHECK_ERR( task.aabbs.size() <= geom->GetAABBs().size() );
 
-		CHECK_ERR( task.triangles.size() <= triangles.size() );
-		CHECK_ERR( task.aabbs.size() <= aabbs.size() );
+		result->_rtGeometry = geom;
 
 		VkMemoryRequirements2								mem_req	= {};
 		VkAccelerationStructureMemoryRequirementsInfoNV		as_info	= {};
 		as_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
 		as_info.type					= VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
-		as_info.accelerationStructure	= result->_rtGeometry->Handle();
+		as_info.accelerationStructure	= geom->Handle();
 		GetDevice().vkGetAccelerationStructureMemoryRequirementsNV( GetDevice().GetVkDevice(), &as_info, OUT &mem_req );
 
 		// TODO: virtual buffer or buffer cache
 		BufferID	buf = CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, Default );
-		result->_scratchBuffer = GetResourceManager()->GetState( buf.Get() );
+		result->_scratchBuffer = GetResourceManager()->ToLocal( buf.Get() );
 		ReleaseResource( buf );
 		
 		result->_geometryCount	= task.triangles.size() + task.aabbs.size();
@@ -868,11 +833,11 @@ namespace {
 		for (size_t i = 0; i < task.triangles.size(); ++i)
 		{
 			auto&	src		= task.triangles[i];
-			size_t	pos		= BinarySearch( triangles, src.geometryId );
-			CHECK_ERR( pos < triangles.size() );
+			size_t	pos		= BinarySearch( geom->GetTriangles(), src.geometryId );
+			CHECK_ERR( pos < geom->GetTriangles().size() );
 
 			auto&	dst		= result->_geometry[pos];
-			auto&	ref		= triangles[pos];
+			auto&	ref		= geom->GetTriangles()[pos];
 
 			ASSERT( src.vertexBuffer or src.vertexData.size() );
 			ASSERT( src.vertexCount > 0 );
@@ -897,8 +862,8 @@ namespace {
 			}
 			else
 			{
-				auto*	vb = GetResourceManager()->GetState( src.vertexBuffer );
-				dst.geometry.triangles.vertexData	= vb->Handle();
+				auto*	vb = GetResourceManager()->ToLocal( src.vertexBuffer );
+				dst.geometry.triangles.vertexData	= vb ? vb->Handle() : VK_NULL_HANDLE;
 				dst.geometry.triangles.vertexOffset	= VkDeviceSize(src.vertexOffset);
 			}
 			
@@ -925,8 +890,8 @@ namespace {
 			else
 			if ( src.indexBuffer )
 			{
-				auto*	ib = GetResourceManager()->GetState( src.indexBuffer );
-				dst.geometry.triangles.indexData	= ib->Handle();
+				auto*	ib = GetResourceManager()->ToLocal( src.indexBuffer );
+				dst.geometry.triangles.indexData	= ib ? ib->Handle() : VK_NULL_HANDLE;
 				dst.geometry.triangles.indexOffset	= VkDeviceSize(src.indexOffset);
 			}
 
@@ -949,11 +914,11 @@ namespace {
 		for (size_t i = 0; i < task.aabbs.size(); ++i)
 		{
 			auto&	src		= task.aabbs[i];
-			size_t	pos		= BinarySearch( aabbs, src.geometryId );
-			CHECK_ERR( pos < aabbs.size() );
+			size_t	pos		= BinarySearch( geom->GetAABBs(), src.geometryId );
+			CHECK_ERR( pos < geom->GetAABBs().size() );
 
 			auto&	dst		= result->_geometry[pos + task.triangles.size()];
-			auto&	ref		= aabbs[pos];
+			auto&	ref		= geom->GetAABBs()[pos];
 			
 			ASSERT( src.aabbBuffer or src.aabbData.size() );
 			ASSERT( src.aabbCount > 0 );
@@ -993,21 +958,24 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 		
-		auto*	result = _taskGraph.Add( this, task );
-		result->_rtScene = GetResourceManager()->GetState( task.rtScene );
+		auto*	result	= _taskGraph.Add( this, task );
+		auto*	scene	= GetResourceManager()->ToLocal( task.rtScene );
 
-		CHECK_ERR( task.instances.size() <= result->_rtScene->InstanceCount() );
+		CHECK_ERR( result and scene );
+		CHECK_ERR( task.instances.size() <= scene->InstanceCount() );
+
+		result->_rtScene = scene;
 
 		VkMemoryRequirements2								mem_req	= {};
 		VkAccelerationStructureMemoryRequirementsInfoNV		as_info	= {};
 		as_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
 		as_info.type					= VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
-		as_info.accelerationStructure	= result->_rtScene->Handle();
+		as_info.accelerationStructure	= scene->Handle();
 		GetDevice().vkGetAccelerationStructureMemoryRequirementsNV( GetDevice().GetVkDevice(), &as_info, OUT &mem_req );
 		
 		// TODO: virtual buffer or buffer cache
 		BufferID	buf = CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, Default );
-		result->_scratchBuffer = GetResourceManager()->GetState( buf.Get() );
+		result->_scratchBuffer = GetResourceManager()->ToLocal( buf.Get() );
 		ReleaseResource( buf );
 
 		VkGeometryInstance*	instances;
@@ -1025,7 +993,7 @@ namespace {
 			auto&	dst  = instances[i];
 			auto&	blas = result->_rtGeometries[i];
 
-			result->_rtGeometries[i]  = GetResourceManager()->GetState( src.geometryId );
+			result->_rtGeometries[i]  = GetResourceManager()->ToLocal( src.geometryId );
 			result->_rtGeometryIDs[i] = src.geometryId;
 
 			ASSERT( src.geometryId );
@@ -1068,9 +1036,10 @@ namespace {
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawVertices &task)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _IsRecording(), void() );
+		CHECK_ERR( _IsRecording(), void());
 		
-		auto *	rp  = _resourceMngr.GetState( renderPass );
+		auto *	rp  = _resourceMngr.ToLocal( renderPass );
+		CHECK_ERR( rp, void());
 
 		rp->AddTask< VFgDrawTask<DrawVertices> >( 
 						this, task,
@@ -1086,9 +1055,10 @@ namespace {
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawIndexed &task)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _IsRecording(), void() );
+		CHECK_ERR( _IsRecording(), void());
 		
-		auto *	rp  = _resourceMngr.GetState( renderPass );
+		auto *	rp  = _resourceMngr.ToLocal( renderPass );
+		CHECK_ERR( rp, void());
 
 		rp->AddTask< VFgDrawTask<DrawIndexed> >(
 						this, task,
@@ -1104,9 +1074,10 @@ namespace {
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawMeshes &task)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _IsRecording(), void() );
+		CHECK_ERR( _IsRecording(), void());
 		
-		auto *	rp  = _resourceMngr.GetState( renderPass );
+		auto *	rp  = _resourceMngr.ToLocal( renderPass );
+		CHECK_ERR( rp, void());
 
 		rp->AddTask< VFgDrawTask<DrawMeshes> >(
 						this, task,
@@ -1122,9 +1093,10 @@ namespace {
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawVerticesIndirect &task)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _IsRecording(), void() );
+		CHECK_ERR( _IsRecording(), void());
 		
-		auto *	rp  = _resourceMngr.GetState( renderPass );
+		auto *	rp  = _resourceMngr.ToLocal( renderPass );
+		CHECK_ERR( rp, void());
 
 		rp->AddTask< VFgDrawTask<DrawVerticesIndirect> >(
 						this, task,
@@ -1140,9 +1112,10 @@ namespace {
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawIndexedIndirect &task)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _IsRecording(), void() );
+		CHECK_ERR( _IsRecording(), void());
 		
-		auto *	rp  = _resourceMngr.GetState( renderPass );
+		auto *	rp  = _resourceMngr.ToLocal( renderPass );
+		CHECK_ERR( rp, void());
 
 		rp->AddTask< VFgDrawTask<DrawIndexedIndirect> >(
 						this, task,
@@ -1158,9 +1131,10 @@ namespace {
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawMeshesIndirect &task)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( _IsRecording(), void() );
+		CHECK_ERR( _IsRecording(), void());
 		
-		auto *	rp  = _resourceMngr.GetState( renderPass );
+		auto *	rp  = _resourceMngr.ToLocal( renderPass );
+		CHECK_ERR( rp, void());
 
 		rp->AddTask< VFgDrawTask<DrawMeshesIndirect> >(
 						this, task,
@@ -1233,6 +1207,50 @@ namespace {
 
 		FG_UNUSED( id, offset, size, immutable );
 		return false;
+	}
+	
+/*
+=================================================
+	UpdateUniformBuffer
+=================================================
+*/
+	bool  VFrameGraphThread::UpdateUniformBuffer (INOUT PipelineResources &res, const UniformID &id, const void *dataPtr, BytesU dataSize)
+	{
+		CHECK_ERR( _stagingMngr );
+		
+		RawBufferID		buffer;
+		BytesU			buf_offset, buf_size;
+		BytesU			min_align { GetDevice().GetDeviceLimits().minUniformBufferOffsetAlignment };
+
+		CHECK_ERR( _stagingMngr->StoreSolidData( dataPtr, dataSize, min_align, OUT buffer, OUT buf_offset, OUT buf_size ));
+
+		BufferID	temp{ buffer };
+		res.BindBuffer( id, temp, buf_offset, buf_size );
+		FG_UNUSED( temp.Release() );
+
+		return true;
+	}
+	
+/*
+=================================================
+	UpdateHostBuffer
+=================================================
+*/
+	bool  VFrameGraphThread::UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data)
+	{
+		VLocalBuffer const*		buffer = _resourceMngr.ToLocal( id.Get() );
+		CHECK_ERR( buffer );
+
+		VMemoryObj const*		memory = _resourceMngr.GetResource( buffer->ToGlobal()->GetMemoryID() );
+		CHECK_ERR( memory );
+
+		VMemoryObj::MemoryInfo	mem_info;
+		CHECK_ERR( memory->GetInfo( OUT mem_info ));
+
+		CHECK_ERR( mem_info.mappedPtr );
+		MemCopy( mem_info.mappedPtr + offset, mem_info.size - offset, data, size );
+
+		return true;
 	}
 
 

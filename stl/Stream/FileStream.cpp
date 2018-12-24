@@ -77,18 +77,6 @@ namespace FG
 	
 /*
 =================================================
-	Position
-=================================================
-*/
-	BytesU  FileRStream::Position () const
-	{
-		ASSERT( IsOpen() );
-
-		return BytesU(uint64_t(ftell( _file )));
-	}
-	
-/*
-=================================================
 	_GetSize
 =================================================
 */
@@ -114,6 +102,11 @@ namespace FG
 	{
 		ASSERT( IsOpen() );
 
+		if ( pos == _position )
+			return true;
+
+		_position = Min( pos, _fileSize );
+
 		return (fseek( _file, int64_t(pos), SEEK_SET ) == 0);
 	}
 	
@@ -126,7 +119,11 @@ namespace FG
 	{
 		ASSERT( IsOpen() );
 
-		return BytesU(fread( buffer, 1, size_t(size), _file ));
+		BytesU	readn{ fread( buffer, 1, size_t(size), _file )};
+
+		_position += readn;
+
+		return readn;
 	}
 //-----------------------------------------------------------------------------
 

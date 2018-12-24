@@ -133,6 +133,7 @@ namespace FG
 		TimePoint_t					_startTime;
 		uint						_currTime		= 0;		// in seconds
 		static constexpr uint		_maxTimeDelta	= 60*5;		// in seconds
+		uint						_frameCounter	= 0;
 
 		// cached resources validation
 		ValidationRanges_t			_validationRanges;
@@ -141,6 +142,10 @@ namespace FG
 		ValidationTasks_t			_validationTasks;
 		std::atomic<uint>			_validationTaskPos	= 0;
 		
+		// dummy resource descriptions
+		const BufferDesc			_dummyBufferDesc;
+		const ImageDesc				_dummyImageDesc;
+
 		RWRaceConditionCheck		_rcCheck;
 
 
@@ -156,7 +161,12 @@ namespace FG
 		void OnEndFrame ();
 
 		template <typename ID>
-		ND_ auto const*		GetResource (ID id)	const;
+		ND_ auto const*		GetResource (ID id)		const;
+
+		template <typename ID>
+		ND_ auto const&		GetDescription (ID id)	const;
+
+		ND_ uint			GetFrameIndex ()		const	{ return _frameCounter; }
 
 
 	private:
@@ -178,9 +188,6 @@ namespace FG
 
 		void  _DeleteResources (INOUT VkResourceQueue_t &) const;
 		void  _UnassignResourceIDs ();
-
-		template <typename ID, typename PoolT>
-		ND_ static typename PoolT::Value_t*  _GetResource (PoolT &pool, ID id);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
 		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id);
@@ -226,35 +233,46 @@ namespace FG
 	template <typename ID>
 	inline auto const*  VResourceManager::GetResource (ID id) const
 	{
-		ASSERT( id );
 		SHAREDLOCK( _rcCheck );
 
 		auto&	pool = _GetResourceCPool( id );
-		auto&	data = pool[ id.Index() ];
 
-		ASSERT( data.IsCreated() );
-		ASSERT( data.GetInstanceID() == id.InstanceID() );
+		using Result_t = std::remove_reference_t<decltype(pool)>::Value_t::Resource_t const*;
 
-		return &data.Data();
+		if ( id.Index() < pool.size() )
+		{
+			auto&	data = pool[ id.Index() ];
+
+			if ( data.IsCreated() and data.GetInstanceID() == id.InstanceID() )
+				return &data.Data();
+			
+			ASSERT( data.IsCreated() );
+			ASSERT( data.GetInstanceID() == id.InstanceID() );
+		}
+
+		ASSERT(false);
+		return static_cast< Result_t >(null);
 	}
 	
 /*
 =================================================
-	_GetResource
+	GetDescription
 =================================================
 */
-	template <typename ID, typename PoolT>
-	inline typename PoolT::Value_t*  VResourceManager::_GetResource (PoolT &pool, ID id)
+	template <>
+	inline auto const&  VResourceManager::GetDescription (RawBufferID id) const
 	{
-		ASSERT( id );
-		SHAREDLOCK( _rcCheck );
-		
-		auto&	data = pool[ id.Index() ];
-		ASSERT( data.GetInstanceID() == id.InstanceID() );
-		
-		return &data.Data();
+		auto*	res = GetResource( id );
+		return res ? res->Description() : _dummyBufferDesc;
 	}
-	
+
+	template <>
+	inline auto const&  VResourceManager::GetDescription (RawImageID id) const
+	{
+		auto*	res = GetResource( id );
+		return res ? res->Description() : _dummyImageDesc;
+	}
+
 /*
 =================================================
 	_UnassignResource
@@ -264,6 +282,9 @@ namespace FG
 	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id)
 	{
 		SCOPELOCK( _rcCheck );
+		
+		if ( id.Index() >= pool.size() )
+			return;
 
 		// destroy if needed
 		auto&	data = pool[ id.Index() ];
@@ -286,14 +307,17 @@ namespace FG
 	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id)
 	{
 		SCOPELOCK( _rcCheck );
+		
+		if ( id.Index() >= pool.size() )
+			return;
 
 		// destroy if needed
 		auto&	data = pool[ id.Index() ];
 		
 		if ( data.GetInstanceID() != id.InstanceID() )
 			return;	// this instance is already destroyed
-		
-		const bool	destroy = (data.IsCreated() and data.ReleaseRef( _currTime ));
+
+		const bool	destroy = data.IsCreated() and (/*force or*/ data.ReleaseRef( _currTime ));
 
 		if ( not destroy )
 			return;	// don't unassign ID

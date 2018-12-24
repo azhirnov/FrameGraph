@@ -147,6 +147,8 @@ namespace FG
 		_groupData.resize( handles_size + group_ids_size );
 
 		VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), _pipeline, 0, uint(desc._groups.size()), handles_size, OUT _groupData.data() ));
+		
+		resMngr.EditStatistic().newRayTracingPipelineCount++;
 
 		GroupInfo*	group_info	= Cast<GroupInfo>( _groupData.data() + BytesU{handles_size} );
 		uint		group_index	= 0;

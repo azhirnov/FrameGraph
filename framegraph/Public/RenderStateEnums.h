@@ -71,9 +71,8 @@ namespace FG
 	};
 
 
-	enum class ECompareOp : uint
+	enum class ECompareOp : uint8_t
 	{
-		//None,			// (disable)
 		Never,			// false
 		Less,			// <
 		Equal,			// ==
@@ -82,11 +81,11 @@ namespace FG
 		NotEqual,		// !=
 		GEqual,			// >=
 		Always,			// true
-		Unknown	= ~0u,
+		Unknown			= uint8_t(~0),
 	};
 
 
-	enum class EStencilOp : uint
+	enum class EStencilOp : uint8_t
 	{
 		Keep,			// s
 		Zero,			// 0
@@ -96,7 +95,7 @@ namespace FG
 		Decr,			// max( --s, 0 )
 		DecrWrap,		// --s & maxvalue
 		Invert,			// ~s
-		Unknown	= ~0u,
+		Unknown			= uint8_t(~0),
 	};
 
 
@@ -131,7 +130,7 @@ namespace FG
 	};
 	
 
-	enum class ECullMode : uint
+	enum class ECullMode : uint8_t
 	{
 		None		= 0,
 		Front		= 1	<< 0,

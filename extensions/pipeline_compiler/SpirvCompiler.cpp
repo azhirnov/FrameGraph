@@ -84,7 +84,7 @@ namespace FG
 		_currentStage = EShaderStages_FromShader( shaderType );
 
 		GLSLangResult	glslang_data;
-		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, source, OUT glslang_data, INOUT log ));
+		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.data()}, OUT glslang_data, INOUT log ));
 
 		Array<uint>		spirv;
 		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
@@ -143,7 +143,7 @@ namespace FG
 =================================================
 */
 	bool SpirvCompiler::_ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-									StringView entry, StringView source, OUT GLSLangResult &glslangData, OUT String &log)
+									StringView entry, ArrayView<const char *> source, OUT GLSLangResult &glslangData, OUT String &log)
 	{
 		EShClient					client			= EShClientOpenGL;
 		EshTargetClientVersion		client_version	= EShTargetOpenGL_450;
@@ -217,13 +217,11 @@ namespace FG
 		EShMessages			messages	= EShMsgDefault;
 		EShLanguage			stage		= ConvertShaderType( shaderType );
 		auto&				shader		= glslangData.shader;
-		String				temp_src	= source.data();
-		const char *		sources[]	= { temp_src.data() };
 		//ShaderIncluder	includer	{ baseFolder };
 		const bool			auto_map	= EnumEq( _compilerFlags, EShaderCompilationFlags::AutoMapLocations );
 
 		shader.reset( new TShader( stage ));
-		shader->setStrings( sources, int(CountOf(sources)) );
+		shader->setStrings( source.data(), int(source.size()) );
 		shader->setEntryPoint( entry.data() );
 		shader->setEnvInput( sh_source, stage, client, version );
 		shader->setEnvClient( client, client_version );
@@ -235,7 +233,7 @@ namespace FG
 		if ( not shader->parse( &_builtinResource, sh_version, sh_profile, false, true, messages/*, includer*/ ) )
 		{
 			log += shader->getInfoLog();
-			_OnCompilationFailed( {source}, INOUT log );
+			_OnCompilationFailed( source, INOUT log );
 			return false;
 		}
 		
@@ -244,7 +242,7 @@ namespace FG
 		if ( not glslangData.prog.link( messages ) )
 		{
 			log += glslangData.prog.getInfoLog();
-			_OnCompilationFailed( {source}, INOUT log );
+			_OnCompilationFailed( source, INOUT log );
 			return false;
 		}
 
@@ -502,7 +500,7 @@ namespace FG
 	_OnCompilationFailed
 =================================================
 */
-	bool SpirvCompiler::_OnCompilationFailed (ArrayView<StringView> source, INOUT String &log) const
+	bool SpirvCompiler::_OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const
 	{
 		// glslang errors format:
 		// pattern: <error/warning>: <number>:<line>: <description>
@@ -1132,7 +1130,6 @@ namespace FG
 				PipelineDescription::UniformBuffer	ubuf;
 				ubuf.state = EResourceState::UniformRead | EResourceState_FromShaders( _currentStage ) |
 							 (is_dynamic ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown);
-				ubuf.dynamicOffsetIndex = is_dynamic ? 0 : PipelineDescription::STATIC_OFFSET;
 
 				BytesU	stride, offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT ubuf.size, OUT stride, OUT offset ));
@@ -1152,7 +1149,6 @@ namespace FG
 				PipelineDescription::StorageBuffer	sbuf;
 				sbuf.state = ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage ) |
 							 (is_dynamic ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown);
-				sbuf.dynamicOffsetIndex = is_dynamic ? 0 : PipelineDescription::STATIC_OFFSET;
 			
 				BytesU	offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride, OUT offset ));

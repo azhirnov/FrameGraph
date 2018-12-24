@@ -46,12 +46,12 @@ namespace FG
 		using Viewports_t		= FixedArray< VkViewport, FG_MaxViewports >;
 		using Scissors_t		= FixedArray< VkRect2D, FG_MaxViewports >;
 		using RS				= RenderState;
-		using Allocator_t		= LinearAllocator<>;
+		using Allocator_t		= LinearAllocator< UntypedLinearAllocator<> >;
 		
 
 	// variables
 	private:
-		Allocator_t					_allocator;
+		Storage<Allocator_t>		_allocator;
 
 		RawFramebufferID			_framebufferId;
 		RawRenderPassID				_renderPassId;
@@ -104,7 +104,7 @@ namespace FG
 		bool AddTask (Args&& ...args)
 		{
 			SCOPELOCK( _rcCheck );
-			auto*	ptr = _allocator.Alloc<DrawTaskType>();
+			auto*	ptr = _allocator->Alloc<DrawTaskType>();
 			_drawTasks.push_back( PlacementNew<DrawTaskType>( ptr, std::forward<Args&&>(args)... ));
 			return true;
 		}

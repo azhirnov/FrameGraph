@@ -40,14 +40,17 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VLocalRTScene::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
+	void VLocalRTScene::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t, ExeOrderIndex batchExeOrder, uint frameIndex)
 	{
 		SCOPELOCK( _rcCheck );
 
-		_rtSceneData			= null;
-		_hitShadersPerGeometry	= 0;
-		_maxHitShaderCount		= 0;
-		_geometryInstances.clear();
+		if ( _rtSceneData and _instancesData.has_value() )
+		{
+			_rtSceneData->Merge( INOUT _instancesData.value(), batchExeOrder, frameIndex );
+		}
+
+		_rtSceneData	= null;
+		_instancesData	= Default;
 		
 		// check for uncommited barriers
 		ASSERT( _pendingAccesses.empty() );
@@ -64,9 +67,10 @@ namespace FG
 */
 	void VLocalRTScene::SetGeometryInstances (ArrayView<RawRTGeometryID> instances, uint hitShadersPerGeometry, uint maxHitShaders) const
 	{
-		_geometryInstances.assign( instances.begin(), instances.end() );
-		_hitShadersPerGeometry	= hitShadersPerGeometry;
-		_maxHitShaderCount		= maxHitShaders;
+		_instancesData = InstancesData_t{};
+		_instancesData->geometryInstances.assign( instances.begin(), instances.end() );
+		_instancesData->hitShadersPerGeometry	= hitShadersPerGeometry;
+		_instancesData->maxHitShaderCount		= maxHitShaders;
 	}
 
 /*

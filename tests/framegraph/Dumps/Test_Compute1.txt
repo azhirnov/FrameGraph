@@ -137,9 +137,9 @@ Thread {
 	}
 
 	Buffer {
-		name:    "StagingReadBuffer"
+		name:    "HostReadBuffer"
 		size:    256 Mb
-		usage:   TransferSrc | TransferDst
+		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         ReadImage (#5)
@@ -228,6 +228,12 @@ Thread {
 		input =  { DispatchCompute (#2) }
 		output = {  }
 		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1024 b
+			}
 			ImageUsage {
 				name:           "MyImage_0"
 				usage:          Transfer-R
@@ -236,12 +242,6 @@ Thread {
 				baseArrayLayer: 0
 				layerCount:     1
 			}
-			BufferUsage {
-				name:     "StagingReadBuffer"
-				usage:    Transfer-W
-				offset:   0 b
-				size:     1024 b
-			}
 		}
 	}
 	Task {
@@ -249,6 +249,12 @@ Thread {
 		input =  { DispatchCompute (#3) }
 		output = {  }
 		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   1024 b
+				size:     1024 b
+			}
 			ImageUsage {
 				name:           "MyImage_1"
 				usage:          Transfer-R
@@ -257,12 +263,6 @@ Thread {
 				baseArrayLayer: 0
 				layerCount:     1
 			}
-			BufferUsage {
-				name:     "StagingReadBuffer"
-				usage:    Transfer-W
-				offset:   1024 b
-				size:     1024 b
-			}
 		}
 	}
 	Task {
@@ -270,6 +270,12 @@ Thread {
 		input =  { DispatchCompute (#4) }
 		output = {  }
 		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   2048 b
+				size:     1024 b
+			}
 			ImageUsage {
 				name:           "MyImage_2"
 				usage:          Transfer-R
@@ -277,12 +283,6 @@ Thread {
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
-			}
-			BufferUsage {
-				name:     "StagingReadBuffer"
-				usage:    Transfer-W
-				offset:   2048 b
-				size:     1024 b
 			}
 		}
 	}

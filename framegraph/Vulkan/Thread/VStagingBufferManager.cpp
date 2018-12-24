@@ -268,18 +268,18 @@ namespace FG
 	
 /*
 =================================================
-	StoreBufferData
+	StorePartialData
 =================================================
 */
-	bool VStagingBufferManager::StoreBufferData (ArrayView<uint8_t> srcData, const BytesU srcOffset,
-												 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
+	bool VStagingBufferManager::StorePartialData (ArrayView<uint8_t> srcData, const BytesU srcOffset,
+												  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		// skip blocks less than 1/N of data size
 		const BytesU	src_size	= ArraySizeOf(srcData);
 		const BytesU	min_size	= Min( (src_size + MaxBufferParts-1) / MaxBufferParts, Min( src_size, MinBufferPart ));
 		void *			ptr			= null;
 
-		if ( _GetWritable( src_size, 1_b, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		if ( _GetWritable( src_size - srcOffset, 1_b, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
 		{
 			MemCopy( ptr, size, srcData.data() + srcOffset, size );
 			return true;
@@ -289,11 +289,11 @@ namespace FG
 	
 /*
 =================================================
-	StoreBufferData
+	StoreSolidData
 =================================================
 */
-	bool VStagingBufferManager::StoreBufferData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign,
-												 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
+	bool VStagingBufferManager::StoreSolidData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign,
+												OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		void *	ptr = null;
 		if ( _GetWritable( dataSize, 1_b, offsetAlign, dataSize, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
@@ -328,7 +328,7 @@ namespace FG
 		const BytesU	min_size	= Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
 		void *			ptr			= null;
 
-		if ( _GetWritable( src_size, srcPitch, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		if ( _GetWritable( src_size - srcOffset, srcPitch, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
 		{
 			MemCopy( ptr, size, srcData.data() + srcOffset, size );
 			return true;
@@ -384,7 +384,8 @@ namespace FG
 		{
 			ASSERT( dstMinSize < _stagingBufferSize );
 
-			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{_stagingBufferSize, EBufferUsage::Transfer}, MemoryDesc{EMemoryType::HostWrite}, "StagingWriteBuffer"s );
+			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _stagingBufferSize, EBufferUsage::TransferSrc | EBufferUsage::Uniform },
+														   MemoryDesc{ EMemoryType::HostWrite }, "HostWriteBuffer" );
 			CHECK_ERR( buf_id );
 
 			RawMemoryID	mem_id = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();
@@ -454,7 +455,8 @@ namespace FG
 		{
 			ASSERT( dstMinSize < _stagingBufferSize );
 
-			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{_stagingBufferSize, EBufferUsage::Transfer}, MemoryDesc{EMemoryType::HostRead}, "StagingReadBuffer"s );
+			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _stagingBufferSize, EBufferUsage::TransferDst },
+														   MemoryDesc{ EMemoryType::HostRead }, "HostReadBuffer" );
 			CHECK_ERR( buf_id );
 			
 			RawMemoryID	mem_id = _frameGraph.GetResourceManager()->GetResource( buf_id.Get() )->GetMemoryID();

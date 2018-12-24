@@ -75,7 +75,6 @@ static void FixedMap_PerformanceTest1 ()
 					const auto&	d = data[ i*num_items + j ];
 					map2.insert({ d.first, d.second });
 				}
-				map2.sort();
 				map2.clear();
 			}
 		}
@@ -105,7 +104,6 @@ static void FixedMap_PerformanceTest1 ()
 				map2.insert({ d.first, d.second });
 			}
 		}
-		map2.sort();
 		TEST( map1.size() == num_items );
 		TEST( map1.size() == map2.size() );
 
@@ -167,7 +165,6 @@ static void FixedMap_PerformanceTest1 ()
 				map2.insert({ d.first, d.second });
 			}
 		}
-		map2.sort();
 		TEST( map1.size() == num_items );
 		TEST( map1.size() == map2.size() );
 
@@ -283,7 +280,6 @@ static void FixedMap_PerformanceTest2 ()
 					const auto&	d = data[ i*num_items + j ];
 					map2.insert({ d.first, d.second });
 				}
-				map2.sort();
 				map2.clear();
 			}
 		}
@@ -313,7 +309,6 @@ static void FixedMap_PerformanceTest2 ()
 				map2.insert({ d.first, d.second });
 			}
 		}
-		map2.sort();
 		TEST( map1.size() == num_items );
 		TEST( map1.size() == map2.size() );
 
@@ -374,7 +369,6 @@ static void FixedMap_PerformanceTest2 ()
 				map2.insert({ d.first, d.second });
 			}
 		}
-		map2.sort();
 		TEST( map1.size() == num_items );
 		TEST( map1.size() == map2.size() );
 

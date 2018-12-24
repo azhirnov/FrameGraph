@@ -26,15 +26,17 @@ namespace FG
 		{
 			BindingIndex			index;
 			EResourceState			state;
+			uint					dynamicOffsetIndex;
 			RawBufferID				bufferId;
 			BytesU					offset;
 			BytesU					size;
 
 			ND_ bool  operator == (const Buffer &rhs) const {
-				return	state		== rhs.state	and 
-						bufferId	== rhs.bufferId	and
-						offset		== rhs.offset	and
-						size		== rhs.size;
+				return	state				== rhs.state				and 
+						bufferId			== rhs.bufferId				and
+						dynamicOffsetIndex	== rhs.dynamicOffsetIndex	and
+						offset				== rhs.offset				and
+						size				== rhs.size;
 			}
 		};
 
@@ -404,11 +406,11 @@ namespace FG
 	{
 		auto&	buf = std::get<Buffer>( curr.res );
 		ASSERT( (un.size == size) or (size == ~0_b) );
-		FG_UNUSED( size );
+		FG_UNUSED( un, size );
 		
 		bool	changed = (buf.bufferId != id);
 		
-		if ( un.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
+		if ( buf.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
 		{
 			changed		|= (buf.offset != offset);
 			buf.offset	 = offset;
@@ -416,7 +418,7 @@ namespace FG
 		else
 		{
 			ASSERT( offset < std::numeric_limits<uint>::max() );
-			_dynamicOffsets[un.dynamicOffsetIndex] = uint(offset);
+			_dynamicOffsets[buf.dynamicOffsetIndex] = uint(offset);
 		}
 
 		if ( changed )
@@ -436,10 +438,11 @@ namespace FG
 	{
 		auto&	buf = std::get<Buffer>( curr.res );
 		ASSERT( size == ~0_b or ((size >= un.staticSize) and (un.arrayStride == 0 or (size - un.staticSize) % un.arrayStride == 0)) );
-		
+		FG_UNUSED( un );
+
 		bool	changed = (buf.bufferId	!= id or buf.size != size);
 		
-		if ( un.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
+		if ( buf.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
 		{
 			changed		|= (buf.offset != offset);
 			buf.offset	 = offset;
@@ -447,7 +450,7 @@ namespace FG
 		else
 		{
 			ASSERT( offset >= buf.offset and offset - buf.offset < std::numeric_limits<uint>::max() );
-			_dynamicOffsets[un.dynamicOffsetIndex] = uint(offset - buf.offset);
+			_dynamicOffsets[buf.dynamicOffsetIndex] = uint(offset - buf.offset);
 		}
 		
 		if ( changed )
@@ -470,21 +473,17 @@ namespace FG
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
 		auto&	buf		= std::get<Buffer>( curr.res );
-
-		DEBUG_ONLY(
-			if ( auto* ubuf = std::get_if<PipelineDescription::UniformBuffer>( &un->second.data ) )
-				ASSERT( ubuf->dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
-			else
-			if ( auto* sbuf = std::get_if<PipelineDescription::StorageBuffer>( &un->second.data ) )
-				ASSERT( sbuf->dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET );
-		)
-
-		if ( buf.offset != offset )
-			_ResetCachedID();
-
-		buf.offset = offset;
 		
-		curr.hash = HashOf( buf.bufferId ) + HashOf( buf.size ) + HashOf( buf.offset );
+		if ( buf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
+		{
+			if ( buf.offset != offset )
+				_ResetCachedID();
+			
+			_dynamicOffsets[buf.dynamicOffsetIndex] = uint( (_dynamicOffsets[buf.dynamicOffsetIndex] + buf.offset) - offset );
+			buf.offset = offset;
+		
+			curr.hash = HashOf( buf.bufferId ) + HashOf( buf.size ) + HashOf( buf.offset );
+		}
 		return *this;
 	}
 

@@ -142,6 +142,12 @@ namespace FG
 		if ( EImage_IsCube( _desc.imageType ) )
 			info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
+		// TODO: VK_IMAGE_CREATE_EXTENDED_USAGE_BIT
+		// TODO: VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT for 3D image
+		// TODO: VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT 
+		// TODO: VK_IMAGE_CREATE_ALIAS_BIT 
+		// TODO: VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT 
+
 		VK_CHECK( dev.vkCreateImage( dev.GetVkDevice(), &info, null, OUT &_image ));
 
 		CHECK_ERR( memObj.AllocateForImage( _image ));
@@ -170,7 +176,8 @@ namespace FG
 		CHECK_ERR( _image == VK_NULL_HANDLE );
 		
 		_image				= BitCast<VkImage>( desc.image );
-		_desc.imageType		= FGEnumCast( BitCast<VkImageType>( desc.imageType ), desc.arrayLayers, BitCast<VkSampleCountFlagBits>( desc.samples ));
+		_desc.imageType		= FGEnumCast( BitCast<VkImageType>( desc.imageType ), BitCast<ImageFlagsVk_t>( desc.flags ),
+										  desc.arrayLayers, BitCast<VkSampleCountFlagBits>( desc.samples ) );
 		_desc.dimension		= desc.dimension;
 		_desc.format		= FGEnumCast( BitCast<VkFormat>( desc.format ));
 		_desc.usage			= FGEnumCast( BitCast<VkImageUsageFlagBits>( desc.usage ));
@@ -288,9 +295,7 @@ namespace FG
 		view_info.format		= VEnumCast( desc.format );
 		view_info.components	= { components[swizzle.x], components[swizzle.y], components[swizzle.z], components[swizzle.w] };
 
-		view_info.subresourceRange.aspectMask		= EPixelFormat_IsColor( desc.format ) ? VK_IMAGE_ASPECT_COLOR_BIT :
-													  ((EPixelFormat_HasDepth( desc.format ) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0) |
-													   (EPixelFormat_HasStencil( desc.format ) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0));
+		view_info.subresourceRange.aspectMask		= VEnumCast( desc.aspectMask );
 		view_info.subresourceRange.baseMipLevel		= desc.baseLevel.Get();
 		view_info.subresourceRange.levelCount		= desc.levelCount;
 		view_info.subresourceRange.baseArrayLayer	= desc.baseLayer.Get();
@@ -298,6 +303,18 @@ namespace FG
 		
 		VK_CHECK( dev.vkCreateImageView( dev.GetVkDevice(), &view_info, null, OUT &outView ));
 		return true;
+	}
+	
+/*
+=================================================
+	IsReadOnly
+=================================================
+*/
+	bool  VImage::IsReadOnly () const
+	{
+		SHAREDLOCK( _rcCheck );
+		return not EnumEq( _desc.usage, EImageUsage::TransferDst | EImageUsage::ColorAttachment | EImageUsage::Storage |
+										EImageUsage::DepthStencilAttachment | EImageUsage::TransientAttachment );
 	}
 
 

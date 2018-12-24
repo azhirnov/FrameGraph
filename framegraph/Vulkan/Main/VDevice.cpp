@@ -98,6 +98,7 @@ namespace FG
 		CHECK( GetDeviceLimits().maxViewports >= FG_MaxViewports );
 		CHECK( GetDeviceLimits().maxColorAttachments >= FG_MaxColorBuffers );
 		CHECK( GetDeviceLimits().maxBoundDescriptorSets >= FG_MaxDescriptorSets );
+		CHECK( (GetDeviceLimits().maxDescriptorSetUniformBuffersDynamic + GetDeviceLimits().maxDescriptorSetStorageBuffersDynamic) >= FG_MaxBufferDynamicOffsets );
 	}
 	
 /*

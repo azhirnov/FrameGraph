@@ -18,10 +18,13 @@ namespace FG
 */
 	VFrameGraphThread::VFrameGraphThread (VFrameGraph &fg, EThreadUsage usage, StringView name) :
 		_threadUsage{ usage },			_state{ EState::Initial },
-		_compilationFlags{ Default },	_debugName{ name },
-		_instance{ fg },				_resourceMngr{ _mainAllocator, fg.GetResourceMngr() }
+		_debugName{ name },
+		_instance{ fg },
+		_resourceMngr{ _mainAllocator, _statistic.resources, fg.GetResourceMngr() }
 	{
 		SCOPELOCK( _rcCheck );
+
+		_mainAllocator.SetBlockSize( 64_Mb );
 
 		if ( EnumEq( _threadUsage, EThreadUsage::MemAllocation ) )
 		{
@@ -450,7 +453,7 @@ namespace FG
 		ASSERT( _IsInitialized() );
 
 		// read access available without synchronizations
-		return _resourceMngr.GetResource( id.Get() )->Description();
+		return _resourceMngr.GetDescription( id.Get() );
 	}
 	
 /*
@@ -1070,8 +1073,9 @@ namespace FG
 		CHECK_ERR( _SetState( EState::Idle, EState::BeforeStart ));
 		ASSERT( graph );
 
-		_frameId = (_frameId + 1) % _queues.front().frames.size();
+		_frameId		 = (_frameId + 1) % _queues.front().frames.size();
 		_submissionGraph = graph;
+		_statistic		 = Default;
 
 		_resourceMngr.OnBeginFrame();
 
@@ -1177,7 +1181,7 @@ namespace FG
 	SyncOnExecute
 =================================================
 */
-	bool VFrameGraphThread::SyncOnExecute ()
+	bool VFrameGraphThread::SyncOnExecute (INOUT Statistic_t &outStatistic)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -1190,11 +1194,12 @@ namespace FG
 		// check for uncommited barriers
 		CHECK( _barrierMngr.Empty() );
 
-		_submissionGraph = null;
-
 		_resourceMngr.OnEndFrame();
 		_resourceMngr.OnDiscardMemory();
 		_mainAllocator.Discard();
+
+		outStatistic.Merge( _statistic );
+		_submissionGraph = null;
 		
 		if ( _swapchain )
 			_swapchain->Present( RawImageID() );	// TODO: move to 'Compile'

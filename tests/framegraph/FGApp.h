@@ -97,6 +97,9 @@ namespace FG
 		bool Test_Draw2 ();			// with swapchain
 		bool Test_Draw3 ();			// with mesh shader
 		bool Test_TraceRays1 ();
+		bool Test_TraceRays2 ();
+		bool Test_ExternalCmdBuf1 ();
+		bool Test_InvalidID ();
 	};
 
 	

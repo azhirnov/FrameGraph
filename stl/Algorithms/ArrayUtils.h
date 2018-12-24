@@ -48,6 +48,12 @@ namespace FG
 		return BytesU( arr.size() * sizeof(T) );
 	}
 	
+	template <typename T, size_t S>
+	ND_ forceinline constexpr BytesU  ArraySizeOf (const StaticArray<T,S> &)
+	{
+		return BytesU( S * sizeof(T) );
+	}
+
 /*
 =================================================
 	Distance

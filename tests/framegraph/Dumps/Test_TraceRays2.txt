@@ -2,24 +2,24 @@ Thread {
 	batch:         "main"
 	indexInBatch:  0
 	Image {
-		name:         "RenderTarget"
+		name:         "OutputImage"
 		iamgeType:    Image2D
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | ColorAttachment
+		usage:        TransferSrc | Storage
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         SubmitRenderPass (#2)
-					dstTask:         ReadImage (#3)
-					srcStageMask:    ColorAttachmentOutput
+					srcTask:         TraceRays (#3)
+					dstTask:         ReadImage (#4)
+					srcStageMask:    RayTracing
 					dstStageMask:    Transfer
 					dependencyFlags: 
-					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					srcAccessMask:   ShaderWrite
 					dstAccessMask:   TransferRead
-					oldLayout:       ColorAttachmentOptimal
+					oldLayout:       General
 					newLayout:       TransferSrcOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
@@ -28,7 +28,7 @@ Thread {
 					layerCount:      1
 				}
 				ImageMemoryBarrier {
-					srcTask:         ReadImage (#3)
+					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
 					dstStageMask:    TopOfPipe
@@ -36,7 +36,7 @@ Thread {
 					srcAccessMask:   TransferRead
 					dstAccessMask:   
 					oldLayout:       TransferSrcOptimal
-					newLayout:       ColorAttachmentOptimal
+					newLayout:       General
 					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
@@ -47,12 +47,31 @@ Thread {
 	}
 
 	Buffer {
-		name:    "HostReadBuffer"
-		size:    256 Mb
-		usage:   TransferDst
+		name:    ""
+		size:    64 Kb
+		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
-					srcTask:         ReadImage (#3)
+					srcTask:         BuildRayTracingGeometry (#2)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
+				}
+		}
+	}
+
+	Buffer {
+		name:    "StagingReadBuffer"
+		size:    256 Mb
+		usage:   TransferSrc | TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
 					dstStageMask:    TopOfPipe
@@ -67,40 +86,19 @@ Thread {
 
 	-----------------------------------------------------------
 	Task {
-		name:    "SubmitRenderPass (#2)"
+		name:    "BuildRayTracingGeometry (#2)"
 		input =  {  }
-		output = { ReadImage (#3) }
-		resource_usage = {
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Color-RW, ClearBefore
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
+		output = { TraceRays (#3) }
 	}
 	Task {
-		name:    "ReadImage (#3)"
-		input =  { SubmitRenderPass (#2) }
+		name:    "TraceRays (#3)"
+		input =  { BuildRayTracingGeometry (#2) }
+		output = { ReadImage (#4) }
+	}
+	Task {
+		name:    "ReadImage (#4)"
+		input =  { TraceRays (#3) }
 		output = {  }
-		resource_usage = {
-			BufferUsage {
-				name:     "HostReadBuffer"
-				usage:    Transfer-W
-				offset:   0 b
-				size:     1875 Kb
-			}
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Transfer-R
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
 	}
 }
 ===============================================================

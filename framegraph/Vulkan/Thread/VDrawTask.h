@@ -79,7 +79,7 @@ namespace FG
 
 		const _fg_hidden_::Scissors_t			scissors;
 		const _fg_hidden_::ColorBuffers_t		colorBuffers;
-		const _fg_hidden_::DepthStencilState	depthStencilState;
+		const _fg_hidden_::DynamicStates		dynamicStates;
 		
 		const EPrimitive						topology;
 		const bool								primitiveRestart;
@@ -191,7 +191,7 @@ namespace FG
 
 		const _fg_hidden_::Scissors_t			scissors;
 		const _fg_hidden_::ColorBuffers_t		colorBuffers;
-		const _fg_hidden_::DepthStencilState	depthStencilState;
+		const _fg_hidden_::DynamicStates		dynamicStates;
 
 		mutable VkDescriptorSets_t				descriptorSets;
 

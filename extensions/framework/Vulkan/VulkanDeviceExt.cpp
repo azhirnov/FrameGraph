@@ -16,6 +16,8 @@ namespace FG
 	{
 		_tempObjectDbgInfos.reserve( 16 );
 		_tempString.reserve( 1024 );
+
+		memset( &_properties, 0, sizeof(_properties) );
 	}
 	
 /*
@@ -80,17 +82,26 @@ namespace FG
 			next_props						= &_properties.maintenance3.pNext;
 			_properties.maintenance3.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES;
 			
-			*next_props						= &_properties.meshShader;
-			next_props						= &_properties.meshShader.pNext;
-			_properties.meshShader.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
-			
-			*next_props							= &_properties.shadingRateImage;
-			next_props							= &_properties.shadingRateImage.pNext;
-			_properties.shadingRateImage.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
-			
-			*next_props						= &_properties.rayTracing;
-			next_props						= &_properties.rayTracing.pNext;
-			_properties.rayTracing.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+			if ( _deviceExtensions.count( VK_NV_MESH_SHADER_EXTENSION_NAME ) )
+			{
+				*next_props						= &_properties.meshShader;
+				next_props						= &_properties.meshShader.pNext;
+				_properties.meshShader.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
+			}
+
+			if ( _deviceExtensions.count( VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME ) )
+			{
+				*next_props							= &_properties.shadingRateImage;
+				next_props							= &_properties.shadingRateImage.pNext;
+				_properties.shadingRateImage.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
+			}
+
+			if ( _deviceExtensions.count( VK_NV_RAY_TRACING_EXTENSION_NAME ) )
+			{
+				*next_props						= &_properties.rayTracing;
+				next_props						= &_properties.rayTracing.pNext;
+				_properties.rayTracing.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+			}
 
 			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
 		}
