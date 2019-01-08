@@ -22,7 +22,7 @@
  
 <br/><br/>
  
-### Copy from buffer/image to image/buffer and clear buffer/image
+### Copy from buffer/image to image/buffer, clear buffer/image
 | OpenGL | FrameGraph |
 |---|---|
 | glCopyBufferSubData | CopyBuffer task |
@@ -36,12 +36,12 @@
 <br/><br/>
  
 ### Framebuffer and renderbuffer
-FrameGraphThread::CreateRenderPass & SubmitRenderPass task replaces:<br/>
-```
-glCreateFramebuffers, glBindFramebuffer,
-glFramebufferTexture*,
-glClear, glClearColor, glClearDepth, glClearBuffer*, glClearNamedFramebuffer*
-```
+| OpenGL | FrameGraph |
+|---|---|
+| glCreateFramebuffers, glCreateRenderbuffers | FrameGraphThread::CreateRenderPass |
+| glFramebufferTexture* | RenderPassDesc::AddTarget |
+| glClear, glClearColor, glClearDepth, glClearBuffer*, glClearNamedFramebuffer* | `clearValue` arg in RenderPassDesc::AddTarget |
+
 <br/><br/>
  
 ### Render states
@@ -83,6 +83,7 @@ glClear, glClearColor, glClearDepth, glClearBuffer*, glClearNamedFramebuffer*
 | glViewport*, glDepthRange* | RenderPassDesc::AddViewport |
 | glScissor* | DrawTask::AddScissor |
  
+`DrawTask` - may be any of DrawVertices, DrawIndexed, DrawVerticesIndirect, DrawIndexedIndirect, DrawMeshes, DrawMeshesIndirect.
 <br/><br/>
  
 ### Drawing
@@ -129,3 +130,5 @@ use `DrawTask::AddResources` or `ComputeTask::AddResources` for applying uniform
 | glBindVertexBuffer | DrawTask::AddBuffer |
 | glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ...) | DrawTask::SetIndexBuffer |
  
+`DrawTask` - may be any of DrawVertices, DrawIndexed, DrawVerticesIndirect, DrawIndexedIndirect.
+<br/>
