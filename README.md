@@ -5,12 +5,12 @@ Work in progress.
 * multithreaded command buffer building and submitting.
 * simple API, hides memory allocation, host to/from device transfers.
 * frame graph visualization.
-* tested on DOOM trace (see [vkTraceConverter examples](https://github.com/azhirnov/vkTraceConverter/tree/dev/examples#convert-to-framegraph-trace).
+* tested on DOOM trace (see [vkTraceConverter examples](https://github.com/azhirnov/vkTraceConverter/tree/dev/examples#convert-to-framegraph-trace)).
 
 ## Documentation
-* Porting from OpenGL
-* Porting from Vulkan
-* Extensions overview
+* [Porting from OpenGL](docs/Porting-from-OpenGL.md)
+* [Porting from Vulkan](docs/Porting-from-Vulkan.md)
+* [Extensions overview](extensions/Readme.md)
 
 ## Suported Platforms
 * Windows (with MSVC 2017)
