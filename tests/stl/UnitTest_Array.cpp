@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Algorithms/ArrayUtils.h"
 #include "stl/Containers/Appendable.h"
@@ -32,16 +32,14 @@ static void Appendable_Test1 ()
 }
 
 
+static Pair<int, float> Conv (int &&i) {
+	return { i, float(i) };
+}
+
 static void Appendable_Test2 ()
 {
-	struct Utils {
-		static Pair<int, float> Conv (int &&i) {
-			return { i, float(i) };
-		}
-	};
-
 	Array<Pair<int, float>>		arr;
-	Appendable<int>				app{ arr, std::integral_constant< decltype(&Utils::Conv), &Utils::Conv >{} };
+	Appendable<int>				app{ arr, std::integral_constant< decltype(&Conv), &Conv >{} };
 
 	app.push_back( 1 );
 	app.push_back( 2 );

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "../FGApp.h"
 
@@ -134,7 +134,7 @@ void main() {
 		const BytesU	cbuf_offset			= Max( cbuf_size, BytesU(_vulkan.GetDeviceProperties().limits.minUniformBufferOffsetAlignment) );
 		const BytesU	cbuf_aligned_size	= AlignToLarger( cbuf_size, cbuf_offset );
 		
-		FGThreadPtr	frame_graph	= _frameGraph1;
+		FGThreadPtr	frame_graph	= _fgGraphics1;
 
 		BufferID	const_buf1 = frame_graph->CreateBuffer( BufferDesc{ cbuf_aligned_size,   EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf1" );
 		BufferID	const_buf2 = frame_graph->CreateBuffer( BufferDesc{ cbuf_aligned_size*2, EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf2" );
@@ -156,26 +156,16 @@ void main() {
 		
 		GPipelineID		pipeline1	= frame_graph->CreatePipeline( std::move(ppln1) );
 		GPipelineID		pipeline2	= frame_graph->CreatePipeline( std::move(ppln2) );
-		
-		RawDescriptorSetLayoutID	ds_layout1;
-		uint						ds_index1;
-		CHECK_ERR( frame_graph->GetDescriptorSet( pipeline1, DescriptorSetID("0"), OUT ds_layout1, OUT ds_index1 ));
-		
-		RawDescriptorSetLayoutID	ds_layout2;
-		uint						ds_index2;
-		CHECK_ERR( frame_graph->GetDescriptorSet( pipeline2, DescriptorSetID("0"), OUT ds_layout2, OUT ds_index2 ));
-		
-		CHECK_ERR( ds_layout1 == ds_layout2 and ds_index1 == ds_index2 );
 
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( ds_layout1, OUT resources ));
+		CHECK_ERR( frame_graph->InitPipelineResources( pipeline1, DescriptorSetID("0"), OUT resources ));
 
 
 		CommandBatchID		batch_id {"main"};
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		ImageID		color_target = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::RGBA8_UNorm,
@@ -212,7 +202,7 @@ void main() {
 				frame_graph->AddTask( depth_pass,
 					DrawVertices{}.SetName( "Draw_Depth" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).AddDrawCmd( 3*1000 )
-						.SetPipeline( pipeline2 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetPipeline( pipeline2 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 		
 				Task	t_update_buf0 = frame_graph->AddTask( UpdateBuffer{ const_buf2, 0_b, CreateData( 256_b ) }.SetName( "update_buf0" ));
 
@@ -228,7 +218,7 @@ void main() {
 				frame_graph->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw1_Opaque" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).AddDrawCmd( 3*1000 )
-						.SetPipeline( pipeline1 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, 0_b, cbuf_size );
@@ -236,7 +226,7 @@ void main() {
 				frame_graph->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw2_Opaque" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).AddDrawCmd( 3*1000 )
-						.SetPipeline( pipeline1 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf1 );
@@ -244,7 +234,7 @@ void main() {
 				frame_graph->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw0_Opaque" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).AddDrawCmd( 3*2000 )
-						.SetPipeline( pipeline1 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				Task	t_update_buf1 = frame_graph->AddTask( UpdateBuffer{ const_buf1,   0_b, CreateData( 256_b ) }.SetName( "update_buf1" ));
 				Task	t_update_buf2 = frame_graph->AddTask( UpdateBuffer{ const_buf2, 256_b, CreateData( 256_b ) }.SetName( "update_buf2" ));
@@ -261,7 +251,7 @@ void main() {
 				frame_graph->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw1_Transparent" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).AddDrawCmd( 3*1000 )
-						.SetPipeline( pipeline1 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, 0_b, cbuf_size );
@@ -269,7 +259,7 @@ void main() {
 				frame_graph->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw2_Transparent" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).AddDrawCmd( 3*1000 )
-						.SetPipeline( pipeline1 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 		
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, cbuf_offset, cbuf_size );
@@ -277,7 +267,7 @@ void main() {
 				frame_graph->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw0_Transparent" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).AddDrawCmd( 3*2000 )
-						.SetPipeline( pipeline1 ).AddResources( ds_index1, &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				Task	update_buf3 = frame_graph->AddTask( UpdateBuffer{ const_buf3, 0_b, CreateData( 256_b ) }.SetName( "update_buf3" ) );
 
@@ -290,12 +280,12 @@ void main() {
 		}
 		
 		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 	
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 		
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 		
 		DeleteResources( const_buf1, const_buf2, const_buf3, vbuffer1, vbuffer2, texture1, texture2,
 						 color_target, depth_target, pipeline1, pipeline2, sampler1 );

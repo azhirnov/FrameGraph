@@ -50,6 +50,12 @@ namespace FG
 		//return std::ilogb( x );
 	#endif
 	}
+
+	template <typename T>
+	ND_ forceinline int  BitScanReverse (const T& x)
+	{
+		return IntLog2( x );
+	}
 	
 /*
 =================================================

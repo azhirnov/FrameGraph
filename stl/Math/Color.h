@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -142,9 +142,14 @@ namespace FG
 	};
 	
 
-
+	
+/*
+=================================================
+	constructor
+=================================================
+*/
 	template <>
-	inline RGBAColor<float>::RGBAColor (struct HSVColor const& c, float alpha)
+	inline RGBAColor<float>::RGBAColor (const HSVColor &c, float alpha)
 	{
 		// from http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 		float4 K = float4(1.0f, 2.0f / 3.0f, 1.0f / 3.0f, 3.0f);
@@ -154,8 +159,6 @@ namespace FG
 		b = c.v * Lerp(K.x, Clamp(p.z - K.x, 0.0f, 1.0f), c.s);
 		a = alpha;
 	}
-	
-
 	
 /*
 =================================================
@@ -245,6 +248,29 @@ namespace FG
 					   uint8_t(v.z + 0.5f), uint8_t(v.w + 0.5f) };
 	}
 	
+/*
+=================================================
+	Min/Max/Clamp
+=================================================
+*/
+	template <typename T>
+	ND_ inline constexpr RGBAColor<T>  Min (const RGBAColor<T> &lhs, const RGBAColor<T> &rhs)
+	{
+		return RGBAColor<T>{ Min(lhs.r, rhs.r), Min(lhs.g, rhs.g), Min(lhs.b, rhs.b), Min(lhs.a, rhs.a) };
+	}
+
+	template <typename T>
+	ND_ inline constexpr RGBAColor<T>  Max (const RGBAColor<T> &lhs, const RGBAColor<T> &rhs)
+	{
+		return RGBAColor<T>{ Max(lhs.r, rhs.r), Max(lhs.g, rhs.g), Max(lhs.b, rhs.b), Max(lhs.a, rhs.a) };
+	}
+	
+	template <typename T>
+	ND_ inline constexpr RGBAColor<T>  Clamp (const RGBAColor<T> &value, const RGBAColor<T> &minVal, const RGBAColor<T> &maxVal)
+	{
+		return Min( maxVal, Max( value, minVal ) );
+	}
+
 /*
 =================================================
 	HtmlColor

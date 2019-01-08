@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -57,6 +57,7 @@ namespace FG
 		ND_ Self	Inversed ()	const						{ return Self{*this}.Inverse(); }
 
 		ND_ Mat4_t	ToMatrix () const;
+		ND_ Mat4_t	ToRotationMatrix () const;
 
 
 		// local space to global
@@ -202,7 +203,18 @@ namespace FG
 		
 		result[3] = tvec4<T>{ position, T(1) };
 
-		return result * glm::scale(Vec3_t{ scale, scale, scale });
+		return result * glm::scale( Mat4x4_One, Vec3_t{ scale });
+	}
+	
+/*
+=================================================
+	ToRotationMatrix
+=================================================
+*/
+	template <typename T>
+	inline typename Transformation<T>::Mat4_t  Transformation<T>::ToRotationMatrix () const
+	{
+		return glm::mat4_cast( orientation ) * glm::scale( Mat4x4_One, Vec3_t{ scale });
 	}
 
 

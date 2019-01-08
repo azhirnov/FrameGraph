@@ -1,9 +1,16 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 // TODO
 //#define FG_HALF_TYPE
+
+#ifdef FG_DEBUG
+#	define FG_OPTIMIZE_IDS		false
+#else
+#	define FG_OPTIMIZE_IDS		true
+#endif
+
 
 namespace FG
 {

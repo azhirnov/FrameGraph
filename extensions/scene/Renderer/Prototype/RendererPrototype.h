@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -16,7 +16,7 @@ namespace FG
 	{
 	// variables
 	private:
-		FrameGraphPtr		_fgInstance;
+		FGInstancePtr		_fgInstance;
 		FGThreadPtr			_frameGraph;
 
 		SubmissionGraph		_submissionGraph;
@@ -27,6 +27,8 @@ namespace FG
 		RendererPrototype ();
 		~RendererPrototype ();
 
+		bool Initialize (const FGInstancePtr &, const FGThreadPtr &, StringView);
+
 		bool GetPipeline (const PipelineInfo &, OUT GPipelineID &) override;
 		bool GetPipeline (const PipelineInfo &, OUT MPipelineID &) override;
 
@@ -34,8 +36,10 @@ namespace FG
 
 
 	private:
-		bool _SetupShadowPass (const CameraData_t &, RenderQueueImpl &);
-		bool _SetupColorPass (const CameraData_t &, RenderQueueImpl &);
+		bool _SetupShadowPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT ImageID &);
+		bool _SetupColorPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT ImageID &);
+
+		bool _LoadPipelines (StringView path);
 	};
 
 

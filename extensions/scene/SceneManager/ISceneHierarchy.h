@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This is abstraction of different scene hierarchy algorithms,
 	for example: octree, quadtree, BVH, indoor portals and other.
@@ -26,7 +26,7 @@ namespace FG
 	// interface
 	public:
 		// build materials with new render technique
-		virtual bool Build (const RenderTechniquePtr &) = 0;
+		virtual bool Build (const FGThreadPtr &, const RenderTechniquePtr &) = 0;
 
 		// add all cameras (main, reflection, shadow, etc),
 		// add self or other hierarchies if visible for camera

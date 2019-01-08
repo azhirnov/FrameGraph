@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -20,6 +20,7 @@
 #include "stl/Algorithms/Hash.h"
 #include "stl/CompileTime/TypeTraits.h"
 #include "stl/CompileTime/UMax.h"
+#include "stl/CompileTime/DefaultType.h"
 
 #ifdef FG_DEBUG
 #	define FG_ENABLE_RACE_CONDITION_CHECK

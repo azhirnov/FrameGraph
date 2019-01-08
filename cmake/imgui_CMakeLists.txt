@@ -1,0 +1,12 @@
+project( "imgui" LANGUAGES CXX )
+
+add_library( "imgui" STATIC
+		"imconfig.h"
+		"imgui.h"
+		"imgui.cpp"
+		"imgui_internal.h"
+		"imgui_draw.cpp"
+		"imgui_demo.cpp"
+		"imgui_widgets.cpp" )
+		
+install( TARGETS "imgui" ARCHIVE DESTINATION "lib" )

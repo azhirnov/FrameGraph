@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -90,6 +90,15 @@ namespace FG
 		
 		bool Create (UniquePtr<IVulkanSurface> &&surf,
 					 StringView					applicationName,
+					 StringView					engineName,
+					 uint						version				= VK_API_VERSION_1_1,
+					 StringView					deviceName			= Default,
+					 ArrayView<QueueCreateInfo>	queues				= Default,
+					 ArrayView<const char*>		instanceLayers		= GetRecomendedInstanceLayers(),
+					 ArrayView<const char*>		instanceExtensions	= GetRecomendedInstanceExtensions(),
+					 ArrayView<const char*>		deviceExtensions	= GetRecomendedDeviceExtensions());
+		
+		bool Create (StringView					applicationName,
 					 StringView					engineName,
 					 uint						version				= VK_API_VERSION_1_1,
 					 StringView					deviceName			= Default,

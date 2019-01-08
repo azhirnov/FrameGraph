@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -14,7 +14,7 @@ namespace FG
 	//
 
 	template <typename ResType>
-	class ResourceBase final
+	class alignas(FG_CACHE_LINE) ResourceBase final
 	{
 	// types
 	public:
@@ -31,18 +31,18 @@ namespace FG
 
 	// variables
 	private:
+		// instance counter used to detect deprecated handles
+		std::atomic<uint>			_instanceId	= 0;
+
+		std::atomic<EState>			_state		= EState::Initial;
+
+		ResType						_data;
+
 		// reference counter may be used for cached resources like samples, pipeline layout and other
-		mutable AtomicCounter<int>	_refCounter;
+		mutable std::atomic<int>	_refCounter	= 0;
 
 		// cached resource may be deleted if reference counter is 1 and last usage was a long ago
 		mutable std::atomic<uint>	_lastUsage	= 0;
-
-		// instance counter used to detect deprecated handles
-		std::atomic<uint>		_instanceId	= 0;
-
-		std::atomic<EState>		_state		= EState::Initial;
-
-		ResType					_data;
 
 
 	// methods
@@ -63,21 +63,21 @@ namespace FG
 
 		void AddRef () const
 		{
-			++_refCounter;
+			_refCounter.fetch_add( 1, memory_order_relaxed );
 		}
 
 		ND_ bool ReleaseRef (uint timestamp) const
 		{
 			_lastUsage.store( timestamp, memory_order_relaxed );
-
-			return _refCounter.DecAndTest();
+			return _refCounter.fetch_sub( 1, memory_order_relaxed ) <= 1;
 		}
 		
+
 		ND_ bool			IsCreated ()		const	{ return _GetState() == EState::Created; }
 		ND_ bool			IsDestroyed ()		const	{ return _GetState() <= EState::Failed; }
 
 		ND_ uint			GetInstanceID ()	const	{ return _instanceId.load( memory_order_acquire ); }
-		ND_ int				GetRefCount ()		const	{ return _refCounter.Load(); }
+		ND_ int				GetRefCount ()		const	{ return _refCounter.load( memory_order_acquire ); }
 		ND_ uint			GetLastUsage ()		const	{ return _lastUsage.load( memory_order_relaxed ); }
 
 		ND_ ResType&		Data ()						{ return _data; }
@@ -85,7 +85,7 @@ namespace FG
 
 
 		ND_ bool  operator == (const Self &rhs) const	{ return _data == rhs._data; }
-		ND_ bool  operator != (const Self &rhs) const	{ return _data == rhs._data; }
+		ND_ bool  operator != (const Self &rhs) const	{ return not (_data == rhs._data); }
 
 
 		template <typename ...Args>
@@ -111,9 +111,9 @@ namespace FG
 
 			_data.Destroy( std::forward<Args &&>( args )... );
 			
-			_refCounter.Store( 0 );
-			_state.store( EState::Initial, memory_order_release );
-			_instanceId.fetch_add( 1, memory_order_relaxed );
+			_refCounter.store( 0, memory_order_relaxed );
+			_state.store( EState::Initial, memory_order_relaxed );
+			_instanceId.fetch_add( 1, memory_order_release );
 		}
 
 	private:

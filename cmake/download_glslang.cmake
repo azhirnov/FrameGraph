@@ -9,15 +9,23 @@ if (${FG_ENABLE_GLSLANG})
 	find_package( PythonLibs 2.7 REQUIRED )
 	
 	# reset to default
-	if (NOT EXISTS ${FG_EXTERNAL_GLSLANG_PATH})
+	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/CMakeLists.txt")
 		message( STATUS "glslang is not found in ${FG_EXTERNAL_GLSLANG_PATH}" )
 		set( FG_EXTERNAL_GLSLANG_PATH "${FG_EXTERNALS_PATH}/glslang" CACHE PATH "" FORCE )
 		set( FG_GLSLANG_REPOSITORY "https://github.com/KhronosGroup/glslang.git" )
-		set( FG_SPIRVTOOLS_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Tools.git" )
-		set( FG_SPIRVHEADERS_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Headers.git" )
 	else ()
 		set( FG_GLSLANG_REPOSITORY "" )
+	endif ()
+	
+	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/External/SPIRV-Tools/include")
+		set( FG_SPIRVTOOLS_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Tools.git" )
+	else ()
 		set( FG_SPIRVTOOLS_REPOSITORY "" )
+	endif ()
+	
+	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/External/SPIRV-Tools/external/SPIRV-Headers/include")
+		set( FG_SPIRVHEADERS_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Headers.git" )
+	else ()
 		set( FG_SPIRVHEADERS_REPOSITORY "" )
 	endif ()
 	
@@ -130,8 +138,7 @@ if (${FG_ENABLE_GLSLANG})
 							--config $<CONFIG>
 		LOG_BUILD 			1
 		# install
-		INSTALL_DIR 		"" #"${FG_GLSLANG_INSTALL_DIR}"
-		INSTALL_COMMAND		""
+		INSTALL_DIR 		"${FG_GLSLANG_INSTALL_DIR}"
 		LOG_INSTALL 		1
 		# test
 		TEST_COMMAND		""

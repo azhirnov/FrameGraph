@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This test affects:
 		- ...
@@ -17,9 +17,9 @@ namespace FG
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
 		
-		ImageID			src_image		= _frameGraph1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			src_image		= _fgGraphics1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "SrcImage" );
-		ImageID			dst_image		= _frameGraph1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			dst_image		= _fgGraphics1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "DstImage" );
 
 		Array<uint8_t>	src_data;		src_data.resize( size_t(src_row_pitch * src_dim.y) );
@@ -70,51 +70,51 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id, 3 );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 
 		// thread 1
 		{
-			CHECK_ERR( _frameGraph1->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( _fgGraphics1->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
 			auto	data		= ArrayView{ src_data.data(), src_data.size()/2 };
 
-			Task	t_update	= _frameGraph1->AddTask( UpdateImage().SetImage( src_image ).SetData( data, dim ) );
-			Task	t_copy		= _frameGraph1->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update ) );
+			Task	t_update	= _fgGraphics1->AddTask( UpdateImage().SetImage( src_image ).SetData( data, dim ) );
+			Task	t_copy		= _fgGraphics1->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update ) );
 			FG_UNUSED( t_copy );
 
-			CHECK_ERR( _frameGraph1->Execute() );
+			CHECK_ERR( _fgGraphics1->Execute() );
 		}
 
 		// thread 2
 		{
-			CHECK_ERR( _frameGraph2->Begin( batch_id, 1, EThreadUsage::Graphics ));
+			CHECK_ERR( _fgGraphics2->Begin( batch_id, 1, EThreadUsage::Graphics ));
 			
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
 			int2	offset		{ 0, int(src_dim.y/2) };
 			auto	data		= ArrayView{ src_data.data() + src_data.size()/2, src_data.size()/2 };
 
-			Task	t_update	= _frameGraph2->AddTask( UpdateImage().SetImage( src_image, offset ).SetData( data, dim ) );
-			Task	t_copy		= _frameGraph2->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ) );
-			Task	t_read		= _frameGraph2->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
+			Task	t_update	= _fgGraphics2->AddTask( UpdateImage().SetImage( src_image, offset ).SetData( data, dim ) );
+			Task	t_copy		= _fgGraphics2->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ) );
+			Task	t_read		= _fgGraphics2->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 			FG_UNUSED( t_read );
 		
-			CHECK_ERR( _frameGraph2->Execute() );
+			CHECK_ERR( _fgGraphics2->Execute() );
 		}
 
 		// thread 3 (unused)
 		{
-			CHECK_ERR( _frameGraphInst->SkipBatch( batch_id, 2 ));
+			CHECK_ERR( _fgInstance->SkipBatch( batch_id, 2 ));
 		}
 
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( not cb_was_called );
 		
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );

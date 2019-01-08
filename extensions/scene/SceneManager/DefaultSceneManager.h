@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -8,26 +8,29 @@ namespace FG
 {
 
 	//
-	// Scene Manager
+	// Default Scene Manager
 	//
 
-	class SceneManager final : public ISceneManager
+	class DefaultSceneManager final : public ISceneManager
 	{
 	// variables
 	private:
 		RenderTechniquePtr			_renderTech;
 		HashSet<SceneHierarchyPtr>	_hierarchies;
+		ImageCachePtr				_imageCache;
 
 
 	// methods
 	public:
-		SceneManager ();
+		DefaultSceneManager ();
 
-		bool Build (const RenderTechniquePtr &) override;
+		bool Build (const FGThreadPtr &, const RenderTechniquePtr &) override;
 		bool Draw (ArrayView<ViewportPtr>) override;
 
 		bool Add (const SceneHierarchyPtr &) override;
 		bool Remove (const SceneHierarchyPtr &) override;
+		
+		ImageCachePtr  GetImageCache () override	{ return _imageCache; }
 	};
 
 

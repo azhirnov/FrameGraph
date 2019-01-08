@@ -1,9 +1,8 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) && defined(FG_STD_FILESYSTEM)
 
 #include "GraphViz.h"
-#include "stl/CompileTime/DefaultType.h"
 #include "stl/Algorithms/ArrayUtils.h"
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Stream/FileStream.h"
@@ -114,7 +113,7 @@ namespace FG
 	Visualize
 =================================================
 */
-	bool GraphViz::Visualize (const FrameGraphPtr &instance, const std::filesystem::path &filepath, StringView format, bool autoOpen, bool deleteOrigin)
+	bool GraphViz::Visualize (const FGInstancePtr &instance, const std::filesystem::path &filepath, StringView format, bool autoOpen, bool deleteOrigin)
 	{
 		String	str;
 		CHECK_ERR( instance->DumpToGraphViz( OUT str ));

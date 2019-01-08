@@ -1,13 +1,13 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	FrameGraphThread - framegraph interface to use in separate thread.
 	There is two different modes:
-		asynchronous --	between FrameGraph::BeginFrame() and FrameGraph::EndFrame() calls.
+		asynchronous --	between FrameGraphInstance::BeginFrame() and FrameGraphInstance::EndFrame() calls.
 						Frame recording happens in asynchronous mode, used only lock-free and wait-free algorithms.
 						Resource creation are available, but to make new resource data visible for other threads you must add memory barrier.
 						Methods 'ReleaseResource' does not delete resources until frame execution is complete.
 
-		synchronous --	after FrameGraph::EndFrame() and before FrameGraph::BeginFrame() calls.
+		synchronous --	after FrameGraphInstance::EndFrame() and before FrameGraphInstance::BeginFrame() calls.
 						'Begin', 'Execute', all 'AddTask' and all 'Acquire' methods are not available.
 						All 'Create*', all 'ReleaseResource' and 'RecreateSwapchain' methods must be externally synchronized with all other threads.
 */
@@ -78,7 +78,10 @@ namespace FG
 		ND_ virtual ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName = Default) = 0;
-			virtual bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (const GPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (const CPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (const MPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
 		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 
@@ -97,10 +100,6 @@ namespace FG
 		ND_ virtual BufferDesc const&	GetDescription (const BufferID &id) const = 0;
 		ND_ virtual ImageDesc const&	GetDescription (const ImageID &id) const = 0;
 		//ND_ virtual SamplerDesc const&	GetDescription (const SamplerID &id) const = 0;
-			virtual bool			GetDescriptorSet (const GPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
-			virtual bool			GetDescriptorSet (const CPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
-			virtual bool			GetDescriptorSet (const MPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
-			virtual bool			GetDescriptorSet (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const = 0;
 
 		ND_ virtual EThreadUsage	GetThreadUsage () const = 0;
 
@@ -152,10 +151,6 @@ namespace FG
 			virtual bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable = true) = 0;
 
 		//ND_ virtual ImageID		GetSwapchainImage (ESwapchainImage type) = 0;
-
-			// Store uniform buffer data in host visible memory.
-			// it is more useful for frequently updates than UpdateBuffer task.
-			virtual bool		UpdateUniformBuffer (INOUT PipelineResources &res, const UniformID &id, const void *dataPtr, BytesU dataSize) = 0;
 
 			virtual bool		UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data) = 0;
 

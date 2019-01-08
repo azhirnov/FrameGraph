@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This test affects:
 		...
@@ -31,7 +31,7 @@ void main ()
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _frameGraph1;
+		FGThreadPtr		frame_graph	= _fgGraphics1;
 		const uint2		image_dim	= { 16, 16 };
 
 		ImageID			image0		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -46,12 +46,8 @@ void main ()
 
 		CPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
 		
-		RawDescriptorSetLayoutID	ds_layout;
-		uint						ds_index;
-		CHECK_ERR( frame_graph->GetDescriptorSet( pipeline, DescriptorSetID("0"), OUT ds_layout, OUT ds_index ));
-
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( ds_layout, OUT resources ));
+		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
 
 		
 		CommandBatchID		batch_id {"main"};
@@ -63,16 +59,16 @@ void main ()
 
 		// frame 1
 		{
-			CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 			resources.BindImage( UniformID("un_OutImage"), image0 );
-			Task	t_run	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ) );
+			Task	t_run	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ) );
 			Task	t_copy	= frame_graph->AddTask( CopyImage().From( image0 ).To( image4 ).AddRegion({}, int2(), {}, int2(), image_dim) );
 			FG_UNUSED( t_run );
 		
 			CHECK_ERR( frame_graph->Execute() );		
-			CHECK_ERR( _frameGraphInst->EndFrame() );
+			CHECK_ERR( _fgInstance->EndFrame() );
 		}
 
 		frame_graph->ReleaseResource( image0 );
@@ -80,18 +76,18 @@ void main ()
 		
 		// frame 1
 		{
-			CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 			
-			Task	t_run	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ) );
+			Task	t_run	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ) );
 			Task	t_copy	= frame_graph->AddTask( CopyImage().From( image2 ).To( image1 ).AddRegion({}, int2(), {}, int2(), image_dim) );
 			FG_UNUSED( t_run, t_copy );
 
 			CHECK_ERR( frame_graph->Execute() );		
-			CHECK_ERR( _frameGraphInst->EndFrame() );
+			CHECK_ERR( _fgInstance->EndFrame() );
 		}
 
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 		
 		DeleteResources( pipeline, image1, image2 );
 		FG_UNUSED( image3.Release() );

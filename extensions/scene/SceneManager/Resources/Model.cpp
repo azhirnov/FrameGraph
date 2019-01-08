@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "scene/SceneManager/Resources/Model.h"
 
@@ -9,7 +9,7 @@ namespace FG
 =================================================
 	constructor
 =================================================
-*/
+*
 	Model::Model ()
 	{
 	}
@@ -18,7 +18,7 @@ namespace FG
 =================================================
 	Build
 =================================================
-*/
+*
 	bool Model::Build (const IRenderTechnique *rt)
 	{
 		return true;
@@ -28,10 +28,10 @@ namespace FG
 =================================================
 	Draw
 =================================================
-*/
+*
 	void Model::Draw (const RenderQueue &rq, const Transform &transform) const
 	{
 	}
-
+	*/
 
 }	// FG

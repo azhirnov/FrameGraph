@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -108,15 +108,23 @@ namespace FG
 		DispatchCompute () :
 			BaseTask<DispatchCompute>{ "DispatchCompute", HtmlColor::MediumBlue } {}
 		
-		DispatchCompute&  SetPipeline (const CPipelineID &ppln)								{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
-		DispatchCompute&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
-
-		DispatchCompute&  SetGroupCount (const uint3 &value)								{ groupCount = value;  return *this; }
-		DispatchCompute&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
-
-		DispatchCompute&  SetLocalSize (const uint3 &value)									{ localGroupSize = value;  return *this; }
-		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)						{ localGroupSize = {x, y, z};  return *this; }
+		DispatchCompute&  SetPipeline (const CPipelineID &ppln)				{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
 		
+		DispatchCompute&  SetGroupCount (const uint2 &value)				{ groupCount = {value.x, value.y, 1};  return *this; }
+		DispatchCompute&  SetGroupCount (const uint3 &value)				{ groupCount = value;  return *this; }
+		DispatchCompute&  SetGroupCount (uint x, uint y = 1, uint z = 1)	{ groupCount = {x, y, z};  return *this; }
+		
+		DispatchCompute&  SetLocalSize (const uint2 &value)					{ localGroupSize = {value.x, value.y, 1};  return *this; }
+		DispatchCompute&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
+		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
+		
+		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res)
+		{
+			ASSERT( id.IsDefined() and res );
+			resources.insert({ id, res });
+			return *this;
+		}
+
 		template <typename ValueType>
 		DispatchCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value) { return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
 
@@ -155,11 +163,9 @@ namespace FG
 		DispatchComputeIndirect () :
 			BaseTask<DispatchComputeIndirect>{ "DispatchComputeIndirect", HtmlColor::MediumBlue } {}
 		
-		DispatchComputeIndirect&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
+		DispatchComputeIndirect&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
+		DispatchComputeIndirect&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
 
-		DispatchComputeIndirect&  SetLocalSize (const uint3 &value)									{ localGroupSize = value;  return *this; }
-		DispatchComputeIndirect&  SetLocalSize (uint x, uint y = 1, uint z = 1)						{ localGroupSize = {x, y, z};  return *this; }
-		
 		DispatchComputeIndirect&  SetPipeline (const CPipelineID &ppln)
 		{
 			ASSERT( ppln );
@@ -171,6 +177,13 @@ namespace FG
 		{
 			ASSERT( buffer );
 			indirectBuffer = buffer.Get();
+			return *this;
+		}
+		
+		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, const PipelineResources *res)
+		{
+			ASSERT( id.IsDefined() and res );
+			resources.insert({ id, res });
 			return *this;
 		}
 
@@ -551,7 +564,7 @@ namespace FG
 		
 		ClearDepthStencilImage&  SetImage (const ImageID &img)			{ ASSERT( img );  dstImage = img.Get();  return *this; }
 
-		ClearDepthStencilImage&  Clear (float depth, uint stencil)		{ clearValue = DepthStencil{ depth, stencil };  return *this; }
+		ClearDepthStencilImage&  Clear (float depth, uint stencil = 0)	{ clearValue = DepthStencil{ depth, stencil };  return *this; }
 		
 		ClearDepthStencilImage&  AddRange (MipmapLevel baseMipLevel, uint levelCount,
 										   ImageLayer baseLayer, uint layerCount)
@@ -1158,11 +1171,17 @@ namespace FG
 		TraceRays () :
 			BaseTask<TraceRays>{ "TraceRays", HtmlColor::Lime } {}
 		
-		TraceRays&  AddResources (uint bindingIndex, const PipelineResources *res)	{ resources[bindingIndex] = res;  return *this; }
 		TraceRays&  SetPipeline (const RTPipelineID &ppln)							{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
 		
 		TraceRays&  SetGroupCount (const uint3 &value)								{ groupCount = value;  return *this; }
 		TraceRays&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
+		
+		TraceRays&  AddResources (const DescriptorSetID &id, const PipelineResources *res)
+		{
+			ASSERT( id.IsDefined() and res );
+			resources.insert({ id, res });
+			return *this;
+		}
 
 		TraceRays&  SetShaderTable (const ShaderTable &value)
 		{

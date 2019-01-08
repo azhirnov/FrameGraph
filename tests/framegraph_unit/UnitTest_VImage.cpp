@@ -1,8 +1,8 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VLocalImage.h"
 #include "VBarrierManager.h"
-#include "framegraph/Public/FrameGraph.h"
+#include "framegraph/Public/FrameGraphInstance.h"
 #include "UnitTest_Common.h"
 #include "DummyTask.h"
 

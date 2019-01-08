@@ -1,9 +1,8 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "IndexedPool.h"
-#include "stl/CompileTime/DefaultType.h"
 #include "stl/ThreadSafe/DummyLock.h"
 
 namespace FG

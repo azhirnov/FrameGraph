@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -29,6 +29,7 @@ namespace FG
 			VkAttachmentLoadOp		loadOp			= VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
 			VkAttachmentStoreOp		storeOp			= VK_ATTACHMENT_STORE_OP_MAX_ENUM;
 			EResourceState			state			= Default;
+			mutable VkImageLayout	_layout			= VK_IMAGE_LAYOUT_UNDEFINED;	// not hashed
 			HashVal					_imageHash;		// used for fast render target comparison
 
 			ColorTarget () {}

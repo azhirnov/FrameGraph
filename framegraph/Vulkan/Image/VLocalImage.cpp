@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VLocalImage.h"
 #include "VEnumCast.h"
@@ -33,7 +33,7 @@ namespace FG
 		_imageData		= imageData;
 		_finalLayout	= _imageData->DefaultLayout();
 		_isFirstBarrier	= true;
-		_isImmutable	= false; //_imageData->IsReadOnly();	// TODO
+		_isImmutable	= false; //_imageData->IsReadOnly();
 		
 		// set initial state
 		{
@@ -76,34 +76,17 @@ namespace FG
 	GetView
 =================================================
 */
-	VkImageView  VLocalImage::GetView (const VDevice &dev, INOUT ImageViewDesc &viewDesc) const
+	VkImageView  VLocalImage::GetView (const VDevice &dev, bool isDefault, INOUT ImageViewDesc &viewDesc) const
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( IsCreated() );
 
-		viewDesc.Validate( Description() );
-
-		const HashedImageViewDesc	view_desc{ viewDesc };
-		
-		return _imageData->GetView( dev, view_desc );
-	}
-	
-/*
-=================================================
-	GetView
-=================================================
-*/
-	VkImageView  VLocalImage::GetView (const VDevice &dev, INOUT Optional<ImageViewDesc> &viewDesc) const
-	{
-		SCOPELOCK( _rcCheck );
-		ASSERT( IsCreated() );
-
-		if ( not viewDesc.has_value() )
+		if ( isDefault )
 			viewDesc = ImageViewDesc{ Description() };
 		else
-			viewDesc->Validate( Description() );
+			viewDesc.Validate( Description() );
 
-		return _imageData->GetView( dev, *viewDesc );
+		return _imageData->GetView( dev, viewDesc );
 	}
 
 /*

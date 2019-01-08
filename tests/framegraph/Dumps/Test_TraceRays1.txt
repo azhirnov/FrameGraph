@@ -58,7 +58,7 @@ Thread {
 					dstStageMask:    RayTracing
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   UniformRead
 					offset:          0 b
 					size:            48 b
 				}
@@ -115,9 +115,9 @@ Thread {
 	}
 
 	Buffer {
-		name:    "StagingReadBuffer"
-		size:    16 Mb
-		usage:   TransferSrc | TransferDst
+		name:    "HostReadBuffer"
+		size:    256 Mb
+		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         ReadImage (#6)
@@ -159,10 +159,10 @@ Thread {
 				size:     64 Kb
 			}
 			BufferUsage {
-				name:     "StagingWriteBuffer"
+				name:     "HostWriteBuffer"
 				usage:    RTASBuild-Buffer-R
 				offset:   0 b
-				size:     16 Mb
+				size:     256 Mb
 			}
 		}
 	}
@@ -178,7 +178,7 @@ Thread {
 				size:     48 b
 			}
 			BufferUsage {
-				name:     "StagingWriteBuffer"
+				name:     "HostWriteBuffer"
 				usage:    Transfer-R
 				offset:   112 b
 				size:     48 b
@@ -192,7 +192,7 @@ Thread {
 		resource_usage = {
 			BufferUsage {
 				name:     ""
-				usage:    ShaderBindingTable-R
+				usage:    Uniform, RTS
 				offset:   0 b
 				size:     4 Kb
 			}
@@ -211,6 +211,12 @@ Thread {
 		input =  { TraceRays (#5) }
 		output = {  }
 		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
 			ImageUsage {
 				name:           "OutputImage"
 				usage:          Transfer-R
@@ -218,12 +224,6 @@ Thread {
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
-			}
-			BufferUsage {
-				name:     "StagingReadBuffer"
-				usage:    Transfer-W
-				offset:   0 b
-				size:     1875 Kb
 			}
 		}
 	}

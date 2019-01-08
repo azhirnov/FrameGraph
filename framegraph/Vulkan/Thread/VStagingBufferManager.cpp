@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VStagingBufferManager.h"
 #include "VFrameGraphThread.h"
@@ -384,7 +384,7 @@ namespace FG
 		{
 			ASSERT( dstMinSize < _stagingBufferSize );
 
-			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _stagingBufferSize, EBufferUsage::TransferSrc | EBufferUsage::Uniform },
+			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _stagingBufferSize, EBufferUsage::TransferSrc }, 
 														   MemoryDesc{ EMemoryType::HostWrite }, "HostWriteBuffer" );
 			CHECK_ERR( buf_id );
 

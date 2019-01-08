@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "framegraph/VFG.h"
 #include "framework/Window/IWindow.h"
@@ -51,7 +51,7 @@ int main ()
 	{
 		VulkanDeviceExt		vulkan;
 		WindowPtr			window;
-		FrameGraphPtr		fg_instance;
+		FGInstancePtr		fg_instance;
 		FGThreadPtr			fg_thread;
 		const uint2			wnd_size{ 800, 600 };
 		
@@ -108,7 +108,7 @@ int main ()
 
 		// initialize framegraph
 		{
-			fg_instance = FrameGraph::CreateFrameGraph( vulkan_info );
+			fg_instance = FrameGraphInstance::CreateFrameGraph( vulkan_info );
 			TEST( fg_instance );
 			TEST( fg_instance->Initialize( 2 ));
 

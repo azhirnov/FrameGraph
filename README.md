@@ -5,6 +5,12 @@ Work in progress.
 * multithreaded command buffer building and submitting.
 * simple API, hides memory allocation, host to/from device transfers.
 * frame graph visualization.
+* tested on DOOM trace (see [vkTraceConverter examples](https://github.com/azhirnov/vkTraceConverter/tree/dev/examples#convert-to-framegraph-trace).
+
+## Documentation
+* Porting from OpenGL
+* Porting from Vulkan
+* Extensions overview
 
 ## Suported Platforms
 * Windows (with MSVC 2017)
@@ -20,7 +26,7 @@ Generate project with CMake and build.<br/>
 Required C++17 standard support.
 
 CMake version 3.11 and greater will download all dependencies during configuration time.<br/>
-If it didn't, manualy download dependencies into 'external' directory or in cmake specify FG_EXTERNAL_*** pathes for each dependency.
+If it didn't, manualy download dependencies into 'external' directory or in cmake specify `FG_EXTERNAL_***` pathes for each dependency.
 
 Dependencies:<br/>
 [Vulkan-headers](https://github.com/KhronosGroup/Vulkan-Headers) or [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) - required.<br/>
@@ -42,23 +48,26 @@ Dependencies:<br/>
 - unit tests: stl, resource barriers, glsl compiler, resource cache, ... (done)<br/>
 - graph node tests: buffer copy, image copy, draw triangle, dispatch, ... (done)<br/>
 - implementation tests:<br/>
-    correct and optimal barrier placement. (WIP)<br/>
+    correct and optimal barrier placement. (done)<br/>
     correct render pass optimization. (WIP)
-- multithreading. (WIP)<br/>
+- multithreading. (done)<br/>
 - render pass optimization. (WIP)<br/>
-- graph visualizations. (done)<br/>
+- graph visualizations. (done, but should be improved)<br/>
 
 ### Stage 2
 - mesh shader support. (done)<br/>
-- ray tracing support. (WIP)<br/>
+- ray tracing support. (done)<br/>
+- glsl debugging. (WIP)<br/>
 - sparse memory support.<br/>
 - custom RAM allocators.<br/>
 - logical resources.<br/>
 - advanced VRAM managment.<br/>
+- optimization for mobile and integrated GPUs.<br/>
+- documentation.<br/>
 - samples.<br/>
 - performance tests:<br/>
 	for samples.<br/>
-	use vkTraceConverter to generate FG API calls and run perftests with any vktrace.<br/>
+	use [vkTraceConverter](https://github.com/azhirnov/vkTraceConverter) to generate FG API calls and run perftests with any vktrace. (WIP)<br/>
 - multithreading optimizations:<br/>
 	remove synchronization stage<br/>
 	lockfree image view map<br/>
@@ -66,7 +75,6 @@ Dependencies:<br/>
 
 ### Stage 3
 - multi-gpu.<br/>
-- software renderer for debugging<br/>
 - WebGL 2.0 (or WebGL-next) support.<br/>
 
 ## References

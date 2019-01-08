@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -18,8 +18,7 @@ namespace FG
 		_Access_ShaderStorage,				// uniform buffer, storage buffer, image storage
 		_Access_Uniform,					// uniform buffer only
 		_Access_ShaderSample,				// texture only
-		_Access_InputAttachment,			// same as ShaderRead but without barrier
-		_Access_TransientAttachment,		// color render target in local memory
+		_Access_InputAttachment,			// same as ShaderRead
 		_Access_Transfer,					// copy buffer/image
 		_Access_ColorAttachment,			// color render target
 		_Access_DepthStencilAttachment,		// depth/stencil write/test
@@ -45,7 +44,7 @@ namespace FG
 		_ComputeShader			= 1 << 13,
 		_MeshTaskShader			= 1 << 14,
 		_MeshShader				= 1 << 15,
-		_RayTracingShader		= 1 << 16,		// AnyHitShader, ClosestHitShader, MissShader
+		_RayTracingShader		= 1 << 16,		// AnyHitShader, ClosestHitShader, MissShader, and other
 		_ShaderMask				= _VertexShader | _TessControlShader | _TessEvaluationShader |
 								  _GeometryShader | _FragmentShader | _ComputeShader |
 								  _MeshTaskShader | _MeshShader | _RayTracingShader,
@@ -79,7 +78,6 @@ namespace FG
 
 		ShaderSample					= _Access_ShaderSample | _Read,
 		InputAttachment					= _Access_InputAttachment | _Read,
-		TransientAttachment				= _Access_TransientAttachment,
 
 		TransferSrc						= _Access_Transfer | _Read,
 		TransferDst						= _Access_Transfer | _Write,

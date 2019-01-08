@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -71,13 +71,14 @@ namespace FG
 		VertexStrides_t							_vbStrides;
 		const uint								_vbCount;
 
+		ArrayView< RectI >						_scissors;
+
 	public:
 		VGraphicsPipeline const* const			pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
 
 		const VertexInputState					vertexInput;
 
-		const _fg_hidden_::Scissors_t			scissors;
 		const _fg_hidden_::ColorBuffers_t		colorBuffers;
 		const _fg_hidden_::DynamicStates		dynamicStates;
 		
@@ -94,6 +95,7 @@ namespace FG
 
 	public:
 		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
+		ND_ ArrayView< RectI >				GetScissors ()		const	{ return _scissors; }
 
 		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()	const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
 		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()		const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
@@ -184,12 +186,12 @@ namespace FG
 	// variables
 	private:
 		VPipelineResourceSet					_resources;
+		ArrayView< RectI >						_scissors;
 
 	public:
 		VMeshPipeline const* const				pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
 
-		const _fg_hidden_::Scissors_t			scissors;
 		const _fg_hidden_::ColorBuffers_t		colorBuffers;
 		const _fg_hidden_::DynamicStates		dynamicStates;
 
@@ -203,6 +205,7 @@ namespace FG
 
 	public:
 		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
+		ND_ ArrayView< RectI >				GetScissors ()		const	{ return _scissors; }
 	};
 
 

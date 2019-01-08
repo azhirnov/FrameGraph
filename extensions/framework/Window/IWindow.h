@@ -1,10 +1,9 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "stl/Math/Vec.h"
 #include "stl/Containers/FixedArray.h"
-#include "stl/CompileTime/DefaultType.h"
 #include "stl/Memory/MemUtils.h"
 #include "vulkan_loader/VulkanLoader.h"
 #include "vulkan_loader/VulkanCheckError.h"

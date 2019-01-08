@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VTaskProcessor.h"
 #include "VFrameGraphThread.h"
@@ -88,9 +88,9 @@ namespace FG
 
 		bool						_earlyFragmentTests		: 1;
 		bool						_lateFragmentTests		: 1;
-		bool						_depthRead				: 1;
+		//bool						_depthRead				: 1;
 		bool						_depthWrite				: 1;
-		bool						_stencilReadWrite		: 1;
+		bool						_stencilWrite			: 1;
 		bool						_rasterizerDiscard		: 1;
 		bool						_compatibleFragOutput	: 1;
 
@@ -107,12 +107,16 @@ namespace FG
 		void Visit (const VFgDrawTask<DrawMeshesIndirect> &task);
 
 		template <typename PipelineType>
-		void _MergePipeline (const PipelineType* ppln);
+		void _MergePipeline (const _fg_hidden_::DynamicStates &, const PipelineType *);
 
-		ND_ bool						IsEarlyFragmentTests () const	{ return _earlyFragmentTests; }
-		ND_ bool						IsLateFragmentTests ()	const	{ return _lateFragmentTests; }
+		ND_ bool						IsEarlyFragmentTests ()			const	{ return _earlyFragmentTests; }
+		ND_ bool						IsLateFragmentTests ()			const	{ return _lateFragmentTests; }
+		ND_ bool						IsFragmentOutputCompatible ()	const	{ return _compatibleFragOutput; }
+		ND_ bool						HasDepthWriteAccess ()			const	{ return _depthWrite; }
+		ND_ bool						HasStencilWriteAccess ()		const	{ return _stencilWrite; }
+		ND_ bool						IsRasterizerDiscard ()			const	{ return _rasterizerDiscard; }
 
-		ND_ ArrayView<FragmentOutput>	GetFragOutputs ()		const	{ return ArrayView<FragmentOutput>{ _fragOutput.data(), _maxFragCount }; }
+		ND_ ArrayView<FragmentOutput>	GetFragOutputs ()				const	{ return ArrayView<FragmentOutput>{ _fragOutput.data(), _maxFragCount }; }
 	};
 
 
@@ -197,7 +201,7 @@ namespace FG
 		VLocalImage const*  image = _tp._ToLocal( img.imageId );
 
 		if ( image )
-			_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state, image->AspectMask() ), *img.desc );
+			_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state, image->AspectMask() ), img.desc );
 	}
 		
 /*
@@ -235,8 +239,10 @@ namespace FG
 		_tp{ tp },						_logicalRP{ logicalRP },
 		_maxFragCount{ 0 },
 		_earlyFragmentTests{false},		_lateFragmentTests{false},
-		_depthRead{false},				_depthWrite{false},
-		_stencilReadWrite{false},		_rasterizerDiscard{false},
+		//_depthRead{ _logicalRP.GetDepthState().test },
+		_depthWrite{ _logicalRP.GetDepthState().write },
+		_stencilWrite{ false },
+		_rasterizerDiscard{ _logicalRP.GetRasterizationState().rasterizerDiscard },
 		_compatibleFragOutput{true}
 	{
 		// invalidate fragment output
@@ -245,6 +251,15 @@ namespace FG
 			frag.index	= UMax;
 			frag.type	= EFragOutput::Unknown;
 		}
+
+		auto&	stencil_st = _logicalRP.GetStencilState();
+		_stencilWrite |= not stencil_st.enabled ? 0 :
+						 (stencil_st.front.failOp		!= EStencilOp::Keep) |
+						 (stencil_st.front.depthFailOp	!= EStencilOp::Keep) |
+						 (stencil_st.front.passOp		!= EStencilOp::Keep) |
+						 (stencil_st.back.failOp		!= EStencilOp::Keep) |
+						 (stencil_st.back.depthFailOp	!= EStencilOp::Keep) |
+						 (stencil_st.back.passOp		!= EStencilOp::Keep);
 	}
 
 /*
@@ -255,7 +270,7 @@ namespace FG
 	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawVertices> &task)
 	{
 		// update descriptor sets and add pipeline barriers
-		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+		_tp._ExtractDescriptorSets( *_tp._GetResource( task.pipeline->GetLayoutID() ), task.GetResources(), OUT task.descriptorSets );
 
 		// add vertex buffers
 		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
@@ -272,7 +287,7 @@ namespace FG
 			}
 		}
 		
-		_MergePipeline( task.pipeline );
+		_MergePipeline( task.dynamicStates, task.pipeline );
 	}
 
 /*
@@ -283,7 +298,7 @@ namespace FG
 	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawIndexed> &task)
 	{
 		// update descriptor sets and add pipeline barriers
-		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+		_tp._ExtractDescriptorSets( *_tp._GetResource( task.pipeline->GetLayoutID() ), task.GetResources(), OUT task.descriptorSets );
 
 		for (auto& cmd : task.commands)
 		{
@@ -310,7 +325,7 @@ namespace FG
 			}
 		}
 		
-		_MergePipeline( task.pipeline );
+		_MergePipeline( task.dynamicStates, task.pipeline );
 	}
 	
 /*
@@ -321,7 +336,7 @@ namespace FG
 	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawVerticesIndirect> &task)
 	{
 		// update descriptor sets and add pipeline barriers
-		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+		_tp._ExtractDescriptorSets( *_tp._GetResource( task.pipeline->GetLayoutID() ), task.GetResources(), OUT task.descriptorSets );
 
 		// add vertex buffers
 		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
@@ -329,7 +344,7 @@ namespace FG
 			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
 		}
 		
-		_MergePipeline( task.pipeline );
+		_MergePipeline( task.dynamicStates, task.pipeline );
 	}
 	
 /*
@@ -340,7 +355,7 @@ namespace FG
 	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawIndexedIndirect> &task)
 	{
 		// update descriptor sets and add pipeline barriers
-		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+		_tp._ExtractDescriptorSets( *_tp._GetResource( task.pipeline->GetLayoutID() ), task.GetResources(), OUT task.descriptorSets );
 		
 		// add vertex buffers
 		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
@@ -357,7 +372,7 @@ namespace FG
 			_tp._AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset), VkDeviceSize(cmd.stride) * cmd.drawCount );
 		}
 		
-		_MergePipeline( task.pipeline );
+		_MergePipeline( task.dynamicStates, task.pipeline );
 	}
 	
 /*
@@ -368,9 +383,9 @@ namespace FG
 	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawMeshes> &task)
 	{
 		// update descriptor sets and add pipeline barriers
-		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+		_tp._ExtractDescriptorSets( *_tp._GetResource( task.pipeline->GetLayoutID() ), task.GetResources(), OUT task.descriptorSets );
 		
-		_MergePipeline( task.pipeline );
+		_MergePipeline( task.dynamicStates, task.pipeline );
 	}
 	
 /*
@@ -381,7 +396,7 @@ namespace FG
 	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<DrawMeshesIndirect> &task)
 	{
 		// update descriptor sets and add pipeline barriers
-		_tp._ExtractDescriptorSets( task.GetResources(), OUT task.descriptorSets );
+		_tp._ExtractDescriptorSets( *_tp._GetResource( task.pipeline->GetLayoutID() ), task.GetResources(), OUT task.descriptorSets );
 		
 		// add indirect buffer
 		for (auto& cmd : task.commands)
@@ -389,7 +404,7 @@ namespace FG
 			_tp._AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset), VkDeviceSize(cmd.stride) * cmd.drawCount );
 		}
 
-		_MergePipeline( task.pipeline );
+		_MergePipeline( task.dynamicStates, task.pipeline );
 	}
 
 /*
@@ -398,7 +413,7 @@ namespace FG
 =================================================
 */
 	template <typename PipelineType>
-	void VTaskProcessor::DrawTaskBarriers::_MergePipeline (const PipelineType* pipeline)
+	void VTaskProcessor::DrawTaskBarriers::_MergePipeline (const _fg_hidden_::DynamicStates &ds,const PipelineType* pipeline)
 	{
 		STATIC_ASSERT(	(IsSameTypes<PipelineType, VGraphicsPipeline>) or
 						(IsSameTypes<PipelineType, VMeshPipeline>) );
@@ -433,23 +448,17 @@ namespace FG
 			}
 		}
 		
+		pipeline->IsEarlyFragmentTests() ? _earlyFragmentTests = true : _lateFragmentTests = true;
 
-		if ( pipeline->IsEarlyFragmentTests() )
-			_earlyFragmentTests = true;
-		else
-			_lateFragmentTests = true;
+		//_depthRead  |= (ds.hasDepthTest & ds.depthTest);
+		_depthWrite |= (ds.hasDepthWrite & ds.depthWrite);
 
-		if ( _logicalRP.GetDepthState().test )
-			_depthRead = true;
+		_stencilWrite |= not (ds.hasStencilTest or _logicalRP.GetStencilState().enabled) ? false :
+						 bool(ds.hasStencilFailOp      & (ds.stencilFailOp      != EStencilOp::Keep)) |
+						 bool(ds.hasStencilDepthFailOp & (ds.stencilDepthFailOp != EStencilOp::Keep)) |
+						 bool(ds.hasStencilPassOp      & (ds.stencilPassOp      != EStencilOp::Keep));
 
-		if ( _logicalRP.GetDepthState().write )
-			_depthWrite = true;
-
-		if ( _logicalRP.GetStencilState().enabled )
-			_stencilReadWrite = true;
-
-		if ( _logicalRP.GetRasterizationState().rasterizerDiscard )
-			_rasterizerDiscard = true;
+		_rasterizerDiscard &= not _logicalRP.GetRasterizationState().rasterizerDiscard;
 	}
 //-----------------------------------------------------------------------------
 
@@ -551,7 +560,7 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.GetScissors() );
 		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
@@ -577,7 +586,7 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.GetScissors() );
 		_tp._BindIndexBuffer( task.indexBuffer->Handle(), VkDeviceSize(task.indexBufferOffset), VEnumCast(task.indexType) );
 		_tp._SetDynamicStates( task.dynamicStates );
 
@@ -605,7 +614,7 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.GetScissors() );
 		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
@@ -635,7 +644,7 @@ namespace FG
 		_tp._PushConstants( *layout, task.pushConstants );
 
 		_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
-		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.GetScissors() );
 		_tp._BindIndexBuffer( task.indexBuffer->Handle(), VkDeviceSize(task.indexBufferOffset), VEnumCast(task.indexType) );
 		_tp._SetDynamicStates( task.dynamicStates );
 
@@ -665,7 +674,7 @@ namespace FG
 		_BindPipelineResources( *layout, task.descriptorSets, task.GetResources().dynamicOffsets );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
-		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.GetScissors() );
 		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
@@ -690,7 +699,7 @@ namespace FG
 		_BindPipelineResources( *layout, task.descriptorSets, task.GetResources().dynamicOffsets );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
-		_tp._SetScissor( _currTask->GetLogicalPass(), task.scissors );
+		_tp._SetScissor( _currTask->GetLogicalPass(), task.GetScissors() );
 		_tp._SetDynamicStates( task.dynamicStates );
 
 		for (auto& cmd : task.commands)
@@ -716,6 +725,7 @@ namespace FG
 									VkCommandBuffer cmdbuf, const CommandBatchID &batchId, uint indexInBatch) :
 		_frameGraph{ fg },								_dev{ fg.GetDevice() },
 		_cmdBuffer{ cmdbuf },							_enableDebugUtils{ false },  //_dev.IsDebugUtilsEnabled() },
+		_isDefaultScissor{ false },
 		_pendingResourceBarriers{ fg.GetAllocator() },	_barrierMngr{ barrierMngr }
 	{
 		ASSERT( _cmdBuffer );
@@ -890,7 +900,7 @@ namespace FG
 	_SetScissor
 =================================================
 */
-	void VTaskProcessor::_SetScissor (const VLogicalRenderPass *logicalPsss, const _fg_hidden_::Scissors_t &srcScissors) const
+	void VTaskProcessor::_SetScissor (const VLogicalRenderPass *logicalPsss, ArrayView<RectI> srcScissors)
 	{
 		if ( not srcScissors.empty() )
 		{
@@ -907,12 +917,15 @@ namespace FG
 			}
 
 			_dev.vkCmdSetScissor( _cmdBuffer, 0, uint(vk_scissors.size()), vk_scissors.data() );
+			_isDefaultScissor = false;
 		}
 		else
+		if ( not _isDefaultScissor )
 		{
 			const auto&	vk_scissors = logicalPsss->GetScissors();
 
 			_dev.vkCmdSetScissor( _cmdBuffer, 0, uint(vk_scissors.size()), vk_scissors.data() );
+			_isDefaultScissor = true;
 		}
 	}
 	
@@ -945,26 +958,33 @@ namespace FG
 */
 	void VTaskProcessor::_AddRenderTargetBarriers (const VLogicalRenderPass &logicalRP, const DrawTaskBarriers &info)
 	{
+		CHECK( info.IsFragmentOutputCompatible() );
+
 		if ( logicalRP.GetDepthStencilTarget().IsDefined() )
 		{
-			const auto &	rt		= logicalRP.GetDepthStencilTarget();
+			auto &			rt		= logicalRP.GetDepthStencilTarget();
 			EResourceState	state	= rt.state;
-			VkImageLayout	layout	= EResourceState_ToImageLayout( rt.state, rt.imagePtr->AspectMask() );
 
-			if ( info.IsEarlyFragmentTests() )
-				state |= EResourceState::EarlyFragmentTests;
-
-			if ( info.IsLateFragmentTests() )
-				state |= EResourceState::LateFragmentTests;
+			state |= (info.IsEarlyFragmentTests() ? EResourceState::EarlyFragmentTests : Default);
+			state |= (info.IsLateFragmentTests()  ? EResourceState::LateFragmentTests : Default);
+			state &= ~(info.HasDepthWriteAccess() ? EResourceState::Unknown : EResourceState::_Write);
 			
+			VkImageLayout&	layout	= rt._layout;
+			layout = EResourceState_ToImageLayout( state, rt.imagePtr->AspectMask() );
+
 			_AddImage( rt.imagePtr, state, layout, rt.desc );
 		}
 
-		for (const auto& rt : logicalRP.GetColorTargets())
-		{
-			VkImageLayout	layout = EResourceState_ToImageLayout( rt.second.state, rt.second.imagePtr->AspectMask() );
+		if ( info.IsRasterizerDiscard() )
+			return;
 
-			_AddImage( rt.second.imagePtr, rt.second.state, layout, rt.second.desc );
+		for (auto& rt : logicalRP.GetColorTargets())
+		{
+			EResourceState	state	= rt.second.state;
+			VkImageLayout&	layout	= rt.second._layout;
+			layout = EResourceState_ToImageLayout( state, rt.second.imagePtr->AspectMask() );
+
+			_AddImage( rt.second.imagePtr, state, layout, rt.second.desc );
 		}
 	}
 	
@@ -1021,18 +1041,17 @@ namespace FG
 			}
 		}
 
+		_AddRenderTargetBarriers( *task.GetLogicalPass(), barrier_visitor );
+		_CommitBarriers();
+
 
 		// create render pass and framebuffer
 		CHECK( _frameGraph.GetResourceManager()->GetRenderPassCache()->
 					CreateRenderPasses( *_frameGraph.GetResourceManager(), logical_passes, barrier_visitor.GetFragOutputs() ));
 		
-		VFramebuffer const*	framebuffer = _GetResource( task.GetLogicalPass()->GetFramebufferID() );
-
-		_AddRenderTargetBarriers( *task.GetLogicalPass(), barrier_visitor );
-		_CommitBarriers();
-
 
 		// begin render pass
+		VFramebuffer const*	framebuffer = _GetResource( task.GetLogicalPass()->GetFramebufferID() );
 		VRenderPass const*	render_pass = _GetResource( task.GetLogicalPass()->GetRenderPassID() );
 		RectI const&		area		= task.GetLogicalPass()->GetArea();
 
@@ -1080,10 +1099,13 @@ namespace FG
 =================================================
 */
 	void VTaskProcessor::Visit (const VFgTask<SubmitRenderPass> &task)
-	{	
+	{
+		// invalidate some states
+		_isDefaultScissor = false;
+
 		if ( not task.IsSubpass() )
 		{
-			_CmdPushDebugGroup( "renderpass" );		// TODO
+			_CmdPushDebugGroup( "renderpass" );		// TODO: renderpass name
 			_OnRunTask();
 			_BeginRenderPass( task );
 		}
@@ -1122,20 +1144,43 @@ namespace FG
 	_ExtractDescriptorSets
 =================================================
 */
-	void VTaskProcessor::_ExtractDescriptorSets (const VPipelineResourceSet &resourceSet, OUT VkDescriptorSets_t &descriptorSets)
+	void VTaskProcessor::_ExtractDescriptorSets (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, OUT VkDescriptorSets_t &descriptorSets)
 	{
+		const FixedArray< uint, FG_MaxBufferDynamicOffsets >	old_offsets = resourceSet.dynamicOffsets;
+		StaticArray< Pair<uint, uint>, FG_MaxDescriptorSets >	new_offsets = {};
+
 		descriptorSets.resize( resourceSet.resources.size() );
 
 		for (size_t i = 0; i < resourceSet.resources.size(); ++i)
 		{
 			const auto &				res		 = resourceSet.resources[i];
-			VPipelineResources const*	ppln_res = _GetResource( res );
+			uint						binding	 = 0;
+			RawDescriptorSetLayoutID	ds_layout;
+
+			if ( not layout.GetDescriptorSetLayout( res.dsId, OUT ds_layout, OUT binding ))
+				continue;
+
+			VPipelineResources const*	ppln_res = _GetResource( res.resId );
 			PipelineResourceBarriers	visitor	 { *this, resourceSet.dynamicOffsets };
 
-			for (auto& un : ppln_res->GetData()) {
+			for (auto& un : ppln_res->GetResources()) {
 				std::visit( visitor, un.res );
 			}
-			descriptorSets[i] = ppln_res->Handle();
+
+			ASSERT( ds_layout == ppln_res->GetLayoutID() );
+
+			descriptorSets[binding] = ppln_res->Handle();
+			new_offsets[binding]    = { res.offsetIndex, res.offsetCount };
+		}
+
+		// sort dynamic offsets by binding index
+		uint	dst = 0;
+		for (auto& item : new_offsets)
+		{
+			for (uint i = item.first; i < item.second; ++i, ++dst)
+			{
+				resourceSet.dynamicOffsets[dst] = old_offsets[i];
+			}
 		}
 	}
 	
@@ -1148,7 +1193,7 @@ namespace FG
 	{
 		// update descriptor sets and add pipeline barriers
 		VkDescriptorSets_t	descriptor_sets;
-		_ExtractDescriptorSets( resourceSet, OUT descriptor_sets );
+		_ExtractDescriptorSets( layout, resourceSet, OUT descriptor_sets );
 
 		if ( descriptor_sets.empty() )
 			return;
@@ -1172,10 +1217,9 @@ namespace FG
 */
 	void VTaskProcessor::_PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pushConstants) const
 	{
-		if ( pushConstants.empty() )
-			return;
-
 		auto const&		pc_map = layout.GetPushConstants();
+			
+		ASSERT( pushConstants.size() == pc_map.size() );	// used push constants from previous draw/dispatch calls or may contains undefined values
 
 		for (auto& pc : pushConstants)
 		{

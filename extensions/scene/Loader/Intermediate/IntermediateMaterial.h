@@ -1,8 +1,9 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "scene/Loader/Intermediate/IntermediateImage.h"
+#include "scene/Renderer/Enums.h"
 #include "scene/Utils/Math/GLM.h"
 
 namespace FG
@@ -30,7 +31,7 @@ namespace FG
 		{
 			IntermediateImagePtr	image;
 			String					name;
-			mat3x3					uvTransform;
+			mat3x3					uvTransform		= Default;	// TODO: set identity
 			ETextureMapping			mapping			= Default;
 			EAddressMode			addressModeU	= Default;
 			EAddressMode			addressModeV	= Default;
@@ -39,49 +40,54 @@ namespace FG
 			uint					uvIndex			= UMax;
 		};
 
+		using Parameter = Union< std::monostate, float, RGBA32f, MtrTexture >;
+
 		struct Settings
 		{
 			String		name;
 
-			Optional<MtrTexture>	diffuseMap;
-			Optional<MtrTexture>	specularMap;
-			Optional<MtrTexture>	ambientMap;
-			Optional<MtrTexture>	emissiveMap;
-			Optional<MtrTexture>	heightMap;
-			Optional<MtrTexture>	normalsMap;
-			Optional<MtrTexture>	shininessMap;
-			Optional<MtrTexture>	opacityMap;
-			Optional<MtrTexture>	displacementMap;
-			Optional<MtrTexture>	lightMap;
-			Optional<MtrTexture>	reflectionMap;
+			Parameter	albedo;				// texture or color		// UE4 'base color'
+			Parameter	specular;			// texture or color		// UE4 'specular'
+			Parameter	ambient;			// texture or color
+			Parameter	emissive;			// texture or color
+			Parameter	heightMap;			// texture
+			Parameter	normalsMap;			// texture
+			Parameter	shininess;			// texture or float
+			Parameter	opacity;			// textire or float
+			Parameter	displacementMap;	// texture
+			Parameter	lightMap;			// texture
+			Parameter	reflectionMap;		// texture
+			Parameter	roughtness;			// texture or float		// UE4 'roughtness'
+			Parameter	metallic;			// texture or float		// UE4 'metallic'
+			Parameter	subsurface;			// texture or color		// UE4 'subsurface color'
+			Parameter	ambientOcclusion;	// texture				// UE4 'ambient occlusion'
+			Parameter	refraction;			// texture or float		// UE4 'refraction'
 
-			// TODO: parameters for PBR
-
-			float4		diffuseColor;
-			float4		specularColor;
-			float4		ambientColor;
-			float4		emissiveColor;
-			float		shininess			= 0.0f;
 			float		shininessStrength	= 0.0f;
-			float		roughness			= 0.0f;
-			float		opacity				= 0.0f;
 			float		alphaTestReference	= 0.0f;
+			ECullMode	cullMode			= Default;
 		};
 
 
 	// variables
 	private:
-		Settings	_settings;
+		Settings		_settings;
+		LayerBits		_layers;
 
 
 	// methods
 	public:
 		IntermediateMaterial () {}
 
-		explicit IntermediateMaterial (Settings &&settings) : _settings{ std::move(settings) } {}
+		explicit IntermediateMaterial (Settings &&settings, LayerBits layers) :
+			_settings{ std::move(settings) }, _layers{ layers }
+		{}
 
-		ND_ Settings const&		GetSettings ()	const	{ return _settings; }
-		ND_ Settings &			EditSettings ()			{ return _settings; }
+		ND_ Settings const&		GetSettings ()		const	{ return _settings; }
+		ND_ Settings &			EditSettings ()				{ return _settings; }
+		ND_ LayerBits			GetRenderLayers ()	const	{ return _layers; }
+
+		void SetRenderLayers (LayerBits value)				{ _layers = value; }
 	};
 	
 	using IntermediateMaterialPtr = SharedPtr< IntermediateMaterial >;

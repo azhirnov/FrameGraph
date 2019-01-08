@@ -1,8 +1,7 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
-#include "stl/CompileTime/DefaultType.h"
 #include "stl/Containers/ArrayView.h"
 #include "stl/Containers/StaticString.h"
 #include "stl/Containers/FixedArray.h"
@@ -20,15 +19,17 @@
 #include "stl/Memory/MemUtils.h"
 
 #include "framegraph/Public/Config.h"
+#include <chrono>
 
 
 namespace FG
 {
-	using FGThreadPtr				= SharedPtr< class FrameGraphThread >;
-	using IPipelineCompilerPtr		= SharedPtr< class IPipelineCompiler >;
-	using FrameGraphPtr				= SharedPtr< class FrameGraph >;
+	using IPipelineCompilerPtr	= SharedPtr< class IPipelineCompiler >;
+	using FGThreadPtr			= SharedPtr< class FrameGraphThread >;
+	using FGInstancePtr			= SharedPtr< class FrameGraphInstance >;
 
-	using Task						= Ptr< class IFrameGraphTask >;
-
+	using Task					= Ptr< class IFrameGraphTask >;
+	
+	using Nanoseconds			= std::chrono::nanoseconds;
 
 }	// FG

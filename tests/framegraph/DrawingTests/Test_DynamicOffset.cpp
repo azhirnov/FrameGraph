@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This test affects:
 		...
@@ -40,7 +40,7 @@ void main ()
 
 		_pplnCompiler->SetCompilationFlags( old_flags | EShaderCompilationFlags::AlwaysBufferDynamicOffset );
 		
-		FGThreadPtr		frame_graph		= _frameGraph1;
+		FGThreadPtr		frame_graph		= _fgGraphics1;
 		const BytesU	base_off		= 128_b;
 		const BytesU	buf_off			= 128_b;
 		const BytesU	src_size		= SizeOf<float4> * 4;
@@ -56,12 +56,8 @@ void main ()
 		
 		_pplnCompiler->SetCompilationFlags( old_flags );
 
-		RawDescriptorSetLayoutID	ds_layout;
-		uint						ds_index;
-		CHECK_ERR( frame_graph->GetDescriptorSet( pipeline, DescriptorSetID("0"), OUT ds_layout, OUT ds_index ));
-
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( ds_layout, OUT resources ));
+		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
 		
 
 		bool	cb_was_called	= false;
@@ -100,7 +96,7 @@ void main ()
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		resources.SetBufferBase( UniformID("UB"),  0_b );
@@ -110,19 +106,19 @@ void main ()
 		resources.BindBuffer( UniformID("SSB"), buffer, base_off + buf_off + src_size,  dst_size );
 
 		Task	t_write		= frame_graph->AddTask( UpdateBuffer{}.SetBuffer( buffer ).AddData( src_data, CountOf(src_data), base_off + buf_off ));
-		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetGroupCount( 1 ).DependsOn( t_write ));
+		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetGroupCount( 1 ).DependsOn( t_write ));
 		Task	t_read		= frame_graph->AddTask( ReadBuffer{}.SetBuffer( buffer, base_off + buf_off + src_size, dst_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
 		FG_UNUSED( t_read );
 
 		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 		
 		CHECK_ERR( not cb_was_called );
 		
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 		

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -36,6 +36,8 @@ namespace FG
 
 		Mipmaps_t	_data;		// mipmaps[] { layers[] { level{} } }
 
+		bool		_immutable	= false;
+
 
 	// methods
 	public:
@@ -43,11 +45,13 @@ namespace FG
 		explicit IntermediateImage (StringView path) : _srcPath{path} {}
 		explicit IntermediateImage (Mipmaps_t &&data, StringView path = Default) : _srcPath{path}, _data{std::move(data)} {}
 
-		void SetData (Mipmaps_t &&data)				{ _data = std::move(data); }
+		void  MakeImmutable ()							{ _immutable = true; }
+		void  SetData (Mipmaps_t &&data)				{ ASSERT( not _immutable );  _data = std::move(data); }
+		void  ReleaseData ()							{ Mipmaps_t temp;  std::swap( temp, _data ); }
 
-		ND_ StringView			GetPath ()	const	{ return _srcPath; }
-
-		ND_ Mipmaps_t const&	GetData ()	const	{ return _data; }
+		ND_ StringView			GetPath ()		const	{ return _srcPath; }
+		ND_ bool				IsImmutable ()	const	{ return _immutable; }
+		ND_ Mipmaps_t const&	GetData ()		const	{ return _data; }
 	};
 	
 	using IntermediateImagePtr = SharedPtr< IntermediateImage >;

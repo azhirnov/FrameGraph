@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "FGApp.h"
 #include "graphviz/GraphViz.h"
@@ -27,8 +27,6 @@ namespace {
 */
 	FGApp::FGApp ()
 	{	
-		//_tests.push_back({ &FGApp::Test_InvalidID,	1 });	// must fail
-		
 		_tests.push_back({ &FGApp::Test_CopyBuffer1,	1 });
 		_tests.push_back({ &FGApp::Test_CopyImage1,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
@@ -39,12 +37,21 @@ namespace {
 		_tests.push_back({ &FGApp::Test_DynamicOffset,	1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
 		_tests.push_back({ &FGApp::Test_Draw2,			1 });
+		_tests.push_back({ &FGApp::Test_Draw4,			1 });
+		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1, 1 });
+		_tests.push_back({ &FGApp::Test_ReadAttachment1, 1 });
+		_tests.push_back({ &FGApp::ImplTest_Scene1,		1 });
+		
+		// RTX only
 		_tests.push_back({ &FGApp::Test_Draw3,			1 });
 		_tests.push_back({ &FGApp::Test_TraceRays1,		1 });
 		_tests.push_back({ &FGApp::Test_TraceRays2,		1 });
-		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1, 1 });
 
-		_tests.push_back({ &FGApp::ImplTest_Scene1,		1 });
+		// very slow
+		//_tests.push_back({ &FGApp::ImplTest_CacheOverflow1,	1 });
+
+		// should not crash
+		//_tests.push_back({ &FGApp::Test_InvalidID,	1 });
 	}
 	
 /*
@@ -67,7 +74,7 @@ namespace {
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 		swapchain_info.surfaceSize  = size;
 
-		CHECK_FATAL( _frameGraph1->RecreateSwapchain( swapchain_info ));
+		CHECK_FATAL( _fgGraphics1->RecreateSwapchain( swapchain_info ));
 	}
 
 /*
@@ -127,32 +134,31 @@ namespace {
 
 		// initialize framegraph
 		{
-			_frameGraphInst = FrameGraph::CreateFrameGraph( vulkan_info );
-			CHECK_ERR( _frameGraphInst );
-			CHECK_ERR( _frameGraphInst->Initialize( 2 ));
-			_frameGraphInst->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
+			_fgInstance = FrameGraphInstance::CreateFrameGraph( vulkan_info );
+			CHECK_ERR( _fgInstance );
+			CHECK_ERR( _fgInstance->Initialize( 2 ));
+			_fgInstance->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
 
-			ThreadDesc	desc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer };
+			_fgGraphics1 = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer });
+			CHECK_ERR( _fgGraphics1 );
+			CHECK_ERR( _fgGraphics1->Initialize( &swapchain_info ));
 
-			_frameGraph1 = _frameGraphInst->CreateThread( desc );
-			CHECK_ERR( _frameGraph1 );
-			CHECK_ERR( _frameGraph1->Initialize( &swapchain_info ));
-
-			desc.usage &= ~EThreadUsage::Present;
-
-			_frameGraph2 = _frameGraphInst->CreateThread( desc );
-			CHECK_ERR( _frameGraph2 );
-			CHECK_ERR( _frameGraph2->Initialize( null, {_frameGraph1} ));
-
-			CHECK_ERR( _frameGraph1->IsCompatibleWith( _frameGraph2, EThreadUsage::Graphics ));
+			_fgGraphics2 = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Graphics | EThreadUsage::Transfer });
+			CHECK_ERR( _fgGraphics2 );
+			CHECK_ERR( _fgGraphics2->Initialize( null, {_fgGraphics1} ));
+			CHECK_ERR( _fgGraphics1->IsCompatibleWith( _fgGraphics2, EThreadUsage::Graphics ));
+			
+			_fgCompute = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::AsyncCompute });
+			CHECK_ERR( _fgCompute );
+			CHECK_ERR( _fgCompute->Initialize() );
 		}
 
 		// add glsl pipeline compiler
 		{
 			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
-			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
+			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
 
-			_frameGraphInst->AddPipelineCompiler( _pplnCompiler );
+			_fgInstance->AddPipelineCompiler( _pplnCompiler );
 		}
 
 		return true;
@@ -205,22 +211,28 @@ namespace {
 	{
 		_pplnCompiler = null;
 
-		if ( _frameGraph1 )
+		if ( _fgGraphics1 )
 		{
-			_frameGraph1->Deinitialize();
-			_frameGraph1 = null;
+			_fgGraphics1->Deinitialize();
+			_fgGraphics1 = null;
 		}
 
-		if ( _frameGraph2 )
+		if ( _fgGraphics2 )
 		{
-			_frameGraph2->Deinitialize();
-			_frameGraph2 = null;
+			_fgGraphics2->Deinitialize();
+			_fgGraphics2 = null;
 		}
 
-		if ( _frameGraphInst )
+		if ( _fgCompute )
 		{
-			_frameGraphInst->Deinitialize();
-			_frameGraphInst = null;
+			_fgCompute->Deinitialize();
+			_fgCompute = null;
+		}
+
+		if ( _fgInstance )
+		{
+			_fgInstance->Deinitialize();
+			_fgInstance = null;
 		}
 
 		_vulkan.Destroy();
@@ -327,7 +339,7 @@ namespace {
 #	if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FG_STD_FILESYSTEM)
 
 		String	str;
-		CHECK_ERR( _frameGraphInst->DumpToGraphViz( OUT str ));
+		CHECK_ERR( _fgInstance->DumpToGraphViz( OUT str ));
 		
 		auto	path = std::filesystem::path{FG_TEST_GRAPHS_DIR}.append(name).replace_extension("dot");
 
@@ -349,7 +361,7 @@ namespace {
 		String	fname {FG_TEST_DUMPS_DIR};	fname << '/' << filename << ".txt";
 
 		String	right;
-		CHECK_ERR( _frameGraphInst->DumpToString( OUT right ));
+		CHECK_ERR( _fgInstance->DumpToString( OUT right ));
 		
 		// override dump
 		if ( UpdateAllReferenceDumps )

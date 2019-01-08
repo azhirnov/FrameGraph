@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -23,6 +23,12 @@ namespace FG
 	ND_ forceinline constexpr size_t  CountOf ()
 	{
 		return sizeof... (Types);
+	}
+	
+	template <typename T, size_t I, typename Class>
+	ND_ forceinline constexpr size_t  CountOf (T (Class::*) [I])
+	{
+		return I;
 	}
 
 /*

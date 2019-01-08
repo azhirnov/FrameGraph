@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "scene/Renderer/Prototype/RendererPrototype.h"
 #include "scene/Renderer/RenderQueue.h"
@@ -29,6 +29,55 @@ namespace {
 	{
 	}
 	
+/*
+=================================================
+	GetRenderLayerMask
+=================================================
+*
+	ERenderLayer  RendererPrototype::GetRenderLayerMask () const
+	{
+		return	ERenderLayer::Background	| ERenderLayer::Foreground	|
+				ERenderLayer::Shadow		| ERenderLayer::DepthOnly	|
+				ERenderLayer::Opaque_1		| ERenderLayer::Opaque_2	|
+				ERenderLayer::Opaque_3		| ERenderLayer::Translucent;
+	}
+
+/*
+=================================================
+	Initialize
+=================================================
+*/
+	bool RendererPrototype::Initialize (const FGInstancePtr &inst, const FGThreadPtr &worker, StringView pplnPath)
+	{
+		CHECK_ERR( inst );
+
+		_fgInstance = inst;
+
+		ThreadDesc	desc{ EThreadUsage::Graphics };
+
+		_frameGraph = worker;
+		
+		if ( not _frameGraph )
+		{
+			_frameGraph = _fgInstance->CreateThread( desc );
+			CHECK_ERR( _frameGraph );
+			CHECK_ERR( _frameGraph->Initialize() );
+		}
+
+		CHECK_ERR( _LoadPipelines( pplnPath ));
+		return true;
+	}
+	
+/*
+=================================================
+	_LoadPipelines
+=================================================
+*/
+	bool RendererPrototype::_LoadPipelines (StringView path)
+	{
+		return true;
+	}
+
 /*
 =================================================
 	GetPipeline
@@ -74,35 +123,38 @@ namespace {
 			RenderQueueImpl		queue;
 			queue.Create( _frameGraph, cam );
 
+			ImageID		image;
+
 			// detect shadow techniques
 			if ( cam.layers[uint(ERenderLayer::Shadow)] )
 			{
 				CHECK_ERR( _frameGraph->Begin( ShadowMapBatch, sm_counter++, EThreadUsage::Graphics ));
-				CHECK_ERR( _SetupShadowPass( cam, queue ));
+				CHECK_ERR( _SetupShadowPass( cam, INOUT queue, OUT image ));
 			}
 			else
 			// detect color technique
 			{
 				CHECK_ERR( _frameGraph->Begin( MainRendererBatch, mr_counter++, EThreadUsage::Graphics ));
-				CHECK_ERR( _SetupColorPass( cam, queue ));
+				CHECK_ERR( _SetupColorPass( cam, INOUT queue, OUT image ));
 			}
 
 			// build render queue
 			for (auto& scene : cam.scenes) {
-				scene->Draw( queue );
+				scene->Draw( INOUT queue );
 			}
 
 			if ( cam.viewport )
-				cam.viewport->Draw( queue );
+				cam.viewport->Draw( INOUT queue );
 
 			// submit draw commands
-			queue.Submit();
+			Task  last_task = queue.Submit();
 
 			// present on viewport
-			//if ( cam.viewport )
-			//	cam.viewport->AfterRender();	// TODO
+			if ( cam.viewport )
+				cam.viewport->AfterRender( _frameGraph, Present{ image }.DependsOn( last_task ));
 
 			CHECK_ERR( _frameGraph->Execute() );
+			_frameGraph->ReleaseResource( image );
 		}
 
 		CHECK_ERR( _fgInstance->EndFrame() );
@@ -114,7 +166,7 @@ namespace {
 	_SetupShadowPass
 =================================================
 */
-	bool RendererPrototype::_SetupShadowPass (const CameraData_t &cameraData, RenderQueueImpl &queue)
+	bool RendererPrototype::_SetupShadowPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT ImageID &outImage)
 	{
 		ASSERT( cameraData.layers.count() == 1 );	// other layers will be ignored
 
@@ -132,7 +184,7 @@ namespace {
 
 		queue.AddLayer( ERenderLayer::Shadow, rp, "ShadowMap" );
 
-		_frameGraph->ReleaseResource( shadow_map );
+		outImage = std::move(shadow_map);
 		return true;
 	}
 	
@@ -141,7 +193,7 @@ namespace {
 	_SetupColorPass
 =================================================
 */
-	bool RendererPrototype::_SetupColorPass (const CameraData_t &cameraData, RenderQueueImpl &queue)
+	bool RendererPrototype::_SetupColorPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT ImageID &outImage)
 	{
 		ImageDesc	desc;
 		desc.imageType	= EImage::Tex2D;
@@ -162,7 +214,8 @@ namespace {
 			rp.AddTarget( RenderTargetID("out_Color"), color_target, RGBA32f{0.0f}, EAttachmentStoreOp::Store )
 			  .AddTarget( RenderTargetID("depth"), depth_target, DepthStencil{1.0f}, EAttachmentStoreOp::Store );
 			rp.AddViewport( desc.dimension.xy() );
-			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( true ).SetDepthCompareOp( ECompareOp::GEqual );	// for reverse depth buffer
+			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( true );
+			rp.SetDepthCompareOp( ECompareOp::GEqual );	// for reverse depth buffer
 
 			queue.AddLayer( ERenderLayer::Opaque_1, rp, "Opaque" );
 		}
@@ -173,13 +226,14 @@ namespace {
 			rp.AddTarget( RenderTargetID("out_Color"), color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 			  .AddTarget( RenderTargetID("depth"), depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Invalidate );
 			rp.AddViewport( desc.dimension.xy() );
-			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( false ).SetDepthCompareOp( ECompareOp::GEqual );	// for reverse depth buffer
+			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( false );
+			rp.SetDepthCompareOp( ECompareOp::GEqual );	// for reverse depth buffer
 			rp.AddColorBuffer( RenderTargetID("out_Color"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add );
 
 			queue.AddLayer( ERenderLayer::Translucent, rp, "Translucent" );
 		}
 
-		_frameGraph->ReleaseResource( color_target );
+		outImage = std::move(color_target);
 		_frameGraph->ReleaseResource( depth_target );
 		return true;
 	}

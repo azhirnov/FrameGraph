@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -11,7 +11,7 @@
 #include "VRenderPassCache.h"
 #include "VLocalRTGeometry.h"
 #include "VLocalRTScene.h"
-#include "framegraph/Public/FrameGraph.h"
+#include "framegraph/Public/FrameGraphInstance.h"
 
 namespace FG
 {
@@ -67,10 +67,10 @@ namespace FG
 		using LocalRTGeometries_t		= PoolTmpl2< VLocalRTGeometry, MaxLocalResources >;
 		using LocalRTScenes_t			= PoolTmpl2< VLocalRTScene, MaxLocalResources >;
 
-		using ResourceIDQueue_t			= std::vector< UntypedResourceID_t, StdLinearAllocator<UntypedResourceID_t> >;
+		using ResourceIDQueue_t			= std::vector< Pair<UntypedResourceID_t, bool>, StdLinearAllocator<Pair<UntypedResourceID_t, bool>> >;
 		using ResourceIndexCache_t		= StaticArray< FixedArray<Index_t, 128>, 20 >;
 		using SyncTasks_t				= Array< std::function< void() > >;
-		using Statistics_t				= FrameGraph::ResourceStatistics;
+		using Statistics_t				= FrameGraphInstance::ResourceStatistics;
 
 
 	// variables
@@ -170,7 +170,7 @@ namespace FG
 		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id);
 
 		template <typename ID>
-		void ReleaseResource (ID id, bool isAsync);
+		void ReleaseResource (ID id, bool isAsync, bool force = false);
 		
 		void FlushLocalResourceStates (ExeOrderIndex, ExeOrderIndex, VBarrierManager &, VFrameGraphDebugger *);
 
@@ -204,6 +204,9 @@ namespace FG
 		template <typename ID>	ND_ bool   _Assign (OUT ID &id);
 		template <typename ID>		void   _Unassign (ID id);
 		template <typename ID>	ND_ auto&  _GetResourcePool (const ID &id)		{ return _mainRM._GetResourcePool( id ); }
+
+		ND_ AppendableResourceIDs_t				_GetResourceIDs ()				{ return AppendableResourceIDs_t{ *_unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
+		static Pair<UntypedResourceID_t, bool>  _AppendResourceID (UntypedResourceID_t &&id)	{ return { std::move(id), false }; }
 	};
 
 
@@ -230,7 +233,7 @@ namespace FG
 =================================================
 */
 	template <typename ID>
-	inline void  VResourceManagerThread::ReleaseResource (ID id, bool isAsync)
+	inline void  VResourceManagerThread::ReleaseResource (ID id, bool isAsync, bool force)
 	{
 		ASSERT( id );
 		SCOPELOCK( _rcCheck );
@@ -243,10 +246,11 @@ namespace FG
 			if ( data.GetInstanceID() != id.InstanceID() )
 				return;	// this instance is already destroyed
 
-			_unassignIDs->push_back( id );
+			if ( force or data.ReleaseRef( _mainRM._currTime ) )
+				_unassignIDs->push_back({ id, force });
 		}
 		else
-			_mainRM._UnassignResource( _GetResourcePool( id ), id );
+			_mainRM._UnassignResource( _GetResourcePool( id ), id, force );
 	}
 	
 /*
@@ -268,7 +272,7 @@ namespace FG
 ----
 	acquire free index from cache (cache is local in thread),
 	if cache empty then acquire new indices from main pool (internaly synchronized),
-	if pool is full then return error (false).
+	if pool is full then error (false) will be returned.
 =================================================
 */
 	template <typename ID>

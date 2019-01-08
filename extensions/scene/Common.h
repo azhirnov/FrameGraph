@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -11,6 +11,7 @@ namespace FG
 	using SceneHierarchyPtr		= SharedPtr< class ISceneHierarchy >;
 	using SceneManagerPtr		= SharedPtr< class ISceneManager >;
 	using ViewportPtr			= SharedPtr< class IViewport >;
+	using ImageCachePtr			= SharedPtr< class IImageCache >;
 	
 	class ScenePreRender;
 	class RenderQueue;

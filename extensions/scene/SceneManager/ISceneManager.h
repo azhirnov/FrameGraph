@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	
 */
@@ -18,7 +18,7 @@ namespace FG
 	{
 	// interface
 	public:
-		virtual bool Build (const RenderTechniquePtr &) = 0;
+		virtual bool Build (const FGThreadPtr &, const RenderTechniquePtr &) = 0;
 		virtual bool Draw (ArrayView<ViewportPtr>) = 0;
 
 		virtual bool Add (const SceneHierarchyPtr &) = 0;
@@ -26,6 +26,8 @@ namespace FG
 
 		//virtual bool Add (const EntityPtr &) = 0;
 		//virtual bool Remove (const EntityPtr &) = 0;
+
+		ND_ virtual ImageCachePtr  GetImageCache () = 0;
 	};
 
 

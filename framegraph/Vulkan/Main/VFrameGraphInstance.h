@@ -1,8 +1,8 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
-#include "framegraph/Public/FrameGraph.h"
+#include "framegraph/Public/FrameGraphInstance.h"
 #include "VResourceManager.h"
 #include "VDevice.h"
 #include "VDebugger.h"
@@ -12,10 +12,10 @@ namespace FG
 {
 
 	//
-	// Frame Graph
+	// Frame Graph Instance
 	//
 
-	class VFrameGraph final : public FrameGraph
+	class VFrameGraphInstance final : public FrameGraphInstance
 	{
 	// types
 	private:
@@ -60,8 +60,8 @@ namespace FG
 
 	// methods
 	public:
-		explicit VFrameGraph (const VulkanDeviceInfo &);
-		~VFrameGraph ();
+		explicit VFrameGraphInstance (const VulkanDeviceInfo &);
+		~VFrameGraphInstance ();
 
 		FGThreadPtr  CreateThread (const ThreadDesc &) override;
 

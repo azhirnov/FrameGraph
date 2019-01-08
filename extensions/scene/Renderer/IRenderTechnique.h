@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -18,10 +18,14 @@ namespace FG
 	public:
 		struct PipelineInfo
 		{
-			ETextureType	textures	= Default;
-			EMaterialType	flags		= Default;
-			ERenderLayer	layer		= Default;
-			uint			detailLevel	= 0;
+			ETextureType	textures		= Default;
+			EMaterialType	materialFlags	= Default;
+			ERenderLayer	layer			= Default;
+			EDetailLevel	detailLevel		= Default;
+
+			StringView		vertexShaderPart;	// attribs declaration and reading
+			StringView		meshShaderPart;		// mesh data reading
+			StringView		materialPart;		// material data reading in fragment or ray tracing shader
 		};
 
 	protected:
@@ -31,7 +35,8 @@ namespace FG
 			RenderQueueImpl () {}
 			
 			void Create (const FGThreadPtr &fg, const CameraInfo &camera)									{ return _Create( fg, camera ); }
-			void Submit (ArrayView<Task> dependsOn = Default)												{ return _Submit( dependsOn ); }
+
+			ND_ Task  Submit (ArrayView<Task> dependsOn = Default)											{ return _Submit( dependsOn ); }
 
 			void AddLayer (ERenderLayer layer, LogicalPassID passId, StringView dbgName = Default)			{ return _AddLayer( layer, passId, dbgName ); }
 			void AddLayer (ERenderLayer layer, const RenderPassDesc &desc, StringView dbgName = Default)	{ return _AddLayer( layer, desc, dbgName ); }

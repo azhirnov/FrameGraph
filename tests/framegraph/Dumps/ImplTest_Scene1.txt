@@ -79,25 +79,9 @@ Thread {
 					dstStageMask:    EarlyFragmentTests
 					dependencyFlags: 
 					srcAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
-					dstAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
+					dstAccessMask:   DepthStencilAttachmentRead
 					oldLayout:       DepthStencilAttachmentOptimal
-					newLayout:       DepthStencilAttachmentOptimal
-					aspectMask:      Depth
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         OpaquePass (#7)
-					dstTask:         TransparentPass (#8)
-					srcStageMask:    EarlyFragmentTests
-					dstStageMask:    EarlyFragmentTests
-					dependencyFlags: 
-					srcAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
-					dstAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
-					oldLayout:       DepthStencilAttachmentOptimal
-					newLayout:       DepthStencilAttachmentOptimal
+					newLayout:       DepthStencilReadOnlyOptimal
 					aspectMask:      Depth
 					baseMipLevel:    0
 					levelCount:      1
@@ -110,9 +94,9 @@ Thread {
 					srcStageMask:    EarlyFragmentTests
 					dstStageMask:    TopOfPipe
 					dependencyFlags: 
-					srcAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
+					srcAccessMask:   DepthStencilAttachmentRead
 					dstAccessMask:   
-					oldLayout:       DepthStencilAttachmentOptimal
+					oldLayout:       DepthStencilReadOnlyOptimal
 					newLayout:       DepthStencilAttachmentOptimal
 					aspectMask:      Depth
 					baseMipLevel:    0
@@ -358,7 +342,7 @@ Thread {
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencil-R, ClearBefore, EarlyTests
+				usage:          DepthStencil-RW, ClearBefore, EarlyTests
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

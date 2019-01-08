@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -24,7 +24,7 @@ namespace FG
 		// must be thread safe
 		virtual void Draw (RenderQueue &) const = 0;
 
-		virtual void AfterRender (const ImageID &) = 0;
+		virtual void AfterRender (const FGThreadPtr &, const Present &) = 0;
 	};
 
 

@@ -1,8 +1,9 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VResourceManager.h"
 #include "VResourceManagerThread.h"
 #include "VDevice.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -109,7 +110,7 @@ namespace FG
 */
 	void VResourceManager::_UnassignResourceIDs ()
 	{
-		UnassignIDQueue_t	temp;
+		ResourceIDQueue_t	temp;
 
 		for (; not _unassignIDs.empty();)
 		{
@@ -117,7 +118,7 @@ namespace FG
 
 			for (auto& vid : temp)
 			{
-				std::visit( [this] (auto id) { _UnassignResource( _GetResourcePool(id), id ); }, vid );
+				std::visit( [this, force = vid.second] (auto id) { _UnassignResource( _GetResourcePool(id), id, force ); }, vid.first );
 			}
 			temp.clear();
 		}
@@ -243,7 +244,7 @@ namespace FG
 			if ( data.IsCreated() )
 			{
 				res.RemoveFromCache( id );
-				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
+				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
 				res.Unassign( id );
 			}
 		}
@@ -397,7 +398,7 @@ namespace FG
 			const bool	is_deprecated	= samp.GetRefCount() <= 1 and (_currTime - samp.GetLastUsage() > _maxTimeDelta);
 
 			if ( is_deprecated )
-				resMngr.ReleaseResource( RawSamplerID{ i, samp.GetInstanceID() }, true );
+				resMngr.ReleaseResource( RawSamplerID{ i, samp.GetInstanceID() }, true, true );
 		}
 	}
 	
@@ -419,7 +420,7 @@ namespace FG
 			const bool	is_invalid		= not layout.Data().IsAllResourcesAlive( resMngr );
 
 			if ( is_deprecated or is_invalid )
-				resMngr.ReleaseResource( RawPipelineLayoutID{ i, layout.GetInstanceID() }, true );
+				resMngr.ReleaseResource( RawPipelineLayoutID{ i, layout.GetInstanceID() }, true, true );
 		}
 	}
 	
@@ -440,7 +441,7 @@ namespace FG
 			const bool	is_deprecated	= layout.GetRefCount() <= 1 and (_currTime - layout.GetLastUsage() > _maxTimeDelta);
 
 			if ( is_deprecated )
-				resMngr.ReleaseResource( RawDescriptorSetLayoutID{ i, layout.GetInstanceID() }, true );
+				resMngr.ReleaseResource( RawDescriptorSetLayoutID{ i, layout.GetInstanceID() }, true, true );
 		}
 	}
 	
@@ -461,7 +462,7 @@ namespace FG
 			const bool	is_deprecated	= rp.GetRefCount() <= 1 and (_currTime - rp.GetLastUsage() > _maxTimeDelta);
 
 			if ( is_deprecated )
-				resMngr.ReleaseResource( RawRenderPassID{ i, rp.GetInstanceID() }, true );
+				resMngr.ReleaseResource( RawRenderPassID{ i, rp.GetInstanceID() }, true, true );
 		}
 	}
 	
@@ -483,7 +484,7 @@ namespace FG
 			const bool	is_invalid		= not fb.Data().IsAllResourcesAlive( resMngr );
 
 			if ( is_deprecated or is_invalid )
-				resMngr.ReleaseResource( RawFramebufferID{ i, fb.GetInstanceID() }, true );
+				resMngr.ReleaseResource( RawFramebufferID{ i, fb.GetInstanceID() }, true, true );
 		}
 	}
 	
@@ -505,7 +506,7 @@ namespace FG
 			const bool	is_invalid		= not res.Data().IsAllResourcesAlive( resMngr );
 
 			if ( is_deprecated or is_invalid )
-				resMngr.ReleaseResource( RawPipelineResourcesID{ i, res.GetInstanceID() }, true );
+				resMngr.ReleaseResource( RawPipelineResourcesID{ i, res.GetInstanceID() }, true, true );
 		}
 	}
 

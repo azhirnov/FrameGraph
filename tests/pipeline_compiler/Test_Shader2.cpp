@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "Utils.h"
 
@@ -9,7 +9,6 @@ extern void Test_Shader2 (VPipelineCompiler* compiler)
 
 	ppln.AddShader( EShaderLangFormat::GLSL_450, "main", R"#(
 #pragma shader_stage(compute)
-#extension GL_ARB_separate_shader_objects : enable
 
 layout (local_size_x=16, local_size_y=8, local_size_z=1) in;
 

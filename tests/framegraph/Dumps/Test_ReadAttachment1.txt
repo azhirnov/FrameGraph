@@ -1,0 +1,199 @@
+Thread {
+	batch:         "main"
+	indexInBatch:  0
+	Image {
+		name:         "ColorTarget"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         SubmitRenderPass (#3)
+					dstTask:         ReadImage (#4)
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "DepthTarget"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       Depth24_Stencil8
+		usage:        TransferDst | Sampled | DepthStencilAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearDepthStencilImage (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Depth | Stencil
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearDepthStencilImage (#2)
+					dstTask:         SubmitRenderPass (#3)
+					srcStageMask:    Transfer
+					dstStageMask:    FragmentShader | EarlyFragmentTests
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead | DepthStencilAttachmentRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       DepthStencilReadOnlyOptimal
+					aspectMask:      Depth | Stencil
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         SubmitRenderPass (#3)
+					dstTask:         <final>
+					srcStageMask:    FragmentShader | EarlyFragmentTests
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   ShaderRead | DepthStencilAttachmentRead
+					dstAccessMask:   
+					oldLayout:       DepthStencilReadOnlyOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Depth | Stencil
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "HostReadBuffer"
+		size:    256 Mb
+		usage:   TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            1875 Kb
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "ClearDepthStencilImage (#2)"
+		input =  {  }
+		output = { SubmitRenderPass (#3) }
+		resource_usage = {
+			ImageUsage {
+				name:           "DepthTarget"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "SubmitRenderPass (#3)"
+		input =  { ClearDepthStencilImage (#2) }
+		output = { ReadImage (#4) }
+		resource_usage = {
+			ImageUsage {
+				name:           "ColorTarget"
+				usage:          Color-RW, ClearBefore
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "DepthTarget"
+				usage:          ShaderSample, FS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "DepthTarget"
+				usage:          DepthStencil-R, EarlyTests
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#4)"
+		input =  { SubmitRenderPass (#3) }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "ColorTarget"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
+		}
+	}
+}
+===============================================================
+

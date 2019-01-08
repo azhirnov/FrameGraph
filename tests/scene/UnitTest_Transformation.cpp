@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "scene/Utils/Math/Transform.h"
 #include "UnitTest_Common.h"
@@ -29,7 +29,7 @@ static void Transformation_Test1 ()
 {
 	quat		q = QRotateX( radians(45.0f) );
 	vec3		p = vec3{10.0f, -3.0f, 2.5f};
-	mat4x4		m = translate(p) * mat4_cast(q);
+	mat4x4		m = translate( Mat4x4_One, p ) * mat4_cast(q);
 
 	Transform	t{ m };
 

@@ -1,6 +1,7 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "scene/SceneManager/SceneManager.h"
+#include "scene/SceneManager/DefaultSceneManager.h"
+#include "scene/SceneManager/DefaultImageCache.h"
 #include "scene/SceneManager/ISceneHierarchy.h"
 #include "scene/SceneManager/IViewport.h"
 #include "scene/Renderer/IRenderTechnique.h"
@@ -11,16 +12,26 @@ namespace FG
 
 /*
 =================================================
+	constructor
+=================================================
+*/
+	DefaultSceneManager::DefaultSceneManager () :
+		_imageCache{ MakeShared<DefaultImageCache>() }
+	{
+	}
+
+/*
+=================================================
 	Build
 =================================================
 */
-	bool SceneManager::Build (const RenderTechniquePtr &renderTech)
+	bool DefaultSceneManager::Build (const FGThreadPtr &fg, const RenderTechniquePtr &renderTech)
 	{
 		CHECK_ERR( renderTech );
 
 		for (auto& scene : _hierarchies)
 		{
-			CHECK_ERR( scene->Build( renderTech ));
+			CHECK_ERR( scene->Build( fg, renderTech ));
 		}
 
 		_renderTech = renderTech;
@@ -32,7 +43,7 @@ namespace FG
 	Draw
 =================================================
 */
-	bool SceneManager::Draw (ArrayView<ViewportPtr> viewports)
+	bool DefaultSceneManager::Draw (ArrayView<ViewportPtr> viewports)
 	{
 		CHECK_ERR( viewports.size() > 0 );
 		CHECK_ERR( _renderTech );	// call 'Build' at first
@@ -58,7 +69,7 @@ namespace FG
 	Add
 =================================================
 */
-	bool SceneManager::Add (const SceneHierarchyPtr &scene)
+	bool DefaultSceneManager::Add (const SceneHierarchyPtr &scene)
 	{
 		CHECK_ERR( scene );
 
@@ -66,7 +77,7 @@ namespace FG
 
 		if ( inserted and _renderTech )
 		{
-			if ( not scene->Build( _renderTech ) )
+			if ( not scene->Build( null, _renderTech ) )	// TODO
 			{
 				_hierarchies.erase( iter );
 				RETURN_ERR( "building scene failed" );
@@ -81,7 +92,7 @@ namespace FG
 	Remove
 =================================================
 */
-	bool SceneManager::Remove (const SceneHierarchyPtr &scene)
+	bool DefaultSceneManager::Remove (const SceneHierarchyPtr &scene)
 	{
 		return _hierarchies.erase( scene ) == 1;
 	}

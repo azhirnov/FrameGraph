@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "UIApp.h"
 #include "framework/Window/WindowGLFW.h"
@@ -50,13 +50,13 @@ namespace FG
 		// initialize window
 		{
 			_window = std::move(wnd);
-			CHECK_ERR( _window->Create( wnd_size, "Test" ) );
+			CHECK_ERR( _window->Create( wnd_size, "UITest" ) );
 			_window->AddListener( this );
 		}
 
 		// initialize vulkan device
 		{
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "UI", VK_API_VERSION_1_1,
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "UITest", "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
@@ -95,14 +95,14 @@ namespace FG
 
 		// initialize framegraph
 		{
-			_frameGraphInst = FrameGraph::CreateFrameGraph( vulkan_info );
-			CHECK_ERR( _frameGraphInst );
-			CHECK_ERR( _frameGraphInst->Initialize( 2 ));
-			//_frameGraphInst->SetCompilationFlags( ECompilationFlags::Unknown );
+			_fgInstance = FrameGraphInstance::CreateFrameGraph( vulkan_info );
+			CHECK_ERR( _fgInstance );
+			CHECK_ERR( _fgInstance->Initialize( 2 ));
+			//_fgInstance->SetCompilationFlags( ECompilationFlags::Unknown );
 
 			ThreadDesc	desc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer };
 
-			_frameGraph = _frameGraphInst->CreateThread( desc );
+			_frameGraph = _fgInstance->CreateThread( desc );
 			CHECK_ERR( _frameGraph );
 			CHECK_ERR( _frameGraph->Initialize( &swapchain_info ));
 		}
@@ -113,7 +113,7 @@ namespace FG
 
 			ppln_compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
 
-			_frameGraphInst->AddPipelineCompiler( ppln_compiler );
+			_fgInstance->AddPipelineCompiler( ppln_compiler );
 		}
 
 		// initialize imgui and renderer
@@ -240,7 +240,7 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 		CHECK_ERR( _frameGraph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		{
 			LogicalPassID	pass_id = _frameGraph->CreateRenderPass( RenderPassDesc{ int2{float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y }} }
@@ -254,7 +254,7 @@ namespace FG
 			FG_UNUSED( present );
 		}
 		CHECK_ERR( _frameGraph->Execute() );
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 
 		return true;
 	}
@@ -317,10 +317,10 @@ namespace FG
 			_frameGraph = null;
 		}
 
-		if ( _frameGraphInst )
+		if ( _fgInstance )
 		{
-			_frameGraphInst->Deinitialize();
-			_frameGraphInst = null;
+			_fgInstance->Deinitialize();
+			_fgInstance = null;
 		}
 
 		_vulkan.Destroy();

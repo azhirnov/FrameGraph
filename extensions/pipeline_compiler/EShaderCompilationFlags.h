@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -24,8 +24,10 @@ namespace FG
 		StrongOptimization			= 1 << 18,	// very slow, may be usable for offline compilation
 
 		// Profiling & Debugging
-		//GenerateDebugInfo			= 1 << 24,	// (experimental)
-		//GenerateProfilingInfo		= 1 << 25,	// (experimental)
+		//GenerateDebugTrace		= 1 << 24,	// (experimental)
+		//GenerateDebugAsserts		= 1 << 25,	// (experimental)
+		//GenerateDebugView			= 1 << 26,	// (experimental)
+		//GenerateProfilingTrace	= 1 << 27,	// (experimental)
 
 		_Last,
 		Unknown						= 0,

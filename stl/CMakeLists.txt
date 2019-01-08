@@ -56,6 +56,7 @@ set( SOURCES
 	"ThreadSafe/Barrier.h"
 	"ThreadSafe/DummyLock.h"
 	"ThreadSafe/LfDoubleBuffer.h"
+	"ThreadSafe/LfFixedList.h"
 	"ThreadSafe/LfFixedStack.h"
 	"ThreadSafe/RaceConditionCheck.h"
 	"ThreadSafe/SpinLock.h"
@@ -74,7 +75,7 @@ source_group( "Algorithms" FILES "Algorithms/ArrayUtils.h" "Algorithms/Cast.h" "
 source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/TimeProfiler.h" )
 source_group( "Memory" FILES "Memory/LinearAllocator.h" "Memory/MemUtils.h" "Memory/UntypedAllocator.h" )
 source_group( "" FILES "CMakeLists.txt" "Common.h" "Defines.h" )
-source_group( "ThreadSafe" FILES "ThreadSafe/AtomicCounter.h" "ThreadSafe/AtomicPtr.h" "ThreadSafe/Barrier.cpp" "ThreadSafe/Barrier.h" "ThreadSafe/DummyLock.h" "ThreadSafe/LfDoubleBuffer.h" "ThreadSafe/LfFixedStack.h" "ThreadSafe/RaceConditionCheck.h" "ThreadSafe/SpinLock.h" )
+source_group( "ThreadSafe" FILES "ThreadSafe/AtomicCounter.h" "ThreadSafe/AtomicPtr.h" "ThreadSafe/Barrier.cpp" "ThreadSafe/Barrier.h" "ThreadSafe/DummyLock.h" "ThreadSafe/LfDoubleBuffer.h" "ThreadSafe/LfFixedList.h" "ThreadSafe/LfFixedStack.h" "ThreadSafe/RaceConditionCheck.h" "ThreadSafe/SpinLock.h" )
 source_group( "Stream" FILES "Stream/BufferedStream.h" "Stream/FileStream.cpp" "Stream/FileStream.h" "Stream/MemStream.h" "Stream/Stream.cpp" "Stream/Stream.h" )
 target_include_directories( "STL" PUBLIC ".." )
 target_include_directories( "STL" PUBLIC "${FG_EXTERNALS_PATH}" )

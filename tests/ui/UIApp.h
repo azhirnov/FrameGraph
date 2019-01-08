@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -27,7 +27,7 @@ namespace FG
 	private:
 		VulkanDeviceExt		_vulkan;
 		WindowPtr			_window;
-		FrameGraphPtr		_frameGraphInst;
+		FGInstancePtr		_fgInstance;
 		FGThreadPtr			_frameGraph;
 
 		ImguiRenderer		_uiRenderer;

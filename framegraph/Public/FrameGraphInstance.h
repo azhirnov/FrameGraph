@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	Required external synchronization for rendering:
 	1.
@@ -9,7 +9,7 @@
 			thread.Begin()
 			...
 			thread.Execute()
-			barrier			// all threads must complete work before calling 'EndFrame()'
+			<--barrier-->		// all threads must complete work before calling 'EndFrame()'
 		}
 		EndFrame()
 
@@ -24,14 +24,14 @@
 			}
 
 			// multi-thread mode
-			barrier
+			<--barrier-->
 			thread.Begin()
 			...
 			if (another thread id)
 				thread.CreateResource()		// resource can be used in any thread, but memory barrier required
 			...
 			thread.Execute()
-			barrier
+			<--barrier-->
 			
 			// single-thread mode
 			if (some thread id)
@@ -39,9 +39,11 @@
 				EndFrame()
 				thread.ReleaseResource()
 			}
-			barrier
+			<--barrier-->
 			...
 		}
+
+	Note: '<--barrier-->' is 'FG::Barrier::wait()' or 'std::barrier::arrive_and_wait()'
 */
 
 #pragma once
@@ -54,10 +56,10 @@ namespace FG
 {
 
 	//
-	// Frame Graph interface
+	// Frame Graph Instance interface
 	//
 
-	class FrameGraph : public std::enable_shared_from_this<FrameGraph>
+	class FrameGraphInstance : public std::enable_shared_from_this<FrameGraphInstance>
 	{
 	// types
 	public:
@@ -83,6 +85,8 @@ namespace FG
 			uint		rayTracingPipelineBindings	= 0;
 			uint		traceRaysCalls				= 0;
 			uint		buildASCalls				= 0;
+
+			Nanoseconds	frameTime					{0};	// for (currentFrame - ringBufferSize)
 		};
 
 		struct ResourceStatistics
@@ -100,7 +104,7 @@ namespace FG
 			void Merge (const Statistics &);
 		};
 		
-		ND_ static FrameGraphPtr  CreateFrameGraph (const DeviceInfo_t &);
+		ND_ static FGInstancePtr  CreateFrameGraph (const DeviceInfo_t &);
 
 
 	// interface

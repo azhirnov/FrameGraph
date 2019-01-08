@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "SceneApp.h"
 #include <iostream>
@@ -16,8 +16,7 @@ int main ()
 
 	{
 		SceneApp	scene;
-
-		scene.Initialize( R"#(D:\3dmodels\SUPER_TERRAIN_obj\OBJ\Models_OBJ\Terrain_50000.obj)#", {} );
+		CHECK_ERR( scene.Initialize(), -1 );
 
 		for (; scene.Update();) {}
 	}

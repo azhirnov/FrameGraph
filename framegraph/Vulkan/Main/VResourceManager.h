@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -61,7 +61,7 @@ namespace FG
 		using RTScenePool_t				= PoolHelper< VRayTracingScene,		FG_MaxResources,	PoolTmpl >;
 
 		using VkResourceQueue_t			= Array< UntypedVkResource_t >;
-		using UnassignIDQueue_t			= Array< UntypedResourceID_t >;
+		using ResourceIDQueue_t			= std::vector< Pair<UntypedResourceID_t, bool> >;
 
 		using TimePoint_t				= std::chrono::high_resolution_clock::time_point;
 
@@ -126,7 +126,7 @@ namespace FG
 		RTGeometryPool_t			_rtGeometryPool;
 		RTScenePool_t				_rtScenePool;
 
-		UnassignIDQueue_t			_unassignIDs;
+		ResourceIDQueue_t			_unassignIDs;
 		PerFrameArray_t				_perFrame;
 		uint						_frameId		= 0;
 
@@ -190,10 +190,10 @@ namespace FG
 		void  _UnassignResourceIDs ();
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id);
+		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id);
+		void _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force);
 
 		template <typename DataT, size_t CS, size_t MC>
 		void _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &pool);
@@ -221,6 +221,9 @@ namespace FG
 		ND_ const auto&  _GetResourceCPool (const ID &id)		const	{ return const_cast<VResourceManager *>(this)->_GetResourcePool( id ); }
 
 		ND_ VkResourceQueue_t&  _GetReadyToDeleteQueue ()				{ return _perFrame[_frameId].readyToDelete; }
+
+		ND_ AppendableResourceIDs_t				_GetResourceIDs ()				{ return AppendableResourceIDs_t{ _unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
+		static Pair<UntypedResourceID_t, bool>  _AppendResourceID (UntypedResourceID_t &&id)	{ return { std::move(id), false }; }
 	};
 
 	
@@ -237,7 +240,7 @@ namespace FG
 
 		auto&	pool = _GetResourceCPool( id );
 
-		using Result_t = std::remove_reference_t<decltype(pool)>::Value_t::Resource_t const*;
+		using Result_t = typename std::remove_reference_t<decltype(pool)>::Value_t::Resource_t const*;
 
 		if ( id.Index() < pool.size() )
 		{
@@ -279,7 +282,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id)
+	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool)
 	{
 		SCOPELOCK( _rcCheck );
 		
@@ -293,7 +296,7 @@ namespace FG
 			return;	// this instance is already destroyed
 
 		if ( data.IsCreated() )
-			data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
+			data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
 
 		pool.Unassign( id.Index() );
 	}
@@ -304,7 +307,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id)
+	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force)
 	{
 		SCOPELOCK( _rcCheck );
 		
@@ -317,13 +320,13 @@ namespace FG
 		if ( data.GetInstanceID() != id.InstanceID() )
 			return;	// this instance is already destroyed
 
-		const bool	destroy = data.IsCreated() and (/*force or*/ data.ReleaseRef( _currTime ));
+		const bool	destroy = data.IsCreated() and (force or data.ReleaseRef( _currTime ));
 
 		if ( not destroy )
 			return;	// don't unassign ID
 
 		pool.RemoveFromCache( id.Index() );
-		data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _unassignIDs );
+		data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
 		pool.Unassign( id.Index() );
 	}
 	

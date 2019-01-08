@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VDevice.h"
 
@@ -59,6 +59,13 @@ namespace FG
 			CHECK( _vkVersion != EShaderLangFormat::Unknown );
 		}
 
+		CHECK( _LoadInstanceExtensions() );
+		CHECK( _LoadDeviceExtensions() );
+
+		_enableDebugUtils	= HasExtension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
+		_enableMeshShaderNV	= HasDeviceExtension( VK_NV_MESH_SHADER_EXTENSION_NAME );
+		_enableRayTracingNV	= HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME );
+
 		// load extensions
 		if ( _vkVersion >= EShaderLangFormat::Vulkan_110 )
 		{
@@ -71,24 +78,23 @@ namespace FG
 			_deviceRayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 			_deviceShadingRateImageProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
 			
-			*next_props	= &_deviceMeshShaderProperties;
-			next_props	= &_deviceMeshShaderProperties.pNext;
-			
+			if ( _enableMeshShaderNV )
+			{
+				*next_props	= &_deviceMeshShaderProperties;
+				next_props	= &_deviceMeshShaderProperties.pNext;
+			}
+
 			*next_props	= &_deviceShadingRateImageProperties;
 			next_props	= &_deviceShadingRateImageProperties.pNext;
 			
-			*next_props	= &_deviceRayTracingProperties;
-			next_props	= &_deviceRayTracingProperties.pNext;
+			if ( _enableRayTracingNV )
+			{
+				*next_props	= &_deviceRayTracingProperties;
+				next_props	= &_deviceRayTracingProperties.pNext;
+			}
 
 			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
 		}
-
-		CHECK( _LoadInstanceExtensions() );
-		CHECK( _LoadDeviceExtensions() );
-
-		_enableDebugUtils	= HasExtension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
-		_enableMeshShaderNV	= HasDeviceExtension( VK_NV_MESH_SHADER_EXTENSION_NAME );
-		_enableRayTracingNV	= HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME );
 
 
 		// validate constants

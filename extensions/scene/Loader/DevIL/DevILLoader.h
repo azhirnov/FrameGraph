@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -19,10 +19,11 @@ namespace FG
 	public:
 		DevILLoader ();
 
-		bool Load (const IntermediateImagePtr &image, ArrayView<StringView> directories);
-		bool Load (const IntermediateMaterialPtr &material, ArrayView<StringView> directories);
-		bool Load (ArrayView<IntermediateMaterialPtr> materials, ArrayView<StringView> directories);
-		bool Load (const IntermediateScenePtr &scene, ArrayView<StringView> directories);
+		bool Load (INOUT IntermediateImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
+
+		bool Load (const IntermediateMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
+		bool Load (ArrayView<IntermediateMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
+		bool Load (const IntermediateScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
 	};
 
 

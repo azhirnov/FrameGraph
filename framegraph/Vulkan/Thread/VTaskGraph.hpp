@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -105,13 +105,18 @@ namespace FG
 */
 	inline void CopyDescriptorSets (VFrameGraphThread *fg, const PipelineResourceSet &inResourceSet, OUT VPipelineResourceSet &resourceSet)
 	{
+		size_t	offset_count = 0;
+
 		for (auto& res : inResourceSet)
 		{
-			if ( not res )
-				return;
+			auto	offsets = res.second->GetDynamicOffsets();
 
-			resourceSet.resources.push_back( fg->GetResourceManager()->CreateDescriptorSet( *res, true ));
-			resourceSet.dynamicOffsets.append( res->GetDynamicOffsets() );
+			resourceSet.resources.push_back({ res.first, fg->GetResourceManager()->CreateDescriptorSet( *res.second, true ),
+											  uint16_t(offset_count), uint16_t(offsets.size()) });
+			
+			for (size_t i = 0; i < offsets.size(); ++i, ++offset_count) {
+				resourceSet.dynamicOffsets.push_back( offsets[i] );
+			}
 		}
 	}
 	
@@ -137,6 +142,22 @@ namespace FG
 			vertexStrides[ iter->second.index ] = iter->second.stride;
 		}
 	}
+
+/*
+=================================================
+	CopyScissors
+=================================================
+*/
+	inline void CopyScissors (VFrameGraphThread *fg, const _fg_hidden_::Scissors_t &inScissors, OUT ArrayView<RectI> &outScissors)
+	{
+		if ( inScissors.empty() )
+			return;
+		
+		auto*	ptr = fg->GetAllocator().Alloc< RectI >( inScissors.size() );
+		memcpy( OUT ptr, inScissors.data(), size_t(ArraySizeOf(inScissors)) );
+
+		outScissors = { ptr, inScissors.size() };
+	}
 //-----------------------------------------------------------------------------
 	
 	
@@ -150,10 +171,10 @@ namespace FG
 		IDrawTask{ task, pass1, pass2 },				_vbCount{ uint(task.vertexBuffers.size()) },
 		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },			vertexInput{ task.vertexInput },
-		scissors{ task.scissors },						colorBuffers{ task.colorBuffers },
-		dynamicStates{ task.dynamicStates },			topology{ task.topology },
-		primitiveRestart{ task.primitiveRestart }
+		colorBuffers{ task.colorBuffers },				dynamicStates{ task.dynamicStates },
+		topology{ task.topology },						primitiveRestart{ task.primitiveRestart }
 	{
+		CopyScissors( fg, task.scissors, OUT _scissors );
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 		RemapVertexBuffers( fg, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
 	}
@@ -210,9 +231,10 @@ namespace FG
 	template <typename TaskType>
 	inline VBaseDrawMeshes::VBaseDrawMeshes (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		IDrawTask{ task, pass1, pass2 },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
-		pushConstants{ task.pushConstants },	scissors{ task.scissors },
-		colorBuffers{ task.colorBuffers },		dynamicStates{ task.dynamicStates }
+		pushConstants{ task.pushConstants },	colorBuffers{ task.colorBuffers },
+		dynamicStates{ task.dynamicStates }
 	{
+		CopyScissors( fg, task.scissors, OUT _scissors );
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 	}
 

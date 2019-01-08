@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -14,7 +14,7 @@ namespace _fg_hidden_
 	// ID With String
 	//
 
-	template <size_t Size, uint UID>
+	template <size_t Size, uint UID, bool Optimize, uint Seed = UMax>
 	struct IDWithString
 	{
 	// variables
@@ -26,8 +26,8 @@ namespace _fg_hidden_
 	// methods
 	public:
 		constexpr IDWithString () {}
-		explicit constexpr IDWithString (StringView name)  : _name{name}, _hash{CT_Hash( name.data() )} {}
-		explicit constexpr IDWithString (const char *name) : _name{name}, _hash{CT_Hash( name )} {}
+		explicit constexpr IDWithString (StringView name)  : _name{name}, _hash{CT_Hash( name.data(), Seed )} {}
+		explicit constexpr IDWithString (const char *name) : _name{name}, _hash{CT_Hash( name, Seed )} {}
 
 		ND_ constexpr bool operator == (const IDWithString &rhs) const		{ return _hash == rhs._hash and _name == rhs._name; }
 		ND_ constexpr bool operator != (const IDWithString &rhs) const		{ return not (*this == rhs); }
@@ -39,6 +39,38 @@ namespace _fg_hidden_
 		ND_ constexpr StringView	GetName ()		const					{ return _name; }
 		ND_ constexpr HashVal		GetHash ()		const					{ return _hash; }
 		ND_ constexpr bool			IsDefined ()	const					{ return not _name.empty(); }
+	};
+	
+	
+
+	//
+	// ID With String
+	//
+
+	template <size_t Size, uint UID, uint Seed>
+	struct IDWithString< Size, UID, true, Seed >
+	{
+	// variables
+	private:
+		HashVal						_hash;
+		static constexpr HashVal	_emptyHash	= CT_Hash( "", Seed );
+
+
+	// methods
+	public:
+		constexpr IDWithString () {}
+		explicit constexpr IDWithString (StringView name)  : _hash{CT_Hash( name.data(), Seed )} {}
+		explicit constexpr IDWithString (const char *name) : _hash{CT_Hash( name, Seed )} {}
+
+		ND_ constexpr bool operator == (const IDWithString &rhs) const		{ return _hash == rhs._hash; }
+		ND_ constexpr bool operator != (const IDWithString &rhs) const		{ return not (*this == rhs); }
+		ND_ constexpr bool operator >  (const IDWithString &rhs) const		{ return _hash > rhs._hash; }
+		ND_ constexpr bool operator <  (const IDWithString &rhs) const		{ return rhs > *this; }
+		ND_ constexpr bool operator >= (const IDWithString &rhs) const		{ return not (*this <  rhs); }
+		ND_ constexpr bool operator <= (const IDWithString &rhs) const		{ return not (*this >  rhs); }
+
+		ND_ constexpr HashVal		GetHash ()		const					{ return _hash; }
+		ND_ constexpr bool			IsDefined ()	const					{ return _hash != _emptyHash; }
 	};
 
 
@@ -131,18 +163,18 @@ namespace _fg_hidden_
 
 
 
-	using UniformID					= _fg_hidden_::IDWithString< 32, 1 >;
-	using PushConstantID			= _fg_hidden_::IDWithString< 32, 2 >;
-	using RenderTargetID			= _fg_hidden_::IDWithString< 32, 3 >;
-	using DescriptorSetID			= _fg_hidden_::IDWithString< 32, 4 >;
-	using SpecializationID			= _fg_hidden_::IDWithString< 32, 5 >;
-	using VertexID					= _fg_hidden_::IDWithString< 32, 6 >;
-	using VertexBufferID			= _fg_hidden_::IDWithString< 32, 7 >;
-	using MemPoolID					= _fg_hidden_::IDWithString< 32, 8 >;
-	using CommandBatchID			= _fg_hidden_::IDWithString< 32, 9 >;
-	using RTShaderID				= _fg_hidden_::IDWithString< 32, 10 >;
-	using RTShaderGroupID			= _fg_hidden_::IDWithString< 32, 11 >;
-	using GeometryID				= _fg_hidden_::IDWithString< 32, 12 >;
+	using UniformID					= _fg_hidden_::IDWithString< 32,  1, FG_OPTIMIZE_IDS >;
+	using PushConstantID			= _fg_hidden_::IDWithString< 32,  2, FG_OPTIMIZE_IDS >;
+	using RenderTargetID			= _fg_hidden_::IDWithString< 32,  3, FG_OPTIMIZE_IDS >;
+	using DescriptorSetID			= _fg_hidden_::IDWithString< 32,  4, FG_OPTIMIZE_IDS >;
+	using SpecializationID			= _fg_hidden_::IDWithString< 32,  5, FG_OPTIMIZE_IDS >;
+	using VertexID					= _fg_hidden_::IDWithString< 32,  6, FG_OPTIMIZE_IDS >;
+	using VertexBufferID			= _fg_hidden_::IDWithString< 32,  7, FG_OPTIMIZE_IDS >;
+	using MemPoolID					= _fg_hidden_::IDWithString< 32,  8, FG_OPTIMIZE_IDS >;
+	using CommandBatchID			= _fg_hidden_::IDWithString< 32,  9, false >;
+	using RTShaderID				= _fg_hidden_::IDWithString< 32, 10, FG_OPTIMIZE_IDS >;
+	using RTShaderGroupID			= _fg_hidden_::IDWithString< 32, 11, FG_OPTIMIZE_IDS >;
+	using GeometryID				= _fg_hidden_::IDWithString< 32, 12, FG_OPTIMIZE_IDS >;
 	
 	using RawBufferID				= _fg_hidden_::ResourceID< 1 >;
 	using RawImageID				= _fg_hidden_::ResourceID< 2 >;
@@ -174,10 +206,10 @@ namespace _fg_hidden_
 namespace std
 {
 
-	template <size_t Size, uint32_t UID>
-	struct hash< FG::_fg_hidden_::IDWithString<Size,UID > >
+	template <size_t Size, uint32_t UID, bool Optimize, uint32_t Seed>
+	struct hash< FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> >
 	{
-		ND_ size_t  operator () (const FG::_fg_hidden_::IDWithString<Size,UID > &value) const noexcept {
+		ND_ size_t  operator () (const FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &value) const noexcept {
 			return size_t(value.GetHash());
 		}
 	};

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VPipelineCompiler.h"
 #include "SpirvCompiler.h"
@@ -198,7 +198,7 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const MeshPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
-		// lock is not needed becouse only '_logicalDevice' read access is used
+		// lock is not needed because only '_logicalDevice' read access is used
 
 		if ( ppln._shaders.empty() )
 			return false;
@@ -223,7 +223,7 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
-		// lock is not needed becouse only '_logicalDevice' read access is used
+		// lock is not needed because only '_logicalDevice' read access is used
 
 		if ( ppln._shaders.empty() )
 			return false;
@@ -248,7 +248,7 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
-		// lock is not needed becouse only '_logicalDevice' read access is used
+		// lock is not needed because only '_logicalDevice' read access is used
 
 		if ( ppln._shaders.empty() )
 			return false;
@@ -273,7 +273,7 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
-		// lock is not needed becouse only '_logicalDevice' read access is used
+		// lock is not needed because only '_logicalDevice' read access is used
 
 		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
 			return false;
@@ -487,7 +487,11 @@ namespace FG
 			{
 				for (uint i = 0; i < 100; ++i)
 				{
+				# ifdef FG_OPTIMIZE_IDS
+					UniformID	id { "un" + ToString(i) };	// TODO
+				# else
 					UniformID	id { String(un.first.GetName()) + "_" + ToString(i) };
+				# endif
 
 					if ( dstUniforms.count( id ) == 0 and srcUniforms.count( id ) == 0 )
 					{

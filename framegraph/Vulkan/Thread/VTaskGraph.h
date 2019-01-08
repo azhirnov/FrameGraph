@@ -1,8 +1,8 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
-#include "framegraph/Public/FrameGraph.h"
+#include "framegraph/Public/FrameGraphInstance.h"
 #include "framegraph/Shared/EnumUtils.h"
 #include "VCommon.h"
 

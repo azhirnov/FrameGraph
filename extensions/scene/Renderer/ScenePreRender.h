@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -14,10 +14,10 @@ namespace FG
 	{
 		Camera				camera;
 		Frustum				frustum;
-		vec2				visibilityRange;
+		vec2				visibilityRange;	// min, max
 		vec2				viewportSize;
-		LayerBits_t			layers;
-		DetailLevelRange	detailLevel;
+		LayerBits			layers;
+		DetailLevelRange	detailRange;
 		ECameraType			cameraType		= Default;
 	};
 
@@ -75,7 +75,7 @@ namespace FG
 		void AddScene (const ScenePtr &scene);
 
 		void AddCamera (const Camera &data, const vec2 &range, DetailLevelRange detail,
-						ECameraType type, LayerBits_t layers, const ViewportPtr &vp = null);
+						ECameraType type, LayerBits layers, const ViewportPtr &vp = null);
 	};
 
 	
@@ -113,15 +113,19 @@ namespace FG
 =================================================
 */
 	inline void ScenePreRender::AddCamera (const Camera &data, const vec2 &range, DetailLevelRange detail,
-										   ECameraType type, LayerBits_t layers, const ViewportPtr &vp)
+										   ECameraType type, LayerBits layers, const ViewportPtr &vp)
 	{
+		ASSERT( range[0] < range[1] );
+		ASSERT( detail.min < detail.max );
+		ASSERT( layers.count() );
+
 		ScenePtr	prev;
 		auto&		curr = _cameras.emplace_back();
 
 		curr.camera				= data;
 		curr.visibilityRange	= range;
 		curr.layers				= layers;
-		curr.detailLevel		= detail;
+		curr.detailRange		= detail;
 		curr.cameraType			= type;
 		curr.viewport			= vp;
 		curr.frustum.Setup( curr.camera, curr.visibilityRange );
@@ -144,7 +148,7 @@ namespace FG
 
 			frame.scene = scene;
 
-			scene->PreDraw( curr, *this );
+			scene->PreDraw( curr, INOUT *this );
 		}
 
 		_stack.pop_back();

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -276,6 +276,26 @@ namespace FG
 	ND_ inline constexpr Vec<bool,I>  operator <= (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
 	{
 		return not (lhs > rhs);
+	}
+	
+/*
+=================================================
+	operator +=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr Vec<T,I>&  operator += (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] += rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator += (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs += Vec<T,I>( rhs );
 	}
 
 /*

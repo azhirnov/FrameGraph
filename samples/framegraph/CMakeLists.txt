@@ -6,17 +6,17 @@ cmake_minimum_required (VERSION 3.6.0)
 #==================================================================================================
 if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM} AND ${FG_ENABLE_DEVIL})
 	set( SOURCES 
-		"Shadertoy/shaders/Glowballs.glsl"
-		"Shadertoy/shaders/Skyline.glsl"
-		"Shadertoy/FGShadertoyApp.cpp"
-		"Shadertoy/FGShadertoyApp.h" )
+		"shadertoy/st_shaders/Glowballs.glsl"
+		"shadertoy/st_shaders/Skyline.glsl"
+		"shadertoy/FGShadertoyApp.cpp"
+		"shadertoy/FGShadertoyApp.h" )
 	if (DEFINED ANDROID)
 		add_library( "Samples.Shadertoy" SHARED ${SOURCES} )
 	else()
 		add_executable( "Samples.Shadertoy" ${SOURCES} )
 	endif()
-	source_group( "shaders" FILES "Shadertoy/shaders/Glowballs.glsl" "Shadertoy/shaders/Skyline.glsl" )
-	source_group( "" FILES "Shadertoy/FGShadertoyApp.cpp" "Shadertoy/FGShadertoyApp.h" )
+	source_group( "shaders" FILES "Shadertoy/st_shaders/Glowballs.glsl" "Shadertoy/st_shaders/Skyline.glsl" )
+	source_group( "" FILES "shadertoy/FGShadertoyApp.cpp" "shadertoy/FGShadertoyApp.h" )
 	set_property( TARGET "Samples.Shadertoy" PROPERTY FOLDER "Samples" )
 	target_include_directories( "Samples.Shadertoy" PUBLIC "${FG_EXTERNALS_PATH}" )
 	if (${FG_ENABLE_GRAPHVIZ})

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VFrameGraphThread.h"
 #include "VResourceManager.h"
@@ -90,10 +90,6 @@ static void PipelineResources_Test1 (const FGThreadPtr &fg)
 
 	CPipelineID			ppln = fg->CreatePipeline( std::move(desc) );
 	TEST( ppln.IsValid() );
-
-	RawDescriptorSetLayoutID	layout;
-	uint						binding;
-	TEST( fg->GetDescriptorSet( ppln, DescriptorSetID("0"), OUT layout, OUT binding ));
 
 	PipelineResources	res;
 

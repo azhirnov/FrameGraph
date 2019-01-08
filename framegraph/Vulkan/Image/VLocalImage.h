@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -86,8 +86,7 @@ namespace FG
 		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 		
-		ND_ VkImageView			GetView (const VDevice &, INOUT ImageViewDesc &) const;
-		ND_ VkImageView			GetView (const VDevice &, INOUT Optional<ImageViewDesc> &) const;
+		ND_ VkImageView			GetView (const VDevice &, bool isDefault, INOUT ImageViewDesc &) const;
 
 		ND_ bool				IsCreated ()		const	{ SHAREDLOCK( _rcCheck );  return _imageData != null; }
 		ND_ VkImage				Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _imageData->Handle(); }

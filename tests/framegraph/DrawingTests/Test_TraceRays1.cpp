@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This test affects:
 		...
@@ -67,7 +67,7 @@ void main ()
 		ppln.AddTriangleHitShaders( RTShaderGroupID("TriangleHit"), RTShaderID("PrimiryHit") );
 
 
-		FGThreadPtr		frame_graph	= _frameGraph1;
+		FGThreadPtr		frame_graph	= _fgGraphics1;
 		const uint2		view_size	= {800, 600};
 		ImageID			dst_image	= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::Storage | EImageUsage::TransferSrc },
@@ -89,12 +89,8 @@ void main ()
 		RTGeometryID	rt_geometry	= frame_graph->CreateRayTracingGeometry( RayTracingGeometryDesc{{ triangles_info }} );
 		RTSceneID		rt_scene	= frame_graph->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
 
-		RawDescriptorSetLayoutID	ds_layout;
-		uint						ds_index;
-		CHECK_ERR( frame_graph->GetDescriptorSet( pipeline, DescriptorSetID("0"), OUT ds_layout, OUT ds_index ));
-
-		PipelineResources			resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( ds_layout, OUT resources ));
+		PipelineResources	resources;
+		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
 		
 		
 		bool	data_is_correct = false;
@@ -135,7 +131,7 @@ void main ()
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_Output"), dst_image );
@@ -155,7 +151,7 @@ void main ()
 															.AddHitShader( GeometryID{"Triangle"}, RTShaderGroupID{"TriangleHit"} )
 															.DependsOn( t_build_scene ));
 
-		Task	t_trace			= frame_graph->AddTask( TraceRays{}.SetPipeline( pipeline ).AddResources( ds_index, &resources )
+		Task	t_trace			= frame_graph->AddTask( TraceRays{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources )
 															.SetGroupCount( view_size.x, view_size.y ).SetShaderTable( shader_table )
 															.DependsOn( t_update_table ));
 
@@ -163,12 +159,12 @@ void main ()
 		FG_UNUSED( t_read );
 
 		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 		

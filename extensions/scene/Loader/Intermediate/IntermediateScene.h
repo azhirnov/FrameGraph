@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "scene/Loader/Intermediate/IntermediateMaterial.h"
 #include "scene/Loader/Intermediate/IntermediateLight.h"
 #include "scene/Utils/Math/Transform.h"
+#include "scene/Renderer/Enums.h"
 
 namespace FG
 {
@@ -22,6 +23,7 @@ namespace FG
 		{
 			IntermediateMeshPtr			mesh;
 			IntermediateMaterialPtr		material;
+			EDetailLevel				detail		= EDetailLevel::High;
 
 			MeshNode () {}
 		};
@@ -41,10 +43,10 @@ namespace FG
 
 	// variables
 	private:
-		SceneNode						_root;
-		Array<IntermediateMaterialPtr>	_materials;
-		Array<IntermediateMeshPtr>		_meshes;
-		Array<IntermediateLightPtr>		_lights;
+		SceneNode							_root;
+		Array< IntermediateMaterialPtr >	_materials;
+		Array< IntermediateMeshPtr >		_meshes;
+		Array< IntermediateLightPtr >		_lights;
 
 
 	// methods
@@ -59,6 +61,10 @@ namespace FG
 		ND_ ArrayView<IntermediateMaterialPtr>	GetMaterials ()	const	{ return _materials; }
 		ND_ ArrayView<IntermediateMeshPtr>		GetMeshes ()	const	{ return _meshes; }
 		ND_ ArrayView<IntermediateLightPtr>		GetLights ()	const	{ return _lights; }
+		ND_ SceneNode const&					GetRoot ()		const	{ return _root; }
+
+		ND_ size_t  GetIndexOfMesh (const IntermediateMeshPtr &) const;
+		ND_ size_t  GetIndexOfMaterial (const IntermediateMaterialPtr &) const;
 	};
 	
 	using IntermediateScenePtr = SharedPtr< IntermediateScene >;
@@ -76,5 +82,36 @@ namespace FG
 		_root{ std::move(root) }, _materials{ std::move(materials) },
 		_meshes{ std::move(meshes) }, _lights{ std::move(lights) }
 	{}
+	
+/*
+=================================================
+	GetIndexOfMesh
+=================================================
+*/
+	inline size_t  IntermediateScene::GetIndexOfMesh (const IntermediateMeshPtr &ptr) const
+	{
+		// TODO: binary search
+		for (size_t i = 0; i < _meshes.size(); ++i) {
+			if ( _meshes[i] == ptr )
+				return i;
+		}
+		return UMax;
+	}
+	
+/*
+=================================================
+	GetIndexOfMaterial
+=================================================
+*/
+	inline size_t  IntermediateScene::GetIndexOfMaterial (const IntermediateMaterialPtr &ptr) const
+	{
+		// TODO: binary search
+		for (size_t i = 0; i < _materials.size(); ++i) {
+			if ( _materials[i] == ptr )
+				return i;
+		}
+		return UMax;
+	}
+
 
 }	// FG

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -28,9 +28,10 @@ namespace FG
 	private:
 		VulkanDeviceExt			_vulkan;
 		WindowPtr				_window;
-		FrameGraphPtr			_frameGraphInst;
-		FGThreadPtr				_frameGraph1;
-		FGThreadPtr				_frameGraph2;
+		FGInstancePtr			_fgInstance;
+		FGThreadPtr				_fgGraphics1;
+		FGThreadPtr				_fgGraphics2;
+		FGThreadPtr				_fgCompute;
 		VPipelineCompilerPtr	_pplnCompiler;
 
 		TestQueue_t				_tests;
@@ -81,6 +82,7 @@ namespace FG
 	// implementation tests
 	private:
 		bool ImplTest_Scene1 ();
+		bool ImplTest_CacheOverflow1 ();
 
 
 	// drawing tests
@@ -96,10 +98,13 @@ namespace FG
 		bool Test_Draw1 ();
 		bool Test_Draw2 ();			// with swapchain
 		bool Test_Draw3 ();			// with mesh shader
+		bool Test_Draw4 ();			// with scissor
 		bool Test_TraceRays1 ();
 		bool Test_TraceRays2 ();
 		bool Test_ExternalCmdBuf1 ();
 		bool Test_InvalidID ();
+		bool Test_ReadAttachment1 ();
+		bool Test_AsyncCompute1 ();
 	};
 
 	
@@ -107,14 +112,14 @@ namespace FG
 	inline void FGApp::DeleteResources (Args& ...args)
 	{
 		_RecursiveDeleteResources( std::forward<Args&>( args )... );
-		CHECK( _frameGraphInst->WaitIdle() );
+		CHECK( _fgInstance->WaitIdle() );
 	}
 
 
 	template <typename Arg0, typename ...Args>
 	inline void  FGApp::_RecursiveDeleteResources (Arg0 &arg0, Args& ...args)
 	{
-		_frameGraph1->ReleaseResource( INOUT arg0 );
+		_fgGraphics1->ReleaseResource( INOUT arg0 );
 
 		if constexpr ( CountOf<Args...>() )
 			_RecursiveDeleteResources( std::forward<Args&>( args )... );

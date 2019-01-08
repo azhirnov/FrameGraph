@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "extensions/pipeline_compiler/PipelineCppSerializer.h"
 #include "extensions/pipeline_compiler/VPipelineCompiler.h"
@@ -99,7 +99,7 @@ static bool AddShaderSource (OUT PipelineDescription::Shader &shaderData, const 
 				const char	c1 = src[line_end];
 				const char	n1 = line_end+1 < src.length() ? src[line_end+1] : '\0';
 				
-				if ( (c == '/' and n == '/') or (c == '/' and n == '*') or c == '\n' or c == '\r' )
+				if ( (c1 == '/' and n1 == '/') or (c1 == '/' and n1 == '*') or c1 == '\n' or c1 == '\r' )
 					break;
 
 				++line_end;
@@ -276,7 +276,7 @@ int main (int argc, char** argv)
 	PipelineCppSerializer	serializer;
 	VPipelineCompiler		compiler;
 
-	compiler.SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::GenerateDebugInfo );
+	compiler.SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
 
 
 	for (int i = 1; i < argc; ++i)

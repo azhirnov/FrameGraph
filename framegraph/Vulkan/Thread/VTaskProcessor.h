@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -43,7 +43,7 @@ namespace FG
 		using ResolveRegions_t			= FixedArray< VkImageResolve, FG_MaxResolveRegions >;
 		using ImageClearRanges_t		= FixedArray< VkImageSubresourceRange, FG_MaxClearRanges >;
 		
-		using Statistic_t				= FrameGraph::RenderingStatistics;
+		using Statistic_t				= FrameGraphInstance::RenderingStatistics;
 
 		struct PipelineState
 		{
@@ -60,6 +60,7 @@ namespace FG
 		
 		Task						_currTask;
 		bool						_enableDebugUtils	: 1;
+		bool						_isDefaultScissor	: 1;
 
 		PendingResourceBarriers_t	_pendingResourceBarriers;
 		VBarrierManager &			_barrierMngr;
@@ -135,12 +136,12 @@ namespace FG
 		void _BeginRenderPass (const VFgTask<SubmitRenderPass> &task);
 		void _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
 
-		void _ExtractDescriptorSets (const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
+		void _ExtractDescriptorSets (const VPipelineLayout &l, const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
 		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint);
 		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize);
 		void _BindPipeline (const VRayTracingPipeline* pipeline);
 		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
-		void _SetScissor (const VLogicalRenderPass *, const _fg_hidden_::Scissors_t &) const;
+		void _SetScissor (const VLogicalRenderPass *, ArrayView<RectI>);
 		void _SetDynamicStates (const _fg_hidden_::DynamicStates &) const;
 
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);

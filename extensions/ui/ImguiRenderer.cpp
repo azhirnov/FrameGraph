@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "ImguiRenderer.h"
 #include "imgui_internal.h"
@@ -60,7 +60,7 @@ namespace FG
 	Draw
 =================================================
 */
-	Task  ImguiRenderer::Draw (const FGThreadPtr &fg, LogicalPassID passId)
+	Task  ImguiRenderer::Draw (const FGThreadPtr &fg, LogicalPassID passId, ArrayView<Task> dependencies)
 	{
 		CHECK_ERR( fg and _context and _context->DrawData.Valid );
 
@@ -72,6 +72,10 @@ namespace FG
 		submit.DependsOn( _CreateFontTexture( fg ));
 		submit.DependsOn( _RecreateBuffers( fg ));
 		submit.DependsOn( _UpdateUniformBuffer( fg ));
+
+		for (auto dep : dependencies) {
+			submit.DependsOn( dep );
+		}
 
 		VertexInputState	vert_input;
 		vert_input.Bind( VertexBufferID(), SizeOf<ImDrawVert> );
@@ -106,7 +110,7 @@ namespace FG
 					scissor.bottom	= int(cmd.ClipRect.w + 0.5f);
 
 					fg->AddTask( passId, DrawIndexed{}
-									.SetPipeline( _pipeline ).AddResources( 0, &_resources )
+									.SetPipeline( _pipeline ).AddResources( DescriptorSetID{"0"}, &_resources )
 									.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input ).SetTopology( EPrimitive::TriangleList )
 									.SetIndexBuffer( _indexBuffer, 0_b, EIndex::UShort )
 									.AddDrawCmd( cmd.ElemCount, 1, idx_offset, int(vtx_offset), 0 ).AddScissor( scissor ));
@@ -178,12 +182,7 @@ namespace FG
 		_pipeline = fg->CreatePipeline( std::move(desc) );
 		CHECK_ERR( _pipeline );
 
-		RawDescriptorSetLayoutID	ds_layout;
-		uint						binding = 0;
-		CHECK_ERR( fg->GetDescriptorSet( _pipeline, DescriptorSetID("0"), OUT ds_layout, OUT binding ));
-		CHECK_ERR( binding == 0 );
-
-		CHECK_ERR( fg->InitPipelineResources( ds_layout, OUT _resources ));
+		CHECK_ERR( fg->InitPipelineResources( _pipeline, DescriptorSetID("0"), OUT _resources ));
 		return true;
 	}
 	

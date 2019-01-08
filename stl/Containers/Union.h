@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include <variant>
 #include "stl/Common.h"
@@ -21,15 +21,15 @@ namespace FG
 	Visit
 =================================================
 */
-	template <typename UnionType, typename ...Funcs>
-	inline constexpr decltype(auto)  Visit (UnionType &un, Funcs&&... fn)
+	template <typename ...Types, typename ...Funcs>
+	inline constexpr decltype(auto)  Visit (Union<Types...> &un, Funcs&&... fn)
 	{
 		using namespace _fg_hidden_;
 		return std::visit( overloaded{ std::forward<Funcs &&>(fn)... }, un );
 	}
 
-	template <typename UnionType, typename ...Funcs>
-	inline constexpr decltype(auto)  Visit (const UnionType &un, Funcs&&... fn)
+	template <typename ...Types, typename ...Funcs>
+	inline constexpr decltype(auto)  Visit (const Union<Types...> &un, Funcs&&... fn)
 	{
 		using namespace _fg_hidden_;
 		return std::visit( overloaded{ std::forward<Funcs &&>(fn)... }, un );

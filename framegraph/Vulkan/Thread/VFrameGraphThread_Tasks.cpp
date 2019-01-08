@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VFrameGraphThread.h"
 #include "VStagingBufferManager.h"
@@ -23,7 +23,7 @@ namespace {
 		if ( _taskGraph.Empty() )
 			return true;
 
-		VkCommandBuffer		cmd	= _CreateCommandBuffer( _currUsage );
+		VkCommandBuffer		cmd	= _CreateCommandBuffer();
 		VDevice const&		dev	= GetDevice();
 		
 		// begin
@@ -33,6 +33,7 @@ namespace {
 			info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 			VK_CALL( dev.vkBeginCommandBuffer( cmd, &info ));
+			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex );
 		}
 
 		// commit image layout transition and other
@@ -48,8 +49,12 @@ namespace {
 			_resourceMngr.FlushLocalResourceStates( ExeOrderIndex::Final, batch_exe_order, _barrierMngr, GetDebugger() );
 			_barrierMngr.Commit( dev, cmd );
 		}
-
-		VK_CALL( dev.vkEndCommandBuffer( cmd ));
+		
+		// end
+		{
+			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex + 1 );
+			VK_CALL( dev.vkEndCommandBuffer( cmd ));
+		}
 		return true;
 	}
 	
@@ -1207,28 +1212,6 @@ namespace {
 
 		FG_UNUSED( id, offset, size, immutable );
 		return false;
-	}
-	
-/*
-=================================================
-	UpdateUniformBuffer
-=================================================
-*/
-	bool  VFrameGraphThread::UpdateUniformBuffer (INOUT PipelineResources &res, const UniformID &id, const void *dataPtr, BytesU dataSize)
-	{
-		CHECK_ERR( _stagingMngr );
-		
-		RawBufferID		buffer;
-		BytesU			buf_offset, buf_size;
-		BytesU			min_align { GetDevice().GetDeviceLimits().minUniformBufferOffsetAlignment };
-
-		CHECK_ERR( _stagingMngr->StoreSolidData( dataPtr, dataSize, min_align, OUT buffer, OUT buf_offset, OUT buf_size ));
-
-		BufferID	temp{ buffer };
-		res.BindBuffer( id, temp, buf_offset, buf_size );
-		FG_UNUSED( temp.Release() );
-
-		return true;
 	}
 	
 /*

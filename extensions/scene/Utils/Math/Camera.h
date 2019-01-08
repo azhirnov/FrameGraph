@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -36,6 +36,10 @@ namespace FG
 	// methods
 		CameraTempl () {}
 		
+		ND_ Mat4_t  ToModelViewProjMatrix ()	const	{ return projection * transform.ToMatrix(); }
+		ND_ Mat4_t	ToViewProjMatrix ()			const	{ return projection * transform.ToRotationMatrix(); }
+		ND_ Mat4_t	ToViewMatrix ()				const	{ return transform.ToRotationMatrix(); }
+
 
 		// for transformation
 		Self&	Move (const Vec3_t &delta)

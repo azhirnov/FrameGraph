@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -51,8 +51,15 @@ namespace FG
 
 	struct VPipelineResourceSet
 	{
-		FixedArray< RawPipelineResourcesID, FG_MaxDescriptorSets >	resources;
-		FixedArray< uint, FG_MaxBufferDynamicOffsets >				dynamicOffsets;
+		struct Item {
+			DescriptorSetID			dsId;
+			RawPipelineResourcesID	resId;
+			uint16_t				offsetIndex;	// in 'dynamicOffsets'
+			uint16_t				offsetCount	= 0;
+		};
+
+		FixedArray< Item, FG_MaxDescriptorSets >					resources;
+		mutable FixedArray< uint, FG_MaxBufferDynamicOffsets >		dynamicOffsets;
 	};
 
 

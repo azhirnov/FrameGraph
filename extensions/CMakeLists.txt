@@ -39,8 +39,6 @@ install( TARGETS "VulkanLoader" ARCHIVE DESTINATION "lib" )
 if (${FG_ENABLE_GLSLANG})
 	set( SOURCES 
 		"pipeline_compiler/EShaderCompilationFlags.h"
-		"pipeline_compiler/PipelineCppSerializer.cpp"
-		"pipeline_compiler/PipelineCppSerializer.h"
 		"pipeline_compiler/PrivateDefines.h"
 		"pipeline_compiler/SpirvCompiler.cpp"
 		"pipeline_compiler/SpirvCompiler.h"
@@ -48,7 +46,7 @@ if (${FG_ENABLE_GLSLANG})
 		"pipeline_compiler/VPipelineCompiler.cpp"
 		"pipeline_compiler/VPipelineCompiler.h" )
 	add_library( "PipelineCompiler" STATIC ${SOURCES} )
-	source_group( "" FILES "pipeline_compiler/EShaderCompilationFlags.h" "pipeline_compiler/PipelineCppSerializer.cpp" "pipeline_compiler/PipelineCppSerializer.h" "pipeline_compiler/PrivateDefines.h" "pipeline_compiler/SpirvCompiler.cpp" "pipeline_compiler/SpirvCompiler.h" "pipeline_compiler/SpirvCompiler_Resources.cpp" "pipeline_compiler/VPipelineCompiler.cpp" "pipeline_compiler/VPipelineCompiler.h" )
+	source_group( "" FILES "pipeline_compiler/EShaderCompilationFlags.h" "pipeline_compiler/PrivateDefines.h" "pipeline_compiler/SpirvCompiler.cpp" "pipeline_compiler/SpirvCompiler.h" "pipeline_compiler/SpirvCompiler_Resources.cpp" "pipeline_compiler/VPipelineCompiler.cpp" "pipeline_compiler/VPipelineCompiler.h" )
 	set_property( TARGET "PipelineCompiler" PROPERTY FOLDER "Extensions" )
 	target_include_directories( "PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "PipelineCompiler" PRIVATE ".." )
@@ -79,8 +77,6 @@ endif()
 if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
 	set( SOURCES 
 		"../tests/pipeline_compiler/main.cpp"
-		"../tests/pipeline_compiler/Test_Serializer1.cpp"
-		"../tests/pipeline_compiler/Test_Serializer2.cpp"
 		"../tests/pipeline_compiler/Test_Shader1.cpp"
 		"../tests/pipeline_compiler/Test_Shader10.cpp"
 		"../tests/pipeline_compiler/Test_Shader2.cpp"
@@ -97,7 +93,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
 	else()
 		add_executable( "UnitTests.PipelineCompiler" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Serializer1.cpp" "../tests/pipeline_compiler/Test_Serializer2.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader10.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Test_Shader9.cpp" "../tests/pipeline_compiler/Utils.h" )
+	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader10.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Test_Shader9.cpp" "../tests/pipeline_compiler/Utils.h" )
 	set_property( TARGET "UnitTests.PipelineCompiler" PROPERTY FOLDER "Tests" )
 	target_include_directories( "UnitTests.PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "UnitTests.PipelineCompiler" PRIVATE "../tests/.." )
@@ -124,13 +120,15 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_GLSLANG})
 	set( SOURCES 
-		"offline_compiler/main.cpp" )
+		"offline_compiler/main.cpp"
+		"offline_compiler/PipelineCppSerializer.cpp"
+		"offline_compiler/PipelineCppSerializer.h" )
 	if (DEFINED ANDROID)
 		add_library( "OfflineCompiler" SHARED ${SOURCES} )
 	else()
 		add_executable( "OfflineCompiler" ${SOURCES} )
 	endif()
-	source_group( "" FILES "offline_compiler/main.cpp" )
+	source_group( "" FILES "offline_compiler/main.cpp" "offline_compiler/PipelineCppSerializer.cpp" "offline_compiler/PipelineCppSerializer.h" )
 	set_property( TARGET "OfflineCompiler" PROPERTY FOLDER "Extensions" )
 	target_include_directories( "OfflineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "OfflineCompiler" PRIVATE "offline_compiler" )
@@ -275,19 +273,22 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_GLM})
 	set( SOURCES 
+		"scene/SceneManager/Simple/SimpleRayTracing.cpp"
+		"scene/SceneManager/Simple/SimpleRayTracing.h"
 		"scene/SceneManager/Simple/SimpleScene.cpp"
 		"scene/SceneManager/Simple/SimpleScene.h"
-		"scene/SceneManager/Simple/SimpleScene.Model.cpp"
-		"scene/SceneManager/Simple/SimpleScene.Model.h"
+		"scene/Utils/Ext/FPSCamera.h"
 		"scene/ThreadPool/FGThread.h"
 		"scene/ThreadPool/IOThread.h"
 		"scene/ThreadPool/ThreadPool.cpp"
 		"scene/ThreadPool/ThreadPool.h"
 		"scene/Pipelines/ForwardPlus/default.gppln"
+		"scene/Renderer/Prototype/ppln/default.glsl"
 		"scene/SceneManager/Octree/OctreeScene.h"
 		"scene/Loader/Intermediate/IntermediateImage.h"
 		"scene/Loader/Intermediate/IntermediateLight.h"
 		"scene/Loader/Intermediate/IntermediateMaterial.h"
+		"scene/Loader/Intermediate/IntermediateMesh.cpp"
 		"scene/Loader/Intermediate/IntermediateMesh.h"
 		"scene/Loader/Intermediate/IntermediateScene.h"
 		"scene/Loader/Intermediate/VertexAttributes.h"
@@ -313,31 +314,33 @@ if (${FG_ENABLE_GLM})
 		"scene/SceneManager/Resources/Model.h"
 		"scene/SceneManager/Resources/ParticleEmitter.h"
 		"scene/SceneManager/Resources/SceletalModel.h"
-		"scene/App/BaseApp.h"
 		"scene/Loader/Assimp/AssimpLoader.cpp"
 		"scene/Loader/Assimp/AssimpLoader.h"
-		"scene/SceneManager/IDrawable3D.h"
+		"scene/SceneManager/DefaultImageCache.cpp"
+		"scene/SceneManager/DefaultImageCache.h"
+		"scene/SceneManager/DefaultSceneManager.cpp"
+		"scene/SceneManager/DefaultSceneManager.h"
+		"scene/SceneManager/IImageCache.h"
 		"scene/SceneManager/ISceneHierarchy.h"
 		"scene/SceneManager/ISceneManager.h"
 		"scene/SceneManager/IViewport.h"
-		"scene/SceneManager/SceneManager.cpp"
-		"scene/SceneManager/SceneManager.h"
 		"scene/Loader/DevIL/DevILLoader.cpp"
 		"scene/Loader/DevIL/DevILLoader.h" )
 	add_library( "Scene" STATIC ${SOURCES} )
-	source_group( "SceneManager\\Simple" FILES "scene/SceneManager/Simple/SimpleScene.cpp" "scene/SceneManager/Simple/SimpleScene.h" "scene/SceneManager/Simple/SimpleScene.Model.cpp" "scene/SceneManager/Simple/SimpleScene.Model.h" )
+	source_group( "SceneManager\\Simple" FILES "scene/SceneManager/Simple/SimpleRayTracing.cpp" "scene/SceneManager/Simple/SimpleRayTracing.h" "scene/SceneManager/Simple/SimpleScene.cpp" "scene/SceneManager/Simple/SimpleScene.h" )
+	source_group( "Utils\\Ext" FILES "scene/Utils/Ext/FPSCamera.h" )
 	source_group( "ThreadPool" FILES "scene/ThreadPool/FGThread.h" "scene/ThreadPool/IOThread.h" "scene/ThreadPool/ThreadPool.cpp" "scene/ThreadPool/ThreadPool.h" )
 	source_group( "Pipelines\\ForwardPlus" FILES "scene/Pipelines/ForwardPlus/default.gppln" )
+	source_group( "Renderer\\Prototype\\ppln" FILES "scene/Renderer/Prototype/ppln/default.glsl" )
 	source_group( "SceneManager\\Octree" FILES "scene/SceneManager/Octree/OctreeScene.h" )
-	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermediateImage.h" "scene/Loader/Intermediate/IntermediateLight.h" "scene/Loader/Intermediate/IntermediateMaterial.h" "scene/Loader/Intermediate/IntermediateMesh.h" "scene/Loader/Intermediate/IntermediateScene.h" "scene/Loader/Intermediate/VertexAttributes.h" )
+	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermediateImage.h" "scene/Loader/Intermediate/IntermediateLight.h" "scene/Loader/Intermediate/IntermediateMaterial.h" "scene/Loader/Intermediate/IntermediateMesh.cpp" "scene/Loader/Intermediate/IntermediateMesh.h" "scene/Loader/Intermediate/IntermediateScene.h" "scene/Loader/Intermediate/VertexAttributes.h" )
 	source_group( "Renderer" FILES "scene/Renderer/Enums.h" "scene/Renderer/IRenderTechnique.h" "scene/Renderer/RenderQueue.h" "scene/Renderer/ScenePreRender.h" )
 	source_group( "Utils\\Math" FILES "scene/Utils/Math/AABB.h" "scene/Utils/Math/Camera.h" "scene/Utils/Math/Frustum.h" "scene/Utils/Math/GLM.h" "scene/Utils/Math/OOBB.h" "scene/Utils/Math/Radians.h" "scene/Utils/Math/Sphere.h" "scene/Utils/Math/Transform.h" )
 	source_group( "Renderer\\Prototype" FILES "scene/Renderer/Prototype/RendererPrototype.cpp" "scene/Renderer/Prototype/RendererPrototype.h" )
 	source_group( "" FILES "scene/Common.h" )
 	source_group( "SceneManager\\Resources" FILES "scene/SceneManager/Resources/FpsCamera.h" "scene/SceneManager/Resources/LightSource.h" "scene/SceneManager/Resources/Material.h" "scene/SceneManager/Resources/Model.cpp" "scene/SceneManager/Resources/Model.h" "scene/SceneManager/Resources/ParticleEmitter.h" "scene/SceneManager/Resources/SceletalModel.h" )
-	source_group( "App" FILES "scene/App/BaseApp.h" )
 	source_group( "Loader\\Assimp" FILES "scene/Loader/Assimp/AssimpLoader.cpp" "scene/Loader/Assimp/AssimpLoader.h" )
-	source_group( "SceneManager" FILES "scene/SceneManager/IDrawable3D.h" "scene/SceneManager/ISceneHierarchy.h" "scene/SceneManager/ISceneManager.h" "scene/SceneManager/IViewport.h" "scene/SceneManager/SceneManager.cpp" "scene/SceneManager/SceneManager.h" )
+	source_group( "SceneManager" FILES "scene/SceneManager/DefaultImageCache.cpp" "scene/SceneManager/DefaultImageCache.h" "scene/SceneManager/DefaultSceneManager.cpp" "scene/SceneManager/DefaultSceneManager.h" "scene/SceneManager/IImageCache.h" "scene/SceneManager/ISceneHierarchy.h" "scene/SceneManager/ISceneManager.h" "scene/SceneManager/IViewport.h" )
 	source_group( "Loader\\DevIL" FILES "scene/Loader/DevIL/DevILLoader.cpp" "scene/Loader/DevIL/DevILLoader.h" )
 	set_property( TARGET "Scene" PROPERTY FOLDER "Extensions" )
 	target_include_directories( "Scene" PUBLIC "${FG_GLM_INCLUDE_DIR}" )
@@ -412,6 +415,9 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLM})
 	if (${FG_ENABLE_GLM})
 		target_link_libraries( "Tests.Scene" "Scene" )
 	endif()
+	if (${FG_ENABLE_GLSLANG})
+		target_link_libraries( "Tests.Scene" "PipelineCompiler" )
+	endif()
 	# compiler
 	target_compile_definitions( "Tests.Scene" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
 	set_target_properties( "Tests.Scene" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
@@ -440,6 +446,7 @@ if (${FG_ENABLE_IMGUI})
 	target_include_directories( "UI" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "UI" PUBLIC "${FG_IMGUI_SOURCE_DIR}" )
 	target_link_libraries( "UI" "FrameGraph" )
+	target_link_libraries( "UI" "${FG_IMGUI_LIBRARY}" )
 	target_link_libraries( "UI" "Framework" )
 	add_dependencies( "UI" External.imgui )
 	# compiler
@@ -461,13 +468,6 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_IMGUI})
 	set( SOURCES 
-		"${FG_IMGUI_SOURCE_DIR}/imconfig.h"
-		"${FG_IMGUI_SOURCE_DIR}/imgui.h"
-		"${FG_IMGUI_SOURCE_DIR}/imgui.cpp"
-		"${FG_IMGUI_SOURCE_DIR}/imgui_internal.h"
-		"${FG_IMGUI_SOURCE_DIR}/imgui_draw.cpp"
-		"${FG_IMGUI_SOURCE_DIR}/imgui_demo.cpp"
-		"${FG_IMGUI_SOURCE_DIR}/imgui_widgets.cpp"
 		"../tests/ui/main.cpp"
 		"../tests/ui/UIApp.cpp"
 		"../tests/ui/UIApp.h" )
@@ -476,7 +476,6 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_IMGUI})
 	else()
 		add_executable( "Tests.UI" ${SOURCES} )
 	endif()
-	source_group( "imgui" FILES "${FG_IMGUI_SOURCE_DIR}/imconfig.h" "${FG_IMGUI_SOURCE_DIR}/imgui.h" "${FG_IMGUI_SOURCE_DIR}/imgui.cpp" "${FG_IMGUI_SOURCE_DIR}/imgui_internal.h" "${FG_IMGUI_SOURCE_DIR}/imgui_draw.cpp" "${FG_IMGUI_SOURCE_DIR}/imgui_demo.cpp" "${FG_IMGUI_SOURCE_DIR}/imgui_widgets.cpp" )
 	source_group( "" FILES "../tests/ui/main.cpp" "../tests/ui/UIApp.cpp" "../tests/ui/UIApp.h" )
 	set_property( TARGET "Tests.UI" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.UI" PUBLIC "${FG_EXTERNALS_PATH}" )
@@ -500,6 +499,46 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_IMGUI})
 	set_target_properties( "Tests.UI" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
 	target_compile_options( "Tests.UI" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
 	target_compile_definitions( "Tests.UI" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
+# project: GLSLTrace
+#==================================================================================================
+if (${FG_ENABLE_GLSLANG})
+	set( SOURCES 
+		"glsl_trace/GLSLShaderTrace.cpp"
+		"glsl_trace/GLSLShaderTrace.h"
+		"glsl_trace/GLSLShaderTraceTestUtils.h"
+		"glsl_trace/GLSLShaderTrace_Test1.cpp"
+		"glsl_trace/main.cpp"
+		"glsl_trace/ShaderCompiler.cpp"
+		"glsl_trace/ShaderCompiler.h" )
+	if (DEFINED ANDROID)
+		add_library( "GLSLTrace" SHARED ${SOURCES} )
+	else()
+		add_executable( "GLSLTrace" ${SOURCES} )
+	endif()
+	source_group( "" FILES "glsl_trace/GLSLShaderTrace.cpp" "glsl_trace/GLSLShaderTrace.h" "glsl_trace/GLSLShaderTraceTestUtils.h" "glsl_trace/GLSLShaderTrace_Test1.cpp" "glsl_trace/main.cpp" "glsl_trace/ShaderCompiler.cpp" "glsl_trace/ShaderCompiler.h" )
+	set_property( TARGET "GLSLTrace" PROPERTY FOLDER "Extensions" )
+	target_include_directories( "GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "GLSLTrace" PRIVATE "glsl_trace/.." )
+	target_include_directories( "GLSLTrace" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
+	target_link_libraries( "GLSLTrace" "${FG_GLSLANG_LIBRARIES}" )
+	target_link_libraries( "GLSLTrace" "Framework" )
+	target_compile_definitions( "GLSLTrace" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
+	add_dependencies( "GLSLTrace" External.glslang-main )
+	# compiler
+	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
 endif()
 

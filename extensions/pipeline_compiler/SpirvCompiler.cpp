@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
@@ -18,8 +18,12 @@
 #include "glslang/SPIRV/GLSL.std.450.h"
 
 // SPIRV-Tools includes
-#include "spirv-tools/optimizer.hpp"
-#include "spirv-tools/libspirv.h"
+#ifdef ENABLE_OPT
+#	include "spirv-tools/optimizer.hpp"
+#	include "spirv-tools/libspirv.h"
+#endif
+
+#include "extensions/glsl_trace/GLSLShaderTrace.h"
 
 
 namespace FG
@@ -81,6 +85,8 @@ namespace FG
 		log.clear();
 		COMP_CHECK_ERR( (dstShaderFmt & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV );
 
+		dstShaderFmt &= ~EShaderLangFormat::_ModeMask;
+
 		_currentStage = EShaderStages_FromShader( shaderType );
 
 		GLSLangResult	glslang_data;
@@ -93,6 +99,33 @@ namespace FG
 
 		outShader.specConstants	= outReflection.specConstants;
 		outShader.AddShaderData( dstShaderFmt, entry, std::move(spirv) );
+
+		// compile shader with debug info
+		EShaderLangFormat	dbg_mode = (srcShaderFmt & EShaderLangFormat::_ModeMask);
+		EShLanguage			stage	 = glslang_data.shader->getStage();
+		TIntermediate&		interm	 = *glslang_data.prog.getIntermediate( stage );
+
+		switch ( dbg_mode )
+		{
+			case EShaderLangFormat::WithDebugTrace :
+			{
+				GLSLShaderTrace	trace;
+				COMP_CHECK_ERR( trace.GenerateDebugInfo( interm, 1 ));
+
+				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
+
+				outShader.AddShaderData( dstShaderFmt | dbg_mode, entry, std::move(spirv) );
+				break;
+			}
+			case EShaderLangFormat::WithDebugAsserts :
+			case EShaderLangFormat::WithDebugView :
+			case EShaderLangFormat::WithProfiling :
+				ASSERT( !"not supported yet" );
+				break;
+
+			case EShaderLangFormat::Unknown :
+				break;
+		}
 		return true;
 	}
 	
@@ -156,7 +189,10 @@ namespace FG
 		EProfile					sh_profile		= ENoProfile;
 		EShSource					sh_source;
 
+		#ifdef ENABLE_OPT
 		_spirvTraget	= SPV_ENV_UNIVERSAL_1_0;
+		#endif
+
 		_targetVulkan	= false;
 		
 		switch ( srcShaderFmt & EShaderLangFormat::_ApiMask )
@@ -198,7 +234,9 @@ namespace FG
 				client_version	= (version == 110 ? EShTargetVulkan_1_1 : EShTargetVulkan_1_0);
 				target			= EShTargetSpv;
 				target_version	= (version == 110 ? EShTargetSpv_1_2 : EShTargetSpv_1_0);
+				#ifdef ENABLE_OPT
 				_spirvTraget	= (version == 110 ? SPV_ENV_VULKAN_1_1 : SPV_ENV_VULKAN_1_0);
+				#endif
 				_targetVulkan	= true;
 				break;
 			}
@@ -208,7 +246,9 @@ namespace FG
 				{
 					target			= EShTargetSpv;
 					target_version	= EShTargetSpv_1_0;
+					#ifdef ENABLE_OPT
 					_spirvTraget	= SPV_ENV_OPENGL_4_5;
+					#endif
 				}
 				break;
 		}
@@ -275,18 +315,21 @@ namespace FG
 		GlslangToSpv( *intermediate, OUT spirv, &logger, &spv_options );
 		log += logger.getAllMessages();
 
-		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::StrongOptimization ) )
-			CHECK_ERR( _OptimizeSPIRV( INOUT spirv, OUT log ));
+		#ifdef ENABLE_OPT
+			if ( EnumEq( _compilerFlags, EShaderCompilationFlags::StrongOptimization ) )
+				CHECK_ERR( _OptimizeSPIRV( INOUT spirv, OUT log ));
+		#endif
 
 		return true;
 	}
 	
+#ifdef ENABLE_OPT
 /*
 =================================================
-	DisassempleSPIRV
+	DisassembleSPIRV
 =================================================
 */
-	inline bool DisassempleSPIRV (spv_target_env targetEnv, const Array<uint> &spirv, OUT String &result)
+	inline bool DisassembleSPIRV (spv_target_env targetEnv, const Array<uint> &spirv, OUT String &result)
 	{
 		result.clear();
 
@@ -362,7 +405,8 @@ namespace FG
 
 		return true;
 	}
-	
+#endif	// ENABLE_OPT
+
 /*
 =================================================
 	ReadLine
@@ -379,7 +423,7 @@ namespace FG
 		{
 			const char	c = log[pos];
 
-			if ( c == '/r' or c == '/n' )
+			if ( c == '\r' or c == '\n' )
 				break;
 		}
 
@@ -393,7 +437,7 @@ namespace FG
 		{
 			const char	c = log[pos];
 
-			if ( c != '/r' and c != '/n' )
+			if ( c != '\r' and c != '\n' )
 				break;
 		}
 		return true;
@@ -435,9 +479,10 @@ namespace FG
 
 		const auto			SkipSeparator = [&line, &pos] ()
 		{{
-			if ( line[pos] == ':' and line[pos+1] == ' ' )
+			if ( pos+1 < line.length() and line[pos] == ':' and line[pos+1] == ' ' )
 				pos += 2;
-			else if ( line[pos] == ':' )
+			else
+			if ( pos < line.length() and line[pos] == ':' )
 				pos += 1;
 			else
 				return false;
@@ -476,7 +521,7 @@ namespace FG
 			if ( not is_number )
 				info.fileName = src;
 			else
-				info.sourceIndex = std::stoi( String(src) );
+				info.sourceIndex = uint(std::stoi( String(src) ));
 		}
 
 
@@ -488,7 +533,7 @@ namespace FG
 			if ( not SkipSeparator() or not is_number )
 				return false;
 
-			info.line = std::stoi( String(src) );
+			info.line = uint(std::stoi( String(src) ));
 		}
 
 		info.description = line.substr( pos );
@@ -541,7 +586,7 @@ namespace FG
 						num_lines[ error_info.sourceIndex ] = lines_count;
 					}
 					
-					CHECK( error_info.line < lines_count );
+					CHECK( error_info.line <= lines_count );
 
 					size_t	line_pos = 0;
 					CHECK( StringParser::MoveToLine( cur_source, INOUT line_pos, error_info.line-1 ));
@@ -1018,10 +1063,10 @@ namespace FG
 			{
 				ASSERT( member_size == 0 );
 
-				arrayStride = BytesU(dummy_stride);
+				arrayStride = BytesU(uint( dummy_stride ));
 			}
 		}
-		staticSize = BytesU(offset);
+		staticSize = BytesU(uint( offset ));
 		return true;
 	}
 
@@ -1310,7 +1355,7 @@ namespace FG
 
 			case EShLangTessControl :
 			{
-				result.tessellation.patchControlPoints	= _intermediate->getVertices();
+				result.tessellation.patchControlPoints	= uint(_intermediate->getVertices());
 
 				result.vertex.supportedTopology.set( uint(EPrimitive::Patch) );
 				break;
@@ -1384,8 +1429,8 @@ namespace FG
 			}
 			case EShLangMeshNV :
 			{
-				result.mesh.maxVertices		= _intermediate->getVertices();
-				result.mesh.maxPrimitives	= _intermediate->getPrimitives();
+				result.mesh.maxVertices		= uint(_intermediate->getVertices());
+				result.mesh.maxPrimitives	= uint(_intermediate->getPrimitives());
 				result.mesh.maxIndices		= result.mesh.maxPrimitives;
 
 				DISABLE_ENUM_CHECKS();
@@ -1429,3 +1474,5 @@ namespace FG
 	}
 
 }	// FG
+
+#include "extensions/glsl_trace/GLSLShaderTrace.cpp"

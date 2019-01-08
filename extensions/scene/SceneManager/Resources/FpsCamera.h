@@ -1,8 +1,9 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
-#include "scene/SceneManager/ICamera.h"
+#include "scene/Utils/Math/Camera.h"
+#include "scene/Utils/Math/Frustum.h"
 
 namespace FG
 {
@@ -11,21 +12,17 @@ namespace FG
 	// FPS Camera
 	//
 
-	class FpsCamera final : public ICamera
+	class FPSCamera final
 	{
 	// variables
 	private:
+		Camera		_camera;
 
 
 	// methods
 	public:
-		FpsCamera ();
+		FPSCamera ();
 		
-		bool  IsVisible (const AABB &) const override;
-		bool  IsVisible (const Sphere &) const override;
-
-		float  MaxVisibilityRange () const override;
-		uint2  MinMaxDetailLevel () const override;
 	};
 
 

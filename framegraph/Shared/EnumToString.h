@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -177,7 +177,6 @@ namespace FG
 			case EResourceState::UniformRead :							str << "Uniform";					break;
 			case EResourceState::ShaderSample :							str << "ShaderSample";				break;
 			case EResourceState::InputAttachment :						str << "SubpassInput";				break;
-			case EResourceState::TransientAttachment :					str << "Transient";					break;
 			case EResourceState::TransferSrc :							str << "Transfer-R";				break;
 			case EResourceState::TransferDst :							str << "Transfer-W";				break;
 			case EResourceState::ColorAttachmentRead :					str << "Color-R";					break;
@@ -185,7 +184,7 @@ namespace FG
 			case EResourceState::ColorAttachmentReadWrite :				str << "Color-RW";					break;
 			case EResourceState::DepthStencilAttachmentRead :			str << "DepthStencil-R";			break;
 			case EResourceState::DepthStencilAttachmentWrite :			str << "DepthStencil-W";			break;
-			case EResourceState::DepthStencilAttachmentReadWrite :		str << "DepthStencil-R";			break;
+			case EResourceState::DepthStencilAttachmentReadWrite :		str << "DepthStencil-RW";			break;
 			case EResourceState::HostRead :								str << "Host-R";					break;
 			case EResourceState::HostWrite :							str << "Host-W";					break;
 			case EResourceState::HostReadWrite :						str << "Host-RW";					break;

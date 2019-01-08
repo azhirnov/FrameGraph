@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanDeviceExt.h"
 #include "stl/Algorithms/StringUtils.h"
@@ -457,18 +457,33 @@ namespace FG
 	SetObjectName
 =================================================
 */
-	bool VulkanDeviceExt::SetObjectName (uint64_t id, StringView name, VkDebugReportObjectTypeEXT type) const
+	bool VulkanDeviceExt::SetObjectName (uint64_t id, StringView name, VkObjectType type) const
 	{
-		if ( name.empty() or id == VK_NULL_HANDLE or not _debugMarkersSupported )
+		if ( name.empty() or id == VK_NULL_HANDLE )
 			return false;
 
-		VkDebugMarkerObjectNameInfoEXT	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
-		info.objectType		= type;
-		info.object			= id;
-		info.pObjectName	= name.data();
+		if ( _debugUtilsSupported )
+		{
+			VkDebugUtilsObjectNameInfoEXT	info = {};
+			info.sType			= VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+			info.objectType		= type;
+			info.objectHandle	= id;
+			info.pObjectName	= name.data();
 
-		VK_CALL( vkDebugMarkerSetObjectNameEXT( GetVkDevice(), &info ));
+			VK_CALL( vkSetDebugUtilsObjectNameEXT( GetVkDevice(), &info ));
+		}
+		else
+		if ( _debugMarkersSupported )
+		{
+			VkDebugMarkerObjectNameInfoEXT	info = {};
+			info.sType			= VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+			info.objectType		= VkDebugReportObjectTypeEXT(type);
+			info.object			= id;
+			info.pObjectName	= name.data();
+
+			VK_CALL( vkDebugMarkerSetObjectNameEXT( GetVkDevice(), &info ));
+		}
+		
 		return true;
 	}
 	

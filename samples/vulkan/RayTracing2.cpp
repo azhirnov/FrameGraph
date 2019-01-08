@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	this sample based on 'PerGeometryHitShader' from https://github.com/NVIDIAGameWorks/DxrTutorials/tree/master/Tutorials/12-PerGeometryHitShader
 */

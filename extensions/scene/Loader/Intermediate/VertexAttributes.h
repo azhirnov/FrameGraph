@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -51,7 +51,13 @@ namespace FG
 		explicit VertexAttributes (const VertexInputState &vertexInput, const VertexBufferID &bufferId = Default);
 
 		template <typename T>
-		ND_ StructView<T>  GetData (const VertexID &id, const void* vertexData, size_t vertexCount, BytesU stride) const;
+		ND_ StructView<T>		GetData (const VertexID &id, const void* vertexData, size_t vertexCount, BytesU stride) const;
+
+		ND_ Attribs_t const&	GetVertexBinds ()	const	{ return _attribs; }
+
+		ND_ HashVal	CalcHash () const;
+
+		ND_ bool	operator == (const VertexAttributes &) const;
 	};
 
 	using VertexAttributesPtr = SharedPtr< VertexAttributes >;
@@ -98,6 +104,47 @@ namespace FG
 		ASSERT( iter->second.type == VertexDesc<T>::attrib );
 
 		return StructView<T>{ vertexData + iter->second.offset, vertexCount, uint(stride) };
+	}
+	
+/*
+=================================================
+	CalcHash
+=================================================
+*/
+	inline HashVal  VertexAttributes::CalcHash () const
+	{
+		HashVal	result;
+
+		for (auto& attr : _attribs) {
+			result << HashOf( attr.first ) << HashOf( attr.second.type ) << HashOf( attr.second.offset );
+		}
+		return result;
+	}
+	
+/*
+=================================================
+	operator ==
+=================================================
+*/
+	inline bool  VertexAttributes::operator == (const VertexAttributes &rhs) const
+	{
+		auto&	lattr = this->GetVertexBinds();
+		auto&	rattr = rhs.GetVertexBinds();
+
+		if ( lattr.size() != rattr.size() )
+			return false;
+
+		for (auto& at : lattr)
+		{
+			auto	iter = rattr.find( at.first );
+			if ( iter == rattr.end() )
+				return false;
+
+			if ( at.second.offset != iter->second.offset or
+					at.second.type   != iter->second.type   )
+				return false;
+		}
+		return true;
 	}
 
 

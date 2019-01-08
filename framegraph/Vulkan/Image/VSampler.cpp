@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VSampler.h"
 #include "VEnumCast.h"
@@ -115,7 +115,7 @@ namespace FG
 			 _createInfo.addressModeV != VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER and
 			 _createInfo.addressModeW != VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER )
 		{
-			// reset border color, becouse it is unused
+			// reset border color, because it is unused
 			_createInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		}
 		

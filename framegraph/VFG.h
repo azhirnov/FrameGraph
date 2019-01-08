@@ -1,6 +1,6 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
-	FrameGraph - high level graphics abstraction.
+	FrameGraph - high level graphics api abstraction.
 */
 
-#include "framegraph/Public/FrameGraph.h"
+#include "framegraph/Public/FrameGraphInstance.h"

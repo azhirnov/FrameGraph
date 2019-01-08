@@ -1,9 +1,9 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "framegraph/Public/FrameGraphThread.h"
-#include "VFrameGraph.h"
+#include "VFrameGraphInstance.h"
 #include "VResourceManagerThread.h"
 #include "VSwapchain.h"
 #include "VTaskGraph.h"
@@ -48,23 +48,31 @@ namespace FG
 		{
 			CommandBuffers_t	pending;
 			CommandBuffers_t	executed;
+			uint				queryIndex;
 		};
 		using PerFrameArray_t	= FixedArray< PerFrame, MaxFrames >;
 
 
 		struct PerQueue
 		{
-			PerFrameArray_t			frames;
-			VkCommandPool			cmdPoolId	= VK_NULL_HANDLE;
-			VDeviceQueueInfoPtr		ptr;
-			EThreadUsage			usage		= Default;
+			PerFrameArray_t		frames;
+			VkCommandPool		cmdPoolId	= VK_NULL_HANDLE;
+			VDeviceQueueInfoPtr	ptr;
+			EThreadUsage		usage		= Default;
 		};
 		using PerQueueArray_t	= FixedArray< PerQueue, MaxQueues >;
+
+
+		struct QueryHelper
+		{
+			VkQueryPool			pool		= VK_NULL_HANDLE;
+		};
+
 		
 		using TempTaskArray_t	= std::vector< Task, StdLinearAllocator<Task> >;
 		using TaskGraph_t		= VTaskGraph< VTaskProcessor >;
 		using Allocator_t		= LinearAllocator<>;
-		using Statistic_t		= FrameGraph::Statistics;
+		using Statistic_t		= FrameGraphInstance::Statistics;
 
 
 	// variables
@@ -78,7 +86,9 @@ namespace FG
 		ECompilationFlags			_compilationFlags	= Default;
 
 		PerQueueArray_t				_queues;
-		uint						_frameId			= 0;
+		Ptr<PerQueue>				_currQueue;
+		VkQueryPool					_queryPool			= VK_NULL_HANDLE;
+		uint						_frameId			: 3;		// 0..7
 		bool						_isFirstUsage		= true;		// 'true' if it is first call of 'Begin' in current frame
 		
 		TaskGraph_t					_taskGraph;
@@ -92,7 +102,7 @@ namespace FG
 
 		const DebugName_t			_debugName;
 
-		VFrameGraph &						_instance;
+		VFrameGraphInstance &				_instance;
 		VResourceManagerThread				_resourceMngr;
 		VBarrierManager						_barrierMngr;
 		SharedPtr< VMemoryManager >			_memoryMngr;		// memory manager must live until all memory objects have been destroyed
@@ -105,7 +115,7 @@ namespace FG
 
 	// methods
 	public:
-		VFrameGraphThread (VFrameGraph &, EThreadUsage, StringView);
+		VFrameGraphThread (VFrameGraphInstance &, EThreadUsage, StringView);
 		~VFrameGraphThread ();
 			
 		// resource manager
@@ -118,7 +128,10 @@ namespace FG
 		ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName) override;
 		BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName) override;
 		SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName) override;
-		bool			InitPipelineResources (RawDescriptorSetLayoutID layout, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (const GPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (const CPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (const MPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 
@@ -135,11 +148,6 @@ namespace FG
 		BufferDesc const&	GetDescription (const BufferID &id) const override;
 		ImageDesc  const&	GetDescription (const ImageID &id) const override;
 		//SamplerDesc const&	GetDescription (const SamplerID &id) const override;
-		
-		bool			GetDescriptorSet (const GPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
-		bool			GetDescriptorSet (const CPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
-		bool			GetDescriptorSet (const MPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
-		bool			GetDescriptorSet (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const override;
 
 		EThreadUsage	GetThreadUsage () const override		{ SCOPELOCK( _rcCheck );  return _threadUsage; }
 		bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const override;
@@ -165,7 +173,6 @@ namespace FG
 		
 		//ImageID		GetSwapchainImage (ESwapchainImage type) override;
 		
-		bool		UpdateUniformBuffer (INOUT PipelineResources &res, const UniformID &id, const void *dataPtr, BytesU dataSize) override;
 		bool		UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data) override;
 
 		// tasks
@@ -217,7 +224,7 @@ namespace FG
 		ND_ uint							GetRingBufferSize ()		const	{ SCOPELOCK( _rcCheck );  return _instance.GetRingBufferSize(); }
 		ND_ Statistic_t &					EditStatistic ()					{ SCOPELOCK( _rcCheck );  return _statistic; }
 
-		ND_ VFrameGraph const*				GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
+		ND_ VFrameGraphInstance const*		GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
 		ND_ VResourceManagerThread*			GetResourceManager ()				{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
 		ND_ VResourceManagerThread const*	GetResourceManager ()		const	{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
 		ND_ VMemoryManager*					GetMemoryManager ()					{ SCOPELOCK( _rcCheck );  return _memoryMngr.operator->(); }
@@ -232,7 +239,7 @@ namespace FG
 		ND_ Desc const&  _GetDescription (const ID &id) const;
 		
 		template <typename PplnID>
-		bool _GetDescriptorSet (const PplnID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const;
+		bool _InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const;
 
 		template <typename ID>
 		void _ReleaseResource (INOUT ID &id);
@@ -249,7 +256,7 @@ namespace FG
 		ND_ bool	_IsInitialized ()		const;
 		ND_ bool	_IsInitialOrIdleState ()const;
 		
-		ND_ VkCommandBuffer		_CreateCommandBuffer (EThreadUsage usage);
+		ND_ VkCommandBuffer		_CreateCommandBuffer () const;
 		ND_ PerQueue *			_GetQueue (EThreadUsage usage);
 		ND_ VDeviceQueueInfoPtr	_GetAnyGraphicsQueue () const;
 
@@ -263,6 +270,7 @@ namespace FG
 		bool _AddAsyncStreamingQueue ();
 
 		bool _CreateCommandBuffers (INOUT PerQueue &) const;
+		bool _InitGpuQueries (INOUT PerQueueArray_t &, INOUT VkQueryPool &) const;
 
 		bool _BuildCommandBuffers ();
 		bool _ProcessTasks (VkCommandBuffer cmd);

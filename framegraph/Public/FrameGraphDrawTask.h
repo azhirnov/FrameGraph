@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -33,6 +33,9 @@ namespace _fg_hidden_
 	};
 	
 	
+	//
+	// Render States
+	//
 	struct VertexBuffer
 	{
 		RawBufferID			buffer;
@@ -113,8 +116,8 @@ namespace _fg_hidden_
 	// methods
 		BaseDrawCall () : BaseDrawTask<TaskType>{} {}
 		BaseDrawCall (StringView name, RGBA8u color) : BaseDrawTask<TaskType>{ name, color } {}
-
-		TaskType&  AddResources (uint bindingIndex, const PipelineResources *res);
+		
+		TaskType&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 
 		TaskType&  AddScissor (const RectI &rect);
 		TaskType&  AddScissor (const RectU &rect);
@@ -126,7 +129,7 @@ namespace _fg_hidden_
 		TaskType&  AddColorBuffer (const RenderTargetID &id, bool4 colorMask);
 
 		TaskType&  SetStencilTestEnabled (bool value);
-		TaskType&  SetStencilRef (uint value);
+		TaskType&  SetStencilReference (uint value);
 		TaskType&  SetStencilCompareMask (uint value);
 		TaskType&  SetStencilWriteMask (uint value);
 		TaskType&  SetStencilFailOp (EStencilOp value);
@@ -469,10 +472,10 @@ namespace _fg_hidden_
 namespace _fg_hidden_
 {
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::AddResources (uint bindingIndex, const PipelineResources *res)
+	inline TaskType&  BaseDrawCall<TaskType>::AddResources (const DescriptorSetID &id, const PipelineResources *res)
 	{
-		ASSERT( bindingIndex < resources.size() );
-		resources[bindingIndex] = res;
+		ASSERT( id.IsDefined() and res );
+		resources.insert({ id, res });
 		return static_cast<TaskType &>( *this );
 	}
 
@@ -561,7 +564,7 @@ namespace _fg_hidden_
 	}
 
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::SetStencilRef (uint value)
+	inline TaskType&  BaseDrawCall<TaskType>::SetStencilReference (uint value)
 	{
 		dynamicStates.stencilReference = StencilValue_t(value);
 		dynamicStates.hasStencilReference = true;

@@ -1,15 +1,14 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "scene/Loader/Intermediate/IntermediateMesh.h"
 #include "scene/SceneManager/Resources/Material.h"
-#include "scene/SceneManager/IDrawable3D.h"
 #include "scene/Utils/Math/AABB.h"
 
 namespace FG
 {
-
+/*
 	//
 	// Model
 	//
@@ -74,6 +73,6 @@ namespace FG
 	};
 
 	using ModelPtr = SharedPtr< Model >;
-
+	*/
 
 }	// FG

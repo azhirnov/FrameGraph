@@ -1,6 +1,6 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framegraph/Public/FrameGraph.h"
+#include "framegraph/Public/FrameGraphInstance.h"
 
 namespace FG
 {
@@ -10,7 +10,7 @@ namespace FG
 	MergeRenderStatistic
 =================================================
 */
-	inline void MergeRenderStatistic (const FrameGraph::RenderingStatistics &src, INOUT FrameGraph::RenderingStatistics &dst)
+	inline void MergeRenderStatistic (const FrameGraphInstance::RenderingStatistics &src, INOUT FrameGraphInstance::RenderingStatistics &dst)
 	{
 		dst.descriptorBinds				+= src.descriptorBinds;
 		dst.pushConstants				+= src.pushConstants;
@@ -29,6 +29,8 @@ namespace FG
 		dst.rayTracingPipelineBindings	+= src.rayTracingPipelineBindings;
 		dst.traceRaysCalls				+= src.traceRaysCalls;
 		dst.buildASCalls				+= src.buildASCalls;
+
+		dst.frameTime					+= src.frameTime;
 	}
 	
 /*
@@ -36,7 +38,7 @@ namespace FG
 	MergeRenderStatistic
 =================================================
 */
-	inline void MergeResourceStatistic (const FrameGraph::ResourceStatistics &src, INOUT FrameGraph::ResourceStatistics &dst)
+	inline void MergeResourceStatistic (const FrameGraphInstance::ResourceStatistics &src, INOUT FrameGraphInstance::ResourceStatistics &dst)
 	{
 		dst.newComputePipelineCount		+= src.newComputePipelineCount;
 		dst.newGraphicsPipelineCount	+= src.newGraphicsPipelineCount;
@@ -48,7 +50,7 @@ namespace FG
 	Merge
 =================================================
 */
-	void FrameGraph::Statistics::Merge (const Statistics &newStat)
+	void FrameGraphInstance::Statistics::Merge (const Statistics &newStat)
 	{
 		MergeRenderStatistic( newStat.renderer, INOUT this->renderer );
 		MergeResourceStatistic( newStat.resources, INOUT this->resources );

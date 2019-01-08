@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VFrameGraphThread.h"
 #include "VMemoryManager.h"
@@ -16,15 +16,15 @@ namespace FG
 	constructor
 =================================================
 */
-	VFrameGraphThread::VFrameGraphThread (VFrameGraph &fg, EThreadUsage usage, StringView name) :
-		_threadUsage{ usage },			_state{ EState::Initial },
-		_debugName{ name },
+	VFrameGraphThread::VFrameGraphThread (VFrameGraphInstance &fg, EThreadUsage usage, StringView name) :
+		_threadUsage{ usage },		_state{ EState::Initial },
+		_frameId{ 0 },				_debugName{ name },
 		_instance{ fg },
 		_resourceMngr{ _mainAllocator, _statistic.resources, fg.GetResourceMngr() }
 	{
 		SCOPELOCK( _rcCheck );
 
-		_mainAllocator.SetBlockSize( 64_Mb );
+		_mainAllocator.SetBlockSize( 16_Mb );
 
 		if ( EnumEq( _threadUsage, EThreadUsage::MemAllocation ) )
 		{
@@ -131,7 +131,7 @@ namespace FG
 =================================================
 	GetDescriptorSet
 =================================================
-*/
+*
 	template <typename PplnID>
 	inline bool  VFrameGraphThread::_GetDescriptorSet (const PplnID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const
 	{
@@ -361,22 +361,57 @@ namespace FG
 	
 /*
 =================================================
-	InitPipelineResources
+	_InitPipelineResources
 =================================================
 */
-	bool  VFrameGraphThread::InitPipelineResources (RawDescriptorSetLayoutID layoutId, OUT PipelineResources &resources) const
+	template <typename PplnID>
+	bool  VFrameGraphThread::_InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		SCOPELOCK( _rcCheck );
-		ASSERT( layoutId );
 		ASSERT( _IsInitialized() );
+		
+		auto const *	ppln = _resourceMngr.GetResource( pplnId.Get() );
+		CHECK_ERR( ppln );
 
-		VDescriptorSetLayout const*	ds_layout = _resourceMngr.GetResource( layoutId );
+		auto const *	ppln_layout = _resourceMngr.GetResource( ppln->GetLayoutID() );
+		CHECK_ERR( ppln_layout );
+
+		RawDescriptorSetLayoutID	layout_id;
+		uint						binding = 0;
+		CHECK_ERR( ppln_layout->GetDescriptorSetLayout( id, OUT layout_id, OUT binding ));
+
+		VDescriptorSetLayout const*	ds_layout = _resourceMngr.GetResource( layout_id );
 		CHECK_ERR( ds_layout );
 
-		CHECK_ERR( PipelineResourcesInitializer::Initialize( OUT resources, layoutId, ds_layout->GetUniforms(), ds_layout->GetMaxIndex()+1 ));
+		CHECK_ERR( PipelineResourcesInitializer::Initialize( OUT resources, layout_id, ds_layout->GetUniforms(), ds_layout->GetMaxIndex()+1 ));
 		return true;
 	}
 	
+/*
+=================================================
+	InitPipelineResources
+=================================================
+*/
+	bool  VFrameGraphThread::InitPipelineResources (const GPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	{
+		return _InitPipelineResources( pplnId, id, OUT resources );
+	}
+
+	bool  VFrameGraphThread::InitPipelineResources (const CPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	{
+		return _InitPipelineResources( pplnId, id, OUT resources );
+	}
+
+	bool  VFrameGraphThread::InitPipelineResources (const MPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	{
+		return _InitPipelineResources( pplnId, id, OUT resources );
+	}
+
+	bool  VFrameGraphThread::InitPipelineResources (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	{
+		return _InitPipelineResources( pplnId, id, OUT resources );
+	}
+
 /*
 =================================================
 	CreateRayTracingGeometry
@@ -508,6 +543,8 @@ namespace FG
 			CHECK_ERR( _CreateCommandBuffers( INOUT queue ));
 		}
 
+		CHECK_ERR( _InitGpuQueries( INOUT _queues, INOUT _queryPool ));
+
 		if ( _memoryMngr )
 			CHECK_ERR( _memoryMngr->Initialize() );
 
@@ -542,6 +579,34 @@ namespace FG
 		return true;
 	}
 	
+/*
+=================================================
+	_InitGpuQueries
+=================================================
+*/
+	bool VFrameGraphThread::_InitGpuQueries (INOUT PerQueueArray_t &queues, INOUT VkQueryPool &pool) const
+	{
+		CHECK_ERR( not pool );
+		
+		VkQueryPoolCreateInfo	info = {};
+		info.sType		= VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+		info.queryType	= VK_QUERY_TYPE_TIMESTAMP;
+		info.queryCount	= uint(queues.size() * queues.front().frames.size()) * 2;
+		
+		VDevice const&	dev = GetDevice();
+		VK_CHECK( dev.vkCreateQueryPool( dev.GetVkDevice(), &info, null, OUT &pool ));
+
+		uint	index = 0;
+		for (auto& queue : queues)
+		{
+			for (auto& frame : queue.frames)
+			{
+				frame.queryIndex = 2 * (index++);
+			}
+		}
+		return true;
+	}
+
 /*
 =================================================
 	SignalSemaphore
@@ -616,16 +681,15 @@ namespace FG
 	_CreateCommandBuffer
 =================================================
 */
-	VkCommandBuffer  VFrameGraphThread::_CreateCommandBuffer (EThreadUsage usage)
+	VkCommandBuffer  VFrameGraphThread::_CreateCommandBuffer () const
 	{
-		auto*	queue = _GetQueue( usage );
-		CHECK_ERR( queue );
-		ASSERT( queue->cmdPoolId );
+		CHECK_ERR( _currQueue );
+		ASSERT( _currQueue->cmdPoolId );
 
 		VkCommandBufferAllocateInfo	info = {};
 		info.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		info.pNext				= null;
-		info.commandPool		= queue->cmdPoolId;
+		info.commandPool		= _currQueue->cmdPoolId;
 		info.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		info.commandBufferCount	= 1;
 				
@@ -633,7 +697,7 @@ namespace FG
 		VkCommandBuffer		cmd;
 		VK_CHECK( dev.vkAllocateCommandBuffers( dev.GetVkDevice(), &info, OUT &cmd ));
 
-		queue->frames[_frameId].pending.push_back( cmd );
+		_currQueue->frames[_frameId].pending.push_back( cmd );
 		return cmd;
 	}
 
@@ -950,6 +1014,11 @@ namespace FG
 		}
 		_queues.clear();
 
+		if ( _queryPool ) {
+			dev.vkDestroyQueryPool( dev.GetVkDevice(), _queryPool, null );
+			_queryPool = VK_NULL_HANDLE;
+		}
+
 		if ( _stagingMngr )
 			_stagingMngr->Deinitialize();
 
@@ -1099,14 +1168,24 @@ namespace FG
 		
 		if ( _SetState( EState::Ready, EState::BeforeRecording ) )
 		{
+			StaticArray<uint64_t, 2>	query_results;
+
 			// recycle commands buffers
 			for (auto& queue : _queues)
 			{
 				auto&	frame	= queue.frames[_frameId];
 				auto&	dev		= _instance.GetDevice();
 
-				if ( not frame.executed.empty() ) {
+				if ( not frame.executed.empty() )
+				{
 					dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.executed.size()), frame.executed.data() );
+
+					// read frame time
+					VK_CALL( dev.vkGetQueryPoolResults( dev.GetVkDevice(), _queryPool, frame.queryIndex, uint(query_results.size()),
+														sizeof(query_results), OUT query_results.data(),
+														sizeof(query_results[0]), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT ));
+
+					_statistic.renderer.frameTime += Nanoseconds{query_results[1] - query_results[0]};
 				}
 
 				frame.executed.clear();
@@ -1131,6 +1210,7 @@ namespace FG
 		_cmdBatchId		= id;
 		_indexInBatch	= index;
 		_currUsage		= (usage & _threadUsage);
+		_currQueue		= _GetQueue( _currUsage );
 
 		CHECK_ERR( _SetState( EState::BeforeRecording, EState::Recording ));
 		return true;
@@ -1171,6 +1251,7 @@ namespace FG
 		_cmdBatchId		= Default;
 		_indexInBatch	= UMax;
 		_currUsage		= Default;
+		_currQueue		= null;
 
 		CHECK_ERR( _SetState( EState::Compiling, EState::Pending ));
 		return true;

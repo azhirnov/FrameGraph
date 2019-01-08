@@ -1,0 +1,48 @@
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+
+#pragma once
+
+#include "framework/Vulkan/VulkanDevice.h"
+#include "stl/Algorithms/ArrayUtils.h"
+#include "GLSLShaderTrace.h"
+
+// glslang includes
+#include "glslang/glslang/Public/ShaderLang.h"
+#include "glslang/glslang/Include/ResourceLimits.h"
+
+using namespace FG;
+
+
+class ShaderCompiler
+{
+public:
+	using Debuggable_t	= HashMap< VkShaderModule, GLSLShaderTrace >;
+
+
+private:
+	Array<uint>		_tempBuf;
+	Debuggable_t	_debuggableShaders;
+
+
+public:
+	ShaderCompiler ();
+	~ShaderCompiler ();
+	
+	bool Compile (OUT VkShaderModule&		shaderModule,
+				  const VulkanDevice&		device,
+				  ArrayView<const char *>	source,
+				  EShLanguage				shaderType,
+				  uint						dbgBufferSetIndex	= ~0u,
+				  glslang::EShTargetLanguageVersion	spvVersion	= glslang::EShTargetSpv_1_3);
+
+	bool GetDebugOutput (VkShaderModule shaderModule, const void *ptr, BytesU maxSize, OUT Array<FG::String> &result) const;
+
+
+private:
+	bool _Compile (OUT Array<uint>&			spirvData,
+				   OUT GLSLShaderTrace*		dbgInfo,
+				   uint						dbgBufferSetIndex,
+				   ArrayView<const char *>	source,
+				   EShLanguage				shaderType,
+				   glslang::EShTargetLanguageVersion	spvVersion);
+};

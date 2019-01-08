@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -836,7 +836,6 @@ namespace FG
 		{								  
 			case EResourceState::Unknown :						return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			case EResourceState::_Access_InputAttachment :		return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	// TODO: check
-			//case EResourceState::_Access_TransientAttachment :		
 			case EResourceState::_Access_Transfer :				return VK_PIPELINE_STAGE_TRANSFER_BIT;
 			case EResourceState::_Access_ColorAttachment :		return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 			case EResourceState::_Access_Present :				return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -939,13 +938,14 @@ namespace FG
 
 			case EResourceState::TransferSrc :						return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			case EResourceState::TransferDst :						return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				
+			case EResourceState::ColorAttachmentRead :				return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			case EResourceState::TransientAttachment :
-			case EResourceState::ColorAttachmentRead :
 			case EResourceState::ColorAttachmentWrite :
 			case EResourceState::ColorAttachmentReadWrite :			return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-			case EResourceState::DepthStencilAttachmentRead :
+			case EResourceState::DepthStencilAttachmentRead :		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
 			case EResourceState::DepthStencilAttachmentWrite :
 			case EResourceState::DepthStencilAttachmentReadWrite :	return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;	// TODO: use other layouts
 

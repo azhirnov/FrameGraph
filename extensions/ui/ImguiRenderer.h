@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -39,7 +39,7 @@ namespace FG
 		bool Initialize (const FGThreadPtr &fg, ImGuiContext *ctx);
 		void Deinitialize (const FGThreadPtr &fg);
 
-		ND_ Task  Draw (const FGThreadPtr &fg, LogicalPassID passId);
+		ND_ Task  Draw (const FGThreadPtr &fg, LogicalPassID passId, ArrayView<Task> dependencies = Default);
 
 
 	private:

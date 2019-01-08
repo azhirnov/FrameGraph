@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VPipelineResources.h"
 #include "VResourceManagerThread.h"
@@ -186,12 +186,16 @@ namespace FG
 */
 	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
 	{
-		if ( _allowEmptyResources and not buf.bufferId )
+		VBuffer const*	buffer = resMngr.GetResource( buf.bufferId );
+		
+		if ( not buffer ) {
+			CHECK( _allowEmptyResources );
 			return false;
+		}
 
 		auto&	info = *list.allocator.Alloc< VkDescriptorBufferInfo >( 1 );
 		info = {};
-		info.buffer		= resMngr.GetResource( buf.bufferId )->Handle();
+		info.buffer		= buffer->Handle();
 		info.offset		= VkDeviceSize(buf.offset);
 		info.range		= VkDeviceSize(buf.size);
 
@@ -219,15 +223,17 @@ namespace FG
 */
 	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
 	{
-		if ( _allowEmptyResources and not img.imageId )
-			return false;
-
 		VLocalImage const*	local_img	= resMngr.ToLocal( img.imageId );
+		
+		if ( not local_img ) {
+			CHECK( _allowEmptyResources );
+			return false;
+		}
 
 		auto&	info = *list.allocator.Alloc< VkDescriptorImageInfo >( 1 );
 		info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( img.state, local_img->AspectMask() );
-		info.imageView		= local_img->GetView( resMngr.GetDevice(), INOUT img.desc );
+		info.imageView		= local_img->GetView( resMngr.GetDevice(), not img.hasDesc, INOUT img.desc );
 		info.sampler		= VK_NULL_HANDLE;
 		
 		
@@ -251,16 +257,19 @@ namespace FG
 */
 	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
 	{
-		if ( _allowEmptyResources and not (tex.imageId and tex.samplerId) )
-			return false;
-
 		VLocalImage const*	local_img	= resMngr.ToLocal( tex.imageId );
+		VSampler const*		sampler		= resMngr.GetResource( tex.samplerId );
+		
+		if ( not local_img or not sampler ) {
+			CHECK( _allowEmptyResources );
+			return false;
+		}
 
 		auto&	info = *list.allocator.Alloc< VkDescriptorImageInfo >( 1 );
 		info = {};
 		info.imageLayout	= EResourceState_ToImageLayout( tex.state, local_img->AspectMask() );
-		info.imageView		= local_img->GetView( resMngr.GetDevice(), INOUT tex.desc );
-		info.sampler		= resMngr.GetResource( tex.samplerId )->Handle();
+		info.imageView		= local_img->GetView( resMngr.GetDevice(), not tex.hasDesc, INOUT tex.desc );
+		info.sampler		= sampler->Handle();
 		
 		
 		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
@@ -282,14 +291,18 @@ namespace FG
 */
 	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
 	{
-		if ( _allowEmptyResources and not samp.samplerId )
+		VSampler const*	sampler = resMngr.GetResource( samp.samplerId );
+
+		if ( not sampler ) {
+			CHECK( _allowEmptyResources );
 			return false;
+		}
 
 		auto&	info = *list.allocator.Alloc< VkDescriptorImageInfo >( 1 );
 		info = {};
 		info.imageLayout	= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		info.imageView		= VK_NULL_HANDLE;
-		info.sampler		= resMngr.GetResource( samp.samplerId )->Handle();
+		info.sampler		= sampler->Handle();
 		
 		
 		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
@@ -311,11 +324,15 @@ namespace FG
 */
 	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, const PipelineResources::RayTracingScene &rtScene, INOUT UpdateDescriptors &list)
 	{
-		if ( _allowEmptyResources and not rtScene.sceneId )
+		VRayTracingScene const*	scene = resMngr.GetResource( rtScene.sceneId );
+
+		if ( not scene ) {
+			CHECK( _allowEmptyResources );
 			return false;
+		}
 
 		auto&	tlas = *list.allocator.Alloc<VkAccelerationStructureNV>( 1 );
-		tlas = resMngr.GetResource( rtScene.sceneId )->Handle();
+		tlas = scene->Handle();
 
 		auto& 	top_as = *list.allocator.Alloc<VkWriteDescriptorSetAccelerationStructureNV>( 1 );
 		top_as = {};

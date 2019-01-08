@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -19,10 +19,13 @@ namespace FG
 	enum class ETextureType : uint
 	{
 		Unknown			= 0,
-		Diffuse			= 1 << 0,
+		Albedo			= 1 << 0,
 		Normal			= 1 << 1,
 		Height			= 1 << 2,
 		Reflection		= 1 << 3,	// TODO: static & dynamic ?
+		Specular		= 1 << 4,
+		Roughtness		= 1 << 5,
+		Metallic		= 1 << 6,
 	};
 	FG_BIT_OPERATORS( ETextureType );
 
@@ -67,15 +70,15 @@ namespace FG
 
 		Unknown		= ~0u,
 	};
-	using LayerBits_t	= BitSet< uint(ERenderLayer::_Count) >;
+	using LayerBits = BitSet< uint(ERenderLayer::_Count) >;
 
 
 	enum class EDetailLevel : uint8_t
 	{
-		Unknown		= 255,
 		High		= 0,
 		Low			= 7,
-		_Count
+		_Count,
+		Unknown		= 0xFF,
 	};
 
 

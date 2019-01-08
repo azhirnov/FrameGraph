@@ -1,8 +1,7 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
-#include "stl/CompileTime/DefaultType.h"
 #include "stl/CompileTime/TypeTraits.h"
 #include "stl/Containers/FixedArray.h"
 #include "stl/ThreadSafe/DummyLock.h"
@@ -147,10 +146,8 @@ namespace FG
 			if ( result >= numIndices )
 				return result;
 
-			if ( _indexCount.size() == _indexCount.capacity() ) {
-				ASSERT(!"out of memory!");
+			if ( _indexCount.size() == _indexCount.capacity() )
 				return result;
-			}
 
 			const size_t	chunk_idx = _indexCount.size();
 			_indexCount.push_back( ChunkSize );

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This test affects:
 		- frame graph building and execution
@@ -37,7 +37,7 @@ void main ()
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _frameGraph1;
+		FGThreadPtr		frame_graph	= _fgGraphics1;
 		const uint2		image_dim	= { 16, 16 };
 
 		ImageID			image0		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -51,12 +51,8 @@ void main ()
 
 		CPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
 		
-		RawDescriptorSetLayoutID	ds_layout;
-		uint						ds_index;
-		CHECK_ERR( frame_graph->GetDescriptorSet( pipeline, DescriptorSetID("0"), OUT ds_layout, OUT ds_index ));
-
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( ds_layout, OUT resources ));
+		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
 
 		
 		const auto	CheckData = [] (const ImageView &imageData, uint blockSize, OUT bool &isCorrect)
@@ -103,17 +99,17 @@ void main ()
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_OutImage"), image0 );
-		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetGroupCount( 2, 2 ) );
+		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetGroupCount( 2, 2 ) );
 
 		resources.BindImage( UniformID("un_OutImage"), image1 );
-		Task	t_run1	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetLocalSize( 4, 4 ).SetGroupCount( 4, 4 ) );
+		Task	t_run1	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).SetGroupCount( 4, 4 ) );
 		
 		resources.BindImage( UniformID("un_OutImage"), image2 );
-		Task	t_run2	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( ds_index, &resources ).SetLocalSize( 16, 16 ).SetGroupCount( 1, 1 ) );
+		Task	t_run2	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).SetGroupCount( 1, 1 ) );
 		
 		Task	t_read0	= frame_graph->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ) );
 		Task	t_read1	= frame_graph->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );
@@ -122,12 +118,12 @@ void main ()
 		FG_UNUSED( t_read0 and t_read1 and t_read2 );
 		
 		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 
 		CHECK_ERR( data0_is_correct and data1_is_correct and data2_is_correct );
 		

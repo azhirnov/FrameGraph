@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -34,18 +34,18 @@ namespace FG
 
 	// methods
 	protected:
-		RenderQueue ();
+		RenderQueue () {}
 
 		void _Create (const FGThreadPtr &fg, const CameraInfo &camera);
-		void _Submit (ArrayView<Task> dependsOn);
+
+		ND_ Task  _Submit (ArrayView<Task> dependsOn);
 
 		void _AddLayer (ERenderLayer layer, LogicalPassID passId, StringView dbgName);
 		void _AddLayer (ERenderLayer layer, const RenderPassDesc &desc, StringView dbgName);
 
 	public:
-		void AddRenderObj (ERenderLayer layer, const DrawVertices &task);
-		void AddRenderObj (ERenderLayer layer, const DrawIndexed &task);
-		void AddRenderObj (ERenderLayer layer, const DrawMeshes &task);
+		template <typename DrawTask>
+		void AddRenderObj (ERenderLayer layer, const DrawTask &task);
 
 		template <typename TaskType>
 		void AddTask (ERenderLayer beforeLayer, const TaskType &task);
@@ -79,7 +79,7 @@ namespace FG
 	_Submit
 =================================================
 */
-	inline void  RenderQueue::_Submit (ArrayView<Task> dependsOn)
+	inline Task  RenderQueue::_Submit (ArrayView<Task> dependsOn)
 	{
 		Task	temp = null;
 
@@ -92,6 +92,7 @@ namespace FG
 			temp = _frameGraph->AddTask( layer.pass );
 			dependsOn = { &temp, 1 };
 		}
+		return temp;
 	}
 
 /*
@@ -124,19 +125,8 @@ namespace FG
 	AddRenderObj
 =================================================
 */
-	inline void  RenderQueue::AddRenderObj (ERenderLayer layer, const DrawVertices &task)
-	{
-		ASSERT( _camera.layers[uint(layer)] );
-		_frameGraph->AddTask( _layers[uint(layer)].pass.renderPassId, task );
-	}
-
-	inline void  RenderQueue::AddRenderObj (ERenderLayer layer, const DrawIndexed &task)
-	{
-		ASSERT( _camera.layers[uint(layer)] );
-		_frameGraph->AddTask( _layers[uint(layer)].pass.renderPassId, task );
-	}
-
-	inline void  RenderQueue::AddRenderObj (ERenderLayer layer, const DrawMeshes &task)
+	template <typename DrawTask>
+	inline void  RenderQueue::AddRenderObj (ERenderLayer layer, const DrawTask &task)
 	{
 		ASSERT( _camera.layers[uint(layer)] );
 		_frameGraph->AddTask( _layers[uint(layer)].pass.renderPassId, task );

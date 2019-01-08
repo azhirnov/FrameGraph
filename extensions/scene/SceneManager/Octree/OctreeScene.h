@@ -1,8 +1,8 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
-#include "scene/SceneManager/ISceneHierarchy.h"
+#include "scene/DefaultSceneManager/ISceneHierarchy.h"
 
 namespace FG
 {

@@ -1,10 +1,11 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
 #include "framework/Window/IWindow.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "framegraph/VFG.h"
+#include "scene/Utils/Ext/FPSCamera.h"
 #include <chrono>
 
 namespace FG
@@ -18,47 +19,71 @@ namespace FG
 	{
 	// types
 	private:
-
-		struct ShaderData
+		
+		struct ShadertoyUB
 		{
-			float3	iResolution;			// viewport resolution (in pixels)
-			float	iTime;					// shader playback time (in seconds)
-			float	iTimeDelta;				// render time (in seconds)
-			int		iFrame;					// shader playback frame
-			float4	iMouse;					// mouse pixel coords. xy: current (if MLB down), zw: click
-			float4	iDate;					// (year, month, day, time in seconds)
-			float	iSampleRate;			// sound sample rate (i.e., 44100)
-			float3	iCameraFrustumRay0;		// left bottom - frustum rays
-			float3	iCameraFrustumRay1;		// right bottom
-			float3	iCameraFrustumRay2;		// left top
-			float3	iCameraFrustumRay3;		// right top
-			float3	iCameraPos;				// camera position in world space
+			vec3		iResolution;			// offset: 0, align: 16		// viewport resolution (in pixels)
+			float		iTime;					// offset: 12, align: 4		// shader playback time (in seconds)
+			float		iTimeDelta;				// offset: 16, align: 4		// render time (in seconds)
+			int			iFrame;					// offset: 20, align: 4		// shader playback frame
+			vec2		_padding0;
+			vec4		iChannelTime[4];		// offset: 32, align: 16
+			vec4		iChannelResolution[4];	// offset: 96, align: 16
+			vec4		iMouse;					// offset: 160, align: 16	// mouse pixel coords. xy: current (if MLB down), zw: click
+			vec4		iDate;					// offset: 176, align: 16	// (year, month, day, time in seconds)
+			float		iSampleRate;			// offset: 192, align: 4	// sound sample rate (i.e., 44100)
+			float		_padding1;
+			float		_padding2;
+			float		_padding3;
+			vec3		iCameraFrustumRayLB;	// offset: 208, align: 16	// left bottom - frustum rays
+			float		_padding4;
+			vec3		iCameraFrustumRayRB;	// offset: 224, align: 16	// right bottom
+			float		_padding5;
+			vec3		iCameraFrustumRayLT;	// offset: 240, align: 16	// left top
+			float		_padding6;
+			vec3		iCameraFrustumRayRT;	// offset: 256, align: 16	// right top
+			float		_padding7;
+			vec4		iCameraPos;				// offset: 272, align: 16	// camera position in world space
 		};
 
 
 		struct ShaderDescr
 		{
-			using Channels_t = FixedArray< Pair<String, uint>, 8 >;
+		// types
+			struct Channel {
+				String	name;
+				uint	index	= UMax;
+			};
+			using Channels_t = FixedArray< Channel, CountOf(&ShadertoyUB::iChannelResolution) >;
 			
-			String			_pplnFilename;
-			String			_pplnDefines;
-			Channels_t		_channels;
+		// variables
+			String				_pplnFilename;
+			String				_pplnDefines;
+			Channels_t			_channels;
+			Optional<float>		_surfaceScale;
+			Optional<uint2>		_surfaceSize;
 
+		// methods
 			ShaderDescr () {}
-			ShaderDescr& Pipeline (String &&file, String &&def = "")	{ _pplnFilename = std::move(file);  _pplnDefines = std::move(def);  return *this; }
-			ShaderDescr& InChannel (const String &name, uint index)		{ _channels.push_back({ name, index });  return *this; }
+			ShaderDescr&  Pipeline (String &&file, String &&def = "")	{ _pplnFilename = std::move(file);  _pplnDefines = std::move(def);  return *this; }
+			ShaderDescr&  InChannel (const String &name, uint index)	{ _channels.push_back({ name, index });  return *this; }
+			ShaderDescr&  SetScale (float value)						{ _surfaceScale = value;  return *this; }
+			ShaderDescr&  SetDimension (uint2 value)					{ _surfaceSize = value;  return *this; }
 		};
 
 
 		struct Shader
 		{
 		// types
-			struct PerPass
-			{
+			using ChannelImages_t	= FixedArray< ImageID, ShaderDescr::Channels_t::capacity() >;
+
+			struct PerPass {
 				PipelineResources	resources;
 				ImageID				renderTarget;
 				uint2				viewport;
+				ChannelImages_t		images;
 			};
+
 			using PerPass_t		= StaticArray< PerPass, 4 >;
 			using Channels_t	= ShaderDescr::Channels_t;
 
@@ -70,6 +95,8 @@ namespace FG
 			Channels_t			_channels;
 			PerPass_t			_perPass;
 			BufferID			_ubuffer;
+			Optional<float>		_surfaceScale;
+			Optional<uint2>		_surfaceSize;
 
 		// methods
 			explicit Shader (StringView name, ShaderDescr &&desc);
@@ -93,7 +120,7 @@ namespace FG
 	private:
 		VulkanDeviceExt			_vulkan;
 		WindowPtr				_window;
-		FrameGraphPtr			_frameGraphInst;
+		FGInstancePtr			_fgInstance;
 		FGThreadPtr				_frameGraph;
 
 		Samples_t				_samples;
@@ -101,13 +128,20 @@ namespace FG
 		size_t					_nextSample		= 0;
 		uint					_passIdx : 1;
 		bool					_pause			= false;
+		bool					_freeze			= false;
 
 		ShadersMap_t			_shaders;
 		Array< ShaderPtr >		_ordered;
 
 		ImageCache_t			_imageCache;
 
-		ShaderData				_ubData;
+		FPSCamera				_camera;
+		vec3					_positionDelta;
+		vec2					_mouseDelta;
+		vec2					_lastMousePos;
+		bool					_mousePressed	= false;
+
+		ShadertoyUB				_ubData;
 		Task					_currTask;
 		
 		uint2					_surfaceSize;
@@ -125,6 +159,7 @@ namespace FG
 		
 		// FPS counter
 		struct {
+			Nanoseconds				frameTimeSum			{0};
 			TimePoint_t				lastUpdateTime;
 			uint					frameCounter			= 0;
 			static constexpr uint	UpdateIntervalMillis	= 500;
@@ -148,7 +183,7 @@ namespace FG
 		void OnDestroy () override {}
 		void OnUpdate () override {}
 		void OnKey (StringView, EKeyAction) override;
-		void OnMouseMove (const float2 &) override {}
+		void OnMouseMove (const float2 &) override;
 		
 	private:
 		//bool Visualize (StringView name, bool autoOpen = false) const;

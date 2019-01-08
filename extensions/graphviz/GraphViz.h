@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Common.h"
 
@@ -19,7 +19,7 @@ namespace FG
 		static bool Visualize (StringView graph, const std::filesystem::path &filepath,
 							   StringView format = "png", bool autoOpen = false, bool deleteOrigin = false);
 
-		static bool Visualize (const FrameGraphPtr &instance, const std::filesystem::path &filepath,
+		static bool Visualize (const FGInstancePtr &instance, const std::filesystem::path &filepath,
 							   StringView format = "png", bool autoOpen = false, bool deleteOrigin = false);
 	};
 

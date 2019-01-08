@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -108,6 +108,16 @@ namespace FG
 		_SetPlane( EPlane::Far,    mat[0][3] - mat[0][2], mat[1][3] - mat[1][2], mat[2][3] - mat[2][2], -mat[3][3] + mat[3][2] );
 	}
 	
+/*
+=================================================
+	Setup
+=================================================
+*/
+	template <typename T>
+	inline void  FrustumTempl<T>::Setup (const CameraTempl<T> &, const Vec2_t &)
+	{
+	}
+
 /*
 =================================================
 	_SetPlane

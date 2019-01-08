@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -55,7 +55,7 @@ namespace _fg_hidden_
 		0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 	};
 
-	ND_ forceinline constexpr uint  crc32_hash (char const *str, uint prev_crc = 0xFFFFFFFF)
+	ND_ forceinline constexpr uint  crc32_hash (char const *str, uint prev_crc = UMax)
 	{
 		return	*str ?
 					crc32_hash( str+1, (prev_crc >> 8) ^ crc_table[(prev_crc ^ *str) & 0xFF] ) :
@@ -70,9 +70,9 @@ namespace _fg_hidden_
 	CT_Hash (string)
 =================================================
 */
-	ND_ inline constexpr HashVal  CT_Hash (const char *str)
+	ND_ inline constexpr HashVal  CT_Hash (const char *str, uint seed = UMax)
 	{
-		return HashVal{_fg_hidden_::crc32_hash( str )};
+		return HashVal{_fg_hidden_::crc32_hash( str, seed )};
 	}
 
 

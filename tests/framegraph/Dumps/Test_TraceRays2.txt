@@ -66,9 +66,9 @@ Thread {
 	}
 
 	Buffer {
-		name:    "StagingReadBuffer"
+		name:    "HostReadBuffer"
 		size:    256 Mb
-		usage:   TransferSrc | TransferDst
+		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         ReadImage (#4)
@@ -89,16 +89,56 @@ Thread {
 		name:    "BuildRayTracingGeometry (#2)"
 		input =  {  }
 		output = { TraceRays (#3) }
+		resource_usage = {
+			BufferUsage {
+				name:     ""
+				usage:    RTASBuild-Buffer-RW
+				offset:   0 b
+				size:     64 Kb
+			}
+		}
 	}
 	Task {
 		name:    "TraceRays (#3)"
 		input =  { BuildRayTracingGeometry (#2) }
 		output = { ReadImage (#4) }
+		resource_usage = {
+			BufferUsage {
+				name:     ""
+				usage:    Uniform, RTS
+				offset:   0 b
+				size:     4 Kb
+			}
+			ImageUsage {
+				name:           "OutputImage"
+				usage:          Storage-W, RTS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
 	}
 	Task {
 		name:    "ReadImage (#4)"
 		input =  { TraceRays (#3) }
 		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
+			ImageUsage {
+				name:           "OutputImage"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
 	}
 }
 ===============================================================

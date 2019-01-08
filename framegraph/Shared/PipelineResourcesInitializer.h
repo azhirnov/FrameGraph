@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -30,7 +30,7 @@ namespace FG
 						[&] (const PipelineDescription::Texture &tex)
 						{
 							res._resources[un.second.index.Unique()].res =
-								PipelineResources::Texture{{ un.second.index, tex.state, RawImageID(), std::nullopt }, RawSamplerID() };
+								PipelineResources::Texture{{ un.second.index, tex.state, RawImageID(), {}, false }, RawSamplerID() };
 						},
 
 						[&] (const PipelineDescription::Sampler &)
@@ -42,13 +42,13 @@ namespace FG
 						[&] (const PipelineDescription::SubpassInput &spi)
 						{
 							res._resources[un.second.index.Unique()].res =
-								PipelineResources::SubpassInput{{ un.second.index, spi.state, RawImageID(), std::nullopt }, spi.attachmentIndex };
+								PipelineResources::SubpassInput{{ un.second.index, spi.state, RawImageID(), {}, false }, spi.attachmentIndex };
 						},
 
 						[&] (const PipelineDescription::Image &img)
 						{
 							res._resources[un.second.index.Unique()].res =
-								PipelineResources::Image{ un.second.index, img.state, RawImageID(), std::nullopt };
+								PipelineResources::Image{ un.second.index, img.state, RawImageID(), {}, false };
 						},
 
 						[&] (const PipelineDescription::UniformBuffer &ubuf)

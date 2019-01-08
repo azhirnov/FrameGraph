@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -41,7 +41,7 @@ namespace FG
 
 	class VDevice final : public VulkanDeviceFn
 	{
-		friend class VFrameGraph;
+		friend class VFrameGraphInstance;
 
 	// types
 	private:

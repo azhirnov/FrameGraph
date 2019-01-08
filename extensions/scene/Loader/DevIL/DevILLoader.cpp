@@ -1,8 +1,9 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #ifdef FG_ENABLE_DEVIL
 
 #include "scene/Loader/DevIL/DevILLoader.h"
+#include "scene/SceneManager/IImageCache.h"
 #include "stl/Algorithms/StringUtils.h"
 
 #include "DevIL/include/IL/il.h"
@@ -57,16 +58,28 @@ namespace FG
 	static bool ConvertDevILFormat (ILenum fmt, ILenum type, ILenum dxtc, OUT EPixelFormat &outFmt, OUT bool &isCompressed)
 	{
 		isCompressed = false;
+
+		// convert and continue
+		switch (fmt)
+		{
+			case IL_BGR :
+			case IL_RGB :
+			case IL_BGRA : {
+				fmt = (type == IL_FLOAT ? IL_RGB : IL_RGBA);
+				CHECK_ERR( ilConvertImage( fmt, type ) == IL_TRUE );
+				break;
+			}
+			case IL_COLOR_INDEX : {
+				// TODO
+				break;
+			}
+		}
+
 		switch (fmt)
 		{
 			case IL_RGB : {
 				switch (type)
 				{
-					case IL_UNSIGNED_BYTE :		outFmt = EPixelFormat::RGB8_UNorm;		return true;
-					case IL_BYTE :				outFmt = EPixelFormat::RGB8_SNorm;		return true;
-					case IL_UNSIGNED_SHORT :	outFmt = EPixelFormat::RGB16_UNorm;		return true;
-					case IL_SHORT :				outFmt = EPixelFormat::RGB16_SNorm;		return true;
-					case IL_HALF :				outFmt = EPixelFormat::RGB16F;			return true;
 					case IL_FLOAT :				outFmt = EPixelFormat::RGB32F;			return true;
 					default :					RETURN_ERR( "unsupported format" );
 				}
@@ -137,16 +150,16 @@ namespace FG
 		const ILint		fmt				= ilGetInteger( IL_IMAGE_FORMAT );
 		const ILint		type			= ilGetInteger( IL_IMAGE_TYPE );
 		const ILint		dxtc			= ilGetInteger( IL_DXTC_DATA_FORMAT );
+		EPixelFormat	format			= EPixelFormat::Unknown;
+		bool			is_compressed	= false;
+
+		CHECK_ERR( ConvertDevILFormat( fmt, type, dxtc, OUT format, OUT is_compressed ));
+		
 		const ILint		width			= Max( 1, ilGetInteger(IL_IMAGE_WIDTH) );
 		const ILint		height			= Max( 1, ilGetInteger(IL_IMAGE_HEIGHT) );
 		const ILint		depth			= Max( 1, ilGetInteger(IL_IMAGE_DEPTH) );
 		const uint		bpp				= ilGetInteger( IL_IMAGE_BITS_PER_PIXEL );
 		const BytesU	calc_data_size	= BytesU(width * height * depth * bpp) / 8;
-
-		EPixelFormat	format			= EPixelFormat::Unknown;
-		bool			is_compressed	= false;
-
-		CHECK_ERR( ConvertDevILFormat( fmt, type, dxtc, OUT format, OUT is_compressed ));
 
 		if ( dxtc != IL_DXT_NO_COMP )
 		{
@@ -228,12 +241,17 @@ namespace FG
 	Load
 =================================================
 */
-	bool DevILLoader::Load (const IntermediateImagePtr &image, ArrayView<StringView> directories)
+	bool DevILLoader::Load (INOUT IntermediateImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		CHECK_ERR( image );
 
 		String	filename;
 		CHECK_ERR( FindImage( image->GetPath(), directories, OUT filename ));
+
+		// search in cache
+		if ( imgCache and imgCache->GetImageData( filename, OUT image ) )
+			return true;
+
 
 		CHECK_ERR( ilLoadImage( filename.data() ) == IL_TRUE );
 
@@ -273,6 +291,10 @@ namespace FG
 		}
 
 		image->SetData( std::move(image_data) );
+
+		if ( imgCache )
+			imgCache->AddImageData( filename, image );
+
 		return true;
 	}
 	
@@ -281,44 +303,61 @@ namespace FG
 	Load
 =================================================
 */
-	bool DevILLoader::Load (const IntermediateMaterialPtr &material, ArrayView<StringView> directories)
+	bool DevILLoader::Load (const IntermediateMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
+		using Texture = IntermediateMaterial::MtrTexture;
+
 		CHECK_ERR( material );
 
 		auto&	settings = material->EditSettings();
 
-		if ( settings.diffuseMap.has_value() )
-			CHECK_ERR( Load( settings.diffuseMap->image, directories ));
+		if ( auto* albedo = std::get_if<Texture>( &settings.albedo ))
+			CHECK_ERR( Load( albedo->image, directories, imgCache ));
 		
-		if ( settings.specularMap.has_value() )
-			CHECK_ERR( Load( settings.specularMap->image, directories ));
+		if ( auto* specular = std::get_if<Texture>( &settings.specular ))
+			CHECK_ERR( Load( specular->image, directories, imgCache ));
 		
-		if ( settings.ambientMap.has_value() )
-			CHECK_ERR( Load( settings.ambientMap->image, directories ));
+		if ( auto* ambient = std::get_if<Texture>( &settings.ambient ))
+			CHECK_ERR( Load( ambient->image, directories, imgCache ));
 		
-		if ( settings.emissiveMap.has_value() )
-			CHECK_ERR( Load( settings.emissiveMap->image, directories ));
+		if ( auto* emissive = std::get_if<Texture>( &settings.emissive ))
+			CHECK_ERR( Load( emissive->image, directories, imgCache ));
 		
-		if ( settings.heightMap.has_value() )
-			CHECK_ERR( Load( settings.heightMap->image, directories ));
+		if ( auto* height_map = std::get_if<Texture>( &settings.heightMap ))
+			CHECK_ERR( Load( height_map->image, directories, imgCache ));
 		
-		if ( settings.normalsMap.has_value() )
-			CHECK_ERR( Load( settings.normalsMap->image, directories ));
+		if ( auto* normals_map = std::get_if<Texture>( &settings.normalsMap ))
+			CHECK_ERR( Load( normals_map->image, directories, imgCache ));
 		
-		if ( settings.shininessMap.has_value() )
-			CHECK_ERR( Load( settings.shininessMap->image, directories ));
+		if ( auto* shininess = std::get_if<Texture>( &settings.shininess ))
+			CHECK_ERR( Load( shininess->image, directories, imgCache ));
 		
-		if ( settings.opacityMap.has_value() )
-			CHECK_ERR( Load( settings.opacityMap->image, directories ));
+		if ( auto* opacity = std::get_if<Texture>( &settings.opacity ))
+			CHECK_ERR( Load( opacity->image, directories, imgCache ));
 		
-		if ( settings.displacementMap.has_value() )
-			CHECK_ERR( Load( settings.displacementMap->image, directories ));
+		if ( auto* displacement_map = std::get_if<Texture>( &settings.displacementMap ))
+			CHECK_ERR( Load( displacement_map->image, directories, imgCache ));
 		
-		if ( settings.lightMap.has_value() )
-			CHECK_ERR( Load( settings.lightMap->image, directories ));
+		if ( auto* light_map = std::get_if<Texture>( &settings.lightMap ))
+			CHECK_ERR( Load( light_map->image, directories, imgCache ));
 		
-		if ( settings.reflectionMap.has_value() )
-			CHECK_ERR( Load( settings.reflectionMap->image, directories ));
+		if ( auto* reflection_map = std::get_if<Texture>( &settings.reflectionMap ))
+			CHECK_ERR( Load( reflection_map->image, directories, imgCache ));
+		
+		if ( auto* roughtness = std::get_if<Texture>( &settings.roughtness ))
+			CHECK_ERR( Load( roughtness->image, directories, imgCache ));
+		
+		if ( auto* metallic = std::get_if<Texture>( &settings.metallic ))
+			CHECK_ERR( Load( metallic->image, directories, imgCache ));
+		
+		if ( auto* subsurface = std::get_if<Texture>( &settings.subsurface ))
+			CHECK_ERR( Load( subsurface->image, directories, imgCache ));
+		
+		if ( auto* ambient_occlusion = std::get_if<Texture>( &settings.ambientOcclusion ))
+			CHECK_ERR( Load( ambient_occlusion->image, directories, imgCache ));
+		
+		if ( auto* refraction = std::get_if<Texture>( &settings.refraction ))
+			CHECK_ERR( Load( refraction->image, directories, imgCache ));
 
 		return true;
 	}
@@ -328,11 +367,11 @@ namespace FG
 	Load
 =================================================
 */
-	bool DevILLoader::Load (ArrayView<IntermediateMaterialPtr> materials, ArrayView<StringView> directories)
+	bool DevILLoader::Load (ArrayView<IntermediateMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		for (auto& mtr : materials)
 		{
-			CHECK_ERR( Load( mtr, directories ));
+			CHECK_ERR( Load( mtr, directories, imgCache ));
 		}
 		return true;
 	}
@@ -342,10 +381,10 @@ namespace FG
 	Load
 =================================================
 */
-	bool DevILLoader::Load (const IntermediateScenePtr &scene, ArrayView<StringView> directories)
+	bool DevILLoader::Load (const IntermediateScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		CHECK_ERR( scene );
-		return Load( scene->GetMaterials(), directories );
+		return Load( scene->GetMaterials(), directories, imgCache );
 	}
 
 

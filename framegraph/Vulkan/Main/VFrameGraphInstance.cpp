@@ -1,6 +1,6 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "VFrameGraph.h"
+#include "VFrameGraphInstance.h"
 #include "VFrameGraphThread.h"
 
 namespace FG
@@ -11,7 +11,7 @@ namespace FG
 	constructor
 =================================================
 */
-	VFrameGraph::VFrameGraph (const VulkanDeviceInfo &vdi) :
+	VFrameGraphInstance::VFrameGraphInstance (const VulkanDeviceInfo &vdi) :
 		_device{ vdi },
 		_submissionGraph{ _device },
 		_resourceMngr{ _device },
@@ -27,7 +27,7 @@ namespace FG
 	destructor
 =================================================
 */
-	VFrameGraph::~VFrameGraph ()
+	VFrameGraphInstance::~VFrameGraphInstance ()
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( not _IsInitialized() );
@@ -40,7 +40,7 @@ namespace FG
 	CreateThread
 =================================================
 */
-	FGThreadPtr  VFrameGraph::CreateThread (const ThreadDesc &desc)
+	FGThreadPtr  VFrameGraphInstance::CreateThread (const ThreadDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsInitialized() );
@@ -74,7 +74,7 @@ namespace FG
 	_IsInitialized
 =================================================
 */
-	inline bool  VFrameGraph::_IsInitialized () const
+	inline bool  VFrameGraphInstance::_IsInitialized () const
 	{
 		return _ringBufferSize > 0;
 	}
@@ -84,7 +84,7 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool  VFrameGraph::Initialize (uint ringBufferSize)
+	bool  VFrameGraphInstance::Initialize (uint ringBufferSize)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( not _IsInitialized() );
@@ -104,7 +104,7 @@ namespace FG
 	Deinitialize
 =================================================
 */
-	void  VFrameGraph::Deinitialize ()
+	void  VFrameGraphInstance::Deinitialize ()
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK( _IsInitialized() );
@@ -134,7 +134,7 @@ namespace FG
 	AddPipelineCompiler
 =================================================
 */
-	bool  VFrameGraph::AddPipelineCompiler (const IPipelineCompilerPtr &comp)
+	bool  VFrameGraphInstance::AddPipelineCompiler (const IPipelineCompilerPtr &comp)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _GetState() == EState::Idle );
@@ -159,7 +159,7 @@ namespace FG
 	SetCompilationFlags
 =================================================
 */
-	void  VFrameGraph::SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags)
+	void  VFrameGraphInstance::SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -172,7 +172,7 @@ namespace FG
 	BeginFrame
 =================================================
 */
-	bool  VFrameGraph::BeginFrame (const SubmissionGraph &graph)
+	bool  VFrameGraphInstance::BeginFrame (const SubmissionGraph &graph)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Idle, EState::Begin ));
@@ -215,7 +215,7 @@ namespace FG
 	thread safe and lock-free
 =================================================
 */
-	bool  VFrameGraph::SkipBatch (const CommandBatchID &batchId, uint indexInBatch)
+	bool  VFrameGraphInstance::SkipBatch (const CommandBatchID &batchId, uint indexInBatch)
 	{
 		CHECK_ERR( _GetState() == EState::RunThreads );
 
@@ -230,7 +230,7 @@ namespace FG
 	thread safe and wait-free
 =================================================
 */
-	bool  VFrameGraph::SubmitBatch (const CommandBatchID &batchId, uint indexInBatch, const ExternalCmdBatch_t &data)
+	bool  VFrameGraphInstance::SubmitBatch (const CommandBatchID &batchId, uint indexInBatch, const ExternalCmdBatch_t &data)
 	{
 		CHECK_ERR( _GetState() == EState::RunThreads );
 
@@ -265,7 +265,7 @@ namespace FG
 	EndFrame
 =================================================
 */
-	bool  VFrameGraph::EndFrame ()
+	bool  VFrameGraphInstance::EndFrame ()
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::RunThreads, EState::End ));
@@ -301,7 +301,7 @@ namespace FG
 	WaitIdle
 =================================================
 */
-	bool  VFrameGraph::WaitIdle ()
+	bool  VFrameGraphInstance::WaitIdle ()
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _GetState() == EState::Idle );
@@ -309,7 +309,7 @@ namespace FG
 		return _WaitIdle();
 	}
 
-	bool  VFrameGraph::_WaitIdle ()
+	bool  VFrameGraphInstance::_WaitIdle ()
 	{
 		SCOPELOCK( _threadLock );
 
@@ -340,7 +340,7 @@ namespace FG
 	GetStatistics
 =================================================
 */
-	bool  VFrameGraph::GetStatistics (OUT Statistics &result) const
+	bool  VFrameGraphInstance::GetStatistics (OUT Statistics &result) const
 	{
 		SHAREDLOCK( _rcCheck );
 		CHECK_ERR( _GetState() == EState::Idle );
@@ -354,7 +354,7 @@ namespace FG
 	DumpToString
 =================================================
 */
-	bool  VFrameGraph::DumpToString (OUT String &result) const
+	bool  VFrameGraphInstance::DumpToString (OUT String &result) const
 	{
 		SHAREDLOCK( _rcCheck );
 		CHECK_ERR( _GetState() == EState::Idle );
@@ -368,7 +368,7 @@ namespace FG
 	DumpToGraphViz
 =================================================
 */
-	bool  VFrameGraph::DumpToGraphViz (OUT String &result) const
+	bool  VFrameGraphInstance::DumpToGraphViz (OUT String &result) const
 	{
 		SHAREDLOCK( _rcCheck );
 		CHECK_ERR( _GetState() == EState::Idle );
@@ -382,17 +382,17 @@ namespace FG
 	_GetState / _SetState
 =================================================
 */
-	inline VFrameGraph::EState  VFrameGraph::_GetState () const
+	inline VFrameGraphInstance::EState  VFrameGraphInstance::_GetState () const
 	{
 		return _state.load( memory_order_acquire );
 	}
 
-	inline void  VFrameGraph::_SetState (EState newState)
+	inline void  VFrameGraphInstance::_SetState (EState newState)
 	{
 		_state.store( newState, memory_order_release );
 	}
 
-	inline bool  VFrameGraph::_SetState (EState expected, EState newState)
+	inline bool  VFrameGraphInstance::_SetState (EState expected, EState newState)
 	{
 		return _state.compare_exchange_strong( INOUT expected, newState, memory_order_release, memory_order_relaxed );
 	}

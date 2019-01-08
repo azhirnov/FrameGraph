@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This test affects:
 		- frame graph building and execution
@@ -21,7 +21,7 @@ namespace FG
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
 		
-		FGThreadPtr		frame_graph		= _frameGraph1;
+		FGThreadPtr		frame_graph		= _fgGraphics1;
 		ImageID			src_image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "SrcImage" );
 		ImageID			dst_image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -75,7 +75,7 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 		Task	t_update	= frame_graph->AddTask( UpdateImage().SetImage( src_image ).SetData( src_data, src_dim ) );
@@ -84,7 +84,7 @@ namespace FG
 		FG_UNUSED( t_read );
 		
 		CHECK_ERR( frame_graph->Execute() );
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
@@ -93,7 +93,7 @@ namespace FG
 		CHECK_ERR( not cb_was_called );
 		
 		// all staging buffers will be synchronized, all 'ReadImage' callbacks will be called.
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );

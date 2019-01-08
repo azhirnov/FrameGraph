@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #pragma once
 
@@ -14,7 +14,6 @@ namespace FG
 	struct StringParser final
 	{
 	public:
-		// move cursor //
 			static void  ToEndOfLine	(StringView str, INOUT size_t &pos);
 			static void  ToBeginOfLine	(StringView str, INOUT size_t &pos);
 			static void  ToNextLine		(StringView str, INOUT size_t &pos);

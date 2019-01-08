@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This test affects:
 		...
@@ -65,7 +65,7 @@ namespace FG
 			vk_buf_desc.size	= BytesU{ info.size };
 		}
 		
-		FGThreadPtr		frame_graph	= _frameGraph1;
+		FGThreadPtr		frame_graph	= _fgGraphics1;
 		BufferID		src_buffer	= frame_graph->CreateBuffer( BufferDesc{ src_buffer_size, EBufferUsage::Transfer }, Default, "SrcBuffer" );
 		BufferID		dst_buffer	= frame_graph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Transfer }, Default, "DstBuffer" );
 		BufferID		ext_buffer	= frame_graph->CreateBuffer( vk_buf_desc, Default, "ExternalBuffer" );
@@ -97,7 +97,7 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id, 3 );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 
 		// thread 1
 		{
@@ -138,7 +138,7 @@ namespace FG
 			vk_cmdbatch.commands = { BitCast<CommandBufferVk_t>( vk_cmdbuf ) };
 			vk_cmdbatch.queue	 = BitCast<QueueVk_t>( vk_queue );
 
-			CHECK_ERR( _frameGraphInst->SubmitBatch( batch_id, 1, vk_cmdbatch ));
+			CHECK_ERR( _fgInstance->SubmitBatch( batch_id, 1, vk_cmdbatch ));
 		}
 
 		// thread 3
@@ -152,14 +152,14 @@ namespace FG
 			CHECK_ERR( frame_graph->Execute() );
 		}
 
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( not cb_was_called );
 		
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 

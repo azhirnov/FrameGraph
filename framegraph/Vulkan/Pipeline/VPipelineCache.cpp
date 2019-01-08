@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "Public/IPipelineCompiler.h"
 #include "VPipelineCache.h"
@@ -310,6 +310,18 @@ namespace FG
 */
 	bool VPipelineCache::CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
 	{
+		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		
+		// try to use external compilers
+		for (auto& comp : _compilers)
+		{
+			if ( comp->IsSupported( desc, req_format ) )
+			{
+				CHECK_ERR( comp->Compile( INOUT desc, req_format ));
+				return true;
+			}
+		}
+
 		// check is shaders supported by default compiler
 		const auto	formats = _GetBuiltinFormats( dev );
 
@@ -336,17 +348,6 @@ namespace FG
 
 				desc._shader.data.clear();
 				desc._shader.data.insert({ fmt, mod });
-				return true;
-			}
-		}
-
-
-		// try to compile
-		for (auto& comp : _compilers)
-		{
-			if ( comp->IsSupported( desc, formats.front() ) )
-			{
-				CHECK_ERR( comp->Compile( INOUT desc, formats.front() ));
 				return true;
 			}
 		}
@@ -518,7 +519,7 @@ namespace FG
 		inst.vertexInput.ApplyAttribs( gppln->GetVertexAttribs() );
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
 		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil,
-									INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
+								    INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
@@ -634,7 +635,7 @@ namespace FG
 
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
 		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil,
-									INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
+								    INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+

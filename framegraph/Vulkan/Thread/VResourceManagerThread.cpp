@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VResourceManagerThread.h"
 #include "VBarrierManager.h"
@@ -100,21 +100,21 @@ namespace FG
 		for (auto& fb : *_framebufferMap)
 		{
 			if ( not _mainRM._AddToResourceCache( fb.second ) )
-				ReleaseResource( fb.second, false );
+				ReleaseResource( fb.second, false, true );
 		}
 
 		// merge pipeline resources
 		for (auto& res : *_pplnResourcesMap)
 		{
 			if ( not _mainRM._AddToResourceCache( res.second ) )
-				ReleaseResource( res.second, false );
+				ReleaseResource( res.second, false, true );
 		}
 
 		_pipelineCache.MergePipelines( _mainRM._GetReadyToDeleteQueue() );
 
 		// unassign IDs
 		for (auto& vid : *_unassignIDs) {
-			std::visit( [this] (auto id) { ReleaseResource( id, false ); }, vid );
+			std::visit( [this, force = vid.second] (auto id) { ReleaseResource( id, false, force ); }, vid.first );
 		}
 		
 		_samplerMap.Destroy();
@@ -144,7 +144,7 @@ namespace FG
 
 			if ( not rp.IsDestroyed() )
 			{
-				rp.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				rp.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
 				_logicalRenderPasses.Unassign( Index_t(i) );
 			}
 		}
@@ -713,6 +713,7 @@ namespace FG
 			if ( iter != localCache->end() )
 			{
 				iter->first->AddRef();
+				_Unassign( id );
 				return iter->second;
 			}
 
@@ -1034,7 +1035,7 @@ namespace FG
 			if ( not image.IsDestroyed() )
 			{
 				image.Data().ResetState( index, barrierMngr, debugger );
-				image.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				image.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
 				_localImages.Unassign( Index_t(i) );
 			}
 		}
@@ -1047,7 +1048,7 @@ namespace FG
 			if ( not buffer.IsDestroyed() )
 			{
 				buffer.Data().ResetState( index, barrierMngr, debugger );
-				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
 				_localBuffers.Unassign( Index_t(i) );
 			}
 		}
@@ -1060,7 +1061,7 @@ namespace FG
 			if ( not geometry.IsDestroyed() )
 			{
 				geometry.Data().ResetState( index, barrierMngr, debugger );
-				geometry.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs );
+				geometry.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
 				_localRTGeometries.Unassign( Index_t(i) );
 			}
 		}
@@ -1079,7 +1080,7 @@ namespace FG
 											});
 				}
 				scene.Data().ResetState( index, barrierMngr, debugger );
-				scene.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT *_unassignIDs, batchExeOrder, GetFrameIndex() );
+				scene.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs(), batchExeOrder, GetFrameIndex() );
 				_localRTScenes.Unassign( Index_t(i) );
 			}
 		}

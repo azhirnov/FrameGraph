@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This test affects:
 		- frame graph building and execution
@@ -77,7 +77,7 @@ void main() {
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _frameGraph1;
+		FGThreadPtr		frame_graph	= _fgGraphics1;
 
 		const uint2		view_size	= {800, 600};
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -124,7 +124,7 @@ void main() {
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
@@ -138,12 +138,12 @@ void main() {
 		FG_UNUSED( t_read );
 
 		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _frameGraphInst->WaitIdle() );
+		CHECK_ERR( _fgInstance->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #ifdef FG_ENABLE_ASSIMP
 
@@ -13,15 +13,52 @@
 
 namespace FG
 {
+namespace {
+
+	struct AttribHash {
+		size_t  operator () (const VertexAttributesPtr &value) const {
+			return size_t(value->CalcHash());
+		}
+	};
+
+	struct AttribEq {
+		bool  operator () (const VertexAttributesPtr &lhs, const VertexAttributesPtr &rhs) const {
+			return *lhs == *rhs;
+		}
+	};
+
+	using VertexAttribsSet_t = std::unordered_set< VertexAttributesPtr, AttribHash, AttribEq >;
+
 
 	struct SceneData
 	{
 		Array<IntermediateMaterialPtr>	materials;
 		Array<IntermediateMeshPtr>		meshes;
+		VertexAttribsSet_t				attribsCache;
 		Array<IntermediateLightPtr>		lights;
 		IntermediateScene::SceneNode	root;
 	};
+}
 
+/*
+=================================================
+	AssimpInit
+=================================================
+*/
+	static void AssimpInit ()
+	{
+		static bool	isAssimpInit = false;
+
+		if ( isAssimpInit )
+			return;
+
+		isAssimpInit = true;
+
+		// Create Logger
+		Assimp::Logger::LogSeverity severity = Assimp::Logger::VERBOSE;
+		Assimp::DefaultLogger::create( "", severity, aiDefaultLogStream_STDOUT );
+		//Assimp::DefaultLogger::create( "assimp_log.txt", severity, aiDefaultLogStream_FILE );
+	}
 
 /*
 =================================================
@@ -31,6 +68,7 @@ namespace FG
 	AssimpLoader::AssimpLoader () :
 		_importerPtr{ new Assimp::Importer{} }
 	{
+		AssimpInit();
 	}
 
 /*
@@ -109,56 +147,57 @@ namespace FG
 	{
 		IntermediateMaterial::Settings	mtr;
 
-		aiColor4D	value;
-		uint		max_size = 1;
+		aiColor4D	color;
+		float		fvalue		= 0.0f;
+		uint		max_size	= 1;
 
 		aiString	mtr_name;
-		aiGetMaterialString( src, AI_MATKEY_NAME, &mtr_name );
+		aiGetMaterialString( src, AI_MATKEY_NAME, OUT &mtr_name );
 		mtr.name = mtr_name.C_Str();
 
+		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_DIFFUSE, OUT &color ) == aiReturn_SUCCESS )
+			mtr.albedo = BitCast<RGBA32f>( color );
 
-		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_DIFFUSE, &value ) == aiReturn_SUCCESS )
-			mtr.diffuseColor = BitCast<float4>( value );
+		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_SPECULAR, OUT &color ) == aiReturn_SUCCESS )
+			mtr.specular = BitCast<RGBA32f>( color );
 
-		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_SPECULAR, &value ) == aiReturn_SUCCESS )
-			mtr.specularColor = BitCast<float4>( value );
-
-		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_AMBIENT, &value ) == aiReturn_SUCCESS )
-			mtr.ambientColor = BitCast<float4>( value );
+		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_AMBIENT, OUT &color ) == aiReturn_SUCCESS )
+			mtr.ambient = BitCast<RGBA32f>( color );
 	
-		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_EMISSIVE, &value ) == aiReturn_SUCCESS )
-			mtr.emissiveColor = BitCast<float4>( value );
+		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_EMISSIVE, OUT &color ) == aiReturn_SUCCESS )
+			mtr.emissive = BitCast<RGBA32f>( color );
 	
-		aiGetMaterialFloatArray( src, AI_MATKEY_OPACITY, &mtr.opacity, &max_size );
-		aiGetMaterialFloatArray( src, AI_MATKEY_SHININESS, &mtr.shininess, &max_size );
-		aiGetMaterialFloatArray( src, AI_MATKEY_SHININESS_STRENGTH, &mtr.shininessStrength, &max_size );
+		if ( aiGetMaterialFloatArray( src, AI_MATKEY_OPACITY, OUT &fvalue, &max_size ) == aiReturn_SUCCESS and fvalue < 1.0f )
+			mtr.opacity = fvalue;
 
-		int twosided = 0;
-		aiGetMaterialInteger( src, AI_MATKEY_TWOSIDED, &twosided );
+		if ( aiGetMaterialFloatArray( src, AI_MATKEY_SHININESS, OUT &fvalue, &max_size ) == aiReturn_SUCCESS )
+			mtr.shininess = fvalue;
+
+		aiGetMaterialFloatArray( src, AI_MATKEY_SHININESS_STRENGTH, OUT &mtr.shininessStrength, &max_size );
+
+		int		twosided = 1;
+		aiGetMaterialInteger( src, AI_MATKEY_TWOSIDED, OUT &twosided );
+		mtr.cullMode = twosided ? ECullMode::None : ECullMode::Back;
 	
-		StaticArray< Optional<IntermediateMaterial::MtrTexture>*, aiTextureType_UNKNOWN >	textures =
+		StaticArray< IntermediateMaterial::Parameter*, aiTextureType_UNKNOWN >	textures =
 		{
-			null, &mtr.diffuseMap, &mtr.specularMap, &mtr.ambientMap, &mtr.emissiveMap, &mtr.heightMap,
-			&mtr.normalsMap, &mtr.shininessMap, &mtr.opacityMap, &mtr.displacementMap, &mtr.lightMap, &mtr.reflectionMap
+			null, &mtr.albedo, &mtr.specular, &mtr.ambient, &mtr.emissive, &mtr.heightMap, &mtr.normalsMap,
+			&mtr.shininess, &mtr.opacity, &mtr.displacementMap, &mtr.lightMap, &mtr.reflectionMap
 		};
 
 		for (uint i = 0; i < aiTextureType_UNKNOWN; ++i)
 		{
 			auto tex = textures[i];
-
-			if ( not tex )
-				continue;
+			if ( not tex ) continue;
 		
 			aiString			tex_name;
 			aiTextureMapMode	map_mode[3]	= { aiTextureMapMode_Wrap, aiTextureMapMode_Wrap, aiTextureMapMode_Wrap };
 			aiTextureMapping	mapping		= aiTextureMapping_UV;
 			uint				uv_index	= 0;
 
-			if ( src->GetTexture( aiTextureType(i), 0, &tex_name, &mapping, &uv_index, null, null, map_mode ) == AI_SUCCESS )
+			if ( src->GetTexture( aiTextureType(i), 0, OUT &tex_name, OUT &mapping, OUT &uv_index, null, null, OUT map_mode ) == AI_SUCCESS )
 			{
-				*tex = IntermediateMaterial::MtrTexture{};
-				auto&	mtr_tex = tex->value();
-
+				IntermediateMaterial::MtrTexture	mtr_tex;
 				mtr_tex.name			= tex_name.C_Str();
 				mtr_tex.addressModeU	= ConvertWrapMode( map_mode[0] );
 				mtr_tex.addressModeV	= ConvertWrapMode( map_mode[1] );
@@ -167,10 +206,25 @@ namespace FG
 				mtr_tex.filter			= EFilter::Linear;
 				mtr_tex.uvIndex			= uv_index;
 				mtr_tex.image			= MakeShared<IntermediateImage>( StringView{tex_name.C_Str()} );
+
+				*tex = std::move(mtr_tex);
 			}
 		}
 
-		dst = MakeShared<IntermediateMaterial>( std::move(mtr) );
+		LayerBits	layers;
+
+		if ( mtr.opacity.index() )
+			layers[uint(ERenderLayer::Translucent)] = true;
+		else {
+			layers[uint(ERenderLayer::Opaque_1)]  = true;
+			layers[uint(ERenderLayer::DepthOnly)] = true;
+			layers[uint(ERenderLayer::Shadow)]    = true;
+		}
+
+		if ( mtr.emissive.index() )
+			layers[uint(ERenderLayer::Emission)] = true;
+
+		dst = MakeShared<IntermediateMaterial>( std::move(mtr), layers );
 		return true;
 	}
 
@@ -227,7 +281,7 @@ namespace FG
 	LoadMesh
 =================================================
 */
-	static bool LoadMesh (const aiMesh *src, OUT IntermediateMeshPtr &dst)
+	static bool LoadMesh (const aiMesh *src, OUT IntermediateMeshPtr &dst, INOUT VertexAttribsSet_t &attribsCache)
 	{
 		CHECK_ERR( src->mPrimitiveTypes == aiPrimitiveType_TRIANGLE );
 		CHECK_ERR( not src->HasBones() );
@@ -235,6 +289,8 @@ namespace FG
 		BytesU				vert_stride;
 		VertexAttributesPtr	attribs;
 		CHECK_ERR( CreateVertexAttribs( src, OUT vert_stride, OUT attribs ));
+
+		attribs = *attribsCache.insert( attribs ).first;
 
 		Array<uint8_t>		vertices;
 		Array<uint8_t>		indices;
@@ -286,7 +342,16 @@ namespace FG
 			}
 		}
 	
-		dst = MakeShared<IntermediateMesh>( std::move(vertices), attribs, std::move(indices), EIndex::UInt );
+		EPrimitive	topology = Default;
+		switch ( src->mPrimitiveTypes )
+		{
+			case aiPrimitiveType_POINT :		topology = EPrimitive::Point;			break;
+			case aiPrimitiveType_LINE :			topology = EPrimitive::LineList;		break;
+			case aiPrimitiveType_TRIANGLE :		topology = EPrimitive::TriangleList;	break;
+			default :							RETURN_ERR( "unsupported type" );
+		}
+
+		dst = MakeShared<IntermediateMesh>( std::move(vertices), attribs, vert_stride, topology, std::move(indices), EIndex::UInt );
 		return true;
 	}
 
@@ -347,13 +412,13 @@ namespace FG
 	LoadMeshes
 =================================================
 */
-	static bool LoadMeshes (const aiScene *scene, OUT Array<IntermediateMeshPtr> &outMeshes)
+	static bool LoadMeshes (const aiScene *scene, OUT Array<IntermediateMeshPtr> &outMeshes, INOUT VertexAttribsSet_t &attribsCache)
 	{
 		outMeshes.resize( scene->mNumMeshes );
 
 		for (uint i = 0; i < scene->mNumMeshes; ++i)
 		{
-			CHECK_ERR( LoadMesh( scene->mMeshes[i], OUT outMeshes[i] ));
+			CHECK_ERR( LoadMesh( scene->mMeshes[i], OUT outMeshes[i], INOUT attribsCache ));
 		}
 		return true;
 	}
@@ -431,17 +496,16 @@ namespace FG
 	IntermediateScenePtr  AssimpLoader::Load (const Config &config, StringView filename)
 	{
 		const uint sceneLoadFlags = 0
-									| aiProcess_CalcTangentSpace
+									| (config.calculateTBN ? aiProcess_CalcTangentSpace : 0)
 									| aiProcess_Triangulate
 									| (config.smoothNormals ? aiProcess_GenSmoothNormals : aiProcess_GenNormals)
 									| aiProcess_RemoveRedundantMaterials
 									| aiProcess_GenUVCoords 
 									| aiProcess_TransformUVCoords
 									| (config.splitLargeMeshes ? aiProcess_SplitLargeMeshes : 0)
-									| (config.optimize ?
+									| (not config.optimize ? 0 :
 										(aiProcess_JoinIdenticalVertices | aiProcess_FindInstances |
-										 aiProcess_OptimizeMeshes | aiProcess_ImproveCacheLocality /*| aiProcess_OptimizeGraph*/) :
-										0);
+										 aiProcess_OptimizeMeshes | aiProcess_ImproveCacheLocality /*| aiProcess_OptimizeGraph*/));
 
 		_importerPtr->SetPropertyInteger( AI_CONFIG_PP_SLM_TRIANGLE_LIMIT, config.maxTrianglesPerMesh );
 		_importerPtr->SetPropertyInteger( AI_CONFIG_PP_SLM_VERTEX_LIMIT, config.maxVerticesPerMesh );
@@ -449,10 +513,11 @@ namespace FG
 		const aiScene *	scene	= _importerPtr->ReadFile( filename.data(), sceneLoadFlags );
 		const char*		errStr	= _importerPtr->GetErrorString();
 		CHECK_ERR( scene );
+		FG_UNUSED( errStr );
 		
 		SceneData	scene_data;
 		CHECK_ERR( LoadMaterials( scene, OUT scene_data.materials ));
-		CHECK_ERR( LoadMeshes( scene, OUT scene_data.meshes ));
+		CHECK_ERR( LoadMeshes( scene, OUT scene_data.meshes, INOUT scene_data.attribsCache ));
 		//CHECK_ERR( LoadAnimations( scene, OUT scene_data.animations ));
 		CHECK_ERR( LoadLights( scene, OUT scene_data.lights ));
 		CHECK_ERR( LoadHierarchy( scene, INOUT scene_data ));

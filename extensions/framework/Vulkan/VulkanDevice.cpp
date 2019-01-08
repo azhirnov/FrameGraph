@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanDevice.h"
 #include "stl/Containers/StaticString.h"
@@ -226,6 +226,29 @@ namespace FG
 
 		_vkSurface = surface->Create( _vkInstance );
 		CHECK_ERR( _vkSurface );
+		
+		CHECK_ERR( _SetupQueues( queues ));
+		CHECK_ERR( _CreateDevice( deviceExtensions ));
+
+		return true;
+	}
+	
+/*
+=================================================
+	Create
+=================================================
+*/
+	bool VulkanDevice::Create (StringView					appName,
+							   StringView					engineName,
+							   const uint					version,
+							   StringView					deviceName,
+							   ArrayView<QueueCreateInfo>	queues,
+							   ArrayView<const char*>		instanceLayers,
+							   ArrayView<const char*>		instanceExtensions,
+							   ArrayView<const char*>		deviceExtensions)
+	{
+		CHECK_ERR( _CreateInstance( appName, engineName, instanceLayers, Array<const char*>{instanceExtensions}, version ));
+		CHECK_ERR( _ChooseGpuDevice( deviceName ));
 		
 		CHECK_ERR( _SetupQueues( queues ));
 		CHECK_ERR( _CreateDevice( deviceExtensions ));
@@ -534,7 +557,7 @@ namespace FG
 				continue;
 
 																									// magic function:
-			const float		perf	= //float(info.globalMemory.Mb()) / 1024.0f +							// commented becouse of bug on Intel (incorrect heap size)
+			const float		perf	= //float(info.globalMemory.Mb()) / 1024.0f +							// commented because of bug on Intel (incorrect heap size)
 										float(prop.limits.maxComputeSharedMemorySize >> 10) / 64.0f +		// big local cache is goode
 										float(is_gpu and not is_integrated ? 4 : 1) +						// 
 										float(prop.limits.maxComputeWorkGroupInvocations) / 1024.0f +		// 

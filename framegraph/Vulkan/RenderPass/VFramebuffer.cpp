@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VFramebuffer.h"
 #include "VDevice.h"
@@ -119,7 +119,7 @@ namespace FG
 
 		for (auto& rt : _attachments)
 		{
-			VkImageView		view = resMngr.ToLocal( rt.first )->GetView( dev, INOUT rt.second );
+			VkImageView		view = resMngr.ToLocal( rt.first )->GetView( dev, false, INOUT rt.second );
 			CHECK_ERR( view );
 
 			image_views.push_back( view );

@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VLogicalRenderPass.h"
 #include "VResourceManagerThread.h"
@@ -36,7 +36,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 
 		_allocator.Create( resMngr.GetAllocator() );
-		_allocator->SetBlockSize( 4_Mb );
+		_allocator->SetBlockSize( 4_Kb );
 		
 		_colorState			= desc.colorState;
 		_depthState			= desc.depthState;
