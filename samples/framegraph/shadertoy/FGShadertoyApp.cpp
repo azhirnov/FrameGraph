@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "FGShadertoyApp.h"
 #include "graphviz/GraphViz.h"
@@ -12,25 +12,6 @@
 
 namespace FG
 {
-
-	struct ShadertoyUB
-	{
-		float3		iResolution;			// offset: 0, align: 16
-		float		iTime;					// offset: 12, align: 4
-		float		iTimeDelta;				// offset: 16, align: 4
-		int			iFrame;					// offset: 20, align: 4
-		float2		_padding0;				// offset: 24, align: 8
-		float4		iChannelTime[4];		// offset: 32, align: 16
-		float4		iChannelResolution[4];	// offset: 96, align: 16
-		float4		iMouse;					// offset: 160, align: 16
-		float4		iDate;					// offset: 176, align: 16
-		float		iSampleRate;			// offset: 192, align: 4
-		float		_padding1;				// offset: 196, align: 4
-		float		_padding2;				// offset: 200, align: 4
-		float		_padding3;				// offset: 204, align: 4
-		float4		iCameraFrustum[4];		// offset: 208, align: 16
-		float4		iCameraPos;				// offset: 272, align: 16
-	};
 	
 /*
 =================================================
@@ -39,11 +20,10 @@ namespace FG
 */
 	FGShadertoyApp::Shader::Shader (StringView name, ShaderDescr &&desc) :
 		_name{ name },
-		_pplnFilename{ std::move(desc._pplnFilename) },
-		_pplnDefines{ std::move(desc._pplnDefines) },
-		_channels{ desc._channels }
-	{
-	}
+		_pplnFilename{ std::move(desc._pplnFilename) },		_pplnDefines{ std::move(desc._pplnDefines) },
+		_channels{ desc._channels },
+		_surfaceScale{ desc._surfaceScale },				_surfaceSize{ desc._surfaceSize }
+	{}
 //-----------------------------------------------------------------------------
 
 
@@ -114,20 +94,60 @@ namespace FG
 */
 	void FGShadertoyApp::OnKey (StringView key, EKeyAction action)
 	{
-		if ( action != EKeyAction::Down )
-			return;
+		if ( action != EKeyAction::Up )
+		{
+			// forward/backward
+			if ( key == "W" )			_positionDelta.x += 1.0f;	else
+			if ( key == "S" )			_positionDelta.x -= 1.0f;
 
-		if ( key == "[" )	--_nextSample;	else
-		if ( key == "]" )	++_nextSample;
+			// left/right
+			if ( key == "D" )			_positionDelta.y -= 1.0f;	else
+			if ( key == "A" )			_positionDelta.y += 1.0f;
 
-		if ( key == "R" )
-			_Recompile();
+			// up/down
+			if ( key == "V" )			_positionDelta.z += 1.0f;	else
+			if ( key == "C" )			_positionDelta.z -= 1.0f;
 
-		if ( key == "space" )
-			_pause = not _pause;
+			// rotate up/down
+			if ( key == "arrow up" )	_mouseDelta.y -= 0.01f;		else
+			if ( key == "arrow down" )	_mouseDelta.y += 0.01f;
 
-		if ( key == "escape" and _window )
-			_window->Quit();
+			// rotate left/right
+			if ( key == "arrow right" )	_mouseDelta.x += 0.01f;		else
+			if ( key == "arrow left" )	_mouseDelta.x -= 0.01f;
+		}
+
+		if ( action == EKeyAction::Down )
+		{
+			if ( key == "[" )					--_nextSample;		else
+			if ( key == "]" )					++_nextSample;
+
+			if ( key == "R" )					_Recompile();
+			if ( key == "T" )					_frameCounter = 0;
+
+			if ( key == "F" )					_freeze = not _freeze;
+			if ( key == "space" )				_pause = not _pause;
+
+			if ( key == "escape" and _window )	_window->Quit();
+		}
+
+		if ( key == "left mb" )		_mousePressed = (action != EKeyAction::Up);
+	}
+	
+/*
+=================================================
+	OnMouseMove
+=================================================
+*/
+	void FGShadertoyApp::OnMouseMove (const float2 &pos)
+	{
+		if ( _mousePressed )
+		{
+			vec2	delta = vec2{pos.x, pos.y} - _lastMousePos;
+			_mouseDelta  += delta * 0.01f;
+		}
+
+		_lastMousePos = vec2{pos.x, pos.y};
 	}
 
 /*
@@ -170,6 +190,7 @@ namespace FG
 			VulkanSwapchainCreateInfo	swapchain_ci;
 			swapchain_ci.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 			swapchain_ci.surfaceSize	= _window->GetSize();
+			swapchain_ci.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );
 			swapchain_info				= swapchain_ci;
 
 			for (auto& q : _vulkan.GetVkQuues())
@@ -187,15 +208,15 @@ namespace FG
 
 		// initialize framegraph
 		{
-			_frameGraphInst = FrameGraph::CreateFrameGraph( vulkan_info );
-			CHECK_ERR( _frameGraphInst );
-			CHECK_ERR( _frameGraphInst->Initialize( 2 ));
+			_fgInstance = FrameGraphInstance::CreateFrameGraph( vulkan_info );
+			CHECK_ERR( _fgInstance );
+			CHECK_ERR( _fgInstance->Initialize( 2 ));
 
-			//_frameGraphInst->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
+			//_fgInstance->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
 
 			ThreadDesc	desc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer };
 
-			_frameGraph = _frameGraphInst->CreateThread( desc );
+			_frameGraph = _fgInstance->CreateThread( desc );
 			CHECK_ERR( _frameGraph );
 			CHECK_ERR( _frameGraph->Initialize( &swapchain_info ));
 		}
@@ -205,12 +226,12 @@ namespace FG
 			auto	ppln_compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
 			ppln_compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
 
-			_frameGraphInst->AddPipelineCompiler( ppln_compiler );
+			_fgInstance->AddPipelineCompiler( ppln_compiler );
 		}
 
 		_CreateSamplers();
 		_InitSamples();
-
+		
 		return true;
 	}
 
@@ -224,7 +245,7 @@ namespace FG
 		if ( not _window->Update() )
 			return false;
 
-		if ( _pause )
+		if ( _pause or Any(_window->GetSize() == uint2(0)) )
 		{
 			std::this_thread::sleep_for(SecondsF{0.01f});
 			return true;
@@ -246,12 +267,14 @@ namespace FG
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id );
 
-		CHECK_ERR( _frameGraphInst->BeginFrame( submission_graph ));
+		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
 		CHECK_ERR( _frameGraph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 		if ( Any(_surfaceSize != _window->GetSize()) )
 		{
 			CHECK_ERR( _RecreateShaders( _window->GetSize() ));
+
+			_camera.SetPerspective( 90_deg, float(_surfaceSize.x) / _surfaceSize.y, 0.1f, 100.0f );
 		}
 		
 		if ( _ordered.size() )
@@ -278,7 +301,7 @@ namespace FG
 		}
 
 		CHECK_ERR( _frameGraph->Execute() );
-		CHECK_ERR( _frameGraphInst->EndFrame() );
+		CHECK_ERR( _fgInstance->EndFrame() );
 
 		_currTask = null;
 		++_passIdx;
@@ -293,28 +316,40 @@ namespace FG
 */
 	void FGShadertoyApp::_UpdateShaderData ()
 	{
-		const auto	time = TimePoint_t::clock::now();
+		const auto	time		= TimePoint_t::clock::now();
+		const auto	velocity	= 1.0f;
 
 		if ( _frameCounter == 0 )
 			_startTime = time;
 
-		const float		app_dt		= std::chrono::duration_cast<SecondsF>( time - _startTime ).count();
-		const float		frame_dt	= std::chrono::duration_cast<SecondsF>( time - _lastUpdateTime ).count();
-		_lastUpdateTime	= time;
+		const float	app_dt		= std::chrono::duration_cast<SecondsF>( (_freeze ? _lastUpdateTime : time) - _startTime ).count();
+		const float	frame_dt	= std::chrono::duration_cast<SecondsF>( time - _lastUpdateTime ).count();
+		
+		_camera.Rotate( -_mouseDelta.x, _mouseDelta.y );
 
-		_ubData.iResolution		= float3{ float2(_scaledSurfaceSize), 0.0f };
+		if ( length2( _positionDelta ) > 0.01f ) {
+			_positionDelta = normalize(_positionDelta) * velocity * frame_dt;
+			_camera.Move2( _positionDelta );
+		}
+
 		_ubData.iTime			= app_dt;
 		_ubData.iTimeDelta		= frame_dt;
 		_ubData.iFrame			= _frameCounter;
-		//_ubData.iMouse		= float4( _mousePressed ? _mousePos : float2(), float2() );	// TODO: click
+		_ubData.iMouse			= vec4( _mousePressed ? _lastMousePos : vec2{}, vec2{} );	// TODO: click
 		//_ubData.iDate			= float4(uint3( date.Year(), date.Month(), date.DayOfMonth()).To<float3>(), float(date.Second()) + float(date.Milliseconds()) * 0.001f);
 		_ubData.iSampleRate		= 0.0f;	// not supported yet
-		//_ubData.iCameraPos	= state.transform.Position();
+		_ubData.iCameraPos		= vec4{ _camera.GetCamera().transform.position, 0.0f };
 
-		//state.frustum.GetRays( OUT _ubData.iCameraFrustumRay2, OUT _ubData.iCameraFrustumRay0,
-		//					   OUT _ubData.iCameraFrustumRay3, OUT _ubData.iCameraFrustumRay1 );
+		_camera.GetFrustum().GetRays( OUT _ubData.iCameraFrustumRayLB, OUT _ubData.iCameraFrustumRayLT,
+									  OUT _ubData.iCameraFrustumRayRB, OUT _ubData.iCameraFrustumRayRT );
 
-		++_frameCounter;
+		if ( not _freeze ) {
+			_lastUpdateTime	= time;
+			++_frameCounter;
+		}
+
+		_positionDelta = vec3{0.0f};
+		_mouseDelta    = vec2{0.0f};
 	}
 
 /*
@@ -329,31 +364,20 @@ namespace FG
 
 		// update uniform buffer
 		{
-			ShadertoyUB		ub_data	= {};
-
-			for (size_t i = 0; i < CountOf(ub_data.iChannelResolution); ++i)
+			for (size_t i = 0; i < pass.images.size(); ++i)
 			{
 				if ( pass.resources.HasTexture(UniformID{ "iChannel"s << ToString(i) }) )
 				{
-					ub_data.iChannelResolution[i]	= float4{ float(view_size.x), float(view_size.y), 0.0f, 0.0f };		// TODO
-					ub_data.iChannelTime[i]			= float4{ _ubData.iTime };
+					auto	dim	= _frameGraph->GetDescription( pass.images[i] ).dimension;
+
+					_ubData.iChannelResolution[i]	= vec4{ float(dim.x), float(dim.y), 0.0f, 0.0f };
+					_ubData.iChannelTime[i]			= vec4{ _ubData.iTime };
 				}
 			}
+		
+			_ubData.iResolution = vec3{ float(view_size.x), float(view_size.y), 0.0f };
 
-			ub_data.iDate				= _ubData.iDate;
-			ub_data.iFrame				= _ubData.iFrame;
-			ub_data.iMouse				= _ubData.iMouse;
-			ub_data.iResolution			= _ubData.iResolution;
-			ub_data.iSampleRate			= _ubData.iSampleRate;
-			ub_data.iTime				= _ubData.iTime;
-			ub_data.iTimeDelta			= _ubData.iTimeDelta;
-			ub_data.iCameraFrustum[0]	= float4(_ubData.iCameraFrustumRay0, 0.0f);
-			ub_data.iCameraFrustum[1]	= float4(_ubData.iCameraFrustumRay1, 0.0f);
-			ub_data.iCameraFrustum[2]	= float4(_ubData.iCameraFrustumRay2, 0.0f);
-			ub_data.iCameraFrustum[3]	= float4(_ubData.iCameraFrustumRay3, 0.0f);
-			ub_data.iCameraPos			= float4(_ubData.iCameraPos, 0.0f);
-
-			_currTask = _frameGraph->AddTask( UpdateBuffer{}.SetBuffer( shader->_ubuffer ).AddData( &ub_data, 1 ).DependsOn( _currTask ));
+			_currTask = _frameGraph->AddTask( UpdateBuffer{}.SetBuffer( shader->_ubuffer ).AddData( &_ubData, 1 ).DependsOn( _currTask ));
 		}
 
 
@@ -361,7 +385,7 @@ namespace FG
 									.AddTarget( RenderTargetID("out_Color"), pass.renderTarget, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 									.AddViewport( view_size ) );
 
-		_frameGraph->AddTask( pass_id, DrawVertices{}.SetPipeline( shader->_pipeline ).AddResources( 0, &pass.resources )
+		_frameGraph->AddTask( pass_id, DrawVertices{}.SetPipeline( shader->_pipeline ).AddResources( DescriptorSetID{"0"}, &pass.resources )
 													 .AddDrawCmd( 4 ).SetTopology( EPrimitive::TriangleStrip ));
 
 		_currTask = _frameGraph->AddTask( SubmitRenderPass{ pass_id }.DependsOn( _currTask ));
@@ -389,10 +413,10 @@ namespace FG
 			_frameGraph = null;
 		}
 
-		if ( _frameGraphInst )
+		if ( _fgInstance )
 		{
-			_frameGraphInst->Deinitialize();
-			_frameGraphInst = null;
+			_fgInstance->Deinitialize();
+			_fgInstance = null;
 		}
 
 		_vulkan.Destroy();
@@ -461,7 +485,7 @@ namespace FG
 		for (auto& ch : shader->_channels)
 		{
 			// find channel in shader passes
-			ShadersMap_t::iterator	iter = _shaders.find( ch.first );
+			ShadersMap_t::iterator	iter = _shaders.find( ch.name );
 			if ( iter != _shaders.end() )
 			{
 				if ( iter->second == shader )
@@ -477,7 +501,7 @@ namespace FG
 			}
 
 			// find channel in loadable images
-			if ( _HasImage( ch.first ) )
+			if ( _HasImage( ch.name ) )
 				continue;
 
 			RETURN_ERR( "unknown channel type, it is not a shader pass and not a file" );
@@ -486,11 +510,14 @@ namespace FG
 		// create render targets
 		for (auto& pass : shader->_perPass)
 		{
-			pass.viewport = _scaledSurfaceSize;
+			if ( shader->_surfaceSize.has_value() )
+				pass.viewport = shader->_surfaceSize.value();
+			else
+				pass.viewport = uint2( float2(_scaledSurfaceSize) * shader->_surfaceScale.value_or(1.0f) + 0.5f );
 
 			ImageDesc	desc;
 			desc.imageType	= EImage::Tex2D;
-			desc.dimension	= uint3{ _scaledSurfaceSize, 1 };
+			desc.dimension	= uint3{ pass.viewport, 1 };
 			desc.format		= EPixelFormat::RGBA8_UNorm;
 			desc.usage		= EImageUsage::Transfer | EImageUsage::Sampled | EImageUsage::ColorAttachment;
 
@@ -509,40 +536,37 @@ namespace FG
 		// setup pipeline resource table
 		for (size_t i = 0; i < shader->_perPass.size(); ++i)
 		{
-			auto&						pass	= shader->_perPass[i];
-			RawDescriptorSetLayoutID	ds_layout;
-			uint						ds_binding;
-
-			CHECK( _frameGraph->GetDescriptorSet( shader->_pipeline, DescriptorSetID{"0"}, OUT ds_layout, OUT ds_binding ));
-			CHECK( _frameGraph->InitPipelineResources( ds_layout, OUT pass.resources ));
-			CHECK_ERR( ds_binding == 0 );
+			auto&	pass = shader->_perPass[i];
+			
+			CHECK( _frameGraph->InitPipelineResources( shader->_pipeline, DescriptorSetID{"0"}, OUT pass.resources ));
 
 			pass.resources.BindBuffer( UniformID{"ShadertoyUB"}, shader->_ubuffer );
+			pass.images.resize( shader->_channels.size() );
 
 			for (size_t j = 0; j < shader->_channels.size(); ++j)
 			{
-				auto&		ch   = shader->_channels[j];
-				UniformID	name {"iChannel"s << ToString(j)};
-				
+				auto&		ch		= shader->_channels[j];
+				auto&		image	= pass.images[j];
+				UniformID	name	{"iChannel"s << ToString(j)};
+
 				// find channel in shader passes
-				ShadersMap_t::iterator	iter = _shaders.find( ch.first );
+				ShadersMap_t::iterator	iter = _shaders.find( ch.name );
 				if ( iter != _shaders.end() )
 				{
 					if ( iter->second == shader )
 						// use image from previous pass
-						pass.resources.BindTexture( name, shader->_perPass[(i-1) & 1].renderTarget, _linearClampSampler );	// TODO: sampler
+						image = ImageID{ shader->_perPass[(i-1) & 1].renderTarget.Get() };
 					else
-						pass.resources.BindTexture( name, iter->second->_perPass[i].renderTarget, _linearClampSampler );	// TODO: sampler
-
+						image = ImageID{ iter->second->_perPass[i].renderTarget.Get() };
+					
+					pass.resources.BindTexture( name, image, _linearClampSampler );	// TODO: sampler
 					continue;
 				}
 				
 				// find channel in loadable images
-				ImageID		image_id;
-				if ( _LoadImage( ch.first, OUT image_id ) )
+				if ( _LoadImage( ch.name, OUT image ) )
 				{
-					pass.resources.BindTexture( name, image_id, _linearClampSampler );
-					image_id.Release();
+					pass.resources.BindTexture( name, image, _linearClampSampler );
 					continue;
 				}
 				
@@ -562,6 +586,12 @@ namespace FG
 		for (auto& pass : shader->_perPass)
 		{
 			_frameGraph->ReleaseResource( INOUT pass.renderTarget );
+			
+			for (auto& img : pass.images)
+			{
+				if ( img.IsValid() )
+					FG_UNUSED( img.Release() );
+			}
 		}
 
 		_frameGraph->ReleaseResource( INOUT shader->_ubuffer );
@@ -597,7 +627,10 @@ namespace FG
 				vec4	iMouse;					// mouse pixel coords. xy: current (if MLB down), zw: click
 				vec4	iDate;					// (year, month, day, time in seconds)
 				float	iSampleRate;			// sound sample rate (i.e., 44100)
-				vec3	iCameraFrustum[4];		// frustum rays (left bottom, right bottom, left top, right top)
+				vec3	iCameraFrustumLB;		// frustum rays (left bottom, right bottom, left top, right top)
+				vec3	iCameraFrustumRB;
+				vec3	iCameraFrustumLT;
+				vec3	iCameraFrustumRT;
 				vec3	iCameraPos;				// camera position in world space
 			};
 
@@ -731,13 +764,20 @@ namespace FG
 		TimePoint_t		now			= TimePoint_t::clock::now();
 		int64_t			duration	= duration_cast<milliseconds>(now - _fps.lastUpdateTime).count();
 
+		FrameGraphInstance::Statistics	stat;
+		_fgInstance->GetStatistics( OUT stat );
+		_fps.frameTimeSum += stat.renderer.frameTime;
+
 		if ( duration > _fps.UpdateIntervalMillis )
 		{
-			uint	value		= uint(float(_fps.frameCounter) / float(duration) * 1000.0f + 0.5f);
+			uint	fps_value	= uint(float(_fps.frameCounter) / float(duration) * 1000.0f + 0.5f);
+			auto	frame_time	= _fps.frameTimeSum / _fps.frameCounter;
+
 			_fps.lastUpdateTime	= now;
+			_fps.frameTimeSum	= {0};
 			_fps.frameCounter	= 0;
 
-			_window->SetTitle( "Shadertoy [FPS: "s << ToString(value) << ']' );
+			_window->SetTitle( "Shadertoy [FPS: "s << ToString(fps_value) << ", FT: " << ToString(frame_time) << ']' );
 		}
 	}
 	
@@ -748,7 +788,6 @@ namespace FG
 */
 	bool FGShadertoyApp::_LoadImage (const String &filename, OUT ImageID &id)
 	{
-	#ifdef FG_ENABLE_DEVIL
 		auto	iter = _imageCache.find( filename );
 		
 		if ( iter != _imageCache.end() )
@@ -763,22 +802,19 @@ namespace FG
 		CHECK_ERR( loader.Load( image, {} ));
 
 		auto&	level = image->GetData()[0][0];
-		String	fname;
+		String	img_name;
 		
 		#ifdef FG_STD_FILESYSTEM
-			fname = std::filesystem::path{filename}.filename().string();
+			img_name = std::filesystem::path{filename}.filename().string();
 		#endif
 
 		id = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, level.dimension, level.format, EImageUsage::TransferDst | EImageUsage::Sampled },
-									   Default, fname );
+									   Default, img_name );
 
 		_currTask = _frameGraph->AddTask( UpdateImage{}.SetImage( id ).SetData( level.pixels, level.dimension, level.rowPitch, level.slicePitch ).DependsOn( _currTask ));
 
 		_imageCache.insert_or_assign( filename, ImageID{id.Get()} );
 		return true;
-	#else
-		return false;
-	#endif
 	}
 	
 /*
