@@ -1,9 +1,28 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VComputePipeline.h"
+#include "Shared/EnumUtils.h"
 
 namespace FG
 {
+
+/*
+=================================================
+	PipelineInstance::UpdateHash
+=================================================
+*/
+	void VComputePipeline::PipelineInstance::UpdateHash ()
+	{
+#	if FG_FAST_HASH
+		_hash	= FG::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
+#	else
+		_hash	= HashOf( layoutId )	+ HashOf( localGroupSize ) +
+				  HashOf( flags )		+ HashOf( debugMode );
+#	endif
+	}
+//-----------------------------------------------------------------------------
+
+
 
 /*
 =================================================
@@ -32,13 +51,17 @@ namespace FG
 	bool VComputePipeline::Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
-		CHECK_ERR( desc._shader.data.size() == 1 );
 		
-		auto*	vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &desc._shader.data.begin()->second );
-		CHECK_ERR( vk_shader );
+		for (auto& sh : desc._shader.data)
+		{
+			auto*	vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &sh.second );
+			CHECK_ERR( vk_shader );
 
-		_shader					= *vk_shader;
-		_layoutId				= PipelineLayoutID{ layoutId };
+			_shaders.push_back(ShaderModule{ *vk_shader, EShaderDebugMode_From(sh.first) });
+		}
+		CHECK_ERR( _shaders.size() );
+
+		_baseLayoutId			= PipelineLayoutID{ layoutId };
 		_defaultLocalGroupSize	= desc._defaultLocalGroupSize;
 		_localSizeSpec			= desc._localSizeSpec;
 		_debugName				= dbgName;
@@ -57,16 +80,18 @@ namespace FG
 
 		for (auto& ppln : _instances) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(ppln.second) );
+			unassignIDs.push_back( const_cast<PipelineInstance &>(ppln.first).layoutId );
 		}
 		
-		if ( _layoutId ) {
-			unassignIDs.push_back( _layoutId.Release() );
+		if ( _baseLayoutId ) {
+			unassignIDs.push_back( _baseLayoutId.Release() );
 		}
 
 		_instances.clear();
 		_debugName.clear();
-		_shader					= null;
-		_layoutId				= Default;
+		_shaders.clear();
+
+		_baseLayoutId			= Default;
 		_defaultLocalGroupSize	= Default;
 		_localSizeSpec			= uint3{ ComputePipelineDesc::UNDEFINED_SPECIALIZATION };
 	}

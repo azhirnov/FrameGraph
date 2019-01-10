@@ -7,6 +7,7 @@
 #include "Shared/PipelineResourcesInitializer.h"
 #include "VTaskGraph.hpp"
 #include "VFrameGraphDebugger.h"
+#include "VShaderDebugger.h"
 
 namespace FG
 {
@@ -1025,6 +1026,9 @@ namespace FG
 		if ( _swapchain )
 			_swapchain->Deinitialize();
 		
+		if ( _shaderDebugger )
+			_shaderDebugger.reset();
+
 		_resourceMngr.Deinitialize();
 
 		if ( _memoryMngr )
@@ -1088,6 +1092,17 @@ namespace FG
 		return true;
 	}
 	
+/*
+=================================================
+	SetShaderDebugCallback
+=================================================
+*/
+	bool VFrameGraphThread::SetShaderDebugCallback (ShaderDebugCallback_t &&cb)
+	{
+		_shaderDebugCallback = std::move(cb);
+		return true;
+	}
+
 /*
 =================================================
 	_RecreateSwapchain
@@ -1285,6 +1300,9 @@ namespace FG
 		if ( _swapchain )
 			_swapchain->Present( RawImageID() );	// TODO: move to 'Compile'
 
+		if ( _shaderDebugger )
+			_shaderDebugger->OnEndFrame( _shaderDebugCallback );
+
 		CHECK_ERR( _SetState( EState::Execute, EState::Idle ));
 		return true;
 	}
@@ -1366,5 +1384,20 @@ namespace FG
 		return ImageID{ _swapchain->GetImage( type )};
 	}
 	*/
+	
+/*
+=================================================
+	GetShaderDebugger
+=================================================
+*/
+	VShaderDebugger*  VFrameGraphThread::GetShaderDebugger ()
+	{
+		if ( not _shaderDebugger )
+		{
+			_shaderDebugger.reset( new VShaderDebugger{ *this });
+		}
+		return _shaderDebugger.get();
+	}
+
 
 }	// FG

@@ -71,6 +71,7 @@ namespace FG
 		using ResourceIndexCache_t		= StaticArray< FixedArray<Index_t, 128>, 20 >;
 		using SyncTasks_t				= Array< std::function< void() > >;
 		using Statistics_t				= FrameGraphInstance::ResourceStatistics;
+		using DSLayouts_t				= FixedArray<Pair< RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets >;
 
 
 	// variables
@@ -150,6 +151,11 @@ namespace FG
 
 		ND_ LogicalPassID		CreateLogicalRenderPass (const RenderPassDesc &desc);
 		
+		ND_ RawPipelineLayoutID	ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout,
+													  const DescriptorSetID &dsID, bool isAsync);
+
+		ND_ RawDescriptorSetLayoutID	CreateDescriptorSetLayout (const PipelineDescription::UniformMapPtr &uniforms, bool isAsync);
+
 		template <typename ID>
 		ND_ auto const*			GetResource (ID id)			const	{ return _mainRM.GetResource( id ); }
 
@@ -185,6 +191,9 @@ namespace FG
 
 		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
 									 PipelineDescription::PipelineLayout &&desc, bool isAsync);
+
+		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
+									 const PipelineDescription::PipelineLayout &, const DSLayouts_t &, bool isAsync);
 
 		bool  _CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout> const* &layoutPtr,
 										  const PipelineDescription::UniformMapPtr &uniforms, bool isAsync);

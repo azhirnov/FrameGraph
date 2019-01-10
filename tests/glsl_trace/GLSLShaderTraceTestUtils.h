@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GLSLShaderTrace.h"
+#include "glsl_trace/ShaderTrace.h"
 #include "ShaderCompiler.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "stl/Algorithms/StringUtils.h"
@@ -24,7 +24,7 @@ struct TestHelpers
 	BytesU					debugOutputSize	= 128_Mb;
 };
 
-bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlagBits stage, uint descSetIndex,
+bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlagBits stage,
 							   OUT VkDescriptorSetLayout &dsLayout, OUT VkDescriptorSet &descSet);
 
 bool CreateRenderTarget (VulkanDeviceExt &vulkan, VkFormat colorFormat, uint width, uint height, VkImageUsageFlags imageUsage,

@@ -30,6 +30,8 @@ namespace FG
 		StringView	GetEntry () const override		{ return _entry; }
 
 		size_t		GetHashOfData () const override	{ ASSERT(false);  return 0; }
+
+		bool		ParseDebugOutput (EShaderDebugMode, ArrayView<uint8_t>, OUT Array<String> &) const override { return false; }
 	};
 	
 /*

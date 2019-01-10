@@ -4,6 +4,7 @@
 #include "stl/Algorithms/ArrayUtils.h"
 
 extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool GLSLShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 
 
 /*
@@ -11,13 +12,13 @@ extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &h
 	CreateDebugDescSetLayout
 =================================================
 */
-bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlagBits stage, uint descSetIndex,
+bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlagBits stage,
 							   OUT VkDescriptorSetLayout &dsLayout, OUT VkDescriptorSet &descSet)
 {
 	// create layout
 	{
 		VkDescriptorSetLayoutBinding	binding = {};
-		binding.binding			= descSetIndex;
+		binding.binding			= 0;
 		binding.descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		binding.descriptorCount	= 1;
 		binding.stageFlags		= stage;
@@ -50,7 +51,7 @@ bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, 
 		VkWriteDescriptorSet	write	= {};
 		write.sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write.dstSet			= descSet;
-		write.dstBinding		= descSetIndex;
+		write.dstBinding		= 0;
 		write.descriptorCount	= 1;
 		write.descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		write.pBufferInfo		= &buffer;
@@ -242,7 +243,8 @@ int main ()
 	{
 		const VkDescriptorPoolSize		sizes[] = {
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 }
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 }
 		};
 
 		VkDescriptorPoolCreateInfo		info = {};
@@ -310,7 +312,8 @@ int main ()
 
 	// run tests
 	{
-		CHECK_ERR( GLSLShaderTrace_Test1( vulkan, helper ));
+		CHECK_FATAL( GLSLShaderTrace_Test1( vulkan, helper ));
+		CHECK_FATAL( GLSLShaderTrace_Test2( vulkan, helper ));
 	}
 
 	// destroy all

@@ -127,13 +127,14 @@ namespace FG
 	{
 	// variables
 	private:
-		VPipelineResourceSet				_resources;
+		VPipelineResourceSet					_resources;
+		uint									_debugModeIndex	= UMax;
 	public:
-		VComputePipeline const* const		pipeline;
-		const _fg_hidden_::PushConstants_t	pushConstants;
+		VComputePipeline const* const			pipeline;
+		const _fg_hidden_::PushConstants_t		pushConstants;
 
-		const uint3							groupCount;
-		const Optional< uint3 >				localGroupSize;
+		const uint3								groupCount;
+		const Optional< uint3 >					localGroupSize;
 
 
 	// methods
@@ -142,7 +143,8 @@ namespace FG
 		
 		ND_ bool  IsValid () const;
 
-		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
+		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
+		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
 
 
@@ -155,14 +157,15 @@ namespace FG
 	{
 	// variables
 	private:
-		VPipelineResourceSet				_resources;
+		VPipelineResourceSet					_resources;
+		uint									_debugModeIndex	= UMax;
 	public:
-		VComputePipeline const* const		pipeline;
-		const _fg_hidden_::PushConstants_t	pushConstants;
+		VComputePipeline const* const			pipeline;
+		const _fg_hidden_::PushConstants_t		pushConstants;
 
-		VLocalBuffer const* const			indirectBuffer;
-		const VkDeviceSize					indirectBufferOffset;
-		const Optional< uint3 >				localGroupSize;
+		VLocalBuffer const* const				indirectBuffer;
+		const VkDeviceSize						indirectBufferOffset;
+		const Optional< uint3 >					localGroupSize;
 
 
 	// methods
@@ -171,7 +174,8 @@ namespace FG
 		
 		ND_ bool  IsValid () const;
 
-		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
+		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
+		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
 
 
@@ -633,6 +637,7 @@ namespace FG
 	// variables
 	private:
 		VPipelineResourceSet				_resources;
+		uint								_debugModeIndex	= UMax;
 	public:
 		VRayTracingPipeline const* const	pipeline;
 		const _fg_hidden_::PushConstants_t	pushConstants;
@@ -655,7 +660,8 @@ namespace FG
 		
 		ND_ bool  IsValid () const;
 
-		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
+		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
+		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
 	
 

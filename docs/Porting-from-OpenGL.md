@@ -1,28 +1,25 @@
-### Copy from host to device memory
+## Copy from host to device memory
 | OpenGL | FrameGraph |
 |---|---|
 | glBufferData, glBufferSubData | UpdateBuffer task |
 | glTexImage*, glTexSubImage*, glCompressedTexImage*. glCompressedTexSubImage* | UpdateImage task |
  
-<br/><br/>
  
-### Copy to host visible buffer
+## Copy to host visible buffer
 | OpenGL | FrameGraph |
 |---|---|
 | glMapBuffer, glMapBufferRange | FrameGraphThread::UpdateHostBuffer() |
  
-<br/><br/>
  
-### Copy from device to host memory
+## Copy from device to host memory
 | OpenGL | FrameGraph |
 |---|---|
 | glGetBufferSubData | ReadBuffer task |
 | glGetTextureSubImage | ReadImage task |
 | glGetCompressedTextureSubImage | ReadImage task |
  
-<br/><br/>
  
-### Copy from buffer/image to image/buffer, clear buffer/image
+## Copy from buffer/image to image/buffer, clear buffer/image
 | OpenGL | FrameGraph |
 |---|---|
 | glCopyBufferSubData | CopyBuffer task |
@@ -33,18 +30,17 @@
 | glClearTexImage, glClearTexSubImage | ClearColorImage or ClearDepthStencilImage tasks |
 | glBlitFramebuffer | BlitImage or ResolveImage tasks |
  
-<br/><br/>
  
-### Framebuffer and renderbuffer
+## Framebuffer and renderbuffer
 | OpenGL | FrameGraph |
 |---|---|
 | glCreateFramebuffers, glCreateRenderbuffers | FrameGraphThread::CreateRenderPass |
 | glFramebufferTexture* | RenderPassDesc::AddTarget |
-| glClear, glClearColor, glClearDepth, glClearBuffer*, glClearNamedFramebuffer* | `clearValue` arg in RenderPassDesc::AddTarget |
-
-<br/><br/>
+| glClear, glClearColor, glClearDepth, glClearBuffer*, glClearNamedFramebuffer* | `clearValue` parameter in RenderPassDesc::AddTarget |
+| glInvalidateFramebuffer | `storeOp` parameter with `EAttachmentStoreOp::Invalidate` in RenderPassDesc::AddTarget |
  
-### Render states
+ 
+## Render states
 | OpenGL | FrameGraph |
 |---|---|
 | **color** |  |
@@ -84,9 +80,9 @@
 | glScissor* | DrawTask::AddScissor |
  
 `DrawTask` - may be any of DrawVertices, DrawIndexed, DrawVerticesIndirect, DrawIndexedIndirect, DrawMeshes, DrawMeshesIndirect.
-<br/><br/>
  
-### Drawing
+  
+## Drawing
 | OpenGL | FrameGraph |
 |---|---|
 | glDrawArrays, glDrawArraysInstanced, glDrawArraysInstancedBaseInstance | DrawVertices task |
@@ -100,20 +96,18 @@
 | glMultiDrawArraysIndirect, glMultiDrawElementsIndirect | none |
 | glMultiDrawElements, glMultiDrawElementsBaseVertex | DrawIndexed task |
  
-<br/><br/>
  
-### Computing
+## Computing
 | OpenGL | FrameGraph |
 |---|---|
 | glDispatchCompute | DispatchCompute task |
 | glDispatchComputeIndirect | DispatchComputeIndirect task |
  
-<br/><br/>
  
-### Uniforms
+## Uniforms
 | OpenGL | FrameGraph |
 |---|---|
-| glUniform* | not supported |
+| glUniform* | not supported, use DrawTask::AddPushConstant instead |
 | glUniformBlockBinding | not supported |
 | glBindBufferBase, glBindBufferRange | PipelineResources::BindBuffer |
 | glBindTextureUnit | PipelineResources::BindTexture |
@@ -121,9 +115,8 @@
 | glBindSampler | PipelineResources::BindSampler, BindTexture |
 
 use `DrawTask::AddResources` or `ComputeTask::AddResources` for applying uniforms to draw/compute command.
-<br/><br/>
  
-### Vertex & index buffers, vertex attributes
+## Vertex & index buffers, vertex attributes
 | OpenGL | FrameGraph |
 |---|---|
 | glBindVertexArray | DrawTask::SetVertexInput |

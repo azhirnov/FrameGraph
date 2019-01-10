@@ -109,18 +109,28 @@ namespace FG
 
 		ND_ FragmentOutputPtr  CreateFramentOutput (ArrayView<GraphicsPipelineDesc::FragmentOutput> values);
 
-		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread		&resMngr,
-												const VLogicalRenderPass	&logicalRP,
-												const VBaseDrawVerticesTask	&drawTask);
+		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
+									 VShaderDebugger				&shaderDebugger,
+									 const VLogicalRenderPass		&logicalRP,
+									 const VBaseDrawVerticesTask	&drawTask,
+									 OUT VkPipeline					&outPipeline,
+									 OUT VPipelineLayout const*		&outLayout);
 		
-		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread		&resMngr,
-												const VLogicalRenderPass	&logicalRP,
-												const VBaseDrawMeshes		&drawTask);
+		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
+									 VShaderDebugger				&shaderDebugger,
+									 const VLogicalRenderPass		&logicalRP,
+									 const VBaseDrawMeshes			&drawTask,
+									 OUT VkPipeline					&outPipeline,
+									 OUT VPipelineLayout const*		&outLayout);
 
-		ND_ VkPipeline	CreatePipelineInstance (VResourceManagerThread		&resMngr,
-												const VComputePipeline		&ppln,
-												const Optional<uint3>		&localGroupSize,
-												VkPipelineCreateFlags		 pipelineFlags);
+		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
+									 VShaderDebugger				&shaderDebugger,
+									 const VComputePipeline			&ppln,
+									 const Optional<uint3>			&localGroupSize,
+									 VkPipelineCreateFlags			 pipelineFlags,
+									 uint							 debugModeIndex,
+									 OUT VkPipeline					&outPipeline,
+									 OUT VPipelineLayout const*		&outLayout);
 
 
 	private:
@@ -135,6 +145,10 @@ namespace FG
 
 		bool _CreatePipelineCache (const VDevice &dev);
 
+		template <typename Pipeline>
+		bool _SetupShaderDebugging (VResourceManagerThread &resMngr, VShaderDebugger &shaderDebugger, const Pipeline &ppln, uint debugModeIndex,
+									OUT EShaderDebugMode &debugMode, OUT EShader &debuggableShader, OUT RawPipelineLayoutID &layoutId);
+
 		void _ClearTemp ();
 
 		void _SetColorBlendState (OUT VkPipelineColorBlendStateCreateInfo &outState,
@@ -146,7 +160,9 @@ namespace FG
 		void _SetShaderStages (OUT ShaderStages_t &stages,
 							   INOUT Specializations_t &specialization,
 							   INOUT SpecializationEntries_t &specEntries,
-							   ArrayView<ShaderModule_t> shaders) const;
+							   ArrayView<ShaderModule_t> shaders,
+							   EShaderDebugMode debugMode,
+							   EShader debuggableShader) const;
 
 		void _SetDynamicState (OUT VkPipelineDynamicStateCreateInfo &outState,
 							   OUT DynamicStates_t &states,

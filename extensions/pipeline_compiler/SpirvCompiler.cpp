@@ -5,6 +5,7 @@
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Algorithms/StringParser.h"
 #include "framegraph/Shared/EnumUtils.h"
+#include "VCachedDebuggableShaderData.h"
 
 // glslang includes
 #include "glslang/glslang/Include/revision.h"
@@ -22,8 +23,6 @@
 #	include "spirv-tools/optimizer.hpp"
 #	include "spirv-tools/libspirv.h"
 #endif
-
-#include "extensions/glsl_trace/GLSLShaderTrace.h"
 
 
 namespace FG
@@ -109,12 +108,14 @@ namespace FG
 		{
 			case EShaderLangFormat::WithDebugTrace :
 			{
-				GLSLShaderTrace	trace;
+				ShaderTrace	trace;
+				trace.SetSource( source.data(), source.length() );
+
 				COMP_CHECK_ERR( trace.GenerateDebugInfo( interm, 1 ));
 
 				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
-				outShader.AddShaderData( dstShaderFmt | dbg_mode, entry, std::move(spirv) );
+				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( entry, std::move(spirv), std::move(trace) ) });
 				break;
 			}
 			case EShaderLangFormat::WithDebugAsserts :
@@ -1474,5 +1475,3 @@ namespace FG
 	}
 
 }	// FG
-
-#include "extensions/glsl_trace/GLSLShaderTrace.cpp"

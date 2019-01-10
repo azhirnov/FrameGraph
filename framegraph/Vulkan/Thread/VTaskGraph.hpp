@@ -4,6 +4,7 @@
 
 #include "VTaskGraph.h"
 #include "VFrameGraphThread.h"
+#include "VShaderDebugger.h"
 #include "VEnumCast.h"
 
 namespace FG
@@ -177,6 +178,9 @@ namespace FG
 		CopyScissors( fg, task.scissors, OUT _scissors );
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
 		RemapVertexBuffers( fg, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
+
+		if ( task.debugMode.mode != Default )
+			_debugModeIndex = fg->GetShaderDebugger()->Append( INOUT _scissors, task.taskName, task.debugMode );
 	}
 
 /*
@@ -236,6 +240,9 @@ namespace FG
 	{
 		CopyScissors( fg, task.scissors, OUT _scissors );
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		
+		if ( task.debugMode.mode != Default )
+			_debugModeIndex = fg->GetShaderDebugger()->Append( INOUT _scissors, task.taskName, task.debugMode );
 	}
 
 /*
@@ -270,6 +277,9 @@ namespace FG
 		localGroupSize{ task.localGroupSize }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		
+		if ( task.debugMode.mode != Default )
+			_debugModeIndex = fg->GetShaderDebugger()->Append( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -297,6 +307,9 @@ namespace FG
 		localGroupSize{ task.localGroupSize }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		
+		if ( task.debugMode.mode != Default )
+			_debugModeIndex = fg->GetShaderDebugger()->Append( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -696,6 +709,9 @@ namespace FG
 		callableStride{ uint16_t( task.shaderTable.callableStride )}
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
+
+		//if ( task.debugMode.mode != Default )
+		//	_debugModeIndex = fg->GetShaderDebugger()->Append( INOUT _resources, task.debugMode );
 	}
 	
 /*

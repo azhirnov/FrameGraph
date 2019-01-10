@@ -8,20 +8,20 @@
 =================================================
 */
 bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler, OUT VkShaderModule &vertShader, OUT VkShaderModule &fragShader)
-{	
+{
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-			const vec2	g_Positions[] = {
-				{-1.0f, -1.0f}, {-1.0f, 2.0f}, {2.0f, -1.0f},	// primitive 0 - must hit
-				{-1.0f,  2.0f},									// primitive 1 - miss
-				{-2.0f,  0.0f}									// primitive 2 - must hit
-			};
+const vec2	g_Positions[] = {
+	{-1.0f, -1.0f}, {-1.0f, 2.0f}, {2.0f, -1.0f},	// primitive 0 - must hit
+	{-1.0f,  2.0f},									// primitive 1 - miss
+	{-2.0f,  0.0f}									// primitive 2 - must hit
+};
 
-			void main()
-			{
-				gl_Position	= vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.01f, 1.0f );
-			})#";
+void main()
+{
+	gl_Position	= vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.01f, 1.0f );
+})#";
 
 		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex ));
 	}
@@ -29,31 +29,28 @@ bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler, OUT V
 	// create fragment shader
 	{
 		static const char	frag_shader_source[] = R"#(
-			layout(location = 0) out vec4  out_Color;
+layout(location = 0) out vec4  out_Color;
 
-			float Test1 (int i, out int res)
-			{
-				float f = 0.0f;
-				for (int j = i; j < 10; ++j) {
-					f += 1.2f;
-				}
-				return f;
-			}
+float Fn1 (int i, out int res)
+{
+	float f = 0.0f;
+	for (int j = i; j < 10; ++j) {
+		f += 1.2f;
+	}
+	return f;
+}
 
-			void Test2 (inout int res, int i)
-			{
-				res = i;
-			}
+void Test1 ()
+{
+	ivec2 c1;
+	float c0 = Fn1( 3, c1.x );
+	out_Color[0] = c0 + float(c1.x);
+}
 
-			void main ()
-			{
-				int arr[4] = {0, 1, 2, 3};
-				arr[1] = arr[0] + arr[1] + arr[2] + arr[3];
-				ivec2 c1;
-				float c0 = Test1( 3, c1.x );
-				Test2( c1.y, arr[0] + arr[2] );
-				out_Color = vec4(c0, float(c1.y), float(c1.y), 1.0);
-			})#";
+void main ()
+{
+	Test1();
+})#";
 
 		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, 0 ));
 	}
@@ -160,7 +157,7 @@ bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule vertShader, VkShaderMo
 
 /*
 =================================================
-	CreatePipeline
+	GLSLShaderTrace_Test1
 =================================================
 */
 extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
@@ -180,10 +177,9 @@ extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &h
 	VkShaderModule	vert_shader, frag_shader;
 	CHECK_ERR( CompileShaders( vulkan, shader_compiler, OUT vert_shader, OUT frag_shader ));
 
-	const uint				desc_set_index = 0;
 	VkDescriptorSetLayout	ds_layout;
 	VkDescriptorSet			desc_set;
-	CHECK_ERR( CreateDebugDescriptorSet( vulkan, helper, VK_SHADER_STAGE_FRAGMENT_BIT, desc_set_index, OUT ds_layout, OUT desc_set ));
+	CHECK_ERR( CreateDebugDescriptorSet( vulkan, helper, VK_SHADER_STAGE_FRAGMENT_BIT, OUT ds_layout, OUT desc_set ));
 
 	VkPipelineLayout	ppln_layout;
 	VkPipeline			pipeline;
@@ -254,7 +250,7 @@ extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &h
 	}
 			
 	vulkan.vkCmdBindPipeline( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline );
-	vulkan.vkCmdBindDescriptorSets( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_layout, desc_set_index, 1, &desc_set, 0, null );
+	vulkan.vkCmdBindDescriptorSets( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_layout, 0, 1, &desc_set, 0, null );
 	
 	// set dynamic states
 	{
@@ -305,14 +301,31 @@ extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &h
 
 
 	// submit commands and wait
-	VkSubmitInfo	submit = {};
-	submit.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit.commandBufferCount	= 1;
-	submit.pCommandBuffers		= &helper.cmdBuffer;
+	{
+		VkSubmitInfo	submit = {};
+		submit.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit.commandBufferCount	= 1;
+		submit.pCommandBuffers		= &helper.cmdBuffer;
 
-	VK_CHECK( vulkan.vkQueueSubmit( helper.queue, 1, &submit, VK_NULL_HANDLE ));
-	VK_CHECK( vulkan.vkQueueWaitIdle( helper.queue ));
+		VK_CHECK( vulkan.vkQueueSubmit( helper.queue, 1, &submit, VK_NULL_HANDLE ));
+		VK_CHECK( vulkan.vkQueueWaitIdle( helper.queue ));
+	}
 
+	// destroy all
+	{
+		vulkan.vkDestroyDescriptorSetLayout( vulkan.GetVkDevice(), ds_layout, null );
+		vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), vert_shader, null );
+		vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), frag_shader, null );
+		vulkan.vkDestroyPipelineLayout( vulkan.GetVkDevice(), ppln_layout, null );
+		vulkan.vkDestroyPipeline( vulkan.GetVkDevice(), pipeline, null );
+		vulkan.vkFreeMemory( vulkan.GetVkDevice(), image_mem, null );
+		vulkan.vkDestroyImage( vulkan.GetVkDevice(), color_target, null );
+		vulkan.vkDestroyRenderPass( vulkan.GetVkDevice(), render_pass, null );
+		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
+	}
+	
+
+	// process debug output
 	Array<String>	debug_output;
 	CHECK_ERR( shader_compiler.GetDebugOutput( frag_shader, helper.readBackPtr, helper.debugOutputSize, OUT debug_output ));
 
@@ -332,30 +345,51 @@ no source
 // f: float {1.200000}
 7. f += 1.2f;
 
+// j: int {4}
+6. ++j) {
+
 // f: float {2.400000}
 7. f += 1.2f;
+
+// j: int {5}
+6. ++j) {
 
 // f: float {3.600000}
 7. f += 1.2f;
 
+// j: int {6}
+6. ++j) {
+
 // f: float {4.800000}
 7. f += 1.2f;
+
+// j: int {7}
+6. ++j) {
 
 // f: float {6.000000}
 7. f += 1.2f;
 
+// j: int {8}
+6. ++j) {
+
 // f: float {7.200000}
 7. f += 1.2f;
+
+// j: int {9}
+6. ++j) {
 
 // f: float {8.400000}
 7. f += 1.2f;
 
-// c0: float {8.400000}
-15. c0 = Test(3, c1);
+// j: int {10}
+6. ++j) {
 
-// out_Color: float4 {8.400000, 0.000000, 0.000000, 1.000000}
 // c0: float {8.400000}
-16. out_Color = vec4(c0, float(c1), 0.0, 1.0);
+15. c0 = Fn1( 3, c1.x );
+
+// out_Color: float {8.400000}
+// c0: float {8.400000}
+16. out_Color[0] = c0 + float(c1.x);
 
 )#";
 
@@ -374,30 +408,51 @@ no source
 // f: float {1.200000}
 7. f += 1.2f;
 
+// j: int {4}
+6. ++j) {
+
 // f: float {2.400000}
 7. f += 1.2f;
+
+// j: int {5}
+6. ++j) {
 
 // f: float {3.600000}
 7. f += 1.2f;
 
+// j: int {6}
+6. ++j) {
+
 // f: float {4.800000}
 7. f += 1.2f;
+
+// j: int {7}
+6. ++j) {
 
 // f: float {6.000000}
 7. f += 1.2f;
 
+// j: int {8}
+6. ++j) {
+
 // f: float {7.200000}
 7. f += 1.2f;
+
+// j: int {9}
+6. ++j) {
 
 // f: float {8.400000}
 7. f += 1.2f;
 
-// c0: float {8.400000}
-15. c0 = Test(3, c1);
+// j: int {10}
+6. ++j) {
 
-// out_Color: float4 {8.400000, 0.000000, 0.000000, 1.000000}
 // c0: float {8.400000}
-16. out_Color = vec4(c0, float(c1), 0.0, 1.0);
+15. c0 = Fn1( 3, c1.x );
+
+// out_Color: float {8.400000}
+// c0: float {8.400000}
+16. out_Color[0] = c0 + float(c1.x);
 
 )#";
 
@@ -410,17 +465,6 @@ no source
 			CHECK_ERR( debug_output[1] == ref1 );
 		}
 	}
-
-	// destroy all
-	vulkan.vkDestroyDescriptorSetLayout( vulkan.GetVkDevice(), ds_layout, null );
-	vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), vert_shader, null );
-	vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), frag_shader, null );
-	vulkan.vkDestroyPipelineLayout( vulkan.GetVkDevice(), ppln_layout, null );
-	vulkan.vkDestroyPipeline( vulkan.GetVkDevice(), pipeline, null );
-	vulkan.vkFreeMemory( vulkan.GetVkDevice(), image_mem, null );
-	vulkan.vkDestroyImage( vulkan.GetVkDevice(), color_target, null );
-	vulkan.vkDestroyRenderPass( vulkan.GetVkDevice(), render_pass, null );
-	vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

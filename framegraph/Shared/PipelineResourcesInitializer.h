@@ -18,6 +18,8 @@ namespace FG
 		{
 			uint	dbo_count	= 0;
 
+			res._ResetCachedID();
+
 			res._layoutId	= layoutId;
 			res._uniforms	= uniforms;
 

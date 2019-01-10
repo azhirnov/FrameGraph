@@ -159,11 +159,12 @@ namespace FG
 
 	enum class EShaderDebugMode : uint
 	{
-		None,
+		None	= 0,
 		Trace,
 		Asserts,
 		View,
-		Unknown		= None,
+		InstructionCounter,
+		Unknown	= None,
 	};
 
 

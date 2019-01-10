@@ -139,25 +139,6 @@ namespace FG
 			_RayTracingSceneUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags);
 		};
 
-		using UniformData_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, RayTracingScene >;
-
-		struct Uniform
-		{
-			UniformData_t		data;
-			BindingIndex		index;
-			EShaderStages		stageFlags;
-		};
-
-		using UniformMap_t	= HashMap< UniformID, Uniform >;
-		using UniformMapPtr	= SharedPtr< const UniformMap_t >;
-
-		struct DescriptorSet
-		{
-			DescriptorSetID		id;
-			uint				bindingIndex	= UMax;
-			UniformMapPtr		uniforms;
-		};
-
 		struct PushConstant
 		{
 			EShaderStages		stageFlags;
@@ -182,6 +163,25 @@ namespace FG
 			int					index;
 		};
 
+		using UniformData_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, RayTracingScene >;
+
+		struct Uniform
+		{
+			UniformData_t		data;
+			BindingIndex		index;
+			EShaderStages		stageFlags;
+		};
+
+		using UniformMap_t	= HashMap< UniformID, Uniform >;
+		using UniformMapPtr	= SharedPtr< const UniformMap_t >;
+
+		struct DescriptorSet
+		{
+			DescriptorSetID		id;
+			uint				bindingIndex	= UMax;
+			UniformMapPtr		uniforms;
+		};
+
 		using DescriptorSets_t	= FixedArray< DescriptorSet, FG_MaxDescriptorSets >;
 		using PushConstants_t	= FixedMap< PushConstantID, PushConstant, FG_MaxPushConstants >;
 
@@ -192,12 +192,12 @@ namespace FG
 		};
 
 		template <typename T>
-		class IShaderData
-		{
+		class IShaderData {
 		public:
 			ND_ virtual T const&	GetData () const = 0;
 			ND_ virtual StringView	GetEntry () const = 0;
 			ND_ virtual size_t		GetHashOfData () const = 0;
+				virtual bool		ParseDebugOutput (EShaderDebugMode mode, ArrayView<uint8_t> trace, OUT Array<String> &result) const = 0;
 		};
 
 		template <typename T>

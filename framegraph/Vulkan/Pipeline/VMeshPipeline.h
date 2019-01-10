@@ -21,16 +21,19 @@ namespace FG
 		{
 		// variables
 			HashVal						_hash;
+			RawPipelineLayoutID			layoutId;		// strong reference
 			RawRenderPassID				renderPassId;
-			uint						subpassIndex	= 0;
 			RenderState					renderState;
 			EPipelineDynamicState		dynamicState	= Default;
-			VkPipelineCreateFlags		flags			= 0;
-			uint						viewportCount	= 0;
-			// TODO: specialization constants
+			//VkPipelineCreateFlags		flags			= 0;
+			uint8_t						subpassIndex	= 0;
+			uint8_t						viewportCount	= 0;
+			uint						debugMode		= 0;
 
 		// methods
 			PipelineInstance () {}
+
+			void UpdateHash ();
 
 			ND_ bool  operator == (const PipelineInstance &rhs) const;
 		};
@@ -41,14 +44,14 @@ namespace FG
 
 		using Instances_t			= HashMap< PipelineInstance, VkPipeline, PipelineInstanceHash >;
 		using ShaderModule			= VGraphicsPipeline::ShaderModule;
-		using ShaderModules_t		= FixedArray< ShaderModule, 4 >;
+		using ShaderModules_t		= FixedArray< ShaderModule, 8 >;
 		using TopologyBits_t		= GraphicsPipelineDesc::TopologyBits_t;
 		using FragmentOutputPtr		= const VGraphicsPipeline::FragmentOutputInstance *;
 
 
 	// variables
 	private:
-		PipelineLayoutID		_layoutId;
+		PipelineLayoutID		_baseLayoutId;
 		Instances_t				_instances;
 
 		ShaderModules_t			_shaders;
@@ -70,7 +73,7 @@ namespace FG
 		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
-		ND_ RawPipelineLayoutID		GetLayoutID ()			const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
+		ND_ RawPipelineLayoutID		GetLayoutID ()			const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }
 
 		ND_ FragmentOutputPtr		GetFragmentOutput ()	const	{ SHAREDLOCK( _rcCheck );  return _fragmentOutput; }
 		ND_ bool					IsEarlyFragmentTests ()	const	{ SHAREDLOCK( _rcCheck );  return _earlyFragmentTests; }
@@ -87,13 +90,15 @@ namespace FG
 */
 	inline bool VMeshPipeline::PipelineInstance::operator == (const PipelineInstance &rhs) const
 	{
-		return	_hash			== rhs._hash		and
-				renderPassId	== rhs.renderPassId	and
-				subpassIndex	== rhs.subpassIndex	and
-				renderState		== rhs.renderState	and
-				dynamicState	== rhs.dynamicState	and
-				flags			== rhs.flags		and
-				viewportCount	== rhs.viewportCount;
+		return	_hash			== rhs._hash			and
+				layoutId		== rhs.layoutId			and
+				renderPassId	== rhs.renderPassId		and
+				subpassIndex	== rhs.subpassIndex		and
+				renderState		== rhs.renderState		and
+				dynamicState	== rhs.dynamicState		and
+				//flags			== rhs.flags			and
+				viewportCount	== rhs.viewportCount	and
+				debugMode		== rhs.debugMode;
 	}
 
 

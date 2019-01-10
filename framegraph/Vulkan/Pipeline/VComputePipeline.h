@@ -21,12 +21,15 @@ namespace FG
 		{
 		// variables
 			HashVal					_hash;
+			RawPipelineLayoutID		layoutId;		// strong reference
 			uint3					localGroupSize;
-			VkPipelineCreateFlags	flags	= 0;
-			// TODO: specialization constants
+			VkPipelineCreateFlags	flags		= 0;
+			uint					debugMode	= 0;
 
 		// methods
 			PipelineInstance () {}
+
+			void UpdateHash ();
 
 			ND_ bool  operator == (const PipelineInstance &rhs) const;
 		};
@@ -35,16 +38,23 @@ namespace FG
 			ND_ size_t	operator () (const PipelineInstance &value) const noexcept	{ return size_t(value._hash); }
 		};
 
+		struct ShaderModule
+		{
+			PipelineDescription::VkShaderPtr	module;
+			EShaderDebugMode					debugMode	= Default;
+		};
+
 		using Instances_t			= HashMap< PipelineInstance, VkPipeline, PipelineInstanceHash >;
 		using VkShaderPtr			= PipelineDescription::VkShaderPtr;
+		using ShaderModules_t		= FixedArray< ShaderModule, 4 >;
 
 
 	// variables
 	private:
-		PipelineLayoutID		_layoutId;
+		PipelineLayoutID		_baseLayoutId;
 		Instances_t				_instances;
-
-		VkShaderPtr				_shader;
+		
+		ShaderModules_t			_shaders;
 
 		uint3					_defaultLocalGroupSize;
 		uint3					_localSizeSpec;
@@ -63,7 +73,7 @@ namespace FG
 		bool Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
-		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
+		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }
 		
 		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 	};
@@ -76,10 +86,12 @@ namespace FG
 */
 	inline bool VComputePipeline::PipelineInstance::operator == (const PipelineInstance &rhs) const
 	{
-		return	localGroupSize.x	== rhs.localGroupSize.x		and
+		return	layoutId			== rhs.layoutId				and
+				localGroupSize.x	== rhs.localGroupSize.x		and
 				localGroupSize.y	== rhs.localGroupSize.y		and
 				localGroupSize.z	== rhs.localGroupSize.z		and
-				flags				== rhs.flags;
+				flags				== rhs.flags				and
+				debugMode			== rhs.debugMode;
 	}
 
 

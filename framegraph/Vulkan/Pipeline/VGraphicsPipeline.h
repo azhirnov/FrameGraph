@@ -43,6 +43,7 @@ namespace FG
 		{
 			VkShaderStageFlagBits				stage;
 			PipelineDescription::VkShaderPtr	module;
+			EShaderDebugMode					debugMode	= Default;
 		};
 
 
@@ -51,17 +52,20 @@ namespace FG
 		{
 		// variables
 			HashVal						_hash;
+			RawPipelineLayoutID			layoutId;		// strong reference
 			RawRenderPassID				renderPassId;
-			uint						subpassIndex	= 0;
 			RenderState					renderState;
 			VertexInputState			vertexInput;
 			EPipelineDynamicState		dynamicState	= Default;
-			VkPipelineCreateFlags		flags			= 0;
-			uint						viewportCount	= 0;
-			// TODO: specialization constants
+			//VkPipelineCreateFlags		flags			= 0;
+			uint8_t						subpassIndex	= 0;
+			uint8_t						viewportCount	= 0;
+			uint						debugMode		= 0;
 
 		// methods
 			PipelineInstance () {}
+
+			void UpdateHash ();
 
 			ND_ bool  operator == (const PipelineInstance &rhs) const;
 		};
@@ -80,7 +84,7 @@ namespace FG
 
 	// variables
 	private:
-		PipelineLayoutID		_layoutId;
+		PipelineLayoutID		_baseLayoutId;
 		Instances_t				_instances;
 
 		ShaderModules_t			_shaders;
@@ -104,7 +108,7 @@ namespace FG
 		bool Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
-		ND_ RawPipelineLayoutID		GetLayoutID ()			const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
+		ND_ RawPipelineLayoutID		GetLayoutID ()			const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }
 		ND_ ArrayView<VertexAttrib>	GetVertexAttribs ()		const	{ SHAREDLOCK( _rcCheck );  return _vertexAttribs; }
 
 		ND_ FragmentOutputPtr		GetFragmentOutput ()	const	{ SHAREDLOCK( _rcCheck );  return _fragmentOutput; }
@@ -121,14 +125,16 @@ namespace FG
 */
 	inline bool VGraphicsPipeline::PipelineInstance::operator == (const PipelineInstance &rhs) const
 	{
-		return	_hash			== rhs._hash		and
-				renderPassId	== rhs.renderPassId	and
-				subpassIndex	== rhs.subpassIndex	and
-				renderState		== rhs.renderState	and
-				vertexInput		== rhs.vertexInput	and
-				dynamicState	== rhs.dynamicState	and
-				flags			== rhs.flags		and
-				viewportCount	== rhs.viewportCount;
+		return	_hash			== rhs._hash			and
+				layoutId		== rhs.layoutId			and
+				renderPassId	== rhs.renderPassId		and
+				subpassIndex	== rhs.subpassIndex		and
+				renderState		== rhs.renderState		and
+				vertexInput		== rhs.vertexInput		and
+				dynamicState	== rhs.dynamicState		and
+				//flags			== rhs.flags			and
+				viewportCount	== rhs.viewportCount	and
+				debugMode		== rhs.debugMode;
 	}
 
 

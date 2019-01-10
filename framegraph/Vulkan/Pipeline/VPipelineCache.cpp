@@ -6,6 +6,7 @@
 #include "VEnumCast.h"
 #include "VRenderPass.h"
 #include "VResourceManagerThread.h"
+#include "VShaderDebugger.h"
 
 namespace FG
 {
@@ -39,11 +40,13 @@ namespace FG
 			}
 		}
 		
-		ShaderModuleVk_t const&		GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
+		ShaderModuleVk_t const&	GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
 
-		StringView					GetEntry () const override		{ return _entry; }
+		StringView				GetEntry () const override		{ return _entry; }
 
-		size_t						GetHashOfData () const override	{ ASSERT(false);  return 0; }
+		size_t					GetHashOfData () const override	{ ASSERT(false);  return 0; }
+
+		bool					ParseDebugOutput (EShaderDebugMode, ArrayView<uint8_t>, OUT Array<String> &) const override { return false; }
 	};
 //-----------------------------------------------------------------------------
 
@@ -477,36 +480,85 @@ namespace FG
 			dynamicState |= newStates.hasStencilWriteMask   ? EPipelineDynamicState::StencilWriteMask   : Default;
 		}
 	}
+	
+/*
+=================================================
+	_SetupShaderDebugging
+=================================================
+*/
+	template <typename Pipeline>
+	bool VPipelineCache::_SetupShaderDebugging (VResourceManagerThread &resMngr, VShaderDebugger &shaderDebugger, const Pipeline &ppln, uint debugModeIndex,
+												OUT EShaderDebugMode &debugMode, OUT EShader &debuggableShader, OUT RawPipelineLayoutID &layoutId)
+	{
+		shaderDebugger.GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShader );
+		ASSERT( debugMode != Default );
+		
+		const VkShaderStageFlagBits	stage = VEnumCast( debuggableShader );
+
+		for (auto& sh : ppln._shaders)
+		{
+			if constexpr( IsSameTypes<VComputePipeline, Pipeline> )
+			{
+				if ( sh.debugMode != debugMode )
+					continue;
+			}
+			else
+			{
+				if ( sh.stage != stage or sh.debugMode != debugMode )
+					continue;
+			}
+
+			shaderDebugger.SetShaderModule( debugModeIndex, sh.module );
+			break;
+		}
+
+		RawDescriptorSetLayoutID	ds_layout = shaderDebugger.GetDescriptorSetLayout( debugMode, debuggableShader );
+
+		layoutId = resMngr.ExtendPipelineLayout( layoutId, ds_layout, DescriptorSetID{"dbgStorage"}, true );
+		CHECK_ERR( layoutId );
+
+		return true;
+	}
 
 /*
 =================================================
 	CreatePipelineInstance
 =================================================
 */
-	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
-														const VLogicalRenderPass	&logicalRP,
-														const VBaseDrawVerticesTask	&drawTask)
+	bool  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
+												  VShaderDebugger				&shaderDebugger,
+												  const VLogicalRenderPass		&logicalRP,
+												  const VBaseDrawVerticesTask	&drawTask,
+												  OUT VkPipeline				&outPipeline,
+												  OUT VPipelineLayout const*	&outLayout)
 	{
 		CHECK_ERR( drawTask.pipeline and logicalRP.GetRenderPassID() );
 
 
 		VDevice const&				dev			= resMngr.GetDevice();
 		VGraphicsPipeline const*	gppln		= drawTask.pipeline;
-		VPipelineLayout const*		layout		= resMngr.GetResource( gppln->GetLayoutID() );
 		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
-		
+		EShaderDebugMode			dbg_mode	= Default;
+		EShader						dbg_shader	= Default;
+		RawPipelineLayoutID			layout_id	= gppln->GetLayoutID();
+
+		if ( drawTask.GetDebugModeIndex() != UMax ) {
+			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, *gppln, drawTask.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_shader, OUT layout_id ));
+		}
 
 		// check topology
 		CHECK_ERR(	uint(drawTask.topology) < gppln->_supportedTopology.size() and
 					gppln->_supportedTopology[uint(drawTask.topology)] );
 
 		VGraphicsPipeline::PipelineInstance		inst;
+		inst.layoutId					= layout_id;
 		inst.dynamicState				= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		inst.renderPassId				= logicalRP.GetRenderPassID();
-		inst.subpassIndex				= logicalRP.GetSubpassIndex();
+		inst.subpassIndex				= uint8_t(logicalRP.GetSubpassIndex());
 		inst.vertexInput				= drawTask.vertexInput;
-		inst.flags						= 0;	//pipelineFlags;	// TODO
-		inst.viewportCount				= uint(logicalRP.GetViewports().size());
+		//inst.flags					= 0;	//pipelineFlags;	// TODO
+		inst.viewportCount				= uint8_t(logicalRP.GetViewports().size());
+		inst.debugMode					= (uint(dbg_shader) & 0xFF) | (uint(dbg_mode) << 8);
 		inst.renderState.color			= logicalRP.GetColorState();
 		inst.renderState.depth			= logicalRP.GetDepthState();
 		inst.renderState.stencil		= logicalRP.GetStencilState();
@@ -522,21 +574,23 @@ namespace FG
 								    INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
-		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
-					  HashOf( inst.renderState )	+ HashOf( inst.vertexInput )	+
-					  HashOf( inst.dynamicState )	+ HashOf( inst.viewportCount )	+
-					  HashOf( inst.flags );
-
+		inst.UpdateHash();
+		
+		outLayout = resMngr.GetResource( layout_id );
 
 		// find existing instance
 		{
 			auto iter1 = gppln->_instances.find( inst );
-			if ( iter1 != gppln->_instances.end() )
-				return iter1->second;
+			if ( iter1 != gppln->_instances.end() ) {
+				outPipeline = iter1->second;
+				return true;
+			}
 			
 			auto iter2 = _graphicsPipelines->find({ gppln, inst });
-			if ( iter2 != _graphicsPipelines->end() )
-				return iter2->second;
+			if ( iter2 != _graphicsPipelines->end() ) {
+				outPipeline = iter2->second;
+				return true;
+			}
 		}
 
 
@@ -554,7 +608,7 @@ namespace FG
 		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
 		VkPipelineViewportStateCreateInfo		viewport_info		= {};
 
-		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, gppln->_shaders );
+		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, gppln->_shaders, dbg_mode, dbg_shader );
 		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
 		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
 		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
@@ -568,7 +622,7 @@ namespace FG
 
 		pipeline_info.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipeline_info.pNext					= null;
-		pipeline_info.flags					= inst.flags;
+		pipeline_info.flags					= 0; //inst.flags;
 		pipeline_info.pInputAssemblyState	= &input_assembly_info;
 		pipeline_info.pRasterizationState	= &rasterization_info;
 		pipeline_info.pColorBlendState		= &blend_info;
@@ -579,7 +633,7 @@ namespace FG
 		pipeline_info.pDynamicState			= (_tempDynamicStates.empty() ? null : &dynamic_state_info);
 		pipeline_info.basePipelineIndex		= -1;
 		pipeline_info.basePipelineHandle	= VK_NULL_HANDLE;
-		pipeline_info.layout				= layout->Handle();
+		pipeline_info.layout				= outLayout->Handle();
 		pipeline_info.stageCount			= uint(_tempStages.size());
 		pipeline_info.pStages				= _tempStages.data();
 		pipeline_info.renderPass			= render_pass->Handle();
@@ -595,37 +649,48 @@ namespace FG
 			pipeline_info.pColorBlendState		= null;
 		}
 
-		VkPipeline	ppln_id = {};
-		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &ppln_id ));
+		outPipeline = {};
+		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 
 		resMngr.EditStatistic().newGraphicsPipelineCount++;
 
-		CHECK( _graphicsPipelines->insert_or_assign( {gppln, std::move(inst)}, ppln_id ).second );
-		return ppln_id;
+		CHECK( _graphicsPipelines->insert_or_assign( {gppln, std::move(inst)}, outPipeline ).second );
+		return true;
 	}
 /*
 =================================================
 	CreatePipelineInstance
 =================================================
 */
-	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
-														const VLogicalRenderPass	&logicalRP,
-														const VBaseDrawMeshes		&drawTask)
+	bool  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
+												  VShaderDebugger				&shaderDebugger,
+												  const VLogicalRenderPass		&logicalRP,
+												  const VBaseDrawMeshes			&drawTask,
+												  OUT VkPipeline				&outPipeline,
+												  OUT VPipelineLayout const*	&outLayout)
 	{
 		CHECK_ERR( resMngr.GetDevice().IsMeshShaderEnabled() );
 		CHECK_ERR( drawTask.pipeline and logicalRP.GetRenderPassID() );
 
-		VDevice const&				dev			= resMngr.GetDevice();
-		VMeshPipeline const*		mppln		= drawTask.pipeline;
-		VPipelineLayout const*		layout		= resMngr.GetResource( mppln->GetLayoutID() );
-		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
-		
+		VDevice const&			dev			= resMngr.GetDevice();
+		VMeshPipeline const*	mppln		= drawTask.pipeline;
+		VRenderPass const*		render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
+		EShaderDebugMode		dbg_mode	= Default;
+		EShader					dbg_shader	= Default;
+		RawPipelineLayoutID		layout_id	= mppln->GetLayoutID();
+
+		if ( drawTask.GetDebugModeIndex() != UMax ) {
+			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, *mppln, drawTask.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_shader, OUT layout_id ));
+		}
+
 		VMeshPipeline::PipelineInstance		inst;
+		inst.layoutId					= layout_id;
 		inst.dynamicState				= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		inst.renderPassId				= logicalRP.GetRenderPassID();
-		inst.subpassIndex				= logicalRP.GetSubpassIndex();
-		inst.flags						= 0;	//pipelineFlags;	// TODO
-		inst.viewportCount				= uint(logicalRP.GetViewports().size());
+		inst.subpassIndex				= uint8_t(logicalRP.GetSubpassIndex());
+		//inst.flags						= 0;	//pipelineFlags;	// TODO
+		inst.viewportCount				= uint8_t(logicalRP.GetViewports().size());
+		inst.debugMode					= (uint(dbg_shader) & 0xFF) | (uint(dbg_mode) << 8);
 		inst.renderState.color			= logicalRP.GetColorState();
 		inst.renderState.depth			= logicalRP.GetDepthState();
 		inst.renderState.stencil		= logicalRP.GetStencilState();
@@ -638,20 +703,23 @@ namespace FG
 								    INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
-		inst._hash	= HashOf( inst.renderPassId )	+ HashOf( inst.subpassIndex )	+
-					  HashOf( inst.renderState )	+ HashOf( inst.dynamicState )	+
-					  HashOf( inst.viewportCount )	+ HashOf( inst.flags );
-
+		inst.UpdateHash();
+		
+		outLayout = resMngr.GetResource( layout_id );
 
 		// find existing instance
 		{
 			auto iter1 = mppln->_instances.find( inst );
-			if ( iter1 != mppln->_instances.end() )
-				return iter1->second;
+			if ( iter1 != mppln->_instances.end() ) {
+				outPipeline = iter1->second;
+				return true;
+			}
 			
 			auto iter2 = _meshPipelines->find({ mppln, inst });
-			if ( iter2 != _meshPipelines->end() )
-				return iter2->second;
+			if ( iter2 != _meshPipelines->end() ) {
+				outPipeline = iter2->second;
+				return true;
+			}
 		}
 
 
@@ -668,7 +736,7 @@ namespace FG
 		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
 		VkPipelineViewportStateCreateInfo		viewport_info		= {};
 
-		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln->_shaders );
+		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln->_shaders, dbg_mode, dbg_shader );
 		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
 		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
 		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
@@ -682,7 +750,7 @@ namespace FG
 
 		pipeline_info.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipeline_info.pNext					= null;
-		pipeline_info.flags					= inst.flags;
+		pipeline_info.flags					= 0; //inst.flags;
 		pipeline_info.pInputAssemblyState	= &input_assembly_info;
 		pipeline_info.pRasterizationState	= &rasterization_info;
 		pipeline_info.pColorBlendState		= &blend_info;
@@ -692,7 +760,7 @@ namespace FG
 		pipeline_info.pDynamicState			= (_tempDynamicStates.empty() ? null : &dynamic_state_info);
 		pipeline_info.basePipelineIndex		= -1;
 		pipeline_info.basePipelineHandle	= VK_NULL_HANDLE;
-		pipeline_info.layout				= layout->Handle();
+		pipeline_info.layout				= outLayout->Handle();
 		pipeline_info.stageCount			= uint(_tempStages.size());
 		pipeline_info.pStages				= _tempStages.data();
 		pipeline_info.renderPass			= render_pass->Handle();
@@ -708,13 +776,13 @@ namespace FG
 			pipeline_info.pColorBlendState		= null;
 		}
 
-		VkPipeline	ppln_id = {};
-		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &ppln_id ));
+		outPipeline = {};
+		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 		
 		resMngr.EditStatistic().newGraphicsPipelineCount++;
 
-		CHECK( _meshPipelines->insert_or_assign( {mppln, std::move(inst)}, ppln_id ).second );
-		return ppln_id;
+		CHECK( _meshPipelines->insert_or_assign( {mppln, std::move(inst)}, outPipeline ).second );
+		return true;
 	}
 
 /*
@@ -722,50 +790,76 @@ namespace FG
 	CreatePipelineInstance
 =================================================
 */
-	VkPipeline  VPipelineCache::CreatePipelineInstance (VResourceManagerThread	&resMngr,
-														const VComputePipeline	&cppln,
-														const Optional<uint3>	&localGroupSize,
-														VkPipelineCreateFlags	 pipelineFlags)
+	bool  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
+												  VShaderDebugger				&shaderDebugger,
+												  const VComputePipeline		&cppln,
+												  const Optional<uint3>			&localGroupSize,
+												  VkPipelineCreateFlags			 pipelineFlags,
+												  uint							 debugModeIndex,
+												  OUT VkPipeline				&outPipeline,
+												  OUT VPipelineLayout const*	&outLayout)
 	{
-		VDevice const &			dev		= resMngr.GetDevice();
-		VPipelineLayout const*	layout	= resMngr.GetResource( cppln.GetLayoutID() );
+		VDevice const &		dev			= resMngr.GetDevice();
+		EShaderDebugMode	dbg_mode	= Default;
+		EShader				dbg_shader	= Default;
+		RawPipelineLayoutID	layout_id	= cppln.GetLayoutID();
+
+		if ( debugModeIndex != UMax ) {
+			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_shader, OUT layout_id ));
+		}
 
 		VComputePipeline::PipelineInstance		inst;
+		inst.layoutId		= layout_id;
 		inst.flags			= pipelineFlags;
 		inst.localGroupSize	= localGroupSize.value_or( cppln._defaultLocalGroupSize );
 		inst.localGroupSize = { cppln._localSizeSpec.x != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.x : cppln._defaultLocalGroupSize.x,
 								cppln._localSizeSpec.y != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.y : cppln._defaultLocalGroupSize.y,
 								cppln._localSizeSpec.z != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.z : cppln._defaultLocalGroupSize.z };
-		inst._hash			= (HashOf( inst.localGroupSize ) + HashOf( inst.flags ));
-
+		inst.debugMode		= (uint(dbg_shader) & 0xFF) | (uint(dbg_mode) << 8);
+		inst.UpdateHash();
+		
+		outLayout = resMngr.GetResource( layout_id );
 
 		// find existing instance
 		{
 			auto iter1 = cppln._instances.find( inst );
-			if ( iter1 != cppln._instances.end() )
-				return iter1->second;
+			if ( iter1 != cppln._instances.end() ) {
+				outPipeline = iter1->second;
+				return true;
+			}
 
 			auto iter2 = _computePipelines->find({ &cppln, inst });
-			if ( iter2 != _computePipelines->end() )
-				return iter2->second;
+			if ( iter2 != _computePipelines->end() ) {
+				outPipeline = iter2->second;
+				return true;
+			}
 		}
 
 
 		// create new instance
 		_ClearTemp();
-		CHECK_ERR( cppln._shader );
 
 		VkSpecializationInfo			spec = {};
 		VkComputePipelineCreateInfo		pipeline_info = {};
 
 		pipeline_info.sType			= VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-		pipeline_info.layout		= layout->Handle();
+		pipeline_info.layout		= outLayout->Handle();
 		pipeline_info.flags			= inst.flags;
 		pipeline_info.stage.sType	= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		pipeline_info.stage.module	= BitCast<VkShaderModule>( cppln._shader->GetData() );
-		pipeline_info.stage.pName	= cppln._shader->GetEntry().data();
 		pipeline_info.stage.flags	= 0;
 		pipeline_info.stage.stage	= VK_SHADER_STAGE_COMPUTE_BIT;
+
+		// find module with required debug mode
+		for (auto& sh : cppln._shaders)
+		{
+			if ( sh.debugMode != dbg_mode )
+				continue;
+			
+			pipeline_info.stage.module	= BitCast<VkShaderModule>( sh.module->GetData() );
+			pipeline_info.stage.pName	= sh.module->GetEntry().data();
+			break;
+		}
+		CHECK_ERR( pipeline_info.stage.module );
 
 		_AddLocalGroupSizeSpecialization( OUT _tempSpecEntries, OUT _tempSpecData, cppln._localSizeSpec, inst.localGroupSize );
 
@@ -779,13 +873,13 @@ namespace FG
 			pipeline_info.stage.pSpecializationInfo	= &spec;
 		}
 
-		VkPipeline	ppln_id = {};
-		VK_CHECK( dev.vkCreateComputePipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &ppln_id ));
+		outPipeline = {};
+		VK_CHECK( dev.vkCreateComputePipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 		
 		resMngr.EditStatistic().newComputePipelineCount++;
 
-		CHECK( _computePipelines->insert_or_assign( {&cppln, std::move(inst)}, ppln_id ).second );
-		return ppln_id;
+		CHECK( _computePipelines->insert_or_assign( {&cppln, std::move(inst)}, outPipeline ).second );
+		return true;
 	}
 
 /*
@@ -796,11 +890,25 @@ namespace FG
 	void VPipelineCache::_SetShaderStages (OUT ShaderStages_t &stages,
 										   INOUT Specializations_t &,
 										   INOUT SpecializationEntries_t &,
-										   ArrayView< ShaderModule_t > shaders) const
+										   ArrayView< ShaderModule_t > shaders,
+										   EShaderDebugMode debugMode,
+										   EShader debuggableShader) const
 	{
+		const VkShaderStageFlagBits	debuggable_stage	= debuggableShader != Default ? VEnumCast( debuggableShader ) : VkShaderStageFlagBits(0);
+		VkShaderStageFlags			exist_stages		= 0;
+		VkShaderStageFlags			used_stages			= 0;
+
 		for (auto& sh : shaders)
 		{
 			ASSERT( sh.module );
+
+			exist_stages |= sh.stage;
+
+			if ( (sh.stage != debuggable_stage and sh.debugMode != Default) or
+				 (sh.debugMode != debugMode) )
+				continue;
+			
+			used_stages |= sh.stage;
 
 			VkPipelineShaderStageCreateInfo	info = {};
 			info.sType	= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -813,6 +921,9 @@ namespace FG
 
 			stages.push_back( info );
 		}
+
+		// check if all shader stages added
+		ASSERT( exist_stages == used_stages );
 	}
 
 /*

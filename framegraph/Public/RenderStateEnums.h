@@ -141,18 +141,14 @@ namespace FG
 	FG_BIT_OPERATORS( ECullMode );
 	
 
-	enum class EPipelineDynamicState : uint
+	enum class EPipelineDynamicState : uint8_t
 	{
 		Unknown					= 0,
 		Viewport				= 1 << 0,
 		Scissor					= 1 << 1,
-		//LineWidth				= 1 << 2,
-		//DepthBias				= 1 << 3,
-		//BlendConstants		= 1 << 4,
-		//DepthBounds			= 1 << 5,
-		StencilCompareMask		= 1 << 6,
-		StencilWriteMask		= 1 << 7,
-		StencilReference		= 1 << 8,
+		StencilCompareMask		= 1 << 2,
+		StencilWriteMask		= 1 << 3,
+		StencilReference		= 1 << 4,
 		_Last,
 
 		All						= ((_Last-1) << 1) - 1,

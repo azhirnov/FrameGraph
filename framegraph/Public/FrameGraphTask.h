@@ -43,6 +43,24 @@ namespace FG
 			BaseType& DependsOn (Arg0 task)						{ if ( task ) depends.push_back( task );  return static_cast<BaseType &>( *this ); }
 		};
 
+
+		//
+		// Compute Shader Debug Mode
+		//
+		struct ComputeShaderDebugMode
+		{
+			EShaderDebugMode	mode	= Default;
+			uint3				globalID;
+		};
+
+		//
+		// Ray Tracing Shader Debug Mode
+		//
+		struct RayTracingShaderDebugMode
+		{
+			// TODO
+		};
+
 	}	// _fg_hidden_
 	
 
@@ -94,6 +112,7 @@ namespace FG
 	{
 	// types
 		using PushConstants_t	= _fg_hidden_::PushConstants_t;
+		using DebugMode			= _fg_hidden_::ComputeShaderDebugMode;
 
 
 	// variables
@@ -102,6 +121,7 @@ namespace FG
 		uint3					groupCount;
 		Optional< uint3 >		localGroupSize;
 		PushConstants_t			pushConstants;
+		DebugMode				debugMode;
 		
 
 	// methods
@@ -117,6 +137,13 @@ namespace FG
 		DispatchCompute&  SetLocalSize (const uint2 &value)					{ localGroupSize = {value.x, value.y, 1};  return *this; }
 		DispatchCompute&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
 		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
+
+		DispatchCompute&  EnableDebugTrace (const uint3 &globalID)
+		{
+			debugMode.mode		= EShaderDebugMode::Trace;
+			debugMode.globalID	= globalID;
+			return *this;
+		}
 		
 		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res)
 		{
@@ -148,6 +175,7 @@ namespace FG
 	{
 	// types
 		using PushConstants_t	= _fg_hidden_::PushConstants_t;
+		using DebugMode			= _fg_hidden_::ComputeShaderDebugMode;
 
 
 	// variables
@@ -157,6 +185,7 @@ namespace FG
 		BytesU					indirectBufferOffset;
 		Optional< uint3 >		localGroupSize;
 		PushConstants_t			pushConstants;
+		DebugMode				debugMode;
 		
 
 	// methods
@@ -165,6 +194,13 @@ namespace FG
 		
 		DispatchComputeIndirect&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
 		DispatchComputeIndirect&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
+		
+		DispatchComputeIndirect&  EnableDebugTrace (const uint3 &globalID)
+		{
+			debugMode.mode		= EShaderDebugMode::Trace;
+			debugMode.globalID	= globalID;
+			return *this;
+		}
 
 		DispatchComputeIndirect&  SetPipeline (const CPipelineID &ppln)
 		{
@@ -1157,6 +1193,7 @@ namespace FG
 	// types
 		using PushConstants_t	= _fg_hidden_::PushConstants_t;
 		using ShaderTable		= UpdateRayTracingShaderTable::ShaderTable;
+		using DebugMode			= _fg_hidden_::RayTracingShaderDebugMode;
 
 
 	// variables
@@ -1165,6 +1202,7 @@ namespace FG
 		uint3					groupCount;
 		PushConstants_t			pushConstants;
 		ShaderTable				shaderTable;
+		DebugMode				debugMode;
 
 
 	// methods

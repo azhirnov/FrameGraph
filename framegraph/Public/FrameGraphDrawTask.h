@@ -10,6 +10,8 @@ namespace FG
 {
 namespace _fg_hidden_
 {
+	using TaskName_t = StaticString<64>;
+
 
 	//
 	// Base Draw Task
@@ -17,9 +19,6 @@ namespace _fg_hidden_
 	template <typename TaskType>
 	struct BaseDrawTask
 	{
-	// types
-		using TaskName_t = StaticString<64>;
-
 	// variables
 		TaskName_t		taskName;
 		RGBA8u			debugColor;
@@ -30,6 +29,46 @@ namespace _fg_hidden_
 
 		TaskType& SetName (StringView name)			{ taskName = name;  return static_cast<TaskType &>( *this ); }
 		TaskType& SetDebugColor (RGBA8u color)		{ debugColor = color;  return static_cast<TaskType &>( *this ); }
+	};
+
+
+	//
+	// Graphics Shader Debug Mode
+	//
+	struct GraphicsShaderDebugMode
+	{
+	// types
+		struct Fragment {
+			uint	pixelCoordX;	// gl_FragCoord.x
+			uint	pixelCoordY;	// gl_FragCoord.y
+			uint	sample;			// gl_SampleID
+			uint	primitive;		// gl_PrimitiveID
+			// TODO: depth range
+		};
+		struct Vertex {
+			uint	vertex;			// gl_VertexID
+			uint	primitive;		// gl_PrimitiveID
+			uint	instance;		// gl_InstanceIndex
+			uint	draw;			// gl_DrawID - for indirect drawing
+		};
+		struct TessControl {};
+		struct TessEvaluation {};
+		struct Geometry {};
+		struct MeshTask {};
+		struct Mesh {};
+
+	// variables
+		EShaderDebugMode	mode	= Default;
+		EShader				shader	= Default;
+		union {
+			Vertex			vert;
+			TessControl		tessCont;
+			TessEvaluation	tessEval;
+			Geometry		geom;
+			MeshTask		task;
+			Mesh			mesh;
+			Fragment		frag;
+		};
 	};
 	
 	
@@ -103,6 +142,7 @@ namespace _fg_hidden_
 	{
 	// types
 		using StencilValue_t	= decltype(DynamicStates::stencilReference);
+		using DebugMode			= GraphicsShaderDebugMode;
 
 
 	// variables
@@ -111,6 +151,7 @@ namespace _fg_hidden_
 		Scissors_t				scissors;
 		ColorBuffers_t			colorBuffers;
 		DynamicStates			dynamicStates;
+		DebugMode				debugMode;
 			
 
 	// methods
@@ -148,6 +189,9 @@ namespace _fg_hidden_
 		template <typename ValueType>
 		TaskType&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
 		TaskType&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
+		
+		TaskType&  EnableVertexDebugTrace (uint vertex, uint primitive, uint instance = UMax, uint draw = UMax);
+		TaskType&  EnableFragmentDebugTrace (uint x, uint y, uint sample = UMax, uint primitive = UMax);
 	};
 	
 
@@ -641,6 +685,24 @@ namespace _fg_hidden_
 		ASSERT( id.IsDefined() );
 		pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
 		MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableVertexDebugTrace (uint vertex, uint primitive, uint instance, uint draw)
+	{
+		debugMode.mode		= EShaderDebugMode::Trace;
+		debugMode.shader	= EShader::Vertex;
+		debugMode.data.vert	= { vertex, primitive, instance, draw };
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableFragmentDebugTrace (uint x, uint y, uint sample, uint primitive)
+	{
+		debugMode.mode		= EShaderDebugMode::Trace;
+		debugMode.shader	= EShader::Fragment;
+		debugMode.data.frag	= { x, y, sample, primitive };
 		return static_cast<TaskType &>( *this );
 	}
 //-----------------------------------------------------------------------------

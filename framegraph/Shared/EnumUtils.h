@@ -90,6 +90,28 @@ namespace FG
 		RETURN_ERR( "not supported" );
 	}
 //-----------------------------------------------------------------------------
+	
+
+
+/*
+=================================================
+	EShaderDebugMode_FromLang
+=================================================
+*/
+	ND_ inline constexpr EShaderDebugMode  EShaderDebugMode_From (EShaderLangFormat value)
+	{
+		switch ( value & EShaderLangFormat::_ModeMask )
+		{
+			case EShaderLangFormat::Unknown :			return EShaderDebugMode::None;
+			case EShaderLangFormat::WithDebugTrace :	return EShaderDebugMode::Trace;
+			case EShaderLangFormat::WithDebugAsserts :	return EShaderDebugMode::Asserts;
+			case EShaderLangFormat::WithDebugView :		return EShaderDebugMode::View;
+			//case EShaderLangFormat::WithProfiling :				return EShaderDebugMode::None;
+			//case EShaderLangFormat::WithInstructionsCounter :		return EShaderDebugMode::InstructionCounter;
+		}
+		RETURN_ERR( "unknown mode" );
+	}
+//-----------------------------------------------------------------------------
 
 
 /*

@@ -60,6 +60,7 @@ namespace FG
 
 		using OnExternalImageReleased_t		= std::function< void (const ExternalImage_t &) >;
 		using OnExternalBufferReleased_t	= std::function< void (const ExternalBuffer_t &) >;
+		using ShaderDebugCallback_t			= std::function< void (StringView taskName, EShader, ArrayView<String> output) >;
 
 
 	// interface
@@ -109,7 +110,8 @@ namespace FG
 
 
 	// initialization //
-			// initialize framegraph thread.
+
+			// Initialize framegraph thread.
 			// Current thread will use same GPU queues as 'relativeThreads' and
 			// will try not to use same GPU queues as 'parallelThreads'.
 			// Must be externally synchronized with all framegraph threads.
@@ -128,8 +130,13 @@ namespace FG
 			// Must be externally synchronized with all framegraph threads.
 			virtual bool		RecreateSwapchain (const SwapchainCreateInfo &) = 0;
 
+			// Callback will be called at end of the frame if debugging enabled by
+			// calling 'Task::EnableDebugTrace' and shader compiled with 'DebugTrace' mode.
+			virtual bool		SetShaderDebugCallback (ShaderDebugCallback_t &&) = 0;
+
 
 	// frame execution //
+
 			// Starts framegraph subbatch recording.
 			// Available only in asynchronous mode.
 			// 'batchId' and 'indexInBatch' must be unique.

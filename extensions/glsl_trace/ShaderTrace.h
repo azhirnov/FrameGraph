@@ -11,7 +11,7 @@ namespace glslang {
 }
 
 
-struct GLSLShaderTrace
+struct ShaderTrace
 {
 public:
 	enum VariableID : uint32_t { VariableID_Unknown = ~0u };
@@ -70,12 +70,16 @@ private:
 
 
 public:
+	ShaderTrace () {}
+	ShaderTrace (ShaderTrace &&) = default;
+	ShaderTrace& operator = (ShaderTrace &&) = default;
+
 	bool GenerateDebugInfo (glslang::TIntermediate &, uint32_t setIndex);
 
 	bool GetDebugOutput (const void *ptr, uint64_t maxSize, std::vector<struct ShaderDebugTrace> &result) const;
 	bool GetDebugOutput (const void *ptr, uint64_t maxSize, std::vector<std::string> &result) const;
 
-	void SetSource (const char* const* sources, size_t count);
-	void SetSource (const char* source);
+	void SetSource (const char* const* sources, const size_t *lengths, size_t count);
+	void SetSource (const char* source, size_t length);
 	void GetSource (std::string &result) const;
 };

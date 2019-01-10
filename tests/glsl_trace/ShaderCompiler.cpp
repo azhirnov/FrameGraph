@@ -44,7 +44,7 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 							   uint						dbgBufferSetIndex,
 							   EShTargetLanguageVersion	spvVersion)
 {
-	GLSLShaderTrace			debug_info;
+	ShaderTrace			debug_info;
 	Array<const char *>		shader_src;
 	const bool				debuggable	= dbgBufferSetIndex != ~0u;
 	const FG::String		header		= "#version 460 core\n"s <<
@@ -77,13 +77,12 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 =================================================
 */
 bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
-							   OUT GLSLShaderTrace*		dbgInfo,
+							   OUT ShaderTrace*			dbgInfo,
 							   uint						dbgBufferSetIndex,
 							   ArrayView<const char *>	source,
 							   EShLanguage				shaderType,
 							   EShTargetLanguageVersion	spvVersion)
 {
-
 	EShMessages				messages		= EShMsgDefault;
 	TProgram				program;
 	TShader					shader			{ shaderType };
@@ -118,7 +117,7 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 	{
 		CHECK_ERR( dbgInfo->GenerateDebugInfo( INOUT *intermediate, dbgBufferSetIndex ));
 		
-		dbgInfo->SetSource( source.data(), source.size() );
+		dbgInfo->SetSource( source.data(), null, source.size() );
 	}
 
 	SpvOptions				spv_options;

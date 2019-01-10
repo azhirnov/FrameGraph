@@ -8,6 +8,26 @@ namespace FG
 
 /*
 =================================================
+	PipelineInstance::UpdateHash
+=================================================
+*/
+	void VMeshPipeline::PipelineInstance::UpdateHash ()
+	{
+#	if FG_FAST_HASH
+		_hash	= FG::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
+#	else
+		_hash	= HashOf( layoutId )		+
+				  HashOf( renderPassId )	+ HashOf( subpassIndex )	+
+				  HashOf( renderState )		+ HashOf( dynamicState )	+
+				  HashOf( viewportCount )	+ HashOf( debugMode );		//+ HashOf( flags );
+#	endif
+	}
+//-----------------------------------------------------------------------------
+
+
+
+/*
+=================================================
 	destructor
 =================================================
 */
@@ -25,17 +45,21 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		
-		for (auto& sh : desc._shaders)
+		for (auto& stage : desc._shaders)
 		{
-			CHECK_ERR( sh.second.data.size() == 1 );
+			const auto	vk_stage = VEnumCast( stage.first );
 
-			auto*	vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &sh.second.data.begin()->second );
-			CHECK_ERR( vk_shader );
+			for (auto& sh : stage.second.data)
+			{
+				auto*	vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &sh.second );
+				CHECK_ERR( vk_shader );
 
-			_shaders.push_back(ShaderModule{ VEnumCast(sh.first), *vk_shader });
+				_shaders.push_back(ShaderModule{ vk_stage, *vk_shader, EShaderDebugMode_From(sh.first) });
+			}
 		}
+		CHECK_ERR( _shaders.size() );
 
-		_layoutId			= PipelineLayoutID{ layoutId };
+		_baseLayoutId		= PipelineLayoutID{ layoutId };
 		_topology			= desc._topology;
 		_fragmentOutput		= fragOutput;
 		_earlyFragmentTests	= desc._earlyFragmentTests;
@@ -55,16 +79,17 @@ namespace FG
 
 		for (auto& ppln : _instances) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(ppln.second) );
+			unassignIDs.push_back( const_cast<PipelineInstance &>(ppln.first).layoutId );
 		}
 
-		if ( _layoutId ) {
-			unassignIDs.push_back( _layoutId.Release() );
+		if ( _baseLayoutId ) {
+			unassignIDs.push_back( _baseLayoutId.Release() );
 		}
 
 		_shaders.clear();
 		_instances.clear();
 		_debugName.clear();
-		_layoutId			= Default;
+		_baseLayoutId		= Default;
 		_topology			= Default;
 		_fragmentOutput		= null;
 		_earlyFragmentTests	= false;

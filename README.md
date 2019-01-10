@@ -3,9 +3,11 @@ Work in progress.
 
 ## Features
 * multithreaded command buffer building and submitting.
-* simple API, hides memory allocation, host to/from device transfers.
+* simple API, hides memory allocation, host to/from device transfers, barriers.
 * frame graph visualization.
 * tested on DOOM trace (see [vkTraceConverter examples](https://github.com/azhirnov/vkTraceConverter/tree/dev/examples#convert-to-framegraph-trace)).
+* glsl debugging.
+* supports RTX extensions.
 
 ## Documentation
 * [Porting from OpenGL](docs/Porting-from-OpenGL.md)
@@ -15,11 +17,6 @@ Work in progress.
 ## Suported Platforms
 * Windows (with MSVC 2017)
 * Linux (with GCC 8.2)
-
-## Branches
-`dev` - development branch<br/>
-`master` - contains last stable version<br/>
-`single_threaded` - deprecated single threaded stable version
 
 ## Building
 Generate project with CMake and build.<br/>
@@ -51,7 +48,8 @@ Dependencies:<br/>
     correct and optimal barrier placement. (done)<br/>
     correct render pass optimization. (WIP)
 - multithreading. (done)<br/>
-- render pass optimization. (WIP)<br/>
+- render pass subpasses. (WIP)<br/>
+- queue family transfer. (WIP)<br/>
 - graph visualizations. (done, but should be improved)<br/>
 
 ### Stage 2
@@ -78,8 +76,6 @@ Dependencies:<br/>
 - WebGL 2.0 (or WebGL-next) support.<br/>
 
 ## References
-1. FrameGraph in Frostbite.<br/>
-https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in
-
-2. Handles vs pointers.<br/>
-https://floooh.github.io/2018/06/17/handles-vs-pointers.html
+1. [FrameGraph in Frostbite](https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in).<br/>
+2. [Handles vs pointers](https://floooh.github.io/2018/06/17/handles-vs-pointers.html)<br/>
+3. [Porting engine to vulkan](https://gpuopen.com/presentation-porting-engine-to-vulkan-dx12/).<br/>

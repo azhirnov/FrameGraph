@@ -34,129 +34,6 @@ install( TARGETS "VulkanLoader" ARCHIVE DESTINATION "lib" )
 
 
 #==================================================================================================
-# project: PipelineCompiler
-#==================================================================================================
-if (${FG_ENABLE_GLSLANG})
-	set( SOURCES 
-		"pipeline_compiler/EShaderCompilationFlags.h"
-		"pipeline_compiler/PrivateDefines.h"
-		"pipeline_compiler/SpirvCompiler.cpp"
-		"pipeline_compiler/SpirvCompiler.h"
-		"pipeline_compiler/SpirvCompiler_Resources.cpp"
-		"pipeline_compiler/VPipelineCompiler.cpp"
-		"pipeline_compiler/VPipelineCompiler.h" )
-	add_library( "PipelineCompiler" STATIC ${SOURCES} )
-	source_group( "" FILES "pipeline_compiler/EShaderCompilationFlags.h" "pipeline_compiler/PrivateDefines.h" "pipeline_compiler/SpirvCompiler.cpp" "pipeline_compiler/SpirvCompiler.h" "pipeline_compiler/SpirvCompiler_Resources.cpp" "pipeline_compiler/VPipelineCompiler.cpp" "pipeline_compiler/VPipelineCompiler.h" )
-	set_property( TARGET "PipelineCompiler" PROPERTY FOLDER "Extensions" )
-	target_include_directories( "PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "PipelineCompiler" PRIVATE ".." )
-	target_include_directories( "PipelineCompiler" PRIVATE "pipeline_compiler" )
-	target_include_directories( "PipelineCompiler" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
-	target_link_libraries( "PipelineCompiler" "FrameGraph" )
-	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARIES}" )
-	target_compile_definitions( "PipelineCompiler" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
-	add_dependencies( "PipelineCompiler" External.glslang-main )
-	# compiler
-	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
-	
-	install( TARGETS "PipelineCompiler" ARCHIVE DESTINATION "lib" )
-endif()
-
-
-#==================================================================================================
-# project: UnitTests.PipelineCompiler
-#==================================================================================================
-if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
-	set( SOURCES 
-		"../tests/pipeline_compiler/main.cpp"
-		"../tests/pipeline_compiler/Test_Shader1.cpp"
-		"../tests/pipeline_compiler/Test_Shader10.cpp"
-		"../tests/pipeline_compiler/Test_Shader2.cpp"
-		"../tests/pipeline_compiler/Test_Shader3.cpp"
-		"../tests/pipeline_compiler/Test_Shader4.cpp"
-		"../tests/pipeline_compiler/Test_Shader5.cpp"
-		"../tests/pipeline_compiler/Test_Shader6.cpp"
-		"../tests/pipeline_compiler/Test_Shader7.cpp"
-		"../tests/pipeline_compiler/Test_Shader8.cpp"
-		"../tests/pipeline_compiler/Test_Shader9.cpp"
-		"../tests/pipeline_compiler/Utils.h" )
-	if (DEFINED ANDROID)
-		add_library( "UnitTests.PipelineCompiler" SHARED ${SOURCES} )
-	else()
-		add_executable( "UnitTests.PipelineCompiler" ${SOURCES} )
-	endif()
-	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader10.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Test_Shader9.cpp" "../tests/pipeline_compiler/Utils.h" )
-	set_property( TARGET "UnitTests.PipelineCompiler" PROPERTY FOLDER "Tests" )
-	target_include_directories( "UnitTests.PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "UnitTests.PipelineCompiler" PRIVATE "../tests/.." )
-	target_include_directories( "UnitTests.PipelineCompiler" PRIVATE "" )
-	if (${FG_ENABLE_GLSLANG})
-		target_link_libraries( "UnitTests.PipelineCompiler" "PipelineCompiler" )
-	endif()
-	# compiler
-	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
-	
-endif()
-
-
-#==================================================================================================
-# project: OfflineCompiler
-#==================================================================================================
-if (${FG_ENABLE_GLSLANG})
-	set( SOURCES 
-		"offline_compiler/main.cpp"
-		"offline_compiler/PipelineCppSerializer.cpp"
-		"offline_compiler/PipelineCppSerializer.h" )
-	if (DEFINED ANDROID)
-		add_library( "OfflineCompiler" SHARED ${SOURCES} )
-	else()
-		add_executable( "OfflineCompiler" ${SOURCES} )
-	endif()
-	source_group( "" FILES "offline_compiler/main.cpp" "offline_compiler/PipelineCppSerializer.cpp" "offline_compiler/PipelineCppSerializer.h" )
-	set_property( TARGET "OfflineCompiler" PROPERTY FOLDER "Extensions" )
-	target_include_directories( "OfflineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "OfflineCompiler" PRIVATE "offline_compiler" )
-	target_include_directories( "OfflineCompiler" PRIVATE ".." )
-	target_link_libraries( "OfflineCompiler" "PipelineCompiler" )
-	# compiler
-	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
-	
-	#-----------------------------------
-	if ( CONFIGURATION_DEPENDENT_PATH )
-		set( OFFLINE_COMPILER_EXE "${MAIN_BINARY_DIR}/$<CONFIG>/OfflineCompiler${CMAKE_EXECUTABLE_SUFFIX}" CACHE INTERNAL "" FORCE )
-	else ()
-		set( OFFLINE_COMPILER_EXE "${MAIN_BINARY_DIR}/OfflineCompiler${CMAKE_EXECUTABLE_SUFFIX}" CACHE INTERNAL "" FORCE )
-	endif ()
-	
-	#-----------------------------------
-endif()
-
-
-#==================================================================================================
 # project: Framework
 #==================================================================================================
 set( SOURCES 
@@ -237,6 +114,241 @@ if (${FG_ENABLE_TESTS})
 	set_target_properties( "Tests.Framework" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
 	target_compile_options( "Tests.Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
 	target_compile_definitions( "Tests.Framework" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
+# project: GLSLTrace
+#==================================================================================================
+if (${FG_ENABLE_GLSLANG})
+	set( SOURCES 
+		"glsl_trace/Common.h"
+		"glsl_trace/DebugInfo.cpp"
+		"glsl_trace/DebugInfo.h"
+		"glsl_trace/ShaderTrace.cpp"
+		"glsl_trace/ShaderTrace.h"
+		"glsl_trace/ShaderTrace2.cpp" )
+	add_library( "GLSLTrace" STATIC ${SOURCES} )
+	source_group( "" FILES "glsl_trace/Common.h" "glsl_trace/DebugInfo.cpp" "glsl_trace/DebugInfo.h" "glsl_trace/ShaderTrace.cpp" "glsl_trace/ShaderTrace.h" "glsl_trace/ShaderTrace2.cpp" )
+	set_property( TARGET "GLSLTrace" PROPERTY FOLDER "Extensions" )
+	target_include_directories( "GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "GLSLTrace" PRIVATE "glsl_trace/.." )
+	target_include_directories( "GLSLTrace" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
+	target_link_libraries( "GLSLTrace" "${FG_GLSLANG_LIBRARIES}" )
+	target_link_libraries( "GLSLTrace" "STL" )
+	target_compile_definitions( "GLSLTrace" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
+	add_dependencies( "GLSLTrace" External.glslang-main )
+	# compiler
+	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
+# project: Tests.GLSLTrace
+#==================================================================================================
+if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
+	set( SOURCES 
+		"../tests/glsl_trace/GLSLShaderTraceTestUtils.h"
+		"../tests/glsl_trace/GLSLShaderTrace_Test1.cpp"
+		"../tests/glsl_trace/GLSLShaderTrace_Test2.cpp"
+		"../tests/glsl_trace/main.cpp"
+		"../tests/glsl_trace/ShaderCompiler.cpp"
+		"../tests/glsl_trace/ShaderCompiler.h" )
+	if (DEFINED ANDROID)
+		add_library( "Tests.GLSLTrace" SHARED ${SOURCES} )
+	else()
+		add_executable( "Tests.GLSLTrace" ${SOURCES} )
+	endif()
+	source_group( "" FILES "../tests/glsl_trace/GLSLShaderTraceTestUtils.h" "../tests/glsl_trace/GLSLShaderTrace_Test1.cpp" "../tests/glsl_trace/GLSLShaderTrace_Test2.cpp" "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" )
+	set_property( TARGET "Tests.GLSLTrace" PROPERTY FOLDER "Tests" )
+	target_include_directories( "Tests.GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "Tests.GLSLTrace" PRIVATE "" )
+	target_include_directories( "Tests.GLSLTrace" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
+	target_link_libraries( "Tests.GLSLTrace" "Framework" )
+	if (${FG_ENABLE_GLSLANG})
+		target_link_libraries( "Tests.GLSLTrace" "GLSLTrace" )
+	endif()
+	# compiler
+	target_compile_definitions( "Tests.GLSLTrace" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "Tests.GLSLTrace" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "Tests.GLSLTrace" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "Tests.GLSLTrace" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "Tests.GLSLTrace" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "Tests.GLSLTrace" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "Tests.GLSLTrace" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "Tests.GLSLTrace" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "Tests.GLSLTrace" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
+# project: PipelineCompiler
+#==================================================================================================
+if (${FG_ENABLE_GLSLANG})
+	set( SOURCES 
+		"pipeline_compiler/EShaderCompilationFlags.h"
+		"pipeline_compiler/PrivateDefines.h"
+		"pipeline_compiler/SpirvCompiler.cpp"
+		"pipeline_compiler/SpirvCompiler.h"
+		"pipeline_compiler/SpirvCompiler_Resources.cpp"
+		"pipeline_compiler/VCachedDebuggableShaderData.h"
+		"pipeline_compiler/VPipelineCompiler.cpp"
+		"pipeline_compiler/VPipelineCompiler.h" )
+	add_library( "PipelineCompiler" STATIC ${SOURCES} )
+	source_group( "" FILES "pipeline_compiler/EShaderCompilationFlags.h" "pipeline_compiler/PrivateDefines.h" "pipeline_compiler/SpirvCompiler.cpp" "pipeline_compiler/SpirvCompiler.h" "pipeline_compiler/SpirvCompiler_Resources.cpp" "pipeline_compiler/VCachedDebuggableShaderData.h" "pipeline_compiler/VPipelineCompiler.cpp" "pipeline_compiler/VPipelineCompiler.h" )
+	set_property( TARGET "PipelineCompiler" PROPERTY FOLDER "Extensions" )
+	target_include_directories( "PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "PipelineCompiler" PRIVATE ".." )
+	target_include_directories( "PipelineCompiler" PRIVATE "pipeline_compiler" )
+	target_include_directories( "PipelineCompiler" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
+	target_link_libraries( "PipelineCompiler" "FrameGraph" )
+	target_link_libraries( "PipelineCompiler" "${FG_GLSLANG_LIBRARIES}" )
+	target_link_libraries( "PipelineCompiler" "GLSLTrace" )
+	target_compile_definitions( "PipelineCompiler" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
+	add_dependencies( "PipelineCompiler" External.glslang-main )
+	# compiler
+	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "PipelineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+	install( TARGETS "PipelineCompiler" ARCHIVE DESTINATION "lib" )
+endif()
+
+
+#==================================================================================================
+# project: UnitTests.PipelineCompiler
+#==================================================================================================
+if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
+	set( SOURCES 
+		"../tests/pipeline_compiler/main.cpp"
+		"../tests/pipeline_compiler/Test_Shader1.cpp"
+		"../tests/pipeline_compiler/Test_Shader10.cpp"
+		"../tests/pipeline_compiler/Test_Shader11.cpp"
+		"../tests/pipeline_compiler/Test_Shader2.cpp"
+		"../tests/pipeline_compiler/Test_Shader3.cpp"
+		"../tests/pipeline_compiler/Test_Shader4.cpp"
+		"../tests/pipeline_compiler/Test_Shader5.cpp"
+		"../tests/pipeline_compiler/Test_Shader6.cpp"
+		"../tests/pipeline_compiler/Test_Shader7.cpp"
+		"../tests/pipeline_compiler/Test_Shader8.cpp"
+		"../tests/pipeline_compiler/Test_Shader9.cpp"
+		"../tests/pipeline_compiler/Utils.h" )
+	if (DEFINED ANDROID)
+		add_library( "UnitTests.PipelineCompiler" SHARED ${SOURCES} )
+	else()
+		add_executable( "UnitTests.PipelineCompiler" ${SOURCES} )
+	endif()
+	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader10.cpp" "../tests/pipeline_compiler/Test_Shader11.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Test_Shader9.cpp" "../tests/pipeline_compiler/Utils.h" )
+	set_property( TARGET "UnitTests.PipelineCompiler" PROPERTY FOLDER "Tests" )
+	target_include_directories( "UnitTests.PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "UnitTests.PipelineCompiler" PRIVATE "../tests/.." )
+	target_include_directories( "UnitTests.PipelineCompiler" PRIVATE "" )
+	if (${FG_ENABLE_GLSLANG})
+		target_link_libraries( "UnitTests.PipelineCompiler" "PipelineCompiler" )
+	endif()
+	# compiler
+	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "UnitTests.PipelineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "UnitTests.PipelineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
+# project: OfflineCompiler
+#==================================================================================================
+if (${FG_ENABLE_GLSLANG})
+	set( SOURCES 
+		"offline_compiler/main.cpp"
+		"offline_compiler/PipelineCppSerializer.cpp"
+		"offline_compiler/PipelineCppSerializer.h" )
+	if (DEFINED ANDROID)
+		add_library( "OfflineCompiler" SHARED ${SOURCES} )
+	else()
+		add_executable( "OfflineCompiler" ${SOURCES} )
+	endif()
+	source_group( "" FILES "offline_compiler/main.cpp" "offline_compiler/PipelineCppSerializer.cpp" "offline_compiler/PipelineCppSerializer.h" )
+	set_property( TARGET "OfflineCompiler" PROPERTY FOLDER "Extensions" )
+	target_include_directories( "OfflineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "OfflineCompiler" PRIVATE "offline_compiler" )
+	target_include_directories( "OfflineCompiler" PRIVATE ".." )
+	target_link_libraries( "OfflineCompiler" "PipelineCompiler" )
+	# compiler
+	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+	#-----------------------------------
+	if ( CONFIGURATION_DEPENDENT_PATH )
+		set( OFFLINE_COMPILER_EXE "${MAIN_BINARY_DIR}/$<CONFIG>/OfflineCompiler${CMAKE_EXECUTABLE_SUFFIX}" CACHE INTERNAL "" FORCE )
+	else ()
+		set( OFFLINE_COMPILER_EXE "${MAIN_BINARY_DIR}/OfflineCompiler${CMAKE_EXECUTABLE_SUFFIX}" CACHE INTERNAL "" FORCE )
+	endif ()
+	
+	#-----------------------------------
+endif()
+
+
+#==================================================================================================
+# project: UnitTests.OfflineCompiler
+#==================================================================================================
+if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
+	set( SOURCES 
+		"../tests/offline_compiler/main.cpp"
+		"../tests/offline_compiler/Test_Serializer1.cpp"
+		"../tests/offline_compiler/Test_Serializer2.cpp" )
+	if (DEFINED ANDROID)
+		add_library( "UnitTests.OfflineCompiler" SHARED ${SOURCES} )
+	else()
+		add_executable( "UnitTests.OfflineCompiler" ${SOURCES} )
+	endif()
+	source_group( "" FILES "../tests/offline_compiler/main.cpp" "../tests/offline_compiler/Test_Serializer1.cpp" "../tests/offline_compiler/Test_Serializer2.cpp" )
+	set_property( TARGET "UnitTests.OfflineCompiler" PROPERTY FOLDER "Tests" )
+	target_include_directories( "UnitTests.OfflineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "UnitTests.OfflineCompiler" PRIVATE "../tests/.." )
+	target_include_directories( "UnitTests.OfflineCompiler" PRIVATE "" )
+	if (${FG_ENABLE_GLSLANG})
+		target_link_libraries( "UnitTests.OfflineCompiler" "PipelineCompiler" )
+	endif()
+	# compiler
+	target_compile_definitions( "UnitTests.OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "UnitTests.OfflineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "UnitTests.OfflineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "UnitTests.OfflineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "UnitTests.OfflineCompiler" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "UnitTests.OfflineCompiler" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "UnitTests.OfflineCompiler" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "UnitTests.OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "UnitTests.OfflineCompiler" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
 endif()
 
@@ -503,45 +615,7 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_IMGUI})
 endif()
 
 
-#==================================================================================================
-# project: GLSLTrace
-#==================================================================================================
-if (${FG_ENABLE_GLSLANG})
-	set( SOURCES 
-		"glsl_trace/GLSLShaderTrace.cpp"
-		"glsl_trace/GLSLShaderTrace.h"
-		"glsl_trace/GLSLShaderTraceTestUtils.h"
-		"glsl_trace/GLSLShaderTrace_Test1.cpp"
-		"glsl_trace/main.cpp"
-		"glsl_trace/ShaderCompiler.cpp"
-		"glsl_trace/ShaderCompiler.h" )
-	if (DEFINED ANDROID)
-		add_library( "GLSLTrace" SHARED ${SOURCES} )
-	else()
-		add_executable( "GLSLTrace" ${SOURCES} )
-	endif()
-	source_group( "" FILES "glsl_trace/GLSLShaderTrace.cpp" "glsl_trace/GLSLShaderTrace.h" "glsl_trace/GLSLShaderTraceTestUtils.h" "glsl_trace/GLSLShaderTrace_Test1.cpp" "glsl_trace/main.cpp" "glsl_trace/ShaderCompiler.cpp" "glsl_trace/ShaderCompiler.h" )
-	set_property( TARGET "GLSLTrace" PROPERTY FOLDER "Extensions" )
-	target_include_directories( "GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "GLSLTrace" PRIVATE "glsl_trace/.." )
-	target_include_directories( "GLSLTrace" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
-	target_link_libraries( "GLSLTrace" "${FG_GLSLANG_LIBRARIES}" )
-	target_link_libraries( "GLSLTrace" "Framework" )
-	target_compile_definitions( "GLSLTrace" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
-	add_dependencies( "GLSLTrace" External.glslang-main )
-	# compiler
-	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "GLSLTrace" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "GLSLTrace" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "GLSLTrace" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
-	
-endif()
-
+add_test( NAME "UnitTests.OfflineCompiler" COMMAND "UnitTests.OfflineCompiler" )
 
 add_test( NAME "UnitTests.PipelineCompiler" COMMAND "UnitTests.PipelineCompiler" )
 

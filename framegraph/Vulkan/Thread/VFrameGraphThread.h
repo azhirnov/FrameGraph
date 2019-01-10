@@ -109,6 +109,8 @@ namespace FG
 		UniquePtr< VStagingBufferManager >	_stagingMngr;
 		UniquePtr< VSwapchain >				_swapchain;
 		UniquePtr< VFrameGraphDebugger >	_debugger;
+		UniquePtr< VShaderDebugger >		_shaderDebugger;
+		ShaderDebugCallback_t				_shaderDebugCallback;
 
 		RaceConditionCheck					_rcCheck;
 
@@ -157,6 +159,7 @@ namespace FG
 		void		Deinitialize () override;
 		bool		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
 		bool		RecreateSwapchain (const SwapchainCreateInfo &) override;
+		bool		SetShaderDebugCallback (ShaderDebugCallback_t &&) override;
 
 		// frame execution
 		bool		SyncOnBegin (const VSubmissionGraph *);
@@ -232,6 +235,7 @@ namespace FG
 		ND_ VFrameGraphDebugger *			GetDebugger ()						{ SCOPELOCK( _rcCheck );  return _debugger.get(); }
 		ND_ VSwapchain *					GetSwapchain ()						{ SCOPELOCK( _rcCheck );  return _swapchain.get(); }	// temp
 		ND_ VStagingBufferManager *			GetStagingBufferManager ()			{ SCOPELOCK( _rcCheck );  return _stagingMngr.get(); }
+		ND_ VShaderDebugger *				GetShaderDebugger ();
 
 
 	private:

@@ -2,6 +2,7 @@
 
 #include "VGraphicsPipeline.h"
 #include "VEnumCast.h"
+#include "Shared/EnumUtils.h"
 
 namespace FG
 {
@@ -69,6 +70,27 @@ namespace FG
 				lhs.inputRate	== rhs.inputRate;
 	}
 //-----------------------------------------------------------------------------
+	
+
+
+/*
+=================================================
+	PipelineInstance::UpdateHash
+=================================================
+*/
+	void VGraphicsPipeline::PipelineInstance::UpdateHash ()
+	{
+#	if FG_FAST_HASH
+		_hash	= FG::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
+#	else
+		_hash	= HashOf( layoutId )		+
+				  HashOf( renderPassId )	+ HashOf( subpassIndex )	+
+				  HashOf( renderState )		+ HashOf( vertexInput )		+
+				  HashOf( dynamicState )	+ HashOf( viewportCount )	+
+				  HashOf( debugMode );		  //HashOf( flags );
+#	endif
+	}
+//-----------------------------------------------------------------------------
 
 
 
@@ -91,17 +113,21 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 		
-		for (auto& sh : desc._shaders)
+		for (auto& stage : desc._shaders)
 		{
-			CHECK_ERR( sh.second.data.size() == 1 );
+			const auto	vk_stage = VEnumCast( stage.first );
 
-			auto*	vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &sh.second.data.begin()->second );
-			CHECK_ERR( vk_shader );
+			for (auto& sh : stage.second.data)
+			{
+				auto*	vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &sh.second );
+				CHECK_ERR( vk_shader );
 
-			_shaders.push_back(ShaderModule{ VEnumCast(sh.first), *vk_shader });
+				_shaders.push_back(ShaderModule{ vk_stage, *vk_shader, EShaderDebugMode_From(sh.first) });
+			}
 		}
+		CHECK_ERR( _shaders.size() );
 
-		_layoutId			= PipelineLayoutID{ layoutId };
+		_baseLayoutId		= PipelineLayoutID{ layoutId };
 		_supportedTopology	= desc._supportedTopology;
 		_fragmentOutput		= fragOutput;
 		_vertexAttribs		= desc._vertexAttribs;
@@ -123,10 +149,11 @@ namespace FG
 
 		for (auto& ppln : _instances) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(ppln.second) );
+			unassignIDs.push_back( const_cast<PipelineInstance &>(ppln.first).layoutId );
 		}
 		
-		if ( _layoutId ) {
-			unassignIDs.push_back( _layoutId.Release() );
+		if ( _baseLayoutId ) {
+			unassignIDs.push_back( _baseLayoutId.Release() );
 		}
 
 		_shaders.clear();
@@ -134,7 +161,7 @@ namespace FG
 		_vertexAttribs.clear();
 		_debugName.clear();
 
-		_layoutId			= Default;
+		_baseLayoutId		= Default;
 		_supportedTopology	= Default;
 		_fragmentOutput		= null;
 		_patchControlPoints	= 0;

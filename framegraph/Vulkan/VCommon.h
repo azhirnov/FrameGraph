@@ -53,7 +53,7 @@ namespace FG
 	{
 		struct Item {
 			DescriptorSetID			dsId;
-			RawPipelineResourcesID	resId;
+			RawPipelineResourcesID	resId;			// TODO: use pointer?
 			uint16_t				offsetIndex;	// in 'dynamicOffsets'
 			uint16_t				offsetCount	= 0;
 		};
@@ -128,6 +128,7 @@ namespace FG
 	class VMeshPipeline;
 	class VRayTracingPipeline;
 	class VPipelineLayout;
+	class VShaderDebugger;
 
 
 }	// FG

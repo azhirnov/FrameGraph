@@ -248,16 +248,82 @@ namespace FG
 	
 /*
 =================================================
+	ExtendPipelineLayout
+=================================================
+*/
+	RawPipelineLayoutID  VResourceManagerThread::ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout,
+																	   const DescriptorSetID &dsID, bool isAsync)
+	{
+		VPipelineLayout const*	origin = GetResource( baseLayout );
+		CHECK_ERR( origin );
+		
+		PipelineDescription::PipelineLayout		desc;
+		DSLayouts_t								ds_layouts;
+		auto&									origin_sets = origin->GetDescriptorSets();
+		auto&									ds_pool		= _GetResourcePool( RawDescriptorSetLayoutID{} );
+		uint									max_index	= 0;
+
+		// copy descriptor set layouts
+		for (auto& src : origin_sets)
+		{
+			auto&	ds_layout	= ds_pool[ src.second.layoutId.Index() ];
+
+			PipelineDescription::DescriptorSet	dst;
+			dst.id				= src.first;
+			dst.bindingIndex	= src.second.index;
+			dst.uniforms		= ds_layout.Data().GetUniforms();
+			max_index			= Max( dst.bindingIndex, max_index );
+
+			desc.descriptorSets.push_back( std::move(dst) );
+			ds_layouts.push_back({ src.second.layoutId, &ds_layout });
+		}
+
+		// append additional descriptor set layout
+		{
+			auto&	ds_layout	= ds_pool[ additionalDSLayout.Index() ];
+			
+			PipelineDescription::DescriptorSet	dst;
+			dst.id				= dsID;
+			dst.bindingIndex	= max_index+1;
+			dst.uniforms		= ds_layout.Data().GetUniforms();
+			
+			desc.descriptorSets.push_back( std::move(dst) );
+			ds_layouts.push_back({ additionalDSLayout, &ds_layout });
+		}
+
+		// copy push constant ranges
+		desc.pushConstants = origin->GetPushConstants();
+
+
+		RawPipelineLayoutID						new_layout;
+		ResourceBase<VPipelineLayout> const*	layout_ptr = null;
+		CHECK_ERR( _CreatePipelineLayout( OUT new_layout, OUT layout_ptr, desc, ds_layouts, isAsync ));
+
+		return new_layout;
+	}
+	
+/*
+=================================================
+	CreateDescriptorSetLayout
+=================================================
+*/
+	RawDescriptorSetLayoutID  VResourceManagerThread::CreateDescriptorSetLayout (const PipelineDescription::UniformMapPtr &uniforms, bool isAsync)
+	{
+		ResourceBase<VDescriptorSetLayout> const*	layout_ptr = null;
+		RawDescriptorSetLayoutID					result;
+
+		CHECK_ERR( _CreateDescriptorSetLayout( OUT result, OUT layout_ptr, uniforms, isAsync ));
+		return result;
+	}
+	
+/*
+=================================================
 	_CreatePipelineLayout
 =================================================
 */
 	bool  VResourceManagerThread::_CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
 														 PipelineDescription::PipelineLayout &&desc, bool isAsync)
 	{
-		using DSLayouts_t = FixedArray<Pair< RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets >;
-		
-		CHECK_ERR( _Assign( OUT id ));
-		
 		// init pipeline layout create info
 		DSLayouts_t  ds_layouts;
 		for (auto& ds : desc.descriptorSets)
@@ -268,10 +334,17 @@ namespace FG
 
 			ds_layouts.push_back({ ds_id, ds_layout });
 		}
-
+		return _CreatePipelineLayout( OUT id, OUT layoutPtr, desc, ds_layouts, isAsync );
+	}
+	
+	bool  VResourceManagerThread::_CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
+														 const PipelineDescription::PipelineLayout &desc, const DSLayouts_t &dsLayouts, bool isAsync)
+	{
+		CHECK_ERR( _Assign( OUT id ));
+		
 		auto&	pool	= _GetResourcePool( id );
 		auto&	layout	= pool[ id.Index() ];
-		Replace( layout, desc, ds_layouts );
+		Replace( layout, desc, dsLayouts );
 
 
 		if ( not isAsync )
@@ -326,14 +399,14 @@ namespace FG
 			RETURN_ERR( "failed when creating pipeline layout" );
 		}
 
-		for (auto& ds : ds_layouts) {
+		for (auto& ds : dsLayouts) {
 			ds.second->AddRef();
 		}
 
 		layoutPtr = &layout;
 		return true;
 	}
-	
+
 /*
 =================================================
 	_CreateDescriptorSetLayout

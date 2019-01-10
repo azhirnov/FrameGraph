@@ -4,7 +4,7 @@
 
 #include "framework/Vulkan/VulkanDevice.h"
 #include "stl/Algorithms/ArrayUtils.h"
-#include "GLSLShaderTrace.h"
+#include "glsl_trace/ShaderTrace.h"
 
 // glslang includes
 #include "glslang/glslang/Public/ShaderLang.h"
@@ -16,7 +16,7 @@ using namespace FG;
 class ShaderCompiler
 {
 public:
-	using Debuggable_t	= HashMap< VkShaderModule, GLSLShaderTrace >;
+	using Debuggable_t	= HashMap< VkShaderModule, ShaderTrace >;
 
 
 private:
@@ -40,7 +40,7 @@ public:
 
 private:
 	bool _Compile (OUT Array<uint>&			spirvData,
-				   OUT GLSLShaderTrace*		dbgInfo,
+				   OUT ShaderTrace*		dbgInfo,
 				   uint						dbgBufferSetIndex,
 				   ArrayView<const char *>	source,
 				   EShLanguage				shaderType,

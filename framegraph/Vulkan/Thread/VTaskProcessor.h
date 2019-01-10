@@ -136,9 +136,9 @@ namespace FG
 		void _BeginRenderPass (const VFgTask<SubmitRenderPass> &task);
 		void _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
 
-		void _ExtractDescriptorSets (const VPipelineLayout &l, const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
-		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint);
-		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize);
+		void _ExtractDescriptorSets (const VPipelineLayout &, const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
+		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint, uint debugModeIndex);
+		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize, uint debugModeIndex, OUT VPipelineLayout const* &pplnLayout);
 		void _BindPipeline (const VRayTracingPipeline* pipeline);
 		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
 		void _SetScissor (const VLogicalRenderPass *, ArrayView<RectI>);

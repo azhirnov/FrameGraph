@@ -55,7 +55,7 @@ namespace FG
 	template <typename T1, typename T2>
 	forceinline void  MemCopy (T1 &dst, const T2 &src)
 	{
-		STATIC_ASSERT( sizeof(dst) == sizeof(src) );
+		STATIC_ASSERT( sizeof(dst) >= sizeof(src) );
 		//STATIC_ASSERT( std::is_trivial_v<T1> and std::is_trivial_v<T2> );	// TODO
 		STATIC_ASSERT( not IsConst<T1> );
 

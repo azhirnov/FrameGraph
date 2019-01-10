@@ -20,7 +20,7 @@ namespace FG
 	{
 	// types
 	public:
-		using Name_t			= DrawVertices::TaskName_t;
+		using Name_t			= _fg_hidden_::TaskName_t;
 		using ProcessFunc_t		= void (*) (void *visitor, void *taskData);
 		
 
@@ -72,6 +72,7 @@ namespace FG
 		const uint								_vbCount;
 
 		ArrayView< RectI >						_scissors;
+		uint									_debugModeIndex	= UMax;
 
 	public:
 		VGraphicsPipeline const* const			pipeline;
@@ -94,12 +95,13 @@ namespace FG
 		VBaseDrawVerticesTask (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 
 	public:
-		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
-		ND_ ArrayView< RectI >				GetScissors ()		const	{ return _scissors; }
+		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
+		ND_ ArrayView< RectI >				GetScissors ()			const	{ return _scissors; }
+		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 
-		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()	const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
-		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()		const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
-		ND_ ArrayView< Bytes<uint> >		GetVBStrides ()		const	{ return ArrayView{ _vbStrides.data(), _vbCount }; }
+		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()		const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
+		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()			const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
+		ND_ ArrayView< Bytes<uint> >		GetVBStrides ()			const	{ return ArrayView{ _vbStrides.data(), _vbCount }; }
 	};
 
 
@@ -187,7 +189,7 @@ namespace FG
 	private:
 		VPipelineResourceSet					_resources;
 		ArrayView< RectI >						_scissors;
-
+		uint									_debugModeIndex	= UMax;
 	public:
 		VMeshPipeline const* const				pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
@@ -204,8 +206,9 @@ namespace FG
 		VBaseDrawMeshes (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 
 	public:
-		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
-		ND_ ArrayView< RectI >				GetScissors ()		const	{ return _scissors; }
+		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
+		ND_ ArrayView< RectI >				GetScissors ()			const	{ return _scissors; }
+		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
 
 

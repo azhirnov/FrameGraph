@@ -105,6 +105,7 @@ namespace FG
 		bool Test_InvalidID ();
 		bool Test_ReadAttachment1 ();
 		bool Test_AsyncCompute1 ();
+		bool Test_ShaderDebugger1 ();
 	};
 
 	

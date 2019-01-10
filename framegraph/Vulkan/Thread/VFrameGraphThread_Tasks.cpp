@@ -36,6 +36,9 @@ namespace {
 			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex );
 		}
 
+		if ( _shaderDebugger )
+			_shaderDebugger->OnBeginRecording( cmd );
+
 		// commit image layout transition and other
 		_barrierMngr.Commit( dev, cmd );
 
@@ -49,6 +52,9 @@ namespace {
 			_resourceMngr.FlushLocalResourceStates( ExeOrderIndex::Final, batch_exe_order, _barrierMngr, GetDebugger() );
 			_barrierMngr.Commit( dev, cmd );
 		}
+
+		if ( _shaderDebugger )
+			_shaderDebugger->OnEndRecording( cmd );
 		
 		// end
 		{

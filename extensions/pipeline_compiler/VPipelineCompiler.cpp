@@ -7,49 +7,10 @@
 #include "extensions/vulkan_loader/VulkanCheckError.h"
 #include "framegraph/Shared/EnumUtils.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "VCachedDebuggableShaderData.h"
 
 namespace FG
 {
-
-	//
-	// Vulkan Cached Shader Module
-	//
-
-	class VCachedShaderModule final : public PipelineDescription::IShaderData< ShaderModuleVk_t >
-	{
-	// variables
-	private:
-		VkShaderModule		_module		= VK_NULL_HANDLE;
-		StaticString<64>	_entry;
-
-
-	// methods
-	public:
-		VCachedShaderModule (VkShaderModule module, StringView entry) :
-			_module{ module }, _entry{ entry } {}
-
-		~VCachedShaderModule () {
-			CHECK( _module == VK_NULL_HANDLE );
-		}
-
-		void Destroy (PFN_vkDestroyShaderModule fpDestroyShaderModule, VkDevice dev)
-		{
-			if ( _module )
-			{
-				fpDestroyShaderModule( dev, _module, null );
-				_module = VK_NULL_HANDLE;
-			}
-		}
-		
-		ShaderModuleVk_t const&		GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
-
-		StringView					GetEntry () const override		{ return _entry; }
-
-		size_t						GetHashOfData () const override	{ ASSERT(false);  return 0; }
-	};
-//-----------------------------------------------------------------------------
-
-
 
 /*
 =================================================
@@ -130,7 +91,7 @@ namespace FG
 				continue;
 			}
 
-			Cast<VCachedShaderModule>( iter->second )->Destroy( DestroyShaderModule, dev );
+			Cast<VCachedDebuggableShaderModule>( iter->second )->Destroy( DestroyShaderModule, dev );
 
 			iter = _shaderCache.erase( iter );
 		}
@@ -155,7 +116,7 @@ namespace FG
 		{
 			ASSERT( sh.second.use_count() == 1 );
 			
-			Cast<VCachedShaderModule>( sh.second )->Destroy( DestroyShaderModule, dev );
+			Cast<VCachedDebuggableShaderModule>( sh.second )->Destroy( DestroyShaderModule, dev );
 		}
 		_shaderCache.clear();
 	}
@@ -1019,20 +980,22 @@ namespace FG
 		CHECK_ERR( _fpCreateShaderModule and _fpDestroyShaderModule );
 
 		auto CreateShaderModule = BitCast<PFN_vkCreateShaderModule>(_fpCreateShaderModule);
-
+		uint count = 0;
 
 		// find SPIRV binary
-		for (auto& sh : shader.data)
+		for (auto sh_iter = shader.data.begin(); sh_iter != shader.data.end();)
 		{
-			if ( (sh.first & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV )
+			if ( (sh_iter->first & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV )
 			{
-				const auto*	spv_data_ptr = std::get_if<BinaryShaderData>( &sh.second );
+				const auto*	spv_data_ptr = std::get_if<BinaryShaderData>( &sh_iter->second );
 				COMP_CHECK_ERR( spv_data_ptr and *spv_data_ptr, "invalid shader data!" );
 
+				const EShaderLangFormat	module_fmt = EShaderLangFormat::ShaderModule | EShaderLangFormat::Vulkan |
+							(sh_iter->first & (EShaderLangFormat::_VersionMask | EShaderLangFormat::_ModeMask | EShaderLangFormat::_FlagsMask));
+
 				// search in existing shader modules
-				auto					spv_data	= *spv_data_ptr;
-				const EShaderLangFormat	module_fmt	= EShaderLangFormat::ShaderModule | EShaderLangFormat::Vulkan | (sh.first & EShaderLangFormat::_VersionMask);
-				auto					iter		= _shaderCache.find( spv_data );
+				auto	spv_data	= *spv_data_ptr;
+				auto	iter		= _shaderCache.find( spv_data );
 
 				if ( iter != _shaderCache.end() )
 				{
@@ -1049,17 +1012,25 @@ namespace FG
 				VkShaderModule		shader_id;
 				COMP_CHECK_ERR( CreateShaderModule( BitCast<VkDevice>( _logicalDevice ), &shader_info, null, OUT &shader_id ) == VK_SUCCESS );
 
-				auto	module	= MakeShared<VCachedShaderModule>( shader_id, spv_data->GetEntry() );
+				auto	module	= MakeShared<VCachedDebuggableShaderModule>( shader_id, spv_data );
 				auto	base	= Cast< PipelineDescription::IShaderData<ShaderModuleVk_t> >( module );
 
 				_shaderCache.insert({ spv_data, base });
 
-				shader.data.clear();
+				shader.data.erase( sh_iter );
 				shader.data.insert({ module_fmt, base });
-				return true;
+
+				sh_iter = shader.data.begin();
+				++count;
+				continue;
 			}
+			++sh_iter;
 		}
-		COMP_RETURN_ERR( "SPIRV shader data is not found!" );
+
+		if ( count == 0 )
+			COMP_RETURN_ERR( "SPIRV shader data is not found!" );
+
+		return true;
 	}
 
 }	// FG
