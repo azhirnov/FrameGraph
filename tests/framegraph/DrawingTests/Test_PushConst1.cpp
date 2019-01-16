@@ -87,7 +87,7 @@ void main ()
 		
 		resources.BindBuffer( UniformID("SSB"), dst_buffer );
 
-		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.SetGroupCount( 1 ).SetPipeline( pipeline )
+		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.Dispatch({ 1, 1 }).SetPipeline( pipeline )
 														.AddResources( DescriptorSetID("0"), &resources )
 														.AddPushConstant( PushConstantID("PushConst"), pc ));
 		Task	t_read		= frame_graph->AddTask( ReadBuffer{}.SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));

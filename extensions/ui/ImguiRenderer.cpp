@@ -113,7 +113,7 @@ namespace FG
 									.SetPipeline( _pipeline ).AddResources( DescriptorSetID{"0"}, &_resources )
 									.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input ).SetTopology( EPrimitive::TriangleList )
 									.SetIndexBuffer( _indexBuffer, 0_b, EIndex::UShort )
-									.AddDrawCmd( cmd.ElemCount, 1, idx_offset, int(vtx_offset), 0 ).AddScissor( scissor ));
+									.Draw( cmd.ElemCount, 1, idx_offset, int(vtx_offset), 0 ).AddScissor( scissor ));
 				}
 				idx_offset += cmd.ElemCount;
 			}

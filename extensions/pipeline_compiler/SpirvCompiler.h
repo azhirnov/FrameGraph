@@ -7,6 +7,11 @@
 #include "framegraph/Public/VertexEnums.h"
 #include "glslang/glslang/Include/ResourceLimits.h"
 
+#ifdef FG_STD_FILESYSTEM
+#	include <filesystem>
+	namespace fs = std::filesystem;
+#endif
+
 class TIntermNode;
 
 namespace glslang
@@ -82,10 +87,12 @@ namespace FG
 
 	private:
 		struct GLSLangResult;
+		class  ShaderIncluder;
 
 
 	// variables
 	private:
+		Array<String> const&		_directories;
 		EShaderCompilationFlags		_compilerFlags	= Default;
 
 		glslang::TIntermediate *	_intermediate	= null;
@@ -98,7 +105,7 @@ namespace FG
 
 	// methods
 	public:
-		SpirvCompiler ();
+		explicit SpirvCompiler (const Array<String> &);
 		~SpirvCompiler ();
 		
 		bool SetCompilationFlags (EShaderCompilationFlags flags);
@@ -117,7 +124,8 @@ namespace FG
 
 	private:
 		bool _ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-						 StringView entry, ArrayView<const char *> source, OUT GLSLangResult &glslangData, INOUT String &log);
+						 StringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
+						 OUT GLSLangResult &glslangData, INOUT String &log);
 
 		bool _CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, INOUT String &log) const;
 		bool _OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const;

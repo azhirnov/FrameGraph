@@ -273,7 +273,7 @@ namespace FG
 */
 	inline VFgTask<DispatchCompute>::VFgTask (VFrameGraphThread *fg, const DispatchCompute &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
-		pushConstants{ task.pushConstants },	groupCount{ Max( task.groupCount, 1u )},
+		pushConstants{ task.pushConstants },	commands{ task.commands },
 		localGroupSize{ task.localGroupSize }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );
@@ -302,8 +302,8 @@ namespace FG
 	inline VFgTask<DispatchComputeIndirect>::VFgTask (VFrameGraphThread *fg, const DispatchComputeIndirect &task, ProcessFunc_t process) :
 		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },
+		commands{ task.commands },
 		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )},
-		indirectBufferOffset{ VkDeviceSize(task.indirectBufferOffset) },
 		localGroupSize{ task.localGroupSize }
 	{
 		CopyDescriptorSets( fg, task.resources, OUT _resources );

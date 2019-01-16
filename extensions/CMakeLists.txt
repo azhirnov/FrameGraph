@@ -123,14 +123,17 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_GLSLANG})
 	set( SOURCES 
-		"glsl_trace/Common.h"
-		"glsl_trace/DebugInfo.cpp"
-		"glsl_trace/DebugInfo.h"
-		"glsl_trace/ShaderTrace.cpp"
-		"glsl_trace/ShaderTrace.h"
-		"glsl_trace/ShaderTrace2.cpp" )
+		"glsl_trace/include/ShaderTrace.h"
+		"glsl_trace/source/Common.h"
+		"glsl_trace/source/ConvertTraceToRdc.cpp"
+		"glsl_trace/source/InsertDebugAsserts.cpp"
+		"glsl_trace/source/InsertInstructionCounter.cpp"
+		"glsl_trace/source/InsertTraceRecording.cpp"
+		"glsl_trace/source/ParseShaderTrace.cpp"
+		"glsl_trace/source/ShaderDebugUtils.cpp" )
 	add_library( "GLSLTrace" STATIC ${SOURCES} )
-	source_group( "" FILES "glsl_trace/Common.h" "glsl_trace/DebugInfo.cpp" "glsl_trace/DebugInfo.h" "glsl_trace/ShaderTrace.cpp" "glsl_trace/ShaderTrace.h" "glsl_trace/ShaderTrace2.cpp" )
+	source_group( "include" FILES "glsl_trace/include/ShaderTrace.h" )
+	source_group( "source" FILES "glsl_trace/source/Common.h" "glsl_trace/source/ConvertTraceToRdc.cpp" "glsl_trace/source/InsertDebugAsserts.cpp" "glsl_trace/source/InsertInstructionCounter.cpp" "glsl_trace/source/InsertTraceRecording.cpp" "glsl_trace/source/ParseShaderTrace.cpp" "glsl_trace/source/ShaderDebugUtils.cpp" )
 	set_property( TARGET "GLSLTrace" PROPERTY FOLDER "Extensions" )
 	target_include_directories( "GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "GLSLTrace" PRIVATE "glsl_trace/.." )
@@ -161,6 +164,8 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 		"../tests/glsl_trace/GLSLShaderTraceTestUtils.h"
 		"../tests/glsl_trace/GLSLShaderTrace_Test1.cpp"
 		"../tests/glsl_trace/GLSLShaderTrace_Test2.cpp"
+		"../tests/glsl_trace/GLSLShaderTrace_Test3.cpp"
+		"../tests/glsl_trace/GLSLShaderTrace_Test4.cpp"
 		"../tests/glsl_trace/main.cpp"
 		"../tests/glsl_trace/ShaderCompiler.cpp"
 		"../tests/glsl_trace/ShaderCompiler.h" )
@@ -169,7 +174,7 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 	else()
 		add_executable( "Tests.GLSLTrace" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/glsl_trace/GLSLShaderTraceTestUtils.h" "../tests/glsl_trace/GLSLShaderTrace_Test1.cpp" "../tests/glsl_trace/GLSLShaderTrace_Test2.cpp" "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" )
+	source_group( "" FILES "../tests/glsl_trace/GLSLShaderTraceTestUtils.h" "../tests/glsl_trace/GLSLShaderTrace_Test1.cpp" "../tests/glsl_trace/GLSLShaderTrace_Test2.cpp" "../tests/glsl_trace/GLSLShaderTrace_Test3.cpp" "../tests/glsl_trace/GLSLShaderTrace_Test4.cpp" "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" )
 	set_property( TARGET "Tests.GLSLTrace" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.GLSLTrace" PRIVATE "" )

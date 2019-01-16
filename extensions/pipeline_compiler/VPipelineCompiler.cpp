@@ -18,7 +18,7 @@ namespace FG
 =================================================
 */
 	VPipelineCompiler::VPipelineCompiler () :
-		_spirvCompiler{ new SpirvCompiler() },
+		_spirvCompiler{ new SpirvCompiler{ _directories }},
 		_physicalDevice{ VK_NULL_HANDLE },
 		_logicalDevice{ VK_NULL_HANDLE }
 	{
@@ -70,6 +70,38 @@ namespace FG
 	
 /*
 =================================================
+	AddDirectory
+=================================================
+*/
+	void VPipelineCompiler::AddDirectory (StringView path)
+	{
+		SCOPELOCK( _lock );
+
+		String	file_path;
+		
+#	ifdef FG_STD_FILESYSTEM
+		fs::path	fpath{ path };
+
+		if ( not fpath.is_absolute() )
+			fpath = fs::absolute( fpath );
+
+		fpath.make_preferred();
+		CHECK_ERR( fs::exists( fpath ), void());
+
+		file_path = fpath.string();
+#	else
+		file_path = path;
+#	endif
+
+		for (const auto& dir : _directories) {
+			if ( dir == file_path )
+				return;	// already exists
+		}
+		_directories.push_back( std::move(file_path) );
+	}
+
+/*
+=================================================
 	ReleaseUnusedShaders
 =================================================
 */
@@ -114,6 +146,7 @@ namespace FG
 
 		for (auto& sh : _shaderCache)
 		{
+			// pipeline may keep reference to shader module, so you need to release pipeline before
 			ASSERT( sh.second.use_count() == 1 );
 			
 			Cast<VCachedDebuggableShaderModule>( sh.second )->Destroy( DestroyShaderModule, dev );
@@ -982,49 +1015,56 @@ namespace FG
 		auto CreateShaderModule = BitCast<PFN_vkCreateShaderModule>(_fpCreateShaderModule);
 		uint count = 0;
 
-		// find SPIRV binary
 		for (auto sh_iter = shader.data.begin(); sh_iter != shader.data.end();)
 		{
-			if ( (sh_iter->first & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV )
+			switch ( sh_iter->first & EShaderLangFormat::_StorageFormatMask )
 			{
-				const auto*	spv_data_ptr = std::get_if<BinaryShaderData>( &sh_iter->second );
-				COMP_CHECK_ERR( spv_data_ptr and *spv_data_ptr, "invalid shader data!" );
+				// create shader module from SPIRV
+				case EShaderLangFormat::SPIRV : {
+					const auto*	spv_data_ptr = std::get_if<BinaryShaderData>( &sh_iter->second );
+					COMP_CHECK_ERR( spv_data_ptr and *spv_data_ptr, "invalid shader data!" );
 
-				const EShaderLangFormat	module_fmt = EShaderLangFormat::ShaderModule | EShaderLangFormat::Vulkan |
-							(sh_iter->first & (EShaderLangFormat::_VersionMask | EShaderLangFormat::_ModeMask | EShaderLangFormat::_FlagsMask));
+					const EShaderLangFormat	module_fmt = EShaderLangFormat::ShaderModule | EShaderLangFormat::Vulkan |
+														 (sh_iter->first & EShaderLangFormat::_VersionModeFlagsMask);
+					
+					// search in existing shader modules
+					auto	spv_data	= *spv_data_ptr;
+					auto	iter		= _shaderCache.find( spv_data );
 
-				// search in existing shader modules
-				auto	spv_data	= *spv_data_ptr;
-				auto	iter		= _shaderCache.find( spv_data );
+					if ( iter == _shaderCache.end() )
+					{
+						// create new shader module
+						VkShaderModuleCreateInfo	shader_info = {};
+						shader_info.sType		= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+						shader_info.codeSize	= size_t(ArraySizeOf( spv_data->GetData() ));
+						shader_info.pCode		= spv_data->GetData().data();
 
-				if ( iter != _shaderCache.end() )
-				{
+						VkShaderModule		shader_id;
+						COMP_CHECK_ERR( CreateShaderModule( BitCast<VkDevice>( _logicalDevice ), &shader_info, null, OUT &shader_id ) == VK_SUCCESS );
+
+						auto	module	= MakeShared<VCachedDebuggableShaderModule>( shader_id, spv_data );
+						auto	base	= Cast< PipelineDescription::IShaderData<ShaderModuleVk_t> >( module );
+
+						iter = _shaderCache.insert({ spv_data, base }).first;
+					}
+					
+					shader.data.erase( sh_iter );
 					shader.data.insert({ module_fmt, iter->second });
-					return true;
+					sh_iter = shader.data.begin();
+					++count;
+					break;
 				}
 
-				// create new shader module
-				VkShaderModuleCreateInfo	shader_info = {};
-				shader_info.sType		= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-				shader_info.codeSize	= size_t(ArraySizeOf( spv_data->GetData() ));
-				shader_info.pCode		= spv_data->GetData().data();
+				// keep other shader modules
+				case EShaderLangFormat::ShaderModule :
+					++sh_iter;
+					break;
 
-				VkShaderModule		shader_id;
-				COMP_CHECK_ERR( CreateShaderModule( BitCast<VkDevice>( _logicalDevice ), &shader_info, null, OUT &shader_id ) == VK_SUCCESS );
-
-				auto	module	= MakeShared<VCachedDebuggableShaderModule>( shader_id, spv_data );
-				auto	base	= Cast< PipelineDescription::IShaderData<ShaderModuleVk_t> >( module );
-
-				_shaderCache.insert({ spv_data, base });
-
-				shader.data.erase( sh_iter );
-				shader.data.insert({ module_fmt, base });
-
-				sh_iter = shader.data.begin();
-				++count;
-				continue;
+				// remove unknown shader data
+				default :
+					sh_iter = shader.data.erase( sh_iter );
+					break;
 			}
-			++sh_iter;
 		}
 
 		if ( count == 0 )

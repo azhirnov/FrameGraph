@@ -558,7 +558,7 @@ namespace FG
 
 																									// magic function:
 			const float		perf	= //float(info.globalMemory.Mb()) / 1024.0f +							// commented because of bug on Intel (incorrect heap size)
-										float(prop.limits.maxComputeSharedMemorySize >> 10) / 64.0f +		// big local cache is goode
+										float(prop.limits.maxComputeSharedMemorySize >> 10) / 64.0f +		// big local cache is good
 										float(is_gpu and not is_integrated ? 4 : 1) +						// 
 										float(prop.limits.maxComputeWorkGroupInvocations) / 1024.0f +		// 
 										float(feat.tessellationShader + feat.geometryShader);

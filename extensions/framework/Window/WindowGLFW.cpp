@@ -9,7 +9,6 @@
 namespace FG
 {
 namespace {
-
 	struct GLFWInstance
 	{
 		uint	refCounter	= 0;

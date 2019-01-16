@@ -603,8 +603,8 @@ namespace FG
 		for (auto& cmd : task.commands)
 		{
 			_dev.vkCmdDraw( _cmdBuffer, cmd.vertexCount, cmd.instanceCount, cmd.firstVertex, cmd.firstInstance );
-			_tp.Stat().drawCalls++;
 		}
+		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -631,8 +631,8 @@ namespace FG
 		{
 			_dev.vkCmdDrawIndexed( _cmdBuffer, cmd.indexCount, cmd.instanceCount,
 								   cmd.firstIndex, cmd.vertexOffset, cmd.firstInstance );
-			_tp.Stat().drawCalls++;
 		}
+		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -661,8 +661,8 @@ namespace FG
 									VkDeviceSize(cmd.indirectBufferOffset),
 								    cmd.drawCount,
 								    uint(cmd.stride) );
-			_tp.Stat().drawCalls++;
 		}
+		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -692,8 +692,8 @@ namespace FG
 										   VkDeviceSize(cmd.indirectBufferOffset),
 										   cmd.drawCount,
 										   uint(cmd.stride) );
-			_tp.Stat().drawCalls++;
 		}
+		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 		
 /*
@@ -717,8 +717,8 @@ namespace FG
 		for (auto& cmd : task.commands)
 		{
 			_dev.vkCmdDrawMeshTasksNV( _cmdBuffer, cmd.count, cmd.first );
-			_tp.Stat().drawCalls++;
 		}
+		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -746,8 +746,8 @@ namespace FG
 											   VkDeviceSize(cmd.indirectBufferOffset),
 											   cmd.drawCount,
 											   uint(cmd.stride) );
-			_tp.Stat().drawCalls++;
 		}
+		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 //-----------------------------------------------------------------------------
 
@@ -1292,14 +1292,14 @@ namespace FG
 =================================================
 */
 	inline void VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize,
-											   uint debugModeIndex, OUT VPipelineLayout const* &pplnLayout)
+											   uint debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout)
 	{
 		VkPipeline	ppln_id;
 		_frameGraph.GetPipelineCache()->CreatePipelineInstance(
 										*_frameGraph.GetResourceManager(),
 										*_frameGraph.GetShaderDebugger(),
 										*pipeline, localSize,
-										0,	// flags
+										flags,
 										debugModeIndex,
 										OUT ppln_id, OUT pplnLayout );
 		
@@ -1322,14 +1322,18 @@ namespace FG
 
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( task.pipeline, task.localGroupSize, task.GetDebugModeIndex(), OUT layout );
+		_BindPipeline( task.pipeline, task.localGroupSize, task.GetDebugModeIndex(), VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout );
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.GetDebugModeIndex() );
 		_PushConstants( *layout, task.pushConstants );
 
 		_CommitBarriers();
 
-		_dev.vkCmdDispatch( _cmdBuffer, task.groupCount.x, task.groupCount.y, task.groupCount.z );
-		Stat().dispatchCalls++;
+		for (auto& cmd : task.commands)
+		{
+			_dev.vkCmdDispatchBase( _cmdBuffer, cmd.baseGroup.x, cmd.baseGroup.y, cmd.baseGroup.z,
+								    cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+		}
+		Stat().dispatchCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -1343,17 +1347,24 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( task.pipeline, task.localGroupSize, task.GetDebugModeIndex(), OUT layout );
+		_BindPipeline( task.pipeline, task.localGroupSize, task.GetDebugModeIndex(), 0, OUT layout );
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.GetDebugModeIndex() );
 		_PushConstants( *layout, task.pushConstants );
-
-		_AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, task.indirectBufferOffset, VK_WHOLE_SIZE );	// TODO: buffer size
+		
+		for (auto& cmd : task.commands)
+		{
+			_AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset),
+					    sizeof(DispatchComputeIndirect::DispatchIndirectCommand) );
+		}
 		_CommitBarriers();
 		
-		_dev.vkCmdDispatchIndirect( _cmdBuffer,
-								    task.indirectBuffer->Handle(),
-									task.indirectBufferOffset );
-		Stat().dispatchCalls++;
+		for (auto& cmd : task.commands)
+		{
+			_dev.vkCmdDispatchIndirect( _cmdBuffer,
+									    task.indirectBuffer->Handle(),
+										VkDeviceSize(cmd.indirectBufferOffset) );
+		}
+		Stat().dispatchCalls += uint(task.commands.size());
 	}
 
 /*
@@ -1766,11 +1777,11 @@ namespace FG
 		}	
 		_CommitBarriers();
 		
-		for (auto& reg : task.Regions())
-		{
+		for (auto& reg : task.Regions()) {
 			_dev.vkCmdUpdateBuffer( _cmdBuffer, dst_buffer->Handle(), reg.bufferOffset, reg.dataSize, reg.dataPtr );
-			Stat().transferOps++;
 		}
+
+		Stat().transferOps += uint(task.Regions().size());
 	}
 
 /*

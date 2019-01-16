@@ -1,4 +1,5 @@
 # FrameGraph
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](paypal.me/azhirnovgithub)<br/>
 Work in progress.
 
 ## Features
@@ -13,6 +14,8 @@ Work in progress.
 * [Porting from OpenGL](docs/Porting-from-OpenGL.md)
 * [Porting from Vulkan](docs/Porting-from-Vulkan.md)
 * [Extensions overview](extensions/Readme.md)
+* [Shader debugging](docs/Shader-debugging.md)
+* [Graph visualization](docs/Graph-visualization.md)
 
 ## Suported Platforms
 * Windows (with MSVC 2017)

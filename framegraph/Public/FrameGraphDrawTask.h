@@ -256,7 +256,7 @@ namespace _fg_hidden_
 		DrawVertices () :
 			BaseDrawVertices<DrawVertices>{ "DrawVertices", HtmlColor::Bisque } {}
 
-		DrawVertices&  AddDrawCmd (uint vertexCount, uint instanceCount	= 1, uint firstVertex = 0, uint firstInstance = 0)
+		DrawVertices&  Draw (uint vertexCount, uint instanceCount	= 1, uint firstVertex = 0, uint firstInstance = 0)
 		{
 			ASSERT( vertexCount > 0 );
 			commands.emplace_back( vertexCount, instanceCount, firstVertex, firstInstance );
@@ -304,7 +304,7 @@ namespace _fg_hidden_
 			return *this;
 		}
 
-		DrawIndexed&  AddDrawCmd (uint indexCount, uint instanceCount = 1, uint firstIndex = 0, int vertexOffset = 0, uint firstInstance = 0)
+		DrawIndexed&  Draw (uint indexCount, uint instanceCount = 1, uint firstIndex = 0, int vertexOffset = 0, uint firstInstance = 0)
 		{
 			ASSERT( indexCount > 0 );
 			commands.emplace_back( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
@@ -353,7 +353,7 @@ namespace _fg_hidden_
 			return *this;
 		}
 
-		DrawVerticesIndirect&  AddDrawCmd (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndirectCommand>)
+		DrawVerticesIndirect&  Draw (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndirectCommand>)
 		{
 			ASSERT( drawCount > 0 );
 			commands.emplace_back( indirectBufferOffset, drawCount, Bytes<uint>{stride} );
@@ -412,7 +412,7 @@ namespace _fg_hidden_
 			return *this;
 		}
 
-		DrawIndexedIndirect&  AddDrawCmd (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndexedIndirectCommand>)
+		DrawIndexedIndirect&  Draw (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndexedIndirectCommand>)
 		{
 			ASSERT( drawCount > 0 );
 			commands.emplace_back( indirectBufferOffset, drawCount, Bytes<uint>{stride} );
@@ -447,7 +447,7 @@ namespace _fg_hidden_
 
 		DrawMeshes&  SetPipeline (const MPipelineID &ppln)			{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
 
-		DrawMeshes&  AddDrawCmd (uint count, uint first = 0)		{ ASSERT( count > 0 );  commands.push_back({ count, first });  return *this; }
+		DrawMeshes&  Draw (uint count, uint first = 0)		{ ASSERT( count > 0 );  commands.push_back({ count, first });  return *this; }
 	};
 
 
@@ -491,7 +491,7 @@ namespace _fg_hidden_
 			return *this;
 		}
 
-		DrawMeshesIndirect&  AddDrawCmd (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawMeshTasksIndirectCommand>)
+		DrawMeshesIndirect&  Draw (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawMeshTasksIndirectCommand>)
 		{
 			ASSERT( drawCount > 0 );
 			commands.emplace_back( indirectBufferOffset, drawCount, Bytes<uint>{stride} );

@@ -180,7 +180,7 @@ namespace FG
 		CHECK_ERR( mem->GetInfo( OUT info ));
 		CHECK_ERR( info.mappedPtr );
 
-		CHECK_ERR( dbg.module->ParseDebugOutput( dbg.mode, ArrayView<uint8_t>{ Cast<uint8_t>(info.mappedPtr), size_t(dbg.size) }, OUT _tempStrings ));
+		CHECK_ERR( dbg.module->ParseDebugOutput( dbg.mode, ArrayView<uint8_t>{ Cast<uint8_t>(info.mappedPtr + dbg.offset), size_t(dbg.size) }, OUT _tempStrings ));
 		
 		cb( dbg.taskName, dbg.shaderType, _tempStrings );
 		return true;

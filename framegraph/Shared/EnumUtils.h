@@ -102,12 +102,12 @@ namespace FG
 	{
 		switch ( value & EShaderLangFormat::_ModeMask )
 		{
-			case EShaderLangFormat::Unknown :			return EShaderDebugMode::None;
-			case EShaderLangFormat::WithDebugTrace :	return EShaderDebugMode::Trace;
-			case EShaderLangFormat::WithDebugAsserts :	return EShaderDebugMode::Asserts;
-			case EShaderLangFormat::WithDebugView :		return EShaderDebugMode::View;
-			//case EShaderLangFormat::WithProfiling :				return EShaderDebugMode::None;
-			//case EShaderLangFormat::WithInstructionsCounter :		return EShaderDebugMode::InstructionCounter;
+			case EShaderLangFormat::Unknown :				return EShaderDebugMode::None;
+			case EShaderLangFormat::EnableDebugTrace :		return EShaderDebugMode::Trace;
+			case EShaderLangFormat::EnableDebugAsserts :	return EShaderDebugMode::Asserts;
+			case EShaderLangFormat::EnableDebugView :		return EShaderDebugMode::View;
+			//case EShaderLangFormat::EnableProfiling :		return EShaderDebugMode::None;
+			case EShaderLangFormat::EnableInstrCounter :	return EShaderDebugMode::InstructionCounter;
 		}
 		RETURN_ERR( "unknown mode" );
 	}

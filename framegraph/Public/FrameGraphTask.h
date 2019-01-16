@@ -113,12 +113,19 @@ namespace FG
 	// types
 		using PushConstants_t	= _fg_hidden_::PushConstants_t;
 		using DebugMode			= _fg_hidden_::ComputeShaderDebugMode;
+		
+		struct ComputeCmd
+		{
+			uint3	baseGroup;
+			uint3	groupCount;
+		};
+		using ComputeCmds_t		= FixedArray< ComputeCmd, 16 >;
 
 
 	// variables
 		RawCPipelineID			pipeline;
 		PipelineResourceSet		resources;
-		uint3					groupCount;
+		ComputeCmds_t			commands;
 		Optional< uint3 >		localGroupSize;
 		PushConstants_t			pushConstants;
 		DebugMode				debugMode;
@@ -130,9 +137,10 @@ namespace FG
 		
 		DispatchCompute&  SetPipeline (const CPipelineID &ppln)				{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
 		
-		DispatchCompute&  SetGroupCount (const uint2 &value)				{ groupCount = {value.x, value.y, 1};  return *this; }
-		DispatchCompute&  SetGroupCount (const uint3 &value)				{ groupCount = value;  return *this; }
-		DispatchCompute&  SetGroupCount (uint x, uint y = 1, uint z = 1)	{ groupCount = {x, y, z};  return *this; }
+		DispatchCompute&  Dispatch (const uint2 &off, const uint2 &count)	{ commands.emplace_back(uint3{off, 0}, uint3{count, 1});  return *this; }
+		DispatchCompute&  Dispatch (const uint3 &off, const uint3 &count)	{ commands.emplace_back(off, count);  return *this; }
+		DispatchCompute&  Dispatch (const uint2 &count)						{ commands.emplace_back(uint3{0}, uint3{count, 1});  return *this; }
+		DispatchCompute&  Dispatch (const uint3 &count)						{ commands.emplace_back(uint3{0}, count);  return *this; }
 		
 		DispatchCompute&  SetLocalSize (const uint2 &value)					{ localGroupSize = {value.x, value.y, 1};  return *this; }
 		DispatchCompute&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
@@ -176,13 +184,24 @@ namespace FG
 	// types
 		using PushConstants_t	= _fg_hidden_::PushConstants_t;
 		using DebugMode			= _fg_hidden_::ComputeShaderDebugMode;
+		
+		struct ComputeCmd
+		{
+			BytesU		indirectBufferOffset;
+		};
+		using ComputeCmds_t		= FixedArray< ComputeCmd, 16 >;
+
+		struct DispatchIndirectCommand
+		{
+			uint3		groudCount;
+		};
 
 
 	// variables
 		RawCPipelineID			pipeline;
 		PipelineResourceSet		resources;
+		ComputeCmds_t			commands;
 		RawBufferID				indirectBuffer;
-		BytesU					indirectBufferOffset;
 		Optional< uint3 >		localGroupSize;
 		PushConstants_t			pushConstants;
 		DebugMode				debugMode;
@@ -195,6 +214,8 @@ namespace FG
 		DispatchComputeIndirect&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
 		DispatchComputeIndirect&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
 		
+		DispatchComputeIndirect&  Dispatch (BytesU offset)							{ commands.push_back({ offset });  return *this; }
+
 		DispatchComputeIndirect&  EnableDebugTrace (const uint3 &globalID)
 		{
 			debugMode.mode		= EShaderDebugMode::Trace;
@@ -515,6 +536,11 @@ namespace FG
 	// methods
 		FillBuffer () :
 			BaseTask<FillBuffer>{ "FillBuffer", HtmlColor::Green } {}
+		
+		FillBuffer&  SetBuffer (const BufferID &buf)
+		{
+			return SetBuffer( buf, 0_b, ~0_b );
+		}
 
 		FillBuffer&  SetBuffer (const BufferID &buf, BytesU off, BytesU bufSize)
 		{
@@ -923,7 +949,7 @@ namespace FG
 
 
 	//
-	// Build Ray Tracing Geometry (experimental)
+	// Build Ray Tracing Geometry
 	//
 	struct BuildRayTracingGeometry final : _fg_hidden_::BaseTask<BuildRayTracingGeometry>
 	{
@@ -1031,7 +1057,7 @@ namespace FG
 
 
 	//
-	// Build Ray Tracing Scene (experimental)
+	// Build Ray Tracing Scene
 	//
 	struct BuildRayTracingScene final : _fg_hidden_::BaseTask<BuildRayTracingScene>
 	{
@@ -1076,7 +1102,7 @@ namespace FG
 
 
 	//
-	// Update Ray Tracing Shader Table (experimental)
+	// Update Ray Tracing Shader Table
 	//
 	struct UpdateRayTracingShaderTable final : _fg_hidden_::BaseTask<UpdateRayTracingShaderTable>
 	{
@@ -1186,7 +1212,7 @@ namespace FG
 
 
 	//
-	// Trace Rays (experimental)
+	// Trace Rays
 	//
 	struct TraceRays final : _fg_hidden_::BaseTask<TraceRays>
 	{

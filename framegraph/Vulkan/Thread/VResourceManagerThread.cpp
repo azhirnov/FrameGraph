@@ -313,6 +313,8 @@ namespace FG
 		RawDescriptorSetLayoutID					result;
 
 		CHECK_ERR( _CreateDescriptorSetLayout( OUT result, OUT layout_ptr, uniforms, isAsync ));
+
+		layout_ptr->AddRef();
 		return result;
 	}
 	

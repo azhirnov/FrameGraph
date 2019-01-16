@@ -132,8 +132,8 @@ namespace FG
 	public:
 		VComputePipeline const* const			pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
-
-		const uint3								groupCount;
+		
+		const DispatchCompute::ComputeCmds_t	commands;
 		const Optional< uint3 >					localGroupSize;
 
 
@@ -162,9 +162,10 @@ namespace FG
 	public:
 		VComputePipeline const* const			pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
+		
+		const DispatchComputeIndirect::ComputeCmds_t	commands;
 
 		VLocalBuffer const* const				indirectBuffer;
-		const VkDeviceSize						indirectBufferOffset;
 		const Optional< uint3 >					localGroupSize;
 
 

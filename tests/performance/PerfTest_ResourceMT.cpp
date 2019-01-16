@@ -7,19 +7,19 @@
 #include "PerfTestCommon.h"
 #include <shared_mutex>
 
+namespace {
+	struct Resource
+	{
+		StaticString<256>	data;
+		//RaceConditionCheck	rcCheck;
+	};
 
-struct Resource
-{
-	StaticString<256>	data;
-	//RaceConditionCheck	rcCheck;
-};
-
-struct ResIndex
-{
-	uint		resIndex;
-	uint64_t	itemIndex;
-};
-
+	struct ResIndex
+	{
+		uint		resIndex;
+		uint64_t	itemIndex;
+	};
+}
 
 // one lock per resource type
 template <typename LockType, uint NumThreads>

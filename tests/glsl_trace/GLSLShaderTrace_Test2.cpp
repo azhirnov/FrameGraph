@@ -7,7 +7,7 @@
 	CompileShaders
 =================================================
 */
-bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler, OUT VkShaderModule &compShader)
+static bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler, OUT VkShaderModule &compShader)
 {
 	// create vertex shader
 	{
@@ -16,10 +16,24 @@ layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0) writeonly uniform image2D  un_OutImage;
 
-void main()
+void Test1 (out vec4 color)
 {
 	vec2	point = (vec3(gl_GlobalInvocationID) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1)).xy;
-	vec4	color = point.xyyx;
+	
+	if ( (gl_GlobalInvocationID.x & 1) == 1 )
+	{
+		color = vec4(1.0f);
+		return;
+	}
+
+	color = point.xyyx;
+	color.x = cos(color.y) * color.z;
+}
+
+void main()
+{
+	vec4	color;
+	Test1( color );
 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), color );
 }
 )#";
@@ -33,8 +47,8 @@ void main()
 	CreatePipeline
 =================================================
 */
-bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule compShader, ArrayView<VkDescriptorSetLayout> dsLayouts,
-					 OUT VkPipelineLayout &outPipelineLayout, OUT VkPipeline &outPipeline)
+static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule compShader, ArrayView<VkDescriptorSetLayout> dsLayouts,
+							OUT VkPipelineLayout &outPipelineLayout, OUT VkPipeline &outPipeline)
 {
 	// create pipeline layout
 	{
@@ -283,16 +297,41 @@ extern bool GLSLShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &h
 	Array<String>	debug_output;
 	CHECK_ERR( shader_compiler.GetDebugOutput( comp_shader, helper.readBackPtr, helper.debugOutputSize, OUT debug_output ));
 	
-	static const char	ref[] = R"#(// gl_GlobalInvocationID: uint3 {8, 8, 0}
+	static const char	ref[] = R"#(//> gl_GlobalInvocationID: uint3 {8, 8, 0}
 no source
 
-// point: float2 {0.533333, 0.533333}
-// gl_GlobalInvocationID: uint3 {8, 8, 0}
-7. point = (vec3(gl_GlobalInvocationID) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1)).xy;
+//> gl_LocalInvocationID: uint3 {0, 0, 0}
+no source
 
-// color: float4 {0.533333, 0.533333, 0.533333, 0.533333}
-// point: float2 {0.533333, 0.533333}
-8. color = point.xyyx;
+//> gl_WorkGroupID: uint3 {8, 8, 0}
+no source
+
+//> Test1(): void
+23. 	Test1( color );
+
+//> point: float2 {0.533333, 0.533333}
+//  gl_GlobalInvocationID: uint3 {8, 8, 0}
+8. point = (vec3(gl_GlobalInvocationID) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1)).xy;
+
+//> (out): bool {false}
+//  gl_GlobalInvocationID: uint3 {8, 8, 0}
+10. if ( (gl_GlobalInvocationID.x & 1) == 1 )
+
+//> color: float4 {0.533333, 0.533333, 0.533333, 0.533333}
+//  point: float2 {0.533333, 0.533333}
+16. color = point.xyyx;
+
+//> cos(): float {0.861117}
+//  color: float4 {0.533333, 0.533333, 0.533333, 0.533333}
+17. 	color.x = cos(color.y) * color.z;
+
+//> color: float4 {0.459263, 0.533333, 0.533333, 0.533333}
+//  cos(): float {0.861117}
+17. color.x = cos(color.y) * color.z;
+
+//> imageStore(): void
+//  gl_GlobalInvocationID: uint3 {8, 8, 0}
+24. 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), color );
 
 )#";
 

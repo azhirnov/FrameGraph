@@ -33,7 +33,7 @@ namespace FG
 		{
 			const size_t	mask	= (sizeof(_value)*8 - 1);
 			size_t			val		= rhs._value;
-			size_t			shift	= 1;
+			size_t			shift	= 8;
 
 			shift &= mask;
 			_value ^= (val << shift) | (val >> ( ~(shift-1) & mask ));

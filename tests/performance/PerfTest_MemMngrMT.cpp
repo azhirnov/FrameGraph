@@ -6,11 +6,12 @@
 #include <shared_mutex>
 
 
-struct Resource
-{
-	StaticString<256>	data;
-};
-
+namespace {
+	struct Resource
+	{
+		StaticString<256>	data;
+	};
+}
 
 template <typename LockType, uint NumThreads>
 static void MemManagerPerfTest1 (const uint count, const uint frames, StringView msg)

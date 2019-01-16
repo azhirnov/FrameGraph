@@ -14,7 +14,7 @@ namespace glslang {
 struct ShaderTrace
 {
 public:
-	enum VariableID : uint32_t { VariableID_Unknown = ~0u };
+	enum class VariableID : uint32_t { Unknown = ~0u };
 
 	struct SourcePoint
 	{
@@ -41,7 +41,8 @@ public:
 
 	struct ExprInfo
 	{
-		VariableID				varID	= VariableID_Unknown;	// ID of output variable
+		VariableID				varID	= VariableID::Unknown;	// ID of output variable
+		uint32_t				swizzle	= 0;
 		SourceLocation			range;							// begin and end location of expression
 		SourcePoint				point;							// location of operator
 		std::vector<VariableID>	vars;							// all variables IDs in this expression
@@ -56,14 +57,16 @@ public:
 	};
 
 	using VarNames_t	= std::unordered_map< VariableID, std::string >;
-	using ExprInfos_t	= std::vector<ExprInfo>;
-	using Sources_t		= std::vector<SourceInfo>;
+	using ExprInfos_t	= std::vector< ExprInfo >;
+	using Sources_t		= std::vector< SourceInfo >;
+	using FileMap_t		= std::unordered_map< std::string, uint32_t >;	// index in '_sources'
 
 
 private:
 	ExprInfos_t		_exprLocations;
 	VarNames_t		_varNames;
 	Sources_t		_sources;
+	FileMap_t		_fileMap;
 	uint32_t		_shaderType		= ~0u;	// EShLanguage
 	uint64_t		_posOffset		= 0;
 	uint64_t		_dataOffset		= 0;
@@ -74,12 +77,18 @@ public:
 	ShaderTrace (ShaderTrace &&) = default;
 	ShaderTrace& operator = (ShaderTrace &&) = default;
 
-	bool GenerateDebugInfo (glslang::TIntermediate &, uint32_t setIndex);
-
-	bool GetDebugOutput (const void *ptr, uint64_t maxSize, std::vector<struct ShaderDebugTrace> &result) const;
-	bool GetDebugOutput (const void *ptr, uint64_t maxSize, std::vector<std::string> &result) const;
+	bool InsertTraceRecording (glslang::TIntermediate &, uint32_t descSetIndex);
+	//bool InsertDebugAsserts (glslang::TIntermediate &, uint32_t descSetIndex);
+	//bool InsertInstructionCounter (glslang::TIntermediate &, uint32_t descSetIndex);
+	
+	bool ConvertTraceToRdc (const void *ptr, uint64_t maxSize, std::vector<struct ShaderDebugTrace> &result) const;
+	bool ParseShaderTrace (const void *ptr, uint64_t maxSize, std::vector<std::string> &result) const;
 
 	void SetSource (const char* const* sources, const size_t *lengths, size_t count);
 	void SetSource (const char* source, size_t length);
+	void IncludeSource (const char* filename, const char* source, size_t length);	// if used '#include'
 	void GetSource (std::string &result) const;
+
+private:
+	void _AppendSource (const char* source, size_t length);
 };

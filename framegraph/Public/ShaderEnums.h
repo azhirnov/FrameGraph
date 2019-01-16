@@ -124,10 +124,11 @@ namespace FG
 		// debug/profiling mode
 		_ModeOffset			= 22,
 		_ModeMask			= 0xF << _ModeOffset,
-		WithDebugTrace		= 1 << _ModeOffset,		// writes trace only for selected shader invocation (may be very slow)
-		WithDebugAsserts	= 2 << _ModeOffset,		// writes only shader unique invocation id in which assert was trigged
-		WithDebugView		= 3 << _ModeOffset,		// if assertion failed then writes specified value in separate image
-		WithProfiling		= 4 << _ModeOffset,		// 
+		EnableDebugTrace	= 1 << _ModeOffset,		// writes trace only for selected shader invocation (may be very slow)
+		EnableDebugAsserts	= 2 << _ModeOffset,		// TODO: writes only shader unique invocation id in which assert was trigged
+		EnableDebugView		= 3 << _ModeOffset,		// TODO: if assertion failed then writes specified value in separate image
+		EnableProfiling		= 4 << _ModeOffset,		// TODO: use 'subgroupBallot' and 'timeAMD' to profile shaders
+		EnableInstrCounter	= 5 << _ModeOffset,		// TODO: writes count of instruction in shader invocation
 
 		// independent flags
 		_FlagsOffset		= 26,
@@ -142,6 +143,7 @@ namespace FG
 		_StorageFormatMask		= _StorageMask | _FormatMask,
 		_ApiStorageFormatMask	= _ApiMask | _StorageMask | _FormatMask,
 		_ApiVersionMask			= _ApiMask | _VersionMask,
+		_VersionModeFlagsMask	= _VersionMask | _ModeMask | _FlagsMask,
 
 		// default
 		GLSL_440		= OpenGL_440 | HighLevel,

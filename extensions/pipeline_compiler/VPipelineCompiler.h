@@ -32,7 +32,8 @@ namespace FG
 
 	// variables
 	private:
-		std::mutex							_lock;	
+		std::mutex							_lock;
+		Array< String >						_directories;
 		UniquePtr< class SpirvCompiler >	_spirvCompiler;
 		ShaderCache_t						_shaderCache;
 		EShaderCompilationFlags				_compilerFlags			= Default;
@@ -51,6 +52,7 @@ namespace FG
 		~VPipelineCompiler ();
 
 		bool SetCompilationFlags (EShaderCompilationFlags flags);
+		void AddDirectory (StringView path);
 
 		ND_ EShaderCompilationFlags  GetCompilationFlags () const	{ return _compilerFlags; }
 

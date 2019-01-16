@@ -40,13 +40,14 @@ namespace FG
 	VulkanLib
 =================================================
 */
+namespace {
 	struct VulkanLib
 	{
 		SharedLib_t		module;
 		VkInstance		instance	= VK_NULL_HANDLE;
 		int				refCounter	= 0;
 	};
-
+}
 /*
 =================================================
 	Initialize

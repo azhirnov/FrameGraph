@@ -4,7 +4,7 @@
 
 namespace FG
 {
-
+namespace {
 	struct FloatBits
 	{
 		uint	m	: 23;	// mantissa bits
@@ -13,6 +13,7 @@ namespace FG
 
 		FloatBits () : m{0}, e{0}, s{0} {}
 	};
+}
 
 /*
 =================================================

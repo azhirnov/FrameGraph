@@ -103,13 +103,13 @@ void main ()
 		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_OutImage"), image0 );
-		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetGroupCount( 2, 2 ) );
+		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch({ 2, 2 }) );
 
 		resources.BindImage( UniformID("un_OutImage"), image1 );
-		Task	t_run1	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).SetGroupCount( 4, 4 ) );
+		Task	t_run1	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).Dispatch({ 4, 4 }) );
 		
 		resources.BindImage( UniformID("un_OutImage"), image2 );
-		Task	t_run2	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).SetGroupCount( 1, 1 ) );
+		Task	t_run2	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).Dispatch({ 1, 1 }) );
 		
 		Task	t_read0	= frame_graph->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ) );
 		Task	t_read1	= frame_graph->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );

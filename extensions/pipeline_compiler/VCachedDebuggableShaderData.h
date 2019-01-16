@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "extensions/glsl_trace/ShaderTrace.h"
+#include "extensions/glsl_trace/include/ShaderTrace.h"
 #include "extensions/vulkan_loader/VulkanLoader.h"
 
 namespace FG
@@ -24,21 +24,27 @@ namespace FG
 	{
 		template <typename B> friend class VCachedDebuggableShaderData;
 
+	// types
+	private:
+		using ShaderDebugUtils_t	= Union< std::monostate, ShaderTrace >;
+		using ShaderDebugUtilsPtr	= UniquePtr< ShaderDebugUtils_t >;
+
+
 	// variables
 	private:
-		T					_data;
-		StaticString<64>	_entry;
-		ShaderTrace			_trace;
+		T						_data;
+		StaticString<64>		_entry;
+		ShaderDebugUtilsPtr		_debugInfo;
 
 
 	// methods
 	public:
 		VCachedDebuggableShaderData (StringView entry, T &&data) :
-			_data{std::move(data)}, _entry{entry}, _trace{std::move(trace)}
+			_data{std::move(data)}, _entry{entry}
 		{}
 
-		VCachedDebuggableShaderData (StringView entry, T &&data, ShaderTrace &&trace) :
-			_data{std::move(data)}, _entry{entry}, _trace{std::move(trace)}
+		VCachedDebuggableShaderData (StringView entry, T &&data, ShaderTrace &&debugInfo) :
+			_data{std::move(data)}, _entry{entry}, _debugInfo{new ShaderDebugUtils_t{ std::move(debugInfo) }}
 		{}
 
 		VCachedDebuggableShaderData (VkShaderModule module, const PipelineDescription::SharedShaderPtr<Array<uint>> &spirvCache)
@@ -49,7 +55,7 @@ namespace FG
 				_entry	= spirvCache->GetEntry();
 
 				if ( auto other = DynCast<VCachedDebuggableSpirv>( spirvCache ))
-					_trace = std::move(other->_trace);
+					_debugInfo = std::move(other->_debugInfo);
 			}
 		}
 		
@@ -79,8 +85,13 @@ namespace FG
 		bool ParseDebugOutput (EShaderDebugMode mode, ArrayView<uint8_t> debugOutput, OUT Array<String> &result) const override
 		{
 			CHECK_ERR( mode == EShaderDebugMode::Trace );
+			if ( not _debugInfo )
+				return false;
 
-			return _trace.GetDebugOutput( debugOutput.data(), debugOutput.size(), OUT result );
+			return Visit( *_debugInfo,
+						  [&] (const ShaderTrace &trace) { return trace.ParseShaderTrace( debugOutput.data(), debugOutput.size(), OUT result ); },
+						  []  (const std::monostate &)   { return false; }
+						);
 		}
 
 
@@ -88,7 +99,19 @@ namespace FG
 
 		StringView	GetEntry () const override		{ return _entry; }
 
-		size_t		GetHashOfData () const override	{ ASSERT(false);  return 0; }
+
+		size_t		GetHashOfData () const override
+		{
+			if constexpr( IsSameTypes< T, ShaderModuleVk_t > )
+			{
+				ASSERT(!"not supported");
+				return 0;
+			}
+			else
+			{
+				return size_t(HashOf( _data ));
+			}
+		}
 	};
 
 

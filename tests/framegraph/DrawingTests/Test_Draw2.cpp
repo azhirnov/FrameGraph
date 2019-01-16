@@ -68,7 +68,7 @@ void main() {
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ) );
 		
-		frame_graph->AddTask( render_pass, DrawVertices().AddDrawCmd( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
+		frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
 		Task	t_draw		= frame_graph->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_present	= frame_graph->AddTask( Present{ image }.DependsOn( t_draw ));

@@ -12,7 +12,7 @@ namespace FG
 {
 
 	//
-	// Ray Tracing Geometry Description (experimental)
+	// Ray Tracing Geometry Description
 	//
 
 	struct RayTracingGeometryDesc

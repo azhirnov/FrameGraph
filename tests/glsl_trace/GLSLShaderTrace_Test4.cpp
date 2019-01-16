@@ -14,23 +14,11 @@ static bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler
 		static const char	vert_shader_source[] = R"#(
 const vec2	g_Positions[] = {
 	{-1.0f, -1.0f}, {-1.0f, 2.0f}, {2.0f, -1.0f},	// primitive 0 - must hit
-	{-1.0f,  2.0f},									// primitive 1 - miss
-	{-2.0f,  0.0f}									// primitive 2 - must hit
-};
-
-layout(location=0) out vec4  out_Position;
-
-layout(location=2) out VertOutput {
-	vec2	out_Texcoord;
-	vec4	out_Color;
 };
 
 void main()
 {
-	out_Position = vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.01f, 1.0f );
-	gl_Position = out_Position;
-	out_Texcoord = g_Positions[gl_VertexIndex].xy * 0.5f + 0.5f;
-	out_Color = mix(vec4(1.0, 0.3, 0.0, 0.8), vec4(0.6, 0.9, 0.1, 1.0), float(gl_VertexIndex) / float(g_Positions.length()));
+	gl_Position	= vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.02f, 1.0f );
 })#";
 
 		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex ));
@@ -39,36 +27,21 @@ void main()
 	// create fragment shader
 	{
 		static const char	frag_shader_source[] = R"#(
+#extension GL_ARB_gpu_shader_int64 : require
+
 layout(location = 0) out vec4  out_Color;
-
-layout(location=0) in vec4  in_Position;
-
-layout(location=2) in VertOutput {
-	vec2	in_Texcoord;
-	vec4	in_Color;
-};
-
-float Fn1 (const int i, out int res)
-{
-	float f = 0.0f;
-	res = 11;
-	for (int j = i; j < 10; ++j) {
-		f += 1.2f *
-				cos(float(j));
-		if (f > 15.7f) {
-			res = j;
-			return f * 10.0f;
-		}
-	}
-	return fract(f);
-}
 
 void main ()
 {
-	ivec2 c1;
-	float c0 = Fn1( 3, c1.x );
-	out_Color[1] = c0 + float(c1.x);
-	return;
+	uint64_t	i = 0xFFFFFFFF00000000ul;
+	dvec2		d = dvec2(1.234e+50LF, 3.875732LF);
+
+	i |= 0xFFFFFFFFul;
+	d *= 2.0;
+
+	out_Color[0] = float(i);
+	out_Color[1] = float(d.x);
+	out_Color[2] = float(d.y);
 })#";
 
 		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, 0 ));
@@ -176,11 +149,14 @@ static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule vertShader, VkS
 
 /*
 =================================================
-	GLSLShaderTrace_Test1
+	GLSLShaderTrace_Test4
 =================================================
 */
-extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
+extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
 {
+	if ( not (vulkan.GetDeviceFeatures().shaderFloat64 and vulkan.GetDeviceFeatures().shaderInt64) )
+		return true;
+
 	// create renderpass and framebuffer
 	uint			width = 16, height = 16;
 	VkRenderPass	render_pass;
@@ -286,7 +262,7 @@ extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &h
 		vulkan.vkCmdSetScissor( helper.cmdBuffer, 0, 1, &scissor_rect );
 	}
 			
-	vulkan.vkCmdDraw( helper.cmdBuffer, 5, 1, 0, 0 );
+	vulkan.vkCmdDraw( helper.cmdBuffer, 3, 1, 0, 0 );
 			
 	vulkan.vkCmdEndRenderPass( helper.cmdBuffer );
 
@@ -349,434 +325,37 @@ extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &h
 	CHECK_ERR( shader_compiler.GetDebugOutput( frag_shader, helper.readBackPtr, helper.debugOutputSize, OUT debug_output ));
 
 	{
-		static const char	ref1[] = R"#(//> gl_FragCoord: float4 {8.500000, 8.500000, 0.010625, 1.000000}
+		static const char	ref[] = R"#(//> gl_FragCoord: float4 {8.500000, 8.500000, 0.021250, 1.000000}
 no source
 
 //> gl_PrimitiveID: int {0}
 no source
 
-//> in_Position: float4 {0.062500, 0.062500, 0.010625, 1.000000}
-no source
+//> i: ulong {18446744069414584320}
+8. i = 0xFFFFFFFF00000000ul;
 
-//> in_Texcoord: float2 {0.531250, 0.531250}
-no source
+//> d: double2 {123400000000000008168984737859029931218667655135232.000000, 3.875732}
+9. d = dvec2(1.234e+50LF, 3.875732LF);
 
-//> in_Color: float4 {0.915000, 0.427500, 0.021250, 0.842500}
-no source
+//> i: ulong {18446744073709551615}
+11. i |= 0xFFFFFFFFul;
 
-//> i: int {3}
-11. float Fn1 (const int i, out int res)
+//> out_Color: float {18446744073709551616.000000}
+//  i: ulong {18446744073709551615}
+14. out_Color[0] = float(i);
 
-//> f: float {0.000000}
-13. f = 0.0f;
+//> out_Color: float2 {18446744073709551616.000000, inf}
+//  d: double2 {123400000000000008168984737859029931218667655135232.000000, 3.875732}
+15. out_Color[1] = float(d.x);
 
-//> res: int {11}
-14. res = 11;
-
-//> j: int {3}
-//  i: int {3}
-15. j = i; j < 10; ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {3}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {-0.989992}
-//  j: int {3}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-1.187991}
-//  j: int {3}
-//  cos(): float {-0.989992}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-1.187991}
-18. if (f > 15.7f) {
-
-//> j: int {4}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {4}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {-0.653644}
-//  j: int {4}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-1.972363}
-//  j: int {4}
-//  cos(): float {-0.653644}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-1.972363}
-18. if (f > 15.7f) {
-
-//> j: int {5}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {5}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {0.283662}
-//  j: int {5}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-1.631969}
-//  j: int {5}
-//  cos(): float {0.283662}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-1.631969}
-18. if (f > 15.7f) {
-
-//> j: int {6}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {6}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {0.960170}
-//  j: int {6}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-0.479765}
-//  j: int {6}
-//  cos(): float {0.960170}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-0.479765}
-18. if (f > 15.7f) {
-
-//> j: int {7}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {7}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {0.753902}
-//  j: int {7}
-16. *
-17. 				cos(float(j));
-
-//> f: float {0.424918}
-//  j: int {7}
-//  cos(): float {0.753902}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {0.424918}
-18. if (f > 15.7f) {
-
-//> j: int {8}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {8}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {-0.145500}
-//  j: int {8}
-16. *
-17. 				cos(float(j));
-
-//> f: float {0.250318}
-//  j: int {8}
-//  cos(): float {-0.145500}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {0.250318}
-18. if (f > 15.7f) {
-
-//> j: int {9}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {9}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {-0.911130}
-//  j: int {9}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-0.843038}
-//  j: int {9}
-//  cos(): float {-0.911130}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-0.843038}
-18. if (f > 15.7f) {
-
-//> j: int {10}
-15. ++j) {
-
-//> (out): bool {false}
-//  i: int {3}
-//  j: int {10}
-15. for (int j = i; j < 10; ++j) {
-
-//> fract(): float {0.156962}
-//  f: float {-0.843038}
-23. return fract(f);
-
-//> c0: float {0.156962}
-29. c0 = Fn1( 3, c1.x );
-
-//> out_Color: float2 {0.000000, 11.156962}
-//  c0: float {0.156962}
-30. out_Color[1] = c0 + float(c1.x);
-
-//> (out): void
-31. return;
+//> out_Color: float3 {18446744073709551616.000000, inf, 7.751464}
+//  d: double2 {123400000000000008168984737859029931218667655135232.000000, 3.875732}
+16. out_Color[2] = float(d.y);
 
 )#";
 
-		static const char	ref2[] = R"#(//> gl_FragCoord: float4 {8.500000, 8.500000, 0.028403, 1.000000}
-no source
-
-//> gl_PrimitiveID: int {2}
-no source
-
-//> in_Position: float4 {0.062500, 0.062500, 0.028403, 1.000000}
-no source
-
-//> in_Texcoord: float2 {0.531250, 0.531250}
-no source
-
-//> in_Color: float4 {0.772778, 0.640833, 0.056806, 0.913611}
-no source
-
-//> i: int {3}
-11. float Fn1 (const int i, out int res)
-
-//> f: float {0.000000}
-13. f = 0.0f;
-
-//> res: int {11}
-14. res = 11;
-
-//> j: int {3}
-//  i: int {3}
-15. j = i; j < 10; ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {3}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {-0.989992}
-//  j: int {3}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-1.187991}
-//  j: int {3}
-//  cos(): float {-0.989992}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-1.187991}
-18. if (f > 15.7f) {
-
-//> j: int {4}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {4}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {-0.653644}
-//  j: int {4}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-1.972363}
-//  j: int {4}
-//  cos(): float {-0.653644}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-1.972363}
-18. if (f > 15.7f) {
-
-//> j: int {5}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {5}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {0.283662}
-//  j: int {5}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-1.631969}
-//  j: int {5}
-//  cos(): float {0.283662}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-1.631969}
-18. if (f > 15.7f) {
-
-//> j: int {6}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {6}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {0.960170}
-//  j: int {6}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-0.479765}
-//  j: int {6}
-//  cos(): float {0.960170}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-0.479765}
-18. if (f > 15.7f) {
-
-//> j: int {7}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {7}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {0.753902}
-//  j: int {7}
-16. *
-17. 				cos(float(j));
-
-//> f: float {0.424918}
-//  j: int {7}
-//  cos(): float {0.753902}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {0.424918}
-18. if (f > 15.7f) {
-
-//> j: int {8}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {8}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {-0.145500}
-//  j: int {8}
-16. *
-17. 				cos(float(j));
-
-//> f: float {0.250318}
-//  j: int {8}
-//  cos(): float {-0.145500}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {0.250318}
-18. if (f > 15.7f) {
-
-//> j: int {9}
-15. ++j) {
-
-//> (out): bool {true}
-//  i: int {3}
-//  j: int {9}
-15. for (int j = i; j < 10; ++j) {
-
-//> cos(): float {-0.911130}
-//  j: int {9}
-16. *
-17. 				cos(float(j));
-
-//> f: float {-0.843038}
-//  j: int {9}
-//  cos(): float {-0.911130}
-16. f += 1.2f *
-17. 				cos(float(j));
-
-//> (out): bool {false}
-//  f: float {-0.843038}
-18. if (f > 15.7f) {
-
-//> j: int {10}
-15. ++j) {
-
-//> (out): bool {false}
-//  i: int {3}
-//  j: int {10}
-15. for (int j = i; j < 10; ++j) {
-
-//> fract(): float {0.156962}
-//  f: float {-0.843038}
-23. return fract(f);
-
-//> c0: float {0.156962}
-29. c0 = Fn1( 3, c1.x );
-
-//> out_Color: float2 {0.000000, 11.156962}
-//  c0: float {0.156962}
-30. out_Color[1] = c0 + float(c1.x);
-
-//> (out): void
-31. return;
-
-)#";
-
-		CHECK_ERR( debug_output.size() == 2 );
-
-		if ( debug_output[0] == ref1 ) {
-			CHECK_ERR( debug_output[1] == ref2 );
-		}else{
-			CHECK_ERR( debug_output[0] == ref2 );
-			CHECK_ERR( debug_output[1] == ref1 );
-		}
+		CHECK_ERR( debug_output.size() == 1 );
+		CHECK_ERR( debug_output[0] == ref );
 	}
 
 	FG_LOGI( TEST_NAME << " - passed" );

@@ -4,12 +4,12 @@
 #include "PerfTestCommon.h"
 #include <thread>
 
-
-struct Resource
-{
-	StaticString<256>	data;
-};
-
+namespace {
+	struct Resource
+	{
+		StaticString<256>	data;
+	};
+}
 
 template <uint NumThreads>
 static void ImmutableStoragePerfTest1 (const uint count, const uint count2, StringView msg)

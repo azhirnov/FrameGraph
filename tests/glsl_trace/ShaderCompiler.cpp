@@ -44,7 +44,7 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 							   uint						dbgBufferSetIndex,
 							   EShTargetLanguageVersion	spvVersion)
 {
-	ShaderTrace			debug_info;
+	ShaderTrace				debug_info;
 	Array<const char *>		shader_src;
 	const bool				debuggable	= dbgBufferSetIndex != ~0u;
 	const FG::String		header		= "#version 460 core\n"s <<
@@ -95,7 +95,7 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 	shader.setEnvClient( EShClientVulkan, client_version );
 	shader.setEnvTarget( EshTargetSpv, spvVersion );
 
-	if ( not shader.parse( &builtin_res, 460, ENoProfile, false, true, messages ) )
+	if ( not shader.parse( &builtin_res, 460, ECoreProfile, false, true, messages ) )
 	{
 		FG_LOGI( shader.getInfoLog() );
 		return false;
@@ -115,7 +115,7 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 
 	if ( dbgInfo )
 	{
-		CHECK_ERR( dbgInfo->GenerateDebugInfo( INOUT *intermediate, dbgBufferSetIndex ));
+		CHECK_ERR( dbgInfo->InsertTraceRecording( INOUT *intermediate, dbgBufferSetIndex ));
 		
 		dbgInfo->SetSource( source.data(), null, source.size() );
 	}
@@ -179,6 +179,6 @@ bool ShaderCompiler::GetDebugOutput (VkShaderModule shaderModule, const void *pt
 	auto	iter = _debuggableShaders.find( shaderModule );
 	CHECK_ERR( iter != _debuggableShaders.end() );
 
-	return iter->second.GetDebugOutput( ptr, uint64_t(maxSize), OUT result );
+	return iter->second.ParseShaderTrace( ptr, uint64_t(maxSize), OUT result );
 }
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "ShaderTrace.h"
+#include "../include/ShaderTrace.h"
 
 #if defined(FG_ENABLE_GLSLANG)
 #	include "stl/Common.h"

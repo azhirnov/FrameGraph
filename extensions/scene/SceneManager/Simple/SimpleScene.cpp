@@ -153,7 +153,7 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 					draw_task.resources.clear();
 
 					draw_task.SetVertexInput( _vertexAttribs[mesh.attribsIndex] ).SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
-							 .AddDrawCmd( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
+							 .Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
 							 .AddResources( DescriptorSetID{"0"}, &model.resources )
 							 .AddPushConstant( PushConstantID{"VSPushConst"}, model.materialID )
 							 .AddPushConstant( PushConstantID{"VSPushConst"}, inst.index );

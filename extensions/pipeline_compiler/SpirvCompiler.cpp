@@ -4,6 +4,7 @@
 #include "PrivateDefines.h"
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Algorithms/StringParser.h"
+#include "stl/Stream/FileStream.h"
 #include "framegraph/Shared/EnumUtils.h"
 #include "VCachedDebuggableShaderData.h"
 
@@ -24,25 +25,170 @@
 #	include "spirv-tools/libspirv.h"
 #endif
 
-
 namespace FG
 {
 	using namespace glslang;
 
+	
+	//
+	// Shader Includer
+	//
+	class SpirvCompiler::ShaderIncluder final : public TShader::Includer
+	{
+	// types
+	private:
+		struct IncludeResultImpl final : IncludeResult
+		{
+			const FG::String	_data;
 
+            IncludeResultImpl (FG::String &&data, const FG::String& headerName, void* userData = null) :
+				IncludeResult{headerName, data.c_str(), data.length(), userData}, _data{std::move(data)} {}
+
+			ND_ StringView	GetSource () const	{ return _data; }
+		};
+
+		using IncludeResultPtr_t	= UniquePtr< IncludeResultImpl >;
+		using IncludeResults_t		= Array< IncludeResultPtr_t >;
+		using IncludedFiles_t		= HashMap< String, Ptr<IncludeResultImpl> >;
+
+
+	// variables
+	private:
+		IncludeResults_t		_results;
+		IncludedFiles_t			_includedFiles;
+		Array<String> const&	_directories;
+
+
+	// methods
+	public:
+		explicit ShaderIncluder (const Array<String> &dirs) : _directories{dirs} {}
+		~ShaderIncluder () {}
+
+		//bool GetHeaderSource (StringView header, OUT StringView &source) const;
+
+		ND_ IncludedFiles_t const&  GetIncludedFiles () const	{ return _includedFiles; }
+
+		// TShader::Includer //
+        IncludeResult* includeSystem (const char* headerName, const char* includerName, size_t inclusionDepth) override;
+        IncludeResult* includeLocal (const char* headerName, const char* includerName, size_t inclusionDepth) override;
+
+		void releaseInclude (IncludeResult *) override {}
+	};
+
+	
+/*
+=================================================
+	GetHeaderSource
+=================================================
+*
+	bool SpirvCompiler::ShaderIncluder::GetHeaderSource (StringView header, OUT StringView &source) const
+	{
+		auto	iter = _includedFiles.find( FG::String{header} );
+
+		if ( iter != _includedFiles.end() )
+		{
+			source = iter->second->GetSource();
+			return true;
+		}
+		return false;
+	}
+
+/*
+=================================================
+	includeSystem
+=================================================
+*/
+    SpirvCompiler::ShaderIncluder::IncludeResult*
+		SpirvCompiler::ShaderIncluder::includeSystem (const char* headerName, const char *, size_t)
+	{
+		return null;
+	}
+	
+/*
+=================================================
+	includeLocal
+=================================================
+*/
+    SpirvCompiler::ShaderIncluder::IncludeResult*
+		SpirvCompiler::ShaderIncluder::includeLocal (const char* headerName, const char *, size_t)
+	{
+		ASSERT( _directories.size() );
+
+#	ifdef FG_STD_FILESYSTEM
+		for (auto& folder : _directories)
+		{
+			fs::path	fpath = fs::path( folder ) / headerName;
+
+			if ( not fs::exists( fpath ) )
+				continue;
+
+			const FG::String	filename = fpath.make_preferred().string();
+
+			// prevent recursive include
+			if ( _includedFiles.count( filename ) )
+				return _results.emplace_back(new IncludeResultImpl{ " ", headerName }).get();
+			
+			FileRStream  file{ filename };
+			CHECK_ERR( file.IsOpen() );
+
+			String	data;
+			CHECK_ERR( file.Read( size_t(file.Size()), OUT data ));
+
+			auto*	result = _results.emplace_back(new IncludeResultImpl{ std::move(data), headerName }).get();
+
+			_includedFiles.insert_or_assign( headerName, result );
+			return result;
+		}
+
+#	else
+		for (auto& folder : _directories)
+		{
+			FG::String	fpath = folder;
+
+			if ( fpath.size() and not (fpath.back() == '/' or fpath.back() == '\\') )
+				fpath += '/';
+
+			fpath += headerName;
+			
+			FileRStream  file{ fpath };
+
+			if ( not file.IsOpen() )
+				continue;
+
+			if ( _includedFiles.count( fpath ) )
+				return _results.emplace_back(new IncludeResultImpl{ " ", headerName }).get();
+
+			String	data;
+			CHECK_ERR( file.Read( size_t(file.Size()), OUT data ));
+
+			auto*	result = _results.emplace_back(new IncludeResultImpl{ std::move(data), headerName }).get();
+
+			_includedFiles.insert_or_assign( headerName, result );
+			return result;
+		}
+#	endif
+		return null;
+	}
+//-----------------------------------------------------------------------------
+	
+
+
+	//
+	// GLSLang Result
+	//
 	struct SpirvCompiler::GLSLangResult
 	{
 		TProgram				prog;
 		UniquePtr< TShader >	shader;
 	};
-	
+
 
 /*
 =================================================
 	constructor
 =================================================
 */
-	SpirvCompiler::SpirvCompiler ()
+	SpirvCompiler::SpirvCompiler (const Array<String> &dirs) : _directories{dirs}
 	{
 		glslang::InitializeProcess();
 
@@ -87,9 +233,11 @@ namespace FG
 		dstShaderFmt &= ~EShaderLangFormat::_ModeMask;
 
 		_currentStage = EShaderStages_FromShader( shaderType );
-
+		
+		ShaderIncluder	includer	{_directories};
 		GLSLangResult	glslang_data;
-		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.data()}, OUT glslang_data, INOUT log ));
+
+		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.data()}, INOUT includer, OUT glslang_data, INOUT log ));
 
 		Array<uint>		spirv;
 		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
@@ -106,21 +254,34 @@ namespace FG
 
 		switch ( dbg_mode )
 		{
-			case EShaderLangFormat::WithDebugTrace :
+			case EShaderLangFormat::EnableDebugTrace :
 			{
 				ShaderTrace	trace;
 				trace.SetSource( source.data(), source.length() );
 
-				COMP_CHECK_ERR( trace.GenerateDebugInfo( interm, 1 ));
+				for (auto& file : includer.GetIncludedFiles()) {
+					trace.IncludeSource( file.first.c_str(), file.second->GetSource().data(), file.second->GetSource().length() );
+				}
+
+				// find max descriptor set index
+				uint	max_ds_index = 0;
+				for (auto& ds : outReflection.layout.descriptorSets) {
+					max_ds_index = Max( max_ds_index, ds.bindingIndex );
+				}
+
+				// TODO: other shader may use this descriptor set index, so
+				// you need some way to propagate the last index into debug utils.
+				COMP_CHECK_ERR( trace.InsertTraceRecording( interm, max_ds_index+1 ));
 
 				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
 				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( entry, std::move(spirv), std::move(trace) ) });
 				break;
 			}
-			case EShaderLangFormat::WithDebugAsserts :
-			case EShaderLangFormat::WithDebugView :
-			case EShaderLangFormat::WithProfiling :
+			case EShaderLangFormat::EnableDebugAsserts :
+			case EShaderLangFormat::EnableDebugView :
+			case EShaderLangFormat::EnableProfiling :
+			case EShaderLangFormat::EnableInstrCounter :
 				ASSERT( !"not supported yet" );
 				break;
 
@@ -177,7 +338,8 @@ namespace FG
 =================================================
 */
 	bool SpirvCompiler::_ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-									StringView entry, ArrayView<const char *> source, OUT GLSLangResult &glslangData, OUT String &log)
+									StringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
+									OUT GLSLangResult &glslangData, OUT String &log)
 	{
 		EShClient					client			= EShClientOpenGL;
 		EshTargetClientVersion		client_version	= EShTargetOpenGL_450;
@@ -255,11 +417,10 @@ namespace FG
 		}
 
 
-		EShMessages			messages	= EShMsgDefault;
-		EShLanguage			stage		= ConvertShaderType( shaderType );
-		auto&				shader		= glslangData.shader;
-		//ShaderIncluder	includer	{ baseFolder };
-		const bool			auto_map	= EnumEq( _compilerFlags, EShaderCompilationFlags::AutoMapLocations );
+		EShMessages		messages	= EShMsgDefault;
+		EShLanguage		stage		= ConvertShaderType( shaderType );
+		auto&			shader		= glslangData.shader;
+		const bool		auto_map	= EnumEq( _compilerFlags, EShaderCompilationFlags::AutoMapLocations );
 
 		shader.reset( new TShader( stage ));
 		shader->setStrings( source.data(), int(source.size()) );
@@ -271,7 +432,7 @@ namespace FG
 		shader->setAutoMapLocations( auto_map );
 		shader->setAutoMapBindings( auto_map );
 
-		if ( not shader->parse( &_builtinResource, sh_version, sh_profile, false, true, messages/*, includer*/ ) )
+		if ( not shader->parse( &_builtinResource, sh_version, sh_profile, false, true, messages, includer ))
 		{
 			log += shader->getInfoLog();
 			_OnCompilationFailed( source, INOUT log );
@@ -954,6 +1115,7 @@ namespace FG
 			case TBasicType::EbtAccStructNV :
 			#endif
 			case TBasicType::EbtString :
+			case TBasicType::EbtReference :
 			case TBasicType::EbtNumTypes :
 			default :						COMP_RETURN_ERR( "unsupported basic type!" );
 		}

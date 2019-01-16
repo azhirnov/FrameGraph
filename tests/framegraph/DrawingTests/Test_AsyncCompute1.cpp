@@ -130,7 +130,7 @@ void main ()
 														.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
 														.AddViewport( view_size ) );
 		
-				frame_graph->AddTask( render_pass, DrawVertices().AddDrawCmd( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
+				frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
 				Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
 				FG_UNUSED( t_draw );
@@ -143,7 +143,7 @@ void main ()
 				CHECK_ERR( _fgCompute->Begin( cbatch_id, 0, EThreadUsage::AsyncCompute ));
 				
 				resources.BindImage( UniformID("un_Image"), image );
-				Task	t_comp	= frame_graph->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).SetGroupCount( view_size ));
+				Task	t_comp	= frame_graph->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
 				Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 				FG_UNUSED( t_read );
 

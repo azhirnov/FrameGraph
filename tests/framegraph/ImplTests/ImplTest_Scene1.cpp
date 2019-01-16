@@ -201,7 +201,7 @@ void main() {
 
 				frame_graph->AddTask( depth_pass,
 					DrawVertices{}.SetName( "Draw_Depth" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).AddDrawCmd( 3*1000 )
+						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline2 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 		
 				Task	t_update_buf0 = frame_graph->AddTask( UpdateBuffer{ const_buf2, 0_b, CreateData( 256_b ) }.SetName( "update_buf0" ));
@@ -217,7 +217,7 @@ void main() {
 
 				frame_graph->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw1_Opaque" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).AddDrawCmd( 3*1000 )
+						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
@@ -225,7 +225,7 @@ void main() {
 
 				frame_graph->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw2_Opaque" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).AddDrawCmd( 3*1000 )
+						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
@@ -233,7 +233,7 @@ void main() {
 
 				frame_graph->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw0_Opaque" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).AddDrawCmd( 3*2000 )
+						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*2000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				Task	t_update_buf1 = frame_graph->AddTask( UpdateBuffer{ const_buf1,   0_b, CreateData( 256_b ) }.SetName( "update_buf1" ));
@@ -250,7 +250,7 @@ void main() {
 
 				frame_graph->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw1_Transparent" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).AddDrawCmd( 3*1000 )
+						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
@@ -258,7 +258,7 @@ void main() {
 
 				frame_graph->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw2_Transparent" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).AddDrawCmd( 3*1000 )
+						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 		
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
@@ -266,7 +266,7 @@ void main() {
 
 				frame_graph->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw0_Transparent" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).AddDrawCmd( 3*2000 )
+						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*2000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				Task	update_buf3 = frame_graph->AddTask( UpdateBuffer{ const_buf3, 0_b, CreateData( 256_b ) }.SetName( "update_buf3" ) );

@@ -10,7 +10,7 @@ namespace FG
 {
 
 	//
-	// Ray Tracing Scene Description (experimental)
+	// Ray Tracing Scene Description
 	//
 
 	struct RayTracingSceneDesc

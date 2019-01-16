@@ -601,10 +601,15 @@ namespace {
 	void VFrameGraphDebugger::_DispatchComputeTaskToString (Ptr<const VFgTask<DispatchCompute>> task, INOUT String &str) const
 	{
 		str << indent << "	pipeline:    \"" << task->pipeline->GetDebugName() << "\"\n"
-			<< indent << "	groupCount:  " << ToString( task->groupCount ) << '\n';
+			<< indent << "	commands = {\n";
 
 		if ( task->localGroupSize.has_value() )
 			str << indent << "	localGroupSize:  " << ToString( *task->localGroupSize ) << '\n';
+
+		for (auto& cmd : task->commands) {
+			str << indent << "\t\t{ " << ToString( cmd.baseGroup ) << ", " << ToString( cmd.groupCount ) << "}\n";
+		}
+		str << indent << "	}\n";
 	}
 	
 /*
@@ -615,11 +620,17 @@ namespace {
 	void VFrameGraphDebugger::_DispatchComputeIndirectTaskToString (Ptr<const VFgTask<DispatchComputeIndirect>> task, INOUT String &str) const
 	{
 		str << indent << "	pipeline:       \"" << task->pipeline->GetDebugName() << "\"\n"
-			<< indent << "	indirectBuffer: \"" << task->indirectBuffer->GetDebugName() << "\"\n"
-			<< indent << "	indirectBufferOffset: " << ToString( BytesU{task->indirectBufferOffset} ) << '\n';
+			<< indent << "	indirectBuffer: \"" << task->indirectBuffer->GetDebugName() << "\"\n";
 		
 		if ( task->localGroupSize.has_value() )
 			str << indent << "	localGroupSize:  " << ToString( *task->localGroupSize ) << '\n';
+
+		str << indent << "	commands = { ";
+
+		for (auto& cmd : task->commands) {
+			str << (&cmd != task->commands.data() ? ", " : "") << ToString( cmd.indirectBufferOffset );
+		}
+		str << " }\n";
 	}
 	
 /*

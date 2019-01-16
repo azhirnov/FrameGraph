@@ -131,7 +131,7 @@ void main() {
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ) );
 		
-		frame_graph->AddTask( render_pass, DrawMeshes().AddDrawCmd( 1 ).SetPipeline( pipeline ));
+		frame_graph->AddTask( render_pass, DrawMeshes().Draw( 1 ).SetPipeline( pipeline ));
 
 		Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );

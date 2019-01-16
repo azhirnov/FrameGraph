@@ -4,7 +4,7 @@
 
 #include "framework/Vulkan/VulkanDevice.h"
 #include "stl/Algorithms/ArrayUtils.h"
-#include "glsl_trace/ShaderTrace.h"
+#include "glsl_trace/include/ShaderTrace.h"
 
 // glslang includes
 #include "glslang/glslang/Public/ShaderLang.h"
@@ -40,7 +40,7 @@ public:
 
 private:
 	bool _Compile (OUT Array<uint>&			spirvData,
-				   OUT ShaderTrace*		dbgInfo,
+				   OUT ShaderTrace*			dbgInfo,
 				   uint						dbgBufferSetIndex,
 				   ArrayView<const char *>	source,
 				   EShLanguage				shaderType,

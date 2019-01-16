@@ -5,6 +5,8 @@
 
 extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 extern bool GLSLShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool GLSLShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 
 
 /*
@@ -314,6 +316,8 @@ int main ()
 	{
 		CHECK_FATAL( GLSLShaderTrace_Test1( vulkan, helper ));
 		CHECK_FATAL( GLSLShaderTrace_Test2( vulkan, helper ));
+		//CHECK_FATAL( GLSLShaderTrace_Test3( vulkan, helper ));
+		CHECK_FATAL( GLSLShaderTrace_Test4( vulkan, helper ));
 	}
 
 	// destroy all

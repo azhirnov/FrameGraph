@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "glsl_trace/ShaderTrace.h"
+#include "glsl_trace/include/ShaderTrace.h"
 #include "ShaderCompiler.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "stl/Algorithms/StringUtils.h"

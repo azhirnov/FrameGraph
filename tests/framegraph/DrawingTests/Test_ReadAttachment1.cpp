@@ -120,7 +120,7 @@ void main() {
 		ImageViewDesc	view_desc;	view_desc.aspectMask = EImageAspect::Depth;
 		resources.BindTexture( UniformID("un_DepthImage"), depth_image, sampler, view_desc );
 
-		frame_graph->AddTask( render_pass, DrawVertices().AddDrawCmd( 3 ).SetPipeline( pipeline )
+		frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline )
 												.SetTopology( EPrimitive::TriangleList )
 												.AddResources( DescriptorSetID("0"), &resources ));
 

@@ -10,7 +10,6 @@
 namespace FG
 {
 namespace {
-
 	struct SDL2Instance
 	{
 		uint	refCounter	= 0;

@@ -106,7 +106,7 @@ void main ()
 		resources.BindBuffer( UniformID("SSB"), buffer, base_off + buf_off + src_size,  dst_size );
 
 		Task	t_write		= frame_graph->AddTask( UpdateBuffer{}.SetBuffer( buffer ).AddData( src_data, CountOf(src_data), base_off + buf_off ));
-		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetGroupCount( 1 ).DependsOn( t_write ));
+		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch({ 1, 1 }).DependsOn( t_write ));
 		Task	t_read		= frame_graph->AddTask( ReadBuffer{}.SetBuffer( buffer, base_off + buf_off + src_size, dst_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
 		FG_UNUSED( t_read );
 

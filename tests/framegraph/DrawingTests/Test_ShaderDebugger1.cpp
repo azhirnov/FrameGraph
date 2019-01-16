@@ -11,7 +11,7 @@ namespace FG
 	{
 		ComputePipelineDesc	ppln;
 
-		ppln.AddShader( EShaderLangFormat::VKSL_100 | EShaderLangFormat::WithDebugTrace, "main", R"#(
+		ppln.AddShader( EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace, "main", R"#(
 #pragma shader_stage(compute)
 #extension GL_ARB_shading_language_420pack : enable
 
@@ -43,21 +43,32 @@ void main ()
 		bool	data_is_correct				= false;
 		bool	shader_output_is_correct	= false;
 
-		const auto	OnShaderTrace = [OUT &shader_output_is_correct] (StringView taskName, EShader shaderType, ArrayView<String> output) {
-			const char	ref[] = R"#(// gl_GlobalInvocationID: uint3 {8, 8, 0}
+		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, EShader shaderType, ArrayView<String> output) {
+			const char	ref[] = R"#(//> gl_GlobalInvocationID: uint3 {8, 8, 0}
 no source
 
-// index: uint {136}
-// gl_GlobalInvocationID: uint3 {8, 8, 0}
-10. index	= gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
+//> gl_LocalInvocationID: uint3 {0, 0, 0}
+no source
 
-// size: uint {256}
-11. size	= gl_NumWorkGroups.x * gl_NumWorkGroups.y * gl_WorkGroupSize.x * gl_WorkGroupSize.y;
+//> gl_WorkGroupID: uint3 {1, 1, 0}
+no source
 
-// value: float {0.506611}
-// index: uint {136}
-// size: uint {256}
-12. value	= sin( float(index) / size );
+//> index: uint {136}
+//  gl_GlobalInvocationID: uint3 {8, 8, 0}
+11. index	= gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
+
+//> size: uint {256}
+12. size	= gl_NumWorkGroups.x * gl_NumWorkGroups.y * gl_WorkGroupSize.x * gl_WorkGroupSize.y;
+
+//> value: float {0.506611}
+//  index: uint {136}
+//  size: uint {256}
+13. value	= sin( float(index) / size );
+
+//> imageStore(): void
+//  gl_GlobalInvocationID: uint3 {8, 8, 0}
+//  value: float {0.506611}
+14. 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), vec4(value) );
 
 )#";
 			shader_output_is_correct = true;
@@ -67,7 +78,7 @@ no source
 			shader_output_is_correct &= (output.size() ? output[0] == ref : false);
 			ASSERT( shader_output_is_correct );
 		};
-		frame_graph->SetShaderDebugCallback( OnShaderTrace );
+		frame_graph->SetShaderDebugCallback( OnShaderTraceReady );
 
 		const auto	OnLoaded =	[OUT &data_is_correct, &debug_coord] (const ImageView &imageData) {
 			RGBA32f		dst;
@@ -87,7 +98,7 @@ no source
 		resources.BindImage( UniformID("un_OutImage"), image );
 
 		Task	t_comp	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources )
-																.SetGroupCount( 2, 2 ).EnableDebugTrace(uint3{ debug_coord, 0 })
+																.Dispatch({ 2, 2 }).EnableDebugTrace(uint3{ debug_coord, 0 })
 																.SetName("DebuggableCompute") );
 
 		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_comp ));
