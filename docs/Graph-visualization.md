@@ -7,4 +7,4 @@ Graph visualization contains:
 To set task name and color use `SetName()` and `SetDebugColor()`.
 
 Example:
-![image](tests/framegraph/Graphs/Test_CopyImage4.dot.png)
+![image](../tests/framegraph/Graphs/Test_CopyImage4.dot.png)
