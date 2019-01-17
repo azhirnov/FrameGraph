@@ -81,7 +81,7 @@ bool SpvCompiler::Compile (OUT Array<uint>&			spirvData,
 	shader.setAutoMapLocations( autoMapLocations );
 	shader.setAutoMapBindings( autoMapLocations );
 
-	if ( not shader.parse( &builtin_res, 460, ENoProfile, false, true, messages ) )
+	if ( not shader.parse( &builtin_res, 460, ECoreProfile, false, true, messages ) )
 	{
 		FG_LOGI( shader.getInfoLog() );
 		return false;

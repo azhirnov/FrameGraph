@@ -10,6 +10,11 @@
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringUtils.h"
 
+#ifdef FG_STD_FILESYSTEM
+#	include <filesystem>
+	namespace fs = std::filesystem;
+#endif
+
 namespace FG
 {
 	
@@ -57,7 +62,7 @@ namespace FG
 		_samples.push_back( [this] ()
 		{
 			ShaderDescr	sh_main;
-			sh_main.Pipeline( R"#(Glowballs.glsl)#" );
+			sh_main.Pipeline( FG_DATA_PATH "st_shaders/Glowballs.glsl" );
 			sh_main.InChannel( "main", 0 );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
@@ -65,7 +70,7 @@ namespace FG
 		_samples.push_back( [this] ()
 		{
 			ShaderDescr	sh_main;
-			sh_main.Pipeline( R"(Skyline.glsl)" );
+			sh_main.Pipeline( FG_DATA_PATH "st_shaders/Skyline.glsl" );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
 	}
@@ -124,6 +129,7 @@ namespace FG
 
 			if ( key == "R" )					_Recompile();
 			if ( key == "T" )					_frameCounter = 0;
+			if ( key == "U" )					_debugPixel = _lastMousePos / vec2{_window->GetSize().x, _window->GetSize().y};
 
 			if ( key == "F" )					_freeze = not _freeze;
 			if ( key == "space" )				_pause = not _pause;
@@ -171,7 +177,7 @@ namespace FG
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {},
-									   VulkanDevice::GetRecomendedInstanceLayers(),
+									   {}, //VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetAllDeviceExtensions()
 									));
@@ -219,6 +225,8 @@ namespace FG
 			_frameGraph = _fgInstance->CreateThread( desc );
 			CHECK_ERR( _frameGraph );
 			CHECK_ERR( _frameGraph->Initialize( &swapchain_info ));
+			
+			_frameGraph->SetShaderDebugCallback([this] (auto name, auto, auto output) { _OnShaderTraceReady(name, output); });
 		}
 
 		// add glsl pipeline compiler
@@ -228,6 +236,20 @@ namespace FG
 
 			_fgInstance->AddPipelineCompiler( ppln_compiler );
 		}
+		
+		// setup debug output
+#		ifdef FG_STD_FILESYSTEM
+		{
+			fs::path	path{ FG_DATA_PATH "_debug_output" };
+		
+			if ( fs::exists( path ) )
+				fs::remove_all( path );
+		
+			CHECK( fs::create_directory( path ));
+
+			_debugOutputPath = path.string();
+		}
+#		endif	// FG_STD_FILESYSTEM
 
 		_CreateSamplers();
 		_InitSamples();
@@ -284,9 +306,9 @@ namespace FG
 			const uint	pass_idx = _passIdx;
 
 			// run shaders
-			for (auto& sh : _ordered)
+			for (size_t i = 0; i < _ordered.size(); ++i)
 			{
-				_DrawWithShader( sh, pass_idx );
+				_DrawWithShader( _ordered[i], pass_idx, i+1 == _ordered.size() );
 			}
 		
 			// present
@@ -357,7 +379,7 @@ namespace FG
 	_DrawWithShader
 =================================================
 */
-	bool FGShadertoyApp::_DrawWithShader (const ShaderPtr &shader, uint passIndex)
+	bool FGShadertoyApp::_DrawWithShader (const ShaderPtr &shader, uint passIndex, bool isLast)
 	{
 		auto&	pass		= shader->_perPass[passIndex];
 		auto	view_size	= _frameGraph->GetDescription( pass.renderTarget ).dimension.xy();
@@ -385,8 +407,20 @@ namespace FG
 									.AddTarget( RenderTargetID("out_Color"), pass.renderTarget, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 									.AddViewport( view_size ) );
 
-		_frameGraph->AddTask( pass_id, DrawVertices{}.SetPipeline( shader->_pipeline ).AddResources( DescriptorSetID{"0"}, &pass.resources )
-													 .AddDrawCmd( 4 ).SetTopology( EPrimitive::TriangleStrip ));
+		DrawVertices	draw_task;
+		draw_task.SetPipeline( shader->_pipeline );
+		draw_task.AddResources( DescriptorSetID{"0"}, &pass.resources );
+		draw_task.Draw( 4 ).SetTopology( EPrimitive::TriangleStrip );
+
+		if ( isLast and _debugPixel.has_value() )
+		{
+			const vec2	coord = vec2{pass.viewport.x, pass.viewport.y} * (*_debugPixel) + 0.5f;
+
+			draw_task.EnableFragmentDebugTrace( uint(coord.x), uint(coord.y) );
+			_debugPixel.reset();
+		}
+
+		_frameGraph->AddTask( pass_id, draw_task );
 
 		_currTask = _frameGraph->AddTask( SubmitRenderPass{ pass_id }.DependsOn( _currTask ));
 		return true;
@@ -671,7 +705,7 @@ namespace FG
 
 		GraphicsPipelineDesc	desc;
 		desc.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", vs_source );
-		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100, "main", std::move(src0) );
+		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace, "main", std::move(src0) );
 
 		return _frameGraph->CreatePipeline( std::move(desc) );
 	}
@@ -722,7 +756,8 @@ namespace FG
 		_shaders.clear();
 		_ordered.clear();
 
-		_surfaceSize = Default;
+		_surfaceSize	= Default;
+		_frameCounter	= 0;
 	}
 	
 /*
@@ -830,7 +865,42 @@ namespace FG
 		return true;
 	#endif
 	}
+	
+/*
+=================================================
+	_OnShaderTraceReady
+=================================================
+*/
+	void FGShadertoyApp::_OnShaderTraceReady (StringView name, ArrayView<String> output) const
+	{
+	#	ifdef FG_STD_FILESYSTEM
+		const auto	IsExists = [] (StringView path) { return fs::exists(fs::path{ path }); };
+	#	else
+		// TODO
+	#	endif
 
+		String	fname;
+
+		for (auto& str : output)
+		{
+			for (uint index = 0; index < 100; ++index)
+			{
+				fname = String(_debugOutputPath) << '/' << name << '_' << ToString(index) << ".glsl_dbg";
+
+				if ( IsExists( fname ) )
+					continue;
+			
+				FileWStream		file{ fname };
+				
+				if ( file.IsOpen() )
+					CHECK( file.Write( str ));
+
+				break;
+			}
+		}
+	
+		CHECK(!"shader trace is ready");
+	}
 
 }	// FG
 

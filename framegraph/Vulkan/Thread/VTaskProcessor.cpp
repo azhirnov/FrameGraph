@@ -1393,11 +1393,8 @@ namespace FG
 			ASSERT( src.size + src.srcOffset <= src_buffer->Size() );
 			ASSERT( src.size + src.dstOffset <= dst_buffer->Size() );
 
-			//if ( task.SrcBuffer()->IsMutable() or task.DstBuffer()->IsMutable() )
-			{
-				_AddBuffer( src_buffer, EResourceState::TransferSrc, dst.srcOffset, dst.size );
-				_AddBuffer( dst_buffer, EResourceState::TransferDst, dst.dstOffset, dst.size );
-			}
+			_AddBuffer( src_buffer, EResourceState::TransferSrc, dst.srcOffset, dst.size );
+			_AddBuffer( dst_buffer, EResourceState::TransferDst, dst.dstOffset, dst.size );
 		}
 		
 		_CommitBarriers();

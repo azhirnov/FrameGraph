@@ -691,18 +691,18 @@ namespace _fg_hidden_
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::EnableVertexDebugTrace (uint vertex, uint primitive, uint instance, uint draw)
 	{
-		debugMode.mode		= EShaderDebugMode::Trace;
-		debugMode.shader	= EShader::Vertex;
-		debugMode.data.vert	= { vertex, primitive, instance, draw };
+		debugMode.mode	 = EShaderDebugMode::Trace;
+		debugMode.shader = EShader::Vertex;
+		debugMode.vert	 = { vertex, primitive, instance, draw };
 		return static_cast<TaskType &>( *this );
 	}
 	
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::EnableFragmentDebugTrace (uint x, uint y, uint sample, uint primitive)
 	{
-		debugMode.mode		= EShaderDebugMode::Trace;
-		debugMode.shader	= EShader::Fragment;
-		debugMode.data.frag	= { x, y, sample, primitive };
+		debugMode.mode	 = EShaderDebugMode::Trace;
+		debugMode.shader = EShader::Fragment;
+		debugMode.frag	 = { x, y, sample, primitive };
 		return static_cast<TaskType &>( *this );
 	}
 //-----------------------------------------------------------------------------

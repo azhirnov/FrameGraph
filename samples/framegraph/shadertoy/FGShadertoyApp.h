@@ -139,6 +139,7 @@ namespace FG
 		vec3					_positionDelta;
 		vec2					_mouseDelta;
 		vec2					_lastMousePos;
+		Optional<vec2>			_debugPixel;
 		bool					_mousePressed	= false;
 
 		ShadertoyUB				_ubData;
@@ -157,6 +158,8 @@ namespace FG
 		SamplerID				_nearestRepeatSampler;
 		SamplerID				_linearRepeatSampler;
 		
+		String					_debugOutputPath;
+
 		// FPS counter
 		struct {
 			Nanoseconds				frameTimeSum			{0};
@@ -196,7 +199,7 @@ namespace FG
 		bool _RecreateShaders (const uint2 &size);
 		bool _CreateShader (const ShaderPtr &shader);
 		void _DestroyShader (const ShaderPtr &shader);
-		bool _DrawWithShader (const ShaderPtr &shader, uint passIndex);
+		bool _DrawWithShader (const ShaderPtr &shader, uint passIndex, bool isLast);
 		void _UpdateShaderData ();
 
 		void _UpdateFPS ();
@@ -206,6 +209,8 @@ namespace FG
 
 		GPipelineID  _Compile (StringView name, StringView defs) const;
 		bool _Recompile ();
+		
+		void _OnShaderTraceReady (StringView name, ArrayView<String> output) const;
 	};
 
 

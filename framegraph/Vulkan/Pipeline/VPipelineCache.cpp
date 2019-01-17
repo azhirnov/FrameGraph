@@ -904,10 +904,10 @@ namespace FG
 
 			exist_stages |= sh.stage;
 
-			if ( (sh.stage != debuggable_stage and sh.debugMode != Default) or
-				 (sh.debugMode != debugMode) )
+			if ( (sh.stage == debuggable_stage and sh.debugMode != debugMode) or
+				 (sh.stage != debuggable_stage and sh.debugMode != Default) )
 				continue;
-			
+
 			used_stages |= sh.stage;
 
 			VkPipelineShaderStageCreateInfo	info = {};

@@ -1158,7 +1158,7 @@ void main ()
 */
 bool AsyncComputeApp::CreateComputePipeline ()
 {
-	// create vertex shader
+	// create compute shader
 	{
 		static const char	comp_shader_source[] = R"#(
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;	// == computeGroupSize

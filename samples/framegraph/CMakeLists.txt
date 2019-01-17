@@ -28,6 +28,7 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM} AND ${FG_ENABLE_DEVIL})
 	if (${FG_ENABLE_GLSLANG})
 		target_link_libraries( "Samples.Shadertoy" "PipelineCompiler" )
 	endif()
+	target_compile_definitions( "Samples.Shadertoy" PUBLIC "FG_DATA_PATH=R\"(${CMAKE_CURRENT_SOURCE_DIR}/shadertoy/)\"" )
 	# compiler
 	target_compile_definitions( "Samples.Shadertoy" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
 	set_target_properties( "Samples.Shadertoy" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
