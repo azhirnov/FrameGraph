@@ -43,6 +43,8 @@ namespace FG
 		ShaderModuleVk_t const&	GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
 
 		StringView				GetEntry () const override		{ return _entry; }
+		
+		StringView				GetDebugName () const override	{ return ""; }
 
 		size_t					GetHashOfData () const override	{ ASSERT(false);  return 0; }
 
@@ -377,6 +379,8 @@ namespace FG
 
 		VkShaderModule		shader_id;
 		VK_CHECK( dev.vkCreateShaderModule( dev.GetVkDevice(), &shader_info, null, OUT &shader_id ));
+
+		dev.SetObjectName( BitCast<uint64_t>(shader_id), (*shader_data)->GetDebugName(), VK_OBJECT_TYPE_SHADER_MODULE );
 
 		module = MakeShared<VShaderModule>( shader_id, (*shader_data)->GetEntry() );
 

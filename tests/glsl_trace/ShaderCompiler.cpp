@@ -3,6 +3,7 @@
 #include "ShaderCompiler.h"
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Algorithms/StringParser.h"
+#include "glsl_trace/include/ShaderTrace.h"
 
 // glslang includes
 #include "glslang/glslang/Include/revision.h"
@@ -29,6 +30,10 @@ ShaderCompiler::ShaderCompiler ()
 
 ShaderCompiler::~ShaderCompiler ()
 {
+	for (auto& sh : _debuggableShaders) {
+		delete sh.second;
+	}
+
 	glslang::FinalizeProcess();
 }
 
@@ -44,9 +49,9 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 							   uint						dbgBufferSetIndex,
 							   EShTargetLanguageVersion	spvVersion)
 {
-	ShaderTrace				debug_info;
 	Array<const char *>		shader_src;
 	const bool				debuggable	= dbgBufferSetIndex != ~0u;
+	UniquePtr<ShaderTrace>	debug_info	{ debuggable ? new ShaderTrace{} : null };
 	const FG::String		header		= "#version 460 core\n"s <<
 										  "#extension GL_ARB_separate_shader_objects : require\n" <<
 										  "#extension GL_ARB_shading_language_420pack : require\n";
@@ -54,7 +59,7 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 	shader_src.push_back( header.data() );
 	shader_src.insert( shader_src.end(), source.begin(), source.end() );
 
-	if ( not _Compile( OUT _tempBuf, OUT debuggable ? &debug_info : null, dbgBufferSetIndex, shader_src, shaderType, spvVersion ) )
+	if ( not _Compile( OUT _tempBuf, OUT debug_info.get(), dbgBufferSetIndex, shader_src, shaderType, spvVersion ) )
 		return false;
 
 	VkShaderModuleCreateInfo	info = {};
@@ -66,7 +71,7 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 	VK_CHECK( vulkan.vkCreateShaderModule( vulkan.GetVkDevice(), &info, null, OUT &shaderModule ));
 
 	if ( debuggable ) {
-		_debuggableShaders.insert_or_assign( shaderModule, std::move(debug_info) );
+		_debuggableShaders.insert_or_assign( shaderModule, debug_info.release() );
 	}
 	return true;
 }
@@ -179,6 +184,6 @@ bool ShaderCompiler::GetDebugOutput (VkShaderModule shaderModule, const void *pt
 	auto	iter = _debuggableShaders.find( shaderModule );
 	CHECK_ERR( iter != _debuggableShaders.end() );
 
-	return iter->second.ParseShaderTrace( ptr, uint64_t(maxSize), OUT result );
+	return iter->second->ParseShaderTrace( ptr, uint64_t(maxSize), OUT result );
 }
 

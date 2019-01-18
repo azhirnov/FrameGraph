@@ -1,50 +1,80 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "GLSLShaderTraceTestUtils.h"
+#include "ShaderTraceTestUtils.h"
 
 /*
 =================================================
 	CompileShaders
 =================================================
 */
-static bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler, OUT VkShaderModule &vertShader, OUT VkShaderModule &fragShader)
+static bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler,
+							OUT VkShaderModule &vertShader, OUT VkShaderModule &geomShader, OUT VkShaderModule &fragShader)
 {
 	// create vertex shader
 	{
 		static const char	vert_shader_source[] = R"#(
-const vec2	g_Positions[] = {
-	{-1.0f, -1.0f}, {-1.0f, 2.0f}, {2.0f, -1.0f},	// primitive 0 - must hit
-};
+const vec2	g_Positions[] = { {-0.5f, 0.5f}, {0.75f, -0.4f} };
 
 void main()
 {
-	gl_Position	= vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.02f, 1.0f );
+	gl_Position = vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.1f, 1.0f );
 })#";
 
 		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex ));
 	}
 
-	// create fragment shader
+	// create geometry shader
 	{
-		static const char	frag_shader_source[] = R"#(
-#extension GL_ARB_gpu_shader_int64 : require
+		static const char	geom_shader_source[] = R"#(
+layout (points) in;
+layout (triangle_strip, max_vertices = 4) out;
 
-layout(location = 0) out vec4  out_Color;
+layout(location=0) out vec4 out_Color;
 
 void main ()
 {
-	uint64_t	i = 0xFFFFFFFF00000000ul;
-	dvec2		d = dvec2(1.234e+50LF, 3.875732LF);
+	const vec4	pos  = gl_in[0].gl_Position;
+	const float	size = 2.0f;
 
-	i |= 0xFFFFFFFFul;
-	d *= 2.0;
+	vec2	va	= pos.xy + vec2(-0.5, -0.5) * size;
+	gl_Position	= vec4(va, pos.zw);
+	out_Color	= vec4(1.0f);
+	EmitVertex();
 
-	out_Color[0] = float(i);
-	out_Color[1] = float(d.x);
-	out_Color[2] = float(d.y);
+	vec2	vb	= pos.xy + vec2(-0.5, 0.5) * size;
+	gl_Position	= vec4(vb, pos.zw);
+	out_Color	= vec4(0.7f);
+	EmitVertex();
+
+	vec2	vd	= pos.xy + vec2(0.5, -0.5) * size;
+	gl_Position	= vec4(vd, pos.zw);
+	out_Color	= vec4(0.02f);
+	EmitVertex();
+
+	vec2	vc	= pos.xy + vec2(0.5, 0.5) * size;
+	gl_Position	= vec4(vc, pos.zw);
+	out_Color	= vec4(0.5f);
+	EmitVertex();
+
+	EndPrimitive();
+}
+)#";
+
+		CHECK_ERR( shaderCompiler.Compile( OUT geomShader, vulkan, {geom_shader_source}, EShLangGeometry, 0 ));
+	}
+
+	// create fragment shader
+	{
+		static const char	frag_shader_source[] = R"#(
+layout(location=0) in  vec4  in_Color;
+layout(location=0) out vec4  out_Color;
+
+void main ()
+{
+	out_Color = in_Color;
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, 0 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment ));
 	}
 	return true;
 }
@@ -54,7 +84,7 @@ void main ()
 	CreatePipeline
 =================================================
 */
-static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule vertShader, VkShaderModule fragShader,
+static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule vertShader, VkShaderModule geomShader, VkShaderModule fragShader,
 							VkDescriptorSetLayout dsLayout, VkRenderPass renderPass,
 							OUT VkPipelineLayout &outPipelineLayout, OUT VkPipeline &outPipeline)
 {
@@ -70,7 +100,7 @@ static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule vertShader, VkS
 		VK_CHECK( vulkan.vkCreatePipelineLayout( vulkan.GetVkDevice(), &info, null, OUT &outPipelineLayout ));
 	}
 
-	VkPipelineShaderStageCreateInfo			stages[2] = {};
+	VkPipelineShaderStageCreateInfo			stages[3] = {};
 	stages[0].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	stages[0].stage		= VK_SHADER_STAGE_VERTEX_BIT;
 	stages[0].module	= vertShader;
@@ -79,13 +109,17 @@ static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule vertShader, VkS
 	stages[1].stage		= VK_SHADER_STAGE_FRAGMENT_BIT;
 	stages[1].module	= fragShader;
 	stages[1].pName		= "main";
+	stages[2].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	stages[2].stage		= VK_SHADER_STAGE_GEOMETRY_BIT;
+	stages[2].module	= geomShader;
+	stages[2].pName		= "main";
 
 	VkPipelineVertexInputStateCreateInfo	vertex_input = {};
 	vertex_input.sType		= VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	
 	VkPipelineInputAssemblyStateCreateInfo	input_assembly = {};
 	input_assembly.sType	= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	input_assembly.topology	= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+	input_assembly.topology	= VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
 	VkPipelineViewportStateCreateInfo		viewport = {};
 	viewport.sType			= VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -149,14 +183,11 @@ static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule vertShader, VkS
 
 /*
 =================================================
-	GLSLShaderTrace_Test4
+	ShaderTrace_Test6
 =================================================
 */
-extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
+extern bool ShaderTrace_Test6 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
 {
-	if ( not (vulkan.GetDeviceFeatures().shaderFloat64 and vulkan.GetDeviceFeatures().shaderInt64) )
-		return true;
-
 	// create renderpass and framebuffer
 	uint			width = 16, height = 16;
 	VkRenderPass	render_pass;
@@ -168,17 +199,16 @@ extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &h
 
 
 	// create pipeline
-	ShaderCompiler	shader_compiler;
-	VkShaderModule	vert_shader, frag_shader;
-	CHECK_ERR( CompileShaders( vulkan, shader_compiler, OUT vert_shader, OUT frag_shader ));
+	VkShaderModule	vert_shader, geom_shader, frag_shader;
+	CHECK_ERR( CompileShaders( vulkan, helper.compiler, OUT vert_shader, OUT geom_shader, OUT frag_shader ));
 
 	VkDescriptorSetLayout	ds_layout;
 	VkDescriptorSet			desc_set;
-	CHECK_ERR( CreateDebugDescriptorSet( vulkan, helper, VK_SHADER_STAGE_FRAGMENT_BIT, OUT ds_layout, OUT desc_set ));
+	CHECK_ERR( CreateDebugDescriptorSet( vulkan, helper, VK_SHADER_STAGE_GEOMETRY_BIT, OUT ds_layout, OUT desc_set ));
 
 	VkPipelineLayout	ppln_layout;
 	VkPipeline			pipeline;
-	CHECK_ERR( CreatePipeline( vulkan, vert_shader, frag_shader, ds_layout, render_pass, OUT ppln_layout, OUT pipeline ));
+	CHECK_ERR( CreatePipeline( vulkan, vert_shader, geom_shader, frag_shader, ds_layout, render_pass, OUT ppln_layout, OUT pipeline ));
 
 
 	// build command buffer
@@ -204,10 +234,9 @@ extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &h
 	
 	// setup storage buffer
 	{
-		const uint	data[] = { 
-			width/2, height/2,		// selected pixel
-			~0u,					// any sample
-			~0u						// any primitive
+		const uint	data[] = {
+			0,		// invocation
+			1		// primitive
 		};
 
 		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, sizeof(data), VK_WHOLE_SIZE, 0 );
@@ -226,7 +255,7 @@ extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &h
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		
-		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT, 0,
 									 0, null, 1, &barrier, 0, null);
 	}
 
@@ -262,7 +291,7 @@ extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &h
 		vulkan.vkCmdSetScissor( helper.cmdBuffer, 0, 1, &scissor_rect );
 	}
 			
-	vulkan.vkCmdDraw( helper.cmdBuffer, 3, 1, 0, 0 );
+	vulkan.vkCmdDraw( helper.cmdBuffer, 2, 1, 0, 0 );
 			
 	vulkan.vkCmdEndRenderPass( helper.cmdBuffer );
 
@@ -278,7 +307,7 @@ extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &h
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		
-		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									 0, null, 1, &barrier, 0, null);
 	}
 
@@ -310,6 +339,7 @@ extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &h
 	{
 		vulkan.vkDestroyDescriptorSetLayout( vulkan.GetVkDevice(), ds_layout, null );
 		vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), vert_shader, null );
+		vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), geom_shader, null );
 		vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), frag_shader, null );
 		vulkan.vkDestroyPipelineLayout( vulkan.GetVkDevice(), ppln_layout, null );
 		vulkan.vkDestroyPipeline( vulkan.GetVkDevice(), pipeline, null );
@@ -319,44 +349,7 @@ extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &h
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-
-	// process debug output
-	Array<String>	debug_output;
-	CHECK_ERR( shader_compiler.GetDebugOutput( frag_shader, helper.readBackPtr, helper.debugOutputSize, OUT debug_output ));
-
-	{
-		static const char	ref[] = R"#(//> gl_FragCoord: float4 {8.500000, 8.500000, 0.021250, 1.000000}
-no source
-
-//> gl_PrimitiveID: int {0}
-no source
-
-//> i: ulong {18446744069414584320}
-8. i = 0xFFFFFFFF00000000ul;
-
-//> d: double2 {123400000000000008168984737859029931218667655135232.000000, 3.875732}
-9. d = dvec2(1.234e+50LF, 3.875732LF);
-
-//> i: ulong {18446744073709551615}
-11. i |= 0xFFFFFFFFul;
-
-//> out_Color: float {18446744073709551616.000000}
-//  i: ulong {18446744073709551615}
-14. out_Color[0] = float(i);
-
-//> out_Color: float2 {18446744073709551616.000000, inf}
-//  d: double2 {123400000000000008168984737859029931218667655135232.000000, 3.875732}
-15. out_Color[1] = float(d.x);
-
-//> out_Color: float3 {18446744073709551616.000000, inf, 7.751464}
-//  d: double2 {123400000000000008168984737859029931218667655135232.000000, 3.875732}
-16. out_Color[2] = float(d.y);
-
-)#";
-
-		CHECK_ERR( debug_output.size() == 1 );
-		CHECK_ERR( debug_output[0] == ref );
-	}
+	CHECK_ERR( TestDebugOutput( helper, geom_shader, "Test6.txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "GLSLShaderTraceTestUtils.h"
+#include "ShaderTraceTestUtils.h"
 
 /*
 =================================================
@@ -54,108 +54,10 @@ void main ()
 
 /*
 =================================================
-	CreatePipeline
+	ShaderTrace_Test3
 =================================================
 */
-static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule vertShader, VkShaderModule fragShader,
-							VkDescriptorSetLayout dsLayout, VkRenderPass renderPass,
-							OUT VkPipelineLayout &outPipelineLayout, OUT VkPipeline &outPipeline)
-{
-	// create pipeline layout
-	{
-		VkPipelineLayoutCreateInfo	info = {};
-		info.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		info.setLayoutCount			= 1;
-		info.pSetLayouts			= &dsLayout;
-		info.pushConstantRangeCount	= 0;
-		info.pPushConstantRanges	= null;
-
-		VK_CHECK( vulkan.vkCreatePipelineLayout( vulkan.GetVkDevice(), &info, null, OUT &outPipelineLayout ));
-	}
-
-	VkPipelineShaderStageCreateInfo			stages[2] = {};
-	stages[0].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	stages[0].stage		= VK_SHADER_STAGE_VERTEX_BIT;
-	stages[0].module	= vertShader;
-	stages[0].pName		= "main";
-	stages[1].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	stages[1].stage		= VK_SHADER_STAGE_FRAGMENT_BIT;
-	stages[1].module	= fragShader;
-	stages[1].pName		= "main";
-
-	VkPipelineVertexInputStateCreateInfo	vertex_input = {};
-	vertex_input.sType		= VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	
-	VkPipelineInputAssemblyStateCreateInfo	input_assembly = {};
-	input_assembly.sType	= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	input_assembly.topology	= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-
-	VkPipelineViewportStateCreateInfo		viewport = {};
-	viewport.sType			= VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewport.viewportCount	= 1;
-	viewport.scissorCount	= 1;
-
-	VkPipelineRasterizationStateCreateInfo	rasterization = {};
-	rasterization.sType			= VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterization.polygonMode	= VK_POLYGON_MODE_FILL;
-	rasterization.cullMode		= VK_CULL_MODE_NONE;
-	rasterization.frontFace		= VK_FRONT_FACE_COUNTER_CLOCKWISE;
-
-	VkPipelineMultisampleStateCreateInfo	multisample = {};
-	multisample.sType					= VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisample.rasterizationSamples	= VK_SAMPLE_COUNT_1_BIT;
-
-	VkPipelineDepthStencilStateCreateInfo	depth_stencil = {};
-	depth_stencil.sType					= VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depth_stencil.depthTestEnable		= VK_FALSE;
-	depth_stencil.depthWriteEnable		= VK_FALSE;
-	depth_stencil.depthCompareOp		= VK_COMPARE_OP_LESS_OR_EQUAL;
-	depth_stencil.depthBoundsTestEnable	= VK_FALSE;
-	depth_stencil.stencilTestEnable		= VK_FALSE;
-
-	VkPipelineColorBlendAttachmentState		blend_attachment = {};
-	blend_attachment.blendEnable		= VK_FALSE;
-	blend_attachment.colorWriteMask		= VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
-	VkPipelineColorBlendStateCreateInfo		blend_state = {};
-	blend_state.sType				= VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	blend_state.logicOpEnable		= VK_FALSE;
-	blend_state.attachmentCount		= 1;
-	blend_state.pAttachments		= &blend_attachment;
-
-	VkDynamicState							dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-	VkPipelineDynamicStateCreateInfo		dynamic_state = {};
-	dynamic_state.sType				= VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamic_state.dynamicStateCount	= uint(CountOf( dynamic_states ));
-	dynamic_state.pDynamicStates	= dynamic_states;
-
-	// create pipeline
-	VkGraphicsPipelineCreateInfo	info = {};
-	info.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	info.stageCount				= uint(CountOf( stages ));
-	info.pStages				= stages;
-	info.pViewportState			= &viewport;
-	info.pVertexInputState		= &vertex_input;
-	info.pInputAssemblyState	= &input_assembly;
-	info.pRasterizationState	= &rasterization;
-	info.pMultisampleState		= &multisample;
-	info.pDepthStencilState		= &depth_stencil;
-	info.pColorBlendState		= &blend_state;
-	info.pDynamicState			= &dynamic_state;
-	info.layout					= outPipelineLayout;
-	info.renderPass				= renderPass;
-	info.subpass				= 0;
-
-	VK_CHECK( vulkan.vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &outPipeline ));
-	return true;
-}
-
-/*
-=================================================
-	GLSLShaderTrace_Test3
-=================================================
-*/
-extern bool GLSLShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
+extern bool ShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
 {
 	// create renderpass and framebuffer
 	uint			width = 16, height = 16;
@@ -168,9 +70,8 @@ extern bool GLSLShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &h
 
 
 	// create pipeline
-	ShaderCompiler	shader_compiler;
 	VkShaderModule	vert_shader, frag_shader;
-	CHECK_ERR( CompileShaders( vulkan, shader_compiler, OUT vert_shader, OUT frag_shader ));
+	CHECK_ERR( CompileShaders( vulkan, helper.compiler, OUT vert_shader, OUT frag_shader ));
 
 	VkDescriptorSetLayout	ds_layout;
 	VkDescriptorSet			desc_set;
@@ -178,7 +79,7 @@ extern bool GLSLShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &h
 
 	VkPipelineLayout	ppln_layout;
 	VkPipeline			pipeline;
-	CHECK_ERR( CreatePipeline( vulkan, vert_shader, frag_shader, ds_layout, render_pass, OUT ppln_layout, OUT pipeline ));
+	CHECK_ERR( CreateGraphicsPipelineVar1( vulkan, vert_shader, frag_shader, ds_layout, render_pass, OUT ppln_layout, OUT pipeline ));
 
 
 	// build command buffer
@@ -319,66 +220,7 @@ extern bool GLSLShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &h
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-
-	// process debug output
-	Array<String>	debug_output;
-	CHECK_ERR( shader_compiler.GetDebugOutput( frag_shader, helper.readBackPtr, helper.debugOutputSize, OUT debug_output ));
-
-	{
-		static const char	ref[] = R"#(// gl_FragCoord: float4 {8.500000, 8.500000, 0.021250, 1.000000}
-no source
-
-// gl_PrimitiveID: int {0}
-no source
-
-// m1: float4 {1.000000, 1.000000, 1.000000, 1.000000}
-7. m1[0] = vec4(1.0f);		m1[1] = vec4(2.0f);		m1[2] = vec4(3.0f);		m1[3] = vec4(4.0f);
-
-// m1: float4 {2.000000, 2.000000, 2.000000, 2.000000}
-7. m1[1] = vec4(2.0f);		m1[2] = vec4(3.0f);		m1[3] = vec4(4.0f);
-
-// m1: float4 {3.000000, 3.000000, 3.000000, 3.000000}
-7. m1[2] = vec4(3.0f);		m1[3] = vec4(4.0f);
-
-// m1: float4 {4.000000, 4.000000, 4.000000, 4.000000}
-7. m1[3] = vec4(4.0f);
-
-// m2: float3 {11.100000, 11.100000, 11.100000}
-10. m2[0] = vec3(11.1f);	m2[1] = vec3(12.2f);
-
-// m2: float3 {12.200000, 12.200000, 12.200000}
-10. m2[1] = vec3(12.2f);
-
-// m3: float4 {6.000000, 6.000000, 6.000000, 6.000000}
-13. m3[0] = vec4(6.0f);		m3[1] = vec4(7.0f);		m3[2] = vec4(8.0f);		m3[3] = vec4(9.0f);
-
-// m3: float4 {7.000000, 7.000000, 7.000000, 7.000000}
-13. m3[1] = vec4(7.0f);		m3[2] = vec4(8.0f);		m3[3] = vec4(9.0f);
-
-// m3: float4 {8.000000, 8.000000, 8.000000, 8.000000}
-13. m3[2] = vec4(8.0f);		m3[3] = vec4(9.0f);
-
-// m3: float4 {9.000000, 9.000000, 9.000000, 9.000000}
-13. m3[3] = vec4(9.0f);
-
-// m3: float {44.000000}
-15. m3[0][1] = 44.0f;
-
-// m4: float4x4 {{90.000000, 90.000000, 90.000000, 90.000000}, {90.000000, 90.000000, 90.000000, 90.000000}, {90.000000, 90.000000, 90.000000, 90.000000}, {90.000000, 90.000000, 90.000000, 90.000000}, }
-// m1: float4 {4.000000, 4.000000, 4.000000, 4.000000}
-// m3: float {44.000000}
-17. m4 = m1 * m3;
-
-// out_Color: float4 {3217.699951, 3217.699951, 3217.699951, 3009.000000}
-// m2: float3 {12.200000, 12.200000, 12.200000}
-// m4: float4x4 {{90.000000, 90.000000, 90.000000, 90.000000}, {90.000000, 90.000000, 90.000000, 90.000000}, {90.000000, 90.000000, 90.000000, 90.000000}, {90.000000, 90.000000, 90.000000, 90.000000}, }
-19. out_Color = (m4 * vec4(8.0f)) + vec4(m2 * vec2(9.0f), 1.0f);
-
-)#";
-
-		CHECK_ERR( debug_output.size() == 1 );
-		CHECK_ERR( debug_output[0] == ref );
-	}
+	CHECK_ERR( TestDebugOutput( helper, frag_shader, "Test3.txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

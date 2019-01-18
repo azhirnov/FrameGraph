@@ -13,3 +13,4 @@ CMakeLists.txt.user
 /external/glm
 /external/DevIL
 /external/FreeImage
+/samples/framegraph/shadertoy/_debug_output

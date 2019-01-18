@@ -8,6 +8,7 @@
 `R` - reload shader
 `T` - reset time
 `F` - freeze time
+`U` - run shader debugger for pixel under cursor
 `space` - pause rendering
 `escape` - exit
 `left mouse button` - rotate by mouse

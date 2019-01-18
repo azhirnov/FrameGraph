@@ -4,7 +4,6 @@
 
 #include "framework/Vulkan/VulkanDevice.h"
 #include "stl/Algorithms/ArrayUtils.h"
-#include "glsl_trace/include/ShaderTrace.h"
 
 // glslang includes
 #include "glslang/glslang/Public/ShaderLang.h"
@@ -12,11 +11,13 @@
 
 using namespace FG;
 
+struct ShaderTrace;
+
 
 class ShaderCompiler
 {
 public:
-	using Debuggable_t	= HashMap< VkShaderModule, ShaderTrace >;
+	using Debuggable_t	= HashMap< VkShaderModule, ShaderTrace* >;
 
 
 private:

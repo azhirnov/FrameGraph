@@ -62,7 +62,7 @@ namespace FG
 		_samples.push_back( [this] ()
 		{
 			ShaderDescr	sh_main;
-			sh_main.Pipeline( FG_DATA_PATH "st_shaders/Glowballs.glsl" );
+			sh_main.Pipeline( "st_shaders/Glowballs.glsl" );
 			sh_main.InChannel( "main", 0 );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
@@ -70,7 +70,7 @@ namespace FG
 		_samples.push_back( [this] ()
 		{
 			ShaderDescr	sh_main;
-			sh_main.Pipeline( FG_DATA_PATH "st_shaders/Skyline.glsl" );
+			sh_main.Pipeline( "st_shaders/Skyline.glsl" );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
 	}
@@ -177,7 +177,7 @@ namespace FG
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {},
-									   {}, //VulkanDevice::GetRecomendedInstanceLayers(),
+									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetAllDeviceExtensions()
 									));
@@ -683,7 +683,7 @@ namespace FG
 
 		String	src0, src1;
 		{
-			FileRStream		file{ name };
+			FileRStream		file{ String{FG_DATA_PATH} << name };
 			CHECK_ERR( file.IsOpen() );
 			CHECK_ERR( file.Read( size_t(file.Size()), OUT src1 ));
 		}
@@ -705,9 +705,9 @@ namespace FG
 
 		GraphicsPipelineDesc	desc;
 		desc.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", vs_source );
-		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace, "main", std::move(src0) );
+		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace, "main", std::move(src0), name );
 
-		return _frameGraph->CreatePipeline( std::move(desc) );
+		return _frameGraph->CreatePipeline( std::move(desc), name );
 	}
 	
 /*
@@ -823,6 +823,7 @@ namespace FG
 */
 	bool FGShadertoyApp::_LoadImage (const String &filename, OUT ImageID &id)
 	{
+#	ifdef FG_ENABLE_DEVIL
 		auto	iter = _imageCache.find( filename );
 		
 		if ( iter != _imageCache.end() )
@@ -850,6 +851,9 @@ namespace FG
 
 		_imageCache.insert_or_assign( filename, ImageID{id.Get()} );
 		return true;
+#	else
+		return false;
+#	endif
 	}
 	
 /*
@@ -889,12 +893,13 @@ namespace FG
 
 				if ( IsExists( fname ) )
 					continue;
-			
+
 				FileWStream		file{ fname };
 				
 				if ( file.IsOpen() )
 					CHECK( file.Write( str ));
-
+				
+				FG_LOGI( "Shader trace saved to '"s << fname << "'" );
 				break;
 			}
 		}

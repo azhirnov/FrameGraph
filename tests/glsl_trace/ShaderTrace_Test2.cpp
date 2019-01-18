@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "GLSLShaderTraceTestUtils.h"
+#include "ShaderTraceTestUtils.h"
 
 /*
 =================================================
@@ -9,7 +9,7 @@
 */
 static bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler, OUT VkShaderModule &compShader)
 {
-	// create vertex shader
+	// create compute shader
 	{
 		static const char	comp_shader_source[] = R"#(
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
@@ -76,10 +76,10 @@ static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule compShader, Arr
 
 /*
 =================================================
-	GLSLShaderTrace_Test2
+	ShaderTrace_Test2
 =================================================
 */
-extern bool GLSLShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
+extern bool ShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
 {	
 	// create image
 	VkImage			image;
@@ -132,9 +132,8 @@ extern bool GLSLShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &h
 
 
 	// create pipeline
-	ShaderCompiler	shader_compiler;
 	VkShaderModule	comp_shader;
-	CHECK_ERR( CompileShaders( vulkan, shader_compiler, OUT comp_shader ));
+	CHECK_ERR( CompileShaders( vulkan, helper.compiler, OUT comp_shader ));
 
 	VkDescriptorSetLayout	ds1_layout, ds2_layout;
 	VkDescriptorSet			desc_set1, desc_set2;
@@ -236,11 +235,14 @@ extern bool GLSLShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &h
 									 0, null, 1, &barrier, 0, null);
 	}
 	
-	vulkan.vkCmdBindPipeline( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline );
-	vulkan.vkCmdBindDescriptorSets( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_layout, 0, 1, &desc_set1, 0, null );
-	vulkan.vkCmdBindDescriptorSets( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_layout, 1, 1, &desc_set2, 0, null );
+	// dispatch
+	{
+		vulkan.vkCmdBindPipeline( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline );
+		vulkan.vkCmdBindDescriptorSets( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_layout, 0, 1, &desc_set1, 0, null );
+		vulkan.vkCmdBindDescriptorSets( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_layout, 1, 1, &desc_set2, 0, null );
 	
-	vulkan.vkCmdDispatch( helper.cmdBuffer, width, height, 1 );
+		vulkan.vkCmdDispatch( helper.cmdBuffer, width, height, 1 );
+	}
 
 	// debug output storage read after write
 	{
@@ -293,50 +295,7 @@ extern bool GLSLShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &h
 		vulkan.vkFreeMemory( vulkan.GetVkDevice(), image_mem, null );
 	}
 
-	// process debug output
-	Array<String>	debug_output;
-	CHECK_ERR( shader_compiler.GetDebugOutput( comp_shader, helper.readBackPtr, helper.debugOutputSize, OUT debug_output ));
-	
-	static const char	ref[] = R"#(//> gl_GlobalInvocationID: uint3 {8, 8, 0}
-no source
-
-//> gl_LocalInvocationID: uint3 {0, 0, 0}
-no source
-
-//> gl_WorkGroupID: uint3 {8, 8, 0}
-no source
-
-//> Test1(): void
-23. 	Test1( color );
-
-//> point: float2 {0.533333, 0.533333}
-//  gl_GlobalInvocationID: uint3 {8, 8, 0}
-8. point = (vec3(gl_GlobalInvocationID) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1)).xy;
-
-//> (out): bool {false}
-//  gl_GlobalInvocationID: uint3 {8, 8, 0}
-10. if ( (gl_GlobalInvocationID.x & 1) == 1 )
-
-//> color: float4 {0.533333, 0.533333, 0.533333, 0.533333}
-//  point: float2 {0.533333, 0.533333}
-16. color = point.xyyx;
-
-//> cos(): float {0.861117}
-//  color: float4 {0.533333, 0.533333, 0.533333, 0.533333}
-17. 	color.x = cos(color.y) * color.z;
-
-//> color: float4 {0.459263, 0.533333, 0.533333, 0.533333}
-//  cos(): float {0.861117}
-17. color.x = cos(color.y) * color.z;
-
-//> imageStore(): void
-//  gl_GlobalInvocationID: uint3 {8, 8, 0}
-24. 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), color );
-
-)#";
-
-	CHECK_ERR( debug_output.size() == 1 );
-	CHECK_ERR( debug_output[0] == ref );
+	CHECK_ERR( TestDebugOutput( helper, comp_shader, "Test2.txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

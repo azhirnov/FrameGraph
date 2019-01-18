@@ -114,7 +114,7 @@ namespace FG
 		bool SetCurrentResourceLimits (PhysicalDeviceVk_t physicalDevice);
 
 		bool Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-					  StringView entry, StringView source,
+					  StringView entry, StringView source, StringView debugName,
 					  OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log);
 		
 		bool Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,

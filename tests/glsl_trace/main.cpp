@@ -1,199 +1,18 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "GLSLShaderTraceTestUtils.h"
-#include "stl/Algorithms/ArrayUtils.h"
+#include "ShaderTraceTestUtils.h"
 
-extern bool GLSLShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
-extern bool GLSLShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
-extern bool GLSLShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
-extern bool GLSLShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test5 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test6 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test7 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test8 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test9 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test10 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 
-
-/*
-=================================================
-	CreateDebugDescSetLayout
-=================================================
-*/
-bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlagBits stage,
-							   OUT VkDescriptorSetLayout &dsLayout, OUT VkDescriptorSet &descSet)
-{
-	// create layout
-	{
-		VkDescriptorSetLayoutBinding	binding = {};
-		binding.binding			= 0;
-		binding.descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		binding.descriptorCount	= 1;
-		binding.stageFlags		= stage;
-
-		VkDescriptorSetLayoutCreateInfo		info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		info.bindingCount	= 1;
-		info.pBindings		= &binding;
-
-		VK_CHECK( vulkan.vkCreateDescriptorSetLayout( vulkan.GetVkDevice(), &info, null, OUT &dsLayout ));
-	}
-	
-	// allocate descriptor set
-	{
-		VkDescriptorSetAllocateInfo		info = {};
-		info.sType				= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		info.descriptorPool		= helper.descPool;
-		info.descriptorSetCount	= 1;
-		info.pSetLayouts		= &dsLayout;
-
-		VK_CHECK( vulkan.vkAllocateDescriptorSets( vulkan.GetVkDevice(), &info, OUT &descSet ));
-	}
-
-	// update descriptor set
-	{
-		VkDescriptorBufferInfo	buffer	= {};
-		buffer.buffer	= helper.debugOutputBuf;
-		buffer.range	= VK_WHOLE_SIZE;
-		
-		VkWriteDescriptorSet	write	= {};
-		write.sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		write.dstSet			= descSet;
-		write.dstBinding		= 0;
-		write.descriptorCount	= 1;
-		write.descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		write.pBufferInfo		= &buffer;
-		
-		vulkan.vkUpdateDescriptorSets( vulkan.GetVkDevice(), 1, &write, 0, null );
-	}
-	return true;
-}
-
-/*
-=================================================
-	CreateRenderTarget
-=================================================
-*/
-bool CreateRenderTarget (VulkanDeviceExt &vulkan, VkFormat colorFormat, uint width, uint height, VkImageUsageFlags imageUsage,
-						 OUT VkRenderPass &outRenderPass, OUT VkImage &outImage,
-						 OUT VkDeviceMemory &outImageMem, OUT VkFramebuffer &outFramebuffer)
-{
-	// create image
-	{
-		VkImageCreateInfo	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		info.flags			= 0;
-		info.imageType		= VK_IMAGE_TYPE_2D;
-		info.format			= colorFormat;
-		info.extent			= { width, height, 1 };
-		info.mipLevels		= 1;
-		info.arrayLayers	= 1;
-		info.samples		= VK_SAMPLE_COUNT_1_BIT;
-		info.tiling			= VK_IMAGE_TILING_OPTIMAL;
-		info.usage			= imageUsage | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
-		info.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
-
-		VK_CHECK( vulkan.vkCreateImage( vulkan.GetVkDevice(), &info, null, OUT &outImage ));
-
-		VkMemoryRequirements	mem_req;
-		vulkan.vkGetImageMemoryRequirements( vulkan.GetVkDevice(), outImage, OUT &mem_req );
-		
-		// allocate device local memory
-		VkMemoryAllocateInfo	alloc_info = {};
-		alloc_info.sType			= VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		alloc_info.allocationSize	= mem_req.size;
-		CHECK_ERR( vulkan.GetMemoryTypeIndex( mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, OUT alloc_info.memoryTypeIndex ));
-
-		VK_CHECK( vulkan.vkAllocateMemory( vulkan.GetVkDevice(), &alloc_info, null, OUT &outImageMem ));
-		VK_CHECK( vulkan.vkBindImageMemory( vulkan.GetVkDevice(), outImage, outImageMem, 0 ));
-	}
-
-	// create image view
-	VkImageView		view = VK_NULL_HANDLE;
-	{
-		VkImageViewCreateInfo	info = {};
-		info.sType				= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		info.flags				= 0;
-		info.image				= outImage;
-		info.viewType			= VK_IMAGE_VIEW_TYPE_2D;
-		info.format				= colorFormat;
-		info.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
-		info.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-		VK_CHECK( vulkan.vkCreateImageView( vulkan.GetVkDevice(), &info, null, OUT &view ));
-	}
-
-	// create renderpass
-	{
-		// setup attachment
-		VkAttachmentDescription		attachments[1] = {};
-
-		attachments[0].format			= colorFormat;
-		attachments[0].samples			= VK_SAMPLE_COUNT_1_BIT;
-		attachments[0].loadOp			= VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[0].storeOp			= VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[0].stencilLoadOp	= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[0].stencilStoreOp	= VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[0].initialLayout	= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		attachments[0].finalLayout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-
-		// setup subpasses
-		VkSubpassDescription	subpasses[1]		= {};
-		VkAttachmentReference	attachment_ref[1]	= {};
-
-		attachment_ref[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
-		subpasses[0].pipelineBindPoint		= VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpasses[0].colorAttachmentCount	= 1;
-		subpasses[0].pColorAttachments		= &attachment_ref[0];
-
-
-		// setup dependencies
-		VkSubpassDependency		dependencies[2] = {};
-
-		dependencies[0].srcSubpass		= VK_SUBPASS_EXTERNAL;
-		dependencies[0].dstSubpass		= 0;
-		dependencies[0].srcStageMask	= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[0].dstStageMask	= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencies[0].srcAccessMask	= VK_ACCESS_MEMORY_READ_BIT;
-		dependencies[0].dstAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependencies[0].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
-
-		dependencies[1].srcSubpass		= 0;
-		dependencies[1].dstSubpass		= VK_SUBPASS_EXTERNAL;
-		dependencies[1].srcStageMask	= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencies[1].dstStageMask	= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[1].srcAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependencies[1].dstAccessMask	= 0;
-		dependencies[1].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
-
-
-		// setup create info
-		VkRenderPassCreateInfo	info = {};
-		info.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		info.flags				= 0;
-		info.attachmentCount	= uint(CountOf( attachments ));
-		info.pAttachments		= attachments;
-		info.subpassCount		= uint(CountOf( subpasses ));
-		info.pSubpasses			= subpasses;
-		info.dependencyCount	= uint(CountOf( dependencies ));
-		info.pDependencies		= dependencies;
-
-		VK_CHECK( vulkan.vkCreateRenderPass( vulkan.GetVkDevice(), &info, null, OUT &outRenderPass ));
-	}
-	
-	// create framebuffer
-	{
-		VkFramebufferCreateInfo		info = {};
-		info.sType				= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		info.flags				= 0;
-		info.renderPass			= outRenderPass;
-		info.attachmentCount	= 1;
-		info.pAttachments		= &view;
-		info.width				= width;
-		info.height				= height;
-		info.layers				= 1;
-
-		VK_CHECK( vulkan.vkCreateFramebuffer( vulkan.GetVkDevice(), &info, null, OUT &outFramebuffer ));
-	}
-	return true;
-}
 
 /*
 =================================================
@@ -212,7 +31,7 @@ int main ()
 								  {{ VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.0f }},
 								  VulkanDevice::GetRecomendedInstanceLayers(),
 								  VulkanDevice::GetRecomendedInstanceExtensions(),
-								  VulkanDevice::GetRecomendedDeviceExtensions()
+								  VulkanDevice::GetAllDeviceExtensions()
 			));
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 	}
@@ -243,11 +62,18 @@ int main ()
 
 	// create descriptor pool
 	{
-		const VkDescriptorPoolSize		sizes[] = {
+		VkDescriptorPoolSize	sizes[] = {
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
 			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 }
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 },
+			{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 100 }
 		};
+		
+		if ( vulkan.GetDeviceRayTracingProperties().shaderGroupHandleSize == 0 )
+		{
+			// if ray-tracing is not supported then change descriptor type for something else
+			sizes[3].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+		}
 
 		VkDescriptorPoolCreateInfo		info = {};
 		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -314,10 +140,16 @@ int main ()
 
 	// run tests
 	{
-		CHECK_FATAL( GLSLShaderTrace_Test1( vulkan, helper ));
-		CHECK_FATAL( GLSLShaderTrace_Test2( vulkan, helper ));
-		//CHECK_FATAL( GLSLShaderTrace_Test3( vulkan, helper ));
-		CHECK_FATAL( GLSLShaderTrace_Test4( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test1( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test2( vulkan, helper ));
+		//CHECK_FATAL( ShaderTrace_Test3( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test4( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test5( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test6( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test7( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test8( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test9( vulkan, helper ));
+		CHECK_FATAL( ShaderTrace_Test10( vulkan, helper ));
 	}
 
 	// destroy all

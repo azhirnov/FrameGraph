@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 3.6.0)
 #==================================================================================================
 # project: Samples.Shadertoy
 #==================================================================================================
-if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM} AND ${FG_ENABLE_DEVIL})
+if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM})
 	set( SOURCES 
 		"shadertoy/st_shaders/Glowballs.glsl"
 		"shadertoy/st_shaders/Skyline.glsl"

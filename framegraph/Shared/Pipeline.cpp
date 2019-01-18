@@ -14,20 +14,24 @@ namespace FG
 	{
 	// variables
 	private:
-		T			_data;
-		String		_entry;
+		T					_data;
+		StaticString<64>	_entry;
+		StaticString<64>	_dbgName;
 
 
 	// methods
 	public:
-		ShaderDataImpl (T &&data, StringView entry) :
+		ShaderDataImpl (T &&data, StringView entry, StringView dbgName) :
 			_data{ std::move(data) },
-			_entry{ entry }
+			_entry{ entry },
+			_dbgName{ dbgName }
 		{}
 		
 		T const&	GetData () const override		{ return _data; }
 
 		StringView	GetEntry () const override		{ return _entry; }
+		
+		StringView	GetDebugName () const override	{ return _dbgName; }
 
 		size_t		GetHashOfData () const override	{ ASSERT(false);  return 0; }
 
@@ -39,19 +43,19 @@ namespace FG
 	AddShaderData
 =================================================
 */
-	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, String &&src)
+	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName)
 	{
-		data.insert({ fmt, MakeShared<ShaderDataImpl<String>>( std::move(src), entry ) });
+		data.insert({ fmt, MakeShared<ShaderDataImpl<String>>( std::move(src), entry, dbgName ) });
 	}
 	
-	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
 	{
-		data.insert({ fmt, MakeShared<ShaderDataImpl<Array<uint8_t>>>( std::move(bin), entry ) });
+		data.insert({ fmt, MakeShared<ShaderDataImpl<Array<uint8_t>>>( std::move(bin), entry, dbgName ) });
 	}
 	
-	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
-		data.insert({ fmt, MakeShared<ShaderDataImpl<Array<uint>>>( std::move(bin), entry ) });
+		data.insert({ fmt, MakeShared<ShaderDataImpl<Array<uint>>>( std::move(bin), entry, dbgName ) });
 	}
 //-----------------------------------------------------------------------------
 	
@@ -264,12 +268,12 @@ namespace FG
 =================================================
 */
 	static void AddShaderSource (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
-								 EShaderLangFormat fmt, StringView entry, String &&src)
+								 EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName)
 	{
 		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
 		ASSERT( shader.data.count( fmt ) == 0 );
 
-		shader.AddShaderData( fmt, entry, std::move(src) );
+		shader.AddShaderData( fmt, entry, std::move(src), dbgName );
 	}
 	
 /*
@@ -278,12 +282,12 @@ namespace FG
 =================================================
 */
 	static void AddShaderBinary8 (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
-								  EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+								  EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
 	{
 		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
 		ASSERT( shader.data.count( fmt ) == 0 );
 
-		shader.AddShaderData( fmt, entry, std::move(bin) );
+		shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
 	}
 	
 /*
@@ -292,12 +296,12 @@ namespace FG
 =================================================
 */
 	static void AddShaderBinary32 (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
-								   EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+								   EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
 		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
 		ASSERT( shader.data.count( fmt ) == 0 );
 
-		shader.AddShaderData( fmt, entry, std::move(bin) );
+		shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
 	}
 	
 /*
@@ -363,24 +367,24 @@ namespace FG
 	AddShader
 =================================================
 */
-	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
+	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName)
 	{
 		ASSERT( IsGraphicsShader( shaderType ));
-		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src) );
+		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src), dbgName );
 		return *this;
 	}
 	
-	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
 	{
 		ASSERT( IsGraphicsShader( shaderType ));
-		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	
-	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
 		ASSERT( IsGraphicsShader( shaderType ));
-		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	
@@ -439,24 +443,24 @@ namespace FG
 	AddShader
 =================================================
 */
-	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
+	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName)
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ));
-		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src) );
+		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src), dbgName );
 		return *this;
 	}
 	
-	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ));
-		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	
-	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ));
-		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin) );
+		AddShaderBinary32( INOUT _shaders, shaderType, fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	
@@ -516,7 +520,7 @@ namespace FG
 	AddShader
 =================================================
 */
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src)
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName)
 	{
 		ASSERT( IsRayTracingShader( shaderType ));
 
@@ -524,11 +528,11 @@ namespace FG
 		ASSERT( shader.data.count( fmt ) == 0 );
 		
 		shader.shaderType = shaderType;
-		shader.AddShaderData( fmt, entry, std::move(src) );
+		shader.AddShaderData( fmt, entry, std::move(src), dbgName );
 		return *this;
 	}
 	
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
 	{
 		ASSERT( IsRayTracingShader( shaderType ));
 
@@ -536,11 +540,11 @@ namespace FG
 		ASSERT( shader.data.count( fmt ) == 0 );
 		
 		shader.shaderType = shaderType;
-		shader.AddShaderData( fmt, entry, std::move(bin) );
+		shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
 		ASSERT( IsRayTracingShader( shaderType ));
 
@@ -548,7 +552,7 @@ namespace FG
 		ASSERT( shader.data.count( fmt ) == 0 );
 		
 		shader.shaderType = shaderType;
-		shader.AddShaderData( fmt, entry, std::move(bin) );
+		shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	
@@ -651,24 +655,24 @@ namespace FG
 	AddShader
 =================================================
 */
-	ComputePipelineDesc&  ComputePipelineDesc::AddShader (EShaderLangFormat fmt, StringView entry, String &&src)
+	ComputePipelineDesc&  ComputePipelineDesc::AddShader (EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName)
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
-		_shader.AddShaderData( fmt, entry, std::move(src) );
+		_shader.AddShaderData( fmt, entry, std::move(src), dbgName );
 		return *this;
 	}
 	
-	ComputePipelineDesc&  ComputePipelineDesc::AddShader (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin)
+	ComputePipelineDesc&  ComputePipelineDesc::AddShader (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
-		_shader.AddShaderData( fmt, entry, std::move(bin) );
+		_shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	
-	ComputePipelineDesc&  ComputePipelineDesc::AddShader (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin)
+	ComputePipelineDesc&  ComputePipelineDesc::AddShader (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
-		_shader.AddShaderData( fmt, entry, std::move(bin) );
+		_shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	

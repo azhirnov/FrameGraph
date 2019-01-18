@@ -46,16 +46,27 @@ namespace _fg_hidden_
 			// TODO: depth range
 		};
 		struct Vertex {
-			uint	vertex;			// gl_VertexID
-			uint	primitive;		// gl_PrimitiveID
+			uint	vertex;			// gl_VertexIndex
 			uint	instance;		// gl_InstanceIndex
 			uint	draw;			// gl_DrawID - for indirect drawing
 		};
-		struct TessControl {};
-		struct TessEvaluation {};
-		struct Geometry {};
-		struct MeshTask {};
-		struct Mesh {};
+		struct TessControl {
+			uint	invocatioon;	// gl_InvocationID
+			uint	primitive;		// gl_PrimitiveID
+		};
+		struct TessEvaluation {
+			uint	primitive;		// gl_PrimitiveID
+		};
+		struct Geometry {
+			uint	invocatioon;	// gl_InvocationID
+			uint	primitive;		// gl_PrimitiveIDIn
+		};
+		struct MeshTask {
+			uint	invocation;		// gl_GlobalInvocationID.x
+		};
+		struct Mesh {
+			uint	invocation;		// gl_GlobalInvocationID.x
+		};
 
 	// variables
 		EShaderDebugMode	mode	= Default;
@@ -190,7 +201,12 @@ namespace _fg_hidden_
 		TaskType&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
 		TaskType&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 		
-		TaskType&  EnableVertexDebugTrace (uint vertex, uint primitive, uint instance = UMax, uint draw = UMax);
+		TaskType&  EnableVertexDebugTrace (uint vertex, uint instance = UMax, uint draw = UMax);
+		TaskType&  EnableTessControlDebugTrace (uint invocation, uint primitive);
+		TaskType&  EnableTessEvaluationDebugTrace (uint primitive);
+		TaskType&  EnableGeometryDebugTrace (uint invocation, uint primitive);
+		TaskType&  EnableMeshTaskDebugTrace (uint invocation);
+		TaskType&  EnableMeshDebugTrace (uint invocation);
 		TaskType&  EnableFragmentDebugTrace (uint x, uint y, uint sample = UMax, uint primitive = UMax);
 	};
 	
@@ -689,14 +705,59 @@ namespace _fg_hidden_
 	}
 	
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableVertexDebugTrace (uint vertex, uint primitive, uint instance, uint draw)
+	inline TaskType&  BaseDrawCall<TaskType>::EnableVertexDebugTrace (uint vertex, uint instance, uint draw)
 	{
 		debugMode.mode	 = EShaderDebugMode::Trace;
 		debugMode.shader = EShader::Vertex;
-		debugMode.vert	 = { vertex, primitive, instance, draw };
+		debugMode.vert	 = { vertex, instance, draw };
 		return static_cast<TaskType &>( *this );
 	}
 	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableTessControlDebugTrace (uint invocation, uint primitive)
+	{
+		debugMode.mode		= EShaderDebugMode::Trace;
+		debugMode.shader	= EShader::TessControl;
+		debugMode.tessCont	= { invocation, primitive };
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableTessEvaluationDebugTrace (uint primitive)
+	{
+		debugMode.mode		= EShaderDebugMode::Trace;
+		debugMode.shader	= EShader::TessEvaluation;
+		debugMode.tessEval	= { primitive };
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableGeometryDebugTrace (uint invocation, uint primitive)
+	{
+		debugMode.mode	 = EShaderDebugMode::Trace;
+		debugMode.shader = EShader::Geometry;
+		debugMode.geom	 = { invocation, primitive };
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableMeshTaskDebugTrace (uint invocation)
+	{
+		debugMode.mode	 = EShaderDebugMode::Trace;
+		debugMode.shader = EShader::MeshTask;
+		debugMode.task	 = { invocation };
+		return static_cast<TaskType &>( *this );
+	}
+	
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableMeshDebugTrace (uint invocation)
+	{
+		debugMode.mode	 = EShaderDebugMode::Trace;
+		debugMode.shader = EShader::Mesh;
+		debugMode.mesh	 = { invocation };
+		return static_cast<TaskType &>( *this );
+	}
+
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::EnableFragmentDebugTrace (uint x, uint y, uint sample, uint primitive)
 	{

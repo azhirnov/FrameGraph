@@ -34,17 +34,18 @@ namespace FG
 	private:
 		T						_data;
 		StaticString<64>		_entry;
+		StaticString<64>		_debugName;
 		ShaderDebugUtilsPtr		_debugInfo;
 
 
 	// methods
 	public:
-		VCachedDebuggableShaderData (StringView entry, T &&data) :
-			_data{std::move(data)}, _entry{entry}
+		VCachedDebuggableShaderData (StringView entry, T &&data, StringView dbgName) :
+			_data{std::move(data)}, _entry{entry}, _debugName{dbgName}
 		{}
 
-		VCachedDebuggableShaderData (StringView entry, T &&data, ShaderTrace &&debugInfo) :
-			_data{std::move(data)}, _entry{entry}, _debugInfo{new ShaderDebugUtils_t{ std::move(debugInfo) }}
+		VCachedDebuggableShaderData (StringView entry, T &&data, StringView dbgName, ShaderTrace &&debugInfo) :
+			_data{std::move(data)}, _entry{entry}, _debugName{dbgName}, _debugInfo{new ShaderDebugUtils_t{ std::move(debugInfo) }}
 		{}
 
 		VCachedDebuggableShaderData (VkShaderModule module, const PipelineDescription::SharedShaderPtr<Array<uint>> &spirvCache)
@@ -99,6 +100,17 @@ namespace FG
 
 		StringView	GetEntry () const override		{ return _entry; }
 
+		
+		StringView	GetDebugName () const override
+		{
+			if constexpr( IsSameTypes< T, ShaderModuleVk_t > )
+			{
+				ASSERT(!"not supported");
+				return "";
+			}
+			else
+				return _debugName;
+		}
 
 		size_t		GetHashOfData () const override
 		{

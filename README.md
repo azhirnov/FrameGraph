@@ -1,16 +1,18 @@
 # FrameGraph
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](paypal.me/azhirnovgithub)<br/>
+
 Work in progress.
 
 ## Features
 * multithreaded command buffer building and submitting.
-* simple API, hides memory allocation, host to/from device transfers, barriers.
+* simple API, hides memory allocation, host to/from device transfers, synchronizations.
 * frame graph visualization.
 * tested on DOOM trace (see [vkTraceConverter examples](https://github.com/azhirnov/vkTraceConverter/tree/dev/examples#convert-to-framegraph-trace)).
 * glsl debugging.
 * supports RTX extensions.
 
 ## Documentation
+* [Overview](docs/Overview.md)
 * [Porting from OpenGL](docs/Porting-from-OpenGL.md)
 * [Porting from Vulkan](docs/Porting-from-Vulkan.md)
 * [Extensions overview](extensions/Readme.md)

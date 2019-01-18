@@ -376,6 +376,7 @@ namespace FG
 			case EShader::Fragment :		MemCopy( OUT dbg_mode.data, mode.frag );		break;
 			case EShader::MeshTask :		MemCopy( OUT dbg_mode.data, mode.task );		break;
 			case EShader::Mesh :			MemCopy( OUT dbg_mode.data, mode.mesh );		break;
+			default :						RETURN_ERR( "unsupported shader type", UMax );
 		}
 		
 		_debugModes.push_back( std::move(dbg_mode) );
@@ -406,11 +407,23 @@ namespace FG
 =================================================
 	Append
 =================================================
-*
-	uint VShaderDebugger::Append (INOUT VPipelineResourceSet &resources, const TaskName_t &name,
-								  const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size)
+*/
+	uint VShaderDebugger::Append (const TaskName_t &name, const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size)
 	{
-		return UMax;
+		DebugMode	dbg_mode;
+		dbg_mode.taskName	= name;
+		dbg_mode.mode		= mode.mode;
+		dbg_mode.shaderType	= mode.shader;
+		
+		CHECK_ERR( _AllocStorage( INOUT dbg_mode, size ), UMax );
+
+		switch ( mode.shader ) {
+			case EShader::RayGen :			MemCopy( OUT dbg_mode.data, mode.raygen );		break;
+			default :						RETURN_ERR( "unsupported shader type", UMax );
+		}
+		
+		_debugModes.push_back( std::move(dbg_mode) );
+		return uint(_debugModes.size() - 1);
 	}
 	
 /*

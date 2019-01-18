@@ -744,7 +744,8 @@ namespace FG
 				PipelineDescription::Shader		new_shader;
 
 				if ( not _spirvCompiler->Compile( shader.first, iter->first, spirv_format, (*shader_data)->GetEntry(),
-												  (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ))
+												  (*shader_data)->GetData(), (*shader_data)->GetDebugName(),
+												  OUT new_shader, OUT reflection, OUT log ))
 				{
 					COMP_RETURN_ERR( log );
 				}
@@ -829,7 +830,8 @@ namespace FG
 				RayTracingPipelineDesc::RTShader	new_shader;
 
 				if ( not _spirvCompiler->Compile( shader.second.shaderType, iter->first, spirv_format, (*shader_data)->GetEntry(),
-												  (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ))
+												  (*shader_data)->GetData(), (*shader_data)->GetDebugName(),
+												  OUT new_shader, OUT reflection, OUT log ))
 				{
 					COMP_RETURN_ERR( log );
 				}
@@ -902,7 +904,8 @@ namespace FG
 				PipelineDescription::Shader		new_shader;
 
 				if ( not _spirvCompiler->Compile( shader.first, iter->first, spirv_format, (*shader_data)->GetEntry(),
-												  (*shader_data)->GetData(), OUT new_shader, OUT reflection, OUT log ))
+												  (*shader_data)->GetData(), (*shader_data)->GetDebugName(),
+												  OUT new_shader, OUT reflection, OUT log ))
 				{
 					COMP_RETURN_ERR( log );
 				}
@@ -982,7 +985,8 @@ namespace FG
 			ComputePipelineDesc				new_ppln;
 
 			if ( not _spirvCompiler->Compile( EShader::Compute, iter->first, spirv_format, (*shader_data)->GetEntry(),
-											  (*shader_data)->GetData(), OUT new_ppln._shader, OUT reflection, OUT log ))
+											  (*shader_data)->GetData(), (*shader_data)->GetDebugName(),
+											  OUT new_ppln._shader, OUT reflection, OUT log ))
 			{
 				COMP_RETURN_ERR( log );
 			}

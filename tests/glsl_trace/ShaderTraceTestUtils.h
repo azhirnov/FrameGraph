@@ -11,6 +11,7 @@ using namespace FG;
 
 struct TestHelpers
 {
+	mutable ShaderCompiler	compiler;
 	VkQueue					queue			= VK_NULL_HANDLE;
 	uint					queueFamily		= UMax;
 	VkCommandPool			cmdPool			= VK_NULL_HANDLE;
@@ -30,6 +31,24 @@ bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, 
 bool CreateRenderTarget (VulkanDeviceExt &vulkan, VkFormat colorFormat, uint width, uint height, VkImageUsageFlags imageUsage,
 						 OUT VkRenderPass &outRenderPass, OUT VkImage &outImage,
 						 OUT VkDeviceMemory &outImageMem, OUT VkFramebuffer &outFramebuffer);
+
+bool CreateGraphicsPipelineVar1 (VulkanDevice &vulkan, VkShaderModule vertShader, VkShaderModule fragShader,
+								 VkDescriptorSetLayout dsLayout, VkRenderPass renderPass,
+								 OUT VkPipelineLayout &outPipelineLayout, OUT VkPipeline &outPipeline);
+
+bool CreateGraphicsPipelineVar2 (VulkanDevice &vulkan, VkShaderModule vertShader, VkShaderModule tessContShader, VkShaderModule tessEvalShader,
+								 VkShaderModule fragShader, VkDescriptorSetLayout dsLayout, VkRenderPass renderPass, uint patchSize,
+								 OUT VkPipelineLayout &outPipelineLayout, OUT VkPipeline &outPipeline);
+
+bool CreateMeshPipelineVar1 (VulkanDevice &vulkan, VkShaderModule meshShader, VkShaderModule fragShader,
+							 VkDescriptorSetLayout dsLayout, VkRenderPass renderPass,
+							 OUT VkPipelineLayout &outPipelineLayout, OUT VkPipeline &outPipeline);
+
+bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, VkPipeline rtPipeline, uint numGroups,
+							OUT VkBuffer &shaderBindingTable, OUT VkDeviceMemory &outMemory,
+							OUT VkAccelerationStructureNV &topLevelAS, OUT VkAccelerationStructureNV &bottomLevelAS);
+
+bool TestDebugOutput (const TestHelpers &helper, VkShaderModule module, StringView referenceFile);
 
 
 inline String  _GetFuncName (StringView src)

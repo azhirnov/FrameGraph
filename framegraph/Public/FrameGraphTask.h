@@ -58,7 +58,19 @@ namespace FG
 		//
 		struct RayTracingShaderDebugMode
 		{
-			// TODO
+		// types
+			struct RayGen {
+				uint	launchX;	// gl_LaunchIDNV.x
+				uint	launchY;	// gl_LaunchIDNV.y
+				uint	launchZ;	// gl_LaunchIDNV.z
+			};
+
+		// variables
+			EShaderDebugMode	mode	= Default;
+			EShader				shader	= Default;
+			union {
+				RayGen		raygen;
+			};
 		};
 
 	}	// _fg_hidden_
@@ -1261,15 +1273,9 @@ namespace FG
 			return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> );
 		}
 
-		TraceRays&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
-		{
-			ASSERT( id.IsDefined() );
-			auto&	pc = pushConstants.emplace_back();
-			pc.id = id;
-			pc.size = Bytes<uint16_t>{size};
-			MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
-			return *this;
-		}
+		TraceRays&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
+
+		TraceRays&  EnableRayGenDebugTrace (const uint3 &launchID);
 	};
 //-----------------------------------------------------------------------------
 
@@ -1429,6 +1435,25 @@ namespace FG
 		return *this;
 	}
 //-----------------------------------------------------------------------------
+	
+
+	inline TraceRays&  TraceRays::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
+	{
+		ASSERT( id.IsDefined() );
+		auto&	pc = pushConstants.emplace_back();
+		pc.id = id;
+		pc.size = Bytes<uint16_t>{size};
+		MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
+		return *this;
+	}
+
+	inline TraceRays&  TraceRays::EnableRayGenDebugTrace (const uint3 &launchID)
+	{
+		debugMode.mode		= EShaderDebugMode::Trace;
+		debugMode.shader	= EShader::RayGen;
+		debugMode.raygen	= { launchID.x, launchID.y, launchID.z };
+		return *this;
+	}
 
 
 }	// FG

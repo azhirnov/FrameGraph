@@ -1,7 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	FrameGraphThread - framegraph interface to use in separate thread.
-	There is two different modes:
+	There are two different modes:
 		asynchronous --	between FrameGraphInstance::BeginFrame() and FrameGraphInstance::EndFrame() calls.
 						Frame recording happens in asynchronous mode, used only lock-free and wait-free algorithms.
 						Resource creation are available, but to make new resource data visible for other threads you must add memory barrier.

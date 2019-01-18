@@ -1213,6 +1213,8 @@ static bool  GetStructFieldInfo (TIntermBinary* binary, OUT DebugInfo::FieldInfo
 */
 void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint32_t &swizzle)
 {
+	CHECK_ERR( node, void());
+
 	id = VariableID(~0u);
 	swizzle = 0;
 
@@ -1271,7 +1273,7 @@ void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint3
 		else
 		if ( binary->getOp() == TOperator::EOpIndexDirectStruct )
 		{
-			FieldInfo	field;
+			/*FieldInfo	field;
 			TString		name;
 			if ( GetStructFieldInfo( binary, OUT field, OUT name ))
 			{
@@ -1286,7 +1288,8 @@ void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint3
 
 				id = iter->second.id;
 				return;
-			}
+			}*/
+			return; // temp
 		}
 		else
 			return;	// it hasn't any ID
@@ -1516,6 +1519,82 @@ static bool RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo)
 
 /*
 =================================================
+	CreateVertexShaderDebugStorage
+=================================================
+*/
+static void CreateVertexShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+{
+	type.basicType = TBasicType::EbtInt;
+	
+	TType*	vert_index	= new TType{type};		vert_index->setFieldName( "vertexIndex" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+
+	TType*	instance	= new TType{type};		instance->setFieldName( "instanceIndex" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	TType*	draw_id		= new TType{type};		draw_id->setFieldName( "drawID" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	typeList->push_back({ vert_index, TSourceLoc{} });
+	typeList->push_back({ instance,   TSourceLoc{} });
+	typeList->push_back({ draw_id,    TSourceLoc{} });
+}
+
+/*
+=================================================
+	CreateTessControlShaderDebugStorage
+=================================================
+*/
+static void CreateTessControlShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+{
+	type.basicType = TBasicType::EbtInt;
+	
+	TType*	invocation	= new TType{type};		invocation->setFieldName( "invocationID" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+
+	TType*	primitive	= new TType{type};		primitive->setFieldName( "primitiveID" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	typeList->push_back({ invocation, TSourceLoc{} });
+	typeList->push_back({ primitive,  TSourceLoc{} });
+}
+
+/*
+=================================================
+	CreateTessEvaluationShaderDebugStorage
+=================================================
+*/
+static void CreateTessEvaluationShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+{
+	type.basicType = TBasicType::EbtInt;
+
+	TType*	primitive	= new TType{type};		primitive->setFieldName( "primitiveID" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	typeList->push_back({ primitive, TSourceLoc{} });
+}
+
+/*
+=================================================
+	CreateGeometryShaderDebugStorage
+=================================================
+*/
+static void CreateGeometryShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+{
+	type.basicType = TBasicType::EbtInt;
+	
+	TType*	invocation	= new TType{type};		invocation->setFieldName( "invocationID" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+
+	TType*	primitive	= new TType{type};		primitive->setFieldName( "primitiveID" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	typeList->push_back({ invocation, TSourceLoc{} });
+	typeList->push_back({ primitive,  TSourceLoc{} });
+}
+
+/*
+=================================================
 	CreateFragmentShaderDebugStorage
 =================================================
 */
@@ -1566,6 +1645,44 @@ static void CreateComputeShaderDebugStorage (TTypeList* typeList, INOUT TPublicT
 
 /*
 =================================================
+	CreateMeshShaderDebugStorage
+=================================================
+*/
+static void CreateMeshShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+{
+	type.basicType = TBasicType::EbtUint;
+	
+	TType*	thread_id_x	= new TType{type};		thread_id_x->setFieldName( "globalInvocationX" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	typeList->push_back({ thread_id_x, TSourceLoc{} });
+}
+
+/*
+=================================================
+	CreateRayGenShaderDebugStorage
+=================================================
+*/
+static void CreateRayGenShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+{
+	type.basicType = TBasicType::EbtUint;
+	
+	TType*	thread_id_x	= new TType{type};		thread_id_x->setFieldName( "launchID_x" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	TType*	thread_id_y	= new TType{type};		thread_id_y->setFieldName( "launchID_y" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	TType*	thread_id_z	= new TType{type};		thread_id_z->setFieldName( "launchID_z" );
+	type.qualifier.layoutOffset += sizeof(uint32_t);
+	
+	typeList->push_back({ thread_id_x,	TSourceLoc{} });
+	typeList->push_back({ thread_id_y,	TSourceLoc{} });
+	typeList->push_back({ thread_id_z,	TSourceLoc{} });
+}
+
+/*
+=================================================
 	CreateShaderDebugStorage
 =================================================
 */
@@ -1584,24 +1701,23 @@ static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT
 	TTypeList*		type_list	= new TTypeList{};
 	TPublicType		temp		= uint_type;
 
-	
 	switch ( dbgInfo.GetShaderType() )
 	{
-		/*case EShLangVertex :
-		case EShLangTessControl :
-		case EShLangTessEvaluation :
-		case EShLangGeometry :*/
-		case EShLangFragment :			CreateFragmentShaderDebugStorage( type_list, INOUT temp );	break;
-		case EShLangCompute :			CreateComputeShaderDebugStorage( type_list, INOUT temp );	break;
-		/*case EShLangRayGenNV :
-		case EShLangIntersectNV :
+		case EShLangVertex :			CreateVertexShaderDebugStorage( type_list, INOUT temp );			break;
+		case EShLangTessControl :		CreateTessControlShaderDebugStorage( type_list, INOUT temp );		break;
+		case EShLangTessEvaluation :	CreateTessEvaluationShaderDebugStorage( type_list, INOUT temp );	break;
+		case EShLangGeometry :			CreateGeometryShaderDebugStorage( type_list, INOUT temp );			break;
+		case EShLangFragment :			CreateFragmentShaderDebugStorage( type_list, INOUT temp );			break;
+		case EShLangCompute :			CreateComputeShaderDebugStorage( type_list, INOUT temp );			break;
+		case EShLangTaskNV :
+		case EShLangMeshNV :			CreateMeshShaderDebugStorage( type_list, INOUT temp );				break;
+		case EShLangRayGenNV :			CreateRayGenShaderDebugStorage( type_list, INOUT temp );			break;
+		/*case EShLangIntersectNV :
 		case EShLangAnyHitNV :
 		case EShLangClosestHitNV :
 		case EShLangMissNV :
-		case EShLangCallableNV :
-		case EShLangTaskNV :
-		case EShLangMeshNV :*/
-		default : CHECK(false); return;
+		case EShLangCallableNV :*/
+		default :						CHECK(false); return;
 	}
 
 	uint_type.qualifier.layoutOffset = temp.qualifier.layoutOffset;
@@ -1700,7 +1816,13 @@ static bool InsertDebugStorageBuffer (TIntermNode* root, DebugInfo &dbgInfo)
 */
 static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 {
-	const auto	shader	= dbgInfo.GetShaderType();
+	const auto	shader				= dbgInfo.GetShaderType();
+	const bool	is_compute			= (shader == EShLangCompute or shader == EShLangTaskNV or shader == EShLangMeshNV);
+	const bool	need_invocation_id	= (shader == EShLangGeometry or shader == EShLangTessControl);
+	const bool	need_primitive_id	= (shader == EShLangFragment or shader == EShLangTessControl or shader == EShLangTessEvaluation);
+	const bool	need_launch_id		= (shader == EShLangRayGenNV or shader == EShLangIntersectNV or shader == EShLangAnyHitNV or
+									   shader == EShLangClosestHitNV or shader == EShLangMissNV or shader == EShLangCallableNV);
+	
 	TSourceLoc	loc		{};
 
 	// find default source location
@@ -1734,7 +1856,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 	// "Any static use of this variable in a fragment shader causes the entire shader to be evaluated per-sample rather than per-fragment."
 	// so don't add 'gl_SampleID' and 'gl_SamplePosition' if it doesn't exists.
 	
-	if ( shader == EShLangFragment and not dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" ))
+	if ( need_primitive_id and not dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" ))
 	{
 		TPublicType		int_type;	int_type.init({});
 		int_type.basicType			= TBasicType::EbtInt;
@@ -1747,7 +1869,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 		dbgInfo.CacheSymbolNode( symb );
 	}
 
-	if ( shader == EShLangCompute and not dbgInfo.GetCachedSymbolNode( "gl_GlobalInvocationID" ))
+	if ( is_compute and not dbgInfo.GetCachedSymbolNode( "gl_GlobalInvocationID" ))
 	{
 		TPublicType		uint_type;	uint_type.init({});
 		uint_type.basicType			= TBasicType::EbtUint;
@@ -1760,7 +1882,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 		dbgInfo.CacheSymbolNode( symb );
 	}
 
-	if ( shader == EShLangCompute and not dbgInfo.GetCachedSymbolNode( "gl_LocalInvocationID" ))
+	if ( is_compute and not dbgInfo.GetCachedSymbolNode( "gl_LocalInvocationID" ))
 	{
 		TPublicType		uint_type;	uint_type.init({});
 		uint_type.basicType			= TBasicType::EbtUint;
@@ -1773,7 +1895,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 		dbgInfo.CacheSymbolNode( symb );
 	}
 
-	if ( shader == EShLangCompute and not dbgInfo.GetCachedSymbolNode( "gl_WorkGroupID" ))
+	if ( is_compute and not dbgInfo.GetCachedSymbolNode( "gl_WorkGroupID" ))
 	{
 		TPublicType		uint_type;	uint_type.init({});
 		uint_type.basicType			= TBasicType::EbtUint;
@@ -1785,8 +1907,108 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 		symb->setLoc( loc );
 		dbgInfo.CacheSymbolNode( symb );
 	}
+	
+	if ( need_invocation_id and not dbgInfo.GetCachedSymbolNode( "gl_InvocationID" ))
+	{
+		TPublicType		int_type;	int_type.init({});
+		int_type.basicType			= TBasicType::EbtUint;
+		int_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
+		int_type.qualifier.builtIn	= TBuiltInVariable::EbvInvocationId;
 
-	// TODO: other builtins
+		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_InvocationID", TType{int_type} };
+		symb->setLoc( loc );
+		dbgInfo.CacheSymbolNode( symb );
+	}
+	
+	if ( shader == EShLangGeometry and not dbgInfo.GetCachedSymbolNode( "gl_PrimitiveIDIn" ))
+	{
+		TPublicType		int_type;	int_type.init({});
+		int_type.basicType			= TBasicType::EbtInt;
+		int_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
+		int_type.qualifier.builtIn	= TBuiltInVariable::EbvPrimitiveId;
+
+		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_PrimitiveIDIn", TType{int_type} };
+		symb->setLoc( loc );
+		dbgInfo.CacheSymbolNode( symb );
+	}
+	
+	if ( shader == EShLangTessEvaluation and not dbgInfo.GetCachedSymbolNode( "gl_TessCoord" ))
+	{
+		TPublicType		float_type;		float_type.init({});
+		float_type.basicType			= TBasicType::EbtFloat;
+		float_type.vectorSize			= 3;
+		float_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
+		float_type.qualifier.builtIn	= TBuiltInVariable::EbvTessCoord;
+
+		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_TessCoord", TType{float_type} };
+		symb->setLoc( loc );
+		dbgInfo.CacheSymbolNode( symb );
+	}
+	
+	if ( shader == EShLangTessEvaluation and not dbgInfo.GetCachedSymbolNode( "gl_TessLevelInner" ))
+	{
+		TPublicType		float_type;		float_type.init({});
+		float_type.basicType			= TBasicType::EbtFloat;
+		float_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
+		float_type.qualifier.builtIn	= TBuiltInVariable::EbvTessLevelInner;
+		float_type.arraySizes			= new TArraySizes{};
+		float_type.arraySizes->addInnerSize( 2 );
+
+		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_TessLevelInner", TType{float_type} };
+		symb->setLoc( loc );
+		dbgInfo.CacheSymbolNode( symb );
+	}
+	
+	if ( shader == EShLangTessEvaluation and not dbgInfo.GetCachedSymbolNode( "gl_TessLevelOuter" ))
+	{
+		TPublicType		float_type;		float_type.init({});
+		float_type.basicType			= TBasicType::EbtFloat;
+		float_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
+		float_type.qualifier.builtIn	= TBuiltInVariable::EbvTessLevelOuter;
+		float_type.arraySizes			= new TArraySizes{};
+		float_type.arraySizes->addInnerSize( 4 );
+
+		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_TessLevelOuter", TType{float_type} };
+		symb->setLoc( loc );
+		dbgInfo.CacheSymbolNode( symb );
+	}
+
+	if ( need_launch_id and not dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" ))
+	{
+		TPublicType		uint_type;	uint_type.init({});
+		uint_type.basicType			= TBasicType::EbtUint;
+		uint_type.vectorSize		= 3;
+		uint_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
+		uint_type.qualifier.builtIn	= TBuiltInVariable::EbvLaunchIdNV;
+
+		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_GlobalInvocationID", TType{uint_type} };
+		symb->setLoc( loc );
+		dbgInfo.CacheSymbolNode( symb );
+	}
+
+	if ( shader == EShLangVertex and not dbgInfo.GetCachedSymbolNode( "gl_VertexIndex" ))
+	{
+		TPublicType		int_type;	int_type.init({});
+		int_type.basicType			= TBasicType::EbtInt;
+		int_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
+		int_type.qualifier.builtIn	= TBuiltInVariable::EbvVertexIndex;
+
+		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_VertexIndex", TType{int_type} };
+		symb->setLoc( loc );
+		dbgInfo.CacheSymbolNode( symb );
+	}
+	
+	if ( shader == EShLangVertex and not dbgInfo.GetCachedSymbolNode( "gl_InstanceIndex" ))
+	{
+		TPublicType		int_type;	int_type.init({});
+		int_type.basicType			= TBasicType::EbtInt;
+		int_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
+		int_type.qualifier.builtIn	= TBuiltInVariable::EbvInstanceIndex;
+
+		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_InstanceIndex", TType{int_type} };
+		symb->setLoc( loc );
+		dbgInfo.CacheSymbolNode( symb );
+	}
 }
 
 /*
@@ -2402,10 +2624,195 @@ static bool  AppendShaderInputVaryings (TIntermAggregate* body, DebugInfo &dbgIn
 
 /*
 =================================================
-	DumpFragmentShaderInfo
+	RecordVertexShaderInfo
 =================================================
 */
-static TIntermNode*  DumpFragmentShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+static TIntermNode*  RecordVertexShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_VertexIndex, location )"
+	{
+		TIntermSymbol*	vert_index	= dbgInfo.GetCachedSymbolNode( "gl_VertexIndex" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( vert_index, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( vert_index, loc_id, dbgInfo ));
+	}
+	
+	// "dbg_AppendToTrace( gl_InstanceIndex, location )"
+	{
+		TIntermSymbol*	instance	= dbgInfo.GetCachedSymbolNode( "gl_InstanceIndex" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( instance, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( instance, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_DrawID, location )"
+	if ( auto* draw_id = dbgInfo.GetCachedSymbolNode( "gl_DrawID" ) )
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( draw_id, loc );
+		body->getSequence().push_back( CreateAppendToTrace( draw_id, loc_id, dbgInfo ));
+	}
+
+	return body;
+}
+
+/*
+=================================================
+	RecordTessControlShaderInfo
+=================================================
+*/
+static TIntermNode*  RecordTessControlShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_InvocationID, location )"
+	{
+		TIntermSymbol*	invocation	= dbgInfo.GetCachedSymbolNode( "gl_InvocationID" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( invocation, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( invocation, loc_id, dbgInfo ));
+	}
+	
+	// "dbg_AppendToTrace( gl_PrimitiveID, location )"
+	{
+		TIntermSymbol*	primitive	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( primitive, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( primitive, loc_id, dbgInfo ));
+	}
+
+	return body;
+}
+
+/*
+=================================================
+	RecordTessEvaluationShaderInfo
+=================================================
+*/
+static TIntermNode*  RecordTessEvaluationShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_PrimitiveID, location )"
+	{
+		TIntermSymbol*	primitive	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( primitive, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( primitive, loc_id, dbgInfo ));
+	}
+	
+	// "dbg_AppendToTrace( gl_TessCoord, location )"
+	{
+		TIntermSymbol*	tess_coord	= dbgInfo.GetCachedSymbolNode( "gl_TessCoord" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( tess_coord, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( tess_coord, loc_id, dbgInfo ));
+	}
+	
+	TPublicType		index_type;		index_type.init({});
+	index_type.basicType			= TBasicType::EbtInt;
+	index_type.qualifier.storage	= TStorageQualifier::EvqConst;
+
+	// "dbg_AppendToTrace( gl_TessLevelInner, location )"
+	{
+		TIntermSymbol*		inner_level	= dbgInfo.GetCachedSymbolNode( "gl_TessLevelInner" );
+		const uint32_t		loc_id		= dbgInfo.GetCustomSourceLocation( inner_level, loc );
+		TIntermAggregate*	vec2_ctor	= new TIntermAggregate{ TOperator::EOpConstructVec2 };
+		TPublicType			float_type;	float_type.init({});
+		float_type.basicType			= TBasicType::EbtFloat;
+		float_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+		float_type.qualifier.builtIn	= TBuiltInVariable::EbvTessLevelInner;
+		float_type.qualifier.precision	= TPrecisionQualifier::EpqHigh;
+
+		for (int i = 0; i < 2; ++i) {
+			TIntermBinary*			elem_access		= new TIntermBinary{ TOperator::EOpIndexDirect };
+			TConstUnionArray		elem_Value(1);	elem_Value[0].setIConst( i );
+			TIntermConstantUnion*	elem_index		= new TIntermConstantUnion{ elem_Value, TType{index_type} };
+			elem_access->setType( TType{float_type} );
+			elem_access->setLeft( inner_level );
+			elem_access->setRight( elem_index );
+			vec2_ctor->getSequence().push_back( elem_access );
+		}
+
+		float_type.vectorSize			= 2;
+		float_type.qualifier.builtIn	= TBuiltInVariable::EbvNone;
+		float_type.qualifier.precision	= TPrecisionQualifier::EpqNone;
+
+		vec2_ctor->setType( TType{float_type} );
+		body->getSequence().push_back( CreateAppendToTrace( vec2_ctor, loc_id, dbgInfo ));
+	}
+	
+	// "dbg_AppendToTrace( gl_TessLevelOuter, location )"
+	{
+		TIntermSymbol*		outer_level	= dbgInfo.GetCachedSymbolNode( "gl_TessLevelOuter" );
+		const uint32_t		loc_id		= dbgInfo.GetCustomSourceLocation( outer_level, loc );
+		TIntermAggregate*	vec4_ctor	= new TIntermAggregate{ TOperator::EOpConstructVec4 };
+		TPublicType			float_type;	float_type.init({});
+		float_type.basicType			= TBasicType::EbtFloat;
+		float_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+		float_type.qualifier.builtIn	= TBuiltInVariable::EbvTessLevelOuter;
+		float_type.qualifier.precision	= TPrecisionQualifier::EpqHigh;
+
+		for (int i = 0; i < 4; ++i) {
+			TIntermBinary*			elem_access		= new TIntermBinary{ TOperator::EOpIndexDirect };
+			TConstUnionArray		elem_Value(1);	elem_Value[0].setIConst( i );
+			TIntermConstantUnion*	elem_index		= new TIntermConstantUnion{ elem_Value, TType{index_type} };
+			elem_access->setType( TType{float_type} );
+			elem_access->setLeft( outer_level );
+			elem_access->setRight( elem_index );
+			vec4_ctor->getSequence().push_back( elem_access );
+		}
+		
+		float_type.vectorSize			= 4;
+		float_type.qualifier.builtIn	= TBuiltInVariable::EbvNone;
+		float_type.qualifier.precision	= TPrecisionQualifier::EpqNone;
+
+		vec4_ctor->setType( TType{float_type} );
+		body->getSequence().push_back( CreateAppendToTrace( vec4_ctor, loc_id, dbgInfo ));
+	}
+
+	return body;
+}
+
+/*
+=================================================
+	RecordGeometryShaderInfo
+=================================================
+*/
+static TIntermNode*  RecordGeometryShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_InvocationID, location )"
+	{
+		TIntermSymbol*	invocation	= dbgInfo.GetCachedSymbolNode( "gl_InvocationID" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( invocation, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( invocation, loc_id, dbgInfo ));
+	}
+	
+	// "dbg_AppendToTrace( gl_PrimitiveIDIn, location )"
+	{
+		TIntermSymbol*	primitive	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveIDIn" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( primitive, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( primitive, loc_id, dbgInfo ));
+	}
+
+	return body;
+}
+
+/*
+=================================================
+	RecordFragmentShaderInfo
+=================================================
+*/
+static TIntermNode*  RecordFragmentShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2468,10 +2875,10 @@ static TIntermNode*  DumpFragmentShaderInfo (const TSourceLoc &loc, DebugInfo &d
 
 /*
 =================================================
-	DumpComputeShaderInfo
+	RecordComputeShaderInfo
 =================================================
 */
-static TIntermNode*  DumpComputeShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+static TIntermNode*  RecordComputeShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2519,6 +2926,26 @@ static TIntermNode*  DumpComputeShaderInfo (const TSourceLoc &loc, DebugInfo &db
 
 /*
 =================================================
+	RecordRayGenShaderInfo
+=================================================
+*/
+static TIntermNode*  RecordRayGenShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_LaunchIDNV, location )"
+	{
+		TIntermSymbol*	invocation	= dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( invocation, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( invocation, loc_id, dbgInfo ));
+	}
+	return body;
+}
+
+/*
+=================================================
 	RecordShaderInfo
 =================================================
 */
@@ -2526,22 +2953,285 @@ static TIntermNode*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo
 {
 	switch ( dbgInfo.GetShaderType() )
 	{
-		case EShLangVertex : return nullptr;
-		case EShLangTessControl : return nullptr;
-		case EShLangTessEvaluation : return nullptr;
-		case EShLangGeometry : return nullptr;
-		case EShLangFragment : return DumpFragmentShaderInfo( loc, dbgInfo );
-		case EShLangCompute : return DumpComputeShaderInfo( loc, dbgInfo );
-		/*case EShLangRayGenNV : return nullptr;
-		case EShLangIntersectNV : return nullptr;
+		case EShLangVertex :			return RecordVertexShaderInfo( loc, dbgInfo );
+		case EShLangTessControl :		return RecordTessControlShaderInfo( loc, dbgInfo );
+		case EShLangTessEvaluation :	return RecordTessEvaluationShaderInfo( loc, dbgInfo );
+		case EShLangGeometry :			return RecordGeometryShaderInfo( loc, dbgInfo );
+		case EShLangFragment :			return RecordFragmentShaderInfo( loc, dbgInfo );
+		case EShLangTaskNV :
+		case EShLangMeshNV :
+		case EShLangCompute :			return RecordComputeShaderInfo( loc, dbgInfo );
+		case EShLangRayGenNV :			return RecordRayGenShaderInfo( loc, dbgInfo );
+		/*case EShLangIntersectNV : return nullptr;
 		case EShLangAnyHitNV : return nullptr;
 		case EShLangClosestHitNV : return nullptr;
 		case EShLangMissNV : return nullptr;
-		case EShLangCallableNV : return nullptr;
-		case EShLangTaskNV : return nullptr;
-		case EShLangMeshNV : return nullptr;	// TODO*/
+		case EShLangCallableNV : return nullptr;	// TODO*/
 	}
 	return nullptr;
+}
+
+/*
+=================================================
+	CreateVertexShaderIsDebugInvocation
+=================================================
+*/
+static TIntermAggregate*  CreateVertexShaderIsDebugInvocation (const TString &fnName, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	
+	TPublicType		bool_type;	bool_type.init({});
+	bool_type.basicType			= TBasicType::EbtBool;
+	bool_type.qualifier.storage	= TStorageQualifier::EvqGlobal;
+
+	// build function body
+	{
+		fn_node->setType( TType{bool_type} );
+		fn_node->setName( fnName );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+		
+		fn_args->setType( TType{EbtVoid} );
+		fn_body->setType( TType{EbtVoid} );
+	}
+	
+	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+
+	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.vertexIndex
+		TIntermBinary*	ref_vert_index	= dbgInfo.GetDebugStorageField( "vertexIndex" );
+		TIntermSymbol*	vert_index		= dbgInfo.GetCachedSymbolNode( "gl_VertexIndex" );
+		CHECK_ERR( ref_vert_index and vert_index );
+	
+		// ... == ...
+		eq1->setType( TType{bool_type} );
+		eq1->setLeft( ref_vert_index );
+		eq1->setRight( vert_index );
+	}
+	
+	TIntermBinary*	eq2 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.instanceIndex
+		TIntermBinary*	ref_instance	= dbgInfo.GetDebugStorageField( "instanceIndex" );
+		TIntermSymbol*	instance		= dbgInfo.GetCachedSymbolNode( "gl_InstanceIndex" );
+		CHECK_ERR( ref_instance and instance );
+	
+		// ... == ...
+		eq2->setType( TType{bool_type} );
+		eq2->setLeft( ref_instance );
+		eq2->setRight( instance );
+	}
+	
+	// TODO
+	/*TIntermBinary*	eq4 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.drawID
+		TIntermBinary*	ref_draw_id		= dbgInfo.GetDebugStorageField( "drawID" );
+		TIntermSymbol*	draw_id			= dbgInfo.GetCachedSymbolNode( "gl_DrawID" );
+		CHECK_ERR( ref_draw_id and draw_id );
+	
+		// ... == ...
+		eq4->setType( TType{bool_type} );
+		eq4->setLeft( ref_draw_id );
+		eq4->setRight( draw_id );
+	}*/
+
+	// ... && ...
+	TIntermBinary*	cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
+	cmp1->setType( TType{bool_type} );
+	cmp1->setLeft( eq1 );
+	cmp1->setRight( eq2 );
+
+	// return ...
+	TIntermBranch*	fn_return	= new TIntermBranch{ TOperator::EOpReturn, cmp1 };
+	fn_body->getSequence().push_back( fn_return );
+	
+	return fn_node;
+}
+
+/*
+=================================================
+	CreateTessControlShaderIsDebugInvocation
+=================================================
+*/
+static TIntermAggregate*  CreateTessControlShaderIsDebugInvocation (const TString &fnName, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	
+	TPublicType		bool_type;	bool_type.init({});
+	bool_type.basicType			= TBasicType::EbtBool;
+	bool_type.qualifier.storage	= TStorageQualifier::EvqGlobal;
+
+	// build function body
+	{
+		fn_node->setType( TType{bool_type} );
+		fn_node->setName( fnName );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+		
+		fn_args->setType( TType{EbtVoid} );
+		fn_body->setType( TType{EbtVoid} );
+	}
+	
+	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+
+	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.invocationID
+		TIntermBinary*	ref_invocation	= dbgInfo.GetDebugStorageField( "invocationID" );
+		TIntermSymbol*	invocation_id	= dbgInfo.GetCachedSymbolNode( "gl_InvocationID" );
+		CHECK_ERR( ref_invocation and invocation_id );
+	
+		// ... == ...
+		eq1->setType( TType{bool_type} );
+		eq1->setLeft( ref_invocation );
+		eq1->setRight( invocation_id );
+	}
+	
+	TIntermBinary*	eq2 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.primitiveID
+		TIntermBinary*	ref_primitive	= dbgInfo.GetDebugStorageField( "primitiveID" );
+		TIntermSymbol*	primitive_id	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" );
+		CHECK_ERR( ref_primitive and primitive_id );
+	
+		// ... == ...
+		eq2->setType( TType{bool_type} );
+		eq2->setLeft( ref_primitive );
+		eq2->setRight( primitive_id );
+	}
+	
+	// ... && ...
+	TIntermBinary*	cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
+	cmp1->setType( TType{bool_type} );
+	cmp1->setLeft( eq1 );
+	cmp1->setRight( eq2 );
+
+	// return ...
+	TIntermBranch*	fn_return	= new TIntermBranch{ TOperator::EOpReturn, cmp1 };
+	fn_body->getSequence().push_back( fn_return );
+	
+	return fn_node;
+}
+
+/*
+=================================================
+	CreateTessEvaluationShaderIsDebugInvocation
+=================================================
+*/
+static TIntermAggregate*  CreateTessEvaluationShaderIsDebugInvocation (const TString &fnName, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	
+	TPublicType		bool_type;	bool_type.init({});
+	bool_type.basicType			= TBasicType::EbtBool;
+	bool_type.qualifier.storage	= TStorageQualifier::EvqGlobal;
+
+	// build function body
+	{
+		fn_node->setType( TType{bool_type} );
+		fn_node->setName( fnName );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+		
+		fn_args->setType( TType{EbtVoid} );
+		fn_body->setType( TType{EbtVoid} );
+	}
+
+	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+	
+	TIntermBinary*	eq = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.primitiveID
+		TIntermBinary*	ref_primitive	= dbgInfo.GetDebugStorageField( "primitiveID" );
+		TIntermSymbol*	primitive_id	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" );
+		CHECK_ERR( ref_primitive and primitive_id );
+	
+		// ... == ...
+		eq->setType( TType{bool_type} );
+		eq->setLeft( ref_primitive );
+		eq->setRight( primitive_id );
+	}
+
+	// return ...
+	TIntermBranch*	fn_return	= new TIntermBranch{ TOperator::EOpReturn, eq };
+	fn_body->getSequence().push_back( fn_return );
+	
+	return fn_node;
+}
+
+/*
+=================================================
+	CreateGeometryShaderIsDebugInvocation
+=================================================
+*/
+static TIntermAggregate*  CreateGeometryShaderIsDebugInvocation (const TString &fnName, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	
+	TPublicType		bool_type;	bool_type.init({});
+	bool_type.basicType			= TBasicType::EbtBool;
+	bool_type.qualifier.storage	= TStorageQualifier::EvqGlobal;
+
+	// build function body
+	{
+		fn_node->setType( TType{bool_type} );
+		fn_node->setName( fnName );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+		
+		fn_args->setType( TType{EbtVoid} );
+		fn_body->setType( TType{EbtVoid} );
+	}
+
+	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+
+	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.invocationID
+		TIntermBinary*	ref_invocation	= dbgInfo.GetDebugStorageField( "invocationID" );
+		TIntermSymbol*	invocation_id	= dbgInfo.GetCachedSymbolNode( "gl_InvocationID" );
+		CHECK_ERR( ref_invocation and invocation_id );
+	
+		// ... == ...
+		eq1->setType( TType{bool_type} );
+		eq1->setLeft( ref_invocation );
+		eq1->setRight( invocation_id );
+	}
+	
+	TIntermBinary*	eq2 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.primitiveID
+		TIntermBinary*	ref_primitive	= dbgInfo.GetDebugStorageField( "primitiveID" );
+		TIntermSymbol*	primitive_id	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveIDIn" );
+		CHECK_ERR( ref_primitive and primitive_id );
+	
+		// ... == ...
+		eq2->setType( TType{bool_type} );
+		eq2->setLeft( ref_primitive );
+		eq2->setRight( primitive_id );
+	}
+	
+	// ... && ...
+	TIntermBinary*	cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
+	cmp1->setType( TType{bool_type} );
+	cmp1->setLeft( eq1 );
+	cmp1->setRight( eq2 );
+
+	// return ...
+	TIntermBranch*	fn_return	= new TIntermBranch{ TOperator::EOpReturn, cmp1 };
+	fn_body->getSequence().push_back( fn_return );
+	
+	return fn_node;
 }
 
 /*
@@ -2583,63 +3273,65 @@ static TIntermAggregate*  CreateFragmentShaderIsDebugInvocation (const TString &
 	}
 	
 	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
-
-	// dbg_ShaderTrace.fragCoordX
-	TIntermBinary*			fscoord_x	= dbgInfo.GetDebugStorageField( "fragCoordX" );
-	CHECK_ERR( fscoord_x );
-
-	// gl_FragCoord.x
-	TConstUnionArray		x_index(1);	x_index[0].setIConst( 0 );
-	TIntermConstantUnion*	x_field		= new TIntermConstantUnion{ x_index, TType{index_type} };
-	TIntermBinary*			frag_x		= new TIntermBinary{ TOperator::EOpIndexDirect };
-	frag_x->setType( TType{float_type} );
-	frag_x->setLeft( dbgInfo.GetCachedSymbolNode( "gl_FragCoord" ));
-	frag_x->setRight( x_field );
-
-	// uint(gl_FragCoord.x)
-	TIntermUnary*			uint_fc_x	= new TIntermUnary{ TOperator::EOpConvFloatToUint };
-	uint_fc_x->setType( TType{uint_type} );
-	uint_fc_x->setOperand( frag_x );
-
-	// ... == ...
-	TIntermBinary*			eq1			= new TIntermBinary{ TOperator::EOpEqual };
-	eq1->setType( TType{bool_type} );
-	eq1->setLeft( uint_fc_x );
-	eq1->setRight( fscoord_x );
-
 	
-	// dbg_ShaderTrace.fragCoordY
-	TIntermBinary*			fscoord_y	= dbgInfo.GetDebugStorageField( "fragCoordY" );
-	CHECK_ERR( fscoord_y );
+	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.fragCoordX
+		TIntermBinary*			fscoord_x	= dbgInfo.GetDebugStorageField( "fragCoordX" );
+		CHECK_ERR( fscoord_x );
 
-	// gl_FragCoord.y
-	TConstUnionArray		y_index(1);	y_index[0].setIConst( 1 );
-	TIntermConstantUnion*	y_field		= new TIntermConstantUnion{ y_index, TType{index_type} };
-	TIntermBinary*			frag_y		= new TIntermBinary{ TOperator::EOpIndexDirect };
-	frag_y->setType( TType{float_type} );
-	frag_y->setLeft( dbgInfo.GetCachedSymbolNode( "gl_FragCoord" ));
-	frag_y->setRight( y_field );
+		// gl_FragCoord.x
+		TConstUnionArray		x_index(1);	x_index[0].setIConst( 0 );
+		TIntermConstantUnion*	x_field		= new TIntermConstantUnion{ x_index, TType{index_type} };
+		TIntermBinary*			frag_x		= new TIntermBinary{ TOperator::EOpIndexDirect };
+		frag_x->setType( TType{float_type} );
+		frag_x->setLeft( dbgInfo.GetCachedSymbolNode( "gl_FragCoord" ));
+		frag_x->setRight( x_field );
 
-	// uint(gl_FragCoord.y)
-	TIntermUnary*			uint_fc_y	= new TIntermUnary{ TOperator::EOpConvFloatToUint };
-	uint_fc_y->setType( TType{uint_type} );
-	uint_fc_y->setOperand( frag_y );
+		// uint(gl_FragCoord.x)
+		TIntermUnary*			uint_fc_x	= new TIntermUnary{ TOperator::EOpConvFloatToUint };
+		uint_fc_x->setType( TType{uint_type} );
+		uint_fc_x->setOperand( frag_x );
+
+		// ... == ...
+		eq1->setType( TType{bool_type} );
+		eq1->setLeft( uint_fc_x );
+		eq1->setRight( fscoord_x );
+	}
 	
-	// ... == ...
-	TIntermBinary*			eq2			= new TIntermBinary{ TOperator::EOpEqual };
-	eq2->setType( TType{bool_type} );
-	eq2->setLeft( uint_fc_y );
-	eq2->setRight( fscoord_y );
+	TIntermBinary*	eq2 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.fragCoordY
+		TIntermBinary*			fscoord_y	= dbgInfo.GetDebugStorageField( "fragCoordY" );
+		CHECK_ERR( fscoord_y );
 
+		// gl_FragCoord.y
+		TConstUnionArray		y_index(1);	y_index[0].setIConst( 1 );
+		TIntermConstantUnion*	y_field		= new TIntermConstantUnion{ y_index, TType{index_type} };
+		TIntermBinary*			frag_y		= new TIntermBinary{ TOperator::EOpIndexDirect };
+		frag_y->setType( TType{float_type} );
+		frag_y->setLeft( dbgInfo.GetCachedSymbolNode( "gl_FragCoord" ));
+		frag_y->setRight( y_field );
+
+		// uint(gl_FragCoord.y)
+		TIntermUnary*			uint_fc_y	= new TIntermUnary{ TOperator::EOpConvFloatToUint };
+		uint_fc_y->setType( TType{uint_type} );
+		uint_fc_y->setOperand( frag_y );
+	
+		// ... == ...
+		eq2->setType( TType{bool_type} );
+		eq2->setLeft( uint_fc_y );
+		eq2->setRight( fscoord_y );
+	}
 
 	// ... && ...
-	TIntermBinary*			cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
+	TIntermBinary*	cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
 	cmp1->setType( TType{bool_type} );
 	cmp1->setLeft( eq1 );
 	cmp1->setRight( eq2 );
 
 	// return ...
-	TIntermBranch*			fn_return	= new TIntermBranch{ TOperator::EOpReturn, cmp1 };
+	TIntermBranch*	fn_return	= new TIntermBranch{ TOperator::EOpReturn, cmp1 };
 	fn_body->getSequence().push_back( fn_return );
 	
 	return fn_node;
@@ -2762,6 +3454,184 @@ static TIntermAggregate*  CreateComputeShaderIsDebugInvocation (const TString &f
 
 /*
 =================================================
+	CreateMeshShaderIsDebugInvocation
+=================================================
+*/
+static TIntermAggregate*  CreateMeshShaderIsDebugInvocation (const TString &fnName, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	
+	TPublicType		bool_type;	bool_type.init({});
+	bool_type.basicType			= TBasicType::EbtBool;
+	bool_type.qualifier.storage	= TStorageQualifier::EvqGlobal;
+
+	TPublicType		uint_type;	uint_type.init({});
+	uint_type.basicType			= TBasicType::EbtUint;
+	uint_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+
+	TPublicType		index_type;	 index_type.init({});
+	index_type.basicType		 = TBasicType::EbtInt;
+	index_type.qualifier.storage = TStorageQualifier::EvqConst;
+
+	// build function body
+	{
+		fn_node->setType( TType{bool_type} );
+		fn_node->setName( fnName );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+		
+		fn_args->setType( TType{EbtVoid} );
+		fn_body->setType( TType{EbtVoid} );
+	}
+	
+	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+
+	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.globalInvocationX
+		TIntermBinary*			thread_id_x	= dbgInfo.GetDebugStorageField( "globalInvocationX" );
+		CHECK_ERR( thread_id_x );
+
+		// gl_GlobalInvocationID.x
+		TConstUnionArray		x_index(1);	x_index[0].setIConst( 0 );
+		TIntermConstantUnion*	x_field		= new TIntermConstantUnion{ x_index, TType{index_type} };
+		TIntermBinary*			ginvoc_x	= new TIntermBinary{ TOperator::EOpIndexDirect };
+		ginvoc_x->setType( TType{uint_type} );
+		ginvoc_x->setLeft( dbgInfo.GetCachedSymbolNode( "gl_GlobalInvocationID" ));
+		ginvoc_x->setRight( x_field );
+	
+		// ... == ...
+		eq1->setType( TType{bool_type} );
+		eq1->setLeft( thread_id_x );
+		eq1->setRight( ginvoc_x );
+	}
+
+	// return ...
+	TIntermBranch*		fn_return	= new TIntermBranch{ TOperator::EOpReturn, eq1 };
+	fn_body->getSequence().push_back( fn_return );
+	
+	return fn_node;
+}
+
+/*
+=================================================
+	CreateRayGenShaderIsDebugInvocation
+=================================================
+*/
+static TIntermAggregate*  CreateRayGenShaderIsDebugInvocation (const TString &fnName, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	
+	TPublicType		bool_type;	bool_type.init({});
+	bool_type.basicType			= TBasicType::EbtBool;
+	bool_type.qualifier.storage	= TStorageQualifier::EvqGlobal;
+
+	TPublicType		uint_type;	uint_type.init({});
+	uint_type.basicType			= TBasicType::EbtUint;
+	uint_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+
+	TPublicType		index_type;	 index_type.init({});
+	index_type.basicType		 = TBasicType::EbtInt;
+	index_type.qualifier.storage = TStorageQualifier::EvqConst;
+
+	// build function body
+	{
+		fn_node->setType( TType{bool_type} );
+		fn_node->setName( fnName );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+		
+		fn_args->setType( TType{EbtVoid} );
+		fn_body->setType( TType{EbtVoid} );
+	}
+	
+	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+
+	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.launchID_x
+		TIntermBinary*			thread_id_x	= dbgInfo.GetDebugStorageField( "launchID_x" );
+		CHECK_ERR( thread_id_x );
+
+		// gl_LaunchIDNV.x
+		TConstUnionArray		x_index(1);	x_index[0].setIConst( 0 );
+		TIntermConstantUnion*	x_field		= new TIntermConstantUnion{ x_index, TType{index_type} };
+		TIntermBinary*			launch_x	= new TIntermBinary{ TOperator::EOpIndexDirect };
+		launch_x->setType( TType{uint_type} );
+		launch_x->setLeft( dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" ));
+		launch_x->setRight( x_field );
+	
+		// ... == ...
+		eq1->setType( TType{bool_type} );
+		eq1->setLeft( thread_id_x );
+		eq1->setRight( launch_x );
+	}
+	
+	TIntermBinary*	eq2 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.launchID_y
+		TIntermBinary*			thread_id_y	= dbgInfo.GetDebugStorageField( "launchID_y" );
+		CHECK_ERR( thread_id_y );
+
+		// gl_LaunchIDNV.y
+		TConstUnionArray		y_index(1);	y_index[0].setIConst( 1 );
+		TIntermConstantUnion*	y_field		= new TIntermConstantUnion{ y_index, TType{index_type} };
+		TIntermBinary*			launch_y	= new TIntermBinary{ TOperator::EOpIndexDirect };
+		launch_y->setType( TType{uint_type} );
+		launch_y->setLeft( dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" ));
+		launch_y->setRight( y_field );
+	
+		// ... == ...
+		eq2->setType( TType{bool_type} );
+		eq2->setLeft( thread_id_y );
+		eq2->setRight( launch_y );
+	}
+	
+	TIntermBinary*	eq3 = new TIntermBinary{ TOperator::EOpEqual };
+	{
+		// dbg_ShaderTrace.launchID_z
+		TIntermBinary*			thread_id_z	= dbgInfo.GetDebugStorageField( "launchID_z" );
+		CHECK_ERR( thread_id_z );
+
+		// gl_LaunchIDNV.z
+		TConstUnionArray		z_index(1);	z_index[0].setIConst( 2 );
+		TIntermConstantUnion*	z_field		= new TIntermConstantUnion{ z_index, TType{index_type} };
+		TIntermBinary*			launch_z	= new TIntermBinary{ TOperator::EOpIndexDirect };
+		launch_z->setType( TType{uint_type} );
+		launch_z->setLeft( dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" ));
+		launch_z->setRight( z_field );
+	
+		// ... == ...
+		eq3->setType( TType{bool_type} );
+		eq3->setLeft( thread_id_z );
+		eq3->setRight( launch_z );
+	}
+	
+	// ... && ...
+	TIntermBinary*		cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
+	cmp1->setType( TType{bool_type} );
+	cmp1->setLeft( eq1 );
+	cmp1->setRight( eq2 );
+	
+	// ... && ...
+	TIntermBinary*		cmp2		= new TIntermBinary{ TOperator::EOpLogicalAnd };
+	cmp2->setType( TType{bool_type} );
+	cmp2->setLeft( cmp1 );
+	cmp2->setRight( eq3 );
+
+	// return ...
+	TIntermBranch*		fn_return	= new TIntermBranch{ TOperator::EOpReturn, cmp2 };
+	fn_body->getSequence().push_back( fn_return );
+	
+	return fn_node;
+}
+
+/*
+=================================================
 	CreateShaderIsDebugInvocation
 =================================================
 */
@@ -2769,20 +3639,20 @@ static TIntermAggregate*  CreateShaderIsDebugInvocation (const TString &fnName, 
 {
 	switch ( dbgInfo.GetShaderType() )
 	{
-		case EShLangVertex : return nullptr;
-		case EShLangTessControl : return nullptr;
-		case EShLangTessEvaluation : return nullptr;
-		case EShLangGeometry : return nullptr;
-		case EShLangFragment : return CreateFragmentShaderIsDebugInvocation( fnName, dbgInfo );
-		case EShLangCompute : return CreateComputeShaderIsDebugInvocation( fnName, dbgInfo );
-		/*case EShLangRayGenNV :
-		case EShLangIntersectNV :
+		case EShLangVertex :			return CreateVertexShaderIsDebugInvocation( fnName, dbgInfo );
+		case EShLangTessControl :		return CreateTessControlShaderIsDebugInvocation( fnName, dbgInfo );
+		case EShLangTessEvaluation :	return CreateTessEvaluationShaderIsDebugInvocation( fnName, dbgInfo );
+		case EShLangGeometry :			return CreateGeometryShaderIsDebugInvocation( fnName, dbgInfo );
+		case EShLangFragment :			return CreateFragmentShaderIsDebugInvocation( fnName, dbgInfo );
+		case EShLangCompute :			return CreateComputeShaderIsDebugInvocation( fnName, dbgInfo );
+		case EShLangTaskNV :
+		case EShLangMeshNV :			return CreateMeshShaderIsDebugInvocation( fnName, dbgInfo );
+		case EShLangRayGenNV :			return CreateRayGenShaderIsDebugInvocation( fnName, dbgInfo );
+		/*case EShLangIntersectNV :
 		case EShLangAnyHitNV :
 		case EShLangClosestHitNV :
 		case EShLangMissNV :
-		case EShLangCallableNV :
-		case EShLangTaskNV :
-		case EShLangMeshNV : return nullptr;*/
+		case EShLangCallableNV : return nullptr;*/
 	}
 	return nullptr;
 }
@@ -3435,6 +4305,7 @@ static bool RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo)
 		 node->getName() == "gl_PrimitiveIDIn"			or
 		 // tessellation
 		 //		reuse 'gl_InvocationID'
+		//		reuse 'gl_PrimitiveID'
 		 node->getName() == "gl_PatchVerticesIn"		or
 		 node->getName() == "gl_TessCoord"				or
 		 node->getName() == "gl_TessLevelInner"			or
