@@ -139,7 +139,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	void VPipelineCache::_MergePipelines (INOUT Storage<PipelineInstanceCacheTempl<T>> &map, OUT AppendableVkResources_t readyToDelete) const
+	void VPipelineCache::_MergePipelines (INOUT InPlace<PipelineInstanceCacheTempl<T>> &map, OUT AppendableVkResources_t readyToDelete) const
 	{
 		for (auto& cached : *map)
 		{
@@ -516,9 +516,11 @@ namespace FG
 			break;
 		}
 
-		RawDescriptorSetLayoutID	ds_layout = shaderDebugger.GetDescriptorSetLayout( debugMode, debuggableShader );
+		RawDescriptorSetLayoutID	ds_layout;
+		uint						binding;
+		shaderDebugger.GetDescriptorSetLayout( debugMode, debuggableShader, OUT binding, OUT ds_layout );
 
-		layoutId = resMngr.ExtendPipelineLayout( layoutId, ds_layout, DescriptorSetID{"dbgStorage"}, true );
+		layoutId = resMngr.ExtendPipelineLayout( layoutId, ds_layout, binding, DescriptorSetID{"dbgStorage"}, true );
 		CHECK_ERR( layoutId );
 
 		return true;
@@ -657,6 +659,8 @@ namespace FG
 		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 
 		resMngr.EditStatistic().newGraphicsPipelineCount++;
+		
+		CHECK( resMngr.AcquireResource( layout_id ));
 
 		CHECK( _graphicsPipelines->insert_or_assign( {gppln, std::move(inst)}, outPipeline ).second );
 		return true;
@@ -784,6 +788,8 @@ namespace FG
 		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 		
 		resMngr.EditStatistic().newGraphicsPipelineCount++;
+		
+		CHECK( resMngr.AcquireResource( layout_id ));
 
 		CHECK( _meshPipelines->insert_or_assign( {mppln, std::move(inst)}, outPipeline ).second );
 		return true;
@@ -881,6 +887,8 @@ namespace FG
 		VK_CHECK( dev.vkCreateComputePipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 		
 		resMngr.EditStatistic().newComputePipelineCount++;
+		
+		CHECK( resMngr.AcquireResource( layout_id ));
 
 		CHECK( _computePipelines->insert_or_assign( {&cppln, std::move(inst)}, outPipeline ).second );
 		return true;

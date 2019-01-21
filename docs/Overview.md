@@ -1,7 +1,7 @@
 Warning: this is just an example, something may change, so see [tests](../tests/framegraph) or [samples](../samples/framegraph) for currently working code.
 
 ## Initialization
-The FrameGraph core doesn't support device initialization and window creation, so you must create it before creating FrameGraph instance. You can use [framework](../extensions/framework) for this.
+The FrameGraph doesn't support device initialization and window creation, so you must create it before creating FrameGraph instance. You can use [framework](../extensions/framework) for this.
 
 ```cpp
 #include "framework/Window/WindowGLFW.h"
@@ -54,7 +54,7 @@ frameGraph->Initialize( &swapchain_info );
 ```
 
 ## Shader compilation
-The FrameGraph core doesn't support shader compilation, but you can use [PipelineCompiler](../extensions/pipeline_compiler) extension.
+The FrameGraph doesn't support shader compilation, but you can use [PipelineCompiler](../extensions/pipeline_compiler) extension.
 
 Add shader compiler to the framegraph:
 ```cpp

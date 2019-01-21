@@ -71,7 +71,7 @@ namespace FG
 		using ResourceIndexCache_t		= StaticArray< FixedArray<Index_t, 128>, 20 >;
 		using SyncTasks_t				= Array< std::function< void() > >;
 		using Statistics_t				= FrameGraphInstance::ResourceStatistics;
-		using DSLayouts_t				= FixedArray<Pair< RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets >;
+		using DSLayouts_t				= FixedArray<Pair< RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets+1 >;
 
 
 	// variables
@@ -102,14 +102,14 @@ namespace FG
 		uint								_localRTGeometryCount	= 0;
 		uint								_localRTSceneCount		= 0;
 
-		Storage<SamplerMap_t>				_samplerMap;
-		Storage<PipelineLayoutMap_t>		_pplnLayoutMap;
-		Storage<DescriptorSetLayoutMap_t>	_dsLayoutMap;
-		Storage<RenderPassMap_t>			_renderPassMap;
-		Storage<FramebufferMap_t>			_framebufferMap;
-		Storage<PipelineResourcesMap_t>		_pplnResourcesMap;
+		InPlace<SamplerMap_t>				_samplerMap;
+		InPlace<PipelineLayoutMap_t>		_pplnLayoutMap;
+		InPlace<DescriptorSetLayoutMap_t>	_dsLayoutMap;
+		InPlace<RenderPassMap_t>			_renderPassMap;
+		InPlace<FramebufferMap_t>			_framebufferMap;
+		InPlace<PipelineResourcesMap_t>		_pplnResourcesMap;
 
-		Storage<ResourceIDQueue_t>			_unassignIDs;
+		InPlace<ResourceIDQueue_t>			_unassignIDs;
 		SyncTasks_t							_syncTasks;
 
 		RaceConditionCheck					_rcCheck;
@@ -151,7 +151,7 @@ namespace FG
 
 		ND_ LogicalPassID		CreateLogicalRenderPass (const RenderPassDesc &desc);
 		
-		ND_ RawPipelineLayoutID	ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout,
+		ND_ RawPipelineLayoutID	ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout, uint dsLayoutIndex,
 													  const DescriptorSetID &dsID, bool isAsync);
 
 		ND_ RawDescriptorSetLayoutID	CreateDescriptorSetLayout (const PipelineDescription::UniformMapPtr &uniforms, bool isAsync);
@@ -174,6 +174,9 @@ namespace FG
 		ND_ VLocalImage  const*		ToLocal (RawImageID id);
 		ND_ VLocalRTGeometry const*	ToLocal (RawRTGeometryID id);
 		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id);
+
+		template <typename ID>
+		bool AcquireResource (ID id);
 
 		template <typename ID>
 		void ReleaseResource (ID id, bool isAsync, bool force = false);
@@ -204,7 +207,7 @@ namespace FG
 		ND_ DataT*  _GetState (PoolTmpl<DataT,CS,MC> &pool, ID id);
 
 		template <typename DataT, typename ID, typename FnInitialize, typename FnCreate>
-		ND_ ID  _CreateCachedResource (Storage<CachedResourceMap<ID, DataT>> &localCache, bool isAsync, StringView errorStr, FnInitialize&& fnInit, FnCreate&& fnCreate);
+		ND_ ID  _CreateCachedResource (InPlace<CachedResourceMap<ID, DataT>> &localCache, bool isAsync, StringView errorStr, FnInitialize&& fnInit, FnCreate&& fnCreate);
 
 		template <typename ID, typename ...IDs>
 		void  _FreeIndexCache (const Union<ID, IDs...> &);
@@ -236,6 +239,27 @@ namespace FG
 		return &data.Data();
 	}
 	
+/*
+=================================================
+	AcquireResource
+=================================================
+*/
+	template <typename ID>
+	inline bool  VResourceManagerThread::AcquireResource (ID id)
+	{
+		ASSERT( id );
+		SCOPELOCK( _rcCheck );
+		
+		auto&	pool = _GetResourcePool( id );
+		auto&	data = pool[ id.Index() ];
+
+		if ( not data.IsCreated() or data.GetInstanceID() != id.InstanceID() )
+			return false;
+
+		data.AddRef();
+		return true;
+	}
+
 /*
 =================================================
 	ReleaseResource

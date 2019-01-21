@@ -46,6 +46,8 @@ namespace FG
 			frame.readyToDelete.reserve( 256 );
 		}
 
+		_CreateEmptyDescriptorSetLayout();
+
 		_startTime = TimePoint_t::clock::now();
 		return true;
 	}
@@ -58,6 +60,8 @@ namespace FG
 	void VResourceManager::Deinitialize ()
 	{
 		SCOPELOCK( _rcCheck );
+
+		_UnassignResource( _GetResourcePool(_emptyDSLayout), _emptyDSLayout, true );
 
 		_DestroyResourceCache( INOUT _samplerCache );
 		_DestroyResourceCache( INOUT _pplnLayoutCache );
@@ -508,6 +512,32 @@ namespace FG
 			if ( is_deprecated or is_invalid )
 				resMngr.ReleaseResource( RawPipelineResourcesID{ i, res.GetInstanceID() }, true, true );
 		}
+	}
+	
+/*
+=================================================
+	_CreateEmptyDescriptorSetLayout
+=================================================
+*/
+	bool  VResourceManager::_CreateEmptyDescriptorSetLayout ()
+	{
+		auto&		pool = _GetResourcePool( RawDescriptorSetLayoutID{} );
+		Index_t		index;
+		CHECK_ERR( pool.Assign( OUT index ));
+
+		auto&										res			= pool[ index ];
+		PipelineDescription::UniformMapPtr			uniforms	= MakeShared<PipelineDescription::UniformMap_t>();
+		VDescriptorSetLayout::DescriptorBinding_t	binding;
+
+		res.Data().~VDescriptorSetLayout();
+		new (&res.Data()) VDescriptorSetLayout{ uniforms, OUT binding };
+		
+		CHECK_ERR( res.Create( _device, binding ));
+		CHECK_ERR( pool.AddToCache( index ).second );
+		res.AddRef();
+
+		_emptyDSLayout = RawDescriptorSetLayoutID{ index, res.GetInstanceID() };
+		return true;
 	}
 
 

@@ -52,7 +52,7 @@ namespace FG
 
 	// variables
 	private:
-		Storage<Allocator_t>		_allocator;
+		InPlace<Allocator_t>		_allocator;
 
 		RawFramebufferID			_framebufferId;
 		RawRenderPassID				_renderPassId;

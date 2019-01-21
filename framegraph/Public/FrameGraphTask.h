@@ -158,32 +158,14 @@ namespace FG
 		DispatchCompute&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
 		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
 
-		DispatchCompute&  EnableDebugTrace (const uint3 &globalID)
-		{
-			debugMode.mode		= EShaderDebugMode::Trace;
-			debugMode.globalID	= globalID;
-			return *this;
-		}
+		DispatchCompute&  EnableDebugTrace (const uint3 &globalID);
+		DispatchCompute&  EnableDebugTrace ()								{ return EnableDebugTrace( uint3{~0u} ); }
 		
-		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res)
-		{
-			ASSERT( id.IsDefined() and res );
-			resources.insert({ id, res });
-			return *this;
-		}
+		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 
 		template <typename ValueType>
 		DispatchCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value) { return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
-
-		DispatchCompute&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
-		{
-			ASSERT( id.IsDefined() );
-			auto&	pc = pushConstants.emplace_back();
-			pc.id = id;
-			pc.size = Bytes<uint16_t>{size};
-			MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
-			return *this;
-		}
+		DispatchCompute&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 	};
 
 
@@ -228,49 +210,17 @@ namespace FG
 		
 		DispatchComputeIndirect&  Dispatch (BytesU offset)							{ commands.push_back({ offset });  return *this; }
 
-		DispatchComputeIndirect&  EnableDebugTrace (const uint3 &globalID)
-		{
-			debugMode.mode		= EShaderDebugMode::Trace;
-			debugMode.globalID	= globalID;
-			return *this;
-		}
+		DispatchComputeIndirect&  EnableDebugTrace (const uint3 &globalID);
+		DispatchComputeIndirect&  EnableDebugTrace ()								{ return EnableDebugTrace( uint3{~0u} ); }
 
-		DispatchComputeIndirect&  SetPipeline (const CPipelineID &ppln)
-		{
-			ASSERT( ppln );
-			pipeline = ppln.Get();
-			return *this;
-		}
+		DispatchComputeIndirect&  SetPipeline (const CPipelineID &ppln)				{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
+		DispatchComputeIndirect&  SetIndirectBuffer (const BufferID &buffer)		{ ASSERT( buffer );  indirectBuffer = buffer.Get();  return *this; }
 		
-		DispatchComputeIndirect&  SetIndirectBuffer (const BufferID &buffer)
-		{
-			ASSERT( buffer );
-			indirectBuffer = buffer.Get();
-			return *this;
-		}
-		
-		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, const PipelineResources *res)
-		{
-			ASSERT( id.IsDefined() and res );
-			resources.insert({ id, res });
-			return *this;
-		}
+		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 
 		template <typename ValueType>
-		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const ValueType &value)
-		{
-			return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> );
-		}
-
-		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
-		{
-			ASSERT( id.IsDefined() );
-			auto&	pc = pushConstants.emplace_back();
-			pc.id = id;
-			pc.size = Bytes<uint16_t>{size};
-			MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
-			return *this;
-		}
+		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
+		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 	};
 
 
@@ -1252,35 +1202,75 @@ namespace FG
 		TraceRays&  SetGroupCount (const uint3 &value)								{ groupCount = value;  return *this; }
 		TraceRays&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
 		
-		TraceRays&  AddResources (const DescriptorSetID &id, const PipelineResources *res)
-		{
-			ASSERT( id.IsDefined() and res );
-			resources.insert({ id, res });
-			return *this;
-		}
-
-		TraceRays&  SetShaderTable (const ShaderTable &value)
-		{
-			ASSERT( value.buffer );
-			ASSERT( value.rayMissStride > 0 and value.rayHitStride > 0 );
-			shaderTable = value;
-			return *this;
-		}
+		TraceRays&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		TraceRays&  SetShaderTable (const ShaderTable &value);
 
 		template <typename ValueType>
-		TraceRays&  AddPushConstant (const PushConstantID &id, const ValueType &value)
-		{
-			return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> );
-		}
-
+		TraceRays&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
 		TraceRays&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 
 		TraceRays&  EnableRayGenDebugTrace (const uint3 &launchID);
+		TraceRays&  EnableRayGenDebugTrace ()										{ return EnableRayGenDebugTrace( uint3{~0u} ); }
 	};
 //-----------------------------------------------------------------------------
 
 	
 	
+
+	inline DispatchCompute&  DispatchCompute::EnableDebugTrace (const uint3 &globalID)
+	{
+		debugMode.mode		= EShaderDebugMode::Trace;
+		debugMode.globalID	= globalID;
+		return *this;
+	}
+
+	inline DispatchCompute&  DispatchCompute::AddResources (const DescriptorSetID &id, const PipelineResources *res)
+	{
+		ASSERT( id.IsDefined() and res );
+		resources.insert({ id, res });
+		return *this;
+	}
+
+	inline DispatchCompute&  DispatchCompute::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
+	{
+		ASSERT( id.IsDefined() );
+		auto&	pc = pushConstants.emplace_back();
+		pc.id = id;
+		pc.size = Bytes<uint16_t>{size};
+		MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
+		return *this;
+	}
+//-----------------------------------------------------------------------------
+	
+	
+
+	inline DispatchComputeIndirect&  DispatchComputeIndirect::EnableDebugTrace (const uint3 &globalID)
+	{
+		debugMode.mode		= EShaderDebugMode::Trace;
+		debugMode.globalID	= globalID;
+		return *this;
+	}
+
+	inline DispatchComputeIndirect&  DispatchComputeIndirect::AddResources (const DescriptorSetID &id, const PipelineResources *res)
+	{
+		ASSERT( id.IsDefined() and res );
+		resources.insert({ id, res });
+		return *this;
+	}
+
+	inline DispatchComputeIndirect&  DispatchComputeIndirect::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
+	{
+		ASSERT( id.IsDefined() );
+		auto&	pc = pushConstants.emplace_back();
+		pc.id = id;
+		pc.size = Bytes<uint16_t>{size};
+		MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
+		return *this;
+	}
+//-----------------------------------------------------------------------------
+
+
+
 	inline BuildRayTracingGeometry::Triangles&
 		BuildRayTracingGeometry::Triangles::SetVertexBuffer (const BufferID &id, BytesU offset)
 	{
@@ -1390,6 +1380,7 @@ namespace FG
 	}
 //-----------------------------------------------------------------------------
 
+
 	
 	inline BuildRayTracingGeometry::AABB&
 		BuildRayTracingGeometry::AABB::SetBuffer (const BufferID &id, BytesU offset)
@@ -1420,6 +1411,7 @@ namespace FG
 //-----------------------------------------------------------------------------
 	
 
+
 	inline BuildRayTracingScene::Instance&
 		BuildRayTracingScene::Instance::SetGeometry (const RTGeometryID &id)
 	{
@@ -1437,6 +1429,7 @@ namespace FG
 //-----------------------------------------------------------------------------
 	
 
+
 	inline TraceRays&  TraceRays::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 	{
 		ASSERT( id.IsDefined() );
@@ -1444,6 +1437,21 @@ namespace FG
 		pc.id = id;
 		pc.size = Bytes<uint16_t>{size};
 		MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
+		return *this;
+	}
+	
+	inline TraceRays&  TraceRays::AddResources (const DescriptorSetID &id, const PipelineResources *res)
+	{
+		ASSERT( id.IsDefined() and res );
+		resources.insert({ id, res });
+		return *this;
+	}
+
+	inline TraceRays&  TraceRays::SetShaderTable (const ShaderTable &value)
+	{
+		ASSERT( value.buffer );
+		ASSERT( value.rayMissStride > 0 and value.rayHitStride > 0 );
+		shaderTable = value;
 		return *this;
 	}
 

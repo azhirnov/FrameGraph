@@ -83,6 +83,8 @@ namespace FG
 	private:
 		bool ImplTest_Scene1 ();
 		bool ImplTest_CacheOverflow1 ();
+		bool ImplTest_Multithreading1 ();
+		bool ImplTest_Multithreading2 ();
 
 
 	// drawing tests
@@ -94,6 +96,7 @@ namespace FG
 		bool Test_CopyImage4 ();
 		bool Test_PushConst1 ();
 		bool Test_Compute1 ();		// compute + specialization
+		bool Test_Compute2 ();
 		bool Test_DynamicOffset ();	// buffer dynamic offset
 		bool Test_Draw1 ();
 		bool Test_Draw2 ();			// with swapchain
@@ -106,6 +109,7 @@ namespace FG
 		bool Test_ReadAttachment1 ();
 		bool Test_AsyncCompute1 ();
 		bool Test_ShaderDebugger1 ();
+		bool Test_ShaderDebugger2 ();
 	};
 
 	

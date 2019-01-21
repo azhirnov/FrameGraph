@@ -81,9 +81,9 @@ namespace FG
 			auto&	ds = ppln.descriptorSets[i];
 
 			ASSERT( ds.id.IsDefined() );
-			ASSERT( ds.bindingIndex < FG_MaxDescriptorSets );
+			ASSERT( ds.bindingIndex < MaxDescSets );
 
-			setsInfo.insert({ ds.id, DescriptorSet{ sets[i].first, sets[i].second->Data().Handle(), ds.bindingIndex }});
+			setsInfo.insert({ ds.id, DescSetLayout{ sets[i].first, sets[i].second->Data().Handle(), ds.bindingIndex }});
 			
 			// calculate hash
 			hash << HashOf( ds.id );
@@ -116,24 +116,30 @@ namespace FG
 	Create
 =================================================
 */
-	bool VPipelineLayout::Create (const VDevice &dev)
+	bool VPipelineLayout::Create (const VDevice &dev, VkDescriptorSetLayout emptyLayout)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _layout == VK_NULL_HANDLE );
 		
-		VkDescriptorSetLayouts_t	vk_sets;		vk_sets.resize( _descriptorSets.size() );
+		VkDescriptorSetLayouts_t	vk_layouts;
 		VkPushConstantRanges_t		vk_ranges;
 
+		for (auto& layout : vk_layouts) {
+			layout = emptyLayout;
+		}
+
+		uint	min_set = uint(vk_layouts.size());
+		uint	max_set = 0;
 		auto	ds_iter = _descriptorSets.begin();
 
 		for (size_t i = 0; ds_iter != _descriptorSets.end(); ++i, ++ds_iter)
 		{
 			auto&	ds = ds_iter->second;
+			ASSERT( vk_layouts[ ds.index ] == emptyLayout );
 
-			ASSERT( ds.index < vk_sets.size() );
-			ASSERT( vk_sets[ ds.index ] == VK_NULL_HANDLE );
-
-			vk_sets[ ds.index ] = ds.layout;
+			vk_layouts[ ds.index ] = ds.layout;
+			min_set = Min( min_set, ds.index );
+			max_set = Max( max_set, ds.index );
 		}
 
 		for (auto& pc : _pushConstants)
@@ -148,12 +154,14 @@ namespace FG
 		
 		VkPipelineLayoutCreateInfo			layout_info = {};
 		layout_info.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		layout_info.setLayoutCount			= uint(vk_sets.size());
-		layout_info.pSetLayouts				= vk_sets.data();
+		layout_info.setLayoutCount			= max_set + 1;
+		layout_info.pSetLayouts				= vk_layouts.data();
 		layout_info.pushConstantRangeCount	= uint(vk_ranges.size());
 		layout_info.pPushConstantRanges		= vk_ranges.data();
 
 		VK_CHECK( dev.vkCreatePipelineLayout( dev.GetVkDevice(), &layout_info, null, OUT &_layout ) );
+
+		_firstDescSet = min_set;
 		return true;
 	}
 	
@@ -177,8 +185,9 @@ namespace FG
 		_descriptorSets.clear();
 		_pushConstants.clear();
 
-		_layout = VK_NULL_HANDLE;
-		_hash	= Default;
+		_layout			= VK_NULL_HANDLE;
+		_hash			= Default;
+		_firstDescSet	= UMax;
 	}
 	
 /*

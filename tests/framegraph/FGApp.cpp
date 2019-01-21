@@ -34,6 +34,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_CopyImage4,		1 });
 		_tests.push_back({ &FGApp::Test_PushConst1,		1 });
 		_tests.push_back({ &FGApp::Test_Compute1,		1 });
+		_tests.push_back({ &FGApp::Test_Compute2,		1 });
 		_tests.push_back({ &FGApp::Test_DynamicOffset,	1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
 		_tests.push_back({ &FGApp::Test_Draw2,			1 });
@@ -42,8 +43,11 @@ namespace {
 		_tests.push_back({ &FGApp::Test_ReadAttachment1, 1 });
 		//_tests.push_back({ &FGApp::Test_AsyncCompute1,	1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger1, 1 });
+		_tests.push_back({ &FGApp::Test_ShaderDebugger2, 1 });
 
-		_tests.push_back({ &FGApp::ImplTest_Scene1,		1 });
+		_tests.push_back({ &FGApp::ImplTest_Scene1,			 1 });
+		_tests.push_back({ &FGApp::ImplTest_Multithreading1, 1 });
+		_tests.push_back({ &FGApp::ImplTest_Multithreading2, 1 });
 		
 		// RTX only
 		_tests.push_back({ &FGApp::Test_Draw3,			1 });

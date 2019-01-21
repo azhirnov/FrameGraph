@@ -45,9 +45,9 @@ namespace FG
 															   PipelineInstancePairHash<T>, std::equal_to<Pair<T const*, typename T::PipelineInstance>>,
 															   StdLinearAllocator<Pair< const Pair<T const*, typename T::PipelineInstance>, VkPipeline >> >;
 
-		using CPipelineInstanceMap_t	= Storage< PipelineInstanceCacheTempl< VComputePipeline > >;
-		using GPipelineInstanceMap_t	= Storage< PipelineInstanceCacheTempl< VGraphicsPipeline > >;
-		using MPipelineInstanceMap_t	= Storage< PipelineInstanceCacheTempl< VMeshPipeline > >;
+		using CPipelineInstanceMap_t	= InPlace< PipelineInstanceCacheTempl< VComputePipeline > >;
+		using GPipelineInstanceMap_t	= InPlace< PipelineInstanceCacheTempl< VGraphicsPipeline > >;
+		using MPipelineInstanceMap_t	= InPlace< PipelineInstanceCacheTempl< VMeshPipeline > >;
 		
 		static constexpr uint	MaxStages = 8;
 		using DynamicStates_t			= FixedArray< VkDynamicState, 32 >;
@@ -137,7 +137,7 @@ namespace FG
 		ND_ FixedArray<EShaderLangFormat,16>	_GetBuiltinFormats (const VDevice &dev) const;
 		
 		template <typename T>
-		void _MergePipelines (INOUT Storage<PipelineInstanceCacheTempl<T>> &, OUT AppendableVkResources_t) const;
+		void _MergePipelines (INOUT InPlace<PipelineInstanceCacheTempl<T>> &, OUT AppendableVkResources_t) const;
 
 		template <typename DescT>
 		bool _CompileShaders (INOUT DescT &desc, const VDevice &dev);

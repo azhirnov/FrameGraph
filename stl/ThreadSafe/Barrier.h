@@ -31,14 +31,9 @@ namespace FG
 
 	struct Barrier
 	{
-	// types
-	private:
-		static constexpr uint	StorageSize = 32;
-
-
 	// variables
 	private:
-		alignas(uint64_t) uint8_t	_data [StorageSize];
+		alignas(uint64_t) uint8_t	_data [32];
 
 
 	// methods

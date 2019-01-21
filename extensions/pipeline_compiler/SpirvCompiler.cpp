@@ -263,15 +263,9 @@ namespace FG
 					trace.IncludeSource( file.first.c_str(), file.second->GetSource().data(), file.second->GetSource().length() );
 				}
 
-				// find max descriptor set index
-				uint	max_ds_index = 0;
-				for (auto& ds : outReflection.layout.descriptorSets) {
-					max_ds_index = Max( max_ds_index, ds.bindingIndex );
-				}
-
-				// TODO: other shader may use this descriptor set index, so
-				// you need some way to propagate the last index into debug utils.
-				COMP_CHECK_ERR( trace.InsertTraceRecording( interm, max_ds_index+1 ));
+				// FrameGraph uses (0..FG_MaxDescriptorSets-1) descriptor set indices,
+				// so FG_MaxDescriptorSets index never be used and can be used safely by shader debugger.
+				COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_MaxDescriptorSets ));
 
 				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
@@ -1240,11 +1234,62 @@ namespace FG
 */
 	bool SpirvCompiler::_DeserializeExternalObjects (TIntermNode* node, INOUT ShaderReflection &result) const
 	{
-		TIntermTyped*	tnode			= node->getAsTyped();
-		auto const&		type			= tnode->getType();
-		auto const&		qual			= type.getQualifier();
-		const bool		is_dynamic		= EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset );
+		TIntermTyped*	tnode	= node->getAsTyped();
+		auto const&		type	= tnode->getType();
+		auto const&		qual	= type.getQualifier();
 
+		// shader input
+		if ( qual.storage == TStorageQualifier::EvqVaryingIn )
+		{
+			if ( _currentStage != EShaderStages::Vertex )
+				return true;	// skip
+
+			GraphicsPipelineDesc::VertexAttrib	attrib;
+			attrib.id		= ExtractVertexID( node );
+			attrib.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : UMax);
+			attrib.type		= _ExtractVertexType( type );
+
+			result.vertex.vertexAttribs.push_back( std::move(attrib) );
+			return true;
+		}
+		
+		// shader output
+		if ( qual.storage == TStorageQualifier::EvqVaryingOut )
+		{
+			if ( _currentStage != EShaderStages::Fragment )
+				return true;	// skip
+
+			GraphicsPipelineDesc::FragmentOutput	frag_out;
+			frag_out.id		= ExtractRenderTargetID( node );
+			frag_out.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : UMax);
+			frag_out.type	= _ExtractFragmentOutputType( type );
+
+			result.fragment.fragmentOutput.push_back( std::move(frag_out) );
+			return true;
+		}
+		
+		// skip builtin
+		if ( type.isBuiltIn() )
+			return true;
+
+		// specialization constant
+		if ( qual.storage == EvqConst and
+			 qual.layoutSpecConstantId != TQualifier::layoutSpecConstantIdEnd )
+		{
+			result.specConstants.insert({ ExtractSpecializationID( node ), qual.layoutSpecConstantId });
+			return true;
+		}
+
+		// global variable or global constant
+		if ( qual.storage == EvqGlobal or qual.storage == EvqConst )
+			return true;
+
+		// shared variables
+		if ( qual.storage == EvqShared )
+			return true;
+
+
+		const bool		is_dynamic		= EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset );
 		auto&			descriptor_set	= GetDesciptorSet( qual.hasSet() ? uint(qual.layoutSet) : 0, result );
 		auto&			uniforms		= const_cast<PipelineDescription::UniformMap_t &>( *descriptor_set.uniforms );
 
@@ -1402,56 +1447,6 @@ namespace FG
 		{
 			COMP_RETURN_ERR( "uniform is not supported for Vulkan!" );
 		}
-		
-		// shader input
-		if ( qual.storage == TStorageQualifier::EvqVaryingIn )
-		{
-			if ( _currentStage != EShaderStages::Vertex )
-				return true;	// skip
-
-			GraphicsPipelineDesc::VertexAttrib	attrib;
-			attrib.id		= ExtractVertexID( node );
-			attrib.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : UMax);
-			attrib.type		= _ExtractVertexType( type );
-
-			result.vertex.vertexAttribs.push_back( std::move(attrib) );
-			return true;
-		}
-		
-		// shader output
-		if ( qual.storage == TStorageQualifier::EvqVaryingOut )
-		{
-			if ( _currentStage != EShaderStages::Fragment )
-				return true;	// skip
-
-			GraphicsPipelineDesc::FragmentOutput	frag_out;
-			frag_out.id		= ExtractRenderTargetID( node );
-			frag_out.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : UMax);
-			frag_out.type	= _ExtractFragmentOutputType( type );
-
-			result.fragment.fragmentOutput.push_back( std::move(frag_out) );
-			return true;
-		}
-		
-		// skip builtin
-		if ( type.isBuiltIn() )
-			return true;
-
-		// specialization constant
-		if ( qual.storage == EvqConst and
-			 qual.layoutSpecConstantId != TQualifier::layoutSpecConstantIdEnd )
-		{
-			result.specConstants.insert({ ExtractSpecializationID( node ), qual.layoutSpecConstantId });
-			return true;
-		}
-
-		// global variable or global constant
-		if ( qual.storage == EvqGlobal or qual.storage == EvqConst )
-			return true;
-
-		// shared variables
-		if ( qual.storage == EvqShared )
-			return true;
 
 		COMP_RETURN_ERR( "unknown external type!" );
 	}

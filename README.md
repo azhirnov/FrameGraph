@@ -60,7 +60,7 @@ Dependencies:<br/>
 ### Stage 2
 - mesh shader support. (done)<br/>
 - ray tracing support. (done)<br/>
-- glsl debugging. (WIP)<br/>
+- glsl debugging. (done)<br/>
 - sparse memory support.<br/>
 - custom RAM allocators.<br/>
 - logical resources.<br/>

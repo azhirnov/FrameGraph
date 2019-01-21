@@ -683,8 +683,8 @@ namespace FG
 
 	// variables
 	private:
-		Storage<SearchableNodes_t>	_nodes;
-		Storage<Entries_t>			_entries;
+		InPlace<SearchableNodes_t>	_nodes;
+		InPlace<Entries_t>			_entries;
 
 
 	// methods

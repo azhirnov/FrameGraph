@@ -16,19 +16,22 @@ namespace FG
 	{
 	// types
 	private:
-		struct DescriptorSet
+		struct DescSetLayout
 		{
 			RawDescriptorSetLayoutID	layoutId;
 			VkDescriptorSetLayout		layout		= VK_NULL_HANDLE;	// TODO: remove?
 			uint						index		= 0;
 
-			DescriptorSet () {}
-			DescriptorSet (RawDescriptorSetLayoutID id, VkDescriptorSetLayout layout, uint index) : layoutId{id}, layout{layout}, index{index} {}
+			DescSetLayout () {}
+			DescSetLayout (RawDescriptorSetLayoutID id, VkDescriptorSetLayout layout, uint index) : layoutId{id}, layout{layout}, index{index} {}
 		};
 
-		using DescriptorSets_t			= FixedMap< DescriptorSetID, DescriptorSet, FG_MaxDescriptorSets >;
+		// the last index will be used for shader debugger
+		static constexpr uint	MaxDescSets	= FG_MaxDescriptorSets+1;
+
+		using DescriptorSets_t			= FixedMap< DescriptorSetID, DescSetLayout, MaxDescSets >;
 		using PushConstants_t			= PipelineDescription::PushConstants_t;
-		using VkDescriptorSetLayouts_t	= FixedArray< VkDescriptorSetLayout, FG_MaxDescriptorSets >;
+		using VkDescriptorSetLayouts_t	= StaticArray< VkDescriptorSetLayout, MaxDescSets >;
 		using VkPushConstantRanges_t	= FixedArray< VkPushConstantRange, FG_MaxPushConstants >;
 		using DSLayoutArray_t			= ArrayView<Pair<RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>>;
 
@@ -39,6 +42,7 @@ namespace FG
 		VkPipelineLayout		_layout			= VK_NULL_HANDLE;
 		DescriptorSets_t		_descriptorSets;
 		PushConstants_t			_pushConstants;
+		uint					_firstDescSet	= UMax;
 
 		DebugName_t				_debugName;
 		
@@ -52,7 +56,7 @@ namespace FG
 		VPipelineLayout (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets);
 		~VPipelineLayout ();
 
-		bool Create (const VDevice &dev);
+		bool Create (const VDevice &dev, VkDescriptorSetLayout emptyLayout);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
 		bool  GetDescriptorSetLayout (const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const;
@@ -61,13 +65,14 @@ namespace FG
 
 		ND_ bool  operator == (const VPipelineLayout &rhs) const;
 
-		ND_ VkPipelineLayout		Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _layout; }
-		ND_ HashVal					GetHash ()				const	{ SHAREDLOCK( _rcCheck );  return _hash; }
-		
-		ND_ StringView				GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ VkPipelineLayout		Handle ()					const	{ SHAREDLOCK( _rcCheck );  return _layout; }
+		ND_ HashVal					GetHash ()					const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 
-		ND_ DescriptorSets_t const&	GetDescriptorSets ()	const	{ SHAREDLOCK( _rcCheck );  return _descriptorSets; }
-		ND_ PushConstants_t const&	GetPushConstants ()		const	{ SHAREDLOCK( _rcCheck );  return _pushConstants; }
+		ND_ StringView				GetDebugName ()				const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		
+		ND_ uint					GetFirstDescriptorSet ()	const	{ SHAREDLOCK( _rcCheck );  return _firstDescSet; }
+		ND_ DescriptorSets_t const&	GetDescriptorSets ()		const	{ SHAREDLOCK( _rcCheck );  return _descriptorSets; }
+		ND_ PushConstants_t const&	GetPushConstants ()			const	{ SHAREDLOCK( _rcCheck );  return _pushConstants; }
 
 
 	private:

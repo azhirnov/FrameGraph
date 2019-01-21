@@ -1,13 +1,13 @@
 Shader debugging supported only for GLSL source. But you can use SPIRV-Cross to convert SPIRV binary into GLSL source.<br/>
 For each shader, that you want to debug, add `EnableDebugTrace` flag:
 ```cpp
-desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, ...
+desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, ... );
 ```
 Then setup debug callback:
 ```cpp
 FrameGraphThread::SetShaderDebugCallback( ... );
 ```
-For task that you want to debug add:
+For task that you want to debug add one of this:
 ```cpp
 // record if {thread_x, thread_y, thread_z} == gl_GlobalInvocationID
 DispatchCompute().EnableDebugTrace({ thread_x, thread_y, thread_z });
@@ -32,18 +32,32 @@ DrawMeshes().EnableMeshTaskDebugTrace( invocation );
 DrawMeshes().EnableMeshDebugTrace( invocation );
 ```
 Shader trace will be recorded only for selected thread/pixel/...
+<br/>
+Aloso you can enable shader recording during shader execution:
+```cpp
+desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, "main", R"#(
+	// empty function will be replaced during shader compilation
+	void dbg_EnableTraceRecording (bool b) {}
+	
+	void main ()
+	{
+		bool condition = ...
+		
+		// if condition is true then trace recording will started here
+		dbg_EnableTraceRecording( condition );
+		...
+	}
+)#" );
+```
+Enable shader debugging by calling same function, but without arguments.
 <br/> 
 At the end of frame device synchronized with host, shader trace parsed and callback will be called anyway.
-If selected thread/pixel/... is never dispatched or drawed then `output` array in callback will be empty.
+If selected thread/pixel/... is never dispatched or drawed then `output` array in callback parameters will be empty.
 <br/>
 Example of shader trace:
 ```cpp
 //> gl_GlobalInvocationID: uint3 {8, 8, 0}
-no source
-
 //> gl_LocalInvocationID: uint3 {0, 0, 0}
-no source
-
 //> gl_WorkGroupID: uint3 {1, 1, 0}
 no source
 
@@ -64,3 +78,4 @@ no source
 //  value: float {0.506611}
 14. 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), vec4(value) );
 ```
+The `//>` symbol marks the modified variable.

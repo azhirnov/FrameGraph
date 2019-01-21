@@ -556,29 +556,28 @@ namespace FG
 	template <typename DrawTask>
 	void VTaskProcessor::DrawTaskCommands::_BindPipelineResources (const VPipelineLayout &layout, const DrawTask &task) const
 	{
-		auto&	dyn_offsets = task.GetResources().dynamicOffsets;
-
+		if ( task.descriptorSets.size() )
+		{
+			_dev.vkCmdBindDescriptorSets( _cmdBuffer,
+										  VK_PIPELINE_BIND_POINT_GRAPHICS,
+										  layout.Handle(),
+										  layout.GetFirstDescriptorSet(),
+										  uint(task.descriptorSets.size()),
+										  task.descriptorSets.data(),
+										  uint(task.GetResources().dynamicOffsets.size()),
+										  task.GetResources().dynamicOffsets.data() );
+			_tp.Stat().descriptorBinds++;
+		}
+		
 		if ( task.GetDebugModeIndex() != UMax )
 		{
-			VkDescriptorSet		ds		= VK_NULL_HANDLE;
-			uint				offset	= 0;
-			_tp._frameGraph.GetShaderDebugger()->GetDescriptotSet( task.GetDebugModeIndex(), OUT ds, OUT offset );
-
-			task.descriptorSets.push_back( ds );
-			dyn_offsets.push_back( offset );
+			VkDescriptorSet		desc_set;
+			uint				offset, binding;
+			_tp._frameGraph.GetShaderDebugger()->GetDescriptotSet( task.GetDebugModeIndex(), OUT binding, OUT desc_set, OUT offset );
+			
+			_dev.vkCmdBindDescriptorSets( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout.Handle(), binding, 1, &desc_set, 1, &offset );
+			_tp.Stat().descriptorBinds++;
 		}
-
-		if ( task.descriptorSets.empty() )
-			return;
-
-		_dev.vkCmdBindDescriptorSets( _cmdBuffer,
-									  VK_PIPELINE_BIND_POINT_GRAPHICS,
-									  layout.Handle(),
-									  0,
-									  uint(task.descriptorSets.size()), task.descriptorSets.data(),
-									  uint(dyn_offsets.size()), dyn_offsets.data() );
-
-		_tp.Stat().descriptorBinds++;
 	}
 
 /*
@@ -1186,6 +1185,7 @@ namespace FG
 	{
 		const FixedArray< uint, FG_MaxBufferDynamicOffsets >	old_offsets = resourceSet.dynamicOffsets;
 		StaticArray< Pair<uint, uint>, FG_MaxDescriptorSets >	new_offsets = {};
+		const uint												first_ds	= layout.GetFirstDescriptorSet();
 
 		descriptorSets.resize( resourceSet.resources.size() );
 
@@ -1206,6 +1206,8 @@ namespace FG
 			}
 
 			ASSERT( ds_layout == ppln_res->GetLayoutID() );
+			ASSERT( binding >= first_ds );
+			binding -= first_ds;
 
 			descriptorSets[binding] = ppln_res->Handle();
 			new_offsets[binding]    = { res.offsetIndex, res.offsetCount };
@@ -1234,29 +1236,28 @@ namespace FG
 		VkDescriptorSets_t	descriptor_sets;
 		_ExtractDescriptorSets( layout, resourceSet, OUT descriptor_sets );
 
-		if ( debugModeIndex != UMax )
+		if ( descriptor_sets.size() )
 		{
-			VkDescriptorSet		ds		= VK_NULL_HANDLE;
-			uint				offset	= 0;
-			_frameGraph.GetShaderDebugger()->GetDescriptotSet( debugModeIndex, OUT ds, OUT offset );
-
-			descriptor_sets.push_back( ds );
-			resourceSet.dynamicOffsets.push_back( offset );
+			_dev.vkCmdBindDescriptorSets( _cmdBuffer,
+										  bindPoint,
+										  layout.Handle(),
+										  layout.GetFirstDescriptorSet(),
+										  uint(descriptor_sets.size()),
+										  descriptor_sets.data(),
+										  uint(resourceSet.dynamicOffsets.size()),
+										  resourceSet.dynamicOffsets.data() );
+			Stat().descriptorBinds++;
 		}
 
-		if ( descriptor_sets.empty() )
-			return;
+		if ( debugModeIndex != UMax )
+		{
+			VkDescriptorSet		desc_set;
+			uint				offset, binding;
+			_frameGraph.GetShaderDebugger()->GetDescriptotSet( debugModeIndex, OUT binding, OUT desc_set, OUT offset );
 
-		_dev.vkCmdBindDescriptorSets( _cmdBuffer,
-									  bindPoint,
-									  layout.Handle(),
-									  0,
-									  uint(descriptor_sets.size()),
-									  descriptor_sets.data(),
-									  uint(resourceSet.dynamicOffsets.size()),
-									  resourceSet.dynamicOffsets.data() );
-
-		Stat().descriptorBinds++;
+			_dev.vkCmdBindDescriptorSets( _cmdBuffer, bindPoint, layout.Handle(), binding, 1, &desc_set, 1, &offset );
+			Stat().descriptorBinds++;
+		}
 	}
 
 /*

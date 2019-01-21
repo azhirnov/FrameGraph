@@ -252,7 +252,7 @@ namespace FG
 =================================================
 */
 	RawPipelineLayoutID  VResourceManagerThread::ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout,
-																	   const DescriptorSetID &dsID, bool isAsync)
+																	   uint dsLayoutIndex, const DescriptorSetID &dsID, bool isAsync)
 	{
 		VPipelineLayout const*	origin = GetResource( baseLayout );
 		CHECK_ERR( origin );
@@ -261,7 +261,6 @@ namespace FG
 		DSLayouts_t								ds_layouts;
 		auto&									origin_sets = origin->GetDescriptorSets();
 		auto&									ds_pool		= _GetResourcePool( RawDescriptorSetLayoutID{} );
-		uint									max_index	= 0;
 
 		// copy descriptor set layouts
 		for (auto& src : origin_sets)
@@ -272,7 +271,8 @@ namespace FG
 			dst.id				= src.first;
 			dst.bindingIndex	= src.second.index;
 			dst.uniforms		= ds_layout.Data().GetUniforms();
-			max_index			= Max( dst.bindingIndex, max_index );
+
+			ASSERT( src.second.index != dsLayoutIndex );
 
 			desc.descriptorSets.push_back( std::move(dst) );
 			ds_layouts.push_back({ src.second.layoutId, &ds_layout });
@@ -284,7 +284,7 @@ namespace FG
 			
 			PipelineDescription::DescriptorSet	dst;
 			dst.id				= dsID;
-			dst.bindingIndex	= max_index+1;
+			dst.bindingIndex	= dsLayoutIndex;
 			dst.uniforms		= ds_layout.Data().GetUniforms();
 			
 			desc.descriptorSets.push_back( std::move(dst) );
@@ -344,6 +344,9 @@ namespace FG
 	{
 		CHECK_ERR( _Assign( OUT id ));
 		
+		auto*	empty_layout = GetResource( _mainRM._emptyDSLayout );
+		CHECK_ERR( empty_layout );
+
 		auto&	pool	= _GetResourcePool( id );
 		auto&	layout	= pool[ id.Index() ];
 		Replace( layout, desc, dsLayouts );
@@ -392,7 +395,7 @@ namespace FG
 
 
 		// create new pipeline layout
-		if ( not layout.Create( GetDevice() ))
+		if ( not layout.Create( GetDevice(), empty_layout->Handle() ))
 		{
 			if ( not isAsync )
 				pool.RemoveFromCache( id.Index() );
@@ -745,7 +748,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, typename ID, typename FnInitialize, typename FnCreate>
-	inline ID  VResourceManagerThread::_CreateCachedResource (Storage<CachedResourceMap<ID, DataT>> &localCache, bool isAsync,
+	inline ID  VResourceManagerThread::_CreateCachedResource (InPlace<CachedResourceMap<ID, DataT>> &localCache, bool isAsync,
 															  StringView errorStr, FnInitialize&& fnInit, FnCreate&& fnCreate)
 	{
 		SCOPELOCK( _rcCheck );

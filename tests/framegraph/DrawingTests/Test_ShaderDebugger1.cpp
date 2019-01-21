@@ -45,11 +45,7 @@ void main ()
 
 		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, EShader shaderType, ArrayView<String> output) {
 			const char	ref[] = R"#(//> gl_GlobalInvocationID: uint3 {8, 8, 0}
-no source
-
 //> gl_LocalInvocationID: uint3 {0, 0, 0}
-no source
-
 //> gl_WorkGroupID: uint3 {1, 1, 0}
 no source
 

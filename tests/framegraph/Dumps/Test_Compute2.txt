@@ -2,24 +2,24 @@ Thread {
 	batch:         "main"
 	indexInBatch:  0
 	Image {
-		name:         "RenderTarget"
+		name:         "MyImage_0"
 		iamgeType:    Image2D
-		dimension:    ( 800, 600, 1 )
+		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | ColorAttachment
+		usage:        TransferSrc | Storage
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         SubmitRenderPass (#2)
+					srcTask:         DispatchCompute (#2)
 					dstTask:         ReadImage (#3)
-					srcStageMask:    ColorAttachmentOutput
+					srcStageMask:    ComputeShader
 					dstStageMask:    Transfer
 					dependencyFlags: 
-					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					srcAccessMask:   ShaderWrite
 					dstAccessMask:   TransferRead
-					oldLayout:       ColorAttachmentOptimal
+					oldLayout:       General
 					newLayout:       TransferSrcOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
@@ -36,7 +36,7 @@ Thread {
 					srcAccessMask:   TransferRead
 					dstAccessMask:   
 					oldLayout:       TransferSrcOptimal
-					newLayout:       ColorAttachmentOptimal
+					newLayout:       General
 					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
@@ -60,20 +60,20 @@ Thread {
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
 					offset:          0 b
-					size:            1875 Kb
+					size:            1024 b
 				}
 		}
 	}
 
 	-----------------------------------------------------------
 	Task {
-		name:    "SubmitRenderPass (#2)"
+		name:    "DispatchCompute (#2)"
 		input =  {  }
 		output = { ReadImage (#3) }
 		resource_usage = {
 			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Color-RW, ClearBefore
+				name:           "MyImage_0"
+				usage:          Storage-W, CS
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -83,17 +83,17 @@ Thread {
 	}
 	Task {
 		name:    "ReadImage (#3)"
-		input =  { SubmitRenderPass (#2) }
+		input =  { DispatchCompute (#2) }
 		output = {  }
 		resource_usage = {
 			BufferUsage {
 				name:     "HostReadBuffer"
 				usage:    Transfer-W
 				offset:   0 b
-				size:     1875 Kb
+				size:     1024 b
 			}
 			ImageUsage {
-				name:           "RenderTarget"
+				name:           "MyImage_0"
 				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1

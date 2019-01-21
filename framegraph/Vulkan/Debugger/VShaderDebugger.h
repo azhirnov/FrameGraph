@@ -67,6 +67,8 @@ namespace FG
 		LayoutCache_t			_layoutCache;
 		mutable Array<String>	_tempStrings;	// TODO: temporary allocator?
 
+		static constexpr uint	_descSetBinding	= FG_MaxDescriptorSets;
+
 
 	// methods
 	public:
@@ -79,13 +81,13 @@ namespace FG
 
 		bool SetShaderModule (uint id, const SharedShaderPtr &module);
 		bool GetDebugModeInfo (uint id, OUT EShaderDebugMode &mode, OUT EShader &shader) const;
-		bool GetDescriptotSet (uint id, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const;
+		bool GetDescriptotSet (uint id, OUT uint &binding, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const;
 
 		ND_ uint  Append (INOUT ArrayView<RectI> &, const TaskName_t &name, const _fg_hidden_::GraphicsShaderDebugMode &mode, BytesU size = 8_Mb);
 		ND_ uint  Append (const TaskName_t &name, const _fg_hidden_::ComputeShaderDebugMode &mode, BytesU size = 8_Mb);
 		ND_ uint  Append (const TaskName_t &name, const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size = 8_Mb);
 
-		ND_ RawDescriptorSetLayoutID	GetDescriptorSetLayout (EShaderDebugMode debugMode, EShader debuggableShader);
+		bool GetDescriptorSetLayout (EShaderDebugMode debugMode, EShader debuggableShader, OUT uint &binding, OUT RawDescriptorSetLayoutID &layout);
 
 
 	private:
@@ -95,6 +97,8 @@ namespace FG
 		bool _AllocDescriptorSet (EShaderDebugMode debugMode, EShader shader, RawBufferID storageBuffer, BytesU size, OUT VkDescriptorSet &descSet);
 
 		ND_ BytesU  _GetBufferStaticSize (EShader type) const;
+		
+		ND_ RawDescriptorSetLayoutID  _GetDescriptorSetLayout (EShaderDebugMode debugMode, EShader debuggableShader);
 	};
 
 

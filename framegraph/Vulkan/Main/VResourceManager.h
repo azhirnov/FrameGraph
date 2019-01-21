@@ -146,6 +146,8 @@ namespace FG
 		const BufferDesc			_dummyBufferDesc;
 		const ImageDesc				_dummyImageDesc;
 
+		RawDescriptorSetLayoutID	_emptyDSLayout;
+
 		RWRaceConditionCheck		_rcCheck;
 
 
@@ -198,6 +200,8 @@ namespace FG
 		template <typename DataT, size_t CS, size_t MC>
 		void _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &pool);
 		
+		bool _CreateEmptyDescriptorSetLayout ();
+
 		template <typename ID>
 		ND_ bool  _AddToResourceCache (const ID &id);
 
@@ -222,7 +226,7 @@ namespace FG
 
 		ND_ VkResourceQueue_t&  _GetReadyToDeleteQueue ()				{ return _perFrame[_frameId].readyToDelete; }
 
-		ND_ AppendableResourceIDs_t				_GetResourceIDs ()				{ return AppendableResourceIDs_t{ _unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
+		ND_ AppendableResourceIDs_t				_GetResourceIDs ()		{ return AppendableResourceIDs_t{ _unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
 		static Pair<UntypedResourceID_t, bool>  _AppendResourceID (UntypedResourceID_t &&id)	{ return { std::move(id), false }; }
 	};
 

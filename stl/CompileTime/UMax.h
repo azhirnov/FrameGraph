@@ -1,4 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	UMax constant is maximum value of unsigned integer type.
+*/
 
 #pragma once
 
@@ -9,7 +12,7 @@ namespace _fg_hidden_
 	struct _UMax
 	{
 		template <typename T>
-		ND_ constexpr operator T () const
+		ND_ constexpr operator const T () const
 		{
 			STATIC_ASSERT( ~T(0) > T(0) );
 			return T(~T(0));

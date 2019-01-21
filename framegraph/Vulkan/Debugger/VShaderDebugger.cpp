@@ -17,6 +17,7 @@ namespace FG
 		_frameGraph{ fg },
 		_bufferAlign{ _frameGraph.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment }
 	{
+		CHECK( fg.GetDevice().GetDeviceLimits().maxBoundDescriptorSets > _descSetBinding );
 	}
 	
 /*
@@ -224,12 +225,13 @@ namespace FG
 	GetDescriptotSet
 =================================================
 */
-	bool VShaderDebugger::GetDescriptotSet (uint id, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const
+	bool VShaderDebugger::GetDescriptotSet (uint id, OUT uint &binding, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const
 	{
 		CHECK_ERR( id < _debugModes.size() );
 		
 		auto&	dbg = _debugModes[id];
 
+		binding			= _descSetBinding;
 		descSet			= dbg.descriptorSet;
 		dynamicOffset	= uint(dbg.offset);
 		return true;
@@ -243,7 +245,7 @@ namespace FG
 	bool VShaderDebugger::_AllocDescriptorSet (EShaderDebugMode debugMode, EShader shader, RawBufferID storageBuffer, BytesU size, OUT VkDescriptorSet &descSet)
 	{
 		auto&	dev			= _frameGraph.GetDevice();
-		auto	layout_id	= GetDescriptorSetLayout( debugMode, shader );
+		auto	layout_id	= _GetDescriptorSetLayout( debugMode, shader );
 		auto*	layout		= _frameGraph.GetResourceManager()->GetResource( layout_id );
 		auto*	buffer		= _frameGraph.GetResourceManager()->GetResource( storageBuffer );
 		CHECK_ERR( layout and buffer );
@@ -315,7 +317,26 @@ namespace FG
 */
 	bool VShaderDebugger::_AllocStorage (INOUT DebugMode &dbgMode, const BytesU size)
 	{
-		const VkPipelineStageFlags	stage	= VEnumCast( EShaderStages(1 << uint(dbgMode.shaderType) ));
+		VkPipelineStageFlags	stage = 0;
+
+		switch ( dbgMode.shaderType )
+		{
+			case EShader::Vertex :			stage = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;					break;
+			case EShader::TessControl :		stage = VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;		break;
+			case EShader::TessEvaluation :	stage = VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;	break;
+			case EShader::Geometry :		stage = VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;					break;
+			case EShader::Fragment :		stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;					break;
+			case EShader::Compute :			stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;					break;
+			case EShader::MeshTask :		stage = VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;					break;
+			case EShader::Mesh :			stage = VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;					break;
+			case EShader::RayGen :
+			case EShader::RayAnyHit :
+			case EShader::RayClosestHit :
+			case EShader::RayMiss :
+			case EShader::RayIntersection :
+			case EShader::RayCallable :		stage = VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;			break;
+			default :						RETURN_ERR( "unknown shader type" );
+		}
 
 		dbgMode.size = Min( size, _bufferSize );
 
@@ -428,10 +449,10 @@ namespace FG
 	
 /*
 =================================================
-	GetDescriptorSetLayout
+	_GetDescriptorSetLayout
 =================================================
 */
-	RawDescriptorSetLayoutID  VShaderDebugger::GetDescriptorSetLayout (EShaderDebugMode debugMode, EShader debuggableShader)
+	RawDescriptorSetLayoutID  VShaderDebugger::_GetDescriptorSetLayout (EShaderDebugMode debugMode, EShader debuggableShader)
 	{
 		const uint	key  = (uint(debuggableShader) & 0xFF) | (uint(debugMode) << 8);
 		auto		iter = _layoutCache.find( key );
@@ -465,6 +486,18 @@ namespace FG
 	
 /*
 =================================================
+	GetDescriptorSetLayout
+=================================================
+*/
+	bool VShaderDebugger::GetDescriptorSetLayout (EShaderDebugMode debugMode, EShader debuggableShader, OUT uint &binding, OUT RawDescriptorSetLayoutID &layout)
+	{
+		binding = _descSetBinding;
+		layout  = _GetDescriptorSetLayout( debugMode, debuggableShader );
+		return layout.IsValid();
+	}
+
+/*
+=================================================
 	_GetBufferStaticSize
 =================================================
 */
@@ -473,22 +506,22 @@ namespace FG
 		ENABLE_ENUM_CHECKS();
 		switch ( type )
 		{
-			case EShader::Vertex :
-			case EShader::TessControl :
-			case EShader::TessEvaluation :
-			case EShader::Geometry :	break;
-			case EShader::Fragment :	return SizeOf<uint> * 4;
-			case EShader::Compute :		return SizeOf<uint> * 3;
-			case EShader::MeshTask :
-			case EShader::Mesh :
-			case EShader::RayGen :
+			case EShader::Vertex :			return SizeOf<uint> * 3;	// vertex index, instance, draw
+			case EShader::TessControl :		return SizeOf<uint> * 2;	// invocation, primitive
+			case EShader::TessEvaluation :	return SizeOf<uint> * 1;	// primitive
+			case EShader::Geometry :		return SizeOf<uint> * 2;	// invocation, primitive
+			case EShader::Fragment :		return SizeOf<uint> * 4;	// fragcoord, sample, primitive
+			case EShader::Compute :			return SizeOf<uint> * 3;	// global invocation
+			case EShader::MeshTask :		return SizeOf<uint> * 1;	// global invocation
+			case EShader::Mesh :			return SizeOf<uint> * 1;	// global invocation
+			case EShader::RayGen :			return SizeOf<uint> * 3;	// launch
 			case EShader::RayAnyHit :
 			case EShader::RayClosestHit :
 			case EShader::RayMiss :
 			case EShader::RayIntersection :
 			case EShader::RayCallable :
 			case EShader::_Count :
-			case EShader::Unknown :		break;
+			case EShader::Unknown :			break;
 		}
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "unsupported shader type" );

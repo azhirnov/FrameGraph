@@ -8,15 +8,15 @@ namespace FG
 {
 
 	//
-	// Storage
+	// In Place Storage
 	//
 
 	template <typename T>
-	struct Storage final
+	struct InPlace final
 	{
 	// types
 	public:
-		using Self		= Storage< T >;
+		using Self		= InPlace< T >;
 		using Value_t	= T;
 
 
@@ -33,10 +33,10 @@ namespace FG
 
 	// methods
 	public:
-		Storage ()
+		InPlace ()
 		{}
 
-		~Storage ()
+		~InPlace ()
 		{
 			ASSERT( not _isCreated );
 		}

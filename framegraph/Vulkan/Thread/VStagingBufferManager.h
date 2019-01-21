@@ -112,7 +112,7 @@ namespace FG
 	private:
 		VFrameGraphThread&			_frameGraph;
 
-		Storage<MemoryRanges_t>		_memoryRanges;
+		InPlace<MemoryRanges_t>		_memoryRanges;
 
 		PerFrameArray_t				_perFrame;
 		uint						_frameId			= 0;

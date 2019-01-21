@@ -13,7 +13,7 @@
 #include "stl/ThreadSafe/RaceConditionCheck.h"
 #include "stl/ThreadSafe/SpinLock.h"
 #include "stl/Containers/Appendable.h"
-#include "stl/Containers/Storage.h"
+#include "stl/Containers/InPlace.h"
 #include "stl/Memory/LinearAllocator.h"
 #include "Utils/VEnums.h"
 
