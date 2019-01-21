@@ -161,13 +161,15 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 	set( SOURCES 
-		"../tests/glsl_trace/ref/Test1.txt"
-		"../tests/glsl_trace/ref/Test2.txt"
-		"../tests/glsl_trace/ref/Test4.txt"
-		"../tests/glsl_trace/ref/Test5.txt"
-		"../tests/glsl_trace/ref/Test6.txt"
-		"../tests/glsl_trace/ref/Test7.txt"
-		"../tests/glsl_trace/ref/Test8.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test1.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test11.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test12.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test2.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test4.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test5.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test6.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test7.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test8.txt"
 		"../tests/glsl_trace/main.cpp"
 		"../tests/glsl_trace/ShaderCompiler.cpp"
 		"../tests/glsl_trace/ShaderCompiler.h"
@@ -175,6 +177,8 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 		"../tests/glsl_trace/ShaderTraceTestUtils.h"
 		"../tests/glsl_trace/ShaderTrace_Test1.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test10.cpp"
+		"../tests/glsl_trace/ShaderTrace_Test11.cpp"
+		"../tests/glsl_trace/ShaderTrace_Test12.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test2.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test3.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test4.cpp"
@@ -188,8 +192,8 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 	else()
 		add_executable( "Tests.GLSLTrace" ${SOURCES} )
 	endif()
-	source_group( "ref" FILES "../tests/glsl_trace/ref/Test1.txt" "../tests/glsl_trace/ref/Test2.txt" "../tests/glsl_trace/ref/Test4.txt" "../tests/glsl_trace/ref/Test5.txt" "../tests/glsl_trace/ref/Test6.txt" "../tests/glsl_trace/ref/Test7.txt" "../tests/glsl_trace/ref/Test8.txt" )
-	source_group( "" FILES "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" "../tests/glsl_trace/ShaderTraceTestUtils.cpp" "../tests/glsl_trace/ShaderTraceTestUtils.h" "../tests/glsl_trace/ShaderTrace_Test1.cpp" "../tests/glsl_trace/ShaderTrace_Test10.cpp" "../tests/glsl_trace/ShaderTrace_Test2.cpp" "../tests/glsl_trace/ShaderTrace_Test3.cpp" "../tests/glsl_trace/ShaderTrace_Test4.cpp" "../tests/glsl_trace/ShaderTrace_Test5.cpp" "../tests/glsl_trace/ShaderTrace_Test6.cpp" "../tests/glsl_trace/ShaderTrace_Test7.cpp" "../tests/glsl_trace/ShaderTrace_Test8.cpp" "../tests/glsl_trace/ShaderTrace_Test9.cpp" )
+	source_group( "ref" FILES "../tests/glsl_trace/ref/ShaderTrace_Test1.txt" "../tests/glsl_trace/ref/ShaderTrace_Test11.txt" "../tests/glsl_trace/ref/ShaderTrace_Test12.txt" "../tests/glsl_trace/ref/ShaderTrace_Test2.txt" "../tests/glsl_trace/ref/ShaderTrace_Test4.txt" "../tests/glsl_trace/ref/ShaderTrace_Test5.txt" "../tests/glsl_trace/ref/ShaderTrace_Test6.txt" "../tests/glsl_trace/ref/ShaderTrace_Test7.txt" "../tests/glsl_trace/ref/ShaderTrace_Test8.txt" )
+	source_group( "" FILES "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" "../tests/glsl_trace/ShaderTraceTestUtils.cpp" "../tests/glsl_trace/ShaderTraceTestUtils.h" "../tests/glsl_trace/ShaderTrace_Test1.cpp" "../tests/glsl_trace/ShaderTrace_Test10.cpp" "../tests/glsl_trace/ShaderTrace_Test11.cpp" "../tests/glsl_trace/ShaderTrace_Test12.cpp" "../tests/glsl_trace/ShaderTrace_Test2.cpp" "../tests/glsl_trace/ShaderTrace_Test3.cpp" "../tests/glsl_trace/ShaderTrace_Test4.cpp" "../tests/glsl_trace/ShaderTrace_Test5.cpp" "../tests/glsl_trace/ShaderTrace_Test6.cpp" "../tests/glsl_trace/ShaderTrace_Test7.cpp" "../tests/glsl_trace/ShaderTrace_Test8.cpp" "../tests/glsl_trace/ShaderTrace_Test9.cpp" )
 	set_property( TARGET "Tests.GLSLTrace" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.GLSLTrace" PRIVATE "" )

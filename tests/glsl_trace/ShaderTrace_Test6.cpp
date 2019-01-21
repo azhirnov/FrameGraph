@@ -349,7 +349,7 @@ extern bool ShaderTrace_Test6 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, geom_shader, "Test6.txt" ));
+	CHECK_ERR( TestDebugOutput( helper, geom_shader, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

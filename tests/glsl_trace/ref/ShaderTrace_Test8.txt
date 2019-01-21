@@ -1,12 +1,6 @@
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {0.000000, 0.000000, 1.000000}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -21,17 +15,11 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {0.000000, 0.500000, 0.500000}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -46,17 +34,11 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {0.000000, 1.000000, 0.000000}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -71,17 +53,11 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {0.222214, 0.222214, 0.555573}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -96,17 +72,11 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {0.222214, 0.555557, 0.222229}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -121,17 +91,11 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {0.500000, 0.000000, 0.500000}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -146,17 +110,11 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {0.500000, 0.500000, 0.000000}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -171,17 +129,11 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {0.555557, 0.222229, 0.222214}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -196,17 +148,11 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 
 //> gl_PrimitiveID: int {0}
-no source
-
 //> gl_TessCoord: float3 {1.000000, 0.000000, 0.000000}
-no source
-
 //> gl_TessLevelInner: float2 {3.000000, 3.000000}
-no source
-
 //> gl_TessLevelOuter: float4 {1.100000, 1.100000, 1.100000, 1.100000}
 no source
 
@@ -221,5 +167,5 @@ no source
 //> out_Color: float4 {0.000000, 1.500000, 3.000000, 1.000000}
 16. out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 
-
+//---------------------------
 

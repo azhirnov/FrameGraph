@@ -579,7 +579,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 		res.host.totalSize		 = offset + mem_req.size;
 		res.host.memTypeBits	|= mem_req.memoryTypeBits;
 
-		res.onBind.push_back( [&] (void *ptr) -> bool
+		res.onBind.push_back( [&vulkan, &host_memory, vertex_buffer, offset] (void *ptr) -> bool
 		{
 			memcpy( ptr + BytesU(offset), vertices, sizeof(vertices) );
 			VK_CHECK( vulkan.vkBindBufferMemory( vulkan.GetVkDevice(), vertex_buffer, host_memory, offset ));
@@ -605,7 +605,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 		res.host.totalSize		 = offset + mem_req.size;
 		res.host.memTypeBits	|= mem_req.memoryTypeBits;
 
-		res.onBind.push_back( [&] (void *ptr) -> bool
+		res.onBind.push_back( [&vulkan, index_buffer, &host_memory, offset] (void *ptr) -> bool
 		{
 			memcpy( ptr + BytesU(offset), indices, sizeof(indices) );
 			VK_CHECK( vulkan.vkBindBufferMemory( vulkan.GetVkDevice(), index_buffer, host_memory, offset ));
@@ -651,7 +651,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 		res.dev.totalSize	 = offset + mem_req.memoryRequirements.size;
 		res.dev.memTypeBits	|= mem_req.memoryRequirements.memoryTypeBits;
 		
-		res.onBind.push_back( [&] (void *) -> bool
+		res.onBind.push_back( [&vulkan, bottomLevelAS, &bottom_level_as_handle, &outMemory, offset] (void *) -> bool
 		{
 			VkBindAccelerationStructureMemoryInfoNV	bind_info = {};
 			bind_info.sType					= VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
@@ -664,7 +664,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 			return true;
 		});
 		
-		res.onDraw.push_back( [&] (VkCommandBuffer cmd)
+		res.onDraw.push_back( [&vulkan, bottomLevelAS, geometry, &scratch_buffer] (VkCommandBuffer cmd)
 		{
 			VkAccelerationStructureInfoNV	info = {};
 			info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
@@ -699,7 +699,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 		res.host.totalSize		 = offset + mem_req.size;
 		res.host.memTypeBits	|= mem_req.memoryTypeBits;
 
-		res.onBind.push_back( [&] (void *ptr) -> bool
+		res.onBind.push_back( [&vulkan, &host_memory, &bottom_level_as_handle, instance_buffer, offset] (void *ptr) -> bool
 		{
 			VkGeometryInstance	instance = {};
 			instance.transformRow0	= {1.0f, 0.0f, 0.0f, 0.0f};
@@ -741,7 +741,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 		res.dev.totalSize	 = offset + mem_req.memoryRequirements.size;
 		res.dev.memTypeBits	|= mem_req.memoryRequirements.memoryTypeBits;
 		
-		res.onBind.push_back( [&] (void *) -> bool
+		res.onBind.push_back( [&vulkan, &outMemory, topLevelAS, offset] (void *) -> bool
 		{
 			VkBindAccelerationStructureMemoryInfoNV	bind_info = {};
 			bind_info.sType					= VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
@@ -752,7 +752,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 			return true;
 		});
 
-		res.onDraw.push_back( [&] (VkCommandBuffer cmd)
+		res.onDraw.push_back( [&vulkan, topLevelAS, instance_buffer, &scratch_buffer] (VkCommandBuffer cmd)
 		{
 			// write-read memory barrier for 'bottomLevelAS'
 			// execution barrier for 'scratchBuffer'
@@ -812,7 +812,8 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 		res.dev.totalSize	 = offset + mem_req.size;
 		res.dev.memTypeBits	|= mem_req.memoryTypeBits;
 
-		res.onBind.push_back( [&] (void *) -> bool {
+		res.onBind.push_back( [&vulkan, scratch_buffer, &outMemory, offset] (void *) -> bool
+		{
 			VK_CHECK( vulkan.vkBindBufferMemory( vulkan.GetVkDevice(), scratch_buffer, outMemory, offset ));
 			return true;
 		});
@@ -836,13 +837,13 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 		res.dev.totalSize	 = offset + mem_req.size;
 		res.dev.memTypeBits	|= mem_req.memoryTypeBits;
 
-		res.onBind.push_back( [&] (void *) -> bool
+		res.onBind.push_back( [&vulkan, shaderBindingTable, &outMemory, offset] (void *) -> bool
 		{
 			VK_CHECK( vulkan.vkBindBufferMemory( vulkan.GetVkDevice(), shaderBindingTable, outMemory, offset ));
 			return true;
 		});
 
-		res.onDraw.push_back( [&, size = info.size] (VkCommandBuffer cmd)
+		res.onDraw.push_back( [&vulkan, shaderBindingTable, rtPipeline, numGroups, size = info.size] (VkCommandBuffer cmd)
 		{
 			Array<uint8_t>	handles;  handles.resize(size);
 
@@ -927,7 +928,7 @@ bool TestDebugOutput (const TestHelpers &helper, VkShaderModule module, StringVi
 	CHECK_ERR( debug_output.size() );
 
 	std::sort( debug_output.begin(), debug_output.end() );
-	for (auto& str : debug_output) { merged << str << "\n\n"; }
+	for (auto& str : debug_output) { merged << str << "//---------------------------\n\n"; }
 
 	if ( UpdateReferences )
 	{

@@ -53,7 +53,7 @@ void main ()
 		CHECK_ERR( shaderCompiler.Compile( OUT tessContShader, vulkan, {cont_shader_source}, EShLangTessControl ));
 	}
 	
-	// create fragment shader
+	// create tessellation evaluation shader
 	{
 		static const char	eval_shader_source[] = R"#(
 layout(triangles, equal_spacing, ccw) in;
@@ -260,7 +260,7 @@ extern bool ShaderTrace_Test8 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, eval_shader, "Test8.txt" ));
+	CHECK_ERR( TestDebugOutput( helper, eval_shader, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

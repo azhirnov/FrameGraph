@@ -236,7 +236,7 @@ extern bool ShaderTrace_Test10 (VulkanDeviceExt& vulkan, const TestHelpers &help
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, mesh_shader, "Test10.txt" ));
+	CHECK_ERR( TestDebugOutput( helper, mesh_shader, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

@@ -48,25 +48,25 @@ layout(location=2) in VertOutput {
 	vec4	in_Color;
 };
 
-float Fn1 (const int i, out int res)
+float Fn1 (const int i, in float k, out int res)
 {
 	float f = 0.0f;
 	res = 11;
 	for (int j = i; j < 10; ++j) {
 		f += 1.2f *
-				cos(float(j));
+				cos(float(j) + k);
 		if (f > 15.7f) {
 			res = j;
 			return f * 10.0f;
 		}
 	}
-	return fract(f);
+	return fract(f + k);
 }
 
 void main ()
 {
 	ivec2 c1;
-	float c0 = Fn1( 3, c1.x );
+	float c0 = Fn1( 3, in_Texcoord.x + in_Position.y, c1.x );
 	out_Color[1] = c0 + float(c1.x);
 	return;
 })#";
@@ -244,7 +244,7 @@ extern bool ShaderTrace_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, frag_shader, "Test1.txt" ));
+	CHECK_ERR( TestDebugOutput( helper, frag_shader, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

@@ -26,9 +26,10 @@ namespace std
 namespace {
 	struct Trace
 	{
-		using ExprInfo		= ShaderTrace::ExprInfo;
-		using VarNames_t	= ShaderTrace::VarNames_t;
-		using Sources_t		= ShaderTrace::Sources_t;
+		using ExprInfo			= ShaderTrace::ExprInfo;
+		using VarNames_t		= ShaderTrace::VarNames_t;
+		using Sources_t			= ShaderTrace::Sources_t;
+		using SourceLocation	= ShaderTrace::SourceLocation;
 
 		union Value
 		{
@@ -46,17 +47,26 @@ namespace {
 			Value			value		{};
 			TBasicType		type		= TBasicType::EbtVoid;
 			uint32_t		count		= 0;
+			bool			modified	= false;
 		};
 
-		using VarStates = std::unordered_map< uint64_t, VariableState >;
+		using VarStates	= std::unordered_map< uint64_t, VariableState >;
+		using Pending	= std::vector< uint64_t >;
 
 
-		uint32_t	lastPosition	= ~0u;
-		VarStates	_states;
+		uint32_t			lastPosition	= ~0u;
+		VarStates			_states;
+		Pending				_pending;
+		SourceLocation		_lastLoc;
 
 
-		bool AddState (const ExprInfo &expr, TBasicType type, uint32_t rows, uint32_t cols, const uint32_t *data);
-		bool ToString (const ExprInfo &expr, const VarNames_t &varNames, const Sources_t &src, OUT std::string &result) const;
+		bool AddState (const ExprInfo &expr, TBasicType type, uint32_t rows, uint32_t cols, const uint32_t *data,
+					   const VarNames_t &varNames, const Sources_t &src, INOUT std::string &result);
+
+		bool Flush (const VarNames_t &varNames, const Sources_t &src, INOUT std::string &result);
+
+		static uint64_t		HashOf (VariableID id, uint32_t col)	{ return (uint64_t(id) << 32) | col; }
+		static VariableID	VarFromHash (uint64_t h)				{ return VariableID(h >> 32); }
 	};
 }
 /*
@@ -104,13 +114,18 @@ bool ShaderTrace::ParseShaderTrace (const void *ptr, uint64_t maxSize, OUT std::
 		}
 
 		auto&	expr = _exprLocations[expr_id];
+		auto&	str  = result[std::distance( shaders.data(), trace )];
 
-		CHECK_ERR( trace->AddState( expr, t_basic, row_size, col_size, data_ptr ));
-		CHECK_ERR( trace->ToString( expr, _varNames, _sources, INOUT result[std::distance( shaders.data(), trace )] ));
+		CHECK_ERR( trace->AddState( expr, t_basic, row_size, col_size, data_ptr, _varNames, _sources, INOUT str ));
 
 		trace->lastPosition = pos;
 
 		data_ptr += (row_size * std::max(1u, col_size)) * (t_basic == TBasicType::EbtDouble or t_basic == TBasicType::EbtUint64 or t_basic == TBasicType::EbtInt64 ? 2 : 1);
+	}
+
+	for (size_t i = 0; i < shaders.size(); ++i)
+	{
+		CHECK_ERR( shaders[i].Flush( _varNames, _sources, INOUT result[i] ));
 	}
 	return true;
 }
@@ -166,23 +181,36 @@ inline void CopyValue (TBasicType type, INOUT Trace::Value &value, uint32_t valu
 	Trace::AddState
 =================================================
 */
-bool Trace::AddState (const ExprInfo &expr, TBasicType type, uint32_t rows, uint32_t cols, const uint32_t *data)
+bool Trace::AddState (const ExprInfo &expr, TBasicType type, uint32_t rows, uint32_t cols, const uint32_t *data,
+					  const VarNames_t &varNames, const Sources_t &sources, INOUT std::string &result)
 {
+	if ( not (_lastLoc == expr.range) )
+		CHECK_ERR( Flush( varNames, sources, INOUT result ));
+
 	cols = std::max( 1u, cols );
+
+	const auto	AppendID = [this] (uint64_t newID) {
+		for (auto& id : _pending) {
+			if ( id == newID )
+				return;
+		}
+		_pending.push_back( newID );
+	};
 
 	for (uint32_t col = 0; col < cols; ++col)
 	{
-		uint64_t	id   = (uint64_t(expr.varID) << 32) | col;
+		uint64_t	id   = HashOf( expr.varID, col );
 		auto		iter = _states.find( id );
 
 		if ( iter == _states.end() or expr.varID == VariableID::Unknown )
-			iter = _states.insert_or_assign( id, VariableState{ {}, type, rows } ).first;
+			iter = _states.insert_or_assign( id, VariableState{ {}, type, rows, false } ).first;
 
 
 		VariableState&	var = iter->second;
 
 		CHECK( expr.varID == VariableID::Unknown or var.type == type );
-		var.type = type;	
+		var.type	 = type;
+		var.modified = true;
 
 		if ( var.type == TBasicType::EbtVoid )
 		{
@@ -214,13 +242,24 @@ bool Trace::AddState (const ExprInfo &expr, TBasicType type, uint32_t rows, uint
 		
 		var.count = std::max( var.count, rows );
 		var.count = std::min( var.count, 4u );
+
+		AppendID( id );
+
+		for (auto& var_id : expr.vars) {
+			AppendID( HashOf( var_id, 0 ));
+			AppendID( HashOf( var_id, 1 ));
+			AppendID( HashOf( var_id, 2 ));
+			AppendID( HashOf( var_id, 3 ));
+		}
 	}
+
+	_lastLoc = expr.range;
 	return true;
 }
 	
 /*
 =================================================
-	Trace::AddState
+	TypeToString
 =================================================
 */
 template <typename T>
@@ -243,92 +282,93 @@ static std::string  TypeToString (uint32_t rows, const std::array<T,4> &values)
 
 /*
 =================================================
-	Trace::AddState
+	Trace::Flush
 =================================================
 */
-bool Trace::ToString (const ExprInfo &expr, const VarNames_t &varNames, const Sources_t &sources, OUT std::string &result) const
+bool Trace::Flush (const VarNames_t &varNames, const Sources_t &sources, INOUT std::string &result)
 {
-	const auto	Convert = [this, &varNames, OUT &result] (VariableID varID, bool isOutput) -> bool
+	const auto	Convert = [this, &varNames, OUT &result] (uint64_t varHash) -> bool
 	{
-		for (uint32_t i = 0; i < 4; ++i)
+		VariableID	id	 = VarFromHash( varHash );
+		auto		iter = _states.find( varHash );
+
+		if ( iter == _states.end() )
+			return false;
+
+		auto	name = varNames.find( id );
+		if ( name != varNames.end() )
+			result += std::string("//") + (iter->second.modified ? "> " : "  ") + name->second + ": ";
+		else
+			result += std::string("//") + (iter->second.modified ? "> (out): " : "  (temp): ");
+
+		iter->second.modified = false;
+
+		switch ( iter->second.type )
 		{
-			uint64_t	id   = (uint64_t(varID) << 32) | i;
-			auto		iter = _states.find( id );
-
-			if ( iter == _states.end() )
-				continue;
-
-			auto	name = varNames.find( varID );
-			if ( name != varNames.end() )
-				result += std::string("//") + (isOutput ? "> " : "  ") + name->second + ": ";
-			else
-				result += std::string("//") + (isOutput ? "> (out): " : "  (temp): ");
-
-			switch ( iter->second.type )
-			{
-				case TBasicType::EbtVoid : {
-					result += "void\n";
-					break;
-				}
-				case TBasicType::EbtFloat : {
-					result += "float";
-					result += TypeToString( iter->second.count, iter->second.value.f );
-					break;
-				}
-				case TBasicType::EbtDouble : {
-					result += "double";
-					result += TypeToString( iter->second.count, iter->second.value.d );
-					break;
-				}
-				case TBasicType::EbtInt : {
-					result += "int";
-					result += TypeToString( iter->second.count, iter->second.value.i );
-					break;
-				}
-				case TBasicType::EbtBool : {
-					result += "bool";
-					result += TypeToString( iter->second.count, iter->second.value.b );
-					break;
-				}
-				case TBasicType::EbtUint : {
-					result += "uint";
-					result += TypeToString( iter->second.count, iter->second.value.u );
-					break;
-				}
-				case TBasicType::EbtInt64 : {
-					result += "long";
-					result += TypeToString( iter->second.count, iter->second.value.i64 );
-					break;
-				}
-				case TBasicType::EbtUint64 : {
-					result += "ulong";
-					result += TypeToString( iter->second.count, iter->second.value.u64 );
-					break;
-				}
-				default :
-					RETURN_ERR( "not supported" );
+			case TBasicType::EbtVoid : {
+				result += "void\n";
+				break;
 			}
+			case TBasicType::EbtFloat : {
+				result += "float";
+				result += TypeToString( iter->second.count, iter->second.value.f );
+				break;
+			}
+			case TBasicType::EbtDouble : {
+				result += "double";
+				result += TypeToString( iter->second.count, iter->second.value.d );
+				break;
+			}
+			case TBasicType::EbtInt : {
+				result += "int";
+				result += TypeToString( iter->second.count, iter->second.value.i );
+				break;
+			}
+			case TBasicType::EbtBool : {
+				result += "bool";
+				result += TypeToString( iter->second.count, iter->second.value.b );
+				break;
+			}
+			case TBasicType::EbtUint : {
+				result += "uint";
+				result += TypeToString( iter->second.count, iter->second.value.u );
+				break;
+			}
+			case TBasicType::EbtInt64 : {
+				result += "long";
+				result += TypeToString( iter->second.count, iter->second.value.i64 );
+				break;
+			}
+			case TBasicType::EbtUint64 : {
+				result += "ulong";
+				result += TypeToString( iter->second.count, iter->second.value.u64 );
+				break;
+			}
+			default :
+				RETURN_ERR( "not supported" );
 		}
 		return true;
 	};
 
-	CHECK_ERR( Convert( expr.varID, true ));
+	if ( _pending.empty() )
+		return true;
 
-	for (auto& id : expr.vars) {
-		Convert( id, false );
+	for (auto& h : _pending) {
+		Convert( h );
 	}
+	_pending.clear();
 
-	CHECK_ERR( expr.range.sourceId < sources.size() );
-	const auto&		src			= sources[ expr.range.sourceId ];
-	const uint32_t	start_line	= std::max( 1u, expr.range.begin.Line() ) - 1;	// because first line is 1
-	const uint32_t	end_line	= std::max( 1u, expr.range.end.Line() ) - 1;
-	const uint32_t	start_col	= std::max( 1u, expr.range.begin.Column() ) - 1;
-	const uint32_t	end_col		= std::max( 1u, expr.range.end.Column() ) - 1;
+	CHECK_ERR( _lastLoc.sourceId < sources.size() );
+	const auto&		src			= sources[ _lastLoc.sourceId ];
+	const uint32_t	start_line	= std::max( 1u, _lastLoc.begin.Line() ) - 1;	// because first line is 1
+	const uint32_t	end_line	= std::max( 1u, _lastLoc.end.Line() ) - 1;
+	const uint32_t	start_col	= std::max( 1u, _lastLoc.begin.Column() ) - 1;
+	const uint32_t	end_col		= std::max( 1u, _lastLoc.end.Column() ) - 1;
 
 	CHECK_ERR( start_line < src.lines.size() );
 	CHECK_ERR( end_line < src.lines.size() );
 
-	if ( expr.range.sourceId == 0 and end_line == 0 and end_col == 0 )
+	if ( _lastLoc.sourceId == 0 and end_line == 0 and end_col == 0 )
 		result += "no source\n";
 	else
 	for (uint32_t i = start_line; i <= end_line; ++i)

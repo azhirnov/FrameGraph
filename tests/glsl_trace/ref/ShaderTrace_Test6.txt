@@ -1,6 +1,4 @@
 //> gl_InvocationID: uint {0}
-no source
-
 //> gl_PrimitiveIDIn: int {1}
 no source
 
@@ -70,5 +68,5 @@ no source
 //> EndPrimitive(): void
 32. 	EndPrimitive();
 
-
+//---------------------------
 

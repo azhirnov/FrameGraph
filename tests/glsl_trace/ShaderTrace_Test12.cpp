@@ -12,28 +12,31 @@ static bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler
 	// create compute shader
 	{
 		static const char	comp_shader_source[] = R"#(
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 4, local_size_y = 4, local_size_z = 1) in;
 
 layout(binding = 0) writeonly uniform image2D  un_OutImage;
 
-void Test1 (out vec4 color)
-{
-	vec2	point = (vec3(gl_GlobalInvocationID) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1)).xy;
-	
-	if ( (gl_GlobalInvocationID.x & 1) == 1 )
-	{
-		color = vec4(1.0f);
-		return;
-	}
-
-	color = point.xyyx;
-	color.x = cos(color.y) * color.z;
-}
+void dbg_EnableTraceRecording (bool b) {}
 
 void main()
 {
+	vec2	point = (vec3(gl_GlobalInvocationID) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1)).xy;
 	vec4	color;
-	Test1( color );
+
+	dbg_EnableTraceRecording( gl_LocalInvocationID.y == 0 );
+
+	if ( (gl_GlobalInvocationID.x & 1) == 1 )
+	{
+		color = vec4(1.0f);
+	}
+	else
+	{
+		color = point.xyyx;
+		color.x = cos(color.y) * color.z;
+	}
+
+	dbg_EnableTraceRecording( gl_LocalInvocationID.x == 1 );
+
 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), color );
 }
 )#";
@@ -76,10 +79,10 @@ static bool CreatePipeline (VulkanDevice &vulkan, VkShaderModule compShader, Arr
 
 /*
 =================================================
-	ShaderTrace_Test2
+	ShaderTrace_Test12
 =================================================
 */
-extern bool ShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
+extern bool ShaderTrace_Test12 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
 {	
 	// create image
 	VkImage			image;
@@ -211,9 +214,7 @@ extern bool ShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 	
 	// setup storage buffer
 	{
-		const uint	data[] = { 
-			width/2, height/2, 0,		// selected invocation
-		};
+		const uint	data[] = { UMax, UMax, UMax };	// don't select anything, trace recording will be enabled by 'dbg_EnableTraceRecording' function in shader
 
 		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, sizeof(data), VK_WHOLE_SIZE, 0 );
 		vulkan.vkCmdUpdateBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, sizeof(data), data );
@@ -241,7 +242,7 @@ extern bool ShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkCmdBindDescriptorSets( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_layout, 0, 1, &desc_set1, 0, null );
 		vulkan.vkCmdBindDescriptorSets( helper.cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_layout, 1, 1, &desc_set2, 0, null );
 	
-		vulkan.vkCmdDispatch( helper.cmdBuffer, width, height, 1 );
+		vulkan.vkCmdDispatch( helper.cmdBuffer, width/4, height/4, 1 );
 	}
 
 	// debug output storage read after write

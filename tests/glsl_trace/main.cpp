@@ -12,6 +12,8 @@ extern bool ShaderTrace_Test7 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 extern bool ShaderTrace_Test8 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 extern bool ShaderTrace_Test9 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 extern bool ShaderTrace_Test10 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test11 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test12 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 
 
 /*
@@ -25,7 +27,7 @@ int main ()
 
 	// create vulkan device
 	{
-		CHECK_ERR( vulkan.Create( "GLSL debugger", "Engine",
+		CHECK_ERR( vulkan.Create( "GLSL debugger unit tests", "",
 								  VK_API_VERSION_1_1,
 								  "",
 								  {{ VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.0f }},
@@ -139,17 +141,20 @@ int main ()
 	}
 
 	// run tests
+	bool	passed = true;
 	{
-		CHECK_FATAL( ShaderTrace_Test1( vulkan, helper ));
-		CHECK_FATAL( ShaderTrace_Test2( vulkan, helper ));
-		//CHECK_FATAL( ShaderTrace_Test3( vulkan, helper ));
-		CHECK_FATAL( ShaderTrace_Test4( vulkan, helper ));
-		CHECK_FATAL( ShaderTrace_Test5( vulkan, helper ));
-		CHECK_FATAL( ShaderTrace_Test6( vulkan, helper ));
-		CHECK_FATAL( ShaderTrace_Test7( vulkan, helper ));
-		CHECK_FATAL( ShaderTrace_Test8( vulkan, helper ));
-		CHECK_FATAL( ShaderTrace_Test9( vulkan, helper ));
-		CHECK_FATAL( ShaderTrace_Test10( vulkan, helper ));
+		passed &= ShaderTrace_Test1( vulkan, helper );
+		passed &= ShaderTrace_Test2( vulkan, helper );
+		//passed &= ShaderTrace_Test3( vulkan, helper );
+		passed &= ShaderTrace_Test4( vulkan, helper );
+		passed &= ShaderTrace_Test5( vulkan, helper );
+		passed &= ShaderTrace_Test6( vulkan, helper );
+		passed &= ShaderTrace_Test7( vulkan, helper );
+		passed &= ShaderTrace_Test8( vulkan, helper );
+		passed &= ShaderTrace_Test9( vulkan, helper );
+		passed &= ShaderTrace_Test10( vulkan, helper );
+		passed &= ShaderTrace_Test11( vulkan, helper );
+		passed &= ShaderTrace_Test12( vulkan, helper );
 	}
 
 	// destroy all
@@ -164,5 +169,6 @@ int main ()
 		helper = {};
 	}
 
+	CHECK_FATAL( passed );
 	return 0;
 }

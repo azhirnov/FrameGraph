@@ -42,7 +42,10 @@ void main ()
 			  /*direction*/direction, /*Tmax*/10.0f,
 			  /*payload*/PAYLOAD_LOC );
 
-	imageStore( un_Output, ivec2(gl_LaunchIDNV), payload );
+	// if set 'payload' to the imageStore directly then device lost happens when trace recording enabled
+	vec4  color = payload * 1.5f;
+
+	imageStore( un_Output, ivec2(gl_LaunchIDNV), color );
 }
 )#";
 		CHECK_ERR( shaderCompiler.Compile( OUT rayGenShader, vulkan, {rt_shader, raygen_shader_source}, EShLangRayGenNV, 1 ));
@@ -418,7 +421,7 @@ extern bool ShaderTrace_Test9 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkFreeMemory( vulkan.GetVkDevice(), dev_memory, null );
 	}
 
-	CHECK_ERR( TestDebugOutput( helper, raygen_shader, "Test9.txt" ));
+	CHECK_ERR( TestDebugOutput( helper, raygen_shader, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;
