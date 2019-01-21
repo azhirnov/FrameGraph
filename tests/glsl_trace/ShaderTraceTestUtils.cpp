@@ -5,7 +5,7 @@
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Stream/FileStream.h"
 
-static const bool	UpdateReferences = true;
+static const bool	UpdateReferences = false;
 
 /*
 =================================================

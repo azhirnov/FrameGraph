@@ -18,8 +18,7 @@ namespace FG
 		submission_graph.AddBatch( batch1, 2 );
 		
 		const uint2	view_size	= {800, 600};
-		ImageID		image		= fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-															  EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget1" );
+		ImageID		image;
 
 		for (uint i = 0; i < max_count; ++i)
 		{
@@ -27,8 +26,14 @@ namespace FG
 
 			// wake up all render threads
 			sync.wait();
-
+			
 			CHECK_ERR( fg->Begin( batch1, 0, EThreadUsage::Graphics ));
+
+			// create image in async mode to avoid manual synchronizations
+			if ( i == 0 ) {
+				image = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
+													EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget1" );
+			}
 			
 			LogicalPassID	render_pass	= fg->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
@@ -57,8 +62,7 @@ namespace FG
 	static bool RenderThread2 (const FGThreadPtr &fg)
 	{
 		const uint2	view_size	= {1280, 960};
-		ImageID		image		= fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA16_UNorm,
-															  EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget2" );
+		ImageID		image;
 
 		for (uint i = 0; i < max_count; ++i)
 		{
@@ -67,6 +71,12 @@ namespace FG
 
 			CHECK_ERR( fg->Begin( batch1, 1, EThreadUsage::Graphics ));
 			
+			// create image in async mode to avoid manual synchronizations
+			if ( i == 0 ) {
+				image = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA16_UNorm,
+													EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget2" );
+			}
+
 			LogicalPassID	render_pass	= fg->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ) );

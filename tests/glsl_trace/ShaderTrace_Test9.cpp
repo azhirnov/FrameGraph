@@ -32,7 +32,6 @@ layout(location = PAYLOAD_LOC) rayPayloadNV vec4  payload;
 void main ()
 {
 	const vec2 uv = vec2(gl_LaunchIDNV.xy) / vec2(gl_LaunchSizeNV.xy - 1);
-
 	const vec3 origin = vec3(uv.x, 1.0f - uv.y, -1.0f);
 	const vec3 direction = vec3(0.0f, 0.0f, 1.0f);
 
@@ -42,10 +41,7 @@ void main ()
 			  /*direction*/direction, /*Tmax*/10.0f,
 			  /*payload*/PAYLOAD_LOC );
 
-	// if set 'payload' to the imageStore directly then device lost happens when trace recording enabled
-	vec4  color = payload * 1.5f;
-
-	imageStore( un_Output, ivec2(gl_LaunchIDNV), color );
+	imageStore( un_Output, ivec2(gl_LaunchIDNV), payload );
 }
 )#";
 		CHECK_ERR( shaderCompiler.Compile( OUT rayGenShader, vulkan, {rt_shader, raygen_shader_source}, EShLangRayGenNV, 1 ));

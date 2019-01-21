@@ -82,7 +82,7 @@ void main ()
 		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		CHECK_ERR( Visualize( TEST_NAME ));
+		//CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( _fgInstance->WaitIdle() );
 

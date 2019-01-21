@@ -1,0 +1,30 @@
+//> gl_GlobalInvocationID: uint3 {0, 0, 0}
+//> gl_LocalInvocationID: uint3 {0, 0, 0}
+//> gl_WorkGroupID: uint3 {0, 0, 0}
+no source
+
+//> I: uint {0}
+//  gl_LocalInvocationID: uint3 {0, 0, 0}
+27. I = gl_LocalInvocationID.x;
+
+//> (out): float4 {-1.000000, -1.000000, 0.000000, 1.000000}
+//  I: uint {0}
+29. gl_MeshVerticesNV[I].gl_Position	= vec4(g_Positions[I], 0.0f, 1.0f);
+
+//> (out): float4 {0.000000, 0.000000, 0.000000, 0.000000}
+//  I: uint {0}
+30. Output[I].color						= g_Positions[I].xyxy * 0.5f + 0.5f;
+
+//> (out): uint {0}
+//  I: uint {0}
+31. gl_PrimitiveIndicesNV[I]			= I;
+
+//> (out): bool {true}
+//  I: uint {0}
+33. if ( I == 0 )
+
+//> gl_PrimitiveCountNV: uint {3}
+34. gl_PrimitiveCountNV = 3;
+
+//---------------------------
+
