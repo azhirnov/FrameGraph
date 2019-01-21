@@ -11,16 +11,16 @@ if (${FG_ENABLE_SFML})
 	
 	# download
 	if (NOT EXISTS "${FG_EXTERNAL_SFML_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
-		FetchContent_Declare( ExternalDownloadSFML
+		FetchContent_Declare( ExternalSFML
 			GIT_REPOSITORY		https://github.com/SFML/SFML.git
 			GIT_TAG				master
 			SOURCE_DIR			"${FG_EXTERNAL_SFML_PATH}"
 		)
 		
-		FetchContent_GetProperties( ExternalDownloadSFML )
-		if (NOT EExternalDownloadSFML_POPULATED)
+		FetchContent_GetProperties( ExternalSFML )
+		if (NOT ExternalSFML_POPULATED)
 			message( STATUS "downloading SFML" )
-			FetchContent_Populate( ExternalDownloadSFML )
+			FetchContent_Populate( ExternalSFML )
 		endif ()
 	endif ()
 

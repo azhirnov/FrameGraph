@@ -15,7 +15,7 @@ if (${FG_ENABLE_LODEPNG})
 			message( FATAL_ERROR "CMAKE_FOLDER is not defined!" )
 		endif ()
 
-		FetchContent_Declare( ExternalDownloadLodePNG
+		FetchContent_Declare( ExternalLodePNG
 			GIT_REPOSITORY		https://github.com/lvandeve/lodepng.git
 			GIT_TAG				master
 			SOURCE_DIR			"${FG_EXTERNAL_LODEPNG_PATH}"
@@ -24,10 +24,10 @@ if (${FG_ENABLE_LODEPNG})
 								${FG_EXTERNAL_LODEPNG_PATH}/CMakeLists.txt
 		)
 		
-		FetchContent_GetProperties( ExternalDownloadLodePNG )
-		if (NOT ExternalDownloadLodePNG_POPULATED)
+		FetchContent_GetProperties( ExternalLodePNG )
+		if (NOT ExternalLodePNG_POPULATED)
 			message( STATUS "downloading lodepng" )
-			FetchContent_Populate( ExternalDownloadLodePNG )
+			FetchContent_Populate( ExternalLodePNG )
 		endif ()
 	endif ()
 	

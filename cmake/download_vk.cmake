@@ -22,16 +22,16 @@ endif ()
 
 
 if (NOT Vulkan_FOUND AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
-	FetchContent_Declare( ExternalDownloadVulkan
+	FetchContent_Declare( ExternalVulkanHeaders
 		GIT_REPOSITORY		https://github.com/KhronosGroup/Vulkan-Headers.git
 		GIT_TAG				master
 		SOURCE_DIR			"${FG_EXTERNALS_PATH}/Vulkan-Headers"
 	)
 	
-	FetchContent_GetProperties( ExternalDownloadVulkan )
-	if (NOT ExternalDownloadVulkan_POPULATED)
+	FetchContent_GetProperties( ExternalVulkanHeaders )
+	if (NOT ExternalVulkanHeaders_POPULATED)
 		message( STATUS "downloading Vulkan-Headers" )
-		FetchContent_Populate( ExternalDownloadVulkan )
+		FetchContent_Populate( ExternalVulkanHeaders )
 	endif ()
 
 	set( Vulkan_INCLUDE_DIRS "${FG_EXTERNALS_PATH}/Vulkan-Headers/include" )

@@ -11,16 +11,16 @@ if (${FG_ENABLE_STDALLOC})
 	
 	# download
 	if (NOT EXISTS "${FG_EXTERNAL_STDALLOC_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
-		FetchContent_Declare( ExternalDownloadSTDALLOC
+		FetchContent_Declare( ExternalSTDALLOC
 			GIT_REPOSITORY		https://github.com/foonathan/memory.git
 			GIT_TAG				master
 			SOURCE_DIR			"${FG_EXTERNAL_STDALLOC_PATH}"
 		)
 		
-		FetchContent_GetProperties( ExternalDownloadSTDALLOC )
-		if (NOT EExternalDownloadSTDALLOC_POPULATED)
+		FetchContent_GetProperties( ExternalSTDALLOC )
+		if (NOT ExternalSTDALLOC_POPULATED)
 			message( STATUS "downloading foonathan_memory" )
-			FetchContent_Populate( ExternalDownloadSTDALLOC )
+			FetchContent_Populate( ExternalSTDALLOC )
 		endif ()
 	endif ()
 	
