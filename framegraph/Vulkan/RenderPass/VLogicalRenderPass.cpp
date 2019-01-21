@@ -6,7 +6,10 @@
 
 namespace FG
 {
-	
+namespace {
+	static const VkShadingRatePaletteEntryNV	shadingRateDefaultEntry	= VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV;
+}
+
 /*
 =================================================
 	constructor
@@ -34,6 +37,8 @@ namespace FG
 	bool VLogicalRenderPass::Create (VResourceManagerThread &resMngr, const RenderPassDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
+
+		const bool	enable_sri	= desc.shadingRate.image.IsValid();
 
 		_allocator.Create( resMngr.GetAllocator() );
 		_allocator->SetBlockSize( 4_Kb );
@@ -114,12 +119,32 @@ namespace FG
 			dst.maxDepth	= src.maxDepth;
 			_viewports.push_back( dst );
 
+			// scissor
 			VkRect2D		rect;
 			rect.offset.x		= RoundToInt( src.rect.left );
 			rect.offset.y		= RoundToInt( src.rect.top );
 			rect.extent.width	= RoundToInt( src.rect.Width() );
 			rect.extent.height	= RoundToInt( src.rect.Height() );
 			_defaultScissors.push_back( rect );
+
+			// shading rate palette
+			if ( enable_sri )
+			{
+				VkShadingRatePaletteNV			palette = {};
+				palette.shadingRatePaletteEntryCount	= Max( 1u, uint(src.palette.size()) );
+				palette.pShadingRatePaletteEntries		= &shadingRateDefaultEntry;
+
+				if ( src.palette.size() )
+				{
+					auto*	entries = _allocator->Alloc<VkShadingRatePaletteEntryNV>( src.palette.size() );
+					palette.pShadingRatePaletteEntries = entries;
+
+					for (uint i = 0; i < src.palette.size(); ++i) {
+						entries[i] = VEnumCast( src.palette[i] );
+					}
+				}
+				_shadingRatePalette.push_back( palette );
+			}
 		}
 
 		// create default viewport
@@ -141,10 +166,41 @@ namespace FG
 			rect.extent.height	= desc.area.Height();
 			_defaultScissors.push_back( rect );
 		}
+
+		// set shading rate image
+		if ( enable_sri )
+		{
+			_shadingRateImage		= resMngr.ToLocal( desc.shadingRate.image );
+			_shadingRateImageLayer	= desc.shadingRate.layer;
+			_shadingRateImageLevel	= desc.shadingRate.mipmap;
+		}
 		
 		return true;
 	}
 	
+/*
+=================================================
+	GetShadingRateImage
+=================================================
+*/
+	bool VLogicalRenderPass::GetShadingRateImage (OUT VLocalImage const* &outImage, OUT ImageViewDesc &outDesc) const
+	{
+		SHAREDLOCK( _rcCheck );
+
+		if ( not _shadingRateImage )
+			return false;
+
+		outImage			= _shadingRateImage;
+
+		outDesc.viewType	= EImage::Tex2D;
+		outDesc.format		= EPixelFormat::R8U;
+		outDesc.baseLevel	= _shadingRateImageLevel;
+		outDesc.baseLayer	= _shadingRateImageLayer;
+		outDesc.aspectMask	= EImageAspect::Color;
+
+		return true;
+	}
+
 /*
 =================================================
 	Destroy
@@ -161,6 +217,8 @@ namespace FG
 		_drawTasks.clear();
 
 		_allocator.Destroy();
+
+		_shadingRateImage = null;
 	}
 
 /*

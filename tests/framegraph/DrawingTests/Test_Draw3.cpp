@@ -1,12 +1,4 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
-/*
-	This test affects:
-		- frame graph building and execution
-		- tasks: SubmitRenderPass, DrawMeshes, ReadImage
-		- resources: render pass, image, framebuffer, pipeline, pipeline resources
-		- staging buffers
-		- memory managment
-*/
 
 #include "../FGApp.h"
 
@@ -15,27 +7,14 @@ namespace FG
 
 	bool FGApp::Test_Draw3 ()
 	{
-		if ( not _vulkan.GetDeviceMeshShaderFeatures().meshShader )
-			return true;
+		GraphicsPipelineDesc	ppln;
 
-		MeshPipelineDesc	ppln;
-
-		ppln.AddShader( EShader::Mesh, EShaderLangFormat::VKSL_100, "main", R"#(
+		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
+#pragma shader_stage(vertex)
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
-#extension GL_NV_mesh_shader : require
 
-layout(local_size_x=3) in;
-layout(triangles) out;
-layout(max_vertices=3, max_primitives=1) out;
-
-out gl_MeshPerVertexNV {
-	vec4	gl_Position;
-} gl_MeshVerticesNV[]; // [max_vertices]
-
-layout(location = 0) out MeshOutput {
-	vec4	color;
-} Output[]; // [max_vertices]
+out vec3	v_Color;
 
 const vec2	g_Positions[3] = vec2[](
 	vec2(0.0, -0.5),
@@ -49,31 +28,22 @@ const vec3	g_Colors[3] = vec3[](
 	vec3(0.0, 0.0, 1.0)
 );
 
-void main ()
-{
-	const uint I = gl_LocalInvocationID.x;
-
-	gl_MeshVerticesNV[I].gl_Position	= vec4( g_Positions[I], 0.0, 1.0 );
-	Output[I].color						= vec4( g_Colors[I], 1.0 );
-	gl_PrimitiveIndicesNV[I]			= I;
-
-	if ( I == 0 )
-		gl_PrimitiveCountNV = 1;
+void main() {
+	gl_Position	= vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
+	v_Color		= g_Colors[gl_VertexIndex];
 }
 )#" );
 		
 		ppln.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100, "main", R"#(
+#pragma shader_stage(fragment)
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(location = 0) in MeshOutput {
-	vec4	color;
-} Input;
-
+in  vec3	v_Color;
 out vec4	out_Color;
 
 void main() {
-	out_Color = Input.color;
+	out_Color = vec4(v_Color, 1.0);
 }
 )#" );
 		
@@ -83,12 +53,12 @@ void main() {
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
-		MPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 
 		
 		bool		data_is_correct = false;
 
-		const auto	OnLoaded =	[this, OUT &data_is_correct] (const ImageView &imageData)
+		const auto	OnLoaded =	[OUT &data_is_correct] (const ImageView &imageData)
 		{
 			const auto	TestPixel = [&imageData] (float x, float y, const RGBA32f &color)
 			{
@@ -98,23 +68,18 @@ void main() {
 				RGBA32f	col;
 				imageData.Load( uint3(ix, iy, 0), OUT col );
 
-				bool	is_equal	= Equals( col.r, color.r, 0.1f ) and
-									  Equals( col.g, color.g, 0.1f ) and
-									  Equals( col.b, color.b, 0.1f ) and
-									  Equals( col.a, color.a, 0.1f );
+				bool	is_equal = All(Equals( col, color, 0.1f ));
 				ASSERT( is_equal );
 				return is_equal;
 			};
 
 			data_is_correct  = true;
 			data_is_correct &= TestPixel( 0.00f, -0.49f, RGBA32f{1.0f, 0.0f, 0.0f, 1.0f} );
-			data_is_correct &= TestPixel( 0.49f,  0.49f, RGBA32f{0.0f, 1.0f, 0.0f, 1.0f} );
-			data_is_correct &= TestPixel(-0.49f,  0.49f, RGBA32f{0.0f, 0.0f, 1.0f, 1.0f} );
 			
 			data_is_correct &= TestPixel( 0.00f, -0.51f, RGBA32f{0.0f} );
-			data_is_correct &= TestPixel( 0.51f,  0.51f, RGBA32f{0.0f} );
-			data_is_correct &= TestPixel(-0.51f,  0.51f, RGBA32f{0.0f} );
-			data_is_correct &= TestPixel( 0.00f,  0.51f, RGBA32f{0.0f} );
+			data_is_correct &= TestPixel( 0.49f,  0.49f, RGBA32f{0.0f} );
+			data_is_correct &= TestPixel(-0.49f,  0.49f, RGBA32f{0.0f} );
+			data_is_correct &= TestPixel( 0.00f,  0.30f, RGBA32f{0.0f} );
 			data_is_correct &= TestPixel( 0.51f, -0.51f, RGBA32f{0.0f} );
 			data_is_correct &= TestPixel(-0.51f, -0.51f, RGBA32f{0.0f} );
 		};
@@ -131,13 +96,14 @@ void main() {
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ) );
 		
-		frame_graph->AddTask( render_pass, DrawMeshes().Draw( 1 ).SetPipeline( pipeline ));
+		frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
+												.AddScissor(RectU{ 0, 0, view_size.x, view_size.y/2 }));
 
 		Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( frame_graph->Execute() );		
+		CHECK_ERR( frame_graph->Execute() );
 		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));

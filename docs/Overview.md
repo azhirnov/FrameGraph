@@ -19,7 +19,7 @@ vulkan.Create( window->GetVulkanSurface(), "ApplicationTitle", "Engine", VK_API_
 // create listener for debug messages
 vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 
-// setup device info
+// setup device description
 VulkanDeviceInfo  vulkan_info;
 vulkan_info.instance = vulkan.GetVkInstance();
 vulkan_info.physicalDevice = vulkan.GetVkPhysicalDevice();
@@ -35,15 +35,16 @@ vulkan_info.push_back( queue );
 FGInstancePtr fgInstance = FrameGraphInstance::CreateFrameGraph( vulkan_info );
 
 // set ring buffer size
+// 2 - double buffer, 3 - triple buffer
 fgInstance->Initialize( 2 );
 
-// create framegraph, this is not a thread, just worker that may work in separate thread
+// create framegraph, this is not a thread, just worker that may work in parallel with other framegraphs.
 // EThreadUsage::Present - create with swapchain
 // EThreadUsage::Graphics - create with queue that supports graphics and compute
 // EThreadUsage::Transfer - create the staging buffer for host to device transfer and implicitly the memory manager for buffer and image
 FGThreadPtr frameGraph = fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer });
 
-// setup swapchain
+// setup swapchain description
 VulkanSwapchainCreateInfo swapchain;
 swapchain.surface = vulkan.GetVkSurface();
 swapchain.surfaceSize = window->GetSize();
@@ -75,6 +76,11 @@ Now create graphics pipeline:
 GraphicsPipelineDesc  desc;
 
 // add vertex shader
+// VKSL_100 means that it is GLSL with vulkan semantics and should be compiled for Vulkan 1.0.
+// SPIRV_110 means that it is SPIRV binary compiled for Vulkan 1.1.
+// VkShader_100 used for already created shader module.
+// GLSL_450 means that shader compatible with OpenGL 4.5, but also can be used in Vulkan.
+// Warning: any SPIRV and VKSL shaders have higher priority than any GLSL shader if used Vulkan backend (currently it is only one backend).
 desc.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
 out vec3  v_Color;
 
@@ -106,8 +112,9 @@ void main() {
 }
 )#" );
 
-// create pipeline from description
-GPipelineID  pipeline = frameGraph->CreatePipeline( std::move(desc) );
+// create pipeline from description.
+// 
+GPipelineID  pipeline = frameGraph->CreatePipeline( desc );
 ```
 
 ## Drawing
@@ -116,7 +123,7 @@ GPipelineID  pipeline = frameGraph->CreatePipeline( std::move(desc) );
 ImageDesc  image_desc{ EImage::Tex2D,
                        uint3{800, 600, 1},
                        EPixelFormat::RGBA8_UNorm,
-                       EImageUsage::ColorAttachment | EImageUsage::TransferSrc };
+                       EImageUsage::ColorAttachment };
 ImageID  image = frameGraph->CreateImage( image_desc );
 
 // skiped some code, this wiil be descripbed below
@@ -156,10 +163,10 @@ draw_triangle.SetPipeline( pipeline );
 frameGraph->AddTask( render_pass, draw_triangles );
 
 // add render pass to the frame graph.
-// after that you can not add draw tasks into render pass.
+// after that you can not add draw tasks into the render pass.
 Task submit = frameGraph->AddTask( SubmitRenderPass{ render_pass });
 
-// present into swapchain.
+// present to swapchain.
 // this task must be executed after drawing.
 Task present = frameGraph->AddTask( Present{ image }.DependsOn( submit ));
 
@@ -247,7 +254,7 @@ fgThread2->Execute();
 
 Main thread.
 ```cpp
-// tells to the submission graph that we don't have 2nd subbatch.
+// tells to the submission graph that we don't have 3rd subbatch.
 fgInstance->SkipBatch( CommandBatchID{"main"}, 2 );
 
 // wait until all render threads complete their work

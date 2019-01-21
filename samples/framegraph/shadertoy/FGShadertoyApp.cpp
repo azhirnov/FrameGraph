@@ -707,7 +707,7 @@ namespace FG
 		desc.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", vs_source );
 		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace, "main", std::move(src0), name );
 
-		return _frameGraph->CreatePipeline( std::move(desc), name );
+		return _frameGraph->CreatePipeline( desc, name );
 	}
 	
 /*

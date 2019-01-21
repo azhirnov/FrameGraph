@@ -74,7 +74,7 @@ void main ()
 															    Default, "OutputImage" );
 		BufferID		sbt_buffer	= frame_graph->CreateBuffer( BufferDesc{ 4_Kb, EBufferUsage::RayTracing | EBufferUsage::TransferDst } );
 		
-		RTPipelineID	pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		RTPipelineID	pipeline	= frame_graph->CreatePipeline( ppln );
 		
 		const auto		vertices	= ArrayView<float3>{ { 0.25f, 0.25f, 0.0f }, { 0.75f, 0.25f, 0.0f }, { 0.50f, 0.75f, 0.0f } };
 		const auto		indices		= ArrayView<uint>{ 0, 1, 2 };
@@ -188,7 +188,7 @@ void main ()
 		}
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		CHECK_ERR( Visualize( TEST_NAME ));
+		//CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( _fgInstance->WaitIdle() );
 

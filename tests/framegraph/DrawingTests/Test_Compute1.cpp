@@ -49,7 +49,7 @@ void main ()
 		ImageID			image2		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_2" );
 
-		CPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		CPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 		
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));

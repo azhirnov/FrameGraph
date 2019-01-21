@@ -100,16 +100,19 @@ namespace FG
 		bool Test_DynamicOffset ();	// buffer dynamic offset
 		bool Test_Draw1 ();
 		bool Test_Draw2 ();			// with swapchain
-		bool Test_Draw3 ();			// with mesh shader
-		bool Test_Draw4 ();			// with scissor
-		bool Test_TraceRays1 ();
-		bool Test_TraceRays2 ();
+		bool Test_Draw3 ();			// with scissor
 		bool Test_ExternalCmdBuf1 ();
 		bool Test_InvalidID ();
 		bool Test_ReadAttachment1 ();
 		bool Test_AsyncCompute1 ();
 		bool Test_ShaderDebugger1 ();
 		bool Test_ShaderDebugger2 ();
+
+		// RTX only
+		bool Test_DrawMeshes1 ();
+		bool Test_TraceRays1 ();
+		bool Test_TraceRays2 ();
+		bool Test_ShadingRate1 ();
 	};
 
 	

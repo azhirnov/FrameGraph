@@ -121,10 +121,10 @@ namespace FG
 		~VFrameGraphThread ();
 			
 		// resource manager
-		MPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName) override;
-		GPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName) override;
-		CPipelineID		CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName) override;
-		RTPipelineID	CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName) override;
+		MPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName) override;
+		GPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName) override;
+		CPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName) override;
+		RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName) override;
 		ImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		BufferID		CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName) override;

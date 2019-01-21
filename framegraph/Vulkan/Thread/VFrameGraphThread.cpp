@@ -81,51 +81,32 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	MPipelineID  VFrameGraphThread::CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName)
+	MPipelineID  VFrameGraphThread::CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
-
-		return MPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), dbgName, IsInSeparateThread() )};
+		return MPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
 	
-/*
-=================================================
-	CreatePipeline
-=================================================
-*/
-	RTPipelineID  VFrameGraphThread::CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName)
+	RTPipelineID  VFrameGraphThread::CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
-
-		return RTPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), dbgName, IsInSeparateThread() )};
+		return RTPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
 	
-/*
-=================================================
-	CreatePipeline
-=================================================
-*/
-	GPipelineID  VFrameGraphThread::CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName)
+	GPipelineID  VFrameGraphThread::CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
-
-		return GPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), dbgName, IsInSeparateThread() )};
+		return GPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
 	
-/*
-=================================================
-	CreatePipeline
-=================================================
-*/
-	CPipelineID  VFrameGraphThread::CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName)
+	CPipelineID  VFrameGraphThread::CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
-
-		return CPipelineID{ _resourceMngr.CreatePipeline( std::move(desc), dbgName, IsInSeparateThread() )};
+		return CPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
 
 /*

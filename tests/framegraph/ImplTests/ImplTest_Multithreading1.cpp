@@ -140,7 +140,7 @@ void main() {
 }
 )#" );
 		
-		pipeline = _fgGraphics1->CreatePipeline( std::move(ppln) );
+		pipeline = _fgGraphics1->CreatePipeline( ppln );
 
 		std::thread		thread1( [this]() { RenderThread1( _fgInstance, _fgGraphics1 ); });
 		std::thread		thread2( [this]() { RenderThread2( _fgGraphics2 ); });

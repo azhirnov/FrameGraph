@@ -64,7 +64,7 @@ void main() {
 
 		SamplerID		sampler		= frame_graph->CreateSampler( SamplerDesc{} );
 
-		GPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 		
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));

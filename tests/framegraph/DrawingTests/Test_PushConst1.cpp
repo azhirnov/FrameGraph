@@ -46,7 +46,7 @@ void main ()
 		FGThreadPtr		frame_graph		= _fgGraphics1;
 		const BytesU	dst_buffer_size	= 32_b;
 		BufferID		dst_buffer		= frame_graph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Storage | EBufferUsage::TransferSrc }, Default, "DstBuffer" );
-		CPipelineID		pipeline		= frame_graph->CreatePipeline( std::move(ppln) );
+		CPipelineID		pipeline		= frame_graph->CreatePipeline( ppln );
 
 		PushConst	pc;
 		pc.f3 = { 10.1f, 11.2f, 18.5f };

@@ -88,7 +88,7 @@ static void PipelineResources_Test1 (const FGThreadPtr &fg)
 			0x0007004F, 0x0000000F, 0x00000037, 0x00000036, 0x00000036, 0x00000000, 0x00000001, 0x0004007C, 0x00000038, 0x00000039, 0x00000037, 0x0004003D, 
 			0x0000001D, 0x0000003A, 0x0000001F, 0x00040063, 0x00000035, 0x00000039, 0x0000003A, 0x000100FD, 0x00010038 });
 
-	CPipelineID			ppln = fg->CreatePipeline( std::move(desc) );
+	CPipelineID			ppln = fg->CreatePipeline( desc );
 	TEST( ppln.IsValid() );
 
 	PipelineResources	res;

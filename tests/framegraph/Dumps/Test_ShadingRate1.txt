@@ -1,0 +1,197 @@
+Thread {
+	batch:         "main"
+	indexInBatch:  0
+	Image {
+		name:         "RenderTarget"
+		iamgeType:    Image2D
+		dimension:    ( 256, 256, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         SubmitRenderPass (#3)
+					dstTask:         ReadImage (#4)
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "ShadingRate"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       R8U
+		usage:        TransferDst | ShadingRate
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         UpdateImage (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       General
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         UpdateImage (#2)
+					dstTask:         SubmitRenderPass (#3)
+					srcStageMask:    Transfer
+					dstStageMask:    ShadingRateImage
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShadingRateImageRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShadingRateOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         SubmitRenderPass (#3)
+					dstTask:         <final>
+					srcStageMask:    ShadingRateImage
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   ShadingRateImageRead
+					dstAccessMask:   
+					oldLayout:       ShadingRateOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "HostReadBuffer"
+		size:    256 Mb
+		usage:   TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            256 Kb
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "UpdateImage (#2)"
+		input =  {  }
+		output = { SubmitRenderPass (#3) }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostWriteBuffer"
+				usage:    Transfer-R
+				offset:   0 b
+				size:     256 b
+			}
+			ImageUsage {
+				name:           "ShadingRate"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "SubmitRenderPass (#3)"
+		input =  { UpdateImage (#2) }
+		output = { ReadImage (#4) }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Color-RW, ClearBefore
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "ShadingRate"
+				usage:          ShadingRate
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#4)"
+		input =  { SubmitRenderPass (#3) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     256 Kb
+			}
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+

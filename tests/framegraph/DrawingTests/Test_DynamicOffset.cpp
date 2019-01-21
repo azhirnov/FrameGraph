@@ -52,7 +52,7 @@ void main ()
 											5.0f, 6.0f, 7.0f, 8.0f,
 											1.1f, 2.2f, 2.3f, 2.4f,
 											1.5f, 1.6f, 1.7f, 1.8f };
-		CPipelineID		pipeline		= frame_graph->CreatePipeline( std::move(ppln) );
+		CPipelineID		pipeline		= frame_graph->CreatePipeline( ppln );
 		
 		_pplnCompiler->SetCompilationFlags( old_flags );
 

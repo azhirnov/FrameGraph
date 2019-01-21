@@ -489,7 +489,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawMPipelineID  VResourceManagerThread::CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName, bool isAsync)
+	RawMPipelineID  VResourceManagerThread::CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		
@@ -521,7 +521,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawGPipelineID  VResourceManagerThread::CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName, bool isAsync)
+	RawGPipelineID  VResourceManagerThread::CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		
@@ -553,7 +553,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawCPipelineID  VResourceManagerThread::CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName, bool isAsync)
+	RawCPipelineID  VResourceManagerThread::CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		
@@ -585,7 +585,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawRTPipelineID  VResourceManagerThread::CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName, bool isAsync)
+	RawRTPipelineID  VResourceManagerThread::CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		

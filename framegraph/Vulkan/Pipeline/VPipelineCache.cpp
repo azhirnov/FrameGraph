@@ -487,6 +487,17 @@ namespace FG
 	
 /*
 =================================================
+	SetupExtensions
+=================================================
+*/
+	static void SetupExtensions (const VLogicalRenderPass &logicalRP, INOUT EPipelineDynamicState &dynamicState)
+	{
+		if ( logicalRP.HasShadingRateImage() )
+			dynamicState |= EPipelineDynamicState::ShadingRatePalette;
+	}
+
+/*
+=================================================
 	_SetupShaderDebugging
 =================================================
 */
@@ -578,6 +589,7 @@ namespace FG
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
 		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil,
 								    INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
+		SetupExtensions( logicalRP, INOUT inst.dynamicState );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst.UpdateHash();
@@ -709,6 +721,7 @@ namespace FG
 		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
 		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil,
 								    INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
+		SetupExtensions( logicalRP, INOUT inst.dynamicState );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst.UpdateHash();
@@ -1296,6 +1309,10 @@ namespace FG
 					ASSERT( renderState.stencil.enabled ); 
 					renderState.stencil.front.reference = 0;
 					renderState.stencil.back.reference  = 0;
+					break;
+
+				case EPipelineDynamicState::ShadingRatePalette :
+					// do nothing
 					break;
 
 				case EPipelineDynamicState::Unknown :

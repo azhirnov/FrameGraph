@@ -128,10 +128,10 @@ namespace FG
 		void AfterFrameCompilation ();
 		void OnDiscardMemory ();
 		
-		ND_ RawMPipelineID		CreatePipeline (MeshPipelineDesc &&desc, StringView dbgName, bool isAsync);
-		ND_ RawGPipelineID		CreatePipeline (GraphicsPipelineDesc &&desc, StringView dbgName, bool isAsync);
-		ND_ RawCPipelineID		CreatePipeline (ComputePipelineDesc &&desc, StringView dbgName, bool isAsync);
-		ND_ RawRTPipelineID		CreatePipeline (RayTracingPipelineDesc &&desc, StringView dbgName, bool isAsync);
+		ND_ RawMPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName, bool isAsync);
+		ND_ RawGPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName, bool isAsync);
+		ND_ RawCPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName, bool isAsync);
+		ND_ RawRTPipelineID		CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName, bool isAsync);
 		
 		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 		ND_ RawBufferID			CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);

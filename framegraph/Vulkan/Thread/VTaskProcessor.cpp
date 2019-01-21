@@ -150,10 +150,6 @@ namespace FG
 
 	private:
 		void _BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const;
-		void _SetScissor (const _fg_hidden_::Scissors_t &sc) const;
-
-		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, OUT VPipelineLayout const* &pplnLayout) const;
-		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, OUT VPipelineLayout const* &pplnLayout) const;
 
 		template <typename DrawTask>
 		void _BindPipelineResources (const VPipelineLayout &layout, const DrawTask &task) const;
@@ -508,45 +504,6 @@ namespace FG
 		_dev.vkCmdBindVertexBuffers( _cmdBuffer, 0, uint(buffers.size()), buffers.data(), vertexOffsets.data() );
 		_tp.Stat().vertexBufferBindings++;
 	}
-	
-/*
-=================================================
-	_BindPipeline
-=================================================
-*/
-	inline void VTaskProcessor::DrawTaskCommands::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, VPipelineLayout const* &pplnLayout) const
-	{
-		VkPipeline	ppln_id;
-		_tp._frameGraph.GetPipelineCache()->CreatePipelineInstance(
-									*_tp._frameGraph.GetResourceManager(),
-									*_tp._frameGraph.GetShaderDebugger(),
-									logicalRP, task,
-									OUT ppln_id, OUT pplnLayout );
-
-		if ( _tp._graphicsPipeline.pipeline != ppln_id )
-		{
-			_tp._graphicsPipeline.pipeline = ppln_id;
-			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_id );
-			_tp.Stat().graphicsPipelineBindings++;
-		}
-	}
-	
-	inline void VTaskProcessor::DrawTaskCommands::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout) const
-	{
-		VkPipeline	ppln_id;
-		_tp._frameGraph.GetPipelineCache()->CreatePipelineInstance(
-									*_tp._frameGraph.GetResourceManager(),
-									*_tp._frameGraph.GetShaderDebugger(),
-									logicalRP, task,
-									OUT ppln_id, OUT pplnLayout );
-		
-		if ( _tp._graphicsPipeline.pipeline != ppln_id )
-		{
-			_tp._graphicsPipeline.pipeline = ppln_id;
-			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ppln_id );
-			_tp.Stat().graphicsPipelineBindings++;
-		}
-	}
 
 /*
 =================================================
@@ -591,7 +548,7 @@ namespace FG
 
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -617,7 +574,7 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -645,7 +602,7 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -675,7 +632,7 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -706,7 +663,7 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
@@ -731,7 +688,7 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
@@ -760,8 +717,8 @@ namespace FG
 	VTaskProcessor::VTaskProcessor (VFrameGraphThread &fg, VBarrierManager &barrierMngr,
 									VkCommandBuffer cmdbuf, const CommandBatchID &batchId, uint indexInBatch) :
 		_frameGraph{ fg },								_dev{ fg.GetDevice() },
-		_cmdBuffer{ cmdbuf },							_enableDebugUtils{ false },  //_dev.IsDebugUtilsEnabled() },
-		_isDefaultScissor{ false },
+		_cmdBuffer{ cmdbuf },							_enableDebugUtils{ false },  //_dev.IsDebugUtilsEnabled() },	// because of crash
+		_isDefaultScissor{ false },						_perPassStatesUpdated{ false },
 		_pendingResourceBarriers{ fg.GetAllocator() },	_barrierMngr{ barrierMngr }
 	{
 		ASSERT( _cmdBuffer );
@@ -920,10 +877,10 @@ namespace FG
 	
 /*
 =================================================
-	_OnRunTask
+	_OnProcessTask
 =================================================
 */
-	forceinline void  VTaskProcessor::_OnRunTask () const
+	forceinline void  VTaskProcessor::_OnProcessTask () const
 	{
 		_CmdDebugMarker( _currTask->Name() );
 		
@@ -1026,6 +983,38 @@ namespace FG
 	
 /*
 =================================================
+	_SetShadingRateImage
+=================================================
+*/
+	void VTaskProcessor::_SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view)
+	{
+		VLocalImage const*	image;
+		ImageViewDesc		desc;
+
+		if ( not logicalRP.GetShadingRateImage( OUT image, OUT desc ) )
+			return;
+
+		view = image->GetView( _dev, false, desc );
+
+		_AddImage( image, EResourceState::ShadingRateImageRead, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV, desc );
+	}
+	
+/*
+=================================================
+	_BindShadingRateImage
+=================================================
+*/
+	void VTaskProcessor::_BindShadingRateImage (VkImageView view)
+	{
+		if ( _shadingRateImage != view )
+		{
+			_shadingRateImage = view;
+			_dev.vkCmdBindShadingRateImageNV( _cmdBuffer, _shadingRateImage, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV );
+		}
+	}
+
+/*
+=================================================
 	_ExtractClearValues
 =================================================
 */
@@ -1076,6 +1065,9 @@ namespace FG
 				draw->Process1( &barrier_visitor );
 			}
 		}
+		
+		VkImageView  sri_view = VK_NULL_HANDLE;
+		_SetShadingRateImage( *task.GetLogicalPass(), OUT sri_view );
 
 		_AddRenderTargetBarriers( *task.GetLogicalPass(), barrier_visitor );
 		_CommitBarriers();
@@ -1106,6 +1098,8 @@ namespace FG
 		pass_info.framebuffer				= framebuffer->Handle();
 		
 		_dev.vkCmdBeginRenderPass( _cmdBuffer, &pass_info, VK_SUBPASS_CONTENTS_INLINE );
+
+		_BindShadingRateImage( sri_view );
 	}
 	
 /*
@@ -1137,25 +1131,19 @@ namespace FG
 	void VTaskProcessor::Visit (const VFgTask<SubmitRenderPass> &task)
 	{
 		// invalidate some states
-		_isDefaultScissor = false;
+		_isDefaultScissor		= false;
+		_perPassStatesUpdated	= false;
 
 		if ( not task.IsSubpass() )
 		{
-			_CmdPushDebugGroup( "renderpass" );		// TODO: renderpass name
-			_OnRunTask();
+			_CmdPushDebugGroup( task.Name() );
+			_OnProcessTask();
 			_BeginRenderPass( task );
 		}
 		else
 		{
-			_OnRunTask();
+			_OnProcessTask();
 			_BeginSubpass( task );
-		}
-
-		
-		// set viewports
-		const auto&	viewports = task.GetLogicalPass()->GetViewports();
-		if ( not viewports.empty() ) {
-			_dev.vkCmdSetViewport( _cmdBuffer, 0, uint(viewports.size()), viewports.data() );
 		}
 
 
@@ -1289,6 +1277,62 @@ namespace FG
 
 /*
 =================================================
+	_BindPipeline2
+=================================================
+*/
+	inline void VTaskProcessor::_BindPipeline2 (const VLogicalRenderPass &logicalRP, VkPipeline pipelineId)
+	{
+		if ( _graphicsPipeline.pipeline != pipelineId )
+		{
+			_graphicsPipeline.pipeline = pipelineId;
+			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineId );
+			Stat().graphicsPipelineBindings++;
+		}
+		
+		// all pipelines in current render pass have same viewport count and same dynamic states, so this values should not be invalidated.
+		if ( _perPassStatesUpdated )
+			return;
+
+		_perPassStatesUpdated = true;
+		
+		if ( auto viewports = logicalRP.GetViewports(); viewports.size() )
+			_dev.vkCmdSetViewport( _cmdBuffer, 0, uint(viewports.size()), viewports.data() );
+
+		if ( auto palette = logicalRP.GetShadingRatePalette(); palette.size() )
+			_dev.vkCmdSetViewportShadingRatePaletteNV( _cmdBuffer, 0, uint(palette.size()), palette.data() );
+	}
+	
+/*
+=================================================
+	_BindPipeline
+=================================================
+*/
+	inline void VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, VPipelineLayout const* &pplnLayout)
+	{
+		VkPipeline	ppln_id;
+		_frameGraph.GetPipelineCache()->CreatePipelineInstance(
+									*_frameGraph.GetResourceManager(),
+									*_frameGraph.GetShaderDebugger(),
+									logicalRP, task,
+									OUT ppln_id, OUT pplnLayout );
+
+		_BindPipeline2( logicalRP, ppln_id );
+	}
+	
+	inline void VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
+	{
+		VkPipeline	ppln_id;
+		_frameGraph.GetPipelineCache()->CreatePipelineInstance(
+									*_frameGraph.GetResourceManager(),
+									*_frameGraph.GetShaderDebugger(),
+									logicalRP, task,
+									OUT ppln_id, OUT pplnLayout );
+		
+		_BindPipeline2( logicalRP, ppln_id );
+	}
+
+/*
+=================================================
 	_BindPipeline
 =================================================
 */
@@ -1319,7 +1363,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<DispatchCompute> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		VPipelineLayout const*	layout = null;
 
@@ -1344,7 +1388,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<DispatchComputeIndirect> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 		
 		VPipelineLayout const*	layout = null;
 
@@ -1375,7 +1419,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<CopyBuffer> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		VLocalBuffer const *	src_buffer	= task.srcBuffer;
 		VLocalBuffer const *	dst_buffer	= task.dstBuffer;
@@ -1416,7 +1460,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<CopyImage> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		VLocalImage const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= task.dstImage;
@@ -1473,7 +1517,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<CopyBufferToImage> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		VLocalBuffer const *		src_buffer	= task.srcBuffer;
 		VLocalImage const *			dst_image	= task.dstImage;
@@ -1520,7 +1564,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<CopyImageToBuffer> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		VLocalImage const *			src_image	= task.srcImage;
 		VLocalBuffer const *		dst_buffer	= task.dstBuffer;
@@ -1566,7 +1610,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<BlitImage> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		VLocalImage const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= task.dstImage;
@@ -1616,7 +1660,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<ResolveImage> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 		
 		VLocalImage	const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= task.dstImage;
@@ -1666,7 +1710,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<FillBuffer> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		VLocalBuffer const *	dst_buffer = task.dstBuffer;
 
@@ -1690,7 +1734,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<ClearColorImage> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		VLocalImage const *		dst_image	= task.dstImage;
 		ImageClearRanges_t		ranges;		ranges.resize( task.ranges.size() );
@@ -1728,7 +1772,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<ClearDepthStencilImage> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 		
 		VLocalImage const *		dst_image	= task.dstImage;
 		ImageClearRanges_t		ranges;		ranges.resize( task.ranges.size() );
@@ -1766,7 +1810,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<UpdateBuffer> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 		
 		VLocalBuffer const *	dst_buffer = task.dstBuffer;
 
@@ -1789,7 +1833,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<Present> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 		
 		RawImageID	swapchain_image;
 		CHECK( _frameGraph.GetSwapchain()->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
@@ -1850,7 +1894,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<PresentVR> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		/*_AddImage( task.GetLeftEyeImage(), EResourceState::PresentImage | EResourceState::_InvalidateAfter, EImageLayout::PresentSrc,
 				   ImageRange{ task.GetLeftEyeLayer(), 1, 0_mipmap, 1 }, EImageAspect::Color );
@@ -1870,7 +1914,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<UpdateRayTracingShaderTable> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 
 		const uint		geom_stride		= task.rtScene->HitShadersPerGeometry();
 		const uint		max_hit_shaders	= task.rtScene->MaxHitShaderCount();
@@ -1943,7 +1987,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<BuildRayTracingGeometry> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 		
 		_AddRTGeometry( task.RTGeometry(), EResourceState::BuildRayTracingStructWrite );
 		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VkDeviceSize(task.ScratchBuffer()->Size()) );
@@ -1974,7 +2018,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<BuildRayTracingScene> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 		
 		task.RTScene()->SetGeometryInstances( task.GeometryIDs(), task.HitShadersPerGeometry(), task.MaxHitShaderCount() );
 
@@ -2028,7 +2072,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<TraceRays> &task)
 	{
-		_OnRunTask();
+		_OnProcessTask();
 		
 		auto*	layout = _GetResource( task.pipeline->GetLayoutID() );
 

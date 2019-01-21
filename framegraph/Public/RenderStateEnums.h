@@ -149,6 +149,7 @@ namespace FG
 		StencilCompareMask		= 1 << 2,
 		StencilWriteMask		= 1 << 3,
 		StencilReference		= 1 << 4,
+		ShadingRatePalette		= 1 << 5,
 		_Last,
 
 		All						= ((_Last-1) << 1) - 1,

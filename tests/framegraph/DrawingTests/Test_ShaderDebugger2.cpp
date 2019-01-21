@@ -58,7 +58,7 @@ void main() {
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
-		GPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 
 		
 		bool	data_is_correct				= false;
@@ -155,7 +155,6 @@ no source
 		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		//CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( _fgInstance->WaitIdle() );
 

@@ -33,7 +33,7 @@ void main ()
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_0" );
 
-		CPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		CPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 		
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("2"), OUT resources ));
@@ -82,7 +82,6 @@ void main ()
 		CHECK_ERR( _fgInstance->EndFrame() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-		//CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( _fgInstance->WaitIdle() );
 

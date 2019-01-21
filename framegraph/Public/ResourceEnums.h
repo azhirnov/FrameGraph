@@ -109,6 +109,24 @@ namespace FG
 	};
 
 
+	enum class EShadingRatePalette : uint8_t
+	{
+		NoInvocations	= 0,
+		Block_1x1_16	= 1,	// 16 invocations per 1x1 pixel block
+		Block_1x1_8		= 2,	//  8 invocations per 1x1 pixel block
+		Block_1x1_4		= 3,	//  4 invocations per 1x1 pixel block
+		Block_1x1_2		= 4,	//  2 invocations per 1x1 pixel block
+		Block_1x1_1		= 5,	//  1 invocation  per 1x1 pixel block
+		Block_2x1_1		= 6,	//  1 invocation  per 2x1 pixel block
+		Block_1x2_1		= 7,	//  1 invocation  per 1x2 pixel block
+		Block_2x2_1		= 8,	//  1 invocation  per 2x2 pixel block
+		Block_4x2_1		= 9,	//  1 invocation  per 4x2 pixel block
+		Block_2x4_1		= 10,	//  1 invocation  per 2x4 pixel block
+		Block_4x4_1		= 11,	//  1 invocation  per 4x4 pixel block
+		_Count,
+	};
+	
+
 	enum class EPixelFormat : uint
 	{
 		// signed normalized

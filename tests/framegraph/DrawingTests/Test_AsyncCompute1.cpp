@@ -71,8 +71,8 @@ void main ()
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
-		GPipelineID		gpipeline	= frame_graph->CreatePipeline( std::move(gppln) );
-		CPipelineID		cpipeline	= frame_graph->CreatePipeline( std::move(cppln) );
+		GPipelineID		gpipeline	= frame_graph->CreatePipeline( gppln );
+		CPipelineID		cpipeline	= frame_graph->CreatePipeline( cppln );
 		
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( cpipeline, DescriptorSetID("0"), OUT resources ));

@@ -38,7 +38,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_DynamicOffset,	1 });
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
 		_tests.push_back({ &FGApp::Test_Draw2,			1 });
-		_tests.push_back({ &FGApp::Test_Draw4,			1 });
+		_tests.push_back({ &FGApp::Test_Draw3,			1 });
 		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1, 1 });
 		_tests.push_back({ &FGApp::Test_ReadAttachment1, 1 });
 		//_tests.push_back({ &FGApp::Test_AsyncCompute1,	1 });
@@ -50,9 +50,10 @@ namespace {
 		_tests.push_back({ &FGApp::ImplTest_Multithreading2, 1 });
 		
 		// RTX only
-		_tests.push_back({ &FGApp::Test_Draw3,			1 });
+		_tests.push_back({ &FGApp::Test_DrawMeshes1,	1 });
 		_tests.push_back({ &FGApp::Test_TraceRays1,		1 });
 		_tests.push_back({ &FGApp::Test_TraceRays2,		1 });
+		_tests.push_back({ &FGApp::Test_ShadingRate1,	1 });
 
 		// very slow
 		//_tests.push_back({ &FGApp::ImplTest_CacheOverflow1,	1 });

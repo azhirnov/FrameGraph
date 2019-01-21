@@ -14,7 +14,8 @@ namespace FG
 	struct RenderPassDesc
 	{
 	// types
-		using ClearValue_t	= Union< std::monostate, RGBA32f, RGBA32u, RGBA32i, DepthStencil >;
+		using ClearValue_t			= Union< std::monostate, RGBA32f, RGBA32u, RGBA32i, DepthStencil >;
+		using ShadingRatePalette_t	= FixedArray< EShadingRatePalette, uint(EShadingRatePalette::_Count) >;
 		
 		struct RT
 		{
@@ -27,9 +28,10 @@ namespace FG
 
 		struct Viewport
 		{
-			RectF	rect;
-			float	minDepth	= 0.0f;
-			float	maxDepth	= 1.0f;
+			RectF					rect;
+			float					minDepth	= 0.0f;
+			float					maxDepth	= 1.0f;
+			ShadingRatePalette_t	palette;
 		};
 
 		using Targets_t		= FixedMap< RenderTargetID, RT, FG_MaxColorBuffers+1 >;
@@ -43,6 +45,12 @@ namespace FG
 		RS::StencilBufferState		stencilState;
 		RS::RasterizationState		rasterizationState;
 		RS::MultisampleState		multisampleState;
+
+		struct {
+			RawImageID					image;
+			ImageLayer					layer;
+			MipmapLevel					mipmap;
+		}							shadingRate;
 
 		Targets_t					renderTargets;
 		Viewports_t					viewports;
@@ -78,10 +86,10 @@ namespace FG
 
 		// viewport
 		template <typename T>
-		RenderPassDesc&  AddViewport (const Rectangle<T> &rect, float minDepth = 0.0f, float maxDepth = 1.0f);
+		RenderPassDesc&  AddViewport (const Rectangle<T> &rect, float minDepth = 0.0f, float maxDepth = 1.0f, ArrayView<EShadingRatePalette> palette = Default);
 		
 		template <typename T>
-		RenderPassDesc&  AddViewport (const Vec<T,2> &size, float minDepth = 0.0f, float maxDepth = 1.0f);
+		RenderPassDesc&  AddViewport (const Vec<T,2> &size, float minDepth = 0.0f, float maxDepth = 1.0f, ArrayView<EShadingRatePalette> palette = Default);
 		
 
 		// color
@@ -138,6 +146,8 @@ namespace FG
 		RenderPassDesc&  SetSampleShadingEnabled (bool value);
 		RenderPassDesc&  SetAlphaToCoverageEnabled (bool value);
 		RenderPassDesc&  SetAlphaToOneEnabled (bool value);
+
+		RenderPassDesc&  SetShadingRateImage (const ImageID &image, ImageLayer layer = Default, MipmapLevel level = Default);
 	};
 
 
@@ -178,17 +188,17 @@ namespace FG
 	}
 
 	template <typename T>
-	inline RenderPassDesc&  RenderPassDesc::AddViewport (const Rectangle<T> &rect, float minDepth, float maxDepth)
+	inline RenderPassDesc&  RenderPassDesc::AddViewport (const Rectangle<T> &rect, float minDepth, float maxDepth, ArrayView<EShadingRatePalette> palette)
 	{
 		ASSERT( rect.IsValid() );
-		viewports.push_back({ RectF{rect}, minDepth, maxDepth });
+		viewports.push_back({ RectF{rect}, minDepth, maxDepth, palette });
 		return *this;
 	}
 
 	template <typename T>
-	inline RenderPassDesc&  RenderPassDesc::AddViewport (const Vec<T,2> &size, float minDepth, float maxDepth)
+	inline RenderPassDesc&  RenderPassDesc::AddViewport (const Vec<T,2> &size, float minDepth, float maxDepth, ArrayView<EShadingRatePalette> palette)
 	{
-		viewports.push_back({ RectF{float2(), float2(size)}, minDepth, maxDepth });
+		viewports.push_back({ RectF{float2(), float2(size)}, minDepth, maxDepth, palette });
 		return *this;
 	}
 
@@ -491,6 +501,20 @@ namespace FG
 	inline RenderPassDesc&  RenderPassDesc::SetAlphaToOneEnabled (bool value)
 	{
 		multisampleState.alphaToOne = value;
+		return *this;
+	}
+
+/*
+=================================================
+	SetShadingRateImage
+=================================================
+*/
+	inline RenderPassDesc&  RenderPassDesc::SetShadingRateImage (const ImageID &image, ImageLayer layer, MipmapLevel level)
+	{
+		ASSERT( image );
+		shadingRate.image	= image.Get();
+		shadingRate.layer	= layer;
+		shadingRate.mipmap	= level;
 		return *this;
 	}
 

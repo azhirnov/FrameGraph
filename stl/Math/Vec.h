@@ -549,7 +549,7 @@ namespace FG
 =================================================
 */
 	template <typename T, uint I>
-	ND_ inline constexpr Vec<bool,I>  Equals (const Vec<T,I> &lhs, const Vec<T,I> &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	ND_ inline constexpr Vec<bool,I>  Equals (const Vec<T,I> &lhs, const Vec<T,I> &rhs, const T &err = std::numeric_limits<T>::epsilon() * T(2))
 	{
 		Vec<bool,I>	res;
 		for (uint i = 0; i < I; ++i) {

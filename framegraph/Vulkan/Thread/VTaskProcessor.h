@@ -59,8 +59,9 @@ namespace FG
 		VkCommandBuffer				_cmdBuffer;
 		
 		Task						_currTask;
-		bool						_enableDebugUtils	: 1;
-		bool						_isDefaultScissor	: 1;
+		bool						_enableDebugUtils		: 1;
+		bool						_isDefaultScissor		: 1;
+		bool						_perPassStatesUpdated	: 1;
 
 		PendingResourceBarriers_t	_pendingResourceBarriers;
 		VBarrierManager &			_barrierMngr;
@@ -73,6 +74,8 @@ namespace FG
 		VkBuffer					_indexBuffer		= VK_NULL_HANDLE;
 		VkDeviceSize				_indexBufferOffset	= UMax;
 		VkIndexType					_indexType			= VK_INDEX_TYPE_MAX_ENUM;
+
+		VkImageView					_shadingRateImage	= VK_NULL_HANDLE;
 
 		static constexpr float		_dbgColor[4]		= { 1.0f, 1.0f, 1.0f, 1.0f };
 
@@ -124,7 +127,7 @@ namespace FG
 		void _CmdPushDebugGroup (StringView text) const;
 		void _CmdPopDebugGroup () const;
 
-		void _OnRunTask () const;
+		void _OnProcessTask () const;
 		
 		template <typename ID>	ND_ auto const*  _ToLocal (ID id) const;
 		template <typename ID>	ND_ auto const*  _GetResource (ID id) const;
@@ -132,17 +135,22 @@ namespace FG
 		void _CommitBarriers ();
 		
 		void _AddRenderTargetBarriers (const VLogicalRenderPass &logicalRP, const DrawTaskBarriers &info);
+		void _SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view);
 		void _ExtractClearValues (const VLogicalRenderPass &logicalRP, const VRenderPass *rp, OUT VkClearValues_t &clearValues) const;
 		void _BeginRenderPass (const VFgTask<SubmitRenderPass> &task);
 		void _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
 
 		void _ExtractDescriptorSets (const VPipelineLayout &, const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
 		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint, uint debugModeIndex);
+		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, OUT VPipelineLayout const* &pplnLayout);
+		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, OUT VPipelineLayout const* &pplnLayout);
+		void _BindPipeline2 (const VLogicalRenderPass &logicalRP, VkPipeline pipelineId);
 		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize, uint debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout);
 		void _BindPipeline (const VRayTracingPipeline* pipeline);
 		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
 		void _SetScissor (const VLogicalRenderPass *, ArrayView<RectI>);
 		void _SetDynamicStates (const _fg_hidden_::DynamicStates &) const;
+		void _BindShadingRateImage (VkImageView view);
 
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
 		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);

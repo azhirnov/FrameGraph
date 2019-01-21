@@ -154,8 +154,8 @@ void main() {
 														.Add( VertexID("at_Position"),	&Vertex1::position )
 														.Add( VertexID("at_Texcoord"),	&Vertex1::texcoord, true );
 		
-		GPipelineID		pipeline1	= frame_graph->CreatePipeline( std::move(ppln1) );
-		GPipelineID		pipeline2	= frame_graph->CreatePipeline( std::move(ppln2) );
+		GPipelineID		pipeline1	= frame_graph->CreatePipeline( ppln1 );
+		GPipelineID		pipeline2	= frame_graph->CreatePipeline( ppln2 );
 
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( pipeline1, DescriptorSetID("0"), OUT resources ));

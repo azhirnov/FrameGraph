@@ -44,7 +44,7 @@ void main ()
 		ImageID			image3		{RawImageID{ 1111, 0 }};
 		ImageID			image4		{RawImageID{ 2222, 0 }};
 
-		CPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		CPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 		
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));

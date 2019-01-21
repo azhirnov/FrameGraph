@@ -61,7 +61,7 @@ void main() {
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
-		GPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 
 		
 		bool		data_is_correct = false;
@@ -76,10 +76,7 @@ void main() {
 				RGBA32f	col;
 				imageData.Load( uint3(ix, iy, 0), OUT col );
 
-				bool	is_equal	= Equals( col.r, color.r, 0.1f ) and
-									  Equals( col.g, color.g, 0.1f ) and
-									  Equals( col.b, color.b, 0.1f ) and
-									  Equals( col.a, color.a, 0.1f );
+				bool	is_equal = All(Equals( col, color, 0.1f ));
 				ASSERT( is_equal );
 				return is_equal;
 			};

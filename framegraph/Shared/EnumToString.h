@@ -196,6 +196,7 @@ namespace FG
 			case EResourceState::BuildRayTracingStructReadWrite :		str << "BuildRTAS-RW";				break;
 			case EResourceState::RTASBuildingBufferRead :				str << "RTASBuild-Buffer-R";		break;
 			case EResourceState::RTASBuildingBufferReadWrite :			str << "RTASBuild-Buffer-RW";		break;
+			case EResourceState::ShadingRateImageRead :					str << "ShadingRate";				break;
 			default :													RETURN_ERR( "unknown resource state!" );
 		}
 

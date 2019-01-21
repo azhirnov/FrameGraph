@@ -304,19 +304,13 @@ namespace FG
 		{
 			case EPipelineDynamicState::Viewport :			return VK_DYNAMIC_STATE_VIEWPORT;
 			case EPipelineDynamicState::Scissor :			return VK_DYNAMIC_STATE_SCISSOR;
-			//case EPipelineDynamicState::LineWidth :		return VK_DYNAMIC_STATE_LINE_WIDTH;
-			//case EPipelineDynamicState::DepthBias :		return VK_DYNAMIC_STATE_DEPTH_BIAS;
-			//case EPipelineDynamicState::BlendConstants :	return VK_DYNAMIC_STATE_BLEND_CONSTANTS;
-			//case EPipelineDynamicState::DepthBounds :		return VK_DYNAMIC_STATE_DEPTH_BOUNDS;
 			case EPipelineDynamicState::StencilCompareMask:	return VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
 			case EPipelineDynamicState::StencilWriteMask :	return VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
 			case EPipelineDynamicState::StencilReference :	return VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+			case EPipelineDynamicState::ShadingRatePalette:	return VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV;
 			case EPipelineDynamicState::Unknown :
 			case EPipelineDynamicState::All :
 			case EPipelineDynamicState::_Last :				break;	// to shutup warnings
-			//VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV
-			//VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT
-			//VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT
 		}
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "unknown dynamic state type!", VK_DYNAMIC_STATE_MAX_ENUM );
@@ -914,6 +908,7 @@ namespace FG
 			case EResourceState::BuildRayTracingStructReadWrite :	return VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
 			case EResourceState::RTASBuildingBufferRead :
 			case EResourceState::RTASBuildingBufferReadWrite :		return 0;	// ceche invalidation is not needed for buffers
+			case EResourceState::ShadingRateImageRead :				return VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;
 		}
 		RETURN_ERR( "unknown resource state!" );
 	}
@@ -957,6 +952,34 @@ namespace FG
 			//case EResourceState::SharedPresentImage :				return VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
 		}
 		RETURN_ERR( "unsupported state for image!", VK_IMAGE_LAYOUT_MAX_ENUM );
+	}
+	
+/*
+=================================================
+	ShadingRatePaletteEntry
+=================================================
+*/
+	ND_ inline VkShadingRatePaletteEntryNV  VEnumCast (EShadingRatePalette value)
+	{
+		ENABLE_ENUM_CHECKS();
+		switch ( value )
+		{
+			case EShadingRatePalette::NoInvocations :	return VK_SHADING_RATE_PALETTE_ENTRY_NO_INVOCATIONS_NV;
+			case EShadingRatePalette::Block_1x1_16 :	return VK_SHADING_RATE_PALETTE_ENTRY_16_INVOCATIONS_PER_PIXEL_NV;
+			case EShadingRatePalette::Block_1x1_8 :		return VK_SHADING_RATE_PALETTE_ENTRY_8_INVOCATIONS_PER_PIXEL_NV;
+			case EShadingRatePalette::Block_1x1_4 :		return VK_SHADING_RATE_PALETTE_ENTRY_4_INVOCATIONS_PER_PIXEL_NV;
+			case EShadingRatePalette::Block_1x1_2 :		return VK_SHADING_RATE_PALETTE_ENTRY_2_INVOCATIONS_PER_PIXEL_NV;
+			case EShadingRatePalette::Block_1x1_1 :		return VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV;
+			case EShadingRatePalette::Block_2x1_1 :		return VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X1_PIXELS_NV;
+			case EShadingRatePalette::Block_1x2_1 :		return VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_1X2_PIXELS_NV;
+			case EShadingRatePalette::Block_2x2_1 :		return VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X2_PIXELS_NV;
+			case EShadingRatePalette::Block_4x2_1 :		return VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_4X2_PIXELS_NV;
+			case EShadingRatePalette::Block_2x4_1 :		return VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_2X4_PIXELS_NV;
+			case EShadingRatePalette::Block_4x4_1 :		return VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_4X4_PIXELS_NV;
+			case EShadingRatePalette::_Count :			break;
+		}
+		DISABLE_ENUM_CHECKS();
+		RETURN_ERR( "unknown shading rate palette value", VK_SHADING_RATE_PALETTE_ENTRY_MAX_ENUM_NV );
 	}
 
 /*

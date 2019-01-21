@@ -28,7 +28,7 @@ void main() {
 		
 		FGThreadPtr		frame_graph	= _fgGraphics1;
 		const uint2		view_size	= {800, 600};
-		GPipelineID		pipeline	= frame_graph->CreatePipeline( std::move(ppln) );
+		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 		SamplerID		sampler		= frame_graph->CreateSampler( SamplerDesc{} );
 
 		PipelineResources	resources1, resources2;

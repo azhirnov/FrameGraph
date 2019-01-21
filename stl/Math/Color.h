@@ -270,6 +270,17 @@ namespace FG
 	{
 		return Min( maxVal, Max( value, minVal ) );
 	}
+	
+/*
+=================================================
+	Equals
+=================================================
+*/
+	template <typename T>
+	ND_ inline constexpr bool4  Equals (const RGBAColor<T> &lhs, const RGBAColor<T> &rhs, const T &err = std::numeric_limits<T>::epsilon() * T(2))
+	{
+		return bool4{ Equals( lhs.r, rhs.r, err ), Equals( lhs.g, rhs.g, err ), Equals( lhs.b, rhs.b, err ), Equals( lhs.a, rhs.a, err ) };
+	}
 
 /*
 =================================================

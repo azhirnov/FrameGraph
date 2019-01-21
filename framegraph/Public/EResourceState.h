@@ -108,6 +108,8 @@ namespace FG
 		RTASBuildingBufferReadWrite		= _Access_RTASBuildingBuffer | _Read | _Write,
 
 		RayTracingShaderRead			= ShaderRead | _RayTracingShader,
+
+		ShadingRateImageRead			= _Access_ShadingRateImage | _Read,
 	};
 
 	FG_BIT_OPERATORS( EResourceState );
