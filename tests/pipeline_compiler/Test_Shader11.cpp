@@ -7,7 +7,7 @@ extern void Test_Shader11 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
-	ppln.AddShader( EShaderLangFormat::VKSL_100 | EShaderLangFormat::WithDebugTrace, "main", R"#(
+	ppln.AddShader( EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace, "main", R"#(
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;

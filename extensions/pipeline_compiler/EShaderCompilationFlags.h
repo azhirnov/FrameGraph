@@ -14,7 +14,7 @@ namespace FG
 		AlwaysBufferDynamicOffset	= 1 << 2,	// for uniform and storage buffer always use dynamic offsets
 
 		Quiet						= 1 << 8,
-		KeepSrcShaderData			= 1 << 9,	// compiled wiil keep GLSL and add SPIRV or VkShaderModule
+		//KeepSrcShaderData			= 1 << 9,	// compiled wiil keep GLSL and add SPIRV or VkShaderModule
 
 		UseCurrentDeviceLimits		= 1 << 10,	// get current device properties and use it to setup spirv compiler
 
