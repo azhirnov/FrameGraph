@@ -25,7 +25,7 @@ namespace FG
 		template <typename B> friend class VCachedDebuggableShaderData;
 
 	// types
-	private:
+	public:
 		using ShaderDebugUtils_t	= Union< std::monostate, ShaderTrace >;
 		using ShaderDebugUtilsPtr	= UniquePtr< ShaderDebugUtils_t >;
 
@@ -44,8 +44,8 @@ namespace FG
 			_data{std::move(data)}, _entry{entry}, _debugName{dbgName}
 		{}
 
-		VCachedDebuggableShaderData (StringView entry, T &&data, StringView dbgName, ShaderTrace &&debugInfo) :
-			_data{std::move(data)}, _entry{entry}, _debugName{dbgName}, _debugInfo{new ShaderDebugUtils_t{ std::move(debugInfo) }}
+		VCachedDebuggableShaderData (StringView entry, T &&data, StringView dbgName, ShaderDebugUtilsPtr &&debugUtilsPtr) :
+			_data{std::move(data)}, _entry{entry}, _debugName{dbgName}, _debugInfo{std::move(debugUtilsPtr)}
 		{}
 
 		VCachedDebuggableShaderData (VkShaderModule module, const PipelineDescription::SharedShaderPtr<Array<uint>> &spirvCache)

@@ -39,9 +39,9 @@ namespace FG
 			BytesU				size;
 			uint				sbIndex			= UMax;
 			EShaderDebugMode	mode			= Default;
-			EShader				shaderType		= Default;
+			EShaderStages		shaderStages	= Default;
 			TaskName_t			taskName;
-			uint				data[8]			= {};
+			uint				data[4]			= {};
 		};
 
 		using StorageBuffers_t		= Array< StorageBuffer >;
@@ -80,25 +80,25 @@ namespace FG
 		void OnEndFrame (const ShaderDebugCallback_t &);
 
 		bool SetShaderModule (uint id, const SharedShaderPtr &module);
-		bool GetDebugModeInfo (uint id, OUT EShaderDebugMode &mode, OUT EShader &shader) const;
+		bool GetDebugModeInfo (uint id, OUT EShaderDebugMode &mode, OUT EShaderStages &stages) const;
 		bool GetDescriptotSet (uint id, OUT uint &binding, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const;
 
 		ND_ uint  Append (INOUT ArrayView<RectI> &, const TaskName_t &name, const _fg_hidden_::GraphicsShaderDebugMode &mode, BytesU size = 8_Mb);
 		ND_ uint  Append (const TaskName_t &name, const _fg_hidden_::ComputeShaderDebugMode &mode, BytesU size = 8_Mb);
 		ND_ uint  Append (const TaskName_t &name, const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size = 8_Mb);
 
-		bool GetDescriptorSetLayout (EShaderDebugMode debugMode, EShader debuggableShader, OUT uint &binding, OUT RawDescriptorSetLayoutID &layout);
+		bool GetDescriptorSetLayout (EShaderDebugMode debugMode, EShaderStages debuggableShaders, OUT uint &binding, OUT RawDescriptorSetLayoutID &layout);
 
 
 	private:
 		bool _ParseDebugOutput (const ShaderDebugCallback_t &, const DebugMode &) const;
 
 		bool _AllocStorage (INOUT DebugMode &, BytesU);
-		bool _AllocDescriptorSet (EShaderDebugMode debugMode, EShader shader, RawBufferID storageBuffer, BytesU size, OUT VkDescriptorSet &descSet);
+		bool _AllocDescriptorSet (EShaderDebugMode debugMode, EShaderStages stages, RawBufferID storageBuffer, BytesU size, OUT VkDescriptorSet &descSet);
 
-		ND_ BytesU  _GetBufferStaticSize (EShader type) const;
+		ND_ BytesU  _GetBufferStaticSize (EShaderStages stages) const;
 		
-		ND_ RawDescriptorSetLayoutID  _GetDescriptorSetLayout (EShaderDebugMode debugMode, EShader debuggableShader);
+		ND_ RawDescriptorSetLayoutID  _GetDescriptorSetLayout (EShaderDebugMode debugMode, EShaderStages debuggableShaders);
 	};
 
 

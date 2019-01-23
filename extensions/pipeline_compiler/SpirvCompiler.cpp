@@ -225,7 +225,8 @@ namespace FG
 								StringView entry, StringView source, StringView debugName,
 								OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
 	{
-		using SpirvShaderData = PipelineDescription::SharedShaderPtr<Array<uint>>;
+		using SpirvShaderData	= PipelineDescription::SharedShaderPtr< Array<uint> >;
+		using DebugUtilsPtr		= VCachedDebuggableSpirv::ShaderDebugUtilsPtr;
 
 		log.clear();
 		COMP_CHECK_ERR( (dstShaderFmt & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV );
@@ -256,7 +257,9 @@ namespace FG
 		{
 			case EShaderLangFormat::EnableDebugTrace :
 			{
-				ShaderTrace	trace;
+				DebugUtilsPtr	debug_utils	{new VCachedDebuggableSpirv::ShaderDebugUtils_t{ std::in_place_type<ShaderTrace> }};
+				ShaderTrace&	trace		= std::get<ShaderTrace>( *debug_utils.get() );
+
 				trace.SetSource( source.data(), source.length() );
 
 				for (auto& file : includer.GetIncludedFiles()) {
@@ -269,7 +272,7 @@ namespace FG
 
 				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
-				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( entry, std::move(spirv), debugName, std::move(trace) ) });
+				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( entry, std::move(spirv), debugName, std::move(debug_utils) ) });
 				break;
 			}
 			case EShaderLangFormat::EnableDebugAsserts :

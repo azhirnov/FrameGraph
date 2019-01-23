@@ -95,14 +95,12 @@ namespace {
 			_exprLocations{ exprLoc },
 			_includedFilesMap{ includedFiles },
 			_shLang{ shLang }
-		{
-		}
-
+		{}
 
 		void Enter (TIntermNode* node);
 		void Leave (TIntermNode* node);
 
-		CallStack_t const&	GetCallStack ()			const			{ return _callStack; }
+		CallStack_t const&	GetCallStack ()			const				{ return _callStack; }
 		TIntermAggregate*	GetCurrentFunction ();
 
 		TIntermTyped*	GetInjection ();
@@ -118,8 +116,8 @@ namespace {
 		void						RequestFunc (const TString &fname)	{ _requiredFunctions.insert( fname ); }
 		RequiredFunctions_t const&	GetRequiredFunctions ()		const	{ return _requiredFunctions; }
 
-		void AddSymbol (TIntermSymbol* node);
-		int  GetUniqueSymbolID ()										{ return ++_maxSymbolId; }
+		void			AddSymbol (TIntermSymbol* node);
+		int				GetUniqueSymbolID ()							{ return ++_maxSymbolId; }
 
 
 		void CacheSymbolNode (TIntermSymbol* node)
@@ -140,9 +138,9 @@ namespace {
 		TIntermBinary*  GetDebugStorageField (const char* name)	const;
 	
 
-		bool PostProcess (OUT VarNames_t &);
+		bool			PostProcess (OUT VarNames_t &);
 
-		EShLanguage  GetShaderType () const		{ return _shLang; }
+		EShLanguage		GetShaderType ()	const						{ return _shLang; }
 
 
 	private:
@@ -157,8 +155,22 @@ namespace {
 static bool RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo);
 static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT uint64_t &posOffset, OUT uint64_t &dataOffset);
 static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo);
-static bool CreateDebugTraceFunctions (TIntermNode* root, DebugInfo &dbgInfo);
+static bool CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPosition, DebugInfo &dbgInfo);
 static TIntermAggregate*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo);
+
+/*
+=================================================
+	CombineHash
+=================================================
+*/
+inline size_t CombineHash (size_t lhs, size_t rhs)
+{
+	const size_t	mask	= (sizeof(lhs)*8 - 1);
+	size_t			shift	= 4;
+
+	shift &= mask;
+	return lhs ^ ((rhs << shift) | (rhs >> ( ~(shift-1) & mask )));
+}
 
 /*
 =================================================
@@ -171,7 +183,11 @@ bool ShaderTrace::InsertTraceRecording (TIntermediate &intermediate, uint32_t se
 
 	TIntermNode*	root = intermediate.getTreeRoot();
 	CHECK_ERR( root );
-	
+
+	_initialPosition = uint32_t(CombineHash( std::hash<void*>{}( this ), setIndex+1 ));
+	ASSERT( _initialPosition != 0 );
+	_initialPosition |= 0x80000000u;
+
 	CreateShaderDebugStorage( setIndex, dbg_info, OUT _posOffset, OUT _dataOffset );
 
 	dbg_info.Enter( root );
@@ -181,12 +197,10 @@ bool ShaderTrace::InsertTraceRecording (TIntermediate &intermediate, uint32_t se
 
 		CreateShaderBuiltinSymbols( root, dbg_info );
 
-		CHECK_ERR( CreateDebugTraceFunctions( root, dbg_info ));
+		CHECK_ERR( CreateDebugTraceFunctions( root, _initialPosition, dbg_info ));
 	}
 	dbg_info.Leave( root );
 	dbg_info.PostProcess( OUT _varNames );
-
-	_shaderType = uint32_t(intermediate.getStage());
 	return true;
 }
 //-----------------------------------------------------------------------------
@@ -369,7 +383,7 @@ TIntermBinary*  DebugInfo::GetDebugStorageField (const char* name) const
 	{
 		if ( field.type->getFieldName() == name )
 		{
-			const size_t			index			= std::distance( _dbgStorage->getType().getStruct()->data(), &field );
+			const auto				index			= std::distance( _dbgStorage->getType().getStruct()->data(), &field );
 			TConstUnionArray		index_Value(1);	index_Value[0].setIConst( int(index) );
 			TIntermConstantUnion*	field_index		= new TIntermConstantUnion{ index_Value, TType{index_type} };
 			TIntermBinary*			field_access	= new TIntermBinary{ TOperator::EOpIndexDirectStruct };
@@ -1058,26 +1072,12 @@ static std::string  GetFunctionName (TIntermOperator *op)
 
 /*
 =================================================
-	CombineHash
-=================================================
-*/
-inline size_t CombineHash (size_t lhs, size_t rhs)
-{
-	const size_t	mask	= (sizeof(lhs)*8 - 1);
-	size_t			shift	= 4;
-
-	shift &= mask;
-	return lhs ^ ((rhs << shift) | (rhs >> ( ~(shift-1) & mask )));
-}
-
-/*
-=================================================
 	FnCallLocation::operator ==
 =================================================
 */
 inline bool  DebugInfo::FnCallLocation::operator == (const FnCallLocation &rhs) const
 {
-	return loc == rhs.loc and  fnName == rhs.fnName;
+	return loc == rhs.loc and fnName == rhs.fnName;
 }
 
 /*
@@ -1128,8 +1128,6 @@ static uint32_t  GetVectorSwizzleMask (TIntermBinary* binary)
 	std::vector<TIntermBinary*>	swizzle_op;		swizzle_op.push_back( binary );
 
 	CHECK_ERR( binary and (binary->getOp() == TOperator::EOpVectorSwizzle or binary->getOp() == TOperator::EOpIndexDirect) );
-		
-	//CHECK_ERR( ConvertType( node, binary->getType(), nullptr, translator, OUT dst_node.typeInfo ) );
 
 	// extract swizzle mask
 	for (TIntermTyped* node = binary->getLeft();
@@ -1211,7 +1209,7 @@ static bool  GetStructFieldInfo (TIntermBinary* binary, OUT DebugInfo::FieldInfo
 	result.fieldIndex	= cu->getConstArray()[0].getIConst();
 
 	auto*	fields = symb->getType().getStruct();
-	CHECK_ERR( fields and result.fieldIndex < fields->size() );
+	CHECK_ERR( fields and result.fieldIndex < int(fields->size()) );
 
 	name = (symb->getName().rfind("anon@", 0) == 0 ? "" : symb->getName() + ".") + (*fields)[result.fieldIndex].type->getFieldName();
 	return true;
@@ -1284,6 +1282,7 @@ void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint3
 		else
 		if ( binary->getOp() == TOperator::EOpIndexDirectStruct )
 		{
+			// TODO
 			/*FieldInfo	field;
 			TString		name;
 			if ( GetStructFieldInfo( binary, OUT field, OUT name ))
@@ -1308,9 +1307,6 @@ void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint3
 
 	if ( TIntermOperator* op = node->getAsOperator() )
 	{
-		//if ( auto* aggr = node->getAsAggregate() )
-		//	ASSERT( aggr->getName().rfind("dbg_", 0) != 0 );
-
 		// temporary variable returned by function
 		if ( IsBuiltinFunction( op->getOp() ) or op->getOp() == TOperator::EOpFunctionCall )
 		{
@@ -1433,12 +1429,8 @@ bool  DebugInfo::PostProcess (OUT VarNames_t &varNames)
 static bool RecursiveProcessAggregateNode (TIntermAggregate* node, DebugInfo &dbgInfo);
 static bool RecursiveProcessBranchNode (TIntermBranch* node, DebugInfo &dbgInfo);
 static bool RecursiveProcessSwitchNode (TIntermSwitch* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessConstUnionNode (TIntermConstantUnion* node, DebugInfo &dbgInfo);
 static bool RecursiveProcessSelectionNode (TIntermSelection* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessMethodNode (TIntermMethod* node, DebugInfo &dbgInfo);
 static bool RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessTypedNode (TIntermTyped* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessOperatorNode (TIntermOperator* node, DebugInfo &dbgInfo);
 static bool RecursiveProcessUnaryNode (TIntermUnary* node, DebugInfo &dbgInfo);
 static bool RecursiveProcessBinaryNode (TIntermBinary* node, DebugInfo &dbgInfo);
 static bool RecursiveProccessLoop (TIntermLoop* node, DebugInfo &dbgInfo);
@@ -1530,105 +1522,25 @@ static bool RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo)
 
 /*
 =================================================
-	CreateVertexShaderDebugStorage
+	CreateGraphicsShaderDebugStorage
 =================================================
 */
-static void CreateVertexShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+static void CreateGraphicsShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
 {
 	type.basicType = TBasicType::EbtInt;
-	
-	TType*	vert_index	= new TType{type};		vert_index->setFieldName( "vertexIndex" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-
-	TType*	instance	= new TType{type};		instance->setFieldName( "instanceIndex" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-	
-	TType*	draw_id		= new TType{type};		draw_id->setFieldName( "drawID" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-	
-	typeList->push_back({ vert_index, TSourceLoc{} });
-	typeList->push_back({ instance,   TSourceLoc{} });
-	typeList->push_back({ draw_id,    TSourceLoc{} });
-}
-
-/*
-=================================================
-	CreateTessControlShaderDebugStorage
-=================================================
-*/
-static void CreateTessControlShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
-{
-	type.basicType = TBasicType::EbtInt;
-	
-	TType*	invocation	= new TType{type};		invocation->setFieldName( "invocationID" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-
-	TType*	primitive	= new TType{type};		primitive->setFieldName( "primitiveID" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-	
-	typeList->push_back({ invocation, TSourceLoc{} });
-	typeList->push_back({ primitive,  TSourceLoc{} });
-}
-
-/*
-=================================================
-	CreateTessEvaluationShaderDebugStorage
-=================================================
-*/
-static void CreateTessEvaluationShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
-{
-	type.basicType = TBasicType::EbtInt;
-
-	TType*	primitive	= new TType{type};		primitive->setFieldName( "primitiveID" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-	
-	typeList->push_back({ primitive, TSourceLoc{} });
-}
-
-/*
-=================================================
-	CreateGeometryShaderDebugStorage
-=================================================
-*/
-static void CreateGeometryShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
-{
-	type.basicType = TBasicType::EbtInt;
-	
-	TType*	invocation	= new TType{type};		invocation->setFieldName( "invocationID" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-
-	TType*	primitive	= new TType{type};		primitive->setFieldName( "primitiveID" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-	
-	typeList->push_back({ invocation, TSourceLoc{} });
-	typeList->push_back({ primitive,  TSourceLoc{} });
-}
-
-/*
-=================================================
-	CreateFragmentShaderDebugStorage
-=================================================
-*/
-static void CreateFragmentShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
-{
-	type.basicType = TBasicType::EbtUint;
 
 	TType*	fragcoord_x	= new TType{type};		fragcoord_x->setFieldName( "fragCoordX" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
+	type.qualifier.layoutOffset += sizeof(int32_t);
 
 	TType*	fragcoord_y	= new TType{type};		fragcoord_y->setFieldName( "fragCoordY" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-
-	TType*	sample_id	= new TType{type};		sample_id->setFieldName( "sampleID" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-
-	TType*	primitive_id = new TType{type};		primitive_id->setFieldName( "primitiveID" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
+	type.qualifier.layoutOffset += sizeof(int32_t);
 	
+	TType*	padding	= new TType{type};			padding->setFieldName( "padding1" );
+	type.qualifier.layoutOffset += sizeof(int32_t);
+
 	typeList->push_back({ fragcoord_x,	TSourceLoc{} });
 	typeList->push_back({ fragcoord_y,	TSourceLoc{} });
-	typeList->push_back({ sample_id,	TSourceLoc{} });
-	typeList->push_back({ primitive_id,	TSourceLoc{} });
+	typeList->push_back({ padding,		TSourceLoc{} });
 }
 
 /*
@@ -1656,25 +1568,10 @@ static void CreateComputeShaderDebugStorage (TTypeList* typeList, INOUT TPublicT
 
 /*
 =================================================
-	CreateMeshShaderDebugStorage
+	CreateRayTracingShaderDebugStorage
 =================================================
 */
-static void CreateMeshShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
-{
-	type.basicType = TBasicType::EbtUint;
-	
-	TType*	thread_id_x	= new TType{type};		thread_id_x->setFieldName( "globalInvocationX" );
-	type.qualifier.layoutOffset += sizeof(uint32_t);
-	
-	typeList->push_back({ thread_id_x, TSourceLoc{} });
-}
-
-/*
-=================================================
-	CreateRayGenShaderDebugStorage
-=================================================
-*/
-static void CreateRayGenShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+static void CreateRayTracingShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
 {
 	type.basicType = TBasicType::EbtUint;
 	
@@ -1714,20 +1611,23 @@ static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT
 
 	switch ( dbgInfo.GetShaderType() )
 	{
-		case EShLangVertex :			CreateVertexShaderDebugStorage( type_list, INOUT temp );			break;
-		case EShLangTessControl :		CreateTessControlShaderDebugStorage( type_list, INOUT temp );		break;
-		case EShLangTessEvaluation :	CreateTessEvaluationShaderDebugStorage( type_list, INOUT temp );	break;
-		case EShLangGeometry :			CreateGeometryShaderDebugStorage( type_list, INOUT temp );			break;
-		case EShLangFragment :			CreateFragmentShaderDebugStorage( type_list, INOUT temp );			break;
-		case EShLangCompute :			CreateComputeShaderDebugStorage( type_list, INOUT temp );			break;
+		case EShLangVertex :
+		case EShLangTessControl :
+		case EShLangTessEvaluation :
+		case EShLangGeometry :
+		case EShLangFragment :
 		case EShLangTaskNV :
-		case EShLangMeshNV :			CreateMeshShaderDebugStorage( type_list, INOUT temp );				break;
-		case EShLangRayGenNV :			CreateRayGenShaderDebugStorage( type_list, INOUT temp );			break;
-		/*case EShLangIntersectNV :
+		case EShLangMeshNV :			CreateGraphicsShaderDebugStorage( type_list, INOUT temp );		break;
+
+		case EShLangCompute :			CreateComputeShaderDebugStorage( type_list, INOUT temp );		break;
+
+		case EShLangRayGenNV :
+		case EShLangIntersectNV :
 		case EShLangAnyHitNV :
 		case EShLangClosestHitNV :
 		case EShLangMissNV :
-		case EShLangCallableNV :*/
+		case EShLangCallableNV :		CreateRayTracingShaderDebugStorage( type_list, INOUT temp );	break;
+
 		default :						CHECK(false); return;
 	}
 
@@ -1861,7 +1761,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 	if ( need_invocation_id and not dbgInfo.GetCachedSymbolNode( "gl_InvocationID" ))
 	{
 		TPublicType		int_type;	int_type.init({});
-		int_type.basicType			= TBasicType::EbtUint;
+		int_type.basicType			= TBasicType::EbtInt;
 		int_type.qualifier.storage	= TStorageQualifier::EvqVaryingIn;
 		int_type.qualifier.builtIn	= TBuiltInVariable::EbvInvocationId;
 
@@ -2134,7 +2034,7 @@ static TIntermAggregate*  CreateAppendToTraceBody (const TString &fnName, DebugI
 		if ( is_vector or is_matrix )	++pos;
 
 		const bool	is_64	= (pos+2 < fnName.size() and fnName[pos+1] == '6' and fnName[pos+2] == '4');
-		const bool	is_16	= (pos+2 < fnName.size() and fnName[pos+1] == '1' and fnName[pos+2] == '6');
+		//const bool	is_16	= (pos+2 < fnName.size() and fnName[pos+1] == '1' and fnName[pos+2] == '6');
 
 		switch ( fnName[pos] )
 		{
@@ -2907,185 +2807,6 @@ static TIntermAggregate*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &db
 
 /*
 =================================================
-	CreateVertexShaderIsDebugInvocation
-=================================================
-*/
-static TIntermOperator*  CreateVertexShaderIsDebugInvocation (DebugInfo &dbgInfo)
-{
-	TPublicType		bool_type;	bool_type.init({});
-	bool_type.basicType			= TBasicType::EbtBool;
-	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
-
-	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.vertexIndex
-		TIntermBinary*	ref_vert_index	= dbgInfo.GetDebugStorageField( "vertexIndex" );
-		TIntermSymbol*	vert_index		= dbgInfo.GetCachedSymbolNode( "gl_VertexIndex" );
-		CHECK_ERR( ref_vert_index and vert_index );
-	
-		// ... == ...
-		eq1->setType( TType{bool_type} );
-		eq1->setLeft( ref_vert_index );
-		eq1->setRight( vert_index );
-	}
-	
-	TIntermBinary*	eq2 = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.instanceIndex
-		TIntermBinary*	ref_instance	= dbgInfo.GetDebugStorageField( "instanceIndex" );
-		TIntermSymbol*	instance		= dbgInfo.GetCachedSymbolNode( "gl_InstanceIndex" );
-		CHECK_ERR( ref_instance and instance );
-	
-		// ... == ...
-		eq2->setType( TType{bool_type} );
-		eq2->setLeft( ref_instance );
-		eq2->setRight( instance );
-	}
-	
-	// TODO
-	/*TIntermBinary*	eq4 = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.drawID
-		TIntermBinary*	ref_draw_id		= dbgInfo.GetDebugStorageField( "drawID" );
-		TIntermSymbol*	draw_id			= dbgInfo.GetCachedSymbolNode( "gl_DrawID" );
-		CHECK_ERR( ref_draw_id and draw_id );
-	
-		// ... == ...
-		eq4->setType( TType{bool_type} );
-		eq4->setLeft( ref_draw_id );
-		eq4->setRight( draw_id );
-	}*/
-
-	// ... && ...
-	TIntermBinary*	cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
-	cmp1->setType( TType{bool_type} );
-	cmp1->setLeft( eq1 );
-	cmp1->setRight( eq2 );
-
-	return cmp1;
-}
-
-/*
-=================================================
-	CreateTessControlShaderIsDebugInvocation
-=================================================
-*/
-static TIntermOperator*  CreateTessControlShaderIsDebugInvocation (DebugInfo &dbgInfo)
-{
-	TPublicType		bool_type;	bool_type.init({});
-	bool_type.basicType			= TBasicType::EbtBool;
-	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
-
-	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.invocationID
-		TIntermBinary*	ref_invocation	= dbgInfo.GetDebugStorageField( "invocationID" );
-		TIntermSymbol*	invocation_id	= dbgInfo.GetCachedSymbolNode( "gl_InvocationID" );
-		CHECK_ERR( ref_invocation and invocation_id );
-	
-		// ... == ...
-		eq1->setType( TType{bool_type} );
-		eq1->setLeft( ref_invocation );
-		eq1->setRight( invocation_id );
-	}
-	
-	TIntermBinary*	eq2 = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.primitiveID
-		TIntermBinary*	ref_primitive	= dbgInfo.GetDebugStorageField( "primitiveID" );
-		TIntermSymbol*	primitive_id	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" );
-		CHECK_ERR( ref_primitive and primitive_id );
-	
-		// ... == ...
-		eq2->setType( TType{bool_type} );
-		eq2->setLeft( ref_primitive );
-		eq2->setRight( primitive_id );
-	}
-	
-	// ... && ...
-	TIntermBinary*	cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
-	cmp1->setType( TType{bool_type} );
-	cmp1->setLeft( eq1 );
-	cmp1->setRight( eq2 );
-
-	return cmp1;
-}
-
-/*
-=================================================
-	CreateTessEvaluationShaderIsDebugInvocation
-=================================================
-*/
-static TIntermOperator*  CreateTessEvaluationShaderIsDebugInvocation (DebugInfo &dbgInfo)
-{
-	TPublicType		bool_type;	bool_type.init({});
-	bool_type.basicType			= TBasicType::EbtBool;
-	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
-	
-	TIntermBinary*	eq = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.primitiveID
-		TIntermBinary*	ref_primitive	= dbgInfo.GetDebugStorageField( "primitiveID" );
-		TIntermSymbol*	primitive_id	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" );
-		CHECK_ERR( ref_primitive and primitive_id );
-	
-		// ... == ...
-		eq->setType( TType{bool_type} );
-		eq->setLeft( ref_primitive );
-		eq->setRight( primitive_id );
-	}
-
-	return eq;
-}
-
-/*
-=================================================
-	CreateGeometryShaderIsDebugInvocation
-=================================================
-*/
-static TIntermOperator*  CreateGeometryShaderIsDebugInvocation (DebugInfo &dbgInfo)
-{
-	TPublicType		bool_type;	bool_type.init({});
-	bool_type.basicType			= TBasicType::EbtBool;
-	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
-
-	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.invocationID
-		TIntermBinary*	ref_invocation	= dbgInfo.GetDebugStorageField( "invocationID" );
-		TIntermSymbol*	invocation_id	= dbgInfo.GetCachedSymbolNode( "gl_InvocationID" );
-		CHECK_ERR( ref_invocation and invocation_id );
-	
-		// ... == ...
-		eq1->setType( TType{bool_type} );
-		eq1->setLeft( ref_invocation );
-		eq1->setRight( invocation_id );
-	}
-	
-	TIntermBinary*	eq2 = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.primitiveID
-		TIntermBinary*	ref_primitive	= dbgInfo.GetDebugStorageField( "primitiveID" );
-		TIntermSymbol*	primitive_id	= dbgInfo.GetCachedSymbolNode( "gl_PrimitiveIDIn" );
-		CHECK_ERR( ref_primitive and primitive_id );
-	
-		// ... == ...
-		eq2->setType( TType{bool_type} );
-		eq2->setLeft( ref_primitive );
-		eq2->setRight( primitive_id );
-	}
-	
-	// ... && ...
-	TIntermBinary*	cmp1		= new TIntermBinary{ TOperator::EOpLogicalAnd };
-	cmp1->setType( TType{bool_type} );
-	cmp1->setLeft( eq1 );
-	cmp1->setRight( eq2 );
-
-	return cmp1;
-}
-
-/*
-=================================================
 	CreateFragmentShaderIsDebugInvocation
 =================================================
 */
@@ -3095,9 +2816,9 @@ static TIntermOperator*  CreateFragmentShaderIsDebugInvocation (DebugInfo &dbgIn
 	bool_type.basicType			= TBasicType::EbtBool;
 	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
 
-	TPublicType		uint_type;	uint_type.init({});
-	uint_type.basicType			= TBasicType::EbtUint;
-	uint_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+	TPublicType		int_type;	int_type.init({});
+	int_type.basicType			= TBasicType::EbtInt;
+	int_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
 	
 	TPublicType		float_type;	 float_type.init({});
 	float_type.basicType		 = TBasicType::EbtFloat;
@@ -3121,9 +2842,9 @@ static TIntermOperator*  CreateFragmentShaderIsDebugInvocation (DebugInfo &dbgIn
 		frag_x->setLeft( dbgInfo.GetCachedSymbolNode( "gl_FragCoord" ));
 		frag_x->setRight( x_field );
 
-		// uint(gl_FragCoord.x)
-		TIntermUnary*			uint_fc_x	= new TIntermUnary{ TOperator::EOpConvFloatToUint };
-		uint_fc_x->setType( TType{uint_type} );
+		// int(gl_FragCoord.x)
+		TIntermUnary*			uint_fc_x	= new TIntermUnary{ TOperator::EOpConvFloatToInt };
+		uint_fc_x->setType( TType{int_type} );
 		uint_fc_x->setOperand( frag_x );
 
 		// ... == ...
@@ -3146,9 +2867,9 @@ static TIntermOperator*  CreateFragmentShaderIsDebugInvocation (DebugInfo &dbgIn
 		frag_y->setLeft( dbgInfo.GetCachedSymbolNode( "gl_FragCoord" ));
 		frag_y->setRight( y_field );
 
-		// uint(gl_FragCoord.y)
-		TIntermUnary*			uint_fc_y	= new TIntermUnary{ TOperator::EOpConvFloatToUint };
-		uint_fc_y->setType( TType{uint_type} );
+		// int(gl_FragCoord.y)
+		TIntermUnary*			uint_fc_y	= new TIntermUnary{ TOperator::EOpConvFloatToInt };
+		uint_fc_y->setType( TType{int_type} );
 		uint_fc_y->setOperand( frag_y );
 	
 		// ... == ...
@@ -3262,48 +2983,6 @@ static TIntermOperator*  CreateComputeShaderIsDebugInvocation (DebugInfo &dbgInf
 
 /*
 =================================================
-	CreateMeshShaderIsDebugInvocation
-=================================================
-*/
-static TIntermOperator*  CreateMeshShaderIsDebugInvocation (DebugInfo &dbgInfo)
-{
-	TPublicType		bool_type;	bool_type.init({});
-	bool_type.basicType			= TBasicType::EbtBool;
-	bool_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
-
-	TPublicType		uint_type;	uint_type.init({});
-	uint_type.basicType			= TBasicType::EbtUint;
-	uint_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
-
-	TPublicType		index_type;	 index_type.init({});
-	index_type.basicType		 = TBasicType::EbtInt;
-	index_type.qualifier.storage = TStorageQualifier::EvqConst;
-
-	TIntermBinary*	eq1 = new TIntermBinary{ TOperator::EOpEqual };
-	{
-		// dbg_ShaderTrace.globalInvocationX
-		TIntermBinary*			thread_id_x	= dbgInfo.GetDebugStorageField( "globalInvocationX" );
-		CHECK_ERR( thread_id_x );
-
-		// gl_GlobalInvocationID.x
-		TConstUnionArray		x_index(1);	x_index[0].setIConst( 0 );
-		TIntermConstantUnion*	x_field		= new TIntermConstantUnion{ x_index, TType{index_type} };
-		TIntermBinary*			ginvoc_x	= new TIntermBinary{ TOperator::EOpIndexDirect };
-		ginvoc_x->setType( TType{uint_type} );
-		ginvoc_x->setLeft( dbgInfo.GetCachedSymbolNode( "gl_GlobalInvocationID" ));
-		ginvoc_x->setRight( x_field );
-	
-		// ... == ...
-		eq1->setType( TType{bool_type} );
-		eq1->setLeft( thread_id_x );
-		eq1->setRight( ginvoc_x );
-	}
-
-	return eq1;
-}
-
-/*
-=================================================
 	CreateRayGenShaderIsDebugInvocation
 =================================================
 */
@@ -3401,7 +3080,7 @@ static TIntermOperator*  CreateRayGenShaderIsDebugInvocation (DebugInfo &dbgInfo
 	InsertGlobalVariablesAndBuffers
 =================================================
 */
-static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TIntermAggregate* globalVars, DebugInfo &dbgInfo)
+static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TIntermAggregate* globalVars, uint32_t initialPosition, DebugInfo &dbgInfo)
 {
 	// "bool dbg_IsEnabled"
 	TPublicType		type;	type.init({});
@@ -3421,20 +3100,30 @@ static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TInte
 	
 	switch ( dbgInfo.GetShaderType() )
 	{
-		case EShLangVertex :			init_debug_enabled->setRight( CreateVertexShaderIsDebugInvocation( dbgInfo ));			break;
-		case EShLangTessControl :		init_debug_enabled->setRight( CreateTessControlShaderIsDebugInvocation( dbgInfo ));		break;
-		case EShLangTessEvaluation :	init_debug_enabled->setRight( CreateTessEvaluationShaderIsDebugInvocation( dbgInfo ));	break;
-		case EShLangGeometry :			init_debug_enabled->setRight( CreateGeometryShaderIsDebugInvocation( dbgInfo ));		break;
-		case EShLangFragment :			init_debug_enabled->setRight( CreateFragmentShaderIsDebugInvocation( dbgInfo ));		break;
-		case EShLangCompute :			init_debug_enabled->setRight( CreateComputeShaderIsDebugInvocation( dbgInfo ));			break;
+		case EShLangVertex :
+		case EShLangTessControl :
+		case EShLangTessEvaluation :
+		case EShLangGeometry :
 		case EShLangTaskNV :
-		case EShLangMeshNV :			init_debug_enabled->setRight( CreateMeshShaderIsDebugInvocation( dbgInfo ));			break;
-		case EShLangRayGenNV :			init_debug_enabled->setRight( CreateRayGenShaderIsDebugInvocation( dbgInfo ));			break;
+		case EShLangMeshNV :
+		{
+			type.qualifier.storage	= TStorageQualifier::EvqConst;
+			TConstUnionArray		false_value(1);	false_value[0].setBConst( false );
+			TIntermConstantUnion*	const_false		= new TIntermConstantUnion{ false_value, TType{type} };
+			
+			init_debug_enabled->setRight( const_false );
+			break;
+		}
+
+		case EShLangFragment :			init_debug_enabled->setRight( CreateFragmentShaderIsDebugInvocation( dbgInfo ));	break;
+		case EShLangCompute :			init_debug_enabled->setRight( CreateComputeShaderIsDebugInvocation( dbgInfo ));		break;
+		
+		case EShLangRayGenNV :			init_debug_enabled->setRight( CreateRayGenShaderIsDebugInvocation( dbgInfo ));		break;
 		/*case EShLangIntersectNV :
 		case EShLangAnyHitNV :
 		case EShLangClosestHitNV :
 		case EShLangMissNV :
-		case EShLangCallableNV : return nullptr;*/
+		case EShLangCallableNV :		return nullptr;*/
 		default :						RETURN_ERR( "not supported" );
 	}
 
@@ -3449,7 +3138,7 @@ static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TInte
 	
 	// "dbg_LastPosition = ~0u"
 	type.qualifier.storage = TStorageQualifier::EvqConst;
-	TConstUnionArray		init_value(1);	init_value[0].setUConst( ~0u );
+	TConstUnionArray		init_value(1);	init_value[0].setUConst( initialPosition );
 	TIntermConstantUnion*	init_const		= new TIntermConstantUnion{ init_value, TType{type} };
 	TIntermBinary*			init_pos		= new TIntermBinary{ TOperator::EOpAssign };
 		
@@ -3526,7 +3215,7 @@ static bool CreateEnableIfBody (TIntermAggregate* fnDecl, DebugInfo &dbgInfo)
 	CreateDebugTraceFunctions
 =================================================
 */
-static bool CreateDebugTraceFunctions (TIntermNode* root, DebugInfo &dbgInfo)
+static bool CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPosition, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	aggr = root->getAsAggregate();
 	CHECK_ERR( aggr );
@@ -3556,7 +3245,7 @@ static bool CreateDebugTraceFunctions (TIntermNode* root, DebugInfo &dbgInfo)
 		aggr->getSequence().push_back( global_vars );
 	}
 
-	CHECK_ERR( InsertGlobalVariablesAndBuffers( linker_objs, global_vars, dbgInfo ));
+	CHECK_ERR( InsertGlobalVariablesAndBuffers( linker_objs, global_vars, initialPosition, dbgInfo ));
 
 	for (auto& entry : aggr->getSequence())
 	{

@@ -113,7 +113,6 @@ void main() {
 )#" );
 
 // create pipeline from description.
-// 
 GPipelineID  pipeline = frameGraph->CreatePipeline( desc );
 ```
 
@@ -264,41 +263,3 @@ fgInstance->SkipBatch( CommandBatchID{"main"}, 2 );
 // moves framegraph to the synchronous mode.
 fgInstance->EndFrame();
 ```
-
-## CPU thread synchronization examples
-FrameGraph have some internal almost always lock-free synchronizations and requires some external synchronizations. Here we see how to implement it.
-1. With separate render threads.
-```
-.------------.------------.------------.------------.------------.
-|  thread_1  |  thread_2  |  thread_3  |  thread_4  |  thread_5  |
-|------------|------------|------------|------------|------------|
-|                        BeginFrame                              |
-|                     cv.notify_all - wake up all threads        |
-|------------|------------|------------|------------|------------|
-|   Begin    |            |   Begin    |            |            |
-|    ###     |   Begin    |    ###     |            |   Begin    |
-|  Execute   |    ###     |    ###     |   Begin    |    ###     |
-|            |  Execute   |  Execute   |    ###     |    ###     |
-|            |            |            |  Execute   |  Execute   |
-|------------|------------|------------|------------|------------|
-|                        barrier - wait for all threads          |
-|                        EndFrame                                |
-'------------'------------'------------'------------'------------'
-```
-2. With job system for 100% cpu workload.
-```
-.------------.------------.------------.------------.------------.
-|  thread_1  |  thread_2  |  thread_3  |  thread_4  |  thread_5  |
-|------------|------------|------------|------------|------------|
-| BeginFrame | job ended  |     ...    |     ...    |    ...     | - insert render tasks into job system
-|   Begin    |   Begin    | job ended  |     ...    | job ended  |   using lock-free algorithm.
-|    ###     |    ###     |   Begin    | job ended  |   Begin    |
-|  Execute   |    ###     |    ###     |   Begin    |    ###     |
-|   Begin    |  Execute   |  Execute   |    ###     |    ###     |
-|    ###     | begin job  |   Begin    |    ###     |  Execute   | - atomicaly set bit that indicates 
-|  Execute   |    ...     |    ###     |  Execute   | begin job  |   that render task is complete.
-|  waiting   |    ...     |  Execute   | begin job  |    ...     |
-|  EndFrame  |    ...     | begin job  |    ...     |    ...     | - blocks only one thread to wait until all
-'------------'------------'------------'------------'------------'   render tasks are complete.
-```
-

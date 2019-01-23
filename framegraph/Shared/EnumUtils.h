@@ -98,7 +98,7 @@ namespace FG
 	EShaderDebugMode_FromLang
 =================================================
 */
-	ND_ inline constexpr EShaderDebugMode  EShaderDebugMode_From (EShaderLangFormat value)
+	ND_ inline EShaderDebugMode  EShaderDebugMode_From (EShaderLangFormat value)
 	{
 		switch ( value & EShaderLangFormat::_ModeMask )
 		{
@@ -168,6 +168,7 @@ namespace FG
 				case EShaderStages::_Last :
 				case EShaderStages::All :
 				case EShaderStages::AllGraphics :
+				case EShaderStages::AllRayTracing :
 				case EShaderStages::Unknown :
 				default :								RETURN_ERR( "unknown shader type" );
 			}

@@ -135,7 +135,9 @@ int main ()
 	}
 
 	FG_LOGI( "Tests.FrameGraph finished" );
-	
+
+	#ifdef PLATFORM_WINDOWS
 	std::cin.ignore();
+	#endif
 	return 0;
 }

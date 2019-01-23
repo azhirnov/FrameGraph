@@ -27,7 +27,7 @@ namespace FG
 	{
 		CHECK_ERR( _attribs and _vertexStride > 0 and _vertices.size(), void());
 
-		_boundingBox = Default;
+		_boundingBox = AABB{};
 
 		StructView<vec3>	positions = _attribs->GetData<vec3>( EVertexAttribute::Position, _vertices.data(),
 																 size_t(ArraySizeOf(_vertices) / _vertexStride), _vertexStride );

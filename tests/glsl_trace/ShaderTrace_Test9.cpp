@@ -417,7 +417,7 @@ extern bool ShaderTrace_Test9 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkFreeMemory( vulkan.GetVkDevice(), dev_memory, null );
 	}
 
-	CHECK_ERR( TestDebugOutput( helper, raygen_shader, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {raygen_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

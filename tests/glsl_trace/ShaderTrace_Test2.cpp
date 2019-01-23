@@ -295,7 +295,7 @@ extern bool ShaderTrace_Test2 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkFreeMemory( vulkan.GetVkDevice(), image_mem, null );
 	}
 
-	CHECK_ERR( TestDebugOutput( helper, comp_shader, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {comp_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

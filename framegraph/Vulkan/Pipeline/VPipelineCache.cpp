@@ -503,12 +503,12 @@ namespace FG
 */
 	template <typename Pipeline>
 	bool VPipelineCache::_SetupShaderDebugging (VResourceManagerThread &resMngr, VShaderDebugger &shaderDebugger, const Pipeline &ppln, uint debugModeIndex,
-												OUT EShaderDebugMode &debugMode, OUT EShader &debuggableShader, OUT RawPipelineLayoutID &layoutId)
+												OUT EShaderDebugMode &debugMode, OUT EShaderStages &debuggableShaders, OUT RawPipelineLayoutID &layoutId)
 	{
-		shaderDebugger.GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShader );
+		shaderDebugger.GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShaders );
 		ASSERT( debugMode != Default );
 		
-		const VkShaderStageFlagBits	stage = VEnumCast( debuggableShader );
+		const VkShaderStageFlags	stages = VEnumCast( debuggableShaders );
 
 		for (auto& sh : ppln._shaders)
 		{
@@ -519,7 +519,7 @@ namespace FG
 			}
 			else
 			{
-				if ( sh.stage != stage or sh.debugMode != debugMode )
+				if ( not EnumEq( stages, sh.stage ) or sh.debugMode != debugMode )
 					continue;
 			}
 
@@ -529,12 +529,22 @@ namespace FG
 
 		RawDescriptorSetLayoutID	ds_layout;
 		uint						binding;
-		shaderDebugger.GetDescriptorSetLayout( debugMode, debuggableShader, OUT binding, OUT ds_layout );
+		shaderDebugger.GetDescriptorSetLayout( debugMode, debuggableShaders, OUT binding, OUT ds_layout );
 
 		layoutId = resMngr.ExtendPipelineLayout( layoutId, ds_layout, binding, DescriptorSetID{"dbgStorage"}, true );
 		CHECK_ERR( layoutId );
 
 		return true;
+	}
+	
+/*
+=================================================
+	GetDebugModeHash
+=================================================
+*/
+	ND_ inline uint  GetDebugModeHash (EShaderDebugMode mode, EShaderStages stages)
+	{
+		return (uint(stages) & 0xFFFFFF) | (uint(mode) << 24);
 	}
 
 /*
@@ -556,11 +566,11 @@ namespace FG
 		VGraphicsPipeline const*	gppln		= drawTask.pipeline;
 		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
 		EShaderDebugMode			dbg_mode	= Default;
-		EShader						dbg_shader	= Default;
+		EShaderStages				dbg_stages	= Default;
 		RawPipelineLayoutID			layout_id	= gppln->GetLayoutID();
 
 		if ( drawTask.GetDebugModeIndex() != UMax ) {
-			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, *gppln, drawTask.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_shader, OUT layout_id ));
+			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, *gppln, drawTask.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
 		// check topology
@@ -575,7 +585,7 @@ namespace FG
 		inst.vertexInput				= drawTask.vertexInput;
 		//inst.flags					= 0;	//pipelineFlags;	// TODO
 		inst.viewportCount				= uint8_t(logicalRP.GetViewports().size());
-		inst.debugMode					= (uint(dbg_shader) & 0xFF) | (uint(dbg_mode) << 8);
+		inst.debugMode					= GetDebugModeHash( dbg_mode, dbg_stages );
 		inst.renderState.color			= logicalRP.GetColorState();
 		inst.renderState.depth			= logicalRP.GetDepthState();
 		inst.renderState.stencil		= logicalRP.GetStencilState();
@@ -626,7 +636,7 @@ namespace FG
 		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
 		VkPipelineViewportStateCreateInfo		viewport_info		= {};
 
-		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, gppln->_shaders, dbg_mode, dbg_shader );
+		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, gppln->_shaders, dbg_mode, dbg_stages );
 		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
 		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
 		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
@@ -696,11 +706,11 @@ namespace FG
 		VMeshPipeline const*	mppln		= drawTask.pipeline;
 		VRenderPass const*		render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
 		EShaderDebugMode		dbg_mode	= Default;
-		EShader					dbg_shader	= Default;
+		EShaderStages			dbg_stages	= Default;
 		RawPipelineLayoutID		layout_id	= mppln->GetLayoutID();
 
 		if ( drawTask.GetDebugModeIndex() != UMax ) {
-			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, *mppln, drawTask.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_shader, OUT layout_id ));
+			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, *mppln, drawTask.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
 		VMeshPipeline::PipelineInstance		inst;
@@ -710,7 +720,7 @@ namespace FG
 		inst.subpassIndex				= uint8_t(logicalRP.GetSubpassIndex());
 		//inst.flags						= 0;	//pipelineFlags;	// TODO
 		inst.viewportCount				= uint8_t(logicalRP.GetViewports().size());
-		inst.debugMode					= (uint(dbg_shader) & 0xFF) | (uint(dbg_mode) << 8);
+		inst.debugMode					= GetDebugModeHash( dbg_mode, dbg_stages );
 		inst.renderState.color			= logicalRP.GetColorState();
 		inst.renderState.depth			= logicalRP.GetDepthState();
 		inst.renderState.stencil		= logicalRP.GetStencilState();
@@ -757,7 +767,7 @@ namespace FG
 		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
 		VkPipelineViewportStateCreateInfo		viewport_info		= {};
 
-		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln->_shaders, dbg_mode, dbg_shader );
+		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln->_shaders, dbg_mode, dbg_stages );
 		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
 		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
 		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
@@ -824,11 +834,11 @@ namespace FG
 	{
 		VDevice const &		dev			= resMngr.GetDevice();
 		EShaderDebugMode	dbg_mode	= Default;
-		EShader				dbg_shader	= Default;
+		EShaderStages		dbg_stages	= Default;
 		RawPipelineLayoutID	layout_id	= cppln.GetLayoutID();
 
 		if ( debugModeIndex != UMax ) {
-			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_shader, OUT layout_id ));
+			CHECK( _SetupShaderDebugging( resMngr, shaderDebugger, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
 		VComputePipeline::PipelineInstance		inst;
@@ -838,7 +848,7 @@ namespace FG
 		inst.localGroupSize = { cppln._localSizeSpec.x != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.x : cppln._defaultLocalGroupSize.x,
 								cppln._localSizeSpec.y != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.y : cppln._defaultLocalGroupSize.y,
 								cppln._localSizeSpec.z != ComputePipelineDesc::UNDEFINED_SPECIALIZATION ? inst.localGroupSize.z : cppln._defaultLocalGroupSize.z };
-		inst.debugMode		= (uint(dbg_shader) & 0xFF) | (uint(dbg_mode) << 8);
+		inst.debugMode		= GetDebugModeHash( dbg_mode, dbg_stages );
 		inst.UpdateHash();
 		
 		outLayout = resMngr.GetResource( layout_id );
@@ -917,9 +927,9 @@ namespace FG
 										   INOUT SpecializationEntries_t &,
 										   ArrayView< ShaderModule_t > shaders,
 										   EShaderDebugMode debugMode,
-										   EShader debuggableShader) const
+										   EShaderStages debuggableShaders) const
 	{
-		const VkShaderStageFlagBits	debuggable_stage	= debuggableShader != Default ? VEnumCast( debuggableShader ) : VkShaderStageFlagBits(0);
+		const VkShaderStageFlags	debuggable_stages	= VEnumCast( debuggableShaders );
 		VkShaderStageFlags			exist_stages		= 0;
 		VkShaderStageFlags			used_stages			= 0;
 
@@ -929,8 +939,8 @@ namespace FG
 
 			exist_stages |= sh.stage;
 
-			if ( (sh.stage == debuggable_stage and sh.debugMode != debugMode) or
-				 (sh.stage != debuggable_stage and sh.debugMode != Default) )
+			if ( (EnumEq( debuggable_stages, sh.stage ) and sh.debugMode != debugMode) or
+				 (not EnumEq( debuggable_stages, sh.stage ) and sh.debugMode != Default) )
 				continue;
 
 			used_stages |= sh.stage;

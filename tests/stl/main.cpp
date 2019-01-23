@@ -39,7 +39,9 @@ int main ()
 	UnitTest_StringParser();
 
 	FG_LOGI( "Tests.STL finished" );
-	
+
+	#ifdef PLATFORM_WINDOWS
 	std::cin.ignore();
+	#endif
 	return 0;
 }

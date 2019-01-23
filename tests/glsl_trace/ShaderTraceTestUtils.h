@@ -25,7 +25,7 @@ struct TestHelpers
 	BytesU					debugOutputSize	= 128_Mb;
 };
 
-bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlagBits stage,
+bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlags stages,
 							   OUT VkDescriptorSetLayout &dsLayout, OUT VkDescriptorSet &descSet);
 
 bool CreateRenderTarget (VulkanDeviceExt &vulkan, VkFormat colorFormat, uint width, uint height, VkImageUsageFlags imageUsage,
@@ -48,7 +48,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 							OUT VkBuffer &shaderBindingTable, OUT VkDeviceMemory &outMemory,
 							OUT VkAccelerationStructureNV &topLevelAS, OUT VkAccelerationStructureNV &bottomLevelAS);
 
-bool TestDebugOutput (const TestHelpers &helper, VkShaderModule module, StringView referenceFile);
+bool TestDebugOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modules, StringView referenceFile);
 
 
 inline String  _GetFuncName (StringView src)

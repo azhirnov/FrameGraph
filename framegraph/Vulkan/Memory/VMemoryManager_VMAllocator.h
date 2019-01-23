@@ -24,6 +24,7 @@
 #endif
 
 #define VMA_IMPLEMENTATION	1
+#define VMA_ASSERT(expr)	{}
 #include "VulkanMemoryAllocator/src/vk_mem_alloc.h"
 
 #ifdef COMPILER_GCC

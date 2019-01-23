@@ -23,6 +23,7 @@ void main()
 	vec2	point = (vec3(gl_GlobalInvocationID) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1)).xy;
 	vec4	color;
 
+	// 'point' wasn't recorded into trace
 	dbg_EnableTraceRecording( gl_LocalInvocationID.x == 0 && gl_LocalInvocationID.y == 0 );
 
 	if ( (gl_GlobalInvocationID.x & 1) == 1 )
@@ -293,7 +294,7 @@ extern bool ShaderTrace_Test11 (VulkanDeviceExt& vulkan, const TestHelpers &help
 		vulkan.vkFreeMemory( vulkan.GetVkDevice(), image_mem, null );
 	}
 
-	CHECK_ERR( TestDebugOutput( helper, comp_shader, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {comp_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

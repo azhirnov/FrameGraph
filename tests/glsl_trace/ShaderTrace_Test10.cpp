@@ -35,9 +35,13 @@ layout(location = 0) out MeshOutput {
 	vec4	color;
 } Output[]; // [max_vertices]
 
+void dbg_EnableTraceRecording (bool b) {}
+
 void main ()
 {
 	const uint I = gl_LocalInvocationID.x;
+
+	dbg_EnableTraceRecording( gl_GlobalInvocationID.x == 0 );
 
 	gl_MeshVerticesNV[I].gl_Position	= vec4(g_Positions[I], 0.0f, 1.0f);
 	Output[I].color						= g_Positions[I].xyxy * 0.5f + 0.5f;
@@ -125,10 +129,7 @@ extern bool ShaderTrace_Test10 (VulkanDeviceExt& vulkan, const TestHelpers &help
 	
 	// setup storage buffer
 	{
-		const uint	data[] = { 0 };
-
-		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, sizeof(data), VK_WHOLE_SIZE, 0 );
-		vulkan.vkCmdUpdateBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, sizeof(data), data );
+		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, VK_WHOLE_SIZE, 0 );
 	}
 
 	// debug output storage read/write after write
@@ -236,7 +237,7 @@ extern bool ShaderTrace_Test10 (VulkanDeviceExt& vulkan, const TestHelpers &help
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, mesh_shader, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {mesh_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

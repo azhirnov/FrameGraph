@@ -4,15 +4,15 @@ no source
 
 //> (out): bool {false}
 //  gl_InvocationID: int {2}
-11. if ( I == 0 ) {
+15. if ( I == 0 ) {
 
 //> (out): float4 {2.000000, -1.000000, 0.020000, 1.000000}
 //  gl_InvocationID: int {2}
-17. gl_out[I].gl_Position = gl_in[I].gl_Position;
+21. gl_out[I].gl_Position = gl_in[I].gl_Position;
 
 //> (out): float {5.000000}
 //  gl_InvocationID: int {2}
-18. out_Level[I] = in_Level[I];
+22. out_Level[I] = in_Level[I];
 
 //---------------------------
 

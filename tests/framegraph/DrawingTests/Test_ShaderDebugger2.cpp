@@ -64,7 +64,7 @@ void main() {
 		bool	data_is_correct				= false;
 		bool	shader_output_is_correct	= false;
 
-		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, EShader shaderType, ArrayView<String> output) {
+		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, EShaderStages stages, ArrayView<String> output) {
 			const char	ref0[] = R"#(//> gl_VertexIndex: int {1}
 //> gl_InstanceIndex: int {0}
 no source
@@ -92,11 +92,9 @@ no source
 
 )#";
 			shader_output_is_correct = true;
-			shader_output_is_correct &= (shaderType == EShader::Vertex);
+			shader_output_is_correct &= (stages == EShaderStages::Vertex);
 			shader_output_is_correct &= (taskName == "DebuggableDraw");
-			shader_output_is_correct &= (output.size() == 2);
-			shader_output_is_correct &= (output.size() > 0 ? output[0] == ref0 : false);
-			shader_output_is_correct &= (output.size() > 1 ? output[1] == ref1 : false);
+			shader_output_is_correct &= (output.size() == 2 and ((output[0] == ref0 and output[1] == ref1) or (output[0] == ref1 and output[1] == ref0)));
 			ASSERT( shader_output_is_correct );
 		};
 		frame_graph->SetShaderDebugCallback( OnShaderTraceReady );
@@ -145,7 +143,7 @@ no source
 												.AddViewport( view_size ) );
 		
 		frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
-														 .SetName( "DebuggableDraw" ).EnableVertexDebugTrace() );
+														 .SetName( "DebuggableDraw" ).EnableDebugTrace( EShaderStages::Vertex ));
 
 		Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );

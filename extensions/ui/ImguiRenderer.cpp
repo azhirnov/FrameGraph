@@ -179,7 +179,7 @@ namespace FG
 				out_Color0 = In.Color * texture(sTexture, In.UV.st);
 			})#"s );
 
-		_pipeline = fg->CreatePipeline( std::move(desc) );
+		_pipeline = fg->CreatePipeline( desc );
 		CHECK_ERR( _pipeline );
 
 		CHECK_ERR( fg->InitPipelineResources( _pipeline, DescriptorSetID("0"), OUT _resources ));

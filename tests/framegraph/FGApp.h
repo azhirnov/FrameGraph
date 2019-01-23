@@ -85,6 +85,7 @@ namespace FG
 		bool ImplTest_CacheOverflow1 ();
 		bool ImplTest_Multithreading1 ();
 		bool ImplTest_Multithreading2 ();
+		bool ImplTest_Multithreading3 ();
 
 
 	// drawing tests

@@ -49,8 +49,8 @@ namespace FG
 		//
 		struct ComputeShaderDebugMode
 		{
-			EShaderDebugMode	mode	= Default;
-			uint3				globalID;
+			EShaderDebugMode	mode		= Default;
+			uint3				globalID	{ ~0u };
 		};
 
 		//
@@ -58,19 +58,9 @@ namespace FG
 		//
 		struct RayTracingShaderDebugMode
 		{
-		// types
-			struct RayGen {
-				uint	launchX;	// gl_LaunchIDNV.x
-				uint	launchY;	// gl_LaunchIDNV.y
-				uint	launchZ;	// gl_LaunchIDNV.z
-			};
-
-		// variables
-			EShaderDebugMode	mode	= Default;
-			EShader				shader	= Default;
-			union {
-				RayGen		raygen;
-			};
+			EShaderDebugMode	mode		= Default;
+			EShaderStages		stages		= Default;
+			uint3				launchID	{ ~0u };
 		};
 
 	}	// _fg_hidden_
@@ -1209,8 +1199,8 @@ namespace FG
 		TraceRays&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
 		TraceRays&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 
-		TraceRays&  EnableRayGenDebugTrace (const uint3 &launchID);
-		TraceRays&  EnableRayGenDebugTrace ()										{ return EnableRayGenDebugTrace( uint3{~0u} ); }
+		TraceRays&  EnableDebugTrace (EShaderStages stages, const uint3 &launchID);
+		TraceRays&  EnableDebugTrace (EShaderStages stages);
 	};
 //-----------------------------------------------------------------------------
 
@@ -1454,12 +1444,19 @@ namespace FG
 		shaderTable = value;
 		return *this;
 	}
-
-	inline TraceRays&  TraceRays::EnableRayGenDebugTrace (const uint3 &launchID)
+	
+	inline TraceRays&  TraceRays::EnableDebugTrace (EShaderStages stages, const uint3 &launchID)
 	{
-		debugMode.mode		= EShaderDebugMode::Trace;
-		debugMode.shader	= EShader::RayGen;
-		debugMode.raygen	= { launchID.x, launchID.y, launchID.z };
+		debugMode.mode		 = EShaderDebugMode::Trace;
+		debugMode.stages	|= stages;
+		debugMode.launchID	 = launchID;
+		return *this;
+	}
+
+	inline TraceRays&  TraceRays::EnableDebugTrace (EShaderStages stages)
+	{
+		debugMode.mode		 = EShaderDebugMode::Trace;
+		debugMode.stages	|= stages;
 		return *this;
 	}
 

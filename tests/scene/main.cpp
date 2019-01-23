@@ -14,15 +14,15 @@ int main ()
 	UnitTest_Transformation();
 	UnitTest_Frustum();
 
-	{
+	/*{
 		SceneApp	scene;
 		CHECK_ERR( scene.Initialize(), -1 );
 
 		for (; scene.Update();) {}
-	}
+	}*/
 
 	FG_LOGI( "Tests.Scene finished" );
 	
-	std::cin.ignore();
+	//std::cin.ignore();
 	return 0;
 }

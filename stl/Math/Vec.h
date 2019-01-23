@@ -18,6 +18,10 @@ namespace FG
 	using short2	= Vec< int16_t, 2 >;
 	using short3	= Vec< int16_t, 3 >;
 	using short4	= Vec< int16_t, 4 >;
+	
+	using ushort2	= Vec< uint16_t, 2 >;
+	using ushort3	= Vec< uint16_t, 3 >;
+	using ushort4	= Vec< uint16_t, 4 >;
 
 	using uint2		= Vec< uint, 2 >;
 	using uint3		= Vec< uint, 3 >;

@@ -125,7 +125,6 @@ if (${FG_ENABLE_GLSLANG})
 	set( SOURCES 
 		"glsl_trace/include/ShaderTrace.h"
 		"glsl_trace/source/Common.h"
-		"glsl_trace/source/ConvertTraceToRdc.cpp"
 		"glsl_trace/source/InsertDebugAsserts.cpp"
 		"glsl_trace/source/InsertInstructionCounter.cpp"
 		"glsl_trace/source/InsertTraceRecording.cpp"
@@ -133,7 +132,7 @@ if (${FG_ENABLE_GLSLANG})
 		"glsl_trace/source/ShaderTrace.cpp" )
 	add_library( "GLSLTrace" STATIC ${SOURCES} )
 	source_group( "include" FILES "glsl_trace/include/ShaderTrace.h" )
-	source_group( "source" FILES "glsl_trace/source/Common.h" "glsl_trace/source/ConvertTraceToRdc.cpp" "glsl_trace/source/InsertDebugAsserts.cpp" "glsl_trace/source/InsertInstructionCounter.cpp" "glsl_trace/source/InsertTraceRecording.cpp" "glsl_trace/source/ParseShaderTrace.cpp" "glsl_trace/source/ShaderTrace.cpp" )
+	source_group( "source" FILES "glsl_trace/source/Common.h" "glsl_trace/source/InsertDebugAsserts.cpp" "glsl_trace/source/InsertInstructionCounter.cpp" "glsl_trace/source/InsertTraceRecording.cpp" "glsl_trace/source/ParseShaderTrace.cpp" "glsl_trace/source/ShaderTrace.cpp" )
 	set_property( TARGET "GLSLTrace" PROPERTY FOLDER "Extensions" )
 	target_include_directories( "GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "GLSLTrace" PRIVATE "glsl_trace/.." )
@@ -165,6 +164,7 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 		"../tests/glsl_trace/ref/ShaderTrace_Test10.txt"
 		"../tests/glsl_trace/ref/ShaderTrace_Test11.txt"
 		"../tests/glsl_trace/ref/ShaderTrace_Test12.txt"
+		"../tests/glsl_trace/ref/ShaderTrace_Test13.txt"
 		"../tests/glsl_trace/ref/ShaderTrace_Test2.txt"
 		"../tests/glsl_trace/ref/ShaderTrace_Test4.txt"
 		"../tests/glsl_trace/ref/ShaderTrace_Test5.txt"
@@ -181,6 +181,7 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 		"../tests/glsl_trace/ShaderTrace_Test10.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test11.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test12.cpp"
+		"../tests/glsl_trace/ShaderTrace_Test13.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test2.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test3.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test4.cpp"
@@ -194,8 +195,8 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 	else()
 		add_executable( "Tests.GLSLTrace" ${SOURCES} )
 	endif()
-	source_group( "ref" FILES "../tests/glsl_trace/ref/ShaderTrace_Test1.txt" "../tests/glsl_trace/ref/ShaderTrace_Test10.txt" "../tests/glsl_trace/ref/ShaderTrace_Test11.txt" "../tests/glsl_trace/ref/ShaderTrace_Test12.txt" "../tests/glsl_trace/ref/ShaderTrace_Test2.txt" "../tests/glsl_trace/ref/ShaderTrace_Test4.txt" "../tests/glsl_trace/ref/ShaderTrace_Test5.txt" "../tests/glsl_trace/ref/ShaderTrace_Test6.txt" "../tests/glsl_trace/ref/ShaderTrace_Test7.txt" "../tests/glsl_trace/ref/ShaderTrace_Test8.txt" "../tests/glsl_trace/ref/ShaderTrace_Test9.txt" )
-	source_group( "" FILES "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" "../tests/glsl_trace/ShaderTraceTestUtils.cpp" "../tests/glsl_trace/ShaderTraceTestUtils.h" "../tests/glsl_trace/ShaderTrace_Test1.cpp" "../tests/glsl_trace/ShaderTrace_Test10.cpp" "../tests/glsl_trace/ShaderTrace_Test11.cpp" "../tests/glsl_trace/ShaderTrace_Test12.cpp" "../tests/glsl_trace/ShaderTrace_Test2.cpp" "../tests/glsl_trace/ShaderTrace_Test3.cpp" "../tests/glsl_trace/ShaderTrace_Test4.cpp" "../tests/glsl_trace/ShaderTrace_Test5.cpp" "../tests/glsl_trace/ShaderTrace_Test6.cpp" "../tests/glsl_trace/ShaderTrace_Test7.cpp" "../tests/glsl_trace/ShaderTrace_Test8.cpp" "../tests/glsl_trace/ShaderTrace_Test9.cpp" )
+	source_group( "ref" FILES "../tests/glsl_trace/ref/ShaderTrace_Test1.txt" "../tests/glsl_trace/ref/ShaderTrace_Test10.txt" "../tests/glsl_trace/ref/ShaderTrace_Test11.txt" "../tests/glsl_trace/ref/ShaderTrace_Test12.txt" "../tests/glsl_trace/ref/ShaderTrace_Test13.txt" "../tests/glsl_trace/ref/ShaderTrace_Test2.txt" "../tests/glsl_trace/ref/ShaderTrace_Test4.txt" "../tests/glsl_trace/ref/ShaderTrace_Test5.txt" "../tests/glsl_trace/ref/ShaderTrace_Test6.txt" "../tests/glsl_trace/ref/ShaderTrace_Test7.txt" "../tests/glsl_trace/ref/ShaderTrace_Test8.txt" "../tests/glsl_trace/ref/ShaderTrace_Test9.txt" )
+	source_group( "" FILES "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" "../tests/glsl_trace/ShaderTraceTestUtils.cpp" "../tests/glsl_trace/ShaderTraceTestUtils.h" "../tests/glsl_trace/ShaderTrace_Test1.cpp" "../tests/glsl_trace/ShaderTrace_Test10.cpp" "../tests/glsl_trace/ShaderTrace_Test11.cpp" "../tests/glsl_trace/ShaderTrace_Test12.cpp" "../tests/glsl_trace/ShaderTrace_Test13.cpp" "../tests/glsl_trace/ShaderTrace_Test2.cpp" "../tests/glsl_trace/ShaderTrace_Test3.cpp" "../tests/glsl_trace/ShaderTrace_Test4.cpp" "../tests/glsl_trace/ShaderTrace_Test5.cpp" "../tests/glsl_trace/ShaderTrace_Test6.cpp" "../tests/glsl_trace/ShaderTrace_Test7.cpp" "../tests/glsl_trace/ShaderTrace_Test8.cpp" "../tests/glsl_trace/ShaderTrace_Test9.cpp" )
 	set_property( TARGET "Tests.GLSLTrace" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.GLSLTrace" PRIVATE "" )
@@ -308,7 +309,7 @@ endif()
 #==================================================================================================
 # project: OfflineCompiler
 #==================================================================================================
-if (${FG_ENABLE_GLSLANG})
+if (FALSE)
 	set( SOURCES 
 		"offline_compiler/main.cpp"
 		"offline_compiler/PipelineCppSerializer.cpp"
@@ -323,7 +324,9 @@ if (${FG_ENABLE_GLSLANG})
 	target_include_directories( "OfflineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "OfflineCompiler" PRIVATE "offline_compiler" )
 	target_include_directories( "OfflineCompiler" PRIVATE ".." )
-	target_link_libraries( "OfflineCompiler" "PipelineCompiler" )
+	if (${FG_ENABLE_GLSLANG})
+		target_link_libraries( "OfflineCompiler" "PipelineCompiler" )
+	endif()
 	# compiler
 	target_compile_definitions( "OfflineCompiler" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
 	set_target_properties( "OfflineCompiler" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
@@ -349,7 +352,7 @@ endif()
 #==================================================================================================
 # project: UnitTests.OfflineCompiler
 #==================================================================================================
-if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
+if (FALSE)
 	set( SOURCES 
 		"../tests/offline_compiler/main.cpp"
 		"../tests/offline_compiler/Test_Serializer1.cpp"

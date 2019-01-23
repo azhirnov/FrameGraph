@@ -1,7 +1,8 @@
 # FrameGraph
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](paypal.me/azhirnovgithub)<br/>
 
-Work in progress.
+FrameGraph simplifies prototyping on Vulkan and can also be used as a base layer for the graphics engine.
+FrameGraph designed for maximum performance but not at the expense of usability. API developed as simple as possible, it hides all GPU synchronizations, memory allocations and all this boilerplate code that is needed to get Vulkan work. Builtin validations together with Vulkan validation layers allow you to quickly find and fix errors.
 
 ## Features
 * multithreaded command buffer building and submitting.
@@ -12,7 +13,8 @@ Work in progress.
 * supports RTX extensions.
 
 ## Documentation
-* [Overview](docs/Overview.md)
+* [Introduction](docs/Introduction.md)
+* [Multithreading](docs/Multithreading.md)
 * [Porting from OpenGL](docs/Porting-from-OpenGL.md)
 * [Porting from Vulkan](docs/Porting-from-Vulkan.md)
 * [Extensions overview](extensions/Readme.md)
@@ -32,10 +34,10 @@ If it didn't, manualy download dependencies into 'external' directory or in cmak
 
 Dependencies:<br/>
 [Vulkan-headers](https://github.com/KhronosGroup/Vulkan-Headers) or [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) - required.<br/>
+[VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - required.<br/>
 [glfw](https://github.com/glfw/glfw) or [SDL2](https://www.libsdl.org) or [SFML](https://github.com/SFML/SFML) - required for framework and some tests.<br/>
 [glslang](https://github.com/KhronosGroup/glslang) - required for glsl compiler.<br/>
 [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools), [SPIRV-Headers](https://github.com/KhronosGroup/SPIRV-Headers) and Python - optional, for spirv optimization.<br/>
-[VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - required.<br/>
 [lodepng](https://github.com/lvandeve/lodepng) - optional.<br/>
 [graphviz](https://www.graphviz.org/) - (optional) for graph visualization.<br/>
 [Assimp](https://github.com/assimp/assimp) - (optional) for Scene extension.<br/>

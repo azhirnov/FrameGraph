@@ -36,9 +36,13 @@ layout(vertices = 3) out;
 layout(location=0) in  float  in_Level[];
 layout(location=0) out float  out_Level[];
 
+void dbg_EnableTraceRecording (bool b) {}
+
 void main ()
 {
 #	define I	gl_InvocationID
+
+	dbg_EnableTraceRecording( I == 2 && gl_PrimitiveID == 0 );
 
 	if ( I == 0 ) {
 		gl_TessLevelInner[0] = max( max(in_Level[0], in_Level[1]), in_Level[2] );
@@ -145,13 +149,7 @@ extern bool ShaderTrace_Test7 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 	
 	// setup storage buffer
 	{
-		const uint	data[] = {
-			2,	// invocation id
-			0	// primitive id
-		};
-
-		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, sizeof(data), VK_WHOLE_SIZE, 0 );
-		vulkan.vkCmdUpdateBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, sizeof(data), data );
+		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, VK_WHOLE_SIZE, 0 );
 	}
 
 	// debug output storage read/write after write
@@ -166,7 +164,7 @@ extern bool ShaderTrace_Test7 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		
-		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT, 0,
 									 0, null, 1, &barrier, 0, null);
 	}
 
@@ -218,7 +216,7 @@ extern bool ShaderTrace_Test7 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		
-		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									 0, null, 1, &barrier, 0, null);
 	}
 
@@ -261,7 +259,7 @@ extern bool ShaderTrace_Test7 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, cont_shader, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {cont_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

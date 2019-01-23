@@ -5,6 +5,11 @@
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Stream/FileStream.h"
 
+// Warning:
+// Before testing on new GPU set 'UpdateReferences' to 'true', run tests,
+// using git compare new references with origin, only float values may differ slightly.
+// Then set 'UpdateReferences' to 'false' and run tests again.
+// All tests must pass.
 static const bool	UpdateReferences = false;
 
 /*
@@ -12,7 +17,7 @@ static const bool	UpdateReferences = false;
 	CreateDebugDescSetLayout
 =================================================
 */
-bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlagBits stage,
+bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, VkShaderStageFlags stages,
 							   OUT VkDescriptorSetLayout &dsLayout, OUT VkDescriptorSet &descSet)
 {
 	// create layout
@@ -21,7 +26,7 @@ bool CreateDebugDescriptorSet (VulkanDevice &vulkan, const TestHelpers &helper, 
 		binding.binding			= 0;
 		binding.descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		binding.descriptorCount	= 1;
-		binding.stageFlags		= stage;
+		binding.stageFlags		= stages;
 
 		VkDescriptorSetLayoutCreateInfo		info = {};
 		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -917,15 +922,21 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 	TestDebugOutput
 =================================================
 */
-bool TestDebugOutput (const TestHelpers &helper, VkShaderModule module, StringView referenceFile)
+bool TestDebugOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modules, StringView referenceFile)
 {
 	CHECK_ERR( referenceFile.size() );
+	CHECK_ERR( modules.size() );
 
 	String			merged;
 	Array<String>	debug_output;
 
-	CHECK_ERR( helper.compiler.GetDebugOutput( module, helper.readBackPtr, helper.debugOutputSize, OUT debug_output ));
-	CHECK_ERR( debug_output.size() );
+	for (auto& module : modules)
+	{
+		Array<String>	temp;
+		CHECK_ERR( helper.compiler.GetDebugOutput( module, helper.readBackPtr, helper.debugOutputSize, OUT temp ));
+		CHECK_ERR( temp.size() );
+		debug_output.insert( debug_output.end(), temp.begin(), temp.end() );
+	}
 
 	std::sort( debug_output.begin(), debug_output.end() );
 	for (auto& str : debug_output) { merged << str << "//---------------------------\n\n"; }

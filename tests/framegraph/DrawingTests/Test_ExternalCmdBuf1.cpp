@@ -104,8 +104,8 @@ namespace FG
 			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 			Task	t_update	= frame_graph->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( ArrayView<uint8_t>{src_data}.section( 0, 128 ) ));
-			Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 64_b, 128_b ));
-			FG_UNUSED( t_update );
+			Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 64_b, 128_b ).DependsOn( t_update ));
+			FG_UNUSED( t_copy );
 
 			CHECK_ERR( frame_graph->Execute() );
 		}
@@ -135,7 +135,7 @@ namespace FG
 			VK_CALL( _vulkan.vkEndCommandBuffer( vk_cmdbuf ));
 
 			VulkanCommandBatch	vk_cmdbatch = {};
-			vk_cmdbatch.commands = { BitCast<CommandBufferVk_t>( vk_cmdbuf ) };
+			vk_cmdbatch.commands = { &BitCast<CommandBufferVk_t>( vk_cmdbuf ), 1 };
 			vk_cmdbatch.queue	 = BitCast<QueueVk_t>( vk_queue );
 
 			CHECK_ERR( _fgInstance->SubmitBatch( batch_id, 1, vk_cmdbatch ));

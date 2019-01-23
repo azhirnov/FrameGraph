@@ -259,7 +259,7 @@ namespace FG
 	{
 		VkShaderStageFlags	flags = 0;
 
-		for (EShaderStages t = EShaderStages(1 << 0); t < EShaderStages::_Last; t = EShaderStages(uint(t) << 1)) 
+		for (EShaderStages t = EShaderStages(1); t <= values; t = EShaderStages(uint(t) << 1)) 
 		{
 			if ( not EnumEq( values, t ) )
 				continue;
@@ -284,6 +284,7 @@ namespace FG
 				case EShaderStages::_Last :
 				case EShaderStages::Unknown :
 				case EShaderStages::AllGraphics :
+				case EShaderStages::AllRayTracing :
 				case EShaderStages::All :				// to shutup warnings	
 				default :								RETURN_ERR( "unknown shader type!", VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM );
 			}
@@ -553,7 +554,7 @@ namespace FG
 	{
 		VkImageUsageFlags	flags = 0;
 
-		for (EImageUsage t = EImageUsage(1 << 0); t < EImageUsage::_Last; t = EImageUsage(uint(t) << 1)) 
+		for (EImageUsage t = EImageUsage(1); t <= values; t = EImageUsage(uint(t) << 1)) 
 		{
 			if ( not EnumEq( values, t ) )
 				continue;
@@ -590,7 +591,7 @@ namespace FG
 	{
 		VkImageAspectFlags	flags = 0;
 		
-		for (EImageAspect t = EImageAspect(1 << 0); t < EImageAspect::_Last; t = EImageAspect(uint(t) << 1)) 
+		for (EImageAspect t = EImageAspect(1); t <= values; t = EImageAspect(uint(t) << 1)) 
 		{
 			if ( not EnumEq( values, t ) )
 				continue;
@@ -649,7 +650,7 @@ namespace FG
 	{
 		VkBufferUsageFlags	result = 0;
 		
-		for (EBufferUsage t = EBufferUsage(1 << 0); t < EBufferUsage::_Last; t = EBufferUsage(uint(t) << 1)) 
+		for (EBufferUsage t = EBufferUsage(1); t <= values; t = EBufferUsage(uint(t) << 1)) 
 		{
 			if ( not EnumEq( values, t ) )
 				continue;
@@ -733,9 +734,7 @@ namespace FG
 	{
 		VkGeometryFlagsNV	result = 0;
 		
-		for (ERayTracingGeometryFlags t = ERayTracingGeometryFlags(1 << 0);
-			 t < ERayTracingGeometryFlags::_Last;
-			 t = ERayTracingGeometryFlags(uint(t) << 1)) 
+		for (ERayTracingGeometryFlags t = ERayTracingGeometryFlags(1); t <= values; t = ERayTracingGeometryFlags(uint(t) << 1)) 
 		{
 			if ( not EnumEq( values, t ) )
 				continue;
@@ -763,9 +762,7 @@ namespace FG
 	{
 		VkGeometryInstanceFlagsNV	result = 0;
 		
-		for (ERayTracingInstanceFlags t = ERayTracingInstanceFlags(1 << 0);
-			 t < ERayTracingInstanceFlags::_Last;
-			 t = ERayTracingInstanceFlags(uint(t) << 1)) 
+		for (ERayTracingInstanceFlags t = ERayTracingInstanceFlags(1); t <= values; t = ERayTracingInstanceFlags(uint(t) << 1)) 
 		{
 			if ( not EnumEq( values, t ) )
 				continue;
@@ -795,9 +792,7 @@ namespace FG
 	{
 		VkBuildAccelerationStructureFlagsNV	result = 0;
 		
-		for (ERayTracingFlags t = ERayTracingFlags(1 << 0);
-			 t < ERayTracingFlags::_Last;
-			 t = ERayTracingFlags(uint(t) << 1)) 
+		for (ERayTracingFlags t = ERayTracingFlags(1); t <= values; t = ERayTracingFlags(uint(t) << 1)) 
 		{
 			if ( not EnumEq( values, t ) )
 				continue;

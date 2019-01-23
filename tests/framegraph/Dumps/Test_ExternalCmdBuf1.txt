@@ -54,7 +54,7 @@ Thread {
 	Task {
 		name:    "UpdateBuffer (#2)"
 		input =  {  }
-		output = {  }
+		output = { CopyBuffer (#3) }
 		resource_usage = {
 			BufferUsage {
 				name:     "HostWriteBuffer"
@@ -72,7 +72,7 @@ Thread {
 	}
 	Task {
 		name:    "CopyBuffer (#3)"
-		input =  {  }
+		input =  { UpdateBuffer (#2) }
 		output = {  }
 		resource_usage = {
 			BufferUsage {

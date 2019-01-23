@@ -35,6 +35,7 @@ void main()
 		color.x = cos(color.y) * color.z;
 	}
 
+	// all previous commands wasn't recorded
 	dbg_EnableTraceRecording( gl_LocalInvocationID.x == 1 );
 
 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), color );
@@ -296,7 +297,7 @@ extern bool ShaderTrace_Test12 (VulkanDeviceExt& vulkan, const TestHelpers &help
 		vulkan.vkFreeMemory( vulkan.GetVkDevice(), image_mem, null );
 	}
 
-	CHECK_ERR( TestDebugOutput( helper, comp_shader, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {comp_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

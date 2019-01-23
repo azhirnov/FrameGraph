@@ -37,49 +37,9 @@ namespace _fg_hidden_
 	//
 	struct GraphicsShaderDebugMode
 	{
-	// types
-		struct Fragment {
-			uint	pixelCoordX;	// gl_FragCoord.x
-			uint	pixelCoordY;	// gl_FragCoord.y
-			uint	sample;			// gl_SampleID
-			uint	primitive;		// gl_PrimitiveID
-			// TODO: depth range
-		};
-		struct Vertex {
-			uint	vertex;			// gl_VertexIndex
-			uint	instance;		// gl_InstanceIndex
-			uint	draw;			// gl_DrawID - for indirect drawing
-		};
-		struct TessControl {
-			uint	invocatioon;	// gl_InvocationID
-			uint	primitive;		// gl_PrimitiveID
-		};
-		struct TessEvaluation {
-			uint	primitive;		// gl_PrimitiveID
-		};
-		struct Geometry {
-			uint	invocatioon;	// gl_InvocationID
-			uint	primitive;		// gl_PrimitiveIDIn
-		};
-		struct MeshTask {
-			uint	invocation;		// gl_GlobalInvocationID.x
-		};
-		struct Mesh {
-			uint	invocation;		// gl_GlobalInvocationID.x
-		};
-
-	// variables
-		EShaderDebugMode	mode	= Default;
-		EShader				shader	= Default;
-		union {
-			Vertex			vert;
-			TessControl		tessCont;
-			TessEvaluation	tessEval;
-			Geometry		geom;
-			MeshTask		task;
-			Mesh			mesh;
-			Fragment		frag;
-		};
+		EShaderDebugMode	mode		= Default;
+		EShaderStages		stages		= Default;
+		short2				fragCoord	{ std::numeric_limits<short>::min() };
 	};
 	
 	
@@ -201,21 +161,8 @@ namespace _fg_hidden_
 		TaskType&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
 		TaskType&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 		
-		TaskType&  EnableVertexDebugTrace ();
-		TaskType&  EnableTessControlDebugTrace ();
-		TaskType&  EnableTessEvaluationDebugTrace ();
-		TaskType&  EnableGeometryDebugTrace ();
-		TaskType&  EnableMeshTaskDebugTrace ();
-		TaskType&  EnableMeshDebugTrace ();
-		TaskType&  EnableFragmentDebugTrace ();
-
-		TaskType&  EnableVertexDebugTrace (uint vertex, uint instance = UMax, uint draw = UMax);
-		TaskType&  EnableTessControlDebugTrace (uint invocation, uint primitive);
-		TaskType&  EnableTessEvaluationDebugTrace (uint primitive);
-		TaskType&  EnableGeometryDebugTrace (uint invocation, uint primitive);
-		TaskType&  EnableMeshTaskDebugTrace (uint invocation);
-		TaskType&  EnableMeshDebugTrace (uint invocation);
-		TaskType&  EnableFragmentDebugTrace (uint x, uint y, uint sample = UMax, uint primitive = UMax);
+		TaskType&  EnableDebugTrace (EShaderStages stages);
+		TaskType&  EnableFragmentDebugTrace (int x, int y);
 	};
 	
 
@@ -707,134 +654,27 @@ namespace _fg_hidden_
 	inline TaskType&  BaseDrawCall<TaskType>::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 	{
 		ASSERT( id.IsDefined() );
-		pushConstants.emplace_back( id, Bytes<uint16_t>(size) );
-		MemCopy( pushConstants.back().data, BytesU::SizeOf(pushConstants.back().data), ptr, size );
+		auto& pc = pushConstants.emplace_back();
+		pc.id	= id;
+		pc.size	= Bytes<uint16_t>(size);
+		MemCopy( pc.data, BytesU::SizeOf(pc.data), ptr, size );
 		return static_cast<TaskType &>( *this );
 	}
 
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableVertexDebugTrace ()
+	inline TaskType&  BaseDrawCall<TaskType>::EnableDebugTrace (EShaderStages stages)
 	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::Vertex;
-		memset( &debugMode.vert, 0xFF, sizeof(debugMode.vert) );
+		debugMode.mode	  = EShaderDebugMode::Trace;
+		debugMode.stages |= stages;
 		return static_cast<TaskType &>( *this );
 	}
 
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableTessControlDebugTrace ()
+	inline TaskType&  BaseDrawCall<TaskType>::EnableFragmentDebugTrace (int x, int y)
 	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::TessControl;
-		memset( &debugMode.tessCont, 0xFF, sizeof(debugMode.tessCont) );
-		return static_cast<TaskType &>( *this );
-	}
-
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableTessEvaluationDebugTrace ()
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::TessEvaluation;
-		memset( &debugMode.tessEval, 0xFF, sizeof(debugMode.tessEval) );
-		return static_cast<TaskType &>( *this );
-	}
-
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableGeometryDebugTrace ()
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::Geometry;
-		memset( &debugMode.geom, 0xFF, sizeof(debugMode.geom) );
-		return static_cast<TaskType &>( *this );
-	}
-
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableMeshTaskDebugTrace ()
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::MeshTask;
-		memset( &debugMode.task, 0xFF, sizeof(debugMode.task) );
-		return static_cast<TaskType &>( *this );
-	}
-
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableMeshDebugTrace ()
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::Mesh;
-		memset( &debugMode.mesh, 0xFF, sizeof(debugMode.mesh) );
-		return static_cast<TaskType &>( *this );
-	}
-
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableFragmentDebugTrace ()
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::Fragment;
-		memset( &debugMode.frag, 0xFF, sizeof(debugMode.frag) );
-		return static_cast<TaskType &>( *this );
-	}
-
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableVertexDebugTrace (uint vertex, uint instance, uint draw)
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::Vertex;
-		debugMode.vert	 = { vertex, instance, draw };
-		return static_cast<TaskType &>( *this );
-	}
-	
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableTessControlDebugTrace (uint invocation, uint primitive)
-	{
-		debugMode.mode		= EShaderDebugMode::Trace;
-		debugMode.shader	= EShader::TessControl;
-		debugMode.tessCont	= { invocation, primitive };
-		return static_cast<TaskType &>( *this );
-	}
-	
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableTessEvaluationDebugTrace (uint primitive)
-	{
-		debugMode.mode		= EShaderDebugMode::Trace;
-		debugMode.shader	= EShader::TessEvaluation;
-		debugMode.tessEval	= { primitive };
-		return static_cast<TaskType &>( *this );
-	}
-	
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableGeometryDebugTrace (uint invocation, uint primitive)
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::Geometry;
-		debugMode.geom	 = { invocation, primitive };
-		return static_cast<TaskType &>( *this );
-	}
-	
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableMeshTaskDebugTrace (uint invocation)
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::MeshTask;
-		debugMode.task	 = { invocation };
-		return static_cast<TaskType &>( *this );
-	}
-	
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableMeshDebugTrace (uint invocation)
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::Mesh;
-		debugMode.mesh	 = { invocation };
-		return static_cast<TaskType &>( *this );
-	}
-
-	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::EnableFragmentDebugTrace (uint x, uint y, uint sample, uint primitive)
-	{
-		debugMode.mode	 = EShaderDebugMode::Trace;
-		debugMode.shader = EShader::Fragment;
-		debugMode.frag	 = { x, y, sample, primitive };
+		debugMode.mode		 = EShaderDebugMode::Trace;
+		debugMode.stages	|= EShaderStages::Fragment;
+		debugMode.fragCoord	 = { int16_t(x), int16_t(y) };
 		return static_cast<TaskType &>( *this );
 	}
 //-----------------------------------------------------------------------------

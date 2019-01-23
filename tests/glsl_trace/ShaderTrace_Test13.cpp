@@ -14,34 +14,69 @@ static bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler
 		static const char	vert_shader_source[] = R"#(
 const vec2	g_Positions[] = {
 	{-1.0f, -1.0f}, {-1.0f, 2.0f}, {2.0f, -1.0f},	// primitive 0 - must hit
+	{-1.0f,  2.0f},									// primitive 1 - miss
+	{-2.0f,  0.0f}									// primitive 2 - must hit
 };
+
+layout(location=0) out vec4  out_Position;
+
+layout(location=2) out VertOutput {
+	vec2	out_Texcoord;
+	vec4	out_Color;
+};
+
+void dbg_EnableTraceRecording (bool b) {}
 
 void main()
 {
-	gl_Position	= vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.02f, 1.0f );
+	dbg_EnableTraceRecording( (gl_VertexIndex & 1) == 0 );
+
+	out_Position = vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.01f, 1.0f );
+	gl_Position = out_Position;
+	out_Texcoord = g_Positions[gl_VertexIndex].xy * 0.5f + 0.5f;
+	out_Color = mix(vec4(1.0, 0.3, 0.0, 0.8), vec4(0.6, 0.9, 0.1, 1.0), float(gl_VertexIndex) / float(g_Positions.length()));
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex ));
+		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex, 0 ));
 	}
 
 	// create fragment shader
 	{
 		static const char	frag_shader_source[] = R"#(
-#extension GL_ARB_gpu_shader_int64 : require
-
 layout(location = 0) out vec4  out_Color;
+
+layout(location=0) in vec4  in_Position;
+
+layout(location=2) in VertOutput {
+	vec2	in_Texcoord;
+	vec4	in_Color;
+};
+
+void dbg_EnableTraceRecording (bool b) {}
+
+float Fn1 (const int i, in float k, out int res)
+{
+	float f = 0.0f;
+	res = 11;
+	for (int j = i; j < 10; ++j) {
+		f += 1.2f *
+				cos(float(j) + k);
+		if (f > 15.7f) {
+			res = j;
+			return f * 10.0f;
+		}
+	}
+	return fract(f + k);
+}
 
 void main ()
 {
-	uint64_t	i = 0xFFFFFFFF00000000ul;
-	dvec2		d = dvec2(1.234e+50LF, 3.875732LF);
+	dbg_EnableTraceRecording( uint(gl_FragCoord.x) == 8 && uint(gl_FragCoord.y) == 8 );
 
-	i |= 0xFFFFFFFFul;
-	d *= 2.0;
-
-	out_Color[0] = float(i);
-	out_Color[1] = float(d.x);
-	out_Color[2] = float(d.y);
+	ivec2 c1;
+	float c0 = Fn1( 3, in_Texcoord.x + in_Position.y, c1.x );
+	out_Color[1] = c0 + float(c1.x);
+	return;
 })#";
 
 		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, 0 ));
@@ -51,14 +86,11 @@ void main ()
 
 /*
 =================================================
-	ShaderTrace_Test4
+	ShaderTrace_Test13
 =================================================
 */
-extern bool ShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
+extern bool ShaderTrace_Test13 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
 {
-	if ( not (vulkan.GetDeviceFeatures().shaderFloat64 and vulkan.GetDeviceFeatures().shaderInt64) )
-		return true;
-
 	// create renderpass and framebuffer
 	uint			width = 16, height = 16;
 	VkRenderPass	render_pass;
@@ -75,7 +107,7 @@ extern bool ShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 
 	VkDescriptorSetLayout	ds_layout;
 	VkDescriptorSet			desc_set;
-	CHECK_ERR( CreateDebugDescriptorSet( vulkan, helper, VK_SHADER_STAGE_FRAGMENT_BIT, OUT ds_layout, OUT desc_set ));
+	CHECK_ERR( CreateDebugDescriptorSet( vulkan, helper, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, OUT ds_layout, OUT desc_set ));
 
 	VkPipelineLayout	ppln_layout;
 	VkPipeline			pipeline;
@@ -105,7 +137,7 @@ extern bool ShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 	
 	// setup storage buffer
 	{
-		const uint	data[] = { width/2, height/2 };		// selected pixel
+		const int	data[] = { -1, -1 };	// selected pixel outside of the screen
 
 		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, sizeof(data), VK_WHOLE_SIZE, 0 );
 		vulkan.vkCmdUpdateBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, sizeof(data), data );
@@ -123,7 +155,7 @@ extern bool ShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		
-		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 									 0, null, 1, &barrier, 0, null);
 	}
 
@@ -159,7 +191,7 @@ extern bool ShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkCmdSetScissor( helper.cmdBuffer, 0, 1, &scissor_rect );
 	}
 			
-	vulkan.vkCmdDraw( helper.cmdBuffer, 3, 1, 0, 0 );
+	vulkan.vkCmdDraw( helper.cmdBuffer, 5, 1, 0, 0 );
 			
 	vulkan.vkCmdEndRenderPass( helper.cmdBuffer );
 
@@ -175,7 +207,7 @@ extern bool ShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		
-		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									 0, null, 1, &barrier, 0, null);
 	}
 
@@ -216,7 +248,7 @@ extern bool ShaderTrace_Test4 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, {frag_shader}, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {vert_shader, frag_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

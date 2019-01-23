@@ -20,7 +20,9 @@ int main ()
 #endif
 
 	FG_LOGI( "Tests.Framework finished" );
-	
+
+	#ifdef PLATFORM_WINDOWS
 	std::cin.ignore();
+	#endif
 	return 0;
 }

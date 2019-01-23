@@ -140,8 +140,8 @@ namespace FG
 	template <typename TaskType>
 	inline void  RenderQueue::AddTask (ERenderLayer beforeLayer, const TaskType &task)
 	{
-		ASSERT( _camera.layers[uint(layer)] );
-		_layers[uint(layer)].pass.DependsOn( _frameGraph->AddTask( task ) );
+		ASSERT( _camera.layers[uint(beforeLayer)] );
+		_layers[uint(beforeLayer)].pass.DependsOn( _frameGraph->AddTask( task ) );
 	}
 
 

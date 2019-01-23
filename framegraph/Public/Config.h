@@ -25,7 +25,7 @@ namespace FG
 	static constexpr unsigned	FG_MaxRenderPassSubpasses	= 8;
 
 	// pipeline
-	static constexpr unsigned	FG_MaxDescriptorSets		= 8;
+	static constexpr unsigned	FG_MaxDescriptorSets		= 7;
 	static constexpr unsigned	FG_MaxPushConstants			= 8;
 	static constexpr unsigned	FG_MaxPushConstantsSize		= 128;	// bytes
 	static constexpr unsigned	FG_MaxSpecConstants			= 16;

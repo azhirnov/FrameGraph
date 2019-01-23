@@ -50,7 +50,8 @@ namespace FG
 		_Last,
 
 		All				= ((_Last-1) << 1) - 1,
-		AllGraphics		= Vertex | TessControl | TessEvaluation | Geometry | Fragment,
+		AllGraphics		= Vertex | TessControl | TessEvaluation | Geometry | MeshTask | Mesh | Fragment,
+		AllRayTracing	= RayGen | RayAnyHit | RayClosestHit | RayMiss | RayIntersection | RayCallable,
 		Unknown			= 0,
 	};
 	FG_BIT_OPERATORS( EShaderStages );

@@ -43,7 +43,7 @@ void main ()
 		bool	data_is_correct				= false;
 		bool	shader_output_is_correct	= false;
 
-		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, EShader shaderType, ArrayView<String> output) {
+		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, EShaderStages stages, ArrayView<String> output) {
 			const char	ref[] = R"#(//> gl_GlobalInvocationID: uint3 {8, 8, 0}
 //> gl_LocalInvocationID: uint3 {0, 0, 0}
 //> gl_WorkGroupID: uint3 {1, 1, 0}
@@ -68,7 +68,7 @@ no source
 
 )#";
 			shader_output_is_correct = true;
-			shader_output_is_correct &= (shaderType == EShader::Compute);
+			shader_output_is_correct &= (stages == EShaderStages::Compute);
 			shader_output_is_correct &= (taskName == "DebuggableCompute");
 			shader_output_is_correct &= (output.size() == 1);
 			shader_output_is_correct &= (output.size() ? output[0] == ref : false);

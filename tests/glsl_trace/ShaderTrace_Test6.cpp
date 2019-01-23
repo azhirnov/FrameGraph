@@ -31,8 +31,12 @@ layout (triangle_strip, max_vertices = 4) out;
 
 layout(location=0) out vec4 out_Color;
 
+void dbg_EnableTraceRecording (bool b) {}
+
 void main ()
 {
+	dbg_EnableTraceRecording( gl_InvocationID == 0 && gl_PrimitiveIDIn == 1 );
+
 	const vec4	pos  = gl_in[0].gl_Position;
 	const float	size = 2.0f;
 
@@ -234,13 +238,7 @@ extern bool ShaderTrace_Test6 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 	
 	// setup storage buffer
 	{
-		const uint	data[] = {
-			0,		// invocation
-			1		// primitive
-		};
-
-		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, sizeof(data), VK_WHOLE_SIZE, 0 );
-		vulkan.vkCmdUpdateBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, sizeof(data), data );
+		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, VK_WHOLE_SIZE, 0 );
 	}
 
 	// debug output storage read/write after write
@@ -349,7 +347,7 @@ extern bool ShaderTrace_Test6 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, geom_shader, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {geom_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

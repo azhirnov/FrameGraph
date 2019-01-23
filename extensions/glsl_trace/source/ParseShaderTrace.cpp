@@ -90,14 +90,15 @@ bool ShaderTrace::ParseShaderTrace (const void *ptr, uint64_t maxSize, OUT std::
 		uint32_t		expr_id		= *(data_ptr++);
 		uint32_t		type		= *(data_ptr++);
 		TBasicType		t_basic		= TBasicType(type & 0xFF);
-		uint32_t		row_size	= (type >> 8) & 0xF;		// for scalar, vector and matrix
-		uint32_t		col_size	= (type >> 12) & 0xF;		// only for matrix
+		uint32_t		row_size	= (type >> 8) & 0xF;					// for scalar, vector and matrix
+		uint32_t		col_size	= std::max(1u, (type >> 12) & 0xF );	// only for matrix
+		uint32_t const*	data		= data_ptr;
 		Trace*			trace		= nullptr;
 
-		CHECK_ERR( prev_pos == ~0u or prev_pos < pos );
-		CHECK_ERR( expr_id < _exprLocations.size() );
 		CHECK_ERR( (t_basic == TBasicType::EbtVoid and row_size == 0) or (row_size > 0 and row_size <= 4) );
-		CHECK_ERR( col_size >= 0 and col_size <= 4 );
+		CHECK_ERR( col_size > 0 and col_size <= 4 );
+
+		data_ptr += (row_size * col_size) * (t_basic == TBasicType::EbtDouble or t_basic == TBasicType::EbtUint64 or t_basic == TBasicType::EbtInt64 ? 2 : 1);
 
 		for (auto& sh : shaders) {
 			if ( sh.lastPosition == prev_pos ) {
@@ -106,21 +107,29 @@ bool ShaderTrace::ParseShaderTrace (const void *ptr, uint64_t maxSize, OUT std::
 			}
 		}
 		
-		if ( prev_pos == ~0u or not trace )
+		if ( not trace )
 		{
-			shaders.push_back( Trace{} );
-			result.resize( shaders.size() );
-			trace = &shaders.back();
+			if ( prev_pos == _initialPosition )
+			{
+				shaders.push_back( Trace{} );
+				result.resize( shaders.size() );
+				trace = &shaders.back();
+			}
+			else
+			{
+				// this entry from another shader, skip it
+				continue;
+			}
 		}
+		
+		CHECK_ERR( expr_id < _exprLocations.size() );
 
 		auto&	expr = _exprLocations[expr_id];
 		auto&	str  = result[std::distance( shaders.data(), trace )];
 
-		CHECK_ERR( trace->AddState( expr, t_basic, row_size, col_size, data_ptr, _varNames, _sources, INOUT str ));
+		CHECK_ERR( trace->AddState( expr, t_basic, row_size, col_size, data, _varNames, _sources, INOUT str ));
 
 		trace->lastPosition = pos;
-
-		data_ptr += (row_size * std::max(1u, col_size)) * (t_basic == TBasicType::EbtDouble or t_basic == TBasicType::EbtUint64 or t_basic == TBasicType::EbtInt64 ? 2 : 1);
 	}
 
 	for (size_t i = 0; i < shaders.size(); ++i)
@@ -186,8 +195,6 @@ bool Trace::AddState (const ExprInfo &expr, TBasicType type, uint32_t rows, uint
 {
 	if ( not (_lastLoc == expr.range) )
 		CHECK_ERR( Flush( varNames, sources, INOUT result ));
-
-	cols = std::max( 1u, cols );
 
 	const auto	AppendID = [this] (uint64_t newID) {
 		for (auto& id : _pending) {

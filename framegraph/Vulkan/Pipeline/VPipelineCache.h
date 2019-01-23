@@ -147,7 +147,7 @@ namespace FG
 
 		template <typename Pipeline>
 		bool _SetupShaderDebugging (VResourceManagerThread &resMngr, VShaderDebugger &shaderDebugger, const Pipeline &ppln, uint debugModeIndex,
-									OUT EShaderDebugMode &debugMode, OUT EShader &debuggableShader, OUT RawPipelineLayoutID &layoutId);
+									OUT EShaderDebugMode &debugMode, OUT EShaderStages &debuggableShaders, OUT RawPipelineLayoutID &layoutId);
 
 		void _ClearTemp ();
 
@@ -162,7 +162,7 @@ namespace FG
 							   INOUT SpecializationEntries_t &specEntries,
 							   ArrayView<ShaderModule_t> shaders,
 							   EShaderDebugMode debugMode,
-							   EShader debuggableShader) const;
+							   EShaderStages debuggableShaders) const;
 
 		void _SetDynamicState (OUT VkPipelineDynamicStateCreateInfo &outState,
 							   OUT DynamicStates_t &states,

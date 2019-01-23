@@ -67,21 +67,23 @@ private:
 	VarNames_t		_varNames;
 	Sources_t		_sources;
 	FileMap_t		_fileMap;
-	uint32_t		_shaderType		= ~0u;	// EShLanguage
 	uint64_t		_posOffset		= 0;
 	uint64_t		_dataOffset		= 0;
+	uint32_t		_initialPosition;
 
 
 public:
 	ShaderTrace () {}
-	ShaderTrace (ShaderTrace &&) = default;
-	ShaderTrace& operator = (ShaderTrace &&) = default;
+
+	ShaderTrace (ShaderTrace &&) = delete;
+	ShaderTrace (const ShaderTrace &) = delete;
+	ShaderTrace& operator = (ShaderTrace &&) = delete;
+	ShaderTrace& operator = (const ShaderTrace &) = delete;
 
 	bool InsertTraceRecording (glslang::TIntermediate &, uint32_t descSetIndex);
 	//bool InsertDebugAsserts (glslang::TIntermediate &, uint32_t descSetIndex);
 	//bool InsertInstructionCounter (glslang::TIntermediate &, uint32_t descSetIndex);
 	
-	bool ConvertTraceToRdc (const void *ptr, uint64_t maxSize, std::vector<struct ShaderDebugTrace> &result) const;
 	bool ParseShaderTrace (const void *ptr, uint64_t maxSize, std::vector<std::string> &result) const;
 
 	void SetSource (const char* const* sources, const size_t *lengths, size_t count);

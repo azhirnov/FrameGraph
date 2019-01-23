@@ -105,11 +105,7 @@ extern bool ShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 	
 	// setup storage buffer
 	{
-		const uint	data[] = { 
-			width/2, height/2,		// selected pixel
-			~0u,					// any sample
-			~0u						// any primitive
-		};
+		const uint	data[] = { width/2, height/2 };		// selected pixel
 
 		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, sizeof(data), VK_WHOLE_SIZE, 0 );
 		vulkan.vkCmdUpdateBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, sizeof(data), data );
@@ -220,7 +216,7 @@ extern bool ShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, frag_shader, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugOutput( helper, {frag_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;
