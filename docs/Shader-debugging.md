@@ -43,10 +43,12 @@ TraceRays().EnableDebugTrace( EShaderStages::RayGen );
 
 DispatchCompute().EnableDebugTrace();
 ```
+
 <br/> 
 At the end of frame device synchronized with host, shader trace parsed and callback will be called anyway.
 If selected thread/pixel/... is never dispatched or drawed then `output` array in callback parameters will be empty.
 <br/>
+
 Example of shader trace:
 ```cpp
 //> gl_GlobalInvocationID: uint3 {8, 8, 0}
@@ -71,4 +73,5 @@ no source
 //  value: float {0.506611}
 14.     imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), vec4(value) );
 ```
+
 The `//>` symbol marks the modified variable.
