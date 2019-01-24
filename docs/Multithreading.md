@@ -63,21 +63,24 @@ It is prefered to create and destroy resources in asynchronous mode.
 '------------'------------'------------'------------'------------'
 ```
 <br/>
-In synchronous mode:
-```cpp
+
+In synchronous mode
+
+```
 auto image = fg->CreateImage( ... );
 ...
 fg->ReleaseResource( image );   // image destroed immediatly
+ ```
+In asynchronous mode
+
 ```
-<br/>
-In asynchronous mode:
-```cpp
 auto image = fg->CreateImage( ... );
 ...
 fg->ReleaseResource( image );  // just released reference to the image
 ...
 EndFrame() // image destroed here
 ```
+
 Warning: all Vulkan resources will be destroyed with delay to be sure that GPU has finished using the resource.
 `ReleaseResource` method destoy only the FrameGraph wrapper for that resource.
 
