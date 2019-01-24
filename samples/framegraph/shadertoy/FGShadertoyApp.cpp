@@ -801,7 +801,7 @@ namespace FG
 
 		FrameGraphInstance::Statistics	stat;
 		_fgInstance->GetStatistics( OUT stat );
-		_fps.frameTimeSum += stat.renderer.frameTime;
+		_fps.frameTimeSum += stat.renderer.gpuTime;
 
 		if ( duration > _fps.UpdateIntervalMillis )
 		{

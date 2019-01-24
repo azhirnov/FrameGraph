@@ -14,6 +14,8 @@
 #	include "lodepng/lodepng.h"
 #endif
 
+extern void UnitTest_VResourceManager (const FG::FGThreadPtr &fg);
+
 namespace FG
 {
 namespace {
@@ -169,7 +171,8 @@ namespace {
 
 			_fgInstance->AddPipelineCompiler( _pplnCompiler );
 		}
-
+		
+		UnitTest_VResourceManager( _fgGraphics1 );
 		return true;
 	}
 

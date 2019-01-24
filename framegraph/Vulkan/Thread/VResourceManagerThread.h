@@ -144,7 +144,8 @@ namespace FG
 												  StringView dbgName, bool isAsync);
 		ND_ RawFramebufferID	CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers,
 												   StringView dbgName, bool isAsync);
-		ND_ RawPipelineResourcesID	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
+		//ND_ RawPipelineResourcesID	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
+		ND_ VPipelineResources const*	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
 		
 		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
 		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);

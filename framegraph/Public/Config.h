@@ -2,9 +2,6 @@
 
 #pragma once
 
-// TODO
-//#define FG_HALF_TYPE
-
 #ifdef FG_DEBUG
 #	define FG_OPTIMIZE_IDS		false
 #else
@@ -17,7 +14,7 @@ namespace FG
 
 	// buffer
 	static constexpr unsigned	FG_MaxVertexBuffers			= 8;
-	static constexpr unsigned	FG_MaxAttribs				= 16;
+	static constexpr unsigned	FG_MaxVertexAttribs			= 16;
 
 	// render pass
 	static constexpr unsigned	FG_MaxViewports				= 16;

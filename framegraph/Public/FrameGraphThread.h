@@ -151,10 +151,10 @@ namespace FG
 
 			// Acquire resource or specific data range in mutable or immutable state.
 			// Must be used between 'Begin' and 'Execute' calls.
-			virtual bool		Acquire (const ImageID &id, bool immutable = true) = 0;
-			virtual bool		Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable = true) = 0;
-			virtual bool		Acquire (const BufferID &id, bool immutable = true) = 0;
-			virtual bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable = true) = 0;
+			//virtual bool		Acquire (const ImageID &id, bool immutable = true) = 0;
+			//virtual bool		Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable = true) = 0;
+			//virtual bool		Acquire (const BufferID &id, bool immutable = true) = 0;
+			//virtual bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable = true) = 0;
 
 		//ND_ virtual ImageID		GetSwapchainImage (ESwapchainImage type) = 0;
 

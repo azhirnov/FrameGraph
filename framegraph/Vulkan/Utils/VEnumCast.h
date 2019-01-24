@@ -824,7 +824,7 @@ namespace FG
 		switch ( value & EResourceState::_AccessMask )
 		{								  
 			case EResourceState::Unknown :						return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			case EResourceState::_Access_InputAttachment :		return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	// TODO: check
+			case EResourceState::_Access_InputAttachment :		return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 			case EResourceState::_Access_Transfer :				return VK_PIPELINE_STAGE_TRANSFER_BIT;
 			case EResourceState::_Access_ColorAttachment :		return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 			case EResourceState::_Access_Present :				return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;

@@ -20,6 +20,7 @@ namespace FG
 
 		StaticArray<VkQueueFamilyProperties, 16>	queue_properties;
 		uint										count = uint(queue_properties.size());
+		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, INOUT &count, null );	// to shutup validation warnings
 		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, INOUT &count, OUT queue_properties.data() );
 
 		for (auto& src : vdi.queues)
@@ -99,7 +100,7 @@ namespace FG
 
 		// validate constants
 		CHECK( GetDeviceLimits().maxPushConstantsSize >= FG_MaxPushConstantsSize );
-		CHECK( GetDeviceLimits().maxVertexInputAttributes >= FG_MaxAttribs );
+		CHECK( GetDeviceLimits().maxVertexInputAttributes >= FG_MaxVertexAttribs );
 		CHECK( GetDeviceLimits().maxVertexInputBindings >= FG_MaxVertexBuffers );
 		CHECK( GetDeviceLimits().maxViewports >= FG_MaxViewports );
 		CHECK( GetDeviceLimits().maxColorAttachments >= FG_MaxColorBuffers );

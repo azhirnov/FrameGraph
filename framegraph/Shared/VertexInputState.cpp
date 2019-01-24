@@ -30,11 +30,11 @@ namespace FG
 		index( VertexIndex_Unknown )
 	{}
 
-	VertexInputState::VertexInput::VertexInput (EVertexType type, Bytes<uint> offset, uint bindingIndex) :
+	VertexInputState::VertexInput::VertexInput (EVertexType type, Bytes<uint> offset, uint bufferBinding) :
 		type( type ),
 		index( VertexIndex_Unknown ),
 		offset( offset ),
-		bindingIndex( bindingIndex )
+		bufferBinding( bufferBinding )
 	{}
 
 /*
@@ -93,7 +93,7 @@ namespace FG
 		return	type			== rhs.type		and
 				index			== rhs.index	and
 				offset			== rhs.offset	and
-				bindingIndex	== rhs.bindingIndex;
+				bufferBinding	== rhs.bufferBinding;
 	}
 //-----------------------------------------------------------------------------
 
@@ -233,7 +233,7 @@ namespace std
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
 	#else
 		return size_t(HashOf( value.type )   + HashOf( value.index ) +
-					  HashOf( value.offset ) + HashOf( value.bindingIndex ));
+					  HashOf( value.offset ) + HashOf( value.bufferBinding ));
 	#endif
 	}
 	

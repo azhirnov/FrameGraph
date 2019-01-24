@@ -5,7 +5,6 @@
 #include "VSwapchainKHR.h"
 #include "VStagingBufferManager.h"
 #include "Shared/PipelineResourcesInitializer.h"
-#include "VTaskGraph.hpp"
 #include "VFrameGraphDebugger.h"
 #include "VShaderDebugger.h"
 
@@ -1181,7 +1180,7 @@ namespace FG
 														sizeof(query_results), OUT query_results.data(),
 														sizeof(query_results[0]), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT ));
 
-					_statistic.renderer.frameTime += Nanoseconds{query_results[1] - query_results[0]};
+					_statistic.renderer.gpuTime += Nanoseconds{query_results[1] - query_results[0]};
 				}
 
 				frame.executed.clear();
@@ -1198,7 +1197,7 @@ namespace FG
 			_isFirstUsage = false;
 		}
 
-		_taskGraph.OnStart( this );
+		_taskGraph.OnStart( GetAllocator() );
 
 		if ( _stagingMngr )
 			_stagingMngr->OnBeginFrame( _frameId, _isFirstUsage );
@@ -1222,6 +1221,8 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Recording, EState::Compiling ));
 		ASSERT( _submissionGraph );
+		
+		const auto	start_time = TimePoint_t::clock::now();
 
 		CHECK_ERR( _BuildCommandBuffers() );
 
@@ -1248,6 +1249,16 @@ namespace FG
 		_indexInBatch	= UMax;
 		_currUsage		= Default;
 		_currQueue		= null;
+		
+		const auto	dt = TimePoint_t::clock::now() - start_time;
+
+		for (auto& queue : _queues)
+		{
+			auto&	frame = queue.frames[_frameId];
+
+			_statistic.renderer.cpuTime += frame.executionTime;
+			frame.executionTime = dt;
+		}
 
 		CHECK_ERR( _SetState( EState::Compiling, EState::Pending ));
 		return true;
@@ -1279,7 +1290,7 @@ namespace FG
 		_submissionGraph = null;
 		
 		if ( _swapchain )
-			_swapchain->Present( RawImageID() );	// TODO: move to 'Compile'
+			_swapchain->Present( RawImageID() );	// TODO: move to 'Execute' or VSubmissionGraph
 
 		if ( _shaderDebugger )
 			_shaderDebugger->OnEndFrame( _shaderDebugCallback );

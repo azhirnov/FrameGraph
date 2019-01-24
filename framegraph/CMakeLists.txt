@@ -10,7 +10,7 @@ set( FrameGraph_VERSION_MINOR 7 )
 set( SOURCES 
 	"Vulkan/Memory/VMemoryManager.cpp"
 	"Vulkan/Memory/VMemoryManager.h"
-	"Vulkan/Memory/VMemoryManager_VMAllocator.h"
+	"Vulkan/Memory/VMemoryManager_VMAllocator.cpp"
 	"Vulkan/Memory/VMemoryObj.cpp"
 	"Vulkan/Memory/VMemoryObj.h"
 	"Vulkan/RayTracing/VLocalRTGeometry.cpp"
@@ -166,7 +166,7 @@ set( SOURCES
 	"Vulkan/Descriptors/VPipelineResources.cpp"
 	"Vulkan/Descriptors/VPipelineResources.h" )
 add_library( "FrameGraph" STATIC ${SOURCES} )
-source_group( "Vulkan\\Memory" FILES "Vulkan/Memory/VMemoryManager.cpp" "Vulkan/Memory/VMemoryManager.h" "Vulkan/Memory/VMemoryManager_VMAllocator.h" "Vulkan/Memory/VMemoryObj.cpp" "Vulkan/Memory/VMemoryObj.h" )
+source_group( "Vulkan\\Memory" FILES "Vulkan/Memory/VMemoryManager.cpp" "Vulkan/Memory/VMemoryManager.h" "Vulkan/Memory/VMemoryManager_VMAllocator.cpp" "Vulkan/Memory/VMemoryObj.cpp" "Vulkan/Memory/VMemoryObj.h" )
 source_group( "Vulkan\\RayTracing" FILES "Vulkan/RayTracing/VLocalRTGeometry.cpp" "Vulkan/RayTracing/VLocalRTGeometry.h" "Vulkan/RayTracing/VLocalRTScene.cpp" "Vulkan/RayTracing/VLocalRTScene.h" "Vulkan/RayTracing/VRayTracingGeometry.cpp" "Vulkan/RayTracing/VRayTracingGeometry.h" "Vulkan/RayTracing/VRayTracingScene.cpp" "Vulkan/RayTracing/VRayTracingScene.h" )
 source_group( "Public" FILES "Public/BindingIndex.h" "Public/BufferDesc.h" "Public/BufferView.h" "Public/Config.h" "Public/EResourceState.h" "Public/FGEnums.h" "Public/FrameGraphDrawTask.h" "Public/FrameGraphInstance.h" "Public/FrameGraphTask.h" "Public/FrameGraphThread.h" "Public/IDs.h" "Public/ImageDesc.h" "Public/ImageLayer.h" "Public/ImageSwizzle.h" "Public/ImageView.h" "Public/IPipelineCompiler.h" "Public/MemoryDesc.h" "Public/MipmapLevel.h" "Public/MultiSamples.h" "Public/Pipeline.h" "Public/PipelineResources.h" "Public/RayTracingEnums.h" "Public/RayTracingGeometryDesc.h" "Public/RayTracingSceneDesc.h" "Public/RenderPassDesc.h" "Public/RenderState.h" "Public/RenderStateEnums.h" "Public/ResourceEnums.h" "Public/SamplerDesc.h" "Public/SamplerEnums.h" "Public/ShaderEnums.h" "Public/SubmissionGraph.h" "Public/Types.h" "Public/VertexDesc.h" "Public/VertexEnums.h" "Public/VertexInputState.h" "Public/VulkanTypes.h" )
 source_group( "Vulkan" FILES "Vulkan/VCommon.h" )
@@ -220,64 +220,19 @@ install( TARGETS "FrameGraph" ARCHIVE DESTINATION "lib" )
 
 
 #==================================================================================================
-# project: UnitTests.FrameGraph
-#==================================================================================================
-if (${FG_ENABLE_TESTS})
-	set( SOURCES 
-		"../tests/framegraph_unit/DummyTask.h"
-		"../tests/framegraph_unit/main.cpp"
-		"../tests/framegraph_unit/UnitTest_Common.h"
-		"../tests/framegraph_unit/UnitTest_ID.cpp"
-		"../tests/framegraph_unit/UnitTest_ImageSwizzle.cpp"
-		"../tests/framegraph_unit/UnitTest_PixelFormat.cpp"
-		"../tests/framegraph_unit/UnitTest_VBuffer.cpp"
-		"../tests/framegraph_unit/UnitTest_VertexInput.cpp"
-		"../tests/framegraph_unit/UnitTest_VImage.cpp"
-		"../tests/framegraph_unit/UnitTest_VResourceManager.cpp" )
-	if (DEFINED ANDROID)
-		add_library( "UnitTests.FrameGraph" SHARED ${SOURCES} )
-	else()
-		add_executable( "UnitTests.FrameGraph" ${SOURCES} )
-	endif()
-	source_group( "" FILES "../tests/framegraph_unit/DummyTask.h" "../tests/framegraph_unit/main.cpp" "../tests/framegraph_unit/UnitTest_Common.h" "../tests/framegraph_unit/UnitTest_ID.cpp" "../tests/framegraph_unit/UnitTest_ImageSwizzle.cpp" "../tests/framegraph_unit/UnitTest_PixelFormat.cpp" "../tests/framegraph_unit/UnitTest_VBuffer.cpp" "../tests/framegraph_unit/UnitTest_VertexInput.cpp" "../tests/framegraph_unit/UnitTest_VImage.cpp" "../tests/framegraph_unit/UnitTest_VResourceManager.cpp" )
-	set_property( TARGET "UnitTests.FrameGraph" PROPERTY FOLDER "Tests" )
-	target_include_directories( "UnitTests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Buffer" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/RenderPass" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/RayTracing" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/.." )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Main" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Image" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Memory" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Utils" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Thread" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Debugger" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Swapchain" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Pipeline" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../tests/framegraph_unit/../../framegraph/Vulkan/Descriptors" )
-	target_include_directories( "UnitTests.FrameGraph" PRIVATE "../extensions" )
-	target_link_libraries( "UnitTests.FrameGraph" "FrameGraph" )
-	target_link_libraries( "UnitTests.FrameGraph" "Framework" )
-	# compiler
-	target_compile_definitions( "UnitTests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "UnitTests.FrameGraph" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "UnitTests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "UnitTests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "UnitTests.FrameGraph" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "UnitTests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "UnitTests.FrameGraph" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "UnitTests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "UnitTests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
-	
-endif()
-
-
-#==================================================================================================
-# project: IntTests.FrameGraph
+# project: Tests.FrameGraph
 #==================================================================================================
 if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_ENABLE_SDL2})
 	set( SOURCES 
+		"../tests/framegraph/UnitTests/DummyTask.h"
+		"../tests/framegraph/UnitTests/UnitTest_Common.h"
+		"../tests/framegraph/UnitTests/UnitTest_ID.cpp"
+		"../tests/framegraph/UnitTests/UnitTest_ImageSwizzle.cpp"
+		"../tests/framegraph/UnitTests/UnitTest_PixelFormat.cpp"
+		"../tests/framegraph/UnitTests/UnitTest_VBuffer.cpp"
+		"../tests/framegraph/UnitTests/UnitTest_VertexInput.cpp"
+		"../tests/framegraph/UnitTests/UnitTest_VImage.cpp"
+		"../tests/framegraph/UnitTests/UnitTest_VResourceManager.cpp"
 		"../tests/framegraph/DrawingTests/Test_AsyncCompute1.cpp"
 		"../tests/framegraph/DrawingTests/Test_Compute1.cpp"
 		"../tests/framegraph/DrawingTests/Test_Compute2.cpp"
@@ -309,43 +264,55 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		"../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp"
 		"../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
 	if (DEFINED ANDROID)
-		add_library( "IntTests.FrameGraph" SHARED ${SOURCES} )
+		add_library( "Tests.FrameGraph" SHARED ${SOURCES} )
 	else()
-		add_executable( "IntTests.FrameGraph" ${SOURCES} )
+		add_executable( "Tests.FrameGraph" ${SOURCES} )
 	endif()
+	source_group( "UnitTests" FILES "../tests/framegraph/UnitTests/DummyTask.h" "../tests/framegraph/UnitTests/UnitTest_Common.h" "../tests/framegraph/UnitTests/UnitTest_ID.cpp" "../tests/framegraph/UnitTests/UnitTest_ImageSwizzle.cpp" "../tests/framegraph/UnitTests/UnitTest_PixelFormat.cpp" "../tests/framegraph/UnitTests/UnitTest_VBuffer.cpp" "../tests/framegraph/UnitTests/UnitTest_VertexInput.cpp" "../tests/framegraph/UnitTests/UnitTest_VImage.cpp" "../tests/framegraph/UnitTests/UnitTest_VResourceManager.cpp" )
 	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_AsyncCompute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute2.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage4.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" "../tests/framegraph/DrawingTests/Test_Draw2.cpp" "../tests/framegraph/DrawingTests/Test_Draw3.cpp" "../tests/framegraph/DrawingTests/Test_DrawMeshes1.cpp" "../tests/framegraph/DrawingTests/Test_DynamicOffset.cpp" "../tests/framegraph/DrawingTests/Test_ExternalCmdBuf1.cpp" "../tests/framegraph/DrawingTests/Test_InvalidID.cpp" "../tests/framegraph/DrawingTests/Test_PushConst1.cpp" "../tests/framegraph/DrawingTests/Test_ReadAttachment1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger2.cpp" "../tests/framegraph/DrawingTests/Test_ShadingRate1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays2.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
 	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/ImplTest_CacheOverflow1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading2.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp" "../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
-	set_property( TARGET "IntTests.FrameGraph" PROPERTY FOLDER "Tests" )
-	target_include_directories( "IntTests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "IntTests.FrameGraph" PRIVATE "../tests/.." )
-	target_include_directories( "IntTests.FrameGraph" PRIVATE "../extensions" )
-	target_link_libraries( "IntTests.FrameGraph" "FrameGraph" )
+	set_property( TARGET "Tests.FrameGraph" PROPERTY FOLDER "Tests" )
+	target_include_directories( "Tests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Buffer" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/.." )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Memory" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Thread" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/RayTracing" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Swapchain" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Main" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/RenderPass" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Descriptors" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Pipeline" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Image" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Debugger" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../extensions" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Utils" )
+	target_link_libraries( "Tests.FrameGraph" "FrameGraph" )
 	if (${FG_ENABLE_GRAPHVIZ})
-		target_link_libraries( "IntTests.FrameGraph" "GraphViz" )
+		target_link_libraries( "Tests.FrameGraph" "GraphViz" )
 	endif()
 	if (${FG_ENABLE_LODEPNG})
-		target_link_libraries( "IntTests.FrameGraph" "lodepng" )
+		target_link_libraries( "Tests.FrameGraph" "lodepng" )
 	endif()
-	target_link_libraries( "IntTests.FrameGraph" "PipelineCompiler" )
-	target_link_libraries( "IntTests.FrameGraph" "Framework" )
-	target_compile_definitions( "IntTests.FrameGraph" PUBLIC "FG_TEST_GRAPHS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Graphs\"" )
-	target_compile_definitions( "IntTests.FrameGraph" PUBLIC "FG_TEST_DUMPS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Dumps\"" )
+	target_link_libraries( "Tests.FrameGraph" "PipelineCompiler" )
+	target_link_libraries( "Tests.FrameGraph" "Framework" )
+	target_compile_definitions( "Tests.FrameGraph" PUBLIC "FG_TEST_GRAPHS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Graphs\"" )
+	target_compile_definitions( "Tests.FrameGraph" PUBLIC "FG_TEST_DUMPS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Dumps\"" )
 	# compiler
-	target_compile_definitions( "IntTests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "IntTests.FrameGraph" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "IntTests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "IntTests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "IntTests.FrameGraph" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "IntTests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "IntTests.FrameGraph" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "IntTests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "IntTests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
 endif()
 
 
-add_test( NAME "IntTests.FrameGraph" COMMAND "IntTests.FrameGraph" )
-
-add_test( NAME "UnitTests.FrameGraph" COMMAND "UnitTests.FrameGraph" )
+add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
 

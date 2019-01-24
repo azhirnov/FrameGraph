@@ -80,7 +80,7 @@ namespace FG
 
 		for (auto& vert : vertexInput.Vertices())
 		{
-			if ( vert.second.bindingIndex == binding_idx )
+			if ( vert.second.bufferBinding == binding_idx )
 			{
 				_attribs.insert({ vert.first, vert.second });
 			}

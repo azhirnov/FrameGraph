@@ -74,11 +74,6 @@ namespace FG
 		void SetExecutionOrder (ExeOrderIndex idx)	{ _exeOrderIdx = idx; }
 
 		void Process (void *visitor)		const	{ ASSERT( _processFunc );  _processFunc( visitor, this ); }
-
-
-	// interface
-	public:
-		virtual ~IFrameGraphTask () {}
 	};
 
 
@@ -563,6 +558,12 @@ namespace FG
 	{
 		friend class VFrameGraphThread;
 
+	// types
+	private:
+		using UsableBuffers_t = std::unordered_set< VLocalBuffer const*, std::hash<VLocalBuffer const*>, std::equal_to<VLocalBuffer const*>,
+													StdLinearAllocator<VLocalBuffer const*> >;
+
+
 	// variables
 	private:
 		VLocalRTGeometry const*		_rtGeometry				= null;
@@ -570,11 +571,12 @@ namespace FG
 		VkDeviceSize				_scratchBufferOffset	= 0;
 		VkGeometryNV *				_geometry				= null;
 		size_t						_geometryCount			= 0;
+		UsableBuffers_t				_usableBuffers;
 
 
 	// methods
 	public:
-		VFgTask (VFrameGraphThread *, const BuildRayTracingGeometry &task, ProcessFunc_t process) : IFrameGraphTask{task, process} {}
+		VFgTask (VFrameGraphThread *, const BuildRayTracingGeometry &task, ProcessFunc_t process);
 		
 		ND_ bool  IsValid () const	{ return true; }
 
@@ -582,6 +584,7 @@ namespace FG
 		ND_ VLocalBuffer const*			ScratchBuffer ()		const	{ return _scratchBuffer; }
 		ND_ VkDeviceSize				ScratchBufferOffset ()	const	{ return _scratchBufferOffset; }
 		ND_ ArrayView<VkGeometryNV>		GetGeometry ()			const	{ return ArrayView{ _geometry, _geometryCount }; }
+		ND_ UsableBuffers_t const&		GetBuffers ()			const	{ return _usableBuffers; }
 	};
 
 
@@ -695,7 +698,7 @@ namespace FG
 		template <typename T>
 		ND_ VFgTask<T>*  Add (VFrameGraphThread *fg, const T &task);
 
-		void OnStart (VFrameGraphThread *fg);
+		void OnStart (LinearAllocator<> &);
 		void OnDiscardMemory ();
 
 		ND_ ArrayView<Task>		Entries ()		const	{ return *_entries; }
@@ -728,6 +731,33 @@ namespace FG
 		{
 		}
 	};*/
+
+	
+	
+/*
+=================================================
+	OnStart
+=================================================
+*/
+	template <typename VisitorT>
+	inline void  VTaskGraph<VisitorT>::OnStart (LinearAllocator<> &alloc)
+	{
+		_nodes.Create( alloc );
+		_entries.Create( alloc );
+		_entries->reserve( 64 );
+	}
+	
+/*
+=================================================
+	OnDiscardMemory
+=================================================
+*/
+	template <typename VisitorT>
+	inline void  VTaskGraph<VisitorT>::OnDiscardMemory ()
+	{
+		_nodes.Destroy();
+		_entries.Destroy();
+	}
 
 
 }	// FG

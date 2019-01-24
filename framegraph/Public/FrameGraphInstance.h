@@ -40,7 +40,8 @@ namespace FG
 			uint		traceRaysCalls				= 0;
 			uint		buildASCalls				= 0;
 
-			Nanoseconds	frameTime					{0};	// for (currentFrame - ringBufferSize)
+			Nanoseconds	gpuTime						{0};	// for (currentFrame - ringBufferSize)
+			Nanoseconds	cpuTime						{0};	// for (currentFrame - ringBufferSize)
 		};
 
 		struct ResourceStatistics

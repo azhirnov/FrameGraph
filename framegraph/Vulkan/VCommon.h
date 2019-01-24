@@ -49,20 +49,6 @@ namespace FG
 	using VDeviceQueueInfoPtr		= Ptr< const struct VDeviceQueueInfo >;
 
 
-	struct VPipelineResourceSet
-	{
-		struct Item {
-			DescriptorSetID			dsId;
-			RawPipelineResourcesID	resId;			// TODO: use pointer?
-			uint16_t				offsetIndex;	// in 'dynamicOffsets'
-			uint16_t				offsetCount	= 0;
-		};
-
-		FixedArray< Item, FG_MaxDescriptorSets >					resources;
-		mutable FixedArray< uint, FG_MaxBufferDynamicOffsets >		dynamicOffsets;
-	};
-
-
 	enum class ExeOrderIndex : uint
 	{
 		Initial		= 0,
@@ -129,6 +115,22 @@ namespace FG
 	class VRayTracingPipeline;
 	class VPipelineLayout;
 	class VShaderDebugger;
+	class VPipelineResources;
+	
+
+
+	struct VPipelineResourceSet
+	{
+		struct Item {
+			DescriptorSetID				dsId;
+			VPipelineResources const*	pplnRes		= null;
+			uint16_t					offsetIndex;		// in 'dynamicOffsets'
+			uint16_t					offsetCount	= 0;
+		};
+
+		FixedArray< Item, FG_MaxDescriptorSets >					resources;
+		mutable FixedArray< uint, FG_MaxBufferDynamicOffsets >		dynamicOffsets;
+	};
 
 
 }	// FG

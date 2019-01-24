@@ -68,6 +68,10 @@ namespace FG
 		bool Deallocate (INOUT Storage_t &data, OUT AppendableVkResources_t);
 
 		bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const;
+
+
+	private:
+		ND_ AllocatorPtr  _CreateVMA ();
 	};
 
 

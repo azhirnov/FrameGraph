@@ -1,7 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VMemoryManager.h"
-#include "VMemoryManager_VMAllocator.h"
 
 namespace FG
 {
@@ -37,7 +36,7 @@ namespace FG
 
 		// TODO: use custom mem allocator?
 #	ifdef FG_ENABLE_VULKAN_MEMORY_ALLOCATOR
-		_allocators.push_back(AllocatorPtr{ new VulkanMemoryAllocator{ _device, MT::All } });
+		_allocators.push_back( _CreateVMA() );
 #	else
 		_allocators.push_back(AllocatorPtr{ new HostMemAllocator{ _frameGraph, MT::HostCached | MT::HostWrite | MT::ForBuffer } });
 		_allocators.push_back(AllocatorPtr{ new HostMemAllocator{ _frameGraph, MT::HostCached | MT::HostRead | MT::ForBuffer } });

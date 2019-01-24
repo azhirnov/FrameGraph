@@ -43,12 +43,14 @@ namespace FG
 		static constexpr uint	MaxCommandsPerFrame	= 8;
 
 		using CommandBuffers_t	= FixedArray< VkCommandBuffer, MaxCommandsPerFrame >;
+		using TimePoint_t		= std::chrono::high_resolution_clock::time_point;
 
 		struct PerFrame
 		{
 			CommandBuffers_t	pending;
 			CommandBuffers_t	executed;
 			uint				queryIndex;
+			Nanoseconds			executionTime;
 		};
 		using PerFrameArray_t	= FixedArray< PerFrame, MaxFrames >;
 
@@ -169,12 +171,12 @@ namespace FG
 		bool		OnWaitIdle ();
 		
 		// resource acquiring
-		bool		Acquire (const ImageID &id, bool immutable) override;
-		bool		Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable) override;
-		bool		Acquire (const BufferID &id, bool immutable) override;
-		bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable) override;
+		//bool		Acquire (const ImageID &id, bool immutable) override;
+		//bool		Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable) override;
+		//bool		Acquire (const BufferID &id, bool immutable) override;
+		//bool		Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable) override;
 		
-		//ImageID		GetSwapchainImage (ESwapchainImage type) override;
+		//ImageID	GetSwapchainImage (ESwapchainImage type) override;
 		
 		bool		UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data) override;
 

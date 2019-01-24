@@ -30,7 +30,8 @@ namespace FG
 		dst.traceRaysCalls				+= src.traceRaysCalls;
 		dst.buildASCalls				+= src.buildASCalls;
 
-		dst.frameTime					+= src.frameTime;
+		dst.gpuTime						+= src.gpuTime;
+		dst.cpuTime						+= src.cpuTime;
 	}
 	
 /*

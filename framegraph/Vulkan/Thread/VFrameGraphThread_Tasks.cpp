@@ -870,12 +870,15 @@ namespace {
 				VLocalBuffer const*	vb = null;
 				CHECK_ERR( _StoreData( src.vertexData.data(), ArraySizeOf(src.vertexData), BytesU{ref.vertexSize}, OUT vb, OUT dst.geometry.triangles.vertexOffset ));
 				dst.geometry.triangles.vertexData = vb->Handle();
+				//result->_usableBuffers.insert( vb );	// staging buffer is already immutable
 			}
 			else
 			{
 				auto*	vb = GetResourceManager()->ToLocal( src.vertexBuffer );
-				dst.geometry.triangles.vertexData	= vb ? vb->Handle() : VK_NULL_HANDLE;
+				CHECK_ERR( vb );
+				dst.geometry.triangles.vertexData	= vb->Handle();
 				dst.geometry.triangles.vertexOffset	= VkDeviceSize(src.vertexOffset);
+				result->_usableBuffers.insert( vb );
 			}
 			
 			// indices
@@ -897,20 +900,26 @@ namespace {
 				VLocalBuffer const*	ib = null;
 				CHECK_ERR( _StoreData( src.indexData.data(), ArraySizeOf(src.indexData), BytesU{ref.indexSize}, OUT ib, OUT dst.geometry.triangles.indexOffset ));
 				dst.geometry.triangles.indexData = ib->Handle();
+				//result->_usableBuffers.insert( ib );	// staging buffer is already immutable
 			}
 			else
 			if ( src.indexBuffer )
 			{
 				auto*	ib = GetResourceManager()->ToLocal( src.indexBuffer );
-				dst.geometry.triangles.indexData	= ib ? ib->Handle() : VK_NULL_HANDLE;
+				CHECK_ERR( ib );
+				dst.geometry.triangles.indexData	= ib->Handle();
 				dst.geometry.triangles.indexOffset	= VkDeviceSize(src.indexOffset);
+				result->_usableBuffers.insert( ib );
 			}
 
 			// transformation
 			if ( src.transformBuffer )
 			{
-				dst.geometry.triangles.transformData	= GetResourceManager()->GetResource( src.transformBuffer )->Handle();
+				auto*	tb = GetResourceManager()->ToLocal( src.transformBuffer );
+				CHECK_ERR( tb );
+				dst.geometry.triangles.transformData	= tb->Handle();
 				dst.geometry.triangles.transformOffset	= VkDeviceSize(src.transformOffset);
+				result->_usableBuffers.insert( tb );
 			}
 			else
 			if ( src.transformData.has_value() )
@@ -918,6 +927,7 @@ namespace {
 				VLocalBuffer const*	tb = null;
 				CHECK_ERR( _StoreData( &src.transformData.value(), BytesU::SizeOf(src.transformData.value()), 16_b, OUT tb, OUT dst.geometry.triangles.transformOffset ));
 				dst.geometry.triangles.transformData = tb->Handle();
+				//result->_usableBuffers.insert( tb );	// staging buffer is already immutable
 			}
 		}
 
@@ -947,11 +957,15 @@ namespace {
 				VLocalBuffer const*	ab = null;
 				CHECK_ERR( _StoreData( src.aabbData.data(), ArraySizeOf(src.aabbData), 8_b, OUT ab, OUT dst.geometry.aabbs.offset ));
 				dst.geometry.aabbs.aabbData = ab->Handle();
+				//result->_usableBuffers.insert( ab );	// staging buffer is already immutable
 			}
 			else
 			{
-				dst.geometry.aabbs.aabbData	= GetResourceManager()->GetResource( src.aabbBuffer )->Handle();
+				auto*	ab = GetResourceManager()->ToLocal( src.aabbBuffer );
+				CHECK_ERR( ab );
+				dst.geometry.aabbs.aabbData	= ab->Handle();
 				dst.geometry.aabbs.offset	= VkDeviceSize(src.aabbOffset);
+				result->_usableBuffers.insert( ab );
 			}
 		}
 
@@ -1171,7 +1185,7 @@ namespace {
 =================================================
 	Acquire
 =================================================
-*/
+*
 	bool  VFrameGraphThread::Acquire (const ImageID &id, bool immutable)
 	{
 		SCOPELOCK( _rcCheck );
@@ -1184,7 +1198,7 @@ namespace {
 =================================================
 	Acquire
 =================================================
-*/
+*
 	bool  VFrameGraphThread::Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable)
 	{
 		SCOPELOCK( _rcCheck );
@@ -1197,7 +1211,7 @@ namespace {
 =================================================
 	Acquire
 =================================================
-*/
+*
 	bool  VFrameGraphThread::Acquire (const BufferID &id, bool immutable)
 	{
 		SCOPELOCK( _rcCheck );
@@ -1210,7 +1224,7 @@ namespace {
 =================================================
 	Acquire
 =================================================
-*/
+*
 	bool  VFrameGraphThread::Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable)
 	{
 		SCOPELOCK( _rcCheck );

@@ -281,7 +281,7 @@ namespace FG
 			for (auto& cmd : task.commands)
 			{
 				VkDeviceSize	offset	= vb_offset + stride * cmd.firstVertex;
-				VkDeviceSize	size	= stride * cmd.vertexCount;			// TODO: instance
+				VkDeviceSize	size	= stride * cmd.vertexCount;
 
 				_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, offset, size );
 			}
@@ -305,14 +305,7 @@ namespace FG
 			// add vertex buffers
 			for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
 			{
-				VkDeviceSize		offset	= task.GetVBOffsets()[i];
-				VkDeviceSize		size	= VK_WHOLE_SIZE;
-				const VkDeviceSize	stride	= VkDeviceSize(task.GetVBStrides()[i]);
-			
-				offset += VkDeviceSize(stride) * cmd.vertexOffset;
-				//size    = VkDeviceSize(stride) * EIndex::MaxValue( task.indexBuffer.indexType );	// TODO: instance
-
-				_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, offset, size );
+				_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
 			}
 		
 			// add index buffer
@@ -1186,18 +1179,17 @@ namespace FG
 			if ( not layout.GetDescriptorSetLayout( res.dsId, OUT ds_layout, OUT binding ))
 				continue;
 
-			VPipelineResources const*	ppln_res = _GetResource( res.resId );
-			PipelineResourceBarriers	visitor	 { *this, resourceSet.dynamicOffsets };
+			PipelineResourceBarriers	visitor{ *this, resourceSet.dynamicOffsets };
 
-			for (auto& un : ppln_res->GetResources()) {
+			for (auto& un : res.pplnRes->GetResources()) {
 				std::visit( visitor, un.res );
 			}
 
-			ASSERT( ds_layout == ppln_res->GetLayoutID() );
+			ASSERT( ds_layout == res.pplnRes->GetLayoutID() );
 			ASSERT( binding >= first_ds );
 			binding -= first_ds;
 
-			descriptorSets[binding] = ppln_res->Handle();
+			descriptorSets[binding] = res.pplnRes->Handle();
 			new_offsets[binding]    = { res.offsetIndex, res.offsetCount };
 		}
 
@@ -1434,9 +1426,13 @@ namespace FG
 			dst.dstOffset	= VkDeviceSize( src.dstOffset );
 			dst.size		= VkDeviceSize( src.size );
 
-			// TODO: check buffer intersection
 			ASSERT( src.size + src.srcOffset <= src_buffer->Size() );
 			ASSERT( src.size + src.dstOffset <= dst_buffer->Size() );
+
+			if ( src_buffer == dst_buffer ) {
+				ASSERT( IsIntersects( dst.srcOffset, dst.size == VK_WHOLE_SIZE ? dst.size : dst.srcOffset + dst.size,
+									  dst.dstOffset, dst.size == VK_WHOLE_SIZE ? dst.size : dst.dstOffset + dst.size ));
+			}
 
 			_AddBuffer( src_buffer, EResourceState::TransferSrc, dst.srcOffset, dst.size );
 			_AddBuffer( dst_buffer, EResourceState::TransferDst, dst.dstOffset, dst.size );
@@ -1990,8 +1986,14 @@ namespace FG
 		_OnProcessTask();
 		
 		_AddRTGeometry( task.RTGeometry(), EResourceState::BuildRayTracingStructWrite );
-		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VkDeviceSize(task.ScratchBuffer()->Size()) );
-		// TODO: vertex, index, transform, aabb buffer usage
+		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VK_WHOLE_SIZE );
+		
+		for (auto& buf : task.GetBuffers())
+		{
+			// resource state doesn't matter
+			_AddBuffer( buf, EResourceState::TransferSrc, 0, VK_WHOLE_SIZE );
+		}
+
 		_CommitBarriers();
 
 		VkAccelerationStructureInfoNV	info = {};
@@ -2023,8 +2025,8 @@ namespace FG
 		task.RTScene()->SetGeometryInstances( task.GeometryIDs(), task.HitShadersPerGeometry(), task.MaxHitShaderCount() );
 
 		_AddRTScene( task.RTScene(), EResourceState::BuildRayTracingStructWrite );
-		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VkDeviceSize(task.ScratchBuffer()->Size()) );
-		_AddBuffer( task.InstanceBuffer(), EResourceState::RTASBuildingBufferRead, 0, VkDeviceSize(task.InstanceBuffer()->Size()) );
+		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VK_WHOLE_SIZE );
+		_AddBuffer( task.InstanceBuffer(), EResourceState::RTASBuildingBufferRead, 0, VK_WHOLE_SIZE );
 
 		for (auto& blas : task.Geometries()) {
 			_AddRTGeometry( blas, EResourceState::BuildRayTracingStructRead );

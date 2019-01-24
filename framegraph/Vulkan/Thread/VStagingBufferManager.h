@@ -114,6 +114,7 @@ namespace FG
 
 		InPlace<MemoryRanges_t>		_memoryRanges;
 
+		EBufferUsage				_bufferUsage;
 		PerFrameArray_t				_perFrame;
 		uint						_frameId			= 0;
 

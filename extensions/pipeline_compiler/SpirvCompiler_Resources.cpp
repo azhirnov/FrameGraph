@@ -19,7 +19,7 @@ namespace FG
 		res.maxClipPlanes = 6;
 		res.maxTextureUnits = 32;
 		res.maxTextureCoords = 32;
-		res.maxVertexAttribs = FG_MaxAttribs;
+		res.maxVertexAttribs = FG_MaxVertexAttribs;
 		res.maxVertexUniformComponents = 4096;
 		res.maxVaryingFloats = 64;
 		res.maxVertexTextureImageUnits = 32;
@@ -169,7 +169,7 @@ namespace FG
 		}
 
 
-		res.maxVertexAttribs = Min( FG_MaxAttribs, props.limits.maxVertexInputAttributes );
+		res.maxVertexAttribs = Min( FG_MaxVertexAttribs, props.limits.maxVertexInputAttributes );
 		res.maxDrawBuffers = Min( FG_MaxColorBuffers, props.limits.maxColorAttachments );
 		res.minProgramTexelOffset = props.limits.minTexelOffset;
 		res.maxProgramTexelOffset = props.limits.maxTexelOffset;

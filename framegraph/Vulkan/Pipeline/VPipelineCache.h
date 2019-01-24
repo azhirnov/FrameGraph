@@ -54,7 +54,7 @@ namespace FG
 		using Viewports_t				= FixedArray< VkViewport, 16 >;
 		using Scissors_t				= FixedArray< VkRect2D, 16 >;
 		using ShaderStages_t			= FixedArray< VkPipelineShaderStageCreateInfo, MaxStages >;
-		using VertexInputAttributes_t	= FixedArray< VkVertexInputAttributeDescription, FG_MaxAttribs >;
+		using VertexInputAttributes_t	= FixedArray< VkVertexInputAttributeDescription, FG_MaxVertexAttribs >;
 		using VertexInputBindings_t		= FixedArray< VkVertexInputBindingDescription, FG_MaxVertexBuffers >;
 		using ColorAttachments_t		= FixedArray< VkPipelineColorBlendAttachmentState, FG_MaxColorBuffers >;
 		using Specializations_t			= FixedArray< VkSpecializationInfo, MaxStages >;

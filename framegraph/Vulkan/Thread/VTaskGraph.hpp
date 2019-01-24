@@ -37,39 +37,6 @@ namespace FG
 		}
 		return ptr;
 	}
-	
-/*
-=================================================
-	OnStart
-=================================================
-*/
-	template <typename VisitorT>
-	inline void  VTaskGraph<VisitorT>::OnStart (VFrameGraphThread *fg)
-	{
-		_nodes.Create( fg->GetAllocator() );
-		_entries.Create( fg->GetAllocator() );
-		_entries->reserve( 64 );
-	}
-	
-/*
-=================================================
-	OnDiscardMemory
-=================================================
-*/
-	template <typename VisitorT>
-	inline void  VTaskGraph<VisitorT>::OnDiscardMemory ()
-	{
-		// TODO: skip call for trivial destructors
-		for (auto& node : *_nodes)
-		{
-			node->~IFrameGraphTask();
-
-			// TODO: clear memory
-		}
-
-		_nodes.Destroy();
-		_entries.Destroy();
-	}
 //-----------------------------------------------------------------------------
 
 	
@@ -688,6 +655,18 @@ namespace FG
 	{
 		return pipeline and rtScene and dstBuffer;
 	}
+//-----------------------------------------------------------------------------
+	
+
+/*
+=================================================
+	VFgTask< BuildRayTracingGeometry >
+=================================================
+*/
+	inline VFgTask<BuildRayTracingGeometry>::VFgTask (VFrameGraphThread *fg, const BuildRayTracingGeometry &task, ProcessFunc_t process) :
+		IFrameGraphTask{task, process},
+		_usableBuffers{ fg->GetAllocator() }
+	{}
 //-----------------------------------------------------------------------------
 
 

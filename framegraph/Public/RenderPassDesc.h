@@ -40,7 +40,7 @@ namespace FG
 
 
 	// variables
-		RS::ColorBuffersState		colorState;			// TODO: merge 'colorState' + 'renderTargets'
+		RS::ColorBuffersState		colorState;
 		RS::DepthBufferState		depthState;
 		RS::StencilBufferState		stencilState;
 		RS::RasterizationState		rasterizationState;

@@ -843,7 +843,7 @@ namespace FG
 	CreateDescriptorSet
 =================================================
 */
-	RawPipelineResourcesID  VResourceManagerThread::CreateDescriptorSet (const PipelineResources &desc, bool isAsync)
+	VPipelineResources const*  VResourceManagerThread::CreateDescriptorSet (const PipelineResources &desc, bool isAsync)
 	{
 		RawPipelineResourcesID	id = PipelineResourcesInitializer::GetCached( desc );
 		
@@ -855,7 +855,7 @@ namespace FG
 			if ( res.GetInstanceID() == id.InstanceID() )
 			{
 				res.AddRef();
-				return id;
+				return &res.Data();
 			}
 		}
 		
@@ -868,7 +868,8 @@ namespace FG
 								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
 
 		PipelineResourcesInitializer::SetCache( desc, result );
-		return result;
+
+		return result ? &_GetResourcePool( result )[ result.Index() ].Data() : nullptr;
 	}
 	
 /*

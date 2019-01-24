@@ -33,11 +33,11 @@ namespace FG
 			EVertexType			type;	// src type, if src type is normalized short3, then dst type is float3.
 			uint				index;
 			Bytes<uint>			offset;
-			uint				bindingIndex;
+			uint				bufferBinding;
 
 		// methods
 			VertexInput ();
-			VertexInput (EVertexType type, Bytes<uint> offset, uint bindingIndex);
+			VertexInput (EVertexType type, Bytes<uint> offset, uint bufferBinding);
 			
 			ND_ EVertexType ToDstType () const;
 
@@ -63,7 +63,7 @@ namespace FG
 		static constexpr uint	VertexIndex_Unknown	= UMax;
 
 		
-		using Vertices_t	= FixedMap< VertexID, VertexInput, FG_MaxAttribs >;
+		using Vertices_t	= FixedMap< VertexID, VertexInput, FG_MaxVertexAttribs >;
 		using Bindings_t	= FixedMap< VertexBufferID, BufferBinding, FG_MaxVertexBuffers >;
 		
 		friend struct std::hash < VertexInputState::VertexInput >;

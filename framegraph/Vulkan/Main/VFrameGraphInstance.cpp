@@ -344,7 +344,7 @@ namespace FG
 	{
 		SHAREDLOCK( _rcCheck );
 		CHECK_ERR( _GetState() == EState::Idle );
-		// TODO
+		
 		result = _statistics;
 		return true;
 	}

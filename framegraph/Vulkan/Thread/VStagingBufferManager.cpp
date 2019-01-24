@@ -15,8 +15,13 @@ namespace FG
 =================================================
 */
 	VStagingBufferManager::VStagingBufferManager (VFrameGraphThread &fg) :
-		_frameGraph{ fg }
+		_frameGraph{ fg },
+		_bufferUsage{ EBufferUsage::TransferSrc | EBufferUsage::Vertex | EBufferUsage::Index }
 	{
+		if ( fg.GetDevice().IsRayTracingEnabled() )
+		{
+			_bufferUsage |= EBufferUsage::RayTracing;
+		}
 	}
 	
 /*
@@ -384,7 +389,7 @@ namespace FG
 		{
 			ASSERT( dstMinSize < _stagingBufferSize );
 
-			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _stagingBufferSize, EBufferUsage::TransferSrc }, 
+			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _stagingBufferSize, _bufferUsage }, 
 														   MemoryDesc{ EMemoryType::HostWrite }, "HostWriteBuffer" );
 			CHECK_ERR( buf_id );
 

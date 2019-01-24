@@ -18,9 +18,8 @@
 #endif
 
 #ifdef COMPILER_MSVC
-#	pragma warning (push)
-#	pragma warning (disable: 4100)
-#	pragma warning (disable: 4127)
+#	pragma warning (push, 0)
+#	pragma warning (disable: 4701)
 #endif
 
 #define VMA_IMPLEMENTATION	1
@@ -85,7 +84,16 @@ namespace FG
 		ND_ static VkMemoryPropertyFlags	_ConvertToMemoryProperties (EMemoryType memType);
 	};
 	
-
+	
+/*
+=================================================
+	_CreateVMA
+=================================================
+*/
+	VMemoryManager::AllocatorPtr  VMemoryManager::_CreateVMA ()
+	{
+		return AllocatorPtr{ new VulkanMemoryAllocator{ _device, EMemoryTypeExt::All }};
+	}
 	
 /*
 =================================================

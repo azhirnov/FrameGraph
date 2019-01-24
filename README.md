@@ -2,7 +2,7 @@
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](paypal.me/azhirnovgithub)<br/>
 
 FrameGraph simplifies prototyping on Vulkan and can also be used as a base layer for the graphics engine.
-FrameGraph designed for maximum performance but not at the expense of usability. API developed as simple as possible, it hides all GPU synchronizations, memory allocations and all this boilerplate code that is needed to get Vulkan work. Builtin validations together with Vulkan validation layers allow you to quickly find and fix errors.
+FrameGraph designed for maximum performance but not at the expense of usability. API developed as simple as possible, it hides all synchronizations, memory allocations and all this boilerplate code that is needed to get Vulkan work. Builtin validations together with Vulkan validation layers allow you to quickly find and fix errors.
 
 ## Features
 * multithreaded command buffer building and submitting.

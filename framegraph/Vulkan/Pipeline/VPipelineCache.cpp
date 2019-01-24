@@ -1122,7 +1122,7 @@ namespace FG
 
 			ASSERT( src.second.index != UMax );
 
-			dst.binding		= src.second.bindingIndex;
+			dst.binding		= src.second.bufferBinding;
 			dst.format		= VEnumCast( src.second.type );
 			dst.location	= src.second.index;
 			dst.offset		= uint(src.second.offset);
