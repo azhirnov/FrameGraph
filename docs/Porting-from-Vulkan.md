@@ -1,7 +1,7 @@
 ## Copy to host visible buffer
 | Vulkan | FrameGraph |
 |---|---|
-| vkMapMemory | FrameGraphThread::UpdateHostBuffer() |
+| vkMapMemory | FrameGraphThread::UpdateHostBuffer or FrameGraphThread::MapBufferRange |
 
 
 ## Copy data between resources
@@ -22,10 +22,22 @@
 ## Pipelines
 | Vulkan | FrameGraph |
 |---|---|
-| vkCreateGraphicsPipelines | FrameGraphThread::CreatePipeline with GraphicsPipelineDesc that contains shaders and some states, RenderPassDesc contains all other render states, draw tasks contains frequently changed render states and dynamic states |
+| vkCreateGraphicsPipelines | FrameGraphThread::CreatePipeline with GraphicsPipelineDesc that contains shaders and reflection, RenderPassDesc contains all other render states, draw tasks contains frequently changed render states and dynamic states |
 | vkCreateComputePipelines | FrameGraphThread::CreatePipeline with ComputePipelineDesc, compute tasks may override local group size |
 | vkCreateGraphicsPipelines with mesh shader | FrameGraphThread::CreatePipeline with MeshPipelineDesc |
 | vkCreateRayTracingPipelinesNV | FrameGraphThread::CreatePipeline with RayTracingPipelineDesc |
+| vkCreatePipelineLayout | PipelineDescription::PipelineLayout when created pipeline |
+| vkCreateDescriptorSetLayout | PipelineDescription::DescriptorSet when created pipeline |
+
+
+## Descriptor set
+| Vulkan | FrameGraph |
+|---|---|
+| VkDescriptorBufferInfo | PipelineResources::BindBuffer, PipelineResources::SetBufferBase to set base offset if used dynamic buffer offset |
+| VkDescriptorImageInfo with sampler | PipelineResources::BindSampler |
+| VkDescriptorImageInfo with image | PipelineResources::BlitImage |
+| VkDescriptorImageInfo with image and sampler | PipelineResources::BindTexture |
+| VkAccelerationStructureNV | PipelineResources::BindRayTracingScene |
 
 
 ## Drawing
@@ -46,18 +58,33 @@
 | vkCmdSetStencilWriteMask | DrawTask::SetStencilWriteMask |
 | vkCmdSetViewport | RenderPassDesc::AddViewport |
 | vkCmdBeginRenderPass, vkCmdNextSubpass, vkCmdEndRenderPass | SubmitRenderPass task |
-| vkCmdBindPipeline | DrawTask::SetPipeline |
-| vkCmdBindDescriptorSets | DrawTask::AddResources |
+| vkCmdClearAttachments | ClearAttachments task |
+| vkCmdBindPipeline with VK_PIPELINE_BIND_POINT_GRAPHICS | DrawTask::SetPipeline |
+| vkCmdBindDescriptorSets  with VK_PIPELINE_BIND_POINT_GRAPHICS| DrawTask::AddResources and RenderPassDesc::AddResources |
 
-`DrawTask` - may be any of DrawVertices, DrawIndexed, DrawVerticesIndirect, DrawIndexedIndirect, DrawMeshes, DrawMeshesIndirect.
+`DrawTask` - may be one of DrawVertices, DrawIndexed, DrawVerticesIndirect, DrawIndexedIndirect, DrawMeshes, DrawMeshesIndirect.
 
 
 ## Computing
 | Vulkan | FrameGraph |
 |---|---|
+| vkCmdDispatch | DispatchCompute task |
+| vkCmdDispatchIndirect | DispatchComputeIndirect task |
+| vkCmdPushConstants | ComputeTask::AddPushConstant |
+| vkCmdBindPipeline with VK_PIPELINE_BIND_POINT_COMPUTE | ComputeTask::SetPipeline |
+| vkCmdBindDescriptorSets with VK_PIPELINE_BIND_POINT_COMPUTE | ComputeTask::AddResources |
+
+`ComputeTask` - may be one of DispatchCompute or DispatchComputeIndirect.
 
 
-## Descriptor set
+## Ray tracing
 | Vulkan | FrameGraph |
 |---|---|
+| vkGetRayTracingShaderGroupHandlesNV | UpdateRayTracingShaderTable |
+| vkCmdBuildAccelerationStructureNV for BLAS | BuildRayTracingGeometry |
+| vkCmdBuildAccelerationStructureNV for TLAS | BuildRayTracingScene |
+| vkCmdTraceRaysNV | TraceRays |
+| vkCmdPushConstants | TraceRays::AddPushConstant |
+| vkCmdBindPipeline with VK_PIPELINE_BIND_POINT_RAY_TRACING_NV | ComputeTask::SetPipeline |
+| vkCmdBindDescriptorSets with VK_PIPELINE_BIND_POINT_RAY_TRACING_NV | ComputeTask::AddResources |
 

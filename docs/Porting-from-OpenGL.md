@@ -8,7 +8,7 @@
 ## Copy to host visible buffer
 | OpenGL | FrameGraph |
 |---|---|
-| glMapBuffer, glMapBufferRange | FrameGraphThread::UpdateHostBuffer() |
+| glMapBuffer, glMapBufferRange | FrameGraphThread::UpdateHostBuffer or FrameGraphThread::MapBufferRange |
  
  
 ## Copy from device to host memory
@@ -114,7 +114,7 @@
 | glBindImageTexture | PipelineResources::BindImage |
 | glBindSampler | PipelineResources::BindSampler, BindTexture |
 
-use `DrawTask::AddResources` or `ComputeTask::AddResources` for applying uniforms to draw/compute command.
+use `DrawTask::AddResources`, `RenderPassDesc::AddResources` or `ComputeTask::AddResources` for applying uniforms to draw/compute command.
  
 ## Vertex & index buffers, vertex attributes
 | OpenGL | FrameGraph |

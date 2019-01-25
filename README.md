@@ -68,8 +68,8 @@ Dependencies:<br/>
 - logical resources.<br/>
 - advanced VRAM managment.<br/>
 - optimization for mobile and integrated GPUs.<br/>
-- documentation.<br/>
-- samples.<br/>
+- documentation. (WIP)<br/>
+- samples. (WIP)<br/>
 - performance tests:<br/>
 	for samples.<br/>
 	use [vkTraceConverter](https://github.com/azhirnov/vkTraceConverter) to generate FG API calls and run perftests with any vktrace. (WIP)<br/>
