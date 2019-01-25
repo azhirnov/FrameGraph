@@ -10,4 +10,4 @@ Use `FrameGraphInstance::DumpToGraphViz` to retrive graph description in dot-lan
 Or use [GraphViz helper library](../extensions/graphviz) to retrive and visualize graph with [graphviz](https://www.graphviz.org/) (should be installed).
 
 Example:
-![image](../tests/framegraph/Graphs/Test_CopyImage4.dot.png)
+![image](FrameGraph1.png)
