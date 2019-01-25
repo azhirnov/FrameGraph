@@ -79,6 +79,8 @@ namespace FG
 		//bool						_parallelExecution		= true;
 		bool						_canBeMerged			= true;
 		bool						_isSubmited				= false;
+		
+		VPipelineResourceSet		_perPassResources;
 
 		VLocalImage const*			_shadingRateImage		= null;
 		ImageLayer					_shadingRateImageLayer;
@@ -112,7 +114,7 @@ namespace FG
 		{
 			SCOPELOCK( _rcCheck );
 			auto*	ptr = _allocator->Alloc<DrawTaskType>();
-			_drawTasks.push_back( PlacementNew<DrawTaskType>( ptr, std::forward<Args&&>(args)... ));
+			_drawTasks.push_back( PlacementNew<DrawTaskType>( ptr, this, std::forward<Args&&>(args)... ));
 			return true;
 		}
 
@@ -153,6 +155,8 @@ namespace FG
 		ND_ RS::StencilBufferState const&		GetStencilState ()			const	{ SHAREDLOCK( _rcCheck );  return _stencilState; }
 		ND_ RS::RasterizationState const&		GetRasterizationState ()	const	{ SHAREDLOCK( _rcCheck );  return _rasterizationState; }
 		ND_ RS::MultisampleState const&			GetMultisampleState ()		const	{ SHAREDLOCK( _rcCheck );  return _multisampleState; }
+
+		ND_ VPipelineResourceSet const&			GetResources ()				const	{ SHAREDLOCK( _rcCheck );  return _perPassResources; }
 	};
 
 

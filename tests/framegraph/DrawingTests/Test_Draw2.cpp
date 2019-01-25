@@ -55,6 +55,7 @@ void main() {
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
 		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		CHECK_ERR( pipeline );
 
 		
 		CommandBatchID		batch_id {"main"};

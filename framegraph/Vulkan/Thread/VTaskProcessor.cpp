@@ -1176,7 +1176,7 @@ namespace FG
 			uint						binding	 = 0;
 			RawDescriptorSetLayoutID	ds_layout;
 
-			if ( not layout.GetDescriptorSetLayout( res.dsId, OUT ds_layout, OUT binding ))
+			if ( not layout.GetDescriptorSetLayout( res.descSetId, OUT ds_layout, OUT binding ))
 				continue;
 
 			PipelineResourceBarriers	visitor{ *this, resourceSet.dynamicOffsets };

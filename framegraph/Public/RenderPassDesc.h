@@ -4,6 +4,7 @@
 
 #include "framegraph/Public/RenderState.h"
 #include "framegraph/Public/ImageDesc.h"
+#include "framegraph/Public/PipelineResources.h"
 
 namespace FG
 {
@@ -55,6 +56,9 @@ namespace FG
 		Targets_t					renderTargets;
 		Viewports_t					viewports;
 		RectI						area;
+		
+		PipelineResourceSet			perPassResources;	// this resources will be added for all draw tasks
+
 		bool						parallelExecution	= true;		// (optimization) if 'false' all draw and compute tasks will be executed in initial order
 		bool						canBeMerged			= true;		// (optimization) g-buffer render passes can be merged, but don't merge conditional passes
 		// TODO: push constants, specialization constants
@@ -148,6 +152,8 @@ namespace FG
 		RenderPassDesc&  SetAlphaToOneEnabled (bool value);
 
 		RenderPassDesc&  SetShadingRateImage (const ImageID &image, ImageLayer layer = Default, MipmapLevel level = Default);
+		
+		RenderPassDesc&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 	};
 
 
@@ -515,6 +521,18 @@ namespace FG
 		shadingRate.image	= image.Get();
 		shadingRate.layer	= layer;
 		shadingRate.mipmap	= level;
+		return *this;
+	}
+	
+/*
+=================================================
+	AddResources
+=================================================
+*/
+	inline RenderPassDesc&  RenderPassDesc::AddResources (const DescriptorSetID &id, const PipelineResources *res)
+	{
+		ASSERT( id.IsDefined() and res );
+		perPassResources.insert({ id, res });
 		return *this;
 	}
 

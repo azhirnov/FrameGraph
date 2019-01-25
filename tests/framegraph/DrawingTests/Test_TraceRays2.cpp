@@ -75,6 +75,7 @@ void main ()
 		BufferID		sbt_buffer	= frame_graph->CreateBuffer( BufferDesc{ 4_Kb, EBufferUsage::RayTracing | EBufferUsage::TransferDst } );
 		
 		RTPipelineID	pipeline	= frame_graph->CreatePipeline( ppln );
+		CHECK_ERR( pipeline );
 		
 		const auto		vertices	= ArrayView<float3>{ { 0.25f, 0.25f, 0.0f }, { 0.75f, 0.25f, 0.0f }, { 0.50f, 0.75f, 0.0f } };
 		const auto		indices		= ArrayView<uint>{ 0, 1, 2 };

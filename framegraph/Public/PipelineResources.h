@@ -180,6 +180,7 @@ namespace FG
 		ND_ ResourceSet_t const&		GetData ()					const	{ return _resources; }
 		ND_ ArrayView< uint >			GetDynamicOffsets ()		const	{ return _dynamicOffsets; }
 		ND_ bool						IsEmptyResourcesAllowed ()	const	{ return _allowEmptyResources; }
+		ND_ bool						IsInitialized ()			const	{ return _uniforms != null; }
 
 
 	private:

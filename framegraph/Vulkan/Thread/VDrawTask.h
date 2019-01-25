@@ -92,7 +92,7 @@ namespace FG
 	// methods
 	protected:
 		template <typename TaskType>
-		VBaseDrawVerticesTask (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		VBaseDrawVerticesTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 
 	public:
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
@@ -117,7 +117,7 @@ namespace FG
 		const DrawVertices::DrawCommands_t		commands;
 
 	// methods
-		VFgDrawTask (VFrameGraphThread *fg, const DrawVertices &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawVertices &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 
 
@@ -137,7 +137,7 @@ namespace FG
 		const EIndex						indexType;
 
 	// methods
-		VFgDrawTask (VFrameGraphThread *fg, const DrawIndexed &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawIndexed &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 
 
@@ -154,7 +154,7 @@ namespace FG
 		VLocalBuffer const* const						indirectBuffer;
 
 	// methods
-		VFgDrawTask (VFrameGraphThread *fg, const DrawVerticesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawVerticesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 
 
@@ -175,7 +175,7 @@ namespace FG
 		const EIndex								indexType;
 
 	// methods
-		VFgDrawTask (VFrameGraphThread *fg, const DrawIndexedIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawIndexedIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 	
 
@@ -203,7 +203,7 @@ namespace FG
 	// methods
 	protected:
 		template <typename TaskType>
-		VBaseDrawMeshes (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		VBaseDrawMeshes (VLogicalRenderPass* rp, VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 
 	public:
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
@@ -224,7 +224,7 @@ namespace FG
 		const DrawMeshes::DrawCommands_t	commands;
 
 	// methods
-		VFgDrawTask (VFrameGraphThread *fg, const DrawMeshes &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawMeshes &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 	
 
@@ -241,7 +241,7 @@ namespace FG
 		VLocalBuffer const* const					indirectBuffer;
 
 	// methods
-		VFgDrawTask (VFrameGraphThread *fg, const DrawMeshesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+		VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawMeshesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 
 

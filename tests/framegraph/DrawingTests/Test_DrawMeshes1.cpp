@@ -84,6 +84,7 @@ void main() {
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
 		MPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		CHECK_ERR( pipeline );
 
 		
 		bool		data_is_correct = false;

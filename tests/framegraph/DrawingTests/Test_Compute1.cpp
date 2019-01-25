@@ -50,6 +50,7 @@ void main ()
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_2" );
 
 		CPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		CHECK_ERR( pipeline );
 		
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));

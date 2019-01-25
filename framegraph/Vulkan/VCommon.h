@@ -122,10 +122,10 @@ namespace FG
 	struct VPipelineResourceSet
 	{
 		struct Item {
-			DescriptorSetID				dsId;
+			DescriptorSetID				descSetId;
 			VPipelineResources const*	pplnRes		= null;
-			uint16_t					offsetIndex;		// in 'dynamicOffsets'
-			uint16_t					offsetCount	= 0;
+			uint						offsetIndex;		// in 'dynamicOffsets'
+			uint						offsetCount	= 0;
 		};
 
 		FixedArray< Item, FG_MaxDescriptorSets >					resources;

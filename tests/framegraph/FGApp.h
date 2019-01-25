@@ -102,6 +102,7 @@ namespace FG
 		bool Test_Draw1 ();
 		bool Test_Draw2 ();			// with swapchain
 		bool Test_Draw3 ();			// with scissor
+		bool Test_Draw4 ();
 		bool Test_ExternalCmdBuf1 ();
 		bool Test_InvalidID ();
 		bool Test_ReadAttachment1 ();

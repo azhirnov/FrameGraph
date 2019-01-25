@@ -71,20 +71,37 @@ namespace FG
 	CopyDescriptorSets
 =================================================
 */
-	inline void CopyDescriptorSets (VFrameGraphThread *fg, const PipelineResourceSet &inResourceSet, OUT VPipelineResourceSet &resourceSet)
+	inline void CopyDescriptorSets (VLogicalRenderPass* rp, VFrameGraphThread *fg, const PipelineResourceSet &inResourceSet, OUT VPipelineResourceSet &outResourceSet)
 	{
 		size_t	offset_count = 0;
 
-		for (auto& res : inResourceSet)
+		for (auto& src : inResourceSet)
 		{
-			auto	offsets = res.second->GetDynamicOffsets();
+			auto	offsets = src.second->GetDynamicOffsets();
 
-			resourceSet.resources.push_back({ res.first, fg->GetResourceManager()->CreateDescriptorSet( *res.second, true ),
-											  uint16_t(offset_count), uint16_t(offsets.size()) });
+			outResourceSet.resources.emplace_back( src.first, fg->GetResourceManager()->CreateDescriptorSet( *src.second, true ),
+												   uint(offset_count), uint(offsets.size()) );
 			
 			for (size_t i = 0; i < offsets.size(); ++i, ++offset_count) {
-				resourceSet.dynamicOffsets.push_back( offsets[i] );
+				outResourceSet.dynamicOffsets.push_back( offsets[i] );
 			}
+		}
+
+		if ( not rp )
+			return;
+
+		const uint	base_offset	= uint(outResourceSet.dynamicOffsets.size());
+
+		for (auto& src : rp->GetResources().resources)
+		{
+			ASSERT( inResourceSet.count( src.descSetId ) == 0 );
+			
+			outResourceSet.resources.emplace_back( src.descSetId, src.pplnRes, src.offsetIndex + base_offset, src.offsetCount );
+		}
+
+		for (auto& src : rp->GetResources().dynamicOffsets)
+		{
+			outResourceSet.dynamicOffsets.push_back( src );
 		}
 	}
 	
@@ -135,7 +152,7 @@ namespace FG
 =================================================
 */
 	template <typename TaskType>
-	VBaseDrawVerticesTask::VBaseDrawVerticesTask (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+	VBaseDrawVerticesTask::VBaseDrawVerticesTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		IDrawTask{ task, pass1, pass2 },				_vbCount{ uint(task.vertexBuffers.size()) },
 		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },			vertexInput{ task.vertexInput },
@@ -143,7 +160,7 @@ namespace FG
 		topology{ task.topology },						primitiveRestart{ task.primitiveRestart }
 	{
 		CopyScissors( fg, task.scissors, OUT _scissors );
-		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		CopyDescriptorSets( rp, fg, task.resources, OUT _resources );
 		RemapVertexBuffers( fg, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
 
 		if ( task.debugMode.mode != Default )
@@ -155,8 +172,8 @@ namespace FG
 	VFgDrawTask< DrawVertices >
 =================================================
 */
-	inline VFgDrawTask<DrawVertices>::VFgDrawTask (VFrameGraphThread *fg, const DrawVertices &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		VBaseDrawVerticesTask{ fg, task, pass1, pass2 },	commands{ task.commands }
+	inline VFgDrawTask<DrawVertices>::VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawVertices &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawVerticesTask{ rp, fg, task, pass1, pass2 },	commands{ task.commands }
 	{}
 
 /*
@@ -164,8 +181,8 @@ namespace FG
 	VFgDrawTask< DrawIndexed >
 =================================================
 */
-	inline VFgDrawTask<DrawIndexed>::VFgDrawTask (VFrameGraphThread *fg, const DrawIndexed &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		VBaseDrawVerticesTask{ fg, task, pass1, pass2 },	commands{ task.commands },
+	inline VFgDrawTask<DrawIndexed>::VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawIndexed &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawVerticesTask{ rp, fg, task, pass1, pass2 },	commands{ task.commands },
 		indexBuffer{ fg->GetResourceManager()->ToLocal( task.indexBuffer )},
 		indexBufferOffset{ task.indexBufferOffset },		indexType{ task.indexType }
 	{}
@@ -175,8 +192,8 @@ namespace FG
 	VFgDrawTask< DrawVerticesIndirect >
 =================================================
 */
-	inline VFgDrawTask<DrawVerticesIndirect>::VFgDrawTask (VFrameGraphThread *fg, const DrawVerticesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		VBaseDrawVerticesTask{ fg, task, pass1, pass2 },	commands{ task.commands },
+	inline VFgDrawTask<DrawVerticesIndirect>::VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawVerticesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawVerticesTask{ rp, fg, task, pass1, pass2 },	commands{ task.commands },
 		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )}
 	{}
 	
@@ -185,8 +202,8 @@ namespace FG
 	VFgDrawTask< DrawIndexedIndirect >
 =================================================
 */
-	inline VFgDrawTask<DrawIndexedIndirect>::VFgDrawTask (VFrameGraphThread *fg, const DrawIndexedIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		VBaseDrawVerticesTask{ fg, task, pass1, pass2 },	commands{ task.commands },
+	inline VFgDrawTask<DrawIndexedIndirect>::VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawIndexedIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawVerticesTask{ rp, fg, task, pass1, pass2 },	commands{ task.commands },
 		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )},
 		indexBuffer{ fg->GetResourceManager()->ToLocal( task.indexBuffer )},
 		indexBufferOffset{ task.indexBufferOffset },		indexType{ task.indexType }
@@ -200,13 +217,13 @@ namespace FG
 =================================================
 */	
 	template <typename TaskType>
-	inline VBaseDrawMeshes::VBaseDrawMeshes (VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+	inline VBaseDrawMeshes::VBaseDrawMeshes (VLogicalRenderPass* rp, VFrameGraphThread *fg, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
 		IDrawTask{ task, pass1, pass2 },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
 		pushConstants{ task.pushConstants },	colorBuffers{ task.colorBuffers },
 		dynamicStates{ task.dynamicStates }
 	{
 		CopyScissors( fg, task.scissors, OUT _scissors );
-		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		CopyDescriptorSets( rp, fg, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
 			_debugModeIndex = fg->GetShaderDebugger()->Append( INOUT _scissors, task.taskName, task.debugMode );
@@ -217,8 +234,8 @@ namespace FG
 	VFgDrawTask< DrawMeshes >
 =================================================
 */
-	inline VFgDrawTask<DrawMeshes>::VFgDrawTask (VFrameGraphThread *fg, const DrawMeshes &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		VBaseDrawMeshes{ fg, task, pass1, pass2 },	commands{ task.commands }
+	inline VFgDrawTask<DrawMeshes>::VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawMeshes &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawMeshes{ rp, fg, task, pass1, pass2 },	commands{ task.commands }
 	{}
 
 /*
@@ -226,8 +243,8 @@ namespace FG
 	VFgDrawTask< DrawMeshesIndirect >
 =================================================
 */
-	inline VFgDrawTask<DrawMeshesIndirect>::VFgDrawTask (VFrameGraphThread *fg, const DrawMeshesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		VBaseDrawMeshes{ fg, task, pass1, pass2 },	commands{ task.commands },
+	inline VFgDrawTask<DrawMeshesIndirect>::VFgDrawTask (VLogicalRenderPass* rp, VFrameGraphThread *fg, const DrawMeshesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawMeshes{ rp, fg, task, pass1, pass2 },	commands{ task.commands },
 		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )}
 	{}
 //-----------------------------------------------------------------------------
@@ -243,7 +260,7 @@ namespace FG
 		pushConstants{ task.pushConstants },	commands{ task.commands },
 		localGroupSize{ task.localGroupSize }
 	{
-		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		CopyDescriptorSets( null, fg, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
 			_debugModeIndex = fg->GetShaderDebugger()->Append( task.taskName, task.debugMode );
@@ -273,7 +290,7 @@ namespace FG
 		indirectBuffer{ fg->GetResourceManager()->ToLocal( task.indirectBuffer )},
 		localGroupSize{ task.localGroupSize }
 	{
-		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		CopyDescriptorSets( null, fg, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
 			_debugModeIndex = fg->GetShaderDebugger()->Append( task.taskName, task.debugMode );
@@ -687,10 +704,10 @@ namespace FG
 		rayHitStride{ uint16_t( task.shaderTable.rayHitStride )},
 		callableStride{ uint16_t( task.shaderTable.callableStride )}
 	{
-		CopyDescriptorSets( fg, task.resources, OUT _resources );
+		CopyDescriptorSets( null, fg, task.resources, OUT _resources );
 
-		//if ( task.debugMode.mode != Default )
-		//	_debugModeIndex = fg->GetShaderDebugger()->Append( INOUT _resources, task.debugMode );
+		if ( task.debugMode.mode != Default )
+			_debugModeIndex = fg->GetShaderDebugger()->Append( task.taskName, task.debugMode );
 	}
 	
 /*

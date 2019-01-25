@@ -35,6 +35,7 @@ void main ()
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::R32F,
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "OutImage" );
 		CPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		CHECK_ERR( pipeline );
 		
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));

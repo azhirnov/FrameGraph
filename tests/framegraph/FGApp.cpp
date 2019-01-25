@@ -41,6 +41,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_Draw1,			1 });
 		_tests.push_back({ &FGApp::Test_Draw2,			1 });
 		_tests.push_back({ &FGApp::Test_Draw3,			1 });
+		_tests.push_back({ &FGApp::Test_Draw4,			1 });
 		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1, 1 });
 		_tests.push_back({ &FGApp::Test_ReadAttachment1, 1 });
 		//_tests.push_back({ &FGApp::Test_AsyncCompute1,	1 });
@@ -167,7 +168,10 @@ namespace {
 		// add glsl pipeline compiler
 		{
 			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
-			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
+			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations	|
+												EShaderCompilationFlags::Quiet				|
+												EShaderCompilationFlags::ParseAnnoations	|
+												EShaderCompilationFlags::UseCurrentDeviceLimits );
 
 			_fgInstance->AddPipelineCompiler( _pplnCompiler );
 		}

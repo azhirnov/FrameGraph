@@ -52,7 +52,23 @@ namespace {
 		_area				= desc.area;
 		//_parallelExecution= desc.parallelExecution;
 		_canBeMerged		= desc.canBeMerged;
+		
 
+		// copy descriptor sets
+		size_t	offset_count = 0;
+		for (auto& src : desc.perPassResources)
+		{
+			auto	offsets = src.second->GetDynamicOffsets();
+
+			_perPassResources.resources.emplace_back( src.first, resMngr.CreateDescriptorSet( *src.second, true ),
+													  uint(offset_count), uint(offsets.size()) );
+			
+			for (size_t i = 0; i < offsets.size(); ++i, ++offset_count) {
+				_perPassResources.dynamicOffsets.push_back( offsets[i] );
+			}
+		}
+
+		// copy render targets
 		for (auto& src : desc.renderTargets)
 		{
 			ColorTarget		dst;

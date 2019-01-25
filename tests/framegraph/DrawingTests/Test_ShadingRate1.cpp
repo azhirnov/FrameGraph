@@ -72,6 +72,7 @@ void main ()
 		FGThreadPtr		frame_graph	= _fgGraphics1;
 
 		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		CHECK_ERR( pipeline );
 
 		const uint2		view_size	= {256, 256};
 		const auto&		sri_size	= _vulkan.GetDeviceShadingRateImageProperties().shadingRateTexelSize;
