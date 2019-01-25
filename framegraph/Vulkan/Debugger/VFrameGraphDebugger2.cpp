@@ -95,7 +95,7 @@ namespace {
 */
 	String  VFrameGraphDebugger::_SubBatchBG () const
 	{
-		return "282828";
+		return ColToStr( ColorScheme::CommandBatchBackground );
 	}
 
 	String  VFrameGraphDebugger::_TaskLabelColor (RGBA8u) const
@@ -103,7 +103,7 @@ namespace {
 		return ColToStr( HtmlColor::White );
 	}
 
-	String  VFrameGraphDebugger::_DrawTaskBG () const
+	/*String  VFrameGraphDebugger::_DrawTaskBG () const
 	{
 		return ColToStr( HtmlColor::Bisque );
 	}
@@ -111,36 +111,36 @@ namespace {
 	String  VFrameGraphDebugger::_DrawTaskLabelColor () const
 	{
 		return ColToStr( HtmlColor::Black );
-	}
+	}*/
 	
 	String  VFrameGraphDebugger::_ResourceBG (const VBuffer *) const
 	{
-		return ColToStr( HtmlColor::Silver );
+		return ColToStr( ColorScheme::ResourceBackground );
 	}
 
 	String  VFrameGraphDebugger::_ResourceBG (const VImage *) const
 	{
-		return ColToStr( HtmlColor::Silver );
+		return ColToStr( ColorScheme::ResourceBackground );
 	}
 	
 	String  VFrameGraphDebugger::_ResourceToResourceEdgeColor (TaskPtr task) const
 	{
-		return ColToStr( task ? task->DebugColor() : HtmlColor::Silver );
+		return ColToStr( task ? task->DebugColor() : ColorScheme::ResourceBackground );
 	}
 	
 	String  VFrameGraphDebugger::_ResourceGroupBG (TaskPtr task) const
 	{
-		return ColToStr( task ? Lerp( HtmlColor::Black, task->DebugColor(), 0.5f ) : HtmlColor::Pink );
+		return ColToStr( task ? Lerp( HtmlColor::Black, task->DebugColor(), 0.5f ) : ColorScheme::Debug );
 	}
 	
 	String  VFrameGraphDebugger::_BarrierGroupBorderColor () const
 	{
-		return ColToStr( HtmlColor::Olive );
+		return ColToStr( ColorScheme::BarrierGroupBorder );
 	}
 	
 	String  VFrameGraphDebugger::_GroupBorderColor () const
 	{
-		return ColToStr( HtmlColor::DarkGray );
+		return ColToStr( ColorScheme::GroupBorder );
 	}
 
 /*
@@ -739,7 +739,8 @@ namespace {
 		const EAccessType	dst_access = GetAccessType( dstAccessMask );
 
 		// new style
-		#if 1
+		if constexpr ( not ColorScheme::EnabledOldStyleBarriers )
+		{
 			String	label = "<FONT COLOR=\"#fefeee\" POINT-SIZE=\"8\">";
 
 			if ( oldLayout != newLayout )
@@ -782,16 +783,17 @@ namespace {
 			
 			style << "</TABLE>>];\n";
 
-
+		}
 		// old style
-		#else
+		else
+		{
 			String		label;
 			RGBA8u		color;
 
 			if ( oldLayout != newLayout )
 			{
 				label = "L\\nA\\nY\\n";
-				color = HtmlColor::Yellow;
+				color = ColorScheme::LayoutBarrier;
 			}
 			else
 		
@@ -800,7 +802,7 @@ namespace {
 				 EnumEq( dst_access, EAccessType::Write ) )
 			{
 				label = "w\\n--\\nW\\n";
-				color = HtmlColor::DodgerBlue;
+				color = ColorScheme::WriteAfterWriteBarrier;
 			}
 			else
 
@@ -809,7 +811,7 @@ namespace {
 				 EnumEq( dst_access, EAccessType::Write ) )
 			{
 				label = "R\\n--\\nW\\n";
-				color = HtmlColor::LimeGreen;
+				color = ColorScheme::WriteAfterReadBarrier;
 			}
 			else
 
@@ -818,18 +820,18 @@ namespace {
 				 EnumEq( dst_access, EAccessType::Read ) )
 			{
 				label = "W\\n--\\nR\\n";
-				color = HtmlColor::Red;
+				color = ColorScheme::ReadAfterWriteBarrier;
 			}
 			else
 
 			// unknown
 			{
 				label = "|\\n|\\n|\\n";
-				color = HtmlColor::Pink;
+				color = ColorScheme::Debug;
 			}
 
 			style << " [label=\"" << label << "\", width=.1, fontsize=12, fillcolor=\"#" << ColToStr( color ) << "\"];\n";
-		#endif
+		}
 	}
 
 /*

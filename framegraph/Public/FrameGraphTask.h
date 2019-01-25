@@ -102,7 +102,7 @@ namespace FG
 
 	// methods
 		explicit SubmitRenderPass (LogicalPassID rp) :
-			BaseTask<SubmitRenderPass>{ "SubmitRenderPass", HtmlColor::OrangeRed }, renderPassId{rp} {}
+			BaseTask<SubmitRenderPass>{ "SubmitRenderPass", ColorScheme::RenderPass }, renderPassId{rp} {}
 	};
 
 
@@ -135,7 +135,7 @@ namespace FG
 
 	// methods
 		DispatchCompute () :
-			BaseTask<DispatchCompute>{ "DispatchCompute", HtmlColor::MediumBlue } {}
+			BaseTask<DispatchCompute>{ "DispatchCompute", ColorScheme::Compute } {}
 		
 		DispatchCompute&  SetPipeline (const CPipelineID &ppln)				{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
 		
@@ -193,7 +193,7 @@ namespace FG
 
 	// methods
 		DispatchComputeIndirect () :
-			BaseTask<DispatchComputeIndirect>{ "DispatchComputeIndirect", HtmlColor::MediumBlue } {}
+			BaseTask<DispatchComputeIndirect>{ "DispatchComputeIndirect", ColorScheme::Compute } {}
 		
 		DispatchComputeIndirect&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
 		DispatchComputeIndirect&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
@@ -238,7 +238,7 @@ namespace FG
 
 	// methods
 		CopyBuffer () :
-			BaseTask<CopyBuffer>{ "CopyBuffer", HtmlColor::Green } {}
+			BaseTask<CopyBuffer>{ "CopyBuffer", ColorScheme::DeviceLocalTransfer } {}
 
 		CopyBuffer&  From (const BufferID &buf)		{ ASSERT( buf );  srcBuffer = buf.Get();  return *this; }
 		CopyBuffer&  To   (const BufferID &buf)		{ ASSERT( buf );  dstBuffer = buf.Get();  return *this; }
@@ -277,7 +277,7 @@ namespace FG
 
 	// methods
 		CopyImage () :
-			BaseTask<CopyImage>{ "CopyImage", HtmlColor::Green } {}
+			BaseTask<CopyImage>{ "CopyImage", ColorScheme::DeviceLocalTransfer } {}
 
 		CopyImage&  From (const ImageID &img)		{ ASSERT( img );  srcImage = img.Get();  return *this; }
 		CopyImage&  To   (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
@@ -329,7 +329,7 @@ namespace FG
 
 	// methods
 		CopyBufferToImage () :
-			BaseTask<CopyBufferToImage>{ "CopyBufferToImage", HtmlColor::Green } {}
+			BaseTask<CopyBufferToImage>{ "CopyBufferToImage", ColorScheme::DeviceLocalTransfer } {}
 
 		CopyBufferToImage&  From (const BufferID &buf)		{ ASSERT( buf );  srcBuffer = buf.Get();  return *this; }
 		CopyBufferToImage&  To   (const ImageID &img)		{ ASSERT( img );  dstImage  = img.Get();  return *this; }
@@ -363,7 +363,7 @@ namespace FG
 
 	// methods
 		CopyImageToBuffer () :
-			BaseTask<CopyImageToBuffer>{ "CopyImageToBuffer", HtmlColor::Green } {}
+			BaseTask<CopyImageToBuffer>{ "CopyImageToBuffer", ColorScheme::DeviceLocalTransfer } {}
 
 		CopyImageToBuffer&  From (const ImageID &img)		{ ASSERT( img );  srcImage  = img.Get();  return *this; }
 		CopyImageToBuffer&  To   (const BufferID &buf)		{ ASSERT( buf );  dstBuffer = buf.Get();  return *this; }
@@ -406,7 +406,7 @@ namespace FG
 
 	// methods
 		BlitImage () :
-			BaseTask<BlitImage>{ "BlitImage", HtmlColor::Green } {}
+			BaseTask<BlitImage>{ "BlitImage", ColorScheme::DeviceLocalTransfer } {}
 
 		BlitImage&  From (const ImageID &img)		{ ASSERT( img );  srcImage = img.Get();  return *this; }
 		BlitImage&  To   (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
@@ -457,7 +457,7 @@ namespace FG
 
 	// methods
 		ResolveImage () :
-			BaseTask<ResolveImage>{ "ResolveImage", HtmlColor::Green } {}
+			BaseTask<ResolveImage>{ "ResolveImage", ColorScheme::DeviceLocalTransfer } {}
 
 		ResolveImage&  From (const ImageID &img)		{ ASSERT( img );  srcImage = img.Get();  return *this; }
 		ResolveImage&  To   (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
@@ -487,7 +487,7 @@ namespace FG
 
 	// methods
 		FillBuffer () :
-			BaseTask<FillBuffer>{ "FillBuffer", HtmlColor::Green } {}
+			BaseTask<FillBuffer>{ "FillBuffer", ColorScheme::DeviceLocalTransfer } {}
 		
 		FillBuffer&  SetBuffer (const BufferID &buf)
 		{
@@ -538,7 +538,7 @@ namespace FG
 		
 	// methods
 		ClearColorImage () :
-			BaseTask<ClearColorImage>{ "ClearColorImage", HtmlColor::Green } {}
+			BaseTask<ClearColorImage>{ "ClearColorImage", ColorScheme::DeviceLocalTransfer } {}
 
 		ClearColorImage&  SetImage (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
 
@@ -574,7 +574,7 @@ namespace FG
 
 	// methods
 		ClearDepthStencilImage () :
-			BaseTask<ClearDepthStencilImage>{ "ClearDepthStencilImage", HtmlColor::Green } {}
+			BaseTask<ClearDepthStencilImage>{ "ClearDepthStencilImage", ColorScheme::DeviceLocalTransfer } {}
 		
 		ClearDepthStencilImage&  SetImage (const ImageID &img)			{ ASSERT( img );  dstImage = img.Get();  return *this; }
 
@@ -611,7 +611,7 @@ namespace FG
 
 	// methods
 		UpdateBuffer () :
-			BaseTask<UpdateBuffer>{ "UpdateBuffer", HtmlColor::BlueViolet } {}
+			BaseTask<UpdateBuffer>{ "UpdateBuffer", ColorScheme::HostToDeviceTransfer } {}
 
 		UpdateBuffer (const BufferID &buf, BytesU off, ArrayView<uint8_t> data) :
 			UpdateBuffer() { SetBuffer( buf ).AddData( data, off ); }
@@ -670,7 +670,7 @@ namespace FG
 
 	// methods
 		ReadBuffer () :
-			BaseTask<ReadBuffer>{ "ReadBuffer", HtmlColor::BlueViolet } {}
+			BaseTask<ReadBuffer>{ "ReadBuffer", ColorScheme::DeviceToHostTransfer } {}
 
 		ReadBuffer&  SetBuffer (const BufferID &buf, const BytesU off, const BytesU dataSize)
 		{
@@ -710,7 +710,7 @@ namespace FG
 		
 	// methods
 		UpdateImage () :
-			BaseTask<UpdateImage>{ "UpdateImage", HtmlColor::BlueViolet } {}
+			BaseTask<UpdateImage>{ "UpdateImage", ColorScheme::HostToDeviceTransfer } {}
 		
 		UpdateImage&  SetImage (const ImageID &img, const int2 &offset, MipmapLevel mipmap = Default)
 		{
@@ -793,7 +793,7 @@ namespace FG
 		
 	// methods
 		ReadImage () :
-			BaseTask<ReadImage>{ "ReadImage", HtmlColor::BlueViolet } {}
+			BaseTask<ReadImage>{ "ReadImage", ColorScheme::DeviceToHostTransfer } {}
 		
 		ReadImage&  SetImage (const ImageID &img, const int2 &offset, const uint2 &size, MipmapLevel mipmap = Default)
 		{
@@ -848,7 +848,7 @@ namespace FG
 
 	// methods
 		Present () :
-			BaseTask<Present>{ "Present", HtmlColor::Red } {}
+			BaseTask<Present>{ "Present", ColorScheme::Present } {}
 
 		explicit Present (const ImageID &img) :
 			Present() { srcImage = img.Get(); }
@@ -879,7 +879,7 @@ namespace FG
 
 	// methods
 		PresentVR () :
-			BaseTask<Present>{ "PresentVR", HtmlColor::Red } {}
+			BaseTask<Present>{ "PresentVR", ColorScheme::Present } {}
 
 		PresentVR&  SetLeftEye (const ImageID &img, ImageLayer imgLayer = Default)
 		{
@@ -998,7 +998,7 @@ namespace FG
 
 	// methods
 		BuildRayTracingGeometry () :
-			BaseTask<BuildRayTracingGeometry>{ "BuildRayTracingGeometry", HtmlColor::Lime } {}
+			BaseTask<BuildRayTracingGeometry>{ "BuildRayTracingGeometry", ColorScheme::BuildRayTracingStruct } {}
 
 		BuildRayTracingGeometry&  SetTarget (const RTGeometryID &id)	{ ASSERT( id );  rtGeometry = id.Get();  return *this; }
 
@@ -1044,7 +1044,7 @@ namespace FG
 
 	// methods
 		BuildRayTracingScene () :
-			BaseTask<BuildRayTracingScene>{ "BuildRayTracingScene", HtmlColor::Lime } {}
+			BaseTask<BuildRayTracingScene>{ "BuildRayTracingScene", ColorScheme::BuildRayTracingStruct } {}
 
 		BuildRayTracingScene&  SetTarget (const RTSceneID &id)			{ ASSERT( id );  rtScene = id.Get();  return *this; }
 		BuildRayTracingScene&  SetHitShadersPerGeometry (uint count)	{ ASSERT( count > 0 );  hitShadersPerGeometry = count;  return *this; }
@@ -1113,7 +1113,7 @@ namespace FG
 
 	// methods
 		UpdateRayTracingShaderTable (OUT ShaderTable &result) :
-			BaseTask<UpdateRayTracingShaderTable>{ "UpdateRayTracingShaderTable", HtmlColor::BlueViolet },
+			BaseTask<UpdateRayTracingShaderTable>{ "UpdateRayTracingShaderTable", ColorScheme::HostToDeviceTransfer },
 			result{result} {}
 
 		UpdateRayTracingShaderTable&  SetPipeline (const RTPipelineID &ppln)
@@ -1185,7 +1185,7 @@ namespace FG
 
 	// methods
 		TraceRays () :
-			BaseTask<TraceRays>{ "TraceRays", HtmlColor::Lime } {}
+			BaseTask<TraceRays>{ "TraceRays", ColorScheme::RayTracing } {}
 		
 		TraceRays&  SetPipeline (const RTPipelineID &ppln)							{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
 		

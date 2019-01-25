@@ -5,6 +5,7 @@
 #include "framegraph/Public/PipelineResources.h"
 #include "framegraph/Public/RenderState.h"
 #include "framegraph/Public/VertexInputState.h"
+#include "framegraph/Public/ColorScheme.h"
 
 namespace FG
 {
@@ -225,7 +226,7 @@ namespace _fg_hidden_
 
 	// methods
 		DrawVertices () :
-			BaseDrawVertices<DrawVertices>{ "DrawVertices", HtmlColor::Bisque } {}
+			BaseDrawVertices<DrawVertices>{ "DrawVertices", ColorScheme::Draw } {}
 
 		DrawVertices&  Draw (uint vertexCount, uint instanceCount	= 1, uint firstVertex = 0, uint firstInstance = 0)
 		{
@@ -264,7 +265,7 @@ namespace _fg_hidden_
 
 	// methods
 		DrawIndexed () :
-			BaseDrawVertices<DrawIndexed>{ "DrawIndexed", HtmlColor::Bisque } {}
+			BaseDrawVertices<DrawIndexed>{ "DrawIndexed", ColorScheme::Draw } {}
 
 		DrawIndexed&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)
 		{
@@ -315,7 +316,7 @@ namespace _fg_hidden_
 
 	// methods
 		DrawVerticesIndirect () :
-			BaseDrawVertices<DrawVerticesIndirect>{ "DrawVerticesIndirect", HtmlColor::Bisque } {}
+			BaseDrawVertices<DrawVerticesIndirect>{ "DrawVerticesIndirect", ColorScheme::Draw } {}
 
 		DrawVerticesIndirect&  SetIndirectBuffer (const BufferID &buffer)
 		{
@@ -365,7 +366,7 @@ namespace _fg_hidden_
 
 	// methods
 		DrawIndexedIndirect () :
-			BaseDrawVertices<DrawIndexedIndirect>{ "DrawIndexedIndirect", HtmlColor::Bisque } {}
+			BaseDrawVertices<DrawIndexedIndirect>{ "DrawIndexedIndirect", ColorScheme::Draw } {}
 		
 		DrawIndexedIndirect&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)
 		{
@@ -414,9 +415,9 @@ namespace _fg_hidden_
 
 	// methods
 		DrawMeshes () :
-			BaseDrawCall<DrawMeshes>{ "DrawMeshes", HtmlColor::Bisque } {}
+			BaseDrawCall<DrawMeshes>{ "DrawMeshes", ColorScheme::DrawMeshes } {}
 
-		DrawMeshes&  SetPipeline (const MPipelineID &ppln)			{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
+		DrawMeshes&  SetPipeline (const MPipelineID &ppln)	{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
 
 		DrawMeshes&  Draw (uint count, uint first = 0)		{ ASSERT( count > 0 );  commands.push_back({ count, first });  return *this; }
 	};
@@ -446,7 +447,7 @@ namespace _fg_hidden_
 
 	// methods
 		DrawMeshesIndirect () :
-			BaseDrawCall<DrawMeshesIndirect>{ "DrawMeshesIndirect", HtmlColor::Bisque } {}
+			BaseDrawCall<DrawMeshesIndirect>{ "DrawMeshesIndirect", ColorScheme::DrawMeshes } {}
 
 		DrawMeshesIndirect&  SetPipeline (const MPipelineID &ppln)
 		{
@@ -479,7 +480,7 @@ namespace _fg_hidden_
 	{
 	// methods
 		ClearAttachments () :
-			BaseDrawTask<ClearAttachments>{ "ClearAttachments", HtmlColor::Bisque } {}
+			BaseDrawTask<ClearAttachments>{ "ClearAttachments", ColorScheme::ClearAttachments } {}
 	};
 
 
