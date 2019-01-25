@@ -13,6 +13,7 @@ extern void ImageFootprint_Sample1 ();
 extern void FragShaderBarycentric_Sample1 ();
 extern void SparseImage_Sample1 ();
 extern void AsyncCompute_Sample1 ();
+extern void AsyncCompute_Sample2 ();
 
 
 int main ()
@@ -25,8 +26,9 @@ int main ()
 	FragShaderBarycentric_Sample1();
 	SparseImage_Sample1();
 	AsyncCompute_Sample1();
+	AsyncCompute_Sample2();
 
 	FG_LOGI( "Vulkan samples finished" );
-	std::cin.ignore();
+	//std::cin.ignore();
 	return 0;
 }
