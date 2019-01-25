@@ -27,5 +27,13 @@ void main ()
 
 	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_100 ));
 
+
+	auto	iter1 = ppln._shader.data.find( EShaderLangFormat::SPIRV_100 );
+	TEST( iter1 != ppln._shader.data.end() );
+
+	auto	iter2 = ppln._shader.data.find( EShaderLangFormat::SPIRV_100 | EShaderLangFormat::EnableDebugTrace );
+	TEST( iter2 != ppln._shader.data.end() );
+
+
 	FG_LOGI( "Test_Shader11 - passed" );
 }

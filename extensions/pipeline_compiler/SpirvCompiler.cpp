@@ -243,7 +243,7 @@ namespace FG
 		Array<uint>		spirv;
 		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
-		COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
+		COMP_CHECK_ERR( _BuildReflection( source, glslang_data, OUT outReflection ));
 
 		outShader.specConstants	= outReflection.specConstants;
 		outShader.AddShaderData( dstShaderFmt, entry, std::move(spirv), debugName );
@@ -793,7 +793,7 @@ namespace FG
 	_BuildReflection 
 =================================================
 */
-	bool SpirvCompiler::_BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &result)
+	bool SpirvCompiler::_BuildReflection (StringView source, const GLSLangResult &glslangData, OUT ShaderReflection &result)
 	{
 		_intermediate = glslangData.prog.getIntermediate( glslangData.shader->getStage() );
 		COMP_CHECK_ERR( _intermediate );
@@ -804,10 +804,95 @@ namespace FG
 		COMP_CHECK_ERR( _ProcessExternalObjects( null, root, OUT result ));
 		COMP_CHECK_ERR( _ProcessShaderInfo( INOUT result ));
 
+		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnoations ) )
+			_ParseAnnoations( source, INOUT result );
+
 		_intermediate = null;
 		return true;
 	}
 	
+/*
+=================================================
+	_ParseAnnoations 
+=================================================
+*/
+	bool SpirvCompiler::_ParseAnnoations (StringView source, INOUT ShaderReflection &reflection) const
+	{
+		const StringView	ds_name = "// @set ";
+
+		// search for descriptor set names
+		for (size_t pos = 0;;)
+		{
+			pos = source.find( ds_name, pos );
+			if ( pos == StringView::npos )
+				break;
+
+			pos += ds_name.length();
+
+			size_t	start		= UMax;
+			uint	mode		= 0;
+			uint	ds_index	= 0;
+			bool	is_string	= false;
+
+			for (; mode < 3; ++pos)
+			{
+				const char	c = pos < source.length() ? source[pos] : '\n';
+
+				if ( c == '\n' or c == '\r' ) {
+					++mode;
+					break;
+				}
+
+				switch ( mode )
+				{
+					// read descriptor set index
+					case 0 : {
+						if ( c >= '0' and c <= '9' )
+							ds_index = ds_index * 10 + uint(c - '0');
+						else {
+							COMP_CHECK_ERR( c == ' ' or c == '\t' );
+							++mode;
+						}
+						break;
+					}
+					// skip first white spaces
+					case 1 : {
+						if ( c != ' ' and c != '\t' ) {
+							is_string = (c == '"');
+							start = pos + uint(is_string);
+							++mode;
+						}
+						break;
+					}
+					// find end of string
+					case 2 : {
+						if ( (is_string and c == '"') or (not is_string and (c == ' ' or c == '\t')) )
+							++mode;
+						break;
+					}
+				}
+			}
+			COMP_CHECK_ERR( mode >= 3 );
+
+			if ( start < pos )
+			{
+				bool	found = false;
+				for (auto& ds : reflection.layout.descriptorSets)
+				{
+					if ( ds.bindingIndex == ds_index )
+					{
+						ds.id = DescriptorSetID{ source.substr( start, pos - start - 1 )};
+						found = true;
+						break;
+					}
+				}
+				//COMP_CHECK_ERR( found );
+			}
+		}
+
+		return true;
+	}
+
 /*
 =================================================
 	_ProcessExternalObjects
@@ -1240,6 +1325,14 @@ namespace FG
 		TIntermTyped*	tnode	= node->getAsTyped();
 		auto const&		type	= tnode->getType();
 		auto const&		qual	= type.getQualifier();
+		
+		// skip builtin
+		if ( type.isBuiltIn() )
+			return true;
+
+		// shared variables
+		if ( qual.storage == EvqShared )
+			return true;
 
 		// shader input
 		if ( qual.storage == TStorageQualifier::EvqVaryingIn )
@@ -1270,10 +1363,6 @@ namespace FG
 			result.fragment.fragmentOutput.push_back( std::move(frag_out) );
 			return true;
 		}
-		
-		// skip builtin
-		if ( type.isBuiltIn() )
-			return true;
 
 		// specialization constant
 		if ( qual.storage == EvqConst and
@@ -1287,13 +1376,9 @@ namespace FG
 		if ( qual.storage == EvqGlobal or qual.storage == EvqConst )
 			return true;
 
-		// shared variables
-		if ( qual.storage == EvqShared )
-			return true;
-
 
 		const bool		is_dynamic		= EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset );
-		auto&			descriptor_set	= GetDesciptorSet( qual.hasSet() ? uint(qual.layoutSet) : 0, result );
+		auto&			descriptor_set	= GetDesciptorSet( qual.hasSet() ? uint(qual.layoutSet) : 0, INOUT result );
 		auto&			uniforms		= const_cast<PipelineDescription::UniformMap_t &>( *descriptor_set.uniforms );
 
 		if ( type.getBasicType() == TBasicType::EbtSampler )

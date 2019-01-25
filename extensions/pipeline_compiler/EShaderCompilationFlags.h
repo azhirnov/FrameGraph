@@ -23,11 +23,7 @@ namespace FG
 		OptimizeSize				= 1 << 17,
 		StrongOptimization			= 1 << 18,	// very slow, may be usable for offline compilation
 
-		// Profiling & Debugging
-		//GenerateDebugTrace		= 1 << 24,	// (experimental)
-		//GenerateDebugAsserts		= 1 << 25,	// (experimental)
-		//GenerateDebugView			= 1 << 26,	// (experimental)
-		//GenerateProfilingTrace	= 1 << 27,	// (experimental)
+		ParseAnnoations				= 1 << 20,
 
 		_Last,
 		Unknown						= 0,

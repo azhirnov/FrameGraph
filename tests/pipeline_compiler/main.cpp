@@ -15,13 +15,13 @@ extern void Test_Shader9 (VPipelineCompiler* compiler);
 extern void Test_Shader10 (VPipelineCompiler* compiler);
 extern void Test_Shader11 (VPipelineCompiler* compiler);
 extern void Test_Shader12 (VPipelineCompiler* compiler);
+extern void Test_Shader13 (VPipelineCompiler* compiler);
 
 
 int main ()
 {
 	VPipelineCompiler	compiler;
-	compiler.SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations /*|
-								  EShaderCompilationFlags::UseCurrentDeviceLimits*/ );
+	compiler.SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
 	
 	Test_Shader1( &compiler );
 	Test_Shader2( &compiler );
@@ -35,6 +35,7 @@ int main ()
 	Test_Shader10( &compiler );
 	Test_Shader11( &compiler );
 	Test_Shader12( &compiler );
+	Test_Shader13( &compiler );
 	
 	FG_LOGI( "Tests.PipelineCompiler finished" );
 	
