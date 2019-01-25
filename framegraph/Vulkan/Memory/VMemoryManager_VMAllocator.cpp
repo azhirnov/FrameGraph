@@ -20,6 +20,7 @@
 #ifdef COMPILER_MSVC
 #	pragma warning (push, 0)
 #	pragma warning (disable: 4701)
+#	pragma warning (disable: 4703)
 #endif
 
 #define VMA_IMPLEMENTATION	1

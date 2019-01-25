@@ -9,23 +9,48 @@
 namespace FG
 {
 
+	struct VertexAttributeName
+	{
+		using Name_t = StaticString<32>;
+
+		static constexpr Name_t		Position	{"at_Position"};
+		static constexpr Name_t		Position_1	{"at_Position_1"};
+		
+		static constexpr Name_t		Normal		{"at_Normal"};
+		static constexpr Name_t		BiNormal	{"at_BiNormal"};
+		static constexpr Name_t		Tangent		{"at_Tangent"};
+		
+		static constexpr Name_t		ObjectID	{"at_ObjectID"};
+		static constexpr Name_t		MaterialID	{"at_MaterialID"};
+
+		static constexpr Name_t		BoneWeights	{"at_BoneWeights"};
+
+		static constexpr Name_t		LightmapUV	{"at_LightmapUV"};
+		static constexpr Name_t		TextureUVs[] = { "at_TextureUV", "at_TextureUV_1", "at_TextureUV_2", "at_TextureUV_3" };
+
+		static Name_t  GetName (const VertexID &);
+	};
+
+
 	struct EVertexAttribute
 	{
-		static constexpr VertexID	Position	{"at_Position"};
-		static constexpr VertexID	Position_1	{"at_Position_1"};	// for morphing animation
+		static constexpr VertexID	Position	{VertexAttributeName::Position};
+		static constexpr VertexID	Position_1	{VertexAttributeName::Position_1};	// for morphing animation
 		
-		static constexpr VertexID	Normal		{"at_Normal"};
-		static constexpr VertexID	BiNormal	{"at_BiNormal"};
-		static constexpr VertexID	Tangent		{"at_Tangent"};
+		static constexpr VertexID	Normal		{VertexAttributeName::Normal};
+		static constexpr VertexID	BiNormal	{VertexAttributeName::BiNormal};
+		static constexpr VertexID	Tangent		{VertexAttributeName::Tangent};
 		
-		static constexpr VertexID	ObjectID	{"at_ObjectID"};
-		static constexpr VertexID	MaterialID	{"at_MaterialID"};
+		static constexpr VertexID	ObjectID	{VertexAttributeName::ObjectID};
+		static constexpr VertexID	MaterialID	{VertexAttributeName::MaterialID};
 
-		static constexpr VertexID	BoneWeights	{"at_BoneWeights"};	// for sceletal animation
+		static constexpr VertexID	BoneWeights	{VertexAttributeName::BoneWeights};	// for sceletal animation
 
-		static constexpr VertexID	LightmapUV	{"at_LightmapUV"};
-		static constexpr VertexID	TextureUVs[] = { VertexID{"at_TextureUV"},   VertexID{"at_TextureUV_1"},
-													 VertexID{"at_TextureUV_2"}, VertexID{"at_TextureUV_3"} };
+		static constexpr VertexID	LightmapUV	{VertexAttributeName::LightmapUV};
+		static constexpr VertexID	TextureUVs[] = { VertexID{VertexAttributeName::TextureUVs[0]},
+													 VertexID{VertexAttributeName::TextureUVs[1]},
+													 VertexID{VertexAttributeName::TextureUVs[2]},
+													 VertexID{VertexAttributeName::TextureUVs[3]} };
 	};
 
 

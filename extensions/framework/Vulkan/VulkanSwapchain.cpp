@@ -297,7 +297,7 @@ namespace FG
 
 			view_info.sType			= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			view_info.pNext			= null;
-			view_info.viewType		= VK_IMAGE_VIEW_TYPE_2D;		// TODO: support image arrays
+			view_info.viewType		= VK_IMAGE_VIEW_TYPE_2D;
 			view_info.flags			= 0;
 			view_info.image			= images[i];
 			view_info.format		= _colorFormat;

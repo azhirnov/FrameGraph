@@ -40,6 +40,9 @@ namespace FG
 		MorphingAnimation		= 1 << 2,
 
 		// 
+		SRGB					= 1 << 3,		// material textures and color values must be with gamma-correction
+
+		// 
 		ReliefMapping			= 1 <<  9,		// normal mapping, parallax mapping or other technique
 		DisplacementMapping		= 1 << 10,		// with tessellation, requires diffuse, normal, height maps
 

@@ -74,7 +74,7 @@ namespace FG
 		
 		void AddScene (const ScenePtr &scene);
 
-		void AddCamera (const Camera &data, const vec2 &range, DetailLevelRange detail,
+		void AddCamera (const Camera &data, const vec2 &viewportSize, const vec2 &range, DetailLevelRange detail,
 						ECameraType type, LayerBits layers, const ViewportPtr &vp = null);
 	};
 
@@ -112,12 +112,13 @@ namespace FG
 	AddCamera
 =================================================
 */
-	inline void ScenePreRender::AddCamera (const Camera &data, const vec2 &range, DetailLevelRange detail,
+	inline void ScenePreRender::AddCamera (const Camera &data, const vec2 &viewportSize, const vec2 &range, DetailLevelRange detail,
 										   ECameraType type, LayerBits layers, const ViewportPtr &vp)
 	{
 		ASSERT( range[0] < range[1] );
 		ASSERT( detail.min < detail.max );
 		ASSERT( layers.count() );
+		ASSERT( viewportSize.x > 0.0f and viewportSize.y > 0.0f );
 
 		ScenePtr	prev;
 		auto&		curr = _cameras.emplace_back();
@@ -127,6 +128,7 @@ namespace FG
 		curr.layers				= layers;
 		curr.detailRange		= detail;
 		curr.cameraType			= type;
+		curr.viewportSize		= viewportSize;
 		curr.viewport			= vp;
 		curr.frustum.Setup( curr.camera, curr.visibilityRange );
 

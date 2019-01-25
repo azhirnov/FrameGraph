@@ -78,12 +78,15 @@ namespace FG
 		ND_ virtual ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName = Default) = 0;
-			virtual bool			InitPipelineResources (const GPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (const CPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (const MPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
 		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
+			virtual bool			InitPipelineResources (const RawGPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (const RawRTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+		
+			template <typename Pipeline>
+			inline bool				InitPipelineResources (const Pipeline &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const { return InitPipelineResources( pplnId.Get(), id, OUT resources ); }
 
 			// Release reference to resource, if reference counter is 0 then resource will be destroyed after frame execution.
 			// See synchronization requirements on top of this file.
@@ -159,6 +162,7 @@ namespace FG
 		//ND_ virtual ImageID		GetSwapchainImage (ESwapchainImage type) = 0;
 
 			virtual bool		UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data) = 0;
+			virtual bool		MapBufferRange (const BufferID &id, BytesU offset, INOUT BytesU &size, OUT void* &data) = 0;
 
 	// tasks //
 

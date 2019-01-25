@@ -11,37 +11,73 @@
 namespace FG
 {
 namespace {
-	static const char	vertex_shader_source[] = R"#(
-layout(location=0) in vec3	at_Position;
+	static constexpr uint		max_instance_count = 1 << 11;
 
-struct ObjectTransform
-{
-	vec3	position;
-	float	scale;
-	vec4	orientation;
-};
+	static const StringView		shader_source = R"#(
+#ifdef VERTEX_SHADER
+	struct ObjectTransform
+	{
+		vec4	orientation;
+		vec3	position;
+		float	scale;
+	};
 
-layout(set=0, binding=0, std140) uniform PerInstanceUB
-{
-	ObjectTransform		transforms[];
-} inst;
+	layout(set=0, binding=0, std140) uniform PerInstanceUB {
+		ObjectTransform		transforms[1 << 11];	// [max_instance_count]
+	} perInstance;
 
-layout(push_constants, std140) uniform VSPushConst
-{
-	layout(offset=0) int	materialID;
-};
-)#";
-	
-	static const char	fragment_shader_source[] = R"#(
-layout(set=0, binding=1, std140) uniform MaterialsUB
-{
-	vec4	someData;
-} mtr;
+	layout(push_constant, std140) uniform VSPushConst {
+		layout(offset=0) int	instanceID;
+		layout(offset=4) int	materialID;
+	};
 
-layout(set=0, binding=2) uniform sampler2D  un_AlbedoTex;
-layout(set=0, binding=3) uniform sampler2D  un_SpecularTex;
-layout(set=0, binding=4) uniform sampler2D  un_RoughtnessTex;
-layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
+	vec3 RotateVec (const vec4 qleft, const vec3 vright)
+	{
+		vec3	uv, uuv, qvec = qleft.xyz;
+		uv	= cross( qvec, vright );
+		uuv	= cross( qvec, uv );
+		uv	*= 2.0f * qleft.w;
+		uuv	*= 2.0f;
+		return vright + uv + uuv;
+	}
+
+	vec3 GetWorldPosition ()
+	{
+		vec3	pos   = perInstance.transforms[instanceID].position;
+		float	scale = perInstance.transforms[instanceID].scale;
+		vec4	quat  = perInstance.transforms[instanceID].orientation;
+		return RotateVec( quat, at_Position ) * scale + pos;
+	}
+
+	vec2 GetTextureCoordinate0 ()  { return at_TextureUV; }
+#endif	// VERTEX_SHADER
+
+
+#ifdef FRAGMENT_SHADER
+	/*layout(set=0, binding=1, std140) uniform MaterialsUB {
+		vec4	someData;
+	} mtr;*/
+
+# ifdef ALBEDO_MAP
+	layout(set=0, binding=2) uniform sampler2D  un_AlbedoTex;
+	vec4  SampleAlbedo (const vec2 texcoord)  { return texture( un_AlbedoTex, texcoord ); }
+# endif
+
+# ifdef SPECULAR_MAP
+	layout(set=0, binding=3) uniform sampler2D  un_SpecularTex;
+	float SampleSpecular (const vec2 texcoord)  { return texture( un_SpecularTex, texcoord ).r; }
+# endif
+
+# ifdef ROUGHTNESS_MAP
+	layout(set=0, binding=4) uniform sampler2D  un_RoughtnessTex;
+	float SampleRoughtness (const vec2 texcoord)  { return texture( un_RoughtnessTex, texcoord ).r; }
+# endif
+
+# ifdef METALLIC_MAP
+	layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
+	float SampleMetallic (const vec2 texcoord)  { return texture( un_MetallicTex, texcoord ).r; }
+# endif
+#endif	// FRAGMENT_SHADER
 )#";
 }
 
@@ -59,12 +95,12 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 	Create
 =================================================
 */
-	bool SimpleScene::Create (const FGThreadPtr &fg, const IntermediateScenePtr &scene, const ImageCachePtr &imageCache)
+	bool SimpleScene::Create (const FGThreadPtr &fg, const IntermediateScenePtr &scene, const ImageCachePtr &imageCache, const Transform &initialTransform)
 	{
 		CHECK_ERR( scene );
 		CHECK_ERR( _ConvertMeshes( fg, scene ));
 		CHECK_ERR( _ConvertMaterials( fg, scene, imageCache ));
-		CHECK_ERR( _ConvertHierarchy( scene ));
+		CHECK_ERR( _ConvertHierarchy( scene, initialTransform ));
 		return true;
 	}
 	
@@ -131,10 +167,6 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 
 			auto&	model_layers = _modelLODs[ inst.index ][ uint(detail) ];
 			
-			DrawIndexed		draw_task;
-			draw_task.AddBuffer( Default, _vertexBuffer )
-					 .SetIndexBuffer( _indexBuffer, 0_b, _indexType );
-
 			for (int layer_idx = first_layer; layer_idx <= last_layer; ++layer_idx)
 			{
 				if ( not camera.layers[layer_idx] )
@@ -142,21 +174,21 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 
 				auto&	models_range = model_layers[ layer_idx ];
 
-				for (uint i = 0; i < models_range[1]; ++i)
+				for (uint i = 0; i < models_range.y; ++i)
 				{
-					auto&	model	= _models[i];
+					auto&	model	= _models[ models_range.x + i ];
 					auto&	mesh	= _meshes[ model.meshID ];
 					//auto&	mtr		= _materials[ model.materialID ];
 
-
-					draw_task.commands.clear();
-					draw_task.resources.clear();
-
-					draw_task.SetVertexInput( _vertexAttribs[mesh.attribsIndex] ).SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
+					DrawIndexed		draw_task;
+					draw_task.pipeline = model.pipeline;
+					draw_task.AddBuffer( Default, _vertexBuffer )
+							 .SetIndexBuffer( _indexBuffer, 0_b, _indexType )
+							 .SetVertexInput( _vertexAttribs[mesh.attribsIndex].first )
+							 .SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
 							 .Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
-							 .AddResources( DescriptorSetID{"0"}, &model.resources )
-							 .AddPushConstant( PushConstantID{"VSPushConst"}, model.materialID )
-							 .AddPushConstant( PushConstantID{"VSPushConst"}, inst.index );
+							 .AddResources( DescriptorSetID{"PerObject"}, &model.resources )
+							 .AddPushConstant( PushConstantID{"VSPushConst"}, uint2{model.materialID, inst.index} );
 
 					queue.AddRenderObj( ERenderLayer(layer_idx), draw_task );
 				}
@@ -171,16 +203,25 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 */
 	bool SimpleScene::_UpdatePerObjectUniforms (const FGThreadPtr &fg)
 	{
-		const BytesU	size = (SizeOf<mat4x4>) * _instances.size();
+		CHECK_ERR( _instances.size() <= max_instance_count );
+
+		const BytesU	size = (SizeOf<mat4x4>) * max_instance_count;
 
 		if ( not _perInstanceUB )
 		{
-			_perInstanceUB = fg->CreateBuffer( BufferDesc{ size, EBufferUsage::Uniform }, MemoryDesc{ EMemoryType::HostWrite } );
+			_perInstanceUB = fg->CreateBuffer( BufferDesc{ size, EBufferUsage::Uniform }, MemoryDesc{ EMemoryType::HostWrite }, "PerInstanceUB" );
 			CHECK_ERR( _perInstanceUB );
 		}
+		
+		BytesU	mapped_size = size;
+		void*	mapped_ptr	= null;
+		CHECK_ERR( fg->MapBufferRange( _perInstanceUB, 0_b, INOUT mapped_size, OUT mapped_ptr ));
 
+		for (auto& inst : _instances)
+		{
+			memcpy( mapped_ptr + SizeOf<Transform> * inst.index, &inst.transform, sizeof(inst.transform) );
+		}
 
-		// TODO
 		return true;
 	}
 	
@@ -191,23 +232,32 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 */
 	bool SimpleScene::_BuildModels (const FGThreadPtr &fg, const RenderTechniquePtr &renTech)
 	{
+		ShaderBuilder*	builder = renTech->GetShaderBuilder();
+
+		for (auto& attr : _vertexAttribs) {
+			attr.second = builder->CacheVertexAttribs( attr.first );
+		}
+
 		SamplerID	sampler = fg->CreateSampler( SamplerDesc{}.SetAddressMode( EAddressMode::Repeat )
 															  .SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear ));
 		CHECK_ERR( sampler );
 
 		for (auto& model : _models)
 		{
-			auto&	mtr	= _materials[ model.materialID ];
+			auto&	mesh = _meshes[ model.meshID ];
+			auto&	mtr  = _materials[ model.materialID ];
+
+			CHECK_ERR( mesh.attribsIndex != UMax );
 
 			IRenderTechnique::PipelineInfo	info;
 			info.textures			= mtr.textureBits;
 			info.layer				= model.layer;
 			info.detailLevel		= EDetailLevel::High;
-			info.vertexShaderPart	= vertex_shader_source;
-			info.materialPart		= fragment_shader_source;
+			info.sourceIDs.push_back( _vertexAttribs[mesh.attribsIndex].second );
+			info.sourceIDs.push_back( builder->CacheShaderSource( shader_source ));
 
 			CHECK_ERR( renTech->GetPipeline( info, OUT model.pipeline ));
-			CHECK_ERR( fg->InitPipelineResources( model.pipeline, DescriptorSetID{"0"}, OUT model.resources ));
+			CHECK_ERR( fg->InitPipelineResources( model.pipeline, DescriptorSetID{"PerObject"}, OUT model.resources ));
 
 			if ( mtr.albedoTex )
 				model.resources.BindTexture( UniformID{"un_AlbedoTex"}, mtr.albedoTex, sampler );
@@ -222,9 +272,10 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 				model.resources.BindTexture( UniformID{"un_MetallicTex"}, mtr.metallicTex, sampler );
 
 			model.resources.BindBuffer( UniformID{"PerInstanceUB"}, _perInstanceUB );
-			model.resources.BindBuffer( UniformID{"MaterialsUB"}, _materialsUB );
+			//model.resources.BindBuffer( UniformID{"MaterialsUB"}, _materialsUB );
 		}
 
+		FG_UNUSED( sampler.Release() );
 		return true;
 	}
 
@@ -265,7 +316,7 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 		for (size_t i = 0; i < scene->GetMeshes().size(); ++i)
 		{
 			auto&	src = scene->GetMeshes()[i];
-			Mesh	dst = _meshes[i];
+			Mesh&	dst = _meshes[i];
 
 			dst.boundingBox		= src->GetAABB().value();
 			dst.attribsIndex	= uint(attribs.find( src->GetAttribs() )->second);
@@ -291,7 +342,7 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 		_vertexAttribs.reserve( attribs.size() );
 		for (auto& src : attribs)
 		{
-			auto&	dst = _vertexAttribs.emplace_back();
+			auto&	dst = _vertexAttribs.emplace_back().first;
 			dst.Bind( Default, vert_stride );
 
 			for (auto& vert : src.first->GetVertexBinds())
@@ -366,12 +417,11 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 		inst.boundingBox	= Default;	// TODO
 		_instances.push_back( inst );
 		
-		LayerBits		layers = node.material->GetRenderLayers();
+		LayerBits		layers			= node.material->GetRenderLayers();
 		DetailLevels_t	model_lod;
 		RenderLayers_t	model_layers;
-		Model			model;
-		model.meshID		= uint(scene->GetIndexOfMesh( node.mesh ));
-		model.materialID	= uint(scene->GetIndexOfMaterial( node.material ));
+		const uint		mesh_index		= uint(scene->GetIndexOfMesh( node.mesh ));
+		const uint		material_index	= uint(scene->GetIndexOfMaterial( node.material ));
 
 		for (size_t i = 0; i < model_layers.size(); ++i)
 		{
@@ -381,9 +431,12 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 				continue;
 			}
 			
-			model_layers[i] = {uint32_t(_models.size()), 1};
-			model.layer		= ERenderLayer(i);
-			_models.push_back( model );
+			Model	model;
+			model.meshID	 = mesh_index;
+			model.materialID = material_index;
+			model_layers[i]  = {uint32_t(_models.size()), 1};
+			model.layer		 = ERenderLayer(i);
+			_models.push_back( std::move(model) );
 		}
 		
 		for (auto& lod : model_lod) {
@@ -399,12 +452,12 @@ layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 	_ConvertHierarchy
 =================================================
 */
-	bool SimpleScene::_ConvertHierarchy (const IntermediateScenePtr &scene)
+	bool SimpleScene::_ConvertHierarchy (const IntermediateScenePtr &scene, const Transform &initialTransform)
 	{
 		_instances.reserve( 128 );
 
 		Array<Pair< IntermediateScene::SceneNode const*, Transform >>	stack;
-		stack.emplace_back( &scene->GetRoot(), Transform() );
+		stack.emplace_back( &scene->GetRoot(), initialTransform );
 
 		for (; not stack.empty();)
 		{

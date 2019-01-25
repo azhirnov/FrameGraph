@@ -85,6 +85,9 @@ namespace FG
 
 		for (auto& layer : _layers)
 		{
+			if ( not layer.enabled )
+				continue;
+
 			for (auto& dep : dependsOn) {
 				layer.pass.DependsOn( dep );
 			}

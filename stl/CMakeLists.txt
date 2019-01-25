@@ -108,7 +108,7 @@ install( TARGETS "STL" ARCHIVE DESTINATION "lib" )
 
 
 #==================================================================================================
-# project: UnitTests.STL
+# project: Tests.STL
 #==================================================================================================
 if (${FG_ENABLE_TESTS})
 	set( SOURCES 
@@ -130,28 +130,29 @@ if (${FG_ENABLE_TESTS})
 		"../tests/stl/UnitTest_StructView.cpp"
 		"../tests/stl/UnitTest_ToString.cpp" )
 	if (DEFINED ANDROID)
-		add_library( "UnitTests.STL" SHARED ${SOURCES} )
+		add_library( "Tests.STL" SHARED ${SOURCES} )
 	else()
-		add_executable( "UnitTests.STL" ${SOURCES} )
+		add_executable( "Tests.STL" ${SOURCES} )
 	endif()
 	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTest_Array.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_StringParser.cpp" "../tests/stl/UnitTest_StructView.cpp" "../tests/stl/UnitTest_ToString.cpp" )
-	set_property( TARGET "UnitTests.STL" PROPERTY FOLDER "Tests" )
-	target_include_directories( "UnitTests.STL" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "UnitTests.STL" PRIVATE "../tests/.." )
-	target_link_libraries( "UnitTests.STL" "STL" )
+	set_property( TARGET "Tests.STL" PROPERTY FOLDER "Tests" )
+	target_include_directories( "Tests.STL" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "Tests.STL" PRIVATE "../tests/.." )
+	target_link_libraries( "Tests.STL" "STL" )
 	# compiler
-	target_compile_definitions( "UnitTests.STL" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "UnitTests.STL" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "UnitTests.STL" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "UnitTests.STL" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "UnitTests.STL" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "UnitTests.STL" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "UnitTests.STL" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "UnitTests.STL" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "UnitTests.STL" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	target_compile_definitions( "Tests.STL" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "Tests.STL" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "Tests.STL" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "Tests.STL" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "Tests.STL" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "Tests.STL" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "Tests.STL" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "Tests.STL" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "Tests.STL" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
 	
 endif()
 
 
-add_test( NAME "UnitTests.STL" COMMAND "UnitTests.STL" )
+
+add_test( NAME "Tests.STL" COMMAND "Tests.STL" )
 

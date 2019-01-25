@@ -9,6 +9,7 @@
 #include "framework/Window/WindowSFML.h"
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringUtils.h"
+#include <thread>
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>
@@ -40,7 +41,7 @@ namespace FG
 	FGShadertoyApp::FGShadertoyApp () :
 		_passIdx{0}
 	{
-		_fps.lastUpdateTime = TimePoint_t::clock::now();
+		_frameStat.lastUpdateTime = TimePoint_t::clock::now();
 	}
 	
 /*
@@ -196,7 +197,7 @@ namespace FG
 			VulkanSwapchainCreateInfo	swapchain_ci;
 			swapchain_ci.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 			swapchain_ci.surfaceSize	= _window->GetSize();
-			swapchain_ci.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );
+			swapchain_ci.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
 			swapchain_info				= swapchain_ci;
 
 			for (auto& q : _vulkan.GetVkQuues())
@@ -217,8 +218,6 @@ namespace FG
 			_fgInstance = FrameGraphInstance::CreateFrameGraph( vulkan_info );
 			CHECK_ERR( _fgInstance );
 			CHECK_ERR( _fgInstance->Initialize( 2 ));
-
-			//_fgInstance->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
 
 			ThreadDesc	desc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer };
 
@@ -273,7 +272,7 @@ namespace FG
 			return true;
 		}
 
-		_UpdateFPS();
+		_UpdateFrameStat();
 		
 		// select sample
 		if ( _currSample != _nextSample )
@@ -787,32 +786,37 @@ namespace FG
 
 /*
 =================================================
-	_UpdateFPS
+	_UpdateFrameStat
 =================================================
 */
-	void FGShadertoyApp::_UpdateFPS ()
+	void FGShadertoyApp::_UpdateFrameStat ()
 	{
 		using namespace std::chrono;
 
-		++_fps.frameCounter;
+		++_frameStat.frameCounter;
 
 		TimePoint_t		now			= TimePoint_t::clock::now();
-		int64_t			duration	= duration_cast<milliseconds>(now - _fps.lastUpdateTime).count();
+		int64_t			duration	= duration_cast<milliseconds>(now - _frameStat.lastUpdateTime).count();
 
 		FrameGraphInstance::Statistics	stat;
 		_fgInstance->GetStatistics( OUT stat );
-		_fps.frameTimeSum += stat.renderer.gpuTime;
+		_frameStat.gpuTimeSum += stat.renderer.gpuTime;
+		_frameStat.cpuTimeSum += stat.renderer.cpuTime;
 
-		if ( duration > _fps.UpdateIntervalMillis )
+		if ( duration > _frameStat.UpdateIntervalMillis )
 		{
-			uint	fps_value	= uint(float(_fps.frameCounter) / float(duration) * 1000.0f + 0.5f);
-			auto	frame_time	= _fps.frameTimeSum / _fps.frameCounter;
+			uint		fps_value	= uint(float(_frameStat.frameCounter) / float(duration) * 1000.0f + 0.5f);
+			Nanoseconds	gpu_time	= _frameStat.gpuTimeSum / _frameStat.frameCounter;
+			Nanoseconds	cpu_time	= _frameStat.cpuTimeSum / _frameStat.frameCounter;
 
-			_fps.lastUpdateTime	= now;
-			_fps.frameTimeSum	= {0};
-			_fps.frameCounter	= 0;
+			_frameStat.lastUpdateTime	= now;
+			_frameStat.gpuTimeSum		= Default;
+			_frameStat.cpuTimeSum		= Default;
+			_frameStat.frameCounter		= 0;
 
-			_window->SetTitle( "Shadertoy [FPS: "s << ToString(fps_value) << ", FT: " << ToString(frame_time) << ']' );
+			_window->SetTitle( "Shadertoy [FPS: "s << ToString(fps_value) <<
+							   ", GPU: " << ToString(gpu_time) <<
+							   ", CPU:" << ToString(cpu_time) << ']' );
 		}
 	}
 	

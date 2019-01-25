@@ -2,10 +2,12 @@
 
 #pragma once
 
-#ifdef FG_DEBUG
+#ifndef FG_OPTIMIZE_IDS
+# ifdef FG_DEBUG
 #	define FG_OPTIMIZE_IDS		false
-#else
+# else
 #	define FG_OPTIMIZE_IDS		true
+# endif
 #endif
 
 

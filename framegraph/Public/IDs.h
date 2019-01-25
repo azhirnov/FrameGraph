@@ -26,8 +26,11 @@ namespace _fg_hidden_
 	// methods
 	public:
 		constexpr IDWithString () {}
-		explicit constexpr IDWithString (StringView name)  : _name{name}, _hash{CT_Hash( name.data(), Seed )} {}
-		explicit constexpr IDWithString (const char *name) : _name{name}, _hash{CT_Hash( name, Seed )} {}
+		explicit constexpr IDWithString (StringView name)  : _name{name}, _hash{CT_Hash( name.data(), name.length(), Seed )} {}
+		explicit constexpr IDWithString (const char *name) : _name{name}, _hash{CT_Hash( name, UMax, Seed )} {}
+
+		template <size_t StrSize>
+		explicit constexpr IDWithString (const StaticString<StrSize> &name) : _name{name}, _hash{CT_Hash( name.data(), name.length(), Seed )} {}
 
 		ND_ constexpr bool operator == (const IDWithString &rhs) const		{ return _hash == rhs._hash and _name == rhs._name; }
 		ND_ constexpr bool operator != (const IDWithString &rhs) const		{ return not (*this == rhs); }
@@ -39,6 +42,7 @@ namespace _fg_hidden_
 		ND_ constexpr StringView	GetName ()		const					{ return _name; }
 		ND_ constexpr HashVal		GetHash ()		const					{ return _hash; }
 		ND_ constexpr bool			IsDefined ()	const					{ return not _name.empty(); }
+		ND_ constexpr static bool	IsOptimized ()							{ return false; }
 	};
 	
 	
@@ -53,14 +57,14 @@ namespace _fg_hidden_
 	// variables
 	private:
 		HashVal						_hash;
-		static constexpr HashVal	_emptyHash	= CT_Hash( "", Seed );
+		static constexpr HashVal	_emptyHash	= CT_Hash( "", 0, Seed );
 
 
 	// methods
 	public:
 		constexpr IDWithString () {}
-		explicit constexpr IDWithString (StringView name)  : _hash{CT_Hash( name.data(), Seed )} {}
-		explicit constexpr IDWithString (const char *name) : _hash{CT_Hash( name, Seed )} {}
+		explicit constexpr IDWithString (StringView name)  : _hash{CT_Hash( name.data(), name.length(), Seed )} {}
+		explicit constexpr IDWithString (const char *name) : _hash{CT_Hash( name, UMax, Seed )} {}
 
 		ND_ constexpr bool operator == (const IDWithString &rhs) const		{ return _hash == rhs._hash; }
 		ND_ constexpr bool operator != (const IDWithString &rhs) const		{ return not (*this == rhs); }
@@ -71,6 +75,7 @@ namespace _fg_hidden_
 
 		ND_ constexpr HashVal		GetHash ()		const					{ return _hash; }
 		ND_ constexpr bool			IsDefined ()	const					{ return _hash != _emptyHash; }
+		ND_ constexpr static bool	IsOptimized ()							{ return true; }
 	};
 
 
@@ -146,8 +151,6 @@ namespace _fg_hidden_
 		Self&			operator = (Self &&rhs)					{ ASSERT(not IsValid());  _id = rhs._id;  rhs._id = Default;  return *this; }
 
 		ND_ bool		IsValid ()						const	{ return _id.IsValid(); }
-		//ND_ auto		Index ()						const	{ return _id.Index(); }
-		//ND_ auto		InstanceID ()					const	{ return _id.InstanceID(); }
 		ND_ HashVal		GetHash ()						const	{ return _id.GetHash(); }
 		
 		ND_ ID_t		Release ()								{ ASSERT(IsValid());  ID_t temp{_id};  _id = Default;  return temp; }

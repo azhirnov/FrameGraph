@@ -51,7 +51,7 @@ namespace FG
 
 			Self &	Move (const Vec3_t &delta);
 			Self &	Rotate (const Quat_t &delta);
-			Self &	Scale (const Vec3_t &scale);
+			Self &	Scale (float scale);
 
 			Self &	Inverse ();
 		ND_ Self	Inversed ()	const						{ return Self{*this}.Inverse(); }
@@ -147,9 +147,9 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	inline Transformation<T>&  Transformation<T>::Scale (const Vec3_t &scale)
+	inline Transformation<T>&  Transformation<T>::Scale (float value)
 	{
-		this->scale *= scale;
+		this->scale *= value;
 		return *this;
 	}
 	

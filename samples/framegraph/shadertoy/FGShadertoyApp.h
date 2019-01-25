@@ -160,13 +160,13 @@ namespace FG
 		
 		String					_debugOutputPath;
 
-		// FPS counter
 		struct {
-			Nanoseconds				frameTimeSum			{0};
+			Nanoseconds				gpuTimeSum				{0};
+			Nanoseconds				cpuTimeSum				{0};
 			TimePoint_t				lastUpdateTime;
 			uint					frameCounter			= 0;
-			static constexpr uint	UpdateIntervalMillis	= 500;
-		}						_fps;
+			const uint				UpdateIntervalMillis	= 500;
+		}						_frameStat;
 
 
 	// methods
@@ -202,7 +202,7 @@ namespace FG
 		bool _DrawWithShader (const ShaderPtr &shader, uint passIndex, bool isLast);
 		void _UpdateShaderData ();
 
-		void _UpdateFPS ();
+		void _UpdateFrameStat ();
 
 		bool _LoadImage (const String &filename, OUT ImageID &id);
 		bool _HasImage (StringView filename) const;

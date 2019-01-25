@@ -3,9 +3,9 @@
 #pragma once
 
 
-#ifndef FG_DEBUG
+#if 0 //ndef FG_DEBUG
 #	define VK_CALL( ... )		{ (void)(__VA_ARGS__); }
-#	define VK_CHECK( ... )		{ (void)(__VA_ARGS__); }
+#	define VK_CHECK( ... )		{ if ((__VA_ARGS__) != VK_SUCCESS) return false; }
 
 #else
 #	define VK_CALL( ... ) \

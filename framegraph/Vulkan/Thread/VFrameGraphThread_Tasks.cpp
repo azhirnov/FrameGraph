@@ -1241,6 +1241,20 @@ namespace {
 */
 	bool  VFrameGraphThread::UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data)
 	{
+		void*	dst_ptr;
+		CHECK_ERR( MapBufferRange( id, offset, INOUT size, OUT dst_ptr ));
+
+		MemCopy( OUT dst_ptr, size, data, size );
+		return true;
+	}
+	
+/*
+=================================================
+	MapBufferRange
+=================================================
+*/
+	bool  VFrameGraphThread::MapBufferRange (const BufferID &id, BytesU offset, INOUT BytesU &size, OUT void* &dataPtr)
+	{
 		VLocalBuffer const*		buffer = _resourceMngr.ToLocal( id.Get() );
 		CHECK_ERR( buffer );
 
@@ -1249,10 +1263,10 @@ namespace {
 
 		VMemoryObj::MemoryInfo	mem_info;
 		CHECK_ERR( memory->GetInfo( OUT mem_info ));
-
 		CHECK_ERR( mem_info.mappedPtr );
-		MemCopy( mem_info.mappedPtr + offset, mem_info.size - offset, data, size );
 
+		size	= Min( size, mem_info.size - offset );
+		dataPtr = mem_info.mappedPtr + offset;
 		return true;
 	}
 

@@ -4,12 +4,13 @@
 
 #include "scene/SceneManager/ISceneHierarchy.h"
 #include "scene/Loader/Intermediate/IntermediateScene.h"
+#include "scene/Renderer/ShaderBuilder.h"
 
 namespace FG
 {
 
 	//
-	// Simple Scene
+	// Simple Scene Hierarchy
 	//
 
 	class SimpleScene final : public ISceneHierarchy
@@ -25,14 +26,13 @@ namespace FG
 
 		struct Model
 		{
-			GPipelineID			pipeline;
+			RawGPipelineID		pipeline;
 			PipelineResources	resources;
 			uint				materialID		= UMax;		// in '_materials'
 			uint				meshID			= UMax;		// in '_meshes'
 			ERenderLayer		layer			= Default;
 
 			Model () {}
-			Model (const Model &other) : materialID{other.materialID}, meshID{other.meshID} { ASSERT( not other.pipeline ); }
 		};
 
 		struct Mesh
@@ -40,7 +40,7 @@ namespace FG
 			AABB			boundingBox;
 			EPrimitive		topology		= Default;
 			ECullMode		cullMode		= Default;
-			uint			attribsIndex	= UMax;		// in '_vertexInput'
+			uint			attribsIndex	= UMax;		// in '_vertexAttribs'
 			uint			patchSize		= 0;		// for tessellation
 			uint			vertexOffset	= 0;
 			uint			indexCount		= 0;
@@ -57,7 +57,7 @@ namespace FG
 			uint			dataID			= UMax;		// in '_materialsUB'
 		};
 		
-		using VertexAttribs_t	= Array< VertexInputState >;
+		using VertexAttribs_t	= Array<Pair< VertexInputState, ShaderBuilder::ShaderSourceID >>;
 		using ModelsRange_t		= uint2;	// first, count in '_models'
 		using RenderLayers_t	= StaticArray< ModelsRange_t, uint(ERenderLayer::_Count) >;
 		using DetailLevels_t	= StaticArray< RenderLayers_t, uint(EDetailLevel::_Count) >;
@@ -86,7 +86,7 @@ namespace FG
 	public:
 		SimpleScene ();
 
-		bool Create (const FGThreadPtr &, const IntermediateScenePtr &, const ImageCachePtr &);
+		bool Create (const FGThreadPtr &, const IntermediateScenePtr &, const ImageCachePtr &, const Transform & = Default);
 		void Destroy (const FGThreadPtr &);
 		
 		bool Build (const FGThreadPtr &, const RenderTechniquePtr &) override;
@@ -99,7 +99,7 @@ namespace FG
 	private:
 		bool _ConvertMeshes (const FGThreadPtr &, const IntermediateScenePtr &);
 		bool _ConvertMaterials (const FGThreadPtr &, const IntermediateScenePtr &, const ImageCachePtr &);
-		bool _ConvertHierarchy (const IntermediateScenePtr &);
+		bool _ConvertHierarchy (const IntermediateScenePtr &, const Transform &);
 		bool _UpdatePerObjectUniforms (const FGThreadPtr &);
 		bool _BuildModels (const FGThreadPtr &, const RenderTechniquePtr &);
 		bool _CreateMesh (const Transform &, const IntermediateScenePtr &, const IntermediateScene::MeshNode &);

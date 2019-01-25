@@ -69,14 +69,6 @@ namespace FG
 			return	_layers.IsIntersects( other._layers ) and
 					_mipmaps.IsIntersects( other._mipmaps );
 		}
-
-
-		/*Self &			Merge (const Self &other)
-		{
-			_layers.Merge( other._layers );
-			_mipmaps.Merge( other._mipmaps );	// TODO ?
-			return*this;
-		}*/
 	};
 
 }	// FG

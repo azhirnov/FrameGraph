@@ -72,14 +72,14 @@ set( SOURCES
 	"Vulkan/Thread/VTaskGraph.hpp"
 	"Vulkan/Thread/VTaskProcessor.cpp"
 	"Vulkan/Thread/VTaskProcessor.h"
-	"Vulkan/Main/VDevice.cpp"
-	"Vulkan/Main/VDevice.h"
-	"Vulkan/Main/VFrameGraphInstance.cpp"
-	"Vulkan/Main/VFrameGraphInstance.h"
-	"Vulkan/Main/VResourceManager.cpp"
-	"Vulkan/Main/VResourceManager.h"
-	"Vulkan/Main/VSubmissionGraph.cpp"
-	"Vulkan/Main/VSubmissionGraph.h"
+	"Vulkan/Instance/VDevice.cpp"
+	"Vulkan/Instance/VDevice.h"
+	"Vulkan/Instance/VFrameGraphInstance.cpp"
+	"Vulkan/Instance/VFrameGraphInstance.h"
+	"Vulkan/Instance/VResourceManager.cpp"
+	"Vulkan/Instance/VResourceManager.h"
+	"Vulkan/Instance/VSubmissionGraph.cpp"
+	"Vulkan/Instance/VSubmissionGraph.h"
 	"Vulkan/Debugger/VDebugger.cpp"
 	"Vulkan/Debugger/VDebugger.h"
 	"Vulkan/Debugger/VFrameGraphDebugger.cpp"
@@ -171,7 +171,7 @@ source_group( "Vulkan\\RayTracing" FILES "Vulkan/RayTracing/VLocalRTGeometry.cpp
 source_group( "Public" FILES "Public/BindingIndex.h" "Public/BufferDesc.h" "Public/BufferView.h" "Public/Config.h" "Public/EResourceState.h" "Public/FGEnums.h" "Public/FrameGraphDrawTask.h" "Public/FrameGraphInstance.h" "Public/FrameGraphTask.h" "Public/FrameGraphThread.h" "Public/IDs.h" "Public/ImageDesc.h" "Public/ImageLayer.h" "Public/ImageSwizzle.h" "Public/ImageView.h" "Public/IPipelineCompiler.h" "Public/MemoryDesc.h" "Public/MipmapLevel.h" "Public/MultiSamples.h" "Public/Pipeline.h" "Public/PipelineResources.h" "Public/RayTracingEnums.h" "Public/RayTracingGeometryDesc.h" "Public/RayTracingSceneDesc.h" "Public/RenderPassDesc.h" "Public/RenderState.h" "Public/RenderStateEnums.h" "Public/ResourceEnums.h" "Public/SamplerDesc.h" "Public/SamplerEnums.h" "Public/ShaderEnums.h" "Public/SubmissionGraph.h" "Public/Types.h" "Public/VertexDesc.h" "Public/VertexEnums.h" "Public/VertexInputState.h" "Public/VulkanTypes.h" )
 source_group( "Vulkan" FILES "Vulkan/VCommon.h" )
 source_group( "Vulkan\\Thread" FILES "Vulkan/Thread/VBarrierManager.h" "Vulkan/Thread/VDrawTask.h" "Vulkan/Thread/VFrameGraphThread.cpp" "Vulkan/Thread/VFrameGraphThread.h" "Vulkan/Thread/VFrameGraphThread_Tasks.cpp" "Vulkan/Thread/VResourceManagerThread.cpp" "Vulkan/Thread/VResourceManagerThread.h" "Vulkan/Thread/VStagingBufferManager.cpp" "Vulkan/Thread/VStagingBufferManager.h" "Vulkan/Thread/VTaskGraph.h" "Vulkan/Thread/VTaskGraph.hpp" "Vulkan/Thread/VTaskProcessor.cpp" "Vulkan/Thread/VTaskProcessor.h" )
-source_group( "Vulkan\\Main" FILES "Vulkan/Main/VDevice.cpp" "Vulkan/Main/VDevice.h" "Vulkan/Main/VFrameGraphInstance.cpp" "Vulkan/Main/VFrameGraphInstance.h" "Vulkan/Main/VResourceManager.cpp" "Vulkan/Main/VResourceManager.h" "Vulkan/Main/VSubmissionGraph.cpp" "Vulkan/Main/VSubmissionGraph.h" )
+source_group( "Vulkan\\Instance" FILES "Vulkan/Instance/VDevice.cpp" "Vulkan/Instance/VDevice.h" "Vulkan/Instance/VFrameGraphInstance.cpp" "Vulkan/Instance/VFrameGraphInstance.h" "Vulkan/Instance/VResourceManager.cpp" "Vulkan/Instance/VResourceManager.h" "Vulkan/Instance/VSubmissionGraph.cpp" "Vulkan/Instance/VSubmissionGraph.h" )
 source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VDebugger.cpp" "Vulkan/Debugger/VDebugger.h" "Vulkan/Debugger/VFrameGraphDebugger.cpp" "Vulkan/Debugger/VFrameGraphDebugger.h" "Vulkan/Debugger/VFrameGraphDebugger2.cpp" "Vulkan/Debugger/VShaderDebugger.cpp" "Vulkan/Debugger/VShaderDebugger.h" )
 source_group( "Vulkan\\Image" FILES "Vulkan/Image/VImage.cpp" "Vulkan/Image/VImage.h" "Vulkan/Image/VLocalImage.cpp" "Vulkan/Image/VLocalImage.h" "Vulkan/Image/VSampler.cpp" "Vulkan/Image/VSampler.h" )
 source_group( "Vulkan\\Swapchain" FILES "Vulkan/Swapchain/VSwapchain.h" "Vulkan/Swapchain/VSwapchainKHR.cpp" "Vulkan/Swapchain/VSwapchainKHR.h" )
@@ -189,9 +189,9 @@ target_include_directories( "FrameGraph" PRIVATE "Vulkan/Utils" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/RenderPass" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Pipeline" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/RayTracing" )
-target_include_directories( "FrameGraph" PRIVATE "Vulkan/Main" )
 target_include_directories( "FrameGraph" PRIVATE "" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Swapchain" )
+target_include_directories( "FrameGraph" PRIVATE "Vulkan/Instance" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Thread" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Image" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Memory" )
@@ -244,6 +244,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		"../tests/framegraph/DrawingTests/Test_Draw1.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw2.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw3.cpp"
+		"../tests/framegraph/DrawingTests/Test_Draw4.cpp"
 		"../tests/framegraph/DrawingTests/Test_DrawMeshes1.cpp"
 		"../tests/framegraph/DrawingTests/Test_DynamicOffset.cpp"
 		"../tests/framegraph/DrawingTests/Test_ExternalCmdBuf1.cpp"
@@ -269,7 +270,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		add_executable( "Tests.FrameGraph" ${SOURCES} )
 	endif()
 	source_group( "UnitTests" FILES "../tests/framegraph/UnitTests/DummyTask.h" "../tests/framegraph/UnitTests/UnitTest_Common.h" "../tests/framegraph/UnitTests/UnitTest_ID.cpp" "../tests/framegraph/UnitTests/UnitTest_ImageSwizzle.cpp" "../tests/framegraph/UnitTests/UnitTest_PixelFormat.cpp" "../tests/framegraph/UnitTests/UnitTest_VBuffer.cpp" "../tests/framegraph/UnitTests/UnitTest_VertexInput.cpp" "../tests/framegraph/UnitTests/UnitTest_VImage.cpp" "../tests/framegraph/UnitTests/UnitTest_VResourceManager.cpp" )
-	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_AsyncCompute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute2.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage4.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" "../tests/framegraph/DrawingTests/Test_Draw2.cpp" "../tests/framegraph/DrawingTests/Test_Draw3.cpp" "../tests/framegraph/DrawingTests/Test_DrawMeshes1.cpp" "../tests/framegraph/DrawingTests/Test_DynamicOffset.cpp" "../tests/framegraph/DrawingTests/Test_ExternalCmdBuf1.cpp" "../tests/framegraph/DrawingTests/Test_InvalidID.cpp" "../tests/framegraph/DrawingTests/Test_PushConst1.cpp" "../tests/framegraph/DrawingTests/Test_ReadAttachment1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger2.cpp" "../tests/framegraph/DrawingTests/Test_ShadingRate1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays2.cpp" )
+	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_AsyncCompute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute2.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage4.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" "../tests/framegraph/DrawingTests/Test_Draw2.cpp" "../tests/framegraph/DrawingTests/Test_Draw3.cpp" "../tests/framegraph/DrawingTests/Test_Draw4.cpp" "../tests/framegraph/DrawingTests/Test_DrawMeshes1.cpp" "../tests/framegraph/DrawingTests/Test_DynamicOffset.cpp" "../tests/framegraph/DrawingTests/Test_ExternalCmdBuf1.cpp" "../tests/framegraph/DrawingTests/Test_InvalidID.cpp" "../tests/framegraph/DrawingTests/Test_PushConst1.cpp" "../tests/framegraph/DrawingTests/Test_ReadAttachment1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger2.cpp" "../tests/framegraph/DrawingTests/Test_ShadingRate1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays2.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
 	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/ImplTest_CacheOverflow1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading2.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp" "../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
 	set_property( TARGET "Tests.FrameGraph" PROPERTY FOLDER "Tests" )
@@ -280,8 +281,8 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Thread" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/RayTracing" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Swapchain" )
-	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Main" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan" )
+	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Instance" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/RenderPass" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Descriptors" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Pipeline" )

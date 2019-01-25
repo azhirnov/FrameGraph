@@ -57,7 +57,7 @@ namespace FG
 		}
 
 
-		ND_ operator View_t ()								const	{ return View_t{ _array, length() }; }
+		ND_ constexpr operator View_t ()					const	{ return View_t{ _array, length() }; }
 
 		ND_ constexpr size_t		size ()					const	{ return _length; }
 		ND_ constexpr size_t		length ()				const	{ return size(); }

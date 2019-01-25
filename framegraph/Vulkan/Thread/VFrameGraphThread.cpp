@@ -351,14 +351,14 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		
-		auto const *	ppln = _resourceMngr.GetResource( pplnId.Get() );
+		auto const *	ppln = _resourceMngr.GetResource( pplnId );
 		CHECK_ERR( ppln );
 
 		auto const *	ppln_layout = _resourceMngr.GetResource( ppln->GetLayoutID() );
 		CHECK_ERR( ppln_layout );
 
 		RawDescriptorSetLayoutID	layout_id;
-		uint						binding = 0;
+		uint						binding;
 		CHECK_ERR( ppln_layout->GetDescriptorSetLayout( id, OUT layout_id, OUT binding ));
 
 		VDescriptorSetLayout const*	ds_layout = _resourceMngr.GetResource( layout_id );
@@ -373,22 +373,22 @@ namespace FG
 	InitPipelineResources
 =================================================
 */
-	bool  VFrameGraphThread::InitPipelineResources (const GPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraphThread::InitPipelineResources (const RawGPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
 
-	bool  VFrameGraphThread::InitPipelineResources (const CPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraphThread::InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
 
-	bool  VFrameGraphThread::InitPipelineResources (const MPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraphThread::InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
 
-	bool  VFrameGraphThread::InitPipelineResources (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraphThread::InitPipelineResources (const RawRTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}

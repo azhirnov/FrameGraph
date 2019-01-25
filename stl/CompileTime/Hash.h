@@ -55,10 +55,10 @@ namespace _fg_hidden_
 		0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 	};
 
-	ND_ forceinline constexpr uint  crc32_hash (char const *str, uint prev_crc = UMax)
+	ND_ forceinline constexpr uint  crc32_hash (char const *str, size_t len, uint prev_crc)
 	{
-		return	*str ?
-					crc32_hash( str+1, (prev_crc >> 8) ^ crc_table[(prev_crc ^ *str) & 0xFF] ) :
+		return	(*str and len) ?
+					crc32_hash( str+1, len-1, (prev_crc >> 8) ^ crc_table[(prev_crc ^ *str) & 0xFF] ) :
 					(prev_crc ^ 0xFFFFFFFF);
 	}
 
@@ -70,9 +70,9 @@ namespace _fg_hidden_
 	CT_Hash (string)
 =================================================
 */
-	ND_ inline constexpr HashVal  CT_Hash (const char *str, uint seed = UMax)
+	ND_ inline constexpr HashVal  CT_Hash (const char *str, size_t len, uint seed)
 	{
-		return HashVal{_fg_hidden_::crc32_hash( str, seed )};
+		return HashVal{_fg_hidden_::crc32_hash( str, len, seed )};
 	}
 
 
