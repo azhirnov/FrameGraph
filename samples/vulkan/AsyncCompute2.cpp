@@ -1,6 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
-	Same as AsyncCompute1 but with VK_QUEUE_FAMILY_EXTERNAL
+	Same as AsyncCompute1 but with VK_QUEUE_FAMILY_EXTERNAL,
+	now you don't need to explicitly specify the destination queue family.
 */
 
 #include "framework/Vulkan/VulkanDeviceExt.h"
@@ -74,16 +75,16 @@ public:
 	bool Initialize ();
 	void Destroy ();
 	bool Run ();
-
-	// for NVidia where 1 graphics & present queue and 1 async compute queue
-	void GenGraphicsCommandsNV (uint frameId);
-	void GenComputeCommandsNV (uint frameId);
-	void PresentNV (uint frameId);
 	
-	// for ARM, AMD where 1 graphics and 1 async compute and both support present
-	void GenGraphicsCommandsAMD (uint frameId);
-	void GenComputeCommandsAMD (uint frameId);
-	void PresentAMD (uint frameId);
+	// version for graphics & present + async compute without present
+	void GenGraphicsCommands1 (uint frameId);
+	void GenComputeCommands1 (uint frameId);
+	void Present1 (uint frameId);
+	
+	// version for graphics & present + compute & present
+	void GenGraphicsCommands2 (uint frameId);
+	void GenComputeCommands2 (uint frameId);
+	void Present2 (uint frameId);
 
 	bool CreateCommandBuffers ();
 	bool CreateSyncObjects ();
@@ -165,6 +166,9 @@ bool AsyncComputeApp2::Initialize ()
 								  {}
 			));
 		
+		CHECK_ERR( vulkan.GetVkQuues().size() == 2 );
+		CHECK_ERR( vulkan.GetVkQuues()[0].familyIndex != vulkan.GetVkQuues()[1].familyIndex );
+
 		presentInComputeQueueSupported = EnumEq( vulkan.GetVkQuues()[1].flags, VK_QUEUE_PRESENT_BIT );
 		
 		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
@@ -268,12 +272,12 @@ void AsyncComputeApp2::Destroy ()
 
 /*
 =================================================
-	GenGraphicsCommandsNV
+	GenGraphicsCommands1
 ----
 	draws to 'renderTarget' and transfer 'renderTarget' to compute queue
 =================================================
 */
-void AsyncComputeApp2::GenGraphicsCommandsNV (uint frameId)
+void AsyncComputeApp2::GenGraphicsCommands1 (uint frameId)
 {
 	VkCommandBuffer		g_cmd = cmdBufGraphics[frameId];
 
@@ -380,7 +384,7 @@ void AsyncComputeApp2::GenGraphicsCommandsNV (uint frameId)
 
 /*
 =================================================
-	GenComputeCommandsNV
+	GenComputeCommands1
 ----
 	wait for graphics queue
 	wait for swapchain image acquiring
@@ -388,7 +392,7 @@ void AsyncComputeApp2::GenGraphicsCommandsNV (uint frameId)
 	transfer swapchain image into present (graphics) queue
 =================================================
 */
-void AsyncComputeApp2::GenComputeCommandsNV (uint frameId)
+void AsyncComputeApp2::GenComputeCommands1 (uint frameId)
 {
 	VkCommandBuffer		c_cmd = cmdBufCompute[frameId];
 	
@@ -530,10 +534,10 @@ void AsyncComputeApp2::GenComputeCommandsNV (uint frameId)
 
 /*
 =================================================
-	PresentNV
+	Present1
 =================================================
 */
-void AsyncComputeApp2::PresentNV (uint frameId)
+void AsyncComputeApp2::Present1 (uint frameId)
 {
 	VkCommandBuffer		g_cmd = cmdBufGraphics[frameId + 2];
 
@@ -617,15 +621,15 @@ bool AsyncComputeApp2::Run ()
 
 		/*if ( presentInComputeQueueSupported )
 		{
-			GenGraphicsCommandsAMD( frameId );
-			GenComputeCommandsAMD( frameId );
-			PresentAMD( frameId );
+			GenGraphicsCommands2( frameId );
+			GenComputeCommands2( frameId );
+			Present2( frameId );
 		}
 		else*/
 		{
-			GenGraphicsCommandsNV( frameId );
-			GenComputeCommandsNV( frameId );
-			PresentNV( frameId );
+			GenGraphicsCommands1( frameId );
+			GenComputeCommands1( frameId );
+			Present1( frameId );
 		}
 	}
 	return true;

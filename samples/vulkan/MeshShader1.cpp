@@ -1,4 +1,11 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	docs:
+	https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_mesh_shader.txt
+	https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/vkspec.html#drawing-mesh-shading
+	https://devblogs.nvidia.com/using-turing-mesh-shaders-nvidia-asteroids-demo/
+	https://devblogs.nvidia.com/introduction-turing-mesh-shaders/
+*/
 
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "framework/Vulkan/VulkanSwapchain.h"

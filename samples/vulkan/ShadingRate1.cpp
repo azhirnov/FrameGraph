@@ -1,4 +1,10 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	docs:
+	https://devblogs.nvidia.com/turing-variable-rate-shading-vrworks/
+	https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_shading_rate_image.txt
+	https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/vkspec.html#primsrast-shading-rate-image
+*/
 
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "framework/Vulkan/VulkanSwapchain.h"
@@ -810,7 +816,6 @@ void main()
 	}
 
 	// create fragment shader
-	// see https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_shading_rate_image.txt
 	{
 		static const char	frag_shader_source[] = R"#(
 #extension GL_NV_shading_rate_image : require

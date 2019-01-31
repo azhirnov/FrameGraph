@@ -67,7 +67,7 @@ bool SpvCompiler::Compile (OUT Array<uint>&			spirvData,
 	const FG::String			header			= "#version 460 core\n"s <<
 												  "#extension GL_ARB_separate_shader_objects : require\n" <<
 												  "#extension GL_ARB_shading_language_420pack : require\n" <<
-												  (entry != "main"sv ? ("#define "s << entry << " main\n") : ""s);
+												  (entry != "main" ? ("#define "s << entry << " main\n") : ""s);
 	Array<const char *>			shader_src;
 	shader_src.push_back( header.data() );
 	shader_src.insert( shader_src.end(), source.begin(), source.end() );

@@ -1,4 +1,10 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	docs
+	https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_shader_texture_footprint.txt
+	https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/vkspec.html#textures-footprint
+	https://devblogs.nvidia.com/texture-space-shading/
+*/
 
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "framework/Vulkan/VulkanSwapchain.h"
@@ -763,7 +769,6 @@ void main()
 	}
 
 	// create fragment shader with image footprint extension
-	// see https://github.com/KhronosGroup/GLSL/blob/master/extensions/nv/GLSL_NV_shader_texture_footprint.txt
 	{
 		static const char	frag_shader_source[] = R"#(
 #extension GL_NV_shader_texture_footprint : require
