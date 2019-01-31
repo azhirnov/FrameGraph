@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "scene/Loader/Intermediate/IntermediateImage.h"
+#include "scene/Loader/Intermediate/IntermImage.h"
 #include "scene/Renderer/Enums.h"
 #include "scene/Utils/Math/GLM.h"
 
@@ -13,7 +13,7 @@ namespace FG
 	// Intermediate Material
 	//
 
-	class IntermediateMaterial final : public std::enable_shared_from_this<IntermediateMaterial>
+	class IntermMaterial final : public std::enable_shared_from_this<IntermMaterial>
 	{
 	// types
 	public:
@@ -29,7 +29,7 @@ namespace FG
 		
 		struct MtrTexture
 		{
-			IntermediateImagePtr	image;
+			IntermImagePtr	image;
 			String					name;
 			mat3x3					uvTransform		= Default;	// TODO: set identity
 			ETextureMapping			mapping			= Default;
@@ -77,9 +77,9 @@ namespace FG
 
 	// methods
 	public:
-		IntermediateMaterial () {}
+		IntermMaterial () {}
 
-		explicit IntermediateMaterial (Settings &&settings, LayerBits layers) :
+		explicit IntermMaterial (Settings &&settings, LayerBits layers) :
 			_settings{ std::move(settings) }, _layers{ layers }
 		{}
 
@@ -90,7 +90,7 @@ namespace FG
 		void SetRenderLayers (LayerBits value)				{ _layers = value; }
 	};
 	
-	using IntermediateMaterialPtr = SharedPtr< IntermediateMaterial >;
+	using IntermMaterialPtr = SharedPtr< IntermMaterial >;
 
 
 }	// FG

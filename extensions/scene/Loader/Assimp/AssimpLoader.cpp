@@ -32,11 +32,11 @@ namespace {
 
 	struct SceneData
 	{
-		Array<IntermediateMaterialPtr>	materials;
-		Array<IntermediateMeshPtr>		meshes;
-		VertexAttribsSet_t				attribsCache;
-		Array<IntermediateLightPtr>		lights;
-		IntermediateScene::SceneNode	root;
+		Array<IntermMaterialPtr>	materials;
+		Array<IntermMeshPtr>		meshes;
+		VertexAttribsSet_t			attribsCache;
+		Array<IntermLightPtr>		lights;
+		IntermScene::SceneNode		root;
 	};
 }
 
@@ -117,7 +117,7 @@ namespace {
 	ConvertMapping
 =================================================
 */
-	using ETextureMapping = IntermediateMaterial::ETextureMapping;
+	using ETextureMapping = IntermMaterial::ETextureMapping;
 
 	ND_ static ETextureMapping  ConvertMapping (aiTextureMapping mapping)
 	{
@@ -143,9 +143,9 @@ namespace {
 	LoadMaterial
 =================================================
 */
-	static bool LoadMaterial (const aiMaterial *src, OUT IntermediateMaterialPtr &dst)
+	static bool LoadMaterial (const aiMaterial *src, OUT IntermMaterialPtr &dst)
 	{
-		IntermediateMaterial::Settings	mtr;
+		IntermMaterial::Settings	mtr;
 
 		aiColor4D	color;
 		float		fvalue		= 0.0f;
@@ -179,7 +179,7 @@ namespace {
 		aiGetMaterialInteger( src, AI_MATKEY_TWOSIDED, OUT &twosided );
 		mtr.cullMode = twosided ? ECullMode::None : ECullMode::Back;
 	
-		StaticArray< IntermediateMaterial::Parameter*, aiTextureType_UNKNOWN >	textures =
+		StaticArray< IntermMaterial::Parameter*, aiTextureType_UNKNOWN >	textures =
 		{
 			null, &mtr.albedo, &mtr.specular, &mtr.ambient, &mtr.emissive, &mtr.heightMap, &mtr.normalsMap,
 			&mtr.shininess, &mtr.opacity, &mtr.displacementMap, &mtr.lightMap, &mtr.reflectionMap
@@ -197,7 +197,7 @@ namespace {
 
 			if ( src->GetTexture( aiTextureType(i), 0, OUT &tex_name, OUT &mapping, OUT &uv_index, null, null, OUT map_mode ) == AI_SUCCESS )
 			{
-				IntermediateMaterial::MtrTexture	mtr_tex;
+				IntermMaterial::MtrTexture	mtr_tex;
 				mtr_tex.name			= tex_name.C_Str();
 				mtr_tex.addressModeU	= ConvertWrapMode( map_mode[0] );
 				mtr_tex.addressModeV	= ConvertWrapMode( map_mode[1] );
@@ -205,7 +205,7 @@ namespace {
 				mtr_tex.mapping			= ConvertMapping( mapping );
 				mtr_tex.filter			= EFilter::Linear;
 				mtr_tex.uvIndex			= uv_index;
-				mtr_tex.image			= MakeShared<IntermediateImage>( StringView{tex_name.C_Str()} );
+				mtr_tex.image			= MakeShared<IntermImage>( StringView{tex_name.C_Str()} );
 
 				*tex = std::move(mtr_tex);
 			}
@@ -213,18 +213,18 @@ namespace {
 
 		LayerBits	layers;
 
-		if ( mtr.opacity.index() )
-			layers[uint(ERenderLayer::Translucent)] = true;
-		else {
+		//if ( mtr.opacity.index() )
+		//	layers[uint(ERenderLayer::Translucent)] = true;
+		//else {
 			layers[uint(ERenderLayer::Opaque_1)]  = true;
-			layers[uint(ERenderLayer::DepthOnly)] = true;
-			layers[uint(ERenderLayer::Shadow)]    = true;
-		}
+		//	layers[uint(ERenderLayer::DepthOnly)] = true;
+		//	layers[uint(ERenderLayer::Shadow)]    = true;
+		//}
 
-		if ( mtr.emissive.index() )
-			layers[uint(ERenderLayer::Emission)] = true;
+		//if ( mtr.emissive.index() )
+		//	layers[uint(ERenderLayer::Emission)] = true;
 
-		dst = MakeShared<IntermediateMaterial>( std::move(mtr), layers );
+		dst = MakeShared<IntermMaterial>( std::move(mtr), layers );
 		return true;
 	}
 
@@ -281,7 +281,7 @@ namespace {
 	LoadMesh
 =================================================
 */
-	static bool LoadMesh (const aiMesh *src, OUT IntermediateMeshPtr &dst, INOUT VertexAttribsSet_t &attribsCache)
+	static bool LoadMesh (const aiMesh *src, OUT IntermMeshPtr &dst, INOUT VertexAttribsSet_t &attribsCache)
 	{
 		CHECK_ERR( src->mPrimitiveTypes == aiPrimitiveType_TRIANGLE );
 		CHECK_ERR( not src->HasBones() );
@@ -351,7 +351,7 @@ namespace {
 			default :							RETURN_ERR( "unsupported type" );
 		}
 
-		dst = MakeShared<IntermediateMesh>( std::move(vertices), attribs, vert_stride, topology, std::move(indices), EIndex::UInt );
+		dst = MakeShared<IntermMesh>( std::move(vertices), attribs, vert_stride, topology, std::move(indices), EIndex::UInt );
 		return true;
 	}
 
@@ -360,11 +360,11 @@ namespace {
 	LoadLight
 =================================================
 */
-	static bool LoadLight (const aiLight *src, OUT IntermediateLightPtr &dst)
+	static bool LoadLight (const aiLight *src, OUT IntermLightPtr &dst)
 	{
-		using ELightType = IntermediateLight::ELightType;
+		using ELightType = IntermLight::ELightType;
 
-		IntermediateLight::Settings		light;
+		IntermLight::Settings		light;
 		
 		light.position		= BitCast<vec3>( src->mPosition );
 		light.direction		= normalize( BitCast<vec3>( src->mDirection ));
@@ -387,7 +387,7 @@ namespace {
 			default :							ASSERT( !"unknown light type" );		break;
 		}
 
-		dst = MakeShared<IntermediateLight>( std::move(light) );
+		dst = MakeShared<IntermLight>( std::move(light) );
 		return true;
 	}
 
@@ -396,7 +396,7 @@ namespace {
 	LoadMaterials
 =================================================
 */
-	static bool LoadMaterials (const aiScene *scene, OUT Array<IntermediateMaterialPtr> &outMaterials)
+	static bool LoadMaterials (const aiScene *scene, OUT Array<IntermMaterialPtr> &outMaterials)
 	{
 		outMaterials.resize( scene->mNumMaterials );
 
@@ -412,7 +412,7 @@ namespace {
 	LoadMeshes
 =================================================
 */
-	static bool LoadMeshes (const aiScene *scene, OUT Array<IntermediateMeshPtr> &outMeshes, INOUT VertexAttribsSet_t &attribsCache)
+	static bool LoadMeshes (const aiScene *scene, OUT Array<IntermMeshPtr> &outMeshes, INOUT VertexAttribsSet_t &attribsCache)
 	{
 		outMeshes.resize( scene->mNumMeshes );
 
@@ -428,7 +428,7 @@ namespace {
 	LoadLights
 =================================================
 */
-	static bool LoadLights (const aiScene *scene, OUT Array<IntermediateLightPtr> &outLights)
+	static bool LoadLights (const aiScene *scene, OUT Array<IntermLightPtr> &outLights)
 	{
 		outLights.resize( scene->mNumLights );
 
@@ -444,9 +444,9 @@ namespace {
 	RecursiveLoadHierarchy
 =================================================
 */
-	static bool RecursiveLoadHierarchy (const aiScene *aiScene, const aiNode *node, const SceneData &scene, INOUT IntermediateScene::SceneNode &parent)
+	static bool RecursiveLoadHierarchy (const aiScene *aiScene, const aiNode *node, const SceneData &scene, INOUT IntermScene::SceneNode &parent)
 	{
-		IntermediateScene::SceneNode	snode;
+		IntermScene::SceneNode	snode;
 		snode.localTransform	= ConvertMatrix( node->mTransformation );
 		snode.name				= node->mName.C_Str();
 
@@ -455,9 +455,13 @@ namespace {
 			aiMesh const*	ai_mesh	= aiScene->mMeshes[ node->mMeshes[i] ];
 			CHECK( not ai_mesh->HasBones() );
 
-			IntermediateScene::MeshNode		mnode;
-			mnode.mesh		= scene.meshes[ node->mMeshes[i] ];
-			mnode.material	= scene.materials[ ai_mesh->mMaterialIndex ];
+			IntermScene::ModelData	mnode;
+
+			for (auto& level : mnode.levels)
+			{
+				level.first		= scene.meshes[ node->mMeshes[i] ];
+				level.second	= scene.materials[ ai_mesh->mMaterialIndex ];
+			}
 
 			snode.data.push_back( mnode );
 		}
@@ -493,7 +497,7 @@ namespace {
 	Load
 =================================================
 */
-	IntermediateScenePtr  AssimpLoader::Load (const Config &config, StringView filename)
+	IntermScenePtr  AssimpLoader::Load (const Config &config, StringView filename)
 	{
 		const uint sceneLoadFlags = 0
 									| (config.calculateTBN ? aiProcess_CalcTangentSpace : 0)
@@ -522,7 +526,7 @@ namespace {
 		CHECK_ERR( LoadLights( scene, OUT scene_data.lights ));
 		CHECK_ERR( LoadHierarchy( scene, INOUT scene_data ));
 		
-		return MakeShared<IntermediateScene>( std::move(scene_data.materials),
+		return MakeShared<IntermScene>( std::move(scene_data.materials),
 											  std::move(scene_data.meshes),
 											  std::move(scene_data.lights),
 											  std::move(scene_data.root) );

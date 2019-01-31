@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "scene/Loader/Intermediate/IntermediateMesh.h"
+#include "scene/Loader/Intermediate/IntermMesh.h"
 #include "scene/SceneManager/Resources/Material.h"
 #include "scene/Utils/Math/AABB.h"
 

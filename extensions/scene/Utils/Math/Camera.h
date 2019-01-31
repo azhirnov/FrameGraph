@@ -62,7 +62,7 @@ namespace FG
 
 		Self&  Rotate (Radians_t angle, const Vec3_t &normal)
 		{
-			transform.Rotate( glm::rotate( Quat_t{T(1), T(0), T(0), T(0)}, T(angle), normal ));
+			transform.Rotate( glm::rotate( Identity, T(angle), normal ));
 			return *this;
 		}
 

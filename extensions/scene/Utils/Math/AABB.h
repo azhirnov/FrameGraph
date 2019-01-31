@@ -120,6 +120,20 @@ namespace FG
 			max = center + halfextent;
 			return *this;
 		}
+
+		Self&  Transform (const Transformation<T> &tr)
+		{
+			Vec3_t	point = min;	min = max = tr.ToGlobalPosition( point );
+			point.z = max.z;		Add( tr.ToGlobalPosition( point ));
+			point.y = max.y;		Add( tr.ToGlobalPosition( point ));
+			point.z = min.z;		Add( tr.ToGlobalPosition( point ));
+			point.x = max.x;		Add( tr.ToGlobalPosition( point ));
+			point.z = max.z;		Add( tr.ToGlobalPosition( point ));
+			point.y = min.y;		Add( tr.ToGlobalPosition( point ));
+			point.z = min.z;		Add( tr.ToGlobalPosition( point ));
+
+			return *this;
+		}
 	};
 
 

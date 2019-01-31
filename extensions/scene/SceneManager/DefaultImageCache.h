@@ -15,9 +15,9 @@ namespace FG
 	{
 	// types
 	private:
-		using IntermediateImageWeak	= WeakPtr< IntermediateImage >;
-		using ImageDataCache_t		= HashMap< String, IntermediateImageWeak >;
-		using ImageHandleCache_t	= HashMap< const void*, Pair<IntermediateImageWeak, ImageID> >;
+		using IntermImageWeak		= WeakPtr< IntermImage >;
+		using ImageDataCache_t		= HashMap< String, IntermImageWeak >;
+		using ImageHandleCache_t	= HashMap< const void*, Pair<IntermImageWeak, ImageID> >;
 
 
 	// variables
@@ -34,12 +34,12 @@ namespace FG
 		void  Destroy (const FGThreadPtr &) override;
 		void  ReleaseUnused (const FGThreadPtr &) override;
 
-		bool  GetImageData (const String &filename, OUT IntermediateImagePtr &) override;
-		bool  AddImageData (const String &filename, const IntermediateImagePtr &) override;
+		bool  GetImageData (const String &filename, OUT IntermImagePtr &) override;
+		bool  AddImageData (const String &filename, const IntermImagePtr &) override;
 		
-		bool  CreateImage (const FGThreadPtr &, const IntermediateImagePtr &, OUT RawImageID &) override;
-		bool  GetImageHandle (const IntermediateImagePtr &, OUT RawImageID &) override;
-		bool  AddImageHandle (const IntermediateImagePtr &, ImageID &&) override;
+		bool  CreateImage (const FGThreadPtr &, const IntermImagePtr &, OUT RawImageID &) override;
+		bool  GetImageHandle (const IntermImagePtr &, OUT RawImageID &) override;
+		bool  AddImageHandle (const IntermImagePtr &, ImageID &&) override;
 	};
 
 

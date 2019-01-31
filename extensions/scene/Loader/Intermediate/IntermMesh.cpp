@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "scene/Loader/Intermediate/IntermediateMesh.h"
+#include "scene/Loader/Intermediate/IntermMesh.h"
 
 namespace FG
 {
@@ -10,7 +10,7 @@ namespace FG
 	constructor
 =================================================
 */
-	IntermediateMesh::IntermediateMesh (Array<uint8_t> &&vertices, const VertexAttributesPtr &attribs,
+	IntermMesh::IntermMesh (Array<uint8_t> &&vertices, const VertexAttributesPtr &attribs,
 									    BytesU vertStride, EPrimitive topology,
 									    Array<uint8_t> &&indices, EIndex indexType) :
 		_vertices{ std::move(vertices) },	_attribs{ attribs },
@@ -23,7 +23,7 @@ namespace FG
 	CalcAABB
 =================================================
 */
-	void IntermediateMesh::CalcAABB ()
+	void IntermMesh::CalcAABB ()
 	{
 		CHECK_ERR( _attribs and _vertexStride > 0 and _vertices.size(), void());
 

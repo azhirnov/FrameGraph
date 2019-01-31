@@ -4,7 +4,7 @@
 
 #ifdef FG_ENABLE_ASSIMP
 
-#include "scene/Loader/Intermediate/IntermediateScene.h"
+#include "scene/Loader/Intermediate/IntermScene.h"
 
 namespace Assimp {
 	class Importer;
@@ -32,20 +32,6 @@ namespace FG
 			bool	optimize			= false;
 		};
 
-		struct Statistic
-		{
-			/*size_t	staticNodesBatches { 0 };
-			size_t	staticNodesVertices { 0 };
-			size_t	staticNodesIndices { 0 };
-
-			size_t	staticNodesMinBatchSize { size_t(-1) };	// indices
-			size_t	staticNodesMaxBatchSize { 0 };			// indices
-			size_t	staticNodesAvrBatchSize { 0 };			// indices
-
-			size_t	uniqueMaterials { 0 };
-			size_t	uniqueTextures { 0 };*/
-		};
-
 		using AssimpImporter_t = UniquePtr< Assimp::Importer >;
 
 
@@ -59,7 +45,7 @@ namespace FG
 		AssimpLoader ();
 		~AssimpLoader ();
 
-		ND_ IntermediateScenePtr  Load (const Config &config, StringView filename);
+		ND_ IntermScenePtr  Load (const Config &config, StringView filename);
 	};
 
 

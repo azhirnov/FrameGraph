@@ -74,7 +74,7 @@ R"#(
 
 	void main ()
 	{
-		out_Color = SampleAlbedo( inTexcoord0 );
+		out_Color = SampleAlbedoLinear( inTexcoord0 );
 	}
 
 
@@ -95,7 +95,7 @@ R"#(
 
 	void main ()
 	{
-		out_Color = SampleAlbedo( inTexcoord0 );
+		out_Color = SampleAlbedoLinear( inTexcoord0 );
 	}
 # endif	// LAYER_TRANSLUCENT*/
 

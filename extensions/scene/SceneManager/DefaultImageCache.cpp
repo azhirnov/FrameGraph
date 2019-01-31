@@ -52,7 +52,7 @@ namespace FG
 	GetImageData
 =================================================
 */
-	bool  DefaultImageCache::GetImageData (const String &filename, OUT IntermediateImagePtr &outImage)
+	bool  DefaultImageCache::GetImageData (const String &filename, OUT IntermImagePtr &outImage)
 	{
 		auto	iter = _dataCache.find( filename );
 		if ( iter == _dataCache.end() )
@@ -73,7 +73,7 @@ namespace FG
 	AddImageData
 =================================================
 */
-	bool  DefaultImageCache::AddImageData (const String &filename, const IntermediateImagePtr &image)
+	bool  DefaultImageCache::AddImageData (const String &filename, const IntermImagePtr &image)
 	{
 		CHECK_ERR( image );
 
@@ -88,7 +88,7 @@ namespace FG
 	CreateImage
 =================================================
 */
-	bool  DefaultImageCache::CreateImage (const FGThreadPtr &fg, const IntermediateImagePtr &image, OUT RawImageID &outHandle)
+	bool  DefaultImageCache::CreateImage (const FGThreadPtr &fg, const IntermImagePtr &image, OUT RawImageID &outHandle)
 	{
 		CHECK_ERR( image );
 
@@ -133,7 +133,7 @@ namespace FG
 		image->MakeImmutable();
 		image->ReleaseData();
 
-		_handleCache.insert_or_assign( image.operator->(), Pair<IntermediateImageWeak, ImageID>{ image, std::move(id) });
+		_handleCache.insert_or_assign( image.operator->(), Pair<IntermImageWeak, ImageID>{ image, std::move(id) });
 		return true;
 	}
 
@@ -142,7 +142,7 @@ namespace FG
 	GetImageHandle
 =================================================
 */
-	bool  DefaultImageCache::GetImageHandle (const IntermediateImagePtr &image, OUT RawImageID &outHandle)
+	bool  DefaultImageCache::GetImageHandle (const IntermImagePtr &image, OUT RawImageID &outHandle)
 	{
 		CHECK_ERR( image );
 
@@ -167,14 +167,14 @@ namespace FG
 	AddImageHandle
 =================================================
 */
-	bool  DefaultImageCache::AddImageHandle (const IntermediateImagePtr &image, ImageID &&handle)
+	bool  DefaultImageCache::AddImageHandle (const IntermImagePtr &image, ImageID &&handle)
 	{
 		CHECK_ERR( image );
 
 		image->MakeImmutable();
 		image->ReleaseData();		// TODO: keep?
 
-		_handleCache.insert_or_assign( image.operator->(), Pair<IntermediateImageWeak, ImageID>{ image, std::move(handle) });
+		_handleCache.insert_or_assign( image.operator->(), Pair<IntermImageWeak, ImageID>{ image, std::move(handle) });
 		return true;
 	}
 

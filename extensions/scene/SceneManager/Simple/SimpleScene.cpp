@@ -5,15 +5,33 @@
 #include "scene/Renderer/ScenePreRender.h"
 #include "scene/Renderer/RenderQueue.h"
 #include "scene/Renderer/IRenderTechnique.h"
-#include "scene/Loader/Intermediate/IntermediateMesh.h"
+#include "scene/Loader/Intermediate/IntermMesh.h"
 #include "framegraph/Shared/EnumUtils.h"
 
 namespace FG
 {
 namespace {
-	static constexpr uint		max_instance_count = 1 << 11;
+	static constexpr uint		max_instance_count = 1 << 10;
 
 	static const StringView		shader_source = R"#(
+
+	vec3  RotateVec (const vec4 qleft, const vec3 vright)
+	{
+		vec3  uv  = cross( qleft.xyz, vright );
+		vec3  uuv = cross( qleft.xyz, uv );
+		return vright + (uv * 2.0f * qleft.w) + (uuv * 2.0f);
+	}
+
+	vec3  Transform (const vec3 point, const vec3 position, const vec4 orientation, const float scale)
+	{
+		return RotateVec( orientation, point * scale ) + position;
+	}
+
+	vec4  ToNonLinear (const vec4 color)
+	{
+		 return vec4(pow( color.rgb, vec3(2.2f) ), color.a ); 
+	}
+
 #ifdef VERTEX_SHADER
 	struct ObjectTransform
 	{
@@ -31,22 +49,13 @@ namespace {
 		layout(offset=4) int	materialID;
 	};
 
-	vec3 RotateVec (const vec4 qleft, const vec3 vright)
-	{
-		vec3	uv, uuv, qvec = qleft.xyz;
-		uv	= cross( qvec, vright );
-		uuv	= cross( qvec, uv );
-		uv	*= 2.0f * qleft.w;
-		uuv	*= 2.0f;
-		return vright + uv + uuv;
-	}
-
 	vec3 GetWorldPosition ()
 	{
 		vec3	pos   = perInstance.transforms[instanceID].position;
 		float	scale = perInstance.transforms[instanceID].scale;
 		vec4	quat  = perInstance.transforms[instanceID].orientation;
-		return RotateVec( quat, at_Position ) * scale + pos;
+		//return RotateVec( quat, at_Position.xyz ) * scale + pos;
+		return Transform( at_Position.xyz, pos, quat, scale );
 	}
 
 	vec2 GetTextureCoordinate0 ()  { return at_TextureUV; }
@@ -60,7 +69,8 @@ namespace {
 
 # ifdef ALBEDO_MAP
 	layout(set=0, binding=2) uniform sampler2D  un_AlbedoTex;
-	vec4  SampleAlbedo (const vec2 texcoord)  { return texture( un_AlbedoTex, texcoord ); }
+	vec4  SampleAlbedoLinear (const vec2 texcoord)    { return texture( un_AlbedoTex, texcoord ); }
+	vec4  SampleAlbedoNonlinear (const vec2 texcoord) { return ToNonLinear(texture( un_AlbedoTex, texcoord )); }
 # endif
 
 # ifdef SPECULAR_MAP
@@ -95,7 +105,7 @@ namespace {
 	Create
 =================================================
 */
-	bool SimpleScene::Create (const FGThreadPtr &fg, const IntermediateScenePtr &scene, const ImageCachePtr &imageCache, const Transform &initialTransform)
+	bool SimpleScene::Create (const FGThreadPtr &fg, const IntermScenePtr &scene, const ImageCachePtr &imageCache, const Transform &initialTransform)
 	{
 		CHECK_ERR( scene );
 		CHECK_ERR( _ConvertMeshes( fg, scene ));
@@ -147,51 +157,52 @@ namespace {
 	void SimpleScene::Draw (RenderQueue &queue) const
 	{
 		const auto&	camera		= queue.GetCamera();
+		const auto&	camera_pos	= camera.camera.transform.position;
 		const float	inv_range	= 1.0f / camera.visibilityRange[1];
 		const int	first_layer	= BitScanForward( camera.layers.to_ulong() );
 		const int	last_layer	= BitScanReverse( camera.layers.to_ulong() );
 
 		for (auto& inst : _instances)
 		{
+			AABB	bbox = inst.boundingBox;
+			bbox.Move( camera_pos );
+
 			// frustum culling
-			if ( not camera.frustum.IsVisible( inst.boundingBox ) )
+			if ( not camera.frustum.IsVisible( bbox ) )
 				continue;
 
 			// calc detail level
-			auto	sphere	= inst.boundingBox.ToOuterSphere();
-			float	dist	= Max( 0.0f, distance( camera.camera.transform.position, sphere.center ) - sphere.radius ) * inv_range;
+			auto	sphere	= bbox.ToOuterSphere();
+			float	dist	= Max( 0.0f, length( sphere.center ) - sphere.radius ) * inv_range;
 			auto	detail	= EDetailLevel(Max( uint(camera.detailRange.min), uint(mix( float(camera.detailRange.min), float(camera.detailRange.max), dist ) + 0.5f) ));
 
 			if ( detail > camera.detailRange.max )
 				continue;	// detail level is too small
 
-			auto&	model_layers = _modelLODs[ inst.index ][ uint(detail) ];
-			
-			for (int layer_idx = first_layer; layer_idx <= last_layer; ++layer_idx)
+			for (uint i = inst.index; i < inst.lastIndex; ++i)
 			{
-				if ( not camera.layers[layer_idx] )
+				auto&	lod			= _modelLODs[i];
+				uint	model_idx	= lod.levels[uint(detail)];
+
+				if ( model_idx == UMax					or
+					 not camera.layers[uint(lod.layer)] )
 					continue;
 
-				auto&	models_range = model_layers[ layer_idx ];
+				auto&	model	= _models[ model_idx ];
+				auto&	mesh	= _meshes[ model.meshID ];
+				//auto&	mtr		= _materials[ model.materialID ];
 
-				for (uint i = 0; i < models_range.y; ++i)
-				{
-					auto&	model	= _models[ models_range.x + i ];
-					auto&	mesh	= _meshes[ model.meshID ];
-					//auto&	mtr		= _materials[ model.materialID ];
+				DrawIndexed		draw_task;
+				draw_task.pipeline = model.pipeline;
+				draw_task.AddBuffer( Default, _vertexBuffer )
+							.SetIndexBuffer( _indexBuffer, 0_b, _indexType )
+							.SetVertexInput( _vertexAttribs[mesh.attribsIndex].first )
+							.SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
+							.Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
+							.AddResources( DescriptorSetID{"PerObject"}, &model.resources )
+							.AddPushConstant( PushConstantID{"VSPushConst"}, uint2{model.materialID, inst.index} );
 
-					DrawIndexed		draw_task;
-					draw_task.pipeline = model.pipeline;
-					draw_task.AddBuffer( Default, _vertexBuffer )
-							 .SetIndexBuffer( _indexBuffer, 0_b, _indexType )
-							 .SetVertexInput( _vertexAttribs[mesh.attribsIndex].first )
-							 .SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
-							 .Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
-							 .AddResources( DescriptorSetID{"PerObject"}, &model.resources )
-							 .AddPushConstant( PushConstantID{"VSPushConst"}, uint2{model.materialID, inst.index} );
-
-					queue.AddRenderObj( ERenderLayer(layer_idx), draw_task );
-				}
+				queue.Draw( lod.layer, draw_task );
 			}
 		}
 	}
@@ -284,7 +295,7 @@ namespace {
 	_ConvertMeshes
 =================================================
 */
-	bool SimpleScene::_ConvertMeshes (const FGThreadPtr &fg, const IntermediateScenePtr &scene)
+	bool SimpleScene::_ConvertMeshes (const FGThreadPtr &fg, const IntermScenePtr &scene)
 	{
 		HashMap< VertexAttributesPtr, size_t >	attribs;
 
@@ -359,9 +370,9 @@ namespace {
 	_ConvertMaterials
 =================================================
 */
-	bool SimpleScene::_ConvertMaterials (const FGThreadPtr &fg, const IntermediateScenePtr &scene, const ImageCachePtr &imageCache)
+	bool SimpleScene::_ConvertMaterials (const FGThreadPtr &fg, const IntermScenePtr &scene, const ImageCachePtr &imageCache)
 	{
-		using MtrTexture = IntermediateMaterial::MtrTexture;
+		using MtrTexture = IntermMaterial::MtrTexture;
 
 		_materials.reserve( scene->GetMaterials().size() );
 
@@ -409,41 +420,60 @@ namespace {
 	_CreateMesh
 =================================================
 */
-	bool SimpleScene::_CreateMesh (const Transform &transform, const IntermediateScenePtr &scene, const IntermediateScene::MeshNode &node)
+	bool SimpleScene::_CreateMesh (const Transform &transform, const IntermScenePtr &scene, const IntermScene::ModelData &modelData)
 	{
 		Instance		inst;
-		inst.index			= uint(_modelLODs.size());
-		inst.transform		= transform;
-		inst.boundingBox	= Default;	// TODO
-		_instances.push_back( inst );
+		inst.index		= uint(_modelLODs.size());
+		inst.transform	= transform;
 		
-		LayerBits		layers			= node.material->GetRenderLayers();
-		DetailLevels_t	model_lod;
-		RenderLayers_t	model_layers;
-		const uint		mesh_index		= uint(scene->GetIndexOfMesh( node.mesh ));
-		const uint		material_index	= uint(scene->GetIndexOfMaterial( node.material ));
-
-		for (size_t i = 0; i < model_layers.size(); ++i)
+		// find all layers
+		LayerBits		layers;
+		for (auto& level : modelData.levels) 
 		{
-			if ( not layers[i] )
-			{
-				model_layers[i] = {0, 0};
-				continue;
-			}
-			
-			Model	model;
-			model.meshID	 = mesh_index;
-			model.materialID = material_index;
-			model_layers[i]  = {uint32_t(_models.size()), 1};
-			model.layer		 = ERenderLayer(i);
-			_models.push_back( std::move(model) );
-		}
-		
-		for (auto& lod : model_lod) {
-			lod = model_layers;
+			if ( level.first and level.second )
+				layers |= level.second->GetRenderLayers();
 		}
 
-		_modelLODs.push_back( model_lod );
+		Optional<AABB>	bbox;
+
+		for (size_t i = 0; i < layers.size(); ++i)
+		{
+			ModelLevel	lod;
+			lod.layer	= ERenderLayer(i);
+
+			for (size_t j = 0; j < lod.levels.size(); ++j)
+			{
+				if ( j >= modelData.levels.size()		or
+					 not modelData.levels[j].first		or
+					 not modelData.levels[j].second		or
+					 not modelData.levels[j].second->GetRenderLayers()[i] )
+				{
+					lod.levels[j] = UMax;
+					continue;
+				}
+
+				lod.levels[j] = uint(_models.size());
+
+				Model		model;
+				model.meshID	 = uint(scene->GetIndexOfMesh( modelData.levels[j].first ));
+				model.materialID = uint(scene->GetIndexOfMaterial( modelData.levels[j].second ));
+				model.layer		 = ERenderLayer(i);
+				_models.push_back( model );
+				
+				if ( bbox.has_value() )
+					bbox->Add( _meshes[model.meshID].boundingBox );
+				else
+					bbox = _meshes[model.meshID].boundingBox;
+			}
+
+			_modelLODs.push_back( lod );
+		}
+		
+		inst.boundingBox = bbox.value_or( AABB{} ).Transform( inst.transform );
+		inst.lastIndex	 = uint(_modelLODs.size());
+		ASSERT( inst.lastIndex > inst.index );
+		
+		_instances.push_back( inst );
 		return true;
 	}
 
@@ -452,11 +482,11 @@ namespace {
 	_ConvertHierarchy
 =================================================
 */
-	bool SimpleScene::_ConvertHierarchy (const IntermediateScenePtr &scene, const Transform &initialTransform)
+	bool SimpleScene::_ConvertHierarchy (const IntermScenePtr &scene, const Transform &initialTransform)
 	{
 		_instances.reserve( 128 );
 
-		Array<Pair< IntermediateScene::SceneNode const*, Transform >>	stack;
+		Array<Pair< IntermScene::SceneNode const*, Transform >>	stack;
 		stack.emplace_back( &scene->GetRoot(), initialTransform );
 
 		for (; not stack.empty();)
@@ -467,8 +497,8 @@ namespace {
 			for (auto& data : node.first->data)
 			{
 				CHECK_ERR( Visit( data,
-								  [&] (const IntermediateScene::MeshNode &m)	{ return _CreateMesh( transform, scene, m ); },
-								  [] (const std::monostate &)					{ return false; }
+								  [&] (const IntermScene::ModelData &m)	{ return _CreateMesh( transform, scene, m ); },
+								  [] (const std::monostate &)			{ return false; }
 							));
 			}
 			

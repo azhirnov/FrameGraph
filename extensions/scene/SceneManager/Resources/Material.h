@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "scene/Loader/Intermediate/IntermediateMaterial.h"
+#include "scene/Loader/Intermediate/IntermMaterial.h"
 #include "scene/Renderer/Enums.h"
 
 namespace FG

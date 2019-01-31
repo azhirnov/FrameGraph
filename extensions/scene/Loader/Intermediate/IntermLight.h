@@ -12,7 +12,7 @@ namespace FG
 	// Intermediate Light
 	//
 
-	class IntermediateLight final : public std::enable_shared_from_this<IntermediateLight>
+	class IntermLight final : public std::enable_shared_from_this<IntermLight>
 	{
 	// types
 	public:
@@ -51,12 +51,12 @@ namespace FG
 
 	// methods
 	public:
-		IntermediateLight () {}
+		IntermLight () {}
 
-		explicit IntermediateLight (Settings &&settings) : _settings{std::move(settings)} {}
+		explicit IntermLight (Settings &&settings) : _settings{std::move(settings)} {}
 	};
 	
-	using IntermediateLightPtr = SharedPtr< IntermediateLight >;
+	using IntermLightPtr = SharedPtr< IntermLight >;
 
 
 }	// FG

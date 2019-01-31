@@ -12,7 +12,7 @@ namespace FG
 	// Intermediate Mesh
 	//
 
-	class IntermediateMesh final : public std::enable_shared_from_this<IntermediateMesh>
+	class IntermMesh final : public std::enable_shared_from_this<IntermMesh>
 	{
 	// variables
 	private:
@@ -29,8 +29,8 @@ namespace FG
 
 	// methods
 	public:
-		IntermediateMesh () {}
-		IntermediateMesh (Array<uint8_t> &&vertices, const VertexAttributesPtr &attribs,
+		IntermMesh () {}
+		IntermMesh (Array<uint8_t> &&vertices, const VertexAttributesPtr &attribs,
 						  BytesU vertStride, EPrimitive topology,
 						  Array<uint8_t> &&indices, EIndex indexType);
 
@@ -47,7 +47,7 @@ namespace FG
 		ND_ Optional<AABB> const&	GetAABB ()			const	{ return _boundingBox; }
 	};
 	
-	using IntermediateMeshPtr = SharedPtr< IntermediateMesh >;
+	using IntermMeshPtr = SharedPtr< IntermMesh >;
 
 
 }	// FG

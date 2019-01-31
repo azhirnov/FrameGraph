@@ -59,6 +59,8 @@ namespace FG
 		ND_ Mat4_t	ToMatrix () const;
 		ND_ Mat4_t	ToRotationMatrix () const;
 
+		ND_ bool	IsIdentity () const;
+
 
 		// local space to global
 		ND_ Vec3_t	ToGlobalVector (const Vec3_t &local)	const;
@@ -215,6 +217,17 @@ namespace FG
 	inline typename Transformation<T>::Mat4_t  Transformation<T>::ToRotationMatrix () const
 	{
 		return glm::mat4_cast( orientation ) * glm::scale( Mat4x4_One, Vec3_t{ scale });
+	}
+	
+/*
+=================================================
+	IsIdentity
+=================================================
+*/
+	template <typename T>
+	bool  Transformation<T>::IsIdentity () const
+	{
+		return Equals( orientation, Identity ) and Equals( position, Vec3_t{T(0)} ) and Equals( scale, T(1) );
 	}
 
 

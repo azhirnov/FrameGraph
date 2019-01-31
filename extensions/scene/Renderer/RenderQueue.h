@@ -45,7 +45,7 @@ namespace FG
 
 	public:
 		template <typename DrawTask>
-		void AddRenderObj (ERenderLayer layer, const DrawTask &task);
+		void Draw (ERenderLayer layer, const DrawTask &task);
 
 		template <typename TaskType>
 		void AddTask (ERenderLayer beforeLayer, const TaskType &task);
@@ -125,11 +125,11 @@ namespace FG
 
 /*
 =================================================
-	AddRenderObj
+	Draw
 =================================================
 */
 	template <typename DrawTask>
-	inline void  RenderQueue::AddRenderObj (ERenderLayer layer, const DrawTask &task)
+	inline void  RenderQueue::Draw (ERenderLayer layer, const DrawTask &task)
 	{
 		ASSERT( _camera.layers[uint(layer)] );
 		_frameGraph->AddTask( _layers[uint(layer)].pass.renderPassId, task );

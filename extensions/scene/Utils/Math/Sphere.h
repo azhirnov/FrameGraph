@@ -3,6 +3,7 @@
 #pragma once
 
 #include "scene/Utils/Math/GLM.h"
+#include "scene/Utils/Math/Transform.h"
 
 namespace FG
 {
@@ -34,7 +35,15 @@ namespace FG
 
 
 		Self&  Move (const Vec3_t &delta)		{ center += delta;  return *this; }
+		Self&  Scale (T scale)					{ radius *= Abs(scale);  return *this; }
+		
 
+		Self&  Transform (const Transformation<T> &tr)
+		{
+			center  = tr.ToGlobalPosition( center );
+			radius *= tr.scale;
+			return *this;
+		}
 
 		ND_ bool  IsIntersects (const BoundingSphere<T> &other) const
 		{

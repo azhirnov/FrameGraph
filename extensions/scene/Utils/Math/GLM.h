@@ -190,6 +190,9 @@ namespace _fg_hidden_
 {
 	template <typename T>
 	struct TMatIdentity;
+
+	template <typename T>
+	struct TQuatIdentity;
 	
 	template <length_t C, length_t R, typename T, qualifier Q>
 	struct TMatIdentity< mat<C,R,T,Q> >
@@ -204,22 +207,33 @@ namespace _fg_hidden_
 		}
 	};
 
-
-	struct MatIdentity final
+	template <typename T>
+	struct TQuatIdentity< tquat<T> >
 	{
-		constexpr MatIdentity ()
+		static constexpr tquat<T>  Get ()
+		{
+			return tquat<T>{ T(1), T(0), T(0), T(0) };
+		}
+	};
+
+	struct GLMIdentity final
+	{
+		constexpr GLMIdentity ()
 		{}
 		
 		template <typename T>
 		ND_ constexpr operator T () const
 		{
-			return TMatIdentity<T>::Get();
+			if constexpr( IsSameTypes< T, tquat<typename T::value_type> > )
+				return TQuatIdentity<T>::Get();
+			else
+				return TMatIdentity<T>::Get();
 		}
 
 	};
 }	// _fg_hidden_
 
-	static constexpr _fg_hidden_::MatIdentity	Identity		{};
+	static constexpr _fg_hidden_::GLMIdentity	Identity		{};
 	static const     glm::mat4x4				Mat4x4_Identity = Identity;
 	static constexpr glm::mat4x4				Mat4x4_One		{ 1.0f };
 

@@ -5,7 +5,7 @@
 #include "scene/Renderer/ScenePreRender.h"
 #include "scene/Renderer/RenderQueue.h"
 #include "scene/Renderer/IRenderTechnique.h"
-#include "scene/Loader/Intermediate/IntermediateMesh.h"
+#include "scene/Loader/Intermediate/IntermMesh.h"
 #include "framegraph/Shared/EnumUtils.h"
 
 namespace FG
@@ -25,7 +25,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool SimpleRayTracingScene::Create (const FGThreadPtr &, const IntermediateScenePtr &, const ImageCachePtr &)
+	bool SimpleRayTracingScene::Create (const FGThreadPtr &, const IntermScenePtr &, const ImageCachePtr &)
 	{
 		return false;
 	}

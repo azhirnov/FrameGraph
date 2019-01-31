@@ -3,7 +3,7 @@
 #pragma once
 
 #include "scene/SceneManager/ISceneHierarchy.h"
-#include "scene/Loader/Intermediate/IntermediateScene.h"
+#include "scene/Loader/Intermediate/IntermScene.h"
 
 namespace FG
 {
@@ -14,16 +14,22 @@ namespace FG
 
 	class SimpleRayTracingScene final : public ISceneHierarchy
 	{
+	// types
+	private:
+
+
+
 	// variables
 	private:
-		AABB					_boundingBox;
+		RTSceneID		_rtScene;
+		AABB			_boundingBox;
 
 
 	// methods
 	public:
 		SimpleRayTracingScene ();
 
-		bool Create (const FGThreadPtr &, const IntermediateScenePtr &, const ImageCachePtr &);
+		bool Create (const FGThreadPtr &, const IntermScenePtr &, const ImageCachePtr &);
 		void Destroy (const FGThreadPtr &);
 		
 		bool Build (const FGThreadPtr &, const RenderTechniquePtr &) override;

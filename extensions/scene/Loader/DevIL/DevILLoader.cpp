@@ -145,7 +145,7 @@ namespace FG
 	LoadFromDevIL
 =================================================
 */
-	static bool LoadFromDevIL (OUT IntermediateImage::Level &imageLevel)
+	static bool LoadFromDevIL (OUT IntermImage::Level &imageLevel)
 	{
 		const ILint		fmt				= ilGetInteger( IL_IMAGE_FORMAT );
 		const ILint		type			= ilGetInteger( IL_IMAGE_TYPE );
@@ -241,7 +241,7 @@ namespace FG
 	Load
 =================================================
 */
-	bool DevILLoader::Load (INOUT IntermediateImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool DevILLoader::Load (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		CHECK_ERR( image );
 
@@ -264,14 +264,14 @@ namespace FG
 		
 		int layer = 0;
 
-		IntermediateImage::Mipmaps_t	image_data;
+		IntermImage::Mipmaps_t	image_data;
 
 		for (int mm = 0, num_mipmaps = ilGetInteger(IL_NUM_MIPMAPS)+1;
 				mm < num_mipmaps; ++mm)
 		{
 			CHECK( ilActiveMipmap( mm ) == IL_TRUE );
 
-			IntermediateImage::Level	image_lavel;
+			IntermImage::Level	image_lavel;
 			CHECK_ERR( LoadFromDevIL( OUT image_lavel ));
 
 			image_lavel.mipmap	= MipmapLevel{ uint(mm) };
@@ -303,9 +303,9 @@ namespace FG
 	Load
 =================================================
 */
-	bool DevILLoader::Load (const IntermediateMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool DevILLoader::Load (const IntermMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
-		using Texture = IntermediateMaterial::MtrTexture;
+		using Texture = IntermMaterial::MtrTexture;
 
 		CHECK_ERR( material );
 
@@ -367,7 +367,7 @@ namespace FG
 	Load
 =================================================
 */
-	bool DevILLoader::Load (ArrayView<IntermediateMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool DevILLoader::Load (ArrayView<IntermMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		for (auto& mtr : materials)
 		{
@@ -381,7 +381,7 @@ namespace FG
 	Load
 =================================================
 */
-	bool DevILLoader::Load (const IntermediateScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool DevILLoader::Load (const IntermScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		CHECK_ERR( scene );
 		return Load( scene->GetMaterials(), directories, imgCache );

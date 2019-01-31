@@ -55,6 +55,8 @@ namespace FG
 	private:
 		StaticArray< Plane, uint(EPlane::_Count) >		_planes;
 
+		DEBUG_ONLY( bool								_initialized; )
+
 		static constexpr T								_err	= std::numeric_limits<T>::epsilon();
 
 
@@ -70,6 +72,9 @@ namespace FG
 		ND_ bool IsVisible (const ObjectOrientedBoundingBox<T> &) const;
 		ND_ bool IsVisible (const Vec3_t &point) const;
 		ND_ bool IsVisible (const FrustumTempl<T> &) const;
+
+		// experimental
+			void Test (const AxisAlignedBoundingBox<T> &, OUT bool &isVisible, OUT float &detailLevel) const;
 
 		ND_ Plane const&  GetPlane (EPlane type) const		{ return _planes[ uint(type) ]; }
 		
@@ -106,6 +111,8 @@ namespace FG
 		_SetPlane( EPlane::Right,  mat[0][3] - mat[0][0], mat[1][3] - mat[1][0], mat[2][3] - mat[2][0], -mat[3][3] + mat[3][0] );
 		_SetPlane( EPlane::Near,   mat[0][3] + mat[0][2], mat[1][3] + mat[1][2], mat[2][3] + mat[2][2], -mat[3][3] - mat[3][2] );
 		_SetPlane( EPlane::Far,    mat[0][3] - mat[0][2], mat[1][3] - mat[1][2], mat[2][3] - mat[2][2], -mat[3][3] + mat[3][2] );
+
+		DEBUG_ONLY( _initialized = true );
 	}
 	
 /*
@@ -114,8 +121,10 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	inline void  FrustumTempl<T>::Setup (const CameraTempl<T> &, const Vec2_t &)
+	inline void  FrustumTempl<T>::Setup (const CameraTempl<T> &camera, const Vec2_t &)
 	{
+		// temp
+		Setup( camera );
 	}
 
 /*
@@ -140,6 +149,8 @@ namespace FG
 	template <typename T>
 	inline bool  FrustumTempl<T>::IsVisible (const Vec3_t &point) const
 	{
+		ASSERT( _initialized );
+
 		bool	inside = true;
 
 		for (auto& plane : _planes)
@@ -157,6 +168,8 @@ namespace FG
 	template <typename T>
 	inline bool  FrustumTempl<T>::IsVisible (const BoundingSphere<T> &sphere) const
 	{
+		ASSERT( _initialized );
+
 		bool	inside	= true;
 		const T	r		= -(sphere.radius + _err);
 
@@ -175,6 +188,8 @@ namespace FG
 	template <typename T>
 	inline bool  FrustumTempl<T>::IsVisible (const AxisAlignedBoundingBox<T> &aabb) const
 	{
+		ASSERT( _initialized );
+
 		auto	center		= aabb.Center();
 		auto	halfextent	= aabb.HalfExtent();
 		bool	inside		= true;
@@ -197,6 +212,36 @@ namespace FG
 	
 /*
 =================================================
+	Test (AABB)
+=================================================
+*/
+	template <typename T>
+	inline void  FrustumTempl<T>::Test (const AxisAlignedBoundingBox<T> &aabb, OUT bool &isVisible, OUT float &detailLevel) const
+	{
+		ASSERT( _initialized );
+		
+		auto	center		= aabb.Center();
+		auto	halfextent	= aabb.HalfExtent();
+		T		distances [uint(EPlane::_Count)] = {};
+		
+		isVisible = true;
+		for (size_t i = 0; i < _planes.size(); ++i)
+		{
+			auto&	plane	= _planes[i];
+			const T	d		= dot( plane.norm, center ) + plane.dist;
+			const T	m		= abs( plane.norm.x * halfextent.x ) + abs( plane.norm.y * halfextent.y ) + abs( plane.norm.z * halfextent.z );
+			distances[i]	= m;
+			isVisible		&= (d > -(m + _err));
+		}
+		
+		float sideX = Max( distances[2] / _planes[2].dist, distances[3] / _planes[3].dist ) * 2.0f;
+		float sideY = Max( distances[4] / _planes[4].dist, distances[5] / _planes[5].dist ) * 2.0f;
+		float sideZ = distances[0] / _planes[0].dist * 2.0f;
+		detailLevel = Max( sideX, sideY, sideZ );
+	}
+
+/*
+=================================================
 	IsVisible (OOBB)
 =================================================
 */
@@ -216,6 +261,8 @@ namespace FG
 	template <typename T>
 	inline bool  FrustumTempl<T>::IsVisible (const FrustumTempl<T> &frustum) const
 	{
+		ASSERT( _initialized );
+
 		StaticArray<Vec3_t, 8>	lhs_corners;	this->_GetCorners( OUT lhs_corners );
 		StaticArray<Vec3_t, 8>	rhs_corners;	frustum._GetCorners( OUT rhs_corners );
 		bool					inside	= true;
@@ -250,6 +297,8 @@ namespace FG
 	template <typename T>
 	inline AxisAlignedBoundingBox<T>  FrustumTempl<T>::ToAABB () const
 	{
+		ASSERT( _initialized );
+
 		StaticArray<Vec3_t, 8>		points;		_GetCorners( OUT points );
 		AxisAlignedBoundingBox<T>	result{ points[0] };
 
@@ -307,6 +356,8 @@ namespace FG
 	template <typename T>
 	inline bool  FrustumTempl<T>::GetRays (OUT Vec3_t &leftTop, OUT Vec3_t &leftBottom, OUT Vec3_t &rightTop, OUT Vec3_t &rightBottom) const
 	{
+		ASSERT( _initialized );
+
 		return	_GetIntersection( EPlane::Bottom, EPlane::Left,   OUT leftBottom  ) &
 				_GetIntersection( EPlane::Left,   EPlane::Top,    OUT leftTop     ) &
 				_GetIntersection( EPlane::Right,  EPlane::Bottom, OUT rightBottom ) &

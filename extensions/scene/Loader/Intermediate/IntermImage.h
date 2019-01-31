@@ -11,7 +11,7 @@ namespace FG
 	// Intermediate Image
 	//
 
-	class IntermediateImage final : public std::enable_shared_from_this<IntermediateImage>
+	class IntermImage final : public std::enable_shared_from_this<IntermImage>
 	{
 	// types
 	public:
@@ -41,9 +41,9 @@ namespace FG
 
 	// methods
 	public:
-		IntermediateImage () {}
-		explicit IntermediateImage (StringView path) : _srcPath{path} {}
-		explicit IntermediateImage (Mipmaps_t &&data, StringView path = Default) : _srcPath{path}, _data{std::move(data)} {}
+		IntermImage () {}
+		explicit IntermImage (StringView path) : _srcPath{path} {}
+		explicit IntermImage (Mipmaps_t &&data, StringView path = Default) : _srcPath{path}, _data{std::move(data)} {}
 
 		void  MakeImmutable ()							{ _immutable = true; }
 		void  SetData (Mipmaps_t &&data)				{ ASSERT( not _immutable );  _data = std::move(data); }
@@ -54,7 +54,7 @@ namespace FG
 		ND_ Mipmaps_t const&	GetData ()		const	{ return _data; }
 	};
 	
-	using IntermediateImagePtr = SharedPtr< IntermediateImage >;
+	using IntermImagePtr = SharedPtr< IntermImage >;
 
 
 }	// FG

@@ -53,7 +53,7 @@ namespace FG
 	FG_BIT_OPERATORS( EMaterialType );
 
 
-	enum class ERenderLayer : uint
+	enum class ERenderLayer : uint8_t
 	{
 		Layer_1		= 0,
 		Layer_32	= 31,
@@ -71,7 +71,7 @@ namespace FG
 		Translucent,
 		HUD,
 
-		Unknown		= ~0u,
+		Unknown		= 0xFF,
 	};
 	using LayerBits = BitSet< uint(ERenderLayer::_Count) >;
 
@@ -83,6 +83,8 @@ namespace FG
 		_Count,
 		Unknown		= 0xFF,
 	};
+
+	ND_ forceinline EDetailLevel  operator + (EDetailLevel lhs, uint rhs)  { return EDetailLevel( uint(lhs) + rhs ); }
 
 
 	struct DetailLevelRange
