@@ -2780,6 +2780,303 @@ static TIntermAggregate*  RecordRayGenShaderInfo (const TSourceLoc &loc, DebugIn
 
 /*
 =================================================
+	RecordHitShaderInfo
+=================================================
+*/
+static TIntermAggregate*  RecordHitShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_LaunchIDNV, location )"
+	{
+		TIntermSymbol*	invocation	= dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( invocation, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( invocation, loc_id, dbgInfo ));
+	}
+	
+	// "dbg_AppendToTrace( gl_PrimitiveID, location )"
+	if ( auto* primitive = dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( primitive, loc );
+		body->getSequence().push_back( CreateAppendToTrace( primitive, loc_id, dbgInfo ));
+	}
+	
+	// "dbg_AppendToTrace( gl_InstanceID, location )"
+	if ( auto* instance = dbgInfo.GetCachedSymbolNode( "gl_InstanceID" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( instance, loc );
+		body->getSequence().push_back( CreateAppendToTrace( instance, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_InstanceCustomIndexNV, location )"
+	if ( auto* instance_index = dbgInfo.GetCachedSymbolNode( "gl_InstanceCustomIndexNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( instance_index, loc );
+		body->getSequence().push_back( CreateAppendToTrace( instance_index, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_WorldRayOriginNV, location )"
+	if ( auto* world_ray_origin = dbgInfo.GetCachedSymbolNode( "gl_WorldRayOriginNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( world_ray_origin, loc );
+		body->getSequence().push_back( CreateAppendToTrace( world_ray_origin, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_WorldRayDirectionNV, location )"
+	if ( auto* world_ray_direction = dbgInfo.GetCachedSymbolNode( "gl_WorldRayDirectionNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( world_ray_direction, loc );
+		body->getSequence().push_back( CreateAppendToTrace( world_ray_direction, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_ObjectRayOriginNV, location )"
+	if ( auto* object_ray_origin = dbgInfo.GetCachedSymbolNode( "gl_ObjectRayOriginNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( object_ray_origin, loc );
+		body->getSequence().push_back( CreateAppendToTrace( object_ray_origin, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_ObjectRayDirectionNV, location )"
+	if ( auto* object_ray_direction = dbgInfo.GetCachedSymbolNode( "gl_ObjectRayDirectionNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( object_ray_direction, loc );
+		body->getSequence().push_back( CreateAppendToTrace( object_ray_direction, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_RayTminNV, location )"
+	if ( auto* ray_tmin = dbgInfo.GetCachedSymbolNode( "gl_RayTminNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( ray_tmin, loc );
+		body->getSequence().push_back( CreateAppendToTrace( ray_tmin, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_RayTmaxNV, location )"
+	if ( auto* ray_tmax = dbgInfo.GetCachedSymbolNode( "gl_RayTmaxNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( ray_tmax, loc );
+		body->getSequence().push_back( CreateAppendToTrace( ray_tmax, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_IncomingRayFlagsNV, location )"
+	if ( auto* incoming_ray_flags = dbgInfo.GetCachedSymbolNode( "gl_IncomingRayFlagsNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( incoming_ray_flags, loc );
+		body->getSequence().push_back( CreateAppendToTrace( incoming_ray_flags, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_HitTNV, location )"
+	if ( auto* hit_t = dbgInfo.GetCachedSymbolNode( "gl_HitTNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( hit_t, loc );
+		body->getSequence().push_back( CreateAppendToTrace( hit_t, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_HitKindNV, location )"
+	if ( auto* hit_kind = dbgInfo.GetCachedSymbolNode( "gl_HitKindNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( hit_kind, loc );
+		body->getSequence().push_back( CreateAppendToTrace( hit_kind, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_ObjectToWorldNV, location )"
+	if ( auto* object_to_world = dbgInfo.GetCachedSymbolNode( "gl_ObjectToWorldNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( object_to_world, loc );
+		body->getSequence().push_back( CreateAppendToTrace( object_to_world, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_WorldToObjectNV, location )"
+	if ( auto* world_to_object = dbgInfo.GetCachedSymbolNode( "gl_WorldToObjectNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( world_to_object, loc );
+		body->getSequence().push_back( CreateAppendToTrace( world_to_object, loc_id, dbgInfo ));
+	}
+	return body;
+}
+
+/*
+=================================================
+	RecordIntersectionShaderInfo
+=================================================
+*/
+static TIntermAggregate*  RecordIntersectionShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_LaunchIDNV, location )"
+	{
+		TIntermSymbol*	invocation	= dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( invocation, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( invocation, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_PrimitiveID, location )"
+	if ( auto* primitive = dbgInfo.GetCachedSymbolNode( "gl_PrimitiveID" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( primitive, loc );
+		body->getSequence().push_back( CreateAppendToTrace( primitive, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_InstanceID, location )"
+	if ( auto* instance = dbgInfo.GetCachedSymbolNode( "gl_InstanceID" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( instance, loc );
+		body->getSequence().push_back( CreateAppendToTrace( instance, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_InstanceCustomIndexNV, location )"
+	if ( auto* instance_index = dbgInfo.GetCachedSymbolNode( "gl_InstanceCustomIndexNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( instance_index, loc );
+		body->getSequence().push_back( CreateAppendToTrace( instance_index, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_WorldRayOriginNV, location )"
+	if ( auto* world_ray_origin = dbgInfo.GetCachedSymbolNode( "gl_WorldRayOriginNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( world_ray_origin, loc );
+		body->getSequence().push_back( CreateAppendToTrace( world_ray_origin, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_WorldRayDirectionNV, location )"
+	if ( auto* world_ray_dir = dbgInfo.GetCachedSymbolNode( "gl_WorldRayDirectionNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( world_ray_dir, loc );
+		body->getSequence().push_back( CreateAppendToTrace( world_ray_dir, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_ObjectRayOriginNV, location )"
+	if ( auto* object_ray_origin = dbgInfo.GetCachedSymbolNode( "gl_ObjectRayOriginNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( object_ray_origin, loc );
+		body->getSequence().push_back( CreateAppendToTrace( object_ray_origin, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_ObjectRayDirectionNV, location )"
+	if ( auto* object_ray_dir = dbgInfo.GetCachedSymbolNode( "gl_ObjectRayDirectionNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( object_ray_dir, loc );
+		body->getSequence().push_back( CreateAppendToTrace( object_ray_dir, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_RayTminNV, location )"
+	if ( auto* ray_tmin = dbgInfo.GetCachedSymbolNode( "gl_RayTminNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( ray_tmin, loc );
+		body->getSequence().push_back( CreateAppendToTrace( ray_tmin, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_RayTmaxNV, location )"
+	if ( auto* ray_tmax = dbgInfo.GetCachedSymbolNode( "gl_RayTmaxNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( ray_tmax, loc );
+		body->getSequence().push_back( CreateAppendToTrace( ray_tmax, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_IncomingRayFlagsNV, location )"
+	if ( auto* incoming_ray_flags = dbgInfo.GetCachedSymbolNode( "gl_IncomingRayFlagsNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( incoming_ray_flags, loc );
+		body->getSequence().push_back( CreateAppendToTrace( incoming_ray_flags, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_ObjectToWorldNV, location )"
+	if ( auto* object_to_world = dbgInfo.GetCachedSymbolNode( "gl_ObjectToWorldNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( object_to_world, loc );
+		body->getSequence().push_back( CreateAppendToTrace( object_to_world, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_WorldToObjectNV, location )"
+	if ( auto* world_to_object = dbgInfo.GetCachedSymbolNode( "gl_WorldToObjectNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( world_to_object, loc );
+		body->getSequence().push_back( CreateAppendToTrace( world_to_object, loc_id, dbgInfo ));
+	}
+	return body;
+}
+
+/*
+=================================================
+	RecordMissShaderInfo
+=================================================
+*/
+static TIntermAggregate*  RecordMissShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_LaunchIDNV, location )"
+	{
+		TIntermSymbol*	invocation	= dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( invocation, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( invocation, loc_id, dbgInfo ));
+	}
+	
+	// "dbg_AppendToTrace( gl_WorldRayOriginNV, location )"
+	if ( auto* world_ray_origin = dbgInfo.GetCachedSymbolNode( "gl_WorldRayOriginNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( world_ray_origin, loc );
+		body->getSequence().push_back( CreateAppendToTrace( world_ray_origin, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_WorldRayDirectionNV, location )"
+	if ( auto* world_ray_direction = dbgInfo.GetCachedSymbolNode( "gl_WorldRayDirectionNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( world_ray_direction, loc );
+		body->getSequence().push_back( CreateAppendToTrace( world_ray_direction, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_ObjectRayOriginNV, location )"
+	if ( auto* obj_ray_origin = dbgInfo.GetCachedSymbolNode( "gl_ObjectRayOriginNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( obj_ray_origin, loc );
+		body->getSequence().push_back( CreateAppendToTrace( obj_ray_origin, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_ObjectRayDirectionNV, location )"
+	if ( auto* obj_ray_direction = dbgInfo.GetCachedSymbolNode( "gl_ObjectRayDirectionNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( obj_ray_direction, loc );
+		body->getSequence().push_back( CreateAppendToTrace( obj_ray_direction, loc_id, dbgInfo ));
+	}
+	return body;
+}
+
+/*
+=================================================
+	RecordCallableShaderInfo
+=================================================
+*/
+static TIntermAggregate*  RecordCallableShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
+	body->setType( TType{EbtVoid} );
+	
+	// "dbg_AppendToTrace( gl_LaunchIDNV, location )"
+	{
+		TIntermSymbol*	invocation	= dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" );
+		const uint32_t	loc_id		= dbgInfo.GetCustomSourceLocation( invocation, loc );
+
+		body->getSequence().push_back( CreateAppendToTrace( invocation, loc_id, dbgInfo ));
+	}
+
+	// "dbg_AppendToTrace( gl_IncomingRayFlagsNV, location )"
+	if ( auto* incoming_ray_flags = dbgInfo.GetCachedSymbolNode( "gl_IncomingRayFlagsNV" ))
+	{
+		const uint32_t	loc_id = dbgInfo.GetCustomSourceLocation( incoming_ray_flags, loc );
+		body->getSequence().push_back( CreateAppendToTrace( incoming_ray_flags, loc_id, dbgInfo ));
+	}
+	return body;
+}
+
+/*
+=================================================
 	RecordShaderInfo
 =================================================
 */
@@ -2796,11 +3093,11 @@ static TIntermAggregate*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &db
 		case EShLangMeshNV :
 		case EShLangCompute :			return RecordComputeShaderInfo( loc, dbgInfo );
 		case EShLangRayGenNV :			return RecordRayGenShaderInfo( loc, dbgInfo );
-		/*case EShLangIntersectNV : return nullptr;
-		case EShLangAnyHitNV : return nullptr;
-		case EShLangClosestHitNV : return nullptr;
-		case EShLangMissNV : return nullptr;
-		case EShLangCallableNV : return nullptr;	// TODO*/
+		case EShLangAnyHitNV :
+		case EShLangClosestHitNV :		return RecordHitShaderInfo( loc, dbgInfo );
+		case EShLangIntersectNV :		return RecordIntersectionShaderInfo( loc, dbgInfo );
+		case EShLangMissNV :			return RecordMissShaderInfo( loc, dbgInfo );
+		case EShLangCallableNV :		return RecordCallableShaderInfo( loc, dbgInfo );
 	}
 	return nullptr;
 }
@@ -2983,10 +3280,10 @@ static TIntermOperator*  CreateComputeShaderIsDebugInvocation (DebugInfo &dbgInf
 
 /*
 =================================================
-	CreateRayGenShaderIsDebugInvocation
+	CreateRayTracingShaderIsDebugInvocation
 =================================================
 */
-static TIntermOperator*  CreateRayGenShaderIsDebugInvocation (DebugInfo &dbgInfo)
+static TIntermOperator*  CreateRayTracingShaderIsDebugInvocation (DebugInfo &dbgInfo)
 {	
 	TPublicType		bool_type;	bool_type.init({});
 	bool_type.basicType			= TBasicType::EbtBool;
@@ -3115,16 +3412,17 @@ static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TInte
 			break;
 		}
 
-		case EShLangFragment :			init_debug_enabled->setRight( CreateFragmentShaderIsDebugInvocation( dbgInfo ));	break;
-		case EShLangCompute :			init_debug_enabled->setRight( CreateComputeShaderIsDebugInvocation( dbgInfo ));		break;
+		case EShLangFragment :		init_debug_enabled->setRight( CreateFragmentShaderIsDebugInvocation( dbgInfo ));	break;
+		case EShLangCompute :		init_debug_enabled->setRight( CreateComputeShaderIsDebugInvocation( dbgInfo ));		break;
 		
-		case EShLangRayGenNV :			init_debug_enabled->setRight( CreateRayGenShaderIsDebugInvocation( dbgInfo ));		break;
-		/*case EShLangIntersectNV :
+		case EShLangRayGenNV :
+		case EShLangIntersectNV :
 		case EShLangAnyHitNV :
 		case EShLangClosestHitNV :
 		case EShLangMissNV :
-		case EShLangCallableNV :		return nullptr;*/
-		default :						RETURN_ERR( "not supported" );
+		case EShLangCallableNV :	init_debug_enabled->setRight( CreateRayTracingShaderIsDebugInvocation( dbgInfo ));		break;
+
+		default :					RETURN_ERR( "not supported" );
 	}
 
 

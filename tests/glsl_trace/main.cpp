@@ -15,6 +15,7 @@ extern bool ShaderTrace_Test10 (VulkanDeviceExt& vulkan, const TestHelpers &help
 extern bool ShaderTrace_Test11 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 extern bool ShaderTrace_Test12 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 extern bool ShaderTrace_Test13 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
+extern bool ShaderTrace_Test14 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 
 
 /*
@@ -157,6 +158,7 @@ int main ()
 		passed &= ShaderTrace_Test11( vulkan, helper );
 		passed &= ShaderTrace_Test12( vulkan, helper );
 		passed &= ShaderTrace_Test13( vulkan, helper );
+		passed &= ShaderTrace_Test14( vulkan, helper );
 	}
 
 	// destroy all

@@ -1,0 +1,45 @@
+//> gl_LaunchIDNV: uint3 {50, 50, 0}
+no source
+
+//> payload: float4 {0.412000, 0.796000, 1.000000, 1.000000}
+8. payload = vec4( 0.412f, 0.796f, 1.0f, 1.0f );
+
+//---------------------------
+
+//> gl_LaunchIDNV: uint3 {60, 40, 0}
+no source
+
+//> uv: float2 {0.472441, 0.314961}
+//  gl_LaunchIDNV: uint3 {60, 40, 0}
+10. uv = vec2(gl_LaunchIDNV.xy) / vec2(gl_LaunchSizeNV.xy - 1);
+
+//> origin: float3 {0.472441, 0.685039, -1.000000}
+//  uv: float2 {0.472441, 0.314961}
+11. origin = vec3(uv.x, 1.0f - uv.y, -1.0f);
+
+//> traceNV(): void
+//  origin: float3 {0.472441, 0.685039, -1.000000}
+14. un_RtScene, /*rayFlags*/gl_RayFlagsNoneNV, /*cullMask*/0xFF,
+15. 			  /*sbtRecordOffset*/0, /*sbtRecordStride*/0, /*missIndex*/0,
+16. 			  /*origin*/origin, /*Tmin*/0.0f,
+17. 			  /*direction*/direction, /*Tmax*/10.0f,
+18. 			  /*payload*/PAYLOAD_LOC );
+
+//> imageStore(): void
+//  gl_LaunchIDNV: uint3 {60, 40, 0}
+20. 	imageStore( un_Output, ivec2(gl_LaunchIDNV), payload );
+
+//---------------------------
+
+//> gl_LaunchIDNV: uint3 {70, 80, 0}
+no source
+
+//> barycentrics: float3 {0.277559, 0.482283, 0.240157}
+9. barycentrics = vec3(1.0f - HitAttribs.x - HitAttribs.y, HitAttribs.x, HitAttribs.y);
+
+//> payload: float4 {0.277559, 0.482283, 0.240157, 1.000000}
+//  barycentrics: float3 {0.277559, 0.482283, 0.240157}
+10. payload = vec4(barycentrics, 1.0);
+
+//---------------------------
+
