@@ -22,12 +22,22 @@ layout (std430, set=1, binding=0) writeonly buffer SSB {
 	vec4	data[4];
 } ssb;
 
+// @set 2 test3
+layout (std430, set=2, binding=0) writeonly buffer SSB2 {
+	vec4	data[4];
+} ssb2;
+
 void main ()
 {
 	ssb.data[0] = ub.data[1];
 	ssb.data[3] = ub.data[2];
 	ssb.data[1] = ub.data[3];
 	ssb.data[2] = ub.data[0];
+
+	ssb2.data[0] = ub.data[1];
+	ssb2.data[3] = ub.data[2];
+	ssb2.data[1] = ub.data[3];
+	ssb2.data[2] = ub.data[0];
 }
 )#" );
 
@@ -41,6 +51,7 @@ void main ()
 
 	TEST( FindDescriptorSet( ppln, DescriptorSetID{"test"} ));
 	TEST( FindDescriptorSet( ppln, DescriptorSetID{"test 2"} ));
+	TEST( FindDescriptorSet( ppln, DescriptorSetID{"test3"} ));
 
 	FG_LOGI( "Test_Shader13 - passed" );
 }

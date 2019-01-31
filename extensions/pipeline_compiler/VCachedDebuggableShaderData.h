@@ -52,8 +52,9 @@ namespace FG
 		{
 			if constexpr( IsSameTypes< T, ShaderModuleVk_t > )
 			{
-				_data	= BitCast<ShaderModuleVk_t>( module );
-				_entry	= spirvCache->GetEntry();
+				_data		= BitCast<ShaderModuleVk_t>( module );
+				_entry		= spirvCache->GetEntry();
+				_debugName	= spirvCache->GetDebugName();
 
 				if ( auto other = DynCast<VCachedDebuggableSpirv>( spirvCache ))
 					_debugInfo = std::move(other->_debugInfo);
@@ -100,17 +101,8 @@ namespace FG
 
 		StringView	GetEntry () const override		{ return _entry; }
 
-		
-		StringView	GetDebugName () const override
-		{
-			if constexpr( IsSameTypes< T, ShaderModuleVk_t > )
-			{
-				ASSERT(!"not supported");
-				return "";
-			}
-			else
-				return _debugName;
-		}
+		StringView	GetDebugName () const override	{ return _debugName; }
+
 
 		size_t		GetHashOfData () const override
 		{

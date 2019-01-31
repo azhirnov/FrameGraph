@@ -839,7 +839,7 @@ namespace FG
 				const char	c = pos < source.length() ? source[pos] : '\n';
 
 				if ( c == '\n' or c == '\r' ) {
-					++mode;
+					++mode;	++pos;
 					break;
 				}
 
@@ -1120,7 +1120,7 @@ namespace FG
 		String				name	= node->getAsSymbolNode()->getName().c_str();
 		const StringView	prefix	= "anon@";
 
-		if ( not name.compare( 0, prefix.size(), prefix ))
+		if ( not name.compare( 0, prefix.size(), prefix.data() ))
 			name.clear();
 
 		return name;
