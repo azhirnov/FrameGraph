@@ -11,16 +11,30 @@ using namespace FG;
 	ConsoleOutput
 =================================================
 */
-	static void ConsoleOutput (StringView message, StringView file, int line, bool isError)
+	inline void ConsoleOutput (StringView message, StringView file, int line, bool isError)
 	{
-		const String str = String(file) << '(' << ToString( line ) << "): " << message;
+		const String str = String{file} << '(' << ToString( line ) << "): " << message;
 
 		if ( isError )
 			std::cerr << str << std::endl;
 		else
 			std::cout << str << std::endl;
 	}
+	
+/*
+=================================================
+	
+=================================================
+*/
+	Log::EResult  FG::Log::Info (const char *msg, const char *func, const char *file, int line)
+	{
+		return Info( StringView{msg}, StringView{func}, StringView{file}, line );
+	}
 
+	Log::EResult  FG::Log::Error (const char *msg, const char *func, const char *file, int line)
+	{
+		return Error( StringView{msg}, StringView{func}, StringView{file}, line );
+	}
 //-----------------------------------------------------------------------------
 
 
@@ -30,14 +44,18 @@ using namespace FG;
 
 #	include <android/log.h>
 
+namespace {
+	static constexpr char	FG_ANDROID_TAG[] = "FrameGraph";
+}
+
 /*
 =================================================
 	Info
 =================================================
 */
-	Log::EResult  FG::Log::Info (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
-		ConsoleOutput( msg, file, line, false );
+		(void)__android_log_print( ANDROID_LOG_WARN, FG_ANDROID_TAG, "%s (%i): %s", file.data(), line, msg.data() );
 		return EResult::Continue;
 	}
 	
@@ -46,10 +64,10 @@ using namespace FG;
 	Error
 =================================================
 */
-	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
-		ConsoleOutput( msg, file, line, true );
-		return EResult::Abort;
+		(void)__android_log_print( ANDROID_LOG_ERROR, FG_ANDROID_TAG, "%s (%i): %s", file.data(), line, msg.data() );
+		return EResult::Continue;
 	}
 //-----------------------------------------------------------------------------
 
@@ -79,7 +97,7 @@ using namespace FG;
 	Info
 =================================================
 */
-	Log::EResult  FG::Log::Info (StringView msg, StringView, StringView file, int line)
+	Log::EResult  FG::Log::Info (const StringView &msg, const StringView &, const StringView &file, int line)
 	{
 		IDEConsoleMessage( msg, file, line, false );
 		ConsoleOutput( msg, file, line, false );
@@ -92,7 +110,7 @@ using namespace FG;
 	Error
 =================================================
 */
-	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		IDEConsoleMessage( msg, file, line, true );
 		ConsoleOutput( msg, file, line, true );
@@ -127,7 +145,7 @@ using namespace FG;
 	Info
 =================================================
 */
-	Log::EResult  FG::Log::Info (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
@@ -138,7 +156,7 @@ using namespace FG;
 	Error
 =================================================
 */
-	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, true );
 		return EResult::Abort;
@@ -159,7 +177,7 @@ using namespace FG;
 	Info
 =================================================
 */
-	Log::EResult  FG::Log::Info (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
@@ -170,7 +188,7 @@ using namespace FG;
 	Error
 =================================================
 */
-	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		/*Widget top_wid, button;
 		XtAppContext  app;
@@ -204,7 +222,7 @@ using namespace FG;
 	Info
 =================================================
 */
-	Log::EResult  FG::Log::Info (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
@@ -215,7 +233,7 @@ using namespace FG;
 	Error
 =================================================
 */
-	Log::EResult  FG::Log::Error (StringView msg, StringView func, StringView file, int line)
+	Log::EResult  FG::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, true );
 		return EResult::Abort;

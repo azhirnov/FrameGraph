@@ -222,7 +222,7 @@ namespace FG
 
 			if ( c == '"' )
 			{
-				result = StringView( str.data() + begin, pos - begin );
+				result = StringView{ str.data() + begin, pos - begin };
 				++pos;
 				return true;
 			}

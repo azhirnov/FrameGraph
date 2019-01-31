@@ -61,18 +61,7 @@ namespace FG
 	}
 	
 
-# if defined(VK_USE_PLATFORM_WIN32_KHR) and VK_USE_PLATFORM_WIN32_KHR
-/*
-=================================================
-	GetWin32Extensions
-=================================================
-*/
-	Array<const char*>  VulkanSurface::GetWin32Extensions ()
-	{
-		Array<const char*>	ext = { VK_KHR_WIN32_SURFACE_EXTENSION_NAME };
-		return ext;
-	}
-	
+# if defined(VK_USE_PLATFORM_WIN32_KHR) and VK_USE_PLATFORM_WIN32_KHR	
 /*
 =================================================
 	CreateWin32Surface
@@ -91,6 +80,31 @@ namespace FG
 		CHECK_ERR( fpCreateWin32SurfaceKHR );
 
 		VK_CHECK( fpCreateWin32SurfaceKHR( instance, &surface_info, null, OUT &surface ) );
+		return surface;
+	}
+# endif
+	
+
+# if defined(VK_USE_PLATFORM_ANDROID_KHR) and VK_USE_PLATFORM_ANDROID_KHR
+/*
+=================================================
+	CreateAndroidSurface
+=================================================
+*/
+	VkSurfaceKHR  VulkanSurface::CreateAndroidSurface (VkInstance instance, void* window)
+	{
+		VkSurfaceKHR					surface;
+		VkAndroidSurfaceCreateInfoKHR	surface_info = {};
+
+		surface_info.sType	= VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+		surface_info.pNext	= null;
+		surface_info.flags	= 0;
+		surface_info.window	= Cast<ANativeWindow>(window);
+
+		PFN_vkCreateAndroidSurfaceKHR  fpCreateAndroidSurfaceKHR = BitCast<PFN_vkCreateAndroidSurfaceKHR>( vkGetInstanceProcAddr( instance, "vkCreateAndroidSurfaceKHR" ));
+		CHECK_ERR( fpCreateAndroidSurfaceKHR );
+
+		VK_CHECK( fpCreateAndroidSurfaceKHR( instance, &surface_info, null, OUT &surface ) );
 		return surface;
 	}
 # endif

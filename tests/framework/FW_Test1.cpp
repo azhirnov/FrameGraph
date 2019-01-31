@@ -5,6 +5,7 @@
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
+#include "framework/Android/WindowAndroid.h"
 #include "stl/Math/Color.h"
 #include "stl/Algorithms/ArrayUtils.h"
 
@@ -48,21 +49,23 @@ public:
 	}
 
 
-	bool Run ()
+	bool Run (void* app = null)
 	{
 #	 if defined(FG_ENABLE_GLFW)
-		window.reset( new WindowGLFW() );
+		window.reset( new WindowGLFW{} );
 
 #	 elif defined(FG_ENABLE_SDL2)
-		window.reset( new WindowSDL2() );
+		window.reset( new WindowSDL2{} );
 
 #	 elif defined(FG_ENABLE_SFML)
-		window.reset( new WindowSFML() );
+		window.reset( new WindowSFML{} );
+
+#	 elif defined(PLATFORM_ANDROID)
+		window.reset( new WindowAndroid{ Cast<android_app>(app) });
 
 #	 else
 #		error unknown window library!
 #	 endif
-	
 
 		// create window and vulkan device
 		{
@@ -270,10 +273,18 @@ public:
 	}
 };
 
+#ifdef PLATFORM_ANDROID
+extern "C" void android_main (android_app* androidApp)
+{
+	FWApp1	app;
+	app.Run( androidApp );
+}
+#else
 
 extern void FW_Test1 ()
 {
 	FWApp1	app;
 
-	CHECK_FATAL( app.Run() );
+	CHECK_FATAL( app.Run( null ));
 }
+#endif

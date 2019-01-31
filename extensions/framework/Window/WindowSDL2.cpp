@@ -486,10 +486,12 @@ namespace {
 			case SDL_SYSWM_MIR :
 				return 0;	// TODO
 
+#			if defined(VK_USE_PLATFORM_ANDROID_KHR)
 			case SDL_SYSWM_ANDROID :
-				return 0;	// TODO
+				return FG::VulkanSurface::CreateAndroidSurface( instance, info.info.android.window );
+#			endif
 				
-# if		defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
+#			if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
 			case SDL_SYSWM_WINDOWS :
 				return FG::VulkanSurface::CreateWin32Surface( instance, info.info.win.hinstance, info.info.win.window );
 #			endif

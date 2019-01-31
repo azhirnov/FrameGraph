@@ -279,14 +279,15 @@ namespace FG
 	_DebugReportCallback
 =================================================
 */
-	VkBool32 VKAPI_CALL VulkanDeviceExt::_DebugReportCallback (VkDebugReportFlagsEXT flags,
-																VkDebugReportObjectTypeEXT objectType,
-																uint64_t object,
-																size_t /*location*/,
-																int32_t /*messageCode*/,
-																const char* /*pLayerPrefix*/,
-																const char* pMessage,
-																void* pUserData)
+	VKAPI_ATTR VkBool32 VKAPI_CALL
+		VulkanDeviceExt::_DebugReportCallback (VkDebugReportFlagsEXT flags,
+											   VkDebugReportObjectTypeEXT objectType,
+											   uint64_t object,
+											   size_t /*location*/,
+											   int32_t /*messageCode*/,
+											   const char* /*pLayerPrefix*/,
+											   const char* pMessage,
+											   void* pUserData)
 	{
 		auto* self = static_cast<VulkanDeviceExt *>(pUserData);
 		
@@ -304,10 +305,11 @@ namespace FG
 	_DebugUtilsCallback
 =================================================
 */
-	VkBool32 VKAPI_CALL VulkanDeviceExt::_DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT		messageSeverity,
-															  VkDebugUtilsMessageTypeFlagsEXT				/*messageTypes*/,
-															  const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
-															  void*											pUserData)
+	VKAPI_ATTR VkBool32 VKAPI_CALL
+		VulkanDeviceExt::_DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT		messageSeverity,
+											  VkDebugUtilsMessageTypeFlagsEXT				/*messageTypes*/,
+											  const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
+											  void*											pUserData)
 	{
 		auto* self = static_cast<VulkanDeviceExt *>(pUserData);
 		

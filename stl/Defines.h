@@ -9,7 +9,7 @@
 #	define FG_RELEASE
 #endif
 
-#define FG_FAST_HASH	0
+#include "stl/Config.h"
 
 
 #ifdef COMPILER_MSVC
@@ -46,12 +46,15 @@
 # ifdef FG_DEBUG
 #	define forceinline		inline
 
-# elif defined COMPILER_MSVC
+# elif defined(COMPILER_MSVC)
 #	define forceinline		__forceinline
 
 # elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
 #	define forceinline		__inline__ __attribute__((always_inline))
 
+# else
+#	pragma warning ("forceinline is not supported")
+#	define forceinline		inline
 # endif
 #endif
 
@@ -63,12 +66,14 @@
 
 
 // debug break
-#ifndef FG_BREAK_POINT
+#ifndef FG_PRIVATE_BREAK_POINT
 # if defined(COMPILER_MSVC)
 #	define FG_PRIVATE_BREAK_POINT()		__debugbreak()
 
 # elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
-#  if 1
+#  if defined(PLATFORM_ANDROID) && defined(FG_DEBUG)
+#	define FG_PRIVATE_BREAK_POINT()		{}
+#  elif 1
 #	include <exception>
 #	define FG_PRIVATE_BREAK_POINT() 	throw std::runtime_error("breakpoint")
 #  elif 0
@@ -79,6 +84,16 @@
 #endif
 
 
+// exit
+#ifndef FG_PRIVATE_EXIT
+# if defined(PLATFORM_ANDROID)
+#	define FG_PRIVATE_EXIT()	std::terminate()
+# else
+#	define FG_PRIVATE_EXIT()	::exit( EXIT_FAILURE )
+# endif
+#endif
+
+/*
 // DLL import/export
 #if !defined(FG_DLL_EXPORT) || !defined(FG_DLL_IMPORT)
 # if defined(COMPILER_MSVC)
@@ -97,7 +112,7 @@
 # else
 #	error define FG_DLL_EXPORT and FG_DLL_IMPORT for you compiler
 # endif
-#endif
+#endif*/
 
 
 // helper macro
@@ -193,7 +208,7 @@
 		{if (( _expr_ )) {}\
 		  else { \
 			FG_LOGE( FG_PRIVATE_TOSTRING( _expr_ ) ); \
-			::exit( EXIT_FAILURE ); \
+			FG_PRIVATE_EXIT(); \
 		}}
 #endif
 
@@ -268,3 +283,44 @@
 #	define SHAREDLOCK( _syncObj_ ) \
 		std::shared_lock	FG_PRIVATE_UNITE_RAW( __sharedLock, __COUNTER__ ) { _syncObj_ }
 #endif
+
+
+// thiscall, cdecl
+#ifdef COMPILER_MSVC
+#	define FG_CDECL		__cdecl
+#	define FG_THISCALL	__thiscall
+
+#elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
+#	define FG_CDECL		__attribute__((cdecl))
+#	define FG_THISCALL	__attribute__((thiscall))
+#endif
+
+
+// check definitions
+#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+
+#  ifdef FG_OPTIMAL_MEMORY_ORDER
+#	pragma detect_mismatch( "FG_OPTIMAL_MEMORY_ORDER", "1" )
+#  else
+#	pragma detect_mismatch( "FG_OPTIMAL_MEMORY_ORDER", "0" )
+#  endif
+
+#  ifdef FG_DEBUG
+#	pragma detect_mismatch( "FG_DEBUG", "1" )
+#  else
+#	pragma detect_mismatch( "FG_DEBUG", "0" )
+#  endif
+
+#  if defined(FG_FAST_HASH) && FG_FAST_HASH
+#	pragma detect_mismatch( "FG_FAST_HASH", "1" )
+#  else
+#	pragma detect_mismatch( "FG_FAST_HASH", "0" )
+#  endif
+
+#  ifdef FG_ENABLE_RACE_CONDITION_CHECK
+#	pragma detect_mismatch( "FG_ENABLE_RACE_CONDITION_CHECK", "1" )
+#  else
+#	pragma detect_mismatch( "FG_ENABLE_RACE_CONDITION_CHECK", "0" )
+#  endif
+
+#endif	// COMPILER_MSVC or COMPILER_CLANG

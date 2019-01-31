@@ -101,19 +101,21 @@ namespace FG
 		
 		void _WriteDeviceInfo ();
 
-		static VkBool32 VKAPI_CALL _DebugReportCallback (VkDebugReportFlagsEXT flags,
-														 VkDebugReportObjectTypeEXT objectType,
-														 uint64_t object,
-														 size_t location,
-														 int32_t messageCode,
-														 const char* pLayerPrefix,
-														 const char* pMessage,
-														 void* pUserData);
+		VKAPI_ATTR static VkBool32 VKAPI_CALL
+			_DebugReportCallback (VkDebugReportFlagsEXT flags,
+								  VkDebugReportObjectTypeEXT objectType,
+								  uint64_t object,
+								  size_t location,
+								  int32_t messageCode,
+								  const char* pLayerPrefix,
+								  const char* pMessage,
+								  void* pUserData);
 
-		static VkBool32 VKAPI_CALL _DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT		messageSeverity,
-														VkDebugUtilsMessageTypeFlagsEXT				messageTypes,
-														const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
-														void*										pUserData);
+		VKAPI_ATTR static VkBool32 VKAPI_CALL
+			_DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT			messageSeverity,
+								 VkDebugUtilsMessageTypeFlagsEXT				messageTypes,
+								 const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
+								 void*											pUserData);
 
 		void _DebugReport (const DebugReport &);
 	};

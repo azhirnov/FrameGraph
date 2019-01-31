@@ -7,6 +7,7 @@
 #include "stl/Math/Bytes.h"
 #include "stl/Algorithms/EnumUtils.h"
 #include "stl/Algorithms/ArrayUtils.h"
+#include "stl/Containers/StringView.h"
 #include "stl/Memory/MemUtils.h"
 #include <chrono>
 #include <sstream>
@@ -14,7 +15,7 @@
 namespace FG
 {
 	using namespace std::string_literals;
-	using namespace std::string_view_literals;
+	//using namespace std::string_view_literals;
 
 /*
 =================================================
@@ -25,49 +26,49 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	forceinline std::basic_string<T>&&  operator << (std::basic_string<T> &&lhs, const std::basic_string<T> &rhs)
+	forceinline BasicString<T>&&  operator << (BasicString<T> &&lhs, const BasicString<T> &rhs)
 	{
 		return std::move( std::move(lhs).append( rhs ));
 	}
 
 	template <typename T>
-	forceinline std::basic_string<T>&  operator << (std::basic_string<T> &lhs, const std::basic_string<T> &rhs)
+	forceinline BasicString<T>&  operator << (BasicString<T> &lhs, const std::basic_string<T> &rhs)
 	{
 		return lhs.append( rhs );
 	}
 
 	template <typename T>
-	forceinline std::basic_string<T>&&  operator << (std::basic_string<T> &&lhs, const std::basic_string_view<T> &rhs)
+	forceinline BasicString<T>&&  operator << (BasicString<T> &&lhs, const BasicStringView<T> &rhs)
+	{
+		return std::move( std::move(lhs).append( BasicString<T>{rhs} ));
+	}
+
+	template <typename T>
+	forceinline BasicString<T>&  operator << (BasicString<T> &lhs, const BasicStringView<T> &rhs)
+	{
+		return lhs.append( BasicString<T>{rhs} );
+	}
+
+	template <typename T>
+	forceinline BasicString<T>&&  operator << (BasicString<T> &&lhs, T const * const rhs)
 	{
 		return std::move( std::move(lhs).append( rhs ));
 	}
 
 	template <typename T>
-	forceinline std::basic_string<T>&  operator << (std::basic_string<T> &lhs, const std::basic_string_view<T> &rhs)
+	forceinline BasicString<T>&  operator << (BasicString<T> &lhs, T const * const rhs)
 	{
 		return lhs.append( rhs );
 	}
 
 	template <typename T>
-	forceinline std::basic_string<T>&&  operator << (std::basic_string<T> &&lhs, T const * const rhs)
-	{
-		return std::move( std::move(lhs).append( rhs ));
-	}
-
-	template <typename T>
-	forceinline std::basic_string<T>&  operator << (std::basic_string<T> &lhs, T const * const rhs)
-	{
-		return lhs.append( rhs );
-	}
-
-	template <typename T>
-	forceinline std::basic_string<T>&&  operator << (std::basic_string<T> &&lhs, const T rhs)
+	forceinline BasicString<T>&&  operator << (BasicString<T> &&lhs, const T rhs)
 	{
 		return std::move( std::move(lhs) += rhs );
 	}
 
 	template <typename T>
-	forceinline std::basic_string<T>&  operator << (std::basic_string<T> &lhs, const T rhs)
+	forceinline BasicString<T>&  operator << (BasicString<T> &lhs, const T rhs)
 	{
 		return (lhs += rhs);
 	}
@@ -248,9 +249,9 @@ namespace FG
 	{
 		String::size_type pos = 0;
 
-		while ( (pos = str.find( oldStr, pos )) != std::string::npos )
+		while ( (pos = StringView{str}.find( oldStr, pos )) != StringView::npos )
 		{
-			str.replace( pos, oldStr.length(), newStr );
+			str.replace( pos, oldStr.length(), newStr.data() );
 			pos += newStr.length();
 		}
 	}

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Math/Math.h"
+#include "stl/Containers/StringView.h"
 
 namespace FG
 {
@@ -18,7 +19,7 @@ namespace FG
 	public:
 		using iterator			= CharT *;
 		using const_iterator	= CharT const *;
-		using View_t			= std::basic_string_view< CharT >;
+		using View_t			= BasicStringView< CharT >;
 		using Self				= TStaticString< CharT, StringSize >;
 
 
@@ -102,7 +103,7 @@ namespace std
 	{
 		ND_ size_t  operator () (const FG::TStaticString<CharT, StringSize> &value) const noexcept
 		{
-			return hash< std::basic_string_view<CharT> >()( value );
+			return hash< FG::BasicStringView<CharT> >()( value );
 		}
 	};
 

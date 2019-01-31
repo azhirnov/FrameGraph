@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Common.h"
+#include "stl/Containers/StringView.h"
 
 
 #ifdef FG_VULKAN_STATIC
@@ -177,6 +178,17 @@ namespace FG
 # else
 #	pragma detect_mismatch( "VK_USE_PLATFORM_XLIB_XRANDR_EXT", "0" )
 # endif
-#endif
+
+#endif	// COMPILER_MSVC or COMPILER_CLANG
 
 #endif	// not FG_VULKAN_STATIC
+
+
+// check definitions
+#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+#  ifdef FG_VULKAN_STATIC
+#	pragma detect_mismatch( "FG_VULKAN_STATIC", "1" )
+#  else
+#	pragma detect_mismatch( "FG_VULKAN_STATIC", "0" )
+#  endif
+#endif	// COMPILER_MSVC or COMPILER_CLANG

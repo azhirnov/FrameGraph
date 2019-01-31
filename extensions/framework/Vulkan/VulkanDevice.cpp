@@ -43,23 +43,35 @@ namespace FG
 */
 	ArrayView<const char*>  VulkanDevice::GetRecomendedInstanceLayers ()
 	{
-		static const char*	instance_layers[] = {
-			"VK_LAYER_LUNARG_standard_validation",
-			"VK_LAYER_LUNARG_assistant_layer",
-			//"VK_LAYER_GOOGLE_threading",					// inside VK_LAYER_LUNARG_standard_validation
-			//"VK_LAYER_LUNARG_parameter_validation",		// inside VK_LAYER_LUNARG_standard_validation
-			//"VK_LAYER_LUNARG_device_limits",				// inside VK_LAYER_LUNARG_standard_validation
-			//"VK_LAYER_LUNARG_object_tracker",				// inside VK_LAYER_LUNARG_standard_validation
-			//"VK_LAYER_LUNARG_image",						// inside VK_LAYER_LUNARG_standard_validation
-			//"VK_LAYER_LUNARG_core_validation",			// inside VK_LAYER_LUNARG_standard_validation
-			//"VK_LAYER_LUNARG_swapchain",					// inside VK_LAYER_LUNARG_standard_validation
-			//"VK_LAYER_GOOGLE_unique_objects",				// inside VK_LAYER_LUNARG_standard_validation
-			//"VK_LAYER_LUNARG_device_simulation",
-			//"VK_LAYER_LUNARG_api_dump",
 		#ifdef PLATFORM_ANDROID
-			"VK_LAYER_ARM_mali_perf_doc"
+			static const char*	instance_layers[] = {
+				"VK_LAYER_GOOGLE_threading",
+				"VK_LAYER_LUNARG_parameter_validation",
+				"VK_LAYER_LUNARG_object_tracker",
+				"VK_LAYER_LUNARG_core_validation",
+				"VK_LAYER_GOOGLE_unique_objects",
+
+				// may be unsupported:
+				"VK_LAYER_LUNARG_vktrace",
+				"VK_LAYER_ARM_MGD",
+				"VK_LAYER_ARM_mali_perf_doc"
+			};
+		#else
+			static const char*	instance_layers[] = {
+				"VK_LAYER_LUNARG_standard_validation",
+				"VK_LAYER_LUNARG_assistant_layer",
+				//"VK_LAYER_GOOGLE_threading",					// inside VK_LAYER_LUNARG_standard_validation
+				//"VK_LAYER_LUNARG_parameter_validation",		// inside VK_LAYER_LUNARG_standard_validation
+				//"VK_LAYER_LUNARG_device_limits",				// inside VK_LAYER_LUNARG_standard_validation
+				//"VK_LAYER_LUNARG_object_tracker",				// inside VK_LAYER_LUNARG_standard_validation
+				//"VK_LAYER_LUNARG_image",						// inside VK_LAYER_LUNARG_standard_validation
+				//"VK_LAYER_LUNARG_core_validation",			// inside VK_LAYER_LUNARG_standard_validation
+				//"VK_LAYER_LUNARG_swapchain",					// inside VK_LAYER_LUNARG_standard_validation
+				//"VK_LAYER_GOOGLE_unique_objects",				// inside VK_LAYER_LUNARG_standard_validation
+				//"VK_LAYER_LUNARG_device_simulation",
+				//"VK_LAYER_LUNARG_api_dump",
+			};
 		#endif
-		};
 		return instance_layers;
 	}
 	
@@ -84,6 +96,9 @@ namespace FG
 			#ifdef VK_EXT_debug_utils
 				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 			#endif
+			#ifdef VK_EXT_debug_report
+				VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+			#endif
 		};
 		return instance_extensions;
 	}
@@ -95,10 +110,10 @@ namespace FG
 */
 	ArrayView<const char*>  VulkanDevice::GetRecomendedDeviceExtensions ()
 	{
-		//static const char *	device_extensions[] =
-		//{};
-		//return device_extensions;
-		return {};
+		static const char *	device_extensions[] = {
+			"none"
+		};
+		return device_extensions;
 	}
 
 /*
@@ -348,10 +363,12 @@ namespace FG
 */
 	void VulkanDevice::_ValidateInstanceVersion (INOUT uint &version) const
 	{
-		uint	ver = 0;
-		VK_CALL( vkEnumerateInstanceVersion( OUT &ver ));
+		const uint	min_ver		= VK_API_VERSION_1_0;
+		uint		current_ver	= 0;
 
-		version = Min( ver, version );
+		VK_CALL( vkEnumerateInstanceVersion( OUT &current_ver ));
+
+		version = Min( version, Max( min_ver, current_ver ));
 	}
 
 /*
@@ -365,7 +382,7 @@ namespace FG
 
 		// load supported layers
 		uint	count = 0;
-		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, null ) );
+		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, null ));
 
 		if (count == 0)
 		{
@@ -374,7 +391,7 @@ namespace FG
 		}
 
 		inst_layers.resize( count );
-		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, OUT inst_layers.data() ) );
+		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, OUT inst_layers.data() ));
 
 
 		// validate
@@ -415,7 +432,7 @@ namespace FG
 
 		// load supported extensions
 		uint	count = 0;
-		VK_CALL( vkEnumerateInstanceExtensionProperties( null, OUT &count, null ) );
+		VK_CALL( vkEnumerateInstanceExtensionProperties( null, OUT &count, null ));
 
 		if ( count == 0 )
 		{
@@ -426,7 +443,7 @@ namespace FG
 		Array< VkExtensionProperties >		inst_ext;
 		inst_ext.resize( count );
 
-		VK_CALL( vkEnumerateInstanceExtensionProperties( null, OUT &count, OUT inst_ext.data() ) );
+		VK_CALL( vkEnumerateInstanceExtensionProperties( null, OUT &count, OUT inst_ext.data() ));
 
 		for (auto& ext : inst_ext) {
 			instance_extensions.insert( StringView(ext.extensionName) );
@@ -456,7 +473,7 @@ namespace FG
 	{
 		// load supported device extensions
 		uint	count = 0;
-		VK_CALL( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, null ) );
+		VK_CALL( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, null ));
 
 		if ( count == 0 )
 		{
@@ -529,11 +546,11 @@ namespace FG
 		uint						count	= 0;
 		Array< VkPhysicalDevice >	devices;
 		
-		VK_CALL( vkEnumeratePhysicalDevices( _vkInstance, OUT &count, null ) );
+		VK_CALL( vkEnumeratePhysicalDevices( _vkInstance, OUT &count, null ));
 		CHECK_ERR( count > 0 );
 
 		devices.resize( count );
-		VK_CALL( vkEnumeratePhysicalDevices( _vkInstance, OUT &count, OUT devices.data() ) );
+		VK_CALL( vkEnumeratePhysicalDevices( _vkInstance, OUT &count, OUT devices.data() ));
 		
 		VkPhysicalDevice	match_name_device	= VK_NULL_HANDLE;
 		VkPhysicalDevice	high_perf_device	= VK_NULL_HANDLE;

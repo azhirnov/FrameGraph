@@ -5,9 +5,7 @@
 #include <vector>
 #include <string>
 #include <array>
-#include <string_view>
 #include <memory>		// shared_ptr, weak_ptr, unique_ptr
-#include <optional>
 #include <deque>
 #include <unordered_set>
 #include <unordered_map>
@@ -22,22 +20,13 @@
 #include "stl/CompileTime/UMax.h"
 #include "stl/CompileTime/DefaultType.h"
 
-#ifdef FG_DEBUG
-#	define FG_ENABLE_RACE_CONDITION_CHECK
-#else
-//#	define FG_OPTIMAL_MEMORY_ORDER
-#endif
-
 
 namespace FG
 {
-	using uint			= uint32_t;
+	using uint = uint32_t;
 
-	using StringView	= std::string_view;
-	using String		= std::string;
-
-
-	template <typename T>	using Optional	= std::optional< T >;
+							using String		= std::string;
+	template <typename T>	using BasicString	= std::basic_string<T>;
 
 	template <typename T>	using Array		= std::vector< T >;
 

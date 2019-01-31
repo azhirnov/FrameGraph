@@ -51,10 +51,15 @@ set( SOURCES
 	"framework/Vulkan/VulkanSurface.cpp"
 	"framework/Vulkan/VulkanSurface.h"
 	"framework/Vulkan/VulkanSwapchain.cpp"
-	"framework/Vulkan/VulkanSwapchain.h" )
+	"framework/Vulkan/VulkanSwapchain.h"
+	"framework/Android/android_native_app_glue.c"
+	"framework/Android/android_native_app_glue.h"
+	"framework/Android/WindowAndroid.cpp"
+	"framework/Android/WindowAndroid.h" )
 add_library( "Framework" STATIC ${SOURCES} )
 source_group( "Window" FILES "framework/Window/IWindow.h" "framework/Window/WindowGLFW.cpp" "framework/Window/WindowGLFW.h" "framework/Window/WindowSDL2.cpp" "framework/Window/WindowSDL2.h" "framework/Window/WindowSFML.cpp" "framework/Window/WindowSFML.h" )
 source_group( "Vulkan" FILES "framework/Vulkan/VulkanDevice.cpp" "framework/Vulkan/VulkanDevice.h" "framework/Vulkan/VulkanDeviceExt.cpp" "framework/Vulkan/VulkanDeviceExt.h" "framework/Vulkan/VulkanSurface.cpp" "framework/Vulkan/VulkanSurface.h" "framework/Vulkan/VulkanSwapchain.cpp" "framework/Vulkan/VulkanSwapchain.h" )
+source_group( "Android" FILES "framework/Android/android_native_app_glue.c" "framework/Android/android_native_app_glue.h" "framework/Android/WindowAndroid.cpp" "framework/Android/WindowAndroid.h" )
 set_property( TARGET "Framework" PROPERTY FOLDER "Extensions" )
 target_include_directories( "Framework" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "Framework" PRIVATE ".." )
@@ -182,6 +187,7 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 		"../tests/glsl_trace/ShaderTrace_Test11.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test12.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test13.cpp"
+		"../tests/glsl_trace/ShaderTrace_Test14.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test2.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test3.cpp"
 		"../tests/glsl_trace/ShaderTrace_Test4.cpp"
@@ -196,7 +202,7 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLSLANG})
 		add_executable( "Tests.GLSLTrace" ${SOURCES} )
 	endif()
 	source_group( "ref" FILES "../tests/glsl_trace/ref/ShaderTrace_Test1.txt" "../tests/glsl_trace/ref/ShaderTrace_Test10.txt" "../tests/glsl_trace/ref/ShaderTrace_Test11.txt" "../tests/glsl_trace/ref/ShaderTrace_Test12.txt" "../tests/glsl_trace/ref/ShaderTrace_Test13.txt" "../tests/glsl_trace/ref/ShaderTrace_Test2.txt" "../tests/glsl_trace/ref/ShaderTrace_Test4.txt" "../tests/glsl_trace/ref/ShaderTrace_Test5.txt" "../tests/glsl_trace/ref/ShaderTrace_Test6.txt" "../tests/glsl_trace/ref/ShaderTrace_Test7.txt" "../tests/glsl_trace/ref/ShaderTrace_Test8.txt" "../tests/glsl_trace/ref/ShaderTrace_Test9.txt" )
-	source_group( "" FILES "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" "../tests/glsl_trace/ShaderTraceTestUtils.cpp" "../tests/glsl_trace/ShaderTraceTestUtils.h" "../tests/glsl_trace/ShaderTrace_Test1.cpp" "../tests/glsl_trace/ShaderTrace_Test10.cpp" "../tests/glsl_trace/ShaderTrace_Test11.cpp" "../tests/glsl_trace/ShaderTrace_Test12.cpp" "../tests/glsl_trace/ShaderTrace_Test13.cpp" "../tests/glsl_trace/ShaderTrace_Test2.cpp" "../tests/glsl_trace/ShaderTrace_Test3.cpp" "../tests/glsl_trace/ShaderTrace_Test4.cpp" "../tests/glsl_trace/ShaderTrace_Test5.cpp" "../tests/glsl_trace/ShaderTrace_Test6.cpp" "../tests/glsl_trace/ShaderTrace_Test7.cpp" "../tests/glsl_trace/ShaderTrace_Test8.cpp" "../tests/glsl_trace/ShaderTrace_Test9.cpp" )
+	source_group( "" FILES "../tests/glsl_trace/main.cpp" "../tests/glsl_trace/ShaderCompiler.cpp" "../tests/glsl_trace/ShaderCompiler.h" "../tests/glsl_trace/ShaderTraceTestUtils.cpp" "../tests/glsl_trace/ShaderTraceTestUtils.h" "../tests/glsl_trace/ShaderTrace_Test1.cpp" "../tests/glsl_trace/ShaderTrace_Test10.cpp" "../tests/glsl_trace/ShaderTrace_Test11.cpp" "../tests/glsl_trace/ShaderTrace_Test12.cpp" "../tests/glsl_trace/ShaderTrace_Test13.cpp" "../tests/glsl_trace/ShaderTrace_Test14.cpp" "../tests/glsl_trace/ShaderTrace_Test2.cpp" "../tests/glsl_trace/ShaderTrace_Test3.cpp" "../tests/glsl_trace/ShaderTrace_Test4.cpp" "../tests/glsl_trace/ShaderTrace_Test5.cpp" "../tests/glsl_trace/ShaderTrace_Test6.cpp" "../tests/glsl_trace/ShaderTrace_Test7.cpp" "../tests/glsl_trace/ShaderTrace_Test8.cpp" "../tests/glsl_trace/ShaderTrace_Test9.cpp" )
 	set_property( TARGET "Tests.GLSLTrace" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.GLSLTrace" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.GLSLTrace" PRIVATE "" )
@@ -428,12 +434,12 @@ if (${FG_ENABLE_GLM})
 		"scene/ThreadPool/ThreadPool.h"
 		"scene/Pipelines/ForwardPlus/default.gppln"
 		"scene/SceneManager/Octree/OctreeScene.h"
-		"scene/Loader/Intermediate/IntermediateImage.h"
-		"scene/Loader/Intermediate/IntermediateLight.h"
-		"scene/Loader/Intermediate/IntermediateMaterial.h"
-		"scene/Loader/Intermediate/IntermediateMesh.cpp"
-		"scene/Loader/Intermediate/IntermediateMesh.h"
-		"scene/Loader/Intermediate/IntermediateScene.h"
+		"scene/Loader/Intermediate/IntermImage.h"
+		"scene/Loader/Intermediate/IntermLight.h"
+		"scene/Loader/Intermediate/IntermMaterial.h"
+		"scene/Loader/Intermediate/IntermMesh.cpp"
+		"scene/Loader/Intermediate/IntermMesh.h"
+		"scene/Loader/Intermediate/IntermScene.h"
 		"scene/Loader/Intermediate/VertexAttributes.cpp"
 		"scene/Loader/Intermediate/VertexAttributes.h"
 		"scene/Renderer/Enums.h"
@@ -479,7 +485,7 @@ if (${FG_ENABLE_GLM})
 	source_group( "ThreadPool" FILES "scene/ThreadPool/FGThread.h" "scene/ThreadPool/IOThread.h" "scene/ThreadPool/ThreadPool.cpp" "scene/ThreadPool/ThreadPool.h" )
 	source_group( "Pipelines\\ForwardPlus" FILES "scene/Pipelines/ForwardPlus/default.gppln" )
 	source_group( "SceneManager\\Octree" FILES "scene/SceneManager/Octree/OctreeScene.h" )
-	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermediateImage.h" "scene/Loader/Intermediate/IntermediateLight.h" "scene/Loader/Intermediate/IntermediateMaterial.h" "scene/Loader/Intermediate/IntermediateMesh.cpp" "scene/Loader/Intermediate/IntermediateMesh.h" "scene/Loader/Intermediate/IntermediateScene.h" "scene/Loader/Intermediate/VertexAttributes.cpp" "scene/Loader/Intermediate/VertexAttributes.h" )
+	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermImage.h" "scene/Loader/Intermediate/IntermLight.h" "scene/Loader/Intermediate/IntermMaterial.h" "scene/Loader/Intermediate/IntermMesh.cpp" "scene/Loader/Intermediate/IntermMesh.h" "scene/Loader/Intermediate/IntermScene.h" "scene/Loader/Intermediate/VertexAttributes.cpp" "scene/Loader/Intermediate/VertexAttributes.h" )
 	source_group( "Renderer" FILES "scene/Renderer/Enums.h" "scene/Renderer/IRenderTechnique.h" "scene/Renderer/RenderQueue.h" "scene/Renderer/ScenePreRender.h" "scene/Renderer/ShaderBuilder.cpp" "scene/Renderer/ShaderBuilder.h" )
 	source_group( "Utils\\Math" FILES "scene/Utils/Math/AABB.h" "scene/Utils/Math/Camera.h" "scene/Utils/Math/Frustum.h" "scene/Utils/Math/GLM.h" "scene/Utils/Math/OOBB.h" "scene/Utils/Math/Radians.h" "scene/Utils/Math/Sphere.h" "scene/Utils/Math/Transform.h" )
 	source_group( "Renderer\\Prototype" FILES "scene/Renderer/Prototype/RendererPrototype.cpp" "scene/Renderer/Prototype/RendererPrototype.h" "scene/Renderer/Prototype/RendererPrototypeUbershader.glsl" )

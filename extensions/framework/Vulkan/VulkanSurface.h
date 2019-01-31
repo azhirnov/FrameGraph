@@ -21,8 +21,12 @@ namespace FG
 		
 		// Windows
 #	if defined(PLATFORM_WINDOWS)
-		ND_ static Array<const char*>	GetWin32Extensions ();
 		ND_ static VkSurfaceKHR			CreateWin32Surface (VkInstance instance, void* hinstance, void* hwnd);
+#	endif
+
+		// Android
+#	if defined(PLATFORM_ANDROID)
+		ND_ static VkSurfaceKHR			CreateAndroidSurface (VkInstance instance, void* window);
 #	endif
 	};
 

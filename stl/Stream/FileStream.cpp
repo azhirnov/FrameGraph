@@ -12,9 +12,11 @@
 #	define fseek	_fseeki64_nolock
 #endif
 
-#if defined(PLATFORM_LINUX) or defined(PLATFORM_ANDROID)
+#if defined(PLATFORM_LINUX)
 #	define fseek	fseeko
 #	define ftell	ftello
+#endif
+#if defined(PLATFORM_LINUX) or defined(PLATFORM_ANDROID)
 #   define fopen_s( _outFile_, _name_, _mode_ ) (*_outFile_=fopen(_name_, _mode_))
 #endif
 
@@ -34,7 +36,7 @@ namespace FG
 		if ( _file )
 			_fileSize = _GetSize();
 		else
-			FG_LOGE( "Can't open file: "s << filename );
+			FG_LOGE( "Can't open file: \""s << filename << '"' );
 	}
 	
 	FileRStream::FileRStream (const char *filename) : FileRStream{ StringView{filename} }
@@ -60,7 +62,7 @@ namespace FG
 		if ( _file )
 			_fileSize = _GetSize();
 		else
-			FG_LOGE( "Can't open file: "s << path.string() );
+			FG_LOGE( "Can't open file: \""s << path.string() << '"' );
 	}
 #endif
 	
@@ -139,7 +141,7 @@ namespace FG
 		fopen_s( OUT &_file, filename.data(), "wb" );
 
 		if ( not _file )
-			FG_LOGE( "Can't open file: "s << filename );
+			FG_LOGE( "Can't open file: \""s << filename << '"' );
 	}
 	
 	FileWStream::FileWStream (const char *filename) : FileWStream{ StringView{filename} }
@@ -163,7 +165,7 @@ namespace FG
 #	endif
 		
 		if ( not _file )
-			FG_LOGE( "Can't open file: "s << path.string() );
+			FG_LOGE( "Can't open file: \""s << path.string() << '"' );
 	}
 #endif
 	

@@ -1,19 +1,23 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanLoader.h"
+
+#ifndef FG_VULKAN_STATIC
+
 #include "VulkanCheckError.h"
 #include "stl/Algorithms/Cast.h"
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Containers/Singleton.h"
 
 
-#if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
+# if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
 
 #	include "stl/Platforms/WindowsHeader.h"
 
 	using SharedLib_t	= HMODULE;
 
-#elif defined(PLATFORM_LINUX)
+# else
+//#elif defined(PLATFORM_LINUX) or defined(PLATFORM_ANDROID)
 #	include <dlfcn.h>
 #   include <linux/limits.h>
 
@@ -104,12 +108,14 @@ namespace {
 			return false;
 		
 		// write library path to log
+#		ifndef PLATFORM_ANDROID
 		{
 			char	buf[PATH_MAX] = "";
 			CHECK( dlinfo( lib->module, RTLD_DI_ORIGIN, buf ) == 0 );
 			
 			FG_LOGI( "Vulkan library path: \""s << buf << '"' );
 		}
+#		endif
 
 		const auto	Load =	[module = lib->module] (OUT auto& outResult, const char *procName, auto dummy)
 							{
@@ -265,3 +271,5 @@ namespace {
 	}
 
 }	// FG
+
+#endif	// not FG_VULKAN_STATIC
