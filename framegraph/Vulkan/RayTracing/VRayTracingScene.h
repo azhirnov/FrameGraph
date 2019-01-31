@@ -49,7 +49,6 @@ namespace FG
 		mutable InstancesData2		_instanceData [2];
 		mutable uint				_currStateIndex : 1;
 
-		EQueueFamily				_currQueueFamily	= Default;
 		DebugName_t					_debugName;
 
 		RWRaceConditionCheck		_rcCheck;
@@ -60,8 +59,7 @@ namespace FG
 		VRayTracingScene () : _currStateIndex{0} {}
 		~VRayTracingScene ();
 		
-		bool Create (const VDevice &dev, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-					 EQueueFamily queueFamily, StringView dbgName);
+		bool Create (const VDevice &dev, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
 
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
@@ -74,7 +72,6 @@ namespace FG
 		ND_ InstancesData const&		CurrentData ()			const	{ SHAREDLOCK( _rcCheck );  return _instanceData[_currStateIndex]; }
 
 		ND_ ERayTracingFlags			GetFlags ()				const	{ SHAREDLOCK( _rcCheck );  return _flags; }
-		ND_ EQueueFamily				CurrentQueueFamily ()	const	{ SHAREDLOCK( _rcCheck );  return _currQueueFamily; }
 		ND_ StringView					GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 	};
 

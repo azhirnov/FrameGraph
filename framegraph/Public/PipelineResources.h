@@ -5,7 +5,6 @@
 #include "framegraph/Public/IDs.h"
 #include "framegraph/Public/ImageDesc.h"
 #include "framegraph/Public/Pipeline.h"
-#include <atomic>
 
 namespace FG
 {

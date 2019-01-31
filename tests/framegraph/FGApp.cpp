@@ -109,7 +109,9 @@ namespace {
 		{
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1,
 									   "",
-									   {},
+									   {{ VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_PRESENT_BIT, 0.0f },
+									    { VK_QUEUE_COMPUTE_BIT,  0.0f },
+									    { VK_QUEUE_TRANSFER_BIT, 0.0f }},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetAllDeviceExtensions()
@@ -160,9 +162,15 @@ namespace {
 			CHECK_ERR( _fgGraphics2->Initialize( null, {_fgGraphics1} ));
 			CHECK_ERR( _fgGraphics1->IsCompatibleWith( _fgGraphics2, EThreadUsage::Graphics ));
 			
-			_fgCompute = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::AsyncCompute });
+			_fgCompute = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::AsyncCompute | EThreadUsage::Transfer });
 			CHECK_ERR( _fgCompute );
 			CHECK_ERR( _fgCompute->Initialize() );
+			
+			_fgGraphicsCompute = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Graphics | EThreadUsage::Transfer | EThreadUsage::AsyncCompute });
+			CHECK_ERR( _fgGraphicsCompute );
+			CHECK_ERR( _fgGraphicsCompute->Initialize() );
+			CHECK_ERR( _fgGraphicsCompute->IsCompatibleWith( _fgGraphics1, EThreadUsage::Graphics ));
+			CHECK_ERR( _fgGraphicsCompute->IsCompatibleWith( _fgCompute, EThreadUsage::AsyncCompute ));
 		}
 
 		// add glsl pipeline compiler
@@ -243,6 +251,12 @@ namespace {
 		{
 			_fgCompute->Deinitialize();
 			_fgCompute = null;
+		}
+
+		if ( _fgGraphicsCompute )
+		{
+			_fgGraphicsCompute->Deinitialize();
+			_fgGraphicsCompute = null;
 		}
 
 		if ( _fgInstance )
@@ -357,7 +371,7 @@ namespace {
 		String	str;
 		CHECK_ERR( _fgInstance->DumpToGraphViz( OUT str ));
 		
-		auto	path = std::filesystem::path{FG_TEST_GRAPHS_DIR}.append(name).replace_extension("dot");
+		auto	path = std::filesystem::path{ FG_TEST_GRAPHS_DIR }.append( name.data() ).replace_extension( "dot" );
 
 		CHECK( GraphViz::Visualize( str, path, "png", false, true ));
 

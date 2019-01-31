@@ -3,6 +3,7 @@
 #include "VFrameGraphThread.h"
 #include "VStagingBufferManager.h"
 #include "VTaskGraph.hpp"
+#include "VFrameGraphDebugger.h"
 
 namespace FG
 {
@@ -338,6 +339,7 @@ namespace {
 				if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
 				{
 					Task	last_task = AddTask( copy );
+					copy.regions.clear();
 					copy.depends.clear();
 					copy.depends.push_back( last_task );
 				}
@@ -421,6 +423,7 @@ namespace {
 				if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
 				{
 					Task	last_task = AddTask( copy );
+					copy.regions.clear();
 					copy.depends.clear();
 					copy.depends.push_back( last_task );
 				}
@@ -458,6 +461,7 @@ namespace {
 				if ( copy.srcBuffer and src_buffer != copy.srcBuffer )
 				{
 					Task	last_task = AddTask( copy );
+					copy.regions.clear();
 					copy.depends.clear();
 					copy.depends.push_back( last_task );
 				}
@@ -468,7 +472,7 @@ namespace {
 				ASSERT( image_size.x % block_dim.x == 0 );
 				ASSERT( y_size % block_dim.y == 0 );
 
-				copy.AddRegion( off, row_length, img_height,
+				copy.AddRegion( off, row_length, y_size,
 								ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
 								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, y_size, 1) );
 
@@ -528,6 +532,7 @@ namespace {
 			if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
 			{
 				Task	last_task = AddTask( copy );
+				copy.regions.clear();
 				copy.depends.clear();
 				copy.depends.push_back( last_task );
 			}
@@ -609,6 +614,7 @@ namespace {
 				if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
 				{
 					Task	last_task = AddTask( copy );
+					copy.regions.clear();
 					copy.depends.clear();
 					copy.depends.push_back( last_task );
 				}
@@ -643,6 +649,7 @@ namespace {
 				if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
 				{
 					Task	last_task = AddTask( copy );
+					copy.regions.clear();
 					copy.depends.clear();
 					copy.depends.push_back( last_task );
 				}
@@ -781,6 +788,7 @@ namespace {
 		const BytesU	sh_size	= result->pipeline->ShaderHandleSize();
 		
 		task.result.buffer			= task.dstBuffer;
+		task.result.pipeline		= task.pipeline;
 		task.result.rayGenOffset	= task.dstOffset;
 		task.result.rayMissOffset	= task.result.rayGenOffset + sh_size;
 		task.result.rayMissStride	= Bytes<uint16_t>{ sh_size };
@@ -856,9 +864,8 @@ namespace {
 			ASSERT( src.indexCount <= ref.maxIndexCount );
 			ASSERT( src.vertexFormat == ref.vertexFormat );
 			ASSERT( src.indexType == ref.indexType );
-			ASSERT( src.flags == ref.flags );
 
-			dst.flags = VEnumCast( src.flags );
+			dst.flags = VEnumCast( ref.flags );
 
 			// vertices
 			dst.geometry.triangles.vertexCount		= src.vertexCount;
@@ -944,10 +951,9 @@ namespace {
 			ASSERT( src.aabbBuffer or src.aabbData.size() );
 			ASSERT( src.aabbCount > 0 );
 			ASSERT( src.aabbCount <= ref.maxAabbCount );
-			ASSERT( src.flags == ref.flags );
 			ASSERT( src.aabbStride % 8 == 0 );
 
-			dst.flags						= VEnumCast( src.flags );
+			dst.flags						= VEnumCast( ref.flags );
 			dst.geometry.aabbs.sType		= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
 			dst.geometry.aabbs.numAABBs		= src.aabbCount;
 			dst.geometry.aabbs.stride		= uint(src.aabbStride);
@@ -1241,6 +1247,8 @@ namespace {
 */
 	bool  VFrameGraphThread::UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data)
 	{
+		SCOPELOCK( _rcCheck );
+
 		void*	dst_ptr;
 		CHECK_ERR( MapBufferRange( id, offset, INOUT size, OUT dst_ptr ));
 
@@ -1255,6 +1263,8 @@ namespace {
 */
 	bool  VFrameGraphThread::MapBufferRange (const BufferID &id, BytesU offset, INOUT BytesU &size, OUT void* &dataPtr)
 	{
+		SCOPELOCK( _rcCheck );
+
 		VLocalBuffer const*		buffer = _resourceMngr.ToLocal( id.Get() );
 		CHECK_ERR( buffer );
 
@@ -1263,10 +1273,16 @@ namespace {
 
 		VMemoryObj::MemoryInfo	mem_info;
 		CHECK_ERR( memory->GetInfo( OUT mem_info ));
+
 		CHECK_ERR( mem_info.mappedPtr );
+		CHECK_ERR( offset < buffer->Size() );
 
 		size	= Min( size, mem_info.size - offset );
 		dataPtr = mem_info.mappedPtr + offset;
+
+		if ( _debugger )
+			_debugger->AddHostWriteAccess( buffer->ToGlobal(), offset, size );
+		
 		return true;
 	}
 

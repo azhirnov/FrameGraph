@@ -27,12 +27,16 @@ namespace FGColorScheme
 		static constexpr RGBA8u		DrawMeshes				= HtmlColor::Bisque;
 		static constexpr RGBA8u		ClearAttachments		= HtmlColor::Bisque;
 
-		static constexpr RGBA8u		CommandBatchBackground	= RGBA8u{0x28, 0x28, 0x28, 0xFF};
+		static constexpr RGBA8u		CmdSubBatchBackground	= RGBA8u{ 0x28, 0x28, 0x28, 0xFF };
+		static constexpr RGBA8u		CmdSubBatchLavel		= RGBA8u{ 0xdc, 0xdc, 0xdc, 0xFF };
+		static constexpr RGBA8u		CmdBatchBackground		= RGBA8u{ 0x18, 0x18, 0x18, 0xFF };
+		static constexpr RGBA8u		CmdBatchLabel			= RGBA8u{ 0xdc, 0xdc, 0xdc, 0xFF };
 		static constexpr RGBA8u		TaskLabel				= HtmlColor::White;
 		static constexpr RGBA8u		ResourceBackground		= HtmlColor::Silver;
 		//static constexpr RGBA8u	ResourceToResourceEdge	= HtmlColor::Silver;
 		static constexpr RGBA8u		BarrierGroupBorder		= HtmlColor::Olive;
 		static constexpr RGBA8u		GroupBorder				= HtmlColor::DarkGray;
+		static constexpr RGBA8u		TaskDependencyEdge		= RGBA8u{ 0xd3, 0xd3, 0xd3, 0xFF };
 
 		static constexpr RGBA8u		Debug					= HtmlColor::Pink;		// all invalid data will be drawn with this color
 

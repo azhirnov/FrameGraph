@@ -26,7 +26,6 @@ namespace FG
 */
 	bool VLocalRTGeometry::Create (const VRayTracingGeometry *geometryData)
 	{
-		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _rtGeometryData == null );
 		CHECK_ERR( geometryData );
 
@@ -42,8 +41,6 @@ namespace FG
 */
 	void VLocalRTGeometry::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
 	{
-		SCOPELOCK( _rcCheck );
-
 		_rtGeometryData	= null;
 		
 		// check for uncommited barriers
@@ -62,7 +59,6 @@ namespace FG
 	void VLocalRTGeometry::AddPendingState (const GeometryState &gs) const
 	{
 		ASSERT( gs.task );
-		SCOPELOCK( _rcCheck );
 
 		_pendingAccesses.stages		= EResourceState_ToPipelineStages( gs.state );
 		_pendingAccesses.access		= EResourceState_ToAccess( gs.state );
@@ -78,7 +74,6 @@ namespace FG
 */
 	void VLocalRTGeometry::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		SCOPELOCK( _rcCheck );
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
 		// add full range barrier
@@ -101,8 +96,6 @@ namespace FG
 */
 	void VLocalRTGeometry::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		SCOPELOCK( _rcCheck );
-		
 		const bool	is_modified =	(_accessForReadWrite.isReadable and _pendingAccesses.isWritable) or	// read -> write
 									_accessForReadWrite.isWritable;										// write -> read/write
 

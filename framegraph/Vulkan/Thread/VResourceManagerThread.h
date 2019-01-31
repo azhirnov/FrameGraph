@@ -133,8 +133,10 @@ namespace FG
 		ND_ RawCPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName, bool isAsync);
 		ND_ RawRTPipelineID		CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName, bool isAsync);
 		
-		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
-		ND_ RawBufferID			CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
+		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
+											 EQueueFamilyMask queueFamilyMask, StringView dbgName, bool isAsync);
+		ND_ RawBufferID			CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
+											  EQueueFamilyMask queueFamilyMask, StringView dbgName, bool isAsync);
 		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName, bool isAsync);
 		
 		ND_ RawImageID			CreateImage (const VulkanImageDesc &desc, FrameGraphThread::OnExternalImageReleased_t &&onRelease, StringView dbgName);
@@ -147,8 +149,10 @@ namespace FG
 		//ND_ RawPipelineResourcesID	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
 		ND_ VPipelineResources const*	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
 		
-		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
-		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc, EQueueFamily queueFamily, StringView dbgName, bool isAsync);
+		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem,
+														  VMemoryManager &alloc, StringView dbgName, bool isAsync);
+		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem,
+													   VMemoryManager &alloc, StringView dbgName, bool isAsync);
 
 		ND_ LogicalPassID		CreateLogicalRenderPass (const RenderPassDesc &desc);
 		

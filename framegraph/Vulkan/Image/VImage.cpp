@@ -109,7 +109,7 @@ namespace FG
 =================================================
 */
 	bool VImage::Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-						 EQueueFamily queueFamily, StringView dbgName)
+						 EQueueFamilyMask queueFamilyMask, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _image == VK_NULL_HANDLE );
@@ -137,7 +137,6 @@ namespace FG
 		info.tiling			= (opt_tiling ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR);
 		info.usage			= VEnumCast( _desc.usage );
 		info.initialLayout	= (opt_tiling ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PREINITIALIZED);
-		info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
 
 		if ( EImage_IsCube( _desc.imageType ) )
 			info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -147,6 +146,31 @@ namespace FG
 		// TODO: VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT 
 		// TODO: VK_IMAGE_CREATE_ALIAS_BIT 
 		// TODO: VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT 
+		
+		StaticArray<uint32_t, 8>	queue_family_indices = {};
+
+		// setup sharing mode
+		if ( queueFamilyMask != Default )
+		{
+			info.sharingMode			= VK_SHARING_MODE_CONCURRENT;
+			info.pQueueFamilyIndices	= queue_family_indices.data();
+			
+			for (uint i = 0, mask = (1u<<i);
+				 mask <= uint(queueFamilyMask) and info.queueFamilyIndexCount < queue_family_indices.size();
+				 ++i, mask = (1u<<i))
+			{
+				if ( EnumEq( queueFamilyMask, mask ) )
+					queue_family_indices[ info.queueFamilyIndexCount++ ] = i;
+			}
+		}
+
+		// reset to exclusive mode
+		if ( info.queueFamilyIndexCount < 2 )
+		{
+			info.sharingMode			= VK_SHARING_MODE_EXCLUSIVE;
+			info.pQueueFamilyIndices	= null;
+			info.queueFamilyIndexCount	= 0;
+		}
 
 		VK_CHECK( dev.vkCreateImage( dev.GetVkDevice(), &info, null, OUT &_image ));
 
@@ -159,7 +183,7 @@ namespace FG
 
 		_aspectMask			= _ChooseAspect();
 		_defaultLayout		= _ChooseDefaultLayout();
-		_currQueueFamily	= queueFamily;
+		_queueFamilyMask	= queueFamilyMask;
 		_debugName			= dbgName;
 
 		return true;
@@ -191,11 +215,19 @@ namespace FG
 			dev.SetObjectName( BitCast<uint64_t>(_image), dbgName, VK_OBJECT_TYPE_IMAGE );
 		}
 		
-		_aspectMask			= _ChooseAspect();
-		_defaultLayout		= _ChooseDefaultLayout();
-		_currQueueFamily	= BitCast<EQueueFamily>( desc.queueFamily );
-		_debugName			= dbgName;
-		_onRelease			= std::move(onRelease);
+		CHECK( desc.queueFamily == VK_QUEUE_FAMILY_IGNORED );	// not supported yet
+		CHECK( desc.queueFamilyIndices.empty() or desc.queueFamilyIndices.size() >= 2 );
+
+		_queueFamilyMask = Default;
+
+		for (auto idx : desc.queueFamilyIndices) {
+			_queueFamilyMask |= BitCast<EQueueFamily>(idx);
+		}
+
+		_aspectMask		= _ChooseAspect();
+		_defaultLayout	= _ChooseDefaultLayout();
+		_debugName		= dbgName;
+		_onRelease		= std::move(onRelease);
 
 		return true;
 	}
@@ -232,7 +264,7 @@ namespace FG
 		_desc				= Default;
 		_aspectMask			= 0;
 		_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
-		_currQueueFamily	= Default;
+		_queueFamilyMask	= Default;
 		_onRelease			= {};
 	}
 	

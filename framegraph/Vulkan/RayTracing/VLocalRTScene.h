@@ -50,8 +50,6 @@ namespace FG
 		mutable SceneAccess				_pendingAccesses;
 		mutable SceneAccess				_accessForReadWrite;
 
-		RWRaceConditionCheck			_rcCheck;
-
 
 	// methods
 	public:
@@ -68,14 +66,14 @@ namespace FG
 
 		void SetGeometryInstances (ArrayView<RawRTGeometryID> instances, uint hitShadersPerGeometry, uint maxHitShaders) const;
 
-		ND_ VkAccelerationStructureNV	Handle ()					const	{ SHAREDLOCK( _rcCheck );  return _rtSceneData->Handle(); }
-		ND_ ERayTracingFlags			GetFlags ()					const	{ SHAREDLOCK( _rcCheck );  return _rtSceneData->GetFlags(); }
-		ND_ uint						InstanceCount ()			const	{ SHAREDLOCK( _rcCheck );  return _rtSceneData->InstanceCount(); }
-		ND_ ArrayView<RawRTGeometryID>	GeometryInstances ()		const	{ SHAREDLOCK( _rcCheck );  return _GetData().geometryInstances; }
-		ND_ uint						HitShadersPerGeometry ()	const	{ SHAREDLOCK( _rcCheck );  return _GetData().hitShadersPerGeometry; }
-		ND_ uint						MaxHitShaderCount ()		const	{ SHAREDLOCK( _rcCheck );  return _GetData().maxHitShaderCount; }
-		ND_ VRayTracingScene const*		ToGlobal ()					const	{ SHAREDLOCK( _rcCheck );  return _rtSceneData; }
-		ND_ bool						HasUncommitedChanges ()		const	{ SHAREDLOCK( _rcCheck );  return _instancesData.has_value(); }
+		ND_ VkAccelerationStructureNV	Handle ()					const	{ return _rtSceneData->Handle(); }
+		ND_ ERayTracingFlags			GetFlags ()					const	{ return _rtSceneData->GetFlags(); }
+		ND_ uint						InstanceCount ()			const	{ return _rtSceneData->InstanceCount(); }
+		ND_ ArrayView<RawRTGeometryID>	GeometryInstances ()		const	{ return _GetData().geometryInstances; }
+		ND_ uint						HitShadersPerGeometry ()	const	{ return _GetData().hitShadersPerGeometry; }
+		ND_ uint						MaxHitShaderCount ()		const	{ return _GetData().maxHitShaderCount; }
+		ND_ VRayTracingScene const*		ToGlobal ()					const	{ return _rtSceneData; }
+		ND_ bool						HasUncommitedChanges ()		const	{ return _instancesData.has_value(); }
 
 	private:
 		ND_ InstancesData_t const&		_GetData ()					const	{ return _instancesData.has_value() ? _instancesData.value() : _rtSceneData->CurrentData(); }

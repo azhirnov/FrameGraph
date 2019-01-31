@@ -59,7 +59,7 @@ namespace FG
 
 		using OnExternalImageReleased_t		= std::function< void (const ExternalImage_t &) >;
 		using OnExternalBufferReleased_t	= std::function< void (const ExternalBuffer_t &) >;
-		using ShaderDebugCallback_t			= std::function< void (StringView taskName, EShaderStages, ArrayView<String> output) >;
+		using ShaderDebugCallback_t			= std::function< void (StringView taskName, StringView shaderName, EShaderStages, ArrayView<String> output) >;
 
 
 	// interface

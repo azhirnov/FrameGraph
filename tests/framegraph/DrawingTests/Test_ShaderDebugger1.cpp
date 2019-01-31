@@ -26,7 +26,7 @@ void main ()
 	float	value	= sin( float(index) / size );
 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), vec4(value) );
 }
-)#" );
+)#", "ComputeShader" );
 		
 		FGThreadPtr		frame_graph	= _fgGraphics1;
 		const uint2		image_dim	= { 16, 16 };
@@ -44,7 +44,7 @@ void main ()
 		bool	data_is_correct				= false;
 		bool	shader_output_is_correct	= false;
 
-		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, EShaderStages stages, ArrayView<String> output) {
+		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, StringView shaderName, EShaderStages stages, ArrayView<String> output) {
 			const char	ref[] = R"#(//> gl_GlobalInvocationID: uint3 {8, 8, 0}
 //> gl_LocalInvocationID: uint3 {0, 0, 0}
 //> gl_WorkGroupID: uint3 {1, 1, 0}
@@ -71,6 +71,7 @@ no source
 			shader_output_is_correct = true;
 			shader_output_is_correct &= (stages == EShaderStages::Compute);
 			shader_output_is_correct &= (taskName == "DebuggableCompute");
+			shader_output_is_correct &= (shaderName == "ComputeShader");
 			shader_output_is_correct &= (output.size() == 1);
 			shader_output_is_correct &= (output.size() ? output[0] == ref : false);
 			ASSERT( shader_output_is_correct );

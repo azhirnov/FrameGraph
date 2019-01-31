@@ -107,17 +107,18 @@ namespace FG
 		ImageFlagsVk_t			flags		= {};
 		ImageUsageVk_t			usage		= {};
 		FormatVk_t				format		= {};
-		ImageLayoutVk_t			layout		= {};
+		ImageLayoutVk_t			layout		= {};		// current layout
 		SampleCountFlagBitsVk_t	samples		= {};
 		uint3					dimension;
 		uint					arrayLayers	= 0;
 		uint					maxLevels	= 0;
+		uint					queueFamily	= UMax;		// queue family that owns image, you must specify this correctly
+														// if image created with exclusive sharing mode and you need to
+														// keep current content of the image, otherwise keep default value.
 
-		// queue family that owns image
-		uint					queueFamily	= UMax;
+		ArrayView<uint>			queueFamilyIndices;		// required if sharing mode is concurent.
 
-		// wait semaphore before use image
-		SemaphoreVk_t			semaphore	= {};
+		//SemaphoreVk_t			semaphore	= {};		// wait semaphore before using image
 	};
 
 
@@ -130,11 +131,13 @@ namespace FG
 		BufferUsageFlagsVk_t	usage		= {};
 		BytesU					size;
 		
-		// queue family that owns buffer
-		uint					queueFamily	= UMax;
+		uint					queueFamily	= UMax;		// queue family that owns buffer, you must specify this correctly
+														// if buffer created with exclusive sharing mode and you need to
+														// keep current content of the buffer, otherwise keep default value.
 
-		// wait semaphore before use buffer
-		SemaphoreVk_t			semaphore	= {};
+		ArrayView<uint>			queueFamilyIndices;		// required if sharing mode is concurent.
+
+		//SemaphoreVk_t			semaphore	= {};		// wait semaphore before using buffer
 	};
 
 

@@ -2,6 +2,7 @@
 
 #include "VDebugger.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "Public/ColorScheme.h"
 
 namespace FG
 {
@@ -67,7 +68,7 @@ namespace FG
 =================================================
 */
 	void VDebugger::GetSubBatchInfo (const CommandBatchID &batchId, uint indexInBatch,
-									 OUT StringView &uid, OUT String* &dump, OUT String* &graph) const
+									 OUT StringView &uid, OUT String* &dump, OUT SubBatchGraph* &graph) const
 	{
 		auto	iter = _batches.find( batchId );
 		ASSERT( iter != _batches.end() );
@@ -78,7 +79,7 @@ namespace FG
 			SCOPELOCK( sub_batch.rcCheck );
 
 			ASSERT( sub_batch.dump.empty() );
-			ASSERT( sub_batch.graph.empty() );
+			ASSERT( sub_batch.graph.body.empty() );
 
 			uid   = sub_batch.name;
 			dump  = &sub_batch.dump;
@@ -110,6 +111,22 @@ namespace FG
 	
 /*
 =================================================
+	ColToStr
+=================================================
+*/
+	ND_ inline String  ColToStr (RGBA8u col)
+	{
+		uint	val = (uint(col.b) << 16) | (uint(col.g) << 8) | uint(col.r);
+		String	str = ToString<16>( val );
+
+		for (; str.length() < 6;) {
+			str.insert( str.begin(), '0' );
+		}
+		return str;
+	}
+
+/*
+=================================================
 	GetGraphDump
 =================================================
 */
@@ -130,8 +147,8 @@ namespace FG
 		{
 			str << "	subgraph cluster_Batch" << ToString<16>( size_t(&batch) ) << " {\n"
 				<< "		style = filled;\n"
-				<< "		color = \"#181818\";\n"
-				<< "		fontcolor = \"#dcdcdc\";\n"
+				<< "		color = \"#" << ColToStr( ColorScheme::CmdBatchBackground ) << "\";\n"
+				<< "		fontcolor = \"#" << ColToStr( ColorScheme::CmdBatchLabel ) << "\";\n"
 				<< "		label = \"" << batch.first.GetName() << "\";\n";
 
 			for (uint i = 0; i < batch.second.threadCount; ++i)
@@ -139,7 +156,7 @@ namespace FG
 				auto&	sub_batch = batch.second.subBatches[i];
 				SCOPELOCK( sub_batch.rcCheck );
 
-				str << sub_batch.graph;
+				str << sub_batch.graph.body;
 			}
 
 			str << "	}\n\n";

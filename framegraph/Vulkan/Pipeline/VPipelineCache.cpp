@@ -524,7 +524,6 @@ namespace FG
 			}
 
 			shaderDebugger.SetShaderModule( debugModeIndex, sh.module );
-			break;
 		}
 
 		RawDescriptorSetLayoutID	ds_layout;

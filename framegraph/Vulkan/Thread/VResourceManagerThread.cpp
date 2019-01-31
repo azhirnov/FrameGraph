@@ -640,7 +640,7 @@ namespace FG
 =================================================
 */
 	RawImageID  VResourceManagerThread::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
-													 EQueueFamily queueFamily, StringView dbgName, bool isAsync)
+													 EQueueFamilyMask queueFamilyMask, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -654,7 +654,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamilyMask, dbgName ))
 		{
 			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
@@ -670,7 +670,7 @@ namespace FG
 =================================================
 */
 	RawBufferID  VResourceManagerThread::CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
-													   EQueueFamily queueFamily, StringView dbgName, bool isAsync)
+													   EQueueFamilyMask queueFamilyMask, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -684,7 +684,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamilyMask, dbgName ))
 		{
 			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
@@ -878,7 +878,7 @@ namespace FG
 =================================================
 */
 	RawRTGeometryID  VResourceManagerThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
-																	   EQueueFamily queueFamily, StringView dbgName, bool isAsync)
+																	   StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -892,7 +892,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, dbgName ))
 		{
 			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
@@ -908,7 +908,7 @@ namespace FG
 =================================================
 */
 	RawRTSceneID  VResourceManagerThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
-																 EQueueFamily queueFamily, StringView dbgName, bool isAsync)
+																 StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 
@@ -922,7 +922,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamily, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, dbgName ))
 		{
 			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );

@@ -26,7 +26,6 @@ namespace FG
 */
 	bool VLocalRTScene::Create (const VRayTracingScene *sceneData)
 	{
-		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _rtSceneData == null );
 		CHECK_ERR( sceneData );
 
@@ -42,8 +41,6 @@ namespace FG
 */
 	void VLocalRTScene::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t, ExeOrderIndex batchExeOrder, uint frameIndex)
 	{
-		SCOPELOCK( _rcCheck );
-
 		if ( _rtSceneData and _instancesData.has_value() )
 		{
 			_rtSceneData->Merge( INOUT _instancesData.value(), batchExeOrder, frameIndex );
@@ -81,7 +78,6 @@ namespace FG
 	void VLocalRTScene::AddPendingState (const SceneState &st) const
 	{
 		ASSERT( st.task );
-		SCOPELOCK( _rcCheck );
 
 		_pendingAccesses.stages		= EResourceState_ToPipelineStages( st.state );
 		_pendingAccesses.access		= EResourceState_ToAccess( st.state );
@@ -97,7 +93,6 @@ namespace FG
 */
 	void VLocalRTScene::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		SCOPELOCK( _rcCheck );
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
 		// add full range barrier
@@ -120,8 +115,6 @@ namespace FG
 */
 	void VLocalRTScene::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		SCOPELOCK( _rcCheck );
-		
 		const bool	is_modified =	(_accessForReadWrite.isReadable and _pendingAccesses.isWritable) or	// read -> write
 									_accessForReadWrite.isWritable;										// write -> read/write
 

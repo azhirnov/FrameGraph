@@ -1,4 +1,4 @@
-Thread {
+SubBatch {
 	batch:         "main"
 	indexInBatch:  0
 	Buffer {
@@ -92,7 +92,7 @@ Thread {
 }
 ===============================================================
 
-Thread {
+SubBatch {
 	batch:         "main"
 	indexInBatch:  2
 	Buffer {

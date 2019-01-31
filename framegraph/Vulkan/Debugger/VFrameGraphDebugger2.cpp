@@ -95,7 +95,7 @@ namespace {
 */
 	String  VFrameGraphDebugger::_SubBatchBG () const
 	{
-		return ColToStr( ColorScheme::CommandBatchBackground );
+		return ColToStr( ColorScheme::CmdSubBatchBackground );
 	}
 
 	String  VFrameGraphDebugger::_TaskLabelColor (RGBA8u) const
@@ -145,72 +145,12 @@ namespace {
 
 /*
 =================================================
-	BufferStateToString
-=================================================
-*
-	ND_ static String  BufferStateToString (EResourceState state)
-	{
-		state = state & ~EResourceState::_ShaderMask;	// TODO: convert shader flags too
-
-		switch ( state )
-		{
-			case EResourceState::ShaderRead :		return "StorageBuffer-R";
-			case EResourceState::ShaderWrite :		return "StorageBuffer-W";
-			case EResourceState::ShaderReadWrite :	return "StorageBuffer-RW";
-			case EResourceState::UniformRead :		return "UniformBuffer";
-			case EResourceState::TransferSrc :		return "TransferSrc";
-			case EResourceState::TransferDst :		return "TransferDst";
-			case EResourceState::HostRead :			return "HostRead";
-			case EResourceState::HostWrite :		return "HostWrite";
-			case EResourceState::HostReadWrite :	return "HostReadWrite";
-			case EResourceState::IndirectBuffer :	return "IndirectBuffer";
-			case EResourceState::IndexBuffer :		return "IndexBuffer";
-			case EResourceState::VertexBuffer :		return "VertexBuffer";
-		}
-		RETURN_ERR( "unknown state!" );
-	}
-
-/*
-=================================================
-	ImageStateToString
-=================================================
-*
-	ND_ static String  ImageStateToString (EResourceState state)
-	{
-		state = state & ~EResourceState::_ShaderMask;	// TODO: convert shader flags too
-
-		switch ( state )
-		{
-			case EResourceState::ShaderRead :						return "StorageImage-R";
-			case EResourceState::ShaderWrite :						return "StorageImage-W";
-			case EResourceState::ShaderReadWrite :					return "StorageImage-RW";
-			case EResourceState::ShaderSample :						return "Texture";
-			case EResourceState::InputAttachment :					return "InputAttachment";
-			case EResourceState::TransientAttachment :				return "TransientAttachment";
-			case EResourceState::TransferSrc :						return "TransferSrc";
-			case EResourceState::TransferDst :						return "TransferDst";
-			case EResourceState::ColorAttachmentRead :				return "ColorAttachment-R";
-			case EResourceState::ColorAttachmentWrite :				return "ColorAttachment-W";
-			case EResourceState::ColorAttachmentReadWrite :			return "ColorAttachment-RW";
-			case EResourceState::DepthStencilAttachmentRead :		return "DepthStencilAttachment-R";
-			case EResourceState::DepthStencilAttachmentWrite :		return "DepthStencilAttachment-W";
-			case EResourceState::DepthStencilAttachmentReadWrite :	return "DepthStencilAttachment-RW";
-			case EResourceState::HostRead :							return "HostRead";
-			case EResourceState::HostWrite :						return "HostWrite";
-			case EResourceState::HostReadWrite :					return "HostReadWrite";
-			case EResourceState::PresentImage :						return "Present";
-		}
-		RETURN_ERR( "unknown state!" );
-	}
-
-/*
-=================================================
 	GetBufferName
 =================================================
 */
 	ND_ static StringView  GetBufferName (const VBuffer *buffer)
 	{
-		return not buffer->GetDebugName().empty() ? buffer->GetDebugName() : "Buffer"sv;
+		return not buffer->GetDebugName().empty() ? buffer->GetDebugName() : "Buffer";
 	}
 
 /*
@@ -220,7 +160,7 @@ namespace {
 */
 	ND_ static StringView  GetImageName (const VImage *image)
 	{
-		return not image->GetDebugName().empty() ? image->GetDebugName() : "Image"sv;
+		return not image->GetDebugName().empty() ? image->GetDebugName() : "Image";
 	}
 
 /*
@@ -228,10 +168,12 @@ namespace {
 	_DumpGraph
 =================================================
 */
-	void VFrameGraphDebugger::_DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const
+	void VFrameGraphDebugger::_DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT VDebugger::SubBatchGraph &result) const
 	{
+		String&	str = result.body;
+
 		str.clear();
-		_existingBarriers.clear();
+		_existingNodes.clear();
 
 		String	deps;
 		String	subgraphs;
@@ -239,45 +181,15 @@ namespace {
 		str << indent << "subgraph cluster_SubBatch" << VDebugger::BuildSubBatchName( batchId, indexInBatch ) << " {\n"		// TODO: replace by _subBatchUID ?
 			<< indent << "	style = filled;\n"
 			<< indent << "	color = \"#" << _SubBatchBG() << "\";\n"
-			<< indent << "	fontcolor = \"#dcdcdc\";\n"
+			<< indent << "	fontcolor = \"#" << ColToStr( ColorScheme::CmdSubBatchLavel ) << "\";\n"
 			<< indent << "	label = \"" << batchId.GetName() << " / " << ToString(indexInBatch) << "\";\n";
 		
-		_AddInitialStates( INOUT subgraphs );
+		_AddInitialStates( INOUT subgraphs, OUT result.firstNode );
 
 		for (auto& info : _tasks)
 		{
 			if ( not info.task )
 				continue;
-			
-			// add draw tasks
-			/*if ( EnumEq( _flags, ECompilationDebugFlags::VisDrawTasks ) )
-			{
-				if ( auto* submit_rp = DynCast< FGTask<FGMsg::SubmitRenderPass> *>(node) )
-				{
-					const String	root	= _VisTaskName( node ) + "_draw";
-					String			ending;
-
-					if ( auto next_pass = submit_rp->GetNextSubpass() )
-					{
-						ending = _VisTaskName( next_pass );
-					}
-					
-					str << '\t' << root << " [shape=record, label=\"";
-
-					const auto&	draw_tasks = submit_rp->GetRenderPass()->GetDrawTasks();
-
-					FOR( i, draw_tasks )
-					{
-						const auto&	draw = draw_tasks[i];
-
-						str << (i ? "|<" : "<") << _VisDrawTaskName( draw ) << "> " << draw->GetName();
-					}
-					str << "\", fontsize=12, fillcolor=\"#" << _DrawTaskBG() << "\"];\n";
-
-					deps << '\t' << _VisTaskName( node ) << " -> " << root << " [color=\"#" << _DrawTaskBG() << "\", style=dotted];\n";
-				}
-			}*/
-			
 
 			// add task with resource usage
 			if ( EnumEq( _flags, ECompilationDebugFlags::VisResources ) )
@@ -313,10 +225,11 @@ namespace {
 
 						deps << indent << '\t' << in_info.anyNode << ":ne -> " << info.anyNode << ":nw"
 								<< " [ltail=cluster_" << _VisTaskName( in_node ) << ", lhead=cluster_" << _VisTaskName( info.task )
-								<< ", color=\"#d3d3d3\", style=dotted, weight=1];\n";
+								<< ", color=\"#" << ColToStr( ColorScheme::TaskDependencyEdge ) << "\", style=dotted, weight=1];\n";
 					}
 				}
 
+				// group of resource barriers
 				if ( bar_style.size() )
 				{
 					subgraphs
@@ -354,7 +267,7 @@ namespace {
 			}
 		}
 
-		_AddFinalStates( INOUT subgraphs, INOUT deps );
+		_AddFinalStates( INOUT subgraphs, INOUT deps, OUT result.lastNode );
 		
 		str << '\n'
 			<< subgraphs
@@ -367,8 +280,10 @@ namespace {
 	_AddInitialStates
 =================================================
 */
-	void VFrameGraphDebugger::_AddInitialStates (INOUT String &str) const
+	void VFrameGraphDebugger::_AddInitialStates (INOUT String &str, OUT String &firstNode) const
 	{
+		firstNode.clear();
+
 		str << indent << "\tsubgraph cluster_Initial_" << _subBatchUID << " {\n"
 			<< indent << "\t	style = filled;\n"
 			<< indent << "\t	pencolor = \"#" << _GroupBorderColor() << "\";\n"
@@ -380,6 +295,9 @@ namespace {
 		{
 			str << indent << "\t\t" << _VisResourceName( image.first, ExeOrderIndex::Initial ) << " [label=\"" << GetImageName( image.first ) << "\\n";
 
+			if ( firstNode.empty() )
+				firstNode = _VisResourceName( image.first, ExeOrderIndex::Initial );
+
 			for (auto& bar : image.second.barriers) {
 				str << VkImageLayout_ToString( bar.info.oldLayout );
 				break;
@@ -390,6 +308,9 @@ namespace {
 		for (auto& buffer : _buffers)
 		{
 			str << indent << "\t\t" << _VisResourceName( buffer.first, ExeOrderIndex::Initial ) << " [label=\"" << GetBufferName( buffer.first );
+			
+			if ( firstNode.empty() )
+				firstNode = _VisResourceName( buffer.first, ExeOrderIndex::Initial );
 
 			for (auto& bar : buffer.second.barriers)
 			{
@@ -409,8 +330,10 @@ namespace {
 	_AddFinalStates
 =================================================
 */
-	void VFrameGraphDebugger::_AddFinalStates (INOUT String &str, INOUT String &deps) const
+	void VFrameGraphDebugger::_AddFinalStates (INOUT String &str, INOUT String &deps, OUT String &lastNode) const
 	{
+		lastNode.clear();
+
 		str << indent << "\tsubgraph cluster_Final_" << _subBatchUID << " {\n"
 			<< indent << "\t	style = filled;\n"
 			<< indent << "\t	pencolor = \"#" << _GroupBorderColor() << "\";\n"
@@ -435,6 +358,9 @@ namespace {
 					//<< "mipmap: " << ToString(range.baseMipLevel) << (range.levelCount == VK_REMAINING_MIP_LEVELS ? "..whole" : range.levelCount > 1 ? ".."s << ToString(range.levelCount) : "")
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
 				
+				if ( lastNode.empty() )
+					lastNode = _VisResourceName( image.first, ExeOrderIndex::Final );
+
 				_GetResourceBarrier( image.first, bar, bar.info.oldLayout, bar.info.newLayout, INOUT bar_style, INOUT deps );
 			}
 		}
@@ -450,6 +376,9 @@ namespace {
 					//<< "[" << ToString(BytesU{bar.info.offset}) << ", " << (bar.info.size == VK_WHOLE_SIZE ? "whole" : ToString(BytesU{bar.info.size})) << ")"
 					<< "\", fontsize=10, fillcolor=\"#" << _ResourceBG( buffer.first ) << "\"];\n";
 				
+				if ( lastNode.empty() )
+					lastNode = _VisResourceName( buffer.first, ExeOrderIndex::Final );
+
 				_GetResourceBarrier( buffer.first, bar, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_UNDEFINED, INOUT bar_style, INOUT deps );
 			}
 		}
@@ -836,7 +765,7 @@ namespace {
 
 /*
 =================================================
-	_GetImageBarrier
+	_GetResourceBarrier
 =================================================
 */
 	template <typename T, typename B>
@@ -850,7 +779,7 @@ namespace {
 		const String	edge_color2	 = _ResourceToResourceEdgeColor( dst_task );
 
 		// add barrier style
-		if ( not _existingBarriers.count( barrier_name ) )
+		if ( not _existingNodes.count( barrier_name ) )
 		{
 			ASSERT( bar.info.srcQueueFamilyIndex == bar.info.dstQueueFamilyIndex );	// not supported yet
 
@@ -861,7 +790,7 @@ namespace {
 							   oldLayout, newLayout,
 							   INOUT style );
 
-			_existingBarriers.insert( barrier_name );
+			_existingNodes.insert( barrier_name );
 		}
 
 		// add barrier dependency

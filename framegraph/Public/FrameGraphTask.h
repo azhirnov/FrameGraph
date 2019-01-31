@@ -102,7 +102,7 @@ namespace FG
 
 	// methods
 		explicit SubmitRenderPass (LogicalPassID rp) :
-			BaseTask<SubmitRenderPass>{ "SubmitRenderPass", ColorScheme::RenderPass }, renderPassId{rp} {}
+			BaseTask<SubmitRenderPass>{ "RenderPass", ColorScheme::RenderPass }, renderPassId{rp} {}
 	};
 
 
@@ -913,7 +913,6 @@ namespace FG
 		{
 		// variables
 			GeometryID			geometryId;
-			EFlags				flags				= Default;
 
 			ArrayView<uint8_t>	vertexData;
 			RawBufferID			vertexBuffer;
@@ -954,7 +953,6 @@ namespace FG
 			Triangles&  SetIndexData (ArrayView<uint8_t> data);
 			Triangles&  SetTransform (const BufferID &id, BytesU offset = 0_b);
 			Triangles&  SetTransform (const Matrix3x4 &mat);
-			Triangles&  AddFlags (EFlags value)					{ flags |= value;  return *this; }
 			Triangles&  SetID (const GeometryID &id)			{ geometryId = id;  return *this; }
 		};
 
@@ -969,8 +967,6 @@ namespace FG
 		{
 		// variables
 			GeometryID			geometryId;
-			EFlags				flags			= Default;
-
 			ArrayView<uint8_t>	aabbData;
 			RawBufferID			aabbBuffer;		// array of 'AABBData'
 			BytesU				aabbOffset;
@@ -985,14 +981,13 @@ namespace FG
 			AABB&  SetCount (Idx count, BytesU stride = 0_b);
 			AABB&  SetBuffer (const BufferID &id, BytesU offset = 0_b);
 			AABB&  SetData (ArrayView<uint8_t> data);
-			AABB&  AddFlags (EFlags value)						{ flags |= value;  return *this; }
 			AABB&  SetID (const GeometryID &id)					{ geometryId = id;  return *this; }
 		};
 
 
 	// variables
 		RawRTGeometryID			rtGeometry;
-		Array< Triangles >		triangles;
+		Array< Triangles >		triangles;		// TODO: use ArrayView ?
 		Array< AABB >			aabbs;
 
 
@@ -1063,6 +1058,7 @@ namespace FG
 		{
 			RawBufferID			buffer;
 			//BytesU			bufferSize;
+			RawRTPipelineID		pipeline;
 			
 			BytesU				rayGenOffset;
 			BytesU				rayMissOffset;
@@ -1175,7 +1171,6 @@ namespace FG
 
 
 	// variables
-		RawRTPipelineID			pipeline;
 		PipelineResourceSet		resources;
 		uint3					groupCount;
 		PushConstants_t			pushConstants;
@@ -1186,8 +1181,6 @@ namespace FG
 	// methods
 		TraceRays () :
 			BaseTask<TraceRays>{ "TraceRays", ColorScheme::RayTracing } {}
-		
-		TraceRays&  SetPipeline (const RTPipelineID &ppln)							{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
 		
 		TraceRays&  SetGroupCount (const uint3 &value)								{ groupCount = value;  return *this; }
 		TraceRays&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }

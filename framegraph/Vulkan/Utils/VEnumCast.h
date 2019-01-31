@@ -1051,7 +1051,9 @@ namespace FG
 		_builder_( Depth24_Stencil8,	VK_FORMAT_D24_UNORM_S8_UINT ) \
 		_builder_( Depth32F_Stencil8,	VK_FORMAT_D32_SFLOAT_S8_UINT ) \
 		_builder_( BC1_RGB8_UNorm,		VK_FORMAT_BC1_RGB_UNORM_BLOCK ) \
+		_builder_( BC1_sRGB8_UNorm,		VK_FORMAT_BC1_RGB_SRGB_BLOCK ) \
 		_builder_( BC1_RGB8_A1_UNorm,	VK_FORMAT_BC1_RGBA_UNORM_BLOCK ) \
+		_builder_( BC1_sRGB8_A1_UNorm,	VK_FORMAT_BC1_RGBA_SRGB_BLOCK ) \
 		_builder_( BC2_RGBA8_UNorm,		VK_FORMAT_BC2_UNORM_BLOCK ) \
 		_builder_( BC3_RGBA8_UNorm,		VK_FORMAT_BC3_UNORM_BLOCK ) \
 		_builder_( BC3_sRGB,			VK_FORMAT_BC3_SRGB_BLOCK ) \

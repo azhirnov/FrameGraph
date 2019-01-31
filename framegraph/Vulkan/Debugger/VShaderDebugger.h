@@ -20,6 +20,7 @@ namespace FG
 	// types
 	private:
 		using SharedShaderPtr	= PipelineDescription::SharedShaderPtr< ShaderModuleVk_t >;
+		using ShaderModules_t	= FixedArray< SharedShaderPtr, 8 >;
 		using TaskName_t		= _fg_hidden_::TaskName_t;
 
 		struct StorageBuffer
@@ -33,7 +34,7 @@ namespace FG
 
 		struct DebugMode
 		{
-			SharedShaderPtr		module;
+			ShaderModules_t		modules;
 			VkDescriptorSet		descriptorSet	= VK_NULL_HANDLE;
 			BytesU				offset;
 			BytesU				size;

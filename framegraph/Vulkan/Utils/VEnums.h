@@ -7,6 +7,7 @@
 namespace FG
 {
 
+	// TODO: remove?
 	enum class EMemoryTypeExt : uint
 	{
 		HostRead		= uint(EMemoryType::HostRead),
@@ -29,12 +30,49 @@ namespace FG
 	};
 	FG_BIT_OPERATORS( EMemoryTypeExt );
 
+	
 
-	enum class EMemoryMapFlags : uint
+	enum class ExeOrderIndex : uint
 	{
-		Read,
-		Write,
-		WriteDiscard,
+		Initial		= 0,
+		First		= 1,
+		Final		= 0x80000000,
+		Unknown		= ~0u,
 	};
+
+	forceinline ExeOrderIndex&  operator ++ (ExeOrderIndex &value)	{ return (value = BitCast<ExeOrderIndex>( BitCast<uint>( value ) + 1 )); }
+
+
+	enum class EQueueFamily : uint
+	{
+		_Count		= 31,
+
+		External	= VK_QUEUE_FAMILY_EXTERNAL,
+		Foreign		= VK_QUEUE_FAMILY_FOREIGN_EXT,
+		Ignored		= VK_QUEUE_FAMILY_IGNORED,
+		Unknown		= Ignored,
+	};
+
+
+	enum class EQueueFamilyMask : uint
+	{
+		All			= ~0u,
+		Unknown		= 0,
+	};
+
+
+
+	forceinline EQueueFamilyMask&  operator |= (EQueueFamilyMask &lhs, EQueueFamily rhs)
+	{
+		ASSERT( uint(rhs) < 32 );
+		return lhs = BitCast<EQueueFamilyMask>( uint(lhs) | (1u << (uint(rhs) & 31)) );
+	}
+
+	forceinline EQueueFamilyMask   operator |  (EQueueFamilyMask lhs, EQueueFamily rhs)
+	{
+		ASSERT( uint(rhs) < 32 );
+		return BitCast<EQueueFamilyMask>( uint(lhs) | (1u << (uint(rhs) & 31)) );
+	}
+
 
 }	// FG

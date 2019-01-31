@@ -2,6 +2,7 @@
 
 #include "VSubmissionGraph.h"
 #include "VDevice.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -58,6 +59,7 @@ namespace {
 			_device.vkDestroySemaphore( _device.GetVkDevice(), sem, null );
 		}
 
+		_freeSemaphores.clear();
 		_freeFences.clear();
 		_frames.clear();
 	}
@@ -167,7 +169,10 @@ namespace {
 					bits == SUBMITTED );
 
 			if ( bits != SUBMITTED )
+			{
+				FG_LOGI( "Waiting for batch: "s << batch.first.GetName() );
 				return false;
+			}
 		}
 		return true;
 	}

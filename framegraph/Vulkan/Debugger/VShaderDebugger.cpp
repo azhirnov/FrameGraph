@@ -167,7 +167,7 @@ namespace FG
 */
 	bool VShaderDebugger::_ParseDebugOutput (const ShaderDebugCallback_t &cb, const DebugMode &dbg) const
 	{
-		CHECK_ERR( dbg.module );
+		CHECK_ERR( dbg.modules.size() );
 
 		auto	read_back_buf	= _storageBuffers[ dbg.sbIndex ].readBackBuffer.Get();
 
@@ -181,9 +181,12 @@ namespace FG
 		CHECK_ERR( mem->GetInfo( OUT info ));
 		CHECK_ERR( info.mappedPtr );
 
-		CHECK_ERR( dbg.module->ParseDebugOutput( dbg.mode, ArrayView<uint8_t>{ Cast<uint8_t>(info.mappedPtr + dbg.offset), size_t(dbg.size) }, OUT _tempStrings ));
+		for (auto& shader : dbg.modules)
+		{
+			CHECK_ERR( shader->ParseDebugOutput( dbg.mode, ArrayView<uint8_t>{ Cast<uint8_t>(info.mappedPtr + dbg.offset), size_t(dbg.size) }, OUT _tempStrings ));
 		
-		cb( dbg.taskName, dbg.shaderStages, _tempStrings );
+			cb( dbg.taskName, shader->GetDebugName(), dbg.shaderStages, _tempStrings );
+		}
 		return true;
 	}
 
@@ -198,9 +201,7 @@ namespace FG
 		
 		auto&	dbg = _debugModes[id];
 
-		CHECK_ERR( dbg.module == null );
-		dbg.module = module;
-
+		dbg.modules.emplace_back( module );
 		return true;
 	}
 	

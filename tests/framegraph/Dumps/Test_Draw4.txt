@@ -1,4 +1,4 @@
-Thread {
+SubBatch {
 	batch:         "main"
 	indexInBatch:  0
 	Image {
@@ -12,7 +12,7 @@ Thread {
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         SubmitRenderPass (#2)
+					srcTask:         RenderPass (#2)
 					dstTask:         ReadImage (#3)
 					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    Transfer
@@ -67,7 +67,7 @@ Thread {
 
 	-----------------------------------------------------------
 	Task {
-		name:    "SubmitRenderPass (#2)"
+		name:    "RenderPass (#2)"
 		input =  {  }
 		output = { ReadImage (#3) }
 		resource_usage = {
@@ -95,7 +95,7 @@ Thread {
 	}
 	Task {
 		name:    "ReadImage (#3)"
-		input =  { SubmitRenderPass (#2) }
+		input =  { RenderPass (#2) }
 		output = {  }
 		resource_usage = {
 			BufferUsage {

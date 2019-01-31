@@ -36,7 +36,7 @@ namespace FG
 		MemoryID				_memoryId;
 		VkImageAspectFlags		_aspectMask			= 0;
 		VkImageLayout			_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
-		EQueueFamily			_currQueueFamily	= Default;
+		EQueueFamilyMask		_queueFamilyMask	= Default;
 		
 		// insert a semaphore to the command batch before using this image
 		//VkSemaphore				_semaphore			= VK_NULL_HANDLE;
@@ -54,7 +54,7 @@ namespace FG
 		~VImage ();
 
 		bool Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-					 EQueueFamily queueFamily, StringView dbgName);
+					 EQueueFamilyMask queueFamilyMask, StringView dbgName);
 
 		bool Create (const VDevice &dev, const VulkanImageDesc &desc, StringView dbgName, OnRelease_t &&onRelease);
 
@@ -81,10 +81,9 @@ namespace FG
 		ND_ EImage				ImageType ()			const	{ SHAREDLOCK( _rcCheck );  return _desc.imageType; }
 		ND_ uint const			Samples ()				const	{ SHAREDLOCK( _rcCheck );  return _desc.samples.Get(); }
 		
-		ND_ EQueueFamily		CurrentQueueFamily ()	const	{ SHAREDLOCK( _rcCheck );  return _currQueueFamily; }
+		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask == Default; }
+		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask; }
 		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
-		
-		//ND_ VkSemaphore			GetSemaphore ()			const	{ SHAREDLOCK( _rcCheck );  return _semaphore; }
 
 
 	private:

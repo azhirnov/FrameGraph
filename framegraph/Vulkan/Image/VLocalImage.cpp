@@ -26,13 +26,11 @@ namespace FG
 */
 	bool VLocalImage::Create (const VImage *imageData)
 	{
-		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _imageData == null );
 		CHECK_ERR( imageData );
 
 		_imageData		= imageData;
 		_finalLayout	= _imageData->DefaultLayout();
-		_isFirstBarrier	= true;
 		_isImmutable	= false; //_imageData->IsReadOnly();
 		
 		// set initial state
@@ -59,8 +57,6 @@ namespace FG
 */
 	void VLocalImage::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
 	{
-		SCOPELOCK( _rcCheck );
-
 		_imageData	= null;
 		
 		// check for uncommited barriers
@@ -78,7 +74,6 @@ namespace FG
 */
 	VkImageView  VLocalImage::GetView (const VDevice &dev, bool isDefault, INOUT ImageViewDesc &viewDesc) const
 	{
-		SCOPELOCK( _rcCheck );
 		ASSERT( IsCreated() );
 
 		if ( isDefault )
@@ -199,7 +194,6 @@ namespace FG
 */
 	void VLocalImage::AddPendingState (const ImageState &is) const
 	{
-		SCOPELOCK( _rcCheck );
 		ASSERT( is.range.Mipmaps().begin < MipmapLevels() and is.range.Mipmaps().end <= MipmapLevels() );
 		ASSERT( is.range.Layers().begin < ArrayLayers() and is.range.Layers().end <= ArrayLayers() );
 		ASSERT( is.task );
@@ -286,7 +280,6 @@ namespace FG
 */
 	void VLocalImage::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		SCOPELOCK( _rcCheck );
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
 		// add full range barrier
@@ -316,8 +309,6 @@ namespace FG
 */
 	void VLocalImage::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		SCOPELOCK( _rcCheck );
-		
 		VkPipelineStageFlags	dst_stages = 0;
 
 		for (const auto& pending : _pendingAccesses)
@@ -363,12 +354,6 @@ namespace FG
 			}
 
 			_ReplaceAccessRecords( _accessForReadWrite, first, pending );
-		}
-		
-		if ( dst_stages and _isFirstBarrier )
-		{
-			//barrierMngr.WaitSharedSemaphore( _imageData->GetSemaphore(), dst_stages );
-			_isFirstBarrier = false;
 		}
 
 		_pendingAccesses.clear();

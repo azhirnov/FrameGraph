@@ -693,7 +693,7 @@ namespace FG
 =================================================
 */
 	inline VFgTask<TraceRays>::VFgTask (VFrameGraphThread *fg, const TraceRays &task, ProcessFunc_t process) :
-		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},
+		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.shaderTable.pipeline )},
 		pushConstants{ task.pushConstants },	groupCount{ Max( task.groupCount, 1u )},
 		sbtBuffer{ fg->GetResourceManager()->ToLocal( task.shaderTable.buffer )},
 		rayGenOffset{ VkDeviceSize( task.shaderTable.rayGenOffset )},

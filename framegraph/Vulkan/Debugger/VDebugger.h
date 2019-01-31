@@ -15,16 +15,24 @@ namespace FG
 	class VDebugger
 	{
 	// types
+	public:
+		struct SubBatchGraph
+		{
+			String		body;
+			String		firstNode;
+			String		lastNode;
+		};
+
 	private:
 		static constexpr uint	MaxSubBatches	= 32;
 		using SubBatchName_t	= StaticString< 32 >;
 
 		struct SubBatch
 		{
-			mutable String		dump;
-			mutable String		graph;
-			RaceConditionCheck	rcCheck;
-			SubBatchName_t		name;
+			mutable String			dump;
+			mutable SubBatchGraph	graph;
+			RaceConditionCheck		rcCheck;
+			SubBatchName_t			name;
 		};
 
 		struct Batch;
@@ -58,7 +66,7 @@ namespace FG
 		void OnEndFrame ();
 
 		void GetSubBatchInfo (const CommandBatchID &batchId, uint indexInBatch,
-							  OUT StringView &uid, OUT String* &dump, OUT String* &graph) const;
+							  OUT StringView &uid, OUT String* &dump, OUT SubBatchGraph* &graph) const;
 
 		void GetFrameDump (OUT String &) const;
 		void GetGraphDump (OUT String &) const;

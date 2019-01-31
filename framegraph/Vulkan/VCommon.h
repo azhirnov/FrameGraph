@@ -10,15 +10,15 @@
 #include "framegraph/Public/FGEnums.h"
 #include "framegraph/Shared/LocalResourceID.h"
 
+#include "extensions/vulkan_loader/VulkanLoader.h"
+#include "extensions/vulkan_loader/VulkanCheckError.h"
+
 #include "stl/ThreadSafe/RaceConditionCheck.h"
 #include "stl/ThreadSafe/SpinLock.h"
 #include "stl/Containers/Appendable.h"
 #include "stl/Containers/InPlace.h"
 #include "stl/Memory/LinearAllocator.h"
 #include "Utils/VEnums.h"
-
-#include "extensions/vulkan_loader/VulkanLoader.h"
-#include "extensions/vulkan_loader/VulkanCheckError.h"
 
 #if 0
 #include <foonathan/memory/memory_pool.hpp>
@@ -47,26 +47,6 @@ namespace FG
 	using VkDescriptorSets_t		= FixedArray< VkDescriptorSet, FG_MaxDescriptorSets >;
 	
 	using VDeviceQueueInfoPtr		= Ptr< const struct VDeviceQueueInfo >;
-
-
-	enum class ExeOrderIndex : uint
-	{
-		Initial		= 0,
-		First		= 1,
-		Final		= 0x80000000,
-		Unknown		= ~0u,
-	};
-
-	forceinline ExeOrderIndex&  operator ++ (ExeOrderIndex &value)	{ return (value = BitCast<ExeOrderIndex>( BitCast<uint>( value ) + 1 )); }
-
-
-	enum class EQueueFamily : uint
-	{
-		External	= VK_QUEUE_FAMILY_EXTERNAL,
-		Foreign		= VK_QUEUE_FAMILY_FOREIGN_EXT,
-		Ignored		= VK_QUEUE_FAMILY_IGNORED,
-		Unknown		= Ignored,
-	};
 	
 
 	enum BLASHandle_t : uint64_t {};

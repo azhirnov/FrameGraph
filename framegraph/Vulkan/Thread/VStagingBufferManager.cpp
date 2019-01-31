@@ -225,50 +225,18 @@ namespace FG
 
 		_memoryRanges.Destroy();
 
-		/*if ( _frameGraph.GetDebugger() )
+		if ( auto* debugger = _frameGraph.GetDebugger() )
 		{
-			for (auto& buf : frame.hostToDevice)
-			{
-				if ( buf.size == 0 )
-					continue;
-
-				auto*	data = _frameGraph.GetResourceManager()->GetResource( buf.bufferId.Get() );
-
-				_frameGraph.GetDebugger()->AddBufferBarrier(
-					data,
-					ExeOrderIndex::HostWrite, ExeOrderIndex::Initial,
-					VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
-					VkBufferMemoryBarrier{
-						VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-						null,
-						VK_ACCESS_HOST_WRITE_BIT, 0,
-						VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-						data->Handle(),
-						0, VkDeviceSize(buf.size)
-					});
+			for (auto& buf : frame.hostToDevice) {
+				if ( not buf.Empty() )
+					debugger->AddHostWriteAccess( _frameGraph.GetResourceManager()->GetResource( buf.bufferId.Get() ), buf.offset, buf.size - buf.offset );
 			}
 
-			for (auto& buf : frame.deviceToHost)
-			{
-				if ( buf.size == 0 )
-					continue;
-
-				auto*	data = _frameGraph.GetResourceManager()->GetResource( buf.bufferId.Get() );
-
-				_frameGraph.GetDebugger()->AddBufferBarrier(
-					data,
-					ExeOrderIndex::Last, ExeOrderIndex::HostRead,
-					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0,
-					VkBufferMemoryBarrier{
-						VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-						null,
-						0, VK_ACCESS_HOST_READ_BIT,
-						VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-						data->Handle(),
-						0, VkDeviceSize(buf.size)
-					});
+			for (auto& buf : frame.deviceToHost) {
+				if ( not buf.Empty() )
+					debugger->AddHostReadAccess( _frameGraph.GetResourceManager()->GetResource( buf.bufferId.Get() ), buf.offset, buf.size - buf.offset );
 			}
-		}*/
+		}
 	}
 	
 /*

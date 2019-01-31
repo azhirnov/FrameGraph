@@ -1,12 +1,79 @@
 SubBatch {
-	batch:         "main"
+	batch:         "graphics"
 	indexInBatch:  0
 	Image {
-		name:         "MyImage_0"
+		name:         "RenderTarget"
 		iamgeType:    Image2D
-		dimension:    ( 16, 16, 1 )
+		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | Storage
+		usage:        TransferSrc | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         RenderPass (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    ColorAttachmentOutput
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					oldLayout:       General
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         RenderPass (#2)
+					dstTask:         <final>
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "RenderPass (#2)"
+		input =  {  }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Color-RW, ClearBefore
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+
+SubBatch {
+	batch:         "compute"
+	indexInBatch:  0
+	Image {
+		name:         "RenderTarget"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage | ColorAttachment
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
@@ -17,7 +84,7 @@ SubBatch {
 					srcStageMask:    ComputeShader
 					dstStageMask:    Transfer
 					dependencyFlags: 
-					srcAccessMask:   ShaderWrite
+					srcAccessMask:   ShaderRead | ShaderWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       General
 					newLayout:       TransferSrcOptimal
@@ -60,7 +127,7 @@ SubBatch {
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
 					offset:          0 b
-					size:            1024 b
+					size:            1875 Kb
 				}
 		}
 	}
@@ -72,8 +139,8 @@ SubBatch {
 		output = { ReadImage (#3) }
 		resource_usage = {
 			ImageUsage {
-				name:           "MyImage_0"
-				usage:          Storage-W, CS
+				name:           "RenderTarget"
+				usage:          Storage-RW, CS
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -90,10 +157,10 @@ SubBatch {
 				name:     "HostReadBuffer"
 				usage:    Transfer-W
 				offset:   0 b
-				size:     1024 b
+				size:     1875 Kb
 			}
 			ImageUsage {
-				name:           "MyImage_0"
+				name:           "RenderTarget"
 				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1

@@ -28,10 +28,7 @@ namespace FG
 		VkBuffer				_buffer				= VK_NULL_HANDLE;
 		MemoryID				_memoryId;
 		BufferDesc				_desc;
-		EQueueFamily			_currQueueFamily	= Default;
-
-		// insert a semaphore to the command batch before using this buffer
-		//VkSemaphore			_semaphore			= VK_NULL_HANDLE;
+		EQueueFamilyMask		_queueFamilyMask	= Default;
 
 		DebugName_t				_debugName;
 		OnRelease_t				_onRelease;
@@ -46,7 +43,7 @@ namespace FG
 		~VBuffer ();
 
 		bool Create (const VDevice &dev, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-					 EQueueFamily queueFamily, StringView dbgName);
+					 EQueueFamilyMask queueFamilyMask, StringView dbgName);
 		
 		bool Create (const VDevice &dev, const VulkanBufferDesc &desc, StringView dbgName, OnRelease_t &&onRelease);
 
@@ -64,10 +61,9 @@ namespace FG
 		ND_ BufferDesc const&	Description ()			const	{ SHAREDLOCK( _rcCheck );  return _desc; }
 		ND_ BytesU				Size ()					const	{ SHAREDLOCK( _rcCheck );  return _desc.size; }
 		
-		ND_ EQueueFamily		CurrentQueueFamily ()	const	{ SHAREDLOCK( _rcCheck );  return _currQueueFamily; }
+		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask == Default; }
+		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask; }
 		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
-
-		//ND_ VkSemaphore			GetSemaphore ()			const	{ SHAREDLOCK( _rcCheck );  return _semaphore; }
 	};
 	
 

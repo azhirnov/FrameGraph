@@ -67,10 +67,7 @@ namespace FG
 
 		mutable AccessRecords_t		_pendingAccesses;
 		mutable AccessRecords_t		_accessForReadWrite;
-		mutable bool				_isFirstBarrier	= false;
 		bool						_isImmutable	= false;
-		
-		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods
@@ -88,12 +85,12 @@ namespace FG
 		
 		ND_ VkImageView			GetView (const VDevice &, bool isDefault, INOUT ImageViewDesc &) const;
 
-		ND_ bool				IsCreated ()		const	{ SHAREDLOCK( _rcCheck );  return _imageData != null; }
-		ND_ VkImage				Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _imageData->Handle(); }
-		ND_ VImage const*		ToGlobal ()			const	{ SHAREDLOCK( _rcCheck );  return _imageData; }
+		ND_ bool				IsCreated ()		const	{ return _imageData != null; }
+		ND_ VkImage				Handle ()			const	{ return _imageData->Handle(); }
+		ND_ VImage const*		ToGlobal ()			const	{ return _imageData; }
 
-		ND_ ImageDesc const&	Description ()		const	{ SHAREDLOCK( _rcCheck );  return _imageData->Description(); }
-		ND_ VkImageAspectFlags	AspectMask ()		const	{ SHAREDLOCK( _rcCheck );  return _imageData->AspectMask(); }
+		ND_ ImageDesc const&	Description ()		const	{ return _imageData->Description(); }
+		ND_ VkImageAspectFlags	AspectMask ()		const	{ return _imageData->AspectMask(); }
 		ND_ uint3 const&		Dimension ()		const	{ return Description().dimension; }
 		ND_ uint const			Width ()			const	{ return Description().dimension.x; }
 		ND_ uint const			Height ()			const	{ return Description().dimension.y; }
@@ -104,7 +101,7 @@ namespace FG
 		ND_ EImage				ImageType ()		const	{ return Description().imageType; }
 		ND_ uint const			Samples ()			const	{ return Description().samples.Get(); }
 		
-		ND_ StringView			GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _imageData->GetDebugName(); }
+		ND_ StringView			GetDebugName ()		const	{ return _imageData->GetDebugName(); }
 
 
 	private:

@@ -41,6 +41,7 @@ namespace {
 */
 	void VFrameGraphDebugger::OnBeginFrame ()
 	{
+		_tasks.resize( 1 );
 	}
 	
 /*
@@ -56,8 +57,8 @@ namespace {
 		
 		if ( EnumEq( _flags, DumpFlags ) )
 		{
-			String *	dump	= null;
-			String *	graph	= null;
+			String *					dump	= null;
+			VDebugger::SubBatchGraph*	graph	= null;
 
 			_mainDbg.GetSubBatchInfo( batchId, indexInBatch, OUT _subBatchUID, OUT dump, OUT graph );
 
@@ -73,10 +74,10 @@ namespace {
 
 /*
 =================================================
-	RunTask
+	AddTask
 =================================================
 */
-	void VFrameGraphDebugger::RunTask (TaskPtr task)
+	void VFrameGraphDebugger::AddTask (TaskPtr task)
 	{
 		if ( not EnumEq( _flags, ECompilationDebugFlags::LogTasks ) )
 			return;
@@ -88,12 +89,30 @@ namespace {
 		ASSERT( _tasks[idx].task == null );
 		_tasks[idx] = TaskInfo{task};
 	}
+	
+/*
+=================================================
+	AddHostWriteAccess
+=================================================
+*/
+	void VFrameGraphDebugger::AddHostWriteAccess (const VBuffer *buffer, BytesU offset, BytesU size)
+	{
+	}
+	
+/*
+=================================================
+	AddHostReadAccess
+=================================================
+*/
+	void VFrameGraphDebugger::AddHostReadAccess (const VBuffer *buffer, BytesU offset, BytesU size)
+	{
+	}
 
 /*
 =================================================
 	AddBufferBarrier
 =================================================
-*/	
+*/
 	void VFrameGraphDebugger::AddBufferBarrier (const VBuffer *				buffer,
 												ExeOrderIndex				srcIndex,
 												ExeOrderIndex				dstIndex,
@@ -266,13 +285,13 @@ namespace {
 	_DumpFrame
 ----
 	- sort resources by name (this needed for correct dump comparison in tests).
-	- dump resources info & frame barriers.
+	- dump resources info & pipeline barriers.
 =================================================
 */
 	void VFrameGraphDebugger::_DumpFrame (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const
 	{
 		str.clear();
-		str << "Thread {\n"
+		str << "SubBatch {\n"
 			<< "	batch:         \"" << batchId.GetName() << "\"\n"
 			<< "	indexInBatch:  " << ToString(indexInBatch) << '\n';
 

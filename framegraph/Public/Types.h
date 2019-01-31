@@ -8,6 +8,7 @@
 #include "stl/Containers/FixedMap.h"
 #include "stl/Containers/Union.h"
 #include "stl/Containers/Ptr.h"
+#include "stl/Containers/Optional.h"
 #include "stl/Math/Bytes.h"
 #include "stl/Math/Color.h"
 #include "stl/Math/Math.h"
@@ -20,6 +21,7 @@
 
 #include "framegraph/Public/Config.h"
 #include <chrono>
+#include <atomic>
 
 
 namespace FG

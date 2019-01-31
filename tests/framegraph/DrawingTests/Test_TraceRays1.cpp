@@ -81,7 +81,7 @@ void main ()
 		const auto		indices		= ArrayView<uint>{ 0, 1, 2 };
 		
 		BuildRayTracingGeometry::Triangles	triangles;
-		triangles.SetID( GeometryID{"Triangle"} ).SetVertices( vertices ).SetIndices( indices ).AddFlags( ERayTracingGeometryFlags::Opaque );
+		triangles.SetID( GeometryID{"Triangle"} ).SetVertices( vertices ).SetIndices( indices );
 
 		RayTracingGeometryDesc::Triangles	triangles_info;
 		triangles_info.SetID( GeometryID{"Triangle"} ).SetVertices< decltype(vertices[0]) >( vertices.size() )
@@ -152,9 +152,8 @@ void main ()
 															.AddHitShader( GeometryID{"Triangle"}, RTShaderGroupID{"TriangleHit"} )
 															.DependsOn( t_build_scene ));
 
-		Task	t_trace			= frame_graph->AddTask( TraceRays{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources )
-															.SetGroupCount( view_size.x, view_size.y ).SetShaderTable( shader_table )
-															.DependsOn( t_update_table ));
+		Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( shader_table )
+															.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_update_table ));
 
 		Task	t_read			= frame_graph->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
 		FG_UNUSED( t_read );

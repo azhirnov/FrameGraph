@@ -141,14 +141,18 @@ void main() {
 )#" );
 		
 		pipeline = _fgGraphics1->CreatePipeline( ppln );
+		
+		bool			thread1_result;
+		bool			thread2_result;
 
-		std::thread		thread1( [this]() { RenderThread1( _fgInstance, _fgGraphics1 ); });
-		std::thread		thread2( [this]() { RenderThread2( _fgGraphics2 ); });
+		std::thread		thread1( [this, &thread1_result]() { thread1_result = RenderThread1( _fgInstance, _fgGraphics1 ); });
+		std::thread		thread2( [this, &thread2_result]() { thread2_result = RenderThread2( _fgGraphics2 ); });
 
 		thread1.join();
 		thread2.join();
 
 		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( thread1_result and thread2_result );
 
 		DeleteResources( pipeline );
 

@@ -83,6 +83,7 @@ namespace FG
 
 		EThreadUsage				_threadUsage		= Default;
 		EThreadUsage				_currUsage			= Default;
+		EQueueFamilyMask			_queueFamilyMask	= Default;
 
 		std::atomic<EState>			_state;
 		ECompilationFlags			_compilationFlags	= Default;

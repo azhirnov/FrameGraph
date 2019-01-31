@@ -9,6 +9,7 @@
 #include "VLocalRTGeometry.h"
 #include "VLocalRTScene.h"
 #include "VTaskGraph.h"
+#include "VDebugger.h"
 
 namespace FG
 {
@@ -76,7 +77,7 @@ namespace FG
 		BufferResources_t			_buffers;
 		RTSceneResources_t			_rtScenes;			// top-level AS
 		RTGeometryResources_t		_rtGeometries;		// bottom-level AS
-		mutable HashSet<String>		_existingBarriers;
+		mutable HashSet<String>		_existingNodes;
 
 		VDebugger const&			_mainDbg;
 		VFrameGraphThread const&	_frameGraph;
@@ -127,12 +128,15 @@ namespace FG
 								   VkDependencyFlags			dependencyFlags,
 								   const VkMemoryBarrier		&barrier);
 
+		void AddHostWriteAccess (const VBuffer *buffer, BytesU offset, BytesU size);
+		void AddHostReadAccess (const VBuffer *buffer, BytesU offset, BytesU size);
+
 		void AddBufferUsage (const VBuffer* bufferId, const VLocalBuffer::BufferState &state);
 		void AddImageUsage (const VImage* imageId, const VLocalImage::ImageState &state);
 		void AddRTGeometryUsage (const VRayTracingGeometry *, const VLocalRTGeometry::GeometryState &state);
 		void AddRTSceneUsage (const VRayTracingScene *, const VLocalRTScene::SceneState &state);
 
-		void RunTask (TaskPtr task);
+		void AddTask (TaskPtr task);
 
 
 	// dump to string
@@ -172,9 +176,9 @@ namespace FG
 
 	// dump to graphviz format
 	private:
-		void _DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT String &str) const;
-		void _AddInitialStates (INOUT String &str) const;
-		void _AddFinalStates (INOUT String &str, INOUT String &deps) const;
+		void _DumpGraph (const CommandBatchID &batchId, uint indexInBatch, OUT VDebugger::SubBatchGraph &str) const;
+		void _AddInitialStates (INOUT String &str, OUT String &firstNode) const;
+		void _AddFinalStates (INOUT String &str, INOUT String &deps, OUT String &lastNode) const;
 
 		void _GetResourceUsage (const TaskInfo &info, OUT String &resStyle, OUT String &barStyle, INOUT String &deps) const;
 

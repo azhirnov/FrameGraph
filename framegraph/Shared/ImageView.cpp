@@ -481,7 +481,9 @@ namespace {
 			case EPixelFormat::sBGR8 :
 			case EPixelFormat::sBGR8_A8 :
 			case EPixelFormat::BC1_RGB8_UNorm :
+			case EPixelFormat::BC1_sRGB8_UNorm :
 			case EPixelFormat::BC1_RGB8_A1_UNorm :
+			case EPixelFormat::BC1_sRGB8_A1_UNorm :
 			case EPixelFormat::BC2_RGBA8_UNorm :
 			case EPixelFormat::BC3_RGBA8_UNorm :
 			case EPixelFormat::BC3_sRGB :

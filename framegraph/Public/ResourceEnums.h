@@ -213,7 +213,9 @@ namespace FG
 			
 		// compressed
 		BC1_RGB8_UNorm,
+		BC1_sRGB8_UNorm,
 		BC1_RGB8_A1_UNorm,
+		BC1_sRGB8_A1_UNorm,
 		BC2_RGBA8_UNorm,
 		BC3_RGBA8_UNorm,
 		BC3_sRGB,

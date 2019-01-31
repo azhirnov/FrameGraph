@@ -19,11 +19,14 @@ set( SOURCES
 	"Vulkan/RayTracing/VLocalRTScene.h"
 	"Vulkan/RayTracing/VRayTracingGeometry.cpp"
 	"Vulkan/RayTracing/VRayTracingGeometry.h"
+	"Vulkan/RayTracing/VRayTracingPipeline.cpp"
+	"Vulkan/RayTracing/VRayTracingPipeline.h"
 	"Vulkan/RayTracing/VRayTracingScene.cpp"
 	"Vulkan/RayTracing/VRayTracingScene.h"
 	"Public/BindingIndex.h"
 	"Public/BufferDesc.h"
 	"Public/BufferView.h"
+	"Public/ColorScheme.h"
 	"Public/Config.h"
 	"Public/EResourceState.h"
 	"Public/FGEnums.h"
@@ -155,8 +158,6 @@ set( SOURCES
 	"Vulkan/Pipeline/VPipelineCache.h"
 	"Vulkan/Pipeline/VPipelineLayout.cpp"
 	"Vulkan/Pipeline/VPipelineLayout.h"
-	"Vulkan/Pipeline/VRayTracingPipeline.cpp"
-	"Vulkan/Pipeline/VRayTracingPipeline.h"
 	"CMakeLists.txt"
 	"VFG.h"
 	"Vulkan/Descriptors/VDescriptorManager.cpp"
@@ -167,8 +168,8 @@ set( SOURCES
 	"Vulkan/Descriptors/VPipelineResources.h" )
 add_library( "FrameGraph" STATIC ${SOURCES} )
 source_group( "Vulkan\\Memory" FILES "Vulkan/Memory/VMemoryManager.cpp" "Vulkan/Memory/VMemoryManager.h" "Vulkan/Memory/VMemoryManager_VMAllocator.cpp" "Vulkan/Memory/VMemoryObj.cpp" "Vulkan/Memory/VMemoryObj.h" )
-source_group( "Vulkan\\RayTracing" FILES "Vulkan/RayTracing/VLocalRTGeometry.cpp" "Vulkan/RayTracing/VLocalRTGeometry.h" "Vulkan/RayTracing/VLocalRTScene.cpp" "Vulkan/RayTracing/VLocalRTScene.h" "Vulkan/RayTracing/VRayTracingGeometry.cpp" "Vulkan/RayTracing/VRayTracingGeometry.h" "Vulkan/RayTracing/VRayTracingScene.cpp" "Vulkan/RayTracing/VRayTracingScene.h" )
-source_group( "Public" FILES "Public/BindingIndex.h" "Public/BufferDesc.h" "Public/BufferView.h" "Public/Config.h" "Public/EResourceState.h" "Public/FGEnums.h" "Public/FrameGraphDrawTask.h" "Public/FrameGraphInstance.h" "Public/FrameGraphTask.h" "Public/FrameGraphThread.h" "Public/IDs.h" "Public/ImageDesc.h" "Public/ImageLayer.h" "Public/ImageSwizzle.h" "Public/ImageView.h" "Public/IPipelineCompiler.h" "Public/MemoryDesc.h" "Public/MipmapLevel.h" "Public/MultiSamples.h" "Public/Pipeline.h" "Public/PipelineResources.h" "Public/RayTracingEnums.h" "Public/RayTracingGeometryDesc.h" "Public/RayTracingSceneDesc.h" "Public/RenderPassDesc.h" "Public/RenderState.h" "Public/RenderStateEnums.h" "Public/ResourceEnums.h" "Public/SamplerDesc.h" "Public/SamplerEnums.h" "Public/ShaderEnums.h" "Public/SubmissionGraph.h" "Public/Types.h" "Public/VertexDesc.h" "Public/VertexEnums.h" "Public/VertexInputState.h" "Public/VulkanTypes.h" )
+source_group( "Vulkan\\RayTracing" FILES "Vulkan/RayTracing/VLocalRTGeometry.cpp" "Vulkan/RayTracing/VLocalRTGeometry.h" "Vulkan/RayTracing/VLocalRTScene.cpp" "Vulkan/RayTracing/VLocalRTScene.h" "Vulkan/RayTracing/VRayTracingGeometry.cpp" "Vulkan/RayTracing/VRayTracingGeometry.h" "Vulkan/RayTracing/VRayTracingPipeline.cpp" "Vulkan/RayTracing/VRayTracingPipeline.h" "Vulkan/RayTracing/VRayTracingScene.cpp" "Vulkan/RayTracing/VRayTracingScene.h" )
+source_group( "Public" FILES "Public/BindingIndex.h" "Public/BufferDesc.h" "Public/BufferView.h" "Public/ColorScheme.h" "Public/Config.h" "Public/EResourceState.h" "Public/FGEnums.h" "Public/FrameGraphDrawTask.h" "Public/FrameGraphInstance.h" "Public/FrameGraphTask.h" "Public/FrameGraphThread.h" "Public/IDs.h" "Public/ImageDesc.h" "Public/ImageLayer.h" "Public/ImageSwizzle.h" "Public/ImageView.h" "Public/IPipelineCompiler.h" "Public/MemoryDesc.h" "Public/MipmapLevel.h" "Public/MultiSamples.h" "Public/Pipeline.h" "Public/PipelineResources.h" "Public/RayTracingEnums.h" "Public/RayTracingGeometryDesc.h" "Public/RayTracingSceneDesc.h" "Public/RenderPassDesc.h" "Public/RenderState.h" "Public/RenderStateEnums.h" "Public/ResourceEnums.h" "Public/SamplerDesc.h" "Public/SamplerEnums.h" "Public/ShaderEnums.h" "Public/SubmissionGraph.h" "Public/Types.h" "Public/VertexDesc.h" "Public/VertexEnums.h" "Public/VertexInputState.h" "Public/VulkanTypes.h" )
 source_group( "Vulkan" FILES "Vulkan/VCommon.h" )
 source_group( "Vulkan\\Thread" FILES "Vulkan/Thread/VBarrierManager.h" "Vulkan/Thread/VDrawTask.h" "Vulkan/Thread/VFrameGraphThread.cpp" "Vulkan/Thread/VFrameGraphThread.h" "Vulkan/Thread/VFrameGraphThread_Tasks.cpp" "Vulkan/Thread/VResourceManagerThread.cpp" "Vulkan/Thread/VResourceManagerThread.h" "Vulkan/Thread/VStagingBufferManager.cpp" "Vulkan/Thread/VStagingBufferManager.h" "Vulkan/Thread/VTaskGraph.h" "Vulkan/Thread/VTaskGraph.hpp" "Vulkan/Thread/VTaskProcessor.cpp" "Vulkan/Thread/VTaskProcessor.h" )
 source_group( "Vulkan\\Instance" FILES "Vulkan/Instance/VDevice.cpp" "Vulkan/Instance/VDevice.h" "Vulkan/Instance/VFrameGraphInstance.cpp" "Vulkan/Instance/VFrameGraphInstance.h" "Vulkan/Instance/VResourceManager.cpp" "Vulkan/Instance/VResourceManager.h" "Vulkan/Instance/VSubmissionGraph.cpp" "Vulkan/Instance/VSubmissionGraph.h" )
@@ -180,7 +181,7 @@ source_group( "Vulkan\\RenderPass" FILES "Vulkan/RenderPass/VFramebuffer.cpp" "V
 source_group( "Vulkan\\Utils" FILES "Vulkan/Utils/FGEnumCast.h" "Vulkan/Utils/VEnumCast.h" "Vulkan/Utils/VEnums.h" "Vulkan/Utils/VEnumToString.h" )
 source_group( "Vulkan\\Buffer" FILES "Vulkan/Buffer/VBuffer.cpp" "Vulkan/Buffer/VBuffer.h" "Vulkan/Buffer/VLocalBuffer.cpp" "Vulkan/Buffer/VLocalBuffer.h" )
 source_group( "cmake" FILES "../cmake/compilers.cmake" "../cmake/compiler_tests.cmake" "../cmake/download_assimp.cmake" "../cmake/download_devil.cmake" "../cmake/download_freeimage.cmake" "../cmake/download_glfw.cmake" "../cmake/download_glm.cmake" "../cmake/download_glslang.cmake" "../cmake/download_imgui.cmake" "../cmake/download_lodepng.cmake" "../cmake/download_mem.cmake" "../cmake/download_sdl2.cmake" "../cmake/download_sfml.cmake" "../cmake/download_vk.cmake" "../cmake/download_vma.cmake" "../cmake/graphviz.cmake" "../cmake/imgui_CMakeLists.txt" "../cmake/lodepng_CMakeLists.txt" )
-source_group( "Vulkan\\Pipeline" FILES "Vulkan/Pipeline/VComputePipeline.cpp" "Vulkan/Pipeline/VComputePipeline.h" "Vulkan/Pipeline/VGraphicsPipeline.cpp" "Vulkan/Pipeline/VGraphicsPipeline.h" "Vulkan/Pipeline/VMeshPipeline.cpp" "Vulkan/Pipeline/VMeshPipeline.h" "Vulkan/Pipeline/VPipelineCache.cpp" "Vulkan/Pipeline/VPipelineCache.h" "Vulkan/Pipeline/VPipelineLayout.cpp" "Vulkan/Pipeline/VPipelineLayout.h" "Vulkan/Pipeline/VRayTracingPipeline.cpp" "Vulkan/Pipeline/VRayTracingPipeline.h" )
+source_group( "Vulkan\\Pipeline" FILES "Vulkan/Pipeline/VComputePipeline.cpp" "Vulkan/Pipeline/VComputePipeline.h" "Vulkan/Pipeline/VGraphicsPipeline.cpp" "Vulkan/Pipeline/VGraphicsPipeline.h" "Vulkan/Pipeline/VMeshPipeline.cpp" "Vulkan/Pipeline/VMeshPipeline.h" "Vulkan/Pipeline/VPipelineCache.cpp" "Vulkan/Pipeline/VPipelineCache.h" "Vulkan/Pipeline/VPipelineLayout.cpp" "Vulkan/Pipeline/VPipelineLayout.h" )
 source_group( "" FILES "CMakeLists.txt" "VFG.h" )
 source_group( "Vulkan\\Descriptors" FILES "Vulkan/Descriptors/VDescriptorManager.cpp" "Vulkan/Descriptors/VDescriptorManager.h" "Vulkan/Descriptors/VDescriptorSetLayout.cpp" "Vulkan/Descriptors/VDescriptorSetLayout.h" "Vulkan/Descriptors/VPipelineResources.cpp" "Vulkan/Descriptors/VPipelineResources.h" )
 target_include_directories( "FrameGraph" PUBLIC ".." )

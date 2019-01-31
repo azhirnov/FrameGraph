@@ -47,8 +47,6 @@ namespace FG
 		mutable GeometryAccess		_pendingAccesses;
 		mutable GeometryAccess		_accessForReadWrite;
 
-		RWRaceConditionCheck		_rcCheck;
-
 
 	// methods
 	public:
@@ -63,15 +61,15 @@ namespace FG
 		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 		
-		ND_ BLASHandle_t				BLASHandle ()		const	{ SHAREDLOCK( _rcCheck );  return _rtGeometryData->BLASHandle(); }
-		ND_ VkAccelerationStructureNV	Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _rtGeometryData->Handle(); }
+		ND_ BLASHandle_t				BLASHandle ()		const	{ return _rtGeometryData->BLASHandle(); }
+		ND_ VkAccelerationStructureNV	Handle ()			const	{ return _rtGeometryData->Handle(); }
 
-		ND_ ArrayView<Triangles>		GetTriangles ()		const	{ SHAREDLOCK( _rcCheck );  return _rtGeometryData->GetTriangles(); }
-		ND_ ArrayView<AABB>				GetAABBs ()			const	{ SHAREDLOCK( _rcCheck );  return _rtGeometryData->GetAABBs(); }
-		ND_ uint						MaxGeometryCount ()	const	{ SHAREDLOCK( _rcCheck );  return uint(GetTriangles().size() + GetAABBs().size()); }
-		ND_ ERayTracingFlags			GetFlags ()			const	{ SHAREDLOCK( _rcCheck );  return _rtGeometryData->GetFlags(); }
+		ND_ ArrayView<Triangles>		GetTriangles ()		const	{ return _rtGeometryData->GetTriangles(); }
+		ND_ ArrayView<AABB>				GetAABBs ()			const	{ return _rtGeometryData->GetAABBs(); }
+		ND_ uint						MaxGeometryCount ()	const	{ return uint(GetTriangles().size() + GetAABBs().size()); }
+		ND_ ERayTracingFlags			GetFlags ()			const	{ return _rtGeometryData->GetFlags(); }
 
-		ND_ VRayTracingGeometry const*	ToGlobal ()			const	{ SHAREDLOCK( _rcCheck );  return _rtGeometryData; }
+		ND_ VRayTracingGeometry const*	ToGlobal ()			const	{ return _rtGeometryData; }
 	};
 
 

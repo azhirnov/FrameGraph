@@ -878,7 +878,7 @@ namespace FG
 		_CmdDebugMarker( _currTask->Name() );
 		
 		if ( _frameGraph.GetDebugger() )
-			_frameGraph.GetDebugger()->RunTask( _currTask );
+			_frameGraph.GetDebugger()->AddTask( _currTask );
 	}
 	
 /*
@@ -1123,6 +1123,9 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<SubmitRenderPass> &task)
 	{
+		if ( task.GetLogicalPass()->GetDrawTasks().empty() )
+			return;
+
 		// invalidate some states
 		_isDefaultScissor		= false;
 		_perPassStatesUpdated	= false;
@@ -1928,7 +1931,7 @@ namespace FG
 		const auto	CopyShaderGroupHandle = [&ptr_offset, mapped_ptr, buf_size, pipeline = task.pipeline] (const RTShaderGroupID &id) -> bool
 											{
 												auto	sh_handle = pipeline->GetShaderGroupHandle( id );
-												CHECK_ERR( not sh_handle.empty() );	// group is not exist in pipeline
+												CHECK_ERR( not sh_handle.empty() );	// group is not exist in the pipeline
 
 												MemCopy( mapped_ptr + ptr_offset, buf_size - ptr_offset, sh_handle.data(), ArraySizeOf(sh_handle) );
 												ptr_offset += ArraySizeOf(sh_handle);
@@ -1953,14 +1956,14 @@ namespace FG
 			CHECK( index * geom_stride < max_hit_shaders );
 			
 			auto	sh_handle = task.pipeline->GetShaderGroupHandle( shader.groupId );
-			CHECK( not sh_handle.empty() );	// group is not exist in pipeline
+			CHECK( not sh_handle.empty() );	// group is not exist in the pipeline
 			
 			BytesU	offset = ptr_offset + sh_size * index * geom_stride;
 			MemCopy( mapped_ptr + offset, buf_size - offset, sh_handle.data(), ArraySizeOf(sh_handle) );
 		}
 
 
-		VkBufferCopy	region = {};
+		VkBufferCopy		region = {};
 		region.srcOffset	= VkDeviceSize( buf_offset );
 		region.dstOffset	= task.dstOffset;
 		region.size			= VkDeviceSize( req_size );
@@ -2192,9 +2195,6 @@ namespace FG
 		ASSERT( buf );
 		ASSERT( size > 0 );
 
-		//if ( buf->IsImmutable() )
-		//	return;
-
 		const VkDeviceSize	buf_size = VkDeviceSize(buf->Size());
 		
 		size = Min( buf_size, (size == VK_WHOLE_SIZE ? buf_size - offset : offset + size) );
@@ -2211,9 +2211,6 @@ namespace FG
 											const VkBufferImageCopy &reg, const VLocalImage *img)
 	{
 		ASSERT( img );
-
-		//if ( buf->IsImmutable() )
-		//	return;
 
 		const uint			bpp			= EPixelFormat_BitPerPixel( img->PixelFormat(), FGEnumCast( VkImageAspectFlagBits(reg.imageSubresource.aspectMask) ));
 		const VkDeviceSize	row_pitch	= (reg.bufferRowLength * bpp) / 8;

@@ -1,4 +1,4 @@
-Thread {
+SubBatch {
 	batch:         "main"
 	indexInBatch:  0
 	Image {
@@ -186,7 +186,7 @@ Thread {
 }
 ===============================================================
 
-Thread {
+SubBatch {
 	batch:         "main"
 	indexInBatch:  1
 	Image {

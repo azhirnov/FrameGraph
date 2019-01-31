@@ -81,7 +81,7 @@ void main ()
 		const auto		indices		= ArrayView<uint>{ 0, 1, 2 };
 		
 		BuildRayTracingGeometry::Triangles	triangles;
-		triangles.SetID( GeometryID{"Triangle"} ).SetVertices( vertices ).SetIndices( indices ).AddFlags( ERayTracingGeometryFlags::Opaque );
+		triangles.SetID( GeometryID{"Triangle"} ).SetVertices( vertices ).SetIndices( indices );
 
 		RayTracingGeometryDesc::Triangles	triangles_info;
 		triangles_info.SetID( GeometryID{"Triangle"} ).SetVertices< decltype(vertices[0]) >( vertices.size() )
@@ -165,8 +165,8 @@ void main ()
 			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 			
 			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_trace			= frame_graph->AddTask( TraceRays{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources )
-																.SetGroupCount( view_size.x, view_size.y ).SetShaderTable( shader_table ).DependsOn( t_build_geom ));
+			Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( shader_table )
+																.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_build_geom ));
 			FG_UNUSED( t_trace );
 			
 			CHECK_ERR( frame_graph->Execute() );
@@ -179,8 +179,8 @@ void main ()
 			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 			
 			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_trace			= frame_graph->AddTask( TraceRays{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources )
-																.SetGroupCount( view_size.x, view_size.y ).SetShaderTable( shader_table ).DependsOn( t_build_geom ));
+			Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( shader_table )
+																.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_build_geom ));
 			Task	t_read			= frame_graph->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
 			FG_UNUSED( t_read );
 			

@@ -37,6 +37,8 @@ namespace FG
 												props.minImageTransferGranularity.height,
 												props.minImageTransferGranularity.depth };
 
+			CHECK( dst.familyIndex < EQueueFamily::_Count );
+
 			_vkQueues.push_back( std::move(dst) );
 		}
 

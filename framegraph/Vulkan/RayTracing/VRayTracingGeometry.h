@@ -60,7 +60,6 @@ namespace FG
 		Array< AABB >				_aabbs;
 		ERayTracingFlags			_flags				= Default;
 
-		EQueueFamily				_currQueueFamily	= Default;
 		DebugName_t					_debugName;
 
 		RWRaceConditionCheck		_rcCheck;
@@ -71,8 +70,7 @@ namespace FG
 		VRayTracingGeometry () {}
 		~VRayTracingGeometry ();
 
-		bool Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-					 EQueueFamily queueFamily, StringView dbgName);
+		bool Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
 
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
@@ -85,7 +83,6 @@ namespace FG
 		ND_ ArrayView<AABB>				GetAABBs ()				const	{ SHAREDLOCK( _rcCheck );  return _aabbs; }
 		ND_ ERayTracingFlags			GetFlags ()				const	{ SHAREDLOCK( _rcCheck );  return _flags; }
 
-		ND_ EQueueFamily				CurrentQueueFamily ()	const	{ SHAREDLOCK( _rcCheck );  return _currQueueFamily; }
 		ND_ StringView					GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 	};
 

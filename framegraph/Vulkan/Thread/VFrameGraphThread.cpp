@@ -110,52 +110,6 @@ namespace FG
 
 /*
 =================================================
-	GetDescriptorSet
-=================================================
-*
-	template <typename PplnID>
-	inline bool  VFrameGraphThread::_GetDescriptorSet (const PplnID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const
-	{
-		auto const *	ppln = _resourceMngr.GetResource( pplnId.Get() );
-		CHECK_ERR( ppln );
-
-		auto const *	ppln_layout = _resourceMngr.GetResource( ppln->GetLayoutID() );
-		CHECK_ERR( ppln_layout );
-		
-		CHECK_ERR( ppln_layout->GetDescriptorSetLayout( id, OUT layout, OUT binding ));
-		return true;
-	}
-
-	bool  VFrameGraphThread::GetDescriptorSet (const GPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const
-	{
-		SCOPELOCK( _rcCheck );
-		ASSERT( _IsInitialized() );
-		return _GetDescriptorSet( pplnId, id, OUT layout, OUT binding );
-	}
-
-	bool  VFrameGraphThread::GetDescriptorSet (const CPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const
-	{
-		SCOPELOCK( _rcCheck );
-		ASSERT( _IsInitialized() );
-		return _GetDescriptorSet( pplnId, id, OUT layout, OUT binding );
-	}
-
-	bool  VFrameGraphThread::GetDescriptorSet (const MPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const
-	{
-		SCOPELOCK( _rcCheck );
-		ASSERT( _IsInitialized() );
-		return _GetDescriptorSet( pplnId, id, OUT layout, OUT binding );
-	}
-
-	bool  VFrameGraphThread::GetDescriptorSet (const RTPipelineID &pplnId, const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const
-	{
-		SCOPELOCK( _rcCheck );
-		ASSERT( _IsInitialized() );
-		return _GetDescriptorSet( pplnId, id, OUT layout, OUT binding );
-	}
-	
-/*
-=================================================
 	IsCompatibleWith
 =================================================
 */
@@ -171,7 +125,7 @@ namespace FG
 
 		for (auto& queue : _queues)
 		{
-			if ( EnumEq( queue.usage, usage ) )
+			if ( !!usage and EnumEq( queue.usage, usage ) )
 			{
 				bool	found = false;
 
@@ -235,16 +189,13 @@ namespace FG
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _memoryMngr );
 
-		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
-		CHECK_ERR( queue );
-
-		RawImageID	result = _resourceMngr.CreateImage( desc, mem, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() );
+		RawImageID	result = _resourceMngr.CreateImage( desc, mem, *_memoryMngr, _queueFamilyMask, dbgName, IsInSeparateThread() );
 		
 		// add first image layout transition
 		if ( result )
 		{
-			TransitImageLayoutToDefault( result, VK_IMAGE_LAYOUT_UNDEFINED, uint(queue->familyIndex),
-										 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT );
+			TransitImageLayoutToDefault( result, VK_IMAGE_LAYOUT_UNDEFINED, VK_QUEUE_FAMILY_IGNORED,
+										 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
 		}
 		return ImageID{ result };
 	}
@@ -269,11 +220,8 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _memoryMngr );
-		
-		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
-		CHECK_ERR( queue );
 
-		return BufferID{ _resourceMngr.CreateBuffer( desc, mem, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
+		return BufferID{ _resourceMngr.CreateBuffer( desc, mem, *_memoryMngr, _queueFamilyMask, dbgName, IsInSeparateThread() )};
 	}
 	
 /*
@@ -403,10 +351,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		
-		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
-		CHECK_ERR( queue );
-
-		return RTGeometryID{ _resourceMngr.CreateRayTracingGeometry( desc, mem, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
+		return RTGeometryID{ _resourceMngr.CreateRayTracingGeometry( desc, mem, *_memoryMngr, dbgName, IsInSeparateThread() )};
 	}
 	
 /*
@@ -419,10 +364,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		
-		VDeviceQueueInfoPtr  queue = _GetAnyGraphicsQueue();
-		CHECK_ERR( queue );
-
-		return RTSceneID{ _resourceMngr.CreateRayTracingScene( desc, mem, *_memoryMngr, queue->familyIndex, dbgName, IsInSeparateThread() )};
+		return RTSceneID{ _resourceMngr.CreateRayTracingScene( desc, mem, *_memoryMngr, dbgName, IsInSeparateThread() )};
 	}
 
 /*
@@ -516,10 +458,13 @@ namespace FG
 		}
 		
 		CHECK_ERR( _SetupQueues( relativeThreads.empty() ? null : DynCast<VFrameGraphThread>(relativeThreads.front()) ));
+		_queueFamilyMask = Default;
 
 		for (auto& queue : _queues)
 		{
 			queue.frames.resize( GetRingBufferSize() );
+
+			_queueFamilyMask |= queue.ptr->familyIndex;
 
 			CHECK_ERR( _CreateCommandBuffers( INOUT queue ));
 		}
@@ -1018,6 +963,7 @@ namespace FG
 		_memoryMngr.reset();
 		_stagingMngr.reset();
 		_mainAllocator.Release();
+		_shaderDebugCallback = {};
 		
 		CHECK_ERR( _SetState( EState::BeforeDestroy, EState::Destroyed ), void());
 	}
@@ -1234,8 +1180,10 @@ namespace FG
 
 		for (auto& queue : _queues)
 		{
+			if ( not EnumEq( queue.usage, _currUsage ) )
+				continue;
+			
 			auto&	frame = queue.frames[_frameId];
-
 			CHECK( _submissionGraph->Submit( queue.ptr, _cmdBatchId, _indexInBatch, frame.pending ));
 
 			frame.executed.append( frame.pending );

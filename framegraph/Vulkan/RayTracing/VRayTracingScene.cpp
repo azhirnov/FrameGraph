@@ -23,8 +23,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VRayTracingScene::Create (const VDevice &dev, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-								   EQueueFamily queueFamily, StringView dbgName)
+	bool VRayTracingScene::Create (const VDevice &dev, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _topLevelAS == VK_NULL_HANDLE );
@@ -49,10 +48,9 @@ namespace FG
 		
 		_instances.resize( desc.maxInstanceCount );
 
-		_memoryId			= MemoryID{ memId };
-		_currQueueFamily	= queueFamily;
-		_debugName			= dbgName;
-		_flags				= desc.flags;
+		_memoryId	= MemoryID{ memId };
+		_debugName	= dbgName;
+		_flags		= desc.flags;
 
 		return true;
 	}
@@ -87,10 +85,9 @@ namespace FG
 			data.lock.unlock();
 		}
 
-		_topLevelAS			= VK_NULL_HANDLE;
-		_memoryId			= Default;
-		_currQueueFamily	= Default;
-		_flags				= Default;
+		_topLevelAS	= VK_NULL_HANDLE;
+		_memoryId	= Default;
+		_flags		= Default;
 		
 		_instances.clear();
 		_debugName.clear();

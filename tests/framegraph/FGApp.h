@@ -32,6 +32,7 @@ namespace FG
 		FGThreadPtr				_fgGraphics1;
 		FGThreadPtr				_fgGraphics2;
 		FGThreadPtr				_fgCompute;
+		FGThreadPtr				_fgGraphicsCompute;
 		VPipelineCompilerPtr	_pplnCompiler;
 
 		TestQueue_t				_tests;

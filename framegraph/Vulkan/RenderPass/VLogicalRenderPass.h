@@ -123,6 +123,7 @@ namespace FG
 		{
 			SCOPELOCK( _rcCheck );
 			CHECK_ERR( not _isSubmited );
+			//ASSERT( _drawTasks.size() );
 
 			_isSubmited = true;
 			return true;

@@ -26,12 +26,10 @@ namespace FG
 */
 	bool VLocalBuffer::Create (const VBuffer *bufferData)
 	{
-		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _bufferData == null );
 		CHECK_ERR( bufferData );
 
 		_bufferData		= bufferData;
-		_isFirstBarrier	= true;
 		_isImmutable	= _bufferData->IsReadOnly();
 
 		return true;
@@ -44,8 +42,6 @@ namespace FG
 */
 	void VLocalBuffer::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
 	{
-		SCOPELOCK( _rcCheck );
-
 		_bufferData	= null;
 
 		// check for uncommited barriers
@@ -219,7 +215,6 @@ namespace FG
 	{
 		ASSERT( bs.range.begin < Size() and bs.range.end <= Size() );
 		ASSERT( bs.task );
-		SCOPELOCK( _rcCheck );
 
 		if ( _isImmutable )
 			return;
@@ -274,7 +269,6 @@ namespace FG
 */
 	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		SCOPELOCK( _rcCheck );
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
 		if ( _isImmutable )
@@ -307,8 +301,6 @@ namespace FG
 */
 	void VLocalBuffer::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
 	{
-		SCOPELOCK( _rcCheck );
-
 		if ( _isImmutable )
 			return;
 
@@ -385,12 +377,6 @@ namespace FG
 				// store to '_accessForRead'
 				_ReplaceAccessRecords( _accessForRead, r_iter, pending );
 			}
-		}
-
-		if ( dst_stages and _isFirstBarrier )
-		{
-			//barrierMngr.WaitSharedSemaphore( _bufferData->GetSemaphore(), dst_stages );
-			_isFirstBarrier = false;
 		}
 
 		_pendingAccesses.clear();

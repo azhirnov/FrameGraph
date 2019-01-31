@@ -74,8 +74,7 @@ namespace FG
 	from specs: "Acceleration structure creation uses the count and type information from the geometries"
 =================================================
 */
-	bool VRayTracingGeometry::Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-									  EQueueFamily queueFamily, StringView dbgName)
+	bool VRayTracingGeometry::Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _bottomLevelAS == VK_NULL_HANDLE );
@@ -150,10 +149,9 @@ namespace FG
 			dev.SetObjectName( BitCast<uint64_t>(_bottomLevelAS), dbgName, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV );
 		}
 		
-		_memoryId			= MemoryID{ memId };
-		_currQueueFamily	= queueFamily;
-		_debugName			= dbgName;
-		_flags				= desc.flags;
+		_memoryId	= MemoryID{ memId };
+		_debugName	= dbgName;
+		_flags		= desc.flags;
 
 		return true;
 	}
@@ -175,11 +173,10 @@ namespace FG
 			unassignIDs.emplace_back( _memoryId.Release() );
 		}
 
-		_bottomLevelAS		= VK_NULL_HANDLE;
-		_memoryId			= Default;
-		_handle				= BLASHandle_t(0);
-		_currQueueFamily	= Default;
-		_flags				= Default;
+		_bottomLevelAS	= VK_NULL_HANDLE;
+		_memoryId		= Default;
+		_handle			= BLASHandle_t(0);
+		_flags			= Default;
 		
 		{
 			Array<Triangles>	temp;

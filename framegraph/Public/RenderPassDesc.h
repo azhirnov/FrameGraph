@@ -51,6 +51,7 @@ namespace FG
 			RawImageID					image;
 			ImageLayer					layer;
 			MipmapLevel					mipmap;
+			// TODO: coarse sample order
 		}							shadingRate;
 
 		Targets_t					renderTargets;

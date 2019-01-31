@@ -61,10 +61,7 @@ namespace FG
 		mutable AccessRecords_t		_pendingAccesses;
 		mutable AccessRecords_t		_accessForWrite;
 		mutable AccessRecords_t		_accessForRead;
-		mutable bool				_isFirstBarrier	= false;
 		bool						_isImmutable	= false;
-		
-		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods
@@ -80,14 +77,14 @@ namespace FG
 		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
 
-		ND_ bool				IsCreated ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData != null; }
-		ND_ VkBuffer			Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _bufferData->Handle(); }
-		ND_ VBuffer const*		ToGlobal ()		const	{ SHAREDLOCK( _rcCheck );  return _bufferData; }
+		ND_ bool				IsCreated ()	const	{ return _bufferData != null; }
+		ND_ VkBuffer			Handle ()		const	{ return _bufferData->Handle(); }
+		ND_ VBuffer const*		ToGlobal ()		const	{ return _bufferData; }
 
-		ND_ BufferDesc const&	Description ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData->Description(); }
+		ND_ BufferDesc const&	Description ()	const	{ return _bufferData->Description(); }
 		ND_ BytesU				Size ()			const	{ return Description().size; }
 		
-		ND_ StringView			GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferData->GetDebugName(); }
+		ND_ StringView			GetDebugName ()	const	{ return _bufferData->GetDebugName(); }
 
 
 	private:

@@ -299,7 +299,9 @@ namespace FG
 			case EPixelFormat::Depth24_Stencil8 : return "Depth24_Stencil8";
 			case EPixelFormat::Depth32F_Stencil8 : return "Depth32F_Stencil8";
 			case EPixelFormat::BC1_RGB8_UNorm : return "BC1_RGB8_UNorm";
+			case EPixelFormat::BC1_sRGB8_UNorm : return "BC1_sRGB8_UNorm";
 			case EPixelFormat::BC1_RGB8_A1_UNorm : return "BC1_RGB8_A1_UNorm";
+			case EPixelFormat::BC1_sRGB8_A1_UNorm : return "BC1_sRGB8_A1_UNorm";
 			case EPixelFormat::BC2_RGBA8_UNorm : return "BC2_RGBA8_UNorm";
 			case EPixelFormat::BC3_RGBA8_UNorm : return "BC3_RGBA8_UNorm";
 			case EPixelFormat::BC3_sRGB : return "BC3_sRGB";

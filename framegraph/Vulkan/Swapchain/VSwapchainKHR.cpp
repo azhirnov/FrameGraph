@@ -604,7 +604,7 @@ namespace FG
 				_presentMode		= mode;
 
 				if ( _IsSupported( surf_caps, _surfaceSize, _presentMode, _colorFormat, INOUT _colorImageUsage ) and
-					 EnumEq( _colorImageUsage, required_usage ) )
+					 (not required_usage or EnumEq( _colorImageUsage, required_usage )) )
 				{
 					return _CreateSwapchain();
 				}
