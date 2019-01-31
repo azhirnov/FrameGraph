@@ -15,6 +15,7 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 ## Documentation
 * [Introduction](docs/Introduction.md)
 * [Multithreading](docs/Multithreading.md)
+* [Ray tracing](docs/RayTracing.md)
 * [Porting from OpenGL](docs/Porting-from-OpenGL.md)
 * [Porting from Vulkan](docs/Porting-from-Vulkan.md)
 * [Extensions overview](extensions/Readme.md)
@@ -67,6 +68,7 @@ Dependencies:<br/>
 - custom RAM allocators.<br/>
 - logical resources.<br/>
 - advanced VRAM managment.<br/>
+- task group.<br/>
 - optimization for mobile and integrated GPUs.<br/>
 - documentation. (WIP)<br/>
 - samples. (WIP)<br/>
