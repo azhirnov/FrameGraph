@@ -41,7 +41,7 @@ if (${FG_ENABLE_GRAPHVIZ})
 	if (FG_GRAPHVIZ_DOT_EXECUTABLE)
 		set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_GRAPHVIZ_DOT_EXECUTABLE=\"${FG_GRAPHVIZ_DOT_EXECUTABLE}\"" )
 	else ()
-		message( WARNING "GraphViz is not found, download and instal library from https://www.graphviz.org/" )
+		message( WARNING "GraphViz is not found, download and install library from https://www.graphviz.org/" )
 	endif ()
 
 endif ()

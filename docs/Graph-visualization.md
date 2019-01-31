@@ -6,6 +6,11 @@ Graph visualization contains:
 
 To set task name and color use `SetName()` and `SetDebugColor()`.
 
+Setup FrameGraph for debugging:
+```cpp
+fgInstance->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
+```
+
 Use `FrameGraphInstance::DumpToGraphViz` to retrive graph description in dot-language.<br/>
 Or use [GraphViz helper library](../extensions/graphviz) to retrive and visualize graph with [graphviz](https://www.graphviz.org/) (should be installed).
 

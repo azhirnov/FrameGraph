@@ -1915,7 +1915,7 @@ namespace FG
 	{
 		_OnProcessTask();
 
-		const uint		geom_stride		= task.rtScene->HitShadersPerGeometry();
+		const uint		geom_stride		= task.rtScene->HitShadersPerInstance();
 		const uint		max_hit_shaders	= task.rtScene->MaxHitShaderCount();
 		const auto		instances		= task.rtScene->GeometryInstances();
 		const BytesU	sh_size			= task.pipeline->ShaderHandleSize();
@@ -2025,7 +2025,7 @@ namespace FG
 	{
 		_OnProcessTask();
 		
-		task.RTScene()->SetGeometryInstances( task.GeometryIDs(), task.HitShadersPerGeometry(), task.MaxHitShaderCount() );
+		task.RTScene()->SetGeometryInstances( task.GeometryIDs(), task.HitShadersPerInstance(), task.MaxHitShaderCount() );
 
 		_AddRTScene( task.RTScene(), EResourceState::BuildRayTracingStructWrite );
 		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VK_WHOLE_SIZE );

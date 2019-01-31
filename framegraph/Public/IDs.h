@@ -179,6 +179,7 @@ namespace _fg_hidden_
 	using RTShaderGroupID			= _fg_hidden_::IDWithString< 32, 11, FG_OPTIMIZE_IDS >;
 	using GeometryID				= _fg_hidden_::IDWithString< 32, 12, FG_OPTIMIZE_IDS >;
 	
+	// weak references
 	using RawBufferID				= _fg_hidden_::ResourceID< 1 >;
 	using RawImageID				= _fg_hidden_::ResourceID< 2 >;
 	using RawGPipelineID			= _fg_hidden_::ResourceID< 3 >;
@@ -192,6 +193,7 @@ namespace _fg_hidden_
 	using RawRTSceneID				= _fg_hidden_::ResourceID< 11 >;
 	using RawRTGeometryID			= _fg_hidden_::ResourceID< 12 >;
 	
+	// strong references
 	using BufferID					= _fg_hidden_::ResourceIDWrap< RawBufferID >;
 	using ImageID					= _fg_hidden_::ResourceIDWrap< RawImageID >;
 	using GPipelineID				= _fg_hidden_::ResourceIDWrap< RawGPipelineID >;

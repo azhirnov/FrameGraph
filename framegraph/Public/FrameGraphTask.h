@@ -1034,7 +1034,7 @@ namespace FG
 	// variables
 		RawRTSceneID		rtScene;
 		Array< Instance >	instances;
-		uint				hitShadersPerGeometry = 1;		// same as 'sbtRecordStride' in ray gen shader
+		uint				hitShadersPerInstance = 1;		// same as 'sbtRecordStride' in ray gen shader
 
 
 	// methods
@@ -1042,7 +1042,7 @@ namespace FG
 			BaseTask<BuildRayTracingScene>{ "BuildRayTracingScene", ColorScheme::BuildRayTracingStruct } {}
 
 		BuildRayTracingScene&  SetTarget (const RTSceneID &id)			{ ASSERT( id );  rtScene = id.Get();  return *this; }
-		BuildRayTracingScene&  SetHitShadersPerGeometry (uint count)	{ ASSERT( count > 0 );  hitShadersPerGeometry = count;  return *this; }
+		BuildRayTracingScene&  SetHitShadersPerInstance (uint count)	{ ASSERT( count > 0 );  hitShadersPerInstance = count;  return *this; }
 		BuildRayTracingScene&  Add (const Instance &value)				{ instances.push_back( value );  return *this; }
 	};
 
@@ -1060,18 +1060,18 @@ namespace FG
 			//BytesU			bufferSize;
 			RawRTPipelineID		pipeline;
 			
-			BytesU				rayGenOffset;
-			BytesU				rayMissOffset;
-			BytesU				rayHitOffset;
-			BytesU				callableOffset;
+			Bytes<uint>			rayGenOffset;
+			Bytes<uint>			rayMissOffset;
+			Bytes<uint>			rayHitOffset;
+			Bytes<uint>			callableOffset;
 
 			Bytes<uint16_t>		rayMissStride;
 			Bytes<uint16_t>		rayHitStride;
 			Bytes<uint16_t>		callableStride;
 
 			uint16_t			maxMissShaders;
-			//uint16_t			hitShadersPerGeometry;	// in ray gen shader the 'sbtRecordStride' parameter of 'traceNV()' must equal to 'hitShadersPerGeometry'
-			//											// and 'sbtRecordOffset' must be less then 'hitShadersPerGeometry'
+			//uint16_t			hitShadersPerInstance;	// in ray gen shader the 'sbtRecordStride' parameter of 'traceNV()' must equal to 'hitShadersPerInstance'
+			//											// and 'sbtRecordOffset' must be less then 'hitShadersPerInstance'
 		};
 		
 		struct RayGenShaderGroup

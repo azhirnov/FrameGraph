@@ -605,10 +605,10 @@ namespace FG
 		VLocalBuffer const*			_instanceBuffer			= null;
 		VkDeviceSize				_instanceBufferOffset	= 0;
 		VLocalRTGeometry const**	_rtGeometries			= null;
-		RawRTGeometryID *			_rtGeometryIDs			= null;
+		RawRTGeometryID *			_rtGeometryIDs			= null;		// strong references
 		size_t						_rtGeometryCount		= 0;
 		uint						_instanceCount			= 0;
-		uint						_hitShadersPerGeometry	= 0;
+		uint						_hitShadersPerInstance	= 0;
 		uint						_maxHitShaderCount		= 0;
 
 
@@ -626,7 +626,7 @@ namespace FG
 		ND_ uint								InstanceCount ()		const	{ return _instanceCount; }
 		ND_ ArrayView<VLocalRTGeometry const*>	Geometries ()			const	{ return ArrayView{ _rtGeometries, _rtGeometryCount }; }
 		ND_ ArrayView<RawRTGeometryID>			GeometryIDs ()			const	{ return ArrayView{ _rtGeometryIDs, _rtGeometryCount }; }
-		ND_ uint								HitShadersPerGeometry ()const	{ return _hitShadersPerGeometry; }
+		ND_ uint								HitShadersPerInstance()	const	{ return _hitShadersPerInstance; }
 		ND_ uint								MaxHitShaderCount ()	const	{ return _maxHitShaderCount; }
 	};
 

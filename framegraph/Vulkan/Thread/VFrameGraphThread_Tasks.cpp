@@ -785,16 +785,16 @@ namespace {
 		auto	result	= _taskGraph.Add( this, task );
 		CHECK_ERR( result );
 
-		const BytesU	sh_size	= result->pipeline->ShaderHandleSize();
+		const auto	sh_size	= Bytes<uint>{ result->pipeline->ShaderHandleSize() };
 		
 		task.result.buffer			= task.dstBuffer;
 		task.result.pipeline		= task.pipeline;
-		task.result.rayGenOffset	= task.dstOffset;
+		task.result.rayGenOffset	= Bytes<uint>{ task.dstOffset };
 		task.result.rayMissOffset	= task.result.rayGenOffset + sh_size;
 		task.result.rayMissStride	= Bytes<uint16_t>{ sh_size };
 		task.result.callableOffset	= task.result.rayMissOffset;			// TODO
 		task.result.callableStride	= Bytes<uint16_t>{ 0 };
-		task.result.rayHitOffset	= task.result.rayMissOffset + sh_size * task.missShaders.size();
+		task.result.rayHitOffset	= task.result.rayMissOffset + sh_size * uint(task.missShaders.size());
 		task.result.rayHitStride	= Bytes<uint16_t>{ sh_size };
 		task.result.maxMissShaders	= uint16_t(task.missShaders.size());
 
@@ -840,12 +840,11 @@ namespace {
 		for (uint i = 0; i < result->_geometryCount; ++i)
 		{
 			auto&	dst = result->_geometry[i];
-
-			dst = {};
-			dst.sType						= VK_STRUCTURE_TYPE_GEOMETRY_NV;
-			dst.geometry.aabbs.sType		= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
-			dst.geometry.triangles.sType	= VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
-			dst.geometryType				= (i < task.triangles.size() ? VK_GEOMETRY_TYPE_TRIANGLES_NV : VK_GEOMETRY_TYPE_AABBS_NV);
+			dst							= {};
+			dst.sType					= VK_STRUCTURE_TYPE_GEOMETRY_NV;
+			dst.geometry.aabbs.sType	= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
+			dst.geometry.triangles.sType= VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
+			dst.geometryType			= (i < task.triangles.size() ? VK_GEOMETRY_TYPE_TRIANGLES_NV : VK_GEOMETRY_TYPE_AABBS_NV);
 		}
 
 		// add triangles
@@ -857,6 +856,7 @@ namespace {
 
 			auto&	dst		= result->_geometry[pos];
 			auto&	ref		= geom->GetTriangles()[pos];
+			dst.flags = VEnumCast( ref.flags );
 
 			ASSERT( src.vertexBuffer or src.vertexData.size() );
 			ASSERT( src.vertexCount > 0 );
@@ -865,12 +865,10 @@ namespace {
 			ASSERT( src.vertexFormat == ref.vertexFormat );
 			ASSERT( src.indexType == ref.indexType );
 
-			dst.flags = VEnumCast( ref.flags );
-
 			// vertices
-			dst.geometry.triangles.vertexCount		= src.vertexCount;
-			dst.geometry.triangles.vertexStride		= VkDeviceSize(src.vertexStride);
-			dst.geometry.triangles.vertexFormat		= VEnumCast( src.vertexFormat );
+			dst.geometry.triangles.vertexCount	= src.vertexCount;
+			dst.geometry.triangles.vertexStride	= VkDeviceSize(src.vertexStride);
+			dst.geometry.triangles.vertexFormat	= VEnumCast( src.vertexFormat );
 
 			if ( src.vertexData.size() )
 			{
@@ -953,10 +951,10 @@ namespace {
 			ASSERT( src.aabbCount <= ref.maxAabbCount );
 			ASSERT( src.aabbStride % 8 == 0 );
 
-			dst.flags						= VEnumCast( ref.flags );
-			dst.geometry.aabbs.sType		= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
-			dst.geometry.aabbs.numAABBs		= src.aabbCount;
-			dst.geometry.aabbs.stride		= uint(src.aabbStride);
+			dst.flags					= VEnumCast( ref.flags );
+			dst.geometry.aabbs.sType	= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
+			dst.geometry.aabbs.numAABBs	= src.aabbCount;
+			dst.geometry.aabbs.stride	= uint(src.aabbStride);
 
 			if ( src.aabbData.size() )
 			{
@@ -1016,7 +1014,7 @@ namespace {
 		result->_rtGeometries			= _mainAllocator.Alloc< VLocalRTGeometry const *>( result->_rtGeometryCount );
 		result->_rtGeometryIDs			= _mainAllocator.Alloc< RawRTGeometryID >( result->_rtGeometryCount );
 		result->_instanceCount			= uint(task.instances.size());
-		result->_hitShadersPerGeometry	= Max( 1u, task.hitShadersPerGeometry );
+		result->_hitShadersPerInstance	= Max( 1u, task.hitShadersPerInstance );
 
 		for (size_t i = 0; i < task.instances.size(); ++i)
 		{
@@ -1024,11 +1022,12 @@ namespace {
 			auto&	dst  = instances[i];
 			auto&	blas = result->_rtGeometries[i];
 
-			result->_rtGeometries[i]  = GetResourceManager()->ToLocal( src.geometryId );
-			result->_rtGeometryIDs[i] = src.geometryId;
-
 			ASSERT( src.geometryId );
 			ASSERT( (src.instanceID >> 24) == 0 );
+
+			result->_rtGeometries[i]  = GetResourceManager()->ToLocal( src.geometryId, /*acquire ref*/true );
+			result->_rtGeometryIDs[i] = src.geometryId;
+			CHECK_ERR( result->_rtGeometries[i] );
 
 			dst.blasHandle		= blas->BLASHandle();
 			dst.transformRow0	= src.transform[0];
@@ -1036,7 +1035,7 @@ namespace {
 			dst.transformRow2	= src.transform[2];
 			dst.instanceId		= src.instanceID;
 			dst.mask			= src.mask;
-			dst.instanceOffset	= result->_maxHitShaderCount * result->_hitShadersPerGeometry;
+			dst.instanceOffset	= result->_maxHitShaderCount * result->_hitShadersPerInstance;
 			dst.flags			= VEnumCast( src.flags );
 
 			result->_maxHitShaderCount += blas->MaxGeometryCount();

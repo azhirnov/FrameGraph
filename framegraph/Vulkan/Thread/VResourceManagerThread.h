@@ -54,13 +54,9 @@ namespace FG
 		using FramebufferMap_t			= CachedResourceMap< RawFramebufferID, VFramebuffer >;
 		using PipelineResourcesMap_t	= CachedResourceMap< RawPipelineResourcesID, VPipelineResources >;
 
-		using ImageToLocal_t			= StaticArray< Index_t, FG_MaxResources >;
-		using BufferToLocal_t			= StaticArray< Index_t, FG_MaxResources >;
-		using RTGeometryToLocal_t		= StaticArray< Index_t, FG_MaxResources >;
-		using RTSceneToLocal_t			= StaticArray< Index_t, FG_MaxResources >;
-
 		static constexpr uint			MaxLocalResources = FG_MaxResources;
 
+		using GlobalToLocal_t			= StaticArray< Index_t, FG_MaxResources >;
 		using LocalImages_t				= PoolTmpl2< VLocalImage, MaxLocalResources >;
 		using LocalBuffers_t			= PoolTmpl2< VLocalBuffer, MaxLocalResources >;
 		using LogicalRenderPasses_t		= PoolTmpl2< VLogicalRenderPass, MaxLocalResources >;
@@ -85,10 +81,10 @@ namespace FG
 
 		ResourceIndexCache_t				_indexCache;
 
-		ImageToLocal_t						_imageToLocal;
-		BufferToLocal_t						_bufferToLocal;
-		RTGeometryToLocal_t					_rtGeometryToLocal;
-		RTSceneToLocal_t					_rtSceneToLocal;
+		GlobalToLocal_t						_imageToLocal;
+		GlobalToLocal_t						_bufferToLocal;
+		GlobalToLocal_t						_rtGeometryToLocal;
+		GlobalToLocal_t						_rtSceneToLocal;
 
 		LocalImages_t						_localImages;
 		LocalBuffers_t						_localBuffers;
@@ -146,7 +142,7 @@ namespace FG
 												  StringView dbgName, bool isAsync);
 		ND_ RawFramebufferID	CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers,
 												   StringView dbgName, bool isAsync);
-		//ND_ RawPipelineResourcesID	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
+
 		ND_ VPipelineResources const*	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
 		
 		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem,
@@ -175,10 +171,11 @@ namespace FG
 		ND_ uint				GetFrameIndex ()			const	{ return _mainRM.GetFrameIndex(); }
 
 		ND_ VLogicalRenderPass*		ToLocal (LogicalPassID id)		{ return _GetState( _logicalRenderPasses, id ); }
-		ND_ VLocalBuffer const*		ToLocal (RawBufferID id);
-		ND_ VLocalImage  const*		ToLocal (RawImageID id);
-		ND_ VLocalRTGeometry const*	ToLocal (RawRTGeometryID id);
-		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id);
+
+		ND_ VLocalBuffer const*		ToLocal (RawBufferID id, bool acquireRef = false);
+		ND_ VLocalImage  const*		ToLocal (RawImageID id, bool acquireRef = false);
+		ND_ VLocalRTGeometry const*	ToLocal (RawRTGeometryID id, bool acquireRef = false);
+		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id, bool acquireRef = false);
 
 		template <typename ID>
 		bool AcquireResource (ID id);
@@ -195,7 +192,7 @@ namespace FG
 
 
 	private:
-		bool  _CreateMemory (OUT RawMemoryID &id, OUT VMemoryObj* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName);
+		bool  _CreateMemory (OUT RawMemoryID &id, OUT ResourceBase<VMemoryObj>* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName);
 
 		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
 									 PipelineDescription::PipelineLayout &&desc, bool isAsync);
@@ -216,6 +213,9 @@ namespace FG
 
 		template <typename ID, typename ...IDs>
 		void  _FreeIndexCache (const Union<ID, IDs...> &);
+
+		template <typename ID, typename T, size_t CS, size_t MC>
+		ND_ T const*  _ToLocal (ID id, INOUT PoolTmpl<T,CS,MC> &, INOUT GlobalToLocal_t &, INOUT uint &counter, bool incRef, StringView msg) const;
 
 		template <typename ID>	ND_ auto&  _GetIndexCache ();
 		template <typename ID>	ND_ bool   _Assign (OUT ID &id);

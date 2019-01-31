@@ -18,14 +18,14 @@ namespace FG
 	public:
 		struct Instance
 		{
-			RawRTGeometryID		geometryId;
-			uint				geometryCount	= 0;
+			RawRTGeometryID			geometryId;
+			uint					geometryCount	= 0;
 		};
 
 		struct InstancesData
 		{
 			Array<RawRTGeometryID>	geometryInstances;
-			uint					hitShadersPerGeometry	= 0;
+			uint					hitShadersPerInstance	= 0;
 			uint					maxHitShaderCount		= 0;
 		};
 

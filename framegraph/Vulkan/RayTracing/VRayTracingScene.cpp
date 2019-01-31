@@ -79,6 +79,10 @@ namespace FG
 			Array<RawRTGeometryID>	temp;
 			std::swap( data.geometryInstances, temp );
 
+			for (auto& id : temp) {
+				unassignIDs.emplace_back( id );
+			}
+
 			data.frameIdx	= 0;
 			data.exeOrder	= Default;
 
@@ -111,7 +115,7 @@ namespace FG
 		std::swap( pending.geometryInstances, newData.geometryInstances );
 		pending.exeOrder				= batchExeOrder;
 		pending.frameIdx				= frameIndex;
-		pending.hitShadersPerGeometry	= newData.hitShadersPerGeometry;
+		pending.hitShadersPerInstance	= newData.hitShadersPerInstance;
 		pending.maxHitShaderCount		= newData.maxHitShaderCount;
 	}
 	

@@ -263,3 +263,13 @@ fgInstance->SkipBatch( CommandBatchID{"main"}, 2 );
 // moves framegraph to the synchronous mode.
 fgInstance->EndFrame();
 ```
+
+## Deinitialization
+You must call `Deinitialize` for all threads and instances.
+```cpp
+fgThread->Deinitialize();
+fgThread = nullptr;
+
+fgInstance->Deinitialize();
+fgInstance = nullptr;
+```

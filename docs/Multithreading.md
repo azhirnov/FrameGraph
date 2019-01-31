@@ -30,13 +30,15 @@ FrameGraph have some internal almost always lock-free synchronizations and requi
 |  thread_1  |  thread_2  |  thread_3  |  thread_4  |  thread_5  |
 |------------|------------|------------|------------|------------|
 | BeginFrame | job ended  |     ...    |     ...    |    ...     | - insert render tasks into job system
-|   Begin    |   Begin    | job ended  |     ...    | job ended  |   using lock-free algorithm.
+|------------|------------|------------|------------|------------|   using lock-free algorithm.
+|   Begin    |   Begin    | job ended  |     ...    | job ended  |
 |    ###     |    ###     |   Begin    | job ended  |   Begin    |
 |  Execute   |    ###     |    ###     |   Begin    |    ###     |
 |   Begin    |  Execute   |  Execute   |    ###     |    ###     |
-|    ###     | begin job  |   Begin    |    ###     |  Execute   | - atomicaly set bit that indicates 
-|  Execute   |    ...     |    ###     |  Execute   | begin job  |   that render task is complete.
+|    ###     | begin job  |   Begin    |    ###     |  Execute   | - after Execute atomicaly set bit that 
+|  Execute   |    ...     |    ###     |  Execute   | begin job  |   indicates that render task is complete.
 |  waiting   |    ...     |  Execute   | begin job  |    ...     |
+|------------|------------|------------|------------|------------|
 |  EndFrame  |    ...     | begin job  |    ...     |    ...     | - blocks only one thread to wait until all
 '------------'------------'------------'------------'------------'   render tasks are complete.
 ```
@@ -62,6 +64,7 @@ It is prefered to create and destroy resources in asynchronous mode.
 |  Release*  |                                                   |
 '------------'------------'------------'------------'------------'
 ```
+Note: `Create*` is one of `CreateImage`, `CreateBuffer`, `CreatePipeline` and `Release*` is one of `ReleaseResource` overloads.
 <br/>
 
 In synchronous mode

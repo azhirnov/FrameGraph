@@ -39,11 +39,20 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VLocalRTScene::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t, ExeOrderIndex batchExeOrder, uint frameIndex)
+	void VLocalRTScene::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t unassignIDs, ExeOrderIndex batchExeOrder, uint frameIndex)
 	{
 		if ( _rtSceneData and _instancesData.has_value() )
 		{
 			_rtSceneData->Merge( INOUT _instancesData.value(), batchExeOrder, frameIndex );
+		}
+		else
+			ASSERT( not _instancesData.has_value() );
+
+		if ( _instancesData.has_value() )
+		{
+			for (auto& id : _instancesData->geometryInstances) {
+				unassignIDs.emplace_back( id );
+			}
 		}
 
 		_rtSceneData	= null;
@@ -60,13 +69,15 @@ namespace FG
 /*
 =================================================
 	SetGeometryInstances
+----
+	'instances' is strong references for geometries
 =================================================
 */
-	void VLocalRTScene::SetGeometryInstances (ArrayView<RawRTGeometryID> instances, uint hitShadersPerGeometry, uint maxHitShaders) const
+	void VLocalRTScene::SetGeometryInstances (ArrayView<RawRTGeometryID> instances, uint hitShadersPerInstance, uint maxHitShaders) const
 	{
 		_instancesData = InstancesData_t{};
 		_instancesData->geometryInstances.assign( instances.begin(), instances.end() );
-		_instancesData->hitShadersPerGeometry	= hitShadersPerGeometry;
+		_instancesData->hitShadersPerInstance	= hitShadersPerInstance;
 		_instancesData->maxHitShaderCount		= maxHitShaders;
 	}
 
@@ -126,9 +137,10 @@ namespace FG
 			barrier.dstAccessMask	= _pendingAccesses.access;
 			barrierMngr.AddMemoryBarrier( _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
 
-			if ( debugger )
+			if ( debugger ) {
 				debugger->AddRayTracingBarrier( _rtSceneData, _accessForReadWrite.index, _pendingAccesses.index,
 											    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
+			}
 
 			_accessForReadWrite = _pendingAccesses;
 		}

@@ -44,10 +44,10 @@ namespace {
 		_tests.push_back({ &FGApp::Test_Draw4,			1 });
 		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1, 1 });
 		_tests.push_back({ &FGApp::Test_ReadAttachment1, 1 });
-		//_tests.push_back({ &FGApp::Test_AsyncCompute1,	1 });
+		_tests.push_back({ &FGApp::Test_AsyncCompute1,	 1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger1, 1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger2, 1 });
-
+		
 		_tests.push_back({ &FGApp::ImplTest_Scene1,			 1 });
 		_tests.push_back({ &FGApp::ImplTest_Multithreading1, 1 });
 		_tests.push_back({ &FGApp::ImplTest_Multithreading2, 1 });
@@ -57,6 +57,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_DrawMeshes1,	1 });
 		_tests.push_back({ &FGApp::Test_TraceRays1,		1 });
 		_tests.push_back({ &FGApp::Test_TraceRays2,		1 });
+		_tests.push_back({ &FGApp::Test_TraceRays3,		1 });
 		_tests.push_back({ &FGApp::Test_ShadingRate1,	1 });
 
 		// very slow

@@ -617,7 +617,7 @@ namespace FG
 	_CreateMemory
 =================================================
 */
-	bool  VResourceManagerThread::_CreateMemory (OUT RawMemoryID &id, OUT VMemoryObj* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName)
+	bool  VResourceManagerThread::_CreateMemory (OUT RawMemoryID &id, OUT ResourceBase<VMemoryObj>* &memPtr, const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName)
 	{
 		CHECK_ERR( _Assign( OUT id ));
 
@@ -630,7 +630,7 @@ namespace FG
 			RETURN_ERR( "failed when creating memory object" );
 		}
 		
-		memPtr = &data.Data();
+		memPtr = &data;
 		return true;
 	}
 
@@ -644,8 +644,8 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 
-		RawMemoryID		mem_id;
-		VMemoryObj*		mem_obj	= null;
+		RawMemoryID					mem_id;
+		ResourceBase<VMemoryObj>*	mem_obj	= null;
 		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc, dbgName ));
 
 		RawImageID		id;
@@ -654,13 +654,15 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamilyMask, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, mem_obj->Data(), queueFamilyMask, dbgName ))
 		{
 			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
 			RETURN_ERR( "failed when creating image" );
 		}
-
+		
+		mem_obj->AddRef();
+		data.AddRef();
 		return id;
 	}
 	
@@ -673,9 +675,9 @@ namespace FG
 													   EQueueFamilyMask queueFamilyMask, StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
-
-		RawMemoryID		mem_id;
-		VMemoryObj*		mem_obj	= null;
+		
+		RawMemoryID					mem_id;
+		ResourceBase<VMemoryObj>*	mem_obj	= null;
 		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc, dbgName ));
 
 		RawBufferID		id;
@@ -684,13 +686,15 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, queueFamilyMask, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, mem_obj->Data(), queueFamilyMask, dbgName ))
 		{
 			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
 			RETURN_ERR( "failed when creating buffer" );
 		}
 		
+		mem_obj->AddRef();
+		data.AddRef();
 		return id;
 	}
 	
@@ -715,6 +719,7 @@ namespace FG
 			RETURN_ERR( "failed when creating external image" );
 		}
 		
+		data.AddRef();
 		return id;
 	}
 	
@@ -739,6 +744,7 @@ namespace FG
 			RETURN_ERR( "failed when creating external buffer" );
 		}
 		
+		data.AddRef();
 		return id;
 	}
 
@@ -881,9 +887,9 @@ namespace FG
 																	   StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
-
-		RawMemoryID		mem_id;
-		VMemoryObj*		mem_obj	= null;
+		
+		RawMemoryID					mem_id;
+		ResourceBase<VMemoryObj>*	mem_obj	= null;
 		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc, dbgName ));
 
 		RawRTGeometryID		id;
@@ -892,13 +898,15 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, mem_obj->Data(), dbgName ))
 		{
 			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
 			RETURN_ERR( "failed when creating raytracing geometry" );
 		}
-
+		
+		mem_obj->AddRef();
+		data.AddRef();
 		return id;
 	}
 	
@@ -911,9 +919,9 @@ namespace FG
 																 StringView dbgName, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
-
-		RawMemoryID		mem_id;
-		VMemoryObj*		mem_obj	= null;
+		
+		RawMemoryID					mem_id;
+		ResourceBase<VMemoryObj>*	mem_obj	= null;
 		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, alloc, dbgName ));
 
 		RawRTSceneID	id;
@@ -922,154 +930,16 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( GetDevice(), desc, mem_id, *mem_obj, dbgName ))
+		if ( not data.Create( GetDevice(), desc, mem_id, mem_obj->Data(), dbgName ))
 		{
 			ReleaseResource( mem_id, isAsync );
 			_Unassign( id );
 			RETURN_ERR( "failed when creating raytracing scene" );
 		}
-
+		
+		mem_obj->AddRef();
+		data.AddRef();
 		return id;
-	}
-
-/*
-=================================================
-	ToLocal (BufferID)
-=================================================
-*/
-	VLocalBuffer const*  VResourceManagerThread::ToLocal (RawBufferID id)
-	{
-		SCOPELOCK( _rcCheck );
-
-		if ( id.Index() >= _bufferToLocal.size() )
-			return null;
-
-		Index_t&	local = _bufferToLocal[ id.Index() ];
-		if ( local != UMax )
-			return &_localBuffers[ local ].Data();
-
-		auto*	res  = GetResource( id );
-		if ( not res )
-			return null;
-
-		CHECK_ERR( _localBuffers.Assign( OUT local ));
-
-		auto&	data = _localBuffers[ local ];
-		Replace( data );
-		
-		if ( not data.Create( res ) )
-		{
-			_localBuffers.Unassign( local );
-			RETURN_ERR( "failed when creating local buffer" );
-		}
-
-		_localBuffersCount = Max( local+1, _localBuffersCount );
-		return &data.Data();
-	}
-	
-/*
-=================================================
-	ToLocal (ImageID)
-=================================================
-*/
-	VLocalImage  const*  VResourceManagerThread::ToLocal (RawImageID id)
-	{
-		SCOPELOCK( _rcCheck );
-		
-		if ( id.Index() >= _imageToLocal.size() )
-			return null;
-
-		Index_t&	local = _imageToLocal[ id.Index() ];
-		if ( local != UMax )
-			return &_localImages[ local ].Data();
-		
-		auto*	res  = GetResource( id );
-		if ( not res )
-			return null;
-
-		CHECK_ERR( _localImages.Assign( OUT local ));
-
-		auto&	data = _localImages[ local ];
-		Replace( data );
-		
-		if ( not data.Create( res ) )
-		{
-			_localImages.Unassign( local );
-			RETURN_ERR( "failed when creating local image" );
-		}
-
-		_localImagesCount = Max( local+1, _localImagesCount );
-		return &data.Data();
-	}
-	
-/*
-=================================================
-	ToLocal (RTGeometryID)
-=================================================
-*/
-	VLocalRTGeometry const*  VResourceManagerThread::ToLocal (RawRTGeometryID id)
-	{
-		SCOPELOCK( _rcCheck );
-		
-		if ( id.Index() >= _rtGeometryToLocal.size() )
-			return null;
-
-		Index_t&	local = _rtGeometryToLocal[ id.Index() ];
-		if ( local != UMax )
-			return &_localRTGeometries[ local ].Data();
-		
-		auto*	res  = GetResource( id );
-		if ( not res )
-			return null;
-
-		CHECK_ERR( _localRTGeometries.Assign( OUT local ));
-
-		auto&	data = _localRTGeometries[ local ];
-		Replace( data );
-		
-		if ( not data.Create( res ) )
-		{
-			_localRTGeometries.Unassign( local );
-			RETURN_ERR( "failed when creating local ray tracing geometry" );
-		}
-
-		_localRTGeometryCount = Max( local+1, _localRTGeometryCount );
-		return &data.Data();
-	}
-	
-/*
-=================================================
-	ToLocal (RTSceneID)
-=================================================
-*/
-	VLocalRTScene const*  VResourceManagerThread::ToLocal (RawRTSceneID id)
-	{
-		SCOPELOCK( _rcCheck );
-		
-		if ( id.Index() >= _rtGeometryToLocal.size() )
-			return null;
-
-		Index_t&	local = _rtSceneToLocal[ id.Index() ];
-		if ( local != UMax )
-			return &_localRTScenes[ local ].Data();
-		
-		auto*	res  = GetResource( id );
-		if ( not res )
-			return null;
-
-		CHECK_ERR( _localRTScenes.Assign( OUT local ));
-
-		auto&	data = _localRTScenes[ local ];
-		Replace( data );
-		
-		if ( not data.Create( res ) )
-		{
-			_localRTScenes.Unassign( local );
-			RETURN_ERR( "failed when creating local ray tracing scene" );
-		}
-
-		_localRTSceneCount = Max( local+1, _localRTSceneCount );
-		return &data.Data();
 	}
 
 /*
@@ -1165,6 +1035,77 @@ namespace FG
 		}
 		
 		_ResetLocalRemaping();
+	}
+	
+/*
+=================================================
+	_ToLocal
+=================================================
+*/
+	template <typename ID, typename T, size_t CS, size_t MC>
+	inline T const*  VResourceManagerThread::_ToLocal (ID id, INOUT PoolTmpl<T,CS,MC> &localPool, INOUT GlobalToLocal_t &globalToLocal,
+													   INOUT uint &counter, bool incRef, StringView msg) const
+	{
+		SCOPELOCK( _rcCheck );
+
+		if ( id.Index() >= globalToLocal.size() )
+			return null;
+
+		Index_t&	local = globalToLocal[ id.Index() ];
+
+		if ( local != UMax )
+		{
+			if ( incRef )
+				_mainRM._GetResourcePool( id )[ id.Index() ].AddRef();
+
+			return &(localPool[ local ].Data());
+		}
+
+		auto*	res  = GetResource( id );
+		if ( not res )
+			return null;
+
+		CHECK_ERR( localPool.Assign( OUT local ));
+
+		auto&	data = localPool[ local ];
+		Replace( data );
+		
+		if ( not data.Create( res ) )
+		{
+			localPool.Unassign( local );
+			RETURN_ERR( msg );
+		}
+
+		if ( incRef )
+			_mainRM._GetResourcePool( id )[ id.Index() ].AddRef();
+
+		counter = Max( local+1, counter );
+		return &(data.Data());
+	}
+	
+/*
+=================================================
+	ToLocal
+=================================================
+*/
+	VLocalBuffer const*  VResourceManagerThread::ToLocal (RawBufferID id, bool acquireRef)
+	{
+		return _ToLocal( id, _localBuffers, _bufferToLocal, _localBuffersCount, acquireRef, "failed when creating local buffer" );
+	}
+
+	VLocalImage const*  VResourceManagerThread::ToLocal (RawImageID id, bool acquireRef)
+	{
+		return _ToLocal( id, _localImages, _imageToLocal, _localImagesCount, acquireRef, "failed when creating local image" );
+	}
+
+	VLocalRTGeometry const*  VResourceManagerThread::ToLocal (RawRTGeometryID id, bool acquireRef)
+	{
+		return _ToLocal( id, _localRTGeometries, _rtGeometryToLocal, _localRTGeometryCount, acquireRef, "failed when creating local ray tracing geometry" );
+	}
+
+	VLocalRTScene const*  VResourceManagerThread::ToLocal (RawRTSceneID id, bool acquireRef)
+	{
+		return _ToLocal( id, _localRTScenes, _rtSceneToLocal, _localRTSceneCount, acquireRef, "failed when creating local ray tracing scene" );
 	}
 	
 /*
