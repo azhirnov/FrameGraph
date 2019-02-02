@@ -527,7 +527,7 @@ namespace FG
 			uint			layerCount;
 		};
 		using Ranges_t		= FixedArray< Range, FG_MaxClearRanges >;
-		using ClearColor_t	= Union< std::monostate, RGBA32f, RGBA32u, RGBA32i >;
+		using ClearColor_t	= Union< NullUnion, RGBA32f, RGBA32u, RGBA32i >;
 
 
 	// variables
@@ -944,11 +944,15 @@ namespace FG
 			Triangles&  SetVertexBuffer (const BufferID &id, BytesU offset = 0_b);
 			Triangles&  SetVertexData (ArrayView<uint8_t> data);
 			template <typename VertexT>
-			Triangles&  SetVertices (ArrayView<VertexT> vertices);
+			Triangles&  SetVertexArray (ArrayView<VertexT> data);
+			template <typename VertexT, typename AllocT>
+			Triangles&  SetVertexArray (const std::vector<VertexT, AllocT> &data)	{ return SetVertexArray( ArrayView<VertexT>{ data }); }
 			template <typename Idx>
 			Triangles&  SetIndices (Idx count, EIndex type);
 			template <typename IndexT>
-			Triangles&  SetIndices (ArrayView<IndexT> indices);
+			Triangles&  SetIndexArray (ArrayView<IndexT> data);
+			template <typename IndexT, typename AllocT>
+			Triangles&  SetIndexArray (const std::vector<IndexT,AllocT> &data)		{ return SetIndexArray( ArrayView<IndexT>{ data }); }
 			Triangles&  SetIndexBuffer (const BufferID &id, BytesU offset = 0_b);
 			Triangles&  SetIndexData (ArrayView<uint8_t> data);
 			Triangles&  SetTransform (const BufferID &id, BytesU offset = 0_b);
@@ -1273,7 +1277,7 @@ namespace FG
 	
 	template <typename VertexT>
 	inline BuildRayTracingGeometry::Triangles&
-		BuildRayTracingGeometry::Triangles::SetVertices (ArrayView<VertexT> vertices)
+		BuildRayTracingGeometry::Triangles::SetVertexArray (ArrayView<VertexT> vertices)
 	{
 		ASSERT( vertices.size() );
 		vertexBuffer	= Default;
@@ -1335,7 +1339,7 @@ namespace FG
 	
 	template <typename IndexT>
 	inline BuildRayTracingGeometry::Triangles&
-		BuildRayTracingGeometry::Triangles::SetIndices (ArrayView<IndexT> indices)
+		BuildRayTracingGeometry::Triangles::SetIndexArray (ArrayView<IndexT> indices)
 	{
 		ASSERT( indices.size() );
 		indexBuffer	= Default;

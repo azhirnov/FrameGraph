@@ -114,7 +114,7 @@ namespace FG
 
 		// unassign IDs
 		for (auto& vid : *_unassignIDs) {
-			std::visit( [this, force = vid.second] (auto id) { ReleaseResource( id, false, force ); }, vid.first );
+			Visit( vid.first, [this, force = vid.second] (auto id) { ReleaseResource( id, false, force ); });
 		}
 		
 		_samplerMap.Destroy();

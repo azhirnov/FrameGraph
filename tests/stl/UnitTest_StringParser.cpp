@@ -1,4 +1,4 @@
-// Copyright (c) 2018,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Algorithms/StringParser.h"
 #include "UnitTest_Common.h"
@@ -55,6 +55,7 @@ static void StringParser_ToPrevLine ()
 	TEST( pos == 4 );
 }
 
+
 static void StringParser_ReadLine ()
 {
 	StringView	str = "01234\r\n5678";
@@ -78,6 +79,7 @@ static void StringParser_ReadString ()
 	TEST( result == "123456" );
 }
 
+
 static void StringParser_CalculateNumberOfLines ()
 {
 	size_t	lines = StringParser::CalculateNumberOfLines( "1\n2\n3\r\n4\r\n5\n6\n7\r8\n9\n10" );
@@ -89,6 +91,7 @@ static void StringParser_CalculateNumberOfLines ()
 	lines = StringParser::CalculateNumberOfLines( "1\n2\n" );
 	TEST( lines == 2 );
 }
+
 
 static void StringParser_MoveToLine ()
 {

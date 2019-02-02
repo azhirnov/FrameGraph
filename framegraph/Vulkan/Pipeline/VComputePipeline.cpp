@@ -54,7 +54,7 @@ namespace FG
 		
 		for (auto& sh : desc._shader.data)
 		{
-			auto*	vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &sh.second );
+			auto*	vk_shader = UnionGetIf< PipelineDescription::VkShaderPtr >( &sh.second );
 			CHECK_ERR( vk_shader );
 
 			_shaders.push_back(ShaderModule{ *vk_shader, EShaderDebugMode_From(sh.first) });

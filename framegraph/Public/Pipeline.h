@@ -163,7 +163,7 @@ namespace FG
 			int					index;
 		};
 
-		using UniformData_t		= Union< std::monostate, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, RayTracingScene >;
+		using UniformData_t		= Union< NullUnion, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, RayTracingScene >;
 
 		struct Uniform
 		{
@@ -205,7 +205,7 @@ namespace FG
 		using SharedShaderPtr	= SharedPtr< IShaderData<T> >;
 		using VkShaderPtr		= SharedShaderPtr< ShaderModuleVk_t >;
 
-		using ShaderDataUnion_t	= Union< std::monostate, SharedShaderPtr<String>, SharedShaderPtr<Array<uint8_t>>, SharedShaderPtr<Array<uint>>, VkShaderPtr >;
+		using ShaderDataUnion_t	= Union< NullUnion, SharedShaderPtr<String>, SharedShaderPtr<Array<uint8_t>>, SharedShaderPtr<Array<uint>>, VkShaderPtr >;
 		using ShaderDataMap_t	= HashMap< EShaderLangFormat, ShaderDataUnion_t >;
 		using SpecConstants_t	= FixedMap< SpecializationID, uint, FG_MaxSpecConstants >;
 
@@ -513,7 +513,7 @@ namespace FG
 
 		using Self				= RayTracingPipelineDesc;
 		using Shaders_t			= HashMap< RTShaderID, RTShader >;
-		using ShaderGroup_t		= Union< std::monostate, GeneralGroup, TriangleHitGroup, ProceduralHitGroup >;
+		using ShaderGroup_t		= Union< NullUnion, GeneralGroup, TriangleHitGroup, ProceduralHitGroup >;
 		using ShaderGroupMap_t	= HashMap< RTShaderGroupID, ShaderGroup_t >;
 
 

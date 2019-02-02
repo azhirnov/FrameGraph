@@ -17,8 +17,8 @@ namespace FG
 	{
 	// types
 	public:
-		using DeviceInfo_t			= Union< std::monostate, VulkanDeviceInfo >;
-		using ExternalCmdBatch_t	= Union< std::monostate, VulkanCommandBatch >;
+		using DeviceInfo_t			= Union< NullUnion, VulkanDeviceInfo >;
+		using ExternalCmdBatch_t	= Union< NullUnion, VulkanCommandBatch >;
 
 		struct RenderingStatistics
 		{

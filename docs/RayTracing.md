@@ -86,7 +86,7 @@ triangle1_info.SetID( GeometryID{"Triangle1"} );
 triangle1_info.SetVertices< float3 >( 3 );
 
 // 3 indices with type 'uint'
-triangle1_info.SetIndices( 3, EIndex::UInt );
+triangle1_info.SetIndices< uint >( 3 );
 
 // this geometry does not invoke the any-hit shaders
 triangle1_info.AddFlags( ERayTracingGeometryFlags::Opaque );
@@ -99,11 +99,11 @@ triangle2_info.SetIndices( 3, EIndex::UInt );
 triangle2_info.AddFlags( ERayTracingGeometryFlags::Opaque );
 
 // create geometry for ray tracing scene
-RTGeometryID rt_geometry = fgThread->CreateRayTracingGeometry(
+RTGeometryID  rt_geometry = fgThread->CreateRayTracingGeometry(
                                  RayTracingGeometryDesc{{ triangle1_info, triangle2_info }} );
 
 // create scene with one instance
-RTSceneID rt_scene = fgThread->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
+RTSceneID  rt_scene = fgThread->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
 ```
 
 ## Build bottom-level acceleration structure
@@ -121,6 +121,7 @@ triangle1.SetVertices( vertices );
 
 // set triangle indices, must be no more than number of indices in the geometry description.
 // indices will be copied to the staging buffer too.
+const auto  indices = ArrayView<uint>{ 0, 1, 2 };
 triangle1.SetIndices( indices );
 
 // setup second geometry data
@@ -137,10 +138,10 @@ build_blas.SetTarget( rt_geometry );
 build_blas.Add( triangle1 ).Add( triangle2 );
 
 // enqueue task that builds the BLAS
-Task t_build_geom = fgThread->AddTask( build_blas );
+Task  t_build_geom = fgThread->AddTask( build_blas );
 ```
 
-## Built top-level acceleration structure
+## Build top-level acceleration structure
 ```cpp
 // setup geometry instance
 BuildRayTracingScene::Instance  instance;
@@ -164,7 +165,7 @@ build_tlas.SetHitShadersPerInstance( 2 );
 
 // enqueue task that builds the TLAS.
 // this task uses 'rt_geometry' and must wait until BLAS building is complete.
-Task t_build_scene = fgThread->AddTask( build_tlas.DependsOn( t_build_geom ));
+Task  t_build_scene = fgThread->AddTask( build_tlas.DependsOn( t_build_geom ));
 ```
 
 ## Update shader binding table
@@ -195,10 +196,10 @@ update_st.AddMissShader( RTShaderGroupID{"PrimiryMiss"} );    // for missIndex =
 update_st.AddMissShader( RTShaderGroupID{"SecondaryMiss"} );  // for missIndex = 1
 
 // add hit shader groups for each geometry instance, see the table below
-update_st.AddHitShader( GeometryID{"Triangle1"}, RTShaderGroupID{"TriangleHit1"}, /*offset*/0 );	// (1)
-update_st.AddHitShader( GeometryID{"Triangle1"}, RTShaderGroupID{"TriangleHit2"}, /*offset*/1 );	// (2)
-update_st.AddHitShader( GeometryID{"Triangle2"}, RTShaderGroupID{"TriangleHit2"}, /*offset*/0 );	// (3)
-update_st.AddHitShader( GeometryID{"Triangle2"}, RTShaderGroupID{"TriangleHit1"}, /*offset*/1 );	// (4)
+update_st.AddHitShader( GeometryID{"Triangle1"}, RTShaderGroupID{"TriangleHit1"}, /*offset*/0 );  // (1)
+update_st.AddHitShader( GeometryID{"Triangle1"}, RTShaderGroupID{"TriangleHit2"}, /*offset*/1 );  // (2)
+update_st.AddHitShader( GeometryID{"Triangle2"}, RTShaderGroupID{"TriangleHit2"}, /*offset*/0 );  // (3)
+update_st.AddHitShader( GeometryID{"Triangle2"}, RTShaderGroupID{"TriangleHit1"}, /*offset*/1 );  // (4)
 
 // enqueue task, there is no dependency on the GPU side,
 // but this task uses data that will be updated in the BuildRayTracingScene task, so dependency is needed.
@@ -209,23 +210,25 @@ Task  t_update_table = fgThread->AddTask( update_st.DependsOn( t_build_scene ));
 | Shader groups → | ray-gen | miss group | miss group | hit group | hit group |
 |---|---|---|---|---|---|
 | Geometry ↓ | Main | PrimiryMiss | SecondaryMiss | TriangleHit1 | TriangleHit2 |
-| `sbtRecordOffset = 0` |  |  |  |  |  |
+| primary ray with `sbtRecordOffset = 0` |  |  |  |  |  |
 | Triangle1 |  |  |  | (1) |  |
 | Triangle2 |  |  |  |  | (3) |
-| `sbtRecordOffset = 1` |  |  |  |  |  |
+| secondary ray with `sbtRecordOffset = 1` |  |  |  |  |  |
 | Triangle1 |  |  |  |  | (4) |
 | Triangle2 |  |  |  | (2) |  |
-| `gl_LaunchIDNV` each thread | X | X |  |  |  |
+| each thread | X |  |  |  |  |  |
+| primary ray with `missIndex = 0` |  | X |  |  |  |  |
+| secondary ray with `missIndex = 1` |  |  | X |  |  |  |
 
-* only the `PrimiryMiss` shader group executed for each thread because `missIndex` is always 0.
-<br/>
+The `sbtRecordOffset` and `missIndex` is a arguments of the `traceNV()` function.
+
 
 ## Trace rays
 ```cpp
 resources.BindImage( UniformID("un_Output"), dst_image );
 resources.BindRayTracingScene( UniformID("un_RtScene"), rt_scene );
 
-TraceRays trace_rays;
+TraceRays  trace_rays;
 trace_rays.AddResources( DescriptorSetID("0"), &resources );
 
 // set the work group size

@@ -15,7 +15,7 @@ namespace FG
 	struct RenderPassDesc
 	{
 	// types
-		using ClearValue_t			= Union< std::monostate, RGBA32f, RGBA32u, RGBA32i, DepthStencil >;
+		using ClearValue_t			= Union< NullUnion, RGBA32f, RGBA32u, RGBA32i, DepthStencil >;
 		using ShadingRatePalette_t	= FixedArray< EShadingRatePalette, uint(EShadingRatePalette::_Count) >;
 		
 		struct RT

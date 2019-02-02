@@ -37,11 +37,12 @@ namespace FG
 			Triangles () {}
 			explicit Triangles (const GeometryID &id) : geometryId{id} {}
 
-			template <typename T, typename Idx>	Triangles&  SetVertices (Idx count)					{ STATIC_ASSERT(IsInteger<Idx>);  vertexCount = uint(count);  vertexFormat = VertexDesc<T>::attrib;  return *this; }
-			template <typename Idx>				Triangles&  SetVertices (Idx count, EVertexType fmt){ STATIC_ASSERT(IsInteger<Idx>);  vertexCount = uint(count);  vertexFormat = fmt;  return *this; }
-			template <typename Idx>				Triangles&  SetIndices (Idx count, EIndex type)		{ STATIC_ASSERT(IsInteger<Idx>);  indexCount = uint(count);  indexType = type;  return *this; }
-												Triangles&  AddFlags (EFlags value)					{ flags |= value;  return *this; }
-												Triangles&  SetID (const GeometryID &id)			{ geometryId = id;  return *this; }
+			template <typename T, typename Idx>	Triangles&  SetVertices (Idx count);
+			template <typename Idx>				Triangles&  SetVertices (Idx count, EVertexType fmt);
+			template <typename Idx>				Triangles&  SetIndices (Idx count, EIndex type);
+			template <typename T, typename Idx>	Triangles&  SetIndices (Idx count);
+												Triangles&  AddFlags (EFlags value)			{ flags |= value;  return *this; }
+												Triangles&  SetID (const GeometryID &id)	{ geometryId = id;  return *this; }
 		};
 
 		struct AABB
@@ -73,6 +74,52 @@ namespace FG
 		explicit RayTracingGeometryDesc (ArrayView<Triangles> triangles) : triangles{triangles} {}
 		RayTracingGeometryDesc (ArrayView<Triangles> triangles, ArrayView<AABB> aabbs) : triangles{triangles}, aabbs{aabbs} {}
 	};
+
+	
+
+	template <typename T, typename Idx>
+	inline RayTracingGeometryDesc::Triangles&
+		RayTracingGeometryDesc::Triangles::SetVertices (Idx count)
+	{
+		STATIC_ASSERT( IsInteger<Idx> );
+		vertexCount  = uint(count);
+		vertexFormat = VertexDesc<T>::attrib;
+		return *this;
+	}
+	
+	template <typename Idx>
+	inline RayTracingGeometryDesc::Triangles&
+		RayTracingGeometryDesc::Triangles::SetVertices (Idx count, EVertexType fmt)
+	{
+		STATIC_ASSERT( IsInteger<Idx> );
+		vertexCount  = uint(count);
+		vertexFormat = fmt;
+		return *this;
+	}
+	
+	template <typename Idx>
+	inline RayTracingGeometryDesc::Triangles&
+		RayTracingGeometryDesc::Triangles::SetIndices (Idx count, EIndex type)
+	{
+		STATIC_ASSERT( IsInteger<Idx> );
+		indexCount = uint(count);
+		indexType  = type;
+		return *this;
+	}
+	
+	template <typename T, typename Idx>
+	inline RayTracingGeometryDesc::Triangles&
+		RayTracingGeometryDesc::Triangles::SetIndices (Idx count)
+	{
+		using type = std::remove_cv_t< std::remove_reference_t<T> >;
+
+		STATIC_ASSERT( IsInteger<Idx> );
+		STATIC_ASSERT( (IsSameTypes<type, uint32_t>) or (IsSameTypes<type, uint16_t>) );
+
+		indexCount = uint(count); 
+		indexType  = IsSameTypes<type, uint> ? EIndex::UInt : EIndex::UShort;
+		return *this;
+	}
 
 
 }	// FG

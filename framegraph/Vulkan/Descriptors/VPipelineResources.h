@@ -70,7 +70,7 @@ namespace FG
 		bool _AddResource (VResourceManagerThread &, INOUT PipelineResources::Texture &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManagerThread &, const PipelineResources::Sampler &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManagerThread &, const PipelineResources::RayTracingScene &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, const std::monostate &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManagerThread &, const NullUnion &, INOUT UpdateDescriptors &);
 	};
 
 

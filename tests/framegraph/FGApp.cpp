@@ -44,7 +44,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_Draw4,			1 });
 		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1, 1 });
 		_tests.push_back({ &FGApp::Test_ReadAttachment1, 1 });
-		_tests.push_back({ &FGApp::Test_AsyncCompute1,	 1 });
+		//_tests.push_back({ &FGApp::Test_AsyncCompute1,	 1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger1, 1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger2, 1 });
 		
@@ -117,8 +117,11 @@ namespace {
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetAllDeviceExtensions()
 									));
-			//_vulkan.CreateDebugReportCallback( DebugReportFlags_All );
-			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
+
+			// this is a test and the test should fail for any validation error
+			//_vulkan.CreateDebugReportCallback( DebugReportFlags_All,
+			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
+											  [] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
 		}
 
 		// setup device info

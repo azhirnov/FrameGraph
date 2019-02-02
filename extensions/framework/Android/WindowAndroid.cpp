@@ -35,7 +35,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool WindowAndroid::Create (uint2 size, StringView)
+	bool WindowAndroid::Create (uint2, StringView)
 	{
 		CHECK_ERR( _application );
 		CHECK_ERR( not _window );
@@ -44,7 +44,25 @@ namespace FG
 		_application->onAppCmd		= _HandleCmd;
 		_application->onInputEvent	= _HandleInput;
 
-		_windowSize = size;
+		int ident;
+		int events;
+		android_poll_source* source;
+
+		while ( not _window )
+		{
+			if ( (ident = ALooper_pollAll( 0, null, &events, (void**)&source )) >= 0 )
+			{
+				if (source != null) {
+					source->process( _application, source );
+				}
+
+				if ( _application->destroyRequested ) {
+					Destroy();
+					return false;
+				}
+			}
+		}
+
 		return true;
 	}
 	
@@ -83,10 +101,10 @@ namespace FG
 		int ident;
 		int events;
 		android_poll_source* source;
-
-		while ((ident = ALooper_pollAll(0, NULL, &events, (void**)&source)) >= 0)
+		
+		while ( (ident = ALooper_pollAll( 0, null, &events, (void**)&source )) >= 0 )
 		{
-			if (source != NULL) {
+			if (source != null) {
 				source->process( _application, source );
 			}
 
@@ -170,16 +188,15 @@ namespace FG
 	{
 		WindowAndroid*	self = static_cast<WindowAndroid *>(app->userData);
 
-		switch (cmd)
+		switch ( cmd )
 		{
 			case APP_CMD_SAVE_STATE :
 				break;
 
 			case APP_CMD_INIT_WINDOW :
-				//if (engine->app->window != NULL) {
-				//	engine_init_display(engine);
-				//	engine_draw_frame(engine);
-				//}
+				if ( app->window != null ) {
+					self->_InitDisplay( app->window );
+				}
 				break;
 
 			case APP_CMD_TERM_WINDOW :
@@ -205,6 +222,21 @@ namespace FG
 				}
 				break;
 		}
+	}
+	
+/*
+=================================================
+	_InitDisplay
+=================================================
+*/
+	void WindowAndroid::_InitDisplay (ANativeWindow* window)
+	{
+		CHECK( not _window );
+
+		_window = window;
+
+		_windowSize.x = ANativeWindow_getWidth( _window );
+		_windowSize.y = ANativeWindow_getHeight( _window );
 	}
 //-----------------------------------------------------------------------------
 

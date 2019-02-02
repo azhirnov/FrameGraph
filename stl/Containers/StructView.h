@@ -19,7 +19,21 @@ namespace FG
 	// types
 	public:
 		using Self	= StructView< T >;
-		// TODO: iterator
+
+		struct const_iterator
+		{
+			Self const&		_ref;
+			size_t			_index = 0;
+
+			const_iterator (const Self &ref, size_t idx) : _ref{ref}, _index{idx} {}
+
+			const_iterator&	operator ++ ()									{ ++_index;  return *this; }
+
+			ND_ T const&	operator * ()							const	{ return _ref[_index]; }
+			ND_ bool		operator == (const const_iterator &rhs)	const	{ return &_ref == &rhs._ref and _index == rhs._index; }
+			ND_ bool		operator != (const const_iterator &rhs)	const	{ return not (*this == rhs); }
+		};
+
 
 	private:
 		static constexpr uint	DBG_VIEW_COUNT = 400;
@@ -135,6 +149,9 @@ namespace FG
 
 		ND_ T const&	front ()				const	{ return operator[] (0); }
 		ND_ T const&	back ()					const	{ return operator[] (_count-1); }
+
+		ND_ const_iterator	begin ()			const	{ return const_iterator{ *this, 0 }; }
+		ND_ const_iterator	end ()				const	{ return const_iterator{ *this, _count }; }
 
 
 		ND_ bool  operator == (StructView<T> rhs) const

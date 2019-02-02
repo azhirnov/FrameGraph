@@ -553,12 +553,12 @@ namespace {
 		// prepare for sorting
 		for (auto& res : resources)
 		{
-			if ( auto* image = std::get_if<ImageUsage_t>( &res ) )
+			if ( auto* image = UnionGetIf<ImageUsage_t>( &res ) )
 			{
 				sorted.push_back({ image->first->GetDebugName(), &res });
 			}
 			else
-			if ( auto* buffer = std::get_if<BufferUsage_t>( &res ) )
+			if ( auto* buffer = UnionGetIf<BufferUsage_t>( &res ) )
 			{
 				sorted.push_back({ buffer->first->GetDebugName(), &res });
 			}
@@ -577,7 +577,7 @@ namespace {
 
 		for (auto& res : sorted)
 		{
-			if ( auto* image = std::get_if<ImageUsage_t>( res.usage ) )
+			if ( auto* image = UnionGetIf<ImageUsage_t>( res.usage ) )
 			{
 				str << indent << "\t	ImageUsage {\n"
 					<< indent << "\t		name:           \"" << res.name << "\"\n"
@@ -589,7 +589,7 @@ namespace {
 					<< indent << "\t	}\n";
 			}
 			else
-			if ( auto* buffer = std::get_if<BufferUsage_t>( res.usage ) )
+			if ( auto* buffer = UnionGetIf<BufferUsage_t>( res.usage ) )
 			{
 				str << indent << "\t	BufferUsage {\n"
 					<< indent << "\t		name:     \"" << res.name << "\"\n"

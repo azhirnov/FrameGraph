@@ -452,7 +452,7 @@ namespace {
 					[] (const RTSceneUsage_t &scene)
 					{
 					},
-					[] (const std::monostate &) { ASSERT(false); }
+					[] (const NullUnion &) { ASSERT(false); }
 				);
 		}
 	}
@@ -571,6 +571,9 @@ namespace {
 	or
 	image https://i1.wp.com/cpp-rendering.io/wp-content/uploads/2016/11/Barrier-3.png
 	from http://cpp-rendering.io/barriers-vulkan-not-difficult/
+
+	TODO:
+	- graphics, compute, transfer, raytracing stages are not intersects, so ... ?
 =================================================
 */
 	static void  AddPipelineStages (VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
@@ -585,7 +588,9 @@ namespace {
 			VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT | VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT | VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV;
 
 		static const VkPipelineStageFlagBits	all_stages[] = {
+			// all stages
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			// graphics only
 			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
 			VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
 			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
@@ -598,10 +603,14 @@ namespace {
 			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
 			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			// compute only
 			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			// transfer only
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			// ray tracing & AS update
 			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
 			VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+			// all stages
 			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 			//VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT,
 			//VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT,

@@ -72,6 +72,8 @@ namespace FG
 		static void		_HandleCmd (android_app* app, int32_t cmd);
 		static int32_t	_HandleInput (android_app* app, AInputEvent* event);
 
+		void _InitDisplay (ANativeWindow* window);
+
 		ND_ static StringView  _MapKey (int key);
 		ND_ static StringView  _MapMouseButton (int button);
 	};

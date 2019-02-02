@@ -96,7 +96,7 @@ inline const T*  FindUniform (const PipelineDescription::DescriptorSet &ds, cons
 	{
 		if ( un.first == id )
 		{
-			if ( auto* tex = std::get_if<T>( &un.second.data ) )
+			if ( auto* tex = UnionGetIf<T>( &un.second.data ) )
 			{
 				return tex;
 			}
@@ -121,7 +121,7 @@ inline const T*  FindUniform (const PipelineDescription::DescriptorSet &ds, cons
 			if ( un.second.index.VKBinding() == bindingIndex and
 				 un.second.stageFlags == stageFlags )
 			{
-				if ( auto* tex = std::get_if<T>( &un.second.data ) )
+				if ( auto* tex = UnionGetIf<T>( &un.second.data ) )
 				{
 					return tex;
 				}

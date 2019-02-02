@@ -50,7 +50,7 @@ namespace FG
 		using BufferUsage_t			= Pair< const VBuffer *, VLocalBuffer::BufferState >;
 		using RTSceneUsage_t		= Pair< const VRayTracingScene *, VLocalRTScene::SceneState >;
 		using RTGeometryUsage_t		= Pair< const VRayTracingGeometry *, VLocalRTGeometry::GeometryState >;
-		using ResourceUsage_t		= Union< std::monostate, ImageUsage_t, BufferUsage_t, RTSceneUsage_t, RTGeometryUsage_t >;
+		using ResourceUsage_t		= Union< NullUnion, ImageUsage_t, BufferUsage_t, RTSceneUsage_t, RTGeometryUsage_t >;
 
 		using ImageResources_t		= HashMap< const VImage *, ImageInfo_t >;
 		using BufferResources_t		= HashMap< const VBuffer *, BufferInfo_t >;

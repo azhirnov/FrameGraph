@@ -520,7 +520,7 @@ namespace FG
 				[&] (const RGBA32f &col)		{ memcpy( _clearValue.float32, &col, sizeof(_clearValue.float32) ); },
 				[&] (const RGBA32u &col)		{ memcpy( _clearValue.uint32, &col, sizeof(_clearValue.uint32) ); },
 				[&] (const RGBA32i &col)		{ memcpy( _clearValue.int32, &col, sizeof(_clearValue.int32) );} ,
-				[&] (const std::monostate &)	{}
+				[&] (const NullUnion &)	{}
 			);
 	}
 	

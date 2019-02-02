@@ -51,11 +51,11 @@ namespace FG
 	{
 	// types
 	public:
-		using SwapchainCreateInfo	= Union< std::monostate, VulkanSwapchainCreateInfo, VulkanVREmulatorSwapchainCreateInfo >;
-		using ExternalImageDesc		= Union< std::monostate, VulkanImageDesc >;
-		using ExternalBufferDesc	= Union< std::monostate, VulkanBufferDesc >;
-		using ExternalImage_t		= Union< std::monostate, ImageVk_t >;
-		using ExternalBuffer_t		= Union< std::monostate, BufferVk_t >;
+		using SwapchainCreateInfo	= Union< NullUnion, VulkanSwapchainCreateInfo, VulkanVREmulatorSwapchainCreateInfo >;
+		using ExternalImageDesc		= Union< NullUnion, VulkanImageDesc >;
+		using ExternalBufferDesc	= Union< NullUnion, VulkanBufferDesc >;
+		using ExternalImage_t		= Union< NullUnion, ImageVk_t >;
+		using ExternalBuffer_t		= Union< NullUnion, BufferVk_t >;
 
 		using OnExternalImageReleased_t		= std::function< void (const ExternalImage_t &) >;
 		using OnExternalBufferReleased_t	= std::function< void (const ExternalBuffer_t &) >;

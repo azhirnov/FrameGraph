@@ -78,7 +78,7 @@ void main ()
 
 		RayTracingGeometryDesc::Triangles	triangles_info;
 		triangles_info.SetID( GeometryID{"Triangle"} ).SetVertices< decltype(vertices[0]) >( vertices.size() )
-					.SetIndices( indices.size(), EIndex::UInt ).AddFlags( ERayTracingGeometryFlags::Opaque );
+					.SetIndices< decltype(indices[0]) >( indices.size() ).AddFlags( ERayTracingGeometryFlags::Opaque );
 
 		RTGeometryID	rt_geometry	= frame_graph->CreateRayTracingGeometry( RayTracingGeometryDesc{{ triangles_info }} );
 		RTSceneID		rt_scene	= frame_graph->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
@@ -133,7 +133,7 @@ void main ()
 			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 			
 			BuildRayTracingGeometry::Triangles	triangles;
-			triangles.SetID( GeometryID{"Triangle"} ).SetVertices( vertices ).SetIndices( indices );
+			triangles.SetID( GeometryID{"Triangle"} ).SetVertexArray( vertices ).SetIndexArray( indices );
 
 			BuildRayTracingScene::Instance		instance;
 			instance.SetGeometry( rt_geometry );

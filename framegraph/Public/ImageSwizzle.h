@@ -52,7 +52,7 @@ namespace FG
 		ND_ constexpr bool operator >  (const ImageSwizzle &rhs) const	{ return _value >  rhs._value; }
 
 
-		ND_ friend constexpr ImageSwizzle  operator "" _swizzle (const char *str, const size_t len) noexcept;
+		friend constexpr ImageSwizzle  operator "" _swizzle (const char *str, const size_t len) noexcept;
 
 
 	private:

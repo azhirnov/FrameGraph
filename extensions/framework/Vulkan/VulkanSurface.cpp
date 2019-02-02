@@ -69,6 +69,8 @@ namespace FG
 */
 	VkSurfaceKHR  VulkanSurface::CreateWin32Surface (VkInstance instance, void* hinstance, void* hwnd)
 	{
+		CHECK_ERR( instance and hinstance and hwnd );
+
 		VkSurfaceKHR					surface;
 		VkWin32SurfaceCreateInfoKHR		surface_info = {};
 
@@ -79,7 +81,7 @@ namespace FG
 		PFN_vkCreateWin32SurfaceKHR  fpCreateWin32SurfaceKHR = BitCast<PFN_vkCreateWin32SurfaceKHR>( vkGetInstanceProcAddr( instance, "vkCreateWin32SurfaceKHR" ));
 		CHECK_ERR( fpCreateWin32SurfaceKHR );
 
-		VK_CHECK( fpCreateWin32SurfaceKHR( instance, &surface_info, null, OUT &surface ) );
+		VK_CHECK( fpCreateWin32SurfaceKHR( instance, &surface_info, null, OUT &surface ));
 		return surface;
 	}
 # endif
@@ -93,18 +95,19 @@ namespace FG
 */
 	VkSurfaceKHR  VulkanSurface::CreateAndroidSurface (VkInstance instance, void* window)
 	{
+		CHECK_ERR( instance and window );
+
 		VkSurfaceKHR					surface;
 		VkAndroidSurfaceCreateInfoKHR	surface_info = {};
 
 		surface_info.sType	= VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
-		surface_info.pNext	= null;
 		surface_info.flags	= 0;
 		surface_info.window	= Cast<ANativeWindow>(window);
 
 		PFN_vkCreateAndroidSurfaceKHR  fpCreateAndroidSurfaceKHR = BitCast<PFN_vkCreateAndroidSurfaceKHR>( vkGetInstanceProcAddr( instance, "vkCreateAndroidSurfaceKHR" ));
 		CHECK_ERR( fpCreateAndroidSurfaceKHR );
 
-		VK_CHECK( fpCreateAndroidSurfaceKHR( instance, &surface_info, null, OUT &surface ) );
+		VK_CHECK( fpCreateAndroidSurfaceKHR( instance, &surface_info, null, OUT &surface ));
 		return surface;
 	}
 # endif

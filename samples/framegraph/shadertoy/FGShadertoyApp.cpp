@@ -74,6 +74,13 @@ namespace FG
 			sh_main.Pipeline( "st_shaders/Skyline.glsl" );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
+		
+		_samples.push_back( [this] ()
+		{
+			ShaderDescr	sh_main;
+			sh_main.Pipeline( "st_shaders/Skyline2.glsl" );
+			CHECK( _AddShader( "main", std::move(sh_main) ));
+		});
 	}
 	
 /*
@@ -225,7 +232,7 @@ namespace FG
 			CHECK_ERR( _frameGraph );
 			CHECK_ERR( _frameGraph->Initialize( &swapchain_info ));
 			
-			_frameGraph->SetShaderDebugCallback([this] (auto name, auto, auto output) { _OnShaderTraceReady(name, output); });
+			_frameGraph->SetShaderDebugCallback([this] (auto name, auto, auto, auto output) { _OnShaderTraceReady(name, output); });
 		}
 
 		// add glsl pipeline compiler
@@ -837,7 +844,7 @@ namespace FG
 		}
 
 		DevILLoader		loader;
-		auto			image	= MakeShared<IntermediateImage>( filename );
+		auto			image	= MakeShared<IntermImage>( filename );
 
 		CHECK_ERR( loader.Load( image, {} ));
 

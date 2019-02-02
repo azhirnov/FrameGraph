@@ -122,7 +122,7 @@ namespace FG
 
 			for (auto& vid : temp)
 			{
-				std::visit( [this, force = vid.second] (auto id) { _UnassignResource( _GetResourcePool(id), id, force ); }, vid.first );
+				Visit( vid.first, [this, force = vid.second] (auto id) { _UnassignResource( _GetResourcePool(id), id, force ); });
 			}
 			temp.clear();
 		}

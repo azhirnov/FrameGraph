@@ -19,8 +19,9 @@ Work in progress.
 Standalone library (only glslang is required), that adds shader trace recording into glslang AST.
 
 ## Pipeline Compiler
-Intergrated into FrameGraph and add ability to compile glsl shaders and generates shader reflection.
+Intergrated into FrameGraph and add ability to compile glsl shaders and generates shader reflection.<br/>
 Can produce debuggable shaders using GLSLTrace library.
 
 ## Offline Pipeline Compiler
-Compile glsl shader using PipelineCompiler library and serialize it to the C++ code.
+Compile glsl shader using PipelineCompiler library and serialize it to the C++ code.<br/>
+Required for Android because shader compilation is not supported for it.

@@ -244,7 +244,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
-		auto*	img_desc = std::get_if<VulkanImageDesc>( &desc );
+		auto*	img_desc = UnionGetIf<VulkanImageDesc>( &desc );
 		CHECK_ERR( img_desc );
 
 		RawImageID	result = _resourceMngr.CreateImage( *img_desc, std::move(onRelease), dbgName );
@@ -269,7 +269,7 @@ namespace FG
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		
-		auto*	buf_desc = std::get_if<VulkanBufferDesc>( &desc );
+		auto*	buf_desc = UnionGetIf<VulkanBufferDesc>( &desc );
 		CHECK_ERR( buf_desc );
 
 		return BufferID{ _resourceMngr.CreateBuffer( *buf_desc, std::move(onRelease), dbgName )};

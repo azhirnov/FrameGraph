@@ -26,7 +26,7 @@ namespace FG
 
 	// types
 	public:
-		using ShaderDebugUtils_t	= Union< std::monostate, ShaderTrace >;
+		using ShaderDebugUtils_t	= Union< NullUnion, ShaderTrace >;
 		using ShaderDebugUtilsPtr	= UniquePtr< ShaderDebugUtils_t >;
 
 
@@ -92,7 +92,7 @@ namespace FG
 
 			return Visit( *_debugInfo,
 						  [&] (const ShaderTrace &trace) { return trace.ParseShaderTrace( debugOutput.data(), debugOutput.size(), OUT result ); },
-						  []  (const std::monostate &)   { return false; }
+						  []  (const NullUnion &)   { return false; }
 						);
 		}
 

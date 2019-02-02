@@ -160,7 +160,7 @@ endif()
 #==================================================================================================
 # project: Tests.Performance
 #==================================================================================================
-if (${FG_ENABLE_TESTS})
+if (${FG_ENABLE_PERFORMANCE_TESTS})
 	set( SOURCES 
 		"../tests/performance/Containers/CachedIndexedPool1.h"
 		"../tests/performance/Containers/CachedIndexedPool2.h"

@@ -81,7 +81,7 @@ void main ()
 		const auto		indices		= ArrayView<uint>{ 0, 1, 2 };
 		
 		BuildRayTracingGeometry::Triangles	triangles;
-		triangles.SetID( GeometryID{"Triangle"} ).SetVertices( vertices ).SetIndices( indices );
+		triangles.SetID( GeometryID{"Triangle"} ).SetVertexArray( vertices ).SetIndexArray( indices );
 
 		RayTracingGeometryDesc::Triangles	triangles_info;
 		triangles_info.SetID( GeometryID{"Triangle"} ).SetVertices< decltype(vertices[0]) >( vertices.size() )

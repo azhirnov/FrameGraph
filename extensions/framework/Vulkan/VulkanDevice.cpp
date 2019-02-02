@@ -348,7 +348,7 @@ namespace FG
 		instance_create_info.enabledLayerCount			= uint(instance_layers.size());
 		instance_create_info.ppEnabledLayerNames		= instance_layers.data();
 
-		VK_CHECK( vkCreateInstance( &instance_create_info, null, OUT &_vkInstance ) );
+		VK_CHECK( vkCreateInstance( &instance_create_info, null, OUT &_vkInstance ));
 
 		VulkanLoader::LoadInstance( _vkInstance );
 

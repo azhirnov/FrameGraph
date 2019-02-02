@@ -75,7 +75,7 @@ namespace FG
 								PipelineResources::RayTracingScene{ un.second.index, RawRTSceneID() };
 						},
 
-						[] (const std::monostate &) { ASSERT(false); }
+						[] (const NullUnion &) { ASSERT(false); }
 					);
 			}
 

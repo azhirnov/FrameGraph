@@ -39,6 +39,21 @@ endif ()
 
 #------------------------------------------------------------------------------
 check_cxx_source_compiles(
+	"#include <variant>
+	int main () {
+		std::variant<int, float> var;
+		var = 1.0f;
+		return 0;
+	}"
+	STD_VARIANT_SUPPORTED
+)
+
+if (STD_VARIANT_SUPPORTED)
+	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_VARIANT" )
+endif ()
+
+#------------------------------------------------------------------------------
+check_cxx_source_compiles(
 	"#include <filesystem>
 	namespace fs = std::filesystem;
 	int main () {

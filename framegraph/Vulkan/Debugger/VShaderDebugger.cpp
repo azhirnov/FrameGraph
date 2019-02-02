@@ -17,7 +17,10 @@ namespace FG
 		_frameGraph{ fg },
 		_bufferAlign{ _frameGraph.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment }
 	{
-		CHECK( fg.GetDevice().GetDeviceLimits().maxBoundDescriptorSets > _descSetBinding );
+		if ( FG_EnableShaderDebugging )
+		{
+			CHECK( fg.GetDevice().GetDeviceLimits().maxBoundDescriptorSets > _descSetBinding );
+		}
 	}
 	
 /*
@@ -396,6 +399,8 @@ namespace FG
 */
 	uint VShaderDebugger::Append (INOUT ArrayView<RectI> &, const TaskName_t &name, const _fg_hidden_::GraphicsShaderDebugMode &mode, BytesU size)
 	{
+		CHECK_ERR( FG_EnableShaderDebugging, UMax );
+
 		DebugMode	dbg_mode;
 		dbg_mode.taskName		= name;
 		dbg_mode.mode			= mode.mode;
@@ -419,6 +424,8 @@ namespace FG
 */
 	uint VShaderDebugger::Append (const TaskName_t &name, const _fg_hidden_::ComputeShaderDebugMode &mode, BytesU size)
 	{
+		CHECK_ERR( FG_EnableShaderDebugging, UMax );
+
 		DebugMode	dbg_mode;
 		dbg_mode.taskName		= name;
 		dbg_mode.mode			= mode.mode;
@@ -440,6 +447,8 @@ namespace FG
 */
 	uint VShaderDebugger::Append (const TaskName_t &name, const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size)
 	{
+		CHECK_ERR( FG_EnableShaderDebugging, UMax );
+
 		DebugMode	dbg_mode;
 		dbg_mode.taskName		= name;
 		dbg_mode.mode			= mode.mode;

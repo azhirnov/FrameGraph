@@ -6,7 +6,7 @@
 extern void Test_Shader12 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln1;
-	ppln1.AddShader( EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace, "main", R"#(
+	ppln1.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
@@ -42,8 +42,8 @@ void main ()
 	auto	iter2 = ppln2._shader.data.find( EShaderLangFormat::SPIRV_100 );
 	TEST( iter2 != ppln2._shader.data.end() );
 
-	auto*	shader1 = std::get_if< PipelineDescription::SharedShaderPtr<Array<uint>> >( &iter1->second );
-	auto*	shader2 = std::get_if< PipelineDescription::SharedShaderPtr<Array<uint>> >( &iter2->second );
+	auto*	shader1 = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &iter1->second );
+	auto*	shader2 = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &iter2->second );
 	TEST( shader1 and shader2 );
 
 	TEST( (*shader1)->GetEntry() == (*shader2)->GetEntry() );

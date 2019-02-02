@@ -367,7 +367,7 @@ namespace FG
 */
 	bool  VPipelineCache::_CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module)
 	{
-		const auto*	shader_data = std::get_if< PipelineDescription::SharedShaderPtr<Array<uint>> >( &shaderData );
+		const auto*	shader_data = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &shaderData );
 
 		if ( not (shader_data and *shader_data) )
 			RETURN_ERR( "invalid shader data format!" );

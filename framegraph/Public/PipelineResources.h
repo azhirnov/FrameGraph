@@ -95,7 +95,7 @@ namespace FG
 			}
 		};
 
-		using Resource_t	= Union< std::monostate, Buffer, Image, Texture, Sampler, SubpassInput, RayTracingScene >;
+		using Resource_t	= Union< NullUnion, Buffer, Image, Texture, Sampler, SubpassInput, RayTracingScene >;
 
 		struct ResourceInfo
 		{
@@ -222,7 +222,7 @@ namespace FG
 		ASSERT( HasImage( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	img		= std::get<Image>( curr.res );
+		auto&	img		= UnionGet<Image>( curr.res );
 
 		if ( img.imageId != image or img.hasDesc )
 			_ResetCachedID();
@@ -249,7 +249,7 @@ namespace FG
 		ASSERT( HasImage( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	img		= std::get<Image>( curr.res );
+		auto&	img		= UnionGet<Image>( curr.res );
 
 		if ( img.imageId != image or not img.hasDesc or not (img.desc == desc) )
 			_ResetCachedID();
@@ -292,7 +292,7 @@ namespace FG
 		ASSERT( HasTexture( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	tex		= std::get<Texture>( curr.res );
+		auto&	tex		= UnionGet<Texture>( curr.res );
 		
 		if ( tex.imageId != image or tex.samplerId != sampler.Get() or tex.hasDesc )
 			_ResetCachedID();
@@ -320,7 +320,7 @@ namespace FG
 		ASSERT( HasTexture( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	tex		= std::get<Texture>( curr.res );
+		auto&	tex		= UnionGet<Texture>( curr.res );
 		
 		if ( tex.imageId != image or tex.samplerId != sampler.Get() or not tex.hasDesc or not (tex.desc == desc) )
 			_ResetCachedID();
@@ -358,7 +358,7 @@ namespace FG
 		ASSERT( HasSampler( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	samp	= std::get<Sampler>( curr.res );
+		auto&	samp	= UnionGet<Sampler>( curr.res );
 
 		if ( samp.samplerId != sampler.Get() )
 			_ResetCachedID();
@@ -398,12 +398,12 @@ namespace FG
 		ASSERT( HasBuffer( id ));
 		auto	un = _uniforms->find( id );
 
-		if ( auto* ubuf = std::get_if<PipelineDescription::UniformBuffer>( &un->second.data ))
+		if ( auto* ubuf = UnionGetIf<PipelineDescription::UniformBuffer>( &un->second.data ))
 		{
 			_BindUniformBuffer( INOUT _resources[ un->second.index.Unique() ], *ubuf, buffer, 0_b, ~0_b );
 		}
 		else
-		if ( auto* sbuf = std::get_if<PipelineDescription::StorageBuffer>( &un->second.data ))
+		if ( auto* sbuf = UnionGetIf<PipelineDescription::StorageBuffer>( &un->second.data ))
 		{
 			_BindStorageBuffer( INOUT _resources[ un->second.index.Unique() ], *sbuf, buffer, 0_b, ~0_b );
 		}
@@ -425,12 +425,12 @@ namespace FG
 		ASSERT( HasBuffer( id ));
 		auto	un = _uniforms->find( id );
 		
-		if ( auto* ubuf = std::get_if<PipelineDescription::UniformBuffer>( &un->second.data ))
+		if ( auto* ubuf = UnionGetIf<PipelineDescription::UniformBuffer>( &un->second.data ))
 		{
 			_BindUniformBuffer( INOUT _resources[ un->second.index.Unique() ], *ubuf, buffer, offset, size );
 		}
 		else
-		if ( auto* sbuf = std::get_if<PipelineDescription::StorageBuffer>( &un->second.data ))
+		if ( auto* sbuf = UnionGetIf<PipelineDescription::StorageBuffer>( &un->second.data ))
 		{
 			_BindStorageBuffer( INOUT _resources[ un->second.index.Unique() ], *sbuf, buffer, offset, size );
 		}
@@ -444,7 +444,7 @@ namespace FG
 */
 	inline void PipelineResources::_BindUniformBuffer (INOUT ResourceInfo &curr, const PipelineDescription::UniformBuffer &un, RawBufferID id, BytesU offset, BytesU size)
 	{
-		auto&	buf = std::get<Buffer>( curr.res );
+		auto&	buf = UnionGet<Buffer>( curr.res );
 		ASSERT( (un.size == size) or (size == ~0_b) );
 		FG_UNUSED( un, size );
 		
@@ -476,7 +476,7 @@ namespace FG
 */
 	inline void PipelineResources::_BindStorageBuffer (INOUT ResourceInfo &curr, const PipelineDescription::StorageBuffer &un, RawBufferID id, BytesU offset, BytesU size)
 	{
-		auto&	buf = std::get<Buffer>( curr.res );
+		auto&	buf = UnionGet<Buffer>( curr.res );
 		ASSERT( size == ~0_b or ((size >= un.staticSize) and (un.arrayStride == 0 or (size - un.staticSize) % un.arrayStride == 0)) );
 		FG_UNUSED( un );
 
@@ -512,7 +512,7 @@ namespace FG
 		ASSERT( HasBuffer( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	buf		= std::get<Buffer>( curr.res );
+		auto&	buf		= UnionGet<Buffer>( curr.res );
 		
 		if ( buf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
 		{
@@ -552,7 +552,7 @@ namespace FG
 		ASSERT( HasRayTracingScene( id ));
 		auto	un		= _uniforms->find( id );
 		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	rts		= std::get<RayTracingScene>( curr.res );
+		auto&	rts		= UnionGet<RayTracingScene>( curr.res );
 		
 		if ( rts.sceneId != scene.Get() )
 			_ResetCachedID();

@@ -41,7 +41,7 @@ namespace FG
 			auto	iter = desc._shaders.find( id );
 			CHECK_ERR( iter->second.data.size() == 1 );
 
-			auto* vk_shader = std::get_if< PipelineDescription::VkShaderPtr >( &iter->second.data.begin()->second );
+			auto* vk_shader = UnionGetIf< PipelineDescription::VkShaderPtr >( &iter->second.data.begin()->second );
 			CHECK_ERR( vk_shader );
 			
 			stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -117,7 +117,7 @@ namespace FG
 								return true;
 							},
 
-							[] (const std::monostate &) -> bool { return false; }
+							[] (const NullUnion &) -> bool { return false; }
 						));
 		}
 		

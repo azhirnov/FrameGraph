@@ -80,7 +80,7 @@ namespace FG
 		update.descriptorIndex	= 0;
 
 		for (auto& un : _resources) {
-			std::visit( [&] (auto& data) { _AddResource( resMngr, data, update ); }, un.res );
+			Visit( un.res, [&](auto& data) { _AddResource( resMngr, data, update ); });
 		}
 		
 		dev.vkUpdateDescriptorSets( dev.GetVkDevice(), update.descriptorIndex, update.descriptors, 0, null );
@@ -141,7 +141,7 @@ namespace FG
 								[&resMngr] (const PipelineResources::RayTracingScene &rts) {
 									return not rts.sceneId or resMngr.IsResourceAlive( rts.sceneId );
 								},
-								[] (const std::monostate &) {
+								[] (const NullUnion &) {
 									return true;
 								}
 							);
@@ -358,7 +358,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &, const std::monostate &, INOUT UpdateDescriptors &)
+	bool VPipelineResources::_AddResource (VResourceManagerThread &, const NullUnion &, INOUT UpdateDescriptors &)
 	{
 		//RETURN_ERR( "uninitialized uniform!" );
 		return false;

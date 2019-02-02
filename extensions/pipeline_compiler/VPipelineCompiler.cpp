@@ -326,7 +326,7 @@ namespace FG
 		return Visit( src.data,
 				[&] (const PipelineDescription::Texture &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Texture>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Texture>( &dst.data ) )
 					{
 						ASSERT( lhs.textureType	== rhs->textureType );
 						ASSERT( src.index		== dst.index );
@@ -344,7 +344,7 @@ namespace FG
 				   
 				[&] (const PipelineDescription::Sampler &)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Sampler>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Sampler>( &dst.data ) )
 					{
 						ASSERT( src.index == dst.index );
 
@@ -359,7 +359,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::SubpassInput &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::SubpassInput>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::SubpassInput>( &dst.data ) )
 					{
 						ASSERT( lhs.attachmentIndex	== rhs->attachmentIndex );
 						ASSERT( lhs.isMultisample	== rhs->isMultisample );
@@ -379,7 +379,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::Image &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Image>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Image>( &dst.data ) )
 					{
 						ASSERT( lhs.imageType	== rhs->imageType );
 						ASSERT( lhs.format		== rhs->format );
@@ -401,7 +401,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::UniformBuffer &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::UniformBuffer>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::UniformBuffer>( &dst.data ) )
 					{
 						ASSERT( lhs.size	== rhs->size );
 						ASSERT( src.index	== dst.index );
@@ -419,7 +419,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::StorageBuffer &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::StorageBuffer>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::StorageBuffer>( &dst.data ) )
 					{
 						ASSERT( lhs.staticSize	== rhs->staticSize );
 						ASSERT( lhs.arrayStride	== rhs->arrayStride );
@@ -441,7 +441,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::RayTracingScene &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::RayTracingScene>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::RayTracingScene>( &dst.data ) )
 					{
 						ASSERT( lhs.state == rhs->state );
 
@@ -454,7 +454,7 @@ namespace FG
 					return false;
 				},
 
-				[] (const std::monostate &) { return false; }
+				[] (const NullUnion &) { return false; }
 			);
 	}
 
@@ -624,13 +624,13 @@ namespace FG
 		{
 			for (auto& un : *ds_layout.uniforms)
 			{
-				if ( auto* ubuf = std::get_if< PipelineDescription::UniformBuffer >( &un.second.data );
+				if ( auto* ubuf = UnionGetIf< PipelineDescription::UniformBuffer >( &un.second.data );
 					 ubuf and EnumEq( ubuf->state, EResourceState::_BufferDynamicOffset ) )
 				{
 					sorted.push_back( const_cast< PipelineDescription::Uniform *>( &un.second ));
 				}
 				else
-				if ( auto* sbuf = std::get_if< PipelineDescription::StorageBuffer >( &un.second.data );
+				if ( auto* sbuf = UnionGetIf< PipelineDescription::StorageBuffer >( &un.second.data );
 					sbuf and EnumEq( sbuf->state, EResourceState::_BufferDynamicOffset ) )
 				{
 					sorted.push_back( const_cast< PipelineDescription::Uniform *>( &un.second ));
@@ -643,10 +643,10 @@ namespace FG
 		uint	index = 0;
 		for (auto* un : sorted)
 		{
-			if ( auto* ubuf = std::get_if< PipelineDescription::UniformBuffer >( &un->data ))
+			if ( auto* ubuf = UnionGetIf< PipelineDescription::UniformBuffer >( &un->data ))
 				ubuf->dynamicOffsetIndex = index++;
 			else
-			if ( auto* sbuf = std::get_if< PipelineDescription::StorageBuffer >( &un->data ))
+			if ( auto* sbuf = UnionGetIf< PipelineDescription::StorageBuffer >( &un->data ))
 				sbuf->dynamicOffsetIndex = index++;
 		}
 
@@ -737,7 +737,7 @@ namespace FG
 			
 
 			// compile glsl
-			if ( auto* shader_data = std::get_if< StringShaderData >( &iter->second ) )
+			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ) )
 			{
 				SpirvCompiler::ShaderReflection	reflection;
 				String							log;
@@ -823,7 +823,7 @@ namespace FG
 			
 
 			// compile glsl
-			if ( auto* shader_data = std::get_if< StringShaderData >( &iter->second ) )
+			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ) )
 			{
 				SpirvCompiler::ShaderReflection		reflection;
 				String								log;
@@ -897,7 +897,7 @@ namespace FG
 			
 
 			// compile glsl
-			if ( auto* shader_data = std::get_if< StringShaderData >( &iter->second ) )
+			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ) )
 			{
 				SpirvCompiler::ShaderReflection	reflection;
 				String							log;
@@ -978,7 +978,7 @@ namespace FG
 			RETURN_ERR( "no suitable shader format found!" );
 		}
 
-		if ( auto* shader_data = std::get_if< StringShaderData >( &iter->second ) )
+		if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ) )
 		{
 			SpirvCompiler::ShaderReflection	reflection;
 			String							log;
@@ -1025,7 +1025,7 @@ namespace FG
 			{
 				// create shader module from SPIRV
 				case EShaderLangFormat::SPIRV : {
-					const auto*	spv_data_ptr = std::get_if<BinaryShaderData>( &sh_iter->second );
+					const auto*	spv_data_ptr = UnionGetIf<BinaryShaderData>( &sh_iter->second );
 					COMP_CHECK_ERR( spv_data_ptr and *spv_data_ptr, "invalid shader data!" );
 
 					const EShaderLangFormat	module_fmt = EShaderLangFormat::ShaderModule | EShaderLangFormat::Vulkan |

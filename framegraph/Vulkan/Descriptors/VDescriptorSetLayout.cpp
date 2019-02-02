@@ -108,7 +108,7 @@ namespace FG
 		Visit( lhsUniform.data,
 			[&rhsUniform, &result] (const PipelineDescription::Texture &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::Texture>( &rhsUniform.data ) )
+				if ( auto* rhs = UnionGetIf<PipelineDescription::Texture>( &rhsUniform.data ) )
 				{
 					result = TextureEquals( lhs, *rhs );
 				}
@@ -116,7 +116,7 @@ namespace FG
 				   
 			[&rhsUniform, &result] (const PipelineDescription::Sampler &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::Sampler>( &rhsUniform.data ) )
+				if ( auto* rhs = UnionGetIf<PipelineDescription::Sampler>( &rhsUniform.data ) )
 				{
 					result = SamplerEquals( lhs, *rhs );
 				}
@@ -124,7 +124,7 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::SubpassInput &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::SubpassInput>( &rhsUniform.data ) )
+				if ( auto* rhs = UnionGetIf<PipelineDescription::SubpassInput>( &rhsUniform.data ) )
 				{
 					result = SubpassInputEquals( lhs, *rhs );
 				}
@@ -132,7 +132,7 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::Image &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::Image>( &rhsUniform.data ) )
+				if ( auto* rhs = UnionGetIf<PipelineDescription::Image>( &rhsUniform.data ) )
 				{
 					result = ImageEquals( lhs, *rhs );
 				}
@@ -140,7 +140,7 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::UniformBuffer &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::UniformBuffer>( &rhsUniform.data ) )
+				if ( auto* rhs = UnionGetIf<PipelineDescription::UniformBuffer>( &rhsUniform.data ) )
 				{
 					result = UniformBufferEquals( lhs, *rhs );
 				}
@@ -148,7 +148,7 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::StorageBuffer &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::StorageBuffer>( &rhsUniform.data ) )
+				if ( auto* rhs = UnionGetIf<PipelineDescription::StorageBuffer>( &rhsUniform.data ) )
 				{
 					result = StorageBufferEquals( lhs, *rhs );
 				}
@@ -156,13 +156,13 @@ namespace FG
 				
 			[&rhsUniform, &result] (const PipelineDescription::RayTracingScene &lhs)
 			{
-				if ( auto* rhs = std::get_if<PipelineDescription::RayTracingScene>( &rhsUniform.data ) )
+				if ( auto* rhs = UnionGetIf<PipelineDescription::RayTracingScene>( &rhsUniform.data ) )
 				{
 					result = RayTracingSceneEquals( lhs, *rhs );
 				}
 			},
 
-			[] (const std::monostate &) { ASSERT(false); }
+			[] (const NullUnion &) { ASSERT(false); }
 		);
 
 		return result;
@@ -278,7 +278,7 @@ namespace FG
 			[&] (const PipelineDescription::RayTracingScene &rts) {
 				_AddRayTracingScene( rts, un.index.VKBinding(), un.stageFlags, INOUT binding );
 			},
-			[] (const std::monostate &) {
+			[] (const NullUnion &) {
 				ASSERT(false);
 			}
 		);

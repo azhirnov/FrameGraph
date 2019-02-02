@@ -72,9 +72,9 @@ public:
 			CHECK_ERR( window->Create( { 800, 600 }, "Test" ));
 			window->AddListener( this );
 
-			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_0 ));
+			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_0, {}, {} ));
 		
-			// it is the test, so test must fail on any error
+			// this is a test and the test should fail for any validation error
 			//vulkan.CreateDebugReportCallback( DebugReportFlags_All,
 			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
 											[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
@@ -285,6 +285,6 @@ extern void FW_Test1 ()
 {
 	FWApp1	app;
 
-	CHECK_FATAL( app.Run( null ));
+	CHECK_FATAL( app.Run() );
 }
 #endif

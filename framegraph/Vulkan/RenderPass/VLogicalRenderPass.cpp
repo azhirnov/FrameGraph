@@ -22,7 +22,7 @@ namespace {
 			[&result] (const RGBA32u &src)		{ MemCopy( result.color.uint32, src ); },
 			[&result] (const RGBA32i &src)		{ MemCopy( result.color.int32, src ); },
 			[&result] (const DepthStencil &src)	{ result.depthStencil = {src.depth, src.stencil}; },
-			[&result] (const std::monostate &)	{ memset( &result, 0, sizeof(result) ); }
+			[&result] (const NullUnion &)	{ memset( &result, 0, sizeof(result) ); }
 		);
 	}
 //-----------------------------------------------------------------------------

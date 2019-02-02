@@ -57,7 +57,7 @@ Dependencies:<br/>
     correct render pass optimization. (WIP)
 - multithreading. (done)<br/>
 - render pass subpasses. (WIP)<br/>
-- queue family transfer. (WIP)<br/>
+- queue family transfer. (done)<br/>
 - graph visualizations. (done, but should be improved)<br/>
 
 ### Stage 2

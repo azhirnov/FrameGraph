@@ -61,7 +61,7 @@ namespace FG
 		//void operator () (const PipelineResources::SubpassInput &sp);
 		void operator () (const PipelineResources::Sampler &) {}
 		void operator () (const PipelineResources::RayTracingScene &);
-		void operator () (const std::monostate &) {}
+		void operator () (const NullUnion &) {}
 	};
 
 	
@@ -1185,7 +1185,7 @@ namespace FG
 			PipelineResourceBarriers	visitor{ *this, resourceSet.dynamicOffsets };
 
 			for (auto& un : res.pplnRes->GetResources()) {
-				std::visit( visitor, un.res );
+				FG::Visit( un.res, visitor );
 			}
 
 			ASSERT( ds_layout == res.pplnRes->GetLayoutID() );

@@ -258,7 +258,7 @@ namespace FG
 			case EShaderLangFormat::EnableDebugTrace :
 			{
 				DebugUtilsPtr	debug_utils	{new VCachedDebuggableSpirv::ShaderDebugUtils_t{ std::in_place_type<ShaderTrace> }};
-				ShaderTrace&	trace		= std::get<ShaderTrace>( *debug_utils.get() );
+				ShaderTrace&	trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
 
 				trace.SetSource( source.data(), source.length() );
 

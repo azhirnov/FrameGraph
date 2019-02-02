@@ -234,7 +234,7 @@ namespace FG
 	{
 		CHECK_ERR( _GetState() == EState::RunThreads );
 
-		auto*	batch_data = std::get_if<VulkanCommandBatch>( &data );
+		auto*	batch_data = UnionGetIf<VulkanCommandBatch>( &data );
 		CHECK_ERR( batch_data );
 
 		for (auto& sem : batch_data->signalSemaphores) {
