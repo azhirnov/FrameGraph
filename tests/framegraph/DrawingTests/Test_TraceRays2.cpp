@@ -39,7 +39,7 @@ void main ()
 }
 )#");
 		
-		ppln.AddShader( RTShaderID("PrimiryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
+		ppln.AddShader( RTShaderID("PrimaryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460 core
 #extension GL_NV_ray_tracing : require
 layout(location = 0) rayPayloadInNV vec4  payload;
@@ -50,7 +50,7 @@ void main ()
 }
 )#");
 		
-		ppln.AddShader( RTShaderID("PrimiryHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
+		ppln.AddShader( RTShaderID("PrimaryHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460 core
 #extension GL_NV_ray_tracing : require
 layout(location = 0) rayPayloadInNV vec4  payload;
@@ -62,17 +62,12 @@ void main ()
 	payload = vec4(barycentrics, 1.0);
 }
 )#");
-		ppln.AddRayGenShader( RTShaderGroupID("Main"), RTShaderID("Main") );
-		ppln.AddRayMissShader( RTShaderGroupID("PrimiryMiss"), RTShaderID("PrimiryMiss") );
-		ppln.AddTriangleHitShaders( RTShaderGroupID("TriangleHit"), RTShaderID("PrimiryHit") );
-
 
 		FGThreadPtr		frame_graph	= _fgGraphics1;
 		const uint2		view_size	= {800, 600};
 		ImageID			dst_image	= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::Storage | EImageUsage::TransferSrc },
 															    Default, "OutputImage" );
-		BufferID		sbt_buffer	= frame_graph->CreateBuffer( BufferDesc{ 4_Kb, EBufferUsage::RayTracing | EBufferUsage::TransferDst } );
 		
 		RTPipelineID	pipeline	= frame_graph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
@@ -87,8 +82,9 @@ void main ()
 		triangles_info.SetID( GeometryID{"Triangle"} ).SetVertices< decltype(vertices[0]) >( vertices.size() )
 					.SetIndices( indices.size(), EIndex::UInt ).AddFlags( ERayTracingGeometryFlags::Opaque );
 
-		RTGeometryID	rt_geometry	= frame_graph->CreateRayTracingGeometry( RayTracingGeometryDesc{{ triangles_info }} );
-		RTSceneID		rt_scene	= frame_graph->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
+		RTGeometryID		rt_geometry	= frame_graph->CreateRayTracingGeometry( RayTracingGeometryDesc{{ triangles_info }} );
+		RTSceneID			rt_scene	= frame_graph->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
+		RTShaderTableID		rt_shaders	= frame_graph->CreateRayTracingShaderTable();
 
 		PipelineResources	resources;
 		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
@@ -96,7 +92,7 @@ void main ()
 		
 		bool	data_is_correct = false;
 		
-		const auto	OnLoaded =	[this, OUT &data_is_correct] (const ImageView &imageData)
+		const auto	OnLoaded =	[OUT &data_is_correct] (const ImageView &imageData)
 		{
 			const auto	TestPixel = [&imageData] (float x, float y, const RGBA32f &color)
 			{
@@ -131,8 +127,6 @@ void main ()
 		CommandBatchID		batch_id {"main"};
 		SubmissionGraph		submission_graph;
 		submission_graph.AddBatch( batch_id, 1 );
-		
-		TraceRays::ShaderTable		shader_table;
 
 		// frame 1
 		{
@@ -143,15 +137,17 @@ void main ()
 			resources.BindRayTracingScene( UniformID("un_RtScene"), rt_scene );
 		
 			BuildRayTracingScene::Instance		instance;
+			instance.SetID( InstanceID{"0"} );
 			instance.SetGeometry( rt_geometry );
 
 			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
 			Task	t_build_scene	= frame_graph->AddTask( BuildRayTracingScene{}.SetTarget( rt_scene ).Add( instance ).DependsOn( t_build_geom ));
 
-			Task	t_update_table	= frame_graph->AddTask( UpdateRayTracingShaderTable{ OUT shader_table }.SetPipeline( pipeline ).SetScene( rt_scene )
-																.SetBuffer( sbt_buffer ).SetRayGenShader(RTShaderGroupID{"Main"})
-																.AddMissShader(RTShaderGroupID{"PrimiryMiss"})
-																.AddHitShader( GeometryID{"Triangle"}, RTShaderGroupID{"TriangleHit"} )
+			Task	t_update_table	= frame_graph->AddTask( UpdateRayTracingShaderTable{}
+																.SetTarget( rt_shaders ).SetPipeline( pipeline ).SetScene( rt_scene )
+																.SetRayGenShader( RTShaderID{"Main"} )
+																.AddMissShader( RTShaderID{"PrimaryMiss"} )
+																.AddTriangleHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
 																.DependsOn( t_build_scene ));
 			FG_UNUSED( t_update_table );
 
@@ -165,7 +161,7 @@ void main ()
 			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 			
 			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( shader_table )
+			Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
 																.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_build_geom ));
 			FG_UNUSED( t_trace );
 			
@@ -179,7 +175,7 @@ void main ()
 			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
 			
 			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( shader_table )
+			Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
 																.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_build_geom ));
 			Task	t_read			= frame_graph->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
 			FG_UNUSED( t_read );
@@ -195,7 +191,7 @@ void main ()
 
 		CHECK_ERR( data_is_correct );
 		
-		DeleteResources( pipeline, dst_image, rt_geometry, rt_scene, sbt_buffer );
+		DeleteResources( pipeline, dst_image, rt_geometry, rt_scene, rt_shaders );
 
 		FG_LOGI( TEST_NAME << " - passed" );
 		return true;

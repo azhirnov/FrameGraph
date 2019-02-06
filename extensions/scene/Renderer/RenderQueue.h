@@ -17,8 +17,11 @@ namespace FG
 	protected:
 		struct PerLayer
 		{
-			bool				enabled		= false;
-			SubmitRenderPass	pass		{ LogicalPassID() };
+			SubmitRenderPass				pass		{ LogicalPassID() };
+			DescriptorSetID					descSetId	{"RenderTargets"};
+			Ptr<const PipelineResources>	resources;	// contains same render targets as in the render pass
+														// for using in compute or ray tracing shaders
+			bool							enabled		= false;
 		};
 
 		using Layers_t	= StaticArray< PerLayer, uint(ERenderLayer::_Count) >;
@@ -40,12 +43,15 @@ namespace FG
 
 		ND_ Task  _Submit (ArrayView<Task> dependsOn);
 
-		void _AddLayer (ERenderLayer layer, LogicalPassID passId, StringView dbgName);
-		void _AddLayer (ERenderLayer layer, const RenderPassDesc &desc, StringView dbgName);
+		void _AddLayer (ERenderLayer, LogicalPassID, const PipelineResources*, StringView);
+		void _AddLayer (ERenderLayer, const RenderPassDesc &, const PipelineResources*, StringView);
 
 	public:
 		template <typename DrawTask>
 		void Draw (ERenderLayer layer, const DrawTask &task);
+
+		template <typename ComputeTask>
+		void Compute (ERenderLayer layer, ComputeTask &task);
 
 		template <typename TaskType>
 		void AddTask (ERenderLayer beforeLayer, const TaskType &task);
@@ -103,24 +109,26 @@ namespace FG
 	_AddLayer
 =================================================
 */
-	inline void  RenderQueue::_AddLayer (ERenderLayer layer, LogicalPassID passId, StringView dbgName)
+	inline void  RenderQueue::_AddLayer (ERenderLayer layer, LogicalPassID passId, const PipelineResources* pplnRes, StringView dbgName)
 	{
 		ASSERT( uint(layer) < _layers.size() );
 		ASSERT( _camera.layers[uint(layer)] );
+		ASSERT( not pplnRes or pplnRes->IsInitialized() );
 
 		auto&	data = _layers[uint(layer)];
 
 		ASSERT( not data.enabled );		// layer already enabled
-		data.enabled = true;
-		data.pass	 = SubmitRenderPass{ passId };
+		data.enabled	= true;
+		data.pass		= SubmitRenderPass{ passId };
+		data.resources	= pplnRes;
 
 		if ( not dbgName.empty() )
 			data.pass.SetName( dbgName );
 	}
 	
-	inline void  RenderQueue::_AddLayer (ERenderLayer layer, const RenderPassDesc &desc, StringView dbgName)
+	inline void  RenderQueue::_AddLayer (ERenderLayer layer, const RenderPassDesc &desc, const PipelineResources* pplnRes, StringView dbgName)
 	{
-		return _AddLayer( layer, _frameGraph->CreateRenderPass( desc ), dbgName );
+		return _AddLayer( layer, _frameGraph->CreateRenderPass( desc ), pplnRes, dbgName );
 	}
 
 /*
@@ -135,6 +143,21 @@ namespace FG
 		_frameGraph->AddTask( _layers[uint(layer)].pass.renderPassId, task );
 	}
 	
+/*
+=================================================
+	Compute
+=================================================
+*/
+	template <typename ComputeTask>
+	inline void  RenderQueue::Compute (ERenderLayer layer, ComputeTask &task)
+	{
+		ASSERT( _camera.layers[uint(layer)] );
+
+		auto&	data = _layers[uint(layer)];
+
+		data.pass.DependsOn( _frameGraph->AddTask( task.AddResources( data.descSetId, data.resources.operator->() )));
+	}
+
 /*
 =================================================
 	AddTask

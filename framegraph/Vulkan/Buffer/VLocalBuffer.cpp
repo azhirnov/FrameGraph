@@ -267,7 +267,7 @@ namespace FG
 	ResetState
 =================================================
 */
-	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
 	{
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
@@ -299,7 +299,7 @@ namespace FG
 	CommitBarrier
 =================================================
 */
-	void VLocalBuffer::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	void VLocalBuffer::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
 	{
 		if ( _isImmutable )
 			return;

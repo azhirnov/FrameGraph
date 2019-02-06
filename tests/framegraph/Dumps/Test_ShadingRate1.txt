@@ -1,4 +1,4 @@
-Thread {
+SubBatch {
 	batch:         "main"
 	indexInBatch:  0
 	Image {
@@ -12,7 +12,7 @@ Thread {
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         SubmitRenderPass (#3)
+					srcTask:         RenderPass (#3)
 					dstTask:         ReadImage (#4)
 					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    Transfer
@@ -74,7 +74,7 @@ Thread {
 				}
 				ImageMemoryBarrier {
 					srcTask:         UpdateImage (#2)
-					dstTask:         SubmitRenderPass (#3)
+					dstTask:         RenderPass (#3)
 					srcStageMask:    Transfer
 					dstStageMask:    ShadingRateImage
 					dependencyFlags: 
@@ -89,7 +89,7 @@ Thread {
 					layerCount:      1
 				}
 				ImageMemoryBarrier {
-					srcTask:         SubmitRenderPass (#3)
+					srcTask:         RenderPass (#3)
 					dstTask:         <final>
 					srcStageMask:    ShadingRateImage
 					dstStageMask:    TopOfPipe
@@ -130,7 +130,7 @@ Thread {
 	Task {
 		name:    "UpdateImage (#2)"
 		input =  {  }
-		output = { SubmitRenderPass (#3) }
+		output = { RenderPass (#3) }
 		resource_usage = {
 			BufferUsage {
 				name:     "HostWriteBuffer"
@@ -149,7 +149,7 @@ Thread {
 		}
 	}
 	Task {
-		name:    "SubmitRenderPass (#3)"
+		name:    "RenderPass (#3)"
 		input =  { UpdateImage (#2) }
 		output = { ReadImage (#4) }
 		resource_usage = {
@@ -173,7 +173,7 @@ Thread {
 	}
 	Task {
 		name:    "ReadImage (#4)"
-		input =  { SubmitRenderPass (#3) }
+		input =  { RenderPass (#3) }
 		output = {  }
 		resource_usage = {
 			BufferUsage {

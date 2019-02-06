@@ -24,7 +24,7 @@ namespace FG
 			StaticArray< Pair<IntermMeshPtr, IntermMaterialPtr>, uint(EDetailLevel::_Count) >	levels;
 		};
 
-		using NodeData_t	= Union< std::monostate, ModelData >;
+		using NodeData_t	= Union< NullUnion, ModelData >;
 
 		struct SceneNode
 		{

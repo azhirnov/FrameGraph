@@ -54,11 +54,12 @@ namespace {
 		_tests.push_back({ &FGApp::ImplTest_Multithreading3, 1 });
 		
 		// RTX only
-		_tests.push_back({ &FGApp::Test_DrawMeshes1,	1 });
-		_tests.push_back({ &FGApp::Test_TraceRays1,		1 });
-		_tests.push_back({ &FGApp::Test_TraceRays2,		1 });
-		_tests.push_back({ &FGApp::Test_TraceRays3,		1 });
-		_tests.push_back({ &FGApp::Test_ShadingRate1,	1 });
+		_tests.push_back({ &FGApp::Test_DrawMeshes1,		1 });
+		_tests.push_back({ &FGApp::Test_TraceRays1,			1 });
+		_tests.push_back({ &FGApp::Test_TraceRays2,			1 });
+		_tests.push_back({ &FGApp::Test_TraceRays3,			1 });
+		_tests.push_back({ &FGApp::Test_ShadingRate1,		1 });
+		_tests.push_back({ &FGApp::Test_RayTracingDebugger1, 1 });
 
 		// very slow
 		//_tests.push_back({ &FGApp::ImplTest_CacheOverflow1,	1 });

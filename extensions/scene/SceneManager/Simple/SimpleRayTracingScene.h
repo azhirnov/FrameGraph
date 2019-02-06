@@ -16,20 +16,48 @@ namespace FG
 	{
 	// types
 	private:
+		using ShaderTable	= TraceRays::ShaderTable;
 
+		struct VertexAttrib
+		{
+			vec3	normal;
+			float	_padding1;
+			vec2	texcoord0;
+			vec2	texcoord1;
+		};
+
+		struct Primitive
+		{
+			uvec3	face;
+			uint	materialID;
+		};
+
+		struct MeshData
+		{
+			Array<vec3>			vertices;
+			Array<uint>			indices;
+			Array<Primitive>	primitives;
+			Array<VertexAttrib>	attribs;
+		};
 
 
 	// variables
 	private:
-		RTSceneID		_rtScene;
-		AABB			_boundingBox;
+		RTSceneID			_rtScene;
+		ShaderTable			_shaderTable;
+		BufferID			_sbtBuffer;
+		BufferID			_primitivesBuffer;
+		BufferID			_attribsBuffer;
+		PipelineResources	_resources;
+
+		AABB				_boundingBox;
 
 
 	// methods
 	public:
 		SimpleRayTracingScene ();
-
-		bool Create (const FGThreadPtr &, const IntermScenePtr &, const ImageCachePtr &);
+		
+		bool Create (const FGThreadPtr &, const IntermScenePtr &, const ImageCachePtr &, const Transform & = Default);
 		void Destroy (const FGThreadPtr &);
 		
 		bool Build (const FGThreadPtr &, const RenderTechniquePtr &) override;
@@ -38,6 +66,12 @@ namespace FG
 
 		AABB  CalculateBoundingVolume () const override		{ return _boundingBox; }
 
+	private:
+		bool _CreateGeometry (const FGThreadPtr &, const IntermScenePtr &, const Transform &);
+		bool _ConvertHierarchy (const IntermScenePtr &, const Transform &, OUT MeshData &) const;
+		bool _CreateMesh (const IntermScenePtr &, const IntermScene::ModelData &, const Transform &, INOUT MeshData &) const;
+
+		bool _UpdateShaderTable (const FGThreadPtr &, const RenderTechniquePtr &);
 	};
 
 

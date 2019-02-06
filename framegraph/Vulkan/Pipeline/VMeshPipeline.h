@@ -51,17 +51,19 @@ namespace FG
 
 	// variables
 	private:
-		PipelineLayoutID		_baseLayoutId;
-		Instances_t				_instances;
+		mutable std::shared_mutex	_instanceGuard;
+		mutable Instances_t			_instances;
 
-		ShaderModules_t			_shaders;
-		EPrimitive				_topology				= Default;
-		FragmentOutputPtr		_fragmentOutput			= null;
-		bool					_earlyFragmentTests		= true;
+		PipelineLayoutID			_baseLayoutId;
+		ShaderModules_t				_shaders;
+
+		EPrimitive					_topology				= Default;
+		FragmentOutputPtr			_fragmentOutput			= null;
+		bool						_earlyFragmentTests		= true;
 		
-		DebugName_t				_debugName;
+		DebugName_t					_debugName;
 		
-		RWRaceConditionCheck	_rcCheck;
+		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods

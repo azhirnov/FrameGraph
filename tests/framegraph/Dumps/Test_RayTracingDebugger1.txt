@@ -12,7 +12,7 @@ SubBatch {
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         TraceRays (#5)
+					srcTask:         DebuggableRayTracing (#5)
 					dstTask:         ReadImage (#6)
 					srcStageMask:    RayTracing
 					dstStageMask:    Transfer
@@ -91,13 +91,13 @@ SubBatch {
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         UpdateRayTracingShaderTable (#4)
-					dstTask:         TraceRays (#5)
+					dstTask:         DebuggableRayTracing (#5)
 					srcStageMask:    Transfer
 					dstStageMask:    RayTracing
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
-					offset:          0 b
+					offset:          64 b
 					size:            48 b
 				}
 				BufferMemoryBarrier {
@@ -180,7 +180,7 @@ SubBatch {
 	Task {
 		name:    "UpdateRayTracingShaderTable (#4)"
 		input =  { BuildRayTracingScene (#3) }
-		output = { TraceRays (#5) }
+		output = { DebuggableRayTracing (#5) }
 		resource_usage = {
 			BufferUsage {
 				name:     ""
@@ -209,15 +209,15 @@ SubBatch {
 		}
 	}
 	Task {
-		name:    "TraceRays (#5)"
+		name:    "DebuggableRayTracing (#5)"
 		input =  { UpdateRayTracingShaderTable (#4) }
 		output = { ReadImage (#6) }
 		resource_usage = {
 			BufferUsage {
 				name:     ""
 				usage:    Uniform, RTS
-				offset:   0 b
-				size:     48 b
+				offset:   64 b
+				size:     64 b
 			}
 			ImageUsage {
 				name:           "OutputImage"
@@ -231,7 +231,7 @@ SubBatch {
 	}
 	Task {
 		name:    "ReadImage (#6)"
-		input =  { TraceRays (#5) }
+		input =  { DebuggableRayTracing (#5) }
 		output = {  }
 		resource_usage = {
 			BufferUsage {

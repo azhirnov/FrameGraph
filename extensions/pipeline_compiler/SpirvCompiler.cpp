@@ -226,6 +226,7 @@ namespace FG
 								OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
 	{
 		using SpirvShaderData	= PipelineDescription::SharedShaderPtr< Array<uint> >;
+		using DebugUtils		= VCachedDebuggableSpirv::ShaderDebugUtils_t;
 		using DebugUtilsPtr		= VCachedDebuggableSpirv::ShaderDebugUtilsPtr;
 
 		log.clear();
@@ -257,7 +258,7 @@ namespace FG
 		{
 			case EShaderLangFormat::EnableDebugTrace :
 			{
-				DebugUtilsPtr	debug_utils	{new VCachedDebuggableSpirv::ShaderDebugUtils_t{ std::in_place_type<ShaderTrace> }};
+				DebugUtilsPtr	debug_utils	{new DebugUtils{ InPlaceIndex<ShaderTrace> }};
 				ShaderTrace&	trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
 
 				trace.SetSource( source.data(), source.length() );
@@ -345,7 +346,7 @@ namespace FG
 		EShTargetLanguageVersion	target_version	= EShTargetLanguageVersion(0);
 		
 		int							version			= 0;
-		int			 				sh_version		= 450;		// TODO
+		int			 				sh_version		= 460;		// TODO
 		EProfile					sh_profile		= ENoProfile;
 		EShSource					sh_source;
 
@@ -393,7 +394,7 @@ namespace FG
 				client			= EShClientVulkan;
 				client_version	= (version == 110 ? EShTargetVulkan_1_1 : EShTargetVulkan_1_0);
 				target			= EShTargetSpv;
-				target_version	= (version == 110 ? EShTargetSpv_1_2 : EShTargetSpv_1_0);
+				target_version	= (version == 110 ? EShTargetSpv_1_3 : EShTargetSpv_1_0);
 				#ifdef ENABLE_OPT
 				_spirvTraget	= (version == 110 ? SPV_ENV_VULKAN_1_1 : SPV_ENV_VULKAN_1_0);
 				#endif

@@ -459,7 +459,8 @@ if (${FG_ENABLE_GLM})
 		"scene/Utils/Math/Transform.h"
 		"scene/Renderer/Prototype/RendererPrototype.cpp"
 		"scene/Renderer/Prototype/RendererPrototype.h"
-		"scene/Renderer/Prototype/RendererPrototypeUbershader.glsl"
+		"scene/Renderer/Prototype/RendererPrototypeGraphics.glsl"
+		"scene/Renderer/Prototype/RendererPrototypeRaytracing.glsl"
 		"scene/Common.h"
 		"scene/SceneManager/Resources/FpsCamera.h"
 		"scene/SceneManager/Resources/LightSource.h"
@@ -489,7 +490,7 @@ if (${FG_ENABLE_GLM})
 	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermImage.h" "scene/Loader/Intermediate/IntermLight.h" "scene/Loader/Intermediate/IntermMaterial.h" "scene/Loader/Intermediate/IntermMesh.cpp" "scene/Loader/Intermediate/IntermMesh.h" "scene/Loader/Intermediate/IntermScene.h" "scene/Loader/Intermediate/VertexAttributes.cpp" "scene/Loader/Intermediate/VertexAttributes.h" )
 	source_group( "Renderer" FILES "scene/Renderer/Enums.h" "scene/Renderer/IRenderTechnique.h" "scene/Renderer/RenderQueue.h" "scene/Renderer/ScenePreRender.h" "scene/Renderer/ShaderBuilder.cpp" "scene/Renderer/ShaderBuilder.h" )
 	source_group( "Utils\\Math" FILES "scene/Utils/Math/AABB.h" "scene/Utils/Math/Camera.h" "scene/Utils/Math/Frustum.h" "scene/Utils/Math/GLM.h" "scene/Utils/Math/OOBB.h" "scene/Utils/Math/Radians.h" "scene/Utils/Math/Sphere.h" "scene/Utils/Math/Transform.h" )
-	source_group( "Renderer\\Prototype" FILES "scene/Renderer/Prototype/RendererPrototype.cpp" "scene/Renderer/Prototype/RendererPrototype.h" "scene/Renderer/Prototype/RendererPrototypeUbershader.glsl" )
+	source_group( "Renderer\\Prototype" FILES "scene/Renderer/Prototype/RendererPrototype.cpp" "scene/Renderer/Prototype/RendererPrototype.h" "scene/Renderer/Prototype/RendererPrototypeGraphics.glsl" "scene/Renderer/Prototype/RendererPrototypeRaytracing.glsl" )
 	source_group( "" FILES "scene/Common.h" )
 	source_group( "SceneManager\\Resources" FILES "scene/SceneManager/Resources/FpsCamera.h" "scene/SceneManager/Resources/LightSource.h" "scene/SceneManager/Resources/Material.h" "scene/SceneManager/Resources/Model.cpp" "scene/SceneManager/Resources/Model.h" "scene/SceneManager/Resources/ParticleEmitter.h" "scene/SceneManager/Resources/SceletalModel.h" )
 	source_group( "Loader\\Assimp" FILES "scene/Loader/Assimp/AssimpLoader.cpp" "scene/Loader/Assimp/AssimpLoader.h" )

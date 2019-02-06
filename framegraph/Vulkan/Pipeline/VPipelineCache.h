@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "framegraph/Public/FrameGraphTask.h"
 #include "VDescriptorSetLayout.h"
 #include "VPipelineLayout.h"
 #include "VGraphicsPipeline.h"
@@ -49,17 +50,43 @@ namespace FG
 		using GPipelineInstanceMap_t	= InPlace< PipelineInstanceCacheTempl< VGraphicsPipeline > >;
 		using MPipelineInstanceMap_t	= InPlace< PipelineInstanceCacheTempl< VMeshPipeline > >;
 		
-		static constexpr uint	MaxStages = 8;
 		using DynamicStates_t			= FixedArray< VkDynamicState, 32 >;
 		using Viewports_t				= FixedArray< VkViewport, 16 >;
 		using Scissors_t				= FixedArray< VkRect2D, 16 >;
-		using ShaderStages_t			= FixedArray< VkPipelineShaderStageCreateInfo, MaxStages >;
 		using VertexInputAttributes_t	= FixedArray< VkVertexInputAttributeDescription, FG_MaxVertexAttribs >;
 		using VertexInputBindings_t		= FixedArray< VkVertexInputBindingDescription, FG_MaxVertexBuffers >;
 		using ColorAttachments_t		= FixedArray< VkPipelineColorBlendAttachmentState, FG_MaxColorBuffers >;
-		using Specializations_t			= FixedArray< VkSpecializationInfo, MaxStages >;
-		using SpecializationEntries_t	= FixedArray< VkSpecializationMapEntry, FG_MaxSpecConstants * MaxStages >;
-		using SpecializationData_t		= FixedArray< uint, FG_MaxSpecConstants * MaxStages >;
+		using Specializations_t			= Array< VkSpecializationInfo >;
+		using SpecializationEntries_t	= Array< VkSpecializationMapEntry >;
+		using SpecializationData_t		= Array< uint >;
+		using ShaderStages_t			= Array< VkPipelineShaderStageCreateInfo >;
+		using RTShaderGroups_t			= Array< VkRayTracingShaderGroupCreateInfoNV >;
+		
+		using EGroupType				= UpdateRayTracingShaderTable::EGroupType;
+		using RayGenShader				= UpdateRayTracingShaderTable::RayGenShader;
+		using RTShaderGroup				= UpdateRayTracingShaderTable::ShaderGroup;
+		
+		struct RTShaderGroupHash {
+			ND_ size_t  operator () (const RTShaderGroup *value) const noexcept {
+				return size_t(HashOf( value->type ) + HashOf( value->mainShader ) + HashOf( value->anyHitShader ) + HashOf( value->intersectionShader ));
+			}
+		};
+		struct RTShaderGroupEqual {
+			ND_ bool  operator () (const RTShaderGroup *lhs, const RTShaderGroup *rhs) const noexcept {
+				return	lhs->type == rhs->type and lhs->mainShader == rhs->mainShader and
+						lhs->anyHitShader == rhs->anyHitShader and lhs->intersectionShader == rhs->intersectionShader;
+			}
+		};
+		using RTShaderGroupMap_t		= std::unordered_map< RTShaderGroup const*, uint, RTShaderGroupHash, RTShaderGroupEqual >;
+
+	public:
+		struct BufferCopyRegion
+		{
+			VLocalBuffer const*		srcBuffer	= null;
+			VLocalBuffer const*		dstBuffer	= null;
+			VkBufferCopy			region		{};
+		};
+		using BufferCopyRegions_t = FixedArray< BufferCopyRegion, 8 >;
 
 
 	// variables
@@ -69,11 +96,6 @@ namespace FG
 		
 		ShaderModules_t				_shaderCache;
 		PipelineCompilers_t			_compilers;
-		
-		// pipeline cache
-		GPipelineInstanceMap_t		_graphicsPipelines;
-		CPipelineInstanceMap_t		_computePipelines;
-		MPipelineInstanceMap_t		_meshPipelines;
 
 		// temporary arrays
 		ShaderStages_t				_tempStages;			// TODO: use custom allocator?
@@ -86,6 +108,8 @@ namespace FG
 		ColorAttachments_t			_tempAttachments;
 		SpecializationEntries_t		_tempSpecEntries;
 		SpecializationData_t		_tempSpecData;
+		RTShaderGroups_t			_tempShaderGroups;
+		RTShaderGroupMap_t			_tempShaderGraphMap;
 
 
 	// methods
@@ -96,9 +120,7 @@ namespace FG
 		bool Initialize (const VDevice &dev);
 		void Deinitialize (const VDevice &dev);
 
-		void OnBegin (LinearAllocator<> &);
 		bool MergeCache (VPipelineCache &);
-		void MergePipelines (OUT AppendableVkResources_t);
 		
 		void AddCompiler (const IPipelineCompilerPtr &comp);
 
@@ -110,27 +132,35 @@ namespace FG
 		ND_ FragmentOutputPtr  CreateFramentOutput (ArrayView<GraphicsPipelineDesc::FragmentOutput> values);
 
 		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
-									 VShaderDebugger				&shaderDebugger,
+									 Ptr<VShaderDebugger>			 shaderDebugger,
 									 const VLogicalRenderPass		&logicalRP,
 									 const VBaseDrawVerticesTask	&drawTask,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
 		
 		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
-									 VShaderDebugger				&shaderDebugger,
+									 Ptr<VShaderDebugger>			 shaderDebugger,
 									 const VLogicalRenderPass		&logicalRP,
 									 const VBaseDrawMeshes			&drawTask,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
 
 		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
-									 VShaderDebugger				&shaderDebugger,
+									 Ptr<VShaderDebugger>			 shaderDebugger,
 									 const VComputePipeline			&ppln,
 									 const Optional<uint3>			&localGroupSize,
 									 VkPipelineCreateFlags			 pipelineFlags,
 									 uint							 debugModeIndex,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
+
+		bool InitShaderTable (VFrameGraphThread				&fg,
+							  RawRTPipelineID				 pipelineId,
+							  VLocalRTScene const*			rtScene,
+							  const RayGenShader			&rayGenShader,
+							  ArrayView< RTShaderGroup >	 shaderGroups,
+							  INOUT VRayTracingShaderTable	&shaderTable,
+							  OUT BufferCopyRegions_t		&copyRegions);
 
 
 	private:

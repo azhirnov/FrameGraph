@@ -563,6 +563,16 @@ namespace {
 				sorted.push_back({ buffer->first->GetDebugName(), &res });
 			}
 			else
+			if ( auto* scene = UnionGetIf<RTSceneUsage_t>( &res ) )
+			{
+				sorted.push_back({ scene->first->GetDebugName(), &res });
+			}
+			else
+			if ( auto* geom = UnionGetIf<RTGeometryUsage_t>( &res ) )
+			{
+				sorted.push_back({ geom->first->GetDebugName(), &res });
+			}
+			else
 			{
 				ASSERT( !"unknown resource type!" );
 			}

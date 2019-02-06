@@ -59,7 +59,6 @@ namespace FG
 		struct RayTracingShaderDebugMode
 		{
 			EShaderDebugMode	mode		= Default;
-			EShaderStages		stages		= Default;
 			uint3				launchID	{ ~0u };
 		};
 
@@ -144,9 +143,9 @@ namespace FG
 		DispatchCompute&  Dispatch (const uint2 &count)						{ commands.emplace_back(uint3{0}, uint3{count, 1});  return *this; }
 		DispatchCompute&  Dispatch (const uint3 &count)						{ commands.emplace_back(uint3{0}, count);  return *this; }
 		
-		DispatchCompute&  SetLocalSize (const uint2 &value)					{ localGroupSize = {value.x, value.y, 1};  return *this; }
+		DispatchCompute&  SetLocalSize (const uint2 &value)					{ localGroupSize = uint3{value.x, value.y, 1};  return *this; }
 		DispatchCompute&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
-		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
+		DispatchCompute&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = uint3{x, y, z};  return *this; }
 
 		DispatchCompute&  EnableDebugTrace (const uint3 &globalID);
 		DispatchCompute&  EnableDebugTrace ()								{ return EnableDebugTrace( uint3{~0u} ); }
@@ -196,7 +195,7 @@ namespace FG
 			BaseTask<DispatchComputeIndirect>{ "DispatchComputeIndirect", ColorScheme::Compute } {}
 		
 		DispatchComputeIndirect&  SetLocalSize (const uint3 &value)					{ localGroupSize = value;  return *this; }
-		DispatchComputeIndirect&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = {x, y, z};  return *this; }
+		DispatchComputeIndirect&  SetLocalSize (uint x, uint y = 1, uint z = 1)		{ localGroupSize = uint3{x, y, z};  return *this; }
 		
 		DispatchComputeIndirect&  Dispatch (BytesU offset)							{ commands.push_back({ offset });  return *this; }
 
@@ -1019,17 +1018,20 @@ namespace FG
 		struct Instance
 		{
 		// variables
+			InstanceID			instanceId;
 			RawRTGeometryID		geometryId;
 			Matrix4x3			transform		= Matrix4x3::Identity();
-			uint				instanceID		= 0;
+			uint				customId		= 0;		// 'gl_InstanceCustomIndexNV' in the shader
 			EFlags				flags			= Default;
 			uint8_t				mask			= 0xFF;
 
 		// methods
 			Instance () {}
+			explicit Instance (const InstanceID &id)	{ SetID( id ); }
 
+			Instance&  SetID (const InstanceID &id);
 			Instance&  SetGeometry (const RTGeometryID &id);
-			Instance&  SetInstance (const Matrix4x3 &transform, uint id);
+			Instance&  SetInstance (const Matrix4x3 &transform, uint customId);
 			Instance&  AddFlags (EFlags value)			{ flags |= value;  return *this; }
 			Instance&  SetMask (uint8_t value)			{ mask   = value;  return *this; }
 		};
@@ -1058,107 +1060,69 @@ namespace FG
 	struct UpdateRayTracingShaderTable final : _fg_hidden_::BaseTask<UpdateRayTracingShaderTable>
 	{
 	// types
-		struct ShaderTable
+		struct RayGenShader
 		{
-			RawBufferID			buffer;
-			//BytesU			bufferSize;
-			RawRTPipelineID		pipeline;
-			
-			Bytes<uint>			rayGenOffset;
-			Bytes<uint>			rayMissOffset;
-			Bytes<uint>			rayHitOffset;
-			Bytes<uint>			callableOffset;
-
-			Bytes<uint16_t>		rayMissStride;
-			Bytes<uint16_t>		rayHitStride;
-			Bytes<uint16_t>		callableStride;
-
-			uint16_t			maxMissShaders;
-			//uint16_t			hitShadersPerInstance;	// in ray gen shader the 'sbtRecordStride' parameter of 'traceNV()' must equal to 'hitShadersPerInstance'
-			//											// and 'sbtRecordOffset' must be less then 'hitShadersPerInstance'
-		};
-		
-		struct RayGenShaderGroup
-		{
-			RTShaderGroupID		groupId;
+			RTShaderID			shaderId;
 		};
 
-		struct MissShaderGroup
+		enum class EGroupType
 		{
-			RTShaderGroupID		groupId;
+			Unknown,
+			MissShader,
+			TriangleHitShader,
+			ProceduralHitShader,
+			CallableShader,
 		};
 
-		struct HitShaderGroup
+		struct ShaderGroup
 		{
-			RTShaderGroupID		groupId;
+			EGroupType			type		= Default;
+			InstanceID			instanceId;
 			GeometryID			geometryId;
-			uint				instance	= 0;
+			uint				offset		= 0;
+			RTShaderID			mainShader;			// miss or closest hit shader
+			RTShaderID			anyHitShader;		// optional
+			RTShaderID			intersectionShader;	// only for procedural geometry
+
+			ShaderGroup (RTShaderID missShader) :
+				type{EGroupType::MissShader}, mainShader{missShader} {}
+			
+			ShaderGroup (const InstanceID &inst, const GeometryID &geom, uint off, const RTShaderID &chit, const RTShaderID &anyHit) :
+				type{EGroupType::TriangleHitShader}, instanceId{inst}, geometryId{geom}, offset{off}, mainShader{chit}, anyHitShader{anyHit} {}
+
+			ShaderGroup (const InstanceID &inst, const GeometryID &geom, uint off, const RTShaderID &chit, const RTShaderID &anyHit, const RTShaderID &inter) :
+				type{EGroupType::ProceduralHitShader}, instanceId{inst}, geometryId{geom}, offset{off}, mainShader{chit}, anyHitShader{anyHit}, intersectionShader{inter} {}
 		};
 		
-		using MissShaderGroups_t	= Array< MissShaderGroup >;
-		using HitShaderGroups_t		= Array< HitShaderGroup >;
+		using ShaderGroups_t	= Array< ShaderGroup >;
+		using Self				= UpdateRayTracingShaderTable;
 
 
 	// variables
-		ShaderTable &			result;
+		RawRTShaderTableID		shaderTable;
 		RawRTPipelineID			pipeline;
 		RawRTSceneID			rtScene;
-		RawBufferID				dstBuffer;
-		BytesU					dstOffset;
-		RayGenShaderGroup		rayGenShader;
-		MissShaderGroups_t		missShaders;
-		HitShaderGroups_t		hitShaders;
-		//ShaderGroups_t		callableShaders;
+		RayGenShader			rayGenShader;
+		ShaderGroups_t			shaderGroups;
 
 
 	// methods
-		UpdateRayTracingShaderTable (OUT ShaderTable &result) :
-			BaseTask<UpdateRayTracingShaderTable>{ "UpdateRayTracingShaderTable", ColorScheme::HostToDeviceTransfer },
-			result{result} {}
-
-		UpdateRayTracingShaderTable&  SetPipeline (const RTPipelineID &ppln)
-		{
-			ASSERT( ppln );
-			pipeline = ppln.Get();
-			return *this;
-		}
-
-		UpdateRayTracingShaderTable&  SetScene (const RTSceneID &scene)
-		{
-			ASSERT( scene );
-			rtScene = scene.Get();
-			return *this;
-		}
+		UpdateRayTracingShaderTable () :
+			BaseTask<UpdateRayTracingShaderTable>{ "UpdateRayTracingShaderTable", ColorScheme::HostToDeviceTransfer } {}
 		
-		UpdateRayTracingShaderTable&  SetBuffer (const BufferID &buffer, BytesU offset = 0_b)
-		{
-			ASSERT( buffer );
-			dstBuffer	= buffer.Get();
-			dstOffset	= offset;
-			return *this;
-		}
+		Self&  SetPipeline (const RTPipelineID &ppln);
+		Self&  SetScene (const RTSceneID &scene);
+		Self&  SetTarget (const RTShaderTableID &sbt);
 
-		UpdateRayTracingShaderTable&  SetRayGenShader (const RTShaderGroupID &group)
-		{
-			ASSERT( group.IsDefined() );
-			rayGenShader = RayGenShaderGroup{ group };
-			return *this;
-		}
+		Self&  SetRayGenShader (const RTShaderID &shader);
+		Self&  AddMissShader (const RTShaderID &shader);
+		//Self&  AddCallableShader ();
+		
+		Self&  AddTriangleHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
+									  const RTShaderID &closestHit, const RTShaderID &anyHit = Default);
 
-		UpdateRayTracingShaderTable&  AddMissShader (const RTShaderGroupID &group)
-		{
-			ASSERT( group.IsDefined() );
-			missShaders.push_back(MissShaderGroup{ group });
-			return *this;
-		}
-
-		UpdateRayTracingShaderTable&  AddHitShader (const GeometryID &geom, const RTShaderGroupID &group, uint instance = 0)
-		{
-			ASSERT( geom.IsDefined() );
-			ASSERT( group.IsDefined() );
-			hitShaders.push_back(HitShaderGroup{ group, geom, instance });
-			return *this;
-		}
+		Self&  AddProceduralHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
+										const RTShaderID &closestHit, const RTShaderID &anyHit, const RTShaderID &intersection);
 	};
 
 
@@ -1170,7 +1134,6 @@ namespace FG
 	{
 	// types
 		using PushConstants_t	= _fg_hidden_::PushConstants_t;
-		using ShaderTable		= UpdateRayTracingShaderTable::ShaderTable;
 		using DebugMode			= _fg_hidden_::RayTracingShaderDebugMode;
 
 
@@ -1178,7 +1141,7 @@ namespace FG
 		PipelineResourceSet		resources;
 		uint3					groupCount;
 		PushConstants_t			pushConstants;
-		ShaderTable				shaderTable;
+		RawRTShaderTableID		shaderTable;
 		DebugMode				debugMode;
 
 
@@ -1190,14 +1153,14 @@ namespace FG
 		TraceRays&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
 		
 		TraceRays&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
-		TraceRays&  SetShaderTable (const ShaderTable &value);
+		TraceRays&  SetShaderTable (const RTShaderTableID &id);
 
 		template <typename ValueType>
 		TraceRays&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
 		TraceRays&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 
-		TraceRays&  EnableDebugTrace (EShaderStages stages, const uint3 &launchID);
-		TraceRays&  EnableDebugTrace (EShaderStages stages);
+		TraceRays&  EnableDebugTrace (const uint3 &launchID);
+		TraceRays&  EnableDebugTrace ();
 	};
 //-----------------------------------------------------------------------------
 
@@ -1398,23 +1361,97 @@ namespace FG
 //-----------------------------------------------------------------------------
 	
 
+	
+	inline BuildRayTracingScene::Instance&
+		BuildRayTracingScene::Instance::SetID (const InstanceID &id)
+	{
+		ASSERT( id.IsDefined() );
+		instanceId = id;
+		return *this;
+	}
 
 	inline BuildRayTracingScene::Instance&
 		BuildRayTracingScene::Instance::SetGeometry (const RTGeometryID &id)
 	{
+		ASSERT( id.IsValid() );
 		geometryId = id.Get();
 		return *this;
 	}
 
 	inline BuildRayTracingScene::Instance&
-		BuildRayTracingScene::Instance::SetInstance (const Matrix4x3 &mat, uint id)
+		BuildRayTracingScene::Instance::SetInstance (const Matrix4x3 &mat, uint customID)
 	{
 		this->transform	 = mat;
-		this->instanceID = id;
+		this->customId = customID;
 		return *this;
 	}
 //-----------------------------------------------------------------------------
 	
+	
+
+	inline UpdateRayTracingShaderTable&
+		UpdateRayTracingShaderTable::SetPipeline (const RTPipelineID &ppln)
+	{
+		ASSERT( ppln );
+		pipeline = ppln.Get();
+		return *this;
+	}
+
+	inline UpdateRayTracingShaderTable&
+		UpdateRayTracingShaderTable::SetScene (const RTSceneID &scene)
+	{
+		ASSERT( scene );
+		rtScene = scene.Get();
+		return *this;
+	}
+	
+	inline UpdateRayTracingShaderTable&
+		UpdateRayTracingShaderTable::SetTarget (const RTShaderTableID &sbt)
+	{
+		ASSERT( sbt );
+		shaderTable = sbt.Get();
+		return *this;
+	}
+
+	inline UpdateRayTracingShaderTable&
+		UpdateRayTracingShaderTable::SetRayGenShader (const RTShaderID &shader)
+	{
+		ASSERT( shader.IsDefined() );
+		rayGenShader = RayGenShader{ shader };
+		return *this;
+	}
+
+	inline UpdateRayTracingShaderTable&
+		UpdateRayTracingShaderTable::AddMissShader (const RTShaderID &shader)
+	{
+		ASSERT( shader.IsDefined() );
+		shaderGroups.push_back(ShaderGroup{ shader });
+		return *this;
+	}
+	
+	inline UpdateRayTracingShaderTable&
+		UpdateRayTracingShaderTable::AddTriangleHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
+															const RTShaderID &closestHit, const RTShaderID &anyHit)
+	{
+		ASSERT( inst.IsDefined() );
+		ASSERT( geom.IsDefined() );
+		ASSERT( closestHit.IsDefined() );
+		shaderGroups.push_back(ShaderGroup{ inst, geom, offset, closestHit, anyHit });
+		return *this;
+	}
+
+	inline UpdateRayTracingShaderTable&
+		UpdateRayTracingShaderTable::AddProceduralHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
+															  const RTShaderID &closestHit, const RTShaderID &anyHit, const RTShaderID &intersection)
+	{
+		ASSERT( inst.IsDefined() );
+		ASSERT( geom.IsDefined() );
+		ASSERT( closestHit.IsDefined() );
+		shaderGroups.push_back(ShaderGroup{ inst, geom, offset, closestHit, anyHit, intersection });
+		return *this;
+	}
+//-----------------------------------------------------------------------------
+
 
 
 	inline TraceRays&  TraceRays::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
@@ -1434,26 +1471,23 @@ namespace FG
 		return *this;
 	}
 
-	inline TraceRays&  TraceRays::SetShaderTable (const ShaderTable &value)
+	inline TraceRays&  TraceRays::SetShaderTable (const RTShaderTableID &id)
 	{
-		ASSERT( value.buffer );
-		ASSERT( value.rayMissStride > 0 and value.rayHitStride > 0 );
-		shaderTable = value;
+		ASSERT( id );
+		shaderTable = id.Get();
 		return *this;
 	}
 	
-	inline TraceRays&  TraceRays::EnableDebugTrace (EShaderStages stages, const uint3 &launchID)
+	inline TraceRays&  TraceRays::EnableDebugTrace (const uint3 &launchID)
 	{
 		debugMode.mode		 = EShaderDebugMode::Trace;
-		debugMode.stages	|= stages;
 		debugMode.launchID	 = launchID;
 		return *this;
 	}
 
-	inline TraceRays&  TraceRays::EnableDebugTrace (EShaderStages stages)
+	inline TraceRays&  TraceRays::EnableDebugTrace ()
 	{
-		debugMode.mode		 = EShaderDebugMode::Trace;
-		debugMode.stages	|= stages;
+		debugMode.mode = EShaderDebugMode::Trace;
 		return *this;
 	}
 

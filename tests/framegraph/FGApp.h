@@ -117,6 +117,7 @@ namespace FG
 		bool Test_TraceRays2 ();
 		bool Test_TraceRays3 ();
 		bool Test_ShadingRate1 ();
+		bool Test_RayTracingDebugger1 ();
 	};
 
 	

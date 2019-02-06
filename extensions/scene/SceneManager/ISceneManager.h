@@ -18,7 +18,7 @@ namespace FG
 	{
 	// interface
 	public:
-		virtual bool Build (const FGThreadPtr &, const RenderTechniquePtr &) = 0;
+		virtual bool Build (const RenderTechniquePtr &) = 0;
 		virtual bool Draw (ArrayView<ViewportPtr>) = 0;
 
 		virtual bool Add (const SceneHierarchyPtr &) = 0;

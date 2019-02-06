@@ -164,7 +164,7 @@ namespace FG
 		RemapVertexBuffers( fg, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
 
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = fg->GetShaderDebugger()->Append( INOUT _scissors, task.taskName, task.debugMode );
+			_debugModeIndex = fg->CreateShaderDebugger()->Append( INOUT _scissors, task.taskName, task.debugMode );
 	}
 
 /*
@@ -226,7 +226,7 @@ namespace FG
 		CopyDescriptorSets( rp, fg, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = fg->GetShaderDebugger()->Append( INOUT _scissors, task.taskName, task.debugMode );
+			_debugModeIndex = fg->CreateShaderDebugger()->Append( INOUT _scissors, task.taskName, task.debugMode );
 	}
 
 /*
@@ -263,7 +263,7 @@ namespace FG
 		CopyDescriptorSets( null, fg, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = fg->GetShaderDebugger()->Append( task.taskName, task.debugMode );
+			_debugModeIndex = fg->CreateShaderDebugger()->Append( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -293,7 +293,7 @@ namespace FG
 		CopyDescriptorSets( null, fg, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = fg->GetShaderDebugger()->Append( task.taskName, task.debugMode );
+			_debugModeIndex = fg->CreateShaderDebugger()->Append( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -517,10 +517,10 @@ namespace FG
 		//ASSERT( not _dstImage->IsImmutable() );
 
 		Visit(	task.clearValue,
-				[&] (const RGBA32f &col)		{ memcpy( _clearValue.float32, &col, sizeof(_clearValue.float32) ); },
-				[&] (const RGBA32u &col)		{ memcpy( _clearValue.uint32, &col, sizeof(_clearValue.uint32) ); },
-				[&] (const RGBA32i &col)		{ memcpy( _clearValue.int32, &col, sizeof(_clearValue.int32) );} ,
-				[&] (const NullUnion &)	{}
+				[&] (const RGBA32f &col)	{ memcpy( _clearValue.float32, &col, sizeof(_clearValue.float32) ); },
+				[&] (const RGBA32u &col)	{ memcpy( _clearValue.uint32, &col, sizeof(_clearValue.uint32) ); },
+				[&] (const RGBA32i &col)	{ memcpy( _clearValue.int32, &col, sizeof(_clearValue.int32) );} ,
+				[&] (const NullUnion &)		{}
 			);
 	}
 	
@@ -655,13 +655,15 @@ namespace FG
 =================================================
 */
 	inline VFgTask<UpdateRayTracingShaderTable>::VFgTask (VFrameGraphThread *fg, const UpdateRayTracingShaderTable &task, ProcessFunc_t process) :
-		IFrameGraphTask{ task, process },
-		pipeline{ fg->GetResourceManager()->GetResource( task.pipeline )},	rtScene{ fg->GetResourceManager()->ToLocal( task.rtScene )},
-		dstBuffer{ fg->GetResourceManager()->ToLocal( task.dstBuffer )},	dstOffset{ VkDeviceSize( task.dstOffset )},
-		rayGenShader{ task.rayGenShader },									missShaders{ task.missShaders },
-		hitShaders{ task.hitShaders }
-		//,	callableShaders{ task.callableShaders }
-	{}
+		IFrameGraphTask{ task, process },		pipeline{ task.pipeline },
+		rtScene{ fg->GetResourceManager()->ToLocal( task.rtScene )},
+		shaderTable{const_cast<VRayTracingShaderTable*>( fg->GetResourceManager()->GetResource( task.shaderTable ))},
+		rayGenShader{ task.rayGenShader },
+		_shaderGroupCount{ uint(task.shaderGroups.size()) }
+	{
+		_shaderGroups = fg->GetAllocator().Alloc<ShaderGroup>( _shaderGroupCount );
+		memcpy( OUT _shaderGroups, task.shaderGroups.data(), size_t(ArraySizeOf(task.shaderGroups)) );
+	}
 	
 /*
 =================================================
@@ -670,7 +672,7 @@ namespace FG
 */
 	inline bool  VFgTask<UpdateRayTracingShaderTable>::IsValid () const
 	{
-		return pipeline and rtScene and dstBuffer;
+		return pipeline and rtScene and shaderTable;
 	}
 //-----------------------------------------------------------------------------
 	
@@ -693,21 +695,13 @@ namespace FG
 =================================================
 */
 	inline VFgTask<TraceRays>::VFgTask (VFrameGraphThread *fg, const TraceRays &task, ProcessFunc_t process) :
-		IFrameGraphTask{ task, process },		pipeline{ fg->GetResourceManager()->GetResource( task.shaderTable.pipeline )},
-		pushConstants{ task.pushConstants },	groupCount{ Max( task.groupCount, 1u )},
-		sbtBuffer{ fg->GetResourceManager()->ToLocal( task.shaderTable.buffer )},
-		rayGenOffset{ VkDeviceSize( task.shaderTable.rayGenOffset )},
-		rayMissOffset{ VkDeviceSize( task.shaderTable.rayMissOffset )},
-		rayHitOffset{ VkDeviceSize( task.shaderTable.rayHitOffset )},
-		callableOffset{ VkDeviceSize( task.shaderTable.callableOffset )},
-		rayMissStride{ uint16_t( task.shaderTable.rayMissStride )},
-		rayHitStride{ uint16_t( task.shaderTable.rayHitStride )},
-		callableStride{ uint16_t( task.shaderTable.callableStride )}
+		IFrameGraphTask{ task, process },		shaderTable{ fg->GetResourceManager()->GetResource( task.shaderTable )},
+		pushConstants{ task.pushConstants },	groupCount{ Max( task.groupCount, 1u )}
 	{
 		CopyDescriptorSets( null, fg, task.resources, OUT _resources );
 
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = fg->GetShaderDebugger()->Append( task.taskName, task.debugMode );
+			_debugModeIndex = fg->CreateShaderDebugger()->Append( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -717,7 +711,7 @@ namespace FG
 */
 	inline bool  VFgTask<TraceRays>::IsValid () const
 	{
-		return pipeline and sbtBuffer;
+		return shaderTable;
 	}
 //-----------------------------------------------------------------------------
 

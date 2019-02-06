@@ -368,6 +368,8 @@ namespace FG
 */
 	bool  VResourceManager::_ProcessValidationTask (VResourceManagerThread &resMngr)
 	{
+		SHAREDLOCK( _rcCheck );
+
 		if ( _validationTasks.empty() )
 			return false;
 

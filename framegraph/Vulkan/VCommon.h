@@ -41,7 +41,7 @@ namespace FG
 	using UntypedResourceID_t		= Union< RawImageID, RawSamplerID, RawBufferID, RawGPipelineID, RawCPipelineID,
 											 RawMPipelineID, RawRTPipelineID, RawMemoryID, RawDescriptorSetLayoutID,
 											 RawPipelineLayoutID, RawRenderPassID, RawFramebufferID, RawPipelineResourcesID,
-											 RawRTGeometryID, RawRTSceneID >;
+											 RawRTGeometryID, RawRTSceneID, RawRTShaderTableID >;
 	using AppendableResourceIDs_t	= Appendable< UntypedResourceID_t >;
 	
 	using VkDescriptorSets_t		= FixedArray< VkDescriptorSet, FG_MaxDescriptorSets >;
@@ -58,7 +58,7 @@ namespace FG
 		float4			transformRow1;
 		float4			transformRow2;
 
-		uint			instanceId		: 24;
+		uint			customIndex		: 24;
 		uint			mask			: 8;
 		uint			instanceOffset	: 24;
 		uint			flags			: 8;
@@ -93,6 +93,7 @@ namespace FG
 	class VGraphicsPipeline;
 	class VMeshPipeline;
 	class VRayTracingPipeline;
+	class VRayTracingShaderTable;
 	class VPipelineLayout;
 	class VShaderDebugger;
 	class VPipelineResources;

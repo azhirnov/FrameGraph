@@ -311,52 +311,52 @@ namespace FG
 
 		auto&	settings = material->EditSettings();
 
-		if ( auto* albedo = std::get_if<Texture>( &settings.albedo ))
+		if ( auto* albedo = UnionGetIf<Texture>( &settings.albedo ))
 			CHECK_ERR( Load( albedo->image, directories, imgCache ));
 		
-		if ( auto* specular = std::get_if<Texture>( &settings.specular ))
+		if ( auto* specular = UnionGetIf<Texture>( &settings.specular ))
 			CHECK_ERR( Load( specular->image, directories, imgCache ));
 		
-		if ( auto* ambient = std::get_if<Texture>( &settings.ambient ))
+		if ( auto* ambient = UnionGetIf<Texture>( &settings.ambient ))
 			CHECK_ERR( Load( ambient->image, directories, imgCache ));
 		
-		if ( auto* emissive = std::get_if<Texture>( &settings.emissive ))
+		if ( auto* emissive = UnionGetIf<Texture>( &settings.emissive ))
 			CHECK_ERR( Load( emissive->image, directories, imgCache ));
 		
-		if ( auto* height_map = std::get_if<Texture>( &settings.heightMap ))
+		if ( auto* height_map = UnionGetIf<Texture>( &settings.heightMap ))
 			CHECK_ERR( Load( height_map->image, directories, imgCache ));
 		
-		if ( auto* normals_map = std::get_if<Texture>( &settings.normalsMap ))
+		if ( auto* normals_map = UnionGetIf<Texture>( &settings.normalsMap ))
 			CHECK_ERR( Load( normals_map->image, directories, imgCache ));
 		
-		if ( auto* shininess = std::get_if<Texture>( &settings.shininess ))
+		if ( auto* shininess = UnionGetIf<Texture>( &settings.shininess ))
 			CHECK_ERR( Load( shininess->image, directories, imgCache ));
 		
-		if ( auto* opacity = std::get_if<Texture>( &settings.opacity ))
+		if ( auto* opacity = UnionGetIf<Texture>( &settings.opacity ))
 			CHECK_ERR( Load( opacity->image, directories, imgCache ));
 		
-		if ( auto* displacement_map = std::get_if<Texture>( &settings.displacementMap ))
+		if ( auto* displacement_map = UnionGetIf<Texture>( &settings.displacementMap ))
 			CHECK_ERR( Load( displacement_map->image, directories, imgCache ));
 		
-		if ( auto* light_map = std::get_if<Texture>( &settings.lightMap ))
+		if ( auto* light_map = UnionGetIf<Texture>( &settings.lightMap ))
 			CHECK_ERR( Load( light_map->image, directories, imgCache ));
 		
-		if ( auto* reflection_map = std::get_if<Texture>( &settings.reflectionMap ))
+		if ( auto* reflection_map = UnionGetIf<Texture>( &settings.reflectionMap ))
 			CHECK_ERR( Load( reflection_map->image, directories, imgCache ));
 		
-		if ( auto* roughtness = std::get_if<Texture>( &settings.roughtness ))
+		if ( auto* roughtness = UnionGetIf<Texture>( &settings.roughtness ))
 			CHECK_ERR( Load( roughtness->image, directories, imgCache ));
 		
-		if ( auto* metallic = std::get_if<Texture>( &settings.metallic ))
+		if ( auto* metallic = UnionGetIf<Texture>( &settings.metallic ))
 			CHECK_ERR( Load( metallic->image, directories, imgCache ));
 		
-		if ( auto* subsurface = std::get_if<Texture>( &settings.subsurface ))
+		if ( auto* subsurface = UnionGetIf<Texture>( &settings.subsurface ))
 			CHECK_ERR( Load( subsurface->image, directories, imgCache ));
 		
-		if ( auto* ambient_occlusion = std::get_if<Texture>( &settings.ambientOcclusion ))
+		if ( auto* ambient_occlusion = UnionGetIf<Texture>( &settings.ambientOcclusion ))
 			CHECK_ERR( Load( ambient_occlusion->image, directories, imgCache ));
 		
-		if ( auto* refraction = std::get_if<Texture>( &settings.refraction ))
+		if ( auto* refraction = UnionGetIf<Texture>( &settings.refraction ))
 			CHECK_ERR( Load( refraction->image, directories, imgCache ));
 
 		return true;

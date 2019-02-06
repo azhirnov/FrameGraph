@@ -25,14 +25,27 @@ namespace FG
 	Build
 =================================================
 */
-	bool DefaultSceneManager::Build (const FGThreadPtr &fg, const RenderTechniquePtr &renderTech)
+	bool DefaultSceneManager::Build (const RenderTechniquePtr &renderTech)
 	{
 		CHECK_ERR( renderTech );
+
+		auto	inst = renderTech->GetFrameGraphInstance();
+		auto	fg   = renderTech->GetFrameGraphThread();
+		
+		CommandBatchID		batch_id {"build"};
+		SubmissionGraph		submission_graph;
+		submission_graph.AddBatch( batch_id );
+
+		CHECK_ERR( inst->BeginFrame( submission_graph ));
+		CHECK_ERR( fg->Begin( batch_id, 0, EThreadUsage::Graphics ));
 
 		for (auto& scene : _hierarchies)
 		{
 			CHECK_ERR( scene->Build( fg, renderTech ));
 		}
+
+		CHECK_ERR( fg->Execute() );
+		CHECK_ERR( inst->EndFrame() );
 
 		_renderTech = renderTech;
 		return true;

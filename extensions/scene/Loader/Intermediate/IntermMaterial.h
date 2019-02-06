@@ -40,7 +40,7 @@ namespace FG
 			uint					uvIndex			= UMax;
 		};
 
-		using Parameter = Union< std::monostate, float, RGBA32f, MtrTexture >;
+		using Parameter = Union< NullUnion, float, RGBA32f, MtrTexture >;
 
 		struct Settings
 		{

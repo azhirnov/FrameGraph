@@ -271,8 +271,8 @@ namespace FG
 	{
 		if ( _uniforms ) {
 			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and (std::holds_alternative<PipelineDescription::Image>( un->second.data ) or
-												std::holds_alternative<PipelineDescription::SubpassInput>( un->second.data )) );
+			return (un != _uniforms->end() and (HoldsAlternative<PipelineDescription::Image>( un->second.data ) or
+												HoldsAlternative<PipelineDescription::SubpassInput>( un->second.data )) );
 		}
 		return false;
 	}
@@ -343,7 +343,7 @@ namespace FG
 	{
 		if ( _uniforms ) {
 			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and std::holds_alternative<PipelineDescription::Texture>( un->second.data ));
+			return (un != _uniforms->end() and HoldsAlternative<PipelineDescription::Texture>( un->second.data ));
 		}
 		return false;
 	}
@@ -378,7 +378,7 @@ namespace FG
 	{
 		if ( _uniforms ) {
 			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and std::holds_alternative<PipelineDescription::Sampler>( un->second.data ));
+			return (un != _uniforms->end() and HoldsAlternative<PipelineDescription::Sampler>( un->second.data ));
 		}
 		return false;
 	}
@@ -536,8 +536,8 @@ namespace FG
 	{
 		if ( _uniforms ) {
 			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and (std::holds_alternative<PipelineDescription::UniformBuffer>( un->second.data ) or
-												std::holds_alternative<PipelineDescription::StorageBuffer>( un->second.data )) );
+			return (un != _uniforms->end() and (HoldsAlternative<PipelineDescription::UniformBuffer>( un->second.data ) or
+												HoldsAlternative<PipelineDescription::StorageBuffer>( un->second.data )) );
 		}
 		return false;
 	}
@@ -572,7 +572,7 @@ namespace FG
 	{
 		if ( _uniforms ) {
 			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and std::holds_alternative<PipelineDescription::RayTracingScene>( un->second.data ));
+			return (un != _uniforms->end() and HoldsAlternative<PipelineDescription::RayTracingScene>( un->second.data ));
 		}
 		return false;
 	}

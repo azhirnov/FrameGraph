@@ -89,7 +89,7 @@ void main() {
 		
 		bool		data_is_correct = false;
 
-		const auto	OnLoaded =	[this, OUT &data_is_correct] (const ImageView &imageData)
+		const auto	OnLoaded =	[OUT &data_is_correct] (const ImageView &imageData)
 		{
 			const auto	TestPixel = [&imageData] (float x, float y, const RGBA32f &color)
 			{

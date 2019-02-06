@@ -5,6 +5,7 @@
 #include "stl/Math/Math.h"
 #include "stl/Math/Vec.h"
 #include "stl/Math/Bytes.h"
+#include "stl/Math/Color.h"
 #include "stl/Algorithms/EnumUtils.h"
 #include "stl/Algorithms/ArrayUtils.h"
 #include "stl/Containers/StringView.h"
@@ -15,7 +16,6 @@
 namespace FG
 {
 	using namespace std::string_literals;
-	//using namespace std::string_view_literals;
 
 /*
 =================================================
@@ -337,6 +337,25 @@ namespace FG
 		str << " )";
 		return str;
 	}
+	
+/*
+=================================================
+	ToString (RGBAColor)
+=================================================
+*/
+	template <typename T>
+	ND_ inline String  ToString (const RGBAColor<T> &value)
+	{
+		String	str = "( "s;
+
+		for (uint i = 0; i < 4; ++i)
+		{
+			if ( i > 0 )	str << ", ";
+			str << ToString( value[i] );
+		}
+		str << " )";
+		return str;
+	}
 
 /*
 =================================================
@@ -372,25 +391,26 @@ namespace FG
 		using MicroSecD_t = std::chrono::duration<double, std::micro>;
 		using NanoSecD_t  = std::chrono::duration<double, std::nano>;
 
-		const auto	time = std::chrono::duration_cast<SecondsD_t>( value ).count();
+		const uint	precission	= 3;
+		const auto	time		= std::chrono::duration_cast<SecondsD_t>( value ).count();
 		String		str;
 
 		if ( time > 59.0 * 60.0 )
-			str << ToString( time * (1.0/3600.0), 2 ) << " h";
+			str << ToString( time * (1.0/3600.0), precission ) << " h";
 		else
 		if ( time > 59.0 )
-			str << ToString( time * (1.0/60.0), 2 ) << " m";
+			str << ToString( time * (1.0/60.0), precission ) << " m";
 		else
 		if ( time > 1.0e-1 )
-			str << ToString( time, 2 ) << " s";
+			str << ToString( time, precission ) << " s";
 		else
 		if ( time > 1.0e-4 )
-			str << ToString( time * 1.0e+3, 2 ) << " ms";
+			str << ToString( time * 1.0e+3, precission ) << " ms";
 		else
 		if ( time > 1.0e-7 )
-			str << ToString( std::chrono::duration_cast<MicroSecD_t>( value ).count(), 2 ) << " us";
+			str << ToString( std::chrono::duration_cast<MicroSecD_t>( value ).count(), precission ) << " us";
 		else
-			str << ToString( std::chrono::duration_cast<NanoSecD_t>( value ).count(), 2 ) << " ns";
+			str << ToString( std::chrono::duration_cast<NanoSecD_t>( value ).count(), precission ) << " ns";
 
 		return str;
 	}

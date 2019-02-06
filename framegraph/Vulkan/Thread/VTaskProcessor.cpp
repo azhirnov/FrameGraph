@@ -27,7 +27,7 @@ namespace FG
 	}
 	
 	template <typename ResType>
-	static void CommitResourceBarrier (const void *res, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger)
+	static void CommitResourceBarrier (const void *res, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger)
 	{
 		return static_cast<ResType const*>(res)->CommitBarrier( barrierMngr, debugger );
 	}
@@ -221,10 +221,10 @@ namespace FG
 
 		for (auto& inst : scene->GeometryInstances())
 		{
-			VLocalRTGeometry const*		geom = _tp._ToLocal( inst );
-
-			if ( geom )
+			if ( auto* geom = _tp._ToLocal( inst.geometry.Get() ))
+			{
 				_tp._AddRTGeometry( geom, EResourceState::RayTracingShaderRead );
+			}
 		}
 	}
 //-----------------------------------------------------------------------------
@@ -1307,7 +1307,7 @@ namespace FG
 		VkPipeline	ppln_id;
 		_frameGraph.GetPipelineCache()->CreatePipelineInstance(
 									*_frameGraph.GetResourceManager(),
-									*_frameGraph.GetShaderDebugger(),
+									_frameGraph.GetShaderDebugger(),
 									logicalRP, task,
 									OUT ppln_id, OUT pplnLayout );
 
@@ -1319,7 +1319,7 @@ namespace FG
 		VkPipeline	ppln_id;
 		_frameGraph.GetPipelineCache()->CreatePipelineInstance(
 									*_frameGraph.GetResourceManager(),
-									*_frameGraph.GetShaderDebugger(),
+									_frameGraph.GetShaderDebugger(),
 									logicalRP, task,
 									OUT ppln_id, OUT pplnLayout );
 		
@@ -1337,7 +1337,7 @@ namespace FG
 		VkPipeline	ppln_id;
 		_frameGraph.GetPipelineCache()->CreatePipelineInstance(
 										*_frameGraph.GetResourceManager(),
-										*_frameGraph.GetShaderDebugger(),
+										_frameGraph.GetShaderDebugger(),
 										*pipeline, localSize,
 										flags,
 										debugModeIndex,
@@ -1905,7 +1905,7 @@ namespace FG
 		
 		// TODO
 	}
-	
+
 /*
 =================================================
 	Visit (UpdateRayTracingShaderTable)
@@ -1915,68 +1915,30 @@ namespace FG
 	{
 		_OnProcessTask();
 
-		const uint		geom_stride		= task.rtScene->HitShadersPerInstance();
-		const uint		max_hit_shaders	= task.rtScene->MaxHitShaderCount();
-		const auto		instances		= task.rtScene->GeometryInstances();
-		const BytesU	sh_size			= task.pipeline->ShaderHandleSize();
-		const BytesU	req_size		= sh_size * (1 + task.missShaders.size() + max_hit_shaders);
+		VPipelineCache::BufferCopyRegions_t	copy_regions;
 
-		RawBufferID		staging_buffer;
-		BytesU			buf_offset, buf_size, ptr_offset;
-		void *			mapped_ptr = null;
-		
-		CHECK_ERR( task.dstBuffer->Size() >= task.dstOffset + req_size, void());
-		CHECK_ERR( _frameGraph.GetStagingBufferManager()->GetWritableBuffer( req_size, req_size, OUT staging_buffer, OUT buf_offset, OUT buf_size, OUT mapped_ptr ), void());
-		
-		const auto	CopyShaderGroupHandle = [&ptr_offset, mapped_ptr, buf_size, pipeline = task.pipeline] (const RTShaderGroupID &id) -> bool
-											{
-												auto	sh_handle = pipeline->GetShaderGroupHandle( id );
-												CHECK_ERR( not sh_handle.empty() );	// group is not exist in the pipeline
+		CHECK_ERR( _frameGraph.GetPipelineCache()->
+						InitShaderTable( _frameGraph,
+										 task.pipeline,
+										 task.rtScene,
+										 task.rayGenShader,
+										 task.GetShaderGroups(),
+										 INOUT *task.shaderTable,
+										 OUT copy_regions ), void());
 
-												MemCopy( mapped_ptr + ptr_offset, buf_size - ptr_offset, sh_handle.data(), ArraySizeOf(sh_handle) );
-												ptr_offset += ArraySizeOf(sh_handle);
-												return true;
-											};
-
-		CHECK( CopyShaderGroupHandle( task.rayGenShader.groupId ));
-
-		for (auto& shader : task.missShaders)
+		for (auto& copy : copy_regions)
 		{
-			CHECK( CopyShaderGroupHandle( shader.groupId ));
+			_AddBuffer( copy.srcBuffer, EResourceState::TransferSrc, copy.region.srcOffset, copy.region.size );
+			_AddBuffer( copy.dstBuffer, EResourceState::TransferDst, copy.region.dstOffset, copy.region.size );
 		}
-
-		for (auto& shader : task.hitShaders)
-		{
-			CHECK_ERR( shader.instance < instances.size(), void());
-
-			RawRTGeometryID				geom_id	= instances[ shader.instance ];
-			VRayTracingGeometry const*	geom	= _GetResource( geom_id );
-			size_t						index	= geom->GetGeometryIndex( shader.geometryId );
-
-			CHECK( index * geom_stride < max_hit_shaders );
-			
-			auto	sh_handle = task.pipeline->GetShaderGroupHandle( shader.groupId );
-			CHECK( not sh_handle.empty() );	// group is not exist in the pipeline
-			
-			BytesU	offset = ptr_offset + sh_size * index * geom_stride;
-			MemCopy( mapped_ptr + offset, buf_size - offset, sh_handle.data(), ArraySizeOf(sh_handle) );
-		}
-
-
-		VkBufferCopy		region = {};
-		region.srcOffset	= VkDeviceSize( buf_offset );
-		region.dstOffset	= task.dstOffset;
-		region.size			= VkDeviceSize( req_size );
-
-		VLocalBuffer const*		src_buffer = _ToLocal( staging_buffer );
-		_AddBuffer( src_buffer, EResourceState::TransferSrc, region.srcOffset, region.size );
-		_AddBuffer( task.dstBuffer, EResourceState::TransferDst, region.dstOffset, region.size );
 		
 		_CommitBarriers();
 		
-		_dev.vkCmdCopyBuffer( _cmdBuffer, src_buffer->Handle(), task.dstBuffer->Handle(), 1, &region );
-		
-		Stat().transferOps++;
+		for (auto& copy : copy_regions) {
+			_dev.vkCmdCopyBuffer( _cmdBuffer, copy.srcBuffer->Handle(), copy.dstBuffer->Handle(), 1, &copy.region );
+		}
+
+		Stat().transferOps += uint(copy_regions.size());
 	}
 
 /*
@@ -2025,7 +1987,8 @@ namespace FG
 	{
 		_OnProcessTask();
 		
-		task.RTScene()->SetGeometryInstances( task.GeometryIDs(), task.HitShadersPerInstance(), task.MaxHitShaderCount() );
+		task.RTScene()->SetGeometryInstances( task.Instances(), task.InstanceCount(),
+											  task.HitShadersPerInstance(), task.MaxHitShaderCount() );
 
 		_AddRTScene( task.RTScene(), EResourceState::BuildRayTracingStructWrite );
 		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VK_WHOLE_SIZE );
@@ -2055,48 +2018,68 @@ namespace FG
 	
 /*
 =================================================
-	_BindPipeline
-=================================================
-*/
-	inline void VTaskProcessor::_BindPipeline (const VRayTracingPipeline* pipeline)
-	{
-		VkPipeline	ppln_id = pipeline->Handle();
-		
-		if ( _rayTracingPipeline.pipeline != ppln_id )
-		{
-			_rayTracingPipeline.pipeline = ppln_id;
-			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, ppln_id );
-			Stat().rayTracingPipelineBindings++;
-		}
-	}
-	
-/*
-=================================================
 	Visit (TraceRays)
 =================================================
 */
 	void VTaskProcessor::Visit (const VFgTask<TraceRays> &task)
 	{
 		_OnProcessTask();
-		
-		auto*	layout = _GetResource( task.pipeline->GetLayoutID() );
 
-		_BindPipeline( task.pipeline );
+		const bool			is_debuggable	= (task.GetDebugModeIndex() != UMax);
+		EShaderDebugMode	dbg_mode		= Default;
+		EShaderStages		dbg_stages		= Default;
+		RawPipelineLayoutID	layout_id;
+		VkPipeline			pipeline		= VK_NULL_HANDLE;
+		VkDeviceSize		raygen_offset	= 0;
+		VkDeviceSize		raymiss_offset	= 0;
+		VkDeviceSize		raymiss_stride	= 0;
+		VkDeviceSize		rayhit_offset	= 0;
+		VkDeviceSize		rayhit_stride	= 0;
+		VkDeviceSize		callable_offset	= 0;
+		VkDeviceSize		callable_stride	= 0;
+		VkDeviceSize		block_size		= 0;
+
+		if ( is_debuggable )
+		{
+			auto	debugger = _frameGraph.GetShaderDebugger();
+			auto*	ppln	 = _GetResource( task.shaderTable->GetPipeline() );
+
+			CHECK_ERR( ppln, void());
+			CHECK( debugger->GetDebugModeInfo( task.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_stages ));
+
+			for (auto& shader : ppln->GetShaderModules())
+			{
+				if ( shader.debugMode == dbg_mode )
+					debugger->SetShaderModule( task.GetDebugModeIndex(), shader.module );
+			}
+		}
+
+		CHECK_ERR( task.shaderTable->GetBindings( dbg_mode, OUT layout_id, OUT pipeline, OUT block_size, OUT raygen_offset,
+												  OUT raymiss_offset, OUT raymiss_stride, OUT rayhit_offset, OUT rayhit_stride,
+												  OUT callable_offset, OUT callable_stride ), void());
+
+		VPipelineLayout const*	layout		= _GetResource( layout_id );
+		VLocalBuffer const*		sbt_buffer	= _ToLocal( task.shaderTable->GetBuffer() );
+		
+		if ( _rayTracingPipeline.pipeline != pipeline )
+		{
+			_rayTracingPipeline.pipeline = pipeline;
+			_dev.vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline );
+			Stat().rayTracingPipelineBindings++;
+		}
+
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, task.GetDebugModeIndex() );
 		_PushConstants( *layout, task.pushConstants );
 
-		_AddBuffer( task.sbtBuffer, EResourceState::UniformRead | EResourceState::_RayTracingShader,
-				    Min( task.rayGenOffset, task.rayMissOffset, task.rayHitOffset ), VK_WHOLE_SIZE );
-
+		_AddBuffer( sbt_buffer, EResourceState::UniformRead | EResourceState::_RayTracingShader, raygen_offset, block_size );
 		_CommitBarriers();
 		
 		_dev.vkCmdTraceRaysNV( _cmdBuffer, 
-								task.sbtBuffer->Handle(), task.rayGenOffset,
-								task.sbtBuffer->Handle(), task.rayMissOffset, task.rayMissStride,
-								task.sbtBuffer->Handle(), task.rayHitOffset,  task.rayHitStride,
-								VK_NULL_HANDLE, 0, 0,
+								sbt_buffer->Handle(), raygen_offset,
+								sbt_buffer->Handle(), raymiss_offset, raymiss_stride,
+								sbt_buffer->Handle(), rayhit_offset,  rayhit_stride,
+								sbt_buffer->Handle(), callable_offset, callable_stride,
 								task.groupCount.x, task.groupCount.y, task.groupCount.z );
-
 		Stat().traceRaysCalls++;
 	}
 

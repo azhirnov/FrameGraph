@@ -4,7 +4,10 @@
 
 #include "stl/Common.h"
 #include <tuple>
-#include <variant>
+
+#ifdef FG_STD_VARIANT
+# include <variant>
+#endif
 
 namespace FG
 {
@@ -26,7 +29,6 @@ namespace _fg_hidden_
 		inline static constexpr size_t	value = Conditional< IsSameTypes<Type, Head>,
 													std::integral_constant<size_t, I>, TL_GetIndex< Type, I+1, std::tuple<Tail...> > >::value;
 	};
-
 
 }	// _fg_hidden_
 
@@ -55,10 +57,12 @@ namespace _fg_hidden_
 	struct TypeList< std::tuple<Types...> > final : TypeList< Types... >
 	{};
 	
-
+	
+# ifdef FG_STD_VARIANT
 	template <typename... Types>
 	struct TypeList< std::variant<Types...> > final : TypeList< Types... >
 	{};
+# endif
 
 
 }	// FG

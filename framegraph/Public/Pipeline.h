@@ -493,34 +493,16 @@ namespace FG
 			EShader			shaderType	= Default;
 		};
 
-		struct GeneralGroup
-		{
-			RTShaderID		shader;		// ray generation, ray miss or callable shader
-		};
-
-		struct TriangleHitGroup
-		{
-			RTShaderID		closestHitShader;
-			RTShaderID		anyHitShader;
-		};
-
-		struct ProceduralHitGroup
-		{
-			RTShaderID		closestHitShader;
-			RTShaderID		anyHitShader;
-			RTShaderID		intersectionShader;
-		};
-
 		using Self				= RayTracingPipelineDesc;
 		using Shaders_t			= HashMap< RTShaderID, RTShader >;
-		using ShaderGroup_t		= Union< NullUnion, GeneralGroup, TriangleHitGroup, ProceduralHitGroup >;
-		using ShaderGroupMap_t	= HashMap< RTShaderGroupID, ShaderGroup_t >;
+		
+		static constexpr uint	UNDEFINED_SPECIALIZATION = UMax;
 
 
 	// variables
 		Shaders_t			_shaders;
-		ShaderGroupMap_t	_groups;
 		uint				_maxRecursionDepth	= 0;
+		uint				_recordStrideSpec	= UNDEFINED_SPECIALIZATION;
 
 
 	// methods
@@ -552,12 +534,6 @@ namespace FG
 		}
 
 		Self&  SetSpecConstants (const RTShaderID &id, ArrayView< SpecConstant > values);
-
-		Self&  AddRayGenShader (const RTShaderGroupID &name, const RTShaderID &id);
-		Self&  AddRayMissShader (const RTShaderGroupID &name, const RTShaderID &id);
-		Self&  AddCallableShader (const RTShaderGroupID &name, const RTShaderID &id);
-		Self&  AddTriangleHitShaders (const RTShaderGroupID &name, const RTShaderID &closestHit, const RTShaderID &anyHit = Default);
-		Self&  AddProceduralHitShaders (const RTShaderGroupID &name, const RTShaderID &closestHit, const RTShaderID &anyHit, const RTShaderID &inersection);
 	};
 
 

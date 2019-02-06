@@ -13,7 +13,39 @@ namespace {
 
 		FloatBits () : m{0}, e{0}, s{0} {}
 	};
+
+
+	struct HalfBits
+	{
+		uint16_t	m	: 10;	// mantissa bits
+		uint16_t	e	: 5;	// exponent bits
+		uint16_t	s	: 1;	// sign bit
+
+		HalfBits () : m{0}, e{0}, s{0} {}
+
+		ND_ float  ToFloat () const;
+	};
+	
+/*
+=================================================
+	ToFloat
+=================================================
+*/
+	inline float  HalfBits::ToFloat () const
+	{
+		FloatBits	f;
+		f.s = s;
+		f.e = e + (127 - 15);
+		f.m = m << (23-10);
+
+		float	result;
+		memcpy( OUT &result, &f, sizeof(result) );
+		return result;
+	}
 }
+//-----------------------------------------------------------------------------
+
+
 
 /*
 =================================================
@@ -170,14 +202,13 @@ namespace {
 	{
 		if constexpr ( R == 16 )
 		{
-			struct HalfBits
-			{
-				uint16_t	m	: 10;	// mantissa bits
-				uint16_t	e	: 5;	// exponent bits
-				uint16_t	s	: 1;	// sign bit
-			};
 			StaticArray< HalfBits, 4 >	src = {};
 			memcpy( src.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+
+			for (size_t i = 0; i < src.size(); ++i)
+			{
+				result[i] = src[i].ToFloat();
+			}
 		}
 		else
 		if constexpr ( R == 32 )

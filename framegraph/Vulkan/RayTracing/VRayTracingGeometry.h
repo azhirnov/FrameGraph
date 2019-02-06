@@ -71,7 +71,6 @@ namespace FG
 		~VRayTracingGeometry ();
 
 		bool Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
-
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		ND_ size_t  GetGeometryIndex (const GeometryID &id) const;

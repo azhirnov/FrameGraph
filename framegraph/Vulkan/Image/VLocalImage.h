@@ -80,8 +80,8 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		void AddPendingState (const ImageState &) const;
-		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
-		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
+		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
+		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
 		
 		ND_ VkImageView			GetView (const VDevice &, bool isDefault, INOUT ImageViewDesc &) const;
 

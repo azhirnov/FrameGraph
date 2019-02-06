@@ -30,7 +30,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( RTShaderID("PrimiryAnyHit"), EShader::RayAnyHit, EShaderLangFormat::VKSL_110, "main", R"#(
+	ppln.AddShader( RTShaderID("PrimaryAnyHit"), EShader::RayAnyHit, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(location = 1) rayPayloadInNV vec4 incomingPayload;
@@ -77,7 +77,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( RTShaderID("PrimiryClosestHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
+	ppln.AddShader( RTShaderID("PrimaryClosestHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;
@@ -104,7 +104,7 @@ void main()
 }
 )#" );
 
-	ppln.AddShader( RTShaderID("PrimiryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
+	ppln.AddShader( RTShaderID("PrimaryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;

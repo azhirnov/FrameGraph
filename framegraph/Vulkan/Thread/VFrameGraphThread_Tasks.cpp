@@ -779,26 +779,9 @@ namespace {
 	{
 		SCOPELOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		CHECK_ERR( _stagingMngr );
 		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 
-		auto	result	= _taskGraph.Add( this, task );
-		CHECK_ERR( result );
-
-		const auto	sh_size	= Bytes<uint>{ result->pipeline->ShaderHandleSize() };
-		
-		task.result.buffer			= task.dstBuffer;
-		task.result.pipeline		= task.pipeline;
-		task.result.rayGenOffset	= Bytes<uint>{ task.dstOffset };
-		task.result.rayMissOffset	= task.result.rayGenOffset + sh_size;
-		task.result.rayMissStride	= Bytes<uint16_t>{ sh_size };
-		task.result.callableOffset	= task.result.rayMissOffset;			// TODO
-		task.result.callableStride	= Bytes<uint16_t>{ 0 };
-		task.result.rayHitOffset	= task.result.rayMissOffset + sh_size * uint(task.missShaders.size());
-		task.result.rayHitStride	= Bytes<uint16_t>{ sh_size };
-		task.result.maxMissShaders	= uint16_t(task.missShaders.size());
-
-		return result;
+		return _taskGraph.Add( this, task );
 	}
 
 /*
@@ -991,7 +974,7 @@ namespace {
 		auto*	scene	= GetResourceManager()->ToLocal( task.rtScene );
 
 		CHECK_ERR( result and scene );
-		CHECK_ERR( task.instances.size() <= scene->InstanceCount() );
+		CHECK_ERR( task.instances.size() <= scene->MaxInstanceCount() );
 
 		result->_rtScene = scene;
 
@@ -1007,38 +990,46 @@ namespace {
 		result->_scratchBuffer = GetResourceManager()->ToLocal( buf.Get() );
 		ReleaseResource( buf );
 
-		VkGeometryInstance*	instances;
-		CHECK_ERR( _AllocStorage<VkGeometryInstance>( task.instances.size(), OUT result->_instanceBuffer, OUT result->_instanceBufferOffset, OUT instances ));
+		VkGeometryInstance*  vk_instances;
+		CHECK_ERR( _AllocStorage<VkGeometryInstance>( task.instances.size(), OUT result->_instanceBuffer, OUT result->_instanceBufferOffset, OUT vk_instances ));
 
-		result->_rtGeometryCount		= task.instances.size();
-		result->_rtGeometries			= _mainAllocator.Alloc< VLocalRTGeometry const *>( result->_rtGeometryCount );
-		result->_rtGeometryIDs			= _mainAllocator.Alloc< RawRTGeometryID >( result->_rtGeometryCount );
+		// sort instances by ID
+		Array<uint>	sorted;		// TODO: use temporary allocator
+		sorted.resize( task.instances.size() );
+		for (size_t i = 0; i < sorted.size(); ++i) { sorted[i] = uint(i); }
+		std::sort( sorted.begin(), sorted.end(), [inst = &task.instances] (auto lhs, auto rhs) { return (*inst)[lhs].instanceId < (*inst)[rhs].instanceId; });
+
+		result->_rtGeometries			= _mainAllocator.Alloc< VLocalRTGeometry const *>( task.instances.size() );
+		result->_instances				= _mainAllocator.Alloc< Pair<InstanceID, RTGeometryID> >( task.instances.size() );
 		result->_instanceCount			= uint(task.instances.size());
 		result->_hitShadersPerInstance	= Max( 1u, task.hitShadersPerInstance );
 
 		for (size_t i = 0; i < task.instances.size(); ++i)
 		{
+			uint	idx  = sorted[i];
 			auto&	src  = task.instances[i];
-			auto&	dst  = instances[i];
-			auto&	blas = result->_rtGeometries[i];
+			auto&	dst  = vk_instances[idx];
+			auto&	blas = result->_rtGeometries[idx];
 
+			ASSERT( src.instanceId.IsDefined() );
 			ASSERT( src.geometryId );
-			ASSERT( (src.instanceID >> 24) == 0 );
+			ASSERT( (src.customId >> 24) == 0 );
 
-			result->_rtGeometries[i]  = GetResourceManager()->ToLocal( src.geometryId, /*acquire ref*/true );
-			result->_rtGeometryIDs[i] = src.geometryId;
-			CHECK_ERR( result->_rtGeometries[i] );
+			blas = GetResourceManager()->ToLocal( src.geometryId, /*acquire ref*/true );
+			CHECK_ERR( blas );
 
 			dst.blasHandle		= blas->BLASHandle();
 			dst.transformRow0	= src.transform[0];
 			dst.transformRow1	= src.transform[1];
 			dst.transformRow2	= src.transform[2];
-			dst.instanceId		= src.instanceID;
+			dst.customIndex		= src.customId;
 			dst.mask			= src.mask;
 			dst.instanceOffset	= result->_maxHitShaderCount * result->_hitShadersPerInstance;
 			dst.flags			= VEnumCast( src.flags );
+			
+			PlacementNew<Pair<InstanceID, RTGeometryID>>( result->_instances + idx, src.instanceId, src.geometryId );
 
-			result->_maxHitShaderCount += blas->MaxGeometryCount();
+			result->_maxHitShaderCount += (blas->MaxGeometryCount() * result->_hitShadersPerInstance);
 		}
 		
 		return result;

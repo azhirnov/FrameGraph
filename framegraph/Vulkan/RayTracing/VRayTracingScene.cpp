@@ -46,11 +46,10 @@ namespace FG
 			dev.SetObjectName( BitCast<uint64_t>(_topLevelAS), dbgName, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV );
 		}
 		
-		_instances.resize( desc.maxInstanceCount );
-
-		_memoryId	= MemoryID{ memId };
-		_debugName	= dbgName;
-		_flags		= desc.flags;
+		_maxInstanceCount	= desc.maxInstanceCount;
+		_memoryId			= MemoryID{ memId };
+		_debugName			= dbgName;
+		_flags				= desc.flags;
 
 		return true;
 	}
@@ -76,11 +75,11 @@ namespace FG
 		{
 			SCOPELOCK( data.lock );
 
-			Array<RawRTGeometryID>	temp;
+			Array<Instance>  temp;
 			std::swap( data.geometryInstances, temp );
 
-			for (auto& id : temp) {
-				unassignIDs.emplace_back( id );
+			for (auto& inst : temp) {
+				unassignIDs.emplace_back( inst.geometry.Release() );
 			}
 
 			data.frameIdx	= 0;
@@ -89,11 +88,11 @@ namespace FG
 			data.lock.unlock();
 		}
 
-		_topLevelAS	= VK_NULL_HANDLE;
-		_memoryId	= Default;
-		_flags		= Default;
-		
-		_instances.clear();
+		_topLevelAS			= VK_NULL_HANDLE;
+		_memoryId			= Default;
+		_flags				= Default;
+		_maxInstanceCount	= 0;
+
 		_debugName.clear();
 	}
 	

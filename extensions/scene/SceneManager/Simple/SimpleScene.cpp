@@ -385,25 +385,25 @@ namespace {
 
 			dst.dataID = uint(_materials.size());
 
-			if ( auto* tex = std::get_if<MtrTexture>( &settings.albedo ) )
+			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.albedo ) )
 			{
 				CHECK_ERR( imageCache->CreateImage( fg, tex->image, OUT dst.albedoTex ));
 				dst.textureBits |= ETextureType::Albedo;
 			}
 
-			if ( auto* tex = std::get_if<MtrTexture>( &settings.specular ) )
+			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.specular ) )
 			{
 				CHECK_ERR( imageCache->CreateImage( fg, tex->image, OUT dst.specularTex ));
 				dst.textureBits |= ETextureType::Specular;
 			}
 
-			if ( auto* tex = std::get_if<MtrTexture>( &settings.roughtness ) )
+			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.roughtness ) )
 			{
 				CHECK_ERR( imageCache->CreateImage( fg, tex->image, OUT dst.roughtnessTex ));
 				dst.textureBits |= ETextureType::Roughtness;
 			}
 
-			if ( auto* tex = std::get_if<MtrTexture>( &settings.metallic ) )
+			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.metallic ) )
 			{
 				CHECK_ERR( imageCache->CreateImage( fg, tex->image, OUT dst.metallicTex ));
 				dst.textureBits |= ETextureType::Metallic;
@@ -498,7 +498,7 @@ namespace {
 			{
 				CHECK_ERR( Visit( data,
 								  [&] (const IntermScene::ModelData &m)	{ return _CreateMesh( transform, scene, m ); },
-								  [] (const std::monostate &)			{ return false; }
+								  [] (const NullUnion &)				{ return false; }
 							));
 			}
 			

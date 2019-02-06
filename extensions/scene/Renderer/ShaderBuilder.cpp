@@ -28,7 +28,7 @@ namespace FG
 		if ( size_t(id) < _sources.size() )
 			return _sources[ size_t(id) ];
 
-		return "";
+		RETURN_ERR( "doesn't exists", "" );
 	}
 
 /*

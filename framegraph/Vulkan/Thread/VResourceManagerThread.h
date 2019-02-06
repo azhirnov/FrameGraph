@@ -68,6 +68,7 @@ namespace FG
 		using SyncTasks_t				= Array< std::function< void() > >;
 		using Statistics_t				= FrameGraphInstance::ResourceStatistics;
 		using DSLayouts_t				= FixedArray<Pair< RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets+1 >;
+		using VkResourceQueue_t			= std::vector< UntypedVkResource_t, StdLinearAllocator<UntypedVkResource_t> >;
 
 
 	// variables
@@ -105,6 +106,7 @@ namespace FG
 		InPlace<FramebufferMap_t>			_framebufferMap;
 		InPlace<PipelineResourcesMap_t>		_pplnResourcesMap;
 
+		InPlace<VkResourceQueue_t>			_readyToDelete;
 		InPlace<ResourceIDQueue_t>			_unassignIDs;
 		SyncTasks_t							_syncTasks;
 
@@ -127,7 +129,7 @@ namespace FG
 		ND_ RawMPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName, bool isAsync);
 		ND_ RawGPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName, bool isAsync);
 		ND_ RawCPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName, bool isAsync);
-		ND_ RawRTPipelineID		CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName, bool isAsync);
+		ND_ RawRTPipelineID		CreatePipeline (INOUT RayTracingPipelineDesc &desc, bool isAsync);
 		
 		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
 											 EQueueFamilyMask queueFamilyMask, StringView dbgName, bool isAsync);
@@ -149,6 +151,8 @@ namespace FG
 														  VMemoryManager &alloc, StringView dbgName, bool isAsync);
 		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem,
 													   VMemoryManager &alloc, StringView dbgName, bool isAsync);
+
+		ND_ RawRTShaderTableID	CreateRayTracingShaderTable (StringView dbgName, bool isAsync);
 
 		ND_ LogicalPassID		CreateLogicalRenderPass (const RenderPassDesc &desc);
 		
@@ -183,12 +187,15 @@ namespace FG
 		template <typename ID>
 		void ReleaseResource (ID id, bool isAsync, bool force = false);
 		
-		void FlushLocalResourceStates (ExeOrderIndex, ExeOrderIndex, VBarrierManager &, VFrameGraphDebugger *);
+		void FlushLocalResourceStates (ExeOrderIndex, ExeOrderIndex, VBarrierManager &, Ptr<VFrameGraphDebugger>);
 
 		ND_ VPipelineCache *	GetPipelineCache ()					{ return &_pipelineCache; }
 		ND_ VRenderPassCache*	GetRenderPassCache ()				{ return &_renderPassCache; }
 		ND_ VDescriptorManager*	GetDescriptorManager ()				{ return &_descriptorMngr; }
 		ND_ Allocator_t&		GetAllocator ()						{ return _allocator; }
+		
+		ND_ AppendableResourceIDs_t		GetUnassignIDs ();
+		ND_ VkResourceQueue_t&			GetReadyToDeleteQueue ()	{ return *_readyToDelete; }
 
 
 	private:
@@ -222,7 +229,6 @@ namespace FG
 		template <typename ID>		void   _Unassign (ID id);
 		template <typename ID>	ND_ auto&  _GetResourcePool (const ID &id)		{ return _mainRM._GetResourcePool( id ); }
 
-		ND_ AppendableResourceIDs_t				_GetResourceIDs ()				{ return AppendableResourceIDs_t{ *_unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
 		static Pair<UntypedResourceID_t, bool>  _AppendResourceID (UntypedResourceID_t &&id)	{ return { std::move(id), false }; }
 	};
 
@@ -367,6 +373,16 @@ namespace FG
 		auto&	res = _mainRM._GetResourceCPool(id)[ id.Index() ];
 
 		return (res.GetInstanceID() == id.InstanceID());
+	}
+	
+/*
+=================================================
+	GetUnassignIDs
+=================================================
+*/
+	inline AppendableResourceIDs_t  VResourceManagerThread::GetUnassignIDs ()
+	{
+		return AppendableResourceIDs_t{ *_unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}};
 	}
 
 

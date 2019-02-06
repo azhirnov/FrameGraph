@@ -31,7 +31,7 @@ namespace FG
 		using RTGeometryState			= VLocalRTGeometry::GeometryState;
 		using RTSceneState				= VLocalRTScene::SceneState;
 
-		using CommitBarrierFn_t			= void (*) (const void *, VBarrierManager &, VFrameGraphDebugger *);
+		using CommitBarrierFn_t			= void (*) (const void *, VBarrierManager &, Ptr<VFrameGraphDebugger>);
 		using PendingResourceBarriers_t	= std::unordered_map< void const*, CommitBarrierFn_t, std::hash<void const*>, std::equal_to<void const*>,
 															  StdLinearAllocator<Pair<void const* const, CommitBarrierFn_t>> >;	// TODO: use temp allocator
 		
@@ -146,7 +146,6 @@ namespace FG
 		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, OUT VPipelineLayout const* &pplnLayout);
 		void _BindPipeline2 (const VLogicalRenderPass &logicalRP, VkPipeline pipelineId);
 		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize, uint debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout);
-		void _BindPipeline (const VRayTracingPipeline* pipeline);
 		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
 		void _SetScissor (const VLogicalRenderPass *, ArrayView<RectI>);
 		void _SetDynamicStates (const _fg_hidden_::DynamicStates &) const;

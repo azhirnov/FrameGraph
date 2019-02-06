@@ -87,11 +87,11 @@ namespace FG
 		return MPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
 	
-	RTPipelineID  VFrameGraphThread::CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName)
+	RTPipelineID  VFrameGraphThread::CreatePipeline (INOUT RayTracingPipelineDesc &desc)
 	{
 		SCOPELOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
-		return RTPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
+		return RTPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, IsInSeparateThread() )};
 	}
 	
 	GPipelineID  VFrameGraphThread::CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName)
@@ -290,6 +290,19 @@ namespace FG
 	
 /*
 =================================================
+	CreateRayTracingShaderTable
+=================================================
+*/
+	RTShaderTableID  VFrameGraphThread::CreateRayTracingShaderTable (StringView dbgName)
+	{
+		SCOPELOCK( _rcCheck );
+		ASSERT( _IsInitialized() );
+
+		return RTShaderTableID{ _resourceMngr.CreateRayTracingShaderTable( dbgName, IsInSeparateThread() )};
+	}
+
+/*
+=================================================
 	_InitPipelineResources
 =================================================
 */
@@ -398,6 +411,7 @@ namespace FG
 	void VFrameGraphThread::ReleaseResource (INOUT SamplerID &id)		{ _ReleaseResource( INOUT id ); }
 	void VFrameGraphThread::ReleaseResource (INOUT RTGeometryID &id)	{ _ReleaseResource( INOUT id ); }
 	void VFrameGraphThread::ReleaseResource (INOUT RTSceneID &id)		{ _ReleaseResource( INOUT id ); }
+	void VFrameGraphThread::ReleaseResource (INOUT RTShaderTableID &id)	{ _ReleaseResource( INOUT id ); }
 
 /*
 =================================================
@@ -1327,10 +1341,10 @@ namespace FG
 	
 /*
 =================================================
-	GetShaderDebugger
+	CreateShaderDebugger
 =================================================
 */
-	VShaderDebugger*  VFrameGraphThread::GetShaderDebugger ()
+	Ptr<VShaderDebugger>  VFrameGraphThread::CreateShaderDebugger ()
 	{
 		if ( not _shaderDebugger )
 		{

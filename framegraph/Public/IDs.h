@@ -176,8 +176,8 @@ namespace _fg_hidden_
 	using MemPoolID					= _fg_hidden_::IDWithString< 32,  8, FG_OPTIMIZE_IDS >;
 	using CommandBatchID			= _fg_hidden_::IDWithString< 32,  9, false >;
 	using RTShaderID				= _fg_hidden_::IDWithString< 32, 10, FG_OPTIMIZE_IDS >;
-	using RTShaderGroupID			= _fg_hidden_::IDWithString< 32, 11, FG_OPTIMIZE_IDS >;
-	using GeometryID				= _fg_hidden_::IDWithString< 32, 12, FG_OPTIMIZE_IDS >;
+	using GeometryID				= _fg_hidden_::IDWithString< 32, 11, FG_OPTIMIZE_IDS >;
+	using InstanceID				= _fg_hidden_::IDWithString< 32, 12, FG_OPTIMIZE_IDS >;
 	
 	// weak references
 	using RawBufferID				= _fg_hidden_::ResourceID< 1 >;
@@ -192,6 +192,7 @@ namespace _fg_hidden_
 	using LogicalPassID				= _fg_hidden_::ResourceID< 10 >;
 	using RawRTSceneID				= _fg_hidden_::ResourceID< 11 >;
 	using RawRTGeometryID			= _fg_hidden_::ResourceID< 12 >;
+	using RawRTShaderTableID		= _fg_hidden_::ResourceID< 13 >;
 	
 	// strong references
 	using BufferID					= _fg_hidden_::ResourceIDWrap< RawBufferID >;
@@ -203,6 +204,7 @@ namespace _fg_hidden_
 	using SamplerID					= _fg_hidden_::ResourceIDWrap< RawSamplerID >;
 	using RTSceneID					= _fg_hidden_::ResourceIDWrap< RawRTSceneID >;
 	using RTGeometryID				= _fg_hidden_::ResourceIDWrap< RawRTGeometryID >;
+	using RTShaderTableID			= _fg_hidden_::ResourceIDWrap< RawRTShaderTableID >;
 
 
 }	// FG

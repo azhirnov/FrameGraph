@@ -50,13 +50,13 @@ namespace FG
 
 		if ( _instancesData.has_value() )
 		{
-			for (auto& id : _instancesData->geometryInstances) {
-				unassignIDs.emplace_back( id );
+			for (auto& inst : _instancesData->geometryInstances) {
+				unassignIDs.emplace_back( inst.geometry.Release() );
 			}
 		}
 
 		_rtSceneData	= null;
-		_instancesData	= Default;
+		_instancesData	= {};
 		
 		// check for uncommited barriers
 		ASSERT( _pendingAccesses.empty() );
@@ -70,15 +70,33 @@ namespace FG
 =================================================
 	SetGeometryInstances
 ----
-	'instances' is strong references for geometries
+	'instances' is sorted by instance ID and contains the strong references for geometries
 =================================================
 */
-	void VLocalRTScene::SetGeometryInstances (ArrayView<RawRTGeometryID> instances, uint hitShadersPerInstance, uint maxHitShaders) const
+	void VLocalRTScene::SetGeometryInstances (Pair<InstanceID, RTGeometryID> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const
 	{
-		_instancesData = InstancesData_t{};
-		_instancesData->geometryInstances.assign( instances.begin(), instances.end() );
+		_instancesData = InstancesData{};
+		_instancesData->geometryInstances.reserve( instanceCount );
+
+		for (uint i = 0; i < instanceCount; ++i) {
+			_instancesData->geometryInstances.emplace_back( std::move(instances[i]) );
+		}
+
 		_instancesData->hitShadersPerInstance	= hitShadersPerInstance;
 		_instancesData->maxHitShaderCount		= maxHitShaders;
+	}
+	
+/*
+=================================================
+	FindInstance
+=================================================
+*/
+	VLocalRTScene::Instance const*  VLocalRTScene::FindInstance (const InstanceID &id) const
+	{
+		auto	instances	= GeometryInstances();
+		size_t	pos			= BinarySearch( instances, id );
+
+		return pos < instances.size() ? &instances[pos] : null;
 	}
 
 /*
@@ -102,7 +120,7 @@ namespace FG
 	ResetState
 =================================================
 */
-	void VLocalRTScene::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	void VLocalRTScene::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
 	{
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
@@ -124,7 +142,7 @@ namespace FG
 	CommitBarrier
 =================================================
 */
-	void VLocalRTScene::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	void VLocalRTScene::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
 	{
 		const bool	is_modified =	(_accessForReadWrite.isReadable and _pendingAccesses.isWritable) or	// read -> write
 									_accessForReadWrite.isWritable;										// write -> read/write

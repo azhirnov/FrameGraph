@@ -74,6 +74,7 @@ void main()
 		const auto	OnShaderTraceReady = [OUT &shader_output_is_correct] (StringView taskName, StringView shaderName, EShaderStages stages, ArrayView<String> output)
 		{
 			shader_output_is_correct &= (stages == (EShaderStages::Vertex | EShaderStages::Fragment));
+			shader_output_is_correct &= (taskName == "DebuggableDraw");
 
 			if ( shaderName == "VertexShader" )
 			{
@@ -103,7 +104,6 @@ no source
 27. v_Color		= g_Colors[gl_VertexIndex];
 
 )#";
-				shader_output_is_correct &= (taskName == "DebuggableDraw");
 				shader_output_is_correct &= (output.size() == 2 and ((output[0] == ref0 and output[1] == ref1) or (output[0] == ref1 and output[1] == ref0)));
 				ASSERT( shader_output_is_correct );
 			}
@@ -123,7 +123,6 @@ no source
 16. out_Color.a   = fract(v_Color.r + v_Color.g + v_Color.b + 0.5f);
 
 )#";
-				shader_output_is_correct &= (taskName == "DebuggableDraw");
 				shader_output_is_correct &= (shaderName == "FragmentShader");
 				shader_output_is_correct &= (output.size() == 1 and output[0] == ref2);
 				ASSERT( shader_output_is_correct );

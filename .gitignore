@@ -5,7 +5,6 @@
 /external/SDL2
 /external/Vulkan-Headers
 /external/VulkanMemoryAllocator
-CMakeLists.txt.user
 /external/SFML
 /external/assimp
 /external/foonathan_memory
@@ -13,4 +12,8 @@ CMakeLists.txt.user
 /external/glm
 /external/DevIL
 /external/FreeImage
+/external/optional
+/external/variant
+/external/AngelScript
 /samples/framegraph/shadertoy/_debug_output
+CMakeLists.txt.user

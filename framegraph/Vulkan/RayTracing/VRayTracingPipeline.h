@@ -16,29 +16,29 @@ namespace FG
 		friend class VPipelineCache;
 
 	// types
-	private:
-		struct GroupInfo
+	public:
+		struct ShaderModule
 		{
-			RTShaderGroupID		id;
-			uint				offset	= UMax;
+			RTShaderID							shaderId;
+			VkShaderStageFlagBits				stage;
+			PipelineDescription::VkShaderPtr	module;
+			EShaderDebugMode					debugMode	= Default;
 
-			ND_ bool  operator == (const RTShaderGroupID &rhs)	const	{ return id == rhs; }
-			ND_ bool  operator <  (const RTShaderGroupID &rhs)	const	{ return id < rhs; }
-			ND_ bool  operator <  (const GroupInfo &rhs)		const	{ return id < rhs.id; }
+			ND_ bool  operator == (const RTShaderID &rhs) const	{ return shaderId == rhs; }
+			ND_ bool  operator <  (const RTShaderID &rhs) const	{ return shaderId <  rhs; }
 		};
+
+		using ShaderModules_t = Array< ShaderModule >;
 
 
 	// variables
 	private:
-		PipelineLayoutID		_layoutId;
-		VkPipeline				_pipeline			= VK_NULL_HANDLE;
+		PipelineLayoutID		_baseLayoutId;
+		ShaderModules_t			_shaders;
 		
-		Array<uint8_t>			_groupData;
-		uint					_groupInfoOffset	= 0;
-		uint					_shaderHandleSize	= 0;
+		uint					_maxRecursionDepth	= 0;
+		uint					_recordStrideSpec	= UMax;
 
-		DebugName_t				_debugName;
-		
 		RWRaceConditionCheck	_rcCheck;
 
 
@@ -48,15 +48,11 @@ namespace FG
 		VRayTracingPipeline (VRayTracingPipeline &&) = default;
 		~VRayTracingPipeline ();
 		
-		bool Create (const VResourceManagerThread &, const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
+		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId);
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
-
-		ND_ ArrayView<uint8_t>		GetShaderGroupHandle (const RTShaderGroupID &id) const;
 		
-		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _layoutId.Get(); }
-		ND_ VkPipeline				Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _pipeline; }
-		ND_ BytesU					ShaderHandleSize ()	const	{ SHAREDLOCK( _rcCheck );  return BytesU{_shaderHandleSize}; }
-		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ ArrayView<ShaderModule>	GetShaderModules ()	const	{ SHAREDLOCK( _rcCheck );  return _shaders; }
+		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }
 	};
 
 

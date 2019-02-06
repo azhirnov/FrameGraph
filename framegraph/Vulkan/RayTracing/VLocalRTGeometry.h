@@ -58,8 +58,8 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 		
 		void AddPendingState (const GeometryState &state) const;
-		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
-		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
+		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
+		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
 		
 		ND_ BLASHandle_t				BLASHandle ()		const	{ return _rtGeometryData->BLASHandle(); }
 		ND_ VkAccelerationStructureNV	Handle ()			const	{ return _rtGeometryData->Handle(); }

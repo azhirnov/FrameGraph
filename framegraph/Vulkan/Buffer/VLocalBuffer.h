@@ -74,8 +74,8 @@ namespace FG
 		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		void AddPendingState (const BufferState &state) const;
-		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
-		void CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const;
+		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
+		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
 
 		ND_ bool				IsCreated ()	const	{ return _bufferData != null; }
 		ND_ VkBuffer			Handle ()		const	{ return _bufferData->Handle(); }

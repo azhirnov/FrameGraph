@@ -1,4 +1,4 @@
-Thread {
+SubBatch {
 	batch:         "main"
 	indexInBatch:  0
 	Image {
@@ -107,7 +107,7 @@ Thread {
 				name:     ""
 				usage:    Uniform, RTS
 				offset:   0 b
-				size:     4 Kb
+				size:     48 b
 			}
 			ImageUsage {
 				name:           "OutputImage"

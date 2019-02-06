@@ -452,7 +452,7 @@ namespace FG
 		DebugMode	dbg_mode;
 		dbg_mode.taskName		= name;
 		dbg_mode.mode			= mode.mode;
-		dbg_mode.shaderStages	= mode.stages;
+		dbg_mode.shaderStages	= EShaderStages::AllRayTracing;
 		
 		CHECK_ERR( _AllocStorage( INOUT dbg_mode, size ), UMax );
 

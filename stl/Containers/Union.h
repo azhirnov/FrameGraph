@@ -2,10 +2,6 @@
 
 #include "stl/Common.h"
 
-#ifdef FG_STD_VARIANT
-
-# include <variant>
-
 namespace FG
 {
 	namespace _fg_hidden_
@@ -14,10 +10,19 @@ namespace FG
 
 		template <typename... Types>	overloaded (Types...) -> overloaded<Types...>;
 	}
-	
+}	// FG
 
-	template <typename ...Types>	using Union		= std::variant< Types... >;
-									using NullUnion	= std::monostate;
+
+#ifdef FG_STD_VARIANT
+
+# include <variant>
+
+namespace FG
+{
+	template <typename ...Types>	using Union			= std::variant< Types... >;
+									using NullUnion		= std::monostate;
+
+	template <typename T>	constexpr std::in_place_type_t<T> InPlaceIndex {};
 	
 /*
 =================================================
@@ -50,6 +55,12 @@ namespace FG
 	}
 	
 	template <typename T, typename ...Types>
+	ND_ forceinline constexpr T const&  UnionGet (const Union<Types...> &un)
+	{
+		return std::get<T>( un );
+	}
+
+	template <typename T, typename ...Types>
 	ND_ forceinline constexpr T*  UnionGetIf (Union<Types...> *un)
 	{
 		return std::get_if<T>( un );
@@ -69,35 +80,37 @@ namespace FG
 
 }	// FG
 
-#else
+
+#elif defined(FG_ENABLE_VARIANT)
+
+# include "external/variant/include/mpark/variant.hpp"
 
 namespace FG
 {
+	template <typename ...Types>	using Union		= mpark::variant< Types... >;
+									using NullUnion	= mpark::monostate;
 
-	struct NullUnion {};
-
-
-	//
-	// Union
-	//
-
-	template <typename ...Types>
-	struct Union
-	{
-	};
-
-	
+	template <typename T>	constexpr mpark::in_place_type_t<T>  InPlaceIndex {};
+									
 /*
 =================================================
 	Visit
 =================================================
 */
-	template <typename ...Types, typename Func>
-	forceinline constexpr decltype(auto)  Visit (Union<Types...> &un, Func&& fn)
+	template <typename ...Types, typename ...Funcs>
+	forceinline constexpr decltype(auto)  Visit (Union<Types...> &un, Funcs&&... fn)
 	{
-
+		using namespace _fg_hidden_;
+		return mpark::visit( overloaded{ std::forward<Funcs &&>(fn)... }, un );
 	}
 
+	template <typename ...Types, typename ...Funcs>
+	forceinline constexpr decltype(auto)  Visit (const Union<Types...> &un, Funcs&&... fn)
+	{
+		using namespace _fg_hidden_;
+		return mpark::visit( overloaded{ std::forward<Funcs &&>(fn)... }, un );
+	}
+	
 /*
 =================================================
 	UnionGet
@@ -106,19 +119,31 @@ namespace FG
 	template <typename T, typename ...Types>
 	ND_ forceinline constexpr T&  UnionGet (Union<Types...> &un)
 	{
-		return un.template Get<T>();
+		return mpark::get<T>( un );
 	}
 	
+	template <typename T, typename ...Types>
+	ND_ forceinline constexpr T const&  UnionGet (const Union<Types...> &un)
+	{
+		return mpark::get<T>( un );
+	}
+
 	template <typename T, typename ...Types>
 	ND_ forceinline constexpr T*  UnionGetIf (Union<Types...> *un)
 	{
-		return un->template GetIf<T>();
+		return mpark::get_if<T>( un );
 	}
 	
 	template <typename T, typename ...Types>
+	ND_ forceinline constexpr T const*  UnionGetIf (const Union<Types...> *un)
+	{
+		return mpark::get_if<T>( un );
+	}
+
+	template <typename T, typename ...Types>
 	ND_ forceinline constexpr bool  HoldsAlternative (const Union<Types...> &un)
 	{
-		return un.template Is<T>();
+		return mpark::holds_alternative<T>( un );
 	}
 
 }	// FG

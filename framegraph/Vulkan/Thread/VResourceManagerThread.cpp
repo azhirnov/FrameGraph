@@ -40,8 +40,6 @@ namespace FG
 	{
 		SCOPELOCK( _rcCheck );
 
-		_pipelineCache.OnBegin( _allocator );
-
 		_samplerMap.Create( _allocator );
 		_pplnLayoutMap.Create( _allocator );
 		_dsLayoutMap.Create( _allocator );
@@ -50,6 +48,7 @@ namespace FG
 		_pplnResourcesMap.Create( _allocator );
 
 		_unassignIDs.Create( _allocator )->reserve( 256 );
+		_readyToDelete.Create( _allocator )->reserve( 256 );
 	}
 	
 /*
@@ -110,19 +109,23 @@ namespace FG
 				ReleaseResource( res.second, false, true );
 		}
 
-		_pipelineCache.MergePipelines( _mainRM._GetReadyToDeleteQueue() );
-
 		// unassign IDs
 		for (auto& vid : *_unassignIDs) {
 			Visit( vid.first, [this, force = vid.second] (auto id) { ReleaseResource( id, false, force ); });
 		}
-		
+
+		// delete vulkan objects
+		if ( _readyToDelete->size() ) {
+			_mainRM._GetReadyToDeleteQueue().insert( _mainRM._GetReadyToDeleteQueue().end(), _readyToDelete->begin(), _readyToDelete->end() );
+		}
+
 		_samplerMap.Destroy();
 		_pplnLayoutMap.Destroy();
 		_dsLayoutMap.Destroy();
 		_renderPassMap.Destroy();
 		_framebufferMap.Destroy();
 		_pplnResourcesMap.Destroy();
+		_readyToDelete.Destroy();
 		_unassignIDs.Destroy();
 	}
 	
@@ -144,7 +147,7 @@ namespace FG
 
 			if ( not rp.IsDestroyed() )
 			{
-				rp.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
+				rp.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
 				_logicalRenderPasses.Unassign( Index_t(i) );
 			}
 		}
@@ -344,7 +347,7 @@ namespace FG
 	{
 		CHECK_ERR( _Assign( OUT id ));
 		
-		auto*	empty_layout = GetResource( _mainRM._emptyDSLayout );
+		auto*	empty_layout = GetResource( _mainRM._GetEmptyDescriptorSetLayout() );
 		CHECK_ERR( empty_layout );
 
 		auto&	pool	= _GetResourcePool( id );
@@ -585,7 +588,7 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawRTPipelineID  VResourceManagerThread::CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName, bool isAsync)
+	RawRTPipelineID  VResourceManagerThread::CreatePipeline (INOUT RayTracingPipelineDesc &desc, bool isAsync)
 	{
 		SCOPELOCK( _rcCheck );
 		
@@ -602,7 +605,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( *this, desc, layout_id, dbgName ) )
+		if ( not data.Create( desc, layout_id ) )
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating ray tracing pipeline" );
@@ -851,6 +854,8 @@ namespace FG
 */
 	VPipelineResources const*  VResourceManagerThread::CreateDescriptorSet (const PipelineResources &desc, bool isAsync)
 	{
+		CHECK_ERR( desc.IsInitialized() );
+
 		RawPipelineResourcesID	id = PipelineResourcesInitializer::GetCached( desc );
 		
 		// use cached resources
@@ -941,6 +946,31 @@ namespace FG
 		data.AddRef();
 		return id;
 	}
+	
+/*
+=================================================
+	CreateRayTracingShaderTable
+=================================================
+*/
+	RawRTShaderTableID  VResourceManagerThread::CreateRayTracingShaderTable (StringView dbgName, bool isAsync)
+	{
+		SCOPELOCK( _rcCheck );
+		
+		RawRTShaderTableID	id;
+		CHECK_ERR( _Assign( OUT id ));
+		
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+
+		if ( not data.Create( dbgName ) )
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating raytracing shader binding table" );
+		}
+
+		data.AddRef();
+		return id;
+	}
 
 /*
 =================================================
@@ -974,7 +1004,7 @@ namespace FG
 =================================================
 */
 	void  VResourceManagerThread::FlushLocalResourceStates (ExeOrderIndex index, ExeOrderIndex batchExeOrder,
-															VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger)
+															VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger)
 	{
 		// reset state & destroy local images
 		for (uint i = 0; i < _localImagesCount; ++i)
@@ -984,7 +1014,7 @@ namespace FG
 			if ( not image.IsDestroyed() )
 			{
 				image.Data().ResetState( index, barrierMngr, debugger );
-				image.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
+				image.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
 				_localImages.Unassign( Index_t(i) );
 			}
 		}
@@ -997,7 +1027,7 @@ namespace FG
 			if ( not buffer.IsDestroyed() )
 			{
 				buffer.Data().ResetState( index, barrierMngr, debugger );
-				buffer.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
+				buffer.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
 				_localBuffers.Unassign( Index_t(i) );
 			}
 		}
@@ -1010,7 +1040,7 @@ namespace FG
 			if ( not geometry.IsDestroyed() )
 			{
 				geometry.Data().ResetState( index, barrierMngr, debugger );
-				geometry.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
+				geometry.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
 				_localRTGeometries.Unassign( Index_t(i) );
 			}
 		}
@@ -1029,7 +1059,7 @@ namespace FG
 											});
 				}
 				scene.Data().ResetState( index, barrierMngr, debugger );
-				scene.Destroy( OUT _mainRM._GetReadyToDeleteQueue(), OUT _GetResourceIDs(), batchExeOrder, GetFrameIndex() );
+				scene.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs(), batchExeOrder, GetFrameIndex() );
 				_localRTScenes.Unassign( Index_t(i) );
 			}
 		}

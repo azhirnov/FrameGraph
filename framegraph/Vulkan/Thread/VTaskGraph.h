@@ -526,26 +526,28 @@ namespace FG
 	{
 		friend class VFrameGraphThread;
 		
-		using RayGenShaderGroup		= UpdateRayTracingShaderTable::RayGenShaderGroup;
-		using MissShaderGroups_t	= Array< UpdateRayTracingShaderTable::MissShaderGroup >;
-		using HitShaderGroups_t		= Array< UpdateRayTracingShaderTable::HitShaderGroup >;
+	// types
+	private:
+		using RayGetShader	= UpdateRayTracingShaderTable::RayGenShader;
+		using ShaderGroup	= UpdateRayTracingShaderTable::ShaderGroup;
 
 	// variables
 	public:
-		VRayTracingPipeline const* const	pipeline;
+		RawRTPipelineID						pipeline;
 		VLocalRTScene const* const			rtScene;
-		VLocalBuffer const* const			dstBuffer;
-		VkDeviceSize						dstOffset;
-		const RayGenShaderGroup				rayGenShader;
-		const MissShaderGroups_t			missShaders;
-		const HitShaderGroups_t				hitShaders;
-		//const ShaderGroups_t				callableShaders;
+		VRayTracingShaderTable * const		shaderTable;
+		RayGetShader						rayGenShader;
+	private:
+		ShaderGroup *						_shaderGroups;
+		const uint							_shaderGroupCount;
 
 	// methods
 	public:
 		VFgTask (VFrameGraphThread *, const UpdateRayTracingShaderTable &task, ProcessFunc_t process);
 		
 		ND_ bool  IsValid () const;
+
+		ND_ ArrayView< ShaderGroup >	GetShaderGroups ()	const	{ return { _shaderGroups, _shaderGroupCount }; }
 	};
 
 
@@ -597,6 +599,11 @@ namespace FG
 	{
 		friend class VFrameGraphThread;
 
+	// types
+	private:
+		using Instance	= Pair< InstanceID, RTGeometryID >;
+
+
 	// variables
 	private:
 		VLocalRTScene const*		_rtScene				= null;
@@ -605,8 +612,7 @@ namespace FG
 		VLocalBuffer const*			_instanceBuffer			= null;
 		VkDeviceSize				_instanceBufferOffset	= 0;
 		VLocalRTGeometry const**	_rtGeometries			= null;
-		RawRTGeometryID *			_rtGeometryIDs			= null;		// strong references
-		size_t						_rtGeometryCount		= 0;
+		Instance *					_instances				= null;		// strong references
 		uint						_instanceCount			= 0;
 		uint						_hitShadersPerInstance	= 0;
 		uint						_maxHitShaderCount		= 0;
@@ -624,8 +630,8 @@ namespace FG
 		ND_ VLocalBuffer const*					InstanceBuffer ()		const	{ return _instanceBuffer; }
 		ND_ VkDeviceSize						InstanceBufferOffset ()	const	{ return _instanceBufferOffset; }
 		ND_ uint								InstanceCount ()		const	{ return _instanceCount; }
-		ND_ ArrayView<VLocalRTGeometry const*>	Geometries ()			const	{ return ArrayView{ _rtGeometries, _rtGeometryCount }; }
-		ND_ ArrayView<RawRTGeometryID>			GeometryIDs ()			const	{ return ArrayView{ _rtGeometryIDs, _rtGeometryCount }; }
+		ND_ ArrayView<VLocalRTGeometry const*>	Geometries ()			const	{ return ArrayView{ _rtGeometries, _instanceCount }; }
+		ND_ Instance *							Instances ()			const	{ return _instances; }
 		ND_ uint								HitShadersPerInstance()	const	{ return _hitShadersPerInstance; }
 		ND_ uint								MaxHitShaderCount ()	const	{ return _maxHitShaderCount; }
 	};
@@ -643,19 +649,10 @@ namespace FG
 		VPipelineResourceSet				_resources;
 		uint								_debugModeIndex	= UMax;
 	public:
-		VRayTracingPipeline const* const	pipeline;
+		VRayTracingShaderTable const* const	shaderTable;
 		const _fg_hidden_::PushConstants_t	pushConstants;
 
 		const uint3							groupCount;
-
-		VLocalBuffer const* const			sbtBuffer;
-		const VkDeviceSize					rayGenOffset;
-		const VkDeviceSize					rayMissOffset;
-		const VkDeviceSize					rayHitOffset;
-		const VkDeviceSize					callableOffset;
-		const uint16_t						rayMissStride;
-		const uint16_t						rayHitStride;
-		const uint16_t						callableStride;
 
 
 	// methods

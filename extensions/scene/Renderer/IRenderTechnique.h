@@ -43,12 +43,15 @@ namespace FG
 		public:
 			RenderQueueImpl () {}
 			
-			void Create (const FGThreadPtr &fg, const CameraInfo &camera)									{ return _Create( fg, camera ); }
+			void Create (const FGThreadPtr &fg, const CameraInfo &camera)					{ return _Create( fg, camera ); }
 
-			ND_ Task  Submit (ArrayView<Task> dependsOn = Default)											{ return _Submit( dependsOn ); }
+			ND_ Task  Submit (ArrayView<Task> dependsOn = Default)							{ return _Submit( dependsOn ); }
 
-			void AddLayer (ERenderLayer layer, LogicalPassID passId, StringView dbgName = Default)			{ return _AddLayer( layer, passId, dbgName ); }
-			void AddLayer (ERenderLayer layer, const RenderPassDesc &desc, StringView dbgName = Default)	{ return _AddLayer( layer, desc, dbgName ); }
+			void AddLayer (ERenderLayer layer, LogicalPassID passId,
+						   const PipelineResources& pplnRes, StringView dbgName = Default)	{ return _AddLayer( layer, passId, &pplnRes, dbgName ); }
+
+			void AddLayer (ERenderLayer layer, const RenderPassDesc &desc,
+						   const PipelineResources& pplnRes, StringView dbgName = Default)	{ return _AddLayer( layer, desc, &pplnRes, dbgName ); }
 		};
 
 		using CameraData_t	= ScenePreRender::CameraData;
@@ -58,10 +61,13 @@ namespace FG
 	public:
 		virtual bool GetPipeline (const PipelineInfo &, OUT RawGPipelineID &) = 0;
 		virtual bool GetPipeline (const PipelineInfo &, OUT RawMPipelineID &) = 0;
+		virtual bool GetPipeline (const PipelineInfo &, OUT RawRTPipelineID &) = 0;
 
 		virtual bool Render (const ScenePreRender &) = 0;
 
-		ND_ virtual ShaderBuilder*  GetShaderBuilder () = 0;
+		ND_ virtual ShaderBuilder*	GetShaderBuilder () = 0;
+		ND_ virtual FGInstancePtr	GetFrameGraphInstance () = 0;
+		ND_ virtual FGThreadPtr		GetFrameGraphThread () = 0;
 
 
 	protected:

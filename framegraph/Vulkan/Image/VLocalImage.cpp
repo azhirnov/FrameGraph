@@ -278,7 +278,7 @@ namespace FG
 	ResetState
 =================================================
 */
-	void VLocalImage::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	void VLocalImage::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
 	{
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
@@ -307,7 +307,7 @@ namespace FG
 	CommitBarrier
 =================================================
 */
-	void VLocalImage::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	void VLocalImage::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
 	{
 		VkPipelineStageFlags	dst_stages = 0;
 

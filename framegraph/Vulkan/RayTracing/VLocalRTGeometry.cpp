@@ -72,7 +72,7 @@ namespace FG
 	ResetState
 =================================================
 */
-	void VLocalRTGeometry::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	void VLocalRTGeometry::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
 	{
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
@@ -94,7 +94,7 @@ namespace FG
 	CommitBarrier
 =================================================
 */
-	void VLocalRTGeometry::CommitBarrier (VBarrierManager &barrierMngr, VFrameGraphDebugger *debugger) const
+	void VLocalRTGeometry::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
 	{
 		const bool	is_modified =	(_accessForReadWrite.isReadable and _pendingAccesses.isWritable) or	// read -> write
 									_accessForReadWrite.isWritable;										// write -> read/write

@@ -127,12 +127,13 @@ namespace FG
 		MPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName) override;
 		GPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName) override;
 		CPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName) override;
-		RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName) override;
+		RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc) override;
 		ImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		BufferID		CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName) override;
 		BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName) override;
 		SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName) override;
+		RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName) override;
 		bool			InitPipelineResources (const RawGPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
@@ -149,6 +150,7 @@ namespace FG
 		void			ReleaseResource (INOUT SamplerID &id) override;
 		void			ReleaseResource (INOUT RTGeometryID &id) override;
 		void			ReleaseResource (INOUT RTSceneID &id) override;
+		void			ReleaseResource (INOUT RTShaderTableID &id) override;
 
 		BufferDesc const&	GetDescription (const BufferID &id) const override;
 		ImageDesc  const&	GetDescription (const ImageID &id) const override;
@@ -234,12 +236,13 @@ namespace FG
 		ND_ VFrameGraphInstance const*		GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
 		ND_ VResourceManagerThread*			GetResourceManager ()				{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
 		ND_ VResourceManagerThread const*	GetResourceManager ()		const	{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
-		ND_ VMemoryManager*					GetMemoryManager ()					{ SCOPELOCK( _rcCheck );  return _memoryMngr.operator->(); }
-		ND_ VPipelineCache *				GetPipelineCache ()					{ SCOPELOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
-		ND_ VFrameGraphDebugger *			GetDebugger ()						{ SCOPELOCK( _rcCheck );  return _debugger.get(); }
-		ND_ VSwapchain *					GetSwapchain ()						{ SCOPELOCK( _rcCheck );  return _swapchain.get(); }	// temp
-		ND_ VStagingBufferManager *			GetStagingBufferManager ()			{ SCOPELOCK( _rcCheck );  return _stagingMngr.get(); }
-		ND_ VShaderDebugger *				GetShaderDebugger ();
+		ND_ Ptr<VMemoryManager>				GetMemoryManager ()					{ SCOPELOCK( _rcCheck );  return _memoryMngr.operator->(); }
+		ND_ Ptr<VPipelineCache>				GetPipelineCache ()					{ SCOPELOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
+		ND_ Ptr<VFrameGraphDebugger>		GetDebugger ()						{ SCOPELOCK( _rcCheck );  return _debugger.get(); }
+		ND_ Ptr<VSwapchain>					GetSwapchain ()						{ SCOPELOCK( _rcCheck );  return _swapchain.get(); }	// temp
+		ND_ Ptr<VStagingBufferManager>		GetStagingBufferManager ()			{ SCOPELOCK( _rcCheck );  return _stagingMngr.get(); }
+		ND_ Ptr<VShaderDebugger>			GetShaderDebugger ()				{ SCOPELOCK( _rcCheck );  return _shaderDebugger.get(); }
+		ND_ Ptr<VShaderDebugger>			CreateShaderDebugger ();
 
 
 	private:

@@ -15,8 +15,8 @@ DispatchCompute().EnableDebugTrace({ thread_x, thread_y, thread_z });
 // record if {pixel_x, pixel_y} == gl_FragCoord.xy
 DrawIndexed().EnableFragmentDebugTrace( pixel_x, pixel_y );
 
-// record if launchID == gl_LaunchIDNV
-TraceRays().EnableDebugTrace( EShaderStages::RayGen, { x, y, z });
+// record if {launch_x, launch_y, launch_z} == gl_LaunchIDNV
+TraceRays().EnableDebugTrace({ launch_x, launch_y, launch_z });
 ```
 Shader trace will be recorded only for selected thread/pixel/...
 <br/>
@@ -39,7 +39,7 @@ desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, "main", R"#(
 // supports any shader stage
 DrawIndexed().EnableDebugTrace( EShaderStages::Vertex | EShaderStages::Fragment );
 
-TraceRays().EnableDebugTrace( EShaderStages::RayGen );
+TraceRays().EnableDebugTrace();
 
 DispatchCompute().EnableDebugTrace();
 ```

@@ -14,10 +14,10 @@ namespace FG
 	static constexpr bool	IsInteger			= std::is_integral_v<T>;
 	
 	template <typename T>
-	static constexpr bool	IsSignedInteger		= std::is_integral_v<T> and std::is_signed_v<T>;
+	static constexpr bool	IsSignedInteger		= std::is_integral_v<T> && std::is_signed_v<T>;
 	
 	template <typename T>
-	static constexpr bool	IsUnsignedInteger	= std::is_integral_v<T> and std::is_unsigned_v<T>;
+	static constexpr bool	IsUnsignedInteger	= std::is_integral_v<T> && std::is_unsigned_v<T>;
 
 	template <typename T>
 	static constexpr bool	IsStaticArray		= std::is_array_v<T>;

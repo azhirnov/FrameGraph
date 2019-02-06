@@ -6,13 +6,26 @@
 // setup pipeline description
 RayTracingPipelineDesc  ppln;
 
-// add ray-generation shader
-ppln.AddShader( RTShaderID("Main"), EShader::RayGen, EShaderLangFormat::VKSL_110, "main", R"#(
+const String header = R"#(
 #version 460 core
 #extension GL_NV_ray_tracing : require
+#define PRIMARY_RAY_LOC	0
+#define SHADOW_RAY_LOC	1
+
+struct PrimaryRayPayload {
+    vec4  color;
+};
+struct ShadowRayPayload {
+    float  distance;
+};
+)#";
+
+// add ray-generation shader
+ppln.AddShader( RTShaderID("Main"), EShader::RayGen, EShaderLangFormat::VKSL_110, "main", R"#(
 layout(binding = 0) uniform accelerationStructureNV  un_RtScene;
 layout(binding = 1, rgba8) writeonly uniform image2D  un_Output;
-layout(location = 0) rayPayloadNV vec4  payload;
+layout(location = PRIMARY_RAY_LOC) rayPayloadNV PrimaryRayPayload  PrimaryRay;
+layout(location = SHADOW_RAY_LOC)  rayPayloadNV ShadowRayPayload   ShadowRay;
 
 void main ()
 {
@@ -24,46 +37,65 @@ void main ()
     traceNV( /*topLevel*/un_RtScene, /*rayFlags*/gl_RayFlagsNoneNV, /*cullMask*/0xFF,
              /*sbtRecordOffset*/0, /*sbtRecordStride*/2, /*missIndex*/0,
              /*origin*/origin, /*Tmin*/0.0f, /*direction*/direction, /*Tmax*/10.0f,
-             /*payload*/0 );
+             /*payload*/PRIMARY_RAY_LOC );
 
-    imageStore( un_Output, ivec2(gl_LaunchIDNV), payload );
+    imageStore( un_Output, ivec2(gl_LaunchIDNV), PrimaryRay.color );
 }
 )#");
 
-// add ray-miss shader
-ppln.AddShader( RTShaderID("PrimiryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
-#version 460 core
-#extension GL_NV_ray_tracing : require
-layout(location = 0) rayPayloadInNV vec4  payload;
+// add ray-miss shader for primary ray
+ppln.AddShader( RTShaderID("PrimaryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
+layout(location = PRIMARY_RAY_LOC) rayPayloadInNV PrimaryRayPayload  PrimaryRay;
 
 void main ()
 {
-    payload = vec4(0.0f);
+    PrimaryRay.color = vec4(0.0f);
 }
 )#");
 
-// add closest-hit shader
-ppln.AddShader( RTShaderID("PrimiryHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
-#version 460 core
-#extension GL_NV_ray_tracing : require
-layout(location = 0) rayPayloadInNV vec4  payload;
-                     hitAttributeNV vec2  hitAttribs;
+// add ray-miss shader for shadow ray
+ppln.AddShader( RTShaderID("ShadowMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
+layout(location = SHADOW_RAY_LOC) rayPayloadInNV ShadowRayPayload  ShadowRay;
+
+void main ()
+{
+	ShadowRay.distance = gl_RayTmaxNV;
+}
+)#");
+
+// add closest-hit shader for primary ray
+ppln.AddShader( RTShaderID("PrimaryHit1"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
+layout(location = PRIMARY_RAY_LOC) rayPayloadInNV PrimaryRayPayload  PrimaryRay;
+
+hitAttributeNV vec2  hitAttribs;
 
 void main ()
 {
     const vec3 barycentrics = vec3(1.0f - hitAttribs.x - hitAttribs.y, hitAttribs.x, hitAttribs.y);
-    payload = vec4(barycentrics, 1.0);
+    PrimaryRay.color = vec4(barycentrics, 1.0);
 }
 )#");
 
-// setup shader groups
-ppln.AddRayGenShader( RTShaderGroupID("Main"), RTShaderID("Main") );
-ppln.AddRayMissShader( RTShaderGroupID("PrimiryMiss"), RTShaderID("PrimiryMiss") );
-ppln.AddRayMissShader( RTShaderGroupID("SecondaryMiss"), RTShaderID("PrimiryMiss") );
+ppln.AddShader( RTShaderID("PrimaryHit2"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
+layout(location = PRIMARY_RAY_LOC) rayPayloadInNV PrimaryRayPayload  PrimaryRay;
 
-// for triangle intersections you can set closest-hit shader and optionaly the any-hit shader
-ppln.AddTriangleHitShaders( RTShaderGroupID("TriangleHit1"), RTShaderID("PrimiryHit") );
-ppln.AddTriangleHitShaders( RTShaderGroupID("TriangleHit2"), RTShaderID("PrimiryHit") );
+void main ()
+{
+    PrimaryRay.color = vec4(1.0f);
+}
+)#");
+
+// add closest-hit shader for shadow ray
+ppln.AddShader( RTShaderID("ShadowHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
+layout(location = SHADOW_RAY_LOC) rayPayloadInNV ShadowRayPayload  ShadowRay;
+
+hitAttributeNV vec2  hitAttribs;
+
+void main ()
+{
+	ShadowRay.distance = gl_HitTNV;
+}
+)#");
 
 // create ray tracing pipeline
 RTPipelineID  pipeline = fgThread->CreatePipeline( ppln );
@@ -145,6 +177,7 @@ Task  t_build_geom = fgThread->AddTask( build_blas );
 ```cpp
 // setup geometry instance
 BuildRayTracingScene::Instance  instance;
+instance.SetID( InstanceID{"First"} );
 
 // one instance with geometry
 instance.SetGeometry( rt_geometry );
@@ -170,11 +203,11 @@ Task  t_build_scene = fgThread->AddTask( build_tlas.DependsOn( t_build_geom ));
 
 ## Update shader binding table
 ```cpp
-// shader binding table contains ray tracing shader handles that stored into device local buffer.
-// all fields of 'shader_table' will be initialized in 'AddTask' method,
-// but buffer data will be copied when task executes in the GPU.
-TraceRays::ShaderTable  shader_table;
-UpdateRayTracingShaderTable update_st{ OUT shader_table };
+// create shader binding table
+RTShaderTableID  rt_shaders = fgThread->CreateRayTracingShaderTable();
+
+// setup task
+UpdateRayTracingShaderTable update_st;
 
 // set the ray tracing pipeline where shaders is.
 update_st.SetPipeline( pipeline );
@@ -182,24 +215,23 @@ update_st.SetPipeline( pipeline );
 // set the ray tracing scene for which shader table will be created
 update_st.SetScene( rt_scene );
 
-// set the destination buffer.
-// buffer must have enough space for all shaders.
-update_st.SetBuffer( sbt_buffer );
+// set the shader binging table that will be updated
+update_st.SetTraget( rt_shaders );
 
-// bind ray-generation shader group.
+// bind ray-generation shader.
 // this shader invoces for each thread
 update_st.SetRayGenShader( RTShaderGroupID{"Main"} );
 
-// add miss shader groups.
+// add miss shaders.
 // the current shader selected in the ray-gen shader by passing missIndex into traceNV()
-update_st.AddMissShader( RTShaderGroupID{"PrimiryMiss"} );    // for missIndex = 0
-update_st.AddMissShader( RTShaderGroupID{"SecondaryMiss"} );  // for missIndex = 1
+update_st.AddMissShader( RTShaderID{"PrimaryMiss"} );  // for missIndex = 0
+update_st.AddMissShader( RTShaderID{"ShadowMiss"} );   // for missIndex = 1
 
-// add hit shader groups for each geometry instance, see the table below
-update_st.AddHitShader( GeometryID{"Triangle1"}, RTShaderGroupID{"TriangleHit1"}, /*offset*/0 );  // (1)
-update_st.AddHitShader( GeometryID{"Triangle1"}, RTShaderGroupID{"TriangleHit2"}, /*offset*/1 );  // (2)
-update_st.AddHitShader( GeometryID{"Triangle2"}, RTShaderGroupID{"TriangleHit2"}, /*offset*/0 );  // (3)
-update_st.AddHitShader( GeometryID{"Triangle2"}, RTShaderGroupID{"TriangleHit1"}, /*offset*/1 );  // (4)
+// bind hit shader for each geometry instance
+update_st.AddTriangleHitShader( InstanceID{"First"}, GeometryID{"Triangle1"}, /*offset*/0, RTShaderID{"PrimaryHit1"} );  // (1)
+update_st.AddTriangleHitShader( InstanceID{"First"}, GeometryID{"Triangle1"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (2)
+update_st.AddTriangleHitShader( InstanceID{"First"}, GeometryID{"Triangle2"}, /*offset*/0, RTShaderID{"PrimaryHit2"} );  // (3)
+update_st.AddTriangleHitShader( InstanceID{"First"}, GeometryID{"Triangle2"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (4)
 
 // enqueue task, there is no dependency on the GPU side,
 // but this task uses data that will be updated in the BuildRayTracingScene task, so dependency is needed.
@@ -207,20 +239,20 @@ Task  t_update_table = fgThread->AddTask( update_st.DependsOn( t_build_scene ));
 ```
 
 ## Shader binding table
-| Shader groups → | ray-gen | miss group | miss group | hit group | hit group |
-|---|---|---|---|---|---|
-| Geometry ↓ | Main | PrimiryMiss | SecondaryMiss | TriangleHit1 | TriangleHit2 |
-| primary ray with `sbtRecordOffset = 0` |  |  |  |  |  |
+| Shader groups → | raygen group | miss group | miss group | hit group | hit group | hit group | hit group |
+|---|---|---|---|---|---|---|---|
+| Geometry ↓ | Main | PrimaryMiss | ShadowMiss | PrimaryHit1 | ShadowHit | PrimaryHit2 | ShadowHit |
+| primary ray with `sbtRecordOffset=0` |  |  |  |  |  |
 | Triangle1 |  |  |  | (1) |  |
-| Triangle2 |  |  |  |  | (3) |
-| secondary ray with `sbtRecordOffset = 1` |  |  |  |  |  |
-| Triangle1 |  |  |  |  | (4) |
-| Triangle2 |  |  |  | (2) |  |
+| Triangle2 |  |  |  |  |  | (3) |
+| shadow ray with `sbtRecordOffset=1` |  |  |  |  |  |
+| Triangle1 |  |  |  |  | (2) |  |
+| Triangle2 |  |  |  |  |  |  | (4) |
 | each thread | X |  |  |  |  |  |
-| primary ray with `missIndex = 0` |  | X |  |  |  |  |
-| secondary ray with `missIndex = 1` |  |  | X |  |  |  |
+| primary ray with `missIndex=0` |  | X |  |  |  |  |
+| shadow ray with `missIndex=1` |  |  | X |  |  |  |
 
-The `sbtRecordOffset` and `missIndex` is a arguments of the `traceNV()` function.
+`sbtRecordOffset` and `missIndex` are the arguments to the `traceNV()` function.
 
 
 ## Trace rays
@@ -235,7 +267,7 @@ trace_rays.AddResources( DescriptorSetID("0"), &resources );
 trace_rays.SetGroupCount( 800, 600 );
 
 // set ray tracing shaders and wait until shader table is updating
-trace_rays.SetShaderTable( shader_table ).DependsOn( t_update_table );
+trace_rays.SetShaderTable( rt_shaders ).DependsOn( t_update_table );
 
 Task  t_trace = fgThread->AddTask( trace_rays );
 ```

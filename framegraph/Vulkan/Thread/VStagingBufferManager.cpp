@@ -225,7 +225,7 @@ namespace FG
 
 		_memoryRanges.Destroy();
 
-		if ( auto* debugger = _frameGraph.GetDebugger() )
+		if ( auto debugger = _frameGraph.GetDebugger() )
 		{
 			for (auto& buf : frame.hostToDevice) {
 				if ( not buf.Empty() )

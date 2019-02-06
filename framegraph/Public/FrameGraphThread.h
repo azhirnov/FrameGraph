@@ -70,7 +70,7 @@ namespace FG
 			// Create resources: pipeline, image, buffer, etc.
 			// See synchronization requirements on top of this file.
 		ND_ virtual MPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName = Default) = 0;
-		ND_ virtual RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName = Default) = 0;
+		ND_ virtual RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc) = 0;
 		ND_ virtual GPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual CPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual ImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
@@ -80,6 +80,7 @@ namespace FG
 		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
+		ND_ virtual RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName = Default) = 0;
 			virtual bool			InitPipelineResources (const RawGPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
 			virtual bool			InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
 			virtual bool			InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
@@ -99,6 +100,7 @@ namespace FG
 			virtual void			ReleaseResource (INOUT SamplerID &id) = 0;
 			virtual void			ReleaseResource (INOUT RTGeometryID &id) = 0;
 			virtual void			ReleaseResource (INOUT RTSceneID &id) = 0;
+			virtual void			ReleaseResource (INOUT RTShaderTableID &id) = 0;
 
 		ND_ virtual BufferDesc const&	GetDescription (const BufferID &id) const = 0;
 		ND_ virtual ImageDesc const&	GetDescription (const ImageID &id) const = 0;

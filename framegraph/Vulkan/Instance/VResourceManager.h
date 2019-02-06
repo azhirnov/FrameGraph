@@ -17,6 +17,7 @@
 #include "VPipelineResources.h"
 #include "VRayTracingGeometry.h"
 #include "VRayTracingScene.h"
+#include "VRayTracingShaderTable.h"
 
 namespace FG
 {
@@ -43,22 +44,23 @@ namespace FG
 		template <typename T, size_t MaxSize, template <typename, size_t, size_t> class PoolT>
 		using PoolHelper	= PoolT< ResourceBase<T>, MaxSize/16, 16 >;
 
-		using ImagePool_t				= PoolHelper< VImage,				FG_MaxResources,	PoolTmpl >;
-		using BufferPool_t				= PoolHelper< VBuffer,				FG_MaxResources,	PoolTmpl >;
-		using MemoryPool_t				= PoolHelper< VMemoryObj,			FG_MaxResources*2,	PoolTmpl >;
+		using ImagePool_t				= PoolHelper< VImage,					FG_MaxResources,	PoolTmpl >;
+		using BufferPool_t				= PoolHelper< VBuffer,					FG_MaxResources,	PoolTmpl >;
+		using MemoryPool_t				= PoolHelper< VMemoryObj,				FG_MaxResources*2,	PoolTmpl >;
 
-		using SamplerPool_t				= PoolHelper< VSampler,				FG_MaxResources,	CachedPoolTmpl >;
-		using GPipelinePool_t			= PoolHelper< VGraphicsPipeline,	FG_MaxResources,	PoolTmpl >;
-		using CPipelinePool_t			= PoolHelper< VComputePipeline,		FG_MaxResources,	PoolTmpl >;
-		using MPipelinePool_t			= PoolHelper< VMeshPipeline,		FG_MaxResources,	PoolTmpl >;
-		using RTPipelinePool_t			= PoolHelper< VRayTracingPipeline,	FG_MaxResources,	PoolTmpl >;
-		using PplnLayoutPool_t			= PoolHelper< VPipelineLayout,		FG_MaxResources,	CachedPoolTmpl >;
-		using DescriptorSetLayoutPool_t	= PoolHelper< VDescriptorSetLayout,	FG_MaxResources,	CachedPoolTmpl >;
-		using RenderPassPool_t			= PoolHelper< VRenderPass,			FG_MaxResources,	CachedPoolTmpl >;
-		using FramebufferPool_t			= PoolHelper< VFramebuffer,			FG_MaxResources,	CachedPoolTmpl >;
-		using PipelineResourcesPool_t	= PoolHelper< VPipelineResources,	FG_MaxResources,	CachedPoolTmpl >;
-		using RTGeometryPool_t			= PoolHelper< VRayTracingGeometry,	FG_MaxResources,	PoolTmpl >;
-		using RTScenePool_t				= PoolHelper< VRayTracingScene,		FG_MaxResources,	PoolTmpl >;
+		using SamplerPool_t				= PoolHelper< VSampler,					FG_MaxResources,	CachedPoolTmpl >;
+		using GPipelinePool_t			= PoolHelper< VGraphicsPipeline,		FG_MaxResources,	PoolTmpl >;
+		using CPipelinePool_t			= PoolHelper< VComputePipeline,			FG_MaxResources,	PoolTmpl >;
+		using MPipelinePool_t			= PoolHelper< VMeshPipeline,			FG_MaxResources,	PoolTmpl >;
+		using RTPipelinePool_t			= PoolHelper< VRayTracingPipeline,		FG_MaxResources,	PoolTmpl >;
+		using PplnLayoutPool_t			= PoolHelper< VPipelineLayout,			FG_MaxResources,	CachedPoolTmpl >;
+		using DescriptorSetLayoutPool_t	= PoolHelper< VDescriptorSetLayout,		FG_MaxResources,	CachedPoolTmpl >;
+		using RenderPassPool_t			= PoolHelper< VRenderPass,				FG_MaxResources,	CachedPoolTmpl >;
+		using FramebufferPool_t			= PoolHelper< VFramebuffer,				FG_MaxResources,	CachedPoolTmpl >;
+		using PipelineResourcesPool_t	= PoolHelper< VPipelineResources,		FG_MaxResources,	CachedPoolTmpl >;
+		using RTGeometryPool_t			= PoolHelper< VRayTracingGeometry,		FG_MaxResources,	PoolTmpl >;
+		using RTScenePool_t				= PoolHelper< VRayTracingScene,			FG_MaxResources,	PoolTmpl >;
+		using RTShaderTablePool_t		= PoolHelper< VRayTracingShaderTable,	FG_MaxResources,	PoolTmpl >;
 
 		using VkResourceQueue_t			= Array< UntypedVkResource_t >;
 		using ResourceIDQueue_t			= std::vector< Pair<UntypedResourceID_t, bool> >;
@@ -125,6 +127,7 @@ namespace FG
 
 		RTGeometryPool_t			_rtGeometryPool;
 		RTScenePool_t				_rtScenePool;
+		RTShaderTablePool_t			_rtShaderTablePool;
 
 		ResourceIDQueue_t			_unassignIDs;
 		PerFrameArray_t				_perFrame;
@@ -168,7 +171,7 @@ namespace FG
 		template <typename ID>
 		ND_ auto const&		GetDescription (ID id)	const;
 
-		ND_ uint			GetFrameIndex ()		const	{ return _frameCounter; }
+		ND_ uint			GetFrameIndex ()		const	{ SHAREDLOCK( _rcCheck );  return _frameCounter; }
 
 
 	private:
@@ -220,14 +223,17 @@ namespace FG
 		ND_ auto&  _GetResourcePool (const RawPipelineResourcesID &)	{ return _pplnResourcesCache; }
 		ND_ auto&  _GetResourcePool (const RawRTGeometryID &)			{ return _rtGeometryPool; }
 		ND_ auto&  _GetResourcePool (const RawRTSceneID &)				{ return _rtScenePool; }
+		ND_ auto&  _GetResourcePool (const RawRTShaderTableID &)		{ return _rtShaderTablePool; }
 
 		template <typename ID>
 		ND_ const auto&  _GetResourceCPool (const ID &id)		const	{ return const_cast<VResourceManager *>(this)->_GetResourcePool( id ); }
 
-		ND_ VkResourceQueue_t&  _GetReadyToDeleteQueue ()				{ return _perFrame[_frameId].readyToDelete; }
+		ND_ VkResourceQueue_t&  _GetReadyToDeleteQueue ()				{ SHAREDLOCK( _rcCheck );  return _perFrame[_frameId].readyToDelete; }
 
-		ND_ AppendableResourceIDs_t				_GetResourceIDs ()		{ return AppendableResourceIDs_t{ _unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
+		ND_ AppendableResourceIDs_t				_GetResourceIDs ()		{ SHAREDLOCK( _rcCheck );  return AppendableResourceIDs_t{ _unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
 		static Pair<UntypedResourceID_t, bool>  _AppendResourceID (UntypedResourceID_t &&id)	{ return { std::move(id), false }; }
+		
+		ND_ RawDescriptorSetLayoutID	_GetEmptyDescriptorSetLayout ()	{ SHAREDLOCK( _rcCheck );  return _emptyDSLayout; }
 	};
 
 	

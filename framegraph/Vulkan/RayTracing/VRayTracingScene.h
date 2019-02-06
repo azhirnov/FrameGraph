@@ -18,15 +18,21 @@ namespace FG
 	public:
 		struct Instance
 		{
-			RawRTGeometryID			geometryId;
-			uint					geometryCount	= 0;
-		};
+			InstanceID			id;
+			RTGeometryID		geometry;
 
+			Instance () {}
+			Instance (Pair<InstanceID, RTGeometryID> &&other) : id{other.first}, geometry{std::move(other.second)} {}
+
+			ND_ bool  operator <  (const InstanceID &rhs) const	{ return id < rhs; }
+			ND_ bool  operator == (const InstanceID &rhs) const	{ return id == rhs; }
+		};
+		
 		struct InstancesData
 		{
-			Array<RawRTGeometryID>	geometryInstances;
-			uint					hitShadersPerInstance	= 0;
-			uint					maxHitShaderCount		= 0;
+			Array<Instance>		geometryInstances;
+			uint				hitShadersPerInstance	= 0;
+			uint				maxHitShaderCount		= 0;
 		};
 
 	private:
@@ -43,7 +49,7 @@ namespace FG
 		VkAccelerationStructureNV	_topLevelAS			= VK_NULL_HANDLE;
 		MemoryID					_memoryId;
 		
-		Array< Instance >	 		_instances;
+		uint						_maxInstanceCount	= 0;
 		ERayTracingFlags			_flags				= Default;
 
 		mutable InstancesData2		_instanceData [2];
@@ -67,8 +73,7 @@ namespace FG
 		void CommitChanges (uint frameIndex) const;
 
 		ND_ VkAccelerationStructureNV	Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _topLevelAS; }
-		ND_ uint						InstanceCount ()		const	{ SHAREDLOCK( _rcCheck );  return uint(_instances.size()); }
-		ND_ ArrayView< Instance >		Instances ()			const	{ SHAREDLOCK( _rcCheck );  return _instances; }
+		ND_ uint						MaxInstanceCount ()		const	{ SHAREDLOCK( _rcCheck );  return _maxInstanceCount; }
 		ND_ InstancesData const&		CurrentData ()			const	{ SHAREDLOCK( _rcCheck );  return _instanceData[_currStateIndex]; }
 
 		ND_ ERayTracingFlags			GetFlags ()				const	{ SHAREDLOCK( _rcCheck );  return _flags; }

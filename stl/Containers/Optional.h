@@ -13,17 +13,13 @@ namespace FG
 }	// FG
 
 
-#else
+#elif defined(FG_ENABLE_OPTIONAL)
+
+# include "external/optional/optional.hpp"
 
 namespace FG
 {
-
-	template <typename T>
-	struct Optional
-	{
-		// TODO
-	};
-
+	template <typename T>	using Optional	= std::experimental::optional< T >;
 
 }	// FG
 

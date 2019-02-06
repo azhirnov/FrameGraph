@@ -24,7 +24,7 @@ namespace FG
 	public:
 		DefaultSceneManager ();
 
-		bool Build (const FGThreadPtr &, const RenderTechniquePtr &) override;
+		bool Build (const RenderTechniquePtr &) override;
 		bool Draw (ArrayView<ViewportPtr>) override;
 
 		bool Add (const SceneHierarchyPtr &) override;

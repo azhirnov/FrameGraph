@@ -582,61 +582,6 @@ namespace FG
 		CopySpecConstants( values, OUT shader.specConstants );
 		return *this;
 	}
-	
-/*
-=================================================
-	add shader groups
-=================================================
-*/
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddRayGenShader (const RTShaderGroupID &name, const RTShaderID &id)
-	{
-		ASSERT( name.IsDefined() );
-		ASSERT( id.IsDefined() );
-		ASSERT( _groups.count( name ) == 0 );
-
-		_groups.insert_or_assign( name, GeneralGroup{id} );
-		return *this;
-	}
-
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddRayMissShader (const RTShaderGroupID &name, const RTShaderID &id)
-	{
-		ASSERT( name.IsDefined() );
-		ASSERT( id.IsDefined() );
-		ASSERT( _groups.count( name ) == 0 );
-
-		_groups.insert_or_assign( name, GeneralGroup{id} );
-		return *this;
-	}
-
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddCallableShader (const RTShaderGroupID &name, const RTShaderID &id)
-	{
-		ASSERT( name.IsDefined() );
-		ASSERT( id.IsDefined() );
-		ASSERT( _groups.count( name ) == 0 );
-
-		_groups.insert_or_assign( name, GeneralGroup{id} );
-		return *this;
-	}
-
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddTriangleHitShaders (const RTShaderGroupID &name, const RTShaderID &closestHit, const RTShaderID &anyHit)
-	{
-		ASSERT( name.IsDefined() );
-		ASSERT( closestHit.IsDefined() or anyHit.IsDefined() );
-		ASSERT( _groups.count( name ) == 0 );
-
-		_groups.insert_or_assign( name, TriangleHitGroup{closestHit, anyHit} );
-		return *this;
-	}
-
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddProceduralHitShaders (const RTShaderGroupID &name, const RTShaderID &closestHit, const RTShaderID &anyHit, const RTShaderID &inersection)
-	{
-		ASSERT( name.IsDefined() );
-		ASSERT( inersection.IsDefined() and (closestHit.IsDefined() or anyHit.IsDefined()) );
-		ASSERT( _groups.count( name ) == 0 );
-
-		_groups.insert_or_assign( name, ProceduralHitGroup{closestHit, anyHit, inersection} );
-		return *this;
-	}
 //-----------------------------------------------------------------------------
 
 

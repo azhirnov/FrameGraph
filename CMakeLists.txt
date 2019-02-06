@@ -21,6 +21,7 @@ set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
 
 # test & samples dependencies
 set( FG_ENABLE_TESTS ON CACHE BOOL "enable tests" )
+set( FG_ENABLE_PERFORMANCE_TESTS OFF CACHE INTERNAL "enable performance tests" )
 set( FG_ENABLE_SAMPLES ON CACHE BOOL "enable samples" )
 set( FG_ENABLE_GLFW ON CACHE BOOL "use glfw (optional, required for tests)" )
 set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )

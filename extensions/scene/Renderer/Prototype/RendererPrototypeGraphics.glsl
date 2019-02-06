@@ -6,8 +6,13 @@ R"#(
 #ifdef VERTEX_SHADER
 
 	layout(set=1, binding=0, std140) uniform CameraUB {
-		mat4x4	viewProj;
-		vec4	position;
+		mat4x4		viewProj;
+		vec4		position;
+		vec3		frustumRayLeftBottom;
+		vec3		frustumRayRightBottom;
+		vec3		frustumRayLeftTop;
+		vec3		frustumRayRightTop;
+		vec2		clipPlanes;
 	} camera;
 
 // opaque, translucent
@@ -100,4 +105,4 @@ R"#(
 # endif	// LAYER_TRANSLUCENT*/
 
 #endif	// FRAGMENT_SHADER
-)#"
+)#"s

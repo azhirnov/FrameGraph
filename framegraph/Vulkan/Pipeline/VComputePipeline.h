@@ -51,17 +51,18 @@ namespace FG
 
 	// variables
 	private:
-		PipelineLayoutID		_baseLayoutId;
-		Instances_t				_instances;
-		
-		ShaderModules_t			_shaders;
+		mutable std::shared_mutex	_instanceGuard;
+		mutable Instances_t			_instances;
 
-		uint3					_defaultLocalGroupSize;
-		uint3					_localSizeSpec;
+		PipelineLayoutID			_baseLayoutId;
+		ShaderModules_t				_shaders;
 
-		DebugName_t				_debugName;
+		uint3						_defaultLocalGroupSize;
+		uint3						_localSizeSpec;
+
+		DebugName_t					_debugName;
 		
-		RWRaceConditionCheck	_rcCheck;
+		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods

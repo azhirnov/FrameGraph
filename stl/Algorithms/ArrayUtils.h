@@ -112,5 +112,12 @@ namespace FG
 
 		return UMax;
 	}
+	
+	template <typename T, typename Key>
+	ND_ forceinline size_t  BinarySearch (const Array<T> &arr, const Key &key)
+	{
+		return BinarySearch( ArrayView<T>{arr}, key );
+	}
+
 
 }	// FG
