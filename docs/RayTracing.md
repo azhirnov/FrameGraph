@@ -27,6 +27,8 @@ layout(binding = 1, rgba8) writeonly uniform image2D  un_Output;
 layout(location = PRIMARY_RAY_LOC) rayPayloadNV PrimaryRayPayload  PrimaryRay;
 layout(location = SHADOW_RAY_LOC)  rayPayloadNV ShadowRayPayload   ShadowRay;
 
+layout (constant_id = 0) const int sbtRecordStride = 1;
+	
 void main ()
 {
     const vec2 uv = vec2(gl_LaunchIDNV.xy) / vec2(gl_LaunchSizeNV.xy - 1);
@@ -35,7 +37,7 @@ void main ()
     const vec3 direction = vec3(0.0f, 0.0f, 1.0f);
 
     traceNV( /*topLevel*/un_RtScene, /*rayFlags*/gl_RayFlagsNoneNV, /*cullMask*/0xFF,
-             /*sbtRecordOffset*/0, /*sbtRecordStride*/2, /*missIndex*/0,
+             /*sbtRecordOffset*/0, sbtRecordStride, /*missIndex*/0,
              /*origin*/origin, /*Tmin*/0.0f, /*direction*/direction, /*Tmax*/10.0f,
              /*payload*/PRIMARY_RAY_LOC );
 
@@ -222,16 +224,16 @@ update_st.SetTraget( rt_shaders );
 // this shader invoces for each thread
 update_st.SetRayGenShader( RTShaderGroupID{"Main"} );
 
-// add miss shaders.
-// the current shader selected in the ray-gen shader by passing missIndex into traceNV()
-update_st.AddMissShader( RTShaderID{"PrimaryMiss"} );  // for missIndex = 0
-update_st.AddMissShader( RTShaderID{"ShadowMiss"} );   // for missIndex = 1
+// bind ray-miss shaders.
+// the current shader selected in the ray-gen shader by passing missIndex into the 'traceNV()'
+update_st.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 );  // for missIndex = 0
+update_st.AddMissShader( RTShaderID{"ShadowMiss"},  1 );  // for missIndex = 1
 
-// bind hit shader for each geometry instance
-update_st.AddTriangleHitShader( InstanceID{"First"}, GeometryID{"Triangle1"}, /*offset*/0, RTShaderID{"PrimaryHit1"} );  // (1)
-update_st.AddTriangleHitShader( InstanceID{"First"}, GeometryID{"Triangle1"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (2)
-update_st.AddTriangleHitShader( InstanceID{"First"}, GeometryID{"Triangle2"}, /*offset*/0, RTShaderID{"PrimaryHit2"} );  // (3)
-update_st.AddTriangleHitShader( InstanceID{"First"}, GeometryID{"Triangle2"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (4)
+// bind ray-hit shader for each geometry instance
+update_st.AddHitShader( InstanceID{"First"}, GeometryID{"Triangle1"}, /*offset*/0, RTShaderID{"PrimaryHit1"} );  // (3)
+update_st.AddHitShader( InstanceID{"First"}, GeometryID{"Triangle1"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (4)
+update_st.AddHitShader( InstanceID{"First"}, GeometryID{"Triangle2"}, /*offset*/0, RTShaderID{"PrimaryHit2"} );  // (5)
+update_st.AddHitShader( InstanceID{"First"}, GeometryID{"Triangle2"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (6)
 
 // enqueue task, there is no dependency on the GPU side,
 // but this task uses data that will be updated in the BuildRayTracingScene task, so dependency is needed.
@@ -243,14 +245,14 @@ Task  t_update_table = fgThread->AddTask( update_st.DependsOn( t_build_scene ));
 |---|---|---|---|---|---|---|---|
 | Geometry ↓ | Main | PrimaryMiss | ShadowMiss | PrimaryHit1 | ShadowHit | PrimaryHit2 | ShadowHit |
 | primary ray with `sbtRecordOffset=0` |  |  |  |  |  |
-| Triangle1 |  |  |  | (1) |  |
-| Triangle2 |  |  |  |  |  | (3) |
+| Triangle1 |  |  |  | (3) |  |
+| Triangle2 |  |  |  |  |  | (5) |
 | shadow ray with `sbtRecordOffset=1` |  |  |  |  |  |
-| Triangle1 |  |  |  |  | (2) |  |
-| Triangle2 |  |  |  |  |  |  | (4) |
+| Triangle1 |  |  |  |  | (4) |  |
+| Triangle2 |  |  |  |  |  |  | (6) |
 | each thread | X |  |  |  |  |  |
-| primary ray with `missIndex=0` |  | X |  |  |  |  |
-| shadow ray with `missIndex=1` |  |  | X |  |  |  |
+| primary ray with `missIndex=0` |  | (1) |  |  |  |  |
+| shadow ray with `missIndex=1` |  |  | (2) |  |  |  |
 
 `sbtRecordOffset` and `missIndex` are the arguments to the `traceNV()` function.
 

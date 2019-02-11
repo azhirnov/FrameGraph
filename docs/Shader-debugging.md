@@ -18,7 +18,7 @@ DrawIndexed().EnableFragmentDebugTrace( pixel_x, pixel_y );
 // record if {launch_x, launch_y, launch_z} == gl_LaunchIDNV
 TraceRays().EnableDebugTrace({ launch_x, launch_y, launch_z });
 ```
-Shader trace will be recorded only for selected thread/pixel/...
+Shader trace will be recorded only for selected thread/pixel/launch
 <br/>
 Aloso you can enable shader recording during shader execution:
 ```cpp
@@ -46,7 +46,7 @@ DispatchCompute().EnableDebugTrace();
 
 <br/> 
 At the end of frame device synchronized with host, shader trace parsed and callback will be called anyway.
-If selected thread/pixel/... is never dispatched or drawed then `output` array in callback parameters will be empty.
+If selected thread/pixel/launch is never dispatched or drawed then `output` array in callback parameters will be empty.
 <br/>
 
 Example of shader trace:
