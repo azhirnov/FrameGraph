@@ -34,7 +34,7 @@ namespace {
 			info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 			VK_CALL( dev.vkBeginCommandBuffer( cmd, &info ));
-			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex );
+			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex );
 		}
 
 		if ( _shaderDebugger )
@@ -59,7 +59,7 @@ namespace {
 		
 		// end
 		{
-			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex + 1 );
+			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex + 1 );
 			VK_CALL( dev.vkEndCommandBuffer( cmd ));
 		}
 		return true;
@@ -132,7 +132,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const SubmitRenderPass &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( _currUsage, GraphicsBit ));
 
@@ -151,7 +151,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const DispatchCompute &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
@@ -165,7 +165,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const DispatchComputeIndirect &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
@@ -179,7 +179,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const CopyBuffer &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
@@ -193,7 +193,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const CopyImage &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
@@ -207,7 +207,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const CopyBufferToImage &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
@@ -221,7 +221,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const CopyImageToBuffer &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
@@ -235,7 +235,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const BlitImage &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, GraphicsBit ));
 
@@ -249,7 +249,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const ResolveImage &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, GraphicsBit ));
 
@@ -258,12 +258,26 @@ namespace {
 	
 /*
 =================================================
+	AddTask (GenerateMipmaps)
+=================================================
+*/
+	Task  VFrameGraphThread::AddTask (const GenerateMipmaps &task)
+	{
+		EXLOCK( _rcCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumAny( _currUsage, GraphicsBit ));
+
+		return _taskGraph.Add( this, task );
+	}
+
+/*
+=================================================
 	AddTask (FillBuffer)
 =================================================
 */
 	Task  VFrameGraphThread::AddTask (const FillBuffer &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 
 		return _taskGraph.Add( this, task );
@@ -276,7 +290,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const ClearColorImage &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
@@ -290,7 +304,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const ClearDepthStencilImage &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, ComputeBit ));
 
@@ -304,7 +318,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const UpdateBuffer &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
@@ -361,7 +375,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const UpdateImage &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
@@ -493,7 +507,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const ReadBuffer &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
@@ -556,7 +570,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const ReadImage &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
@@ -681,7 +695,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const FG::Present &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 
 		if ( _swapchain )
@@ -727,7 +741,7 @@ namespace {
 *
 	Task  VFrameGraphThread::AddTask (const PresentVR &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 
 		return _taskGraph.Add( this, task );
@@ -777,7 +791,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const UpdateRayTracingShaderTable &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 
@@ -791,7 +805,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const BuildRayTracingGeometry &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 		
@@ -966,7 +980,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const BuildRayTracingScene &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 		
@@ -1042,7 +1056,7 @@ namespace {
 */
 	Task  VFrameGraphThread::AddTask (const TraceRays &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, RayTracingBit ));
 
@@ -1056,7 +1070,7 @@ namespace {
 */
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawVertices &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = _resourceMngr.ToLocal( renderPass );
@@ -1075,7 +1089,7 @@ namespace {
 */
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawIndexed &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = _resourceMngr.ToLocal( renderPass );
@@ -1094,7 +1108,7 @@ namespace {
 */
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawMeshes &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = _resourceMngr.ToLocal( renderPass );
@@ -1113,7 +1127,7 @@ namespace {
 */
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawVerticesIndirect &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = _resourceMngr.ToLocal( renderPass );
@@ -1132,7 +1146,7 @@ namespace {
 */
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawIndexedIndirect &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = _resourceMngr.ToLocal( renderPass );
@@ -1151,7 +1165,7 @@ namespace {
 */
 	void  VFrameGraphThread::AddTask (LogicalPassID renderPass, const DrawMeshesIndirect &task)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = _resourceMngr.ToLocal( renderPass );
@@ -1170,7 +1184,7 @@ namespace {
 */
 	LogicalPassID  VFrameGraphThread::CreateRenderPass (const RenderPassDesc &desc)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _threadUsage, GraphicsBit ));
 
@@ -1184,7 +1198,7 @@ namespace {
 *
 	bool  VFrameGraphThread::Acquire (const ImageID &id, bool immutable)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		// TODO
 		FG_UNUSED( id, immutable );
 		return false;
@@ -1197,7 +1211,7 @@ namespace {
 *
 	bool  VFrameGraphThread::Acquire (const ImageID &id, MipmapLevel baseLevel, uint levelCount, ImageLayer baseLayer, uint layerCount, bool immutable)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		// TODO
 		FG_UNUSED( id, baseLevel, levelCount, baseLayer, layerCount, immutable );
 		return false;
@@ -1210,7 +1224,7 @@ namespace {
 *
 	bool  VFrameGraphThread::Acquire (const BufferID &id, bool immutable)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		// TODO
 		FG_UNUSED( id, immutable );
 		return false;
@@ -1223,7 +1237,7 @@ namespace {
 *
 	bool  VFrameGraphThread::Acquire (const BufferID &id, BytesU offset, BytesU size, bool immutable)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		// TODO
 
 		FG_UNUSED( id, offset, size, immutable );
@@ -1237,7 +1251,7 @@ namespace {
 */
 	bool  VFrameGraphThread::UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		void*	dst_ptr;
 		CHECK_ERR( MapBufferRange( id, offset, INOUT size, OUT dst_ptr ));
@@ -1253,7 +1267,7 @@ namespace {
 */
 	bool  VFrameGraphThread::MapBufferRange (const BufferID &id, BytesU offset, INOUT BytesU &size, OUT void* &dataPtr)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		VLocalBuffer const*		buffer = _resourceMngr.ToLocal( id.Get() );
 		CHECK_ERR( buffer );

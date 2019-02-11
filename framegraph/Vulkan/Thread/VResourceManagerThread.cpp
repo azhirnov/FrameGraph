@@ -2,6 +2,7 @@
 
 #include "VResourceManagerThread.h"
 #include "VBarrierManager.h"
+#include "Shared/PipelineResourcesHelper.h"
 
 namespace FG
 {
@@ -38,7 +39,7 @@ namespace FG
 */
 	void VResourceManagerThread::OnBeginFrame ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_samplerMap.Create( _allocator );
 		_pplnLayoutMap.Create( _allocator );
@@ -60,7 +61,7 @@ namespace FG
 */
 	void VResourceManagerThread::OnEndFrame ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		for (auto& task : _syncTasks) {
 			task();
@@ -171,7 +172,7 @@ namespace FG
 */
 	void VResourceManagerThread::OnDiscardMemory ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		ASSERT( not _samplerMap.IsCreated() );
 		ASSERT( not _pplnLayoutMap.IsCreated() );
@@ -189,7 +190,7 @@ namespace FG
 */
 	bool  VResourceManagerThread::Initialize ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		CHECK_ERR( _pipelineCache.Initialize( GetDevice() ));
 		CHECK_ERR( _descriptorMngr.Initialize( GetDevice() ));
@@ -220,7 +221,7 @@ namespace FG
 */
 	void  VResourceManagerThread::Deinitialize ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_pipelineCache.Deinitialize( GetDevice() );
 		_descriptorMngr.Deinitialize( GetDevice() );
@@ -494,7 +495,7 @@ namespace FG
 */
 	RawMPipelineID  VResourceManagerThread::CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName, bool isAsync)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		if ( not _pipelineCache.CompileShaders( INOUT desc, GetDevice() ))
 			return Default;
@@ -526,7 +527,7 @@ namespace FG
 */
 	RawGPipelineID  VResourceManagerThread::CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName, bool isAsync)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		if ( not _pipelineCache.CompileShaders( INOUT desc, GetDevice() ))
 			return Default;
@@ -558,7 +559,7 @@ namespace FG
 */
 	RawCPipelineID  VResourceManagerThread::CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName, bool isAsync)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		if ( not _pipelineCache.CompileShader( INOUT desc, GetDevice() ))
 			return Default;
@@ -590,7 +591,7 @@ namespace FG
 */
 	RawRTPipelineID  VResourceManagerThread::CreatePipeline (INOUT RayTracingPipelineDesc &desc, bool isAsync)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		if ( not _pipelineCache.CompileShaders( INOUT desc, GetDevice() ))
 			return Default;
@@ -645,7 +646,7 @@ namespace FG
 	RawImageID  VResourceManagerThread::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
 													 EQueueFamilyMask queueFamilyMask, StringView dbgName, bool isAsync)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -677,7 +678,7 @@ namespace FG
 	RawBufferID  VResourceManagerThread::CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
 													   EQueueFamilyMask queueFamilyMask, StringView dbgName, bool isAsync)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -708,7 +709,7 @@ namespace FG
 */
 	RawImageID  VResourceManagerThread::CreateImage (const VulkanImageDesc &desc, FrameGraphThread::OnExternalImageReleased_t &&onRelease, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		RawImageID		id;
 		CHECK_ERR( _Assign( OUT id ));
@@ -733,7 +734,7 @@ namespace FG
 */
 	RawBufferID  VResourceManagerThread::CreateBuffer (const VulkanBufferDesc &desc, FrameGraphThread::OnExternalBufferReleased_t &&onRelease, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		RawBufferID		id;
 		CHECK_ERR( _Assign( OUT id ));
@@ -760,7 +761,7 @@ namespace FG
 	inline ID  VResourceManagerThread::_CreateCachedResource (InPlace<CachedResourceMap<ID, DataT>> &localCache, bool isAsync,
 															  StringView errorStr, FnInitialize&& fnInit, FnCreate&& fnCreate)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		ID	id;
 		CHECK_ERR( _Assign( OUT id ));
@@ -854,9 +855,7 @@ namespace FG
 */
 	VPipelineResources const*  VResourceManagerThread::CreateDescriptorSet (const PipelineResources &desc, bool isAsync)
 	{
-		CHECK_ERR( desc.IsInitialized() );
-
-		RawPipelineResourcesID	id = PipelineResourcesInitializer::GetCached( desc );
+		RawPipelineResourcesID	id = PipelineResourcesHelper::GetCached( desc );
 		
 		// use cached resources
 		if ( id )
@@ -869,20 +868,22 @@ namespace FG
 				return &res.Data();
 			}
 		}
-		
+	
+		CHECK_ERR( desc.IsInitialized() );
+	
 		auto&	layout = _GetResourcePool( desc.GetLayout() )[ desc.GetLayout().Index() ];
 		CHECK_ERR( layout.IsCreated() and desc.GetLayout().InstanceID() == layout.GetInstanceID() );
 
 		RawPipelineResourcesID	result =
 			_CreateCachedResource( _pplnResourcesMap, isAsync, "failed when creating descriptor set",
 								   [&] (auto& data) { return Replace( data, desc ); },
-								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
+								   [&] (auto& data) { if (data.Create( *this, desc )) { layout.AddRef(); return true; }  return false; });
 
-		PipelineResourcesInitializer::SetCache( desc, result );
+		PipelineResourcesHelper::SetCache( desc, result );
 
 		return result ? &_GetResourcePool( result )[ result.Index() ].Data() : nullptr;
 	}
-	
+
 /*
 =================================================
 	CreateRayTracingGeometry
@@ -891,7 +892,7 @@ namespace FG
 	RawRTGeometryID  VResourceManagerThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
 																	   StringView dbgName, bool isAsync)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -923,7 +924,7 @@ namespace FG
 	RawRTSceneID  VResourceManagerThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, VMemoryManager &alloc,
 																 StringView dbgName, bool isAsync)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -952,9 +953,9 @@ namespace FG
 	CreateRayTracingShaderTable
 =================================================
 */
-	RawRTShaderTableID  VResourceManagerThread::CreateRayTracingShaderTable (StringView dbgName, bool isAsync)
+	RawRTShaderTableID  VResourceManagerThread::CreateRayTracingShaderTable (StringView dbgName, bool)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		RawRTShaderTableID	id;
 		CHECK_ERR( _Assign( OUT id ));
@@ -979,7 +980,7 @@ namespace FG
 */
 	LogicalPassID  VResourceManagerThread::CreateLogicalRenderPass (const RenderPassDesc &desc)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		Index_t		index = 0;
 		CHECK_ERR( _logicalRenderPasses.Assign( OUT index ));
@@ -1076,7 +1077,7 @@ namespace FG
 	inline T const*  VResourceManagerThread::_ToLocal (ID id, INOUT PoolTmpl<T,CS,MC> &localPool, INOUT GlobalToLocal_t &globalToLocal,
 													   INOUT uint &counter, bool incRef, StringView msg) const
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( id.Index() >= globalToLocal.size() )
 			return null;

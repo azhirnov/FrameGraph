@@ -90,46 +90,21 @@ inline const PipelineDescription::DescriptorSet*  FindDescriptorSet (const Pipel
 =================================================
 */
 template <typename T>
-inline const T*  FindUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id)
+inline Pair<const PipelineDescription::Uniform*, const T*>
+	FindUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id)
 {
 	for (auto& un : *ds.uniforms)
 	{
 		if ( un.first == id )
 		{
-			if ( auto* tex = UnionGetIf<T>( &un.second.data ) )
+			if ( auto* ptr = UnionGetIf<T>( &un.second.data ) )
 			{
-				return tex;
+				return {&un.second, ptr};
 			}
 			break;
 		}
 	}
-	return null;
-}
-
-/*
-=================================================
-	FindUniform
-=================================================
-*/
-template <typename T>
-inline const T*  FindUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id, uint bindingIndex, EShaderStages stageFlags)
-{
-	for (auto& un : *ds.uniforms)
-	{
-		if ( un.first == id )
-		{
-			if ( un.second.index.VKBinding() == bindingIndex and
-				 un.second.stageFlags == stageFlags )
-			{
-				if ( auto* tex = UnionGetIf<T>( &un.second.data ) )
-				{
-					return tex;
-				}
-			}
-			break;
-		}
-	}
-	return null;
+	return {null, null};
 }
 
 /*
@@ -138,16 +113,19 @@ inline const T*  FindUniform (const PipelineDescription::DescriptorSet &ds, cons
 =================================================
 */
 inline bool TestTextureUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
-								EImage textureType, uint bindingIndex, EShaderStages stageFlags)
+								EImage textureType, uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1)
 {
-	auto	ptr = FindUniform< PipelineDescription::Texture >( ds, id, bindingIndex, stageFlags );
+	auto[un, ptr] = FindUniform< PipelineDescription::Texture >( ds, id );
 	if ( not ptr )
 		return false;
 
 	EResourceState	state = EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags );
 
-	return	ptr->textureType	== textureType	and
-			ptr->state			== state;
+	return	ptr->textureType		== textureType	and
+			ptr->state				== state		and
+			un->index.VKBinding()	== bindingIndex	and
+			un->stageFlags			== stageFlags	and
+			un->arraySize			== arraySize;
 }
 
 /*
@@ -157,17 +135,20 @@ inline bool TestTextureUniform (const PipelineDescription::DescriptorSet &ds, co
 */
 inline bool TestImageUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
 							  EImage imageType, EPixelFormat format, EShaderAccess access,
-							  uint bindingIndex, EShaderStages stageFlags)
+							  uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1)
 {
-	auto	ptr = FindUniform< PipelineDescription::Image >( ds, id, bindingIndex, stageFlags );
+	auto[un, ptr] = FindUniform< PipelineDescription::Image >( ds, id );
 	if ( not ptr )
 		return false;
 
 	EResourceState	state = EResourceState_FromShaderAccess( access ) | EResourceState_FromShaders( stageFlags );
 
-	return	ptr->imageType	== imageType	and
-			ptr->format		== format		and
-			ptr->state		== state;
+	return	ptr->imageType			== imageType	and
+			ptr->format				== format		and
+			ptr->state				== state		and
+			un->index.VKBinding()	== bindingIndex	and
+			un->stageFlags			== stageFlags	and
+			un->arraySize			== arraySize;
 }
 
 /*
@@ -176,10 +157,13 @@ inline bool TestImageUniform (const PipelineDescription::DescriptorSet &ds, cons
 =================================================
 */
 inline bool TestSamplerUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
-								uint bindingIndex, EShaderStages stageFlags)
+								uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1)
 {
-	auto	ptr = FindUniform< PipelineDescription::Sampler >( ds, id, bindingIndex, stageFlags );
-	return !!ptr;
+	auto[un, ptr] = FindUniform< PipelineDescription::Sampler >( ds, id );
+
+	return	un->index.VKBinding()	== bindingIndex	and
+			un->stageFlags			== stageFlags	and
+			un->arraySize			== arraySize;
 }
 
 /*
@@ -189,9 +173,9 @@ inline bool TestSamplerUniform (const PipelineDescription::DescriptorSet &ds, co
 */
 inline bool TestSubpassInputUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
 									 uint attachmentIndex, bool isMultisample,
-									 uint bindingIndex, EShaderStages stageFlags)
+									 uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1)
 {
-	auto	ptr = FindUniform< PipelineDescription::SubpassInput >( ds, id, bindingIndex, stageFlags );
+	auto[un, ptr] = FindUniform< PipelineDescription::SubpassInput >( ds, id );
 	if ( not ptr )
 		return false;
 	
@@ -199,7 +183,10 @@ inline bool TestSubpassInputUniform (const PipelineDescription::DescriptorSet &d
 
 	return	ptr->attachmentIndex	== attachmentIndex	and
 			ptr->isMultisample		== isMultisample	and
-			ptr->state				== state;
+			ptr->state				== state			and
+			un->index.VKBinding()	== bindingIndex		and
+			un->stageFlags			== stageFlags		and
+			un->arraySize			== arraySize;
 }
 
 /*
@@ -208,19 +195,22 @@ inline bool TestSubpassInputUniform (const PipelineDescription::DescriptorSet &d
 =================================================
 */
 inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
-								BytesU size, uint bindingIndex, EShaderStages stageFlags,
+								BytesU size, uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1,
 								uint dynamicOffsetIndex = PipelineDescription::STATIC_OFFSET)
 {
-	auto	ptr = FindUniform< PipelineDescription::UniformBuffer >( ds, id, bindingIndex, stageFlags );
+	auto[un, ptr] = FindUniform< PipelineDescription::UniformBuffer >( ds, id );
 	if ( not ptr )
 		return false;
 	
 	EResourceState	state = EResourceState::UniformRead | EResourceState_FromShaders( stageFlags ) |
 							(dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ? EResourceState::Unknown : EResourceState::_BufferDynamicOffset);
 
-	return	ptr->size				== size		and
-			ptr->state				== state	and
-			ptr->dynamicOffsetIndex	== dynamicOffsetIndex;
+	return	ptr->size				== size					and
+			ptr->state				== state				and
+			ptr->dynamicOffsetIndex	== dynamicOffsetIndex	and
+			un->index.VKBinding()	== bindingIndex			and
+			un->stageFlags			== stageFlags			and
+			un->arraySize			== arraySize;
 }
 
 /*
@@ -230,20 +220,23 @@ inline bool TestUniformBuffer (const PipelineDescription::DescriptorSet &ds, con
 */
 inline bool TestStorageBuffer (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
 								BytesU staticSize, BytesU arrayStride, EShaderAccess access,
-								uint bindingIndex, EShaderStages stageFlags,
+								uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1,
 								uint dynamicOffsetIndex = PipelineDescription::STATIC_OFFSET)
 {
-	auto	ptr = FindUniform< PipelineDescription::StorageBuffer >( ds, id, bindingIndex, stageFlags );
+	auto[un, ptr] = FindUniform< PipelineDescription::StorageBuffer >( ds, id );
 	if ( not ptr )
 		return false;
 	
 	EResourceState	state = EResourceState_FromShaderAccess( access ) | EResourceState_FromShaders( stageFlags ) |
 							(dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET ? EResourceState::Unknown : EResourceState::_BufferDynamicOffset);
 
-	return	ptr->staticSize			== staticSize	and
-			ptr->arrayStride		== arrayStride	and
-			ptr->state				== state		and
-			ptr->dynamicOffsetIndex	== dynamicOffsetIndex;
+	return	ptr->staticSize			== staticSize			and
+			ptr->arrayStride		== arrayStride			and
+			ptr->state				== state				and
+			ptr->dynamicOffsetIndex	== dynamicOffsetIndex	and
+			un->index.VKBinding()	== bindingIndex			and
+			un->stageFlags			== stageFlags			and
+			un->arraySize			== arraySize;
 }
 
 /*
@@ -252,15 +245,18 @@ inline bool TestStorageBuffer (const PipelineDescription::DescriptorSet &ds, con
 =================================================
 */
 inline bool TestRayTracingScene (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
-								 uint bindingIndex, EShaderStages stageFlags)
+								 uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1)
 {
-	auto	ptr = FindUniform< PipelineDescription::RayTracingScene >( ds, id, bindingIndex, stageFlags );
+	auto[un, ptr] = FindUniform< PipelineDescription::RayTracingScene >( ds, id );
 	if ( not ptr )
 		return false;
 
 	EResourceState	state = EResourceState::_RayTracingShader | EResourceState::ShaderRead;
 
-	return	ptr->state	== state;
+	return	ptr->state				== state		and
+			un->index.VKBinding()	== bindingIndex	and
+			un->stageFlags			== stageFlags	and
+			un->arraySize			== arraySize;
 }
 
 /*

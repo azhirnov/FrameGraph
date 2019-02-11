@@ -16,6 +16,8 @@ extern void Test_Shader10 (VPipelineCompiler* compiler);
 extern void Test_Shader11 (VPipelineCompiler* compiler);
 extern void Test_Shader12 (VPipelineCompiler* compiler);
 extern void Test_Shader13 (VPipelineCompiler* compiler);
+extern void Test_Shader14 (VPipelineCompiler* compiler);
+extern void Test_Shader15 (VPipelineCompiler* compiler);
 
 
 int main ()
@@ -36,6 +38,8 @@ int main ()
 	Test_Shader11( &compiler );
 	Test_Shader12( &compiler );
 	Test_Shader13( &compiler );
+	Test_Shader14( &compiler );
+	Test_Shader15( &compiler );
 	
 	FG_LOGI( "Tests.PipelineCompiler finished" );
 	

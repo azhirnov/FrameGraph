@@ -324,6 +324,27 @@ namespace FG
 
 
 	//
+	// Generate Mipmaps
+	//
+	template <>
+	class VFgTask< GenerateMipmaps > final : public IFrameGraphTask
+	{
+	// variables
+	public:
+		VLocalImage const* const	image;
+		const uint					baseLevel;
+		const uint					levelCount;
+
+	// methods
+	public:
+		VFgTask (VFrameGraphThread *fg, const GenerateMipmaps &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
+	};
+
+
+
+	//
 	// Resolve Image
 	//
 	template <>
@@ -537,6 +558,7 @@ namespace FG
 		VLocalRTScene const* const			rtScene;
 		VRayTracingShaderTable * const		shaderTable;
 		RayGetShader						rayGenShader;
+		const uint							maxRecursionDepth;
 	private:
 		ShaderGroup *						_shaderGroups;
 		const uint							_shaderGroupCount;

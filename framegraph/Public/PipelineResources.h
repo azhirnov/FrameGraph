@@ -5,6 +5,7 @@
 #include "framegraph/Public/IDs.h"
 #include "framegraph/Public/ImageDesc.h"
 #include "framegraph/Public/Pipeline.h"
+#include "stl/ThreadSafe/RaceConditionCheck.h"
 
 namespace FG
 {
@@ -15,111 +16,143 @@ namespace FG
 
 	struct PipelineResources final
 	{
-		friend class PipelineResourcesInitializer;
+		friend class PipelineResourcesHelper;
 
 	// types
 	public:
 		using Self	= PipelineResources;
+		
+		enum class EDescriptorType : uint16_t
+		{
+			Unknown		= 0,
+			Buffer,
+			Image,
+			Texture,
+			SubpassInput,
+			Sampler,
+			RayTracingScene
+		};
 
 		struct Buffer
 		{
-			BindingIndex			index;
-			EResourceState			state;
-			uint					dynamicOffsetIndex;
-			RawBufferID				bufferId;
-			BytesU					offset;
-			BytesU					size;
+			static constexpr EDescriptorType	TypeId = EDescriptorType::Buffer;
 
-			ND_ bool  operator == (const Buffer &rhs) const {
-				return	state				== rhs.state				and 
-						bufferId			== rhs.bufferId				and
-						dynamicOffsetIndex	== rhs.dynamicOffsetIndex	and
-						offset				== rhs.offset				and
-						size				== rhs.size;
-			}
+			struct Element {
+				RawBufferID		bufferId;
+				BytesU			offset;
+				BytesU			size;
+			};
+
+			BindingIndex		index;
+			EResourceState		state;
+			uint				dynamicOffsetIndex;
+			uint				elementCount;
+			Element				elements[1];
 		};
 
 		struct Image
 		{
-			BindingIndex			index;
-			EResourceState			state;
-			RawImageID				imageId;
-			ImageViewDesc			desc;
-			bool					hasDesc	= false;
+			static constexpr EDescriptorType	TypeId = EDescriptorType::Image;
 
-			ND_ bool  operator == (const Image &rhs) const {
-				return	state	== rhs.state	and
-						imageId	== rhs.imageId	and
-						hasDesc	== rhs.hasDesc	and
-						(hasDesc ? desc == rhs.desc : true);
-			}
+			struct Element {
+				RawImageID		imageId;
+				ImageViewDesc	desc;
+				bool			hasDesc;
+			};
+
+			BindingIndex		index;
+			EResourceState		state;
+			uint				elementCount;
+			Element				elements[1];
 		};
 
-		struct Texture final : Image
+		struct Texture
 		{
-			RawSamplerID			samplerId;
+			static constexpr EDescriptorType	TypeId = EDescriptorType::Texture;
 
-			ND_ bool  operator == (const Texture &rhs) const {
-				return	Image::operator== (rhs) and
-						samplerId == rhs.samplerId;
-			}
+			struct Element {
+				RawImageID		imageId;
+				RawSamplerID	samplerId;
+				ImageViewDesc	desc;
+				bool			hasDesc;
+			};
+			
+			BindingIndex		index;
+			EResourceState		state;
+			uint				elementCount;
+			Element				elements[1];
 		};
 
-		struct SubpassInput final : Image
+		/*struct SubpassInput : Image
 		{
-			uint					attachmentIndex	= UMax;
-
-			ND_ bool  operator == (const SubpassInput &rhs) const {
-				return	Image::operator== (rhs) and
-						attachmentIndex == rhs.attachmentIndex;
-			}
-		};
+		};*/
 
 		struct Sampler
 		{
-			BindingIndex			index;
-			RawSamplerID			samplerId;
+			static constexpr EDescriptorType	TypeId = EDescriptorType::Sampler;
 
-			ND_ bool  operator == (const Sampler &rhs) const {
-				return	samplerId == rhs.samplerId;
-			}
+			struct Element {
+				RawSamplerID	samplerId;
+			};
+
+			BindingIndex		index;
+			uint				elementCount;
+			Element				elements[1];
 		};
 
 		struct RayTracingScene
 		{
-			BindingIndex			index;
-			RawRTSceneID			sceneId;
+			static constexpr EDescriptorType	TypeId = EDescriptorType::RayTracingScene;
 
-			ND_ bool  operator == (const RayTracingScene &rhs) const {
-				return	sceneId == rhs.sceneId;
-			}
+			struct Element {
+				RawRTSceneID	sceneId;
+			};
+
+			BindingIndex		index;
+			uint				elementCount;
+			Element				elements[1];
 		};
 
-		using Resource_t	= Union< NullUnion, Buffer, Image, Texture, Sampler, SubpassInput, RayTracingScene >;
-
-		struct ResourceInfo
-		{
-			HashVal			hash;
-			Resource_t		res;
-		};
-
-		using ResourceSet_t		= Array< ResourceInfo >;
-		using DynamicOffsets_t	= FixedArray< uint, FG_MaxBufferDynamicOffsets >;
-		using UniformMapPtr		= PipelineDescription::UniformMapPtr;
 		using CachedID			= std::atomic< uint64_t >;
+		using DeallocatorFn_t	= void (*) (void*, void*, BytesU);
 
-		STATIC_ASSERT( sizeof(CachedID) == sizeof(RawPipelineResourcesID) );
+		struct Uniform
+		{
+			UniformID		id;
+			EDescriptorType	resType		= Default;
+			uint16_t		offset		= 0;
+
+			ND_ bool  operator == (const UniformID &rhs) const	{ return id == rhs; }
+			ND_ bool  operator <  (const UniformID &rhs) const	{ return id < rhs; }
+		};
+
+		struct DynamicData
+		{
+			RawDescriptorSetLayoutID	layoutId;
+			uint						uniformCount		= 0;
+			uint						uniformsOffset		= 0;
+			uint						dynamicOffsetsCount	= 0;
+			uint						dynamicOffsetsOffset= 0;
+			DeallocatorFn_t				deallocate			= null;
+			void *						allocatorPtr		= null;
+			BytesU						memSize;
+
+			ND_ Uniform	*	Uniforms ()			{ return Cast<Uniform>(this + BytesU{uniformsOffset}); }
+			ND_ uint*		DynamicOffsets ()	{ return Cast<uint>(this + BytesU{dynamicOffsetsOffset}); }
+				void		Dealloc ()			{ deallocate( allocatorPtr, this, memSize ); }
+				
+			template <typename T, typename Fn>	static void  _ForEachUniform (T&&, Fn &&);
+			template <typename Fn>				void ForEachUniform (Fn&& fn)				{ _ForEachUniform( *this, fn ); }
+			template <typename Fn>				void ForEachUniform (Fn&& fn) const			{ _ForEachUniform( *this, fn ); }
+		};
 
 
 	// variables
 	private:
-		RawDescriptorSetLayoutID	_layoutId;
-		UniformMapPtr				_uniforms;
-		ResourceSet_t				_resources;
-		DynamicOffsets_t			_dynamicOffsets;
-		bool						_allowEmptyResources	= false;
-
-		mutable CachedID			_cachedId;
+		DynamicData *			_dataPtr				= null;
+		bool					_allowEmptyResources	= false;
+		mutable CachedID		_cachedId;
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
@@ -129,152 +162,84 @@ namespace FG
 			_ResetCachedID();
 		}
 
-		explicit PipelineResources (const PipelineResources &other) :
-			_layoutId{ other._layoutId },
-			_uniforms{ other._uniforms },
-			_resources{ other._resources },
-			_dynamicOffsets{ other._dynamicOffsets }
-		{
-			_SetCachedID(other._GetCachedID());
-		}
-
+		~PipelineResources ();
+		
+		explicit PipelineResources (const PipelineResources &other);
+		
 		PipelineResources (PipelineResources &&other) :
-			_layoutId{ std::move(other._layoutId) },
-			_uniforms{ std::move(other._uniforms) },
-			_resources{ std::move(other._resources) },
-			_dynamicOffsets{ std::move(other._dynamicOffsets) }
+			_dataPtr{ other._dataPtr },
+			_allowEmptyResources{ other._allowEmptyResources }
 		{
-			_SetCachedID(other._GetCachedID());
+			other._dataPtr = null;
+			_SetCachedID( other._GetCachedID() );
 		}
 
-		Self&  BindImage (const UniformID &id, const ImageID &image) noexcept;
-		Self&  BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc) noexcept;
-		Self&  BindImage (const UniformID &id, RawImageID image) noexcept;
-		Self&  BindImage (const UniformID &id, RawImageID image, const ImageViewDesc &desc) noexcept;
+		Self&  BindImage (const UniformID &id, const ImageID &image, uint elementIndex = 0);
+		Self&  BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc, uint elementIndex = 0);
+		Self&  BindImage (const UniformID &id, RawImageID image, uint elementIndex = 0);
+		Self&  BindImage (const UniformID &id, RawImageID image, const ImageViewDesc &desc, uint elementIndex = 0);
+		Self&  BindImages (const UniformID &id, ArrayView<ImageID> images);
 
-		Self&  BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler) noexcept;
-		Self&  BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc) noexcept;
-		Self&  BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler) noexcept;
-		Self&  BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler, const ImageViewDesc &desc) noexcept;
+		Self&  BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, uint elementIndex = 0);
+		Self&  BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc, uint elementIndex = 0);
+		Self&  BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler, uint elementIndex = 0);
+		Self&  BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler, const ImageViewDesc &desc, uint elementIndex = 0);
+		Self&  BindTextures (const UniformID &id, ArrayView<ImageID> images, const SamplerID &sampler);
 
-		Self&  BindSampler (const UniformID &id, const SamplerID &sampler) noexcept;
+		Self&  BindSampler (const UniformID &id, const SamplerID &sampler, uint elementIndex = 0);
 
-		Self&  BindBuffer (const UniformID &id, const BufferID &buffer) noexcept;
-		Self&  BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size) noexcept;
-		Self&  BindBuffer (const UniformID &id, RawBufferID buffer) noexcept;
-		Self&  BindBuffer (const UniformID &id, RawBufferID buffer, BytesU offset, BytesU size) noexcept;
-		Self&  SetBufferBase (const UniformID &id, BytesU offset) noexcept;
+		Self&  BindBuffer (const UniformID &id, const BufferID &buffer, uint elementIndex = 0);
+		Self&  BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size, uint elementIndex = 0);
+		Self&  BindBuffer (const UniformID &id, RawBufferID buffer, uint elementIndex = 0);
+		Self&  BindBuffer (const UniformID &id, RawBufferID buffer, BytesU offset, BytesU size, uint elementIndex = 0);
+		Self&  SetBufferBase (const UniformID &id, BytesU offset, uint elementIndex = 0);
 
-		Self&  BindRayTracingScene (const UniformID &id, const RTSceneID &scene) noexcept;
+		Self&  BindRayTracingScene (const UniformID &id, const RTSceneID &scene, uint elementIndex = 0);
 
-		void  AllowEmptyResources (bool value) noexcept;
+		void  AllowEmptyResources (bool value)								{ EXLOCK(_rcCheck);  _allowEmptyResources = value; }
 
-		ND_ bool  HasImage (const UniformID &id)			const noexcept;
-		ND_ bool  HasSampler (const UniformID &id)			const noexcept;
-		ND_ bool  HasTexture (const UniformID &id)			const noexcept;
-		ND_ bool  HasBuffer (const UniformID &id)			const noexcept;
-		ND_ bool  HasRayTracingScene (const UniformID &id)	const noexcept;
+		ND_ bool  HasImage (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Image >( id ); }
+		ND_ bool  HasSampler (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Sampler >( id ); }
+		ND_ bool  HasTexture (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Texture >( id ); }
+		ND_ bool  HasBuffer (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Buffer >( id ); }
+		ND_ bool  HasRayTracingScene (const UniformID &id)			const	{ SHAREDLOCK(_rcCheck);  return _HasResource< RayTracingScene >( id ); }
 
-		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ return _layoutId; }
-		ND_ ResourceSet_t const&		GetData ()					const	{ return _resources; }
-		ND_ ArrayView< uint >			GetDynamicOffsets ()		const	{ return _dynamicOffsets; }
-		ND_ bool						IsEmptyResourcesAllowed ()	const	{ return _allowEmptyResources; }
-		ND_ bool						IsInitialized ()			const	{ return _uniforms != null; }
+		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ SHAREDLOCK(_rcCheck);  return _dataPtr->layoutId; }
+		ND_ ArrayView< uint >			GetDynamicOffsets ()		const	{ SHAREDLOCK(_rcCheck);  return {_dataPtr->DynamicOffsets(), _dataPtr->dynamicOffsetsCount}; }
+		ND_ bool						IsEmptyResourcesAllowed ()	const	{ SHAREDLOCK(_rcCheck);  return _allowEmptyResources; }
+		ND_ bool						IsInitialized ()			const	{ SHAREDLOCK(_rcCheck);  return _dataPtr != null; }
 
 
 	private:
-		void _BindUniformBuffer (INOUT ResourceInfo &res, const PipelineDescription::UniformBuffer &un, RawBufferID buffer, BytesU offset, BytesU size);
-		void _BindStorageBuffer (INOUT ResourceInfo &res, const PipelineDescription::StorageBuffer &un, RawBufferID buffer, BytesU offset, BytesU size);
+		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint64_t>(id), memory_order_release ); }
+		void _ResetCachedID ()								const;
+		
+		ND_ RawPipelineResourcesID	_GetCachedID ()			const	{ return BitCast<RawPipelineResourcesID>( _cachedId.load( memory_order_acquire )); }
 
-		void _SetCachedID (RawPipelineResourcesID id)	const	{ _cachedId.store( BitCast<uint64_t>(id), memory_order_release ); }
-		void _ResetCachedID ()							const	{ _SetCachedID( RawPipelineResourcesID() ); }
+		ND_ uint &					_GetDynamicOffset (uint i)		{ ASSERT( i < _dataPtr->dynamicOffsetsCount );  return _dataPtr->DynamicOffsets()[i]; }
 
-		ND_ RawPipelineResourcesID	_GetCachedID ()		const	{ return BitCast<RawPipelineResourcesID>( _cachedId.load( memory_order_acquire )); }
+		template <typename T> T &	_GetResource (const UniformID &id);
+		template <typename T> bool	_HasResource (const UniformID &id) const;
 	};
 
 
 	using PipelineResourceSet	= FixedMap< DescriptorSetID, Ptr<const PipelineResources>, FG_MaxDescriptorSets >;
 
 	
-	
-/*
-=================================================
-	AllowEmptyResources
-=================================================
-*/
-	inline void  PipelineResources::AllowEmptyResources (bool value) noexcept
-	{
-		_allowEmptyResources = value;
-	}
 
 /*
 =================================================
 	BindImage
 =================================================
 */
-	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, const ImageID &image) noexcept
+	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, const ImageID &image, uint index)
 	{
-		return BindImage( id, image.Get() );
-	}
-
-	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, RawImageID image) noexcept
-	{
-		ASSERT( HasImage( id ));
-		auto	un		= _uniforms->find( id );
-		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	img		= UnionGet<Image>( curr.res );
-
-		if ( img.imageId != image or img.hasDesc )
-			_ResetCachedID();
-
-		img.imageId	= image;
-		img.hasDesc	= false;
-
-		curr.hash = HashOf( img.imageId );
-		return *this;
+		return BindImage( id, image.Get(), index );
 	}
 	
-/*
-=================================================
-	BindImage
-=================================================
-*/
-	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc) noexcept
+	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc, uint index)
 	{
-		return BindImage( id, image.Get(), desc );
-	}
-
-	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, RawImageID image, const ImageViewDesc &desc) noexcept
-	{
-		ASSERT( HasImage( id ));
-		auto	un		= _uniforms->find( id );
-		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	img		= UnionGet<Image>( curr.res );
-
-		if ( img.imageId != image or not img.hasDesc or not (img.desc == desc) )
-			_ResetCachedID();
-
-		img.imageId	= image;
-		img.desc	= desc;
-		img.hasDesc	= true;
-
-		curr.hash = HashOf( img.imageId ) + HashOf( img.desc );
-		return *this;
-	}
-
-/*
-=================================================
-	HasImage
-=================================================
-*/
-	inline bool  PipelineResources::HasImage (const UniformID &id) const noexcept
-	{
-		if ( _uniforms ) {
-			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and (HoldsAlternative<PipelineDescription::Image>( un->second.data ) or
-												HoldsAlternative<PipelineDescription::SubpassInput>( un->second.data )) );
-		}
-		return false;
+		return BindImage( id, image.Get(), desc, index );
 	}
 
 /*
@@ -282,105 +247,14 @@ namespace FG
 	BindTexture
 =================================================
 */
-	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler) noexcept
+	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, uint index)
 	{
-		return BindTexture( id, image.Get(), sampler );
-	}
-
-	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler) noexcept
-	{
-		ASSERT( HasTexture( id ));
-		auto	un		= _uniforms->find( id );
-		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	tex		= UnionGet<Texture>( curr.res );
-		
-		if ( tex.imageId != image or tex.samplerId != sampler.Get() or tex.hasDesc )
-			_ResetCachedID();
-
-		tex.imageId		= image;
-		tex.samplerId	= sampler.Get();
-		tex.hasDesc		= false;
-
-		curr.hash = HashOf( tex.imageId ) + HashOf( tex.samplerId );
-		return *this;
+		return BindTexture( id, image.Get(), sampler, index );
 	}
 	
-/*
-=================================================
-	BindTexture
-=================================================
-*/
-	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc) noexcept
+	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc, uint index)
 	{
-		return BindTexture( id, image.Get(), sampler, desc );
-	}
-
-	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler, const ImageViewDesc &desc) noexcept
-	{
-		ASSERT( HasTexture( id ));
-		auto	un		= _uniforms->find( id );
-		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	tex		= UnionGet<Texture>( curr.res );
-		
-		if ( tex.imageId != image or tex.samplerId != sampler.Get() or not tex.hasDesc or not (tex.desc == desc) )
-			_ResetCachedID();
-
-		tex.imageId		= image;
-		tex.samplerId	= sampler.Get();
-		tex.desc		= desc;
-		tex.hasDesc		= true;
-		
-		curr.hash = HashOf( tex.imageId ) + HashOf( tex.samplerId ) + HashOf( tex.desc );
-		return *this;
-	}
-	
-/*
-=================================================
-	HasTexture
-=================================================
-*/
-	inline bool  PipelineResources::HasTexture (const UniformID &id) const noexcept
-	{
-		if ( _uniforms ) {
-			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and HoldsAlternative<PipelineDescription::Texture>( un->second.data ));
-		}
-		return false;
-	}
-
-/*
-=================================================
-	BindSampler
-=================================================
-*/
-	inline PipelineResources&  PipelineResources::BindSampler (const UniformID &id, const SamplerID &sampler) noexcept
-	{
-		ASSERT( HasSampler( id ));
-		auto	un		= _uniforms->find( id );
-		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	samp	= UnionGet<Sampler>( curr.res );
-
-		if ( samp.samplerId != sampler.Get() )
-			_ResetCachedID();
-
-		samp.samplerId = sampler.Get();
-
-		curr.hash = HashOf( samp.samplerId );
-		return *this;
-	}
-	
-/*
-=================================================
-	HasSampler
-=================================================
-*/
-	inline bool  PipelineResources::HasSampler (const UniformID &id) const noexcept
-	{
-		if ( _uniforms ) {
-			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and HoldsAlternative<PipelineDescription::Sampler>( un->second.data ));
-		}
-		return false;
+		return BindTexture( id, image.Get(), sampler, desc, index );
 	}
 
 /*
@@ -388,193 +262,44 @@ namespace FG
 	BindBuffer
 =================================================
 */
-	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, const BufferID &buffer) noexcept
+	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, const BufferID &buffer, uint index)
 	{
-		return BindBuffer( id, buffer.Get() );
+		return BindBuffer( id, buffer.Get(), index );
 	}
-
-	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, RawBufferID buffer) noexcept
+	
+	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size, uint index)
 	{
-		ASSERT( HasBuffer( id ));
-		auto	un = _uniforms->find( id );
-
-		if ( auto* ubuf = UnionGetIf<PipelineDescription::UniformBuffer>( &un->second.data ))
-		{
-			_BindUniformBuffer( INOUT _resources[ un->second.index.Unique() ], *ubuf, buffer, 0_b, ~0_b );
-		}
-		else
-		if ( auto* sbuf = UnionGetIf<PipelineDescription::StorageBuffer>( &un->second.data ))
-		{
-			_BindStorageBuffer( INOUT _resources[ un->second.index.Unique() ], *sbuf, buffer, 0_b, ~0_b );
-		}
-		return *this;
+		return BindBuffer( id, buffer.Get(), offset, size, index );
 	}
 	
 /*
 =================================================
-	BindBuffer
+	_ForEachUniform
 =================================================
 */
-	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size) noexcept
+	template <typename T, typename Fn>
+	inline void  PipelineResources::DynamicData::_ForEachUniform (T&& self, Fn&& fn)
 	{
-		return BindBuffer( id, buffer.Get(), offset, size );
-	}
+		STATIC_ASSERT( IsSameTypes< std::remove_cv_t<std::remove_reference_t<T>>, DynamicData > );
 
-	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, RawBufferID buffer, BytesU offset, BytesU size) noexcept
-	{
-		ASSERT( HasBuffer( id ));
-		auto	un = _uniforms->find( id );
-		
-		if ( auto* ubuf = UnionGetIf<PipelineDescription::UniformBuffer>( &un->second.data ))
+		for (uint i = 0, cnt = self.uniformCount; i < cnt; ++i)
 		{
-			_BindUniformBuffer( INOUT _resources[ un->second.index.Unique() ], *ubuf, buffer, offset, size );
+			auto&	un  = self.Uniforms()[i];
+			auto*	ptr = (&self + BytesU{un.offset});
+
+			ENABLE_ENUM_CHECKS();
+			switch ( un.resType )
+			{
+				case EDescriptorType::Unknown :			break;
+				case EDescriptorType::Buffer :			fn( *Cast<Buffer>(ptr) );			break;
+				case EDescriptorType::SubpassInput :
+				case EDescriptorType::Image :			fn( *Cast<Image>(ptr) );			break;
+				case EDescriptorType::Texture :			fn( *Cast<Texture>(ptr) );			break;
+				case EDescriptorType::Sampler :			fn( *Cast<Sampler>(ptr) );			break;
+				case EDescriptorType::RayTracingScene :	fn( *Cast<RayTracingScene>(ptr) );	break;
+			}
+			DISABLE_ENUM_CHECKS();
 		}
-		else
-		if ( auto* sbuf = UnionGetIf<PipelineDescription::StorageBuffer>( &un->second.data ))
-		{
-			_BindStorageBuffer( INOUT _resources[ un->second.index.Unique() ], *sbuf, buffer, offset, size );
-		}
-		return *this;
-	}
-
-/*
-=================================================
-	_BindUniformBuffer
-=================================================
-*/
-	inline void PipelineResources::_BindUniformBuffer (INOUT ResourceInfo &curr, const PipelineDescription::UniformBuffer &un, RawBufferID id, BytesU offset, BytesU size)
-	{
-		auto&	buf = UnionGet<Buffer>( curr.res );
-		ASSERT( (un.size == size) or (size == ~0_b) );
-		FG_UNUSED( un, size );
-		
-		bool	changed = (buf.bufferId != id);
-		
-		if ( buf.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
-		{
-			changed		|= (buf.offset != offset);
-			buf.offset	 = offset;
-		}
-		else
-		{
-			ASSERT( offset < std::numeric_limits<uint>::max() );
-			_dynamicOffsets[buf.dynamicOffsetIndex] = uint(offset);
-		}
-
-		if ( changed )
-			_ResetCachedID();
-
-		buf.bufferId = id;
-
-		curr.hash = HashOf( buf.bufferId ) + HashOf( buf.size ) + HashOf( buf.offset );
-	}
-	
-/*
-=================================================
-	_BindStorageBuffer
-=================================================
-*/
-	inline void PipelineResources::_BindStorageBuffer (INOUT ResourceInfo &curr, const PipelineDescription::StorageBuffer &un, RawBufferID id, BytesU offset, BytesU size)
-	{
-		auto&	buf = UnionGet<Buffer>( curr.res );
-		ASSERT( size == ~0_b or ((size >= un.staticSize) and (un.arrayStride == 0 or (size - un.staticSize) % un.arrayStride == 0)) );
-		FG_UNUSED( un );
-
-		bool	changed = (buf.bufferId	!= id or buf.size != size);
-		
-		if ( buf.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
-		{
-			changed		|= (buf.offset != offset);
-			buf.offset	 = offset;
-		}
-		else
-		{
-			ASSERT( offset >= buf.offset and offset - buf.offset < std::numeric_limits<uint>::max() );
-			_dynamicOffsets[buf.dynamicOffsetIndex] = uint(offset - buf.offset);
-		}
-		
-		if ( changed )
-			_ResetCachedID();
-
-		buf.bufferId	= id;
-		buf.size		= size;
-
-		curr.hash = HashOf( buf.bufferId ) + HashOf( buf.size ) + HashOf( buf.offset );
-	}
-	
-/*
-=================================================
-	SetBufferBase
-=================================================
-*/
-	inline PipelineResources&  PipelineResources::SetBufferBase (const UniformID &id, BytesU offset) noexcept
-	{
-		ASSERT( HasBuffer( id ));
-		auto	un		= _uniforms->find( id );
-		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	buf		= UnionGet<Buffer>( curr.res );
-		
-		if ( buf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
-		{
-			if ( buf.offset != offset )
-				_ResetCachedID();
-			
-			_dynamicOffsets[buf.dynamicOffsetIndex] = uint( (_dynamicOffsets[buf.dynamicOffsetIndex] + buf.offset) - offset );
-			buf.offset = offset;
-		
-			curr.hash = HashOf( buf.bufferId ) + HashOf( buf.size ) + HashOf( buf.offset );
-		}
-		return *this;
-	}
-
-/*
-=================================================
-	HasBuffer
-=================================================
-*/
-	inline bool  PipelineResources::HasBuffer (const UniformID &id) const noexcept
-	{
-		if ( _uniforms ) {
-			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and (HoldsAlternative<PipelineDescription::UniformBuffer>( un->second.data ) or
-												HoldsAlternative<PipelineDescription::StorageBuffer>( un->second.data )) );
-		}
-		return false;
-	}
-	
-/*
-=================================================
-	BindRayTracingScene
-=================================================
-*/
-	inline PipelineResources&  PipelineResources::BindRayTracingScene (const UniformID &id, const RTSceneID &scene) noexcept
-	{
-		ASSERT( HasRayTracingScene( id ));
-		auto	un		= _uniforms->find( id );
-		auto&	curr	= _resources[ un->second.index.Unique() ];
-		auto&	rts		= UnionGet<RayTracingScene>( curr.res );
-		
-		if ( rts.sceneId != scene.Get() )
-			_ResetCachedID();
-
-		rts.sceneId = scene.Get();
-		
-		curr.hash = HashOf( rts.sceneId );
-		return *this;
-	}
-
-/*
-=================================================
-	HasRayTracingScene
-=================================================
-*/
-	inline bool  PipelineResources::HasRayTracingScene (const UniformID &id) const noexcept
-	{
-		if ( _uniforms ) {
-			auto	un = _uniforms->find( id );
-			return (un != _uniforms->end() and HoldsAlternative<PipelineDescription::RayTracingScene>( un->second.data ));
-		}
-		return false;
 	}
 
 

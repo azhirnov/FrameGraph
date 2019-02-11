@@ -56,8 +56,8 @@ void main() {
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );
 
-	TEST( FindUniform< PipelineDescription::Texture >( *ds, UniformID("un_ColorTexture") ));
-	TEST( FindUniform< PipelineDescription::UniformBuffer >( *ds, UniformID("UB") ));
+	TEST( FindUniform< PipelineDescription::Texture >( *ds, UniformID("un_ColorTexture") ).second );
+	TEST( FindUniform< PipelineDescription::UniformBuffer >( *ds, UniformID("UB") ).second );
 
 	TEST( ppln._earlyFragmentTests );
 	

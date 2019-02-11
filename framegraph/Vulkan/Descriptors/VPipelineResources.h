@@ -4,7 +4,6 @@
 
 #include "framegraph/Public/PipelineResources.h"
 #include "framegraph/Public/Pipeline.h"
-#include "framegraph/Shared/PipelineResourcesInitializer.h"
 #include "VCommon.h"
 
 namespace FG
@@ -25,7 +24,8 @@ namespace FG
 			uint						descriptorIndex;
 		};
 
-		using ResourceSet_t		= PipelineResources::ResourceSet_t;
+		using Element_t		= Union< VkDescriptorBufferInfo, VkDescriptorImageInfo, VkAccelerationStructureNV >;
+		using DynamicData	= PipelineResources::DynamicData;
 
 
 	// variables
@@ -34,7 +34,7 @@ namespace FG
 		RawDescriptorSetLayoutID	_layoutId;
 		//DescriptorPoolID			_descriptorPoolId;
 		HashVal						_hash;
-		ResourceSet_t				_resources;				// all resource ids has a weak reference
+		DynamicData *				_dataPtr			= null;
 		const bool					_allowEmptyResources;
 		
 		DebugName_t					_debugName;
@@ -49,18 +49,20 @@ namespace FG
 		VPipelineResources (const PipelineResources &desc);
 		~VPipelineResources ();
 
-		bool Create (VResourceManagerThread &);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+			bool Create (VResourceManagerThread &, const PipelineResources &);
+			void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
 
 		ND_ bool  operator == (const VPipelineResources &rhs) const;
+		
+			template <typename Fn>
+			void ForEachUniform (Fn&& fn) const					{ SHAREDLOCK( _rcCheck );  ASSERT( _dataPtr );  _dataPtr->ForEachUniform( fn ); }
 
 		ND_ VkDescriptorSet				Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _descriptorSet; }
 		ND_ RawDescriptorSetLayoutID	GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId; }
 		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
-		ND_ ResourceSet_t const&		GetResources ()	const	{ SHAREDLOCK( _rcCheck );  return _resources; }
-		
+
 		ND_ StringView					GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 
 
@@ -72,6 +74,7 @@ namespace FG
 		bool _AddResource (VResourceManagerThread &, const PipelineResources::RayTracingScene &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManagerThread &, const NullUnion &, INOUT UpdateDescriptors &);
 	};
+	
 
 
 }	// FG

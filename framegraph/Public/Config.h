@@ -3,7 +3,7 @@
 #pragma once
 
 #ifndef FG_OPTIMIZE_IDS
-# ifdef FG_DEBUG
+# if 1 //def FG_DEBUG
 #	define FG_OPTIMIZE_IDS		false
 # else
 #	define FG_OPTIMIZE_IDS		true
@@ -50,6 +50,7 @@ namespace FG
 	static constexpr bool		FG_EnableShaderDebugging	= true;
 	static constexpr unsigned	FG_MaxDescriptorSets		= 8 - unsigned(FG_EnableShaderDebugging);
 	static constexpr unsigned	FG_MaxBufferDynamicOffsets	= 16;
+	static constexpr unsigned	FG_MaxElementsInUnsizedDesc	= 64;	// if used extension GL_EXT_nonuniform_qualifier
 
 	// memory manager
 	static constexpr unsigned	FG_VkHostWritePageSizeMb	= 256;	// Mb

@@ -179,6 +179,7 @@ namespace FG
 		ND_ virtual Task		AddTask (const CopyImageToBuffer &) = 0;
 		ND_ virtual Task		AddTask (const BlitImage &) = 0;
 		ND_ virtual Task		AddTask (const ResolveImage &) = 0;
+		ND_ virtual Task		AddTask (const GenerateMipmaps &) = 0;
 		ND_ virtual Task		AddTask (const FillBuffer &) = 0;
 		ND_ virtual Task		AddTask (const ClearColorImage &) = 0;
 		ND_ virtual Task		AddTask (const ClearDepthStencilImage &) = 0;

@@ -488,6 +488,7 @@ namespace FG
 		sb_uniform.index			= BindingIndex{ UMax, 0 };
 		sb_uniform.stageFlags		= debuggableShaders;
 		sb_uniform.data				= sb_desc;
+		sb_uniform.arraySize		= 1;
 
 		uniforms.insert({ UniformID{"dbg_ShaderTrace"}, sb_uniform });
 

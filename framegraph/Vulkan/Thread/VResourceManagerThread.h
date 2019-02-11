@@ -242,7 +242,7 @@ namespace FG
 	inline DataT*  VResourceManagerThread::_GetState (PoolTmpl<DataT,CS,MC> &pool, ID id)
 	{
 		ASSERT( id );
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		auto&	data = pool[ id.Index() ];
 		ASSERT( data.IsCreated() );
@@ -259,7 +259,7 @@ namespace FG
 	inline bool  VResourceManagerThread::AcquireResource (ID id)
 	{
 		ASSERT( id );
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		auto&	pool = _GetResourcePool( id );
 		auto&	data = pool[ id.Index() ];
@@ -280,7 +280,7 @@ namespace FG
 	inline void  VResourceManagerThread::ReleaseResource (ID id, bool isAsync, bool force)
 	{
 		ASSERT( id );
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( isAsync )
 		{

@@ -57,11 +57,10 @@ namespace FG
 		// ResourceGraph //
 		void operator () (const PipelineResources::Buffer &buf);
 		void operator () (const PipelineResources::Image &img);
-		//void operator () (const PipelineResources::Texture &tex);
+		void operator () (const PipelineResources::Texture &tex);
 		//void operator () (const PipelineResources::SubpassInput &sp);
 		void operator () (const PipelineResources::Sampler &) {}
 		void operator () (const PipelineResources::RayTracingScene &);
-		void operator () (const NullUnion &) {}
 	};
 
 	
@@ -165,31 +164,35 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Buffer &buf)
 	{
-		VLocalBuffer const*	buffer	= _tp._ToLocal( buf.bufferId );
-		if ( not buffer )
-			return;
-
-		const VkDeviceSize	offset	= VkDeviceSize(buf.offset) + (buf.dynamicOffsetIndex < _dynamicOffsets.size() ? _dynamicOffsets[buf.dynamicOffsetIndex] : 0);		
-		const VkDeviceSize	size	= VkDeviceSize( buf.size == ~0_b ? buffer->Size() - offset : buf.size );
-
-		// validation
+		for (uint i = 0; i < buf.elementCount; ++i)
 		{
-			ASSERT( offset < buffer->Size() );
-			ASSERT( offset + size <= buffer->Size() );
+			auto&				elem	= buf.elements[i];
+			VLocalBuffer const*	buffer	= _tp._ToLocal( elem.bufferId );
+			if ( not buffer )
+				continue;
 
-			auto&	limits	= _tp._frameGraph.GetDevice().GetDeviceProperties().limits;
+			const VkDeviceSize	offset	= VkDeviceSize(elem.offset) + (buf.dynamicOffsetIndex < _dynamicOffsets.size() ? _dynamicOffsets[buf.dynamicOffsetIndex] : 0);		
+			const VkDeviceSize	size	= VkDeviceSize(elem.size == ~0_b ? buffer->Size() - offset : elem.size);
 
-			if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
+			// validation
 			{
-				ASSERT( (offset % limits.minUniformBufferOffsetAlignment) == 0 );
-				ASSERT( size <= limits.maxUniformBufferRange );
-			}else{
-				ASSERT( (offset % limits.minStorageBufferOffsetAlignment) == 0 );
-				ASSERT( size <= limits.maxStorageBufferRange );
-			}
-		}
+				ASSERT( offset < buffer->Size() );
+				ASSERT( offset + size <= buffer->Size() );
 
-		_tp._AddBuffer( buffer, buf.state, offset, size );
+				auto&	limits	= _tp._frameGraph.GetDevice().GetDeviceProperties().limits;
+
+				if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
+				{
+					ASSERT( (offset % limits.minUniformBufferOffsetAlignment) == 0 );
+					ASSERT( size <= limits.maxUniformBufferRange );
+				}else{
+					ASSERT( (offset % limits.minStorageBufferOffsetAlignment) == 0 );
+					ASSERT( size <= limits.maxStorageBufferRange );
+				}
+			}
+
+			_tp._AddBuffer( buffer, buf.state, offset, size );
+		}
 	}
 		
 /*
@@ -199,12 +202,28 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Image &img)
 	{
-		VLocalImage const*  image = _tp._ToLocal( img.imageId );
+		for (uint i = 0; i < img.elementCount; ++i)
+		{
+			auto&				elem	= img.elements[i];
+			VLocalImage const*  image	= _tp._ToLocal( elem.imageId );
 
-		if ( image )
-			_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state, image->AspectMask() ), img.desc );
+			if ( image )
+				_tp._AddImage( image, img.state, EResourceState_ToImageLayout( img.state, image->AspectMask() ), elem.desc );
+		}
 	}
-		
+	
+	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Texture &tex)
+	{
+		for (uint i = 0; i < tex.elementCount; ++i)
+		{
+			auto&				elem	= tex.elements[i];
+			VLocalImage const*  image	= _tp._ToLocal( elem.imageId );
+
+			if ( image )
+				_tp._AddImage( image, tex.state, EResourceState_ToImageLayout( tex.state, image->AspectMask() ), elem.desc );
+		}
+	}
+
 /*
 =================================================
 	operator (RayTracingScene)
@@ -212,18 +231,21 @@ namespace FG
 */
 	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::RayTracingScene &rts)
 	{
-		VLocalRTScene const*	scene = _tp._ToLocal( rts.sceneId );
-		if ( not scene )
-			return;
-
-		_tp._AddRTScene( scene, EResourceState::RayTracingShaderRead );
-		ASSERT( scene->GeometryInstances().size() );
-
-		for (auto& inst : scene->GeometryInstances())
+		for (uint i = 0; i < rts.elementCount; ++i)
 		{
-			if ( auto* geom = _tp._ToLocal( inst.geometry.Get() ))
+			VLocalRTScene const*  scene = _tp._ToLocal( rts.elements[i].sceneId );
+			if ( not scene )
+				return;
+
+			_tp._AddRTScene( scene, EResourceState::RayTracingShaderRead );
+			ASSERT( scene->GeometryInstances().size() );
+
+			for (auto& inst : scene->GeometryInstances())
 			{
-				_tp._AddRTGeometry( geom, EResourceState::RayTracingShaderRead );
+				if ( auto* geom = _tp._ToLocal( inst.geometry.Get() ))
+				{
+					_tp._AddRTGeometry( geom, EResourceState::RayTracingShaderRead );
+				}
 			}
 		}
 	}
@@ -1183,10 +1205,7 @@ namespace FG
 				continue;
 
 			PipelineResourceBarriers	visitor{ *this, resourceSet.dynamicOffsets };
-
-			for (auto& un : res.pplnRes->GetResources()) {
-				FG::Visit( un.res, visitor );
-			}
+			res.pplnRes->ForEachUniform( visitor );
 
 			ASSERT( ds_layout == res.pplnRes->GetLayoutID() );
 			ASSERT( binding >= first_ds );
@@ -1704,6 +1723,68 @@ namespace FG
 	
 /*
 =================================================
+	Visit (GenerateMipmaps)
+=================================================
+*/
+	void VTaskProcessor::Visit (const VFgTask<GenerateMipmaps> &task)
+	{
+		_OnProcessTask();
+
+		VLocalImage const*		image		= task.image;
+		const VkImage			vk_image	= image->Handle();
+		const uint				level_count	= Min( task.levelCount, image->MipmapLevels() - Min( image->MipmapLevels()-1, task.baseLevel ));
+		const uint				arr_layers	= image->ArrayLayers();
+		const uint3				dimension	= image->Dimension() >> task.baseLevel;
+		VkImageSubresourceRange	subres;
+
+		subres.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+		subres.baseArrayLayer	= 0;
+		subres.layerCount		= arr_layers;
+		subres.baseMipLevel		= task.baseLevel;
+		subres.levelCount		= level_count;
+
+		_AddImage( image, EResourceState::TransferSrc, VK_IMAGE_LAYOUT_GENERAL, subres );
+		_CommitBarriers();
+	
+		VkImageMemoryBarrier	barrier = {};
+		barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.srcAccessMask		= 0;
+		barrier.dstAccessMask		= 0;
+		barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
+		barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
+		barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+		barrier.image				= vk_image;
+
+		for (uint i = 1; i < level_count; ++i)
+		{
+			const int3	src_size	= Max( 1u, dimension >> (i-1) );
+			const int3	dst_size	= Max( 1u, dimension >> i );
+
+			VkImageBlit		region	= {};
+			region.srcOffsets[0]	= { 0, 0, 0 };
+			region.srcOffsets[1]	= { src_size.x, src_size.y, src_size.z };
+			region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i-1), 0, arr_layers };
+			region.dstOffsets[0]	= { 0, 0, 0 };
+			region.dstOffsets[1]	= { dst_size.x, dst_size.y, dst_size.z };
+			region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i), 0, arr_layers };
+
+			_dev.vkCmdBlitImage( _cmdBuffer, vk_image, VK_IMAGE_LAYOUT_GENERAL, vk_image, VK_IMAGE_LAYOUT_GENERAL, 1, &region, VK_FILTER_LINEAR );
+			
+			Stat().transferOps++;
+
+			// read after write
+			barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
+			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i), 1, 0, arr_layers };
+
+			_dev.vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+										0, null, 0, null, 1, &barrier );
+		}
+	}
+
+/*
+=================================================
 	Visit (FillBuffer)
 =================================================
 */
@@ -1923,6 +2004,7 @@ namespace FG
 										 task.rtScene,
 										 task.rayGenShader,
 										 task.GetShaderGroups(),
+										 task.maxRecursionDepth,
 										 INOUT *task.shaderTable,
 										 OUT copy_regions ), void());
 

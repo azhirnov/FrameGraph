@@ -56,7 +56,7 @@ namespace FG
 */
 	bool VPipelineCompiler::SetCompilationFlags (EShaderCompilationFlags flags)
 	{
-		SCOPELOCK( _lock );
+		EXLOCK( _lock );
 
 		_compilerFlags = flags;
 		
@@ -75,7 +75,7 @@ namespace FG
 */
 	void VPipelineCompiler::AddDirectory (StringView path)
 	{
-		SCOPELOCK( _lock );
+		EXLOCK( _lock );
 
 		String	file_path;
 		
@@ -110,7 +110,7 @@ namespace FG
 		if ( _logicalDevice == VK_NULL_HANDLE )
 			return;
 	
-		SCOPELOCK( _lock );
+		EXLOCK( _lock );
 
 		VkDevice	dev					= BitCast<VkDevice>( _logicalDevice );
 		auto		DestroyShaderModule = BitCast<PFN_vkDestroyShaderModule>(_fpDestroyShaderModule);
@@ -139,7 +139,7 @@ namespace FG
 		if ( _logicalDevice == VK_NULL_HANDLE )
 			return;
 		
-		SCOPELOCK( _lock );
+		EXLOCK( _lock );
 
 		VkDevice	dev					= BitCast<VkDevice>( _logicalDevice );
 		auto		DestroyShaderModule = BitCast<PFN_vkDestroyShaderModule>(_fpDestroyShaderModule);
@@ -717,7 +717,7 @@ namespace FG
 */
 	bool VPipelineCompiler::Compile (INOUT MeshPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
-		SCOPELOCK( _lock );
+		EXLOCK( _lock );
 		ASSERT( IsSupported( ppln, dstFormat ) );
 
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
@@ -800,16 +800,13 @@ namespace FG
 */
 	bool VPipelineCompiler::Compile (INOUT RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
-		SCOPELOCK( _lock );
+		EXLOCK( _lock );
 		ASSERT( IsSupported( ppln, dstFormat ) );
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
 		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
 														((dstFormat & ~EShaderLangFormat::_StorageFormatMask) | EShaderLangFormat::SPIRV);
 		RayTracingPipelineDesc		new_ppln;
-
-		std::swap( new_ppln._groups, ppln._groups );
-		new_ppln._maxRecursionDepth = ppln._maxRecursionDepth;
 
 
 		for (const auto& shader : ppln._shaders)
@@ -877,7 +874,7 @@ namespace FG
 */
 	bool VPipelineCompiler::Compile (INOUT GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
-		SCOPELOCK( _lock );
+		EXLOCK( _lock );
 		ASSERT( IsSupported( ppln, dstFormat ) );
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
@@ -964,7 +961,7 @@ namespace FG
 */
 	bool VPipelineCompiler::Compile (INOUT ComputePipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
-		SCOPELOCK( _lock );
+		EXLOCK( _lock );
 		ASSERT( IsSupported( ppln, dstFormat ) );
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);

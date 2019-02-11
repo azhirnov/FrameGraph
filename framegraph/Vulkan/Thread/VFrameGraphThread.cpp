@@ -4,7 +4,7 @@
 #include "VMemoryManager.h"
 #include "VSwapchainKHR.h"
 #include "VStagingBufferManager.h"
-#include "Shared/PipelineResourcesInitializer.h"
+#include "Shared/PipelineResourcesHelper.h"
 #include "VFrameGraphDebugger.h"
 #include "VShaderDebugger.h"
 
@@ -22,7 +22,7 @@ namespace FG
 		_instance{ fg },
 		_resourceMngr{ _mainAllocator, _statistic.resources, fg.GetResourceMngr() }
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_mainAllocator.SetBlockSize( 16_Mb );
 
@@ -44,7 +44,7 @@ namespace FG
 */
 	VFrameGraphThread::~VFrameGraphThread ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK( _GetState() == EState::Destroyed );
 	}
 	
@@ -82,28 +82,28 @@ namespace FG
 */
 	MPipelineID  VFrameGraphThread::CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		return MPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
 	
 	RTPipelineID  VFrameGraphThread::CreatePipeline (INOUT RayTracingPipelineDesc &desc)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		return RTPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, IsInSeparateThread() )};
 	}
 	
 	GPipelineID  VFrameGraphThread::CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		return GPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
 	
 	CPipelineID  VFrameGraphThread::CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		return CPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
@@ -116,7 +116,7 @@ namespace FG
 	bool  VFrameGraphThread::IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const
 	{
 		ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		const auto*	other = DynCast<VFrameGraphThread>( thread.operator->() );
 		
@@ -185,7 +185,7 @@ namespace FG
 */
 	ImageID  VFrameGraphThread::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _memoryMngr );
 
@@ -217,7 +217,7 @@ namespace FG
 */
 	BufferID  VFrameGraphThread::CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _memoryMngr );
 
@@ -241,7 +241,7 @@ namespace FG
 */
 	ImageID  VFrameGraphThread::CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&onRelease, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
 		auto*	img_desc = UnionGetIf<VulkanImageDesc>( &desc );
@@ -266,7 +266,7 @@ namespace FG
 */
 	BufferID  VFrameGraphThread::CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&onRelease, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		
 		auto*	buf_desc = UnionGetIf<VulkanBufferDesc>( &desc );
@@ -282,7 +282,7 @@ namespace FG
 */
 	SamplerID  VFrameGraphThread::CreateSampler (const SamplerDesc &desc, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
 		return SamplerID{ _resourceMngr.CreateSampler( desc, dbgName, IsInSeparateThread() )};
@@ -295,7 +295,7 @@ namespace FG
 */
 	RTShaderTableID  VFrameGraphThread::CreateRayTracingShaderTable (StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
 		return RTShaderTableID{ _resourceMngr.CreateRayTracingShaderTable( dbgName, IsInSeparateThread() )};
@@ -309,7 +309,7 @@ namespace FG
 	template <typename PplnID>
 	bool  VFrameGraphThread::_InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		
 		auto const *	ppln = _resourceMngr.GetResource( pplnId );
@@ -325,7 +325,7 @@ namespace FG
 		VDescriptorSetLayout const*	ds_layout = _resourceMngr.GetResource( layout_id );
 		CHECK_ERR( ds_layout );
 
-		CHECK_ERR( PipelineResourcesInitializer::Initialize( OUT resources, layout_id, ds_layout->GetUniforms(), ds_layout->GetMaxIndex()+1 ));
+		CHECK_ERR( PipelineResourcesHelper::Initialize( OUT resources, layout_id, ds_layout->GetDynamicData() ));
 		return true;
 	}
 	
@@ -361,7 +361,7 @@ namespace FG
 */
 	RTGeometryID  VFrameGraphThread::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		
 		return RTGeometryID{ _resourceMngr.CreateRayTracingGeometry( desc, mem, *_memoryMngr, dbgName, IsInSeparateThread() )};
@@ -374,7 +374,7 @@ namespace FG
 */
 	RTSceneID  VFrameGraphThread::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		
 		return RTSceneID{ _resourceMngr.CreateRayTracingScene( desc, mem, *_memoryMngr, dbgName, IsInSeparateThread() )};
@@ -391,7 +391,7 @@ namespace FG
 		if ( not id )
 			return;
 
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
 		return _resourceMngr.ReleaseResource( id.Release(), IsInSeparateThread() );
@@ -421,7 +421,7 @@ namespace FG
 	template <typename Desc, typename ID>
 	inline Desc const&  VFrameGraphThread::_GetDescription (const ID &id) const
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
 		// read access available without synchronizations
@@ -455,7 +455,7 @@ namespace FG
 */
 	bool VFrameGraphThread::Initialize (const SwapchainCreateInfo *swapchainCI, ArrayView<FGThreadPtr> relativeThreads, ArrayView<FGThreadPtr> parallelThreads)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Initial, EState::Initializing ));
 		ASSERT( parallelThreads.empty() );		// not supported yet
 		ASSERT( relativeThreads.size() <= 1 );	// only 1 thread supported yet
@@ -554,7 +554,7 @@ namespace FG
 */
 	void VFrameGraphThread::SignalSemaphore (VkSemaphore sem)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _submissionGraph, void());
 		CHECK( _submissionGraph->SignalSemaphore( _cmdBatchId, sem ));
 	}
@@ -566,7 +566,7 @@ namespace FG
 */
 	void VFrameGraphThread::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _submissionGraph, void());
 		CHECK( _submissionGraph->WaitSemaphore( _cmdBatchId, sem, stage ));
 	}
@@ -578,7 +578,7 @@ namespace FG
 */
 	VFrameGraphThread::PerQueue*  VFrameGraphThread::_GetQueue (EThreadUsage usage)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		ASSERT( EnumAny( usage, _threadUsage ));
 		ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
@@ -598,7 +598,7 @@ namespace FG
 */
 	VDeviceQueueInfoPtr  VFrameGraphThread::_GetAnyGraphicsQueue () const
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 
 		const EThreadUsage		any_usage	= (_threadUsage & EThreadUsage::_QueueMask);
@@ -937,7 +937,7 @@ namespace FG
 */
 	void VFrameGraphThread::Deinitialize ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Idle, EState::BeforeDestroy ), void());
 		
 		VDevice const&	dev = GetDevice();
@@ -989,7 +989,7 @@ namespace FG
 */
 	bool VFrameGraphThread::SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsInitialOrIdleState() );
 
 		_compilationFlags = flags;
@@ -1021,7 +1021,7 @@ namespace FG
 */
 	bool VFrameGraphThread::RecreateSwapchain (const SwapchainCreateInfo &ci)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _swapchain );
 
@@ -1093,7 +1093,7 @@ namespace FG
 */
 	bool VFrameGraphThread::SyncOnBegin (const VSubmissionGraph *graph)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Idle, EState::BeforeStart ));
 		ASSERT( graph );
 
@@ -1117,7 +1117,7 @@ namespace FG
 */
 	bool VFrameGraphThread::Begin (const CommandBatchID &id, uint index, EThreadUsage usage)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( EnumAny( usage, _threadUsage ));
 		ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
 		
@@ -1178,7 +1178,7 @@ namespace FG
 */
 	bool VFrameGraphThread::Execute ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Recording, EState::Compiling ));
 		ASSERT( _submissionGraph );
 		
@@ -1233,7 +1233,7 @@ namespace FG
 */
 	bool VFrameGraphThread::SyncOnExecute (INOUT Statistic_t &outStatistic)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( not _SetState( EState::Pending, EState::Execute ) )
 		{
@@ -1268,7 +1268,7 @@ namespace FG
 */
 	bool VFrameGraphThread::OnWaitIdle ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Idle, EState::WaitIdle ));
 		
 		for (auto& queue : _queues)
@@ -1318,7 +1318,7 @@ namespace FG
 */
 	bool VFrameGraphThread::AddPipelineCompiler (const IPipelineCompilerPtr &comp)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsInitialOrIdleState() );
 
 		_resourceMngr.GetPipelineCache()->AddCompiler( comp );
@@ -1332,7 +1332,7 @@ namespace FG
 *
 	ImageID  VFrameGraphThread::GetSwapchainImage (ESwapchainImage type)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _swapchain );
 
 		return ImageID{ _swapchain->GetImage( type )};

@@ -27,10 +27,13 @@ namespace FG
 		{
 			EResourceState		state				= Default;
 			EImage				textureType			= Default;
+
+			ND_ bool  operator == (const Texture &rhs) const;
 		};
 
 		struct Sampler
 		{
+			ND_ bool  operator == (const Sampler &rhs) const;
 		};
 
 		struct SubpassInput
@@ -38,6 +41,8 @@ namespace FG
 			EResourceState		state				= Default;
 			uint				attachmentIndex		= UMax;
 			bool				isMultisample		= false;
+			
+			ND_ bool  operator == (const SubpassInput &rhs) const;
 		};
 
 		struct Image
@@ -45,6 +50,8 @@ namespace FG
 			EResourceState		state				= Default;
 			EImage				imageType			= Default;
 			EPixelFormat		format				= Default;
+			
+			ND_ bool  operator == (const Image &rhs) const;
 		};
 
 		struct UniformBuffer
@@ -52,6 +59,8 @@ namespace FG
 			EResourceState		state				= Default;
 			uint				dynamicOffsetIndex	= STATIC_OFFSET;
 			BytesU				size;
+
+			ND_ bool  operator == (const UniformBuffer &rhs) const;
 		};
 
 		struct StorageBuffer
@@ -60,11 +69,15 @@ namespace FG
 			uint				dynamicOffsetIndex	= STATIC_OFFSET;
 			BytesU				staticSize;
 			BytesU				arrayStride;
+
+			ND_ bool  operator == (const StorageBuffer &rhs) const;
 		};
 
 		struct RayTracingScene
 		{
 			EResourceState		state				= Default;
+			
+			ND_ bool  operator == (const RayTracingScene &rhs) const;
 		};
 
 
@@ -74,9 +87,10 @@ namespace FG
 			const UniformID			id;
 			const Texture			data;
 			const BindingIndex		index;
+			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, EShaderStages stageFlags);
+			_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, uint arraySize, EShaderStages stageFlags);
 		};
 
 		struct _SamplerUniform
@@ -84,9 +98,10 @@ namespace FG
 			const UniformID			id;
 			const Sampler			data;
 			const BindingIndex		index;
+			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_SamplerUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags);
+			_SamplerUniform (const UniformID &id, const BindingIndex &index, uint arraySize, EShaderStages stageFlags);
 		};
 
 		struct _SubpassInputUniform
@@ -94,9 +109,11 @@ namespace FG
 			const UniformID			id;
 			const SubpassInput		data;
 			const BindingIndex		index;
+			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index, EShaderStages stageFlags);
+			_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index,
+								  uint arraySize, EShaderStages stageFlags);
 		};
 
 		struct _ImageUniform
@@ -104,9 +121,11 @@ namespace FG
 			const UniformID			id;
 			const Image				data;
 			const BindingIndex		index;
+			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags);
+			_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access,
+						   const BindingIndex &index, uint arraySize, EShaderStages stageFlags);
 		};
 
 		struct _UBufferUniform
@@ -114,9 +133,11 @@ namespace FG
 			const UniformID			id;
 			const UniformBuffer		data;
 			const BindingIndex		index;
+			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, uint dynamicOffsetIndex = STATIC_OFFSET);
+			_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, uint arraySize,
+							 EShaderStages stageFlags, uint dynamicOffsetIndex = STATIC_OFFSET);
 		};
 
 		struct _StorageBufferUniform
@@ -124,9 +145,11 @@ namespace FG
 			const UniformID			id;
 			const StorageBuffer		data;
 			const BindingIndex		index;
+			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags, uint dynamicOffsetIndex = STATIC_OFFSET);
+			_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access, const BindingIndex &index,
+								   uint arraySize, EShaderStages stageFlags, uint dynamicOffsetIndex = STATIC_OFFSET);
 		};
 		
 		struct _RayTracingSceneUniform
@@ -134,9 +157,10 @@ namespace FG
 			const UniformID			id;
 			const RayTracingScene	data;
 			const BindingIndex		index;
+			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_RayTracingSceneUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags);
+			_RayTracingSceneUniform (const UniformID &id, const BindingIndex &index, uint arraySize, EShaderStages stageFlags);
 		};
 
 		struct PushConstant
@@ -169,7 +193,10 @@ namespace FG
 		{
 			UniformData_t		data;
 			BindingIndex		index;
-			EShaderStages		stageFlags;
+			uint				arraySize	= 1;
+			EShaderStages		stageFlags	= Default;
+			
+			ND_ bool  operator == (const Uniform &rhs) const;
 		};
 
 		using UniformMap_t	= HashMap< UniformID, Uniform >;
@@ -490,19 +517,15 @@ namespace FG
 	// types
 		struct RTShader final : Shader
 		{
-			EShader			shaderType	= Default;
+			EShader		shaderType	= Default;
 		};
 
 		using Self				= RayTracingPipelineDesc;
 		using Shaders_t			= HashMap< RTShaderID, RTShader >;
-		
-		static constexpr uint	UNDEFINED_SPECIALIZATION = UMax;
 
 
 	// variables
-		Shaders_t			_shaders;
-		uint				_maxRecursionDepth	= 0;
-		uint				_recordStrideSpec	= UNDEFINED_SPECIALIZATION;
+		Shaders_t		_shaders;
 
 
 	// methods

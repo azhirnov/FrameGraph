@@ -63,11 +63,74 @@ namespace FG
 	
 /*
 =================================================
+	operator ==
+=================================================
+*/
+	bool  PipelineDescription::Texture::operator == (const PipelineDescription::Texture &rhs) const
+	{
+		return	this->textureType	== rhs.textureType	and
+				this->state			== rhs.state;
+	}
+
+	bool  PipelineDescription::Sampler::operator == (const PipelineDescription::Sampler &) const
+	{
+		return true;
+	}
+
+	bool  PipelineDescription::SubpassInput::operator == (const PipelineDescription::SubpassInput &rhs) const
+	{
+		return	this->attachmentIndex	== rhs.attachmentIndex		and
+				this->isMultisample		== rhs.isMultisample		and
+				this->state				== rhs.state;
+	}
+	
+	bool  PipelineDescription::Image::operator == (const PipelineDescription::Image &rhs) const
+	{
+		return	this->imageType		== rhs.imageType	and
+				this->format		== rhs.format		and
+				this->state			== rhs.state;
+	}
+	
+	bool  PipelineDescription::UniformBuffer::operator == (const PipelineDescription::UniformBuffer &rhs) const
+	{
+		return	this->size				== rhs.size					and
+				this->dynamicOffsetIndex== rhs.dynamicOffsetIndex	and
+				this->state				== rhs.state;
+	}
+	
+	bool  PipelineDescription::StorageBuffer::operator == (const PipelineDescription::StorageBuffer &rhs) const
+	{
+		return	this->staticSize		== rhs.staticSize			and
+				this->arrayStride		== rhs.arrayStride			and
+				this->dynamicOffsetIndex== rhs.dynamicOffsetIndex	and
+				this->state				== rhs.state;
+	}
+	
+	bool  PipelineDescription::RayTracingScene::operator == (const PipelineDescription::RayTracingScene &rhs) const
+	{
+		return	this->state	== rhs.state;
+	}
+
+	bool  PipelineDescription::Uniform::operator == (const PipelineDescription::Uniform &rhs) const
+	{
+		return	this->index.VKBinding()	== rhs.index.VKBinding()	and
+				this->stageFlags		== rhs.stageFlags			and
+				this->arraySize			== rhs.arraySize			and
+				this->data				== rhs.data;
+	}
+//-----------------------------------------------------------------------------
+
+
+
+/*
+=================================================
 	_TextureUniform
 =================================================
 */
-	PipelineDescription::_TextureUniform::_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id}, data{ EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags ), textureType }, index{index}, stageFlags{stageFlags}
+	PipelineDescription::_TextureUniform::_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index,
+														   uint arraySize, EShaderStages stageFlags) :
+		id{id}, data{ EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags ), textureType },
+		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
 	}
@@ -77,8 +140,8 @@ namespace FG
 	_SamplerUniform
 =================================================
 */
-	PipelineDescription::_SamplerUniform::_SamplerUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id}, data{}, index{index}, stageFlags{stageFlags}
+	PipelineDescription::_SamplerUniform::_SamplerUniform (const UniformID &id, const BindingIndex &index, uint arraySize, EShaderStages stageFlags) :
+		id{id}, data{}, index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
 	}
@@ -88,9 +151,10 @@ namespace FG
 	_SubpassInputUniform
 =================================================
 */
-	PipelineDescription::_SubpassInputUniform::_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample, const BindingIndex &index, EShaderStages stageFlags) :
+	PipelineDescription::_SubpassInputUniform::_SubpassInputUniform (const UniformID &id, uint attachmentIndex, bool isMultisample,
+																	 const BindingIndex &index, uint arraySize, EShaderStages stageFlags) :
 		id{id}, data{ EResourceState::InputAttachment | EResourceState_FromShaders( stageFlags ), attachmentIndex, isMultisample },
-		index{index}, stageFlags{stageFlags}
+		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
 	}
@@ -100,9 +164,10 @@ namespace FG
 	_ImageUniform
 =================================================
 */
-	PipelineDescription::_ImageUniform::_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access, const BindingIndex &index, EShaderStages stageFlags) :
+	PipelineDescription::_ImageUniform::_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access,
+													   const BindingIndex &index, uint arraySize, EShaderStages stageFlags) :
 		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), imageType, format },
-		index{index}, stageFlags{stageFlags}
+		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
 	}
@@ -112,12 +177,13 @@ namespace FG
 	_UBufferUniform
 =================================================
 */
-	PipelineDescription::_UBufferUniform::_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, EShaderStages stageFlags, uint dynamicOffsetIndex) :
+	PipelineDescription::_UBufferUniform::_UBufferUniform (const UniformID &id, BytesU size, const BindingIndex &index, uint arraySize,
+														   EShaderStages stageFlags, uint dynamicOffsetIndex) :
 		id{id},
 		data{ EResourceState::UniformRead | EResourceState_FromShaders( stageFlags )
 			  | (dynamicOffsetIndex != STATIC_OFFSET ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown),
 			  dynamicOffsetIndex, size },
-		index{index}, stageFlags{stageFlags}
+		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
 	}
@@ -128,12 +194,12 @@ namespace FG
 =================================================
 */
 	PipelineDescription::_StorageBufferUniform::_StorageBufferUniform (const UniformID &id, BytesU staticSize, BytesU arrayStride, EShaderAccess access,
-																	   const BindingIndex &index, EShaderStages stageFlags, uint dynamicOffsetIndex) :
+																	   const BindingIndex &index, uint arraySize, EShaderStages stageFlags, uint dynamicOffsetIndex) :
 		id{id},
 		data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access )
 			  | (dynamicOffsetIndex != STATIC_OFFSET ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown),
 			  dynamicOffsetIndex, staticSize, arrayStride },
-		index{index}, stageFlags{stageFlags}
+		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
 	}
@@ -143,8 +209,8 @@ namespace FG
 	_RayTracingSceneUniform
 =================================================
 */
-	PipelineDescription::_RayTracingSceneUniform::_RayTracingSceneUniform (const UniformID &id, const BindingIndex &index, EShaderStages stageFlags) :
-		id{id}, data{ EResourceState::_RayTracingShader | EResourceState::_Access_ShaderStorage }, index{index}, stageFlags{stageFlags}
+	PipelineDescription::_RayTracingSceneUniform::_RayTracingSceneUniform (const UniformID &id, const BindingIndex &index, uint arraySize, EShaderStages stageFlags) :
+		id{id}, data{ EResourceState::_RayTracingShader | EResourceState::_Access_ShaderStorage }, index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
 	}
@@ -186,31 +252,31 @@ namespace FG
 						  uniformBuffers.size() + storageBuffers.size() + rtScenes.size() );
 
 		for (auto& tex : textures) {
-			uniforms.insert({ tex.id, {Texture{ tex.data }, tex.index, tex.stageFlags} });
+			uniforms.insert({ tex.id, {Texture{ tex.data }, tex.index, tex.arraySize, tex.stageFlags} });
 		}
 
 		for (auto& samp : samplers) {
-			uniforms.insert({ samp.id, {Sampler{ samp.data }, samp.index, samp.stageFlags} });
+			uniforms.insert({ samp.id, {Sampler{ samp.data }, samp.index, samp.arraySize, samp.stageFlags} });
 		}
 
 		for (auto& spi : subpassInputs) {
-			uniforms.insert({ spi.id, {SubpassInput{ spi.data }, spi.index, spi.stageFlags} });
+			uniforms.insert({ spi.id, {SubpassInput{ spi.data }, spi.index, spi.arraySize, spi.stageFlags} });
 		}
 
 		for (auto& img : images) {
-			uniforms.insert({ img.id, {Image{ img.data }, img.index, img.stageFlags} });
+			uniforms.insert({ img.id, {Image{ img.data }, img.index, img.arraySize, img.stageFlags} });
 		}
 
 		for (auto& ub : uniformBuffers) {
-			uniforms.insert({ ub.id, {UniformBuffer{ ub.data }, ub.index, ub.stageFlags} });
+			uniforms.insert({ ub.id, {UniformBuffer{ ub.data }, ub.index, ub.arraySize, ub.stageFlags} });
 		}
 
 		for (auto& sb : storageBuffers) {
-			uniforms.insert({ sb.id, {StorageBuffer{ sb.data }, sb.index, sb.stageFlags} });
+			uniforms.insert({ sb.id, {StorageBuffer{ sb.data }, sb.index, sb.arraySize, sb.stageFlags} });
 		}
 
 		for (auto& rts : rtScenes) {
-			uniforms.insert({ rts.id, {RayTracingScene{ rts.data.state }, rts.index, rts.stageFlags} });
+			uniforms.insert({ rts.id, {RayTracingScene{ rts.data.state }, rts.index, rts.arraySize, rts.stageFlags} });
 		}
 
 		ds.uniforms = MakeShared<UniformMap_t>( std::move(uniforms) );

@@ -274,8 +274,8 @@
 
 
 
-#ifndef SCOPELOCK
-#	define SCOPELOCK( _syncObj_ ) \
+#ifndef EXLOCK
+#	define EXLOCK( _syncObj_ ) \
 		std::unique_lock	FG_PRIVATE_UNITE_RAW( __scopeLock, __COUNTER__ ) { _syncObj_ }
 #endif
 

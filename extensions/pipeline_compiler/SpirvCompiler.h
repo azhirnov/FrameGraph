@@ -134,7 +134,7 @@ namespace FG
 
 		bool _OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const;
 
-		bool _ParseAnnoations (StringView source, INOUT ShaderReflection &reflection) const;
+		bool _ParseAnnotations (StringView source, INOUT ShaderReflection &reflection) const;
 
 		static void _GenerateResources (OUT TBuiltInResource& res);
 

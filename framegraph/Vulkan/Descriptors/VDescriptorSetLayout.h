@@ -26,12 +26,16 @@ namespace FG
 	// variables
 	private:
 		HashVal					_hash;
-		VkDescriptorSetLayout	_layout		= VK_NULL_HANDLE;
+		VkDescriptorSetLayout	_layout				= VK_NULL_HANDLE;
 		UniformMapPtr			_uniforms;
 		PoolSizeArray_t			_poolSize;
-		uint					_maxIndex	= 0;
+		uint					_maxIndex			= 0;
+		uint					_elementCount		= 0;
+		uint					_dynamicOffsetCount	= 0;
+		void *					_dataPtr			= null;
 		DebugName_t				_debugName;
-		
+		// TODO: desc set update template
+
 		RWRaceConditionCheck	_rcCheck;
 
 
@@ -47,23 +51,23 @@ namespace FG
 
 		ND_ bool	operator == (const VDescriptorSetLayout &rhs) const;
 
-		ND_ VkDescriptorSetLayout	Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _layout; }
-		ND_ HashVal					GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
-		ND_ UniformMapPtr const&	GetUniforms ()	const	{ SHAREDLOCK( _rcCheck );  return _uniforms; }
-		ND_ uint const				GetMaxIndex ()	const	{ SHAREDLOCK( _rcCheck );  return _maxIndex; }
-		
-		ND_ StringView				GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ VkDescriptorSetLayout	Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _layout; }
+		ND_ HashVal					GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }
+		ND_ UniformMapPtr const&	GetUniforms ()		const	{ SHAREDLOCK( _rcCheck );  return _uniforms; }
+		ND_ void const*				GetDynamicData ()	const	{ SHAREDLOCK( _rcCheck );  return _dataPtr; }
+		ND_ uint					GetMaxIndex ()		const	{ SHAREDLOCK( _rcCheck );  return _maxIndex; }
+		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 
 
 	private:
 		void _AddUniform (const PipelineDescription::Uniform &un, INOUT DescriptorBinding_t &binding);
-		void _AddImage (const PipelineDescription::Image &img, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
-		void _AddTexture (const PipelineDescription::Texture &tex, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
-		void _AddSampler (const PipelineDescription::Sampler &samp, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
-		void _AddSubpassInput (const PipelineDescription::SubpassInput &spi, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
-		void _AddUniformBuffer (const PipelineDescription::UniformBuffer &ub, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
-		void _AddStorageBuffer (const PipelineDescription::StorageBuffer &sb, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
-		void _AddRayTracingScene (const PipelineDescription::RayTracingScene &rts, uint bindingIndex, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddImage (const PipelineDescription::Image &img, uint bindingIndex, uint arraySize, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddTexture (const PipelineDescription::Texture &tex, uint bindingIndex, uint arraySize, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddSampler (const PipelineDescription::Sampler &samp, uint bindingIndex, uint arraySize, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddSubpassInput (const PipelineDescription::SubpassInput &spi, uint bindingIndex, uint arraySize, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddUniformBuffer (const PipelineDescription::UniformBuffer &ub, uint bindingIndex, uint arraySize, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddStorageBuffer (const PipelineDescription::StorageBuffer &sb, uint bindingIndex, uint arraySize, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
+		void _AddRayTracingScene (const PipelineDescription::RayTracingScene &rts, uint bindingIndex, uint arraySize, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding);
 		void _IncDescriptorCount (VkDescriptorType type);
 	};
 

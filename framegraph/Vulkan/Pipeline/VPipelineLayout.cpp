@@ -58,7 +58,7 @@ namespace FG
 */
 	VPipelineLayout::VPipelineLayout (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( ppln.descriptorSets.size() == sets.size() );
 		ASSERT( _layout == VK_NULL_HANDLE );
 
@@ -118,7 +118,7 @@ namespace FG
 */
 	bool VPipelineLayout::Create (const VDevice &dev, VkDescriptorSetLayout emptyLayout)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _layout == VK_NULL_HANDLE );
 		
 		VkDescriptorSetLayouts_t	vk_layouts;
@@ -172,7 +172,7 @@ namespace FG
 */
 	void VPipelineLayout::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( _layout ) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE_LAYOUT, uint64_t(_layout) );

@@ -95,6 +95,7 @@ namespace FG
 		void Visit (const VFgTask<CopyImageToBuffer> &);
 		void Visit (const VFgTask<BlitImage> &);
 		void Visit (const VFgTask<ResolveImage> &);
+		void Visit (const VFgTask<GenerateMipmaps> &);
 		void Visit (const VFgTask<FillBuffer> &);
 		void Visit (const VFgTask<ClearColorImage> &);
 		void Visit (const VFgTask<ClearDepthStencilImage> &);

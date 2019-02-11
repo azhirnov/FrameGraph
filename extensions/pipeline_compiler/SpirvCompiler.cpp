@@ -806,7 +806,7 @@ namespace FG
 		COMP_CHECK_ERR( _ProcessShaderInfo( INOUT result ));
 
 		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnoations ) )
-			_ParseAnnoations( source, INOUT result );
+			_ParseAnnotations( source, INOUT result );
 
 		_intermediate = null;
 		return true;
@@ -814,10 +814,10 @@ namespace FG
 	
 /*
 =================================================
-	_ParseAnnoations 
+	_ParseAnnotations 
 =================================================
 */
-	bool SpirvCompiler::_ParseAnnoations (StringView source, INOUT ShaderReflection &reflection) const
+	bool SpirvCompiler::_ParseAnnotations (StringView source, INOUT ShaderReflection &reflection) const
 	{
 		const StringView	ds_name = "// @set ";
 
@@ -944,6 +944,23 @@ namespace FG
 			return BindingIndex{ index, UMax };
 	}
 	
+/*
+=================================================
+	GetArraySize
+=================================================
+*/
+	ND_ static uint  GetArraySize (const TType &type)
+	{
+		auto*	sizes = type.getArraySizes();
+
+		if ( not sizes or sizes->getNumDims() <= 0 )
+			return 1;
+
+		CHECK( sizes->getNumDims() == 1 );
+
+		return sizes->getDimSize(0);
+	}
+
 /*
 =================================================
 	GetDesciptorSet
@@ -1383,23 +1400,7 @@ namespace FG
 		auto&			uniforms		= const_cast<PipelineDescription::UniformMap_t &>( *descriptor_set.uniforms );
 
 		if ( type.getBasicType() == TBasicType::EbtSampler )
-		{
-			// texture
-			if ( type.getSampler().isCombined() )
-			{
-				PipelineDescription::Texture	tex;
-				tex.textureType	= _ExtractImageType( type );
-				tex.state		= EResourceState::ShaderSample | EResourceState_FromShaders( _currentStage );
-
-				PipelineDescription::Uniform	un;
-				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
-				un.stageFlags	= _currentStage;
-				un.data			= std::move(tex);
-
-				uniforms.insert({ ExtractUniformID( node ), std::move(un) });
-				return true;
-			}
-			
+		{	
 			// image
 			if ( type.getSampler().isImage() )
 			{
@@ -1412,6 +1413,7 @@ namespace FG
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(image);
+				un.arraySize	= GetArraySize( type );
 
 				uniforms.insert({ ExtractUniformID( node ), std::move(un) });
 				return true;
@@ -1429,18 +1431,37 @@ namespace FG
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(subpass);
+				un.arraySize	= GetArraySize( type );
 
 				uniforms.insert({ ExtractUniformID( node ), std::move(un) });
 				return true;
 			}
 			
 			// sampler
-			if ( qual.storage == TStorageQualifier::EvqUniform )
+			if ( type.getSampler().isPureSampler() )
 			{
 				PipelineDescription::Uniform	un;
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= PipelineDescription::Sampler{};
+				un.arraySize	= GetArraySize( type );
+
+				uniforms.insert({ ExtractUniformID( node ), std::move(un) });
+				return true;
+			}
+
+			// texture
+			//if ( type.getSampler().isCombined() )
+			{
+				PipelineDescription::Texture	tex;
+				tex.textureType	= _ExtractImageType( type );
+				tex.state		= EResourceState::ShaderSample | EResourceState_FromShaders( _currentStage );
+
+				PipelineDescription::Uniform	un;
+				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
+				un.stageFlags	= _currentStage;
+				un.data			= std::move(tex);
+				un.arraySize	= GetArraySize( type );
 
 				uniforms.insert({ ExtractUniformID( node ), std::move(un) });
 				return true;
@@ -1480,6 +1501,7 @@ namespace FG
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(ubuf);
+				un.arraySize	= GetArraySize( type );
 
 				uniforms.insert({ ExtractBufferUniformID( type ), std::move(un) });
 				return true;
@@ -1499,6 +1521,7 @@ namespace FG
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 				un.stageFlags	= _currentStage;
 				un.data			= std::move(sbuf);
+				un.arraySize	= GetArraySize( type );
 
 				uniforms.insert({ ExtractBufferUniformID( type ), std::move(un) });
 				return true;
@@ -1516,6 +1539,7 @@ namespace FG
 			un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 			un.stageFlags	= _currentStage;
 			un.data			= std::move(rt_scene);
+				un.arraySize	= GetArraySize( type );
 
 			uniforms.insert({ ExtractUniformID( node ), std::move(un) });
 			return true;

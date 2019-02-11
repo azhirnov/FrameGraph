@@ -134,12 +134,12 @@ namespace FG
 		BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName) override;
 		SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName) override;
 		RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName) override;
+		RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
+		RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		bool			InitPipelineResources (const RawGPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			InitPipelineResources (const RawRTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
-		RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
-		RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 
 		void			ReleaseResource (INOUT GPipelineID &id) override;
 		void			ReleaseResource (INOUT CPipelineID &id) override;
@@ -156,7 +156,7 @@ namespace FG
 		ImageDesc  const&	GetDescription (const ImageID &id) const override;
 		//SamplerDesc const&	GetDescription (const SamplerID &id) const override;
 
-		EThreadUsage	GetThreadUsage () const override		{ SCOPELOCK( _rcCheck );  return _threadUsage; }
+		EThreadUsage	GetThreadUsage () const override		{ EXLOCK( _rcCheck );  return _threadUsage; }
 		bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const override;
 
 		// initialization
@@ -194,6 +194,7 @@ namespace FG
 		Task		AddTask (const CopyImageToBuffer &) override;
 		Task		AddTask (const BlitImage &) override;
 		Task		AddTask (const ResolveImage &) override;
+		Task		AddTask (const GenerateMipmaps &) override;
 		Task		AddTask (const FillBuffer &) override;
 		Task		AddTask (const ClearColorImage &) override;
 		Task		AddTask (const ClearDepthStencilImage &) override;
@@ -227,21 +228,21 @@ namespace FG
 
 		
 		ND_ bool							IsInSeparateThread ()		const;
-		ND_ bool							IsDestroyed ()				const	{ SCOPELOCK( _rcCheck );  return _GetState() == EState::Destroyed; }
-		ND_ Allocator_t &					GetAllocator ()						{ SCOPELOCK( _rcCheck );  return _mainAllocator; }
-		ND_ VDevice const&					GetDevice ()				const	{ SCOPELOCK( _rcCheck );  return _instance.GetDevice(); }
-		ND_ uint							GetRingBufferSize ()		const	{ SCOPELOCK( _rcCheck );  return _instance.GetRingBufferSize(); }
-		ND_ Statistic_t &					EditStatistic ()					{ SCOPELOCK( _rcCheck );  return _statistic; }
+		ND_ bool							IsDestroyed ()				const	{ EXLOCK( _rcCheck );  return _GetState() == EState::Destroyed; }
+		ND_ Allocator_t &					GetAllocator ()						{ EXLOCK( _rcCheck );  return _mainAllocator; }
+		ND_ VDevice const&					GetDevice ()				const	{ EXLOCK( _rcCheck );  return _instance.GetDevice(); }
+		ND_ uint							GetRingBufferSize ()		const	{ EXLOCK( _rcCheck );  return _instance.GetRingBufferSize(); }
+		ND_ Statistic_t &					EditStatistic ()					{ EXLOCK( _rcCheck );  return _statistic; }
 
-		ND_ VFrameGraphInstance const*		GetInstance ()				const	{ SCOPELOCK( _rcCheck );  return &_instance; }
-		ND_ VResourceManagerThread*			GetResourceManager ()				{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
-		ND_ VResourceManagerThread const*	GetResourceManager ()		const	{ SCOPELOCK( _rcCheck );  return &_resourceMngr; }
-		ND_ Ptr<VMemoryManager>				GetMemoryManager ()					{ SCOPELOCK( _rcCheck );  return _memoryMngr.operator->(); }
-		ND_ Ptr<VPipelineCache>				GetPipelineCache ()					{ SCOPELOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
-		ND_ Ptr<VFrameGraphDebugger>		GetDebugger ()						{ SCOPELOCK( _rcCheck );  return _debugger.get(); }
-		ND_ Ptr<VSwapchain>					GetSwapchain ()						{ SCOPELOCK( _rcCheck );  return _swapchain.get(); }	// temp
-		ND_ Ptr<VStagingBufferManager>		GetStagingBufferManager ()			{ SCOPELOCK( _rcCheck );  return _stagingMngr.get(); }
-		ND_ Ptr<VShaderDebugger>			GetShaderDebugger ()				{ SCOPELOCK( _rcCheck );  return _shaderDebugger.get(); }
+		ND_ VFrameGraphInstance const*		GetInstance ()				const	{ EXLOCK( _rcCheck );  return &_instance; }
+		ND_ VResourceManagerThread*			GetResourceManager ()				{ EXLOCK( _rcCheck );  return &_resourceMngr; }
+		ND_ VResourceManagerThread const*	GetResourceManager ()		const	{ EXLOCK( _rcCheck );  return &_resourceMngr; }
+		ND_ Ptr<VMemoryManager>				GetMemoryManager ()					{ EXLOCK( _rcCheck );  return _memoryMngr.operator->(); }
+		ND_ Ptr<VPipelineCache>				GetPipelineCache ()					{ EXLOCK( _rcCheck );  return _resourceMngr.GetPipelineCache(); }
+		ND_ Ptr<VFrameGraphDebugger>		GetDebugger ()						{ EXLOCK( _rcCheck );  return _debugger.get(); }
+		ND_ Ptr<VSwapchain>					GetSwapchain ()						{ EXLOCK( _rcCheck );  return _swapchain.get(); }	// temp
+		ND_ Ptr<VStagingBufferManager>		GetStagingBufferManager ()			{ EXLOCK( _rcCheck );  return _stagingMngr.get(); }
+		ND_ Ptr<VShaderDebugger>			GetShaderDebugger ()				{ EXLOCK( _rcCheck );  return _shaderDebugger.get(); }
 		ND_ Ptr<VShaderDebugger>			CreateShaderDebugger ();
 
 

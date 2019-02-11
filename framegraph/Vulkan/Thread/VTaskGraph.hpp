@@ -447,6 +447,28 @@ namespace FG
 		return srcImage and dstImage and regions.size();
 	}
 //-----------------------------------------------------------------------------
+	
+	
+/*
+=================================================
+	VFgTask< GenerateMipmaps >
+=================================================
+*/
+	inline VFgTask<GenerateMipmaps>::VFgTask (VFrameGraphThread *fg, const GenerateMipmaps &task, ProcessFunc_t process) :
+		IFrameGraphTask{ task, process },	image{ fg->GetResourceManager()->ToLocal( task.image )},
+		baseLevel{ task.baseLevel.Get() },	levelCount{ task.levelCount }
+	{}
+		
+/*
+=================================================
+	VFgTask< GenerateMipmaps >::IsValid
+=================================================
+*/
+	bool  VFgTask<GenerateMipmaps>::IsValid () const
+	{
+		return image and levelCount;
+	}
+//-----------------------------------------------------------------------------
 
 
 /*
@@ -658,7 +680,7 @@ namespace FG
 		IFrameGraphTask{ task, process },		pipeline{ task.pipeline },
 		rtScene{ fg->GetResourceManager()->ToLocal( task.rtScene )},
 		shaderTable{const_cast<VRayTracingShaderTable*>( fg->GetResourceManager()->GetResource( task.shaderTable ))},
-		rayGenShader{ task.rayGenShader },
+		rayGenShader{ task.rayGenShader },		maxRecursionDepth{ task.maxRecursionDepth },
 		_shaderGroupCount{ uint(task.shaderGroups.size()) }
 	{
 		_shaderGroups = fg->GetAllocator().Alloc<ShaderGroup>( _shaderGroupCount );

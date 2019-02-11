@@ -432,6 +432,25 @@ namespace FG
 
 
 	//
+	// Generate Mipmaps
+	//
+	struct GenerateMipmaps final : _fg_hidden_::BaseTask<GenerateMipmaps>
+	{
+	// variables
+		RawImageID		image;
+		MipmapLevel		baseLevel;
+		uint			levelCount	= UMax;
+
+	// methods
+		GenerateMipmaps () :
+			BaseTask<GenerateMipmaps>{ "GenerateMipmaps", ColorScheme::DeviceLocalTransfer } {}
+
+		GenerateMipmaps&  SetImage (const ImageID &img)		{ ASSERT( img );  image = img.Get();  return *this; }
+	};
+
+
+
+	//
 	// Resolve Image
 	//
 	struct ResolveImage final : _fg_hidden_::BaseTask<ResolveImage>
@@ -1084,8 +1103,8 @@ namespace FG
 			RTShaderID			anyHitShader;		// optional
 			RTShaderID			intersectionShader;	// only for procedural geometry
 
-			ShaderGroup (RTShaderID missShader) :
-				type{EGroupType::MissShader}, mainShader{missShader} {}
+			ShaderGroup (const RTShaderID &missShader, uint missIndex) :
+				type{EGroupType::MissShader}, offset{missIndex}, mainShader{missShader} {}
 			
 			ShaderGroup (const InstanceID &inst, const GeometryID &geom, uint off, const RTShaderID &chit, const RTShaderID &anyHit) :
 				type{EGroupType::TriangleHitShader}, instanceId{inst}, geometryId{geom}, offset{off}, mainShader{chit}, anyHitShader{anyHit} {}
@@ -1104,6 +1123,7 @@ namespace FG
 		RawRTSceneID			rtScene;
 		RayGenShader			rayGenShader;
 		ShaderGroups_t			shaderGroups;
+		uint					maxRecursionDepth = 0;
 
 
 	// methods
@@ -1113,12 +1133,13 @@ namespace FG
 		Self&  SetPipeline (const RTPipelineID &ppln);
 		Self&  SetScene (const RTSceneID &scene);
 		Self&  SetTarget (const RTShaderTableID &sbt);
+		Self&  SetMaxRecursionDepth (uint value)		{ maxRecursionDepth = value;  return *this; }
 
 		Self&  SetRayGenShader (const RTShaderID &shader);
-		Self&  AddMissShader (const RTShaderID &shader);
+		Self&  AddMissShader (const RTShaderID &shader, uint missIndex);
 		//Self&  AddCallableShader ();
 		
-		Self&  AddTriangleHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
+		Self&  AddHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
 									  const RTShaderID &closestHit, const RTShaderID &anyHit = Default);
 
 		Self&  AddProceduralHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
@@ -1422,16 +1443,16 @@ namespace FG
 	}
 
 	inline UpdateRayTracingShaderTable&
-		UpdateRayTracingShaderTable::AddMissShader (const RTShaderID &shader)
+		UpdateRayTracingShaderTable::AddMissShader (const RTShaderID &shader, uint missIndex)
 	{
 		ASSERT( shader.IsDefined() );
-		shaderGroups.push_back(ShaderGroup{ shader });
+		shaderGroups.push_back(ShaderGroup{ shader, missIndex });
 		return *this;
 	}
 	
 	inline UpdateRayTracingShaderTable&
-		UpdateRayTracingShaderTable::AddTriangleHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
-															const RTShaderID &closestHit, const RTShaderID &anyHit)
+		UpdateRayTracingShaderTable::AddHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
+													const RTShaderID &closestHit, const RTShaderID &anyHit)
 	{
 		ASSERT( inst.IsDefined() );
 		ASSERT( geom.IsDefined() );

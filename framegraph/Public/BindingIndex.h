@@ -16,14 +16,14 @@ namespace FG
 
 	// variables
 	private:
-		uint	_index1		= UMax;	// resource dependend index, may be optimized to minimize resource switches between pipelines, used in OpenGL, DirectX
-		uint	_index2		= UMax;	// resource unique index in current pipeline, used in Vulkan, OpenCL, software renderer
+		uint16_t	_index1		= UMax;	// resource dependend index, may be optimized to minimize resource switches between pipelines, used in OpenGL, DirectX
+		uint16_t	_index2		= UMax;	// resource unique index in current pipeline, used in Vulkan, OpenCL, software renderer
 
 	// methods
 	public:
 		BindingIndex () {}
 
-		explicit BindingIndex (uint perResourceIndex, uint uniqueIndex) : _index1{ perResourceIndex }, _index2{ uniqueIndex } {}
+		explicit BindingIndex (uint perResourceIndex, uint uniqueIndex) : _index1{uint16_t(perResourceIndex)}, _index2{uint16_t(uniqueIndex)} {}
 
 		ND_ bool	operator == (const BindingIndex &rhs) const		{ return _index1 == rhs._index1 and _index2 == rhs._index2; }
 

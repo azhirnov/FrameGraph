@@ -192,6 +192,12 @@ namespace FG
 			#ifdef VK_EXT_inline_uniform_block
 				VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME,
 			#endif
+			#ifdef VK_EXT_descriptor_indexing
+				VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_memory_budget
+				VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
+			#endif
 
 			// Vendor specific extensions
 			#ifdef VK_NV_mesh_shader
@@ -840,6 +846,13 @@ namespace FG
 				*next_feat	= *nextExt				= &_features.shadingRateImage;
 				next_feat	= nextExt				= &_features.shadingRateImage.pNext;
 				_features.shadingRateImage.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV;
+			}
+			else
+			if ( ext == VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt				= &_features.descriptorIndexing;
+				next_feat	= nextExt				= &_features.descriptorIndexing.pNext;
+				_features.descriptorIndexing.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
 			}
 		}
 		
