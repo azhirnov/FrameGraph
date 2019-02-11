@@ -135,7 +135,6 @@ bool FSBarycentricApp::Initialize ()
 								  { VK_NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME }
 			));
 		
-		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 
 		CHECK_ERR( IsFragmentShaderBarycentricSupported() );

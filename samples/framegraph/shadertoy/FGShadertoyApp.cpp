@@ -189,7 +189,6 @@ namespace FG
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetAllDeviceExtensions()
 									));
-			//_vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 		}
 
@@ -302,7 +301,7 @@ namespace FG
 		{
 			CHECK_ERR( _RecreateShaders( _window->GetSize() ));
 
-			_camera.SetPerspective( 90_deg, float(_surfaceSize.x) / _surfaceSize.y, 0.1f, 100.0f );
+			_camera.SetPerspective( _cameraFov, float(_surfaceSize.x) / _surfaceSize.y, 0.1f, 100.0f );
 		}
 		
 		if ( _ordered.size() )
@@ -322,7 +321,17 @@ namespace FG
 				ShadersMap_t::iterator	iter = _shaders.find( "main" );
 				CHECK_ERR( iter != _shaders.end() );
 
-				const auto&	image = iter->second->_perPass[pass_idx].renderTarget;
+				const auto&	image	= iter->second->_perPass[pass_idx].renderTarget;
+				const auto&	desc	= _frameGraph->GetDescription( image );
+				const uint2	point	= { uint((desc.dimension.x * _lastMousePos.x) / _window->GetSize().x + 0.5f),
+										uint((desc.dimension.y * _lastMousePos.y) / _window->GetSize().y + 0.5f) };
+
+				if ( point.x < desc.dimension.x and point.y < desc.dimension.y )
+				{
+					_frameGraph->AddTask( ReadImage{}.SetImage( image, point, uint2{1,1} )
+													 .SetCallback( [this, point] (const ImageView &view) { _OnPixelReadn( point, view ); })
+													 .DependsOn( _currTask ));
+				}
 
 				_currTask = _frameGraph->AddTask( Present{ image }.DependsOn( _currTask ));
 			}
@@ -360,13 +369,15 @@ namespace FG
 			_camera.Move2( _positionDelta );
 		}
 
-		_ubData.iTime			= app_dt;
-		_ubData.iTimeDelta		= frame_dt;
-		_ubData.iFrame			= _frameCounter;
-		_ubData.iMouse			= vec4( _mousePressed ? _lastMousePos : vec2{}, vec2{} );	// TODO: click
-		//_ubData.iDate			= float4(uint3( date.Year(), date.Month(), date.DayOfMonth()).To<float3>(), float(date.Second()) + float(date.Milliseconds()) * 0.001f);
-		_ubData.iSampleRate		= 0.0f;	// not supported yet
-		_ubData.iCameraPos		= vec4{ _camera.GetCamera().transform.position, 0.0f };
+		_ubData.iTime				= app_dt;
+		_ubData.iTimeDelta			= frame_dt;
+		_ubData.iFrame				= _frameCounter;
+		_ubData.iMouse				= vec4( _mousePressed ? _lastMousePos : vec2{}, vec2{} );	// TODO: click
+		//_ubData.iDate				= float4(uint3( date.Year(), date.Month(), date.DayOfMonth()).To<float3>(), float(date.Second()) + float(date.Milliseconds()) * 0.001f);
+		_ubData.iSampleRate			= 0.0f;	// not supported yet
+		_ubData.iCameraPos			= _camera.GetCamera().transform.position;
+		_ubData.iCameraFovY			= float(_cameraFov);
+		_ubData.iCameraOrientation	= _camera.GetCamera().transform.orientation;
 
 		_camera.GetFrustum().GetRays( OUT _ubData.iCameraFrustumRayLB, OUT _ubData.iCameraFrustumRayLT,
 									  OUT _ubData.iCameraFrustumRayRB, OUT _ubData.iCameraFrustumRayRT );
@@ -558,7 +569,7 @@ namespace FG
 			ImageDesc	desc;
 			desc.imageType	= EImage::Tex2D;
 			desc.dimension	= uint3{ pass.viewport, 1 };
-			desc.format		= EPixelFormat::RGBA8_UNorm;
+			desc.format		= ImageFormat;
 			desc.usage		= EImageUsage::Transfer | EImageUsage::Sampled | EImageUsage::ColorAttachment;
 
 			pass.renderTarget = _frameGraph->CreateImage( desc, Default, String(shader->Name()) << "-RT-" << ToString(Distance( shader->_perPass.data(), &pass )) );
@@ -671,7 +682,9 @@ namespace FG
 				vec3	iCameraFrustumRB;
 				vec3	iCameraFrustumLT;
 				vec3	iCameraFrustumRT;
+				vec4	iCameraOrientation;
 				vec3	iCameraPos;				// camera position in world space
+				float	iCameraFovY;
 			};
 
 			layout(location=0) out vec4	out_Color;
@@ -821,9 +834,14 @@ namespace FG
 			_frameStat.cpuTimeSum		= Default;
 			_frameStat.frameCounter		= 0;
 
-			_window->SetTitle( "Shadertoy [FPS: "s << ToString(fps_value) <<
-							   ", GPU: " << ToString(gpu_time) <<
-							   ", CPU:" << ToString(cpu_time) << ']' );
+			String	str = "Shadertoy [FPS: ";
+			str << ToString( fps_value );
+			str << ", GPU: " << ToString( gpu_time );
+			str << ", CPU: " << ToString( cpu_time );
+			str << ", Pixel: " << ToString( _frameStat.selectedPixel );
+			str << ']';
+
+			_window->SetTitle( str );
 		}
 	}
 	
@@ -916,6 +934,16 @@ namespace FG
 		}
 	
 		CHECK(!"shader trace is ready");
+	}
+	
+/*
+=================================================
+	_OnPixelReadn
+=================================================
+*/
+	void FGShadertoyApp::_OnPixelReadn (const uint2 &, const ImageView &view)
+	{
+		view.Load( uint3{0,0,0}, OUT _frameStat.selectedPixel );
 	}
 
 }	// FG

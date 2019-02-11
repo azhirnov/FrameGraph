@@ -154,7 +154,6 @@ bool ImageFootprintApp::Initialize ()
 								  { VK_NV_SHADER_IMAGE_FOOTPRINT_EXTENSION_NAME }
 			));
 		
-		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 
 		CHECK_ERR( IsImageFootprintSupported() );

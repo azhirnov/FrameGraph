@@ -160,7 +160,6 @@ bool ShadingRateApp::Initialize ()
 								  { VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME }
 			));
 		
-		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 
 		CHECK_ERR( IsShadingRateImageSupported() );

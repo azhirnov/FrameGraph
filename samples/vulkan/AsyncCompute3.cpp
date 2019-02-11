@@ -167,7 +167,6 @@ bool AsyncComputeApp3::Initialize ()
 
 		presentInComputeQueueSupported = EnumEq( vulkan.GetVkQuues()[1].flags, VK_QUEUE_PRESENT_BIT );
 		
-		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 	}
 
@@ -1031,7 +1030,7 @@ void main ()
 
 /*
 =================================================
-	CreatePipelineGenSRI
+	CreateComputePipeline
 =================================================
 */
 bool AsyncComputeApp3::CreateComputePipeline ()

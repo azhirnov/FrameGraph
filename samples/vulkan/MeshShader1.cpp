@@ -157,7 +157,6 @@ bool MeshShaderApp::Initialize ()
 								  { VK_NV_MESH_SHADER_EXTENSION_NAME }
 			));
 		
-		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 	}
 

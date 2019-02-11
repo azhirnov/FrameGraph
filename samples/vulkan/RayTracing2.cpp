@@ -200,7 +200,6 @@ bool RayTracingApp2::Initialize ()
 								  { VK_NV_RAY_TRACING_EXTENSION_NAME }
 			));
 		
-		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 
 		CHECK_ERR( IsRayTracingSupported() );

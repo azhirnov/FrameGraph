@@ -158,7 +158,6 @@ bool SparseImageApp::Initialize ()
 								  {}
 			));
 		
-		//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 
 		CHECK_ERR( IsSparseImageSupported() );

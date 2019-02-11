@@ -43,7 +43,9 @@ namespace FG
 			float		_padding6;
 			vec3		iCameraFrustumRayRT;	// offset: 256, align: 16	// right top
 			float		_padding7;
-			vec4		iCameraPos;				// offset: 272, align: 16	// camera position in world space
+			quat		iCameraOrientation;		// offset: 272, align: 16	// camera orientation
+			vec3		iCameraPos;				// offset: 288, align: 16	// camera position in world space
+			float		iCameraFovY;
 		};
 
 
@@ -136,6 +138,7 @@ namespace FG
 		ImageCache_t			_imageCache;
 
 		FPSCamera				_camera;
+		Rad						_cameraFov		= 60_deg;
 		vec3					_positionDelta;
 		vec2					_mouseDelta;
 		vec2					_lastMousePos;
@@ -166,7 +169,10 @@ namespace FG
 			TimePoint_t				lastUpdateTime;
 			uint					frameCounter			= 0;
 			const uint				UpdateIntervalMillis	= 500;
+			RGBA32f					selectedPixel;
 		}						_frameStat;
+
+		static constexpr EPixelFormat	ImageFormat = EPixelFormat::RGBA16F;
 
 
 	// methods
@@ -211,6 +217,7 @@ namespace FG
 		bool _Recompile ();
 		
 		void _OnShaderTraceReady (StringView name, ArrayView<String> output) const;
+		void _OnPixelReadn (const uint2 &point, const ImageView &view);
 	};
 
 
