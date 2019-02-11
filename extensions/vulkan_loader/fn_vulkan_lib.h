@@ -22,13 +22,13 @@
 
 
 #ifdef VKLOADER_STAGE_INLINEFN
-	ND_ forceinline VkResult vkEnumerateInstanceLayerProperties (uint32_t * pPropertyCount, VkLayerProperties * pProperties)								{ return _var_vkEnumerateInstanceLayerProperties( pPropertyCount, pProperties ); }
-	ND_ forceinline PFN_vkVoidFunction vkGetInstanceProcAddr (VkInstance instance, const char * pName)								{ return _var_vkGetInstanceProcAddr( instance, pName ); }
-	ND_ forceinline VkResult vkCreateInstance (const VkInstanceCreateInfo * pCreateInfo, const VkAllocationCallbacks * pAllocator, VkInstance * pInstance)								{ return _var_vkCreateInstance( pCreateInfo, pAllocator, pInstance ); }
-	ND_ forceinline VkBool32 vkDebugUtilsMessengerCallbackEXT (VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData, void * pUserData)								{ return _var_vkDebugUtilsMessengerCallbackEXT( messageSeverity, messageTypes, pCallbackData, pUserData ); }
-	ND_ forceinline VkBool32 vkDebugReportCallbackEXT (VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char * pLayerPrefix, const char * pMessage, void * pUserData)								{ return _var_vkDebugReportCallbackEXT( flags, objectType, object, location, messageCode, pLayerPrefix, pMessage, pUserData ); }
-	ND_ forceinline VkResult vkEnumerateInstanceVersion (uint32_t * pApiVersion)								{ return _var_vkEnumerateInstanceVersion( pApiVersion ); }
-	ND_ forceinline VkResult vkEnumerateInstanceExtensionProperties (const char * pLayerName, uint32_t * pPropertyCount, VkExtensionProperties * pProperties)								{ return _var_vkEnumerateInstanceExtensionProperties( pLayerName, pPropertyCount, pProperties ); }
+	ND_ VKAPI_ATTR forceinline VkResult vkEnumerateInstanceLayerProperties (uint32_t * pPropertyCount, VkLayerProperties * pProperties)								{ return _var_vkEnumerateInstanceLayerProperties( pPropertyCount, pProperties ); }
+	ND_ VKAPI_ATTR forceinline PFN_vkVoidFunction vkGetInstanceProcAddr (VkInstance instance, const char * pName)								{ return _var_vkGetInstanceProcAddr( instance, pName ); }
+	ND_ VKAPI_ATTR forceinline VkResult vkCreateInstance (const VkInstanceCreateInfo * pCreateInfo, const VkAllocationCallbacks * pAllocator, VkInstance * pInstance)								{ return _var_vkCreateInstance( pCreateInfo, pAllocator, pInstance ); }
+	ND_ VKAPI_ATTR forceinline VkBool32 vkDebugUtilsMessengerCallbackEXT (VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData, void * pUserData)								{ return _var_vkDebugUtilsMessengerCallbackEXT( messageSeverity, messageTypes, pCallbackData, pUserData ); }
+	ND_ VKAPI_ATTR forceinline VkBool32 vkDebugReportCallbackEXT (VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char * pLayerPrefix, const char * pMessage, void * pUserData)								{ return _var_vkDebugReportCallbackEXT( flags, objectType, object, location, messageCode, pLayerPrefix, pMessage, pUserData ); }
+	ND_ VKAPI_ATTR forceinline VkResult vkEnumerateInstanceVersion (uint32_t * pApiVersion)								{ return _var_vkEnumerateInstanceVersion( pApiVersion ); }
+	ND_ VKAPI_ATTR forceinline VkResult vkEnumerateInstanceExtensionProperties (const char * pLayerName, uint32_t * pPropertyCount, VkExtensionProperties * pProperties)								{ return _var_vkEnumerateInstanceExtensionProperties( pLayerName, pPropertyCount, pProperties ); }
 #endif // VKLOADER_STAGE_INLINEFN
 
 
