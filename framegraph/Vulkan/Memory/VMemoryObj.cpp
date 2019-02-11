@@ -22,7 +22,7 @@ namespace FG
 */
 	bool VMemoryObj::Create (const MemoryDesc &desc, VMemoryManager &alloc, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_desc		= desc;
 		_manager	= alloc.weak_from_this();
@@ -38,7 +38,7 @@ namespace FG
 */
 	bool VMemoryObj::AllocateForBuffer (VkBuffer buf)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		auto	mem_mngr = _manager.lock();
 		CHECK_ERR( mem_mngr and mem_mngr->AllocateForBuffer( buf, _desc, INOUT _storage ));
@@ -53,7 +53,7 @@ namespace FG
 */
 	bool VMemoryObj::AllocateForImage (VkImage img)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		auto	mem_mngr = _manager.lock();
 		CHECK_ERR( mem_mngr and mem_mngr->AllocateForImage( img, _desc, INOUT _storage ));
@@ -68,7 +68,7 @@ namespace FG
 */
 	bool VMemoryObj::AllocateForAccelStruct (VkAccelerationStructureNV accelStruct)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		auto	mem_mngr = _manager.lock();
 		CHECK_ERR( mem_mngr and mem_mngr->AllocateForAccelStruct( accelStruct, _desc, INOUT _storage ));
@@ -83,7 +83,7 @@ namespace FG
 */
 	void VMemoryObj::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		auto	mem_mngr = _manager.lock();
 		ASSERT( mem_mngr );

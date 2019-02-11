@@ -14,7 +14,7 @@ namespace _fg_hidden_
 		template <typename T>
 		ND_ constexpr operator const T () const
 		{
-			STATIC_ASSERT( ~T(0) > T(0) );
+			STATIC_ASSERT( T(~T(0)) > T(0) );
 			return T(~T(0));
 		}
 			

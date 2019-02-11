@@ -111,7 +111,7 @@ namespace FG
 	bool VImage::Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 						 EQueueFamilyMask queueFamilyMask, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _image == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( not desc.isExternal );
@@ -196,7 +196,7 @@ namespace FG
 */
 	bool VImage::Create (const VDevice &dev, const VulkanImageDesc &desc, StringView dbgName, OnRelease_t &&onRelease)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _image == VK_NULL_HANDLE );
 		
 		_image				= BitCast<VkImage>( desc.image );
@@ -239,7 +239,7 @@ namespace FG
 */
 	void VImage::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		for (auto& view : _viewMap) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_IMAGE_VIEW, uint64_t(view.second) );
@@ -286,7 +286,7 @@ namespace FG
 		}
 
 		// create new image view
-		SCOPELOCK( _viewMapLock );
+		EXLOCK( _viewMapLock );
 
 		auto[iter, inserted] = _viewMap.insert({ desc, VK_NULL_HANDLE });
 

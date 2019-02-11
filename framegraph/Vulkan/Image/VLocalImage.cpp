@@ -211,27 +211,29 @@ namespace FG
 		
 
 		// extract sub ranges
+		const uint		arr_layers	= ArrayLayers();
+		const uint		mip_levels	= MipmapLevels();
 		Array<SubRange>	sub_ranges;
-		SubRange		layer_range	 { is.range.Layers().begin,  Min( is.range.Layers().end,  ArrayLayers() ) };
-		SubRange		mipmap_range { is.range.Mipmaps().begin, Min( is.range.Mipmaps().end, MipmapLevels() ) };
+		SubRange		layer_range	 { is.range.Layers().begin,  Min( is.range.Layers().end,  arr_layers ) };
+		SubRange		mipmap_range { is.range.Mipmaps().begin, Min( is.range.Mipmaps().end, mip_levels ) };
 
 		if ( is.range.IsWholeLayers() and is.range.IsWholeMipmaps() )
 		{
-			sub_ranges.push_back(SubRange{ 0, ArrayLayers() * MipmapLevels() });
+			sub_ranges.push_back(SubRange{ 0, arr_layers * mip_levels });
 		}
 		else
 		if ( is.range.IsWholeLayers() )
 		{
-			uint	begin = mipmap_range.begin   * ArrayLayers() + layer_range.begin;
-			uint	end   = (mipmap_range.end-1) * ArrayLayers() + layer_range.end;
+			uint	begin = mipmap_range.begin   * arr_layers + layer_range.begin;
+			uint	end   = (mipmap_range.end-1) * arr_layers + layer_range.end;
 				
 			sub_ranges.push_back(SubRange{ begin, end });
 		}
 		else
 		for (uint mip = mipmap_range.begin; mip < mipmap_range.end; ++mip)
 		{
-			uint	begin = mip * ArrayLayers() + layer_range.begin;
-			uint	end   = mip * ArrayLayers() + layer_range.end;
+			uint	begin = mip * arr_layers + layer_range.begin;
+			uint	end   = mip * arr_layers + layer_range.end;
 
 			sub_ranges.push_back(SubRange{ begin, end });
 		}
@@ -318,6 +320,7 @@ namespace FG
 			for (auto iter = first; iter != _accessForReadWrite.end() and iter->range.begin < pending.range.end; ++iter)
 			{
 				const SubRange	range		= iter->range.Intersect( pending.range );
+				const uint		arr_layers	= ArrayLayers();
 
 				const bool		is_modified = (iter->layout != pending.layout)			or		// layout -> layout 
 											  (iter->isReadable and pending.isWritable)	or		// read -> write
@@ -329,7 +332,7 @@ namespace FG
 					barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 					barrier.pNext				= null;
 					barrier.image				= Handle();
-					barrier.oldLayout			= iter->layout;
+					barrier.oldLayout			= iter->layout;		// TODO: use undefined layout if content need not to be preserved
 					barrier.newLayout			= pending.layout;
 					barrier.srcAccessMask		= iter->access;
 					barrier.dstAccessMask		= pending.access;
@@ -337,10 +340,10 @@ namespace FG
 					barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 			
 					barrier.subresourceRange.aspectMask		= AspectMask();
-					barrier.subresourceRange.baseMipLevel	= (range.begin / ArrayLayers());
-					barrier.subresourceRange.levelCount		= Max( 1u, (range.end - range.begin) / ArrayLayers() );
-					barrier.subresourceRange.baseArrayLayer	= (range.begin % ArrayLayers());
-					barrier.subresourceRange.layerCount		= Max( 1u, (range.end - range.begin) % ArrayLayers() );
+					barrier.subresourceRange.baseMipLevel	= (range.begin / arr_layers);
+					barrier.subresourceRange.levelCount		= Max( 1u, (range.end - range.begin) / arr_layers );	// TODO: use power of 2 values?
+					barrier.subresourceRange.baseArrayLayer	= (range.begin % arr_layers);
+					barrier.subresourceRange.layerCount		= Max( 1u, (range.end - range.begin) % arr_layers );
 
 					ASSERT( barrier.subresourceRange.levelCount > 0 );
 					ASSERT( barrier.subresourceRange.layerCount > 0 );

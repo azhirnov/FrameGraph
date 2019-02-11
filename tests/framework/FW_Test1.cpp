@@ -75,7 +75,6 @@ public:
 			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_0, {}, {} ));
 		
 			// this is a test and the test should fail for any validation error
-			//vulkan.CreateDebugReportCallback( DebugReportFlags_All,
 			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
 											[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
 		}

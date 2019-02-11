@@ -36,7 +36,7 @@ namespace {
 */
 	bool VLogicalRenderPass::Create (VResourceManagerThread &resMngr, const RenderPassDesc &desc)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		const bool	enable_sri	= desc.shadingRate.image.IsValid();
 
@@ -224,7 +224,7 @@ namespace {
 */
 	void VLogicalRenderPass::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		for (auto& task : _drawTasks)
 		{

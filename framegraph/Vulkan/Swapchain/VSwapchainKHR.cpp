@@ -162,7 +162,7 @@ namespace FG
 
 		VkResult	err;
 		{
-			SCOPELOCK( _presentQueue->lock );
+			EXLOCK( _presentQueue->lock );
 			err = _GetDevice().vkQueuePresentKHR( _presentQueue->handle, &present_info );
 		}
 

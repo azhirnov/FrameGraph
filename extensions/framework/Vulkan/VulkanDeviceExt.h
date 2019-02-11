@@ -29,7 +29,16 @@ namespace FG
 			bool						isError		= false;
 		};
 
+		struct HeapInfo
+		{
+			VkMemoryHeapFlags	flags	= 0;
+			BytesU				budget;
+			BytesU				used;
+			BytesU				total;
+		};
+
 		using DebugReport_t = std::function< void (const DebugReport &) >;
+		using HeapInfos_t	= FixedArray< HeapInfo, VK_MAX_MEMORY_HEAPS >;
 
 
 	// variables
@@ -38,6 +47,7 @@ namespace FG
 		VkDebugUtilsMessengerEXT	_debugUtilsMessenger	= VK_NULL_HANDLE;
 
 		DebugReport_t				_callback;
+		mutable HeapInfos_t			_heapInfos;
 
 		HashSet<String>				_instanceExtensions;
 		HashSet<String>				_deviceExtensions;
@@ -45,6 +55,7 @@ namespace FG
 		bool						_debugReportSupported	= false;
 		bool						_debugUtilsSupported	= false;
 		bool						_debugMarkersSupported	= false;
+		bool						_memoryBudgetSupported	= false;
 
 		bool						_breakOnValidationError	= true;
 		
@@ -75,14 +86,15 @@ namespace FG
 		
 		bool GetMemoryTypeIndex (uint memoryTypeBits, VkMemoryPropertyFlags flags, OUT uint &memoryTypeIndex) const;
 		bool CompareMemoryTypes (uint memoryTypeBits, VkMemoryPropertyFlags flags, uint memoryTypeIndex) const;
-		
+
 		bool SetObjectName (uint64_t id, StringView name, VkObjectType type) const;
 
 		void SetBreakOnValidationError (bool value);
 
 		ND_ bool HasInstanceExtension (const String &name)	const	{ return !!_instanceExtensions.count( name ); }
 		ND_ bool HasDeviceExtension (const String &name)	const	{ return !!_deviceExtensions.count( name ); }
-
+		
+		ND_ ArrayView<HeapInfo>									GetMemoryUsage ()						const;
 		ND_ VkPhysicalDeviceProperties const&					GetDeviceProperties ()					const	{ return _properties.main; }
 		ND_ VkPhysicalDeviceMemoryProperties const&				GetDeviceMemoryProperties ()			const	{ return _deviceMemoryProperties; }
 		ND_ VkPhysicalDeviceIDProperties const&					GetDeviceIDProperties ()				const	{ return _properties.deviceID; }

@@ -88,7 +88,6 @@ namespace FG
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetAllDeviceExtensions()
 									));
-			//vulkan.CreateDebugReportCallback( DebugReportFlags_All );
 			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 		}
 

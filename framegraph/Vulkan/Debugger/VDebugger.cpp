@@ -76,7 +76,7 @@ namespace FG
 		if ( iter != _batches.end() )
 		{
 			auto&	sub_batch = iter->second.subBatches[indexInBatch];
-			SCOPELOCK( sub_batch.rcCheck );
+			EXLOCK( sub_batch.rcCheck );
 
 			ASSERT( sub_batch.dump.empty() );
 			ASSERT( sub_batch.graph.body.empty() );
@@ -102,7 +102,7 @@ namespace FG
 			for (uint i = 0; i < batch.second.threadCount; ++i)
 			{
 				auto&	sub_batch = batch.second.subBatches[i];
-				SCOPELOCK( sub_batch.rcCheck );
+				EXLOCK( sub_batch.rcCheck );
 
 				str << sub_batch.dump;
 			}
@@ -154,7 +154,7 @@ namespace FG
 			for (uint i = 0; i < batch.second.threadCount; ++i)
 			{
 				auto&	sub_batch = batch.second.subBatches[i];
-				SCOPELOCK( sub_batch.rcCheck );
+				EXLOCK( sub_batch.rcCheck );
 
 				str << sub_batch.graph.body;
 			}

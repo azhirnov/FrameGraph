@@ -51,7 +51,7 @@ namespace FG
 		
 	bool VRenderPass::_Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( logicalPasses.size() == 1 );		// not supported yet
 		CHECK_ERR( logicalPasses.front()->GetColorTargets().size() == fragOutput.size() );
 
@@ -254,7 +254,7 @@ namespace FG
 */
 	bool VRenderPass::Create (const VDevice &dev, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _renderPass == VK_NULL_HANDLE );
 
 		VK_CHECK( dev.vkCreateRenderPass( dev.GetVkDevice(), &_createInfo, null, OUT &_renderPass ) );
@@ -270,7 +270,7 @@ namespace FG
 */
 	void VRenderPass::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( _renderPass ) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_RENDER_PASS, uint64_t(_renderPass) );

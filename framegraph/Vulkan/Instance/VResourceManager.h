@@ -32,14 +32,15 @@ namespace FG
 
 	// types
 	private:
-		using Index_t		= uint;
-		using Lock_t		= std::mutex;
+		using Index_t			= uint;
+		using AssignOpGuard_t	= std::mutex;
+		using CacheGuard_t		= std::shared_mutex;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
-		using PoolTmpl		= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, Lock_t, AtomicPtr >;
+		using PoolTmpl		= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, AtomicPtr >;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
-		using CachedPoolTmpl = CachedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, Lock_t, AtomicPtr >;
+		using CachedPoolTmpl = CachedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, CacheGuard_t, AtomicPtr >;
 
 		template <typename T, size_t MaxSize, template <typename, size_t, size_t> class PoolT>
 		using PoolHelper	= PoolT< ResourceBase<T>, MaxSize/16, 16 >;
@@ -294,7 +295,7 @@ namespace FG
 	template <typename DataT, size_t CS, size_t MC, typename ID>
 	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		if ( id.Index() >= pool.size() )
 			return;
@@ -319,7 +320,7 @@ namespace FG
 	template <typename DataT, size_t CS, size_t MC, typename ID>
 	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		if ( id.Index() >= pool.size() )
 			return;
@@ -348,7 +349,7 @@ namespace FG
 	template <typename ID>
 	inline bool  VResourceManager::_AddToResourceCache (const ID &id)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		auto&	pool = _GetResourcePool( id );
 

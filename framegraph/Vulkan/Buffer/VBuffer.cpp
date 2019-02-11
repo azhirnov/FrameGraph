@@ -28,7 +28,7 @@ namespace FG
 	bool VBuffer::Create (const VDevice &dev, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 						  EQueueFamilyMask queueFamilyMask, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( not desc.isExternal );
@@ -91,7 +91,7 @@ namespace FG
 */
 	bool VBuffer::Create (const VDevice &dev, const VulkanBufferDesc &desc, StringView dbgName, OnRelease_t &&onRelease)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
 
 		_buffer				= BitCast<VkBuffer>( desc.buffer );
@@ -126,7 +126,7 @@ namespace FG
 */
 	void VBuffer::Destroy (AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( _desc.isExternal and _onRelease ) {
 			_onRelease( BitCast<BufferVk_t>(_buffer) );

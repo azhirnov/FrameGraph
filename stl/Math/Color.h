@@ -145,7 +145,7 @@ namespace FG
 	
 /*
 =================================================
-	constructor
+	RGBA32f
 =================================================
 */
 	template <>
@@ -159,7 +159,19 @@ namespace FG
 		b = c.v * Lerp(K.x, Clamp(p.z - K.x, 0.0f, 1.0f), c.s);
 		a = alpha;
 	}
+
+	template <> template <>
+	inline constexpr RGBAColor<float>::RGBAColor (const RGBAColor<uint8_t> &other) :
+		r{ float(other.r) / 255.0f }, g{ float(other.g) / 255.0f },
+		b{ float(other.b) / 255.0f }, a{ float(other.a) / 255.0f }
+	{}
 	
+	template <> template <>
+	inline constexpr RGBAColor<float>::RGBAColor (const RGBAColor<uint> &other) :
+		r{ float(other.r) / 0xFFFFFFFFu }, g{ float(other.g) / 0xFFFFFFFFu },
+		b{ float(other.b) / 0xFFFFFFFFu }, a{ float(other.a) / 0xFFFFFFFFu }
+	{}
+
 /*
 =================================================
 	RGBA32i

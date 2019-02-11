@@ -56,7 +56,8 @@ namespace FG
 			_deviceExtensions.insert( ext );
 		}
 
-		_debugMarkersSupported = HasDeviceExtension( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
+		_debugMarkersSupported	= HasDeviceExtension( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
+		_memoryBudgetSupported	= HasDeviceExtension( VK_EXT_MEMORY_BUDGET_EXTENSION_NAME );
 
 		vkGetPhysicalDeviceProperties( GetVkPhysicalDevice(), OUT &_properties.main );
 		vkGetPhysicalDeviceMemoryProperties( GetVkPhysicalDevice(), OUT &_deviceMemoryProperties );
@@ -454,6 +455,38 @@ namespace FG
 		return false;
 	}
 	
+/*
+=================================================
+	GetMemoryUsage
+=================================================
+*/
+	ArrayView<VulkanDeviceExt::HeapInfo>  VulkanDeviceExt::GetMemoryUsage () const
+	{
+		if ( not _memoryBudgetSupported )
+			return {};
+
+		VkPhysicalDeviceMemoryProperties2			props		= {};
+		VkPhysicalDeviceMemoryBudgetPropertiesEXT	mem_budget	= {};
+
+		props.sType			= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+		props.pNext			= &mem_budget;
+		mem_budget.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+
+		vkGetPhysicalDeviceMemoryProperties2( GetVkPhysicalDevice(), OUT &props );
+
+		_heapInfos.resize( props.memoryProperties.memoryHeapCount );
+
+		for (size_t i = 0; i < _heapInfos.size(); ++i)
+		{
+			_heapInfos[i].flags		= props.memoryProperties.memoryHeaps[i].flags;
+			_heapInfos[i].total		= BytesU{props.memoryProperties.memoryHeaps[i].size};
+			_heapInfos[i].budget	= BytesU{mem_budget.heapBudget[i]};
+			_heapInfos[i].used		= BytesU{mem_budget.heapUsage[i]};
+		}
+
+		return _heapInfos;
+	}
+
 /*
 =================================================
 	SetObjectName

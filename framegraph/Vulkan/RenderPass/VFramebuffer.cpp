@@ -88,7 +88,7 @@ namespace FG
 */
 	VFramebuffer::VFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( not attachments.empty() );
 
 		_attachments	= attachments;
@@ -110,7 +110,7 @@ namespace FG
 */
 	bool VFramebuffer::Create (VResourceManagerThread &resMngr, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( not _framebuffer );
 		CHECK_ERR( _renderPassId );
 
@@ -149,7 +149,7 @@ namespace FG
 */
 	void VFramebuffer::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( _framebuffer ) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_FRAMEBUFFER, uint64_t(_framebuffer) );

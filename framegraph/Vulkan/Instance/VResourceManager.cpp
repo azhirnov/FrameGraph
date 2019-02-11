@@ -25,8 +25,9 @@ namespace FG
 */
 	VResourceManager::~VResourceManager ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( _perFrame.empty() );
+		//ASSERT( _unassignIDs.empty() );
 	}
 	
 /*
@@ -36,7 +37,7 @@ namespace FG
 */
 	bool VResourceManager::Initialize (uint ringBufferSize)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _perFrame.empty() );
 
 		_perFrame.resize( ringBufferSize );
@@ -59,7 +60,7 @@ namespace FG
 */
 	void VResourceManager::Deinitialize ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_UnassignResource( _GetResourcePool(_emptyDSLayout), _emptyDSLayout, true );
 
@@ -83,7 +84,7 @@ namespace FG
 */
 	void VResourceManager::OnBeginFrame (uint frameId)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_frameId	= frameId;
 		_currTime	= uint(std::chrono::duration_cast< std::chrono::seconds >( TimePoint_t::clock::now() - _startTime ).count());
@@ -101,7 +102,7 @@ namespace FG
 */
 	void VResourceManager::OnEndFrame ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_UnassignResourceIDs();
 		_DestroyValidationTasks();

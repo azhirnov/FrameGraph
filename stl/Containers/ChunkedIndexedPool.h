@@ -21,7 +21,7 @@ namespace FG
 			  size_t ChunkSize,
 			  size_t MaxChunks = 16,
 			  typename AllocatorType = UntypedAlignedAllocator,
-			  typename AssignOpLock = DummyLock,
+			  typename AssignOpGuard = DummyLock,
 			  template <typename T> class AtomicChunkPtr = NonAtomicPtr
 			 >
 	struct ChunkedIndexedPool final
@@ -31,7 +31,7 @@ namespace FG
 
 	// types
 	public:
-		using Self			= ChunkedIndexedPool< ValueType, IndexType, ChunkSize, MaxChunks, AllocatorType, AssignOpLock, AtomicChunkPtr >;
+		using Self			= ChunkedIndexedPool< ValueType, IndexType, ChunkSize, MaxChunks, AllocatorType, AssignOpGuard, AtomicChunkPtr >;
 		using Index_t		= IndexType;
 		using Value_t		= ValueType;
 		using Allocator_t	= AllocatorType;
@@ -52,7 +52,7 @@ namespace FG
 
 	// variables
 	private:
-		mutable AssignOpLock	_assignOpLock;
+		mutable AssignOpGuard	_assignOpGuard;
 		IndexCountArray_t		_indexCount;
 		IndexChunks_t			_indices;
 		ValueChunks_t			_values;
@@ -89,7 +89,7 @@ namespace FG
 		
 		void Release ()
 		{
-			SCOPELOCK( _assignOpLock );
+			EXLOCK( _assignOpGuard );
 
 			_indexCount.clear();
 
@@ -110,7 +110,7 @@ namespace FG
 
 		void Swap (Self &other)
 		{
-			// TODO: swap _assignOpLock ?
+			// TODO: swap _assignOpGuard ?
 			CHECK( _alloc == other._alloc );
 			std::swap( _indexCount,	other._indexCount );
 			std::swap( _indices,	other._indices );
@@ -121,7 +121,7 @@ namespace FG
 		template <typename ArrayType>
 		ND_ size_t  Assign (size_t numIndices, INOUT ArrayType &arr)
 		{
-			SCOPELOCK( _assignOpLock );
+			EXLOCK( _assignOpGuard );
 
 			numIndices = Min( numIndices, arr.capacity() - arr.size(), ChunkSize );
 			ASSERT( numIndices > 0 );
@@ -170,7 +170,7 @@ namespace FG
 
 		ND_ bool  Assign (OUT Index_t &index)
 		{
-			SCOPELOCK( _assignOpLock );
+			EXLOCK( _assignOpGuard );
 
 			for (size_t i = 0, count = _indexCount.size(); i < count; ++i)
 			{
@@ -201,7 +201,7 @@ namespace FG
 		template <typename ArrayType>
 		void  Unassign (size_t count, INOUT ArrayType &arr)
 		{
-			SCOPELOCK( _assignOpLock );
+			EXLOCK( _assignOpGuard );
 
 			count = Min( count, arr.size() );
 
@@ -217,7 +217,7 @@ namespace FG
 
 		void  Unassign (Index_t index)
 		{
-			SCOPELOCK( _assignOpLock );
+			EXLOCK( _assignOpGuard );
 			return _Unassign( index );
 		}
 
@@ -250,7 +250,7 @@ namespace FG
 
 		ND_ size_t  size () const
 		{
-			SCOPELOCK( _assignOpLock );
+			EXLOCK( _assignOpGuard );
 			return _indexCount.size() * ChunkSize;
 		}
 
@@ -261,7 +261,7 @@ namespace FG
 
 		ND_ bool  empty () const
 		{
-			SCOPELOCK( _assignOpLock );
+			EXLOCK( _assignOpGuard );
 
 			for (auto cnt : _indexCount)
 			{
@@ -274,7 +274,7 @@ namespace FG
 
 		ND_ BytesU  DynamicSize () const
 		{
-			SCOPELOCK( _assignOpLock );
+			EXLOCK( _assignOpGuard );
 			BytesU	sz { sizeof(*this) };
 
 			for (auto& idx : _indices) {
@@ -290,7 +290,7 @@ namespace FG
 	private:
 		void _CreateChunk (size_t chunkIndex)
 		{
-			// '_indices' must be protected by '_assignOpLock'
+			// '_indices' must be protected by '_assignOpGuard'
 
 			auto*	idx_chunk = Cast<IndexChunk>(_alloc.Allocate( SizeOf<IndexChunk>, AlignOf<IndexChunk> ));
 			_indices[ chunkIndex ] = idx_chunk;
@@ -303,8 +303,8 @@ namespace FG
 				(*idx_chunk)[i] = RawIndex_t(idx);
 			}
 		
-			// '_alloc' must be protected by '_assignOpLock'
-			// '_values' chunk allocation protected by '_assignOpLock',
+			// '_alloc' must be protected by '_assignOpGuard'
+			// '_values' chunk allocation protected by '_assignOpGuard',
 			// but '_values' reading is not protected, so we need to use atomic store operation
 			ASSERT( _values[ chunkIndex ].Load() == null );
 

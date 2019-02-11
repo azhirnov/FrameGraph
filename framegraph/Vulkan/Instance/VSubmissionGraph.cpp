@@ -289,7 +289,7 @@ namespace {
 *
 	bool VSubmissionGraph::_AddSharedSemaphore (VkSemaphore sem, OUT uint &index) const
 	{
-		SCOPELOCK( _sharedSemaphores.lock );	// TODO: lock-free
+		EXLOCK( _sharedSemaphores.lock );	// TODO: lock-free
 
 		auto	inserted = _sharedSemaphores.map.insert({ sem, UMax });
 		if ( not inserted.second )
@@ -310,7 +310,7 @@ namespace {
 *
 	bool VSubmissionGraph::_RemoveSharedSemaphore (uint index, OUT VkSemaphore &sem) const
 	{
-		SCOPELOCK( _sharedSemaphores.lock );
+		EXLOCK( _sharedSemaphores.lock );
 
 		auto&	item = *(_sharedSemaphores.map.begin() + index);
 
@@ -525,7 +525,7 @@ namespace {
 
 			QueuePtr	queue = batch.atomics.queue.load( memory_order_relaxed );
 
-			SCOPELOCK( queue->lock );
+			EXLOCK( queue->lock );
 			VK_CALL( _device.vkQueueSubmit( queue->handle, 1, &info, OUT batch.waitFence ));
 		}
 		

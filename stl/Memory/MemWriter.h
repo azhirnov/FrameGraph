@@ -1,0 +1,91 @@
+// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+
+#pragma once
+
+#include "stl/Math/Bytes.h"
+#include "stl/Math/Math.h"
+
+namespace FG
+{
+
+	//
+	// Memory Writer
+	//
+
+	struct MemWriter
+	{
+	// variables
+	private:
+		void *		_ptr	= null;
+		size_t		_offset	= 0;
+		BytesU		_size;
+
+
+	// methods
+	public:
+		MemWriter () {}
+		MemWriter (void *ptr, BytesU size) : _ptr{ptr}, _size{size} {}
+
+
+		ND_ void*  Reserve (BytesU size, BytesU align)
+		{
+			ASSERT( _ptr );
+			size_t	result = AlignToLarger( size_t(_ptr) + _offset, size_t(align) );
+
+			_offset = (result - size_t(_ptr)) + size_t(size);
+			ASSERT( _offset <= _size );
+
+			return BitCast<void *>( result );
+		}
+
+
+		template <typename T>
+		ND_ T&  Reserve ()
+		{
+			return *Cast<T>( Reserve( SizeOf<T>, AlignOf<T> ));
+		}
+
+		template <typename T, typename ...Args>
+		ND_ T&  Emplace (Args&& ...args)
+		{
+			return *new(&Reserve<T>()) T{ std::forward<Args&&>( args )...};
+		}
+
+		template <typename T, typename ...Args>
+		T&  EmplaceSized (BytesU size, Args&& ...args)
+		{
+			ASSERT( size >= SizeOf<T> );
+			return *new(Reserve( size, AlignOf<T> )) T{ std::forward<Args&&>( args )...};
+		}
+
+
+		template <typename T>
+		ND_ T*  ReserveArray (size_t count)
+		{
+			return count ? Cast<T>( Reserve( SizeOf<T> * count, AlignOf<T> )) : null;
+		}
+
+		template <typename T, typename ...Args>
+		ND_ T*  EmplaceArray (size_t count, Args&& ...args)
+		{
+			T*	result = ReserveArray<T>( count );
+
+			for (size_t i = 0; i < count; ++i) {
+				new(result + i) T{ std::forward<Args&&>( args )...};
+			}
+			return result;
+		}
+
+
+		void Clear ()
+		{
+			ASSERT( _ptr );
+			memset( _ptr, 0, size_t(_size) );
+		}
+
+
+		ND_ BytesU  Offset ()	const	{ return BytesU{_offset}; }
+	};
+
+
+}	// FG

@@ -112,7 +112,7 @@ namespace FG
 		template <typename DrawTaskType, typename ...Args>
 		bool AddTask (Args&& ...args)
 		{
-			SCOPELOCK( _rcCheck );
+			EXLOCK( _rcCheck );
 			auto*	ptr = _allocator->Alloc<DrawTaskType>();
 			_drawTasks.push_back( PlacementNew<DrawTaskType>( ptr, this, std::forward<Args&&>(args)... ));
 			return true;
@@ -121,7 +121,7 @@ namespace FG
 
 		bool Submit ()
 		{
-			SCOPELOCK( _rcCheck );
+			EXLOCK( _rcCheck );
 			CHECK_ERR( not _isSubmited );
 			//ASSERT( _drawTasks.size() );
 

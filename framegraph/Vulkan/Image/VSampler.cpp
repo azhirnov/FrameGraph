@@ -24,7 +24,7 @@ namespace FG
 */
 	VSampler::VSampler (const VDevice &dev, const SamplerDesc &desc)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_createInfo = {};
 		_createInfo.sType					= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -187,7 +187,7 @@ namespace FG
 */
 	bool VSampler::Create (const VDevice &dev, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _sampler == VK_NULL_HANDLE );
 
 		VK_CHECK( dev.vkCreateSampler( dev.GetVkDevice(), &_createInfo, null, OUT &_sampler ));
@@ -204,7 +204,7 @@ namespace FG
 */
 	void VSampler::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( _sampler ) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_SAMPLER, uint64_t(_sampler) );

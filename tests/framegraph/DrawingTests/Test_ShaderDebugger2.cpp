@@ -7,6 +7,9 @@ namespace FG
 
 	bool FGApp::Test_ShaderDebugger2 ()
 	{
+		if ( not FG_EnableShaderDebugging )
+			return true;
+
 		GraphicsPipelineDesc	ppln;
 
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace, "main", R"#(

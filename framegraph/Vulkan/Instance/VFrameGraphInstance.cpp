@@ -18,7 +18,7 @@ namespace FG
 		_defaultCompilationFlags{ Default },
 		_defaultDebugFlags{ Default }
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		_threads.reserve( 32 );
 	}
 	
@@ -29,7 +29,7 @@ namespace FG
 */
 	VFrameGraphInstance::~VFrameGraphInstance ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		ASSERT( not _IsInitialized() );
 		CHECK( _GetState() == EState::Destroyed );
 		CHECK( _threads.empty() );
@@ -42,7 +42,7 @@ namespace FG
 */
 	FGThreadPtr  VFrameGraphInstance::CreateThread (const ThreadDesc &desc)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsInitialized() );
 
 		EThreadUsage	usage = desc.usage;
@@ -63,7 +63,7 @@ namespace FG
 
 		thread->SetCompilationFlags( _defaultCompilationFlags, _defaultDebugFlags );
 
-		SCOPELOCK( _threadLock );
+		EXLOCK( _threadLock );
 		_threads.push_back( thread );
 
 		return thread;
@@ -86,7 +86,7 @@ namespace FG
 */
 	bool  VFrameGraphInstance::Initialize (uint ringBufferSize)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( not _IsInitialized() );
 
 		_ringBufferSize	= ringBufferSize;
@@ -106,12 +106,12 @@ namespace FG
 */
 	void  VFrameGraphInstance::Deinitialize ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK( _IsInitialized() );
 		
 		// checks if all threads was destroyed
 		{
-			SCOPELOCK( _threadLock );
+			EXLOCK( _threadLock );
 			for (auto iter = _threads.begin(); iter != _threads.end(); ++iter)
 			{
 				auto	thread = iter->lock();
@@ -136,13 +136,13 @@ namespace FG
 */
 	bool  VFrameGraphInstance::AddPipelineCompiler (const IPipelineCompilerPtr &comp)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _GetState() == EState::Idle );
 
 		if ( not _pplnCompilers.insert( comp ).second )
 			return true;
 		
-		SCOPELOCK( _threadLock );
+		EXLOCK( _threadLock );
 		for (auto iter = _threads.begin(); iter != _threads.end(); ++iter)
 		{
 			auto	thread = iter->lock();
@@ -161,7 +161,7 @@ namespace FG
 */
 	void  VFrameGraphInstance::SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		_defaultCompilationFlags	= flags;
 		_defaultDebugFlags			= debugFlags;
@@ -174,7 +174,7 @@ namespace FG
 */
 	bool  VFrameGraphInstance::BeginFrame (const SubmissionGraph &graph)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Idle, EState::Begin ));
 
 		_frameId	= (_frameId + 1) % _ringBufferSize;
@@ -185,7 +185,7 @@ namespace FG
 
 		// begin thread execution
 		{
-			SCOPELOCK( _threadLock );
+			EXLOCK( _threadLock );
 			for (auto iter = _threads.begin(); iter != _threads.end();)
 			{
 				auto	thread = iter->lock();
@@ -267,14 +267,14 @@ namespace FG
 */
 	bool  VFrameGraphInstance::EndFrame ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::RunThreads, EState::End ));
 
 		CHECK_ERR( _submissionGraph.IsAllBatchesSubmitted() );
 
 		// complete thread execution
 		{
-			SCOPELOCK( _threadLock );
+			EXLOCK( _threadLock );
 			for (auto iter = _threads.begin(); iter != _threads.end();)
 			{
 				auto	thread = iter->lock();
@@ -303,7 +303,7 @@ namespace FG
 */
 	bool  VFrameGraphInstance::WaitIdle ()
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _GetState() == EState::Idle );
 
 		return _WaitIdle();
@@ -311,7 +311,7 @@ namespace FG
 
 	bool  VFrameGraphInstance::_WaitIdle ()
 	{
-		SCOPELOCK( _threadLock );
+		EXLOCK( _threadLock );
 
 		for (uint i = 0; i < _ringBufferSize; ++i)
 		{
