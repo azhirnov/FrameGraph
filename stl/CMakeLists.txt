@@ -49,6 +49,7 @@ set( SOURCES
 	"Log/TimeProfiler.h"
 	"Memory/LinearAllocator.h"
 	"Memory/MemUtils.h"
+	"Memory/MemWriter.h"
 	"Memory/UntypedAllocator.h"
 	"CMakeLists.txt"
 	"Common.h"
@@ -77,7 +78,7 @@ source_group( "Math" FILES "Math/BitMath.h" "Math/Bytes.h" "Math/Color.h" "Math/
 source_group( "Containers" FILES "Containers/Appendable.h" "Containers/ArrayView.h" "Containers/BitTree.h" "Containers/CachedIndexedPool.h" "Containers/ChunkedIndexedPool.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/InPlace.h" "Containers/Iterators.h" "Containers/Optional.h" "Containers/Ptr.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/StringView.h" "Containers/StringViewFwd.h" "Containers/StructView.h" "Containers/Union.h" "Containers/UntypedStorage.h" )
 source_group( "Algorithms" FILES "Algorithms/ArrayUtils.h" "Algorithms/Cast.h" "Algorithms/EnumUtils.h" "Algorithms/Hash.h" "Algorithms/StringParser.cpp" "Algorithms/StringParser.h" "Algorithms/StringUtils.h" )
 source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/TimeProfiler.h" )
-source_group( "Memory" FILES "Memory/LinearAllocator.h" "Memory/MemUtils.h" "Memory/UntypedAllocator.h" )
+source_group( "Memory" FILES "Memory/LinearAllocator.h" "Memory/MemUtils.h" "Memory/MemWriter.h" "Memory/UntypedAllocator.h" )
 source_group( "" FILES "CMakeLists.txt" "Common.h" "Config.h" "Defines.h" )
 source_group( "ThreadSafe" FILES "ThreadSafe/AtomicCounter.h" "ThreadSafe/AtomicPtr.h" "ThreadSafe/Barrier.cpp" "ThreadSafe/Barrier.h" "ThreadSafe/DummyLock.h" "ThreadSafe/LfDoubleBuffer.h" "ThreadSafe/LfFixedList.h" "ThreadSafe/LfFixedStack.h" "ThreadSafe/RaceConditionCheck.h" "ThreadSafe/SpinLock.h" )
 source_group( "Stream" FILES "Stream/BufferedStream.h" "Stream/FileStream.cpp" "Stream/FileStream.h" "Stream/MemStream.h" "Stream/Stream.cpp" "Stream/Stream.h" )

@@ -38,7 +38,7 @@ set( FG_ENABLE_GLM ON CACHE BOOL "use glm (optional, required for Scene extensio
 set( FG_ENABLE_DEVIL OFF CACHE BOOL "use DevIL (optional, required for Scene extension)" )
 set( FG_ENABLE_FREEIMAGE OFF CACHE BOOL "use FreeImage (optional, required for Scene extension)" )
 
-set( CMAKE_DEBUG_POSTFIX "" )
+set( CMAKE_DEBUG_POSTFIX "d" )
 set( CMAKE_RELEASE_POSTFIX "" )
 set( CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "installation directory" )
 set( MAIN_BINARY_DIR "${CMAKE_BINARY_DIR}/bin" CACHE INTERNAL "" FORCE )

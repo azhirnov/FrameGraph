@@ -5,7 +5,7 @@ if (${FG_ENABLE_LODEPNG})
 	
 	# reset to default
 	if (NOT EXISTS ${FG_EXTERNAL_LODEPNG_PATH})
-		message( STATUS "lodepng is not found in ${FG_EXTERNAL_LODEPNG_PATH}" )
+		message( STATUS "lodepng is not found in \"${FG_EXTERNAL_LODEPNG_PATH}\"" )
 		set( FG_EXTERNAL_LODEPNG_PATH "${FG_EXTERNALS_PATH}/lodepng" CACHE PATH "" FORCE )
 	endif ()
 	

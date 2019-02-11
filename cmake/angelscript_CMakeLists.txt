@@ -1,0 +1,30 @@
+cmake_minimum_required (VERSION 3.6.0)
+
+project( "AngelScript_Dependencies" LANGUAGES CXX )
+set_property( GLOBAL PROPERTY USE_FOLDERS ON )
+
+#----------------------------------------------------------------------------------
+# settings
+
+set( SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" )
+
+
+#----------------------------------------------------------------------------------
+# dependent projects
+
+add_definitions( -DAS_USE_NAMESPACE )
+
+add_subdirectory( "${SOURCE_PATH}/angelscript/projects/cmake" "angelscript" )
+
+add_library( "angelscript_addons" STATIC
+	"${SOURCE_PATH}/add_on/scriptstdstring/scriptstdstring.cpp"
+	"${SOURCE_PATH}/add_on/scriptstdstring/scriptstdstring.h"
+	"${SOURCE_PATH}/add_on/scriptstdstring/scriptstdstring_utils.cpp"
+)
+
+target_include_directories( "angelscript_addons" PRIVATE "${SOURCE_PATH}/angelscript/include" )
+
+target_link_libraries( "angelscript_addons" PUBLIC "angelscript" )
+
+install( TARGETS "angelscript_addons" LIBRARY DESTINATION "lib" ARCHIVE DESTINATION "lib" )
+install( DIRECTORY "${SOURCE_PATH}/add_on/scriptstdstring/" DESTINATION "include" FILES_MATCHING PATTERN "*.h" )

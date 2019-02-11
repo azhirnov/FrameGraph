@@ -5,7 +5,7 @@ if (${FG_ENABLE_SDL2})
 	
 	# reset to default
 	if (NOT EXISTS ${FG_EXTERNAL_SDL2_PATH})
-		message( STATUS "SDL2 is not found in ${FG_EXTERNAL_SDL2_PATH}" )
+		message( STATUS "SDL2 is not found in \"${FG_EXTERNAL_SDL2_PATH}\"" )
 		set( FG_EXTERNAL_SDL2_PATH "${FG_EXTERNALS_PATH}/SDL2" CACHE PATH "" FORCE )
 	endif ()
 	

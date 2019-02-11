@@ -5,7 +5,7 @@ if (${FG_ENABLE_STDALLOC})
 	
 	# reset to default
 	if (NOT EXISTS ${FG_EXTERNAL_STDALLOC_PATH})
-		message( STATUS "foonathan_memory is not found in ${FG_EXTERNAL_STDALLOC_PATH}" )
+		message( STATUS "foonathan_memory is not found in \"${FG_EXTERNAL_STDALLOC_PATH}\"" )
 		set( FG_EXTERNAL_STDALLOC_PATH "${FG_EXTERNALS_PATH}/foonathan_memory" CACHE PATH "" FORCE )
 	endif ()
 	
