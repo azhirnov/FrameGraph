@@ -39,7 +39,7 @@ namespace FG
 	void SimpleRayTracingScene::Destroy (const FGThreadPtr &fg)
 	{
 		fg->ReleaseResource( _rtScene );
-		fg->ReleaseResource( _sbtBuffer );
+		fg->ReleaseResource( _shaderTable );
 		fg->ReleaseResource( _attribsBuffer );
 		fg->ReleaseResource( _primitivesBuffer );
 	}
@@ -245,20 +245,21 @@ namespace FG
 */
 	bool SimpleRayTracingScene::_UpdateShaderTable (const FGThreadPtr &fg, const RenderTechniquePtr &renTech)
 	{
-		if ( not _sbtBuffer )
+		if ( not _shaderTable )
 		{
-			_sbtBuffer = fg->CreateBuffer( BufferDesc{ 4_Kb, EBufferUsage::Transfer | EBufferUsage::RayTracing }, Default, "ShaderTable" );
-			CHECK_ERR( _sbtBuffer );
+			_shaderTable = fg->CreateRayTracingShaderTable();
+			CHECK_ERR( _shaderTable );
 		}
 
-		UpdateRayTracingShaderTable  update_st{ OUT _shaderTable };
+		UpdateRayTracingShaderTable  update_st;
 		update_st.SetScene( _rtScene );
-		update_st.SetBuffer( _sbtBuffer );
-		update_st.SetRayGenShader( RTShaderGroupID{"Main"} );
-		update_st.AddMissShader( RTShaderGroupID{"PrimaryMiss"} );
-		update_st.AddMissShader( RTShaderGroupID{"ShadowMiss"} );
-		update_st.AddHitShader( InstanceID{"0"}, GeometryID{"Scene"}, RTShaderGroupID{"TrianglePrimaryHit"}, 0 );
-		update_st.AddHitShader( InstanceID{"0"}, GeometryID{"Scene"}, RTShaderGroupID{"TriangleShadowHit"},  1 );
+		update_st.SetTarget( _shaderTable );
+		update_st.SetMaxRecursionDepth( 1 );
+		update_st.SetRayGenShader( RTShaderID{"Main"} );
+		update_st.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 );
+		update_st.AddMissShader( RTShaderID{"ShadowMiss"}, 1 );
+		update_st.AddHitShader( InstanceID{"0"}, GeometryID{"Scene"}, 0, RTShaderID{"PrimaryHit"} );
+		update_st.AddHitShader( InstanceID{"0"}, GeometryID{"Scene"}, 1, RTShaderID{"ShadowHit"} );
 
 		IRenderTechnique::PipelineInfo	info;
 		info.layer	= ERenderLayer::RayTracing;

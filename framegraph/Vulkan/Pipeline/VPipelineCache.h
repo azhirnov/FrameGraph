@@ -79,6 +79,14 @@ namespace FG
 		};
 		using RTShaderGroupMap_t		= std::unordered_map< RTShaderGroup const*, uint, RTShaderGroupHash, RTShaderGroupEqual >;
 
+		struct RTShaderSpec
+		{
+			SpecializationID	id;
+			uint				offset	= UMax;
+		};
+		using RTShaderSpecializations_t	= FixedArray< RTShaderSpec, 32 >;
+
+
 	public:
 		struct BufferCopyRegion
 		{
@@ -110,6 +118,7 @@ namespace FG
 		SpecializationData_t		_tempSpecData;
 		RTShaderGroups_t			_tempShaderGroups;
 		RTShaderGroupMap_t			_tempShaderGraphMap;
+		RTShaderSpecializations_t	_rtShaderSpecs;
 
 
 	// methods
@@ -159,6 +168,7 @@ namespace FG
 							  VLocalRTScene const*			rtScene,
 							  const RayGenShader			&rayGenShader,
 							  ArrayView< RTShaderGroup >	 shaderGroups,
+							  uint							 maxRecursionDepth,
 							  INOUT VRayTracingShaderTable	&shaderTable,
 							  OUT BufferCopyRegions_t		&copyRegions);
 
@@ -230,6 +240,12 @@ namespace FG
 											   INOUT SpecializationData_t &outEntryData,
 											   const uint3 &localSizeSpec,
 											   const uint3 &localGroupSize) const;
+		
+		bool _InitShaderStage (const VRayTracingPipeline *ppln, const RTShaderID &id, EShaderDebugMode mode,
+							   OUT VkPipelineShaderStageCreateInfo &stage);
+		
+		bool _GetShaderGroup (const VRayTracingPipeline *ppln, const RTShaderGroup &group, EShaderDebugMode mode,
+								OUT VkRayTracingShaderGroupCreateInfoNV &group_ci);
 
 		void _ValidateRenderState (const VDevice &dev, INOUT RenderState &renderState, INOUT EPipelineDynamicState &dynamicStates) const;
 	};

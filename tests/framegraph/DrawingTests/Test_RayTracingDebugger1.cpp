@@ -7,7 +7,7 @@ namespace FG
 
 	bool FGApp::Test_RayTracingDebugger1 ()
 	{
-		if ( not _vulkan.HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME ) )
+		if ( not _vulkan.HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME ) or not FG_EnableShaderDebugging )
 			return true;
 
 		RayTracingPipelineDesc	ppln;
@@ -184,8 +184,8 @@ no source
 		Task	t_update_table	= frame_graph->AddTask( UpdateRayTracingShaderTable{}
 															.SetTarget( rt_shaders ).SetPipeline( pipeline ).SetScene( rt_scene )
 															.SetRayGenShader( RTShaderID{"Main"} )
-															.AddMissShader( RTShaderID{"PrimaryMiss"} )
-															.AddTriangleHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
+															.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 )
+															.AddHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
 															.DependsOn( t_build_scene ));
 
 		Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources )

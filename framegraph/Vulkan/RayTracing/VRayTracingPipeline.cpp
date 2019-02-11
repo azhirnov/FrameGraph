@@ -25,7 +25,7 @@ namespace FG
 */
 	bool VRayTracingPipeline::Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		
 		_shaders.reserve( desc._shaders.size() * 2 );
 
@@ -38,16 +38,14 @@ namespace FG
 				auto*	vk_shader = UnionGetIf< PipelineDescription::VkShaderPtr >( &sh.second );
 				CHECK_ERR( vk_shader );
 
-				_shaders.push_back(ShaderModule{ stage.first, vk_stage, *vk_shader, EShaderDebugMode_From(sh.first) });
+				_shaders.push_back(ShaderModule{ stage.first, vk_stage, *vk_shader, EShaderDebugMode_From(sh.first), stage.second.specConstants });
 			}
 		}
 
 		std::sort( _shaders.begin(), _shaders.end(),
 				   [] (auto& lhs, auto& rhs) { return lhs.shaderId < rhs.shaderId; });
 
-		_baseLayoutId		= PipelineLayoutID{layoutId};
-		_maxRecursionDepth	= desc._maxRecursionDepth;
-		_recordStrideSpec	= desc._recordStrideSpec;
+		_baseLayoutId = PipelineLayoutID{layoutId};
 		return true;
 	}
 
@@ -58,7 +56,7 @@ namespace FG
 */
 	void VRayTracingPipeline::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t unassignIDs)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( _baseLayoutId ) {
 			unassignIDs.emplace_back( _baseLayoutId.Release() );
@@ -66,9 +64,7 @@ namespace FG
 
 		_shaders.clear();
 
-		_baseLayoutId		= Default;
-		_maxRecursionDepth	= 0;
-		_recordStrideSpec	= UMax;
+		_baseLayoutId = Default;
 	}
 
 

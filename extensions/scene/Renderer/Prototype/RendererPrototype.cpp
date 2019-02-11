@@ -269,12 +269,6 @@ namespace {
 		desc.AddShader( RTShaderID{"PrimaryHit"}, EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", std::move(hit1_source) );
 		desc.AddShader( RTShaderID{"ShadowHit"}, EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", std::move(hit2_source) );
 
-		desc.AddRayGenShader( RTShaderGroupID{"Main"}, RTShaderID{"Main"} );
-		desc.AddRayMissShader( RTShaderGroupID{"PrimaryMiss"}, RTShaderID{"PrimaryMiss"} );
-		desc.AddRayMissShader( RTShaderGroupID{"ShadowMiss"}, RTShaderID{"ShadowMiss"} );
-		desc.AddTriangleHitShaders( RTShaderGroupID{"TrianglePrimaryHit"}, RTShaderID{"PrimaryHit"} );
-		desc.AddTriangleHitShaders( RTShaderGroupID{"TriangleShadowHit"}, RTShaderID{"ShadowHit"} );
-
 
 		pipeline = _frameGraph->CreatePipeline( desc ).Release();
 		CHECK_ERR( pipeline.IsValid() );

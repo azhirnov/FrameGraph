@@ -25,7 +25,7 @@ namespace FG
 */
 	bool VRayTracingScene::Create (const VDevice &dev, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _topLevelAS == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( desc.maxInstanceCount > 0 );
@@ -61,7 +61,7 @@ namespace FG
 */
 	void VRayTracingScene::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( _topLevelAS ) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV, uint64_t(_topLevelAS) );
@@ -73,7 +73,7 @@ namespace FG
 
 		for (auto& data : _instanceData)
 		{
-			SCOPELOCK( data.lock );
+			EXLOCK( data.lock );
 
 			Array<Instance>  temp;
 			std::swap( data.geometryInstances, temp );
@@ -106,7 +106,7 @@ namespace FG
 		const uint	idx		= (_currStateIndex + 1) & 1;
 		auto&		pending	= _instanceData[idx];
 
-		SCOPELOCK( pending.lock );
+		EXLOCK( pending.lock );
 
 		if ( frameIndex == pending.frameIdx and batchExeOrder <= pending.exeOrder )
 			return;	// 'newData' is older than 'pending'

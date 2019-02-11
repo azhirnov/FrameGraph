@@ -24,7 +24,7 @@ namespace FG
 */
 	bool VRayTracingShaderTable::Create (StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK( not (_bufferId or _pipelineId) );
 
 		_debugName = dbgName;
@@ -73,7 +73,7 @@ namespace FG
 */
 	void VRayTracingShaderTable::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		for (auto& table : _tables) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(table.pipeline) );

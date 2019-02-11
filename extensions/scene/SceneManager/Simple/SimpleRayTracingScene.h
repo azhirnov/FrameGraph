@@ -16,8 +16,6 @@ namespace FG
 	{
 	// types
 	private:
-		using ShaderTable	= TraceRays::ShaderTable;
-
 		struct VertexAttrib
 		{
 			vec3	normal;
@@ -44,8 +42,7 @@ namespace FG
 	// variables
 	private:
 		RTSceneID			_rtScene;
-		ShaderTable			_shaderTable;
-		BufferID			_sbtBuffer;
+		RTShaderTableID		_shaderTable;
 		BufferID			_primitivesBuffer;
 		BufferID			_attribsBuffer;
 		PipelineResources	_resources;

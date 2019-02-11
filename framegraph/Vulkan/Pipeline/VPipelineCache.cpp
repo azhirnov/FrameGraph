@@ -392,6 +392,7 @@ namespace FG
 		_tempSpecData.clear();
 		_tempShaderGroups.clear();
 		_tempShaderGraphMap.clear();
+		_rtShaderSpecs.clear();
 	}
 	
 /*
@@ -646,7 +647,7 @@ namespace FG
 		
 		// try to insert new instance
 		{
-			SCOPELOCK( gppln->_instanceGuard );
+			EXLOCK( gppln->_instanceGuard );
 
 			auto[iter, inserted] = gppln->_instances.insert({ std::move(inst), outPipeline });
 		
@@ -785,7 +786,7 @@ namespace FG
 		
 		// try to insert new instance
 		{
-			SCOPELOCK( mppln->_instanceGuard );
+			EXLOCK( mppln->_instanceGuard );
 
 			auto[iter, inserted] = mppln->_instances.insert({ std::move(inst), outPipeline });
 		
@@ -893,7 +894,7 @@ namespace FG
 		
 		// try to insert new instance
 		{
-			SCOPELOCK( cppln._instanceGuard );
+			EXLOCK( cppln._instanceGuard );
 
 			auto[iter, inserted] = cppln._instances.insert({ std::move(inst), outPipeline });
 		
@@ -917,122 +918,13 @@ namespace FG
 */
 	bool VPipelineCache::InitShaderTable (VFrameGraphThread				&fg,
 										  RawRTPipelineID				 pipelineId,
-										  VLocalRTScene const*			rtScene,
+										  VLocalRTScene const*			 rtScene,
 										  const RayGenShader			&rayGenShader,
 										  ArrayView< RTShaderGroup >	 shaderGroups,
+										  uint							 maxRecursionDepth,
 										  INOUT VRayTracingShaderTable	&shaderTable,
 										  OUT BufferCopyRegions_t		&copyRegions)
 	{
-		const auto	GetShaderStage = [] (const VRayTracingPipeline *ppln, const RTShaderID &id, EShaderDebugMode mode, OUT VkPipelineShaderStageCreateInfo &stage) -> bool
-		{
-			ASSERT( id.IsDefined() );
-
-			size_t	best_match	= UMax;
-
-			// find suitable shader module
-			for (size_t pos = BinarySearch( ppln->_shaders, id );
-				 pos < ppln->_shaders.size() and ppln->_shaders[pos].shaderId == id;
-				 ++pos)
-			{
-				auto&	shader = ppln->_shaders[pos];
-
-				if ( shader.debugMode == mode ) {
-					best_match = pos;
-					break;
-				}
-				if ( best_match == UMax and shader.debugMode == Default )
-					best_match = pos;
-			}
-			
-			if ( best_match == UMax )
-				return false;
-			
-			auto&	shader = ppln->_shaders[best_match];
-
-			stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			stage.pNext  = null;
-			stage.flags  = 0;
-			stage.module = BitCast<VkShaderModule>( shader.module->GetData() );
-			stage.pName  = shader.module->GetEntry().data();
-			stage.stage  = shader.stage;
-			stage.pSpecializationInfo = null;
-			return true;
-		};
-
-		const auto	GetShaderGroup = [this, &GetShaderStage] (const VRayTracingPipeline *ppln, const RTShaderGroup &group, EShaderDebugMode mode,
-															  OUT VkRayTracingShaderGroupCreateInfoNV &group_ci) -> bool
-		{
-			group_ci.sType				= VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
-			group_ci.pNext				= null;
-			group_ci.generalShader		= VK_SHADER_UNUSED_NV;
-			group_ci.closestHitShader	= VK_SHADER_UNUSED_NV;
-			group_ci.anyHitShader		= VK_SHADER_UNUSED_NV;
-			group_ci.intersectionShader	= VK_SHADER_UNUSED_NV;
-
-			ENABLE_ENUM_CHECKS();
-			switch ( group.type )
-			{
-				case EGroupType::MissShader :
-				{
-					auto&	stage = _tempStages.emplace_back();
-					CHECK_ERR( GetShaderStage( ppln, group.mainShader, mode, OUT stage ));
-
-					group_ci.type			= VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-					group_ci.generalShader	= uint(_tempStages.size()-1);
-					return true;
-				}
-
-				case EGroupType::TriangleHitShader :
-				{
-					group_ci.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
-					if ( group.mainShader.IsDefined() )
-					{
-						auto&	stage = _tempStages.emplace_back();
-						CHECK_ERR( GetShaderStage( ppln, group.mainShader, mode, OUT stage ));
-						group_ci.closestHitShader = uint(_tempStages.size()-1);
-					}
-					if ( group.anyHitShader.IsDefined() )
-					{
-						auto&	stage = _tempStages.emplace_back();
-						CHECK_ERR( GetShaderStage( ppln, group.anyHitShader, mode, OUT stage ));
-						group_ci.anyHitShader = uint(_tempStages.size()-1);
-					}
-					return true;
-				}
-
-				case EGroupType::ProceduralHitShader :
-				{
-					group_ci.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
-					{
-						auto&	stage = _tempStages.emplace_back();
-						CHECK_ERR( GetShaderStage( ppln, group.intersectionShader, mode, OUT stage ));
-						group_ci.intersectionShader = uint(_tempStages.size()-1);
-					}
-					if ( group.anyHitShader.IsDefined() )
-					{
-						auto&	stage = _tempStages.emplace_back();
-						CHECK_ERR( GetShaderStage( ppln, group.anyHitShader, mode, OUT stage ));
-						group_ci.anyHitShader = uint(_tempStages.size()-1);
-					}
-					if ( group.mainShader.IsDefined() )
-					{
-						auto&	stage = _tempStages.emplace_back();
-						CHECK_ERR( GetShaderStage( ppln, group.mainShader, mode, OUT stage ));
-						group_ci.closestHitShader = uint(_tempStages.size()-1);
-					}
-					return true;
-				}
-
-				case EGroupType::CallableShader :
-				case EGroupType::Unknown : break;
-			}
-			DISABLE_ENUM_CHECKS();
-			return false;
-		};
-
-		
-		_ClearTemp();
-		
 		auto&			dev				= fg.GetDevice();
 		auto&			res_mngr		= *fg.GetResourceManager();
 		const BytesU	handle_size		{ dev.GetDeviceRayTracingProperties().shaderGroupHandleSize };
@@ -1052,19 +944,34 @@ namespace FG
 		uint	miss_shader_count		= 0;
 		uint	hit_shader_count		= 0;
 		uint	callable_shader_count	= 0;
+		
+		_ClearTemp();
+		_rtShaderSpecs.emplace_back( SpecializationID{"sbtRecordStride"}, 0u );
+		_tempSpecData.push_back( geom_stride );
 
 		for (auto& shader : shaderGroups)
 		{
 			_tempShaderGraphMap.insert({ &shader, uint(_tempShaderGraphMap.size())+1 });
 
-			switch ( shader.type ) {
-				case EGroupType::MissShader :			++miss_shader_count;		break;
-				case EGroupType::CallableShader :		++callable_shader_count;	break;
+			switch ( shader.type )
+			{
+				case EGroupType::MissShader :
+					miss_shader_count = Max( shader.offset+1, miss_shader_count );
+					break;
+
+				case EGroupType::CallableShader :
+					++callable_shader_count;
+					break;
+
 				case EGroupType::TriangleHitShader :
-				case EGroupType::ProceduralHitShader :	++hit_shader_count;			break;
+				case EGroupType::ProceduralHitShader :
+					++hit_shader_count;
+					break;
 			}
 		}
-		_tempShaderGroups.reserve( 1 + _tempShaderGraphMap.size() );
+		_tempShaderGroups.resize( 1 + _tempShaderGraphMap.size() );
+		_tempSpecialization.reserve( 1 + miss_shader_count + hit_shader_count );
+		_tempSpecEntries.reserve( _tempSpecialization.size() * _rtShaderSpecs.size() );
 		
 		// setup offsets
 		BytesU		offset {0};
@@ -1116,15 +1023,12 @@ namespace FG
 		offset = 0_b;
 		for (auto mode : debug_modes)
 		{
-			_tempStages.clear();
-			_tempShaderGroups.clear();
-
 			// create ray-gen shader
 			{
 				auto&	stage = _tempStages.emplace_back();
-				CHECK_ERR( GetShaderStage( ppln, rayGenShader.shaderId, mode, OUT stage ));
+				CHECK_ERR( _InitShaderStage( ppln, rayGenShader.shaderId, mode, OUT stage ));
 
-				auto&	group_ci			= _tempShaderGroups.emplace_back();
+				auto&	group_ci			= _tempShaderGroups[0];
 				group_ci.sType				= VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
 				group_ci.pNext				= null;
 				group_ci.closestHitShader	= VK_SHADER_UNUSED_NV;
@@ -1137,7 +1041,7 @@ namespace FG
 			// create miss & hit shaders
 			for (auto& iter : _tempShaderGraphMap)
 			{
-				CHECK_ERR( GetShaderGroup( ppln, *iter.first, mode, OUT _tempShaderGroups.emplace_back() ));
+				CHECK_ERR( _GetShaderGroup( ppln, *iter.first, mode, OUT _tempShaderGroups[iter.second] ));
 			}
 			
 			// acquire pipeline layout
@@ -1165,7 +1069,7 @@ namespace FG
 			pipeline_info.pStages				= _tempStages.data();
 			pipeline_info.groupCount			= uint(_tempShaderGroups.size());
 			pipeline_info.pGroups				= _tempShaderGroups.data();
-			pipeline_info.maxRecursionDepth		= ppln->_maxRecursionDepth;
+			pipeline_info.maxRecursionDepth		= maxRecursionDepth;
 			pipeline_info.layout				= res_mngr.GetResource( layout_id )->Handle();
 			pipeline_info.basePipelineIndex		= -1;
 			pipeline_info.basePipelineHandle	= VK_NULL_HANDLE;
@@ -1189,8 +1093,7 @@ namespace FG
 			// ray-gen shader
 			VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, 0, 1, size_t(handle_size), OUT mapped_ptr + shaderTable._rayGenOffset ));
 
-			uint	miss_shader_index		= 0;
-			uint	callable_shader_index	= 0;
+			uint	callable_shader_index = 0;
 
 			for (auto& shader : shaderGroups)
 			{
@@ -1198,7 +1101,7 @@ namespace FG
 				{
 					case EGroupType::MissShader :
 					{
-						BytesU	dst_off	= shaderTable._rayMissOffset + handle_size * miss_shader_index++;
+						BytesU	dst_off	= shaderTable._rayMissOffset + handle_size * shader.offset; 
 						auto	group	= _tempShaderGraphMap.find( &shader );
 						CHECK_ERR( group != _tempShaderGraphMap.end() );
 						
@@ -1256,9 +1159,163 @@ namespace FG
 			copy.region.size		= VkDeviceSize(shaderTable._blockSize);
 
 			offset = AlignToLarger( offset + shaderTable._blockSize, alignment );
+
+			// clear temporary arrays
+			_tempSpecEntries.clear();
+			_tempSpecialization.clear();
+			_tempStages.clear();
+			// keep '_tempShaderGroups', '_tempShaderGraphMap', '_rtShaderSpecs'
 		}
 
 		return true;
+	}
+	
+/*
+=================================================
+	_InitShaderStage
+=================================================
+*/
+	bool VPipelineCache::_InitShaderStage (const VRayTracingPipeline *ppln, const RTShaderID &id, EShaderDebugMode mode,
+											OUT VkPipelineShaderStageCreateInfo &stage)
+	{
+		ASSERT( id.IsDefined() );
+
+		size_t	best_match	= UMax;
+
+		// find suitable shader module
+		for (size_t pos = BinarySearch( ppln->_shaders, id );
+				pos < ppln->_shaders.size() and ppln->_shaders[pos].shaderId == id;
+				++pos)
+		{
+			auto&	shader = ppln->_shaders[pos];
+
+			if ( shader.debugMode == mode ) {
+				best_match = pos;
+				break;
+			}
+			if ( best_match == UMax and shader.debugMode == Default )
+				best_match = pos;
+		}
+			
+		if ( best_match == UMax )
+			return false;
+			
+		auto&			shader		= ppln->_shaders[best_match];
+		const size_t	entry_count	= _tempSpecEntries.size();
+
+		stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		stage.pNext  = null;
+		stage.flags  = 0;
+		stage.module = BitCast<VkShaderModule>( shader.module->GetData() );
+		stage.pName  = shader.module->GetEntry().data();
+		stage.stage  = shader.stage;
+		stage.pSpecializationInfo = null;
+
+		// set specialization constants
+		if ( shader.stage == VK_SHADER_STAGE_RAYGEN_BIT_NV		or
+			 shader.stage == VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV	or
+			 shader.stage == VK_SHADER_STAGE_MISS_BIT_NV )
+		{
+			for (auto& spec : _rtShaderSpecs)
+			{
+				auto	iter = shader.specConstants.find( spec.id );
+				if ( iter != shader.specConstants.end() )
+				{
+					VkSpecializationMapEntry&	entry = _tempSpecEntries.emplace_back();
+					entry.constantID	= iter->second;
+					entry.offset		= spec.offset;
+					entry.size			= sizeof(uint);
+				}
+			}
+		}
+		
+		if ( _tempSpecEntries.size() > entry_count )
+		{
+			VkSpecializationInfo&	spec_info = _tempSpecialization.emplace_back();
+			spec_info.mapEntryCount		= uint(_tempSpecEntries.size() - entry_count);
+			spec_info.pMapEntries		= _tempSpecEntries.data() + entry_count;
+			spec_info.dataSize			= size_t(ArraySizeOf( _tempSpecData ));
+			spec_info.pData				= _tempSpecData.data();
+			stage.pSpecializationInfo	= &spec_info;
+		}
+
+		return true;
+	}
+	
+/*
+=================================================
+	_GetShaderGroup
+=================================================
+*/
+	bool VPipelineCache::_GetShaderGroup (const VRayTracingPipeline *ppln, const RTShaderGroup &group, EShaderDebugMode mode,
+											OUT VkRayTracingShaderGroupCreateInfoNV &group_ci)
+	{
+		group_ci.sType				= VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
+		group_ci.pNext				= null;
+		group_ci.generalShader		= VK_SHADER_UNUSED_NV;
+		group_ci.closestHitShader	= VK_SHADER_UNUSED_NV;
+		group_ci.anyHitShader		= VK_SHADER_UNUSED_NV;
+		group_ci.intersectionShader	= VK_SHADER_UNUSED_NV;
+
+		ENABLE_ENUM_CHECKS();
+		switch ( group.type )
+		{
+			case EGroupType::MissShader :
+			{
+				auto&	stage = _tempStages.emplace_back();
+				CHECK_ERR( _InitShaderStage( ppln, group.mainShader, mode, OUT stage ));
+
+				group_ci.type			= VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+				group_ci.generalShader	= uint(_tempStages.size()-1);
+				return true;
+			}
+
+			case EGroupType::TriangleHitShader :
+			{
+				group_ci.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+				if ( group.mainShader.IsDefined() )
+				{
+					auto&	stage = _tempStages.emplace_back();
+					CHECK_ERR( _InitShaderStage( ppln, group.mainShader, mode, OUT stage ));
+					group_ci.closestHitShader = uint(_tempStages.size()-1);
+				}
+				if ( group.anyHitShader.IsDefined() )
+				{
+					auto&	stage = _tempStages.emplace_back();
+					CHECK_ERR( _InitShaderStage( ppln, group.anyHitShader, mode, OUT stage ));
+					group_ci.anyHitShader = uint(_tempStages.size()-1);
+				}
+				return true;
+			}
+
+			case EGroupType::ProceduralHitShader :
+			{
+				group_ci.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
+				{
+					auto&	stage = _tempStages.emplace_back();
+					CHECK_ERR( _InitShaderStage( ppln, group.intersectionShader, mode, OUT stage ));
+					group_ci.intersectionShader = uint(_tempStages.size()-1);
+				}
+				if ( group.anyHitShader.IsDefined() )
+				{
+					auto&	stage = _tempStages.emplace_back();
+					CHECK_ERR( _InitShaderStage( ppln, group.anyHitShader, mode, OUT stage ));
+					group_ci.anyHitShader = uint(_tempStages.size()-1);
+				}
+				if ( group.mainShader.IsDefined() )
+				{
+					auto&	stage = _tempStages.emplace_back();
+					CHECK_ERR( _InitShaderStage( ppln, group.mainShader, mode, OUT stage ));
+					group_ci.closestHitShader = uint(_tempStages.size()-1);
+				}
+				return true;
+			}
+
+			case EGroupType::CallableShader :
+			case EGroupType::Unknown : break;
+		}
+		DISABLE_ENUM_CHECKS();
+		return false;
 	}
 
 /*

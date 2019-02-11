@@ -76,7 +76,7 @@ namespace FG
 */
 	bool VRayTracingGeometry::Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _bottomLevelAS == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( desc.triangles.size() or desc.aabbs.size() );
@@ -163,7 +163,7 @@ namespace FG
 */
 	void VRayTracingGeometry::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
 	{
-		SCOPELOCK( _rcCheck );
+		EXLOCK( _rcCheck );
 
 		if ( _bottomLevelAS ) {
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV, uint64_t(_bottomLevelAS) );

@@ -146,8 +146,8 @@ void main ()
 			Task	t_update_table	= frame_graph->AddTask( UpdateRayTracingShaderTable{}
 																.SetTarget( rt_shaders ).SetPipeline( pipeline ).SetScene( rt_scene )
 																.SetRayGenShader( RTShaderID{"Main"} )
-																.AddMissShader( RTShaderID{"PrimaryMiss"} )
-																.AddTriangleHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
+																.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 )
+																.AddHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
 																.DependsOn( t_build_scene ));
 			FG_UNUSED( t_update_table );
 

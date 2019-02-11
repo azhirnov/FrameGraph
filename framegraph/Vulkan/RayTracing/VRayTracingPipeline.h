@@ -17,27 +17,27 @@ namespace FG
 
 	// types
 	public:
+		using SpecConstants_t	= PipelineDescription::SpecConstants_t;
+
 		struct ShaderModule
 		{
 			RTShaderID							shaderId;
 			VkShaderStageFlagBits				stage;
 			PipelineDescription::VkShaderPtr	module;
 			EShaderDebugMode					debugMode	= Default;
+			SpecConstants_t						specConstants;
 
 			ND_ bool  operator == (const RTShaderID &rhs) const	{ return shaderId == rhs; }
 			ND_ bool  operator <  (const RTShaderID &rhs) const	{ return shaderId <  rhs; }
 		};
 
-		using ShaderModules_t = Array< ShaderModule >;
+		using ShaderModules_t	= Array< ShaderModule >;
 
 
 	// variables
 	private:
 		PipelineLayoutID		_baseLayoutId;
 		ShaderModules_t			_shaders;
-		
-		uint					_maxRecursionDepth	= 0;
-		uint					_recordStrideSpec	= UMax;
 
 		RWRaceConditionCheck	_rcCheck;
 

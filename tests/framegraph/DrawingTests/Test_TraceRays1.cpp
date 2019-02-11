@@ -23,6 +23,8 @@ layout(binding = 0) uniform accelerationStructureNV  un_RtScene;
 layout(binding = 1, rgba8) writeonly uniform image2D  un_Output;
 layout(location = 0) rayPayloadNV vec4  payload;
 
+layout (constant_id = 0) const int sbtRecordStride = 1;
+
 void main ()
 {
 	const vec2 uv = vec2(gl_LaunchIDNV.xy) / vec2(gl_LaunchSizeNV.xy - 1);
@@ -31,7 +33,7 @@ void main ()
 	const vec3 direction = vec3(0.0f, 0.0f, 1.0f);
 
 	traceNV( /*topLevel*/un_RtScene, /*rayFlags*/gl_RayFlagsNoneNV, /*cullMask*/0xFF,
-			 /*sbtRecordOffset*/0, /*sbtRecordStride*/1, /*missIndex*/0,
+			 /*sbtRecordOffset*/0, sbtRecordStride, /*missIndex*/0,
 			 /*origin*/origin, /*Tmin*/0.0f, /*direction*/direction, /*Tmax*/10.0f,
 			 /*payload*/0 );
 
@@ -145,8 +147,8 @@ void main ()
 		Task	t_update_table	= frame_graph->AddTask( UpdateRayTracingShaderTable{}
 															.SetTarget( rt_shaders ).SetPipeline( pipeline ).SetScene( rt_scene )
 															.SetRayGenShader( RTShaderID{"Main"} )
-															.AddMissShader( RTShaderID{"PrimaryMiss"} )
-															.AddTriangleHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
+															.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 )
+															.AddHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
 															.DependsOn( t_build_scene ));
 
 		Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
