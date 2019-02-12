@@ -21,7 +21,7 @@ namespace FG
 		{
 			Transform		transform;
 			AABB			boundingBox;
-			uint			index			= UMax;		// in '_perInstanceUB' and in '_modelLODs'
+			uint			index			= UMax;		// in '_modelLODs'
 			uint			lastIndex		= 0;
 		};
 

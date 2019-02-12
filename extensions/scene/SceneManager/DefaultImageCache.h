@@ -37,7 +37,7 @@ namespace FG
 		bool  GetImageData (const String &filename, OUT IntermImagePtr &) override;
 		bool  AddImageData (const String &filename, const IntermImagePtr &) override;
 		
-		bool  CreateImage (const FGThreadPtr &, const IntermImagePtr &, OUT RawImageID &) override;
+		bool  CreateImage (const FGThreadPtr &, const IntermImagePtr &, bool genMipmaps, OUT RawImageID &) override;
 		bool  GetImageHandle (const IntermImagePtr &, OUT RawImageID &) override;
 		bool  AddImageHandle (const IntermImagePtr &, ImageID &&) override;
 	};

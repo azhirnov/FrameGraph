@@ -113,14 +113,13 @@ namespace FG
 	{
 		ASSERT( uint(layer) < _layers.size() );
 		ASSERT( _camera.layers[uint(layer)] );
-		ASSERT( not pplnRes or pplnRes->IsInitialized() );
 
 		auto&	data = _layers[uint(layer)];
 
 		ASSERT( not data.enabled );		// layer already enabled
 		data.enabled	= true;
 		data.pass		= SubmitRenderPass{ passId };
-		data.resources	= pplnRes;
+		data.resources	= (pplnRes and pplnRes->IsInitialized() ? pplnRes : null);
 
 		if ( not dbgName.empty() )
 			data.pass.SetName( dbgName );

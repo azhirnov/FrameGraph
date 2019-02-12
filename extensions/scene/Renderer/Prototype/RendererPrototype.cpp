@@ -174,8 +174,8 @@ namespace {
 		}
 
 		const String	defines		= BuildShaderDefines( info );
-		String			fs_source	= "#define FRAGMENT_SHADER\n" + defines;
-		String			vs_source	= "#define VERTEX_SHADER\n" + defines;
+		String			fs_source	= "#define FRAGMENT_SHADER\n" + defines + "void dbg_EnableTraceRecording (bool b) {}\n\n";
+		String			vs_source	= "#define VERTEX_SHADER\n" + defines + "void dbg_EnableTraceRecording (bool b) {}\n\n";
 		StringView		ubershader	= _shaderBuilder.GetCachedSource( _graphicsShaderSource );
 
 		for (auto& id : info.sourceIDs)
@@ -189,8 +189,8 @@ namespace {
 		vs_source << ubershader;
 
 		GraphicsPipelineDesc	desc;
-		desc.AddShader( EShader::Vertex,   EShaderLangFormat::VKSL_110, "main", std::move(vs_source) );
-		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_110, "main", std::move(fs_source) );
+		desc.AddShader( EShader::Vertex,   EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(vs_source) );
+		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(fs_source) );
 
 		pipeline = _frameGraph->CreatePipeline( desc ).Release();
 		CHECK_ERR( pipeline.IsValid() );
@@ -204,7 +204,7 @@ namespace {
 		auto&	ppln_res = _shaderOutputResources[ uint(info.layer) ];
 		if ( not ppln_res.IsInitialized() )
 		{
-			CHECK( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res ));
+			_frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res );
 		}
 
 		_gpipelineCache.insert_or_assign( info, GPipelineID{pipeline} );
@@ -263,11 +263,11 @@ namespace {
 		hit2_source << ubershader;
 
 		RayTracingPipelineDesc	desc;
-		desc.AddShader( RTShaderID{"Main"}, EShader::RayGen, EShaderLangFormat::VKSL_110, "main", std::move(raygen_source) );
-		desc.AddShader( RTShaderID{"PrimaryMiss"}, EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", std::move(miss1_source) );
-		desc.AddShader( RTShaderID{"ShadowMiss"}, EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", std::move(miss2_source) );
-		desc.AddShader( RTShaderID{"PrimaryHit"}, EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", std::move(hit1_source) );
-		desc.AddShader( RTShaderID{"ShadowHit"}, EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", std::move(hit2_source) );
+		desc.AddShader( RTShaderID{"Main"},        EShader::RayGen,        EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(raygen_source) );
+		desc.AddShader( RTShaderID{"PrimaryMiss"}, EShader::RayMiss,       EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(miss1_source) );
+		desc.AddShader( RTShaderID{"ShadowMiss"},  EShader::RayMiss,       EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(miss2_source) );
+		desc.AddShader( RTShaderID{"PrimaryHit"},  EShader::RayClosestHit, EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(hit1_source) );
+		desc.AddShader( RTShaderID{"ShadowHit"},   EShader::RayClosestHit, EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(hit2_source) );
 
 
 		pipeline = _frameGraph->CreatePipeline( desc ).Release();

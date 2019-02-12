@@ -15,3 +15,4 @@
 /external/optional
 /external/variant
 *.user
+*.glsl_dbg

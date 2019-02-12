@@ -21,7 +21,7 @@ namespace FG
 		virtual bool  GetImageData (const String &filename, OUT IntermImagePtr &) = 0;
 		virtual bool  AddImageData (const String &filename, const IntermImagePtr &) = 0;
 
-		virtual bool  CreateImage (const FGThreadPtr &, const IntermImagePtr &, OUT RawImageID &) = 0;
+		virtual bool  CreateImage (const FGThreadPtr &, const IntermImagePtr &, bool genMipmaps, OUT RawImageID &) = 0;
 		virtual bool  GetImageHandle (const IntermImagePtr &, OUT RawImageID &) = 0;
 		virtual bool  AddImageHandle (const IntermImagePtr &, ImageID &&) = 0;
 	};

@@ -11,7 +11,7 @@
 namespace FG
 {
 namespace {
-	static constexpr uint		max_instance_count = 1 << 10;
+	static constexpr uint		max_instance_count = 1 << 11;
 
 	static const StringView		shader_source = R"#(
 
@@ -45,8 +45,8 @@ namespace {
 	} perInstance;
 
 	layout(push_constant, std140) uniform VSPushConst {
-		layout(offset=0) int	instanceID;
-		layout(offset=4) int	materialID;
+		layout(offset=0) int	materialID;
+		layout(offset=4) int	instanceID;
 	};
 
 	vec3 GetWorldPosition ()
@@ -54,7 +54,6 @@ namespace {
 		vec3	pos   = perInstance.transforms[instanceID].position;
 		float	scale = perInstance.transforms[instanceID].scale;
 		vec4	quat  = perInstance.transforms[instanceID].orientation;
-		//return RotateVec( quat, at_Position.xyz ) * scale + pos;
 		return Transform( at_Position.xyz, pos, quat, scale );
 	}
 
@@ -162,9 +161,11 @@ namespace {
 		const int	first_layer	= BitScanForward( camera.layers.to_ulong() );
 		const int	last_layer	= BitScanReverse( camera.layers.to_ulong() );
 
-		for (auto& inst : _instances)
+		for (size_t inst_idx = 0; inst_idx < _instances.size(); ++inst_idx)
 		{
-			AABB	bbox = inst.boundingBox;
+			auto&	inst = _instances[ inst_idx ];
+			
+			/*AABB	bbox = inst.boundingBox;
 			bbox.Move( camera_pos );
 
 			// frustum culling
@@ -177,7 +178,9 @@ namespace {
 			auto	detail	= EDetailLevel(Max( uint(camera.detailRange.min), uint(mix( float(camera.detailRange.min), float(camera.detailRange.max), dist ) + 0.5f) ));
 
 			if ( detail > camera.detailRange.max )
-				continue;	// detail level is too small
+				continue;	// detail level is too small*/
+
+			auto	detail	= EDetailLevel::High;
 
 			for (uint i = inst.index; i < inst.lastIndex; ++i)
 			{
@@ -195,12 +198,12 @@ namespace {
 				DrawIndexed		draw_task;
 				draw_task.pipeline = model.pipeline;
 				draw_task.AddBuffer( Default, _vertexBuffer )
-							.SetIndexBuffer( _indexBuffer, 0_b, _indexType )
-							.SetVertexInput( _vertexAttribs[mesh.attribsIndex].first )
-							.SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
-							.Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
-							.AddResources( DescriptorSetID{"PerObject"}, &model.resources )
-							.AddPushConstant( PushConstantID{"VSPushConst"}, uint2{model.materialID, inst.index} );
+						 .SetIndexBuffer( _indexBuffer, 0_b, _indexType )
+						 .SetVertexInput( _vertexAttribs[mesh.attribsIndex].first )
+						 .SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
+						 .Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
+						 .AddResources( DescriptorSetID{"PerObject"}, &model.resources )
+						 .AddPushConstant( PushConstantID{"VSPushConst"}, uint2{model.materialID, uint(inst_idx)} );
 
 				queue.Draw( lod.layer, draw_task );
 			}
@@ -216,7 +219,12 @@ namespace {
 	{
 		CHECK_ERR( _instances.size() <= max_instance_count );
 
-		const BytesU	size = (SizeOf<mat4x4>) * max_instance_count;
+		const BytesU	size = SizeOf<Transform> * max_instance_count;
+
+		if ( _perInstanceUB and size > fg->GetDescription( _perInstanceUB ).size )
+		{
+			fg->ReleaseResource( INOUT _perInstanceUB );
+		}
 
 		if ( not _perInstanceUB )
 		{
@@ -228,9 +236,10 @@ namespace {
 		void*	mapped_ptr	= null;
 		CHECK_ERR( fg->MapBufferRange( _perInstanceUB, 0_b, INOUT mapped_size, OUT mapped_ptr ));
 
-		for (auto& inst : _instances)
+		for (size_t i = 0; i < _instances.size(); ++i)
 		{
-			memcpy( mapped_ptr + SizeOf<Transform> * inst.index, &inst.transform, sizeof(inst.transform) );
+			auto&	tr = _instances[i].transform;
+			memcpy( mapped_ptr + SizeOf<Transform> * i, &tr, sizeof(tr) );
 		}
 
 		return true;
@@ -387,25 +396,25 @@ namespace {
 
 			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.albedo ) )
 			{
-				CHECK_ERR( imageCache->CreateImage( fg, tex->image, OUT dst.albedoTex ));
+				CHECK_ERR( imageCache->CreateImage( fg, tex->image, true, OUT dst.albedoTex ));
 				dst.textureBits |= ETextureType::Albedo;
 			}
 
 			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.specular ) )
 			{
-				CHECK_ERR( imageCache->CreateImage( fg, tex->image, OUT dst.specularTex ));
+				CHECK_ERR( imageCache->CreateImage( fg, tex->image, true, OUT dst.specularTex ));
 				dst.textureBits |= ETextureType::Specular;
 			}
 
 			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.roughtness ) )
 			{
-				CHECK_ERR( imageCache->CreateImage( fg, tex->image, OUT dst.roughtnessTex ));
+				CHECK_ERR( imageCache->CreateImage( fg, tex->image, true, OUT dst.roughtnessTex ));
 				dst.textureBits |= ETextureType::Roughtness;
 			}
 
 			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.metallic ) )
 			{
-				CHECK_ERR( imageCache->CreateImage( fg, tex->image, OUT dst.metallicTex ));
+				CHECK_ERR( imageCache->CreateImage( fg, tex->image, true, OUT dst.metallicTex ));
 				dst.textureBits |= ETextureType::Metallic;
 			}
 
@@ -472,7 +481,7 @@ namespace {
 		inst.boundingBox = bbox.value_or( AABB{} ).Transform( inst.transform );
 		inst.lastIndex	 = uint(_modelLODs.size());
 		ASSERT( inst.lastIndex > inst.index );
-		
+
 		_instances.push_back( inst );
 		return true;
 	}

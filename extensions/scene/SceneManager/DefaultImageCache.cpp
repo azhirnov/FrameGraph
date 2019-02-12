@@ -88,7 +88,7 @@ namespace FG
 	CreateImage
 =================================================
 */
-	bool  DefaultImageCache::CreateImage (const FGThreadPtr &fg, const IntermImagePtr &image, OUT RawImageID &outHandle)
+	bool  DefaultImageCache::CreateImage (const FGThreadPtr &fg, const IntermImagePtr &image, bool genMipmaps, OUT RawImageID &outHandle)
 	{
 		CHECK_ERR( image );
 
@@ -98,17 +98,18 @@ namespace FG
 		auto&	levels	= image->GetData();
 		CHECK_ERR( levels.size() and levels.front().size() );
 
-		auto&	layer	= levels.front().front();
+		auto&	layer		= levels.front().front();
+		uint	base_level	= uint(levels.size()-1);
 
 		ImageDesc	desc;
 		desc.imageType		= levels.size() > 1 ? EImage::Tex2DArray : EImage::Tex2D;
 		desc.dimension		= layer.dimension;
 		desc.format			= layer.format;
 		desc.arrayLayers	= ImageLayer{ uint(levels.size()) };
-		desc.maxLevel		= MipmapLevel{ uint(levels.size()) };
+		desc.maxLevel		= MipmapLevel{ genMipmaps ? ~0u : base_level+1 };
 		desc.usage			= EImageUsage::Sampled | EImageUsage::Transfer;
 
-		ImageID	id;
+		ImageID		id;
 		CHECK_ERR( id = fg->CreateImage( desc ));
 		outHandle = id.Get();
 
@@ -132,6 +133,11 @@ namespace FG
 		
 		image->MakeImmutable();
 		image->ReleaseData();
+
+		if ( genMipmaps )
+		{
+			fg->AddTask( GenerateMipmaps{}.SetImage( id ).SetRange( MipmapLevel{base_level}, UMax ));
+		}
 
 		_handleCache.insert_or_assign( image.operator->(), Pair<IntermImageWeak, ImageID>{ image, std::move(id) });
 		return true;

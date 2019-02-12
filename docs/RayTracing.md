@@ -193,6 +193,10 @@ build_tlas.SetTarget( rt_scene );
 // add instance data
 build_tlas.Add( instance );
 
+// add second instance
+instance.SetID( InstanceID{"Second"} );
+build_tlas.Add( instance );
+
 // set number of hit shaders per geometry instance,
 // for example: for primary ray and for shadow ray.
 // 'sbtRecordStride' in ray-gen shader must have same value
@@ -230,10 +234,14 @@ update_st.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 );  // for missIndex = 0
 update_st.AddMissShader( RTShaderID{"ShadowMiss"},  1 );  // for missIndex = 1
 
 // bind ray-hit shader for each geometry instance
-update_st.AddHitShader( InstanceID{"First"}, GeometryID{"Triangle1"}, /*offset*/0, RTShaderID{"PrimaryHit1"} );  // (3)
-update_st.AddHitShader( InstanceID{"First"}, GeometryID{"Triangle1"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (4)
-update_st.AddHitShader( InstanceID{"First"}, GeometryID{"Triangle2"}, /*offset*/0, RTShaderID{"PrimaryHit2"} );  // (5)
-update_st.AddHitShader( InstanceID{"First"}, GeometryID{"Triangle2"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (6)
+update_st.AddHitShader( InstanceID{"First"},  GeometryID{"Triangle1"}, /*offset*/0, RTShaderID{"PrimaryHit1"} );  // (3)
+update_st.AddHitShader( InstanceID{"First"},  GeometryID{"Triangle1"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (4)
+update_st.AddHitShader( InstanceID{"First"},  GeometryID{"Triangle2"}, /*offset*/0, RTShaderID{"PrimaryHit2"} );  // (5)
+update_st.AddHitShader( InstanceID{"First"},  GeometryID{"Triangle2"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (6)
+update_st.AddHitShader( InstanceID{"Second"}, GeometryID{"Triangle1"}, /*offset*/0, RTShaderID{"PrimaryHit2"} );  // (7)
+update_st.AddHitShader( InstanceID{"Second"}, GeometryID{"Triangle1"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (8)
+update_st.AddHitShader( InstanceID{"Second"}, GeometryID{"Triangle2"}, /*offset*/0, RTShaderID{"PrimaryHit1"} );  // (9)
+update_st.AddHitShader( InstanceID{"Second"}, GeometryID{"Triangle2"}, /*offset*/1, RTShaderID{"ShadowHit"} );    // (10)
 
 // enqueue task, there is no dependency on the GPU side,
 // but this task uses data that will be updated in the BuildRayTracingScene task, so dependency is needed.
@@ -243,14 +251,20 @@ Task  t_update_table = fgThread->AddTask( update_st.DependsOn( t_build_scene ));
 ## Shader binding table
 | Shader groups → | raygen group | miss group | miss group | hit group | hit group | hit group | hit group |
 |---|---|---|---|---|---|---|---|
-| Geometry ↓ | Main | PrimaryMiss | ShadowMiss | PrimaryHit1 | ShadowHit | PrimaryHit2 | ShadowHit |
-| primary ray with `sbtRecordOffset=0` |  |  |  |  |  |
-| Triangle1 |  |  |  | (3) |  |
-| Triangle2 |  |  |  |  |  | (5) |
-| shadow ray with `sbtRecordOffset=1` |  |  |  |  |  |
-| Triangle1 |  |  |  |  | (4) |  |
-| Triangle2 |  |  |  |  |  |  | (6) |
-| each thread | X |  |  |  |  |  |
+| Instance and Geometry ↓ | Main | PrimaryMiss | ShadowMiss | PrimaryHit1 | ShadowHit | PrimaryHit2 | ShadowHit |
+| primary ray with `sbtRecordOffset=0` | 
+| First, Triangle1  |   |  |  | (3) |     |     |     |
+| First, Triangle2  |   |  |  |     |     | (5) |     |
+| shadow ray with `sbtRecordOffset=1` |
+| First, Triangle1  |   |  |  |     | (4) |     |     |
+| First, Triangle2  |   |  |  |     |     |     | (6) |
+| primary ray with `sbtRecordOffset=0` |
+| Second, Triangle1 |   |  |  |     |     | (7) |     |
+| Second, Triangle2 |   |  |  | (9) |     |     |     |
+| shadow ray with `sbtRecordOffset=1` |
+| Second, Triangle1 |   |  |  |     | (8) |     |     |
+| Second, Triangle2 |   |  |  |     |     |     | (10) |
+| each thread       | X |
 | primary ray with `missIndex=0` |  | (1) |  |  |  |  |
 | shadow ray with `missIndex=1` |  |  | (2) |  |  |  |
 
@@ -274,3 +288,5 @@ trace_rays.SetShaderTable( rt_shaders ).DependsOn( t_update_table );
 Task  t_trace = fgThread->AddTask( trace_rays );
 ```
 
+## Performance
+Method `CreateRayTracingGeometry` and tasks `UpdateRayTracingShaderTable`, `BuildRayTracingGeometry`, `BuildRayTracingScene` has CPU overhead for sorting and searching operations. Task `TraceRays` works as fast as possible.

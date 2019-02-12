@@ -114,9 +114,9 @@ namespace FG
 	template <typename T>
 	inline bool Transformation<T>::operator == (const Self &rhs) const
 	{
-		return	orientation			== rhs.orientation	and
-				glm::all( position	== rhs.position )	and
-				glm::all( scale		== rhs.scale );
+		return	orientation		== rhs.orientation		and
+				all(equal( position, rhs.position ))	and
+				scale			== rhs.scale;
 	}
 	
 /*
