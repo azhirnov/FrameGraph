@@ -433,7 +433,7 @@ namespace {
 			CHECK_ERR( expected == null or expected == queue );
 		}
 
-		ASSERT( not commands.empty() );
+		//ASSERT( not commands.empty() );
 		ASSERT( commands.size() < Batch::MaxCommands );
 		ASSERT( batch.subBatches[indexInBatch].empty() );	// TODO: add RC check
 

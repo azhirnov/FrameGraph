@@ -375,9 +375,9 @@ namespace FG
 		if ( dbgMode.sbIndex == UMax )
 		{
 			StorageBuffer	sb;
-			sb.shaderTraceBuffer	= _frameGraph.CreateBuffer( BufferDesc{ _bufferSize, EBufferUsage::Storage | EBufferUsage::Transfer }, Default, "DebugOutputStorage" );
-			sb.readBackBuffer		= _frameGraph.CreateBuffer( BufferDesc{ _bufferSize, EBufferUsage::TransferDst }, MemoryDesc{EMemoryType::HostRead}, "ReadBackDebugOutput" );
-			sb.capacity				= _bufferSize;
+			sb.capacity				= _bufferSize * (1 + _storageBuffers.size() / 2);
+			sb.shaderTraceBuffer	= _frameGraph.CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::Storage | EBufferUsage::Transfer }, Default, "DebugOutputStorage" );
+			sb.readBackBuffer		= _frameGraph.CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::TransferDst }, MemoryDesc{EMemoryType::HostRead}, "ReadBackDebugOutput" );
 			CHECK_ERR( sb.shaderTraceBuffer and sb.readBackBuffer );
 			
 			dbgMode.sbIndex	= uint(_storageBuffers.size());

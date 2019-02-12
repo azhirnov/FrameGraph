@@ -127,8 +127,6 @@ namespace FG
 		void _CmdDebugMarker (StringView text) const;
 		void _CmdPushDebugGroup (StringView text) const;
 		void _CmdPopDebugGroup () const;
-
-		void _OnProcessTask () const;
 		
 		template <typename ID>	ND_ auto const*  _ToLocal (ID id) const;
 		template <typename ID>	ND_ auto const*  _GetResource (ID id) const;
@@ -168,20 +166,6 @@ namespace FG
 
 		ND_ Statistic_t&  Stat () const;
 	};
-	
-
-/*
-=================================================
-	Run
-=================================================
-*/
-	forceinline void VTaskProcessor::Run (Task node)
-	{
-		// reset states
-		_currTask	= node;
-
-		node->Process( this );
-	}
 
 
 }	// FG

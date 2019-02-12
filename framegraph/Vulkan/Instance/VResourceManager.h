@@ -34,16 +34,16 @@ namespace FG
 	private:
 		using Index_t			= uint;
 		using AssignOpGuard_t	= std::mutex;
-		using CacheGuard_t		= std::shared_mutex;
+		using CacheGuard_t		= DummySharedLock; //std::shared_mutex;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
-		using PoolTmpl		= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, AtomicPtr >;
+		using PoolTmpl			= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, AtomicPtr >;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
-		using CachedPoolTmpl = CachedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, CacheGuard_t, AtomicPtr >;
+		using CachedPoolTmpl	= CachedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, CacheGuard_t, AtomicPtr >;
 
 		template <typename T, size_t MaxSize, template <typename, size_t, size_t> class PoolT>
-		using PoolHelper	= PoolT< ResourceBase<T>, MaxSize/16, 16 >;
+		using PoolHelper		= PoolT< ResourceBase<T>, MaxSize/16, 16 >;
 
 		using ImagePool_t				= PoolHelper< VImage,					FG_MaxResources,	PoolTmpl >;
 		using BufferPool_t				= PoolHelper< VBuffer,					FG_MaxResources,	PoolTmpl >;

@@ -55,12 +55,12 @@ namespace FG
 		PipelineResourceBarriers (VTaskProcessor &tp, ArrayView<uint> offsets) : _tp{tp}, _dynamicOffsets{offsets} {}
 
 		// ResourceGraph //
-		void operator () (const PipelineResources::Buffer &buf);
-		void operator () (const PipelineResources::Image &img);
-		void operator () (const PipelineResources::Texture &tex);
-		//void operator () (const PipelineResources::SubpassInput &sp);
-		void operator () (const PipelineResources::Sampler &) {}
-		void operator () (const PipelineResources::RayTracingScene &);
+		void operator () (const UniformID &, const PipelineResources::Buffer &buf);
+		void operator () (const UniformID &, const PipelineResources::Image &img);
+		void operator () (const UniformID &, const PipelineResources::Texture &tex);
+		//void operator () (const UniformID &, const PipelineResources::SubpassInput &sp);
+		void operator () (const UniformID &, const PipelineResources::Sampler &) {}
+		void operator () (const UniformID &, const PipelineResources::RayTracingScene &);
 	};
 
 	
@@ -162,7 +162,7 @@ namespace FG
 	operator (Buffer)
 =================================================
 */
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Buffer &buf)
+	void VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Buffer &buf)
 	{
 		for (uint i = 0; i < buf.elementCount; ++i)
 		{
@@ -200,7 +200,7 @@ namespace FG
 	operator (Image / Texture / SubpassInput)
 =================================================
 */
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Image &img)
+	void VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Image &img)
 	{
 		for (uint i = 0; i < img.elementCount; ++i)
 		{
@@ -212,7 +212,7 @@ namespace FG
 		}
 	}
 	
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::Texture &tex)
+	void VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Texture &tex)
 	{
 		for (uint i = 0; i < tex.elementCount; ++i)
 		{
@@ -229,7 +229,7 @@ namespace FG
 	operator (RayTracingScene)
 =================================================
 */
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const PipelineResources::RayTracingScene &rts)
+	void VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::RayTracingScene &rts)
 	{
 		for (uint i = 0; i < rts.elementCount; ++i)
 		{
@@ -559,7 +559,7 @@ namespace FG
 */
 	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawVertices> &task)
 	{
-		_tp._CmdDebugMarker( task.GetName() );
+		//_tp._CmdDebugMarker( task.GetName() );
 
 		VPipelineLayout const*	layout = null;
 
@@ -585,7 +585,7 @@ namespace FG
 */
 	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawIndexed> &task)
 	{
-		_tp._CmdDebugMarker( task.GetName() );
+		//_tp._CmdDebugMarker( task.GetName() );
 		
 		VPipelineLayout const*	layout = null;
 
@@ -613,7 +613,7 @@ namespace FG
 */
 	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawVerticesIndirect> &task)
 	{
-		_tp._CmdDebugMarker( task.GetName() );
+		//_tp._CmdDebugMarker( task.GetName() );
 		
 		VPipelineLayout const*	layout = null;
 
@@ -643,7 +643,7 @@ namespace FG
 */
 	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawIndexedIndirect> &task)
 	{
-		_tp._CmdDebugMarker( task.GetName() );
+		//_tp._CmdDebugMarker( task.GetName() );
 		
 		VPipelineLayout const*	layout = null;
 
@@ -674,7 +674,7 @@ namespace FG
 */
 	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawMeshes> &task)
 	{
-		_tp._CmdDebugMarker( task.GetName() );
+		//_tp._CmdDebugMarker( task.GetName() );
 		
 		VPipelineLayout const*	layout = null;
 
@@ -699,7 +699,7 @@ namespace FG
 */
 	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<DrawMeshesIndirect> &task)
 	{
-		_tp._CmdDebugMarker( task.GetName() );
+		//_tp._CmdDebugMarker( task.GetName() );
 		
 		VPipelineLayout const*	layout = null;
 
@@ -732,7 +732,7 @@ namespace FG
 	VTaskProcessor::VTaskProcessor (VFrameGraphThread &fg, VBarrierManager &barrierMngr,
 									VkCommandBuffer cmdbuf, const CommandBatchID &batchId, uint indexInBatch) :
 		_frameGraph{ fg },								_dev{ fg.GetDevice() },
-		_cmdBuffer{ cmdbuf },							_enableDebugUtils{ false },  //_dev.IsDebugUtilsEnabled() },	// because of crash
+		_cmdBuffer{ cmdbuf },							_enableDebugUtils{ _dev.IsDebugUtilsEnabled() },
 		_isDefaultScissor{ false },						_perPassStatesUpdated{ false },
 		_pendingResourceBarriers{ fg.GetAllocator() },	_barrierMngr{ barrierMngr }
 	{
@@ -888,19 +888,6 @@ namespace FG
 		{
 			_dev.vkCmdEndDebugUtilsLabelEXT( _cmdBuffer );
 		}
-	}
-	
-/*
-=================================================
-	_OnProcessTask
-=================================================
-*/
-	forceinline void  VTaskProcessor::_OnProcessTask () const
-	{
-		_CmdDebugMarker( _currTask->Name() );
-		
-		if ( _frameGraph.GetDebugger() )
-			_frameGraph.GetDebugger()->AddTask( _currTask );
 	}
 	
 /*
@@ -1155,12 +1142,12 @@ namespace FG
 		if ( not task.IsSubpass() )
 		{
 			_CmdPushDebugGroup( task.Name() );
-			_OnProcessTask();
 			_BeginRenderPass( task );
 		}
 		else
 		{
-			_OnProcessTask();
+			_CmdPopDebugGroup();
+			_CmdPushDebugGroup( task.Name() );
 			_BeginSubpass( task );
 		}
 
@@ -1377,7 +1364,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<DispatchCompute> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VPipelineLayout const*	layout = null;
 
@@ -1402,7 +1389,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<DispatchComputeIndirect> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 		
 		VPipelineLayout const*	layout = null;
 
@@ -1433,7 +1420,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<CopyBuffer> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VLocalBuffer const *	src_buffer	= task.srcBuffer;
 		VLocalBuffer const *	dst_buffer	= task.dstBuffer;
@@ -1478,7 +1465,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<CopyImage> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VLocalImage const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= task.dstImage;
@@ -1535,7 +1522,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<CopyBufferToImage> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VLocalBuffer const *		src_buffer	= task.srcBuffer;
 		VLocalImage const *			dst_image	= task.dstImage;
@@ -1582,7 +1569,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<CopyImageToBuffer> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VLocalImage const *			src_image	= task.srcImage;
 		VLocalBuffer const *		dst_buffer	= task.dstBuffer;
@@ -1628,7 +1615,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<BlitImage> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VLocalImage const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= task.dstImage;
@@ -1678,7 +1665,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<ResolveImage> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 		
 		VLocalImage	const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= task.dstImage;
@@ -1728,7 +1715,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<GenerateMipmaps> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VLocalImage const*		image		= task.image;
 		const VkImage			vk_image	= image->Handle();
@@ -1743,15 +1730,11 @@ namespace FG
 		subres.baseMipLevel		= task.baseLevel;
 		subres.levelCount		= level_count;
 
-		_AddImage( image, EResourceState::TransferSrc, VK_IMAGE_LAYOUT_GENERAL, subres );
+		_AddImage( image, EResourceState::TransferSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subres );
 		_CommitBarriers();
 	
 		VkImageMemoryBarrier	barrier = {};
 		barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.srcAccessMask		= 0;
-		barrier.dstAccessMask		= 0;
-		barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
-		barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
 		barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 		barrier.image				= vk_image;
@@ -1760,6 +1743,16 @@ namespace FG
 		{
 			const int3	src_size	= Max( 1u, dimension >> (i-1) );
 			const int3	dst_size	= Max( 1u, dimension >> i );
+			
+			// undefined -> transfer_dst_optimal
+			barrier.oldLayout			= VK_IMAGE_LAYOUT_UNDEFINED;
+			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.srcAccessMask		= 0;
+			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i), 1, 0, arr_layers };
+
+			_dev.vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+										0, null, 0, null, 1, &barrier );
 
 			VkImageBlit		region	= {};
 			region.srcOffsets[0]	= { 0, 0, 0 };
@@ -1769,11 +1762,14 @@ namespace FG
 			region.dstOffsets[1]	= { dst_size.x, dst_size.y, dst_size.z };
 			region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i), 0, arr_layers };
 
-			_dev.vkCmdBlitImage( _cmdBuffer, vk_image, VK_IMAGE_LAYOUT_GENERAL, vk_image, VK_IMAGE_LAYOUT_GENERAL, 1, &region, VK_FILTER_LINEAR );
+			_dev.vkCmdBlitImage( _cmdBuffer, vk_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+								 vk_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
 			
 			Stat().transferOps++;
 
 			// read after write
+			barrier.oldLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
 			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i), 1, 0, arr_layers };
@@ -1790,7 +1786,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<FillBuffer> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VLocalBuffer const *	dst_buffer = task.dstBuffer;
 
@@ -1814,7 +1810,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<ClearColorImage> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VLocalImage const *		dst_image	= task.dstImage;
 		ImageClearRanges_t		ranges;		ranges.resize( task.ranges.size() );
@@ -1852,7 +1848,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<ClearDepthStencilImage> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 		
 		VLocalImage const *		dst_image	= task.dstImage;
 		ImageClearRanges_t		ranges;		ranges.resize( task.ranges.size() );
@@ -1890,7 +1886,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<UpdateBuffer> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 		
 		VLocalBuffer const *	dst_buffer = task.dstBuffer;
 
@@ -1913,7 +1909,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<Present> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 		
 		RawImageID	swapchain_image;
 		CHECK( _frameGraph.GetSwapchain()->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
@@ -1974,7 +1970,8 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<PresentVR> &task)
 	{
-		_OnProcessTask();
+		/*
+		_CmdDebugMarker( task.Name() );
 
 		/*_AddImage( task.GetLeftEyeImage(), EResourceState::PresentImage | EResourceState::_InvalidateAfter, EImageLayout::PresentSrc,
 				   ImageRange{ task.GetLeftEyeLayer(), 1, 0_mipmap, 1 }, EImageAspect::Color );
@@ -1994,7 +1991,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<UpdateRayTracingShaderTable> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		VPipelineCache::BufferCopyRegions_t	copy_regions;
 
@@ -2030,7 +2027,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<BuildRayTracingGeometry> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 		
 		_AddRTGeometry( task.RTGeometry(), EResourceState::BuildRayTracingStructWrite );
 		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VK_WHOLE_SIZE );
@@ -2067,7 +2064,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<BuildRayTracingScene> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 		
 		task.RTScene()->SetGeometryInstances( task.Instances(), task.InstanceCount(),
 											  task.HitShadersPerInstance(), task.MaxHitShaderCount() );
@@ -2105,7 +2102,7 @@ namespace FG
 */
 	void VTaskProcessor::Visit (const VFgTask<TraceRays> &task)
 	{
-		_OnProcessTask();
+		_CmdDebugMarker( task.Name() );
 
 		const bool			is_debuggable	= (task.GetDebugModeIndex() != UMax);
 		EShaderDebugMode	dbg_mode		= Default;

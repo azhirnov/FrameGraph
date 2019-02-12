@@ -445,7 +445,8 @@ namespace FG
 		GenerateMipmaps () :
 			BaseTask<GenerateMipmaps>{ "GenerateMipmaps", ColorScheme::DeviceLocalTransfer } {}
 
-		GenerateMipmaps&  SetImage (const ImageID &img)		{ ASSERT( img );  image = img.Get();  return *this; }
+		GenerateMipmaps&  SetImage (const ImageID &img)				{ ASSERT( img );  image = img.Get();  return *this; }
+		GenerateMipmaps&  SetRange (MipmapLevel base, uint count)	{ baseLevel = base;  levelCount = count;  return *this; }
 	};
 
 

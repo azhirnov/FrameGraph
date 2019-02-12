@@ -81,6 +81,7 @@ namespace FG
 		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName = Default) = 0;
+
 			virtual bool			InitPipelineResources (const RawGPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
 			virtual bool			InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
 			virtual bool			InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
@@ -88,6 +89,10 @@ namespace FG
 		
 			template <typename Pipeline>
 			inline bool				InitPipelineResources (const Pipeline &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const { return InitPipelineResources( pplnId.Get(), id, OUT resources ); }
+			
+			// Creates internal descriptor set and release dynamically allocated memory in the 'resources'.
+			// After that your can not modify the 'resources', but you still can use it in the tasks.
+			virtual bool			CachePipelineResources (INOUT PipelineResources &resources) = 0;
 
 			// Release reference to resource, if reference counter is 0 then resource will be destroyed after frame execution.
 			// See synchronization requirements on top of this file.

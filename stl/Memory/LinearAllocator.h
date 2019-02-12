@@ -82,7 +82,8 @@ namespace FG
 				}
 			}
 
-			BytesU	block_size	= size*2 < _blockSize ? _blockSize : size*2;
+			BytesU	block_size	= _blockSize * (1 + _blocks.size()/2);
+					block_size	= size*2 < block_size ? block_size : size*2;
 			auto&	block		= _blocks.emplace_back(Block{ _alloc.Allocate( block_size, _ptrAlign ), 0_b, block_size });	// TODO: check for null
 			BytesU	offset		= AlignToLarger( size_t(block.ptr) + block.size, align ) - size_t(block.ptr);
 

@@ -46,7 +46,10 @@ namespace FG
 			BindingIndex		index;
 			EResourceState		state;
 			uint				dynamicOffsetIndex;
-			uint				elementCount;
+			BytesU				staticSize;
+			BytesU				arrayStride;
+			const uint16_t		elementCapacity;
+			uint16_t			elementCount;
 			Element				elements[1];
 		};
 
@@ -62,7 +65,8 @@ namespace FG
 
 			BindingIndex		index;
 			EResourceState		state;
-			uint				elementCount;
+			const uint16_t		elementCapacity;
+			uint16_t			elementCount;
 			Element				elements[1];
 		};
 
@@ -79,7 +83,8 @@ namespace FG
 			
 			BindingIndex		index;
 			EResourceState		state;
-			uint				elementCount;
+			const uint16_t		elementCapacity;
+			uint16_t			elementCount;
 			Element				elements[1];
 		};
 
@@ -96,7 +101,8 @@ namespace FG
 			};
 
 			BindingIndex		index;
-			uint				elementCount;
+			const uint16_t		elementCapacity;
+			uint16_t			elementCount;
 			Element				elements[1];
 		};
 
@@ -109,7 +115,8 @@ namespace FG
 			};
 
 			BindingIndex		index;
-			uint				elementCount;
+			const uint16_t		elementCapacity;
+			uint16_t			elementCount;
 			Element				elements[1];
 		};
 
@@ -122,6 +129,7 @@ namespace FG
 			EDescriptorType	resType		= Default;
 			uint16_t		offset		= 0;
 
+			// for sorting and searching
 			ND_ bool  operator == (const UniformID &rhs) const	{ return id == rhs; }
 			ND_ bool  operator <  (const UniformID &rhs) const	{ return id < rhs; }
 		};
@@ -133,23 +141,37 @@ namespace FG
 			uint						uniformsOffset		= 0;
 			uint						dynamicOffsetsCount	= 0;
 			uint						dynamicOffsetsOffset= 0;
-			DeallocatorFn_t				deallocate			= null;
-			void *						allocatorPtr		= null;
 			BytesU						memSize;
 
-			ND_ Uniform	*	Uniforms ()			{ return Cast<Uniform>(this + BytesU{uniformsOffset}); }
-			ND_ uint*		DynamicOffsets ()	{ return Cast<uint>(this + BytesU{dynamicOffsetsOffset}); }
-				void		Dealloc ()			{ deallocate( allocatorPtr, this, memSize ); }
+			DynamicData () {}
+
+			ND_ Uniform	*		Uniforms ()					{ return Cast<Uniform>(this + BytesU{uniformsOffset}); }
+			ND_ Uniform	const*	Uniforms ()			const	{ return Cast<Uniform>(this + BytesU{uniformsOffset}); }
+			ND_ uint*			DynamicOffsets ()			{ return Cast<uint>(this + BytesU{dynamicOffsetsOffset}); }
+
+			ND_ HashVal			CalcHash () const;
+			ND_ bool			operator == (const DynamicData &) const;
 				
 			template <typename T, typename Fn>	static void  _ForEachUniform (T&&, Fn &&);
 			template <typename Fn>				void ForEachUniform (Fn&& fn)				{ _ForEachUniform( *this, fn ); }
 			template <typename Fn>				void ForEachUniform (Fn&& fn) const			{ _ForEachUniform( *this, fn ); }
 		};
+	
+		struct DynamicDataDeleter
+		{
+			constexpr DynamicDataDeleter () noexcept {}
+
+			DynamicDataDeleter (const DynamicDataDeleter &) noexcept {}
+
+			void operator () (DynamicData *) const noexcept;
+		};
+
+		using DynamicDataPtr = std::unique_ptr< DynamicData, DynamicDataDeleter >;
 
 
 	// variables
 	private:
-		DynamicData *			_dataPtr				= null;
+		DynamicDataPtr			_dataPtr;
 		bool					_allowEmptyResources	= false;
 		mutable CachedID		_cachedId;
 		RWRaceConditionCheck	_rcCheck;
@@ -167,10 +189,9 @@ namespace FG
 		explicit PipelineResources (const PipelineResources &other);
 		
 		PipelineResources (PipelineResources &&other) :
-			_dataPtr{ other._dataPtr },
+			_dataPtr{ std::move(other._dataPtr) },
 			_allowEmptyResources{ other._allowEmptyResources }
 		{
-			other._dataPtr = null;
 			_SetCachedID( other._GetCachedID() );
 		}
 
@@ -187,11 +208,13 @@ namespace FG
 		Self&  BindTextures (const UniformID &id, ArrayView<ImageID> images, const SamplerID &sampler);
 
 		Self&  BindSampler (const UniformID &id, const SamplerID &sampler, uint elementIndex = 0);
+		Self&  BindSamplers (const UniformID &id, ArrayView<SamplerID> samplers);
 
 		Self&  BindBuffer (const UniformID &id, const BufferID &buffer, uint elementIndex = 0);
 		Self&  BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size, uint elementIndex = 0);
 		Self&  BindBuffer (const UniformID &id, RawBufferID buffer, uint elementIndex = 0);
 		Self&  BindBuffer (const UniformID &id, RawBufferID buffer, BytesU offset, BytesU size, uint elementIndex = 0);
+		Self&  BindBuffers (const UniformID &id, ArrayView<BufferID> buffers);
 		Self&  SetBufferBase (const UniformID &id, BytesU offset, uint elementIndex = 0);
 
 		Self&  BindRayTracingScene (const UniformID &id, const RTSceneID &scene, uint elementIndex = 0);
@@ -291,12 +314,12 @@ namespace FG
 			switch ( un.resType )
 			{
 				case EDescriptorType::Unknown :			break;
-				case EDescriptorType::Buffer :			fn( *Cast<Buffer>(ptr) );			break;
+				case EDescriptorType::Buffer :			fn( un.id, *Cast<Buffer>(ptr) );			break;
 				case EDescriptorType::SubpassInput :
-				case EDescriptorType::Image :			fn( *Cast<Image>(ptr) );			break;
-				case EDescriptorType::Texture :			fn( *Cast<Texture>(ptr) );			break;
-				case EDescriptorType::Sampler :			fn( *Cast<Sampler>(ptr) );			break;
-				case EDescriptorType::RayTracingScene :	fn( *Cast<RayTracingScene>(ptr) );	break;
+				case EDescriptorType::Image :			fn( un.id, *Cast<Image>(ptr) );				break;
+				case EDescriptorType::Texture :			fn( un.id, *Cast<Texture>(ptr) );			break;
+				case EDescriptorType::Sampler :			fn( un.id, *Cast<Sampler>(ptr) );			break;
+				case EDescriptorType::RayTracingScene :	fn( un.id, *Cast<RayTracingScene>(ptr) );	break;
 			}
 			DISABLE_ENUM_CHECKS();
 		}

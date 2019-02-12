@@ -3,6 +3,7 @@
 #pragma once
 
 #include "framegraph/Public/Pipeline.h"
+#include "framegraph/Public/PipelineResources.h"
 #include "VCommon.h"
 
 namespace FG
@@ -21,6 +22,7 @@ namespace FG
 	private:
 		using UniformMapPtr			= PipelineDescription::UniformMapPtr;
 		using PoolSizeArray_t		= FixedArray< VkDescriptorPoolSize, 10 >;
+		using DynamicDataPtr		= PipelineResources::DynamicDataPtr;
 
 
 	// variables
@@ -32,7 +34,7 @@ namespace FG
 		uint					_maxIndex			= 0;
 		uint					_elementCount		= 0;
 		uint					_dynamicOffsetCount	= 0;
-		void *					_dataPtr			= null;
+		DynamicDataPtr			_dataPtr;
 		DebugName_t				_debugName;
 		// TODO: desc set update template
 
@@ -54,7 +56,7 @@ namespace FG
 		ND_ VkDescriptorSetLayout	Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _layout; }
 		ND_ HashVal					GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }
 		ND_ UniformMapPtr const&	GetUniforms ()		const	{ SHAREDLOCK( _rcCheck );  return _uniforms; }
-		ND_ void const*				GetDynamicData ()	const	{ SHAREDLOCK( _rcCheck );  return _dataPtr; }
+		ND_ DynamicDataPtr const&	GetDynamicData ()	const	{ SHAREDLOCK( _rcCheck );  return _dataPtr; }
 		ND_ uint					GetMaxIndex ()		const	{ SHAREDLOCK( _rcCheck );  return _maxIndex; }
 		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
 

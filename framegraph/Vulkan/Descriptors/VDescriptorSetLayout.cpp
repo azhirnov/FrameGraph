@@ -78,10 +78,7 @@ namespace FG
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, uint64_t(_layout) );
 		}
 
-		if ( _dataPtr ) {
-			Cast<PipelineResources::DynamicData>(_dataPtr)->Dealloc();
-		}
-
+		_dataPtr.reset();
 		_poolSize.clear();
 		_uniforms			= null;
 		_layout				= VK_NULL_HANDLE;
@@ -89,7 +86,6 @@ namespace FG
 		_maxIndex			= 0;
 		_elementCount		= 0;
 		_dynamicOffsetCount	= 0;
-		_dataPtr			= null;
 	}
 
 /*

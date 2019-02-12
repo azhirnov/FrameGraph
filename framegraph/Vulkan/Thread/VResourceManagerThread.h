@@ -146,6 +146,7 @@ namespace FG
 												   StringView dbgName, bool isAsync);
 
 		ND_ VPipelineResources const*	CreateDescriptorSet (const PipelineResources &desc, bool isAsync);
+			bool						CacheDescriptorSet (INOUT PipelineResources &desc, bool isAsync);
 		
 		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem,
 														  VMemoryManager &alloc, StringView dbgName, bool isAsync);

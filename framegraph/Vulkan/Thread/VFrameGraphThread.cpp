@@ -320,7 +320,9 @@ namespace FG
 
 		RawDescriptorSetLayoutID	layout_id;
 		uint						binding;
-		CHECK_ERR( ppln_layout->GetDescriptorSetLayout( id, OUT layout_id, OUT binding ));
+
+		if ( not ppln_layout->GetDescriptorSetLayout( id, OUT layout_id, OUT binding ) )
+			return false;
 
 		VDescriptorSetLayout const*	ds_layout = _resourceMngr.GetResource( layout_id );
 		CHECK_ERR( ds_layout );
@@ -352,6 +354,19 @@ namespace FG
 	bool  VFrameGraphThread::InitPipelineResources (const RawRTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
+	}
+	
+/*
+=================================================
+	CachePipelineResources
+=================================================
+*/
+	bool  VFrameGraphThread::CachePipelineResources (INOUT PipelineResources &resources)
+	{
+		EXLOCK( _rcCheck );
+		ASSERT( _IsInitialized() );
+
+		return _resourceMngr.CacheDescriptorSet( INOUT resources, IsInSeparateThread() );
 	}
 
 /*

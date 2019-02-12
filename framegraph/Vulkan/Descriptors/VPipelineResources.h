@@ -24,8 +24,8 @@ namespace FG
 			uint						descriptorIndex;
 		};
 
-		using Element_t		= Union< VkDescriptorBufferInfo, VkDescriptorImageInfo, VkAccelerationStructureNV >;
-		using DynamicData	= PipelineResources::DynamicData;
+		using Element_t			= Union< VkDescriptorBufferInfo, VkDescriptorImageInfo, VkAccelerationStructureNV >;
+		using DynamicDataPtr	= PipelineResources::DynamicDataPtr;
 
 
 	// variables
@@ -34,7 +34,7 @@ namespace FG
 		RawDescriptorSetLayoutID	_layoutId;
 		//DescriptorPoolID			_descriptorPoolId;
 		HashVal						_hash;
-		DynamicData *				_dataPtr			= null;
+		DynamicDataPtr				_dataPtr;
 		const bool					_allowEmptyResources;
 		
 		DebugName_t					_debugName;
@@ -46,10 +46,11 @@ namespace FG
 	public:
 		VPipelineResources () : _allowEmptyResources{false} {}
 		VPipelineResources (VPipelineResources &&) = default;
-		VPipelineResources (const PipelineResources &desc);
+		explicit VPipelineResources (const PipelineResources &desc);
+		explicit VPipelineResources (INOUT PipelineResources &desc);
 		~VPipelineResources ();
 
-			bool Create (VResourceManagerThread &, const PipelineResources &);
+			bool Create (VResourceManagerThread &);
 			void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
 
 		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
@@ -75,7 +76,6 @@ namespace FG
 		bool _AddResource (VResourceManagerThread &, const NullUnion &, INOUT UpdateDescriptors &);
 	};
 	
-
 
 }	// FG
 

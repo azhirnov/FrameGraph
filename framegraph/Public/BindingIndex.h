@@ -26,6 +26,7 @@ namespace FG
 		explicit BindingIndex (uint perResourceIndex, uint uniqueIndex) : _index1{uint16_t(perResourceIndex)}, _index2{uint16_t(uniqueIndex)} {}
 
 		ND_ bool	operator == (const BindingIndex &rhs) const		{ return _index1 == rhs._index1 and _index2 == rhs._index2; }
+		ND_ bool	operator != (const BindingIndex &rhs) const		{ return not (*this == rhs); }
 
 		ND_ uint	GLBinding ()	const	{ return _index1; }
 		ND_ uint	DXBinding ()	const	{ return _index1; }

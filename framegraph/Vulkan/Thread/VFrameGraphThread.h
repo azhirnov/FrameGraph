@@ -140,6 +140,7 @@ namespace FG
 		bool			InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			InitPipelineResources (const RawRTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			CachePipelineResources (INOUT PipelineResources &resources) override;
 
 		void			ReleaseResource (INOUT GPipelineID &id) override;
 		void			ReleaseResource (INOUT CPipelineID &id) override;

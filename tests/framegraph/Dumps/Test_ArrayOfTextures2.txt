@@ -1,0 +1,651 @@
+SubBatch {
+	batch:         "main"
+	indexInBatch:  0
+	Image {
+		name:         "OutImage"
+		iamgeType:    Image2D
+		dimension:    ( 32, 32, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         DispatchCompute (#10)
+					dstTask:         ReadImage (#11)
+					srcStageMask:    ComputeShader
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ShaderWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       General
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#11)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   
+					oldLayout:       TransferSrcOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "Texture"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferDst | Sampled
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearColorImage (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#2)
+					dstTask:         DispatchCompute (#10)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "Texture"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferDst | Sampled
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearColorImage (#3)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#3)
+					dstTask:         DispatchCompute (#10)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "Texture"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferDst | Sampled
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearColorImage (#4)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#4)
+					dstTask:         DispatchCompute (#10)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "Texture"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferDst | Sampled
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearColorImage (#5)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#5)
+					dstTask:         DispatchCompute (#10)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "Texture"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferDst | Sampled
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearColorImage (#6)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#6)
+					dstTask:         DispatchCompute (#10)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "Texture"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferDst | Sampled
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearColorImage (#7)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#7)
+					dstTask:         DispatchCompute (#10)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "Texture"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferDst | Sampled
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearColorImage (#8)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#8)
+					dstTask:         DispatchCompute (#10)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Image {
+		name:         "Texture"
+		iamgeType:    Image2D
+		dimension:    ( 16, 16, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferDst | Sampled
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         ClearColorImage (#9)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       ShaderReadOnlyOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ClearColorImage (#9)
+					dstTask:         DispatchCompute (#10)
+					srcStageMask:    Transfer
+					dstStageMask:    ComputeShader
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   ShaderRead
+					oldLayout:       TransferDstOptimal
+					newLayout:       ShaderReadOnlyOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "HostReadBuffer"
+		size:    256 Mb
+		usage:   TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#11)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    TopOfPipe
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            4 Kb
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "ClearColorImage (#2)"
+		input =  {  }
+		output = { ClearColorImage (#3) }
+		resource_usage = {
+			ImageUsage {
+				name:           "Texture"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ClearColorImage (#3)"
+		input =  { ClearColorImage (#2) }
+		output = { ClearColorImage (#4) }
+		resource_usage = {
+			ImageUsage {
+				name:           "Texture"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ClearColorImage (#4)"
+		input =  { ClearColorImage (#3) }
+		output = { ClearColorImage (#5) }
+		resource_usage = {
+			ImageUsage {
+				name:           "Texture"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ClearColorImage (#5)"
+		input =  { ClearColorImage (#4) }
+		output = { ClearColorImage (#6) }
+		resource_usage = {
+			ImageUsage {
+				name:           "Texture"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ClearColorImage (#6)"
+		input =  { ClearColorImage (#5) }
+		output = { ClearColorImage (#7) }
+		resource_usage = {
+			ImageUsage {
+				name:           "Texture"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ClearColorImage (#7)"
+		input =  { ClearColorImage (#6) }
+		output = { ClearColorImage (#8) }
+		resource_usage = {
+			ImageUsage {
+				name:           "Texture"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ClearColorImage (#8)"
+		input =  { ClearColorImage (#7) }
+		output = { ClearColorImage (#9) }
+		resource_usage = {
+			ImageUsage {
+				name:           "Texture"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ClearColorImage (#9)"
+		input =  { ClearColorImage (#8) }
+		output = { DispatchCompute (#10) }
+		resource_usage = {
+			ImageUsage {
+				name:           "Texture"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "DispatchCompute (#10)"
+		input =  { ClearColorImage (#9) }
+		output = { ReadImage (#11) }
+		resource_usage = {
+			ImageUsage {
+				name:           "OutImage"
+				usage:          Storage-W, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "Texture"
+				usage:          ShaderSample, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "Texture"
+				usage:          ShaderSample, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "Texture"
+				usage:          ShaderSample, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "Texture"
+				usage:          ShaderSample, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "Texture"
+				usage:          ShaderSample, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "Texture"
+				usage:          ShaderSample, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "Texture"
+				usage:          ShaderSample, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+			ImageUsage {
+				name:           "Texture"
+				usage:          ShaderSample, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#11)"
+		input =  { DispatchCompute (#10) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     4 Kb
+			}
+			ImageUsage {
+				name:           "OutImage"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+

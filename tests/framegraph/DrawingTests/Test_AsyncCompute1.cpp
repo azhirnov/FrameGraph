@@ -156,11 +156,20 @@ void main ()
 			CHECK_ERR( _fgInstance->EndFrame() );
 		}
 		
-		// TODO: required synchronization between compute queue in first frame and graphics queue in second frame
-		
 		// frame 2
 		{
+			// add synchronization between compute queue from previous frame and graphics queue in current frame
+			CommandBatchID	sync_batch_id {"compute-graphics-sync"};
+
+			submission_graph.Clear();
+			submission_graph.AddBatch( sync_batch_id, 1, EThreadUsage::AsyncCompute );
+			submission_graph.AddBatch( gbatch_id, 1, EThreadUsage::Graphics, {sync_batch_id} );
+			submission_graph.AddBatch( cbatch_id, 1, EThreadUsage::AsyncCompute, { gbatch_id });
+
 			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
+
+			// this batch just enqueue the semaphore signal command
+			CHECK_ERR( _fgInstance->SkipBatch( sync_batch_id, 0 ));
 
 			// graphics queue
 			{

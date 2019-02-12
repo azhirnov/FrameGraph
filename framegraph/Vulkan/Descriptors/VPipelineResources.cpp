@@ -18,14 +18,25 @@ namespace FG
 		_allowEmptyResources{ desc.IsEmptyResourcesAllowed() }
 	{
 		EXLOCK( _rcCheck );
-
+		
+		_dataPtr	= PipelineResourcesHelper::CloneDynamicData( desc );
 		_layoutId	= desc.GetLayout();
-		_hash		= HashOf( _layoutId );
-
-		/*for (auto& un : _resources)
-		{
-			_hash << un.hash;
-		}*/
+		_hash		= HashOf( _layoutId ) + _dataPtr->CalcHash();
+	}
+	
+/*
+=================================================
+	constructor
+=================================================
+*/
+	VPipelineResources::VPipelineResources (INOUT PipelineResources &desc) :
+		_dataPtr{ PipelineResourcesHelper::RemoveDynamicData( INOUT desc )},
+		_allowEmptyResources{ desc.IsEmptyResourcesAllowed() }
+	{
+		EXLOCK( _rcCheck );
+		
+		_layoutId	= desc.GetLayout();
+		_hash		= HashOf( _layoutId ) + _dataPtr->CalcHash();
 	}
 
 /*
@@ -36,7 +47,6 @@ namespace FG
 	VPipelineResources::~VPipelineResources ()
 	{
 		CHECK( not _descriptorSet );
-		CHECK( not _dataPtr );
 	}
 	
 /*
@@ -44,10 +54,11 @@ namespace FG
 	Create
 =================================================
 */
-	bool VPipelineResources::Create (VResourceManagerThread &resMngr, const PipelineResources &desc)
+	bool VPipelineResources::Create (VResourceManagerThread &resMngr)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( not _descriptorSet );
+		CHECK_ERR( _dataPtr );
 
 		VDevice const&					dev			= resMngr.GetDevice();
 		VDescriptorSetLayout const*		ds_layout	= resMngr.GetResource( _layoutId );
@@ -58,8 +69,7 @@ namespace FG
 		update.descriptors		= update.allocator.Alloc< VkWriteDescriptorSet >( ds_layout->GetMaxIndex() + 1 );
 		update.descriptorIndex	= 0;
 
-		_dataPtr = PipelineResourcesHelper::CloneDynamicData( desc );
-		_dataPtr->ForEachUniform( [&](auto& data) { _AddResource( resMngr, data, INOUT update ); });
+		_dataPtr->ForEachUniform( [&](auto&, auto& data) { _AddResource( resMngr, data, INOUT update ); });
 		
 		dev.vkUpdateDescriptorSets( dev.GetVkDevice(), update.descriptorIndex, update.descriptors, 0, null );
 		return true;
@@ -84,16 +94,11 @@ namespace FG
 		//	readyToDelete.emplace_back( VK_OBJECT_TYPE_DESCRIPTOR_SET_EXT, uint64_t(_descriptorSet) );
 		}
 
-		if ( _dataPtr ) {
-			_dataPtr->Dealloc();
-		}
-
-		_dataPtr			= null;
+		_dataPtr.reset();
 		_descriptorSet		= VK_NULL_HANDLE;
 		_layoutId			= Default;
 		//_descriptorPoolId	= Default;
 		_hash				= Default;
-		//_resources.clear();
 	}
 	
 /*
@@ -113,7 +118,7 @@ namespace FG
 			Visitor (const VResourceManagerThread &resMngr) : resMngr{resMngr}
 			{}
 
-			void operator () (const PipelineResources::Buffer &buf)
+			void operator () (const UniformID &, const PipelineResources::Buffer &buf)
 			{
 				for (uint i = 0; i < buf.elementCount; ++i)
 				{
@@ -122,7 +127,7 @@ namespace FG
 				}
 			}
 
-			void operator () (const PipelineResources::Image &img)
+			void operator () (const UniformID &, const PipelineResources::Image &img)
 			{
 				for (uint i = 0; i < img.elementCount; ++i)
 				{
@@ -131,7 +136,7 @@ namespace FG
 				}
 			}
 
-			void operator () (const PipelineResources::Texture &tex)
+			void operator () (const UniformID &, const PipelineResources::Texture &tex)
 			{
 				for (uint i = 0; i < tex.elementCount; ++i)
 				{
@@ -141,7 +146,7 @@ namespace FG
 				}
 			}
 
-			void operator () (const PipelineResources::Sampler &samp)
+			void operator () (const UniformID &, const PipelineResources::Sampler &samp)
 			{
 				for (uint i = 0; i < samp.elementCount; ++i)
 				{
@@ -150,7 +155,7 @@ namespace FG
 				}
 			}
 
-			void operator () (const PipelineResources::RayTracingScene &rts)
+			void operator () (const UniformID &, const PipelineResources::RayTracingScene &rts)
 			{
 				for (uint i = 0; i < rts.elementCount; ++i)
 				{
@@ -173,24 +178,13 @@ namespace FG
 */
 	bool  VPipelineResources::operator == (const VPipelineResources &rhs) const
 	{
-		/*SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _rcCheck );
 		SHAREDLOCK( rhs._rcCheck );
 
-		if ( _hash				!= rhs._hash		or
-			 _layoutId			!= rhs._layoutId	or
-			 _resources.size()	!= rhs._resources.size() )
-			return false;
-
-		for (size_t i = 0, count = _resources.size(); i < count; ++i)
-		{
-			const auto&  left	= _resources[i];
-			const auto&  right	= rhs._resources[i];
-
-			if ( (left.hash != right.hash) or not (left.res == right.res) )
-				return false;
-		}
-		return true;*/
-		return false;
+		return	_hash		==  rhs._hash		and
+				_layoutId	==  rhs._layoutId	and
+				_dataPtr	and rhs._dataPtr	and
+				*_dataPtr	== *rhs._dataPtr;
 	}
 	
 /*

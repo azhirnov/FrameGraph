@@ -111,6 +111,7 @@ namespace FG
 		bool Test_ShaderDebugger1 ();
 		bool Test_ShaderDebugger2 ();
 		bool Test_ArrayOfTextures1 ();
+		bool Test_ArrayOfTextures2 ();
 
 		// RTX only
 		bool Test_DrawMeshes1 ();

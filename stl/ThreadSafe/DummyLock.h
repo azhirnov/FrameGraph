@@ -19,4 +19,19 @@ namespace FG
 	};
 
 
+
+	//
+	// Dummy Shared Lock
+	//
+
+	struct DummySharedLock
+	{
+		void lock ()			{}
+		void unlock ()			{}
+
+		void lock_shared ()		{}
+		void unlock_shared () 	{}
+	};
+
+
 }	// FG

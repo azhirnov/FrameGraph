@@ -864,7 +864,7 @@ namespace FG
 
 			if ( res.GetInstanceID() == id.InstanceID() )
 			{
-				res.AddRef();
+				res.AddRef();	// TODO: check
 				return &res.Data();
 			}
 		}
@@ -877,11 +877,43 @@ namespace FG
 		RawPipelineResourcesID	result =
 			_CreateCachedResource( _pplnResourcesMap, isAsync, "failed when creating descriptor set",
 								   [&] (auto& data) { return Replace( data, desc ); },
-								   [&] (auto& data) { if (data.Create( *this, desc )) { layout.AddRef(); return true; }  return false; });
+								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
 
 		PipelineResourcesHelper::SetCache( desc, result );
 
 		return result ? &_GetResourcePool( result )[ result.Index() ].Data() : nullptr;
+	}
+	
+/*
+=================================================
+	CacheDescriptorSet
+=================================================
+*/
+	bool  VResourceManagerThread::CacheDescriptorSet (INOUT PipelineResources &desc, bool isAsync)
+	{
+		RawPipelineResourcesID	id = PipelineResourcesHelper::GetCached( desc );
+		
+		// use cached resources
+		if ( id )
+		{
+			auto&	res = _GetResourcePool( id )[ id.Index() ];
+
+			if ( res.GetInstanceID() == id.InstanceID() )
+				return true;
+		}
+	
+		CHECK_ERR( desc.IsInitialized() );
+	
+		auto&	layout = _GetResourcePool( desc.GetLayout() )[ desc.GetLayout().Index() ];
+		CHECK_ERR( layout.IsCreated() and desc.GetLayout().InstanceID() == layout.GetInstanceID() );
+
+		RawPipelineResourcesID	result =
+			_CreateCachedResource( _pplnResourcesMap, isAsync, "failed when creating descriptor set",
+								   [&] (auto& data) { return Replace( data, INOUT desc ); },
+								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
+
+		PipelineResourcesHelper::SetCache( desc, result );
+		return true;
 	}
 
 /*

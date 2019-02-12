@@ -21,8 +21,8 @@ namespace {
 */
 	bool VFrameGraphThread::_BuildCommandBuffers ()
 	{
-		if ( _taskGraph.Empty() )
-			return true;
+		//if ( _taskGraph.Empty() )
+		//	return true;
 
 		VkCommandBuffer		cmd	= _CreateCommandBuffer();
 		VDevice const&		dev	= GetDevice();
@@ -65,6 +65,22 @@ namespace {
 		return true;
 	}
 	
+/*
+=================================================
+	VTaskProcessor::Run
+=================================================
+*/
+	forceinline void VTaskProcessor::Run (Task node)
+	{
+		// reset states
+		_currTask	= node;
+		
+		if ( _frameGraph.GetDebugger() )
+			_frameGraph.GetDebugger()->AddTask( _currTask );
+
+		node->Process( this );
+	}
+
 /*
 =================================================
 	_ProcessTasks
