@@ -20,7 +20,7 @@ extern void GenMipmpas_Sample ();
 
 int main ()
 {
-	/*MeshShader_Sample1();
+	MeshShader_Sample1();
 	RayTracing_Sample1();
 	RayTracing_Sample2();
 	ShadingRateImage_Sample1();
@@ -29,7 +29,7 @@ int main ()
 	SparseImage_Sample1();
 	AsyncCompute_Sample1();
 	AsyncCompute_Sample2();
-	AsyncCompute_Sample3();*/
+	AsyncCompute_Sample3();
 	GenMipmpas_Sample();
 
 	FG_LOGI( "Vulkan samples finished" );
