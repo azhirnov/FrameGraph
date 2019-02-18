@@ -26,7 +26,7 @@ void main() {
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _fgGraphics1;
+		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		view_size	= {800, 600};
 		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 		SamplerID		sampler		= frame_graph->CreateSampler( SamplerDesc{} );
@@ -42,7 +42,7 @@ void main() {
 		for (uint i = 0; i < 1000'000; ++i)
 		{
 			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 			
 			ImageID			rt	= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );

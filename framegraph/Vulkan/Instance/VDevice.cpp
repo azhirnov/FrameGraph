@@ -68,6 +68,7 @@ namespace FG
 		_enableDebugUtils	= HasExtension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
 		_enableMeshShaderNV	= HasDeviceExtension( VK_NV_MESH_SHADER_EXTENSION_NAME );
 		_enableRayTracingNV	= HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME );
+		_samplerMirrorClamp	= HasDeviceExtension( VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME );
 
 		// load extensions
 		if ( _vkVersion >= EShaderLangFormat::Vulkan_110 )
@@ -97,6 +98,8 @@ namespace FG
 			}
 
 			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
+
+			// TODO: check if extensions enebaled
 		}
 
 

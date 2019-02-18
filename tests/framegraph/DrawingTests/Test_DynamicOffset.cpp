@@ -40,7 +40,7 @@ void main ()
 
 		_pplnCompiler->SetCompilationFlags( old_flags | EShaderCompilationFlags::AlwaysBufferDynamicOffset );
 		
-		FGThreadPtr		frame_graph		= _fgGraphics1;
+		FGThreadPtr		frame_graph		= _fgThreads[0];
 		const BytesU	base_off		= 128_b;
 		const BytesU	buf_off			= 128_b;
 		const BytesU	src_size		= SizeOf<float4> * 4;
@@ -98,7 +98,7 @@ void main ()
 		submission_graph.AddBatch( batch_id );
 		
 		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 		
 		resources.SetBufferBase( UniformID("UB"),  0_b );
 		resources.SetBufferBase( UniformID("SSB"), base_off );

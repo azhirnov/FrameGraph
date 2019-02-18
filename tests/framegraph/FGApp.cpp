@@ -44,7 +44,8 @@ namespace {
 		_tests.push_back({ &FGApp::Test_Draw4,			1 });
 		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1,	1 });
 		_tests.push_back({ &FGApp::Test_ReadAttachment1,	1 });
-		//_tests.push_back({ &FGApp::Test_AsyncCompute1,	1 });
+		_tests.push_back({ &FGApp::Test_AsyncCompute1,		1 });
+		_tests.push_back({ &FGApp::Test_AsyncCompute2,		1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger1,	1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger2,	1 });
 		_tests.push_back({ &FGApp::Test_ArrayOfTextures1,	1 });
@@ -62,7 +63,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_TraceRays3,			1 });
 		_tests.push_back({ &FGApp::Test_ShadingRate1,		1 });
 		_tests.push_back({ &FGApp::Test_RayTracingDebugger1, 1 });
-
+		
 		// very slow
 		//_tests.push_back({ &FGApp::ImplTest_CacheOverflow1,	1 });
 		
@@ -90,7 +91,7 @@ namespace {
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 		swapchain_info.surfaceSize  = size;
 
-		CHECK_FATAL( _fgGraphics1->RecreateSwapchain( swapchain_info ));
+		CHECK_FATAL( _fgThreads[0]->RecreateSwapchain( swapchain_info ));
 	}
 
 /*
@@ -159,24 +160,21 @@ namespace {
 			CHECK_ERR( _fgInstance->Initialize( 2 ));
 			_fgInstance->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
 
-			_fgGraphics1 = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer });
-			CHECK_ERR( _fgGraphics1 );
-			CHECK_ERR( _fgGraphics1->Initialize( &swapchain_info ));
+			_fgThreads[0] = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Transfer });
+			CHECK_ERR( _fgThreads[0] );
+			CHECK_ERR( _fgThreads[0]->Initialize( &swapchain_info ));
 
-			_fgGraphics2 = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Graphics | EThreadUsage::Transfer });
-			CHECK_ERR( _fgGraphics2 );
-			CHECK_ERR( _fgGraphics2->Initialize( null, {_fgGraphics1} ));
-			CHECK_ERR( _fgGraphics1->IsCompatibleWith( _fgGraphics2, EThreadUsage::Graphics ));
+			_fgThreads[1] = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Transfer });
+			CHECK_ERR( _fgThreads[1] );
+			CHECK_ERR( _fgThreads[1]->Initialize() );
 			
-			_fgCompute = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::AsyncCompute | EThreadUsage::Transfer });
-			CHECK_ERR( _fgCompute );
-			CHECK_ERR( _fgCompute->Initialize() );
+			_fgThreads[2] = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Transfer });
+			CHECK_ERR( _fgThreads[2] );
+			CHECK_ERR( _fgThreads[2]->Initialize() );
 			
-			_fgGraphicsCompute = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Graphics | EThreadUsage::Transfer | EThreadUsage::AsyncCompute });
-			CHECK_ERR( _fgGraphicsCompute );
-			CHECK_ERR( _fgGraphicsCompute->Initialize() );
-			CHECK_ERR( _fgGraphicsCompute->IsCompatibleWith( _fgGraphics1, EThreadUsage::Graphics ));
-			CHECK_ERR( _fgGraphicsCompute->IsCompatibleWith( _fgCompute, EThreadUsage::AsyncCompute ));
+			_fgThreads[3] = _fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Transfer });
+			CHECK_ERR( _fgThreads[3] );
+			CHECK_ERR( _fgThreads[3]->Initialize() );
 		}
 
 		// add glsl pipeline compiler
@@ -190,7 +188,7 @@ namespace {
 			_fgInstance->AddPipelineCompiler( _pplnCompiler );
 		}
 		
-		UnitTest_VResourceManager( _fgGraphics1 );
+		UnitTest_VResourceManager( _fgThreads[0] );
 		return true;
 	}
 
@@ -241,28 +239,10 @@ namespace {
 	{
 		_pplnCompiler = null;
 
-		if ( _fgGraphics1 )
+		for (auto& fg : _fgThreads)
 		{
-			_fgGraphics1->Deinitialize();
-			_fgGraphics1 = null;
-		}
-
-		if ( _fgGraphics2 )
-		{
-			_fgGraphics2->Deinitialize();
-			_fgGraphics2 = null;
-		}
-
-		if ( _fgCompute )
-		{
-			_fgCompute->Deinitialize();
-			_fgCompute = null;
-		}
-
-		if ( _fgGraphicsCompute )
-		{
-			_fgGraphicsCompute->Deinitialize();
-			_fgGraphicsCompute = null;
+			if ( fg ) fg->Deinitialize();
+			fg = null;
 		}
 
 		if ( _fgInstance )

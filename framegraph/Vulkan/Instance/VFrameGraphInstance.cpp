@@ -47,10 +47,6 @@ namespace FG
 
 		EThreadUsage	usage = desc.usage;
 
-		// validate usage
-		if ( EnumEq( usage, EThreadUsage::AsyncStreaming ) )
-			usage |= (EThreadUsage::Transfer | EThreadUsage::MemAllocation);
-
 		if ( EnumEq( usage, EThreadUsage::Transfer ) )
 			usage |= EThreadUsage::MemAllocation;
 
@@ -91,6 +87,14 @@ namespace FG
 
 		_ringBufferSize	= ringBufferSize;
 		_frameId		= 0;
+		
+		// setup queues
+		{
+			_AddGraphicsQueue();
+			_AddAsyncComputeQueue();
+			_AddAsyncTransferQueue();
+			CHECK_ERR( not _queueMap.empty() );
+		}
 
 		CHECK_ERR( _submissionGraph.Initialize( ringBufferSize ));
 		CHECK_ERR( _resourceMngr.Initialize( ringBufferSize ));
@@ -181,7 +185,7 @@ namespace FG
 		_statistics	= Default;
 
 		CHECK_ERR( _submissionGraph.WaitFences( _frameId ));
-		CHECK_ERR( _submissionGraph.Recreate( _frameId, graph ));
+		CHECK_ERR( _submissionGraph.Recreate( _frameId, graph, *this ));
 
 		// begin thread execution
 		{
@@ -395,6 +399,191 @@ namespace FG
 	inline bool  VFrameGraphInstance::_SetState (EState expected, EState newState)
 	{
 		return _state.compare_exchange_strong( INOUT expected, newState, memory_order_release, memory_order_relaxed );
+	}
+	
+/*
+=================================================
+	_IsUnique
+=================================================
+*/
+	bool  VFrameGraphInstance::_IsUnique (VDeviceQueueInfoPtr ptr) const
+	{
+		for (auto& q : _queueMap) {
+			if ( q.second == ptr )
+				return false;
+		}
+		return true;
+	}
+
+/*
+=================================================
+	_AddGraphicsQueue
+=================================================
+*/
+	bool  VFrameGraphInstance::_AddGraphicsQueue ()
+	{
+		VDeviceQueueInfoPtr		best_match;
+		VDeviceQueueInfoPtr		compatible;
+
+		for (auto& queue : _device.GetVkQueues())
+		{
+			const bool	is_unique		= _IsUnique( &queue );
+			const bool	has_graphics	= EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
+
+			if ( has_graphics )
+			{
+				compatible = &queue;
+
+				if ( is_unique ) {
+					best_match = &queue;
+					break;
+				}
+			}
+		}
+		
+		if ( not best_match )
+			best_match = compatible;
+
+		if ( best_match )
+		{
+			_queueMap.insert({ EQueueUsage::Graphics, best_match });
+			return true;
+		}
+		return false;
+	}
+	
+/*
+=================================================
+	_AddAsyncComputeQueue
+=================================================
+*/
+	bool  VFrameGraphInstance::_AddAsyncComputeQueue ()
+	{
+		VDeviceQueueInfoPtr		unique;
+		VDeviceQueueInfoPtr		best_match;
+		VDeviceQueueInfoPtr		compatible;
+
+		for (auto& queue : _device.GetVkQueues())
+		{
+			const bool	is_unique		= _IsUnique( &queue );
+			const bool	has_compute		= EnumEq( queue.familyFlags, VK_QUEUE_COMPUTE_BIT );
+			const bool	has_graphics	= EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
+
+			// compute without graphics
+			if ( has_compute and not has_graphics )
+			{
+				compatible = &queue;
+
+				if ( is_unique ) {
+					best_match = &queue;
+					break;
+				}
+			}
+			else
+			
+			// any unique queue that supports compute
+			if ( (has_compute or has_graphics) and is_unique )
+			{
+				unique = &queue;
+			}
+		}
+
+		// unique compute/graphics queue is better than non-unique compute queue
+		if ( not best_match )
+			best_match = unique;
+		
+		if ( not best_match )
+			best_match = compatible;
+		
+		if ( best_match )
+		{
+			_queueMap.insert({ EQueueUsage::AsyncCompute, best_match });
+			return true;
+		}
+		return false;
+	}
+	
+/*
+=================================================
+	_AddAsyncTransferQueue
+=================================================
+*/
+	bool  VFrameGraphInstance::_AddAsyncTransferQueue ()
+	{
+		VDeviceQueueInfoPtr		unique;
+		VDeviceQueueInfoPtr		best_match;
+		VDeviceQueueInfoPtr		compatible;
+
+		for (auto& queue : _device.GetVkQueues())
+		{
+			const bool	is_unique			= _IsUnique( &queue );
+			const bool	has_transfer		= EnumEq( queue.familyFlags, VK_QUEUE_TRANSFER_BIT );
+			const bool	supports_transfer	= EnumAny( queue.familyFlags, VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT );
+
+			// transfer without graphics or compute
+			if ( has_transfer and not supports_transfer )
+			{
+				compatible = &queue;
+
+				if ( is_unique ) {
+					best_match = &queue;
+					break;
+				}
+			}
+			else
+			
+			// any unique queue that supports transfer
+			if ( (has_transfer or supports_transfer) and is_unique )
+			{
+				unique = &queue;
+			}
+		}
+		
+		// unique compute/graphics queue is better than non-unique transfer queue
+		if ( not best_match )
+			best_match = unique;
+		
+		if ( not best_match )
+			best_match = compatible;
+		
+		if ( best_match )
+		{
+			_queueMap.insert({ EQueueUsage::AsyncTransfer, best_match });
+			return true;
+		}
+		return false;
+	}
+
+/*
+=================================================
+	FindQueue
+=================================================
+*/
+	VDeviceQueueInfoPtr  VFrameGraphInstance::FindQueue (EQueueUsage type) const
+	{
+		auto	iter = _queueMap.find( type );
+		return iter != _queueMap.end() ? iter->second : null;
+	}
+	
+/*
+=================================================
+	GetQueuesMask
+=================================================
+*/
+	EQueueFamilyMask  VFrameGraphInstance::GetQueuesMask (EQueueUsage types) const
+	{
+		EQueueFamilyMask	mask = Default;
+
+		for (uint i = 0; (1u<<i) <= uint(types); ++i)
+		{
+			if ( not EnumEq( types, 1u<<i ) )
+				continue;
+
+			auto	iter = _queueMap.find( EQueueUsage(1u<<i) );
+			if ( iter != _queueMap.end() )
+				mask |= iter->second->familyIndex;
+		}
+		return mask;
 	}
 
 

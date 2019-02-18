@@ -65,7 +65,7 @@ namespace FG
 			vk_buf_desc.size	= BytesU{ info.size };
 		}
 		
-		FGThreadPtr		frame_graph	= _fgGraphics1;
+		FGThreadPtr		frame_graph	= _fgThreads[0];
 		BufferID		src_buffer	= frame_graph->CreateBuffer( BufferDesc{ src_buffer_size, EBufferUsage::Transfer }, Default, "SrcBuffer" );
 		BufferID		dst_buffer	= frame_graph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Transfer }, Default, "DstBuffer" );
 		BufferID		ext_buffer	= frame_graph->CreateBuffer( vk_buf_desc, Default, "ExternalBuffer" );
@@ -101,7 +101,7 @@ namespace FG
 
 		// thread 1
 		{
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 
 			Task	t_update	= frame_graph->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( ArrayView<uint8_t>{src_data}.section( 0, 128 ) ));
 			Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 64_b, 128_b ).DependsOn( t_update ));
@@ -143,7 +143,7 @@ namespace FG
 
 		// thread 3
 		{
-			CHECK_ERR( frame_graph->Begin( batch_id, 2, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 2, EQueueUsage::Graphics ));
 
 			Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( ext_buffer ).To( dst_buffer ).AddRegion( 128_b, 192_b, 128_b ));
 			Task	t_read		= frame_graph->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_copy ));

@@ -22,6 +22,7 @@ namespace FG
 		using TestQueue_t			= Deque<Pair< TestFunc_t, uint >>;
 		using DebugReport			= VulkanDeviceExt::DebugReport;
 		using VPipelineCompilerPtr	= SharedPtr< class VPipelineCompiler >;
+		using FGThreadArray_t		= StaticArray< FGThreadPtr, 4 >;
 
 
 	// variables
@@ -29,10 +30,7 @@ namespace FG
 		VulkanDeviceExt			_vulkan;
 		WindowPtr				_window;
 		FGInstancePtr			_fgInstance;
-		FGThreadPtr				_fgGraphics1;
-		FGThreadPtr				_fgGraphics2;
-		FGThreadPtr				_fgCompute;
-		FGThreadPtr				_fgGraphicsCompute;
+		FGThreadArray_t			_fgThreads;
 		VPipelineCompilerPtr	_pplnCompiler;
 
 		TestQueue_t				_tests;
@@ -108,6 +106,7 @@ namespace FG
 		bool Test_InvalidID ();
 		bool Test_ReadAttachment1 ();
 		bool Test_AsyncCompute1 ();
+		bool Test_AsyncCompute2 ();
 		bool Test_ShaderDebugger1 ();
 		bool Test_ShaderDebugger2 ();
 		bool Test_ArrayOfTextures1 ();
@@ -134,7 +133,7 @@ namespace FG
 	template <typename Arg0, typename ...Args>
 	inline void  FGApp::_RecursiveDeleteResources (Arg0 &arg0, Args& ...args)
 	{
-		_fgGraphics1->ReleaseResource( INOUT arg0 );
+		_fgThreads[0]->ReleaseResource( INOUT arg0 );
 
 		if constexpr ( CountOf<Args...>() )
 			_RecursiveDeleteResources( std::forward<Args&>( args )... );

@@ -11,7 +11,7 @@ extern void FW_Test2 ();
 
 int main ()
 {
-#if 1 //def PLATFORM_ANDROID
+#ifdef PLATFORM_ANDROID
 	// single-threaded
 	FW_Test1();
 #else

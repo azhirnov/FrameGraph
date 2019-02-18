@@ -107,6 +107,8 @@ namespace FG
 
 		if ( not _createInfo.anisotropyEnable )
 			_createInfo.maxAnisotropy = 0.0f;
+		else
+			_createInfo.maxAnisotropy = Clamp( _createInfo.maxAnisotropy, 1.0f, limits.maxSamplerAnisotropy );
 
 		if ( not _createInfo.compareEnable )
 			_createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
@@ -119,7 +121,7 @@ namespace FG
 			_createInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		}
 		
-		if ( not dev.HasExtension( "VK_KHR_sampler_mirror_clamp_to_edge" ) )
+		if ( not dev.IsSamplerMirrorClampEnabled() )
 		{
 			if ( _createInfo.addressModeU == VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE )
 			{

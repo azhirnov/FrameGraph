@@ -25,6 +25,7 @@ namespace FG
 		ImageLayer		arrayLayers;
 		MipmapLevel		maxLevel;
 		MultiSamples	samples;	// if > 1 then enabled multisampling
+		EQueueUsage		queues		= Default;
 		//bool			isLogical	= false;
 		bool			isExternal	= false;
 
@@ -37,7 +38,8 @@ namespace FG
 				   EImageUsage	usage,
 				   ImageLayer	arrayLayers	= Default,
 				   MipmapLevel	maxLevel	= Default,
-				   MultiSamples	samples		= Default);
+				   MultiSamples	samples		= Default,
+				   EQueueUsage	queues		= Default);
 
 		void Validate ();
 	};

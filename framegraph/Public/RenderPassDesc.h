@@ -78,15 +78,15 @@ namespace FG
 
 
 		// render target
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image);
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp);
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image);
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp);
 		
 		template <typename ClearVal>
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ClearVal &clearValue, EAttachmentStoreOp storeOp);
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp);
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image, const ClearVal &clearValue, EAttachmentStoreOp storeOp);
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp);
 
 		template <typename ClearVal>
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, const ImageID &image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp);
+		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp);
 
 
 		// viewport
@@ -152,7 +152,7 @@ namespace FG
 		RenderPassDesc&  SetAlphaToCoverageEnabled (bool value);
 		RenderPassDesc&  SetAlphaToOneEnabled (bool value);
 
-		RenderPassDesc&  SetShadingRateImage (const ImageID &image, ImageLayer layer = Default, MipmapLevel level = Default);
+		RenderPassDesc&  SetShadingRateImage (RawImageID image, ImageLayer layer = Default, MipmapLevel level = Default);
 		
 		RenderPassDesc&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 	};
@@ -161,36 +161,36 @@ namespace FG
 	
 
 
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, const ImageID &image)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image)
 	{
 		return AddTarget( id, image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store );
 	}
 
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, const ImageID &image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
 	{
 		ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
-		renderTargets.insert_or_assign( id, RT{image.Get(), {}, ClearValue_t{}, loadOp, storeOp} );
+		renderTargets.insert_or_assign( id, RT{image, {}, ClearValue_t{}, loadOp, storeOp} );
 		return *this;
 	}
 		
 	template <typename ClearVal>
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, const ImageID &image, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
 	{
-		renderTargets.insert_or_assign( id, RT{image.Get(), {}, clearValue, EAttachmentLoadOp::Clear, storeOp} );
+		renderTargets.insert_or_assign( id, RT{image, {}, clearValue, EAttachmentLoadOp::Clear, storeOp} );
 		return *this;
 	}
 		
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, const ImageID &image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
 	{
 		ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
-		renderTargets.insert_or_assign( id, RT{image.Get(), desc, ClearValue_t{}, loadOp, storeOp} );
+		renderTargets.insert_or_assign( id, RT{image, desc, ClearValue_t{}, loadOp, storeOp} );
 		return *this;
 	}
 
 	template <typename ClearVal>
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, const ImageID &image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
 	{
-		renderTargets.insert_or_assign( id, RT{image.Get(), desc, clearValue, EAttachmentLoadOp::Clear, storeOp} );
+		renderTargets.insert_or_assign( id, RT{image, desc, clearValue, EAttachmentLoadOp::Clear, storeOp} );
 		return *this;
 	}
 
@@ -516,10 +516,10 @@ namespace FG
 	SetShadingRateImage
 =================================================
 */
-	inline RenderPassDesc&  RenderPassDesc::SetShadingRateImage (const ImageID &image, ImageLayer layer, MipmapLevel level)
+	inline RenderPassDesc&  RenderPassDesc::SetShadingRateImage (RawImageID image, ImageLayer layer, MipmapLevel level)
 	{
 		ASSERT( image );
-		shadingRate.image	= image.Get();
+		shadingRate.image	= image;
 		shadingRate.layer	= layer;
 		shadingRate.mipmap	= level;
 		return *this;

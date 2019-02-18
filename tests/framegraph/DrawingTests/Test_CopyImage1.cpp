@@ -21,7 +21,7 @@ namespace FG
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
 		
-		FGThreadPtr		frame_graph		= _fgGraphics1;
+		FGThreadPtr		frame_graph		= _fgThreads[0];
 		ImageID			src_image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "SrcImage" );
 		ImageID			dst_image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -76,7 +76,7 @@ namespace FG
 		submission_graph.AddBatch( batch_id );
 		
 		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 
 		Task	t_update	= frame_graph->AddTask( UpdateImage().SetImage( src_image ).SetData( src_data, src_dim ) );
 		Task	t_copy		= frame_graph->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, src_dim ).DependsOn( t_update ) );

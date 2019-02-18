@@ -29,7 +29,7 @@
 
 #pragma once
 
-#include "framegraph/Public/FGEnums.h"
+#include "framegraph/Public/ResourceEnums.h"
 #include "framegraph/Public/IDs.h"
 
 namespace FG
@@ -53,11 +53,11 @@ namespace FG
 			mutable uint	_acquired	= 0;
 		public:
 			uint			threadCount	= 0;
-			EThreadUsage	usage		= Default;
+			EQueueUsage		usage		= Default;
 			Dependencies_t	dependsOn;
 
 			Batch () {}
-			Batch (uint threadCount, EThreadUsage usage, ArrayView<CommandBatchID> dependsOn) :
+			Batch (uint threadCount, EQueueUsage usage, ArrayView<CommandBatchID> dependsOn) :
 				threadCount{threadCount}, usage{usage}, dependsOn{dependsOn} {}
 		};
 
@@ -78,7 +78,7 @@ namespace FG
 
 		SubmissionGraph&  AddBatch (const CommandBatchID &batchId,
 									uint threadCount = 1,
-									EThreadUsage usage = EThreadUsage::Graphics,
+									EQueueUsage usage = EQueueUsage::Graphics,
 									ArrayView<CommandBatchID> dependsOn = Default)
 		{
 			DEBUG_ONLY(
@@ -87,7 +87,6 @@ namespace FG
 			})
 
 			ASSERT( not batchId.GetName().empty() );
-			ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
 			ASSERT( threadCount > 0 );
 
 			CHECK( _batches.insert_or_assign( batchId, Batch{threadCount, usage, dependsOn} ).second );
@@ -97,7 +96,7 @@ namespace FG
 
 
 		// helper function to acquire batch for thread
-		bool Acquire (INOUT EThreadUsage &usage, OUT CommandBatchID &batchId, OUT uint &index) const
+		bool Acquire (INOUT EQueueUsage &usage, OUT CommandBatchID &batchId, OUT uint &index) const
 		{
 			for (auto& batch : _batches) {
 				if ( batch.second._acquired < batch.second.threadCount and EnumEq( usage, batch.second.usage )) {

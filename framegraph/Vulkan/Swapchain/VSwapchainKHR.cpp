@@ -55,23 +55,6 @@ namespace FG
 
 /*
 =================================================
-	Initialize
-=================================================
-*/
-	bool VSwapchainKHR::Initialize (VDeviceQueueInfoPtr queue)
-	{
-		CHECK_ERR( queue );
-		CHECK_ERR( _vkSwapchain );
-		
-		_CreateSemaphores();
-
-		_presentQueue = queue;
-
-		return true;
-	}
-
-/*
-=================================================
 	Deinitialize
 =================================================
 */
@@ -181,18 +164,6 @@ namespace FG
 		}
 		return true;
 	}
-
-/*
-=================================================
-	IsCompatibleWithQueue
-=================================================
-*/
-	bool VSwapchainKHR::IsCompatibleWithQueue (EQueueFamily familyIndex) const
-	{
-		VkBool32	supports_present = 0;
-		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _GetVkPhysicalDevice(), uint(familyIndex), _vkSurface, OUT &supports_present ));
-		return !!supports_present;
-	}
 	
 /*
 =================================================
@@ -227,6 +198,8 @@ namespace FG
 			_GetDevice().vkDestroySwapchainKHR( _GetVkDevice(), old_swapchain, null );
 
 		CHECK_ERR( _CreateImages() );
+		CHECK_ERR( _CreateSemaphores() );
+		CHECK_ERR( _ChoosePresentQueue() );
 		return true;
 	}
 	
@@ -261,7 +234,6 @@ namespace FG
 		desc.arrayLayers	= 1;
 		desc.maxLevels		= 1;
 		desc.queueFamily	= VK_QUEUE_FAMILY_IGNORED;
-		//desc.semaphore		= BitCast<SemaphoreVk_t>( _imageAvailable );
 
 		char	image_name[] = "SwapchainImage-0";
 
@@ -289,7 +261,6 @@ namespace FG
 		_imageIDs.clear();
 	}
 
-	
 /*
 =================================================
 	_CreateSemaphores
@@ -297,6 +268,9 @@ namespace FG
 */
 	bool VSwapchainKHR::_CreateSemaphores ()
 	{
+		if ( _imageAvailable and _renderFinished )
+			return true;
+
 		VkSemaphoreCreateInfo	info = {};
 		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -306,6 +280,34 @@ namespace FG
 		return true;
 	}
 	
+/*
+=================================================
+	_ChoosePresentQueue
+=================================================
+*/
+	bool VSwapchainKHR::_ChoosePresentQueue ()
+	{
+		if ( _presentQueue )
+			return true;
+
+		for (uint i = 0; i < uint(EQueueUsage::_Last); ++i)
+		{
+			auto	q = _frameGraph.GetInstance()->FindQueue( EQueueUsage(i) );
+			if ( q )
+			{
+				VkBool32	supports_present = 0;
+				VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _GetVkPhysicalDevice(), uint(q->familyIndex), _vkSurface, OUT &supports_present ));
+				
+				if ( supports_present ) {
+					_presentQueue = q;
+					return true;
+				}
+			}
+		}
+
+		RETURN_ERR( "can't find queue that supports present" );
+	}
+
 /*
 =================================================
 	GetDefaultPresentModes

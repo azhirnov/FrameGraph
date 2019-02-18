@@ -97,7 +97,7 @@ namespace FG
 	class VPipelineLayout;
 	class VShaderDebugger;
 	class VPipelineResources;
-	
+	class VFrameGraphInstance;
 
 
 	struct VPipelineResourceSet

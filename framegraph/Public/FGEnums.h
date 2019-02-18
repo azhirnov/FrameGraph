@@ -9,18 +9,9 @@ namespace FG
 
 	enum class EThreadUsage : uint
 	{
-		Graphics		= 1 << 0,	// default
-		AsyncCompute	= 1 << 1,	// use second queue for async computing
-		AsyncStreaming	= 1 << 2,	// use second queue for async streaming
-		Present			= 1 << 3,	// create swapchain
-		//AsyncRayTracing	= 1 << 4,	// use second queue for async ray tracing (computing)		// TODO: is it realy needed?
-
 		Transfer		= 1 << 10,	// create staging buffer for CPU <-> GPU transfer
 		MemAllocation	= 1 << 11,	// create memory allocator, required for image/buffer creation
-
 		Unknown			= 0,
-
-		_QueueMask		= Graphics | AsyncCompute | AsyncStreaming | Present,
 	};
 	FG_BIT_OPERATORS( EThreadUsage );
 

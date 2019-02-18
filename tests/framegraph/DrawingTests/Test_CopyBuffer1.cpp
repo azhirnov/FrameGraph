@@ -18,7 +18,7 @@ namespace FG
 		const BytesU	src_buffer_size = 256_b;
 		const BytesU	dst_buffer_size = 512_b;
 		
-		FGThreadPtr		frame_graph	= _fgGraphics1;
+		FGThreadPtr		frame_graph	= _fgThreads[0];
 		BufferID		src_buffer	= frame_graph->CreateBuffer( BufferDesc{ src_buffer_size, EBufferUsage::Transfer }, Default, "SrcBuffer" );
 		BufferID		dst_buffer	= frame_graph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Transfer }, Default, "DstBuffer" );
 
@@ -50,7 +50,7 @@ namespace FG
 		submission_graph.AddBatch( batch_id );
 		
 		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 
 		Task	t_update	= frame_graph->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( src_data ) );
 		Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 128_b, 256_b ).DependsOn( t_update ) );

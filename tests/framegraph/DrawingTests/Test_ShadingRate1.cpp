@@ -69,7 +69,7 @@ void main ()
 		CHECK( CountOf(shading_rate_palette) <= _vulkan.GetDeviceShadingRateImageProperties().shadingRatePaletteSize );
 
 
-		FGThreadPtr		frame_graph	= _fgGraphics1;
+		FGThreadPtr		frame_graph	= _fgThreads[0];
 
 		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
@@ -122,7 +122,7 @@ void main ()
 		submission_graph.AddBatch( batch_id );
 		
 		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 
 		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )

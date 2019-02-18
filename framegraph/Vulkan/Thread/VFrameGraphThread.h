@@ -49,8 +49,8 @@ namespace FG
 		{
 			CommandBuffers_t	pending;
 			CommandBuffers_t	executed;
-			uint				queryIndex;
-			Nanoseconds			executionTime;
+			uint				queryIndex		= UMax;
+			Nanoseconds			executionTime	{0};
 		};
 		using PerFrameArray_t	= FixedArray< PerFrame, MaxFrames >;
 
@@ -58,9 +58,8 @@ namespace FG
 		struct PerQueue
 		{
 			PerFrameArray_t		frames;
-			VkCommandPool		cmdPoolId	= VK_NULL_HANDLE;
+			VkCommandPool		cmdPool		= VK_NULL_HANDLE;
 			VDeviceQueueInfoPtr	ptr;
-			EThreadUsage		usage		= Default;
 		};
 		using PerQueueArray_t	= FixedArray< PerQueue, MaxQueues >;
 
@@ -81,19 +80,21 @@ namespace FG
 	private:
 		Allocator_t					_mainAllocator;
 
-		EThreadUsage				_threadUsage		= Default;
-		EThreadUsage				_currUsage			= Default;
-		EQueueFamilyMask			_queueFamilyMask	= Default;
-
 		std::atomic<EState>			_state;
 		ECompilationFlags			_compilationFlags	= Default;
 
 		PerQueueArray_t				_queues;
 		Ptr<PerQueue>				_currQueue;
-		VkQueryPool					_queryPool			= VK_NULL_HANDLE;
+		EQueueUsage					_currUsage			= Default;
 		uint						_frameId			: 3;		// 0..7
 		bool						_isFirstUsage		= true;		// 'true' if it is first call of 'Begin' in current frame
 		
+		struct {
+			VkQueryPool					pool			= VK_NULL_HANDLE;
+			uint						capacity		= 0;
+			uint						size			= 0;
+		}							_query;
+
 		TaskGraph_t					_taskGraph;
 		uint						_visitorID			= 0;
 		
@@ -136,12 +137,12 @@ namespace FG
 		RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName) override;
 		RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
-		bool			InitPipelineResources (const RawGPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
-		bool			InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
-		bool			InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
-		bool			InitPipelineResources (const RawRTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			CachePipelineResources (INOUT PipelineResources &resources) override;
-
+		
 		void			ReleaseResource (INOUT GPipelineID &id) override;
 		void			ReleaseResource (INOUT CPipelineID &id) override;
 		void			ReleaseResource (INOUT MPipelineID &id) override;
@@ -152,16 +153,14 @@ namespace FG
 		void			ReleaseResource (INOUT RTGeometryID &id) override;
 		void			ReleaseResource (INOUT RTSceneID &id) override;
 		void			ReleaseResource (INOUT RTShaderTableID &id) override;
+		void			ReleaseResource (INOUT PipelineResources &resources) override;
 
-		BufferDesc const&	GetDescription (const BufferID &id) const override;
-		ImageDesc  const&	GetDescription (const ImageID &id) const override;
-		//SamplerDesc const&	GetDescription (const SamplerID &id) const override;
-
-		EThreadUsage	GetThreadUsage () const override		{ EXLOCK( _rcCheck );  return _threadUsage; }
-		bool			IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const override;
+		BufferDesc const&	GetDescription (RawBufferID id) const override;
+		ImageDesc  const&	GetDescription (RawImageID id) const override;
+		//SamplerDesc const&	GetDescription (RawSamplerID id) const override;
 
 		// initialization
-		bool		Initialize (const SwapchainCreateInfo *swapchainCI, ArrayView<FGThreadPtr> relativeThreads, ArrayView<FGThreadPtr> parallelThreads) override;
+		bool		Initialize (const SwapchainCreateInfo *swapchainCI) override;
 		void		Deinitialize () override;
 		bool		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
 		bool		RecreateSwapchain (const SwapchainCreateInfo &) override;
@@ -169,7 +168,7 @@ namespace FG
 
 		// frame execution
 		bool		SyncOnBegin (const VSubmissionGraph *);
-		bool		Begin (const CommandBatchID &id, uint index, EThreadUsage usage) override;
+		bool		Begin (const CommandBatchID &id, uint index, EQueueUsage usage) override;
 		bool		Execute () override;
 		bool		SyncOnExecute (INOUT Statistic_t &);
 		bool		OnWaitIdle ();
@@ -182,8 +181,8 @@ namespace FG
 		
 		//ImageID	GetSwapchainImage (ESwapchainImage type) override;
 		
-		bool		UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data) override;
-		bool		MapBufferRange (const BufferID &id, BytesU offset, INOUT BytesU &size, OUT void* &data) override;
+		bool		UpdateHostBuffer (RawBufferID id, BytesU offset, BytesU size, const void *data) override;
+		bool		MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT void* &data) override;
 
 		// tasks
 		Task		AddTask (const SubmitRenderPass &) override;
@@ -270,17 +269,7 @@ namespace FG
 		ND_ bool	_IsInitialOrIdleState ()const;
 		
 		ND_ VkCommandBuffer		_CreateCommandBuffer () const;
-		ND_ PerQueue *			_GetQueue (EThreadUsage usage);
-		ND_ VDeviceQueueInfoPtr	_GetAnyGraphicsQueue () const;
 
-		bool _SetupQueues (const SharedPtr<VFrameGraphThread> &);
-		bool _AddGpuQueue (EThreadUsage usage, const SharedPtr<VFrameGraphThread> &);
-		bool _AddGraphicsQueue ();
-		bool _AddGraphicsAndPresentQueue ();
-		bool _AddTransferQueue ();
-		bool _AddAsyncComputeQueue ();
-		bool _AddAsyncComputeAndPresentQueue ();
-		bool _AddAsyncStreamingQueue ();
 
 		bool _CreateCommandBuffers (INOUT PerQueue &) const;
 		bool _InitGpuQueries (INOUT PerQueueArray_t &, INOUT VkQueryPool &) const;

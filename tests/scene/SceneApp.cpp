@@ -124,7 +124,7 @@ namespace FG
 			CHECK_ERR( fgInstance->Initialize( 2 ));
 			fgInstance->SetCompilationFlags( ECompilationFlags::EnableDebugger, ECompilationDebugFlags::Default );
 
-			ThreadDesc	desc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer };
+			ThreadDesc	desc{ EThreadUsage::Transfer };
 
 			frameGraph = fgInstance->CreateThread( desc );
 			CHECK_ERR( frameGraph );

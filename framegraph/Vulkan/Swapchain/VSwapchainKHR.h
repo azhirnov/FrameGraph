@@ -53,10 +53,7 @@ namespace FG
 		bool Acquire (ESwapchainImage type, OUT RawImageID &outImageId) override;
 		bool Present (RawImageID) override;
 		
-		bool Initialize (VDeviceQueueInfoPtr queue) override;
 		void Deinitialize () override;
-
-		bool IsCompatibleWithQueue (EQueueFamily familyIndex) const override;
 
 
 	private:
@@ -65,6 +62,7 @@ namespace FG
 		void _DestroyImages ();
 
 		bool _CreateSemaphores ();
+		bool _ChoosePresentQueue ();
 
 		bool _IsSupported (const VkSurfaceCapabilities2KHR &surfaceCaps, const uint2 &surfaceSize, VkPresentModeKHR presentMode,
 						   VkFormat colorFormat, INOUT VkImageUsageFlags &colorImageUsage) const;

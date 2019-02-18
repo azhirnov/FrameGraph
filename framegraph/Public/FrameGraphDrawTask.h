@@ -192,12 +192,12 @@ namespace _fg_hidden_
 		BaseDrawVertices (StringView name, RGBA8u color) : BaseDrawCall<TaskType>{ name, color } {}
 
 		TaskType&  SetTopology (EPrimitive value)					{ topology = value;  return static_cast<TaskType &>( *this ); }
-		TaskType&  SetPipeline (const GPipelineID &ppln)			{ ASSERT( ppln );  pipeline = ppln.Get();  return static_cast<TaskType &>( *this ); }
+		TaskType&  SetPipeline (RawGPipelineID ppln)				{ ASSERT( ppln );  pipeline = ppln;  return static_cast<TaskType &>( *this ); }
 
 		TaskType&  SetVertexInput (const VertexInputState &value)	{ vertexInput = value;  return static_cast<TaskType &>( *this ); }
 		TaskType&  SetPrimitiveRestartEnabled (bool value)			{ primitiveRestart = value;  return static_cast<TaskType &>( *this ); }
 
-		TaskType&  AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset = 0_b);
+		TaskType&  AddBuffer (const VertexBufferID &id, RawBufferID vb, BytesU offset = 0_b);
 	};
 
 }	// _fg_hidden_
@@ -267,10 +267,10 @@ namespace _fg_hidden_
 		DrawIndexed () :
 			BaseDrawVertices<DrawIndexed>{ "DrawIndexed", ColorScheme::Draw } {}
 
-		DrawIndexed&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)
+		DrawIndexed&  SetIndexBuffer (RawBufferID ib, BytesU off, EIndex type)
 		{
 			ASSERT( ib );
-			indexBuffer			= ib.Get();
+			indexBuffer			= ib;
 			indexBufferOffset	= off;
 			indexType			= type;
 			return *this;
@@ -318,10 +318,10 @@ namespace _fg_hidden_
 		DrawVerticesIndirect () :
 			BaseDrawVertices<DrawVerticesIndirect>{ "DrawVerticesIndirect", ColorScheme::Draw } {}
 
-		DrawVerticesIndirect&  SetIndirectBuffer (const BufferID &buffer)
+		DrawVerticesIndirect&  SetIndirectBuffer (RawBufferID buffer)
 		{
 			ASSERT( buffer );
-			indirectBuffer = buffer.Get();
+			indirectBuffer = buffer;
 			return *this;
 		}
 
@@ -368,19 +368,19 @@ namespace _fg_hidden_
 		DrawIndexedIndirect () :
 			BaseDrawVertices<DrawIndexedIndirect>{ "DrawIndexedIndirect", ColorScheme::Draw } {}
 		
-		DrawIndexedIndirect&  SetIndexBuffer (const BufferID &ib, BytesU off, EIndex type)
+		DrawIndexedIndirect&  SetIndexBuffer (RawBufferID ib, BytesU off, EIndex type)
 		{
 			ASSERT( ib );
-			indexBuffer			= ib.Get();
+			indexBuffer			= ib;
 			indexBufferOffset	= off;
 			indexType			= type;
 			return *this;
 		}
 
-		DrawIndexedIndirect&  SetIndirectBuffer (const BufferID &buffer)
+		DrawIndexedIndirect&  SetIndirectBuffer (RawBufferID buffer)
 		{
 			ASSERT( buffer );
-			indirectBuffer = buffer.Get();
+			indirectBuffer = buffer;
 			return *this;
 		}
 
@@ -417,7 +417,7 @@ namespace _fg_hidden_
 		DrawMeshes () :
 			BaseDrawCall<DrawMeshes>{ "DrawMeshes", ColorScheme::DrawMeshes } {}
 
-		DrawMeshes&  SetPipeline (const MPipelineID &ppln)	{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
+		DrawMeshes&  SetPipeline (RawMPipelineID ppln)		{ ASSERT( ppln );  pipeline = ppln;  return *this; }
 
 		DrawMeshes&  Draw (uint count, uint first = 0)		{ ASSERT( count > 0 );  commands.push_back({ count, first });  return *this; }
 	};
@@ -449,19 +449,8 @@ namespace _fg_hidden_
 		DrawMeshesIndirect () :
 			BaseDrawCall<DrawMeshesIndirect>{ "DrawMeshesIndirect", ColorScheme::DrawMeshes } {}
 
-		DrawMeshesIndirect&  SetPipeline (const MPipelineID &ppln)
-		{
-			ASSERT( ppln );
-			pipeline = ppln.Get();
-			return *this;
-		}
-		
-		DrawMeshesIndirect&  SetIndirectBuffer (const BufferID &buffer)
-		{
-			ASSERT( buffer );
-			indirectBuffer = buffer.Get();
-			return *this;
-		}
+		DrawMeshesIndirect&  SetPipeline (RawMPipelineID ppln)		{ ASSERT( ppln );  pipeline = ppln;  return *this; }
+		DrawMeshesIndirect&  SetIndirectBuffer (RawBufferID buffer)	{ ASSERT( buffer );  indirectBuffer = buffer;  return *this; }
 
 		DrawMeshesIndirect&  Draw (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawMeshTasksIndirectCommand>)
 		{
@@ -682,11 +671,11 @@ namespace _fg_hidden_
 
 	
 	template <typename TaskType>
-	inline TaskType&  BaseDrawVertices<TaskType>::AddBuffer (const VertexBufferID &id, const BufferID &vb, BytesU offset)
+	inline TaskType&  BaseDrawVertices<TaskType>::AddBuffer (const VertexBufferID &id, RawBufferID vb, BytesU offset)
 	{
 		//ASSERT( id.IsDefined() );	// one buffer may be unnamed
 		ASSERT( vb );
-		vertexBuffers.insert_or_assign( id, _fg_hidden_::VertexBuffer{vb.Get(), offset} );
+		vertexBuffers.insert_or_assign( id, _fg_hidden_::VertexBuffer{vb, offset} );
 		return static_cast<TaskType &>( *this );
 	}
 

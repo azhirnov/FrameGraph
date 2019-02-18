@@ -27,7 +27,7 @@ void main ()
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _fgGraphics1;
+		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		image_dim	= { 16, 16 };
 
 		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -71,7 +71,7 @@ void main ()
 		submission_graph.AddBatch( batch_id );
 		
 		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_OutImage"), image );
 

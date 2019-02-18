@@ -38,7 +38,7 @@ namespace FG
 			// wake up all render threads
 			sync.wait();
 			
-			CHECK_ERR( fg->Begin( batch1, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( fg->Begin( batch1, 0, EQueueUsage::Graphics ));
 			
 			LogicalPassID	render_pass	= fg->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
@@ -86,7 +86,7 @@ namespace FG
 			// wait for BeginFrame()
 			sync.wait();
 
-			CHECK_ERR( fg->Begin( batch1, 1, EThreadUsage::Graphics ));
+			CHECK_ERR( fg->Begin( batch1, 1, EQueueUsage::Graphics ));
 
 			LogicalPassID	render_pass	= fg->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
@@ -154,13 +154,13 @@ void main() {
 }
 )#" );
 		
-		pipeline = _fgGraphics1->CreatePipeline( ppln );
+		pipeline = _fgThreads[0]->CreatePipeline( ppln );
 
 		bool			thread1_result;
 		bool			thread2_result;
 
-		std::thread		thread1( [this, &thread1_result]() { thread1_result = RenderThread1( _fgInstance, _fgGraphics1 ); });
-		std::thread		thread2( [this, &thread2_result]() { thread2_result = RenderThread2( _fgGraphics2 ); });
+		std::thread		thread1( [this, &thread1_result]() { thread1_result = RenderThread1( _fgInstance, _fgThreads[0] ); });
+		std::thread		thread2( [this, &thread2_result]() { thread2_result = RenderThread2( _fgThreads[1] ); });
 
 		thread1.join();
 		thread2.join();

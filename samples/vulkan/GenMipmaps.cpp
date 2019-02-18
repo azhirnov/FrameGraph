@@ -133,6 +133,7 @@ public:
 
 	void GenMipmapsOnGraphicsShader (VkCommandBuffer cmd, OUT VkImageLayout &layout);
 	void GenMipmapsOnTransferCommands (VkCommandBuffer cmd, OUT VkImageLayout &layout);
+	void GenMipmapsOnTransferCommands2 (VkCommandBuffer cmd, OUT VkImageLayout &layout);
 	void GenMipmapsOnComputeShader (VkCommandBuffer cmd, OUT VkImageLayout &layout);
 	void GenMipmapsOnComputeShaderSM6 (VkCommandBuffer cmd, OUT VkImageLayout &layout);
 	void GenerateMipmaps (uint mode);
@@ -274,6 +275,7 @@ bool GenMipmapsApp::Initialize ()
 	GenerateMipmaps( 0 );
 	GenerateMipmaps( 1 );
 	GenerateMipmaps( 2 );
+	GenerateMipmaps( 3 );
 	return true;
 }
 
@@ -472,6 +474,66 @@ void GenMipmapsApp::GenMipmapsOnTransferCommands (VkCommandBuffer cmd, OUT VkIma
 
 /*
 =================================================
+	GenMipmapsOnTransferCommands2
+=================================================
+*/
+void GenMipmapsApp::GenMipmapsOnTransferCommands2 (VkCommandBuffer cmd, OUT VkImageLayout &layout)
+{
+	layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+	VkImageMemoryBarrier	barrier = {};
+	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcAccessMask		= 0;
+	barrier.dstAccessMask		= 0;
+	barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
+	barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+	barrier.image				= image;
+	barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+						  0, null, 0, null, 1, &barrier );
+
+	for (size_t i = 1; i < numMipmaps; ++i)
+	{
+		int2	src_size	= Max( uint2(1), imageSize >> (i-1) );
+		int2	dst_size	= Max( uint2(1), imageSize >> i );
+		
+		// undefined -> transfer_dst_optimal
+		barrier.oldLayout			= VK_IMAGE_LAYOUT_UNDEFINED;
+		barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.srcAccessMask		= 0;
+		barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 1, 0, 1 };
+
+		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+							  0, null, 0, null, 1, &barrier );
+
+		VkImageBlit		region	= {};
+		region.srcOffsets[0]	= { 0, 0, 0 };
+		region.srcOffsets[1]	= { src_size.x, src_size.y, 1 };
+		region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i-1), 0, 1 };
+		region.dstOffsets[0]	= { 0, 0, 0 };
+		region.dstOffsets[1]	= { dst_size.x, dst_size.y, 1 };
+		region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 0, 1 };
+
+		vkCmdBlitImage( cmd, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
+
+		// read after write
+		barrier.oldLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
+		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 1, 0, 1 };
+
+		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+							  0, null, 0, null, 1, &barrier );
+	}
+}
+
+/*
+=================================================
 	GenMipmapsOnComputeShader
 =================================================
 */
@@ -629,10 +691,11 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 	// generate mipmaps
 	switch ( mode )
 	{
-		case 0 :	GenMipmapsOnGraphicsShader( cmd, OUT curr_layout );		name = "using render pass";		break;
-		case 1 :	GenMipmapsOnTransferCommands( cmd, OUT curr_layout );	name = "using image blit";		break;
-		case 2 :	GenMipmapsOnComputeShader( cmd, OUT curr_layout );		name = "using compute shader";	break;
-		//case 3 :	GenMipmapsOnComputeShaderSM6( cmd, OUT curr_layout );	name = "using subgroups";		break;
+		case 0 :	GenMipmapsOnGraphicsShader( cmd, OUT curr_layout );		name = "using render pass";			break;
+		case 1 :	GenMipmapsOnTransferCommands( cmd, OUT curr_layout );	name = "using image blit";			break;
+		case 2 :	GenMipmapsOnTransferCommands2( cmd, OUT curr_layout );	name = "using optimal image blit";	break;
+		case 3 :	GenMipmapsOnComputeShader( cmd, OUT curr_layout );		name = "using compute shader";		break;
+		//case 4 :	GenMipmapsOnComputeShaderSM6( cmd, OUT curr_layout );	name = "using subgroups";			break;
 		default :	ASSERT(false);	break;
 	}
 

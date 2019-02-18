@@ -17,21 +17,20 @@ namespace FG
 =================================================
 */
 	VFrameGraphThread::VFrameGraphThread (VFrameGraphInstance &fg, EThreadUsage usage, StringView name) :
-		_threadUsage{ usage },		_state{ EState::Initial },
-		_frameId{ 0 },				_debugName{ name },
-		_instance{ fg },
+		_state{ EState::Initial },		_frameId{ 0 },
+		_debugName{ name },				_instance{ fg },
 		_resourceMngr{ _mainAllocator, _statistic.resources, fg.GetResourceMngr() }
 	{
 		EXLOCK( _rcCheck );
 
 		_mainAllocator.SetBlockSize( 16_Mb );
 
-		if ( EnumEq( _threadUsage, EThreadUsage::MemAllocation ) )
+		if ( EnumEq( usage, EThreadUsage::MemAllocation ) )
 		{
 			_memoryMngr.reset( new VMemoryManager{ fg.GetDevice() });
 		}
 
-		if ( EnumEq( _threadUsage, EThreadUsage::Transfer ) )
+		if ( EnumEq( usage, EThreadUsage::Transfer ) )
 		{
 			_stagingMngr.reset( new VStagingBufferManager( *this ));
 		}
@@ -107,46 +106,6 @@ namespace FG
 		ASSERT( _IsInitialized() );
 		return CPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName, IsInSeparateThread() )};
 	}
-
-/*
-=================================================
-	IsCompatibleWith
-=================================================
-*/
-	bool  VFrameGraphThread::IsCompatibleWith (const FGThreadPtr &thread, EThreadUsage usage) const
-	{
-		ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
-		EXLOCK( _rcCheck );
-
-		const auto*	other = DynCast<VFrameGraphThread>( thread.operator->() );
-		
-		if ( not other or not (other->_threadUsage & _threadUsage & usage) )
-			return false;
-
-		for (auto& queue : _queues)
-		{
-			if ( !!usage and EnumEq( queue.usage, usage ) )
-			{
-				bool	found = false;
-
-				// find same queue in another thread
-				for (auto& q : other->_queues)
-				{
-					if ( q.ptr == queue.ptr and EnumEq( q.usage, usage ) ) {
-						found = true;
-						break;
-					}
-				}
-
-				if ( not found )
-					return false;
-				
-				usage &= ~queue.usage;
-			}
-		}
-
-		return not usage;
-	}
 	
 /*
 =================================================
@@ -189,7 +148,7 @@ namespace FG
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _memoryMngr );
 
-		RawImageID	result = _resourceMngr.CreateImage( desc, mem, *_memoryMngr, _queueFamilyMask, dbgName, IsInSeparateThread() );
+		RawImageID	result = _resourceMngr.CreateImage( desc, mem, *_memoryMngr, _instance.GetQueuesMask( desc.queues ), dbgName, IsInSeparateThread() );
 		
 		// add first image layout transition
 		if ( result )
@@ -221,7 +180,7 @@ namespace FG
 		ASSERT( _IsInitialized() );
 		CHECK_ERR( _memoryMngr );
 
-		return BufferID{ _resourceMngr.CreateBuffer( desc, mem, *_memoryMngr, _queueFamilyMask, dbgName, IsInSeparateThread() )};
+		return BufferID{ _resourceMngr.CreateBuffer( desc, mem, *_memoryMngr, _instance.GetQueuesMask( desc.queues ), dbgName, IsInSeparateThread() )};
 	}
 	
 /*
@@ -327,7 +286,7 @@ namespace FG
 		VDescriptorSetLayout const*	ds_layout = _resourceMngr.GetResource( layout_id );
 		CHECK_ERR( ds_layout );
 
-		CHECK_ERR( PipelineResourcesHelper::Initialize( OUT resources, layout_id, ds_layout->GetDynamicData() ));
+		CHECK_ERR( PipelineResourcesHelper::Initialize( OUT resources, layout_id, ds_layout->GetResources() ));
 		return true;
 	}
 	
@@ -336,22 +295,22 @@ namespace FG
 	InitPipelineResources
 =================================================
 */
-	bool  VFrameGraphThread::InitPipelineResources (const RawGPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraphThread::InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
 
-	bool  VFrameGraphThread::InitPipelineResources (const RawCPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraphThread::InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
 
-	bool  VFrameGraphThread::InitPipelineResources (const RawMPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraphThread::InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
 
-	bool  VFrameGraphThread::InitPipelineResources (const RawRTPipelineID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraphThread::InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
@@ -427,6 +386,19 @@ namespace FG
 	void VFrameGraphThread::ReleaseResource (INOUT RTGeometryID &id)	{ _ReleaseResource( INOUT id ); }
 	void VFrameGraphThread::ReleaseResource (INOUT RTSceneID &id)		{ _ReleaseResource( INOUT id ); }
 	void VFrameGraphThread::ReleaseResource (INOUT RTShaderTableID &id)	{ _ReleaseResource( INOUT id ); }
+	
+/*
+=================================================
+	ReleaseResource
+=================================================
+*/
+	void VFrameGraphThread::ReleaseResource (INOUT PipelineResources &resources)
+	{
+		EXLOCK( _rcCheck );
+		ASSERT( _IsInitialized() );
+
+		return _resourceMngr.ReleaseResource( INOUT resources, IsInSeparateThread() );
+	}
 
 /*
 =================================================
@@ -440,7 +412,7 @@ namespace FG
 		ASSERT( _IsInitialized() );
 
 		// read access available without synchronizations
-		return _resourceMngr.GetDescription( id.Get() );
+		return _resourceMngr.GetDescription( id );
 	}
 	
 /*
@@ -448,17 +420,17 @@ namespace FG
 	GetDescription
 =================================================
 */
-	BufferDesc const&  VFrameGraphThread::GetDescription (const BufferID &id) const
+	BufferDesc const&  VFrameGraphThread::GetDescription (RawBufferID id) const
 	{
 		return _GetDescription<BufferDesc>( id );
 	}
 
-	ImageDesc const&  VFrameGraphThread::GetDescription (const ImageID &id) const
+	ImageDesc const&  VFrameGraphThread::GetDescription (RawImageID id) const
 	{
 		return _GetDescription<ImageDesc>( id );
 	}
 	
-	/*SamplerDesc const&  VFrameGraphThread::GetDescription (SamplerID id) const
+	/*SamplerDesc const&  VFrameGraphThread::GetDescription (RawSamplerID id) const
 	{
 		return _GetDescription<SamplerDesc>( id );
 	}*/
@@ -468,37 +440,33 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool VFrameGraphThread::Initialize (const SwapchainCreateInfo *swapchainCI, ArrayView<FGThreadPtr> relativeThreads, ArrayView<FGThreadPtr> parallelThreads)
+	bool VFrameGraphThread::Initialize (const SwapchainCreateInfo *swapchainCI)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Initial, EState::Initializing ));
-		ASSERT( parallelThreads.empty() );		// not supported yet
-		ASSERT( relativeThreads.size() <= 1 );	// only 1 thread supported yet
 
 		// create swapchain
 		if ( swapchainCI )
 		{
-			CHECK_ERR( EnumEq( _threadUsage, EThreadUsage::Present ));
-
 			CHECK_ERR( Visit( *swapchainCI,
 					[this] (const VulkanSwapchainCreateInfo &info)	{ return _RecreateSwapchain( info ); },
 					[] (const auto &)								{ RETURN_ERR( "unsupported swapchain create info!", false ); }
 				));
 		}
-		
-		CHECK_ERR( _SetupQueues( relativeThreads.empty() ? null : DynCast<VFrameGraphThread>(relativeThreads.front()) ));
-		_queueFamilyMask = Default;
 
-		for (auto& queue : _queues)
+		// create query pool
 		{
-			queue.frames.resize( GetRingBufferSize() );
+			VkQueryPoolCreateInfo	info = {};
+			info.sType		= VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+			info.queryType	= VK_QUERY_TYPE_TIMESTAMP;
+			info.queryCount	= uint(_queues.capacity() * GetRingBufferSize() * 2);
+		
+			VDevice const&	dev = GetDevice();
+			VK_CHECK( dev.vkCreateQueryPool( dev.GetVkDevice(), &info, null, OUT &_query.pool ));
 
-			_queueFamilyMask |= queue.ptr->familyIndex;
-
-			CHECK_ERR( _CreateCommandBuffers( INOUT queue ));
+			_query.capacity = info.queryCount;
+			_query.size		= 0;
 		}
-
-		CHECK_ERR( _InitGpuQueries( INOUT _queues, INOUT _queryPool ));
 
 		if ( _memoryMngr )
 			CHECK_ERR( _memoryMngr->Initialize() );
@@ -508,57 +476,6 @@ namespace FG
 
 		CHECK_ERR( _resourceMngr.Initialize() );
 		CHECK_ERR( _SetState( EState::Initializing, EState::Idle ));
-		return true;
-	}
-	
-/*
-=================================================
-	_CreateCommandBuffers
-=================================================
-*/
-	bool VFrameGraphThread::_CreateCommandBuffers (INOUT PerQueue &queue) const
-	{
-		CHECK_ERR( not queue.cmdPoolId );
-
-		VDevice const&	dev = GetDevice();
-		
-		VkCommandPoolCreateInfo		pool_info = {};
-		pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		pool_info.queueFamilyIndex	= uint(queue.ptr->familyIndex);
-		pool_info.flags				= 0; //VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-		if ( EnumEq( queue.ptr->familyFlags, VK_QUEUE_PROTECTED_BIT ) )
-			pool_info.flags |= VK_COMMAND_POOL_CREATE_PROTECTED_BIT;
-
-		VK_CHECK( dev.vkCreateCommandPool( dev.GetVkDevice(), &pool_info, null, OUT &queue.cmdPoolId ));
-		return true;
-	}
-	
-/*
-=================================================
-	_InitGpuQueries
-=================================================
-*/
-	bool VFrameGraphThread::_InitGpuQueries (INOUT PerQueueArray_t &queues, INOUT VkQueryPool &pool) const
-	{
-		CHECK_ERR( not pool );
-		
-		VkQueryPoolCreateInfo	info = {};
-		info.sType		= VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-		info.queryType	= VK_QUERY_TYPE_TIMESTAMP;
-		info.queryCount	= uint(queues.size() * queues.front().frames.size()) * 2;
-		
-		VDevice const&	dev = GetDevice();
-		VK_CHECK( dev.vkCreateQueryPool( dev.GetVkDevice(), &info, null, OUT &pool ));
-
-		uint	index = 0;
-		for (auto& queue : queues)
-		{
-			for (auto& frame : queue.frames)
-			{
-				frame.queryIndex = 2 * (index++);
-			}
-		}
 		return true;
 	}
 
@@ -585,51 +502,6 @@ namespace FG
 		CHECK_ERR( _submissionGraph, void());
 		CHECK( _submissionGraph->WaitSemaphore( _cmdBatchId, sem, stage ));
 	}
-	
-/*
-=================================================
-	_GetQueue
-=================================================
-*/
-	VFrameGraphThread::PerQueue*  VFrameGraphThread::_GetQueue (EThreadUsage usage)
-	{
-		EXLOCK( _rcCheck );
-		ASSERT( _IsInitialized() );
-		ASSERT( EnumAny( usage, _threadUsage ));
-		ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
-		
-		for (auto& queue : _queues)
-		{
-			if ( EnumEq( queue.usage, usage ) )
-				return &queue;
-		}
-		return null;
-	}
-	
-/*
-=================================================
-	_GetAnyGraphicsQueue
-=================================================
-*/
-	VDeviceQueueInfoPtr  VFrameGraphThread::_GetAnyGraphicsQueue () const
-	{
-		EXLOCK( _rcCheck );
-		ASSERT( _IsInitialized() );
-
-		const EThreadUsage		any_usage	= (_threadUsage & EThreadUsage::_QueueMask);
-		VDeviceQueueInfoPtr		best_match;
-
-		for (auto& queue : _queues)
-		{
-			if ( EnumEq( queue.usage, _currUsage ) )
-				return queue.ptr;
-			
-			if ( EnumAny( queue.usage, any_usage ) )
-				best_match = queue.ptr;
-		}
-
-		return best_match;
-	}
 
 /*
 =================================================
@@ -638,13 +510,12 @@ namespace FG
 */
 	VkCommandBuffer  VFrameGraphThread::_CreateCommandBuffer () const
 	{
-		CHECK_ERR( _currQueue );
-		ASSERT( _currQueue->cmdPoolId );
+		CHECK_ERR( _currQueue and _currQueue->cmdPool );
 
 		VkCommandBufferAllocateInfo	info = {};
 		info.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		info.pNext				= null;
-		info.commandPool		= _currQueue->cmdPoolId;
+		info.commandPool		= _currQueue->cmdPool;
 		info.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		info.commandBufferCount	= 1;
 				
@@ -654,295 +525,6 @@ namespace FG
 
 		_currQueue->frames[_frameId].pending.push_back( cmd );
 		return cmd;
-	}
-
-/*
-=================================================
-	_SetupQueues
-=================================================
-*/
-	bool VFrameGraphThread::_SetupQueues (const SharedPtr<VFrameGraphThread> &relativeThread)
-	{
-		CHECK_ERR( _queues.empty() );
-
-		const bool	graphics_present	= EnumEq( _threadUsage, EThreadUsage::Graphics ) and EnumEq( _threadUsage, EThreadUsage::Present );
-		const bool	compute_present		= EnumEq( _threadUsage, EThreadUsage::AsyncCompute ) and EnumEq( _threadUsage, EThreadUsage::Present );
-
-		// graphics
-		if ( graphics_present )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::Graphics | EThreadUsage::Present, relativeThread ))
-		else
-		if ( EnumEq( _threadUsage, EThreadUsage::Graphics ) )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::Graphics, relativeThread ))
-		else
-		if ( EnumEq( _threadUsage, EThreadUsage::Transfer ) )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::Transfer, relativeThread ));
-
-
-		// compute only
-		if ( not graphics_present and compute_present )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncCompute | EThreadUsage::Present, relativeThread ))
-		else
-		if ( EnumEq( _threadUsage, EThreadUsage::AsyncCompute ) )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncCompute, relativeThread ));
-
-
-		// transfer only
-		if ( EnumEq( _threadUsage, EThreadUsage::AsyncStreaming ) )
-			CHECK_ERR( _AddGpuQueue( EThreadUsage::AsyncStreaming, relativeThread ));
-
-		CHECK_ERR( not _queues.empty() );
-		return true;
-	}
-	
-/*
-=================================================
-	_AddGraphicsQueue
-=================================================
-*/
-	bool VFrameGraphThread::_AddGpuQueue (const EThreadUsage usage, const SharedPtr<VFrameGraphThread> &relativeThread)
-	{
-		if ( relativeThread )
-		{
-			EThreadUsage	new_usage = (usage & ~EThreadUsage::Present);
-
-			if ( auto* queue = relativeThread->_GetQueue( new_usage ) )
-			{
-				// TODO: check is swapchain can present on this queue
-
-				_queues.push_back( PerQueue{} );
-				auto&	q = _queues.back();
-
-				q.ptr	= queue->ptr;
-				q.usage	= usage;
-				return true;
-			}
-		}
-
-		switch ( usage )
-		{
-			case EThreadUsage::Graphics | EThreadUsage::Present :
-				return _AddGraphicsAndPresentQueue();
-
-			case EThreadUsage::Graphics :
-				return _AddGraphicsQueue();
-
-			case EThreadUsage::Transfer :		// TODO: remove?
-				return _AddTransferQueue();
-
-			case EThreadUsage::AsyncCompute | EThreadUsage::Present :
-				return _AddAsyncComputeAndPresentQueue();
-				
-			case EThreadUsage::AsyncCompute :
-				return _AddAsyncComputeQueue();
-
-			case EThreadUsage::AsyncStreaming :
-				return _AddAsyncStreamingQueue();
-		}
-
-		RETURN_ERR( "unsupported queue usage!" );
-	}
-
-/*
-=================================================
-	_AddGraphicsQueue
-=================================================
-*/
-	bool VFrameGraphThread::_AddGraphicsQueue ()
-	{
-		for (auto& queue : GetDevice().GetVkQueues())
-		{
-			if ( EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT ) )
-			{
-				_queues.push_back( PerQueue{} );
-				auto&	q = _queues.back();
-
-				q.ptr	= &queue;
-				q.usage	= EThreadUsage::Graphics;
-				return true;
-			}
-		}
-		return false;
-	}
-	
-/*
-=================================================
-	_AddGraphicsAndPresentQueue
-=================================================
-*/
-	bool VFrameGraphThread::_AddGraphicsAndPresentQueue ()
-	{
-		CHECK_ERR( _swapchain );
-
-		for (auto& queue : GetDevice().GetVkQueues())
-		{
-			if ( EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT ) and
-				 _swapchain->IsCompatibleWithQueue( queue.familyIndex ) )
-			{
-				_queues.push_back( PerQueue{} );
-				auto&	q = _queues.back();
-
-				q.ptr	= &queue;
-				q.usage	= EThreadUsage::Graphics | EThreadUsage::Present;
-
-				CHECK_ERR( _swapchain->Initialize( q.ptr ));
-				return true;
-			}
-		}
-		return false;
-	}
-
-/*
-=================================================
-	_AddTransferQueue
-=================================================
-*/
-	bool VFrameGraphThread::_AddTransferQueue ()
-	{
-		for (auto& queue : GetDevice().GetVkQueues())
-		{
-			if ( EnumEq( queue.familyFlags, VK_QUEUE_TRANSFER_BIT ) )
-			{
-				_queues.push_back( PerQueue{} );
-				auto&	q = _queues.back();
-
-				q.ptr	= &queue;
-				q.usage	= EThreadUsage::Transfer;
-				return true;
-			}
-		}
-		return false;
-	}
-	
-/*
-=================================================
-	_AddAsyncComputeQueue
-=================================================
-*/
-	bool VFrameGraphThread::_AddAsyncComputeQueue ()
-	{
-		VDeviceQueueInfoPtr		best_match;
-		VDeviceQueueInfoPtr		compatible;
-
-		for (auto& queue : GetDevice().GetVkQueues())
-		{
-			if ( EnumEq( queue.familyFlags, VK_QUEUE_COMPUTE_BIT ) and
-				 not EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT ) )
-			{
-				best_match = &queue;
-				continue;
-			}
-			
-			if ( EnumEq( queue.familyFlags, VK_QUEUE_COMPUTE_BIT ) and 
-				 (not compatible or BitSet<32>{compatible->familyFlags}.count() > BitSet<32>{queue.familyFlags}.count()) )
-			{
-				compatible =  &queue;
-			}
-		}
-
-		if ( not best_match )
-			best_match = compatible;
-
-		if ( best_match )
-		{
-			_queues.push_back( PerQueue{} );
-			auto&	q = _queues.back();
-
-			q.ptr	= best_match;
-			q.usage	= EThreadUsage::AsyncCompute;
-			return true;
-		}
-
-		return false;
-	}
-	
-/*
-=================================================
-	_AddAsyncComputeAndPresentQueue
-=================================================
-*/
-	bool VFrameGraphThread::_AddAsyncComputeAndPresentQueue ()
-	{
-		CHECK_ERR( _swapchain );
-
-		VDeviceQueueInfoPtr		best_match;
-		VDeviceQueueInfoPtr		compatible;
-
-		for (auto& queue : GetDevice().GetVkQueues())
-		{
-			if ( EnumEq( queue.familyFlags, VK_QUEUE_COMPUTE_BIT )		and
-				 not EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT )	and
-				 _swapchain->IsCompatibleWithQueue( queue.familyIndex ) )
-			{
-				best_match = &queue;
-				continue;
-			}
-			
-			if ( EnumEq( queue.familyFlags, VK_QUEUE_COMPUTE_BIT ) and 
-				 (not compatible or BitSet<32>{compatible->familyFlags}.count() > BitSet<32>{queue.familyFlags}.count()) and
-				 _swapchain->IsCompatibleWithQueue( queue.familyIndex ) )
-			{
-				compatible =  &queue;
-			}
-		}
-
-		if ( not best_match )
-			best_match = compatible;
-
-		if ( best_match )
-		{
-			_queues.push_back( PerQueue{} );
-			auto&	q = _queues.back();
-
-			q.ptr	= best_match;
-			q.usage	= EThreadUsage::AsyncCompute | EThreadUsage::Present;
-
-			CHECK_ERR( _swapchain->Initialize( q.ptr ));
-			return true;
-		}
-
-		return false;
-	}
-
-/*
-=================================================
-	_AddAsyncStreamingQueue
-=================================================
-*/
-	bool VFrameGraphThread::_AddAsyncStreamingQueue ()
-	{
-		VDeviceQueueInfoPtr		best_match;
-		VDeviceQueueInfoPtr		compatible;
-
-		for (auto& queue : GetDevice().GetVkQueues())
-		{
-			if ( queue.familyFlags == VK_QUEUE_TRANSFER_BIT )
-			{
-				best_match = &queue;
-				continue;
-			}
-			
-			if ( EnumEq( queue.familyFlags, VK_QUEUE_TRANSFER_BIT ) and 
-				 (not compatible or BitSet<32>{compatible->familyFlags}.count() > BitSet<32>{queue.familyFlags}.count()) )
-			{
-				compatible =  &queue;
-			}
-		}
-
-		if ( not best_match )
-			best_match = compatible;
-
-		if ( best_match )
-		{
-			_queues.push_back( PerQueue{} );
-			auto&	q = _queues.back();
-
-			q.ptr	= best_match;
-			q.usage	= EThreadUsage::AsyncStreaming;
-			return true;
-		}
-
-		return false;
 	}
 
 /*
@@ -959,19 +541,20 @@ namespace FG
 
 		for (auto& queue : _queues)
 		{
-			VK_CALL( dev.vkQueueWaitIdle( queue.ptr->handle ));
+			if ( queue.ptr )
+				VK_CALL( dev.vkQueueWaitIdle( queue.ptr->handle ));
 			
-			if ( queue.cmdPoolId )
+			if ( queue.cmdPool )
 			{
-				dev.vkDestroyCommandPool( dev.GetVkDevice(), queue.cmdPoolId, null );
-				queue.cmdPoolId = VK_NULL_HANDLE;
+				dev.vkDestroyCommandPool( dev.GetVkDevice(), queue.cmdPool, null );
+				queue.cmdPool = VK_NULL_HANDLE;
 			}
 		}
 		_queues.clear();
 
-		if ( _queryPool ) {
-			dev.vkDestroyQueryPool( dev.GetVkDevice(), _queryPool, null );
-			_queryPool = VK_NULL_HANDLE;
+		if ( _query.pool ) {
+			dev.vkDestroyQueryPool( dev.GetVkDevice(), _query.pool, null );
+			_query.pool = VK_NULL_HANDLE;
 		}
 
 		if ( _stagingMngr )
@@ -1080,23 +663,6 @@ namespace FG
 		
 		CHECK_ERR( sc->Create( info, GetRingBufferSize() ));
 
-		// find suitable queue
-		if ( _IsInitialized() )
-		{
-			bool	initialized = false;
-
-			for (auto& queue : _queues)
-			{
-				if ( sc->IsCompatibleWithQueue( queue.ptr->familyIndex ) )
-				{
-					CHECK_ERR( sc->Initialize( queue.ptr ));
-					initialized = true;
-					break;
-				}
-			}
-			CHECK_ERR( initialized );
-		}
-
 		_swapchain.reset( sc.release() );
 		return true;
 	}
@@ -1112,7 +678,7 @@ namespace FG
 		CHECK_ERR( _SetState( EState::Idle, EState::BeforeStart ));
 		ASSERT( graph );
 
-		_frameId		 = (_frameId + 1) % _queues.front().frames.size();
+		_frameId		 = (_frameId + 1) % GetRingBufferSize();
 		_submissionGraph = graph;
 		_statistic		 = Default;
 
@@ -1130,11 +696,9 @@ namespace FG
 	Begin
 =================================================
 */
-	bool VFrameGraphThread::Begin (const CommandBatchID &id, uint index, EThreadUsage usage)
+	bool VFrameGraphThread::Begin (const CommandBatchID &id, uint index, EQueueUsage usage)
 	{
 		EXLOCK( _rcCheck );
-		ASSERT( EnumAny( usage, _threadUsage ));
-		ASSERT( EnumAny( usage, EThreadUsage::_QueueMask ));
 		
 		if ( _SetState( EState::Ready, EState::BeforeRecording ) )
 		{
@@ -1143,15 +707,18 @@ namespace FG
 			// recycle commands buffers
 			for (auto& queue : _queues)
 			{
+				if ( queue.frames.empty() )
+					continue;
+
 				auto&	frame	= queue.frames[_frameId];
 				auto&	dev		= _instance.GetDevice();
 
 				if ( not frame.executed.empty() )
 				{
-					dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.executed.size()), frame.executed.data() );
+					dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPool, uint(frame.executed.size()), frame.executed.data() );
 
 					// read frame time
-					VK_CALL( dev.vkGetQueryPoolResults( dev.GetVkDevice(), _queryPool, frame.queryIndex, uint(query_results.size()),
+					VK_CALL( dev.vkGetQueryPoolResults( dev.GetVkDevice(), _query.pool, frame.queryIndex, uint(query_results.size()),
 														sizeof(query_results), OUT query_results.data(),
 														sizeof(query_results[0]), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT ));
 
@@ -1177,12 +744,58 @@ namespace FG
 		if ( _stagingMngr )
 			_stagingMngr->OnBeginFrame( _frameId, _isFirstUsage );
 
+
+		auto	queue = _instance.FindQueue( usage );
+		CHECK_ERR( queue );
+		_queues.resize(Max( _queues.size(), uint(queue->familyIndex)+1 ));
+
+		_currQueue		= &_queues[ uint(queue->familyIndex) ];
+		_currUsage		= usage;
 		_cmdBatchId		= id;
 		_indexInBatch	= index;
-		_currUsage		= (usage & _threadUsage);
-		_currQueue		= _GetQueue( _currUsage );
+
+		// initialize for queue
+		if ( not _currQueue->cmdPool )
+		{
+			_currQueue->frames.resize( GetRingBufferSize() );
+			_currQueue->ptr = queue;
+
+			CHECK_ERR( _CreateCommandBuffers( *_currQueue ));
+
+			for (auto& frame : _currQueue->frames)
+			{
+				if ( frame.queryIndex == UMax )
+				{
+					frame.queryIndex = _query.size;
+					_query.size     += 2;
+				}
+			}
+		}
 
 		CHECK_ERR( _SetState( EState::BeforeRecording, EState::Recording ));
+		return true;
+	}
+	
+/*
+=================================================
+	_CreateCommandBuffers
+=================================================
+*/
+	bool VFrameGraphThread::_CreateCommandBuffers (INOUT PerQueue &queue) const
+	{
+		CHECK_ERR( not queue.cmdPool );
+
+		VDevice const&	dev = GetDevice();
+		
+		VkCommandPoolCreateInfo		pool_info = {};
+		pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		pool_info.queueFamilyIndex	= uint(queue.ptr->familyIndex);
+		pool_info.flags				= 0; //VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+		if ( EnumEq( queue.ptr->familyFlags, VK_QUEUE_PROTECTED_BIT ) )
+			pool_info.flags |= VK_COMMAND_POOL_CREATE_PROTECTED_BIT;
+
+		VK_CHECK( dev.vkCreateCommandPool( dev.GetVkDevice(), &pool_info, null, OUT &queue.cmdPool ));
 		return true;
 	}
 	
@@ -1207,14 +820,11 @@ namespace FG
 		if ( _debugger )
 			_debugger->OnEndFrame( _cmdBatchId, _indexInBatch );
 
-		for (auto& queue : _queues)
+		// submit
 		{
-			if ( not EnumEq( queue.usage, _currUsage ) )
-				continue;
+			auto&	frame = _currQueue->frames[_frameId];
+			CHECK( _submissionGraph->Submit( _currQueue->ptr, _cmdBatchId, _indexInBatch, frame.pending ));
 			
-			auto&	frame = queue.frames[_frameId];
-			CHECK( _submissionGraph->Submit( queue.ptr, _cmdBatchId, _indexInBatch, frame.pending ));
-
 			frame.executed.append( frame.pending );
 			frame.pending.clear();
 		}
@@ -1224,17 +834,19 @@ namespace FG
 		
 		_cmdBatchId		= Default;
 		_indexInBatch	= UMax;
-		_currUsage		= Default;
 		_currQueue		= null;
 		
 		const auto	dt = TimePoint_t::clock::now() - start_time;
 
 		for (auto& queue : _queues)
 		{
-			auto&	frame = queue.frames[_frameId];
+			if ( queue.frames.size() )
+			{
+				auto&	frame = queue.frames[_frameId];
 
-			_statistic.renderer.cpuTime += frame.executionTime;
-			frame.executionTime = dt;
+				_statistic.renderer.cpuTime += frame.executionTime;
+				frame.executionTime = dt;
+			}
 		}
 
 		CHECK_ERR( _SetState( EState::Compiling, EState::Pending ));
@@ -1288,12 +900,15 @@ namespace FG
 		
 		for (auto& queue : _queues)
 		{
+			if ( queue.frames.empty() )
+				continue;
+
 			auto&	frame	= queue.frames[_frameId];
 			auto&	dev		= _instance.GetDevice();
 
 			// recycle commands buffers
 			if ( not frame.executed.empty() ) {
-				dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPoolId, uint(frame.executed.size()), frame.executed.data() );
+				dev.vkFreeCommandBuffers( dev.GetVkDevice(), queue.cmdPool, uint(frame.executed.size()), frame.executed.data() );
 			}
 
 			frame.executed.clear();

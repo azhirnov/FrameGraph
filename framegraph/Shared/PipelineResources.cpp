@@ -102,13 +102,13 @@ namespace FG
 		auto&	img = res.elements[ index ];
 
 		ASSERT( index < res.elementCapacity );
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 
-		if ( img.imageId != image or img.hasDesc )
+		if ( img.imageId != image or img.hasDesc or res.elementCount <= index )
 			_ResetCachedID();
-
-		img.imageId	= image;
-		img.hasDesc	= false;
+		
+		res.elementCount = Max( uint16_t(index+1), res.elementCount );
+		img.imageId		 = image;
+		img.hasDesc		 = false;
 
 		return *this;
 	}
@@ -122,14 +122,14 @@ namespace FG
 		auto&	img = res.elements[ index ];
 
 		ASSERT( index < res.elementCapacity );
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 
-		if ( img.imageId != image or not img.hasDesc or not (img.desc == desc) )
+		if ( img.imageId != image or not img.hasDesc or not (img.desc == desc) or res.elementCount <= index )
 			_ResetCachedID();
-
-		img.imageId	= image;
-		img.desc	= desc;
-		img.hasDesc	= true;
+		
+		res.elementCount = Max( uint16_t(index+1), res.elementCount );
+		img.imageId		 = image;
+		img.desc		 = desc;
+		img.hasDesc		 = true;
 
 		return *this;
 	}
@@ -139,31 +139,37 @@ namespace FG
 	BindImages
 =================================================
 */
-	PipelineResources&  PipelineResources::BindImages (const UniformID &id, ArrayView<ImageID> images)
+	PipelineResources&  PipelineResources::BindImages (const UniformID &id, ArrayView<RawImageID> images)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( HasImage( id ));
 
 		auto&	res		= _GetResource<Image>( id );
-		bool	changed	= false;
+		bool	changed	= res.elementCount != images.size();
 		
 		ASSERT( images.size() <= res.elementCapacity );
-		res.elementCount = Max( uint16_t(images.size()), res.elementCount );
+		res.elementCount = uint16_t(images.size());
 
 		for (size_t i = 0; i < images.size(); ++i)
 		{
 			auto&	img = res.elements[i];
 
-			changed |= (img.imageId != images[i].Get() or img.hasDesc);
+			changed |= (img.imageId != images[i] or img.hasDesc);
 
-			img.imageId	= images[i].Get();
+			img.imageId	= images[i];
 			img.hasDesc	= false;
 		}
 
 		if ( changed )
 			_ResetCachedID();
-
+		
 		return *this;
+	}
+
+	PipelineResources&  PipelineResources::BindImages (const UniformID &id, ArrayView<ImageID> images)
+	{
+		STATIC_ASSERT( sizeof(ImageID) == sizeof(RawImageID) );
+		return BindImages( id, ArrayView<RawImageID>{ Cast<RawImageID>(images.data()), images.size() });
 	}
 
 /*
@@ -171,7 +177,7 @@ namespace FG
 	BindTexture
 =================================================
 */
-	PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler, uint index)
+	PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, RawSamplerID sampler, uint index)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( HasTexture( id ));
@@ -180,19 +186,19 @@ namespace FG
 		auto&	tex = res.elements[ index ];
 		
 		ASSERT( index < res.elementCapacity );
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 
-		if ( tex.imageId != image or tex.samplerId != sampler.Get() or tex.hasDesc )
+		if ( tex.imageId != image or tex.samplerId != sampler or tex.hasDesc or res.elementCount <= index )
 			_ResetCachedID();
-
-		tex.imageId		= image;
-		tex.samplerId	= sampler.Get();
-		tex.hasDesc		= false;
+		
+		res.elementCount = Max( uint16_t(index+1), res.elementCount );
+		tex.imageId		 = image;
+		tex.samplerId	 = sampler;
+		tex.hasDesc		 = false;
 
 		return *this;
 	}
 	
-	PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler, const ImageViewDesc &desc, uint index)
+	PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, RawSamplerID sampler, const ImageViewDesc &desc, uint index)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( HasTexture( id ));
@@ -201,15 +207,15 @@ namespace FG
 		auto&	tex = res.elements[ index ];
 		
 		ASSERT( index < res.elementCapacity );
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 
-		if ( tex.imageId != image or tex.samplerId != sampler.Get() or not tex.hasDesc or not (tex.desc == desc) )
+		if ( tex.imageId != image or tex.samplerId != sampler or not tex.hasDesc or not (tex.desc == desc) or res.elementCount <= index )
 			_ResetCachedID();
-
-		tex.imageId		= image;
-		tex.samplerId	= sampler.Get();
-		tex.desc		= desc;
-		tex.hasDesc		= true;
+		
+		res.elementCount = Max( uint16_t(index+1), res.elementCount );
+		tex.imageId		 = image;
+		tex.samplerId	 = sampler;
+		tex.desc		 = desc;
+		tex.hasDesc		 = true;
 		
 		return *this;
 	}
@@ -219,25 +225,31 @@ namespace FG
 	BindTextures
 =================================================
 */
-	PipelineResources&  PipelineResources::BindTextures (const UniformID &id, ArrayView<ImageID> images, const SamplerID &sampler)
+	PipelineResources&  PipelineResources::BindTextures (const UniformID &id, ArrayView<ImageID> images, RawSamplerID sampler)
+	{
+		STATIC_ASSERT( sizeof(ImageID) == sizeof(RawImageID) );
+		return BindTextures( id, ArrayView<RawImageID>{ Cast<RawImageID>(images.data()), images.size() }, sampler );
+	}
+
+	PipelineResources&  PipelineResources::BindTextures (const UniformID &id, ArrayView<RawImageID> images, RawSamplerID sampler)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( HasTexture( id ));
 
 		auto&	res		= _GetResource<Texture>( id );
-		bool	changed = false;
+		bool	changed = res.elementCount != images.size();
 
 		ASSERT( images.size() <= res.elementCapacity );
-		res.elementCount = Max( uint16_t(images.size()), res.elementCount );
+		res.elementCount = uint16_t(images.size());
 
 		for (size_t i = 0; i < images.size(); ++i)
 		{
 			auto&	tex = res.elements[i];
 
-			changed |= (tex.imageId != images[i].Get() or tex.samplerId != sampler.Get() or tex.hasDesc);
+			changed |= (tex.imageId != images[i] or tex.samplerId != sampler or tex.hasDesc);
 
-			tex.imageId		= images[i].Get();
-			tex.samplerId	= sampler.Get();
+			tex.imageId		= images[i];
+			tex.samplerId	= sampler;
 			tex.hasDesc		= false;
 		}
 
@@ -252,7 +264,7 @@ namespace FG
 	BindSampler
 =================================================
 */
-	PipelineResources&  PipelineResources::BindSampler (const UniformID &id, const SamplerID &sampler, uint index)
+	PipelineResources&  PipelineResources::BindSampler (const UniformID &id, RawSamplerID sampler, uint index)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( HasSampler( id ));
@@ -261,12 +273,12 @@ namespace FG
 		auto&	samp = res.elements[ index ];
 
 		ASSERT( index < res.elementCapacity );
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 
-		if ( samp.samplerId != sampler.Get() )
+		if ( samp.samplerId != sampler or res.elementCount <= index )
 			_ResetCachedID();
-
-		samp.samplerId = sampler.Get();
+		
+		res.elementCount = Max( uint16_t(index+1), res.elementCount );
+		samp.samplerId	 = sampler;
 
 		return *this;
 	}
@@ -278,27 +290,33 @@ namespace FG
 */
 	PipelineResources&  PipelineResources::BindSamplers (const UniformID &id, ArrayView<SamplerID> samplers)
 	{
+		STATIC_ASSERT( sizeof(SamplerID) == sizeof(RawSamplerID) );
+		return BindSamplers( id, ArrayView<RawSamplerID>{ Cast<RawSamplerID>(samplers.data()), samplers.size() });
+	}
+
+	PipelineResources&  PipelineResources::BindSamplers (const UniformID &id, ArrayView<RawSamplerID> samplers)
+	{
 		EXLOCK( _rcCheck );
 		ASSERT( HasSampler( id ));
 
 		auto&	res		= _GetResource<Sampler>( id );
-		bool	changed = false;
+		bool	changed = res.elementCount != samplers.size();
 		
 		ASSERT( samplers.size() <= res.elementCapacity );
-		res.elementCount = uint16_t(samplers.size());
 
 		for (size_t i = 0; i < samplers.size(); ++i)
 		{
 			auto&	samp = res.elements[i];
 
-			changed |= (samp.samplerId != samplers[i].Get());
+			changed |= (samp.samplerId != samplers[i]);
 
-			samp.samplerId = samplers[i].Get();
+			samp.samplerId = samplers[i];
 		}
 
 		if ( changed )
 			_ResetCachedID();
-
+		
+		res.elementCount = uint16_t(samplers.size());
 		return *this;
 	}
 
@@ -322,9 +340,8 @@ namespace FG
 
 		ASSERT( size == ~0_b or ((size >= res.staticSize) and (res.arrayStride == 0 or (size - res.staticSize) % res.arrayStride == 0)) );
 		ASSERT( index < res.elementCapacity );
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 
-		bool	changed = (buf.bufferId != buffer or buf.size != size);
+		bool	changed = (buf.bufferId != buffer or buf.size != size or res.elementCount <= index);
 		
 		if ( res.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
 		{
@@ -339,9 +356,10 @@ namespace FG
 		
 		if ( changed )
 			_ResetCachedID();
-
-		buf.bufferId = buffer;
-		buf.size	 = size;
+		
+		res.elementCount = Max( uint16_t(index+1), res.elementCount );
+		buf.bufferId	 = buffer;
+		buf.size		 = size;
 
 		return *this;
 	}
@@ -353,22 +371,27 @@ namespace FG
 */
 	PipelineResources&  PipelineResources::BindBuffers (const UniformID &id, ArrayView<BufferID> buffers)
 	{
+		STATIC_ASSERT( sizeof(BufferID) == sizeof(RawBufferID) );
+		return BindBuffers( id, ArrayView<RawBufferID>{ Cast<RawBufferID>(buffers.data()), buffers.size() });
+	}
+
+	PipelineResources&  PipelineResources::BindBuffers (const UniformID &id, ArrayView<RawBufferID> buffers)
+	{
 		EXLOCK( _rcCheck );
 		ASSERT( HasBuffer( id ));
 		
 		auto&	res		= _GetResource<Buffer>( id );
-		bool	changed = false;
+		bool	changed = res.elementCount != buffers.size();
 		BytesU	offset	= 0_b;
 		BytesU	size	= ~0_b;
 		
 		ASSERT( buffers.size() <= res.elementCapacity );
-		res.elementCount = uint16_t(buffers.size());
 
 		for (size_t i = 0; i < buffers.size(); ++i)
 		{
 			auto&	buf = res.elements[i];
 
-			changed |= (buf.bufferId != buffers[i].Get() or buf.size != size);
+			changed |= (buf.bufferId != buffers[i] or buf.size != size);
 		
 			if ( res.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
 			{
@@ -381,13 +404,14 @@ namespace FG
 				_GetDynamicOffset( res.dynamicOffsetIndex + uint(i) ) = uint(offset - buf.offset);
 			}
 
-			buf.bufferId = buffers[i].Get();
+			buf.bufferId = buffers[i];
 			buf.size	 = size;
 		}
 		
 		if ( changed )
 			_ResetCachedID();
-
+		
+		res.elementCount = uint16_t(buffers.size());
 		return *this;
 	}
 
@@ -401,20 +425,23 @@ namespace FG
 		EXLOCK( _rcCheck );
 		ASSERT( HasBuffer( id ));
 
-		auto&	res	= _GetResource<Buffer>( id );
-		auto&	buf	= res.elements[ index ];
-		
+		auto&	res		= _GetResource<Buffer>( id );
+		auto&	buf		= res.elements[ index ];
+		bool	changed	= res.elementCount <= index;
+
 		ASSERT( index < res.elementCapacity );
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 
 		if ( res.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
 		{
-			if ( buf.offset != offset )
-				_ResetCachedID();
-			
+			changed |= (buf.offset != offset);
 			_GetDynamicOffset( res.dynamicOffsetIndex + index ) = uint(_GetDynamicOffset( res.dynamicOffsetIndex + index ) + buf.offset - offset);
 			buf.offset = offset;
 		}
+		
+		if ( changed )
+			_ResetCachedID();
+
+		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 		return *this;
 	}
 	
@@ -423,7 +450,7 @@ namespace FG
 	BindRayTracingScene
 =================================================
 */
-	PipelineResources&  PipelineResources::BindRayTracingScene (const UniformID &id, const RTSceneID &scene, uint index)
+	PipelineResources&  PipelineResources::BindRayTracingScene (const UniformID &id, RawRTSceneID scene, uint index)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( HasRayTracingScene( id ));
@@ -432,12 +459,12 @@ namespace FG
 		auto&	rts	= res.elements[ index ];
 		
 		ASSERT( index < res.elementCapacity );
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
 
-		if ( rts.sceneId != scene.Get() )
+		if ( rts.sceneId != scene or res.elementCount <= index )
 			_ResetCachedID();
-
-		rts.sceneId = scene.Get();
+		
+		res.elementCount = Max( uint16_t(index+1), res.elementCount );
+		rts.sceneId		 = scene;
 		
 		return *this;
 	}
@@ -741,7 +768,9 @@ namespace {
 	PipelineResources::DynamicDataPtr  PipelineResourcesHelper::CloneDynamicData (const PipelineResources &res)
 	{
 		SHAREDLOCK( res._rcCheck );
-		CHECK_ERR( res._dataPtr );
+
+		if ( not res._dataPtr )
+			return Default;
 
 		auto&	data	= res._dataPtr;
 		auto*	result	= Cast<PipelineResources::DynamicData>( Allocator::Allocate( data->memSize ));

@@ -59,7 +59,7 @@ void main ()
 }
 )#", "Closest hit shader for triangle" );
 
-		FGThreadPtr		frame_graph	= _fgGraphics1;
+		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		view_size	= {800, 600};
 		const uint2		debug_coord	= view_size / 2;
 
@@ -168,7 +168,7 @@ no source
 		submission_graph.AddBatch( batch_id );
 		
 		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 		
 		resources.BindImage( UniformID("un_Output"), dst_image );
 		resources.BindRayTracingScene( UniformID("un_RtScene"), rt_scene );

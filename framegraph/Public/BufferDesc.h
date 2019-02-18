@@ -16,12 +16,13 @@ namespace FG
 	// variables
 		BytesU			size;
 		EBufferUsage	usage		= Default;
+		EQueueUsage		queues		= Default;
 		//bool			isLogical	= false;
 		bool			isExternal	= false;
 
 	// methods
 		BufferDesc () {}
-		BufferDesc (BytesU size, EBufferUsage usage) : size(size), usage(usage) {}
+		BufferDesc (BytesU size, EBufferUsage usage, EQueueUsage queues = Default) : size{size}, usage{usage}, queues{queues} {}
 	};
 
 

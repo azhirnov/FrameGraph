@@ -75,6 +75,7 @@ namespace FG
 		bool									_enableDebugUtils	: 1;
 		bool									_enableMeshShaderNV	: 1;
 		bool									_enableRayTracingNV	: 1;
+		bool									_samplerMirrorClamp : 1;
 
 
 	// methods
@@ -82,15 +83,16 @@ namespace FG
 		explicit VDevice (const VulkanDeviceInfo &vdi);
 		~VDevice ();
 
-		ND_ bool							IsDebugUtilsEnabled ()		const	{ return _enableDebugUtils; }
-		ND_ bool							IsMeshShaderEnabled ()		const	{ return _enableMeshShaderNV; }
-		ND_ bool							IsRayTracingEnabled ()		const	{ return _enableRayTracingNV; }
+		ND_ bool							IsDebugUtilsEnabled ()			const	{ return _enableDebugUtils; }
+		ND_ bool							IsMeshShaderEnabled ()			const	{ return _enableMeshShaderNV; }
+		ND_ bool							IsRayTracingEnabled ()			const	{ return _enableRayTracingNV; }
+		ND_ bool							IsSamplerMirrorClampEnabled ()	const	{ return _samplerMirrorClamp; }
 
-		ND_ VkDevice						GetVkDevice ()				const	{ return _vkDevice; }
-		ND_ VkPhysicalDevice				GetVkPhysicalDevice ()		const	{ return _vkPhysicalDevice; }
-		ND_ VkInstance						GetVkInstance ()			const	{ return _vkInstance; }
-		ND_ EShaderLangFormat				GetVkVersion ()				const	{ return _vkVersion; }
-		ND_ ArrayView< VDeviceQueueInfo >	GetVkQueues ()				const	{ return _vkQueues; }
+		ND_ VkDevice						GetVkDevice ()					const	{ return _vkDevice; }
+		ND_ VkPhysicalDevice				GetVkPhysicalDevice ()			const	{ return _vkPhysicalDevice; }
+		ND_ VkInstance						GetVkInstance ()				const	{ return _vkInstance; }
+		ND_ EShaderLangFormat				GetVkVersion ()					const	{ return _vkVersion; }
+		ND_ ArrayView< VDeviceQueueInfo >	GetVkQueues ()					const	{ return _vkQueues; }
 		
 
 		ND_ VkPhysicalDeviceProperties const&					GetDeviceProperties ()					const	{ return _deviceProperties; }

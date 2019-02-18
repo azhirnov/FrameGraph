@@ -134,7 +134,7 @@ void main() {
 		const BytesU	cbuf_offset			= Max( cbuf_size, BytesU(_vulkan.GetDeviceProperties().limits.minUniformBufferOffsetAlignment) );
 		const BytesU	cbuf_aligned_size	= AlignToLarger( cbuf_size, cbuf_offset );
 		
-		FGThreadPtr	frame_graph	= _fgGraphics1;
+		FGThreadPtr	frame_graph	= _fgThreads[0];
 
 		BufferID	const_buf1 = frame_graph->CreateBuffer( BufferDesc{ cbuf_aligned_size,   EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf1" );
 		BufferID	const_buf2 = frame_graph->CreateBuffer( BufferDesc{ cbuf_aligned_size*2, EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf2" );
@@ -166,7 +166,7 @@ void main() {
 		submission_graph.AddBatch( batch_id );
 		
 		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 		
 		ImageID		color_target = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::RGBA8_UNorm,
 																		EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "color_target" );

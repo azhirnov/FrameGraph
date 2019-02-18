@@ -35,7 +35,7 @@ namespace FG
 	{
 		EXLOCK( _rcCheck );
 		
-		_layoutId	= desc.GetLayout();
+		_layoutId	= _dataPtr->layoutId;
 		_hash		= HashOf( _layoutId ) + _dataPtr->CalcHash();
 	}
 

@@ -16,7 +16,6 @@ namespace FG
 	VDescriptorSetLayout::~VDescriptorSetLayout ()
 	{
 		CHECK( not _layout );
-		CHECK( not _dataPtr );
 	}
 	
 /*
@@ -61,7 +60,7 @@ namespace FG
 
 		VK_CHECK( dev.vkCreateDescriptorSetLayout( dev.GetVkDevice(), &descriptor_info, null, OUT &_layout ) );
 
-		_dataPtr = PipelineResourcesHelper::CreateDynamicData( _uniforms, _maxIndex+1, _elementCount, _dynamicOffsetCount );
+		_resourcesTemplate = PipelineResourcesHelper::CreateDynamicData( _uniforms, _maxIndex+1, _elementCount, _dynamicOffsetCount );
 		return true;
 	}
 	
@@ -78,7 +77,7 @@ namespace FG
 			readyToDelete.emplace_back( VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, uint64_t(_layout) );
 		}
 
-		_dataPtr.reset();
+		_resourcesTemplate.reset();
 		_poolSize.clear();
 		_uniforms			= null;
 		_layout				= VK_NULL_HANDLE;

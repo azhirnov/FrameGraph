@@ -8,10 +8,10 @@
 namespace FG
 {
 namespace {
-	static constexpr EThreadUsage	GraphicsBit		= EThreadUsage::Graphics;
-	static constexpr EThreadUsage	ComputeBit		= EThreadUsage::Graphics | EThreadUsage::AsyncCompute;
-	static constexpr EThreadUsage	RayTracingBit	= EThreadUsage::Graphics | EThreadUsage::AsyncCompute;
-	static constexpr EThreadUsage	TransferBit		= EThreadUsage::Graphics | EThreadUsage::AsyncCompute | EThreadUsage::AsyncStreaming;
+	static constexpr EQueueUsage	GraphicsBit		= EQueueUsage::Graphics;
+	static constexpr EQueueUsage	ComputeBit		= EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
+	static constexpr EQueueUsage	RayTracingBit	= EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
+	static constexpr EQueueUsage	TransferBit		= EQueueUsage::Graphics | EQueueUsage::AsyncCompute | EQueueUsage::AsyncTransfer;
 }
 
 /*
@@ -34,7 +34,7 @@ namespace {
 			info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 			VK_CALL( dev.vkBeginCommandBuffer( cmd, &info ));
-			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex );
+			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _query.pool, _currQueue->frames[_frameId].queryIndex );
 		}
 
 		if ( _shaderDebugger )
@@ -59,7 +59,7 @@ namespace {
 		
 		// end
 		{
-			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _queryPool, _currQueue->frames[_frameId].queryIndex + 1 );
+			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _query.pool, _currQueue->frames[_frameId].queryIndex + 1 );
 			VK_CALL( dev.vkEndCommandBuffer( cmd ));
 		}
 		return true;
@@ -1202,7 +1202,7 @@ namespace {
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumAny( _threadUsage, GraphicsBit ));
+		ASSERT( EnumAny( _currUsage, GraphicsBit ));
 
 		return _resourceMngr.CreateLogicalRenderPass( desc );
 	}
@@ -1265,7 +1265,7 @@ namespace {
 	UpdateHostBuffer
 =================================================
 */
-	bool  VFrameGraphThread::UpdateHostBuffer (const BufferID &id, BytesU offset, BytesU size, const void *data)
+	bool  VFrameGraphThread::UpdateHostBuffer (RawBufferID id, BytesU offset, BytesU size, const void *data)
 	{
 		EXLOCK( _rcCheck );
 
@@ -1281,11 +1281,11 @@ namespace {
 	MapBufferRange
 =================================================
 */
-	bool  VFrameGraphThread::MapBufferRange (const BufferID &id, BytesU offset, INOUT BytesU &size, OUT void* &dataPtr)
+	bool  VFrameGraphThread::MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT void* &dataPtr)
 	{
 		EXLOCK( _rcCheck );
 
-		VLocalBuffer const*		buffer = _resourceMngr.ToLocal( id.Get() );
+		VLocalBuffer const*		buffer = _resourceMngr.ToLocal( id );
 		CHECK_ERR( buffer );
 
 		VMemoryObj const*		memory = _resourceMngr.GetResource( buffer->ToGlobal()->GetMemoryID() );

@@ -188,6 +188,8 @@ namespace FG
 		template <typename ID>
 		void ReleaseResource (ID id, bool isAsync, bool force = false);
 		
+		void ReleaseResource (INOUT PipelineResources &desc, bool isAsync);
+		
 		void FlushLocalResourceStates (ExeOrderIndex, ExeOrderIndex, VBarrierManager &, Ptr<VFrameGraphDebugger>);
 
 		ND_ VPipelineCache *	GetPipelineCache ()					{ return &_pipelineCache; }

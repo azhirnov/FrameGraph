@@ -17,7 +17,7 @@ namespace FG
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
 		
-		FGThreadPtr		frame_graph		= _fgGraphics1;
+		FGThreadPtr		frame_graph		= _fgThreads[0];
 		ImageID			src_image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "SrcImage" );
 		ImageID			dst_image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -74,7 +74,7 @@ namespace FG
 		// frame 1
 		{
 			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
 			auto	data		= ArrayView{ src_data.data(), src_data.size()/2 };
@@ -90,7 +90,7 @@ namespace FG
 		// frame 2
 		{
 			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 			
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
 			int2	offset		{ 0, int(src_dim.y/2) };

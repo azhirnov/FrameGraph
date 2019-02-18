@@ -7,6 +7,19 @@
 namespace FG
 {
 
+	enum class EQueueUsage : uint
+	{
+		Unknown			= 0,
+		Graphics		= 1 << 0,	// also supports compute and transfer commands
+		AsyncCompute	= 1 << 1,	// separate compute queue
+		AsyncTransfer	= 1 << 2,	// separate transfer queue
+		Present			= 1 << 3,	// queue must support present, may be a separate queue
+		_Last,
+		GraphicsPresent	= Graphics | Present,
+	};
+	FG_BIT_OPERATORS( EQueueUsage );
+
+
 	enum class EMemoryType : uint
 	{
 		Default			= 0,			// local in GPU

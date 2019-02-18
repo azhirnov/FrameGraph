@@ -209,10 +209,6 @@ namespace FG
 					_device.vkDestroyFramebuffer( dev, VkFramebuffer(pair.second), null );
 					break;
 
-				case VK_OBJECT_TYPE_COMMAND_POOL :
-					_device.vkDestroyCommandPool( dev, VkCommandPool(pair.second), null );
-					break;
-
 				case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION :
 					_device.vkDestroySamplerYcbcrConversion( dev, VkSamplerYcbcrConversion(pair.second), null );
 					break;
@@ -332,9 +328,9 @@ namespace FG
 					is_complete = _AddValidationTasks( _framebufferCache, INOUT range, &VResourceManager::_ValidateFramebuffers );
 					break;
 
-				case ECachedResource::PipelineResources :
-					is_complete = _AddValidationTasks( _pplnResourcesCache, INOUT range, &VResourceManager::_ValidatePipelineResources );
-					break;
+				//case ECachedResource::PipelineResources :
+				//	is_complete = _AddValidationTasks( _pplnResourcesCache, INOUT range, &VResourceManager::_ValidatePipelineResources );
+				//	break;
 
 				case ECachedResource::End :
 					break;

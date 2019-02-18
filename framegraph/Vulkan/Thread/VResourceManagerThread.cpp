@@ -903,6 +903,7 @@ namespace FG
 		}
 	
 		CHECK_ERR( desc.IsInitialized() );
+		CHECK_ERR( desc.GetDynamicOffsets().empty() );	// not supported
 	
 		auto&	layout = _GetResourcePool( desc.GetLayout() )[ desc.GetLayout().Index() ];
 		CHECK_ERR( layout.IsCreated() and desc.GetLayout().InstanceID() == layout.GetInstanceID() );
@@ -914,6 +915,22 @@ namespace FG
 
 		PipelineResourcesHelper::SetCache( desc, result );
 		return true;
+	}
+	
+/*
+=================================================
+	ReleaseResource
+=================================================
+*/
+	void  VResourceManagerThread::ReleaseResource (INOUT PipelineResources &desc, bool isAsync)
+	{
+		RawPipelineResourcesID	id = PipelineResourcesHelper::GetCached( desc );
+
+		if ( id )
+		{
+			PipelineResourcesHelper::SetCache( desc, RawPipelineResourcesID{} );
+			ReleaseResource( id, isAsync );
+		}
 	}
 
 /*

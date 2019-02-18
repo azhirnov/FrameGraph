@@ -136,7 +136,7 @@ namespace FG
 		DispatchCompute () :
 			BaseTask<DispatchCompute>{ "DispatchCompute", ColorScheme::Compute } {}
 		
-		DispatchCompute&  SetPipeline (const CPipelineID &ppln)				{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
+		DispatchCompute&  SetPipeline (RawCPipelineID ppln)					{ ASSERT( ppln );  pipeline = ppln;  return *this; }
 		
 		DispatchCompute&  Dispatch (const uint2 &off, const uint2 &count)	{ commands.emplace_back(uint3{off, 0}, uint3{count, 1});  return *this; }
 		DispatchCompute&  Dispatch (const uint3 &off, const uint3 &count)	{ commands.emplace_back(off, count);  return *this; }
@@ -202,8 +202,8 @@ namespace FG
 		DispatchComputeIndirect&  EnableDebugTrace (const uint3 &globalID);
 		DispatchComputeIndirect&  EnableDebugTrace ()								{ return EnableDebugTrace( uint3{~0u} ); }
 
-		DispatchComputeIndirect&  SetPipeline (const CPipelineID &ppln)				{ ASSERT( ppln );  pipeline = ppln.Get();  return *this; }
-		DispatchComputeIndirect&  SetIndirectBuffer (const BufferID &buffer)		{ ASSERT( buffer );  indirectBuffer = buffer.Get();  return *this; }
+		DispatchComputeIndirect&  SetPipeline (RawCPipelineID ppln)					{ ASSERT( ppln );  pipeline = ppln;  return *this; }
+		DispatchComputeIndirect&  SetIndirectBuffer (RawBufferID buffer)			{ ASSERT( buffer );  indirectBuffer = buffer;  return *this; }
 		
 		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 
@@ -239,8 +239,8 @@ namespace FG
 		CopyBuffer () :
 			BaseTask<CopyBuffer>{ "CopyBuffer", ColorScheme::DeviceLocalTransfer } {}
 
-		CopyBuffer&  From (const BufferID &buf)		{ ASSERT( buf );  srcBuffer = buf.Get();  return *this; }
-		CopyBuffer&  To   (const BufferID &buf)		{ ASSERT( buf );  dstBuffer = buf.Get();  return *this; }
+		CopyBuffer&  From (RawBufferID buf)		{ ASSERT( buf );  srcBuffer = buf;  return *this; }
+		CopyBuffer&  To   (RawBufferID buf)		{ ASSERT( buf );  dstBuffer = buf;  return *this; }
 		
 		CopyBuffer&  AddRegion (BytesU srcOffset, BytesU dstOffset, BytesU size)
 		{
@@ -278,8 +278,8 @@ namespace FG
 		CopyImage () :
 			BaseTask<CopyImage>{ "CopyImage", ColorScheme::DeviceLocalTransfer } {}
 
-		CopyImage&  From (const ImageID &img)		{ ASSERT( img );  srcImage = img.Get();  return *this; }
-		CopyImage&  To   (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
+		CopyImage&  From (RawImageID img)		{ ASSERT( img );  srcImage = img;  return *this; }
+		CopyImage&  To   (RawImageID img)		{ ASSERT( img );  dstImage = img;  return *this; }
 
 		CopyImage&  AddRegion (const ImageSubresourceRange &srcSubresource, const int3 &srcOffset,
 							   const ImageSubresourceRange &dstSubresource, const int3 &dstOffset,
@@ -330,8 +330,8 @@ namespace FG
 		CopyBufferToImage () :
 			BaseTask<CopyBufferToImage>{ "CopyBufferToImage", ColorScheme::DeviceLocalTransfer } {}
 
-		CopyBufferToImage&  From (const BufferID &buf)		{ ASSERT( buf );  srcBuffer = buf.Get();  return *this; }
-		CopyBufferToImage&  To   (const ImageID &img)		{ ASSERT( img );  dstImage  = img.Get();  return *this; }
+		CopyBufferToImage&  From (RawBufferID buf)		{ ASSERT( buf );  srcBuffer = buf;  return *this; }
+		CopyBufferToImage&  To   (RawImageID img)		{ ASSERT( img );  dstImage  = img;  return *this; }
 
 		CopyBufferToImage&  AddRegion (BytesU bufferOffset, uint bufferRowLength, uint bufferImageHeight,
 									   const ImageSubresourceRange &imageLayers, const int3 &imageOffset, const uint3 &imageSize)
@@ -364,8 +364,8 @@ namespace FG
 		CopyImageToBuffer () :
 			BaseTask<CopyImageToBuffer>{ "CopyImageToBuffer", ColorScheme::DeviceLocalTransfer } {}
 
-		CopyImageToBuffer&  From (const ImageID &img)		{ ASSERT( img );  srcImage  = img.Get();  return *this; }
-		CopyImageToBuffer&  To   (const BufferID &buf)		{ ASSERT( buf );  dstBuffer = buf.Get();  return *this; }
+		CopyImageToBuffer&  From (RawImageID img)		{ ASSERT( img );  srcImage  = img;  return *this; }
+		CopyImageToBuffer&  To   (RawBufferID buf)		{ ASSERT( buf );  dstBuffer = buf;  return *this; }
 
 		CopyImageToBuffer&  AddRegion (const ImageSubresourceRange &imageLayers, const int3 &imageOffset, const uint3 &imageSize,
 									   BytesU bufferOffset, uint bufferRowLength, uint bufferImageHeight)
@@ -407,8 +407,8 @@ namespace FG
 		BlitImage () :
 			BaseTask<BlitImage>{ "BlitImage", ColorScheme::DeviceLocalTransfer } {}
 
-		BlitImage&  From (const ImageID &img)		{ ASSERT( img );  srcImage = img.Get();  return *this; }
-		BlitImage&  To   (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
+		BlitImage&  From (RawImageID img)			{ ASSERT( img );  srcImage = img;  return *this; }
+		BlitImage&  To   (RawImageID img)			{ ASSERT( img );  dstImage = img;  return *this; }
 		
 		BlitImage&  SetFilter (EFilter value)		{ filter = value;  return *this; }
 		
@@ -445,7 +445,7 @@ namespace FG
 		GenerateMipmaps () :
 			BaseTask<GenerateMipmaps>{ "GenerateMipmaps", ColorScheme::DeviceLocalTransfer } {}
 
-		GenerateMipmaps&  SetImage (const ImageID &img)				{ ASSERT( img );  image = img.Get();  return *this; }
+		GenerateMipmaps&  SetImage (RawImageID img)					{ ASSERT( img );  image = img;  return *this; }
 		GenerateMipmaps&  SetRange (MipmapLevel base, uint count)	{ baseLevel = base;  levelCount = count;  return *this; }
 	};
 
@@ -478,8 +478,8 @@ namespace FG
 		ResolveImage () :
 			BaseTask<ResolveImage>{ "ResolveImage", ColorScheme::DeviceLocalTransfer } {}
 
-		ResolveImage&  From (const ImageID &img)		{ ASSERT( img );  srcImage = img.Get();  return *this; }
-		ResolveImage&  To   (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
+		ResolveImage&  From (RawImageID img)		{ ASSERT( img );  srcImage = img;  return *this; }
+		ResolveImage&  To   (RawImageID img)		{ ASSERT( img );  dstImage = img;  return *this; }
 		
 		ResolveImage&  AddRegion (const ImageSubresourceRange &srcSubresource, const int3 &srcOffset,
 								  const ImageSubresourceRange &dstSubresource, const int3 &dstOffset,
@@ -508,15 +508,15 @@ namespace FG
 		FillBuffer () :
 			BaseTask<FillBuffer>{ "FillBuffer", ColorScheme::DeviceLocalTransfer } {}
 		
-		FillBuffer&  SetBuffer (const BufferID &buf)
+		FillBuffer&  SetBuffer (RawBufferID buf)
 		{
 			return SetBuffer( buf, 0_b, ~0_b );
 		}
 
-		FillBuffer&  SetBuffer (const BufferID &buf, BytesU off, BytesU bufSize)
+		FillBuffer&  SetBuffer (RawBufferID buf, BytesU off, BytesU bufSize)
 		{
 			ASSERT( buf );
-			dstBuffer	= buf.Get();
+			dstBuffer	= buf;
 			dstOffset	= off;
 			size		= bufSize;
 			return *this;
@@ -559,7 +559,7 @@ namespace FG
 		ClearColorImage () :
 			BaseTask<ClearColorImage>{ "ClearColorImage", ColorScheme::DeviceLocalTransfer } {}
 
-		ClearColorImage&  SetImage (const ImageID &img)		{ ASSERT( img );  dstImage = img.Get();  return *this; }
+		ClearColorImage&  SetImage (RawImageID img)			{ ASSERT( img );  dstImage = img;  return *this; }
 
 		ClearColorImage&  Clear (const RGBA32f &value)		{ clearValue = value;  return *this; }
 		ClearColorImage&  Clear (const RGBA32u &value)		{ clearValue = value;  return *this; }
@@ -595,7 +595,7 @@ namespace FG
 		ClearDepthStencilImage () :
 			BaseTask<ClearDepthStencilImage>{ "ClearDepthStencilImage", ColorScheme::DeviceLocalTransfer } {}
 		
-		ClearDepthStencilImage&  SetImage (const ImageID &img)			{ ASSERT( img );  dstImage = img.Get();  return *this; }
+		ClearDepthStencilImage&  SetImage (RawImageID img)				{ ASSERT( img );  dstImage = img;  return *this; }
 
 		ClearDepthStencilImage&  Clear (float depth, uint stencil = 0)	{ clearValue = DepthStencil{ depth, stencil };  return *this; }
 		
@@ -632,13 +632,13 @@ namespace FG
 		UpdateBuffer () :
 			BaseTask<UpdateBuffer>{ "UpdateBuffer", ColorScheme::HostToDeviceTransfer } {}
 
-		UpdateBuffer (const BufferID &buf, BytesU off, ArrayView<uint8_t> data) :
+		UpdateBuffer (RawBufferID buf, BytesU off, ArrayView<uint8_t> data) :
 			UpdateBuffer() { SetBuffer( buf ).AddData( data, off ); }
 
-		UpdateBuffer&  SetBuffer (const BufferID &buf)
+		UpdateBuffer&  SetBuffer (RawBufferID buf)
 		{
 			ASSERT( buf );
-			dstBuffer = buf.Get();
+			dstBuffer = buf;
 			return *this;
 		}
 
@@ -691,10 +691,10 @@ namespace FG
 		ReadBuffer () :
 			BaseTask<ReadBuffer>{ "ReadBuffer", ColorScheme::DeviceToHostTransfer } {}
 
-		ReadBuffer&  SetBuffer (const BufferID &buf, const BytesU off, const BytesU dataSize)
+		ReadBuffer&  SetBuffer (RawBufferID buf, const BytesU off, const BytesU dataSize)
 		{
 			ASSERT( buf );
-			srcBuffer	= buf.Get();
+			srcBuffer	= buf;
 			offset		= off;
 			size		= dataSize;
 			return *this;
@@ -731,28 +731,28 @@ namespace FG
 		UpdateImage () :
 			BaseTask<UpdateImage>{ "UpdateImage", ColorScheme::HostToDeviceTransfer } {}
 		
-		UpdateImage&  SetImage (const ImageID &img, const int2 &offset, MipmapLevel mipmap = Default)
+		UpdateImage&  SetImage (RawImageID img, const int2 &offset, MipmapLevel mipmap = Default)
 		{
 			ASSERT( img );
-			dstImage		= img.Get();
+			dstImage		= img;
 			imageOffset		= int3( offset.x, offset.y, 0 );
 			mipmapLevel		= mipmap;
 			return *this;
 		}
 
-		UpdateImage&  SetImage (const ImageID &img, const int3 &offset = Default, MipmapLevel mipmap = Default)
+		UpdateImage&  SetImage (RawImageID img, const int3 &offset = Default, MipmapLevel mipmap = Default)
 		{
 			ASSERT( img );
-			dstImage		= img.Get();
+			dstImage		= img;
 			imageOffset		= offset;
 			mipmapLevel		= mipmap;
 			return *this;
 		}
 
-		UpdateImage&  SetImage (const ImageID &img, const int2 &offset, ImageLayer layer, MipmapLevel mipmap)
+		UpdateImage&  SetImage (RawImageID img, const int2 &offset, ImageLayer layer, MipmapLevel mipmap)
 		{
 			ASSERT( img );
-			dstImage		= img.Get();
+			dstImage		= img;
 			imageOffset		= int3( offset.x, offset.y, 0 );
 			arrayLayer		= layer;
 			mipmapLevel		= mipmap;
@@ -814,30 +814,30 @@ namespace FG
 		ReadImage () :
 			BaseTask<ReadImage>{ "ReadImage", ColorScheme::DeviceToHostTransfer } {}
 		
-		ReadImage&  SetImage (const ImageID &img, const int2 &offset, const uint2 &size, MipmapLevel mipmap = Default)
+		ReadImage&  SetImage (RawImageID img, const int2 &offset, const uint2 &size, MipmapLevel mipmap = Default)
 		{
 			ASSERT( img );
-			srcImage	= img.Get();
+			srcImage	= img;
 			imageOffset	= int3( offset.x, offset.y, 0 );
 			imageSize	= uint3( size.x, size.y, 0 );
 			mipmapLevel	= mipmap;
 			return *this;
 		}
 
-		ReadImage&  SetImage (const ImageID &img, const int3 &offset, const uint3 &size, MipmapLevel mipmap = Default)
+		ReadImage&  SetImage (RawImageID img, const int3 &offset, const uint3 &size, MipmapLevel mipmap = Default)
 		{
 			ASSERT( img );
-			srcImage	= img.Get();
+			srcImage	= img;
 			imageOffset	= offset;
 			imageSize	= size;
 			mipmapLevel	= mipmap;
 			return *this;
 		}
 		
-		ReadImage&  SetImage (const ImageID &img, const int2 &offset, const uint2 &size, ImageLayer layer, MipmapLevel mipmap = Default)
+		ReadImage&  SetImage (RawImageID img, const int2 &offset, const uint2 &size, ImageLayer layer, MipmapLevel mipmap = Default)
 		{
 			ASSERT( img );
-			srcImage	= img.Get();
+			srcImage	= img;
 			imageOffset	= int3( offset.x, offset.y, 0 );
 			imageSize	= uint3( size.x, size.y, 0 );
 			arrayLayer	= layer;
@@ -869,13 +869,13 @@ namespace FG
 		Present () :
 			BaseTask<Present>{ "Present", ColorScheme::Present } {}
 
-		explicit Present (const ImageID &img) :
-			Present() { srcImage = img.Get(); }
+		explicit Present (RawImageID img) :
+			Present() { srcImage = img; }
 
-		Present&  SetImage (const ImageID &img, ImageLayer imgLayer = Default)
+		Present&  SetImage (RawImageID img, ImageLayer imgLayer = Default)
 		{
 			ASSERT( img );
-			srcImage	= img.Get();
+			srcImage	= img;
 			layer		= imgLayer;
 			return *this;
 		}
@@ -900,18 +900,18 @@ namespace FG
 		PresentVR () :
 			BaseTask<Present>{ "PresentVR", ColorScheme::Present } {}
 
-		PresentVR&  SetLeftEye (const ImageID &img, ImageLayer imgLayer = Default)
+		PresentVR&  SetLeftEye (RawImageID img, ImageLayer imgLayer = Default)
 		{
 			ASSERT( img );
-			leftEye			= img.Get();
+			leftEye			= img;
 			leftEyeLayer	= imgLayer;
 			return *this;
 		}
 		
-		PresentVR&  SetRightEye (const ImageID &img, ImageLayer imgLayer = Default)
+		PresentVR&  SetRightEye (RawImageID img, ImageLayer imgLayer = Default)
 		{
 			ASSERT( img );
-			rightEye		= img.Get();
+			rightEye		= img;
 			rightEyeLayer	= imgLayer;
 			return *this;
 		}
@@ -960,7 +960,7 @@ namespace FG
 			Triangles&  SetVertices (Idx count, BytesU stride = 0_b);
 			template <typename Idx>
 			Triangles&  SetVertices (Idx count, EVertexType format, BytesU stride = 0_b);
-			Triangles&  SetVertexBuffer (const BufferID &id, BytesU offset = 0_b);
+			Triangles&  SetVertexBuffer (RawBufferID id, BytesU offset = 0_b);
 			Triangles&  SetVertexData (ArrayView<uint8_t> data);
 			template <typename VertexT>
 			Triangles&  SetVertexArray (ArrayView<VertexT> data);
@@ -972,11 +972,11 @@ namespace FG
 			Triangles&  SetIndexArray (ArrayView<IndexT> data);
 			template <typename IndexT, typename AllocT>
 			Triangles&  SetIndexArray (const std::vector<IndexT,AllocT> &data)		{ return SetIndexArray( ArrayView<IndexT>{ data }); }
-			Triangles&  SetIndexBuffer (const BufferID &id, BytesU offset = 0_b);
+			Triangles&  SetIndexBuffer (RawBufferID id, BytesU offset = 0_b);
 			Triangles&  SetIndexData (ArrayView<uint8_t> data);
-			Triangles&  SetTransform (const BufferID &id, BytesU offset = 0_b);
+			Triangles&  SetTransform (RawBufferID id, BytesU offset = 0_b);
 			Triangles&  SetTransform (const Matrix3x4 &mat);
-			Triangles&  SetID (const GeometryID &id)			{ geometryId = id;  return *this; }
+			Triangles&  SetID (const GeometryID &id)								{ geometryId = id;  return *this; }
 		};
 
 
@@ -1002,7 +1002,7 @@ namespace FG
 
 			template <typename Idx>
 			AABB&  SetCount (Idx count, BytesU stride = 0_b);
-			AABB&  SetBuffer (const BufferID &id, BytesU offset = 0_b);
+			AABB&  SetBuffer (RawBufferID id, BytesU offset = 0_b);
 			AABB&  SetData (ArrayView<uint8_t> data);
 			AABB&  SetID (const GeometryID &id)					{ geometryId = id;  return *this; }
 		};
@@ -1018,10 +1018,10 @@ namespace FG
 		BuildRayTracingGeometry () :
 			BaseTask<BuildRayTracingGeometry>{ "BuildRayTracingGeometry", ColorScheme::BuildRayTracingStruct } {}
 
-		BuildRayTracingGeometry&  SetTarget (const RTGeometryID &id)	{ ASSERT( id );  rtGeometry = id.Get();  return *this; }
+		BuildRayTracingGeometry&  SetTarget (RawRTGeometryID id)	{ ASSERT( id );  rtGeometry = id;  return *this; }
 
-		BuildRayTracingGeometry&  Add (const Triangles &value)			{ triangles.push_back( value );  return *this; }
-		BuildRayTracingGeometry&  Add (const AABB &value)				{ aabbs.push_back( value );  return *this; }
+		BuildRayTracingGeometry&  Add (const Triangles &value)		{ triangles.push_back( value );  return *this; }
+		BuildRayTracingGeometry&  Add (const AABB &value)			{ aabbs.push_back( value );  return *this; }
 	};
 
 
@@ -1050,7 +1050,7 @@ namespace FG
 			explicit Instance (const InstanceID &id)	{ SetID( id ); }
 
 			Instance&  SetID (const InstanceID &id);
-			Instance&  SetGeometry (const RTGeometryID &id);
+			Instance&  SetGeometry (RawRTGeometryID id);
 			Instance&  SetInstance (const Matrix4x3 &transform, uint customId);
 			Instance&  AddFlags (EFlags value)			{ flags |= value;  return *this; }
 			Instance&  SetMask (uint8_t value)			{ mask   = value;  return *this; }
@@ -1067,7 +1067,7 @@ namespace FG
 		BuildRayTracingScene () :
 			BaseTask<BuildRayTracingScene>{ "BuildRayTracingScene", ColorScheme::BuildRayTracingStruct } {}
 
-		BuildRayTracingScene&  SetTarget (const RTSceneID &id)			{ ASSERT( id );  rtScene = id.Get();  return *this; }
+		BuildRayTracingScene&  SetTarget (RawRTSceneID id)				{ ASSERT( id );  rtScene = id;  return *this; }
 		BuildRayTracingScene&  SetHitShadersPerInstance (uint count)	{ ASSERT( count > 0 );  hitShadersPerInstance = count;  return *this; }
 		BuildRayTracingScene&  Add (const Instance &value)				{ instances.push_back( value );  return *this; }
 	};
@@ -1131,9 +1131,9 @@ namespace FG
 		UpdateRayTracingShaderTable () :
 			BaseTask<UpdateRayTracingShaderTable>{ "UpdateRayTracingShaderTable", ColorScheme::HostToDeviceTransfer } {}
 		
-		Self&  SetPipeline (const RTPipelineID &ppln);
-		Self&  SetScene (const RTSceneID &scene);
-		Self&  SetTarget (const RTShaderTableID &sbt);
+		Self&  SetPipeline (RawRTPipelineID ppln);
+		Self&  SetScene (RawRTSceneID scene);
+		Self&  SetTarget (RawRTShaderTableID sbt);
 		Self&  SetMaxRecursionDepth (uint value)		{ maxRecursionDepth = value;  return *this; }
 
 		Self&  SetRayGenShader (const RTShaderID &shader);
@@ -1141,7 +1141,7 @@ namespace FG
 		//Self&  AddCallableShader ();
 		
 		Self&  AddHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
-									  const RTShaderID &closestHit, const RTShaderID &anyHit = Default);
+							 const RTShaderID &closestHit, const RTShaderID &anyHit = Default);
 
 		Self&  AddProceduralHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
 										const RTShaderID &closestHit, const RTShaderID &anyHit, const RTShaderID &intersection);
@@ -1175,7 +1175,7 @@ namespace FG
 		TraceRays&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
 		
 		TraceRays&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
-		TraceRays&  SetShaderTable (const RTShaderTableID &id);
+		TraceRays&  SetShaderTable (RawRTShaderTableID id);
 
 		template <typename ValueType>
 		TraceRays&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
@@ -1244,10 +1244,10 @@ namespace FG
 
 
 	inline BuildRayTracingGeometry::Triangles&
-		BuildRayTracingGeometry::Triangles::SetVertexBuffer (const BufferID &id, BytesU offset)
+		BuildRayTracingGeometry::Triangles::SetVertexBuffer (RawBufferID id, BytesU offset)
 	{
 		ASSERT( vertexData.empty() );
-		vertexBuffer	= id.Get();
+		vertexBuffer	= id;
 		vertexOffset	= offset;
 		return *this;
 	}
@@ -1296,10 +1296,10 @@ namespace FG
 	}
 
 	inline BuildRayTracingGeometry::Triangles&
-		BuildRayTracingGeometry::Triangles::SetIndexBuffer (const BufferID &id, BytesU offset)
+		BuildRayTracingGeometry::Triangles::SetIndexBuffer (RawBufferID id, BytesU offset)
 	{
 		ASSERT( indexData.empty() );
-		indexBuffer	= id.Get();
+		indexBuffer	= id;
 		indexOffset	= offset;
 		return *this;
 	}
@@ -1335,10 +1335,10 @@ namespace FG
 	}
 
 	inline BuildRayTracingGeometry::Triangles&
-		BuildRayTracingGeometry::Triangles::SetTransform (const BufferID &id, BytesU offset)
+		BuildRayTracingGeometry::Triangles::SetTransform (RawBufferID id, BytesU offset)
 	{
 		ASSERT( not transformData.has_value() );
-		transformBuffer	= id.Get();
+		transformBuffer	= id;
 		transformOffset	= offset;
 		return *this;
 	}
@@ -1355,10 +1355,10 @@ namespace FG
 
 	
 	inline BuildRayTracingGeometry::AABB&
-		BuildRayTracingGeometry::AABB::SetBuffer (const BufferID &id, BytesU offset)
+		BuildRayTracingGeometry::AABB::SetBuffer (RawBufferID id, BytesU offset)
 	{
 		ASSERT( aabbData.empty() );
-		aabbBuffer	= id.Get();
+		aabbBuffer	= id;
 		aabbOffset	= offset;
 		return *this;
 	}
@@ -1393,10 +1393,10 @@ namespace FG
 	}
 
 	inline BuildRayTracingScene::Instance&
-		BuildRayTracingScene::Instance::SetGeometry (const RTGeometryID &id)
+		BuildRayTracingScene::Instance::SetGeometry (RawRTGeometryID id)
 	{
 		ASSERT( id.IsValid() );
-		geometryId = id.Get();
+		geometryId = id;
 		return *this;
 	}
 
@@ -1412,26 +1412,26 @@ namespace FG
 	
 
 	inline UpdateRayTracingShaderTable&
-		UpdateRayTracingShaderTable::SetPipeline (const RTPipelineID &ppln)
+		UpdateRayTracingShaderTable::SetPipeline (RawRTPipelineID ppln)
 	{
 		ASSERT( ppln );
-		pipeline = ppln.Get();
+		pipeline = ppln;
 		return *this;
 	}
 
 	inline UpdateRayTracingShaderTable&
-		UpdateRayTracingShaderTable::SetScene (const RTSceneID &scene)
+		UpdateRayTracingShaderTable::SetScene (RawRTSceneID scene)
 	{
 		ASSERT( scene );
-		rtScene = scene.Get();
+		rtScene = scene;
 		return *this;
 	}
 	
 	inline UpdateRayTracingShaderTable&
-		UpdateRayTracingShaderTable::SetTarget (const RTShaderTableID &sbt)
+		UpdateRayTracingShaderTable::SetTarget (RawRTShaderTableID sbt)
 	{
 		ASSERT( sbt );
-		shaderTable = sbt.Get();
+		shaderTable = sbt;
 		return *this;
 	}
 
@@ -1493,10 +1493,10 @@ namespace FG
 		return *this;
 	}
 
-	inline TraceRays&  TraceRays::SetShaderTable (const RTShaderTableID &id)
+	inline TraceRays&  TraceRays::SetShaderTable (RawRTShaderTableID id)
 	{
 		ASSERT( id );
-		shaderTable = id.Get();
+		shaderTable = id;
 		return *this;
 	}
 	

@@ -31,7 +31,7 @@ void main ()
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _fgGraphics1;
+		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		image_dim	= { 16, 16 };
 
 		ImageID			image0		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -60,7 +60,7 @@ void main ()
 		// frame 1
 		{
 			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 		
 			resources.BindImage( UniformID("un_OutImage"), image0 );
 			Task	t_run	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ) );
@@ -77,7 +77,7 @@ void main ()
 		// frame 1
 		{
 			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 			
 			Task	t_run	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ) );
 			Task	t_copy	= frame_graph->AddTask( CopyImage().From( image2 ).To( image1 ).AddRegion({}, int2(), {}, int2(), image_dim) );

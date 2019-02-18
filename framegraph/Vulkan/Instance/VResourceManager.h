@@ -97,7 +97,7 @@ namespace FG
 			//DescriptorSetLayout,
 			//RenderPass,
 			Framebuffer = Begin,
-			PipelineResources,
+			//PipelineResources,
 			End
 		};
 		

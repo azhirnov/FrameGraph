@@ -36,7 +36,7 @@ namespace FG
 		if ( _file )
 			_fileSize = _GetSize();
 		else
-			FG_LOGE( "Can't open file: \""s << filename << '"' );
+			FG_LOGI( "Can't open file: \""s << filename << '"' );
 	}
 	
 	FileRStream::FileRStream (const char *filename) : FileRStream{ StringView{filename} }
@@ -62,7 +62,7 @@ namespace FG
 		if ( _file )
 			_fileSize = _GetSize();
 		else
-			FG_LOGE( "Can't open file: \""s << path.string() << '"' );
+			FG_LOGI( "Can't open file: \""s << path.string() << '"' );
 	}
 #endif
 	
@@ -141,7 +141,7 @@ namespace FG
 		fopen_s( OUT &_file, filename.data(), "wb" );
 
 		if ( not _file )
-			FG_LOGE( "Can't open file: \""s << filename << '"' );
+			FG_LOGI( "Can't open file: \""s << filename << '"' );
 	}
 	
 	FileWStream::FileWStream (const char *filename) : FileWStream{ StringView{filename} }
@@ -165,7 +165,7 @@ namespace FG
 #	endif
 		
 		if ( not _file )
-			FG_LOGE( "Can't open file: \""s << path.string() << '"' );
+			FG_LOGI( "Can't open file: \""s << path.string() << '"' );
 	}
 #endif
 	

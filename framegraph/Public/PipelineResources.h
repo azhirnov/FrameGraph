@@ -195,29 +195,27 @@ namespace FG
 			_SetCachedID( other._GetCachedID() );
 		}
 
-		Self&  BindImage (const UniformID &id, const ImageID &image, uint elementIndex = 0);
-		Self&  BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc, uint elementIndex = 0);
 		Self&  BindImage (const UniformID &id, RawImageID image, uint elementIndex = 0);
 		Self&  BindImage (const UniformID &id, RawImageID image, const ImageViewDesc &desc, uint elementIndex = 0);
 		Self&  BindImages (const UniformID &id, ArrayView<ImageID> images);
+		Self&  BindImages (const UniformID &id, ArrayView<RawImageID> images);
 
-		Self&  BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, uint elementIndex = 0);
-		Self&  BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc, uint elementIndex = 0);
-		Self&  BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler, uint elementIndex = 0);
-		Self&  BindTexture (const UniformID &id, RawImageID image, const SamplerID &sampler, const ImageViewDesc &desc, uint elementIndex = 0);
-		Self&  BindTextures (const UniformID &id, ArrayView<ImageID> images, const SamplerID &sampler);
+		Self&  BindTexture (const UniformID &id, RawImageID image, RawSamplerID sampler, uint elementIndex = 0);
+		Self&  BindTexture (const UniformID &id, RawImageID image, RawSamplerID sampler, const ImageViewDesc &desc, uint elementIndex = 0);
+		Self&  BindTextures (const UniformID &id, ArrayView<ImageID> images, RawSamplerID sampler);
+		Self&  BindTextures (const UniformID &id, ArrayView<RawImageID> images, RawSamplerID sampler);
 
-		Self&  BindSampler (const UniformID &id, const SamplerID &sampler, uint elementIndex = 0);
+		Self&  BindSampler (const UniformID &id, RawSamplerID sampler, uint elementIndex = 0);
 		Self&  BindSamplers (const UniformID &id, ArrayView<SamplerID> samplers);
+		Self&  BindSamplers (const UniformID &id, ArrayView<RawSamplerID> samplers);
 
-		Self&  BindBuffer (const UniformID &id, const BufferID &buffer, uint elementIndex = 0);
-		Self&  BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size, uint elementIndex = 0);
 		Self&  BindBuffer (const UniformID &id, RawBufferID buffer, uint elementIndex = 0);
 		Self&  BindBuffer (const UniformID &id, RawBufferID buffer, BytesU offset, BytesU size, uint elementIndex = 0);
 		Self&  BindBuffers (const UniformID &id, ArrayView<BufferID> buffers);
+		Self&  BindBuffers (const UniformID &id, ArrayView<RawBufferID> buffers);
 		Self&  SetBufferBase (const UniformID &id, BytesU offset, uint elementIndex = 0);
 
-		Self&  BindRayTracingScene (const UniformID &id, const RTSceneID &scene, uint elementIndex = 0);
+		Self&  BindRayTracingScene (const UniformID &id, RawRTSceneID scene, uint elementIndex = 0);
 
 		void  AllowEmptyResources (bool value)								{ EXLOCK(_rcCheck);  _allowEmptyResources = value; }
 
@@ -227,8 +225,8 @@ namespace FG
 		ND_ bool  HasBuffer (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Buffer >( id ); }
 		ND_ bool  HasRayTracingScene (const UniformID &id)			const	{ SHAREDLOCK(_rcCheck);  return _HasResource< RayTracingScene >( id ); }
 
-		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ SHAREDLOCK(_rcCheck);  return _dataPtr->layoutId; }
-		ND_ ArrayView< uint >			GetDynamicOffsets ()		const	{ SHAREDLOCK(_rcCheck);  return {_dataPtr->DynamicOffsets(), _dataPtr->dynamicOffsetsCount}; }
+		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ SHAREDLOCK(_rcCheck); ASSERT(_dataPtr);  return _dataPtr->layoutId; }
+		ND_ ArrayView< uint >			GetDynamicOffsets ()		const;
 		ND_ bool						IsEmptyResourcesAllowed ()	const	{ SHAREDLOCK(_rcCheck);  return _allowEmptyResources; }
 		ND_ bool						IsInitialized ()			const	{ SHAREDLOCK(_rcCheck);  return _dataPtr != null; }
 
@@ -239,7 +237,7 @@ namespace FG
 		
 		ND_ RawPipelineResourcesID	_GetCachedID ()			const	{ return BitCast<RawPipelineResourcesID>( _cachedId.load( memory_order_acquire )); }
 
-		ND_ uint &					_GetDynamicOffset (uint i)		{ ASSERT( i < _dataPtr->dynamicOffsetsCount );  return _dataPtr->DynamicOffsets()[i]; }
+		ND_ uint &					_GetDynamicOffset (uint i)		{ ASSERT( _dataPtr and i < _dataPtr->dynamicOffsetsCount );  return _dataPtr->DynamicOffsets()[i]; }
 
 		template <typename T> T &	_GetResource (const UniformID &id);
 		template <typename T> bool	_HasResource (const UniformID &id) const;
@@ -249,52 +247,18 @@ namespace FG
 	using PipelineResourceSet	= FixedMap< DescriptorSetID, Ptr<const PipelineResources>, FG_MaxDescriptorSets >;
 
 	
-
+	
 /*
 =================================================
-	BindImage
+	GetDynamicOffsets
 =================================================
 */
-	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, const ImageID &image, uint index)
+	inline ArrayView<uint>  PipelineResources::GetDynamicOffsets () const
 	{
-		return BindImage( id, image.Get(), index );
-	}
-	
-	inline PipelineResources&  PipelineResources::BindImage (const UniformID &id, const ImageID &image, const ImageViewDesc &desc, uint index)
-	{
-		return BindImage( id, image.Get(), desc, index );
+		SHAREDLOCK( _rcCheck );
+		return _dataPtr ? ArrayView<uint>{ _dataPtr->DynamicOffsets(), _dataPtr->dynamicOffsetsCount } : ArrayView<uint>{};
 	}
 
-/*
-=================================================
-	BindTexture
-=================================================
-*/
-	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, uint index)
-	{
-		return BindTexture( id, image.Get(), sampler, index );
-	}
-	
-	inline PipelineResources&  PipelineResources::BindTexture (const UniformID &id, const ImageID &image, const SamplerID &sampler, const ImageViewDesc &desc, uint index)
-	{
-		return BindTexture( id, image.Get(), sampler, desc, index );
-	}
-
-/*
-=================================================
-	BindBuffer
-=================================================
-*/
-	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, const BufferID &buffer, uint index)
-	{
-		return BindBuffer( id, buffer.Get(), index );
-	}
-	
-	inline PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, const BufferID &buffer, BytesU offset, BytesU size, uint index)
-	{
-		return BindBuffer( id, buffer.Get(), offset, size, index );
-	}
-	
 /*
 =================================================
 	_ForEachUniform

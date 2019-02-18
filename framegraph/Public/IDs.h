@@ -110,7 +110,7 @@ namespace _fg_hidden_
 		ND_ constexpr bool			IsValid ()						const	{ return _value != UMax; }
 		ND_ constexpr Index_t		Index ()						const	{ return _value & 0xFFFFFFFFull; }
 		ND_ constexpr InstanceID_t	InstanceID ()					const	{ return _value >> 32; }
-		ND_ constexpr HashVal		GetHash ()						const	{ return HashVal{_value}; }
+		ND_ constexpr HashVal		GetHash ()						const	{ return HashOf(_value) + HashVal{UID}; }
 
 		ND_ constexpr bool			operator == (const Self &rhs)	const	{ return _value == rhs._value; }
 		ND_ constexpr bool			operator != (const Self &rhs)	const	{ return not (*this == rhs); }
@@ -160,6 +160,8 @@ namespace _fg_hidden_
 		ND_ bool		operator != (const Self &rhs)	const	{ return _id != rhs._id; }
 		
 		ND_ explicit	operator bool ()				const	{ return IsValid(); }
+
+		ND_				operator ID_t ()				const	{ return _id; }
 	};
 
 }	// _fg_hidden_

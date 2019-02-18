@@ -32,13 +32,19 @@ namespace FG
 		using VThreadWeak_t		= std::weak_ptr< VFrameGraphThread >;
 		using Threads_t			= Array< VThreadWeak_t >;
 		using Compilers_t		= HashSet< IPipelineCompilerPtr >;
+		using QueueMap_t		= FixedMap< EQueueUsage, VDeviceQueueInfoPtr, 8 >;
 
 
 	// variables
 	private:
-		VDevice					_device;
-		Threads_t				_threads;
+		std::atomic<EState>		_state;
+		
 		std::mutex				_threadLock;
+		Threads_t				_threads;
+
+		VDevice					_device;
+		QueueMap_t				_queueMap;
+
 		VSubmissionGraph		_submissionGraph;
 
 		uint					_ringBufferSize	= 0;
@@ -46,10 +52,7 @@ namespace FG
 		uint					_visitorID		= 0;
 
 		VResourceManager		_resourceMngr;
-		std::atomic<EState>		_state;
-
 		VDebugger				_debugger;
-
 		Compilers_t				_pplnCompilers;
 		ECompilationFlags		_defaultCompilationFlags;
 		ECompilationDebugFlags	_defaultDebugFlags;
@@ -82,6 +85,9 @@ namespace FG
 		bool  GetStatistics (OUT Statistics &result) const override;
 		bool  DumpToString (OUT String &result) const override;
 		bool  DumpToGraphViz (OUT String &result) const override;
+		
+		ND_ VDeviceQueueInfoPtr	FindQueue (EQueueUsage type) const;
+		ND_ EQueueFamilyMask	GetQueuesMask (EQueueUsage types) const;
 
 		ND_ VResourceManager&	GetResourceMngr ()				{ SHAREDLOCK( _rcCheck );  return _resourceMngr; }
 		ND_ VDevice const&		GetDevice ()			const	{ SHAREDLOCK( _rcCheck );  return _device; }
@@ -93,6 +99,11 @@ namespace FG
 	private:
 		ND_ bool  _IsInitialized () const;
 			bool  _WaitIdle ();
+			
+			bool  _IsUnique (VDeviceQueueInfoPtr ptr) const;
+			bool  _AddGraphicsQueue ();
+			bool  _AddAsyncComputeQueue ();
+			bool  _AddAsyncTransferQueue ();
 
 		ND_ EState	_GetState () const;
 			void	_SetState (EState newState);

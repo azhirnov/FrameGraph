@@ -17,11 +17,12 @@ namespace FG
 						  EImageUsage	usage,
 						  ImageLayer	arrayLayers,
 						  MipmapLevel	maxLevel,
-						  MultiSamples	samples)  :
+						  MultiSamples	samples,
+						  EQueueUsage	queues)  :
 		imageType(imageType),		dimension(dimension),
 		format(format),				usage(usage),
 		arrayLayers{arrayLayers},	maxLevel(maxLevel),
-		samples(samples)
+		samples(samples),			queues{queues}
 	{}
 	
 /*

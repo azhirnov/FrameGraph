@@ -15,15 +15,12 @@ namespace FG
 	{
 	// interface
 	public:
-			virtual ~VSwapchain () {}
+		virtual ~VSwapchain () {}
 
-			virtual bool Acquire (ESwapchainImage, OUT RawImageID &) = 0;
-			virtual bool Present (RawImageID) = 0;
+		virtual bool Acquire (ESwapchainImage, OUT RawImageID &) = 0;
+		virtual bool Present (RawImageID) = 0;
 
-			virtual bool Initialize (VDeviceQueueInfoPtr) = 0;
-			virtual void Deinitialize () = 0;
-
-		ND_ virtual bool IsCompatibleWithQueue (EQueueFamily familyIndex) const = 0;
+		virtual void Deinitialize () = 0;
 	};
 
 

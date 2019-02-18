@@ -140,7 +140,7 @@ namespace FG
 		auto	iter = _bindings.find( bufferId );
 		CHECK_ERR( iter != _bindings.end(), *this );
 
-		_vertices.insert({ id, VertexInput{ type, Bytes<uint>(offset), iter->second.index } });
+		_vertices.insert_or_assign( id, VertexInput{ type, Bytes<uint>(offset), iter->second.index });
 		return *this;
 	}
 	
@@ -151,12 +151,12 @@ namespace FG
 */
 	VertexInputState&  VertexInputState::Bind (const VertexBufferID &bufferId, Bytes<uint> stride, uint index, EVertexInputRate rate)
 	{
-		ASSERT( _bindings.count( bufferId ) == 0 );
+		//ASSERT( _bindings.count( bufferId ) == 0 );
 
 		if ( index == BindingIndex_Auto )
 			index = uint(_bindings.size());
 
-		_bindings.insert({ bufferId, BufferBinding( index, stride, rate ) });
+		_bindings.insert_or_assign( bufferId, BufferBinding( index, stride, rate ));
 		return *this;
 	}
 

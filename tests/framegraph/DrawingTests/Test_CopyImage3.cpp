@@ -17,9 +17,12 @@ namespace FG
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
 		
-		ImageID			src_image		= _fgGraphics1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		auto			frame_graph1	= _fgThreads[0];
+		auto			frame_graph2	= _fgThreads[1];
+
+		ImageID			src_image		= frame_graph1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "SrcImage" );
-		ImageID			dst_image		= _fgGraphics1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			dst_image		= frame_graph1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "DstImage" );
 
 		Array<uint8_t>	src_data;		src_data.resize( size_t(src_row_pitch * src_dim.y) );
@@ -74,32 +77,32 @@ namespace FG
 
 		// thread 1
 		{
-			CHECK_ERR( _fgGraphics1->Begin( batch_id, 0, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph1->Begin( batch_id, 0, EQueueUsage::Graphics ));
 
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
 			auto	data		= ArrayView{ src_data.data(), src_data.size()/2 };
 
-			Task	t_update	= _fgGraphics1->AddTask( UpdateImage().SetImage( src_image ).SetData( data, dim ) );
-			Task	t_copy		= _fgGraphics1->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update ) );
+			Task	t_update	= frame_graph1->AddTask( UpdateImage().SetImage( src_image ).SetData( data, dim ) );
+			Task	t_copy		= frame_graph1->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update ) );
 			FG_UNUSED( t_copy );
 
-			CHECK_ERR( _fgGraphics1->Execute() );
+			CHECK_ERR( frame_graph1->Execute() );
 		}
 
 		// thread 2
 		{
-			CHECK_ERR( _fgGraphics2->Begin( batch_id, 1, EThreadUsage::Graphics ));
+			CHECK_ERR( frame_graph2->Begin( batch_id, 1, EQueueUsage::Graphics ));
 			
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
 			int2	offset		{ 0, int(src_dim.y/2) };
 			auto	data		= ArrayView{ src_data.data() + src_data.size()/2, src_data.size()/2 };
 
-			Task	t_update	= _fgGraphics2->AddTask( UpdateImage().SetImage( src_image, offset ).SetData( data, dim ) );
-			Task	t_copy		= _fgGraphics2->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ) );
-			Task	t_read		= _fgGraphics2->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
+			Task	t_update	= frame_graph2->AddTask( UpdateImage().SetImage( src_image, offset ).SetData( data, dim ) );
+			Task	t_copy		= frame_graph2->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ) );
+			Task	t_read		= frame_graph2->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 			FG_UNUSED( t_read );
 		
-			CHECK_ERR( _fgGraphics2->Execute() );
+			CHECK_ERR( frame_graph2->Execute() );
 		}
 
 		// thread 3 (unused)

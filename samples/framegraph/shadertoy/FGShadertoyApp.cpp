@@ -225,7 +225,7 @@ namespace FG
 			CHECK_ERR( _fgInstance );
 			CHECK_ERR( _fgInstance->Initialize( 2 ));
 
-			ThreadDesc	desc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer };
+			ThreadDesc	desc{ EThreadUsage::Transfer };
 
 			_frameGraph = _fgInstance->CreateThread( desc );
 			CHECK_ERR( _frameGraph );
@@ -295,7 +295,7 @@ namespace FG
 		submission_graph.AddBatch( batch_id );
 
 		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( _frameGraph->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( _frameGraph->Begin( batch_id, 0, EQueueUsage::Graphics ));
 
 		if ( Any(_surfaceSize != _window->GetSize()) )
 		{

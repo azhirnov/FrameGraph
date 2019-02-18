@@ -2,6 +2,7 @@
 
 #include "VSubmissionGraph.h"
 #include "VDevice.h"
+#include "VFrameGraphInstance.h"
 #include "stl/Algorithms/StringUtils.h"
 
 namespace FG
@@ -69,7 +70,7 @@ namespace {
 	Recreate
 =================================================
 */
-	bool VSubmissionGraph::Recreate (uint frameId, const SubmissionGraph &graph)
+	bool VSubmissionGraph::Recreate (uint frameId, const SubmissionGraph &graph, const VFrameGraphInstance &inst)
 	{
 		auto&	frame = _frames[frameId];
 		CHECK_ERR( frame.waitFences.empty() );
@@ -85,6 +86,8 @@ namespace {
 
 			Batch&	dst = iter->second;
 			dst.threadCount = src.second.threadCount;
+			dst.queue		= inst.FindQueue( src.second.usage );
+			CHECK_ERR( dst.queue );
 
 			if ( src.second.dependsOn.empty() )
 				iter->second.exeOrderIndex = ExeOrderIndex::First;
@@ -281,46 +284,6 @@ namespace {
 		}
 		RETURN_ERR( "overflow!" );
 	}
-	
-/*
-=================================================
-	_AddSharedSemaphore
-=================================================
-*
-	bool VSubmissionGraph::_AddSharedSemaphore (VkSemaphore sem, OUT uint &index) const
-	{
-		EXLOCK( _sharedSemaphores.lock );	// TODO: lock-free
-
-		auto	inserted = _sharedSemaphores.map.insert({ sem, UMax });
-		if ( not inserted.second )
-		{
-			index = inserted.first->second;
-			return inserted.first->second != UMax;
-		}
-
-		index = uint( (size_t(inserted.first) - size_t(_sharedSemaphores.map.begin())) / sizeof(inserted.first) );
-		inserted.first->second = index;
-		return true;
-	}
-	
-/*
-=================================================
-	_RemoveSharedSemaphore
-=================================================
-*
-	bool VSubmissionGraph::_RemoveSharedSemaphore (uint index, OUT VkSemaphore &sem) const
-	{
-		EXLOCK( _sharedSemaphores.lock );
-
-		auto&	item = *(_sharedSemaphores.map.begin() + index);
-
-		if ( item.second == UMax )
-			return false;
-
-		sem = item.first;
-		item.second = UMax;
-		return true;
-	}
 
 /*
 =================================================
@@ -356,50 +319,6 @@ namespace {
 
 /*
 =================================================
-	SignalSharedSemaphore
-----
-	you can add same semaphore to different batches and
-	only first batch will generate semaphore signal operation
-=================================================
-*
-	bool VSubmissionGraph::SignalSharedSemaphore (const CommandBatchID &batchId, VkSemaphore sem) const
-	{
-		uint	index;
-		CHECK_ERR( _AddSharedSemaphore( sem, OUT index ));
-
-		auto	batch_iter = _batches.find( batchId );
-		CHECK_ERR( batch_iter != _batches.end() );
-
-		auto &		batch	= batch_iter->second;
-		const uint	idx		= batch.atomics.sharedSemaphoreCount.fetch_add( 1, memory_order_release );
-		
-		if ( idx < MaxSemaphores )
-		{
-			batch.sharedSemaphores[idx] = index;
-
-			// batch already submited and this function has no effect
-			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_acquire ) < READY_TO_SUBMIT );
-			return true;
-		}
-		RETURN_ERR( "overflow!" );
-	}
-	
-/*
-=================================================
-	WaitSharedSemaphore
-----
-	you can add same semaphore to different batches and
-	only first batch will generate semaphore wait operation
-=================================================
-*
-	bool VSubmissionGraph::WaitSharedSemaphore (const CommandBatchID &batchId, VkSemaphore sem, VkPipelineStageFlags dstStageMask) const
-	{
-		// TODO
-		return false;
-	}
-
-/*
-=================================================
 	SkipSubBatch
 =================================================
 */
@@ -423,15 +342,8 @@ namespace {
 		auto	batch_iter = _batches.find( batchId );
 		CHECK_ERR( batch_iter != _batches.end() );
 
-		auto&			batch = batch_iter->second;
-		const QueuePtr	queue = QueuePtr(queuePtr);
-
-		// set current queue
-		{
-			QueuePtr	expected = null;
-			batch.atomics.queue.compare_exchange_strong( INOUT expected, queue, memory_order_release, memory_order_relaxed );
-			CHECK_ERR( expected == null or expected == queue );
-		}
+		auto&	batch = batch_iter->second;
+		CHECK_ERR( batch.queue == queuePtr );
 
 		//ASSERT( not commands.empty() );
 		ASSERT( commands.size() < Batch::MaxCommands );
@@ -501,16 +413,6 @@ namespace {
 				}
 			}
 
-			// append shared semaphores
-			/*for (size_t i = 0, count = batch.atomics.sharedSemaphoreCount.load( memory_order_relaxed );
-				 i < count; ++i)
-			{
-				VkSemaphore		sem;
-				if ( _RemoveSharedSemaphore( batch.sharedSemaphores[i], OUT sem ) )
-					CHECK( _SignalSemaphore( batch, sem ));
-			}*/
-
-
 			// submit commands
 			VkSubmitInfo	info = {};
 			info.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -523,10 +425,8 @@ namespace {
 			info.pWaitDstStageMask		= batch.waitDstStages.data();
 			info.waitSemaphoreCount		= uint(batch.atomics.waitSemaphoreCount.load( memory_order_relaxed ));
 
-			QueuePtr	queue = batch.atomics.queue.load( memory_order_relaxed );
-
-			EXLOCK( queue->lock );
-			VK_CALL( _device.vkQueueSubmit( queue->handle, 1, &info, OUT batch.waitFence ));
+			EXLOCK( batch.queue->lock );
+			VK_CALL( _device.vkQueueSubmit( batch.queue->handle, 1, &info, OUT batch.waitFence ));
 		}
 		
 		// only one thread can set 'SUBMITTED' flag!
