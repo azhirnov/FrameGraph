@@ -18,6 +18,8 @@ namespace FG
 	{
 	// interface
 	public:
+		virtual void Destroy (const FGThreadPtr &) = 0;
+
 		virtual bool Build (const RenderTechniquePtr &) = 0;
 		virtual bool Draw (ArrayView<ViewportPtr>) = 0;
 

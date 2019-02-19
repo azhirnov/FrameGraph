@@ -4,7 +4,6 @@
 
 #include "scene/SceneManager/ISceneHierarchy.h"
 #include "scene/Loader/Intermediate/IntermScene.h"
-#include "scene/Renderer/ShaderBuilder.h"
 
 namespace FG
 {
@@ -68,7 +67,7 @@ namespace FG
 			//ND_ bool operator > (const ModelLevel &) const;
 		};
 
-		using VertexAttribs_t	= Array<Pair< VertexInputState, ShaderBuilder::ShaderSourceID >>;
+		using VertexAttribs_t	= Array< VertexAttributesPtr >;
 		using DetailLevels_t	= Array< ModelLevel >;
 
 
@@ -88,6 +87,7 @@ namespace FG
 		BufferID				_indexBuffer;
 		BufferID				_perInstanceUB;
 		BufferID				_materialsUB;
+		BytesU					_vertexStride;
 		EIndex					_indexType		= Default;
 
 
@@ -96,7 +96,7 @@ namespace FG
 		SimpleScene ();
 
 		bool Create (const FGThreadPtr &, const IntermScenePtr &, const ImageCachePtr &, const Transform & = Default);
-		void Destroy (const FGThreadPtr &);
+		void Destroy (const FGThreadPtr &) override;
 		
 		bool Build (const FGThreadPtr &, const RenderTechniquePtr &) override;
 		void PreDraw (const CameraInfo &, ScenePreRender &) const override;

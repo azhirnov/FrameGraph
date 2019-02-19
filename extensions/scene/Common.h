@@ -13,6 +13,13 @@ namespace FG
 	using ViewportPtr			= SharedPtr< class IViewport >;
 	using ImageCachePtr			= SharedPtr< class IImageCache >;
 	
+	using IntermImagePtr		= SharedPtr< class IntermImage >;
+	using IntermLightPtr		= SharedPtr< class IntermLight >;
+	using IntermMaterialPtr		= SharedPtr< class IntermMaterial >;
+	using IntermMeshPtr			= SharedPtr< class IntermMesh >;
+	using IntermScenePtr		= SharedPtr< class IntermScene >;
+	using VertexAttributesPtr	= SharedPtr< class VertexAttributes >;
+
 	class ScenePreRender;
 	class RenderQueue;
 	struct CameraInfo;

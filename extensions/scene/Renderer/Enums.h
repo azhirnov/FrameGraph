@@ -30,26 +30,6 @@ namespace FG
 	FG_BIT_OPERATORS( ETextureType );
 
 
-	enum class EMaterialType : uint
-	{
-		Unknown					= 0,
-		Instancing				= 1 << 0,		// must support instancing
-		
-		// animations
-		SceletalAnimation		= 1 << 1,
-		MorphingAnimation		= 1 << 2,
-
-		// 
-		ReliefMapping			= 1 <<  9,		// normal mapping, parallax mapping or other technique
-		DisplacementMapping		= 1 << 10,		// with tessellation, requires diffuse, normal, height maps
-
-		// 
-		Water					= 1 << 16,
-		Terrain					= 1 << 17,
-	};
-	FG_BIT_OPERATORS( EMaterialType );
-
-
 	enum class ERenderLayer : uint8_t
 	{
 		Layer_1		= 0,

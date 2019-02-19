@@ -23,6 +23,8 @@ namespace FG
 	// methods
 	public:
 		DefaultSceneManager ();
+		
+		void Destroy (const FGThreadPtr &) override;
 
 		bool Build (const RenderTechniquePtr &) override;
 		bool Draw (ArrayView<ViewportPtr>) override;

@@ -114,10 +114,10 @@ namespace FG
 
 		outImageId = _imageIDs[ _currImageIndex ].Get();
 
-		_frameGraph.TransitImageLayoutToDefault( outImageId, VK_IMAGE_LAYOUT_UNDEFINED, uint(_presentQueue->familyIndex),
-												 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT );
+		//_frameGraph.TransitImageLayoutToDefault( outImageId, VK_IMAGE_LAYOUT_UNDEFINED, uint(_presentQueue->familyIndex),
+		//										 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT );
 		
-		_frameGraph.WaitSemaphore( _imageAvailable, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT );
+		_frameGraph.WaitSemaphore( _imageAvailable, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
 		_frameGraph.SignalSemaphore( _renderFinished );
 
 		return true;

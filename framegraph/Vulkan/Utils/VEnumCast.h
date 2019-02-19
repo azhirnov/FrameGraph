@@ -897,7 +897,7 @@ namespace FG
 			case EResourceState::IndexBuffer :						return VK_ACCESS_INDEX_READ_BIT;
 			case EResourceState::VertexBuffer :						return VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
 			//case EResourceState::TransientAttachment
-			case EResourceState::PresentImage :						return VK_ACCESS_MEMORY_READ_BIT;
+			case EResourceState::PresentImage :						return 0;
 			case EResourceState::BuildRayTracingStructRead :		return VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
 			case EResourceState::BuildRayTracingStructWrite :		return VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
 			case EResourceState::BuildRayTracingStructReadWrite :	return VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;

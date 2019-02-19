@@ -11,83 +11,7 @@
 namespace FG
 {
 namespace {
-	static constexpr uint		max_instance_count = 1 << 11;
-
-	static const StringView		shader_source = R"#(
-
-	vec3  RotateVec (const vec4 qleft, const vec3 vright)
-	{
-		vec3  uv  = cross( qleft.xyz, vright );
-		vec3  uuv = cross( qleft.xyz, uv );
-		return vright + (uv * 2.0f * qleft.w) + (uuv * 2.0f);
-	}
-
-	vec3  Transform (const vec3 point, const vec3 position, const vec4 orientation, const float scale)
-	{
-		return RotateVec( orientation, point * scale ) + position;
-	}
-
-	vec4  ToNonLinear (const vec4 color)
-	{
-		 return vec4(pow( color.rgb, vec3(2.2f) ), color.a ); 
-	}
-
-#ifdef VERTEX_SHADER
-	struct ObjectTransform
-	{
-		vec4	orientation;
-		vec3	position;
-		float	scale;
-	};
-
-	layout(set=0, binding=0, std140) uniform PerInstanceUB {
-		ObjectTransform		transforms[1 << 11];	// [max_instance_count]
-	} perInstance;
-
-	layout(push_constant, std140) uniform VSPushConst {
-		layout(offset=0) int	materialID;
-		layout(offset=4) int	instanceID;
-	};
-
-	vec3 GetWorldPosition ()
-	{
-		vec3	pos   = perInstance.transforms[instanceID].position;
-		float	scale = perInstance.transforms[instanceID].scale;
-		vec4	quat  = perInstance.transforms[instanceID].orientation;
-		return Transform( at_Position.xyz, pos, quat, scale );
-	}
-
-	vec2 GetTextureCoordinate0 ()  { return at_TextureUV; }
-#endif	// VERTEX_SHADER
-
-
-#ifdef FRAGMENT_SHADER
-	/*layout(set=0, binding=1, std140) uniform MaterialsUB {
-		vec4	someData;
-	} mtr;*/
-
-# ifdef ALBEDO_MAP
-	layout(set=0, binding=2) uniform sampler2D  un_AlbedoTex;
-	vec4  SampleAlbedoLinear (const vec2 texcoord)    { return texture( un_AlbedoTex, texcoord ); }
-	vec4  SampleAlbedoNonlinear (const vec2 texcoord) { return ToNonLinear(texture( un_AlbedoTex, texcoord )); }
-# endif
-
-# ifdef SPECULAR_MAP
-	layout(set=0, binding=3) uniform sampler2D  un_SpecularTex;
-	float SampleSpecular (const vec2 texcoord)  { return texture( un_SpecularTex, texcoord ).r; }
-# endif
-
-# ifdef ROUGHTNESS_MAP
-	layout(set=0, binding=4) uniform sampler2D  un_RoughtnessTex;
-	float SampleRoughtness (const vec2 texcoord)  { return texture( un_RoughtnessTex, texcoord ).r; }
-# endif
-
-# ifdef METALLIC_MAP
-	layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
-	float SampleMetallic (const vec2 texcoord)  { return texture( un_MetallicTex, texcoord ).r; }
-# endif
-#endif	// FRAGMENT_SHADER
-)#";
+	static constexpr uint		max_instance_count = 1 << 10;
 }
 
 /*
@@ -106,6 +30,7 @@ namespace {
 */
 	bool SimpleScene::Create (const FGThreadPtr &fg, const IntermScenePtr &scene, const ImageCachePtr &imageCache, const Transform &initialTransform)
 	{
+		Destroy( fg );
 		CHECK_ERR( scene );
 		CHECK_ERR( _ConvertMeshes( fg, scene ));
 		CHECK_ERR( _ConvertMaterials( fg, scene, imageCache ));
@@ -120,6 +45,13 @@ namespace {
 */
 	void SimpleScene::Destroy (const FGThreadPtr &fg)
 	{
+		_instances.clear();
+		_modelLODs.clear();
+		_models.clear();
+		_meshes.clear();
+		_materials.clear();
+		_vertexAttribs.clear();
+
 		fg->ReleaseResource( _vertexBuffer );
 		fg->ReleaseResource( _indexBuffer );
 		fg->ReleaseResource( _perInstanceUB );
@@ -188,7 +120,8 @@ namespace {
 				uint	model_idx	= lod.levels[uint(detail)];
 
 				if ( model_idx == UMax					or
-					 not camera.layers[uint(lod.layer)] )
+					 not camera.layers[uint(lod.layer)] or
+					 not _models[ model_idx ].pipeline )
 					continue;
 
 				auto&	model	= _models[ model_idx ];
@@ -196,10 +129,12 @@ namespace {
 				//auto&	mtr		= _materials[ model.materialID ];
 
 				DrawIndexed		draw_task;
-				draw_task.pipeline = model.pipeline;
+				draw_task.pipeline		= model.pipeline;
+				draw_task.vertexInput	= _vertexAttribs[mesh.attribsIndex]->GetVertexInput();
+				draw_task.vertexInput.Bind( Default, _vertexStride, 0 );
+
 				draw_task.AddBuffer( Default, _vertexBuffer )
 						 .SetIndexBuffer( _indexBuffer, 0_b, _indexType )
-						 .SetVertexInput( _vertexAttribs[mesh.attribsIndex].first )
 						 .SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
 						 .Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
 						 .AddResources( DescriptorSetID{"PerObject"}, &model.resources )
@@ -252,11 +187,7 @@ namespace {
 */
 	bool SimpleScene::_BuildModels (const FGThreadPtr &fg, const RenderTechniquePtr &renTech)
 	{
-		ShaderBuilder*	builder = renTech->GetShaderBuilder();
-
-		for (auto& attr : _vertexAttribs) {
-			attr.second = builder->CacheVertexAttribs( attr.first );
-		}
+		auto		source_id = renTech->GetShaderBuilder()->CacheFileSource( "Scene/simple_scene.glsl" );
 
 		SamplerID	sampler = fg->CreateSampler( SamplerDesc{}.SetAddressMode( EAddressMode::Repeat )
 															  .SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear ));
@@ -269,14 +200,16 @@ namespace {
 
 			CHECK_ERR( mesh.attribsIndex != UMax );
 
-			IRenderTechnique::PipelineInfo	info;
-			info.textures			= mtr.textureBits;
-			info.layer				= model.layer;
-			info.detailLevel		= EDetailLevel::High;
-			info.sourceIDs.push_back( _vertexAttribs[mesh.attribsIndex].second );
-			info.sourceIDs.push_back( builder->CacheShaderSource( shader_source ));
+			ShaderCache::GraphicsPipelineInfo	info;
+			info.attribs		= _vertexAttribs[mesh.attribsIndex];
+			info.textures		= mtr.textureBits;
+			info.detailLevel	= EDetailLevel::High;
+			info.sourceIDs.push_back( source_id );
+			info.constants.emplace_back( "MAX_INSTANCE_COUNT", max_instance_count );
 
-			CHECK_ERR( renTech->GetPipeline( info, OUT model.pipeline ));
+			if ( not renTech->GetPipeline( model.layer, info, OUT model.pipeline ) )
+				continue;
+
 			CHECK_ERR( fg->InitPipelineResources( model.pipeline, DescriptorSetID{"PerObject"}, OUT model.resources ));
 
 			if ( mtr.albedoTex )
@@ -311,18 +244,18 @@ namespace {
 		BytesU	vert_stride, idx_stride;
 		for (auto& src : scene->GetMeshes())
 		{
-			vert_stride	= Max( vert_stride, src->GetVertexStride() );
-			idx_stride	= Max( idx_stride,  EIndex_SizeOf(src->GetIndexType()) );
+			vert_stride	= Max( vert_stride, src.first->GetVertexStride() );
+			idx_stride	= Max( idx_stride,  EIndex_SizeOf(src.first->GetIndexType()) );
 		}
 
 		BytesU	vert_size, idx_size;
 		for (auto& src : scene->GetMeshes())
 		{
-			vert_size = AlignToLarger( vert_size + ArraySizeOf(src->GetVertices()), vert_stride );
-			idx_size  = AlignToLarger( idx_size  + ArraySizeOf(src->GetIndices()),  idx_stride  );
+			vert_size = AlignToLarger( vert_size + ArraySizeOf(src.first->GetVertices()), vert_stride );
+			idx_size  = AlignToLarger( idx_size  + ArraySizeOf(src.first->GetIndices()),  idx_stride  );
 
-			src->CalcAABB();
-			attribs.insert({ src->GetAttribs(), attribs.size() });
+			src.first->CalcAABB();
+			attribs.insert({ src.first->GetAttribs(), attribs.size() });
 		}
 
 		_vertexBuffer	= fg->CreateBuffer( BufferDesc{ vert_size, EBufferUsage::Vertex | EBufferUsage::TransferDst });
@@ -333,42 +266,36 @@ namespace {
 		_meshes.resize( scene->GetMeshes().size() );
 
 		Task	last_task;
-		for (size_t i = 0; i < scene->GetMeshes().size(); ++i)
+		for (auto& src : scene->GetMeshes())
 		{
-			auto&	src = scene->GetMeshes()[i];
-			Mesh&	dst = _meshes[i];
+			Mesh&	dst = _meshes[ src.second ];
 
-			dst.boundingBox		= src->GetAABB().value();
-			dst.attribsIndex	= uint(attribs.find( src->GetAttribs() )->second);
-			dst.topology		= src->GetTopology();
+			dst.boundingBox		= src.first->GetAABB().value();
+			dst.attribsIndex	= uint(attribs.find( src.first->GetAttribs() )->second);
+			dst.topology		= src.first->GetTopology();
 			dst.vertexOffset	= uint(vert_size / vert_stride);
 			dst.firstIndex		= uint(idx_size / idx_stride);
-			dst.indexCount		= uint(ArraySizeOf(src->GetIndices()) / idx_stride);
+			dst.indexCount		= uint(ArraySizeOf(src.first->GetIndices()) / idx_stride);
 
-			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _vertexBuffer ).AddData( src->GetVertices(), vert_size ).DependsOn( last_task ));
-			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _indexBuffer ).AddData( src->GetIndices(), idx_size ).DependsOn( last_task ));
+			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _vertexBuffer ).AddData( src.first->GetVertices(), vert_size ).DependsOn( last_task ));
+			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _indexBuffer ).AddData( src.first->GetIndices(), idx_size ).DependsOn( last_task ));
 			
-			vert_size = AlignToLarger( vert_size + ArraySizeOf(src->GetVertices()), vert_stride );
-			idx_size  = AlignToLarger( idx_size  + ArraySizeOf(src->GetIndices()),  idx_stride  );
+			vert_size = AlignToLarger( vert_size + ArraySizeOf(src.first->GetVertices()), vert_stride );
+			idx_size  = AlignToLarger( idx_size  + ArraySizeOf(src.first->GetIndices()),  idx_stride  );
 
-			if ( i )
-				_boundingBox.Add( dst.boundingBox );
-			else
+			if ( src.first == scene->GetMeshes().begin()->first )
 				_boundingBox = dst.boundingBox;
+			else
+				_boundingBox.Add( dst.boundingBox );
 
-			CHECK( src->GetIndexType() == _indexType );
+			CHECK( src.first->GetIndexType() == _indexType );
 		}
 
-		_vertexAttribs.reserve( attribs.size() );
-		for (auto& src : attribs)
-		{
-			auto&	dst = _vertexAttribs.emplace_back().first;
-			dst.Bind( Default, vert_stride );
+		_vertexStride = vert_stride;
+		_vertexAttribs.resize( attribs.size() );
 
-			for (auto& vert : src.first->GetVertexBinds())
-			{
-				dst.Add( vert.first, vert.second.type, BytesU{vert.second.offset} );
-			}
+		for (auto& src : attribs) {
+			_vertexAttribs[src.second] = src.first;
 		}
 
 		return true;
@@ -383,14 +310,14 @@ namespace {
 	{
 		using MtrTexture = IntermMaterial::MtrTexture;
 
-		_materials.reserve( scene->GetMaterials().size() );
+		_materials.resize( scene->GetMaterials().size() );
 
 		for (auto& src : scene->GetMaterials())
 		{
-			CHECK_ERR( src->GetRenderLayers() != Default );
+			CHECK_ERR( src.first->GetRenderLayers() != Default );
 
-			auto&		settings = src->GetSettings();
-			Material	dst;
+			auto&		settings = src.first->GetSettings();
+			Material&	dst		 = _materials[ src.second ];
 
 			dst.dataID = uint(_materials.size());
 
@@ -417,8 +344,6 @@ namespace {
 				CHECK_ERR( imageCache->CreateImage( fg, tex->image, true, OUT dst.metallicTex ));
 				dst.textureBits |= ETextureType::Metallic;
 			}
-
-			_materials.push_back( dst );
 		}
 
 		return true;
@@ -464,8 +389,8 @@ namespace {
 				lod.levels[j] = uint(_models.size());
 
 				Model		model;
-				model.meshID	 = uint(scene->GetIndexOfMesh( modelData.levels[j].first ));
-				model.materialID = uint(scene->GetIndexOfMaterial( modelData.levels[j].second ));
+				model.meshID	 = scene->GetIndexOfMesh( modelData.levels[j].first );
+				model.materialID = scene->GetIndexOfMaterial( modelData.levels[j].second );
 				model.layer		 = ERenderLayer(i);
 				_models.push_back( model );
 				

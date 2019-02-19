@@ -4,7 +4,7 @@
 
 #ifdef FG_ENABLE_DEVIL
 
-#include "scene/Loader/Intermediate/IntermScene.h"
+#include "scene/Loader/IImageLoader.h"
 
 namespace FG
 {
@@ -13,17 +13,13 @@ namespace FG
 	// DevIL Loader
 	//
 
-	class DevILLoader
+	class DevILLoader final : public IImageLoader
 	{
 	// methods
 	public:
 		DevILLoader ();
 
-		bool Load (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
-
-		bool Load (const IntermMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
-		bool Load (ArrayView<IntermMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
-		bool Load (const IntermScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
+		bool LoadImage (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache) override;
 	};
 
 

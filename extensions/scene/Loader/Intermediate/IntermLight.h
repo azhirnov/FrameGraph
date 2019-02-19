@@ -55,8 +55,6 @@ namespace FG
 
 		explicit IntermLight (Settings &&settings) : _settings{std::move(settings)} {}
 	};
-	
-	using IntermLightPtr = SharedPtr< IntermLight >;
 
 
 }	// FG

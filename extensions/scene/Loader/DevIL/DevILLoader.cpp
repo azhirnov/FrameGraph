@@ -11,6 +11,7 @@
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>
+	using fpath = std::filesystem::path;
 #else
 #	error not supported!
 #endif
@@ -199,13 +200,11 @@ namespace FG
 	
 /*
 =================================================
-	Load
+	FindImage2
 =================================================
 */
-	static bool  FindImage (StringView name, ArrayView<StringView> directories, OUT String &result)
+	static bool  FindImage2 (StringView name, ArrayView<StringView> directories, OUT String &result)
 	{
-		using fpath = std::filesystem::path;
-		
 		// check default directory
 		{
 			fpath	img_path {};
@@ -232,16 +231,31 @@ namespace FG
 				return true;
 			}
 		}
+		return false;
+	}
+
+/*
+=================================================
+	FindImage
+=================================================
+*/
+	static bool  FindImage (StringView name, ArrayView<StringView> directories, OUT String &result)
+	{
+		if ( FindImage2( name, directories, OUT result ) )
+			return true;
+		
+		if ( FindImage2( std::filesystem::path{name}.filename().string(), directories, OUT result ) )
+			return true;
 
 		RETURN_ERR( "image file not found!" );
 	}
 
 /*
 =================================================
-	Load
+	LoadImage
 =================================================
 */
-	bool DevILLoader::Load (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool DevILLoader::LoadImage (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		CHECK_ERR( image );
 
@@ -296,95 +310,6 @@ namespace FG
 			imgCache->AddImageData( filename, image );
 
 		return true;
-	}
-	
-/*
-=================================================
-	Load
-=================================================
-*/
-	bool DevILLoader::Load (const IntermMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
-	{
-		using Texture = IntermMaterial::MtrTexture;
-
-		CHECK_ERR( material );
-
-		auto&	settings = material->EditSettings();
-
-		if ( auto* albedo = UnionGetIf<Texture>( &settings.albedo ))
-			CHECK_ERR( Load( albedo->image, directories, imgCache ));
-		
-		if ( auto* specular = UnionGetIf<Texture>( &settings.specular ))
-			CHECK_ERR( Load( specular->image, directories, imgCache ));
-		
-		if ( auto* ambient = UnionGetIf<Texture>( &settings.ambient ))
-			CHECK_ERR( Load( ambient->image, directories, imgCache ));
-		
-		if ( auto* emissive = UnionGetIf<Texture>( &settings.emissive ))
-			CHECK_ERR( Load( emissive->image, directories, imgCache ));
-		
-		if ( auto* height_map = UnionGetIf<Texture>( &settings.heightMap ))
-			CHECK_ERR( Load( height_map->image, directories, imgCache ));
-		
-		if ( auto* normals_map = UnionGetIf<Texture>( &settings.normalsMap ))
-			CHECK_ERR( Load( normals_map->image, directories, imgCache ));
-		
-		if ( auto* shininess = UnionGetIf<Texture>( &settings.shininess ))
-			CHECK_ERR( Load( shininess->image, directories, imgCache ));
-		
-		if ( auto* opacity = UnionGetIf<Texture>( &settings.opacity ))
-			CHECK_ERR( Load( opacity->image, directories, imgCache ));
-		
-		if ( auto* displacement_map = UnionGetIf<Texture>( &settings.displacementMap ))
-			CHECK_ERR( Load( displacement_map->image, directories, imgCache ));
-		
-		if ( auto* light_map = UnionGetIf<Texture>( &settings.lightMap ))
-			CHECK_ERR( Load( light_map->image, directories, imgCache ));
-		
-		if ( auto* reflection_map = UnionGetIf<Texture>( &settings.reflectionMap ))
-			CHECK_ERR( Load( reflection_map->image, directories, imgCache ));
-		
-		if ( auto* roughtness = UnionGetIf<Texture>( &settings.roughtness ))
-			CHECK_ERR( Load( roughtness->image, directories, imgCache ));
-		
-		if ( auto* metallic = UnionGetIf<Texture>( &settings.metallic ))
-			CHECK_ERR( Load( metallic->image, directories, imgCache ));
-		
-		if ( auto* subsurface = UnionGetIf<Texture>( &settings.subsurface ))
-			CHECK_ERR( Load( subsurface->image, directories, imgCache ));
-		
-		if ( auto* ambient_occlusion = UnionGetIf<Texture>( &settings.ambientOcclusion ))
-			CHECK_ERR( Load( ambient_occlusion->image, directories, imgCache ));
-		
-		if ( auto* refraction = UnionGetIf<Texture>( &settings.refraction ))
-			CHECK_ERR( Load( refraction->image, directories, imgCache ));
-
-		return true;
-	}
-	
-/*
-=================================================
-	Load
-=================================================
-*/
-	bool DevILLoader::Load (ArrayView<IntermMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
-	{
-		for (auto& mtr : materials)
-		{
-			CHECK_ERR( Load( mtr, directories, imgCache ));
-		}
-		return true;
-	}
-	
-/*
-=================================================
-	Load
-=================================================
-*/
-	bool DevILLoader::Load (const IntermScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
-	{
-		CHECK_ERR( scene );
-		return Load( scene->GetMaterials(), directories, imgCache );
 	}
 
 

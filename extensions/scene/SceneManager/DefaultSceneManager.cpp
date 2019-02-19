@@ -19,6 +19,29 @@ namespace FG
 		_imageCache{ MakeShared<DefaultImageCache>() }
 	{
 	}
+	
+/*
+=================================================
+	Destroy
+=================================================
+*/
+	void DefaultSceneManager::Destroy (const FGThreadPtr &fg)
+	{
+		if ( not fg )
+			return;
+
+		for (auto& scene : _hierarchies)
+		{
+			scene->Destroy( fg );
+		}
+
+		if ( _imageCache )
+			_imageCache->Destroy( fg );
+
+		_hierarchies.clear();
+		_imageCache = null;
+		_renderTech	= null;
+	}
 
 /*
 =================================================
@@ -37,7 +60,7 @@ namespace FG
 		submission_graph.AddBatch( batch_id );
 
 		CHECK_ERR( inst->BeginFrame( submission_graph ));
-		CHECK_ERR( fg->Begin( batch_id, 0, EThreadUsage::Graphics ));
+		CHECK_ERR( fg->Begin( batch_id, 0, EQueueUsage::Graphics ));
 
 		for (auto& scene : _hierarchies)
 		{

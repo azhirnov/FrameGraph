@@ -176,6 +176,7 @@ namespace FG
 
 			// validation
 			{
+				ASSERT( (size >= buf.staticSize) and (buf.arrayStride == 0 or (size - buf.staticSize) % buf.arrayStride == 0) );
 				ASSERT( offset < buffer->Size() );
 				ASSERT( offset + size <= buffer->Size() );
 

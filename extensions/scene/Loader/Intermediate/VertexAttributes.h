@@ -68,7 +68,7 @@ namespace FG
 
 	// variables
 	private:
-		Attribs_t		_attribs;
+		VertexInputState	_vertInput;
 
 
 	// methods
@@ -76,43 +76,15 @@ namespace FG
 		explicit VertexAttributes (const VertexInputState &vertexInput, const VertexBufferID &bufferId = Default);
 
 		template <typename T>
-		ND_ StructView<T>		GetData (const VertexID &id, const void* vertexData, size_t vertexCount, BytesU stride) const;
+		ND_ StructView<T>			GetData (const VertexID &id, const void* vertexData, size_t vertexCount, BytesU stride) const;
 
-		ND_ Attribs_t const&	GetVertexBinds ()	const	{ return _attribs; }
+		ND_ VertexInputState const&	GetVertexInput ()	const	{ return _vertInput; }
 
 		ND_ HashVal	CalcHash () const;
 
-		ND_ bool	operator == (const VertexAttributes &) const;
+		ND_ bool	operator == (const VertexAttributes &rhs) const;
 	};
-
-	using VertexAttributesPtr = SharedPtr< VertexAttributes >;
 	
-
-	
-/*
-=================================================
-	constructor
-=================================================
-*/
-	inline VertexAttributes::VertexAttributes (const VertexInputState &vertexInput, const VertexBufferID &bufferId)
-	{
-		uint	binding_idx = 0;
-		{
-			auto	iter = vertexInput.BufferBindings().find( bufferId );
-			if ( iter != vertexInput.BufferBindings().end() )
-				binding_idx = iter->second.index;
-		}
-
-		for (auto& vert : vertexInput.Vertices())
-		{
-			if ( vert.second.bufferBinding == binding_idx )
-			{
-				_attribs.insert({ vert.first, vert.second });
-			}
-		}
-
-		ASSERT( not _attribs.empty() );
-	}
 	
 /*
 =================================================
@@ -122,54 +94,13 @@ namespace FG
 	template <typename T>
 	inline StructView<T>  VertexAttributes::GetData (const VertexID &id, const void* vertexData, size_t vertexCount, BytesU stride) const
 	{
-		auto	iter = _attribs.find( id );
-		if ( iter == _attribs.end() )
+		auto	iter = _vertInput.Vertices().find( id );
+		if ( iter == _vertInput.Vertices().end() )
 			return Default;
 
 		ASSERT( iter->second.type == VertexDesc<T>::attrib );
 
 		return StructView<T>{ vertexData + iter->second.offset, vertexCount, uint(stride) };
-	}
-	
-/*
-=================================================
-	CalcHash
-=================================================
-*/
-	inline HashVal  VertexAttributes::CalcHash () const
-	{
-		HashVal	result;
-
-		for (auto& attr : _attribs) {
-			result << HashOf( attr.first ) << HashOf( attr.second.type ) << HashOf( attr.second.offset );
-		}
-		return result;
-	}
-	
-/*
-=================================================
-	operator ==
-=================================================
-*/
-	inline bool  VertexAttributes::operator == (const VertexAttributes &rhs) const
-	{
-		auto&	lattr = this->GetVertexBinds();
-		auto&	rattr = rhs.GetVertexBinds();
-
-		if ( lattr.size() != rattr.size() )
-			return false;
-
-		for (auto& at : lattr)
-		{
-			auto	iter = rattr.find( at.first );
-			if ( iter == rattr.end() )
-				return false;
-
-			if ( at.second.offset != iter->second.offset or
-					at.second.type   != iter->second.type   )
-				return false;
-		}
-		return true;
 	}
 
 

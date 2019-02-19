@@ -1,13 +1,16 @@
-R"#(
 
 // @set 0 PerObject
 // @set 1 PerPass
 
 #ifdef VERTEX_SHADER
 
+	vec3 GetWorldPosition ();
+	vec2 GetTextureCoordinate0 ();
+
+	// @export
 	layout(set=1, binding=0, std140) uniform CameraUB {
 		mat4x4		viewProj;
-		vec4		position;
+		vec3		position;
 		vec3		frustumRayLeftBottom;
 		vec3		frustumRayRightBottom;
 		vec3		frustumRayLeftTop;
@@ -31,7 +34,6 @@ R"#(
 
 // shadow map, depth pre-pass
 # if defined(LAYER_SHADOWMAP) || defined(LAYER_DEPTHPREPASS)
-	
 	layout(location=1) out vec2  outTexcoord0;
 
 	void main ()
@@ -46,6 +48,9 @@ R"#(
 
 
 #ifdef FRAGMENT_SHADER
+	
+	vec4  SampleAlbedoLinear (const vec2 texcoord);
+
 /*
 // shadow map, depth pre-pass
 # if defined(LAYER_SHADOWMAP) || defined(LAYER_DEPTHPREPASS)
@@ -105,4 +110,3 @@ R"#(
 # endif	// LAYER_TRANSLUCENT*/
 
 #endif	// FRAGMENT_SHADER
-)#"s

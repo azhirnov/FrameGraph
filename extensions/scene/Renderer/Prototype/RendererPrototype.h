@@ -16,14 +16,8 @@ namespace FG
 	{
 	// types
 	private:
-		using SourceID			= ShaderBuilder::ShaderSourceID;
+		using SourceID			= ShaderCache::ShaderSourceID;
 		using ShaderOutputs_t	= StaticArray< PipelineResources, uint(ERenderLayer::_Count) >;
-
-		template <typename T>
-		using TPipelineCache	= HashMap< PipelineInfo, T, PipelineInfoHash >;
-		using GPipelineCache_t	= TPipelineCache< GPipelineID >;
-		using MPipelineCache_t	= TPipelineCache< MPipelineID >;
-		using RTPipelineCache_t	= TPipelineCache< RTPipelineID >;
 
 		struct CameraUB
 		{
@@ -40,6 +34,21 @@ namespace FG
 			vec2		clipPlanes;
 		};
 
+		struct LightsUB
+		{
+			struct Light
+			{
+				vec3	position;
+				float	radius;
+				vec4	color;
+				vec4	attenuation;
+			};
+
+			uint		lightCount	= 0;
+			int			_padding[3];
+			Light		lights [32];
+		};
+
 
 	// variables
 	private:
@@ -47,18 +56,15 @@ namespace FG
 		FGThreadPtr			_frameGraph;
 
 		SubmissionGraph		_submissionGraph;
-		ShaderBuilder		_shaderBuilder;
+		ShaderCache			_shaderCache;
 
 		SourceID			_graphicsShaderSource		= Default;
 		SourceID			_rayTracingShaderSource		= Default;
 
-		GPipelineCache_t	_gpipelineCache;
-		MPipelineCache_t	_mpipelineCache;
-		RTPipelineCache_t	_rtpipelineCache;
-
 		PipelineResources	_perPassResources;
 		ShaderOutputs_t		_shaderOutputResources;		// for compute / ray-tracing
 		BufferID			_cameraUB;
+		BufferID			_lightsUB;
 
 
 	// methods
@@ -66,19 +72,20 @@ namespace FG
 		RendererPrototype ();
 		~RendererPrototype ();
 
-		bool Initialize (const FGInstancePtr &, const FGThreadPtr &, StringView);
-		void Deinitialize ();
-
-		bool GetPipeline (const PipelineInfo &, OUT RawGPipelineID &) override;
-		bool GetPipeline (const PipelineInfo &, OUT RawMPipelineID &) override;
-		bool GetPipeline (const PipelineInfo &, OUT RawRTPipelineID &) override;
+		bool Create (const FGInstancePtr &, const FGThreadPtr &);
+		void Destroy () override;
 
 		bool Render (const ScenePreRender &) override;
+
+		bool GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawGPipelineID &) override;
+		bool GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawMPipelineID &) override;
+		bool GetPipeline (ERenderLayer, INOUT RayTracingPipelineInfo &, OUT RawRTPipelineID &) override;
+		bool GetPipeline (ERenderLayer, INOUT ComputePipelineInfo &, OUT RawCPipelineID &) override;
 		
-		ShaderBuilder*  GetShaderBuilder ()			override	{ return &_shaderBuilder; }
-		
-		FGInstancePtr	GetFrameGraphInstance ()	override	{ return _fgInstance; }
-		FGThreadPtr		GetFrameGraphThread ()		override	{ return _frameGraph; }
+		Ptr<ShaderCache>	GetShaderBuilder ()			override	{ return &_shaderCache; }
+
+		FGInstancePtr		GetFrameGraphInstance ()	override	{ return _fgInstance; }
+		FGThreadPtr			GetFrameGraphThread ()		override	{ return _frameGraph; }
 
 
 	private:

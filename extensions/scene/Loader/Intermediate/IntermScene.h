@@ -36,78 +36,40 @@ namespace FG
 			SceneNode () {}
 		};
 
+		using MaterialMap_t	= HashMap< IntermMaterialPtr, uint >;
+		using MeshMap_t		= HashMap< IntermMeshPtr, uint >;
+		using LightMap_t	= HashMap< IntermLightPtr, uint >;
+
 
 	// variables
 	private:
-		SceneNode					_root;
-		Array< IntermMaterialPtr >	_materials;
-		Array< IntermMeshPtr >		_meshes;
-		Array< IntermLightPtr >		_lights;
+		SceneNode			_root;
+		MaterialMap_t		_materials;
+		MeshMap_t			_meshes;
+		LightMap_t			_lights;
 
 
 	// methods
 	public:
 		IntermScene () {}
-
-		IntermScene (Array<IntermMaterialPtr> &&materials,
-					 Array<IntermMeshPtr> &&meshes,
-					 Array<IntermLightPtr> &&lights,
+		IntermScene (MaterialMap_t &&materials, MeshMap_t &&meshes, LightMap_t &&lights, SceneNode &&root);
+		IntermScene (ArrayView<IntermMaterialPtr> materials,
+					 ArrayView<IntermMeshPtr> meshes,
+					 ArrayView<IntermLightPtr> lights,
 					 SceneNode &&root);
 
-		ND_ ArrayView<IntermMaterialPtr>	GetMaterials ()	const	{ return _materials; }
-		ND_ ArrayView<IntermMeshPtr>		GetMeshes ()	const	{ return _meshes; }
-		ND_ ArrayView<IntermLightPtr>		GetLights ()	const	{ return _lights; }
-		ND_ SceneNode const&				GetRoot ()		const	{ return _root; }
+		ND_ MaterialMap_t		GetMaterials ()	const	{ return _materials; }
+		ND_ MeshMap_t			GetMeshes ()	const	{ return _meshes; }
+		ND_ LightMap_t			GetLights ()	const	{ return _lights; }
+		ND_ SceneNode const&	GetRoot ()		const	{ return _root; }
 
-		ND_ size_t  GetIndexOfMesh (const IntermMeshPtr &) const;
-		ND_ size_t  GetIndexOfMaterial (const IntermMaterialPtr &) const;
+		ND_ uint  GetIndexOfMesh (const IntermMeshPtr &) const;
+		ND_ uint  GetIndexOfMaterial (const IntermMaterialPtr &) const;
+
+		ND_ SceneNode const*  FindNode (StringView name) const;
+
+		bool Append (const IntermScene &, const Transform &transform = Default);
 	};
-	
-	using IntermScenePtr = SharedPtr< IntermScene >;
-
-	
-/*
-=================================================
-	constructor
-=================================================
-*/
-	inline IntermScene::IntermScene (Array<IntermMaterialPtr> &&materials,
-									 Array<IntermMeshPtr> &&meshes,
-									 Array<IntermLightPtr> &&lights,
-									 SceneNode &&root) :
-		_root{ std::move(root) }, _materials{ std::move(materials) },
-		_meshes{ std::move(meshes) }, _lights{ std::move(lights) }
-	{}
-	
-/*
-=================================================
-	GetIndexOfMesh
-=================================================
-*/
-	inline size_t  IntermScene::GetIndexOfMesh (const IntermMeshPtr &ptr) const
-	{
-		// TODO: binary search
-		for (size_t i = 0; i < _meshes.size(); ++i) {
-			if ( _meshes[i] == ptr )
-				return i;
-		}
-		return UMax;
-	}
-	
-/*
-=================================================
-	GetIndexOfMaterial
-=================================================
-*/
-	inline size_t  IntermScene::GetIndexOfMaterial (const IntermMaterialPtr &ptr) const
-	{
-		// TODO: binary search
-		for (size_t i = 0; i < _materials.size(); ++i) {
-			if ( _materials[i] == ptr )
-				return i;
-		}
-		return UMax;
-	}
 
 
 }	// FG

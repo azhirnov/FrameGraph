@@ -29,7 +29,7 @@ namespace FG
 		
 		struct MtrTexture
 		{
-			IntermImagePtr	image;
+			IntermImagePtr			image;
 			String					name;
 			mat3x3					uvTransform		= Default;	// TODO: set identity
 			ETextureMapping			mapping			= Default;
@@ -89,8 +89,6 @@ namespace FG
 
 		void SetRenderLayers (LayerBits value)				{ _layers = value; }
 	};
-	
-	using IntermMaterialPtr = SharedPtr< IntermMaterial >;
 
 
 }	// FG

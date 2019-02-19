@@ -45,33 +45,19 @@ namespace {
 
 /*
 =================================================
-	Initialize
+	Create
 =================================================
 */
-	bool RendererPrototype::Initialize (const FGInstancePtr &inst, const FGThreadPtr &worker, StringView)
+	bool RendererPrototype::Create (const FGInstancePtr &inst, const FGThreadPtr &worker)
 	{
-		CHECK_ERR( inst );
+		CHECK_ERR( inst and worker );
 
 		_fgInstance = inst;
-
-		ThreadDesc	desc{ EThreadUsage::Graphics };
-
 		_frameGraph = worker;
-		
-		if ( not _frameGraph )
-		{
-			_frameGraph = _fgInstance->CreateThread( desc );
-			CHECK_ERR( _frameGraph );
-			CHECK_ERR( _frameGraph->Initialize() );
-		}
 
-		_graphicsShaderSource = _shaderBuilder.CacheShaderSource(
-										#include "RendererPrototypeGraphics.glsl"
-									);
-		
-		_rayTracingShaderSource = _shaderBuilder.CacheShaderSource(
-										#include "RendererPrototypeRaytracing.glsl"
-									);
+		CHECK_ERR( _shaderCache.Load( _frameGraph, FG_SHADER_PATH ));
+		_graphicsShaderSource	= _shaderCache.CacheFileSource( "Prototype/forward.glsl" );
+		_rayTracingShaderSource	= _shaderCache.CacheFileSource( "Prototype/raytracing.glsl" );
 
 		CHECK_ERR( _CreateUniformBuffer() );
 		return true;
@@ -79,71 +65,45 @@ namespace {
 	
 /*
 =================================================
-	Deinitialize
+	Destroy
 =================================================
 */
-	void RendererPrototype::Deinitialize ()
+	void RendererPrototype::Destroy ()
 	{
 		if ( _frameGraph )
 		{
-			for (auto& ppln : _gpipelineCache) {
-				_frameGraph->ReleaseResource( ppln.second );
-			}
-			for (auto& ppln : _mpipelineCache) {
-				_frameGraph->ReleaseResource( ppln.second );
-			}
-			for (auto& ppln : _rtpipelineCache) {
-				_frameGraph->ReleaseResource( ppln.second );
-			}
+			_frameGraph->ReleaseResource( _cameraUB );
+			_frameGraph->ReleaseResource( _lightsUB );
 		}
+
+		_shaderCache.Clear();
+
+		_graphicsShaderSource	= Default;
+		_rayTracingShaderSource	= Default;
 
 		_frameGraph	= null;
 		_fgInstance	= null;
 	}
-
 /*
 =================================================
-	BuildShaderDefines
+	AddRenderLayer
 =================================================
 */
-	ND_ static String  BuildShaderDefines (const IRenderTechnique::PipelineInfo &info)
+	static void AddRenderLayer (ERenderLayer layer, INOUT ShaderCache::GraphicsPipelineInfo &info)
 	{
-		String	result;
-
-		for (ETextureType t = ETextureType(1); t <= info.textures; t = ETextureType(uint(t) << 1))
-		{
-			if ( not EnumEq( info.textures, t ) )
-				continue;
-
-			ENABLE_ENUM_CHECKS();
-			switch ( t )
-			{
-				case ETextureType::Albedo :		result << "#define ALBEDO_MAP\n";		break;
-				case ETextureType::Normal :		result << "#define NORMAL_MAP\n";		break;
-				case ETextureType::Height :		result << "#define HEIGHT_MAP\n";		break;
-				case ETextureType::Reflection :	result << "#define REFLECTION_MAP\n";	break;
-				case ETextureType::Specular :	result << "#define SPECULAR_MAP\n";		break;
-				case ETextureType::Roughtness :	result << "#define ROUGHTNESS_MAP\n";	break;
-				case ETextureType::Metallic :	result << "#define METALLIC_MAP\n";		break;
-				case ETextureType::Unknown :
-				default :						CHECK(!"unknown texture type");			break;
-			}
-			DISABLE_ENUM_CHECKS();
-		}
-		
 		ENABLE_ENUM_CHECKS();
-		switch ( info.layer )
+		switch ( layer )
 		{
-			case ERenderLayer::Shadow :			result << "#define LAYER_SHADOWMAP\n";		break;
-			case ERenderLayer::DepthOnly :		result << "#define LAYER_DEPTHPREPASS\n";	break;
+			case ERenderLayer::Shadow :			info.constants.emplace_back( "LAYER_SHADOWMAP", 1 );	break;
+			case ERenderLayer::DepthOnly :		info.constants.emplace_back( "LAYER_DEPTHPREPASS", 1 );	break;
 			case ERenderLayer::Opaque_1 :
 			case ERenderLayer::Opaque_2 :
-			case ERenderLayer::Opaque_3 :		result << "#define LAYER_OPAQUE\n";			break;
-			case ERenderLayer::Translucent :	result << "#define LAYER_TRANSLUCENT\n";	break;
+			case ERenderLayer::Opaque_3 :		info.constants.emplace_back( "LAYER_OPAQUE", 1 );		break;
+			case ERenderLayer::Translucent :	info.constants.emplace_back( "LAYER_TRANSLUCENT", 1 );	break;
 				
-			case ERenderLayer::Background :		//result << "#define LAYER_BACKGROUND\n";	break;
-			case ERenderLayer::Foreground :		//result << "#define LAYER_FOREGROUND\n";	break;
-			case ERenderLayer::Emission :		//result << "#define LAYER_EMISSION\n";		break;
+			case ERenderLayer::Background :		//info.constants.emplace_back( "LAYER_BACKGROUND", 1 );	break;
+			case ERenderLayer::Foreground :		//info.constants.emplace_back( "LAYER_FOREGROUND", 1 );	break;
+			case ERenderLayer::Emission :		//info.constants.emplace_back( "LAYER_EMISSION", 1 );	break;
 			case ERenderLayer::RayTracing :
 			case ERenderLayer::Unknown :
 			case ERenderLayer::Layer_32 :
@@ -152,10 +112,6 @@ namespace {
 			default :							CHECK(!"unknown render layer");				break;
 		}
 		DISABLE_ENUM_CHECKS();
-
-		result << "#define DETAIL_LEVEL " << ToString( uint(info.detailLevel) ) << "\n";
-
-		return result;
 	}
 
 /*
@@ -163,51 +119,26 @@ namespace {
 	GetPipeline
 =================================================
 */
-	bool RendererPrototype::GetPipeline (const PipelineInfo &info, OUT RawGPipelineID &pipeline)
+	bool RendererPrototype::GetPipeline (ERenderLayer layer, INOUT GraphicsPipelineInfo &info, OUT RawGPipelineID &outPipeline)
 	{
-		auto	iter = _gpipelineCache.find( info );
+		AddRenderLayer( layer, INOUT info );
+		info.sourceIDs.push_back( _graphicsShaderSource );
 
-		if ( iter != _gpipelineCache.end() )
-		{
-			pipeline = iter->second.Get();
-			return true;
-		}
-
-		const String	defines		= BuildShaderDefines( info );
-		String			fs_source	= "#define FRAGMENT_SHADER\n" + defines + "void dbg_EnableTraceRecording (bool b) {}\n\n";
-		String			vs_source	= "#define VERTEX_SHADER\n" + defines + "void dbg_EnableTraceRecording (bool b) {}\n\n";
-		StringView		ubershader	= _shaderBuilder.GetCachedSource( _graphicsShaderSource );
-
-		for (auto& id : info.sourceIDs)
-		{
-			StringView	src = _shaderBuilder.GetCachedSource( id );
-			vs_source << src;
-			fs_source << src;
-		}
-
-		fs_source << ubershader;
-		vs_source << ubershader;
-
-		GraphicsPipelineDesc	desc;
-		desc.AddShader( EShader::Vertex,   EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(vs_source) );
-		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(fs_source) );
-
-		pipeline = _frameGraph->CreatePipeline( desc ).Release();
-		CHECK_ERR( pipeline.IsValid() );
+		if ( not _shaderCache.GetPipeline( INOUT info, OUT outPipeline ) )
+			return false;
 
 		if ( not _perPassResources.IsInitialized() )
 		{
-			CHECK( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"PerPass"}, OUT _perPassResources ));
+			CHECK( _frameGraph->InitPipelineResources( outPipeline, DescriptorSetID{"PerPass"}, OUT _perPassResources ));
 			_perPassResources.BindBuffer( UniformID{"CameraUB"}, _cameraUB, 0_b, SizeOf<CameraUB> );
+			//_perPassResources.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
 		}
 		
-		auto&	ppln_res = _shaderOutputResources[ uint(info.layer) ];
+		auto&	ppln_res = _shaderOutputResources[ uint(layer) ];
 		if ( not ppln_res.IsInitialized() )
 		{
-			_frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res );
+			_frameGraph->InitPipelineResources( outPipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res );
 		}
-
-		_gpipelineCache.insert_or_assign( info, GPipelineID{pipeline} );
 		return true;
 	}
 	
@@ -216,7 +147,7 @@ namespace {
 	GetPipeline
 =================================================
 */
-	bool RendererPrototype::GetPipeline (const PipelineInfo &, OUT RawMPipelineID &)
+	bool RendererPrototype::GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawMPipelineID &)
 	{
 		return false;
 	}
@@ -226,61 +157,36 @@ namespace {
 	GetPipeline
 =================================================
 */
-	bool RendererPrototype::GetPipeline (const PipelineInfo &info, OUT RawRTPipelineID &pipeline)
+	bool RendererPrototype::GetPipeline (ERenderLayer, INOUT ComputePipelineInfo &, OUT RawCPipelineID &)
 	{
-		CHECK_ERR( info.layer == ERenderLayer::RayTracing );
+		return false;
+	}
 
-		auto	iter = _rtpipelineCache.find( info );
+/*
+=================================================
+	GetPipeline
+=================================================
+*/
+	bool RendererPrototype::GetPipeline (ERenderLayer layer, INOUT RayTracingPipelineInfo &info, OUT RawRTPipelineID &outPipeline)
+	{
+		CHECK_ERR( layer == ERenderLayer::RayTracing );
 
-		if ( iter != _rtpipelineCache.end() )
-		{
-			pipeline = iter->second.Get();
-			return true;
-		}
+		//AddRenderLayer( layer, INOUT info );
+		info.sourceIDs.push_back( _rayTracingShaderSource );
+		info.constants.emplace_back( "PRIMARY_RAY_LOC", 0 );
+		info.constants.emplace_back( "SHADOW_RAY_LOC",  1 );
+		info.constants.emplace_back( "MAX_LIGHT_COUNT", uint(CountOf( &LightsUB::lights )) );
 
-		String		header			= "#version 460\n#extension GL_NV_ray_tracing : require\n";
-		String		raygen_source	= header + "#define RAYGEN_SHADER\n";
-		String		miss1_source	= header + "#define PRIMARY_MISS_SHADER\n";
-		String		miss2_source	= header + "#define SHADOW_MISS_SHADER\n";
-		String		hit1_source		= header + "#define PRIMARY_CLOSEST_HIT_SHADER\n";
-		String		hit2_source		= header + "#define SHADOW_CLOSEST_HIT_SHADER\n";
-		StringView	ubershader		= _shaderBuilder.GetCachedSource( _rayTracingShaderSource );
-		
-		for (auto& id : info.sourceIDs)
-		{
-			StringView	src = _shaderBuilder.GetCachedSource( id );
-			raygen_source << src;
-			miss1_source << src;
-			miss2_source << src;
-			hit1_source << src;
-			hit2_source << src;
-		}
+		if ( not _shaderCache.GetPipeline( INOUT info, OUT outPipeline ) )
+			return false;
 
-		raygen_source << ubershader;
-		miss1_source << ubershader;
-		miss2_source << ubershader;
-		hit1_source << ubershader;
-		hit2_source << ubershader;
-
-		RayTracingPipelineDesc	desc;
-		desc.AddShader( RTShaderID{"Main"},        EShader::RayGen,        EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(raygen_source) );
-		desc.AddShader( RTShaderID{"PrimaryMiss"}, EShader::RayMiss,       EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(miss1_source) );
-		desc.AddShader( RTShaderID{"ShadowMiss"},  EShader::RayMiss,       EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(miss2_source) );
-		desc.AddShader( RTShaderID{"PrimaryHit"},  EShader::RayClosestHit, EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(hit1_source) );
-		desc.AddShader( RTShaderID{"ShadowHit"},   EShader::RayClosestHit, EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableDebugTrace, "main", std::move(hit2_source) );
-
-
-		pipeline = _frameGraph->CreatePipeline( desc ).Release();
-		CHECK_ERR( pipeline.IsValid() );
-		
-		auto&	ppln_res = _shaderOutputResources[ uint(info.layer) ];
+		auto&	ppln_res = _shaderOutputResources[ uint(layer) ];
 		if ( not ppln_res.IsInitialized() )
 		{
-			CHECK( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res ));
+			CHECK( _frameGraph->InitPipelineResources( outPipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res ));
 			ppln_res.BindBuffer( UniformID{"CameraUB"}, _cameraUB, 0_b, SizeOf<CameraUB> );
+			ppln_res.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
 		}
-
-		_rtpipelineCache.insert_or_assign( info, RTPipelineID{pipeline} );
 		return true;
 	}
 
@@ -314,21 +220,21 @@ namespace {
 			// detect shadow techniques
 			if ( cam.layers[uint(ERenderLayer::Shadow)] )
 			{
-				CHECK_ERR( _frameGraph->Begin( ShadowMapBatch, sm_counter++, EThreadUsage::Graphics ));
+				CHECK_ERR( _frameGraph->Begin( ShadowMapBatch, sm_counter++, EQueueUsage::Graphics ));
 				CHECK_ERR( _SetupShadowPass( cam, INOUT queue, OUT image ));
 			}
 			else
 			// detect color technique
 			if ( cam.layers[uint(ERenderLayer::Opaque_1)] )
 			{
-				CHECK_ERR( _frameGraph->Begin( MainRendererBatch, mr_counter++, EThreadUsage::Graphics ));
+				CHECK_ERR( _frameGraph->Begin( MainRendererBatch, mr_counter++, EQueueUsage::Graphics ));
 				CHECK_ERR( _SetupColorPass( cam, INOUT queue, OUT image ));
 			}
 			else
 			// detect ray trace technique
 			if ( cam.layers[uint(ERenderLayer::RayTracing)] )
 			{
-				CHECK_ERR( _frameGraph->Begin( MainRendererBatch, mr_counter++, EThreadUsage::Graphics ));
+				CHECK_ERR( _frameGraph->Begin( MainRendererBatch, mr_counter++, EQueueUsage::Graphics ));
 				CHECK_ERR( _SetupRayTracingPass( cam, INOUT queue, OUT image ));
 			}
 
@@ -500,6 +406,9 @@ namespace {
 		_cameraUB = _frameGraph->CreateBuffer( BufferDesc{ SizeOf<CameraUB>, EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "CameraUB" );
 		CHECK_ERR( _cameraUB );
 
+		_lightsUB = _frameGraph->CreateBuffer( BufferDesc{ SizeOf<LightsUB>, EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "LightsUB" );
+		CHECK_ERR( _lightsUB );
+
 		return true;
 	}
 	
@@ -510,15 +419,36 @@ namespace {
 */
 	void RendererPrototype::_UpdateUniformBuffer (ERenderLayer firstLayer, const CameraData_t &cameraData, INOUT RenderQueueImpl &queue)
 	{
-		CameraUB	data;
-		data.viewProj	= cameraData.camera.ToViewProjMatrix();
-		data.position	= vec4{ cameraData.camera.transform.position, 0.0f };
-		data.clipPlanes	= cameraData.visibilityRange;
+		// update camera data
+		{
+			CameraUB	data = {};
+			data.viewProj	= cameraData.camera.ToViewProjMatrix();
+			data.position	= vec4{ cameraData.camera.transform.position, 0.0f };
+			data.clipPlanes	= cameraData.visibilityRange;
 
-		cameraData.frustum.GetRays( OUT data.frustumRayLeftTop, OUT data.frustumRayLeftBottom,
-								    OUT data.frustumRayRightTop, OUT data.frustumRayRightBottom );
+			cameraData.frustum.GetRays( OUT data.frustumRayLeftTop,  OUT data.frustumRayLeftBottom,
+										OUT data.frustumRayRightTop, OUT data.frustumRayRightBottom );
 
-		queue.AddTask( firstLayer, UpdateBuffer{}.SetBuffer( _cameraUB ).AddData( &data, 1 ));
+			queue.AddTask( firstLayer, UpdateBuffer{}.SetBuffer( _cameraUB ).AddData( &data, 1 ));
+		}
+
+		// update ligths
+		{
+			LightsUB	data = {};
+			auto&		i = data.lightCount;
+			
+			data.lights[i].position		= vec3{ 8.0f, 3.0f, 0.0f };
+			data.lights[i].radius		= 0.1f;
+			data.lights[i].color		= vec4(1.0f); // vec4{ 1.0f, 0.5f, 0.3f, 0.0f };
+			data.lights[i].attenuation	= vec4{ 0.0f, 0.3f, 0.0f, 0.0f };
+			++i;
+			data.lights[i].position		= cameraData.camera.transform.position + vec3{0.3f, 0.0f, 0.0f};
+			data.lights[i].radius		= 0.02f;
+			data.lights[i].color		= vec4{1.0f}; //vec4{ 0.3f, 1.0f, 0.3f, 0.0f };
+			data.lights[i].attenuation	= vec4{ 0.0f, 0.0f, 0.2f, 0.0f };
+			++i;
+			queue.AddTask( firstLayer, UpdateBuffer{}.SetBuffer( _lightsUB ).AddData( &data, 1 ));
+		}
 	}
 
 

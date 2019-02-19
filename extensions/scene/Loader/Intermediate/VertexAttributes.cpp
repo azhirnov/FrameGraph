@@ -47,6 +47,75 @@ namespace FG
 		}
 #		endif
 	}
+	
+	
+/*
+=================================================
+	constructor
+=================================================
+*/
+	VertexAttributes::VertexAttributes (const VertexInputState &vertexInput, const VertexBufferID &bufferId)
+	{
+		uint	binding_idx = 0;
+		{
+			auto	iter = vertexInput.BufferBindings().find( bufferId );
+			if ( iter != vertexInput.BufferBindings().end() )
+				binding_idx = iter->second.index;
+		}
+
+		_vertInput.Bind( Default, 0_b );
+
+		for (auto& vert : vertexInput.Vertices())
+		{
+			if ( vert.second.bufferBinding == binding_idx )
+			{
+				_vertInput.Add( vert.first, vert.second.type, BytesU{vert.second.offset} );
+			}
+		}
+
+		ASSERT( not _vertInput.Vertices().empty() );
+	}
+
+/*
+=================================================
+	CalcHash
+=================================================
+*/
+	HashVal  VertexAttributes::CalcHash () const
+	{
+		HashVal	result;
+
+		for (auto& attr : _vertInput.Vertices()) {
+			result << (HashOf( attr.first ) + HashOf( attr.second.type ) + HashOf( attr.second.offset ));
+		}
+		return result;
+	}
+	
+/*
+=================================================
+	operator ==
+=================================================
+*/
+	bool  VertexAttributes::operator == (const VertexAttributes &rhs) const
+	{
+		auto&	lattr = this->GetVertexInput().Vertices();
+		auto&	rattr = rhs.GetVertexInput().Vertices();
+
+		if ( lattr.size() != rattr.size() )
+			return false;
+
+		for (auto& at : lattr)
+		{
+			auto	iter = rattr.find( at.first );
+			if ( iter == rattr.end() )
+				return false;
+
+			if ( at.second.offset != iter->second.offset or
+					at.second.type   != iter->second.type   )
+				return false;
+		}
+		return true;
+	}
 
 
 }	// FG

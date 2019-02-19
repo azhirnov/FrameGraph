@@ -53,8 +53,6 @@ namespace FG
 		ND_ bool				IsImmutable ()	const	{ return _immutable; }
 		ND_ Mipmaps_t const&	GetData ()		const	{ return _data; }
 	};
-	
-	using IntermImagePtr = SharedPtr< IntermImage >;
 
 
 }	// FG

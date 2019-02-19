@@ -50,8 +50,6 @@ namespace FG
 		template <typename T>
 		ND_ StructView<T>			GetData (const VertexID &id) const;
 	};
-	
-	using IntermMeshPtr = SharedPtr< IntermMesh >;
 
 
 	template <typename T>

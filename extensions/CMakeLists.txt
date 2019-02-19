@@ -435,6 +435,7 @@ if (${FG_ENABLE_GLM})
 		"scene/ThreadPool/IOThread.h"
 		"scene/ThreadPool/ThreadPool.cpp"
 		"scene/ThreadPool/ThreadPool.h"
+		"scene/Shaders/Utils/math.glsl"
 		"scene/Pipelines/ForwardPlus/default.gppln"
 		"scene/SceneManager/Octree/OctreeScene.h"
 		"scene/Loader/Intermediate/IntermImage.h"
@@ -442,15 +443,16 @@ if (${FG_ENABLE_GLM})
 		"scene/Loader/Intermediate/IntermMaterial.h"
 		"scene/Loader/Intermediate/IntermMesh.cpp"
 		"scene/Loader/Intermediate/IntermMesh.h"
+		"scene/Loader/Intermediate/IntermScene.cpp"
 		"scene/Loader/Intermediate/IntermScene.h"
 		"scene/Loader/Intermediate/VertexAttributes.cpp"
 		"scene/Loader/Intermediate/VertexAttributes.h"
+		"scene/Shaders/Prototype/forward.glsl"
+		"scene/Shaders/Prototype/raytracing.glsl"
 		"scene/Renderer/Enums.h"
 		"scene/Renderer/IRenderTechnique.h"
 		"scene/Renderer/RenderQueue.h"
 		"scene/Renderer/ScenePreRender.h"
-		"scene/Renderer/ShaderBuilder.cpp"
-		"scene/Renderer/ShaderBuilder.h"
 		"scene/Utils/Math/AABB.h"
 		"scene/Utils/Math/Camera.h"
 		"scene/Utils/Math/Frustum.h"
@@ -461,8 +463,12 @@ if (${FG_ENABLE_GLM})
 		"scene/Utils/Math/Transform.h"
 		"scene/Renderer/Prototype/RendererPrototype.cpp"
 		"scene/Renderer/Prototype/RendererPrototype.h"
-		"scene/Renderer/Prototype/RendererPrototypeGraphics.glsl"
-		"scene/Renderer/Prototype/RendererPrototypeRaytracing.glsl"
+		"scene/Loader/IImageLoader.cpp"
+		"scene/Loader/IImageLoader.h"
+		"scene/Shaders/ShaderCache.cpp"
+		"scene/Shaders/ShaderCache.h"
+		"scene/Shaders/Scene/simple_raytracing.glsl"
+		"scene/Shaders/Scene/simple_scene.glsl"
 		"scene/Common.h"
 		"scene/SceneManager/Resources/FpsCamera.h"
 		"scene/SceneManager/Resources/LightSource.h"
@@ -487,12 +493,17 @@ if (${FG_ENABLE_GLM})
 	source_group( "SceneManager\\Simple" FILES "scene/SceneManager/Simple/SimpleRayTracingScene.cpp" "scene/SceneManager/Simple/SimpleRayTracingScene.h" "scene/SceneManager/Simple/SimpleScene.cpp" "scene/SceneManager/Simple/SimpleScene.h" )
 	source_group( "Utils\\Ext" FILES "scene/Utils/Ext/FPSCamera.h" )
 	source_group( "ThreadPool" FILES "scene/ThreadPool/FGThread.h" "scene/ThreadPool/IOThread.h" "scene/ThreadPool/ThreadPool.cpp" "scene/ThreadPool/ThreadPool.h" )
+	source_group( "Shaders\\Utils" FILES "scene/Shaders/Utils/math.glsl" )
 	source_group( "Pipelines\\ForwardPlus" FILES "scene/Pipelines/ForwardPlus/default.gppln" )
 	source_group( "SceneManager\\Octree" FILES "scene/SceneManager/Octree/OctreeScene.h" )
-	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermImage.h" "scene/Loader/Intermediate/IntermLight.h" "scene/Loader/Intermediate/IntermMaterial.h" "scene/Loader/Intermediate/IntermMesh.cpp" "scene/Loader/Intermediate/IntermMesh.h" "scene/Loader/Intermediate/IntermScene.h" "scene/Loader/Intermediate/VertexAttributes.cpp" "scene/Loader/Intermediate/VertexAttributes.h" )
-	source_group( "Renderer" FILES "scene/Renderer/Enums.h" "scene/Renderer/IRenderTechnique.h" "scene/Renderer/RenderQueue.h" "scene/Renderer/ScenePreRender.h" "scene/Renderer/ShaderBuilder.cpp" "scene/Renderer/ShaderBuilder.h" )
+	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermImage.h" "scene/Loader/Intermediate/IntermLight.h" "scene/Loader/Intermediate/IntermMaterial.h" "scene/Loader/Intermediate/IntermMesh.cpp" "scene/Loader/Intermediate/IntermMesh.h" "scene/Loader/Intermediate/IntermScene.cpp" "scene/Loader/Intermediate/IntermScene.h" "scene/Loader/Intermediate/VertexAttributes.cpp" "scene/Loader/Intermediate/VertexAttributes.h" )
+	source_group( "Shaders\\Prototype" FILES "scene/Shaders/Prototype/forward.glsl" "scene/Shaders/Prototype/raytracing.glsl" )
+	source_group( "Renderer" FILES "scene/Renderer/Enums.h" "scene/Renderer/IRenderTechnique.h" "scene/Renderer/RenderQueue.h" "scene/Renderer/ScenePreRender.h" )
 	source_group( "Utils\\Math" FILES "scene/Utils/Math/AABB.h" "scene/Utils/Math/Camera.h" "scene/Utils/Math/Frustum.h" "scene/Utils/Math/GLM.h" "scene/Utils/Math/OOBB.h" "scene/Utils/Math/Radians.h" "scene/Utils/Math/Sphere.h" "scene/Utils/Math/Transform.h" )
-	source_group( "Renderer\\Prototype" FILES "scene/Renderer/Prototype/RendererPrototype.cpp" "scene/Renderer/Prototype/RendererPrototype.h" "scene/Renderer/Prototype/RendererPrototypeGraphics.glsl" "scene/Renderer/Prototype/RendererPrototypeRaytracing.glsl" )
+	source_group( "Renderer\\Prototype" FILES "scene/Renderer/Prototype/RendererPrototype.cpp" "scene/Renderer/Prototype/RendererPrototype.h" )
+	source_group( "Loader" FILES "scene/Loader/IImageLoader.cpp" "scene/Loader/IImageLoader.h" )
+	source_group( "Shaders" FILES "scene/Shaders/ShaderCache.cpp" "scene/Shaders/ShaderCache.h" )
+	source_group( "Shaders\\Scene" FILES "scene/Shaders/Scene/simple_raytracing.glsl" "scene/Shaders/Scene/simple_scene.glsl" )
 	source_group( "" FILES "scene/Common.h" )
 	source_group( "SceneManager\\Resources" FILES "scene/SceneManager/Resources/FpsCamera.h" "scene/SceneManager/Resources/LightSource.h" "scene/SceneManager/Resources/Material.h" "scene/SceneManager/Resources/Model.cpp" "scene/SceneManager/Resources/Model.h" "scene/SceneManager/Resources/ParticleEmitter.h" "scene/SceneManager/Resources/SceletalModel.h" )
 	source_group( "Loader\\Assimp" FILES "scene/Loader/Assimp/AssimpLoader.cpp" "scene/Loader/Assimp/AssimpLoader.h" )
@@ -519,6 +530,7 @@ if (${FG_ENABLE_GLM})
 	if (${FG_ENABLE_DEVIL})
 		target_link_libraries( "Scene" "${FG_DEVIL_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}DevIL${CMAKE_STATIC_LIBRARY_SUFFIX}" )
 	endif()
+	target_compile_definitions( "Scene" PUBLIC "FG_SHADER_PATH=R\"(${CMAKE_CURRENT_SOURCE_DIR}/scene/Shaders/)\"" )
 	if (${FG_ENABLE_ASSIMP})
 		add_dependencies( "Scene" External.Assimp )
 	endif()

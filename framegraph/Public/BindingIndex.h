@@ -13,27 +13,28 @@ namespace FG
 	struct BindingIndex
 	{
 		friend struct std::hash< BindingIndex >;
+		using Index_t = uint16_t;
 
 	// variables
 	private:
-		uint16_t	_index1		= UMax;	// resource dependend index, may be optimized to minimize resource switches between pipelines, used in OpenGL, DirectX
-		uint16_t	_index2		= UMax;	// resource unique index in current pipeline, used in Vulkan, OpenCL, software renderer
+		Index_t		_index1		= UMax;	// resource dependend index, may be optimized to minimize resource switches between pipelines, used in OpenGL, DirectX
+		Index_t		_index2		= UMax;	// resource unique index in current pipeline, used in Vulkan, OpenCL, software renderer
 
 	// methods
 	public:
 		BindingIndex () {}
 
-		explicit BindingIndex (uint perResourceIndex, uint uniqueIndex) : _index1{uint16_t(perResourceIndex)}, _index2{uint16_t(uniqueIndex)} {}
+		explicit BindingIndex (uint perResourceIndex, uint uniqueIndex) : _index1{Index_t(perResourceIndex)}, _index2{Index_t(uniqueIndex)} {}
 
-		ND_ bool	operator == (const BindingIndex &rhs) const		{ return _index1 == rhs._index1 and _index2 == rhs._index2; }
-		ND_ bool	operator != (const BindingIndex &rhs) const		{ return not (*this == rhs); }
+		ND_ bool		operator == (const BindingIndex &rhs) const		{ return _index1 == rhs._index1 and _index2 == rhs._index2; }
+		ND_ bool		operator != (const BindingIndex &rhs) const		{ return not (*this == rhs); }
 
-		ND_ uint	GLBinding ()	const	{ return _index1; }
-		ND_ uint	DXBinding ()	const	{ return _index1; }
-		ND_ uint	VKBinding ()	const	{ return _index2; }
-		ND_ uint	CLBinding ()	const	{ return _index2; }
-		ND_ uint	SWBinding ()	const	{ return _index2; }
-		ND_ uint	Unique ()		const	{ return _index2; }
+		ND_ Index_t		GLBinding ()	const	{ return _index1; }
+		ND_ Index_t		DXBinding ()	const	{ return _index1; }
+		ND_ Index_t		VKBinding ()	const	{ return _index2; }
+		ND_ Index_t		CLBinding ()	const	{ return _index2; }
+		ND_ Index_t		SWBinding ()	const	{ return _index2; }
+		ND_ Index_t		Unique ()		const	{ return _index2; }
 	};
 
 

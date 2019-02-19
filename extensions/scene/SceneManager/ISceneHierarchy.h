@@ -39,6 +39,8 @@ namespace FG
 
 		// returns scene bounding volume, the result is valid only for current frame
 		ND_ virtual AABB  CalculateBoundingVolume () const = 0;
+		
+		virtual void Destroy (const FGThreadPtr &) = 0;
 	};
 
 

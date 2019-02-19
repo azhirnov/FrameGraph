@@ -113,6 +113,7 @@ namespace FG
 		CHECK_ERR( id = fg->CreateImage( desc ));
 		outHandle = id.Get();
 
+		Task	t_upload;
 		for (size_t i = 0; i < levels.size(); ++i)
 		for (size_t j = 0; j < levels[i].size(); ++j)
 		{
@@ -128,7 +129,7 @@ namespace FG
 			task.dataRowPitch	= img.rowPitch;
 			task.dataSlicePitch	= img.slicePitch;
 
-			FG_UNUSED( fg->AddTask( task ));
+			t_upload = fg->AddTask( task.DependsOn( t_upload ));
 		}
 		
 		image->MakeImmutable();
@@ -136,7 +137,7 @@ namespace FG
 
 		if ( genMipmaps )
 		{
-			fg->AddTask( GenerateMipmaps{}.SetImage( id ).SetRange( MipmapLevel{base_level}, UMax ));
+			t_upload = fg->AddTask( GenerateMipmaps{}.SetImage( id ).SetRange( MipmapLevel{base_level}, UMax ).DependsOn( t_upload ));
 		}
 
 		_handleCache.insert_or_assign( image.operator->(), Pair<IntermImageWeak, ImageID>{ image, std::move(id) });
