@@ -38,6 +38,8 @@ namespace FG
 	template <typename T>	using Deque		= std::deque<T>;
 
 	template <size_t N>		using BitSet	= std::bitset<N>;
+	
+	template <typename...T>	using Tuple		= std::tuple< T... >;
 
 
 	template <typename T,

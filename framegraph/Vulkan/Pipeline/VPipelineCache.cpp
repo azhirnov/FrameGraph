@@ -946,8 +946,10 @@ namespace FG
 		uint	callable_shader_count	= 0;
 		
 		_ClearTemp();
-		_rtShaderSpecs.emplace_back( SpecializationID{"sbtRecordStride"}, 0u );
+		_rtShaderSpecs.emplace_back( SpecializationID{"sbtRecordStride"}, 0_b );
 		_tempSpecData.push_back( geom_stride );
+		_rtShaderSpecs.emplace_back( SpecializationID{"maxRecursionDepth"}, 4_b );
+		_tempSpecData.push_back( maxRecursionDepth );
 
 		for (auto& shader : shaderGroups)
 		{
@@ -1122,18 +1124,46 @@ namespace FG
 					case EGroupType::TriangleHitShader :
 					case EGroupType::ProceduralHitShader :
 					{
-						const auto*	inst	= rtScene->FindInstance( shader.instanceId );
-						auto		group	= _tempShaderGraphMap.find( &shader );
+						const auto*	inst		= rtScene->FindInstance( shader.instanceId );
+						auto		group		= _tempShaderGraphMap.find( &shader );
 						CHECK_ERR( inst and group != _tempShaderGraphMap.end() );
+						CHECK_ERR( shader.offset < geom_stride );
 
-						const auto*	geom	= res_mngr.GetResource( inst->geometry.Get() );
-						size_t		index	= geom->GetGeometryIndex( shader.geometryId ) * geom_stride + shader.offset;
-						BytesU		dst_off	= shaderTable._rayHitOffset + handle_size * index;
+						size_t		index_offset= inst->indexOffset;
+						const auto*	geom		= res_mngr.GetResource( inst->geometry.Get() );
 
-						CHECK( shader.offset < geom_stride );
-						CHECK( index < max_hit_shaders );
+						// if 'geometryId' is not defined then bind shader group for each geometry in instance
+						if ( shader.geometryId == Default )
+						{
+							auto	triangles	= geom->GetTriangles();
+							auto	aabbs		= geom->GetAABBs();
+
+							for (size_t i = 0; i < triangles.size(); ++i)
+							{
+								size_t	index	= index_offset + i * geom_stride + shader.offset;
+								BytesU	dst_off	= shaderTable._rayHitOffset + handle_size * index;
+								CHECK( index < max_hit_shaders );
+
+								VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
+							}
+
+							for (size_t i = 0; i < aabbs.size(); ++i)
+							{
+								size_t	index	= index_offset + (triangles.size() + i) * geom_stride + shader.offset;
+								BytesU	dst_off	= shaderTable._rayHitOffset + handle_size * index;
+								CHECK( index < max_hit_shaders );
+
+								VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
+							}
+						}
+						else
+						{
+							size_t	index	= index_offset + geom->GetGeometryIndex( shader.geometryId ) * geom_stride + shader.offset;
+							BytesU	dst_off	= shaderTable._rayHitOffset + handle_size * index;
+							CHECK( index < max_hit_shaders );
 						
-						VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
+							VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
+						}
 						break;
 					}
 				}
@@ -1223,7 +1253,7 @@ namespace FG
 				{
 					VkSpecializationMapEntry&	entry = _tempSpecEntries.emplace_back();
 					entry.constantID	= iter->second;
-					entry.offset		= spec.offset;
+					entry.offset		= uint(spec.offset);
 					entry.size			= sizeof(uint);
 				}
 			}

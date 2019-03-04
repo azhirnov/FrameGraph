@@ -622,8 +622,8 @@ namespace FG
 		friend class VFrameGraphThread;
 
 	// types
-	private:
-		using Instance	= Pair< InstanceID, RTGeometryID >;
+	public:
+		using Instance	= Tuple< InstanceID, RTGeometryID, uint >;
 
 
 	// variables

@@ -20,10 +20,12 @@ namespace FG
 		{
 			InstanceID			id;
 			RTGeometryID		geometry;
+			uint				indexOffset;
 
 			Instance () {}
-			Instance (Pair<InstanceID, RTGeometryID> &&other) : id{other.first}, geometry{std::move(other.second)} {}
+			Instance (const InstanceID &inst, RTGeometryID &&geom, uint offset): id{inst}, geometry{std::move(geom)}, indexOffset{offset} {}
 
+			// for sorting and searching
 			ND_ bool  operator <  (const InstanceID &rhs) const	{ return id < rhs; }
 			ND_ bool  operator == (const InstanceID &rhs) const	{ return id == rhs; }
 		};
@@ -38,9 +40,9 @@ namespace FG
 	private:
 		struct InstancesData2 : InstancesData
 		{
-			SpinLock				lock;
-			ExeOrderIndex			exeOrder	= Default;
-			uint					frameIdx	= 0;
+			SpinLock			lock;
+			ExeOrderIndex		exeOrder	= Default;
+			uint				frameIdx	= 0;
 		};
 
 

@@ -9,7 +9,7 @@ namespace FG
 
 	enum class ERayTracingGeometryFlags : uint
 	{
-		Opaque						= 1 << 0,
+		Opaque						= 1 << 0,	// indicates that this geometry does not invoke the any-hit shaders even if present in a hit group
 		NoDuplicateAnyHitInvocation	= 1 << 1,
 		_Last,
 		Unknown						= 0,
@@ -21,8 +21,8 @@ namespace FG
 	{
 		TriangleCullDisable		= 1 << 0,
 		TriangleFrontCCW		= 1 << 1,
-		ForceOpaque				= 1 << 2,
-		ForceNonOpaque			= 1 << 3,
+		ForceOpaque				= 1 << 2,	// enable ERayTracingGeometryFlags::Opaque flag
+		ForceNonOpaque			= 1 << 3,	// disable ERayTracingGeometryFlags::Opaque flag
 		_Last,
 		Unknown					= 0,
 	};

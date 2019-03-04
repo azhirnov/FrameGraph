@@ -65,8 +65,8 @@ namespace FG
 		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
 		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
 
-		void SetGeometryInstances (Pair<InstanceID, RTGeometryID> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const;
-
+		void SetGeometryInstances (Tuple<InstanceID, RTGeometryID, uint> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const;
+		
 		ND_ Instance const*  FindInstance (const InstanceID &id) const;
 
 		ND_ VkAccelerationStructureNV	Handle ()					const	{ return _rtSceneData->Handle(); }

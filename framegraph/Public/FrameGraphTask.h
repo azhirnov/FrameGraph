@@ -1047,13 +1047,14 @@ namespace FG
 
 		// methods
 			Instance () {}
-			explicit Instance (const InstanceID &id)	{ SetID( id ); }
+			explicit Instance (const InstanceID &id)			{ SetID( id ); }
 
-			Instance&  SetID (const InstanceID &id);
-			Instance&  SetGeometry (RawRTGeometryID id);
-			Instance&  SetInstance (const Matrix4x3 &transform, uint customId);
-			Instance&  AddFlags (EFlags value)			{ flags |= value;  return *this; }
-			Instance&  SetMask (uint8_t value)			{ mask   = value;  return *this; }
+			Instance&  SetID (const InstanceID &value);
+			Instance&  SetGeometry (RawRTGeometryID value);
+			Instance&  SetInstanceIndex (uint value)			{ customId = value;  return *this; }
+			Instance&  SetTransfrom (const Matrix4x3 &value)	{ transform = value;  return *this; }
+			Instance&  AddFlags (EFlags value)					{ flags |= value;  return *this; }
+			Instance&  SetMask (uint8_t value)					{ mask   = value;  return *this; }
 		};
 
 
@@ -1397,14 +1398,6 @@ namespace FG
 	{
 		ASSERT( id.IsValid() );
 		geometryId = id;
-		return *this;
-	}
-
-	inline BuildRayTracingScene::Instance&
-		BuildRayTracingScene::Instance::SetInstance (const Matrix4x3 &mat, uint customID)
-	{
-		this->transform	 = mat;
-		this->customId = customID;
 		return *this;
 	}
 //-----------------------------------------------------------------------------

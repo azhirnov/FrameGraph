@@ -198,6 +198,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
+		
+		if ( task.regions.empty() )
+			return null;	// TODO: is it an error?
 
 		return _taskGraph.Add( this, task );
 	}
@@ -212,6 +215,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
+		
+		if ( task.regions.empty() )
+			return null;	// TODO: is it an error?
 
 		return _taskGraph.Add( this, task );
 	}
@@ -226,6 +232,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
+		
+		if ( task.regions.empty() )
+			return null;	// TODO: is it an error?
 
 		return _taskGraph.Add( this, task );
 	}
@@ -240,6 +249,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
+		
+		if ( task.regions.empty() )
+			return null;	// TODO: is it an error?
 
 		return _taskGraph.Add( this, task );
 	}
@@ -254,6 +266,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, GraphicsBit ));
+		
+		if ( task.regions.empty() )
+			return null;	// TODO: is it an error?
 
 		return _taskGraph.Add( this, task );
 	}
@@ -268,6 +283,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, GraphicsBit ));
+		
+		if ( task.regions.empty() )
+			return null;	// TODO: is it an error?
 
 		return _taskGraph.Add( this, task );
 	}
@@ -338,6 +356,9 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
 
+		if ( task.regions.empty() )
+			return null;	// TODO: is it an error?
+
 		if ( _stagingMngr )
 			return _AddUpdateBufferTask( task );
 		
@@ -394,6 +415,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
+		
+		if ( All( task.imageSize == uint3(0) ) )
+			return null;	// TODO: is it an error?
 
 		if ( _stagingMngr )
 			return _AddUpdateImageTask( task );
@@ -526,6 +550,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
+		
+		if ( task.size == 0 )
+			return null;	// TODO: is it an error?
 
 		if ( _stagingMngr )
 			return _AddReadBufferTask( task );
@@ -589,6 +616,9 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumAny( _currUsage, TransferBit ));
+		
+		if ( All( task.imageSize == uint3(0) ) )
+			return null;	// TODO: is it an error?
 
 		if ( _stagingMngr )
 			return _AddReadImageTask( task );
@@ -1030,7 +1060,7 @@ namespace {
 		std::sort( sorted.begin(), sorted.end(), [inst = &task.instances] (auto lhs, auto rhs) { return (*inst)[lhs].instanceId < (*inst)[rhs].instanceId; });
 
 		result->_rtGeometries			= _mainAllocator.Alloc< VLocalRTGeometry const *>( task.instances.size() );
-		result->_instances				= _mainAllocator.Alloc< Pair<InstanceID, RTGeometryID> >( task.instances.size() );
+		result->_instances				= _mainAllocator.Alloc< VFgTask<BuildRayTracingScene>::Instance >( task.instances.size() );
 		result->_instanceCount			= uint(task.instances.size());
 		result->_hitShadersPerInstance	= Max( 1u, task.hitShadersPerInstance );
 
@@ -1054,10 +1084,10 @@ namespace {
 			dst.transformRow2	= src.transform[2];
 			dst.customIndex		= src.customId;
 			dst.mask			= src.mask;
-			dst.instanceOffset	= result->_maxHitShaderCount * result->_hitShadersPerInstance;
+			dst.instanceOffset	= result->_maxHitShaderCount;
 			dst.flags			= VEnumCast( src.flags );
 			
-			PlacementNew<Pair<InstanceID, RTGeometryID>>( result->_instances + idx, src.instanceId, src.geometryId );
+			PlacementNew<VFgTask<BuildRayTracingScene>::Instance>( result->_instances + idx, src.instanceId, src.geometryId, uint(dst.instanceOffset) );
 
 			result->_maxHitShaderCount += (blas->MaxGeometryCount() * result->_hitShadersPerInstance);
 		}

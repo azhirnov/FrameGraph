@@ -82,7 +82,7 @@ namespace FG
 		struct RTShaderSpec
 		{
 			SpecializationID	id;
-			uint				offset	= UMax;
+			BytesU				offset;
 		};
 		using RTShaderSpecializations_t	= FixedArray< RTShaderSpec, 32 >;
 

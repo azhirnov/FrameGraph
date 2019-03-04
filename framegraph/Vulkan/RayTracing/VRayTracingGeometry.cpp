@@ -199,7 +199,10 @@ namespace FG
 			return pos;
 
 		pos = BinarySearch( ArrayView<AABB>{_aabbs}, id );
-		return pos;
+		if ( pos < _aabbs.size() )
+			return pos + _triangles.size();
+
+		return UMax;
 	}
 
 

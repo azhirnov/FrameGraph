@@ -73,13 +73,13 @@ namespace FG
 	'instances' is sorted by instance ID and contains the strong references for geometries
 =================================================
 */
-	void VLocalRTScene::SetGeometryInstances (Pair<InstanceID, RTGeometryID> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const
+	void VLocalRTScene::SetGeometryInstances (Tuple<InstanceID, RTGeometryID, uint> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const
 	{
 		_instancesData = InstancesData{};
 		_instancesData->geometryInstances.reserve( instanceCount );
 
 		for (uint i = 0; i < instanceCount; ++i) {
-			_instancesData->geometryInstances.emplace_back( std::move(instances[i]) );
+			_instancesData->geometryInstances.emplace_back( std::get<0>(instances[i]), std::move(std::get<1>(instances[i])), std::get<2>(instances[i]) );
 		}
 
 		_instancesData->hitShadersPerInstance	= hitShadersPerInstance;
