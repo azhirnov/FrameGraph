@@ -59,23 +59,27 @@ namespace FG
 		EShaderLangFormat						_vkVersion;
 		Queues_t								_vkQueues;
 
-		VkPhysicalDeviceProperties				_deviceProperties;
-		VkPhysicalDeviceFeatures				_deviceFeatures;
-		VkPhysicalDeviceMemoryProperties		_deviceMemoryProperties;
-
-		VkPhysicalDeviceMeshShaderPropertiesNV			_deviceMeshShaderProperties;
-		VkPhysicalDeviceRayTracingPropertiesNV			_deviceRayTracingProperties;
-		VkPhysicalDeviceShadingRateImagePropertiesNV	_deviceShadingRateImageProperties;
+		struct {
+			VkPhysicalDeviceProperties						properties;
+			VkPhysicalDeviceFeatures						features;
+			VkPhysicalDeviceMemoryProperties				memoryProperties;
+			VkPhysicalDeviceMeshShaderFeaturesNV			meshShaderFeatures;
+			VkPhysicalDeviceMeshShaderPropertiesNV			meshShaderProperties;
+			VkPhysicalDeviceShadingRateImageFeaturesNV		shadingRateImageFeatures;
+			VkPhysicalDeviceShadingRateImagePropertiesNV	shadingRateImageProperties;
+			VkPhysicalDeviceRayTracingPropertiesNV			rayTracingProperties;
+		}										_deviceInfo;
 
 		mutable ExtensionSet_t					_instanceExtensions;
 		mutable ExtensionSet_t					_deviceExtensions;
 		
 		VulkanDeviceFnTable						_deviceFnTable;
 
-		bool									_enableDebugUtils	: 1;
-		bool									_enableMeshShaderNV	: 1;
-		bool									_enableRayTracingNV	: 1;
-		bool									_samplerMirrorClamp : 1;
+		bool									_enableDebugUtils			: 1;
+		bool									_enableMeshShaderNV			: 1;
+		bool									_enableRayTracingNV			: 1;
+		bool									_samplerMirrorClamp			: 1;
+		bool									_enableShadingRateImageNV	: 1;
 
 
 	// methods
@@ -87,6 +91,7 @@ namespace FG
 		ND_ bool							IsMeshShaderEnabled ()			const	{ return _enableMeshShaderNV; }
 		ND_ bool							IsRayTracingEnabled ()			const	{ return _enableRayTracingNV; }
 		ND_ bool							IsSamplerMirrorClampEnabled ()	const	{ return _samplerMirrorClamp; }
+		ND_ bool							IsShadingRateImageEnabled ()	const	{ return _enableShadingRateImageNV; }
 
 		ND_ VkDevice						GetVkDevice ()					const	{ return _vkDevice; }
 		ND_ VkPhysicalDevice				GetVkPhysicalDevice ()			const	{ return _vkPhysicalDevice; }
@@ -95,14 +100,14 @@ namespace FG
 		ND_ ArrayView< VDeviceQueueInfo >	GetVkQueues ()					const	{ return _vkQueues; }
 		
 
-		ND_ VkPhysicalDeviceProperties const&					GetDeviceProperties ()					const	{ return _deviceProperties; }
-		ND_ VkPhysicalDeviceFeatures const&						GetDeviceFeatures ()					const	{ return _deviceFeatures; }
-		ND_ VkPhysicalDeviceMemoryProperties const&				GetDeviceMemoryProperties ()			const	{ return _deviceMemoryProperties; }
-		ND_ VkPhysicalDeviceLimits const&						GetDeviceLimits ()						const	{ return _deviceProperties.limits; }
-		ND_ VkPhysicalDeviceSparseProperties const&				GetDeviceSparseProperties ()			const	{ return _deviceProperties.sparseProperties; }
-		ND_ VkPhysicalDeviceMeshShaderPropertiesNV const&		GetDeviceMeshShaderProperties ()		const	{ return _deviceMeshShaderProperties; }
-		ND_ VkPhysicalDeviceRayTracingPropertiesNV const&		GetDeviceRayTracingProperties ()		const	{ return _deviceRayTracingProperties; }
-		ND_ VkPhysicalDeviceShadingRateImagePropertiesNV const&	GetDeviceShadingRateImageProperties ()	const	{ return _deviceShadingRateImageProperties; }
+		ND_ VkPhysicalDeviceProperties const&					GetDeviceProperties ()					const	{ return _deviceInfo.properties; }
+		ND_ VkPhysicalDeviceFeatures const&						GetDeviceFeatures ()					const	{ return _deviceInfo.features; }
+		ND_ VkPhysicalDeviceMemoryProperties const&				GetDeviceMemoryProperties ()			const	{ return _deviceInfo.memoryProperties; }
+		ND_ VkPhysicalDeviceLimits const&						GetDeviceLimits ()						const	{ return _deviceInfo.properties.limits; }
+		ND_ VkPhysicalDeviceSparseProperties const&				GetDeviceSparseProperties ()			const	{ return _deviceInfo.properties.sparseProperties; }
+		ND_ VkPhysicalDeviceMeshShaderPropertiesNV const&		GetDeviceMeshShaderProperties ()		const	{ return _deviceInfo.meshShaderProperties; }
+		ND_ VkPhysicalDeviceRayTracingPropertiesNV const&		GetDeviceRayTracingProperties ()		const	{ return _deviceInfo.rayTracingProperties; }
+		ND_ VkPhysicalDeviceShadingRateImagePropertiesNV const&	GetDeviceShadingRateImageProperties ()	const	{ return _deviceInfo.shadingRateImageProperties; }
 
 
 		// check extensions

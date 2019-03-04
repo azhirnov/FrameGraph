@@ -131,8 +131,8 @@ namespace FG
 		RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc) override;
 		ImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		BufferID		CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
-		ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName) override;
-		BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName) override;
+		ImageID			CreateImage (const ExternalImageDesc_t &desc, OnExternalImageReleased_t &&, StringView dbgName) override;
+		BufferID		CreateBuffer (const ExternalBufferDesc_t &desc, OnExternalBufferReleased_t &&, StringView dbgName) override;
 		SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName) override;
 		RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName) override;
 		RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
@@ -160,10 +160,10 @@ namespace FG
 		//SamplerDesc const&	GetDescription (RawSamplerID id) const override;
 
 		// initialization
-		bool		Initialize (const SwapchainCreateInfo *swapchainCI) override;
+		bool		Initialize (const SwapchainCreateInfo_t *swapchainCI) override;
 		void		Deinitialize () override;
 		bool		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
-		bool		RecreateSwapchain (const SwapchainCreateInfo &) override;
+		bool		RecreateSwapchain (const SwapchainCreateInfo_t &) override;
 		bool		SetShaderDebugCallback (ShaderDebugCallback_t &&) override;
 
 		// frame execution

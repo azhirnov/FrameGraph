@@ -27,24 +27,21 @@ namespace FG
 
 	// variables
 	private:
-		VkImage					_image				= VK_NULL_HANDLE;
-		ImageDesc				_desc;
+		VkImage						_image				= VK_NULL_HANDLE;
+		ImageDesc					_desc;
 
 		mutable std::shared_mutex	_viewMapLock;
 		mutable ImageViewMap_t		_viewMap;
 
-		MemoryID				_memoryId;
-		VkImageAspectFlags		_aspectMask			= 0;
-		VkImageLayout			_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
-		EQueueFamilyMask		_queueFamilyMask	= Default;
-		
-		// insert a semaphore to the command batch before using this image
-		//VkSemaphore				_semaphore			= VK_NULL_HANDLE;
+		MemoryID					_memoryId;
+		VkImageAspectFlags			_aspectMask			= 0;
+		VkImageLayout				_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
+		EQueueFamilyMask			_queueFamilyMask	= Default;
 
-		DebugName_t				_debugName;
-		OnRelease_t				_onRelease;
+		DebugName_t					_debugName;
+		OnRelease_t					_onRelease;
 
-		RWRaceConditionCheck	_rcCheck;
+		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods
@@ -88,9 +85,6 @@ namespace FG
 
 	private:
 		bool _CreateView (const VDevice &, const HashedImageViewDesc &, OUT VkImageView &) const;
-
-		ND_ VkImageAspectFlags	_ChooseAspect () const;
-		ND_ VkImageLayout		_ChooseDefaultLayout () const;
 	};
 	
 

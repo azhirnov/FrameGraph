@@ -62,18 +62,18 @@ namespace FG
 	_ChooseAspect
 =================================================
 */
-	VkImageAspectFlags  VImage::_ChooseAspect () const
+	ND_ static VkImageAspectFlags  ChooseAspect (EPixelFormat format)
 	{
 		VkImageAspectFlags	result = 0;
 
-		if ( EPixelFormat_IsColor( _desc.format ) )
+		if ( EPixelFormat_IsColor( format ) )
 			result |= VK_IMAGE_ASPECT_COLOR_BIT;
 		else
 		{
-			if ( EPixelFormat_HasDepth( _desc.format ) )
+			if ( EPixelFormat_HasDepth( format ) )
 				result |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
-			if ( EPixelFormat_HasStencil( _desc.format ) )
+			if ( EPixelFormat_HasStencil( format ) )
 				result |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		}
 		return result;
@@ -84,21 +84,22 @@ namespace FG
 	_ChooseDefaultLayout
 =================================================
 */
-	VkImageLayout  VImage::_ChooseDefaultLayout () const
+	ND_ static VkImageLayout  ChooseDefaultLayout (EImageUsage usage)
 	{
 		VkImageLayout	result = VK_IMAGE_LAYOUT_GENERAL;
 
-		if ( EnumEq( _desc.usage, EImageUsage::Sampled ) )
-			result = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		else
-		if ( EnumEq( _desc.usage, EImageUsage::Storage ) )
-			result = VK_IMAGE_LAYOUT_GENERAL;
-		else
-		if ( EnumEq( _desc.usage, EImageUsage::ColorAttachment ) )
+		// render target layouts has high priority to avoid unnecessary decompressions
+		if ( EnumEq( usage, EImageUsage::ColorAttachment ) )
 			result = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		else
-		if ( EnumEq( _desc.usage, EImageUsage::DepthStencilAttachment ) )
+		if ( EnumEq( usage, EImageUsage::DepthStencilAttachment ) )
 			result = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		else
+		if ( EnumEq( usage, EImageUsage::Sampled ) )
+			result = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		else
+		if ( EnumEq( usage, EImageUsage::Storage ) )
+			result = VK_IMAGE_LAYOUT_GENERAL;
 
 		return result;
 	}
@@ -181,8 +182,8 @@ namespace FG
 			dev.SetObjectName( BitCast<uint64_t>(_image), dbgName, VK_OBJECT_TYPE_IMAGE );
 		}
 
-		_aspectMask			= _ChooseAspect();
-		_defaultLayout		= _ChooseDefaultLayout();
+		_aspectMask			= ChooseAspect( _desc.format );
+		_defaultLayout		= ChooseDefaultLayout( _desc.usage );
 		_queueFamilyMask	= queueFamilyMask;
 		_debugName			= dbgName;
 
@@ -224,8 +225,8 @@ namespace FG
 			_queueFamilyMask |= BitCast<EQueueFamily>(idx);
 		}
 
-		_aspectMask		= _ChooseAspect();
-		_defaultLayout	= _ChooseDefaultLayout();
+		_aspectMask		= ChooseAspect( _desc.format );
+		_defaultLayout	= ChooseDefaultLayout( _desc.usage );
 		_debugName		= dbgName;
 		_onRelease		= std::move(onRelease);
 

@@ -51,9 +51,9 @@ namespace FG
 	{
 	// types
 	public:
-		using SwapchainCreateInfo	= Union< NullUnion, VulkanSwapchainCreateInfo, VulkanVREmulatorSwapchainCreateInfo >;
-		using ExternalImageDesc		= Union< NullUnion, VulkanImageDesc >;
-		using ExternalBufferDesc	= Union< NullUnion, VulkanBufferDesc >;
+		using SwapchainCreateInfo_t	= Union< NullUnion, VulkanSwapchainCreateInfo, VulkanVREmulatorSwapchainCreateInfo >;
+		using ExternalImageDesc_t	= Union< NullUnion, VulkanImageDesc >;
+		using ExternalBufferDesc_t	= Union< NullUnion, VulkanBufferDesc >;
 		using ExternalImage_t		= Union< NullUnion, ImageVk_t >;
 		using ExternalBuffer_t		= Union< NullUnion, BufferVk_t >;
 
@@ -75,8 +75,8 @@ namespace FG
 		ND_ virtual CPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual ImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual BufferID		CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
-		ND_ virtual ImageID			CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&, StringView dbgName = Default) = 0;
-		ND_ virtual BufferID		CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&, StringView dbgName = Default) = 0;
+		ND_ virtual ImageID			CreateImage (const ExternalImageDesc_t &desc, OnExternalImageReleased_t &&, StringView dbgName = Default) = 0;
+		ND_ virtual BufferID		CreateBuffer (const ExternalBufferDesc_t &desc, OnExternalBufferReleased_t &&, StringView dbgName = Default) = 0;
 		ND_ virtual SamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
@@ -114,7 +114,7 @@ namespace FG
 
 			// Initialize framegraph thread.
 			// Must be externally synchronized with all framegraph threads.
-			virtual bool		Initialize (const SwapchainCreateInfo *swapchainCI = null) = 0;
+			virtual bool		Initialize (const SwapchainCreateInfo_t *swapchainCI = null) = 0;
 
 			// Deinitialize framegraph thread and all dependent systems.
 			// Must be externally synchronized with all framegraph threads.
@@ -125,7 +125,7 @@ namespace FG
 
 			// Recreate or create swapchain.
 			// Must be externally synchronized with all framegraph threads.
-			virtual bool		RecreateSwapchain (const SwapchainCreateInfo &) = 0;
+			virtual bool		RecreateSwapchain (const SwapchainCreateInfo_t &) = 0;
 
 			// Callback will be called at end of the frame if debugging enabled by
 			// calling 'Task::EnableDebugTrace' and shader compiled with 'DebugTrace' mode.

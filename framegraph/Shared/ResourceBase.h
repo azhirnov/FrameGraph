@@ -76,8 +76,8 @@ namespace FG
 		ND_ bool			IsCreated ()		const	{ return _GetState() == EState::Created; }
 		ND_ bool			IsDestroyed ()		const	{ return _GetState() <= EState::Failed; }
 
-		ND_ uint			GetInstanceID ()	const	{ return _instanceId.load( memory_order_acquire ); }
-		ND_ int				GetRefCount ()		const	{ return _refCounter.load( memory_order_acquire ); }
+		ND_ uint			GetInstanceID ()	const	{ return _instanceId.load( memory_order_relaxed ); }
+		ND_ int				GetRefCount ()		const	{ return _refCounter.load( memory_order_relaxed ); }
 		ND_ uint			GetLastUsage ()		const	{ return _lastUsage.load( memory_order_relaxed ); }
 
 		ND_ ResType&		Data ()						{ return _data; }
@@ -95,6 +95,8 @@ namespace FG
 			ASSERT( GetRefCount() == 0 );
 
 			bool	result = _data.Create( std::forward<Args &&>( args )... );
+
+			// set state and flush cache
 			if ( result )
 				_state.store( EState::Created, memory_order_release );
 			else
@@ -111,13 +113,14 @@ namespace FG
 
 			_data.Destroy( std::forward<Args &&>( args )... );
 			
+			// update atomics and flush cache
 			_refCounter.store( 0, memory_order_relaxed );
 			_state.store( EState::Initial, memory_order_relaxed );
 			_instanceId.fetch_add( 1, memory_order_release );
 		}
 
 	private:
-		ND_ EState	_GetState ()	const	{ return _state.load( memory_order_acquire ); }
+		ND_ EState	_GetState ()	const	{ return _state.load( memory_order_relaxed ); }
 	};
 
 

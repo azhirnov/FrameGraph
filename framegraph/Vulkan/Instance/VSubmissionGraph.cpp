@@ -164,7 +164,7 @@ namespace {
 		for (auto& batch : _batches)
 		{
 			const uint	mask = (1u << batch.second.threadCount) - 1;
-			const uint	bits = batch.second.atomics.existsSubBatchBits.load( memory_order_acquire );
+			const uint	bits = batch.second.atomics.existsSubBatchBits.load( memory_order_relaxed );
 
 			ASSERT( bits <  mask				or
 					bits == READY_TO_SUBMIT		or
@@ -272,14 +272,14 @@ namespace {
 	
 	bool VSubmissionGraph::_SignalSemaphore (const Batch &batch, VkSemaphore sem) const
 	{
-		const uint	idx = batch.atomics.signalSemaphoreCount.fetch_add( 1, memory_order_release );
+		const uint	idx = batch.atomics.signalSemaphoreCount.fetch_add( 1, memory_order_relaxed );
 		
 		if ( idx < MaxSemaphores )
 		{
 			batch.signalSemaphores[idx] = sem;
 
 			// batch already submited and this function has no effect
-			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_acquire ) < SUBMITTED );
+			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_relaxed ) < SUBMITTED );
 			return true;
 		}
 		RETURN_ERR( "overflow!" );
@@ -303,7 +303,7 @@ namespace {
 
 	bool VSubmissionGraph::_WaitSemaphore (const Batch &batch, VkSemaphore sem, VkPipelineStageFlags dstStageMask) const
 	{
-		const uint	idx = batch.atomics.waitSemaphoreCount.fetch_add( 1, memory_order_release );
+		const uint	idx = batch.atomics.waitSemaphoreCount.fetch_add( 1, memory_order_relaxed );
 		
 		if ( idx < MaxSemaphores )
 		{
@@ -311,7 +311,7 @@ namespace {
 			batch.waitDstStages[idx]  = dstStageMask;
 			
 			// batch already submited and this function has no effect
-			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_acquire ) < SUBMITTED );
+			ASSERT( batch.atomics.existsSubBatchBits.load( memory_order_relaxed ) < SUBMITTED );
 			return true;
 		}
 		RETURN_ERR( "overflow!" );
@@ -363,7 +363,7 @@ namespace {
 	{
 		const uint	all_bits	= (1u << batch.threadCount) - 1;
 		const uint	new_bit		= (1u << indexInBatch);
-		const uint	prev_bits	= batch.atomics.existsSubBatchBits.fetch_or( new_bit, memory_order_release );
+		const uint	prev_bits	= batch.atomics.existsSubBatchBits.fetch_or( new_bit, memory_order_relaxed );
 		const uint	curr_bits	= prev_bits | new_bit;
 
 		ASSERT( curr_bits <= all_bits );
@@ -391,7 +391,7 @@ namespace {
 		// check dependencies
 		for (auto* in : batch.input)
 		{
-			if ( in->atomics.existsSubBatchBits.load( memory_order_acquire ) != SUBMITTED )
+			if ( in->atomics.existsSubBatchBits.load( memory_order_relaxed ) != SUBMITTED )
 				return true;	// dependencies is not complete
 		}
 		
@@ -402,7 +402,7 @@ namespace {
 		// submit
 		{
 			// make visible all batch data
-			std::atomic_thread_fence( memory_order_acq_rel );	// TODO: is it needed?
+			std::atomic_thread_fence( memory_order_acquire );	// TODO: is it needed?
 
 			FixedArray<VkCommandBuffer, Batch::MaxSubBatches * Batch::MaxCommands>	all_commands;
 
@@ -436,7 +436,7 @@ namespace {
 		// submit dependencies
 		for (auto* out : batch.output)
 		{
-			if ( out->atomics.existsSubBatchBits.load( memory_order_acquire ) == READY_TO_SUBMIT )
+			if ( out->atomics.existsSubBatchBits.load( memory_order_relaxed ) == READY_TO_SUBMIT )
 			{
 				CHECK_ERR( _SubmitBatch( *out ));
 			}

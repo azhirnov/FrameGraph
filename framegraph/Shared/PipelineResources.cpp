@@ -19,7 +19,7 @@ namespace FG
 	{
 		SHAREDLOCK( _rcCheck );
 		STATIC_ASSERT( CachedID::is_always_lock_free );
-		STATIC_ASSERT( sizeof(CachedID::value_type) == sizeof(RawPipelineResourcesID) );
+		//STATIC_ASSERT( sizeof(CachedID::value_type) == sizeof(RawPipelineResourcesID) );
 
 		_SetCachedID(other._GetCachedID());
 	}
@@ -72,7 +72,7 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline bool  PipelineResources::_HasResource (const UniformID &id) const
+	ND_ bool  PipelineResources::_HasResource (const UniformID &id) const
 	{
 		SHAREDLOCK( _rcCheck );
 
@@ -839,7 +839,7 @@ namespace {
 						curr.offset		= uint16_t(mem.Offset());
 
 						mem.EmplaceSized<PRs::Texture>( BytesU{sizeof(PRs::Texture) + sizeof(PRs::Texture::Element) * (array_capacity-1)},
-														un.second.index, tex.state, array_capacity, array_size );
+														un.second.index, tex.state, array_capacity, array_size, Default );
 					},
 
 					[&] (const PipelineDescription::Sampler &)
@@ -848,7 +848,7 @@ namespace {
 						curr.offset		= uint16_t(mem.Offset());
 						
 						mem.EmplaceSized<PRs::Sampler>( BytesU{sizeof(PRs::Sampler) + sizeof(PRs::Sampler::Element) * (array_capacity-1)},
-													    un.second.index, array_capacity, array_size );
+														un.second.index, array_capacity, array_size, Default );
 					},
 
 					[&] (const PipelineDescription::SubpassInput &spi)
@@ -857,7 +857,7 @@ namespace {
 						curr.offset		= uint16_t(mem.Offset());
 
 						mem.EmplaceSized<PRs::Image>( BytesU{sizeof(PRs::Image) + sizeof(PRs::Image::Element) * (array_capacity-1)},
-													  un.second.index, spi.state, array_capacity, array_size );
+													  un.second.index, spi.state, array_capacity, array_size, Default );
 					},
 
 					[&] (const PipelineDescription::Image &img)
@@ -866,7 +866,7 @@ namespace {
 						curr.offset		= uint16_t(mem.Offset());
 
 						mem.EmplaceSized<PRs::Image>( BytesU{sizeof(PRs::Image) + sizeof(PRs::Image::Element) * (array_capacity-1)},
-													  un.second.index, img.state, array_capacity, array_size );
+													  un.second.index, img.state, array_capacity, array_size, Default );
 					},
 
 					[&] (const PipelineDescription::UniformBuffer &ubuf)
@@ -877,7 +877,7 @@ namespace {
 
 						mem.EmplaceSized<PRs::Buffer>( BytesU{sizeof(PRs::Buffer) + sizeof(PRs::Buffer::Element) * (array_capacity-1)},
 													   un.second.index, ubuf.state, ubuf.dynamicOffsetIndex, ubuf.size, 0_b,
-													   array_capacity, array_size );
+													   array_capacity, array_size, Default );
 					},
 
 					[&] (const PipelineDescription::StorageBuffer &sbuf)
@@ -888,7 +888,7 @@ namespace {
 
 						mem.EmplaceSized<PRs::Buffer>( BytesU{sizeof(PRs::Buffer) + sizeof(PRs::Buffer::Element) * (array_capacity-1)},
 													   un.second.index, sbuf.state, sbuf.dynamicOffsetIndex, sbuf.staticSize, sbuf.arrayStride,
-													   array_capacity, array_size );
+													   array_capacity, array_size, Default );
 					},
 
 					[&] (const PipelineDescription::RayTracingScene &)
@@ -897,7 +897,7 @@ namespace {
 						curr.offset		= uint16_t(mem.Offset());
 
 						mem.EmplaceSized<PRs::RayTracingScene>( BytesU{sizeof(PRs::RayTracingScene) + sizeof(PRs::RayTracingScene::Element) * (array_capacity-1)},
-																un.second.index, array_capacity, array_size );
+																un.second.index, array_capacity, array_size, Default );
 					},
 
 					[] (const NullUnion &) { ASSERT(false); }

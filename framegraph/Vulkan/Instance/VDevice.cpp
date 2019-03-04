@@ -18,6 +18,8 @@ namespace FG
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
 
+		memset( &_deviceInfo, 0, sizeof(_deviceInfo) );
+
 		StaticArray<VkQueueFamilyProperties, 16>	queue_properties;
 		uint										count = uint(queue_properties.size());
 		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, INOUT &count, null );	// to shutup validation warnings
@@ -45,14 +47,14 @@ namespace FG
 		VulkanLoader::LoadInstance( _vkInstance );
 		VulkanLoader::LoadDevice( _vkDevice, OUT _deviceFnTable );
 
-		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &_deviceFeatures );
-		vkGetPhysicalDeviceProperties( _vkPhysicalDevice, OUT &_deviceProperties );
-		vkGetPhysicalDeviceMemoryProperties( _vkPhysicalDevice, OUT &_deviceMemoryProperties );
+		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &_deviceInfo.features );
+		vkGetPhysicalDeviceProperties( _vkPhysicalDevice, OUT &_deviceInfo.properties );
+		vkGetPhysicalDeviceMemoryProperties( _vkPhysicalDevice, OUT &_deviceInfo.memoryProperties );
 
 		// get api version
 		{
-			uint	major = VK_VERSION_MAJOR( _deviceProperties.apiVersion );
-			uint	minor = VK_VERSION_MINOR( _deviceProperties.apiVersion );
+			uint	major = VK_VERSION_MAJOR( GetDeviceProperties().apiVersion );
+			uint	minor = VK_VERSION_MINOR( GetDeviceProperties().apiVersion );
 
 			if ( major == 1 )
 			{
@@ -65,38 +67,59 @@ namespace FG
 		CHECK( _LoadInstanceExtensions() );
 		CHECK( _LoadDeviceExtensions() );
 
-		_enableDebugUtils	= HasExtension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
-		_enableMeshShaderNV	= HasDeviceExtension( VK_NV_MESH_SHADER_EXTENSION_NAME );
-		_enableRayTracingNV	= HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME );
-		_samplerMirrorClamp	= HasDeviceExtension( VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME );
+		_enableDebugUtils			= HasExtension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
+		_enableMeshShaderNV			= HasDeviceExtension( VK_NV_MESH_SHADER_EXTENSION_NAME );
+		_enableRayTracingNV			= HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME );
+		_enableShadingRateImageNV	= HasDeviceExtension( VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME );
+		_samplerMirrorClamp			= HasDeviceExtension( VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME );
 
 		// load extensions
 		if ( _vkVersion >= EShaderLangFormat::Vulkan_110 )
 		{
-			void **						next_props	= null;
-			VkPhysicalDeviceProperties2	props2		= {};
-			props2.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-			next_props		= &props2.pNext;
-
-			_deviceMeshShaderProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
-			_deviceRayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
-			_deviceShadingRateImageProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
+			VkPhysicalDeviceFeatures2	feat2		= {};
+			void **						next_feat	= &feat2.pNext;
+			feat2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 			
 			if ( _enableMeshShaderNV )
 			{
-				*next_props	= &_deviceMeshShaderProperties;
-				next_props	= &_deviceMeshShaderProperties.pNext;
+				*next_feat	= &_deviceInfo.meshShaderFeatures;
+				next_feat	= &_deviceInfo.meshShaderFeatures.pNext;
+				_deviceInfo.meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
 			}
+			if ( _enableShadingRateImageNV )
+			{
+				*next_feat	= &_deviceInfo.shadingRateImageFeatures;
+				next_feat	= &_deviceInfo.shadingRateImageFeatures.pNext;
+				_deviceInfo.shadingRateImageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV;
+			}
+			vkGetPhysicalDeviceFeatures2( GetVkPhysicalDevice(), &feat2 );
 
-			*next_props	= &_deviceShadingRateImageProperties;
-			next_props	= &_deviceShadingRateImageProperties.pNext;
-			
+			_enableMeshShaderNV			= (_deviceInfo.meshShaderFeatures.meshShader or _deviceInfo.meshShaderFeatures.taskShader);
+			_enableShadingRateImageNV	= _deviceInfo.shadingRateImageFeatures.shadingRateImage;
+
+
+			VkPhysicalDeviceProperties2	props2		= {};
+			void **						next_props	= &props2.pNext;
+			props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+
+			if ( _enableMeshShaderNV )
+			{
+				*next_props	= &_deviceInfo.meshShaderProperties;
+				next_props	= &_deviceInfo.meshShaderProperties.pNext;
+				_deviceInfo.meshShaderProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
+			}
+			if ( _enableShadingRateImageNV )
+			{
+				*next_props	= &_deviceInfo.shadingRateImageProperties;
+				next_props	= &_deviceInfo.shadingRateImageProperties.pNext;
+				_deviceInfo.shadingRateImageProperties.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV;
+			}
 			if ( _enableRayTracingNV )
 			{
-				*next_props	= &_deviceRayTracingProperties;
-				next_props	= &_deviceRayTracingProperties.pNext;
+				*next_props	= &_deviceInfo.rayTracingProperties;
+				next_props	= &_deviceInfo.rayTracingProperties.pNext;
+				_deviceInfo.rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 			}
-
 			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
 
 			// TODO: check if extensions enebaled

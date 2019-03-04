@@ -92,12 +92,28 @@ namespace FG
 	inline VLocalImage::AccessIter_t
 		VLocalImage::_FindFirstAccess (AccessRecords_t &arr, const SubRange &otherRange)
 	{
-		auto iter = arr.begin();
-		auto end  = arr.end();
+		if ( arr.size() )
+		{
+			size_t	left	= 0;
+			size_t	right	= arr.size()-1;
 
-		for (; iter != end and iter->range.end <= otherRange.begin; ++iter)
-		{}
-		return iter;
+			for (; right - left > 1; )
+			{
+				size_t	mid = (left + right) >> 1;
+
+				if ( arr[mid].range.end < otherRange.begin )
+					left = mid;
+				else
+					right = mid;
+			}
+
+			if ( arr[left].range.end >= otherRange.begin )
+				return arr.begin() + left;
+
+			if ( arr[right].range.end >= otherRange.begin )
+				return arr.begin() + right;
+		}
+		return arr.end();
 	}
 	
 /*
@@ -289,7 +305,7 @@ namespace FG
 			ImageAccess		pending;
 			pending.isReadable	= true;
 			pending.isWritable	= false;
-			pending.stages		= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			pending.stages		= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 			pending.access		= 0;
 			pending.layout		= _finalLayout;
 			pending.index		= index;

@@ -198,7 +198,7 @@ namespace FG
 	CreateImage
 =================================================
 */
-	ImageID  VFrameGraphThread::CreateImage (const ExternalImageDesc &desc, OnExternalImageReleased_t &&onRelease, StringView dbgName)
+	ImageID  VFrameGraphThread::CreateImage (const ExternalImageDesc_t &desc, OnExternalImageReleased_t &&onRelease, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
@@ -223,7 +223,7 @@ namespace FG
 	CreateBuffer
 =================================================
 */
-	BufferID  VFrameGraphThread::CreateBuffer (const ExternalBufferDesc &desc, OnExternalBufferReleased_t &&onRelease, StringView dbgName)
+	BufferID  VFrameGraphThread::CreateBuffer (const ExternalBufferDesc_t &desc, OnExternalBufferReleased_t &&onRelease, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );
@@ -440,7 +440,7 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool VFrameGraphThread::Initialize (const SwapchainCreateInfo *swapchainCI)
+	bool VFrameGraphThread::Initialize (const SwapchainCreateInfo_t *swapchainCI)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _SetState( EState::Initial, EState::Initializing ));
@@ -617,7 +617,7 @@ namespace FG
 	you must recreate thread instead of recreating swapchain!
 =================================================
 */
-	bool VFrameGraphThread::RecreateSwapchain (const SwapchainCreateInfo &ci)
+	bool VFrameGraphThread::RecreateSwapchain (const SwapchainCreateInfo_t &ci)
 	{
 		EXLOCK( _rcCheck );
 		ASSERT( _IsInitialized() );

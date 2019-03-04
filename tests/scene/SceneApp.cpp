@@ -93,7 +93,7 @@ namespace FG
 
 		// setup device info
 		VulkanDeviceInfo						vulkan_info;
-		FrameGraphThread::SwapchainCreateInfo	swapchain_info;
+		FrameGraphThread::SwapchainCreateInfo_t	swapchain_info;
 		{
 			vulkan_info.instance		= BitCast<InstanceVk_t>( vulkan.GetVkInstance() );
 			vulkan_info.physicalDevice	= BitCast<PhysicalDeviceVk_t>( vulkan.GetVkPhysicalDevice() );
