@@ -23,8 +23,8 @@
   '------------------------------------------------------------------------------'        '----------------'
 
 
-  Each batch may be sabmitted independently from any CPU thread.
-  The recommended number of batches is 3-5, it can be used for optimal GPU workload.
+  Each batch may be submitted independently from any CPU thread.
+  For optimal GPU workload, the recommended number of batches per frame is 3-5.
 */
 
 #pragma once

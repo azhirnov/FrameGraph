@@ -39,10 +39,8 @@ FGInstancePtr fgInstance = FrameGraphInstance::CreateFrameGraph( vulkan_info );
 fgInstance->Initialize( 2 );
 
 // create framegraph, this is not a thread, just worker that may work in parallel with other framegraphs.
-// EThreadUsage::Present - create with swapchain
-// EThreadUsage::Graphics - create with queue that supports graphics and compute
 // EThreadUsage::Transfer - create the staging buffer for host to device transfer and implicitly the memory manager for buffer and image
-FGThreadPtr frameGraph = fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Present | EThreadUsage::Graphics | EThreadUsage::Transfer });
+FGThreadPtr frameGraph = fgInstance->CreateThread( ThreadDesc{ EThreadUsage::Transfer });
 
 // setup swapchain description
 VulkanSwapchainCreateInfo swapchain;

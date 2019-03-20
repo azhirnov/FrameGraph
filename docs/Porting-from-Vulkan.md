@@ -35,7 +35,7 @@
 |---|---|
 | VkDescriptorBufferInfo | PipelineResources::BindBuffer, PipelineResources::SetBufferBase to set base offset if used dynamic buffer offset |
 | VkDescriptorImageInfo with sampler | PipelineResources::BindSampler |
-| VkDescriptorImageInfo with image | PipelineResources::BlitImage |
+| VkDescriptorImageInfo with image | PipelineResources::BindImage |
 | VkDescriptorImageInfo with image and sampler | PipelineResources::BindTexture |
 | VkAccelerationStructureNV | PipelineResources::BindRayTracingScene |
 
