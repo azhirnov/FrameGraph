@@ -1,12 +1,55 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VResourceManager.h"
-#include "VResourceManagerThread.h"
 #include "VDevice.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "Shared/PipelineResourcesHelper.h"
 
 namespace FG
 {
+
+	//
+	// Vulkan Shader Module
+	//
+	class VShaderModule final : public PipelineDescription::IShaderData< ShaderModuleVk_t >
+	{
+	// variables
+	private:
+		VkShaderModule		_module		= VK_NULL_HANDLE;
+		StaticString<64>	_entry;
+
+
+	// methods
+	public:
+		VShaderModule (VkShaderModule module, StringView entry) :
+			_module{ module }, _entry{ entry } {}
+
+		~VShaderModule () {
+			CHECK( _module == VK_NULL_HANDLE );
+		}
+
+		void Destroy (const VDevice &dev)
+		{
+			if ( _module )
+			{
+				dev.vkDestroyShaderModule( dev.GetVkDevice(), _module, null );
+				_module = VK_NULL_HANDLE;
+			}
+		}
+		
+		ShaderModuleVk_t const&	GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
+
+		StringView				GetEntry () const override		{ return _entry; }
+		
+		StringView				GetDebugName () const override	{ return ""; }
+
+		size_t					GetHashOfData () const override	{ ASSERT(false);  return 0; }
+
+		bool					ParseDebugOutput (EShaderDebugMode, ArrayView<uint8_t>, OUT Array<String> &) const override { return false; }
+	};
+//-----------------------------------------------------------------------------
+
+
 
 /*
 =================================================
@@ -14,7 +57,7 @@ namespace FG
 =================================================
 */
 	VResourceManager::VResourceManager (const VDevice &dev) :
-		_device{ dev }
+		_device{ dev },		_memoryMngr{ dev }
 	{
 	}
 	
@@ -25,9 +68,6 @@ namespace FG
 */
 	VResourceManager::~VResourceManager ()
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( _perFrame.empty() );
-		//ASSERT( _unassignIDs.empty() );
 	}
 	
 /*
@@ -35,21 +75,11 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool VResourceManager::Initialize (uint ringBufferSize)
+	bool VResourceManager::Initialize ()
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( _perFrame.empty() );
-
-		_perFrame.resize( ringBufferSize );
-
-		for (auto& frame : _perFrame)
-		{
-			frame.readyToDelete.reserve( 256 );
-		}
+		CHECK_ERR( _memoryMngr.Initialize() );
 
 		_CreateEmptyDescriptorSetLayout();
-
-		_startTime = TimePoint_t::clock::now();
 		return true;
 	}
 	
@@ -60,8 +90,6 @@ namespace FG
 */
 	void VResourceManager::Deinitialize ()
 	{
-		EXLOCK( _rcCheck );
-
 		_UnassignResource( _GetResourcePool(_emptyDSLayout), _emptyDSLayout, true );
 
 		_DestroyResourceCache( INOUT _samplerCache );
@@ -70,163 +98,48 @@ namespace FG
 		_DestroyResourceCache( INOUT _renderPassCache );
 		_DestroyResourceCache( INOUT _framebufferCache );
 		_DestroyResourceCache( INOUT _pplnResourcesCache );
-
-		for (auto& frame : _perFrame) {
-			_DeleteResources( INOUT frame.readyToDelete );
-		}
-		_perFrame.clear();
-	}
-
-/*
-=================================================
-	OnBeginFrame
-=================================================
-*/
-	void VResourceManager::OnBeginFrame (uint frameId)
-	{
-		EXLOCK( _rcCheck );
-
-		_frameId	= frameId;
-		_currTime	= uint(std::chrono::duration_cast< std::chrono::seconds >( TimePoint_t::clock::now() - _startTime ).count());
-		++_frameCounter;
-
-		_DeleteResources( INOUT _perFrame[_frameId].readyToDelete );
-
-		_CreateValidationTasks();
-	}
-	
-/*
-=================================================
-	OnEndFrame
-=================================================
-*/
-	void VResourceManager::OnEndFrame ()
-	{
-		EXLOCK( _rcCheck );
-
-		_UnassignResourceIDs();
-		_DestroyValidationTasks();
-	}
-	
-/*
-=================================================
-	_UnassignResourceIDs
-=================================================
-*/
-	void VResourceManager::_UnassignResourceIDs ()
-	{
-		ResourceIDQueue_t	temp;
-
-		for (; not _unassignIDs.empty();)
-		{
-			std::swap( _unassignIDs, temp );
-
-			for (auto& vid : temp)
-			{
-				Visit( vid.first, [this, force = vid.second] (auto id) { _UnassignResource( _GetResourcePool(id), id, force ); });
-			}
-			temp.clear();
-		}
-
-		if ( temp.capacity() > _unassignIDs.capacity() )
-			std::swap( _unassignIDs, temp );
-	}
-	
-/*
-=================================================
-	_DeleteResources
-=================================================
-*/
-	void VResourceManager::_DeleteResources (INOUT VkResourceQueue_t &readyToDelete) const
-	{
-		VkDevice	dev = _device.GetVkDevice();
 		
-		for (auto& pair : readyToDelete)
+		// release shader cache
 		{
-			switch ( pair.first )
+			EXLOCK( _shaderCacheGuard );
+
+			for (auto& sh : _shaderCache)
 			{
-				case VK_OBJECT_TYPE_SEMAPHORE :
-					_device.vkDestroySemaphore( dev, VkSemaphore(pair.second), null );
-					break;
+				ASSERT( sh.use_count() == 1 );
 
-				case VK_OBJECT_TYPE_FENCE :
-					_device.vkDestroyFence( dev, VkFence(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_DEVICE_MEMORY :
-					_device.vkFreeMemory( dev, VkDeviceMemory(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_IMAGE :
-					_device.vkDestroyImage( dev, VkImage(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_EVENT :
-					_device.vkDestroyEvent( dev, VkEvent(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_QUERY_POOL :
-					_device.vkDestroyQueryPool( dev, VkQueryPool(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_BUFFER :
-					_device.vkDestroyBuffer( dev, VkBuffer(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_BUFFER_VIEW :
-					_device.vkDestroyBufferView( dev, VkBufferView(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_IMAGE_VIEW :
-					_device.vkDestroyImageView( dev, VkImageView(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_PIPELINE_LAYOUT :
-					_device.vkDestroyPipelineLayout( dev, VkPipelineLayout(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_RENDER_PASS :
-					_device.vkDestroyRenderPass( dev, VkRenderPass(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_PIPELINE :
-					_device.vkDestroyPipeline( dev, VkPipeline(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT :
-					_device.vkDestroyDescriptorSetLayout( dev, VkDescriptorSetLayout(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_SAMPLER :
-					_device.vkDestroySampler( dev, VkSampler(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_DESCRIPTOR_POOL :
-					_device.vkDestroyDescriptorPool( dev, VkDescriptorPool(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_FRAMEBUFFER :
-					_device.vkDestroyFramebuffer( dev, VkFramebuffer(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION :
-					_device.vkDestroySamplerYcbcrConversion( dev, VkSamplerYcbcrConversion(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE :
-					_device.vkDestroyDescriptorUpdateTemplate( dev, VkDescriptorUpdateTemplate(pair.second), null );
-					break;
-
-				case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV :
-					_device.vkDestroyAccelerationStructureNV( dev, VkAccelerationStructureNV(pair.second), null );
-					break;
-
-				default :
-					FG_LOGE( "resource type is not supported" );
-					break;
+				Cast<VShaderModule>( sh )->Destroy( _device );
 			}
+			_shaderCache.clear();
 		}
-		readyToDelete.clear();
+
+		// release pipeline compilers
+		{
+			EXLOCK( _compilersGuard );
+			_compilers.clear();
+		}
+		
+		_memoryMngr.Deinitialize();
+	}
+	
+/*
+=================================================
+	AddCompiler
+=================================================
+*/
+	void VResourceManager::AddCompiler (const PipelineCompiler &comp)
+	{
+		EXLOCK( _compilersGuard );
+		_compilers.insert( comp );
+	}
+	
+/*
+=================================================
+	OnSubmit
+=================================================
+*/
+	void VResourceManager::OnSubmit ()
+	{
+		_submissionCounter.fetch_add( 1, memory_order_relaxed );
 	}
 	
 /*
@@ -245,274 +158,12 @@ namespace FG
 			if ( data.IsCreated() )
 			{
 				res.RemoveFromCache( id );
-				data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
+				data.Destroy( *this );
 				res.Unassign( id );
 			}
 		}
 	}
-	
-/*
-=================================================
-	_AddValidationTasks
-=================================================
-*/
-	template <typename T, size_t ChunkSize, size_t MaxChunks>
-	inline bool  VResourceManager::_AddValidationTasks (const CachedPoolTmpl<T, ChunkSize, MaxChunks> &cache, INOUT PoolRanges &ranges,
-														void (VResourceManager::*fn) (VResourceManagerThread &, Index_t, Index_t) const)
-	{
-		constexpr uint		MaxBits	= sizeof(ranges.bits) * 8;
-		constexpr Index_t	Step	= (MaxChunks * ChunkSize) / MaxBits;
-		const auto			bits	= ranges.bits.load( memory_order_relaxed );
 
-		STATIC_ASSERT( (MaxChunks * ChunkSize) % MaxBits == 0 );
-
-
-		for (uint i = 0; i < MaxBits; ++i)
-		{
-			if ( _validationTasks.size() == _validationTasks.capacity() )
-				return false;	// array is full
-
-			if ( i*Step >= cache.size() )
-			{
-				const uint64_t	mask = (1ull << i)-1;
-				return (bits & mask) == mask;
-			}
-
-			if ( bits & (1ull << i) )
-				continue;
-
-			_validationTasks.emplace_back(	[this, i, Step, fn, &ranges] (VResourceManagerThread &rm)
-											{
-												(this->*fn)( rm, i*Step, i*Step + Step );
-												ranges.bits.fetch_or( 1ull << i, memory_order_relaxed );
-											});
-		}
-		return false;
-	}
-
-/*
-=================================================
-	_CreateValidationTasks
-=================================================
-*/
-	void  VResourceManager::_CreateValidationTasks ()
-	{
-		for (ECachedResource pos = _currentValidationPos; pos < ECachedResource::End;)
-		{
-			if ( _validationTasks.size() == _validationTasks.capacity() )
-				return;	// array is full
-
-			auto&	range		= _validationRanges[ uint(pos) ];
-			bool	is_complete	= false;
-
-			ENABLE_ENUM_CHECKS();
-			switch ( pos )
-			{
-				//case ECachedResource::Sampler :
-				//	is_complete = _AddValidationTasks( _samplerCache, INOUT range, &VResourceManager::_ValidateSamplers );
-				//	break;
-
-				//case ECachedResource::PipelineLayout :
-				//	is_complete = _AddValidationTasks( _pplnLayoutCache, INOUT range, &VResourceManager::_ValidatePipelineLayouts );
-				//	break;
-
-				//case ECachedResource::DescriptorSetLayout :
-				//	is_complete = _AddValidationTasks( _dsLayoutCache, INOUT range, &VResourceManager::_ValidateDescriptorSetLayouts );
-				//	break;
-
-				//case ECachedResource::RenderPass :
-				//	is_complete = _AddValidationTasks( _renderPassCache, INOUT range, &VResourceManager::_ValidateRenderPasses );
-				//	break;
-
-				case ECachedResource::Framebuffer :
-					is_complete = _AddValidationTasks( _framebufferCache, INOUT range, &VResourceManager::_ValidateFramebuffers );
-					break;
-
-				//case ECachedResource::PipelineResources :
-				//	is_complete = _AddValidationTasks( _pplnResourcesCache, INOUT range, &VResourceManager::_ValidatePipelineResources );
-				//	break;
-
-				case ECachedResource::End :
-					break;
-			}
-			DISABLE_ENUM_CHECKS();
-
-			pos = ECachedResource(uint(pos) + 1);
-
-			if ( is_complete )
-			{
-				range.bits.store( 0, memory_order_relaxed );
-				_currentValidationPos = (pos == ECachedResource::End ? ECachedResource::Begin : pos);
-			}
-		}
-	}
-	
-/*
-=================================================
-	_DestroyValidationTasks
-=================================================
-*/
-	void  VResourceManager::_DestroyValidationTasks ()
-	{
-		_validationTasks.clear();
-		_validationTaskPos.store( 0, memory_order_release );
-	}
-	
-/*
-=================================================
-	_ProcessValidationTask
-=================================================
-*/
-	bool  VResourceManager::_ProcessValidationTask (VResourceManagerThread &resMngr)
-	{
-		SHAREDLOCK( _rcCheck );
-
-		if ( _validationTasks.empty() )
-			return false;
-
-		uint	expected = 0;
-
-		while ( not _validationTaskPos.compare_exchange_weak( INOUT expected, expected+1, memory_order_release, memory_order_relaxed ))
-		{
-			if ( expected >= _validationTasks.size() )
-				return false;
-		}
-
-		_validationTasks[expected].task( resMngr );
-		return true;
-	}
-
-/*
-=================================================
-	_ValidateSamplers
-----
-	find unused samplers
-=================================================
-*/
-	void  VResourceManager::_ValidateSamplers (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
-	{
-		for (Index_t i = first; i < last; ++i)
-		{
-			auto&	samp = _samplerCache[i];
-			
-			if ( not samp.IsCreated() )
-				continue;
-			
-			const bool	is_deprecated	= samp.GetRefCount() <= 1 and (_currTime - samp.GetLastUsage() > _maxTimeDelta);
-
-			if ( is_deprecated )
-				resMngr.ReleaseResource( RawSamplerID{ i, samp.GetInstanceID() }, true, true );
-		}
-	}
-	
-/*
-=================================================
-	_ValidatePipelineLayouts
-=================================================
-*/
-	void  VResourceManager::_ValidatePipelineLayouts (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
-	{
-		for (Index_t i = first; i < last; ++i)
-		{
-			auto&	layout = _pplnLayoutCache[i];
-			
-			if ( not layout.IsCreated() )
-				continue;
-			
-			const bool	is_deprecated	= layout.GetRefCount() <= 1 and (_currTime - layout.GetLastUsage() > _maxTimeDelta);
-			const bool	is_invalid		= not layout.Data().IsAllResourcesAlive( resMngr );
-
-			if ( is_deprecated or is_invalid )
-				resMngr.ReleaseResource( RawPipelineLayoutID{ i, layout.GetInstanceID() }, true, true );
-		}
-	}
-	
-/*
-=================================================
-	_ValidateDescriptorSetLayouts
-=================================================
-*/
-	void  VResourceManager::_ValidateDescriptorSetLayouts (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
-	{
-		for (Index_t i = first; i < last; ++i)
-		{
-			auto&	layout = _dsLayoutCache[i];
-			
-			if ( not layout.IsCreated() )
-				continue;
-			
-			const bool	is_deprecated	= layout.GetRefCount() <= 1 and (_currTime - layout.GetLastUsage() > _maxTimeDelta);
-
-			if ( is_deprecated )
-				resMngr.ReleaseResource( RawDescriptorSetLayoutID{ i, layout.GetInstanceID() }, true, true );
-		}
-	}
-	
-/*
-=================================================
-	_ValidateRenderPasses
-=================================================
-*/
-	void  VResourceManager::_ValidateRenderPasses (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
-	{
-		for (Index_t i = first; i < last; ++i)
-		{
-			auto&	rp = _renderPassCache[i];
-			
-			if ( not rp.IsCreated() )
-				continue;
-			
-			const bool	is_deprecated	= rp.GetRefCount() <= 1 and (_currTime - rp.GetLastUsage() > _maxTimeDelta);
-
-			if ( is_deprecated )
-				resMngr.ReleaseResource( RawRenderPassID{ i, rp.GetInstanceID() }, true, true );
-		}
-	}
-	
-/*
-=================================================
-	_ValidateFramebuffers
-=================================================
-*/
-	void  VResourceManager::_ValidateFramebuffers (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
-	{
-		for (Index_t i = first; i < last; ++i)
-		{
-			auto&	fb = _framebufferCache[i];
-			
-			if ( not fb.IsCreated() )
-				continue;
-
-			const bool	is_deprecated	= fb.GetRefCount() <= 1 and (_currTime - fb.GetLastUsage() > _maxTimeDelta);
-			const bool	is_invalid		= not fb.Data().IsAllResourcesAlive( resMngr );
-
-			if ( is_deprecated or is_invalid )
-				resMngr.ReleaseResource( RawFramebufferID{ i, fb.GetInstanceID() }, true, true );
-		}
-	}
-	
-/*
-=================================================
-	_ValidatePipelineResources
-=================================================
-*/
-	void  VResourceManager::_ValidatePipelineResources (VResourceManagerThread &resMngr, Index_t first, Index_t last) const
-	{
-		for (Index_t i = first; i < last; ++i)
-		{
-			auto&	res = _pplnResourcesCache[i];
-			
-			if ( not res.IsCreated() )
-				continue;
-
-			const bool	is_deprecated	= res.GetRefCount() <= 1 and (_currTime - res.GetLastUsage() > _maxTimeDelta);
-			const bool	is_invalid		= not res.Data().IsAllResourcesAlive( resMngr );
-
-			if ( is_deprecated or is_invalid )
-				resMngr.ReleaseResource( RawPipelineResourcesID{ i, res.GetInstanceID() }, true, true );
-		}
-	}
-	
 /*
 =================================================
 	_CreateEmptyDescriptorSetLayout
@@ -537,6 +188,929 @@ namespace FG
 
 		_emptyDSLayout = RawDescriptorSetLayoutID{ index, res.GetInstanceID() };
 		return true;
+	}
+	
+/*
+=================================================
+	Replace
+----
+	destroy previous resource instance and construct new instance
+=================================================
+*/
+	template <typename ResType, typename ...Args>
+	inline void Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
+	{
+		target.Data().~ResType();
+		new (&target.Data()) ResType{ std::forward<Args &&>(args)... };
+	}
+	
+/*
+=================================================
+	ExtendPipelineLayout
+=================================================
+*/
+	RawPipelineLayoutID  VResourceManager::ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout,
+																 uint dsLayoutIndex, const DescriptorSetID &dsID)
+	{
+		VPipelineLayout const*	origin = GetResource( baseLayout );
+		CHECK_ERR( origin );
+		
+		PipelineDescription::PipelineLayout		desc;
+		DSLayouts_t								ds_layouts;
+		auto&									origin_sets = origin->GetDescriptorSets();
+		auto&									ds_pool		= _GetResourcePool( RawDescriptorSetLayoutID{} );
+
+		// copy descriptor set layouts
+		for (auto& src : origin_sets)
+		{
+			auto&	ds_layout	= ds_pool[ src.second.layoutId.Index() ];
+
+			PipelineDescription::DescriptorSet	dst;
+			dst.id				= src.first;
+			dst.bindingIndex	= src.second.index;
+			dst.uniforms		= ds_layout.Data().GetUniforms();
+
+			ASSERT( src.second.index != dsLayoutIndex );
+
+			desc.descriptorSets.push_back( std::move(dst) );
+			ds_layouts.push_back({ src.second.layoutId, &ds_layout });
+		}
+
+		// append additional descriptor set layout
+		{
+			auto&	ds_layout	= ds_pool[ additionalDSLayout.Index() ];
+			
+			PipelineDescription::DescriptorSet	dst;
+			dst.id				= dsID;
+			dst.bindingIndex	= dsLayoutIndex;
+			dst.uniforms		= ds_layout.Data().GetUniforms();
+			
+			desc.descriptorSets.push_back( std::move(dst) );
+			ds_layouts.push_back({ additionalDSLayout, &ds_layout });
+		}
+
+		// copy push constant ranges
+		desc.pushConstants = origin->GetPushConstants();
+
+
+		RawPipelineLayoutID						new_layout;
+		ResourceBase<VPipelineLayout> const*	layout_ptr = null;
+		CHECK_ERR( _CreatePipelineLayout( OUT new_layout, OUT layout_ptr, desc, ds_layouts ));
+
+		return new_layout;
+	}
+	
+/*
+=================================================
+	CreateDescriptorSetLayout
+=================================================
+*/
+	RawDescriptorSetLayoutID  VResourceManager::CreateDescriptorSetLayout (const PipelineDescription::UniformMapPtr &uniforms)
+	{
+		ResourceBase<VDescriptorSetLayout>*	layout_ptr = null;
+		RawDescriptorSetLayoutID			result;
+
+		CHECK_ERR( _CreateDescriptorSetLayout( OUT result, OUT layout_ptr, uniforms ));
+
+		return result;
+	}
+	
+/*
+=================================================
+	_CreatePipelineLayout
+=================================================
+*/
+	bool  VResourceManager::_CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
+												   PipelineDescription::PipelineLayout &&desc)
+	{
+		// init pipeline layout create info
+		DSLayouts_t  ds_layouts;
+		for (auto& ds : desc.descriptorSets)
+		{
+			RawDescriptorSetLayoutID			ds_id;
+			ResourceBase<VDescriptorSetLayout>*	ds_layout = null;
+			CHECK_ERR( _CreateDescriptorSetLayout( OUT ds_id, OUT ds_layout, ds.uniforms ));
+
+			ds_layouts.push_back({ ds_id, ds_layout });
+		}
+		return _CreatePipelineLayout( OUT id, OUT layoutPtr, desc, ds_layouts );
+	}
+	
+	bool  VResourceManager::_CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
+												   const PipelineDescription::PipelineLayout &desc, const DSLayouts_t &dsLayouts)
+	{
+		CHECK_ERR( _Assign( OUT id ));
+		
+		auto*	empty_layout = GetResource( _GetEmptyDescriptorSetLayout() );
+		CHECK_ERR( empty_layout );
+
+		auto&	pool	= _GetResourcePool( id );
+		auto&	layout	= pool[ id.Index() ];
+		Replace( layout, desc, dsLayouts );
+
+		// search in cache
+		Index_t	temp_id		= pool.Find( &layout );
+		bool	is_created	= false;
+
+		if ( temp_id == UMax )
+		{
+			// create new
+			if ( not layout.Create( _device, empty_layout->Handle() ))
+			{
+				_Unassign( id );
+				RETURN_ERR( "failed when creating pipeline layout" );
+			}
+
+			layout.AddRef();
+			is_created = true;
+			
+			// try to add to cache
+			temp_id = pool.AddToCache( id.Index() ).first;
+		}
+
+		if ( temp_id == id.Index() )
+		{
+			layoutPtr = &layout;
+			return true;
+		}
+		
+		// use already cached resource
+		layoutPtr = &pool[ temp_id ];
+		layoutPtr->AddRef();
+		
+		for (auto& ds : dsLayouts) {
+			_ReleaseResource( ds.first, *ds.second );
+		}
+		
+		if ( is_created )
+			layout.Destroy( *this );
+
+		_Unassign( id );
+		
+		id = RawPipelineLayoutID( temp_id, layoutPtr->GetInstanceID() );
+		return true;
+	}
+
+/*
+=================================================
+	_CreateDescriptorSetLayout
+=================================================
+*/
+	bool  VResourceManager::_CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout>* &layoutPtr,
+													    const PipelineDescription::UniformMapPtr &uniforms)
+	{
+		CHECK_ERR( _Assign( OUT id ));
+		
+		// init descriptor set layout create info
+		VDescriptorSetLayout::DescriptorBinding_t	binding;	// TODO: use custom allocator
+
+		auto&	pool		= _GetResourcePool( id );
+		auto&	ds_layout	= pool[ id.Index() ];
+		Replace( ds_layout, uniforms, OUT binding );
+		
+		// search in cache
+		Index_t	temp_id		= pool.Find( &ds_layout );
+		bool	is_created	= false;
+
+		if ( temp_id == UMax )
+		{
+			// create new
+			if ( not ds_layout.Create( _device, binding ))
+			{
+				_Unassign( id );
+				RETURN_ERR( "failed when creating descriptor set layout" );
+			}
+
+			ds_layout.AddRef();
+			is_created = true;
+			
+			// try to add to cache
+			temp_id = pool.AddToCache( id.Index() ).first;
+		}
+
+		if ( temp_id == id.Index() )
+		{
+			layoutPtr = &ds_layout;
+			return true;
+		}
+		
+		// use already cached resource
+		layoutPtr = &pool[ temp_id ];
+		layoutPtr->AddRef();
+		
+		if ( is_created )
+			ds_layout.Destroy( *this );
+
+		_Unassign( id );
+		
+		id = RawDescriptorSetLayoutID( temp_id, layoutPtr->GetInstanceID() );
+		return true;
+	}
+	
+	
+/*
+=================================================
+	GetBuiltinFormats
+=================================================
+*/
+	ND_ static FixedArray<EShaderLangFormat,16>  GetBuiltinFormats (const VDevice &dev)
+	{
+		const EShaderLangFormat				ver		= dev.GetVkVersion();
+		FixedArray<EShaderLangFormat,16>	result;
+
+		// at first request external managed shader modules
+		result.push_back( ver | EShaderLangFormat::ShaderModule );
+
+		if ( ver > EShaderLangFormat::Vulkan_110 )
+			result.push_back( EShaderLangFormat::VkShader_110 );
+
+		if ( ver > EShaderLangFormat::Vulkan_100 )
+			result.push_back( EShaderLangFormat::VkShader_100 );
+		
+
+		// at second request shader in binary format
+		result.push_back( ver | EShaderLangFormat::SPIRV );
+
+		if ( ver > EShaderLangFormat::Vulkan_110 )
+			result.push_back( EShaderLangFormat::SPIRV_110 );
+
+		if ( ver > EShaderLangFormat::Vulkan_100 )
+			result.push_back( EShaderLangFormat::SPIRV_100 );
+
+		return result;
+	}
+
+/*
+=================================================
+	_CompileShaders
+=================================================
+*/
+	template <typename DescT>
+	bool  VResourceManager::_CompileShaders (INOUT DescT &desc, const VDevice &dev)
+	{
+		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+
+		// try to use external compilers
+		{
+			SHAREDLOCK( _compilersGuard );
+
+			for (auto& comp : _compilers)
+			{
+				if ( comp->IsSupported( desc, req_format ) )
+				{
+					CHECK_ERR( comp->Compile( INOUT desc, req_format ));
+					return true;
+				}
+			}
+		}
+
+		// check is shaders supported by default compiler
+		const auto	formats		 = GetBuiltinFormats( dev );
+		bool		is_supported = true;
+
+		for (auto& sh : desc._shaders)
+		{
+			if ( sh.second.data.empty() )
+				continue;
+
+			bool	found = false;
+
+			for (auto& fmt : formats)
+			{
+				auto	iter = sh.second.data.find( fmt );
+
+				if ( iter == sh.second.data.end() )
+					continue;
+
+				if ( EnumEq( fmt, EShaderLangFormat::ShaderModule ) )
+				{
+					auto	shader_data = iter->second;
+				
+					sh.second.data.clear();
+					sh.second.data.insert({ fmt, shader_data });
+
+					found = true;
+					break;
+				}
+			
+				if ( EnumEq( fmt, EShaderLangFormat::SPIRV ) )
+				{
+					VkShaderPtr		mod;
+					CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
+
+					sh.second.data.clear();
+					sh.second.data.insert({ fmt, mod });
+
+					found = true;
+					break;
+				}
+			}
+			is_supported &= found;
+		}
+
+		if ( not is_supported )
+			RETURN_ERR( "unsuported shader format!" );
+
+		return true;
+	}
+	
+/*
+=================================================
+	_CompileShader
+=================================================
+*/
+	bool VResourceManager::_CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
+	{
+		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		
+		// try to use external compilers
+		{
+			SHAREDLOCK( _compilersGuard );
+
+			for (auto& comp : _compilers)
+			{
+				if ( comp->IsSupported( desc, req_format ) )
+				{
+					CHECK_ERR( comp->Compile( INOUT desc, req_format ));
+					return true;
+				}
+			}
+		}
+
+		// check is shaders supported by default compiler
+		const auto	formats = GetBuiltinFormats( dev );
+
+		for (auto& fmt : formats)
+		{
+			auto	iter = desc._shader.data.find( fmt );
+
+			if ( iter == desc._shader.data.end() )
+				continue;
+
+			if ( EnumEq( fmt, EShaderLangFormat::ShaderModule ) )
+			{
+				auto	shader_data = iter->second;
+				
+				desc._shader.data.clear();
+				desc._shader.data.insert({ fmt, shader_data });
+				return true;
+			}
+			
+			if ( EnumEq( fmt, EShaderLangFormat::SPIRV ) )
+			{
+				VkShaderPtr		mod;
+				CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
+
+				desc._shader.data.clear();
+				desc._shader.data.insert({ fmt, mod });
+				return true;
+			}
+		}
+
+		RETURN_ERR( "unsuported shader format!" );
+	}
+
+/*
+=================================================
+	_CompileShader
+=================================================
+*/
+	bool  VResourceManager::_CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module)
+	{
+		const auto*	shader_data = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &shaderData );
+
+		if ( not (shader_data and *shader_data) )
+			RETURN_ERR( "invalid shader data format!" );
+				
+		VkShaderModuleCreateInfo	shader_info = {};
+		shader_info.sType		= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		shader_info.codeSize	= size_t(ArraySizeOf( (*shader_data)->GetData() ));
+		shader_info.pCode		= (*shader_data)->GetData().data();
+
+		VkShaderModule		shader_id;
+		VK_CHECK( dev.vkCreateShaderModule( dev.GetVkDevice(), &shader_info, null, OUT &shader_id ));
+
+		dev.SetObjectName( BitCast<uint64_t>(shader_id), (*shader_data)->GetDebugName(), VK_OBJECT_TYPE_SHADER_MODULE );
+
+		module = MakeShared<VShaderModule>( shader_id, (*shader_data)->GetEntry() );
+
+		EXLOCK( _shaderCacheGuard );
+		_shaderCache.push_back( module );
+
+		return true;
+	}
+	
+/*
+=================================================
+	CreatePipeline
+=================================================
+*/
+	RawMPipelineID  VResourceManager::CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName)
+	{
+		if ( not _CompileShaders( INOUT desc, _device ))
+			return Default;
+
+		RawPipelineLayoutID						layout_id;
+		ResourceBase<VPipelineLayout> const*	layout	= null;
+		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout) ));
+		
+		RawMPipelineID		id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+
+		if ( not data.Create( desc, layout_id, dbgName ))
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating mesh pipeline" );
+		}
+
+		layout->AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreatePipeline
+=================================================
+*/
+	RawGPipelineID  VResourceManager::CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName)
+	{
+		if ( not _CompileShaders( INOUT desc, _device ))
+			return Default;
+		
+		RawPipelineLayoutID						layout_id;
+		ResourceBase<VPipelineLayout> const*	layout	= null;
+		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout) ));
+
+		RawGPipelineID		id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+		
+		if ( not data.Create( desc, layout_id, dbgName ))
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating graphics pipeline" );
+		}
+		
+		layout->AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreatePipeline
+=================================================
+*/
+	RawCPipelineID  VResourceManager::CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName)
+	{
+		if ( not _CompileShader( INOUT desc, _device ))
+			return Default;
+		
+		RawPipelineLayoutID						layout_id;
+		ResourceBase<VPipelineLayout> const*	layout	= null;
+		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout) ));
+
+		RawCPipelineID		id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+		
+		if ( not data.Create( desc, layout_id, dbgName ) )
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating compute pipeline" );
+		}
+
+		layout->AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreatePipeline
+=================================================
+*/
+	RawRTPipelineID  VResourceManager::CreatePipeline (INOUT RayTracingPipelineDesc &desc)
+	{
+		if ( not _CompileShaders( INOUT desc, _device ))
+			return Default;
+		
+		RawPipelineLayoutID						layout_id;
+		ResourceBase<VPipelineLayout> const*	layout	= null;
+		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout) ));
+
+		RawRTPipelineID		id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+		
+		if ( not data.Create( desc, layout_id ) )
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating ray tracing pipeline" );
+		}
+		
+		layout->AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	_CreateMemory
+=================================================
+*/
+	bool  VResourceManager::_CreateMemory (OUT RawMemoryID &id, OUT ResourceBase<VMemoryObj>* &memPtr, const MemoryDesc &desc, StringView dbgName)
+	{
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+
+		if ( not data.Create( desc, dbgName ) )
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating memory object" );
+		}
+		
+		memPtr = &data;
+		return true;
+	}
+
+/*
+=================================================
+	CreateImage
+=================================================
+*/
+	RawImageID  VResourceManager::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, StringView dbgName)
+	{
+		RawMemoryID					mem_id;
+		ResourceBase<VMemoryObj>*	mem_obj	= null;
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, dbgName ));
+
+		RawImageID		id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+
+		if ( not data.Create( *this, desc, mem_id, mem_obj->Data(), queueFamilyMask, dbgName ))
+		{
+			ReleaseResource( mem_id );
+			_Unassign( id );
+			RETURN_ERR( "failed when creating image" );
+		}
+		
+		mem_obj->AddRef();
+		data.AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreateBuffer
+=================================================
+*/
+	RawBufferID  VResourceManager::CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, StringView dbgName)
+	{
+		RawMemoryID					mem_id;
+		ResourceBase<VMemoryObj>*	mem_obj	= null;
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, dbgName ));
+
+		RawBufferID		id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+		
+		if ( not data.Create( *this, desc, mem_id, mem_obj->Data(), queueFamilyMask, dbgName ))
+		{
+			ReleaseResource( mem_id );
+			_Unassign( id );
+			RETURN_ERR( "failed when creating buffer" );
+		}
+		
+		mem_obj->AddRef();
+		data.AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreateImage
+=================================================
+*/
+	RawImageID  VResourceManager::CreateImage (const VulkanImageDesc &desc, IFrameGraph::OnExternalImageReleased_t &&onRelease, StringView dbgName)
+	{
+		RawImageID		id;
+		CHECK_ERR( _Assign( OUT id ));
+		
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+		
+		if ( not data.Create( _device, desc, dbgName, std::move(onRelease) ))
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating external image" );
+		}
+		
+		data.AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreateBuffer
+=================================================
+*/
+	RawBufferID  VResourceManager::CreateBuffer (const VulkanBufferDesc &desc, IFrameGraph::OnExternalBufferReleased_t &&onRelease, StringView dbgName)
+	{
+		RawBufferID		id;
+		CHECK_ERR( _Assign( OUT id ));
+		
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+		
+		if ( not data.Create( _device, desc, dbgName, std::move(onRelease) ))
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating external buffer" );
+		}
+		
+		data.AddRef();
+		return id;
+	}
+
+/*
+=================================================
+	_CreateCachedResource
+=================================================
+*/
+	template <typename ID, typename FnInitialize, typename FnCreate>
+	inline ID  VResourceManager::_CreateCachedResource (StringView errorStr, FnInitialize&& fnInit, FnCreate&& fnCreate)
+	{
+		ID	id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	pool	= _GetResourcePool( id );
+		auto&	data	= pool[ id.Index() ];
+		fnInit( INOUT data );
+		
+		// search in cache
+		Index_t	temp_id		= pool.Find( &data );
+		bool	is_created	= false;
+
+		if ( temp_id == UMax )
+		{
+			// create new
+			if ( not fnCreate( data ) )
+			{
+				_Unassign( id );
+				RETURN_ERR( errorStr );
+			}
+
+			data.AddRef();
+			is_created = true;
+			
+			// try to add to cache
+			temp_id = pool.AddToCache( id.Index() ).first;
+		}
+
+		if ( temp_id == id.Index() )
+			return id;
+
+		// use already cached resource
+		auto&	temp = pool[ temp_id ];
+		temp.AddRef();
+
+		if ( is_created )
+			data.Destroy( *this );
+
+		_Unassign( id );
+
+		return ID( temp_id, temp.GetInstanceID() );
+	}
+
+/*
+=================================================
+	Create***
+=================================================
+*/
+	RawSamplerID  VResourceManager::CreateSampler (const SamplerDesc &desc, StringView dbgName)
+	{
+		return _CreateCachedResource<RawSamplerID>( "failed when creating sampler",
+									  [&] (auto& data) { return Replace( data, _device, desc ); },
+									  [&] (auto& data) { return data.Create( _device, dbgName ); });
+	}
+	
+	RawRenderPassID  VResourceManager::CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, StringView dbgName)
+	{
+		return _CreateCachedResource<RawRenderPassID>( "failed when creating render pass",
+									  [&] (auto& data) { return Replace( data, logicalPasses ); },
+									  [&] (auto& data) { return data.Create( _device, dbgName ); });
+	}
+	
+	RawFramebufferID  VResourceManager::CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments,
+																 RawRenderPassID rp, uint2 dim, uint layers, StringView dbgName)
+	{
+		return _CreateCachedResource<RawFramebufferID>( "failed when creating framebuffer",
+									  [&] (auto& data) { return Replace( data, attachments, rp, dim, layers ); },
+									  [&] (auto& data) { return data.Create( *this, dbgName ); });
+	}
+	
+/*
+=================================================
+	CreateDescriptorSet
+=================================================
+*/
+	VPipelineResources const*  VResourceManager::CreateDescriptorSet (const PipelineResources &desc)
+	{
+		RawPipelineResourcesID	id = PipelineResourcesHelper::GetCached( desc );
+		
+		// use cached resources
+		if ( id )
+		{
+			auto&	res = _GetResourcePool( id )[ id.Index() ];
+
+			if ( res.GetInstanceID() == id.InstanceID() )
+			{
+				res.AddRef();	// TODO: check
+				return &res.Data();
+			}
+		}
+	
+		CHECK_ERR( desc.IsInitialized() );
+	
+		auto&	layout = _GetResourcePool( desc.GetLayout() )[ desc.GetLayout().Index() ];
+		CHECK_ERR( layout.IsCreated() and desc.GetLayout().InstanceID() == layout.GetInstanceID() );
+
+		auto	result =
+			_CreateCachedResource<RawPipelineResourcesID>( "failed when creating descriptor set",
+								   [&] (auto& data) { return Replace( data, desc ); },
+								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
+
+		PipelineResourcesHelper::SetCache( desc, result );
+
+		return result ? &_GetResourcePool( result )[ result.Index() ].Data() : nullptr;
+	}
+	
+/*
+=================================================
+	CacheDescriptorSet
+=================================================
+*/
+	bool  VResourceManager::CacheDescriptorSet (INOUT PipelineResources &desc)
+	{
+		RawPipelineResourcesID	id = PipelineResourcesHelper::GetCached( desc );
+		
+		// use cached resources
+		if ( id )
+		{
+			auto&	res = _GetResourcePool( id )[ id.Index() ];
+
+			if ( res.GetInstanceID() == id.InstanceID() )
+				return true;
+		}
+	
+		CHECK_ERR( desc.IsInitialized() );
+		CHECK_ERR( desc.GetDynamicOffsets().empty() );	// not supported
+	
+		auto&	layout = _GetResourcePool( desc.GetLayout() )[ desc.GetLayout().Index() ];
+		CHECK_ERR( layout.IsCreated() and desc.GetLayout().InstanceID() == layout.GetInstanceID() );
+
+		auto	result =
+			_CreateCachedResource<RawPipelineResourcesID>( "failed when creating descriptor set",
+								   [&] (auto& data) { return Replace( data, INOUT desc ); },
+								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
+
+		PipelineResourcesHelper::SetCache( desc, result );
+		return true;
+	}
+	
+/*
+=================================================
+	ReleaseResource
+=================================================
+*/
+	void  VResourceManager::ReleaseResource (INOUT PipelineResources &desc)
+	{
+		RawPipelineResourcesID	id = PipelineResourcesHelper::GetCached( desc );
+
+		if ( id )
+		{
+			PipelineResourcesHelper::SetCache( desc, RawPipelineResourcesID{} );
+			ReleaseResource( id );
+		}
+	}
+
+/*
+=================================================
+	CreateRayTracingGeometry
+=================================================
+*/
+	RawRTGeometryID  VResourceManager::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName)
+	{
+		RawMemoryID					mem_id;
+		ResourceBase<VMemoryObj>*	mem_obj	= null;
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, dbgName ));
+
+		RawRTGeometryID		id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+
+		if ( not data.Create( *this, desc, mem_id, mem_obj->Data(), dbgName ))
+		{
+			ReleaseResource( mem_id );
+			_Unassign( id );
+			RETURN_ERR( "failed when creating raytracing geometry" );
+		}
+		
+		mem_obj->AddRef();
+		data.AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreateRayTracingScene
+=================================================
+*/
+	RawRTSceneID  VResourceManager::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName)
+	{
+		RawMemoryID					mem_id;
+		ResourceBase<VMemoryObj>*	mem_obj	= null;
+		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, dbgName ));
+
+		RawRTSceneID	id;
+		CHECK_ERR( _Assign( OUT id ));
+
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+
+		if ( not data.Create( *this, desc, mem_id, mem_obj->Data(), dbgName ))
+		{
+			ReleaseResource( mem_id );
+			_Unassign( id );
+			RETURN_ERR( "failed when creating raytracing scene" );
+		}
+		
+		mem_obj->AddRef();
+		data.AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreateRayTracingShaderTable
+=================================================
+*/
+	RawRTShaderTableID  VResourceManager::CreateRayTracingShaderTable (StringView dbgName)
+	{
+		RawRTShaderTableID	id;
+		CHECK_ERR( _Assign( OUT id ));
+		
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+
+		if ( not data.Create( dbgName ) )
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating raytracing shader binding table" );
+		}
+
+		data.AddRef();
+		return id;
+	}
+	
+/*
+=================================================
+	CreateSwapchain
+=================================================
+*/
+	RawSwapchainID  VResourceManager::CreateSwapchain (const VulkanSwapchainCreateInfo &desc, RawSwapchainID oldSwapchain,
+													   VFrameGraph &fg, StringView dbgName)
+	{
+		RawSwapchainID	id;
+		CHECK_ERR( _Assign( OUT id ));
+		
+		auto&	data = _GetResourcePool( id )[ id.Index() ];
+		Replace( data );
+
+		if ( not data.Create( fg, desc, dbgName ))
+		{
+			_Unassign( id );
+			RETURN_ERR( "failed when creating swapchain" );
+		}
+
+		data.AddRef();
+		return id;
 	}
 
 

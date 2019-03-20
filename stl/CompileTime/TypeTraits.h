@@ -4,7 +4,7 @@
 
 #include <type_traits>
 
-namespace FG
+namespace FGC
 {
 
 	template <typename T>
@@ -58,4 +58,4 @@ namespace FG
 	using Conditional	= std::conditional_t< Test, IfTrue, IfFalse >;
 
 
-}	// FG
+}	// FGC

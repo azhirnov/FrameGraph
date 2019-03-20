@@ -9,7 +9,7 @@
 #include "stl/CompileTime/Math.h"
 #include "stl/Memory/UntypedAllocator.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -39,7 +39,7 @@ namespace FG
 	private:
 		static constexpr size_t	MaxSize = ChunkSize * MaxChunks;
 
-		using RawIndex_t		= Conditional< (MaxSize > std::numeric_limits<uint>::max()), uint64_t, 
+		using RawIndex_t		= Conditional< (MaxSize > std::numeric_limits<uint32_t>::max()), uint64_t, 
 									Conditional< (MaxSize > std::numeric_limits<uint16_t>::max()), uint32_t, uint16_t >>;
 
 		using IndexCountArray_t	= FixedArray< RawIndex_t, MaxChunks >;
@@ -335,4 +335,4 @@ namespace FG
 	};
 	
 
-}	// FG
+}	// FGC

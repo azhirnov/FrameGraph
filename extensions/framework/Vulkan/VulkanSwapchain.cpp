@@ -9,7 +9,7 @@
 #include "VulkanDevice.h"
 #endif
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -22,7 +22,7 @@ namespace FG
 		_vkDevice{ VK_NULL_HANDLE },			_vkSurface{ VK_NULL_HANDLE },
 		_currImageIndex{ UMax },
 		_colorFormat{ VK_FORMAT_UNDEFINED },	_colorSpace{ VK_COLOR_SPACE_MAX_ENUM_KHR },
-		_minImageCount{ 0 },					_imageArrayLayers{ 0 },
+		_minImageCount{ 0 },
 		_preTransform{ VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR },
 		_presentMode{ VK_PRESENT_MODE_MAX_ENUM_KHR },
 		_compositeAlpha{ VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR },
@@ -194,9 +194,8 @@ namespace FG
 								  const VkFormat						colorFormat,
 								  const VkColorSpaceKHR					colorSpace,
 								  const uint							minImageCount,
-								  const uint							imageArrayLayers,
-								  const VkSurfaceTransformFlagBitsKHR	transform,
 								  const VkPresentModeKHR				presentMode,
+								  const VkSurfaceTransformFlagBitsKHR	transform,
 								  const VkCompositeAlphaFlagBitsKHR		compositeAlpha,
 								  const VkImageUsageFlags				colorImageUsage,
 								  ArrayView<uint>						queueFamilyIndices)
@@ -216,7 +215,7 @@ namespace FG
 		swapchain_info.imageFormat				= colorFormat;
 		swapchain_info.imageColorSpace			= colorSpace;
 		swapchain_info.imageExtent				= { viewSize.x, viewSize.y };
-		swapchain_info.imageArrayLayers			= Clamp( imageArrayLayers, 1u, surf_caps.maxImageArrayLayers );
+		swapchain_info.imageArrayLayers			= 1;
 		swapchain_info.minImageCount			= minImageCount;
 		swapchain_info.oldSwapchain				= old_swapchain;
 		swapchain_info.clipped					= VK_TRUE;
@@ -256,7 +255,6 @@ namespace FG
 		_colorFormat		= colorFormat;
 		_colorSpace			= colorSpace;
 		_minImageCount		= swapchain_info.minImageCount;
-		_imageArrayLayers	= swapchain_info.imageArrayLayers;
 		_preTransform		= swapchain_info.preTransform;
 		_presentMode		= swapchain_info.presentMode;
 		_compositeAlpha		= swapchain_info.compositeAlpha;
@@ -331,8 +329,8 @@ namespace FG
 	{
 		ASSERT( not IsImageAcquired() );
 
-		CHECK_ERR( Create( size, _colorFormat, _colorSpace, _minImageCount, _imageArrayLayers,
-						   _preTransform, _presentMode, _compositeAlpha, _colorImageUsage ));
+		CHECK_ERR( Create( size, _colorFormat, _colorSpace, _minImageCount, _presentMode,
+						   _preTransform, _compositeAlpha, _colorImageUsage ));
 
 		return true;
 	}
@@ -466,7 +464,6 @@ namespace FG
 		_colorFormat		= VK_FORMAT_UNDEFINED;
 		_colorSpace			= VK_COLOR_SPACE_MAX_ENUM_KHR;
 		_minImageCount		= 0;
-		_imageArrayLayers	= 0;
 		_preTransform		= VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR;
 		_presentMode		= VK_PRESENT_MODE_MAX_ENUM_KHR;
 		_compositeAlpha		= VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR;
@@ -693,4 +690,4 @@ namespace FG
 	}
 
 
-}	// FG
+}	// FGC

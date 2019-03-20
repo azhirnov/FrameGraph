@@ -4,7 +4,7 @@
 
 #include "framegraph/Public/BufferDesc.h"
 #include "framegraph/Public/MemoryDesc.h"
-#include "framegraph/Public/FrameGraphThread.h"
+#include "framegraph/Public/FrameGraph.h"
 #include "VCommon.h"
 
 namespace FG
@@ -20,7 +20,7 @@ namespace FG
 
 	// types
 	private:
-		using OnRelease_t	= FrameGraphThread::OnExternalBufferReleased_t;
+		using OnRelease_t	= IFrameGraph::OnExternalBufferReleased_t;
 
 
 	// variables
@@ -29,6 +29,7 @@ namespace FG
 		MemoryID				_memoryId;
 		BufferDesc				_desc;
 		EQueueFamilyMask		_queueFamilyMask	= Default;
+		VkAccessFlags			_readAccessMask		= 0;
 
 		DebugName_t				_debugName;
 		OnRelease_t				_onRelease;
@@ -42,12 +43,12 @@ namespace FG
 		VBuffer (VBuffer &&) = default;
 		~VBuffer ();
 
-		bool Create (const VDevice &dev, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
+		bool Create (VResourceManager &, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 					 EQueueFamilyMask queueFamilyMask, StringView dbgName);
-		
+
 		bool Create (const VDevice &dev, const VulkanBufferDesc &desc, StringView dbgName, OnRelease_t &&onRelease);
 
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy (VResourceManager &);
 		
 		//void Merge (BufferViewMap_t &, OUT AppendableVkResources_t) const;
 
@@ -61,6 +62,8 @@ namespace FG
 		ND_ BufferDesc const&	Description ()			const	{ SHAREDLOCK( _rcCheck );  return _desc; }
 		ND_ BytesU				Size ()					const	{ SHAREDLOCK( _rcCheck );  return _desc.size; }
 		
+		ND_ VkAccessFlags		GetAllReadAccessMask ()	const	{ SHAREDLOCK( _rcCheck );  return _readAccessMask; }
+
 		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask == Default; }
 		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask; }
 		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }

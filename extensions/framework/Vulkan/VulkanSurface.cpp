@@ -9,7 +9,7 @@
 #	include <Vulkan/vulkan_win32.h>
 #endif
 
-namespace FG
+namespace FGC
 {
 	
 /*
@@ -112,4 +112,4 @@ namespace FG
 	}
 # endif
 
-}	// FG
+}	// FGC

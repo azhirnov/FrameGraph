@@ -65,7 +65,7 @@ namespace FG
 		struct ColorBuffersState
 		{
 		// types
-			using ColorBuffers_t	= FixedMap< RenderTargetID, ColorBuffer, FG_MaxColorBuffers >;
+			using ColorBuffers_t	= StaticArray< ColorBuffer, FG_MaxColorBuffers >;
 
 		// variables
 			ColorBuffers_t		buffers;

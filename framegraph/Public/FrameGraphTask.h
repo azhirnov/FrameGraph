@@ -1449,7 +1449,7 @@ namespace FG
 													const RTShaderID &closestHit, const RTShaderID &anyHit)
 	{
 		ASSERT( inst.IsDefined() );
-		ASSERT( geom.IsDefined() );
+		//ASSERT( geom.IsDefined() );
 		ASSERT( closestHit.IsDefined() );
 		shaderGroups.push_back(ShaderGroup{ inst, geom, offset, closestHit, anyHit });
 		return *this;
@@ -1460,7 +1460,7 @@ namespace FG
 															  const RTShaderID &closestHit, const RTShaderID &anyHit, const RTShaderID &intersection)
 	{
 		ASSERT( inst.IsDefined() );
-		ASSERT( geom.IsDefined() );
+		//ASSERT( geom.IsDefined() );
 		ASSERT( closestHit.IsDefined() );
 		shaderGroups.push_back(ShaderGroup{ inst, geom, offset, closestHit, anyHit, intersection });
 		return *this;

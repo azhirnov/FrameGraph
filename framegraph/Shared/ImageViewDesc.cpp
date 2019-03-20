@@ -11,14 +11,14 @@ namespace FG
 	ImageDesc
 =================================================
 */
-	ImageDesc::ImageDesc (EImage		imageType,
-						  const uint3	&dimension,
-						  EPixelFormat	format,
-						  EImageUsage	usage,
-						  ImageLayer	arrayLayers,
-						  MipmapLevel	maxLevel,
-						  MultiSamples	samples,
-						  EQueueUsage	queues)  :
+	ImageDesc::ImageDesc (EImage			imageType,
+						  const uint3 &		dimension,
+						  EPixelFormat		format,
+						  EImageUsage		usage,
+						  ImageLayer		arrayLayers,
+						  MipmapLevel		maxLevel,
+						  MultiSamples		samples,
+						  EQueueUsageBits	queues)  :
 		imageType(imageType),		dimension(dimension),
 		format(format),				usage(usage),
 		arrayLayers{arrayLayers},	maxLevel(maxLevel),

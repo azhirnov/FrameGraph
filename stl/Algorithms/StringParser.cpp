@@ -3,7 +3,7 @@
 #include "stl/Algorithms/StringParser.h"
 #include "stl/Math/Math.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -253,4 +253,4 @@ namespace FG
 	}
 
 
-}	// FG
+}	// FGC

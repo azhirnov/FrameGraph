@@ -31,10 +31,10 @@ SubBatch {
 					srcTask:         Present (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       ColorAttachmentOptimal
 					aspectMask:      Color
@@ -54,7 +54,7 @@ SubBatch {
 		resource_usage = {
 			ImageUsage {
 				name:           "RenderTarget"
-				usage:          Color-RW, ClearBefore
+				usage:          Color-RW, InvalidateBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

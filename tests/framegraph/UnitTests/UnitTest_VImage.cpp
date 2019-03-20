@@ -2,7 +2,7 @@
 
 #include "VLocalImage.h"
 #include "VBarrierManager.h"
-#include "framegraph/Public/FrameGraphInstance.h"
+#include "framegraph/Public/FrameGraph.h"
 #include "UnitTest_Common.h"
 #include "DummyTask.h"
 
@@ -104,10 +104,8 @@ static void VImage_Test1 ()
 	
 	local_image.ResetState( ExeOrderIndex::Final, barrier_mngr, null );
 
-	Array<UntypedVkResource_t>	ready_to_delete;
-	Array<UntypedResourceID_t>	unassign_ids;
-	local_image.Destroy( OUT ready_to_delete, OUT unassign_ids );
-	global_image.Destroy( OUT ready_to_delete, OUT unassign_ids );
+	local_image.Destroy();
+	//global_image.Destroy();
 }
 
 
@@ -169,10 +167,8 @@ static void VImage_Test2 ()
 	
 	local_image.ResetState( ExeOrderIndex::Final, barrier_mngr, null );
 
-	Array<UntypedVkResource_t>	ready_to_delete;
-	Array<UntypedResourceID_t>	unassign_ids;
-	local_image.Destroy( OUT ready_to_delete, OUT unassign_ids );
-	global_image.Destroy( OUT ready_to_delete, OUT unassign_ids );
+	local_image.Destroy();
+	//global_image.Destroy();
 }
 
 

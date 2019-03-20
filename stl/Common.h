@@ -1,6 +1,11 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	Frame Graph Core library
+*/
 
 #pragma once
+
+#include "stl/Defines.h"
 
 #include <vector>
 #include <string>
@@ -13,7 +18,6 @@
 #include <cstring>
 #include <cmath>
 
-#include "stl/Defines.h"
 #include "stl/Log/Log.h"
 #include "stl/Algorithms/Hash.h"
 #include "stl/CompileTime/TypeTraits.h"
@@ -21,25 +25,25 @@
 #include "stl/CompileTime/DefaultType.h"
 
 
-namespace FG
+namespace FGC
 {
 	using uint = uint32_t;
 
 							using String		= std::string;
-	template <typename T>	using BasicString	= std::basic_string<T>;
+	template <typename T>	using BasicString	= std::basic_string< T >;
 
-	template <typename T>	using Array		= std::vector< T >;
+	template <typename T>	using Array			= std::vector< T >;
 
-	template <typename T>	using UniquePtr	= std::unique_ptr< T >;
+	template <typename T>	using UniquePtr		= std::unique_ptr< T >;
 
-	template <typename T>	using SharedPtr	= std::shared_ptr< T >;
-	template <typename T>	using WeakPtr	= std::weak_ptr< T >;
+	template <typename T>	using SharedPtr		= std::shared_ptr< T >;
+	template <typename T>	using WeakPtr		= std::weak_ptr< T >;
 
-	template <typename T>	using Deque		= std::deque<T>;
+	template <typename T>	using Deque			= std::deque< T >;
 
-	template <size_t N>		using BitSet	= std::bitset<N>;
-	
-	template <typename...T>	using Tuple		= std::tuple< T... >;
+	template <size_t N>		using BitSet		= std::bitset< N >;
+
+	template <typename...T>	using Tuple			= std::tuple< T... >;
 
 
 	template <typename T,
@@ -76,4 +80,4 @@ namespace FG
 #	endif	// FG_OPTIMAL_MEMORY_ORDER
 
 
-}	// FG
+}	// FGC

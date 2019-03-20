@@ -7,7 +7,7 @@
 static void BitTree_Test1 ()
 {
 	constexpr uint											bit_count = 333; //32*32;
-	_fg_hidden_::BitTreeImpl< uint, uint, bit_count, 0 >	bit;	bit.Initialize( 0, bit_count );
+	_fgc_hidden_::BitTreeImpl< uint, uint, bit_count, 0 >	bit;	bit.Initialize( 0, bit_count );
 	STATIC_ASSERT( bit.Capacity() >= bit_count );
 
 	for (uint i = 0; i < bit_count+1; ++i)
@@ -32,7 +32,7 @@ static void BitTree_Test1 ()
 
 	
 	constexpr uint											bit2_count = 3333; //32*32*32;
-	_fg_hidden_::BitTreeImpl< uint, uint, bit2_count, 1 >	bit2;	bit2.Initialize( 0, bit2_count );
+	_fgc_hidden_::BitTreeImpl< uint, uint, bit2_count, 1 >	bit2;	bit2.Initialize( 0, bit2_count );
 	STATIC_ASSERT( bit2.Capacity() >= bit2_count );
 
 	for (uint i = 0; i < bit2_count+1; ++i)
@@ -57,7 +57,7 @@ static void BitTree_Test1 ()
 
 	
 	constexpr uint											bit3_count = 3333; //32*32*32*32;
-	_fg_hidden_::BitTreeImpl< uint, uint, bit3_count, 2 >	bit3;	bit3.Initialize( 0, bit3_count );
+	_fgc_hidden_::BitTreeImpl< uint, uint, bit3_count, 2 >	bit3;	bit3.Initialize( 0, bit3_count );
 	STATIC_ASSERT( bit3.Capacity() >= bit3_count );
 
 	for (uint i = 0; i < bit3_count+1; ++i)

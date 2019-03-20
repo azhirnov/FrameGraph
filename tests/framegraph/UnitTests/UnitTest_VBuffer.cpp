@@ -2,7 +2,7 @@
 
 #include "VLocalBuffer.h"
 #include "VBarrierManager.h"
-#include "framegraph/Public/FrameGraphInstance.h"
+#include "framegraph/Public/FrameGraph.h"
 #include "UnitTest_Common.h"
 #include "DummyTask.h"
 
@@ -315,10 +315,8 @@ static void VBuffer_Test1 ()
 
 	local_buffer.ResetState( ExeOrderIndex::Final, barrier_mngr, null );
 
-	Array<UntypedVkResource_t>	ready_to_delete;
-	Array<UntypedResourceID_t>	unassign_ids;
-	local_buffer.Destroy( OUT ready_to_delete, OUT unassign_ids );
-	global_buffer.Destroy( OUT ready_to_delete, OUT unassign_ids );
+	local_buffer.Destroy();
+	//global_buffer.Destroy();
 }
 
 

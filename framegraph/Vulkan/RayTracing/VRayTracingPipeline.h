@@ -49,7 +49,7 @@ namespace FG
 		~VRayTracingPipeline ();
 		
 		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy (VResourceManager &);
 		
 		ND_ ArrayView<ShaderModule>	GetShaderModules ()	const	{ SHAREDLOCK( _rcCheck );  return _shaders; }
 		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }

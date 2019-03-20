@@ -31,10 +31,10 @@ SubBatch {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       ColorAttachmentOptimal
 					aspectMask:      Color
@@ -64,7 +64,7 @@ SubBatch {
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   TransferWrite
-					oldLayout:       ShaderReadOnlyOptimal
+					oldLayout:       DepthStencilAttachmentOptimal
 					newLayout:       TransferDstOptimal
 					aspectMask:      Depth | Stencil
 					baseMipLevel:    0
@@ -92,12 +92,12 @@ SubBatch {
 					srcTask:         RenderPass (#3)
 					dstTask:         <final>
 					srcStageMask:    FragmentShader | EarlyFragmentTests
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   ShaderRead | DepthStencilAttachmentRead
-					dstAccessMask:   
+					dstAccessMask:   ShaderRead | DepthStencilAttachmentRead
 					oldLayout:       DepthStencilReadOnlyOptimal
-					newLayout:       ShaderReadOnlyOptimal
+					newLayout:       DepthStencilAttachmentOptimal
 					aspectMask:      Depth | Stencil
 					baseMipLevel:    0
 					levelCount:      1
@@ -116,7 +116,7 @@ SubBatch {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -149,7 +149,7 @@ SubBatch {
 		resource_usage = {
 			ImageUsage {
 				name:           "ColorTarget"
-				usage:          Color-RW, ClearBefore
+				usage:          Color-RW, InvalidateBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

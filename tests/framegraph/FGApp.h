@@ -4,7 +4,7 @@
 
 #include "framework/Window/IWindow.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
-#include "framegraph/VFG.h"
+#include "framegraph/FG.h"
 #include "stl/Algorithms/StringUtils.h"
 
 namespace FG
@@ -22,15 +22,13 @@ namespace FG
 		using TestQueue_t			= Deque<Pair< TestFunc_t, uint >>;
 		using DebugReport			= VulkanDeviceExt::DebugReport;
 		using VPipelineCompilerPtr	= SharedPtr< class VPipelineCompiler >;
-		using FGThreadArray_t		= StaticArray< FGThreadPtr, 4 >;
 
 
 	// variables
 	private:
 		VulkanDeviceExt			_vulkan;
 		WindowPtr				_window;
-		FGInstancePtr			_fgInstance;
-		FGThreadArray_t			_fgThreads;
+		FrameGraph				_frameGraph;
 		VPipelineCompilerPtr	_pplnCompiler;
 
 		TestQueue_t				_tests;
@@ -82,9 +80,6 @@ namespace FG
 	private:
 		bool ImplTest_Scene1 ();
 		bool ImplTest_CacheOverflow1 ();
-		bool ImplTest_Multithreading1 ();
-		bool ImplTest_Multithreading2 ();
-		bool ImplTest_Multithreading3 ();
 
 
 	// drawing tests
@@ -93,7 +88,6 @@ namespace FG
 		bool Test_CopyImage1 ();
 		bool Test_CopyImage2 ();
 		bool Test_CopyImage3 ();
-		bool Test_CopyImage4 ();
 		bool Test_PushConst1 ();
 		bool Test_Compute1 ();		// compute + specialization
 		bool Test_Compute2 ();
@@ -102,6 +96,7 @@ namespace FG
 		bool Test_Draw2 ();			// with swapchain
 		bool Test_Draw3 ();			// with scissor
 		bool Test_Draw4 ();
+		bool Test_Draw5 ();
 		bool Test_ExternalCmdBuf1 ();
 		bool Test_InvalidID ();
 		bool Test_ReadAttachment1 ();
@@ -126,14 +121,14 @@ namespace FG
 	inline void FGApp::DeleteResources (Args& ...args)
 	{
 		_RecursiveDeleteResources( std::forward<Args&>( args )... );
-		CHECK( _fgInstance->WaitIdle() );
+		CHECK( _frameGraph->WaitIdle() );
 	}
 
 
 	template <typename Arg0, typename ...Args>
 	inline void  FGApp::_RecursiveDeleteResources (Arg0 &arg0, Args& ...args)
 	{
-		_fgThreads[0]->ReleaseResource( INOUT arg0 );
+		_frameGraph->ReleaseResource( INOUT arg0 );
 
 		if constexpr ( CountOf<Args...>() )
 			_RecursiveDeleteResources( std::forward<Args&>( args )... );

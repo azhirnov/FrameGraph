@@ -3,6 +3,7 @@
 #include "VSampler.h"
 #include "VEnumCast.h"
 #include "VDevice.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -204,12 +205,13 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VSampler::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
+	void VSampler::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		if ( _sampler ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_SAMPLER, uint64_t(_sampler) );
+			auto&	dev = resMngr.GetDevice();
+			dev.vkDestroySampler( dev.GetVkDevice(), _sampler, null );
 		}
 
 		_sampler	= VK_NULL_HANDLE;

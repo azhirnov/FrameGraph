@@ -11,7 +11,7 @@
 # endif
 
 
-namespace FG
+namespace FGC
 {
 
 	enum class EMatrixOrder
@@ -319,7 +319,7 @@ namespace FG
 		}
 	};
 
-}	// FG
+}	// FGC
 
 
 # ifdef COMPILER_MSVC

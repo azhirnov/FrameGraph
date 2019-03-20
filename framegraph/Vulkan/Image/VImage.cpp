@@ -5,6 +5,7 @@
 #include "FGEnumCast.h"
 #include "VDevice.h"
 #include "VMemoryObj.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -103,13 +104,47 @@ namespace FG
 
 		return result;
 	}
+	
+/*
+=================================================
+	GetAllImageAccessMasks
+=================================================
+*/
+	ND_ static VkAccessFlags  GetAllImageAccessMasks (VkImageUsageFlags usage)
+	{
+		VkAccessFlags	result = 0;
+
+		for (VkImageUsageFlags t = 1; t <= usage; t <<= 1)
+		{
+			if ( not EnumEq( usage, t ) )
+				continue;
+
+			ENABLE_ENUM_CHECKS();
+			switch ( VkImageUsageFlagBits(t) )
+			{
+				case VK_IMAGE_USAGE_TRANSFER_SRC_BIT :				result |= VK_ACCESS_TRANSFER_READ_BIT;					break;
+				case VK_IMAGE_USAGE_TRANSFER_DST_BIT :				break;
+				case VK_IMAGE_USAGE_SAMPLED_BIT :					result |= VK_ACCESS_SHADER_READ_BIT;					break;
+				case VK_IMAGE_USAGE_STORAGE_BIT :					result |= VK_ACCESS_SHADER_READ_BIT;					break;
+				case VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT :			result |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;			break;
+				case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT :	result |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;	break;
+				case VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT :		break;
+				case VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT :			result |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;			break;
+				case VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV :		result |= VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;		break;
+				case VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT :
+				case VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM :			break;	// to shutup compiler warnings
+			}
+			DISABLE_ENUM_CHECKS();
+		}
+		return result;
+	}
 
 /*
 =================================================
 	Create
 =================================================
 */
-	bool VImage::Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
+	bool VImage::Create (VResourceManager &resMngr, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 						 EQueueFamilyMask queueFamilyMask, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
@@ -173,15 +208,18 @@ namespace FG
 			info.queueFamilyIndexCount	= 0;
 		}
 
+		auto&	dev = resMngr.GetDevice();
+
 		VK_CHECK( dev.vkCreateImage( dev.GetVkDevice(), &info, null, OUT &_image ));
 
-		CHECK_ERR( memObj.AllocateForImage( _image ));
+		CHECK_ERR( memObj.AllocateForImage( resMngr.GetMemoryManager(), _image ));
 		
 		if ( not dbgName.empty() )
 		{
 			dev.SetObjectName( BitCast<uint64_t>(_image), dbgName, VK_OBJECT_TYPE_IMAGE );
 		}
 
+		_readAccessMask		= GetAllImageAccessMasks( info.usage );
 		_aspectMask			= ChooseAspect( _desc.format );
 		_defaultLayout		= ChooseDefaultLayout( _desc.usage );
 		_queueFamilyMask	= queueFamilyMask;
@@ -238,12 +276,14 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VImage::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VImage::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
+		
+		auto&	dev = resMngr.GetDevice();
 
 		for (auto& view : _viewMap) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_IMAGE_VIEW, uint64_t(view.second) );
+			dev.vkDestroyImageView( dev.GetVkDevice(), view.second, null );
 		}
 		
 		if ( _desc.isExternal and _onRelease ) {
@@ -251,11 +291,11 @@ namespace FG
 		}
 
 		if ( not _desc.isExternal and _image ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_IMAGE, uint64_t(_image) );
+			dev.vkDestroyImage( dev.GetVkDevice(), _image, null );
 		}
 
 		if ( _memoryId ) {
-			unassignIDs.emplace_back( _memoryId.Release() );
+			resMngr.ReleaseResource( _memoryId.Release() );
 		}
 		
 		_viewMap.clear();
@@ -276,6 +316,8 @@ namespace FG
 */
 	VkImageView  VImage::GetView (const VDevice &dev, const HashedImageViewDesc &desc) const
 	{
+		SHAREDLOCK( _rcCheck );
+
 		// find already created image view
 		{
 			SHAREDLOCK( _viewMapLock );
@@ -297,6 +339,23 @@ namespace FG
 		CHECK_ERR( _CreateView( dev, desc, OUT iter->second ));
 
 		return iter->second;
+	}
+	
+/*
+=================================================
+	GetView
+=================================================
+*/
+	VkImageView  VImage::GetView (const VDevice &dev, bool isDefault, INOUT ImageViewDesc &viewDesc) const
+	{
+		SHAREDLOCK( _rcCheck );
+
+		if ( isDefault )
+			viewDesc = ImageViewDesc{ _desc };
+		else
+			viewDesc.Validate( _desc );
+
+		return GetView( dev, viewDesc );
 	}
 
 /*

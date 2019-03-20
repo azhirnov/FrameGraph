@@ -311,6 +311,7 @@ namespace FG
 			case EPipelineDynamicState::ShadingRatePalette:	return VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV;
 			case EPipelineDynamicState::Unknown :
 			case EPipelineDynamicState::All :
+			case EPipelineDynamicState::Default :
 			case EPipelineDynamicState::_Last :				break;	// to shutup warnings
 		}
 		DISABLE_ENUM_CHECKS();

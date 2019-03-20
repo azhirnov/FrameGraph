@@ -31,13 +31,11 @@ namespace FG
 
 	// variables
 	private:
-		Storage_t					_storage;
-		WeakPtr<VMemoryManager>		_manager;
-		MemoryDesc					_desc;
+		Storage_t				_storage;
+		MemoryDesc				_desc;
+		DebugName_t				_debugName;
 		
-		DebugName_t					_debugName;
-		
-		RWRaceConditionCheck		_rcCheck;
+		RWRaceConditionCheck	_rcCheck;
 
 
 	// methods
@@ -46,14 +44,14 @@ namespace FG
 		VMemoryObj (VMemoryObj &&) = default;
 		~VMemoryObj ();
 
-		bool Create (const MemoryDesc &, VMemoryManager &, StringView dbgName);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		bool Create (const MemoryDesc &, StringView dbgName);
+		void Destroy (VResourceManager &);
 
-		bool AllocateForImage (VkImage img);
-		bool AllocateForBuffer (VkBuffer buf);
-		bool AllocateForAccelStruct (VkAccelerationStructureNV as);
+		bool AllocateForImage (VMemoryManager &, VkImage);
+		bool AllocateForBuffer (VMemoryManager &, VkBuffer);
+		bool AllocateForAccelStruct (VMemoryManager &, VkAccelerationStructureNV);
 
-		bool GetInfo (OUT MemoryInfo &) const;
+		bool GetInfo (VMemoryManager &, OUT MemoryInfo &) const;
 
 		//ND_ MemoryDesc const&	Description ()	const	{ SHAREDLOCK( _rcCheck );  return _desc; }
 		ND_ EMemoryTypeExt	MemoryType ()		const	{ SHAREDLOCK( _rcCheck );  return EMemoryTypeExt(_desc.type); }

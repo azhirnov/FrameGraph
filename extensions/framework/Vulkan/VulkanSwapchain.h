@@ -8,7 +8,7 @@
 #include "extensions/vulkan_loader/VulkanCheckError.h"
 #include <chrono>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -46,7 +46,6 @@ namespace FG
 		VkFormat						_colorFormat;
 		VkColorSpaceKHR					_colorSpace;
 		uint							_minImageCount;
-		uint							_imageArrayLayers;
 		VkSurfaceTransformFlagBitsKHR	_preTransform;
 		VkPresentModeKHR				_presentMode;
 		VkCompositeAlphaFlagBitsKHR		_compositeAlpha;
@@ -74,9 +73,8 @@ namespace FG
 					 const VkFormat							colorFormat			= VK_FORMAT_B8G8R8A8_UNORM,
 					 const VkColorSpaceKHR					colorSpace			= VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
 					 const uint								minImageCount		= 2,
-					 const uint								imageArrayLayers	= 1,
-					 const VkSurfaceTransformFlagBitsKHR	transform			= VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
 					 const VkPresentModeKHR					presentMode			= VK_PRESENT_MODE_FIFO_KHR,
+					 const VkSurfaceTransformFlagBitsKHR	transform			= VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
 					 const VkCompositeAlphaFlagBitsKHR		compositeAlpha		= VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 					 const VkImageUsageFlags				colorImageUsage		= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
 					 ArrayView<uint>						queueFamilyIndices	= {});
@@ -134,4 +132,4 @@ namespace FG
 
 	using VulkanSwapchainPtr	= UniquePtr< VulkanSwapchain >;
 
-}	// FG
+}	// FGC

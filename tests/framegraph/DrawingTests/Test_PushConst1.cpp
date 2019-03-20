@@ -1,8 +1,4 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
-/*
-	This test affects:
-		...
-*/
 
 #include "../FGApp.h"
 
@@ -43,11 +39,10 @@ void main ()
 			float		f1;			// offset: 32
 		};							// size:   36
 		
-		FGThreadPtr		frame_graph		= _fgThreads[0];
 		const BytesU	dst_buffer_size	= 32_b;
-		BufferID		dst_buffer		= frame_graph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Storage | EBufferUsage::TransferSrc }, Default, "DstBuffer" );
+		BufferID		dst_buffer		= _frameGraph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Storage | EBufferUsage::TransferSrc }, Default, "DstBuffer" );
 
-		CPipelineID		pipeline		= frame_graph->CreatePipeline( ppln );
+		CPipelineID		pipeline		= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 
 		PushConst	pc;
@@ -56,7 +51,7 @@ void main ()
 		pc.f1 = 33.0f;
 		
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
 		
 		bool	cb_was_called	= false;
 		bool	data_is_correct	= false;
@@ -80,31 +75,26 @@ void main ()
 		};
 
 		
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CHECK_ERR( cmd );
 		
 		resources.BindBuffer( UniformID("SSB"), dst_buffer );
 
-		Task	t_dispatch	= frame_graph->AddTask( DispatchCompute{}.Dispatch({ 1, 1 }).SetPipeline( pipeline )
+		Task	t_dispatch	= cmd->AddTask( DispatchCompute{}.Dispatch({ 1, 1 }).SetPipeline( pipeline )
 														.AddResources( DescriptorSetID("0"), &resources )
 														.AddPushConstant( PushConstantID("PushConst"), pc ));
-		Task	t_read		= frame_graph->AddTask( ReadBuffer{}.SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
+		Task	t_read		= cmd->AddTask( ReadBuffer{}.SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
 
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _fgInstance->EndFrame() );
+		CHECK_ERR( _frameGraph->Execute( cmd ));
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 		
 		CHECK_ERR( not cb_was_called );
 		
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 		

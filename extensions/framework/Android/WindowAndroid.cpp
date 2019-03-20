@@ -7,7 +7,7 @@
 # include "framework/Vulkan/VulkanSurface.h"
 # include "android_native_app_glue.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -249,7 +249,7 @@ namespace FG
 */
 	Array<const char*>  WindowAndroid::VulkanSurface::GetRequiredExtensions () const
 	{
-		return FG::VulkanSurface::GetRequiredExtensions();
+		return FGC::VulkanSurface::GetRequiredExtensions();
 	}
 	
 /*
@@ -259,10 +259,10 @@ namespace FG
 */
 	VkSurfaceKHR  WindowAndroid::VulkanSurface::Create (VkInstance instance) const
 	{
-		return FG::VulkanSurface::CreateAndroidSurface( instance, _window );
+		return FGC::VulkanSurface::CreateAndroidSurface( instance, _window );
 	}
 
 
-}	// FG
+}	// FGC
 
 #endif	// PLATFORM_ANDROID

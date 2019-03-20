@@ -133,63 +133,54 @@ void main() {
 		const BytesU	cbuf_size			= 256_b;
 		const BytesU	cbuf_offset			= Max( cbuf_size, BytesU(_vulkan.GetDeviceProperties().limits.minUniformBufferOffsetAlignment) );
 		const BytesU	cbuf_aligned_size	= AlignToLarger( cbuf_size, cbuf_offset );
-		
-		FGThreadPtr	frame_graph	= _fgThreads[0];
 
-		BufferID	const_buf1 = frame_graph->CreateBuffer( BufferDesc{ cbuf_aligned_size,   EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf1" );
-		BufferID	const_buf2 = frame_graph->CreateBuffer( BufferDesc{ cbuf_aligned_size*2, EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf2" );
-		BufferID	const_buf3 = frame_graph->CreateBuffer( BufferDesc{ cbuf_aligned_size,   EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf3" );
+		BufferID	const_buf1 = _frameGraph->CreateBuffer( BufferDesc{ cbuf_aligned_size,   EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf1" );
+		BufferID	const_buf2 = _frameGraph->CreateBuffer( BufferDesc{ cbuf_aligned_size*2, EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf2" );
+		BufferID	const_buf3 = _frameGraph->CreateBuffer( BufferDesc{ cbuf_aligned_size,   EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf3" );
 	
-		BufferID	vbuffer1 = frame_graph->CreateBuffer( BufferDesc{ SizeOf<Vertex1> * 3*1000, EBufferUsage::Vertex | EBufferUsage::TransferDst }, Default, "vbuffer1" );
-		BufferID	vbuffer2 = frame_graph->CreateBuffer( BufferDesc{ SizeOf<Vertex1> * 3*2000, EBufferUsage::Vertex | EBufferUsage::TransferDst }, Default, "vbuffer2" );
+		BufferID	vbuffer1 = _frameGraph->CreateBuffer( BufferDesc{ SizeOf<Vertex1> * 3*1000, EBufferUsage::Vertex | EBufferUsage::TransferDst }, Default, "vbuffer1" );
+		BufferID	vbuffer2 = _frameGraph->CreateBuffer( BufferDesc{ SizeOf<Vertex1> * 3*2000, EBufferUsage::Vertex | EBufferUsage::TransferDst }, Default, "vbuffer2" );
 
-		ImageID		texture1 = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(512, 512, 1), EPixelFormat::RGBA8_UNorm,
+		ImageID		texture1 = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(512, 512, 1), EPixelFormat::RGBA8_UNorm,
 																	EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "texture1" );
-		ImageID		texture2 = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(256, 512, 1), EPixelFormat::RGBA8_UNorm,
+		ImageID		texture2 = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(256, 512, 1), EPixelFormat::RGBA8_UNorm,
 																	EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "texture2" );
 
-		SamplerID	sampler1 = frame_graph->CreateSampler( SamplerDesc() );
+		SamplerID	sampler1 = _frameGraph->CreateSampler( SamplerDesc() );
 
 		const VertexInputState	vertex_input = VertexInputState{}.Bind( VertexBufferID(), SizeOf<Vertex1> )
 														.Add( VertexID("at_Position"),	&Vertex1::position )
 														.Add( VertexID("at_Texcoord"),	&Vertex1::texcoord, true );
 		
-		GPipelineID		pipeline1	= frame_graph->CreatePipeline( ppln1 );
-		GPipelineID		pipeline2	= frame_graph->CreatePipeline( ppln2 );
+		GPipelineID		pipeline1	= _frameGraph->CreatePipeline( ppln1 );
+		GPipelineID		pipeline2	= _frameGraph->CreatePipeline( ppln2 );
 
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline1, DescriptorSetID("0"), OUT resources ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline1, DescriptorSetID("0"), OUT resources ));
 
-
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CHECK_ERR( cmd );
 		
-		ImageID		color_target = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::RGBA8_UNorm,
+		ImageID		color_target = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::RGBA8_UNorm,
 																		EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "color_target" );
 
-		ImageID		depth_target = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::Depth32F,
+		ImageID		depth_target = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::Depth32F,
 																		EImageUsage::DepthStencilAttachment }, Default, "depth_target" );
-
-		//ImageID	color_target = _CreateLogicalImage2D( view_size, EPixelFormat::RGBA8_UNorm, "color_target" );
-		//ImageID	depth_target = _CreateLogicalImage2D( view_size, EPixelFormat::Depth32F, "depth_target" );
 	
-		LogicalPassID	depth_pass = frame_graph->CreateRenderPass( RenderPassDesc{ view_size }
-											.AddTarget( RenderTargetID(),				depth_target, DepthStencil(), EAttachmentStoreOp::Store )
+		LogicalPassID	depth_pass = cmd->CreateRenderPass( RenderPassDesc{ view_size }
+											.AddTarget( RenderTargetID::Depth,	depth_target, DepthStencil(), EAttachmentStoreOp::Store )
 											.SetDepthTestEnabled(true).SetDepthWriteEnabled(true) );
 
-		LogicalPassID	opaque_pass = frame_graph->CreateRenderPass( RenderPassDesc{ view_size }
-											.AddTarget(  RenderTargetID("out_Color"),	color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
-											.AddTarget(  RenderTargetID(),				depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+		LogicalPassID	opaque_pass = cmd->CreateRenderPass( RenderPassDesc{ view_size }
+											.AddTarget(  RenderTargetID(0),		color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+											.AddTarget(  RenderTargetID::Depth,	depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 											.SetDepthTestEnabled(true).SetDepthWriteEnabled(false) );
 	
-		LogicalPassID	transparent_pass = frame_graph->CreateRenderPass( RenderPassDesc{ view_size }
-											.AddTarget(  RenderTargetID("out_Color"),	color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
-											.AddTarget(  RenderTargetID(),				depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Invalidate )
-											.AddColorBuffer( RenderTargetID("out_Color"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
+		LogicalPassID	transparent_pass = cmd->CreateRenderPass( RenderPassDesc{ view_size }
+											.AddTarget(  RenderTargetID(0),		color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+											.AddTarget(  RenderTargetID::Depth,	depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Invalidate )
+											.AddColorBuffer( RenderTargetID(0), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
 											.SetDepthTestEnabled(true).SetDepthWriteEnabled(false) );
 
 		{
@@ -199,14 +190,14 @@ void main() {
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, 0_b, cbuf_size );
 
-				frame_graph->AddTask( depth_pass,
+				cmd->AddTask( depth_pass,
 					DrawVertices{}.SetName( "Draw_Depth" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline2 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 		
-				Task	t_update_buf0 = frame_graph->AddTask( UpdateBuffer{ const_buf2, 0_b, CreateData( 256_b ) }.SetName( "update_buf0" ));
+				Task	t_update_buf0 = cmd->AddTask( UpdateBuffer{ const_buf2, 0_b, CreateData( 256_b ) }.SetName( "update_buf0" ));
 
-				t_submit_depth = frame_graph->AddTask( SubmitRenderPass{ depth_pass }.SetName( "DepthOnlyPass" ).DependsOn( t_update_buf0 ));
+				t_submit_depth = cmd->AddTask( SubmitRenderPass{ depth_pass }.SetName( "DepthOnlyPass" ).DependsOn( t_update_buf0 ));
 			}
 
 			// opaque pass
@@ -215,7 +206,7 @@ void main() {
 				resources.BindTexture( UniformID("un_ColorTexture"), texture2, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, cbuf_offset, cbuf_size );
 
-				frame_graph->AddTask( opaque_pass,
+				cmd->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw1_Opaque" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
@@ -223,7 +214,7 @@ void main() {
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, 0_b, cbuf_size );
 
-				frame_graph->AddTask( opaque_pass,
+				cmd->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw2_Opaque" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
@@ -231,15 +222,15 @@ void main() {
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf1 );
 
-				frame_graph->AddTask( opaque_pass,
+				cmd->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw0_Opaque" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*2000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
-				Task	t_update_buf1 = frame_graph->AddTask( UpdateBuffer{ const_buf1,   0_b, CreateData( 256_b ) }.SetName( "update_buf1" ));
-				Task	t_update_buf2 = frame_graph->AddTask( UpdateBuffer{ const_buf2, 256_b, CreateData( 256_b ) }.SetName( "update_buf2" ));
+				Task	t_update_buf1 = cmd->AddTask( UpdateBuffer{ const_buf1,   0_b, CreateData( 256_b ) }.SetName( "update_buf1" ));
+				Task	t_update_buf2 = cmd->AddTask( UpdateBuffer{ const_buf2, 256_b, CreateData( 256_b ) }.SetName( "update_buf2" ));
 				
-				t_submit_opaque = frame_graph->AddTask( SubmitRenderPass{ opaque_pass }.SetName( "OpaquePass" ).DependsOn( t_submit_depth, t_update_buf1, t_update_buf2 ));
+				t_submit_opaque = cmd->AddTask( SubmitRenderPass{ opaque_pass }.SetName( "OpaquePass" ).DependsOn( t_submit_depth, t_update_buf1, t_update_buf2 ));
 			}
 
 			// transparent pass
@@ -248,7 +239,7 @@ void main() {
 				resources.BindTexture( UniformID("un_ColorTexture"), texture2, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf3 );
 
-				frame_graph->AddTask( transparent_pass,
+				cmd->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw1_Transparent" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
@@ -256,7 +247,7 @@ void main() {
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, 0_b, cbuf_size );
 
-				frame_graph->AddTask( transparent_pass,
+				cmd->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw2_Transparent" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
@@ -264,28 +255,27 @@ void main() {
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, cbuf_offset, cbuf_size );
 
-				frame_graph->AddTask( transparent_pass,
+				cmd->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw0_Transparent" )
 						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*2000 )
 						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
 				
-				Task	update_buf3 = frame_graph->AddTask( UpdateBuffer{ const_buf3, 0_b, CreateData( 256_b ) }.SetName( "update_buf3" ) );
+				Task	update_buf3 = cmd->AddTask( UpdateBuffer{ const_buf3, 0_b, CreateData( 256_b ) }.SetName( "update_buf3" ) );
 
-				t_submit_transparent = frame_graph->AddTask( SubmitRenderPass{ transparent_pass }.SetName( "TransparentPass" ).DependsOn( t_submit_opaque, update_buf3 ));
+				t_submit_transparent = cmd->AddTask( SubmitRenderPass{ transparent_pass }.SetName( "TransparentPass" ).DependsOn( t_submit_opaque, update_buf3 ));
 			}
 
 			// present
-			Task	t_present = frame_graph->AddTask( Present{ color_target }.DependsOn( t_submit_transparent ));
+			Task	t_present = cmd->AddTask( Present{ color_target }.DependsOn( t_submit_transparent ));
 			FG_UNUSED( t_present );
 		}
 		
-		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _fgInstance->EndFrame() );
+		CHECK_ERR( _frameGraph->Execute( cmd ));
 	
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 		
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 		
 		DeleteResources( const_buf1, const_buf2, const_buf3, vbuffer1, vbuffer2, texture1, texture2,
 						 color_target, depth_target, pipeline1, pipeline2, sampler1 );

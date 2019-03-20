@@ -49,17 +49,17 @@ namespace FG
 		_MeshTaskShader			= 1 << 14,
 		_MeshShader				= 1 << 15,
 		_RayTracingShader		= 1 << 16,		// AnyHitShader, ClosestHitShader, MissShader, and other
-		_ShaderMask				= _VertexShader | _TessControlShader | _TessEvaluationShader |
-								  _GeometryShader | _FragmentShader | _ComputeShader |
-								  _MeshTaskShader | _MeshShader | _RayTracingShader,
+		_AllGraphics			= _VertexShader | _TessControlShader | _TessEvaluationShader |
+								  _GeometryShader | _FragmentShader | _MeshTaskShader | _MeshShader,
+		_ShaderMask				= _AllGraphics | _ComputeShader | _RayTracingShader,
 
 		// flags
-		_BufferDynamicOffset	= 1 << 24,
+		// unused range: 17..24
+		_BufferDynamicOffset	= 1 << 25,
 
 		// for ColorAttachment, DepthStencilAttachment
-		ClearBefore				= 1 << 25,
-		InvalidateBefore		= 1 << 26,
-		InvalidateAfter			= 1 << 27,
+		InvalidateBefore		= 1 << 26,				// discard image content before executing command
+		InvalidateAfter			= 1 << 27,				// discard image content after command execution
 
 		// for DepthStencilAttachment
 		EarlyFragmentTests		= 1 << 28,

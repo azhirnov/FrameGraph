@@ -2,6 +2,8 @@
 
 #include "VComputePipeline.h"
 #include "Shared/EnumUtils.h"
+#include "VResourceManager.h"
+#include "VDevice.h"
 
 namespace FG
 {
@@ -14,7 +16,7 @@ namespace FG
 	void VComputePipeline::PipelineInstance::UpdateHash ()
 	{
 #	if FG_FAST_HASH
-		_hash	= FG::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
+		_hash	= FGC::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
 #	else
 		_hash	= HashOf( layoutId )	+ HashOf( localGroupSize ) +
 				  HashOf( flags )		+ HashOf( debugMode );
@@ -74,17 +76,19 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VComputePipeline::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VComputePipeline::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
+		auto&	dev = resMngr.GetDevice();
+
 		for (auto& ppln : _instances) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(ppln.second) );
-			unassignIDs.push_back( const_cast<PipelineInstance &>(ppln.first).layoutId );
+			dev.vkDestroyPipeline( dev.GetVkDevice(), ppln.second, null );
+			resMngr.ReleaseResource( const_cast<PipelineInstance &>(ppln.first).layoutId );
 		}
 		
 		if ( _baseLayoutId ) {
-			unassignIDs.push_back( _baseLayoutId.Release() );
+			resMngr.ReleaseResource( _baseLayoutId.Release() );
 		}
 
 		_instances.clear();

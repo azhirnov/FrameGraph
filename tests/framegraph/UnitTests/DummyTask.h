@@ -10,7 +10,7 @@ namespace FG
 	//
 	// Dummy Task
 	//
-	class VFgDummyTask final : public IFrameGraphTask
+	class VFgDummyTask final : public VFrameGraphTask
 	{
 	};
 

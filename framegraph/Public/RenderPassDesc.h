@@ -35,7 +35,7 @@ namespace FG
 			ShadingRatePalette_t	palette;
 		};
 
-		using Targets_t		= FixedMap< RenderTargetID, RT, FG_MaxColorBuffers+1 >;
+		using Targets_t		= StaticArray< RT, FG_MaxColorBuffers+1 >;
 		using Viewports_t	= FixedArray< Viewport, FG_MaxViewports >;
 		using RS			= RenderState;
 
@@ -78,15 +78,15 @@ namespace FG
 
 
 		// render target
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image);
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp);
+		RenderPassDesc&  AddTarget (RenderTargetID id, RawImageID image);
+		RenderPassDesc&  AddTarget (RenderTargetID id, RawImageID image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp);
 		
 		template <typename ClearVal>
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image, const ClearVal &clearValue, EAttachmentStoreOp storeOp);
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp);
+		RenderPassDesc&  AddTarget (RenderTargetID id, RawImageID image, const ClearVal &clearValue, EAttachmentStoreOp storeOp);
+		RenderPassDesc&  AddTarget (RenderTargetID id, RawImageID image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp);
 
 		template <typename ClearVal>
-		RenderPassDesc&  AddTarget (const RenderTargetID &id, RawImageID image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp);
+		RenderPassDesc&  AddTarget (RenderTargetID id, RawImageID image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp);
 
 
 		// viewport
@@ -98,11 +98,11 @@ namespace FG
 		
 
 		// color
-		RenderPassDesc&  AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask = bool4{true});
-		RenderPassDesc&  AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
+		RenderPassDesc&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask = bool4{true});
+		RenderPassDesc&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
 										 EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
 										 EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask = bool4{true});
-		RenderPassDesc&  AddColorBuffer (const RenderTargetID &id, bool4 colorMask = bool4{true}); // without blending
+		RenderPassDesc&  AddColorBuffer (RenderTargetID id, bool4 colorMask = bool4{true}); // without blending
 		RenderPassDesc&  SetLogicOp (ELogicOp value);
 		RenderPassDesc&  SetBlendColor (const RGBA32f &value);
 
@@ -161,36 +161,36 @@ namespace FG
 	
 
 
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image)
 	{
 		return AddTarget( id, image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store );
 	}
 
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
 	{
 		ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
-		renderTargets.insert_or_assign( id, RT{image, {}, ClearValue_t{}, loadOp, storeOp} );
+		renderTargets[ uint(id) ] = RT{ image, {}, ClearValue_t{}, loadOp, storeOp };
 		return *this;
 	}
 		
 	template <typename ClearVal>
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
 	{
-		renderTargets.insert_or_assign( id, RT{image, {}, clearValue, EAttachmentLoadOp::Clear, storeOp} );
+		renderTargets[ uint(id) ] = RT{ image, {}, clearValue, EAttachmentLoadOp::Clear, storeOp };
 		return *this;
 	}
 		
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
 	{
 		ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
-		renderTargets.insert_or_assign( id, RT{image, desc, ClearValue_t{}, loadOp, storeOp} );
+		renderTargets[ uint(id) ] = RT{ image, desc, ClearValue_t{}, loadOp, storeOp };
 		return *this;
 	}
 
 	template <typename ClearVal>
-	inline RenderPassDesc&  RenderPassDesc::AddTarget (const RenderTargetID &id, RawImageID image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
+	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
 	{
-		renderTargets.insert_or_assign( id, RT{image, desc, clearValue, EAttachmentLoadOp::Clear, storeOp} );
+		renderTargets[ uint(id) ] = RT{ image, desc, clearValue, EAttachmentLoadOp::Clear, storeOp };
 		return *this;
 	}
 
@@ -214,14 +214,14 @@ namespace FG
 	color states
 =================================================
 */
-	inline RenderPassDesc&  RenderPassDesc::AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask)
+	inline RenderPassDesc&  RenderPassDesc::AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask)
 	{
 		return AddColorBuffer( id, srcBlendFactor, srcBlendFactor, dstBlendFactor, dstBlendFactor, blendOp, blendOp, colorMask );
 	}
 
-	inline RenderPassDesc&  RenderPassDesc::AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
-													  EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
-													  EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask)
+	inline RenderPassDesc&  RenderPassDesc::AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
+															EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
+															EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask)
 	{
 		RS::ColorBuffer	cb;
 		cb.blend			= true;
@@ -230,16 +230,16 @@ namespace FG
 		cb.blendOp			= { blendOpColor, blendOpAlpha };
 		cb.colorMask		= colorMask;
 
-		colorState.buffers.insert({ id, std::move(cb) });
+		colorState.buffers[ uint(id) ] = std::move(cb);
 		return *this;
 	}
 
-	inline RenderPassDesc&  RenderPassDesc::AddColorBuffer (const RenderTargetID &id, bool4 colorMask)
+	inline RenderPassDesc&  RenderPassDesc::AddColorBuffer (RenderTargetID id, bool4 colorMask)
 	{
 		RS::ColorBuffer	cb;
 		cb.colorMask = colorMask;
 		
-		colorState.buffers.insert({ id, std::move(cb) });
+		colorState.buffers[ uint(id) ] = std::move(cb);
 		return *this;
 	}
 

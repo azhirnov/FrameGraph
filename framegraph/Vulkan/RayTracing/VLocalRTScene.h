@@ -19,7 +19,7 @@ namespace FG
 		struct SceneState
 		{
 			EResourceState		state;
-			Task				task;
+			VTask				task;
 		};
 		
 	private:
@@ -59,7 +59,7 @@ namespace FG
 		~VLocalRTScene ();
 		
 		bool Create (const VRayTracingScene *);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t, ExeOrderIndex, uint);
+		void Destroy (VResourceManager &, ExeOrderIndex, uint);
 		
 		void AddPendingState (const SceneState &state) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;

@@ -4,7 +4,7 @@
 
 #include "stl/Math/Vec.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -449,28 +449,28 @@ namespace FG
 #		undef DEF_COLOR
 	};
 
-}	// FG
+}	// FGC
 
 
 namespace std
 {
 	template <typename T>
-	struct hash< FG::RGBAColor<T> >
+	struct hash< FGC::RGBAColor<T> >
 	{
-		ND_ size_t  operator () (const FG::RGBAColor<T> &value) const noexcept
+		ND_ size_t  operator () (const FGC::RGBAColor<T> &value) const noexcept
 		{
-			return	size_t(	FG::HashOf( value.r ) + FG::HashOf( value.g ) +
-							FG::HashOf( value.b ) + FG::HashOf( value.a ));
+			return	size_t(	FGC::HashOf( value.r ) + FGC::HashOf( value.g ) +
+							FGC::HashOf( value.b ) + FGC::HashOf( value.a ));
 		}
 	};
 	
 
 	template <>
-	struct hash< FG::DepthStencil >
+	struct hash< FGC::DepthStencil >
 	{
-		ND_ size_t  operator () (const FG::DepthStencil &value) const noexcept
+		ND_ size_t  operator () (const FGC::DepthStencil &value) const noexcept
 		{
-			return size_t(FG::HashOf( value.depth ) + FG::HashOf( value.stencil ));
+			return size_t(FGC::HashOf( value.depth ) + FGC::HashOf( value.stencil ));
 		}
 	};
 

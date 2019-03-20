@@ -1,7 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VLogicalRenderPass.h"
-#include "VResourceManagerThread.h"
+#include "VCommandBuffer.h"
 #include "VEnumCast.h"
 
 namespace FG
@@ -34,13 +34,11 @@ namespace {
 	Create
 =================================================
 */
-	bool VLogicalRenderPass::Create (VResourceManagerThread &resMngr, const RenderPassDesc &desc)
+	bool VLogicalRenderPass::Create (VCommandBuffer &fgThread, const RenderPassDesc &desc)
 	{
-		EXLOCK( _rcCheck );
-
 		const bool	enable_sri	= desc.shadingRate.image.IsValid();
 
-		_allocator.Create( resMngr.GetAllocator() );
+		_allocator.Create( fgThread.GetAllocator() );
 		_allocator->SetBlockSize( 4_Kb );
 		
 		_colorState			= desc.colorState;
@@ -60,7 +58,7 @@ namespace {
 		{
 			auto	offsets = src.second->GetDynamicOffsets();
 
-			_perPassResources.resources.emplace_back( src.first, resMngr.CreateDescriptorSet( *src.second, true ),
+			_perPassResources.resources.emplace_back( src.first, fgThread.GetResourceManager().CreateDescriptorSet( *src.second ),
 													  uint(offset_count), uint(offsets.size()) );
 			
 			for (size_t i = 0; i < offsets.size(); ++i, ++offset_count) {
@@ -69,44 +67,52 @@ namespace {
 		}
 
 		// copy render targets
-		for (auto& src : desc.renderTargets)
+		for (size_t i = 0; i < desc.renderTargets.size(); ++i)
 		{
+			const auto&		src = desc.renderTargets[i];
 			ColorTarget		dst;
-			dst.imagePtr	= resMngr.ToLocal( src.second.image );
+
+			if ( not src.image )
+				continue;
+
+			dst.imagePtr	= fgThread.ToLocal( src.image );
 			CHECK_ERR( dst.imagePtr );
 
-			if ( src.second.desc.has_value() ) {
-				dst.desc = *src.second.desc;
+			if ( src.desc.has_value() ) {
+				dst.desc = *src.desc;
 				dst.desc.Validate( dst.imagePtr->Description() );
 			}else
 				dst.desc = ImageViewDesc{dst.imagePtr->Description()};
 
-			dst.imageId		= src.second.image;
+			dst.imageId		= src.image;
 			dst.samples		= VEnumCast( dst.imagePtr->Description().samples );
-			dst.loadOp		= VEnumCast( src.second.loadOp );
-			dst.storeOp		= VEnumCast( src.second.storeOp );
+			dst.loadOp		= VEnumCast( src.loadOp );
+			dst.storeOp		= VEnumCast( src.storeOp );
 			dst.state		= EResourceState::Unknown;
-
+			dst.index		= uint(i);
 			dst._imageHash	= HashOf( dst.imageId ) + HashOf( dst.desc );
 
-			ConvertClearValue( src.second.clearValue, OUT dst.clearValue );
+			ConvertClearValue( src.clearValue, OUT _clearValues[i] );
 
 			// validate image view description
 			if ( dst.desc.format == EPixelFormat::Unknown )
 				dst.desc.format = dst.imagePtr->Description().format;
 
 			// add resource state flags
-			if ( src.second.loadOp  == EAttachmentLoadOp::Clear )		dst.state |= EResourceState::ClearBefore;
-			if ( src.second.loadOp  == EAttachmentLoadOp::Invalidate )	dst.state |= EResourceState::InvalidateBefore;
-			if ( src.second.storeOp == EAttachmentStoreOp::Invalidate )	dst.state |= EResourceState::InvalidateAfter;
+			if ( desc.area.left == 0 and desc.area.right  == int(dst.imagePtr->Width())  and
+				 desc.area.top  == 0 and desc.area.bottom == int(dst.imagePtr->Height()) )
+			{
+				if ( src.loadOp  == EAttachmentLoadOp::Clear or src.loadOp  == EAttachmentLoadOp::Invalidate )
+					dst.state |= EResourceState::InvalidateBefore;
 
+				if ( src.storeOp == EAttachmentStoreOp::Invalidate )
+					dst.state |= EResourceState::InvalidateAfter;
+			}
 
 			// add color or depth-stencil render target
 			if ( EPixelFormat_HasDepthOrStencil( dst.desc.format ) )
 			{
-				ASSERT( src.first == RenderTargetID()			or
-						src.first == RenderTargetID("depth")	or
-						src.first == RenderTargetID("depthStencil") );
+				ASSERT( RenderTargetID(i) == RenderTargetID::DepthStencil );
 				
 				dst.state |= EResourceState::DepthStencilAttachmentReadWrite;	// TODO: support other layouts
 
@@ -116,7 +122,7 @@ namespace {
 			{
 				dst.state |= EResourceState::ColorAttachmentReadWrite;		// TODO: remove 'Read' state if blending disabled or 'loadOp' is 'Clear'
 
-				_colorTargets.insert({ src.first, dst });
+				_colorTargets.push_back( dst );
 			}
 		}
 
@@ -186,7 +192,7 @@ namespace {
 		// set shading rate image
 		if ( enable_sri )
 		{
-			_shadingRateImage		= resMngr.ToLocal( desc.shadingRate.image );
+			_shadingRateImage		= fgThread.ToLocal( desc.shadingRate.image );
 			_shadingRateImageLayer	= desc.shadingRate.layer;
 			_shadingRateImageLevel	= desc.shadingRate.mipmap;
 		}
@@ -201,8 +207,6 @@ namespace {
 */
 	bool VLogicalRenderPass::GetShadingRateImage (OUT VLocalImage const* &outImage, OUT ImageViewDesc &outDesc) const
 	{
-		SHAREDLOCK( _rcCheck );
-
 		if ( not _shadingRateImage )
 			return false;
 
@@ -222,10 +226,9 @@ namespace {
 	Destroy
 =================================================
 */
-	void VLogicalRenderPass::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
+	void VLogicalRenderPass::Destroy (VResourceManager &)
 	{
-		EXLOCK( _rcCheck );
-		
+		// TODO: remove destructors?
 		for (auto& task : _drawTasks)
 		{
 			task->~IDrawTask();

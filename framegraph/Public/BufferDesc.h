@@ -14,15 +14,15 @@ namespace FG
 	struct BufferDesc
 	{
 	// variables
-		BytesU			size;
-		EBufferUsage	usage		= Default;
-		EQueueUsage		queues		= Default;
-		//bool			isLogical	= false;
-		bool			isExternal	= false;
+		BytesU				size;
+		EBufferUsage		usage		= Default;
+		EQueueUsageBits		queues		= Default;
+		//bool				isLogical	= false;
+		bool				isExternal	= false;
 
 	// methods
 		BufferDesc () {}
-		BufferDesc (BytesU size, EBufferUsage usage, EQueueUsage queues = Default) : size{size}, usage{usage}, queues{queues} {}
+		BufferDesc (BytesU size, EBufferUsage usage, EQueueUsageBits queues = Default) : size{size}, usage{usage}, queues{queues} {}
 	};
 
 

@@ -2,48 +2,12 @@
 
 #include "VGraphicsPipeline.h"
 #include "VEnumCast.h"
+#include "VResourceManager.h"
+#include "VDevice.h"
 #include "Shared/EnumUtils.h"
 
 namespace FG
 {
-
-/*
-=================================================
-	FragmentOutputInstance
-=================================================
-*/
-	VGraphicsPipeline::FragmentOutputInstance::FragmentOutputInstance (ArrayView<FragmentOutput> values) :
-		_values{ values }
-	{
-		// sort by index
-		std::sort( _values.begin(), _values.end(), [] (auto& lhs, auto &rhs) { return lhs.index < rhs.index; });
-
-		// calc hash
-		_hash = HashOf( _values.size() );
-
-		for (auto& fo : _values)
-		{
-			_hash << HashOf( fo.id );
-			_hash << HashOf( fo.index );
-			_hash << HashOf( fo.type );
-		}
-	}
-			
-/*
-=================================================
-	FragmentOutputInstance::operator ==
-=================================================
-*/
-	bool VGraphicsPipeline::FragmentOutputInstance::operator == (const FragmentOutputInstance &rhs) const
-	{
-		if ( _hash != rhs._hash )
-			return false;
-
-		return _values == rhs._values;
-	}
-//-----------------------------------------------------------------------------
-
-
 
 /*
 =================================================
@@ -81,7 +45,7 @@ namespace FG
 	void VGraphicsPipeline::PipelineInstance::UpdateHash ()
 	{
 #	if FG_FAST_HASH
-		_hash	= FG::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
+		_hash	= FGC::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
 #	else
 		_hash	= HashOf( layoutId )		+
 				  HashOf( renderPassId )	+ HashOf( subpassIndex )	+
@@ -109,7 +73,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VGraphicsPipeline::Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName)
+	bool VGraphicsPipeline::Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
 		
@@ -129,7 +93,6 @@ namespace FG
 
 		_baseLayoutId		= PipelineLayoutID{ layoutId };
 		_supportedTopology	= desc._supportedTopology;
-		_fragmentOutput		= fragOutput;
 		_vertexAttribs		= desc._vertexAttribs;
 		_patchControlPoints	= desc._patchControlPoints;
 		_earlyFragmentTests	= desc._earlyFragmentTests;
@@ -143,17 +106,19 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VGraphicsPipeline::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VGraphicsPipeline::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
+		auto&	dev = resMngr.GetDevice();
+
 		for (auto& ppln : _instances) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(ppln.second) );
-			unassignIDs.push_back( const_cast<PipelineInstance &>(ppln.first).layoutId );
+			dev.vkDestroyPipeline( dev.GetVkDevice(), ppln.second, null );
+			resMngr.ReleaseResource( const_cast<PipelineInstance &>(ppln.first).layoutId );
 		}
 		
 		if ( _baseLayoutId ) {
-			unassignIDs.push_back( _baseLayoutId.Release() );
+			resMngr.ReleaseResource( _baseLayoutId.Release() );
 		}
 
 		_shaders.clear();
@@ -163,7 +128,6 @@ namespace FG
 
 		_baseLayoutId		= Default;
 		_supportedTopology	= Default;
-		_fragmentOutput		= null;
 		_patchControlPoints	= 0;
 		_earlyFragmentTests	= false;
 	}

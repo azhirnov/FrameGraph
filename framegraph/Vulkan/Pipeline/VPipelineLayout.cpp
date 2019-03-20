@@ -1,7 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VPipelineLayout.h"
-#include "VResourceManagerThread.h"
+#include "VResourceManager.h"
 #include "VDevice.h"
 #include "VEnumCast.h"
 
@@ -170,16 +170,17 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VPipelineLayout::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VPipelineLayout::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		if ( _layout ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE_LAYOUT, uint64_t(_layout) );
+			auto&	dev = resMngr.GetDevice();
+			dev.vkDestroyPipelineLayout( dev.GetVkDevice(), _layout, null );
 		}
 
 		for (auto& ds : _descriptorSets) {
-			unassignIDs.push_back( ds.second.layoutId );
+			resMngr.ReleaseResource( ds.second.layoutId );
 		}
 
 		_descriptorSets.clear();
@@ -195,7 +196,7 @@ namespace FG
 	IsAllResourcesAlive
 =================================================
 */
-	bool VPipelineLayout::IsAllResourcesAlive (const VResourceManagerThread &resMngr) const
+	bool VPipelineLayout::IsAllResourcesAlive (const VResourceManager &resMngr) const
 	{
 		SHAREDLOCK( _rcCheck );
 

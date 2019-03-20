@@ -1,8 +1,4 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
-/*
-	This test affects:
-		...
-*/
 
 #include "../FGApp.h"
 
@@ -17,7 +13,6 @@ namespace FG
 		// create vulkan command pool & buffers
 		VkCommandPool		vk_cmdpool	= VK_NULL_HANDLE;
 		VkCommandBuffer		vk_cmdbuf	= VK_NULL_HANDLE;
-		VkQueue				vk_queue	= _vulkan.GetVkQuues()[0].id;
 		{
 			VkCommandPoolCreateInfo		info = {};
 			info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -65,10 +60,9 @@ namespace FG
 			vk_buf_desc.size	= BytesU{ info.size };
 		}
 		
-		FGThreadPtr		frame_graph	= _fgThreads[0];
-		BufferID		src_buffer	= frame_graph->CreateBuffer( BufferDesc{ src_buffer_size, EBufferUsage::Transfer }, Default, "SrcBuffer" );
-		BufferID		dst_buffer	= frame_graph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Transfer }, Default, "DstBuffer" );
-		BufferID		ext_buffer	= frame_graph->CreateBuffer( vk_buf_desc, Default, "ExternalBuffer" );
+		BufferID		src_buffer	= _frameGraph->CreateBuffer( BufferDesc{ src_buffer_size, EBufferUsage::Transfer }, Default, "SrcBuffer" );
+		BufferID		dst_buffer	= _frameGraph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Transfer }, Default, "DstBuffer" );
+		BufferID		ext_buffer	= _frameGraph->CreateBuffer( vk_buf_desc, Default, "ExternalBuffer" );
 
 		Array<uint8_t>	src_data;	src_data.resize( size_t(src_buffer_size) );
 
@@ -93,21 +87,19 @@ namespace FG
 			}
 		};
 		
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id, 3 );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
+
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}, {cmd1} );
+		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{}, {cmd2} );
+		CHECK_ERR( cmd1 and cmd2 and cmd3 );
 
 		// thread 1
 		{
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
-
-			Task	t_update	= frame_graph->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( ArrayView<uint8_t>{src_data}.section( 0, 128 ) ));
-			Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 64_b, 128_b ).DependsOn( t_update ));
+			Task	t_update	= cmd1->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( ArrayView<uint8_t>{src_data}.section( 0, 128 ) ));
+			Task	t_copy		= cmd1->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 64_b, 128_b ).DependsOn( t_update ));
 			FG_UNUSED( t_copy );
 
-			CHECK_ERR( frame_graph->Execute() );
+			CHECK_ERR( _frameGraph->Execute( cmd1 ));
 		}
 
 		// thread 2
@@ -135,31 +127,28 @@ namespace FG
 			VK_CALL( _vulkan.vkEndCommandBuffer( vk_cmdbuf ));
 
 			VulkanCommandBatch	vk_cmdbatch = {};
-			vk_cmdbatch.commands = { &BitCast<CommandBufferVk_t>( vk_cmdbuf ), 1 };
-			vk_cmdbatch.queue	 = BitCast<QueueVk_t>( vk_queue );
+			vk_cmdbatch.commands			= { &BitCast<CommandBufferVk_t>( vk_cmdbuf ), 1 };
+			vk_cmdbatch.queueFamilyIndex	= _vulkan.GetVkQuues()[0].familyIndex;
 
-			CHECK_ERR( _fgInstance->SubmitBatch( batch_id, 1, vk_cmdbatch ));
+			CHECK_ERR( cmd2->AddExternalCommands( vk_cmdbatch ));
+			CHECK_ERR( _frameGraph->Execute( cmd2 ));
 		}
 
 		// thread 3
 		{
-			CHECK_ERR( frame_graph->Begin( batch_id, 2, EQueueUsage::Graphics ));
-
-			Task	t_copy		= frame_graph->AddTask( CopyBuffer().From( ext_buffer ).To( dst_buffer ).AddRegion( 128_b, 192_b, 128_b ));
-			Task	t_read		= frame_graph->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_copy ));
+			Task	t_copy	= cmd3->AddTask( CopyBuffer().From( ext_buffer ).To( dst_buffer ).AddRegion( 128_b, 192_b, 128_b ));
+			Task	t_read	= cmd3->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_copy ));
 			FG_UNUSED( t_read );
-
-			CHECK_ERR( frame_graph->Execute() );
+			
+			CHECK_ERR( _frameGraph->Execute( cmd3 ));
 		}
-
-		CHECK_ERR( _fgInstance->EndFrame() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( not cb_was_called );
 		
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 

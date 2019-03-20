@@ -5,7 +5,7 @@
 #include "stl/Algorithms/StringUtils.h"
 #include <chrono>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -40,7 +40,7 @@ namespace FG
 
 		~TimeProfiler ()
 		{
-			_message << "; TIME: " << ToString( Clock_t::now() - _startTime );
+			_message << "; TIME: " << ToString( Clock_t::now() - _startTime, 3 );
 
 			if ( _file ) {
 				FG_PRIVATE_LOGI( _message, _file, _line );
@@ -52,11 +52,11 @@ namespace FG
 
 
 #	define FG_TIMEPROFILER( ... ) \
-		::FG::TimeProfiler	FG_PRIVATE_UNITE_RAW( __timeProf, __COUNTER__ ) ( \
+		::FGC::TimeProfiler	FG_PRIVATE_UNITE_RAW( __timeProf, __COUNTER__ ) ( \
 								FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_0( "" __VA_ARGS__, "no name" ) ), \
 								FG_FUNCTION_NAME, \
 								__FILE__, \
 								__LINE__ ) \
 
 
-}	// FG
+}	// FGC

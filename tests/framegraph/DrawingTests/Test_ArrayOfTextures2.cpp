@@ -30,26 +30,25 @@ void main ()
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		image_dim	= { 32, 32 };
 		const uint2		tex_dim		= { 16, 16 };
 
 		ImageID			textures[8];
 		for (auto& tex : textures) {
-			tex = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{tex_dim.x, tex_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+			tex = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{tex_dim.x, tex_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 													   EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Texture" );
 		}
 
-		ImageID			dst_image	= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			dst_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "OutImage" );
 		
-		SamplerID		sampler		= frame_graph->CreateSampler( SamplerDesc{} );
+		SamplerID		sampler		= _frameGraph->CreateSampler( SamplerDesc{} );
 
-		CPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		CPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 		
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID{"0"}, OUT resources ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"0"}, OUT resources ));
 		
 
 		bool	data_is_correct	= false;
@@ -86,12 +85,9 @@ void main ()
 			data_is_correct &= TestPixel( 15, 22, RGBA32f{RGBA8u{ 255,   0, 191, 255 }} );
 		};
 
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
 		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CHECK_ERR( cmd );
 		
 		resources.BindTextures( UniformID("un_Textures"), textures, sampler );
 		resources.BindImage( UniformID{"un_OutImage"}, dst_image );
@@ -101,22 +97,21 @@ void main ()
 		{
 			RGBA32f	color{ HSVColor{ float(i) / CountOf(textures) }};
 
-			t_update = frame_graph->AddTask( ClearColorImage{}.SetImage( textures[i] ).AddRange( 0_mipmap, 1, 0_layer, 1 )
+			t_update = cmd->AddTask( ClearColorImage{}.SetImage( textures[i] ).AddRange( 0_mipmap, 1, 0_layer, 1 )
 															  .Clear( color ).DependsOn( t_update ));
 		}
 
-		Task	t_comp	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).Dispatch({ image_dim.x / 8, image_dim.y })
+		Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).Dispatch({ image_dim.x / 8, image_dim.y })
 																.AddResources( DescriptorSetID{"0"}, &resources ).DependsOn( t_update ));
 		
-		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( dst_image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_comp ));
+		Task	t_read	= cmd->AddTask( ReadImage().SetImage( dst_image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 		FG_UNUSED( t_read );
 		
-		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _fgInstance->EndFrame() );
+		CHECK_ERR( _frameGraph->Execute( cmd ));
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 		CHECK_ERR( data_is_correct );
 		
 		DeleteResources( pipeline, dst_image, sampler );

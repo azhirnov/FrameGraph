@@ -4,7 +4,6 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
-#include "VFrameGraphDebugger.h"
 
 namespace FG
 {
@@ -39,7 +38,7 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VLocalRTGeometry::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
+	void VLocalRTGeometry::Destroy ()
 	{
 		_rtGeometryData	= null;
 		
@@ -64,7 +63,7 @@ namespace FG
 		_pendingAccesses.access		= EResourceState_ToAccess( gs.state );
 		_pendingAccesses.isReadable	= EResourceState_IsReadable( gs.state );
 		_pendingAccesses.isWritable	= EResourceState_IsWritable( gs.state );
-		_pendingAccesses.index		= gs.task->ExecutionOrder();
+		_pendingAccesses.index		= Cast<VFrameGraphTask>(gs.task)->ExecutionOrder();
 	}
 
 /*
@@ -107,9 +106,9 @@ namespace FG
 			barrier.dstAccessMask	= _pendingAccesses.access;
 			barrierMngr.AddMemoryBarrier( _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
 
-			if ( debugger )
-				debugger->AddRayTracingBarrier( _rtGeometryData, _accessForReadWrite.index, _pendingAccesses.index,
-											    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
+			//if ( debugger )
+			//	debugger->AddRayTracingBarrier( _rtGeometryData, _accessForReadWrite.index, _pendingAccesses.index,
+			//								    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
 
 			_accessForReadWrite = _pendingAccesses;
 		}

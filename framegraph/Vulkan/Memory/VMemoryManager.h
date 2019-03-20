@@ -11,12 +11,10 @@ namespace FG
 	// Vulkan Memory Manager
 	//
 
-	class VMemoryManager final : public std::enable_shared_from_this<VMemoryManager>
+	class VMemoryManager : public std::enable_shared_from_this<VMemoryManager>
 	{
 	// types
-	public:
-
-	private:
+	protected:
 		using Storage_t		= VMemoryObj::Storage_t;
 		using MemoryInfo_t	= VMemoryObj::MemoryInfo;
 
@@ -39,7 +37,7 @@ namespace FG
 			virtual bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data) = 0;
 			virtual bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) = 0;
 
-			virtual bool Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t) = 0;
+			virtual bool Dealloc (INOUT Storage_t &data) = 0;
 			
 			virtual bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const = 0;
 		};
@@ -56,18 +54,18 @@ namespace FG
 
 	// methods
 	public:
-		VMemoryManager (const VDevice &dev);
+		explicit VMemoryManager (const VDevice &dev);
 		~VMemoryManager ();
 
-		bool Initialize ();
-		void Deinitialize ();
+		virtual bool Initialize ();
+		virtual void Deinitialize ();
 
-		bool AllocateForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data);
-		bool AllocateForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data);
-		bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data);
-		bool Deallocate (INOUT Storage_t &data, OUT AppendableVkResources_t);
+		virtual bool AllocateForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data);
+		virtual bool AllocateForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data);
+		virtual bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data);
+		virtual bool Deallocate (INOUT Storage_t &data);
 
-		bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const;
+		virtual bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const;
 
 
 	private:

@@ -25,7 +25,7 @@
 # endif
 
 
-namespace FG
+namespace FGC
 {
 
 #	define VKLOADER_STAGE_FNPOINTER
@@ -270,6 +270,6 @@ namespace {
 		_table = table;
 	}
 
-}	// FG
+}	// FGC
 
 #endif	// not FG_VULKAN_STATIC

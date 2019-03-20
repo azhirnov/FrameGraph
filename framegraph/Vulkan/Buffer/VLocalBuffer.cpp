@@ -4,7 +4,6 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
-#include "VFrameGraphDebugger.h"
 
 namespace FG
 {
@@ -40,7 +39,7 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VLocalBuffer::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
+	void VLocalBuffer::Destroy ()
 	{
 		_bufferData	= null;
 
@@ -241,7 +240,7 @@ namespace FG
 		pending.access		= EResourceState_ToAccess( bs.state );
 		pending.isReadable	= EResourceState_IsReadable( bs.state );
 		pending.isWritable	= EResourceState_IsWritable( bs.state );
-		pending.index		= bs.task->ExecutionOrder();
+		pending.index		= Cast<VFrameGraphTask>(bs.task)->ExecutionOrder();
 		
 		
 		// merge with pending
@@ -295,7 +294,7 @@ namespace FG
 			BufferAccess		pending;
 			pending.range		= BufferRange{ 0, VkDeviceSize(Size()) };
 			pending.stages		= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-			pending.access		= 0;
+			pending.access		= _bufferData->GetAllReadAccessMask();
 			pending.isReadable	= true;
 			pending.isWritable	= false;
 			pending.index		= index;
@@ -340,8 +339,8 @@ namespace FG
 				dst_stages |= dst.stages;
 				barrierMngr.AddBufferBarrier( src.stages, dst.stages, 0, barrier );
 
-				if ( debugger )
-					debugger->AddBufferBarrier( _bufferData, src.index, dst.index, src.stages, dst.stages, 0, barrier );
+				//if ( debugger )
+				//	debugger->AddBufferBarrier( _bufferData, src.index, dst.index, src.stages, dst.stages, 0, barrier );
 			}
 		};
 

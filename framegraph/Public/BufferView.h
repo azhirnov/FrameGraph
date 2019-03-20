@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "stl/Containers/ArrayView.h"
+#include "framegraph/Public/Types.h"
 
 namespace FG
 {

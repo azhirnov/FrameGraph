@@ -6,6 +6,7 @@
 #include "framegraph/Public/RenderState.h"
 #include "framegraph/Public/VertexInputState.h"
 #include "framegraph/Public/ColorScheme.h"
+#include "framegraph/Public/DrawContext.h"
 
 namespace FG
 {
@@ -135,11 +136,11 @@ namespace _fg_hidden_
 		TaskType&  AddScissor (const RectI &rect);
 		TaskType&  AddScissor (const RectU &rect);
 			
-		TaskType&  AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask);
-		TaskType&  AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
+		TaskType&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask);
+		TaskType&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
 									EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
 									EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask);
-		TaskType&  AddColorBuffer (const RenderTargetID &id, bool4 colorMask);
+		TaskType&  AddColorBuffer (RenderTargetID id, bool4 colorMask);
 
 		TaskType&  SetStencilTestEnabled (bool value);
 		TaskType&  SetStencilReference (uint value);
@@ -463,15 +464,46 @@ namespace _fg_hidden_
 
 
 	//
-	// Clear Attachments
+	// Custom Draw
 	//
-	struct ClearAttachments final : _fg_hidden_::BaseDrawTask<ClearAttachments>
+	struct CustomDraw final : _fg_hidden_::BaseDrawTask<CustomDraw>
 	{
-	// methods
-		ClearAttachments () :
-			BaseDrawTask<ClearAttachments>{ "ClearAttachments", ColorScheme::ClearAttachments } {}
-	};
+	// types
+		using Callback_t	= std::function< void (IDrawContext &) >;
+		using Images_t		= FixedArray< Pair< RawImageID, EResourceState >, 8 >;
+		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;
 
+
+	// variables
+		Callback_t		callback;
+		Images_t		images;		// can be used for pipeline barriers and layout transitions
+		Buffers_t		buffers;
+
+
+	// methods
+		CustomDraw () :
+			BaseDrawTask<CustomDraw>{ "CustomDraw", ColorScheme::CustomDraw } {}
+
+		template <typename FN>
+		explicit CustomDraw (FN &&fn) : CustomDraw{}
+		{
+			callback = std::move(Callback_t{ fn });
+		}
+
+		CustomDraw&  AddImage (RawImageID id, EResourceState state = EResourceState::ShaderSample)
+		{
+			ASSERT( id );
+			images.emplace_back( id, state );
+			return *this;
+		}
+
+		CustomDraw&  AddBuffer (RawBufferID id, EResourceState state)
+		{
+			ASSERT( id );
+			buffers.emplace_back( id, state );
+			return *this;
+		}
+	};
 
 	
 namespace _fg_hidden_
@@ -501,15 +533,15 @@ namespace _fg_hidden_
 	}
 	
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask)
+	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask)
 	{
 		return AddColorBuffer( id, srcBlendFactor, srcBlendFactor, dstBlendFactor, dstBlendFactor, blendOp, blendOp, colorMask );
 	}
 	
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (const RenderTargetID &id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
-																EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
-																EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask)
+	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
+															  EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
+															  EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask)
 	{
 		ASSERT( id );
 
@@ -525,7 +557,7 @@ namespace _fg_hidden_
 	}
 	
 	template <typename TaskType>
-	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (const RenderTargetID &id, bool4 colorMask)
+	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (RenderTargetID id, bool4 colorMask)
 	{
 		ASSERT( id );
 

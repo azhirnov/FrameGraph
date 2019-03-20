@@ -31,10 +31,10 @@ SubBatch {
 					srcTask:         ReadImage (#11)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ShaderRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       General
 					aspectMask:      Color
@@ -415,7 +415,7 @@ SubBatch {
 					srcTask:         ReadImage (#11)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

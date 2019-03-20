@@ -49,7 +49,7 @@ namespace FG
 		~VDescriptorSetLayout ();
 
 		bool Create (const VDevice &dev, const DescriptorBinding_t &binding);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy (VResourceManager &);
 
 		ND_ bool	operator == (const VDescriptorSetLayout &rhs) const;
 

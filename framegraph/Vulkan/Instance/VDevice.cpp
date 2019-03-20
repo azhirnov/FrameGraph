@@ -14,7 +14,8 @@ namespace FG
 		_vkInstance{ BitCast<VkInstance>( vdi.instance )},
 		_vkPhysicalDevice{ BitCast<VkPhysicalDevice>( vdi.physicalDevice )},
 		_vkDevice{ BitCast<VkDevice>( vdi.device )},
-		_vkVersion{ EShaderLangFormat::Unknown }
+		_vkVersion{ EShaderLangFormat::Unknown },
+		_availableQueues{ Default }
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
 
@@ -38,6 +39,7 @@ namespace FG
 			dst.minImageTransferGranularity	= { props.minImageTransferGranularity.width,
 												props.minImageTransferGranularity.height,
 												props.minImageTransferGranularity.depth };
+			_availableQueues |= dst.familyIndex;
 
 			CHECK( dst.familyIndex < EQueueFamily::_Count );
 

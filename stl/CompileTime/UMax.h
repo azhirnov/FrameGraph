@@ -5,9 +5,9 @@
 
 #pragma once
 
-namespace FG
+namespace FGC
 {
-namespace _fg_hidden_
+namespace _fgc_hidden_
 {
 	struct _UMax
 	{
@@ -31,9 +31,9 @@ namespace _fg_hidden_
 		}
 	};
 
-}	// _fg_hidden_
+}	// _fgc_hidden_
 
 
-	static constexpr _fg_hidden_::_UMax		UMax {};
+	static constexpr _fgc_hidden_::_UMax		UMax {};
 
-}	// FG
+}	// FGC

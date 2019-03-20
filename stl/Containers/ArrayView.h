@@ -4,7 +4,7 @@
 
 #include "stl/Math/Math.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -16,6 +16,7 @@ namespace FG
 	{
 	// types
 	public:
+		using value_type		= T;
 		using iterator			= T *;
 		using const_iterator	= T const *;
 
@@ -88,26 +89,26 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC
 
 
 namespace std
 {
 	template <typename T>
-	struct hash< FG::ArrayView<T> >
+	struct hash< FGC::ArrayView<T> >
 	{
-		ND_ size_t  operator () (const FG::ArrayView<T> &value) const noexcept
+		ND_ size_t  operator () (const FGC::ArrayView<T> &value) const noexcept
 		{
-			if constexpr ( FG_FAST_HASH and FG::IsPOD<T> )
+			if constexpr ( FG_FAST_HASH and FGC::IsPOD<T> )
 			{
-				return size_t(FG::HashOf( value.data(), value.size() * sizeof(T) ));
+				return size_t(FGC::HashOf( value.data(), value.size() * sizeof(T) ));
 			}
 			else
 			{
-				FG::HashVal	result = FG::HashOf( value.size() );
+				FGC::HashVal	result = FGC::HashOf( value.size() );
 
 				for (auto& item : value) {
-					result << FG::HashOf( item );
+					result << FGC::HashOf( item );
 				}
 				return size_t(result);
 			}
@@ -120,7 +121,7 @@ namespace std
 	{
 		ND_ size_t  operator () (const vector<T> &value) const noexcept
 		{
-			return size_t(FG::HashOf( FG::ArrayView<T>{ value } ));
+			return size_t(FGC::HashOf( FGC::ArrayView<T>{ value } ));
 		}
 	};
 
@@ -130,7 +131,7 @@ namespace std
 	{
 		ND_ size_t  operator () (const array<T,S> &value) const noexcept
 		{
-			return size_t(FG::HashOf( FG::ArrayView<T>{ value } ));
+			return size_t(FGC::HashOf( FGC::ArrayView<T>{ value } ));
 		}
 	};
 

@@ -6,7 +6,7 @@
 #include "Public/FrameGraphDrawTask.h"
 #include "Public/FrameGraphTask.h"
 #include "Public/Pipeline.h"
-#include "Public/FrameGraphThread.h"
+#include "Public/FrameGraph.h"
 
 namespace FG
 {
@@ -47,14 +47,14 @@ namespace FG
 
 		using StorageBuffers_t		= Array< StorageBuffer >;
 		using DebugModes_t			= Array< DebugMode >;
-		using ShaderDebugCallback_t	= FrameGraphThread::ShaderDebugCallback_t;
+		using ShaderDebugCallback_t	= IFrameGraph::ShaderDebugCallback_t;
 		using LayoutCache_t			= HashMap< uint, DescriptorSetLayoutID >;
 		using DescriptorCache_t		= HashMap< Pair<RawBufferID, RawDescriptorSetLayoutID>, VkDescriptorSet >;
 
 
 	// variables
 	private:
-		VFrameGraphThread&		_frameGraph;
+		VCommandBuffer&			_fgThread;
 
 		StorageBuffers_t		_storageBuffers;
 		DebugModes_t			_debugModes;
@@ -73,7 +73,7 @@ namespace FG
 
 	// methods
 	public:
-		explicit VShaderDebugger (VFrameGraphThread &);
+		explicit VShaderDebugger (VCommandBuffer &);
 		~VShaderDebugger ();
 
 		void OnBeginRecording (VkCommandBuffer cmd);

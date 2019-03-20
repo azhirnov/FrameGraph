@@ -1,7 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VRayTracingPipeline.h"
-#include "VResourceManagerThread.h"
+#include "VResourceManager.h"
 #include "VEnumCast.h"
 #include "VDevice.h"
 
@@ -54,12 +54,12 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VRayTracingPipeline::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t unassignIDs)
+	void VRayTracingPipeline::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		if ( _baseLayoutId ) {
-			unassignIDs.emplace_back( _baseLayoutId.Release() );
+			resMngr.ReleaseResource( _baseLayoutId.Release() );
 		}
 
 		_shaders.clear();

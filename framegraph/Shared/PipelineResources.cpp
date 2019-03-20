@@ -5,6 +5,98 @@
 #include "stl/Memory/UntypedAllocator.h"
 #include "stl/Memory/MemWriter.h"
 
+namespace FGC
+{
+namespace {
+
+/*
+=================================================
+	HashOf (Buffer)
+=================================================
+*/
+	inline HashVal  HashOf (const FG::PipelineResources::Buffer &buf)
+	{
+		HashVal	result = FGC::HashOf( buf.index ) + FGC::HashOf( buf.state ) +
+						 FGC::HashOf( buf.dynamicOffsetIndex ) + FGC::HashOf( buf.elementCount );
+
+		for (uint16_t i = 0; i < buf.elementCount; ++i)
+		{
+			auto&	elem = buf.elements[i];
+			result << (FGC::HashOf( elem.bufferId ) + FGC::HashOf( elem.offset ) + FGC::HashOf( elem.size ));
+		}
+		return result;
+	}
+	
+/*
+=================================================
+	HashOf (Image)
+=================================================
+*/
+	inline HashVal  HashOf (const FG::PipelineResources::Image &img)
+	{
+		HashVal	result = FGC::HashOf( img.index ) + FGC::HashOf( img.state ) + FGC::HashOf( img.elementCount );
+
+		for (uint16_t i = 0; i < img.elementCount; ++i)
+		{
+			auto&	elem = img.elements[i];
+			result << (FGC::HashOf( elem.imageId ) + (elem.hasDesc ? FGC::HashOf( elem.desc ) : HashVal{}));
+		}
+		return result;
+	}
+	
+/*
+=================================================
+	HashOf (Texture)
+=================================================
+*/
+	inline HashVal  HashOf (const FG::PipelineResources::Texture &tex)
+	{
+		HashVal	result = FGC::HashOf( tex.index ) + FGC::HashOf( tex.state ) + FGC::HashOf( tex.elementCount );
+
+		for (uint16_t i = 0; i < tex.elementCount; ++i)
+		{
+			auto&	elem = tex.elements[i];
+			result << (FGC::HashOf( elem.imageId ) + FGC::HashOf( elem.samplerId ) +
+					   (elem.hasDesc ? FGC::HashOf( elem.desc ) : HashVal{}));
+		}
+		return result;
+	}
+	
+/*
+=================================================
+	HashOf (Sampler)
+=================================================
+*/
+	inline HashVal  HashOf (const FG::PipelineResources::Sampler &samp)
+	{
+		HashVal	result = FGC::HashOf( samp.index ) + FGC::HashOf( samp.elementCount );
+
+		for (uint16_t i = 0; i < samp.elementCount; ++i)
+		{
+			result << FGC::HashOf( samp.elements[i].samplerId );
+		}
+		return result;
+	}
+
+/*
+=================================================
+	HashOf (RayTracingScene)
+=================================================
+*/
+	inline HashVal  HashOf (const FG::PipelineResources::RayTracingScene &rts)
+	{
+		HashVal	result = FGC::HashOf( rts.index ) + FGC::HashOf( rts.elementCount );
+
+		for (uint16_t i = 0; i < rts.elementCount; ++i)
+		{
+			result << FGC::HashOf( rts.elements[i].sceneId );
+		}
+		return result;
+	}
+
+}	// namespace
+}	// FGC
+
 namespace FG
 {
 
@@ -32,16 +124,6 @@ namespace FG
 	PipelineResources::~PipelineResources ()
 	{
 		EXLOCK( _rcCheck );
-	}
-	
-/*
-=================================================
-	_ResetCachedID
-=================================================
-*/
-	inline void  PipelineResources::_ResetCachedID () const
-	{
-		_cachedId.store( BitCast<uint64_t>(RawPipelineResourcesID()), memory_order_release );
 	}
 
 /*
@@ -499,24 +581,6 @@ namespace {
 	
 /*
 =================================================
-	HashOf (Buffer)
-=================================================
-*/
-	inline HashVal  HashOf (const PipelineResources::Buffer &buf)
-	{
-		HashVal	result = FG::HashOf( buf.index ) + FG::HashOf( buf.state ) +
-						 FG::HashOf( buf.dynamicOffsetIndex ) + FG::HashOf( buf.elementCount );
-
-		for (uint16_t i = 0; i < buf.elementCount; ++i)
-		{
-			auto&	elem = buf.elements[i];
-			result << (FG::HashOf( elem.bufferId ) + FG::HashOf( elem.offset ) + FG::HashOf( elem.size ));
-		}
-		return result;
-	}
-	
-/*
-=================================================
 	operator == (Image)
 =================================================
 */
@@ -535,23 +599,6 @@ namespace {
 				return false;
 		}
 		return true;
-	}
-	
-/*
-=================================================
-	HashOf (Image)
-=================================================
-*/
-	inline HashVal  HashOf (const PipelineResources::Image &img)
-	{
-		HashVal	result = FG::HashOf( img.index ) + FG::HashOf( img.state ) + FG::HashOf( img.elementCount );
-
-		for (uint16_t i = 0; i < img.elementCount; ++i)
-		{
-			auto&	elem = img.elements[i];
-			result << (FG::HashOf( elem.imageId ) + (elem.hasDesc ? FG::HashOf( elem.desc ) : HashVal{}));
-		}
-		return result;
 	}
 	
 /*
@@ -576,24 +623,6 @@ namespace {
 		}
 		return true;
 	}
-	
-/*
-=================================================
-	HashOf (Texture)
-=================================================
-*/
-	inline HashVal  HashOf (const PipelineResources::Texture &tex)
-	{
-		HashVal	result = FG::HashOf( tex.index ) + FG::HashOf( tex.state ) + FG::HashOf( tex.elementCount );
-
-		for (uint16_t i = 0; i < tex.elementCount; ++i)
-		{
-			auto&	elem = tex.elements[i];
-			result << (FG::HashOf( elem.imageId ) + FG::HashOf( elem.samplerId ) +
-					   (elem.hasDesc ? FG::HashOf( elem.desc ) : HashVal{}));
-		}
-		return result;
-	}
 
 /*
 =================================================
@@ -613,22 +642,6 @@ namespace {
 		}
 		return true;
 	}
-	
-/*
-=================================================
-	HashOf (Sampler)
-=================================================
-*/
-	inline HashVal  HashOf (const PipelineResources::Sampler &samp)
-	{
-		HashVal	result = FG::HashOf( samp.index ) + FG::HashOf( samp.elementCount );
-
-		for (uint16_t i = 0; i < samp.elementCount; ++i)
-		{
-			result << FG::HashOf( samp.elements[i].samplerId );
-		}
-		return result;
-	}
 
 /*
 =================================================
@@ -647,22 +660,6 @@ namespace {
 				return false;
 		}
 		return true;
-	}
-
-/*
-=================================================
-	HashOf (RayTracingScene)
-=================================================
-*/
-	inline HashVal  HashOf (const PipelineResources::RayTracingScene &rts)
-	{
-		HashVal	result = FG::HashOf( rts.index ) + FG::HashOf( rts.elementCount );
-
-		for (uint16_t i = 0; i < rts.elementCount; ++i)
-		{
-			result << FG::HashOf( rts.elements[i].sceneId );
-		}
-		return result;
 	}
 
 }	// namespace

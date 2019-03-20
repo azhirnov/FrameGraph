@@ -5,7 +5,7 @@
 #	define VK_NO_PROTOTYPES
 #	include <vulkan/vulkan.h>
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -70,4 +70,4 @@ namespace FG
 		return false;
 	}
 
-}	// FG
+}	// FGC

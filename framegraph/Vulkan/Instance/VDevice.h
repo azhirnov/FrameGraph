@@ -15,7 +15,7 @@ namespace FG
 	struct VDeviceQueueInfo
 	{
 	// variables
-		mutable std::mutex	lock;			// use when call vkQueueSubmit, vkQueueWaitIdle, vkQueueBindSparse, vkQueuePresentKHR
+		mutable std::mutex	guard;			// use when call vkQueueSubmit, vkQueueWaitIdle, vkQueueBindSparse, vkQueuePresentKHR
 		VkQueue				handle			= VK_NULL_HANDLE;
 		EQueueFamily		familyIndex		= Default;
 		VkQueueFlags		familyFlags		= {};
@@ -29,7 +29,7 @@ namespace FG
 		VDeviceQueueInfo (VDeviceQueueInfo &&other) :
 			handle{other.handle}, familyIndex{other.familyIndex}, familyFlags{other.familyFlags},
 			priority{other.priority}, minImageTransferGranularity{other.minImageTransferGranularity},
-			debugName{std::move(other.debugName)}
+			debugName{other.debugName}
 		{}
 	};
 
@@ -41,8 +41,6 @@ namespace FG
 
 	class VDevice final : public VulkanDeviceFn
 	{
-		friend class VFrameGraphInstance;
-
 	// types
 	private:
 		using Queues_t				= FixedArray< VDeviceQueueInfo, 16 >;
@@ -58,6 +56,7 @@ namespace FG
 		VkDevice								_vkDevice;
 		EShaderLangFormat						_vkVersion;
 		Queues_t								_vkQueues;
+		EQueueFamilyMask						_availableQueues;
 
 		struct {
 			VkPhysicalDeviceProperties						properties;
@@ -98,7 +97,8 @@ namespace FG
 		ND_ VkInstance						GetVkInstance ()				const	{ return _vkInstance; }
 		ND_ EShaderLangFormat				GetVkVersion ()					const	{ return _vkVersion; }
 		ND_ ArrayView< VDeviceQueueInfo >	GetVkQueues ()					const	{ return _vkQueues; }
-		
+		ND_ EQueueFamilyMask				GetQueueFamilyMask ()		const	{ return _availableQueues; }
+
 
 		ND_ VkPhysicalDeviceProperties const&					GetDeviceProperties ()					const	{ return _deviceInfo.properties; }
 		ND_ VkPhysicalDeviceFeatures const&						GetDeviceFeatures ()					const	{ return _deviceInfo.features; }

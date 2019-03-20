@@ -21,10 +21,10 @@ SubBatch {
 					srcTask:         DispatchCompute (#2)
 					dstTask:         <final>
 					srcStageMask:    ComputeShader
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   ShaderWrite
-					dstAccessMask:   
+					dstAccessMask:   ShaderRead | TransferRead
 					offset:          0 b
 					size:            32 b
 				}
@@ -40,7 +40,7 @@ SubBatch {
 					srcTask:         ReadBuffer (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

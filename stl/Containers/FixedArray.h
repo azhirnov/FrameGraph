@@ -5,7 +5,7 @@
 #include "stl/Containers/ArrayView.h"
 #include "stl/Memory/MemUtils.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -251,6 +251,28 @@ namespace FG
 		}
 
 
+		void fast_erase (size_t index)
+		{
+			ASSERT( index < _count );
+
+			--_count;
+
+			if ( index == _count )
+			{
+				// erase from back
+				_array[_count].~T();
+			}
+			else
+			{
+				// move element from back to 'index'
+				_array[index].~T();
+				PlacementNew<T>( data() + index, std::move(_array[_count]) );
+			}
+
+			DEBUG_ONLY( ::memset( data() + _count, 0, sizeof(T) ));
+		}
+
+
 	private:
 		ND_ forceinline bool _IsMemoryAliased (const_iterator beginIter, const_iterator endIter) const
 		{
@@ -259,17 +281,17 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC
 
 
 namespace std
 {
 	template <typename T, size_t ArraySize>
-	struct hash< FG::FixedArray<T, ArraySize> >
+	struct hash< FGC::FixedArray<T, ArraySize> >
 	{
-		ND_ size_t  operator () (const FG::FixedArray<T, ArraySize> &value) const noexcept
+		ND_ size_t  operator () (const FGC::FixedArray<T, ArraySize> &value) const noexcept
 		{
-			return size_t(FG::HashOf( FG::ArrayView<T>{ value } ));
+			return size_t(FGC::HashOf( FGC::ArrayView<T>{ value } ));
 		}
 	};
 

@@ -2,7 +2,7 @@
 
 #include "VFramebuffer.h"
 #include "VDevice.h"
-#include "VResourceManagerThread.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -50,7 +50,7 @@ namespace FG
 	IsAllResourcesAlive
 =================================================
 */
-	bool VFramebuffer::IsAllResourcesAlive (const VResourceManagerThread &resMngr) const
+	bool VFramebuffer::IsAllResourcesAlive (const VResourceManager &resMngr) const
 	{
 		SHAREDLOCK( _rcCheck );
 
@@ -108,7 +108,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VFramebuffer::Create (VResourceManagerThread &resMngr, StringView dbgName)
+	bool VFramebuffer::Create (VResourceManager &resMngr, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( not _framebuffer );
@@ -119,7 +119,7 @@ namespace FG
 
 		for (auto& rt : _attachments)
 		{
-			VkImageView		view = resMngr.ToLocal( rt.first )->GetView( dev, false, INOUT rt.second );
+			VkImageView		view = resMngr.GetResource( rt.first )->GetView( dev, false, INOUT rt.second );
 			CHECK_ERR( view );
 
 			image_views.push_back( view );
@@ -147,20 +147,21 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VFramebuffer::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VFramebuffer::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		if ( _framebuffer ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_FRAMEBUFFER, uint64_t(_framebuffer) );
+			auto&	dev = resMngr.GetDevice();
+			dev.vkDestroyFramebuffer( dev.GetVkDevice(), _framebuffer, null );
 		}
 
 		if ( _renderPassId ) {
-			unassignIDs.emplace_back( _renderPassId );
+			resMngr.ReleaseResource( _renderPassId );
 		}
 
 		for (auto& att : _attachments) {
-			unassignIDs.emplace_back( att.first );
+			resMngr.ReleaseResource( att.first );
 		}
 
 		_framebuffer	= VK_NULL_HANDLE;

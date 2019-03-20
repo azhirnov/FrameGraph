@@ -9,7 +9,7 @@
 #include "stl/Math/Color.h"
 #include <thread>
 
-using namespace FG;
+using namespace FGC;
 
 
 

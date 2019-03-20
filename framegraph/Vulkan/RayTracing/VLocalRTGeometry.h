@@ -19,7 +19,7 @@ namespace FG
 		struct GeometryState
 		{
 			EResourceState	state;
-			Task			task;
+			VTask			task;
 		};
 		
 		using Triangles	= VRayTracingGeometry::Triangles;
@@ -55,7 +55,7 @@ namespace FG
 		~VLocalRTGeometry ();
 		
 		bool Create (const VRayTracingGeometry *);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy ();
 		
 		void AddPendingState (const GeometryState &state) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;

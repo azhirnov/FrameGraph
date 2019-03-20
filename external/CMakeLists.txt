@@ -21,7 +21,8 @@ if (TRUE)
 
 	set( FG_LIST_SEPARATOR "|" )
 	string( REPLACE ";" "${FG_LIST_SEPARATOR}" FG_EXTERNAL_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" )
-	set( FG_BUILD_TARGET_FLAGS "" )
+	set( FG_BUILD_TARGET_FLAGS 	"-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+								"-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}" )
 
 	foreach ( CONFIG ${CMAKE_CONFIGURATION_TYPES} )
 		string( TOUPPER ${CONFIG} OUT_CONFIG )
@@ -40,6 +41,8 @@ endif ()
 
 set( CMAKE_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../cmake" )
 
+include( "${CMAKE_FOLDER}/download_stdoptional.cmake" )
+include( "${CMAKE_FOLDER}/download_stdvariant.cmake" )
 include( "${CMAKE_FOLDER}/download_mem.cmake" )
 include( "${CMAKE_FOLDER}/download_vk.cmake" )
 include( "${CMAKE_FOLDER}/download_glslang.cmake" )
@@ -54,6 +57,7 @@ include( "${CMAKE_FOLDER}/download_glm.cmake" )
 include( "${CMAKE_FOLDER}/download_devil.cmake" )
 include( "${CMAKE_FOLDER}/download_freeimage.cmake" )
 include( "${CMAKE_FOLDER}/graphviz.cmake" )
+include( "${CMAKE_FOLDER}/download_angelscript.cmake" )
 
 
 set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" CACHE INTERNAL "" FORCE )

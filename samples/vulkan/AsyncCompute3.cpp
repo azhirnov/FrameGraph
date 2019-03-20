@@ -11,9 +11,7 @@
 #include "compiler/SpvCompiler.h"
 #include "stl/Math/Color.h"
 
-using namespace FG;
 namespace {
-
 
 class AsyncComputeApp3 final : public IWindowEventListener, public VulkanDeviceFn
 {
@@ -180,8 +178,8 @@ bool AsyncComputeApp3::Initialize ()
 
 		CHECK_ERR( swapchain->ChooseColorFormat( INOUT color_fmt, INOUT color_space ));
 
-		CHECK_ERR( swapchain->Create( window->GetSize(), color_fmt, color_space, 2, 1, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
-									  VK_PRESENT_MODE_FIFO_KHR, VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+		CHECK_ERR( swapchain->Create( window->GetSize(), color_fmt, color_space, 2, VK_PRESENT_MODE_FIFO_KHR,
+									  VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR, VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 									  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
 									  queueFamilyIndices ));
 	}

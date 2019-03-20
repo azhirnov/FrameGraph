@@ -6,7 +6,7 @@
 #include "stl/Math/BitMath.h"
 #include <atomic>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -84,7 +84,7 @@ namespace FG
 			for (size_t i = 0; i < _bits.size(); ++i)
 			{
 				auto&		bits	= _bits[i];
-				uint64_t	curr	= bits.load( memory_order_acquire );
+				uint64_t	curr	= bits.load( memory_order_relaxed );
 				const int	pos		= BitScanForward( curr );
 
 				if ( pos >= 0 )
@@ -138,4 +138,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

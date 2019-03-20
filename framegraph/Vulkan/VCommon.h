@@ -9,6 +9,7 @@
 #include "framegraph/Public/VulkanTypes.h"
 #include "framegraph/Public/FGEnums.h"
 #include "framegraph/Shared/LocalResourceID.h"
+#include "framegraph/Shared/Types.h"
 
 #include "extensions/vulkan_loader/VulkanLoader.h"
 #include "extensions/vulkan_loader/VulkanCheckError.h"
@@ -34,20 +35,23 @@ namespace FG
 	//using TempArray					= std::vector< T, foonathan::memory::std_allocator< T, > >;
 
 	using DebugName_t				= StaticString<64>;
-
+	/*
 	using UntypedVkResource_t		= Pair< VkObjectType, uint64_t >;
 	using AppendableVkResources_t	= Appendable< UntypedVkResource_t >;
 	
 	using UntypedResourceID_t		= Union< RawImageID, RawSamplerID, RawBufferID, RawGPipelineID, RawCPipelineID,
 											 RawMPipelineID, RawRTPipelineID, RawMemoryID, RawDescriptorSetLayoutID,
 											 RawPipelineLayoutID, RawRenderPassID, RawFramebufferID, RawPipelineResourcesID,
-											 RawRTGeometryID, RawRTSceneID, RawRTShaderTableID >;
-	using AppendableResourceIDs_t	= Appendable< UntypedResourceID_t >;
+											 RawRTGeometryID, RawRTSceneID, RawRTShaderTableID, RawSwapchainID >;
+	using AppendableResourceIDs_t	= Appendable< UntypedResourceID_t >;*/
 	
 	using VkDescriptorSets_t		= FixedArray< VkDescriptorSet, FG_MaxDescriptorSets >;
 	
 	using VDeviceQueueInfoPtr		= Ptr< const struct VDeviceQueueInfo >;
-	
+
+	using VTask						= Ptr< class VFrameGraphTask >;
+	using VSubmittedPtr				= SharedPtr< class VSubmitted >;
+
 
 	enum BLASHandle_t : uint64_t {};
 	
@@ -68,16 +72,8 @@ namespace FG
 
 	class VDevice;
 	class VDebugger;
-	class VSwapchain;
 	class VMemoryObj;
-	class VMemoryManager;
-	class VStagingBufferManager;
-	class VFrameGraphThread;
-	class VSubmissionGraph;
-	class VResourceManager;
-	class VResourceManagerThread;
 	class VBarrierManager;
-	class VFrameGraphDebugger;
 	class VRenderPass;
 	class VLogicalRenderPass;
 	class VPipelineCache;
@@ -97,7 +93,12 @@ namespace FG
 	class VPipelineLayout;
 	class VShaderDebugger;
 	class VPipelineResources;
-	class VFrameGraphInstance;
+	class VCommandBuffer;
+
+	class VFrameGraphDebugger;	// TODO: rename?
+	class VResourceManager;
+	class VMemoryManager;
+	class VFrameGraph;
 
 
 	struct VPipelineResourceSet

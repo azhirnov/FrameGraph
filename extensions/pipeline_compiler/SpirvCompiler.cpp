@@ -27,21 +27,19 @@
 
 namespace FG
 {
-	using namespace glslang;
-
 	
 	//
 	// Shader Includer
 	//
-	class SpirvCompiler::ShaderIncluder final : public TShader::Includer
+	class SpirvCompiler::ShaderIncluder final : public glslang::TShader::Includer
 	{
 	// types
 	private:
 		struct IncludeResultImpl final : IncludeResult
 		{
-			const FG::String	_data;
+			const String	_data;
 
-            IncludeResultImpl (FG::String &&data, const FG::String& headerName, void* userData = null) :
+            IncludeResultImpl (String &&data, const String& headerName, void* userData = null) :
 				IncludeResult{headerName, data.c_str(), data.length(), userData}, _data{std::move(data)} {}
 
 			ND_ StringView	GetSource () const	{ return _data; }
@@ -54,8 +52,8 @@ namespace FG
 
 	// variables
 	private:
-		IncludeResults_t		_results;
-		IncludedFiles_t			_includedFiles;
+		IncludeResults_t			_results;
+		IncludedFiles_t				_includedFiles;
 		Array<String> const&	_directories;
 
 
@@ -83,7 +81,7 @@ namespace FG
 *
 	bool SpirvCompiler::ShaderIncluder::GetHeaderSource (StringView header, OUT StringView &source) const
 	{
-		auto	iter = _includedFiles.find( FG::String{header} );
+		auto	iter = _includedFiles.find( String{header} );
 
 		if ( iter != _includedFiles.end() )
 		{
@@ -122,7 +120,7 @@ namespace FG
 			if ( not fs::exists( fpath ) )
 				continue;
 
-			const FG::String	filename = fpath.make_preferred().string();
+			const String	filename = fpath.make_preferred().string();
 
 			// prevent recursive include
 			if ( _includedFiles.count( filename ) )
@@ -143,7 +141,7 @@ namespace FG
 #	else
 		for (auto& folder : _directories)
 		{
-			FG::String	fpath = folder;
+			String	fpath = folder;
 
 			if ( fpath.size() and not (fpath.back() == '/' or fpath.back() == '\\') )
 				fpath += '/';
@@ -178,8 +176,8 @@ namespace FG
 	//
 	struct SpirvCompiler::GLSLangResult
 	{
-		TProgram				prog;
-		UniquePtr< TShader >	shader;
+		glslang::TProgram				prog;
+		UniquePtr< glslang::TShader >	shader;
 	};
 
 
@@ -250,9 +248,9 @@ namespace FG
 		outShader.AddShaderData( dstShaderFmt, entry, std::move(spirv), debugName );
 
 		// compile shader with debug info
-		EShaderLangFormat	dbg_mode = (srcShaderFmt & EShaderLangFormat::_ModeMask);
-		EShLanguage			stage	 = glslang_data.shader->getStage();
-		TIntermediate&		interm	 = *glslang_data.prog.getIntermediate( stage );
+		EShaderLangFormat			dbg_mode = (srcShaderFmt & EShaderLangFormat::_ModeMask);
+		EShLanguage					stage	 = glslang_data.shader->getStage();
+		glslang::TIntermediate&		interm	 = *glslang_data.prog.getIntermediate( stage );
 
 		switch ( dbg_mode )
 		{
@@ -339,6 +337,8 @@ namespace FG
 									StringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
 									OUT GLSLangResult &glslangData, OUT String &log)
 	{
+		using namespace glslang;
+
 		EShClient					client			= EShClientOpenGL;
 		EshTargetClientVersion		client_version	= EShTargetOpenGL_450;
 
@@ -462,6 +462,8 @@ namespace FG
 */
 	bool SpirvCompiler::_CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, OUT String &log) const
 	{
+		using namespace glslang;
+
 		const TIntermediate* intermediate = glslangData.prog.getIntermediate( glslangData.shader->getStage() );
 		COMP_CHECK_ERR( intermediate );
 
@@ -901,6 +903,8 @@ namespace FG
 */
 	bool SpirvCompiler::_ProcessExternalObjects (TIntermNode*, TIntermNode* node, INOUT ShaderReflection &result) const
 	{
+		using namespace glslang;
+
 		TIntermAggregate* aggr = node->getAsAggregate();
 		
 		if ( not aggr )
@@ -949,7 +953,7 @@ namespace FG
 	GetArraySize
 =================================================
 */
-	ND_ static uint  GetArraySize (const TType &type)
+	ND_ static uint  GetArraySize (const glslang::TType &type)
 	{
 		auto*	sizes = type.getArraySizes();
 
@@ -989,8 +993,10 @@ namespace FG
 	_ExtractImageType
 =================================================
 */
-	EImage  SpirvCompiler::_ExtractImageType (const TType &type) const
+	EImage  SpirvCompiler::_ExtractImageType (const glslang::TType &type) const
 	{
+		using namespace glslang;
+
 		if ( type.getBasicType() == TBasicType::EbtSampler and not type.isSubpass() )
 		{
 			TSampler const&	samp = type.getSampler();
@@ -1048,6 +1054,8 @@ namespace FG
 */
 	EPixelFormat  SpirvCompiler::_ExtractImageFormat (uint format) const
 	{
+		using namespace glslang;
+
 		ENABLE_ENUM_CHECKS();
 		switch ( BitCast<TLayoutFormat>(format) )
 		{
@@ -1107,7 +1115,7 @@ namespace FG
 	ExtractShaderAccessType
 =================================================
 */
-	ND_ static EResourceState  ExtractShaderAccessType (const TQualifier &q, EShaderCompilationFlags flags)
+	ND_ static EResourceState  ExtractShaderAccessType (const glslang::TQualifier &q, EShaderCompilationFlags flags)
 	{
 		if ( q.coherent or
 			 q.volatil	or
@@ -1161,7 +1169,7 @@ namespace FG
 
 	ND_ static RenderTargetID  ExtractRenderTargetID (TIntermNode *node)
 	{
-		return RenderTargetID( ExtractNodeName( node ));
+		return RenderTargetID(); //RenderTargetID( ExtractNodeName( node ));
 	}
 
 	ND_ static SpecializationID  ExtractSpecializationID (TIntermNode *node)
@@ -1174,7 +1182,7 @@ namespace FG
 	ExtractBufferUniformID
 =================================================
 */
-	ND_ static UniformID  ExtractBufferUniformID (const TType &type)
+	ND_ static UniformID  ExtractBufferUniformID (const glslang::TType &type)
 	{
 		return UniformID( type.getTypeName().c_str() );
 	}
@@ -1184,8 +1192,10 @@ namespace FG
 	_ExtractVertexType
 =================================================
 */
-	EVertexType  SpirvCompiler::_ExtractVertexType (const TType &type) const
+	EVertexType  SpirvCompiler::_ExtractVertexType (const glslang::TType &type) const
 	{
+		using namespace glslang;
+
 		EVertexType		result = EVertexType(0);
 
 		COMP_CHECK_ERR( not type.isArray() );
@@ -1250,8 +1260,10 @@ namespace FG
 	_ExtractFragmentOutputType
 =================================================
 */
-	EFragOutput  SpirvCompiler::_ExtractFragmentOutputType (const TType &type) const
+	EFragOutput  SpirvCompiler::_ExtractFragmentOutputType (const glslang::TType &type) const
 	{
+		using namespace glslang;
+
 		COMP_CHECK_ERR( type.getVectorSize() == 4 );
 
 		switch ( type.getBasicType() )
@@ -1270,8 +1282,10 @@ namespace FG
 	based on TParseContext::fixBlockUniformOffsets
 =================================================
 */
-	bool SpirvCompiler::_CalculateStructSize (const TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride, OUT BytesU &minOffset) const
+	bool SpirvCompiler::_CalculateStructSize (const glslang::TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride, OUT BytesU &minOffset) const
 	{
+		using namespace glslang;
+
 		staticSize = arrayStride = 0_b;
 		minOffset = ~0_b;
 
@@ -1340,6 +1354,8 @@ namespace FG
 */
 	bool SpirvCompiler::_DeserializeExternalObjects (TIntermNode* node, INOUT ShaderReflection &result) const
 	{
+		using namespace glslang;
+
 		TIntermTyped*	tnode	= node->getAsTyped();
 		auto const&		type	= tnode->getType();
 		auto const&		qual	= type.getQualifier();
@@ -1571,6 +1587,8 @@ namespace FG
 */
 	void SpirvCompiler::_MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, uint type) const
 	{
+		using namespace glslang;
+
 		ENABLE_ENUM_CHECKS();
 		switch ( BitCast<TLayoutGeometry>(type) )
 		{
@@ -1616,6 +1634,8 @@ namespace FG
 */
 	bool SpirvCompiler::_ProcessShaderInfo (INOUT ShaderReflection &result) const
 	{
+		using namespace glslang;
+
 		ENABLE_ENUM_CHECKS();
 		switch ( _intermediate->getStage() )
 		{

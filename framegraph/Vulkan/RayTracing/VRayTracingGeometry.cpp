@@ -4,6 +4,7 @@
 #include "VDevice.h"
 #include "VMemoryObj.h"
 #include "VEnumCast.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -74,13 +75,14 @@ namespace FG
 	from specs: "Acceleration structure creation uses the count and type information from the geometries"
 =================================================
 */
-	bool VRayTracingGeometry::Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
+	bool VRayTracingGeometry::Create (VResourceManager &resMngr, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _bottomLevelAS == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( desc.triangles.size() or desc.aabbs.size() );
 
+		auto&	dev = resMngr.GetDevice();
 		ASSERT( (desc.triangles.size() + desc.aabbs.size()) <= dev.GetDeviceRayTracingProperties().maxGeometryCount );
 
 		CopyAndSortGeometry( desc, OUT _triangles, OUT _aabbs );
@@ -140,7 +142,7 @@ namespace FG
 		
 		VK_CHECK( dev.vkCreateAccelerationStructureNV( dev.GetVkDevice(), &info, null, OUT &_bottomLevelAS ));
 
-		CHECK_ERR( memObj.AllocateForAccelStruct( _bottomLevelAS ));
+		CHECK_ERR( memObj.AllocateForAccelStruct( resMngr.GetMemoryManager(), _bottomLevelAS ));
 
 		VK_CHECK( dev.vkGetAccelerationStructureHandleNV( dev.GetVkDevice(), _bottomLevelAS, sizeof(_handle), OUT &BitCast<uint64_t>(_handle) ));
 
@@ -161,16 +163,17 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VRayTracingGeometry::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VRayTracingGeometry::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		if ( _bottomLevelAS ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV, uint64_t(_bottomLevelAS) );
+			auto&	dev = resMngr.GetDevice();
+			dev.vkDestroyAccelerationStructureNV( dev.GetVkDevice(), _bottomLevelAS, null );
 		}
 		
 		if ( _memoryId ) {
-			unassignIDs.emplace_back( _memoryId.Release() );
+			resMngr.ReleaseResource( _memoryId.Release() );
 		}
 
 		_bottomLevelAS	= VK_NULL_HANDLE;

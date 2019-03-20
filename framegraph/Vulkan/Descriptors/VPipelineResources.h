@@ -50,10 +50,10 @@ namespace FG
 		explicit VPipelineResources (INOUT PipelineResources &desc);
 		~VPipelineResources ();
 
-			bool Create (VResourceManagerThread &);
-			void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+			bool Create (VResourceManager &);
+			void Destroy (VResourceManager &);
 
-		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
+		ND_ bool  IsAllResourcesAlive (const VResourceManager &) const;
 
 		ND_ bool  operator == (const VPipelineResources &rhs) const;
 		
@@ -68,12 +68,12 @@ namespace FG
 
 
 	private:
-		bool _AddResource (VResourceManagerThread &, INOUT PipelineResources::Buffer &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, INOUT PipelineResources::Image &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, INOUT PipelineResources::Texture &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, const PipelineResources::Sampler &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, const PipelineResources::RayTracingScene &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManagerThread &, const NullUnion &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, INOUT PipelineResources::Buffer &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, INOUT PipelineResources::Image &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, INOUT PipelineResources::Texture &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const PipelineResources::Sampler &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const PipelineResources::RayTracingScene &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const NullUnion &, INOUT UpdateDescriptors &);
 	};
 	
 

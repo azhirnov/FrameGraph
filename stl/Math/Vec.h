@@ -4,7 +4,7 @@
 
 #include "stl/Math/Math.h"
 
-namespace FG
+namespace FGC
 {
 
 	template <typename T, uint I>
@@ -271,6 +271,18 @@ namespace FG
 		return not (lhs < rhs);
 	}
 	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<bool,I>>  operator >= (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return not (lhs < rhs);
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<bool,I>>  operator >= (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return not (lhs < rhs);
+	}
+
 /*
 =================================================
 	operator <=
@@ -282,6 +294,18 @@ namespace FG
 		return not (lhs > rhs);
 	}
 	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<bool,I>>  operator <= (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return not (lhs > rhs);
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<bool,I>>  operator <= (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return not (lhs > rhs);
+	}
+
 /*
 =================================================
 	operator +=
@@ -591,39 +615,54 @@ namespace FG
 		}
 		return res;
 	}
+	
+/*
+=================================================
+	Lerp
+=================================================
+*/
+	template <typename T, uint I, typename B>
+	ND_ inline constexpr Vec<T,I>  Lerp (const Vec<T,I> &a, const Vec<T,I> &b, const B &factor)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Lerp( a[i], b[i], factor );
+		}
+		return res;
+	}
 
-}	// FG
+}	// FGC
 
 
 namespace std
 {
 #if FG_FAST_HASH
 	template <typename T, uint I>
-	struct hash< FG::Vec<T,I> > {
-		ND_ size_t  operator () (const FG::Vec<T,I> &value) const noexcept {
-			return size_t(FG::HashOf( value.data(), value.size() * sizeof(T) ));
+	struct hash< FGC::Vec<T,I> > {
+		ND_ size_t  operator () (const FGC::Vec<T,I> &value) const noexcept {
+			return size_t(FGC::HashOf( value.data(), value.size() * sizeof(T) ));
 		}
 	};
 
 #else
 	template <typename T>
-	struct hash< FG::Vec<T,2> > {
-		ND_ size_t  operator () (const FG::Vec<T,2> &value) const noexcept {
-			return size_t(FG::HashOf( value.x ) + FG::HashOf( value.y ));
+	struct hash< FGC::Vec<T,2> > {
+		ND_ size_t  operator () (const FGC::Vec<T,2> &value) const noexcept {
+			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ));
 		}
 	};
 	
 	template <typename T>
-	struct hash< FG::Vec<T,3> > {
-		ND_ size_t  operator () (const FG::Vec<T,3> &value) const noexcept {
-			return size_t(FG::HashOf( value.x ) + FG::HashOf( value.y ) + FG::HashOf( value.z ));
+	struct hash< FGC::Vec<T,3> > {
+		ND_ size_t  operator () (const FGC::Vec<T,3> &value) const noexcept {
+			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ) + FGC::HashOf( value.z ));
 		}
 	};
 	
 	template <typename T>
-	struct hash< FG::Vec<T,4> > {
-		ND_ size_t  operator () (const FG::Vec<T,4> &value) const noexcept {
-			return size_t(FG::HashOf( value.x ) + FG::HashOf( value.y ) + FG::HashOf( value.z ) + FG::HashOf( value.w ));
+	struct hash< FGC::Vec<T,4> > {
+		ND_ size_t  operator () (const FGC::Vec<T,4> &value) const noexcept {
+			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ) + FGC::HashOf( value.z ) + FGC::HashOf( value.w ));
 		}
 	};
 #endif

@@ -51,7 +51,7 @@ namespace std
 	{
 		ND_ size_t  operator () (const FG::MultiSamples &value) const noexcept
 		{
-			return size_t(FG::HashOf( value.Get() ));
+			return size_t(FGC::HashOf( value.Get() ));
 		}
 	};
 

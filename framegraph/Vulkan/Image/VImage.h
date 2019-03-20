@@ -4,7 +4,7 @@
 
 #include "framegraph/Public/MemoryDesc.h"
 #include "framegraph/Shared/ImageViewDesc.h"
-#include "framegraph/Public/FrameGraphThread.h"
+#include "framegraph/Public/FrameGraph.h"
 #include "VCommon.h"
 #include <shared_mutex>
 
@@ -22,7 +22,7 @@ namespace FG
 	// types
 	public:
 		using ImageViewMap_t	= HashMap< HashedImageViewDesc, VkImageView, HashOfImageViewDesc >;
-		using OnRelease_t		= FrameGraphThread::OnExternalImageReleased_t;
+		using OnRelease_t		= IFrameGraph::OnExternalImageReleased_t;
 
 
 	// variables
@@ -36,6 +36,7 @@ namespace FG
 		MemoryID					_memoryId;
 		VkImageAspectFlags			_aspectMask			= 0;
 		VkImageLayout				_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
+		VkAccessFlags				_readAccessMask		= 0;
 		EQueueFamilyMask			_queueFamilyMask	= Default;
 
 		DebugName_t					_debugName;
@@ -50,14 +51,15 @@ namespace FG
 		VImage (VImage &&) = default;
 		~VImage ();
 
-		bool Create (const VDevice &dev, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
+		bool Create (VResourceManager &, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 					 EQueueFamilyMask queueFamilyMask, StringView dbgName);
 
 		bool Create (const VDevice &dev, const VulkanImageDesc &desc, StringView dbgName, OnRelease_t &&onRelease);
 
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy (VResourceManager &);
 
 		ND_ VkImageView			GetView (const VDevice &, const HashedImageViewDesc &) const;
+		ND_ VkImageView			GetView (const VDevice &, bool isDefault, INOUT ImageViewDesc &) const;
 		
 		ND_ bool				IsReadOnly ()			const;
 
@@ -78,6 +80,8 @@ namespace FG
 		ND_ EImage				ImageType ()			const	{ SHAREDLOCK( _rcCheck );  return _desc.imageType; }
 		ND_ uint const			Samples ()				const	{ SHAREDLOCK( _rcCheck );  return _desc.samples.Get(); }
 		
+		ND_ VkAccessFlags		GetAllReadAccessMask ()	const	{ SHAREDLOCK( _rcCheck );  return _readAccessMask; }
+
 		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask == Default; }
 		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask; }
 		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }

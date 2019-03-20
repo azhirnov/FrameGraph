@@ -4,7 +4,7 @@
 
 #include "stl/Common.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -12,7 +12,7 @@ namespace FG
 	CT_IntLog2
 =================================================
 */
-namespace _fg_hidden_
+namespace _fgc_hidden_
 {
 	template <typename T, T X, uint Bit>
 	struct _IntLog2 {
@@ -24,10 +24,10 @@ namespace _fg_hidden_
 		static const int	value = 0;
 	};
 
-}	// _fg_hidden_
+}	// _fgc_hidden_
 
 	template <auto X>
-	static constexpr int	CT_IntLog2 = (X ? _fg_hidden_::_IntLog2< decltype(X), X, sizeof(X)*8-1 >::value : -1);
+	static constexpr int	CT_IntLog2 = (X ? _fgc_hidden_::_IntLog2< decltype(X), X, sizeof(X)*8-1 >::value : -1);
 
 
-}	// FG
+}	// FGC

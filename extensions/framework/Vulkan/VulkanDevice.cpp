@@ -7,7 +7,7 @@
 #include "stl/Algorithms/Cast.h"
 #include <bitset>
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -949,4 +949,4 @@ namespace FG
 		_AfterDestroy();
 	}
 
-}	// FG
+}	// FGC

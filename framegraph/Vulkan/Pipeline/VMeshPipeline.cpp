@@ -2,6 +2,8 @@
 
 #include "VMeshPipeline.h"
 #include "VEnumCast.h"
+#include "VResourceManager.h"
+#include "VDevice.h"
 
 namespace FG
 {
@@ -14,7 +16,7 @@ namespace FG
 	void VMeshPipeline::PipelineInstance::UpdateHash ()
 	{
 #	if FG_FAST_HASH
-		_hash	= FG::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
+		_hash	= FGC::HashOf( &_hash, sizeof(*this) - sizeof(_hash) );
 #	else
 		_hash	= HashOf( layoutId )		+
 				  HashOf( renderPassId )	+ HashOf( subpassIndex )	+
@@ -41,7 +43,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VMeshPipeline::Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName)
+	bool VMeshPipeline::Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
 		
@@ -61,7 +63,6 @@ namespace FG
 
 		_baseLayoutId		= PipelineLayoutID{ layoutId };
 		_topology			= desc._topology;
-		_fragmentOutput		= fragOutput;
 		_earlyFragmentTests	= desc._earlyFragmentTests;
 		_debugName			= dbgName;
 		
@@ -73,17 +74,19 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VMeshPipeline::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VMeshPipeline::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
+		auto&	dev = resMngr.GetDevice();
+
 		for (auto& ppln : _instances) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(ppln.second) );
-			unassignIDs.push_back( const_cast<PipelineInstance &>(ppln.first).layoutId );
+			dev.vkDestroyPipeline( dev.GetVkDevice(), ppln.second, null );
+			resMngr.ReleaseResource( const_cast<PipelineInstance &>(ppln.first).layoutId );
 		}
 
 		if ( _baseLayoutId ) {
-			unassignIDs.push_back( _baseLayoutId.Release() );
+			resMngr.ReleaseResource( _baseLayoutId.Release() );
 		}
 
 		_shaders.clear();
@@ -91,7 +94,6 @@ namespace FG
 		_debugName.clear();
 		_baseLayoutId		= Default;
 		_topology			= Default;
-		_fragmentOutput		= null;
 		_earlyFragmentTests	= false;
 	}
 

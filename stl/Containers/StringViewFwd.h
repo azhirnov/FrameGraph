@@ -5,7 +5,7 @@
 #ifdef FG_STD_STRINGVIEW
 #	include <string_view>
 
-namespace FG
+namespace FGC
 {
 							using StringView		= std::string_view;
 	template <typename T>	using BasicStringView	= std::basic_string_view<T>;
@@ -13,7 +13,7 @@ namespace FG
 
 #else
 
-namespace FG
+namespace FGC
 {
 	template <typename T>	struct BasicStringView;
 

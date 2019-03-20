@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/VFG.h"
+#include "framegraph/FG.h"
 
 namespace FG
 {

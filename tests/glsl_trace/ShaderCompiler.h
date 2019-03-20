@@ -9,7 +9,7 @@
 #include "glslang/glslang/Public/ShaderLang.h"
 #include "glslang/glslang/Include/ResourceLimits.h"
 
-using namespace FG;
+using namespace FGC;
 
 struct ShaderTrace;
 
@@ -36,7 +36,7 @@ public:
 				  uint						dbgBufferSetIndex	= ~0u,
 				  glslang::EShTargetLanguageVersion	spvVersion	= glslang::EShTargetSpv_1_3);
 
-	bool GetDebugOutput (VkShaderModule shaderModule, const void *ptr, BytesU maxSize, OUT Array<FG::String> &result) const;
+	bool GetDebugOutput (VkShaderModule shaderModule, const void *ptr, BytesU maxSize, OUT Array<FGC::String> &result) const;
 
 
 private:

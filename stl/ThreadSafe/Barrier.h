@@ -22,7 +22,7 @@
 
 #if (FG_BARRIER_MODE == 0)
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -50,7 +50,7 @@ namespace FG
 		void wait ();
 	};
 
-}	// FG
+}	// FGC
 
 
 #elif (FG_BARRIER_MODE == 1)
@@ -58,7 +58,7 @@ namespace FG
 #include <atomic>
 #include <thread>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -115,7 +115,7 @@ namespace FG
 		}
 	};
 
-}	// FG
+}	// FGC
 
 
 #elif (FG_BARRIER_MODE == 2)
@@ -123,7 +123,7 @@ namespace FG
 #include <mutex>
 #include <condition_variable>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -176,14 +176,14 @@ namespace FG
 		}
 	};
 
-}	// FG
+}	// FGC
 
 
 #elif (FG_BARRIER_MODE == 3)
 
 #include <barrier>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -214,7 +214,7 @@ namespace FG
 		}
 	};
 
-}	// FG
+}	// FGC
 
 #else
 #	error not supported!

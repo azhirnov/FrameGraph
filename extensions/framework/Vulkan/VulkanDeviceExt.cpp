@@ -4,7 +4,7 @@
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Algorithms/EnumUtils.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -533,4 +533,4 @@ namespace FG
 	}
 
 
-}	// FG
+}	// FGC

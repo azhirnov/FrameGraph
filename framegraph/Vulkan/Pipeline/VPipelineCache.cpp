@@ -1,60 +1,14 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "Public/IPipelineCompiler.h"
+#include "Public/PipelineCompiler.h"
 #include "VPipelineCache.h"
 #include "VDevice.h"
 #include "VEnumCast.h"
 #include "VRenderPass.h"
-#include "VResourceManagerThread.h"
-#include "VFrameGraphThread.h"
-#include "VShaderDebugger.h"
-#include "VStagingBufferManager.h"
+#include "VCommandBuffer.h"
 
 namespace FG
 {
-
-	//
-	// Vulkan Shader Module
-	//
-	class VShaderModule final : public PipelineDescription::IShaderData< ShaderModuleVk_t >
-	{
-	// variables
-	private:
-		VkShaderModule		_module		= VK_NULL_HANDLE;
-		StaticString<64>	_entry;
-
-
-	// methods
-	public:
-		VShaderModule (VkShaderModule module, StringView entry) :
-			_module{ module }, _entry{ entry } {}
-
-		~VShaderModule () {
-			CHECK( _module == VK_NULL_HANDLE );
-		}
-
-		void Destroy (const VDevice &dev)
-		{
-			if ( _module )
-			{
-				dev.vkDestroyShaderModule( dev.GetVkDevice(), _module, null );
-				_module = VK_NULL_HANDLE;
-			}
-		}
-		
-		ShaderModuleVk_t const&	GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
-
-		StringView				GetEntry () const override		{ return _entry; }
-		
-		StringView				GetDebugName () const override	{ return ""; }
-
-		size_t					GetHashOfData () const override	{ ASSERT(false);  return 0; }
-
-		bool					ParseDebugOutput (EShaderDebugMode, ArrayView<uint8_t>, OUT Array<String> &) const override { return false; }
-	};
-//-----------------------------------------------------------------------------
-
-
 
 /*
 =================================================
@@ -81,7 +35,6 @@ namespace FG
 	VPipelineCache::~VPipelineCache ()
 	{
 		CHECK( _pipelinesCache == VK_NULL_HANDLE );
-		CHECK( _shaderCache.empty() );
 	}
 	
 /*
@@ -102,16 +55,6 @@ namespace FG
 */
 	void VPipelineCache::Deinitialize (const VDevice &dev)
 	{
-		for (auto& sh : _shaderCache)
-		{
-			ASSERT( sh.use_count() == 1 );
-
-			Cast<VShaderModule>( sh )->Destroy( dev );
-		}
-		_shaderCache.clear();
-
-		_compilers.clear();
-
 		if ( _pipelinesCache )
 		{
 			dev.vkDestroyPipelineCache( dev.GetVkDevice(), _pipelinesCache, null );
@@ -128,229 +71,6 @@ namespace FG
 	{
 		// TODO
 		return false;
-	}
-
-/*
-=================================================
-	AddCompiler
-=================================================
-*/
-	void VPipelineCache::AddCompiler (const IPipelineCompilerPtr &comp)
-	{
-		_compilers.insert( comp );
-	}
-	
-/*
-=================================================
-	_GetBuiltinFormats
-=================================================
-*/
-	FixedArray<EShaderLangFormat,16>  VPipelineCache::_GetBuiltinFormats (const VDevice &dev) const
-	{
-		const EShaderLangFormat				ver		= dev.GetVkVersion();
-		FixedArray<EShaderLangFormat,16>	result;
-
-		// at first request external managed shader modules
-		result.push_back( ver | EShaderLangFormat::ShaderModule );
-
-		if ( ver > EShaderLangFormat::Vulkan_110 )
-			result.push_back( EShaderLangFormat::VkShader_110 );
-
-		if ( ver > EShaderLangFormat::Vulkan_100 )
-			result.push_back( EShaderLangFormat::VkShader_100 );
-		
-
-		// at second request shader in binary format
-		result.push_back( ver | EShaderLangFormat::SPIRV );
-
-		if ( ver > EShaderLangFormat::Vulkan_110 )
-			result.push_back( EShaderLangFormat::SPIRV_110 );
-
-		if ( ver > EShaderLangFormat::Vulkan_100 )
-			result.push_back( EShaderLangFormat::SPIRV_100 );
-
-		return result;
-	}
-
-/*
-=================================================
-	CreateFramentOutput
-=================================================
-*/
-	VPipelineCache::FragmentOutputPtr  VPipelineCache::CreateFramentOutput (ArrayView<GraphicsPipelineDesc::FragmentOutput> values)
-	{
-		VGraphicsPipeline::FragmentOutputInstance	inst{ values };
-
-		return _fragmentOutputCache.insert( std::move(inst) ).first.operator-> ();
-	}
-
-/*
-=================================================
-	_CompileShaders
-=================================================
-*/
-	template <typename DescT>
-	bool  VPipelineCache::_CompileShaders (INOUT DescT &desc, const VDevice &dev)
-	{
-		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
-
-		// try to use external compilers
-		for (auto& comp : _compilers)
-		{
-			if ( comp->IsSupported( desc, req_format ) )
-			{
-				return comp->Compile( INOUT desc, req_format );
-			}
-		}
-
-		// check is shaders supported by default compiler
-		const auto	formats		 = _GetBuiltinFormats( dev );
-		bool		is_supported = true;
-
-		for (auto& sh : desc._shaders)
-		{
-			if ( sh.second.data.empty() )
-				continue;
-
-			bool	found = false;
-
-			for (auto& fmt : formats)
-			{
-				auto	iter = sh.second.data.find( fmt );
-
-				if ( iter == sh.second.data.end() )
-					continue;
-
-				if ( EnumEq( fmt, EShaderLangFormat::ShaderModule ) )
-				{
-					auto	shader_data = iter->second;
-				
-					sh.second.data.clear();
-					sh.second.data.insert({ fmt, shader_data });
-
-					found = true;
-					break;
-				}
-			
-				if ( EnumEq( fmt, EShaderLangFormat::SPIRV ) )
-				{
-					VkShaderPtr		mod;
-					CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
-
-					sh.second.data.clear();
-					sh.second.data.insert({ fmt, mod });
-
-					found = true;
-					break;
-				}
-			}
-			is_supported &= found;
-		}
-
-		if ( not is_supported )
-			RETURN_ERR( "unsuported shader format!" );
-
-		return true;
-	}
-	
-/*
-=================================================
-	CompileShaders
-=================================================
-*/
-	bool VPipelineCache::CompileShaders (INOUT GraphicsPipelineDesc &desc, const VDevice &dev)
-	{
-		return _CompileShaders( INOUT desc, dev );
-	}
-	
-	bool VPipelineCache::CompileShaders (INOUT MeshPipelineDesc &desc, const VDevice &dev)
-	{
-		return _CompileShaders( INOUT desc, dev );
-	}
-
-	bool VPipelineCache::CompileShaders (INOUT RayTracingPipelineDesc &desc, const VDevice &dev)
-	{
-		return _CompileShaders( INOUT desc, dev );
-	}
-	
-/*
-=================================================
-	CompileShader
-=================================================
-*/
-	bool VPipelineCache::CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
-	{
-		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
-		
-		// try to use external compilers
-		for (auto& comp : _compilers)
-		{
-			if ( comp->IsSupported( desc, req_format ) )
-			{
-				CHECK_ERR( comp->Compile( INOUT desc, req_format ));
-				return true;
-			}
-		}
-
-		// check is shaders supported by default compiler
-		const auto	formats = _GetBuiltinFormats( dev );
-
-		for (auto& fmt : formats)
-		{
-			auto	iter = desc._shader.data.find( fmt );
-
-			if ( iter == desc._shader.data.end() )
-				continue;
-
-			if ( EnumEq( fmt, EShaderLangFormat::ShaderModule ) )
-			{
-				auto	shader_data = iter->second;
-				
-				desc._shader.data.clear();
-				desc._shader.data.insert({ fmt, shader_data });
-				return true;
-			}
-			
-			if ( EnumEq( fmt, EShaderLangFormat::SPIRV ) )
-			{
-				VkShaderPtr		mod;
-				CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
-
-				desc._shader.data.clear();
-				desc._shader.data.insert({ fmt, mod });
-				return true;
-			}
-		}
-
-		RETURN_ERR( "unsuported shader format!" );
-	}
-
-/*
-=================================================
-	_CompileShader
-=================================================
-*/
-	bool  VPipelineCache::_CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module)
-	{
-		const auto*	shader_data = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &shaderData );
-
-		if ( not (shader_data and *shader_data) )
-			RETURN_ERR( "invalid shader data format!" );
-				
-		VkShaderModuleCreateInfo	shader_info = {};
-		shader_info.sType		= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		shader_info.codeSize	= size_t(ArraySizeOf( (*shader_data)->GetData() ));
-		shader_info.pCode		= (*shader_data)->GetData().data();
-
-		VkShaderModule		shader_id;
-		VK_CHECK( dev.vkCreateShaderModule( dev.GetVkDevice(), &shader_info, null, OUT &shader_id ));
-
-		dev.SetObjectName( BitCast<uint64_t>(shader_id), (*shader_data)->GetDebugName(), VK_OBJECT_TYPE_SHADER_MODULE );
-
-		module = MakeShared<VShaderModule>( shader_id, (*shader_data)->GetEntry() );
-
-		_shaderCache.push_back( module );
-		return true;
 	}
 	
 /*
@@ -394,75 +114,6 @@ namespace FG
 		_tempShaderGraphMap.clear();
 		_rtShaderSpecs.clear();
 	}
-	
-/*
-=================================================
-	OverrideColorStates
-=================================================
-*/
-	static void OverrideColorStates (INOUT RenderState::ColorBuffersState &currColorStates, const _fg_hidden_::ColorBuffers_t &newStates)
-	{
-		for (auto& cb : newStates)
-		{
-			auto	iter = currColorStates.buffers.find( cb.first );
-			ASSERT( iter != currColorStates.buffers.end() );
-
-			if ( iter != currColorStates.buffers.end() )
-			{
-				iter->second = cb.second;
-			}
-		}
-	}
-	
-/*
-=================================================
-	OverrideDepthStencilStates
-=================================================
-*/
-	static void OverrideDepthStencilStates (INOUT RenderState::DepthBufferState &currDepthState, INOUT RenderState::StencilBufferState &currStencilState,
-											INOUT RenderState::RasterizationState &currRasterState, INOUT EPipelineDynamicState &dynamicState,
-											const _fg_hidden_::DynamicStates &newStates)
-	{
-		currDepthState.test					= newStates.hasDepthTest ? newStates.depthTest : currDepthState.test;
-		currDepthState.write				= newStates.hasDepthWrite ? newStates.depthWrite : currDepthState.write;
-		currStencilState.enabled			= newStates.hasStencilTest ? newStates.stencilTest : currStencilState.enabled;
-		currRasterState.cullMode			= newStates.hasCullMode ? newStates.cullMode : currRasterState.cullMode;
-		currRasterState.rasterizerDiscard	= newStates.hasRasterizedDiscard ? newStates.rasterizerDiscard : currRasterState.rasterizerDiscard;
-		currRasterState.frontFaceCCW		= newStates.hasFrontFaceCCW ? newStates.frontFaceCCW : currRasterState.frontFaceCCW;
-
-		if ( currDepthState.test )
-		{
-			currDepthState.compareOp = newStates.hasDepthCompareOp ? newStates.depthCompareOp : currDepthState.compareOp;
-		}
-
-		// override stencil states
-		if ( currStencilState.enabled )
-		{
-			if ( newStates.hasStencilFailOp )
-				currStencilState.front.failOp = currStencilState.back.failOp = newStates.stencilFailOp;
-
-			if ( newStates.hasStencilDepthFailOp )
-				currStencilState.front.depthFailOp = currStencilState.back.depthFailOp = newStates.stencilDepthFailOp;
-
-			if ( newStates.hasStencilPassOp )
-				currStencilState.front.passOp = currStencilState.back.passOp = newStates.stencilPassOp;
-
-			dynamicState |= newStates.hasStencilCompareMask ? EPipelineDynamicState::StencilCompareMask : Default;
-			dynamicState |= newStates.hasStencilReference   ? EPipelineDynamicState::StencilReference   : Default;
-			dynamicState |= newStates.hasStencilWriteMask   ? EPipelineDynamicState::StencilWriteMask   : Default;
-		}
-	}
-	
-/*
-=================================================
-	SetupExtensions
-=================================================
-*/
-	static void SetupExtensions (const VLogicalRenderPass &logicalRP, INOUT EPipelineDynamicState &dynamicState)
-	{
-		if ( logicalRP.HasShadingRateImage() )
-			dynamicState |= EPipelineDynamicState::ShadingRatePalette;
-	}
 
 /*
 =================================================
@@ -470,10 +121,10 @@ namespace FG
 =================================================
 */
 	template <typename Pipeline>
-	bool VPipelineCache::_SetupShaderDebugging (VResourceManagerThread &resMngr, VShaderDebugger &shaderDebugger, const Pipeline &ppln, uint debugModeIndex,
+	bool VPipelineCache::_SetupShaderDebugging (VCommandBuffer &fgThread, const Pipeline &ppln, uint debugModeIndex,
 												OUT EShaderDebugMode &debugMode, OUT EShaderStages &debuggableShaders, OUT RawPipelineLayoutID &layoutId)
 	{
-		shaderDebugger.GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShaders );
+		fgThread.GetShaderDebugger().GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShaders );
 		ASSERT( debugMode != Default );
 		
 		const VkShaderStageFlags	stages = VEnumCast( debuggableShaders );
@@ -491,14 +142,14 @@ namespace FG
 					continue;
 			}
 
-			shaderDebugger.SetShaderModule( debugModeIndex, sh.module );
+			fgThread.GetShaderDebugger().SetShaderModule( debugModeIndex, sh.module );
 		}
 
 		RawDescriptorSetLayoutID	ds_layout;
 		uint						binding;
-		CHECK( shaderDebugger.GetDescriptorSetLayout( debugMode, debuggableShaders, OUT binding, OUT ds_layout ));
+		CHECK( fgThread.GetShaderDebugger().GetDescriptorSetLayout( debugMode, debuggableShaders, OUT binding, OUT ds_layout ));
 
-		layoutId = resMngr.ExtendPipelineLayout( layoutId, ds_layout, binding, DescriptorSetID{"dbgStorage"}, true );
+		layoutId = fgThread.GetResourceManager().ExtendPipelineLayout( layoutId, ds_layout, binding, DescriptorSetID{"dbgStorage"} );
 		CHECK_ERR( layoutId );
 
 		return true;
@@ -519,66 +170,56 @@ namespace FG
 	CreatePipelineInstance
 =================================================
 */
-	bool  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
-												  Ptr<VShaderDebugger>			 shaderDebugger,
+	bool  VPipelineCache::CreatePipelineInstance (VCommandBuffer				&fgThread,
 												  const VLogicalRenderPass		&logicalRP,
-												  const VBaseDrawVerticesTask	&drawTask,
+												  const VGraphicsPipeline		&gppln,
+												  const VertexInputState		&vertexInput,
+												  const RenderState				&renderState,
+												  const EPipelineDynamicState	 dynamicStates,
+												  const uint					 debugModeIndex,
 												  OUT VkPipeline				&outPipeline,
 												  OUT VPipelineLayout const*	&outLayout)
 	{
-		CHECK_ERR( drawTask.pipeline and logicalRP.GetRenderPassID() );
+		CHECK_ERR( logicalRP.GetRenderPassID() );
 
+		VDevice const&			dev			= fgThread.GetDevice();
+		VRenderPass const*		render_pass	= fgThread.AcquireTemporary( logicalRP.GetRenderPassID() );
+		EShaderDebugMode		dbg_mode	= Default;
+		EShaderStages			dbg_stages	= Default;
+		RawPipelineLayoutID		layout_id	= gppln.GetLayoutID();
 
-		VDevice const&				dev			= resMngr.GetDevice();
-		VGraphicsPipeline const*	gppln		= drawTask.pipeline;
-		VRenderPass const*			render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
-		EShaderDebugMode			dbg_mode	= Default;
-		EShaderStages				dbg_stages	= Default;
-		RawPipelineLayoutID			layout_id	= gppln->GetLayoutID();
-
-		if ( drawTask.GetDebugModeIndex() != UMax ) {
-			CHECK( _SetupShaderDebugging( resMngr, *shaderDebugger, *gppln, drawTask.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
+		if ( debugModeIndex != UMax ) {
+			CHECK( _SetupShaderDebugging( fgThread, gppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
 		// check topology
-		CHECK_ERR(	uint(drawTask.topology) < gppln->_supportedTopology.size() and
-					gppln->_supportedTopology[uint(drawTask.topology)] );
+		CHECK_ERR(	uint(renderState.inputAssembly.topology) < gppln._supportedTopology.size() and
+					gppln._supportedTopology[uint(renderState.inputAssembly.topology)] );
 
 		VGraphicsPipeline::PipelineInstance		inst;
-		inst.layoutId					= layout_id;
-		inst.dynamicState				= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
-		inst.renderPassId				= logicalRP.GetRenderPassID();
-		inst.subpassIndex				= uint8_t(logicalRP.GetSubpassIndex());
-		inst.vertexInput				= drawTask.vertexInput;
-		//inst.flags					= 0;	//pipelineFlags;	// TODO
-		inst.viewportCount				= uint8_t(logicalRP.GetViewports().size());
-		inst.debugMode					= GetDebugModeHash( dbg_mode, dbg_stages );
-		inst.renderState.color			= logicalRP.GetColorState();
-		inst.renderState.depth			= logicalRP.GetDepthState();
-		inst.renderState.stencil		= logicalRP.GetStencilState();
-		inst.renderState.rasterization	= logicalRP.GetRasterizationState();
-		inst.renderState.multisample	= logicalRP.GetMultisampleState();
+		inst.layoutId		= layout_id;
+		inst.dynamicState	= dynamicStates;
+		inst.renderPassId	= logicalRP.GetRenderPassID();
+		inst.subpassIndex	= uint8_t(logicalRP.GetSubpassIndex());
+		inst.vertexInput	= vertexInput;
+		//inst.flags		= 0;	//pipelineFlags;	// TODO
+		inst.viewportCount	= uint8_t(logicalRP.GetViewports().size());
+		inst.debugMode		= GetDebugModeHash( dbg_mode, dbg_stages );
+		inst.renderState	= renderState;
 
-		inst.renderState.inputAssembly.topology			= drawTask.topology;
-		inst.renderState.inputAssembly.primitiveRestart = drawTask.primitiveRestart;
-
-		inst.vertexInput.ApplyAttribs( gppln->GetVertexAttribs() );
-		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
-		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil,
-								    INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
-		SetupExtensions( logicalRP, INOUT inst.dynamicState );
+		inst.vertexInput.ApplyAttribs( gppln.GetVertexAttribs() );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst.UpdateHash();
 		
-		outLayout = resMngr.GetResource( layout_id );
+		outLayout = fgThread.AcquireTemporary( layout_id );
 
 		// find existing instance
 		{
-			SHAREDLOCK( gppln->_instanceGuard );
+			SHAREDLOCK( gppln._instanceGuard );
 
-			auto iter = gppln->_instances.find( inst );
-			if ( iter != gppln->_instances.end() ) {
+			auto iter = gppln._instances.find( inst );
+			if ( iter != gppln._instances.end() ) {
 				outPipeline = iter->second;
 				return true;
 			}
@@ -599,11 +240,11 @@ namespace FG
 		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
 		VkPipelineViewportStateCreateInfo		viewport_info		= {};
 
-		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, gppln->_shaders, dbg_mode, dbg_stages );
+		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, gppln._shaders, dbg_mode, dbg_stages );
 		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
 		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
 		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
-		_SetTessellationState( OUT tessellation_info, gppln->_patchControlPoints );
+		_SetTessellationState( OUT tessellation_info, gppln._patchControlPoints );
 		_SetDepthStencilState( OUT depth_stencil_info, inst.renderState.depth, inst.renderState.stencil );
 		_SetRasterizationState( OUT rasterization_info, inst.renderState.rasterization );
 		_SetupPipelineInputAssemblyState( OUT input_assembly_info, inst.renderState.inputAssembly );
@@ -619,7 +260,7 @@ namespace FG
 		pipeline_info.pColorBlendState		= &blend_info;
 		pipeline_info.pDepthStencilState	= &depth_stencil_info;
 		pipeline_info.pMultisampleState		= &multisample_info;
-		pipeline_info.pTessellationState	= (gppln->_patchControlPoints > 0 ? &tessellation_info : null);
+		pipeline_info.pTessellationState	= (gppln._patchControlPoints > 0 ? &tessellation_info : null);
 		pipeline_info.pVertexInputState		= &vertex_input_info;
 		pipeline_info.pDynamicState			= (_tempDynamicStates.empty() ? null : &dynamic_state_info);
 		pipeline_info.basePipelineIndex		= -1;
@@ -643,13 +284,13 @@ namespace FG
 		outPipeline = {};
 		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 
-		resMngr.EditStatistic().newGraphicsPipelineCount++;
+		fgThread.EditStatistic().resources.newGraphicsPipelineCount++;
 		
 		// try to insert new instance
 		{
-			EXLOCK( gppln->_instanceGuard );
+			EXLOCK( gppln._instanceGuard );
 
-			auto[iter, inserted] = gppln->_instances.insert({ std::move(inst), outPipeline });
+			auto[iter, inserted] = gppln._instances.insert({ std::move(inst), outPipeline });
 		
 			if ( not inserted )
 			{
@@ -660,7 +301,7 @@ namespace FG
 			}
 		}
 		
-		CHECK( resMngr.AcquireResource( layout_id ));
+		CHECK( fgThread.GetResourceManager().AcquireResource( layout_id ));
 		return true;
 	}
 /*
@@ -668,58 +309,51 @@ namespace FG
 	CreatePipelineInstance
 =================================================
 */
-	bool  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
-												  Ptr<VShaderDebugger>			 shaderDebugger,
+	bool  VPipelineCache::CreatePipelineInstance (VCommandBuffer				&fgThread,
 												  const VLogicalRenderPass		&logicalRP,
-												  const VBaseDrawMeshes			&drawTask,
+												  const VMeshPipeline			&mppln,
+												  const RenderState				&renderState,
+												  const EPipelineDynamicState	 dynamicStates,
+												  const uint					 debugModeIndex,
 												  OUT VkPipeline				&outPipeline,
 												  OUT VPipelineLayout const*	&outLayout)
 	{
-		CHECK_ERR( resMngr.GetDevice().IsMeshShaderEnabled() );
-		CHECK_ERR( drawTask.pipeline and logicalRP.GetRenderPassID() );
+		CHECK_ERR( fgThread.GetDevice().IsMeshShaderEnabled() );
+		CHECK_ERR( logicalRP.GetRenderPassID() );
 
-		VDevice const&			dev			= resMngr.GetDevice();
-		VMeshPipeline const*	mppln		= drawTask.pipeline;
-		VRenderPass const*		render_pass	= resMngr.GetResource( logicalRP.GetRenderPassID() );
+		VDevice const&			dev			= fgThread.GetDevice();
+		VRenderPass const*		render_pass	= fgThread.AcquireTemporary( logicalRP.GetRenderPassID() );
 		EShaderDebugMode		dbg_mode	= Default;
 		EShaderStages			dbg_stages	= Default;
-		RawPipelineLayoutID		layout_id	= mppln->GetLayoutID();
+		RawPipelineLayoutID		layout_id	= mppln.GetLayoutID();
 
-		if ( drawTask.GetDebugModeIndex() != UMax ) {
-			CHECK( _SetupShaderDebugging( resMngr, *shaderDebugger, *mppln, drawTask.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
+		if ( debugModeIndex != UMax ) {
+			CHECK( _SetupShaderDebugging( fgThread, mppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
 		VMeshPipeline::PipelineInstance		inst;
-		inst.layoutId					= layout_id;
-		inst.dynamicState				= EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
-		inst.renderPassId				= logicalRP.GetRenderPassID();
-		inst.subpassIndex				= uint8_t(logicalRP.GetSubpassIndex());
-		//inst.flags						= 0;	//pipelineFlags;	// TODO
-		inst.viewportCount				= uint8_t(logicalRP.GetViewports().size());
-		inst.debugMode					= GetDebugModeHash( dbg_mode, dbg_stages );
-		inst.renderState.color			= logicalRP.GetColorState();
-		inst.renderState.depth			= logicalRP.GetDepthState();
-		inst.renderState.stencil		= logicalRP.GetStencilState();
-		inst.renderState.rasterization	= logicalRP.GetRasterizationState();
-		inst.renderState.multisample	= logicalRP.GetMultisampleState();
-		inst.renderState.inputAssembly.topology	= mppln->_topology;
-
-		OverrideColorStates( INOUT inst.renderState.color, drawTask.colorBuffers );
-		OverrideDepthStencilStates( INOUT inst.renderState.depth, INOUT inst.renderState.stencil,
-								    INOUT inst.renderState.rasterization, INOUT inst.dynamicState, drawTask.dynamicStates );
-		SetupExtensions( logicalRP, INOUT inst.dynamicState );
+		inst.layoutId		= layout_id;
+		inst.dynamicState	= dynamicStates;
+		inst.renderPassId	= logicalRP.GetRenderPassID();
+		inst.subpassIndex	= uint8_t(logicalRP.GetSubpassIndex());
+		//inst.flags		= 0;	//pipelineFlags;	// TODO
+		inst.viewportCount	= uint8_t(logicalRP.GetViewports().size());
+		inst.debugMode		= GetDebugModeHash( dbg_mode, dbg_stages );
+		inst.renderState	= renderState;
+		
+		inst.renderState.inputAssembly.topology	= mppln._topology;
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst.UpdateHash();
 		
-		outLayout = resMngr.GetResource( layout_id );
+		outLayout = fgThread.AcquireTemporary( layout_id );
 
 		// find existing instance
 		{
-			SHAREDLOCK( mppln->_instanceGuard );
+			SHAREDLOCK( mppln._instanceGuard );
 
-			auto iter = mppln->_instances.find( inst );
-			if ( iter != mppln->_instances.end() ) {
+			auto iter = mppln._instances.find( inst );
+			if ( iter != mppln._instances.end() ) {
 				outPipeline = iter->second;
 				return true;
 			}
@@ -739,7 +373,7 @@ namespace FG
 		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
 		VkPipelineViewportStateCreateInfo		viewport_info		= {};
 
-		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln->_shaders, dbg_mode, dbg_stages );
+		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln._shaders, dbg_mode, dbg_stages );
 		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
 		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
 		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
@@ -782,13 +416,13 @@ namespace FG
 		outPipeline = {};
 		VK_CHECK( dev.vkCreateGraphicsPipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 		
-		resMngr.EditStatistic().newGraphicsPipelineCount++;
+		fgThread.EditStatistic().resources.newGraphicsPipelineCount++;
 		
 		// try to insert new instance
 		{
-			EXLOCK( mppln->_instanceGuard );
+			EXLOCK( mppln._instanceGuard );
 
-			auto[iter, inserted] = mppln->_instances.insert({ std::move(inst), outPipeline });
+			auto[iter, inserted] = mppln._instances.insert({ std::move(inst), outPipeline });
 		
 			if ( not inserted )
 			{
@@ -799,7 +433,7 @@ namespace FG
 			}
 		}
 
-		CHECK( resMngr.AcquireResource( layout_id ));
+		CHECK( fgThread.GetResourceManager().AcquireResource( layout_id ));
 		return true;
 	}
 
@@ -808,8 +442,7 @@ namespace FG
 	CreatePipelineInstance
 =================================================
 */
-	bool  VPipelineCache::CreatePipelineInstance (VResourceManagerThread		&resMngr,
-												  Ptr<VShaderDebugger>			 shaderDebugger,
+	bool  VPipelineCache::CreatePipelineInstance (VCommandBuffer				&fgThread,
 												  const VComputePipeline		&cppln,
 												  const Optional<uint3>			&localGroupSize,
 												  VkPipelineCreateFlags			 pipelineFlags,
@@ -817,13 +450,13 @@ namespace FG
 												  OUT VkPipeline				&outPipeline,
 												  OUT VPipelineLayout const*	&outLayout)
 	{
-		VDevice const &		dev			= resMngr.GetDevice();
+		VDevice const &		dev			= fgThread.GetDevice();
 		EShaderDebugMode	dbg_mode	= Default;
 		EShaderStages		dbg_stages	= Default;
 		RawPipelineLayoutID	layout_id	= cppln.GetLayoutID();
 
 		if ( debugModeIndex != UMax ) {
-			CHECK( _SetupShaderDebugging( resMngr, *shaderDebugger, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
+			CHECK( _SetupShaderDebugging( fgThread, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
 		VComputePipeline::PipelineInstance		inst;
@@ -836,7 +469,7 @@ namespace FG
 		inst.debugMode		= GetDebugModeHash( dbg_mode, dbg_stages );
 		inst.UpdateHash();
 		
-		outLayout = resMngr.GetResource( layout_id );
+		outLayout = fgThread.AcquireTemporary( layout_id );
 
 		// find existing instance
 		{
@@ -890,7 +523,7 @@ namespace FG
 		outPipeline = {};
 		VK_CHECK( dev.vkCreateComputePipelines( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &outPipeline ));
 		
-		resMngr.EditStatistic().newComputePipelineCount++;
+		fgThread.EditStatistic().resources.newComputePipelineCount++;
 		
 		// try to insert new instance
 		{
@@ -907,7 +540,7 @@ namespace FG
 			}
 		}
 
-		CHECK( resMngr.AcquireResource( layout_id ));
+		CHECK( fgThread.GetResourceManager().AcquireResource( layout_id ));
 		return true;
 	}
 
@@ -916,22 +549,22 @@ namespace FG
 	InitShaderTable
 =================================================
 */
-	bool VPipelineCache::InitShaderTable (VFrameGraphThread				&fg,
+	bool VPipelineCache::InitShaderTable (VCommandBuffer				&fgThread,
 										  RawRTPipelineID				 pipelineId,
-										  VLocalRTScene const*			 rtScene,
+										  VLocalRTScene const			&rtScene,
 										  const RayGenShader			&rayGenShader,
 										  ArrayView< RTShaderGroup >	 shaderGroups,
 										  uint							 maxRecursionDepth,
 										  INOUT VRayTracingShaderTable	&shaderTable,
 										  OUT BufferCopyRegions_t		&copyRegions)
 	{
-		auto&			dev				= fg.GetDevice();
-		auto&			res_mngr		= *fg.GetResourceManager();
+		auto&			dev				= fgThread.GetDevice();
+		auto&			res_mngr		= fgThread.GetResourceManager();
 		const BytesU	handle_size		{ dev.GetDeviceRayTracingProperties().shaderGroupHandleSize };
 		const BytesU	alignment		{ dev.GetDeviceRayTracingProperties().shaderGroupBaseAlignment };
-		auto*			ppln			= res_mngr.GetResource( pipelineId );
-		const uint		geom_stride		= rtScene->HitShadersPerInstance();
-		const uint		max_hit_shaders	= rtScene->MaxHitShaderCount();
+		auto*			ppln			= fgThread.AcquireTemporary( pipelineId );
+		const uint		geom_stride		= rtScene.HitShadersPerInstance();
+		const uint		max_hit_shaders	= rtScene.MaxHitShaderCount();
 
 		CHECK_ERR( ppln );
 
@@ -991,26 +624,27 @@ namespace FG
 		// recreate buffer
 		if ( shaderTable._bufferId )
 		{
-			if ( fg.GetDescription( shaderTable._bufferId ).size < req_size )
-				fg.ReleaseResource( INOUT shaderTable._bufferId );
+			if ( res_mngr.GetDescription( shaderTable._bufferId.Get() ).size < req_size )
+				fgThread.ReleaseResource( shaderTable._bufferId.Release() );
 		}
 		
 		if ( not shaderTable._bufferId )
 		{
-			shaderTable._bufferId = fg.CreateBuffer( BufferDesc{ req_size, EBufferUsage::TransferDst | EBufferUsage::RayTracing },
-													 Default, shaderTable.GetDebugName() );
+			shaderTable._bufferId = fgThread.GetInstance().CreateBuffer( BufferDesc{ req_size, EBufferUsage::TransferDst | EBufferUsage::RayTracing },
+																		 Default, shaderTable.GetDebugName() );
 			CHECK_ERR( shaderTable._bufferId );
 		}
 
 		// acquire pipeline
 		if ( shaderTable._pipelineId )
-			fg.ReleaseResource( INOUT shaderTable._pipelineId );
+			fgThread.ReleaseResource( shaderTable._pipelineId.Release() );
 
 		CHECK( res_mngr.AcquireResource( pipelineId ));
 		shaderTable._pipelineId = RTPipelineID{pipelineId};
 
+		// TODO
 		// destroy old pipelines
-		for (auto& table : shaderTable._tables)
+		/*for (auto& table : shaderTable._tables)
 		{
 			if ( table.layoutId )
 				res_mngr.GetUnassignIDs().emplace_back( table.layoutId.Release() );
@@ -1018,7 +652,7 @@ namespace FG
 			if ( table.pipeline )
 				res_mngr.GetReadyToDeleteQueue().emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(table.pipeline) );
 		}
-		shaderTable._tables.clear();
+		shaderTable._tables.clear();*/
 
 
 		// create shader table for each debug mode
@@ -1053,9 +687,9 @@ namespace FG
 			{
 				RawDescriptorSetLayoutID	ds_layout;
 				uint						binding;
-				CHECK( fg.CreateShaderDebugger()->GetDescriptorSetLayout( mode, EShaderStages::AllRayTracing, OUT binding, OUT ds_layout ));
+				CHECK( fgThread.GetShaderDebugger().GetDescriptorSetLayout( mode, EShaderStages::AllRayTracing, OUT binding, OUT ds_layout ));
 
-				layout_id = res_mngr.ExtendPipelineLayout( layout_id, ds_layout, binding, DescriptorSetID{"dbgStorage"}, true );
+				layout_id = res_mngr.ExtendPipelineLayout( layout_id, ds_layout, binding, DescriptorSetID{"dbgStorage"});
 				CHECK_ERR( layout_id );
 			}
 
@@ -1072,12 +706,12 @@ namespace FG
 			pipeline_info.groupCount			= uint(_tempShaderGroups.size());
 			pipeline_info.pGroups				= _tempShaderGroups.data();
 			pipeline_info.maxRecursionDepth		= maxRecursionDepth;
-			pipeline_info.layout				= res_mngr.GetResource( layout_id )->Handle();
+			pipeline_info.layout				= fgThread.AcquireTemporary( layout_id )->Handle();
 			pipeline_info.basePipelineIndex		= -1;
 			pipeline_info.basePipelineHandle	= VK_NULL_HANDLE;
 
 			VK_CHECK( dev.vkCreateRayTracingPipelinesNV( dev.GetVkDevice(), _pipelinesCache, 1, &pipeline_info, null, OUT &table.pipeline ));
-			res_mngr.EditStatistic().newRayTracingPipelineCount++;
+			fgThread.EditStatistic().resources.newRayTracingPipelineCount++;
 			
 			CHECK( res_mngr.AcquireResource( layout_id ));
 			table.layoutId = PipelineLayoutID{layout_id};
@@ -1088,8 +722,8 @@ namespace FG
 			BytesU			buf_offset, buf_size;
 			void *			mapped_ptr = null;
 		
-			CHECK_ERR( fg.GetStagingBufferManager()->GetWritableBuffer( shaderTable._blockSize, shaderTable._blockSize,
-																	    OUT staging_buffer, OUT buf_offset, OUT buf_size, OUT mapped_ptr ));
+			//CHECK_ERR( fgThread.GetStagingBufferManager()->GetWritableBuffer( shaderTable._blockSize, shaderTable._blockSize,
+			//																  OUT staging_buffer, OUT buf_offset, OUT buf_size, OUT mapped_ptr ));
 			DEBUG_ONLY( memset( OUT mapped_ptr, 0xAE, size_t(buf_size) ));
 	
 			// ray-gen shader
@@ -1124,13 +758,13 @@ namespace FG
 					case EGroupType::TriangleHitShader :
 					case EGroupType::ProceduralHitShader :
 					{
-						const auto*	inst		= rtScene->FindInstance( shader.instanceId );
+						const auto*	inst		= rtScene.FindInstance( shader.instanceId );
 						auto		group		= _tempShaderGraphMap.find( &shader );
 						CHECK_ERR( inst and group != _tempShaderGraphMap.end() );
 						CHECK_ERR( shader.offset < geom_stride );
 
 						size_t		index_offset= inst->indexOffset;
-						const auto*	geom		= res_mngr.GetResource( inst->geometry.Get() );
+						const auto*	geom		= fgThread.AcquireTemporary( inst->geometry.Get() );
 
 						// if 'geometryId' is not defined then bind shader group for each geometry in instance
 						if ( shader.geometryId == Default )
@@ -1182,8 +816,8 @@ namespace FG
 
 			// copy from staging buffer to shader binding table
 			auto&	copy	= copyRegions.emplace_back();
-			copy.srcBuffer			= res_mngr.ToLocal( staging_buffer );
-			copy.dstBuffer			= res_mngr.ToLocal( shaderTable._bufferId.Get() );
+			copy.srcBuffer			= fgThread.ToLocal( staging_buffer );
+			copy.dstBuffer			= fgThread.ToLocal( shaderTable._bufferId.Get() );
 			copy.region.srcOffset	= VkDeviceSize(buf_offset);
 			copy.region.dstOffset	= VkDeviceSize(table.bufferOffset);
 			copy.region.size		= VkDeviceSize(shaderTable._blockSize);
@@ -1214,8 +848,8 @@ namespace FG
 
 		// find suitable shader module
 		for (size_t pos = BinarySearch( ppln->_shaders, id );
-				pos < ppln->_shaders.size() and ppln->_shaders[pos].shaderId == id;
-				++pos)
+			 pos < ppln->_shaders.size() and ppln->_shaders[pos].shaderId == id;
+			 ++pos)
 		{
 			auto&	shader = ppln->_shaders[pos];
 
@@ -1658,14 +1292,9 @@ namespace FG
 			attachments.push_back( color_state );
 		}
 
-		for (auto& cb : inState.buffers)
+		for (size_t i = 0, cnt = Min(inState.buffers.size(), attachments.size()); i < cnt; ++i)
 		{
-			ASSERT( cb.first.IsDefined() );
-
-			uint	index;
-			CHECK( renderPass.GetColorAttachmentIndex( cb.first, OUT index ) );
-
-			SetColorBlendAttachmentState( attachments[index], cb.second, logic_op_enabled );
+			SetColorBlendAttachmentState( OUT attachments[i], inState.buffers[i], logic_op_enabled );
 		}
 
 		outState.sType				= VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -1757,6 +1386,7 @@ namespace FG
 					break;
 
 				case EPipelineDynamicState::Unknown :
+				case EPipelineDynamicState::Default :
 				case EPipelineDynamicState::_Last :
 				case EPipelineDynamicState::All :
 					break;	// to shutup warnings
@@ -1785,21 +1415,19 @@ namespace FG
 
 			for (auto& cb : renderState.color.buffers)
 			{
-				if ( not cb.second.blend )
+				if ( not cb.blend )
 				{	
-					cb.second.srcBlendFactor = { EBlendFactor::One,		EBlendFactor::One };
-					cb.second.dstBlendFactor = { EBlendFactor::Zero,	EBlendFactor::Zero };
-					cb.second.blendOp		 = { EBlendOp::Add,			EBlendOp::Add };
+					cb.srcBlendFactor =	 { EBlendFactor::One,	EBlendFactor::One };
+					cb.dstBlendFactor	= { EBlendFactor::Zero,	EBlendFactor::Zero };
+					cb.blendOp			= { EBlendOp::Add,		EBlendOp::Add };
 				}
 				else
+				if ( not dual_src_blend )
 				{
-					if ( not dual_src_blend )
-					{
-						ASSERT( not IsDualSrcBlendFactor( cb.second.srcBlendFactor.color ) );
-						ASSERT( not IsDualSrcBlendFactor( cb.second.srcBlendFactor.alpha ) );
-						ASSERT( not IsDualSrcBlendFactor( cb.second.dstBlendFactor.color ) );
-						ASSERT( not IsDualSrcBlendFactor( cb.second.dstBlendFactor.alpha ) );
-					}
+					ASSERT( not IsDualSrcBlendFactor( cb.srcBlendFactor.color ) );
+					ASSERT( not IsDualSrcBlendFactor( cb.srcBlendFactor.alpha ) );
+					ASSERT( not IsDualSrcBlendFactor( cb.dstBlendFactor.color ) );
+					ASSERT( not IsDualSrcBlendFactor( cb.dstBlendFactor.alpha ) );
 				}
 			}
 		}

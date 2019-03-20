@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/Public/FrameGraphThread.h"
+#include "framegraph/Public/FrameGraph.h"
 #include "framegraph/Shared/ResourceBase.h"
 #include "stl/Memory/LinearAllocator.h"
 #include "stl/Containers/ChunkedIndexedPool.h"
@@ -18,6 +18,8 @@
 #include "VRayTracingGeometry.h"
 #include "VRayTracingScene.h"
 #include "VRayTracingShaderTable.h"
+#include "VSwapchain.h"
+#include "VMemoryManager.h"
 
 namespace FG
 {
@@ -28,13 +30,11 @@ namespace FG
 
 	class VResourceManager final
 	{
-		friend class VResourceManagerThread;
-
 	// types
-	private:
-		using Index_t			= uint;
+	public:
+		using Index_t			= RawImageID::Index_t;
 		using AssignOpGuard_t	= std::mutex;
-		using CacheGuard_t		= DummySharedLock; //std::shared_mutex;
+		using CacheGuard_t		= std::shared_mutex;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
 		using PoolTmpl			= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, AtomicPtr >;
@@ -42,72 +42,40 @@ namespace FG
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
 		using CachedPoolTmpl	= CachedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, CacheGuard_t, AtomicPtr >;
 
-		template <typename T, size_t MaxSize, template <typename, size_t, size_t> class PoolT>
-		using PoolHelper		= PoolT< ResourceBase<T>, MaxSize/16, 16 >;
+		static constexpr uint	MaxImages		= 2u << 10;
+		static constexpr uint	MaxBuffers		= 2u << 10;
+		static constexpr uint	MaxMemoryObjs	= MaxImages + MaxBuffers - 1;
+		static constexpr uint	MaxCached		= 1u << 10;
+		static constexpr uint	MaxRTObjects	= 1u << 10;
 
-		using ImagePool_t				= PoolHelper< VImage,					FG_MaxResources,	PoolTmpl >;
-		using BufferPool_t				= PoolHelper< VBuffer,					FG_MaxResources,	PoolTmpl >;
-		using MemoryPool_t				= PoolHelper< VMemoryObj,				FG_MaxResources*2,	PoolTmpl >;
-
-		using SamplerPool_t				= PoolHelper< VSampler,					FG_MaxResources,	CachedPoolTmpl >;
-		using GPipelinePool_t			= PoolHelper< VGraphicsPipeline,		FG_MaxResources,	PoolTmpl >;
-		using CPipelinePool_t			= PoolHelper< VComputePipeline,			FG_MaxResources,	PoolTmpl >;
-		using MPipelinePool_t			= PoolHelper< VMeshPipeline,			FG_MaxResources,	PoolTmpl >;
-		using RTPipelinePool_t			= PoolHelper< VRayTracingPipeline,		FG_MaxResources,	PoolTmpl >;
-		using PplnLayoutPool_t			= PoolHelper< VPipelineLayout,			FG_MaxResources,	CachedPoolTmpl >;
-		using DescriptorSetLayoutPool_t	= PoolHelper< VDescriptorSetLayout,		FG_MaxResources,	CachedPoolTmpl >;
-		using RenderPassPool_t			= PoolHelper< VRenderPass,				FG_MaxResources,	CachedPoolTmpl >;
-		using FramebufferPool_t			= PoolHelper< VFramebuffer,				FG_MaxResources,	CachedPoolTmpl >;
-		using PipelineResourcesPool_t	= PoolHelper< VPipelineResources,		FG_MaxResources,	CachedPoolTmpl >;
-		using RTGeometryPool_t			= PoolHelper< VRayTracingGeometry,		FG_MaxResources,	PoolTmpl >;
-		using RTScenePool_t				= PoolHelper< VRayTracingScene,			FG_MaxResources,	PoolTmpl >;
-		using RTShaderTablePool_t		= PoolHelper< VRayTracingShaderTable,	FG_MaxResources,	PoolTmpl >;
-
-		using VkResourceQueue_t			= Array< UntypedVkResource_t >;
-		using ResourceIDQueue_t			= std::vector< Pair<UntypedResourceID_t, bool> >;
-
-		using TimePoint_t				= std::chrono::high_resolution_clock::time_point;
-
-
-		struct PerFrame
-		{
-			VkResourceQueue_t		readyToDelete;
-		};
-		using PerFrameArray_t			= FixedArray< PerFrame, FG_MaxRingBufferSize >;
-
-
-		struct TaskData
-		{
-			using TaskFn = std::function< void (VResourceManagerThread &) >;
-
-			//std::atomic_flag	lock  { ATOMIC_FLAG_INIT };
-			TaskFn				task;
-		};
-
-		struct PoolRanges
-		{
-			std::atomic<uint64_t>	bits { 0 };		// 0 - require validation, 1 - valid
-		};
-
-		enum class ECachedResource
-		{
-			Begin = 0,
-			//Sampler = Begin,
-			//PipelineLayout,
-			//DescriptorSetLayout,
-			//RenderPass,
-			Framebuffer = Begin,
-			//PipelineResources,
-			End
-		};
+		using ImagePool_t			= PoolTmpl<			ResourceBase<VImage>,					MaxImages,		16 >;
+		using BufferPool_t			= PoolTmpl<			ResourceBase<VBuffer>,					MaxBuffers,		16 >;
+		using MemoryPool_t			= PoolTmpl<			ResourceBase<VMemoryObj>,				MaxMemoryObjs,	16 >;
+		using SamplerPool_t			= CachedPoolTmpl<	ResourceBase<VSampler>,					MaxCached,		16 >;
+		using GPipelinePool_t		= PoolTmpl<			ResourceBase<VGraphicsPipeline>,		MaxCached,		16 >;
+		using CPipelinePool_t		= PoolTmpl<			ResourceBase<VComputePipeline>,			MaxCached,		16 >;
+		using MPipelinePool_t		= PoolTmpl<			ResourceBase<VMeshPipeline>,			MaxCached,		16 >;
+		using RTPipelinePool_t		= PoolTmpl<			ResourceBase<VRayTracingPipeline>,		MaxCached,		16 >;
+		using PplnLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VPipelineLayout>,			MaxCached,		16 >;
+		using DSLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VDescriptorSetLayout>,		MaxCached,		16 >;
+		using RenderPassPool_t		= CachedPoolTmpl<	ResourceBase<VRenderPass>,				MaxCached,		16 >;
+		using FramebufferPool_t		= CachedPoolTmpl<	ResourceBase<VFramebuffer>,				MaxCached,		16 >;
+		using PplnResourcesPool_t	= CachedPoolTmpl<	ResourceBase<VPipelineResources>,		MaxCached,		16 >;
+		using RTGeometryPool_t		= PoolTmpl<			ResourceBase<VRayTracingGeometry>,		MaxRTObjects,	16 >;
+		using RTScenePool_t			= PoolTmpl<			ResourceBase<VRayTracingScene>,			MaxRTObjects,	16 >;
+		using RTShaderTablePool_t	= PoolTmpl<			ResourceBase<VRayTracingShaderTable>,	MaxRTObjects,	16 >;
+		using SwapchainPool_t		= PoolTmpl<			ResourceBase<VSwapchain>,				64,				1 >;
 		
-		using ValidationTasks_t		= FixedArray< TaskData, 128 >;
-		using ValidationRanges_t	= StaticArray< PoolRanges, uint(ECachedResource::End) >;
+		using PipelineCompilers_t	= HashSet< PipelineCompiler >;
+		using VkShaderPtr			= PipelineDescription::VkShaderPtr;
+		using ShaderModules_t		= Array< VkShaderPtr >;
+		using DSLayouts_t			= FixedArray<Pair< RawDescriptorSetLayoutID, ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets >;
 
 
 	// variables
 	private:
 		VDevice const&				_device;
+		VMemoryManager				_memoryMngr;
 
 		BufferPool_t				_bufferPool;
 		ImagePool_t					_imagePool;
@@ -120,8 +88,8 @@ namespace FG
 		RTPipelinePool_t			_rayTracingPplnPool;
 
 		PplnLayoutPool_t			_pplnLayoutCache;
-		DescriptorSetLayoutPool_t	_dsLayoutCache;
-		PipelineResourcesPool_t		_pplnResourcesCache;
+		DSLayoutPool_t				_dsLayoutCache;
+		PplnResourcesPool_t			_pplnResourcesCache;
 
 		RenderPassPool_t			_renderPassCache;
 		FramebufferPool_t			_framebufferCache;
@@ -130,29 +98,21 @@ namespace FG
 		RTScenePool_t				_rtScenePool;
 		RTShaderTablePool_t			_rtShaderTablePool;
 
-		ResourceIDQueue_t			_unassignIDs;
-		PerFrameArray_t				_perFrame;
-		uint						_frameId		= 0;
-
-		TimePoint_t					_startTime;
-		uint						_currTime		= 0;		// in seconds
-		static constexpr uint		_maxTimeDelta	= 60*5;		// in seconds
-		uint						_frameCounter	= 0;
-
-		// cached resources validation
-		ValidationRanges_t			_validationRanges;
-		ECachedResource				_currentValidationPos = ECachedResource::Begin;
-
-		ValidationTasks_t			_validationTasks;
-		std::atomic<uint>			_validationTaskPos	= 0;
+		SwapchainPool_t				_swapchainPool;
 		
+		std::mutex					_shaderCacheGuard;
+		ShaderModules_t				_shaderCache;
+
+		std::shared_mutex			_compilersGuard;
+		PipelineCompilers_t			_compilers;
+
+		std::atomic<uint>			_submissionCounter;
+
 		// dummy resource descriptions
 		const BufferDesc			_dummyBufferDesc;
 		const ImageDesc				_dummyImageDesc;
 
 		RawDescriptorSetLayoutID	_emptyDSLayout;
-
-		RWRaceConditionCheck		_rcCheck;
 
 
 	// methods
@@ -160,55 +120,102 @@ namespace FG
 		explicit VResourceManager (const VDevice &dev);
 		~VResourceManager ();
 
-		bool Initialize (uint ringBufferSize);
+		bool Initialize ();
 		void Deinitialize ();
 		
-		void OnBeginFrame (uint frameId);
-		void OnEndFrame ();
+		void AddCompiler (const PipelineCompiler &comp);
+		void OnSubmit ();
+
+		ND_ RawMPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName);
+		ND_ RawGPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName);
+		ND_ RawCPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName);
+		ND_ RawRTPipelineID		CreatePipeline (INOUT RayTracingPipelineDesc &desc);
+		
+		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, StringView dbgName);
+		ND_ RawBufferID			CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, StringView dbgName);
+		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName);
+		
+		ND_ RawImageID			CreateImage (const VulkanImageDesc &desc, IFrameGraph::OnExternalImageReleased_t &&onRelease, StringView dbgName);
+		ND_ RawBufferID			CreateBuffer (const VulkanBufferDesc &desc, IFrameGraph::OnExternalBufferReleased_t &&onRelease, StringView dbgName);
+
+		ND_ RawRenderPassID		CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, StringView dbgName);
+		ND_ RawFramebufferID	CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers, StringView dbgName);
+
+		ND_ VPipelineResources const*	CreateDescriptorSet (const PipelineResources &desc);
+			bool						CacheDescriptorSet (INOUT PipelineResources &desc);
+		
+		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName);
+		ND_ RawRTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName);
+
+		ND_ RawRTShaderTableID	CreateRayTracingShaderTable (StringView dbgName);
+		
+		ND_ RawPipelineLayoutID	ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout, uint dsLayoutIndex,
+													  const DescriptorSetID &dsID);
+
+		ND_ RawDescriptorSetLayoutID	CreateDescriptorSetLayout (const PipelineDescription::UniformMapPtr &uniforms);
+		
+		ND_ RawSwapchainID		CreateSwapchain (const VulkanSwapchainCreateInfo &desc, RawSwapchainID oldSwapchain, VFrameGraph &, StringView dbgName);
 
 		template <typename ID>
-		ND_ auto const*		GetResource (ID id)		const;
+		void ReleaseResource (ID id);
+		void ReleaseResource (INOUT PipelineResources &desc);
+		
+		template <typename ID>
+		bool AcquireResource (ID id);
 
 		template <typename ID>
-		ND_ auto const&		GetDescription (ID id)	const;
+		ND_ bool			IsResourceAlive (ID id)		const;
 
-		ND_ uint			GetFrameIndex ()		const	{ SHAREDLOCK( _rcCheck );  return _frameCounter; }
+		template <typename ID>
+		ND_ auto const*		GetResource (ID id)			const;
+
+		template <typename ID>
+		ND_ auto const&		GetDescription (ID id)		const;
+
+		ND_ VDevice const&	GetDevice ()				const	{ return _device; }
+		ND_ VMemoryManager&	GetMemoryManager ()					{ return _memoryMngr; }
 
 
 	private:
-		void  _CreateValidationTasks ();
-		void  _DestroyValidationTasks ();
+		bool  _CreateMemory (OUT RawMemoryID &id, OUT ResourceBase<VMemoryObj>* &memPtr, const MemoryDesc &desc, StringView dbgName);
+
+		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
+									 PipelineDescription::PipelineLayout &&desc);
+
+		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
+									 const PipelineDescription::PipelineLayout &, const DSLayouts_t &);
+
+		bool  _CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout>* &layoutPtr,
+										  const PipelineDescription::UniformMapPtr &uniforms);
 		
-		bool  _ProcessValidationTask (VResourceManagerThread &);
+		template <typename ID, typename FnInitialize, typename FnCreate>
+		ND_ ID  _CreateCachedResource (StringView errorStr, FnInitialize&& fnInit, FnCreate&& fnCreate);
 
-		template <typename T, size_t ChunkSize, size_t MaxChunks>
-		bool  _AddValidationTasks (const CachedPoolTmpl<T, ChunkSize, MaxChunks> &, INOUT PoolRanges &,
-								   void (VResourceManager::*) (VResourceManagerThread &, Index_t, Index_t) const);
+		template <typename DescT>
+		bool  _CompileShaders (INOUT DescT &desc, const VDevice &dev);
+		bool  _CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev);
+		bool  _CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module);
 
-		void  _ValidateSamplers (VResourceManagerThread &, Index_t, Index_t) const;
-		void  _ValidatePipelineLayouts (VResourceManagerThread &, Index_t, Index_t) const;
-		void  _ValidateDescriptorSetLayouts (VResourceManagerThread &, Index_t, Index_t) const;
-		void  _ValidateRenderPasses (VResourceManagerThread &, Index_t, Index_t) const;
-		void  _ValidateFramebuffers (VResourceManagerThread &, Index_t, Index_t) const;
-		void  _ValidatePipelineResources (VResourceManagerThread &, Index_t, Index_t) const;
-
-		void  _DeleteResources (INOUT VkResourceQueue_t &) const;
-		void  _UnassignResourceIDs ();
+		//void  _DeleteResources (INOUT VkResourceQueue_t &) const;
+		//void  _UnassignResourceIDs ();
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool);
+		void  _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool);
 
 		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force);
+		void  _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force);
 
 		template <typename DataT, size_t CS, size_t MC>
-		void _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &pool);
+		void  _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &pool);
 		
-		bool _CreateEmptyDescriptorSetLayout ();
+		template <typename ID, typename T>
+		void  _ReleaseResource (ID id, ResourceBase<T>& data);
 
 		template <typename ID>
 		ND_ bool  _AddToResourceCache (const ID &id);
 
+
+	// resource pool
 		ND_ auto&  _GetResourcePool (const RawBufferID &)				{ return _bufferPool; }
 		ND_ auto&  _GetResourcePool (const RawImageID &)				{ return _imagePool; }
 		ND_ auto&  _GetResourcePool (const RawSamplerID &)				{ return _samplerCache; }
@@ -225,16 +232,24 @@ namespace FG
 		ND_ auto&  _GetResourcePool (const RawRTGeometryID &)			{ return _rtGeometryPool; }
 		ND_ auto&  _GetResourcePool (const RawRTSceneID &)				{ return _rtScenePool; }
 		ND_ auto&  _GetResourcePool (const RawRTShaderTableID &)		{ return _rtShaderTablePool; }
+		ND_ auto&  _GetResourcePool (const RawSwapchainID &)			{ return _swapchainPool; }
 
 		template <typename ID>
 		ND_ const auto&  _GetResourceCPool (const ID &id)		const	{ return const_cast<VResourceManager *>(this)->_GetResourcePool( id ); }
-
-		ND_ VkResourceQueue_t&  _GetReadyToDeleteQueue ()				{ SHAREDLOCK( _rcCheck );  return _perFrame[_frameId].readyToDelete; }
-
-		ND_ AppendableResourceIDs_t				_GetResourceIDs ()		{ SHAREDLOCK( _rcCheck );  return AppendableResourceIDs_t{ _unassignIDs, std::integral_constant< decltype(&_AppendResourceID), &_AppendResourceID >{}}; }
-		static Pair<UntypedResourceID_t, bool>  _AppendResourceID (UntypedResourceID_t &&id)	{ return { std::move(id), false }; }
 		
-		ND_ RawDescriptorSetLayoutID	_GetEmptyDescriptorSetLayout ()	{ SHAREDLOCK( _rcCheck );  return _emptyDSLayout; }
+
+	// 
+		template <typename ID>	ND_ bool   _Assign (OUT ID &id);
+		template <typename ID>		void   _Unassign (ID id);
+		
+
+	// empty descriptor set layout
+			bool _CreateEmptyDescriptorSetLayout ();
+		ND_ auto _GetEmptyDescriptorSetLayout ()		{ return _emptyDSLayout; }
+
+
+	// 
+		ND_ uint	_GetSubmitIndex () const			{ return _submissionCounter.load( memory_order_relaxed ); }
 	};
 
 	
@@ -247,8 +262,6 @@ namespace FG
 	template <typename ID>
 	inline auto const*  VResourceManager::GetResource (ID id) const
 	{
-		SHAREDLOCK( _rcCheck );
-
 		auto&	pool = _GetResourceCPool( id );
 
 		using Result_t = typename std::remove_reference_t<decltype(pool)>::Value_t::Resource_t const*;
@@ -295,8 +308,6 @@ namespace FG
 	template <typename DataT, size_t CS, size_t MC, typename ID>
 	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool)
 	{
-		EXLOCK( _rcCheck );
-		
 		if ( id.Index() >= pool.size() )
 			return;
 
@@ -307,7 +318,7 @@ namespace FG
 			return;	// this instance is already destroyed
 
 		if ( data.IsCreated() )
-			data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
+			data.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
 
 		pool.Unassign( id.Index() );
 	}
@@ -320,8 +331,6 @@ namespace FG
 	template <typename DataT, size_t CS, size_t MC, typename ID>
 	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force)
 	{
-		EXLOCK( _rcCheck );
-		
 		if ( id.Index() >= pool.size() )
 			return;
 
@@ -331,13 +340,13 @@ namespace FG
 		if ( data.GetInstanceID() != id.InstanceID() )
 			return;	// this instance is already destroyed
 
-		const bool	destroy = data.IsCreated() and (force or data.ReleaseRef( _currTime ));
+		const bool	destroy = data.IsCreated() and (force or data.ReleaseRef( _GetSubmitIndex() ));
 
 		if ( not destroy )
 			return;	// don't unassign ID
 
 		pool.RemoveFromCache( id.Index() );
-		data.Destroy( OUT _GetReadyToDeleteQueue(), OUT _GetResourceIDs() );
+		data.Destroy( *this );
 		pool.Unassign( id.Index() );
 	}
 	
@@ -349,12 +358,123 @@ namespace FG
 	template <typename ID>
 	inline bool  VResourceManager::_AddToResourceCache (const ID &id)
 	{
-		EXLOCK( _rcCheck );
-
 		auto&	pool = _GetResourcePool( id );
 
 		return pool.AddToCache( id.Index() ).second;
 	}
+	
+/*
+=================================================
+	_GetState
+=================================================
+*
+	template <typename DataT, size_t CS, size_t MC, typename ID>
+	inline DataT*  VResourceManager::_GetState (PoolTmpl<DataT,CS,MC> &pool, ID id)
+	{
+		ASSERT( id );
+		EXLOCK( _rcCheck );
 
+		auto&	data = pool[ id.Index() ];
+		ASSERT( data.IsCreated() );
+
+		return &data.Data();
+	}
+	
+/*
+=================================================
+	AcquireResource
+=================================================
+*/
+	template <typename ID>
+	inline bool  VResourceManager::AcquireResource (ID id)
+	{
+		ASSERT( id );
+		
+		auto&	pool = _GetResourcePool( id );
+		auto&	data = pool[ id.Index() ];
+
+		if ( not data.IsCreated() or data.GetInstanceID() != id.InstanceID() )
+			return false;
+
+		data.AddRef();
+		return true;
+	}
+
+/*
+=================================================
+	ReleaseResource
+=================================================
+*/
+	template <typename ID>
+	inline void  VResourceManager::ReleaseResource (ID id)
+	{
+		ASSERT( id );
+
+		auto&	pool = _GetResourcePool( id );
+		auto&	data = pool[ id.Index() ];
+		
+		if ( data.GetInstanceID() != id.InstanceID() )
+			return;	// this instance is already destroyed
+
+		_ReleaseResource( id, data );
+	}
+	
+	template <typename ID, typename T>
+	inline void  VResourceManager::_ReleaseResource (ID, ResourceBase<T>&)
+	{
+		// TODO
+		//if ( data.ReleaseRef( _GetSubmitIndex() ) )
+		//	_unassignIDs.push_back( id );
+	}
+	
+/*
+=================================================
+	_Assign
+----
+	acquire free index from cache (cache is local in thread),
+	if cache empty then acquire new indices from main pool (internaly synchronized),
+	if pool is full then error (false) will be returned.
+=================================================
+*/
+	template <typename ID>
+	inline bool  VResourceManager::_Assign (OUT ID &id)
+	{
+		auto&	pool = _GetResourcePool( id );
+		
+		Index_t		index;
+		CHECK_ERR( pool.Assign( OUT index ));
+
+		id = ID( index, pool[index].GetInstanceID() );
+		return true;
+	}
+	
+/*
+=================================================
+	_Unassign
+=================================================
+*/
+	template <typename ID>
+	inline void  VResourceManager::_Unassign (ID id)
+	{
+		ASSERT( id );
+		auto&	pool = _GetResourcePool( id );
+
+		pool.Unassign( id.Index() );
+	}
+	
+/*
+=================================================
+	IsResourceAlive
+=================================================
+*/
+	template <typename ID>
+	inline bool  VResourceManager::IsResourceAlive (ID id) const
+	{
+		ASSERT( id );
+		auto&	res = _GetResourceCPool(id)[ id.Index() ];
+
+		return (res.GetInstanceID() == id.InstanceID());
+	}
+	
 
 }	// FG

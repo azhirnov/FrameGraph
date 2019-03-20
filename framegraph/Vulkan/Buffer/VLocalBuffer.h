@@ -26,12 +26,12 @@ namespace FG
 		// variables
 			EResourceState	state	= Default;
 			BufferRange		range;
-			Task			task;
+			VTask			task;
 
 		// methods
 			BufferState () {}
 
-			BufferState (EResourceState state, VkDeviceSize begin, VkDeviceSize end, Task task) :
+			BufferState (EResourceState state, VkDeviceSize begin, VkDeviceSize end, VTask task) :
 				state{state}, range{begin, end}, task{task} {}
 		};
 
@@ -71,7 +71,7 @@ namespace FG
 		~VLocalBuffer ();
 
 		bool Create (const VBuffer *);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy ();
 
 		void AddPendingState (const BufferState &state) const;
 		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;

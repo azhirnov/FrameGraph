@@ -1,9 +1,9 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VShaderDebugger.h"
-#include "VFrameGraphThread.h"
 #include "VEnumCast.h"
 #include "VBuffer.h"
+#include "VCommandBuffer.h"
 
 namespace FG
 {
@@ -13,9 +13,9 @@ namespace FG
 	constructor
 =================================================
 */
-	VShaderDebugger::VShaderDebugger (VFrameGraphThread &fg) :
-		_frameGraph{ fg },
-		_bufferAlign{ _frameGraph.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment }
+	VShaderDebugger::VShaderDebugger (VCommandBuffer &fg) :
+		_fgThread{ fg },
+		_bufferAlign{ _fgThread.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment }
 	{
 		if ( FG_EnableShaderDebugging )
 		{
@@ -30,14 +30,14 @@ namespace FG
 */
 	VShaderDebugger::~VShaderDebugger ()
 	{
-		auto&	dev = _frameGraph.GetDevice();
+		auto&	dev = _fgThread.GetDevice();
 
 		if ( _descPool ) {
 			dev.vkDestroyDescriptorPool( dev.GetVkDevice(), _descPool, null );
 		}
 
 		for (auto& ds_layout : _layoutCache) {
-			_frameGraph.GetResourceManager()->ReleaseResource( ds_layout.second.Release(), false );
+			_fgThread.GetResourceManager().ReleaseResource( ds_layout.second.Release() );
 		}
 		_layoutCache.clear();
 
@@ -54,12 +54,12 @@ namespace FG
 		if ( _storageBuffers.empty() )
 			return;
 
-		auto&	dev = _frameGraph.GetDevice();
+		auto&	dev = _fgThread.GetDevice();
 
 		// copy data
 		for (auto& dbg : _debugModes)
 		{
-			auto	buf		= _frameGraph.GetResourceManager()->GetResource( _storageBuffers[dbg.sbIndex].shaderTraceBuffer.Get() )->Handle();
+			auto	buf		= _fgThread.AcquireTemporary( _storageBuffers[dbg.sbIndex].shaderTraceBuffer.Get() )->Handle();
 			BytesU	size	= _GetBufferStaticSize( dbg.shaderStages ) + SizeOf<uint>;	// per shader data + position
 			ASSERT( size <= BytesU::SizeOf(dbg.data) );
 
@@ -76,7 +76,7 @@ namespace FG
 			barrier.sType			= VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 			barrier.srcAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask	= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-			barrier.buffer			= _frameGraph.GetResourceManager()->GetResource( sb.shaderTraceBuffer.Get() )->Handle();
+			barrier.buffer			= _fgThread.AcquireTemporary( sb.shaderTraceBuffer.Get() )->Handle();
 			barrier.offset			= 0;
 			barrier.size			= VkDeviceSize(sb.size);
 			barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
@@ -99,13 +99,13 @@ namespace FG
 		if ( _storageBuffers.empty() )
 			return;
 
-		auto&	dev = _frameGraph.GetDevice();
+		auto&	dev = _fgThread.GetDevice();
 		
 		// copy to staging buffer
 		for (auto& sb : _storageBuffers)
 		{
-			VkBuffer	src_buf	= _frameGraph.GetResourceManager()->GetResource( sb.shaderTraceBuffer.Get() )->Handle();
-			VkBuffer	dst_buf	= _frameGraph.GetResourceManager()->GetResource( sb.readBackBuffer.Get() )->Handle();
+			VkBuffer	src_buf	= _fgThread.AcquireTemporary( sb.shaderTraceBuffer.Get() )->Handle();
+			VkBuffer	dst_buf	= _fgThread.AcquireTemporary( sb.readBackBuffer.Get() )->Handle();
 
 			VkBufferMemoryBarrier	barrier = {};
 			barrier.sType			= VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -138,7 +138,7 @@ namespace FG
 
 		ASSERT( cb );
 
-		auto&	dev = _frameGraph.GetDevice();
+		auto&	dev = _fgThread.GetDevice();
 
 		VK_CHECK( dev.vkDeviceWaitIdle( dev.GetVkDevice() ), void());
 
@@ -157,8 +157,8 @@ namespace FG
 		// release storage buffers
 		for (auto& sb : _storageBuffers)
 		{
-			_frameGraph.ReleaseResource( sb.shaderTraceBuffer );
-			_frameGraph.ReleaseResource( sb.readBackBuffer );
+			_fgThread.ReleaseResource( sb.shaderTraceBuffer.Release() );
+			_fgThread.ReleaseResource( sb.readBackBuffer.Release() );
 		}
 		_storageBuffers.clear();
 	}
@@ -174,14 +174,14 @@ namespace FG
 
 		auto	read_back_buf	= _storageBuffers[ dbg.sbIndex ].readBackBuffer.Get();
 
-		VBuffer const*		buf	= _frameGraph.GetResourceManager()->GetResource( read_back_buf );
+		VBuffer const*		buf	= _fgThread.AcquireTemporary( read_back_buf );
 		CHECK_ERR( buf );
 
-		VMemoryObj const*	mem = _frameGraph.GetResourceManager()->GetResource( buf->GetMemoryID() );
+		VMemoryObj const*	mem = _fgThread.AcquireTemporary( buf->GetMemoryID() );
 		CHECK_ERR( mem );
 
 		VMemoryObj::MemoryInfo	info;
-		CHECK_ERR( mem->GetInfo( OUT info ));
+		CHECK_ERR( mem->GetInfo( _fgThread.GetMemoryManager(), OUT info ));
 		CHECK_ERR( info.mappedPtr );
 
 		for (auto& shader : dbg.modules)
@@ -248,10 +248,10 @@ namespace FG
 */
 	bool VShaderDebugger::_AllocDescriptorSet (EShaderDebugMode debugMode, EShaderStages stages, RawBufferID storageBuffer, BytesU size, OUT VkDescriptorSet &descSet)
 	{
-		auto&	dev			= _frameGraph.GetDevice();
+		auto&	dev			= _fgThread.GetDevice();
 		auto	layout_id	= _GetDescriptorSetLayout( debugMode, stages );
-		auto*	layout		= _frameGraph.GetResourceManager()->GetResource( layout_id );
-		auto*	buffer		= _frameGraph.GetResourceManager()->GetResource( storageBuffer );
+		auto*	layout		= _fgThread.AcquireTemporary( layout_id );
+		auto*	buffer		= _fgThread.AcquireTemporary( storageBuffer );
 		CHECK_ERR( layout and buffer );
 
 		// create descriptor pool
@@ -376,8 +376,10 @@ namespace FG
 		{
 			StorageBuffer	sb;
 			sb.capacity				= _bufferSize * (1 + _storageBuffers.size() / 2);
-			sb.shaderTraceBuffer	= _frameGraph.CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::Storage | EBufferUsage::Transfer }, Default, "DebugOutputStorage" );
-			sb.readBackBuffer		= _frameGraph.CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::TransferDst }, MemoryDesc{EMemoryType::HostRead}, "ReadBackDebugOutput" );
+			sb.shaderTraceBuffer	= _fgThread.GetInstance().CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::Storage | EBufferUsage::Transfer },
+																		    Default, "DebugOutputStorage" );
+			sb.readBackBuffer		= _fgThread.GetInstance().CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::TransferDst },
+																		    MemoryDesc{EMemoryType::HostRead}, "ReadBackDebugOutput" );
 			CHECK_ERR( sb.shaderTraceBuffer and sb.readBackBuffer );
 			
 			dbgMode.sbIndex	= uint(_storageBuffers.size());
@@ -492,8 +494,7 @@ namespace FG
 
 		uniforms.insert({ UniformID{"dbg_ShaderTrace"}, sb_uniform });
 
-		RawDescriptorSetLayoutID	layout = _frameGraph.GetResourceManager()
-				->CreateDescriptorSetLayout( MakeShared<const PipelineDescription::UniformMap_t>( std::move(uniforms) ), true );
+		auto	layout = _fgThread.GetResourceManager().CreateDescriptorSetLayout( MakeShared<const PipelineDescription::UniformMap_t>( std::move(uniforms) ));
 		CHECK_ERR( layout );
 
 		_layoutCache.insert({ key, DescriptorSetLayoutID{layout} });

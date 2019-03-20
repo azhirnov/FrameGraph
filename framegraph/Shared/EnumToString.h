@@ -8,8 +8,15 @@
 #include "framegraph/Public/VertexEnums.h"
 #include "stl/Algorithms/StringUtils.h"
 
-namespace FG
+namespace FGC
 {
+	using EImage			= FG::EImage;
+	using EImageUsage		= FG::EImageUsage;
+	using EBufferUsage		= FG::EBufferUsage;
+	using EImageAspect		= FG::EImageAspect;
+	using EResourceState	= FG::EResourceState;
+	using EPixelFormat		= FG::EPixelFormat;
+
 
 /*
 =================================================
@@ -210,7 +217,6 @@ namespace FG
 		if ( EnumEq( value, EResourceState::_MeshShader ))				str << ", MS";
 		if ( EnumEq( value, EResourceState::_RayTracingShader ))		str << ", RTS";
 		
-		if ( EnumEq( value, EResourceState::ClearBefore ))				str << ", ClearBefore";
 		if ( EnumEq( value, EResourceState::InvalidateBefore ))			str << ", InvalidateBefore";
 		if ( EnumEq( value, EResourceState::InvalidateAfter ))			str << ", InvalidateAfter";
 		if ( EnumEq( value, EResourceState::_BufferDynamicOffset ))		str << ", Dynamic";
@@ -358,4 +364,4 @@ namespace FG
 		RETURN_ERR( "unknown pixel format type!" );
 	}
 
-}	// FG
+}	// FGC

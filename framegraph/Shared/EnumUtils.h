@@ -133,7 +133,7 @@ namespace FG
 	{
 		return EnumEq( value, EResourceState::_Write );
 	}
-	
+
 /*
 =================================================
 	EResourceState_FromShaders

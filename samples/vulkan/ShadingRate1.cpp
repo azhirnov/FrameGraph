@@ -14,9 +14,7 @@
 #include "compiler/SpvCompiler.h"
 #include "stl/Algorithms/StringUtils.h"
 
-using namespace FG;
 namespace {
-
 
 class ShadingRateApp final : public IWindowEventListener, public VulkanDeviceFn
 {

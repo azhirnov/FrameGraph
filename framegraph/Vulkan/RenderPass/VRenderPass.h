@@ -14,8 +14,6 @@ namespace FG
 
 	class VRenderPass final
 	{
-		friend class VRenderPassCache;
-
 	// types
 	private:
 		static constexpr uint	maxColorAttachments	= FG_MaxColorBuffers;
@@ -30,7 +28,6 @@ namespace FG
 		using Dependencies_t		= FixedArray< VkSubpassDependency, maxDependencies >;
 		using Preserves_t			= FixedArray< uint, maxColorAttachments * maxSubpasses >;
 		using SubpassesHash_t		= FixedArray< HashVal, maxSubpasses >;
-		using AttachmentMapping_t	= FixedMap< RenderTargetID, uint, FG_MaxColorBuffers >;
 
 
 	// variables
@@ -40,8 +37,6 @@ namespace FG
 		HashVal					_hash;
 		HashVal					_attachmentHash;
 		SubpassesHash_t			_subpassesHash;
-
-		AttachmentMapping_t		_mapping;
 		
 		VkRenderPassCreateInfo	_createInfo		= {};
 		Attachments_t			_attachments;
@@ -61,13 +56,11 @@ namespace FG
 	public:
 		VRenderPass () {}
 		VRenderPass (VRenderPass &&) = default;
-		VRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput);
+		explicit VRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses);
 		~VRenderPass ();
 
 		bool Create (const VDevice &dev, StringView dbgName);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
-
-		bool GetColorAttachmentIndex (const RenderTargetID &id, OUT uint &index) const;
+		void Destroy (VResourceManager &);
 
 		ND_ bool operator == (const VRenderPass &rhs) const;
 
@@ -77,7 +70,7 @@ namespace FG
 
 
 	private:
-		bool _Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput);
+		bool _Initialize (ArrayView<VLogicalRenderPass*> logicalPasses);
 
 		static void  _CalcHash (const VkRenderPassCreateInfo &ci, OUT HashVal &hash, OUT HashVal &attachmentHash,
 								OUT SubpassesHash_t &subpassesHash);

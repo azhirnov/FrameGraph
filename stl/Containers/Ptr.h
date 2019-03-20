@@ -4,7 +4,7 @@
 
 #include "stl/Common.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -22,7 +22,9 @@ namespace FG
 	public:
 		Ptr () {}
 		Ptr (T *ptr) : _value{ptr} {}
-		Ptr (const Ptr<T> &other) : _value{other._value} {}
+
+		template <typename B>
+		Ptr (const Ptr<B> &other) : _value{static_cast<T*>( (B*)other )} {}
 
 		ND_ T *		operator -> ()					const	{ ASSERT( _value );  return _value; }
 		ND_ T &		operator *  ()					const	{ ASSERT( _value );  return *_value; }
@@ -40,15 +42,15 @@ namespace FG
 		ND_ bool  operator != (const Ptr<T> &rhs)	const	{ return not (*this == rhs); }
 	};
 
-}	// FG
+}	// FGC
 
 
 namespace std
 {
 
 	template <typename T>
-	struct hash< FG::Ptr<T> > {
-		ND_ size_t  operator () (const FG::Ptr<T> &value) const noexcept {
+	struct hash< FGC::Ptr<T> > {
+		ND_ size_t  operator () (const FGC::Ptr<T> &value) const noexcept {
 			return hash<T *>()( value.operator->() );
 		}
 	};

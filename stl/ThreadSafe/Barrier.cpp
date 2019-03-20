@@ -7,7 +7,7 @@
 
 # include "stl/Platforms/WindowsHeader.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -42,5 +42,5 @@ namespace FG
 		EnterSynchronizationBarrier( BitCast<SYNCHRONIZATION_BARRIER *>( &_data[0] ), SYNCHRONIZATION_BARRIER_FLAGS_NO_DELETE );
 	}
 	
-}	// FG
+}	// FGC
 #endif	// FG_BARRIER_MODE == 0

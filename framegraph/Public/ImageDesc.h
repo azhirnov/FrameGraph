@@ -18,28 +18,28 @@ namespace FG
 	struct ImageDesc
 	{
 	// variables
-		EImage			imageType	= Default;
-		uint3			dimension;	// width, height, depth, layers
-		EPixelFormat	format		= Default;
-		EImageUsage		usage		= Default;
-		ImageLayer		arrayLayers;
-		MipmapLevel		maxLevel;
-		MultiSamples	samples;	// if > 1 then enabled multisampling
-		EQueueUsage		queues		= Default;
-		//bool			isLogical	= false;
-		bool			isExternal	= false;
+		EImage				imageType	= Default;
+		uint3				dimension;	// width, height, depth, layers
+		EPixelFormat		format		= Default;
+		EImageUsage			usage		= Default;
+		ImageLayer			arrayLayers;
+		MipmapLevel			maxLevel;
+		MultiSamples		samples;	// if > 1 then enabled multisampling
+		EQueueUsageBits		queues		= Default;
+		//bool				isLogical	= false;
+		bool				isExternal	= false;
 
 	// methods
 		ImageDesc () {}
 		
-		ImageDesc (EImage		imageType,
-				   const uint3	&dimension,
-				   EPixelFormat	format,
-				   EImageUsage	usage,
-				   ImageLayer	arrayLayers	= Default,
-				   MipmapLevel	maxLevel	= Default,
-				   MultiSamples	samples		= Default,
-				   EQueueUsage	queues		= Default);
+		ImageDesc (EImage			imageType,
+				   const uint3 &	dimension,
+				   EPixelFormat		format,
+				   EImageUsage		usage,
+				   ImageLayer		arrayLayers	= Default,
+				   MipmapLevel		maxLevel	= Default,
+				   MultiSamples		samples		= Default,
+				   EQueueUsageBits	queues		= Default);
 
 		void Validate ();
 	};
@@ -93,15 +93,15 @@ namespace std
 		ND_ size_t  operator () (const FG::ImageDesc &value) const noexcept
 		{
 		#if FG_FAST_HASH
-			return size_t(FG::HashOf( AddressOf(value), sizeof(value) ));
+			return size_t(FGC::HashOf( AddressOf(value), sizeof(value) ));
 		#else
 			FG::HashVal	result;
-			result << FG::HashOf( value.imageType );
-			result << FG::HashOf( value.dimension );
-			result << FG::HashOf( value.format );
-			result << FG::HashOf( value.usage );
-			result << FG::HashOf( value.maxLevel );
-			result << FG::HashOf( value.samples );
+			result << FGC::HashOf( value.imageType );
+			result << FGC::HashOf( value.dimension );
+			result << FGC::HashOf( value.format );
+			result << FGC::HashOf( value.usage );
+			result << FGC::HashOf( value.maxLevel );
+			result << FGC::HashOf( value.samples );
 			return size_t(result);
 		#endif
 		}
@@ -114,16 +114,16 @@ namespace std
 		ND_ size_t  operator () (const FG::ImageViewDesc &value) const noexcept
 		{
 		#if FG_FAST_HASH
-			return size_t(FG::HashOf( AddressOf(value), sizeof(value) ));
+			return size_t(FGC::HashOf( AddressOf(value), sizeof(value) ));
 		#else
 			FG::HashVal	result;
-			result << FG::HashOf( value.viewType );
-			result << FG::HashOf( value.format );
-			result << FG::HashOf( value.baseLevel );
-			result << FG::HashOf( value.levelCount );
-			result << FG::HashOf( value.baseLayer );
-			result << FG::HashOf( value.layerCount );
-			result << FG::HashOf( value.swizzle );
+			result << FGC::HashOf( value.viewType );
+			result << FGC::HashOf( value.format );
+			result << FGC::HashOf( value.baseLevel );
+			result << FGC::HashOf( value.levelCount );
+			result << FGC::HashOf( value.baseLayer );
+			result << FGC::HashOf( value.layerCount );
+			result << FGC::HashOf( value.swizzle );
 			return size_t(result);
 		#endif
 		}

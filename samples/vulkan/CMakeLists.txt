@@ -11,6 +11,7 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLSLANG})
 		"AsyncCompute1.cpp"
 		"AsyncCompute2.cpp"
 		"AsyncCompute3.cpp"
+		"CacheTest.cpp"
 		"CMakeLists.txt"
 		"FragShaderBarycentric1.cpp"
 		"GenMipmaps.cpp"
@@ -28,7 +29,7 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLSLANG})
 		add_executable( "Samples.Vulkan" ${SOURCES} )
 	endif()
 	source_group( "compiler" FILES "compiler/SpvCompiler.cpp" "compiler/SpvCompiler.h" )
-	source_group( "" FILES "AsyncCompute1.cpp" "AsyncCompute2.cpp" "AsyncCompute3.cpp" "CMakeLists.txt" "FragShaderBarycentric1.cpp" "GenMipmaps.cpp" "ImageFootprint1.cpp" "main.cpp" "MeshShader1.cpp" "RayTracing1.cpp" "RayTracing2.cpp" "Readme.md" "ShadingRate1.cpp" "SparseImage1.cpp" )
+	source_group( "" FILES "AsyncCompute1.cpp" "AsyncCompute2.cpp" "AsyncCompute3.cpp" "CacheTest.cpp" "CMakeLists.txt" "FragShaderBarycentric1.cpp" "GenMipmaps.cpp" "ImageFootprint1.cpp" "main.cpp" "MeshShader1.cpp" "RayTracing1.cpp" "RayTracing2.cpp" "Readme.md" "ShadingRate1.cpp" "SparseImage1.cpp" )
 	set_property( TARGET "Samples.Vulkan" PROPERTY FOLDER "Samples" )
 	target_include_directories( "Samples.Vulkan" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Samples.Vulkan" PRIVATE "../../extensions" )

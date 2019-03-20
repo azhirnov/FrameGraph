@@ -17,28 +17,6 @@ namespace FG
 		
 	// types
 	public:
-		struct FragmentOutputInstance
-		{
-		// types
-		private:
-			using FragmentOutput	= GraphicsPipelineDesc::FragmentOutput;
-			using FragmentOutputs_t = GraphicsPipelineDesc::FragmentOutputs_t;
-
-		// variables
-		private:
-			HashVal				_hash;
-			FragmentOutputs_t	_values;
-
-		// methods
-		public:
-			explicit FragmentOutputInstance (ArrayView<FragmentOutput> values);
-
-			ND_ bool operator == (const FragmentOutputInstance &rhs) const;
-
-			ND_ ArrayView<FragmentOutput>	Get ()		const	{ return _values; }
-			ND_ HashVal						GetHash ()	const	{ return _hash; }
-		};
-
 		struct ShaderModule
 		{
 			VkShaderStageFlagBits				stage;
@@ -79,7 +57,6 @@ namespace FG
 		using TopologyBits_t		= GraphicsPipelineDesc::TopologyBits_t;
 		using VertexAttrib			= VertexInputState::VertexAttrib;
 		using VertexAttribs_t		= GraphicsPipelineDesc::VertexAttribs_t;
-		using FragmentOutputPtr		= const FragmentOutputInstance *;
 
 
 	// variables
@@ -91,7 +68,6 @@ namespace FG
 		ShaderModules_t				_shaders;
 
 		TopologyBits_t				_supportedTopology;
-		FragmentOutputPtr			_fragmentOutput			= null;
 		VertexAttribs_t				_vertexAttribs;
 		uint						_patchControlPoints		= 0;
 		bool						_earlyFragmentTests		= true;
@@ -107,13 +83,12 @@ namespace FG
 		VGraphicsPipeline (VGraphicsPipeline &&) = default;
 		~VGraphicsPipeline ();
 
-		bool Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		bool Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
+		void Destroy (VResourceManager &);
 		
 		ND_ RawPipelineLayoutID		GetLayoutID ()			const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }
 		ND_ ArrayView<VertexAttrib>	GetVertexAttribs ()		const	{ SHAREDLOCK( _rcCheck );  return _vertexAttribs; }
 
-		ND_ FragmentOutputPtr		GetFragmentOutput ()	const	{ SHAREDLOCK( _rcCheck );  return _fragmentOutput; }
 		ND_ bool					IsEarlyFragmentTests ()	const	{ SHAREDLOCK( _rcCheck );  return _earlyFragmentTests; }
 		
 		ND_ StringView				GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }

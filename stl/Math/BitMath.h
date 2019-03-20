@@ -8,7 +8,7 @@
 #	pragma intrinsic( _BitScanReverse, _BitScanReverse64 )
 #endif
 	
-namespace FG
+namespace FGC
 {
 
 /*
@@ -85,4 +85,4 @@ namespace FG
 	#endif
 	}
 
-}	// FG
+}	// FGC

@@ -7,7 +7,7 @@
 #ifdef FG_ENABLE_SFML
 # include <SFML/Window.hpp>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -22,12 +22,13 @@ namespace FG
 		{
 		private:
 			const sf::Window *	_window;
+			Array<const char*>	_extensions;
 
 		public:
-			explicit VulkanSurface (const sf::Window *wnd) : _window{wnd} {}
+			explicit VulkanSurface (const sf::Window *wnd);
 
-			ND_ Array<const char*>	GetRequiredExtensions () const override;
-			ND_ VkSurfaceKHR		Create (VkInstance inst) const override;
+			ND_ ArrayView<const char*>	GetRequiredExtensions () const override	{ return _extensions; }
+			ND_ VkSurfaceKHR			Create (VkInstance inst) const override;
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
@@ -61,6 +62,6 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC
 
 #endif	// FG_ENABLE_SFML

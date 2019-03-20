@@ -24,7 +24,7 @@ layout(set=1, binding=0, std140) uniform VertexColorsUB {
 	vec4	colors[3];
 };
 
-out vec3	v_Color;
+out vec3  v_Color;
 
 void main() {
 	gl_Position	= vec4( positions[gl_VertexIndex].xy, 0.0, 1.0 );
@@ -37,38 +37,37 @@ void main() {
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-in  vec3	v_Color;
-out vec4	out_Color;
+layout(location=0) out vec4  out_Color;
+
+in  vec3  v_Color;
 
 void main() {
 	out_Color = vec4(v_Color, 1.0);
 }
 )#" );
 		
-		FGThreadPtr			frame_graph	= _fgThreads[0];
-
 		const uint2			view_size	= {800, 600};
-		ImageID				image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID				image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
 		const float4		positions[] = { {0.0f, -0.5f, 0.0f, 0.0f},  {0.5f, 0.5f, 0.0f, 0.0f},  {-0.5f, 0.5f, 0.0f, 0.0f} };
 		const float4		colors[]	= { {1.0f, 0.0f, 0.0f, 1.0f},   {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 0.0f, 1.0f, 1.0f}  };
 		
-		BufferID			positions_ub = frame_graph->CreateBuffer( BufferDesc{ BytesU::SizeOf(positions), EBufferUsage::Uniform },
+		BufferID			positions_ub = _frameGraph->CreateBuffer( BufferDesc{ BytesU::SizeOf(positions), EBufferUsage::Uniform },
 																	  MemoryDesc{ EMemoryType::HostWrite }, "PositionsUB" );
-		BufferID			colors_ub	 = frame_graph->CreateBuffer( BufferDesc{ BytesU::SizeOf(colors), EBufferUsage::Uniform },
+		BufferID			colors_ub	 = _frameGraph->CreateBuffer( BufferDesc{ BytesU::SizeOf(colors), EBufferUsage::Uniform },
 																	  MemoryDesc{ EMemoryType::HostWrite }, "ColorsUB" );
 
-		CHECK_ERR( frame_graph->UpdateHostBuffer( positions_ub, 0_b, BytesU::SizeOf(positions), positions ));
-		CHECK_ERR( frame_graph->UpdateHostBuffer( colors_ub, 0_b, BytesU::SizeOf(colors), colors ));
+		CHECK_ERR( _frameGraph->UpdateHostBuffer( positions_ub, 0_b, BytesU::SizeOf(positions), positions ));
+		CHECK_ERR( _frameGraph->UpdateHostBuffer( colors_ub, 0_b, BytesU::SizeOf(colors), colors ));
 
-		GPipelineID			pipeline	= frame_graph->CreatePipeline( ppln );
+		GPipelineID			pipeline	= _frameGraph->CreatePipeline( ppln );
 		PipelineResources	resources0;
 		PipelineResources	resources1;
 
 		CHECK_ERR( pipeline );
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID{"PerObject"}, OUT resources0 ));
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID{"PerPass"},   OUT resources1 ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"PerObject"}, OUT resources0 ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"PerPass"},   OUT resources1 ));
 
 		resources0.BindBuffer( UniformID{"VertexPositionsUB"}, positions_ub );
 		resources1.BindBuffer( UniformID{"VertexColorsUB"},    colors_ub );
@@ -105,31 +104,26 @@ void main() {
 		};
 
 		
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CHECK_ERR( cmd );
 
-		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-												.AddViewport( view_size )
-												.AddResources( DescriptorSetID{"PerPass"}, &resources1 ));
+		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
+											.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+											.AddViewport( view_size )
+											.AddResources( DescriptorSetID{"PerPass"}, &resources1 ));
 		
-		frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
+		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
 														 .AddResources( DescriptorSetID{"PerObject"}, &resources0 ));
 
-		Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
-		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
+		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
+		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( frame_graph->Execute() );
-		CHECK_ERR( _fgInstance->EndFrame() );
+		CHECK_ERR( _frameGraph->Execute( cmd ));
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 

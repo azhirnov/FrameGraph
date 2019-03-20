@@ -4,7 +4,7 @@
 
 #include "stl/Common.h"
 
-namespace FG
+namespace FGC
 {
 
 	template <typename T>
@@ -75,4 +75,4 @@ namespace FG
 		return !!( EnumToUInt(lhs) & EnumToUInt(rhs) );
 	}
 
-}	// FG
+}	// FGC

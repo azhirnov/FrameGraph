@@ -4,6 +4,7 @@
 #include "VDevice.h"
 #include "VLocalImage.h"
 #include "VEnumCast.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -17,48 +18,26 @@ namespace FG
 	{
 		CHECK( _renderPass == VK_NULL_HANDLE );
 	}
-	
-/*
-=================================================
-	GetColorAttachmentIndex
-=================================================
-*/
-	bool VRenderPass::GetColorAttachmentIndex (const RenderTargetID &id, OUT uint &index) const
-	{
-		SHAREDLOCK( _rcCheck );
-
-		auto	iter = _mapping.find( id );
-
-		if ( iter != _mapping.end() )
-		{
-			index = iter->second;
-			return true;
-		}
-
-		index = ~0u;
-		return false;
-	}
 
 /*
 =================================================
 	constructor
 =================================================
 */
-	VRenderPass::VRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput)
+	VRenderPass::VRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses)
 	{
-		_Initialize( logicalPasses, fragOutput );
+		_Initialize( logicalPasses );
 	}
 		
-	bool VRenderPass::_Initialize (ArrayView<VLogicalRenderPass*> logicalPasses, ArrayView<GraphicsPipelineDesc::FragmentOutput> fragOutput)
+	bool VRenderPass::_Initialize (ArrayView<VLogicalRenderPass*> logicalPasses)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( logicalPasses.size() == 1 );		// not supported yet
-		CHECK_ERR( logicalPasses.front()->GetColorTargets().size() == fragOutput.size() );
 
 		const auto *	pass		= logicalPasses.front();
-		const uint		col_offset	= pass->GetDepthStencilTarget().IsDefined() ? 1 : 0;
+		uint			max_index	= 0;
 
-		_attachments.resize( fragOutput.size() + col_offset );
+		_attachments.resize( _attachments.capacity() );
 		
 
 		_subpasses.resize( 1 );
@@ -69,29 +48,24 @@ namespace FG
 		
 
 		// setup color attachments
-		for (auto& frag : fragOutput)
+		for (auto& ct : pass->GetColorTargets())
 		{
-			auto	iter = pass->GetColorTargets().find( frag.id );
-			CHECK_ERR( iter != pass->GetColorTargets().end() );
-			
-			const VkImageLayout			layout	= iter->second._layout;
-			VkAttachmentDescription&	desc	= _attachments[ col_offset + frag.index ];
+			const VkImageLayout			layout	= ct._layout;
+			VkAttachmentDescription&	desc	= _attachments[ ct.index ];
 
 			desc.flags			= 0;			// TODO: VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT
-			desc.format			= VEnumCast( iter->second.desc.format );
-			desc.samples		= iter->second.samples;
-			desc.loadOp			= iter->second.loadOp;
-			desc.storeOp		= iter->second.storeOp;
+			desc.format			= VEnumCast( ct.desc.format );
+			desc.samples		= ct.samples;
+			desc.loadOp			= ct.loadOp;
+			desc.storeOp		= ct.storeOp;
 			desc.initialLayout	= layout;
 			desc.finalLayout	= layout;
 
-			_attachmentRef.push_back({ (col_offset + frag.index), layout });
+			_attachmentRef.push_back({ ct.index, layout });
 			++subpass.colorAttachmentCount;
 
-			_mapping.insert({ frag.id, frag.index });
+			max_index = Max( ct.index+1, max_index );
 		}
-
-		CHECK( subpass.colorAttachmentCount == fragOutput.size() );
 
 		if ( subpass.colorAttachmentCount == 0 )
 			subpass.pColorAttachments = null;
@@ -102,7 +76,7 @@ namespace FG
 		{
 			const auto&					ds_target	= pass->GetDepthStencilTarget();
 			const VkImageLayout			layout		= ds_target._layout;
-			VkAttachmentDescription&	desc		= _attachments[0];
+			VkAttachmentDescription&	desc		= _attachments[max_index];
 
 			desc.flags			= 0;
 			desc.format			= VEnumCast( ds_target.desc.format );
@@ -115,27 +89,10 @@ namespace FG
 			desc.finalLayout	= layout;
 
 			subpass.pDepthStencilAttachment	= _attachmentRef.end();
-			_attachmentRef.push_back({ 0, layout });
+			_attachmentRef.push_back({ max_index++, layout });
 		}
 
-		
-		// setup dependencies
-		_dependencies.resize( 2 );
-		_dependencies[0].srcSubpass			= VK_SUBPASS_EXTERNAL;
-		_dependencies[0].dstSubpass			= 0;
-		_dependencies[0].srcStageMask		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		_dependencies[0].dstStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		_dependencies[0].srcAccessMask		= 0;
-		_dependencies[0].dstAccessMask		= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		_dependencies[0].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
-
-		_dependencies[1].srcSubpass			= 0;
-		_dependencies[1].dstSubpass			= VK_SUBPASS_EXTERNAL;
-		_dependencies[1].srcStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		_dependencies[1].dstStageMask		= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		_dependencies[1].srcAccessMask		= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		_dependencies[1].dstAccessMask		= 0;
-		_dependencies[1].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
+		_attachments.resize( max_index );
 
 
 		// setup create info
@@ -146,8 +103,6 @@ namespace FG
 		_createInfo.pAttachments	= _attachments.data();
 		_createInfo.subpassCount	= uint(_subpasses.size());
 		_createInfo.pSubpasses		= _subpasses.data();
-		_createInfo.dependencyCount	= uint(_dependencies.size());
-		_createInfo.pDependencies	= _dependencies.data();
 
 
 		_CalcHash( _createInfo, OUT _hash, OUT _attachmentHash, OUT _subpassesHash );
@@ -268,12 +223,13 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VRenderPass::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
+	void VRenderPass::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		if ( _renderPass ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_RENDER_PASS, uint64_t(_renderPass) );
+			auto&	dev = resMngr.GetDevice();
+			dev.vkDestroyRenderPass( dev.GetVkDevice(), _renderPass, null );
 		}
 
 		_renderPass		= VK_NULL_HANDLE;
@@ -282,7 +238,6 @@ namespace FG
 		_attachmentHash	= Default;
 
 		_subpassesHash.clear();
-		_mapping.clear();
 
 		_attachments.clear();
 		_attachmentRef.clear();
@@ -295,6 +250,11 @@ namespace FG
 		_debugName.clear();
 	}
 
+}	// FG
+
+
+namespace FGC
+{
 /*
 =================================================
 	operator ==
@@ -331,8 +291,8 @@ namespace FG
 */
 	inline bool operator == (const VkSubpassDescription &lhs, const VkSubpassDescription &rhs)
 	{
-		using AttachView = ArrayView<VkAttachmentReference>;
-		using PreserveView = ArrayView<uint>;
+		using AttachView	= ArrayView< VkAttachmentReference >;
+		using PreserveView	= ArrayView< uint >;
 
 		auto	lhs_resolve_attachments = lhs.pResolveAttachments ? AttachView{lhs.pResolveAttachments, lhs.colorAttachmentCount} : AttachView{};
 		auto	rhs_resolve_attachments = rhs.pResolveAttachments ? AttachView{rhs.pResolveAttachments, rhs.colorAttachmentCount} : AttachView{};
@@ -363,6 +323,11 @@ namespace FG
 				lhs.dependencyFlags	== rhs.dependencyFlags;
 	}
 
+}	// FGC
+
+
+namespace FG
+{
 /*
 =================================================
 	operator ==
@@ -373,9 +338,9 @@ namespace FG
 		SHAREDLOCK( _rcCheck );
 		SHAREDLOCK( rhs._rcCheck );
 
-		using AttachView = ArrayView<VkAttachmentDescription>;
-		using SubpassView = ArrayView<VkSubpassDescription>;
-		using DepsView = ArrayView<VkSubpassDependency>;
+		using AttachView	= ArrayView< VkAttachmentDescription >;
+		using SubpassView	= ArrayView< VkSubpassDescription >;
+		using DepsView		= ArrayView< VkSubpassDependency >;
 		return	_hash																== rhs._hash																	and
 				_attachmentHash														== rhs._attachmentHash															and
 				_subpassesHash														== rhs._subpassesHash															and
@@ -384,6 +349,5 @@ namespace FG
 				SubpassView{_createInfo.pSubpasses, _createInfo.subpassCount}		== SubpassView{rhs._createInfo.pSubpasses, rhs._createInfo.subpassCount}		and
 				DepsView{_createInfo.pDependencies, _createInfo.dependencyCount}	== DepsView{rhs._createInfo.pDependencies, rhs._createInfo.dependencyCount};
 	}
-
 
 }	// FG

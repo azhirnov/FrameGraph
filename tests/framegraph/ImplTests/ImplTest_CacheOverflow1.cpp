@@ -19,62 +19,57 @@ void main() {
 		
 		ppln.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100, "main", R"#(
 layout(binding=0) uniform sampler2D  un_Image;
-out vec4	out_Color;
+layout(location=0) out vec4  out_Color;
 
 void main() {
 	out_Color = vec4(sin(gl_FragCoord.x), cos(gl_FragCoord.y), texelFetch(un_Image, ivec2(gl_FragCoord.xy), 0).r, 1.0f) * 0.5f + 0.5f;
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		view_size	= {800, 600};
-		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
-		SamplerID		sampler		= frame_graph->CreateSampler( SamplerDesc{} );
+		GPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
+		SamplerID		sampler		= _frameGraph->CreateSampler( SamplerDesc{} );
 
 		PipelineResources	resources1, resources2;
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources1 ));
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources2 ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources1 ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources2 ));
 
-		CommandBatchID	batch_id {"main"};
-		SubmissionGraph	submission_graph;
-		submission_graph.AddBatch( batch_id );
 		
 		for (uint i = 0; i < 1000'000; ++i)
 		{
-			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+			CHECK_ERR( cmd );
 			
-			ImageID			rt	= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
+			ImageID			rt	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
-			ImageID			img	= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::R8_UNorm,
+			ImageID			img	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::R8_UNorm,
 																			EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Color" );
-			LogicalPassID	rp1	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID("out_Color"), rt, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+			LogicalPassID	rp1	= cmd->CreateRenderPass( RenderPassDesc( view_size )
+												.AddTarget( RenderTargetID(0), rt, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ));
-			LogicalPassID	rp2	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID("out_Color"), rt, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+			LogicalPassID	rp2	= cmd->CreateRenderPass( RenderPassDesc( view_size )
+												.AddTarget( RenderTargetID(0), rt, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 												.AddViewport( view_size ));
 		
 			resources1.BindTexture( UniformID("un_Image"), img, sampler );
 			resources2.BindTexture( UniformID("un_Image"), img, sampler );
 
-			frame_graph->AddTask( rp1, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ).AddResources( DescriptorSetID("0"), &resources1 ));
-			frame_graph->AddTask( rp2, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ).AddResources( DescriptorSetID("0"), &resources2 ));
+			cmd->AddTask( rp1, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ).AddResources( DescriptorSetID("0"), &resources1 ));
+			cmd->AddTask( rp2, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ).AddResources( DescriptorSetID("0"), &resources2 ));
 
-			Task	t_clear	= frame_graph->AddTask( ClearColorImage{}.SetImage(img).Clear(RGBA32f{1.0f}).AddRange( 0_mipmap, 1, 0_layer, 1 ));
-			Task	t_draw1	= frame_graph->AddTask( SubmitRenderPass{ rp1 }.DependsOn( t_clear ));
-			Task	t_draw2	= frame_graph->AddTask( SubmitRenderPass{ rp2 }.DependsOn( t_draw1 ));
-			Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( rt, int2{}, uint2{1} ).SetCallback([](auto&) {}).DependsOn( t_draw2 ));
+			Task	t_clear	= cmd->AddTask( ClearColorImage{}.SetImage(img).Clear(RGBA32f{1.0f}).AddRange( 0_mipmap, 1, 0_layer, 1 ));
+			Task	t_draw1	= cmd->AddTask( SubmitRenderPass{ rp1 }.DependsOn( t_clear ));
+			Task	t_draw2	= cmd->AddTask( SubmitRenderPass{ rp2 }.DependsOn( t_draw1 ));
+			Task	t_read	= cmd->AddTask( ReadImage().SetImage( rt, int2{}, uint2{1} ).SetCallback([](auto&) {}).DependsOn( t_draw2 ));
 			FG_UNUSED( t_read );
 
-			CHECK_ERR( frame_graph->Execute() );
-			CHECK_ERR( _fgInstance->EndFrame() );
+			CHECK_ERR( _frameGraph->Execute( cmd ));
 
-			frame_graph->ReleaseResource( rt );
-			frame_graph->ReleaseResource( img );
+			_frameGraph->ReleaseResource( rt );
+			_frameGraph->ReleaseResource( img );
 		}
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		DeleteResources( pipeline );
 

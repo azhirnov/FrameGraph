@@ -67,9 +67,8 @@ namespace FG
 		VRayTracingScene () : _currStateIndex{0} {}
 		~VRayTracingScene ();
 		
-		bool Create (const VDevice &dev, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
-
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		bool Create (VResourceManager &, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
+		void Destroy (VResourceManager &);
 
 		void Merge (INOUT InstancesData &, ExeOrderIndex, uint frameIndex) const;
 		void CommitChanges (uint frameIndex) const;

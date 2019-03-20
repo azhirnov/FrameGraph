@@ -12,6 +12,7 @@ namespace FG
 	using DeviceVk_t			= struct __VkDeviceType *;
 	using QueueVk_t				= struct __VkQueueType *;
 	using CommandBufferVk_t		= struct __VkCommandBufferType *;
+	using RenderPassVk_t		= struct __VkRenderPassType *;
 
 	enum SurfaceVk_t			: uint64_t {};
 	enum EventVk_t				: uint64_t {};
@@ -61,6 +62,7 @@ namespace FG
 	};
 
 
+
 	//
 	// Vulkan Swapchain Create Info
 	//
@@ -73,6 +75,7 @@ namespace FG
 	// variables
 		SurfaceVk_t						surface			= {};
 		uint2							surfaceSize;
+		uint							minImageCount	= 2;
 		RequiredColorFormats_t			formats;		// from highest priority to lowest
 		RequiredPresentMode_t			presentModes;	// from highest priority to lowest
 		SurfaceTransformFlagsVk_t		preTransform	= {};
@@ -82,10 +85,11 @@ namespace FG
 	};
 
 
+
 	//
 	// Vulkan VR Emulator Swapchain Create Info
 	//
-	struct VulkanVREmulatorSwapchainCreateInfo
+	/*struct VulkanVREmulatorSwapchainCreateInfo
 	{
 	// types
 		using RequiredColorFormats_t = FixedArray< FormatVk_t, 4 >;
@@ -94,7 +98,8 @@ namespace FG
 		SurfaceVk_t					surface			= {};
 		uint2						eyeImageSize	= { 1024, 1024 };
 		RequiredColorFormats_t		formats;		// from highest priority to lowest
-	};
+	};*/
+
 
 
 	//
@@ -117,9 +122,8 @@ namespace FG
 														// keep current content of the image, otherwise keep default value.
 
 		ArrayView<uint>			queueFamilyIndices;		// required if sharing mode is concurent.
-
-		//SemaphoreVk_t			semaphore	= {};		// wait semaphore before using image
 	};
+
 
 
 	//
@@ -136,9 +140,8 @@ namespace FG
 														// keep current content of the buffer, otherwise keep default value.
 
 		ArrayView<uint>			queueFamilyIndices;		// required if sharing mode is concurent.
-
-		//SemaphoreVk_t			semaphore	= {};		// wait semaphore before using buffer
 	};
+
 
 
 	//
@@ -146,10 +149,22 @@ namespace FG
 	//
 	struct VulkanCommandBatch
 	{
-		QueueVk_t												queue = {};
+		uint													queueFamilyIndex	= UMax;
 		ArrayView<CommandBufferVk_t>							commands;
 		ArrayView<SemaphoreVk_t>								signalSemaphores;
 		ArrayView<Pair<SemaphoreVk_t, PipelineStageFlags_t>>	waitSemaphores;
+	};
+
+
+
+	//
+	// Vulkan Draw Context
+	//
+	struct VulkanDrawContext
+	{
+		CommandBufferVk_t	commandBuffer	= {};
+		RenderPassVk_t		renderPass		= {};
+		uint				subpassIndex	= UMax;
 	};
 
 

@@ -7,7 +7,7 @@
 #ifdef FG_ENABLE_SDL2
 #	include "SDL2/include/SDL_syswm.h"
 
-namespace FG
+namespace FGC
 {
 namespace {
 	struct SDL2Instance
@@ -77,7 +77,7 @@ namespace {
 
 		_wndID = SDL_GetWindowID( _window );
 
-		SDL_SetWindowData( _window, "mgf", this );
+		SDL_SetWindowData( _window, "fg", this );
 		
 		return true;
 	}
@@ -455,13 +455,12 @@ namespace {
 
 /*
 =================================================
-	GetRequiredExtensions
+	VulkanSurface
 =================================================
 */
-	Array<const char*>  WindowSDL2::VulkanSurface::GetRequiredExtensions () const
-	{
-		return FG::VulkanSurface::GetRequiredExtensions();
-	}
+	WindowSDL2::VulkanSurface::VulkanSurface (SDL_Window *wnd) :
+		_window{wnd}, _extensions{FGC::VulkanSurface::GetRequiredExtensions()}
+	{}
 	
 /*
 =================================================
@@ -488,18 +487,18 @@ namespace {
 
 #			if defined(VK_USE_PLATFORM_ANDROID_KHR)
 			case SDL_SYSWM_ANDROID :
-				return FG::VulkanSurface::CreateAndroidSurface( instance, info.info.android.window );
+				return FGC::VulkanSurface::CreateAndroidSurface( instance, info.info.android.window );
 #			endif
 				
 #			if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
 			case SDL_SYSWM_WINDOWS :
-				return FG::VulkanSurface::CreateWin32Surface( instance, info.info.win.hinstance, info.info.win.window );
+				return FGC::VulkanSurface::CreateWin32Surface( instance, info.info.win.hinstance, info.info.win.window );
 #			endif
 		}
 
 		RETURN_ERR( "current subsystem type is not supported!" );
 	}
 
-}	// FG
+}	// FGC
 
 #endif	// FG_ENABLE_SDL2

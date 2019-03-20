@@ -5,6 +5,7 @@
 #include "FGEnumCast.h"
 #include "VDevice.h"
 #include "VMemoryObj.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -19,13 +20,51 @@ namespace FG
 		ASSERT( _buffer == VK_NULL_HANDLE );
 		ASSERT( not _memoryId );
 	}
+	
+/*
+=================================================
+	GetAllBufferReadAccessMasks
+=================================================
+*/
+	static VkAccessFlags  GetAllBufferReadAccessMasks (VkBufferUsageFlags usage)
+	{
+		VkAccessFlags	result = 0;
+
+		for (VkBufferUsageFlags t = 1; t <= usage; t <<= 1)
+		{
+			if ( not EnumEq( usage, t ) )
+				continue;
+
+			ENABLE_ENUM_CHECKS();
+			switch ( VkBufferUsageFlagBits(t) )
+			{
+				case VK_BUFFER_USAGE_TRANSFER_SRC_BIT :			result |= VK_ACCESS_TRANSFER_READ_BIT;			break;
+				case VK_BUFFER_USAGE_TRANSFER_DST_BIT :			break;
+				case VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT :	result |= VK_ACCESS_SHADER_READ_BIT;			break;
+				case VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT :	result |= VK_ACCESS_SHADER_READ_BIT;			break;
+				case VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT :		result |= VK_ACCESS_UNIFORM_READ_BIT;			break;
+				case VK_BUFFER_USAGE_STORAGE_BUFFER_BIT :		result |= VK_ACCESS_SHADER_READ_BIT;			break;
+				case VK_BUFFER_USAGE_INDEX_BUFFER_BIT :			result |= VK_ACCESS_INDEX_READ_BIT;				break;
+				case VK_BUFFER_USAGE_VERTEX_BUFFER_BIT :		result |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;	break;
+				case VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT :		result |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;	break;
+				case VK_BUFFER_USAGE_RAY_TRACING_BIT_NV :		break;
+				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT :
+				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT :
+				case VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT :
+				case VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT :
+				case VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM :		break;	// to shutup compiler warnings
+			}
+			DISABLE_ENUM_CHECKS();
+		}
+		return result;
+	}
 
 /*
 =================================================
 	Create
 =================================================
 */
-	bool VBuffer::Create (const VDevice &dev, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
+	bool VBuffer::Create (VResourceManager &resMngr, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 						  EQueueFamilyMask queueFamilyMask, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
@@ -69,15 +108,17 @@ namespace FG
 			info.queueFamilyIndexCount	= 0;
 		}
 
+		auto&	dev = resMngr.GetDevice();
 		VK_CHECK( dev.vkCreateBuffer( dev.GetVkDevice(), &info, null, OUT &_buffer ));
 
-		CHECK_ERR( memObj.AllocateForBuffer( _buffer ));
+		CHECK_ERR( memObj.AllocateForBuffer( resMngr.GetMemoryManager(), _buffer ));
 
 		if ( not dbgName.empty() )
 		{
 			dev.SetObjectName( BitCast<uint64_t>(_buffer), dbgName, VK_OBJECT_TYPE_BUFFER );
 		}
 
+		_readAccessMask		= GetAllBufferReadAccessMasks( info.usage );
 		_queueFamilyMask	= queueFamilyMask;
 		_debugName			= dbgName;
 
@@ -124,20 +165,22 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VBuffer::Destroy (AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VBuffer::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
+
+		auto&	dev = resMngr.GetDevice();
 
 		if ( _desc.isExternal and _onRelease ) {
 			_onRelease( BitCast<BufferVk_t>(_buffer) );
 		}
 
 		if ( not _desc.isExternal and _buffer ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_BUFFER, uint64_t(_buffer) );
+			dev.vkDestroyBuffer( dev.GetVkDevice(), _buffer, null );
 		}
 
 		if ( _memoryId ) {
-			unassignIDs.emplace_back( _memoryId.Release() );
+			resMngr.ReleaseResource( _memoryId.Release() );
 		}
 
 		_buffer				= VK_NULL_HANDLE;

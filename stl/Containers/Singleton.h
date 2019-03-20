@@ -4,7 +4,7 @@
 
 #include "stl/Memory/MemUtils.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -19,4 +19,4 @@ namespace FG
 		return AddressOf( inst );
 	}
 
-}	// FG
+}	// FGC

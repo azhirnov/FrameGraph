@@ -4,7 +4,7 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
-#include "VFrameGraphDebugger.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -39,7 +39,7 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VLocalRTScene::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t unassignIDs, ExeOrderIndex batchExeOrder, uint frameIndex)
+	void VLocalRTScene::Destroy (VResourceManager &resMngr, ExeOrderIndex batchExeOrder, uint frameIndex)
 	{
 		if ( _rtSceneData and _instancesData.has_value() )
 		{
@@ -51,7 +51,7 @@ namespace FG
 		if ( _instancesData.has_value() )
 		{
 			for (auto& inst : _instancesData->geometryInstances) {
-				unassignIDs.emplace_back( inst.geometry.Release() );
+				resMngr.ReleaseResource( inst.geometry.Release() );
 			}
 		}
 
@@ -112,7 +112,7 @@ namespace FG
 		_pendingAccesses.access		= EResourceState_ToAccess( st.state );
 		_pendingAccesses.isReadable	= EResourceState_IsReadable( st.state );
 		_pendingAccesses.isWritable	= EResourceState_IsWritable( st.state );
-		_pendingAccesses.index		= st.task->ExecutionOrder();
+		_pendingAccesses.index		= Cast<VFrameGraphTask>(st.task)->ExecutionOrder();
 	}
 
 /*
@@ -155,10 +155,10 @@ namespace FG
 			barrier.dstAccessMask	= _pendingAccesses.access;
 			barrierMngr.AddMemoryBarrier( _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
 
-			if ( debugger ) {
-				debugger->AddRayTracingBarrier( _rtSceneData, _accessForReadWrite.index, _pendingAccesses.index,
-											    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
-			}
+			//if ( debugger ) {
+			//	debugger->AddRayTracingBarrier( _rtSceneData, _accessForReadWrite.index, _pendingAccesses.index,
+			//								    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
+			//}
 
 			_accessForReadWrite = _pendingAccesses;
 		}

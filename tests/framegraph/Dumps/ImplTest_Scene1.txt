@@ -47,10 +47,10 @@ SubBatch {
 					srcTask:         Present (#9)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       ColorAttachmentOptimal
 					aspectMask:      Color
@@ -92,10 +92,10 @@ SubBatch {
 					srcTask:         TransparentPass (#8)
 					dstTask:         <final>
 					srcStageMask:    EarlyFragmentTests
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   DepthStencilAttachmentRead
-					dstAccessMask:   
+					dstAccessMask:   DepthStencilAttachmentRead
 					oldLayout:       DepthStencilReadOnlyOptimal
 					newLayout:       DepthStencilAttachmentOptimal
 					aspectMask:      Depth
@@ -127,10 +127,10 @@ SubBatch {
 					srcTask:         update_buf1 (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   UniformRead
 					offset:          0 b
 					size:            256 b
 				}
@@ -201,10 +201,10 @@ SubBatch {
 					srcTask:         update_buf0 (#2)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   UniformRead
 					offset:          0 b
 					size:            256 b
 				}
@@ -212,10 +212,10 @@ SubBatch {
 					srcTask:         update_buf2 (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   UniformRead
 					offset:          256 b
 					size:            256 b
 				}
@@ -242,10 +242,10 @@ SubBatch {
 					srcTask:         update_buf3 (#5)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   UniformRead
 					offset:          0 b
 					size:            256 b
 				}
@@ -342,7 +342,7 @@ SubBatch {
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencil-RW, ClearBefore, EarlyTests
+				usage:          DepthStencil-RW, InvalidateBefore, EarlyTests
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

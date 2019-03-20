@@ -7,7 +7,7 @@
 #include "stl/Math/Bytes.h"
 #include "stl/Memory/MemUtils.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -78,5 +78,5 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC
 

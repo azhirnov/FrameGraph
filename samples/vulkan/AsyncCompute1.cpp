@@ -14,9 +14,7 @@
 #include "compiler/SpvCompiler.h"
 #include "stl/Math/Color.h"
 
-using namespace FG;
 namespace {
-
 
 class AsyncComputeApp final : public IWindowEventListener, public VulkanDeviceFn
 {

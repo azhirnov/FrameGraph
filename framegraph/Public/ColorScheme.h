@@ -25,7 +25,7 @@ namespace FGColorScheme
 		
 		static constexpr RGBA8u		Draw					= HtmlColor::Bisque;
 		static constexpr RGBA8u		DrawMeshes				= HtmlColor::Bisque;
-		static constexpr RGBA8u		ClearAttachments		= HtmlColor::Bisque;
+		static constexpr RGBA8u		CustomDraw				= HtmlColor::Bisque;
 
 		static constexpr RGBA8u		CmdSubBatchBackground	= RGBA8u{ 0x28, 0x28, 0x28, 0xFF };
 		static constexpr RGBA8u		CmdSubBatchLavel		= RGBA8u{ 0xdc, 0xdc, 0xdc, 0xFF };

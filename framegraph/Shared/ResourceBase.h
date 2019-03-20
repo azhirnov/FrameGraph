@@ -27,6 +27,7 @@ namespace FG
 
 		using Self			= ResourceBase< ResType >;
 		using Resource_t	= ResType;
+		using InstanceID_t	= RawImageID::InstanceID_t;
 
 
 	// variables
@@ -76,7 +77,7 @@ namespace FG
 		ND_ bool			IsCreated ()		const	{ return _GetState() == EState::Created; }
 		ND_ bool			IsDestroyed ()		const	{ return _GetState() <= EState::Failed; }
 
-		ND_ uint			GetInstanceID ()	const	{ return _instanceId.load( memory_order_relaxed ); }
+		ND_ InstanceID_t	GetInstanceID ()	const	{ return InstanceID_t(_instanceId.load( memory_order_relaxed )); }
 		ND_ int				GetRefCount ()		const	{ return _refCounter.load( memory_order_relaxed ); }
 		ND_ uint			GetLastUsage ()		const	{ return _lastUsage.load( memory_order_relaxed ); }
 

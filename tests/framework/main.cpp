@@ -3,7 +3,7 @@
 #include "stl/Common.h"
 #include <iostream>
 
-using namespace FG;
+using namespace FGC;
 
 extern void FW_Test1 ();
 extern void FW_Test2 ();

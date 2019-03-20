@@ -27,17 +27,16 @@ void main ()
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		image_dim	= { 16, 16 };
 
-		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_0" );
 
-		CPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		CPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 		
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("2"), OUT resources ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("2"), OUT resources ));
 
 
 		bool	data_is_correct = true;
@@ -66,25 +65,20 @@ void main ()
 		};
 
 		
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CHECK_ERR( cmd );
 		
 		resources.BindImage( UniformID("un_OutImage"), image );
 
-		Task	t_run	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("2"), &resources ).Dispatch({ 2, 2 }) );
-		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_run ));
+		Task	t_run	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("2"), &resources ).Dispatch({ 2, 2 }) );
+		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_run ));
 		FG_UNUSED( t_read );
 		
-		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _fgInstance->EndFrame() );
+		CHECK_ERR( _frameGraph->Execute( cmd ));
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 		

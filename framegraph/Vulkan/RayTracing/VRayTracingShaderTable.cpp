@@ -1,6 +1,8 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VRayTracingShaderTable.h"
+#include "VResourceManager.h"
+#include "VDevice.h"
 
 namespace FG
 {
@@ -71,21 +73,23 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VRayTracingShaderTable::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VRayTracingShaderTable::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
+		auto&	dev = resMngr.GetDevice();
+
 		for (auto& table : _tables) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(table.pipeline) );
-			unassignIDs.emplace_back( table.layoutId.Release() );
+			dev.vkDestroyPipeline( dev.GetVkDevice(), table.pipeline, null );
+			resMngr.ReleaseResource( table.layoutId.Release() );
 		}
 
 		if ( _bufferId ) {
-			unassignIDs.emplace_back( _bufferId.Release() );
+			resMngr.ReleaseResource( _bufferId.Release() );
 		}
 
 		if ( _pipelineId ) {
-			unassignIDs.emplace_back( _pipelineId.Release() );
+			resMngr.ReleaseResource( _pipelineId.Release() );
 		}
 
 		_tables.clear();

@@ -9,7 +9,7 @@
 #include "stl/Math/Color.h"
 #include "stl/Algorithms/ArrayUtils.h"
 
-using namespace FG;
+using namespace FGC;
 
 
 class FWApp1 final : public IWindowEventListener, public VulkanDeviceFn

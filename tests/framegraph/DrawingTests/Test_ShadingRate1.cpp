@@ -27,7 +27,7 @@ void main() {
 		ppln.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_110, "main", R"#(
 #extension GL_NV_shading_rate_image : require
 
-out vec4	out_Color;
+layout(location=0) out vec4  out_Color;
 
 //in ivec2 gl_FragmentSizeNV;
 //in int   gl_InvocationsPerPixelNV;
@@ -69,19 +69,17 @@ void main ()
 		CHECK( CountOf(shading_rate_palette) <= _vulkan.GetDeviceShadingRateImageProperties().shadingRatePaletteSize );
 
 
-		FGThreadPtr		frame_graph	= _fgThreads[0];
-
-		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		GPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 
 		const uint2		view_size	= {256, 256};
 		const auto&		sri_size	= _vulkan.GetDeviceShadingRateImageProperties().shadingRateTexelSize;
 		const uint2		sr_img_size	= { view_size.x / sri_size.width, view_size.y / sri_size.height };
 
-		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																		   EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
-		ImageID			shading_rate = frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{sr_img_size.x, sr_img_size.y, 1}, EPixelFormat::R8U,
+		ImageID			shading_rate = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{sr_img_size.x, sr_img_size.y, 1}, EPixelFormat::R8U,
 																			EImageUsage::ShadingRate | EImageUsage::TransferDst }, Default, "ShadingRate" );
 
 		Array<uint8_t>	sri_data;	sri_data.resize( sr_img_size.x * sr_img_size.y );
@@ -117,32 +115,27 @@ void main ()
 		};
 
 		
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CHECK_ERR( cmd );
 
-		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
+												.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size, 0.0f, 1.0f, shading_rate_palette )
 												.SetShadingRateImage( shading_rate ));
 		
-		frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
+		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
-		Task	t_update	= frame_graph->AddTask( UpdateImage{}.SetImage( shading_rate ).SetData( sri_data, sr_img_size, 1_b * sr_img_size.x ));
-		Task	t_draw		= frame_graph->AddTask( SubmitRenderPass{ render_pass }.DependsOn( t_update ));
-		Task	t_read		= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ));
+		Task	t_update	= cmd->AddTask( UpdateImage{}.SetImage( shading_rate ).SetData( sri_data, sr_img_size, 1_b * sr_img_size.x ));
+		Task	t_draw		= cmd->AddTask( SubmitRenderPass{ render_pass }.DependsOn( t_update ));
+		Task	t_read		= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ));
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( frame_graph->Execute() );
-		CHECK_ERR( _fgInstance->EndFrame() );
+		CHECK_ERR( _frameGraph->Execute( cmd ));
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 

@@ -63,7 +63,7 @@ namespace FG
 		~VRayTracingShaderTable ();
 
 		bool Create (StringView dbgName);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy (VResourceManager &);
 
 		bool GetBindings (EShaderDebugMode mode,
 						  OUT RawPipelineLayoutID &layout, OUT VkPipeline &pipeline,

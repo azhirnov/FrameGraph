@@ -21,10 +21,10 @@ SubBatch {
 					srcTask:         CopyBuffer (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   TransferRead
 					offset:          128 b
 					size:            256 b
 				}
@@ -40,7 +40,7 @@ SubBatch {
 					srcTask:         ReadBuffer (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -70,10 +70,10 @@ SubBatch {
 					srcTask:         UpdateBuffer (#2)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   TransferRead
 					offset:          0 b
 					size:            256 b
 				}

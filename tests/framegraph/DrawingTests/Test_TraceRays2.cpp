@@ -1,8 +1,4 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
-/*
-	This test affects:
-		...
-*/
 
 #include "../FGApp.h"
 
@@ -63,13 +59,12 @@ void main ()
 }
 )#");
 
-		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		view_size	= {800, 600};
-		ImageID			dst_image	= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			dst_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::Storage | EImageUsage::TransferSrc },
 															    Default, "OutputImage" );
 		
-		RTPipelineID	pipeline	= frame_graph->CreatePipeline( ppln );
+		RTPipelineID	pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 		
 		const auto		vertices	= ArrayView<float3>{ { 0.25f, 0.25f, 0.0f }, { 0.75f, 0.25f, 0.0f }, { 0.50f, 0.75f, 0.0f } };
@@ -82,12 +77,12 @@ void main ()
 		triangles_info.SetID( GeometryID{"Triangle"} ).SetVertices< decltype(vertices[0]) >( vertices.size() )
 					.SetIndices( indices.size(), EIndex::UInt ).AddFlags( ERayTracingGeometryFlags::Opaque );
 
-		RTGeometryID		rt_geometry	= frame_graph->CreateRayTracingGeometry( RayTracingGeometryDesc{{ triangles_info }} );
-		RTSceneID			rt_scene	= frame_graph->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
-		RTShaderTableID		rt_shaders	= frame_graph->CreateRayTracingShaderTable();
+		RTGeometryID		rt_geometry	= _frameGraph->CreateRayTracingGeometry( RayTracingGeometryDesc{{ triangles_info }} );
+		RTSceneID			rt_scene	= _frameGraph->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
+		RTShaderTableID		rt_shaders	= _frameGraph->CreateRayTracingShaderTable();
 
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
 		
 		
 		bool	data_is_correct = false;
@@ -124,15 +119,11 @@ void main ()
 		};
 
 
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id, 1 );
-
 		// frame 1
 		{
-			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
-		
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+			CHECK_ERR( cmd );
+
 			resources.BindImage( UniformID("un_Output"), dst_image );
 			resources.BindRayTracingScene( UniformID("un_RtScene"), rt_scene );
 		
@@ -140,10 +131,10 @@ void main ()
 			instance.SetID( InstanceID{"0"} );
 			instance.SetGeometry( rt_geometry );
 
-			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_build_scene	= frame_graph->AddTask( BuildRayTracingScene{}.SetTarget( rt_scene ).Add( instance ).DependsOn( t_build_geom ));
+			Task	t_build_geom	= cmd->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
+			Task	t_build_scene	= cmd->AddTask( BuildRayTracingScene{}.SetTarget( rt_scene ).Add( instance ).DependsOn( t_build_geom ));
 
-			Task	t_update_table	= frame_graph->AddTask( UpdateRayTracingShaderTable{}
+			Task	t_update_table	= cmd->AddTask( UpdateRayTracingShaderTable{}
 																.SetTarget( rt_shaders ).SetPipeline( pipeline ).SetScene( rt_scene )
 																.SetRayGenShader( RTShaderID{"Main"} )
 																.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 )
@@ -151,43 +142,40 @@ void main ()
 																.DependsOn( t_build_scene ));
 			FG_UNUSED( t_update_table );
 
-			CHECK_ERR( frame_graph->Execute() );
-			CHECK_ERR( _fgInstance->EndFrame() );
+			CHECK_ERR( _frameGraph->Execute( cmd ));
 		}
 
 		// frame 2
 		{
-			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
-			
-			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+			CHECK_ERR( cmd );
+
+			Task	t_build_geom= cmd->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
+			Task	t_trace		= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
 																.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_build_geom ));
 			FG_UNUSED( t_trace );
 			
-			CHECK_ERR( frame_graph->Execute() );
-			CHECK_ERR( _fgInstance->EndFrame() );
+			CHECK_ERR( _frameGraph->Execute( cmd ));
 		}
 
 		// frame 3
 		{
-			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-			CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
-			
-			Task	t_build_geom	= frame_graph->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_trace			= frame_graph->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+			CHECK_ERR( cmd );
+
+			Task	t_build_geom= cmd->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
+			Task	t_trace		= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
 																.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_build_geom ));
-			Task	t_read			= frame_graph->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
+			Task	t_read		= cmd->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
 			FG_UNUSED( t_read );
 			
-			CHECK_ERR( frame_graph->Execute() );
-			CHECK_ERR( _fgInstance->EndFrame() );
+			CHECK_ERR( _frameGraph->Execute( cmd ));
 		}
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		//CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 		

@@ -49,9 +49,9 @@ namespace std
 		ND_ size_t  operator () (const FG::BindingIndex &value) const noexcept
 		{
 		#if FG_FAST_HASH
-			return size_t(FG::HashOf( this, sizeof(this) ));
+			return size_t(FGC::HashOf( this, sizeof(this) ));
 		#else
-			return size_t(FG::HashOf( value._index1 ) + FG::HashOf( value._index2 ));
+			return size_t(FGC::HashOf( value._index1 ) + FGC::HashOf( value._index2 ));
 		#endif
 		}
 	};

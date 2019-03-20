@@ -14,8 +14,6 @@ namespace FG
 
 	class VFramebuffer final
 	{
-		friend class VRenderPassCache;
-
 	// types
 	private:
 		using Attachments_t	= FixedArray< Pair<RawImageID, ImageViewDesc>, FG_MaxColorBuffers+1 >;
@@ -43,12 +41,12 @@ namespace FG
 		VFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers);
 		~VFramebuffer ();
 		
-		bool Create (VResourceManagerThread &, StringView dbgName);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		bool Create (VResourceManager &, StringView dbgName);
+		void Destroy (VResourceManager &);
 
 		//ND_ bool HasImage (const VImagePtr &img) const;
 		
-		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
+		ND_ bool  IsAllResourcesAlive (const VResourceManager &) const;
 
 		ND_ bool  operator == (const VFramebuffer &rhs) const;
 

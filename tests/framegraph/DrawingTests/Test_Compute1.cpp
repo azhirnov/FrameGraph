@@ -1,13 +1,4 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
-/*
-	This test affects:
-		- frame graph building and execution
-		- tasks: DispatchCompute, ReadImage
-		- resources: image, pipeline, pipeline resources
-		- specialization constants in compute pipeline local group size
-		- staging buffers
-		- memory managment
-*/
 
 #include "../FGApp.h"
 
@@ -37,23 +28,22 @@ void main ()
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _fgThreads[0];
 		const uint2		image_dim	= { 16, 16 };
 
-		ImageID			image0		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			image0		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_0" );
 
-		ImageID			image1		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			image1		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_1" );
 
-		ImageID			image2		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			image2		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_2" );
 
-		CPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		CPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 		
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
 
 		
 		const auto	CheckData = [] (const ImageView &imageData, uint blockSize, OUT bool &isCorrect)
@@ -96,35 +86,30 @@ void main ()
 		};
 
 		
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CHECK_ERR( cmd );
 		
 		resources.BindImage( UniformID("un_OutImage"), image0 );
-		Task	t_run0	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch({ 2, 2 }) );
+		Task	t_run0	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch({ 2, 2 }) );
 
 		resources.BindImage( UniformID("un_OutImage"), image1 );
-		Task	t_run1	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).Dispatch({ 4, 4 }) );
+		Task	t_run1	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).Dispatch({ 4, 4 }) );
 		
 		resources.BindImage( UniformID("un_OutImage"), image2 );
-		Task	t_run2	= frame_graph->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).Dispatch({ 1, 1 }) );
+		Task	t_run2	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).Dispatch({ 1, 1 }) );
 		
-		Task	t_read0	= frame_graph->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ) );
-		Task	t_read1	= frame_graph->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );
-		Task	t_read2	= frame_graph->AddTask( ReadImage().SetImage( image2, int2(), image_dim ).SetCallback( OnLoaded2 ).DependsOn( t_run2 ) );
+		Task	t_read0	= cmd->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ) );
+		Task	t_read1	= cmd->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );
+		Task	t_read2	= cmd->AddTask( ReadImage().SetImage( image2, int2(), image_dim ).SetCallback( OnLoaded2 ).DependsOn( t_run2 ) );
 		
 		FG_UNUSED( t_read0 and t_read1 and t_read2 );
 		
-		CHECK_ERR( frame_graph->Execute() );		
-		CHECK_ERR( _fgInstance->EndFrame() );
+		CHECK_ERR( _frameGraph->Execute( cmd ));
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data0_is_correct and data1_is_correct and data2_is_correct );
 		

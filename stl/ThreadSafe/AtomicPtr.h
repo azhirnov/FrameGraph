@@ -5,7 +5,7 @@
 #include "stl/Common.h"
 #include <atomic>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -67,4 +67,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

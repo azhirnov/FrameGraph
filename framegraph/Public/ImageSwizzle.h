@@ -96,7 +96,7 @@ namespace std
 	{
 		ND_ size_t  operator () (const FG::ImageSwizzle &value) const noexcept
 		{
-			return size_t(FG::HashOf( value.Get() == 0 ? FG::ImageSwizzle().Get() : value.Get() ));
+			return size_t(FGC::HashOf( value.Get() == 0 ? FG::ImageSwizzle().Get() : value.Get() ));
 		}
 	};
 

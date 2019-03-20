@@ -4,7 +4,6 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
-#include "VFrameGraphDebugger.h"
 
 namespace FG
 {
@@ -55,7 +54,7 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VLocalImage::Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t)
+	void VLocalImage::Destroy ()
 	{
 		_imageData	= null;
 		
@@ -65,23 +64,6 @@ namespace FG
 
 		_pendingAccesses.clear();
 		_accessForReadWrite.clear();
-	}
-	
-/*
-=================================================
-	GetView
-=================================================
-*/
-	VkImageView  VLocalImage::GetView (const VDevice &dev, bool isDefault, INOUT ImageViewDesc &viewDesc) const
-	{
-		ASSERT( IsCreated() );
-
-		if ( isDefault )
-			viewDesc = ImageViewDesc{ Description() };
-		else
-			viewDesc.Validate( Description() );
-
-		return _imageData->GetView( dev, viewDesc );
 	}
 
 /*
@@ -218,20 +200,22 @@ namespace FG
 			return;
 
 		ImageAccess		pending;
-		pending.isReadable	= EResourceState_IsReadable( is.state );
-		pending.isWritable	= EResourceState_IsWritable( is.state );
-		pending.stages		= EResourceState_ToPipelineStages( is.state );
-		pending.access		= EResourceState_ToAccess( is.state );
-		pending.layout		= is.layout;
-		pending.index		= is.task->ExecutionOrder();
+		pending.isReadable		= EResourceState_IsReadable( is.state );
+		pending.isWritable		= EResourceState_IsWritable( is.state );
+		pending.invalidateBefore= EnumEq( is.state, EResourceState::InvalidateBefore );
+		pending.invalidateAfter	= EnumEq( is.state, EResourceState::InvalidateAfter );
+		pending.stages			= EResourceState_ToPipelineStages( is.state );
+		pending.access			= EResourceState_ToAccess( is.state );
+		pending.layout			= is.layout;
+		pending.index			= Cast<VFrameGraphTask>(is.task)->ExecutionOrder();
 		
 
 		// extract sub ranges
 		const uint		arr_layers	= ArrayLayers();
 		const uint		mip_levels	= MipmapLevels();
 		Array<SubRange>	sub_ranges;
-		SubRange		layer_range	 { is.range.Layers().begin,  Min( is.range.Layers().end,  arr_layers ) };
-		SubRange		mipmap_range { is.range.Mipmaps().begin, Min( is.range.Mipmaps().end, mip_levels ) };
+		SubRange		layer_range	 { is.range.Layers().begin,  Min( is.range.Layers().end,  arr_layers )};
+		SubRange		mipmap_range { is.range.Mipmaps().begin, Min( is.range.Mipmaps().end, mip_levels )};
 
 		if ( is.range.IsWholeLayers() and is.range.IsWholeMipmaps() )
 		{
@@ -275,12 +259,14 @@ namespace FG
 				ASSERT( iter->index == pending.index );
 				ASSERT( iter->layout == pending.layout );
 
-				iter->range.begin	= Min( iter->range.begin, range.begin );
-				range.begin			= iter->range.end;
-				iter->stages		|= pending.stages;
-				iter->access		|= pending.access;
-				iter->isReadable	|= pending.isReadable;
-				iter->isWritable	|= pending.isWritable;
+				iter->range.begin		= Min( iter->range.begin, range.begin );
+				range.begin				= iter->range.end;
+				iter->stages			|= pending.stages;
+				iter->access			|= pending.access;
+				iter->isReadable		|= pending.isReadable;
+				iter->isWritable		|= pending.isWritable;
+				iter->invalidateBefore	&= pending.invalidateBefore;
+				iter->invalidateAfter	&= pending.invalidateAfter;
 			}
 
 			if ( not range.IsEmpty() )
@@ -303,13 +289,15 @@ namespace FG
 		// add full range barrier
 		{
 			ImageAccess		pending;
-			pending.isReadable	= true;
-			pending.isWritable	= false;
-			pending.stages		= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-			pending.access		= 0;
-			pending.layout		= _finalLayout;
-			pending.index		= index;
-			pending.range		= SubRange{ 0, ArrayLayers() * MipmapLevels() };
+			pending.isReadable		= true;
+			pending.isWritable		= false;
+			pending.invalidateBefore= false;
+			pending.invalidateAfter	= false;
+			pending.stages			= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+			pending.access			= _imageData->GetAllReadAccessMask();
+			pending.layout			= _finalLayout;
+			pending.index			= index;
+			pending.range			= SubRange{ 0, ArrayLayers() * MipmapLevels() };
 
 			_pendingAccesses.push_back( std::move(pending) );
 		}
@@ -348,7 +336,7 @@ namespace FG
 					barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 					barrier.pNext				= null;
 					barrier.image				= Handle();
-					barrier.oldLayout			= iter->layout;		// TODO: use undefined layout if content need not to be preserved
+					barrier.oldLayout			= (iter->invalidateAfter or pending.invalidateBefore) ? VK_IMAGE_LAYOUT_UNDEFINED : iter->layout;
 					barrier.newLayout			= pending.layout;
 					barrier.srcAccessMask		= iter->access;
 					barrier.dstAccessMask		= pending.access;
@@ -367,8 +355,8 @@ namespace FG
 					dst_stages |= pending.stages;
 					barrierMngr.AddImageBarrier( iter->stages, pending.stages, 0, barrier );
 
-					if ( debugger )
-						debugger->AddImageBarrier( _imageData, iter->index, pending.index, iter->stages, pending.stages, 0, barrier );
+					//if ( debugger )
+					//	debugger->AddImageBarrier( _imageData, iter->index, pending.index, iter->stages, pending.stages, 0, barrier );
 				}
 			}
 

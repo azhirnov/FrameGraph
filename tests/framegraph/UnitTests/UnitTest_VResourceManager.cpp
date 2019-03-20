@@ -1,11 +1,11 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "VFrameGraphThread.h"
+#include "VFrameGraph.h"
 #include "VResourceManager.h"
 #include "UnitTest_Common.h"
 
 
-static void SamplerCache_Test1 (const FGThreadPtr &fg)
+static void SamplerCache_Test1 (const FrameGraph &fg)
 {
 	SamplerDesc		desc;
 	desc.SetAddressMode( EAddressMode::ClampToEdge );
@@ -26,12 +26,12 @@ static void SamplerCache_Test1 (const FGThreadPtr &fg)
 }
 
 
-static void PipelineCache_Test1 (const FGThreadPtr &fg)
+static void PipelineCache_Test1 (const FrameGraph &fg)
 {
 }
 
 
-static void PipelineResources_Test1 (const FGThreadPtr &fg)
+static void PipelineResources_Test1 (const FrameGraph &fg)
 {
 	ComputePipelineDesc	desc;
 
@@ -101,7 +101,7 @@ static void PipelineResources_Test1 (const FGThreadPtr &fg)
 }
 
 
-extern void UnitTest_VResourceManager (const FGThreadPtr &fg)
+extern void UnitTest_VResourceManager (const FrameGraph &fg)
 {
 	SamplerCache_Test1( fg );
 	PipelineCache_Test1( fg );

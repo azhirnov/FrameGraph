@@ -52,7 +52,7 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 	Array<const char *>		shader_src;
 	const bool				debuggable	= dbgBufferSetIndex != ~0u;
 	UniquePtr<ShaderTrace>	debug_info	{ debuggable ? new ShaderTrace{} : null };
-	const FG::String		header		= "#version 460 core\n"s <<
+	const FGC::String		header		= "#version 460 core\n"s <<
 										  "#extension GL_ARB_separate_shader_objects : require\n" <<
 										  "#extension GL_ARB_shading_language_420pack : require\n";
 	
@@ -160,7 +160,7 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 
 	// to string
 	{
-		FG::String	temp = "{";
+		FGC::String	temp = "{";
 		for (auto& val : spirvData) {
 			temp << "0x" << ToString<16>( val ) << ", ";
 		}
@@ -179,7 +179,7 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 	ParseDebugOutput
 =================================================
 */
-bool ShaderCompiler::GetDebugOutput (VkShaderModule shaderModule, const void *ptr, BytesU maxSize, OUT Array<FG::String> &result) const
+bool ShaderCompiler::GetDebugOutput (VkShaderModule shaderModule, const void *ptr, BytesU maxSize, OUT Array<FGC::String> &result) const
 {
 	auto	iter = _debuggableShaders.find( shaderModule );
 	CHECK_ERR( iter != _debuggableShaders.end() );

@@ -5,7 +5,7 @@
 #include "stl/Common.h"
 #include <mutex>	// for lock_guard
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -34,4 +34,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

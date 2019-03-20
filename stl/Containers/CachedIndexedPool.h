@@ -3,8 +3,9 @@
 #pragma once
 
 #include "stl/Containers/ChunkedIndexedPool.h"
+#include <shared_mutex>		// for shared_lock
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -151,4 +152,4 @@ namespace FG
 	};
 	
 	
-}	// FG
+}	// FGC

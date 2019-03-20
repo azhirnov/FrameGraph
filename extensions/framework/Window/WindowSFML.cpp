@@ -5,7 +5,7 @@
 
 #ifdef FG_ENABLE_SFML
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -174,7 +174,7 @@ namespace FG
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( &_window )};
 	}
 
-}	// FG
+}	// FGC
 //-----------------------------------------------------------------------------
 	
 
@@ -182,17 +182,16 @@ namespace FG
 #	include "stl/Platforms/WindowsHeader.h"
 # endif
 
-namespace FG
+namespace FGC
 {
 /*
 =================================================
-	GetRequiredExtensions
+	VulkanSurface
 =================================================
 */
-	Array<const char*>  WindowSFML::VulkanSurface::GetRequiredExtensions () const
-	{
-		return FG::VulkanSurface::GetRequiredExtensions();
-	}
+	WindowSFML::VulkanSurface::VulkanSurface (const sf::Window *wnd) :
+		_window{wnd}, _extensions{FGC::VulkanSurface::GetRequiredExtensions()}
+	{}
 	
 /*
 =================================================
@@ -202,11 +201,11 @@ namespace FG
 	VkSurfaceKHR  WindowSFML::VulkanSurface::Create (VkInstance instance) const
 	{
 #		if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
-		return FG::VulkanSurface::CreateWin32Surface( instance, ::GetModuleHandle(LPCSTR(null)), _window->getSystemHandle() );
+		return FGC::VulkanSurface::CreateWin32Surface( instance, ::GetModuleHandle(LPCSTR(null)), _window->getSystemHandle() );
 #		endif
 	}
 
 
-}	// FG
+}	// FGC
 
 #endif	// FG_ENABLE_SFML

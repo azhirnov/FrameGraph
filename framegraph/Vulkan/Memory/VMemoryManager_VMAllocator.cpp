@@ -70,7 +70,7 @@ namespace FG
 		bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &mem, OUT Storage_t &data) override;
 		bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) override;
 
-		bool Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t) override;
+		bool Dealloc (INOUT Storage_t &data) override;
 		
 		bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const override;
 
@@ -242,7 +242,7 @@ namespace FG
 	Dealloc
 =================================================
 */
-	bool VMemoryManager::VulkanMemoryAllocator::Dealloc (INOUT Storage_t &data, OUT AppendableVkResources_t)
+	bool VMemoryManager::VulkanMemoryAllocator::Dealloc (INOUT Storage_t &data)
 	{
 		VmaAllocation&	mem = _CastStorage( data )->allocation;
 

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <filesystem>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -56,4 +56,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

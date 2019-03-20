@@ -4,7 +4,7 @@
 
 #include "framework/Vulkan/VulkanDevice.h"
 
-namespace FG
+namespace FGC
 {
 	
 	//
@@ -30,4 +30,4 @@ namespace FG
 #	endif
 	};
 
-}	// FG
+}	// FGC

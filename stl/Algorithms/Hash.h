@@ -6,7 +6,7 @@
 #include "stl/Log/Log.h"
 #include "stl/CompileTime/TypeTraits.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -115,7 +115,7 @@ namespace FG
 		#endif
 	}
 
-}	// FG
+}	// FGC
 
 
 namespace std
@@ -125,7 +125,7 @@ namespace std
 	{
 		ND_ size_t  operator () (const std::pair<First, Second> &value) const noexcept
 		{
-			return size_t(FG::HashOf( value.first ) + FG::HashOf( value.second ));
+			return size_t(FGC::HashOf( value.first ) + FGC::HashOf( value.second ));
 		}
 	};
 

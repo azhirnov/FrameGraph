@@ -120,7 +120,7 @@ namespace FG
 			Element				elements[1];
 		};
 
-		using CachedID			= std::atomic< uint64_t >;
+		using CachedID			= std::atomic< RawPipelineResourcesID::Value_t >;
 		using DeallocatorFn_t	= void (*) (void*, void*, BytesU);
 
 		struct Uniform
@@ -232,8 +232,8 @@ namespace FG
 
 
 	private:
-		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint64_t>(id), memory_order_release ); }
-		void _ResetCachedID ()								const;
+		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint>(id), memory_order_release ); }
+		void _ResetCachedID ()								const	{ _cachedId.store( UMax, memory_order_relaxed ); }
 		
 		ND_ RawPipelineResourcesID	_GetCachedID ()			const	{ return BitCast<RawPipelineResourcesID>( _cachedId.load( memory_order_acquire )); }
 

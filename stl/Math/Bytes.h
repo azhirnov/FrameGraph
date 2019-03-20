@@ -4,7 +4,7 @@
 
 #include "stl/Algorithms/Cast.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -164,17 +164,17 @@ namespace FG
 		return BytesU( size_t(std::addressof(u.b.*member)) - size_t(std::addressof(u.b)) );
 	}
 
-}	// FG
+}	// FGC
 
 
 namespace std
 {
 	template <typename T>
-	struct hash< FG::Bytes<T> >
+	struct hash< FGC::Bytes<T> >
 	{
-		ND_ size_t  operator () (const FG::Bytes<T> &value) const noexcept
+		ND_ size_t  operator () (const FGC::Bytes<T> &value) const noexcept
 		{
-			return size_t(FG::HashOf( T(value) ));
+			return size_t(FGC::HashOf( T(value) ));
 		}
 	};
 

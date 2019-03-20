@@ -4,9 +4,9 @@
 
 #include "stl/Common.h"
 
-namespace FG
+namespace FGC
 {
-namespace _fg_hidden_
+namespace _fgc_hidden_
 {
 	template <typename T>
 	struct _ReverseWrapper
@@ -17,7 +17,7 @@ namespace _fg_hidden_
 		ND_ auto	end ()		{ return std::rend(container); }
 	};
 
-}	// _fg_hidden_
+}	// _fgc_hidden_
 
 /*
 =================================================
@@ -25,10 +25,10 @@ namespace _fg_hidden_
 =================================================
 */
 	template <typename Container>
-	ND_ _fg_hidden_::_ReverseWrapper<Container>  Reverse (Container &&arr)
+	ND_ _fgc_hidden_::_ReverseWrapper<Container>  Reverse (Container &&arr)
 	{
 		return { arr };
 	}
 
 
-}	// FG
+}	// FGC

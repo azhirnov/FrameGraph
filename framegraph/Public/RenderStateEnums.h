@@ -154,6 +154,7 @@ namespace FG
 
 		All						= ((_Last-1) << 1) - 1,
 		RasterizerMask			= All,
+		Default					= Viewport | Scissor,
 	};
 	FG_BIT_OPERATORS( EPipelineDynamicState );
 

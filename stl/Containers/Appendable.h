@@ -4,7 +4,7 @@
 
 #include "stl/Containers/FixedArray.h"
 
-namespace FG
+namespace FGC
 {
 
 
@@ -70,4 +70,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

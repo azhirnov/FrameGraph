@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framegraph/Public/FrameGraphInstance.h"
+#include "framegraph/Public/FrameGraph.h"
 
 namespace FG
 {
@@ -10,7 +10,7 @@ namespace FG
 	MergeRenderStatistic
 =================================================
 */
-	inline void MergeRenderStatistic (const FrameGraphInstance::RenderingStatistics &src, INOUT FrameGraphInstance::RenderingStatistics &dst)
+	inline void MergeRenderStatistic (const IFrameGraph::RenderingStatistics &src, INOUT IFrameGraph::RenderingStatistics &dst)
 	{
 		dst.descriptorBinds				+= src.descriptorBinds;
 		dst.pushConstants				+= src.pushConstants;
@@ -39,7 +39,7 @@ namespace FG
 	MergeRenderStatistic
 =================================================
 */
-	inline void MergeResourceStatistic (const FrameGraphInstance::ResourceStatistics &src, INOUT FrameGraphInstance::ResourceStatistics &dst)
+	inline void MergeResourceStatistic (const IFrameGraph::ResourceStatistics &src, INOUT IFrameGraph::ResourceStatistics &dst)
 	{
 		dst.newComputePipelineCount		+= src.newComputePipelineCount;
 		dst.newGraphicsPipelineCount	+= src.newGraphicsPipelineCount;
@@ -51,7 +51,7 @@ namespace FG
 	Merge
 =================================================
 */
-	void FrameGraphInstance::Statistics::Merge (const Statistics &newStat)
+	void IFrameGraph::Statistics::Merge (const Statistics &newStat)
 	{
 		MergeRenderStatistic( newStat.renderer, INOUT this->renderer );
 		MergeResourceStatistic( newStat.resources, INOUT this->resources );

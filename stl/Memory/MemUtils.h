@@ -6,7 +6,7 @@
 #include "stl/Math/BitMath.h"
 #include "stl/CompileTime/TypeTraits.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -71,4 +71,4 @@ namespace FG
 	}
 
 
-}	// FG
+}	// FGC

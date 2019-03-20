@@ -85,31 +85,35 @@ namespace _fg_hidden_
 	//
 
 	template <uint UID>
-	struct ResourceID final
+	struct ResourceID
 	{
 	// types
 	public:
 		using Self			= ResourceID< UID >;
-		using Index_t		= uint;
-		using InstanceID_t	= uint;
+		using Index_t		= uint16_t;
+		using InstanceID_t	= uint16_t;
+		using Value_t		= uint32_t;
 
 
 	// variables
 	private:
-		uint64_t	_value	= UMax;
+		Value_t		_value	= UMax;
 
 		STATIC_ASSERT( sizeof(_value) == (sizeof(Index_t) + sizeof(InstanceID_t)) );
+
+		static constexpr Value_t	_IndexMask	= sizeof(Index_t)*8 - 1;
+		static constexpr Value_t	_InstOffset	= sizeof(Index_t)*8;
 
 
 	// methods
 	public:
 		constexpr ResourceID () {}
 		constexpr ResourceID (const ResourceID &other) : _value{other._value} {}
-		explicit constexpr ResourceID (Index_t val, InstanceID_t inst) : _value{uint64_t(val) | (uint64_t(inst) << 32)} {}
+		explicit constexpr ResourceID (Index_t val, InstanceID_t inst) : _value{Value_t(val) | (Value_t(inst) << _InstOffset)} {}
 
 		ND_ constexpr bool			IsValid ()						const	{ return _value != UMax; }
-		ND_ constexpr Index_t		Index ()						const	{ return _value & 0xFFFFFFFFull; }
-		ND_ constexpr InstanceID_t	InstanceID ()					const	{ return _value >> 32; }
+		ND_ constexpr Index_t		Index ()						const	{ return _value & _IndexMask; }
+		ND_ constexpr InstanceID_t	InstanceID ()					const	{ return _value >> _InstOffset; }
 		ND_ constexpr HashVal		GetHash ()						const	{ return HashOf(_value) + HashVal{UID}; }
 
 		ND_ constexpr bool			operator == (const Self &rhs)	const	{ return _value == rhs._value; }
@@ -167,16 +171,22 @@ namespace _fg_hidden_
 }	// _fg_hidden_
 
 
+	enum class RenderTargetID : uint
+	{
+		DepthStencil	= FG_MaxColorBuffers,
+		Depth			= DepthStencil,
+		Unknown			= ~0u
+	};
+
 
 	using UniformID					= _fg_hidden_::IDWithString< 32,  1, FG_OPTIMIZE_IDS >;
 	using PushConstantID			= _fg_hidden_::IDWithString< 32,  2, FG_OPTIMIZE_IDS >;
-	using RenderTargetID			= _fg_hidden_::IDWithString< 32,  3, FG_OPTIMIZE_IDS >;
+	//using RenderTargetID			= _fg_hidden_::IDWithString< 32,  3, FG_OPTIMIZE_IDS >;
 	using DescriptorSetID			= _fg_hidden_::IDWithString< 32,  4, FG_OPTIMIZE_IDS >;
 	using SpecializationID			= _fg_hidden_::IDWithString< 32,  5, FG_OPTIMIZE_IDS >;
 	using VertexID					= _fg_hidden_::IDWithString< 32,  6, FG_OPTIMIZE_IDS >;
 	using VertexBufferID			= _fg_hidden_::IDWithString< 32,  7, FG_OPTIMIZE_IDS >;
 	using MemPoolID					= _fg_hidden_::IDWithString< 32,  8, FG_OPTIMIZE_IDS >;
-	using CommandBatchID			= _fg_hidden_::IDWithString< 32,  9, false >;
 	using RTShaderID				= _fg_hidden_::IDWithString< 32, 10, FG_OPTIMIZE_IDS >;
 	using GeometryID				= _fg_hidden_::IDWithString< 32, 11, FG_OPTIMIZE_IDS >;
 	using InstanceID				= _fg_hidden_::IDWithString< 32, 12, FG_OPTIMIZE_IDS >;
@@ -195,6 +205,7 @@ namespace _fg_hidden_
 	using RawRTSceneID				= _fg_hidden_::ResourceID< 11 >;
 	using RawRTGeometryID			= _fg_hidden_::ResourceID< 12 >;
 	using RawRTShaderTableID		= _fg_hidden_::ResourceID< 13 >;
+	using RawSwapchainID			= _fg_hidden_::ResourceID< 14 >;
 	
 	// strong references
 	using BufferID					= _fg_hidden_::ResourceIDWrap< RawBufferID >;
@@ -207,6 +218,7 @@ namespace _fg_hidden_
 	using RTSceneID					= _fg_hidden_::ResourceIDWrap< RawRTSceneID >;
 	using RTGeometryID				= _fg_hidden_::ResourceIDWrap< RawRTGeometryID >;
 	using RTShaderTableID			= _fg_hidden_::ResourceIDWrap< RawRTShaderTableID >;
+	using SwapchainID				= _fg_hidden_::ResourceIDWrap< RawSwapchainID >;
 
 
 }	// FG

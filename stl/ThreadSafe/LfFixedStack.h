@@ -5,7 +5,7 @@
 #include "stl/Containers/ArrayView.h"
 #include <atomic>
 
-namespace FG
+namespace FGC
 {
 
 
@@ -124,4 +124,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

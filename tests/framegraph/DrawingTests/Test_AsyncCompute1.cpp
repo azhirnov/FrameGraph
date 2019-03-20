@@ -3,13 +3,13 @@
 	Async compute with one render target and with synchronization
 	between frames to avoid race condition.
 
-  .--------------------.---------------------------.
-  |      frame 1       |         frame 2           |
-  |----------.---------|------.----------.---------|
-  | graphics |         |      | graphics |         |
-  |----------|---------|------|----------|---------|
-  |          | compute | sync |          | compute |
-  '----------'---------'------'----------'---------'
+  .--------------------.--------------------.
+  |      frame 1       |      frame 2       |
+  |----------.---------|----------.---------|
+  | graphics |         | graphics |         |
+  |----------|---------|----------|---------|
+  |          | compute |          | compute |
+  '----------'---------'----------'---------'
 */
 
 #include "../FGApp.h"
@@ -27,7 +27,7 @@ namespace FG
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-out vec3	v_Color;
+out vec3  v_Color;
 
 const vec2	g_Positions[3] = vec2[](
 	vec2(0.0, -0.5),
@@ -52,8 +52,9 @@ void main() {
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-in  vec3	v_Color;
-out vec4	out_Color;
+layout(location=0) out vec4  out_Color;
+
+in  vec3  v_Color;
 
 void main() {
 	out_Color = 1.0f - vec4(v_Color, 1.0);
@@ -77,23 +78,20 @@ void main ()
 }
 )#" );
 		
-		// to create resources with sharing mode use framegraph that contains graphics and async compute queues
-		FGThreadPtr		frame_graph	= _fgThreads[1];
-
 		const uint2		view_size	= {800, 600};
 		ImageDesc		image_desc	{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 									  EImageUsage::ColorAttachment | EImageUsage::TransferSrc | EImageUsage::Storage };
-						image_desc.queues = EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
+						image_desc.queues = EQueueUsageBits::Graphics | EQueueUsageBits::AsyncCompute;
 
-		ImageID			image		= frame_graph->CreateImage( image_desc, Default, "RenderTarget" );
+		ImageID			image		= _frameGraph->CreateImage( image_desc, Default, "RenderTarget" );
 
-		GPipelineID		gpipeline	= frame_graph->CreatePipeline( gppln );
-		CPipelineID		cpipeline	= frame_graph->CreatePipeline( cppln );
+		GPipelineID		gpipeline	= _frameGraph->CreatePipeline( gppln );
+		CPipelineID		cpipeline	= _frameGraph->CreatePipeline( cppln );
 		
 		CHECK_ERR( gpipeline and cpipeline );
 
 		PipelineResources	resources;
-		CHECK_ERR( frame_graph->InitPipelineResources( cpipeline, DescriptorSetID("0"), OUT resources ));
+		CHECK_ERR( _frameGraph->InitPipelineResources( cpipeline, DescriptorSetID("0"), OUT resources ));
 
 		
 		bool		data_is_correct = true;
@@ -129,100 +127,71 @@ void main ()
 		};
 
 		
-		CommandBatchID		gbatch_id {"graphics"};
-		CommandBatchID		cbatch_id {"compute"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( gbatch_id, 1, EQueueUsage::Graphics );
-		submission_graph.AddBatch( cbatch_id, 1, EQueueUsage::AsyncCompute, { gbatch_id });
-		
 		// frame 1
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::Graphics });
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::AsyncCompute }, {cmd1} );
+		CHECK_ERR( cmd1 and cmd2 );
 		{
-			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-
 			// graphics queue
 			{
-				CHECK_ERR( frame_graph->Begin( gbatch_id, 0, EQueueUsage::Graphics ));
-
-				LogicalPassID	render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
-														.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
+				LogicalPassID	render_pass	= cmd1->CreateRenderPass( RenderPassDesc( view_size )
+														.AddTarget( RenderTargetID(0), image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
 														.AddViewport( view_size ) );
 		
-				frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
+				cmd1->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
-				Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
+				Task	t_draw	= cmd1->AddTask( SubmitRenderPass{ render_pass });
 				FG_UNUSED( t_draw );
 
-				CHECK_ERR( frame_graph->Execute() );
+				CHECK_ERR( _frameGraph->Execute( cmd1 ));
 			}
 
 			// compute queue
 			{
-				CHECK_ERR( frame_graph->Begin( cbatch_id, 0, EQueueUsage::AsyncCompute ));
-				
 				resources.BindImage( UniformID("un_Image"), image );
-				Task	t_comp	= frame_graph->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
-				Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
+				Task	t_comp	= cmd2->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
+				Task	t_read	= cmd2->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 				FG_UNUSED( t_read );
 
-				CHECK_ERR( frame_graph->Execute() );
+				CHECK_ERR( _frameGraph->Execute( cmd2 ));
 			}
-
-			CHECK_ERR( _fgInstance->EndFrame() );
 		}
-		
-		// frame 2
+
+
+		// frame 2		
+		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::Graphics }, {cmd2} );
+		CommandBuffer	cmd4 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::AsyncCompute }, {cmd3} );
+		CHECK_ERR( cmd3 and cmd4 );
 		{
-			// add synchronization between compute queue from previous frame and graphics queue in current frame
-			CommandBatchID	sync_batch_id {"compute-graphics-sync"};
-
-			auto	fg_graphics	= _fgThreads[0];
-			auto	fg_compute	= _fgThreads[2];
-
-			submission_graph.Clear();
-			submission_graph.AddBatch( sync_batch_id, 1, EQueueUsage::AsyncCompute );
-			submission_graph.AddBatch( gbatch_id, 1, EQueueUsage::Graphics, {sync_batch_id} );
-			submission_graph.AddBatch( cbatch_id, 1, EQueueUsage::AsyncCompute, { gbatch_id });
-
-			CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-
-			// this batch just enqueue the semaphore signal command
-			CHECK_ERR( _fgInstance->SkipBatch( sync_batch_id, 0 ));
-
 			// graphics queue
 			{
-				CHECK_ERR( fg_graphics->Begin( gbatch_id, 0, EQueueUsage::Graphics ));
-
-				LogicalPassID	render_pass	= fg_graphics->CreateRenderPass( RenderPassDesc( view_size )
-														.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
+				LogicalPassID	render_pass	= cmd3->CreateRenderPass( RenderPassDesc( view_size )
+														.AddTarget( RenderTargetID(0), image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
 														.AddViewport( view_size ) );
 		
-				fg_graphics->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
+				cmd3->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
-				Task	t_draw	= fg_graphics->AddTask( SubmitRenderPass{ render_pass });
+				Task	t_draw	= cmd3->AddTask( SubmitRenderPass{ render_pass });
 				FG_UNUSED( t_draw );
 
-				CHECK_ERR( fg_graphics->Execute() );
+				CHECK_ERR( _frameGraph->Execute( cmd3 ));
 			}
 
 			// compute queue
 			{
-				CHECK_ERR( fg_compute->Begin( cbatch_id, 0, EQueueUsage::AsyncCompute ));
-				
 				resources.BindImage( UniformID("un_Image"), image );
-				Task	t_comp	= fg_compute->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
-				Task	t_read	= fg_compute->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
+				Task	t_comp	= cmd4->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
+				Task	t_read	= cmd4->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 				FG_UNUSED( t_read );
 
-				CHECK_ERR( fg_compute->Execute() );
+				CHECK_ERR( _frameGraph->Execute( cmd4 ));
 			}
-
-			CHECK_ERR( _fgInstance->EndFrame() );
 		}
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 

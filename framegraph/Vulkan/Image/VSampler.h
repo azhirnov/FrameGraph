@@ -33,7 +33,7 @@ namespace FG
 		~VSampler ();
 
 		bool Create (const VDevice &dev, StringView dbgName);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy (VResourceManager &);
 
 		ND_ bool	operator == (const VSampler &rhs) const;
 

@@ -2,9 +2,9 @@
 
 #include "Shared/PipelineResourcesHelper.h"
 #include "VPipelineResources.h"
-#include "VResourceManagerThread.h"
-#include "VEnumCast.h"
+#include "VResourceManager.h"
 #include "VDevice.h"
+#include "VEnumCast.h"
 
 namespace FG
 {
@@ -54,7 +54,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VPipelineResources::Create (VResourceManagerThread &resMngr)
+	bool VPipelineResources::Create (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( not _descriptorSet );
@@ -63,7 +63,7 @@ namespace FG
 		VDevice const&					dev			= resMngr.GetDevice();
 		VDescriptorSetLayout const*		ds_layout	= resMngr.GetResource( _layoutId );
 		
-		CHECK_ERR( resMngr.GetDescriptorManager()->AllocDescriptorSet( dev, ds_layout->Handle(), OUT _descriptorSet ));
+		//CHECK_ERR( resMngr.GetDescriptorManager().AllocDescriptorSet( dev, ds_layout->Handle(), OUT _descriptorSet ));
 
 		UpdateDescriptors	update;
 		update.descriptors		= update.allocator.Alloc< VkWriteDescriptorSet >( ds_layout->GetMaxIndex() + 1 );
@@ -80,13 +80,13 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VPipelineResources::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VPipelineResources::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		// release reference only if descriptor set was created
 		if ( _layoutId and _descriptorSet ) {
-			unassignIDs.emplace_back( _layoutId );
+			resMngr.ReleaseResource( _layoutId );
 		}
 
 		if ( _descriptorSet ) {
@@ -106,16 +106,16 @@ namespace FG
 	IsAllResourcesAlive
 =================================================
 */
-	bool  VPipelineResources::IsAllResourcesAlive (const VResourceManagerThread &resMngr) const
+	bool  VPipelineResources::IsAllResourcesAlive (const VResourceManager &resMngr) const
 	{
 		SHAREDLOCK( _rcCheck );
 
 		struct Visitor
 		{
-			VResourceManagerThread const&	resMngr;
+			VResourceManager const&	resMngr;
 			bool							alive	= true;
 			
-			Visitor (const VResourceManagerThread &resMngr) : resMngr{resMngr}
+			Visitor (const VResourceManager &resMngr) : resMngr{resMngr}
 			{}
 
 			void operator () (const UniformID &, const PipelineResources::Buffer &buf)
@@ -192,7 +192,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorBufferInfo >( buf.elementCount );
 
@@ -232,21 +232,21 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( img.elementCount );
 
 		for (uint i = 0; i < img.elementCount; ++i)
 		{
-			auto&				elem		= img.elements[i];
-			VLocalImage const*	local_img	= resMngr.ToLocal( elem.imageId );
-			CHECK( local_img or _allowEmptyResources );
+			auto&			elem	= img.elements[i];
+			VImage const*	img_res	= resMngr.GetResource( elem.imageId );
+			CHECK( img_res or _allowEmptyResources );
 
-			if ( not local_img )
+			if ( not img_res )
 				continue;
 
-			info[i].imageLayout	= EResourceState_ToImageLayout( img.state, local_img->AspectMask() );
-			info[i].imageView	= local_img->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
+			info[i].imageLayout	= EResourceState_ToImageLayout( img.state, img_res->AspectMask() );
+			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
 			info[i].sampler		= VK_NULL_HANDLE;
 		}		
 		
@@ -268,22 +268,22 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( tex.elementCount );
 
 		for (uint i = 0; i < tex.elementCount; ++i)
 		{
-			auto&				elem		= tex.elements[i];
-			VLocalImage const*	local_img	= resMngr.ToLocal( elem.imageId );
-			VSampler const*		sampler		= resMngr.GetResource( elem.samplerId );
-			CHECK( (local_img and sampler) or _allowEmptyResources );
+			auto&			elem	= tex.elements[i];
+			VImage const*	img_res	= resMngr.GetResource( elem.imageId );
+			VSampler const*	sampler	= resMngr.GetResource( elem.samplerId );
+			CHECK( (img_res and sampler) or _allowEmptyResources );
 
-			if ( not (local_img and sampler) )
+			if ( not (img_res and sampler) )
 				continue;
 
-			info[i].imageLayout	= EResourceState_ToImageLayout( tex.state, local_img->AspectMask() );
-			info[i].imageView	= local_img->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
+			info[i].imageLayout	= EResourceState_ToImageLayout( tex.state, img_res->AspectMask() );
+			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
 			info[i].sampler		= sampler->Handle();
 		}
 		
@@ -304,7 +304,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( samp.elementCount );
 
@@ -339,7 +339,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &resMngr, const PipelineResources::RayTracingScene &rtScene, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const PipelineResources::RayTracingScene &rtScene, INOUT UpdateDescriptors &list)
 	{
 		auto*	tlas = list.allocator.Alloc<VkAccelerationStructureNV>( rtScene.elementCount );
 
@@ -376,7 +376,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManagerThread &, const NullUnion &, INOUT UpdateDescriptors &)
+	bool VPipelineResources::_AddResource (VResourceManager &, const NullUnion &, INOUT UpdateDescriptors &)
 	{
 		CHECK( _allowEmptyResources and "uninitialized uniform!" );
 		return false;

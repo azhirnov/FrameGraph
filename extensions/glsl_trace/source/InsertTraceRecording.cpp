@@ -4209,7 +4209,6 @@ static bool RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo)
 		 //		reuse 'gl_LaunchIDNV'
 		 //		reuse 'gl_LaunchSizeNV'
 		 //		reuse 'gl_PrimitiveID'
-		 //		reuse 'gl_InstanceID' or 'gl_InstanceIndex' ?
 		 node->getName() == "gl_InstanceCustomIndexNV"	or
 		 node->getName() == "gl_WorldRayOriginNV"		or
 		 node->getName() == "gl_WorldRayDirectionNV"	or
@@ -4223,6 +4222,7 @@ static bool RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo)
 		 // ray intersection & any-hit & closest-hit shaders
 		 node->getName() == "gl_HitTNV"					or
 		 node->getName() == "gl_HitKindNV"				or
+		 node->getName() == "gl_InstanceID"				or
 		 // all shaders
 		 node->getName() == "gl_SubgroupInvocationID"	)
 	{

@@ -134,12 +134,12 @@ namespace FG
 	Deallocate
 =================================================
 */
-	bool VMemoryManager::Deallocate (INOUT Storage_t &data, OUT AppendableVkResources_t readyToDelete)
+	bool VMemoryManager::Deallocate (INOUT Storage_t &data)
 	{
 		const uint	alloc_id = *data.Cast<uint>();
 		CHECK_ERR( alloc_id < _allocators.size() );
 
-		CHECK_ERR( _allocators[alloc_id]->Dealloc( INOUT data, OUT readyToDelete ));
+		CHECK_ERR( _allocators[alloc_id]->Dealloc( INOUT data ));
 		return true;
 	}
 	

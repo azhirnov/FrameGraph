@@ -28,12 +28,12 @@ namespace FG
 			VkImageLayout		layout		= VK_IMAGE_LAYOUT_MAX_ENUM;
 			VkImageAspectFlags	aspect		= 0;
 			ImageRange			range;
-			Task				task;
+			VTask				task;
 			
 		// methods
 			ImageState () {}
 
-			ImageState (EResourceState state, VkImageLayout layout, const ImageRange &range, VkImageAspectFlags aspect, Task task) :
+			ImageState (EResourceState state, VkImageLayout layout, const ImageRange &range, VkImageAspectFlags aspect, VTask task) :
 				state{state}, layout{layout}, aspect{aspect}, range{range}, task{task} {}
 		};
 
@@ -44,15 +44,17 @@ namespace FG
 		{
 		// variables
 			SubRange				range;
-			VkImageLayout			layout		= VK_IMAGE_LAYOUT_MAX_ENUM;
-			VkPipelineStageFlags	stages		= 0;
-			VkAccessFlags			access		= 0;
-			ExeOrderIndex			index		= ExeOrderIndex::Initial;
-			bool					isReadable : 1;
-			bool					isWritable : 1;
+			VkImageLayout			layout			= VK_IMAGE_LAYOUT_MAX_ENUM;
+			VkPipelineStageFlags	stages			= 0;
+			VkAccessFlags			access			= 0;
+			ExeOrderIndex			index			= ExeOrderIndex::Initial;
+			bool					isReadable		: 1;
+			bool					isWritable		: 1;
+			bool					invalidateBefore : 1;
+			bool					invalidateAfter	 : 1;
 
 		// methods
-			ImageAccess () : isReadable{false}, isWritable{false} {}
+			ImageAccess () : isReadable{false}, isWritable{false}, invalidateBefore{false}, invalidateAfter{false} {}
 		};
 
 		using ImageViewMap_t	= VImage::ImageViewMap_t;
@@ -77,13 +79,13 @@ namespace FG
 		~VLocalImage ();
 
 		bool Create (const VImage *);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy ();
 
 		void AddPendingState (const ImageState &) const;
 		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
 		
-		ND_ VkImageView			GetView (const VDevice &, bool isDefault, INOUT ImageViewDesc &) const;
+		ND_ VkImageView			GetView (const VDevice &dev, bool isDefault, INOUT ImageViewDesc &desc) const	{ return _imageData->GetView( dev, isDefault, INOUT desc ); }
 
 		ND_ bool				IsCreated ()		const	{ return _imageData != null; }
 		ND_ VkImage				Handle ()			const	{ return _imageData->Handle(); }

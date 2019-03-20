@@ -5,7 +5,7 @@
 #include "stl/Math/Bytes.h"
 #include "stl/Containers/FixedArray.h"
 
-namespace FG
+namespace FGC
 {
 	
 /*
@@ -27,6 +27,12 @@ namespace FG
 	
 	template <typename T, size_t I, typename Class>
 	ND_ forceinline constexpr size_t  CountOf (T (Class::*) [I])
+	{
+		return I;
+	}
+	
+	template <size_t I>
+	ND_ forceinline constexpr size_t  CountOf (const BitSet<I> &)
 	{
 		return I;
 	}
@@ -91,6 +97,9 @@ namespace FG
 	template <typename T, typename Key>
 	ND_ forceinline size_t  BinarySearch (ArrayView<T> arr, const Key &key)
 	{
+		if ( arr.empty() )
+			return UMax;
+
 		size_t	left	= 0;
 		size_t	right	= arr.size()-1;
 
@@ -120,4 +129,4 @@ namespace FG
 	}
 
 
-}	// FG
+}	// FGC

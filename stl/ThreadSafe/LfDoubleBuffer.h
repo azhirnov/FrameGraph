@@ -52,7 +52,7 @@
 #include <atomic>
 #include <thread>
 
-namespace FG
+namespace FGC
 {
 
 
@@ -100,14 +100,14 @@ namespace FG
 		{
 			ASSERT( id < MaxThreads );
 
-			Value_t  index = _mode.load( memory_order_acquire );
+			Value_t  index = _mode.load( memory_order_relaxed );
 			index = (index >> (Offset*id)) & Mask;
 			
 			return index;
 		}
 
 
-		ND_ Value_t  Swap (const uint id)
+		ND_ Value_t  Swap (const uint id, std::memory_order memOrder = std::memory_order_seq_cst)
 		{
 			ASSERT( id < MaxThreads );
 
@@ -132,11 +132,22 @@ namespace FG
 					std::this_thread::yield();
 				}
 			}
-			while ( not _mode.compare_exchange_weak( INOUT expected, next, memory_order_release, memory_order_relaxed ));
+			while ( not _mode.compare_exchange_weak( INOUT expected, next, memOrder, memory_order_relaxed ));
 
 			return (next >> offset2) & Mask;
+		}
+
+
+		ND_ Value_t  WriteAndSwap (uint id)
+		{
+			return Swap( id, memory_order_release );
+		}
+
+		ND_ Value_t  SwapAndRead (uint id)
+		{
+			return Swap( id, memory_order_acquire );
 		}
 	};
 
 
-}	// FG
+}	// FGC

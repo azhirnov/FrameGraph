@@ -46,7 +46,6 @@ namespace FG
 		using ShaderModule			= VGraphicsPipeline::ShaderModule;
 		using ShaderModules_t		= FixedArray< ShaderModule, 8 >;
 		using TopologyBits_t		= GraphicsPipelineDesc::TopologyBits_t;
-		using FragmentOutputPtr		= const VGraphicsPipeline::FragmentOutputInstance *;
 
 
 	// variables
@@ -58,7 +57,6 @@ namespace FG
 		ShaderModules_t				_shaders;
 
 		EPrimitive					_topology				= Default;
-		FragmentOutputPtr			_fragmentOutput			= null;
 		bool						_earlyFragmentTests		= true;
 		
 		DebugName_t					_debugName;
@@ -72,12 +70,11 @@ namespace FG
 		VMeshPipeline (VMeshPipeline &&) = default;
 		~VMeshPipeline ();
 
-		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, FragmentOutputPtr fragOutput, StringView dbgName);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
+		void Destroy (VResourceManager &);
 		
 		ND_ RawPipelineLayoutID		GetLayoutID ()			const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }
 
-		ND_ FragmentOutputPtr		GetFragmentOutput ()	const	{ SHAREDLOCK( _rcCheck );  return _fragmentOutput; }
 		ND_ bool					IsEarlyFragmentTests ()	const	{ SHAREDLOCK( _rcCheck );  return _earlyFragmentTests; }
 		
 		ND_ StringView				GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }

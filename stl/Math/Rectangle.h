@@ -4,7 +4,7 @@
 
 #include "stl/Math/Vec.h"
 
-namespace FG
+namespace FGC
 {
 
 	template <typename T>
@@ -85,21 +85,21 @@ namespace FG
 	using RectF		= Rectangle< float >;
 
 
-}	// FG
+}	// FGC
 
 
 namespace std
 {
 	template <typename T>
-	struct hash< FG::Rectangle<T> >
+	struct hash< FGC::Rectangle<T> >
 	{
-		ND_ size_t  operator () (const FG::Rectangle<T> &value) const noexcept
+		ND_ size_t  operator () (const FGC::Rectangle<T> &value) const noexcept
 		{
 		#if FG_FAST_HASH
-			return	size_t( FG::HashOf( this, sizeof(*this) ));
+			return	size_t( FGC::HashOf( this, sizeof(*this) ));
 		#else
-			return	size_t( FG::HashOf( value.left )  + FG::HashOf( value.bottom ) +
-							FG::HashOf( value.right ) + FG::HashOf( value.top ) );
+			return	size_t( FGC::HashOf( value.left )  + FGC::HashOf( value.bottom ) +
+							FGC::HashOf( value.right ) + FGC::HashOf( value.top ) );
 		#endif
 		}
 	};

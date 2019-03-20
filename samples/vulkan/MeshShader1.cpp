@@ -14,9 +14,7 @@
 #include "framework/Window/WindowSFML.h"
 #include "compiler/SpvCompiler.h"
 
-using namespace FG;
 namespace {
-
 
 class MeshShaderApp final : public IWindowEventListener, public VulkanDeviceFn
 {

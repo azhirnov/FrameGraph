@@ -4,7 +4,7 @@
 
 #include "stl/Stream/Stream.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -31,4 +31,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

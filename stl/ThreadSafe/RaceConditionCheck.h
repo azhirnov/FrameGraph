@@ -12,7 +12,7 @@
 #include <mutex>
 #include <thread>
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -116,19 +116,19 @@ namespace FG
 		}
 	};
 
-}	// FG
+}	// FGC
 
 namespace std
 {
 	template <>
-	struct unique_lock< FG::RaceConditionCheck >
+	struct unique_lock< FGC::RaceConditionCheck >
 	{
 	private:
-		FG::RaceConditionCheck &	_lock;
+		FGC::RaceConditionCheck &	_lock;
 		bool						_locked	= false;
 
 	public:
-		explicit unique_lock (FG::RaceConditionCheck &ref) : _lock{ref}
+		explicit unique_lock (FGC::RaceConditionCheck &ref) : _lock{ref}
 		{
 			_locked = _lock.Lock();
 		}
@@ -144,24 +144,24 @@ namespace std
 	};
 
 	template <>
-	struct unique_lock< const FG::RaceConditionCheck > :
-		unique_lock< FG::RaceConditionCheck >
+	struct unique_lock< const FGC::RaceConditionCheck > :
+		unique_lock< FGC::RaceConditionCheck >
 	{
-		explicit unique_lock (const FG::RaceConditionCheck &ref) :
-			unique_lock< FG::RaceConditionCheck >{ const_cast<FG::RaceConditionCheck &>(ref) }
+		explicit unique_lock (const FGC::RaceConditionCheck &ref) :
+			unique_lock< FGC::RaceConditionCheck >{ const_cast<FGC::RaceConditionCheck &>(ref) }
 		{}
 	};
 
 
 	template <>
-	struct unique_lock< FG::RWRaceConditionCheck >
+	struct unique_lock< FGC::RWRaceConditionCheck >
 	{
 	private:
-		FG::RWRaceConditionCheck &	_lock;
+		FGC::RWRaceConditionCheck &	_lock;
 		bool						_locked	= false;
 
 	public:
-		explicit unique_lock (FG::RWRaceConditionCheck &ref) : _lock{ref}
+		explicit unique_lock (FGC::RWRaceConditionCheck &ref) : _lock{ref}
 		{
 			_locked = _lock.LockExclusive();
 		}
@@ -177,24 +177,24 @@ namespace std
 	};
 
 	template <>
-	struct unique_lock< const FG::RWRaceConditionCheck > :
-		unique_lock< FG::RWRaceConditionCheck >
+	struct unique_lock< const FGC::RWRaceConditionCheck > :
+		unique_lock< FGC::RWRaceConditionCheck >
 	{
-		explicit unique_lock (const FG::RWRaceConditionCheck &ref) :
-			unique_lock< FG::RWRaceConditionCheck >{ const_cast<FG::RWRaceConditionCheck &>(ref) }
+		explicit unique_lock (const FGC::RWRaceConditionCheck &ref) :
+			unique_lock< FGC::RWRaceConditionCheck >{ const_cast<FGC::RWRaceConditionCheck &>(ref) }
 		{}
 	};
 
 
 	template <>
-	struct shared_lock< FG::RWRaceConditionCheck >
+	struct shared_lock< FGC::RWRaceConditionCheck >
 	{
 	private:
-		FG::RWRaceConditionCheck &	_lock;
+		FGC::RWRaceConditionCheck &	_lock;
 		bool						_locked	= false;
 
 	public:
-		explicit shared_lock (FG::RWRaceConditionCheck &ref) : _lock{ref}
+		explicit shared_lock (FGC::RWRaceConditionCheck &ref) : _lock{ref}
 		{
 			_locked = _lock.LockShared();
 		}
@@ -210,11 +210,11 @@ namespace std
 	};
 
 	template <>
-	struct shared_lock< const FG::RWRaceConditionCheck > :
-		shared_lock< FG::RWRaceConditionCheck >
+	struct shared_lock< const FGC::RWRaceConditionCheck > :
+		shared_lock< FGC::RWRaceConditionCheck >
 	{
-		explicit shared_lock (const FG::RWRaceConditionCheck &ref) :
-			shared_lock< FG::RWRaceConditionCheck >{ const_cast<FG::RWRaceConditionCheck &>(ref) }
+		explicit shared_lock (const FGC::RWRaceConditionCheck &ref) :
+			shared_lock< FGC::RWRaceConditionCheck >{ const_cast<FGC::RWRaceConditionCheck &>(ref) }
 		{}
 	};
 
@@ -223,7 +223,7 @@ namespace std
 
 #else
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -248,7 +248,7 @@ namespace FG
 		void unlock_shared () const	{}
 	};
 
-}	// FG
+}	// FGC
 
 #endif	// FG_ENABLE_RACE_CONDITION_CHECK
 

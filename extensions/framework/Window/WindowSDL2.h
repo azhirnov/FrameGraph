@@ -19,7 +19,7 @@
 # endif
 
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -33,13 +33,14 @@ namespace FG
 		struct VulkanSurface final : public IVulkanSurface
 		{
 		private:
-			SDL_Window *	_window;
+			SDL_Window *		_window;
+			Array<const char*>	_extensions;
 
 		public:
-			explicit VulkanSurface (SDL_Window *wnd) : _window{wnd} {}
+			explicit VulkanSurface (SDL_Window *wnd);
 
-			ND_ Array<const char*>	GetRequiredExtensions () const override;
-			ND_ VkSurfaceKHR		Create (VkInstance inst) const override;
+			ND_ ArrayView<const char*>	GetRequiredExtensions () const override	{ return _extensions; }
+			ND_ VkSurfaceKHR			Create (VkInstance inst) const override;
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
@@ -79,6 +80,6 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC
 
 #endif	// FG_ENABLE_SDL2

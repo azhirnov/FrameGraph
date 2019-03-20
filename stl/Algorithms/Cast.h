@@ -5,7 +5,7 @@
 #include "stl/Common.h"
 #include "stl/Containers/Ptr.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -137,4 +137,4 @@ namespace FG
 	}
 
 
-}	// FG
+}	// FGC

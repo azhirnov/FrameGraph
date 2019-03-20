@@ -4,7 +4,7 @@
 
 #include "stl/Common.h"
 
-namespace FG
+namespace FGC
 {
 
 /*
@@ -12,7 +12,7 @@ namespace FG
 	helpers
 =================================================
 */
-	namespace _fg_hidden_
+	namespace _fgc_hidden_
 	{
 		template <typename T1, typename T2, typename Result>
 		using EnableForInt		= EnableIf< IsSignedInteger<T1> and IsSignedInteger<T2>, Result >;
@@ -20,7 +20,7 @@ namespace FG
 		template <typename T1, typename T2, typename Result>
 		using EnableForUInt		= EnableIf< IsUnsignedInteger<T1> and IsUnsignedInteger<T2>, Result >;
 
-	}	// _fg_hidden_
+	}	// _fgc_hidden_
 	
 /*
 =================================================
@@ -28,7 +28,7 @@ namespace FG
 =================================================
 */
 	template <typename T1, typename T2>
-	ND_ forceinline constexpr _fg_hidden_::EnableForInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
+	ND_ forceinline constexpr _fgc_hidden_::EnableForInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
 	{
 		STATIC_ASSERT( IsScalar<T1> and IsScalar<T2> );
 
@@ -50,7 +50,7 @@ namespace FG
 =================================================
 */
 	template <typename T1, typename T2>
-	ND_ forceinline constexpr _fg_hidden_::EnableForUInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
+	ND_ forceinline constexpr _fgc_hidden_::EnableForUInt<T1, T2, bool>  AdditionIsSafe (const T1 a, const T2 b)
 	{
 		STATIC_ASSERT( IsScalar<T1> and IsScalar<T2> );
 		
@@ -257,11 +257,11 @@ namespace FG
 =================================================
 */
 	template <typename T, typename B>
-	ND_ forceinline constexpr T  Lerp (const T& x, const T& y, const B& factor)
+	ND_ forceinline constexpr EnableIf<IsScalar<T>, T>  Lerp (const T& x, const T& y, const B& factor)
 	{
 		//return T(factor) * (y - x) + x;
 		return x * (T(1) - T(factor)) + y * T(factor);
 	}
 
 
-}	// FG
+}	// FGC

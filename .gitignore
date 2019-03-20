@@ -12,7 +12,12 @@
 /external/glm
 /external/DevIL
 /external/FreeImage
+/external/AngelScript
+/tests/framegraph/Graphs
+/samples/framegraph/PBR/data
+/samples/framegraph/Shadertoy/capture
 /external/optional
 /external/variant
+/samples/framegraph/_data
 *.user
 *.glsl_dbg

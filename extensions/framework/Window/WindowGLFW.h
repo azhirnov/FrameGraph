@@ -7,7 +7,7 @@
 #ifdef FG_ENABLE_GLFW
 # include "glfw/include/GLFW/glfw3.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -26,8 +26,8 @@ namespace FG
 		public:
 			explicit VulkanSurface (GLFWwindow *wnd) : _window{wnd} {}
 
-			ND_ Array<const char*>	GetRequiredExtensions () const override;
-			ND_ VkSurfaceKHR		Create (VkInstance inst) const override;
+			ND_ ArrayView<const char*>	GetRequiredExtensions () const override;
+			ND_ VkSurfaceKHR			Create (VkInstance inst) const override;
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
@@ -73,6 +73,6 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC
 
 #endif	// FG_ENABLE_GLFW

@@ -9,9 +9,9 @@
 # include <variant>
 #endif
 
-namespace FG
+namespace FGC
 {
-namespace _fg_hidden_
+namespace _fgc_hidden_
 {
 
 	template <typename Type, size_t I, typename TL>
@@ -30,7 +30,7 @@ namespace _fg_hidden_
 													std::integral_constant<size_t, I>, TL_GetIndex< Type, I+1, std::tuple<Tail...> > >::value;
 	};
 
-}	// _fg_hidden_
+}	// _fgc_hidden_
 
 
 	//
@@ -44,7 +44,7 @@ namespace _fg_hidden_
 		using							Get		= typename std::tuple_element<I, std::tuple<Types...>>::type;
 
 		template <typename T>
-		inline static constexpr size_t	Index	= _fg_hidden_::TL_GetIndex< T, 0, std::tuple<Types...> >::value;
+		inline static constexpr size_t	Index	= _fgc_hidden_::TL_GetIndex< T, 0, std::tuple<Types...> >::value;
 
 		inline static constexpr size_t	Count	= std::tuple_size< std::tuple<Types...> >::value;
 
@@ -65,4 +65,4 @@ namespace _fg_hidden_
 # endif
 
 
-}	// FG
+}	// FGC

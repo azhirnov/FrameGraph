@@ -3,6 +3,7 @@
 #pragma once
 
 #include "framegraph/Shared/EnumToString.h"
+#include "VCommon.h"
 
 namespace FG
 {

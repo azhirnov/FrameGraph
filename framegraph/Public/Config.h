@@ -3,7 +3,7 @@
 #pragma once
 
 #ifndef FG_OPTIMIZE_IDS
-# if 1 //def FG_DEBUG
+# ifdef FG_DEBUG
 #	define FG_OPTIMIZE_IDS		false
 # else
 #	define FG_OPTIMIZE_IDS		true
@@ -26,15 +26,12 @@ namespace FG
 	
 	// pipeline
 	static constexpr bool		FG_EnableShaderDebugging	= false;
-	static constexpr unsigned	FG_MaxDescriptorSets		= 4 - unsigned(FG_EnableShaderDebugging);
+	static constexpr unsigned	FG_MaxDescriptorSets		= 4;
 	static constexpr unsigned	FG_MaxBufferDynamicOffsets	= 12;	// 8 UBO + 4 SSBO
+	static constexpr unsigned	FG_MaxElementsInUnsizedDesc	= 1;	// if used extension GL_EXT_nonuniform_qualifier
 	
-	// memory manager
-	static constexpr unsigned	FG_VkHostWritePageSizeMb	= 64;	// Mb
-	static constexpr unsigned	FG_VkDevicePageSizeMb		= 64;	// Mb
-	
-	// resource manager
-	static constexpr unsigned	FG_MaxResources				= 8u << 10;
+	// memory
+	static constexpr unsigned	FG_VkDevicePageSizeMb		= 64;
 
 # else
 
@@ -48,16 +45,12 @@ namespace FG
 
 	// pipeline
 	static constexpr bool		FG_EnableShaderDebugging	= true;
-	static constexpr unsigned	FG_MaxDescriptorSets		= 8 - unsigned(FG_EnableShaderDebugging);
+	static constexpr unsigned	FG_MaxDescriptorSets		= 8;
 	static constexpr unsigned	FG_MaxBufferDynamicOffsets	= 16;
 	static constexpr unsigned	FG_MaxElementsInUnsizedDesc	= 64;	// if used extension GL_EXT_nonuniform_qualifier
 
-	// memory manager
-	static constexpr unsigned	FG_VkHostWritePageSizeMb	= 256;	// Mb
-	static constexpr unsigned	FG_VkDevicePageSizeMb		= 256;	// Mb
-	
-	// resource manager
-	static constexpr unsigned	FG_MaxResources				= 32u << 10;
+	// memory
+	static constexpr unsigned	FG_VkDevicePageSizeMb		= 256;
 
 # endif
 
@@ -79,11 +72,6 @@ namespace FG
 	static constexpr unsigned	FG_MaxClearRanges			= 8;
 	static constexpr unsigned	FG_MaxBlitRegions			= 8;
 	static constexpr unsigned	FG_MaxResolveRegions		= 8;
-
-	// frame graph
-	static constexpr unsigned	FG_MaxRingBufferSize			= 4;
-	static constexpr unsigned	FG_MaxCommandBatchCount			= 8;
-	static constexpr unsigned	FG_MaxCommandBatchDependencies	= 4;
 
 
 }	// FG

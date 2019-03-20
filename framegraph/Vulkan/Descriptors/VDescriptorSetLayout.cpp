@@ -3,6 +3,7 @@
 #include "Shared/PipelineResourcesHelper.h"
 #include "VDescriptorSetLayout.h"
 #include "VEnumCast.h"
+#include "VResourceManager.h"
 #include "VDevice.h"
 
 namespace FG
@@ -69,12 +70,13 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VDescriptorSetLayout::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t)
+	void VDescriptorSetLayout::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		if ( _layout ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, uint64_t(_layout) );
+			auto&	dev = resMngr.GetDevice();
+			dev.vkDestroyDescriptorSetLayout( dev.GetVkDevice(), _layout, null );
 		}
 
 		_resourcesTemplate.reset();

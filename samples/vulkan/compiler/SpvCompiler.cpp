@@ -64,7 +64,7 @@ bool SpvCompiler::Compile (OUT Array<uint>&			spirvData,
 	TShader						shader			{ shaderType };
 	EshTargetClientVersion		client_version	= EShTargetVulkan_1_1;
 	TBuiltInResource			builtin_res		= DefaultTBuiltInResource;
-	const FG::String			header			= "#version 460 core\n"s <<
+	const FGC::String			header			= "#version 460 core\n"s <<
 												  "#extension GL_ARB_separate_shader_objects : require\n" <<
 												  "#extension GL_ARB_shading_language_420pack : require\n" <<
 												  (entry != "main" ? ("#define "s << entry << " main\n") : ""s);

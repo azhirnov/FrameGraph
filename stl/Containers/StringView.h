@@ -7,7 +7,7 @@
 
 #ifndef FG_STD_STRINGVIEW
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -145,13 +145,13 @@ namespace FG
 		}
 	};
 
-}	// FG
+}	// FGC
 
 namespace std
 {
 	template <typename T>
-	struct hash< FG::BasicStringView<T> > {
-		ND_ size_t  operator () (const FG::BasicStringView<T> &value) const noexcept {
+	struct hash< FGC::BasicStringView<T> > {
+		ND_ size_t  operator () (const FGC::BasicStringView<T> &value) const noexcept {
 			return size_t(value._CalcHash());
 		}
 	};

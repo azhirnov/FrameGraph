@@ -9,7 +9,7 @@
 #include "glslang/glslang/Public/ShaderLang.h"
 #include "glslang/glslang/Include/ResourceLimits.h"
 
-using namespace FG;
+using namespace FGC;
 
 
 class SpvCompiler

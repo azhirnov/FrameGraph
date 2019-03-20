@@ -19,9 +19,7 @@
 #include "framework/Window/WindowSFML.h"
 #include "compiler/SpvCompiler.h"
 
-using namespace FG;
 namespace {
-
 
 class RayTracingApp final : public IWindowEventListener, public VulkanDeviceFn
 {

@@ -33,7 +33,7 @@ namespace FG
 		using PushConstants_t			= PipelineDescription::PushConstants_t;
 		using VkDescriptorSetLayouts_t	= StaticArray< VkDescriptorSetLayout, MaxDescSets >;
 		using VkPushConstantRanges_t	= FixedArray< VkPushConstantRange, FG_MaxPushConstants >;
-		using DSLayoutArray_t			= ArrayView<Pair<RawDescriptorSetLayoutID, const ResourceBase<VDescriptorSetLayout> *>>;
+		using DSLayoutArray_t			= ArrayView<Pair<RawDescriptorSetLayoutID, ResourceBase<VDescriptorSetLayout> *>>;
 
 
 	// variables
@@ -57,11 +57,11 @@ namespace FG
 		~VPipelineLayout ();
 
 		bool Create (const VDevice &dev, VkDescriptorSetLayout emptyLayout);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		void Destroy (VResourceManager &);
 		
 		bool  GetDescriptorSetLayout (const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const;
 
-		ND_ bool  IsAllResourcesAlive (const VResourceManagerThread &) const;
+		ND_ bool  IsAllResourcesAlive (const VResourceManager &) const;
 
 		ND_ bool  operator == (const VPipelineLayout &rhs) const;
 

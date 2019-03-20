@@ -26,12 +26,13 @@
 
 namespace FG
 {
-	using IPipelineCompilerPtr	= SharedPtr< class IPipelineCompiler >;
-	using FGThreadPtr			= SharedPtr< class FrameGraphThread >;
-	using FGInstancePtr			= SharedPtr< class FrameGraphInstance >;
+	using namespace FGC;
 
-	using Task					= Ptr< class IFrameGraphTask >;
+	using PipelineCompiler	= SharedPtr< class IPipelineCompiler >;
+	using FrameGraph		= SharedPtr< class IFrameGraph >;
+
+	using Task				= Ptr< class IFrameGraphTask >;
 	
-	using Nanoseconds			= std::chrono::nanoseconds;
+	using Nanoseconds		= std::chrono::nanoseconds;
 
 }	// FG

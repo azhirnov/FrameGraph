@@ -4,7 +4,7 @@
 
 #include "framework/Window/IWindow.h"
 
-namespace FG
+namespace FGC
 {
 	static constexpr VkQueueFlagBits	VK_QUEUE_PRESENT_BIT = VkQueueFlagBits(0x80000000u);
 
@@ -169,4 +169,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

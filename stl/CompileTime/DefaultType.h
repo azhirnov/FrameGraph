@@ -3,9 +3,9 @@
 #pragma once
 
 
-namespace FG
+namespace FGC
 {
-	namespace _fg_hidden_
+	namespace _fgc_hidden_
 	{
 		template <typename T, bool IsEnum>
 		struct _IsEnumWithUnknown2 {
@@ -84,9 +84,9 @@ namespace FG
 			}
 		};
 
-	}	// _fg_hidden_
+	}	// _fgc_hidden_
 
 		
-	static constexpr _fg_hidden_::DefaultType		Default = {};
+	static constexpr _fgc_hidden_::DefaultType		Default = {};
 
-}	// FG
+}	// FGC

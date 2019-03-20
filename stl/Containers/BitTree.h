@@ -5,9 +5,9 @@
 #include "stl/Math/Math.h"
 #include "stl/Math/BitMath.h"
 
-namespace FG
+namespace FGC
 {
-namespace _fg_hidden_
+namespace _fgc_hidden_
 {
 
 	template <typename IndexType, typename BitType, IndexType MaxSize, uint Level>
@@ -214,7 +214,7 @@ namespace _fg_hidden_
 		ND_ constexpr bool				Available ()	const	{ return _highLevel != 0; }		// returns 'true' if has unassigned bits
 	};
 	
-}	// _fg_hidden_
+}	// _fgc_hidden_
 
 
 
@@ -242,7 +242,7 @@ namespace _fg_hidden_
 
 		static constexpr uint	LevelCount = _CalcLevel( MaxSize );
 
-		using BitTreeHighLevel_t = _fg_hidden_::BitTreeImpl< IndexType, BitType, MaxSize, LevelCount >;
+		using BitTreeHighLevel_t = _fgc_hidden_::BitTreeImpl< IndexType, BitType, MaxSize, LevelCount >;
 
 
 	// variables
@@ -293,4 +293,4 @@ namespace _fg_hidden_
 	};
 
 
-}	// FG
+}	// FGC

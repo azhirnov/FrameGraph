@@ -6,7 +6,7 @@
 
 #ifdef FG_ENABLE_GLFW
 
-namespace FG
+namespace FGC
 {
 namespace {
 	struct GLFWInstance
@@ -446,14 +446,12 @@ namespace {
 	GetRequiredExtensions
 =================================================
 */
-	Array<const char*>  WindowGLFW::VulkanSurface::GetRequiredExtensions () const
+	ArrayView<const char*>  WindowGLFW::VulkanSurface::GetRequiredExtensions () const
 	{
-		uint32_t			required_extension_count = 0;
-		const char **		required_extensions		 = glfwGetRequiredInstanceExtensions( OUT &required_extension_count );
-		Array<const char*>	extensions;
+		uint32_t		required_extension_count = 0;
+		const char **	required_extensions		 = glfwGetRequiredInstanceExtensions( OUT &required_extension_count );
 		
-		extensions.assign( required_extensions, required_extensions + required_extension_count );
-		return extensions;
+		return ArrayView<const char*>{ required_extensions, required_extension_count };
 	}
 	
 /*
@@ -469,6 +467,6 @@ namespace {
 	}
 
 
-}	// FG
+}	// FGC
 
 #endif	// FG_ENABLE_GLFW

@@ -6,7 +6,7 @@
 #include "stl/Math/Bytes.h"
 #include "stl/Containers/ArrayView.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -192,4 +192,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

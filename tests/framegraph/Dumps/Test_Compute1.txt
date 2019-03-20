@@ -31,10 +31,10 @@ SubBatch {
 					srcTask:         ReadImage (#5)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ShaderRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       General
 					aspectMask:      Color
@@ -76,10 +76,10 @@ SubBatch {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ShaderRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       General
 					aspectMask:      Color
@@ -121,10 +121,10 @@ SubBatch {
 					srcTask:         ReadImage (#7)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ShaderRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       General
 					aspectMask:      Color
@@ -145,7 +145,7 @@ SubBatch {
 					srcTask:         ReadImage (#5)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -156,7 +156,7 @@ SubBatch {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -167,7 +167,7 @@ SubBatch {
 					srcTask:         ReadImage (#7)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

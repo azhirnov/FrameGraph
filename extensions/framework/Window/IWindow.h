@@ -8,7 +8,7 @@
 #include "vulkan_loader/VulkanLoader.h"
 #include "vulkan_loader/VulkanCheckError.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -45,8 +45,8 @@ namespace FG
 	{
 	public:
 		virtual ~IVulkanSurface () {}
-		ND_ virtual Array<const char*>	GetRequiredExtensions () const = 0;
-		ND_ virtual VkSurfaceKHR		Create (VkInstance inst) const = 0;
+		ND_ virtual ArrayView<const char*>	GetRequiredExtensions () const = 0;
+		ND_ virtual VkSurfaceKHR			Create (VkInstance inst) const = 0;
 	};
 
 
@@ -82,4 +82,4 @@ namespace FG
 
 	using WindowPtr	= UniquePtr< IWindow >;
 
-}	// FG
+}	// FGC

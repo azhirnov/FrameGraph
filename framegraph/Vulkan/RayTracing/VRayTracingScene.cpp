@@ -4,6 +4,7 @@
 #include "VDevice.h"
 #include "VMemoryObj.h"
 #include "VEnumCast.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -23,7 +24,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VRayTracingScene::Create (const VDevice &dev, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
+	bool VRayTracingScene::Create (VResourceManager &resMngr, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _topLevelAS == VK_NULL_HANDLE );
@@ -37,9 +38,10 @@ namespace FG
 		info.info.instanceCount	= desc.maxInstanceCount;
 		info.info.flags			= VEnumCast( desc.flags );
 
+		auto&	dev = resMngr.GetDevice();
 		VK_CHECK( dev.vkCreateAccelerationStructureNV( dev.GetVkDevice(), &info, null, OUT &_topLevelAS ));
 
-		CHECK_ERR( memObj.AllocateForAccelStruct( _topLevelAS ));
+		CHECK_ERR( memObj.AllocateForAccelStruct( resMngr.GetMemoryManager(), _topLevelAS ));
 
 		if ( not dbgName.empty() )
 		{
@@ -59,16 +61,17 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VRayTracingScene::Destroy (OUT AppendableVkResources_t readyToDelete, OUT AppendableResourceIDs_t unassignIDs)
+	void VRayTracingScene::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
 
 		if ( _topLevelAS ) {
-			readyToDelete.emplace_back( VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV, uint64_t(_topLevelAS) );
+			auto&	dev = resMngr.GetDevice();
+			dev.vkDestroyAccelerationStructureNV( dev.GetVkDevice(), _topLevelAS, null );
 		}
 		
 		if ( _memoryId ) {
-			unassignIDs.emplace_back( _memoryId.Release() );
+			resMngr.ReleaseResource( _memoryId.Release() );
 		}
 
 		for (auto& data : _instanceData)
@@ -79,7 +82,7 @@ namespace FG
 			std::swap( data.geometryInstances, temp );
 
 			for (auto& inst : temp) {
-				unassignIDs.emplace_back( inst.geometry.Release() );
+				resMngr.ReleaseResource( inst.geometry.Release() );
 			}
 
 			data.frameIdx	= 0;

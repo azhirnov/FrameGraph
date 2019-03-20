@@ -47,10 +47,10 @@ SubBatch {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       General
 					aspectMask:      Color
@@ -108,10 +108,10 @@ SubBatch {
 					srcTask:         CopyImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       General
 					aspectMask:      Color
@@ -132,7 +132,7 @@ SubBatch {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

@@ -11,7 +11,7 @@ struct AInputEvent;
 struct ASensorManager;
 struct android_app;
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -79,6 +79,6 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC
 
 #endif	// PLATFORM_ANDROID

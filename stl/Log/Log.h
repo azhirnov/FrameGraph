@@ -5,7 +5,7 @@
 #include "stl/Defines.h"
 #include "stl/Containers/StringViewFwd.h"
 
-namespace FG
+namespace FGC
 {
 	
 
@@ -28,15 +28,15 @@ namespace FG
 		static EResult  Error (const StringView &msg, const StringView &func, const StringView &file, int line);
 	};
 
-}	// FG
+}	// FGC
 
 
 #define FG_PRIVATE_LOGX( _level_, _msg_, _file_, _line_ ) \
-	{switch ( ::FG::Log::_level_( (_msg_), (FG_FUNCTION_NAME), (_file_), (_line_) ) ) \
+	{switch ( ::FGC::Log::_level_( (_msg_), (FG_FUNCTION_NAME), (_file_), (_line_) ) ) \
 	{ \
-		case ::FG::Log::EResult::Continue :	break; \
-		case ::FG::Log::EResult::Break :	FG_PRIVATE_BREAK_POINT();	break; \
-		case ::FG::Log::EResult::Abort :	FG_PRIVATE_EXIT();			break; \
+		case ::FGC::Log::EResult::Continue :	break; \
+		case ::FGC::Log::EResult::Break :	FG_PRIVATE_BREAK_POINT();	break; \
+		case ::FGC::Log::EResult::Abort :	FG_PRIVATE_EXIT();			break; \
 	}}
 
 #define FG_PRIVATE_LOGI( _msg_, _file_, _line_ )	FG_PRIVATE_LOGX( Info, (_msg_), (_file_), (_line_) )

@@ -19,9 +19,7 @@
 #include "stl/CompileTime/Math.h"
 #include "stl/Algorithms/StringUtils.h"
 
-using namespace FG;
 namespace {
-
 
 class GenMipmapsApp final : public IWindowEventListener, public VulkanDeviceFn
 {
@@ -1737,7 +1735,7 @@ bool GenMipmapsApp::CreateDownscaleComputePipeline ()
 		const uint	max_invocations = vulkan.GetDeviceProperties().limits.maxComputeWorkGroupInvocations;
 		uint2		size {2};
 
-		for (; (size.x * size.y <= max_invocations) and (IntLog2(size.x) <= numMipmaps+1); size = size << 1) {
+		for (; (size.x * size.y <= max_invocations) and (IntLog2(size.x) <= int(numMipmaps)+1); size = size << 1) {
 			local_size = size;
 		}
 	}

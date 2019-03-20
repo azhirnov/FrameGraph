@@ -1,8 +1,4 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
-/*
-	This test affects:
-		- ...
-*/
 
 #include "../FGApp.h"
 
@@ -17,12 +13,9 @@ namespace FG
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
 		
-		auto			frame_graph1	= _fgThreads[0];
-		auto			frame_graph2	= _fgThreads[1];
-
-		ImageID			src_image		= frame_graph1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			src_image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "SrcImage" );
-		ImageID			dst_image		= frame_graph1->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			dst_image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
 																				EImageUsage::Transfer }, Default, "DstImage" );
 
 		Array<uint8_t>	src_data;		src_data.resize( size_t(src_row_pitch * src_dim.y) );
@@ -69,55 +62,43 @@ namespace FG
 			}
 		};
 		
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id, 3 );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}, {cmd1} );
+		CHECK_ERR( cmd1 and cmd2 );
 
 		// thread 1
 		{
-			CHECK_ERR( frame_graph1->Begin( batch_id, 0, EQueueUsage::Graphics ));
-
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
 			auto	data		= ArrayView{ src_data.data(), src_data.size()/2 };
 
-			Task	t_update	= frame_graph1->AddTask( UpdateImage().SetImage( src_image ).SetData( data, dim ) );
-			Task	t_copy		= frame_graph1->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update ) );
+			Task	t_fill		= cmd1->AddTask( ClearColorImage{}.SetImage( dst_image ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{ 1.0f }) );
+			Task	t_update	= cmd1->AddTask( UpdateImage{}.SetImage( src_image ).SetData( data, dim ) );
+			Task	t_copy		= cmd1->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update, t_fill ) );
 			FG_UNUSED( t_copy );
 
-			CHECK_ERR( frame_graph1->Execute() );
+			CHECK_ERR( _frameGraph->Execute( cmd1 ));
 		}
-
-		// thread 2
+		
+		// thread 1 again
 		{
-			CHECK_ERR( frame_graph2->Begin( batch_id, 1, EQueueUsage::Graphics ));
-			
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
 			int2	offset		{ 0, int(src_dim.y/2) };
 			auto	data		= ArrayView{ src_data.data() + src_data.size()/2, src_data.size()/2 };
 
-			Task	t_update	= frame_graph2->AddTask( UpdateImage().SetImage( src_image, offset ).SetData( data, dim ) );
-			Task	t_copy		= frame_graph2->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ) );
-			Task	t_read		= frame_graph2->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
+			Task	t_update	= cmd2->AddTask( UpdateImage{}.SetImage( src_image, offset ).SetData( data, dim ) );
+			Task	t_copy		= cmd2->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ) );
+			Task	t_read		= cmd2->AddTask( ReadImage{}.SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
 			FG_UNUSED( t_read );
 		
-			CHECK_ERR( frame_graph2->Execute() );
+			CHECK_ERR( _frameGraph->Execute( cmd2 ));
 		}
-
-		// thread 3 (unused)
-		{
-			CHECK_ERR( _fgInstance->SkipBatch( batch_id, 2 ));
-		}
-
-		CHECK_ERR( _fgInstance->EndFrame() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( not cb_was_called );
 		
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );

@@ -10,7 +10,7 @@ SubBatch {
 					srcTask:         ReadBuffer (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -32,7 +32,7 @@ SubBatch {
 					dstStageMask:    ComputeShader
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   UniformRead
+					dstAccessMask:   UniformRead | ShaderWrite
 					offset:          256 b
 					size:            64 b
 				}
@@ -48,13 +48,13 @@ SubBatch {
 					size:            64 b
 				}
 				BufferMemoryBarrier {
-					srcTask:         UpdateBuffer (#2)
+					srcTask:         DispatchCompute (#3)
 					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					srcStageMask:    ComputeShader
+					dstStageMask:    AllCommands
 					dependencyFlags: 
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					srcAccessMask:   UniformRead | ShaderWrite
+					dstAccessMask:   UniformRead | ShaderRead | TransferRead
 					offset:          256 b
 					size:            64 b
 				}
@@ -62,10 +62,10 @@ SubBatch {
 					srcTask:         DispatchCompute (#3)
 					dstTask:         <final>
 					srcStageMask:    ComputeShader
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   ShaderWrite
-					dstAccessMask:   
+					dstAccessMask:   UniformRead | ShaderRead | TransferRead
 					offset:          320 b
 					size:            64 b
 				}

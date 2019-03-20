@@ -380,23 +380,27 @@ bool Trace::Flush (const VarNames_t &varNames, const Sources_t &sources, INOUT s
 	else
 	for (uint32_t i = start_line; i <= end_line; ++i)
 	{
+		result += std::to_string(i+1) + ". ";
+
 		size_t	start	= src.lines[i].first;
 		size_t	end		= src.lines[i].second;
-		size_t	length	= (end - start);
 		
 		/*if ( i == end_line ) {
-			CHECK_ERR( end_col < length );
+			CHECK_ERR( start + end_col < end );
 			end = start + end_col;
 		}*/
 		if ( i == start_line ) {
-			CHECK_ERR( start_col < length );
+			//CHECK_ERR( start + start_col < end );
 			start += start_col;
 		}
-		CHECK_ERR( start < end );
 
-		result += std::to_string(i+1) + ". ";
-		result += src.code.substr( start, end - start );
-		result += '\n';
+		if ( start < end )
+		{
+			result += src.code.substr( start, end - start );
+			result += '\n';
+		}
+		else
+			result += "invalid source location\n";
 	}
 	result += '\n';
 

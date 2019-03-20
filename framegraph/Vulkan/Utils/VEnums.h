@@ -59,6 +59,7 @@ namespace FG
 		All			= ~0u,
 		Unknown		= 0,
 	};
+	FG_BIT_OPERATORS( EQueueFamilyMask );
 
 
 

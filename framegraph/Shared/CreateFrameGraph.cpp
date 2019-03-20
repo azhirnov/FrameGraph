@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "VFrameGraphInstance.h"
+#include "VFrameGraph.h"
 
 namespace FG
 {
@@ -10,9 +10,9 @@ namespace FG
 	CreateFrameGraph
 =================================================
 */
-	FGInstancePtr  FrameGraphInstance::CreateFrameGraph (const DeviceInfo_t &ci)
+	FrameGraph  IFrameGraph::CreateFrameGraph (const DeviceInfo_t &ci)
 	{
-		FGInstancePtr	result;
+		FrameGraph	result;
 
 		CHECK_ERR( Visit( ci,
 				[&result] (const VulkanDeviceInfo &vdi) -> bool
@@ -20,7 +20,7 @@ namespace FG
 					CHECK_ERR( vdi.instance and vdi.physicalDevice and vdi.device and not vdi.queues.empty() );
 					CHECK_ERR( VulkanLoader::Initialize() );
 
-					result = FGInstancePtr{ new VFrameGraphInstance( vdi )};
+					result = MakeShared<VFrameGraph>( vdi );
 					return true;
 				},
 

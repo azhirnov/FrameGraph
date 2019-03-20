@@ -31,7 +31,7 @@
 
 
 
-namespace FG
+namespace FGC
 {
 
 #	define VKLOADER_STAGE_DECLFNPOINTER
@@ -113,7 +113,7 @@ namespace FG
 		static void ResetDevice (OUT VulkanDeviceFnTable &table);
 	};
 
-}	// FG
+}	// FGC
 
 
 // check for 'VulkanDeviceFnTable' structure size missmatch

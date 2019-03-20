@@ -13,7 +13,7 @@
 #include <chrono>
 #include <sstream>
 
-namespace FG
+namespace FGC
 {
 	using namespace std::string_literals;
 
@@ -385,14 +385,13 @@ namespace FG
 =================================================
 */
 	template <typename T, typename Duration>
-	ND_ inline String  ToString (const std::chrono::duration<T,Duration> &value)
+	ND_ inline String  ToString (const std::chrono::duration<T,Duration> &value, uint precission = 2)
 	{
 		using SecondsD_t  = std::chrono::duration<double>;
 		using MicroSecD_t = std::chrono::duration<double, std::micro>;
 		using NanoSecD_t  = std::chrono::duration<double, std::nano>;
 
-		const uint	precission	= 3;
-		const auto	time		= std::chrono::duration_cast<SecondsD_t>( value ).count();
+		const auto	time = std::chrono::duration_cast<SecondsD_t>( value ).count();
 		String		str;
 
 		if ( time > 59.0 * 60.0 )
@@ -416,4 +415,4 @@ namespace FG
 	}
 
 
-}	// FG
+}	// FGC

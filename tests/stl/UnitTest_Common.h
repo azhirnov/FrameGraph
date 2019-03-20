@@ -4,7 +4,7 @@
 
 #include "stl/Algorithms/StringUtils.h"
 
-using namespace FG;
+using namespace FGC;
 
 #define TEST	CHECK_FATAL
 

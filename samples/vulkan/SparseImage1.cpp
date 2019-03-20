@@ -9,9 +9,7 @@
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Math/Color.h"
 
-using namespace FG;
 namespace {
-
 
 class SparseImageApp final : public IWindowEventListener, public VulkanDeviceFn
 {

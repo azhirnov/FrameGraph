@@ -7,7 +7,7 @@
 #include <mutex>
 #include <thread>
 
-namespace FG
+namespace FGC
 {
 
 
@@ -52,4 +52,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

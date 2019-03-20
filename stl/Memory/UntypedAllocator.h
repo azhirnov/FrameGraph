@@ -4,7 +4,7 @@
 
 #include "stl/Memory/MemUtils.h"
 
-namespace FG
+namespace FGC
 {
 
 	template <typename T>
@@ -90,4 +90,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

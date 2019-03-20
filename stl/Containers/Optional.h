@@ -6,21 +6,21 @@
 
 # include <optional>
 
-namespace FG
+namespace FGC
 {
 	template <typename T>	using Optional	= std::optional< T >;
 
-}	// FG
+}	// FGC
 
 
 #elif defined(FG_ENABLE_OPTIONAL)
 
 # include "external/optional/optional.hpp"
 
-namespace FG
+namespace FGC
 {
 	template <typename T>	using Optional	= std::experimental::optional< T >;
 
-}	// FG
+}	// FGC
 
 #endif	// FG_STD_OPTIONAL

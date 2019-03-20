@@ -6,7 +6,7 @@
 #include "stl/Math/Bytes.h"
 #include "stl/Memory/UntypedAllocator.h"
 
-namespace FG
+namespace FGC
 {
 	template <typename AllocatorType>				struct LinearAllocator;
 	template <typename T, typename AllocatorType>	struct StdLinearAllocator;
@@ -50,9 +50,14 @@ namespace FG
 		{
 			_blocks.reserve( 16 );
 		}
+		
+		LinearAllocator (LinearAllocator &&other) :
+			_blocks{ std::move(other._blocks) },
+			_blockSize{ other._blockSize },
+			_alloc{ std::move(other._alloc) }
+		{}
 
 		LinearAllocator (const LinearAllocator &) = delete;
-		LinearAllocator (LinearAllocator &&) = delete;
 
 		LinearAllocator& operator = (const LinearAllocator &) = delete;
 		LinearAllocator& operator = (LinearAllocator &&) = delete;
@@ -232,4 +237,4 @@ namespace FG
 	};
 
 
-}	// FG
+}	// FGC

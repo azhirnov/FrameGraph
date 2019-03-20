@@ -70,8 +70,8 @@ namespace FG
 		VRayTracingGeometry () {}
 		~VRayTracingGeometry ();
 
-		bool Create (const VDevice &dev, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
-		void Destroy (OUT AppendableVkResources_t, OUT AppendableResourceIDs_t);
+		bool Create (VResourceManager &, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
+		void Destroy (VResourceManager &);
 
 		ND_ size_t  GetGeometryIndex (const GeometryID &id) const;
 

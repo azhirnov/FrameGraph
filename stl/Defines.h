@@ -198,7 +198,7 @@
 		}}
 
 #	define CHECK_ERR( ... ) \
-		FG_PRIVATE_CHECK_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FG::Default ) )
+		FG_PRIVATE_CHECK_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ) )
 #endif
 
 
@@ -219,7 +219,7 @@
 		{ FG_LOGE( _text_ );  return (_ret_); }
 
 #	define RETURN_ERR( ... ) \
-		FG_PRIVATE_RETURN_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FG::Default ) )
+		FG_PRIVATE_RETURN_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ) )
 #endif
 
 
@@ -233,14 +233,14 @@
 
 // bit operators
 #define FG_BIT_OPERATORS( _type_ ) \
-	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( FG::EnumToUInt(lhs) | FG::EnumToUInt(rhs) ); } \
-	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( FG::EnumToUInt(lhs) & FG::EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
 	\
-	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( FG::EnumToUInt(lhs) | FG::EnumToUInt(rhs) ); } \
-	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( FG::EnumToUInt(lhs) & FG::EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
 	\
-	ND_ constexpr _type_  operator ~ (_type_ lhs) noexcept					{ return _type_(~FG::EnumToUInt(lhs)); } \
-	ND_ constexpr bool    operator ! (_type_ lhs) noexcept					{ return not FG::EnumToUInt(lhs); } \
+	ND_ constexpr _type_  operator ~ (_type_ lhs) noexcept					{ return _type_(~FGC::EnumToUInt(lhs)); } \
+	ND_ constexpr bool    operator ! (_type_ lhs) noexcept					{ return not FGC::EnumToUInt(lhs); } \
 	
 
 // enable/disable checks for enums
@@ -293,6 +293,12 @@
 #elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
 #	define FG_CDECL		__attribute__((cdecl))
 #	define FG_THISCALL	__attribute__((thiscall))
+#endif
+
+
+// to fix compiler error C2338
+#ifdef COMPILER_MSVC
+#	define _ENABLE_EXTENDED_ALIGNED_STORAGE
 #endif
 
 

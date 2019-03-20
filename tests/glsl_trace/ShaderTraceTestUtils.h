@@ -6,7 +6,7 @@
 #include "ShaderCompiler.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "stl/Algorithms/StringUtils.h"
-using namespace FG;
+using namespace FGC;
 
 
 struct TestHelpers

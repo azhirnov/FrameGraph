@@ -4,7 +4,7 @@
 
 #include "framework/Vulkan/VulkanDevice.h"
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -144,4 +144,4 @@ namespace FG
 																							VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
 																							VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 
-}	// FG
+}	// FGC

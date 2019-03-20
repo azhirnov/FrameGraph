@@ -14,7 +14,7 @@ namespace FG
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-out vec3	v_Color;
+out vec3  v_Color;
 
 const vec2	g_Positions[3] = vec2[](
 	vec2(0.0, -0.5),
@@ -39,21 +39,20 @@ void main() {
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-in  vec3	v_Color;
-out vec4	out_Color;
+layout(location=0) out vec4  out_Color;
+
+in  vec3  v_Color;
 
 void main() {
 	out_Color = vec4(v_Color, 1.0);
 }
 )#" );
 		
-		FGThreadPtr		frame_graph	= _fgThreads[0];
-
 		const uint2		view_size	= {800, 600};
-		ImageID			image		= frame_graph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 
-		GPipelineID		pipeline	= frame_graph->CreatePipeline( ppln );
+		GPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 
 		
@@ -86,31 +85,26 @@ void main() {
 		};
 
 		
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( frame_graph->Begin( batch_id, 0, EQueueUsage::Graphics ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CHECK_ERR( cmd );
 
-		LogicalPassID		render_pass	= frame_graph->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID("out_Color"), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-												.AddViewport( view_size ) );
+		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
+											.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+											.AddViewport( view_size ) );
 		
-		frame_graph->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
+		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
 												.AddScissor(RectU{ 0, 0, view_size.x, view_size.y/2 }));
 
-		Task	t_draw	= frame_graph->AddTask( SubmitRenderPass{ render_pass });
-		Task	t_read	= frame_graph->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
+		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
+		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
 		FG_UNUSED( t_read );
 
-		CHECK_ERR( frame_graph->Execute() );
-		CHECK_ERR( _fgInstance->EndFrame() );
+		CHECK_ERR( _frameGraph->Execute( cmd ));
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _fgInstance->WaitIdle() );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 

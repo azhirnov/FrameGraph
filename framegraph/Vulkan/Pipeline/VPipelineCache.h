@@ -21,35 +21,6 @@ namespace FG
 	{
 	// types
 	private:
-		struct FragmentOutputHash {
-			ND_ size_t  operator () (const VGraphicsPipeline::FragmentOutputInstance &value) const {
-				return size_t(value.GetHash());
-			}
-		};
-
-		using PipelineCompilers_t		= HashSet< IPipelineCompilerPtr >;
-		using VkShaderPtr				= PipelineDescription::VkShaderPtr;
-		using ShaderModules_t			= Array< VkShaderPtr >;
-		using FragmentOutputCache_t		= HashSet< VGraphicsPipeline::FragmentOutputInstance, FragmentOutputHash >;
-		using FragmentOutputPtr			= const VGraphicsPipeline::FragmentOutputInstance *;
-		using ShaderModule_t			= VGraphicsPipeline::ShaderModule;
-
-		template <typename T>
-		struct PipelineInstancePairHash {
-			ND_ size_t  operator () (const Pair<T const*, typename T::PipelineInstance> &value) const {
-				return size_t(HashOf(value.first) + value.second._hash);
-			}
-		};
-
-		template <typename T>
-		using PipelineInstanceCacheTempl = std::unordered_map< Pair<T const*, typename T::PipelineInstance>, VkPipeline,
-															   PipelineInstancePairHash<T>, std::equal_to<Pair<T const*, typename T::PipelineInstance>>,
-															   StdLinearAllocator<Pair< const Pair<T const*, typename T::PipelineInstance>, VkPipeline >> >;
-
-		using CPipelineInstanceMap_t	= InPlace< PipelineInstanceCacheTempl< VComputePipeline > >;
-		using GPipelineInstanceMap_t	= InPlace< PipelineInstanceCacheTempl< VGraphicsPipeline > >;
-		using MPipelineInstanceMap_t	= InPlace< PipelineInstanceCacheTempl< VMeshPipeline > >;
-		
 		using DynamicStates_t			= FixedArray< VkDynamicState, 32 >;
 		using Viewports_t				= FixedArray< VkViewport, 16 >;
 		using Scissors_t				= FixedArray< VkRect2D, 16 >;
@@ -85,7 +56,8 @@ namespace FG
 			BytesU				offset;
 		};
 		using RTShaderSpecializations_t	= FixedArray< RTShaderSpec, 32 >;
-
+		
+		using ShaderModule_t			= VGraphicsPipeline::ShaderModule;
 
 	public:
 		struct BufferCopyRegion
@@ -100,10 +72,6 @@ namespace FG
 	// variables
 	private:
 		VkPipelineCache				_pipelinesCache;
-		FragmentOutputCache_t		_fragmentOutputCache;
-		
-		ShaderModules_t				_shaderCache;
-		PipelineCompilers_t			_compilers;
 
 		// temporary arrays
 		ShaderStages_t				_tempStages;			// TODO: use custom allocator?
@@ -130,42 +98,37 @@ namespace FG
 		void Deinitialize (const VDevice &dev);
 
 		bool MergeCache (VPipelineCache &);
-		
-		void AddCompiler (const IPipelineCompilerPtr &comp);
 
-		bool CompileShaders (INOUT GraphicsPipelineDesc &desc, const VDevice &dev);
-		bool CompileShaders (INOUT MeshPipelineDesc &desc, const VDevice &dev);
-		bool CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev);
-		bool CompileShaders (INOUT RayTracingPipelineDesc &desc, const VDevice &dev);
-
-		ND_ FragmentOutputPtr  CreateFramentOutput (ArrayView<GraphicsPipelineDesc::FragmentOutput> values);
-
-		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
-									 Ptr<VShaderDebugger>			 shaderDebugger,
+		bool CreatePipelineInstance (VCommandBuffer					&fgThread,
 									 const VLogicalRenderPass		&logicalRP,
-									 const VBaseDrawVerticesTask	&drawTask,
+									 const VGraphicsPipeline		&gpipeline,
+									 const VertexInputState			&vertexInput,
+									 const RenderState				&renderState,
+									 const EPipelineDynamicState	 dynamicStates,
+									 const uint						 debugModeIndex,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
 		
-		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
-									 Ptr<VShaderDebugger>			 shaderDebugger,
+		bool CreatePipelineInstance (VCommandBuffer					&fgThread,
 									 const VLogicalRenderPass		&logicalRP,
-									 const VBaseDrawMeshes			&drawTask,
+									 const VMeshPipeline			&mpipeline,
+									 const RenderState				&renderState,
+									 const EPipelineDynamicState	 dynamicStates,
+									 const uint						 debugModeIndex,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
 
-		bool CreatePipelineInstance (VResourceManagerThread			&resMngr,
-									 Ptr<VShaderDebugger>			 shaderDebugger,
+		bool CreatePipelineInstance (VCommandBuffer					&fgThread,
 									 const VComputePipeline			&ppln,
 									 const Optional<uint3>			&localGroupSize,
 									 VkPipelineCreateFlags			 pipelineFlags,
 									 uint							 debugModeIndex,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
-
-		bool InitShaderTable (VFrameGraphThread				&fg,
+		
+		bool InitShaderTable (VCommandBuffer				&fgThread,
 							  RawRTPipelineID				 pipelineId,
-							  VLocalRTScene const*			rtScene,
+							  VLocalRTScene const			&rtScene,
 							  const RayGenShader			&rayGenShader,
 							  ArrayView< RTShaderGroup >	 shaderGroups,
 							  uint							 maxRecursionDepth,
@@ -174,19 +137,10 @@ namespace FG
 
 
 	private:
-		ND_ FixedArray<EShaderLangFormat,16>	_GetBuiltinFormats (const VDevice &dev) const;
-		
-		template <typename T>
-		void _MergePipelines (INOUT InPlace<PipelineInstanceCacheTempl<T>> &, OUT AppendableVkResources_t) const;
-
-		template <typename DescT>
-		bool _CompileShaders (INOUT DescT &desc, const VDevice &dev);
-		bool _CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module);
-
 		bool _CreatePipelineCache (const VDevice &dev);
 
 		template <typename Pipeline>
-		bool _SetupShaderDebugging (VResourceManagerThread &resMngr, VShaderDebugger &shaderDebugger, const Pipeline &ppln, uint debugModeIndex,
+		bool _SetupShaderDebugging (VCommandBuffer &fgThread, const Pipeline &ppln, uint debugModeIndex,
 									OUT EShaderDebugMode &debugMode, OUT EShaderStages &debuggableShaders, OUT RawPipelineLayoutID &layoutId);
 
 		void _ClearTemp ();

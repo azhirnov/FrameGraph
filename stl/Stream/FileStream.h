@@ -9,7 +9,7 @@
 #   include <filesystem>
 #endif
 
-namespace FG
+namespace FGC
 {
 
 	//
@@ -79,7 +79,7 @@ namespace FG
 		void	Flush () override;
 	};
 
-}	// FG
+}	// FGC
 
 
 // check definitions
