@@ -20,6 +20,7 @@
 #include "VRayTracingShaderTable.h"
 #include "VSwapchain.h"
 #include "VMemoryManager.h"
+#include "VDescriptorManager.h"
 
 namespace FG
 {
@@ -76,6 +77,7 @@ namespace FG
 	private:
 		VDevice const&				_device;
 		VMemoryManager				_memoryMngr;
+		VDescriptorManager			_descMngr;
 
 		BufferPool_t				_bufferPool;
 		ImagePool_t					_imagePool;
@@ -131,7 +133,7 @@ namespace FG
 		ND_ RawCPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName);
 		ND_ RawRTPipelineID		CreatePipeline (INOUT RayTracingPipelineDesc &desc);
 		
-		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, StringView dbgName);
+		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, VkImageLayout defaultLayout, StringView dbgName);
 		ND_ RawBufferID			CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, StringView dbgName);
 		ND_ RawSamplerID		CreateSampler (const SamplerDesc &desc, StringView dbgName);
 		
@@ -164,16 +166,19 @@ namespace FG
 		bool AcquireResource (ID id);
 
 		template <typename ID>
-		ND_ bool			IsResourceAlive (ID id)		const;
+		ND_ bool				IsResourceAlive (ID id)		const;
 
 		template <typename ID>
-		ND_ auto const*		GetResource (ID id)			const;
+		ND_ auto const*			GetResource (ID id, bool incRef = false, bool quiet = false) const;
 
 		template <typename ID>
-		ND_ auto const&		GetDescription (ID id)		const;
+		ND_ auto const&			GetDescription (ID id)		const;
 
-		ND_ VDevice const&	GetDevice ()				const	{ return _device; }
-		ND_ VMemoryManager&	GetMemoryManager ()					{ return _memoryMngr; }
+		ND_ VDevice const&		GetDevice ()				const	{ return _device; }
+		ND_ VMemoryManager&		GetMemoryManager ()					{ return _memoryMngr; }
+		ND_ VDescriptorManager&	GetDescriptorManager ()				{ return _descMngr; }
+		
+		ND_ uint				GetSubmitIndex ()			const	{ return _submissionCounter.load( memory_order_relaxed ); }
 
 
 	private:
@@ -196,23 +201,14 @@ namespace FG
 		bool  _CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev);
 		bool  _CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module);
 
-		//void  _DeleteResources (INOUT VkResourceQueue_t &) const;
-		//void  _UnassignResourceIDs ();
-
-		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void  _UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool);
-
-		template <typename DataT, size_t CS, size_t MC, typename ID>
-		void  _UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force);
-
 		template <typename DataT, size_t CS, size_t MC>
 		void  _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &pool);
 		
-		template <typename ID, typename T>
-		void  _ReleaseResource (ID id, ResourceBase<T>& data);
-
-		template <typename ID>
-		ND_ bool  _AddToResourceCache (const ID &id);
+		template <typename DataT, size_t CS, size_t MC>
+		void  _ReleaseResource (PoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index);
+		
+		template <typename DataT, size_t CS, size_t MC>
+		void  _ReleaseResource (CachedPoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index);
 
 
 	// resource pool
@@ -246,10 +242,6 @@ namespace FG
 	// empty descriptor set layout
 			bool _CreateEmptyDescriptorSetLayout ();
 		ND_ auto _GetEmptyDescriptorSetLayout ()		{ return _emptyDSLayout; }
-
-
-	// 
-		ND_ uint	_GetSubmitIndex () const			{ return _submissionCounter.load( memory_order_relaxed ); }
 	};
 
 	
@@ -260,7 +252,7 @@ namespace FG
 =================================================
 */
 	template <typename ID>
-	inline auto const*  VResourceManager::GetResource (ID id) const
+	inline auto const*  VResourceManager::GetResource (ID id, bool incRef, bool quiet) const
 	{
 		auto&	pool = _GetResourceCPool( id );
 
@@ -271,13 +263,16 @@ namespace FG
 			auto&	data = pool[ id.Index() ];
 
 			if ( data.IsCreated() and data.GetInstanceID() == id.InstanceID() )
+			{
+				if ( incRef ) data.AddRef();
 				return &data.Data();
-			
-			ASSERT( data.IsCreated() );
-			ASSERT( data.GetInstanceID() == id.InstanceID() );
+			}
+
+			ASSERT( quiet or data.IsCreated() );
+			ASSERT( quiet or data.GetInstanceID() == id.InstanceID() );
 		}
 
-		ASSERT(false);
+		ASSERT( quiet );
 		return static_cast< Result_t >(null);
 	}
 	
@@ -299,87 +294,22 @@ namespace FG
 		auto*	res = GetResource( id );
 		return res ? res->Description() : _dummyImageDesc;
 	}
-
-/*
-=================================================
-	_UnassignResource
-=================================================
-*/
-	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (INOUT PoolTmpl<DataT,CS,MC> &pool, ID id, bool)
-	{
-		if ( id.Index() >= pool.size() )
-			return;
-
-		// destroy if needed
-		auto&	data = pool[ id.Index() ];
-
-		if ( data.GetInstanceID() != id.InstanceID() )
-			return;	// this instance is already destroyed
-
-		if ( data.IsCreated() )
-			data.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
-
-		pool.Unassign( id.Index() );
-	}
 	
 /*
 =================================================
-	_UnassignResource
-=================================================
-*/
-	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline void  VResourceManager::_UnassignResource (INOUT CachedPoolTmpl<DataT,CS,MC> &pool, ID id, bool force)
-	{
-		if ( id.Index() >= pool.size() )
-			return;
-
-		// destroy if needed
-		auto&	data = pool[ id.Index() ];
-		
-		if ( data.GetInstanceID() != id.InstanceID() )
-			return;	// this instance is already destroyed
-
-		const bool	destroy = data.IsCreated() and (force or data.ReleaseRef( _GetSubmitIndex() ));
-
-		if ( not destroy )
-			return;	// don't unassign ID
-
-		pool.RemoveFromCache( id.Index() );
-		data.Destroy( *this );
-		pool.Unassign( id.Index() );
-	}
-	
-/*
-=================================================
-	_AddToResourceCache
+	IsResourceAlive
 =================================================
 */
 	template <typename ID>
-	inline bool  VResourceManager::_AddToResourceCache (const ID &id)
-	{
-		auto&	pool = _GetResourcePool( id );
-
-		return pool.AddToCache( id.Index() ).second;
-	}
-	
-/*
-=================================================
-	_GetState
-=================================================
-*
-	template <typename DataT, size_t CS, size_t MC, typename ID>
-	inline DataT*  VResourceManager::_GetState (PoolTmpl<DataT,CS,MC> &pool, ID id)
+	inline bool  VResourceManager::IsResourceAlive (ID id) const
 	{
 		ASSERT( id );
-		EXLOCK( _rcCheck );
-
-		auto&	data = pool[ id.Index() ];
-		ASSERT( data.IsCreated() );
-
-		return &data.Data();
+		auto&	pool = _GetResourceCPool( id );
+		
+		return	id.Index() < pool.size() and
+				pool[id.Index()].GetInstanceID() == id.InstanceID();
 	}
-	
+
 /*
 =================================================
 	AcquireResource
@@ -391,13 +321,19 @@ namespace FG
 		ASSERT( id );
 		
 		auto&	pool = _GetResourcePool( id );
-		auto&	data = pool[ id.Index() ];
 
-		if ( not data.IsCreated() or data.GetInstanceID() != id.InstanceID() )
-			return false;
+		if ( id.Index() < pool.size() )
+		{
+			auto&	data = pool[ id.Index() ];
 
-		data.AddRef();
-		return true;
+			if ( not data.IsCreated() or data.GetInstanceID() != id.InstanceID() )
+				return false;
+
+			data.AddRef();
+			return true;
+		}
+
+		return false;
 	}
 
 /*
@@ -411,22 +347,39 @@ namespace FG
 		ASSERT( id );
 
 		auto&	pool = _GetResourcePool( id );
+		
+		if ( id.Index() >= pool.size() )
+			return;
+
 		auto&	data = pool[ id.Index() ];
 		
 		if ( data.GetInstanceID() != id.InstanceID() )
 			return;	// this instance is already destroyed
 
-		_ReleaseResource( id, data );
+		_ReleaseResource( pool, data, id.Index() );
 	}
 	
-	template <typename ID, typename T>
-	inline void  VResourceManager::_ReleaseResource (ID, ResourceBase<T>&)
+	template <typename DataT, size_t CS, size_t MC>
+	inline void  VResourceManager::_ReleaseResource (PoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index)
 	{
-		// TODO
-		//if ( data.ReleaseRef( _GetSubmitIndex() ) )
-		//	_unassignIDs.push_back( id );
+		if ( data.ReleaseRef( GetSubmitIndex() ) and data.IsCreated() )
+		{
+			data.Destroy( *this );
+			pool.Unassign( index );
+		}
 	}
 	
+	template <typename DataT, size_t CS, size_t MC>
+	inline void  VResourceManager::_ReleaseResource (CachedPoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index)
+	{
+		if ( data.ReleaseRef( GetSubmitIndex() ) and data.IsCreated() )
+		{
+			pool.RemoveFromCache( index );
+			data.Destroy( *this );
+			pool.Unassign( index );
+		}
+	}
+
 /*
 =================================================
 	_Assign
@@ -460,20 +413,6 @@ namespace FG
 		auto&	pool = _GetResourcePool( id );
 
 		pool.Unassign( id.Index() );
-	}
-	
-/*
-=================================================
-	IsResourceAlive
-=================================================
-*/
-	template <typename ID>
-	inline bool  VResourceManager::IsResourceAlive (ID id) const
-	{
-		ASSERT( id );
-		auto&	res = _GetResourceCPool(id)[ id.Index() ];
-
-		return (res.GetInstanceID() == id.InstanceID());
 	}
 	
 

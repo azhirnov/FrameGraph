@@ -63,6 +63,7 @@ namespace FG
 			)
 		}
 
+
 	public:
 		ND_ StringView			Name ()				const	{ return _taskName; }
 		ND_ RGBA8u				DebugColor ()		const	{ return _debugColor; }
@@ -503,8 +504,10 @@ namespace FG
 	{
 	// variables
 	public:
+		VSwapchain const* const		swapchain;
 		VLocalImage const* const	srcImage;
 		const ImageLayer			layer;
+		const MipmapLevel			mipmap;
 
 
 	// methods

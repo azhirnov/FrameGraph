@@ -7,7 +7,7 @@
 namespace FG
 {
 
-	enum class EQueueUsage : uint
+	enum class EQueueType : uint
 	{
 		Graphics,			// also supports compute and transfer commands
 		AsyncCompute,		// separate compute queue
@@ -18,27 +18,27 @@ namespace FG
 	};
 	
 
-	enum class EQueueUsageBits : uint
+	enum class EQueueUsage : uint
 	{
 		Unknown			= 0,
-		Graphics		= 1 << uint(EQueueUsage::Graphics),
-		AsyncCompute	= 1 << uint(EQueueUsage::AsyncCompute),
-		AsyncTransfer	= 1 << uint(EQueueUsage::AsyncTransfer),
+		Graphics		= 1 << uint(EQueueType::Graphics),
+		AsyncCompute	= 1 << uint(EQueueType::AsyncCompute),
+		AsyncTransfer	= 1 << uint(EQueueType::AsyncTransfer),
 		_Last,
 	};
-	FG_BIT_OPERATORS( EQueueUsageBits );
+	FG_BIT_OPERATORS( EQueueUsage );
 	
 
-	forceinline constexpr EQueueUsageBits&  operator |= (EQueueUsageBits &lhs, EQueueUsage rhs)
+	forceinline constexpr EQueueUsage&  operator |= (EQueueUsage &lhs, EQueueType rhs)
 	{
 		ASSERT( uint(rhs) < 32 );
-		return lhs = BitCast<EQueueUsageBits>( uint(lhs) | (1u << (uint(rhs) & 31)) );
+		return lhs = BitCast<EQueueUsage>( uint(lhs) | (1u << (uint(rhs) & 31)) );
 	}
 
-	forceinline constexpr EQueueUsageBits   operator |  (EQueueUsageBits lhs, EQueueUsage rhs)
+	forceinline constexpr EQueueUsage   operator |  (EQueueUsage lhs, EQueueType rhs)
 	{
 		ASSERT( uint(rhs) < 32 );
-		return BitCast<EQueueUsageBits>( uint(lhs) | (1u << (uint(rhs) & 31)) );
+		return BitCast<EQueueUsage>( uint(lhs) | (1u << (uint(rhs) & 31)) );
 	}
 
 

@@ -861,22 +861,32 @@ namespace FG
 	struct Present final : _fg_hidden_::BaseTask<Present>
 	{
 	// variables
+		RawSwapchainID	swapchain;
 		RawImageID		srcImage;
 		ImageLayer		layer;
+		MipmapLevel		mipmap;
 
 
 	// methods
 		Present () :
 			BaseTask<Present>{ "Present", ColorScheme::Present } {}
 
-		explicit Present (RawImageID img) :
-			Present() { srcImage = img; }
+		explicit Present (RawSwapchainID swapchain, RawImageID img) :
+			Present() { SetSwapchain( swapchain ).SetImage( img ); }
 
-		Present&  SetImage (RawImageID img, ImageLayer imgLayer = Default)
+		Present&  SetSwapchain (RawSwapchainID id)
+		{
+			ASSERT( id );
+			swapchain = id;
+			return *this;
+		}
+
+		Present&  SetImage (RawImageID img, ImageLayer imgLayer = Default, MipmapLevel imgLevel = Default)
 		{
 			ASSERT( img );
 			srcImage	= img;
 			layer		= imgLayer;
+			mipmap		= imgLevel;
 			return *this;
 		}
 	};

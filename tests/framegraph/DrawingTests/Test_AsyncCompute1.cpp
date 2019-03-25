@@ -81,7 +81,7 @@ void main ()
 		const uint2		view_size	= {800, 600};
 		ImageDesc		image_desc	{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 									  EImageUsage::ColorAttachment | EImageUsage::TransferSrc | EImageUsage::Storage };
-						image_desc.queues = EQueueUsageBits::Graphics | EQueueUsageBits::AsyncCompute;
+						image_desc.queues = EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
 
 		ImageID			image		= _frameGraph->CreateImage( image_desc, Default, "RenderTarget" );
 
@@ -128,8 +128,8 @@ void main ()
 
 		
 		// frame 1
-		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::Graphics });
-		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::AsyncCompute }, {cmd1} );
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( ECompilationDebugFlags::Default ));
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd1} );
 		CHECK_ERR( cmd1 and cmd2 );
 		{
 			// graphics queue
@@ -155,12 +155,14 @@ void main ()
 
 				CHECK_ERR( _frameGraph->Execute( cmd2 ));
 			}
+
+			CHECK_ERR( _frameGraph->Flush() );
 		}
 
 
 		// frame 2		
-		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::Graphics }, {cmd2} );
-		CommandBuffer	cmd4 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::AsyncCompute }, {cmd3} );
+		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd2} );
+		CommandBuffer	cmd4 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd3} );
 		CHECK_ERR( cmd3 and cmd4 );
 		{
 			// graphics queue
@@ -186,12 +188,14 @@ void main ()
 
 				CHECK_ERR( _frameGraph->Execute( cmd4 ));
 			}
+			
+			CHECK_ERR( _frameGraph->Flush() );
 		}
+		
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
-
-		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 

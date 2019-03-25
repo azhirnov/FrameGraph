@@ -94,11 +94,13 @@ namespace FG
 	class VShaderDebugger;
 	class VPipelineResources;
 	class VCommandBuffer;
+	class VSwapchain;
 
-	class VFrameGraphDebugger;	// TODO: rename?
+	class VLocalDebugger;	// TODO: rename?
 	class VResourceManager;
 	class VMemoryManager;
 	class VFrameGraph;
+	class VDebugger;
 
 
 	struct VPipelineResourceSet

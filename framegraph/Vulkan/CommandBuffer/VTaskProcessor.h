@@ -32,7 +32,7 @@ namespace FG
 		using RTGeometryState			= VLocalRTGeometry::GeometryState;
 		using RTSceneState				= VLocalRTScene::SceneState;
 
-		using CommitBarrierFn_t			= void (*) (const void *, VBarrierManager &, Ptr<VFrameGraphDebugger>);
+		using CommitBarrierFn_t			= void (*) (const void *, VBarrierManager &, Ptr<VLocalDebugger>);
 		using PendingResourceBarriers_t	= std::unordered_map< void const*, CommitBarrierFn_t, std::hash<void const*>, std::equal_to<void const*>,
 															  StdLinearAllocator<Pair<void const* const, CommitBarrierFn_t>> >;	// TODO: use temp allocator
 		
@@ -136,6 +136,7 @@ namespace FG
 		void _SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view);
 		void _BeginRenderPass (const VFgTask<SubmitRenderPass> &task);
 		void _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
+		bool _CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses);
 
 		void _ExtractDescriptorSets (const VPipelineLayout &, const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
 		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint, uint debugModeIndex);

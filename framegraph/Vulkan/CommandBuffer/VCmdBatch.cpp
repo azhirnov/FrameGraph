@@ -3,6 +3,7 @@
 #include "VCmdBatch.h"
 #include "VDevice.h"
 #include "VResourceManager.h"
+#include "VDebugger.h"
 
 namespace FG
 {
@@ -12,9 +13,9 @@ namespace FG
 	constructor
 =================================================
 */
-	VCmdBatch::VCmdBatch (VDeviceQueueInfoPtr queue, EQueueUsage usage, ArrayView<CommandBuffer> dependsOn) :
-		_state{ EState::Recording },
-		_queue{ queue },				_usage{ usage }
+	VCmdBatch::VCmdBatch (VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn) :
+		_state{ EState::Recording },	_queue{ queue },
+		_queueType{ type }
 	{
 		STATIC_ASSERT( decltype(_state)::is_always_lock_free );
 
@@ -138,20 +139,25 @@ namespace FG
 	OnSubmit
 =================================================
 */
-	bool  VCmdBatch::OnSubmit (OUT VkSubmitInfo &info, const VSubmittedPtr &ptr)
+	bool  VCmdBatch::OnSubmit (OUT VkSubmitInfo &submitInfo, OUT Appendable<VSwapchain const*> swapchains, const VSubmittedPtr &ptr)
 	{
 		_SetState( EState::Submitted );
 		
-		info.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		info.pNext					= null;
-		info.pCommandBuffers		= _commands.data();
-		info.commandBufferCount		= uint(_commands.size());
-		info.pSignalSemaphores		= _signalSemaphores.data();
-		info.signalSemaphoreCount	= uint(_signalSemaphores.size());
-		info.pWaitSemaphores		= _waitSemaphores.data();
-		info.pWaitDstStageMask		= _waitDstStages.data();
-		info.waitSemaphoreCount		= uint(_waitSemaphores.size());
+		submitInfo.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pNext				= null;
+		submitInfo.pCommandBuffers		= _commands.data();
+		submitInfo.commandBufferCount	= uint(_commands.size());
+		submitInfo.pSignalSemaphores	= _signalSemaphores.data();
+		submitInfo.signalSemaphoreCount	= uint(_signalSemaphores.size());
+		submitInfo.pWaitSemaphores		= _waitSemaphores.data();
+		submitInfo.pWaitDstStageMask	= _waitDstStages.data();
+		submitInfo.waitSemaphoreCount	= uint(_waitSemaphores.size());
 
+		for (auto& sw : _swapchains) {
+			swapchains.push_back( sw );
+		}
+
+		_swapchains.clear();
 		_dependencies.clear();
 		_submitted = ptr;
 
@@ -163,7 +169,7 @@ namespace FG
 	OnComplete
 =================================================
 */
-	bool  VCmdBatch::OnComplete (VResourceManager &resMngr)
+	bool  VCmdBatch::OnComplete (VResourceManager &resMngr, VDebugger &debugger)
 	{
 		ASSERT( _submitted );
 		_SetState( EState::Complete );
@@ -218,7 +224,24 @@ namespace FG
 		}
 		_onImageLoadedEvents.clear();
 
-		_ReleaseResources( resMngr );
+
+		// release resources
+		{
+			for (auto& sb : _hostToDevice) {
+				resMngr.ReleaseResource( sb.bufferId.Release() );
+			}
+			_hostToDevice.clear();
+
+			for (auto& sb : _deviceToHost) {
+				resMngr.ReleaseResource( sb.bufferId.Release() );
+			}
+			_deviceToHost.clear();
+
+			_ReleaseResources( resMngr );
+		}
+
+		debugger.AddBatchDump( _debugDump );
+		_debugDump.clear();
 
 		_submitted = null;
 		return true;

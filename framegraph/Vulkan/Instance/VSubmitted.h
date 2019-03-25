@@ -30,21 +30,21 @@ namespace FG
 		Semaphores_t			_semaphores;
 		VkFence					_fence;
 		const ExeOrderIndex		_submissionOrder;
-		const EQueueUsage		_usage;
+		const EQueueType		_queueType;
 
 
 	// methods
 	public:
-		VSubmitted (EQueueUsage queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>, VkFence, ExeOrderIndex);
+		VSubmitted (EQueueType queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>, VkFence, ExeOrderIndex);
 		~VSubmitted ();
 
 		//ND_ bool		IsComplete ()		const;
 		ND_ VkFence		GetFence ()			const	{ return _fence; }
-		ND_ EQueueUsage	GetQueueUsage ()	const	{ return _usage; }
+		ND_ EQueueType	GetQueueType ()		const	{ return _queueType; }
 
 
 	private:
-		bool _Release (VResourceManager &, OUT Array<VkSemaphore> &, OUT Array<VkFence> &);
+		bool _Release (VResourceManager &, VDebugger &, OUT Array<VkSemaphore> &, OUT Array<VkFence> &);
 	};
 
 

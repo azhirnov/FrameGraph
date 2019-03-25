@@ -49,16 +49,15 @@ void main() {
 }
 )#" );
 
-		const uint2		view_size	= _window->GetSize();
-		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
-
 		GPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 		CHECK_ERR( cmd );
+
+		RawImageID		image		= cmd->GetSwapchainImage( _swapchainId, ESwapchainImage::Primary );
+		const uint2		view_size	= _frameGraph->GetDescription( image ).dimension.xy();
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
@@ -66,18 +65,16 @@ void main() {
 		
 		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
-		Task	t_draw		= cmd->AddTask( SubmitRenderPass{ render_pass });
-		Task	t_present	= cmd->AddTask( Present{ image }.DependsOn( t_draw ));
-		FG_UNUSED( t_present );
+		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
+		FG_UNUSED( t_draw );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
+		CHECK_ERR( _frameGraph->WaitIdle() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _frameGraph->WaitIdle() );
-
-		DeleteResources( image, pipeline );
+		DeleteResources( pipeline );
 
 		FG_LOGI( TEST_NAME << " - passed" );
 		return true;

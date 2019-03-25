@@ -14,12 +14,12 @@ namespace FGC
 	//
 
 	template <typename T, size_t Size>
-	struct LfFixedStack
+	struct alignas(FG_CACHE_LINE) LfFixedStack
 	{
 	// variables
 	private:
-		alignas(FG_CACHE_LINE) std::atomic<uint>	_count {0};
-		StaticArray< T, Size >						_data;
+		std::atomic<uint>			_count {0};
+		StaticArray< T, Size >		_data;
 
 
 	// methods
@@ -62,7 +62,7 @@ namespace FGC
 	//
 
 	template <typename ...Types, size_t Size>
-	struct LfFixedStack< std::tuple<Types...>, Size >
+	struct alignas(FG_CACHE_LINE) LfFixedStack< std::tuple<Types...>, Size >
 	{
 	// types
 	private:
@@ -71,9 +71,9 @@ namespace FGC
 
 	// variables
 	private:
-		alignas(FG_CACHE_LINE) std::atomic<uint>	_count {0};
-		TupleOfArrays_t								_data;
-		static constexpr size_t						_tupleSize = std::tuple_size_v< TupleOfArrays_t >;
+		std::atomic<uint>			_count {0};
+		TupleOfArrays_t				_data;
+		static constexpr size_t		_tupleSize = std::tuple_size_v< TupleOfArrays_t >;
 
 		
 	// methods

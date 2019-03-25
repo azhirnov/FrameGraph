@@ -1,6 +1,5 @@
-SubBatch {
-	batch:         "main"
-	indexInBatch:  0
+CommandBuffer {
+	name:      ""
 	Image {
 		name:         "OutImage"
 		iamgeType:    Image2D
@@ -47,7 +46,7 @@ SubBatch {
 	}
 
 	Image {
-		name:         "Texture"
+		name:         "Texture-0"
 		iamgeType:    Image2D
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
@@ -92,7 +91,7 @@ SubBatch {
 	}
 
 	Image {
-		name:         "Texture"
+		name:         "Texture-1"
 		iamgeType:    Image2D
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
@@ -137,7 +136,7 @@ SubBatch {
 	}
 
 	Image {
-		name:         "Texture"
+		name:         "Texture-2"
 		iamgeType:    Image2D
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
@@ -182,7 +181,7 @@ SubBatch {
 	}
 
 	Image {
-		name:         "Texture"
+		name:         "Texture-3"
 		iamgeType:    Image2D
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
@@ -227,7 +226,7 @@ SubBatch {
 	}
 
 	Image {
-		name:         "Texture"
+		name:         "Texture-4"
 		iamgeType:    Image2D
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
@@ -272,7 +271,7 @@ SubBatch {
 	}
 
 	Image {
-		name:         "Texture"
+		name:         "Texture-5"
 		iamgeType:    Image2D
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
@@ -317,7 +316,7 @@ SubBatch {
 	}
 
 	Image {
-		name:         "Texture"
+		name:         "Texture-6"
 		iamgeType:    Image2D
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
@@ -362,7 +361,7 @@ SubBatch {
 	}
 
 	Image {
-		name:         "Texture"
+		name:         "Texture-7"
 		iamgeType:    Image2D
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
@@ -432,7 +431,7 @@ SubBatch {
 		output = { ClearColorImage (#3) }
 		resource_usage = {
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-0"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -447,7 +446,7 @@ SubBatch {
 		output = { ClearColorImage (#4) }
 		resource_usage = {
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-1"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -462,7 +461,7 @@ SubBatch {
 		output = { ClearColorImage (#5) }
 		resource_usage = {
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-2"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -477,7 +476,7 @@ SubBatch {
 		output = { ClearColorImage (#6) }
 		resource_usage = {
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-3"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -492,7 +491,7 @@ SubBatch {
 		output = { ClearColorImage (#7) }
 		resource_usage = {
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-4"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -507,7 +506,7 @@ SubBatch {
 		output = { ClearColorImage (#8) }
 		resource_usage = {
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-5"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -522,7 +521,7 @@ SubBatch {
 		output = { ClearColorImage (#9) }
 		resource_usage = {
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-6"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -537,7 +536,7 @@ SubBatch {
 		output = { DispatchCompute (#10) }
 		resource_usage = {
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-7"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -560,7 +559,7 @@ SubBatch {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-0"
 				usage:          ShaderSample, CS
 				baseMipLevel:   0
 				levelCount:     1
@@ -568,7 +567,7 @@ SubBatch {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-1"
 				usage:          ShaderSample, CS
 				baseMipLevel:   0
 				levelCount:     1
@@ -576,7 +575,7 @@ SubBatch {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-2"
 				usage:          ShaderSample, CS
 				baseMipLevel:   0
 				levelCount:     1
@@ -584,7 +583,7 @@ SubBatch {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-3"
 				usage:          ShaderSample, CS
 				baseMipLevel:   0
 				levelCount:     1
@@ -592,7 +591,7 @@ SubBatch {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-4"
 				usage:          ShaderSample, CS
 				baseMipLevel:   0
 				levelCount:     1
@@ -600,7 +599,7 @@ SubBatch {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-5"
 				usage:          ShaderSample, CS
 				baseMipLevel:   0
 				levelCount:     1
@@ -608,7 +607,7 @@ SubBatch {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-6"
 				usage:          ShaderSample, CS
 				baseMipLevel:   0
 				levelCount:     1
@@ -616,7 +615,7 @@ SubBatch {
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "Texture"
+				name:           "Texture-7"
 				usage:          ShaderSample, CS
 				baseMipLevel:   0
 				levelCount:     1

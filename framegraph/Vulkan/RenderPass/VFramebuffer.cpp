@@ -119,7 +119,10 @@ namespace FG
 
 		for (auto& rt : _attachments)
 		{
-			VkImageView		view = resMngr.GetResource( rt.first )->GetView( dev, false, INOUT rt.second );
+			auto*		image = resMngr.GetResource( rt.first );
+			CHECK_ERR( image );
+
+			VkImageView	view = image->GetView( dev, false, INOUT rt.second );
 			CHECK_ERR( view );
 
 			image_views.push_back( view );

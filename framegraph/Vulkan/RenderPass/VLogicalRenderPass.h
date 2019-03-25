@@ -15,8 +15,6 @@ namespace FG
 
 	class VLogicalRenderPass final
 	{
-		friend class VRenderPassCache;
-
 	// types
 	public:
 		struct ColorTarget
@@ -91,18 +89,6 @@ namespace FG
 
 
 	// methods
-	private:
-		void _SetRenderPass (RawRenderPassID rp, uint subpass, RawFramebufferID fb, uint depthIndex)
-		{
-			_framebufferId	= fb;
-			_renderPassId	= rp;
-			_subpassIndex	= subpass;
-			
-			_clearValues[_depthStencilTarget.index]	= _clearValues[depthIndex];
-			_depthStencilTarget.index				= depthIndex;
-		}
-
-
 	public:
 		VLogicalRenderPass () {}
 		VLogicalRenderPass (VLogicalRenderPass &&) = delete;
@@ -128,6 +114,16 @@ namespace FG
 
 			_isSubmited = true;
 			return true;
+		}
+
+		void _SetRenderPass (RawRenderPassID rp, uint subpass, RawFramebufferID fb, uint depthIndex)
+		{
+			_framebufferId	= fb;
+			_renderPassId	= rp;
+			_subpassIndex	= subpass;
+			
+			_clearValues[_depthStencilTarget.index]	= _clearValues[depthIndex];
+			_depthStencilTarget.index				= depthIndex;
 		}
 		
 		bool GetShadingRateImage (OUT VLocalImage const* &, OUT ImageViewDesc &) const;

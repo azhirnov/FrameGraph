@@ -6,10 +6,10 @@
 namespace FG
 {
 namespace {
-	static constexpr auto	GraphicsBit		= EQueueUsageBits::Graphics;
-	static constexpr auto	ComputeBit		= EQueueUsageBits::Graphics | EQueueUsageBits::AsyncCompute;
-	static constexpr auto	RayTracingBit	= EQueueUsageBits::Graphics | EQueueUsageBits::AsyncCompute;
-	static constexpr auto	TransferBit		= EQueueUsageBits::Graphics | EQueueUsageBits::AsyncCompute | EQueueUsageBits::AsyncTransfer;
+	static constexpr auto	GraphicsBit		= EQueueUsage::Graphics;
+	static constexpr auto	ComputeBit		= EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
+	static constexpr auto	RayTracingBit	= EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
+	static constexpr auto	TransferBit		= EQueueUsage::Graphics | EQueueUsage::AsyncCompute | EQueueUsage::AsyncTransfer;
 }
 	
 /*
@@ -22,6 +22,8 @@ namespace {
 		_shaderDebugger{ *this }
 	{
 		_mainAllocator.SetBlockSize( 16_Mb );
+
+		_ResetLocalRemaping();
 	}
 	
 /*
@@ -79,7 +81,7 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK_ERR( batch );
 
-		_currUsage	= EQueueUsageBits(0) | desc.queue;
+		_currUsage	= EQueueUsage(0) | desc.queueType;
 		_batch		= batch;
 		
 		// create command pool
@@ -102,26 +104,41 @@ namespace {
 			}
 		}
 		
-		_hostWritableBufferSize		= desc.hostWritableBufferPageSize;
-		_hostReadableBufferSize		= desc.hostWritableBufferPageSize;
+		_hostWritableBufferSize		= desc.hostWritableBufferSize;
+		_hostReadableBufferSize		= desc.hostWritableBufferSize;
 		_hostWritebleBufferUsage	= desc.hostWritebleBufferUsage | EBufferUsage::TransferSrc;
+		_dbgName					= desc.name;
 		
+		if ( desc.debugFlags != Default )
+		{
+			if ( not _debugger )
+				_debugger.reset( new VLocalDebugger{} );
+			
+			_debugger->Begin( desc.debugFlags );
+		}
+		else
+			_debugger.reset();
+
 		_taskGraph.OnStart( GetAllocator() );
 		return true;
 	}
 	
 /*
 =================================================
-	Submit
+	Execute
 =================================================
 */
-	bool VCommandBuffer::Submit ()
+	bool VCommandBuffer::Execute ()
 	{
 		EXLOCK( _rcCheck );
+		CHECK_ERR( IsRecording() );
 
 		CHECK_ERR( _BuildCommandBuffers() );
 		
-		CHECK_ERR( _batch->OnBacked( _rm.resourceMap ));
+		if ( _debugger )
+			_debugger->End( GetName(), OUT &_batch->_debugDump, null );
+
+		CHECK_ERR( _batch->OnBacked( INOUT _rm.resourceMap ));
 		_batch = null;
 		
 		_taskGraph.OnDiscardMemory();
@@ -201,12 +218,12 @@ namespace {
 
 		// transit image layout to default state
 		// add memory dependency to flush caches
-		/*{
-			auto	batch_exe_order = _submissionGraph->GetExecutionOrder( _cmdBatchId, _indexInBatch );
+		{
+			//auto	batch_exe_order = _submissionGraph->GetExecutionOrder( _cmdBatchId, _indexInBatch );
 
-			_resourceMngr.FlushLocalResourceStates( ExeOrderIndex::Final, batch_exe_order, _barrierMngr, GetDebugger() );
+			_FlushLocalResourceStates( ExeOrderIndex::Final, ExeOrderIndex::First, _barrierMngr, GetDebugger() );
 			_barrierMngr.Commit( dev, cmd );
-		}*/
+		}
 
 		_shaderDebugger.OnEndRecording( cmd );
 		
@@ -226,10 +243,10 @@ namespace {
 	forceinline void VTaskProcessor::Run (VTask node)
 	{
 		// reset states
-		_currTask	= node;
+		_currTask = node;
 		
-		//if ( _frameGraph.GetDebugger() )
-		//	_frameGraph.GetDebugger()->AddTask( _currTask );
+		if ( _fgThread.GetDebugger() )
+			_fgThread.GetDebugger()->AddTask( _currTask );
 
 		Cast<VFrameGraphTask>( node )->Process( this );
 	}
@@ -243,7 +260,7 @@ namespace {
 	{
 		VTaskProcessor	processor{ *this, cmd };
 
-		uint			visitor_id		= 0;
+		uint			visitor_id		= 1;
 		ExeOrderIndex	exe_order_index	= ExeOrderIndex::First;
 
 		TempTaskArray_t		pending{ GetAllocator() };
@@ -297,6 +314,27 @@ namespace {
 	
 /*
 =================================================
+	GetSwapchainImage
+=================================================
+*/
+	RawImageID	VCommandBuffer::GetSwapchainImage (RawSwapchainID swapchainId, ESwapchainImage type)
+	{
+		EXLOCK( _rcCheck );
+		CHECK_ERR( IsRecording() );
+
+		auto*	swapchain = AcquireTemporary( swapchainId );
+		CHECK_ERR( swapchain );
+
+		RawImageID	id;
+		CHECK_ERR( swapchain->Acquire( *this, type, OUT id ));
+
+		_batch->_swapchains.push_back( swapchain );
+
+		return id;
+	}
+
+/*
+=================================================
 	AddExternalCommands
 =================================================
 */
@@ -335,6 +373,32 @@ namespace {
 
 		_batch->AddDependency( Cast<VCmdBatch>(cmd.GetBatch()) );
 		return true;
+	}
+	
+/*
+=================================================
+	AcquireImage
+=================================================
+*/
+	void  VCommandBuffer::AcquireImage (RawImageID id, bool makeMutable, bool invalidate)
+	{
+		auto*	image = ToLocal( id );
+		if ( image ) {
+			image->SetInitialState( not makeMutable, invalidate );
+		}
+	}
+	
+/*
+=================================================
+	AcquireBuffer
+=================================================
+*/
+	void  VCommandBuffer::AcquireBuffer (RawBufferID id, bool makeMutable)
+	{
+		auto*	buffer = ToLocal( id );
+		if ( buffer ) {
+			buffer->SetInitialState( not makeMutable );
+		}
 	}
 
 /*
@@ -922,45 +986,17 @@ namespace {
 	AddTask (Present)
 =================================================
 */
-	Task  VCommandBuffer::AddTask (const FG::Present &task)
+	Task  VCommandBuffer::AddTask (const Present &task)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( IsRecording() );
 
-		//if ( _swapchain )
-		//	return _AddPresentTask( task );
-		
-		RETURN_ERR( "not supported", Task(null) );
-	}
+		auto	vtask = _taskGraph.Add( *this, task );
 
-/*
-=================================================
-	_AddPresentTask
-=================================================
-*
-	Task  VCommandBuffer::_AddPresentTask (const FG::Present &task)
-	{
-		/*CHECK_ERR( task.srcImage );
-	
-		RawImageID	swapchain_image;
-		CHECK_ERR( _swapchain->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
+		if ( vtask )
+			_batch->_swapchains.push_back( vtask->swapchain );
 
-		auto*	src_data = AcquireTemporary( task.srcImage );
-		auto*	dst_data = AcquireTemporary( swapchain_image );
-
-		BlitImage	blit;
-		blit.debugColor	= task.debugColor;
-		blit.depends	= task.depends;
-		blit.taskName	= task.taskName;
-
-		blit.srcImage	= task.srcImage;
-		blit.dstImage	= swapchain_image;
-		blit.filter		= EFilter::Nearest;
-		blit.AddRegion( {}, int3{}, int3{src_data->Dimension()}, {}, int3{}, int3{dst_data->Dimension()} );
-
-		//CHECK_ERR( _swapchain->Present( swapchain_image ));
-		* /
-		return _taskGraph.Add( *this, task );
+		return vtask;
 	}
 	
 /*
@@ -1262,7 +1298,7 @@ namespace {
 			ASSERT( src.geometryId );
 			ASSERT( (src.customId >> 24) == 0 );
 
-			blas = ToLocal( src.geometryId, /*acquire ref*/true );
+			blas = ToLocal( src.geometryId );	// TODO: add reference
 			CHECK_ERR( blas );
 
 			dst.blasHandle		= blas->BLASHandle();
@@ -1479,7 +1515,7 @@ namespace {
 =================================================
 */
 	void  VCommandBuffer::_FlushLocalResourceStates (ExeOrderIndex index, ExeOrderIndex batchExeOrder,
-													 VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger)
+													 VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger)
 	{
 		// reset state & destroy local images
 		for (uint i = 0; i < _rm.localImagesCount; ++i)
@@ -1489,7 +1525,7 @@ namespace {
 			if ( not image.IsDestroyed() )
 			{
 				image.Data().ResetState( index, barrierMngr, debugger );
-				//image.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
+				image.Destroy();
 				_rm.localImages.Unassign( Index_t(i) );
 			}
 		}
@@ -1502,7 +1538,7 @@ namespace {
 			if ( not buffer.IsDestroyed() )
 			{
 				buffer.Data().ResetState( index, barrierMngr, debugger );
-				//buffer.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
+				buffer.Destroy();
 				_rm.localBuffers.Unassign( Index_t(i) );
 			}
 		}
@@ -1515,7 +1551,7 @@ namespace {
 			if ( not geometry.IsDestroyed() )
 			{
 				geometry.Data().ResetState( index, barrierMngr, debugger );
-				//geometry.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs() );
+				geometry.Destroy();
 				_rm.localRTGeometries.Unassign( Index_t(i) );
 			}
 		}
@@ -1535,7 +1571,7 @@ namespace {
 											});
 				}*/
 				scene.Data().ResetState( index, barrierMngr, debugger );
-				//scene.Destroy( OUT GetReadyToDeleteQueue(), OUT GetUnassignIDs(), batchExeOrder, GetFrameIndex() );
+				scene.Destroy( GetResourceManager(), batchExeOrder, GetResourceManager().GetSubmitIndex() );
 				_rm.localRTScenes.Unassign( Index_t(i) );
 			}
 		}
@@ -1549,7 +1585,7 @@ namespace {
 =================================================
 */
 	template <typename ID, typename T, typename GtoL>
-	inline T const*  VCommandBuffer::_ToLocal (ID id, INOUT PoolTmpl<T> &localPool, INOUT GtoL &globalToLocal, INOUT uint &counter, bool incRef, StringView msg)
+	inline T const*  VCommandBuffer::_ToLocal (ID id, INOUT PoolTmpl<T> &localPool, INOUT GtoL &globalToLocal, INOUT uint &counter, StringView msg)
 	{
 		EXLOCK( _rcCheck );
 
@@ -1559,12 +1595,7 @@ namespace {
 		Index_t&	local = globalToLocal[ id.Index() ];
 
 		if ( local != UMax )
-		{
-			//if ( incRef )
-			//	_mainRM._GetResourcePool( id )[ id.Index() ].AddRef();
-
 			return &(localPool[ local ].Data());
-		}
 
 		auto*	res  = AcquireTemporary( id );
 		if ( not res )
@@ -1581,10 +1612,6 @@ namespace {
 			RETURN_ERR( msg );
 		}
 
-		// TODO
-		//if ( incRef )
-		//	_mainRM._GetResourcePool( id )[ id.Index() ].AddRef();
-
 		counter = Max( uint(local)+1, counter );
 		return &(data.Data());
 	}
@@ -1594,24 +1621,24 @@ namespace {
 	ToLocal
 =================================================
 */
-	VLocalBuffer const*  VCommandBuffer::ToLocal (RawBufferID id, bool acquireRef)
+	VLocalBuffer const*  VCommandBuffer::ToLocal (RawBufferID id)
 	{
-		return _ToLocal( id, _rm.localBuffers, _rm.bufferToLocal, _rm.localBuffersCount, acquireRef, "failed when creating local buffer" );
+		return _ToLocal( id, _rm.localBuffers, _rm.bufferToLocal, _rm.localBuffersCount, "failed when creating local buffer" );
 	}
 
-	VLocalImage const*  VCommandBuffer::ToLocal (RawImageID id, bool acquireRef)
+	VLocalImage const*  VCommandBuffer::ToLocal (RawImageID id)
 	{
-		return _ToLocal( id, _rm.localImages, _rm.imageToLocal, _rm.localImagesCount, acquireRef, "failed when creating local image" );
+		return _ToLocal( id, _rm.localImages, _rm.imageToLocal, _rm.localImagesCount, "failed when creating local image" );
 	}
 
-	VLocalRTGeometry const*  VCommandBuffer::ToLocal (RawRTGeometryID id, bool acquireRef)
+	VLocalRTGeometry const*  VCommandBuffer::ToLocal (RawRTGeometryID id)
 	{
-		return _ToLocal( id, _rm.localRTGeometries, _rm.rtGeometryToLocal, _rm.localRTGeometryCount, acquireRef, "failed when creating local ray tracing geometry" );
+		return _ToLocal( id, _rm.localRTGeometries, _rm.rtGeometryToLocal, _rm.localRTGeometryCount, "failed when creating local ray tracing geometry" );
 	}
 
-	VLocalRTScene const*  VCommandBuffer::ToLocal (RawRTSceneID id, bool acquireRef)
+	VLocalRTScene const*  VCommandBuffer::ToLocal (RawRTSceneID id)
 	{
-		return _ToLocal( id, _rm.localRTScenes, _rm.rtSceneToLocal, _rm.localRTSceneCount, acquireRef, "failed when creating local ray tracing scene" );
+		return _ToLocal( id, _rm.localRTScenes, _rm.rtSceneToLocal, _rm.localRTSceneCount, "failed when creating local ray tracing scene" );
 	}
 	
 	VLogicalRenderPass*  VCommandBuffer::ToLocal (LogicalPassID id)

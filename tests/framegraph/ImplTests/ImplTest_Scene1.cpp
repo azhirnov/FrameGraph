@@ -159,7 +159,7 @@ void main() {
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline1, DescriptorSetID("0"), OUT resources ));
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 		CHECK_ERR( cmd );
 		
 		ImageID		color_target = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::RGBA8_UNorm,
@@ -266,16 +266,15 @@ void main() {
 			}
 
 			// present
-			Task	t_present = cmd->AddTask( Present{ color_target }.DependsOn( t_submit_transparent ));
+			Task	t_present = cmd->AddTask( Present{ _swapchainId, color_target }.DependsOn( t_submit_transparent ));
 			FG_UNUSED( t_present );
 		}
 		
 		CHECK_ERR( _frameGraph->Execute( cmd ));
+		CHECK_ERR( _frameGraph->WaitIdle() );
 	
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
-		
-		CHECK_ERR( _frameGraph->WaitIdle() );
 		
 		DeleteResources( const_buf1, const_buf2, const_buf3, vbuffer1, vbuffer2, texture1, texture2,
 						 color_target, depth_target, pipeline1, pipeline2, sampler1 );

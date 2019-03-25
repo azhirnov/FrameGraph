@@ -46,7 +46,7 @@ namespace FG
 */
 	VPipelineResources::~VPipelineResources ()
 	{
-		CHECK( not _descriptorSet );
+		CHECK( not _descriptorSet.first );
 	}
 	
 /*
@@ -57,14 +57,15 @@ namespace FG
 	bool VPipelineResources::Create (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
-		CHECK_ERR( not _descriptorSet );
+		CHECK_ERR( not _descriptorSet.first );
 		CHECK_ERR( _dataPtr );
 
-		VDevice const&					dev			= resMngr.GetDevice();
-		VDescriptorSetLayout const*		ds_layout	= resMngr.GetResource( _layoutId );
+		VDevice const&	dev			= resMngr.GetDevice();
+		auto const*		ds_layout	= resMngr.GetResource( _layoutId );
 		
-		//CHECK_ERR( resMngr.GetDescriptorManager().AllocDescriptorSet( dev, ds_layout->Handle(), OUT _descriptorSet ));
-
+		CHECK_ERR( ds_layout );
+		CHECK_ERR( ds_layout->AllocDescriptorSet( resMngr, OUT _descriptorSet ));
+		
 		UpdateDescriptors	update;
 		update.descriptors		= update.allocator.Alloc< VkWriteDescriptorSet >( ds_layout->GetMaxIndex() + 1 );
 		update.descriptorIndex	= 0;
@@ -84,21 +85,21 @@ namespace FG
 	{
 		EXLOCK( _rcCheck );
 
+		auto*	ds_layout = resMngr.GetResource( _layoutId, false, true );
+
+		if ( ds_layout and _descriptorSet.first ) {
+			ds_layout->ReleaseDescriptorSet( resMngr, _descriptorSet );
+		}
+
 		// release reference only if descriptor set was created
-		if ( _layoutId and _descriptorSet ) {
+		if ( _layoutId and _descriptorSet.first ) {
 			resMngr.ReleaseResource( _layoutId );
 		}
 
-		if ( _descriptorSet ) {
-			// TODO
-		//	readyToDelete.emplace_back( VK_OBJECT_TYPE_DESCRIPTOR_SET_EXT, uint64_t(_descriptorSet) );
-		}
-
 		_dataPtr.reset();
-		_descriptorSet		= VK_NULL_HANDLE;
-		_layoutId			= Default;
-		//_descriptorPoolId	= Default;
-		_hash				= Default;
+		_descriptorSet	= { VK_NULL_HANDLE, UMax };
+		_layoutId		= Default;
+		_hash			= Default;
 	}
 	
 /*
@@ -113,7 +114,7 @@ namespace FG
 		struct Visitor
 		{
 			VResourceManager const&	resMngr;
-			bool							alive	= true;
+			bool					alive	= true;
 			
 			Visitor (const VResourceManager &resMngr) : resMngr{resMngr}
 			{}
@@ -221,7 +222,7 @@ namespace FG
 								(is_dynamic ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER));
 		wds.descriptorCount	= buf.elementCount;
 		wds.dstBinding		= buf.index.VKBinding();
-		wds.dstSet			= _descriptorSet;
+		wds.dstSet			= _descriptorSet.first;
 		wds.pBufferInfo		= info;
 
 		return true;
@@ -257,7 +258,7 @@ namespace FG
 								VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		wds.descriptorCount	= img.elementCount;
 		wds.dstBinding		= img.index.VKBinding();
-		wds.dstSet			= _descriptorSet;
+		wds.dstSet			= _descriptorSet.first;
 		wds.pImageInfo		= info;
 
 		return true;
@@ -293,7 +294,7 @@ namespace FG
 		wds.descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		wds.descriptorCount	= tex.elementCount;
 		wds.dstBinding		= tex.index.VKBinding();
-		wds.dstSet			= _descriptorSet;
+		wds.dstSet			= _descriptorSet.first;
 		wds.pImageInfo		= info;
 
 		return true;
@@ -328,7 +329,7 @@ namespace FG
 		wds.descriptorType	= VK_DESCRIPTOR_TYPE_SAMPLER;
 		wds.descriptorCount	= samp.elementCount;
 		wds.dstBinding		= samp.index.VKBinding();
-		wds.dstSet			= _descriptorSet;
+		wds.dstSet			= _descriptorSet.first;
 		wds.pImageInfo		= info;
 
 		return true;
@@ -366,7 +367,7 @@ namespace FG
 		wds.descriptorType	= VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 		wds.descriptorCount	= rtScene.elementCount;
 		wds.dstBinding		= rtScene.index.VKBinding();
-		wds.dstSet			= _descriptorSet;
+		wds.dstSet			= _descriptorSet.first;
 
 		return true;
 	}

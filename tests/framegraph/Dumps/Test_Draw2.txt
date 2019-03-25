@@ -1,26 +1,25 @@
-SubBatch {
-	batch:         "main"
-	indexInBatch:  0
+CommandBuffer {
+	name:      ""
 	Image {
-		name:         "RenderTarget"
+		name:         "SwapchainImage-0"
 		iamgeType:    Image2D
 		dimension:    ( 800, 600, 1 )
-		format:       RGBA8_UNorm
-		usage:        TransferSrc | ColorAttachment
+		format:       BGRA8_UNorm
+		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment | InputAttachment
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         RenderPass (#2)
-					dstTask:         Present (#3)
-					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    Transfer
+					srcTask:         <initial>
+					dstTask:         RenderPass (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    ColorAttachmentOutput
 					dependencyFlags: 
-					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
-					dstAccessMask:   TransferRead
-					oldLayout:       ColorAttachmentOptimal
-					newLayout:       TransferSrcOptimal
+					srcAccessMask:   
+					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					oldLayout:       Undefined
+					newLayout:       ColorAttachmentOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
@@ -28,15 +27,15 @@ SubBatch {
 					layerCount:      1
 				}
 				ImageMemoryBarrier {
-					srcTask:         Present (#3)
+					srcTask:         RenderPass (#2)
 					dstTask:         <final>
-					srcStageMask:    Transfer
+					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    AllCommands
 					dependencyFlags: 
-					srcAccessMask:   TransferRead
-					dstAccessMask:   ColorAttachmentRead | TransferRead
-					oldLayout:       TransferSrcOptimal
-					newLayout:       ColorAttachmentOptimal
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       PresentSrc
 					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
@@ -50,26 +49,11 @@ SubBatch {
 	Task {
 		name:    "RenderPass (#2)"
 		input =  {  }
-		output = { Present (#3) }
-		resource_usage = {
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Color-RW, InvalidateBefore
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-	Task {
-		name:    "Present (#3)"
-		input =  { RenderPass (#2) }
 		output = {  }
 		resource_usage = {
 			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Transfer-R
+				name:           "SwapchainImage-0"
+				usage:          Color-RW, InvalidateBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

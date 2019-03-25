@@ -11,7 +11,8 @@ namespace FG
 	constructor
 =================================================
 */
-	VDescriptorManager::VDescriptorManager ()
+	VDescriptorManager::VDescriptorManager (const VDevice &dev) :
+		_device{ dev }
 	{
 	}
 	
@@ -30,9 +31,11 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool VDescriptorManager::Initialize (const VDevice &dev)
+	bool VDescriptorManager::Initialize ()
 	{
-		CHECK_ERR( _CreateDescriptorPool( dev ));
+		EXLOCK( _guard );
+
+		CHECK_ERR( _CreateDescriptorPool() );
 		return true;
 	}
 	
@@ -41,10 +44,19 @@ namespace FG
 	Deinitialize
 =================================================
 */
-	void VDescriptorManager::Deinitialize (const VDevice &dev)
+	void VDescriptorManager::Deinitialize ()
 	{
-		for (auto& pool : _descriptorPools) {
-			dev.vkDestroyDescriptorPool( dev.GetVkDevice(), pool, null );
+		EXLOCK( _guard );
+
+		for (auto& item : _descriptorPools)
+		{
+			//EXLOCK( item.guard );
+
+			if ( item.pool )
+			{
+				_device.vkDestroyDescriptorPool( _device.GetVkDevice(), item.pool, null );
+				item.pool = VK_NULL_HANDLE;
+			}
 		}
 		_descriptorPools.clear();
 	}
@@ -54,26 +66,78 @@ namespace FG
 	AllocDescriptorSet
 =================================================
 */
-	bool  VDescriptorManager::AllocDescriptorSet (const VDevice &dev, VkDescriptorSetLayout layout, OUT VkDescriptorSet &ds)
+	bool  VDescriptorManager::AllocDescriptorSet (VkDescriptorSetLayout layout, OUT DescriptorSet &ds)
 	{
+		EXLOCK( _guard );
+
 		VkDescriptorSetAllocateInfo		info = {};
 		info.sType				= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		info.descriptorSetCount	= 1;
 		info.pSetLayouts		= &layout;
 
-		for (auto& pool : _descriptorPools)
+		for (auto& item : _descriptorPools)
 		{
-			info.descriptorPool = pool;
+			//EXLOCK( item.guard );
+			info.descriptorPool = item.pool;
 			
-			if ( dev.vkAllocateDescriptorSets( dev.GetVkDevice(), &info, OUT &ds ) == VK_SUCCESS )
+			if ( _device.vkAllocateDescriptorSets( _device.GetVkDevice(), &info, OUT &ds.first ) == VK_SUCCESS )
+			{
+				ds.second = uint8_t(Distance( _descriptorPools.data(), &item ));
 				return true;
+			}
 		}
 
-		CHECK_ERR( _CreateDescriptorPool( dev ));
+		CHECK_ERR( _CreateDescriptorPool() );
 		
-		info.descriptorPool = _descriptorPools.back();
-		VK_CHECK( dev.vkAllocateDescriptorSets( dev.GetVkDevice(), &info, OUT &ds ));
+		info.descriptorPool = _descriptorPools.back().pool;
+		VK_CHECK( _device.vkAllocateDescriptorSets( _device.GetVkDevice(), &info, OUT &ds.first ));
+		ds.second = uint8_t(_descriptorPools.size() - 1);
 
+		return true;
+	}
+	
+/*
+=================================================
+	DeallocDescriptorSet
+=================================================
+*/
+	bool  VDescriptorManager::DeallocDescriptorSet (const DescriptorSet &ds)
+	{
+		EXLOCK( _guard );
+		CHECK_ERR( ds.second < _descriptorPools.size() );
+
+		VK_CALL( _device.vkFreeDescriptorSets( _device.GetVkDevice(), _descriptorPools[ds.second].pool, 1, &ds.first ));
+		return true;
+	}
+	
+/*
+=================================================
+	DeallocDescriptorSets
+=================================================
+*/
+	bool  VDescriptorManager::DeallocDescriptorSets (ArrayView<DescriptorSet> descSets)
+	{
+		EXLOCK( _guard );
+
+		FixedArray< VkDescriptorSet, 32 >	temp;
+		uint8_t								last_idx = UMax;
+
+		for (auto& ds : descSets)
+		{
+			if ( last_idx != ds.second and temp.size() )
+			{
+				VK_CALL( _device.vkFreeDescriptorSets( _device.GetVkDevice(), _descriptorPools[last_idx].pool, uint(temp.size()), temp.data() ));
+				temp.clear();
+			}
+
+			last_idx = ds.second;
+			temp.push_back( ds.first );
+		}
+
+		if ( temp.size() )
+		{
+			VK_CALL( _device.vkFreeDescriptorSets( _device.GetVkDevice(), _descriptorPools[last_idx].pool, uint(temp.size()), temp.data() ));
+		}
 		return true;
 	}
 
@@ -82,7 +146,7 @@ namespace FG
 	_CreateDescriptorPool
 =================================================
 */
-	bool  VDescriptorManager::_CreateDescriptorPool (const VDevice &dev)
+	bool  VDescriptorManager::_CreateDescriptorPool ()
 	{
 		FixedArray< VkDescriptorPoolSize, 32 >	pool_sizes;
 
@@ -96,8 +160,7 @@ namespace FG
 		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,		MaxDescriptorPoolSize });
 		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,		MaxDescriptorPoolSize });
 		
-		if ( dev.HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME ) )
-		{
+		if ( _device.IsRayTracingEnabled() ) {
 			pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, MaxDescriptorPoolSize });
 		}
 
@@ -107,11 +170,12 @@ namespace FG
 		info.poolSizeCount	= uint(pool_sizes.size());
 		info.pPoolSizes		= pool_sizes.data();
 		info.maxSets		= MaxDescriptorSets;
+		info.flags			= VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
-		VkDescriptorPool			ds_pool;
-		VK_CHECK( dev.vkCreateDescriptorPool( dev.GetVkDevice(), &info, null, OUT &ds_pool ));
+		VkDescriptorPool	ds_pool;
+		VK_CHECK( _device.vkCreateDescriptorPool( _device.GetVkDevice(), &info, null, OUT &ds_pool ));
 
-		_descriptorPools.push_back( ds_pool );
+		_descriptorPools.push_back({ ds_pool });
 		return true;
 	}
 

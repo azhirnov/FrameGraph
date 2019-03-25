@@ -9,8 +9,9 @@
 #include "VPipelineCache.h"
 #include "VDescriptorManager.h"
 #include "VShaderDebugger.h"
-#include "VFrameGraph.h"
 #include "VCmdBatch.h"
+#include "VFrameGraph.h"
+#include "VLocalDebugger.h"
 
 namespace FG
 {
@@ -32,6 +33,7 @@ namespace FG
 		using TaskGraph_t		= VTaskGraph< VTaskProcessor >;
 		using Allocator_t		= LinearAllocator<>;
 		using Statistic_t		= IFrameGraph::Statistics;
+		using Debugger_t		= UniquePtr< VLocalDebugger >;
 
 		using Resource_t		= VCmdBatch::Resource;
 		using ResourceMap_t		= VCmdBatch::ResourceMap_t;
@@ -65,14 +67,14 @@ namespace FG
 		Allocator_t				_mainAllocator;
 		TaskGraph_t				_taskGraph;
 		Statistic_t				_statistic;
-		EQueueUsageBits			_currUsage			= Default;
+		EQueueUsage				_currUsage			= Default;
 		VCmdBatchPtr			_batch;
 
 		VFrameGraph &			_instance;
 		VBarrierManager			_barrierMngr;
 		VPipelineCache			_pipelineCache;
-		VDescriptorManager		_descriptorMngr;
 		VShaderDebugger			_shaderDebugger;
+		Debugger_t				_debugger;
 
 		struct {
 			ResourceMap_t			resourceMap;
@@ -100,6 +102,7 @@ namespace FG
 		EBufferUsage			_hostWritebleBufferUsage	= Default;
 		
 		PerQueueArray_t			_perQueue;
+		StaticString<32>		_dbgName;
 
 		RaceConditionCheck		_rcCheck;
 
@@ -113,14 +116,17 @@ namespace FG
 		void Deinitialize ();
 
 		bool Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch);
-		bool Submit ();
+		bool Execute ();
 
 		void SignalSemaphore (VkSemaphore sem);
 		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
 
-		//RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
+		RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
 		bool		AddExternalCommands (const ExternalCmdBatch_t &) override;
 		bool		AddDependency (const CommandBuffer &) override;
+
+		void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate);
+		void		AcquireBuffer (RawBufferID id, bool makeMutable);
 
 
 		// tasks //
@@ -169,20 +175,21 @@ namespace FG
 		void						ReleaseResource (_fg_hidden_::ResourceID<UID> id);
 
 		ND_ VLogicalRenderPass*		ToLocal (LogicalPassID id);
-		ND_ VLocalBuffer const*		ToLocal (RawBufferID id, bool acquireRef = false);
-		ND_ VLocalImage  const*		ToLocal (RawImageID id, bool acquireRef = false);
-		ND_ VLocalRTGeometry const*	ToLocal (RawRTGeometryID id, bool acquireRef = false);
-		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id, bool acquireRef = false);
+		ND_ VLocalBuffer const*		ToLocal (RawBufferID id);
+		ND_ VLocalImage  const*		ToLocal (RawImageID id);
+		ND_ VLocalRTGeometry const*	ToLocal (RawRTGeometryID id);
+		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id);
 
 		
 		ND_ bool					IsRecording ()				const	{ EXLOCK( _rcCheck );  return bool(_batch); }
+		ND_ StringView				GetName ()					const	{ EXLOCK( _rcCheck );  return _dbgName; }
 		ND_ VCmdBatchPtr const&		GetBatch ()					const	{ EXLOCK( _rcCheck );  return _batch; }
 		ND_ Allocator_t &			GetAllocator ()						{ EXLOCK( _rcCheck );  return _mainAllocator; }
 		ND_ Statistic_t &			EditStatistic ()					{ EXLOCK( _rcCheck );  return _statistic; }
 		ND_ VPipelineCache &		GetPipelineCache ()					{ EXLOCK( _rcCheck );  return _pipelineCache; }
 		ND_ VBarrierManager &		GetBarrierManager ()				{ EXLOCK( _rcCheck );  return _barrierMngr; }
 		ND_ VShaderDebugger &		GetShaderDebugger ()				{ EXLOCK( _rcCheck );  return _shaderDebugger; }
-		ND_ VDescriptorManager &	GetDescriptorManager ()				{ EXLOCK( _rcCheck );  return _descriptorMngr; }
+		ND_ Ptr<VLocalDebugger>		GetDebugger ()						{ EXLOCK( _rcCheck );  return _debugger.get(); }
 		ND_ VDevice const&			GetDevice ()				const	{ return _instance.GetDevice(); }
 		ND_ VFrameGraph &			GetInstance ()				const	{ return _instance; }
 		ND_ VResourceManager &		GetResourceManager ()		const	{ return _instance.GetResourceManager(); }
@@ -209,10 +216,10 @@ namespace FG
 		ND_ BytesU  _GetMaxWritableStoregeSize () const		{ return _hostWritableBufferSize / 4; }
 		ND_ BytesU  _GetMaxReadableStorageSize () const		{ return _hostReadableBufferSize / 4; }
 		
-		Task  _AddUpdateBufferTask (const UpdateBuffer &task);
-		Task  _AddUpdateImageTask (const UpdateImage &task);
-		Task  _AddReadBufferTask (const ReadBuffer &task);
-		Task  _AddReadImageTask (const ReadImage &task);
+		ND_ Task  _AddUpdateBufferTask (const UpdateBuffer &);
+		ND_ Task  _AddUpdateImageTask (const UpdateImage &);
+		ND_ Task  _AddReadBufferTask (const ReadBuffer &);
+		ND_ Task  _AddReadImageTask (const ReadImage &);
 
 
 	// task processor //
@@ -222,9 +229,9 @@ namespace FG
 
 	// resource manager //
 		template <typename ID, typename T, typename GtoL>
-		ND_ T const*  _ToLocal (ID id, INOUT PoolTmpl<T> &, INOUT GtoL &, INOUT uint &counter, bool incRef, StringView msg);
+		ND_ T const*  _ToLocal (ID id, INOUT PoolTmpl<T> &, INOUT GtoL &, INOUT uint &counter, StringView msg);
 
-		void  _FlushLocalResourceStates (ExeOrderIndex, ExeOrderIndex, VBarrierManager &, Ptr<VFrameGraphDebugger>);
+		void  _FlushLocalResourceStates (ExeOrderIndex, ExeOrderIndex, VBarrierManager &, Ptr<VLocalDebugger>);
 		void  _ResetLocalRemaping ();
 	};
 
@@ -237,9 +244,9 @@ namespace FG
 	template <uint UID>
 	inline auto const*  VCommandBuffer::AcquireTemporary (_fg_hidden_::ResourceID<UID> id)
 	{
-		_rm.resourceMap.insert(Resource_t{ id });
+		auto[iter, inserted] = _rm.resourceMap.insert(Resource_t{ id });
 
-		return _instance.GetResourceManager().GetResource( id );
+		return _instance.GetResourceManager().GetResource( id, inserted );
 	}
 		
 /*

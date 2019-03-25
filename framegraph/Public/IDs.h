@@ -101,7 +101,7 @@ namespace _fg_hidden_
 
 		STATIC_ASSERT( sizeof(_value) == (sizeof(Index_t) + sizeof(InstanceID_t)) );
 
-		static constexpr Value_t	_IndexMask	= sizeof(Index_t)*8 - 1;
+		static constexpr Index_t	_IndexMask	= (1 << sizeof(Index_t)*8) - 1;
 		static constexpr Value_t	_InstOffset	= sizeof(Index_t)*8;
 
 

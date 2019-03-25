@@ -121,7 +121,7 @@ void main ()
 
 		// frame 1
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 			CHECK_ERR( cmd );
 
 			resources.BindImage( UniformID("un_Output"), dst_image );
@@ -147,7 +147,7 @@ void main ()
 
 		// frame 2
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 			CHECK_ERR( cmd );
 
 			Task	t_build_geom= cmd->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
@@ -160,7 +160,7 @@ void main ()
 
 		// frame 3
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 			CHECK_ERR( cmd );
 
 			Task	t_build_geom= cmd->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
@@ -172,10 +172,10 @@ void main ()
 			CHECK_ERR( _frameGraph->Execute( cmd ));
 		}
 		
+		CHECK_ERR( _frameGraph->WaitIdle() );
+
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		//CHECK_ERR( Visualize( TEST_NAME ));
-
-		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 		

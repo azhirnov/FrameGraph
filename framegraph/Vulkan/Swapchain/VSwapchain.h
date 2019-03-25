@@ -15,7 +15,8 @@ namespace FG
 	{
 	// types
 	private:
-		using SwapchainImages_t		= FixedArray< ImageID, 8 >;
+		static constexpr uint		MaxImages = 8;
+		using SwapchainImages_t		= FixedArray< ImageID, MaxImages >;
 
 
 	// variables
@@ -26,7 +27,7 @@ namespace FG
 
 		VkSwapchainKHR					_vkSwapchain		= VK_NULL_HANDLE;
 		VkSurfaceKHR					_vkSurface			= VK_NULL_HANDLE;
-		uint							_currImageIndex		= UMax;
+		mutable uint					_currImageIndex		= UMax;
 		VkSemaphore						_imageAvailable		= VK_NULL_HANDLE;
 		VkSemaphore						_renderFinished		= VK_NULL_HANDLE;
 
@@ -39,6 +40,8 @@ namespace FG
 		VkImageUsageFlags				_colorImageUsage	= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 		EQueueFamilyMask				_queueFamilyMask	= Default;
+		
+		RWRaceConditionCheck			_rcCheck;
 
 
 	// methods
@@ -49,8 +52,10 @@ namespace FG
 		bool Create (VFrameGraph &, const VulkanSwapchainCreateInfo &, StringView dbgName);
 		void Destroy (VResourceManager &);
 
-		bool Acquire (const VDevice &dev, ESwapchainImage type, OUT RawImageID &outImageId);
-		bool Present (const VDevice &dev, RawImageID);
+		bool Acquire (VCommandBuffer &, ESwapchainImage type, OUT RawImageID &outImageId) const;
+		bool Present (const VDevice &) const;
+
+		ND_ VDeviceQueueInfoPtr	GetPresentQueue ()	const	{ SHAREDLOCK( _rcCheck );  return _presentQueue; }
 
 
 	private:
@@ -60,13 +65,7 @@ namespace FG
 
 		bool _CreateSemaphores (const VDevice &dev);
 		bool _ChoosePresentQueue (const VFrameGraph &);
-		/*
-		bool _IsSupported (const VkSurfaceCapabilities2KHR &surfaceCaps, const uint2 &surfaceSize, VkPresentModeKHR presentMode,
-						   VkFormat colorFormat, INOUT VkImageUsageFlags &colorImageUsage) const;
-
-		bool _GetImageUsage (OUT VkImageUsageFlags &imageUsage,	VkPresentModeKHR presentMode,
-							 VkFormat colorFormat, const VkSurfaceCapabilities2KHR &surfaceCaps) const;
-		*/
+		
 		ND_ bool _IsImageAcquired () const;
 	};
 

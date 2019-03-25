@@ -115,7 +115,7 @@ void main ()
 		};
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 		CHECK_ERR( cmd );
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
@@ -131,11 +131,10 @@ void main ()
 		FG_UNUSED( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
+		CHECK_ERR( _frameGraph->WaitIdle() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
-
-		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 

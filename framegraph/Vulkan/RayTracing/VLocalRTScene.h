@@ -62,8 +62,8 @@ namespace FG
 		void Destroy (VResourceManager &, ExeOrderIndex, uint);
 		
 		void AddPendingState (const SceneState &state) const;
-		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
-		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
+		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const;
+		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const;
 
 		void SetGeometryInstances (Tuple<InstanceID, RTGeometryID, uint> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const;
 		

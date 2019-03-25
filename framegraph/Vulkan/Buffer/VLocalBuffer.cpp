@@ -4,6 +4,7 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
+#include "VLocalDebugger.h"
 
 namespace FG
 {
@@ -220,6 +221,20 @@ namespace FG
 
 		return iter;
 	}
+	
+/*
+=================================================
+	SetInitialState
+=================================================
+*/
+	void VLocalBuffer::SetInitialState (bool immutable) const
+	{
+		ASSERT( _pendingAccesses.empty() );
+		ASSERT( _accessForWrite.empty() );
+		ASSERT( _accessForRead.empty() );
+
+		_isImmutable = immutable;
+	}
 
 /*
 =================================================
@@ -282,7 +297,7 @@ namespace FG
 	ResetState
 =================================================
 */
-	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
+	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const
 	{
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
@@ -314,7 +329,7 @@ namespace FG
 	CommitBarrier
 =================================================
 */
-	void VLocalBuffer::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
+	void VLocalBuffer::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const
 	{
 		if ( _isImmutable )
 			return;
@@ -339,8 +354,9 @@ namespace FG
 				dst_stages |= dst.stages;
 				barrierMngr.AddBufferBarrier( src.stages, dst.stages, 0, barrier );
 
-				//if ( debugger )
-				//	debugger->AddBufferBarrier( _bufferData, src.index, dst.index, src.stages, dst.stages, 0, barrier );
+				if ( debugger ) {
+					debugger->AddBufferBarrier( _bufferData, src.index, dst.index, src.stages, dst.stages, 0, barrier );
+				}
 			}
 		};
 

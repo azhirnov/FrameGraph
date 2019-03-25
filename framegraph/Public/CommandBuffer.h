@@ -7,6 +7,7 @@
 #include "framegraph/Public/DrawCommandBuffer.h"
 #include "framegraph/Public/RenderPassDesc.h"
 #include "framegraph/Public/CommandBufferPtr.h"
+#include "framegraph/Public/FGEnums.h"
 
 namespace FG
 {
@@ -17,27 +18,23 @@ namespace FG
 	
 	struct CommandBufferDesc
 	{
-		EQueueUsage		queue						= EQueueUsage::Graphics;
-		BytesU			hostWritableBufferPageSize	= 256_Mb;
-		BytesU			hostReadableBufferPageSize	= 256_Mb;
-		EBufferUsage	hostWritebleBufferUsage		= EBufferUsage::TransferSrc;
-		bool			immutableResources			= true;		// all resources except render targets and storage buffer/image will be immutable
-		bool			submitImmediately			= true;		// set 'false' to merge commands into some betches
-		StringView		name;
+		EQueueType				queueType					= EQueueType::Graphics;
+		BytesU					hostWritableBufferSize		= 256_Mb;
+		BytesU					hostReadableBufferSize		= 256_Mb;
+		EBufferUsage			hostWritebleBufferUsage		= EBufferUsage::TransferSrc;
+		//bool					immutableResources			= true;		// all resources except render targets and storage buffer/image will be immutable
+		//bool					submitImmediately			= true;		// set 'false' to merge commands into some betches
+		ECompilationDebugFlags	debugFlags					= Default;
+		StringView				name;
+		
+				 CommandBufferDesc () {}
+		explicit CommandBufferDesc (EQueueType type) : queueType{type} {}
 
-		CommandBufferDesc () {}
-
-		explicit
-		CommandBufferDesc (EQueueUsage		queue,
-						   BytesU			hostWritableBufferPageSize	= 256_Mb,
-						   EBufferUsage		hostWritebleBufferUsage		= EBufferUsage::TransferSrc,
-						   BytesU			hostReadableBufferPageSize	= 256_Mb,
-						   StringView		dbgName						= Default) :
-			queue{queue}, hostWritableBufferPageSize{hostWritableBufferPageSize},
-			hostReadableBufferPageSize{hostReadableBufferPageSize},
-			hostWritebleBufferUsage{hostWritebleBufferUsage},
-			name{dbgName}
-		{}
+		CommandBufferDesc&  SetHostWritableBufferSize (BytesU value)		{ hostWritableBufferSize = value;  return *this; }
+		CommandBufferDesc&  SetHostReadableBufferSize (BytesU value)		{ hostReadableBufferSize = value;  return *this; }
+		CommandBufferDesc&  SetHostWritableBufferUsage (EBufferUsage value)	{ hostWritebleBufferUsage = value;  return *this; }
+		CommandBufferDesc&  SetDebugFlags (ECompilationDebugFlags value)	{ debugFlags = value;  return *this; }
+		CommandBufferDesc&  SetDebugName (StringView value)					{ name = value;  return *this; }
 	};
 
 
@@ -55,9 +52,12 @@ namespace FG
 
 	// interface
 	public:
-		//ND_ virtual RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) = 0;
+		ND_ virtual RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type = ESwapchainImage::Primary) = 0;
 			virtual bool		AddExternalCommands (const ExternalCmdBatch_t &) = 0;
 			virtual bool		AddDependency (const CommandBuffer &) = 0;
+
+			virtual void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate) = 0;
+			virtual void		AcquireBuffer (RawBufferID id, bool makeMutable) = 0;
 
 		// tasks //
 		ND_ virtual Task		AddTask (const SubmitRenderPass &) = 0;

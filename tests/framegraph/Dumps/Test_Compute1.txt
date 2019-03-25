@@ -1,6 +1,5 @@
-SubBatch {
-	batch:         "main"
-	indexInBatch:  0
+CommandBuffer {
+	name:      ""
 	Image {
 		name:         "MyImage_0"
 		iamgeType:    Image2D

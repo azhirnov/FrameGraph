@@ -4,6 +4,7 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
+#include "VLocalDebugger.h"
 
 namespace FG
 {
@@ -184,6 +185,27 @@ namespace FG
 			arr.insert( iter, barrier );
 		}
 	}
+	
+/*
+=================================================
+	SetInitialState
+=================================================
+*/
+	void VLocalImage::SetInitialState (bool immutable, bool invalidate) const
+	{
+		ASSERT( _accessForReadWrite.size() == 1 );
+		ASSERT( _accessForReadWrite.front().stages == VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
+
+		_isImmutable = immutable;
+
+		if ( invalidate )
+		{
+			// must be mutable to allow image layout transition
+			ASSERT( not _isImmutable );
+
+			_accessForReadWrite.front().layout = VK_IMAGE_LAYOUT_UNDEFINED;
+		}
+	}
 
 /*
 =================================================
@@ -282,7 +304,7 @@ namespace FG
 	ResetState
 =================================================
 */
-	void VLocalImage::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
+	void VLocalImage::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const
 	{
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
@@ -313,7 +335,7 @@ namespace FG
 	CommitBarrier
 =================================================
 */
-	void VLocalImage::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
+	void VLocalImage::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const
 	{
 		VkPipelineStageFlags	dst_stages = 0;
 
@@ -355,8 +377,9 @@ namespace FG
 					dst_stages |= pending.stages;
 					barrierMngr.AddImageBarrier( iter->stages, pending.stages, 0, barrier );
 
-					//if ( debugger )
-					//	debugger->AddImageBarrier( _imageData, iter->index, pending.index, iter->stages, pending.stages, 0, barrier );
+					if ( debugger ) {
+						debugger->AddImageBarrier( _imageData, iter->index, pending.index, iter->stages, pending.stages, 0, barrier );
+					}
 				}
 			}
 

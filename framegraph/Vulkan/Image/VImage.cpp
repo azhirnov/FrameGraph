@@ -85,10 +85,13 @@ namespace FG
 	_ChooseDefaultLayout
 =================================================
 */
-	ND_ static VkImageLayout  ChooseDefaultLayout (EImageUsage usage)
+	ND_ static VkImageLayout  ChooseDefaultLayout (EImageUsage usage, VkImageLayout defaultLayout)
 	{
 		VkImageLayout	result = VK_IMAGE_LAYOUT_GENERAL;
 
+		if ( defaultLayout != VK_IMAGE_LAYOUT_MAX_ENUM )
+			result = defaultLayout;
+		else
 		// render target layouts has high priority to avoid unnecessary decompressions
 		if ( EnumEq( usage, EImageUsage::ColorAttachment ) )
 			result = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -145,7 +148,7 @@ namespace FG
 =================================================
 */
 	bool VImage::Create (VResourceManager &resMngr, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-						 EQueueFamilyMask queueFamilyMask, StringView dbgName)
+						 EQueueFamilyMask queueFamilyMask, VkImageLayout defaultLayout, StringView dbgName)
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( _image == VK_NULL_HANDLE );
@@ -221,7 +224,7 @@ namespace FG
 
 		_readAccessMask		= GetAllImageAccessMasks( info.usage );
 		_aspectMask			= ChooseAspect( _desc.format );
-		_defaultLayout		= ChooseDefaultLayout( _desc.usage );
+		_defaultLayout		= ChooseDefaultLayout( _desc.usage, defaultLayout );
 		_queueFamilyMask	= queueFamilyMask;
 		_debugName			= dbgName;
 
@@ -264,7 +267,7 @@ namespace FG
 		}
 
 		_aspectMask		= ChooseAspect( _desc.format );
-		_defaultLayout	= ChooseDefaultLayout( _desc.usage );
+		_defaultLayout	= ChooseDefaultLayout( _desc.usage, BitCast<VkImageLayout>(desc.defaultLayout) );
 		_debugName		= dbgName;
 		_onRelease		= std::move(onRelease);
 

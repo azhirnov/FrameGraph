@@ -12,7 +12,7 @@ CommandBuffer {
 		barriers = {
 				ImageMemoryBarrier {
 					srcTask:         <initial>
-					dstTask:         CopyImage (#3)
+					dstTask:         ClearColorImage (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
 					dependencyFlags: 
@@ -27,7 +27,23 @@ CommandBuffer {
 					layerCount:      1
 				}
 				ImageMemoryBarrier {
-					srcTask:         CopyImage (#3)
+					srcTask:         ClearColorImage (#2)
+					dstTask:         CopyImage (#4)
+					srcStageMask:    Transfer
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   TransferWrite
+					oldLayout:       TransferDstOptimal
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         CopyImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
 					dstStageMask:    AllCommands
@@ -57,7 +73,7 @@ CommandBuffer {
 		barriers = {
 				ImageMemoryBarrier {
 					srcTask:         <initial>
-					dstTask:         UpdateImage (#2)
+					dstTask:         UpdateImage (#3)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
 					dependencyFlags: 
@@ -72,8 +88,8 @@ CommandBuffer {
 					layerCount:      1
 				}
 				ImageMemoryBarrier {
-					srcTask:         UpdateImage (#2)
-					dstTask:         CopyImage (#3)
+					srcTask:         UpdateImage (#3)
+					dstTask:         CopyImage (#4)
 					srcStageMask:    Transfer
 					dstStageMask:    Transfer
 					dependencyFlags: 
@@ -88,7 +104,7 @@ CommandBuffer {
 					layerCount:      1
 				}
 				ImageMemoryBarrier {
-					srcTask:         CopyImage (#3)
+					srcTask:         CopyImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
 					dstStageMask:    AllCommands
@@ -108,9 +124,24 @@ CommandBuffer {
 
 	-----------------------------------------------------------
 	Task {
-		name:    "UpdateImage (#2)"
+		name:    "ClearColorImage (#2)"
 		input =  {  }
-		output = { CopyImage (#3) }
+		output = { CopyImage (#4) }
+		resource_usage = {
+			ImageUsage {
+				name:           "DstImage"
+				usage:          Transfer-W
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "UpdateImage (#3)"
+		input =  {  }
+		output = { CopyImage (#4) }
 		resource_usage = {
 			BufferUsage {
 				name:     "HostWriteBuffer"
@@ -129,8 +160,8 @@ CommandBuffer {
 		}
 	}
 	Task {
-		name:    "CopyImage (#3)"
-		input =  { UpdateImage (#2) }
+		name:    "CopyImage (#4)"
+		input =  { UpdateImage (#3), ClearColorImage (#2) }
 		output = {  }
 		resource_usage = {
 			ImageUsage {

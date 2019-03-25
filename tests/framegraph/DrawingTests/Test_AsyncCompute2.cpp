@@ -83,7 +83,7 @@ void main ()
 		const uint2		view_size	= {800, 600};
 		ImageDesc		image_desc	{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 									  EImageUsage::ColorAttachment | EImageUsage::TransferSrc | EImageUsage::Storage };
-						image_desc.queues = EQueueUsageBits::Graphics | EQueueUsageBits::AsyncCompute;
+						image_desc.queues = EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
 
 		ImageID			image1		= _frameGraph->CreateImage( image_desc, Default, "RenderTarget" );
 		ImageID			image2		= _frameGraph->CreateImage( image_desc, Default, "RenderTarget" );
@@ -131,11 +131,10 @@ void main ()
 
 		
 		// frame 1
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( ECompilationDebugFlags::Default ));
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd1} );
+		CHECK_ERR( cmd1 and cmd2 );
 		{
-			CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::Graphics });
-			CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::AsyncCompute }, {cmd1} );
-			CHECK_ERR( cmd1 and cmd2 );
-
 			// graphics queue
 			{
 				LogicalPassID	render_pass	= cmd1->CreateRenderPass( RenderPassDesc( view_size )
@@ -162,71 +161,69 @@ void main ()
 		}
 		
 		// frame 2
+		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( ECompilationDebugFlags::Default ));
+		CommandBuffer	cmd4 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd3} );
+		CHECK_ERR( cmd3 and cmd4 );
 		{
-			CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::Graphics });
-			CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::AsyncCompute }, {cmd1} );
-			CHECK_ERR( cmd1 and cmd2 );
-
 			// graphics queue
 			{
-				LogicalPassID	render_pass	= cmd1->CreateRenderPass( RenderPassDesc( view_size )
+				LogicalPassID	render_pass	= cmd3->CreateRenderPass( RenderPassDesc( view_size )
 														.AddTarget( RenderTargetID(0), image2, RGBA32f(1.0f), EAttachmentStoreOp::Store )
 														.AddViewport( view_size ) );
 		
-				cmd1->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
+				cmd3->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
-				Task	t_draw	= cmd1->AddTask( SubmitRenderPass{ render_pass });
+				Task	t_draw	= cmd3->AddTask( SubmitRenderPass{ render_pass });
 				FG_UNUSED( t_draw );
 
-				CHECK_ERR( _frameGraph->Execute( cmd1 ));
+				CHECK_ERR( _frameGraph->Execute( cmd3 ));
 			}
 
 			// compute queue
 			{
 				resources.BindImage( UniformID("un_Image"), image2 );
-				Task	t_comp	= cmd2->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
-				Task	t_read	= cmd2->AddTask( ReadImage().SetImage( image2, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
+				Task	t_comp	= cmd4->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
+				Task	t_read	= cmd4->AddTask( ReadImage().SetImage( image2, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 				FG_UNUSED( t_read );
 
-				CHECK_ERR( _frameGraph->Execute( cmd2 ));
+				CHECK_ERR( _frameGraph->Execute( cmd4 ));
 			}
 		}
 		
 		// frame 3
+		CommandBuffer	cmd5 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd2} );
+		CommandBuffer	cmd6 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd5} );
+		CHECK_ERR( cmd5 and cmd6 );
 		{
-			CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::Graphics });
-			CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueUsage::AsyncCompute }, {cmd1} );
-			CHECK_ERR( cmd1 and cmd2 );
-
 			// graphics queue
 			{
-				LogicalPassID	render_pass	= cmd1->CreateRenderPass( RenderPassDesc( view_size )
+				LogicalPassID	render_pass	= cmd5->CreateRenderPass( RenderPassDesc( view_size )
 														.AddTarget( RenderTargetID(0), image1, RGBA32f(1.0f), EAttachmentStoreOp::Store )
 														.AddViewport( view_size ) );
 		
-				cmd1->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
+				cmd5->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
-				Task	t_draw	= cmd1->AddTask( SubmitRenderPass{ render_pass });
+				Task	t_draw	= cmd5->AddTask( SubmitRenderPass{ render_pass });
 				FG_UNUSED( t_draw );
 
-				CHECK_ERR( _frameGraph->Execute( cmd1 ));
+				CHECK_ERR( _frameGraph->Execute( cmd5 ));
 			}
 
 			// compute queue
 			{
 				resources.BindImage( UniformID("un_Image"), image1 );
-				Task	t_comp	= cmd2->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
-				Task	t_read	= cmd2->AddTask( ReadImage().SetImage( image1, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
+				Task	t_comp	= cmd6->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
+				Task	t_read	= cmd6->AddTask( ReadImage().SetImage( image1, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 				FG_UNUSED( t_read );
 
-				CHECK_ERR( _frameGraph->Execute( cmd2 ));
+				CHECK_ERR( _frameGraph->Execute( cmd6 ));
 			}
 		}
 
+		CHECK_ERR( _frameGraph->WaitIdle() );
+
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
-
-		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 

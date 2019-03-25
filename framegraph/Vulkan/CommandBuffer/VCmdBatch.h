@@ -58,10 +58,10 @@ namespace FG
 		// constants
 			static constexpr uint		IndexOffset		= 0;
 			static constexpr uint		InstanceOffset	= sizeof(_fg_hidden_::ResourceID<0>::Index_t) * 8;
-			static constexpr uint		IDOffset		= sizeof(_fg_hidden_::ResourceID<0>::InstanceID_t) * 8;
-			static constexpr uint64_t	IndexMask		= uint64_t(InstanceOffset) - 1;
-			static constexpr uint64_t	InstanceMask	= (uint64_t(IDOffset) - 1) & ~IndexMask;
-			static constexpr uint64_t	IDMask			= 0xFF << IDOffset;
+			static constexpr uint		IDOffset		= InstanceOffset + sizeof(_fg_hidden_::ResourceID<0>::InstanceID_t) * 8;
+			static constexpr uint64_t	IndexMask		= (1ull << InstanceOffset) - 1;
+			static constexpr uint64_t	InstanceMask	= ((1ull << IDOffset) - 1) & ~IndexMask;
+			static constexpr uint64_t	IDMask			= 0xFFull << IDOffset;
 			using Index_t				= RawImageID::Index_t;
 			using InstanceID_t			= RawImageID::InstanceID_t;
 
@@ -173,6 +173,9 @@ namespace FG
 		static constexpr uint	MaxDependencies	= 16;
 		using Dependencies_t	= FixedArray< VCmdBatchPtr, MaxDependencies >;
 
+		static constexpr uint	MaxSwapchains = 8;
+		using Swapchains_t		= FixedArray< VSwapchain const*, MaxSwapchains >;
+
 
 	public:
 		enum class EState : uint
@@ -189,7 +192,7 @@ namespace FG
 	private:
 		std::atomic<EState>						_state;
 		const VDeviceQueueInfoPtr				_queue;
-		const EQueueUsage						_usage;
+		const EQueueType						_queueType;
 
 		Dependencies_t							_dependencies;
 		
@@ -207,21 +210,25 @@ namespace FG
 
 		// resources
 		ResourceMap_t							_resourcesToRelease;
+		Swapchains_t							_swapchains;
+
+		// debug
+		String									_debugDump;
 		
 		VSubmittedPtr							_submitted;
 
 
 	// methods
 	public:
-		VCmdBatch (VDeviceQueueInfoPtr queue, EQueueUsage usage, ArrayView<CommandBuffer> dependsOn);
+		VCmdBatch (VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn);
 		~VCmdBatch ();
 
 		void Release () override;
 		
 		bool OnBacked (INOUT ResourceMap_t &);
 		bool OnReadyToSubmit ();
-		bool OnSubmit (OUT VkSubmitInfo &, const VSubmittedPtr &);
-		bool OnComplete (VResourceManager &);
+		bool OnSubmit (OUT VkSubmitInfo &, OUT Appendable<VSwapchain const*>, const VSubmittedPtr &);
+		bool OnComplete (VResourceManager &, VDebugger &);
 
 		void SignalSemaphore (VkSemaphore sem);
 		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
@@ -229,7 +236,7 @@ namespace FG
 		void AddDependency (VCmdBatch *);
 
 		ND_ VDeviceQueueInfoPtr		GetQueue ()			const	{ return _queue; }
-		ND_ EQueueUsage				GetQueueUsage ()	const	{ return _usage; }
+		ND_ EQueueType				GetQueueType ()		const	{ return _queueType; }
 		ND_ EState					GetState ()					{ return _state.load( memory_order_relaxed ); }
 		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()	const	{ return _dependencies; }
 		ND_ VSubmittedPtr const&	GetSubmitted ()		const	{ return _submitted; }		// TODO: rename

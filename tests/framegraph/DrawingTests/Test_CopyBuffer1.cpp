@@ -36,7 +36,7 @@ namespace FG
 			}
 		};
 
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 		CHECK_ERR( cmd );
 
 		Task	t_update	= cmd->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( src_data ));
@@ -45,15 +45,16 @@ namespace FG
 		FG_UNUSED( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
+		
+		// after execution 'src_data' was copied to 'src_buffer', 'src_buffer' copied to 'dst_buffer', 'dst_buffer' copied to staging buffer...
+		CHECK_ERR( not cb_was_called );
+
+		// all staging buffers will be synchronized, all 'ReadBuffer' callbacks will be called.
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
-
-		// after execution 'src_data' was copied to 'src_buffer', 'src_buffer' copied to 'dst_buffer', 'dst_buffer' copied to staging buffer...
-		CHECK_ERR( not cb_was_called );
 		
-		// all staging buffers will be synchronized, all 'ReadBuffer' callbacks will be called.
-		CHECK_ERR( _frameGraph->WaitIdle() );
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 

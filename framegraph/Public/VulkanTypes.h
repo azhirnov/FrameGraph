@@ -107,17 +107,18 @@ namespace FG
 	//
 	struct VulkanImageDesc
 	{
-		ImageVk_t				image		= {};
-		ImageTypeVk_t			imageType	= {};
-		ImageFlagsVk_t			flags		= {};
-		ImageUsageVk_t			usage		= {};
-		FormatVk_t				format		= {};
-		ImageLayoutVk_t			layout		= {};		// current layout
-		SampleCountFlagBitsVk_t	samples		= {};
+		ImageVk_t				image			= {};
+		ImageTypeVk_t			imageType		= {};
+		ImageFlagsVk_t			flags			= {};
+		ImageUsageVk_t			usage			= {};
+		FormatVk_t				format			= {};
+		ImageLayoutVk_t			layout			= {};		// current layout
+		ImageLayoutVk_t			defaultLayout	= ImageLayoutVk_t(0x7FFFFFFF);
+		SampleCountFlagBitsVk_t	samples			= {};
 		uint3					dimension;
-		uint					arrayLayers	= 0;
-		uint					maxLevels	= 0;
-		uint					queueFamily	= UMax;		// queue family that owns image, you must specify this correctly
+		uint					arrayLayers		= 0;
+		uint					maxLevels		= 0;
+		uint					queueFamily		= UMax;	// queue family that owns image, you must specify this correctly
 														// if image created with exclusive sharing mode and you need to
 														// keep current content of the image, otherwise keep default value.
 

@@ -96,7 +96,7 @@ SubBatch {
 					dependencyFlags: 
 					srcAccessMask:   DepthStencilAttachmentRead
 					dstAccessMask:   DepthStencilAttachmentRead
-					oldLayout:       DepthStencilReadOnlyOptimal
+					oldLayout:       Undefined
 					newLayout:       DepthStencilAttachmentOptimal
 					aspectMask:      Depth
 					baseMipLevel:    0

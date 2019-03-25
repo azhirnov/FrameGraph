@@ -25,21 +25,21 @@ namespace FG
 		ImageLayer			arrayLayers;
 		MipmapLevel			maxLevel;
 		MultiSamples		samples;	// if > 1 then enabled multisampling
-		EQueueUsageBits		queues		= Default;
+		EQueueUsage			queues		= Default;
 		//bool				isLogical	= false;
 		bool				isExternal	= false;
 
 	// methods
 		ImageDesc () {}
 		
-		ImageDesc (EImage			imageType,
-				   const uint3 &	dimension,
-				   EPixelFormat		format,
-				   EImageUsage		usage,
-				   ImageLayer		arrayLayers	= Default,
-				   MipmapLevel		maxLevel	= Default,
-				   MultiSamples		samples		= Default,
-				   EQueueUsageBits	queues		= Default);
+		ImageDesc (EImage		imageType,
+				   const uint3 &dimension,
+				   EPixelFormat	format,
+				   EImageUsage	usage,
+				   ImageLayer	arrayLayers	= Default,
+				   MipmapLevel	maxLevel	= Default,
+				   MultiSamples	samples		= Default,
+				   EQueueUsage	queues		= Default);
 
 		void Validate ();
 	};

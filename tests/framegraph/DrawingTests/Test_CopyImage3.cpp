@@ -62,8 +62,8 @@ namespace FG
 			}
 		};
 		
-		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{} );
-		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}, {cmd1} );
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd1} );
 		CHECK_ERR( cmd1 and cmd2 );
 
 		// thread 1
@@ -72,11 +72,12 @@ namespace FG
 			auto	data		= ArrayView{ src_data.data(), src_data.size()/2 };
 
 			Task	t_fill		= cmd1->AddTask( ClearColorImage{}.SetImage( dst_image ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{ 1.0f }) );
-			Task	t_update	= cmd1->AddTask( UpdateImage{}.SetImage( src_image ).SetData( data, dim ) );
-			Task	t_copy		= cmd1->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update, t_fill ) );
+			Task	t_update	= cmd1->AddTask( UpdateImage{}.SetImage( src_image ).SetData( data, dim ));
+			Task	t_copy		= cmd1->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update, t_fill ));
 			FG_UNUSED( t_copy );
 
 			CHECK_ERR( _frameGraph->Execute( cmd1 ));
+			CHECK_ERR( _frameGraph->Flush() );
 		}
 		
 		// thread 1 again
@@ -85,20 +86,20 @@ namespace FG
 			int2	offset		{ 0, int(src_dim.y/2) };
 			auto	data		= ArrayView{ src_data.data() + src_data.size()/2, src_data.size()/2 };
 
-			Task	t_update	= cmd2->AddTask( UpdateImage{}.SetImage( src_image, offset ).SetData( data, dim ) );
-			Task	t_copy		= cmd2->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ) );
-			Task	t_read		= cmd2->AddTask( ReadImage{}.SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ) );
+			Task	t_update	= cmd2->AddTask( UpdateImage{}.SetImage( src_image, offset ).SetData( data, dim ));
+			Task	t_copy		= cmd2->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ));
+			Task	t_read		= cmd2->AddTask( ReadImage{}.SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ));
 			FG_UNUSED( t_read );
 		
 			CHECK_ERR( _frameGraph->Execute( cmd2 ));
+			CHECK_ERR( _frameGraph->Flush() );
 		}
+		
+		CHECK_ERR( not cb_was_called );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
-
-		CHECK_ERR( not cb_was_called );
-		
-		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );

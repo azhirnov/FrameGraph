@@ -1,6 +1,5 @@
-SubBatch {
-	batch:         "main"
-	indexInBatch:  0
+CommandBuffer {
+	name:      ""
 	Buffer {
 		name:    "DstBuffer"
 		size:    512 b
@@ -92,9 +91,14 @@ SubBatch {
 }
 ===============================================================
 
-SubBatch {
-	batch:         "main"
-	indexInBatch:  2
+CommandBuffer {
+	name:      ""
+	-----------------------------------------------------------
+}
+===============================================================
+
+CommandBuffer {
+	name:      ""
 	Buffer {
 		name:    "DstBuffer"
 		size:    512 b

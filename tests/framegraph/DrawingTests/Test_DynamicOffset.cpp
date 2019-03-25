@@ -88,7 +88,7 @@ void main ()
 		};
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 		CHECK_ERR( cmd );
 		
 		resources.SetBufferBase( UniformID("UB"),  0_b );
@@ -104,12 +104,12 @@ void main ()
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		
+		CHECK_ERR( not cb_was_called );
+		CHECK_ERR( _frameGraph->WaitIdle() );
+		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 		
-		CHECK_ERR( not cb_was_called );
-		
-		CHECK_ERR( _frameGraph->WaitIdle() );
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 		

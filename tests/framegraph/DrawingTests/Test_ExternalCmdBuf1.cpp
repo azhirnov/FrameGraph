@@ -88,9 +88,9 @@ namespace FG
 		};
 		
 
-		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{} );
-		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}, {cmd1} );
-		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{}, {cmd2} );
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ) );
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd1} );
+		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd2} );
 		CHECK_ERR( cmd1 and cmd2 and cmd3 );
 
 		// thread 1
@@ -142,13 +142,13 @@ namespace FG
 			
 			CHECK_ERR( _frameGraph->Execute( cmd3 ));
 		}
+		
+		CHECK_ERR( not cb_was_called );
+		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
-
-		CHECK_ERR( not cb_was_called );
 		
-		CHECK_ERR( _frameGraph->WaitIdle() );
 		CHECK_ERR( cb_was_called );
 		CHECK_ERR( data_is_correct );
 

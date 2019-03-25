@@ -2,6 +2,7 @@
 
 #include "VSubmitted.h"
 #include "VDevice.h"
+#include "VResourceManager.h"
 
 namespace FG
 {
@@ -11,10 +12,10 @@ namespace FG
 	constructor
 =================================================
 */
-	VSubmitted::VSubmitted (EQueueUsage queue, ArrayView<VCmdBatchPtr> batches, ArrayView<VkSemaphore> semaphores, VkFence fence, ExeOrderIndex order) :
+	VSubmitted::VSubmitted (EQueueType queue, ArrayView<VCmdBatchPtr> batches, ArrayView<VkSemaphore> semaphores, VkFence fence, ExeOrderIndex order) :
 		_batches{ batches },		_semaphores{ semaphores },
 		_fence{ fence },			_submissionOrder{ order },
-		_usage{ queue }
+		_queueType{ queue }
 	{}
 	
 /*
@@ -34,16 +35,22 @@ namespace FG
 	_Release
 =================================================
 */
-	bool VSubmitted::_Release (VResourceManager &resMngr, OUT Array<VkSemaphore> &outSemaphores, OUT Array<VkFence> &outFences)
+	bool VSubmitted::_Release (VResourceManager &resMngr, VDebugger &debugger, OUT Array<VkSemaphore> &, OUT Array<VkFence> &outFences)
 	{
-		outSemaphores.insert( outSemaphores.end(), _semaphores.begin(), _semaphores.end() );
+		// because of bug on Nvidia
+		auto&	dev = resMngr.GetDevice();
+		for (auto& sem : _semaphores) {
+			dev.vkDestroySemaphore( dev.GetVkDevice(), sem, null );
+		}
+
+		//outSemaphores.insert( outSemaphores.end(), _semaphores.begin(), _semaphores.end() );
 		outFences.push_back( _fence );
 
 		_semaphores.clear();
 		_fence = VK_NULL_HANDLE;
 
 		for (auto& batch : _batches) {
-			batch->OnComplete( resMngr );
+			batch->OnComplete( resMngr, debugger );
 		}
 
 		_batches.clear();

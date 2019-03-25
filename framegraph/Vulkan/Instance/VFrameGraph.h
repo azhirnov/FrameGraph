@@ -6,7 +6,7 @@
 #include "VResourceManager.h"
 #include "VDevice.h"
 #include "VCmdBatch.h"
-#include <list>
+#include "VDebugger.h"
 
 namespace FG
 {
@@ -28,22 +28,26 @@ namespace FG
 		};
 		
 		using EBatchState		= VCmdBatch::EState;
-		using PerQueueSem_t		= StaticArray< VkSemaphore, uint(EQueueUsage::_Count) >;
+		using PerQueueSem_t		= StaticArray< VkSemaphore, uint(EQueueType::_Count) >;
 
 		struct QueueData
 		{
-			VDeviceQueueInfoPtr		ptr;
+			VDeviceQueueInfoPtr			ptr;
 
-			ExeOrderIndex			lastSubmitted	= ExeOrderIndex::First;
-			ExeOrderIndex			lastCompleted	= ExeOrderIndex::First;
+			ExeOrderIndex				lastSubmitted	= ExeOrderIndex::First;
+			ExeOrderIndex				lastCompleted	= ExeOrderIndex::First;
 
-			PerQueueSem_t			semaphores;
-			Array<VCmdBatchPtr>		pending;	// TODO: circular queue
-			Array<VSubmittedPtr>	submitted;
+			PerQueueSem_t				semaphores		{};
+			Array<VCmdBatchPtr>			pending;		// TODO: circular queue
+			Array<VSubmittedPtr>		submitted;
+
+			SpinLock					cmdPoolGuard;
+			VkCommandPool				cmdPool			= VK_NULL_HANDLE;
+			Array<VkImageMemoryBarrier>	imageBarriers;
 		};
 
 		using CmdBuffers_t		= FixedArray< UniquePtr<VCommandBuffer>, 32 >;
-		using QueueMap_t		= StaticArray< QueueData, uint(EQueueUsage::_Count) >;
+		using QueueMap_t		= StaticArray< QueueData, uint(EQueueType::_Count) >;
 		using Fences_t			= Array< VkFence >;
 		using Semaphores_t		= Array< VkSemaphore >;
 
@@ -54,12 +58,13 @@ namespace FG
 
 		VDevice					_device;
 		QueueMap_t				_queueMap;
-		EQueueUsageBits			_queueUsage;
+		EQueueUsage				_queueUsage;
 
 		std::recursive_mutex	_cmdBuffersGuard;
 		CmdBuffers_t			_cmdBuffers;
 
 		VResourceManager		_resourceMngr;
+		VDebugger				_debugger;
 
 		ShaderDebugCallback_t	_shaderDebugCallback;
 
@@ -133,7 +138,7 @@ namespace FG
 		bool			DumpToGraphViz (OUT String &result) const override;
 
 		
-		ND_ VDeviceQueueInfoPtr	FindQueue (EQueueUsage type) const;
+		ND_ VDeviceQueueInfoPtr	FindQueue (EQueueType type) const;
 		ND_ VDevice const&		GetDevice ()				const	{ return _device; }
 		ND_ VResourceManager &	GetResourceManager ()				{ return _resourceMngr; }
 
@@ -149,22 +154,24 @@ namespace FG
 		template <typename ID>
 		void _ReleaseResource (INOUT ID &id);
 		
-		void _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily,
-											VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
+		void _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily);
 
 		ND_ VkFence		_CreateFence ();
 		ND_ VkSemaphore	_CreateSemaphore ();
 
 
 		// queues //
-		ND_ EQueueFamilyMask	_GetQueuesMask (EQueueUsageBits types) const;
+		ND_ EQueueFamilyMask	_GetQueuesMask (EQueueUsage types) const;
 			bool				_IsUnique (VDeviceQueueInfoPtr ptr) const;
 			bool				_AddGraphicsQueue ();
 			bool				_AddAsyncComputeQueue ();
 			bool				_AddAsyncTransferQueue ();
+			bool				_CreateQueue (EQueueType, VDeviceQueueInfoPtr);
 
 			bool				_TryFlush (const VCmdBatchPtr &batch);
 			bool				_FlushAll (uint maxIter);
+			bool				_FlushQueue (EQueueType queue, uint maxIter);
+			bool				_WaitQueue (EQueueType queue, Nanoseconds timeout);
 
 
 		// states //

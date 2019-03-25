@@ -4,6 +4,7 @@
 #include "VEnumCast.h"
 #include "VTaskGraph.h"
 #include "VBarrierManager.h"
+#include "VLocalDebugger.h"
 
 namespace FG
 {
@@ -71,7 +72,7 @@ namespace FG
 	ResetState
 =================================================
 */
-	void VLocalRTGeometry::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
+	void VLocalRTGeometry::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const
 	{
 		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
 		
@@ -93,7 +94,7 @@ namespace FG
 	CommitBarrier
 =================================================
 */
-	void VLocalRTGeometry::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const
+	void VLocalRTGeometry::CommitBarrier (VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const
 	{
 		const bool	is_modified =	(_accessForReadWrite.isReadable and _pendingAccesses.isWritable) or	// read -> write
 									_accessForReadWrite.isWritable;										// write -> read/write
@@ -106,10 +107,10 @@ namespace FG
 			barrier.dstAccessMask	= _pendingAccesses.access;
 			barrierMngr.AddMemoryBarrier( _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
 
-			//if ( debugger )
-			//	debugger->AddRayTracingBarrier( _rtGeometryData, _accessForReadWrite.index, _pendingAccesses.index,
-			//								    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
-
+			if ( debugger ) {
+				debugger->AddRayTracingBarrier( _rtGeometryData, _accessForReadWrite.index, _pendingAccesses.index,
+											    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
+			}
 			_accessForReadWrite = _pendingAccesses;
 		}
 		else

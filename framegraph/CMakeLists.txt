@@ -74,6 +74,11 @@ set( SOURCES
 	"Vulkan/Instance/VResourceManager.h"
 	"Vulkan/Instance/VSubmitted.cpp"
 	"Vulkan/Instance/VSubmitted.h"
+	"Vulkan/Debugger/VDebugger.cpp"
+	"Vulkan/Debugger/VDebugger.h"
+	"Vulkan/Debugger/VLocalDebugger.cpp"
+	"Vulkan/Debugger/VLocalDebugger.h"
+	"Vulkan/Debugger/VLocalDebugger2.cpp"
 	"Vulkan/Debugger/VShaderDebugger.cpp"
 	"Vulkan/Debugger/VShaderDebugger.h"
 	"Vulkan/Image/VImage.cpp"
@@ -171,7 +176,7 @@ source_group( "Vulkan\\RayTracing" FILES "Vulkan/RayTracing/VLocalRTGeometry.cpp
 source_group( "Public" FILES "Public/BindingIndex.h" "Public/BufferDesc.h" "Public/BufferView.h" "Public/ColorScheme.h" "Public/CommandBuffer.h" "Public/CommandBufferPtr.h" "Public/Config.h" "Public/DrawCommandBuffer.h" "Public/DrawContext.h" "Public/EResourceState.h" "Public/FGEnums.h" "Public/FrameGraph.h" "Public/FrameGraphDrawTask.h" "Public/FrameGraphTask.h" "Public/IDs.h" "Public/ImageDesc.h" "Public/ImageLayer.h" "Public/ImageSwizzle.h" "Public/ImageView.h" "Public/MemoryDesc.h" "Public/MipmapLevel.h" "Public/MultiSamples.h" "Public/Pipeline.h" "Public/PipelineCompiler.h" "Public/PipelineResources.h" "Public/RayTracingEnums.h" "Public/RayTracingGeometryDesc.h" "Public/RayTracingSceneDesc.h" "Public/RenderPassDesc.h" "Public/RenderState.h" "Public/RenderStateEnums.h" "Public/ResourceEnums.h" "Public/SamplerDesc.h" "Public/SamplerEnums.h" "Public/ShaderEnums.h" "Public/Types.h" "Public/VertexDesc.h" "Public/VertexEnums.h" "Public/VertexInputState.h" "Public/VulkanTypes.h" )
 source_group( "Vulkan" FILES "Vulkan/VCommon.h" )
 source_group( "Vulkan\\Instance" FILES "Vulkan/Instance/VDevice.cpp" "Vulkan/Instance/VDevice.h" "Vulkan/Instance/VFrameGraph.cpp" "Vulkan/Instance/VFrameGraph.h" "Vulkan/Instance/VResourceManager.cpp" "Vulkan/Instance/VResourceManager.h" "Vulkan/Instance/VSubmitted.cpp" "Vulkan/Instance/VSubmitted.h" )
-source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VShaderDebugger.cpp" "Vulkan/Debugger/VShaderDebugger.h" )
+source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VDebugger.cpp" "Vulkan/Debugger/VDebugger.h" "Vulkan/Debugger/VLocalDebugger.cpp" "Vulkan/Debugger/VLocalDebugger.h" "Vulkan/Debugger/VLocalDebugger2.cpp" "Vulkan/Debugger/VShaderDebugger.cpp" "Vulkan/Debugger/VShaderDebugger.h" )
 source_group( "Vulkan\\Image" FILES "Vulkan/Image/VImage.cpp" "Vulkan/Image/VImage.h" "Vulkan/Image/VLocalImage.cpp" "Vulkan/Image/VLocalImage.h" "Vulkan/Image/VSampler.cpp" "Vulkan/Image/VSampler.h" )
 source_group( "Vulkan\\Swapchain" FILES "Vulkan/Swapchain/VSwapchain.cpp" "Vulkan/Swapchain/VSwapchain.h" )
 source_group( "Shared" FILES "Shared/CreateFrameGraph.cpp" "Shared/EnumToString.h" "Shared/EnumUtils.h" "Shared/FrameGraph_Statistics.cpp" "Shared/ImageDataRange.h" "Shared/ImageView.cpp" "Shared/ImageViewDesc.cpp" "Shared/ImageViewDesc.h" "Shared/LocalResourceID.h" "Shared/Pipeline.cpp" "Shared/PipelineResources.cpp" "Shared/PipelineResourcesHelper.h" "Shared/RenderState.cpp" "Shared/ResourceBase.h" "Shared/ResourceDataRange.h" "Shared/Types.h" "Shared/VertexInputState.cpp" )

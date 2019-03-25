@@ -630,6 +630,53 @@ namespace FGC
 		}
 		return res;
 	}
+	
+/*
+=================================================
+	SafeDiv
+=================================================
+*/
+	template <typename T1, typename T2, typename T3, uint I>
+	ND_ inline auto  SafeDiv (const Vec<T1,I> &lhs, const Vec<T2,I> &rhs, const T3& defVal)
+	{
+		using T = decltype( T1(0) + T2(0) + T3(0) );
+
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = SafeDiv( lhs[i], rhs[i], defVal );
+		}
+		return res;
+	}
+	
+	template <typename T1, typename T2, uint I>
+	ND_ inline auto  SafeDiv (const Vec<T1,I> &lhs, const Vec<T2,I> &rhs)
+	{
+		return SafeDiv( lhs, rhs, T1(0) );
+	}
+
+	template <typename T1, typename T2, typename T3, uint I>
+	ND_ inline auto  SafeDiv (const Vec<T1,I> &lhs, const T2 &rhs, const T3& defVal)
+	{
+		return SafeDiv( lhs, Vec<T2,I>(rhs), defVal );
+	}
+	
+	template <typename T1, typename T2, uint I>
+	ND_ inline auto  SafeDiv (const Vec<T1,I> &lhs, const T2 &rhs)
+	{
+		return SafeDiv( lhs, rhs, T1(0) );
+	}
+
+	template <typename T1, typename T2, typename T3, uint I>
+	ND_ inline auto  SafeDiv (const T1 &lhs, const Vec<T2,I> &rhs, const T3& defVal)
+	{
+		return SafeDiv( Vec<T1,I>(lhs), rhs, defVal );
+	}
+	
+	template <typename T1, typename T2, uint I>
+	ND_ inline auto  SafeDiv (const T1 &lhs, const Vec<T2,I> &rhs)
+	{
+		return SafeDiv( lhs, rhs, T1(0) );
+	}
 
 }	// FGC
 

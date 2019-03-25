@@ -57,7 +57,9 @@ namespace FG
 =================================================
 */
 	VResourceManager::VResourceManager (const VDevice &dev) :
-		_device{ dev },		_memoryMngr{ dev }
+		_device{ dev },
+		_memoryMngr{ dev },
+		_descMngr{ dev }
 	{
 	}
 	
@@ -78,6 +80,7 @@ namespace FG
 	bool VResourceManager::Initialize ()
 	{
 		CHECK_ERR( _memoryMngr.Initialize() );
+		CHECK_ERR( _descMngr.Initialize() );
 
 		_CreateEmptyDescriptorSetLayout();
 		return true;
@@ -90,8 +93,6 @@ namespace FG
 */
 	void VResourceManager::Deinitialize ()
 	{
-		_UnassignResource( _GetResourcePool(_emptyDSLayout), _emptyDSLayout, true );
-
 		_DestroyResourceCache( INOUT _samplerCache );
 		_DestroyResourceCache( INOUT _pplnLayoutCache );
 		_DestroyResourceCache( INOUT _dsLayoutCache );
@@ -118,6 +119,7 @@ namespace FG
 			_compilers.clear();
 		}
 		
+		_descMngr.Deinitialize();
 		_memoryMngr.Deinitialize();
 	}
 	
@@ -339,7 +341,7 @@ namespace FG
 		layoutPtr->AddRef();
 		
 		for (auto& ds : dsLayouts) {
-			_ReleaseResource( ds.first, *ds.second );
+			ReleaseResource( ds.first );
 		}
 		
 		if ( is_created )
@@ -627,6 +629,8 @@ namespace FG
 		}
 
 		layout->AddRef();
+		data.AddRef();
+
 		return id;
 	}
 	
@@ -657,6 +661,8 @@ namespace FG
 		}
 		
 		layout->AddRef();
+		data.AddRef();
+
 		return id;
 	}
 	
@@ -687,6 +693,8 @@ namespace FG
 		}
 
 		layout->AddRef();
+		data.AddRef();
+
 		return id;
 	}
 	
@@ -717,6 +725,8 @@ namespace FG
 		}
 		
 		layout->AddRef();
+		data.AddRef();
+
 		return id;
 	}
 	
@@ -747,7 +757,8 @@ namespace FG
 	CreateImage
 =================================================
 */
-	RawImageID  VResourceManager::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, StringView dbgName)
+	RawImageID  VResourceManager::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask,
+											   VkImageLayout defaultLayout, StringView dbgName)
 	{
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -759,7 +770,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( *this, desc, mem_id, mem_obj->Data(), queueFamilyMask, dbgName ))
+		if ( not data.Create( *this, desc, mem_id, mem_obj->Data(), queueFamilyMask, defaultLayout, dbgName ))
 		{
 			ReleaseResource( mem_id );
 			_Unassign( id );
@@ -1097,6 +1108,14 @@ namespace FG
 	RawSwapchainID  VResourceManager::CreateSwapchain (const VulkanSwapchainCreateInfo &desc, RawSwapchainID oldSwapchain,
 													   VFrameGraph &fg, StringView dbgName)
 	{
+		if ( auto* swapchain = GetResource( oldSwapchain, false, true ) )
+		{
+			if ( not const_cast<VSwapchain*>(swapchain)->Create( fg, desc, dbgName ))
+				RETURN_ERR( "failed when recreating swapchain" );
+
+			return oldSwapchain;
+		}
+
 		RawSwapchainID	id;
 		CHECK_ERR( _Assign( OUT id ));
 		

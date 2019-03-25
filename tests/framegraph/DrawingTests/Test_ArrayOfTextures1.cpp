@@ -33,9 +33,9 @@ void main ()
 		const uint2		tex_dim		= { 16, 16 };
 
 		ImageID			textures[8];
-		for (auto& tex : textures) {
-			tex = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{tex_dim.x, tex_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-													   EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Texture" );
+		for (size_t i = 0; i < CountOf(textures); ++i) {
+			textures[i] = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{tex_dim.x, tex_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
+															   EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Texture-" + ToString(i) );
 		}
 
 		ImageID			dst_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
@@ -85,7 +85,7 @@ void main ()
 		};
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 		CHECK_ERR( cmd );
 		
 		resources.BindTextures( UniformID("un_Textures"), textures, sampler );
@@ -107,11 +107,11 @@ void main ()
 		FG_UNUSED( t_read );
 		
 		CHECK_ERR( _frameGraph->Execute( cmd ));
+		CHECK_ERR( _frameGraph->WaitIdle() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
 		CHECK_ERR( Visualize( TEST_NAME ));
 
-		CHECK_ERR( _frameGraph->WaitIdle() );
 		CHECK_ERR( data_is_correct );
 		
 		DeleteResources( pipeline, dst_image, sampler );

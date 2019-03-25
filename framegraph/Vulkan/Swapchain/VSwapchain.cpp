@@ -2,7 +2,7 @@
 
 #include "VSwapchain.h"
 #include "VDevice.h"
-#include "VFrameGraph.h"
+#include "VCommandBuffer.h"
 
 namespace FG
 {
@@ -45,6 +45,7 @@ namespace FG
 */
 	void VSwapchain::Destroy (VResourceManager &resMngr)
 	{
+		EXLOCK( _rcCheck );
 		CHECK_ERR( not _IsImageAcquired(), void());
 		
 		auto&	dev = resMngr.GetDevice();
@@ -83,8 +84,9 @@ namespace FG
 	Acquire
 =================================================
 */
-	bool VSwapchain::Acquire (const VDevice &dev, ESwapchainImage type, OUT RawImageID &outImageId)
+	bool VSwapchain::Acquire (VCommandBuffer &fgThread, ESwapchainImage type, OUT RawImageID &outImageId) const
 	{
+		EXLOCK( _rcCheck );
 		CHECK_ERR( _vkSwapchain );
 		CHECK_ERR( type == ESwapchainImage::Primary );
 		
@@ -100,15 +102,14 @@ namespace FG
 		info.timeout	= UMax;
 		info.semaphore	= _imageAvailable;
 		info.deviceMask	= 1;
+
+		auto&	dev = fgThread.GetDevice();
 		VK_CHECK( dev.vkAcquireNextImage2KHR( dev.GetVkDevice(), &info, OUT &_currImageIndex ));
 
 		outImageId = _imageIDs[ _currImageIndex ].Get();
 
-		//_frameGraph.TransitImageLayoutToDefault( outImageId, VK_IMAGE_LAYOUT_UNDEFINED, uint(_presentQueue->familyIndex),
-		//										 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT );
-		
-		//_frameGraph.WaitSemaphore( _imageAvailable, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
-		//_frameGraph.SignalSemaphore( _renderFinished );
+		fgThread.WaitSemaphore( _imageAvailable, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
+		fgThread.SignalSemaphore( _renderFinished );
 
 		return true;
 	}
@@ -118,12 +119,12 @@ namespace FG
 	Present
 =================================================
 */
-	bool VSwapchain::Present (const VDevice &dev, RawImageID imageId)
+	bool VSwapchain::Present (const VDevice &dev) const
 	{
+		EXLOCK( _rcCheck );
+
 		if ( not _IsImageAcquired() )
 			return true;	// TODO ?
-
-		//_frameGraph.SignalSemaphore( _renderFinished );
 
 		VkPresentInfoKHR	present_info = {};
 		present_info.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -133,11 +134,7 @@ namespace FG
 		present_info.waitSemaphoreCount	= 1;
 		present_info.pWaitSemaphores	= &_renderFinished;
 
-		VkResult	err;
-		{
-			EXLOCK( _presentQueue->guard );
-			err = dev.vkQueuePresentKHR( _presentQueue->handle, &present_info );
-		}
+		VkResult	err = dev.vkQueuePresentKHR( _presentQueue->handle, &present_info );
 
 		_currImageIndex	= UMax;
 		
@@ -201,7 +198,7 @@ namespace FG
 				VkBool32	supports_present = 0;
 				VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( dev.GetVkPhysicalDevice(), qindex, _vkSurface, OUT &supports_present ));
 
-				_queueFamilyMask |= (supports_present ? EQueueFamily(qindex) : Default);
+				_queueFamilyMask |= EQueueFamilyMask(supports_present ? (1u << qindex) : 0);
 			}
 			_queueFamilyMask &= qmask;
 		}
@@ -221,8 +218,8 @@ namespace FG
 	{
 		ASSERT( _imageIDs.empty() );
 
-		FixedArray< VkImage, 8 >	images;
-		VDevice const&				dev	= resMngr.GetDevice();
+		FixedArray< VkImage, MaxImages >	images;
+		VDevice const&						dev	= resMngr.GetDevice();
 		{
 			uint	count = 0;
 			VK_CHECK( dev.vkGetSwapchainImagesKHR( dev.GetVkDevice(), _vkSwapchain, OUT &count, null ));
@@ -238,7 +235,8 @@ namespace FG
 		desc.imageType		= BitCast<ImageTypeVk_t>( VK_IMAGE_TYPE_2D );
 		desc.usage			= BitCast<ImageUsageVk_t>( _colorImageUsage );
 		desc.format			= BitCast<FormatVk_t>( _colorFormat );
-		desc.layout			= BitCast<ImageLayoutVk_t>( VK_IMAGE_LAYOUT_UNDEFINED );
+		desc.layout			= BitCast<ImageLayoutVk_t>( VK_IMAGE_LAYOUT_PRESENT_SRC_KHR );
+		desc.defaultLayout	= BitCast<ImageLayoutVk_t>( VK_IMAGE_LAYOUT_PRESENT_SRC_KHR );
 		desc.samples		= BitCast<SampleCountFlagBitsVk_t>( VK_SAMPLE_COUNT_1_BIT );
 		desc.dimension		= uint3{ _surfaceSize.x, _surfaceSize.y, 1 };
 		desc.arrayLayers	= 1;
@@ -287,6 +285,9 @@ namespace FG
 		VK_CHECK( dev.vkCreateSemaphore( dev.GetVkDevice(), &info, null, OUT &_imageAvailable ));
 		VK_CHECK( dev.vkCreateSemaphore( dev.GetVkDevice(), &info, null, OUT &_renderFinished ));
 
+		dev.SetObjectName( uint64_t(_imageAvailable), "ImageAvailable", VK_OBJECT_TYPE_SEMAPHORE );
+		dev.SetObjectName( uint64_t(_renderFinished), "RenderAvailable", VK_OBJECT_TYPE_SEMAPHORE );
+
 		return true;
 	}
 	
@@ -300,9 +301,9 @@ namespace FG
 		if ( _presentQueue )
 			return true;
 
-		for (uint i = 0; i < uint(EQueueUsage::_Count); ++i)
+		for (uint i = 0; i < uint(EQueueType::_Count); ++i)
 		{
-			auto	q = fg.FindQueue( EQueueUsage(i) );
+			auto	q = fg.FindQueue( EQueueType(i) );
 			if ( q )
 			{
 				VkBool32	supports_present = 0;
@@ -614,6 +615,8 @@ namespace FG
 */
 	bool VSwapchain::Create (VFrameGraph &fg, const VulkanSwapchainCreateInfo &info, StringView dbgName)
 	{
+		EXLOCK( _rcCheck );
+
 		if ( _vkSwapchain )
 		{
 			CHECK_ERR( _vkSurface == BitCast<VkSurfaceKHR>(info.surface) );

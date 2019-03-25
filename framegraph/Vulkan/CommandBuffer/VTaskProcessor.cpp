@@ -26,7 +26,7 @@ namespace FG
 	}
 	
 	template <typename ResType>
-	static void CommitResourceBarrier (const void *res, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger)
+	static void CommitResourceBarrier (const void *res, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger)
 	{
 		return static_cast<ResType const*>(res)->CommitBarrier( barrierMngr, debugger );
 	}
@@ -1473,6 +1473,65 @@ namespace FG
 			vkCmdBindShadingRateImageNV( _cmdBuffer, _shadingRateImage, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV );
 		}
 	}
+	
+/*
+=================================================
+	_CreateRenderPass
+=================================================
+*/
+	bool VTaskProcessor::_CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses)
+	{
+		using Attachment_t = FixedArray< Pair<RawImageID, ImageViewDesc>, FG_MaxColorBuffers+1 >;
+
+		RawRenderPassID		rp_id = _fgThread.GetResourceManager().CreateRenderPass( logicalPasses, "" );
+		CHECK_ERR( rp_id );
+
+		VRenderPass const*	render_pass		= _fgThread.GetResourceManager().GetResource( rp_id );
+		Attachment_t		render_targets;	  render_targets.resize( render_pass->GetCreateInfo().attachmentCount );
+		Optional<RectI>		total_area;
+		const uint			depth_index		= render_pass->GetCreateInfo().attachmentCount-1;
+
+		for (const auto& lrp : logicalPasses)
+		{
+			// merge rendering areas
+			if ( total_area.has_value() )
+				total_area->Merge( lrp->GetArea() );
+			else
+				total_area = lrp->GetArea();
+
+			if ( lrp->GetDepthStencilTarget().IsDefined() )
+			{
+				auto&	src = lrp->GetDepthStencilTarget();
+				auto&	dst = render_targets[ depth_index ];
+
+				// compare attachments
+				CHECK_ERR( not dst.first or (dst.first == src.imageId and dst.second == src.desc) );
+
+				dst.first	= src.imageId;
+				dst.second	= src.desc;
+			}
+
+			for (const auto& ct : lrp->GetColorTargets())
+			{	
+				auto&	dst = render_targets[ ct.index ];
+				
+				// compare attachments
+				CHECK_ERR( not dst.first or (dst.first == ct.imageId and dst.second == ct.desc) );
+
+				dst.first	= ct.imageId;
+				dst.second	= ct.desc;
+			}
+		}
+		
+		RawFramebufferID	fb_id = _fgThread.GetResourceManager().CreateFramebuffer( render_targets, rp_id, uint2(total_area->Size()), 1, "" );
+		CHECK_ERR( fb_id );
+		
+		uint	subpass = 0;
+		for (auto& pass : logicalPasses) {
+			pass->_SetRenderPass( rp_id, subpass++, fb_id, depth_index );
+		}
+		return true;
+	}
 
 /*
 =================================================
@@ -1510,8 +1569,7 @@ namespace FG
 
 
 		// create render pass and framebuffer
-		//CHECK( _fgThread.GetRenderPassCache()->
-		//			CreateRenderPasses( *_fgThread.GetResourceManager(), logical_passes ));
+		CHECK( _CreateRenderPass( logical_passes ));
 		
 
 		// begin render pass
@@ -2442,46 +2500,33 @@ namespace FG
 =================================================
 	Visit (Present)
 =================================================
-*
+*/
 	void VTaskProcessor::Visit (const VFgTask<Present> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 		
 		RawImageID	swapchain_image;
-		CHECK( _fgThread.GetSwapchain()->Acquire( ESwapchainImage::Primary, OUT swapchain_image ));
+		CHECK( task.swapchain->Acquire( _fgThread, ESwapchainImage::Primary, OUT swapchain_image ));
 
 		VLocalImage const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= _ToLocal( swapchain_image );
+		const uint3				src_dim		= src_image->Dimension();
+		const uint3				dst_dim		= dst_image->Dimension();
+		const VkFilter			filter		= src_dim.x == dst_dim.x and src_dim.y == dst_dim.y ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
 		VkImageBlit				region;
+
+		CHECK( src_image != dst_image );
 		
-		region.srcSubresource.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
-		region.srcSubresource.mipLevel			= 0;
-		region.srcSubresource.baseArrayLayer	= task.layer.Get();
-		region.srcSubresource.layerCount		= 1;
-		region.srcOffsets[0]					= VkOffset3D{ 0, 0, 0 };
-		region.srcOffsets[1]					= VkOffset3D{ int(src_image->Width()), int(src_image->Height()), 1 };
+		region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, task.mipmap.Get(), task.layer.Get(), 1 };
+		region.srcOffsets[0]	= VkOffset3D{ 0, 0, 0 };
+		region.srcOffsets[1]	= VkOffset3D{ int(src_dim.x), int(src_dim.y), 1 };
 			
-		region.dstSubresource.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
-		region.dstSubresource.mipLevel			= 0;
-		region.dstSubresource.baseArrayLayer	= 0;
-		region.dstSubresource.layerCount		= 1;
-		region.dstOffsets[0]					= VkOffset3D{ 0, 0, 0 };
-		region.dstOffsets[1]					= VkOffset3D{ int(dst_image->Width()), int(dst_image->Height()), 1 };
+		region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		region.dstOffsets[0]	= VkOffset3D{ 0, 0, 0 };
+		region.dstOffsets[1]	= VkOffset3D{ int(dst_dim.x), int(dst_dim.y), 1 };
 
 		_AddImage( src_image, EResourceState::TransferSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region.srcSubresource );
-
-		VkImageMemoryBarrier	barrier = {};
-		barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.srcAccessMask		= 0;
-		barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.oldLayout			= VK_IMAGE_LAYOUT_UNDEFINED;
-		barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-		barrier.image				= dst_image->Handle();
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		_barrierMngr.AddImageBarrier( VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, barrier );
-
+		_AddImage( dst_image, EResourceState::TransferDst | EResourceState::InvalidateBefore, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, region.dstSubresource );
 		_CommitBarriers();
 		
 		vkCmdBlitImage( _cmdBuffer,
@@ -2490,13 +2535,7 @@ namespace FG
 						 dst_image->Handle(),
 						 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						 1, &region,
-						 VK_FILTER_NEAREST );
-		
-		barrier.srcAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask	= 0;
-		barrier.oldLayout		= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.newLayout		= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		_barrierMngr.AddImageBarrier( VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, barrier );
+						 filter );
 	}
 
 /*
@@ -2710,8 +2749,8 @@ namespace FG
 
 		img->AddPendingState( state );
 
-		//if ( _fgThread.GetDebugger() )
-		//	_fgThread.GetDebugger()->AddImageUsage( img->ToGlobal(), state );
+		if ( _fgThread.GetDebugger() )
+			_fgThread.GetDebugger()->AddImageUsage( img->ToGlobal(), state );
 	}
 	
 /*
@@ -2777,8 +2816,8 @@ namespace FG
 
 		buf->AddPendingState( state );
 		
-		//if ( _fgThread.GetDebugger() )
-		//	_fgThread.GetDebugger()->AddBufferUsage( buf->ToGlobal(), state );
+		if ( _fgThread.GetDebugger() )
+			_fgThread.GetDebugger()->AddBufferUsage( buf->ToGlobal(), state );
 	}
 
 /*
@@ -2847,8 +2886,8 @@ namespace FG
 
 		geom->AddPendingState(RTGeometryState{ state, _currTask });
 
-		//if ( _fgThread.GetDebugger() )
-		//	_fgThread.GetDebugger()->AddRTGeometryUsage( geom->ToGlobal(), RTGeometryState{ state, _currTask });
+		if ( _fgThread.GetDebugger() )
+			_fgThread.GetDebugger()->AddRTGeometryUsage( geom->ToGlobal(), RTGeometryState{ state, _currTask });
 	}
 	
 /*
@@ -2863,8 +2902,8 @@ namespace FG
 
 		scene->AddPendingState(RTSceneState{ state, _currTask });
 
-		//if ( _fgThread.GetDebugger() )
-		//	_fgThread.GetDebugger()->AddRTSceneUsage( scene->ToGlobal(), RTSceneState{ state, _currTask });
+		if ( _fgThread.GetDebugger() )
+			_fgThread.GetDebugger()->AddRTSceneUsage( scene->ToGlobal(), RTSceneState{ state, _currTask });
 	}
 
 /*
@@ -2876,7 +2915,7 @@ namespace FG
 	{
 		for (auto& res : _pendingResourceBarriers)
 		{
-			res.second( res.first, _fgThread.GetBarrierManager(), null );
+			res.second( res.first, _fgThread.GetBarrierManager(), _fgThread.GetDebugger() );
 		}
 
 		_pendingResourceBarriers.clear();

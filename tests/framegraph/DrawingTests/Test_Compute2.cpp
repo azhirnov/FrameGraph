@@ -65,7 +65,7 @@ void main ()
 		};
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
 		CHECK_ERR( cmd );
 		
 		resources.BindImage( UniformID("un_OutImage"), image );
@@ -75,10 +75,9 @@ void main ()
 		FG_UNUSED( t_read );
 		
 		CHECK_ERR( _frameGraph->Execute( cmd ));
+		CHECK_ERR( _frameGraph->WaitIdle() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
-
-		CHECK_ERR( _frameGraph->WaitIdle() );
 
 		CHECK_ERR( data_is_correct );
 		

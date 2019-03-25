@@ -71,7 +71,10 @@ namespace FGC
 */
 	bool  WStream::Write (StringView str)
 	{
-		BytesU	size = BytesU::SizeOf(str[0]) * str.length();
+		if ( str.empty() )
+			return true;
+
+		BytesU	size = SizeOf<StringView::value_type> * str.length();
 
 		return Write2( str.data(), size ) == size;
 	}

@@ -18,11 +18,13 @@ namespace FG
 	// types
 	public:
 		using DescriptorBinding_t	= Array< VkDescriptorSetLayoutBinding >;
+		using DescriptorSet			= Pair< VkDescriptorSet, /*pool index*/uint8_t >;
 
 	private:
 		using UniformMapPtr			= PipelineDescription::UniformMapPtr;
 		using PoolSizeArray_t		= FixedArray< VkDescriptorPoolSize, 10 >;
 		using DynamicDataPtr		= PipelineResources::DynamicDataPtr;
+		using DescSetCache_t		= FixedArray< DescriptorSet, 32 >;
 
 
 	// variables
@@ -35,6 +37,10 @@ namespace FG
 		uint					_elementCount		= 0;
 		uint					_dynamicOffsetCount	= 0;
 		DynamicDataPtr			_resourcesTemplate;
+
+		mutable SpinLock		_descSetCacheGuard;
+		mutable DescSetCache_t	_descSetCache;
+
 		DebugName_t				_debugName;
 		// TODO: desc set update template
 
@@ -50,6 +56,9 @@ namespace FG
 
 		bool Create (const VDevice &dev, const DescriptorBinding_t &binding);
 		void Destroy (VResourceManager &);
+
+		bool AllocDescriptorSet (VResourceManager &, OUT DescriptorSet &) const;
+		void ReleaseDescriptorSet (VResourceManager &, const DescriptorSet &) const;
 
 		ND_ bool	operator == (const VDescriptorSetLayout &rhs) const;
 

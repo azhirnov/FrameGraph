@@ -30,6 +30,7 @@ namespace FG
 		WindowPtr				_window;
 		FrameGraph				_frameGraph;
 		VPipelineCompilerPtr	_pplnCompiler;
+		SwapchainID				_swapchainId;
 
 		TestQueue_t				_tests;
 		uint					_testInvocations	= 0;

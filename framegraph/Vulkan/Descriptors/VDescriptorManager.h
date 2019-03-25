@@ -17,26 +17,39 @@ namespace FG
 	private:
 		static constexpr uint			MaxDescriptorPoolSize	= 1024;
 		static constexpr uint			MaxDescriptorSets		= 512;
-		using DescriptorPoolArray_t		= Array< VkDescriptorPool >;
+
+		struct DSPool
+		{
+			//SpinLock			guard;
+			VkDescriptorPool	pool	= VK_NULL_HANDLE;
+		};
+
+		using DescriptorPoolArray_t		= FixedArray< DSPool, 16 >;
+		using DescriptorSet				= VDescriptorSetLayout::DescriptorSet;
 
 
 	// variables
 	private:
+		VDevice const&				_device;
+
+		std::mutex					_guard;
 		DescriptorPoolArray_t		_descriptorPools;
 
 
 	// methods
 	public:
-		VDescriptorManager ();
+		explicit VDescriptorManager (const VDevice &);
 		~VDescriptorManager ();
 		
-		bool Initialize (const VDevice &dev);
-		void Deinitialize (const VDevice &dev);
+		bool Initialize ();
+		void Deinitialize ();
 
-		bool AllocDescriptorSet (const VDevice &dev, VkDescriptorSetLayout layout, OUT VkDescriptorSet &ds);
+		bool AllocDescriptorSet (VkDescriptorSetLayout layout, OUT DescriptorSet &ds);
+		bool DeallocDescriptorSet (const DescriptorSet &ds);
+		bool DeallocDescriptorSets (ArrayView<DescriptorSet> ds);
 
 	private:
-		bool _CreateDescriptorPool (const VDevice &dev);
+		bool _CreateDescriptorPool ();
 	};
 
 

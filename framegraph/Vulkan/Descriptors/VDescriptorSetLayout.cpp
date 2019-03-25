@@ -73,20 +73,71 @@ namespace FG
 	void VDescriptorSetLayout::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _rcCheck );
+		
+		if ( _descSetCache.size() ) {
+			resMngr.GetDescriptorManager().DeallocDescriptorSets( _descSetCache );
+		}
 
 		if ( _layout ) {
 			auto&	dev = resMngr.GetDevice();
 			dev.vkDestroyDescriptorSetLayout( dev.GetVkDevice(), _layout, null );
 		}
 
+		_descSetCache.clear();
 		_resourcesTemplate.reset();
 		_poolSize.clear();
+
 		_uniforms			= null;
 		_layout				= VK_NULL_HANDLE;
 		_hash				= Default;
 		_maxIndex			= 0;
 		_elementCount		= 0;
 		_dynamicOffsetCount	= 0;
+	}
+	
+/*
+=================================================
+	AllocDescriptorSet
+=================================================
+*/
+	bool  VDescriptorSetLayout::AllocDescriptorSet (VResourceManager &resMngr, OUT DescriptorSet &ds) const
+	{
+		SHAREDLOCK( _rcCheck );
+
+		ds = { VK_NULL_HANDLE, UMax };
+
+		// get from cache
+		{
+			EXLOCK( _descSetCacheGuard );
+
+			if ( _descSetCache.size() )
+			{
+				ds = _descSetCache.back();
+				_descSetCache.pop_back();
+				return true;
+			}
+		}
+
+		return resMngr.GetDescriptorManager().AllocDescriptorSet( _layout, OUT ds );
+	}
+	
+/*
+=================================================
+	ReleaseDescriptorSet
+=================================================
+*/
+	void  VDescriptorSetLayout::ReleaseDescriptorSet (VResourceManager &resMngr, const DescriptorSet &ds) const
+	{
+		SHAREDLOCK( _rcCheck );
+		EXLOCK( _descSetCacheGuard );
+
+		if ( _descSetCache.size() == _descSetCache.capacity() )
+		{
+			resMngr.GetDescriptorManager().DeallocDescriptorSets( _descSetCache );
+			_descSetCache.clear();
+		}
+
+		_descSetCache.push_back( ds );
 	}
 
 /*

@@ -639,7 +639,8 @@ namespace FG
 */
 	inline VFgTask<Present>::VFgTask (VCommandBuffer &cb, const Present &task, ProcessFunc_t process) :
 		VFrameGraphTask{ task, process },
-		srcImage{ cb.ToLocal( task.srcImage )},		layer{ task.layer }
+		swapchain{ cb.AcquireTemporary( task.swapchain )},	srcImage{ cb.ToLocal( task.srcImage )},
+		layer{ task.layer },								mipmap{ task.mipmap }
 	{}
 	
 /*
@@ -649,7 +650,7 @@ namespace FG
 */
 	inline bool  VFgTask<Present>::IsValid () const
 	{
-		return srcImage;
+		return swapchain and srcImage;
 	}
 //-----------------------------------------------------------------------------
 	

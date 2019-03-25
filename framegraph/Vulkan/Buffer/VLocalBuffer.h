@@ -61,7 +61,7 @@ namespace FG
 		mutable AccessRecords_t		_pendingAccesses;
 		mutable AccessRecords_t		_accessForWrite;
 		mutable AccessRecords_t		_accessForRead;
-		bool						_isImmutable	= false;
+		mutable bool				_isImmutable	= false;
 
 
 	// methods
@@ -72,10 +72,11 @@ namespace FG
 
 		bool Create (const VBuffer *);
 		void Destroy ();
-
+		
+		void SetInitialState (bool immutable) const;
 		void AddPendingState (const BufferState &state) const;
-		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
-		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
+		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const;
+		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const;
 
 		ND_ bool				IsCreated ()	const	{ return _bufferData != null; }
 		ND_ VkBuffer			Handle ()		const	{ return _bufferData->Handle(); }

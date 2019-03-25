@@ -69,7 +69,7 @@ namespace FG
 
 		mutable AccessRecords_t		_pendingAccesses;
 		mutable AccessRecords_t		_accessForReadWrite;
-		bool						_isImmutable	= false;
+		mutable bool				_isImmutable	= false;
 
 
 	// methods
@@ -81,9 +81,10 @@ namespace FG
 		bool Create (const VImage *);
 		void Destroy ();
 
+		void SetInitialState (bool immutable, bool invalidate) const;
 		void AddPendingState (const ImageState &) const;
-		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
-		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VFrameGraphDebugger> debugger) const;
+		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const;
+		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const;
 		
 		ND_ VkImageView			GetView (const VDevice &dev, bool isDefault, INOUT ImageViewDesc &desc) const	{ return _imageData->GetView( dev, isDefault, INOUT desc ); }
 
