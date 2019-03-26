@@ -340,27 +340,33 @@ namespace _fgc_hidden_
 	template <typename K, typename V, typename I, size_t N>
 	struct RecursiveBinarySearch
 	{
-		forceinline static  void  Run (INOUT size_t& left, INOUT size_t& right, const K &key, const I* indices, const Pair<K,V>* data)
+		forceinline static int  Run (int left, int right, const K &key, const I* indices, const Pair<K,V>* data)
 		{
-			if ( right - left > 1 )
+			if ( left <= right )
 			{
-				size_t	mid = (left + right) >> 1;
-
-				if ( key > data[indices[mid]].first )
-					left = mid;
+				int		mid  = (left + right) >> 1;
+				auto&	curr = data [indices [mid]].first;
+				
+				if ( curr < key )
+					left = mid + 1;
 				else
-					right = mid;
+				if ( curr > key )
+					right = mid - 1;
+				else
+					return mid;
 			}
 			
-			RecursiveBinarySearch< K, V, I, (N >> 1) >::Run( left, right, key, indices, data );
+			return RecursiveBinarySearch< K, V, I, (N >> 1) >::Run( left, right, key, indices, data );
 		}
 	};
 	
 	template <typename K, typename V, typename I>
 	struct RecursiveBinarySearch< K, V, I, 0 >
 	{
-		forceinline static void  Run (size_t &, size_t &, const K &, const I *, const Pair<K,V> *)
-		{}
+		forceinline static int  Run (int, int, const K &, const I *, const Pair<K,V> *)
+		{
+			return -1;
+		}
 	};
 
 }	// _fgc_hidden_
@@ -376,19 +382,11 @@ namespace _fgc_hidden_
 	{
 		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
 
-		if ( not empty() )
-		{
-			size_t	left	= 0;
-			size_t	right	= _count-1;
+		size_t	i = BinarySearch::Run( 0, _count, key, _indices, _array );
 
-			BinarySearch::Run( INOUT left, INOUT right, key, _indices, _array );
-
-			if ( key == _array[_indices[left]].first )
-				return BitCast< const_iterator >( &_array[ _indices[left] ]);
-
-			if ( key == _array[_indices[right]].first )
-				return BitCast< const_iterator >( &_array[ _indices[right] ]);
-		}
+		if ( i < _count )
+			return BitCast< const_iterator >( &_array[ _indices[i] ]);
+		
 		return end();
 	}
 	
@@ -402,20 +400,12 @@ namespace _fgc_hidden_
 		FixedMap<K,V,S>::find (const key_type &key)
 	{
 		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
+		
+		size_t	i = BinarySearch::Run( 0, _count, key, _indices, _array );
 
-		if ( not empty() )
-		{
-			size_t	left	= 0;
-			size_t	right	= _count-1;
+		if ( i < _count )
+			return BitCast< iterator >( &_array[ _indices[i] ]);
 
-			BinarySearch::Run( INOUT left, INOUT right, key, _indices, _array );
-
-			if ( key == _array[_indices[left]].first )
-				return BitCast< iterator >( &_array[ _indices[left] ]);
-
-			if ( key == _array[_indices[right]].first )
-				return BitCast< iterator >( &_array[ _indices[right] ]);
-		}
 		return end();
 	}
 	
@@ -430,20 +420,11 @@ namespace _fgc_hidden_
 		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
 		
 		size_t	cnt = 0;
+		size_t	i   = BinarySearch::Run( 0, _count, key, _indices, _array );
 
-		if ( not empty() )
-		{
-			size_t	left	= 0;
-			size_t	right	= _count-1;
+		if ( i < _count )
+			++cnt;
 
-			BinarySearch::Run( INOUT left, INOUT right, key, _indices, _array );
-
-			if ( key == _array[_indices[left]].first )
-				++cnt;
-
-			if ( key == _array[_indices[right]].first )
-				++cnt;
-		}
 		return cnt;
 	}
 

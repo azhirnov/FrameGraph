@@ -18,8 +18,7 @@ namespace {
 =================================================
 */
 	VCommandBuffer::VCommandBuffer (VFrameGraph &fg) :
-		_instance{ fg },
-		_shaderDebugger{ *this }
+		_instance{ fg }
 	{
 		_mainAllocator.SetBlockSize( 16_Mb );
 
@@ -104,9 +103,8 @@ namespace {
 			}
 		}
 		
-		_hostWritableBufferSize		= desc.hostWritableBufferSize;
-		_hostReadableBufferSize		= desc.hostWritableBufferSize;
-		_hostWritebleBufferUsage	= desc.hostWritebleBufferUsage | EBufferUsage::TransferSrc;
+		_batch->OnBegin( desc );
+
 		_dbgName					= desc.name;
 		
 		if ( desc.debugFlags != Default )
@@ -138,7 +136,7 @@ namespace {
 		if ( _debugger )
 			_debugger->End( GetName(), OUT &_batch->_debugDump, null );
 
-		CHECK_ERR( _batch->OnBacked( INOUT _rm.resourceMap ));
+		CHECK_ERR( _batch->OnBaked( INOUT _rm.resourceMap ));
 		_batch = null;
 		
 		_taskGraph.OnDiscardMemory();
@@ -209,7 +207,7 @@ namespace {
 			//dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _query.pool, _currQueue->frames[_frameId].queryIndex );
 		}
 
-		_shaderDebugger.OnBeginRecording( cmd );
+		_batch->BeginShaderDebugger( cmd );
 
 		// commit image layout transition and other
 		_barrierMngr.Commit( dev, cmd );
@@ -225,7 +223,7 @@ namespace {
 			_barrierMngr.Commit( dev, cmd );
 		}
 
-		_shaderDebugger.OnEndRecording( cmd );
+		_batch->EndShaderDebugger( cmd );
 		
 		// end
 		{
@@ -377,11 +375,28 @@ namespace {
 	
 /*
 =================================================
+	AllocBuffer
+=================================================
+*/
+	bool  VCommandBuffer::AllocBuffer (BytesU size, OUT RawBufferID &buffer, OUT BytesU &offset, OUT void* &mapped)
+	{
+		EXLOCK( _rcCheck );
+		CHECK_ERR( IsRecording() );
+
+		BytesU	buf_size;
+		return _batch->GetWritable( size, 1_b, 16_b, size, OUT buffer, OUT offset, OUT buf_size, OUT mapped );
+	}
+
+/*
+=================================================
 	AcquireImage
 =================================================
 */
 	void  VCommandBuffer::AcquireImage (RawImageID id, bool makeMutable, bool invalidate)
 	{
+		EXLOCK( _rcCheck );
+		CHECK( IsRecording() );
+
 		auto*	image = ToLocal( id );
 		if ( image ) {
 			image->SetInitialState( not makeMutable, invalidate );
@@ -395,6 +410,9 @@ namespace {
 */
 	void  VCommandBuffer::AcquireBuffer (RawBufferID id, bool makeMutable)
 	{
+		EXLOCK( _rcCheck );
+		CHECK( IsRecording() );
+
 		auto*	buffer = ToLocal( id );
 		if ( buffer ) {
 			buffer->SetInitialState( not makeMutable );
@@ -705,7 +723,7 @@ namespace {
 
 		CHECK_ERR( total_size == ArraySizeOf(task.data) );
 
-		const BytesU		min_size	= _GetMaxWritableStoregeSize();
+		const BytesU		min_size	= _batch->GetMaxWritableStoregeSize();
 		const uint			row_length	= uint((row_pitch * block_dim.x * 8) / block_size);
 		const uint			img_height	= uint((slice_pitch * block_dim.y) / row_pitch);
 		CopyBufferToImage	copy;
@@ -834,7 +852,7 @@ namespace {
 		{
 			RawBufferID					dst_buffer;
 			OnDataLoadedEvent::Range	range;
-			CHECK_ERR( _AddPendingLoad( written, task.size, OUT dst_buffer, OUT range ));
+			CHECK_ERR( _batch->AddPendingLoad( written, task.size, OUT dst_buffer, OUT range ));
 			
 			if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
 			{
@@ -851,7 +869,7 @@ namespace {
 			copy.dstBuffer = dst_buffer;
 		}
 
-		_AddDataLoadedEvent( std::move(load_event) );
+		_batch->AddDataLoadedEvent( std::move(load_event) );
 		
 		return AddTask( copy );
 	}
@@ -890,7 +908,7 @@ namespace {
 		ASSERT(Any( task.imageSize > uint3(0) ));
 		
 		const uint3			image_size		= Max( task.imageSize, 1u );
-		const BytesU		min_size		= _GetMaxReadableStorageSize();
+		const BytesU		min_size		= _batch->GetMaxReadableStorageSize();
 		const auto&			fmt_info		= EPixelFormat_GetInfo( img_desc.format );
 		const auto&			block_dim		= fmt_info.blockSize;
 		const uint			block_size		= task.aspectMask != EImageAspect::Stencil ? fmt_info.bitsPerBlock : fmt_info.bitsPerBlock2;
@@ -916,7 +934,7 @@ namespace {
 			{
 				RawBufferID					dst_buffer;
 				OnDataLoadedEvent::Range	range;
-				CHECK_ERR( _AddPendingLoad( written, total_size, slice_pitch, OUT dst_buffer, OUT range ));
+				CHECK_ERR( _batch->AddPendingLoad( written, total_size, slice_pitch, OUT dst_buffer, OUT range ));
 			
 				if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
 				{
@@ -951,7 +969,7 @@ namespace {
 			{
 				RawBufferID					dst_buffer;
 				OnDataLoadedEvent::Range	range;
-				CHECK_ERR( _AddPendingLoad( written, total_size, row_pitch * block_dim.y, OUT dst_buffer, OUT range ));
+				CHECK_ERR( _batch->AddPendingLoad( written, total_size, row_pitch * block_dim.y, OUT dst_buffer, OUT range ));
 				
 				if ( copy.dstBuffer and dst_buffer != copy.dstBuffer )
 				{
@@ -976,7 +994,7 @@ namespace {
 			ASSERT( y_offset == image_size.y );
 		}
 
-		_AddDataLoadedEvent( std::move(load_event) );
+		_batch->AddDataLoadedEvent( std::move(load_event) );
 
 		return AddTask( copy );
 	}
@@ -1023,7 +1041,8 @@ namespace {
 		RawBufferID		buffer;
 		BytesU			buf_offset, buf_size;
 		
-		CHECK_ERR( _GetWritable( SizeOf<T> * count, 1_b, 16_b, SizeOf<T> * count, OUT buffer, OUT buf_offset, OUT buf_size, OUT BitCast<void *>(outPtr) ));
+		CHECK_ERR( _batch->GetWritable( SizeOf<T> * count, 1_b, 16_b, SizeOf<T> * count,
+										OUT buffer, OUT buf_offset, OUT buf_size, OUT BitCast<void *>(outPtr) ));
 
 		outBuffer	= ToLocal( buffer );
 		outOffset	= VkDeviceSize(buf_offset);
@@ -1041,7 +1060,7 @@ namespace {
 		BytesU			buf_offset, buf_size;
 		void *			ptr = null;
 
-		if ( _GetWritable( dataSize, 1_b, offsetAlign, dataSize, OUT buffer, OUT buf_offset, OUT buf_size, OUT ptr ) )
+		if ( _batch->GetWritable( dataSize, 1_b, offsetAlign, dataSize, OUT buffer, OUT buf_offset, OUT buf_size, OUT ptr ))
 		{
 			outBuffer	= ToLocal( buffer );
 			outOffset	= VkDeviceSize(buf_offset);
@@ -1588,6 +1607,7 @@ namespace {
 	inline T const*  VCommandBuffer::_ToLocal (ID id, INOUT PoolTmpl<T> &localPool, INOUT GtoL &globalToLocal, INOUT uint &counter, StringView msg)
 	{
 		EXLOCK( _rcCheck );
+		CHECK_ERR( IsRecording() );
 
 		if ( id.Index() >= globalToLocal.size() )
 			return null;
@@ -1684,7 +1704,7 @@ namespace {
 		const BytesU	min_size	= Min( (src_size + MaxBufferParts-1) / MaxBufferParts, Min( src_size, MinBufferPart ));
 		void *			ptr			= null;
 
-		if ( _GetWritable( src_size - srcOffset, 1_b, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		if ( _batch->GetWritable( src_size - srcOffset, 1_b, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ))
 		{
 			MemCopy( ptr, size, srcData.data() + srcOffset, size );
 			return true;
@@ -1705,209 +1725,13 @@ namespace {
 		const BytesU	min_size	= Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
 		void *			ptr			= null;
 
-		if ( _GetWritable( src_size - srcOffset, srcPitch, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ) )
+		if ( _batch->GetWritable( src_size - srcOffset, srcPitch, 16_b, min_size, OUT dstBuffer, OUT dstOffset, OUT size, OUT ptr ))
 		{
 			MemCopy( ptr, size, srcData.data() + srcOffset, size );
 			return true;
 		}
 		return false;
 	}
-
-/*
-=================================================
-	_GetWritable
-=================================================
-*/
-	bool VCommandBuffer::_GetWritable (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
-											  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &outSize, OUT void* &mappedPtr)
-	{
-		ASSERT( blockAlign > 0_b and offsetAlign > 0_b );
-		ASSERT( dstMinSize == AlignToSmaller( dstMinSize, blockAlign ));
-
-		auto&	staging_buffers = _batch->_hostToDevice;
-
-
-		// search in existing
-		StagingBuffer*	suitable		= null;
-		StagingBuffer*	max_available	= null;
-		BytesU			max_size;
-
-		for (auto& buf : staging_buffers)
-		{
-			const BytesU	off	= AlignToLarger( buf.size, offsetAlign );
-			const BytesU	av	= AlignToSmaller( buf.capacity - off, blockAlign );
-
-			if ( av >= srcRequiredSize )
-			{
-				suitable = &buf;
-				break;
-			}
-
-			if ( not max_available or av > max_size )
-			{
-				max_available	= &buf;
-				max_size		= av;
-			}
-		}
-
-		// no suitable space, try to use max available block
-		if ( not suitable and max_available and max_size >= dstMinSize )
-		{
-			suitable = max_available;
-		}
-
-		// allocate new buffer
-		if ( not suitable )
-		{
-			ASSERT( dstMinSize < _hostWritableBufferSize );
-
-			BufferID	buf_id = _instance.CreateBuffer( BufferDesc{ _hostWritableBufferSize, _hostWritebleBufferUsage }, 
-														 MemoryDesc{ EMemoryType::HostWrite }, "HostWriteBuffer" );
-			CHECK_ERR( buf_id );
-
-			RawMemoryID	mem_id = GetResourceManager().GetResource( buf_id.Get() )->GetMemoryID();
-			CHECK_ERR( mem_id );
-
-			staging_buffers.push_back({ std::move(buf_id), mem_id, _hostWritableBufferSize });
-
-			suitable = &staging_buffers.back();
-			CHECK( _batch->_MapMemory( GetResourceManager(), *suitable ));
-		}
-
-		// write data to buffer
-		dstOffset	= AlignToLarger( suitable->size, offsetAlign );
-		outSize		= Min( AlignToSmaller( suitable->capacity - dstOffset, blockAlign ), srcRequiredSize );
-		dstBuffer	= suitable->bufferId.Get();
-		mappedPtr	= suitable->mappedPtr + dstOffset;
-
-		suitable->size = dstOffset + outSize;
-		return true;
-	}
 	
-/*
-=================================================
-	_AddPendingLoad
-=================================================
-*/
-	bool VCommandBuffer::_AddPendingLoad (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
-										  OUT RawBufferID &dstBuffer, OUT VCmdBatch::OnBufferDataLoadedEvent::Range &range)
-	{
-		ASSERT( blockAlign > 0_b and offsetAlign > 0_b );
-		ASSERT( dstMinSize == AlignToSmaller( dstMinSize, blockAlign ));
-
-		auto&	staging_buffers = _batch->_deviceToHost;
-		
-
-		// search in existing
-		StagingBuffer*	suitable		= null;
-		StagingBuffer*	max_available	= null;
-		BytesU			max_size;
-
-		for (auto& buf : staging_buffers)
-		{
-			const BytesU	off	= AlignToLarger( buf.size, offsetAlign );
-			const BytesU	av	= AlignToSmaller( buf.capacity - off, blockAlign );
-
-			if ( av >= srcRequiredSize )
-			{
-				suitable = &buf;
-				break;
-			}
-			
-			if ( not max_available or av > max_size )
-			{
-				max_available	= &buf;
-				max_size		= av;
-			}
-		}
-
-		// no suitable space, try to use max available block
-		if ( not suitable and max_available and max_size >= dstMinSize )
-		{
-			suitable = max_available;
-		}
-
-		// allocate new buffer
-		if ( not suitable )
-		{
-			ASSERT( dstMinSize < _hostReadableBufferSize );
-
-			BufferID	buf_id = _instance.CreateBuffer( BufferDesc{ _hostReadableBufferSize, EBufferUsage::TransferDst },
-														 MemoryDesc{ EMemoryType::HostRead }, "HostReadBuffer" );
-			CHECK_ERR( buf_id );
-			
-			RawMemoryID	mem_id = GetResourceManager().GetResource( buf_id.Get() )->GetMemoryID();
-			CHECK_ERR( mem_id );
-
-			staging_buffers.push_back({ std::move(buf_id), mem_id, _hostReadableBufferSize });
-
-			suitable = &staging_buffers.back();
-			CHECK( _batch->_MapMemory( GetResourceManager(), *suitable ));
-		}
-		
-		// write data to buffer
-		range.buffer	= suitable;
-		range.offset	= AlignToLarger( suitable->size, offsetAlign );
-		range.size		= Min( AlignToSmaller( suitable->capacity - range.offset, blockAlign ), srcRequiredSize );
-		dstBuffer		= suitable->bufferId.Get();
-
-		suitable->size = range.offset + range.size;
-		return true;
-	}
-	
-/*
-=================================================
-	_AddPendingLoad
-=================================================
-*/
-	bool VCommandBuffer::_AddPendingLoad (const BytesU srcOffset, const BytesU srcTotalSize,
-										  OUT RawBufferID &dstBuffer, OUT VCmdBatch::OnBufferDataLoadedEvent::Range &range)
-	{
-		// skip blocks less than 1/N of data size
-		const BytesU	min_size = (srcTotalSize + MaxBufferParts-1) / MaxBufferParts;
-
-		return _AddPendingLoad( srcTotalSize - srcOffset, 1_b, 16_b, min_size, OUT dstBuffer, OUT range );
-	}
-
-/*
-=================================================
-	_AddDataLoadedEvent
-=================================================
-*/
-	bool VCommandBuffer::_AddDataLoadedEvent (VCmdBatch::OnBufferDataLoadedEvent &&ev)
-	{
-		CHECK_ERR( ev.callback and not ev.parts.empty() );
-
-		_batch->_onBufferLoadedEvents.push_back( std::move(ev) );
-		return true;
-	}
-	
-/*
-=================================================
-	_AddPendingLoad
-=================================================
-*/
-	bool VCommandBuffer::_AddPendingLoad (const BytesU srcOffset, const BytesU srcTotalSize, const BytesU srcPitch,
-										  OUT RawBufferID &dstBuffer, OUT VCmdBatch::OnImageDataLoadedEvent::Range &range)
-	{
-		// skip blocks less than 1/N of total data size
-		const BytesU	min_size = Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
-
-		return _AddPendingLoad( srcTotalSize - srcOffset, srcPitch, 16_b, min_size, OUT dstBuffer, OUT range );
-	}
-
-/*
-=================================================
-	_AddDataLoadedEvent
-=================================================
-*/
-	bool VCommandBuffer::_AddDataLoadedEvent (VCmdBatch::OnImageDataLoadedEvent &&ev)
-	{
-		CHECK_ERR( ev.callback and not ev.parts.empty() );
-
-		_batch->_onImageLoadedEvents.push_back( std::move(ev) );
-		return true;
-	}
-
 
 }	// FG

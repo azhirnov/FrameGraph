@@ -105,7 +105,7 @@ namespace FG
 									 const VertexInputState			&vertexInput,
 									 const RenderState				&renderState,
 									 const EPipelineDynamicState	 dynamicStates,
-									 const uint						 debugModeIndex,
+									 const ShaderDbgIndex			 debugModeIndex,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
 		
@@ -114,7 +114,7 @@ namespace FG
 									 const VMeshPipeline			&mpipeline,
 									 const RenderState				&renderState,
 									 const EPipelineDynamicState	 dynamicStates,
-									 const uint						 debugModeIndex,
+									 const ShaderDbgIndex			 debugModeIndex,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
 
@@ -122,7 +122,7 @@ namespace FG
 									 const VComputePipeline			&ppln,
 									 const Optional<uint3>			&localGroupSize,
 									 VkPipelineCreateFlags			 pipelineFlags,
-									 uint							 debugModeIndex,
+									 const ShaderDbgIndex			 debugModeIndex,
 									 OUT VkPipeline					&outPipeline,
 									 OUT VPipelineLayout const*		&outLayout);
 		
@@ -131,7 +131,7 @@ namespace FG
 							  VLocalRTScene const			&rtScene,
 							  const RayGenShader			&rayGenShader,
 							  ArrayView< RTShaderGroup >	 shaderGroups,
-							  uint							 maxRecursionDepth,
+							  const uint					 maxRecursionDepth,
 							  INOUT VRayTracingShaderTable	&shaderTable,
 							  OUT BufferCopyRegions_t		&copyRegions);
 
@@ -140,7 +140,7 @@ namespace FG
 		bool _CreatePipelineCache (const VDevice &dev);
 
 		template <typename Pipeline>
-		bool _SetupShaderDebugging (VCommandBuffer &fgThread, const Pipeline &ppln, uint debugModeIndex,
+		bool _SetupShaderDebugging (VCommandBuffer &fgThread, const Pipeline &ppln, ShaderDbgIndex debugModeIndex,
 									OUT EShaderDebugMode &debugMode, OUT EShaderStages &debuggableShaders, OUT RawPipelineLayoutID &layoutId);
 
 		void _ClearTemp ();

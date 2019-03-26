@@ -83,9 +83,6 @@ namespace FG
 
 		// initialization //
 
-			// Initialize instance systems.
-			virtual bool		Initialize () = 0;
-
 			// Deinitialize instance systems.
 			// All threads must be deinitialized.
 			virtual void		Deinitialize () = 0;
@@ -99,6 +96,8 @@ namespace FG
 			// Callback will be called at end of the frame if debugging enabled by
 			// calling 'Task::EnableDebugTrace' and shader compiled with 'EShaderLangFormat::EnableDebugTrace' flag.
 			virtual bool		SetShaderDebugCallback (ShaderDebugCallback_t &&) = 0;
+
+		ND_ virtual DeviceInfo_t	GetDeviceInfo () const = 0;
 
 
 		// resource manager //

@@ -5,16 +5,45 @@
 #include "UnitTest_Common.h"
 
 
+static void LowerBound_Test1 ()
+{
+	Array<int>	arr = { 0, 1, 2, 3, 4, 4, 4, 5, 6, 7, 7, 7, 7, 7, 8, 9, 10, 11, 12 };
+	ArrayView	view = arr;
+	size_t		pos;
+	
+	pos = LowerBound( view, 5 );		TEST( pos == 7 );
+	pos = LowerBound( view, 9 );		TEST( pos == 15 );
+	pos = LowerBound( view, 4 );		TEST( pos == 4 );
+	pos = LowerBound( view, 7 );		TEST( pos == 9 );
+	pos = LowerBound( view, 12 );		TEST( pos == 18 );
+}
+
+
 static void BinarySearch_Test1 ()
 {
 	Array<int>	arr = { 0, 1, 2, 3, 4, 4, 4, 5, 6, 7, 7, 7, 7, 7, 8, 9, 10, 11, 12 };
 	ArrayView	view = arr;
 	size_t		pos;
 	
-	pos = BinarySearch( view, 5 );	TEST( pos == 7 );
-	pos = BinarySearch( view, 9 );	TEST( pos == 15 );
-	pos = BinarySearch( view, 4 );	TEST( pos == 4 );
-	pos = BinarySearch( view, 7 );	TEST( pos == 9 );
+	pos = BinarySearch( view, 5 );		TEST( pos == 7 );
+	pos = BinarySearch( view, 9 );		TEST( pos == 15 );
+	pos = BinarySearch( view, 4 );		TEST( pos >= 4 and pos <= 6 );
+	pos = BinarySearch( view, 7 );		TEST( pos >= 9 and pos <= 13 );
+	pos = BinarySearch( view, 12 );		TEST( pos == 18 );
+}
+
+
+static void ExponentialSearch_Test1 ()
+{
+	Array<int>	arr = { 0, 1, 2, 3, 4, 4, 4, 5, 6, 7, 7, 7, 7, 7, 8, 9, 10, 11, 12 };
+	ArrayView	view = arr;
+	size_t		pos;
+	
+	pos = ExponentialSearch( view, 5 );		TEST( pos == 7 );
+	pos = ExponentialSearch( view, 9 );		TEST( pos == 15 );
+	pos = ExponentialSearch( view, 4 );		TEST( pos >= 4 and pos <= 6 );
+	pos = ExponentialSearch( view, 7 );		TEST( pos >= 9 and pos <= 13 );
+	pos = ExponentialSearch( view, 12 );	TEST( pos == 18 );
 }
 
 
@@ -52,7 +81,10 @@ static void Appendable_Test2 ()
 
 extern void UnitTest_Array ()
 {
+	LowerBound_Test1();
 	BinarySearch_Test1();
+	ExponentialSearch_Test1();
+
 	Appendable_Test1();
 	Appendable_Test2();
 

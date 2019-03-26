@@ -62,6 +62,7 @@ namespace FG
 	static constexpr unsigned	FG_MaxPushConstants			= 8;
 	static constexpr unsigned	FG_MaxPushConstantsSize		= 128;	// bytes
 	static constexpr unsigned	FG_MaxSpecConstants			= 8;
+	static constexpr unsigned	FG_DebugDescriptorSet		= FG_MaxDescriptorSets-1;
 
 	// queue
 	static constexpr unsigned	FG_MaxQueueFamilies			= 32;

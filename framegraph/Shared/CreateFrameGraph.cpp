@@ -12,24 +12,24 @@ namespace FG
 */
 	FrameGraph  IFrameGraph::CreateFrameGraph (const DeviceInfo_t &ci)
 	{
-		FrameGraph	result;
-
-		CHECK_ERR( Visit( ci,
-				[&result] (const VulkanDeviceInfo &vdi) -> bool
+		FrameGraph	result = Visit( ci,
+				[] (const VulkanDeviceInfo &vdi) -> FrameGraph
 				{
 					CHECK_ERR( vdi.instance and vdi.physicalDevice and vdi.device and not vdi.queues.empty() );
 					CHECK_ERR( VulkanLoader::Initialize() );
 
-					result = MakeShared<VFrameGraph>( vdi );
-					return true;
+					auto  fg = MakeShared<VFrameGraph>( vdi );
+					CHECK_ERR( fg->Initialize() );
+
+					return fg;
 				},
 
-				[] (const auto &)
+				[] (const auto &) -> FrameGraph
 				{
 					ASSERT(false);
-					return false;
+					return null;
 				}
-			));
+			);
 
 		return result;
 	}

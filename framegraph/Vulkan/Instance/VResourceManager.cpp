@@ -2,6 +2,7 @@
 
 #include "VResourceManager.h"
 #include "VDevice.h"
+#include "VEnumCast.h"
 #include "stl/Algorithms/StringUtils.h"
 #include "Shared/PipelineResourcesHelper.h"
 
@@ -59,7 +60,8 @@ namespace FG
 	VResourceManager::VResourceManager (const VDevice &dev) :
 		_device{ dev },
 		_memoryMngr{ dev },
-		_descMngr{ dev }
+		_descMngr{ dev },
+		_submissionCounter{ 0 }
 	{
 	}
 	
@@ -93,6 +95,8 @@ namespace FG
 */
 	void VResourceManager::Deinitialize ()
 	{
+		_debugDSLayoutsCache.clear();
+
 		_DestroyResourceCache( INOUT _samplerCache );
 		_DestroyResourceCache( INOUT _pplnLayoutCache );
 		_DestroyResourceCache( INOUT _dsLayoutCache );
@@ -208,9 +212,122 @@ namespace FG
 	
 /*
 =================================================
-	ExtendPipelineLayout
+	GetDebugShaderStorageSize
 =================================================
 */
+	ND_ BytesU  VResourceManager::GetDebugShaderStorageSize (EShaderStages stages)
+	{
+		if ( EnumEq( EShaderStages::AllGraphics, stages ) )
+			return SizeOf<uint> * 3;	// fragcoord
+		
+		if ( stages == EShaderStages::Compute )
+			return SizeOf<uint> * 3;	// global invocation
+		
+		if ( EnumEq( EShaderStages::AllRayTracing, stages ) )
+			return SizeOf<uint> * 3;	// launch
+
+		RETURN_ERR( "unsupported shader type" );
+	}
+
+/*
+=================================================
+	GetDescriptorSetLayout
+=================================================
+*/
+	RawDescriptorSetLayoutID  VResourceManager::GetDescriptorSetLayout (EShaderDebugMode debugMode, EShaderStages debuggableShaders)
+	{
+		const uint	key  = (uint(debuggableShaders) & 0xFFFFFF) | (uint(debugMode) << 24);
+		auto		iter = _debugDSLayoutsCache.find( key );
+
+		if ( iter != _debugDSLayoutsCache.end() )
+			return iter->second;
+
+		PipelineDescription::UniformMap_t	uniforms;
+		PipelineDescription::Uniform		sb_uniform;
+		PipelineDescription::StorageBuffer	sb_desc;
+
+		sb_desc.state				= EResourceState_FromShaders( debuggableShaders ) | EResourceState::ShaderReadWrite | EResourceState::_BufferDynamicOffset;
+		sb_desc.arrayStride			= SizeOf<uint>;
+		sb_desc.staticSize			= GetDebugShaderStorageSize( debuggableShaders ) + SizeOf<uint>;	// per shader data + position
+		sb_desc.dynamicOffsetIndex	= 0;
+
+		sb_uniform.index			= BindingIndex{ UMax, 0 };
+		sb_uniform.stageFlags		= debuggableShaders;
+		sb_uniform.data				= sb_desc;
+		sb_uniform.arraySize		= 1;
+
+		uniforms.insert({ UniformID{"dbg_ShaderTrace"}, sb_uniform });
+
+		auto	layout = CreateDescriptorSetLayout( MakeShared<const PipelineDescription::UniformMap_t>( std::move(uniforms) ));
+		CHECK_ERR( layout );
+
+		_debugDSLayoutsCache.insert({ key, layout });
+		return layout;
+	}
+
+/*
+=================================================
+	CreateDebugPipelineLayout
+=================================================
+*/
+	RawPipelineLayoutID  VResourceManager::CreateDebugPipelineLayout (RawPipelineLayoutID baseLayout, EShaderDebugMode debugMode,
+																	  EShaderStages debuggableShaders, const DescriptorSetID &dsID)
+	{
+		VPipelineLayout const*	origin = GetResource( baseLayout );
+		CHECK_ERR( origin );
+		
+		PipelineDescription::PipelineLayout		desc;
+		DSLayouts_t								ds_layouts;
+		auto&									origin_sets = origin->GetDescriptorSets();
+		auto&									ds_pool		= _GetResourcePool( RawDescriptorSetLayoutID{} );
+
+		// copy descriptor set layouts
+		for (auto& src : origin_sets)
+		{
+			auto&	ds_layout	= ds_pool[ src.second.layoutId.Index() ];
+
+			PipelineDescription::DescriptorSet	dst;
+			dst.id				= src.first;
+			dst.bindingIndex	= src.second.index;
+			dst.uniforms		= ds_layout.Data().GetUniforms();
+
+			ASSERT( src.second.index != FG_DebugDescriptorSet );
+
+			desc.descriptorSets.push_back( std::move(dst) );
+			ds_layouts.push_back({ src.second.layoutId, &ds_layout });
+		}
+
+		// append descriptor set layout for shader trace
+		{
+			auto	ds_layout_id = GetDescriptorSetLayout( debugMode, debuggableShaders );
+
+			auto&	ds_layout	= ds_pool[ ds_layout_id.Index() ];
+			
+			PipelineDescription::DescriptorSet	dst;
+			dst.id				= dsID;
+			dst.bindingIndex	= FG_DebugDescriptorSet;
+			dst.uniforms		= ds_layout.Data().GetUniforms();
+			
+			desc.descriptorSets.push_back( std::move(dst) );
+			ds_layouts.push_back({ ds_layout_id, &ds_layout });
+		}
+
+		// copy push constant ranges
+		desc.pushConstants = origin->GetPushConstants();
+
+
+		RawPipelineLayoutID						new_layout;
+		ResourceBase<VPipelineLayout> const*	layout_ptr = null;
+		CHECK_ERR( _CreatePipelineLayout( OUT new_layout, OUT layout_ptr, desc, ds_layouts ));
+
+		return new_layout;
+	}
+
+/*
+=================================================
+	ExtendPipelineLayout
+=================================================
+*
 	RawPipelineLayoutID  VResourceManager::ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout,
 																 uint dsLayoutIndex, const DescriptorSetID &dsID)
 	{

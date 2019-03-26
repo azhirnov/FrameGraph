@@ -72,7 +72,7 @@ namespace FG
 		const uint								_vbCount;
 
 		ArrayView< RectI >						_scissors;
-		uint									_debugModeIndex	= UMax;
+		ShaderDbgIndex							_debugModeIndex	= Default;
 
 	public:
 		VGraphicsPipeline const* const			pipeline;
@@ -97,7 +97,7 @@ namespace FG
 	public:
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
 		ND_ ArrayView< RectI >				GetScissors ()			const	{ return _scissors; }
-		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 
 		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()		const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
 		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()			const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
@@ -189,7 +189,7 @@ namespace FG
 	private:
 		VPipelineResourceSet					_resources;
 		ArrayView< RectI >						_scissors;
-		uint									_debugModeIndex	= UMax;
+		ShaderDbgIndex							_debugModeIndex	= Default;
 	public:
 		VMeshPipeline const* const				pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
@@ -208,7 +208,7 @@ namespace FG
 	public:
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
 		ND_ ArrayView< RectI >				GetScissors ()			const	{ return _scissors; }
-		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
 
 

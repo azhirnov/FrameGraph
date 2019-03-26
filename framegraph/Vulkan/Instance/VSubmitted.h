@@ -44,7 +44,7 @@ namespace FG
 
 
 	private:
-		bool _Release (VResourceManager &, VDebugger &, OUT Array<VkSemaphore> &, OUT Array<VkFence> &);
+		bool _Release (VDevice const&, VDebugger &, const IFrameGraph::ShaderDebugCallback_t &, OUT Array<VkSemaphore> &, OUT Array<VkFence> &);
 	};
 
 

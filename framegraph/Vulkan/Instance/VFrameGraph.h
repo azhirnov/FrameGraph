@@ -78,11 +78,12 @@ namespace FG
 		~VFrameGraph ();
 
 		// initialization //
-		bool			Initialize () override;
+		bool			Initialize ();
 		void			Deinitialize () override;
 		bool			AddPipelineCompiler (const PipelineCompiler &comp) override;
 		//void			SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
 		bool			SetShaderDebugCallback (ShaderDebugCallback_t &&) override;
+		DeviceInfo_t	GetDeviceInfo () const override;
 
 
 		// resource manager //

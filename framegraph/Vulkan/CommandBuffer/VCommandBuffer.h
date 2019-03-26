@@ -8,7 +8,6 @@
 #include "VTaskProcessor.h"
 #include "VPipelineCache.h"
 #include "VDescriptorManager.h"
-#include "VShaderDebugger.h"
 #include "VCmdBatch.h"
 #include "VFrameGraph.h"
 #include "VLocalDebugger.h"
@@ -73,7 +72,6 @@ namespace FG
 		VFrameGraph &			_instance;
 		VBarrierManager			_barrierMngr;
 		VPipelineCache			_pipelineCache;
-		VShaderDebugger			_shaderDebugger;
 		Debugger_t				_debugger;
 
 		struct {
@@ -97,12 +95,8 @@ namespace FG
 			uint					localRTSceneCount		= 0;
 		}						_rm;
 		
-		BytesU					_hostWritableBufferSize;
-		BytesU					_hostReadableBufferSize;
-		EBufferUsage			_hostWritebleBufferUsage	= Default;
-		
 		PerQueueArray_t			_perQueue;
-		StaticString<32>		_dbgName;
+		DebugName_t				_dbgName;
 
 		RaceConditionCheck		_rcCheck;
 
@@ -124,6 +118,7 @@ namespace FG
 		RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
 		bool		AddExternalCommands (const ExternalCmdBatch_t &) override;
 		bool		AddDependency (const CommandBuffer &) override;
+		bool		AllocBuffer (BytesU size, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) override;
 
 		void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate);
 		void		AcquireBuffer (RawBufferID id, bool makeMutable);
@@ -183,12 +178,12 @@ namespace FG
 		
 		ND_ bool					IsRecording ()				const	{ EXLOCK( _rcCheck );  return bool(_batch); }
 		ND_ StringView				GetName ()					const	{ EXLOCK( _rcCheck );  return _dbgName; }
-		ND_ VCmdBatchPtr const&		GetBatch ()					const	{ EXLOCK( _rcCheck );  return _batch; }
+		ND_ VCmdBatch &				GetBatch ()					const	{ EXLOCK( _rcCheck );  return *_batch; }
+		ND_ VCmdBatchPtr const&		GetBatchPtr ()				const	{ EXLOCK( _rcCheck );  return _batch; }
 		ND_ Allocator_t &			GetAllocator ()						{ EXLOCK( _rcCheck );  return _mainAllocator; }
 		ND_ Statistic_t &			EditStatistic ()					{ EXLOCK( _rcCheck );  return _statistic; }
 		ND_ VPipelineCache &		GetPipelineCache ()					{ EXLOCK( _rcCheck );  return _pipelineCache; }
 		ND_ VBarrierManager &		GetBarrierManager ()				{ EXLOCK( _rcCheck );  return _barrierMngr; }
-		ND_ VShaderDebugger &		GetShaderDebugger ()				{ EXLOCK( _rcCheck );  return _shaderDebugger; }
 		ND_ Ptr<VLocalDebugger>		GetDebugger ()						{ EXLOCK( _rcCheck );  return _debugger.get(); }
 		ND_ VDevice const&			GetDevice ()				const	{ return _instance.GetDevice(); }
 		ND_ VFrameGraph &			GetInstance ()				const	{ return _instance; }
@@ -204,17 +199,6 @@ namespace FG
 		bool  _StorePartialData (ArrayView<uint8_t> srcData, BytesU srcOffset, OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
 		bool  _StoreImageData (ArrayView<uint8_t> srcData, BytesU srcOffset, BytesU srcPitch, BytesU srcTotalSize,
 							   OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size);
-		bool  _GetWritable (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
-							OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &outSize, OUT void* &mappedPtr);
-		bool  _AddPendingLoad (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
-							   OUT RawBufferID &dstBuffer, OUT VCmdBatch::OnBufferDataLoadedEvent::Range &range);
-		bool  _AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, OUT RawBufferID &dstBuffer, OUT VCmdBatch::OnBufferDataLoadedEvent::Range &range);
-		bool  _AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, BytesU srcPitch, OUT RawBufferID &dstBuffer, OUT VCmdBatch::OnImageDataLoadedEvent::Range &range);
-		bool  _AddDataLoadedEvent (VCmdBatch::OnImageDataLoadedEvent &&);
-		bool  _AddDataLoadedEvent (VCmdBatch::OnBufferDataLoadedEvent &&);
-
-		ND_ BytesU  _GetMaxWritableStoregeSize () const		{ return _hostWritableBufferSize / 4; }
-		ND_ BytesU  _GetMaxReadableStorageSize () const		{ return _hostReadableBufferSize / 4; }
 		
 		ND_ Task  _AddUpdateBufferTask (const UpdateBuffer &);
 		ND_ Task  _AddUpdateImageTask (const UpdateImage &);

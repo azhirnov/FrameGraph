@@ -1,6 +1,50 @@
-SubBatch {
-	batch:         "main"
-	indexInBatch:  0
+CommandBuffer {
+	name:      ""
+	Image {
+		name:         "SwapchainImage-1"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       BGRA8_UNorm
+		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment | InputAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         Present (#9)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   TransferWrite
+					oldLayout:       Undefined
+					newLayout:       TransferDstOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         Present (#9)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					oldLayout:       TransferDstOptimal
+					newLayout:       PresentSrc
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
 	Image {
 		name:         "color_target"
 		iamgeType:    Image2D
@@ -535,6 +579,14 @@ SubBatch {
 		input =  { TransparentPass (#8) }
 		output = {  }
 		resource_usage = {
+			ImageUsage {
+				name:           "SwapchainImage-1"
+				usage:          Transfer-W, InvalidateBefore
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
 			ImageUsage {
 				name:           "color_target"
 				usage:          Transfer-R

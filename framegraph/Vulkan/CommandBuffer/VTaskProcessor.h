@@ -139,11 +139,12 @@ namespace FG
 		bool _CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses);
 
 		void _ExtractDescriptorSets (const VPipelineLayout &, const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
-		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint, uint debugModeIndex);
+		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint, ShaderDbgIndex debugModeIndex);
 		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, OUT VPipelineLayout const* &pplnLayout);
 		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, OUT VPipelineLayout const* &pplnLayout);
 		void _BindPipeline2 (const VLogicalRenderPass &logicalRP, VkPipeline pipelineId);
-		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize, uint debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout);
+		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize, ShaderDbgIndex debugModeIndex,
+							VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout);
 		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
 		void _SetScissor (const VLogicalRenderPass &, ArrayView<RectI>);
 		void _SetDynamicStates (const _fg_hidden_::DynamicStates &) const;

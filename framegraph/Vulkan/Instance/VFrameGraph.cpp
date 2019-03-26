@@ -142,6 +142,33 @@ namespace FG
 		_shaderDebugCallback = std::move(cb);
 		return true;
 	}
+	
+/*
+=================================================
+	GetDeviceInfo
+=================================================
+*/
+	VFrameGraph::DeviceInfo_t  VFrameGraph::GetDeviceInfo () const
+	{
+		CHECK_ERR( _IsInitialized() );
+
+		VulkanDeviceInfo	result;
+		result.instance			= BitCast<InstanceVk_t>( _device.GetVkInstance() );
+		result.physicalDevice	= BitCast<PhysicalDeviceVk_t>( _device.GetVkPhysicalDevice() );
+		result.device			= BitCast<DeviceVk_t>( _device.GetVkDevice() );
+
+		for (auto& src : _device.GetVkQueues())
+		{
+			auto&	dst = result.queues.emplace_back();
+			dst.id			= BitCast<QueueVk_t>( src.handle );
+			dst.familyIndex	= uint(src.familyIndex);
+			dst.familyFlags	= BitCast<QueueFlagsVk_t>( src.familyFlags );
+			dst.priority	= src.priority;
+			dst.debugName	= src.debugName;
+		}
+
+		return result;
+	}
 
 /*
 =================================================
@@ -545,7 +572,7 @@ namespace FG
 			{
 				VK_CALL( _device.vkResetFences( _device.GetVkDevice(), 1, &fence ));
 
-				s->_Release( GetResourceManager(), _debugger, OUT _semaphoreCache, OUT _fenceCache );
+				s->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache );
 				queue.submitted.erase( queue.submitted.begin() );
 			}
 		}
@@ -569,7 +596,7 @@ namespace FG
 			cmd = _cmdBuffers.back().get();
 		}
 
-		VCmdBatchPtr	batch{ new VCmdBatch{ queue.ptr, desc.queueType, dependsOn }};
+		VCmdBatchPtr	batch{ new VCmdBatch{ GetResourceManager(), queue.ptr, desc.queueType, dependsOn }};
 
 		CHECK_ERR( cmd->Begin( desc, batch ));
 
@@ -587,7 +614,7 @@ namespace FG
 		EXLOCK( _cmdBuffersGuard );
 
 		auto*			cmd		= Cast<VCommandBuffer>(cmdBufPtr.GetCommandBuffer());
-		VCmdBatchPtr	batch	= cmd->GetBatch();
+		VCmdBatchPtr	batch	= cmd->GetBatchPtr();
 		CHECK_ERR( batch.get() == cmdBufPtr.GetBatch() );
 
 		CHECK_ERR( cmd->Execute() );
@@ -829,6 +856,8 @@ namespace FG
 				ASSERT( q.ptr == sw->GetPresentQueue() );
 				CHECK( sw->Present( _device ));
 			}
+
+			_resourceMngr.OnSubmit();
 		}
 		return true;
 	}
@@ -885,7 +914,7 @@ namespace FG
 				for (auto& cmd : commands)
 				{
 					if ( auto&  submitted = Cast<VCmdBatch>(cmd.GetBatch())->GetSubmitted() )
-						CHECK( submitted->_Release( GetResourceManager(), _debugger, OUT _semaphoreCache, OUT _fenceCache ));
+						CHECK( submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache ));
 				}
 			}
 			else
@@ -933,7 +962,7 @@ namespace FG
 		for (auto& q : _queueMap)
 		{
 			for (auto& s : q.submitted) {
-				CHECK( s->_Release( GetResourceManager(), _debugger, OUT _semaphoreCache, OUT _fenceCache ));
+				CHECK( s->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache ));
 			}
 			q.submitted.clear();
 		}
@@ -965,7 +994,7 @@ namespace FG
 		}
 		
 		for (auto& s : q.submitted) {
-			CHECK( s->_Release( GetResourceManager(), _debugger, OUT _semaphoreCache, OUT _fenceCache ));
+			CHECK( s->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache ));
 		}
 		q.submitted.clear();
 

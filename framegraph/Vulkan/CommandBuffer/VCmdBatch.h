@@ -3,7 +3,8 @@
 #pragma once
 
 #include "framegraph/Public/CommandBuffer.h"
-#include "VCommon.h"
+#include "framegraph/Public/FrameGraph.h"
+#include "VDescriptorSetLayout.h"
 
 namespace FG
 {
@@ -30,6 +31,8 @@ namespace FG
 		VCmdBatchPtr&	operator = (VCmdBatchPtr &&rhs)				{ _DecRef();  _ptr = rhs._ptr;  rhs._ptr = null;  return *this; }
 
 		ND_ VCmdBatch*	operator -> ()		const					{ ASSERT( _ptr );  return _ptr; }
+		ND_ VCmdBatch&	operator *  ()		const					{ ASSERT( _ptr );  return *_ptr; }
+
 		ND_ explicit	operator bool ()	const					{ return _ptr != null; }
 
 		ND_ VCmdBatch*	get ()				const					{ return _ptr; }
@@ -53,6 +56,10 @@ namespace FG
 
 	// types
 	public:
+		
+		//---------------------------------------------------------------------------
+		// acquired resources
+
 		struct Resource
 		{
 		// constants
@@ -90,7 +97,10 @@ namespace FG
 		};
 		
 		using ResourceMap_t		= std::unordered_set< Resource, ResourceHash >;		// TODO: custom allocator
-		
+
+
+		//---------------------------------------------------------------------------
+		// staging buffers
 
 		static constexpr uint	MaxBufferParts	= 3;
 		static constexpr uint	MaxImageParts	= 4;
@@ -170,6 +180,44 @@ namespace FG
 				slicePitch{slicePitch}, format{fmt}, aspect{asp} {}
 		};
 
+		
+		//---------------------------------------------------------------------------
+		// shader debugger
+
+		using SharedShaderPtr	= PipelineDescription::VkShaderPtr;
+		using ShaderModules_t	= FixedArray< SharedShaderPtr, 8 >;
+		using TaskName_t		= _fg_hidden_::TaskName_t;
+
+		struct StorageBuffer
+		{
+			BufferID				shaderTraceBuffer;
+			BufferID				readBackBuffer;
+			BytesU					capacity;
+			BytesU					size;
+			VkPipelineStageFlags	stages	= 0;
+		};
+
+		struct DebugMode
+		{
+			ShaderModules_t		modules;
+			VkDescriptorSet		descriptorSet	= VK_NULL_HANDLE;
+			BytesU				offset;
+			BytesU				size;
+			uint				sbIndex			= UMax;
+			EShaderDebugMode	mode			= Default;
+			EShaderStages		shaderStages	= Default;
+			TaskName_t			taskName;
+			uint				data[4]			= {};
+		};
+
+		using StorageBuffers_t		= Array< StorageBuffer >;
+		using DebugModes_t			= Array< DebugMode >;
+		using DescriptorCache_t		= HashMap< Pair<RawBufferID, RawDescriptorSetLayoutID>, VDescriptorSetLayout::DescriptorSet >;
+		using ShaderDebugCallback_t	= IFrameGraph::ShaderDebugCallback_t;
+		
+
+		//---------------------------------------------------------------------------
+		
 		static constexpr uint	MaxDependencies	= 16;
 		using Dependencies_t	= FixedArray< VCmdBatchPtr, MaxDependencies >;
 
@@ -177,9 +225,11 @@ namespace FG
 		using Swapchains_t		= FixedArray< VSwapchain const*, MaxSwapchains >;
 
 
+
 	public:
 		enum class EState : uint
 		{
+			Initial,
 			Recording,		// build command buffers
 			Backed,			// command buffers builded, all data locked
 			Ready,			// all dependencies in 'Ready', 'Submitted' or 'Complete' states
@@ -191,10 +241,13 @@ namespace FG
 	// variables
 	private:
 		std::atomic<EState>						_state;
+		VResourceManager &						_resMngr;
+
 		const VDeviceQueueInfoPtr				_queue;
 		const EQueueType						_queueType;
 
 		Dependencies_t							_dependencies;
+		bool									_submitImmediately	= false;
 		
 		// command batch data
 		FixedArray< VkCommandBuffer, 8 >		_commands;
@@ -203,16 +256,30 @@ namespace FG
 		FixedArray< VkPipelineStageFlags, 8 >	_waitDstStages;
 
 		// staging buffers
-		FixedArray< StagingBuffer, 8 >			_hostToDevice;	// CPU write, GPU read
-		FixedArray< StagingBuffer, 8 >			_deviceToHost;	// CPU read, GPU write
-		Array< OnBufferDataLoadedEvent >		_onBufferLoadedEvents;
-		Array< OnImageDataLoadedEvent >			_onImageLoadedEvents;
+		struct {
+			BytesU									hostWritableBufferSize;
+			BytesU									hostReadableBufferSize;
+			EBufferUsage							hostWritebleBufferUsage	= Default;
+			FixedArray< StagingBuffer, 8 >			hostToDevice;	// CPU write, GPU read
+			FixedArray< StagingBuffer, 8 >			deviceToHost;	// CPU read, GPU write
+			Array< OnBufferDataLoadedEvent >		onBufferLoadedEvents;
+			Array< OnImageDataLoadedEvent >			onImageLoadedEvents;
+		}										_staging;
 
 		// resources
 		ResourceMap_t							_resourcesToRelease;
 		Swapchains_t							_swapchains;
 
-		// debug
+		// shader debugger
+		struct {
+			StorageBuffers_t						buffers;
+			DebugModes_t							modes;
+			DescriptorCache_t						descCache;
+			BytesU									bufferAlign;
+			const BytesU							bufferSize		= 64_Mb;
+		}										_shaderDebugger;
+
+		// frame debugger
 		String									_debugDump;
 		
 		VSubmittedPtr							_submitted;
@@ -220,32 +287,73 @@ namespace FG
 
 	// methods
 	public:
-		VCmdBatch (VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn);
+		VCmdBatch (VResourceManager &rm, VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn);
 		~VCmdBatch ();
 
-		void Release () override;
+		void  Release () override;
 		
-		bool OnBacked (INOUT ResourceMap_t &);
-		bool OnReadyToSubmit ();
-		bool OnSubmit (OUT VkSubmitInfo &, OUT Appendable<VSwapchain const*>, const VSubmittedPtr &);
-		bool OnComplete (VResourceManager &, VDebugger &);
+		bool  OnBegin (const CommandBufferDesc &);
+		bool  OnBaked (INOUT ResourceMap_t &);
+		bool  OnReadyToSubmit ();
+		bool  OnSubmit (OUT VkSubmitInfo &, OUT Appendable<VSwapchain const*>, const VSubmittedPtr &);
+		bool  OnComplete (VDebugger &, const ShaderDebugCallback_t &);
 
-		void SignalSemaphore (VkSemaphore sem);
-		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
-		void AddCommandBuffer (VkCommandBuffer cmd);
-		void AddDependency (VCmdBatch *);
+		void  SignalSemaphore (VkSemaphore sem);
+		void  WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
+		void  AddCommandBuffer (VkCommandBuffer cmd);
+		void  AddDependency (VCmdBatch *);
+	
 
-		ND_ VDeviceQueueInfoPtr		GetQueue ()			const	{ return _queue; }
-		ND_ EQueueType				GetQueueType ()		const	{ return _queueType; }
-		ND_ EState					GetState ()					{ return _state.load( memory_order_relaxed ); }
-		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()	const	{ return _dependencies; }
-		ND_ VSubmittedPtr const&	GetSubmitted ()		const	{ return _submitted; }		// TODO: rename
+		// shader debugger //
+		void  BeginShaderDebugger (VkCommandBuffer cmd);
+		void  EndShaderDebugger (VkCommandBuffer cmd);
+
+		bool  SetShaderModule (ShaderDbgIndex id, const SharedShaderPtr &module);
+		bool  GetDebugModeInfo (ShaderDbgIndex id, OUT EShaderDebugMode &mode, OUT EShaderStages &stages) const;
+		bool  GetDescriptotSet (ShaderDbgIndex id, OUT uint &binding, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const;
+
+		ND_ ShaderDbgIndex  AppendShader (INOUT ArrayView<RectI> &, const TaskName_t &name, const _fg_hidden_::GraphicsShaderDebugMode &mode, BytesU size = 8_Mb);
+		ND_ ShaderDbgIndex  AppendShader (const TaskName_t &name, const _fg_hidden_::ComputeShaderDebugMode &mode, BytesU size = 8_Mb);
+		ND_ ShaderDbgIndex  AppendShader (const TaskName_t &name, const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size = 8_Mb);
+
+
+		// staging buffer //
+		bool  GetWritable (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
+							OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &outSize, OUT void* &mappedPtr);
+		bool  AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
+		bool  AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, BytesU srcPitch, OUT RawBufferID &dstBuffer, OUT OnImageDataLoadedEvent::Range &range);
+		bool  AddDataLoadedEvent (OnImageDataLoadedEvent &&);
+		bool  AddDataLoadedEvent (OnBufferDataLoadedEvent &&);
+
+		ND_ BytesU					GetMaxWritableStoregeSize ()	const	{ return _staging.hostWritableBufferSize / 4; }
+		ND_ BytesU					GetMaxReadableStorageSize ()	const	{ return _staging.hostReadableBufferSize / 4; }
+
+
+		ND_ VDeviceQueueInfoPtr		GetQueue ()						const	{ return _queue; }
+		ND_ EQueueType				GetQueueType ()					const	{ return _queueType; }
+		ND_ EState					GetState ()								{ return _state.load( memory_order_relaxed ); }
+		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()				const	{ return _dependencies; }
+		ND_ VSubmittedPtr const&	GetSubmitted ()					const	{ return _submitted; }		// TODO: rename
+
 
 	private:
 		void _SetState (EState newState);
-		void _ReleaseResources (VResourceManager &);
+		void _ReleaseResources ();
+
 		
-		bool _MapMemory (VResourceManager &, INOUT StagingBuffer &) const;
+		// shader debugger //
+		bool  _AllocStorage (INOUT DebugMode &, BytesU);
+		bool  _AllocDescriptorSet (EShaderDebugMode debugMode, EShaderStages stages,
+								   RawBufferID storageBuffer, BytesU size, OUT VkDescriptorSet &descSet);
+		void  _ParseDebugOutput (const ShaderDebugCallback_t &cb);
+		bool  _ParseDebugOutput2 (const ShaderDebugCallback_t &cb, const DebugMode &dbg, Array<String>&) const;
+
+
+		// staging buffer //
+		bool  _AddPendingLoad (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
+							   OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
+		bool  _MapMemory (INOUT StagingBuffer &) const;
+		void  _FinalizeStagingBuffers ();
 	};
 
 

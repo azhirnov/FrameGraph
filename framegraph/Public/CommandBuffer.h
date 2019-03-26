@@ -55,6 +55,7 @@ namespace FG
 		ND_ virtual RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type = ESwapchainImage::Primary) = 0;
 			virtual bool		AddExternalCommands (const ExternalCmdBatch_t &) = 0;
 			virtual bool		AddDependency (const CommandBuffer &) = 0;
+			virtual bool		AllocBuffer (BytesU size, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) = 0;
 
 			virtual void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate) = 0;
 			virtual void		AcquireBuffer (RawBufferID id, bool makeMutable) = 0;

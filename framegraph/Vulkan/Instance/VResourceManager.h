@@ -71,6 +71,8 @@ namespace FG
 		using VkShaderPtr			= PipelineDescription::VkShaderPtr;
 		using ShaderModules_t		= Array< VkShaderPtr >;
 		using DSLayouts_t			= FixedArray<Pair< RawDescriptorSetLayoutID, ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets >;
+		
+		using DebugLayoutCache_t	= HashMap< uint, RawDescriptorSetLayoutID >;
 
 
 	// variables
@@ -109,6 +111,8 @@ namespace FG
 		PipelineCompilers_t			_compilers;
 
 		std::atomic<uint>			_submissionCounter;
+
+		DebugLayoutCache_t			_debugDSLayoutsCache;
 
 		// dummy resource descriptions
 		const BufferDesc			_dummyBufferDesc;
@@ -151,10 +155,11 @@ namespace FG
 
 		ND_ RawRTShaderTableID	CreateRayTracingShaderTable (StringView dbgName);
 		
-		ND_ RawPipelineLayoutID	ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout, uint dsLayoutIndex,
-													  const DescriptorSetID &dsID);
+		ND_ RawPipelineLayoutID	CreateDebugPipelineLayout (RawPipelineLayoutID baseLayout, EShaderDebugMode debugMode, EShaderStages debuggableShaders, const DescriptorSetID &dsID);
 
-		ND_ RawDescriptorSetLayoutID	CreateDescriptorSetLayout (const PipelineDescription::UniformMapPtr &uniforms);
+		ND_ RawDescriptorSetLayoutID GetDescriptorSetLayout (EShaderDebugMode debugMode, EShaderStages debuggableShaders);
+
+		ND_ RawDescriptorSetLayoutID CreateDescriptorSetLayout (const PipelineDescription::UniformMapPtr &uniforms);
 		
 		ND_ RawSwapchainID		CreateSwapchain (const VulkanSwapchainCreateInfo &desc, RawSwapchainID oldSwapchain, VFrameGraph &, StringView dbgName);
 
@@ -179,6 +184,8 @@ namespace FG
 		ND_ VDescriptorManager&	GetDescriptorManager ()				{ return _descMngr; }
 		
 		ND_ uint				GetSubmitIndex ()			const	{ return _submissionCounter.load( memory_order_relaxed ); }
+		
+		ND_ static BytesU		GetDebugShaderStorageSize (EShaderStages stages);
 
 
 	private:
@@ -192,7 +199,7 @@ namespace FG
 
 		bool  _CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout>* &layoutPtr,
 										  const PipelineDescription::UniformMapPtr &uniforms);
-		
+
 		template <typename ID, typename FnInitialize, typename FnCreate>
 		ND_ ID  _CreateCachedResource (StringView errorStr, FnInitialize&& fnInit, FnCreate&& fnCreate);
 

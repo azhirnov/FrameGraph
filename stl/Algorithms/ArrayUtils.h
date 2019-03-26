@@ -91,41 +91,105 @@ namespace FGC
 	
 /*
 =================================================
+	LowerBound (binary search)
+=================================================
+*/
+	template <typename T, typename Key>
+	ND_ forceinline size_t  LowerBound (ArrayView<T> arr, const Key &key)
+	{
+		size_t	left	= 0;
+		size_t	right	= arr.size();
+
+		for (; left < right; )
+		{
+			size_t	mid = (left + right) >> 1;
+
+			if ( arr[mid] < key )
+				left = mid + 1;
+			else
+				right = mid;
+		}
+
+		return left < arr.size() and arr[left] == key ? left : UMax;
+	}
+	
+	template <typename T, typename Key>
+	ND_ forceinline size_t  LowerBound (const Array<T> &arr, const Key &key)
+	{
+		return LowerBound( ArrayView<T>{arr}, key );
+	}
+	
+/*
+=================================================
 	BinarySearch
 =================================================
 */
 	template <typename T, typename Key>
 	ND_ forceinline size_t  BinarySearch (ArrayView<T> arr, const Key &key)
 	{
-		if ( arr.empty() )
-			return UMax;
-
 		size_t	left	= 0;
-		size_t	right	= arr.size()-1;
+		size_t	right	= arr.size();
 
-		for (; right - left > 1; )
+		for (; left <= right; )
 		{
 			size_t	mid = (left + right) >> 1;
 
 			if ( arr[mid] < key )
-				left = mid;
+				left = mid + 1;
 			else
-				right = mid;
+			if ( not (arr[mid] == key) )
+				right = mid - 1;
+			else
+				return mid;
 		}
 
-		if ( arr[left] == key )
-			return left;
-		
-		if ( arr[right] == key )
-			return right;
-
-		return UMax;
+		return left < arr.size() and arr[left] == key ? left : UMax;
 	}
 	
 	template <typename T, typename Key>
 	ND_ forceinline size_t  BinarySearch (const Array<T> &arr, const Key &key)
 	{
 		return BinarySearch( ArrayView<T>{arr}, key );
+	}
+	
+/*
+=================================================
+	ExponentialSearch
+=================================================
+*/
+	template <typename T, typename Key>
+	ND_ forceinline size_t  ExponentialSearch (ArrayView<T> arr, const Key &key)
+	{
+		if ( arr.empty() )
+			return UMax;
+
+		size_t	left	= 0;
+		size_t	right	= arr.size();
+		size_t	bound	= 1;
+
+		for (; bound < right and arr[bound] < key; bound *= 2)
+		{}
+
+		left  = bound >> 1;
+		right = Min( bound+1, right );
+
+		for (; left < right; )
+		{
+			size_t	mid = (left + right) >> 1;
+
+			if ( arr[mid] < key )
+				left = mid + 1;
+			else
+				right = mid;
+		}
+
+		return arr[left] == key ? left : UMax;
+	}
+	
+	template <typename T, typename Key>
+	ND_ forceinline size_t  ExponentialSearch (const Array<T> &arr, const Key &key)
+	{
+		return ExponentialSearch( ArrayView<T>{arr}, key );
 	}
 
 

@@ -50,9 +50,9 @@ namespace FG
 			uint				familyIndex		= UMax;
 			QueueFlagsVk_t		familyFlags		= {};
 			float				priority		= 0.0f;
-			StaticString<64>	debugName;
+			StringView			debugName;
 		};
-		using Queues_t = FixedArray< QueueInfo, 16 >;
+		using Queues_t = FixedArray< QueueInfo, 8 >;
 
 	// variables
 		InstanceVk_t		instance			= null;

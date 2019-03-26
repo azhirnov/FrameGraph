@@ -52,8 +52,9 @@ namespace FG
 	using VTask						= Ptr< class VFrameGraphTask >;
 	using VSubmittedPtr				= SharedPtr< class VSubmitted >;
 
+	enum class ShaderDbgIndex : uint { Unknown = ~0u };
 
-	enum BLASHandle_t : uint64_t {};
+	enum class BLASHandle_t : uint64_t {};
 	
 	struct VkGeometryInstance
 	{

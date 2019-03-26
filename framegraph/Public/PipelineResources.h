@@ -131,7 +131,7 @@ namespace FG
 
 			// for sorting and searching
 			ND_ bool  operator == (const UniformID &rhs) const	{ return id == rhs; }
-			ND_ bool  operator <  (const UniformID &rhs) const	{ return id < rhs; }
+			ND_ bool  operator <  (const UniformID &rhs) const	{ return id <  rhs; }
 		};
 
 		struct DynamicData

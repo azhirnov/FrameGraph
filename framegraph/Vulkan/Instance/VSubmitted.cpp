@@ -35,10 +35,10 @@ namespace FG
 	_Release
 =================================================
 */
-	bool VSubmitted::_Release (VResourceManager &resMngr, VDebugger &debugger, OUT Array<VkSemaphore> &, OUT Array<VkFence> &outFences)
+	bool VSubmitted::_Release (VDevice const &dev, VDebugger &debugger, const IFrameGraph::ShaderDebugCallback_t &shaderDbgCallback,
+							   OUT Array<VkSemaphore> &, OUT Array<VkFence> &outFences)
 	{
 		// because of bug on Nvidia
-		auto&	dev = resMngr.GetDevice();
 		for (auto& sem : _semaphores) {
 			dev.vkDestroySemaphore( dev.GetVkDevice(), sem, null );
 		}
@@ -50,7 +50,7 @@ namespace FG
 		_fence = VK_NULL_HANDLE;
 
 		for (auto& batch : _batches) {
-			batch->OnComplete( resMngr, debugger );
+			batch->OnComplete( debugger, shaderDbgCallback );
 		}
 
 		_batches.clear();

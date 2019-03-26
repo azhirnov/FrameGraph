@@ -589,11 +589,11 @@ namespace FG
 			_tp.Stat().descriptorBinds++;
 		}
 		
-		if ( task.GetDebugModeIndex() != UMax )
+		if ( task.GetDebugModeIndex() != Default )
 		{
 			VkDescriptorSet		desc_set;
 			uint				offset, binding;
-			_tp._fgThread.GetShaderDebugger().GetDescriptotSet( task.GetDebugModeIndex(), OUT binding, OUT desc_set, OUT offset );
+			_tp._fgThread.GetBatch().GetDescriptotSet( task.GetDebugModeIndex(), OUT binding, OUT desc_set, OUT offset );
 			
 			_tp.vkCmdBindDescriptorSets( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout.Handle(), binding, 1, &desc_set, 1, &offset );
 			_tp.Stat().descriptorBinds++;
@@ -876,10 +876,11 @@ namespace FG
 											_vertexInput,
 											_renderState,
 											_dynamicStates,
-											UMax,
+											Default,
 											OUT ppln_id, OUT _gpplnLayout );
 
 			_tp._BindPipeline2( _logicalRP, ppln_id );
+			_tp._SetScissor( _logicalRP, Default );
 		}
 	}
 
@@ -913,10 +914,11 @@ namespace FG
 											*_mpipeline,
 											_renderState,
 											_dynamicStates,
-											UMax,
+											Default,
 											OUT ppln_id, OUT _mpplnLayout );
 		
 			_tp._BindPipeline2( _logicalRP, ppln_id );
+			_tp._SetScissor( _logicalRP, Default );
 		}
 	}
 
@@ -1708,7 +1710,7 @@ namespace FG
 =================================================
 */
 	void VTaskProcessor::_BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet,
-												 VkPipelineBindPoint bindPoint, uint debugModeIndex)
+												 VkPipelineBindPoint bindPoint, ShaderDbgIndex debugModeIndex)
 	{
 		// update descriptor sets and add pipeline barriers
 		VkDescriptorSets_t	descriptor_sets;
@@ -1727,11 +1729,11 @@ namespace FG
 			Stat().descriptorBinds++;
 		}
 
-		if ( debugModeIndex != UMax )
+		if ( debugModeIndex != Default )
 		{
 			VkDescriptorSet		desc_set;
 			uint				offset, binding;
-			_fgThread.GetShaderDebugger().GetDescriptotSet( debugModeIndex, OUT binding, OUT desc_set, OUT offset );
+			_fgThread.GetBatch().GetDescriptotSet( debugModeIndex, OUT binding, OUT desc_set, OUT offset );
 
 			vkCmdBindDescriptorSets( _cmdBuffer, bindPoint, layout.Handle(), binding, 1, &desc_set, 1, &offset );
 			Stat().descriptorBinds++;
@@ -1933,7 +1935,7 @@ namespace FG
 =================================================
 */
 	inline void VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize,
-											   uint debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout)
+											   ShaderDbgIndex debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout)
 	{
 		VkPipeline	ppln_id;
 		_fgThread.GetPipelineCache().CreatePipelineInstance(
@@ -2677,7 +2679,7 @@ namespace FG
 	{
 		_CmdDebugMarker( task.Name() );
 
-		const bool			is_debuggable	= (task.GetDebugModeIndex() != UMax);
+		const bool			is_debuggable	= (task.GetDebugModeIndex() != Default);
 		EShaderDebugMode	dbg_mode		= Default;
 		EShaderStages		dbg_stages		= Default;
 		RawPipelineLayoutID	layout_id;
@@ -2693,7 +2695,7 @@ namespace FG
 
 		if ( is_debuggable )
 		{
-			auto&	debugger = _fgThread.GetShaderDebugger();
+			auto&	debugger = _fgThread.GetBatch();
 			auto*	ppln	 = _GetResource( task.shaderTable->GetPipeline() );
 
 			CHECK_ERR( ppln, void());

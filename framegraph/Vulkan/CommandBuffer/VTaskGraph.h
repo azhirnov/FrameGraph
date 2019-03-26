@@ -125,7 +125,7 @@ namespace FG
 	// variables
 	private:
 		VPipelineResourceSet					_resources;
-		uint									_debugModeIndex	= UMax;
+		ShaderDbgIndex							_debugModeIndex	= Default;
 	public:
 		VComputePipeline const* const			pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
@@ -141,7 +141,7 @@ namespace FG
 		ND_ bool  IsValid () const;
 
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
 
 
@@ -155,7 +155,7 @@ namespace FG
 	// variables
 	private:
 		VPipelineResourceSet					_resources;
-		uint									_debugModeIndex	= UMax;
+		ShaderDbgIndex							_debugModeIndex	= Default;
 	public:
 		VComputePipeline const* const			pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
@@ -173,7 +173,7 @@ namespace FG
 		ND_ bool  IsValid () const;
 
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
 
 
@@ -673,7 +673,7 @@ namespace FG
 	// variables
 	private:
 		VPipelineResourceSet				_resources;
-		uint								_debugModeIndex	= UMax;
+		ShaderDbgIndex						_debugModeIndex	= Default;
 	public:
 		VRayTracingShaderTable const* const	shaderTable;
 		const _fg_hidden_::PushConstants_t	pushConstants;
@@ -688,7 +688,7 @@ namespace FG
 		ND_ bool  IsValid () const;
 
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ uint							GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
 	
 

@@ -27,7 +27,7 @@ namespace FG
 		};
 
 		// the last index will be used for shader debugger
-		static constexpr uint	MaxDescSets	= FG_MaxDescriptorSets+1;
+		static constexpr uint	MaxDescSets	= FG_MaxDescriptorSets;
 
 		using DescriptorSets_t			= FixedMap< DescriptorSetID, DescSetLayout, MaxDescSets >;
 		using PushConstants_t			= PipelineDescription::PushConstants_t;

@@ -121,10 +121,10 @@ namespace FG
 =================================================
 */
 	template <typename Pipeline>
-	bool VPipelineCache::_SetupShaderDebugging (VCommandBuffer &fgThread, const Pipeline &ppln, uint debugModeIndex,
+	bool VPipelineCache::_SetupShaderDebugging (VCommandBuffer &fgThread, const Pipeline &ppln, const ShaderDbgIndex debugModeIndex,
 												OUT EShaderDebugMode &debugMode, OUT EShaderStages &debuggableShaders, OUT RawPipelineLayoutID &layoutId)
 	{
-		fgThread.GetShaderDebugger().GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShaders );
+		fgThread.GetBatch().GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShaders );
 		ASSERT( debugMode != Default );
 		
 		const VkShaderStageFlags	stages = VEnumCast( debuggableShaders );
@@ -142,14 +142,10 @@ namespace FG
 					continue;
 			}
 
-			fgThread.GetShaderDebugger().SetShaderModule( debugModeIndex, sh.module );
+			fgThread.GetBatch().SetShaderModule( debugModeIndex, sh.module );
 		}
 
-		RawDescriptorSetLayoutID	ds_layout;
-		uint						binding;
-		CHECK( fgThread.GetShaderDebugger().GetDescriptorSetLayout( debugMode, debuggableShaders, OUT binding, OUT ds_layout ));
-
-		layoutId = fgThread.GetResourceManager().ExtendPipelineLayout( layoutId, ds_layout, binding, DescriptorSetID{"dbgStorage"} );
+		layoutId = fgThread.GetResourceManager().CreateDebugPipelineLayout( layoutId, debugMode, debuggableShaders, DescriptorSetID{"dbgStorage"} );
 		CHECK_ERR( layoutId );
 
 		return true;
@@ -176,7 +172,7 @@ namespace FG
 												  const VertexInputState		&vertexInput,
 												  const RenderState				&renderState,
 												  const EPipelineDynamicState	 dynamicStates,
-												  const uint					 debugModeIndex,
+												  const ShaderDbgIndex			 debugModeIndex,
 												  OUT VkPipeline				&outPipeline,
 												  OUT VPipelineLayout const*	&outLayout)
 	{
@@ -188,7 +184,7 @@ namespace FG
 		EShaderStages			dbg_stages	= Default;
 		RawPipelineLayoutID		layout_id	= gppln.GetLayoutID();
 
-		if ( debugModeIndex != UMax ) {
+		if ( debugModeIndex != Default ) {
 			CHECK( _SetupShaderDebugging( fgThread, gppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
@@ -314,7 +310,7 @@ namespace FG
 												  const VMeshPipeline			&mppln,
 												  const RenderState				&renderState,
 												  const EPipelineDynamicState	 dynamicStates,
-												  const uint					 debugModeIndex,
+												  const ShaderDbgIndex			 debugModeIndex,
 												  OUT VkPipeline				&outPipeline,
 												  OUT VPipelineLayout const*	&outLayout)
 	{
@@ -327,7 +323,7 @@ namespace FG
 		EShaderStages			dbg_stages	= Default;
 		RawPipelineLayoutID		layout_id	= mppln.GetLayoutID();
 
-		if ( debugModeIndex != UMax ) {
+		if ( debugModeIndex != Default ) {
 			CHECK( _SetupShaderDebugging( fgThread, mppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
@@ -446,7 +442,7 @@ namespace FG
 												  const VComputePipeline		&cppln,
 												  const Optional<uint3>			&localGroupSize,
 												  VkPipelineCreateFlags			 pipelineFlags,
-												  uint							 debugModeIndex,
+												  const ShaderDbgIndex			 debugModeIndex,
 												  OUT VkPipeline				&outPipeline,
 												  OUT VPipelineLayout const*	&outLayout)
 	{
@@ -455,7 +451,7 @@ namespace FG
 		EShaderStages		dbg_stages	= Default;
 		RawPipelineLayoutID	layout_id	= cppln.GetLayoutID();
 
-		if ( debugModeIndex != UMax ) {
+		if ( debugModeIndex != Default ) {
 			CHECK( _SetupShaderDebugging( fgThread, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
@@ -554,7 +550,7 @@ namespace FG
 										  VLocalRTScene const			&rtScene,
 										  const RayGenShader			&rayGenShader,
 										  ArrayView< RTShaderGroup >	 shaderGroups,
-										  uint							 maxRecursionDepth,
+										  const uint					 maxRecursionDepth,
 										  INOUT VRayTracingShaderTable	&shaderTable,
 										  OUT BufferCopyRegions_t		&copyRegions)
 	{
@@ -685,11 +681,7 @@ namespace FG
 
 			if ( mode != Default )
 			{
-				RawDescriptorSetLayoutID	ds_layout;
-				uint						binding;
-				CHECK( fgThread.GetShaderDebugger().GetDescriptorSetLayout( mode, EShaderStages::AllRayTracing, OUT binding, OUT ds_layout ));
-
-				layout_id = res_mngr.ExtendPipelineLayout( layout_id, ds_layout, binding, DescriptorSetID{"dbgStorage"});
+				layout_id = res_mngr.CreateDebugPipelineLayout( layout_id, mode, EShaderStages::AllRayTracing, DescriptorSetID{"dbgStorage"});
 				CHECK_ERR( layout_id );
 			}
 
@@ -847,7 +839,7 @@ namespace FG
 		size_t	best_match	= UMax;
 
 		// find suitable shader module
-		for (size_t pos = BinarySearch( ppln->_shaders, id );
+		for (size_t pos = LowerBound( ppln->_shaders, id );
 			 pos < ppln->_shaders.size() and ppln->_shaders[pos].shaderId == id;
 			 ++pos)
 		{

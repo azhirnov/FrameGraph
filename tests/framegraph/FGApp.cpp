@@ -41,17 +41,17 @@ namespace {
 		_tests.push_back({ &FGApp::Test_Draw2,			1 });
 		_tests.push_back({ &FGApp::Test_Draw3,			1 });
 		_tests.push_back({ &FGApp::Test_Draw4,			1 });
-		//_tests.push_back({ &FGApp::Test_Draw5,			1 });
+		_tests.push_back({ &FGApp::Test_Draw5,			1 });
 		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1,	1 });
 		_tests.push_back({ &FGApp::Test_ReadAttachment1,	1 });
 		_tests.push_back({ &FGApp::Test_AsyncCompute1,		1 });
 		_tests.push_back({ &FGApp::Test_AsyncCompute2,		1 });
-		//_tests.push_back({ &FGApp::Test_ShaderDebugger1,	1 });
-		//_tests.push_back({ &FGApp::Test_ShaderDebugger2,	1 });
+		_tests.push_back({ &FGApp::Test_ShaderDebugger1,	1 });
+		_tests.push_back({ &FGApp::Test_ShaderDebugger2,	1 });
 		_tests.push_back({ &FGApp::Test_ArrayOfTextures1,	1 });
 		_tests.push_back({ &FGApp::Test_ArrayOfTextures2,	1 });
 		
-		//_tests.push_back({ &FGApp::ImplTest_Scene1,			 1 });
+		_tests.push_back({ &FGApp::ImplTest_Scene1,			 1 });
 		
 		// RTX only
 		_tests.push_back({ &FGApp::Test_DrawMeshes1,		1 });
@@ -121,8 +121,8 @@ namespace {
 									));
 
 			// this is a test and the test should fail for any validation error
-			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
-			//								  [] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
+			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
+											  [] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
 		}
 
 		// setup device info
@@ -155,7 +155,6 @@ namespace {
 		{
 			_frameGraph = IFrameGraph::CreateFrameGraph( vulkan_info );
 			CHECK_ERR( _frameGraph );
-			CHECK_ERR( _frameGraph->Initialize() );
 
 			_swapchainId = _frameGraph->CreateSwapchain( swapchain_info, Default, "Window" );
 			CHECK_ERR( _swapchainId );
