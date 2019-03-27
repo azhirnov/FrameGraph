@@ -5,7 +5,7 @@ desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, ... );
 ```
 Then setup debug callback:
 ```cpp
-FrameGraphThread::SetShaderDebugCallback( ... );
+IFrameGraph::SetShaderDebugCallback( ... );
 ```
 For task that you want to debug add one of this:
 ```cpp

@@ -95,7 +95,8 @@ void main() {
 // add fragment shader
 desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_100, "main", R"#(
 in  vec3  v_Color;
-out vec4  out_Color;
+
+layout(location=0) out vec4  out_Color;
 
 void main() {
     out_Color = vec4(v_Color, 1.0);
@@ -108,18 +109,20 @@ GPipelineID  pipeline = frameGraph->CreatePipeline( desc );
 
 ## Command buffer
 ```cpp
-// TBD
+// Create command buffer that will be submitted to the graphics queue
 CommandBufferDesc cmd_desc{ EQueueType::Graphics };
 
-// TBD
+// Returned command buffer will be in the recording state
 CommandBuffer cmdBuffer = frameGraph->Begin( cmd_desc );
 
+// Drawing (see below)
 ...
 
-// TBD
+// Finilize recording, compile frame graph for command buffer.
+// Command buffer may be submitted at any time.
 frameGraoh->Execute( cmdBuffer );
 
-// TBD
+// Submit all pending command buffers.
 frameGraph->Flush();
 ```
 
@@ -132,17 +135,14 @@ ImageDesc  image_desc{ EImage::Tex2D,
                        EImageUsage::ColorAttachment };
 ImageID  image = frameGraph->CreateImage( image_desc );
 
-// skiped some code, this wiil be descripbed below
-...
-
 // set render area size
 RenderPassDesc  rp_desc{ uint2{800, 600} };
 
 // add render target.
-// render target ID must be same as in output parameter in fragment shader.
+// render target ID must have same index as output parameter in fragment shader.
 // before rendering image will be cleared with 0.0f value.
 // after rendering result will be stored to the image.
-rp_desc.AddTarget( RenderTargetID{"out_Color"}, image, RGBA32f{0.0f}, EAttachmentStoreOp::Store );
+rp_desc.AddTarget( RenderTargetID{0, image, RGBA32f{0.0f}, EAttachmentStoreOp::Store );
 
 // setup viewport
 rp_desc.AddViewport( float2{800.0f, 600.0f} );
@@ -175,9 +175,6 @@ Task submit = cmdBuffer->AddTask( SubmitRenderPass{ render_pass });
 // present to swapchain.
 // this task must be executed after drawing.
 Task present = cmdBuffer->AddTask( Present{ image }.DependsOn( submit ));
-
-// skiped some code, this wiil be descripbed below
-...
 ```
 
 ## Deinitialization
