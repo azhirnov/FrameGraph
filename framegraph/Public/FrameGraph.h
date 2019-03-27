@@ -91,7 +91,7 @@ namespace FG
 			virtual bool		AddPipelineCompiler (const PipelineCompiler &comp) = 0;
 			
 			// Set compilation flags for all framegraph threads.
-			//virtual void		SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags = Default) = 0;
+			//virtual void		SetCompilationFlags (ECompilationFlags flags, EDebugFlags debugFlags = Default) = 0;
 			
 			// Callback will be called at end of the frame if debugging enabled by
 			// calling 'Task::EnableDebugTrace' and shader compiled with 'EShaderLangFormat::EnableDebugTrace' flag.

@@ -53,7 +53,7 @@ void main() {
 		CHECK_ERR( pipeline );
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 		CHECK_ERR( cmd );
 
 		RawImageID		image		= cmd->GetSwapchainImage( _swapchainId, ESwapchainImage::Primary );

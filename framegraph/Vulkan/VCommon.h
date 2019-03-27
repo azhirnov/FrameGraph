@@ -35,15 +35,6 @@ namespace FG
 	//using TempArray					= std::vector< T, foonathan::memory::std_allocator< T, > >;
 
 	using DebugName_t				= StaticString<64>;
-	/*
-	using UntypedVkResource_t		= Pair< VkObjectType, uint64_t >;
-	using AppendableVkResources_t	= Appendable< UntypedVkResource_t >;
-	
-	using UntypedResourceID_t		= Union< RawImageID, RawSamplerID, RawBufferID, RawGPipelineID, RawCPipelineID,
-											 RawMPipelineID, RawRTPipelineID, RawMemoryID, RawDescriptorSetLayoutID,
-											 RawPipelineLayoutID, RawRenderPassID, RawFramebufferID, RawPipelineResourcesID,
-											 RawRTGeometryID, RawRTSceneID, RawRTShaderTableID, RawSwapchainID >;
-	using AppendableResourceIDs_t	= Appendable< UntypedResourceID_t >;*/
 	
 	using VkDescriptorSets_t		= FixedArray< VkDescriptorSet, FG_MaxDescriptorSets >;
 	

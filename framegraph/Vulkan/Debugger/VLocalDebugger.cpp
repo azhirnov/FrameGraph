@@ -28,7 +28,7 @@ namespace {
 	Begin
 =================================================
 */
-	void VLocalDebugger::Begin (ECompilationDebugFlags flags)
+	void VLocalDebugger::Begin (EDebugFlags flags)
 	{
 		_flags = flags;
 		_tasks.resize( 1 );
@@ -39,11 +39,11 @@ namespace {
 	End
 =================================================
 */
-	void VLocalDebugger::End (StringView name, OUT String *dump, OUT SubBatchGraph *graph)
+	void VLocalDebugger::End (StringView name, OUT String *dump, OUT BatchGraph *graph)
 	{
-		constexpr auto	DumpFlags =	ECompilationDebugFlags::LogTasks		|
-									ECompilationDebugFlags::LogBarriers		|
-									ECompilationDebugFlags::LogResourceUsage;
+		constexpr auto	DumpFlags =	EDebugFlags::LogTasks		|
+									EDebugFlags::LogBarriers		|
+									EDebugFlags::LogResourceUsage;
 		
 		if ( EnumEq( _flags, DumpFlags ) )
 		{
@@ -67,7 +67,7 @@ namespace {
 */
 	void VLocalDebugger::AddTask (VTask task)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogTasks ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogTasks ) )
 			return;
 
 		const size_t	idx = size_t(task->ExecutionOrder());
@@ -109,7 +109,7 @@ namespace {
 												VkDependencyFlags			dependencyFlags,
 												const VkBufferMemoryBarrier	&barrier)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogBarriers ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
 			return;
 
 		auto&	barriers = _buffers.insert({ buffer, {} }).first->second.barriers;
@@ -130,7 +130,7 @@ namespace {
 											   VkDependencyFlags			dependencyFlags,
 											   const VkImageMemoryBarrier	&barrier)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogBarriers ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
 			return;
 
 		auto&	barriers = _images.insert({ image, {} }).first->second.barriers;
@@ -151,7 +151,7 @@ namespace {
 													VkDependencyFlags			dependencyFlags,
 													const VkMemoryBarrier		&barrier)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogBarriers ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
 			return;
 
 		auto&	barriers = _rtGeometries.insert({ rtGeometry, {} }).first->second.barriers;
@@ -172,7 +172,7 @@ namespace {
 													VkDependencyFlags			dependencyFlags,
 													const VkMemoryBarrier		&barrier)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogBarriers ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
 			return;
 
 		auto&	barriers = _rtScenes.insert({ rtScene, {} }).first->second.barriers;
@@ -187,7 +187,7 @@ namespace {
 */
 	void VLocalDebugger::AddBufferUsage (const VBuffer* buffer, const VLocalBuffer::BufferState &state)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogResourceUsage ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogResourceUsage ) )
 			return;
 		
 		ASSERT( buffer and state.task );
@@ -209,7 +209,7 @@ namespace {
 */
 	void VLocalDebugger::AddImageUsage (const VImage* image, const VLocalImage::ImageState &state)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogResourceUsage ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogResourceUsage ) )
 			return;
 
 		ASSERT( image and state.task );
@@ -231,7 +231,7 @@ namespace {
 */
 	void VLocalDebugger::AddRTGeometryUsage (const VRayTracingGeometry *geometry, const VLocalRTGeometry::GeometryState &state)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogResourceUsage ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogResourceUsage ) )
 			return;
 
 		ASSERT( geometry and state.task );
@@ -253,7 +253,7 @@ namespace {
 */
 	void VLocalDebugger::AddRTSceneUsage (const VRayTracingScene *scene, const VLocalRTScene::SceneState &state)
 	{
-		if ( not EnumEq( _flags, ECompilationDebugFlags::LogResourceUsage ) )
+		if ( not EnumEq( _flags, EDebugFlags::LogResourceUsage ) )
 			return;
 
 		ASSERT( scene and state.task );

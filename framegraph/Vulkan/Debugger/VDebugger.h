@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "VCommon.h"
+#include "VLocalDebugger.h"
 
 namespace FG
 {
@@ -13,18 +13,25 @@ namespace FG
 
 	class VDebugger
 	{
+	// types
+	private:
+		using BatchGraph	= VLocalDebugger::BatchGraph;
+
+
 	// variables
 	private:
-		mutable String		_fullDump;
+		mutable Array<String>		_fullDump;
+		mutable Array<BatchGraph>	_graphs;
 
 
 	// methods
 	public:
 		VDebugger ();
 
-		void AddBatchDump (StringView);
+		void AddBatchDump (String &&);
 		void GetFrameDump (OUT String &) const;
 
+		void AddBatchGraph (BatchGraph &&);
 		void GetGraphDump (OUT String &) const;
 	};
 

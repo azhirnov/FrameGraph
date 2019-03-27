@@ -5,6 +5,9 @@
 #include "framegraph/Public/CommandBuffer.h"
 #include "framegraph/Public/FrameGraph.h"
 #include "VDescriptorSetLayout.h"
+#include "VLocalDebugger.h"
+#include "VCommandPool.h"
+#include "stl/Containers/FixedTupleArray.h"
 
 namespace FG
 {
@@ -223,7 +226,13 @@ namespace FG
 
 		static constexpr uint	MaxSwapchains = 8;
 		using Swapchains_t		= FixedArray< VSwapchain const*, MaxSwapchains >;
+		
+		using BatchGraph		= VLocalDebugger::BatchGraph;
 
+		static constexpr uint		MaxBatchItems = 8;
+		using CmdBuffers_t			= FixedTupleArray< MaxBatchItems, VkCommandBuffer, VCommandPool const* >;
+		using SignalSemaphores_t	= FixedArray< VkSemaphore, MaxBatchItems >;
+		using WaitSemaphores_t		= FixedTupleArray< MaxBatchItems, VkSemaphore, VkPipelineStageFlags >;
 
 
 	public:
@@ -240,49 +249,51 @@ namespace FG
 
 	// variables
 	private:
-		std::atomic<EState>						_state;
-		VResourceManager &						_resMngr;
+		std::atomic<EState>					_state;
+		VResourceManager &					_resMngr;
 
-		const VDeviceQueueInfoPtr				_queue;
-		const EQueueType						_queueType;
+		const VDeviceQueueInfoPtr			_queue;
+		const EQueueType					_queueType;
 
-		Dependencies_t							_dependencies;
-		bool									_submitImmediately	= false;
+		Dependencies_t						_dependencies;
+		bool								_submitImmediately	= false;
 		
 		// command batch data
-		FixedArray< VkCommandBuffer, 8 >		_commands;
-		FixedArray< VkSemaphore, 8 >			_signalSemaphores;
-		FixedArray< VkSemaphore, 8 >			_waitSemaphores;
-		FixedArray< VkPipelineStageFlags, 8 >	_waitDstStages;
+		struct {
+			CmdBuffers_t						commands;
+			SignalSemaphores_t					signalSemaphores;
+			WaitSemaphores_t					waitSemaphores;
+		}									_batch;
 
 		// staging buffers
 		struct {
-			BytesU									hostWritableBufferSize;
-			BytesU									hostReadableBufferSize;
-			EBufferUsage							hostWritebleBufferUsage	= Default;
-			FixedArray< StagingBuffer, 8 >			hostToDevice;	// CPU write, GPU read
-			FixedArray< StagingBuffer, 8 >			deviceToHost;	// CPU read, GPU write
-			Array< OnBufferDataLoadedEvent >		onBufferLoadedEvents;
-			Array< OnImageDataLoadedEvent >			onImageLoadedEvents;
-		}										_staging;
+			BytesU								hostWritableBufferSize;
+			BytesU								hostReadableBufferSize;
+			EBufferUsage						hostWritebleBufferUsage	= Default;
+			FixedArray< StagingBuffer, 8 >		hostToDevice;	// CPU write, GPU read
+			FixedArray< StagingBuffer, 8 >		deviceToHost;	// CPU read, GPU write
+			Array< OnBufferDataLoadedEvent >	onBufferLoadedEvents;
+			Array< OnImageDataLoadedEvent >		onImageLoadedEvents;
+		}									_staging;
 
 		// resources
-		ResourceMap_t							_resourcesToRelease;
-		Swapchains_t							_swapchains;
+		ResourceMap_t						_resourcesToRelease;
+		Swapchains_t						_swapchains;
 
 		// shader debugger
 		struct {
-			StorageBuffers_t						buffers;
-			DebugModes_t							modes;
-			DescriptorCache_t						descCache;
-			BytesU									bufferAlign;
-			const BytesU							bufferSize		= 64_Mb;
-		}										_shaderDebugger;
+			StorageBuffers_t					buffers;
+			DebugModes_t						modes;
+			DescriptorCache_t					descCache;
+			BytesU								bufferAlign;
+			const BytesU						bufferSize		= 64_Mb;
+		}									_shaderDebugger;
 
 		// frame debugger
-		String									_debugDump;
+		String								_debugDump;
+		BatchGraph							_debugGraph;
 		
-		VSubmittedPtr							_submitted;
+		VSubmittedPtr						_submitted;
 
 
 	// methods
@@ -300,7 +311,8 @@ namespace FG
 
 		void  SignalSemaphore (VkSemaphore sem);
 		void  WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
-		void  AddCommandBuffer (VkCommandBuffer cmd);
+		void  PushFrontCommandBuffer (VkCommandBuffer, const VCommandPool *);
+		void  PushBackCommandBuffer (VkCommandBuffer, const VCommandPool *);
 		void  AddDependency (VCmdBatch *);
 	
 
@@ -337,8 +349,9 @@ namespace FG
 
 
 	private:
-		void _SetState (EState newState);
-		void _ReleaseResources ();
+		void  _SetState (EState newState);
+		void  _ReleaseResources ();
+		void  _FinalizeCommands ();
 
 		
 		// shader debugger //

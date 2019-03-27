@@ -36,7 +36,7 @@ namespace FG
 			}
 		};
 
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 		CHECK_ERR( cmd );
 
 		Task	t_update	= cmd->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( src_data ));

@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "framegraph/Public/FGEnums.h"
 #include "VCommon.h"
-#include "Public/FGEnums.h"
 #include "VLocalImage.h"
 #include "VLocalBuffer.h"
 #include "VLocalRTGeometry.h"
@@ -66,7 +66,8 @@ namespace FG
 
 		using TaskMap_t	= Array< TaskInfo >;
 		
-		struct SubBatchGraph
+	public:
+		struct BatchGraph
 		{
 			String		body;
 			String		firstNode;
@@ -86,15 +87,15 @@ namespace FG
 		StringView					_subBatchUID;
 
 		// settings
-		ECompilationDebugFlags		_flags;
+		EDebugFlags		_flags;
 
 
 	// methods
 	public:
 		VLocalDebugger ();
 
-		void Begin (ECompilationDebugFlags flags);
-		void End (StringView name, OUT String *dump, OUT SubBatchGraph *graph);
+		void Begin (EDebugFlags flags);
+		void End (StringView name, OUT String *dump, OUT BatchGraph *graph);
 		
 		void AddBufferBarrier (const VBuffer *				buffer,
 							   ExeOrderIndex				srcIndex,
@@ -176,7 +177,7 @@ namespace FG
 
 	// dump to graphviz format
 	private:
-		void _DumpGraph (OUT SubBatchGraph &str) const;
+		void _DumpGraph (OUT BatchGraph &str) const;
 		void _AddInitialStates (INOUT String &str, OUT String &firstNode) const;
 		void _AddFinalStates (INOUT String &str, INOUT String &deps, OUT String &lastNode) const;
 

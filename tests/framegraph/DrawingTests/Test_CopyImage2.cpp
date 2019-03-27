@@ -64,7 +64,7 @@ namespace FG
 		
 		// frame 1
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 			CHECK_ERR( cmd );
 
 			uint2	dim			{ src_dim.x, src_dim.y/2 };
@@ -79,7 +79,7 @@ namespace FG
 
 		// frame 2
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 			CHECK_ERR( cmd );
 			
 			uint2	dim			{ src_dim.x, src_dim.y/2 };

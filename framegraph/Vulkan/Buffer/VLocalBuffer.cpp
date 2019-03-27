@@ -62,27 +62,22 @@ namespace FG
 	inline VLocalBuffer::AccessIter_t
 		VLocalBuffer::_FindFirstAccess (AccessRecords_t &arr, const BufferRange &otherRange)
 	{
-		if ( arr.size() )
+		size_t	left	= 0;
+		size_t	right	= arr.size();
+
+		for (; left < right; )
 		{
-			size_t	left	= 0;
-			size_t	right	= arr.size()-1;
+			size_t	mid = (left + right) >> 1;
 
-			for (; right - left > 1; )
-			{
-				size_t	mid = (left + right) >> 1;
-
-				if ( arr[mid].range.end < otherRange.begin )
-					left = mid;
-				else
-					right = mid;
-			}
-
-			if ( arr[left].range.end >= otherRange.begin )
-				return arr.begin() + left;
-
-			if ( arr[right].range.end >= otherRange.begin )
-				return arr.begin() + right;
+			if ( arr[mid].range.end < otherRange.begin )
+				left = mid + 1;
+			else
+				right = mid;
 		}
+
+		if ( left < arr.size() and arr[left].range.end >= otherRange.begin )
+			return arr.begin() + left;
+		
 		return arr.end();
 	}
 	

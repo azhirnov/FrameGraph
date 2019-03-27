@@ -92,7 +92,7 @@ namespace FG
 
 			return Visit( *_debugInfo,
 						  [&] (const ShaderTrace &trace) { return trace.ParseShaderTrace( debugOutput.data(), debugOutput.size(), OUT result ); },
-						  []  (const NullUnion &)   { return false; }
+						  []  (const NullUnion &)		 { return false; }
 						);
 		}
 

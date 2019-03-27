@@ -88,3 +88,10 @@
 | vkCmdBindPipeline with VK_PIPELINE_BIND_POINT_RAY_TRACING_NV | ComputeTask::SetPipeline |
 | vkCmdBindDescriptorSets with VK_PIPELINE_BIND_POINT_RAY_TRACING_NV | ComputeTask::AddResources |
 
+
+## Synchronizations
+| Vulkan | FrameGraph |
+|---|---|
+| vkWaitForFences | FrameGraph::Wait for command buffers |
+| semaphores | add dependency between command buffers by specializing `dependsOn` parameter in FrameGraph::Begin or to by calling CommandBuffer::AddDependency |
+| vkDeviceWaitIdle | FrameGraph::WaitIdle |

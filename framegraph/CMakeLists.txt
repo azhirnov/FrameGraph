@@ -268,6 +268,9 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		"../tests/framegraph/FGApp.h"
 		"../tests/framegraph/main.cpp"
 		"../tests/framegraph/ImplTests/ImplTest_CacheOverflow1.cpp"
+		"../tests/framegraph/ImplTests/ImplTest_Multithreading1.cpp"
+		"../tests/framegraph/ImplTests/ImplTest_Multithreading2.cpp"
+		"../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp"
 		"../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "Tests.FrameGraph" SHARED ${SOURCES} )
@@ -277,7 +280,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	source_group( "UnitTests" FILES "../tests/framegraph/UnitTests/DummyTask.h" "../tests/framegraph/UnitTests/UnitTest_Common.h" "../tests/framegraph/UnitTests/UnitTest_ID.cpp" "../tests/framegraph/UnitTests/UnitTest_ImageSwizzle.cpp" "../tests/framegraph/UnitTests/UnitTest_PixelFormat.cpp" "../tests/framegraph/UnitTests/UnitTest_VBuffer.cpp" "../tests/framegraph/UnitTests/UnitTest_VertexInput.cpp" "../tests/framegraph/UnitTests/UnitTest_VImage.cpp" "../tests/framegraph/UnitTests/UnitTest_VResourceManager.cpp" )
 	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_ArrayOfTextures1.cpp" "../tests/framegraph/DrawingTests/Test_ArrayOfTextures2.cpp" "../tests/framegraph/DrawingTests/Test_AsyncCompute1.cpp" "../tests/framegraph/DrawingTests/Test_AsyncCompute2.cpp" "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute2.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" "../tests/framegraph/DrawingTests/Test_Draw2.cpp" "../tests/framegraph/DrawingTests/Test_Draw3.cpp" "../tests/framegraph/DrawingTests/Test_Draw4.cpp" "../tests/framegraph/DrawingTests/Test_Draw5.cpp" "../tests/framegraph/DrawingTests/Test_DrawMeshes1.cpp" "../tests/framegraph/DrawingTests/Test_DynamicOffset.cpp" "../tests/framegraph/DrawingTests/Test_ExternalCmdBuf1.cpp" "../tests/framegraph/DrawingTests/Test_InvalidID.cpp" "../tests/framegraph/DrawingTests/Test_PushConst1.cpp" "../tests/framegraph/DrawingTests/Test_RayTracingDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ReadAttachment1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger2.cpp" "../tests/framegraph/DrawingTests/Test_ShadingRate1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays2.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays3.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
-	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/ImplTest_CacheOverflow1.cpp" "../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
+	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/ImplTest_CacheOverflow1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading2.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp" "../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
 	set_property( TARGET "Tests.FrameGraph" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/CommandBuffer" )

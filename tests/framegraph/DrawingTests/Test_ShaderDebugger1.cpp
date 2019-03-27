@@ -88,7 +88,7 @@ no source
 		};
 		
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 		CHECK_ERR( cmd );
 		
 		resources.BindImage( UniformID("un_OutImage"), image );

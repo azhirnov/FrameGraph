@@ -52,6 +52,9 @@ namespace {
 		_tests.push_back({ &FGApp::Test_ArrayOfTextures2,	1 });
 		
 		_tests.push_back({ &FGApp::ImplTest_Scene1,			 1 });
+		_tests.push_back({ &FGApp::ImplTest_Multithreading1, 1 });
+		_tests.push_back({ &FGApp::ImplTest_Multithreading2, 1 });
+		_tests.push_back({ &FGApp::ImplTest_Multithreading3, 1 });
 		
 		// RTX only
 		_tests.push_back({ &FGApp::Test_DrawMeshes1,		1 });
@@ -201,6 +204,11 @@ namespace {
 			{
 				_tests.pop_front();
 				_testInvocations = 0;
+
+				// reset
+				String	temp;
+				_frameGraph->DumpToGraphViz( OUT temp );
+				_frameGraph->DumpToString( OUT temp );
 			}
 		}
 		else
@@ -334,8 +342,6 @@ namespace {
 */
 	bool FGApp::Visualize (StringView name) const
 	{
-		return true;
-
 #	if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FG_STD_FILESYSTEM)
 
 		String	str;

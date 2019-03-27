@@ -60,7 +60,7 @@ namespace FG
 	{
 		ASSERT( GetState() < EState::Submitted );
 
-		_signalSemaphores.push_back( sem );
+		_batch.signalSemaphores.push_back( sem );
 	}
 	
 /*
@@ -72,20 +72,26 @@ namespace FG
 	{
 		ASSERT( GetState() < EState::Submitted );
 
-		_waitSemaphores.push_back( sem );
-		_waitDstStages.push_back( stage );
+		_batch.waitSemaphores.push_back( sem, stage );
 	}
 	
 /*
 =================================================
-	AddCommandBuffer
+	PushFrontCommandBuffer / PushBackCommandBuffer
 =================================================
 */
-	void  VCmdBatch::AddCommandBuffer (VkCommandBuffer cmd)
+	void  VCmdBatch::PushFrontCommandBuffer (VkCommandBuffer cmd, const VCommandPool *pool)
 	{
 		ASSERT( GetState() < EState::Submitted );
 
-		_commands.push_back( cmd );
+		_batch.commands.insert( 0, cmd, pool );
+	}
+
+	void  VCmdBatch::PushBackCommandBuffer (VkCommandBuffer cmd, const VCommandPool *pool)
+	{
+		ASSERT( GetState() < EState::Submitted );
+
+		_batch.commands.push_back( cmd, pool );
 	}
 	
 /*
@@ -164,13 +170,13 @@ namespace FG
 		
 		submitInfo.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.pNext				= null;
-		submitInfo.pCommandBuffers		= _commands.data();
-		submitInfo.commandBufferCount	= uint(_commands.size());
-		submitInfo.pSignalSemaphores	= _signalSemaphores.data();
-		submitInfo.signalSemaphoreCount	= uint(_signalSemaphores.size());
-		submitInfo.pWaitSemaphores		= _waitSemaphores.data();
-		submitInfo.pWaitDstStageMask	= _waitDstStages.data();
-		submitInfo.waitSemaphoreCount	= uint(_waitSemaphores.size());
+		submitInfo.pCommandBuffers		= _batch.commands.get<0>().data();
+		submitInfo.commandBufferCount	= uint(_batch.commands.size());
+		submitInfo.pSignalSemaphores	= _batch.signalSemaphores.data();
+		submitInfo.signalSemaphoreCount	= uint(_batch.signalSemaphores.size());
+		submitInfo.pWaitSemaphores		= _batch.waitSemaphores.get<0>().data();
+		submitInfo.pWaitDstStageMask	= _batch.waitSemaphores.get<1>().data();
+		submitInfo.waitSemaphoreCount	= uint(_batch.waitSemaphores.size());
 
 		for (auto& sw : _swapchains) {
 			swapchains.push_back( sw );
@@ -193,13 +199,16 @@ namespace FG
 		ASSERT( _submitted );
 		_SetState( EState::Complete );
 
+		_FinalizeCommands();
 		_ParseDebugOutput( shaderDbgCallback );
-		
 		_FinalizeStagingBuffers();
 		_ReleaseResources();
 
-		debugger.AddBatchDump( _debugDump );
+		debugger.AddBatchDump( std::move(_debugDump) );
+		debugger.AddBatchGraph( std::move(_debugGraph) );
+
 		_debugDump.clear();
+		_debugGraph	= Default;
 
 		_submitted = null;
 		return true;
@@ -207,10 +216,28 @@ namespace FG
 	
 /*
 =================================================
+	_FinalizeCommands
+=================================================
+*/
+	void  VCmdBatch::_FinalizeCommands ()
+	{
+		for (size_t i = 0; i < _batch.commands.size(); ++i)
+		{
+			if ( auto*  pool = _batch.commands.get<1>()[i] )
+				pool->RecyclePrimary( _batch.commands.get<0>()[i] );
+		}
+
+		_batch.commands.clear();
+		_batch.signalSemaphores.clear();
+		_batch.waitSemaphores.clear();
+	}
+
+/*
+=================================================
 	_FinalizeStagingBuffers
 =================================================
 */
-	void VCmdBatch::_FinalizeStagingBuffers ()
+	void  VCmdBatch::_FinalizeStagingBuffers ()
 	{
 		using T = BufferView::value_type;
 		

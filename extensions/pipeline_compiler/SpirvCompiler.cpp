@@ -265,9 +265,7 @@ namespace FG
 					trace.IncludeSource( file.first.c_str(), file.second->GetSource().data(), file.second->GetSource().length() );
 				}
 
-				// FrameGraph uses (0..FG_MaxDescriptorSets-1) descriptor set indices,
-				// so FG_MaxDescriptorSets index never be used and can be used safely by shader debugger.
-				COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_MaxDescriptorSets ));
+				COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_DebugDescriptorSet ));
 
 				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 

@@ -80,6 +80,25 @@ namespace FGC
 			return true;
 		}
 
+		ND_ bool  operator >  (ArrayView<T> rhs) const
+		{
+			if ( size() != rhs.size() )
+				return size() > rhs.size();
+
+			for (size_t i = 0; i < size(); ++i)
+			{
+				if ( _array[i] != rhs[i] )
+					return _array[i] > rhs[i];
+			}
+			return true;
+		}
+		
+		ND_ bool  operator != (ArrayView<T> rhs) const	{ return not (*this == rhs); }
+		ND_ bool  operator <  (ArrayView<T> rhs) const	{ return (rhs > *this); }
+		ND_ bool  operator >= (ArrayView<T> rhs) const	{ return not (*this < rhs); }
+		ND_ bool  operator <= (ArrayView<T> rhs) const	{ return not (*this > rhs); }
+
+
 		ND_ ArrayView<T> section (size_t first, size_t count) const
 		{
 			return first < size() ?

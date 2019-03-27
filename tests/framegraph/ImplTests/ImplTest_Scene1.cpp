@@ -159,7 +159,7 @@ void main() {
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline1, DescriptorSetID("0"), OUT resources ));
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 		CHECK_ERR( cmd );
 		
 		ImageID		color_target = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3(view_size.x, view_size.y, 0), EPixelFormat::RGBA8_UNorm,

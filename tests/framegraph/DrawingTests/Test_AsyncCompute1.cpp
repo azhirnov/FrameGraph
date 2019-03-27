@@ -128,8 +128,8 @@ void main ()
 
 		
 		// frame 1
-		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( ECompilationDebugFlags::Default ));
-		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd1} );
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( EDebugFlags::Default ));
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( EDebugFlags::Default ), {cmd1} );
 		CHECK_ERR( cmd1 and cmd2 );
 		{
 			// graphics queue
@@ -161,8 +161,8 @@ void main ()
 
 
 		// frame 2		
-		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd2} );
-		CommandBuffer	cmd4 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd3} );
+		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( EDebugFlags::Default ), {cmd2} );
+		CommandBuffer	cmd4 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( EDebugFlags::Default ), {cmd3} );
 		CHECK_ERR( cmd3 and cmd4 );
 		{
 			// graphics queue

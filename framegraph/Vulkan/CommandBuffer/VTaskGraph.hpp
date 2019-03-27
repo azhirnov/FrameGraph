@@ -3,7 +3,6 @@
 #pragma once
 
 #include "VTaskGraph.h"
-#include "VShaderDebugger.h"
 #include "VEnumCast.h"
 
 namespace FG

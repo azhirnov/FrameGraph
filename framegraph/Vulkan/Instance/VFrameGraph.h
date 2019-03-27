@@ -41,8 +41,8 @@ namespace FG
 			Array<VCmdBatchPtr>			pending;		// TODO: circular queue
 			Array<VSubmittedPtr>		submitted;
 
-			SpinLock					cmdPoolGuard;
-			VkCommandPool				cmdPool			= VK_NULL_HANDLE;
+			SpinLock					cmdPoolGuard;	// TODO: move syncs to VCommandPool ?
+			VCommandPool				cmdPool;
 			Array<VkImageMemoryBarrier>	imageBarriers;
 		};
 
@@ -81,7 +81,7 @@ namespace FG
 		bool			Initialize ();
 		void			Deinitialize () override;
 		bool			AddPipelineCompiler (const PipelineCompiler &comp) override;
-		//void			SetCompilationFlags (ECompilationFlags flags, ECompilationDebugFlags debugFlags) override;
+		//void			SetCompilationFlags (ECompilationFlags flags, EDebugFlags debugFlags) override;
 		bool			SetShaderDebugCallback (ShaderDebugCallback_t &&) override;
 		DeviceInfo_t	GetDeviceInfo () const override;
 

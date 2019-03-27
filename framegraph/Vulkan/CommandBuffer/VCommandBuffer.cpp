@@ -59,13 +59,8 @@ namespace {
 		EXLOCK( _rcCheck );
 		CHECK( not IsRecording() );
 
-		auto&	dev = GetDevice();
-
-		for (auto& q : _perQueue)
-		{
-			if ( q.cmdPool ) {
-				dev.vkDestroyCommandPool( dev.GetVkDevice(), q.cmdPool, null );
-			}
+		for (auto& q : _perQueue) {
+			q.cmdPool.Destroy( GetDevice() );
 		}
 		_perQueue.clear();
 	}
@@ -82,31 +77,25 @@ namespace {
 
 		_currUsage	= EQueueUsage(0) | desc.queueType;
 		_batch		= batch;
+		_dbgName	= desc.name;
 		
 		// create command pool
 		{
-			uint	index = uint(_batch->GetQueue()->familyIndex);
+			const uint	index = uint(_batch->GetQueue()->familyIndex);
 
 			_perQueue.resize( Max( _perQueue.size(), index+1 ));
+			
+			auto&	pool = _perQueue[index].cmdPool;
 
-			auto&	q	= _perQueue[index];
-			auto&	dev	= GetDevice();
-
-			if ( not q.cmdPool )
+			if ( not pool.IsCreated() )
 			{
-				VkCommandPoolCreateInfo	info = {};
-				info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-				info.flags				= 0; //VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-				info.queueFamilyIndex	= index;
-
-				VK_CHECK( dev.vkCreateCommandPool( dev.GetVkDevice(), &info, null, OUT &q.cmdPool ));
+				CHECK_ERR( pool.Create( GetDevice(), _batch->GetQueue() ));
 			}
 		}
 		
 		_batch->OnBegin( desc );
-
-		_dbgName					= desc.name;
 		
+		// setup local debugger
 		if ( desc.debugFlags != Default )
 		{
 			if ( not _debugger )
@@ -117,6 +106,7 @@ namespace {
 		else
 			_debugger.reset();
 
+
 		_taskGraph.OnStart( GetAllocator() );
 		return true;
 	}
@@ -126,7 +116,7 @@ namespace {
 	Execute
 =================================================
 */
-	bool VCommandBuffer::Execute ()
+	bool  VCommandBuffer::Execute ()
 	{
 		EXLOCK( _rcCheck );
 		CHECK_ERR( IsRecording() );
@@ -134,15 +124,38 @@ namespace {
 		CHECK_ERR( _BuildCommandBuffers() );
 		
 		if ( _debugger )
-			_debugger->End( GetName(), OUT &_batch->_debugDump, null );
+			_debugger->End( GetName(), OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
 
 		CHECK_ERR( _batch->OnBaked( INOUT _rm.resourceMap ));
 		_batch = null;
 		
 		_taskGraph.OnDiscardMemory();
+		_AfterCompilation();
+
 		return true;
 	}
 	
+/*
+=================================================
+	_AfterCompilation
+=================================================
+*/
+	void  VCommandBuffer::_AfterCompilation ()
+	{
+		// destroy logical render passes
+		for (uint i = 0; i < _rm.logicalRenderPassCount; ++i)
+		{
+			auto&	rp = _rm.logicalRenderPasses[ Index_t(i) ];
+
+			if ( not rp.IsDestroyed() )
+			{
+				rp.Destroy( GetResourceManager() );
+				_rm.logicalRenderPasses.Unassign( Index_t(i) );
+			}
+		}
+		_rm.logicalRenderPassCount	= 0;
+	}
+
 /*
 =================================================
 	SignalSemaphore
@@ -186,15 +199,8 @@ namespace {
 		{
 			auto&	q = _perQueue[ uint(_batch->GetQueue()->familyIndex) ];
 			
-			VkCommandBufferAllocateInfo	info = {};
-			info.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			info.pNext				= null;
-			info.commandPool		= q.cmdPool;
-			info.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			info.commandBufferCount	= 1;
-			
-			VK_CHECK( dev.vkAllocateCommandBuffers( dev.GetVkDevice(), &info, OUT &cmd ));
-			_batch->AddCommandBuffer( cmd );
+			cmd = q.cmdPool.AllocPrimary( dev );
+			_batch->PushBackCommandBuffer( cmd, &q.cmdPool );
 		}
 
 		// begin
@@ -346,7 +352,7 @@ namespace {
 		CHECK_ERR( info->queueFamilyIndex == uint(_batch->GetQueue()->familyIndex) );
 
 		for (auto& cmd : info->commands) {
-			_batch->AddCommandBuffer( BitCast<VkCommandBuffer>(cmd) );
+			_batch->PushBackCommandBuffer( BitCast<VkCommandBuffer>(cmd), null );
 		}
 		for (auto& sem : info->signalSemaphores) {
 			_batch->SignalSemaphore( BitCast<VkSemaphore>(sem) );

@@ -33,31 +33,31 @@ namespace FGC
 
 	// methods
 	public:
-		FixedArray ()
+		constexpr FixedArray ()
 		{
 			DEBUG_ONLY( ::memset( data(), 0, sizeof(T) * capacity() ));
 			
 			STATIC_ASSERT( alignof(Self) % alignof(T) == 0 );
 		}
 
-		FixedArray (std::initializer_list<T> list) : FixedArray()
+		constexpr FixedArray (std::initializer_list<T> list) : FixedArray()
 		{
 			ASSERT( list.size() < capacity() );
 			assign( list.begin(), list.end() );
 		}
 
-		FixedArray (ArrayView<T> view) : FixedArray()
+		constexpr FixedArray (ArrayView<T> view) : FixedArray()
 		{
 			ASSERT( view.size() < capacity() );
 			assign( view.begin(), view.end() );
 		}
 
-		FixedArray (const Self &other) : FixedArray()
+		constexpr FixedArray (const Self &other) : FixedArray()
 		{
 			assign( other.begin(), other.end() );
 		}
 
-		FixedArray (Self &&other) : _count{other._count}
+		constexpr FixedArray (Self &&other) : _count{other._count}
 		{
 			ASSERT( not _IsMemoryAliased( other.begin(), other.end() ) );
 
@@ -73,43 +73,50 @@ namespace FGC
 		}
 
 
-		ND_ operator ArrayView<T> ()				const	{ return ArrayView<T>{ data(), _count }; }
+		ND_ constexpr operator ArrayView<T> ()					const	{ return ArrayView<T>{ data(), _count }; }
 
-		ND_ size_t			size ()					const	{ return _count; }
-		ND_ bool			empty ()				const	{ return _count == 0; }
-		ND_ T *				data ()							{ return std::addressof( _array[0] ); }
-		ND_ T const *		data ()					const	{ return std::addressof( _array[0] ); }
+		ND_ constexpr size_t			size ()					const	{ return _count; }
+		ND_ constexpr bool				empty ()				const	{ return _count == 0; }
+		ND_ constexpr T *				data ()							{ return std::addressof( _array[0] ); }
+		ND_ constexpr T const *			data ()					const	{ return std::addressof( _array[0] ); }
 
-		ND_ T &				operator [] (size_t i)			{ ASSERT( i < _count );  return _array[i]; }
-		ND_ T const &		operator [] (size_t i)	const	{ ASSERT( i < _count );  return _array[i]; }
+		ND_ constexpr T &				operator [] (size_t i)			{ ASSERT( i < _count );  return _array[i]; }
+		ND_ constexpr T const &			operator [] (size_t i)	const	{ ASSERT( i < _count );  return _array[i]; }
 
-		ND_ iterator		begin ()						{ return data(); }
-		ND_ const_iterator	begin ()				const	{ return data(); }
-		ND_ iterator		end ()							{ return data() + _count; }
-		ND_ const_iterator	end ()					const	{ return data() + _count; }
+		ND_ constexpr iterator			begin ()						{ return data(); }
+		ND_ constexpr const_iterator	begin ()				const	{ return data(); }
+		ND_ constexpr iterator			end ()							{ return data() + _count; }
+		ND_ constexpr const_iterator	end ()					const	{ return data() + _count; }
 
-		ND_ T &				front ()						{ ASSERT( _count > 0 );  return _array[0]; }
-		ND_ T const&		front ()				const	{ ASSERT( _count > 0 );  return _array[0]; }
-		ND_ T &				back ()							{ ASSERT( _count > 0 );  return _array[_count-1]; }
-		ND_ T const&		back ()					const	{ ASSERT( _count > 0 );  return _array[_count-1]; }
+		ND_ constexpr T &				front ()						{ ASSERT( _count > 0 );  return _array[0]; }
+		ND_ constexpr T const&			front ()				const	{ ASSERT( _count > 0 );  return _array[0]; }
+		ND_ constexpr T &				back ()							{ ASSERT( _count > 0 );  return _array[_count-1]; }
+		ND_ constexpr T const&			back ()					const	{ ASSERT( _count > 0 );  return _array[_count-1]; }
 		
-		ND_ static constexpr size_t	capacity ()				{ return ArraySize; }
+		ND_ static constexpr size_t		capacity ()						{ return ArraySize; }
 		
+		ND_ constexpr bool  operator == (ArrayView<T> rhs)		const	{ return ArrayView<T>{*this} == rhs; }
+		ND_ constexpr bool  operator != (ArrayView<T> rhs)		const	{ return ArrayView<T>{*this} != rhs; }
+		ND_ constexpr bool  operator >  (ArrayView<T> rhs)		const	{ return ArrayView<T>{*this} >  rhs; }
+		ND_ constexpr bool  operator <  (ArrayView<T> rhs)		const	{ return ArrayView<T>{*this} <  rhs; }
+		ND_ constexpr bool  operator >= (ArrayView<T> rhs)		const	{ return ArrayView<T>{*this} >= rhs; }
+		ND_ constexpr bool  operator <= (ArrayView<T> rhs)		const	{ return ArrayView<T>{*this} <= rhs; }
 
-		FixedArray& operator = (const Self &rhs)
+
+		constexpr FixedArray&  operator = (const Self &rhs)
 		{
 			assign( rhs.begin(), rhs.end() );
 			return *this;
 		}
 		
-		FixedArray& operator = (ArrayView<T> rhs)
+		constexpr FixedArray&  operator = (ArrayView<T> rhs)
 		{
 			ASSERT( rhs.size() < capacity() );
 			assign( rhs.begin(), rhs.end() );
 			return *this;
 		}
 
-		FixedArray& operator = (Self &&rhs)
+		constexpr FixedArray&  operator = (Self &&rhs)
 		{
 			ASSERT( not _IsMemoryAliased( rhs.begin(), rhs.end() ) );
 
@@ -124,39 +131,7 @@ namespace FGC
 		}
 
 
-		ND_ bool  operator == (ArrayView<T> rhs) const
-		{
-			if ( size() != rhs.size() )
-				return false;
-
-			for (size_t i = 0; i < size(); ++i)
-			{
-				if ( not ((*this)[i] == rhs[i]) )
-					return false;
-			}
-			return true;
-		}
-
-		ND_ bool  operator != (ArrayView<T> rhs) const
-		{
-			return not (*this == rhs);
-		}
-
-		ND_ bool  operator >  (ArrayView<T> rhs) const
-		{
-			if ( size() != rhs.size() )
-				return size() > rhs.size();
-
-			for (size_t i = 0; i < size(); ++i)
-			{
-				if ( (*this)[i] != rhs[i] )
-					return (*this)[i] > rhs[i];
-			}
-			return true;
-		}
-
-
-		void assign (const_iterator beginIter, const_iterator endIter)
+		constexpr void  assign (const_iterator beginIter, const_iterator endIter)
 		{
 			ASSERT( beginIter <= endIter );
 			ASSERT( not _IsMemoryAliased( beginIter, endIter ) );
@@ -170,7 +145,7 @@ namespace FGC
 		}
 
 
-		void append (ArrayView<T> items)
+		constexpr void  append (ArrayView<T> items)
 		{
 			for (auto& item : items) {
 				push_back( item );
@@ -178,13 +153,13 @@ namespace FGC
 		}
 
 
-		void push_back (const T &value)
+		constexpr void  push_back (const T &value)
 		{
 			ASSERT( _count < capacity() );
 			PlacementNew<T>( data() + (_count++), value );
 		}
 
-		void push_back (T &&value)
+		constexpr void  push_back (T &&value)
 		{
 			ASSERT( _count < capacity() );
 			PlacementNew<T>( data() + (_count++), std::move(value) );
@@ -192,7 +167,7 @@ namespace FGC
 
 
 		template <typename ...Args>
-		T&  emplace_back (Args&& ...args)
+		constexpr T&  emplace_back (Args&& ...args)
 		{
 			ASSERT( _count < capacity() );
 			T* ptr = data() + (_count++);
@@ -201,7 +176,7 @@ namespace FGC
 		}
 
 
-		void pop_back ()
+		constexpr void  pop_back ()
 		{
 			ASSERT( _count > 0 );
 			--_count;
@@ -211,7 +186,22 @@ namespace FGC
 		}
 
 
-		void resize (size_t newSize)
+		constexpr void  insert (size_t pos, T &&value)
+		{
+			ASSERT( _count < capacity() );
+
+			if ( pos >= _count )
+				return push_back( std::move(value) );
+
+			for (size_t i = _count++; i > pos; --i) {
+				PlacementNew<T>( data() + i, std::move(data()[i-1]) );
+			}
+
+			PlacementNew<T>( data() + pos, std::move(value) );
+		}
+
+
+		constexpr void  resize (size_t newSize)
 		{
 			newSize = Min( newSize, capacity() );
 
@@ -238,7 +228,7 @@ namespace FGC
 		}
 
 
-		void clear ()
+		constexpr void  clear ()
 		{
 			for (size_t i = 0; i < _count; ++i)
 			{
@@ -251,7 +241,7 @@ namespace FGC
 		}
 
 
-		void fast_erase (size_t index)
+		constexpr void  fast_erase (size_t index)
 		{
 			ASSERT( index < _count );
 
@@ -274,7 +264,7 @@ namespace FGC
 
 
 	private:
-		ND_ forceinline bool _IsMemoryAliased (const_iterator beginIter, const_iterator endIter) const
+		ND_ forceinline bool  _IsMemoryAliased (const_iterator beginIter, const_iterator endIter) const
 		{
 			return IsIntersects( begin(), end(), beginIter, endIter );
 		}

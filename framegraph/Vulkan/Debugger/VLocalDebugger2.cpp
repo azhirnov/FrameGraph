@@ -167,7 +167,7 @@ namespace {
 	_DumpGraph
 =================================================
 */
-	void VLocalDebugger::_DumpGraph (OUT SubBatchGraph &result) const
+	void VLocalDebugger::_DumpGraph (OUT BatchGraph &result) const
 	{
 		String&	str = result.body;
 
@@ -191,7 +191,7 @@ namespace {
 				continue;
 
 			// add task with resource usage
-			if ( EnumEq( _flags, ECompilationDebugFlags::VisResources ) )
+			if ( EnumEq( _flags, EDebugFlags::VisResources ) )
 			{
 				String	res_style;
 				String	bar_style;
@@ -214,7 +214,7 @@ namespace {
 					<< indent << "\t}\n\n";
 				
 				// add dependencies
-				if ( EnumEq( _flags, ECompilationDebugFlags::VisTaskDependencies ) )
+				if ( EnumEq( _flags, EDebugFlags::VisTaskDependencies ) )
 				{
 					for (auto& in_node : info.task->Inputs())
 					{
@@ -252,7 +252,7 @@ namespace {
 					<< "\", fontcolor=\"#" << _TaskLabelColor( info.task->DebugColor() ) << "\"];\n";
 
 				// add dependencies
-				if ( EnumEq( _flags, ECompilationDebugFlags::VisTaskDependencies ) and
+				if ( EnumEq( _flags, EDebugFlags::VisTaskDependencies ) and
 					 not info.task->Outputs().empty() )
 				{
 					deps << indent << '\t' << _VisTaskName( info.task ) << ":e -> { ";
@@ -802,7 +802,7 @@ namespace {
 		}
 
 		// add barrier dependency
-		if ( EnumEq( _flags, ECompilationDebugFlags::VisBarrierLabels ) )
+		if ( EnumEq( _flags, EDebugFlags::VisBarrierLabels ) )
 		{
 			String	src_stage = VkPipelineStage_ToString( bar.srcStageMask );
 			String	dst_stage = VkPipelineStage_ToString( bar.dstStageMask );

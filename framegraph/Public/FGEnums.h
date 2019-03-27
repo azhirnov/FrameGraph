@@ -17,7 +17,7 @@ namespace FG
 	};
 	
 
-	enum class ECompilationDebugFlags : uint
+	enum class EDebugFlags : uint
 	{
 		LogTasks						= 1 << 0,	// 
 		LogBarriers						= 1 << 1,	//
@@ -46,7 +46,7 @@ namespace FG
 		Default		= LogTasks | LogBarriers | LogResourceUsage |
 					  VisTasks | VisDrawTasks | VisResources | VisBarriers,
 	};
-	FG_BIT_OPERATORS( ECompilationDebugFlags );
+	FG_BIT_OPERATORS( EDebugFlags );
 
 
 }	// FG

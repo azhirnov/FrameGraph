@@ -2,7 +2,6 @@
 
 #include "VTaskProcessor.h"
 #include "VCommandBuffer.h"
-#include "VShaderDebugger.h"
 #include "VPipelineCache.h"
 #include "VDrawTask.h"
 #include "VEnumCast.h"
@@ -1327,7 +1326,7 @@ namespace FG
 */
 	void VTaskProcessor::_CmdPushDebugGroup (StringView text) const
 	{
-		if ( text.size() and _enableDebugUtils )
+		/*if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
 			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -1335,7 +1334,7 @@ namespace FG
 			MemCopy( info.color, _dbgColor );
 
 			vkCmdBeginDebugUtilsLabelEXT( _cmdBuffer, &info );
-		}
+		}*/
 	}
 
 /*
@@ -1345,10 +1344,10 @@ namespace FG
 */
 	void VTaskProcessor::_CmdPopDebugGroup () const
 	{
-		if ( _enableDebugUtils )
+		/*if ( _enableDebugUtils )
 		{
 			vkCmdEndDebugUtilsLabelEXT( _cmdBuffer );
-		}
+		}*/
 	}
 	
 /*

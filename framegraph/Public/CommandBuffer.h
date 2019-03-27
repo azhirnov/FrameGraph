@@ -24,7 +24,7 @@ namespace FG
 		EBufferUsage			hostWritebleBufferUsage		= EBufferUsage::TransferSrc;
 		//bool					immutableResources			= true;		// all resources except render targets and storage buffer/image will be immutable
 		//bool					submitImmediately			= true;		// set 'false' to merge commands into some betches
-		ECompilationDebugFlags	debugFlags					= Default;
+		EDebugFlags				debugFlags					= Default;
 		StringView				name;
 		
 				 CommandBufferDesc () {}
@@ -33,7 +33,7 @@ namespace FG
 		CommandBufferDesc&  SetHostWritableBufferSize (BytesU value)		{ hostWritableBufferSize = value;  return *this; }
 		CommandBufferDesc&  SetHostReadableBufferSize (BytesU value)		{ hostReadableBufferSize = value;  return *this; }
 		CommandBufferDesc&  SetHostWritableBufferUsage (EBufferUsage value)	{ hostWritebleBufferUsage = value;  return *this; }
-		CommandBufferDesc&  SetDebugFlags (ECompilationDebugFlags value)	{ debugFlags = value;  return *this; }
+		CommandBufferDesc&  SetDebugFlags (EDebugFlags value)				{ debugFlags = value;  return *this; }
 		CommandBufferDesc&  SetDebugName (StringView value)					{ name = value;  return *this; }
 	};
 

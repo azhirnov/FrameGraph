@@ -8,7 +8,7 @@
 namespace FG
 {
 	using CmdBatches_t			= VSubmitted::Batches_t;
-	using SubmitInfos_t			= StaticArray< VkSubmitInfo, VSubmitted::MaxBatches+1 >;
+	using SubmitInfos_t			= StaticArray< VkSubmitInfo, VSubmitted::MaxBatches >;
 	using TempSemaphores_t		= VSubmitted::Semaphores_t;
 	using PendingSwapchains_t	= FixedArray< VSwapchain const*, 16 >;
 	using TempFences_t			= FixedArray< VkFence, 32 >;
@@ -85,10 +85,7 @@ namespace FG
 				CHECK( q.submitted.empty() );
 
 				EXLOCK( q.cmdPoolGuard );
-				if ( q.cmdPool ) {
-					_device.vkDestroyCommandPool( _device.GetVkDevice(), q.cmdPool, null );
-					q.cmdPool = VK_NULL_HANDLE;
-				}
+				q.cmdPool.Destroy( _device );
 
 				for (auto& sem : q.semaphores) {
 					_semaphoreCache.push_back( sem );
@@ -806,18 +803,11 @@ namespace FG
 		auto	submit = MakeShared<VSubmitted>( EQueueType(qi), pending, temp_semaphores, _CreateFence(), q.lastSubmitted );
 		q.submitted.push_back( submit );
 
-		uint			batch_count = 0;
-		VkCommandBuffer	cmdbuf		= VK_NULL_HANDLE;
 
 		// add image layout transitions
 		if ( q.imageBarriers.size() )
 		{
-			VkCommandBufferAllocateInfo	alloc = {};
-			alloc.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			alloc.commandPool		= q.cmdPool;
-			alloc.commandBufferCount= 1;
-			alloc.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			VK_CHECK( _device.vkAllocateCommandBuffers( _device.GetVkDevice(), &alloc, OUT &cmdbuf ));
+			VkCommandBuffer  cmdbuf = q.cmdPool.AllocPrimary( _device );
 				
 			VkCommandBufferBeginInfo	begin = {};
 			begin.sType		= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -830,26 +820,22 @@ namespace FG
 			VK_CHECK( _device.vkEndCommandBuffer( cmdbuf ));
 			q.imageBarriers.clear();
 
-			auto&	s = submit_infos[ batch_count++ ];
-			s = {};
-			s.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			s.commandBufferCount	= 1;
-			s.pCommandBuffers		= &cmdbuf;
+			pending.front()->PushFrontCommandBuffer( cmdbuf, &q.cmdPool );
 		}
 
-		// 
-		for (uint i = 0; i < pending.size(); ++i, ++batch_count)
+		// init submit info
+		for (uint i = 0; i < pending.size(); ++i)
 		{
 			auto&	batch = *pending[i].get();
 
-			batch.OnSubmit( OUT submit_infos[batch_count], OUT swapchains, submit );
+			batch.OnSubmit( OUT submit_infos[i], OUT swapchains, submit );
 			ASSERT( q.ptr == batch.GetQueue() );
 		}
 
 		// submit & present
 		{
 			EXLOCK( q.ptr->guard );
-			VK_CALL( _device.vkQueueSubmit( q.ptr->handle, batch_count, submit_infos.data(), OUT submit->GetFence() ));
+			VK_CALL( _device.vkQueueSubmit( q.ptr->handle, uint(pending.size()), submit_infos.data(), OUT submit->GetFence() ));
 			
 			for (auto* sw : swapchains)
 			{
@@ -1060,15 +1046,8 @@ namespace FG
 
 		q.ptr = queuePtr;
 
-		// create command pool
-		{
-			VkCommandPoolCreateInfo	info = {};
-			info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			info.queueFamilyIndex	= uint(q.ptr->familyIndex);
-			info.flags				= 0;
+		CHECK_ERR( q.cmdPool.Create( _device, q.ptr ));
 
-			VK_CHECK( _device.vkCreateCommandPool( _device.GetVkDevice(), &info, null, OUT &q.cmdPool ));
-		}
 		return true;
 	}
 

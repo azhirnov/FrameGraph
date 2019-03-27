@@ -81,6 +81,9 @@ namespace FG
 	private:
 		bool ImplTest_Scene1 ();
 		bool ImplTest_CacheOverflow1 ();
+		bool ImplTest_Multithreading1 ();
+		bool ImplTest_Multithreading2 ();
+		bool ImplTest_Multithreading3 ();
 
 
 	// drawing tests
@@ -122,7 +125,6 @@ namespace FG
 	inline void FGApp::DeleteResources (Args& ...args)
 	{
 		_RecursiveDeleteResources( std::forward<Args&>( args )... );
-		CHECK( _frameGraph->WaitIdle() );
 	}
 
 

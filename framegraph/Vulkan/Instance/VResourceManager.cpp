@@ -325,62 +325,6 @@ namespace FG
 
 /*
 =================================================
-	ExtendPipelineLayout
-=================================================
-*
-	RawPipelineLayoutID  VResourceManager::ExtendPipelineLayout (RawPipelineLayoutID baseLayout, RawDescriptorSetLayoutID additionalDSLayout,
-																 uint dsLayoutIndex, const DescriptorSetID &dsID)
-	{
-		VPipelineLayout const*	origin = GetResource( baseLayout );
-		CHECK_ERR( origin );
-		
-		PipelineDescription::PipelineLayout		desc;
-		DSLayouts_t								ds_layouts;
-		auto&									origin_sets = origin->GetDescriptorSets();
-		auto&									ds_pool		= _GetResourcePool( RawDescriptorSetLayoutID{} );
-
-		// copy descriptor set layouts
-		for (auto& src : origin_sets)
-		{
-			auto&	ds_layout	= ds_pool[ src.second.layoutId.Index() ];
-
-			PipelineDescription::DescriptorSet	dst;
-			dst.id				= src.first;
-			dst.bindingIndex	= src.second.index;
-			dst.uniforms		= ds_layout.Data().GetUniforms();
-
-			ASSERT( src.second.index != dsLayoutIndex );
-
-			desc.descriptorSets.push_back( std::move(dst) );
-			ds_layouts.push_back({ src.second.layoutId, &ds_layout });
-		}
-
-		// append additional descriptor set layout
-		{
-			auto&	ds_layout	= ds_pool[ additionalDSLayout.Index() ];
-			
-			PipelineDescription::DescriptorSet	dst;
-			dst.id				= dsID;
-			dst.bindingIndex	= dsLayoutIndex;
-			dst.uniforms		= ds_layout.Data().GetUniforms();
-			
-			desc.descriptorSets.push_back( std::move(dst) );
-			ds_layouts.push_back({ additionalDSLayout, &ds_layout });
-		}
-
-		// copy push constant ranges
-		desc.pushConstants = origin->GetPushConstants();
-
-
-		RawPipelineLayoutID						new_layout;
-		ResourceBase<VPipelineLayout> const*	layout_ptr = null;
-		CHECK_ERR( _CreatePipelineLayout( OUT new_layout, OUT layout_ptr, desc, ds_layouts ));
-
-		return new_layout;
-	}
-	
-/*
-=================================================
 	CreateDescriptorSetLayout
 =================================================
 */

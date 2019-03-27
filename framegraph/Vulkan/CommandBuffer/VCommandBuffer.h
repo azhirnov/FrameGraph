@@ -10,7 +10,6 @@
 #include "VDescriptorManager.h"
 #include "VCmdBatch.h"
 #include "VFrameGraph.h"
-#include "VLocalDebugger.h"
 
 namespace FG
 {
@@ -25,7 +24,7 @@ namespace FG
 	private:
 		struct PerQueueFamily
 		{
-			VkCommandPool		cmdPool;
+			VCommandPool		cmdPool;
 		};
 
 		using TempTaskArray_t	= std::vector< VTask, StdLinearAllocator<VTask> >;
@@ -114,6 +113,7 @@ namespace FG
 
 		void SignalSemaphore (VkSemaphore sem);
 		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
+		void Recycle (VkCommandBuffer cmd);
 
 		RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
 		bool		AddExternalCommands (const ExternalCmdBatch_t &) override;
@@ -209,6 +209,7 @@ namespace FG
 	// task processor //
 		bool  _BuildCommandBuffers ();
 		bool  _ProcessTasks (VkCommandBuffer cmd);
+		void  _AfterCompilation ();
 		
 
 	// resource manager //

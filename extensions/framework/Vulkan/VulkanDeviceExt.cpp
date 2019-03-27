@@ -338,13 +338,29 @@ namespace FGC
 */
 	void VulkanDeviceExt::_DebugReport (const DebugReport &msg)
 	{
+		// ignore some errors
+		{
+			// Queue *** is signaling semaphore *** that was previously signaled by queue *** but has not since been waited on by any queue.
+			{
+				size_t	pos = msg.message.find( "is signaling semaphore" );
+				if ( pos != StringView::npos )
+					pos = msg.message.find( "that was previously signaled by queue", pos+1 );
+				
+				if ( pos != StringView::npos )
+					pos = msg.message.find( "but has not since been waited on by any queue", pos+1 );
+				
+				if ( pos != StringView::npos )
+					return;
+			}
+		}
+
 		if ( _callback )
 			return _callback( msg );
-		
+
 		String&		str = _tempString;
 		str.clear();
 
-		str << (msg.isError ? "Error: " : "Message: ") << msg.message << '\n';
+		str << msg.message << '\n';
 
 		for (auto& obj : msg.objects)
 		{

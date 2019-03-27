@@ -118,7 +118,7 @@ void main ()
 
 		// frame 1
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 			CHECK_ERR( cmd );
 			
 			BuildRayTracingGeometry::Triangles	triangles;
@@ -146,7 +146,7 @@ void main ()
 
 		// frame 2
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
+			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 			CHECK_ERR( cmd );
 			
 			resources.BindImage( UniformID("un_Output"), dst_image );

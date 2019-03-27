@@ -62,8 +62,8 @@ namespace FG
 			}
 		};
 		
-		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ));
-		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( ECompilationDebugFlags::Default ), {cmd1} );
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ), {cmd1} );
 		CHECK_ERR( cmd1 and cmd2 );
 
 		// thread 1
