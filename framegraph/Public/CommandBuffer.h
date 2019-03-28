@@ -18,14 +18,14 @@ namespace FG
 	
 	struct CommandBufferDesc
 	{
-		EQueueType				queueType					= EQueueType::Graphics;
-		BytesU					hostWritableBufferSize		= 256_Mb;
-		BytesU					hostReadableBufferSize		= 256_Mb;
-		EBufferUsage			hostWritebleBufferUsage		= EBufferUsage::TransferSrc;
-		//bool					immutableResources			= true;		// all resources except render targets and storage buffer/image will be immutable
-		//bool					submitImmediately			= true;		// set 'false' to merge commands into some betches
-		EDebugFlags				debugFlags					= Default;
-		StringView				name;
+		EQueueType		queueType					= EQueueType::Graphics;
+		BytesU			hostWritableBufferSize		= 256_Mb;
+		BytesU			hostReadableBufferSize		= 256_Mb;
+		EBufferUsage	hostWritebleBufferUsage		= EBufferUsage::TransferSrc;
+		//bool			immutableResources			= true;		// all resources except render targets and storage buffer/image will be immutable
+		//bool			submitImmediately			= true;		// set 'false' to merge commands into some betches
+		EDebugFlags		debugFlags					= Default;
+		StringView		name;
 		
 				 CommandBufferDesc () {}
 		explicit CommandBufferDesc (EQueueType type) : queueType{type} {}

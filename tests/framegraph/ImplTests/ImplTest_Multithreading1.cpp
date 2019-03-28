@@ -6,10 +6,10 @@
 
 namespace FG
 {
-	static constexpr uint	max_count	= 1000;
+	static constexpr uint	max_count		= 1000;
 	static GPipelineID		pipeline;
-	static Barrier			sync		{2};
-	static CommandBuffer	cmdBuffer1;
+	static Barrier			sync			{3};
+	static CommandBuffer	cmdBuffers [3]	= {};
 
 
 	static bool RenderThread1 (const FrameGraph &fg)
@@ -24,7 +24,7 @@ namespace FG
 			CommandBuffer cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
 			CHECK_ERR( cmd );
 
-			cmdBuffer1 = cmd;
+			cmdBuffers[0] = cmd;
 
 			// (1) wake up all render threads
 			sync.wait();
@@ -63,9 +63,49 @@ namespace FG
 			CommandBuffer cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
 			CHECK_ERR( cmd );
 			
+			cmdBuffers[1] = cmd;
+
 			// (1) wait for first command buffer
 			sync.wait();
-			cmd->AddDependency( cmdBuffer1 );
+			cmd->AddDependency( cmdBuffers[0] );
+
+			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
+												.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+												.AddViewport( view_size ) );
+		
+			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
+
+			Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
+			FG_UNUSED( t_draw );
+
+			CHECK_ERR( fg->Execute( cmd ));
+			
+			// (2) notify that thread has already finished recording the command buffer
+			sync.wait();
+		}
+
+		fg->ReleaseResource( image );
+		return true;
+	}
+
+
+	static bool RenderThread3 (const FrameGraph &fg)
+	{
+		const uint2	view_size	= {500, 1700};
+		ImageID		image		= fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA16_UNorm,
+															  EImageUsage::ColorAttachment | EImageUsage::TransferSrc },
+												   Default, "RenderTarget3" );
+
+		for (uint i = 0; i < max_count; ++i)
+		{
+			// (1) wait for second command buffer
+			sync.wait();
+
+			CommandBuffer cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
+			CHECK_ERR( cmd );
+			
+			cmdBuffers[2] = cmd;
+			cmd->AddDependency( cmdBuffers[1] );
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
@@ -129,17 +169,20 @@ void main() {
 		
 		pipeline = _frameGraph->CreatePipeline( ppln );
 		
-		bool			thread1_result;
-		bool			thread2_result;
+		bool			thread1_result, thread2_result, thread3_result;
 
 		std::thread		thread1( [this, &thread1_result]() { thread1_result = RenderThread1( _frameGraph ); });
 		std::thread		thread2( [this, &thread2_result]() { thread2_result = RenderThread2( _frameGraph ); });
+		std::thread		thread3( [this, &thread3_result]() { thread3_result = RenderThread3( _frameGraph ); });
 
 		thread1.join();
 		thread2.join();
+		thread3.join();
 
 		CHECK_ERR( _frameGraph->WaitIdle() );
-		CHECK_ERR( thread1_result and thread2_result );
+		CHECK_ERR( thread1_result and thread2_result and thread3_result );
+
+		for (auto& cmd : cmdBuffers) { cmd = null; }
 
 		DeleteResources( pipeline );
 

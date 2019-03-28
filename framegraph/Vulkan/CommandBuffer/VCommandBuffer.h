@@ -69,6 +69,7 @@ namespace FG
 		VCmdBatchPtr			_batch;
 
 		VFrameGraph &			_instance;
+		const uint				_indexInPool;
 		VBarrierManager			_barrierMngr;
 		VPipelineCache			_pipelineCache;
 		Debugger_t				_debugger;
@@ -102,18 +103,14 @@ namespace FG
 
 	// methods
 	public:
-		explicit VCommandBuffer (VFrameGraph &);
+		explicit VCommandBuffer (VFrameGraph &, uint);
 		~VCommandBuffer ();
-
-		bool Initialize ();
-		void Deinitialize ();
 
 		bool Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch);
 		bool Execute ();
 
 		void SignalSemaphore (VkSemaphore sem);
 		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
-		void Recycle (VkCommandBuffer cmd);
 
 		RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
 		bool		AddExternalCommands (const ExternalCmdBatch_t &) override;
@@ -189,6 +186,7 @@ namespace FG
 		ND_ VFrameGraph &			GetInstance ()				const	{ return _instance; }
 		ND_ VResourceManager &		GetResourceManager ()		const	{ return _instance.GetResourceManager(); }
 		ND_ VMemoryManager &		GetMemoryManager ()			const	{ return GetResourceManager().GetMemoryManager(); }
+		ND_ uint					GetIndexInPool ()			const	{ return _indexInPool; }
 
 
 	private:

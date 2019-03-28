@@ -17,8 +17,8 @@ namespace {
 	constructor
 =================================================
 */
-	VCommandBuffer::VCommandBuffer (VFrameGraph &fg) :
-		_instance{ fg }
+	VCommandBuffer::VCommandBuffer (VFrameGraph &fg, uint index) :
+		_instance{ fg },	_indexInPool{ index }
 	{
 		_mainAllocator.SetBlockSize( 16_Mb );
 
@@ -31,30 +31,6 @@ namespace {
 =================================================
 */
 	VCommandBuffer::~VCommandBuffer ()
-	{
-		CHECK( not IsRecording() );
-		CHECK( _perQueue.empty() );
-	}
-	
-/*
-=================================================
-	Initialize
-=================================================
-*/
-	bool VCommandBuffer::Initialize ()
-	{
-		EXLOCK( _rcCheck );
-
-		// TODO
-		return true;
-	}
-	
-/*
-=================================================
-	Deinitialize
-=================================================
-*/
-	void VCommandBuffer::Deinitialize ()
 	{
 		EXLOCK( _rcCheck );
 		CHECK( not IsRecording() );

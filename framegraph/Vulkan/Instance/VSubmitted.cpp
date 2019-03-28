@@ -12,10 +12,8 @@ namespace FG
 	constructor
 =================================================
 */
-	VSubmitted::VSubmitted (EQueueType queue, ArrayView<VCmdBatchPtr> batches, ArrayView<VkSemaphore> semaphores, VkFence fence, ExeOrderIndex order) :
-		_batches{ batches },		_semaphores{ semaphores },
-		_fence{ fence },			_submissionOrder{ order },
-		_queueType{ queue }
+	VSubmitted::VSubmitted (uint indexInPool) :
+		_indexInPool{ indexInPool }
 	{}
 	
 /*
@@ -30,6 +28,20 @@ namespace FG
 		ASSERT( _batches.empty() );
 	}
 	
+/*
+=================================================
+	Initialize
+=================================================
+*/
+	void  VSubmitted::Initialize (EQueueType queue, ArrayView<VCmdBatchPtr> batches, ArrayView<VkSemaphore> semaphores, VkFence fence, ExeOrderIndex order)
+	{
+		_batches			= batches;
+		_semaphores			= semaphores;
+		_fence				= fence;
+		_submissionOrder	= order;
+		_queueType			= queue;
+	}
+
 /*
 =================================================
 	_Release

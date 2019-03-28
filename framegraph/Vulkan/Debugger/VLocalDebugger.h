@@ -87,7 +87,7 @@ namespace FG
 		StringView					_subBatchUID;
 
 		// settings
-		EDebugFlags		_flags;
+		EDebugFlags					_flags;
 
 
 	// methods

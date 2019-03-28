@@ -29,9 +29,11 @@ namespace FG
 		VCmdBatchPtr (const VCmdBatchPtr &other) : _ptr{other._ptr}	{ _IncRef(); }
 		VCmdBatchPtr (VCmdBatchPtr &&other) : _ptr{other._ptr}		{ other._ptr = null; }
 		~VCmdBatchPtr ()											{ _DecRef(); }
-
+		
+		VCmdBatchPtr&	operator = (VCmdBatch* rhs)					{ _DecRef();  _ptr = rhs;  _IncRef();  return *this; }
 		VCmdBatchPtr&	operator = (const VCmdBatchPtr &rhs)		{ _DecRef();  _ptr = rhs._ptr;  _IncRef();  return *this; }
 		VCmdBatchPtr&	operator = (VCmdBatchPtr &&rhs)				{ _DecRef();  _ptr = rhs._ptr;  rhs._ptr = null;  return *this; }
+		VCmdBatchPtr&	operator = (std::nullptr_t)					{ _DecRef();  _ptr = null;  return *this; }
 
 		ND_ VCmdBatch*	operator -> ()		const					{ ASSERT( _ptr );  return _ptr; }
 		ND_ VCmdBatch&	operator *  ()		const					{ ASSERT( _ptr );  return *_ptr; }
@@ -250,10 +252,11 @@ namespace FG
 	// variables
 	private:
 		std::atomic<EState>					_state;
-		VResourceManager &					_resMngr;
+		VFrameGraph &						_frameGraph;
 
-		const VDeviceQueueInfoPtr			_queue;
-		const EQueueType					_queueType;
+		const uint							_indexInPool;
+		VDeviceQueueInfoPtr					_queue;
+		EQueueType							_queueType;
 
 		Dependencies_t						_dependencies;
 		bool								_submitImmediately	= false;
@@ -293,20 +296,23 @@ namespace FG
 		String								_debugDump;
 		BatchGraph							_debugGraph;
 		
-		VSubmittedPtr						_submitted;
+		VSubmitted *						_submitted	= null;
+		
+		RWRaceConditionCheck				_rcCheck;
 
 
 	// methods
 	public:
-		VCmdBatch (VResourceManager &rm, VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn);
+		VCmdBatch (VFrameGraph &fg, uint indexInPool);
 		~VCmdBatch ();
 
+		void  Initialize (VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn);
 		void  Release () override;
 		
 		bool  OnBegin (const CommandBufferDesc &);
 		bool  OnBaked (INOUT ResourceMap_t &);
 		bool  OnReadyToSubmit ();
-		bool  OnSubmit (OUT VkSubmitInfo &, OUT Appendable<VSwapchain const*>, const VSubmittedPtr &);
+		bool  OnSubmit (OUT VkSubmitInfo &, OUT Appendable<VSwapchain const*>, VSubmitted *);
 		bool  OnComplete (VDebugger &, const ShaderDebugCallback_t &);
 
 		void  SignalSemaphore (VkSemaphore sem);
@@ -337,15 +343,16 @@ namespace FG
 		bool  AddDataLoadedEvent (OnImageDataLoadedEvent &&);
 		bool  AddDataLoadedEvent (OnBufferDataLoadedEvent &&);
 
-		ND_ BytesU					GetMaxWritableStoregeSize ()	const	{ return _staging.hostWritableBufferSize / 4; }
-		ND_ BytesU					GetMaxReadableStorageSize ()	const	{ return _staging.hostReadableBufferSize / 4; }
+		ND_ BytesU					GetMaxWritableStoregeSize ()	const	{ SHAREDLOCK( _rcCheck );  return _staging.hostWritableBufferSize / 4; }
+		ND_ BytesU					GetMaxReadableStorageSize ()	const	{ SHAREDLOCK( _rcCheck );  return _staging.hostReadableBufferSize / 4; }
 
 
-		ND_ VDeviceQueueInfoPtr		GetQueue ()						const	{ return _queue; }
+		ND_ VDeviceQueueInfoPtr		GetQueue ()						const	{ SHAREDLOCK( _rcCheck );  return _queue; }
 		ND_ EQueueType				GetQueueType ()					const	{ return _queueType; }
 		ND_ EState					GetState ()								{ return _state.load( memory_order_relaxed ); }
 		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()				const	{ return _dependencies; }
-		ND_ VSubmittedPtr const&	GetSubmitted ()					const	{ return _submitted; }		// TODO: rename
+		ND_ VSubmitted *			GetSubmitted ()					const	{ return _submitted; }		// TODO: rename
+		ND_ uint					GetIndexInPool ()				const	{ return _indexInPool; }
 
 
 	private:
@@ -376,7 +383,7 @@ namespace FG
 	_IncRef
 =================================================
 */
-	inline void VCmdBatchPtr::_IncRef ()
+	forceinline void  VCmdBatchPtr::_IncRef ()
 	{
 		if ( _ptr )
 			_ptr->_counter.fetch_add( 1, memory_order_relaxed );
@@ -387,7 +394,7 @@ namespace FG
 	_DecRef
 =================================================
 */
-	inline void VCmdBatchPtr::_DecRef ()
+	forceinline void  VCmdBatchPtr::_DecRef ()
 	{
 		if ( _ptr )
 		{

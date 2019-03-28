@@ -45,13 +45,13 @@ namespace FG
 
 		static constexpr uint	MaxImages		= 2u << 10;
 		static constexpr uint	MaxBuffers		= 2u << 10;
-		static constexpr uint	MaxMemoryObjs	= MaxImages + MaxBuffers - 1;
+		static constexpr uint	MaxMemoryObjs	= 2u << 10;
 		static constexpr uint	MaxCached		= 1u << 10;
 		static constexpr uint	MaxRTObjects	= 1u << 10;
 
 		using ImagePool_t			= PoolTmpl<			ResourceBase<VImage>,					MaxImages,		16 >;
 		using BufferPool_t			= PoolTmpl<			ResourceBase<VBuffer>,					MaxBuffers,		16 >;
-		using MemoryPool_t			= PoolTmpl<			ResourceBase<VMemoryObj>,				MaxMemoryObjs,	16 >;
+		using MemoryPool_t			= PoolTmpl<			ResourceBase<VMemoryObj>,				MaxMemoryObjs,	31 >;
 		using SamplerPool_t			= CachedPoolTmpl<	ResourceBase<VSampler>,					MaxCached,		16 >;
 		using GPipelinePool_t		= PoolTmpl<			ResourceBase<VGraphicsPipeline>,		MaxCached,		16 >;
 		using CPipelinePool_t		= PoolTmpl<			ResourceBase<VComputePipeline>,			MaxCached,		16 >;

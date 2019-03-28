@@ -11,22 +11,17 @@ namespace FG
 	constructor
 =================================================
 */
-	VCmdBatch::VCmdBatch (VResourceManager &resMngr, VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn) :
-		_state{ EState::Initial },	_resMngr{ resMngr },
-		_queue{ queue },			_queueType{ type }
+	VCmdBatch::VCmdBatch (VFrameGraph &fg, uint indexInPool) :
+		_state{ EState::Initial },		_frameGraph{ fg },
+		_indexInPool{ indexInPool }
 	{
 		STATIC_ASSERT( decltype(_state)::is_always_lock_free );
 		
-		_shaderDebugger.bufferAlign = BytesU{resMngr.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment};
+		_counter.store( 0 );
+		_shaderDebugger.bufferAlign = BytesU{fg.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment};
 			
 		if ( FG_EnableShaderDebugging ) {
-			CHECK( resMngr.GetDevice().GetDeviceLimits().maxBoundDescriptorSets > FG_DebugDescriptorSet );
-		}
-
-		for (auto& dep : dependsOn)
-		{
-			if ( auto* batch = Cast<VCmdBatch>(dep.GetBatch()) )
-				_dependencies.push_back( batch );
+			CHECK( fg.GetDevice().GetDeviceLimits().maxBoundDescriptorSets > FG_DebugDescriptorSet );
 		}
 	}
 
@@ -37,8 +32,43 @@ namespace FG
 */
 	VCmdBatch::~VCmdBatch ()
 	{
+		CHECK( _counter.load( memory_order_relaxed ) == 0 );
 	}
 	
+/*
+=================================================
+	Initialize
+=================================================
+*/
+	void  VCmdBatch::Initialize (VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn)
+	{
+		ASSERT( _dependencies.empty() );
+		ASSERT( _batch.commands.empty() );
+		ASSERT( _batch.signalSemaphores.empty() );
+		ASSERT( _batch.waitSemaphores.empty() );
+		ASSERT( _staging.hostToDevice.empty() );
+		ASSERT( _staging.deviceToHost.empty() );
+		ASSERT( _staging.onBufferLoadedEvents.empty() );
+		ASSERT( _staging.onImageLoadedEvents.empty() );
+		ASSERT( _resourcesToRelease.empty() );
+		ASSERT( _swapchains.empty() );
+		ASSERT( _shaderDebugger.buffers.empty() );
+		ASSERT( _shaderDebugger.modes.empty() );
+		ASSERT( _submitted == null );
+		ASSERT( _counter.load( memory_order_relaxed ) == 0 );
+
+		_queue		= queue;
+		_queueType	= type;
+
+		_state.store( EState::Initial, memory_order_relaxed );
+		
+		for (auto& dep : dependsOn)
+		{
+			if ( auto* batch = Cast<VCmdBatch>(dep.GetBatch()) )
+				_dependencies.push_back( batch );
+		}
+	}
+
 /*
 =================================================
 	Release
@@ -47,8 +77,9 @@ namespace FG
 	void  VCmdBatch::Release ()
 	{
 		CHECK( GetState() == EState::Complete );
+		ASSERT( _counter.load( memory_order_relaxed ) == 0 );
 
-		delete this;
+		_frameGraph.RecycleBatch( this );
 	}
 	
 /*
@@ -164,7 +195,7 @@ namespace FG
 	OnSubmit
 =================================================
 */
-	bool  VCmdBatch::OnSubmit (OUT VkSubmitInfo &submitInfo, OUT Appendable<VSwapchain const*> swapchains, const VSubmittedPtr &ptr)
+	bool  VCmdBatch::OnSubmit (OUT VkSubmitInfo &submitInfo, OUT Appendable<VSwapchain const*> swapchains, VSubmitted *ptr)
 	{
 		_SetState( EState::Submitted );
 		
@@ -292,13 +323,15 @@ namespace FG
 
 		// release resources
 		{
+			auto&	rm = _frameGraph.GetResourceManager();
+
 			for (auto& sb : _staging.hostToDevice) {
-				_resMngr.ReleaseResource( sb.bufferId.Release() );
+				rm.ReleaseResource( sb.bufferId.Release() );
 			}
 			_staging.hostToDevice.clear();
 
 			for (auto& sb : _staging.deviceToHost) {
-				_resMngr.ReleaseResource( sb.bufferId.Release() );
+				rm.ReleaseResource( sb.bufferId.Release() );
 			}
 			_staging.deviceToHost.clear();
 		}
@@ -316,12 +349,14 @@ namespace FG
 
 		ASSERT( cb );
 
-		auto&	dev = _resMngr.GetDevice();
+		auto&	dev = _frameGraph.GetDevice();
+		auto&	rm  = _frameGraph.GetResourceManager();
+
 		VK_CHECK( dev.vkDeviceWaitIdle( dev.GetVkDevice() ), void());
 
 		// release descriptor sets
 		for (auto& ds : _shaderDebugger.descCache) {
-			_resMngr.GetDescriptorManager().DeallocDescriptorSet( ds.second );
+			rm.GetDescriptorManager().DeallocDescriptorSet( ds.second );
 		}
 		_shaderDebugger.descCache.clear();
 
@@ -339,8 +374,8 @@ namespace FG
 		// release storage buffers
 		for (auto& sb : _shaderDebugger.buffers)
 		{
-			_resMngr.ReleaseResource( sb.shaderTraceBuffer.Release() );
-			_resMngr.ReleaseResource( sb.readBackBuffer.Release() );
+			rm.ReleaseResource( sb.shaderTraceBuffer.Release() );
+			rm.ReleaseResource( sb.readBackBuffer.Release() );
 		}
 		_shaderDebugger.buffers.clear();
 	}
@@ -354,16 +389,17 @@ namespace FG
 	{
 		CHECK_ERR( dbg.modules.size() );
 		
+		auto&	rm				= _frameGraph.GetResourceManager();
 		auto	read_back_buf	= _shaderDebugger.buffers[ dbg.sbIndex ].readBackBuffer.Get();
 
-		VBuffer const*		buf	= _resMngr.GetResource( read_back_buf );
+		VBuffer const*		buf	= rm.GetResource( read_back_buf );
 		CHECK_ERR( buf );
 
-		VMemoryObj const*	mem = _resMngr.GetResource( buf->GetMemoryID() );
+		VMemoryObj const*	mem = rm.GetResource( buf->GetMemoryID() );
 		CHECK_ERR( mem );
 
 		VMemoryObj::MemoryInfo	info;
-		CHECK_ERR( mem->GetInfo( _resMngr.GetMemoryManager(), OUT info ));
+		CHECK_ERR( mem->GetInfo( rm.GetMemoryManager(), OUT info ));
 		CHECK_ERR( info.mappedPtr );
 
 		for (auto& shader : dbg.modules)
@@ -385,7 +421,9 @@ namespace FG
 	bool  VCmdBatch::_MapMemory (INOUT StagingBuffer &buf) const
 	{
 		VMemoryObj::MemoryInfo	info;
-		if ( _resMngr.GetResource( buf.memoryId )->GetInfo( _resMngr.GetMemoryManager(),OUT info ) )
+		auto&					rm = _frameGraph.GetResourceManager();
+
+		if ( rm.GetResource( buf.memoryId )->GetInfo( rm.GetMemoryManager(),OUT info ) )
 		{
 			buf.mappedPtr	= info.mappedPtr;
 			buf.memOffset	= info.offset;
@@ -403,28 +441,30 @@ namespace FG
 */
 	void  VCmdBatch::_ReleaseResources ()
 	{
+		auto&	rm = _frameGraph.GetResourceManager();
+
 		for (auto& res : _resourcesToRelease)
 		{
 			switch ( res.GetUID() )
 			{
-				case RawBufferID::GetUID() :			_resMngr.ReleaseResource( RawBufferID{ res.Index(), res.InstanceID() });				break;
-				case RawImageID::GetUID() :				_resMngr.ReleaseResource( RawImageID{ res.Index(), res.InstanceID() });					break;
-				case RawGPipelineID::GetUID() :			_resMngr.ReleaseResource( RawGPipelineID{ res.Index(), res.InstanceID() });				break;
-				case RawMPipelineID::GetUID() :			_resMngr.ReleaseResource( RawMPipelineID{ res.Index(), res.InstanceID() });				break;
-				case RawCPipelineID::GetUID() :			_resMngr.ReleaseResource( RawCPipelineID{ res.Index(), res.InstanceID() });				break;
-				case RawRTPipelineID::GetUID() :		_resMngr.ReleaseResource( RawRTPipelineID{ res.Index(), res.InstanceID() });			break;
-				case RawSamplerID::GetUID() :			_resMngr.ReleaseResource( RawSamplerID{ res.Index(), res.InstanceID() });				break;
-				case RawDescriptorSetLayoutID::GetUID():_resMngr.ReleaseResource( RawDescriptorSetLayoutID{ res.Index(), res.InstanceID() });	break;
-				case RawPipelineResourcesID::GetUID() :	_resMngr.ReleaseResource( RawPipelineResourcesID{ res.Index(), res.InstanceID() });		break;
-				case RawRTSceneID::GetUID() :			_resMngr.ReleaseResource( RawRTSceneID{ res.Index(), res.InstanceID() });				break;
-				case RawRTGeometryID::GetUID() :		_resMngr.ReleaseResource( RawRTGeometryID{ res.Index(), res.InstanceID() });			break;
-				case RawRTShaderTableID::GetUID() :		_resMngr.ReleaseResource( RawRTShaderTableID{ res.Index(), res.InstanceID() });			break;
-				case RawSwapchainID::GetUID() :			_resMngr.ReleaseResource( RawSwapchainID{ res.Index(), res.InstanceID() });				break;
-				case RawMemoryID::GetUID() :			_resMngr.ReleaseResource( RawMemoryID{ res.Index(), res.InstanceID() });				break;
-				case RawPipelineLayoutID::GetUID() :	_resMngr.ReleaseResource( RawPipelineLayoutID{ res.Index(), res.InstanceID() });		break;
-				case RawRenderPassID::GetUID() :		_resMngr.ReleaseResource( RawRenderPassID{ res.Index(), res.InstanceID() });			break;
-				case RawFramebufferID::GetUID() :		_resMngr.ReleaseResource( RawFramebufferID{ res.Index(), res.InstanceID() });			break;
-				default :								CHECK( !"not supported" );																break;
+				case RawBufferID::GetUID() :			rm.ReleaseResource( RawBufferID{ res.Index(), res.InstanceID() });				break;
+				case RawImageID::GetUID() :				rm.ReleaseResource( RawImageID{ res.Index(), res.InstanceID() });				break;
+				case RawGPipelineID::GetUID() :			rm.ReleaseResource( RawGPipelineID{ res.Index(), res.InstanceID() });			break;
+				case RawMPipelineID::GetUID() :			rm.ReleaseResource( RawMPipelineID{ res.Index(), res.InstanceID() });			break;
+				case RawCPipelineID::GetUID() :			rm.ReleaseResource( RawCPipelineID{ res.Index(), res.InstanceID() });			break;
+				case RawRTPipelineID::GetUID() :		rm.ReleaseResource( RawRTPipelineID{ res.Index(), res.InstanceID() });			break;
+				case RawSamplerID::GetUID() :			rm.ReleaseResource( RawSamplerID{ res.Index(), res.InstanceID() });				break;
+				case RawDescriptorSetLayoutID::GetUID():rm.ReleaseResource( RawDescriptorSetLayoutID{ res.Index(), res.InstanceID() });	break;
+				case RawPipelineResourcesID::GetUID() :	rm.ReleaseResource( RawPipelineResourcesID{ res.Index(), res.InstanceID() });	break;
+				case RawRTSceneID::GetUID() :			rm.ReleaseResource( RawRTSceneID{ res.Index(), res.InstanceID() });				break;
+				case RawRTGeometryID::GetUID() :		rm.ReleaseResource( RawRTGeometryID{ res.Index(), res.InstanceID() });			break;
+				case RawRTShaderTableID::GetUID() :		rm.ReleaseResource( RawRTShaderTableID{ res.Index(), res.InstanceID() });		break;
+				case RawSwapchainID::GetUID() :			rm.ReleaseResource( RawSwapchainID{ res.Index(), res.InstanceID() });			break;
+				case RawMemoryID::GetUID() :			rm.ReleaseResource( RawMemoryID{ res.Index(), res.InstanceID() });				break;
+				case RawPipelineLayoutID::GetUID() :	rm.ReleaseResource( RawPipelineLayoutID{ res.Index(), res.InstanceID() });		break;
+				case RawRenderPassID::GetUID() :		rm.ReleaseResource( RawRenderPassID{ res.Index(), res.InstanceID() });			break;
+				case RawFramebufferID::GetUID() :		rm.ReleaseResource( RawFramebufferID{ res.Index(), res.InstanceID() });			break;
+				default :								CHECK( !"not supported" );														break;
 			}
 		}
 		_resourcesToRelease.clear();
@@ -478,12 +518,11 @@ _GetWritable
 		{
 			ASSERT( dstMinSize < _staging.hostWritableBufferSize );
 
-			BufferID	buf_id{ _resMngr.CreateBuffer( BufferDesc{ _staging.hostWritableBufferSize, _staging.hostWritebleBufferUsage }, 
-													   MemoryDesc{ EMemoryType::HostWrite }, EQueueFamilyMask(0) | _queue->familyIndex,
-													   "HostWriteBuffer" )};
+			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _staging.hostWritableBufferSize, _staging.hostWritebleBufferUsage }, 
+															MemoryDesc{ EMemoryType::HostWrite }, "HostWriteBuffer" );
 			CHECK_ERR( buf_id );
 
-			RawMemoryID	mem_id = _resMngr.GetResource( buf_id.Get() )->GetMemoryID();
+			RawMemoryID	mem_id = _frameGraph.GetResourceManager().GetResource( buf_id.Get() )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
 			staging_buffers.push_back({ std::move(buf_id), mem_id, _staging.hostWritableBufferSize });
@@ -550,12 +589,11 @@ _GetWritable
 		{
 			ASSERT( dstMinSize < _staging.hostReadableBufferSize );
 
-			BufferID	buf_id{ _resMngr.CreateBuffer( BufferDesc{ _staging.hostReadableBufferSize, EBufferUsage::TransferDst },
-													   MemoryDesc{ EMemoryType::HostRead }, EQueueFamilyMask(0) | _queue->familyIndex,
-													   "HostReadBuffer" )};
+			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _staging.hostReadableBufferSize, EBufferUsage::TransferDst },
+															MemoryDesc{ EMemoryType::HostRead }, "HostReadBuffer" );
 			CHECK_ERR( buf_id );
 			
-			RawMemoryID	mem_id = _resMngr.GetResource( buf_id.Get() )->GetMemoryID();
+			RawMemoryID	mem_id = _frameGraph.GetResourceManager().GetResource( buf_id.Get() )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
 			staging_buffers.push_back({ std::move(buf_id), mem_id, _staging.hostReadableBufferSize });
@@ -642,13 +680,14 @@ _GetWritable
 		if ( _shaderDebugger.buffers.empty() )
 			return;
 		
-		auto&	dev = _resMngr.GetDevice();
+		auto&	dev = _frameGraph.GetDevice();
+		auto&	rm  = _frameGraph.GetResourceManager();
 
 		// copy data
 		for (auto& dbg : _shaderDebugger.modes)
 		{
-			auto	buf		= _resMngr.GetResource( _shaderDebugger.buffers[dbg.sbIndex].shaderTraceBuffer.Get() )->Handle();
-			BytesU	size	= _resMngr.GetDebugShaderStorageSize( dbg.shaderStages ) + SizeOf<uint>;	// per shader data + position
+			auto	buf		= rm.GetResource( _shaderDebugger.buffers[dbg.sbIndex].shaderTraceBuffer.Get() )->Handle();
+			BytesU	size	= rm.GetDebugShaderStorageSize( dbg.shaderStages ) + SizeOf<uint>;	// per shader data + position
 			ASSERT( size <= BytesU::SizeOf(dbg.data) );
 
 			dev.vkCmdUpdateBuffer( cmd, buf, VkDeviceSize(dbg.offset), VkDeviceSize(size), dbg.data );
@@ -664,7 +703,7 @@ _GetWritable
 			barrier.sType			= VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 			barrier.srcAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask	= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-			barrier.buffer			= _resMngr.GetResource( sb.shaderTraceBuffer.Get() )->Handle();
+			barrier.buffer			= rm.GetResource( sb.shaderTraceBuffer.Get() )->Handle();
 			barrier.offset			= 0;
 			barrier.size			= VkDeviceSize(sb.size);
 			barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
@@ -697,13 +736,14 @@ _GetWritable
 		if ( _shaderDebugger.buffers.empty() )
 			return;
 		
-		auto&	dev = _resMngr.GetDevice();
+		auto&	dev = _frameGraph.GetDevice();
+		auto&	rm  = _frameGraph.GetResourceManager();
 		
 		// copy to staging buffer
 		for (auto& sb : _shaderDebugger.buffers)
 		{
-			VkBuffer	src_buf	= _resMngr.GetResource( sb.shaderTraceBuffer.Get() )->Handle();
-			VkBuffer	dst_buf	= _resMngr.GetResource( sb.readBackBuffer.Get() )->Handle();
+			VkBuffer	src_buf	= rm.GetResource( sb.shaderTraceBuffer.Get() )->Handle();
+			VkBuffer	dst_buf	= rm.GetResource( sb.readBackBuffer.Get() )->Handle();
 
 			VkBufferMemoryBarrier	barrier = {};
 			barrier.sType			= VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -904,13 +944,11 @@ _GetWritable
 		if ( dbgMode.sbIndex == UMax )
 		{
 			StorageBuffer	sb;
-			sb.capacity				= _shaderDebugger.bufferSize * (1 + _shaderDebugger.buffers.size() / 2);
-			sb.shaderTraceBuffer	= BufferID{_resMngr.CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::Storage | EBufferUsage::Transfer },
-																	  Default, EQueueFamilyMask(0) | _queue->familyIndex,
-																	  "DebugOutputStorage" )};
-			sb.readBackBuffer		= BufferID{_resMngr.CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::TransferDst },
-																	  MemoryDesc{EMemoryType::HostRead}, EQueueFamilyMask(0) | _queue->familyIndex,
-																	  "ReadBackDebugOutput" )};
+			sb.capacity			 = _shaderDebugger.bufferSize * (1 + _shaderDebugger.buffers.size() / 2);
+			sb.shaderTraceBuffer = _frameGraph.CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::Storage | EBufferUsage::Transfer },
+															 Default, "DebugOutputStorage" );
+			sb.readBackBuffer	 = _frameGraph.CreateBuffer( BufferDesc{ sb.capacity, EBufferUsage::TransferDst },
+															 MemoryDesc{EMemoryType::HostRead}, "ReadBackDebugOutput" );
 			CHECK_ERR( sb.shaderTraceBuffer and sb.readBackBuffer );
 			
 			dbgMode.sbIndex	= uint(_shaderDebugger.buffers.size());
@@ -934,10 +972,11 @@ _GetWritable
 */
 	bool  VCmdBatch::_AllocDescriptorSet (EShaderDebugMode debugMode, EShaderStages stages, RawBufferID storageBuffer, BytesU size, OUT VkDescriptorSet &descSet)
 	{
-		auto&	dev			= _resMngr.GetDevice();
-		auto	layout_id	= _resMngr.GetDescriptorSetLayout( debugMode, stages );
-		auto*	layout		= _resMngr.GetResource( layout_id );
-		auto*	buffer		= _resMngr.GetResource( storageBuffer );
+		auto&	dev			= _frameGraph.GetDevice();
+		auto&	rm			= _frameGraph.GetResourceManager();
+		auto	layout_id	= rm.GetDescriptorSetLayout( debugMode, stages );
+		auto*	layout		= rm.GetResource( layout_id );
+		auto*	buffer		= rm.GetResource( storageBuffer );
 		CHECK_ERR( layout and buffer );
 
 		// find descriptor set in cache
@@ -952,7 +991,7 @@ _GetWritable
 		// allocate descriptor set
 		{
 			VDescriptorSetLayout::DescriptorSet	ds;
-			CHECK_ERR( _resMngr.GetDescriptorManager().AllocDescriptorSet( layout->Handle(), OUT ds ));
+			CHECK_ERR( rm.GetDescriptorManager().AllocDescriptorSet( layout->Handle(), OUT ds ));
 
 			descSet = ds.first;
 			_shaderDebugger.descCache.insert_or_assign( {storageBuffer, layout_id}, ds );

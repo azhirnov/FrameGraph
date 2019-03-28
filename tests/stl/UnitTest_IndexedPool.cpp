@@ -40,6 +40,31 @@ static void ChunkedIndexedPool_Test2 ()
 }
 
 
+static void ChunkedIndexedPool_Test3 ()
+{
+	using T = DebugInstanceCounter< int, 1 >;
+	
+	T::ClearStatistic();
+	{
+		constexpr uint								count = 1024;
+		ChunkedIndexedPool< T, uint, count/16, 16 >	pool;
+	
+		for (size_t i = 0; i < count; ++i)
+		{
+			uint	idx;
+			TEST( pool.Assign( OUT idx ) == (i < count) );
+			TEST( (idx == i) == (i < count) );
+		}
+	
+		for (size_t i = 0; i < count; ++i)
+		{
+			pool.Unassign( uint(i) );
+		}
+	}
+	TEST( T::CheckStatistic() );
+}
+
+
 static void CachedIndexedPool_Test1 ()
 {
 	CachedIndexedPool<uint, uint, 16, 16>	pool;
@@ -63,6 +88,7 @@ extern void UnitTest_IndexedPool ()
 {
 	ChunkedIndexedPool_Test1();
 	ChunkedIndexedPool_Test2();
+	ChunkedIndexedPool_Test3();
 	CachedIndexedPool_Test1();
 
 	FG_LOGI( "UnitTest_IndexedPool - passed" );

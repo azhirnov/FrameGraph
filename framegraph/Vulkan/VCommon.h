@@ -41,7 +41,6 @@ namespace FG
 	using VDeviceQueueInfoPtr		= Ptr< const struct VDeviceQueueInfo >;
 
 	using VTask						= Ptr< class VFrameGraphTask >;
-	using VSubmittedPtr				= SharedPtr< class VSubmitted >;
 
 	enum class ShaderDbgIndex : uint { Unknown = ~0u };
 
@@ -87,8 +86,8 @@ namespace FG
 	class VPipelineResources;
 	class VCommandBuffer;
 	class VSwapchain;
-
-	class VLocalDebugger;	// TODO: rename?
+	class VSubmitted;
+	class VLocalDebugger;
 	class VResourceManager;
 	class VMemoryManager;
 	class VFrameGraph;

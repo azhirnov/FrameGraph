@@ -27,7 +27,7 @@ namespace FGC
 	struct ChunkedIndexedPool final
 	{
 		STATIC_ASSERT( ChunkSize > 0 and MaxChunks > 0 );
-		//STATIC_ASSERT( IsPowerOfTwo( ChunkSize ) );	// must be power of 2 to increase performance
+		STATIC_ASSERT( IsPowerOfTwo( ChunkSize ) );	// must be power of 2 to increase performance
 
 	// types
 	public:
@@ -95,6 +95,7 @@ namespace FGC
 
 			for (auto& chunk : _indices)
 			{
+				chunk->~IndexChunk();
 				_alloc.Deallocate( chunk, SizeOf<IndexChunk>, AlignOf<IndexChunk> );
 				chunk = null;
 			}
@@ -102,8 +103,11 @@ namespace FGC
 			for (auto& chunk : _values)
 			{
 				auto*	value = chunk.Load();
-				_alloc.Deallocate( value, SizeOf<ValueChunk>, AlignOf<ValueChunk> );
-				chunk.Store( null );
+				if ( value ) {
+					value->~ValueChunk();
+					_alloc.Deallocate( value, SizeOf<ValueChunk>, AlignOf<ValueChunk> );
+					chunk.Store( null );
+				}
 			}
 		}
 

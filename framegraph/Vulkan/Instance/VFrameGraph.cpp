@@ -4,6 +4,7 @@
 #include "VCommandBuffer.h"
 #include "VSubmitted.h"
 #include "Shared/PipelineResourcesHelper.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -71,10 +72,15 @@ namespace FG
 		{
 			EXLOCK( _cmdBuffersGuard );
 
-			for (auto& cmd : _cmdBuffers) {
-				cmd->Deinitialize();
-			}
-			_cmdBuffers.clear();
+			DEBUG_ONLY(
+				FG_LOGI( "Max command buffers "s << ToString(_cmdBufferPool.CreatedObjectsCount()) );
+				FG_LOGI( "Max command batches "s << ToString(_cmdBatchPool.CreatedObjectsCount()) );
+				FG_LOGI( "Max submitted batches "s << ToString(_submittedPool.CreatedObjectsCount()) );
+			)
+
+			_cmdBufferPool.Release();
+			_cmdBatchPool.Release();
+			_submittedPool.Release();
 		}
 
 		// delete per queue data
@@ -557,47 +563,60 @@ namespace FG
 		CHECK_ERR( uint(desc.queueType) < _queueMap.size() );
 		
 		VCommandBuffer*	cmd		= null;
+		VCmdBatch*		batch	= null;
 		auto&			queue	= _queueMap[ uint(desc.queueType) ];
 
 		// try to free already submitted commands
 		if ( queue.submitted.size() )
 		{
-			auto&	s		= queue.submitted.front();
-			auto	fence	= s->GetFence();
+			auto*	submitted	= queue.submitted.front();
+			auto	fence		= submitted->GetFence();
 
 			if ( not fence or _device.vkGetFenceStatus( _device.GetVkDevice(), fence ) == VK_SUCCESS )
 			{
 				VK_CALL( _device.vkResetFences( _device.GetVkDevice(), 1, &fence ));
 
-				s->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache );
+				submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache );
+
 				queue.submitted.erase( queue.submitted.begin() );
+				_submittedPool.Unassign( submitted->GetIndexInPool() );
 			}
 		}
 
-		// try to use existing command buffer
-		for (auto& cb : _cmdBuffers)
+		// acquire command buffer
+		for (;;)
 		{
-			if ( not cb->IsRecording() )
+			uint	cmd_index;
+			if ( _cmdBufferPool.Assign( OUT cmd_index,
+									    [this](VCommandBuffer *ptr, uint idx){ PlacementNew<VCommandBuffer>( ptr, *this, idx ); }) )
 			{
-				cmd = cb.get();
+				cmd = &_cmdBufferPool[cmd_index];
 				break;
 			}
+			
+			ASSERT( !"overflow" );
+			std::this_thread::yield();
 		}
 
-		// create new command buffer
-		if ( not cmd )
+		// acquire command batch
+		for (;;)
 		{
-			CHECK_ERR( _cmdBuffers.size() < _cmdBuffers.capacity() );
-
-			_cmdBuffers.push_back(UniquePtr<VCommandBuffer>{ new VCommandBuffer{ *this } });
-			cmd = _cmdBuffers.back().get();
+			uint	batch_index;
+			if ( _cmdBatchPool.Assign( OUT batch_index,
+									   [this](VCmdBatch *ptr, uint idx){ PlacementNew<VCmdBatch>( ptr, *this, idx ); }) )
+			{
+				batch = &_cmdBatchPool[batch_index];
+				batch->Initialize( queue.ptr, desc.queueType, dependsOn );
+				break;
+			}
+			
+			ASSERT( !"overflow" );
+			std::this_thread::yield();
 		}
-
-		VCmdBatchPtr	batch{ new VCmdBatch{ GetResourceManager(), queue.ptr, desc.queueType, dependsOn }};
 
 		CHECK_ERR( cmd->Begin( desc, batch ));
 
-		return CommandBuffer{ cmd, batch.get() };
+		return CommandBuffer{ cmd, batch };
 	}
 	
 /*
@@ -610,11 +629,12 @@ namespace FG
 		CHECK_ERR( cmdBufPtr.GetCommandBuffer() and cmdBufPtr.GetBatch() );
 		EXLOCK( _cmdBuffersGuard );
 
-		auto*			cmd		= Cast<VCommandBuffer>(cmdBufPtr.GetCommandBuffer());
+		VCommandBuffer*	cmd		= Cast<VCommandBuffer>(cmdBufPtr.GetCommandBuffer());
 		VCmdBatchPtr	batch	= cmd->GetBatchPtr();
 		CHECK_ERR( batch.get() == cmdBufPtr.GetBatch() );
 
 		CHECK_ERR( cmd->Execute() );
+		_cmdBufferPool.Unassign( cmd->GetIndexInPool() );
 
 		cmdBufPtr = CommandBuffer{ (ICommandBuffer*)(null), cmdBufPtr.GetBatch() };
 
@@ -800,9 +820,21 @@ namespace FG
 					
 		q.lastSubmitted = ExeOrderIndex(uint(q.lastSubmitted) + 1);
 
-		auto	submit = MakeShared<VSubmitted>( EQueueType(qi), pending, temp_semaphores, _CreateFence(), q.lastSubmitted );
-		q.submitted.push_back( submit );
-
+		VSubmitted*	submit = null;
+		for (;;)
+		{
+			uint	index;
+			if ( _submittedPool.Assign( OUT index, [](VSubmitted* ptr, uint idx) { PlacementNew<VSubmitted>( ptr, idx ); }) )
+			{
+				submit = &_submittedPool[index];
+				submit->Initialize( EQueueType(qi), pending, temp_semaphores, _CreateFence(), q.lastSubmitted );
+				q.submitted.push_back( submit );
+				break;
+			}
+			
+			ASSERT( !"overflow" );
+			std::this_thread::yield();
+		}
 
 		// add image layout transitions
 		if ( q.imageBarriers.size() )
@@ -865,7 +897,7 @@ namespace FG
 			CHECK_ERR( batch );
 
 			auto	state		= batch->GetState();
-			auto&	submitted	= batch->GetSubmitted();
+			auto*	submitted	= batch->GetSubmitted();
 
 			if ( state == EBatchState::Complete )
 			{}
@@ -899,7 +931,7 @@ namespace FG
 				// release resources
 				for (auto& cmd : commands)
 				{
-					if ( auto&  submitted = Cast<VCmdBatch>(cmd.GetBatch())->GetSubmitted() )
+					if ( auto*  submitted = Cast<VCmdBatch>(cmd.GetBatch())->GetSubmitted() )
 						CHECK( submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache ));
 				}
 			}
@@ -947,8 +979,9 @@ namespace FG
 		
 		for (auto& q : _queueMap)
 		{
-			for (auto& s : q.submitted) {
+			for (auto* s : q.submitted) {
 				CHECK( s->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache ));
+				_submittedPool.Unassign( s->GetIndexInPool() );
 			}
 			q.submitted.clear();
 		}
@@ -967,7 +1000,7 @@ namespace FG
 
 		auto&	q = _queueMap[ uint(queue) ];
 
-		for (auto& s : q.submitted)
+		for (auto* s : q.submitted)
 		{
 			ASSERT( s->GetFence() );
 			fences.push_back( s->GetFence() );
@@ -979,8 +1012,9 @@ namespace FG
 			VK_CALL( _device.vkResetFences( _device.GetVkDevice(), uint(fences.size()), fences.data() ));
 		}
 		
-		for (auto& s : q.submitted) {
+		for (auto* s : q.submitted) {
 			CHECK( s->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache ));
+			_submittedPool.Unassign( s->GetIndexInPool() );
 		}
 		q.submitted.clear();
 
@@ -1231,6 +1265,16 @@ namespace FG
 	inline bool  VFrameGraph::_SetState (EState expected, EState newState)
 	{
 		return _state.compare_exchange_strong( INOUT expected, newState, memory_order_release, memory_order_relaxed );
+	}
+	
+/*
+=================================================
+	RecycleBatch
+=================================================
+*/
+	void  VFrameGraph::RecycleBatch (const VCmdBatch *batch)
+	{
+		_cmdBatchPool.Unassign( batch->GetIndexInPool() );
 	}
 
 

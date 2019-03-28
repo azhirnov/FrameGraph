@@ -11,7 +11,7 @@ namespace FG
 	// Vulkan Submitted Batches
 	//
 
-	class VSubmitted final : public std::enable_shared_from_this<VSubmitted>
+	class VSubmitted final
 	{
 		friend class VFrameGraph;
 
@@ -26,21 +26,24 @@ namespace FG
 
 	// variables
 	private:
-		Batches_t				_batches;
-		Semaphores_t			_semaphores;
-		VkFence					_fence;
-		const ExeOrderIndex		_submissionOrder;
-		const EQueueType		_queueType;
+		const uint			_indexInPool;
+		Batches_t			_batches;
+		Semaphores_t		_semaphores;
+		VkFence				_fence;
+		ExeOrderIndex		_submissionOrder;
+		EQueueType			_queueType;
 
 
 	// methods
 	public:
-		VSubmitted (EQueueType queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>, VkFence, ExeOrderIndex);
+		explicit VSubmitted (uint indexInPool);
 		~VSubmitted ();
 
-		//ND_ bool		IsComplete ()		const;
+		void  Initialize (EQueueType queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>, VkFence, ExeOrderIndex);
+
 		ND_ VkFence		GetFence ()			const	{ return _fence; }
 		ND_ EQueueType	GetQueueType ()		const	{ return _queueType; }
+		ND_ uint		GetIndexInPool ()	const	{ return _indexInPool; }
 
 
 	private:

@@ -157,6 +157,8 @@ set( SOURCES
 	"Vulkan/CommandBuffer/VCmdBatch.h"
 	"Vulkan/CommandBuffer/VCommandBuffer.cpp"
 	"Vulkan/CommandBuffer/VCommandBuffer.h"
+	"Vulkan/CommandBuffer/VCommandPool.cpp"
+	"Vulkan/CommandBuffer/VCommandPool.h"
 	"Vulkan/CommandBuffer/VDrawTask.h"
 	"Vulkan/CommandBuffer/VTaskGraph.h"
 	"Vulkan/CommandBuffer/VTaskGraph.hpp"
@@ -184,7 +186,7 @@ source_group( "Vulkan\\Buffer" FILES "Vulkan/Buffer/VBuffer.cpp" "Vulkan/Buffer/
 source_group( "cmake" FILES "../cmake/angelscript_CMakeLists.txt" "../cmake/compilers.cmake" "../cmake/compiler_tests.cmake" "../cmake/download_angelscript.cmake" "../cmake/download_assimp.cmake" "../cmake/download_devil.cmake" "../cmake/download_freeimage.cmake" "../cmake/download_glfw.cmake" "../cmake/download_glm.cmake" "../cmake/download_glslang.cmake" "../cmake/download_imgui.cmake" "../cmake/download_lodepng.cmake" "../cmake/download_mem.cmake" "../cmake/download_sdl2.cmake" "../cmake/download_sfml.cmake" "../cmake/download_stdoptional.cmake" "../cmake/download_stdvariant.cmake" "../cmake/download_vk.cmake" "../cmake/download_vma.cmake" "../cmake/graphviz.cmake" "../cmake/imgui_CMakeLists.txt" "../cmake/lodepng_CMakeLists.txt" )
 source_group( "Vulkan\\Pipeline" FILES "Vulkan/Pipeline/VComputePipeline.cpp" "Vulkan/Pipeline/VComputePipeline.h" "Vulkan/Pipeline/VGraphicsPipeline.cpp" "Vulkan/Pipeline/VGraphicsPipeline.h" "Vulkan/Pipeline/VMeshPipeline.cpp" "Vulkan/Pipeline/VMeshPipeline.h" "Vulkan/Pipeline/VPipelineCache.cpp" "Vulkan/Pipeline/VPipelineCache.h" "Vulkan/Pipeline/VPipelineLayout.cpp" "Vulkan/Pipeline/VPipelineLayout.h" )
 source_group( "" FILES "CMakeLists.txt" "FG.h" )
-source_group( "Vulkan\\CommandBuffer" FILES "Vulkan/CommandBuffer/VBarrierManager.h" "Vulkan/CommandBuffer/VCmdBatch.cpp" "Vulkan/CommandBuffer/VCmdBatch.h" "Vulkan/CommandBuffer/VCommandBuffer.cpp" "Vulkan/CommandBuffer/VCommandBuffer.h" "Vulkan/CommandBuffer/VDrawTask.h" "Vulkan/CommandBuffer/VTaskGraph.h" "Vulkan/CommandBuffer/VTaskGraph.hpp" "Vulkan/CommandBuffer/VTaskProcessor.cpp" "Vulkan/CommandBuffer/VTaskProcessor.h" )
+source_group( "Vulkan\\CommandBuffer" FILES "Vulkan/CommandBuffer/VBarrierManager.h" "Vulkan/CommandBuffer/VCmdBatch.cpp" "Vulkan/CommandBuffer/VCmdBatch.h" "Vulkan/CommandBuffer/VCommandBuffer.cpp" "Vulkan/CommandBuffer/VCommandBuffer.h" "Vulkan/CommandBuffer/VCommandPool.cpp" "Vulkan/CommandBuffer/VCommandPool.h" "Vulkan/CommandBuffer/VDrawTask.h" "Vulkan/CommandBuffer/VTaskGraph.h" "Vulkan/CommandBuffer/VTaskGraph.hpp" "Vulkan/CommandBuffer/VTaskProcessor.cpp" "Vulkan/CommandBuffer/VTaskProcessor.h" )
 source_group( "Vulkan\\Descriptors" FILES "Vulkan/Descriptors/VDescriptorManager.cpp" "Vulkan/Descriptors/VDescriptorManager.h" "Vulkan/Descriptors/VDescriptorSetLayout.cpp" "Vulkan/Descriptors/VDescriptorSetLayout.h" "Vulkan/Descriptors/VPipelineResources.cpp" "Vulkan/Descriptors/VPipelineResources.h" )
 target_include_directories( "FrameGraph" PUBLIC ".." )
 target_include_directories( "FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )

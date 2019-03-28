@@ -109,20 +109,20 @@ GPipelineID  pipeline = frameGraph->CreatePipeline( desc );
 
 ## Command buffer
 ```cpp
-// Create command buffer that will be submitted to the graphics queue
+// create command buffer that will be submitted to the graphics queue
 CommandBufferDesc cmd_desc{ EQueueType::Graphics };
 
-// Returned command buffer will be in the recording state
+// returned command buffer will be in the recording state
 CommandBuffer cmdBuffer = frameGraph->Begin( cmd_desc );
 
-// Drawing (see below)
+// drawing (see below)
 ...
 
-// Finilize recording, compile frame graph for command buffer.
-// Command buffer may be submitted at any time.
+// finilize recording, compile frame graph for command buffer.
+// command buffer may be submitted at any time.
 frameGraoh->Execute( cmdBuffer );
 
-// Submit all pending command buffers.
+// submit all pending command buffers.
 frameGraph->Flush();
 ```
 

@@ -19,6 +19,7 @@ extern void UnitTest_StructView ();
 extern void UnitTest_Array ();
 extern void UnitTest_StringParser ();
 extern void UnitTest_FixedTupleArray ();
+extern void UnitTest_LfIndexedPool ();
 
 
 int main ()
@@ -39,6 +40,7 @@ int main ()
 	UnitTest_Array();
 	UnitTest_StringParser();
 	UnitTest_FixedTupleArray();
+	UnitTest_LfIndexedPool();
 
 	FG_LOGI( "Tests.STL finished" );
 

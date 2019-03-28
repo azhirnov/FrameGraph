@@ -95,6 +95,14 @@ namespace FG
 			return *this;
 		}
 
+		CommandBuffer&  operator = (std::nullptr_t)
+		{
+			_DecRef();
+			_cmdBuf	= null;
+			_batch	= null;
+			return *this;
+		}
+
 
 		ND_ ICommandBuffer*  operator -> () const		{ ASSERT( _cmdBuf );  return _cmdBuf; }
 

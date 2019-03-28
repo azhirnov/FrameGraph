@@ -7,12 +7,12 @@
 
 namespace FG
 {
-	static constexpr uint		max_count	= 1000;
-	static Barrier				sync		{2};
+	static constexpr uint		max_count		= 1000;
+	static Barrier				sync			{2};
 	static std::shared_mutex	image_guard;
 	static GPipelineID			pipeline;
 	static ImageID				image;
-	static CommandBuffer		cmdBuffer1;
+	static CommandBuffer		cmdBuffers[2]	= {};
 
 
 	static bool RenderThread1 (const FrameGraph &fg)
@@ -26,7 +26,7 @@ namespace FG
 			CommandBuffer cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
 			CHECK_ERR( cmd );
 
-			cmdBuffer1 = cmd;
+			cmdBuffers[0] = cmd;
 			
 			// (1) wake up all render threads
 			sync.wait();
@@ -69,10 +69,12 @@ namespace FG
 			
 			CommandBuffer cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
 			CHECK_ERR( cmd );
+
+			cmdBuffers[1] = cmd;
 			
 			// (1) wait for first command buffer
 			sync.wait();
-			cmd->AddDependency( cmdBuffer1 );
+			cmd->AddDependency( cmdBuffers[0] );
 
 			// wait until image was created
 			image_guard.lock_shared();
@@ -153,6 +155,8 @@ void main() {
 
 		CHECK_ERR( _frameGraph->WaitIdle() );
 		CHECK_ERR( thread1_result and thread2_result );
+		
+		for (auto& cmd : cmdBuffers) { cmd = null; }
 
 		DeleteResources( pipeline );
 

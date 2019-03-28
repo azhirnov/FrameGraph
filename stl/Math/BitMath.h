@@ -84,5 +84,23 @@ namespace FGC
 		#error add BitScanForward implementation
 	#endif
 	}
+	
+/*
+=================================================
+	BitCount
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline size_t  BitCount (const T& x)
+	{
+		STATIC_ASSERT( IsUnsignedInteger<T> );
+
+		if constexpr( sizeof(x) == 8 )
+			return std::bitset<64>{ x }.count();
+		else
+		if constexpr( sizeof(x) <= 4 )
+			return std::bitset<32>{ x }.count();
+	}
+
 
 }	// FGC

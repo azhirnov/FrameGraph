@@ -7,6 +7,7 @@
 #include "VDevice.h"
 #include "VCmdBatch.h"
 #include "VDebugger.h"
+#include "stl/ThreadSafe/LfIndexedPool.h"
 
 namespace FG
 {
@@ -39,14 +40,16 @@ namespace FG
 
 			PerQueueSem_t				semaphores		{};
 			Array<VCmdBatchPtr>			pending;		// TODO: circular queue
-			Array<VSubmittedPtr>		submitted;
+			Array<VSubmitted *>			submitted;
 
 			SpinLock					cmdPoolGuard;	// TODO: move syncs to VCommandPool ?
 			VCommandPool				cmdPool;
 			Array<VkImageMemoryBarrier>	imageBarriers;
 		};
 
-		using CmdBuffers_t		= FixedArray< UniquePtr<VCommandBuffer>, 32 >;
+		using CmdBufferPool_t	= LfIndexedPool< VCommandBuffer, uint, 32, 4 >;
+		using CmdBatchPool_t	= LfIndexedPool< VCmdBatch, uint, 32, 16 >;
+		using SubmittedPool_t	= LfIndexedPool< VSubmitted, uint, 32, 8 >;
 		using QueueMap_t		= StaticArray< QueueData, uint(EQueueType::_Count) >;
 		using Fences_t			= Array< VkFence >;
 		using Semaphores_t		= Array< VkSemaphore >;
@@ -61,7 +64,9 @@ namespace FG
 		EQueueUsage				_queueUsage;
 
 		std::recursive_mutex	_cmdBuffersGuard;
-		CmdBuffers_t			_cmdBuffers;
+		CmdBufferPool_t			_cmdBufferPool;
+		CmdBatchPool_t			_cmdBatchPool;
+		SubmittedPool_t			_submittedPool;
 
 		VResourceManager		_resourceMngr;
 		VDebugger				_debugger;
@@ -137,6 +142,10 @@ namespace FG
 		bool			GetStatistics (OUT Statistics &result) const override;
 		bool			DumpToString (OUT String &result) const override;
 		bool			DumpToGraphViz (OUT String &result) const override;
+
+
+		// //
+		void			RecycleBatch (const VCmdBatch *);
 
 		
 		ND_ VDeviceQueueInfoPtr	FindQueue (EQueueType type) const;
