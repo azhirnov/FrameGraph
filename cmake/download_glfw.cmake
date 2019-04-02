@@ -9,11 +9,18 @@ if (${FG_ENABLE_GLFW})
 		set( FG_EXTERNAL_GLFW_PATH "${FG_EXTERNALS_PATH}/glfw" CACHE PATH "" FORCE )
 	endif ()
 	
+	# select version
+	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+		set( GLWF_TAG "3.2.1" )
+	else ()
+		set( GLWF_TAG "master" )
+	endif ()
+
 	# download
 	if (NOT EXISTS "${FG_EXTERNAL_GLFW_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
 		FetchContent_Declare( ExternalGLFW
 			GIT_REPOSITORY		https://github.com/glfw/glfw.git
-			GIT_TAG				master
+			GIT_TAG				${GLWF_TAG}
 			SOURCE_DIR			"${FG_EXTERNAL_GLFW_PATH}"
 		)
 		

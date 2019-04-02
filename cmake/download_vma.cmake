@@ -9,12 +9,19 @@ if (${FG_ENABLE_VMA})
 		set( FG_EXTERNAL_VMA_PATH "${FG_EXTERNALS_PATH}/VulkanMemoryAllocator" CACHE PATH "" FORCE )
 	endif ()
 	
+	# select version
+	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+		set( VMA_TAG "v2.2.0" )
+	else ()
+		set( VMA_TAG "master" )
+	endif ()
+
 	# download
 	if (NOT EXISTS "${FG_EXTERNAL_VMA_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
 		FetchContent_Declare( ExternalVMA
 			GIT_REPOSITORY		https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
 			SOURCE_DIR			"${FG_EXTERNAL_VMA_PATH}"
-			GIT_TAG				master
+			GIT_TAG				${VMA_TAG}
 		)
 		
 		FetchContent_GetProperties( ExternalVMA )

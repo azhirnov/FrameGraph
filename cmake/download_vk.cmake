@@ -20,11 +20,18 @@ if (NOT Vulkan_FOUND)
 	endif ()
 endif ()
 
+# select version
+if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+	set( VULKAN_HEADERS_TAG "v1.1.105" )
+else ()
+	set( VULKAN_HEADERS_TAG "master" )
+endif ()
 
+# download
 if (NOT Vulkan_FOUND AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
 	FetchContent_Declare( ExternalVulkanHeaders
 		GIT_REPOSITORY		https://github.com/KhronosGroup/Vulkan-Headers.git
-		GIT_TAG				master
+		GIT_TAG				${VULKAN_HEADERS_TAG}
 		SOURCE_DIR			"${FG_EXTERNALS_PATH}/Vulkan-Headers"
 	)
 	

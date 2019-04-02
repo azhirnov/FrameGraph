@@ -18,7 +18,7 @@ namespace FG
 		_availableQueues{ Default },
 		_graphicsShaderStages{ EResourceState::_VertexShader | EResourceState::_FragmentShader },
 		_allWritableStages{ VK_PIPELINE_STAGE_ALL_COMMANDS_BIT },
-		_allReadableStages{ VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT }
+		_allReadableStages{ VK_PIPELINE_STAGE_ALL_COMMANDS_BIT }
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
 

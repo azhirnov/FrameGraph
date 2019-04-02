@@ -34,10 +34,21 @@ if (${FG_ENABLE_GLSLANG})
 	set( ENABLE_AMD_EXTENSIONS ON CACHE BOOL "glslang option" )
 	set( ENABLE_NV_EXTENSIONS ON CACHE BOOL "glslang option" )
 
+	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+		# stable release February 8, 2019
+		set( GLSLANG_TAG "7.11.3113" )
+		set( SPIRV_TOOLS_TAG "v2019.1" )
+		set( SPIRV_HEADERS_TAG "1.3.7" )
+	else ()
+		set( GLSLANG_TAG "master" )
+		set( SPIRV_TOOLS_TAG "master" )
+		set( SPIRV_HEADERS_TAG "master" )
+	endif ()
+
 	ExternalProject_Add( "External.glslang"
 		# download
 		GIT_REPOSITORY		${FG_GLSLANG_REPOSITORY}
-		GIT_TAG				master
+		GIT_TAG				${GLSLANG_TAG}
 		GIT_PROGRESS		1
 		EXCLUDE_FROM_ALL	1
 		LOG_DOWNLOAD		1
@@ -59,7 +70,7 @@ if (${FG_ENABLE_GLSLANG})
 		DEPENDS				"External.glslang"
 		# download
 		GIT_REPOSITORY		${FG_SPIRVTOOLS_REPOSITORY}
-		GIT_TAG				master
+		GIT_TAG				${SPIRV_TOOLS_TAG}
 		GIT_PROGRESS		1
 		EXCLUDE_FROM_ALL	1
 		LOG_DOWNLOAD		1
@@ -82,7 +93,7 @@ if (${FG_ENABLE_GLSLANG})
 							"External.SPIRV-Tools"
 		# download
 		GIT_REPOSITORY		${FG_SPIRVHEADERS_REPOSITORY}
-		GIT_TAG				master
+		GIT_TAG				${SPIRV_HEADERS_TAG}
 		GIT_PROGRESS		1
 		EXCLUDE_FROM_ALL	1
 		LOG_DOWNLOAD		1
