@@ -42,6 +42,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_Draw3,			1 });
 		_tests.push_back({ &FGApp::Test_Draw4,			1 });
 		_tests.push_back({ &FGApp::Test_Draw5,			1 });
+		_tests.push_back({ &FGApp::Test_Draw6,			1 });
 		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1,	1 });
 		_tests.push_back({ &FGApp::Test_ReadAttachment1,	1 });
 		_tests.push_back({ &FGApp::Test_AsyncCompute1,		1 });
@@ -55,6 +56,7 @@ namespace {
 		_tests.push_back({ &FGApp::ImplTest_Multithreading1, 1 });
 		_tests.push_back({ &FGApp::ImplTest_Multithreading2, 1 });
 		_tests.push_back({ &FGApp::ImplTest_Multithreading3, 1 });
+		_tests.push_back({ &FGApp::ImplTest_Multithreading4, 1 });
 		
 		// RTX only
 		_tests.push_back({ &FGApp::Test_DrawMeshes1,		1 });
@@ -144,7 +146,7 @@ namespace {
 			for (auto& q : _vulkan.GetVkQuues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
-				qi.id			= BitCast<QueueVk_t>( q.id );
+				qi.handle		= BitCast<QueueVk_t>( q.handle );
 				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.flags );
 				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;

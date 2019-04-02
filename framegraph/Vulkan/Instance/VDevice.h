@@ -4,6 +4,7 @@
 
 #include "VCommon.h"
 #include "framegraph/Public/ShaderEnums.h"
+#include "framegraph/Public/EResourceState.h"
 
 namespace FG
 {
@@ -56,7 +57,17 @@ namespace FG
 		VkDevice								_vkDevice;
 		EShaderLangFormat						_vkVersion;
 		Queues_t								_vkQueues;
+
 		EQueueFamilyMask						_availableQueues;
+		EResourceState							_graphicsShaderStages;
+		VkPipelineStageFlags					_allWritableStages;
+		VkPipelineStageFlags					_allReadableStages;
+
+		bool									_enableDebugUtils			: 1;
+		bool									_enableMeshShaderNV			: 1;
+		bool									_enableRayTracingNV			: 1;
+		bool									_samplerMirrorClamp			: 1;
+		bool									_enableShadingRateImageNV	: 1;
 
 		struct {
 			VkPhysicalDeviceProperties						properties;
@@ -74,12 +85,6 @@ namespace FG
 		
 		VulkanDeviceFnTable						_deviceFnTable;
 
-		bool									_enableDebugUtils			: 1;
-		bool									_enableMeshShaderNV			: 1;
-		bool									_enableRayTracingNV			: 1;
-		bool									_samplerMirrorClamp			: 1;
-		bool									_enableShadingRateImageNV	: 1;
-
 
 	// methods
 	public:
@@ -91,13 +96,16 @@ namespace FG
 		ND_ bool							IsRayTracingEnabled ()			const	{ return _enableRayTracingNV; }
 		ND_ bool							IsSamplerMirrorClampEnabled ()	const	{ return _samplerMirrorClamp; }
 		ND_ bool							IsShadingRateImageEnabled ()	const	{ return _enableShadingRateImageNV; }
+		ND_ EResourceState					GetGraphicsShaderStages ()		const	{ return _graphicsShaderStages; }
+		ND_ VkPipelineStageFlags			GetAllWritableStages ()			const	{ return _allWritableStages; }
+		ND_ VkPipelineStageFlags			GetAllReadableStages ()			const	{ return _allReadableStages; }
 
 		ND_ VkDevice						GetVkDevice ()					const	{ return _vkDevice; }
 		ND_ VkPhysicalDevice				GetVkPhysicalDevice ()			const	{ return _vkPhysicalDevice; }
 		ND_ VkInstance						GetVkInstance ()				const	{ return _vkInstance; }
 		ND_ EShaderLangFormat				GetVkVersion ()					const	{ return _vkVersion; }
 		ND_ ArrayView< VDeviceQueueInfo >	GetVkQueues ()					const	{ return _vkQueues; }
-		ND_ EQueueFamilyMask				GetQueueFamilyMask ()		const	{ return _availableQueues; }
+		ND_ EQueueFamilyMask				GetQueueFamilyMask ()			const	{ return _availableQueues; }
 
 
 		ND_ VkPhysicalDeviceProperties const&					GetDeviceProperties ()					const	{ return _deviceInfo.properties; }

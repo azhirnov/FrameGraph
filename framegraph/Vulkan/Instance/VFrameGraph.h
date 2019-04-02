@@ -33,16 +33,15 @@ namespace FG
 
 		struct QueueData
 		{
-			VDeviceQueueInfoPtr			ptr;
+		// immutable data
+			VDeviceQueueInfoPtr			ptr;			// pointer to the physical queue
+			EQueueType					type			= Default;
 
-			ExeOrderIndex				lastSubmitted	= ExeOrderIndex::First;
-			ExeOrderIndex				lastCompleted	= ExeOrderIndex::First;
-
-			PerQueueSem_t				semaphores		{};
+		// mutable data
 			Array<VCmdBatchPtr>			pending;		// TODO: circular queue
 			Array<VSubmitted *>			submitted;
+			PerQueueSem_t				semaphores		{};
 
-			SpinLock					cmdPoolGuard;	// TODO: move syncs to VCommandPool ?
 			VCommandPool				cmdPool;
 			Array<VkImageMemoryBarrier>	imageBarriers;
 		};
@@ -60,10 +59,11 @@ namespace FG
 		std::atomic<EState>		_state;
 
 		VDevice					_device;
+
+		std::mutex				_queueGuard;		// TODO: remove global lock
 		QueueMap_t				_queueMap;
 		EQueueUsage				_queueUsage;
 
-		std::recursive_mutex	_cmdBuffersGuard;
 		CmdBufferPool_t			_cmdBufferPool;
 		CmdBatchPool_t			_cmdBatchPool;
 		SubmittedPool_t			_submittedPool;
@@ -72,9 +72,6 @@ namespace FG
 		VDebugger				_debugger;
 
 		ShaderDebugCallback_t	_shaderDebugCallback;
-
-		Fences_t				_fenceCache;
-		Semaphores_t			_semaphoreCache;
 
 
 	// methods
@@ -89,6 +86,7 @@ namespace FG
 		//void			SetCompilationFlags (ECompilationFlags flags, EDebugFlags debugFlags) override;
 		bool			SetShaderDebugCallback (ShaderDebugCallback_t &&) override;
 		DeviceInfo_t	GetDeviceInfo () const override;
+		EQueueUsage		GetAvilableQueues () const override		{ return _queueUsage; }
 
 
 		// resource manager //
@@ -166,22 +164,23 @@ namespace FG
 		
 		void _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily);
 
-		ND_ VkFence		_CreateFence ();
 		ND_ VkSemaphore	_CreateSemaphore ();
 
 
 		// queues //
-		ND_ EQueueFamilyMask	_GetQueuesMask (EQueueUsage types) const;
-			bool				_IsUnique (VDeviceQueueInfoPtr ptr) const;
-			bool				_AddGraphicsQueue ();
-			bool				_AddAsyncComputeQueue ();
-			bool				_AddAsyncTransferQueue ();
-			bool				_CreateQueue (EQueueType, VDeviceQueueInfoPtr);
+		ND_ EQueueFamilyMask _GetQueuesMask (EQueueUsage types) const;
+		ND_ QueueData&       _GetQueueData (EQueueType index);
 
-			bool				_TryFlush (const VCmdBatchPtr &batch);
-			bool				_FlushAll (uint maxIter);
-			bool				_FlushQueue (EQueueType queue, uint maxIter);
-			bool				_WaitQueue (EQueueType queue, Nanoseconds timeout);
+			bool  _IsUnique (VDeviceQueueInfoPtr ptr) const;
+			bool  _AddGraphicsQueue ();
+			bool  _AddAsyncComputeQueue ();
+			bool  _AddAsyncTransferQueue ();
+			bool  _CreateQueue (EQueueType, VDeviceQueueInfoPtr);
+
+			bool  _TryFlush (const VCmdBatchPtr &batch);
+			bool  _FlushAll (uint maxIter);
+			bool  _FlushQueue (EQueueType queue, uint maxIter);
+			bool  _WaitQueue (EQueueType queue, Nanoseconds timeout);
 
 
 		// states //

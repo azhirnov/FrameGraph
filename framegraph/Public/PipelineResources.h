@@ -5,7 +5,7 @@
 #include "framegraph/Public/IDs.h"
 #include "framegraph/Public/ImageDesc.h"
 #include "framegraph/Public/Pipeline.h"
-#include "stl/ThreadSafe/RaceConditionCheck.h"
+#include "stl/ThreadSafe/DataRaceCheck.h"
 
 namespace FG
 {
@@ -174,7 +174,7 @@ namespace FG
 		DynamicDataPtr			_dataPtr;
 		bool					_allowEmptyResources	= false;
 		mutable CachedID		_cachedId;
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 
 	// methods
@@ -217,18 +217,18 @@ namespace FG
 
 		Self&  BindRayTracingScene (const UniformID &id, RawRTSceneID scene, uint elementIndex = 0);
 
-		void  AllowEmptyResources (bool value)								{ EXLOCK(_rcCheck);  _allowEmptyResources = value; }
+		void  AllowEmptyResources (bool value)								{ EXLOCK(_drCheck);  _allowEmptyResources = value; }
 
-		ND_ bool  HasImage (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Image >( id ); }
-		ND_ bool  HasSampler (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Sampler >( id ); }
-		ND_ bool  HasTexture (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Texture >( id ); }
-		ND_ bool  HasBuffer (const UniformID &id)					const	{ SHAREDLOCK(_rcCheck);  return _HasResource< Buffer >( id ); }
-		ND_ bool  HasRayTracingScene (const UniformID &id)			const	{ SHAREDLOCK(_rcCheck);  return _HasResource< RayTracingScene >( id ); }
+		ND_ bool  HasImage (const UniformID &id)					const	{ SHAREDLOCK(_drCheck);  return _HasResource< Image >( id ); }
+		ND_ bool  HasSampler (const UniformID &id)					const	{ SHAREDLOCK(_drCheck);  return _HasResource< Sampler >( id ); }
+		ND_ bool  HasTexture (const UniformID &id)					const	{ SHAREDLOCK(_drCheck);  return _HasResource< Texture >( id ); }
+		ND_ bool  HasBuffer (const UniformID &id)					const	{ SHAREDLOCK(_drCheck);  return _HasResource< Buffer >( id ); }
+		ND_ bool  HasRayTracingScene (const UniformID &id)			const	{ SHAREDLOCK(_drCheck);  return _HasResource< RayTracingScene >( id ); }
 
-		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ SHAREDLOCK(_rcCheck); ASSERT(_dataPtr);  return _dataPtr->layoutId; }
+		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ SHAREDLOCK(_drCheck); ASSERT(_dataPtr);  return _dataPtr->layoutId; }
 		ND_ ArrayView< uint >			GetDynamicOffsets ()		const;
-		ND_ bool						IsEmptyResourcesAllowed ()	const	{ SHAREDLOCK(_rcCheck);  return _allowEmptyResources; }
-		ND_ bool						IsInitialized ()			const	{ SHAREDLOCK(_rcCheck);  return _dataPtr != null; }
+		ND_ bool						IsEmptyResourcesAllowed ()	const	{ SHAREDLOCK(_drCheck);  return _allowEmptyResources; }
+		ND_ bool						IsInitialized ()			const	{ SHAREDLOCK(_drCheck);  return _dataPtr != null; }
 
 
 	private:
@@ -239,7 +239,7 @@ namespace FG
 
 		ND_ uint &					_GetDynamicOffset (uint i)		{ ASSERT( _dataPtr and i < _dataPtr->dynamicOffsetsCount );  return _dataPtr->DynamicOffsets()[i]; }
 
-		template <typename T> T &	_GetResource (const UniformID &id);
+		template <typename T> T *	_GetResource (const UniformID &id);
 		template <typename T> bool	_HasResource (const UniformID &id) const;
 	};
 
@@ -255,7 +255,7 @@ namespace FG
 */
 	inline ArrayView<uint>  PipelineResources::GetDynamicOffsets () const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 		return _dataPtr ? ArrayView<uint>{ _dataPtr->DynamicOffsets(), _dataPtr->dynamicOffsetsCount } : ArrayView<uint>{};
 	}
 

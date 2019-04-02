@@ -17,7 +17,7 @@ namespace FG
 	VPipelineResources::VPipelineResources (const PipelineResources &desc) :
 		_allowEmptyResources{ desc.IsEmptyResourcesAllowed() }
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		
 		_dataPtr	= PipelineResourcesHelper::CloneDynamicData( desc );
 		_layoutId	= desc.GetLayout();
@@ -33,7 +33,7 @@ namespace FG
 		_dataPtr{ PipelineResourcesHelper::RemoveDynamicData( INOUT desc )},
 		_allowEmptyResources{ desc.IsEmptyResourcesAllowed() }
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		
 		_layoutId	= _dataPtr->layoutId;
 		_hash		= HashOf( _layoutId ) + _dataPtr->CalcHash();
@@ -56,7 +56,7 @@ namespace FG
 */
 	bool VPipelineResources::Create (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( not _descriptorSet.first );
 		CHECK_ERR( _dataPtr );
 
@@ -83,7 +83,7 @@ namespace FG
 */
 	void VPipelineResources::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		auto*	ds_layout = resMngr.GetResource( _layoutId, false, true );
 
@@ -109,7 +109,7 @@ namespace FG
 */
 	bool  VPipelineResources::IsAllResourcesAlive (const VResourceManager &resMngr) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 
 		struct Visitor
 		{
@@ -179,8 +179,8 @@ namespace FG
 */
 	bool  VPipelineResources::operator == (const VPipelineResources &rhs) const
 	{
-		SHAREDLOCK( _rcCheck );
-		SHAREDLOCK( rhs._rcCheck );
+		SHAREDLOCK( _drCheck );
+		SHAREDLOCK( rhs._drCheck );
 
 		return	_hash		==  rhs._hash		and
 				_layoutId	==  rhs._layoutId	and

@@ -25,7 +25,7 @@ namespace FG
 	bool VCommandPool::Create (const VDevice &dev, VDeviceQueueInfoPtr queue, StringView dbgName)
 	{
 		CHECK_ERR( queue );
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( not IsCreated() );
 
 		VkCommandPoolCreateInfo	info = {};
@@ -48,7 +48,7 @@ namespace FG
 */
 	void VCommandPool::Destroy (const VDevice &dev)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _pool )
 		{
@@ -56,7 +56,7 @@ namespace FG
 			_pool = VK_NULL_HANDLE;
 			
 			DEBUG_ONLY(
-				FG_LOGI( "Max command buffers: "s << ToString( _cmdBufCount ) );
+				FG_LOGD( "Max command buffers: "s << ToString( _cmdBufCount ) );
 				_cmdBufCount = 0;
 			)
 		}
@@ -73,7 +73,7 @@ namespace FG
 */
 	void VCommandPool::ResetAll (const VDevice &dev, VkCommandPoolResetFlags flags)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( IsCreated(), void());
 
 		VK_CALL( dev.vkResetCommandPool( dev.GetVkDevice(), _pool, flags ));
@@ -86,7 +86,7 @@ namespace FG
 */
 	void VCommandPool::TrimAll (const VDevice &dev, VkCommandPoolTrimFlags flags)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( IsCreated(), void());
 
 		dev.vkTrimCommandPool( dev.GetVkDevice(), _pool, flags );
@@ -99,7 +99,7 @@ namespace FG
 */
 	void VCommandPool::Reset (const VDevice &dev, VkCommandBuffer cmd, VkCommandBufferResetFlags flags)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( IsCreated(), void());
 
 		VK_CALL( dev.vkResetCommandBuffer( cmd, flags ));
@@ -129,7 +129,7 @@ namespace FG
 */
 	VkCommandBuffer  VCommandPool::AllocPrimary (const VDevice &dev)
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 		CHECK_ERR( IsCreated(), VK_NULL_HANDLE );
 		
 		// use cache
@@ -164,7 +164,7 @@ namespace FG
 */
 	VkCommandBuffer  VCommandPool::AllocSecondary (const VDevice &dev)
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 		CHECK_ERR( IsCreated(), VK_NULL_HANDLE );
 
 		// use cache
@@ -199,7 +199,7 @@ namespace FG
 */
 	void  VCommandPool::Deallocate (const VDevice &dev, VkCommandBuffer cmd)
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 		CHECK_ERR( IsCreated(), void());
 
 		dev.vkFreeCommandBuffers( dev.GetVkDevice(), _pool, 1, &cmd );

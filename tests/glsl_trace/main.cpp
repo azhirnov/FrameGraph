@@ -43,7 +43,7 @@ int main ()
 	TestHelpers		helper;
 	VkDevice		dev	= vulkan.GetVkDevice();
 	
-	helper.queue		= vulkan.GetVkQuues().front().id;
+	helper.queue		= vulkan.GetVkQuues().front().handle;
 	helper.queueFamily	= vulkan.GetVkQuues().front().familyIndex;
 
 	// create command pool

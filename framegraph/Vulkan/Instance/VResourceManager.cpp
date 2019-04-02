@@ -302,7 +302,8 @@ namespace FG
 			auto	ds_layout_id = GetDescriptorSetLayout( debugMode, debuggableShaders );
 
 			auto&	ds_layout	= ds_pool[ ds_layout_id.Index() ];
-			
+			ds_layout.AddRef();
+
 			PipelineDescription::DescriptorSet	dst;
 			dst.id				= dsID;
 			dst.bindingIndex	= FG_DebugDescriptorSet;

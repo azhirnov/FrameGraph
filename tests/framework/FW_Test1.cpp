@@ -94,7 +94,7 @@ public:
 
 
 		// initialize vulkan objects
-		VkQueue				cmd_queue		= vulkan.GetVkQuues().front().id;
+		VkQueue				cmd_queue		= vulkan.GetVkQuues().front().handle;
 		VkCommandBuffer		cmd_buffers[2]	= {};
 		VkFence				fences[2]		= {};
 		VkSemaphore			semaphores[2]	= {};

@@ -128,7 +128,7 @@ namespace FG
 		
 		bool InitShaderTable (VCommandBuffer				&fgThread,
 							  RawRTPipelineID				 pipelineId,
-							  VLocalRTScene const			&rtScene,
+							  VRayTracingScene const		&rtScene,
 							  const RayGenShader			&rayGenShader,
 							  ArrayView< RTShaderGroup >	 shaderGroups,
 							  const uint					 maxRecursionDepth,

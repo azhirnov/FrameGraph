@@ -10,6 +10,7 @@ namespace FG
 	static GPipelineID		pipeline;
 	static Barrier			sync			{3};
 	static CommandBuffer	cmdBuffers [3]	= {};
+	static CommandBuffer	perFrame[2]		= {};
 
 
 	static bool RenderThread1 (const FrameGraph &fg)
@@ -21,9 +22,13 @@ namespace FG
 
 		for (uint i = 0; i < max_count; ++i)
 		{
+			if ( perFrame[i&1] )
+				fg->Wait({ perFrame[i&1] });
+
 			CommandBuffer cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
 			CHECK_ERR( cmd );
 
+			perFrame[i&1] = cmd;
 			cmdBuffers[0] = cmd;
 
 			// (1) wake up all render threads
@@ -183,6 +188,7 @@ void main() {
 		CHECK_ERR( thread1_result and thread2_result and thread3_result );
 
 		for (auto& cmd : cmdBuffers) { cmd = null; }
+		for (auto& cmd : perFrame) { cmd = null; }
 
 		DeleteResources( pipeline );
 

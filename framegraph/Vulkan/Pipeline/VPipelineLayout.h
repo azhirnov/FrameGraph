@@ -46,7 +46,7 @@ namespace FG
 
 		DebugName_t				_debugName;
 		
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 		
 	// methods
@@ -65,14 +65,14 @@ namespace FG
 
 		ND_ bool  operator == (const VPipelineLayout &rhs) const;
 
-		ND_ VkPipelineLayout		Handle ()					const	{ SHAREDLOCK( _rcCheck );  return _layout; }
-		ND_ HashVal					GetHash ()					const	{ SHAREDLOCK( _rcCheck );  return _hash; }
+		ND_ VkPipelineLayout		Handle ()					const	{ SHAREDLOCK( _drCheck );  return _layout; }
+		ND_ HashVal					GetHash ()					const	{ SHAREDLOCK( _drCheck );  return _hash; }
 
-		ND_ StringView				GetDebugName ()				const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ StringView				GetDebugName ()				const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 		
-		ND_ uint					GetFirstDescriptorSet ()	const	{ SHAREDLOCK( _rcCheck );  return _firstDescSet; }
-		ND_ DescriptorSets_t const&	GetDescriptorSets ()		const	{ SHAREDLOCK( _rcCheck );  return _descriptorSets; }
-		ND_ PushConstants_t const&	GetPushConstants ()			const	{ SHAREDLOCK( _rcCheck );  return _pushConstants; }
+		ND_ uint					GetFirstDescriptorSet ()	const	{ SHAREDLOCK( _drCheck );  return _firstDescSet; }
+		ND_ DescriptorSets_t const&	GetDescriptorSets ()		const	{ SHAREDLOCK( _drCheck );  return _descriptorSets; }
+		ND_ PushConstants_t const&	GetPushConstants ()			const	{ SHAREDLOCK( _drCheck );  return _pushConstants; }
 
 
 	private:

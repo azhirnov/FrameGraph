@@ -109,7 +109,7 @@ namespace FG
 		_dataPtr{ PipelineResourcesHelper::CloneDynamicData( other )},
 		_allowEmptyResources{ other._allowEmptyResources }
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 		STATIC_ASSERT( CachedID::is_always_lock_free );
 		//STATIC_ASSERT( sizeof(CachedID::value_type) == sizeof(RawPipelineResourcesID) );
 
@@ -123,7 +123,7 @@ namespace FG
 */
 	PipelineResources::~PipelineResources ()
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 	}
 
 /*
@@ -132,20 +132,24 @@ namespace FG
 =================================================
 */
 	template <typename T>
-	ND_ inline T &  PipelineResources::_GetResource (const UniformID &id)
+	ND_ inline T*  PipelineResources::_GetResource (const UniformID &id)
 	{
-		SHAREDLOCK( _rcCheck );
-		ASSERT( _dataPtr );
-
-		auto*	uniforms = _dataPtr->Uniforms();
-		size_t	index	 = BinarySearch( ArrayView<Uniform>{uniforms, _dataPtr->uniformCount}, id );
+		SHAREDLOCK( _drCheck );
 		
-		ASSERT( index < _dataPtr->uniformCount );
-		auto&	un = uniforms[ index ];
+		if ( _dataPtr )
+		{
+			auto*	uniforms = _dataPtr->Uniforms();
+			size_t	index	 = BinarySearch( ArrayView<Uniform>{uniforms, _dataPtr->uniformCount}, id );
+		
+			if ( index < _dataPtr->uniformCount )
+			{
+				auto&	un = uniforms[ index ];
+				ASSERT( un.resType == T::TypeId );
 
-		ASSERT( un.resType == T::TypeId );
-
-		return *Cast<T>( _dataPtr.get() + BytesU{un.offset} );
+				return Cast<T>( _dataPtr.get() + BytesU{un.offset} );
+			}
+		}
+		return null;
 	}
 	
 /*
@@ -156,7 +160,7 @@ namespace FG
 	template <typename T>
 	ND_ bool  PipelineResources::_HasResource (const UniformID &id) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 
 		if ( not _dataPtr )
 			return false;
@@ -177,42 +181,40 @@ namespace FG
 */
 	PipelineResources&  PipelineResources::BindImage (const UniformID &id, RawImageID image, uint index)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasImage( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res = _GetResource<Image>( id );
-		auto&	img = res.elements[ index ];
+		if ( auto* res = _GetResource<Image>( id ))
+		{
+			auto&	img = res->elements[ index ];
+			ASSERT( index < res->elementCapacity );
 
-		ASSERT( index < res.elementCapacity );
-
-		if ( img.imageId != image or img.hasDesc or res.elementCount <= index )
-			_ResetCachedID();
+			if ( img.imageId != image or img.hasDesc or res->elementCount <= index )
+				_ResetCachedID();
 		
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
-		img.imageId		 = image;
-		img.hasDesc		 = false;
-
+			res->elementCount	= Max( uint16_t(index+1), res->elementCount );
+			img.imageId			= image;
+			img.hasDesc			= false;
+		}
 		return *this;
 	}
 	
 	PipelineResources&  PipelineResources::BindImage (const UniformID &id, RawImageID image, const ImageViewDesc &desc, uint index)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasImage( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res = _GetResource<Image>( id );
-		auto&	img = res.elements[ index ];
+		if ( auto* res = _GetResource<Image>( id ))
+		{
+			auto&	img = res->elements[ index ];
+			ASSERT( index < res->elementCapacity );
 
-		ASSERT( index < res.elementCapacity );
-
-		if ( img.imageId != image or not img.hasDesc or not (img.desc == desc) or res.elementCount <= index )
-			_ResetCachedID();
+			if ( img.imageId != image or not img.hasDesc or not (img.desc == desc) or res->elementCount <= index )
+				_ResetCachedID();
 		
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
-		img.imageId		 = image;
-		img.desc		 = desc;
-		img.hasDesc		 = true;
-
+			res->elementCount	= Max( uint16_t(index+1), res->elementCount );
+			img.imageId			= image;
+			img.desc			= desc;
+			img.hasDesc			= true;
+		}
 		return *this;
 	}
 	
@@ -223,28 +225,28 @@ namespace FG
 */
 	PipelineResources&  PipelineResources::BindImages (const UniformID &id, ArrayView<RawImageID> images)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasImage( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res		= _GetResource<Image>( id );
-		bool	changed	= res.elementCount != images.size();
-		
-		ASSERT( images.size() <= res.elementCapacity );
-		res.elementCount = uint16_t(images.size());
-
-		for (size_t i = 0; i < images.size(); ++i)
+		if ( auto* res = _GetResource<Image>( id ))
 		{
-			auto&	img = res.elements[i];
-
-			changed |= (img.imageId != images[i] or img.hasDesc);
-
-			img.imageId	= images[i];
-			img.hasDesc	= false;
-		}
-
-		if ( changed )
-			_ResetCachedID();
+			bool	changed	= res->elementCount != images.size();
 		
+			ASSERT( images.size() <= res->elementCapacity );
+			res->elementCount = uint16_t(images.size());
+
+			for (size_t i = 0; i < images.size(); ++i)
+			{
+				auto&	img = res->elements[i];
+
+				changed |= (img.imageId != images[i] or img.hasDesc);
+
+				img.imageId	= images[i];
+				img.hasDesc	= false;
+			}
+
+			if ( changed )
+				_ResetCachedID();
+		}
 		return *this;
 	}
 
@@ -261,44 +263,42 @@ namespace FG
 */
 	PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, RawSamplerID sampler, uint index)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasTexture( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res = _GetResource<Texture>( id );
-		auto&	tex = res.elements[ index ];
+		if ( auto* res = _GetResource<Texture>( id ))
+		{
+			auto&	tex = res->elements[ index ];
+			ASSERT( index < res->elementCapacity );
+
+			if ( tex.imageId != image or tex.samplerId != sampler or tex.hasDesc or res->elementCount <= index )
+				_ResetCachedID();
 		
-		ASSERT( index < res.elementCapacity );
-
-		if ( tex.imageId != image or tex.samplerId != sampler or tex.hasDesc or res.elementCount <= index )
-			_ResetCachedID();
-		
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
-		tex.imageId		 = image;
-		tex.samplerId	 = sampler;
-		tex.hasDesc		 = false;
-
+			res->elementCount	= Max( uint16_t(index+1), res->elementCount );
+			tex.imageId			= image;
+			tex.samplerId		= sampler;
+			tex.hasDesc			= false;
+		}
 		return *this;
 	}
 	
 	PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, RawSamplerID sampler, const ImageViewDesc &desc, uint index)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasTexture( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res = _GetResource<Texture>( id );
-		auto&	tex = res.elements[ index ];
-		
-		ASSERT( index < res.elementCapacity );
+		if ( auto* res = _GetResource<Texture>( id ))
+		{
+			auto&	tex = res->elements[ index ];
+			ASSERT( index < res->elementCapacity );
 
-		if ( tex.imageId != image or tex.samplerId != sampler or not tex.hasDesc or not (tex.desc == desc) or res.elementCount <= index )
-			_ResetCachedID();
+			if ( tex.imageId != image or tex.samplerId != sampler or not tex.hasDesc or not (tex.desc == desc) or res->elementCount <= index )
+				_ResetCachedID();
 		
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
-		tex.imageId		 = image;
-		tex.samplerId	 = sampler;
-		tex.desc		 = desc;
-		tex.hasDesc		 = true;
-		
+			res->elementCount	= Max( uint16_t(index+1), res->elementCount );
+			tex.imageId			= image;
+			tex.samplerId		= sampler;
+			tex.desc			= desc;
+			tex.hasDesc			= true;
+		}
 		return *this;
 	}
 	
@@ -315,29 +315,29 @@ namespace FG
 
 	PipelineResources&  PipelineResources::BindTextures (const UniformID &id, ArrayView<RawImageID> images, RawSamplerID sampler)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasTexture( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res		= _GetResource<Texture>( id );
-		bool	changed = res.elementCount != images.size();
-
-		ASSERT( images.size() <= res.elementCapacity );
-		res.elementCount = uint16_t(images.size());
-
-		for (size_t i = 0; i < images.size(); ++i)
+		if ( auto* res = _GetResource<Texture>( id ))
 		{
-			auto&	tex = res.elements[i];
+			bool	changed = res->elementCount != images.size();
 
-			changed |= (tex.imageId != images[i] or tex.samplerId != sampler or tex.hasDesc);
+			ASSERT( images.size() <= res->elementCapacity );
+			res->elementCount = uint16_t(images.size());
 
-			tex.imageId		= images[i];
-			tex.samplerId	= sampler;
-			tex.hasDesc		= false;
+			for (size_t i = 0; i < images.size(); ++i)
+			{
+				auto&	tex = res->elements[i];
+
+				changed |= (tex.imageId != images[i] or tex.samplerId != sampler or tex.hasDesc);
+
+				tex.imageId		= images[i];
+				tex.samplerId	= sampler;
+				tex.hasDesc		= false;
+			}
+
+			if ( changed )
+				_ResetCachedID();
 		}
-
-		if ( changed )
-			_ResetCachedID();
-
 		return *this;
 	}
 
@@ -348,20 +348,19 @@ namespace FG
 */
 	PipelineResources&  PipelineResources::BindSampler (const UniformID &id, RawSamplerID sampler, uint index)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasSampler( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res  = _GetResource<Sampler>( id );
-		auto&	samp = res.elements[ index ];
+		if ( auto* res = _GetResource<Sampler>( id ))
+		{
+			auto&	samp = res->elements[ index ];
+			ASSERT( index < res->elementCapacity );
 
-		ASSERT( index < res.elementCapacity );
-
-		if ( samp.samplerId != sampler or res.elementCount <= index )
-			_ResetCachedID();
+			if ( samp.samplerId != sampler or res->elementCount <= index )
+				_ResetCachedID();
 		
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
-		samp.samplerId	 = sampler;
-
+			res->elementCount	= Max( uint16_t(index+1), res->elementCount );
+			samp.samplerId		= sampler;
+		}
 		return *this;
 	}
 	
@@ -378,27 +377,27 @@ namespace FG
 
 	PipelineResources&  PipelineResources::BindSamplers (const UniformID &id, ArrayView<RawSamplerID> samplers)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasSampler( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res		= _GetResource<Sampler>( id );
-		bool	changed = res.elementCount != samplers.size();
-		
-		ASSERT( samplers.size() <= res.elementCapacity );
-
-		for (size_t i = 0; i < samplers.size(); ++i)
+		if ( auto* res = _GetResource<Sampler>( id ))
 		{
-			auto&	samp = res.elements[i];
-
-			changed |= (samp.samplerId != samplers[i]);
-
-			samp.samplerId = samplers[i];
-		}
-
-		if ( changed )
-			_ResetCachedID();
+			bool	changed = res->elementCount != samplers.size();
 		
-		res.elementCount = uint16_t(samplers.size());
+			ASSERT( samplers.size() <= res->elementCapacity );
+			res->elementCount = uint16_t(samplers.size());
+
+			for (size_t i = 0; i < samplers.size(); ++i)
+			{
+				auto&	samp = res->elements[i];
+
+				changed |= (samp.samplerId != samplers[i]);
+
+				samp.samplerId = samplers[i];
+			}
+
+			if ( changed )
+				_ResetCachedID();
+		}
 		return *this;
 	}
 
@@ -414,35 +413,35 @@ namespace FG
 
 	PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, RawBufferID buffer, BytesU offset, BytesU size, uint index)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasBuffer( id ));
+		EXLOCK( _drCheck );
 
-		auto&	res	= _GetResource<Buffer>( id );
-		auto&	buf	= res.elements[ index ];
-
-		ASSERT( size == ~0_b or ((size >= res.staticSize) and (res.arrayStride == 0 or (size - res.staticSize) % res.arrayStride == 0)) );
-		ASSERT( index < res.elementCapacity );
-
-		bool	changed = (buf.bufferId != buffer or buf.size != size or res.elementCount <= index);
-		
-		if ( res.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
+		if ( auto* res = _GetResource<Buffer>( id ))
 		{
-			changed		|= (buf.offset != offset);
-			buf.offset	 = offset;
-		}
-		else
-		{
-			ASSERT( offset >= buf.offset and offset - buf.offset < std::numeric_limits<uint>::max() );
-			_GetDynamicOffset( res.dynamicOffsetIndex + index ) = uint(offset - buf.offset);
-		}
-		
-		if ( changed )
-			_ResetCachedID();
-		
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
-		buf.bufferId	 = buffer;
-		buf.size		 = size;
+			auto&	buf	= res->elements[ index ];
 
+			ASSERT( size == ~0_b or ((size >= res->staticSize) and (res->arrayStride == 0 or (size - res->staticSize) % res->arrayStride == 0)) );
+			ASSERT( index < res->elementCapacity );
+
+			bool	changed = (buf.bufferId != buffer or buf.size != size or res->elementCount <= index);
+		
+			if ( res->dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
+			{
+				changed		|= (buf.offset != offset);
+				buf.offset	 = offset;
+			}
+			else
+			{
+				ASSERT( offset >= buf.offset and offset - buf.offset < std::numeric_limits<uint>::max() );
+				_GetDynamicOffset( res->dynamicOffsetIndex + index ) = uint(offset - buf.offset);
+			}
+		
+			if ( changed )
+				_ResetCachedID();
+		
+			res->elementCount	= Max( uint16_t(index+1), res->elementCount );
+			buf.bufferId		= buffer;
+			buf.size			= size;
+		}
 		return *this;
 	}
 	
@@ -459,41 +458,41 @@ namespace FG
 
 	PipelineResources&  PipelineResources::BindBuffers (const UniformID &id, ArrayView<RawBufferID> buffers)
 	{
-		EXLOCK( _rcCheck );
-		ASSERT( HasBuffer( id ));
+		EXLOCK( _drCheck );
 		
-		auto&	res		= _GetResource<Buffer>( id );
-		bool	changed = res.elementCount != buffers.size();
-		BytesU	offset	= 0_b;
-		BytesU	size	= ~0_b;
-		
-		ASSERT( buffers.size() <= res.elementCapacity );
-
-		for (size_t i = 0; i < buffers.size(); ++i)
+		if ( auto* res = _GetResource<Buffer>( id ))
 		{
-			auto&	buf = res.elements[i];
-
-			changed |= (buf.bufferId != buffers[i] or buf.size != size);
+			bool	changed = res->elementCount != buffers.size();
+			BytesU	offset	= 0_b;
+			BytesU	size	= ~0_b;
 		
-			if ( res.dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
-			{
-				changed		|= (buf.offset != offset);
-				buf.offset	 = offset;
-			}
-			else
-			{
-				ASSERT( offset >= buf.offset and offset - buf.offset < std::numeric_limits<uint>::max() );
-				_GetDynamicOffset( res.dynamicOffsetIndex + uint(i) ) = uint(offset - buf.offset);
-			}
+			ASSERT( buffers.size() <= res->elementCapacity );
+			res->elementCount = uint16_t(buffers.size());
 
-			buf.bufferId = buffers[i];
-			buf.size	 = size;
+			for (size_t i = 0; i < buffers.size(); ++i)
+			{
+				auto&	buf = res->elements[i];
+
+				changed |= (buf.bufferId != buffers[i] or buf.size != size);
+		
+				if ( res->dynamicOffsetIndex == PipelineDescription::STATIC_OFFSET )
+				{
+					changed		|= (buf.offset != offset);
+					buf.offset	 = offset;
+				}
+				else
+				{
+					ASSERT( offset >= buf.offset and offset - buf.offset < std::numeric_limits<uint>::max() );
+					_GetDynamicOffset( res->dynamicOffsetIndex + uint(i) ) = uint(offset - buf.offset);
+				}
+
+				buf.bufferId = buffers[i];
+				buf.size	 = size;
+			}
+		
+			if ( changed )
+				_ResetCachedID();
 		}
-		
-		if ( changed )
-			_ResetCachedID();
-		
-		res.elementCount = uint16_t(buffers.size());
 		return *this;
 	}
 
@@ -504,26 +503,27 @@ namespace FG
 */
 	PipelineResources&  PipelineResources::SetBufferBase (const UniformID &id, BytesU offset, uint index)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		ASSERT( HasBuffer( id ));
 
-		auto&	res		= _GetResource<Buffer>( id );
-		auto&	buf		= res.elements[ index ];
-		bool	changed	= res.elementCount <= index;
-
-		ASSERT( index < res.elementCapacity );
-
-		if ( res.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
+		if ( auto* res = _GetResource<Buffer>( id ))
 		{
-			changed |= (buf.offset != offset);
-			_GetDynamicOffset( res.dynamicOffsetIndex + index ) = uint(_GetDynamicOffset( res.dynamicOffsetIndex + index ) + buf.offset - offset);
-			buf.offset = offset;
-		}
-		
-		if ( changed )
-			_ResetCachedID();
+			auto&	buf		= res->elements[ index ];
+			bool	changed	= res->elementCount <= index;
 
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
+			ASSERT( index < res->elementCapacity );
+			res->elementCount = Max( uint16_t(index+1), res->elementCount );
+
+			if ( res->dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
+			{
+				changed |= (buf.offset != offset);
+				_GetDynamicOffset( res->dynamicOffsetIndex + index ) = uint(_GetDynamicOffset( res->dynamicOffsetIndex + index ) + buf.offset - offset);
+				buf.offset = offset;
+			}
+		
+			if ( changed )
+				_ResetCachedID();
+		}
 		return *this;
 	}
 	
@@ -534,20 +534,20 @@ namespace FG
 */
 	PipelineResources&  PipelineResources::BindRayTracingScene (const UniformID &id, RawRTSceneID scene, uint index)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		ASSERT( HasRayTracingScene( id ));
 
-		auto&	res	= _GetResource<RayTracingScene>( id );
-		auto&	rts	= res.elements[ index ];
-		
-		ASSERT( index < res.elementCapacity );
+		if ( auto* res = _GetResource<RayTracingScene>( id ))
+		{
+			auto&	rts	= res->elements[ index ];
+			ASSERT( index < res->elementCapacity );
 
-		if ( rts.sceneId != scene or res.elementCount <= index )
-			_ResetCachedID();
+			if ( rts.sceneId != scene or res->elementCount <= index )
+				_ResetCachedID();
 		
-		res.elementCount = Max( uint16_t(index+1), res.elementCount );
-		rts.sceneId		 = scene;
-		
+			res->elementCount	= Max( uint16_t(index+1), res->elementCount );
+			rts.sceneId			= scene;
+		}
 		return *this;
 	}
 //-----------------------------------------------------------------------------
@@ -745,7 +745,7 @@ namespace {
 */
 	bool  PipelineResourcesHelper::Initialize (OUT PipelineResources &res, RawDescriptorSetLayoutID layoutId, const DynamicDataPtr &dataPtr)
 	{
-		EXLOCK( res._rcCheck );
+		EXLOCK( res._drCheck );
 		CHECK_ERR( dataPtr );
 
 		res._ResetCachedID();
@@ -764,7 +764,7 @@ namespace {
 */
 	PipelineResources::DynamicDataPtr  PipelineResourcesHelper::CloneDynamicData (const PipelineResources &res)
 	{
-		SHAREDLOCK( res._rcCheck );
+		SHAREDLOCK( res._drCheck );
 
 		if ( not res._dataPtr )
 			return Default;
@@ -811,15 +811,14 @@ namespace {
 		uint		un_index	= 0;
 
 		auto*	data			= &mem.Emplace<PRs::DynamicData>();
+		auto*	uniforms_ptr	= mem.EmplaceArray<PRs::Uniform>( uniforms->size() );
 		data->memSize			= req_size;
 		data->uniformCount		= uint(uniforms->size());
-		data->uniformsOffset	= uint(mem.Offset());
-		auto*	uniforms_ptr	= mem.EmplaceArray<PRs::Uniform>( uniforms->size() );
+		data->uniformsOffset	= uint(mem.OffsetOf( uniforms_ptr ));
 
+		auto*	dyn_offsets		= mem.EmplaceArray<uint>( bufferDynamicOffsetCount );
 		data->dynamicOffsetsCount	= bufferDynamicOffsetCount;
-		data->dynamicOffsetsOffset	= uint(mem.Offset());
-		FG_UNUSED( mem.EmplaceArray<uint>( bufferDynamicOffsetCount ));
-
+		data->dynamicOffsetsOffset	= uint(mem.OffsetOf( dyn_offsets ));
 
 		for (auto& un : *uniforms)
 		{
@@ -832,69 +831,76 @@ namespace {
 			Visit(	un.second.data,
 					[&] (const PipelineDescription::Texture &tex)
 					{
-						curr.resType	= PRs::Texture::TypeId;
-						curr.offset		= uint16_t(mem.Offset());
+						void* ptr = &mem.EmplaceSized<PRs::Texture>(
+											BytesU{sizeof(PRs::Texture) + sizeof(PRs::Texture::Element) * (array_capacity-1)},
+											un.second.index, tex.state, array_capacity, array_size, Default );
 
-						mem.EmplaceSized<PRs::Texture>( BytesU{sizeof(PRs::Texture) + sizeof(PRs::Texture::Element) * (array_capacity-1)},
-														un.second.index, tex.state, array_capacity, array_size, Default );
+						curr.resType	= PRs::Texture::TypeId;
+						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
 					},
 
 					[&] (const PipelineDescription::Sampler &)
 					{
+						void* ptr = &mem.EmplaceSized<PRs::Sampler>(
+											BytesU{sizeof(PRs::Sampler) + sizeof(PRs::Sampler::Element) * (array_capacity-1)},
+											un.second.index, array_capacity, array_size, Default );
+
 						curr.resType	= PRs::Sampler::TypeId;
-						curr.offset		= uint16_t(mem.Offset());
-						
-						mem.EmplaceSized<PRs::Sampler>( BytesU{sizeof(PRs::Sampler) + sizeof(PRs::Sampler::Element) * (array_capacity-1)},
-														un.second.index, array_capacity, array_size, Default );
+						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
 					},
 
 					[&] (const PipelineDescription::SubpassInput &spi)
 					{
-						curr.resType	= PRs::Image::TypeId;
-						curr.offset		= uint16_t(mem.Offset());
+						void* ptr = &mem.EmplaceSized<PRs::Image>(
+											BytesU{sizeof(PRs::Image) + sizeof(PRs::Image::Element) * (array_capacity-1)},
+											un.second.index, spi.state, array_capacity, array_size, Default );
 
-						mem.EmplaceSized<PRs::Image>( BytesU{sizeof(PRs::Image) + sizeof(PRs::Image::Element) * (array_capacity-1)},
-													  un.second.index, spi.state, array_capacity, array_size, Default );
+						curr.resType	= PRs::Image::TypeId;
+						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
 					},
 
 					[&] (const PipelineDescription::Image &img)
 					{
-						curr.resType	= PRs::Image::TypeId;
-						curr.offset		= uint16_t(mem.Offset());
+						void* ptr = &mem.EmplaceSized<PRs::Image>(
+											BytesU{sizeof(PRs::Image) + sizeof(PRs::Image::Element) * (array_capacity-1)},
+											un.second.index, img.state, array_capacity, array_size, Default );
 
-						mem.EmplaceSized<PRs::Image>( BytesU{sizeof(PRs::Image) + sizeof(PRs::Image::Element) * (array_capacity-1)},
-													  un.second.index, img.state, array_capacity, array_size, Default );
+						curr.resType	= PRs::Image::TypeId;
+						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
 					},
 
 					[&] (const PipelineDescription::UniformBuffer &ubuf)
 					{
+						void* ptr = &mem.EmplaceSized<PRs::Buffer>(
+											BytesU{sizeof(PRs::Buffer) + sizeof(PRs::Buffer::Element) * (array_capacity-1)},
+											un.second.index, ubuf.state, ubuf.dynamicOffsetIndex, ubuf.size, 0_b,
+											array_capacity, array_size, Default );
+
 						dbo_count		+= uint(ubuf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET) * array_capacity;
 						curr.resType	= PRs::Buffer::TypeId;
-						curr.offset		= uint16_t(mem.Offset());
-
-						mem.EmplaceSized<PRs::Buffer>( BytesU{sizeof(PRs::Buffer) + sizeof(PRs::Buffer::Element) * (array_capacity-1)},
-													   un.second.index, ubuf.state, ubuf.dynamicOffsetIndex, ubuf.size, 0_b,
-													   array_capacity, array_size, Default );
+						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
 					},
 
 					[&] (const PipelineDescription::StorageBuffer &sbuf)
 					{
+						void* ptr = &mem.EmplaceSized<PRs::Buffer>(
+											BytesU{sizeof(PRs::Buffer) + sizeof(PRs::Buffer::Element) * (array_capacity-1)},
+											un.second.index, sbuf.state, sbuf.dynamicOffsetIndex, sbuf.staticSize, sbuf.arrayStride,
+											array_capacity, array_size, Default );
+
 						dbo_count		+= uint(sbuf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET) * array_capacity;
 						curr.resType	= PRs::Buffer::TypeId;
-						curr.offset		= uint16_t(mem.Offset());
-
-						mem.EmplaceSized<PRs::Buffer>( BytesU{sizeof(PRs::Buffer) + sizeof(PRs::Buffer::Element) * (array_capacity-1)},
-													   un.second.index, sbuf.state, sbuf.dynamicOffsetIndex, sbuf.staticSize, sbuf.arrayStride,
-													   array_capacity, array_size, Default );
+						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
 					},
 
 					[&] (const PipelineDescription::RayTracingScene &)
 					{
-						curr.resType	= PRs::RayTracingScene::TypeId;
-						curr.offset		= uint16_t(mem.Offset());
+						void* ptr = &mem.EmplaceSized<PRs::RayTracingScene>(
+											BytesU{sizeof(PRs::RayTracingScene) + sizeof(PRs::RayTracingScene::Element) * (array_capacity-1)},
+											un.second.index, array_capacity, array_size, Default );
 
-						mem.EmplaceSized<PRs::RayTracingScene>( BytesU{sizeof(PRs::RayTracingScene) + sizeof(PRs::RayTracingScene::Element) * (array_capacity-1)},
-																un.second.index, array_capacity, array_size, Default );
+						curr.resType	= PRs::RayTracingScene::TypeId;
+						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
 					},
 
 					[] (const NullUnion &) { ASSERT(false); }

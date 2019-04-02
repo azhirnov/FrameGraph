@@ -52,7 +52,7 @@ namespace FGC
 		}
 
 		template <typename T, typename ...Args>
-		T&  EmplaceSized (BytesU size, Args&& ...args)
+		ND_ T&  EmplaceSized (BytesU size, Args&& ...args)
 		{
 			ASSERT( size >= SizeOf<T> );
 			return *new(Reserve( size, AlignOf<T> )) T{ std::forward<Args&&>( args )...};
@@ -84,7 +84,14 @@ namespace FGC
 		}
 
 
-		ND_ BytesU  Offset ()	const	{ return BytesU{_offset}; }
+		ND_ BytesU  OffsetOf (void *ptr) const
+		{
+			if ( ptr ) {
+				ASSERT( ptr >= _ptr and ptr < _ptr + _size );
+				return BytesU{size_t(ptr) - size_t(_ptr)};
+			}
+			return ~0_b;
+		}
 	};
 
 

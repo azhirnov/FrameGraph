@@ -25,7 +25,7 @@ namespace FG
 */
 	bool VRayTracingPipeline::Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		
 		_shaders.reserve( desc._shaders.size() * 2 );
 
@@ -56,7 +56,7 @@ namespace FG
 */
 	void VRayTracingPipeline::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _baseLayoutId ) {
 			resMngr.ReleaseResource( _baseLayoutId.Release() );

@@ -30,7 +30,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#5)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | TransferRead
@@ -75,7 +75,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | TransferRead
@@ -120,7 +120,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#7)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | TransferRead
@@ -144,7 +144,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#5)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -155,7 +155,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -166,7 +166,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#7)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

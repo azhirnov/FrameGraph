@@ -72,8 +72,6 @@ set( SOURCES
 	"Vulkan/Instance/VFrameGraph.h"
 	"Vulkan/Instance/VResourceManager.cpp"
 	"Vulkan/Instance/VResourceManager.h"
-	"Vulkan/Instance/VSubmitted.cpp"
-	"Vulkan/Instance/VSubmitted.h"
 	"Vulkan/Debugger/VDebugger.cpp"
 	"Vulkan/Debugger/VDebugger.h"
 	"Vulkan/Debugger/VLocalDebugger.cpp"
@@ -160,6 +158,8 @@ set( SOURCES
 	"Vulkan/CommandBuffer/VCommandPool.cpp"
 	"Vulkan/CommandBuffer/VCommandPool.h"
 	"Vulkan/CommandBuffer/VDrawTask.h"
+	"Vulkan/CommandBuffer/VSubmitted.cpp"
+	"Vulkan/CommandBuffer/VSubmitted.h"
 	"Vulkan/CommandBuffer/VTaskGraph.h"
 	"Vulkan/CommandBuffer/VTaskGraph.hpp"
 	"Vulkan/CommandBuffer/VTaskProcessor.cpp"
@@ -175,7 +175,7 @@ source_group( "Vulkan\\Memory" FILES "Vulkan/Memory/VMemoryManager.cpp" "Vulkan/
 source_group( "Vulkan\\RayTracing" FILES "Vulkan/RayTracing/VLocalRTGeometry.cpp" "Vulkan/RayTracing/VLocalRTGeometry.h" "Vulkan/RayTracing/VLocalRTScene.cpp" "Vulkan/RayTracing/VLocalRTScene.h" "Vulkan/RayTracing/VRayTracingGeometry.cpp" "Vulkan/RayTracing/VRayTracingGeometry.h" "Vulkan/RayTracing/VRayTracingPipeline.cpp" "Vulkan/RayTracing/VRayTracingPipeline.h" "Vulkan/RayTracing/VRayTracingScene.cpp" "Vulkan/RayTracing/VRayTracingScene.h" "Vulkan/RayTracing/VRayTracingShaderTable.cpp" "Vulkan/RayTracing/VRayTracingShaderTable.h" )
 source_group( "Public" FILES "Public/BindingIndex.h" "Public/BufferDesc.h" "Public/BufferView.h" "Public/ColorScheme.h" "Public/CommandBuffer.h" "Public/CommandBufferPtr.h" "Public/Config.h" "Public/DrawCommandBuffer.h" "Public/DrawContext.h" "Public/EResourceState.h" "Public/FGEnums.h" "Public/FrameGraph.h" "Public/FrameGraphDrawTask.h" "Public/FrameGraphTask.h" "Public/IDs.h" "Public/ImageDesc.h" "Public/ImageLayer.h" "Public/ImageSwizzle.h" "Public/ImageView.h" "Public/MemoryDesc.h" "Public/MipmapLevel.h" "Public/MultiSamples.h" "Public/Pipeline.h" "Public/PipelineCompiler.h" "Public/PipelineResources.h" "Public/RayTracingEnums.h" "Public/RayTracingGeometryDesc.h" "Public/RayTracingSceneDesc.h" "Public/RenderPassDesc.h" "Public/RenderState.h" "Public/RenderStateEnums.h" "Public/ResourceEnums.h" "Public/SamplerDesc.h" "Public/SamplerEnums.h" "Public/ShaderEnums.h" "Public/Types.h" "Public/VertexDesc.h" "Public/VertexEnums.h" "Public/VertexInputState.h" "Public/VulkanTypes.h" )
 source_group( "Vulkan" FILES "Vulkan/VCommon.h" )
-source_group( "Vulkan\\Instance" FILES "Vulkan/Instance/VDevice.cpp" "Vulkan/Instance/VDevice.h" "Vulkan/Instance/VFrameGraph.cpp" "Vulkan/Instance/VFrameGraph.h" "Vulkan/Instance/VResourceManager.cpp" "Vulkan/Instance/VResourceManager.h" "Vulkan/Instance/VSubmitted.cpp" "Vulkan/Instance/VSubmitted.h" )
+source_group( "Vulkan\\Instance" FILES "Vulkan/Instance/VDevice.cpp" "Vulkan/Instance/VDevice.h" "Vulkan/Instance/VFrameGraph.cpp" "Vulkan/Instance/VFrameGraph.h" "Vulkan/Instance/VResourceManager.cpp" "Vulkan/Instance/VResourceManager.h" )
 source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VDebugger.cpp" "Vulkan/Debugger/VDebugger.h" "Vulkan/Debugger/VLocalDebugger.cpp" "Vulkan/Debugger/VLocalDebugger.h" "Vulkan/Debugger/VLocalDebugger2.cpp" )
 source_group( "Vulkan\\Image" FILES "Vulkan/Image/VImage.cpp" "Vulkan/Image/VImage.h" "Vulkan/Image/VLocalImage.cpp" "Vulkan/Image/VLocalImage.h" "Vulkan/Image/VSampler.cpp" "Vulkan/Image/VSampler.h" )
 source_group( "Vulkan\\Swapchain" FILES "Vulkan/Swapchain/VSwapchain.cpp" "Vulkan/Swapchain/VSwapchain.h" )
@@ -186,7 +186,7 @@ source_group( "Vulkan\\Buffer" FILES "Vulkan/Buffer/VBuffer.cpp" "Vulkan/Buffer/
 source_group( "cmake" FILES "../cmake/angelscript_CMakeLists.txt" "../cmake/compilers.cmake" "../cmake/compiler_tests.cmake" "../cmake/download_angelscript.cmake" "../cmake/download_assimp.cmake" "../cmake/download_devil.cmake" "../cmake/download_freeimage.cmake" "../cmake/download_glfw.cmake" "../cmake/download_glm.cmake" "../cmake/download_glslang.cmake" "../cmake/download_imgui.cmake" "../cmake/download_lodepng.cmake" "../cmake/download_mem.cmake" "../cmake/download_sdl2.cmake" "../cmake/download_sfml.cmake" "../cmake/download_stdoptional.cmake" "../cmake/download_stdvariant.cmake" "../cmake/download_vk.cmake" "../cmake/download_vma.cmake" "../cmake/graphviz.cmake" "../cmake/imgui_CMakeLists.txt" "../cmake/lodepng_CMakeLists.txt" )
 source_group( "Vulkan\\Pipeline" FILES "Vulkan/Pipeline/VComputePipeline.cpp" "Vulkan/Pipeline/VComputePipeline.h" "Vulkan/Pipeline/VGraphicsPipeline.cpp" "Vulkan/Pipeline/VGraphicsPipeline.h" "Vulkan/Pipeline/VMeshPipeline.cpp" "Vulkan/Pipeline/VMeshPipeline.h" "Vulkan/Pipeline/VPipelineCache.cpp" "Vulkan/Pipeline/VPipelineCache.h" "Vulkan/Pipeline/VPipelineLayout.cpp" "Vulkan/Pipeline/VPipelineLayout.h" )
 source_group( "" FILES "CMakeLists.txt" "FG.h" )
-source_group( "Vulkan\\CommandBuffer" FILES "Vulkan/CommandBuffer/VBarrierManager.h" "Vulkan/CommandBuffer/VCmdBatch.cpp" "Vulkan/CommandBuffer/VCmdBatch.h" "Vulkan/CommandBuffer/VCommandBuffer.cpp" "Vulkan/CommandBuffer/VCommandBuffer.h" "Vulkan/CommandBuffer/VCommandPool.cpp" "Vulkan/CommandBuffer/VCommandPool.h" "Vulkan/CommandBuffer/VDrawTask.h" "Vulkan/CommandBuffer/VTaskGraph.h" "Vulkan/CommandBuffer/VTaskGraph.hpp" "Vulkan/CommandBuffer/VTaskProcessor.cpp" "Vulkan/CommandBuffer/VTaskProcessor.h" )
+source_group( "Vulkan\\CommandBuffer" FILES "Vulkan/CommandBuffer/VBarrierManager.h" "Vulkan/CommandBuffer/VCmdBatch.cpp" "Vulkan/CommandBuffer/VCmdBatch.h" "Vulkan/CommandBuffer/VCommandBuffer.cpp" "Vulkan/CommandBuffer/VCommandBuffer.h" "Vulkan/CommandBuffer/VCommandPool.cpp" "Vulkan/CommandBuffer/VCommandPool.h" "Vulkan/CommandBuffer/VDrawTask.h" "Vulkan/CommandBuffer/VSubmitted.cpp" "Vulkan/CommandBuffer/VSubmitted.h" "Vulkan/CommandBuffer/VTaskGraph.h" "Vulkan/CommandBuffer/VTaskGraph.hpp" "Vulkan/CommandBuffer/VTaskProcessor.cpp" "Vulkan/CommandBuffer/VTaskProcessor.h" )
 source_group( "Vulkan\\Descriptors" FILES "Vulkan/Descriptors/VDescriptorManager.cpp" "Vulkan/Descriptors/VDescriptorManager.h" "Vulkan/Descriptors/VDescriptorSetLayout.cpp" "Vulkan/Descriptors/VDescriptorSetLayout.h" "Vulkan/Descriptors/VPipelineResources.cpp" "Vulkan/Descriptors/VPipelineResources.h" )
 target_include_directories( "FrameGraph" PUBLIC ".." )
 target_include_directories( "FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
@@ -253,6 +253,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		"../tests/framegraph/DrawingTests/Test_Draw3.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw4.cpp"
 		"../tests/framegraph/DrawingTests/Test_Draw5.cpp"
+		"../tests/framegraph/DrawingTests/Test_Draw6.cpp"
 		"../tests/framegraph/DrawingTests/Test_DrawMeshes1.cpp"
 		"../tests/framegraph/DrawingTests/Test_DynamicOffset.cpp"
 		"../tests/framegraph/DrawingTests/Test_ExternalCmdBuf1.cpp"
@@ -273,6 +274,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		"../tests/framegraph/ImplTests/ImplTest_Multithreading1.cpp"
 		"../tests/framegraph/ImplTests/ImplTest_Multithreading2.cpp"
 		"../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp"
+		"../tests/framegraph/ImplTests/ImplTest_Multithreading4.cpp"
 		"../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "Tests.FrameGraph" SHARED ${SOURCES} )
@@ -280,9 +282,9 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 		add_executable( "Tests.FrameGraph" ${SOURCES} )
 	endif()
 	source_group( "UnitTests" FILES "../tests/framegraph/UnitTests/DummyTask.h" "../tests/framegraph/UnitTests/UnitTest_Common.h" "../tests/framegraph/UnitTests/UnitTest_ID.cpp" "../tests/framegraph/UnitTests/UnitTest_ImageSwizzle.cpp" "../tests/framegraph/UnitTests/UnitTest_PixelFormat.cpp" "../tests/framegraph/UnitTests/UnitTest_VBuffer.cpp" "../tests/framegraph/UnitTests/UnitTest_VertexInput.cpp" "../tests/framegraph/UnitTests/UnitTest_VImage.cpp" "../tests/framegraph/UnitTests/UnitTest_VResourceManager.cpp" )
-	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_ArrayOfTextures1.cpp" "../tests/framegraph/DrawingTests/Test_ArrayOfTextures2.cpp" "../tests/framegraph/DrawingTests/Test_AsyncCompute1.cpp" "../tests/framegraph/DrawingTests/Test_AsyncCompute2.cpp" "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute2.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" "../tests/framegraph/DrawingTests/Test_Draw2.cpp" "../tests/framegraph/DrawingTests/Test_Draw3.cpp" "../tests/framegraph/DrawingTests/Test_Draw4.cpp" "../tests/framegraph/DrawingTests/Test_Draw5.cpp" "../tests/framegraph/DrawingTests/Test_DrawMeshes1.cpp" "../tests/framegraph/DrawingTests/Test_DynamicOffset.cpp" "../tests/framegraph/DrawingTests/Test_ExternalCmdBuf1.cpp" "../tests/framegraph/DrawingTests/Test_InvalidID.cpp" "../tests/framegraph/DrawingTests/Test_PushConst1.cpp" "../tests/framegraph/DrawingTests/Test_RayTracingDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ReadAttachment1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger2.cpp" "../tests/framegraph/DrawingTests/Test_ShadingRate1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays2.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays3.cpp" )
+	source_group( "DrawingTests" FILES "../tests/framegraph/DrawingTests/Test_ArrayOfTextures1.cpp" "../tests/framegraph/DrawingTests/Test_ArrayOfTextures2.cpp" "../tests/framegraph/DrawingTests/Test_AsyncCompute1.cpp" "../tests/framegraph/DrawingTests/Test_AsyncCompute2.cpp" "../tests/framegraph/DrawingTests/Test_Compute1.cpp" "../tests/framegraph/DrawingTests/Test_Compute2.cpp" "../tests/framegraph/DrawingTests/Test_CopyBuffer1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage1.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage2.cpp" "../tests/framegraph/DrawingTests/Test_CopyImage3.cpp" "../tests/framegraph/DrawingTests/Test_Draw1.cpp" "../tests/framegraph/DrawingTests/Test_Draw2.cpp" "../tests/framegraph/DrawingTests/Test_Draw3.cpp" "../tests/framegraph/DrawingTests/Test_Draw4.cpp" "../tests/framegraph/DrawingTests/Test_Draw5.cpp" "../tests/framegraph/DrawingTests/Test_Draw6.cpp" "../tests/framegraph/DrawingTests/Test_DrawMeshes1.cpp" "../tests/framegraph/DrawingTests/Test_DynamicOffset.cpp" "../tests/framegraph/DrawingTests/Test_ExternalCmdBuf1.cpp" "../tests/framegraph/DrawingTests/Test_InvalidID.cpp" "../tests/framegraph/DrawingTests/Test_PushConst1.cpp" "../tests/framegraph/DrawingTests/Test_RayTracingDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ReadAttachment1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger1.cpp" "../tests/framegraph/DrawingTests/Test_ShaderDebugger2.cpp" "../tests/framegraph/DrawingTests/Test_ShadingRate1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays1.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays2.cpp" "../tests/framegraph/DrawingTests/Test_TraceRays3.cpp" )
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
-	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/ImplTest_CacheOverflow1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading2.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp" "../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
+	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/ImplTest_CacheOverflow1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading2.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading4.cpp" "../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
 	set_property( TARGET "Tests.FrameGraph" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/CommandBuffer" )

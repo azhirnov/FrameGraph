@@ -250,7 +250,7 @@ namespace FG
 		pending.access		= EResourceState_ToAccess( bs.state );
 		pending.isReadable	= EResourceState_IsReadable( bs.state );
 		pending.isWritable	= EResourceState_IsWritable( bs.state );
-		pending.index		= Cast<VFrameGraphTask>(bs.task)->ExecutionOrder();
+		pending.index		= bs.task->ExecutionOrder();
 		
 		
 		// merge with pending
@@ -303,7 +303,7 @@ namespace FG
 		{
 			BufferAccess		pending;
 			pending.range		= BufferRange{ 0, VkDeviceSize(Size()) };
-			pending.stages		= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+			pending.stages		= 0;
 			pending.access		= _bufferData->GetAllReadAccessMask();
 			pending.isReadable	= true;
 			pending.isWritable	= false;
@@ -347,10 +347,10 @@ namespace FG
 				barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 
 				dst_stages |= dst.stages;
-				barrierMngr.AddBufferBarrier( src.stages, dst.stages, 0, barrier );
+				barrierMngr.AddBufferBarrier( src.stages, dst.stages, barrier );
 
 				if ( debugger ) {
-					debugger->AddBufferBarrier( _bufferData, src.index, dst.index, src.stages, dst.stages, 0, barrier );
+					debugger->AddBufferBarrier( _bufferData.get(), src.index, dst.index, src.stages, dst.stages, 0, barrier );
 				}
 			}
 		};

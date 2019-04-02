@@ -25,7 +25,7 @@ namespace FG
 */
 	VSampler::VSampler (const VDevice &dev, const SamplerDesc &desc)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		_createInfo = {};
 		_createInfo.sType					= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -190,7 +190,7 @@ namespace FG
 */
 	bool VSampler::Create (const VDevice &dev, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( _sampler == VK_NULL_HANDLE );
 
 		VK_CHECK( dev.vkCreateSampler( dev.GetVkDevice(), &_createInfo, null, OUT &_sampler ));
@@ -207,7 +207,7 @@ namespace FG
 */
 	void VSampler::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _sampler ) {
 			auto&	dev = resMngr.GetDevice();
@@ -227,8 +227,8 @@ namespace FG
 */
 	bool VSampler::operator == (const VSampler &rhs) const
 	{
-		SHAREDLOCK( _rcCheck );
-		SHAREDLOCK( rhs._rcCheck );
+		SHAREDLOCK( _drCheck );
+		SHAREDLOCK( rhs._drCheck );
 
 		if ( _hash != rhs._hash )
 			return false;

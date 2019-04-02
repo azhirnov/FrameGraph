@@ -4,7 +4,7 @@
 
 #include "framegraph/Shared/LocalResourceID.h"
 #include "stl/ThreadSafe/AtomicCounter.h"
-#include "stl/ThreadSafe/RaceConditionCheck.h"
+#include "stl/ThreadSafe/DataRaceCheck.h"
 
 namespace FG
 {
@@ -67,10 +67,10 @@ namespace FG
 			_refCounter.fetch_add( 1, memory_order_relaxed );
 		}
 
-		ND_ bool ReleaseRef (uint timestamp) const
+		ND_ bool ReleaseRef (int refCount, uint timestamp) const
 		{
 			_lastUsage.store( timestamp, memory_order_relaxed );
-			return _refCounter.fetch_sub( 1, memory_order_relaxed ) <= 1;
+			return _refCounter.fetch_sub( refCount, memory_order_relaxed ) == refCount;
 		}
 		
 

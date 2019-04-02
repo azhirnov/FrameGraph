@@ -30,7 +30,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ColorAttachmentRead | TransferRead
@@ -91,7 +91,7 @@ CommandBuffer {
 					srcTask:         RenderPass (#3)
 					dstTask:         <final>
 					srcStageMask:    FragmentShader | EarlyFragmentTests
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   ShaderRead | DepthStencilAttachmentRead
 					dstAccessMask:   ShaderRead | DepthStencilAttachmentRead
@@ -115,7 +115,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

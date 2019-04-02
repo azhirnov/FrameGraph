@@ -4,6 +4,8 @@
 
 #include "stl/Containers/ArrayView.h"
 #include "stl/CompileTime/TypeList.h"
+#include "stl/Memory/MemUtils.h"
+#include "stl/Algorithms/ArrayUtils.h"
 
 namespace FGC
 {
@@ -43,7 +45,7 @@ namespace FGC
 		ND_ constexpr ArrayView<T>	get ()		const	{ return ArrayView<T>{ &std::get< ElemArray<T> >( _arrays )[0], _count }; }
 		
 		template <size_t I>
-		ND_ constexpr auto			get ()		const	{ return get< TypeList<Types...>::template Get<I> >(); }
+		ND_ constexpr auto			get ()		const	{ return get< typename TypeList<Types...>::template Get<I> >(); }
 
 		ND_ constexpr size_t		size ()		const	{ return _count; }
 		ND_ constexpr bool			empty ()	const	{ return _count == 0; }
@@ -92,7 +94,7 @@ namespace FGC
 				{
 					_Destroy<0>( i );
 				}
-				DEBUG_ONLY( ::memset( data() + newSize, 0, sizeof(T) * (_count - newSize) ));
+				DEBUG_ONLY( memset( data() + newSize, 0, sizeof(T) * (_count - newSize) ));
 			}
 
 			if ( newSize > _count )
@@ -158,7 +160,7 @@ namespace FGC
 			using T = typename TypeList< Types... >::template Get<I>;
 
 			_Data<T>()[index].~T();
-			DEBUG_ONLY( ::memset( &_Data<T>()[index], 0, sizeof(T) ));
+			DEBUG_ONLY( memset( &_Data<T>()[index], 0, sizeof(T) ));
 
 			if constexpr ( I+1 < CountOf<Types...>() )
 				_Destroy<I+1>( index );

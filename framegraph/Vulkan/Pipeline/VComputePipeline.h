@@ -62,7 +62,7 @@ namespace FG
 
 		DebugName_t					_debugName;
 		
-		RWRaceConditionCheck		_rcCheck;
+		RWDataRaceCheck				_drCheck;
 
 
 	// methods
@@ -74,9 +74,9 @@ namespace FG
 		bool Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
 		void Destroy (VResourceManager &);
 
-		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }
+		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _drCheck );  return _baseLayoutId.Get(); }
 		
-		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 	};
 
 	

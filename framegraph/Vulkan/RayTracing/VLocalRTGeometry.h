@@ -42,10 +42,10 @@ namespace FG
 
 	// variables
 	private:
-		VRayTracingGeometry const*	_rtGeometryData		= null;		// readonly access is thread safe
+		Ptr<VRayTracingGeometry const>	_rtGeometryData;		// readonly access is thread safe
 		
-		mutable GeometryAccess		_pendingAccesses;
-		mutable GeometryAccess		_accessForReadWrite;
+		mutable GeometryAccess			_pendingAccesses;
+		mutable GeometryAccess			_accessForReadWrite;
 
 
 	// methods
@@ -69,7 +69,7 @@ namespace FG
 		ND_ uint						MaxGeometryCount ()	const	{ return uint(GetTriangles().size() + GetAABBs().size()); }
 		ND_ ERayTracingFlags			GetFlags ()			const	{ return _rtGeometryData->GetFlags(); }
 
-		ND_ VRayTracingGeometry const*	ToGlobal ()			const	{ return _rtGeometryData; }
+		ND_ VRayTracingGeometry const*	ToGlobal ()			const	{ return _rtGeometryData.get(); }
 	};
 
 

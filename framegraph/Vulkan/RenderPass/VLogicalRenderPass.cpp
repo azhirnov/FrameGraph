@@ -228,11 +228,6 @@ namespace {
 */
 	void VLogicalRenderPass::Destroy (VResourceManager &)
 	{
-		// TODO: remove destructors?
-		for (auto& task : _drawTasks)
-		{
-			task->~IDrawTask();
-		}
 		_drawTasks.clear();
 
 		_allocator.Destroy();

@@ -84,6 +84,7 @@ namespace FG
 		bool ImplTest_Multithreading1 ();
 		bool ImplTest_Multithreading2 ();
 		bool ImplTest_Multithreading3 ();
+		bool ImplTest_Multithreading4 ();
 
 
 	// drawing tests
@@ -101,6 +102,7 @@ namespace FG
 		bool Test_Draw3 ();			// with scissor
 		bool Test_Draw4 ();
 		bool Test_Draw5 ();
+		bool Test_Draw6 ();
 		bool Test_ExternalCmdBuf1 ();
 		bool Test_InvalidID ();
 		bool Test_ReadAttachment1 ();

@@ -110,8 +110,8 @@ namespace FGC
 	template <typename K, typename V, size_t S>
 	inline FixedMap<K,V,S>::FixedMap ()
 	{
-		DEBUG_ONLY( ::memset( _indices, 0, sizeof(_indices) ));
-		DEBUG_ONLY( ::memset( _array,   0, sizeof(_array)   ));
+		DEBUG_ONLY( memset( _indices, 0, sizeof(_indices) ));
+		DEBUG_ONLY( memset( _array,   0, sizeof(_array)   ));
 	}
 	
 /*
@@ -342,7 +342,7 @@ namespace _fgc_hidden_
 	{
 		forceinline static int  Run (int left, int right, const K &key, const I* indices, const Pair<K,V>* data)
 		{
-			if ( left <= right )
+			if ( left < right )
 			{
 				int		mid  = (left + right) >> 1;
 				auto&	curr = data [indices [mid]].first;
@@ -363,9 +363,9 @@ namespace _fgc_hidden_
 	template <typename K, typename V, typename I>
 	struct RecursiveBinarySearch< K, V, I, 0 >
 	{
-		forceinline static int  Run (int, int, const K &, const I *, const Pair<K,V> *)
+		forceinline static int  Run (int left, int, const K &, const I *, const Pair<K,V> *)
 		{
-			return -1;
+			return left;
 		}
 	};
 
@@ -384,7 +384,7 @@ namespace _fgc_hidden_
 
 		size_t	i = BinarySearch::Run( 0, _count, key, _indices, _array );
 
-		if ( i < _count )
+		if ( i < _count and key == _array[_indices[i]].first )
 			return BitCast< const_iterator >( &_array[ _indices[i] ]);
 		
 		return end();
@@ -402,8 +402,8 @@ namespace _fgc_hidden_
 		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
 		
 		size_t	i = BinarySearch::Run( 0, _count, key, _indices, _array );
-
-		if ( i < _count )
+		
+		if ( i < _count and key == _array[_indices[i]].first )
 			return BitCast< iterator >( &_array[ _indices[i] ]);
 
 		return end();
@@ -421,8 +421,8 @@ namespace _fgc_hidden_
 		
 		size_t	cnt = 0;
 		size_t	i   = BinarySearch::Run( 0, _count, key, _indices, _array );
-
-		if ( i < _count )
+		
+		if ( i < _count and key == _array[_indices[i]].first )
 			++cnt;
 
 		return cnt;
@@ -442,8 +442,8 @@ namespace _fgc_hidden_
 
 		_count = 0;
 		
-		DEBUG_ONLY( ::memset( _indices, 0, sizeof(_indices) ));
-		DEBUG_ONLY( ::memset( _array,   0, sizeof(_array)   ));
+		DEBUG_ONLY( memset( _indices, 0, sizeof(_indices) ));
+		DEBUG_ONLY( memset( _array,   0, sizeof(_array)   ));
 	}
 	
 /*
@@ -470,7 +470,7 @@ namespace _fgc_hidden_
 		HashVal		result = HashOf( size() );
 
 		for (uint i = 0; i < size(); ++i) {
-			result << HashOf( _array[ _indices[i] ].first );
+			result << HashOf( _array[ _indices[i] ] );
 		}
 		return result;
 	}

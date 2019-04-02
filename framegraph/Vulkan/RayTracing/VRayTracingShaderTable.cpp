@@ -26,7 +26,7 @@ namespace FG
 */
 	bool VRayTracingShaderTable::Create (StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK( not (_bufferId or _pipelineId) );
 
 		_debugName = dbgName;
@@ -45,7 +45,7 @@ namespace FG
 											  OUT VkDeviceSize &rayHitOffset, OUT VkDeviceSize &rayHitStride,
 											  OUT VkDeviceSize &callableOffset, OUT VkDeviceSize &callableStride) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 		SHAREDLOCK( _guard );
 
 		for (auto& table : _tables)
@@ -75,7 +75,7 @@ namespace FG
 */
 	void VRayTracingShaderTable::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		auto&	dev = resMngr.GetDevice();
 

@@ -39,7 +39,7 @@ namespace FG
 		
 		DebugName_t					_debugName;
 		
-		RWRaceConditionCheck		_rcCheck;
+		RWDataRaceCheck				_drCheck;
 
 
 	// methods
@@ -58,13 +58,13 @@ namespace FG
 		ND_ bool  operator == (const VPipelineResources &rhs) const;
 		
 			template <typename Fn>
-			void ForEachUniform (Fn&& fn) const					{ SHAREDLOCK( _rcCheck );  ASSERT( _dataPtr );  _dataPtr->ForEachUniform( fn ); }
+			void ForEachUniform (Fn&& fn) const					{ SHAREDLOCK( _drCheck );  ASSERT( _dataPtr );  _dataPtr->ForEachUniform( fn ); }
 
-		ND_ VkDescriptorSet				Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _descriptorSet.first; }
-		ND_ RawDescriptorSetLayoutID	GetLayoutID ()	const	{ SHAREDLOCK( _rcCheck );  return _layoutId; }
-		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
+		ND_ VkDescriptorSet				Handle ()		const	{ SHAREDLOCK( _drCheck );  return _descriptorSet.first; }
+		ND_ RawDescriptorSetLayoutID	GetLayoutID ()	const	{ SHAREDLOCK( _drCheck );  return _layoutId; }
+		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _drCheck );  return _hash; }
 
-		ND_ StringView					GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ StringView					GetDebugName ()	const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 
 
 	private:

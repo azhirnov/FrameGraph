@@ -58,7 +58,7 @@ namespace FG
 */
 	VPipelineLayout::VPipelineLayout (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		ASSERT( ppln.descriptorSets.size() == sets.size() );
 		ASSERT( _layout == VK_NULL_HANDLE );
 
@@ -78,17 +78,19 @@ namespace FG
 
 		for (size_t i = 0; i < ppln.descriptorSets.size(); ++i)
 		{
-			auto&	ds = ppln.descriptorSets[i];
+			auto&	ds  = ppln.descriptorSets[i];
+			auto&	res = sets[i].second->Data();
 
 			ASSERT( ds.id.IsDefined() );
 			ASSERT( ds.bindingIndex < MaxDescSets );
+			ASSERT( res.Handle() );
 
-			setsInfo.insert({ ds.id, DescSetLayout{ sets[i].first, sets[i].second->Data().Handle(), ds.bindingIndex }});
+			setsInfo.insert({ ds.id, DescSetLayout{ sets[i].first, res.Handle(), ds.bindingIndex }});
 			
 			// calculate hash
 			hash << HashOf( ds.id );
 			hash << HashOf( ds.bindingIndex );
-			hash << sets[i].second->Data().GetHash();
+			hash << res.GetHash();
 		}
 	}
 	
@@ -118,7 +120,7 @@ namespace FG
 */
 	bool VPipelineLayout::Create (const VDevice &dev, VkDescriptorSetLayout emptyLayout)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( _layout == VK_NULL_HANDLE );
 		
 		VkDescriptorSetLayouts_t	vk_layouts;
@@ -136,6 +138,7 @@ namespace FG
 		{
 			auto&	ds = ds_iter->second;
 			ASSERT( vk_layouts[ ds.index ] == emptyLayout );
+			ASSERT( ds.layout );
 
 			vk_layouts[ ds.index ] = ds.layout;
 			min_set = Min( min_set, ds.index );
@@ -172,7 +175,7 @@ namespace FG
 */
 	void VPipelineLayout::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _layout ) {
 			auto&	dev = resMngr.GetDevice();
@@ -198,7 +201,7 @@ namespace FG
 */
 	bool VPipelineLayout::IsAllResourcesAlive (const VResourceManager &resMngr) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 
 		for (auto& ds : _descriptorSets)
 		{
@@ -215,8 +218,8 @@ namespace FG
 */
 	bool VPipelineLayout::operator == (const VPipelineLayout &rhs) const
 	{
-		SHAREDLOCK( _rcCheck );
-		SHAREDLOCK( rhs._rcCheck );
+		SHAREDLOCK( _drCheck );
+		SHAREDLOCK( rhs._drCheck );
 
 		if ( _hash != rhs._hash )
 			return false;
@@ -249,7 +252,7 @@ namespace FG
 */
 	bool VPipelineLayout::GetDescriptorSetLayout (const DescriptorSetID &id, OUT RawDescriptorSetLayoutID &layout, OUT uint &binding) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 
 		auto	iter = _descriptorSets.find( id );
 

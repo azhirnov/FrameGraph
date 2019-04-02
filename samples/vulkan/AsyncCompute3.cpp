@@ -354,7 +354,7 @@ void AsyncComputeApp3::GenGraphicsCommands (uint frameId)
 		submit_info.signalSemaphoreCount	= 1;
 		submit_info.pSignalSemaphores		= &semaphores[0];
 
-		VK_CALL( vkQueueSubmit( vulkan.GetVkQuues()[0].id, 1, &submit_info, VK_NULL_HANDLE ));
+		VK_CALL( vkQueueSubmit( vulkan.GetVkQuues()[0].handle, 1, &submit_info, VK_NULL_HANDLE ));
 	}
 }
 
@@ -483,11 +483,11 @@ void AsyncComputeApp3::GenComputeCommands (uint frameId)
 		submit_info.signalSemaphoreCount	= 1;
 		submit_info.pSignalSemaphores		= &semaphores[2];
 
-		VK_CALL( vkQueueSubmit( vulkan.GetVkQuues()[1].id, 1, &submit_info, fences[frameId] ));
+		VK_CALL( vkQueueSubmit( vulkan.GetVkQuues()[1].handle, 1, &submit_info, fences[frameId] ));
 	}
 
 	// present
-	VkQueue		present_queue = presentInComputeQueueSupported ? vulkan.GetVkQuues()[1].id : vulkan.GetVkQuues()[0].id;
+	VkQueue		present_queue = presentInComputeQueueSupported ? vulkan.GetVkQuues()[1].handle : vulkan.GetVkQuues()[0].handle;
 
 	VkResult	err = swapchain->Present( present_queue, {semaphores[2]} );
 	switch ( err ) {
@@ -793,10 +793,10 @@ bool AsyncComputeApp3::CreateResources ()
 		submit_info.commandBufferCount	= 1;
 		submit_info.pCommandBuffers		= &cmd;
 
-		VK_CHECK( vkQueueSubmit( vulkan.GetVkQuues()[1].id, 1, &submit_info, VK_NULL_HANDLE ));
+		VK_CHECK( vkQueueSubmit( vulkan.GetVkQuues()[1].handle, 1, &submit_info, VK_NULL_HANDLE ));
 	}
 
-	VK_CALL( vkQueueWaitIdle( vulkan.GetVkQuues()[1].id ));
+	VK_CALL( vkQueueWaitIdle( vulkan.GetVkQuues()[1].handle ));
 	
 	// create framebuffers
 	{

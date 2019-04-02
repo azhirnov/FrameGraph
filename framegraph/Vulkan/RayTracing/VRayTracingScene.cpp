@@ -26,7 +26,7 @@ namespace FG
 */
 	bool VRayTracingScene::Create (VResourceManager &resMngr, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( _topLevelAS == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( desc.maxInstanceCount > 0 );
@@ -63,7 +63,7 @@ namespace FG
 */
 	void VRayTracingScene::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _topLevelAS ) {
 			auto&	dev = resMngr.GetDevice();
@@ -74,21 +74,15 @@ namespace FG
 			resMngr.ReleaseResource( _memoryId.Release() );
 		}
 
-		for (auto& data : _instanceData)
 		{
-			EXLOCK( data.lock );
+			EXLOCK( _instanceData.guard );
 
 			Array<Instance>  temp;
-			std::swap( data.geometryInstances, temp );
+			std::swap( _instanceData.geometryInstances, temp );
 
 			for (auto& inst : temp) {
 				resMngr.ReleaseResource( inst.geometry.Release() );
 			}
-
-			data.frameIdx	= 0;
-			data.exeOrder	= Default;
-
-			data.lock.unlock();
 		}
 
 		_topLevelAS			= VK_NULL_HANDLE;
@@ -101,41 +95,32 @@ namespace FG
 	
 /*
 =================================================
-	Merge
+	SetGeometryInstances
+----
+	'instances' is sorted by instance ID and contains the strong references for geometries
 =================================================
 */
-	void VRayTracingScene::Merge (INOUT InstancesData &newData, ExeOrderIndex batchExeOrder, uint frameIndex) const
+	void VRayTracingScene::SetGeometryInstances (VResourceManager &resMngr, Tuple<InstanceID, RTGeometryID, uint> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const
 	{
-		const uint	idx		= (_currStateIndex + 1) & 1;
-		auto&		pending	= _instanceData[idx];
-
-		EXLOCK( pending.lock );
-
-		if ( frameIndex == pending.frameIdx and batchExeOrder <= pending.exeOrder )
-			return;	// 'newData' is older than 'pending'
-
-		std::swap( pending.geometryInstances, newData.geometryInstances );
-		pending.exeOrder				= batchExeOrder;
-		pending.frameIdx				= frameIndex;
-		pending.hitShadersPerInstance	= newData.hitShadersPerInstance;
-		pending.maxHitShaderCount		= newData.maxHitShaderCount;
-	}
-	
-/*
-=================================================
-	CommitChanges
-=================================================
-*/
-	void VRayTracingScene::CommitChanges (uint frameIndex) const
-	{
-		const uint	idx		= (_currStateIndex + 1) & 1;
-		auto&		curr	= _instanceData[ _currStateIndex ];
-		auto&		pending	= _instanceData[ idx ];
-
-		if ( curr.frameIdx != frameIndex and pending.frameIdx == frameIndex )
-		{
-			++_currStateIndex;
+		EXLOCK( _drCheck );
+		EXLOCK( _instanceData.guard );
+		
+		// release previous geometries
+		for (auto& geom : _instanceData.geometryInstances) {
+			resMngr.ReleaseResource( geom.geometry.Release() );
 		}
+
+		_instanceData.geometryInstances.clear();
+		_instanceData.geometryInstances.reserve( instanceCount );
+
+		for (uint i = 0; i < instanceCount; ++i)
+		{
+			CHECK( resMngr.AcquireResource( std::get<1>(instances[i]).Get() ));
+			_instanceData.geometryInstances.emplace_back( std::get<0>(instances[i]), std::move(std::get<1>(instances[i])), std::get<2>(instances[i]) );
+		}
+
+		_instanceData.hitShadersPerInstance	= hitShadersPerInstance;
+		_instanceData.maxHitShaderCount		= maxHitShaders;
 	}
 
 

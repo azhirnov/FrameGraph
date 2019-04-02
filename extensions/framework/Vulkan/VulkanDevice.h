@@ -29,7 +29,7 @@ namespace FGC
 
 		struct VulkanQueue
 		{
-			VkQueue					id			= VK_NULL_HANDLE;
+			VkQueue					handle		= VK_NULL_HANDLE;
 			uint					familyIndex	= UMax;
 			uint					queueIndex	= UMax;
 			VkQueueFlags			flags		= 0;

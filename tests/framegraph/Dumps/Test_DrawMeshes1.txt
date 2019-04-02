@@ -1,6 +1,5 @@
-SubBatch {
-	batch:         "main"
-	indexInBatch:  0
+CommandBuffer {
+	name:      ""
 	Image {
 		name:         "RenderTarget"
 		iamgeType:    Image2D
@@ -31,10 +30,10 @@ SubBatch {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       ColorAttachmentOptimal
 					aspectMask:      Color
@@ -55,7 +54,7 @@ SubBatch {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -73,7 +72,7 @@ SubBatch {
 		resource_usage = {
 			ImageUsage {
 				name:           "RenderTarget"
-				usage:          Color-RW, ClearBefore
+				usage:          Color-RW, InvalidateBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

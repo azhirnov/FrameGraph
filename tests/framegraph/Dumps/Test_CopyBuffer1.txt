@@ -20,7 +20,7 @@ CommandBuffer {
 					srcTask:         CopyBuffer (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
@@ -39,7 +39,7 @@ CommandBuffer {
 					srcTask:         ReadBuffer (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -69,7 +69,7 @@ CommandBuffer {
 					srcTask:         UpdateBuffer (#2)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead

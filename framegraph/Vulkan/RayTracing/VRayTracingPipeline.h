@@ -39,7 +39,7 @@ namespace FG
 		PipelineLayoutID		_baseLayoutId;
 		ShaderModules_t			_shaders;
 
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 
 	// methods
@@ -51,8 +51,8 @@ namespace FG
 		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId);
 		void Destroy (VResourceManager &);
 		
-		ND_ ArrayView<ShaderModule>	GetShaderModules ()	const	{ SHAREDLOCK( _rcCheck );  return _shaders; }
-		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _rcCheck );  return _baseLayoutId.Get(); }
+		ND_ ArrayView<ShaderModule>	GetShaderModules ()	const	{ SHAREDLOCK( _drCheck );  return _shaders; }
+		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _drCheck );  return _baseLayoutId.Get(); }
 	};
 
 

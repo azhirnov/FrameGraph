@@ -42,6 +42,16 @@ namespace FG
 				   EQueueUsage	queues		= Default);
 
 		void Validate ();
+
+		ImageDesc&  SetType (EImage value)				{ imageType = value;  return *this; }
+		ImageDesc&  SetDimension (const uint2 &value)	{ dimension = uint3{ value, 1 };  return *this; }
+		ImageDesc&  SetDimension (const uint3 &value)	{ dimension = value;  return *this; }
+		ImageDesc&  SetUsage (EImageUsage value)		{ usage = value;  return *this; }
+		ImageDesc&  SetFormat (EPixelFormat value)		{ format = value;  return *this; }
+		ImageDesc&  SetQueues (EQueueUsage value)		{ queues = value;  return *this; }
+		ImageDesc&  SetArrayLayers (uint value)			{ arrayLayers = ImageLayer{value};  return *this; }
+		ImageDesc&  SetMaxMipmaps (uint value)			{ maxLevel = MipmapLevel{value};  return *this; }
+		ImageDesc&  SetSamples (uint value)				{ samples = MultiSamples{value};  return *this; }
 	};
 		
 

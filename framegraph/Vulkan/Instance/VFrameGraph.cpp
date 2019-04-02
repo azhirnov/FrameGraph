@@ -12,7 +12,7 @@ namespace FG
 	using SubmitInfos_t			= StaticArray< VkSubmitInfo, VSubmitted::MaxBatches >;
 	using TempSemaphores_t		= VSubmitted::Semaphores_t;
 	using PendingSwapchains_t	= FixedArray< VSwapchain const*, 16 >;
-	using TempFences_t			= FixedArray< VkFence, 32 >;
+	using TempFences_t			= FixedArray< VkFence, 8 >;
 
 /*
 =================================================
@@ -46,6 +46,8 @@ namespace FG
 
 		// setup queues
 		{
+			EXLOCK( _queueGuard );
+
 			_AddGraphicsQueue();
 			_AddAsyncComputeQueue();
 			_AddAsyncTransferQueue();
@@ -70,50 +72,31 @@ namespace FG
 
 		// delete command buffers
 		{
-			EXLOCK( _cmdBuffersGuard );
-
-			DEBUG_ONLY(
-				FG_LOGI( "Max command buffers "s << ToString(_cmdBufferPool.CreatedObjectsCount()) );
-				FG_LOGI( "Max command batches "s << ToString(_cmdBatchPool.CreatedObjectsCount()) );
-				FG_LOGI( "Max submitted batches "s << ToString(_submittedPool.CreatedObjectsCount()) );
-			)
+			FG_LOGD( "Max command buffers "s << ToString(_cmdBufferPool.CreatedObjectsCount()) );
+			FG_LOGD( "Max command batches "s << ToString(_cmdBatchPool.CreatedObjectsCount()) );
+			FG_LOGD( "Max submitted batches "s << ToString(_submittedPool.CreatedObjectsCount()) );
 
 			_cmdBufferPool.Release();
 			_cmdBatchPool.Release();
-			_submittedPool.Release();
+			_submittedPool.Release([this] (auto& s) { s._Destroy( GetDevice() ); });
 		}
 
 		// delete per queue data
 		{
+			EXLOCK( _queueGuard );
+
 			for (auto& q : _queueMap)
 			{
 				CHECK( q.pending.empty() );
 				CHECK( q.submitted.empty() );
 
-				EXLOCK( q.cmdPoolGuard );
 				q.cmdPool.Destroy( _device );
 
 				for (auto& sem : q.semaphores) {
-					_semaphoreCache.push_back( sem );
+					_device.vkDestroySemaphore( _device.GetVkDevice(), sem, null );
 					sem = VK_NULL_HANDLE;
 				}
 			}
-		}
-
-		// delete fences
-		{
-			for (auto& fence : _fenceCache) {
-				_device.vkDestroyFence( _device.GetVkDevice(), fence, null );
-			}
-			_fenceCache.clear();
-		}
-
-		// delete semaphores
-		{
-			for (auto& sem : _semaphoreCache) {
-				_device.vkDestroySemaphore( _device.GetVkDevice(), sem, null );
-			}
-			_semaphoreCache.clear();
 		}
 
 		_shaderDebugCallback = {};
@@ -163,7 +146,7 @@ namespace FG
 		for (auto& src : _device.GetVkQueues())
 		{
 			auto&	dst = result.queues.emplace_back();
-			dst.id			= BitCast<QueueVk_t>( src.handle );
+			dst.handle		= BitCast<QueueVk_t>( src.handle );
 			dst.familyIndex	= uint(src.familyIndex);
 			dst.familyFlags	= BitCast<QueueFlagsVk_t>( src.familyFlags );
 			dst.priority	= src.priority;
@@ -199,6 +182,7 @@ namespace FG
 		barrier.srcQueueFamilyIndex	= queueFamily;
 		barrier.dstQueueFamilyIndex	= queueFamily;
 
+		EXLOCK( _queueGuard );
 		for (auto& q : _queueMap)
 		{
 			if ( q.ptr and (uint(q.ptr->familyIndex) == queueFamily or queueFamily == VK_QUEUE_FAMILY_IGNORED) )
@@ -559,29 +543,33 @@ namespace FG
 */
 	CommandBuffer  VFrameGraph::Begin (const CommandBufferDesc &desc, ArrayView<CommandBuffer> dependsOn)
 	{
-		EXLOCK( _cmdBuffersGuard );
 		CHECK_ERR( uint(desc.queueType) < _queueMap.size() );
 		
 		VCommandBuffer*	cmd		= null;
 		VCmdBatch*		batch	= null;
-		auto&			queue	= _queueMap[ uint(desc.queueType) ];
+		auto&			queue	= _GetQueueData( desc.queueType );
+		CHECK_ERR( queue.ptr );
 
 		// try to free already submitted commands
-		if ( queue.submitted.size() )
-		{
-			auto*	submitted	= queue.submitted.front();
-			auto	fence		= submitted->GetFence();
-
-			if ( not fence or _device.vkGetFenceStatus( _device.GetVkDevice(), fence ) == VK_SUCCESS )
+		/*{
+			EXLOCK( _queueGuard );
+			if ( queue.submitted.size() )
 			{
-				VK_CALL( _device.vkResetFences( _device.GetVkDevice(), 1, &fence ));
+				VSubmitted*	submitted	= queue.submitted.front();
+				VkFence		fence		= submitted->GetFence();
+				bool		is_complete	= not fence;
 
-				submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache );
+				if ( fence and _device.vkWaitForFences( _device.GetVkDevice(), 1, &fence, VK_TRUE, 0 ) == VK_SUCCESS )
+					is_complete = true;
 
-				queue.submitted.erase( queue.submitted.begin() );
-				_submittedPool.Unassign( submitted->GetIndexInPool() );
+				if ( is_complete )
+				{
+					submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _fenceCache );
+					queue.submitted.erase( queue.submitted.begin() );
+					_submittedPool.Unassign( submitted->GetIndexInPool() );
+				}
 			}
-		}
+		}*/
 
 		// acquire command buffer
 		for (;;)
@@ -606,7 +594,7 @@ namespace FG
 									   [this](VCmdBatch *ptr, uint idx){ PlacementNew<VCmdBatch>( ptr, *this, idx ); }) )
 			{
 				batch = &_cmdBatchPool[batch_index];
-				batch->Initialize( queue.ptr, desc.queueType, dependsOn );
+				batch->Initialize( queue.type, dependsOn );
 				break;
 			}
 			
@@ -614,7 +602,7 @@ namespace FG
 			std::this_thread::yield();
 		}
 
-		CHECK_ERR( cmd->Begin( desc, batch ));
+		CHECK_ERR( cmd->Begin( desc, batch, queue.ptr ));
 
 		return CommandBuffer{ cmd, batch };
 	}
@@ -627,7 +615,6 @@ namespace FG
 	bool  VFrameGraph::Execute (INOUT CommandBuffer &cmdBufPtr)
 	{
 		CHECK_ERR( cmdBufPtr.GetCommandBuffer() and cmdBufPtr.GetBatch() );
-		EXLOCK( _cmdBuffersGuard );
 
 		VCommandBuffer*	cmd		= Cast<VCommandBuffer>(cmdBufPtr.GetCommandBuffer());
 		VCmdBatchPtr	batch	= cmd->GetBatchPtr();
@@ -639,39 +626,16 @@ namespace FG
 		cmdBufPtr = CommandBuffer{ (ICommandBuffer*)(null), cmdBufPtr.GetBatch() };
 
 		// add batch to the submission queue
-		uint	q_idx = uint(batch->GetQueueType());
-		CHECK_ERR( q_idx < _queueMap.size() );
+		{
+			uint	q_idx = uint(batch->GetQueueType());
+			CHECK_ERR( q_idx < _queueMap.size() );
 
-		_queueMap[q_idx].pending.push_back( batch );
+			EXLOCK( _queueGuard );
+			_queueMap[q_idx].pending.push_back( batch );
+		}
 
 		//_FlushQueue( batch->GetQueueUsage(), 3u );
 		return true;
-	}
-	
-/*
-=================================================
-	_CreateFence
-=================================================
-*/
-	VkFence  VFrameGraph::_CreateFence ()
-	{
-		if ( _fenceCache.size() )
-		{
-			auto	result = _fenceCache.back();
-			_fenceCache.pop_back();
-			return result;
-		}
-
-		VkFenceCreateInfo	info	= {};
-		VkFence				result	= VK_NULL_HANDLE;
-
-		info.sType	= VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		info.flags	= 0;	// VK_FENCE_CREATE_SIGNALED_BIT
-
-		VK_CHECK( _device.vkCreateFence( _device.GetVkDevice(), &info, null, OUT &result ));
-		_device.SetObjectName( uint64_t(result), "BatchFence", VK_OBJECT_TYPE_FENCE );
-
-		return result;
 	}
 	
 /*
@@ -681,13 +645,6 @@ namespace FG
 */
 	VkSemaphore  VFrameGraph::_CreateSemaphore ()
 	{
-		if ( _semaphoreCache.size() )
-		{
-			auto	result = _semaphoreCache.back();
-			_semaphoreCache.pop_back();
-			return result;
-		}
-
 		VkSemaphoreCreateInfo	info	= {};
 		VkSemaphore				result	= VK_NULL_HANDLE;
 
@@ -707,7 +664,7 @@ namespace FG
 */
 	bool  VFrameGraph::Flush ()
 	{
-		EXLOCK( _cmdBuffersGuard );
+		EXLOCK( _queueGuard );
 
 		return _FlushAll( 10u );
 	}
@@ -749,9 +706,10 @@ namespace FG
 
 		CmdBatches_t		pending;
 		SubmitInfos_t		submit_infos;
-		TempSemaphores_t	temp_semaphores;
+		TempSemaphores_t	release_semaphores;
 		PendingSwapchains_t	swapchains;
 
+		// find batches that can be submitted
 		for (size_t b = 0, b_max = Min( maxIter, q.pending.size()), changed = 1;
 			 changed and (b < b_max);
 			 ++b)
@@ -769,8 +727,10 @@ namespace FG
 				
 				for (auto& dep : batch->GetDependencies())
 				{
+					const auto	min_state = (dep->GetQueueType() == queueIndex ? EBatchState::Ready : EBatchState::Submitted);
+
 					q_mask2		|= dep->GetQueueType();
-					is_ready	&= (dep->GetState() >= EBatchState::Ready);
+					is_ready	&= (dep->GetState() >= min_state);
 				}
 
 				if ( is_ready )
@@ -797,19 +757,19 @@ namespace FG
 
 			if ( not q2.ptr or qi == qj )
 				continue;
-						
+			
 			// input
 			if ( EnumEq( q_mask, 1u<<qj ) and q2.semaphores[qi] )
 			{
 				pending.front()->WaitSemaphore( q2.semaphores[qi], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
-				temp_semaphores.push_back( q2.semaphores[qi] );
+				release_semaphores.push_back( q2.semaphores[qi] );
 				q2.semaphores[qi] = VK_NULL_HANDLE;
 			}
 						
 			// output
 			{
 				if ( q.semaphores[qj] )
-					temp_semaphores.push_back( q.semaphores[qj] );
+					release_semaphores.push_back( q.semaphores[qj] );
 
 				VkSemaphore	sem = _CreateSemaphore();
 
@@ -817,9 +777,8 @@ namespace FG
 				q.semaphores[qj] = sem;
 			}
 		}
-					
-		q.lastSubmitted = ExeOrderIndex(uint(q.lastSubmitted) + 1);
 
+		// acquire submitted batch
 		VSubmitted*	submit = null;
 		for (;;)
 		{
@@ -827,8 +786,7 @@ namespace FG
 			if ( _submittedPool.Assign( OUT index, [](VSubmitted* ptr, uint idx) { PlacementNew<VSubmitted>( ptr, idx ); }) )
 			{
 				submit = &_submittedPool[index];
-				submit->Initialize( EQueueType(qi), pending, temp_semaphores, _CreateFence(), q.lastSubmitted );
-				q.submitted.push_back( submit );
+				submit->_Initialize( GetDevice(), EQueueType(qi), pending, release_semaphores );
 				break;
 			}
 			
@@ -846,8 +804,9 @@ namespace FG
 			begin.flags		= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			VK_CHECK( _device.vkBeginCommandBuffer( cmdbuf, &begin ));
 
-			_device.vkCmdPipelineBarrier( cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
-										  0, null, 0, null, uint(q.imageBarriers.size()), q.imageBarriers.data() );
+			// local images will transit layout from top_of_pipe stage to any other stage
+			_device.vkCmdPipelineBarrier( cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
+											0, null, 0, null, uint(q.imageBarriers.size()), q.imageBarriers.data() );
 
 			VK_CHECK( _device.vkEndCommandBuffer( cmdbuf ));
 			q.imageBarriers.clear();
@@ -858,25 +817,51 @@ namespace FG
 		// init submit info
 		for (uint i = 0; i < pending.size(); ++i)
 		{
-			auto&	batch = *pending[i].get();
-
-			batch.OnSubmit( OUT submit_infos[i], OUT swapchains, submit );
-			ASSERT( q.ptr == batch.GetQueue() );
+			pending[i]->BeforeSubmit( OUT submit_infos[i] );
 		}
 
 		// submit & present
 		{
+			// some logical queues may have access to the same physical queue
 			EXLOCK( q.ptr->guard );
+
 			VK_CALL( _device.vkQueueSubmit( q.ptr->handle, uint(pending.size()), submit_infos.data(), OUT submit->GetFence() ));
 			
+			for (uint i = 0; i < pending.size(); ++i)
+			{
+				pending[i]->AfterSubmit( OUT swapchains, submit );
+			}
+
 			for (auto* sw : swapchains)
 			{
 				ASSERT( q.ptr == sw->GetPresentQueue() );
 				CHECK( sw->Present( _device ));
 			}
-
-			_resourceMngr.OnSubmit();
 		}
+
+		// remove completed batches
+		for (auto iter = q.submitted.begin(); iter != q.submitted.end();)
+		{
+			VSubmitted*	submitted	= *iter;
+			VkFence		fence		= submitted->GetFence();
+			bool		is_complete	= not fence;
+
+			if ( fence and _device.vkGetFenceStatus( _device.GetVkDevice(), fence ) == VK_SUCCESS )
+				is_complete = true;
+
+			if ( is_complete )
+			{
+				submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback );
+				iter = q.submitted.erase( iter );
+				_submittedPool.Unassign( submitted->GetIndexInPool() );
+			}
+			else
+				break;
+		}
+
+		q.submitted.push_back( submit );
+		
+		_resourceMngr.OnSubmit();
 		return true;
 	}
 
@@ -887,7 +872,7 @@ namespace FG
 */
 	bool  VFrameGraph::Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout)
 	{
-		EXLOCK( _cmdBuffersGuard );
+		EXLOCK( _queueGuard );
 
 		TempFences_t	fences;
 
@@ -926,13 +911,11 @@ namespace FG
 
 			if ( res == VK_SUCCESS )
 			{
-				VK_CALL( _device.vkResetFences( _device.GetVkDevice(), uint(fences.size()), fences.data() ));
-
 				// release resources
 				for (auto& cmd : commands)
 				{
 					if ( auto*  submitted = Cast<VCmdBatch>(cmd.GetBatch())->GetSubmitted() )
-						CHECK( submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache ));
+						submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback );
 				}
 			}
 			else
@@ -952,7 +935,7 @@ namespace FG
 */
 	bool  VFrameGraph::WaitIdle ()
 	{
-		EXLOCK( _cmdBuffersGuard );
+		EXLOCK( _queueGuard );
 
 		TempFences_t	fences;
 
@@ -974,13 +957,12 @@ namespace FG
 		if ( fences.size() )
 		{
 			VK_CALL( _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, UMax ));
-			VK_CALL( _device.vkResetFences( _device.GetVkDevice(), uint(fences.size()), fences.data() ));
 		}
 		
 		for (auto& q : _queueMap)
 		{
 			for (auto* s : q.submitted) {
-				CHECK( s->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _semaphoreCache, OUT _fenceCache ));
+				s->_Release( GetDevice(), _debugger, _shaderDebugCallback );
 				_submittedPool.Unassign( s->GetIndexInPool() );
 			}
 			q.submitted.clear();
@@ -993,7 +975,7 @@ namespace FG
 =================================================
 	_WaitQueue
 =================================================
-*/
+*
 	bool  VFrameGraph::_WaitQueue (EQueueType queue, Nanoseconds timeout)
 	{
 		TempFences_t	fences;
@@ -1009,7 +991,6 @@ namespace FG
 		if ( fences.size() )
 		{
 			VK_CALL( _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, UMax ));
-			VK_CALL( _device.vkResetFences( _device.GetVkDevice(), uint(fences.size()), fences.data() ));
 		}
 		
 		for (auto* s : q.submitted) {
@@ -1078,7 +1059,8 @@ namespace FG
 
 		auto&	q = _queueMap[ uint(queueIndex) ];
 
-		q.ptr = queuePtr;
+		q.ptr	= queuePtr;
+		q.type	= queueIndex;
 
 		CHECK_ERR( q.cmdPool.Create( _device, q.ptr ));
 
@@ -1237,16 +1219,31 @@ namespace FG
 	{
 		EQueueFamilyMask	mask = Default;
 
-		for (uint i = 0; (1u<<i) <= uint(types); ++i)
+		for (uint i = 0; ((1u<<i) <= uint(types)) and (i < _queueMap.size()); ++i)
 		{
 			if ( not EnumEq( types, 1u<<i ) )
 				continue;
 
-			mask |= _queueMap[i].ptr->familyIndex;
+			if ( _queueMap[i].ptr )
+				mask |= _queueMap[i].ptr->familyIndex;
 		}
 		return mask;
 	}
 	
+/*
+=================================================
+	_GetQueueData
+=================================================
+*/
+	VFrameGraph::QueueData&  VFrameGraph::_GetQueueData (EQueueType index)
+	{
+		if ( _queueMap[ uint(index) ].ptr )
+			return _queueMap[ uint(index) ];
+
+		// fall back to default (graphics) queue
+		return _queueMap[ uint(EQueueType::Graphics) ];
+	}
+
 /*
 =================================================
 	_IsInitialized / _GetState / _SetState

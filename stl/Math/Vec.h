@@ -425,11 +425,13 @@ namespace FGC
 	template <typename T, uint I, typename S>
 	ND_ inline constexpr Vec<T,I>  operator / (const Vec<T,I> &lhs, const S &rhs)
 	{
-		Vec<T,I>	res;
-		for (uint i = 0; i < I; ++i) {
-			res[i] = lhs[i] / rhs;
-		}
-		return res;
+		return lhs / Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr Vec<T,I>  operator / (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) / rhs;
 	}
 
 /*

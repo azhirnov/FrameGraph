@@ -178,7 +178,7 @@ bool ShadingRateApp::Initialize ()
 
 
 	// initialize vulkan objects
-	cmdQueue = vulkan.GetVkQuues().front().id;
+	cmdQueue = vulkan.GetVkQuues().front().handle;
 
 	CHECK_ERR( CreateCommandBuffers() );
 	CHECK_ERR( CreateSyncObjects() );

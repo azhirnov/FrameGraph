@@ -224,7 +224,7 @@ namespace FG
 		pending.stages			= EResourceState_ToPipelineStages( is.state );
 		pending.access			= EResourceState_ToAccess( is.state );
 		pending.layout			= is.layout;
-		pending.index			= Cast<VFrameGraphTask>(is.task)->ExecutionOrder();
+		pending.index			= is.task->ExecutionOrder();
 		
 
 		// extract sub ranges
@@ -310,7 +310,7 @@ namespace FG
 			pending.isWritable		= false;
 			pending.invalidateBefore= false;
 			pending.invalidateAfter	= false;
-			pending.stages			= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+			pending.stages			= 0;
 			pending.access			= _imageData->GetAllReadAccessMask();
 			pending.layout			= _finalLayout;
 			pending.index			= index;
@@ -373,7 +373,7 @@ namespace FG
 					barrierMngr.AddImageBarrier( iter->stages, pending.stages, 0, barrier );
 
 					if ( debugger ) {
-						debugger->AddImageBarrier( _imageData, iter->index, pending.index, iter->stages, pending.stages, 0, barrier );
+						debugger->AddImageBarrier( _imageData.get(), iter->index, pending.index, iter->stages, pending.stages, 0, barrier );
 					}
 				}
 			}

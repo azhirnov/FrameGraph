@@ -25,6 +25,7 @@ namespace FG
 		AsyncCompute	= 1 << uint(EQueueType::AsyncCompute),
 		AsyncTransfer	= 1 << uint(EQueueType::AsyncTransfer),
 		_Last,
+		All				= ((_Last-1) << 1) - 1,
 	};
 	FG_BIT_OPERATORS( EQueueUsage );
 	

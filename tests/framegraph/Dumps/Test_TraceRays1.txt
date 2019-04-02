@@ -1,6 +1,5 @@
-SubBatch {
-	batch:         "main"
-	indexInBatch:  0
+CommandBuffer {
+	name:      ""
 	Image {
 		name:         "OutputImage"
 		iamgeType:    Image2D
@@ -31,10 +30,10 @@ SubBatch {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ShaderRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       General
 					aspectMask:      Color
@@ -42,44 +41,6 @@ SubBatch {
 					levelCount:      1
 					baseArrayLayer:  0
 					layerCount:      1
-				}
-		}
-	}
-
-	Buffer {
-		name:    ""
-		size:    64 Kb
-		usage:   RayTracing
-		barriers = {
-				BufferMemoryBarrier {
-					srcTask:         BuildRayTracingGeometry (#2)
-					dstTask:         <final>
-					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    TopOfPipe
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   
-					offset:          0 b
-					size:            64 Kb
-				}
-		}
-	}
-
-	Buffer {
-		name:    ""
-		size:    64 Kb
-		usage:   RayTracing
-		barriers = {
-				BufferMemoryBarrier {
-					srcTask:         BuildRayTracingScene (#3)
-					dstTask:         <final>
-					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    TopOfPipe
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   
-					offset:          0 b
-					size:            64 Kb
 				}
 		}
 	}
@@ -104,7 +65,7 @@ SubBatch {
 					srcTask:         UpdateRayTracingShaderTable (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -115,7 +76,7 @@ SubBatch {
 					srcTask:         UpdateRayTracingShaderTable (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -134,12 +95,50 @@ SubBatch {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
 					offset:          0 b
 					size:            1875 Kb
+				}
+		}
+	}
+
+	Buffer {
+		name:    "ScratchBuffer"
+		size:    64 Kb
+		usage:   RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingGeometry (#2)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
+				}
+		}
+	}
+
+	Buffer {
+		name:    "ScratchBuffer"
+		size:    64 Kb
+		usage:   RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingScene (#3)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
 				}
 		}
 	}
@@ -151,7 +150,7 @@ SubBatch {
 		output = { BuildRayTracingScene (#3) }
 		resource_usage = {
 			BufferUsage {
-				name:     ""
+				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
 				size:     64 Kb
@@ -164,16 +163,16 @@ SubBatch {
 		output = { UpdateRayTracingShaderTable (#4) }
 		resource_usage = {
 			BufferUsage {
-				name:     ""
-				usage:    RTASBuild-Buffer-RW
-				offset:   0 b
-				size:     64 Kb
-			}
-			BufferUsage {
 				name:     "HostWriteBuffer"
 				usage:    RTASBuild-Buffer-R
 				offset:   0 b
 				size:     256 Mb
+			}
+			BufferUsage {
+				name:     "ScratchBuffer"
+				usage:    RTASBuild-Buffer-RW
+				offset:   0 b
+				size:     64 Kb
 			}
 		}
 	}

@@ -23,7 +23,7 @@ namespace FG
 */
 	bool VMemoryObj::Create (const MemoryDesc &desc, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		_desc		= desc;
 		_debugName	= dbgName;
@@ -38,7 +38,7 @@ namespace FG
 */
 	bool VMemoryObj::AllocateForBuffer (VMemoryManager &memMngr, VkBuffer buf)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		CHECK_ERR( memMngr.AllocateForBuffer( buf, _desc, INOUT _storage ));
 		return true;
@@ -51,7 +51,7 @@ namespace FG
 */
 	bool VMemoryObj::AllocateForImage (VMemoryManager &memMngr, VkImage img)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		CHECK_ERR( memMngr.AllocateForImage( img, _desc, INOUT _storage ));
 		return true;
@@ -64,7 +64,7 @@ namespace FG
 */
 	bool VMemoryObj::AllocateForAccelStruct (VMemoryManager &memMngr, VkAccelerationStructureNV accelStruct)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		
 		CHECK_ERR( memMngr.AllocateForAccelStruct( accelStruct, _desc, INOUT _storage ));
 		return true;
@@ -77,7 +77,7 @@ namespace FG
 */
 	void VMemoryObj::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		resMngr.GetMemoryManager().Deallocate( INOUT _storage );
 
@@ -91,7 +91,7 @@ namespace FG
 */
 	bool VMemoryObj::GetInfo (VMemoryManager &memMngr, OUT MemoryInfo &info) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 
 		return memMngr.GetMemoryInfo( _storage, OUT info );
 	}

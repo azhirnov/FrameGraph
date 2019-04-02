@@ -42,7 +42,7 @@ namespace FG
 		DebugName_t					_debugName;
 		OnRelease_t					_onRelease;
 
-		RWRaceConditionCheck		_rcCheck;
+		RWDataRaceCheck				_drCheck;
 
 
 	// methods
@@ -63,28 +63,28 @@ namespace FG
 		
 		ND_ bool				IsReadOnly ()			const;
 
-		ND_ VkImage				Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _image; }
-		ND_ RawMemoryID			GetMemoryID ()			const	{ SHAREDLOCK( _rcCheck );  return _memoryId.Get(); }
+		ND_ VkImage				Handle ()				const	{ SHAREDLOCK( _drCheck );  return _image; }
+		ND_ RawMemoryID			GetMemoryID ()			const	{ SHAREDLOCK( _drCheck );  return _memoryId.Get(); }
 
-		ND_ ImageDesc const&	Description ()			const	{ SHAREDLOCK( _rcCheck );  return _desc; }
-		ND_ VkImageAspectFlags	AspectMask ()			const	{ SHAREDLOCK( _rcCheck );  return _aspectMask; }
-		ND_ uint3				Dimension ()			const	{ SHAREDLOCK( _rcCheck );  return _desc.dimension; }
-		ND_ VkImageLayout		DefaultLayout ()		const	{ SHAREDLOCK( _rcCheck );  return _defaultLayout; }
+		ND_ ImageDesc const&	Description ()			const	{ SHAREDLOCK( _drCheck );  return _desc; }
+		ND_ VkImageAspectFlags	AspectMask ()			const	{ SHAREDLOCK( _drCheck );  return _aspectMask; }
+		ND_ uint3				Dimension ()			const	{ SHAREDLOCK( _drCheck );  return _desc.dimension; }
+		ND_ VkImageLayout		DefaultLayout ()		const	{ SHAREDLOCK( _drCheck );  return _defaultLayout; }
 
-		ND_ uint const			Width ()				const	{ SHAREDLOCK( _rcCheck );  return _desc.dimension.x; }
-		ND_ uint const			Height ()				const	{ SHAREDLOCK( _rcCheck );  return _desc.dimension.y; }
-		ND_ uint const			Depth ()				const	{ SHAREDLOCK( _rcCheck );  return _desc.dimension.z; }
-		ND_ uint const			ArrayLayers ()			const	{ SHAREDLOCK( _rcCheck );  return _desc.arrayLayers.Get(); }
-		ND_ uint const			MipmapLevels ()			const	{ SHAREDLOCK( _rcCheck );  return _desc.maxLevel.Get(); }
-		ND_ EPixelFormat		PixelFormat ()			const	{ SHAREDLOCK( _rcCheck );  return _desc.format; }
-		ND_ EImage				ImageType ()			const	{ SHAREDLOCK( _rcCheck );  return _desc.imageType; }
-		ND_ uint const			Samples ()				const	{ SHAREDLOCK( _rcCheck );  return _desc.samples.Get(); }
+		ND_ uint const			Width ()				const	{ SHAREDLOCK( _drCheck );  return _desc.dimension.x; }
+		ND_ uint const			Height ()				const	{ SHAREDLOCK( _drCheck );  return _desc.dimension.y; }
+		ND_ uint const			Depth ()				const	{ SHAREDLOCK( _drCheck );  return _desc.dimension.z; }
+		ND_ uint const			ArrayLayers ()			const	{ SHAREDLOCK( _drCheck );  return _desc.arrayLayers.Get(); }
+		ND_ uint const			MipmapLevels ()			const	{ SHAREDLOCK( _drCheck );  return _desc.maxLevel.Get(); }
+		ND_ EPixelFormat		PixelFormat ()			const	{ SHAREDLOCK( _drCheck );  return _desc.format; }
+		ND_ EImage				ImageType ()			const	{ SHAREDLOCK( _drCheck );  return _desc.imageType; }
+		ND_ uint const			Samples ()				const	{ SHAREDLOCK( _drCheck );  return _desc.samples.Get(); }
 		
-		ND_ VkAccessFlags		GetAllReadAccessMask ()	const	{ SHAREDLOCK( _rcCheck );  return _readAccessMask; }
+		ND_ VkAccessFlags		GetAllReadAccessMask ()	const	{ SHAREDLOCK( _drCheck );  return _readAccessMask; }
 
-		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask == Default; }
-		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask; }
-		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask == Default; }
+		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask; }
+		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 
 
 	private:

@@ -14,57 +14,7 @@ CommandBuffer {
 					srcTask:         RenderPass (#2)
 					dstTask:         <final>
 					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    AllCommands
-					dependencyFlags: 
-					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
-					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
-					oldLayout:       ColorAttachmentOptimal
-					newLayout:       ColorAttachmentOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-		}
-	}
-
-	-----------------------------------------------------------
-	Task {
-		name:    "RenderPass (#2)"
-		input =  {  }
-		output = {  }
-		resource_usage = {
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Color-RW, InvalidateBefore
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-}
-===============================================================
-
-CommandBuffer {
-	name:      ""
-	Image {
-		name:         "RenderTarget"
-		iamgeType:    Image2D
-		dimension:    ( 800, 600, 1 )
-		format:       RGBA8_UNorm
-		usage:        TransferSrc | Storage | ColorAttachment
-		arrayLayers:  1
-		maxLevel:     1
-		samples:      1
-		barriers = {
-				ImageMemoryBarrier {
-					srcTask:         RenderPass (#2)
-					dstTask:         <final>
-					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
@@ -146,7 +96,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
@@ -170,7 +120,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -233,6 +183,56 @@ CommandBuffer {
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
+					srcTask:         RenderPass (#2)
+					dstTask:         <final>
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    
+					dependencyFlags: 
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "RenderPass (#2)"
+		input =  {  }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Color-RW, InvalidateBefore
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+
+CommandBuffer {
+	name:      ""
+	Image {
+		name:         "RenderTarget"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
 					srcTask:         <initial>
 					dstTask:         DispatchCompute (#2)
 					srcStageMask:    TopOfPipe
@@ -268,7 +268,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
@@ -292,7 +292,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

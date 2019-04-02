@@ -77,7 +77,7 @@ namespace FG
 */
 	bool VRayTracingGeometry::Create (VResourceManager &resMngr, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( _bottomLevelAS == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( desc.triangles.size() or desc.aabbs.size() );
@@ -165,7 +165,7 @@ namespace FG
 */
 	void VRayTracingGeometry::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _bottomLevelAS ) {
 			auto&	dev = resMngr.GetDevice();

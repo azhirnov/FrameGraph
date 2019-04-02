@@ -65,27 +65,33 @@ namespace FGC
 	// Barrier
 	//
 
-	struct Barrier
+	struct alignas(FG_CACHE_LINE) Barrier
 	{
-		STATIC_ASSERT( std::atomic<uint>::is_always_lock_free );
+	// types
+	private:
+		struct Bitfield {
+			uint	counter_1	: 15;
+			uint	counter_2	: 15;
+			uint	index		: 1;
+		};
+
+		using Atomic_t	= std::atomic< Bitfield >;
+
+		STATIC_ASSERT( Atomic_t::is_always_lock_free );
+
 
 	// variables
 	private:
-		alignas(FG_CACHE_LINE) std::atomic<uint>	_counter;
-		const uint									_numThreads;
+		Atomic_t		_counter;
+		const uint		_numThreads;
 
 
 	// methods
 	public:
 		explicit Barrier (uint numThreads) :
-			_counter{0}, _numThreads{numThreads}
+			_counter{Bitfield{ 0, 0, 0 }}, _numThreads{numThreads}
 		{
 			ASSERT( numThreads > 0 );
-		}
-
-		~Barrier ()
-		{
-			ASSERT( _counter.load() == 0 );
 		}
 
 		Barrier (Barrier &&) = delete;
@@ -96,22 +102,52 @@ namespace FGC
 
 		void wait ()
 		{
-			_counter.fetch_add( 1u, memory_order_relaxed );
+			// flush cache
+			std::atomic_thread_fence( memory_order_release );
 
-			const uint	max_count	= _numThreads;
-			uint		expected	= max_count;
+			const Bitfield	old_value	= _counter.load( memory_order_relaxed );
+			Bitfield		expected	= old_value;
+			Bitfield		new_value	= old_value;
+
+			// increment counter
+			old_value.index ? ++new_value.counter_2 : ++new_value.counter_1;
+
+			for (; not _counter.compare_exchange_weak( INOUT expected, new_value, memory_order_relaxed );)
+			{
+				new_value = expected;
+				old_value.index ? ++new_value.counter_2 : ++new_value.counter_1;
+			}
+
+
+			// wait for other threads
+			new_value.index = ~old_value.index;
+			if ( old_value.index ) {
+				new_value.counter_1 = expected.counter_1;
+				new_value.counter_2 = 0;
+				expected.counter_2  = _numThreads;
+			}else{
+				new_value.counter_1 = 0;
+				new_value.counter_2 = expected.counter_2;
+				expected.counter_1  = _numThreads;
+			}
 
 			for (uint i = 0;
-				 not _counter.compare_exchange_weak( INOUT expected, 0, memory_order_release, memory_order_relaxed ) and (expected != 0);
+				 not _counter.compare_exchange_weak( INOUT expected, new_value, memory_order_relaxed );
 				 ++i)
 			{
-				expected = max_count;
+				if ( expected.index != old_value.index )
+					break;
+				
+				old_value.index ? (expected.counter_2 = _numThreads) : (expected.counter_1 = _numThreads);
 
-				if ( i > 100 ) {
+				if ( i > 1000 ) {
 					i = 0;
 					std::this_thread::yield();
 				}
 			}
+
+			// invalidate cache
+			std::atomic_thread_fence( memory_order_acquire );
 		}
 	};
 

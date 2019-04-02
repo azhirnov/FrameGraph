@@ -303,7 +303,7 @@ namespace FGC
 	{
 		// see https://www.w3schools.com/colors/colors_names.asp
 #		define DEF_COLOR( _name_, _color_ )	static constexpr RGBA8u	_name_ \
-											{ (_color_ >> 0) & 0xFF, (_color_ >> 8) & 0xFF, (_color_ >> 16) & 0xFF, 0xFF };
+											{ (_color_ >> 16) & 0xFF, (_color_ >> 8) & 0xFF, (_color_ >> 0) & 0xFF, 0xFF };
 
 		DEF_COLOR( AliceBlue,				0xF0F8FF )
 		DEF_COLOR( AntiqueWhite,			0xFAEBD7 )

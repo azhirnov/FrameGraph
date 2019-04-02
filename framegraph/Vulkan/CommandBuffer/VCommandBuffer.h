@@ -22,9 +22,11 @@ namespace FG
 	{
 	// types
 	private:
-		struct PerQueueFamily
+		enum class EState
 		{
-			VCommandPool		cmdPool;
+			Initial,
+			Recording,
+			Compiling,
 		};
 
 		using TempTaskArray_t	= std::vector< VTask, StdLinearAllocator<VTask> >;
@@ -41,23 +43,28 @@ namespace FG
 		static constexpr auto	MaxImageParts	= VCmdBatch::MaxImageParts;
 		static constexpr auto	MinBufferPart	= 4_Kb;
 
-		using PerQueueArray_t	= FixedArray< PerQueueFamily, 8 >;
+		using PerQueueArray_t	= FixedArray< VCommandPool, 4 >;
 		
 		using Index_t			= VResourceManager::Index_t;
 		static constexpr uint	MaxLocalResources = Max( VResourceManager::MaxImages, VResourceManager::MaxBuffers );
 		
-		template <typename T>	using PoolTmpl	= ChunkedIndexedPool< ResourceBase<T>, Index_t, MaxLocalResources/16, 16 >;
+		template <typename T, size_t CS, size_t MC>
+		using PoolTmpl			= ChunkedIndexedPool< ResourceBase<T>, Index_t, CS, MC >;
+		
+		template <typename Res, typename MainPool, size_t MC>
+		struct LocalResPool {
+			PoolTmpl< Res, MainPool::capacity()/MC, MC >		pool;
+			StaticArray< Index_t, MainPool::capacity() >		toLocal;
+			uint												maxLocalIndex	= 0;
+			uint												maxGlobalIndex	= uint(MainPool::capacity());
+		};
 
-		using ToLocalImage_t		= StaticArray< Index_t, VResourceManager::MaxImages >;
-		using ToLocalBuffer_t		= StaticArray< Index_t, VResourceManager::MaxBuffers >;
-		using ToLocalRTScene_t		= StaticArray< Index_t, VResourceManager::MaxRTObjects >;
-		using ToLocalRTGeometry_t	= StaticArray< Index_t, VResourceManager::MaxRTObjects >;
-
-		using LocalImages_t			= PoolTmpl< VLocalImage >;
-		using LocalBuffers_t		= PoolTmpl< VLocalBuffer >;
-		using LogicalRenderPasses_t	= PoolTmpl< VLogicalRenderPass >;
-		using LocalRTGeometries_t	= PoolTmpl< VLocalRTGeometry >;
-		using LocalRTScenes_t		= PoolTmpl< VLocalRTScene >;
+		using LocalImages_t			= LocalResPool< VLocalImage,		VResourceManager::ImagePool_t,		16 >;
+		using LocalBuffers_t		= LocalResPool< VLocalBuffer,		VResourceManager::BufferPool_t,		16 >;
+		using LocalRTScenes_t		= LocalResPool< VLocalRTScene,		VResourceManager::RTScenePool_t,	16 >;
+		using LocalRTGeometries_t	= LocalResPool< VLocalRTGeometry,	VResourceManager::RTGeometryPool_t,	16 >;
+		using LogicalRenderPasses_t	= PoolTmpl< VLogicalRenderPass,		1u<<10,								16 >;
+		
 
 
 	// variables
@@ -65,8 +72,9 @@ namespace FG
 		Allocator_t				_mainAllocator;
 		TaskGraph_t				_taskGraph;
 		Statistic_t				_statistic;
-		EQueueUsage				_currUsage			= Default;
+		EState					_state;
 		VCmdBatchPtr			_batch;
+		EQueueFamily			_queueIndex;
 
 		VFrameGraph &			_instance;
 		const uint				_indexInPool;
@@ -76,29 +84,18 @@ namespace FG
 
 		struct {
 			ResourceMap_t			resourceMap;
-
-			ToLocalImage_t			imageToLocal;
-			ToLocalBuffer_t			bufferToLocal;
-			ToLocalRTScene_t		rtGeometryToLocal;
-			ToLocalRTGeometry_t		rtSceneToLocal;
-
-			LocalImages_t			localImages;
-			LocalBuffers_t			localBuffers;
+			LocalImages_t			images;
+			LocalBuffers_t			buffers;
+			LocalRTScenes_t			rtScenes;
+			LocalRTGeometries_t		rtGeometries;
 			LogicalRenderPasses_t	logicalRenderPasses;
-			LocalRTGeometries_t		localRTGeometries;
-			LocalRTScenes_t			localRTScenes;
-
-			uint					localImagesCount		= 0;
-			uint					localBuffersCount		= 0;
 			uint					logicalRenderPassCount	= 0;
-			uint					localRTGeometryCount	= 0;
-			uint					localRTSceneCount		= 0;
 		}						_rm;
 		
 		PerQueueArray_t			_perQueue;
 		DebugName_t				_dbgName;
 
-		RaceConditionCheck		_rcCheck;
+		DataRaceCheck			_drCheck;
 
 
 	// methods
@@ -106,7 +103,7 @@ namespace FG
 		explicit VCommandBuffer (VFrameGraph &, uint);
 		~VCommandBuffer ();
 
-		bool Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch);
+		bool Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue);
 		bool Execute ();
 
 		void SignalSemaphore (VkSemaphore sem);
@@ -173,15 +170,14 @@ namespace FG
 		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id);
 
 		
-		ND_ bool					IsRecording ()				const	{ EXLOCK( _rcCheck );  return bool(_batch); }
-		ND_ StringView				GetName ()					const	{ EXLOCK( _rcCheck );  return _dbgName; }
-		ND_ VCmdBatch &				GetBatch ()					const	{ EXLOCK( _rcCheck );  return *_batch; }
-		ND_ VCmdBatchPtr const&		GetBatchPtr ()				const	{ EXLOCK( _rcCheck );  return _batch; }
-		ND_ Allocator_t &			GetAllocator ()						{ EXLOCK( _rcCheck );  return _mainAllocator; }
-		ND_ Statistic_t &			EditStatistic ()					{ EXLOCK( _rcCheck );  return _statistic; }
-		ND_ VPipelineCache &		GetPipelineCache ()					{ EXLOCK( _rcCheck );  return _pipelineCache; }
-		ND_ VBarrierManager &		GetBarrierManager ()				{ EXLOCK( _rcCheck );  return _barrierMngr; }
-		ND_ Ptr<VLocalDebugger>		GetDebugger ()						{ EXLOCK( _rcCheck );  return _debugger.get(); }
+		ND_ StringView				GetName ()					const	{ EXLOCK( _drCheck );  return _dbgName; }
+		ND_ VCmdBatch &				GetBatch ()					const	{ EXLOCK( _drCheck );  return *_batch; }
+		ND_ VCmdBatchPtr const&		GetBatchPtr ()				const	{ EXLOCK( _drCheck );  return _batch; }
+		ND_ Allocator_t &			GetAllocator ()						{ EXLOCK( _drCheck );  return _mainAllocator; }
+		ND_ Statistic_t &			EditStatistic ()					{ EXLOCK( _drCheck );  return _statistic; }
+		ND_ VPipelineCache &		GetPipelineCache ()					{ EXLOCK( _drCheck );  return _pipelineCache; }
+		ND_ VBarrierManager &		GetBarrierManager ()				{ EXLOCK( _drCheck );  return _barrierMngr; }
+		ND_ Ptr<VLocalDebugger>		GetDebugger ()						{ EXLOCK( _drCheck );  return _debugger.get(); }
 		ND_ VDevice const&			GetDevice ()				const	{ return _instance.GetDevice(); }
 		ND_ VFrameGraph &			GetInstance ()				const	{ return _instance; }
 		ND_ VResourceManager &		GetResourceManager ()		const	{ return _instance.GetResourceManager(); }
@@ -211,11 +207,16 @@ namespace FG
 		
 
 	// resource manager //
-		template <typename ID, typename T, typename GtoL>
-		ND_ T const*  _ToLocal (ID id, INOUT PoolTmpl<T> &, INOUT GtoL &, INOUT uint &counter, StringView msg);
+		template <typename ID, typename Res, typename MainPool, size_t MC>
+		ND_ Res const*  _ToLocal (ID id, INOUT LocalResPool<Res,MainPool,MC> &, StringView msg);
 
-		void  _FlushLocalResourceStates (ExeOrderIndex, ExeOrderIndex, VBarrierManager &, Ptr<VLocalDebugger>);
+		void  _FlushLocalResourceStates (ExeOrderIndex, VBarrierManager &, Ptr<VLocalDebugger>);
 		void  _ResetLocalRemaping ();
+
+
+	// queue //
+		ND_ EQueueUsage	_GetQueueUsage ()	const	{ return EQueueUsage(0) | _batch->GetQueueType(); }
+		ND_ bool		_IsRecording ()		const	{ return _state == EState::Recording; }
 	};
 
 	
@@ -227,7 +228,7 @@ namespace FG
 	template <uint UID>
 	inline auto const*  VCommandBuffer::AcquireTemporary (_fg_hidden_::ResourceID<UID> id)
 	{
-		auto[iter, inserted] = _rm.resourceMap.insert(Resource_t{ id });
+		auto[iter, inserted] = _rm.resourceMap.insert({ Resource_t{ id }, 1 });
 
 		return _instance.GetResourceManager().GetResource( id, inserted );
 	}
@@ -240,7 +241,7 @@ namespace FG
 	template <uint UID>
 	inline void  VCommandBuffer::ReleaseResource (_fg_hidden_::ResourceID<UID> id)
 	{
-		_rm.resourceMap.insert(Resource_t{ id });
+		_rm.resourceMap.insert({ Resource_t{ id }, 0 }).first->second++;
 	}
 
 

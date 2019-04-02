@@ -52,7 +52,7 @@ namespace FG
 */
 	bool VComputePipeline::Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		
 		for (auto& sh : desc._shader.data)
 		{
@@ -78,7 +78,7 @@ namespace FG
 */
 	void VComputePipeline::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		auto&	dev = resMngr.GetDevice();
 

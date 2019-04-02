@@ -258,7 +258,7 @@ namespace FGC
 			return _indexCount.size() * ChunkSize;
 		}
 
-		ND_ constexpr size_t  capacity () const
+		ND_ static constexpr size_t  capacity ()
 		{
 			return MaxChunks * ChunkSize;
 		}

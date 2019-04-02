@@ -55,6 +55,9 @@ namespace FG
 		Unknown			= 0,
 	};
 	FG_BIT_OPERATORS( EShaderStages );
+
+	ND_ forceinline EShaderStages  operator |  (EShaderStages lhs, EShader rhs)		{ return lhs | EShaderStages(1 << uint(rhs)); }
+		forceinline EShaderStages  operator |= (EShaderStages &lhs, EShader rhs)	{ return (lhs |= EShaderStages(1 << uint(rhs))); }
 	
 
 	enum class EShaderAccess : uint

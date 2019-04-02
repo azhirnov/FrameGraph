@@ -5,10 +5,10 @@
 namespace FG
 {
 
-	bool FGApp::Test_Draw4 ()
+	bool FGApp::Test_Draw6 ()
 	{
 		GraphicsPipelineDesc	ppln;
-
+		
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
 #pragma shader_stage(vertex)
 #extension GL_ARB_separate_shader_objects : enable
@@ -58,18 +58,18 @@ void main() {
 		
 		const uint2		tex_size	= {128, 128};
 		ImageID			texture		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{tex_size.x, tex_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Texture" );
+																				EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Texture" );
 
 		RawSamplerID	sampler		= _frameGraph->CreateSampler( SamplerDesc{}.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Nearest )).Release();
-
+		
 		const float4	positions[] = { {0.0f, -0.5f, 0.0f, 0.0f},  {0.5f, 0.5f, 0.0f, 0.0f},  {-0.5f, 0.5f, 0.0f, 0.0f} };
 		const float4	colors[]	= { {1.0f, 0.0f, 0.0f, 1.0f},   {0.0f, 1.0f, 0.0f, 1.0f},  {0.0f, 0.0f, 1.0f, 1.0f}  };
 		
 		BufferID		positions_ub = _frameGraph->CreateBuffer( BufferDesc{ BytesU::SizeOf(positions), EBufferUsage::Uniform },
-																  MemoryDesc{ EMemoryType::HostWrite }, "PositionsUB" );
+																	  MemoryDesc{ EMemoryType::HostWrite }, "PositionsUB" );
 		BufferID		colors_ub	 = _frameGraph->CreateBuffer( BufferDesc{ BytesU::SizeOf(colors), EBufferUsage::Uniform },
-																  MemoryDesc{ EMemoryType::HostWrite }, "ColorsUB" );
-
+																	  MemoryDesc{ EMemoryType::HostWrite }, "ColorsUB" );
+		
 		CHECK_ERR( _frameGraph->UpdateHostBuffer( positions_ub, 0_b, BytesU::SizeOf(positions), positions ));
 		CHECK_ERR( _frameGraph->UpdateHostBuffer( colors_ub, 0_b, BytesU::SizeOf(colors), colors ));
 
@@ -84,8 +84,8 @@ void main() {
 		resources0.BindBuffer( UniformID{"VertexPositionsUB"}, positions_ub );
 		resources0.BindTexture( UniformID{"un_ColorTexture"},  texture, sampler );
 		resources1.BindBuffer( UniformID{"VertexColorsUB"},    colors_ub );
-		
 
+		
 		bool		data_is_correct = false;
 
 		const auto	OnLoaded =	[OUT &data_is_correct] (const ImageView &imageData)
@@ -122,12 +122,20 @@ void main() {
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-											.AddViewport( view_size )
-											.AddResources( DescriptorSetID{"PerPass"}, &resources1 ));
+											.AddViewport( view_size ) );
 		
-		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
-														 .AddResources( DescriptorSetID{"PerObject"}, &resources0 ));
+		cmd->AddTask( render_pass, CustomDraw{ [&] (IDrawContext &ctx)
+											{
+												RenderState::InputAssemblyState	ia;
+												ia.topology = EPrimitive::TriangleList;
 
+												ctx.SetInputAssembly( ia );
+												ctx.BindPipeline( pipeline );
+												ctx.BindResources( DescriptorSetID{"PerObject"}, resources0 );
+												ctx.BindResources( DescriptorSetID{"PerPass"},   resources1 );
+												ctx.DrawVertices( 4 );
+											}}.AddImage( texture, EResourceState::ShaderSample ));
+		
 		Task	t_clear	= cmd->AddTask( ClearColorImage{}.SetImage( texture ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{HtmlColor::White}) );
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass }.DependsOn( t_clear ));
 		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
@@ -137,9 +145,10 @@ void main() {
 		CHECK_ERR( _frameGraph->WaitIdle() );
 		
 		CHECK_ERR( CompareDumps( TEST_NAME ));
+		CHECK_ERR( Visualize( TEST_NAME ));
 
 		CHECK_ERR( data_is_correct );
-
+		
 		DeleteResources( image, texture, pipeline, positions_ub, colors_ub );
 
 		FG_LOGI( TEST_NAME << " - passed" );

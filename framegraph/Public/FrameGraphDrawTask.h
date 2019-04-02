@@ -497,7 +497,7 @@ namespace _fg_hidden_
 			return *this;
 		}
 
-		CustomDraw&  AddBuffer (RawBufferID id, EResourceState state)
+		CustomDraw&  AddBuffer (RawBufferID id, EResourceState state = EResourceState::UniformRead)
 		{
 			ASSERT( id );
 			buffers.emplace_back( id, state );

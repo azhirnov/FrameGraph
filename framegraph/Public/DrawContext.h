@@ -38,6 +38,11 @@ namespace FG
 		virtual void BindPipeline (RawGPipelineID id, EPipelineDynamicState dynamicState = EPipelineDynamicState::Default) = 0;
 		virtual void BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState = EPipelineDynamicState::Default) = 0;
 
+		// resources (descriptor sets)
+		virtual void BindResources (const DescriptorSetID &id, const PipelineResources &res) = 0;
+		virtual void PushConstants (const PushConstantID &id, const void *data, BytesU dataSize) = 0;
+		virtual void BindShadingRateImage (RawImageID value, ImageLayer layer = Default, MipmapLevel level = Default) = 0;
+
 		// vertex attributes and index buffer
 		virtual void BindVertexAttribs (const VertexInputState &) = 0;
 		virtual void BindVertexBuffer (const VertexBufferID &id, RawBufferID vbuf, BytesU offset) = 0;
@@ -57,7 +62,7 @@ namespace FG
 		virtual void SetStencilCompareMask (uint value) = 0;
 		virtual void SetStencilWriteMask (uint value) = 0;
 		virtual void SetStencilReference (uint value) = 0;
-		virtual void SetShadingRatePalette (ArrayView<EShadingRatePalette> value) = 0;
+		virtual void SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value) = 0;
 
 		// draw commands
 		virtual void DrawVertices (uint vertexCount,

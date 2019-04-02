@@ -127,12 +127,12 @@ namespace FGC
 	template <typename T, typename Key>
 	ND_ forceinline size_t  BinarySearch (ArrayView<T> arr, const Key &key)
 	{
-		size_t	left	= 0;
-		size_t	right	= arr.size();
+		ptrdiff_t	left	= 0;
+		ptrdiff_t	right	= arr.size();
 
-		for (; left <= right; )
+		for (; left < right; )
 		{
-			size_t	mid = (left + right) >> 1;
+			ptrdiff_t	mid = (left + right) >> 1;
 
 			if ( arr[mid] < key )
 				left = mid + 1;
@@ -143,7 +143,7 @@ namespace FGC
 				return mid;
 		}
 
-		return left < arr.size() and arr[left] == key ? left : UMax;
+		return left < ptrdiff_t(arr.size()) and arr[left] == key ? left : -1;
 	}
 	
 	template <typename T, typename Key>
@@ -183,7 +183,7 @@ namespace FGC
 				right = mid;
 		}
 
-		return arr[left] == key ? left : UMax;
+		return left < arr.size() and arr[left] == key ? left : UMax;
 	}
 	
 	template <typename T, typename Key>

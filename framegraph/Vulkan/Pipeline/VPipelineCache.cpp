@@ -547,20 +547,23 @@ namespace FG
 */
 	bool VPipelineCache::InitShaderTable (VCommandBuffer				&fgThread,
 										  RawRTPipelineID				 pipelineId,
-										  VLocalRTScene const			&rtScene,
+										  VRayTracingScene const		&rtScene,
 										  const RayGenShader			&rayGenShader,
 										  ArrayView< RTShaderGroup >	 shaderGroups,
 										  const uint					 maxRecursionDepth,
 										  INOUT VRayTracingShaderTable	&shaderTable,
 										  OUT BufferCopyRegions_t		&copyRegions)
 	{
+		auto&			scene_data		= rtScene.CurrentData();
+		SHAREDLOCK( scene_data.guard );
+
 		auto&			dev				= fgThread.GetDevice();
 		auto&			res_mngr		= fgThread.GetResourceManager();
 		const BytesU	handle_size		{ dev.GetDeviceRayTracingProperties().shaderGroupHandleSize };
 		const BytesU	alignment		{ dev.GetDeviceRayTracingProperties().shaderGroupBaseAlignment };
 		auto*			ppln			= fgThread.AcquireTemporary( pipelineId );
-		const uint		geom_stride		= rtScene.HitShadersPerInstance();
-		const uint		max_hit_shaders	= rtScene.MaxHitShaderCount();
+		const uint		geom_stride		= scene_data.hitShadersPerInstance;
+		const uint		max_hit_shaders	= scene_data.maxHitShaderCount;
 
 		CHECK_ERR( ppln );
 
@@ -640,15 +643,15 @@ namespace FG
 
 		// TODO
 		// destroy old pipelines
-		/*for (auto& table : shaderTable._tables)
+		for (auto& table : shaderTable._tables)
 		{
 			if ( table.layoutId )
-				res_mngr.GetUnassignIDs().emplace_back( table.layoutId.Release() );
+				res_mngr.ReleaseResource( table.layoutId.Release() );
 
-			if ( table.pipeline )
-				res_mngr.GetReadyToDeleteQueue().emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(table.pipeline) );
+			//if ( table.pipeline )
+			//	res_mngr.GetReadyToDeleteQueue().emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(table.pipeline) );
 		}
-		shaderTable._tables.clear();*/
+		shaderTable._tables.clear();
 
 
 		// create shader table for each debug mode
@@ -711,11 +714,10 @@ namespace FG
 
 			// 
 			RawBufferID		staging_buffer;
-			BytesU			buf_offset, buf_size;
+			BytesU			buf_offset, buf_size = shaderTable._blockSize;
 			void *			mapped_ptr = null;
 		
-			//CHECK_ERR( fgThread.GetStagingBufferManager()->GetWritableBuffer( shaderTable._blockSize, shaderTable._blockSize,
-			//																  OUT staging_buffer, OUT buf_offset, OUT buf_size, OUT mapped_ptr ));
+			CHECK_ERR( fgThread.AllocBuffer( shaderTable._blockSize, OUT staging_buffer, OUT buf_offset, OUT mapped_ptr ));
 			DEBUG_ONLY( memset( OUT mapped_ptr, 0xAE, size_t(buf_size) ));
 	
 			// ray-gen shader
@@ -750,13 +752,15 @@ namespace FG
 					case EGroupType::TriangleHitShader :
 					case EGroupType::ProceduralHitShader :
 					{
-						const auto*	inst		= rtScene.FindInstance( shader.instanceId );
+						size_t		inst_idx	= BinarySearch( scene_data.geometryInstances, shader.instanceId );
 						auto		group		= _tempShaderGraphMap.find( &shader );
-						CHECK_ERR( inst and group != _tempShaderGraphMap.end() );
+
+						CHECK_ERR( inst_idx < scene_data.geometryInstances.size() );
+						CHECK_ERR( group != _tempShaderGraphMap.end() );
 						CHECK_ERR( shader.offset < geom_stride );
 
-						size_t		index_offset= inst->indexOffset;
-						const auto*	geom		= fgThread.AcquireTemporary( inst->geometry.Get() );
+						size_t		index_offset= scene_data.geometryInstances[inst_idx].indexOffset;
+						const auto*	geom		= fgThread.AcquireTemporary( scene_data.geometryInstances[inst_idx].geometry.Get() );
 
 						// if 'geometryId' is not defined then bind shader group for each geometry in instance
 						if ( shader.geometryId == Default )

@@ -158,16 +158,24 @@ namespace FG
 	//
 	class VTaskProcessor::DrawContext final : public IDrawContext
 	{
+	// constants
+	private:
+		enum {
+			GRAPHICS_BIT	= 1,
+			MESH_BIT		= 2,
+			ALL_BITS		= GRAPHICS_BIT | MESH_BIT,
+		};
+
+
 	// variables
 	private:
 		VTaskProcessor &			_tp;
 		VLogicalRenderPass const&	_logicalRP;
 		
 		VGraphicsPipeline const*	_gpipeline		= null;
-		VPipelineLayout const*		_gpplnLayout	= null;
-
 		VMeshPipeline const*		_mpipeline		= null;
-		VPipelineLayout const*		_mpplnLayout	= null;
+		VPipelineLayout const*		_pplnLayout		= null;
+
 			
 		RenderState					_renderState;
 		EPipelineDynamicState		_dynamicStates	= Default;
@@ -184,6 +192,9 @@ namespace FG
 		void Reset () override;
 		void BindPipeline (RawGPipelineID id, EPipelineDynamicState dynamicState) override;
 		void BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState) override;
+		void BindResources (const DescriptorSetID &id, const PipelineResources &res) override;
+		void PushConstants (const PushConstantID &id, const void *data, BytesU dataSize) override;
+		void BindShadingRateImage (RawImageID value, ImageLayer layer, MipmapLevel level) override;
 		void BindVertexAttribs (const VertexInputState &) override;
 		void BindVertexBuffer (const VertexBufferID &id, RawBufferID vbuf, BytesU offset) override;
 		void BindIndexBuffer (RawBufferID ibuf, BytesU offset, EIndex type) override;
@@ -198,7 +209,7 @@ namespace FG
 		void SetStencilCompareMask (uint value) override;
 		void SetStencilWriteMask (uint value) override;
 		void SetStencilReference (uint value) override;
-		void SetShadingRatePalette (ArrayView<EShadingRatePalette> value) override;
+		void SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value) override;
 		void DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance) override;
 		void DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance) override;
 		void DrawVerticesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
@@ -207,8 +218,7 @@ namespace FG
 		void DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
 		
 	private:
-		void _BindGraphicsPipeline ();
-		void _BindMeshPipeline ();
+		void _BindPipeline (uint mask);
 	};
 //-----------------------------------------------------------------------------
 	
@@ -296,9 +306,12 @@ namespace FG
 				return;
 
 			_tp._AddRTScene( scene, EResourceState::RayTracingShaderRead );
-			ASSERT( scene->GeometryInstances().size() );
 
-			for (auto& inst : scene->GeometryInstances())
+			auto&	data = scene->ToGlobal()->CurrentData();
+			SHAREDLOCK( data.guard );
+			ASSERT( data.geometryInstances.size() );
+
+			for (auto& inst : data.geometryInstances)
 			{
 				if ( auto* geom = _tp._ToLocal( inst.geometry.Get() ))
 				{
@@ -487,10 +500,12 @@ namespace FG
 */
 	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::CustomDraw> &task)
 	{
+		EResourceState	stages = _tp._fgThread.GetDevice().GetGraphicsShaderStages();
+
 		for (auto& item : task.GetImages())
 		{
 			ImageViewDesc	desc{ item.first->Description() };
-			_tp._AddImage( item.first, item.second, EResourceState_ToImageLayout( item.second, item.first->AspectMask() ), desc );
+			_tp._AddImage( item.first, (item.second | stages), EResourceState_ToImageLayout( item.second, item.first->AspectMask() ), desc );
 		}
 
 		for (auto& item : task.GetBuffers())
@@ -789,7 +804,7 @@ namespace FG
 =================================================
 */
 	VTaskProcessor::DrawContext::DrawContext (VTaskProcessor &tp, const VLogicalRenderPass &rp) :
-		_tp{ tp }, _logicalRP{ rp }, _changed{ UMax }
+		_tp{ tp }, _logicalRP{ rp }, _changed{ ALL_BITS }
 	{
 		_renderState.color			= _logicalRP.GetColorState();
 		_renderState.depth			= _logicalRP.GetDepthState();
@@ -805,7 +820,6 @@ namespace FG
 */
 	IDrawContext::Context_t  VTaskProcessor::DrawContext::GetData ()
 	{
-		//VFramebuffer const*	framebuffer	= _tp._GetResource( _logicalRP.GetFramebufferID() );
 		VRenderPass const*		render_pass	= _tp._GetResource( _logicalRP.GetRenderPassID() );
 
 		VulkanDrawContext	result;
@@ -824,11 +838,10 @@ namespace FG
 	void VTaskProcessor::DrawContext::Reset ()
 	{
 		_gpipeline		= null;
-		_gpplnLayout	= null;
+		_pplnLayout		= null;
 		_mpipeline		= null;
-		_mpplnLayout	= null;
 		_vertexInput	= Default;
-		_changed		= UMax;
+		_changed		= ALL_BITS;
 		_dynamicStates	= Default;
 		
 		_renderState.color			= _logicalRP.GetColorState();
@@ -853,19 +866,22 @@ namespace FG
 	{
 		_dynamicStates	= dynamicState;
 		_gpipeline		= _tp._GetResource( id );
-		_changed		|= 1;
+		_mpipeline		= null;
+		_changed		|= ALL_BITS;
 	}
 	
 /*
 =================================================
-	_BindGraphicsPipeline
+	_BindPipeline
 =================================================
 */
-	void VTaskProcessor::DrawContext::_BindGraphicsPipeline ()
+	void VTaskProcessor::DrawContext::_BindPipeline (uint mask)
 	{
-		if ( _changed & 1 )
+		mask = _changed & mask;
+
+		if ( _gpipeline and (mask & GRAPHICS_BIT) )
 		{
-			_changed ^= 1;
+			_changed ^= GRAPHICS_BIT;
 
 			VkPipeline	ppln_id;
 			_tp._fgThread.GetPipelineCache().CreatePipelineInstance(
@@ -876,8 +892,26 @@ namespace FG
 											_renderState,
 											_dynamicStates,
 											Default,
-											OUT ppln_id, OUT _gpplnLayout );
+											OUT ppln_id, OUT _pplnLayout );
 
+			_tp._BindPipeline2( _logicalRP, ppln_id );
+			_tp._SetScissor( _logicalRP, Default );
+		}
+
+		if ( _mpipeline and (mask & MESH_BIT) )
+		{
+			_changed ^= MESH_BIT;
+			
+			VkPipeline	ppln_id;
+			_tp._fgThread.GetPipelineCache().CreatePipelineInstance(
+											_tp._fgThread,
+											_logicalRP,
+											*_mpipeline,
+											_renderState,
+											_dynamicStates,
+											Default,
+											OUT ppln_id, OUT _pplnLayout );
+		
 			_tp._BindPipeline2( _logicalRP, ppln_id );
 			_tp._SetScissor( _logicalRP, Default );
 		}
@@ -891,33 +925,50 @@ namespace FG
 	void VTaskProcessor::DrawContext::BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState)
 	{
 		_dynamicStates	= dynamicState;
+		_gpipeline		= null;
 		_mpipeline		= _tp._GetResource( id );
-		_changed		|= 2;
+		_changed		|= ALL_BITS;
 	}
 	
 /*
 =================================================
-	_BindMeshPipeline
+	BindResources
 =================================================
 */
-	void VTaskProcessor::DrawContext::_BindMeshPipeline ()
+	void VTaskProcessor::DrawContext::BindResources (const DescriptorSetID &id, const PipelineResources &res)
 	{
-		if ( _changed & 2 )
+		_BindPipeline( ALL_BITS );
+		CHECK_ERR( _pplnLayout, void());
+
+		VPipelineResources const*	ppln_res = _tp._fgThread.GetResourceManager().CreateDescriptorSet( res );
+		VkDescriptorSet				ds		 = ppln_res->Handle();
+		ArrayView<uint>				dyn_offs = res.GetDynamicOffsets();
+
+		RawDescriptorSetLayoutID	ds_layout;
+		uint						binding;
+		_pplnLayout->GetDescriptorSetLayout( id, OUT ds_layout, OUT binding );
+
+		_tp.vkCmdBindDescriptorSets( _tp._cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pplnLayout->Handle(), binding, 1, &ds, uint(dyn_offs.size()), dyn_offs.data() );
+		_tp.Stat().descriptorBinds++;
+	}
+	
+/*
+=================================================
+	PushConstants
+=================================================
+*/
+	void VTaskProcessor::DrawContext::PushConstants (const PushConstantID &id, const void *data, BytesU dataSize)
+	{
+		_BindPipeline( ALL_BITS );
+		CHECK_ERR( _pplnLayout, void());
+
+		auto	iter = _pplnLayout->GetPushConstants().find( id );
+		if ( iter != _pplnLayout->GetPushConstants().end() )
 		{
-			_changed ^= 2;
-			
-			VkPipeline	ppln_id;
-			_tp._fgThread.GetPipelineCache().CreatePipelineInstance(
-											_tp._fgThread,
-											_logicalRP,
-											*_mpipeline,
-											_renderState,
-											_dynamicStates,
-											Default,
-											OUT ppln_id, OUT _mpplnLayout );
-		
-			_tp._BindPipeline2( _logicalRP, ppln_id );
-			_tp._SetScissor( _logicalRP, Default );
+			ASSERT( uint(dataSize) == uint(iter->second.size) );
+
+			_tp.vkCmdPushConstants( _tp._cmdBuffer, _pplnLayout->Handle(), VEnumCast( iter->second.stageFlags ), uint(iter->second.offset), uint(dataSize), data );
+			_tp.Stat().pushConstants++;
 		}
 	}
 
@@ -929,7 +980,7 @@ namespace FG
 	void VTaskProcessor::DrawContext::BindVertexAttribs (const VertexInputState &value)
 	{
 		_vertexInput = value;
-		_changed	 |= 1;
+		_changed	 |= GRAPHICS_BIT;
 	}
 	
 /*
@@ -948,6 +999,7 @@ namespace FG
 			VkDeviceSize	off		{ offset };
 
 			_tp.vkCmdBindVertexBuffers( _tp._cmdBuffer, iter->second.index, 1, &vk_buf, &off );
+			_tp.Stat().vertexBufferBindings++;
 		}
 	}
 	
@@ -974,7 +1026,7 @@ namespace FG
 		CHECK_ERR( size_t(id) < _renderState.color.buffers.size(), void());
 
 		_renderState.color.buffers[ uint(id) ] = value;
-		_changed |= 3;
+		_changed |= ALL_BITS;
 	}
 	
 /*
@@ -985,7 +1037,7 @@ namespace FG
 	void VTaskProcessor::DrawContext::SetLogicOp (ELogicOp value)
 	{
 		_renderState.color.logicOp = value;
-		_changed |= 3;
+		_changed |= ALL_BITS;
 	}
 	
 /*
@@ -996,7 +1048,7 @@ namespace FG
 	void VTaskProcessor::DrawContext::SetBlendColor (const RGBA32f &value)
 	{
 		_renderState.color.blendColor = value;
-		_changed |= 3;
+		_changed |= ALL_BITS;
 	}
 	
 /*
@@ -1007,7 +1059,7 @@ namespace FG
 	void VTaskProcessor::DrawContext::SetStencilBuffer (const RenderState::StencilBufferState &value)
 	{
 		_renderState.stencil = value;
-		_changed |= 3;
+		_changed |= ALL_BITS;
 	}
 	
 /*
@@ -1018,7 +1070,7 @@ namespace FG
 	void VTaskProcessor::DrawContext::SetDepthBuffer (const RenderState::DepthBufferState &value)
 	{
 		_renderState.depth = value;
-		_changed |= 3;
+		_changed |= ALL_BITS;
 	}
 	
 /*
@@ -1029,7 +1081,7 @@ namespace FG
 	void VTaskProcessor::DrawContext::SetInputAssembly (const RenderState::InputAssemblyState &value)
 	{
 		_renderState.inputAssembly = value;
-		_changed |= 1;
+		_changed |= GRAPHICS_BIT;
 	}
 	
 /*
@@ -1040,7 +1092,7 @@ namespace FG
 	void VTaskProcessor::DrawContext::SetRasterization (const RenderState::RasterizationState &value)
 	{
 		_renderState.rasterization = value;
-		_changed |= 3;
+		_changed |= ALL_BITS;
 	}
 	
 /*
@@ -1051,7 +1103,7 @@ namespace FG
 	void VTaskProcessor::DrawContext::SetMultisample (const RenderState::MultisampleState &value)
 	{
 		_renderState.multisample = value;
-		_changed |= 3;
+		_changed |= ALL_BITS;
 	}
 	
 /*
@@ -1061,6 +1113,8 @@ namespace FG
 */
 	void VTaskProcessor::DrawContext::SetStencilCompareMask (uint value)
 	{
+		_BindPipeline( ALL_BITS );
+		_tp.vkCmdSetStencilCompareMask( _tp._cmdBuffer, VK_STENCIL_FRONT_AND_BACK, value );
 	}
 	
 /*
@@ -1070,6 +1124,8 @@ namespace FG
 */
 	void VTaskProcessor::DrawContext::SetStencilWriteMask (uint value)
 	{
+		_BindPipeline( ALL_BITS );
+		_tp.vkCmdSetStencilWriteMask( _tp._cmdBuffer, VK_STENCIL_FRONT_AND_BACK, value );
 	}
 	
 /*
@@ -1079,6 +1135,8 @@ namespace FG
 */
 	void VTaskProcessor::DrawContext::SetStencilReference (uint value)
 	{
+		_BindPipeline( ALL_BITS );
+		_tp.vkCmdSetStencilReference( _tp._cmdBuffer, VK_STENCIL_FRONT_AND_BACK, value );
 	}
 	
 /*
@@ -1086,10 +1144,46 @@ namespace FG
 	SetShadingRatePalette
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetShadingRatePalette (ArrayView<EShadingRatePalette> value)
+	void VTaskProcessor::DrawContext::SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value)
 	{
+		_BindPipeline( ALL_BITS );
+		
+		StaticArray< VkShadingRatePaletteEntryNV, 32 >	entries;
+		entries[0] = VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV;
+
+		VkShadingRatePaletteNV			palette = {};
+		palette.shadingRatePaletteEntryCount = Max( 1u, uint(value.size()) );
+		palette.pShadingRatePaletteEntries   = entries.data();
+
+		for (uint i = 0; i < value.size(); ++i) {
+			entries[i] = VEnumCast( value[i] );
+		}
+
+		_tp.vkCmdSetViewportShadingRatePaletteNV( _tp._cmdBuffer, viewportIndex, 1, &palette );
 	}
 	
+/*
+=================================================
+	BindShadingRateImage
+=================================================
+*/
+	void VTaskProcessor::DrawContext::BindShadingRateImage (RawImageID value, ImageLayer layer, MipmapLevel level)
+	{
+		auto*	image = _tp._GetResource( value );
+		CHECK_ERR( image, void());
+		
+		ImageViewDesc	desc;
+		desc.viewType	= EImage::Tex2D;
+		desc.format		= EPixelFormat::R8U;
+		desc.baseLevel	= level;
+		desc.baseLayer	= layer;
+		desc.aspectMask	= EImageAspect::Color;
+		
+		VkImageView	view = image->GetView( _tp._fgThread.GetDevice(), false, desc );
+
+		_tp._BindShadingRateImage( view );
+	}
+
 /*
 =================================================
 	DrawVertices
@@ -1097,7 +1191,9 @@ namespace FG
 */
 	void VTaskProcessor::DrawContext::DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
 	{
-		_BindGraphicsPipeline();
+		CHECK( _gpipeline );
+		_BindPipeline( GRAPHICS_BIT );
+
 		_tp.vkCmdDraw( _tp._cmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
 	}
 	
@@ -1108,7 +1204,9 @@ namespace FG
 */
 	void VTaskProcessor::DrawContext::DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
 	{
-		_BindGraphicsPipeline();
+		CHECK( _gpipeline );
+		_BindPipeline( GRAPHICS_BIT );
+
 		_tp.vkCmdDrawIndexed( _tp._cmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
 	}
 	
@@ -1120,9 +1218,11 @@ namespace FG
 	void VTaskProcessor::DrawContext::DrawVerticesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
 	{
 		auto*	buf = _tp._GetResource( indirectBuffer );
+		
 		CHECK_ERR( buf, void());
-	
-		_BindGraphicsPipeline();
+		CHECK( _gpipeline );
+
+		_BindPipeline( GRAPHICS_BIT );
 		_tp.vkCmdDrawIndirect( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
 	}
 	
@@ -1135,8 +1235,9 @@ namespace FG
 	{
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		CHECK_ERR( buf, void());
+		CHECK( _gpipeline );
 		
-		_BindGraphicsPipeline();
+		_BindPipeline( GRAPHICS_BIT );
 		_tp.vkCmdDrawIndexedIndirect( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
 	}
 	
@@ -1147,7 +1248,9 @@ namespace FG
 */
 	void VTaskProcessor::DrawContext::DrawMeshes (uint taskCount, uint firstTask)
 	{
-		_BindMeshPipeline();
+		CHECK( _mpipeline );
+		_BindPipeline( MESH_BIT );
+
 		_tp.vkCmdDrawMeshTasksNV( _tp._cmdBuffer, taskCount, firstTask );
 	}
 	
@@ -1160,8 +1263,9 @@ namespace FG
 	{
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		CHECK_ERR( buf, void());
+		CHECK( _mpipeline );
 		
-		_BindMeshPipeline();
+		_BindPipeline( MESH_BIT );
 		_tp.vkCmdDrawMeshTasksIndirectNV( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
 	}
 //-----------------------------------------------------------------------------
@@ -2574,7 +2678,7 @@ namespace FG
 		CHECK_ERR( _fgThread.GetPipelineCache().InitShaderTable(
 													_fgThread,
 													task.pipeline,
-													*task.rtScene,
+													*task.rtScene->ToGlobal(),
 													task.rayGenShader,
 													task.GetShaderGroups(),
 													task.maxRecursionDepth,
@@ -2641,8 +2745,8 @@ namespace FG
 	{
 		_CmdDebugMarker( task.Name() );
 		
-		task.RTScene()->SetGeometryInstances( task.Instances(), task.InstanceCount(),
-											  task.HitShadersPerInstance(), task.MaxHitShaderCount() );
+		task.RTScene()->ToGlobal()->SetGeometryInstances( _fgThread.GetResourceManager(), task.Instances(), task.InstanceCount(),
+														  task.HitShadersPerInstance(), task.MaxHitShaderCount() );
 
 		_AddRTScene( task.RTScene(), EResourceState::BuildRayTracingStructWrite );
 		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VK_WHOLE_SIZE );

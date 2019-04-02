@@ -30,8 +30,9 @@ namespace FG
 		Batches_t			_batches;
 		Semaphores_t		_semaphores;
 		VkFence				_fence;
-		ExeOrderIndex		_submissionOrder;
 		EQueueType			_queueType;
+
+		DataRaceCheck		_drCheck;
 
 
 	// methods
@@ -39,15 +40,15 @@ namespace FG
 		explicit VSubmitted (uint indexInPool);
 		~VSubmitted ();
 
-		void  Initialize (EQueueType queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>, VkFence, ExeOrderIndex);
-
-		ND_ VkFence		GetFence ()			const	{ return _fence; }
-		ND_ EQueueType	GetQueueType ()		const	{ return _queueType; }
+		ND_ VkFence		GetFence ()			const	{ EXLOCK( _drCheck );  return _fence; }
+		ND_ EQueueType	GetQueueType ()		const	{ EXLOCK( _drCheck );  return _queueType; }
 		ND_ uint		GetIndexInPool ()	const	{ return _indexInPool; }
 
 
 	private:
-		bool _Release (VDevice const&, VDebugger &, const IFrameGraph::ShaderDebugCallback_t &, OUT Array<VkSemaphore> &, OUT Array<VkFence> &);
+		void _Initialize (const VDevice &, EQueueType queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>);
+		void _Release (const VDevice &, VDebugger &, const IFrameGraph::ShaderDebugCallback_t &);
+		void _Destroy (const VDevice &);
 	};
 
 

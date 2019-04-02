@@ -160,6 +160,14 @@
 
 // log
 // (text, file, line)
+#ifndef FG_LOGD
+# ifdef FG_DEBUG
+#	define FG_LOGD	FG_LOGI
+# else
+#	define FG_LOGD( ... )
+# endif
+#endif
+
 #ifndef FG_LOGI
 #	define FG_LOGI( ... ) \
 			FG_PRIVATE_LOGI(FG_PRIVATE_GETARG_0( __VA_ARGS__, "" ), \
@@ -323,10 +331,10 @@
 #	pragma detect_mismatch( "FG_FAST_HASH", "0" )
 #  endif
 
-#  ifdef FG_ENABLE_RACE_CONDITION_CHECK
-#	pragma detect_mismatch( "FG_ENABLE_RACE_CONDITION_CHECK", "1" )
+#  ifdef FG_ENABLE_DATA_RACE_CHECK
+#	pragma detect_mismatch( "FG_ENABLE_DATA_RACE_CHECK", "1" )
 #  else
-#	pragma detect_mismatch( "FG_ENABLE_RACE_CONDITION_CHECK", "0" )
+#	pragma detect_mismatch( "FG_ENABLE_DATA_RACE_CHECK", "0" )
 #  endif
 
 #endif	// COMPILER_MSVC or COMPILER_CLANG

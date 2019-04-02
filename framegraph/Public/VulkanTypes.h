@@ -46,7 +46,7 @@ namespace FG
 	// types
 		struct QueueInfo
 		{
-			QueueVk_t			id				= null;
+			QueueVk_t			handle			= null;
 			uint				familyIndex		= UMax;
 			QueueFlagsVk_t		familyFlags		= {};
 			float				priority		= 0.0f;

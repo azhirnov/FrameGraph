@@ -75,7 +75,7 @@ namespace FG
 */
 	bool VGraphicsPipeline::Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		
 		for (auto& stage : desc._shaders)
 		{
@@ -108,7 +108,7 @@ namespace FG
 */
 	void VGraphicsPipeline::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		auto&	dev = resMngr.GetDevice();
 

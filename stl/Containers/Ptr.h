@@ -28,6 +28,7 @@ namespace FGC
 
 		ND_ T *		operator -> ()					const	{ ASSERT( _value );  return _value; }
 		ND_ T &		operator *  ()					const	{ ASSERT( _value );  return *_value; }
+		ND_ T *		get ()							const	{ return _value; }
 
 		ND_ explicit operator T * ()				const	{ return _value; }
 

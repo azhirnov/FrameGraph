@@ -45,7 +45,7 @@ namespace FG
 */
 	void VSwapchain::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( not _IsImageAcquired(), void());
 		
 		auto&	dev = resMngr.GetDevice();
@@ -86,7 +86,7 @@ namespace FG
 */
 	bool VSwapchain::Acquire (VCommandBuffer &fgThread, ESwapchainImage type, OUT RawImageID &outImageId) const
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( _vkSwapchain );
 		CHECK_ERR( type == ESwapchainImage::Primary );
 		
@@ -121,7 +121,7 @@ namespace FG
 */
 	bool VSwapchain::Present (const VDevice &dev) const
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( not _IsImageAcquired() )
 			return true;	// TODO ?
@@ -615,7 +615,7 @@ namespace FG
 */
 	bool VSwapchain::Create (VFrameGraph &fg, const VulkanSwapchainCreateInfo &info, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _vkSwapchain )
 		{

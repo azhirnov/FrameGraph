@@ -34,7 +34,7 @@ namespace FG
 		DebugName_t				_debugName;
 		OnRelease_t				_onRelease;
 
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 
 	// methods
@@ -56,17 +56,17 @@ namespace FG
 
 		ND_ bool				IsReadOnly ()			const;
 
-		ND_ VkBuffer			Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _buffer; }
-		ND_ RawMemoryID			GetMemoryID ()			const	{ SHAREDLOCK( _rcCheck );  return _memoryId.Get(); }
+		ND_ VkBuffer			Handle ()				const	{ SHAREDLOCK( _drCheck );  return _buffer; }
+		ND_ RawMemoryID			GetMemoryID ()			const	{ SHAREDLOCK( _drCheck );  return _memoryId.Get(); }
 
-		ND_ BufferDesc const&	Description ()			const	{ SHAREDLOCK( _rcCheck );  return _desc; }
-		ND_ BytesU				Size ()					const	{ SHAREDLOCK( _rcCheck );  return _desc.size; }
+		ND_ BufferDesc const&	Description ()			const	{ SHAREDLOCK( _drCheck );  return _desc; }
+		ND_ BytesU				Size ()					const	{ SHAREDLOCK( _drCheck );  return _desc.size; }
 		
-		ND_ VkAccessFlags		GetAllReadAccessMask ()	const	{ SHAREDLOCK( _rcCheck );  return _readAccessMask; }
+		ND_ VkAccessFlags		GetAllReadAccessMask ()	const	{ SHAREDLOCK( _drCheck );  return _readAccessMask; }
 
-		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask == Default; }
-		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _rcCheck );  return _queueFamilyMask; }
-		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask == Default; }
+		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask; }
+		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 	};
 	
 

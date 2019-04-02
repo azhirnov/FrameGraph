@@ -52,7 +52,7 @@ namespace FG
 */
 	bool VFramebuffer::IsAllResourcesAlive (const VResourceManager &resMngr) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 
 		for (auto& attach : _attachments)
 		{
@@ -69,8 +69,8 @@ namespace FG
 */
 	bool VFramebuffer::operator == (const VFramebuffer &rhs) const
 	{
-		SHAREDLOCK( _rcCheck );
-		SHAREDLOCK( rhs._rcCheck );
+		SHAREDLOCK( _drCheck );
+		SHAREDLOCK( rhs._drCheck );
 
 		if ( _hash != rhs._hash )
 			return false;
@@ -88,7 +88,7 @@ namespace FG
 */
 	VFramebuffer::VFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		ASSERT( not attachments.empty() );
 
 		_attachments	= attachments;
@@ -110,7 +110,7 @@ namespace FG
 */
 	bool VFramebuffer::Create (VResourceManager &resMngr, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( not _framebuffer );
 		CHECK_ERR( _renderPassId );
 
@@ -152,7 +152,7 @@ namespace FG
 */
 	void VFramebuffer::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _framebuffer ) {
 			auto&	dev = resMngr.GetDevice();

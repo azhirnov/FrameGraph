@@ -45,7 +45,7 @@ namespace FG
 */
 	bool VMeshPipeline::Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		
 		for (auto& stage : desc._shaders)
 		{
@@ -76,7 +76,7 @@ namespace FG
 */
 	void VMeshPipeline::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		auto&	dev = resMngr.GetDevice();
 

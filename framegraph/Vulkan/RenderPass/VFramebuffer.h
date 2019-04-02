@@ -31,7 +31,7 @@ namespace FG
 		
 		DebugName_t				_debugName;
 		
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 		
 	// methods
@@ -50,11 +50,11 @@ namespace FG
 
 		ND_ bool  operator == (const VFramebuffer &rhs) const;
 
-		ND_ VkFramebuffer		Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _framebuffer; }
-		ND_ RawRenderPassID		GetRenderPassID ()	const	{ SHAREDLOCK( _rcCheck );  return _renderPassId; }
-		ND_ uint2 const&		Dimension ()		const	{ SHAREDLOCK( _rcCheck );  return _dimension; }
-		ND_ uint				Layers ()			const	{ SHAREDLOCK( _rcCheck );  return _layers.Get(); }
-		ND_ HashVal				GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }
+		ND_ VkFramebuffer		Handle ()			const	{ SHAREDLOCK( _drCheck );  return _framebuffer; }
+		ND_ RawRenderPassID		GetRenderPassID ()	const	{ SHAREDLOCK( _drCheck );  return _renderPassId; }
+		ND_ uint2 const&		Dimension ()		const	{ SHAREDLOCK( _drCheck );  return _dimension; }
+		ND_ uint				Layers ()			const	{ SHAREDLOCK( _drCheck );  return _layers.Get(); }
+		ND_ HashVal				GetHash ()			const	{ SHAREDLOCK( _drCheck );  return _hash; }
 	};
 
 

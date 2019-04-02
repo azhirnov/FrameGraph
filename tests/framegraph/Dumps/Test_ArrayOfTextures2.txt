@@ -30,7 +30,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#11)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | TransferRead
@@ -414,7 +414,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#11)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

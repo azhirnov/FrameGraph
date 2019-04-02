@@ -9,7 +9,7 @@ CommandBuffer {
 					srcTask:         ReadBuffer (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -50,7 +50,7 @@ CommandBuffer {
 					srcTask:         DispatchCompute (#3)
 					dstTask:         <final>
 					srcStageMask:    ComputeShader
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   UniformRead | ShaderWrite
 					dstAccessMask:   UniformRead | ShaderRead | TransferRead
@@ -61,7 +61,7 @@ CommandBuffer {
 					srcTask:         DispatchCompute (#3)
 					dstTask:         <final>
 					srcStageMask:    ComputeShader
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   ShaderWrite
 					dstAccessMask:   UniformRead | ShaderRead | TransferRead

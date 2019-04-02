@@ -13,10 +13,13 @@ static void FixedMap_Test1 ()
 		map.insert({ i, i });
 	}
 
-	TEST( map.find( 5 ) != map.end() );
-	TEST( map.find( 2 ) != map.end() );
-	TEST( map.find( 7 ) != map.end() );
-	TEST( map.find( 11 ) == map.end() );
+	TEST( map.size() == 10 );
+
+	auto	iter = map.begin();
+	iter = map.find( 5 );	TEST( iter != map.end() );	TEST( iter->first == 5 );
+	iter = map.find( 2 );	TEST( iter != map.end() );	TEST( iter->first == 2 );
+	iter = map.find( 7 );	TEST( iter != map.end() );	TEST( iter->first == 7 );
+	iter = map.find( 11 );	TEST( iter == map.end() );
 }
 
 
@@ -27,11 +30,15 @@ static void FixedMap_Test2 ()
 	for (uint i = 0; i < 10; ++i) {
 		map.insert({ i, i });
 	}
+	
+	TEST( map.size() == 10 );
 
-	TEST( map.count( 5 ) == 1 );
-	TEST( map.count( 2 ) == 1 );
-	TEST( map.count( 7 ) == 1 );
-	TEST( map.count( 11 ) == 0 );
+	size_t	count;
+	count = map.count( 5 );		TEST( count == 1 );
+	count = map.count( 2 );		TEST( count == 1 );
+	count = map.count( 7 );		TEST( count == 1 );
+	count = map.count( -2 );	TEST( count == 0 );
+	count = map.count( 11 );	TEST( count == 0 );
 }
 
 
@@ -39,6 +46,9 @@ static void FixedMap_Test3 ()
 {
 	using T1 = DebugInstanceCounter< int, 1 >;
 	using T2 = DebugInstanceCounter< int, 2 >;
+
+	T1::ClearStatistic();
+	T2::ClearStatistic();
 	{
 		FixedMap< T1, T2, 32 >	map;
 
@@ -47,6 +57,8 @@ static void FixedMap_Test3 ()
 			for (int i = 0; i < 30; ++i) {
 				map.insert({ T1(i), T2(i) });
 			}
+
+			TEST( map.size() == 30 );
 			map.clear();
 		}
 	}
@@ -63,6 +75,7 @@ static void FixedMap_Test4 ()
 		map.insert({ i, i*2 });
 	}
 
+	TEST( map.size() == 10 );
 	TEST( map.insert({ 10, 0 }).second );
 	TEST( not map.insert({ 1, 0 }).second );
 }
@@ -79,12 +92,15 @@ static void FixedMap_Test5 ()
 	map1.insert({  9, 4 });
 	map1.insert({  3, 5 });
 
-	map2.insert({ 11, 1 });
-	map2.insert({  3, 2 });
+	map2.insert({ 11, 2 });
+	map2.insert({  3, 5 });
 	map2.insert({  6, 3 });
-	map2.insert({  1, 4 });
-	map2.insert({  9, 5 });
-
+	map2.insert({  1, 1 });
+	map2.insert({  9, 4 });
+	
+	TEST( map1.size() == 5 );
+	TEST( map1.size() == 5 );
+	TEST( map1 == map2 );
 	TEST( map1.CalcHash() == map2.CalcHash() );
 }
 

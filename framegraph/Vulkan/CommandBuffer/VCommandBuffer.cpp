@@ -18,7 +18,9 @@ namespace {
 =================================================
 */
 	VCommandBuffer::VCommandBuffer (VFrameGraph &fg, uint index) :
-		_instance{ fg },	_indexInPool{ index }
+		_state{ EState::Initial },
+		_instance{ fg },
+		_indexInPool{ index }
 	{
 		_mainAllocator.SetBlockSize( 16_Mb );
 
@@ -32,11 +34,11 @@ namespace {
 */
 	VCommandBuffer::~VCommandBuffer ()
 	{
-		EXLOCK( _rcCheck );
-		CHECK( not IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK( _state == EState::Initial );
 
 		for (auto& q : _perQueue) {
-			q.cmdPool.Destroy( GetDevice() );
+			q.Destroy( GetDevice() );
 		}
 		_perQueue.clear();
 	}
@@ -46,26 +48,28 @@ namespace {
 	Begin
 =================================================
 */
-	bool VCommandBuffer::Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch)
+	bool VCommandBuffer::Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( batch );
+		CHECK_ERR( _state == EState::Initial );
 
-		_currUsage	= EQueueUsage(0) | desc.queueType;
 		_batch		= batch;
 		_dbgName	= desc.name;
+		_state		= EState::Recording;
+		_queueIndex	= queue->familyIndex;
 		
 		// create command pool
 		{
-			const uint	index = uint(_batch->GetQueue()->familyIndex);
+			const uint	index = uint(_queueIndex);
 
 			_perQueue.resize( Max( _perQueue.size(), index+1 ));
 			
-			auto&	pool = _perQueue[index].cmdPool;
+			auto&	pool = _perQueue[index];
 
 			if ( not pool.IsCreated() )
 			{
-				CHECK_ERR( pool.Create( GetDevice(), _batch->GetQueue() ));
+				CHECK_ERR( pool.Create( GetDevice(), queue ));
 			}
 		}
 		
@@ -82,7 +86,6 @@ namespace {
 		else
 			_debugger.reset();
 
-
 		_taskGraph.OnStart( GetAllocator() );
 		return true;
 	}
@@ -94,8 +97,10 @@ namespace {
 */
 	bool  VCommandBuffer::Execute ()
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+
+		_state = EState::Compiling;
 
 		CHECK_ERR( _BuildCommandBuffers() );
 		
@@ -108,6 +113,7 @@ namespace {
 		_taskGraph.OnDiscardMemory();
 		_AfterCompilation();
 
+		_state = EState::Initial;
 		return true;
 	}
 	
@@ -129,7 +135,7 @@ namespace {
 				_rm.logicalRenderPasses.Unassign( Index_t(i) );
 			}
 		}
-		_rm.logicalRenderPassCount	= 0;
+		_rm.logicalRenderPassCount = 0;
 	}
 
 /*
@@ -139,8 +145,8 @@ namespace {
 */
 	void VCommandBuffer::SignalSemaphore (VkSemaphore sem)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
 
 		_batch->SignalSemaphore( sem );
 	}
@@ -152,8 +158,8 @@ namespace {
 */
 	void VCommandBuffer::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
 
 		_batch->WaitSemaphore( sem, stage );
 	}
@@ -173,10 +179,10 @@ namespace {
 		
 		// create command buffer
 		{
-			auto&	q = _perQueue[ uint(_batch->GetQueue()->familyIndex) ];
+			auto&	pool = _perQueue[ uint(_queueIndex) ];
 			
-			cmd = q.cmdPool.AllocPrimary( dev );
-			_batch->PushBackCommandBuffer( cmd, &q.cmdPool );
+			cmd = pool.AllocPrimary( dev );
+			_batch->PushBackCommandBuffer( cmd, &pool );
 		}
 
 		// begin
@@ -199,10 +205,8 @@ namespace {
 		// transit image layout to default state
 		// add memory dependency to flush caches
 		{
-			//auto	batch_exe_order = _submissionGraph->GetExecutionOrder( _cmdBatchId, _indexInBatch );
-
-			_FlushLocalResourceStates( ExeOrderIndex::Final, ExeOrderIndex::First, _barrierMngr, GetDebugger() );
-			_barrierMngr.Commit( dev, cmd );
+			_FlushLocalResourceStates( ExeOrderIndex::Final, _barrierMngr, GetDebugger() );
+			_barrierMngr.ForceCommit( dev, cmd, dev.GetAllWritableStages(), dev.GetAllReadableStages() );
 		}
 
 		_batch->EndShaderDebugger( cmd );
@@ -228,7 +232,7 @@ namespace {
 		if ( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddTask( _currTask );
 
-		Cast<VFrameGraphTask>( node )->Process( this );
+		node->Process( this );
 	}
 
 /*
@@ -251,7 +255,7 @@ namespace {
 		{
 			for (auto iter = pending.begin(); iter != pending.end();)
 			{
-				auto	node = Cast<VFrameGraphTask>( *iter );
+				auto	node = *iter;
 				
 				if ( node->VisitorID() == visitor_id ) {
 					++iter;
@@ -299,8 +303,8 @@ namespace {
 */
 	RawImageID	VCommandBuffer::GetSwapchainImage (RawSwapchainID swapchainId, ESwapchainImage type)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
 
 		auto*	swapchain = AcquireTemporary( swapchainId );
 		CHECK_ERR( swapchain );
@@ -320,12 +324,12 @@ namespace {
 */
 	bool  VCommandBuffer::AddExternalCommands (const ExternalCmdBatch_t &desc)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
 
 		auto*	info = UnionGetIf< VulkanCommandBatch >( &desc );
 		CHECK_ERR( info );
-		CHECK_ERR( info->queueFamilyIndex == uint(_batch->GetQueue()->familyIndex) );
+		CHECK_ERR( info->queueFamilyIndex == uint(_queueIndex) );
 
 		for (auto& cmd : info->commands) {
 			_batch->PushBackCommandBuffer( BitCast<VkCommandBuffer>(cmd), null );
@@ -347,9 +351,11 @@ namespace {
 */
 	bool  VCommandBuffer::AddDependency (const CommandBuffer &cmd)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( cmd.GetBatch() );
-		CHECK_ERR( IsRecording() );
+		if ( not cmd.GetBatch() )
+			return false;
+
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
 
 		_batch->AddDependency( Cast<VCmdBatch>(cmd.GetBatch()) );
 		return true;
@@ -362,8 +368,8 @@ namespace {
 */
 	bool  VCommandBuffer::AllocBuffer (BytesU size, OUT RawBufferID &buffer, OUT BytesU &offset, OUT void* &mapped)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling );
 
 		BytesU	buf_size;
 		return _batch->GetWritable( size, 1_b, 16_b, size, OUT buffer, OUT offset, OUT buf_size, OUT mapped );
@@ -376,8 +382,8 @@ namespace {
 */
 	void  VCommandBuffer::AcquireImage (RawImageID id, bool makeMutable, bool invalidate)
 	{
-		EXLOCK( _rcCheck );
-		CHECK( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK( _IsRecording() );
 
 		auto*	image = ToLocal( id );
 		if ( image ) {
@@ -392,8 +398,8 @@ namespace {
 */
 	void  VCommandBuffer::AcquireBuffer (RawBufferID id, bool makeMutable)
 	{
-		EXLOCK( _rcCheck );
-		CHECK( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK( _IsRecording() );
 
 		auto*	buffer = ToLocal( id );
 		if ( buffer ) {
@@ -408,9 +414,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const SubmitRenderPass &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, GraphicsBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
 
 		auto*	rp_task = _taskGraph.Add( *this, task );
 
@@ -427,9 +433,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const DispatchCompute &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, ComputeBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -441,9 +447,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const DispatchComputeIndirect &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, ComputeBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -455,9 +461,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const CopyBuffer &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, TransferBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -472,9 +478,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const CopyImage &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, TransferBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -489,9 +495,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const CopyBufferToImage &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, TransferBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -506,9 +512,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const CopyImageToBuffer &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, TransferBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -523,9 +529,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const BlitImage &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, GraphicsBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -540,9 +546,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const ResolveImage &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, GraphicsBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -557,9 +563,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const GenerateMipmaps &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, GraphicsBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -571,8 +577,8 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const FillBuffer &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -584,9 +590,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const ClearColorImage &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, ComputeBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -598,9 +604,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const ClearDepthStencilImage &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, ComputeBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -612,15 +618,14 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const UpdateBuffer &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, TransferBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
 
 		return _AddUpdateBufferTask( task );
-		//return _taskGraph.Add( *this, task );
 	}
 	
 /*
@@ -670,9 +675,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const UpdateImage &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, TransferBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
 		if ( All( task.imageSize == uint3(0) ) )
 			return null;	// TODO: is it an error?
@@ -800,9 +805,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const ReadBuffer &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, TransferBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.size == 0 )
 			return null;	// TODO: is it an error?
@@ -863,9 +868,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const ReadImage &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, TransferBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
 		if ( All( task.imageSize == uint3(0) ) )
 			return null;	// TODO: is it an error?
@@ -988,8 +993,8 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const Present &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
 
 		auto	vtask = _taskGraph.Add( *this, task );
 
@@ -1006,8 +1011,8 @@ namespace {
 *
 	Task  VCommandBuffer::AddTask (const PresentVR &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -1061,9 +1066,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const UpdateRayTracingShaderTable &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, RayTracingBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -1075,9 +1080,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const BuildRayTracingGeometry &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, RayTracingBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
 		
 		auto*	result	= _taskGraph.Add( *this, task );
 		auto*	geom	= ToLocal( task.rtGeometry );
@@ -1096,7 +1101,7 @@ namespace {
 		GetDevice().vkGetAccelerationStructureMemoryRequirementsNV( GetDevice().GetVkDevice(), &as_info, OUT &mem_req );
 
 		// TODO: virtual buffer or buffer cache
-		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, Default );
+		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, "ScratchBuffer" );
 		result->_scratchBuffer = ToLocal( buf.Get() );
 		ReleaseResource( buf.Release() );
 		
@@ -1250,9 +1255,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const BuildRayTracingScene &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, RayTracingBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
 		
 		auto*	result	= _taskGraph.Add( *this, task );
 		auto*	scene	= ToLocal( task.rtScene );
@@ -1270,7 +1275,7 @@ namespace {
 		GetDevice().vkGetAccelerationStructureMemoryRequirementsNV( GetDevice().GetVkDevice(), &as_info, OUT &mem_req );
 		
 		// TODO: virtual buffer or buffer cache
-		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, Default );
+		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, "ScratchBuffer" );
 		result->_scratchBuffer = ToLocal( buf.Get() );
 		ReleaseResource( buf.Release() );
 
@@ -1299,7 +1304,7 @@ namespace {
 			ASSERT( src.geometryId );
 			ASSERT( (src.customId >> 24) == 0 );
 
-			blas = ToLocal( src.geometryId );	// TODO: add reference
+			blas = ToLocal( src.geometryId );
 			CHECK_ERR( blas );
 
 			dst.blasHandle		= blas->BLASHandle();
@@ -1326,9 +1331,9 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const TraceRays &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, RayTracingBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -1340,8 +1345,8 @@ namespace {
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVertices &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1359,8 +1364,8 @@ namespace {
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexed &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1378,8 +1383,8 @@ namespace {
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawMeshes &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1397,8 +1402,8 @@ namespace {
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVerticesIndirect &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1416,8 +1421,8 @@ namespace {
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexedIndirect &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1435,8 +1440,8 @@ namespace {
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawMeshesIndirect &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1454,8 +1459,8 @@ namespace {
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const CustomDraw &task)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording(), void());
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1487,9 +1492,9 @@ namespace {
 */
 	LogicalPassID  VCommandBuffer::CreateRenderPass (const RenderPassDesc &desc)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
-		ASSERT( EnumAny( _currUsage, GraphicsBit ));
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
 
 		Index_t		index = 0;
 		CHECK_ERR( _rm.logicalRenderPasses.Assign( OUT index ));
@@ -1515,67 +1520,63 @@ namespace {
 	_FlushLocalResourceStates
 =================================================
 */
-	void  VCommandBuffer::_FlushLocalResourceStates (ExeOrderIndex index, ExeOrderIndex batchExeOrder,
-													 VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger)
+	void  VCommandBuffer::_FlushLocalResourceStates (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger)
 	{
 		// reset state & destroy local images
-		for (uint i = 0; i < _rm.localImagesCount; ++i)
+		for (uint i = 0; i < _rm.images.maxLocalIndex; ++i)
 		{
-			auto&	image = _rm.localImages[ Index_t(i) ];
+			auto&	image = _rm.images.pool[ Index_t(i) ];
 
 			if ( not image.IsDestroyed() )
 			{
 				image.Data().ResetState( index, barrierMngr, debugger );
 				image.Destroy();
-				_rm.localImages.Unassign( Index_t(i) );
+				_rm.images.pool.Unassign( Index_t(i) );
 			}
 		}
+		_rm.images.maxLocalIndex = 0;
 		
 		// reset state & destroy local buffers
-		for (uint i = 0; i < _rm.localBuffersCount; ++i)
+		for (uint i = 0; i < _rm.buffers.maxLocalIndex; ++i)
 		{
-			auto&	buffer = _rm.localBuffers[ Index_t(i) ];
+			auto&	buffer = _rm.buffers.pool[ Index_t(i) ];
 
 			if ( not buffer.IsDestroyed() )
 			{
 				buffer.Data().ResetState( index, barrierMngr, debugger );
 				buffer.Destroy();
-				_rm.localBuffers.Unassign( Index_t(i) );
+				_rm.buffers.pool.Unassign( Index_t(i) );
 			}
 		}
+		_rm.buffers.maxLocalIndex = 0;
 	
 		// reset state & destroy local ray tracing geometries
-		for (uint i = 0; i < _rm.localRTGeometryCount; ++i)
+		for (uint i = 0; i < _rm.rtGeometries.maxLocalIndex; ++i)
 		{
-			auto&	geometry = _rm.localRTGeometries[ Index_t(i) ];
+			auto&	geometry = _rm.rtGeometries.pool[ Index_t(i) ];
 
 			if ( not geometry.IsDestroyed() )
 			{
 				geometry.Data().ResetState( index, barrierMngr, debugger );
 				geometry.Destroy();
-				_rm.localRTGeometries.Unassign( Index_t(i) );
+				_rm.rtGeometries.pool.Unassign( Index_t(i) );
 			}
 		}
+		_rm.rtGeometries.maxLocalIndex = 0;
 
 		// merge & destroy ray tracing scenes
-		for (uint i = 0; i < _rm.localRTSceneCount; ++i)
+		for (uint i = 0; i < _rm.rtScenes.maxLocalIndex; ++i)
 		{
-			auto&	scene = _rm.localRTScenes[ Index_t(i) ];
+			auto&	scene = _rm.rtScenes.pool[ Index_t(i) ];
 
 			if ( not scene.IsDestroyed() )
 			{
-				// TODO
-				/*if ( scene.Data().HasUncommitedChanges() )
-				{
-					_syncTasks.emplace_back( [this, obj = scene.Data().ToGlobal()] () {
-												obj->CommitChanges( this->GetFrameIndex() );
-											});
-				}*/
 				scene.Data().ResetState( index, barrierMngr, debugger );
-				scene.Destroy( GetResourceManager(), batchExeOrder, GetResourceManager().GetSubmitIndex() );
-				_rm.localRTScenes.Unassign( Index_t(i) );
+				scene.Destroy();
+				_rm.rtScenes.pool.Unassign( Index_t(i) );
 			}
 		}
+		_rm.rtScenes.maxLocalIndex = 0;
 		
 		_ResetLocalRemaping();
 	}
@@ -1585,36 +1586,42 @@ namespace {
 	_ToLocal
 =================================================
 */
-	template <typename ID, typename T, typename GtoL>
-	inline T const*  VCommandBuffer::_ToLocal (ID id, INOUT PoolTmpl<T> &localPool, INOUT GtoL &globalToLocal, INOUT uint &counter, StringView msg)
+	template <typename ID, typename Res, typename MainPool, size_t MC>
+	inline Res const*  VCommandBuffer::_ToLocal (ID id, INOUT LocalResPool<Res,MainPool,MC> &localRes, StringView msg)
 	{
-		EXLOCK( _rcCheck );
-		CHECK_ERR( IsRecording() );
+		EXLOCK( _drCheck );
+		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling );
 
-		if ( id.Index() >= globalToLocal.size() )
+		if ( id.Index() >= localRes.toLocal.size() )
 			return null;
 
-		Index_t&	local = globalToLocal[ id.Index() ];
+		Index_t&	local = localRes.toLocal[ id.Index() ];
 
 		if ( local != UMax )
-			return &(localPool[ local ].Data());
+		{
+			Res const*  result = &(localRes.pool[ local ].Data());
+			ASSERT( result->ToGlobal() );
+			return result;
+		}
 
 		auto*	res  = AcquireTemporary( id );
 		if ( not res )
 			return null;
 
-		CHECK_ERR( localPool.Assign( OUT local ));
+		CHECK_ERR( localRes.pool.Assign( OUT local ));
 
-		auto&	data = localPool[ local ];
+		auto&	data = localRes.pool[ local ];
 		Replace( data );
 		
 		if ( not data.Create( res ) )
 		{
-			localPool.Unassign( local );
+			localRes.pool.Unassign( local );
 			RETURN_ERR( msg );
 		}
 
-		counter = Max( uint(local)+1, counter );
+		localRes.maxLocalIndex  = Max( uint(local)+1, localRes.maxLocalIndex );
+		localRes.maxGlobalIndex = Max( uint(id.Index())+1, localRes.maxGlobalIndex );
+
 		return &(data.Data());
 	}
 	
@@ -1625,28 +1632,28 @@ namespace {
 */
 	VLocalBuffer const*  VCommandBuffer::ToLocal (RawBufferID id)
 	{
-		return _ToLocal( id, _rm.localBuffers, _rm.bufferToLocal, _rm.localBuffersCount, "failed when creating local buffer" );
+		return _ToLocal( id, _rm.buffers, "failed when creating local buffer" );
 	}
 
 	VLocalImage const*  VCommandBuffer::ToLocal (RawImageID id)
 	{
-		return _ToLocal( id, _rm.localImages, _rm.imageToLocal, _rm.localImagesCount, "failed when creating local image" );
+		return _ToLocal( id, _rm.images, "failed when creating local image" );
 	}
 
 	VLocalRTGeometry const*  VCommandBuffer::ToLocal (RawRTGeometryID id)
 	{
-		return _ToLocal( id, _rm.localRTGeometries, _rm.rtGeometryToLocal, _rm.localRTGeometryCount, "failed when creating local ray tracing geometry" );
+		return _ToLocal( id, _rm.rtGeometries, "failed when creating local ray tracing geometry" );
 	}
 
 	VLocalRTScene const*  VCommandBuffer::ToLocal (RawRTSceneID id)
 	{
-		return _ToLocal( id, _rm.localRTScenes, _rm.rtSceneToLocal, _rm.localRTSceneCount, "failed when creating local ray tracing scene" );
+		return _ToLocal( id, _rm.rtScenes, "failed when creating local ray tracing scene" );
 	}
 	
 	VLogicalRenderPass*  VCommandBuffer::ToLocal (LogicalPassID id)
 	{
 		ASSERT( id );
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		auto&	data = _rm.logicalRenderPasses[ id.Index() ];
 		ASSERT( data.IsCreated() );
@@ -1661,15 +1668,15 @@ namespace {
 */
 	void VCommandBuffer::_ResetLocalRemaping ()
 	{
-		memset( _rm.imageToLocal.data(), ~0u, size_t(ArraySizeOf(_rm.imageToLocal)) );
-		memset( _rm.bufferToLocal.data(), ~0u, size_t(ArraySizeOf(_rm.bufferToLocal)) );
-		memset( _rm.rtSceneToLocal.data(), ~0u, size_t(ArraySizeOf(_rm.rtSceneToLocal)) );
-		memset( _rm.rtGeometryToLocal.data(), ~0u, size_t(ArraySizeOf(_rm.rtGeometryToLocal)) );
+		memset( _rm.images.toLocal.data(), ~0u, sizeof(Index_t)*_rm.images.maxGlobalIndex );
+		memset( _rm.buffers.toLocal.data(), ~0u, sizeof(Index_t)*_rm.buffers.maxGlobalIndex );
+		memset( _rm.rtScenes.toLocal.data(), ~0u, sizeof(Index_t)*_rm.rtScenes.maxGlobalIndex );
+		memset( _rm.rtGeometries.toLocal.data(), ~0u, sizeof(Index_t)*_rm.rtGeometries.maxGlobalIndex );
 
-		_rm.localImagesCount		= 0;
-		_rm.localBuffersCount		= 0;
-		_rm.localRTGeometryCount	= 0;
-		_rm.localRTSceneCount		= 0;
+		_rm.images.maxGlobalIndex		= 0;
+		_rm.buffers.maxGlobalIndex		= 0;
+		_rm.rtScenes.maxGlobalIndex		= 0;
+		_rm.rtGeometries.maxGlobalIndex	= 0;
 	}
 //-----------------------------------------------------------------------------
 

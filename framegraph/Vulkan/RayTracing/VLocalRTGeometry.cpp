@@ -64,7 +64,7 @@ namespace FG
 		_pendingAccesses.access		= EResourceState_ToAccess( gs.state );
 		_pendingAccesses.isReadable	= EResourceState_IsReadable( gs.state );
 		_pendingAccesses.isWritable	= EResourceState_IsWritable( gs.state );
-		_pendingAccesses.index		= Cast<VFrameGraphTask>(gs.task)->ExecutionOrder();
+		_pendingAccesses.index		= gs.task->ExecutionOrder();
 	}
 
 /*
@@ -79,7 +79,7 @@ namespace FG
 		// add full range barrier
 		_pendingAccesses.isReadable	= true;
 		_pendingAccesses.isWritable	= false;
-		_pendingAccesses.stages		= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		_pendingAccesses.stages		= 0;
 		_pendingAccesses.access		= 0;
 		_pendingAccesses.index		= index;
 
@@ -105,10 +105,10 @@ namespace FG
 			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 			barrier.srcAccessMask	= _accessForReadWrite.access;
 			barrier.dstAccessMask	= _pendingAccesses.access;
-			barrierMngr.AddMemoryBarrier( _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
+			barrierMngr.AddMemoryBarrier( _accessForReadWrite.stages, _pendingAccesses.stages, barrier );
 
 			if ( debugger ) {
-				debugger->AddRayTracingBarrier( _rtGeometryData, _accessForReadWrite.index, _pendingAccesses.index,
+				debugger->AddRayTracingBarrier( _rtGeometryData.get(), _accessForReadWrite.index, _pendingAccesses.index,
 											    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
 			}
 			_accessForReadWrite = _pendingAccesses;

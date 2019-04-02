@@ -4,7 +4,7 @@
 
 
 #ifdef FG_DEBUG
-#	define FG_ENABLE_RACE_CONDITION_CHECK
+#	define FG_ENABLE_DATA_RACE_CHECK
 #else
 //#	define FG_OPTIMAL_MEMORY_ORDER
 #endif

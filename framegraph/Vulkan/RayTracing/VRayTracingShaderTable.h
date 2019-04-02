@@ -54,7 +54,7 @@ namespace FG
 
 		DebugName_t					_debugName;
 
-		RWRaceConditionCheck		_rcCheck;
+		RWDataRaceCheck				_drCheck;
 
 
 	// methods
@@ -72,9 +72,9 @@ namespace FG
 						  OUT VkDeviceSize &rayHitOffset, OUT VkDeviceSize &rayHitStride,
 						  OUT VkDeviceSize &callableOffset, OUT VkDeviceSize &callableStride) const;
 		
-		ND_ RawRTPipelineID	GetPipeline ()	const	{ SHAREDLOCK( _rcCheck );  return _pipelineId.Get(); }
-		ND_ RawBufferID		GetBuffer ()	const	{ SHAREDLOCK( _rcCheck );  return _bufferId.Get(); }
-		ND_ StringView		GetDebugName ()	const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ RawRTPipelineID	GetPipeline ()	const	{ SHAREDLOCK( _drCheck );  return _pipelineId.Get(); }
+		ND_ RawBufferID		GetBuffer ()	const	{ SHAREDLOCK( _drCheck );  return _bufferId.Get(); }
+		ND_ StringView		GetDebugName ()	const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 	};
 
 

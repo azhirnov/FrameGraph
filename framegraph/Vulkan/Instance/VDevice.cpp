@@ -15,7 +15,10 @@ namespace FG
 		_vkPhysicalDevice{ BitCast<VkPhysicalDevice>( vdi.physicalDevice )},
 		_vkDevice{ BitCast<VkDevice>( vdi.device )},
 		_vkVersion{ EShaderLangFormat::Unknown },
-		_availableQueues{ Default }
+		_availableQueues{ Default },
+		_graphicsShaderStages{ EResourceState::_VertexShader | EResourceState::_FragmentShader },
+		_allWritableStages{ VK_PIPELINE_STAGE_ALL_COMMANDS_BIT },
+		_allReadableStages{ VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT }
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
 
@@ -31,7 +34,7 @@ namespace FG
 			auto&	props = queue_properties[src.familyIndex];
 
 			VDeviceQueueInfo	dst = {};
-			dst.handle		= BitCast<VkQueue>( src.id );
+			dst.handle		= BitCast<VkQueue>( src.handle );
 			dst.familyFlags	= BitCast<VkQueueFlags>( src.familyFlags );
 			dst.familyIndex	= EQueueFamily(src.familyIndex);
 			dst.priority	= src.priority;
@@ -126,6 +129,19 @@ namespace FG
 
 			// TODO: check if extensions enebaled
 		}
+
+		// add shader stages
+		if ( _deviceInfo.features.tessellationShader )
+			_graphicsShaderStages |= (EResourceState::_TessControlShader | EResourceState::_TessEvaluationShader);
+
+		if ( _deviceInfo.features.geometryShader )
+			_graphicsShaderStages |= (EResourceState::_GeometryShader);
+
+		if ( _enableMeshShaderNV )
+			_graphicsShaderStages |= (EResourceState::_MeshTaskShader | EResourceState::_MeshShader);
+
+		if ( _enableRayTracingNV )
+			_allReadableStages |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV | VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
 
 
 		// validate constants

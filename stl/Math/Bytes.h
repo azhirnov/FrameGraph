@@ -58,17 +58,11 @@ namespace FGC
 
 
 		// move any pointer
-		template <typename B>
-		ND_ friend B *		operator + (B *lhs, const Bytes<T> &rhs)
-		{
-			return BitCast<B *>( size_t(lhs) + size_t(rhs._value) );
-		}
-		
-		template <typename B>
-		ND_ friend B *		operator - (B *lhs, const Bytes<T> &rhs)
-		{
-			return BitCast<B *>( size_t(lhs) - size_t(rhs._value) );
-		}
+		template <typename B>	ND_ friend B*  operator +  (B *lhs, const Bytes<T> &rhs)	{ return BitCast<B *>( size_t(lhs) + size_t(rhs._value) ); }
+		template <typename B>	ND_ friend B*  operator -  (B *lhs, const Bytes<T> &rhs)	{ return BitCast<B *>( size_t(lhs) - size_t(rhs._value) ); }
+		template <typename B>		friend B*& operator += (B* &lhs, const Bytes<T> &rhs)	{ return (lhs = lhs + rhs); }
+		template <typename B>		friend B*& operator -= (B* &lhs, const Bytes<T> &rhs)	{ return (lhs = lhs + rhs); }
+
 
 		ND_ constexpr Bytes<T>	operator ~ () const noexcept						{ return Bytes<T>( ~_value ); }
 

@@ -49,7 +49,7 @@ namespace FG
 		
 		DebugName_t				_debugName;
 		
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 
 	// methods
@@ -64,9 +64,9 @@ namespace FG
 
 		ND_ bool operator == (const VRenderPass &rhs) const;
 
-		ND_ VkRenderPass					Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _renderPass; }
-		ND_ VkRenderPassCreateInfo const&	GetCreateInfo ()	const	{ SHAREDLOCK( _rcCheck );  return _createInfo; }
-		ND_ HashVal							GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }
+		ND_ VkRenderPass					Handle ()			const	{ SHAREDLOCK( _drCheck );  return _renderPass; }
+		ND_ VkRenderPassCreateInfo const&	GetCreateInfo ()	const	{ SHAREDLOCK( _drCheck );  return _createInfo; }
+		ND_ HashVal							GetHash ()			const	{ SHAREDLOCK( _drCheck );  return _hash; }
 
 
 	private:

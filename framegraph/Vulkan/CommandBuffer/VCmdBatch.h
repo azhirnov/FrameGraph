@@ -101,7 +101,7 @@ namespace FG
 			}
 		};
 		
-		using ResourceMap_t		= std::unordered_set< Resource, ResourceHash >;		// TODO: custom allocator
+		using ResourceMap_t		= std::unordered_map< Resource, uint, ResourceHash >;		// TODO: custom allocator
 
 
 		//---------------------------------------------------------------------------
@@ -228,7 +228,7 @@ namespace FG
 
 		static constexpr uint	MaxSwapchains = 8;
 		using Swapchains_t		= FixedArray< VSwapchain const*, MaxSwapchains >;
-		
+
 		using BatchGraph		= VLocalDebugger::BatchGraph;
 
 		static constexpr uint		MaxBatchItems = 8;
@@ -255,12 +255,11 @@ namespace FG
 		VFrameGraph &						_frameGraph;
 
 		const uint							_indexInPool;
-		VDeviceQueueInfoPtr					_queue;
 		EQueueType							_queueType;
 
 		Dependencies_t						_dependencies;
 		bool								_submitImmediately	= false;
-		
+
 		// command batch data
 		struct {
 			CmdBuffers_t						commands;
@@ -296,9 +295,9 @@ namespace FG
 		String								_debugDump;
 		BatchGraph							_debugGraph;
 		
-		VSubmitted *						_submitted	= null;
+		VSubmitted *						_submitted	= null;	// TODO: should be atomic
 		
-		RWRaceConditionCheck				_rcCheck;
+		RWDataRaceCheck						_drCheck;
 
 
 	// methods
@@ -306,13 +305,14 @@ namespace FG
 		VCmdBatch (VFrameGraph &fg, uint indexInPool);
 		~VCmdBatch ();
 
-		void  Initialize (VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn);
+		void  Initialize (EQueueType type, ArrayView<CommandBuffer> dependsOn);
 		void  Release () override;
 		
 		bool  OnBegin (const CommandBufferDesc &);
 		bool  OnBaked (INOUT ResourceMap_t &);
 		bool  OnReadyToSubmit ();
-		bool  OnSubmit (OUT VkSubmitInfo &, OUT Appendable<VSwapchain const*>, VSubmitted *);
+		bool  BeforeSubmit (OUT VkSubmitInfo &);
+		bool  AfterSubmit (OUT Appendable<VSwapchain const*>, VSubmitted *);
 		bool  OnComplete (VDebugger &, const ShaderDebugCallback_t &);
 
 		void  SignalSemaphore (VkSemaphore sem);
@@ -343,15 +343,14 @@ namespace FG
 		bool  AddDataLoadedEvent (OnImageDataLoadedEvent &&);
 		bool  AddDataLoadedEvent (OnBufferDataLoadedEvent &&);
 
-		ND_ BytesU					GetMaxWritableStoregeSize ()	const	{ SHAREDLOCK( _rcCheck );  return _staging.hostWritableBufferSize / 4; }
-		ND_ BytesU					GetMaxReadableStorageSize ()	const	{ SHAREDLOCK( _rcCheck );  return _staging.hostReadableBufferSize / 4; }
+		ND_ BytesU					GetMaxWritableStoregeSize ()	const	{ SHAREDLOCK( _drCheck );  return _staging.hostWritableBufferSize / 4; }
+		ND_ BytesU					GetMaxReadableStorageSize ()	const	{ SHAREDLOCK( _drCheck );  return _staging.hostReadableBufferSize / 4; }
 
 
-		ND_ VDeviceQueueInfoPtr		GetQueue ()						const	{ SHAREDLOCK( _rcCheck );  return _queue; }
-		ND_ EQueueType				GetQueueType ()					const	{ return _queueType; }
+		ND_ EQueueType				GetQueueType ()					const	{ SHAREDLOCK( _drCheck );  return _queueType; }
 		ND_ EState					GetState ()								{ return _state.load( memory_order_relaxed ); }
-		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()				const	{ return _dependencies; }
-		ND_ VSubmitted *			GetSubmitted ()					const	{ return _submitted; }		// TODO: rename
+		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()				const	{ SHAREDLOCK( _drCheck );  return _dependencies; }
+		ND_ VSubmitted *			GetSubmitted ()					const	{ SHAREDLOCK( _drCheck );  return _submitted; }		// TODO: rename
 		ND_ uint					GetIndexInPool ()				const	{ return _indexInPool; }
 
 

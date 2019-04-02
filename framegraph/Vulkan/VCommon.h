@@ -14,7 +14,7 @@
 #include "extensions/vulkan_loader/VulkanLoader.h"
 #include "extensions/vulkan_loader/VulkanCheckError.h"
 
-#include "stl/ThreadSafe/RaceConditionCheck.h"
+#include "stl/ThreadSafe/DataRaceCheck.h"
 #include "stl/ThreadSafe/SpinLock.h"
 #include "stl/Containers/Appendable.h"
 #include "stl/Containers/InPlace.h"
@@ -79,6 +79,7 @@ namespace FG
 	class VComputePipeline;
 	class VGraphicsPipeline;
 	class VMeshPipeline;
+	class VRayTracingScene;
 	class VRayTracingPipeline;
 	class VRayTracingShaderTable;
 	class VPipelineLayout;

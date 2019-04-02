@@ -38,15 +38,11 @@ namespace FG
 
 		using AccessRecords_t	= FixedArray< SceneAccess, 16 >;
 		using Instance			= VRayTracingScene::Instance;
-		using InstancesData		= VRayTracingScene::InstancesData;
-		using CurrentData_t		= Optional< InstancesData >;
 
 
 	// variables
 	private:
-		VRayTracingScene const *	_rtSceneData			= null;		// readonly access is thread safe
-
-		mutable CurrentData_t		_instancesData;
+		Ptr<VRayTracingScene const>	_rtSceneData;		// readonly access is thread safe
 
 		mutable SceneAccess			_pendingAccesses;
 		mutable SceneAccess			_accessForReadWrite;
@@ -59,27 +55,16 @@ namespace FG
 		~VLocalRTScene ();
 		
 		bool Create (const VRayTracingScene *);
-		void Destroy (VResourceManager &, ExeOrderIndex, uint);
+		void Destroy ();
 		
 		void AddPendingState (const SceneState &state) const;
 		void CommitBarrier (VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const;
 		void ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const;
 
-		void SetGeometryInstances (Tuple<InstanceID, RTGeometryID, uint> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const;
-		
-		ND_ Instance const*  FindInstance (const InstanceID &id) const;
-
 		ND_ VkAccelerationStructureNV	Handle ()					const	{ return _rtSceneData->Handle(); }
 		ND_ ERayTracingFlags			GetFlags ()					const	{ return _rtSceneData->GetFlags(); }
 		ND_ uint						MaxInstanceCount ()			const	{ return _rtSceneData->MaxInstanceCount(); }
-		ND_ ArrayView<Instance>			GeometryInstances ()		const	{ return _GetData().geometryInstances; }
-		ND_ uint						HitShadersPerInstance ()	const	{ return _GetData().hitShadersPerInstance; }
-		ND_ uint						MaxHitShaderCount ()		const	{ return _GetData().maxHitShaderCount; }
-		ND_ VRayTracingScene const*		ToGlobal ()					const	{ return _rtSceneData; }
-		ND_ bool						HasUncommitedChanges ()		const	{ return _instancesData.has_value(); }
-
-	private:
-		ND_ InstancesData const&		_GetData ()					const	{ return _instancesData.has_value() ? _instancesData.value() : _rtSceneData->CurrentData(); }
+		ND_ VRayTracingScene const*		ToGlobal ()					const	{ return _rtSceneData.get(); }
 	};
 
 

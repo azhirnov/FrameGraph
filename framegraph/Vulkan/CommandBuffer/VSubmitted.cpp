@@ -13,8 +13,10 @@ namespace FG
 =================================================
 */
 	VSubmitted::VSubmitted (uint indexInPool) :
-		_indexInPool{ indexInPool }
-	{}
+		_indexInPool{ indexInPool },
+		_fence{ VK_NULL_HANDLE }
+	{
+	}
 	
 /*
 =================================================
@@ -30,16 +32,26 @@ namespace FG
 	
 /*
 =================================================
-	Initialize
+	_Initialize
 =================================================
 */
-	void  VSubmitted::Initialize (EQueueType queue, ArrayView<VCmdBatchPtr> batches, ArrayView<VkSemaphore> semaphores, VkFence fence, ExeOrderIndex order)
+	void VSubmitted::_Initialize (const VDevice &dev, EQueueType queue, ArrayView<VCmdBatchPtr> batches, ArrayView<VkSemaphore> semaphores)
 	{
-		_batches			= batches;
-		_semaphores			= semaphores;
-		_fence				= fence;
-		_submissionOrder	= order;
-		_queueType			= queue;
+		EXLOCK( _drCheck );
+
+		if ( not _fence )
+		{
+			VkFenceCreateInfo	info = {};
+			info.sType	= VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			info.flags	= 0;
+			VK_CALL( dev.vkCreateFence( dev.GetVkDevice(), &info, null, OUT &_fence ));
+		}
+		else
+			VK_CALL( dev.vkResetFences( dev.GetVkDevice(), 1, &_fence ));
+
+		_batches	= batches;
+		_semaphores	= semaphores;
+		_queueType	= queue;
 	}
 
 /*
@@ -47,26 +59,34 @@ namespace FG
 	_Release
 =================================================
 */
-	bool VSubmitted::_Release (VDevice const &dev, VDebugger &debugger, const IFrameGraph::ShaderDebugCallback_t &shaderDbgCallback,
-							   OUT Array<VkSemaphore> &, OUT Array<VkFence> &outFences)
+	void VSubmitted::_Release (const VDevice &dev, VDebugger &debugger, const IFrameGraph::ShaderDebugCallback_t &shaderDbgCallback)
 	{
-		// because of bug on Nvidia
+		EXLOCK( _drCheck );
+
 		for (auto& sem : _semaphores) {
 			dev.vkDestroySemaphore( dev.GetVkDevice(), sem, null );
 		}
 
-		//outSemaphores.insert( outSemaphores.end(), _semaphores.begin(), _semaphores.end() );
-		outFences.push_back( _fence );
-
 		_semaphores.clear();
-		_fence = VK_NULL_HANDLE;
 
 		for (auto& batch : _batches) {
 			batch->OnComplete( debugger, shaderDbgCallback );
 		}
 
 		_batches.clear();
-		return true;
+	}
+	
+/*
+=================================================
+	_Destroy
+=================================================
+*/
+	void VSubmitted::_Destroy (const VDevice &dev)
+	{
+		EXLOCK( _drCheck );
+
+		dev.vkDestroyFence( dev.GetVkDevice(), _fence, null );
+		_fence = VK_NULL_HANDLE;
 	}
 
 

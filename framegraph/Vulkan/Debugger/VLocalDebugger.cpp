@@ -83,7 +83,7 @@ namespace {
 	AddHostWriteAccess
 =================================================
 */
-	void VLocalDebugger::AddHostWriteAccess (const VBuffer *buffer, BytesU offset, BytesU size)
+	void VLocalDebugger::AddHostWriteAccess (const VBuffer *, BytesU, BytesU)
 	{
 	}
 	
@@ -92,7 +92,7 @@ namespace {
 	AddHostReadAccess
 =================================================
 */
-	void VLocalDebugger::AddHostReadAccess (const VBuffer *buffer, BytesU offset, BytesU size)
+	void VLocalDebugger::AddHostReadAccess (const VBuffer *, BytesU, BytesU)
 	{
 	}
 

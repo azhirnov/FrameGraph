@@ -1,40 +1,24 @@
 CommandBuffer {
 	name:      ""
 	Image {
-		name:         "DstImage"
+		name:         "RenderTarget"
 		iamgeType:    Image2D
-		dimension:    ( 128, 128, 1 )
+		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | TransferDst
+		usage:        TransferSrc | ColorAttachment
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
-					srcTask:         <initial>
-					dstTask:         CopyImage (#3)
-					srcStageMask:    TopOfPipe
-					dstStageMask:    Transfer
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   TransferWrite
-					oldLayout:       General
-					newLayout:       TransferDstOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         CopyImage (#3)
+					srcTask:         RenderPass (#3)
 					dstTask:         ReadImage (#4)
-					srcStageMask:    Transfer
+					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    Transfer
 					dependencyFlags: 
-					srcAccessMask:   TransferWrite
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   TransferRead
-					oldLayout:       TransferDstOptimal
+					oldLayout:       ColorAttachmentOptimal
 					newLayout:       TransferSrcOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
@@ -49,9 +33,9 @@ CommandBuffer {
 					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   TransferRead
+					dstAccessMask:   ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
-					newLayout:       General
+					newLayout:       ColorAttachmentOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
@@ -62,24 +46,24 @@ CommandBuffer {
 	}
 
 	Image {
-		name:         "SrcImage"
+		name:         "Texture"
 		iamgeType:    Image2D
-		dimension:    ( 64, 64, 1 )
+		dimension:    ( 128, 128, 1 )
 		format:       RGBA8_UNorm
-		usage:        TransferSrc | TransferDst
+		usage:        TransferDst | Sampled
 		arrayLayers:  1
 		maxLevel:     1
 		samples:      1
 		barriers = {
 				ImageMemoryBarrier {
 					srcTask:         <initial>
-					dstTask:         UpdateImage (#2)
+					dstTask:         ClearColorImage (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   TransferWrite
-					oldLayout:       General
+					oldLayout:       ShaderReadOnlyOptimal
 					newLayout:       TransferDstOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
@@ -88,31 +72,15 @@ CommandBuffer {
 					layerCount:      1
 				}
 				ImageMemoryBarrier {
-					srcTask:         UpdateImage (#2)
-					dstTask:         CopyImage (#3)
+					srcTask:         ClearColorImage (#2)
+					dstTask:         RenderPass (#3)
 					srcStageMask:    Transfer
-					dstStageMask:    Transfer
+					dstStageMask:    VertexShader | TessControlShader | TessEvaluationShader | GeometryShader | FragmentShader
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   TransferRead
+					dstAccessMask:   ShaderRead
 					oldLayout:       TransferDstOptimal
-					newLayout:       TransferSrcOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         CopyImage (#3)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
-					srcAccessMask:   TransferRead
-					dstAccessMask:   TransferRead
-					oldLayout:       TransferSrcOptimal
-					newLayout:       General
+					newLayout:       ShaderReadOnlyOptimal
 					aspectMask:      Color
 					baseMipLevel:    0
 					levelCount:      1
@@ -136,25 +104,19 @@ CommandBuffer {
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
 					offset:          0 b
-					size:            64 Kb
+					size:            1875 Kb
 				}
 		}
 	}
 
 	-----------------------------------------------------------
 	Task {
-		name:    "UpdateImage (#2)"
+		name:    "ClearColorImage (#2)"
 		input =  {  }
-		output = { CopyImage (#3) }
+		output = { RenderPass (#3) }
 		resource_usage = {
-			BufferUsage {
-				name:     "HostWriteBuffer"
-				usage:    Transfer-R
-				offset:   0 b
-				size:     16 Kb
-			}
 			ImageUsage {
-				name:           "SrcImage"
+				name:           "Texture"
 				usage:          Transfer-W
 				baseMipLevel:   0
 				levelCount:     1
@@ -164,21 +126,21 @@ CommandBuffer {
 		}
 	}
 	Task {
-		name:    "CopyImage (#3)"
-		input =  { UpdateImage (#2) }
+		name:    "RenderPass (#3)"
+		input =  { ClearColorImage (#2) }
 		output = { ReadImage (#4) }
 		resource_usage = {
 			ImageUsage {
-				name:           "DstImage"
-				usage:          Transfer-W
+				name:           "RenderTarget"
+				usage:          Color-RW, InvalidateBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
 			}
 			ImageUsage {
-				name:           "SrcImage"
-				usage:          Transfer-R
+				name:           "Texture"
+				usage:          ShaderSample, VS, TCS, TES, GS, FS
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -188,22 +150,22 @@ CommandBuffer {
 	}
 	Task {
 		name:    "ReadImage (#4)"
-		input =  { CopyImage (#3) }
+		input =  { RenderPass (#3) }
 		output = {  }
 		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
 			ImageUsage {
-				name:           "DstImage"
+				name:           "RenderTarget"
 				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
 				layerCount:     1
-			}
-			BufferUsage {
-				name:     "HostReadBuffer"
-				usage:    Transfer-W
-				offset:   0 b
-				size:     64 Kb
 			}
 		}
 	}

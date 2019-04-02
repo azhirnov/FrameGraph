@@ -62,7 +62,7 @@ namespace FG
 
 		DebugName_t					_debugName;
 
-		RWRaceConditionCheck		_rcCheck;
+		RWDataRaceCheck				_drCheck;
 
 
 	// methods
@@ -75,14 +75,14 @@ namespace FG
 
 		ND_ size_t  GetGeometryIndex (const GeometryID &id) const;
 
-		ND_ BLASHandle_t				BLASHandle ()			const	{ SHAREDLOCK( _rcCheck );  return _handle; }
-		ND_ VkAccelerationStructureNV	Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _bottomLevelAS; }
+		ND_ BLASHandle_t				BLASHandle ()			const	{ SHAREDLOCK( _drCheck );  return _handle; }
+		ND_ VkAccelerationStructureNV	Handle ()				const	{ SHAREDLOCK( _drCheck );  return _bottomLevelAS; }
 
-		ND_ ArrayView<Triangles>		GetTriangles ()			const	{ SHAREDLOCK( _rcCheck );  return _triangles; }
-		ND_ ArrayView<AABB>				GetAABBs ()				const	{ SHAREDLOCK( _rcCheck );  return _aabbs; }
-		ND_ ERayTracingFlags			GetFlags ()				const	{ SHAREDLOCK( _rcCheck );  return _flags; }
+		ND_ ArrayView<Triangles>		GetTriangles ()			const	{ SHAREDLOCK( _drCheck );  return _triangles; }
+		ND_ ArrayView<AABB>				GetAABBs ()				const	{ SHAREDLOCK( _drCheck );  return _aabbs; }
+		ND_ ERayTracingFlags			GetFlags ()				const	{ SHAREDLOCK( _drCheck );  return _flags; }
 
-		ND_ StringView					GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ StringView					GetDebugName ()			const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 	};
 
 

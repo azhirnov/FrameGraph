@@ -22,7 +22,7 @@ namespace FG
 		
 		DebugName_t				_debugName;
 		
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 
 	// methods
@@ -37,9 +37,9 @@ namespace FG
 
 		ND_ bool	operator == (const VSampler &rhs) const;
 
-		ND_ VkSampler					Handle ()		const	{ SHAREDLOCK( _rcCheck );  return _sampler; }
-		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _rcCheck );  return _hash; }
-		//ND_ VkSamplerCreateInfo const&	CreateInfo ()	const	{ SHAREDLOCK( _rcCheck );  return _createInfo; }
+		ND_ VkSampler					Handle ()		const	{ SHAREDLOCK( _drCheck );  return _sampler; }
+		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _drCheck );  return _hash; }
+		//ND_ VkSamplerCreateInfo const&	CreateInfo ()	const	{ SHAREDLOCK( _drCheck );  return _createInfo; }
 
 
 	private:

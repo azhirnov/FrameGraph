@@ -117,9 +117,9 @@ void main ()
 
 
 		// frame 1
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
+		CHECK_ERR( cmd1 );
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
-			CHECK_ERR( cmd );
 			
 			BuildRayTracingGeometry::Triangles	triangles;
 			triangles.SetID( GeometryID{"Triangle"} ).SetVertexArray( vertices ).SetIndexArray( indices );
@@ -128,12 +128,12 @@ void main ()
 			instance.SetID( InstanceID{"0"} );
 			instance.SetGeometry( rt_geometry );
 
-			Task	t_build_geom	= cmd->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_build_scene	= cmd->AddTask( BuildRayTracingScene{}.SetTarget( rt_scene ).Add( instance ).DependsOn( t_build_geom ));
+			Task	t_build_geom	= cmd1->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
+			Task	t_build_scene	= cmd1->AddTask( BuildRayTracingScene{}.SetTarget( rt_scene ).Add( instance ).DependsOn( t_build_geom ));
 			
 			_frameGraph->ReleaseResource( rt_geometry );
 
-			Task	t_update_table	= cmd->AddTask( UpdateRayTracingShaderTable{}
+			Task	t_update_table	= cmd1->AddTask( UpdateRayTracingShaderTable{}
 																.SetTarget( rt_shaders ).SetPipeline( pipeline ).SetScene( rt_scene )
 																.SetRayGenShader( RTShaderID{"Main"} )
 																.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 )
@@ -141,24 +141,24 @@ void main ()
 																.DependsOn( t_build_scene ));
 			FG_UNUSED( t_update_table );
 
-			CHECK_ERR( _frameGraph->Execute( cmd ));
+			CHECK_ERR( _frameGraph->Execute( cmd1 ));
 		}
 
 		// frame 2
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ), {cmd1} );
+		CHECK_ERR( cmd2 );
 		{
-			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
-			CHECK_ERR( cmd );
 			
 			resources.BindImage( UniformID("un_Output"), dst_image );
 			resources.BindRayTracingScene( UniformID("un_RtScene"), rt_scene );
 
-			Task	t_trace	= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources )
+			Task	t_trace	= cmd2->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources )
 															.SetShaderTable( rt_shaders ).SetGroupCount( view_size.x, view_size.y ));
 
-			Task	t_read	= cmd->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
+			Task	t_read	= cmd2->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
 			FG_UNUSED( t_read );
 
-			CHECK_ERR( _frameGraph->Execute( cmd ));
+			CHECK_ERR( _frameGraph->Execute( cmd2 ));
 		}
 
 		CHECK_ERR( _frameGraph->WaitIdle() );

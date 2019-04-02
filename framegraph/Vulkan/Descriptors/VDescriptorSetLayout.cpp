@@ -27,7 +27,7 @@ namespace FG
 	VDescriptorSetLayout::VDescriptorSetLayout (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding) :
 		_uniforms{uniforms}
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		ASSERT( uniforms );
 
 		// bind uniforms
@@ -51,7 +51,7 @@ namespace FG
 */
 	bool VDescriptorSetLayout::Create (const VDevice &dev, const DescriptorBinding_t &binding)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( not _layout );
 
 		VkDescriptorSetLayoutCreateInfo	descriptor_info = {};
@@ -72,7 +72,7 @@ namespace FG
 */
 	void VDescriptorSetLayout::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		
 		if ( _descSetCache.size() ) {
 			resMngr.GetDescriptorManager().DeallocDescriptorSets( _descSetCache );
@@ -102,7 +102,7 @@ namespace FG
 */
 	bool  VDescriptorSetLayout::AllocDescriptorSet (VResourceManager &resMngr, OUT DescriptorSet &ds) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 
 		ds = { VK_NULL_HANDLE, UMax };
 
@@ -128,7 +128,7 @@ namespace FG
 */
 	void  VDescriptorSetLayout::ReleaseDescriptorSet (VResourceManager &resMngr, const DescriptorSet &ds) const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 		EXLOCK( _descSetCacheGuard );
 
 		if ( _descSetCache.size() == _descSetCache.capacity() )
@@ -424,8 +424,8 @@ namespace FG
 */
 	bool VDescriptorSetLayout::operator == (const VDescriptorSetLayout &rhs) const
 	{
-		SHAREDLOCK( _rcCheck );
-		SHAREDLOCK( rhs._rcCheck );
+		SHAREDLOCK( _drCheck );
+		SHAREDLOCK( rhs._drCheck );
 
 		if ( _hash != rhs._hash					or
 			 not (_uniforms and rhs._uniforms)	or

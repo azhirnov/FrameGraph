@@ -35,7 +35,7 @@ namespace FGC
 	public:
 		constexpr FixedArray ()
 		{
-			DEBUG_ONLY( ::memset( data(), 0, sizeof(T) * capacity() ));
+			DEBUG_ONLY( memset( data(), 0, sizeof(T) * capacity() ));
 			
 			STATIC_ASSERT( alignof(Self) % alignof(T) == 0 );
 		}
@@ -182,7 +182,7 @@ namespace FGC
 			--_count;
 
 			_array[_count].~T();
-			DEBUG_ONLY( ::memset( data() + _count, 0, sizeof(T) ));
+			DEBUG_ONLY( memset( data() + _count, 0, sizeof(T) ));
 		}
 
 
@@ -212,7 +212,7 @@ namespace FGC
 				{
 					_array[i].~T();
 				}
-				DEBUG_ONLY( ::memset( data() + newSize, 0, sizeof(T) * (_count - newSize) ));
+				DEBUG_ONLY( memset( data() + newSize, 0, sizeof(T) * (_count - newSize) ));
 			}
 
 			if ( newSize > _count )
@@ -237,7 +237,7 @@ namespace FGC
 
 			_count = 0;
 
-			DEBUG_ONLY( ::memset( data(), 0, sizeof(T) * capacity() ));
+			DEBUG_ONLY( memset( data(), 0, sizeof(T) * capacity() ));
 		}
 
 
@@ -259,7 +259,7 @@ namespace FGC
 				PlacementNew<T>( data() + index, std::move(_array[_count]) );
 			}
 
-			DEBUG_ONLY( ::memset( data() + _count, 0, sizeof(T) ));
+			DEBUG_ONLY( memset( data() + _count, 0, sizeof(T) ));
 		}
 
 

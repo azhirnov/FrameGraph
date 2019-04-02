@@ -32,17 +32,10 @@ namespace FG
 		
 		struct InstancesData
 		{
+			std::shared_mutex	guard;
 			Array<Instance>		geometryInstances;
 			uint				hitShadersPerInstance	= 0;
 			uint				maxHitShaderCount		= 0;
-		};
-
-	private:
-		struct InstancesData2 : InstancesData
-		{
-			SpinLock			lock;
-			ExeOrderIndex		exeOrder	= Default;
-			uint				frameIdx	= 0;
 		};
 
 
@@ -54,31 +47,29 @@ namespace FG
 		uint						_maxInstanceCount	= 0;
 		ERayTracingFlags			_flags				= Default;
 
-		mutable InstancesData2		_instanceData [2];
-		mutable uint				_currStateIndex : 1;
+		mutable InstancesData		_instanceData;
 
 		DebugName_t					_debugName;
 
-		RWRaceConditionCheck		_rcCheck;
+		RWDataRaceCheck				_drCheck;
 
 
 	// methods
 	public:
-		VRayTracingScene () : _currStateIndex{0} {}
+		VRayTracingScene () {}
 		~VRayTracingScene ();
 		
 		bool Create (VResourceManager &, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
 		void Destroy (VResourceManager &);
 
-		void Merge (INOUT InstancesData &, ExeOrderIndex, uint frameIndex) const;
-		void CommitChanges (uint frameIndex) const;
+		void SetGeometryInstances (VResourceManager &, Tuple<InstanceID, RTGeometryID, uint> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const;
 
-		ND_ VkAccelerationStructureNV	Handle ()				const	{ SHAREDLOCK( _rcCheck );  return _topLevelAS; }
-		ND_ uint						MaxInstanceCount ()		const	{ SHAREDLOCK( _rcCheck );  return _maxInstanceCount; }
-		ND_ InstancesData const&		CurrentData ()			const	{ SHAREDLOCK( _rcCheck );  return _instanceData[_currStateIndex]; }
+		ND_ VkAccelerationStructureNV	Handle ()				const	{ SHAREDLOCK( _drCheck );  return _topLevelAS; }
+		ND_ uint						MaxInstanceCount ()		const	{ SHAREDLOCK( _drCheck );  return _maxInstanceCount; }
+		ND_ InstancesData &				CurrentData ()			const	{ SHAREDLOCK( _drCheck );  return _instanceData; }
 
-		ND_ ERayTracingFlags			GetFlags ()				const	{ SHAREDLOCK( _rcCheck );  return _flags; }
-		ND_ StringView					GetDebugName ()			const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ ERayTracingFlags			GetFlags ()				const	{ SHAREDLOCK( _drCheck );  return _flags; }
+		ND_ StringView					GetDebugName ()			const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 	};
 
 

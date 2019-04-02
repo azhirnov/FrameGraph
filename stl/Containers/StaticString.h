@@ -33,7 +33,7 @@ namespace FGC
 	public:
 		constexpr TStaticString ()
 		{
-			DEBUG_ONLY( ::memset( _array, 0, sizeof(_array) ));
+			DEBUG_ONLY( memset( _array, 0, sizeof(_array) ));
 		}
 		
 		TStaticString (const View_t &view) : TStaticString{ view.data(), view.length() }

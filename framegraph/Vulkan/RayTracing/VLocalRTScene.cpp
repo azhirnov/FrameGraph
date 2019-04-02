@@ -40,24 +40,9 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VLocalRTScene::Destroy (VResourceManager &resMngr, ExeOrderIndex batchExeOrder, uint frameIndex)
+	void VLocalRTScene::Destroy ()
 	{
-		if ( _rtSceneData and _instancesData.has_value() )
-		{
-			_rtSceneData->Merge( INOUT _instancesData.value(), batchExeOrder, frameIndex );
-		}
-		else
-			ASSERT( not _instancesData.has_value() );
-
-		if ( _instancesData.has_value() )
-		{
-			for (auto& inst : _instancesData->geometryInstances) {
-				resMngr.ReleaseResource( inst.geometry.Release() );
-			}
-		}
-
-		_rtSceneData	= null;
-		_instancesData	= {};
+		_rtSceneData = null;
 		
 		// check for uncommited barriers
 		ASSERT( _pendingAccesses.empty() );
@@ -65,39 +50,6 @@ namespace FG
 		
 		_pendingAccesses	= Default;
 		_accessForReadWrite	= Default;
-	}
-	
-/*
-=================================================
-	SetGeometryInstances
-----
-	'instances' is sorted by instance ID and contains the strong references for geometries
-=================================================
-*/
-	void VLocalRTScene::SetGeometryInstances (Tuple<InstanceID, RTGeometryID, uint> *instances, uint instanceCount, uint hitShadersPerInstance, uint maxHitShaders) const
-	{
-		_instancesData = InstancesData{};
-		_instancesData->geometryInstances.reserve( instanceCount );
-
-		for (uint i = 0; i < instanceCount; ++i) {
-			_instancesData->geometryInstances.emplace_back( std::get<0>(instances[i]), std::move(std::get<1>(instances[i])), std::get<2>(instances[i]) );
-		}
-
-		_instancesData->hitShadersPerInstance	= hitShadersPerInstance;
-		_instancesData->maxHitShaderCount		= maxHitShaders;
-	}
-	
-/*
-=================================================
-	FindInstance
-=================================================
-*/
-	VLocalRTScene::Instance const*  VLocalRTScene::FindInstance (const InstanceID &id) const
-	{
-		auto	instances	= GeometryInstances();
-		size_t	pos			= BinarySearch( instances, id );
-
-		return pos < instances.size() ? &instances[pos] : null;
 	}
 
 /*
@@ -113,7 +65,7 @@ namespace FG
 		_pendingAccesses.access		= EResourceState_ToAccess( st.state );
 		_pendingAccesses.isReadable	= EResourceState_IsReadable( st.state );
 		_pendingAccesses.isWritable	= EResourceState_IsWritable( st.state );
-		_pendingAccesses.index		= Cast<VFrameGraphTask>(st.task)->ExecutionOrder();
+		_pendingAccesses.index		= st.task->ExecutionOrder();
 	}
 
 /*
@@ -128,7 +80,7 @@ namespace FG
 		// add full range barrier
 		_pendingAccesses.isReadable	= true;
 		_pendingAccesses.isWritable	= false;
-		_pendingAccesses.stages		= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		_pendingAccesses.stages		= 0;
 		_pendingAccesses.access		= 0;
 		_pendingAccesses.index		= index;
 
@@ -154,10 +106,10 @@ namespace FG
 			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 			barrier.srcAccessMask	= _accessForReadWrite.access;
 			barrier.dstAccessMask	= _pendingAccesses.access;
-			barrierMngr.AddMemoryBarrier( _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
+			barrierMngr.AddMemoryBarrier( _accessForReadWrite.stages, _pendingAccesses.stages, barrier );
 
 			if ( debugger ) {
-				debugger->AddRayTracingBarrier( _rtSceneData, _accessForReadWrite.index, _pendingAccesses.index,
+				debugger->AddRayTracingBarrier( _rtSceneData.get(), _accessForReadWrite.index, _pendingAccesses.index,
 											    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
 			}
 

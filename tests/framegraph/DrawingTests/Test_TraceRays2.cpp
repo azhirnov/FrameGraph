@@ -143,6 +143,7 @@ void main ()
 			FG_UNUSED( t_update_table );
 
 			CHECK_ERR( _frameGraph->Execute( cmd ));
+			CHECK_ERR( _frameGraph->Flush() );
 		}
 
 		// frame 2
@@ -156,6 +157,7 @@ void main ()
 			FG_UNUSED( t_trace );
 			
 			CHECK_ERR( _frameGraph->Execute( cmd ));
+			CHECK_ERR( _frameGraph->Flush() );
 		}
 
 		// frame 3
@@ -170,6 +172,7 @@ void main ()
 			FG_UNUSED( t_read );
 			
 			CHECK_ERR( _frameGraph->Execute( cmd ));
+			CHECK_ERR( _frameGraph->Flush() );
 		}
 		
 		CHECK_ERR( _frameGraph->WaitIdle() );

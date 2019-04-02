@@ -30,7 +30,7 @@ CommandBuffer {
 					srcTask:         RenderPass (#2)
 					dstTask:         <final>
 					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   

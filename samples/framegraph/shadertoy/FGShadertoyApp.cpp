@@ -61,27 +61,101 @@ namespace FG
 */
 	void FGShadertoyApp::_InitSamples ()
 	{
-		_samples.push_back( [this] ()
+		/*_samples.push_back( [this] ()
 		{
 			ShaderDescr	sh_main;
 			sh_main.Pipeline( "st_shaders/Glowballs.glsl" );
 			sh_main.InChannel( "main", 0 );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
-
+		
 		_samples.push_back( [this] ()
 		{
 			ShaderDescr	sh_main;
 			sh_main.Pipeline( "st_shaders/Skyline.glsl" );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
-		
+		*/
 		_samples.push_back( [this] ()
 		{
 			ShaderDescr	sh_main;
 			sh_main.Pipeline( "st_shaders/Skyline2.glsl" );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
+
+		/*_samples.push_back( [this] ()
+		{
+			ShaderDescr	sh_main;
+			sh_main.Pipeline( "st_shaders/OceanPlanet.glsl" );
+			CHECK( _AddShader( "main", std::move(sh_main) ));
+		});*/
+		/*
+		_samples.push_back( [this] ()
+		{
+			ShaderDescr	sh_bufA;
+			sh_bufA.Pipeline( "st_shaders\FinalCS-Barboy-Opt1.glsl" );
+			CHECK( _AddShader( "bufA", std::move(sh_bufA) ));
+
+			ShaderDescr	sh_main;
+			sh_main.Pipeline( "st_shaders/FinalCS-Barboy-Opt2.glsl" );
+			sh_main.InChannel( "bufA", 0 );
+			CHECK( _AddShader( "main", std::move(sh_main) ));
+		});
+		
+		_samples.push_back( [this] ()
+		{
+			ShaderDescr	sh_main;
+			sh_main.Pipeline( "st_shaders/FinalCS-Barboy.glsl" );
+			CHECK( _AddShader( "main", std::move(sh_main) ));
+		});*/
+
+		/*_samples.push_back( [this] ()
+		{
+			ShaderDescr	sh_bufA;
+			sh_bufA.Pipeline( "st_shaders/SkylineOpt1.glsl" );
+			CHECK( _AddShader( "bufA", std::move(sh_bufA) ));
+
+			ShaderDescr	sh_main;
+			sh_main.Pipeline( "st_shaders/SkylineOpt2.glsl" );
+			sh_main.InChannel( "bufA", 0 );
+			CHECK( _AddShader( "main", std::move(sh_main) ));
+		});*/
+		
+		/*_samples.push_back( [this] ()
+		{
+			ShaderDescr	sh_bufA;
+			//sh_bufA.SetScale( 2.0f );
+			sh_bufA.Pipeline( "st_shaders/Skyline3-1.glsl" );
+			CHECK( _AddShader( "bufA", std::move(sh_bufA) ));
+
+			ShaderDescr	sh_main;
+			sh_main.Pipeline( "st_shaders/Skyline3-2.glsl" );
+			sh_main.InChannel( "bufA", 0 );
+			CHECK( _AddShader( "main", std::move(sh_main) ));
+		});
+
+		/*_samples.push_back( [this] ()
+		{
+			ShaderDescr	sh_main;
+			sh_main.Pipeline( "st_shaders\SirenianDawn.glsl" );
+			sh_main.InChannel( "data\GreyNoiseMedium.png", 0 );
+			sh_main.InChannel( "main", 1 );
+			CHECK( _AddShader( "main", std::move(sh_main) ));
+		});*/
+		
+		/*_samples.push_back( [this] ()
+		{
+			ShaderDescr	sh_bufA;
+			sh_bufA.Pipeline( "st_shaders/SirenianDawn_1.glsl" );
+			sh_bufA.InChannel( "data/GreyNoiseMedium.png", 0 );
+			sh_bufA.InChannel( "bufA", 1 );
+			CHECK( _AddShader( "bufA", std::move(sh_bufA) ));
+
+			ShaderDescr	sh_main;
+			sh_main.Pipeline( "st_shaders/SirenianDawn_2.glsl" );
+			sh_main.InChannel( "bufA", 0 );
+			CHECK( _AddShader( "main", std::move(sh_main) ));
+		});*/
 	}
 	
 /*
@@ -211,7 +285,7 @@ namespace FG
 			for (auto& q : _vulkan.GetVkQuues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
-				qi.id			= BitCast<QueueVk_t>( q.id );
+				qi.handle		= BitCast<QueueVk_t>( q.handle );
 				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.flags );
 				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;
@@ -225,7 +299,6 @@ namespace FG
 		{
 			_frameGraph = IFrameGraph::CreateFrameGraph( vulkan_info );
 			CHECK_ERR( _frameGraph );
-			CHECK_ERR( _frameGraph->Initialize() );
 			
 			_swapchainId = _frameGraph->CreateSwapchain( swapchain_info );
 			CHECK_ERR( _swapchainId );

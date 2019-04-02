@@ -26,7 +26,7 @@ namespace FG
 		mutable CmdBufPool_t	_freePrimaries;
 		mutable CmdBufPool_t	_freeSecondaries;
 		
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 		DEBUG_ONLY(
 			int					_cmdBufCount	= 0;
@@ -54,7 +54,7 @@ namespace FG
 		void RecyclePrimary (VkCommandBuffer cmd) const;
 		void RecycleSecondary (VkCommandBuffer cmd) const;
 
-		ND_ bool	IsCreated ()	const	{ SHAREDLOCK( _rcCheck );  return _pool; }
+		ND_ bool	IsCreated ()	const	{ SHAREDLOCK( _drCheck );  return _pool; }
 	};
 
 

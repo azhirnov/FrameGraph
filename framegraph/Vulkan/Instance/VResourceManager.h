@@ -164,7 +164,7 @@ namespace FG
 		ND_ RawSwapchainID		CreateSwapchain (const VulkanSwapchainCreateInfo &desc, RawSwapchainID oldSwapchain, VFrameGraph &, StringView dbgName);
 
 		template <typename ID>
-		void ReleaseResource (ID id);
+		void ReleaseResource (ID id, uint refCount = 1);
 		void ReleaseResource (INOUT PipelineResources &desc);
 		
 		template <typename ID>
@@ -212,10 +212,10 @@ namespace FG
 		void  _DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &pool);
 		
 		template <typename DataT, size_t CS, size_t MC>
-		void  _ReleaseResource (PoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index);
+		void  _ReleaseResource (PoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index, uint refCount);
 		
 		template <typename DataT, size_t CS, size_t MC>
-		void  _ReleaseResource (CachedPoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index);
+		void  _ReleaseResource (CachedPoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index, uint refCount);
 
 
 	// resource pool
@@ -349,7 +349,7 @@ namespace FG
 =================================================
 */
 	template <typename ID>
-	inline void  VResourceManager::ReleaseResource (ID id)
+	inline void  VResourceManager::ReleaseResource (ID id, uint refCount)
 	{
 		ASSERT( id );
 
@@ -363,13 +363,13 @@ namespace FG
 		if ( data.GetInstanceID() != id.InstanceID() )
 			return;	// this instance is already destroyed
 
-		_ReleaseResource( pool, data, id.Index() );
+		_ReleaseResource( pool, data, id.Index(), refCount );
 	}
 	
 	template <typename DataT, size_t CS, size_t MC>
-	inline void  VResourceManager::_ReleaseResource (PoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index)
+	inline void  VResourceManager::_ReleaseResource (PoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index, uint refCount)
 	{
-		if ( data.ReleaseRef( GetSubmitIndex() ) and data.IsCreated() )
+		if ( data.ReleaseRef( refCount, GetSubmitIndex() ) and data.IsCreated() )
 		{
 			data.Destroy( *this );
 			pool.Unassign( index );
@@ -377,9 +377,9 @@ namespace FG
 	}
 	
 	template <typename DataT, size_t CS, size_t MC>
-	inline void  VResourceManager::_ReleaseResource (CachedPoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index)
+	inline void  VResourceManager::_ReleaseResource (CachedPoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index, uint refCount)
 	{
-		if ( data.ReleaseRef( GetSubmitIndex() ) and data.IsCreated() )
+		if ( data.ReleaseRef( refCount, GetSubmitIndex() ) and data.IsCreated() )
 		{
 			pool.RemoveFromCache( index );
 			data.Destroy( *this );

@@ -236,7 +236,7 @@ bool GenMipmapsApp::Initialize ()
 
 		shaderSubgroupSupported = EnumEq( vulkan.GetDeviceSubgroupProperties().supportedStages, VK_SHADER_STAGE_COMPUTE_BIT );
 
-		cmdQueue = vulkan.GetVkQuues()[0].id;
+		cmdQueue = vulkan.GetVkQuues()[0].handle;
 
 		vulkan.CreateDebugUtilsCallback( VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT );
 	}

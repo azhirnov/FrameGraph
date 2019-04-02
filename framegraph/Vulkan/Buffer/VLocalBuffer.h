@@ -56,7 +56,7 @@ namespace FG
 
 	// variables
 	private:
-		VBuffer const*				_bufferData		= null;		// readonly access is thread safe
+		Ptr<VBuffer const>			_bufferData;	// readonly access is thread safe
 
 		mutable AccessRecords_t		_pendingAccesses;
 		mutable AccessRecords_t		_accessForWrite;
@@ -80,7 +80,7 @@ namespace FG
 
 		ND_ bool				IsCreated ()	const	{ return _bufferData != null; }
 		ND_ VkBuffer			Handle ()		const	{ return _bufferData->Handle(); }
-		ND_ VBuffer const*		ToGlobal ()		const	{ return _bufferData; }
+		ND_ VBuffer const*		ToGlobal ()		const	{ return _bufferData.get(); }
 
 		ND_ BufferDesc const&	Description ()	const	{ return _bufferData->Description(); }
 		ND_ BytesU				Size ()			const	{ return Description().size; }

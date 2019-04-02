@@ -39,8 +39,6 @@ namespace FG
 			_pass1{pass1}, _pass2{pass2}, _taskName{task.taskName}, _debugColor{task.debugColor} {}
 
 	public:
-		virtual ~IDrawTask () {}
-		
 		ND_ StringView	GetName ()			const	{ return _taskName; }
 		ND_ RGBA8u		GetDebugColor ()	const	{ return _debugColor; }
 		

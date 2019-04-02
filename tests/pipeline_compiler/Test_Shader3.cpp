@@ -53,7 +53,7 @@ void main() {
 	TEST( TestVertexInput( ppln, VertexID("at_Position"), EVertexType::Float2, 1 ));
 	TEST( TestVertexInput( ppln, VertexID("at_Texcoord"), EVertexType::Float2, 0 ));
 
-	TEST( TestFragmentOutput( ppln, RenderTargetID("out_Color"), EFragOutput::Float4, 0 ));
+	TEST( TestFragmentOutput( ppln, RenderTargetID(0), EFragOutput::Float4, 0 ));
 
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );

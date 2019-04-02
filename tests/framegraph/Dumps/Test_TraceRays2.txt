@@ -1,6 +1,230 @@
-SubBatch {
-	batch:         "main"
-	indexInBatch:  0
+CommandBuffer {
+	name:      ""
+	Buffer {
+		name:    ""
+		size:    128 b
+		usage:   TransferDst | RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         UpdateRayTracingShaderTable (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            48 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         UpdateRayTracingShaderTable (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          64 b
+					size:            48 b
+				}
+		}
+	}
+
+	Buffer {
+		name:    "ScratchBuffer"
+		size:    64 Kb
+		usage:   RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingScene (#3)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
+				}
+		}
+	}
+
+	Buffer {
+		name:    "ScratchBuffer"
+		size:    64 Kb
+		usage:   RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingGeometry (#2)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "BuildRayTracingGeometry (#2)"
+		input =  {  }
+		output = { BuildRayTracingScene (#3) }
+		resource_usage = {
+			BufferUsage {
+				name:     "ScratchBuffer"
+				usage:    RTASBuild-Buffer-RW
+				offset:   0 b
+				size:     64 Kb
+			}
+		}
+	}
+	Task {
+		name:    "BuildRayTracingScene (#3)"
+		input =  { BuildRayTracingGeometry (#2) }
+		output = { UpdateRayTracingShaderTable (#4) }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostWriteBuffer"
+				usage:    RTASBuild-Buffer-R
+				offset:   0 b
+				size:     256 Mb
+			}
+			BufferUsage {
+				name:     "ScratchBuffer"
+				usage:    RTASBuild-Buffer-RW
+				offset:   0 b
+				size:     64 Kb
+			}
+		}
+	}
+	Task {
+		name:    "UpdateRayTracingShaderTable (#4)"
+		input =  { BuildRayTracingScene (#3) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     ""
+				usage:    Transfer-W
+				offset:   0 b
+				size:     48 b
+			}
+			BufferUsage {
+				name:     ""
+				usage:    Transfer-W
+				offset:   64 b
+				size:     48 b
+			}
+			BufferUsage {
+				name:     "HostWriteBuffer"
+				usage:    Transfer-R
+				offset:   112 b
+				size:     48 b
+			}
+			BufferUsage {
+				name:     "HostWriteBuffer"
+				usage:    Transfer-R
+				offset:   160 b
+				size:     48 b
+			}
+		}
+	}
+}
+===============================================================
+
+CommandBuffer {
+	name:      ""
+	Image {
+		name:         "OutputImage"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         TraceRays (#3)
+					dstTask:         <final>
+					srcStageMask:    RayTracing
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   ShaderWrite
+					dstAccessMask:   ShaderRead | TransferRead
+					oldLayout:       General
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "ScratchBuffer"
+		size:    64 Kb
+		usage:   RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingGeometry (#2)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "BuildRayTracingGeometry (#2)"
+		input =  {  }
+		output = { TraceRays (#3) }
+		resource_usage = {
+			BufferUsage {
+				name:     "ScratchBuffer"
+				usage:    RTASBuild-Buffer-RW
+				offset:   0 b
+				size:     64 Kb
+			}
+		}
+	}
+	Task {
+		name:    "TraceRays (#3)"
+		input =  { BuildRayTracingGeometry (#2) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     ""
+				usage:    Uniform, RTS
+				offset:   0 b
+				size:     48 b
+			}
+			ImageUsage {
+				name:           "OutputImage"
+				usage:          Storage-W, RTS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+
+CommandBuffer {
+	name:      ""
 	Image {
 		name:         "OutputImage"
 		iamgeType:    Image2D
@@ -31,10 +255,10 @@ SubBatch {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
-					dstAccessMask:   
+					dstAccessMask:   ShaderRead | TransferRead
 					oldLayout:       TransferSrcOptimal
 					newLayout:       General
 					aspectMask:      Color
@@ -42,25 +266,6 @@ SubBatch {
 					levelCount:      1
 					baseArrayLayer:  0
 					layerCount:      1
-				}
-		}
-	}
-
-	Buffer {
-		name:    ""
-		size:    64 Kb
-		usage:   RayTracing
-		barriers = {
-				BufferMemoryBarrier {
-					srcTask:         BuildRayTracingGeometry (#2)
-					dstTask:         <final>
-					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    TopOfPipe
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   
-					offset:          0 b
-					size:            64 Kb
 				}
 		}
 	}
@@ -74,12 +279,31 @@ SubBatch {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    TopOfPipe
+					dstStageMask:    AllCommands
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
 					offset:          0 b
 					size:            1875 Kb
+				}
+		}
+	}
+
+	Buffer {
+		name:    "ScratchBuffer"
+		size:    64 Kb
+		usage:   RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingGeometry (#2)
+					dstTask:         <final>
+					srcStageMask:    AccelerationStructureBuild
+					dstStageMask:    AllCommands
+					dependencyFlags: 
+					srcAccessMask:   
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 Kb
 				}
 		}
 	}
@@ -91,7 +315,7 @@ SubBatch {
 		output = { TraceRays (#3) }
 		resource_usage = {
 			BufferUsage {
-				name:     ""
+				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
 				size:     64 Kb

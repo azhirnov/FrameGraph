@@ -1,6 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "UnitTest_Common.h"
+#include <list>
 
 
 extern void Test_CmdBatchSort ()

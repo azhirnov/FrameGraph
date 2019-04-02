@@ -1,7 +1,5 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#pragma once
-
 #include "VMemoryManager.h"
 #include "VDevice.h"
 
@@ -10,7 +8,7 @@
 #define VMA_USE_STL_CONTAINERS		0
 #define VMA_STATIC_VULKAN_FUNCTIONS	0
 #define VMA_RECORDING_ENABLED		0
-#define VMA_DEDICATED_ALLOCATION	1
+#define VMA_DEDICATED_ALLOCATION	0
 
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic push
@@ -373,10 +371,13 @@ namespace FG
 		funcs.vkDestroyBuffer						= null;
 		funcs.vkCreateImage							= null;
 		funcs.vkDestroyImage						= null;
-		funcs.vkGetBufferMemoryRequirements2KHR		= BitCast<PFN_vkGetBufferMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetBufferMemoryRequirements2KHR" ));
-		funcs.vkGetImageMemoryRequirements2KHR		= BitCast<PFN_vkGetImageMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetImageMemoryRequirements2KHR" ));
 		funcs.vkFlushMappedMemoryRanges				= BitCast<PFN_vkFlushMappedMemoryRanges>(vkGetDeviceProcAddr( dev, "vkFlushMappedMemoryRanges" ));
 		funcs.vkInvalidateMappedMemoryRanges		= BitCast<PFN_vkInvalidateMappedMemoryRanges>(vkGetDeviceProcAddr( dev, "vkInvalidateMappedMemoryRanges" ));
+
+	#if VMA_DEDICATED_ALLOCATION
+		funcs.vkGetBufferMemoryRequirements2KHR		= BitCast<PFN_vkGetBufferMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetBufferMemoryRequirements2KHR" ));
+		funcs.vkGetImageMemoryRequirements2KHR		= BitCast<PFN_vkGetImageMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetImageMemoryRequirements2KHR" ));
+	#endif
 
 		VmaAllocatorCreateInfo	info = {};
 		info.flags			= VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;

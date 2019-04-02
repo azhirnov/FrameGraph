@@ -83,8 +83,9 @@ namespace FGC
 			Release();
 		}
 		
-
-		void Release ()
+		
+		template <typename FN>
+		void Release (FN &&dtor)
 		{
 			// invalidate cache
 			std::atomic_thread_fence( memory_order_acquire );
@@ -108,11 +109,16 @@ namespace FGC
 				for (size_t j = 0; j < ChunkSize; ++j)
 				{
 					if ( ctor_bits & (1u<<j) )
-						value->data()[j].~Value_t();
+						dtor( value->data()[j] );
 				}
 
 				_alloc.Deallocate( value, SizeOf<ValueChunk_t>, AlignOf<ValueChunk_t> );
 			}
+		}
+
+		void Release ()
+		{
+			return Release([] (Value_t& value) { value.~Value_t(); });
 		}
 
 

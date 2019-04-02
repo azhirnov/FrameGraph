@@ -35,7 +35,7 @@ namespace FG
 		MemoryDesc				_desc;
 		DebugName_t				_debugName;
 		
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 
 	// methods
@@ -53,8 +53,8 @@ namespace FG
 
 		bool GetInfo (VMemoryManager &, OUT MemoryInfo &) const;
 
-		//ND_ MemoryDesc const&	Description ()	const	{ SHAREDLOCK( _rcCheck );  return _desc; }
-		ND_ EMemoryTypeExt	MemoryType ()		const	{ SHAREDLOCK( _rcCheck );  return EMemoryTypeExt(_desc.type); }
+		//ND_ MemoryDesc const&	Description ()	const	{ SHAREDLOCK( _drCheck );  return _desc; }
+		ND_ EMemoryTypeExt	MemoryType ()		const	{ SHAREDLOCK( _drCheck );  return EMemoryTypeExt(_desc.type); }
 	};
 
 

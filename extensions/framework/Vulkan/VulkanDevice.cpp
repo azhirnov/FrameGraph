@@ -615,12 +615,16 @@ namespace FGC
 	{
 		CHECK_ERR( _vkQueues.empty() );
 		
+		constexpr uint	MaxQueueFamilies = 32;
+		using QueueFamilyProperties_t	= FixedArray< VkQueueFamilyProperties, MaxQueueFamilies >;
+		using QueueCount_t				= FixedArray< uint, MaxQueueFamilies >;
+
 		uint	count = 0;
 		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, null );
 		CHECK_ERR( count > 0 );
 		
-		Array< VkQueueFamilyProperties >	queue_family_props;
-		queue_family_props.resize( count );
+		QueueFamilyProperties_t  queue_family_props;
+		queue_family_props.resize( Min( count, queue_family_props.capacity() ));
 		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, OUT queue_family_props.data() );
 
 
@@ -639,6 +643,7 @@ namespace FGC
 			return true;
 		}
 
+		QueueCount_t	qcount;	qcount.resize( queue_family_props.size() );
 
 		for (auto& q : queues)
 		{
@@ -646,7 +651,10 @@ namespace FGC
 			VkQueueFlags	flags			= q.flags;
 			CHECK_ERR( _ChooseQueueIndex( queue_family_props, INOUT flags, OUT family_index ));
 
-			_vkQueues.push_back({ VK_NULL_HANDLE, family_index, UMax, flags, q.priority });
+			if ( qcount[family_index]++ < queue_family_props[family_index].queueCount )
+			{
+				_vkQueues.push_back({ VK_NULL_HANDLE, family_index, UMax, flags, q.priority });
+			}
 		}
 
 		return true;
@@ -737,7 +745,7 @@ namespace FGC
 		VulkanLoader::LoadDevice( _vkDevice, OUT _deviceFnTable );
 
 		for (auto& q : _vkQueues) {
-			vkGetDeviceQueue( _vkDevice, q.familyIndex, q.queueIndex, OUT &q.id );
+			vkGetDeviceQueue( _vkDevice, q.familyIndex, q.queueIndex, OUT &q.handle );
 		}
 
 		_OnLogicalDeviceCreated( std::move(device_extensions) );

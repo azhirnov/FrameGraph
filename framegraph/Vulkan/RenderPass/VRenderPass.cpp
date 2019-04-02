@@ -31,7 +31,7 @@ namespace FG
 		
 	bool VRenderPass::_Initialize (ArrayView<VLogicalRenderPass*> logicalPasses)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( logicalPasses.size() == 1 );		// not supported yet
 
 		const auto *	pass		= logicalPasses.front();
@@ -209,7 +209,7 @@ namespace FG
 */
 	bool VRenderPass::Create (const VDevice &dev, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( _renderPass == VK_NULL_HANDLE );
 
 		VK_CHECK( dev.vkCreateRenderPass( dev.GetVkDevice(), &_createInfo, null, OUT &_renderPass ) );
@@ -225,7 +225,7 @@ namespace FG
 */
 	void VRenderPass::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		if ( _renderPass ) {
 			auto&	dev = resMngr.GetDevice();
@@ -335,8 +335,8 @@ namespace FG
 */
 	bool VRenderPass::operator == (const VRenderPass &rhs) const
 	{
-		SHAREDLOCK( _rcCheck );
-		SHAREDLOCK( rhs._rcCheck );
+		SHAREDLOCK( _drCheck );
+		SHAREDLOCK( rhs._drCheck );
 
 		using AttachView	= ArrayView< VkAttachmentDescription >;
 		using SubpassView	= ArrayView< VkSubpassDescription >;

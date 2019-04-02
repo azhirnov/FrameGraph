@@ -67,7 +67,7 @@ namespace FG
 	bool VBuffer::Create (VResourceManager &resMngr, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
 						  EQueueFamilyMask queueFamilyMask, StringView dbgName)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( not desc.isExternal );
@@ -132,7 +132,7 @@ namespace FG
 */
 	bool VBuffer::Create (const VDevice &dev, const VulkanBufferDesc &desc, StringView dbgName, OnRelease_t &&onRelease)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
 
 		_buffer				= BitCast<VkBuffer>( desc.buffer );
@@ -167,7 +167,7 @@ namespace FG
 */
 	void VBuffer::Destroy (VResourceManager &resMngr)
 	{
-		EXLOCK( _rcCheck );
+		EXLOCK( _drCheck );
 
 		auto&	dev = resMngr.GetDevice();
 
@@ -199,7 +199,7 @@ namespace FG
 */
 	bool VBuffer::IsReadOnly () const
 	{
-		SHAREDLOCK( _rcCheck );
+		SHAREDLOCK( _drCheck );
 		return not EnumAny( _desc.usage, EBufferUsage::TransferDst | EBufferUsage::StorageTexel | EBufferUsage::Storage | EBufferUsage::RayTracing );
 	}
 

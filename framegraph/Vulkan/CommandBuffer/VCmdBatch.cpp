@@ -32,6 +32,7 @@ namespace FG
 */
 	VCmdBatch::~VCmdBatch ()
 	{
+		EXLOCK( _drCheck );
 		CHECK( _counter.load( memory_order_relaxed ) == 0 );
 	}
 	
@@ -40,8 +41,10 @@ namespace FG
 	Initialize
 =================================================
 */
-	void  VCmdBatch::Initialize (VDeviceQueueInfoPtr queue, EQueueType type, ArrayView<CommandBuffer> dependsOn)
+	void  VCmdBatch::Initialize (EQueueType type, ArrayView<CommandBuffer> dependsOn)
 	{
+		EXLOCK( _drCheck );
+
 		ASSERT( _dependencies.empty() );
 		ASSERT( _batch.commands.empty() );
 		ASSERT( _batch.signalSemaphores.empty() );
@@ -57,8 +60,7 @@ namespace FG
 		ASSERT( _submitted == null );
 		ASSERT( _counter.load( memory_order_relaxed ) == 0 );
 
-		_queue		= queue;
-		_queueType	= type;
+		_queueType = type;
 
 		_state.store( EState::Initial, memory_order_relaxed );
 		
@@ -76,6 +78,7 @@ namespace FG
 */
 	void  VCmdBatch::Release ()
 	{
+		EXLOCK( _drCheck );
 		CHECK( GetState() == EState::Complete );
 		ASSERT( _counter.load( memory_order_relaxed ) == 0 );
 
@@ -89,6 +92,7 @@ namespace FG
 */
 	void  VCmdBatch::SignalSemaphore (VkSemaphore sem)
 	{
+		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
 
 		_batch.signalSemaphores.push_back( sem );
@@ -101,6 +105,7 @@ namespace FG
 */
 	void  VCmdBatch::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
 	{
+		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
 
 		_batch.waitSemaphores.push_back( sem, stage );
@@ -113,6 +118,7 @@ namespace FG
 */
 	void  VCmdBatch::PushFrontCommandBuffer (VkCommandBuffer cmd, const VCommandPool *pool)
 	{
+		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
 
 		_batch.commands.insert( 0, cmd, pool );
@@ -120,6 +126,7 @@ namespace FG
 
 	void  VCmdBatch::PushBackCommandBuffer (VkCommandBuffer cmd, const VCommandPool *pool)
 	{
+		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
 
 		_batch.commands.push_back( cmd, pool );
@@ -132,6 +139,7 @@ namespace FG
 */
 	void  VCmdBatch::AddDependency (VCmdBatch *batch)
 	{
+		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Backed );
 
 		_dependencies.push_back( batch );
@@ -144,6 +152,7 @@ namespace FG
 */
 	void  VCmdBatch::_SetState (EState newState)
 	{
+		EXLOCK( _drCheck );
 		ASSERT( uint(newState) > uint(GetState()) );
 
 		_state.store( newState, memory_order_relaxed );
@@ -156,6 +165,7 @@ namespace FG
 */
 	bool  VCmdBatch::OnBegin (const CommandBufferDesc &desc)
 	{
+		EXLOCK( _drCheck );
 		_SetState( EState::Recording );
 
 		//_submitImmediatly			= // TODO
@@ -173,6 +183,7 @@ namespace FG
 */
 	bool  VCmdBatch::OnBaked (INOUT ResourceMap_t &resources)
 	{
+		EXLOCK( _drCheck );
 		_SetState( EState::Backed );
 
 		std::swap( _resourcesToRelease, resources );
@@ -186,18 +197,20 @@ namespace FG
 */
 	bool  VCmdBatch::OnReadyToSubmit ()
 	{
+		EXLOCK( _drCheck );
+
 		_SetState( EState::Ready );
 		return true;
 	}
 
 /*
 =================================================
-	OnSubmit
+	BeforeSubmit
 =================================================
 */
-	bool  VCmdBatch::OnSubmit (OUT VkSubmitInfo &submitInfo, OUT Appendable<VSwapchain const*> swapchains, VSubmitted *ptr)
+	bool  VCmdBatch::BeforeSubmit (OUT VkSubmitInfo &submitInfo)
 	{
-		_SetState( EState::Submitted );
+		EXLOCK( _drCheck );
 		
 		submitInfo.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.pNext				= null;
@@ -209,6 +222,19 @@ namespace FG
 		submitInfo.pWaitDstStageMask	= _batch.waitSemaphores.get<1>().data();
 		submitInfo.waitSemaphoreCount	= uint(_batch.waitSemaphores.size());
 
+		return true;
+	}
+	
+/*
+=================================================
+	AfterSubmit
+=================================================
+*/
+	bool  VCmdBatch::AfterSubmit (OUT Appendable<VSwapchain const*> swapchains, VSubmitted *ptr)
+	{
+		EXLOCK( _drCheck );
+		_SetState( EState::Submitted );
+
 		for (auto& sw : _swapchains) {
 			swapchains.push_back( sw );
 		}
@@ -219,7 +245,7 @@ namespace FG
 
 		return true;
 	}
-	
+
 /*
 =================================================
 	OnComplete
@@ -227,7 +253,9 @@ namespace FG
 */
 	bool  VCmdBatch::OnComplete (VDebugger &debugger, const ShaderDebugCallback_t &shaderDbgCallback)
 	{
+		EXLOCK( _drCheck );
 		ASSERT( _submitted );
+
 		_SetState( EState::Complete );
 
 		_FinalizeCommands();
@@ -443,28 +471,28 @@ namespace FG
 	{
 		auto&	rm = _frameGraph.GetResourceManager();
 
-		for (auto& res : _resourcesToRelease)
+		for (auto[res, count] : _resourcesToRelease)
 		{
 			switch ( res.GetUID() )
 			{
-				case RawBufferID::GetUID() :			rm.ReleaseResource( RawBufferID{ res.Index(), res.InstanceID() });				break;
-				case RawImageID::GetUID() :				rm.ReleaseResource( RawImageID{ res.Index(), res.InstanceID() });				break;
-				case RawGPipelineID::GetUID() :			rm.ReleaseResource( RawGPipelineID{ res.Index(), res.InstanceID() });			break;
-				case RawMPipelineID::GetUID() :			rm.ReleaseResource( RawMPipelineID{ res.Index(), res.InstanceID() });			break;
-				case RawCPipelineID::GetUID() :			rm.ReleaseResource( RawCPipelineID{ res.Index(), res.InstanceID() });			break;
-				case RawRTPipelineID::GetUID() :		rm.ReleaseResource( RawRTPipelineID{ res.Index(), res.InstanceID() });			break;
-				case RawSamplerID::GetUID() :			rm.ReleaseResource( RawSamplerID{ res.Index(), res.InstanceID() });				break;
-				case RawDescriptorSetLayoutID::GetUID():rm.ReleaseResource( RawDescriptorSetLayoutID{ res.Index(), res.InstanceID() });	break;
-				case RawPipelineResourcesID::GetUID() :	rm.ReleaseResource( RawPipelineResourcesID{ res.Index(), res.InstanceID() });	break;
-				case RawRTSceneID::GetUID() :			rm.ReleaseResource( RawRTSceneID{ res.Index(), res.InstanceID() });				break;
-				case RawRTGeometryID::GetUID() :		rm.ReleaseResource( RawRTGeometryID{ res.Index(), res.InstanceID() });			break;
-				case RawRTShaderTableID::GetUID() :		rm.ReleaseResource( RawRTShaderTableID{ res.Index(), res.InstanceID() });		break;
-				case RawSwapchainID::GetUID() :			rm.ReleaseResource( RawSwapchainID{ res.Index(), res.InstanceID() });			break;
-				case RawMemoryID::GetUID() :			rm.ReleaseResource( RawMemoryID{ res.Index(), res.InstanceID() });				break;
-				case RawPipelineLayoutID::GetUID() :	rm.ReleaseResource( RawPipelineLayoutID{ res.Index(), res.InstanceID() });		break;
-				case RawRenderPassID::GetUID() :		rm.ReleaseResource( RawRenderPassID{ res.Index(), res.InstanceID() });			break;
-				case RawFramebufferID::GetUID() :		rm.ReleaseResource( RawFramebufferID{ res.Index(), res.InstanceID() });			break;
-				default :								CHECK( !"not supported" );														break;
+				case RawBufferID::GetUID() :			rm.ReleaseResource( RawBufferID{ res.Index(), res.InstanceID() }, count );				break;
+				case RawImageID::GetUID() :				rm.ReleaseResource( RawImageID{ res.Index(), res.InstanceID() }, count );				break;
+				case RawGPipelineID::GetUID() :			rm.ReleaseResource( RawGPipelineID{ res.Index(), res.InstanceID() }, count );			break;
+				case RawMPipelineID::GetUID() :			rm.ReleaseResource( RawMPipelineID{ res.Index(), res.InstanceID() }, count );			break;
+				case RawCPipelineID::GetUID() :			rm.ReleaseResource( RawCPipelineID{ res.Index(), res.InstanceID() }, count );			break;
+				case RawRTPipelineID::GetUID() :		rm.ReleaseResource( RawRTPipelineID{ res.Index(), res.InstanceID() }, count );			break;
+				case RawSamplerID::GetUID() :			rm.ReleaseResource( RawSamplerID{ res.Index(), res.InstanceID() }, count );				break;
+				case RawDescriptorSetLayoutID::GetUID():rm.ReleaseResource( RawDescriptorSetLayoutID{ res.Index(), res.InstanceID() }, count );	break;
+				case RawPipelineResourcesID::GetUID() :	rm.ReleaseResource( RawPipelineResourcesID{ res.Index(), res.InstanceID() }, count );	break;
+				case RawRTSceneID::GetUID() :			rm.ReleaseResource( RawRTSceneID{ res.Index(), res.InstanceID() }, count );				break;
+				case RawRTGeometryID::GetUID() :		rm.ReleaseResource( RawRTGeometryID{ res.Index(), res.InstanceID() }, count );			break;
+				case RawRTShaderTableID::GetUID() :		rm.ReleaseResource( RawRTShaderTableID{ res.Index(), res.InstanceID() }, count );		break;
+				case RawSwapchainID::GetUID() :			rm.ReleaseResource( RawSwapchainID{ res.Index(), res.InstanceID() }, count );			break;
+				case RawMemoryID::GetUID() :			rm.ReleaseResource( RawMemoryID{ res.Index(), res.InstanceID() }, count );				break;
+				case RawPipelineLayoutID::GetUID() :	rm.ReleaseResource( RawPipelineLayoutID{ res.Index(), res.InstanceID() }, count );		break;
+				case RawRenderPassID::GetUID() :		rm.ReleaseResource( RawRenderPassID{ res.Index(), res.InstanceID() }, count );			break;
+				case RawFramebufferID::GetUID() :		rm.ReleaseResource( RawFramebufferID{ res.Index(), res.InstanceID() }, count );			break;
+				default :								CHECK( !"not supported" );																break;
 			}
 		}
 		_resourcesToRelease.clear();
@@ -478,6 +506,7 @@ _GetWritable
 	bool VCmdBatch::GetWritable (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
 								 OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &outSize, OUT void* &mappedPtr)
 	{
+		EXLOCK( _drCheck );
 		ASSERT( blockAlign > 0_b and offsetAlign > 0_b );
 		ASSERT( dstMinSize == AlignToSmaller( dstMinSize, blockAlign ));
 
@@ -596,6 +625,8 @@ _GetWritable
 			RawMemoryID	mem_id = _frameGraph.GetResourceManager().GetResource( buf_id.Get() )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
+			// TODO: make immutable because read after write happens after waiting for fences and it implicitly make changes visible to the host
+
 			staging_buffers.push_back({ std::move(buf_id), mem_id, _staging.hostReadableBufferSize });
 
 			suitable = &staging_buffers.back();
@@ -620,6 +651,8 @@ _GetWritable
 	bool  VCmdBatch::AddPendingLoad (const BytesU srcOffset, const BytesU srcTotalSize,
 									 OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range)
 	{
+		EXLOCK( _drCheck );
+
 		// skip blocks less than 1/N of data size
 		const BytesU	min_size = (srcTotalSize + MaxBufferParts-1) / MaxBufferParts;
 
@@ -633,6 +666,7 @@ _GetWritable
 */
 	bool  VCmdBatch::AddDataLoadedEvent (OnBufferDataLoadedEvent &&ev)
 	{
+		EXLOCK( _drCheck );
 		CHECK_ERR( ev.callback and not ev.parts.empty() );
 
 		_staging.onBufferLoadedEvents.push_back( std::move(ev) );
@@ -647,6 +681,8 @@ _GetWritable
 	bool  VCmdBatch::AddPendingLoad (const BytesU srcOffset, const BytesU srcTotalSize, const BytesU srcPitch,
 									 OUT RawBufferID &dstBuffer, OUT OnImageDataLoadedEvent::Range &range)
 	{
+		EXLOCK( _drCheck );
+
 		// skip blocks less than 1/N of total data size
 		const BytesU	min_size = Max( (srcTotalSize + MaxImageParts-1) / MaxImageParts, srcPitch );
 
@@ -660,6 +696,7 @@ _GetWritable
 */
 	bool  VCmdBatch::AddDataLoadedEvent (OnImageDataLoadedEvent &&ev)
 	{
+		EXLOCK( _drCheck );
 		CHECK_ERR( ev.callback and not ev.parts.empty() );
 
 		_staging.onImageLoadedEvents.push_back( std::move(ev) );
@@ -675,6 +712,7 @@ _GetWritable
 */
 	void  VCmdBatch::BeginShaderDebugger (VkCommandBuffer cmd)
 	{
+		EXLOCK( _drCheck );
 		CHECK( GetState() == EState::Recording );
 
 		if ( _shaderDebugger.buffers.empty() )
@@ -731,6 +769,7 @@ _GetWritable
 */
 	void  VCmdBatch::EndShaderDebugger (VkCommandBuffer cmd)
 	{
+		EXLOCK( _drCheck );
 		CHECK( GetState() == EState::Recording );
 
 		if ( _shaderDebugger.buffers.empty() )
@@ -771,6 +810,7 @@ _GetWritable
 */
 	bool  VCmdBatch::SetShaderModule (ShaderDbgIndex id, const SharedShaderPtr &module)
 	{
+		EXLOCK( _drCheck );
 		CHECK_ERR( uint(id) < _shaderDebugger.modes.size() );
 		
 		auto&	dbg = _shaderDebugger.modes[ uint(id) ];
@@ -786,6 +826,7 @@ _GetWritable
 */
 	bool  VCmdBatch::GetDebugModeInfo (ShaderDbgIndex id, OUT EShaderDebugMode &mode, OUT EShaderStages &stages) const
 	{
+		EXLOCK( _drCheck );
 		CHECK_ERR( uint(id) < _shaderDebugger.modes.size() );
 
 		auto&	dbg = _shaderDebugger.modes[ uint(id) ];
@@ -802,6 +843,7 @@ _GetWritable
 */
 	bool  VCmdBatch::GetDescriptotSet (ShaderDbgIndex id, OUT uint &binding, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const
 	{
+		EXLOCK( _drCheck );
 		CHECK_ERR( uint(id) < _shaderDebugger.modes.size() );
 		
 		auto&	dbg = _shaderDebugger.modes[ uint(id) ];
@@ -819,6 +861,7 @@ _GetWritable
 */
 	ShaderDbgIndex  VCmdBatch::AppendShader (INOUT ArrayView<RectI> &, const TaskName_t &name, const _fg_hidden_::GraphicsShaderDebugMode &mode, BytesU size)
 	{
+		EXLOCK( _drCheck );
 		CHECK_ERR( FG_EnableShaderDebugging );
 
 		DebugMode	dbg_mode;
@@ -844,6 +887,7 @@ _GetWritable
 */
 	ShaderDbgIndex  VCmdBatch::AppendShader (const TaskName_t &name, const _fg_hidden_::ComputeShaderDebugMode &mode, BytesU size)
 	{
+		EXLOCK( _drCheck );
 		CHECK_ERR( FG_EnableShaderDebugging );
 
 		DebugMode	dbg_mode;
@@ -867,6 +911,7 @@ _GetWritable
 */
 	ShaderDbgIndex  VCmdBatch::AppendShader (const TaskName_t &name, const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size)
 	{
+		EXLOCK( _drCheck );
 		CHECK_ERR( FG_EnableShaderDebugging );
 
 		DebugMode	dbg_mode;

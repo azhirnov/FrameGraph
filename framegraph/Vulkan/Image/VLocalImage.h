@@ -64,7 +64,7 @@ namespace FG
 		
 	// variables
 	private:
-		VImage const*				_imageData		= null;		// readonly access is thread safe
+		Ptr<VImage const>			_imageData;		// readonly access is thread safe
 		VkImageLayout				_finalLayout	= VK_IMAGE_LAYOUT_GENERAL;
 
 		mutable AccessRecords_t		_pendingAccesses;
@@ -90,7 +90,7 @@ namespace FG
 
 		ND_ bool				IsCreated ()		const	{ return _imageData != null; }
 		ND_ VkImage				Handle ()			const	{ return _imageData->Handle(); }
-		ND_ VImage const*		ToGlobal ()			const	{ return _imageData; }
+		ND_ VImage const*		ToGlobal ()			const	{ return _imageData.get(); }
 
 		ND_ ImageDesc const&	Description ()		const	{ return _imageData->Description(); }
 		ND_ VkImageAspectFlags	AspectMask ()		const	{ return _imageData->AspectMask(); }

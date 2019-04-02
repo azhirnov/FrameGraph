@@ -41,7 +41,7 @@ namespace FG
 
 		EQueueFamilyMask				_queueFamilyMask	= Default;
 		
-		RWRaceConditionCheck			_rcCheck;
+		RWDataRaceCheck					_drCheck;
 
 
 	// methods
@@ -55,7 +55,7 @@ namespace FG
 		bool Acquire (VCommandBuffer &, ESwapchainImage type, OUT RawImageID &outImageId) const;
 		bool Present (const VDevice &) const;
 
-		ND_ VDeviceQueueInfoPtr	GetPresentQueue ()	const	{ SHAREDLOCK( _rcCheck );  return _presentQueue; }
+		ND_ VDeviceQueueInfoPtr	GetPresentQueue ()	const	{ SHAREDLOCK( _drCheck );  return _presentQueue; }
 
 
 	private:

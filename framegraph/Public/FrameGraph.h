@@ -98,6 +98,7 @@ namespace FG
 			virtual bool		SetShaderDebugCallback (ShaderDebugCallback_t &&) = 0;
 
 		ND_ virtual DeviceInfo_t	GetDeviceInfo () const = 0;
+		ND_ virtual EQueueUsage		GetAvilableQueues () const = 0;
 
 
 		// resource manager //
@@ -159,7 +160,7 @@ namespace FG
 			virtual bool			Execute (INOUT CommandBuffer &) = 0;
 
 			//
-			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout) = 0;
+			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = Nanoseconds{~0ull}) = 0;
 
 			// 
 			virtual bool			Flush () = 0;

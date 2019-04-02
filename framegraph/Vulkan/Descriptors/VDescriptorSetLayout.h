@@ -44,7 +44,7 @@ namespace FG
 		DebugName_t				_debugName;
 		// TODO: desc set update template
 
-		RWRaceConditionCheck	_rcCheck;
+		RWDataRaceCheck			_drCheck;
 
 
 	// methods
@@ -62,12 +62,12 @@ namespace FG
 
 		ND_ bool	operator == (const VDescriptorSetLayout &rhs) const;
 
-		ND_ VkDescriptorSetLayout	Handle ()			const	{ SHAREDLOCK( _rcCheck );  return _layout; }
-		ND_ HashVal					GetHash ()			const	{ SHAREDLOCK( _rcCheck );  return _hash; }
-		ND_ UniformMapPtr const&	GetUniforms ()		const	{ SHAREDLOCK( _rcCheck );  return _uniforms; }
-		ND_ DynamicDataPtr const&	GetResources ()		const	{ SHAREDLOCK( _rcCheck );  return _resourcesTemplate; }
-		ND_ uint					GetMaxIndex ()		const	{ SHAREDLOCK( _rcCheck );  return _maxIndex; }
-		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _rcCheck );  return _debugName; }
+		ND_ VkDescriptorSetLayout	Handle ()			const	{ SHAREDLOCK( _drCheck );  return _layout; }
+		ND_ HashVal					GetHash ()			const	{ SHAREDLOCK( _drCheck );  return _hash; }
+		ND_ UniformMapPtr const&	GetUniforms ()		const	{ SHAREDLOCK( _drCheck );  return _uniforms; }
+		ND_ DynamicDataPtr const&	GetResources ()		const	{ SHAREDLOCK( _drCheck );  return _resourcesTemplate; }
+		ND_ uint					GetMaxIndex ()		const	{ SHAREDLOCK( _drCheck );  return _maxIndex; }
+		ND_ StringView				GetDebugName ()		const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 
 
 	private:
