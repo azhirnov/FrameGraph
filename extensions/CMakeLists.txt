@@ -551,6 +551,48 @@ endif()
 
 
 #==================================================================================================
+# project: Tests.Scene
+#==================================================================================================
+if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLM})
+	set( SOURCES 
+		"../tests/scene/main.cpp"
+		"../tests/scene/SceneApp.cpp"
+		"../tests/scene/SceneApp.h"
+		"../tests/scene/UnitTest_Common.h"
+		"../tests/scene/UnitTest_Frustum.cpp"
+		"../tests/scene/UnitTest_Transformation.cpp" )
+	if (DEFINED ANDROID)
+		add_library( "Tests.Scene" SHARED ${SOURCES} )
+	else()
+		add_executable( "Tests.Scene" ${SOURCES} )
+	endif()
+	source_group( "" FILES "../tests/scene/main.cpp" "../tests/scene/SceneApp.cpp" "../tests/scene/SceneApp.h" "../tests/scene/UnitTest_Common.h" "../tests/scene/UnitTest_Frustum.cpp" "../tests/scene/UnitTest_Transformation.cpp" )
+	set_property( TARGET "Tests.Scene" PROPERTY FOLDER "Tests" )
+	target_include_directories( "Tests.Scene" PUBLIC "${FG_EXTERNALS_PATH}" )
+	if (${FG_ENABLE_GRAPHVIZ})
+		target_link_libraries( "Tests.Scene" "GraphViz" )
+	endif()
+	if (${FG_ENABLE_GLM})
+		target_link_libraries( "Tests.Scene" "Scene" )
+	endif()
+	if (${FG_ENABLE_GLSLANG})
+		target_link_libraries( "Tests.Scene" "PipelineCompiler" )
+	endif()
+	# compiler
+	target_compile_definitions( "Tests.Scene" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "Tests.Scene" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "Tests.Scene" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "Tests.Scene" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "Tests.Scene" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "Tests.Scene" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "Tests.Scene" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "Tests.Scene" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "Tests.Scene" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
 # project: UI
 #==================================================================================================
 if (${FG_ENABLE_IMGUI})
