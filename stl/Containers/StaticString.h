@@ -17,6 +17,7 @@ namespace FGC
 	{
 	// type
 	public:
+		using value_type		= CharT;
 		using iterator			= CharT *;
 		using const_iterator	= CharT const *;
 		using View_t			= BasicStringView< CharT >;
@@ -62,10 +63,11 @@ namespace FGC
 
 		ND_ constexpr size_t		size ()					const	{ return _length; }
 		ND_ constexpr size_t		length ()				const	{ return size(); }
-		ND_ constexpr size_t		capacity ()				const	{ return StringSize; }
+		ND_ static constexpr size_t	capacity ()						{ return StringSize; }
 		ND_ constexpr bool			empty ()				const	{ return _length == 0; }
 		ND_ constexpr CharT const *	c_str ()				const	{ return _array; }
 		ND_ constexpr CharT const *	data ()					const	{ return _array; }
+		ND_ CharT *					data ()							{ return _array; }
 
 		ND_ constexpr CharT &		operator [] (size_t i)			{ ASSERT( i < _length );  return _array[i]; }
 		ND_ constexpr CharT const &	operator [] (size_t i)	const	{ ASSERT( i < _length );  return _array[i]; }
@@ -85,6 +87,20 @@ namespace FGC
 		{
 			_array[0]	= CharT(0);
 			_length		= 0;
+		}
+
+		void resize (size_t newSize)
+		{
+			ASSERT( newSize < capacity() );
+
+			newSize = Min( newSize, capacity()-1 );
+
+			if ( newSize > _length )
+			{
+				memset( &_array[_length], 0, _length - newSize );
+			}
+
+			_length = newSize;
 		}
 	};
 

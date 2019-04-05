@@ -3,6 +3,7 @@
 #pragma once
 
 #include "EShaderCompilationFlags.h"
+#include "framegraph/Shared/HashCollisionCheck.h"
 #include <mutex>
 
 namespace FG
@@ -37,6 +38,10 @@ namespace FG
 		UniquePtr< class SpirvCompiler >	_spirvCompiler;
 		ShaderCache_t						_shaderCache;
 		EShaderCompilationFlags				_compilerFlags			= Default;
+
+		DEBUG_ONLY(
+			HashCollisionCheck				_hashCollisionCheck;	// for uniforms and descriptor sets
+		)
 
 		// immutable:
 		PhysicalDeviceVk_t					_physicalDevice;
@@ -80,6 +85,12 @@ namespace FG
 		bool _CreateVulkanShader (INOUT PipelineDescription::Shader &shader);
 
 		static bool _IsSupported (const ShaderDataMap_t &data);
+		
+		void _CheckHashCollision (const MeshPipelineDesc &);
+		void _CheckHashCollision (const RayTracingPipelineDesc &);
+		void _CheckHashCollision (const GraphicsPipelineDesc &);
+		void _CheckHashCollision (const ComputePipelineDesc &);
+		void _CheckHashCollision2 (const PipelineDescription &);
 	};
 
 

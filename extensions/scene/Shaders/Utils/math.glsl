@@ -75,10 +75,9 @@ vec3 DiffuseLighting (const vec3 color, const vec3 norm, const vec3 lightDir)
 
 void ApplyOpticalDepth (inout vec3 inoutColor, const vec3 materialAlbedo, float distance, float opticalDepth)
 {
-	//inoutColor *= exp( -distance * opticalDepth ) * materialAlbedo;
+	inoutColor *= exp( -distance * opticalDepth ) * materialAlbedo;
 	//inoutColor = max( inoutColor - exp( -distance * opticalDepth ) * (1.0f - materialAlbedo), vec3(0.0f) );
-
-	inoutColor = mix( inoutColor * materialAlbedo, inoutColor, exp(-distance * opticalDepth) );
+	//inoutColor = mix( inoutColor * materialAlbedo, inoutColor, exp(-distance * opticalDepth) );
 }
 
 

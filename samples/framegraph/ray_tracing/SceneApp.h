@@ -37,6 +37,9 @@ namespace FG
 		FrameGraph				_frameGraph;
 		SwapchainID				_swapchainId;
 
+		CommandBuffer			_cmdBuffers[2];
+		uint					_frameId : 1;
+
 		RenderTechniquePtr		_renderTech;
 		SceneManagerPtr			_scene;
 

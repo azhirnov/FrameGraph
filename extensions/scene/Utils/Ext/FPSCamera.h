@@ -33,6 +33,7 @@ namespace FGC
 
 		void Move (const vec3 &delta);
 		void Move2 (const vec3 &delta);
+		void SetPosition (const vec3 &pos);
 	};
 	
 	
@@ -114,6 +115,16 @@ namespace FGC
 		pos += axis_z * -delta.x;
 		pos += axis_x *  delta.y;
 		pos += up_dir *  delta.z;
+	}
+	
+/*
+=================================================
+	SetPosition
+=================================================
+*/
+	inline void  FPSCamera::SetPosition (const vec3 &pos)
+	{
+		_camera.transform.position = pos;
 	}
 
 

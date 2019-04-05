@@ -58,7 +58,7 @@ namespace {
 		{
 			auto	offsets = src.second->GetDynamicOffsets();
 
-			_perPassResources.resources.emplace_back( src.first, fgThread.GetResourceManager().CreateDescriptorSet( *src.second ),
+			_perPassResources.resources.emplace_back( src.first, fgThread.CreateDescriptorSet( *src.second ),
 													  uint(offset_count), uint(offsets.size()) );
 			
 			for (size_t i = 0; i < offsets.size(); ++i, ++offset_count) {
@@ -233,6 +233,57 @@ namespace {
 		_allocator.Destroy();
 
 		_shadingRateImage = null;
+	}
+	
+/*
+=================================================
+	Submit
+=================================================
+*/
+	bool VLogicalRenderPass::Submit (VCommandBuffer &fgThread,
+									 ArrayView<Pair<RawImageID, EResourceState>> images,
+									 ArrayView<Pair<RawBufferID, EResourceState>> buffers)
+	{
+		CHECK_ERR( not _isSubmited );
+		//ASSERT( _drawTasks.size() );
+		
+		if ( images.size() )
+		{
+			auto*	img_ptr	= _allocator->Alloc< MutableImages_t::value_type >( images.size() );
+			
+			for (size_t i = 0; i < images.size(); ++i) {
+				img_ptr[i] = { fgThread.ToLocal( images[i].first ), images[i].second };
+			}
+			_mutableImages = { img_ptr, images.size() };
+		}
+
+		if ( buffers.size() )
+		{
+			auto*	buf_ptr	= _allocator->Alloc< MutableBuffers_t::value_type >( buffers.size() );
+			
+			for (size_t i = 0; i < buffers.size(); ++i) {
+				buf_ptr[i] = { fgThread.ToLocal( buffers[i].first ), buffers[i].second };
+			}
+			_mutableBuffers = { buf_ptr, buffers.size() };
+		}
+
+		_isSubmited = true;
+		return true;
+	}
+	
+/*
+=================================================
+	_SetRenderPass
+=================================================
+*/
+	void VLogicalRenderPass::_SetRenderPass (RawRenderPassID rp, uint subpass, RawFramebufferID fb, uint depthIndex)
+	{
+		_framebufferId	= fb;
+		_renderPassId	= rp;
+		_subpassIndex	= subpass;
+			
+		_clearValues[_depthStencilTarget.index]	= _clearValues[depthIndex];
+		_depthStencilTarget.index				= depthIndex;
 	}
 
 /*

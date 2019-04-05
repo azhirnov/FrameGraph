@@ -344,7 +344,7 @@ namespace {
 */
 	bool FGApp::Visualize (StringView name) const
 	{
-#	if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FG_STD_FILESYSTEM)
+#	if 0 //defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FG_STD_FILESYSTEM)
 
 		String	str;
 		CHECK_ERR( _frameGraph->DumpToGraphViz( OUT str ));

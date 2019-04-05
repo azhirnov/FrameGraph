@@ -879,7 +879,8 @@ namespace FG
 		for (auto& cmd : commands)
 		{
 			auto*	batch = Cast<VCmdBatch>(cmd.GetBatch());
-			CHECK_ERR( batch );
+			if ( not batch )
+				continue;
 
 			auto	state		= batch->GetState();
 			auto*	submitted	= batch->GetSubmitted();

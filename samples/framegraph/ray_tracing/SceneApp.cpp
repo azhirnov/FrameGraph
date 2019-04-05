@@ -26,7 +26,8 @@ namespace FG
 	constructor
 =================================================
 */
-	SceneApp::SceneApp ()
+	SceneApp::SceneApp () :
+		_frameId{0}
 	{
 		_frameStat.lastUpdateTime = TimePoint_t::clock::now();
 	}
@@ -38,6 +39,8 @@ namespace FG
 */
 	SceneApp::~SceneApp ()
 	{
+		for (auto& cmd : _cmdBuffers) { cmd = null; }
+
 		if ( _scene )
 		{
 			_scene->Destroy( _frameGraph );
@@ -77,7 +80,7 @@ namespace FG
 			auto	renderer	= MakeShared<RendererPrototype>();
 			auto	scene		= MakeShared<DefaultSceneManager>();
 				
-			CHECK_ERR( scene->Create( _frameGraph ));
+			CHECK_ERR( scene->Create( cmdbuf ));
 			_scene = scene;
 
 			CHECK_ERR( renderer->Create( _frameGraph ));
@@ -93,6 +96,7 @@ namespace FG
 		CHECK_ERR( _scene->Build( _renderTech ));
 		CHECK_ERR( _frameGraph->Flush() );
 
+		_camera.SetPosition({ -0.06f, 0.29f, 0.93f });
 
 		_lastUpdateTime = TimePoint_t::clock::now();
 		return true;
@@ -108,11 +112,11 @@ namespace FG
 		AssimpLoader			loader;
 		AssimpLoader::Config	cfg;
 
-		IntermScenePtr	temp_scene = loader.Load( cfg, FG_DATA_PATH R"(..\_data\sponza\sponza.obj)" );
+		IntermScenePtr	temp_scene = loader.Load( cfg, FG_DATA_PATH "../_data/sponza/sponza.obj" );
 		CHECK_ERR( temp_scene );
 		
 		DevILLoader		img_loader;
-		CHECK_ERR( img_loader.Load( temp_scene, {FG_DATA_PATH R"(..\_data\sponza)"}, _scene->GetImageCache() ));
+		CHECK_ERR( img_loader.Load( temp_scene, {FG_DATA_PATH "../_data/sponza"}, _scene->GetImageCache() ));
 		
 		IntermScenePtr	temp_scene2 = loader.Load( cfg, FG_DATA_PATH "../_data/bunny/bunny.obj" );
 		CHECK_ERR( temp_scene2 );
@@ -120,9 +124,9 @@ namespace FG
 		// setup material
 		{
 			auto&	mtr = temp_scene2->GetMaterials().begin()->first->EditSettings();
-			mtr.albedo			= RGBA32f{ 0.5f, 0.1f, 0.1f, 1.0f };
-			mtr.opticalDepth	= 6.6f;
-			mtr.refraction		= 1.0f; // 1.31f;	// ice
+			mtr.albedo			= RGBA32f{ 0.8f, 0.8f, 1.0f, 1.0f };
+			mtr.opticalDepth	= 2.6f;
+			mtr.refraction		= 1.31f;	// ice
 		}
 
 		Transform	transform;
@@ -132,7 +136,7 @@ namespace FG
 		transform.scale	= 0.01f;
 
 		auto		hierarchy = MakeShared<SimpleRayTracingScene>();
-		CHECK_ERR( hierarchy->Create( _frameGraph, cmdbuf, temp_scene, _scene->GetImageCache(), transform ));
+		CHECK_ERR( hierarchy->Create( cmdbuf, temp_scene, _scene->GetImageCache(), transform ));
 
 		return hierarchy;
 	}
@@ -168,7 +172,7 @@ namespace FG
 		// initialize vulkan device
 		{
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Ray tracing", "FrameGraph", VK_API_VERSION_1_1,
-									   "",
+									   "RTX",
 									   {},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
@@ -253,9 +257,15 @@ namespace FG
 		if ( not _window->Update() )
 			return false;
 
+		// wait frame-1 for double buffering
+		_frameGraph->Wait({ _cmdBuffers[_frameId] });
+
 		_scene->Draw({ shared_from_this() });
+		_frameGraph->Flush();
 
 		_UpdateFrameStat();
+
+		++_frameId;
 		return true;
 	}
 	
@@ -378,6 +388,8 @@ namespace FG
 	void SceneApp::AfterRender (const CommandBuffer &cmdbuf, Present &&task)
 	{
 		FG_UNUSED( cmdbuf->AddTask( task.SetSwapchain( _swapchainId ) ));
+
+		_cmdBuffers[_frameId] = cmdbuf;
 	}
 	
 /*

@@ -96,12 +96,32 @@ namespace FG
 	//
 	struct SubmitRenderPass final : _fg_hidden_::BaseTask<SubmitRenderPass>
 	{
+	// types
+		using Images_t	= CustomDraw::Images_t;
+		using Buffers_t	= CustomDraw::Buffers_t;
+
 	// variables
 		LogicalPassID		renderPassId;
+		Images_t			images;		// can be used for pipeline barriers and layout transitions
+		Buffers_t			buffers;
 
 	// methods
 		explicit SubmitRenderPass (LogicalPassID rp) :
 			BaseTask<SubmitRenderPass>{ "RenderPass", ColorScheme::RenderPass }, renderPassId{rp} {}
+		
+		SubmitRenderPass&  AddImage (RawImageID id, EResourceState state = EResourceState::ShaderSample)
+		{
+			ASSERT( id );
+			images.emplace_back( id, state );
+			return *this;
+		}
+
+		SubmitRenderPass&  AddBuffer (RawBufferID id, EResourceState state = EResourceState::UniformRead)
+		{
+			ASSERT( id );
+			buffers.emplace_back( id, state );
+			return *this;
+		}
 	};
 
 

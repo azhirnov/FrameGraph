@@ -69,6 +69,8 @@ namespace FG
 		{
 			_frameGraph->ReleaseResource( _cameraUB );
 			_frameGraph->ReleaseResource( _lightsUB );
+			_frameGraph->ReleaseResource( _colorTarget );
+			_frameGraph->ReleaseResource( _depthTarget );
 		}
 
 		_shaderCache.Clear();
@@ -179,7 +181,7 @@ namespace FG
 		{
 			CHECK( _frameGraph->InitPipelineResources( outPipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res ));
 			ppln_res.BindBuffer( UniformID{"CameraUB"}, _cameraUB, 0_b, SizeOf<CameraUB> );
-			//ppln_res.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
+			ppln_res.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
 		}
 		return true;
 	}
@@ -203,12 +205,13 @@ namespace FG
 			RenderQueueImpl		queue;
 			queue.Create( cmdbuf, cam );
 
-			ImageID		image;
+			RawImageID		image;
 
 			// detect shadow techniques
 			if ( cam.layers[uint(ERenderLayer::Shadow)] )
 			{
-				CHECK_ERR( _SetupShadowPass( cam, INOUT queue, OUT image ));
+				//CHECK_ERR( _SetupShadowPass( cam, INOUT queue, OUT image ));
+				return false;
 			}
 			else
 			// detect color technique
@@ -242,7 +245,6 @@ namespace FG
 			}
 
 			CHECK_ERR( _frameGraph->Execute( cmdbuf ));
-			_frameGraph->ReleaseResource( image );
 		}
 
 		CHECK_ERR( _frameGraph->Flush() );
@@ -253,8 +255,8 @@ namespace FG
 =================================================
 	_SetupShadowPass
 =================================================
-*/
-	bool RendererPrototype::_SetupShadowPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT ImageID &outImage)
+*
+	bool RendererPrototype::_SetupShadowPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
 	{
 		ASSERT( cameraData.layers.count() == 1 );	// other layers will be ignored
 
@@ -289,27 +291,18 @@ namespace FG
 	_SetupColorPass
 =================================================
 */
-	bool RendererPrototype::_SetupColorPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT ImageID &outImage)
+	bool RendererPrototype::_SetupColorPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
 	{
-		ImageDesc	desc;
-		desc.imageType	= EImage::Tex2D;
-		desc.dimension	= uint3{float3{ cameraData.viewportSize.x + 0.5f, cameraData.viewportSize.y + 0.5f, 1.0f }};
-		desc.format		= EPixelFormat::RGBA16F;	// HDR
-		desc.usage		= EImageUsage::ColorAttachment | EImageUsage::Transfer;
-
-		ImageID		color_target = _frameGraph->CreateImage( desc );	// TODO: create virtual image
-
-		desc.format		= EPixelFormat::Depth32F;
-		desc.usage		= EImageUsage::DepthStencilAttachment | EImageUsage::Transfer;
-
-		ImageID		depth_target = _frameGraph->CreateImage( desc );
+		const uint2		dimension	 = uint2{float2{cameraData.viewportSize.x, cameraData.viewportSize.y} + 0.5f};
+		RawImageID		color_target = _CreateColorTarget( dimension );
+		RawImageID		depth_target = _CreateDepthTarget( dimension );
 
 		// opaque pass
 		{
-			RenderPassDesc	rp{ desc.dimension.xy() };
+			RenderPassDesc	rp{ dimension };
 			rp.AddTarget( RenderTargetID(0), color_target, RGBA32f{0.0f}, EAttachmentStoreOp::Store )
 			  .AddTarget( RenderTargetID::Depth, depth_target, DepthStencil{1.0f}, EAttachmentStoreOp::Store );
-			rp.AddViewport( desc.dimension.xy() );
+			rp.AddViewport( dimension );
 			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( true );
 			rp.SetDepthCompareOp( ECompareOp::LEqual );	// for reverse depth buffer
 			rp.AddResources( DescriptorSetID{"PerPass"}, &_perPassResources );
@@ -345,8 +338,7 @@ namespace FG
 		
 		_UpdateUniformBuffer( ERenderLayer::Opaque_1, cameraData, queue );
 
-		outImage = std::move(color_target);
-		_frameGraph->ReleaseResource( depth_target );
+		outImage = color_target;
 		return true;
 	}
 	
@@ -355,21 +347,16 @@ namespace FG
 	_SetupRayTracingPass
 =================================================
 */
-	bool RendererPrototype::_SetupRayTracingPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT ImageID &outImage)
+	bool RendererPrototype::_SetupRayTracingPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
 	{
 		ASSERT( cameraData.layers.count() == 1 );	// other layers will be ignored
-
-		ImageDesc	desc;
-		desc.imageType	= EImage::Tex2D;
-		desc.dimension	= uint3{float3{ cameraData.viewportSize.x + 0.5f, cameraData.viewportSize.y + 0.5f, 1.0f }};
-		desc.format		= EPixelFormat::RGBA16F;	// HDR
-		desc.usage		= EImageUsage::ColorAttachment | EImageUsage::Storage | EImageUsage::Transfer;
-
-		ImageID		color_target = _frameGraph->CreateImage( desc );	// TODO: create virtual image
 		
-		RenderPassDesc	rp{ desc.dimension.xy() };
+		const uint2		dimension	 = uint2{float2{cameraData.viewportSize.x, cameraData.viewportSize.y} + 0.5f};
+		RawImageID		color_target = _CreateColorTarget( dimension );
+		
+		RenderPassDesc	rp{ dimension };
 		rp.AddTarget( RenderTargetID(0), color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store );
-		rp.AddViewport( desc.dimension.xy() );
+		rp.AddViewport( dimension );
 
 		auto&	res = _shaderOutputResources[uint(ERenderLayer::RayTracing)];
 		if ( res.IsInitialized() ) {
@@ -380,8 +367,62 @@ namespace FG
 
 		_UpdateUniformBuffer( ERenderLayer::RayTracing, cameraData, queue );
 
-		outImage = std::move(color_target);
+		outImage = color_target;
 		return true;
+	}
+	
+/*
+=================================================
+	_CreateColorTarget
+=================================================
+*/
+	RawImageID  RendererPrototype::_CreateColorTarget (const uint2 &dim)
+	{
+		if ( _colorTarget )
+		{
+			ImageDesc const&	old_desc = _frameGraph->GetDescription( _colorTarget );
+
+			if ( Any( old_desc.dimension.xy() != dim ))
+				_frameGraph->ReleaseResource( _colorTarget );
+			else
+				return _colorTarget;
+		}
+
+		ImageDesc	desc;
+		desc.imageType	= EImage::Tex2D;
+		desc.dimension	= uint3{ dim, 1 };
+		desc.format		= EPixelFormat::RGBA16F;	// HDR
+		desc.usage		= EImageUsage::ColorAttachment | EImageUsage::Storage | EImageUsage::Transfer;
+
+		_colorTarget = _frameGraph->CreateImage( desc, Default, "ColorTarget" );
+		return _colorTarget;
+	}
+	
+/*
+=================================================
+	_CreateDepthTarget
+=================================================
+*/
+	RawImageID  RendererPrototype::_CreateDepthTarget (const uint2 &dim)
+	{
+		if ( _depthTarget )
+		{
+			ImageDesc const&	old_desc = _frameGraph->GetDescription( _depthTarget );
+
+			if ( Any( old_desc.dimension.xy() != dim ))
+				_frameGraph->ReleaseResource( _depthTarget );
+			else
+				return _depthTarget;
+		}
+
+		ImageDesc	desc;
+		desc.imageType	= EImage::Tex2D;
+		desc.dimension	= uint3{ dim, 1 };
+		desc.format		= EPixelFormat::Depth32F;
+		desc.usage		= EImageUsage::DepthStencilAttachment | EImageUsage::Transfer;
+
+		_depthTarget = _frameGraph->CreateImage( desc, Default, "DepthTarget" );
+		return _depthTarget;
 	}
 
 /*

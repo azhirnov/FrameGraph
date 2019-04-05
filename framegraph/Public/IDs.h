@@ -63,6 +63,7 @@ namespace _fg_hidden_
 	// methods
 	public:
 		constexpr IDWithString () {}
+		explicit constexpr IDWithString (uint hash) : _hash{hash} {}
 		explicit constexpr IDWithString (StringView name)  : _hash{CT_Hash( name.data(), name.length(), Seed )} {}
 		explicit constexpr IDWithString (const char *name) : _hash{CT_Hash( name, UMax, Seed )} {}
 
@@ -157,7 +158,7 @@ namespace _fg_hidden_
 		ND_ bool		IsValid ()						const	{ return _id.IsValid(); }
 		ND_ HashVal		GetHash ()						const	{ return _id.GetHash(); }
 		
-		ND_ ID_t		Release ()								{ ASSERT(IsValid());  ID_t temp{_id};  _id = Default;  return temp; }
+		ND_ ID_t		Release ()								{ /*ASSERT(IsValid());*/  ID_t temp{_id};  _id = Default;  return temp; }
 		ND_ ID_t const&	Get ()							const	{ return _id; }
 
 		ND_ bool		operator == (const Self &rhs)	const	{ return _id == rhs._id; }

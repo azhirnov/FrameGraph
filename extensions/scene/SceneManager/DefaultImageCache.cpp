@@ -18,9 +18,11 @@ namespace FG
 	Create
 =================================================
 */
-	bool  DefaultImageCache::Create (const FrameGraph &fg)
+	bool  DefaultImageCache::Create (const CommandBuffer &cmdbuf)
 	{
-		CHECK_ERR( fg );
+		CHECK_ERR( cmdbuf );
+
+		FrameGraph	fg = cmdbuf->GetFrameGraph();
 
 		// create default white image
 		{
@@ -28,8 +30,7 @@ namespace FG
 												 Default, "Default white" );
 			CHECK_ERR( image );
 
-			// TODO
-			//FG_UNUSED( fg->AddTask( ClearColorImage{}.SetImage( image ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{ 1.0f }) ));
+			FG_UNUSED( cmdbuf->AddTask( ClearColorImage{}.SetImage( image ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{ 1.0f }) ));
 
 			_defaultImages.insert_or_assign( "white", std::move(image) );
 		}
@@ -116,7 +117,7 @@ namespace FG
 	CreateImage
 =================================================
 */
-	bool  DefaultImageCache::CreateImage (const FrameGraph &fg, const CommandBuffer &cmdBuf, const IntermImagePtr &image, bool genMipmaps, OUT RawImageID &outHandle)
+	bool  DefaultImageCache::CreateImage (const CommandBuffer &cmdbuf, const IntermImagePtr &image, bool genMipmaps, OUT RawImageID &outHandle)
 	{
 		CHECK_ERR( image );
 
@@ -139,7 +140,7 @@ namespace FG
 		desc.usage			= EImageUsage::Sampled | EImageUsage::Transfer;
 
 		ImageID		id;
-		CHECK_ERR( id = fg->CreateImage( desc ));
+		CHECK_ERR( id = cmdbuf->GetFrameGraph()->CreateImage( desc ));
 		outHandle = id.Get();
 
 		Task	t_upload;
@@ -158,7 +159,7 @@ namespace FG
 			task.dataRowPitch	= img.rowPitch;
 			task.dataSlicePitch	= img.slicePitch;
 
-			t_upload = cmdBuf->AddTask( task.DependsOn( t_upload ));
+			t_upload = cmdbuf->AddTask( task.DependsOn( t_upload ));
 		}
 		
 		image->MakeImmutable();
@@ -166,7 +167,7 @@ namespace FG
 
 		if ( genMipmaps )
 		{
-			t_upload = cmdBuf->AddTask( GenerateMipmaps{}.SetImage( id ).SetRange( MipmapLevel{base_level}, UMax ).DependsOn( t_upload ));
+			t_upload = cmdbuf->AddTask( GenerateMipmaps{}.SetImage( id ).SetRange( MipmapLevel{base_level}, UMax ).DependsOn( t_upload ));
 		}
 
 		_handleCache.insert_or_assign( image.operator->(), Pair<IntermImageWeak, ImageID>{ image, std::move(id) });

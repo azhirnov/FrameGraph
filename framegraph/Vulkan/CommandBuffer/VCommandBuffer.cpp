@@ -1321,6 +1321,8 @@ namespace {
 			result->_maxHitShaderCount += (blas->MaxGeometryCount() * result->_hitShadersPerInstance);
 		}
 		
+		GetResourceManager().CheckTask( task );
+
 		return result;
 	}
 	

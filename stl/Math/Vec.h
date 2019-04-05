@@ -433,6 +433,21 @@ namespace FGC
 	{
 		return Vec<T,I>( lhs ) / rhs;
 	}
+	
+/*
+=================================================
+	operator %
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr Vec<T,I>  operator % (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = lhs[i] % rhs[i];
+		}
+		return res;
+	}
 
 /*
 =================================================

@@ -1001,8 +1001,10 @@ namespace FG
 	CreateDescriptorSet
 =================================================
 */
-	VPipelineResources const*  VResourceManager::CreateDescriptorSet (const PipelineResources &desc)
+	VPipelineResources const*  VResourceManager::CreateDescriptorSet (const PipelineResources &desc, VCmdBatch::ResourceMap_t &resourceMap)
 	{
+		using Resource_t = VCmdBatch::Resource;
+
 		RawPipelineResourcesID	id = PipelineResourcesHelper::GetCached( desc );
 		
 		// use cached resources
@@ -1012,7 +1014,10 @@ namespace FG
 
 			if ( res.GetInstanceID() == id.InstanceID() )
 			{
-				res.AddRef();	// TODO: check
+				if ( resourceMap.insert({ Resource_t{ id }, 1 }).second )
+					res.AddRef();
+				
+				ASSERT( res.Data().IsAllResourcesAlive( *this ));
 				return &res.Data();
 			}
 		}
@@ -1022,14 +1027,23 @@ namespace FG
 		auto&	layout = _GetResourcePool( desc.GetLayout() )[ desc.GetLayout().Index() ];
 		CHECK_ERR( layout.IsCreated() and desc.GetLayout().InstanceID() == layout.GetInstanceID() );
 
-		auto	result =
-			_CreateCachedResource<RawPipelineResourcesID>( "failed when creating descriptor set",
+		id = _CreateCachedResource<RawPipelineResourcesID>( "failed when creating descriptor set",
 								   [&] (auto& data) { return Replace( data, desc ); },
 								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
 
-		PipelineResourcesHelper::SetCache( desc, result );
+		if ( id )
+		{
+			PipelineResourcesHelper::SetCache( desc, id );
 
-		return result ? &_GetResourcePool( result )[ result.Index() ].Data() : nullptr;
+			auto&	res = _GetResourcePool( id )[ id.Index() ];
+			
+			if ( resourceMap.insert({ Resource_t{ id }, 1 }).second )
+				res.AddRef();
+
+			ASSERT( res.Data().IsAllResourcesAlive( *this ));
+			return &res.Data();
+		}
+		return null;
 	}
 	
 /*
@@ -1056,12 +1070,11 @@ namespace FG
 		auto&	layout = _GetResourcePool( desc.GetLayout() )[ desc.GetLayout().Index() ];
 		CHECK_ERR( layout.IsCreated() and desc.GetLayout().InstanceID() == layout.GetInstanceID() );
 
-		auto	result =
-			_CreateCachedResource<RawPipelineResourcesID>( "failed when creating descriptor set",
+		id = _CreateCachedResource<RawPipelineResourcesID>( "failed when creating descriptor set",
 								   [&] (auto& data) { return Replace( data, INOUT desc ); },
 								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
 
-		PipelineResourcesHelper::SetCache( desc, result );
+		PipelineResourcesHelper::SetCache( desc, id );
 		return true;
 	}
 	
@@ -1107,6 +1120,16 @@ namespace FG
 		
 		mem_obj->AddRef();
 		data.AddRef();
+
+		DEBUG_ONLY({
+			EXLOCK( _hccGuard );
+			for (auto& item : desc.triangles) {
+				_hashCollisionCheck.Add( item.geometryId );
+			}
+			for (auto& item : desc.aabbs) {
+				_hashCollisionCheck.Add( item.geometryId );
+			}
+		})
 		return id;
 	}
 	
@@ -1192,6 +1215,23 @@ namespace FG
 
 		data.AddRef();
 		return id;
+	}
+	
+/*
+=================================================
+	CheckTask
+=================================================
+*/
+	void  VResourceManager::CheckTask (const BuildRayTracingScene &task)
+	{
+		DEBUG_ONLY({
+			EXLOCK( _hccGuard );
+
+			for (auto& inst : task.instances)
+			{
+				_hashCollisionCheck.Add( inst.instanceId );
+			}
+		})
 	}
 
 

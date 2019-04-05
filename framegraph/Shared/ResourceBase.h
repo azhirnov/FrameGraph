@@ -43,7 +43,7 @@ namespace FG
 		mutable std::atomic<int>	_refCounter	= 0;
 
 		// cached resource may be deleted if reference counter is 1 and last usage was a long ago
-		mutable std::atomic<uint>	_lastUsage	= 0;
+		//mutable std::atomic<uint>	_lastUsage	= 0;
 
 
 	// methods
@@ -67,9 +67,8 @@ namespace FG
 			_refCounter.fetch_add( 1, memory_order_relaxed );
 		}
 
-		ND_ bool ReleaseRef (int refCount, uint timestamp) const
+		ND_ bool ReleaseRef (int refCount) const
 		{
-			_lastUsage.store( timestamp, memory_order_relaxed );
 			return _refCounter.fetch_sub( refCount, memory_order_relaxed ) == refCount;
 		}
 		
@@ -79,7 +78,7 @@ namespace FG
 
 		ND_ InstanceID_t	GetInstanceID ()	const	{ return InstanceID_t(_instanceId.load( memory_order_relaxed )); }
 		ND_ int				GetRefCount ()		const	{ return _refCounter.load( memory_order_relaxed ); }
-		ND_ uint			GetLastUsage ()		const	{ return _lastUsage.load( memory_order_relaxed ); }
+		//ND_ uint			GetLastUsage ()		const	{ return _lastUsage.load( memory_order_relaxed ); }
 
 		ND_ ResType&		Data ()						{ return _data; }
 		ND_ ResType const&	Data ()				const	{ return _data; }

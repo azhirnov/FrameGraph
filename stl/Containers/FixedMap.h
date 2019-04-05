@@ -27,10 +27,11 @@ namespace FGC
 	private:
 		using Self				= FixedMap< Key, Value, ArraySize >;
 		using Index_t			= Conditional< (ArraySize < 0xFF), uint8_t, Conditional< (ArraySize < 0xFFFF), uint16_t, uint32_t >>;
+		using Pair_t			= Pair< const Key, Value >;
 
 	public:
-		using iterator			= Pair< const Key, Value > *;
-		using const_iterator	= Pair< Key, Value > const *;
+		using iterator			= Pair_t *;
+		using const_iterator	= Pair_t const *;
 		using pair_type			= Pair< Key, Value >;
 		using key_type			= Key;
 		using value_type		= Value;
@@ -68,6 +69,8 @@ namespace FGC
 		
 			Self&	operator = (Self &&);
 			Self&	operator = (const Self &);
+
+		ND_ Pair_t const&	operator [] (size_t i)	const	{ ASSERT( i < _count );  return BitCast<Pair_t>( _array[ _indices[i]]); }
 
 		ND_ bool	operator == (const Self &rhs) const;
 		ND_ bool	operator != (const Self &rhs) const		{ return not (*this == rhs); }

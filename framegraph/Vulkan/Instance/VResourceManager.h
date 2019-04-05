@@ -4,6 +4,7 @@
 
 #include "framegraph/Public/FrameGraph.h"
 #include "framegraph/Shared/ResourceBase.h"
+#include "framegraph/Shared/HashCollisionCheck.h"
 #include "stl/Memory/LinearAllocator.h"
 #include "stl/Containers/ChunkedIndexedPool.h"
 #include "stl/Containers/CachedIndexedPool.h"
@@ -21,6 +22,7 @@
 #include "VSwapchain.h"
 #include "VMemoryManager.h"
 #include "VDescriptorManager.h"
+#include "VCmdBatch.h"
 
 namespace FG
 {
@@ -120,6 +122,11 @@ namespace FG
 
 		RawDescriptorSetLayoutID	_emptyDSLayout;
 
+		DEBUG_ONLY(
+			std::mutex				_hccGuard;
+			HashCollisionCheck		_hashCollisionCheck;
+		)
+
 
 	// methods
 	public:
@@ -147,7 +154,7 @@ namespace FG
 		ND_ RawRenderPassID		CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, StringView dbgName);
 		ND_ RawFramebufferID	CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers, StringView dbgName);
 
-		ND_ VPipelineResources const*	CreateDescriptorSet (const PipelineResources &desc);
+		ND_ VPipelineResources const*	CreateDescriptorSet (const PipelineResources &desc, VCmdBatch::ResourceMap_t &);
 			bool						CacheDescriptorSet (INOUT PipelineResources &desc);
 		
 		ND_ RawRTGeometryID		CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName);
@@ -186,6 +193,8 @@ namespace FG
 		ND_ uint				GetSubmitIndex ()			const	{ return _submissionCounter.load( memory_order_relaxed ); }
 		
 		ND_ static BytesU		GetDebugShaderStorageSize (EShaderStages stages);
+
+		void CheckTask (const BuildRayTracingScene &);
 
 
 	private:
@@ -369,7 +378,7 @@ namespace FG
 	template <typename DataT, size_t CS, size_t MC>
 	inline void  VResourceManager::_ReleaseResource (PoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index, uint refCount)
 	{
-		if ( data.ReleaseRef( refCount, GetSubmitIndex() ) and data.IsCreated() )
+		if ( data.ReleaseRef( refCount ) and data.IsCreated() )
 		{
 			data.Destroy( *this );
 			pool.Unassign( index );
@@ -379,7 +388,7 @@ namespace FG
 	template <typename DataT, size_t CS, size_t MC>
 	inline void  VResourceManager::_ReleaseResource (CachedPoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index, uint refCount)
 	{
-		if ( data.ReleaseRef( refCount, GetSubmitIndex() ) and data.IsCreated() )
+		if ( data.ReleaseRef( refCount ) and data.IsCreated() )
 		{
 			pool.RemoveFromCache( index );
 			data.Destroy( *this );

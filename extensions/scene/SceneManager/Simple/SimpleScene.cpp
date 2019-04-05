@@ -28,14 +28,14 @@ namespace {
 	Create
 =================================================
 */
-	bool SimpleScene::Create (const FrameGraph &fg, const CommandBuffer &cmdbuf, const IntermScenePtr &scene, const ImageCachePtr &imageCache, const Transform &initialTransform)
+	bool SimpleScene::Create (const CommandBuffer &cmdbuf, const IntermScenePtr &scene, const ImageCachePtr &imageCache, const Transform &initialTransform)
 	{
-		CHECK_ERR( fg and cmdbuf and scene and imageCache );
+		CHECK_ERR( cmdbuf and scene and imageCache );
 
-		Destroy( fg );
+		Destroy( cmdbuf->GetFrameGraph() );
 
-		CHECK_ERR( _ConvertMeshes( fg, cmdbuf, scene ));
-		CHECK_ERR( _ConvertMaterials( fg, cmdbuf, scene, imageCache ));
+		CHECK_ERR( _ConvertMeshes( cmdbuf, scene ));
+		CHECK_ERR( _ConvertMaterials( cmdbuf, scene, imageCache ));
 		CHECK_ERR( _ConvertHierarchy( scene, initialTransform ));
 		return true;
 	}
@@ -249,9 +249,11 @@ namespace {
 	_ConvertMeshes
 =================================================
 */
-	bool SimpleScene::_ConvertMeshes (const FrameGraph &fg, const CommandBuffer &cmdbuf, const IntermScenePtr &scene)
+	bool SimpleScene::_ConvertMeshes (const CommandBuffer &cmdbuf, const IntermScenePtr &scene)
 	{
 		HashMap< VertexAttributesPtr, size_t >	attribs;
+
+		FrameGraph	fg = cmdbuf->GetFrameGraph();
 
 		BytesU	vert_stride, idx_stride;
 		for (auto& src : scene->GetMeshes())
@@ -318,7 +320,7 @@ namespace {
 	_ConvertMaterials
 =================================================
 */
-	bool SimpleScene::_ConvertMaterials (const FrameGraph &fg, const CommandBuffer &cmdbuf, const IntermScenePtr &scene, const ImageCachePtr &imageCache)
+	bool SimpleScene::_ConvertMaterials (const CommandBuffer &cmdbuf, const IntermScenePtr &scene, const ImageCachePtr &imageCache)
 	{
 		using MtrTexture = IntermMaterial::MtrTexture;
 
@@ -335,25 +337,25 @@ namespace {
 
 			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.albedo ) )
 			{
-				CHECK_ERR( imageCache->CreateImage( fg, cmdbuf, tex->image, true, OUT dst.albedoTex ));
+				CHECK_ERR( imageCache->CreateImage( cmdbuf, tex->image, true, OUT dst.albedoTex ));
 				dst.textureBits |= ETextureType::Albedo;
 			}
 
 			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.specular ) )
 			{
-				CHECK_ERR( imageCache->CreateImage( fg, cmdbuf, tex->image, true, OUT dst.specularTex ));
+				CHECK_ERR( imageCache->CreateImage( cmdbuf, tex->image, true, OUT dst.specularTex ));
 				dst.textureBits |= ETextureType::Specular;
 			}
 
 			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.roughtness ) )
 			{
-				CHECK_ERR( imageCache->CreateImage( fg, cmdbuf, tex->image, true, OUT dst.roughtnessTex ));
+				CHECK_ERR( imageCache->CreateImage( cmdbuf, tex->image, true, OUT dst.roughtnessTex ));
 				dst.textureBits |= ETextureType::Roughtness;
 			}
 
 			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.metallic ) )
 			{
-				CHECK_ERR( imageCache->CreateImage( fg, cmdbuf, tex->image, true, OUT dst.metallicTex ));
+				CHECK_ERR( imageCache->CreateImage( cmdbuf, tex->image, true, OUT dst.metallicTex ));
 				dst.textureBits |= ETextureType::Metallic;
 			}
 		}

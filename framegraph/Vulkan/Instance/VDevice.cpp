@@ -140,8 +140,8 @@ namespace FG
 		if ( _enableMeshShaderNV )
 			_graphicsShaderStages |= (EResourceState::_MeshTaskShader | EResourceState::_MeshShader);
 
-		if ( _enableRayTracingNV )
-			_allReadableStages |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV | VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
+		//if ( _enableRayTracingNV )
+		//	_allReadableStages |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV | VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
 
 
 		// validate constants

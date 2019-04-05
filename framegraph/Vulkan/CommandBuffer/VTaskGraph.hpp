@@ -49,7 +49,7 @@ namespace FG
 		_logicalPass{ cb.ToLocal( task.renderPassId )}
 	{
 		if ( _logicalPass )
-			CHECK( _logicalPass->Submit() );
+			CHECK( _logicalPass->Submit( cb, task.images, task.buffers ));
 	}
 	
 /*
@@ -77,7 +77,7 @@ namespace FG
 		{
 			auto	offsets = src.second->GetDynamicOffsets();
 
-			outResourceSet.resources.emplace_back( src.first, cb.GetResourceManager().CreateDescriptorSet( *src.second ),
+			outResourceSet.resources.emplace_back( src.first, cb.CreateDescriptorSet( *src.second ),
 												   uint(offset_count), uint(offsets.size()) );
 			
 			for (size_t i = 0; i < offsets.size(); ++i, ++offset_count) {

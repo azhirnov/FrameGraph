@@ -94,6 +94,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
+		CHECK_ERR( _batch.signalSemaphores.size() < _batch.signalSemaphores.capacity(), void());
 
 		_batch.signalSemaphores.push_back( sem );
 	}
@@ -107,6 +108,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
+		CHECK_ERR( _batch.waitSemaphores.size() < _batch.waitSemaphores.capacity(), void());
 
 		_batch.waitSemaphores.push_back( sem, stage );
 	}
@@ -120,6 +122,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
+		CHECK_ERR( _batch.commands.size() < _batch.commands.capacity(), void());
 
 		_batch.commands.insert( 0, cmd, pool );
 	}
@@ -128,6 +131,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
+		CHECK_ERR( _batch.commands.size() < _batch.commands.capacity(), void());
 
 		_batch.commands.push_back( cmd, pool );
 	}
@@ -141,6 +145,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Backed );
+		CHECK_ERR( _dependencies.size() < _dependencies.capacity(), void());
 
 		_dependencies.push_back( batch );
 	}
@@ -546,6 +551,7 @@ _GetWritable
 		if ( not suitable )
 		{
 			ASSERT( dstMinSize < _staging.hostWritableBufferSize );
+			CHECK_ERR( staging_buffers.size() < staging_buffers.capacity() );
 
 			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _staging.hostWritableBufferSize, _staging.hostWritebleBufferUsage }, 
 															MemoryDesc{ EMemoryType::HostWrite }, "HostWriteBuffer" );
@@ -617,6 +623,7 @@ _GetWritable
 		if ( not suitable )
 		{
 			ASSERT( dstMinSize < _staging.hostReadableBufferSize );
+			CHECK_ERR( staging_buffers.size() < staging_buffers.capacity() );
 
 			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _staging.hostReadableBufferSize, EBufferUsage::TransferDst },
 															MemoryDesc{ EMemoryType::HostRead }, "HostReadBuffer" );

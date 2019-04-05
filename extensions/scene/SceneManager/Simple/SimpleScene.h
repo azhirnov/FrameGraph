@@ -95,7 +95,7 @@ namespace FG
 	public:
 		SimpleScene ();
 
-		bool Create (const FrameGraph &, const CommandBuffer &, const IntermScenePtr &, const ImageCachePtr &, const Transform & = Default);
+		bool Create (const CommandBuffer &, const IntermScenePtr &, const ImageCachePtr &, const Transform & = Default);
 		void Destroy (const FrameGraph &) override;
 		
 		bool Build (const CommandBuffer &, const RenderTechniquePtr &) override;
@@ -106,8 +106,8 @@ namespace FG
 
 
 	private:
-		bool _ConvertMeshes (const FrameGraph &, const CommandBuffer &, const IntermScenePtr &);
-		bool _ConvertMaterials (const FrameGraph &, const CommandBuffer &, const IntermScenePtr &, const ImageCachePtr &);
+		bool _ConvertMeshes (const CommandBuffer &, const IntermScenePtr &);
+		bool _ConvertMaterials (const CommandBuffer &, const IntermScenePtr &, const ImageCachePtr &);
 		bool _ConvertHierarchy (const IntermScenePtr &, const Transform &);
 		bool _UpdatePerObjectUniforms (const FrameGraph &);
 		bool _BuildModels (const FrameGraph &, const RenderTechniquePtr &);

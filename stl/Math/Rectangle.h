@@ -22,7 +22,14 @@ namespace FGC
 
 	// methods
 		constexpr Rectangle () :
-			left{T(0)}, top{T(0)}, right{T(0)}, bottom{T(0)} {}
+			left{T(0)}, top{T(0)}, right{T(0)}, bottom{T(0)}
+		{
+			// check is supported cast Rectangle to array
+			STATIC_ASSERT( offsetof(Self, left)  + sizeof(T) == offsetof(Self, top) );
+			STATIC_ASSERT( offsetof(Self, top)   + sizeof(T) == offsetof(Self, right) );
+			STATIC_ASSERT( offsetof(Self, right) + sizeof(T) == offsetof(Self, bottom) );
+			STATIC_ASSERT( sizeof(T[3]) == (offsetof(Self, bottom) - offsetof(Self, left)) );
+		}
 		
 		constexpr Rectangle (T left, T top, T right, T bottom) :
 			left{left}, top{top}, right{right}, bottom{bottom} {}
@@ -40,6 +47,8 @@ namespace FGC
 
 		ND_ constexpr const T		Width ()		const	{ return right - left; }
 		ND_ constexpr const T		Height ()		const	{ return bottom - top; }
+		ND_ constexpr const T		CenterX ()		const	{ return (right + left) / T(2); }
+		ND_ constexpr const T		CenterY ()		const	{ return (top + bottom) / T(2); }
 
 		ND_ constexpr const Vec2_t	LeftTop ()		const	{ return { left, top }; }
 		ND_ constexpr const Vec2_t	RightBottom ()	const	{ return { right, bottom }; }
@@ -47,33 +56,29 @@ namespace FGC
 		ND_ Vec2_t &				LeftTop ();
 		ND_ Vec2_t &				RightBottom ();
 
+		ND_ T const*				data ()			const	{ return std::addressof( left ); }
+		ND_ T *						data ()					{ return std::addressof( left ); }
+
 		ND_ constexpr const Vec2_t	Size ()			const	{ return { Width(), Height() }; }
-		ND_ constexpr const Vec2_t	Center ()		const	{ return { (right + left) / T(2), (top + bottom) / T(2) }; }
+		ND_ constexpr const Vec2_t	Center ()		const	{ return { CenterX(), CenterY() }; }
 
 		ND_ constexpr bool			IsEmpty ()		const	{ return Equals( left, right ) or Equals( top, bottom ); }
 		ND_ constexpr bool			IsInvalid ()	const	{ return right < left or bottom < top; }
 		ND_ constexpr bool			IsValid ()		const	{ return not IsEmpty() and not IsInvalid(); }
+		
+		ND_ constexpr bool  IsNormalized () const;
+		ND_ constexpr bool4 operator == (const Self &rhs) const;
 
-		ND_ Self  operator + (const Vec2_t &rhs)	const	{ return Self{*this} += rhs; }
-		ND_ Self  operator - (const Vec2_t &rhs)	const	{ return Self{*this} -= rhs; }
+		ND_ constexpr Self  operator + (const Vec2_t &rhs)	const	{ return Self{*this} += rhs; }
+		ND_ constexpr Self  operator - (const Vec2_t &rhs)	const	{ return Self{*this} -= rhs; }
 
-			Self&  operator += (const Vec2_t &rhs);
-			Self&  operator -= (const Vec2_t &rhs);
+			constexpr Self& operator += (const Vec2_t &rhs);
+			constexpr Self& operator -= (const Vec2_t &rhs);
 
 			void Merge (const Rectangle<T> &other);
 		
-		ND_ constexpr bool  IsNormalized () const
-		{
-			return (left <= right) & (top <= bottom);
-		}
-
-		ND_ constexpr bool4  operator == (const Self &rhs) const
-		{
-			return { left == rhs.left, top == rhs.top, right == rhs.right, bottom == rhs.bottom };
-		}
-		
-		Self&	Join (const Self &other);
-		Self&	Join (const Vec2_t &point);
+			Self&	Join (const Self &other);
+			Self&	Join (const Vec2_t &point);
 	};
 
 
@@ -112,7 +117,7 @@ namespace FGC
 =================================================
 */
 	template <typename T>
-	inline Rectangle<T>&  Rectangle<T>::operator += (const Vec2_t &rhs)
+	inline constexpr Rectangle<T>&  Rectangle<T>::operator += (const Vec2_t &rhs)
 	{
 		left += rhs.x;		right  += rhs.x;
 		top  += rhs.y;		bottom += rhs.y;
@@ -125,7 +130,7 @@ namespace FGC
 =================================================
 */
 	template <typename T>
-	inline Rectangle<T>&  Rectangle<T>::operator -= (const Vec2_t &rhs)
+	inline constexpr Rectangle<T>&  Rectangle<T>::operator -= (const Vec2_t &rhs)
 	{
 		left -= rhs.x;		right  -= rhs.x;
 		top  -= rhs.y;		bottom -= rhs.y;
@@ -138,12 +143,34 @@ namespace FGC
 =================================================
 */
 	template <typename T>
-	inline void Rectangle<T>::Merge (const Rectangle<T> &other)
+	inline void  Rectangle<T>::Merge (const Rectangle<T> &other)
 	{
 		left	= Min( left,   other.left   );
 		top		= Min( top,    other.top    );
 		right	= Max( right,  other.right  );
 		bottom	= Max( bottom, other.bottom );
+	}
+	
+/*
+=================================================
+	IsNormalized
+=================================================
+*/
+	template <typename T>
+	inline constexpr bool  Rectangle<T>::IsNormalized () const
+	{
+		return (left <= right) & (top <= bottom);
+	}
+	
+/*
+=================================================
+	operator ==
+=================================================
+*/
+	template <typename T>
+	inline constexpr bool4  Rectangle<T>::operator == (const Self &rhs) const
+	{
+		return { left == rhs.left, top == rhs.top, right == rhs.right, bottom == rhs.bottom };
 	}
 
 /*

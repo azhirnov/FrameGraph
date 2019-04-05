@@ -25,7 +25,7 @@
 	}
 
 	#ifdef ATTRIB_TextureUV
-	vec2 GetTextureCoordinate0 ()  { return at_TextureUV; }
+	vec2 GetTextureCoordinate0 ()  { return at_TextureUV.xy; }
 	#else
 	vec2 GetTextureCoordinate0 ()  { return vec2(1.0f); }
 	#endif

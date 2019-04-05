@@ -139,6 +139,9 @@ namespace FGC
 
 			return Equals( h, rhs.h, eps ) and Equals( s, rhs.s, eps ) and Equals( v, rhs.v, eps );
 		}
+
+		ND_ float *			data ()			{ return std::addressof(h); }
+		ND_ float const *	data ()	const	{ return std::addressof(h); }
 	};
 	
 

@@ -24,7 +24,7 @@ namespace FG
 	public:
 		DefaultSceneManager ();
 		
-		bool Create (const FrameGraph &);
+		bool Create (const CommandBuffer &);
 		void Destroy (const FrameGraph &) override;
 
 		bool Build (const RenderTechniquePtr &) override;

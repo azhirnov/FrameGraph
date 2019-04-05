@@ -195,3 +195,5 @@ endif()
 
 add_test( NAME "Tests.STL" COMMAND "Tests.STL" )
 
+add_test( NAME "Tests.Algorithms" COMMAND "Tests.Algorithms" )
+

@@ -56,7 +56,8 @@ namespace FG
 		template <typename TaskType>
 		void AddTask (ERenderLayer beforeLayer, const TaskType &task);
 
-		ND_ CameraInfo  const&	GetCamera ()	const	{ return _camera; }
+		ND_ CameraInfo  const&		GetCamera ()		const	{ return _camera; }
+		ND_ CommandBuffer const&	GetCommandBuffer ()	const	{ return _cmdBuffer; }
 	};
 
 	

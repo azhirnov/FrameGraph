@@ -108,6 +108,8 @@ namespace FG
 
 		void SignalSemaphore (VkSemaphore sem);
 		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
+		
+		FrameGraph	GetFrameGraph () override	{ return _instance.shared_from_this(); }
 
 		RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
 		bool		AddExternalCommands (const ExternalCmdBatch_t &) override;
@@ -168,6 +170,7 @@ namespace FG
 		ND_ VLocalImage  const*		ToLocal (RawImageID id);
 		ND_ VLocalRTGeometry const*	ToLocal (RawRTGeometryID id);
 		ND_ VLocalRTScene const*	ToLocal (RawRTSceneID id);
+		ND_ VPipelineResources const* CreateDescriptorSet (const PipelineResources &desc);
 
 		
 		ND_ StringView				GetName ()					const	{ EXLOCK( _drCheck );  return _dbgName; }
@@ -242,6 +245,16 @@ namespace FG
 	inline void  VCommandBuffer::ReleaseResource (_fg_hidden_::ResourceID<UID> id)
 	{
 		_rm.resourceMap.insert({ Resource_t{ id }, 0 }).first->second++;
+	}
+	
+/*
+=================================================
+	CreateDescriptorSet
+=================================================
+*/
+	inline VPipelineResources const*  VCommandBuffer::CreateDescriptorSet (const PipelineResources &desc)
+	{
+		return GetResourceManager().CreateDescriptorSet( desc, INOUT _rm.resourceMap );
 	}
 
 

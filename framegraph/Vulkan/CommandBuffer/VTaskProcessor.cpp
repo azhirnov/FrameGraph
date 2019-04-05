@@ -940,7 +940,7 @@ namespace FG
 		_BindPipeline( ALL_BITS );
 		CHECK_ERR( _pplnLayout, void());
 
-		VPipelineResources const*	ppln_res = _tp._fgThread.GetResourceManager().CreateDescriptorSet( res );
+		VPipelineResources const*	ppln_res = _tp._fgThread.CreateDescriptorSet( res );
 		VkDescriptorSet				ds		 = ppln_res->Handle();
 		ArrayView<uint>				dyn_offs = res.GetDynamicOffsets();
 
@@ -1657,12 +1657,24 @@ namespace FG
 		
 		// add barriers
 		DrawTaskBarriers	barrier_visitor{ *this, *logical_passes.front() };
+		EResourceState		stages = _fgThread.GetDevice().GetGraphicsShaderStages();
 
 		for (auto& pass : logical_passes)
 		{
 			for (auto& draw : pass->GetDrawTasks())
 			{
 				draw->Process1( &barrier_visitor );
+			}
+
+			for (auto& item : pass->GetMutableImages())
+			{
+				ImageViewDesc	desc{ item.first->Description() };
+				_AddImage( item.first, (item.second | stages), EResourceState_ToImageLayout( item.second, item.first->AspectMask() ), desc );
+			}
+
+			for (auto& item : pass->GetMutableBuffers())
+			{
+				_AddBuffer( item.first, item.second, 0, VK_WHOLE_SIZE );
 			}
 		}
 		

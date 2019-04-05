@@ -1,4 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	Access to the command buffer must be externally synchronized.
+*/
 
 #pragma once
 
@@ -52,6 +55,8 @@ namespace FG
 
 	// interface
 	public:
+		ND_ virtual FrameGraph	GetFrameGraph () = 0;
+
 		ND_ virtual RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type = ESwapchainImage::Primary) = 0;
 			virtual bool		AddExternalCommands (const ExternalCmdBatch_t &) = 0;
 			virtual bool		AddDependency (const CommandBuffer &) = 0;

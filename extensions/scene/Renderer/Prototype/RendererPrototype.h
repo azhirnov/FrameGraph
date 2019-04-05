@@ -63,6 +63,9 @@ namespace FG
 		BufferID			_cameraUB;
 		BufferID			_lightsUB;
 
+		ImageID				_colorTarget;
+		ImageID				_depthTarget;
+
 
 	// methods
 	public:
@@ -84,9 +87,12 @@ namespace FG
 
 
 	private:
-		bool _SetupShadowPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT ImageID &);
-		bool _SetupColorPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT ImageID &);
-		bool _SetupRayTracingPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT ImageID &);
+		//bool _SetupShadowPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
+		bool _SetupColorPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
+		bool _SetupRayTracingPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
+
+		ND_ RawImageID  _CreateColorTarget (const uint2 &dim);
+		ND_ RawImageID  _CreateDepthTarget (const uint2 &dim);
 
 		bool _CreateUniformBuffer ();
 		void _UpdateUniformBuffer (ERenderLayer firstLayer, const CameraData_t &cameraData, INOUT RenderQueueImpl &queue);

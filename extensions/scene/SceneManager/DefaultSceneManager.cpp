@@ -24,14 +24,14 @@ namespace FG
 	Create
 =================================================
 */
-	bool DefaultSceneManager::Create (const FrameGraph &fg)
+	bool DefaultSceneManager::Create (const CommandBuffer &cmdbuf)
 	{
-		CHECK_ERR( fg );
+		CHECK_ERR( cmdbuf );
 
-		Destroy( fg );
+		Destroy( cmdbuf->GetFrameGraph() );
 
 		auto	img_cache = MakeShared<DefaultImageCache>();
-		CHECK_ERR( img_cache->Create( fg ));
+		CHECK_ERR( img_cache->Create( cmdbuf ));
 
 		_imageCache = img_cache;
 		return true;

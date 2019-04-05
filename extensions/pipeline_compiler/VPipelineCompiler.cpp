@@ -789,7 +789,8 @@ namespace FG
 
 		UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
 
-		std::swap( ppln, new_ppln ); 
+		std::swap( ppln, new_ppln );
+		_CheckHashCollision( ppln );
 		return true;
 	}
 	
@@ -864,6 +865,7 @@ namespace FG
 		UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
 
 		std::swap( ppln, new_ppln );
+		_CheckHashCollision( ppln );
 		return true;
 	}
 
@@ -950,7 +952,8 @@ namespace FG
 		ValidatePrimitiveTopology( INOUT new_ppln._supportedTopology );
 		UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
 
-		std::swap( ppln, new_ppln ); 
+		std::swap( ppln, new_ppln );
+		_CheckHashCollision( ppln );
 		return true;
 	}
 	
@@ -997,7 +1000,8 @@ namespace FG
 			
 			UpdateBufferDynamicOffsets( new_ppln._pipelineLayout.descriptorSets );
 
-			std::swap( ppln, new_ppln ); 
+			std::swap( ppln, new_ppln );
+			_CheckHashCollision( ppln );
 			return true;
 		}
 
@@ -1073,5 +1077,87 @@ namespace FG
 
 		return true;
 	}
+	
+/*
+=================================================
+	_CheckHashCollision
+=================================================
+*/
+	void VPipelineCompiler::_CheckHashCollision (const MeshPipelineDesc &desc)
+	{
+		DEBUG_ONLY(
+		for (auto& sh : desc._shaders)
+		{
+			for (auto& sc : sh.second.specConstants) {
+				_hashCollisionCheck.Add( sc.first );
+			}
+		})
+
+		_CheckHashCollision2( desc );
+	}
+
+	void VPipelineCompiler::_CheckHashCollision (const RayTracingPipelineDesc &desc)
+	{
+		DEBUG_ONLY(
+		for (auto& sh : desc._shaders)
+		{
+			_hashCollisionCheck.Add( sh.first );
+
+			for (auto& sc : sh.second.specConstants) {
+				_hashCollisionCheck.Add( sc.first );
+			}
+		})
+
+		_CheckHashCollision2( desc );
+	}
+
+	void VPipelineCompiler::_CheckHashCollision (const GraphicsPipelineDesc &desc)
+	{
+		DEBUG_ONLY(
+		for (auto& sh : desc._shaders)
+		{
+			for (auto& sc : sh.second.specConstants) {
+				_hashCollisionCheck.Add( sc.first );
+			}
+		})
+
+		_CheckHashCollision2( desc );
+	}
+
+	void VPipelineCompiler::_CheckHashCollision (const ComputePipelineDesc &desc)
+	{
+		DEBUG_ONLY(
+		for (auto& sc : desc._shader.specConstants)
+		{
+			_hashCollisionCheck.Add( sc.first );
+		})
+
+		_CheckHashCollision2( desc );
+	}
+	
+/*
+=================================================
+	_CheckHashCollision2
+=================================================
+*/
+	void VPipelineCompiler::_CheckHashCollision2 (const PipelineDescription &desc)
+	{
+		DEBUG_ONLY(
+		for (auto& pc : desc._pipelineLayout.pushConstants)
+		{
+			_hashCollisionCheck.Add( pc.first );
+		}
+
+		for (auto& ds : desc._pipelineLayout.descriptorSets)
+		{
+			_hashCollisionCheck.Add( ds.id );
+
+			for (auto& un : *ds.uniforms)
+			{
+				_hashCollisionCheck.Add( un.first );
+			}
+		})
+	}
+
 
 }	// FG

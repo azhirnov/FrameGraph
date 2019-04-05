@@ -48,6 +48,8 @@ namespace FG
 		using SRPalettePerViewport_t	= FixedArray< VkShadingRatePaletteNV, FG_MaxViewports >;
 		using RS						= RenderState;
 		using Allocator_t				= LinearAllocator< UntypedLinearAllocator<> >;
+		using MutableImages_t			= ArrayView< Pair< VLocalImage const*, EResourceState >>;
+		using MutableBuffers_t			= ArrayView< Pair< VLocalBuffer const*, EResourceState >>;
 		
 
 	// variables
@@ -86,6 +88,9 @@ namespace FG
 		ImageLayer					_shadingRateImageLayer;
 		MipmapLevel					_shadingRateImageLevel;
 		SRPalettePerViewport_t		_shadingRatePalette;
+		
+		MutableImages_t				_mutableImages;
+		MutableBuffers_t			_mutableBuffers;
 
 
 	// methods
@@ -107,26 +112,12 @@ namespace FG
 		}
 
 
-		bool Submit ()
-		{
-			CHECK_ERR( not _isSubmited );
-			//ASSERT( _drawTasks.size() );
+		bool Submit (VCommandBuffer &, ArrayView<Pair<RawImageID, EResourceState>>, ArrayView<Pair<RawBufferID, EResourceState>>);
 
-			_isSubmited = true;
-			return true;
-		}
-
-		void _SetRenderPass (RawRenderPassID rp, uint subpass, RawFramebufferID fb, uint depthIndex)
-		{
-			_framebufferId	= fb;
-			_renderPassId	= rp;
-			_subpassIndex	= subpass;
-			
-			_clearValues[_depthStencilTarget.index]	= _clearValues[depthIndex];
-			_depthStencilTarget.index				= depthIndex;
-		}
+		void _SetRenderPass (RawRenderPassID rp, uint subpass, RawFramebufferID fb, uint depthIndex);
 		
 		bool GetShadingRateImage (OUT VLocalImage const* &, OUT ImageViewDesc &) const;
+
 
 		ND_ bool								HasShadingRateImage ()		const	{ return _shadingRateImage != null; }
 
@@ -156,6 +147,9 @@ namespace FG
 		ND_ RS::MultisampleState const&			GetMultisampleState ()		const	{ return _multisampleState; }
 
 		ND_ VPipelineResourceSet const&			GetResources ()				const	{ return _perPassResources; }
+
+		ND_ MutableImages_t						GetMutableImages ()			const	{ return _mutableImages; }
+		ND_ MutableBuffers_t					GetMutableBuffers ()		const	{ return _mutableBuffers; }
 	};
 
 

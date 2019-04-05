@@ -40,15 +40,15 @@ namespace {
 	Create
 =================================================
 */
-	bool SimpleRayTracingScene::Create (const FrameGraph &fg, const CommandBuffer &cmdbuf, const IntermScenePtr &scene,
+	bool SimpleRayTracingScene::Create (const CommandBuffer &cmdbuf, const IntermScenePtr &scene,
 										const ImageCachePtr &imageCache, const Transform &initialTransform)
 	{
-		CHECK_ERR( fg and cmdbuf and scene and imageCache );
+		CHECK_ERR( cmdbuf and scene and imageCache );
 
-		Destroy( fg );
+		Destroy( cmdbuf->GetFrameGraph() );
 
-		CHECK_ERR( _CreateMaterials( fg, cmdbuf, scene, imageCache ));
-		CHECK_ERR( _CreateGeometries( fg, cmdbuf, scene, initialTransform ));
+		CHECK_ERR( _CreateMaterials( cmdbuf, scene, imageCache ));
+		CHECK_ERR( _CreateGeometries( cmdbuf, scene, initialTransform ));
 		return true;
 	}
 	
@@ -91,9 +91,7 @@ namespace {
 	{
 		CHECK_ERR( renTech and cmdbuf );
 
-		auto	fg = renTech->GetFrameGraph();
-
-		CHECK_ERR( _UpdateShaderTable( fg, cmdbuf, renTech ));
+		CHECK_ERR( _UpdateShaderTable( cmdbuf, renTech ));
 		return true;
 	}
 	
@@ -130,7 +128,7 @@ namespace {
 	_CreateMaterials
 =================================================
 */
-	bool SimpleRayTracingScene::_CreateMaterials (const FrameGraph &fg, const CommandBuffer &cmdbuf, const IntermScenePtr &scene, const ImageCachePtr &imageCache)
+	bool SimpleRayTracingScene::_CreateMaterials (const CommandBuffer &cmdbuf, const IntermScenePtr &scene, const ImageCachePtr &imageCache)
 	{
 		using Texture = IntermMaterial::MtrTexture;
 
@@ -184,7 +182,7 @@ namespace {
 				dst.opticalDepth = settings.opticalDepth;
 		}
 
-		_materialsBuffer = fg->CreateBuffer( BufferDesc{ ArraySizeOf(dst_materials), EBufferUsage::Storage | EBufferUsage::TransferDst }, Default, "Materials" );
+		_materialsBuffer = cmdbuf->GetFrameGraph()->CreateBuffer( BufferDesc{ ArraySizeOf(dst_materials), EBufferUsage::Storage | EBufferUsage::TransferDst }, Default, "Materials" );
 		CHECK_ERR( _materialsBuffer );
 
 		Task	t_upload = cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _materialsBuffer ).AddData( dst_materials ));
@@ -195,13 +193,13 @@ namespace {
 		_specularMaps.reserve( specular_maps.size() );
 
 		for (auto& map : albedo_maps) {
-			CHECK_ERR( imageCache->CreateImage( fg, cmdbuf, map.first, true, OUT _albedoMaps[map.second] ));
+			CHECK_ERR( imageCache->CreateImage( cmdbuf, map.first, true, OUT _albedoMaps[map.second] ));
 		}
 		for (auto& map : normal_maps) {
-			CHECK_ERR( imageCache->CreateImage( fg, cmdbuf, map.first, true, OUT _normalMaps[map.second] ));
+			CHECK_ERR( imageCache->CreateImage( cmdbuf, map.first, true, OUT _normalMaps[map.second] ));
 		}
 		for (auto& map : specular_maps) {
-			CHECK_ERR( imageCache->CreateImage( fg, cmdbuf, map.first, true, OUT _specularMaps[map.second] ));
+			CHECK_ERR( imageCache->CreateImage( cmdbuf, map.first, true, OUT _specularMaps[map.second] ));
 		}
 
 		return true;
@@ -212,8 +210,9 @@ namespace {
 	_CreateGeometries
 =================================================
 */
-	bool SimpleRayTracingScene::_CreateGeometries (const FrameGraph &fg, const CommandBuffer &cmdbuf, const IntermScenePtr &scene, const Transform &initialTransform)
+	bool SimpleRayTracingScene::_CreateGeometries (const CommandBuffer &cmdbuf, const IntermScenePtr &scene, const Transform &initialTransform)
 	{
+		FrameGraph	fg = cmdbuf->GetFrameGraph();
 		MeshData	opaque_data;
 		MeshData	translucent_data;
 		
@@ -230,8 +229,8 @@ namespace {
 		RTGeometryID	opaque;
 		RTGeometryID	translucent;
 
-		Task	t_build_opaque		= _CreateGeometry( fg, cmdbuf, 0, opaque_data, OUT opaque );
-		Task	t_build_translucent	= _CreateGeometry( fg, cmdbuf, 1, translucent_data, OUT translucent );
+		Task	t_build_opaque		= _CreateGeometry( cmdbuf, 0, opaque_data, OUT opaque );
+		Task	t_build_translucent	= _CreateGeometry( cmdbuf, 1, translucent_data, OUT translucent );
 
 
 		_rtScene = fg->CreateRayTracingScene( RayTracingSceneDesc{ uint(mesh_map.size()) });
@@ -269,8 +268,10 @@ namespace {
 	_CreateGeometry
 =================================================
 */
-	Task  SimpleRayTracingScene::_CreateGeometry (const FrameGraph &fg, const CommandBuffer &cmdbuf, uint index, const MeshData &meshData, OUT RTGeometryID &geom)
+	Task  SimpleRayTracingScene::_CreateGeometry (const CommandBuffer &cmdbuf, uint index, const MeshData &meshData, OUT RTGeometryID &geom)
 	{
+		FrameGraph	fg = cmdbuf->GetFrameGraph();
+
 		_primitivesBuffers[index]= fg->CreateBuffer( BufferDesc{ Max( 256_b, ArraySizeOf( meshData.primitives )),
 													EBufferUsage::Storage | EBufferUsage::TransferDst }, Default, "Primitives" );
 		_attribsBuffers[index]	 = fg->CreateBuffer( BufferDesc{ Max( 256_b, ArraySizeOf( meshData.attribs )),
@@ -427,8 +428,10 @@ namespace {
 	_UpdateShaderTable
 =================================================
 */
-	bool SimpleRayTracingScene::_UpdateShaderTable (const FrameGraph &fg, const CommandBuffer &cmdbuf, const RenderTechniquePtr &renTech)
+	bool SimpleRayTracingScene::_UpdateShaderTable (const CommandBuffer &cmdbuf, const RenderTechniquePtr &renTech)
 	{
+		FrameGraph	fg = cmdbuf->GetFrameGraph();
+
 		if ( not _shaderTable )
 		{
 			_shaderTable = fg->CreateRayTracingShaderTable();
@@ -490,8 +493,8 @@ namespace {
 		{
 			CHECK_ERR( fg->InitPipelineResources( update_st.pipeline, DescriptorSetID{"PerObject"}, OUT _resources ));
 
-			SamplerID	sampler = fg->CreateSampler( SamplerDesc{}.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear )
-																	.SetAddressMode( EAddressMode::Repeat ).SetAnisotropy( 16.0f ));
+			RawSamplerID	sampler = fg->CreateSampler( SamplerDesc{}.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear )
+																	.SetAddressMode( EAddressMode::Repeat ).SetAnisotropy( 16.0f )).Release();
 			CHECK_ERR( sampler );
 
 			_resources.BindBuffers( UniformID{"PrimitivesSSB"}, _primitivesBuffers );
@@ -503,8 +506,6 @@ namespace {
 			//_resources.BindTextures( UniformID{"un_SpecularMaps"}, _specularMaps, sampler );
 
 			CHECK_ERR( fg->CachePipelineResources( INOUT _resources ));
-
-			fg->ReleaseResource( sampler );
 		}
 		return true;
 	}

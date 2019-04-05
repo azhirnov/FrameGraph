@@ -232,7 +232,7 @@ namespace FG
 
 
 	private:
-		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint>(id), memory_order_release ); }
+		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint>(id), memory_order_relaxed ); }
 		void _ResetCachedID ()								const	{ _cachedId.store( UMax, memory_order_relaxed ); }
 		
 		ND_ RawPipelineResourcesID	_GetCachedID ()			const	{ return BitCast<RawPipelineResourcesID>( _cachedId.load( memory_order_acquire )); }
