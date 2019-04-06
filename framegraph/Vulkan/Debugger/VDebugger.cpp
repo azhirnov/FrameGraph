@@ -73,6 +73,8 @@ namespace FG
 			str << item.body;
 		}
 		str << "}\n";
+
+		_graphs.clear();
 	}
 
 }	// FG

@@ -1,5 +1,5 @@
 CommandBuffer {
-	name:      ""
+	name:      "Graphics-1"
 	Image {
 		name:         "RenderTarget"
 		iamgeType:    Image2D
@@ -49,7 +49,7 @@ CommandBuffer {
 ===============================================================
 
 CommandBuffer {
-	name:      ""
+	name:      "Graphics-2"
 	Image {
 		name:         "RenderTarget"
 		iamgeType:    Image2D
@@ -99,7 +99,7 @@ CommandBuffer {
 ===============================================================
 
 CommandBuffer {
-	name:      ""
+	name:      "Graphics-3"
 	Image {
 		name:         "RenderTarget"
 		iamgeType:    Image2D
@@ -149,7 +149,7 @@ CommandBuffer {
 ===============================================================
 
 CommandBuffer {
-	name:      ""
+	name:      "Compute-1"
 	Image {
 		name:         "RenderTarget"
 		iamgeType:    Image2D
@@ -271,7 +271,7 @@ CommandBuffer {
 ===============================================================
 
 CommandBuffer {
-	name:      ""
+	name:      "Compute-2"
 	Image {
 		name:         "RenderTarget"
 		iamgeType:    Image2D
@@ -393,7 +393,7 @@ CommandBuffer {
 ===============================================================
 
 CommandBuffer {
-	name:      ""
+	name:      "Compute-3"
 	Image {
 		name:         "RenderTarget"
 		iamgeType:    Image2D

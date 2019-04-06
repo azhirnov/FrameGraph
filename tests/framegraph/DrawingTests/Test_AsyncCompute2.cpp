@@ -131,8 +131,8 @@ void main ()
 
 		
 		// frame 1
-		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( EDebugFlags::Default ));
-		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( EDebugFlags::Default ), {cmd1} );
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( EDebugFlags::Default ).SetDebugName( "Graphics-1" ));
+		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( EDebugFlags::Default ).SetDebugName( "Compute-1" ), {cmd1} );
 		CHECK_ERR( cmd1 and cmd2 );
 		{
 			// graphics queue
@@ -161,8 +161,8 @@ void main ()
 		}
 		
 		// frame 2
-		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( EDebugFlags::Default ));
-		CommandBuffer	cmd4 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( EDebugFlags::Default ), {cmd3} );
+		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( EDebugFlags::Default ).SetDebugName( "Graphics-2" ));
+		CommandBuffer	cmd4 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( EDebugFlags::Default ).SetDebugName( "Compute-2" ), {cmd3} );
 		CHECK_ERR( cmd3 and cmd4 );
 		{
 			// graphics queue
@@ -191,8 +191,8 @@ void main ()
 		}
 		
 		// frame 3
-		CommandBuffer	cmd5 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( EDebugFlags::Default ), {cmd2} );
-		CommandBuffer	cmd6 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( EDebugFlags::Default ), {cmd5} );
+		CommandBuffer	cmd5 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics }.SetDebugFlags( EDebugFlags::Default ).SetDebugName( "Graphics-3" ), {cmd2} );
+		CommandBuffer	cmd6 = _frameGraph->Begin( CommandBufferDesc{ EQueueType::AsyncCompute }.SetDebugFlags( EDebugFlags::Default ).SetDebugName( "Compute-3" ), {cmd5} );
 		CHECK_ERR( cmd5 and cmd6 );
 		{
 			// graphics queue
