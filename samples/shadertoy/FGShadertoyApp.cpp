@@ -407,6 +407,7 @@ namespace FG
 		CHECK_ERR( _frameGraph->Execute( _cmdBuffer ));
 		CHECK_ERR( _frameGraph->Flush() );
 
+		_cmdBuffer = null;
 		_currTask = null;
 		++_passIdx;
 

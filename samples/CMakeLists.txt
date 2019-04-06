@@ -2,6 +2,56 @@
 cmake_minimum_required (VERSION 3.6.0)
 
 #==================================================================================================
+# project: Samples.Vulkan
+#==================================================================================================
+if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLSLANG})
+	set( SOURCES 
+		"vulkan/compiler/SpvCompiler.cpp"
+		"vulkan/compiler/SpvCompiler.h"
+		"vulkan/AsyncCompute1.cpp"
+		"vulkan/AsyncCompute2.cpp"
+		"vulkan/AsyncCompute3.cpp"
+		"vulkan/CacheTest.cpp"
+		"vulkan/FragShaderBarycentric1.cpp"
+		"vulkan/GenMipmaps.cpp"
+		"vulkan/ImageFootprint1.cpp"
+		"vulkan/main.cpp"
+		"vulkan/MeshShader1.cpp"
+		"vulkan/RayTracing1.cpp"
+		"vulkan/RayTracing2.cpp"
+		"vulkan/Readme.md"
+		"vulkan/ShadingRate1.cpp"
+		"vulkan/SparseImage1.cpp" )
+	if (DEFINED ANDROID)
+		add_library( "Samples.Vulkan" SHARED ${SOURCES} )
+	else()
+		add_executable( "Samples.Vulkan" ${SOURCES} )
+	endif()
+	source_group( "compiler" FILES "vulkan/compiler/SpvCompiler.cpp" "vulkan/compiler/SpvCompiler.h" )
+	source_group( "" FILES "vulkan/AsyncCompute1.cpp" "vulkan/AsyncCompute2.cpp" "vulkan/AsyncCompute3.cpp" "vulkan/CacheTest.cpp" "vulkan/FragShaderBarycentric1.cpp" "vulkan/GenMipmaps.cpp" "vulkan/ImageFootprint1.cpp" "vulkan/main.cpp" "vulkan/MeshShader1.cpp" "vulkan/RayTracing1.cpp" "vulkan/RayTracing2.cpp" "vulkan/Readme.md" "vulkan/ShadingRate1.cpp" "vulkan/SparseImage1.cpp" )
+	set_property( TARGET "Samples.Vulkan" PROPERTY FOLDER "Samples" )
+	target_include_directories( "Samples.Vulkan" PUBLIC "${FG_EXTERNALS_PATH}" )
+	target_include_directories( "Samples.Vulkan" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
+	target_include_directories( "Samples.Vulkan" PRIVATE "../extensions" )
+	target_link_libraries( "Samples.Vulkan" "${FG_GLSLANG_LIBRARIES}" )
+	target_link_libraries( "Samples.Vulkan" "Framework" )
+	target_compile_definitions( "Samples.Vulkan" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
+	add_dependencies( "Samples.Vulkan" External.glslang-main )
+	# compiler
+	target_compile_definitions( "Samples.Vulkan" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	set_target_properties( "Samples.Vulkan" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	target_compile_definitions( "Samples.Vulkan" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	target_compile_options( "Samples.Vulkan" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	set_target_properties( "Samples.Vulkan" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	target_compile_options( "Samples.Vulkan" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	set_target_properties( "Samples.Vulkan" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	target_compile_options( "Samples.Vulkan" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	target_compile_definitions( "Samples.Vulkan" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	
+endif()
+
+
+#==================================================================================================
 # project: Samples.Shadertoy
 #==================================================================================================
 if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM})
@@ -58,7 +108,7 @@ endif()
 #==================================================================================================
 # project: Samples.RayTracing
 #==================================================================================================
-if (${FG_ENABLE_SAMPLES})
+if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_ASSIMP} AND ${FG_ENABLE_GLM} AND ${FG_ENABLE_DEVIL})
 	set( SOURCES 
 		"ray_tracing/SceneApp.cpp"
 		"ray_tracing/SceneApp.h" )
@@ -70,7 +120,7 @@ if (${FG_ENABLE_SAMPLES})
 	source_group( "" FILES "ray_tracing/SceneApp.cpp" "ray_tracing/SceneApp.h" )
 	set_property( TARGET "Samples.RayTracing" PROPERTY FOLDER "Samples" )
 	target_include_directories( "Samples.RayTracing" PUBLIC "${FG_EXTERNALS_PATH}" )
-	target_include_directories( "Samples.RayTracing" PRIVATE "../../extensions" )
+	target_include_directories( "Samples.RayTracing" PRIVATE "../extensions" )
 	if (${FG_ENABLE_GLM})
 		target_link_libraries( "Samples.RayTracing" "Scene" )
 	endif()
