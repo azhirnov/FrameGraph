@@ -39,14 +39,16 @@ namespace {
 	End
 =================================================
 */
-	void VLocalDebugger::End (StringView name, OUT String *dump, OUT BatchGraph *graph)
+	void VLocalDebugger::End (StringView name, uint cmdBufferUID, OUT String *dump, OUT BatchGraph *graph)
 	{
 		constexpr auto	DumpFlags =	EDebugFlags::LogTasks		|
-									EDebugFlags::LogBarriers		|
+									EDebugFlags::LogBarriers	|
 									EDebugFlags::LogResourceUsage;
 		
 		if ( EnumEq( _flags, DumpFlags ) )
 		{
+			_subBatchUID = ToString<16>( (cmdBufferUID & 0xFFF) | (_counter << 12) );
+
 			if ( dump )
 				_DumpFrame( name, OUT *dump );
 
@@ -54,7 +56,8 @@ namespace {
 				_DumpGraph( OUT *graph );
 		}
 
-		_subBatchUID = Default;
+		++_counter;
+		_subBatchUID.clear();
 		_tasks.clear();
 		_images.clear();
 		_buffers.clear();

@@ -235,6 +235,8 @@ namespace FG
 		using CmdBuffers_t			= FixedTupleArray< MaxBatchItems, VkCommandBuffer, VCommandPool const* >;
 		using SignalSemaphores_t	= FixedArray< VkSemaphore, MaxBatchItems >;
 		using WaitSemaphores_t		= FixedTupleArray< MaxBatchItems, VkSemaphore, VkPipelineStageFlags >;
+		
+		using VkResourceArray_t		= Array<Pair< VkObjectType, uint64_t >>;
 
 
 	public:
@@ -281,6 +283,7 @@ namespace FG
 		// resources
 		ResourceMap_t						_resourcesToRelease;
 		Swapchains_t						_swapchains;
+		VkResourceArray_t					_readyToDelete;
 
 		// shader debugger
 		struct {
@@ -320,6 +323,7 @@ namespace FG
 		void  PushFrontCommandBuffer (VkCommandBuffer, const VCommandPool *);
 		void  PushBackCommandBuffer (VkCommandBuffer, const VCommandPool *);
 		void  AddDependency (VCmdBatch *);
+		void  DestroyPostponed (VkObjectType type, uint64_t handle);
 	
 
 		// shader debugger //
@@ -357,6 +361,7 @@ namespace FG
 	private:
 		void  _SetState (EState newState);
 		void  _ReleaseResources ();
+		void  _ReleaseVkObjects ();
 		void  _FinalizeCommands ();
 
 		

@@ -69,12 +69,6 @@ namespace FGC
 		ND_ constexpr bool  IsNormalized () const;
 		ND_ constexpr bool4 operator == (const Self &rhs) const;
 
-		ND_ constexpr Self  operator + (const Vec2_t &rhs)	const	{ return Self{*this} += rhs; }
-		ND_ constexpr Self  operator - (const Vec2_t &rhs)	const	{ return Self{*this} -= rhs; }
-
-			constexpr Self& operator += (const Vec2_t &rhs);
-			constexpr Self& operator -= (const Vec2_t &rhs);
-
 			void Merge (const Rectangle<T> &other);
 		
 			Self&	Join (const Self &other);
@@ -113,30 +107,64 @@ namespace FGC
 
 /*
 =================================================
-	operator +=
+	operator +
 =================================================
 */
 	template <typename T>
-	inline constexpr Rectangle<T>&  Rectangle<T>::operator += (const Vec2_t &rhs)
+	inline constexpr Rectangle<T>&  operator += (Rectangle<T> &lhs, const Vec<T,2> &rhs)
 	{
-		left += rhs.x;		right  += rhs.x;
-		top  += rhs.y;		bottom += rhs.y;
-		return *this;
-	}
-		
-/*
-=================================================
-	operator -=
-=================================================
-*/
-	template <typename T>
-	inline constexpr Rectangle<T>&  Rectangle<T>::operator -= (const Vec2_t &rhs)
-	{
-		left -= rhs.x;		right  -= rhs.x;
-		top  -= rhs.y;		bottom -= rhs.y;
-		return *this;
+		lhs.left += rhs.x;	lhs.right  += rhs.x;
+		lhs.top  += rhs.y;	lhs.bottom += rhs.y;
+		return lhs;
 	}
 	
+	template <typename T>
+	inline constexpr Rectangle<T>  operator + (const Rectangle<T> &lhs, const Vec<T,2> &rhs)
+	{
+		return Rectangle<T>{ lhs.left  + rhs.x, lhs.top    + rhs.y,
+							 lhs.right + rhs.x, lhs.bottom + rhs.y };
+	}
+
+/*
+=================================================
+	operator -
+=================================================
+*/
+	template <typename T>
+	inline constexpr Rectangle<T>&  operator -= (Rectangle<T> &lhs, const Vec<T,2> &rhs)
+	{
+		lhs.left -= rhs.x;	lhs.right  -= rhs.x;
+		lhs.top  -= rhs.y;	lhs.bottom -= rhs.y;
+		return lhs;
+	}
+	
+	template <typename T>
+	inline constexpr Rectangle<T>  operator - (const Rectangle<T> &lhs, const Vec<T,2> &rhs)
+	{
+		return Rectangle<T>{ lhs.left  - rhs.x, lhs.top    - rhs.y,
+							 lhs.right - rhs.x, lhs.bottom - rhs.y };
+	}
+
+/*
+=================================================
+	operator *
+=================================================
+*/
+	template <typename T>
+	inline constexpr Rectangle<T>&  operator *= (Rectangle<T> &lhs, const Vec<T,2> &rhs)
+	{
+		lhs.left *= rhs.x;	lhs.right  *= rhs.x;
+		lhs.top  *= rhs.y;	lhs.bottom *= rhs.y;
+		return lhs;
+	}
+	
+	template <typename T>
+	inline constexpr Rectangle<T>  operator * (const Rectangle<T> &lhs, const Vec<T,2> &rhs)
+	{
+		return Rectangle<T>{ lhs.left  * rhs.x, lhs.top    * rhs.y,
+							 lhs.right * rhs.x, lhs.bottom * rhs.y };
+	}
+
 /*
 =================================================
 	Merge

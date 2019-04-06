@@ -117,10 +117,6 @@ namespace FG
 					  StringView entry, StringView source, StringView debugName,
 					  OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log);
 		
-		bool Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-					  StringView entry, ArrayView<uint> binary,
-					  OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log);
-		
 
 	private:
 		bool _ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
@@ -134,7 +130,7 @@ namespace FG
 
 		bool _OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const;
 
-		bool _ParseAnnotations (StringView source, INOUT ShaderReflection &reflection) const;
+		bool _ParseAnnotations (StringView source, INOUT ShaderReflection &) const;
 
 		static void _GenerateResources (OUT TBuiltInResource& res);
 

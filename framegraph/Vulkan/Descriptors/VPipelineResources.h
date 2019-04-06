@@ -53,9 +53,9 @@ namespace FG
 			bool Create (VResourceManager &);
 			void Destroy (VResourceManager &);
 
-		ND_ bool  IsAllResourcesAlive (const VResourceManager &) const;
+		ND_ bool IsAllResourcesAlive (const VResourceManager &) const;
 
-		ND_ bool  operator == (const VPipelineResources &rhs) const;
+		ND_ bool operator == (const VPipelineResources &rhs) const;
 		
 			template <typename Fn>
 			void ForEachUniform (Fn&& fn) const					{ SHAREDLOCK( _drCheck );  ASSERT( _dataPtr );  _dataPtr->ForEachUniform( fn ); }

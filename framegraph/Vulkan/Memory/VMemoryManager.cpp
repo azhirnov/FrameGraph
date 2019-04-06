@@ -22,6 +22,7 @@ namespace FG
 */
 	VMemoryManager::~VMemoryManager ()
 	{
+		EXLOCK( _drCheck );
 		ASSERT( _allocators.empty() );
 	}
 	
@@ -32,6 +33,8 @@ namespace FG
 */
 	bool VMemoryManager::Initialize ()
 	{
+		EXLOCK( _drCheck );
+
 		using MT = EMemoryTypeExt;
 
 		// TODO: use custom mem allocator?
@@ -54,6 +57,8 @@ namespace FG
 */
 	void VMemoryManager::Deinitialize ()
 	{
+		EXLOCK( _drCheck );
+
 		_allocators.clear();
 	}
 	
@@ -64,6 +69,7 @@ namespace FG
 */
 	bool VMemoryManager::AllocateForImage (VkImage image, const MemoryDesc &desc, INOUT Storage_t &data)
 	{
+		SHAREDLOCK( _drCheck );
 		ASSERT( not _allocators.empty() );
 
 		for (size_t i = 0; i < _allocators.size(); ++i)
@@ -88,6 +94,7 @@ namespace FG
 */
 	bool VMemoryManager::AllocateForBuffer (VkBuffer buffer, const MemoryDesc &desc, INOUT Storage_t &data)
 	{
+		SHAREDLOCK( _drCheck );
 		ASSERT( not _allocators.empty() );
 
 		for (size_t i = 0; i < _allocators.size(); ++i)
@@ -112,6 +119,7 @@ namespace FG
 */
 	bool VMemoryManager::AllocateForAccelStruct (VkAccelerationStructureNV accelStruct, const MemoryDesc &desc, OUT Storage_t &data)
 	{
+		SHAREDLOCK( _drCheck );
 		ASSERT( not _allocators.empty() );
 
 		for (size_t i = 0; i < _allocators.size(); ++i)
@@ -136,6 +144,8 @@ namespace FG
 */
 	bool VMemoryManager::Deallocate (INOUT Storage_t &data)
 	{
+		SHAREDLOCK( _drCheck );
+
 		const uint	alloc_id = *data.Cast<uint>();
 		CHECK_ERR( alloc_id < _allocators.size() );
 
@@ -150,6 +160,8 @@ namespace FG
 */
 	bool VMemoryManager::GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const
 	{
+		SHAREDLOCK( _drCheck );
+
 		const uint	alloc_id = *data.Cast<uint>();
 		CHECK_ERR( alloc_id < _allocators.size() );
 		

@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader10 (VPipelineCompiler* compiler)
+extern void Test_Shader16 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
@@ -16,7 +16,7 @@ layout (std140, binding=1) uniform UB {
 	vec4	data[4];
 } ub;
 
-// @discard
+// @dynamic-offset
 layout (std430, binding=0) writeonly buffer SSB {
 	vec4	data[4];
 } ssb;
@@ -42,9 +42,9 @@ void main ()
 	TEST( ds );
 
 	TEST( TestUniformBuffer( *ds, UniformID("UB"),  64_b, 1, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/UMax ));
-	TEST( TestStorageBuffer( *ds, UniformID("SSB"), 64_b, 0_b, EShaderAccess::WriteDiscard, 0, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/UMax ));
+	TEST( TestStorageBuffer( *ds, UniformID("SSB"), 64_b, 0_b, EShaderAccess::WriteOnly, 0, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/0 ));
 
 	TEST(All( ppln._defaultLocalGroupSize == uint3(1, 1, 1) ));
 
-	FG_LOGI( "Test_Shader10 - passed" );
+	FG_LOGI( "Test_Shader16 - passed" );
 }

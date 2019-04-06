@@ -105,7 +105,7 @@ namespace {
 		CHECK_ERR( _BuildCommandBuffers() );
 		
 		if ( _debugger )
-			_debugger->End( GetName(), OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
+			_debugger->End( GetName(), _indexInPool, OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
 
 		CHECK_ERR( _batch->OnBaked( INOUT _rm.resourceMap ));
 		_batch = null;

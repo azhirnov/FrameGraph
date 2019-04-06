@@ -641,15 +641,14 @@ namespace FG
 		CHECK( res_mngr.AcquireResource( pipelineId ));
 		shaderTable._pipelineId = RTPipelineID{pipelineId};
 
-		// TODO
 		// destroy old pipelines
 		for (auto& table : shaderTable._tables)
 		{
 			if ( table.layoutId )
 				res_mngr.ReleaseResource( table.layoutId.Release() );
 
-			//if ( table.pipeline )
-			//	res_mngr.GetReadyToDeleteQueue().emplace_back( VK_OBJECT_TYPE_PIPELINE, uint64_t(table.pipeline) );
+			if ( table.pipeline )
+				fgThread.GetBatch().DestroyPostponed( VK_OBJECT_TYPE_PIPELINE, uint64_t(table.pipeline) );
 		}
 		shaderTable._tables.clear();
 

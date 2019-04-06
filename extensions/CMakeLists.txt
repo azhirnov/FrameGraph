@@ -280,6 +280,8 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
 		"../tests/pipeline_compiler/Test_Shader13.cpp"
 		"../tests/pipeline_compiler/Test_Shader14.cpp"
 		"../tests/pipeline_compiler/Test_Shader15.cpp"
+		"../tests/pipeline_compiler/Test_Shader16.cpp"
+		"../tests/pipeline_compiler/Test_Shader17.cpp"
 		"../tests/pipeline_compiler/Test_Shader2.cpp"
 		"../tests/pipeline_compiler/Test_Shader3.cpp"
 		"../tests/pipeline_compiler/Test_Shader4.cpp"
@@ -294,7 +296,7 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
 	else()
 		add_executable( "Tests.PipelineCompiler" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader10.cpp" "../tests/pipeline_compiler/Test_Shader11.cpp" "../tests/pipeline_compiler/Test_Shader12.cpp" "../tests/pipeline_compiler/Test_Shader13.cpp" "../tests/pipeline_compiler/Test_Shader14.cpp" "../tests/pipeline_compiler/Test_Shader15.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Test_Shader9.cpp" "../tests/pipeline_compiler/Utils.h" )
+	source_group( "" FILES "../tests/pipeline_compiler/main.cpp" "../tests/pipeline_compiler/Test_Shader1.cpp" "../tests/pipeline_compiler/Test_Shader10.cpp" "../tests/pipeline_compiler/Test_Shader11.cpp" "../tests/pipeline_compiler/Test_Shader12.cpp" "../tests/pipeline_compiler/Test_Shader13.cpp" "../tests/pipeline_compiler/Test_Shader14.cpp" "../tests/pipeline_compiler/Test_Shader15.cpp" "../tests/pipeline_compiler/Test_Shader16.cpp" "../tests/pipeline_compiler/Test_Shader17.cpp" "../tests/pipeline_compiler/Test_Shader2.cpp" "../tests/pipeline_compiler/Test_Shader3.cpp" "../tests/pipeline_compiler/Test_Shader4.cpp" "../tests/pipeline_compiler/Test_Shader5.cpp" "../tests/pipeline_compiler/Test_Shader6.cpp" "../tests/pipeline_compiler/Test_Shader7.cpp" "../tests/pipeline_compiler/Test_Shader8.cpp" "../tests/pipeline_compiler/Test_Shader9.cpp" "../tests/pipeline_compiler/Utils.h" )
 	set_property( TARGET "Tests.PipelineCompiler" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.PipelineCompiler" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.PipelineCompiler" PRIVATE "../tests/.." )

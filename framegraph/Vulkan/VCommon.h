@@ -9,7 +9,6 @@
 #include "framegraph/Public/VulkanTypes.h"
 #include "framegraph/Public/FGEnums.h"
 #include "framegraph/Shared/LocalResourceID.h"
-#include "framegraph/Shared/Types.h"
 
 #include "extensions/vulkan_loader/VulkanLoader.h"
 #include "extensions/vulkan_loader/VulkanCheckError.h"

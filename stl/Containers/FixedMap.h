@@ -91,12 +91,10 @@ namespace FGC
 
 		ND_ HashVal			CalcHash () const;
 		
-			void clear ();
+			void			clear ();
 
 
 	private:
-			void _sort ();
-
 		ND_ forceinline bool _IsMemoryAliased (const Self* other) const
 		{
 			return IsIntersects( this, this+1, other, other+1 );
@@ -132,7 +130,6 @@ namespace FGC
 			PlacementNew< pair_type >( &_array[i], other._array[i] );
 			_indices[i] = other._indices[i];
 		}
-		_sort();
 	}
 	
 /*
@@ -151,7 +148,6 @@ namespace FGC
 			_indices[i] = other._indices[i];
 		}
 		other.clear();
-		_sort();
 	}
 	
 /*
@@ -174,8 +170,6 @@ namespace FGC
 		}
 
 		rhs.clear();
-		_sort();
-
 		return *this;
 	}
 	
@@ -197,7 +191,6 @@ namespace FGC
 			PlacementNew< pair_type >( &_array[i], rhs._array[i] );
 			_indices[i] = rhs._indices[i];
 		}
-		_sort();
 
 		return *this;
 	}
@@ -220,118 +213,6 @@ namespace FGC
 		}
 		return true;
 	}
-	
-/*
-=================================================
-	insert
-=================================================
-*/
-	template <typename K, typename V, size_t S>
-	inline Pair< typename FixedMap<K,V,S>::iterator, bool >
-		FixedMap<K,V,S>::insert (const pair_type &value)
-	{
-		auto	iter = find( value.first );
-		if ( iter == end() )
-		{
-			ASSERT( _count < capacity() );
-
-			const size_t	i = _count++;
-		
-			_indices[i]	= Index_t(i);
-			PlacementNew<pair_type>( &_array[i], value );
-			
-			_sort();
-			return { BitCast< iterator >( &_array[i] ), true };
-		}
-
-		return { iter, false };
-	}
-	
-/*
-=================================================
-	insert
-=================================================
-*/
-	template <typename K, typename V, size_t S>
-	inline Pair< typename FixedMap<K,V,S>::iterator, bool >
-		FixedMap<K,V,S>::insert (pair_type &&value)
-	{
-		auto	iter = find( value.first );
-		if ( iter == end() )
-		{
-			ASSERT( _count < capacity() );
-	
-			const size_t	i = _count++;
-		
-			_indices[i]	= Index_t(i);
-			PlacementNew<pair_type>( &_array[i], std::move(value) );
-			
-			_sort();
-			return { BitCast< iterator >( &_array[i] ), true };
-		}
-
-		return { iter, false };
-	}
-	
-/*
-=================================================
-	insert_or_assign
-=================================================
-*/
-	template <typename K, typename V, size_t S>
-	template <typename M>
-	inline Pair< typename FixedMap<K,V,S>::iterator, bool >
-		FixedMap<K,V,S>::insert_or_assign (const key_type& key, M&& obj)
-	{
-		auto	iter = find( key );
-		if ( iter == end() )
-		{
-			ASSERT( _count < capacity() );
-	
-			const size_t	i = _count++;
-		
-			_indices[i]	= Index_t(i);
-			PlacementNew<pair_type>( &_array[i], pair_type{ key, std::forward<M &&>(obj) });
-
-			_sort();
-			return { BitCast< iterator >( &_array[i] ), true };
-		}
-		else
-		{
-			std::swap( iter->second, obj );
-			return { iter, false };
-		}
-	}
-	
-/*
-=================================================
-	insert_or_assign
-=================================================
-*/
-	template <typename K, typename V, size_t S>		
-	template <typename M>
-	inline Pair< typename FixedMap<K,V,S>::iterator, bool >
-		FixedMap<K,V,S>::insert_or_assign (key_type&& key, M&& obj)
-	{
-		auto	iter = find( key );
-		if ( iter == end() )
-		{
-			ASSERT( _count < capacity() );
-	
-			const size_t	i = _count++;
-		
-			_indices[i]	= Index_t(i);
-			PlacementNew<pair_type>( &_array[i], pair_type{ std::move(key), std::forward<M &&>(obj) });
-			
-			_sort();
-			return { BitCast< iterator >( &_array[i] ), true };
-		}
-		else
-		{
-			std::swap( iter->second, obj );
-			return { iter, false };
-		}
-	}
 
 /*
 =================================================
@@ -343,7 +224,7 @@ namespace _fgc_hidden_
 	template <typename K, typename V, typename I, size_t N>
 	struct RecursiveBinarySearch
 	{
-		forceinline static int  Run (int left, int right, const K &key, const I* indices, const Pair<K,V>* data)
+		forceinline static int  Find (int left, int right, const K &key, const I* indices, const Pair<K,V>* data)
 		{
 			if ( left < right )
 			{
@@ -359,20 +240,183 @@ namespace _fgc_hidden_
 					return mid;
 			}
 			
-			return RecursiveBinarySearch< K, V, I, (N >> 1) >::Run( left, right, key, indices, data );
+			return RecursiveBinarySearch< K, V, I, (N >> 1) >::Find( left, right, key, indices, data );
+		}
+		
+		forceinline static int  LowerBound (int left, int right, const K &key, const I* indices, const Pair<K,V>* data)
+		{
+			if ( left < right )
+			{
+				int		mid  = (left + right) >> 1;
+				auto&	curr = data [indices [mid]].first;
+
+				if ( curr < key )
+					left = mid + 1;
+				else
+					right = mid;
+			}
+			
+			return RecursiveBinarySearch< K, V, I, (N >> 1) >::LowerBound( left, right, key, indices, data );
 		}
 	};
 	
 	template <typename K, typename V, typename I>
 	struct RecursiveBinarySearch< K, V, I, 0 >
 	{
-		forceinline static int  Run (int left, int, const K &, const I *, const Pair<K,V> *)
+		forceinline static int  Find (int left, int, const K &, const I *, const Pair<K,V> *)
+		{
+			return left;
+		}
+
+		forceinline static int  LowerBound (int left, int, const K &, const I *, const Pair<K,V> *)
 		{
 			return left;
 		}
 	};
 
 }	// _fgc_hidden_
+	
+/*
+=================================================
+	insert
+=================================================
+*/
+	template <typename K, typename V, size_t S>
+	inline Pair< typename FixedMap<K,V,S>::iterator, bool >
+		FixedMap<K,V,S>::insert (const pair_type &value)
+	{
+		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
+
+		size_t	i = BinarySearch::LowerBound( 0, _count, value.first, _indices, _array );
+
+		if ( i < _count and value.first == _array[_indices[i]].first )
+			return { BitCast< iterator >( &_array[ _indices[i] ]), false };
+
+		// insert
+		ASSERT( _count < capacity() );
+
+		const size_t	j = _count++;
+		PlacementNew<pair_type>( &_array[j], value );
+			
+		if ( i < _count )
+			for (size_t k = _count-1; k > i; --k) {
+				_indices[k] = _indices[k-1];
+			}
+		else
+			i = j;
+
+		_indices[i]	= Index_t(j);
+		return { BitCast< iterator >( &_array[j] ), true };
+	}
+	
+/*
+=================================================
+	insert
+=================================================
+*/
+	template <typename K, typename V, size_t S>
+	inline Pair< typename FixedMap<K,V,S>::iterator, bool >
+		FixedMap<K,V,S>::insert (pair_type &&value)
+	{
+		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
+
+		size_t	i = BinarySearch::LowerBound( 0, _count, value.first, _indices, _array );
+
+		if ( i < _count and value.first == _array[_indices[i]].first )
+			return { BitCast< iterator >( &_array[ _indices[i] ]), false };
+
+		// insert
+		ASSERT( _count < capacity() );
+	
+		const size_t	j = _count++;
+		PlacementNew<pair_type>( &_array[j], std::move(value) );
+	
+		if ( i < _count )
+			for (size_t k = _count-1; k > i; --k) {
+				_indices[k] = _indices[k-1];
+			}
+		else
+			i = j;
+
+		_indices[i]	= Index_t(j);
+		return { BitCast< iterator >( &_array[j] ), true };
+	}
+	
+/*
+=================================================
+	insert_or_assign
+=================================================
+*/
+	template <typename K, typename V, size_t S>
+	template <typename M>
+	inline Pair< typename FixedMap<K,V,S>::iterator, bool >
+		FixedMap<K,V,S>::insert_or_assign (const key_type& key, M&& obj)
+	{
+		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
+
+		size_t	i = BinarySearch::LowerBound( 0, _count, key, _indices, _array );
+
+		if ( i < _count and key == _array[_indices[i]].first )
+		{
+			auto	iter = BitCast< iterator >( &_array[ _indices[i] ]);
+			std::swap( iter->second, obj );
+			return { iter, false };
+		}
+
+		// insert
+		ASSERT( _count < capacity() );
+	
+		const size_t	j = _count++;
+		PlacementNew<pair_type>( &_array[j], pair_type{ key, std::forward<M &&>(obj) });
+		
+		if ( i < _count )
+			for (size_t k = _count-1; k > i; --k) {
+				_indices[k] = _indices[k-1];
+			}
+		else
+			i = j;
+
+		_indices[i]	= Index_t(j);
+		return { BitCast< iterator >( &_array[j] ), true };
+	}
+	
+/*
+=================================================
+	insert_or_assign
+=================================================
+*/
+	template <typename K, typename V, size_t S>		
+	template <typename M>
+	inline Pair< typename FixedMap<K,V,S>::iterator, bool >
+		FixedMap<K,V,S>::insert_or_assign (key_type&& key, M&& obj)
+	{
+		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
+
+		size_t	i = BinarySearch::LowerBound( 0, _count, key, _indices, _array );
+
+		if ( i < _count and key == _array[_indices[i]].first )
+		{
+			auto	iter = BitCast< iterator >( &_array[ _indices[i] ]);
+			std::swap( iter->second, obj );
+			return { iter, false };
+		}
+
+		// insert
+		ASSERT( _count < capacity() );
+	
+		const size_t	j = _count++;
+		PlacementNew<pair_type>( &_array[j], pair_type{ std::move(key), std::forward<M &&>(obj) });
+		
+		if ( i < _count )
+			for (size_t k = _count-1; k > i; --k) {
+				_indices[k] = _indices[k-1];
+			}
+		else
+			i = j;
+
+		_indices[i]	= Index_t(j);
+		return { BitCast< iterator >( &_array[j] ), true };
+	}
 
 /*
 =================================================
@@ -385,7 +429,7 @@ namespace _fgc_hidden_
 	{
 		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
 
-		size_t	i = BinarySearch::Run( 0, _count, key, _indices, _array );
+		size_t	i = BinarySearch::Find( 0, _count, key, _indices, _array );
 
 		if ( i < _count and key == _array[_indices[i]].first )
 			return BitCast< const_iterator >( &_array[ _indices[i] ]);
@@ -404,7 +448,7 @@ namespace _fgc_hidden_
 	{
 		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
 		
-		size_t	i = BinarySearch::Run( 0, _count, key, _indices, _array );
+		size_t	i = BinarySearch::Find( 0, _count, key, _indices, _array );
 		
 		if ( i < _count and key == _array[_indices[i]].first )
 			return BitCast< iterator >( &_array[ _indices[i] ]);
@@ -423,7 +467,7 @@ namespace _fgc_hidden_
 		using BinarySearch = _fgc_hidden_::RecursiveBinarySearch< K, V, Index_t, S >;
 		
 		size_t	cnt = 0;
-		size_t	i   = BinarySearch::Run( 0, _count, key, _indices, _array );
+		size_t	i   = BinarySearch::Find( 0, _count, key, _indices, _array );
 		
 		if ( i < _count and key == _array[_indices[i]].first )
 			++cnt;
@@ -447,19 +491,6 @@ namespace _fgc_hidden_
 		
 		DEBUG_ONLY( memset( _indices, 0, sizeof(_indices) ));
 		DEBUG_ONLY( memset( _array,   0, sizeof(_array)   ));
-	}
-	
-/*
-=================================================
-	_sort
-=================================================
-*/
-	template <typename K, typename V, size_t S>
-	inline void  FixedMap<K,V,S>::_sort ()
-	{
-		std::sort( &_indices[0], &_indices[_count],
-				   [this] (Index_t lhs, Index_t rhs) { return _array[lhs].first < _array[rhs].first; }
-				 );
 	}
 	
 /*

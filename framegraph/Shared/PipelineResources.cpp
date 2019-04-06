@@ -5,6 +5,12 @@
 #include "stl/Memory/UntypedAllocator.h"
 #include "stl/Memory/MemWriter.h"
 
+#if 1
+#	define UNIFORM_EXISTS	ASSERT
+#else
+#	define UNIFORM_EXISTS( ... )
+#endif
+
 namespace FGC
 {
 namespace {
@@ -182,6 +188,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindImage (const UniformID &id, RawImageID image, uint index)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasImage( id ));
 
 		if ( auto* res = _GetResource<Image>( id ))
 		{
@@ -201,6 +208,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindImage (const UniformID &id, RawImageID image, const ImageViewDesc &desc, uint index)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasImage( id ));
 
 		if ( auto* res = _GetResource<Image>( id ))
 		{
@@ -226,6 +234,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindImages (const UniformID &id, ArrayView<RawImageID> images)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasImage( id ));
 
 		if ( auto* res = _GetResource<Image>( id ))
 		{
@@ -264,6 +273,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, RawSamplerID sampler, uint index)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasTexture( id ));
 
 		if ( auto* res = _GetResource<Texture>( id ))
 		{
@@ -284,6 +294,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindTexture (const UniformID &id, RawImageID image, RawSamplerID sampler, const ImageViewDesc &desc, uint index)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasTexture( id ));
 
 		if ( auto* res = _GetResource<Texture>( id ))
 		{
@@ -316,6 +327,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindTextures (const UniformID &id, ArrayView<RawImageID> images, RawSamplerID sampler)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasTexture( id ));
 
 		if ( auto* res = _GetResource<Texture>( id ))
 		{
@@ -349,6 +361,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindSampler (const UniformID &id, RawSamplerID sampler, uint index)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasSampler( id ));
 
 		if ( auto* res = _GetResource<Sampler>( id ))
 		{
@@ -378,6 +391,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindSamplers (const UniformID &id, ArrayView<RawSamplerID> samplers)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasSampler( id ));
 
 		if ( auto* res = _GetResource<Sampler>( id ))
 		{
@@ -414,6 +428,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindBuffer (const UniformID &id, RawBufferID buffer, BytesU offset, BytesU size, uint index)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasBuffer( id ));
 
 		if ( auto* res = _GetResource<Buffer>( id ))
 		{
@@ -459,6 +474,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindBuffers (const UniformID &id, ArrayView<RawBufferID> buffers)
 	{
 		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasBuffer( id ));
 		
 		if ( auto* res = _GetResource<Buffer>( id ))
 		{
@@ -504,7 +520,7 @@ namespace FG
 	PipelineResources&  PipelineResources::SetBufferBase (const UniformID &id, BytesU offset, uint index)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( HasBuffer( id ));
+		UNIFORM_EXISTS( HasBuffer( id ));
 
 		if ( auto* res = _GetResource<Buffer>( id ))
 		{
@@ -535,7 +551,7 @@ namespace FG
 	PipelineResources&  PipelineResources::BindRayTracingScene (const UniformID &id, RawRTSceneID scene, uint index)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( HasRayTracingScene( id ));
+		UNIFORM_EXISTS( HasRayTracingScene( id ));
 
 		if ( auto* res = _GetResource<RayTracingScene>( id ))
 		{

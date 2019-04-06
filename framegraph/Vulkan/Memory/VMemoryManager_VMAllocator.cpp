@@ -8,7 +8,7 @@
 #define VMA_USE_STL_CONTAINERS		0
 #define VMA_STATIC_VULKAN_FUNCTIONS	0
 #define VMA_RECORDING_ENABLED		0
-#define VMA_DEDICATED_ALLOCATION	0
+#define VMA_DEDICATED_ALLOCATION	0	// TODO: set 0 to avoid crash on Intel
 
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic push

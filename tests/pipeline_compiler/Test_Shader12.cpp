@@ -29,7 +29,6 @@ void main ()
 	TEST( compiler->Compile( INOUT ppln1, EShaderLangFormat::SPIRV_100 ));
 
 	const EShaderCompilationFlags	old_flags = compiler->GetCompilationFlags();
-
 	compiler->SetCompilationFlags( EShaderCompilationFlags::StrongOptimization );
 
 	TEST( compiler->Compile( INOUT ppln2, EShaderLangFormat::SPIRV_100 ));

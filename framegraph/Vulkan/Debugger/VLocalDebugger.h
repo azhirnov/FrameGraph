@@ -84,7 +84,8 @@ namespace FG
 		RTGeometryResources_t		_rtGeometries;		// bottom-level AS
 		mutable HashSet<String>		_existingNodes;
 
-		StringView					_subBatchUID;
+		String						_subBatchUID;
+		uint						_counter	= 0;
 
 		// settings
 		EDebugFlags					_flags;
@@ -95,7 +96,7 @@ namespace FG
 		VLocalDebugger ();
 
 		void Begin (EDebugFlags flags);
-		void End (StringView name, OUT String *dump, OUT BatchGraph *graph);
+		void End (StringView name, uint cmdBufferUID, OUT String *dump, OUT BatchGraph *graph);
 		
 		void AddBufferBarrier (const VBuffer *				buffer,
 							   ExeOrderIndex				srcIndex,

@@ -124,7 +124,7 @@ namespace FG
 		EXLOCK( _drCheck );
 
 		if ( not _IsImageAcquired() )
-			return true;	// TODO ?
+			return false;	// TODO ?
 
 		VkPresentInfoKHR	present_info = {};
 		present_info.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

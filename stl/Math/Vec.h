@@ -149,6 +149,7 @@ namespace FGC
 
 		constexpr Vec (T x, T y, T z, T w) : x{x}, y{y}, z{z}, w{w} {}
 		constexpr Vec (const Vec<T,3> &xyz, T w) : x{xyz[0]}, y{xyz[1]}, z{xyz[2]}, w{w} {}
+		constexpr Vec (const Vec<T,2> &xy, T z, T w) : x{xy[0]}, y{xy[1]}, z{z}, w{w} {}
 		
 		template <typename B>
 		constexpr Vec (const Vec<B,4> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)}, w{T(other.w)} {}

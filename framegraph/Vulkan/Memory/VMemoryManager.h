@@ -51,6 +51,8 @@ namespace FG
 		VDevice const &		_device;
 		Allocators_t		_allocators;
 
+		RWDataRaceCheck		_drCheck;
+
 
 	// methods
 	public:

@@ -15,8 +15,8 @@ namespace FG
 	{
 	// types
 	private:
-		static constexpr uint			MaxDescriptorPoolSize	= 1024;
-		static constexpr uint			MaxDescriptorSets		= 512;
+		static constexpr uint	MaxDescriptorPoolSize	= 1u << 11;
+		static constexpr uint	MaxDescriptorSets		= 1u << 10;
 
 		struct DSPool
 		{
@@ -24,7 +24,7 @@ namespace FG
 			VkDescriptorPool	pool	= VK_NULL_HANDLE;
 		};
 
-		using DescriptorPoolArray_t		= FixedArray< DSPool, 16 >;
+		using DescriptorPoolArray_t		= FixedArray< DSPool, 8 >;
 		using DescriptorSet				= VDescriptorSetLayout::DescriptorSet;
 
 

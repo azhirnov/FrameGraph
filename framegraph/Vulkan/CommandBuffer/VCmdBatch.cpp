@@ -149,6 +149,19 @@ namespace FG
 
 		_dependencies.push_back( batch );
 	}
+	
+/*
+=================================================
+	DestroyPostponed
+=================================================
+*/
+	void  VCmdBatch::DestroyPostponed (VkObjectType type, uint64_t handle)
+	{
+		EXLOCK( _drCheck );
+		ASSERT( GetState() < EState::Backed );
+
+		_readyToDelete.push_back({ type, handle });
+	}
 
 /*
 =================================================
@@ -267,6 +280,7 @@ namespace FG
 		_ParseDebugOutput( shaderDbgCallback );
 		_FinalizeStagingBuffers();
 		_ReleaseResources();
+		_ReleaseVkObjects();
 
 		debugger.AddBatchDump( std::move(_debugDump) );
 		debugger.AddBatchGraph( std::move(_debugGraph) );
@@ -505,7 +519,105 @@ namespace FG
 	
 /*
 =================================================
-_GetWritable
+	_ReleaseVkObjects
+=================================================
+*/
+	void  VCmdBatch::_ReleaseVkObjects ()
+	{
+		VDevice const&	dev  = _frameGraph.GetDevice();
+		VkDevice		vdev = dev.GetVkDevice();
+		
+		for (auto& pair : _readyToDelete)
+		{
+			switch ( pair.first )
+			{
+				case VK_OBJECT_TYPE_SEMAPHORE :
+					dev.vkDestroySemaphore( vdev, VkSemaphore(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_FENCE :
+					dev.vkDestroyFence( vdev, VkFence(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_DEVICE_MEMORY :
+					dev.vkFreeMemory( vdev, VkDeviceMemory(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_IMAGE :
+					dev.vkDestroyImage( vdev, VkImage(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_EVENT :
+					dev.vkDestroyEvent( vdev, VkEvent(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_QUERY_POOL :
+					dev.vkDestroyQueryPool( vdev, VkQueryPool(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_BUFFER :
+					dev.vkDestroyBuffer( vdev, VkBuffer(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_BUFFER_VIEW :
+					dev.vkDestroyBufferView( vdev, VkBufferView(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_IMAGE_VIEW :
+					dev.vkDestroyImageView( vdev, VkImageView(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_PIPELINE_LAYOUT :
+					dev.vkDestroyPipelineLayout( vdev, VkPipelineLayout(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_RENDER_PASS :
+					dev.vkDestroyRenderPass( vdev, VkRenderPass(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_PIPELINE :
+					dev.vkDestroyPipeline( vdev, VkPipeline(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT :
+					dev.vkDestroyDescriptorSetLayout( vdev, VkDescriptorSetLayout(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_SAMPLER :
+					dev.vkDestroySampler( vdev, VkSampler(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_DESCRIPTOR_POOL :
+					dev.vkDestroyDescriptorPool( vdev, VkDescriptorPool(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_FRAMEBUFFER :
+					dev.vkDestroyFramebuffer( vdev, VkFramebuffer(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION :
+					dev.vkDestroySamplerYcbcrConversion( vdev, VkSamplerYcbcrConversion(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE :
+					dev.vkDestroyDescriptorUpdateTemplate( vdev, VkDescriptorUpdateTemplate(pair.second), null );
+					break;
+
+				case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV :
+					dev.vkDestroyAccelerationStructureNV( vdev, VkAccelerationStructureNV(pair.second), null );
+					break;
+
+				default :
+					FG_LOGE( "resource type is not supported" );
+					break;
+			}
+		}
+		_readyToDelete.clear();
+	}
+
+/*
+=================================================
+	_GetWritable
 =================================================
 */
 	bool VCmdBatch::GetWritable (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,

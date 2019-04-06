@@ -101,7 +101,6 @@ set( SOURCES
 	"Shared/RenderState.cpp"
 	"Shared/ResourceBase.h"
 	"Shared/ResourceDataRange.h"
-	"Shared/Types.h"
 	"Shared/VertexInputState.cpp"
 	"Vulkan/RenderPass/VFramebuffer.cpp"
 	"Vulkan/RenderPass/VFramebuffer.h"
@@ -180,7 +179,7 @@ source_group( "Vulkan\\Instance" FILES "Vulkan/Instance/VDevice.cpp" "Vulkan/Ins
 source_group( "Vulkan\\Debugger" FILES "Vulkan/Debugger/VDebugger.cpp" "Vulkan/Debugger/VDebugger.h" "Vulkan/Debugger/VLocalDebugger.cpp" "Vulkan/Debugger/VLocalDebugger.h" "Vulkan/Debugger/VLocalDebugger2.cpp" )
 source_group( "Vulkan\\Image" FILES "Vulkan/Image/VImage.cpp" "Vulkan/Image/VImage.h" "Vulkan/Image/VLocalImage.cpp" "Vulkan/Image/VLocalImage.h" "Vulkan/Image/VSampler.cpp" "Vulkan/Image/VSampler.h" )
 source_group( "Vulkan\\Swapchain" FILES "Vulkan/Swapchain/VSwapchain.cpp" "Vulkan/Swapchain/VSwapchain.h" )
-source_group( "Shared" FILES "Shared/CreateFrameGraph.cpp" "Shared/EnumToString.h" "Shared/EnumUtils.h" "Shared/FrameGraph_Statistics.cpp" "Shared/HashCollisionCheck.h" "Shared/ImageDataRange.h" "Shared/ImageView.cpp" "Shared/ImageViewDesc.cpp" "Shared/ImageViewDesc.h" "Shared/LocalResourceID.h" "Shared/Pipeline.cpp" "Shared/PipelineResources.cpp" "Shared/PipelineResourcesHelper.h" "Shared/RenderState.cpp" "Shared/ResourceBase.h" "Shared/ResourceDataRange.h" "Shared/Types.h" "Shared/VertexInputState.cpp" )
+source_group( "Shared" FILES "Shared/CreateFrameGraph.cpp" "Shared/EnumToString.h" "Shared/EnumUtils.h" "Shared/FrameGraph_Statistics.cpp" "Shared/HashCollisionCheck.h" "Shared/ImageDataRange.h" "Shared/ImageView.cpp" "Shared/ImageViewDesc.cpp" "Shared/ImageViewDesc.h" "Shared/LocalResourceID.h" "Shared/Pipeline.cpp" "Shared/PipelineResources.cpp" "Shared/PipelineResourcesHelper.h" "Shared/RenderState.cpp" "Shared/ResourceBase.h" "Shared/ResourceDataRange.h" "Shared/VertexInputState.cpp" )
 source_group( "Vulkan\\RenderPass" FILES "Vulkan/RenderPass/VFramebuffer.cpp" "Vulkan/RenderPass/VFramebuffer.h" "Vulkan/RenderPass/VLogicalRenderPass.cpp" "Vulkan/RenderPass/VLogicalRenderPass.h" "Vulkan/RenderPass/VRenderPass.cpp" "Vulkan/RenderPass/VRenderPass.h" )
 source_group( "Vulkan\\Utils" FILES "Vulkan/Utils/FGEnumCast.h" "Vulkan/Utils/VEnumCast.h" "Vulkan/Utils/VEnums.h" "Vulkan/Utils/VEnumToString.h" )
 source_group( "Vulkan\\Buffer" FILES "Vulkan/Buffer/VBuffer.cpp" "Vulkan/Buffer/VBuffer.h" "Vulkan/Buffer/VLocalBuffer.cpp" "Vulkan/Buffer/VLocalBuffer.h" )

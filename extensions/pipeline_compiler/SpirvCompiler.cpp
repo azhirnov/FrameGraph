@@ -52,8 +52,8 @@ namespace FG
 
 	// variables
 	private:
-		IncludeResults_t			_results;
-		IncludedFiles_t				_includedFiles;
+		IncludeResults_t		_results;
+		IncludedFiles_t			_includedFiles;
 		Array<String> const&	_directories;
 
 
@@ -243,6 +243,15 @@ namespace FG
 		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
 		COMP_CHECK_ERR( _BuildReflection( source, glslang_data, OUT outReflection ));
+		
+		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnoations ))
+		{
+			_ParseAnnotations( source, INOUT outReflection );
+
+			for (auto& file : includer.GetIncludedFiles()) {
+				_ParseAnnotations( file.second->GetSource(), INOUT outReflection );
+			}
+		}
 
 		outShader.specConstants	= outReflection.specConstants;
 		outShader.AddShaderData( dstShaderFmt, entry, std::move(spirv), debugName );
@@ -805,41 +814,58 @@ namespace FG
 		COMP_CHECK_ERR( _ProcessExternalObjects( null, root, OUT result ));
 		COMP_CHECK_ERR( _ProcessShaderInfo( INOUT result ));
 
-		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnoations ) )
-			_ParseAnnotations( source, INOUT result );
-
 		_intermediate = null;
 		return true;
 	}
 	
 /*
 =================================================
-	_ParseAnnotations 
+	_ParseAnnotations
+----
+	supported annotations:
+		set <int> <string> -- descriptor set name
+		discard -- changes writeonly access to writediscard
+		dynamic-offset -- uniform or storage buffer uses dynamic offset
+	multiple annotations:
+		@<annotation-1>, @<annotation-2>, ...
 =================================================
 */
 	bool SpirvCompiler::_ParseAnnotations (StringView source, INOUT ShaderReflection &reflection) const
 	{
-		const StringView	ds_name = "// @set ";
-
-		// search for descriptor set names
-		for (size_t pos = 0;;)
+		struct Annotation
 		{
-			pos = source.find( ds_name, pos );
-			if ( pos == StringView::npos )
-				break;
+			bool	writeDiscard  : 1;
+			bool	dynamicOffset : 1;
 
-			pos += ds_name.length();
+			Annotation () : writeDiscard{false}, dynamicOffset{false} {}
+		};
 
+		const auto	ReadWord = [] (StringView source, INOUT size_t &pos)
+		{
+			const size_t	start = pos;
+
+			for (bool is_word = true; is_word & (pos < source.length()); pos += is_word)
+			{
+				const char	c = source[pos];
+				
+				is_word = ((c >= 'a') & (c <= 'z')) | (c == '-');
+			}
+			return source.substr( start, pos - start );
+		};
+
+		const auto	ParseDescSet = [this, &reflection] (StringView source, INOUT size_t &pos) -> bool
+		{
 			size_t	start		= UMax;
 			uint	mode		= 0;
 			uint	ds_index	= 0;
 			bool	is_string	= false;
 
+			++pos;
 			for (; mode < 3; ++pos)
 			{
 				const char	c = pos < source.length() ? source[pos] : '\n';
 
-				if ( c == '\n' or c == '\r' ) {
+				if ( (c == '\n') | (c == '\r') | (c == ',') ) {
 					++mode;	++pos;
 					break;
 				}
@@ -848,17 +874,18 @@ namespace FG
 				{
 					// read descriptor set index
 					case 0 : {
-						if ( c >= '0' and c <= '9' )
+						if ( (c >= '0') & (c <= '9') )
 							ds_index = ds_index * 10 + uint(c - '0');
 						else {
-							COMP_CHECK_ERR( c == ' ' or c == '\t' );
+							if ( (ds_index >= FG_MaxDescriptorSets) | ((c != ' ') & (c != '\t')) )
+								return false;
 							++mode;
 						}
 						break;
 					}
 					// skip first white spaces
 					case 1 : {
-						if ( c != ' ' and c != '\t' ) {
+						if ( (c != ' ') & (c != '\t') ) {
 							is_string = (c == '"');
 							start = pos + uint(is_string);
 							++mode;
@@ -867,7 +894,7 @@ namespace FG
 					}
 					// find end of string
 					case 2 : {
-						if ( (is_string and c == '"') or (not is_string and (c == ' ' or c == '\t')) )
+						if ( (is_string & (c == '"')) | (not is_string & ((c == ' ') | (c == '\t'))) )
 							++mode;
 						break;
 					}
@@ -888,7 +915,172 @@ namespace FG
 					}
 				}
 				//COMP_CHECK_ERR( found );
+				return true;
 			}
+			return false;
+		};
+		
+		const auto	ParseUniform = [this, &reflection] (StringView source, INOUT size_t &pos, const Annotation &annot) -> bool
+		{
+			// patterns:
+			//	buffer <SSBO> {...
+			//	uniform <UBO> { ...
+			//	uniform image* <name>...
+			
+			constexpr char		buffer_key[]	= "buffer";
+			constexpr char		uinform_key[]	= "uniform";
+			constexpr size_t	max_length		= Max( CountOf(buffer_key), CountOf(uinform_key) ) - 1;
+
+			size_t	key_start = 0;
+			for (; pos < source.length() - max_length; ++pos)
+			{
+				const char*	s		= source.data() + pos;
+				bool		is_buf	= memcmp( s, buffer_key, sizeof(buffer_key)-1 ) == 0;
+				bool		is_un	= memcmp( s, uinform_key, sizeof(uinform_key)-1 ) == 0;
+
+				if ( is_buf | is_un )
+				{
+					key_start = pos;
+					pos += max_length-1;
+					break;
+				}
+			}
+
+			size_t	word_start = UMax, word_end = 0;
+			for (; pos < source.length()-1; ++pos)
+			{
+				const char	c = source[pos];
+				const char	n = source[pos+1];
+
+				bool		is_space1 = (c == ' ') | (c == '/t');
+				bool		is_space2 = (n == ' ') | (n == '/t');
+				bool		is_word1  = ((c >= 'a') & (c <= 'z')) | ((c >= 'A') & (c <= 'Z'));
+				bool		is_word2  = ((n >= 'a') & (n <= 'z')) | ((n >= 'A') & (n <= 'Z'));
+
+				if ( is_space1 & is_word2 )
+					word_start = pos+1;
+
+				if ( is_space2 & is_word1 )
+					word_end = pos+1;
+
+				if ( (c == ';') | (c == '{') )
+					break;
+			}
+
+			if ( word_start < word_end )
+			{
+				UniformID	id { source.substr( word_start, word_end - word_start )};
+				bool		found = false;
+
+				for (auto& ds : reflection.layout.descriptorSets)
+				{
+					auto	iter = ds.uniforms->find( id );
+					if ( iter == ds.uniforms->end() )
+						continue;
+
+					Visit(	const_cast<PipelineDescription::UniformData_t &>( iter->second.data ),
+							[&found, &annot] (PipelineDescription::Image &image)
+							{
+								ASSERT( not annot.dynamicOffset );
+								ASSERT( annot.writeDiscard );
+								found = true;
+								if ( annot.writeDiscard )
+									image.state |= EResourceState::InvalidateBefore;
+							},
+							[&found, &annot] (PipelineDescription::UniformBuffer &ubuf)
+							{
+								ASSERT( annot.dynamicOffset );
+								ASSERT( not annot.writeDiscard );
+								found = true;
+								if ( annot.dynamicOffset )
+									ubuf.state |= EResourceState::_BufferDynamicOffset;
+							},
+							[&found, &annot] (PipelineDescription::StorageBuffer &sbuf)
+							{
+								ASSERT( annot.dynamicOffset or annot.writeDiscard );
+								found = true;
+								if ( annot.writeDiscard )	sbuf.state |= EResourceState::InvalidateBefore;
+								if ( annot.dynamicOffset )	sbuf.state |= EResourceState::_BufferDynamicOffset;
+							},
+							[] (PipelineDescription::Texture &) {},
+							[] (PipelineDescription::Sampler &) {},
+							[] (PipelineDescription::SubpassInput &) {},
+							[] (PipelineDescription::RayTracingScene &) {},
+							[] (NullUnion &) {}
+						  );
+				}
+				COMP_CHECK_ERR( found );
+				return true;
+			}
+			return false;
+		};
+
+
+		const StringView	desc_set_key {"set"};
+		const StringView	discard_key  {"discard"};
+		const StringView	dyn_off_key  {"dynamic-offset"};
+
+		Annotation		annot;
+
+		bool	multiline_comment	= false;
+		bool	singleline_comment	= false;
+		uint	line_number			= 0;
+
+		for (size_t pos = 0; pos < source.length();)
+		{
+			// search for annotation key
+			{
+				const char	c = source[pos];
+				const char	n = (pos+1) >= source.length() ? 0 : source[pos+1];
+				++pos;
+
+				const bool	newline1 = (c == '\r') & (n == '\n');	// windows style "\r\n"
+				const bool	newline2 = (c == '\n') | (c == '\r');	// linux style "\n" (or mac style "\r")
+
+				if ( newline1 | newline2 )
+				{
+					pos += size_t(newline1);
+					singleline_comment = false;
+					++line_number;
+
+					if ( (annot.dynamicOffset | annot.writeDiscard) & (not multiline_comment) )
+					{
+						COMP_CHECK_ERR( ParseUniform( source, INOUT pos, annot ));
+						annot = Default;
+					}
+					continue;
+				}
+
+				if ( multiline_comment )
+				{
+					if ( (c == '*') & (n == '/') )
+						multiline_comment = false;
+				}
+				else
+				{
+					if ( (c == '/') & (n == '*') )
+						multiline_comment = true;
+
+					if ( (c == '/') & (n == '/') )
+						singleline_comment = true;
+				}
+
+				if ( not ((singleline_comment | multiline_comment) & (c == '@')) )
+					continue;
+			}
+
+			StringView	key = ReadWord( source, INOUT pos );
+
+			if ( key == desc_set_key )
+				COMP_CHECK_ERR( ParseDescSet( source, INOUT pos ))
+			else
+			if ( key == discard_key )
+				annot.writeDiscard = true;
+			else
+			if ( key == dyn_off_key )
+				annot.dynamicOffset = true;
+			else
+				FG_LOGD( "unknown annotation '"s << key << "'" );	// TODO: write to 'log'
 		}
 
 		return true;
@@ -1126,7 +1318,7 @@ namespace FG
 			return EResourceState::ShaderRead;
 
 		if ( q.writeonly )
-			return EResourceState::ShaderWrite | (EnumEq( flags, EShaderCompilationFlags::AlwaysWriteDiscard ) ? EResourceState::InvalidateBefore : EResourceState::Unknown);
+			return EResourceState::ShaderWrite;
 
 		// defualt:
 		return EResourceState::ShaderReadWrite;
@@ -1409,9 +1601,8 @@ namespace FG
 			return true;
 
 
-		const bool		is_dynamic		= EnumEq( _compilerFlags, EShaderCompilationFlags::AlwaysBufferDynamicOffset );
-		auto&			descriptor_set	= GetDesciptorSet( qual.hasSet() ? uint(qual.layoutSet) : 0, INOUT result );
-		auto&			uniforms		= const_cast<PipelineDescription::UniformMap_t &>( *descriptor_set.uniforms );
+		auto&	descriptor_set	= GetDesciptorSet( qual.hasSet() ? uint(qual.layoutSet) : 0, INOUT result );
+		auto&	uniforms		= const_cast<PipelineDescription::UniformMap_t &>( *descriptor_set.uniforms );
 
 		if ( type.getBasicType() == TBasicType::EbtSampler )
 		{	
@@ -1500,13 +1691,12 @@ namespace FG
 
 			if ( qual.layoutShaderRecordNV )
 				return true;
-			
+
 			// uniform block
 			if ( qual.storage == TStorageQualifier::EvqUniform )
 			{
 				PipelineDescription::UniformBuffer	ubuf;
-				ubuf.state = EResourceState::UniformRead | EResourceState_FromShaders( _currentStage ) |
-							 (is_dynamic ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown);
+				ubuf.state = EResourceState::UniformRead | EResourceState_FromShaders( _currentStage );
 
 				BytesU	stride, offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT ubuf.size, OUT stride, OUT offset ));
@@ -1525,8 +1715,7 @@ namespace FG
 			if ( qual.storage == TStorageQualifier::EvqBuffer )
 			{
 				PipelineDescription::StorageBuffer	sbuf;
-				sbuf.state = ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage ) |
-							 (is_dynamic ? EResourceState::_BufferDynamicOffset : EResourceState::Unknown);
+				sbuf.state = ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage );
 			
 				BytesU	offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride, OUT offset ));

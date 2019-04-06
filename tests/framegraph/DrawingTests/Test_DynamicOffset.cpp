@@ -15,10 +15,12 @@ namespace FG
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+// @dynamic-offset
 layout (std140) uniform UB {
 	vec4	data[4];
 } ub;
 
+// @dynamic-offset
 layout (std430) writeonly buffer SSB {
 	vec4	data[4];
 } ssb;
@@ -31,10 +33,6 @@ void main ()
 	ssb.data[2] = ub.data[0];
 }
 )#" );
-
-		const auto	old_flags = _pplnCompiler->GetCompilationFlags();
-
-		_pplnCompiler->SetCompilationFlags( old_flags | EShaderCompilationFlags::AlwaysBufferDynamicOffset );
 		
 		const BytesU	base_off		= 128_b;
 		const BytesU	buf_off			= 128_b;
@@ -49,8 +47,6 @@ void main ()
 											1.5f, 1.6f, 1.7f, 1.8f };
 		CPipelineID		pipeline		= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
-		
-		_pplnCompiler->SetCompilationFlags( old_flags );
 
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));

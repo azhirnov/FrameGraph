@@ -963,7 +963,7 @@ namespace FG
 
 		if ( is_created )
 			data.Destroy( *this );
-
+		
 		_Unassign( id );
 
 		return ID( temp_id, temp.GetInstanceID() );
@@ -977,23 +977,31 @@ namespace FG
 	RawSamplerID  VResourceManager::CreateSampler (const SamplerDesc &desc, StringView dbgName)
 	{
 		return _CreateCachedResource<RawSamplerID>( "failed when creating sampler",
-									  [&] (auto& data) { return Replace( data, _device, desc ); },
-									  [&] (auto& data) { return data.Create( _device, dbgName ); });
+										[&] (auto& data) { return Replace( data, _device, desc ); },
+										[&] (auto& data) { return data.Create( _device, dbgName ); });
 	}
 	
 	RawRenderPassID  VResourceManager::CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, StringView dbgName)
 	{
 		return _CreateCachedResource<RawRenderPassID>( "failed when creating render pass",
-									  [&] (auto& data) { return Replace( data, logicalPasses ); },
-									  [&] (auto& data) { return data.Create( _device, dbgName ); });
+										[&] (auto& data) { return Replace( data, logicalPasses ); },
+										[&] (auto& data) { return data.Create( _device, dbgName ); });
 	}
 	
 	RawFramebufferID  VResourceManager::CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments,
 																 RawRenderPassID rp, uint2 dim, uint layers, StringView dbgName)
 	{
 		return _CreateCachedResource<RawFramebufferID>( "failed when creating framebuffer",
-									  [&] (auto& data) { return Replace( data, attachments, rp, dim, layers ); },
-									  [&] (auto& data) { return data.Create( *this, dbgName ); });
+										[&] (auto& data) {
+											return Replace( data, attachments, rp, dim, layers );
+										},
+										[&] (auto& data) {
+											if ( data.Create( *this, dbgName )) {
+												_validation.createdFramebuffers.fetch_add( 1, memory_order_relaxed );
+												return true;
+											}
+											return false;
+										});
 	}
 	
 /*
@@ -1029,7 +1037,14 @@ namespace FG
 
 		id = _CreateCachedResource<RawPipelineResourcesID>( "failed when creating descriptor set",
 								   [&] (auto& data) { return Replace( data, desc ); },
-								   [&] (auto& data) { if (data.Create( *this )) { layout.AddRef(); return true; }  return false; });
+								   [&] (auto& data) {
+										if (data.Create( *this )) {
+											layout.AddRef();
+											_validation.createdPplnResources.fetch_add( 1, memory_order_relaxed );
+											return true;
+										}
+										return false;
+									});
 
 		if ( id )
 		{
@@ -1232,6 +1247,68 @@ namespace FG
 				_hashCollisionCheck.Add( inst.instanceId );
 			}
 		})
+	}
+	
+/*
+=================================================
+	RunValidation
+=================================================
+*/
+	void  VResourceManager::RunValidation (uint maxIter)
+	{
+		static constexpr uint	scale = MaxCached / 16;
+
+		const auto	UpdateCounter = [] (INOUT std::atomic<uint> &counter, uint maxValue) -> uint
+		{
+			if ( not maxValue )
+				return 0;
+
+			uint	expected = 0;
+			uint	count	 = 0;
+			for (; not counter.compare_exchange_weak( INOUT expected, expected - count, memory_order_relaxed );) {
+				count = Min( maxValue, expected * scale );
+			}
+			return count;
+		};
+
+		const auto	UpdateLastIndex = [] (INOUT std::atomic<uint> &lastIndex, uint count, uint size)
+		{
+			uint	new_value = count;
+			uint	expected  = 0;
+			for (; not lastIndex.compare_exchange_weak( INOUT expected, new_value, memory_order_relaxed );) {
+				new_value = expected + count;
+				new_value = new_value >= size ? new_value - size : new_value;
+				ASSERT( new_value < size );
+			}
+			return expected;
+		};
+
+		const auto	ValidateResources = [this, &UpdateCounter, &UpdateLastIndex, maxIter] (INOUT std::atomic<uint> &counter, INOUT std::atomic<uint> &lastIndex, auto& pool)
+		{
+			const uint	max_iter = UpdateCounter( INOUT counter, maxIter );
+			if ( max_iter )
+			{
+				const uint	max_count = uint(pool.size());
+				const uint	last_idx  = UpdateLastIndex( INOUT lastIndex, max_iter, max_count );
+
+				for (uint i = 0; i < max_iter; ++i)
+				{
+					uint	j		= last_idx + i;	j = (j >= max_count ? j - max_count : j);
+					Index_t	index	= Index_t(j);
+
+					auto&	res = pool [index];
+					if ( res.IsCreated() and not res.Data().IsAllResourcesAlive( *this ) )
+					{
+						pool.RemoveFromCache( index );
+						res.Destroy( *this );
+						pool.Unassign( index );
+					}
+				}
+			}
+		};
+
+		ValidateResources( _validation.createdPplnResources, _validation.lastCheckedPipelineResource, _pplnResourcesCache );
+		ValidateResources( _validation.createdFramebuffers, _validation.lastCheckedFramebuffer, _framebufferCache );
 	}
 
 

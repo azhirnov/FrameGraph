@@ -45,25 +45,25 @@ namespace FG
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
 		using CachedPoolTmpl	= CachedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, CacheGuard_t, AtomicPtr >;
 
-		static constexpr uint	MaxImages		= 2u << 10;
-		static constexpr uint	MaxBuffers		= 2u << 10;
-		static constexpr uint	MaxMemoryObjs	= 2u << 10;
-		static constexpr uint	MaxCached		= 1u << 10;
-		static constexpr uint	MaxRTObjects	= 1u << 10;
+		static constexpr uint	MaxImages		= 1u << 10;
+		static constexpr uint	MaxBuffers		= 1u << 10;
+		static constexpr uint	MaxMemoryObjs	= 1u << 10;
+		static constexpr uint	MaxCached		= 1u << 9;
+		static constexpr uint	MaxRTObjects	= 1u << 9;
 
-		using ImagePool_t			= PoolTmpl<			ResourceBase<VImage>,					MaxImages,		16 >;
-		using BufferPool_t			= PoolTmpl<			ResourceBase<VBuffer>,					MaxBuffers,		16 >;
-		using MemoryPool_t			= PoolTmpl<			ResourceBase<VMemoryObj>,				MaxMemoryObjs,	31 >;
-		using SamplerPool_t			= CachedPoolTmpl<	ResourceBase<VSampler>,					MaxCached,		16 >;
-		using GPipelinePool_t		= PoolTmpl<			ResourceBase<VGraphicsPipeline>,		MaxCached,		16 >;
-		using CPipelinePool_t		= PoolTmpl<			ResourceBase<VComputePipeline>,			MaxCached,		16 >;
-		using MPipelinePool_t		= PoolTmpl<			ResourceBase<VMeshPipeline>,			MaxCached,		16 >;
-		using RTPipelinePool_t		= PoolTmpl<			ResourceBase<VRayTracingPipeline>,		MaxCached,		16 >;
-		using PplnLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VPipelineLayout>,			MaxCached,		16 >;
-		using DSLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VDescriptorSetLayout>,		MaxCached,		16 >;
-		using RenderPassPool_t		= CachedPoolTmpl<	ResourceBase<VRenderPass>,				MaxCached,		16 >;
-		using FramebufferPool_t		= CachedPoolTmpl<	ResourceBase<VFramebuffer>,				MaxCached,		16 >;
-		using PplnResourcesPool_t	= CachedPoolTmpl<	ResourceBase<VPipelineResources>,		MaxCached,		16 >;
+		using ImagePool_t			= PoolTmpl<			ResourceBase<VImage>,					MaxImages,		32 >;
+		using BufferPool_t			= PoolTmpl<			ResourceBase<VBuffer>,					MaxBuffers,		32 >;
+		using MemoryPool_t			= PoolTmpl<			ResourceBase<VMemoryObj>,				MaxMemoryObjs,	63 >;
+		using SamplerPool_t			= CachedPoolTmpl<	ResourceBase<VSampler>,					MaxCached,		8 >;
+		using GPipelinePool_t		= PoolTmpl<			ResourceBase<VGraphicsPipeline>,		MaxCached,		8 >;
+		using CPipelinePool_t		= PoolTmpl<			ResourceBase<VComputePipeline>,			MaxCached,		8 >;
+		using MPipelinePool_t		= PoolTmpl<			ResourceBase<VMeshPipeline>,			MaxCached,		8 >;
+		using RTPipelinePool_t		= PoolTmpl<			ResourceBase<VRayTracingPipeline>,		MaxCached,		8 >;
+		using PplnLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VPipelineLayout>,			MaxCached,		8 >;
+		using DSLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VDescriptorSetLayout>,		MaxCached,		8 >;
+		using RenderPassPool_t		= CachedPoolTmpl<	ResourceBase<VRenderPass>,				MaxCached,		8 >;
+		using FramebufferPool_t		= CachedPoolTmpl<	ResourceBase<VFramebuffer>,				MaxCached,		8 >;
+		using PplnResourcesPool_t	= CachedPoolTmpl<	ResourceBase<VPipelineResources>,		MaxCached,		8 >;
 		using RTGeometryPool_t		= PoolTmpl<			ResourceBase<VRayTracingGeometry>,		MaxRTObjects,	16 >;
 		using RTScenePool_t			= PoolTmpl<			ResourceBase<VRayTracingScene>,			MaxRTObjects,	16 >;
 		using RTShaderTablePool_t	= PoolTmpl<			ResourceBase<VRayTracingShaderTable>,	MaxRTObjects,	16 >;
@@ -115,6 +115,15 @@ namespace FG
 		std::atomic<uint>			_submissionCounter;
 
 		DebugLayoutCache_t			_debugDSLayoutsCache;
+
+		// cached resources validation
+		struct {
+			std::atomic<uint>			createdFramebuffers			{0};
+			std::atomic<uint>			lastCheckedFramebuffer		{0};
+
+			std::atomic<uint>			createdPplnResources		{0};
+			std::atomic<uint>			lastCheckedPipelineResource	{0};
+		}							_validation;
 
 		// dummy resource descriptions
 		const BufferDesc			_dummyBufferDesc;
@@ -195,6 +204,8 @@ namespace FG
 		ND_ static BytesU		GetDebugShaderStorageSize (EShaderStages stages);
 
 		void CheckTask (const BuildRayTracingScene &);
+
+		void RunValidation (uint maxIter);
 
 
 	private:

@@ -90,7 +90,7 @@ namespace FG
 	{
 	// types
 	private:
-		using Self	= VFgTask<SubmitRenderPass>;
+		using Self = VFgTask<SubmitRenderPass>;
 
 	// variables
 	private:

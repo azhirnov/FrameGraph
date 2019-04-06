@@ -12,7 +12,7 @@ namespace FG
 	using SubmitInfos_t			= StaticArray< VkSubmitInfo, VSubmitted::MaxBatches >;
 	using TempSemaphores_t		= VSubmitted::Semaphores_t;
 	using PendingSwapchains_t	= FixedArray< VSwapchain const*, 16 >;
-	using TempFences_t			= FixedArray< VkFence, 8 >;
+	using TempFences_t			= FixedArray< VkFence, 32 >;
 
 /*
 =================================================
@@ -662,11 +662,16 @@ namespace FG
 	Flush
 =================================================
 */
-	bool  VFrameGraph::Flush ()
+	bool  VFrameGraph::Flush (EQueueUsage queues)
 	{
-		EXLOCK( _queueGuard );
+		bool	res;
+		{
+			EXLOCK( _queueGuard );
+			res = _FlushAll( queues, 10u );
+		}
 
-		return _FlushAll( 10u );
+		_resourceMngr.RunValidation( 100 );
+		return res;
 	}
 	
 /*
@@ -674,7 +679,7 @@ namespace FG
 	_FlushAll
 =================================================
 */
-	bool  VFrameGraph::_FlushAll (uint maxIter)
+	bool  VFrameGraph::_FlushAll (EQueueUsage queues, uint maxIter)
 	{
 		for (size_t a = 0, a_max = Min( maxIter, _queueMap.size()), changed = 1;
 			 changed and (a < a_max);
@@ -685,11 +690,10 @@ namespace FG
 			// for each queue type
 			for (size_t qi = 0; qi < _queueMap.size(); ++qi)
 			{
-				if ( _queueMap[qi].ptr )
+				if ( _queueMap[qi].ptr and EnumEq( queues, 1u<<qi ) )
 					changed |= size_t(_FlushQueue( EQueueType(qi), 10u ));
 			}
 		}
-
 		return true;
 	}
 	
@@ -936,39 +940,42 @@ namespace FG
 */
 	bool  VFrameGraph::WaitIdle ()
 	{
-		EXLOCK( _queueGuard );
-
-		TempFences_t	fences;
-
-		CHECK_ERR( _FlushAll( 10u ));
-		
-		for (size_t i = 0; i < _queueMap.size(); ++i)
 		{
-			auto&	q = _queueMap[i];
+			EXLOCK( _queueGuard );
 
-			CHECK( q.pending.empty() );
+			TempFences_t	fences;
 
-			for (auto& s : q.submitted)
+			CHECK_ERR( _FlushAll( EQueueUsage::All, 10u ));
+		
+			for (size_t i = 0; i < _queueMap.size(); ++i)
 			{
-				if ( auto fence = s->GetFence() )
-					fences.push_back( fence );
-			}
-		}
-		
-		if ( fences.size() )
-		{
-			VK_CALL( _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, UMax ));
-		}
-		
-		for (auto& q : _queueMap)
-		{
-			for (auto* s : q.submitted) {
-				s->_Release( GetDevice(), _debugger, _shaderDebugCallback );
-				_submittedPool.Unassign( s->GetIndexInPool() );
-			}
-			q.submitted.clear();
-		}
+				auto&	q = _queueMap[i];
 
+				CHECK( q.pending.empty() );
+
+				for (auto& s : q.submitted)
+				{
+					if ( auto fence = s->GetFence() )
+						fences.push_back( fence );
+				}
+			}
+		
+			if ( fences.size() )
+			{
+				VK_CALL( _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, UMax ));
+			}
+		
+			for (auto& q : _queueMap)
+			{
+				for (auto* s : q.submitted) {
+					s->_Release( GetDevice(), _debugger, _shaderDebugCallback );
+					_submittedPool.Unassign( s->GetIndexInPool() );
+				}
+				q.submitted.clear();
+			}
+		}
+		
+		_resourceMngr.RunValidation( 100 );
 		return true;
 	}
 	

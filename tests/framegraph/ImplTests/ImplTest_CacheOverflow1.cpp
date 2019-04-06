@@ -29,6 +29,7 @@ void main() {
 		const uint2		view_size	= {800, 600};
 		GPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		SamplerID		sampler		= _frameGraph->CreateSampler( SamplerDesc{} );
+		CommandBuffer	cmdBuffers[2] = {};
 
 		PipelineResources	resources1, resources2;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources1 ));
@@ -37,9 +38,13 @@ void main() {
 		
 		for (uint i = 0; i < 1000'000; ++i)
 		{
+			CHECK_ERR( _frameGraph->Wait({ cmdBuffers[i&1] }) );
+
 			CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{} );
 			CHECK_ERR( cmd );
 			
+			cmdBuffers[i&1] = cmd;
+
 			ImageID			rt	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
 			ImageID			img	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::R8_UNorm,
@@ -67,6 +72,8 @@ void main() {
 
 			_frameGraph->ReleaseResource( rt );
 			_frameGraph->ReleaseResource( img );
+			
+			CHECK_ERR( _frameGraph->Flush() );
 		}
 
 		CHECK_ERR( _frameGraph->WaitIdle() );

@@ -83,7 +83,6 @@ namespace FG
 		bool			Initialize ();
 		void			Deinitialize () override;
 		bool			AddPipelineCompiler (const PipelineCompiler &comp) override;
-		//void			SetCompilationFlags (ECompilationFlags flags, EDebugFlags debugFlags) override;
 		bool			SetShaderDebugCallback (ShaderDebugCallback_t &&) override;
 		DeviceInfo_t	GetDeviceInfo () const override;
 		EQueueUsage		GetAvilableQueues () const override		{ return _queueUsage; }
@@ -132,7 +131,7 @@ namespace FG
 		CommandBuffer	Begin (const CommandBufferDesc &, ArrayView<CommandBuffer> dependsOn) override;
 		bool			Execute (INOUT CommandBuffer &) override;
 		bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout) override;
-		bool			Flush () override;
+		bool			Flush (EQueueUsage queues) override;
 		bool			WaitIdle () override;
 
 
@@ -178,7 +177,7 @@ namespace FG
 			bool  _CreateQueue (EQueueType, VDeviceQueueInfoPtr);
 
 			bool  _TryFlush (const VCmdBatchPtr &batch);
-			bool  _FlushAll (uint maxIter);
+			bool  _FlushAll (EQueueUsage queues, uint maxIter);
 			bool  _FlushQueue (EQueueType queue, uint maxIter);
 			bool  _WaitQueue (EQueueType queue, Nanoseconds timeout);
 

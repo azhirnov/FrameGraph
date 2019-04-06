@@ -20,4 +20,8 @@ namespace FG
 	using PipelineResourcesID		= _fg_hidden_::ResourceIDWrap< RawPipelineResourcesID >;
 	using DescriptorSetLayoutID		= _fg_hidden_::ResourceIDWrap< RawDescriptorSetLayoutID >;
 
+	
+	class IFrameGraphTask
+	{};
+
 }	// FG

@@ -13,7 +13,7 @@ namespace FGC
 */
 	void StringParser::ToEndOfLine (StringView str, INOUT size_t &pos)
 	{
-		if ( pos < str.length() and (str[pos] == '\n' or str[pos] == '\r') )
+		if ( pos < str.length() and ((str[pos] == '\n') | (str[pos] == '\r')) )
 			return;
 
 		while ( pos < str.length() )
@@ -22,7 +22,7 @@ namespace FGC
 				
 			++pos;
 
-			if ( n == '\n' or n == '\r' )
+			if ( (n == '\n') | (n == '\r') )
 				return;
 		}
 	}
@@ -41,7 +41,7 @@ namespace FGC
 			//const char	c = str[pos];
 			const char	p = (pos-1) >= str.length() ? '\0' : str[pos-1];
 				
-			if ( p == '\n' or p == '\r' or p == '\0' )
+			if ( (p == '\n') | (p == '\r') | (p == '\0') )
 				return;
 
 			--pos;
@@ -88,14 +88,14 @@ namespace FGC
 			++pos;
 
 			// windows style "\r\n"
-			if ( c == '\r' and n == '\n' )
+			if ( (c == '\r') & (n == '\n') )
 			{
 				++pos;
 				return;
 			}
 
 			// linux style "\n" (or mac style "\r")
-			if ( c == '\n' or c == '\r' )
+			if ( (c == '\n') | (c == '\r') )
 				return;
 		}
 	}
@@ -117,14 +117,14 @@ namespace FGC
 			--pos;
 
 			// windows style "\r\n"
-			if ( p == '\r' and c == '\n' )
+			if ( (p == '\r') & (c == '\n') )
 			{
 				--pos;
 				return;
 			}
 
 			// linux style "\n" (or mac style "\r")
-			if ( p == '\n' or p == '\r' )
+			if ( (p == '\n') | (p == '\r') )
 				return;
 		}
 	}
@@ -154,7 +154,7 @@ namespace FGC
 	{
 		size_t	lines = 0;
 
-		for (; pos < str.length() and lines < lineNumber; ++lines)
+		for (; (pos < str.length()) & (lines < lineNumber); ++lines)
 		{
 			ToNextLine( str, INOUT pos );
 		}

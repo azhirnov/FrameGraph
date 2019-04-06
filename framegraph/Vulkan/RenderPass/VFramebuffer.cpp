@@ -30,23 +30,6 @@ namespace FG
 	
 /*
 =================================================
-	HasImage
-=================================================
-*
-	bool VFramebuffer::HasImage (const VImagePtr &img) const
-	{
-		ASSERT( _framebufferId );
-
-		for (auto& att : _attachments)
-		{
-			if ( att.first == img )
-				return true;
-		}
-		return false;
-	}
-	
-/*
-=================================================
 	IsAllResourcesAlive
 =================================================
 */

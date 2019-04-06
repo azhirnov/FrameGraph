@@ -85,17 +85,14 @@ namespace FG
 
 			// Deinitialize instance systems.
 			// All threads must be deinitialized.
-			virtual void		Deinitialize () = 0;
+			virtual void			Deinitialize () = 0;
 			
 			// Add pipeline compiler for all framegraph threads.
-			virtual bool		AddPipelineCompiler (const PipelineCompiler &comp) = 0;
-			
-			// Set compilation flags for all framegraph threads.
-			//virtual void		SetCompilationFlags (ECompilationFlags flags, EDebugFlags debugFlags = Default) = 0;
+			virtual bool			AddPipelineCompiler (const PipelineCompiler &comp) = 0;
 			
 			// Callback will be called at end of the frame if debugging enabled by
 			// calling 'Task::EnableDebugTrace' and shader compiled with 'EShaderLangFormat::EnableDebugTrace' flag.
-			virtual bool		SetShaderDebugCallback (ShaderDebugCallback_t &&) = 0;
+			virtual bool			SetShaderDebugCallback (ShaderDebugCallback_t &&) = 0;
 
 		ND_ virtual DeviceInfo_t	GetDeviceInfo () const = 0;
 		ND_ virtual EQueueUsage		GetAvilableQueues () const = 0;
@@ -163,7 +160,7 @@ namespace FG
 			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = Nanoseconds{~0ull}) = 0;
 
 			// 
-			virtual bool			Flush () = 0;
+			virtual bool			Flush (EQueueUsage queues = EQueueUsage::All) = 0;
 
 			// Wait until all commands will complete their work on GPU, trigger events for 'ReadImage' and 'ReadBuffer' tasks.
 			virtual bool			WaitIdle () = 0;

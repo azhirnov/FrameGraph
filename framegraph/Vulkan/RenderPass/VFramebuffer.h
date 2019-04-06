@@ -43,12 +43,10 @@ namespace FG
 		
 		bool Create (VResourceManager &, StringView dbgName);
 		void Destroy (VResourceManager &);
-
-		//ND_ bool HasImage (const VImagePtr &img) const;
 		
-		ND_ bool  IsAllResourcesAlive (const VResourceManager &) const;
+		ND_ bool IsAllResourcesAlive (const VResourceManager &) const;
 
-		ND_ bool  operator == (const VFramebuffer &rhs) const;
+		ND_ bool operator == (const VFramebuffer &rhs) const;
 
 		ND_ VkFramebuffer		Handle ()			const	{ SHAREDLOCK( _drCheck );  return _framebuffer; }
 		ND_ RawRenderPassID		GetRenderPassID ()	const	{ SHAREDLOCK( _drCheck );  return _renderPassId; }

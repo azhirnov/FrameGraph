@@ -22,7 +22,7 @@ namespace {
 */
 	ND_ inline String  ColToStr (RGBA8u col)
 	{
-		uint	val = (uint(col.b) << 16) | (uint(col.g) << 8) | uint(col.r);
+		uint	val = (uint(col.r) << 16) | (uint(col.g) << 8) | uint(col.b);
 		String	str = ToString<16>( val );
 
 		for (; str.length() < 6;) {
