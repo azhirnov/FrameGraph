@@ -126,7 +126,7 @@ namespace FG
 		bool _CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, INOUT String &log) const;
 		bool _OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const;
 
-		bool _BuildReflection (StringView source, const GLSLangResult &glslangData, OUT ShaderReflection &reflection);
+		bool _BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &reflection);
 
 		bool _OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const;
 

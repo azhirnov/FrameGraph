@@ -60,7 +60,7 @@ namespace FG
 	// methods
 	public:
 		explicit ShaderIncluder (const Array<String> &dirs) : _directories{dirs} {}
-		~ShaderIncluder () {}
+		~ShaderIncluder () override {}
 
 		//bool GetHeaderSource (StringView header, OUT StringView &source) const;
 
@@ -242,7 +242,7 @@ namespace FG
 		Array<uint>		spirv;
 		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
-		COMP_CHECK_ERR( _BuildReflection( source, glslang_data, OUT outReflection ));
+		COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
 		
 		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnoations ))
 		{
@@ -803,7 +803,7 @@ namespace FG
 	_BuildReflection 
 =================================================
 */
-	bool SpirvCompiler::_BuildReflection (StringView source, const GLSLangResult &glslangData, OUT ShaderReflection &result)
+	bool SpirvCompiler::_BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &result)
 	{
 		_intermediate = glslangData.prog.getIntermediate( glslangData.shader->getStage() );
 		COMP_CHECK_ERR( _intermediate );
@@ -840,20 +840,20 @@ namespace FG
 			Annotation () : writeDiscard{false}, dynamicOffset{false} {}
 		};
 
-		const auto	ReadWord = [] (StringView source, INOUT size_t &pos)
+		const auto	ReadWord = [] (StringView src, INOUT size_t &pos)
 		{
 			const size_t	start = pos;
 
-			for (bool is_word = true; is_word & (pos < source.length()); pos += is_word)
+			for (bool is_word = true; is_word & (pos < src.length()); pos += is_word)
 			{
-				const char	c = source[pos];
+				const char	c = src[pos];
 				
 				is_word = ((c >= 'a') & (c <= 'z')) | (c == '-');
 			}
-			return source.substr( start, pos - start );
+			return src.substr( start, pos - start );
 		};
 
-		const auto	ParseDescSet = [this, &reflection] (StringView source, INOUT size_t &pos) -> bool
+		const auto	ParseDescSet = [this, &reflection] (StringView src, INOUT size_t &pos) -> bool
 		{
 			size_t	start		= UMax;
 			uint	mode		= 0;
@@ -863,7 +863,7 @@ namespace FG
 			++pos;
 			for (; mode < 3; ++pos)
 			{
-				const char	c = pos < source.length() ? source[pos] : '\n';
+				const char	c = pos < src.length() ? src[pos] : '\n';
 
 				if ( (c == '\n') | (c == '\r') | (c == ',') ) {
 					++mode;	++pos;
@@ -894,7 +894,7 @@ namespace FG
 					}
 					// find end of string
 					case 2 : {
-						if ( (is_string & (c == '"')) | (not is_string & ((c == ' ') | (c == '\t'))) )
+						if ( (is_string & (c == '"')) | ((not is_string) & ((c == ' ') | (c == '\t'))) )
 							++mode;
 						break;
 					}
@@ -909,7 +909,7 @@ namespace FG
 				{
 					if ( ds.bindingIndex == ds_index )
 					{
-						ds.id = DescriptorSetID{ source.substr( start, pos - start - 1 )};
+						ds.id = DescriptorSetID{ src.substr( start, pos - start - 1 )};
 						found = true;
 						break;
 					}
@@ -920,7 +920,7 @@ namespace FG
 			return false;
 		};
 		
-		const auto	ParseUniform = [this, &reflection] (StringView source, INOUT size_t &pos, const Annotation &annot) -> bool
+		const auto	ParseUniform = [this, &reflection] (StringView src, INOUT size_t &pos, const Annotation &annot) -> bool
 		{
 			// patterns:
 			//	buffer <SSBO> {...
@@ -932,9 +932,9 @@ namespace FG
 			constexpr size_t	max_length		= Max( CountOf(buffer_key), CountOf(uinform_key) ) - 1;
 
 			size_t	key_start = 0;
-			for (; pos < source.length() - max_length; ++pos)
+			for (; pos < src.length() - max_length; ++pos)
 			{
-				const char*	s		= source.data() + pos;
+				const char*	s		= src.data() + pos;
 				bool		is_buf	= memcmp( s, buffer_key, sizeof(buffer_key)-1 ) == 0;
 				bool		is_un	= memcmp( s, uinform_key, sizeof(uinform_key)-1 ) == 0;
 
@@ -947,13 +947,13 @@ namespace FG
 			}
 
 			size_t	word_start = UMax, word_end = 0;
-			for (; pos < source.length()-1; ++pos)
+			for (; pos < src.length()-1; ++pos)
 			{
-				const char	c = source[pos];
-				const char	n = source[pos+1];
+				const char	c = src[pos];
+				const char	n = src[pos+1];
 
-				bool		is_space1 = (c == ' ') | (c == '/t');
-				bool		is_space2 = (n == ' ') | (n == '/t');
+				bool		is_space1 = (c == ' ') | (c == '\t');
+				bool		is_space2 = (n == ' ') | (n == '\t');
 				bool		is_word1  = ((c >= 'a') & (c <= 'z')) | ((c >= 'A') & (c <= 'Z'));
 				bool		is_word2  = ((n >= 'a') & (n <= 'z')) | ((n >= 'A') & (n <= 'Z'));
 
@@ -969,7 +969,7 @@ namespace FG
 
 			if ( word_start < word_end )
 			{
-				UniformID	id { source.substr( word_start, word_end - word_start )};
+				UniformID	id { src.substr( word_start, word_end - word_start )};
 				bool		found = false;
 
 				for (auto& ds : reflection.layout.descriptorSets)
@@ -1305,7 +1305,7 @@ namespace FG
 	ExtractShaderAccessType
 =================================================
 */
-	ND_ static EResourceState  ExtractShaderAccessType (const glslang::TQualifier &q, EShaderCompilationFlags flags)
+	ND_ static EResourceState  ExtractShaderAccessType (const glslang::TQualifier &q)
 	{
 		if ( q.coherent or
 			 q.volatil	or
@@ -1359,7 +1359,7 @@ namespace FG
 
 	ND_ static RenderTargetID  ExtractRenderTargetID (TIntermNode *node)
 	{
-		return RenderTargetID(); //RenderTargetID( ExtractNodeName( node ));
+		return RenderTargetID(); //RenderTargetID( ExtractNodeName( node ));	// TODO
 	}
 
 	ND_ static SpecializationID  ExtractSpecializationID (TIntermNode *node)
@@ -1612,7 +1612,7 @@ namespace FG
 				PipelineDescription::Image		image;
 				image.imageType	= _ExtractImageType( type );
 				image.format	= _ExtractImageFormat( qual.layoutFormat );
-				image.state		= ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage );
+				image.state		= ExtractShaderAccessType( qual ) | EResourceState_FromShaders( _currentStage );
 				
 				PipelineDescription::Uniform	un;
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
@@ -1715,7 +1715,7 @@ namespace FG
 			if ( qual.storage == TStorageQualifier::EvqBuffer )
 			{
 				PipelineDescription::StorageBuffer	sbuf;
-				sbuf.state = ExtractShaderAccessType( qual, _compilerFlags ) | EResourceState_FromShaders( _currentStage );
+				sbuf.state = ExtractShaderAccessType( qual ) | EResourceState_FromShaders( _currentStage );
 			
 				BytesU	offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride, OUT offset ));
