@@ -160,6 +160,8 @@ namespace FG
 		VulkanSwapchainCreateInfo	swapchain_info;
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( vulkan.GetVkSurface() );
 		swapchain_info.surfaceSize  = size;
+		
+		frameGraph->WaitIdle();
 
 		swapchainId = frameGraph->CreateSwapchain( swapchain_info, swapchainId.Release() );
 		CHECK_FATAL( swapchainId );

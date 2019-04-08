@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "framegraph/VFG.h"
+#include "framegraph/FG.h"
 #include "imgui.h"
 
 namespace FG
@@ -36,19 +36,19 @@ namespace FG
 	public:
 		ImguiRenderer ();
 
-		bool Initialize (const FGThreadPtr &fg, ImGuiContext *ctx);
-		void Deinitialize (const FGThreadPtr &fg);
+		bool Initialize (const FrameGraph &fg, ImGuiContext *ctx);
+		void Deinitialize (const FrameGraph &fg);
 
-		ND_ Task  Draw (const FGThreadPtr &fg, LogicalPassID passId, ArrayView<Task> dependencies = Default);
+		ND_ Task  Draw (const CommandBuffer &cmdbuf, LogicalPassID passId, ArrayView<Task> dependencies = Default);
 
 
 	private:
-		bool _CreatePipeline (const FGThreadPtr &fg);
-		bool _CreateSampler (const FGThreadPtr &fg);
+		bool _CreatePipeline (const FrameGraph &);
+		bool _CreateSampler (const FrameGraph &);
 
-		ND_ Task  _RecreateBuffers (const FGThreadPtr &fg);
-		ND_ Task  _CreateFontTexture (const FGThreadPtr &fg);
-		ND_ Task  _UpdateUniformBuffer (const FGThreadPtr &fg);
+		ND_ Task  _RecreateBuffers (const CommandBuffer &);
+		ND_ Task  _CreateFontTexture (const CommandBuffer &);
+		ND_ Task  _UpdateUniformBuffer (const CommandBuffer &);
 	};
 
 

@@ -191,7 +191,7 @@ public:
 			if ( not window->Update() )
 				break;
 
-			window->SetTitle( title + ("[FPS: "s << ToString(uint(swapchain->GetFramesPerSecond())) << ']') );
+			window->SetTitle( title + (" [FPS: "s << ToString(uint(swapchain->GetFramesPerSecond())) << ']') );
 
 			// wait and acquire next image
 			{

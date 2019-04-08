@@ -1,4 +1,4 @@
-Warning: this is just an example, something may change, so see [tests](../tests/framegraph) or [samples](../samples/framegraph) for currently working code.
+Warning: this is just an example, something may change, so see [tests](../tests/framegraph) or [samples](../samples) for currently working code.
 
 ## Initialization
 The FrameGraph doesn't support device initialization and window creation, so you must create it before creating FrameGraph instance. You can use [framework](../extensions/framework) for this.

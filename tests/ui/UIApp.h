@@ -27,11 +27,10 @@ namespace FG
 	private:
 		VulkanDeviceExt		_vulkan;
 		WindowPtr			_window;
-		FGInstancePtr		_fgInstance;
-		FGThreadPtr			_frameGraph;
+		FrameGraph			_frameGraph;
+		SwapchainID			_swapchainId;
 
 		ImguiRenderer		_uiRenderer;
-		ImageID				_renderTarget;
 
 		TimePoint_t			_lastUpdateTime;
 		RGBA32f				_clearColor;

@@ -20,7 +20,7 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool ImguiRenderer::Initialize (const FGThreadPtr &fg, ImGuiContext *ctx)
+	bool ImguiRenderer::Initialize (const FrameGraph &fg, ImGuiContext *ctx)
 	{
 		CHECK_ERR( ctx );
 
@@ -43,7 +43,7 @@ namespace FG
 	Deinitialize
 =================================================
 */
-	void ImguiRenderer::Deinitialize (const FGThreadPtr &fg)
+	void ImguiRenderer::Deinitialize (const FrameGraph &fg)
 	{
 		fg->ReleaseResource( INOUT _fontTexture );
 		fg->ReleaseResource( INOUT _fontSampler );
@@ -60,18 +60,18 @@ namespace FG
 	Draw
 =================================================
 */
-	Task  ImguiRenderer::Draw (const FGThreadPtr &fg, LogicalPassID passId, ArrayView<Task> dependencies)
+	Task  ImguiRenderer::Draw (const CommandBuffer &cmdbuf, LogicalPassID passId, ArrayView<Task> dependencies)
 	{
-		CHECK_ERR( fg and _context and _context->DrawData.Valid );
+		CHECK_ERR( cmdbuf and _context and _context->DrawData.Valid );
 
 		ImDrawData&		draw_data = _context->DrawData;
 		ASSERT( draw_data.TotalVtxCount > 0 );
 
 		SubmitRenderPass	submit {passId};
 
-		submit.DependsOn( _CreateFontTexture( fg ));
-		submit.DependsOn( _RecreateBuffers( fg ));
-		submit.DependsOn( _UpdateUniformBuffer( fg ));
+		submit.DependsOn( _CreateFontTexture( cmdbuf ));
+		submit.DependsOn( _RecreateBuffers( cmdbuf ));
+		submit.DependsOn( _UpdateUniformBuffer( cmdbuf ));
 
 		for (auto dep : dependencies) {
 			submit.DependsOn( dep );
@@ -109,7 +109,7 @@ namespace FG
 					scissor.right	= int(cmd.ClipRect.z + 0.5f);
 					scissor.bottom	= int(cmd.ClipRect.w + 0.5f);
 
-					fg->AddTask( passId, DrawIndexed{}
+					cmdbuf->AddTask( passId, DrawIndexed{}
 									.SetPipeline( _pipeline ).AddResources( DescriptorSetID{"0"}, &_resources )
 									.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input ).SetTopology( EPrimitive::TriangleList )
 									.SetIndexBuffer( _indexBuffer, 0_b, EIndex::UShort )
@@ -121,7 +121,7 @@ namespace FG
 			vtx_offset += cmd_list.VtxBuffer.Size;
 		}
 
-		return fg->AddTask( submit );
+		return cmdbuf->AddTask( submit );
 	}
 
 /*
@@ -129,7 +129,7 @@ namespace FG
 	_CreatePipeline
 =================================================
 */
-	bool ImguiRenderer::_CreatePipeline (const FGThreadPtr &fg)
+	bool ImguiRenderer::_CreatePipeline (const FrameGraph &fg)
 	{
 		using namespace std::string_literals;
 
@@ -191,7 +191,7 @@ namespace FG
 	_CreateSampler
 =================================================
 */
-	bool  ImguiRenderer::_CreateSampler (const FGThreadPtr &fg)
+	bool  ImguiRenderer::_CreateSampler (const FrameGraph &fg)
 	{
 		SamplerDesc		desc;
 		desc.magFilter		= EFilter::Linear;
@@ -211,7 +211,7 @@ namespace FG
 	_CreateFontTexture
 =================================================
 */
-	Task  ImguiRenderer::_CreateFontTexture (const FGThreadPtr &fg)
+	Task  ImguiRenderer::_CreateFontTexture (const CommandBuffer &cmdbuf)
 	{
 		if ( _fontTexture )
 			return null;
@@ -223,12 +223,13 @@ namespace FG
 
 		size_t		upload_size = width * height * 4 * sizeof(char);
 
-		_fontTexture = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{uint(width), uint(height), 1},
+		_fontTexture = cmdbuf->GetFrameGraph()
+						->CreateImage( ImageDesc{ EImage::Tex2D, uint3{uint(width), uint(height), 1},
 													EPixelFormat::RGBA8_UNorm, EImageUsage::Sampled | EImageUsage::TransferDst },
 										Default, "UI.FontTexture" );
 		CHECK_ERR( _fontTexture );
 
-		return fg->AddTask( UpdateImage{}.SetImage( _fontTexture ).SetData( pixels, upload_size, uint2{int2{ width, height }} ));
+		return cmdbuf->AddTask( UpdateImage{}.SetImage( _fontTexture ).SetData( pixels, upload_size, uint2{int2{ width, height }} ));
 	}
 	
 /*
@@ -236,14 +237,15 @@ namespace FG
 	_UpdateUniformBuffer
 =================================================
 */
-	Task  ImguiRenderer::_UpdateUniformBuffer (const FGThreadPtr &fg)
+	Task  ImguiRenderer::_UpdateUniformBuffer (const CommandBuffer &cmdbuf)
 	{
 		ImDrawData &	draw_data = _context->DrawData;
 
 		if ( not _uniformBuffer )
 		{
-			_uniformBuffer = fg->CreateBuffer( BufferDesc{ 16_b, EBufferUsage::Uniform | EBufferUsage::TransferDst },
-											   Default, "UI.UniformBuffer" );
+			_uniformBuffer = cmdbuf->GetFrameGraph()
+								->CreateBuffer( BufferDesc{ 16_b, EBufferUsage::Uniform | EBufferUsage::TransferDst },
+												Default, "UI.UniformBuffer" );
 			CHECK_ERR( _uniformBuffer );
 		}
 		
@@ -255,7 +257,7 @@ namespace FG
 		pc_data[2] = -1.0f - draw_data.DisplayPos.x * pc_data[0];
 		pc_data[3] = -1.0f - draw_data.DisplayPos.y * pc_data[1];
 
-		return fg->AddTask( UpdateBuffer{}.SetBuffer( _uniformBuffer ).AddData( &pc_data, 1 ));
+		return cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _uniformBuffer ).AddData( &pc_data, 1 ));
 	}
 
 /*
@@ -263,8 +265,9 @@ namespace FG
 	_RecreateBuffers
 =================================================
 */
-	Task  ImguiRenderer::_RecreateBuffers (const FGThreadPtr &fg)
+	Task  ImguiRenderer::_RecreateBuffers (const CommandBuffer &cmdbuf)
 	{
+		FrameGraph		fg			= cmdbuf->GetFrameGraph();
 		ImDrawData &	draw_data	= _context->DrawData;
 		BytesU			vertex_size	= draw_data.TotalVtxCount * SizeOf<ImDrawVert>;
 		BytesU			index_size	= draw_data.TotalIdxCount * SizeOf<ImDrawIdx>;
@@ -296,8 +299,8 @@ namespace FG
 		{
 			const ImDrawList &	cmd_list = *draw_data.CmdLists[i];
 			
-			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _vertexBuffer ).AddData( cmd_list.VtxBuffer.Data, cmd_list.VtxBuffer.Size, vb_offset ).DependsOn( last_task ));
-			last_task = fg->AddTask( UpdateBuffer{}.SetBuffer( _indexBuffer ).AddData( cmd_list.IdxBuffer.Data, cmd_list.IdxBuffer.Size, ib_offset ).DependsOn( last_task ));
+			last_task = cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _vertexBuffer ).AddData( cmd_list.VtxBuffer.Data, cmd_list.VtxBuffer.Size, vb_offset ).DependsOn( last_task ));
+			last_task = cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _indexBuffer ).AddData( cmd_list.IdxBuffer.Data, cmd_list.IdxBuffer.Size, ib_offset ).DependsOn( last_task ));
 
 			vb_offset += cmd_list.VtxBuffer.Size * SizeOf<ImDrawVert>;
 			ib_offset += cmd_list.IdxBuffer.Size * SizeOf<ImDrawIdx>;

@@ -1,4 +1,6 @@
 # How to use ray tracing extension
+Warning: this is just an example, something may change, so see [tests](../tests/framegraph) or [samples](../samples) for currently working code.
+
 
 ## Create pipeline
 
@@ -21,7 +23,7 @@ struct ShadowRayPayload {
 )#";
 
 // add ray-generation shader
-ppln.AddShader( RTShaderID("Main"), EShader::RayGen, EShaderLangFormat::VKSL_110, "main", R"#(
+ppln.AddShader( RTShaderID("Main"), EShader::RayGen, EShaderLangFormat::VKSL_110, "main", header + R"#(
 layout(binding = 0) uniform accelerationStructureNV  un_RtScene;
 layout(binding = 1, rgba8) writeonly uniform image2D  un_Output;
 layout(location = PRIMARY_RAY_LOC) rayPayloadNV PrimaryRayPayload  PrimaryRay;
@@ -43,30 +45,30 @@ void main ()
 
     imageStore( un_Output, ivec2(gl_LaunchIDNV), PrimaryRay.color );
 }
-)#");
+)#"s);
 
 // add ray-miss shader for primary ray
-ppln.AddShader( RTShaderID("PrimaryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
+ppln.AddShader( RTShaderID("PrimaryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", header + R"#(
 layout(location = PRIMARY_RAY_LOC) rayPayloadInNV PrimaryRayPayload  PrimaryRay;
 
 void main ()
 {
     PrimaryRay.color = vec4(0.0f);
 }
-)#");
+)#"s);
 
 // add ray-miss shader for shadow ray
-ppln.AddShader( RTShaderID("ShadowMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
+ppln.AddShader( RTShaderID("ShadowMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", header + R"#(
 layout(location = SHADOW_RAY_LOC) rayPayloadInNV ShadowRayPayload  ShadowRay;
 
 void main ()
 {
 	ShadowRay.distance = gl_RayTmaxNV;
 }
-)#");
+)#"s);
 
 // add closest-hit shader for primary ray
-ppln.AddShader( RTShaderID("PrimaryHit1"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
+ppln.AddShader( RTShaderID("PrimaryHit1"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", header + R"#(
 layout(location = PRIMARY_RAY_LOC) rayPayloadInNV PrimaryRayPayload  PrimaryRay;
 
 hitAttributeNV vec2  hitAttribs;
@@ -76,19 +78,19 @@ void main ()
     const vec3 barycentrics = vec3(1.0f - hitAttribs.x - hitAttribs.y, hitAttribs.x, hitAttribs.y);
     PrimaryRay.color = vec4(barycentrics, 1.0);
 }
-)#");
+)#"s);
 
-ppln.AddShader( RTShaderID("PrimaryHit2"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
+ppln.AddShader( RTShaderID("PrimaryHit2"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", header + R"#(
 layout(location = PRIMARY_RAY_LOC) rayPayloadInNV PrimaryRayPayload  PrimaryRay;
 
 void main ()
 {
     PrimaryRay.color = vec4(1.0f);
 }
-)#");
+)#"s);
 
 // add closest-hit shader for shadow ray
-ppln.AddShader( RTShaderID("ShadowHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
+ppln.AddShader( RTShaderID("ShadowHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", header + R"#(
 layout(location = SHADOW_RAY_LOC) rayPayloadInNV ShadowRayPayload  ShadowRay;
 
 hitAttributeNV vec2  hitAttribs;
@@ -97,7 +99,7 @@ void main ()
 {
 	ShadowRay.distance = gl_HitTNV;
 }
-)#");
+)#"s);
 
 // create ray tracing pipeline
 RTPipelineID  pipeline = frameGraph->CreatePipeline( ppln );

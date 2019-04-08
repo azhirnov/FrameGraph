@@ -23,6 +23,8 @@ int main ()
 
 	FG_LOGI( "Tests.Scene finished" );
 	
-	//std::cin.ignore();
+	#ifdef PLATFORM_WINDOWS
+	std::cin.ignore();
+	#endif
 	return 0;
 }

@@ -33,9 +33,10 @@ namespace FG
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 		swapchain_info.surfaceSize  = size;
 
-		CHECK_FATAL( _frameGraph->RecreateSwapchain( swapchain_info ));
+		CHECK( _frameGraph->WaitIdle() );
 
-		_frameGraph->ReleaseResource( INOUT _renderTarget );
+		_swapchainId = _frameGraph->CreateSwapchain( swapchain_info, _swapchainId.Release() );
+		CHECK_FATAL( _swapchainId );
 	}
 
 /*
@@ -65,24 +66,22 @@ namespace FG
 									));
 			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 		}
-
+		
 		// setup device info
-		VulkanDeviceInfo						vulkan_info;
-		FrameGraphThread::SwapchainCreateInfo	swapchain_info;
+		VulkanDeviceInfo			vulkan_info;
+		VulkanSwapchainCreateInfo	swapchain_info;
 		{
 			vulkan_info.instance		= BitCast<InstanceVk_t>( _vulkan.GetVkInstance() );
 			vulkan_info.physicalDevice	= BitCast<PhysicalDeviceVk_t>( _vulkan.GetVkPhysicalDevice() );
 			vulkan_info.device			= BitCast<DeviceVk_t>( _vulkan.GetVkDevice() );
-			
-			VulkanSwapchainCreateInfo	swapchain_ci;
-			swapchain_ci.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
-			swapchain_ci.surfaceSize	= _window->GetSize();
-			swapchain_info				= swapchain_ci;
+
+			swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
+			swapchain_info.surfaceSize	= _window->GetSize();
 
 			for (auto& q : _vulkan.GetVkQuues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
-				qi.id			= BitCast<QueueVk_t>( q.id );
+				qi.handle		= BitCast<QueueVk_t>( q.handle );
 				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.flags );
 				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;
@@ -94,25 +93,19 @@ namespace FG
 
 		// initialize framegraph
 		{
-			_fgInstance = FrameGraphInstance::CreateFrameGraph( vulkan_info );
-			CHECK_ERR( _fgInstance );
-			CHECK_ERR( _fgInstance->Initialize( 2 ));
-			//_fgInstance->SetCompilationFlags( ECompilationFlags::Unknown );
-
-			ThreadDesc	desc{ EThreadUsage::Transfer };
-
-			_frameGraph = _fgInstance->CreateThread( desc );
+			_frameGraph = IFrameGraph::CreateFrameGraph( vulkan_info );
 			CHECK_ERR( _frameGraph );
-			CHECK_ERR( _frameGraph->Initialize( &swapchain_info ));
+
+			_swapchainId = _frameGraph->CreateSwapchain( swapchain_info );
+			CHECK_ERR( _swapchainId );
 		}
-		
+
 		// add glsl pipeline compiler
 		{
-			auto	ppln_compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
+			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
+			compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
 
-			ppln_compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
-
-			_fgInstance->AddPipelineCompiler( ppln_compiler );
+			_frameGraph->AddPipelineCompiler( compiler );
 		}
 
 		// initialize imgui and renderer
@@ -228,32 +221,23 @@ namespace FG
 		if ( draw_data.TotalVtxCount == 0 )
 			return false;
 
-		if ( not _renderTarget )
+		CommandBuffer	cmdbuf = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics });
+		CHECK_ERR( cmdbuf );
 		{
-			_renderTarget = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{_window->GetSize().x, _window->GetSize().y, 1},
-																 EPixelFormat::RGBA8_UNorm, EImageUsage::ColorAttachment | EImageUsage::Transfer },
-													  Default, "UI.ColorRenderTarget" );
-		}
+			RawImageID		image = cmdbuf->GetSwapchainImage( _swapchainId );
 
-		CommandBatchID		batch_id {"main"};
-		SubmissionGraph		submission_graph;
-		submission_graph.AddBatch( batch_id );
-		
-		CHECK_ERR( _fgInstance->BeginFrame( submission_graph ));
-		CHECK_ERR( _frameGraph->Begin( batch_id, 0, EQueueUsage::Graphics ));
-		{
-			LogicalPassID	pass_id = _frameGraph->CreateRenderPass( RenderPassDesc{ int2{float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y }} }
+			LogicalPassID	pass_id = cmdbuf->CreateRenderPass( RenderPassDesc{ int2{float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y }} }
 											.AddViewport(float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y })
-											.AddTarget( RenderTargetID("out_Color0"), _renderTarget, _clearColor, EAttachmentStoreOp::Store )
-											.AddColorBuffer( RenderTargetID("out_Color0"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
+											.AddTarget( RenderTargetID(0), image, _clearColor, EAttachmentStoreOp::Store )
+											.AddColorBuffer( RenderTargetID(0), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
 											.SetDepthTestEnabled( false ).SetCullMode( ECullMode::None ));
 
-			Task	draw_ui	= _uiRenderer.Draw( _frameGraph, pass_id );
-			Task	present	= _frameGraph->AddTask( Present{ _renderTarget }.DependsOn( draw_ui ));
-			FG_UNUSED( present );
+			Task	draw_ui	= _uiRenderer.Draw( cmdbuf, pass_id );
+			FG_UNUSED( draw_ui );
 		}
-		CHECK_ERR( _frameGraph->Execute() );
-		CHECK_ERR( _fgInstance->EndFrame() );
+
+		CHECK_ERR( _frameGraph->Execute( cmdbuf ));
+		CHECK_ERR( _frameGraph->Flush() );
 
 		return true;
 	}
@@ -309,17 +293,12 @@ namespace FG
 	{
 		if ( _frameGraph )
 		{
-			_frameGraph->ReleaseResource( _renderTarget );
+			_frameGraph->WaitIdle();
 			_uiRenderer.Deinitialize( _frameGraph );
 
+			_frameGraph->ReleaseResource( _swapchainId );
 			_frameGraph->Deinitialize();
 			_frameGraph = null;
-		}
-
-		if ( _fgInstance )
-		{
-			_fgInstance->Deinitialize();
-			_fgInstance = null;
 		}
 
 		_vulkan.Destroy();

@@ -56,20 +56,9 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM})
 	set( SOURCES 
-		"shadertoy/st_shaders/FinalCS-Barboy-Opt1.glsl"
-		"shadertoy/st_shaders/FinalCS-Barboy-Opt2.glsl"
-		"shadertoy/st_shaders/FinalCS-Barboy.glsl"
 		"shadertoy/st_shaders/Glowballs.glsl"
-		"shadertoy/st_shaders/OceanPlanet.glsl"
-		"shadertoy/st_shaders/Rainforest_1.glsl"
-		"shadertoy/st_shaders/Rainforest_2.glsl"
-		"shadertoy/st_shaders/SirenianDawn.glsl"
 		"shadertoy/st_shaders/Skyline.glsl"
 		"shadertoy/st_shaders/Skyline2.glsl"
-		"shadertoy/st_shaders/Skyline3-1.glsl"
-		"shadertoy/st_shaders/Skyline3-2.glsl"
-		"shadertoy/st_shaders/SkylineOpt1.glsl"
-		"shadertoy/st_shaders/SkylineOpt2.glsl"
 		"shadertoy/FGShadertoyApp.cpp"
 		"shadertoy/FGShadertoyApp.h" )
 	if (DEFINED ANDROID)
@@ -77,7 +66,7 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM})
 	else()
 		add_executable( "Samples.Shadertoy" ${SOURCES} )
 	endif()
-	source_group( "st_shaders" FILES "shadertoy/st_shaders/FinalCS-Barboy-Opt1.glsl" "shadertoy/st_shaders/FinalCS-Barboy-Opt2.glsl" "shadertoy/st_shaders/FinalCS-Barboy.glsl" "shadertoy/st_shaders/Glowballs.glsl" "shadertoy/st_shaders/OceanPlanet.glsl" "shadertoy/st_shaders/Rainforest_1.glsl" "shadertoy/st_shaders/Rainforest_2.glsl" "shadertoy/st_shaders/SirenianDawn.glsl" "shadertoy/st_shaders/Skyline.glsl" "shadertoy/st_shaders/Skyline2.glsl" "shadertoy/st_shaders/Skyline3-1.glsl" "shadertoy/st_shaders/Skyline3-2.glsl" "shadertoy/st_shaders/SkylineOpt1.glsl" "shadertoy/st_shaders/SkylineOpt2.glsl" )
+	source_group( "st_shaders" FILES "shadertoy/st_shaders/Glowballs.glsl" "shadertoy/st_shaders/Skyline.glsl" "shadertoy/st_shaders/Skyline2.glsl" )
 	source_group( "" FILES "shadertoy/FGShadertoyApp.cpp" "shadertoy/FGShadertoyApp.h" )
 	set_property( TARGET "Samples.Shadertoy" PROPERTY FOLDER "Samples" )
 	target_include_directories( "Samples.Shadertoy" PUBLIC "${FG_EXTERNALS_PATH}" )
