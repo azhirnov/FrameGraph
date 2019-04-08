@@ -21,13 +21,13 @@ set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
 
 # test & samples dependencies
 set( FG_ENABLE_TESTS ON CACHE BOOL "enable tests" )
-set( FG_ENABLE_PERFORMANCE_TESTS OFF CACHE INTERNAL "enable performance tests" )
 set( FG_ENABLE_SAMPLES ON CACHE BOOL "enable samples" )
 set( FG_ENABLE_GLFW ON CACHE BOOL "use glfw (optional, required for tests)" )
 set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )
 set( FG_ENABLE_SFML OFF CACHE BOOL "use SFML (optional, required for tests)" )
 set( FG_ENABLE_LODEPNG OFF CACHE BOOL "use lodepng (optional, may be used in tests)" )
 set( FG_ENABLE_GRAPHVIZ ON CACHE BOOL "use graphviz (optional)" )
+set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version instead of master branch" )
 
 # UI dependencies
 set( FG_ENABLE_IMGUI OFF CACHE BOOL "use imgui (optional, required for UI extension)" )
@@ -53,7 +53,7 @@ add_subdirectory( "framegraph" "framegraph" )
 
 add_subdirectory( "extensions" "extensions" )
 
-add_subdirectory( "samples/vulkan" "samples_vulkan" )
+add_subdirectory( "samples" "samples" )
 
 message( STATUS "project 'FrameGraph' generation ended" )
 message( STATUS "\n==========================================================================" )
