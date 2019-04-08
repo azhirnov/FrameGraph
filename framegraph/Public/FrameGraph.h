@@ -75,26 +75,30 @@ namespace FG
 			void Merge (const Statistics &);
 		};
 		
-		ND_ static FrameGraph  CreateFrameGraph (const DeviceInfo_t &);
-
 
 	// interface
 	public:
+		
+			// Creates the framegraph.
+		ND_ static FrameGraph		CreateFrameGraph (const DeviceInfo_t &);
+
 
 		// initialization //
 
 			// Deinitialize instance systems.
-			// All threads must be deinitialized.
 			virtual void			Deinitialize () = 0;
 			
-			// Add pipeline compiler for all framegraph threads.
+			// Add pipeline compiler.
 			virtual bool			AddPipelineCompiler (const PipelineCompiler &comp) = 0;
 			
 			// Callback will be called at end of the frame if debugging enabled by
 			// calling 'Task::EnableDebugTrace' and shader compiled with 'EShaderLangFormat::EnableDebugTrace' flag.
 			virtual bool			SetShaderDebugCallback (ShaderDebugCallback_t &&) = 0;
 
+			// Returns device info with which framegraph has been crated.
 		ND_ virtual DeviceInfo_t	GetDeviceInfo () const = 0;
+
+			// Returns bitmask for all available queues.
 		ND_ virtual EQueueUsage		GetAvilableQueues () const = 0;
 
 
@@ -140,6 +144,7 @@ namespace FG
 			virtual void			ReleaseResource (INOUT RTSceneID &id) = 0;
 			virtual void			ReleaseResource (INOUT RTShaderTableID &id) = 0;
 
+			// Returns resource description.
 		ND_ virtual BufferDesc const&	GetDescription (RawBufferID id) const = 0;
 		ND_ virtual ImageDesc const&	GetDescription (RawImageID id) const = 0;
 		//ND_ virtual SamplerDesc const&	GetDescription (RawSamplerID &id) const = 0;
@@ -150,16 +155,16 @@ namespace FG
 
 		// frame execution //
 		
-			// 
+			// Begin command buffer recording.
 		ND_ virtual CommandBuffer	Begin (const CommandBufferDesc &, ArrayView<CommandBuffer> dependsOn = {}) = 0;
 
-			// 
+			// Compile framegraph for current command buffer and append it to the pending command buffer queue (waiting to submit).
 			virtual bool			Execute (INOUT CommandBuffer &) = 0;
 
-			//
+			// Wait until all commands complete execution on the GPU or until time runs out.
 			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = Nanoseconds{~0ull}) = 0;
 
-			// 
+			// Submit all pending command buffers and present all pending swapchain images.
 			virtual bool			Flush (EQueueUsage queues = EQueueUsage::All) = 0;
 
 			// Wait until all commands will complete their work on GPU, trigger events for 'ReadImage' and 'ReadBuffer' tasks.

@@ -1,0 +1,106 @@
+CommandBuffer {
+	name:      ""
+	Image {
+		name:         "RenderTarget"
+		iamgeType:    Image2D
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         RenderPass (#2)
+					dstTask:         ReadImage (#3)
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    Transfer
+					dependencyFlags: 
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    
+					dependencyFlags: 
+					srcAccessMask:   TransferRead
+					dstAccessMask:   ColorAttachmentRead | TransferRead
+					oldLayout:       TransferSrcOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "HostReadBuffer"
+		size:    256 Mb
+		usage:   TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            1875 Kb
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "RenderPass (#2)"
+		input =  {  }
+		output = { ReadImage (#3) }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Color-RW, InvalidateBefore
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#3)"
+		input =  { RenderPass (#2) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+

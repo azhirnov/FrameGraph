@@ -191,6 +191,39 @@ namespace FGC
 	{
 		return ExponentialSearch( ArrayView<T>{arr}, key );
 	}
+	
+/*
+=================================================
+	Reverse
+=================================================
+*/
+namespace _fgc_hidden_
+{
+	template <typename Container>
+	class ReverseContainerView
+	{
+	private:
+		Container &		_container;
 
+	public:
+		explicit ReverseContainerView (Container& container) : _container{container} {}
+
+		ND_ auto  begin ()	{ return std::rbegin( _container ); }
+		ND_ auto  end ()	{ return std::rend( _container ); }
+	};
+
+}	// _fgc_hidden_
+
+	template <typename Container>
+	ND_ auto  Reverse (Container& container)
+	{
+		return _fgc_hidden_::ReverseContainerView<Container>{ container };
+	}
+
+	template <typename Container>
+	ND_ auto  Reverse (const Container& container)
+	{
+		return _fgc_hidden_::ReverseContainerView<const Container>{ container };
+	}
 
 }	// FGC

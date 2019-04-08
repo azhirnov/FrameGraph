@@ -29,8 +29,7 @@ namespace FG
 
 		for (uint i = 0; i < max_count; ++i)
 		{
-			if ( perFrame[i&1] )
-				fg->Wait({ perFrame[i&1] });
+			fg->Wait({ perFrame[i&1] });
 
 			CommandBuffer cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
 			CHECK_ERR( cmd );
@@ -39,8 +38,7 @@ namespace FG
 			cmdBuffers[0] = cmd;
 
 			// add dependency from previous frame because this commands shares same data and used in different queues
-			if ( i )
-				cmd->AddDependency( cmdBuffers[3] );
+			cmd->AddDependency( cmdBuffers[3] );
 
 			// (1) wake up all render threads
 			sync.wait();

@@ -19,6 +19,7 @@ set( SOURCES
 	"Math/Matrix.h"
 	"Math/Rectangle.h"
 	"Math/Vec.h"
+	"Containers/AnyTypeRef.h"
 	"Containers/Appendable.h"
 	"Containers/ArrayView.h"
 	"Containers/BitTree.h"
@@ -77,7 +78,7 @@ add_library( "STL" STATIC ${SOURCES} )
 source_group( "CompileTime" FILES "CompileTime/DefaultType.h" "CompileTime/Hash.h" "CompileTime/Math.h" "CompileTime/TypeList.h" "CompileTime/TypeTraits.h" "CompileTime/UMax.h" )
 source_group( "Platforms" FILES "Platforms/WindowsHeader.h" )
 source_group( "Math" FILES "Math/BitMath.h" "Math/Bytes.h" "Math/Color.h" "Math/Math.h" "Math/Matrix.h" "Math/Rectangle.h" "Math/Vec.h" )
-source_group( "Containers" FILES "Containers/Appendable.h" "Containers/ArrayView.h" "Containers/BitTree.h" "Containers/CachedIndexedPool.h" "Containers/ChunkedIndexedPool.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/FixedTupleArray.h" "Containers/InPlace.h" "Containers/Iterators.h" "Containers/Optional.h" "Containers/Ptr.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/StringView.h" "Containers/StringViewFwd.h" "Containers/StructView.h" "Containers/Union.h" "Containers/UntypedStorage.h" )
+source_group( "Containers" FILES "Containers/AnyTypeRef.h" "Containers/Appendable.h" "Containers/ArrayView.h" "Containers/BitTree.h" "Containers/CachedIndexedPool.h" "Containers/ChunkedIndexedPool.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/FixedTupleArray.h" "Containers/InPlace.h" "Containers/Iterators.h" "Containers/Optional.h" "Containers/Ptr.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/StringView.h" "Containers/StringViewFwd.h" "Containers/StructView.h" "Containers/Union.h" "Containers/UntypedStorage.h" )
 source_group( "Algorithms" FILES "Algorithms/ArrayUtils.h" "Algorithms/Cast.h" "Algorithms/EnumUtils.h" "Algorithms/Hash.h" "Algorithms/StringParser.cpp" "Algorithms/StringParser.h" "Algorithms/StringUtils.h" )
 source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/TimeProfiler.h" )
 source_group( "Memory" FILES "Memory/LinearAllocator.h" "Memory/MemUtils.h" "Memory/MemWriter.h" "Memory/UntypedAllocator.h" )

@@ -269,7 +269,7 @@ namespace FGC
 =================================================
 */
 	template <typename T1, typename T2, typename T3>
-	ND_ forceinline auto  SafeDiv (const T1& lhs, const T2& rhs, const T3& defVal)
+	ND_ forceinline constexpr auto  SafeDiv (const T1& lhs, const T2& rhs, const T3& defVal)
 	{
 		STATIC_ASSERT( IsScalarOrEnum<T1> and IsScalarOrEnum<T2> and IsScalarOrEnum<T3> );
 
@@ -279,7 +279,7 @@ namespace FGC
 	}
 	
 	template <typename T1, typename T2>
-	ND_ forceinline auto  SafeDiv (const T1& lhs, const T2& rhs)
+	ND_ forceinline constexpr auto  SafeDiv (const T1& lhs, const T2& rhs)
 	{
 		return SafeDiv( lhs, rhs, T1(0) );
 	}

@@ -67,6 +67,9 @@ namespace FGC
 		ND_ constexpr bool			IsValid ()		const	{ return not IsEmpty() and not IsInvalid(); }
 		
 		ND_ constexpr bool  IsNormalized () const;
+
+		ND_ constexpr bool	Intersects (const Vec2_t &point) const;
+
 		ND_ constexpr bool4 operator == (const Self &rhs) const;
 
 			void Merge (const Rectangle<T> &other);
@@ -190,6 +193,17 @@ namespace FGC
 		return (left <= right) & (top <= bottom);
 	}
 	
+/*
+=================================================
+	Intersects
+=================================================
+*/
+	template <typename T>
+	inline constexpr bool  Rectangle<T>::Intersects (const Vec2_t &point) const
+	{
+		return (point.x >= left) & (point.x < right) & (point.y >= top) & (point.y < bottom);
+	}
+
 /*
 =================================================
 	operator ==

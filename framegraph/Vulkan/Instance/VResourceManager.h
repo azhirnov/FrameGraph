@@ -132,8 +132,7 @@ namespace FG
 		RawDescriptorSetLayoutID	_emptyDSLayout;
 
 		DEBUG_ONLY(
-			std::mutex				_hccGuard;
-			HashCollisionCheck		_hashCollisionCheck;
+			HashCollisionCheck<std::shared_mutex>	_hashCollisionCheck;
 		)
 
 

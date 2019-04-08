@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Math/Math.h"
+#include "stl/CompileTime/TypeTraits.h"
 
 namespace FGC
 {
@@ -651,11 +652,99 @@ namespace FGC
 	
 /*
 =================================================
+	Dot
+=================================================
+*/
+	template <typename T>
+	ND_ inline constexpr T  Dot (const Vec<T,2> &lhs, const Vec<T,2> &rhs)
+	{
+		return lhs.x * rhs.x + lhs.y * rhs.y;
+	}
+
+	template <typename T>
+	ND_ inline constexpr T  Dot (const Vec<T,3> &lhs, const Vec<T,3> &rhs)
+	{
+		return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+	}
+
+	template <typename T>
+	ND_ inline constexpr T  Dot (const Vec<T,4> &lhs, const Vec<T,4> &rhs)
+	{
+		return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
+	}
+	
+/*
+=================================================
+	Cross
+=================================================
+*/
+	template <typename T>
+	ND_ inline constexpr T  Cross (const Vec<T,2> &lhs, const Vec<T,2> &rhs)
+	{
+		return lhs.x * rhs.y - lhs.y * rhs.x;
+	}
+
+	template <typename T>
+	ND_ inline constexpr Vec<T,3>  Cross (const Vec<T,3> &lhs, const Vec<T,3> &rhs)
+	{
+		return { lhs.y * rhs.z - rhs.y * lhs.z,
+				 lhs.z * rhs.x - rhs.z * lhs.x,
+				 lhs.x * rhs.y - rhs.x * lhs.y };
+	}
+
+/*
+=================================================
+	Length / Length2
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr EnableIf<IsFloatPoint<T>, T>  Length2 (const Vec<T,I> &value)
+	{
+		return Dot( value, value );
+	}
+
+	template <typename T, uint I>
+	ND_ inline EnableIf<IsFloatPoint<T>, T>  Length (const Vec<T,I> &value)
+	{
+		return sqrt( Length2( value ));
+	}
+
+/*
+=================================================
+	Normalize
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr EnableIf<IsFloatPoint<T>, Vec<T,I>>  Normalize (const Vec<T,I> &value)
+	{
+		T  len = Dot( value, value );
+		return not Equals( len, T(0) ) ? (value * (T(1) / sqrt(len))) : Vec<T,I>{T(0)};
+	}
+
+/*
+=================================================
+	Distance / Distance2
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline EnableIf<IsFloatPoint<T>, T>  Distance (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		return Length( lhs - rhs );
+	}
+
+	template <typename T, uint I>
+	ND_ inline constexpr EnableIf<IsFloatPoint<T>, T>  Distance2 (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		return Length2( lhs - rhs );
+	}
+
+/*
+=================================================
 	SafeDiv
 =================================================
 */
 	template <typename T1, typename T2, typename T3, uint I>
-	ND_ inline auto  SafeDiv (const Vec<T1,I> &lhs, const Vec<T2,I> &rhs, const T3& defVal)
+	ND_ inline constexpr auto  SafeDiv (const Vec<T1,I> &lhs, const Vec<T2,I> &rhs, const T3& defVal)
 	{
 		using T = decltype( T1(0) + T2(0) + T3(0) );
 
@@ -667,31 +756,31 @@ namespace FGC
 	}
 	
 	template <typename T1, typename T2, uint I>
-	ND_ inline auto  SafeDiv (const Vec<T1,I> &lhs, const Vec<T2,I> &rhs)
+	ND_ inline constexpr auto  SafeDiv (const Vec<T1,I> &lhs, const Vec<T2,I> &rhs)
 	{
 		return SafeDiv( lhs, rhs, T1(0) );
 	}
 
 	template <typename T1, typename T2, typename T3, uint I>
-	ND_ inline auto  SafeDiv (const Vec<T1,I> &lhs, const T2 &rhs, const T3& defVal)
+	ND_ inline constexpr auto  SafeDiv (const Vec<T1,I> &lhs, const T2 &rhs, const T3& defVal)
 	{
 		return SafeDiv( lhs, Vec<T2,I>(rhs), defVal );
 	}
 	
 	template <typename T1, typename T2, uint I>
-	ND_ inline auto  SafeDiv (const Vec<T1,I> &lhs, const T2 &rhs)
+	ND_ inline constexpr auto  SafeDiv (const Vec<T1,I> &lhs, const T2 &rhs)
 	{
 		return SafeDiv( lhs, rhs, T1(0) );
 	}
 
 	template <typename T1, typename T2, typename T3, uint I>
-	ND_ inline auto  SafeDiv (const T1 &lhs, const Vec<T2,I> &rhs, const T3& defVal)
+	ND_ inline constexpr auto  SafeDiv (const T1 &lhs, const Vec<T2,I> &rhs, const T3& defVal)
 	{
 		return SafeDiv( Vec<T1,I>(lhs), rhs, defVal );
 	}
 	
 	template <typename T1, typename T2, uint I>
-	ND_ inline auto  SafeDiv (const T1 &lhs, const Vec<T2,I> &rhs)
+	ND_ inline constexpr auto  SafeDiv (const T1 &lhs, const Vec<T2,I> &rhs)
 	{
 		return SafeDiv( lhs, rhs, T1(0) );
 	}

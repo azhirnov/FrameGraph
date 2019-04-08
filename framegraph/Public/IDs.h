@@ -19,6 +19,40 @@ namespace _fg_hidden_
 	{
 	// variables
 	private:
+		HashVal						_hash;
+		static constexpr HashVal	_emptyHash	= CT_Hash( "", 0, Seed );
+
+
+	// methods
+	public:
+		constexpr IDWithString () : _hash{_emptyHash} {}
+		explicit constexpr IDWithString (uint hash) : _hash{hash} {}
+		explicit constexpr IDWithString (StringView name)  : _hash{CT_Hash( name.data(), name.length(), Seed )} {}
+		explicit constexpr IDWithString (const char *name) : _hash{CT_Hash( name, UMax, Seed )} {}
+
+		ND_ constexpr bool operator == (const IDWithString &rhs) const		{ return _hash == rhs._hash; }
+		ND_ constexpr bool operator != (const IDWithString &rhs) const		{ return not (*this == rhs); }
+		ND_ constexpr bool operator >  (const IDWithString &rhs) const		{ return _hash > rhs._hash; }
+		ND_ constexpr bool operator <  (const IDWithString &rhs) const		{ return rhs > *this; }
+		ND_ constexpr bool operator >= (const IDWithString &rhs) const		{ return not (*this <  rhs); }
+		ND_ constexpr bool operator <= (const IDWithString &rhs) const		{ return not (*this >  rhs); }
+
+		ND_ constexpr HashVal		GetHash ()		const					{ return _hash; }
+		ND_ constexpr bool			IsDefined ()	const					{ return _hash != _emptyHash; }
+		ND_ constexpr static bool	IsOptimized ()							{ return true; }
+	};
+
+
+
+	//
+	// ID With String
+	//
+
+	template <size_t Size, uint UID, uint Seed>
+	struct IDWithString< Size, UID, false, Seed >
+	{
+	// variables
+	private:
 		StaticString<Size>	_name;
 		HashVal				_hash;
 
@@ -39,44 +73,12 @@ namespace _fg_hidden_
 		ND_ constexpr bool operator >= (const IDWithString &rhs) const		{ return not (*this <  rhs); }
 		ND_ constexpr bool operator <= (const IDWithString &rhs) const		{ return not (*this >  rhs); }
 
+		ND_ constexpr operator IDWithString<Size, UID, true, Seed> () const	{ return IDWithString<Size, UID, true, Seed>{ uint(size_t(_hash)) }; }
+
 		ND_ constexpr StringView	GetName ()		const					{ return _name; }
 		ND_ constexpr HashVal		GetHash ()		const					{ return _hash; }
 		ND_ constexpr bool			IsDefined ()	const					{ return not _name.empty(); }
 		ND_ constexpr static bool	IsOptimized ()							{ return false; }
-	};
-	
-	
-
-	//
-	// ID With String
-	//
-
-	template <size_t Size, uint UID, uint Seed>
-	struct IDWithString< Size, UID, true, Seed >
-	{
-	// variables
-	private:
-		HashVal						_hash;
-		static constexpr HashVal	_emptyHash	= CT_Hash( "", 0, Seed );
-
-
-	// methods
-	public:
-		constexpr IDWithString () {}
-		explicit constexpr IDWithString (uint hash) : _hash{hash} {}
-		explicit constexpr IDWithString (StringView name)  : _hash{CT_Hash( name.data(), name.length(), Seed )} {}
-		explicit constexpr IDWithString (const char *name) : _hash{CT_Hash( name, UMax, Seed )} {}
-
-		ND_ constexpr bool operator == (const IDWithString &rhs) const		{ return _hash == rhs._hash; }
-		ND_ constexpr bool operator != (const IDWithString &rhs) const		{ return not (*this == rhs); }
-		ND_ constexpr bool operator >  (const IDWithString &rhs) const		{ return _hash > rhs._hash; }
-		ND_ constexpr bool operator <  (const IDWithString &rhs) const		{ return rhs > *this; }
-		ND_ constexpr bool operator >= (const IDWithString &rhs) const		{ return not (*this <  rhs); }
-		ND_ constexpr bool operator <= (const IDWithString &rhs) const		{ return not (*this >  rhs); }
-
-		ND_ constexpr HashVal		GetHash ()		const					{ return _hash; }
-		ND_ constexpr bool			IsDefined ()	const					{ return _hash != _emptyHash; }
-		ND_ constexpr static bool	IsOptimized ()							{ return true; }
 	};
 
 

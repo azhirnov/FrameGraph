@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "stl/Common.h"
+#include "stl/CompileTime/TypeList.h"
 
 namespace FGC
 {
@@ -24,6 +24,10 @@ namespace FGC
 
 	template <typename T>	constexpr std::in_place_type_t<T> InPlaceIndex {};
 	
+	template <typename... Types>
+	struct TypeList< std::variant<Types...> > final : TypeList< Types... >
+	{};
+
 /*
 =================================================
 	Visit
@@ -91,7 +95,12 @@ namespace FGC
 									using NullUnion	= mpark::monostate;
 
 	template <typename T>	constexpr mpark::in_place_type_t<T>  InPlaceIndex {};
-									
+	
+	
+	template <typename... Types>
+	struct TypeList< mpark::variant<Types...> > final : TypeList< Types... >
+	{};
+
 /*
 =================================================
 	Visit

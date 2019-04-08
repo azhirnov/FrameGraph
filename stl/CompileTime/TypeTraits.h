@@ -53,6 +53,9 @@ namespace FGC
 	template <bool Test, typename Type = void>
 	using EnableIf		= std::enable_if_t< Test, Type >;
 
+	template <bool Test, typename Type = void>
+	using DisableIf		= std::enable_if_t< not Test, Type >;
+
 
 	template <bool Test, typename IfTrue, typename IfFalse>
 	using Conditional	= std::conditional_t< Test, IfTrue, IfFalse >;

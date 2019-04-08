@@ -57,12 +57,27 @@ namespace FG
 	public:
 		ND_ virtual FrameGraph	GetFrameGraph () = 0;
 
+			// Acquire next swapchain image. This image will be presented after command buffer execution.
+			// Do not use this image in any other command buffers.
 		ND_ virtual RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type = ESwapchainImage::Primary) = 0;
+
+			// External command buffers will be executed in same batch but before internal command buffer.
 			virtual bool		AddExternalCommands (const ExternalCmdBatch_t &) = 0;
+
+			// Add input dependency.
+			// Current command buffer will be executed on the GPU only after all input dependencies.
 			virtual bool		AddDependency (const CommandBuffer &) = 0;
+
+			// Allocate space in the staging buffer.
 			virtual bool		AllocBuffer (BytesU size, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) = 0;
 
+			// Starts tracking image state in current command buffer.
+			// Image may be in immutable or mutable state, immutable state disables layout transitions and barrier placement.
+			// If 'invalidate' sets to 'true' then previous content of the image may be invalidated.
 			virtual void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate) = 0;
+
+			// Starts tracking buffer state in current command buffer.
+			// Buffer may be in immutable or mutable state, immutable state disables barrier placement that increases CPU performance.
 			virtual void		AcquireBuffer (RawBufferID id, bool makeMutable) = 0;
 
 		// tasks //
@@ -90,14 +105,17 @@ namespace FG
 		ND_ virtual Task		AddTask (const BuildRayTracingScene &) = 0;
 		ND_ virtual Task		AddTask (const TraceRays &) = 0;
 		
-		//ND_ virtual CommandBuffer  BeginSecondary () = 0;
+			// Begin secondary command buffer recording.
+		//ND_ virtual CommandBuffer  BeginSecondary () = 0;		// TODO
 
 
 		// draw tasks //
+
+			// Create render pass.
 		ND_ virtual LogicalPassID  CreateRenderPass (const RenderPassDesc &desc) = 0;
 
 			// Create render pass and begin recording to the secondary buffer.
-		//ND_ virtual CommandBuffer2 BeginSecondary (const RenderPassDesc &desc) = 0;
+		//ND_ virtual CommandBuffer2 BeginSecondary (const RenderPassDesc &desc) = 0;	// TODO
 
 			// Add task to the render pass.
 			virtual void		AddTask (LogicalPassID, const DrawVertices &) = 0;

@@ -723,11 +723,10 @@ namespace FG
 			for (auto iter = q.pending.begin(); iter != q.pending.end();)
 			{
 				auto&		batch	 = *iter;
-				auto		state	 = batch->GetState();
 				bool		is_ready = true;
 				EQueueUsage	q_mask2	 = Default;
 
-				ASSERT( state == EBatchState::Backed );
+				ASSERT( batch->GetState() == EBatchState::Backed );
 				
 				for (auto& dep : batch->GetDependencies())
 				{

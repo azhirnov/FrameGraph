@@ -1137,7 +1137,6 @@ namespace FG
 		data.AddRef();
 
 		DEBUG_ONLY({
-			EXLOCK( _hccGuard );
 			for (auto& item : desc.triangles) {
 				_hashCollisionCheck.Add( item.geometryId );
 			}
@@ -1240,10 +1239,7 @@ namespace FG
 	void  VResourceManager::CheckTask (const BuildRayTracingScene &task)
 	{
 		DEBUG_ONLY({
-			EXLOCK( _hccGuard );
-
-			for (auto& inst : task.instances)
-			{
+			for (auto& inst : task.instances) {
 				_hashCollisionCheck.Add( inst.instanceId );
 			}
 		})

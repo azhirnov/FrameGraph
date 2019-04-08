@@ -199,7 +199,7 @@ build_tlas.Add( instance );
 
 // set number of hit shaders per geometry instance,
 // for example: for primary ray and for shadow ray.
-// 'sbtRecordStride' in ray-gen shader must have same value
+// specialization constant 'sbtRecordStride' in ray-gen shader will be initialized with same value.
 build_tlas.SetHitShadersPerInstance( 2 );
 
 // enqueue task that builds the TLAS.

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "framegraph/Public/IDs.h"
+#include "stl/ThreadSafe/DummyLock.h"
 #include <random>
 
 namespace FG
@@ -12,6 +13,7 @@ namespace FG
 	// Hash Collision Check
 	//
 
+	template <typename GuardType = DummySharedLock>
 	class HashCollisionCheck
 	{
 	// types
@@ -33,6 +35,7 @@ namespace FG
 
 	// variables
 	private:
+		GuardType	_guard;
 		IdMap_t		_idMap;
 
 
@@ -56,11 +59,13 @@ namespace FG
 	Add
 =================================================
 */
+	template <typename GuardType>
 	template <size_t Size, uint UID, bool Optimize, uint Seed>
-	inline void  HashCollisionCheck::Add (const _fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &id)
+	inline void  HashCollisionCheck<GuardType>::Add (const _fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &id)
 	{
 		if constexpr( not Optimize )
 		{
+			EXLOCK( _guard );
 			STATIC_ASSERT( Size <= StString_t::capacity() );
 
 			auto&	info	 = _idMap.insert({ UID, Info{Seed} }).first->second;
@@ -88,8 +93,10 @@ namespace FG
 	destructor
 =================================================
 */
-	inline HashCollisionCheck::~HashCollisionCheck ()
+	template <typename GuardType>
+	inline HashCollisionCheck<GuardType>::~HashCollisionCheck ()
 	{
+		EXLOCK( _guard );
 		for (auto& id : _idMap)
 		{
 			if ( id.second.hasCollisions )
@@ -105,9 +112,12 @@ namespace FG
 	RecalculateSeed
 =================================================
 */
+	template <typename GuardType>
 	template <size_t Size, uint UID, bool Optimize, uint Seed>
-	inline uint  HashCollisionCheck::RecalculateSeed (const _fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &)
+	inline uint  HashCollisionCheck<GuardType>::RecalculateSeed (const _fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &)
 	{
+		SHAREDLOCK( _guard );
+
 		auto	iter = _idMap.find( UID );
 		if ( iter == _idMap.end() )
 			return Seed;
@@ -118,7 +128,8 @@ namespace FG
 		return _RecalculateSeed( iter->second );
 	}
 	
-	inline uint  HashCollisionCheck::_RecalculateSeed (Info &info) const
+	template <typename GuardType>
+	inline uint  HashCollisionCheck<GuardType>::_RecalculateSeed (Info &info) const
 	{
 		std::mt19937	gen{ std::random_device{}() };
 		for (;;)

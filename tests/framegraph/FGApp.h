@@ -94,16 +94,17 @@ namespace FG
 		bool Test_CopyImage2 ();
 		bool Test_CopyImage3 ();
 		bool Test_PushConst1 ();
-		bool Test_Compute1 ();		// compute + specialization
+		bool Test_Compute1 ();			// compute + specialization
 		bool Test_Compute2 ();
-		bool Test_DynamicOffset ();	// buffer dynamic offset
+		bool Test_DynamicOffset ();		// buffer dynamic offset
 		bool Test_Draw1 ();
-		bool Test_Draw2 ();			// with swapchain
-		bool Test_Draw3 ();			// with scissor
+		bool Test_Draw2 ();				// with swapchain
+		bool Test_Draw3 ();				// with scissor
 		bool Test_Draw4 ();
 		bool Test_Draw5 ();
 		bool Test_Draw6 ();
-		bool Test_ExternalCmdBuf1 ();
+		bool Test_RawDraw1 ();			// with vulkan api calls
+		bool Test_ExternalCmdBuf1 ();	// with vulkan api calls
 		bool Test_InvalidID ();
 		bool Test_ReadAttachment1 ();
 		bool Test_AsyncCompute1 ();

@@ -40,7 +40,7 @@ namespace FG
 		EShaderCompilationFlags				_compilerFlags			= Default;
 
 		DEBUG_ONLY(
-			HashCollisionCheck				_hashCollisionCheck;	// for uniforms and descriptor sets
+			HashCollisionCheck<>			_hashCollisionCheck;	// for uniforms and descriptor sets
 		)
 
 		// immutable:

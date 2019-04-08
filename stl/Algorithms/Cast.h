@@ -110,6 +110,17 @@ namespace FGC
 	{
 		return std::make_shared<T>( std::forward<Types&&>( args )... );
 	}
+
+/*
+=================================================
+	MakeUnique
+=================================================
+*/
+	template <typename T, typename ...Types>
+	ND_ forceinline UniquePtr<T>  MakeUnique (Types&&... args)
+	{
+		return std::make_unique<T>( std::forward<Types&&>( args )... );
+	}
 	
 /*
 =================================================

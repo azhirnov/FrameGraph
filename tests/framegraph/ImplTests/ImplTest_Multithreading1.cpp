@@ -22,8 +22,7 @@ namespace FG
 
 		for (uint i = 0; i < max_count; ++i)
 		{
-			if ( perFrame[i&1] )
-				fg->Wait({ perFrame[i&1] });
+			fg->Wait({ perFrame[i&1] });
 
 			CommandBuffer cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
 			CHECK_ERR( cmd );

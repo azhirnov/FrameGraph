@@ -133,7 +133,7 @@ void main() {
 												ctx.BindPipeline( pipeline );
 												ctx.BindResources( DescriptorSetID{"PerObject"}, resources0 );
 												ctx.BindResources( DescriptorSetID{"PerPass"},   resources1 );
-												ctx.DrawVertices( 4 );
+												ctx.DrawVertices( 3 );
 											}}.AddImage( texture, EResourceState::ShaderSample ));
 		
 		Task	t_clear	= cmd->AddTask( ClearColorImage{}.SetImage( texture ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{HtmlColor::White}) );

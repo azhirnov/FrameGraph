@@ -13,11 +13,9 @@
 /external/DevIL
 /external/FreeImage
 /external/AngelScript
-/tests/framegraph/Graphs
-/samples/framegraph/PBR/data
-/samples/framegraph/Shadertoy/capture
 /external/optional
 /external/variant
-/samples/framegraph/_data
+/tests/framegraph/Graphs
+/samples/_data
 *.user
 *.glsl_dbg

@@ -23,8 +23,20 @@ static void ID_Test1 ()
 }
 
 
+static void ID_Test2 ()
+{
+	using ID1 = _fg_hidden_::IDWithString< 32, 100, true, UMax >;
+	using ID2 = _fg_hidden_::IDWithString< 32, 100, false, UMax >;
+
+	ID2		a {"test"};
+	ID1		b {"test"};
+	TEST( b == a );
+}
+
+
 extern void UnitTest_ID ()
 {
 	ID_Test1();
+	ID_Test2();
 	FG_LOGI( "UnitTest_ID - passed" );
 }

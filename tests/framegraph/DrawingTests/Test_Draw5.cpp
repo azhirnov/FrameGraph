@@ -101,7 +101,7 @@ void main() {
 
 												ctx.BindPipeline( pipeline );
 												ctx.SetInputAssembly( ia );
-												ctx.DrawVertices( 4 );
+												ctx.DrawVertices( 3 );
 											} });
 
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });

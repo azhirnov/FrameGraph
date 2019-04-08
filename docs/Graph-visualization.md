@@ -11,7 +11,7 @@ Setup command buffer for debugging:
 CommandBufferDesc desc;
 desc.SetDebugFlags( EDebugFlags::Default );
 
-auto cmdbuf = frameGraph->Begin( desc );
+CommandBuffer cmdbuf = frameGraph->Begin( desc );
 ```
 
 Use `IFrameGraph::DumpToGraphViz` to retrive graph description in dot-language.<br/>

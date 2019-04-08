@@ -3,11 +3,6 @@
 #pragma once
 
 #include "stl/Common.h"
-#include <tuple>
-
-#ifdef FG_STD_VARIANT
-# include <variant>
-#endif
 
 namespace FGC
 {
@@ -56,13 +51,6 @@ namespace _fgc_hidden_
 	template <typename... Types>
 	struct TypeList< std::tuple<Types...> > final : TypeList< Types... >
 	{};
-	
-	
-# ifdef FG_STD_VARIANT
-	template <typename... Types>
-	struct TypeList< std::variant<Types...> > final : TypeList< Types... >
-	{};
-# endif
 
 
 }	// FGC

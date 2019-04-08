@@ -26,7 +26,7 @@ vulkan_info.physicalDevice = vulkan.GetVkPhysicalDevice();
 vulkan_info.device = vulkan.GetVkDevice();
 
 VulkanDeviceInfo::QueueInfo queue;
-queue.id = vulkan.GetVkQueues()[0].id;
+queue.handle = vulkan.GetVkQueues()[0].handle;
 queue.familyFlags = vulkan.GetVkQueues()[0].flags;
 queue.familyIndex = vulkan.GetVkQueues()[0].familyIndex;
 vulkan_info.push_back( queue );
@@ -35,12 +35,11 @@ vulkan_info.push_back( queue );
 FrameGraph frameGraoh = IFrameGraph::CreateFrameGraph( vulkan_info );
 
 // setup swapchain description
-VulkanSwapchainCreateInfo swapchain;
-swapchain.surface = vulkan.GetVkSurface();
-swapchain.surfaceSize = window->GetSize();
+VulkanSwapchainCreateInfo swapchain_info;
+swapchain_info.surface = vulkan.GetVkSurface();
+swapchain_info.surfaceSize = window->GetSize();
 
 // create swapchain
-FrameGraphThread::SwapchainCreateInfo swapchain_info = swapchain;
 SwapchainID swapchain = frameGraph->CreateSwapchain( swapchain_info );
 ```
 
@@ -107,23 +106,42 @@ void main() {
 GPipelineID  pipeline = frameGraph->CreatePipeline( desc );
 ```
 
-## Command buffer
+## Main loop
 ```cpp
-// create command buffer that will be submitted to the graphics queue
-CommandBufferDesc cmd_desc{ EQueueType::Graphics };
+// keep submitted command buffers
+CommandBuffer  submittedCmdBuffers[2];
 
-// returned command buffer will be in the recording state
-CommandBuffer cmdBuffer = frameGraph->Begin( cmd_desc );
+for (uint frame_id = 0;; ++frame_id)
+{
+	CommandBuffer& cmdBuffer = submittedCmdBuffers[frame_id&1];
 
-// drawing (see below)
-...
+	// for double buffering
+	frameGraph->Wait({ cmdBuffer });
 
-// finilize recording, compile frame graph for command buffer.
-// command buffer may be submitted at any time.
-frameGraoh->Execute( cmdBuffer );
+	// create command buffer that will be submitted to the graphics queue
+	CommandBufferDesc cmd_desc{ EQueueType::Graphics };
+	
+	// returned command buffer will be in the recording state
+	cmdBuffer = frameGraph->Begin( cmd_desc );
 
-// submit all pending command buffers.
-frameGraph->Flush();
+	// drawing (see below)
+	...
+
+	// finilize recording, compile frame graph for command buffer.
+	// command buffer may be submitted at any time.
+	frameGraoh->Execute( cmdBuffer );
+
+	// submit all pending command buffers and present all pending swapchain images.
+	frameGraph->Flush();
+}
+
+// release references before deinitializing framegraph
+submittedCmdBuffers[0] = null;
+submittedCmdBuffers[1] = null;
+
+// deinitialize
+frameGraoh->Deinitialize();
+frameGraoh = nullptr;
 ```
 
 ## Drawing
@@ -174,11 +192,6 @@ Task submit = cmdBuffer->AddTask( SubmitRenderPass{ render_pass });
 
 // present to swapchain.
 // this task must be executed after drawing.
-Task present = cmdBuffer->AddTask( Present{ image }.DependsOn( submit ));
+Task present = cmdBuffer->AddTask( Present{ swapchain, image }.DependsOn( submit ));
 ```
 
-## Deinitialization
-```cpp
-frameGraoh->Deinitialize();
-frameGraoh = nullptr;
-```

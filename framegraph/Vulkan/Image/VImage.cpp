@@ -164,7 +164,7 @@ namespace FG
 		VkImageCreateInfo	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		info.pNext			= null;
-		info.flags			= 0;
+		info.flags			= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 		info.imageType		= GetImageType( _desc.imageType );
 		info.format			= VEnumCast( _desc.format );
 		info.extent.width	= _desc.dimension.x;

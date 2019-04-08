@@ -93,5 +93,5 @@
 | Vulkan | FrameGraph |
 |---|---|
 | vkWaitForFences | FrameGraph::Wait for command buffers |
-| semaphores | add dependency between command buffers by specializing `dependsOn` parameter in FrameGraph::Begin or to by calling CommandBuffer::AddDependency |
+| semaphores | add dependency between command buffers by specializing `dependsOn` parameter in FrameGraph::Begin or by calling CommandBuffer::AddDependency |
 | vkDeviceWaitIdle | FrameGraph::WaitIdle |
