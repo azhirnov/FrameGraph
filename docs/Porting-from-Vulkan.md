@@ -80,10 +80,10 @@
 ## Ray tracing
 | Vulkan | FrameGraph |
 |---|---|
-| vkGetRayTracingShaderGroupHandlesNV | UpdateRayTracingShaderTable |
-| vkCmdBuildAccelerationStructureNV for BLAS | BuildRayTracingGeometry |
-| vkCmdBuildAccelerationStructureNV for TLAS | BuildRayTracingScene |
-| vkCmdTraceRaysNV | TraceRays |
+| vkGetRayTracingShaderGroupHandlesNV | UpdateRayTracingShaderTable task |
+| vkCmdBuildAccelerationStructureNV for BLAS | BuildRayTracingGeometry task |
+| vkCmdBuildAccelerationStructureNV for TLAS | BuildRayTracingScene task |
+| vkCmdTraceRaysNV | TraceRays task |
 | vkCmdPushConstants | TraceRays::AddPushConstant |
 | vkCmdBindPipeline with VK_PIPELINE_BIND_POINT_RAY_TRACING_NV | ComputeTask::SetPipeline |
 | vkCmdBindDescriptorSets with VK_PIPELINE_BIND_POINT_RAY_TRACING_NV | ComputeTask::AddResources |

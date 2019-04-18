@@ -2,7 +2,7 @@ Warning: this is just an example, something may change, so see [tests](../tests/
 
 
 ## Validation
-When you developing multithreaded renderer using FrameGraph be sure that macro `FG_ENABLE_RACE_CONDITION_CHECK` is defined. This will allow you to immediately detect the most of the problems with race conditions (missed syncs).
+When you developing multithreaded renderer using FrameGraph be sure that macro `FG_ENABLE_DATA_RACE_CHECK` is defined. This will allow you to immediately detect the most of the problems with race conditions (missed syncs).
 
 
 ## CPU thread synchronization examples
@@ -69,13 +69,13 @@ void RenderThread2 (FrameGraph fg)
 |   Begin    |            | - 'Begin' is internally synchronized
 |            |   Begin    |
 |------------|------------|
-|  sync (1) -|- sync (1)  |
+|  sync (1)  |  sync (1)  | - barrier
 |------------|------------|
-|    ###     |    ###     |
-|  Execute   |    ###     |
+|    ...     |    ...     |
+|  Execute   |    ...     |
 |            |  Execute   | - 'Execute' is internally synchronized
 |------------|------------|
-|  sync (2) -|- sync (2)  |
+|  sync (2)  |  sync (2)  | - barrier
 |------------|------------|
 |   Flush    |            | - 'Flush' is internally synchronized
 '------------'------------'

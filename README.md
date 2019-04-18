@@ -19,6 +19,7 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 * [Porting from Vulkan](docs/Porting-from-Vulkan.md)
 * [Extensions overview](extensions/Readme.md)
 * [Shader debugging](docs/Shader-debugging.md)
+* [Graph visualization](docs/Graph-visualization.md)
 * [Roadmap](docs/Roadmap.md)
 
 

@@ -5,7 +5,7 @@ desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, ... );
 ```
 Then setup debug callback:
 ```cpp
-IFrameGraph::SetShaderDebugCallback( ... );
+frameGraph.SetShaderDebugCallback( ... );
 ```
 For task that you want to debug add one of this:
 ```cpp
@@ -18,7 +18,8 @@ DrawIndexed().EnableFragmentDebugTrace( pixel_x, pixel_y );
 // record if {launch_x, launch_y, launch_z} == gl_LaunchIDNV
 TraceRays().EnableDebugTrace({ launch_x, launch_y, launch_z });
 ```
-Shader trace will be recorded only for selected thread/pixel/launch
+Shader trace will be recorded only for selected thread/pixel/launch.
+<br/>
 <br/>
 Aloso you can enable shader recording during shader execution:
 ```cpp
@@ -74,4 +75,4 @@ no source
 14.     imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), vec4(value) );
 ```
 
-The `//>` symbol marks the modified variable.
+The `//>` symbol marks the modified variable or function result.
