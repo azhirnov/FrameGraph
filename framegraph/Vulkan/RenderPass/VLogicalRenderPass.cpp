@@ -282,8 +282,8 @@ namespace {
 		_renderPassId	= rp;
 		_subpassIndex	= subpass;
 			
-		_clearValues[_depthStencilTarget.index]	= _clearValues[depthIndex];
-		_depthStencilTarget.index				= depthIndex;
+		_clearValues[depthIndex]	= _clearValues[_depthStencilTarget.index];
+		_depthStencilTarget.index	= depthIndex;
 	}
 
 /*

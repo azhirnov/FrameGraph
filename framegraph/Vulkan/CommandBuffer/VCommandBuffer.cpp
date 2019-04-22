@@ -253,12 +253,12 @@ namespace {
 
 		for (uint k = 0; k < 10 and not pending.empty(); ++k)
 		{
-			for (auto iter = pending.begin(); iter != pending.end();)
+			for (size_t i = 0; i < pending.size();)
 			{
-				auto	node = *iter;
+				auto	node = pending[i];
 				
 				if ( node->VisitorID() == visitor_id ) {
-					++iter;
+					++i;
 					continue;
 				}
 
@@ -274,7 +274,7 @@ namespace {
 				}
 
 				if ( not input_processed ) {
-					++iter;
+					++i;
 					continue;
 				}
 
@@ -288,7 +288,7 @@ namespace {
 					pending.push_back( out_node );
 				}
 
-				iter = pending.erase( iter );
+				pending.erase( pending.begin()+i );
 			}
 		}
 		return true;
@@ -351,7 +351,7 @@ namespace {
 */
 	bool  VCommandBuffer::AddDependency (const CommandBuffer &cmd)
 	{
-		if ( not cmd.GetBatch() )
+		if ( not cmd.GetBatch() or cmd.GetCommandBuffer() == this )
 			return false;
 
 		EXLOCK( _drCheck );
@@ -1349,6 +1349,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1368,6 +1369,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1387,6 +1389,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1406,6 +1409,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1425,6 +1429,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1444,6 +1449,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1463,6 +1469,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.callback );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
