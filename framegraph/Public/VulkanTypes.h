@@ -112,7 +112,7 @@ namespace FG
 		ImageFlagsVk_t			flags			= {};
 		ImageUsageVk_t			usage			= {};
 		FormatVk_t				format			= {};
-		ImageLayoutVk_t			layout			= {};		// current layout
+		ImageLayoutVk_t			currentLayout	= {};
 		ImageLayoutVk_t			defaultLayout	= ImageLayoutVk_t(0x7FFFFFFF);
 		SampleCountFlagBitsVk_t	samples			= {};
 		uint3					dimension;

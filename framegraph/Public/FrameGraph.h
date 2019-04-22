@@ -148,6 +148,8 @@ namespace FG
 		ND_ virtual BufferDesc const&	GetDescription (RawBufferID id) const = 0;
 		ND_ virtual ImageDesc const&	GetDescription (RawImageID id) const = 0;
 		//ND_ virtual SamplerDesc const&	GetDescription (RawSamplerID &id) const = 0;
+		ND_ virtual ExternalBufferDesc_t GetApiSpecificDescription (RawBufferID id) const = 0;
+		ND_ virtual ExternalImageDesc_t  GetApiSpecificDescription (RawImageID id) const = 0;
 		
 			virtual bool			UpdateHostBuffer (RawBufferID id, BytesU offset, BytesU size, const void *data) = 0;
 			virtual bool			MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT void* &data) = 0;

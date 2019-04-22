@@ -113,14 +113,14 @@ namespace FG
 			case EImage::Tex2DMSArray :		return 1;
 
 			case EImage::Tex2D :
-			case EImage::Tex3D :			return std::ilogb( Max(Max( dim.x, dim.y ), dim.z ) ) + 1;
+			case EImage::Tex3D :			return std::ilogb( Max(Max( dim.x, dim.y ), dim.z )) + 1;
 				
 			case EImage::Tex1D :
 			case EImage::Tex1DArray :		return std::ilogb( dim.x ) + 1;
 
 			case EImage::TexCube :
 			case EImage::TexCubeArray :
-			case EImage::Tex2DArray :		return std::ilogb( Max( dim.x, dim.y ) ) + 1;
+			case EImage::Tex2DArray :		return std::ilogb( Max( dim.x, dim.y )) + 1;
 
 			case EImage::Unknown :			break;		// to shutup warnings
 		}

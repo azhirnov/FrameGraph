@@ -127,7 +127,7 @@ namespace FG
 		{
 			CHECK( _frameGraph->InitPipelineResources( outPipeline, DescriptorSetID{"PerPass"}, OUT _perPassResources ));
 			_perPassResources.BindBuffer( UniformID{"CameraUB"}, _cameraUB, 0_b, SizeOf<CameraUB> );
-			//_perPassResources.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
+			_perPassResources.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
 		}
 		
 		auto&	ppln_res = _shaderOutputResources[ uint(layer) ];

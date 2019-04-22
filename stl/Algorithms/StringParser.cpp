@@ -38,7 +38,6 @@ namespace FGC
 
 		while ( pos <= str.length() )
 		{
-			//const char	c = str[pos];
 			const char	p = (pos-1) >= str.length() ? '\0' : str[pos-1];
 				
 			if ( (p == '\n') | (p == '\r') | (p == '\0') )

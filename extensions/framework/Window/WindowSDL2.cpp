@@ -115,7 +115,7 @@ namespace {
 			return false;
 
 		SDL_Event	ev;
-		while ( SDL_PollEvent( OUT &ev ) )
+		while ( SDL_PollEvent( OUT &ev ))
 		{
 			// check for events from different window
 			bool	other_wnd = false;

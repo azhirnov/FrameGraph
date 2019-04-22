@@ -235,8 +235,8 @@ namespace FG
 		desc.imageType		= BitCast<ImageTypeVk_t>( VK_IMAGE_TYPE_2D );
 		desc.usage			= BitCast<ImageUsageVk_t>( _colorImageUsage );
 		desc.format			= BitCast<FormatVk_t>( _colorFormat );
-		desc.layout			= BitCast<ImageLayoutVk_t>( VK_IMAGE_LAYOUT_PRESENT_SRC_KHR );
-		desc.defaultLayout	= BitCast<ImageLayoutVk_t>( VK_IMAGE_LAYOUT_PRESENT_SRC_KHR );
+		desc.currentLayout	= BitCast<ImageLayoutVk_t>( VK_IMAGE_LAYOUT_PRESENT_SRC_KHR );
+		desc.defaultLayout	= desc.currentLayout;
 		desc.samples		= BitCast<SampleCountFlagBitsVk_t>( VK_SAMPLE_COUNT_1_BIT );
 		desc.dimension		= uint3{ _surfaceSize.x, _surfaceSize.y, 1 };
 		desc.arrayLayers	= 1;

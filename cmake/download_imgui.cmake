@@ -7,6 +7,8 @@ if (${FG_ENABLE_IMGUI})
 	if (NOT EXISTS "${FG_EXTERNAL_IMGUI_PATH}/imgui.h")
 		message( STATUS "imgui is not found in \"${FG_EXTERNAL_IMGUI_PATH}\"" )
 		set( FG_EXTERNAL_IMGUI_PATH "${FG_EXTERNALS_PATH}/imgui" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "imgui found in \"${FG_EXTERNAL_IMGUI_PATH}\"" )
 	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_IMGUI_PATH}/imgui.h")

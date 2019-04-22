@@ -7,6 +7,8 @@ if (${FG_ENABLE_VMA})
 	if (NOT EXISTS ${FG_EXTERNAL_VMA_PATH})
 		message( STATUS "VulkanMemoryAllocator is not found in \"${FG_EXTERNAL_VMA_PATH}\"" )
 		set( FG_EXTERNAL_VMA_PATH "${FG_EXTERNALS_PATH}/VulkanMemoryAllocator" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "VulkanMemoryAllocator found in \"${FG_EXTERNAL_VMA_PATH}\"" )
 	endif ()
 	
 	# select version

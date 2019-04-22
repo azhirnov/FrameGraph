@@ -67,6 +67,7 @@ namespace FGC
 		ND_ constexpr bool			IsValid ()		const	{ return not IsEmpty() and not IsInvalid(); }
 		
 		ND_ constexpr bool  IsNormalized () const;
+			Self &			Normalize ();
 
 		ND_ constexpr bool	Intersects (const Vec2_t &point) const;
 
@@ -128,6 +129,18 @@ namespace FGC
 							 lhs.right + rhs.x, lhs.bottom + rhs.y };
 	}
 
+	template <typename T>
+	inline constexpr Rectangle<T>&  operator += (Rectangle<T> &lhs, const T &rhs)
+	{
+		return lhs += Vec<T,2>{rhs};
+	}
+	
+	template <typename T>
+	inline constexpr Rectangle<T>  operator + (const Rectangle<T> &lhs, const T &rhs)
+	{
+		return lhs + Vec<T,2>{rhs};
+	}
+
 /*
 =================================================
 	operator -
@@ -148,6 +161,18 @@ namespace FGC
 							 lhs.right - rhs.x, lhs.bottom - rhs.y };
 	}
 
+	template <typename T>
+	inline constexpr Rectangle<T>&  operator -= (Rectangle<T> &lhs, const T &rhs)
+	{
+		return lhs -= Vec<T,2>{rhs};
+	}
+	
+	template <typename T>
+	inline constexpr Rectangle<T>  operator - (const Rectangle<T> &lhs, const T &rhs)
+	{
+		return lhs - Vec<T,2>{rhs};
+	}
+
 /*
 =================================================
 	operator *
@@ -166,6 +191,50 @@ namespace FGC
 	{
 		return Rectangle<T>{ lhs.left  * rhs.x, lhs.top    * rhs.y,
 							 lhs.right * rhs.x, lhs.bottom * rhs.y };
+	}
+
+	template <typename T>
+	inline constexpr Rectangle<T>&  operator *= (Rectangle<T> &lhs, const T &rhs)
+	{
+		return lhs *= Vec<T,2>{rhs};
+	}
+	
+	template <typename T>
+	inline constexpr Rectangle<T>  operator * (const Rectangle<T> &lhs, const T &rhs)
+	{
+		return lhs * Vec<T,2>{rhs};
+	}
+
+/*
+=================================================
+	operator /
+=================================================
+*/
+	template <typename T>
+	inline constexpr Rectangle<T>&  operator /= (Rectangle<T> &lhs, const Vec<T,2> &rhs)
+	{
+		lhs.left /= rhs.x;	lhs.right  /= rhs.x;
+		lhs.top  /= rhs.y;	lhs.bottom /= rhs.y;
+		return lhs;
+	}
+	
+	template <typename T>
+	inline constexpr Rectangle<T>  operator / (const Rectangle<T> &lhs, const Vec<T,2> &rhs)
+	{
+		return Rectangle<T>{ lhs.left  / rhs.x, lhs.top    / rhs.y,
+							 lhs.right / rhs.x, lhs.bottom / rhs.y };
+	}
+
+	template <typename T>
+	inline constexpr Rectangle<T>&  operator /= (Rectangle<T> &lhs, const T &rhs)
+	{
+		return lhs /= Vec<T,2>{rhs};
+	}
+	
+	template <typename T>
+	inline constexpr Rectangle<T>  operator / (const Rectangle<T> &lhs, const T &rhs)
+	{
+		return lhs / Vec<T,2>{rhs};
 	}
 
 /*
@@ -193,6 +262,19 @@ namespace FGC
 		return (left <= right) & (top <= bottom);
 	}
 	
+/*
+=================================================
+	Normalize
+=================================================
+*/
+	template <typename T>
+	inline Rectangle<T>&  Rectangle<T>::Normalize ()
+	{
+		if ( left > right )	std::swap( left, right );
+		if ( top > bottom )	std::swap( top, bottom );
+		return *this;
+	}
+
 /*
 =================================================
 	Intersects

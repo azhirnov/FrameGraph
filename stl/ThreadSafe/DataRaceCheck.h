@@ -39,7 +39,7 @@ namespace FGC
 				return true;	// recursive lock
 
 			curr	= 0;
-			bool	locked	= _state.compare_exchange_strong( INOUT curr, id, memory_order_release, memory_order_relaxed );
+			bool	locked	= _state.compare_exchange_strong( INOUT curr, id, memory_order_relaxed );
 			CHECK_ERR( curr == 0 );		// locked by another thread - race condition detected!
 			CHECK_ERR( locked );
 			return true;
@@ -47,7 +47,7 @@ namespace FGC
 
 		void  Unlock () const
 		{
-			_state.store( 0, memory_order_release );
+			_state.store( 0, memory_order_relaxed );
 		}
 	};
 
@@ -78,14 +78,14 @@ namespace FGC
 			int		expected = _readCounter.load( memory_order_acquire );
 			CHECK_ERR( expected <= 0 );	// has read lock(s) - race condition detected!
 
-			_readCounter.compare_exchange_strong( INOUT expected, expected-1, memory_order_release, memory_order_relaxed );
+			_readCounter.compare_exchange_strong( INOUT expected, expected-1, memory_order_relaxed );
 			CHECK_ERR( expected <= 0 );	// has read lock(s) - race condition detected!
 			return true;
 		}
 
 		void  UnlockExclusive ()
 		{
-			_readCounter.fetch_add( 1, memory_order_release );
+			_readCounter.fetch_add( 1, memory_order_relaxed );
 			_lockWrite.unlock();
 		}
 
@@ -95,7 +95,7 @@ namespace FGC
 			int		expected	= 0;
 			bool	locked		= false;
 			do {
-				locked = _readCounter.compare_exchange_weak( INOUT expected, expected+1, memory_order_release, memory_order_relaxed );
+				locked = _readCounter.compare_exchange_weak( INOUT expected, expected+1, memory_order_relaxed );
 			
 				// if has exclusive lock in current thread
 				if ( expected < 0 and _lockWrite.try_lock() )
@@ -112,7 +112,7 @@ namespace FGC
 
 		void  UnlockShared () const
 		{
-			_readCounter.fetch_sub( 1, memory_order_release );
+			_readCounter.fetch_sub( 1, memory_order_relaxed );
 		}
 	};
 

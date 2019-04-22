@@ -281,12 +281,12 @@ namespace FG
 				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( entry, std::move(spirv), debugName, std::move(debug_utils) ) });
 				break;
 			}
-			case EShaderLangFormat::EnableDebugAsserts :
-			case EShaderLangFormat::EnableDebugView :
-			case EShaderLangFormat::EnableProfiling :
-			case EShaderLangFormat::EnableInstrCounter :
-				ASSERT( !"not supported yet" );
-				break;
+			//case EShaderLangFormat::EnableDebugAsserts :
+			//case EShaderLangFormat::EnableDebugView :
+			//case EShaderLangFormat::EnableProfiling :
+			//case EShaderLangFormat::EnableInstrCounter :
+			//	ASSERT( !"not supported yet" );
+			//	break;
 
 			case EShaderLangFormat::Unknown :
 				break;
@@ -658,6 +658,7 @@ namespace FG
 
 			return true;
 		}};
+		//---------------------------------------------------------------------------
 
 		
 		// parse error/warning/...
@@ -1014,6 +1015,7 @@ namespace FG
 			}
 			return false;
 		};
+		//---------------------------------------------------------------------------
 
 
 		const StringView	desc_set_key {"set"};

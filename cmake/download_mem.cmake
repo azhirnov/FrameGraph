@@ -7,6 +7,8 @@ if (${FG_ENABLE_STDALLOC})
 	if (NOT EXISTS ${FG_EXTERNAL_STDALLOC_PATH})
 		message( STATUS "foonathan_memory is not found in \"${FG_EXTERNAL_STDALLOC_PATH}\"" )
 		set( FG_EXTERNAL_STDALLOC_PATH "${FG_EXTERNALS_PATH}/foonathan_memory" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "foonathan_memory found in \"${FG_EXTERNAL_STDALLOC_PATH}\"" )
 	endif ()
 	
 	# download

@@ -31,8 +31,31 @@
 
 // no discard
 #ifndef ND_
+# ifdef COMPILER_MSVC
+#  if _MSC_VER >= 1917
 #	define ND_				[[nodiscard]]
-#endif
+#  else
+#	define ND_
+#  endif
+# endif	// COMPILER_MSVC
+
+# ifdef COMPILER_CLANG
+#  if __has_feature( cxx_attributes )
+#	define ND_				[[nodiscard]]
+#  else
+#	define ND_
+#  endif
+# endif	// COMPILER_CLANG
+
+# ifdef COMPILER_GCC
+#  if __has_cpp_attribute( nodiscard )
+#	define ND_				[[nodiscard]]
+#  else
+#	define ND_
+#  endif
+# endif	// COMPILER_GCC
+
+#endif	// ND_
 
 
 // null pointer
@@ -61,7 +84,11 @@
 
 // macro for unused variables
 #ifndef FG_UNUSED
+# if 0 // TODO: C++17
+#	define FG_UNUSED( ... )		[[maybe_unused]]( __VA_ARGS__ )
+# else
 #	define FG_UNUSED( ... )		(void)( __VA_ARGS__ )
+# endif
 #endif
 
 
@@ -144,7 +171,21 @@
 
 #else
 #	define FG_FUNCTION_NAME			"unknown function"
+#endif
 
+
+// branch prediction optimization
+#if 0 // TODO: C++20
+#	define if_likely( ... )		[[likely]] if ( __VA_ARGS__ )
+#	define if_unlikely( ... )	[[unlikely]] if ( __VA_ARGS__ )
+
+#elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
+#	define if_likely( ... )		if ( __builtin_expect( !!(__VA_ARGS__), 1 ))
+#	define if_unlikely( ... )	if ( __builtin_expect( !!(__VA_ARGS__), 0 ))
+#else
+	// not supported
+#	define if_likely( ... )		if ( __VA_ARGS__ )
+#	define if_unlikely( ... )	if ( __VA_ARGS__ )
 #endif
 
 
@@ -186,7 +227,7 @@
 // check function return value
 #ifndef CHECK
 #	define FG_PRIVATE_CHECK( _expr_, _text_ ) \
-		{if (( _expr_ )) {} \
+		{if_likely (( _expr_ )) {} \
 		 else { \
 			FG_LOGE( _text_ ); \
 		}}
@@ -199,7 +240,7 @@
 // check function return value and return error code
 #ifndef CHECK_ERR
 #	define FG_PRIVATE_CHECK_ERR( _expr_, _ret_ ) \
-		{if (( _expr_ )) {}\
+		{if_likely (( _expr_ )) {}\
 		  else { \
 			FG_LOGE( FG_PRIVATE_TOSTRING( _expr_ ) ); \
 			return (_ret_); \
@@ -213,7 +254,7 @@
 // check function return value and exit
 #ifndef CHECK_FATAL
 #	define CHECK_FATAL( _expr_ ) \
-		{if (( _expr_ )) {}\
+		{if_likely (( _expr_ )) {}\
 		  else { \
 			FG_LOGE( FG_PRIVATE_TOSTRING( _expr_ ) ); \
 			FG_PRIVATE_EXIT(); \
@@ -281,12 +322,13 @@
 #endif
 
 
-
+// exclusive lock
 #ifndef EXLOCK
 #	define EXLOCK( _syncObj_ ) \
 		std::unique_lock	FG_PRIVATE_UNITE_RAW( __scopeLock, __COUNTER__ ) { _syncObj_ }
 #endif
 
+// shared lock
 #ifndef SHAREDLOCK
 #	define SHAREDLOCK( _syncObj_ ) \
 		std::shared_lock	FG_PRIVATE_UNITE_RAW( __sharedLock, __COUNTER__ ) { _syncObj_ }

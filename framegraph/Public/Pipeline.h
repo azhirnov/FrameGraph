@@ -216,6 +216,8 @@ namespace FG
 		{
 			DescriptorSets_t	descriptorSets;
 			PushConstants_t		pushConstants;
+
+			PipelineLayout () {}
 		};
 
 		template <typename T>

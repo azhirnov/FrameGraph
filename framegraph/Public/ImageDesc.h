@@ -89,6 +89,15 @@ namespace FG
 		void Validate (const ImageDesc &desc);
 
 		ND_ bool operator == (const ImageViewDesc &rhs) const;
+		
+		ImageViewDesc&  SetViewType (EImage value)				{ viewType = value;  return *this; }
+		ImageViewDesc&  SetFormat (EPixelFormat value)			{ format = value;  return *this; }
+		ImageViewDesc&  SetBaseLevel (uint value)				{ baseLevel = MipmapLevel{value};  return *this; }
+		ImageViewDesc&  SetLevels (uint base, uint count)		{ baseLevel = MipmapLevel{base};  levelCount = count;  return *this; }
+		ImageViewDesc&  SetBaseLayer (uint value)				{ baseLayer = ImageLayer{value};  return *this; }
+		ImageViewDesc&  SetArrayLayers (uint base, uint count)	{ baseLayer = ImageLayer{base};  layerCount = count;  return *this; }
+		ImageViewDesc&  SetSwizzle (ImageSwizzle value)			{ swizzle = value;  return *this; }
+		ImageViewDesc&  SetAspect (EImageAspect value)			{ aspectMask = value;  return *this; }
 	};
 
 

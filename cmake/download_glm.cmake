@@ -7,6 +7,8 @@ if (${FG_ENABLE_GLM})
 	if (NOT EXISTS "${FG_EXTERNAL_GLM_PATH}/glm/glm.hpp")
 		message( STATUS "glm is not found in \"${FG_EXTERNAL_GLM_PATH}\"" )
 		set( FG_EXTERNAL_GLM_PATH "${FG_EXTERNALS_PATH}/glm" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "glm found in \"${FG_EXTERNAL_GLM_PATH}\"" )
 	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_GLM_PATH}/glm/glm.hpp")

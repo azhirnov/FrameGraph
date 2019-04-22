@@ -7,6 +7,8 @@ if (${FG_ENABLE_DEVIL})
 	if (NOT EXISTS "${FG_EXTERNAL_DEVIL_PATH}/include/IL/il.h")
 		message( STATUS "DevIL SDK is not found in \"${FG_EXTERNAL_DEVIL_PATH}\"" )
 		set( FG_EXTERNAL_DEVIL_PATH "${FG_EXTERNALS_PATH}/DevIL" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "DevIL SDK found in \"${FG_EXTERNAL_DEVIL_PATH}\"" )
 	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_DEVIL_PATH}/include/IL/il.h")

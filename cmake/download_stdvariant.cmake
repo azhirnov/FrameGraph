@@ -7,6 +7,8 @@ if (NOT ${STD_VARIANT_SUPPORTED})
 	if (NOT EXISTS ${FG_EXTERNAL_STDVARIANT_PATH})
 		message( STATUS "std::variant is not found in \"${FG_EXTERNAL_STDVARIANT_PATH}\"" )
 		set( FG_EXTERNAL_STDVARIANT_PATH "${FG_EXTERNALS_PATH}/variant" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "std::variant found in \"${FG_EXTERNAL_STDVARIANT_PATH}\"" )
 	endif ()
 	
 	# download

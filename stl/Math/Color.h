@@ -28,7 +28,7 @@ namespace FGC
 			STATIC_ASSERT( offsetof(Self, r) + sizeof(T) == offsetof(Self, g) );
 			STATIC_ASSERT( offsetof(Self, g) + sizeof(T) == offsetof(Self, b) );
 			STATIC_ASSERT( offsetof(Self, b) + sizeof(T) == offsetof(Self, a) );
-			STATIC_ASSERT( sizeof(T[size()-1]) == (offsetof(Self, a) - offsetof(Self, r)) );
+			STATIC_ASSERT( sizeof(T)*(size()-1) == (offsetof(Self, a) - offsetof(Self, r)) );
 		}
 
 		constexpr RGBAColor (T r, T g, T b, T a) : r{r}, g{g}, b{b}, a{a}
@@ -51,6 +51,8 @@ namespace FGC
 					Equals( b, rhs.b, eps ) and
 					Equals( a, rhs.a, eps );
 		}
+		
+		ND_ constexpr bool operator != (const RGBAColor<T> &rhs) const	{ return not (*this == rhs); }
 		
 		ND_ static constexpr T  MaxValue ()
 		{

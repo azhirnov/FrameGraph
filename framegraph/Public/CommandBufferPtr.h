@@ -39,6 +39,9 @@ namespace FG
 	public:
 		CommandBuffer ()
 		{}
+		
+		CommandBuffer (std::nullptr_t)
+		{}
 
 
 		template <typename T1, typename T2>

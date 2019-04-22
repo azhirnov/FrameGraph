@@ -420,7 +420,7 @@ namespace FG
 	{
 		auto&	pool = _GetResourcePool( id );
 		
-		Index_t		index;
+		Index_t	index = UMax;
 		CHECK_ERR( pool.Assign( OUT index ));
 
 		id = ID( index, pool[index].GetInstanceID() );

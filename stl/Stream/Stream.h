@@ -19,9 +19,10 @@ namespace FGC
 	public:
 		virtual ~RStream () {}
 
-		ND_ virtual bool	IsOpen ()	const = 0;
-		ND_ virtual BytesU	Position ()	const = 0;
-		ND_ virtual BytesU	Size ()		const = 0;
+		ND_ virtual bool	IsOpen ()			const = 0;
+		ND_ virtual BytesU	Position ()			const = 0;
+		ND_ virtual BytesU	Size ()				const = 0;
+		ND_ BytesU			RemainingSize ()	const { return Size() - Position(); }
 
 			virtual bool	SeekSet (BytesU pos) = 0;
 		ND_ virtual BytesU	Read2 (OUT void *buffer, BytesU size) = 0;

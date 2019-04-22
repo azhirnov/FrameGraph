@@ -7,6 +7,8 @@ if (NOT ${STD_OPTIONAL_SUPPORTED})
 	if (NOT EXISTS ${FG_EXTERNAL_STDOPTIONAL_PATH})
 		message( STATUS "std::optional is not found in \"${FG_EXTERNAL_STDOPTIONAL_PATH}\"" )
 		set( FG_EXTERNAL_STDOPTIONAL_PATH "${FG_EXTERNALS_PATH}/optional" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "std::optional found in \"${FG_EXTERNAL_STDOPTIONAL_PATH}\"" )
 	endif ()
 	
 	# download

@@ -60,7 +60,17 @@ namespace FGC
 		LinearAllocator (const LinearAllocator &) = delete;
 
 		LinearAllocator& operator = (const LinearAllocator &) = delete;
-		LinearAllocator& operator = (LinearAllocator &&) = delete;
+
+
+		LinearAllocator& operator = (LinearAllocator &&rhs)
+		{
+			Release();
+			_blocks		= std::move(rhs._blocks);
+			_blockSize	= rhs._blockSize;
+			_alloc		= std::move(rhs._alloc);
+			return *this;
+		}
+
 
 		~LinearAllocator ()
 		{

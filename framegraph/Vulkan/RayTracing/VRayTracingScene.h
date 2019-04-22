@@ -20,7 +20,7 @@ namespace FG
 		{
 			InstanceID			id;
 			RTGeometryID		geometry;
-			uint				indexOffset;
+			uint				indexOffset	= UMax;
 
 			Instance () {}
 			Instance (const InstanceID &inst, RTGeometryID &&geom, uint offset): id{inst}, geometry{std::move(geom)}, indexOffset{offset} {}

@@ -152,12 +152,16 @@ namespace FGC
 */
 	void VulkanDeviceExt::_WriteDeviceInfo ()
 	{
-		FG_LOGI( "apiVersion:  "s << ToString(VK_VERSION_MAJOR( GetDeviceProperties().apiVersion )) << '.' <<
+		FG_LOGI( "apiVersion:    "s << ToString(VK_VERSION_MAJOR( GetDeviceProperties().apiVersion )) << '.' <<
 				 ToString(VK_VERSION_MINOR( GetDeviceProperties().apiVersion )) << ' ' <<
 				 ToString(VK_VERSION_PATCH( GetDeviceProperties().apiVersion )) );
+
+		FG_LOGI( "driverVersion: "s << ToString(VK_VERSION_MAJOR( GetDeviceProperties().driverVersion )) << '.' <<
+				 ToString(VK_VERSION_MINOR( GetDeviceProperties().driverVersion )) << ' ' <<
+				 ToString(VK_VERSION_PATCH( GetDeviceProperties().driverVersion ))  );
 		
-		FG_LOGI( "vendorName:  "s << _GetVendorNameByID( GetDeviceProperties().vendorID ) );
-		FG_LOGI( "deviceName:  "s << GetDeviceProperties().deviceName );
+		FG_LOGI( "vendorName:    "s << _GetVendorNameByID( GetDeviceProperties().vendorID ) );
+		FG_LOGI( "deviceName:    "s << GetDeviceProperties().deviceName );
 
 	}
 

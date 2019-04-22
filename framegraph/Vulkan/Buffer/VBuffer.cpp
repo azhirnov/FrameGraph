@@ -202,6 +202,22 @@ namespace FG
 		SHAREDLOCK( _drCheck );
 		return not EnumAny( _desc.usage, EBufferUsage::TransferDst | EBufferUsage::StorageTexel | EBufferUsage::Storage | EBufferUsage::RayTracing );
 	}
+	
+/*
+=================================================
+	GetApiSpecificDescription
+=================================================
+*/
+	VulkanBufferDesc  VBuffer::GetApiSpecificDescription () const
+	{
+		VulkanBufferDesc	desc;
+		desc.buffer			= BitCast<BufferVk_t>( _buffer );
+		desc.usage			= BitCast<BufferUsageFlagsVk_t>( VEnumCast( _desc.usage ));
+		desc.size			= _desc.size;
+		desc.queueFamily	= VK_QUEUE_FAMILY_IGNORED;
+		//desc.queueFamilyIndices	// TODO
+		return desc;
+	}
 
 
 }	// FG

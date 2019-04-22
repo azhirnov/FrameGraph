@@ -87,12 +87,12 @@ void RenderThread2 (FrameGraph fg)
 auto image = fg->CreateImage( ... );
 
 auto cmdbuf = fg->Begin( ... );
-cmdbuf->AddTask( CopyColorImage{}.From( ... ).To( image ) ... );  // 'image' will be captuted by the command buffer
+cmdbuf->AddTask( CopyColorImage{}.From( ... ).To( image ) ... );  // 'image' will be captured by the command buffer
 fg->Execute( cmdbuf );
 
 fg->ReleaseResource( image );  // release reference for the 'image'
 
-fg->Wait({ cmdbuf });  // image will be destroyed here
+fg->Wait({ cmdbuf });  // 'image' will be destroyed here
 ```
 
 ```cpp

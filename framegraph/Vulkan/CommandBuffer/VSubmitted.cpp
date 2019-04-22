@@ -14,7 +14,8 @@ namespace FG
 */
 	VSubmitted::VSubmitted (uint indexInPool) :
 		_indexInPool{ indexInPool },
-		_fence{ VK_NULL_HANDLE }
+		_fence{ VK_NULL_HANDLE },
+		_queueType{ Default }
 	{
 	}
 	

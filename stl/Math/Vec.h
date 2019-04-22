@@ -35,6 +35,10 @@ namespace FGC
 	using float2	= Vec< float, 2 >;
 	using float3	= Vec< float, 3 >;
 	using float4	= Vec< float, 4 >;
+	
+	using double2	= Vec< double, 2 >;
+	using double3	= Vec< double, 3 >;
+	using double4	= Vec< double, 4 >;
 
 
 
@@ -57,7 +61,7 @@ namespace FGC
 		{
 			// check is supported cast Vec to array
 			STATIC_ASSERT( offsetof(Self, x) + sizeof(T) == offsetof(Self, y) );
-			STATIC_ASSERT( sizeof(T[size()-1]) == (offsetof(Self, y) - offsetof(Self, x)) );
+			STATIC_ASSERT( sizeof(T)*(size()-1) == (offsetof(Self, y) - offsetof(Self, x)) );
 		}
 
 		constexpr Vec (T x, T y) : x{x}, y{y} {}
@@ -98,10 +102,11 @@ namespace FGC
 			// check is supported cast Vec to array
 			STATIC_ASSERT( offsetof(Self, x) + sizeof(T) == offsetof(Self, y) );
 			STATIC_ASSERT( offsetof(Self, y) + sizeof(T) == offsetof(Self, z) );
-			STATIC_ASSERT( sizeof(T[size()-1]) == (offsetof(Self, z) - offsetof(Self, x)) );
+			STATIC_ASSERT( sizeof(T)*(size()-1) == (offsetof(Self, z) - offsetof(Self, x)) );
 		}
 
 		explicit constexpr Vec (T val) : x{val}, y{val}, z{val} {}
+		explicit constexpr Vec (const Vec<T,2> &xy) : x{xy[0]}, y{xy[1]}, z{T(0)} {}
 
 		constexpr Vec (T x, T y, T z) : x{x}, y{y}, z{z} {}
 		constexpr Vec (const Vec<T,2> &xy, T z) : x{xy[0]}, y{xy[1]}, z{z} {}
@@ -143,7 +148,7 @@ namespace FGC
 			STATIC_ASSERT( offsetof(Self, x) + sizeof(T) == offsetof(Self, y) );
 			STATIC_ASSERT( offsetof(Self, y) + sizeof(T) == offsetof(Self, z) );
 			STATIC_ASSERT( offsetof(Self, z) + sizeof(T) == offsetof(Self, w) );
-			STATIC_ASSERT( sizeof(T[size()-1]) == (offsetof(Self, w) - offsetof(Self, x)) );
+			STATIC_ASSERT( sizeof(T)*(size()-1) == (offsetof(Self, w) - offsetof(Self, x)) );
 		}
 
 		explicit constexpr Vec (T val) : x{val}, y{val}, z{val}, w{val} {}

@@ -177,8 +177,8 @@ namespace FG
 */
 	bool  VResourceManager::_CreateEmptyDescriptorSetLayout ()
 	{
-		auto&		pool = _GetResourcePool( RawDescriptorSetLayoutID{} );
-		Index_t		index;
+		auto&		pool	= _GetResourcePool( RawDescriptorSetLayoutID{} );
+		Index_t		index	= UMax;
 		CHECK_ERR( pool.Assign( OUT index ));
 
 		auto&										res			= pool[ index ];

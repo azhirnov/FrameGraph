@@ -26,15 +26,16 @@ namespace FG
 =================================================
 */
 	VertexInputState::VertexInput::VertexInput () :
-		type( EVertexType::Unknown ),
-		index( VertexIndex_Unknown )
+		type{ EVertexType::Unknown },
+		index{ VertexIndex_Unknown },
+		bufferBinding{ BindingIndex_Auto }
 	{}
 
 	VertexInputState::VertexInput::VertexInput (EVertexType type, Bytes<uint> offset, uint bufferBinding) :
-		type( type ),
-		index( VertexIndex_Unknown ),
-		offset( offset ),
-		bufferBinding( bufferBinding )
+		type{ type },
+		index{ VertexIndex_Unknown },
+		offset{ offset },
+		bufferBinding{ bufferBinding }
 	{}
 
 /*

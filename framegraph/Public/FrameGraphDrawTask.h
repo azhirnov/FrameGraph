@@ -136,6 +136,7 @@ namespace _fg_hidden_
 		TaskType&  AddScissor (const RectI &rect);
 		TaskType&  AddScissor (const RectU &rect);
 			
+		TaskType&  AddColorBuffer (RenderTargetID id, const RenderState::ColorBuffer &cb);
 		TaskType&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask);
 		TaskType&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
 									EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
@@ -533,6 +534,13 @@ namespace _fg_hidden_
 	}
 	
 	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (RenderTargetID id, const RenderState::ColorBuffer &cb)
+	{
+		colorBuffers.insert({ id, cb });
+		return static_cast<TaskType &>( *this );
+	}
+
+	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask)
 	{
 		return AddColorBuffer( id, srcBlendFactor, srcBlendFactor, dstBlendFactor, dstBlendFactor, blendOp, blendOp, colorMask );
@@ -543,8 +551,6 @@ namespace _fg_hidden_
 															  EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
 															  EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask)
 	{
-		ASSERT( id );
-
 		RenderState::ColorBuffer	cb;
 		cb.blend			= true;
 		cb.srcBlendFactor	= { srcBlendFactorColor, srcBlendFactorAlpha };
@@ -559,8 +565,6 @@ namespace _fg_hidden_
 	template <typename TaskType>
 	inline TaskType&  BaseDrawCall<TaskType>::AddColorBuffer (RenderTargetID id, bool4 colorMask)
 	{
-		ASSERT( id );
-
 		RenderState::ColorBuffer	cb;
 		cb.colorMask = colorMask;
 		

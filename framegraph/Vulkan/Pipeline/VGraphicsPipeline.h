@@ -19,7 +19,7 @@ namespace FG
 	public:
 		struct ShaderModule
 		{
-			VkShaderStageFlagBits				stage;
+			VkShaderStageFlagBits				stage		= VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 			PipelineDescription::VkShaderPtr	module;
 			EShaderDebugMode					debugMode	= Default;
 		};

@@ -7,6 +7,8 @@ if (${FG_ENABLE_SFML})
 	if (NOT EXISTS ${FG_EXTERNAL_SFML_PATH})
 		message( STATUS "SFML is not found in \"${FG_EXTERNAL_SFML_PATH}\"" )
 		set( FG_EXTERNAL_SFML_PATH "${FG_EXTERNALS_PATH}/SFML" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "SFML found in \"${FG_EXTERNAL_SFML_PATH}\"" )
 	endif ()
 	
 	# download

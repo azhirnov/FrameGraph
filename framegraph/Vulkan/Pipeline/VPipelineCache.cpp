@@ -716,7 +716,7 @@ namespace FG
 			BytesU			buf_offset, buf_size = shaderTable._blockSize;
 			void *			mapped_ptr = null;
 		
-			CHECK_ERR( fgThread.AllocBuffer( shaderTable._blockSize, OUT staging_buffer, OUT buf_offset, OUT mapped_ptr ));
+			CHECK_ERR( fgThread.AllocBuffer( shaderTable._blockSize, 16_b, OUT staging_buffer, OUT buf_offset, OUT mapped_ptr ));
 			DEBUG_ONLY( memset( OUT mapped_ptr, 0xAE, size_t(buf_size) ));
 	
 			// ray-gen shader

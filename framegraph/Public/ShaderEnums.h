@@ -129,10 +129,10 @@ namespace FG
 		_ModeOffset			= 22,
 		_ModeMask			= 0xF << _ModeOffset,
 		EnableDebugTrace	= 1 << _ModeOffset,		// writes trace only for selected shader invocation (may be very slow)
-		EnableDebugAsserts	= 2 << _ModeOffset,		// TODO: writes only shader unique invocation id in which assert was trigged
-		EnableDebugView		= 3 << _ModeOffset,		// TODO: if assertion failed then writes specified value in separate image
-		EnableProfiling		= 4 << _ModeOffset,		// TODO: use 'subgroupBallot' and 'timeAMD' to profile shaders
-		EnableInstrCounter	= 5 << _ModeOffset,		// TODO: writes count of instruction in shader invocation
+		//EnableDebugAsserts	= 2 << _ModeOffset,		// TODO: writes only shader unique invocation id in which assert was trigged
+		//EnableDebugView		= 3 << _ModeOffset,		// TODO: if assertion failed then writes specified value in separate image
+		//EnableProfiling		= 4 << _ModeOffset,		// TODO: use 'subgroupBallot' and 'timeAMD' to profile shaders
+		//EnableInstrCounter	= 5 << _ModeOffset,		// TODO: writes count of instruction in shader invocation
 
 		// independent flags
 		_FlagsOffset		= 26,

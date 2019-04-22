@@ -57,6 +57,27 @@ namespace FG
 		DISABLE_ENUM_CHECKS();
 		RETURN_ERR( "not supported", VK_IMAGE_TYPE_MAX_ENUM );
 	}
+
+/*
+=================================================
+	GetImageFlags
+=================================================
+*/
+	ND_ static VkImageCreateFlags  GetImageFlags (EImage imageType)
+	{
+		VkImageCreateFlags	flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+			
+		if ( EImage_IsCube( imageType ) )
+			flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+		// TODO: VK_IMAGE_CREATE_EXTENDED_USAGE_BIT
+		// TODO: VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT for 3D image
+		// TODO: VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT 
+		// TODO: VK_IMAGE_CREATE_ALIAS_BIT 
+		// TODO: VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT 
+
+		return flags;
+	}
 	
 /*
 =================================================
@@ -155,7 +176,7 @@ namespace FG
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( not desc.isExternal );
 		
-		const bool		opt_tiling	= not uint(memObj.MemoryType() & EMemoryTypeExt::HostVisible);
+		const bool	opt_tiling	= not uint(memObj.MemoryType() & EMemoryTypeExt::HostVisible);
 
 		_desc		= desc;		_desc.Validate();
 		_memoryId	= MemoryID{ memId };
@@ -164,7 +185,7 @@ namespace FG
 		VkImageCreateInfo	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		info.pNext			= null;
-		info.flags			= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+		info.flags			= GetImageFlags( _desc.imageType );
 		info.imageType		= GetImageType( _desc.imageType );
 		info.format			= VEnumCast( _desc.format );
 		info.extent.width	= _desc.dimension.x;
@@ -176,15 +197,6 @@ namespace FG
 		info.tiling			= (opt_tiling ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR);
 		info.usage			= VEnumCast( _desc.usage );
 		info.initialLayout	= (opt_tiling ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PREINITIALIZED);
-
-		if ( EImage_IsCube( _desc.imageType ) )
-			info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-
-		// TODO: VK_IMAGE_CREATE_EXTENDED_USAGE_BIT
-		// TODO: VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT for 3D image
-		// TODO: VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT 
-		// TODO: VK_IMAGE_CREATE_ALIAS_BIT 
-		// TODO: VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT 
 		
 		StaticArray<uint32_t, 8>	queue_family_indices = {};
 
@@ -410,6 +422,30 @@ namespace FG
 		SHAREDLOCK( _drCheck );
 		return not EnumEq( _desc.usage, EImageUsage::TransferDst | EImageUsage::ColorAttachment | EImageUsage::Storage |
 										EImageUsage::DepthStencilAttachment | EImageUsage::TransientAttachment );
+	}
+	
+/*
+=================================================
+	GetApiSpecificDescription
+=================================================
+*/
+	VulkanImageDesc  VImage::GetApiSpecificDescription () const
+	{
+		VulkanImageDesc		desc;
+		desc.image			= BitCast<ImageVk_t>( _image );
+		desc.imageType		= BitCast<ImageTypeVk_t>( GetImageType( _desc.imageType ));
+		desc.flags			= BitCast<ImageFlagsVk_t>( GetImageFlags( _desc.imageType ));
+		desc.usage			= BitCast<ImageUsageVk_t>( VEnumCast( _desc.usage ));
+		desc.format			= BitCast<FormatVk_t>( VEnumCast( _desc.format ));
+		desc.currentLayout	= BitCast<ImageLayoutVk_t>( _defaultLayout );	// TODO
+		desc.defaultLayout	= desc.currentLayout;
+		desc.samples		= BitCast<SampleCountFlagBitsVk_t>( VEnumCast( _desc.samples ));
+		desc.dimension		= _desc.dimension;
+		desc.arrayLayers	= _desc.arrayLayers.Get();
+		desc.maxLevels		= _desc.maxLevel.Get();
+		desc.queueFamily	= VK_QUEUE_FAMILY_IGNORED;
+		//desc.queueFamilyIndices	// TODO
+		return desc;
 	}
 
 

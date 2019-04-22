@@ -7,6 +7,8 @@ if (${FG_ENABLE_ANGELSCRIPT})
 	if (NOT EXISTS "${FG_EXTERNAL_ANGELSCRIPT_PATH}/angelscript/projects/cmake/CMakeLists.txt")
 		message( STATUS "AngelScript SDK is not found in \"${FG_EXTERNAL_ANGELSCRIPT_PATH}\"" )
 		set( FG_EXTERNAL_ANGELSCRIPT_PATH "${FG_EXTERNALS_PATH}/AngelScript" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "AngelScript SDK found in \"${FG_EXTERNAL_ANGELSCRIPT_PATH}\"" )
 	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_ANGELSCRIPT_PATH}/angelscript/projects/cmake/CMakeLists.txt")

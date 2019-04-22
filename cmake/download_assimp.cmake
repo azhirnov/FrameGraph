@@ -7,6 +7,8 @@ if (${FG_ENABLE_ASSIMP})
 	if (NOT EXISTS "${FG_EXTERNAL_ASSIMP_PATH}/include/assimp")
 		message( STATUS "Assimp is not found in \"${FG_EXTERNAL_ASSIMP_PATH}\"" )
 		set( FG_EXTERNAL_ASSIMP_PATH "${FG_EXTERNALS_PATH}/assimp" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "Assimp found in \"${FG_EXTERNAL_ASSIMP_PATH}\"" )
 	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_ASSIMP_PATH}/include/assimp")

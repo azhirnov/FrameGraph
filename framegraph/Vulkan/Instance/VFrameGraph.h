@@ -122,6 +122,8 @@ namespace FG
 
 		BufferDesc const&	GetDescription (RawBufferID id) const override;
 		ImageDesc const&	GetDescription (RawImageID id) const override;
+		ExternalBufferDesc_t GetApiSpecificDescription (RawBufferID id) const override;
+		ExternalImageDesc_t  GetApiSpecificDescription (RawImageID id) const override;
 		
 		bool			UpdateHostBuffer (RawBufferID id, BytesU offset, BytesU size, const void *data) override;
 		bool			MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT void* &data) override;
@@ -152,9 +154,6 @@ namespace FG
 
 	private:
 		// resource manager //
-		template <typename Desc, typename ID>
-		ND_ Desc const&  _GetDescription (const ID &id) const;
-		
 		template <typename PplnID>
 		bool _InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const;
 

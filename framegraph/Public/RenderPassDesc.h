@@ -68,7 +68,7 @@ namespace FG
 	// methods
 		RenderPassDesc () {}
 
-		explicit RenderPassDesc (const RectI &area) : area{area}
+		explicit RenderPassDesc (const RectI &rect) : area{rect}
 		{
 			ASSERT( area.IsValid() );
 		}
@@ -168,6 +168,7 @@ namespace FG
 
 	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
 	{
+		ASSERT( image );
 		ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
 		renderTargets[ uint(id) ] = RT{ image, {}, ClearValue_t{}, loadOp, storeOp };
 		return *this;
@@ -176,12 +177,14 @@ namespace FG
 	template <typename ClearVal>
 	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
 	{
+		ASSERT( image );
 		renderTargets[ uint(id) ] = RT{ image, {}, clearValue, EAttachmentLoadOp::Clear, storeOp };
 		return *this;
 	}
 		
 	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image, const ImageViewDesc &desc, EAttachmentLoadOp loadOp, EAttachmentStoreOp storeOp)
 	{
+		ASSERT( image );
 		ASSERT( loadOp != EAttachmentLoadOp::Clear );	// clear value is not defined
 		renderTargets[ uint(id) ] = RT{ image, desc, ClearValue_t{}, loadOp, storeOp };
 		return *this;
@@ -190,6 +193,7 @@ namespace FG
 	template <typename ClearVal>
 	inline RenderPassDesc&  RenderPassDesc::AddTarget (RenderTargetID id, RawImageID image, const ImageViewDesc &desc, const ClearVal &clearValue, EAttachmentStoreOp storeOp)
 	{
+		ASSERT( image );
 		renderTargets[ uint(id) ] = RT{ image, desc, clearValue, EAttachmentLoadOp::Clear, storeOp };
 		return *this;
 	}

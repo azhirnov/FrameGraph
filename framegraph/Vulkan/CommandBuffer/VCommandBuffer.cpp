@@ -19,6 +19,7 @@ namespace {
 */
 	VCommandBuffer::VCommandBuffer (VFrameGraph &fg, uint index) :
 		_state{ EState::Initial },
+		_queueIndex{ Default },
 		_instance{ fg },
 		_indexInPool{ index }
 	{
@@ -253,12 +254,12 @@ namespace {
 
 		for (uint k = 0; k < 10 and not pending.empty(); ++k)
 		{
-			for (auto iter = pending.begin(); iter != pending.end();)
+			for (size_t i = 0; i < pending.size();)
 			{
-				auto	node = *iter;
+				auto	node = pending[i];
 				
 				if ( node->VisitorID() == visitor_id ) {
-					++iter;
+					++i;
 					continue;
 				}
 
@@ -274,7 +275,7 @@ namespace {
 				}
 
 				if ( not input_processed ) {
-					++iter;
+					++i;
 					continue;
 				}
 
@@ -288,7 +289,7 @@ namespace {
 					pending.push_back( out_node );
 				}
 
-				iter = pending.erase( iter );
+				pending.erase( pending.begin()+i );
 			}
 		}
 		return true;
@@ -351,7 +352,7 @@ namespace {
 */
 	bool  VCommandBuffer::AddDependency (const CommandBuffer &cmd)
 	{
-		if ( not cmd.GetBatch() )
+		if ( not cmd.GetBatch() or cmd.GetCommandBuffer() == this )
 			return false;
 
 		EXLOCK( _drCheck );
@@ -366,13 +367,13 @@ namespace {
 	AllocBuffer
 =================================================
 */
-	bool  VCommandBuffer::AllocBuffer (BytesU size, OUT RawBufferID &buffer, OUT BytesU &offset, OUT void* &mapped)
+	bool  VCommandBuffer::AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &buffer, OUT BytesU &offset, OUT void* &mapped)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling );
 
 		BytesU	buf_size;
-		return _batch->GetWritable( size, 1_b, 16_b, size, OUT buffer, OUT offset, OUT buf_size, OUT mapped );
+		return _batch->GetWritable( size, 1_b, align, size, OUT buffer, OUT offset, OUT buf_size, OUT mapped );
 	}
 
 /*
@@ -1349,6 +1350,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1368,6 +1370,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1387,6 +1390,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1406,6 +1410,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1425,6 +1430,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1444,6 +1450,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1463,6 +1470,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.callback );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());

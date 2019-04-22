@@ -12,6 +12,8 @@ if (${FG_ENABLE_GLSLANG})
 	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/CMakeLists.txt")
 		message( STATUS "glslang is not found in \"${FG_EXTERNAL_GLSLANG_PATH}\"" )
 		set( FG_EXTERNAL_GLSLANG_PATH "${FG_EXTERNALS_PATH}/glslang" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "glslang found in \"${FG_EXTERNAL_GLSLANG_PATH}\"" )
 	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/CMakeLists.txt")

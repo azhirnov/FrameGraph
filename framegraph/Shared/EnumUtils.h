@@ -104,10 +104,10 @@ namespace FG
 		{
 			case EShaderLangFormat::Unknown :				return EShaderDebugMode::None;
 			case EShaderLangFormat::EnableDebugTrace :		return EShaderDebugMode::Trace;
-			case EShaderLangFormat::EnableDebugAsserts :	return EShaderDebugMode::Asserts;
-			case EShaderLangFormat::EnableDebugView :		return EShaderDebugMode::View;
+			//case EShaderLangFormat::EnableDebugAsserts :	return EShaderDebugMode::Asserts;
+			//case EShaderLangFormat::EnableDebugView :		return EShaderDebugMode::View;
 			//case EShaderLangFormat::EnableProfiling :		return EShaderDebugMode::None;
-			case EShaderLangFormat::EnableInstrCounter :	return EShaderDebugMode::InstructionCounter;
+			//case EShaderLangFormat::EnableInstrCounter :	return EShaderDebugMode::InstructionCounter;
 		}
 		RETURN_ERR( "unknown mode" );
 	}

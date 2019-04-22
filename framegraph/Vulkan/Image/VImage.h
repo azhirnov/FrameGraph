@@ -58,6 +58,8 @@ namespace FG
 
 		void Destroy (VResourceManager &);
 
+		ND_ VulkanImageDesc		GetApiSpecificDescription () const;
+
 		ND_ VkImageView			GetView (const VDevice &, const HashedImageViewDesc &) const;
 		ND_ VkImageView			GetView (const VDevice &, bool isDefault, INOUT ImageViewDesc &) const;
 		

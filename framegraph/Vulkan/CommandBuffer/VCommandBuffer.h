@@ -114,7 +114,7 @@ namespace FG
 		RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
 		bool		AddExternalCommands (const ExternalCmdBatch_t &) override;
 		bool		AddDependency (const CommandBuffer &) override;
-		bool		AllocBuffer (BytesU size, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) override;
+		bool		AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) override;
 
 		void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate);
 		void		AcquireBuffer (RawBufferID id, bool makeMutable);

@@ -49,10 +49,12 @@ namespace FG
 		bool Create (const VDevice &dev, const VulkanBufferDesc &desc, StringView dbgName, OnRelease_t &&onRelease);
 
 		void Destroy (VResourceManager &);
-		
+
 		//void Merge (BufferViewMap_t &, OUT AppendableVkResources_t) const;
 
 		//ND_ VkBufferView		GetView (const HashedBufferViewDesc &) const;
+		
+		ND_ VulkanBufferDesc	GetApiSpecificDescription () const;
 
 		ND_ bool				IsReadOnly ()			const;
 

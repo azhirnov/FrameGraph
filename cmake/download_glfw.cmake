@@ -7,6 +7,8 @@ if (${FG_ENABLE_GLFW})
 	if (NOT EXISTS ${FG_EXTERNAL_GLFW_PATH})
 		message( STATUS "glfw is not found in \"${FG_EXTERNAL_GLFW_PATH}\"" )
 		set( FG_EXTERNAL_GLFW_PATH "${FG_EXTERNALS_PATH}/glfw" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "glfw found in \"${FG_EXTERNAL_GLFW_PATH}\"" )
 	endif ()
 	
 	# select version

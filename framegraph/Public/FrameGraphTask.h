@@ -360,6 +360,14 @@ namespace FG
 									  imageLayers, imageOffset, imageSize });
 			return *this;
 		}
+
+		CopyBufferToImage&  AddRegion (BytesU bufferOffset, uint bufferRowLength, uint bufferImageHeight,
+									   const ImageSubresourceRange &imageLayers, const int2 &imageOffset, const uint2 &imageSize)
+		{
+			regions.push_back(Region{ bufferOffset, bufferRowLength, bufferImageHeight,
+									  imageLayers, int3{imageOffset, 0}, uint3{imageSize, 1} });
+			return *this;
+		}
 	};
 
 
@@ -891,8 +899,8 @@ namespace FG
 		Present () :
 			BaseTask<Present>{ "Present", ColorScheme::Present } {}
 
-		explicit Present (RawSwapchainID swapchain, RawImageID img) :
-			Present() { SetSwapchain( swapchain ).SetImage( img ); }
+		explicit Present (RawSwapchainID swchain, RawImageID img) :
+			Present() { SetSwapchain( swchain ).SetImage( img ); }
 
 		Present&  SetSwapchain (RawSwapchainID id)
 		{

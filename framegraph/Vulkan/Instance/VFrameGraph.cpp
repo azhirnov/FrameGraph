@@ -271,7 +271,7 @@ namespace FG
 		// add first image layout transition
 		if ( result )
 		{
-			VkImageLayout	initial_layout	= BitCast<VkImageLayout>( img_desc->layout );
+			VkImageLayout	initial_layout	= BitCast<VkImageLayout>( img_desc->currentLayout );
 			
 			_TransitImageLayoutToDefault( result, initial_layout, img_desc->queueFamily );
 		}
@@ -462,37 +462,43 @@ namespace FG
 
 /*
 =================================================
-	_GetDescription
+	GetDescription
+----
+	read access available without synchronizations
 =================================================
 */
-	template <typename Desc, typename ID>
-	inline Desc const&  VFrameGraph::_GetDescription (const ID &id) const
+	BufferDesc const&  VFrameGraph::GetDescription (RawBufferID id) const
 	{
 		ASSERT( _IsInitialized() );
+		return _resourceMngr.GetDescription( id );
+	}
 
-		// read access available without synchronizations
+	ImageDesc const&  VFrameGraph::GetDescription (RawImageID id) const
+	{
+		ASSERT( _IsInitialized() );
 		return _resourceMngr.GetDescription( id );
 	}
 	
 /*
 =================================================
-	GetDescription
+	GetApiSpecificDescription
+----
+	read access available without synchronizations
 =================================================
 */
-	BufferDesc const&  VFrameGraph::GetDescription (RawBufferID id) const
+	VFrameGraph::ExternalBufferDesc_t  VFrameGraph::GetApiSpecificDescription (RawBufferID id) const
 	{
-		return _GetDescription<BufferDesc>( id );
+		ASSERT( _IsInitialized() );
+		auto*  res = _resourceMngr.GetResource( id );
+		return res ? res->GetApiSpecificDescription() : Default;
 	}
 
-	ImageDesc const&  VFrameGraph::GetDescription (RawImageID id) const
+	VFrameGraph::ExternalImageDesc_t  VFrameGraph::GetApiSpecificDescription (RawImageID id) const
 	{
-		return _GetDescription<ImageDesc>( id );
+		ASSERT( _IsInitialized() );
+		auto*  res = _resourceMngr.GetResource( id );
+		return res ? res->GetApiSpecificDescription() : Default;
 	}
-	
-	/*SamplerDesc const&  VFrameGraph::GetDescription (RawSamplerID id) const
-	{
-		return _GetDescription<SamplerDesc>( id );
-	}*/
 
 /*
 =================================================
@@ -950,7 +956,7 @@ namespace FG
 			{
 				auto&	q = _queueMap[i];
 
-				CHECK( q.pending.empty() );
+				CHECK( q.pending.empty() );	// circular dependency
 
 				for (auto& s : q.submitted)
 				{
@@ -1016,6 +1022,7 @@ namespace FG
 */
 	bool  VFrameGraph::GetStatistics (OUT Statistics &result) const
 	{
+		// TODO
 		return false;
 	}
 	

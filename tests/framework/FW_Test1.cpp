@@ -6,7 +6,6 @@
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
 #include "framework/Android/WindowAndroid.h"
-#include "stl/Algorithms/StringUtils.h"
 #include "stl/Math/Color.h"
 #include "stl/Algorithms/ArrayUtils.h"
 
@@ -50,7 +49,7 @@ public:
 	}
 
 
-	bool Run (void* = null)
+	bool Run (void* app = null)
 	{
 #	 if defined(FG_ENABLE_GLFW)
 		window.reset( new WindowGLFW{} );
@@ -67,15 +66,13 @@ public:
 #	 else
 #		error unknown window library!
 #	 endif
-		
-		String	title = "Test";
 
 		// create window and vulkan device
 		{
-			CHECK_ERR( window->Create( { 800, 600 }, title ));
+			CHECK_ERR( window->Create( { 800, 600 }, "Test" ));
 			window->AddListener( this );
 
-			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_0, {}, {} ));
+			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_0, {}, {} ));
 		
 			// this is a test and the test should fail for any validation error
 			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
@@ -134,8 +131,6 @@ public:
 		{
 			if ( not window->Update() )
 				break;
-			
-			window->SetTitle( title + (" [FPS: "s << ToString(uint(swapchain->GetFramesPerSecond())) << ']') );
 
 			// wait and acquire next image
 			{
