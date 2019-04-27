@@ -3,8 +3,8 @@
 #pragma once
 
 #include "scene/Renderer/Enums.h"
-#include "scene/Utils/Math/Camera.h"
-#include "scene/Utils/Math/Frustum.h"
+#include "scene/Math/Camera.h"
+#include "scene/Math/Frustum.h"
 #include "scene/SceneManager/ISceneHierarchy.h"
 
 namespace FG

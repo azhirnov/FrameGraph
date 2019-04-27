@@ -4,7 +4,7 @@
 
 #include "scene/Loader/Intermediate/IntermMesh.h"
 #include "scene/SceneManager/Resources/Material.h"
-#include "scene/Utils/Math/AABB.h"
+#include "scene/Math/AABB.h"
 
 namespace FG
 {

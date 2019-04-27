@@ -3,8 +3,8 @@
 #pragma once
 
 #include "scene/Renderer/Enums.h"
-#include "scene/Utils/Math/AABB.h"
-#include "scene/Utils/Math/Sphere.h"
+#include "scene/Math/AABB.h"
+#include "scene/Math/Sphere.h"
 
 namespace FG
 {

@@ -5,7 +5,7 @@
 #include "scene/Renderer/IRenderTechnique.h"
 #include "scene/SceneManager/ISceneManager.h"
 #include "scene/SceneManager/IViewport.h"
-#include "scene/Utils/Ext/FPSCamera.h"
+#include "scene/Math/FPSCamera.h"
 #include "framework/Window/IWindow.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include <chrono>

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "scene/Utils/Math/Camera.h"
-#include "scene/Utils/Math/Frustum.h"
+#include "scene/Math/Camera.h"
+#include "scene/Math/Frustum.h"
 
 namespace FGC
 {

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "scene/Utils/Math/Sphere.h"
+#include "scene/Math/Sphere.h"
 
 namespace FGC
 {

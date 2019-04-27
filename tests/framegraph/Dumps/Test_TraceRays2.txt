@@ -9,7 +9,7 @@ CommandBuffer {
 					srcTask:         UpdateRayTracingShaderTable (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -20,7 +20,7 @@ CommandBuffer {
 					srcTask:         UpdateRayTracingShaderTable (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -39,7 +39,7 @@ CommandBuffer {
 					srcTask:         BuildRayTracingScene (#3)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   
@@ -58,7 +58,7 @@ CommandBuffer {
 					srcTask:         BuildRayTracingGeometry (#2)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   
@@ -151,7 +151,7 @@ CommandBuffer {
 					srcTask:         TraceRays (#3)
 					dstTask:         <final>
 					srcStageMask:    RayTracing
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   ShaderWrite
 					dstAccessMask:   ShaderRead | TransferRead
@@ -175,7 +175,7 @@ CommandBuffer {
 					srcTask:         BuildRayTracingGeometry (#2)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   
@@ -255,7 +255,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | TransferRead
@@ -279,7 +279,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -298,7 +298,7 @@ CommandBuffer {
 					srcTask:         BuildRayTracingGeometry (#2)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   

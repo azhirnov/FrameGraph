@@ -4,7 +4,7 @@
 
 #include "scene/Loader/Intermediate/IntermImage.h"
 #include "scene/Renderer/Enums.h"
-#include "scene/Utils/Math/GLM.h"
+#include "scene/Math/GLM.h"
 
 namespace FG
 {

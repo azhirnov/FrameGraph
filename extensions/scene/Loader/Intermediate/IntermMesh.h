@@ -3,7 +3,7 @@
 #pragma once
 
 #include "scene/Loader/Intermediate/VertexAttributes.h"
-#include "scene/Utils/Math/AABB.h"
+#include "scene/Math/AABB.h"
 
 namespace FG
 {

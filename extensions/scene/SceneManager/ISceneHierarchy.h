@@ -12,7 +12,7 @@
 #pragma once
 
 #include "scene/Common.h"
-#include "scene/Utils/Math/AABB.h"
+#include "scene/Math/AABB.h"
 
 namespace FG
 {

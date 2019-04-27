@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "scene/Utils/Math/GLM.h"
+#include "scene/Math/GLM.h"
 
 namespace FGC
 {
@@ -85,6 +85,17 @@ namespace FGC
 	
 /*
 =================================================
+	Abs
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline RadiansTempl<T>  Abs (const RadiansTempl<T>& x)
+	{
+		return RadiansTempl<T>{ std::abs( T(x) )};
+	}
+
+/*
+=================================================
 	Sin
 =================================================
 */
@@ -153,6 +164,33 @@ namespace FGC
 	ND_ inline T  CosH (const RadiansTempl<T>& x)
 	{
 		return std::cosh( T(x) );
+	}
+	
+/*
+=================================================
+	ASinH
+=================================================
+*
+	template <typename T>
+	ND_ inline Radians<T>  ASinH (const T& x)
+	{
+		STATIC_ASSERT( CompileTime::IsScalarOrEnum<T> );
+
+		return Radians<T>( SignOrZero( x ) * Ln( x + Sqrt( (x*x) + T(1) ) ) );
+	}
+	
+/*
+=================================================
+	ACosH
+=================================================
+*
+	template <typename T>
+	ND_ inline Radians<T>  ACosH (const T& x)
+	{
+		STATIC_ASSERT( CompileTime::IsScalarOrEnum<T> );
+
+		ASSERT( x >= T(1) );
+		return Radians<T>{Ln( x + Sqrt( (x*x) - T(1) ) )};
 	}
 	
 /*
@@ -236,6 +274,36 @@ namespace FGC
 		STATIC_ASSERT( IsScalarOrEnum<T> );
 
 		return RadiansTempl<T>{SafeDiv( T(1), ATan( x ), T(0) )};
+	}
+	
+/*
+=================================================
+	ATanH
+=================================================
+*
+	template <typename T>
+	ND_ inline Radians<T>  ATanH (const T& x)
+	{
+		STATIC_ASSERT( CompileTime::IsScalarOrEnum<T> );
+
+		ASSERT( x > T(-1) and x < T(1) );
+
+		if ( Abs(x) == T(1) )	return Infinity<T>();	else
+		if ( Abs(x) > T(1) )	return NaN<T>();		else
+								return Ln( (T(1) + x) / (T(1) - x) ) / T(2);
+	}
+	
+/*
+=================================================
+	ACoTanH
+=================================================
+*/
+	template <typename T>
+	ND_ inline RadiansTempl<T>  ACoTanH (const T& x)
+	{
+		STATIC_ASSERT( IsScalarOrEnum<T> );
+
+		return RadiansTempl<T>{SafeDiv( T(1), ATanH( x ), T(0) )};
 	}
 	
 

@@ -30,7 +30,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | TransferRead
@@ -65,7 +65,7 @@ CommandBuffer {
 					srcTask:         UpdateRayTracingShaderTable (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -76,7 +76,7 @@ CommandBuffer {
 					srcTask:         UpdateRayTracingShaderTable (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -95,7 +95,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
@@ -111,10 +111,10 @@ CommandBuffer {
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
-					srcTask:         BuildRayTracingScene (#3)
+					srcTask:         BuildRayTracingGeometry (#2)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   
@@ -130,10 +130,10 @@ CommandBuffer {
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
-					srcTask:         BuildRayTracingGeometry (#2)
+					srcTask:         BuildRayTracingScene (#3)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   
 					dstAccessMask:   

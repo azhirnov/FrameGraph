@@ -248,6 +248,7 @@ namespace FG
 				ASSERT( offset + size <= buffer->Size() );
 
 				auto&	limits	= _tp._fgThread.GetDevice().GetDeviceProperties().limits;
+				FG_UNUSED( limits );
 
 				if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
 				{
@@ -1600,7 +1601,7 @@ namespace FG
 		{
 			// merge rendering areas
 			if ( total_area.has_value() )
-				total_area->Merge( lrp->GetArea() );
+				total_area->Join( lrp->GetArea() );
 			else
 				total_area = lrp->GetArea();
 

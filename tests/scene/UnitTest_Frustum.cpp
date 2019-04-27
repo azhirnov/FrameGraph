@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "scene/Utils/Math/Frustum.h"
+#include "scene/Math/Frustum.h"
 #include "UnitTest_Common.h"
 
 

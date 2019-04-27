@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "scene/Utils/Math/GLM.h"
+#include "scene/Math/GLM.h"
 
 namespace FGC
 {

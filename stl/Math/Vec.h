@@ -78,6 +78,8 @@ namespace FGC
 
 		ND_ constexpr T &		operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
 		ND_ constexpr T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+
+		ND_ constexpr Self		operator - ()			const	{ return {-x, -y}; }
 	};
 
 
@@ -121,6 +123,8 @@ namespace FGC
 
 		ND_ constexpr T &		operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
 		ND_ constexpr T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
+		
+		ND_ constexpr Self		operator - ()			const	{ return {-x, -y, -z}; }
 
 		ND_ const Vec<T,2>		xy ()					const	{ return {x, y}; }
 	};
@@ -168,6 +172,8 @@ namespace FGC
 		ND_ constexpr T &		operator [] (size_t i)			{ ASSERT( i < size() );  return std::addressof(x)[i]; }
 		ND_ constexpr T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
 		
+		ND_ constexpr Self		operator - ()			const	{ return {-x, -y, -z, -w}; }
+
 		ND_ const Vec<T,2>		xy ()					const	{ return {x, y}; }
 		ND_ const Vec<T,3>		xyz ()					const	{ return {x, y, z}; }
 	};
@@ -385,6 +391,46 @@ namespace FGC
 	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator - (const S &lhs, const Vec<T,I> &rhs)
 	{
 		return Vec<T,I>( lhs ) - rhs;
+	}
+
+/*
+=================================================
+	operator -=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr Vec<T,I>&  operator -= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] -= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator -= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs -= Vec<T,I>( rhs );
+	}
+
+/*
+=================================================
+	operator *=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr Vec<T,I>&  operator *= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] *= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator *= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs *= Vec<T,I>( rhs );
 	}
 
 /*
@@ -741,6 +787,35 @@ namespace FGC
 	ND_ inline constexpr EnableIf<IsFloatPoint<T>, T>  Distance2 (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
 	{
 		return Length2( lhs - rhs );
+	}
+	
+/*
+=================================================
+	Reflect
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr Vec<T,I>  Reflect (const Vec<T,I> &incidentVec, const Vec<T,I> &normal)
+	{
+		return incidentVec - T(2) * Dot( incidentVec, normal ) * normal;
+	}
+	
+/*
+=================================================
+	Refract
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr Vec<T,I>  Refract (const Vec<T,I> &incidentVec, const Vec<T,I> &normal, T eta)
+	{
+		T const		nd = Dot( incidentVec, normal );
+		T const		k  = T(1) - eta * eta * (T(1) - nd*nd);
+		Vec<T,I>	r;
+
+		if ( k >= T(0) )
+			r = eta * incidentVec - (eta * nd + sqrt( k )) * normal;
+
+		return r;
 	}
 
 /*

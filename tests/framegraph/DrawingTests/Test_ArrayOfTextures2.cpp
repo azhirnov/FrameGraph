@@ -7,6 +7,9 @@ namespace FG
 
 	bool FGApp::Test_ArrayOfTextures2 ()
 	{
+		if ( not _vulkan.HasDeviceExtension( VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME ))
+			return true;
+
 		ComputePipelineDesc	ppln;
 
 		ppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(

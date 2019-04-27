@@ -5,7 +5,7 @@
 #include "scene/Loader/Intermediate/IntermMesh.h"
 #include "scene/Loader/Intermediate/IntermMaterial.h"
 #include "scene/Loader/Intermediate/IntermLight.h"
-#include "scene/Utils/Math/Transform.h"
+#include "scene/Math/Transform.h"
 #include "scene/Renderer/Enums.h"
 
 namespace FG

@@ -20,6 +20,7 @@ extern void UnitTest_Array ();
 extern void UnitTest_StringParser ();
 extern void UnitTest_FixedTupleArray ();
 extern void UnitTest_LfIndexedPool ();
+extern void UnitTest_Rectangle ();
 
 
 int main ()
@@ -41,6 +42,7 @@ int main ()
 	UnitTest_StringParser();
 	UnitTest_FixedTupleArray();
 	UnitTest_LfIndexedPool();
+	UnitTest_Rectangle();
 
 	FG_LOGI( "Tests.STL finished" );
 

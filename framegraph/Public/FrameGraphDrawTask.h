@@ -137,10 +137,11 @@ namespace _fg_hidden_
 		TaskType&  AddScissor (const RectU &rect);
 			
 		TaskType&  AddColorBuffer (RenderTargetID id, const RenderState::ColorBuffer &cb);
-		TaskType&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor, EBlendOp blendOp, bool4 colorMask);
+		TaskType&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactor, EBlendFactor dstBlendFactor,
+								   EBlendOp blendOp, bool4 colorMask = bool4(true));
 		TaskType&  AddColorBuffer (RenderTargetID id, EBlendFactor srcBlendFactorColor, EBlendFactor srcBlendFactorAlpha,
 									EBlendFactor dstBlendFactorColor, EBlendFactor dstBlendFactorAlpha,
-									EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask);
+									EBlendOp blendOpColor, EBlendOp blendOpAlpha, bool4 colorMask = bool4(true));
 		TaskType&  AddColorBuffer (RenderTargetID id, bool4 colorMask);
 
 		TaskType&  SetStencilTestEnabled (bool value);

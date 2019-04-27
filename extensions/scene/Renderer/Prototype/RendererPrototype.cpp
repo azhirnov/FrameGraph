@@ -181,7 +181,7 @@ namespace FG
 		{
 			CHECK( _frameGraph->InitPipelineResources( outPipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res ));
 			ppln_res.BindBuffer( UniformID{"CameraUB"}, _cameraUB, 0_b, SizeOf<CameraUB> );
-			ppln_res.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
+			//ppln_res.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
 		}
 		return true;
 	}

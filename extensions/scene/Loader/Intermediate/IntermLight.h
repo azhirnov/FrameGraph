@@ -3,7 +3,7 @@
 #pragma once
 
 #include "scene/Common.h"
-#include "scene/Utils/Math/GLM.h"
+#include "scene/Math/GLM.h"
 
 namespace FG
 {

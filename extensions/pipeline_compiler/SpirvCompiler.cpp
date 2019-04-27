@@ -397,13 +397,13 @@ namespace FG
 		{
 			case EShaderLangFormat::Vulkan :
 			{
-				version			= EShaderLangFormat_GetVersion( dstShaderFmt );
+				uint	dst_ver	= EShaderLangFormat_GetVersion( dstShaderFmt );
 				client			= EShClientVulkan;
-				client_version	= (version == 110 ? EShTargetVulkan_1_1 : EShTargetVulkan_1_0);
+				client_version	= (dst_ver == 110 ? EShTargetVulkan_1_1 : EShTargetVulkan_1_0);
 				target			= EShTargetSpv;
-				target_version	= (version == 110 ? EShTargetSpv_1_3 : EShTargetSpv_1_0);
+				target_version	= (dst_ver == 110 ? EShTargetSpv_1_3 : EShTargetSpv_1_0);
 				#ifdef ENABLE_OPT
-				_spirvTraget	= (version == 110 ? SPV_ENV_VULKAN_1_1 : SPV_ENV_VULKAN_1_0);
+				_spirvTraget	= (dst_ver == 110 ? SPV_ENV_VULKAN_1_1 : SPV_ENV_VULKAN_1_0);
 				#endif
 				_targetVulkan	= true;
 				break;

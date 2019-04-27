@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "scene/Utils/Math/GLM.h"
-#include "scene/Utils/Math/Transform.h"
+#include "scene/Math/GLM.h"
+#include "scene/Math/Transform.h"
 
 namespace FGC
 {

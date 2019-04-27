@@ -40,6 +40,9 @@ namespace FGC
 		constexpr explicit Rectangle (const Vec2_t &size) :
 			Rectangle{ Vec2_t{}, size } {}
 
+		constexpr Rectangle (const Self &other) :
+			left{other.left}, top{other.top}, right{other.right}, bottom{other.bottom} {}
+
 		template <typename B>
 		constexpr explicit Rectangle (const Rectangle<B> &other) :
 			left{T(other.left)}, top{T(other.top)}, right{T(other.right)}, bottom{T(other.bottom)} {}
@@ -52,6 +55,8 @@ namespace FGC
 
 		ND_ constexpr const Vec2_t	LeftTop ()		const	{ return { left, top }; }
 		ND_ constexpr const Vec2_t	RightBottom ()	const	{ return { right, bottom }; }
+		ND_ constexpr const Vec2_t	LeftBottom ()	const	{ return { left, bottom }; }
+		ND_ constexpr const Vec2_t	RightTop ()		const	{ return { right, top }; }
 		
 		ND_ Vec2_t &				LeftTop ();
 		ND_ Vec2_t &				RightBottom ();
@@ -70,13 +75,18 @@ namespace FGC
 			Self &			Normalize ();
 
 		ND_ constexpr bool	Intersects (const Vec2_t &point) const;
+		ND_ constexpr bool	Intersects (const Self &point) const;
+			
+		ND_ constexpr Self	Intersection (const Self &other) const;
 
 		ND_ constexpr bool4 operator == (const Self &rhs) const;
-
-			void Merge (const Rectangle<T> &other);
 		
 			Self&	Join (const Self &other);
 			Self&	Join (const Vec2_t &point);
+
+			Self&	Stretch (const Self &size);
+			Self&	Stretch (const Vec2_t &size);
+			Self&	Stretch (T size);
 	};
 
 
@@ -236,20 +246,6 @@ namespace FGC
 	{
 		return lhs / Vec<T,2>{rhs};
 	}
-
-/*
-=================================================
-	Merge
-=================================================
-*/
-	template <typename T>
-	inline void  Rectangle<T>::Merge (const Rectangle<T> &other)
-	{
-		left	= Min( left,   other.left   );
-		top		= Min( top,    other.top    );
-		right	= Max( right,  other.right  );
-		bottom	= Max( bottom, other.bottom );
-	}
 	
 /*
 =================================================
@@ -285,6 +281,13 @@ namespace FGC
 	{
 		return (point.x >= left) & (point.x < right) & (point.y >= top) & (point.y < bottom);
 	}
+	
+	template <typename T>
+	inline constexpr bool  Rectangle<T>::Intersects (const Self &other) const
+	{
+		return	((left < other.right) & (right > other.left) & (bottom > other.top) & (top < other.bottom)) |
+				((other.right < left) & (other.left > right) & (other.top > bottom) & (other.bottom < top));
+	}
 
 /*
 =================================================
@@ -296,6 +299,22 @@ namespace FGC
 	{
 		return { left == rhs.left, top == rhs.top, right == rhs.right, bottom == rhs.bottom };
 	}
+	
+/*
+=================================================
+	Intersection
+=================================================
+*/
+	template <typename T>
+	inline constexpr Rectangle<T>  Rectangle<T>::Intersection (const Self &other) const
+	{
+		Rectangle<T>	res;
+		res.left	= Max( left,	other.left );
+		res.top		= Max( top,		other.top );
+		res.right	= Min( right,	other.right );
+		res.bottom	= Min( bottom,	other.bottom );
+		return res;
+	}
 
 /*
 =================================================
@@ -303,7 +322,7 @@ namespace FGC
 =================================================
 */
 	template <typename T>
-	inline Rectangle<T> &  Rectangle<T>::Join (const Self &other)
+	inline Rectangle<T>&  Rectangle<T>::Join (const Self &other)
 	{
 		left	= Min( left,	other.left );
 		top		= Min( top,		other.top );
@@ -313,12 +332,51 @@ namespace FGC
 	}
 	
 	template <typename T>
-	inline Rectangle<T> &  Rectangle<T>::Join (const Vec2_t &point)
+	inline Rectangle<T>&  Rectangle<T>::Join (const Vec2_t &point)
 	{
 		left	= Min( left,	point.x );
 		top		= Min( top,		point.y );
 		right	= Max( right,	point.x );
 		bottom	= Max( bottom,	point.y );
+		return *this;
+	}
+	
+/*
+=================================================
+	Stretch
+=================================================
+*/
+	template <typename T>
+	inline Rectangle<T>&  Rectangle<T>::Stretch (const Self &size)
+	{
+		left	-= size.left;
+		top		-= size.top;
+		right	+= size.right;
+		bottom	+= size.bottom;
+		return *this;
+	}
+
+	template <typename T>
+	inline Rectangle<T>&  Rectangle<T>::Stretch (const Vec2_t &size)
+	{
+		const Vec2_t  half_size = size / T(2);
+
+		left	-= half_size.x;
+		top		-= half_size.y;
+		right	+= half_size.x;
+		bottom	+= half_size.y;
+		return *this;
+	}
+
+	template <typename T>
+	inline Rectangle<T>&  Rectangle<T>::Stretch (T size)
+	{
+		const T  half_size = size / T(2);
+
+		left	-= half_size;
+		top		-= half_size;
+		right	+= half_size;
+		bottom	+= half_size;
 		return *this;
 	}
 

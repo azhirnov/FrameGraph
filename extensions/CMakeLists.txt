@@ -428,11 +428,20 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_GLM})
 	set( SOURCES 
+		"scene/Math/AABB.h"
+		"scene/Math/Camera.h"
+		"scene/Math/FPSCamera.h"
+		"scene/Math/Frustum.h"
+		"scene/Math/GLM.h"
+		"scene/Math/OOBB.h"
+		"scene/Math/Radians.h"
+		"scene/Math/Sphere.h"
+		"scene/Math/Spherical.h"
+		"scene/Math/Transform.h"
 		"scene/SceneManager/Simple/SimpleRayTracingScene.cpp"
 		"scene/SceneManager/Simple/SimpleRayTracingScene.h"
 		"scene/SceneManager/Simple/SimpleScene.cpp"
 		"scene/SceneManager/Simple/SimpleScene.h"
-		"scene/Utils/Ext/FPSCamera.h"
 		"scene/ThreadPool/FGThread.h"
 		"scene/ThreadPool/IOThread.h"
 		"scene/ThreadPool/ThreadPool.cpp"
@@ -454,14 +463,6 @@ if (${FG_ENABLE_GLM})
 		"scene/Renderer/IRenderTechnique.h"
 		"scene/Renderer/RenderQueue.h"
 		"scene/Renderer/ScenePreRender.h"
-		"scene/Utils/Math/AABB.h"
-		"scene/Utils/Math/Camera.h"
-		"scene/Utils/Math/Frustum.h"
-		"scene/Utils/Math/GLM.h"
-		"scene/Utils/Math/OOBB.h"
-		"scene/Utils/Math/Radians.h"
-		"scene/Utils/Math/Sphere.h"
-		"scene/Utils/Math/Transform.h"
 		"scene/Renderer/Prototype/RendererPrototype.cpp"
 		"scene/Renderer/Prototype/RendererPrototype.h"
 		"scene/Loader/IImageLoader.cpp"
@@ -491,15 +492,14 @@ if (${FG_ENABLE_GLM})
 		"scene/Loader/DevIL/DevILLoader.cpp"
 		"scene/Loader/DevIL/DevILLoader.h" )
 	add_library( "Scene" STATIC ${SOURCES} )
+	source_group( "Math" FILES "scene/Math/AABB.h" "scene/Math/Camera.h" "scene/Math/FPSCamera.h" "scene/Math/Frustum.h" "scene/Math/GLM.h" "scene/Math/OOBB.h" "scene/Math/Radians.h" "scene/Math/Sphere.h" "scene/Math/Spherical.h" "scene/Math/Transform.h" )
 	source_group( "SceneManager\\Simple" FILES "scene/SceneManager/Simple/SimpleRayTracingScene.cpp" "scene/SceneManager/Simple/SimpleRayTracingScene.h" "scene/SceneManager/Simple/SimpleScene.cpp" "scene/SceneManager/Simple/SimpleScene.h" )
-	source_group( "Utils\\Ext" FILES "scene/Utils/Ext/FPSCamera.h" )
 	source_group( "ThreadPool" FILES "scene/ThreadPool/FGThread.h" "scene/ThreadPool/IOThread.h" "scene/ThreadPool/ThreadPool.cpp" "scene/ThreadPool/ThreadPool.h" )
 	source_group( "Shaders\\Utils" FILES "scene/Shaders/Utils/math.glsl" )
 	source_group( "SceneManager\\Octree" FILES "scene/SceneManager/Octree/OctreeScene.h" )
 	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermImage.h" "scene/Loader/Intermediate/IntermLight.h" "scene/Loader/Intermediate/IntermMaterial.h" "scene/Loader/Intermediate/IntermMesh.cpp" "scene/Loader/Intermediate/IntermMesh.h" "scene/Loader/Intermediate/IntermScene.cpp" "scene/Loader/Intermediate/IntermScene.h" "scene/Loader/Intermediate/VertexAttributes.cpp" "scene/Loader/Intermediate/VertexAttributes.h" )
 	source_group( "Shaders\\Prototype" FILES "scene/Shaders/Prototype/forward.glsl" "scene/Shaders/Prototype/raytracing.glsl" )
 	source_group( "Renderer" FILES "scene/Renderer/Enums.h" "scene/Renderer/IRenderTechnique.h" "scene/Renderer/RenderQueue.h" "scene/Renderer/ScenePreRender.h" )
-	source_group( "Utils\\Math" FILES "scene/Utils/Math/AABB.h" "scene/Utils/Math/Camera.h" "scene/Utils/Math/Frustum.h" "scene/Utils/Math/GLM.h" "scene/Utils/Math/OOBB.h" "scene/Utils/Math/Radians.h" "scene/Utils/Math/Sphere.h" "scene/Utils/Math/Transform.h" )
 	source_group( "Renderer\\Prototype" FILES "scene/Renderer/Prototype/RendererPrototype.cpp" "scene/Renderer/Prototype/RendererPrototype.h" )
 	source_group( "Loader" FILES "scene/Loader/IImageLoader.cpp" "scene/Loader/IImageLoader.h" )
 	source_group( "Shaders" FILES "scene/Shaders/ShaderCache.cpp" "scene/Shaders/ShaderCache.h" )

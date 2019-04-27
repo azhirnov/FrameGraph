@@ -135,6 +135,7 @@ if (${FG_ENABLE_TESTS})
 		"../tests/stl/UnitTest_Math.cpp"
 		"../tests/stl/UnitTest_Matrix.cpp"
 		"../tests/stl/UnitTest_PoolAllocator.cpp"
+		"../tests/stl/UnitTest_Rectangle.cpp"
 		"../tests/stl/UnitTest_StaticString.cpp"
 		"../tests/stl/UnitTest_StringParser.cpp"
 		"../tests/stl/UnitTest_StructView.cpp"
@@ -144,7 +145,7 @@ if (${FG_ENABLE_TESTS})
 	else()
 		add_executable( "Tests.STL" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTest_Array.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_FixedTupleArray.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_LfIndexedPool.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_StringParser.cpp" "../tests/stl/UnitTest_StructView.cpp" "../tests/stl/UnitTest_ToString.cpp" )
+	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTest_Array.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_FixedTupleArray.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_LfIndexedPool.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_Rectangle.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_StringParser.cpp" "../tests/stl/UnitTest_StructView.cpp" "../tests/stl/UnitTest_ToString.cpp" )
 	set_property( TARGET "Tests.STL" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.STL" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.STL" PRIVATE "../tests/.." )

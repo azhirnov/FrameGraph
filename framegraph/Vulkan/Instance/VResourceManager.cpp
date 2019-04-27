@@ -285,6 +285,7 @@ namespace FG
 		for (auto& src : origin_sets)
 		{
 			auto&	ds_layout	= ds_pool[ src.second.layoutId.Index() ];
+			ds_layout.AddRef();
 
 			PipelineDescription::DescriptorSet	dst;
 			dst.id				= src.first;

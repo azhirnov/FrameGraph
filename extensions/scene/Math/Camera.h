@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "scene/Utils/Math/Transform.h"
-#include "scene/Utils/Math/Radians.h"
+#include "scene/Math/Transform.h"
+#include "scene/Math/Radians.h"
 #include "stl/Math/Rectangle.h"
 
 namespace FGC

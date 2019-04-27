@@ -90,6 +90,9 @@ namespace {
 */
 	void FGApp::OnResize (const uint2 &size)
 	{
+		if ( Any( size == uint2(0) ))
+			return;
+
 		VulkanSwapchainCreateInfo	swapchain_info;
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 		swapchain_info.surfaceSize  = size;

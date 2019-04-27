@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "scene/Utils/Math/AABB.h"
-#include "scene/Utils/Math/OOBB.h"
-#include "scene/Utils/Math/Sphere.h"
-#include "scene/Utils/Math/Camera.h"
+#include "scene/Math/AABB.h"
+#include "scene/Math/OOBB.h"
+#include "scene/Math/Sphere.h"
+#include "scene/Math/Camera.h"
 
 namespace FGC
 {

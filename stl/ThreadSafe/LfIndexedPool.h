@@ -96,6 +96,7 @@ namespace FGC
 				Bitfield_t		ctor_bits	= _createdBits[i].load( memory_order_relaxed );
 				Bitfield_t		assigned	= _assignedBits[i].load( memory_order_relaxed );
 
+				FG_UNUSED( assigned );
 				ASSERT( assigned == UMax );
 
 				if ( not value )
@@ -184,6 +185,7 @@ namespace FGC
 			Bitfield_t	mask		= 1 << bit_idx;
 			Bitfield_t	old_bits	= _assignedBits[chunk_idx].fetch_or( mask, memory_order_relaxed );	// 0 -> 1
 
+			FG_UNUSED( old_bits );
 			ASSERT( !(old_bits & mask) );
 		}
 
