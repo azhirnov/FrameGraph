@@ -27,6 +27,7 @@ class GenMipmapsApp final : public IWindowEventListener, public VulkanDeviceFn
 	
 	static constexpr uint2	imageSize	= uint2{ 1u << 12 };
 	static constexpr uint	numMipmaps	= CT_IntLog2< Max( imageSize.x, imageSize.y )>;
+	static constexpr bool	genInComputeShader = true;
 
 private:
 	VulkanDeviceExt			vulkan;
@@ -91,6 +92,13 @@ private:
 		const uint2				localGroupSize		{ 16, 16 };
 	}						proceduralImage;
 
+	struct {
+		VkPipelineLayout		pipelineLayout		= VK_NULL_HANDLE;
+		VkPipeline				pipeline			= VK_NULL_HANDLE;
+		VkShaderModule			vertShader			= VK_NULL_HANDLE;
+		VkShaderModule			fragShader			= VK_NULL_HANDLE;
+	}						proceduralImage2;
+
 	VkDescriptorPool		descriptorPool			= VK_NULL_HANDLE;
 	
 	const VkFormat			imageFormat				= VK_FORMAT_R8G8B8A8_UNORM;
@@ -147,6 +155,7 @@ public:
 	bool CreateDescriptorSet ();
 	bool CreateGraphicsPipeline ();
 	bool CreateProceduralImagePipeline ();
+	bool CreateProceduralImagePipeline2 ();
 	bool CreateDownscaleGraphicsPipeline ();
 	bool CreateDownscaleComputePipeline ();
 	bool CreateDownscaleComputePipelineSM6 ();
@@ -266,6 +275,7 @@ bool GenMipmapsApp::Initialize ()
 	CHECK_ERR( CreateDescriptorSet() );
 	CHECK_ERR( CreateGraphicsPipeline() );
 	CHECK_ERR( CreateProceduralImagePipeline() );
+	CHECK_ERR( CreateProceduralImagePipeline2() );
 	CHECK_ERR( CreateDownscaleGraphicsPipeline() );
 	CHECK_ERR( CreateDownscaleComputePipeline() );
 	//CHECK_ERR( CreateDownscaleComputePipelineSM6() );
@@ -341,6 +351,11 @@ void GenMipmapsApp::Destroy ()
 	vkDestroyPipelineLayout( dev, proceduralImage.pipelineLayout, null );
 	vkDestroyPipeline( dev, proceduralImage.pipeline, null );
 	vkDestroyShaderModule( dev, proceduralImage.shader, null );
+	
+	vkDestroyPipelineLayout( dev, proceduralImage2.pipelineLayout, null );
+	vkDestroyPipeline( dev, proceduralImage2.pipeline, null );
+	vkDestroyShaderModule( dev, proceduralImage2.vertShader, null );
+	vkDestroyShaderModule( dev, proceduralImage2.fragShader, null );
 
 	vkDestroyCommandPool( dev, cmdPool, null );
 	vkDestroyRenderPass( dev, renderPass, null );
@@ -374,20 +389,6 @@ void GenMipmapsApp::Destroy ()
 */
 void GenMipmapsApp::GenMipmapsOnGraphicsShader (VkCommandBuffer cmd, OUT VkImageLayout &layout)
 {
-	VkImageMemoryBarrier	barrier = {};
-	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask		= 0;
-	barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
-	barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
-	barrier.newLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-	barrier.image				= image;
-	barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	
-	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-						  0, null, 0, null, 1, &barrier );
-
 	layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	for (size_t i = 1; i < numMipmaps; ++i)
@@ -438,12 +439,18 @@ void GenMipmapsApp::GenMipmapsOnTransferCommands (VkCommandBuffer cmd, OUT VkIma
 	VkImageMemoryBarrier	barrier = {};
 	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.srcAccessMask		= 0;
-	barrier.dstAccessMask		= 0;
-	barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
+	barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
+	barrier.oldLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
 	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 	barrier.image				= image;
+	barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+						  0, null, 0, null, 1, &barrier );
+	
+	barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 	for (size_t i = 1; i < numMipmaps; ++i)
 	{
@@ -482,15 +489,15 @@ void GenMipmapsApp::GenMipmapsOnTransferCommands2 (VkCommandBuffer cmd, OUT VkIm
 	VkImageMemoryBarrier	barrier = {};
 	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.srcAccessMask		= 0;
-	barrier.dstAccessMask		= 0;
-	barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
+	barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
+	barrier.oldLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 	barrier.image				= image;
 	barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
-	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 						  0, null, 0, null, 1, &barrier );
 
 	for (size_t i = 1; i < numMipmaps; ++i)
@@ -540,12 +547,16 @@ void GenMipmapsApp::GenMipmapsOnComputeShader (VkCommandBuffer cmd, OUT VkImageL
 	VkImageMemoryBarrier	barrier = {};
 	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.srcAccessMask		= 0;
-	barrier.dstAccessMask		= 0;
-	barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
+	barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
+	barrier.oldLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
 	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 	barrier.image				= image;
+	barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+						  0, null, 0, null, 1, &barrier );
 
 	vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, genCompute.pipeline );
 
@@ -561,6 +572,7 @@ void GenMipmapsApp::GenMipmapsOnComputeShader (VkCommandBuffer cmd, OUT VkImageL
 		vkCmdDispatch( cmd, count.x, count.y, 1 );
 		
 		// read after write
+		barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
 		barrier.srcAccessMask		= VK_ACCESS_SHADER_WRITE_BIT;
 		barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
 		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, range[0], range[1], 0, 1 };
@@ -630,32 +642,84 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 
 	// generate procedural image
 	{
-		// shader_read_only -> general
 		VkImageMemoryBarrier	barrier = {};
 		barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.srcAccessMask		= 0;
-		barrier.dstAccessMask		= VK_ACCESS_SHADER_WRITE_BIT;
-		barrier.oldLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
 		barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 		barrier.image				= image;
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, numMipmaps, 0, 1 };
-
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-							  0, null, 0, null, 1, &barrier );
+		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 		// generate
+		if ( genInComputeShader )
 		{
+			// shader_read_only -> general
+			barrier.srcAccessMask	= 0;
+			barrier.dstAccessMask	= VK_ACCESS_SHADER_WRITE_BIT;
+			barrier.oldLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.newLayout		= VK_IMAGE_LAYOUT_GENERAL;
+
+			vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+								  0, null, 0, null, 1, &barrier );
+
 			uint2	count = (imageSize + proceduralImage.localGroupSize - 1) / proceduralImage.localGroupSize;
 
 			vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, proceduralImage.pipeline );
 			vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, proceduralImage.pipelineLayout, 0, 1, &proceduralImage.descSet, 0, null );
 			vkCmdDispatch( cmd, count.x, count.y, 1 );
+			
+			// general -> shader read only
+			barrier.srcAccessMask	= VK_ACCESS_SHADER_WRITE_BIT;
+			barrier.dstAccessMask	= 0;
+			barrier.oldLayout		= VK_IMAGE_LAYOUT_GENERAL;
+			barrier.newLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+								  0, null, 0, null, 1, &barrier );
+		}
+		else
+		{
+			// begin render pass
+			VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
+			VkRenderPassBeginInfo	begin		= {};
+			begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			begin.framebuffer		= mipmapFramebuffers[0];
+			begin.renderPass		= mipmapRenderpass;
+			begin.renderArea		= { {0,0}, {imageSize.x, imageSize.y} };
+			begin.clearValueCount	= 1;
+			begin.pClearValues		= &clear_value;
+			vkCmdBeginRenderPass( cmd, &begin, VK_SUBPASS_CONTENTS_INLINE );
+			
+			vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, proceduralImage2.pipeline );
+
+			// set dynamic states
+			VkViewport	viewport = {};
+			viewport.x			= 0.0f;
+			viewport.y			= 0.0f;
+			viewport.width		= float(imageSize.x);
+			viewport.height		= float(imageSize.y);
+			viewport.minDepth	= 0.0f;
+			viewport.maxDepth	= 1.0f;
+			vkCmdSetViewport( cmd, 0, 1, &viewport );
+
+			VkRect2D	scissor_rect = { {0,0}, {imageSize.x, imageSize.y} };
+			vkCmdSetScissor( cmd, 0, 1, &scissor_rect );
+			
+			vkCmdDraw( cmd, 4, 1, 0, 0 );
+
+			vkCmdEndRenderPass( cmd );
 		}
 
 		// clear mipmaps
 		{
+			barrier.srcAccessMask	= 0;
+			barrier.dstAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.oldLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.newLayout		= VK_IMAGE_LAYOUT_GENERAL;
+			barrier.subresourceRange= { VK_IMAGE_ASPECT_COLOR_BIT, 1, numMipmaps-1, 0, 1 };
+
+			vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+								  0, null, 0, null, 1, &barrier );
+
 			VkImageSubresourceRange	range {};
 			range.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
 			range.baseMipLevel		= 1;
@@ -673,12 +737,13 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 		}
 		
 		// flush after write
-		barrier.srcAccessMask	= VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.srcAccessMask	= VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		barrier.dstAccessMask	= 0;
 		barrier.oldLayout		= VK_IMAGE_LAYOUT_GENERAL;
 		barrier.newLayout		= VK_IMAGE_LAYOUT_GENERAL;
+		barrier.subresourceRange= { VK_IMAGE_ASPECT_COLOR_BIT, 1, numMipmaps-1, 0, 1 };
 
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
 							  0, null, 0, null, 1, &barrier );
 	}
 
@@ -1537,6 +1602,137 @@ void main()
 
 		vkUpdateDescriptorSets( vulkan.GetVkDevice(), uint(CountOf(writes)), writes, 0, null );
 	}
+	return true;
+}
+
+/*
+=================================================
+	CreateProceduralImagePipeline2
+=================================================
+*/
+bool GenMipmapsApp::CreateProceduralImagePipeline2 ()
+{
+	// create vertex shader
+	{
+		static const char	vert_shader_source[] = R"#(
+const vec2	g_Positions[4] = {
+	vec2( -1.0,  1.0 ),
+	vec2( -1.0, -1.0 ),
+	vec2(  1.0,  1.0 ),
+	vec2(  1.0, -1.0 )
+};
+
+layout(location=0) out vec2  v_Texcoord;
+
+void main()
+{
+	gl_Position = vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
+	v_Texcoord  = g_Positions[gl_VertexIndex] * 0.5f + 0.5f;
+}
+)#";
+		CHECK_ERR( spvCompiler.Compile( OUT proceduralImage2.vertShader, vulkan, {vert_shader_source}, "main", EShLangVertex ));
+	}
+
+	// create fragment shader
+	{
+		static const char	frag_shader_source[] = R"#(
+layout(location = 0) out vec4  out_Color;
+
+layout(location=0) in vec2  v_Texcoord;
+
+void main ()
+{
+	uvec2	group = uvec2(gl_FragCoord.xy);
+	out_Color     = all(equal( group & 1, uvec2(1) )) ?
+					vec4(1.0f, 0.0f, 0.0f, 1.0f) :
+					vec4(0.0f, 1.0f, 0.0f, 1.0f);
+}
+)#";
+		CHECK_ERR( spvCompiler.Compile( OUT proceduralImage2.fragShader, vulkan, {frag_shader_source}, "main", EShLangFragment ));
+	}
+
+	// create pipeline layout
+	{
+		VkPipelineLayoutCreateInfo	info = {};
+		info.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+		VK_CHECK( vkCreatePipelineLayout( vulkan.GetVkDevice(), &info, null, OUT &proceduralImage2.pipelineLayout ));
+	}
+
+	VkPipelineShaderStageCreateInfo			stages[2] = {};
+	stages[0].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	stages[0].stage		= VK_SHADER_STAGE_VERTEX_BIT;
+	stages[0].module	= proceduralImage2.vertShader;
+	stages[0].pName		= "main";
+	stages[1].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	stages[1].stage		= VK_SHADER_STAGE_FRAGMENT_BIT;
+	stages[1].module	= proceduralImage2.fragShader;
+	stages[1].pName		= "main";
+
+	VkPipelineVertexInputStateCreateInfo	vertex_input = {};
+	vertex_input.sType		= VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	
+	VkPipelineInputAssemblyStateCreateInfo	input_assembly = {};
+	input_assembly.sType	= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	input_assembly.topology	= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+
+	VkPipelineViewportStateCreateInfo		viewport = {};
+	viewport.sType			= VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewport.viewportCount	= 1;
+	viewport.scissorCount	= 1;
+
+	VkPipelineRasterizationStateCreateInfo	rasterization = {};
+	rasterization.sType			= VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterization.polygonMode	= VK_POLYGON_MODE_FILL;
+	rasterization.cullMode		= VK_CULL_MODE_NONE;
+	rasterization.frontFace		= VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+	VkPipelineMultisampleStateCreateInfo	multisample = {};
+	multisample.sType					= VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisample.rasterizationSamples	= VK_SAMPLE_COUNT_1_BIT;
+
+	VkPipelineDepthStencilStateCreateInfo	depth_stencil = {};
+	depth_stencil.sType					= VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depth_stencil.depthTestEnable		= VK_FALSE;
+	depth_stencil.depthWriteEnable		= VK_FALSE;
+	depth_stencil.depthCompareOp		= VK_COMPARE_OP_LESS_OR_EQUAL;
+	depth_stencil.depthBoundsTestEnable	= VK_FALSE;
+	depth_stencil.stencilTestEnable		= VK_FALSE;
+
+	VkPipelineColorBlendAttachmentState		blend_attachment = {};
+	blend_attachment.blendEnable		= VK_FALSE;
+	blend_attachment.colorWriteMask		= VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+	VkPipelineColorBlendStateCreateInfo		blend_state = {};
+	blend_state.sType				= VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	blend_state.logicOpEnable		= VK_FALSE;
+	blend_state.attachmentCount		= 1;
+	blend_state.pAttachments		= &blend_attachment;
+
+	const VkDynamicState					dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+	VkPipelineDynamicStateCreateInfo		dynamic_state	 = {};
+	dynamic_state.sType				= VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamic_state.dynamicStateCount	= uint(CountOf( dynamic_states ));
+	dynamic_state.pDynamicStates	= dynamic_states;
+
+	// create pipeline
+	VkGraphicsPipelineCreateInfo	info = {};
+	info.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	info.stageCount				= uint(CountOf( stages ));
+	info.pStages				= stages;
+	info.pViewportState			= &viewport;
+	info.pVertexInputState		= &vertex_input;
+	info.pInputAssemblyState	= &input_assembly;
+	info.pRasterizationState	= &rasterization;
+	info.pMultisampleState		= &multisample;
+	info.pDepthStencilState		= &depth_stencil;
+	info.pColorBlendState		= &blend_state;
+	info.pDynamicState			= &dynamic_state;
+	info.layout					= proceduralImage2.pipelineLayout;
+	info.renderPass				= mipmapRenderpass;
+	info.subpass				= 0;
+
+	VK_CHECK( vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &proceduralImage2.pipeline ));
 	return true;
 }
 
