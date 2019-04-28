@@ -70,8 +70,12 @@ namespace FG
 
 		VResourceManager		_resourceMngr;
 		VDebugger				_debugger;
+		VkQueryPool				_queryPool;			// for time measurements
 
 		ShaderDebugCallback_t	_shaderDebugCallback;
+
+		mutable std::mutex		_statisticGuard;
+		mutable Statistics		_lastStatistic;
 
 
 	// methods
@@ -150,6 +154,7 @@ namespace FG
 		ND_ VDeviceQueueInfoPtr	FindQueue (EQueueType type) const;
 		ND_ VDevice const&		GetDevice ()				const	{ return _device; }
 		ND_ VResourceManager &	GetResourceManager ()				{ return _resourceMngr; }
+		ND_ VkQueryPool			GetQueryPool ()				const	{ return _queryPool; }
 
 
 	private:

@@ -237,6 +237,12 @@ namespace FGC
 			}
 			return count;
 		}
+
+
+		ND_ static constexpr size_t  Capacity ()
+		{
+			return ChunkSize * MaxChunks;
+		}
 	};
 
 

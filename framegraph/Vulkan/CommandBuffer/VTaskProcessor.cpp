@@ -2436,7 +2436,7 @@ namespace FG
 		const uint3				dimension	= image->Dimension() >> task.baseLevel;
 		VkImageSubresourceRange	subres;
 
-		subres.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+		subres.aspectMask		= image->AspectMask();
 		subres.baseArrayLayer	= 0;
 		subres.layerCount		= arr_layers;
 		subres.baseMipLevel		= task.baseLevel;
@@ -2461,7 +2461,7 @@ namespace FG
 			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.srcAccessMask		= 0;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i), 1, 0, arr_layers };
+			barrier.subresourceRange	= { subres.aspectMask, (task.baseLevel+i), 1, 0, arr_layers };
 
 			vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									0, null, 0, null, 1, &barrier );
@@ -2469,10 +2469,10 @@ namespace FG
 			VkImageBlit		region	= {};
 			region.srcOffsets[0]	= { 0, 0, 0 };
 			region.srcOffsets[1]	= { src_size.x, src_size.y, src_size.z };
-			region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i-1), 0, arr_layers };
+			region.srcSubresource	= { subres.aspectMask, (task.baseLevel+i-1), 0, arr_layers };
 			region.dstOffsets[0]	= { 0, 0, 0 };
 			region.dstOffsets[1]	= { dst_size.x, dst_size.y, dst_size.z };
-			region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i), 0, arr_layers };
+			region.dstSubresource	= { subres.aspectMask, (task.baseLevel+i), 0, arr_layers };
 
 			vkCmdBlitImage( _cmdBuffer, vk_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 							 vk_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
@@ -2484,7 +2484,7 @@ namespace FG
 			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
-			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, (task.baseLevel+i), 1, 0, arr_layers };
+			barrier.subresourceRange	= { subres.aspectMask, (task.baseLevel+i), 1, 0, arr_layers };
 
 			vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									0, null, 0, null, 1, &barrier );

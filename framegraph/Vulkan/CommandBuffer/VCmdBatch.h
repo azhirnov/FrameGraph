@@ -238,6 +238,8 @@ namespace FG
 		
 		using VkResourceArray_t		= Array<Pair< VkObjectType, uint64_t >>;
 
+		using Statistic_t		= IFrameGraph::Statistics;
+
 
 	public:
 		enum class EState : uint
@@ -298,6 +300,8 @@ namespace FG
 		String								_debugDump;
 		BatchGraph							_debugGraph;
 		
+		Statistic_t							_statistic;
+
 		VSubmitted *						_submitted	= null;	// TODO: should be atomic
 		
 		RWDataRaceCheck						_drCheck;
@@ -312,11 +316,13 @@ namespace FG
 		void  Release () override;
 		
 		bool  OnBegin (const CommandBufferDesc &);
+		void  OnBeginRecording (VkCommandBuffer cmd);
+		void  OnEndRecording (VkCommandBuffer cmd);
 		bool  OnBaked (INOUT ResourceMap_t &);
 		bool  OnReadyToSubmit ();
 		bool  BeforeSubmit (OUT VkSubmitInfo &);
 		bool  AfterSubmit (OUT Appendable<VSwapchain const*>, VSubmitted *);
-		bool  OnComplete (VDebugger &, const ShaderDebugCallback_t &);
+		bool  OnComplete (VDebugger &, const ShaderDebugCallback_t &, INOUT Statistic_t &);
 
 		void  SignalSemaphore (VkSemaphore sem);
 		void  WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
@@ -327,9 +333,6 @@ namespace FG
 	
 
 		// shader debugger //
-		void  BeginShaderDebugger (VkCommandBuffer cmd);
-		void  EndShaderDebugger (VkCommandBuffer cmd);
-
 		bool  SetShaderModule (ShaderDbgIndex id, const SharedShaderPtr &module);
 		bool  GetDebugModeInfo (ShaderDbgIndex id, OUT EShaderDebugMode &mode, OUT EShaderStages &stages) const;
 		bool  GetDescriptotSet (ShaderDbgIndex id, OUT uint &binding, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const;
@@ -366,6 +369,8 @@ namespace FG
 
 		
 		// shader debugger //
+		void  _BeginShaderDebugger (VkCommandBuffer cmd);
+		void  _EndShaderDebugger (VkCommandBuffer cmd);
 		bool  _AllocStorage (INOUT DebugMode &, BytesU);
 		bool  _AllocDescriptorSet (EShaderDebugMode debugMode, EShaderStages stages,
 								   RawBufferID storageBuffer, BytesU size, OUT VkDescriptorSet &descSet);

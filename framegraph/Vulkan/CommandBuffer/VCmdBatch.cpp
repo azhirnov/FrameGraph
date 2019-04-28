@@ -190,8 +190,45 @@ namespace FG
 		_staging.hostWritableBufferSize		= desc.hostWritableBufferSize;
 		_staging.hostReadableBufferSize		= desc.hostWritableBufferSize;
 		_staging.hostWritebleBufferUsage	= desc.hostWritebleBufferUsage | EBufferUsage::TransferSrc;
-
+		
+		_statistic = Default;
 		return true;
+	}
+	
+/*
+=================================================
+	OnBeginRecording
+=================================================
+*/
+	void  VCmdBatch::OnBeginRecording (VkCommandBuffer cmd)
+	{
+		EXLOCK( _drCheck );
+		CHECK( GetState() == EState::Recording );
+
+		VDevice const&	dev		= _frameGraph.GetDevice();
+		VkQueryPool		pool	= _frameGraph.GetQueryPool();
+		
+		dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, pool, _indexInPool*2 );
+
+		_BeginShaderDebugger( cmd );
+	}
+	
+/*
+=================================================
+	OnEndRecording
+=================================================
+*/
+	void  VCmdBatch::OnEndRecording (VkCommandBuffer cmd)
+	{
+		EXLOCK( _drCheck );
+		CHECK( GetState() == EState::Recording );
+		
+		_EndShaderDebugger( cmd );
+
+		VDevice const&	dev		= _frameGraph.GetDevice();
+		VkQueryPool		pool	= _frameGraph.GetQueryPool();
+
+		dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, pool, _indexInPool*2 + 1 );
 	}
 
 /*
@@ -269,7 +306,7 @@ namespace FG
 	OnComplete
 =================================================
 */
-	bool  VCmdBatch::OnComplete (VDebugger &debugger, const ShaderDebugCallback_t &shaderDbgCallback)
+	bool  VCmdBatch::OnComplete (VDebugger &debugger, const ShaderDebugCallback_t &shaderDbgCallback, INOUT Statistic_t &outStatistic)
 	{
 		EXLOCK( _drCheck );
 		ASSERT( _submitted );
@@ -287,6 +324,20 @@ namespace FG
 
 		_debugDump.clear();
 		_debugGraph	= Default;
+		
+		// read frame time
+		{
+			VDevice const&	dev		= _frameGraph.GetDevice();
+			VkQueryPool		pool	= _frameGraph.GetQueryPool();
+			uint64_t		query_results[2];
+
+			VK_CALL( dev.vkGetQueryPoolResults( dev.GetVkDevice(), pool, _indexInPool*2, uint(CountOf(query_results)),
+												sizeof(query_results), OUT query_results,
+												sizeof(query_results[0]), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT ));
+
+			_statistic.renderer.gpuTime += Nanoseconds{query_results[1] - query_results[0]};
+		}
+		outStatistic.Merge( _statistic );
 
 		_submitted = null;
 		return true;
@@ -826,14 +877,11 @@ namespace FG
 	
 /*
 =================================================
-	BeginShaderDebugger
+	_BeginShaderDebugger
 =================================================
 */
-	void  VCmdBatch::BeginShaderDebugger (VkCommandBuffer cmd)
+	void  VCmdBatch::_BeginShaderDebugger (VkCommandBuffer cmd)
 	{
-		EXLOCK( _drCheck );
-		CHECK( GetState() == EState::Recording );
-
 		if ( _shaderDebugger.buffers.empty() )
 			return;
 		
@@ -883,14 +931,11 @@ namespace FG
 	
 /*
 =================================================
-	EndShaderDebugger
+	_EndShaderDebugger
 =================================================
 */
-	void  VCmdBatch::EndShaderDebugger (VkCommandBuffer cmd)
+	void  VCmdBatch::_EndShaderDebugger (VkCommandBuffer cmd)
 	{
-		EXLOCK( _drCheck );
-		CHECK( GetState() == EState::Recording );
-
 		if ( _shaderDebugger.buffers.empty() )
 			return;
 		

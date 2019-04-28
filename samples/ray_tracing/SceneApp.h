@@ -9,7 +9,7 @@
 #include "scene/Renderer/IRenderTechnique.h"
 #include "scene/SceneManager/ISceneManager.h"
 #include "scene/SceneManager/IViewport.h"
-#include "scene/Utils/Ext/FPSCamera.h"
+#include "scene/Math/FPSCamera.h"
 #include "framework/Window/IWindow.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include <chrono>
@@ -51,8 +51,11 @@ namespace FG
 		bool					_mousePressed	= false;
 
 		static constexpr float	_velocity		= 1.0f;
+		static constexpr Rad	_fovY			= 70_deg;
+		static constexpr vec2	_viewRange		{ 0.05f, 50.0f };
 		
 		String					_debugOutputPath;
+		String					_title;
 
 		struct {
 			Nanoseconds				gpuTimeSum				{0};

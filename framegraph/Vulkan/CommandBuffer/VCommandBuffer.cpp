@@ -98,8 +98,12 @@ namespace {
 */
 	bool  VCommandBuffer::Execute ()
 	{
+		using TimePoint_t = std::chrono::high_resolution_clock::time_point;
+
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
+		
+		const auto	start_time = TimePoint_t::clock::now();
 
 		_state = EState::Compiling;
 
@@ -109,10 +113,12 @@ namespace {
 			_debugger->End( GetName(), _indexInPool, OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
 
 		CHECK_ERR( _batch->OnBaked( INOUT _rm.resourceMap ));
-		_batch = null;
 		
 		_taskGraph.OnDiscardMemory();
 		_AfterCompilation();
+		
+		EditStatistic().renderer.cpuTime += TimePoint_t::clock::now() - start_time;
+		_batch = null;
 
 		_state = EState::Initial;
 		return true;
@@ -193,10 +199,8 @@ namespace {
 			info.flags	= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 			VK_CALL( dev.vkBeginCommandBuffer( cmd, &info ));
-			//dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _query.pool, _currQueue->frames[_frameId].queryIndex );
+			_batch->OnBeginRecording( cmd );
 		}
-
-		_batch->BeginShaderDebugger( cmd );
 
 		// commit image layout transition and other
 		_barrierMngr.Commit( dev, cmd );
@@ -210,11 +214,9 @@ namespace {
 			_barrierMngr.ForceCommit( dev, cmd, dev.GetAllWritableStages(), dev.GetAllReadableStages() );
 		}
 
-		_batch->EndShaderDebugger( cmd );
-		
 		// end
 		{
-			//dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, _query.pool, _currQueue->frames[_frameId].queryIndex + 1 );
+			_batch->OnEndRecording( cmd );
 			VK_CALL( dev.vkEndCommandBuffer( cmd ));
 		}
 		return true;

@@ -22,6 +22,7 @@ namespace FG
 
 		using Batches_t			= FixedArray< VCmdBatchPtr, MaxBatches >;
 		using Semaphores_t		= FixedArray< VkSemaphore, MaxSemaphores >;
+		using Statistic_t		= IFrameGraph::Statistics;
 
 
 	// variables
@@ -47,7 +48,7 @@ namespace FG
 
 	private:
 		void _Initialize (const VDevice &, EQueueType queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>);
-		void _Release (const VDevice &, VDebugger &, const IFrameGraph::ShaderDebugCallback_t &);
+		void _Release (const VDevice &, VDebugger &, const IFrameGraph::ShaderDebugCallback_t &, INOUT Statistic_t &);
 		void _Destroy (const VDevice &);
 	};
 

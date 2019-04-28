@@ -21,7 +21,8 @@ namespace FG
 */
 	VFrameGraph::VFrameGraph (const VulkanDeviceInfo &vdi) :
 		_state{ EState::Initial },	_device{ vdi },
-		_queueUsage{ Default },		_resourceMngr{ _device }
+		_queueUsage{ Default },		_resourceMngr{ _device },
+		_queryPool{ VK_NULL_HANDLE }
 	{
 	}
 	
@@ -52,6 +53,16 @@ namespace FG
 			_AddAsyncComputeQueue();
 			_AddAsyncTransferQueue();
 			CHECK_ERR( not _queueMap.empty() );
+		}
+		
+		// create query pool
+		{
+			VkQueryPoolCreateInfo	info = {};
+			info.sType		= VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+			info.queryType	= VK_QUERY_TYPE_TIMESTAMP;
+			info.queryCount	= uint(CmdBatchPool_t::Capacity() * 2);
+		
+			VK_CHECK( _device.vkCreateQueryPool( _device.GetVkDevice(), &info, null, OUT &_queryPool ));
 		}
 
 		CHECK_ERR( _resourceMngr.Initialize() );
@@ -97,6 +108,11 @@ namespace FG
 					sem = VK_NULL_HANDLE;
 				}
 			}
+		}
+		
+		if ( _queryPool ) {
+			_device.vkDestroyQueryPool( _device.GetVkDevice(), _queryPool, null );
+			_queryPool = VK_NULL_HANDLE;
 		}
 
 		_shaderDebugCallback = {};
@@ -556,27 +572,6 @@ namespace FG
 		auto&			queue	= _GetQueueData( desc.queueType );
 		CHECK_ERR( queue.ptr );
 
-		// try to free already submitted commands
-		/*{
-			EXLOCK( _queueGuard );
-			if ( queue.submitted.size() )
-			{
-				VSubmitted*	submitted	= queue.submitted.front();
-				VkFence		fence		= submitted->GetFence();
-				bool		is_complete	= not fence;
-
-				if ( fence and _device.vkWaitForFences( _device.GetVkDevice(), 1, &fence, VK_TRUE, 0 ) == VK_SUCCESS )
-					is_complete = true;
-
-				if ( is_complete )
-				{
-					submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, OUT _fenceCache );
-					queue.submitted.erase( queue.submitted.begin() );
-					_submittedPool.Unassign( submitted->GetIndexInPool() );
-				}
-			}
-		}*/
-
 		// acquire command buffer
 		for (;;)
 		{
@@ -860,7 +855,8 @@ namespace FG
 
 			if ( is_complete )
 			{
-				submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback );
+				EXLOCK( _statisticGuard );
+				submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
 				iter = q.submitted.erase( iter );
 				_submittedPool.Unassign( submitted->GetIndexInPool() );
 			}
@@ -917,6 +913,8 @@ namespace FG
 
 		if ( fences.size() )
 		{
+			EXLOCK( _statisticGuard );
+
 			auto  res = _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, timeout.count() );
 
 			if ( res == VK_SUCCESS )
@@ -925,7 +923,7 @@ namespace FG
 				for (auto& cmd : commands)
 				{
 					if ( auto*  submitted = Cast<VCmdBatch>(cmd.GetBatch())->GetSubmitted() )
-						submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback );
+						submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
 				}
 			}
 			else
@@ -970,16 +968,18 @@ namespace FG
 				VK_CALL( _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, UMax ));
 			}
 		
+			EXLOCK( _statisticGuard );
+
 			for (auto& q : _queueMap)
 			{
 				for (auto* s : q.submitted) {
-					s->_Release( GetDevice(), _debugger, _shaderDebugCallback );
+					s->_Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
 					_submittedPool.Unassign( s->GetIndexInPool() );
 				}
 				q.submitted.clear();
 			}
 		}
-		
+
 		_resourceMngr.RunValidation( 100 );
 		return true;
 	}
@@ -1022,8 +1022,12 @@ namespace FG
 */
 	bool  VFrameGraph::GetStatistics (OUT Statistics &result) const
 	{
-		// TODO
-		return false;
+		EXLOCK( _statisticGuard );
+
+		result = _lastStatistic;
+		
+		_lastStatistic = Default;
+		return true;
 	}
 	
 /*

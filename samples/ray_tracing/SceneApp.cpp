@@ -68,7 +68,7 @@ namespace FG
 */
 	bool SceneApp::Initialize ()
 	{
-		// will crash if it is not created as shader pointer
+		// will crash if it is not created as shared pointer
 		ASSERT( shared_from_this() );
 
 		CHECK_ERR( _CreateFrameGraph() );
@@ -165,13 +165,15 @@ namespace FG
 			#	error Unknown window library!
 			#endif
 
-			CHECK_ERR( _window->Create( wnd_size, "Ray tracing" ) );
+			_title = "Ray tracing";
+
+			CHECK_ERR( _window->Create( wnd_size, _title ));
 			_window->AddListener( this );
 		}
 
 		// initialize vulkan device
 		{
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Ray tracing", "FrameGraph", VK_API_VERSION_1_1,
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_1,
 									   "RTX",
 									   {},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
@@ -276,12 +278,18 @@ namespace FG
 */
 	void SceneApp::OnResize (const uint2 &size)
 	{
+		if ( Any( size == uint2(0) ))
+			return;
+
 		VulkanSwapchainCreateInfo	swapchain_info;
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 		swapchain_info.surfaceSize  = size;
 		
 		_swapchainId = _frameGraph->CreateSwapchain( swapchain_info, _swapchainId.Release() );
 		CHECK_FATAL( _swapchainId );
+		
+		const vec2	view_size	{ size.x, size.y };
+		_camera.SetPerspective( _fovY, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
 	}
 	
 /*
@@ -351,9 +359,8 @@ namespace FG
 		const uint2	wnd_size	= _window->GetSize();
 		const vec2	view_size	{ wnd_size.x, wnd_size.y };
 		//const vec2	view_size	{ 3840.0f, 2160.0f };
-		const vec2	range		{ 0.05f, 50.0f };
 
-		_camera.SetPerspective( 70_deg, view_size.x / view_size.y, range.x, range.y );
+		_camera.SetPerspective( _fovY, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
 		_camera.Rotate( -_mouseDelta.x, _mouseDelta.y );
 
 		if ( length2( _positionDelta ) > 0.01f ) {
@@ -364,7 +371,7 @@ namespace FG
 		LayerBits	layers;
 		layers[uint(ERenderLayer::RayTracing)] = true;
 
-		preRender.AddCamera( _camera.GetCamera(), view_size, range, DetailLevelRange{}, ECameraType::Main, layers, shared_from_this() );
+		preRender.AddCamera( _camera.GetCamera(), view_size, _viewRange, DetailLevelRange{}, ECameraType::Main, layers, shared_from_this() );
 
 		// reset
 		_positionDelta	= vec3{0.0f};
@@ -422,7 +429,7 @@ namespace FG
 			_frameStat.cpuTimeSum		= Default;
 			_frameStat.frameCounter		= 0;
 
-			_window->SetTitle( "RayTracing [FPS: "s << ToString(fps_value) <<
+			_window->SetTitle( String(_title) << " [FPS: " << ToString(fps_value) <<
 							   ", GPU: " << ToString(gpu_time) <<
 							   ", CPU: " << ToString(cpu_time) << ']' );
 		}

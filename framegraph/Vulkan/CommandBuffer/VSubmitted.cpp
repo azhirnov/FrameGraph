@@ -60,7 +60,7 @@ namespace FG
 	_Release
 =================================================
 */
-	void VSubmitted::_Release (const VDevice &dev, VDebugger &debugger, const IFrameGraph::ShaderDebugCallback_t &shaderDbgCallback)
+	void VSubmitted::_Release (const VDevice &dev, VDebugger &debugger, const IFrameGraph::ShaderDebugCallback_t &shaderDbgCallback, INOUT Statistic_t &outStatistic)
 	{
 		EXLOCK( _drCheck );
 
@@ -71,7 +71,7 @@ namespace FG
 		_semaphores.clear();
 
 		for (auto& batch : _batches) {
-			batch->OnComplete( debugger, shaderDbgCallback );
+			batch->OnComplete( debugger, shaderDbgCallback, INOUT outStatistic );
 		}
 
 		_batches.clear();

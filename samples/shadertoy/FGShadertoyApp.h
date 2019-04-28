@@ -5,7 +5,7 @@
 #include "framework/Window/IWindow.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "framegraph/FG.h"
-#include "scene/Utils/Ext/FPSCamera.h"
+#include "scene/Math/FPSCamera.h"
 #include <chrono>
 
 namespace FG

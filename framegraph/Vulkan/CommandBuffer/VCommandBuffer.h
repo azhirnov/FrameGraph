@@ -71,7 +71,6 @@ namespace FG
 	private:
 		Allocator_t				_mainAllocator;
 		TaskGraph_t				_taskGraph;
-		Statistic_t				_statistic;
 		EState					_state;
 		VCmdBatchPtr			_batch;
 		EQueueFamily			_queueIndex;
@@ -177,7 +176,7 @@ namespace FG
 		ND_ VCmdBatch &				GetBatch ()					const	{ EXLOCK( _drCheck );  return *_batch; }
 		ND_ VCmdBatchPtr const&		GetBatchPtr ()				const	{ EXLOCK( _drCheck );  return _batch; }
 		ND_ Allocator_t &			GetAllocator ()						{ EXLOCK( _drCheck );  return _mainAllocator; }
-		ND_ Statistic_t &			EditStatistic ()					{ EXLOCK( _drCheck );  return _statistic; }
+		ND_ Statistic_t &			EditStatistic ()					{ EXLOCK( _drCheck );  return _batch->_statistic; }
 		ND_ VPipelineCache &		GetPipelineCache ()					{ EXLOCK( _drCheck );  return _pipelineCache; }
 		ND_ VBarrierManager &		GetBarrierManager ()				{ EXLOCK( _drCheck );  return _barrierMngr; }
 		ND_ Ptr<VLocalDebugger>		GetDebugger ()						{ EXLOCK( _drCheck );  return _debugger.get(); }

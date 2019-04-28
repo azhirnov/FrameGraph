@@ -888,9 +888,7 @@ namespace {
 */
 	void VLocalDebugger::_UpdateBufferTaskToString (Ptr<const VFgTask<UpdateBuffer>> task, INOUT String &str) const
 	{
-		/*str << indent << "	dstBuffer:   \"" << task->dstBuffer->GetDebugName() << "\"\n"
-			<< indent << "	dstOffset:   " << ToString( BytesU{task->dstOffset} ) << '\n'
-			<< indent << "	size:        " << ToString( BytesU{task->DataSize()} ) << '\n';*/
+		str << indent << "	dstBuffer:   \"" << task->dstBuffer->GetDebugName() << "\"\n";
 	}
 	
 /*
