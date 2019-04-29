@@ -1,1 +1,0 @@
-Here are some prototypes of new features written on a pure Vulkan API before they are added to FrameGraph.

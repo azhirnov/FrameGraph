@@ -18,7 +18,7 @@ void TraceShadowRay (uint rayFlags, const vec3 origin, float Tmin, const vec3 di
 //-----------------------------------------------------------------------------
 
 
-#ifdef RAY_CLOSESTHIT_SHADER
+#if SHADER & SH_RAY_CLOSESTHIT
 
 	struct PrimitiveData
 	{
@@ -49,13 +49,13 @@ void TraceShadowRay (uint rayFlags, const vec3 origin, float Tmin, const vec3 di
 		ObjectMaterial	materials[];
 	};
 
-	#ifdef ALBEDO_MAP
+	#if TEXTURE_BITS & ALBEDO_MAP
 		layout(set=0, binding=4) uniform sampler2D  un_AlbedoMaps[];
 	#endif
-	#ifdef NORMAL_MAP
+	#if TEXTURE_BITS & NORMAL_MAP
 		layout(set=0, binding=5) uniform sampler2D  un_NormalMaps[];
 	#endif
-	#ifdef SPECULAR_MAP
+	#if TEXTURE_BITS & SPECULAR_MAP
 		layout(set=0, binding=6) uniform sampler2D  un_SpecularMaps[];
 	#endif
 
@@ -78,19 +78,19 @@ void TraceShadowRay (uint rayFlags, const vec3 origin, float Tmin, const vec3 di
 		result.opticalDepth		 = mtr.opticalDepth;
 		result.objectID			 = obj_id;
 	
-		#ifdef ALBEDO_MAP
+		#if TEXTURE_BITS & ALBEDO_MAP
 			result.albedo	= textureLod( un_AlbedoMaps[ nonuniformEXT(mtr.albedoMap) ], uv0, lod ).rgb * mtr.albedoColor;
 		#else
 			result.albedo	= mtr.albedoColor;
 		#endif
 
-		#ifdef NORMAL_MAP
+		#if TEXTURE_BITS & NORMAL_MAP
 			// TODO
 		#else
 			result.normal	= BaryLerp( attr0.at_Normal, attr1.at_Normal, attr2.at_Normal, barycentrics );
 		#endif
 
-		#ifdef SPECULAR_MAP
+		#if TEXTURE_BITS & SPECULAR_MAP
 			result.specular	= textureLod( un_AlbedoMaps[nonuniformEXT(mtr.specularMap)], uv0, lod ).rgb * mtr.specularColor;
 		#else
 			result.specular	= mtr.specularColor;
@@ -99,4 +99,4 @@ void TraceShadowRay (uint rayFlags, const vec3 origin, float Tmin, const vec3 di
 		return result;
 	}
 
-#endif	// RAY_CLOSESTHIT_SHADER
+#endif	// SH_RAY_CLOSESTHIT

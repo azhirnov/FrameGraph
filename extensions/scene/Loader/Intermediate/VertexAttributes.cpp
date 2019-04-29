@@ -34,7 +34,7 @@ namespace FG
 				{ V::Color,			N::Color }
 			};
 
-			CHECK( name_map.size() == 13 );
+			CHECK( name_map.size() == 14 );
 			STATIC_ASSERT( VertexID::IsOptimized() );
 
 			auto	iter = name_map.find( id );

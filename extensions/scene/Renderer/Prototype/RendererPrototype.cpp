@@ -181,7 +181,7 @@ namespace FG
 		{
 			CHECK( _frameGraph->InitPipelineResources( outPipeline, DescriptorSetID{"RenderTargets"}, OUT ppln_res ));
 			ppln_res.BindBuffer( UniformID{"CameraUB"}, _cameraUB, 0_b, SizeOf<CameraUB> );
-			//ppln_res.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
+			ppln_res.BindBuffer( UniformID{"LightsUB"}, _lightsUB );
 		}
 		return true;
 	}
@@ -466,7 +466,7 @@ namespace FG
 			LightsUB	data = {};
 			auto&		i = data.lightCount;
 			
-			data.lights[i].position		= vec3{ 8.0f, 3.0f, 0.0f };
+			data.lights[i].position		= vec3{ 1.0f, 4.0f, 0.0f };
 			data.lights[i].radius		= 0.1f;
 			data.lights[i].color		= vec4(1.0f); // vec4{ 1.0f, 0.5f, 0.3f, 0.0f };
 			data.lights[i].attenuation	= vec4{ 0.0f, 0.3f, 0.0f, 0.0f };

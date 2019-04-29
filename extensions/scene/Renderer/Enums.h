@@ -26,6 +26,8 @@ namespace FG
 		Specular		= 1 << 4,
 		Roughtness		= 1 << 5,
 		Metallic		= 1 << 6,
+		_Last,
+		All				= ((_Last-1) << 1) - 1,
 	};
 	FG_BIT_OPERATORS( ETextureType );
 

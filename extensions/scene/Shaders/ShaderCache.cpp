@@ -71,6 +71,67 @@ namespace FG
 	}
 //-----------------------------------------------------------------------------
 
+	
+/*
+=================================================
+	ShaderTypeToString
+=================================================
+*/
+	ND_ static StringView  ShaderTypeToString (EShader type)
+	{
+		ENABLE_ENUM_CHECKS();
+		switch ( type )
+		{
+			case EShader::Vertex :			return "SH_VERTEX";
+			case EShader::TessControl :		return "SH_TESS_CONTROL";
+			case EShader::TessEvaluation :	return "SH_TESS_EVALUATION";
+			case EShader::Geometry :		return "SH_GEOMETRY";
+			case EShader::Fragment :		return "SH_FRAGMENT";
+			case EShader::Compute :			return "SH_COMPUTE";
+
+			case EShader::MeshTask :		return "SH_MESH_TASK";
+			case EShader::Mesh :			return "SH_MESH";
+
+			case EShader::RayGen :			return "SH_RAY_GEN";
+			case EShader::RayAnyHit :		return "SH_RAY_ANYHIT";
+			case EShader::RayClosestHit :	return "SH_RAY_CLOSESTHIT";
+			case EShader::RayMiss :			return "SH_RAY_MISS";
+			case EShader::RayIntersection :	return "SH_RAY_INTERSECTION";
+			case EShader::RayCallable :		return "SH_RAY_CALLABLE";
+
+			case EShader::_Count :
+			case EShader::Unknown :			break;
+		}
+		DISABLE_ENUM_CHECKS();
+		RETURN_ERR( "unknown shader type" );
+	}
+	
+/*
+=================================================
+	TextureTypeToString
+=================================================
+*/
+	ND_ static StringView  TextureTypeToString (ETextureType type)
+	{
+		ENABLE_ENUM_CHECKS();
+		switch ( type )
+		{
+			case ETextureType::Albedo :		return "ALBEDO_MAP";
+			case ETextureType::Normal :		return "NORMAL_MAP";
+			case ETextureType::Height :		return "HEIGHT_MAP";
+			case ETextureType::Reflection :	return "REFLECTION_MAP";
+			case ETextureType::Specular :	return "SPECULAR_MAP";
+			case ETextureType::Roughtness :	return "ROUGHTNESS_MAP";
+			case ETextureType::Metallic :	return "METALLIC_MAP";
+			case ETextureType::Unknown :
+			case ETextureType::_Last :
+			case ETextureType::All :		break;
+		}
+		DISABLE_ENUM_CHECKS();
+		RETURN_ERR( "unknown texture type" );
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -80,6 +141,22 @@ namespace FG
 	ShaderCache::ShaderCache ()
 	{
 		_sources.reserve( 128 );
+		
+		_defaultDefines
+			<< "#define INOUT\n"
+			<< "#define OUT\n\n";
+
+		for (EShader t = EShader(0); t < EShader::_Count; t = EShader(uint(t) + 1))
+		{
+			_defaultDefines << "#define " << ShaderTypeToString( t ) << " " << ToString( 1u << uint(t) ) << "\n";
+		}
+		_defaultDefines << "\n";
+
+		for (ETextureType t = ETextureType(1); t < ETextureType::_Last; t = ETextureType(uint(t) << 1))
+		{
+			_defaultDefines << "#define " << TextureTypeToString( t ) << " " << ToString( uint(t) ) << "\n";
+		}
+		_defaultDefines << "\n";
 	}
 	
 /*
@@ -173,28 +250,22 @@ namespace FG
 */
 	ND_ static String  BuildShaderDefines (const ShaderCache::GraphicsPipelineInfo &info)
 	{
-		String	result;
+		String	result	= "#define TEXTURE_BITS ";
+		bool	is_first= true;
 
 		for (ETextureType t = ETextureType(1); t <= info.textures; t = ETextureType(uint(t) << 1))
 		{
 			if ( not EnumEq( info.textures, t ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
-			switch ( t )
-			{
-				case ETextureType::Albedo :		result << "#define ALBEDO_MAP\n";		break;
-				case ETextureType::Normal :		result << "#define NORMAL_MAP\n";		break;
-				case ETextureType::Height :		result << "#define HEIGHT_MAP\n";		break;
-				case ETextureType::Reflection :	result << "#define REFLECTION_MAP\n";	break;
-				case ETextureType::Specular :	result << "#define SPECULAR_MAP\n";		break;
-				case ETextureType::Roughtness :	result << "#define ROUGHTNESS_MAP\n";	break;
-				case ETextureType::Metallic :	result << "#define METALLIC_MAP\n";		break;
-				case ETextureType::Unknown :
-				default :						CHECK(!"unknown texture type");			break;
-			}
-			DISABLE_ENUM_CHECKS();
+			if ( is_first )
+				is_first = false;
+			else
+				result << " | ";
+
+			result << TextureTypeToString( t );
 		}
+		result << "\n";
 
 		for (auto& const_pair : info.constants)
 		{
@@ -227,20 +298,31 @@ namespace FG
 			return true;
 		}
 
-		const String	defines		= BuildShaderDefines( info ); //+ "void dbg_EnableTraceRecording (bool b) {}\n\n";
-		String			fs_source	= "#define FRAGMENT_SHADER\n" + defines;
-		String			vs_source	= "#define VERTEX_SHADER\n" + defines + _CacheVertexAttribs( info );
+		const String		defines		= _defaultDefines + BuildShaderDefines( info ); //+ "void dbg_EnableTraceRecording (bool b) {}\n\n";
+		String				shared_src;
+		EShaderLangFormat	sh_lang		= EShaderLangFormat::VKSL_110;
+		EShaderStages		all_stages	= EShaderStages::Vertex | EShaderStages::Fragment;
 
-		for (auto& id : info.sourceIDs)
-		{
-			StringView	src = _GetCachedSource( id );
-			vs_source << src;
-			fs_source << src;
+		for (auto& id : info.sourceIDs) {
+			shared_src << _GetCachedSource( id );
 		}
 
 		GraphicsPipelineDesc	desc;
-		desc.AddShader( EShader::Vertex,   EShaderLangFormat::VKSL_110, "main", std::move(vs_source) );
-		desc.AddShader( EShader::Fragment, EShaderLangFormat::VKSL_110, "main", std::move(fs_source) );
+		for (uint i = 0; (1u<<i) <= uint(all_stages); ++i)
+		{
+			if ( not EnumEq( all_stages, 1u<<i ))
+				continue;
+
+			String	src;
+			src << "#define SHADER " << ShaderTypeToString( EShader(i) ) << "\n\n" << defines;
+
+			switch ( EShader(i) ) {
+				case EShader::Vertex :	src << _CacheVertexAttribs( info );	break;
+			}
+			src << shared_src;
+
+			desc.AddShader( EShader(i), sh_lang, "main", std::move(src) );
+		}
 
 		GPipelineID	pipeline = _frameGraph->CreatePipeline( desc );
 		if ( not pipeline )
@@ -284,11 +366,12 @@ namespace FG
 			return true;
 		}
 
-		String		header = "#version 460\n"
-							 "#extension GL_NV_ray_tracing : require\n"
-							 "#extension GL_EXT_nonuniform_qualifier : require\n" +
-							 BuildShaderDefines( info ) +
-							 _CacheRayTracingVertexBuffer( info );
+		const String	header = "#version 460\n"
+								 "#extension GL_NV_ray_tracing : require\n"
+								 "#extension GL_EXT_nonuniform_qualifier : require\n"s
+								 << _defaultDefines
+								 << BuildShaderDefines( info )
+								 << _CacheRayTracingVertexBuffer( info );
 
 		RayTracingPipelineDesc	desc;
 		EShaderLangFormat		mode = Default; // EShaderLangFormat::EnableDebugTrace;
@@ -296,16 +379,8 @@ namespace FG
 		for (auto& sh : info.shaders)
 		{
 			String	source = header;
-			source << "#define RAYSHADER_" << sh.first.GetName() << "\n";
-
-			switch ( sh.second ) {
-				case EShader::RayGen :			source << "#define RAY_GENERATION_SHADER\n";	break;
-				case EShader::RayAnyHit :		source << "#define RAY_ANYHIT_SHADER\n";		break;
-				case EShader::RayClosestHit :	source << "#define RAY_CLOSESTHIT_SHADER\n";	break;
-				case EShader::RayMiss :			source << "#define RAY_MISS_SHADER\n";			break;
-				case EShader::RayIntersection :	source << "#define RAY_INTERSECTION_SHADER\n";	break;
-				case EShader::RayCallable :		source << "#define CALLABLE_SHADER\n";			break;
-			}
+			source << "#define RAYSHADER_" << sh.first.GetName() << "\n"
+				   << "#define SHADER " << ShaderTypeToString( sh.second ) << "\n";
 			
 			for (auto& id : info.sourceIDs) {
 				source << _GetCachedSource( id );
@@ -389,7 +464,7 @@ namespace FG
 		uint	index	= 0;
 		String	str;
 
-		str << "#ifdef VERTEX_SHADER\n";
+		str << "#if SHADER & SH_VERTEX\n";
 
 		for (auto& attr : info.attribs->GetVertexInput().Vertices())
 		{
@@ -416,7 +491,7 @@ namespace FG
 			str << "  " << name << ";\n";
 			str << "#define ATTRIB" << name.substr( 2 ) << ' ' << size_suffix << '\n';
 		}
-		str << "#endif	// VERTEX_SHADER\n";
+		str << "#endif	// SH_VERTEX\n";
 
 		return str;
 	}

@@ -112,18 +112,18 @@ namespace FG
 		AssimpLoader			loader;
 		AssimpLoader::Config	cfg;
 
-		IntermScenePtr	temp_scene = loader.Load( cfg, FG_DATA_PATH "../_data/sponza/sponza.obj" );
-		CHECK_ERR( temp_scene );
+		IntermScenePtr	sponza = loader.Load( cfg, FG_DATA_PATH "../_data/sponza/sponza.obj" );
+		CHECK_ERR( sponza );
 		
 		DevILLoader		img_loader;
-		CHECK_ERR( img_loader.Load( temp_scene, {FG_DATA_PATH "../_data/sponza"}, _scene->GetImageCache() ));
+		CHECK_ERR( img_loader.Load( sponza, {FG_DATA_PATH "../_data/sponza"}, _scene->GetImageCache() ));
 		
-		IntermScenePtr	temp_scene2 = loader.Load( cfg, FG_DATA_PATH "../_data/bunny/bunny.obj" );
-		CHECK_ERR( temp_scene2 );
+		IntermScenePtr	bunny = loader.Load( cfg, FG_DATA_PATH "../_data/bunny/bunny.obj" );
+		CHECK_ERR( bunny );
 		
 		// setup material
 		{
-			auto&	mtr = temp_scene2->GetMaterials().begin()->first->EditSettings();
+			auto&	mtr = bunny->GetMaterials().begin()->first->EditSettings();
 			mtr.albedo			= RGBA32f{ 0.8f, 0.8f, 1.0f, 1.0f };
 			mtr.opticalDepth	= 2.6f;
 			mtr.refraction		= 1.31f;	// ice
@@ -131,12 +131,14 @@ namespace FG
 
 		Transform	transform;
 		transform.scale = 20.0f;
-		temp_scene->Append( *temp_scene2, transform );
+		transform.position.y += 4.5f;
+		sponza->Append( *bunny, transform );
 
 		transform.scale	= 0.01f;
+		transform.position = vec3(0.0f);
 
-		auto		hierarchy = MakeShared<SimpleRayTracingScene>();
-		CHECK_ERR( hierarchy->Create( cmdbuf, temp_scene, _scene->GetImageCache(), transform ));
+		auto	hierarchy = MakeShared<SimpleRayTracingScene>();
+		CHECK_ERR( hierarchy->Create( cmdbuf, sponza, _scene->GetImageCache(), transform ));
 
 		return hierarchy;
 	}
@@ -184,19 +186,17 @@ namespace FG
 		}
 		
 		// setup device info
-		VulkanDeviceInfo					vulkan_info;
-		IFrameGraph::SwapchainCreateInfo_t	swapchain_info;
+		VulkanDeviceInfo			vulkan_info;
+		VulkanSwapchainCreateInfo	swapchain_info;
 		{
 			vulkan_info.instance		= BitCast<InstanceVk_t>( _vulkan.GetVkInstance() );
 			vulkan_info.physicalDevice	= BitCast<PhysicalDeviceVk_t>( _vulkan.GetVkPhysicalDevice() );
 			vulkan_info.device			= BitCast<DeviceVk_t>( _vulkan.GetVkDevice() );
 			
-			VulkanSwapchainCreateInfo	swapchain_ci;
-			swapchain_ci.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
-			swapchain_ci.surfaceSize	= _window->GetSize();
-			swapchain_ci.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_MAILBOX_KHR) );
-			//swapchain_ci.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
-			swapchain_info				= swapchain_ci;
+			swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
+			swapchain_info.surfaceSize	= _window->GetSize();
+			//swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_MAILBOX_KHR) );
+			swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
 
 			for (auto& q : _vulkan.GetVkQuues())
 			{

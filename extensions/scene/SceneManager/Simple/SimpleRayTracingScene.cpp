@@ -441,7 +441,7 @@ namespace {
 		UpdateRayTracingShaderTable  update_st;
 		update_st.SetScene( _rtScene );
 		update_st.SetTarget( _shaderTable );
-		update_st.SetMaxRecursionDepth( 12 );
+		update_st.SetMaxRecursionDepth( 16 );
 		update_st.SetRayGenShader( RTShaderID{"Main"} );
 		update_st.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 );
 		update_st.AddMissShader( RTShaderID{"ShadowMiss"}, 1 );

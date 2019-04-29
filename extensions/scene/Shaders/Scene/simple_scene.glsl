@@ -1,5 +1,5 @@
 
-#ifdef VERTEX_SHADER
+#if SHADER & SH_VERTEX
 	struct ObjectTransform
 	{
 		vec4	orientation;
@@ -29,32 +29,32 @@
 	#else
 	vec2 GetTextureCoordinate0 ()  { return vec2(1.0f); }
 	#endif
-#endif	// VERTEX_SHADER
+#endif	// SH_VERTEX
 
 
-#ifdef FRAGMENT_SHADER
+#if SHADER & SH_FRAGMENT
 	/*layout(set=0, binding=1, std140) uniform MaterialsUB {
 		vec4	someData;
 	} mtr;*/
 
-# ifdef ALBEDO_MAP
+# if TEXTURE_BITS & ALBEDO_MAP
 	layout(set=0, binding=2) uniform sampler2D  un_AlbedoTex;
 	vec4  SampleAlbedoLinear (const vec2 texcoord)    { return texture( un_AlbedoTex, texcoord ); }
 	vec4  SampleAlbedoNonlinear (const vec2 texcoord) { return ToNonLinear(texture( un_AlbedoTex, texcoord )); }
 # endif
 
-# ifdef SPECULAR_MAP
+# if TEXTURE_BITS & SPECULAR_MAP
 	layout(set=0, binding=3) uniform sampler2D  un_SpecularTex;
 	float SampleSpecular (const vec2 texcoord)  { return texture( un_SpecularTex, texcoord ).r; }
 # endif
 
-# ifdef ROUGHTNESS_MAP
+# if TEXTURE_BITS & ROUGHTNESS_MAP
 	layout(set=0, binding=4) uniform sampler2D  un_RoughtnessTex;
 	float SampleRoughtness (const vec2 texcoord)  { return texture( un_RoughtnessTex, texcoord ).r; }
 # endif
 
-# ifdef METALLIC_MAP
+# if TEXTURE_BITS & METALLIC_MAP
 	layout(set=0, binding=5) uniform sampler2D  un_MetallicTex;
 	float SampleMetallic (const vec2 texcoord)  { return texture( un_MetallicTex, texcoord ).r; }
 # endif
-#endif	// FRAGMENT_SHADER
+#endif	// SH_FRAGMENT

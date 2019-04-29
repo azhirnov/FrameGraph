@@ -87,6 +87,7 @@ namespace FG
 
 		ShaderSourceCache_t		_sourceCache;
 		ShaderSources_t			_sources;
+		String					_defaultDefines;
 
 		GPipelineCache_t		_gpplnCache;
 		MPipelineCache_t		_mpplnCache;

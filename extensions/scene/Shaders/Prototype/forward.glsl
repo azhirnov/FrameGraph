@@ -2,7 +2,7 @@
 // @set 0 PerObject
 // @set 1 PerPass
 
-#ifdef VERTEX_SHADER
+#if SHADER & SH_VERTEX
 
 	vec3 GetWorldPosition ();
 	vec2 GetTextureCoordinate0 ();
@@ -43,11 +43,11 @@
 	}
 # endif	// LAYER_SHADOWMAP or LAYER_DEPTHPREPASS
 
-#endif	// VERTEX_SHADER
+#endif	// SH_VERTEX
 //-----------------------------------------------------------------------------
 
 
-#ifdef FRAGMENT_SHADER
+#if SHADER & SH_FRAGMENT
 	
 	vec4  SampleAlbedoLinear (const vec2 texcoord);
 
@@ -67,7 +67,7 @@
 # endif
 
 // Opaque, PBR IBL
-# if 0 //defined(LAYER_OPAQUE) && defined(ALBEDO_MAP) && defined(NORMAL_MAP) && defined(ROUGHTNESS_MAP) && defined(METALLIC_MAP) && defined(REFLECTION_MAP)
+# if 0 //defined(LAYER_OPAQUE) && (TEXTURE_BITS == (ALBEDO_MAP | NORMAL_MAP | ROUGHTNESS_MAP | METALLIC_MAP | REFLECTION_MAP))
 	
 	layout(location=0) in vec3  inWorldPos;
 
@@ -78,7 +78,7 @@
 
 
 // Opaque, color only
-# elif defined(LAYER_OPAQUE) && defined(ALBEDO_MAP)
+# elif defined(LAYER_OPAQUE) && (TEXTURE_BITS & ALBEDO_MAP)
 	layout(location=0) in vec3  inWorldPos;
 	layout(location=1) in vec2  inTexcoord0;
 
@@ -109,4 +109,4 @@
 	}
 # endif	// LAYER_TRANSLUCENT*/
 
-#endif	// FRAGMENT_SHADER
+#endif	// SH_FRAGMENT

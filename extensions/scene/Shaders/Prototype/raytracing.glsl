@@ -25,7 +25,7 @@ struct RayPayload
 	uint	objectID;
 };
 
-#ifdef RAY_CLOSESTHIT_SHADER
+#if SHADER & SH_RAY_CLOSESTHIT
 bool IsFrontFace (const vec3 lhs, const vec3 rhs)
 {
 	return dot( lhs, rhs ) < 0.0001f;
@@ -85,13 +85,13 @@ IntermMaterial  LoadMaterial (uint instanceID, uint primitiveID, const vec3 bary
 
 
 #ifdef RAYSHADER_ShadowMiss
-	layout(location = PRIMARY_RAY_LOC) rayPayloadInNV RayPayload  ShadowRay;
+	layout(location = PRIMARY_RAY_LOC) rayPayloadInNV RayPayload  PrimaryRay;
 
 	void main ()
 	{
-		ShadowRay.color		= vec3(1.0f);
-		ShadowRay.distance	= gl_RayTmaxNV * 2.0f;
-		ShadowRay.objectID	= ~0u;
+		PrimaryRay.color	= vec3(1.0f);
+		PrimaryRay.distance	= gl_RayTmaxNV * 2.0f;
+		PrimaryRay.objectID	= ~0u;
 	}
 #endif	// RAYSHADER_ShadowMiss
 //-----------------------------------------------------------------------------
@@ -101,7 +101,9 @@ IntermMaterial  LoadMaterial (uint instanceID, uint primitiveID, const vec3 bary
 	layout(location = PRIMARY_RAY_LOC) rayPayloadInNV RayPayload  PrimaryRay;
 
 	hitAttributeNV vec2  HitAttribs;
-	/*
+	
+	layout (constant_id = 1) const uint maxRecursionDepth = 0;
+	
 	struct Light
 	{
 		vec3	position;
@@ -114,26 +116,14 @@ IntermMaterial  LoadMaterial (uint instanceID, uint primitiveID, const vec3 bary
 		Light	lights [MAX_LIGHT_COUNT];
 	};
 	
-	float CastShadow (const vec3 lightPos, const vec3 origin)
+	vec3  CastShadow (const vec3 lightPos, const vec3 origin)
 	{
 		const float	tmin		= 0.001f;
 		const vec3  light_vec	= lightPos - origin;
 		const vec3	light_dir	= normalize( light_vec );
 		const float	tmax		= length( light_vec );
-	#if 0
-		// if 'gl_RayFlagsSkipClosestHitShaderNV' setted there is only miss-shader call
-		// that set distance to max value, so initialize 'ShadowRay' with zero.
-		ShadowRay.distance = 0.0f;
-
-		TraceShadowRay( gl_RayFlagsTerminateOnFirstHitNV | gl_RayFlagsSkipClosestHitShaderNV,
-						origin, tmin, light_dir, tmax + tmin );
-		return (ShadowRay.distance > tmax ? 1.0f : 0.0f);
-
-	#else
 		TraceShadowRay( 0, origin, tmin, light_dir, tmax + tmin );
-		float shading = (ShadowRay.distance > tmax ? 1.0f : (ShadowRay.distance / tmax));
-		return shading * shading;
-	#endif
+		return PrimaryRay.color;
 	}
 
 	vec3  LightingPass (const vec3 origin, const vec3 normal)
@@ -145,44 +135,28 @@ IntermMaterial  LoadMaterial (uint instanceID, uint primitiveID, const vec3 bary
 			const float	light_dist	= length( light_pos - origin );
 			const vec3	light_dir	= normalize( light_pos - origin );
 			const float	light_r		= lights[i].radius;
-			float		shading		= 0.0f;
-		#if 1
+			vec3		shading		= vec3(0.0f);
 			shading += CastShadow( light_pos, origin );
-
-		#else
-			vec3		n1, n2;
-			GetRayPerpendicular( light_dir, n1, n2 );
-			vec3	n12 = normalize( n1 + n2 ) * light_r * 0.5f;
-			vec3	n21 = normalize( n1 - n2 ) * light_r * 0.5f;
-					n1 *= light_r;
-					n2 *= light_r;
-			shading += CastShadow( light_pos, origin ) * 2.0f;
-			shading += CastShadow( light_pos + n12, origin );
-			shading += CastShadow( light_pos - n12, origin );
-			shading += CastShadow( light_pos + n21, origin );
-			shading += CastShadow( light_pos - n21, origin );
-			#if 0
-				shading *= 2.0f;
-				shading += CastShadow( light_pos + n1, origin );
-				shading += CastShadow( light_pos - n1, origin );
-				shading += CastShadow( light_pos + n2, origin );
-				shading += CastShadow( light_pos - n2, origin );
-				shading /= 16.0f;
-			#else
-				shading /= 6.0f;
-			#endif		#endif
-			light += DiffuseLighting( lights[i].color, normal, light_dir ) *
-					 Attenuation( lights[i].attenuation, light_dist ) *
-					 shading;
-		}
+			light   += DiffuseLighting( lights[i].color, normal, light_dir ) *
+					   Attenuation( lights[i].attenuation, light_dist ) *
+					   shading;
+		}
 		return light;
 	}
-	*/
+	
+
 	void main ()
 	{
 		const vec3		barycentrics = vec3(1.0f - HitAttribs.x - HitAttribs.y, HitAttribs.x, HitAttribs.y);		const vec3		origin		 = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
 		IntermMaterial	mtr			 = LoadMaterial( gl_InstanceCustomIndexNV, gl_PrimitiveID, barycentrics, 0.0f );
-		vec3			color		 = /*LightingPass( origin, mtr.normal ) */ mtr.albedo;
+		vec3			color		 = mtr.albedo;
+		
+		// trace next ray
+		if ( PrimaryRay.depth < maxRecursionDepth )
+		{
+			PrimaryRay.depth += 1;
+			color *= LightingPass( origin, mtr.normal );
+		}
 
 		PrimaryRay.color	= color;
 		PrimaryRay.distance	= gl_HitTNV;
@@ -232,11 +206,11 @@ IntermMaterial  LoadMaterial (uint instanceID, uint primitiveID, const vec3 bary
 				
 				if ( !front_face )
 				{
-					ApplyOpticalDepth( PrimaryRay.color, mtr.albedo, gl_HitTNV, mtr.opticalDepth );
+					ApplyOpticalDepth( INOUT PrimaryRay.color, mtr.albedo, gl_HitTNV, mtr.opticalDepth );
 				}
 				if ( front_face && PrimaryRay.objectID != mtr.objectID )
 				{
-					ApplyOpticalDepth( PrimaryRay.color, mtr.albedo, PrimaryRay.distance, mtr.opticalDepth );
+					ApplyOpticalDepth( INOUT PrimaryRay.color, mtr.albedo, PrimaryRay.distance, mtr.opticalDepth );
 				}
 			}
 		}
@@ -251,15 +225,15 @@ IntermMaterial  LoadMaterial (uint instanceID, uint primitiveID, const vec3 bary
 
 
 #ifdef RAYSHADER_OpaqueShadowHit
-	layout(location = PRIMARY_RAY_LOC) rayPayloadInNV RayPayload  ShadowRay;
+	layout(location = PRIMARY_RAY_LOC) rayPayloadInNV RayPayload  PrimaryRay;
 
 	void main ()
 	{
 		// TODO: alpha test
 
-		ShadowRay.color		= vec3(0.0f);
-		ShadowRay.distance	= gl_HitTNV;
-		ShadowRay.objectID	= ~0u;
+		PrimaryRay.color	= vec3(0.0f); // vec3(gl_HitTNV / gl_RayTmaxNV);
+		PrimaryRay.distance	= gl_HitTNV;
+		PrimaryRay.objectID	= ~0u;
 	}
 #endif	// RAYSHADER_OpaqueShadowHit
 //-----------------------------------------------------------------------------
