@@ -1,17 +1,4 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
-/*
-	references:
-	https://gpuopen.com/optimize-engine-using-compute-4c-prague-2018/
-	http://developer.download.nvidia.com/compute/cuda/1_1/Website/projects/reduction/doc/reduction.pdf
-
-	docs:
-	https://github.com/KhronosGroup/GLSL/blob/master/extensions/khr/GL_KHR_memory_scope_semantics.txt
-	https://github.com/KhronosGroup/GLSL/blob/master/extensions/khr/GL_KHR_shader_subgroup.txt
-
-	delta color compression:
-	https://gpuopen.com/dcc-overview/
-	https://github.com/philiptaylor/vulkan-sync/blob/master/memory.md#framebuffer-compression
-*/
 
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "framework/Vulkan/VulkanSwapchain.h"
@@ -25,13 +12,15 @@
 
 namespace {
 
-class GenMipmapsApp final : public IWindowEventListener, public VulkanDeviceFn
+class ClearImageApp final : public IWindowEventListener, public VulkanDeviceFn
 {
 	using Nanoseconds	= std::chrono::nanoseconds;
 	
-	static constexpr uint2	imageSize	= uint2{ 1u << 12 };
-	static constexpr uint	numMipmaps	= CT_IntLog2< Max( imageSize.x, imageSize.y )>;
-	static constexpr bool	genInComputeShader = true;
+	static constexpr uint2		imageSize		= uint2{ 1u << 12 };
+	static constexpr RGBA32f	clearColor		{ 1.0f, 1.0f, 1.0f, 1.0f };
+	//static constexpr RGBA32f	clearColor		{ 0.123f, 0.456f, 0.789f, 0.158f };
+	static constexpr bool		genInComputeShader		 = false;
+	static constexpr bool		invalidateBeforeClearing = false;
 
 private:
 	VulkanDeviceExt			vulkan;
@@ -50,7 +39,7 @@ private:
 	
 	struct {
 		VkDescriptorSetLayout	dsLayout			= VK_NULL_HANDLE;
-		VkDescriptorSet			descSet				= {};
+		VkDescriptorSet			descSet				= VK_NULL_HANDLE;
 		VkPipelineLayout		pipelineLayout		= VK_NULL_HANDLE;
 		VkPipeline				pipeline			= VK_NULL_HANDLE;
 		VkShaderModule			vertShader			= VK_NULL_HANDLE;
@@ -59,33 +48,12 @@ private:
 
 	struct {
 		VkDescriptorSetLayout	dsLayout			= VK_NULL_HANDLE;
-		VkDescriptorSet			descSet[numMipmaps]	= {};
-		VkPipelineLayout		pipelineLayout		= VK_NULL_HANDLE;
-		VkPipeline				pipeline			= VK_NULL_HANDLE;
-		VkShaderModule			vertShader			= VK_NULL_HANDLE;
-		VkShaderModule			fragShader			= VK_NULL_HANDLE;
-	}						genGraphics;
-
-	struct {
-		VkDescriptorSetLayout	dsLayout			= VK_NULL_HANDLE;
-		VkDescriptorSet			descSet[8]			= {};
-		uint2					groupCount[8]		= {};
-		uint2					mipmapRanges[8]		= {};
+		VkDescriptorSet			descSet				= VK_NULL_HANDLE;
 		VkPipelineLayout		pipelineLayout		= VK_NULL_HANDLE;
 		VkPipeline				pipeline			= VK_NULL_HANDLE;
 		VkShaderModule			shader				= VK_NULL_HANDLE;
-	}						genCompute;
-
-	struct {
-		VkDescriptorSetLayout	dsLayout			= VK_NULL_HANDLE;
-		VkDescriptorSet			descSet[8]			= {};
-		uint2					groupCount[8]		= {};
-		uint2					mipmapRanges[8]		= {};
-		VkPipelineLayout		pipelineLayout		= VK_NULL_HANDLE;
-		VkPipeline				pipeline			= VK_NULL_HANDLE;
-		VkShaderModule			shader				= VK_NULL_HANDLE;
-		uint2					subGroupSize		{ 4, 8 };
-	}						genSM6;
+		uint2					groupCount;
+	}						clearCompute;
 	
 	struct {
 		VkDescriptorSetLayout	dsLayout			= VK_NULL_HANDLE;
@@ -112,19 +80,20 @@ private:
 
 	VkImage					image					= VK_NULL_HANDLE;
 	VkImageView				textureView				= VK_NULL_HANDLE;
-	VkImageView				mipmapViews[numMipmaps]	= {};
-	VkFramebuffer			mipmapFramebuffers[numMipmaps]	= {};
-	VkRenderPass			mipmapRenderpass		= VK_NULL_HANDLE;
+	VkImageView				attachmentView			= VK_NULL_HANDLE;
+	VkFramebuffer			imageFramebuffer		= VK_NULL_HANDLE;
+	VkRenderPass			clearingRenderpass		= VK_NULL_HANDLE;
+	VkRenderPass			proceduralRenderpass	= VK_NULL_HANDLE;
 	VkSampler				sampler					= VK_NULL_HANDLE;
 	VkDeviceMemory			sharedMemory			= VK_NULL_HANDLE;
 
 	float2					imageScale				= { 1.0f, 1.0f };
-	uint					mipmapGenMode			= UMax;
+	uint					imageClearMode			= UMax;
 	bool					looping					= true;
 
 
 public:
-	GenMipmapsApp ()
+	ClearImageApp ()
 	{
 		VulkanDeviceFn_Init( vulkan );
 	}
@@ -141,12 +110,11 @@ public:
 	void Destroy ();
 	bool Run ();
 
-	void GenMipmapsOnGraphicsShader (VkCommandBuffer cmd, OUT VkImageLayout &layout);
-	void GenMipmapsOnTransferCommands (VkCommandBuffer cmd, OUT VkImageLayout &layout);
-	void GenMipmapsOnTransferCommands2 (VkCommandBuffer cmd, OUT VkImageLayout &layout);
-	void GenMipmapsOnComputeShader (VkCommandBuffer cmd, OUT VkImageLayout &layout);
-	void GenMipmapsOnComputeShaderSM6 (VkCommandBuffer cmd, OUT VkImageLayout &layout);
-	void GenerateMipmaps (uint mode);
+	void ClearWithRenderPass (VkCommandBuffer cmd, VkPipelineStageFlags stage, INOUT VkImageMemoryBarrier &barrier);
+	void ClearWithTransferOp (VkCommandBuffer cmd, VkPipelineStageFlags stage, INOUT VkImageMemoryBarrier &barrier);
+	void ClearWithTransferOpOptimal (VkCommandBuffer cmd, VkPipelineStageFlags stage, INOUT VkImageMemoryBarrier &barrier);
+	void ClearWithComputeShader (VkCommandBuffer cmd, VkPipelineStageFlags stage, INOUT VkImageMemoryBarrier &barrier);
+	void ClearImage (uint mode);
 
 	bool CreateCommandBuffers ();
 	bool CreateQueryPool ();
@@ -160,9 +128,7 @@ public:
 	bool CreateGraphicsPipeline ();
 	bool CreateProceduralImagePipeline ();
 	bool CreateProceduralImagePipeline2 ();
-	bool CreateDownscaleGraphicsPipeline ();
-	bool CreateDownscaleComputePipeline ();
-	bool CreateDownscaleComputePipelineSM6 ();
+	bool CreateImageClearingComputePipeline ();
 };
 
 
@@ -172,7 +138,7 @@ public:
 	OnKey
 =================================================
 */
-void GenMipmapsApp::OnKey (StringView key, EKeyAction action)
+void ClearImageApp::OnKey (StringView key, EKeyAction action)
 {
 	if ( action != EKeyAction::Down )
 		return;
@@ -186,10 +152,10 @@ void GenMipmapsApp::OnKey (StringView key, EKeyAction action)
 	if ( key == "arrow up" )	imageScale.y = Min( imageScale.y + 0.1f, 10.0f );
 	if ( key == "arrow down" )	imageScale.y = Max( imageScale.y - 0.1f,  0.1f );
 
-	if ( key == "1" )	mipmapGenMode = 0;
-	if ( key == "2" )	mipmapGenMode = 1;
-	if ( key == "3" )	mipmapGenMode = 2;
-	if ( key == "4" )	mipmapGenMode = 3;
+	if ( key == "1" )	imageClearMode = 0;
+	if ( key == "2" )	imageClearMode = 1;
+	if ( key == "3" )	imageClearMode = 2;
+	if ( key == "4" )	imageClearMode = 3;
 }
 
 /*
@@ -197,7 +163,7 @@ void GenMipmapsApp::OnKey (StringView key, EKeyAction action)
 	OnResize
 =================================================
 */
-void GenMipmapsApp::OnResize (const uint2 &size)
+void ClearImageApp::OnResize (const uint2 &size)
 {
 	VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
 
@@ -214,7 +180,7 @@ void GenMipmapsApp::OnResize (const uint2 &size)
 	Initialize
 =================================================
 */
-bool GenMipmapsApp::Initialize ()
+bool ClearImageApp::Initialize ()
 {
 # if defined(FG_ENABLE_GLFW)
 	window.reset( new WindowGLFW() );
@@ -280,14 +246,12 @@ bool GenMipmapsApp::Initialize ()
 	CHECK_ERR( CreateGraphicsPipeline() );
 	CHECK_ERR( CreateProceduralImagePipeline() );
 	CHECK_ERR( CreateProceduralImagePipeline2() );
-	CHECK_ERR( CreateDownscaleGraphicsPipeline() );
-	CHECK_ERR( CreateDownscaleComputePipeline() );
-	//CHECK_ERR( CreateDownscaleComputePipelineSM6() );
+	CHECK_ERR( CreateImageClearingComputePipeline() );
 	
-	GenerateMipmaps( 0 );
-	GenerateMipmaps( 1 );
-	GenerateMipmaps( 2 );
-	GenerateMipmaps( 3 );
+	ClearImage( 0 );
+	ClearImage( 1 );
+	ClearImage( 2 );
+	ClearImage( 3 );
 	return true;
 }
 
@@ -296,7 +260,7 @@ bool GenMipmapsApp::Initialize ()
 	Destroy
 =================================================
 */
-void GenMipmapsApp::Destroy ()
+void ClearImageApp::Destroy ()
 {
 	VkDevice	dev = vulkan.GetVkDevice();
 
@@ -314,18 +278,16 @@ void GenMipmapsApp::Destroy ()
 		vkDestroyFramebuffer( dev, fb, null );
 		fb = VK_NULL_HANDLE;
 	}
-	for (auto& fb : mipmapFramebuffers) {
-		vkDestroyFramebuffer( dev, fb, null );
-		fb = VK_NULL_HANDLE;
-	}
+
+	vkDestroyFramebuffer( dev, imageFramebuffer, null );
+	imageFramebuffer = VK_NULL_HANDLE;
 	
 	vkDestroyImage( dev, image, null );
 	image = VK_NULL_HANDLE;
 	
-	for (auto& view : mipmapViews) {
-		vkDestroyImageView( dev, view, null );
-		view = VK_NULL_HANDLE;
-	}
+	vkDestroyImageView( dev, attachmentView, null );
+	attachmentView = VK_NULL_HANDLE;
+	
 	vkDestroyImageView( dev, textureView, null );
 	textureView = VK_NULL_HANDLE;
 	
@@ -334,22 +296,11 @@ void GenMipmapsApp::Destroy ()
 	vkDestroyPipeline( dev, draw.pipeline, null );
 	vkDestroyShaderModule( dev, draw.vertShader, null );
 	vkDestroyShaderModule( dev, draw.fragShader, null );
-
-	vkDestroyDescriptorSetLayout( dev, genGraphics.dsLayout, null );
-	vkDestroyPipelineLayout( dev, genGraphics.pipelineLayout, null );
-	vkDestroyPipeline( dev, genGraphics.pipeline, null );
-	vkDestroyShaderModule( dev, genGraphics.vertShader, null );
-	vkDestroyShaderModule( dev, genGraphics.fragShader, null );
 	
-	vkDestroyDescriptorSetLayout( dev, genCompute.dsLayout, null );
-	vkDestroyPipelineLayout( dev, genCompute.pipelineLayout, null );
-	vkDestroyPipeline( dev, genCompute.pipeline, null );
-	vkDestroyShaderModule( dev, genCompute.shader, null );
-	
-	vkDestroyDescriptorSetLayout( dev, genSM6.dsLayout, null );
-	vkDestroyPipelineLayout( dev, genSM6.pipelineLayout, null );
-	vkDestroyPipeline( dev, genSM6.pipeline, null );
-	vkDestroyShaderModule( dev, genSM6.shader, null );
+	vkDestroyDescriptorSetLayout( dev, clearCompute.dsLayout, null );
+	vkDestroyPipelineLayout( dev, clearCompute.pipelineLayout, null );
+	vkDestroyPipeline( dev, clearCompute.pipeline, null );
+	vkDestroyShaderModule( dev, clearCompute.shader, null );
 	
 	vkDestroyDescriptorSetLayout( dev, proceduralImage.dsLayout, null );
 	vkDestroyPipelineLayout( dev, proceduralImage.pipelineLayout, null );
@@ -363,19 +314,21 @@ void GenMipmapsApp::Destroy ()
 
 	vkDestroyCommandPool( dev, cmdPool, null );
 	vkDestroyRenderPass( dev, renderPass, null );
-	vkDestroyRenderPass( dev, mipmapRenderpass, null );
+	vkDestroyRenderPass( dev, clearingRenderpass, null );
+	vkDestroyRenderPass( dev, proceduralRenderpass, null );
 	vkDestroyDescriptorPool( dev, descriptorPool, null );
 	vkDestroySampler( dev, sampler, null );
 	vkFreeMemory( dev, sharedMemory, null );
 	vkDestroyQueryPool( dev, queryPool, null );
 
-	cmdPool			= VK_NULL_HANDLE;
-	descriptorPool	= VK_NULL_HANDLE;
-	sharedMemory	= VK_NULL_HANDLE;
-	sampler			= VK_NULL_HANDLE;
-	queryPool		= VK_NULL_HANDLE;
-	renderPass		= VK_NULL_HANDLE;
-	mipmapRenderpass= VK_NULL_HANDLE;
+	cmdPool				= VK_NULL_HANDLE;
+	descriptorPool		= VK_NULL_HANDLE;
+	sharedMemory		= VK_NULL_HANDLE;
+	sampler				= VK_NULL_HANDLE;
+	queryPool			= VK_NULL_HANDLE;
+	renderPass			= VK_NULL_HANDLE;
+	clearingRenderpass	= VK_NULL_HANDLE;
+	proceduralRenderpass = VK_NULL_HANDLE;
 
 	swapchain->Destroy();
 	swapchain.reset();
@@ -388,257 +341,102 @@ void GenMipmapsApp::Destroy ()
 
 /*
 =================================================
-	GenMipmapsOnGraphicsShader
+	ClearWithRenderPass
 =================================================
 */
-void GenMipmapsApp::GenMipmapsOnGraphicsShader (VkCommandBuffer cmd, OUT VkImageLayout &layout)
+void ClearImageApp::ClearWithRenderPass (VkCommandBuffer cmd, VkPipelineStageFlags, INOUT VkImageMemoryBarrier &barrier)
 {
-	for (size_t i = 1; i < numMipmaps; ++i)
-	{
-		const uint2	size = Max( imageSize >> i, 1u );
+	VkClearValue			clear_value = {{{ clearColor.r, clearColor.g, clearColor.b, clearColor.a }}};
+	VkRenderPassBeginInfo	begin		= {};
+	begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	begin.framebuffer		= imageFramebuffer;
+	begin.renderPass		= clearingRenderpass;
+	begin.renderArea		= { {0,0}, {imageSize.x, imageSize.y} };
+	begin.clearValueCount	= 1;
+	begin.pClearValues		= &clear_value;
+	vkCmdBeginRenderPass( cmd, &begin, VK_SUBPASS_CONTENTS_INLINE );
+	
+	vkCmdEndRenderPass( cmd );
 
-		// begin render pass
-		{
-			VkRenderPassBeginInfo	begin = {};
-			begin.sType			= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			begin.framebuffer	= mipmapFramebuffers[i];
-			begin.renderPass	= mipmapRenderpass;
-			begin.renderArea	= { {0,0}, {size.x, size.y} };
-			vkCmdBeginRenderPass( cmd, &begin, VK_SUBPASS_CONTENTS_INLINE );
-		}
-			
-		vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, genGraphics.pipeline );
-		vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, genGraphics.pipelineLayout, 0, 1, &genGraphics.descSet[i-1], 0, null );
-
-		// set dynamic states
-		{
-			VkRect2D	scissor_rect = { {0,0}, {size.x, size.y} };
-			vkCmdSetScissor( cmd, 0, 1, &scissor_rect );
-
-			VkViewport	viewport = {};
-			viewport.x			= 0.0f;
-			viewport.y			= 0.0f;
-			viewport.width		= float(size.x);
-			viewport.height		= float(size.y);
-			viewport.minDepth	= 0.0f;
-			viewport.maxDepth	= 1.0f;
-			vkCmdSetViewport( cmd, 0, 1, &viewport );
-		}
-		
-		vkCmdDraw( cmd, 4, 1, 0, 0 );
-
-		vkCmdEndRenderPass( cmd );
-	}
-
-	layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	barrier.dstAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	barrier.newLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 }
 
 /*
 =================================================
-	GenMipmapsOnTransferCommands
+	ClearWithTransferOp
 =================================================
 */
-void GenMipmapsApp::GenMipmapsOnTransferCommands (VkCommandBuffer cmd, OUT VkImageLayout &layout)
+void ClearImageApp::ClearWithTransferOp (VkCommandBuffer cmd, VkPipelineStageFlags srcStage, INOUT VkImageMemoryBarrier &barrier)
 {
+	// write after write
+	barrier.dstAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.newLayout		= VK_IMAGE_LAYOUT_GENERAL;
+	vkCmdPipelineBarrier( cmd, srcStage, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, null, 0, null, 1, &barrier );
+
+
+	VkClearColorValue		clear_value = {{ clearColor.r, clearColor.g, clearColor.b, clearColor.a }};
+	VkImageSubresourceRange	range		= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+	vkCmdClearColorImage( cmd, image, barrier.newLayout, &clear_value, 1, &range );
+}
+
+/*
+=================================================
+	ClearWithTransferOpOptimal
+=================================================
+*/
+void ClearImageApp::ClearWithTransferOpOptimal (VkCommandBuffer cmd, VkPipelineStageFlags srcStage, INOUT VkImageMemoryBarrier &barrier)
+{
+	// .. -> transfer_dst
+	barrier.dstAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.newLayout		= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	vkCmdPipelineBarrier( cmd, srcStage, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, null, 0, null, 1, &barrier );
+
+
+	VkClearColorValue		clear_value = {{ clearColor.r, clearColor.g, clearColor.b, clearColor.a }};
+	VkImageSubresourceRange	range		= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+	vkCmdClearColorImage( cmd, image, barrier.newLayout, &clear_value, 1, &range );
+}
+
+/*
+=================================================
+	ClearWithComputeShader
+=================================================
+*/
+void ClearImageApp::ClearWithComputeShader (VkCommandBuffer cmd, VkPipelineStageFlags srcStage, INOUT VkImageMemoryBarrier &barrier)
+{
+	// write after write
+	barrier.dstAccessMask	= VK_ACCESS_SHADER_WRITE_BIT;
+	barrier.newLayout		= VK_IMAGE_LAYOUT_GENERAL;
+	vkCmdPipelineBarrier( cmd, srcStage, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, null, 0, null, 1, &barrier );
+
+
+	vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, clearCompute.pipeline );
+	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, clearCompute.pipelineLayout, 0, 1, &clearCompute.descSet, 0, null );
+	vkCmdPushConstants( cmd, clearCompute.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(clearColor), clearColor.data() );
+
+	vkCmdDispatch( cmd, clearCompute.groupCount.x, clearCompute.groupCount.y, 1 );
+}
+
+/*
+=================================================
+	ClearImage
+=================================================
+*/
+void ClearImageApp::ClearImage (uint mode)
+{
+	VkCommandBuffer			cmd = cmdBuffers[2];
+	String					name;
+	VkPipelineStageFlags	last_stage = 0;
+
 	VkImageMemoryBarrier	barrier = {};
 	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask		= 0;
-	barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
-	barrier.oldLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
 	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 	barrier.image				= image;
 	barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	
-	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-						  0, null, 0, null, 1, &barrier );
-	
-	barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-	for (size_t i = 1; i < numMipmaps; ++i)
-	{
-		int2	src_size	= Max( uint2(1), imageSize >> (i-1) );
-		int2	dst_size	= Max( uint2(1), imageSize >> i );
-
-		VkImageBlit		region	= {};
-		region.srcOffsets[0]	= { 0, 0, 0 };
-		region.srcOffsets[1]	= { src_size.x, src_size.y, 1 };
-		region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i-1), 0, 1 };
-		region.dstOffsets[0]	= { 0, 0, 0 };
-		region.dstOffsets[1]	= { dst_size.x, dst_size.y, 1 };
-		region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 0, 1 };
-
-		vkCmdBlitImage( cmd, image, VK_IMAGE_LAYOUT_GENERAL, image, VK_IMAGE_LAYOUT_GENERAL, 1, &region, VK_FILTER_LINEAR );
-
-		// read after write
-		barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 1, 0, 1 };
-
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-							  0, null, 0, null, 1, &barrier );
-	}
-
-	layout = VK_IMAGE_LAYOUT_GENERAL;
-}
-
-/*
-=================================================
-	GenMipmapsOnTransferCommands2
-=================================================
-*/
-void GenMipmapsApp::GenMipmapsOnTransferCommands2 (VkCommandBuffer cmd, OUT VkImageLayout &layout)
-{
-	VkImageMemoryBarrier	barrier = {};
-	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask		= 0;
-	barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
-	barrier.oldLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-	barrier.image				= image;
-	barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-						  0, null, 0, null, 1, &barrier );
-
-	for (size_t i = 1; i < numMipmaps; ++i)
-	{
-		int2	src_size	= Max( uint2(1), imageSize >> (i-1) );
-		int2	dst_size	= Max( uint2(1), imageSize >> i );
-		
-		// undefined -> transfer_dst_optimal
-		barrier.oldLayout			= VK_IMAGE_LAYOUT_UNDEFINED;
-		barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.srcAccessMask		= 0;
-		barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 1, 0, 1 };
-
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-							  0, null, 0, null, 1, &barrier );
-
-		VkImageBlit		region	= {};
-		region.srcOffsets[0]	= { 0, 0, 0 };
-		region.srcOffsets[1]	= { src_size.x, src_size.y, 1 };
-		region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i-1), 0, 1 };
-		region.dstOffsets[0]	= { 0, 0, 0 };
-		region.dstOffsets[1]	= { dst_size.x, dst_size.y, 1 };
-		region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 0, 1 };
-
-		vkCmdBlitImage( cmd, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
-
-		// read after write
-		barrier.oldLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 1, 0, 1 };
-
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-							  0, null, 0, null, 1, &barrier );
-	}
-
-	layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-}
-
-/*
-=================================================
-	GenMipmapsOnComputeShader
-=================================================
-*/
-void GenMipmapsApp::GenMipmapsOnComputeShader (VkCommandBuffer cmd, OUT VkImageLayout &layout)
-{
-	VkImageMemoryBarrier	barrier = {};
-	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask		= 0;
-	barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
-	barrier.oldLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
-	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-	barrier.image				= image;
-	barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	
-	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-						  0, null, 0, null, 1, &barrier );
-
-	vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, genCompute.pipeline );
-
-	for (size_t i = 0; i < CountOf(genCompute.descSet); ++i)
-	{
-		if ( not genCompute.descSet[i] )
-			break;
-
-		const uint2  count = genCompute.groupCount[i];
-		const uint2  range = genCompute.mipmapRanges[i];
-
-		vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, genCompute.pipelineLayout, 0, 1, &genCompute.descSet[i], 0, null );
-		vkCmdDispatch( cmd, count.x, count.y, 1 );
-		
-		// read after write
-		barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
-		barrier.srcAccessMask		= VK_ACCESS_SHADER_WRITE_BIT;
-		barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, range[0], range[1], 0, 1 };
-
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-							  0, null, 0, null, 1, &barrier );
-	}
-
-	layout = VK_IMAGE_LAYOUT_GENERAL;
-}
-
-/*
-=================================================
-	GenMipmapsOnComputeShaderSM6
-=================================================
-*/
-void GenMipmapsApp::GenMipmapsOnComputeShaderSM6 (VkCommandBuffer cmd, OUT VkImageLayout &)
-{
-	VkImageMemoryBarrier	barrier = {};
-	barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask		= 0;
-	barrier.dstAccessMask		= 0;
-	barrier.oldLayout			= VK_IMAGE_LAYOUT_GENERAL;
-	barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
-	barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-	barrier.image				= image;
-
-	vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, genSM6.pipeline );
-
-	for (size_t i = 0; i < CountOf(genSM6.descSet); ++i)
-	{
-		if ( not genSM6.descSet[i] )
-			break;
-
-		const uint2  count = genSM6.groupCount[i];
-		const uint2  range = genSM6.mipmapRanges[i];
-
-		vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, genSM6.pipelineLayout, 0, 1, &genSM6.descSet[i], 0, null );
-		vkCmdDispatch( cmd, count.x, count.y, 1 );
-		
-		// read after write
-		barrier.srcAccessMask		= VK_ACCESS_SHADER_WRITE_BIT;
-		barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, range[0], range[1], 0, 1 };
-
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-							  0, null, 0, null, 1, &barrier );
-	}
-}
-
-/*
-=================================================
-	GenerateMipmaps
-=================================================
-*/
-void GenMipmapsApp::GenerateMipmaps (uint mode)
-{
-	VkCommandBuffer		cmd = cmdBuffers[2];
-	String				name;
 
 	// begin
 	{
@@ -650,13 +448,6 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 
 	// generate procedural image
 	{
-		VkImageMemoryBarrier	barrier = {};
-		barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-		barrier.image				= image;
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
 		// generate
 		if ( genInComputeShader )
 		{
@@ -674,15 +465,9 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 			vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, proceduralImage.pipeline );
 			vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, proceduralImage.pipelineLayout, 0, 1, &proceduralImage.descSet, 0, null );
 			vkCmdDispatch( cmd, count.x, count.y, 1 );
-			
-			// general -> shader read only
-			barrier.srcAccessMask	= VK_ACCESS_SHADER_WRITE_BIT;
-			barrier.dstAccessMask	= 0;
-			barrier.oldLayout		= VK_IMAGE_LAYOUT_GENERAL;
-			barrier.newLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
-								  0, null, 0, null, 1, &barrier );
+			barrier.oldLayout	= VK_IMAGE_LAYOUT_GENERAL;
+			last_stage			= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		}
 		else
 		{
@@ -690,8 +475,8 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 			VkClearValue			clear_value = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 			VkRenderPassBeginInfo	begin		= {};
 			begin.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			begin.framebuffer		= mipmapFramebuffers[0];
-			begin.renderPass		= mipmapRenderpass;
+			begin.framebuffer		= imageFramebuffer;
+			begin.renderPass		= proceduralRenderpass;
 			begin.renderArea		= { {0,0}, {imageSize.x, imageSize.y} };
 			begin.clearValueCount	= 1;
 			begin.pClearValues		= &clear_value;
@@ -715,79 +500,36 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 			vkCmdDraw( cmd, 4, 1, 0, 0 );
 
 			vkCmdEndRenderPass( cmd );
-		}
-
-		// clear mipmaps
-		{
-			barrier.srcAccessMask	= 0;
-			barrier.dstAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.oldLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			barrier.newLayout		= VK_IMAGE_LAYOUT_GENERAL;
-			barrier.subresourceRange= { VK_IMAGE_ASPECT_COLOR_BIT, 1, numMipmaps-1, 0, 1 };
-
-			vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-								  0, null, 0, null, 1, &barrier );
-
-			VkImageSubresourceRange	range {};
-			range.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
-			range.baseMipLevel		= 1;
-			range.levelCount		= numMipmaps-1;
-			range.baseArrayLayer	= 0;
-			range.layerCount		= 1;
 			
-			VkClearColorValue		color {};
-			color.float32[0]	= 0.0f;
-			color.float32[1]	= 0.0f;
-			color.float32[2]	= 1.0f;
-			color.float32[3]	= 1.0f;
-
-			vkCmdClearColorImage( cmd, image, VK_IMAGE_LAYOUT_GENERAL, &color, 1, &range );
+			barrier.oldLayout	= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			last_stage			= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		}
-		
-		// flush after write
-		barrier.srcAccessMask	= VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		barrier.dstAccessMask	= 0;
-		barrier.oldLayout		= VK_IMAGE_LAYOUT_GENERAL;
-		barrier.newLayout		= VK_IMAGE_LAYOUT_GENERAL;
-		barrier.subresourceRange= { VK_IMAGE_ASPECT_COLOR_BIT, 1, numMipmaps-1, 0, 1 };
 
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
-							  0, null, 0, null, 1, &barrier );
+		barrier.oldLayout		= invalidateBeforeClearing ? VK_IMAGE_LAYOUT_UNDEFINED : barrier.oldLayout;
+		barrier.srcAccessMask	= barrier.dstAccessMask;
 	}
 
 	vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, queryPool, 0 );
-
-	VkImageLayout	curr_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	
 	// generate mipmaps
 	switch ( mode )
 	{
-		case 0 :	GenMipmapsOnGraphicsShader( cmd, OUT curr_layout );		name = "using render pass";			break;
-		case 1 :	GenMipmapsOnTransferCommands( cmd, OUT curr_layout );	name = "using image blit";			break;
-		case 2 :	GenMipmapsOnTransferCommands2( cmd, OUT curr_layout );	name = "using optimal image blit";	break;
-		case 3 :	GenMipmapsOnComputeShader( cmd, OUT curr_layout );		name = "using compute shader";		break;
-		//case 4 :	GenMipmapsOnComputeShaderSM6( cmd, OUT curr_layout );	name = "using subgroups";			break;
+		case 0 :	ClearWithRenderPass( cmd, last_stage, INOUT barrier );			name = "using render pass";			break;
+		case 1 :	ClearWithTransferOp( cmd, last_stage, INOUT barrier );			name = "using transfer op";			break;
+		case 2 :	ClearWithTransferOpOptimal( cmd, last_stage, INOUT barrier );	name = "using optimal transfer op";	break;
+		case 3 :	ClearWithComputeShader( cmd, last_stage, INOUT barrier );		name = "using compute shader";		break;
 		default :	ASSERT(false);	break;
 	}
 
 	vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, queryPool, 1 );
-
-	// general -> shader_read_only
-	{
-		VkImageMemoryBarrier	barrier = {};
-		barrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.srcAccessMask		= 0;
-		barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
-		barrier.oldLayout			= curr_layout;
-		barrier.newLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-		barrier.image				= image;
-		barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, numMipmaps, 0, 1 };
-
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-							  0, null, 0, null, 1, &barrier );
-	}
+	
+	// read after write
+	barrier.srcAccessMask	= barrier.dstAccessMask;
+	barrier.dstAccessMask	= 0;
+	barrier.oldLayout		= barrier.newLayout;
+	barrier.newLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0,
+							0, null, 0, null, 1, &barrier );
 
 	VK_CALL( vkEndCommandBuffer( cmd ));
 	
@@ -809,7 +551,7 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 	VK_CALL( vkGetQueryPoolResults( vulkan.GetVkDevice(), queryPool, 0, uint(CountOf(results)), sizeof(results), OUT results,
 									sizeof(results[0]), VK_QUERY_RESULT_64_BIT ));
 
-	FG_LOGI( "mipmap generation " + name + ": " + ToString(Nanoseconds{results[1] - results[0]}) );
+	FG_LOGI( "clear image " + name + ": " + ToString(Nanoseconds{results[1] - results[0]}) );
 }
 
 /*
@@ -817,17 +559,17 @@ void GenMipmapsApp::GenerateMipmaps (uint mode)
 	Run
 =================================================
 */
-bool GenMipmapsApp::Run ()
+bool ClearImageApp::Run ()
 {
 	for (uint frameId = 0; looping; frameId = ((frameId + 1) & 1))
 	{
 		if ( not window->Update() )
 			break;
 		
-		if ( mipmapGenMode != UMax )
+		if ( imageClearMode != UMax )
 		{
-			GenerateMipmaps( mipmapGenMode );
-			mipmapGenMode = UMax;
+			ClearImage( imageClearMode );
+			imageClearMode = UMax;
 		}
 
 		// wait and acquire next image
@@ -935,7 +677,7 @@ bool GenMipmapsApp::Run ()
 	CreateCommandBuffers
 =================================================
 */
-bool GenMipmapsApp::CreateCommandBuffers ()
+bool ClearImageApp::CreateCommandBuffers ()
 {
 	VkCommandPoolCreateInfo		pool_info = {};
 	pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -959,7 +701,7 @@ bool GenMipmapsApp::CreateCommandBuffers ()
 	CreateQueryPool
 =================================================
 */
-bool GenMipmapsApp::CreateQueryPool ()
+bool ClearImageApp::CreateQueryPool ()
 {
 	VkQueryPoolCreateInfo	info = {};
 	info.sType		= VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -975,7 +717,7 @@ bool GenMipmapsApp::CreateQueryPool ()
 	CreateSyncObjects
 =================================================
 */
-bool GenMipmapsApp::CreateSyncObjects ()
+bool ClearImageApp::CreateSyncObjects ()
 {
 	VkDevice	dev = vulkan.GetVkDevice();
 
@@ -1003,7 +745,7 @@ bool GenMipmapsApp::CreateSyncObjects ()
 	CreateRenderPass
 =================================================
 */
-bool GenMipmapsApp::CreateRenderPass ()
+bool ClearImageApp::CreateRenderPass ()
 {
 	// setup attachment
 	VkAttachmentDescription		attachments[1] = {};
@@ -1063,11 +805,33 @@ bool GenMipmapsApp::CreateRenderPass ()
 	VK_CHECK( vkCreateRenderPass( vulkan.GetVkDevice(), &info, null, OUT &renderPass ));
 
 
-	// setup second render pass
+	// setup render pass for clearing
+	attachments[0].format			= imageFormat;
+	attachments[0].loadOp			= VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachments[0].initialLayout	= invalidateBeforeClearing ? VK_IMAGE_LAYOUT_UNDEFINED :
+										(genInComputeShader ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	attachments[0].finalLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	
+	dependencies[0].srcStageMask	= genInComputeShader ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].dstStageMask	= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask	= 0;
+	dependencies[0].dstAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
+
+	dependencies[1].srcStageMask	= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[1].dstStageMask	= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[1].srcAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[1].dstAccessMask	= 0;
+	dependencies[1].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
+
+	VK_CHECK( vkCreateRenderPass( vulkan.GetVkDevice(), &info, null, OUT &clearingRenderpass ));
+	
+
+	// setup render pass for image generation
 	attachments[0].format			= imageFormat;
 	attachments[0].loadOp			= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments[0].initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[0].finalLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	attachments[0].finalLayout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	
 	dependencies[0].srcStageMask	= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 	dependencies[0].dstStageMask	= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1076,12 +840,12 @@ bool GenMipmapsApp::CreateRenderPass ()
 	dependencies[0].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
 
 	dependencies[1].srcStageMask	= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask	= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	dependencies[1].dstStageMask	= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 	dependencies[1].srcAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask	= VK_ACCESS_SHADER_READ_BIT;
+	dependencies[1].dstAccessMask	= 0;
 	dependencies[1].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
 
-	VK_CHECK( vkCreateRenderPass( vulkan.GetVkDevice(), &info, null, OUT &mipmapRenderpass ));
+	VK_CHECK( vkCreateRenderPass( vulkan.GetVkDevice(), &info, null, OUT &proceduralRenderpass ));
 	return true;
 }
 
@@ -1090,7 +854,7 @@ bool GenMipmapsApp::CreateRenderPass ()
 	CreateFramebuffers
 =================================================
 */
-bool GenMipmapsApp::CreateFramebuffers ()
+bool ClearImageApp::CreateFramebuffers ()
 {
 	VkFramebufferCreateInfo	fb_info = {};
 	fb_info.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -1115,7 +879,7 @@ bool GenMipmapsApp::CreateFramebuffers ()
 	DestroyFramebuffers
 =================================================
 */
-void GenMipmapsApp::DestroyFramebuffers ()
+void ClearImageApp::DestroyFramebuffers ()
 {
 	for (uint i = 0; i < swapchain->GetSwapchainLength(); ++i)
 	{
@@ -1128,7 +892,7 @@ void GenMipmapsApp::DestroyFramebuffers ()
 	CreateSampler
 =================================================
 */
-bool GenMipmapsApp::CreateSampler ()
+bool ClearImageApp::CreateSampler ()
 {
 	VkSamplerCreateInfo		info = {};
 	info.sType				= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1157,7 +921,7 @@ bool GenMipmapsApp::CreateSampler ()
 	CreateImage
 =================================================
 */
-bool GenMipmapsApp::CreateImage ()
+bool ClearImageApp::CreateImage ()
 {
 	VkMemoryRequirements	mem_req;
 
@@ -1169,12 +933,11 @@ bool GenMipmapsApp::CreateImage ()
 		info.imageType		= VK_IMAGE_TYPE_2D;
 		info.format			= imageFormat;
 		info.extent			= { imageSize.x, imageSize.y, 1 };
-		info.mipLevels		= uint(CountOf(mipmapViews));
+		info.mipLevels		= 1;
 		info.arrayLayers	= 1;
 		info.samples		= VK_SAMPLE_COUNT_1_BIT;
 		info.tiling			= VK_IMAGE_TILING_OPTIMAL;
-		info.usage			= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-							  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		info.usage			= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		info.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
 		info.sharingMode	= VK_SHARING_MODE_EXCLUSIVE;
 
@@ -1197,8 +960,7 @@ bool GenMipmapsApp::CreateImage ()
 	// bind resources
 	VK_CALL( vkBindImageMemory( vulkan.GetVkDevice(), image, sharedMemory, 0 ));
 	
-	// create image view for mipmaps
-	for (size_t i = 0; i < CountOf(mipmapViews); ++i)
+	// create image view for clearing
 	{
 		VkImageViewCreateInfo	info = {};
 		info.sType				= VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1206,20 +968,20 @@ bool GenMipmapsApp::CreateImage ()
 		info.viewType			= VK_IMAGE_VIEW_TYPE_2D;
 		info.format				= imageFormat;
 		info.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
-		info.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, uint(i), 1, 0, 1 };
+		info.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
-		VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &info, null, OUT &mipmapViews[i] ));
+		VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &info, null, OUT &attachmentView ));
 		
 		VkFramebufferCreateInfo	fb_info = {};
 		fb_info.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fb_info.renderPass		= mipmapRenderpass;
+		fb_info.renderPass		= clearingRenderpass;
 		fb_info.attachmentCount	= 1;
-		fb_info.width			= Max( imageSize.x >> i, 1u );
-		fb_info.height			= Max( imageSize.y >> i, 1u );
+		fb_info.width			= Max( imageSize.x, 1u );
+		fb_info.height			= Max( imageSize.y, 1u );
 		fb_info.layers			= 1;
-		fb_info.pAttachments	= &mipmapViews[i];
+		fb_info.pAttachments	= &attachmentView;
 		
-		VK_CALL( vkCreateFramebuffer( vulkan.GetVkDevice(), &fb_info, null, OUT &mipmapFramebuffers[i] ));
+		VK_CALL( vkCreateFramebuffer( vulkan.GetVkDevice(), &fb_info, null, OUT &imageFramebuffer ));
 	}
 	
 	// create image view for sampling
@@ -1230,7 +992,7 @@ bool GenMipmapsApp::CreateImage ()
 		info.viewType			= VK_IMAGE_VIEW_TYPE_2D;
 		info.format				= imageFormat;
 		info.components			= { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
-		info.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, uint(CountOf(mipmapViews)), 0, 1 };
+		info.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 		VK_CALL( vkCreateImageView( vulkan.GetVkDevice(), &info, null, OUT &textureView ));
 	}
@@ -1255,7 +1017,7 @@ bool GenMipmapsApp::CreateImage ()
 			barrier.dstAccessMask		= 0;
 			barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, uint(CountOf(mipmapViews)), 0, 1 };
+			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 			vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0,
 								  0, null, 0, null, 1, &barrier );
@@ -1280,7 +1042,7 @@ bool GenMipmapsApp::CreateImage ()
 	CreateDescriptorSet
 =================================================
 */
-bool GenMipmapsApp::CreateDescriptorSet ()
+bool ClearImageApp::CreateDescriptorSet ()
 {
 	// create pool
 	{
@@ -1305,7 +1067,7 @@ bool GenMipmapsApp::CreateDescriptorSet ()
 	CreateGraphicsPipeline
 =================================================
 */
-bool GenMipmapsApp::CreateGraphicsPipeline ()
+bool ClearImageApp::CreateGraphicsPipeline ()
 {
 	// create vertex shader
 	{
@@ -1492,7 +1254,7 @@ void main ()
 	CreateProceduralImagePipeline
 =================================================
 */
-bool GenMipmapsApp::CreateProceduralImagePipeline ()
+bool ClearImageApp::CreateProceduralImagePipeline ()
 {
 	// create compute shader
 	{
@@ -1566,7 +1328,7 @@ void main()
 	{
 		VkDescriptorImageInfo	images[1] = {};
 		images[0].imageLayout	= VK_IMAGE_LAYOUT_GENERAL;
-		images[0].imageView		= mipmapViews[0];
+		images[0].imageView		= attachmentView;
 
 		VkWriteDescriptorSet	writes[1] = {};
 		writes[0].sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1586,7 +1348,7 @@ void main()
 	CreateProceduralImagePipeline2
 =================================================
 */
-bool GenMipmapsApp::CreateProceduralImagePipeline2 ()
+bool ClearImageApp::CreateProceduralImagePipeline2 ()
 {
 	// create vertex shader
 	{
@@ -1705,7 +1467,7 @@ void main ()
 	info.pColorBlendState		= &blend_state;
 	info.pDynamicState			= &dynamic_state;
 	info.layout					= proceduralImage2.pipelineLayout;
-	info.renderPass				= mipmapRenderpass;
+	info.renderPass				= proceduralRenderpass;
 	info.subpass				= 0;
 
 	VK_CHECK( vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &proceduralImage2.pipeline ));
@@ -1714,192 +1476,10 @@ void main ()
 
 /*
 =================================================
-	CreateDownscaleGraphicsPipeline
+	CreateImageClearingComputePipeline
 =================================================
 */
-bool GenMipmapsApp::CreateDownscaleGraphicsPipeline ()
-{
-	// create vertex shader
-	{
-		static const char	vert_shader_source[] = R"#(
-const vec2	g_Positions[4] = {
-	vec2( -1.0,  1.0 ),
-	vec2( -1.0, -1.0 ),
-	vec2(  1.0,  1.0 ),
-	vec2(  1.0, -1.0 )
-};
-
-layout(location=0) out vec2  v_Texcoord;
-
-void main()
-{
-	gl_Position = vec4( g_Positions[gl_VertexIndex], 0.0, 1.0 );
-	v_Texcoord  = g_Positions[gl_VertexIndex] * 0.5f + 0.5f;
-}
-)#";
-		CHECK_ERR( spvCompiler.Compile( OUT genGraphics.vertShader, vulkan, {vert_shader_source}, "main", EShLangVertex ));
-	}
-
-	// create fragment shader
-	{
-		static const char	frag_shader_source[] = R"#(
-layout(location = 0) out vec4  out_Color;
-
-layout(binding=0) uniform sampler2D  un_Image;
-
-layout(location=0) in vec2  v_Texcoord;
-
-void main ()
-{
-	out_Color = texture( un_Image, v_Texcoord );	
-}
-)#";
-		CHECK_ERR( spvCompiler.Compile( OUT genGraphics.fragShader, vulkan, {frag_shader_source}, "main", EShLangFragment ));
-	}
-	
-	// create descriptor set layout
-	{
-		VkDescriptorSetLayoutBinding	binding[1] = {};
-		binding[0].binding			= 0;
-		binding[0].descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		binding[0].descriptorCount	= 1;
-		binding[0].stageFlags		= VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		VkDescriptorSetLayoutCreateInfo		info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		info.bindingCount	= uint(CountOf( binding ));
-		info.pBindings		= binding;
-
-		VK_CHECK( vkCreateDescriptorSetLayout( vulkan.GetVkDevice(), &info, null, OUT &genGraphics.dsLayout ));
-	}
-
-	// create pipeline layout
-	{
-		VkPipelineLayoutCreateInfo	info = {};
-		info.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		info.setLayoutCount			= 1;
-		info.pSetLayouts			= &genGraphics.dsLayout;
-		info.pushConstantRangeCount	= 0;
-		info.pPushConstantRanges	= null;
-
-		VK_CHECK( vkCreatePipelineLayout( vulkan.GetVkDevice(), &info, null, OUT &genGraphics.pipelineLayout ));
-	}
-
-	VkPipelineShaderStageCreateInfo			stages[2] = {};
-	stages[0].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	stages[0].stage		= VK_SHADER_STAGE_VERTEX_BIT;
-	stages[0].module	= genGraphics.vertShader;
-	stages[0].pName		= "main";
-	stages[1].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	stages[1].stage		= VK_SHADER_STAGE_FRAGMENT_BIT;
-	stages[1].module	= genGraphics.fragShader;
-	stages[1].pName		= "main";
-
-	VkPipelineVertexInputStateCreateInfo	vertex_input = {};
-	vertex_input.sType		= VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	
-	VkPipelineInputAssemblyStateCreateInfo	input_assembly = {};
-	input_assembly.sType	= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	input_assembly.topology	= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-
-	VkPipelineViewportStateCreateInfo		viewport = {};
-	viewport.sType			= VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewport.viewportCount	= 1;
-	viewport.scissorCount	= 1;
-
-	VkPipelineRasterizationStateCreateInfo	rasterization = {};
-	rasterization.sType			= VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterization.polygonMode	= VK_POLYGON_MODE_FILL;
-	rasterization.cullMode		= VK_CULL_MODE_NONE;
-	rasterization.frontFace		= VK_FRONT_FACE_COUNTER_CLOCKWISE;
-
-	VkPipelineMultisampleStateCreateInfo	multisample = {};
-	multisample.sType					= VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisample.rasterizationSamples	= VK_SAMPLE_COUNT_1_BIT;
-
-	VkPipelineDepthStencilStateCreateInfo	depth_stencil = {};
-	depth_stencil.sType					= VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depth_stencil.depthTestEnable		= VK_FALSE;
-	depth_stencil.depthWriteEnable		= VK_FALSE;
-	depth_stencil.depthCompareOp		= VK_COMPARE_OP_LESS_OR_EQUAL;
-	depth_stencil.depthBoundsTestEnable	= VK_FALSE;
-	depth_stencil.stencilTestEnable		= VK_FALSE;
-
-	VkPipelineColorBlendAttachmentState		blend_attachment = {};
-	blend_attachment.blendEnable		= VK_FALSE;
-	blend_attachment.colorWriteMask		= VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
-	VkPipelineColorBlendStateCreateInfo		blend_state = {};
-	blend_state.sType				= VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	blend_state.logicOpEnable		= VK_FALSE;
-	blend_state.attachmentCount		= 1;
-	blend_state.pAttachments		= &blend_attachment;
-
-	const VkDynamicState					dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-	VkPipelineDynamicStateCreateInfo		dynamic_state	 = {};
-	dynamic_state.sType				= VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamic_state.dynamicStateCount	= uint(CountOf( dynamic_states ));
-	dynamic_state.pDynamicStates	= dynamic_states;
-
-	// create pipeline
-	VkGraphicsPipelineCreateInfo	info = {};
-	info.sType					= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	info.stageCount				= uint(CountOf( stages ));
-	info.pStages				= stages;
-	info.pViewportState			= &viewport;
-	info.pVertexInputState		= &vertex_input;
-	info.pInputAssemblyState	= &input_assembly;
-	info.pRasterizationState	= &rasterization;
-	info.pMultisampleState		= &multisample;
-	info.pDepthStencilState		= &depth_stencil;
-	info.pColorBlendState		= &blend_state;
-	info.pDynamicState			= &dynamic_state;
-	info.layout					= genGraphics.pipelineLayout;
-	info.renderPass				= mipmapRenderpass;
-	info.subpass				= 0;
-
-	VK_CHECK( vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &genGraphics.pipeline ));
-	
-	// allocate descriptor set
-	{
-		VkDescriptorSetAllocateInfo		ds_info = {};
-		ds_info.sType				= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		ds_info.descriptorPool		= descriptorPool;
-		ds_info.descriptorSetCount	= 1;
-		ds_info.pSetLayouts			= &genGraphics.dsLayout;
-
-		for (auto& ds : genGraphics.descSet) {
-			VK_CHECK( vkAllocateDescriptorSets( vulkan.GetVkDevice(), &ds_info, OUT &ds ));
-		}
-	}
-
-	// update descriptor set
-	for (size_t i = 0; i < CountOf(genGraphics.descSet); ++i)
-	{
-		VkDescriptorImageInfo	images[1] = {};
-		images[0].imageLayout	= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		images[0].imageView		= mipmapViews[i];
-		images[0].sampler		= sampler;
-
-		VkWriteDescriptorSet	writes[1] = {};
-		writes[0].sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writes[0].dstSet			= genGraphics.descSet[i];
-		writes[0].dstBinding		= 0;
-		writes[0].descriptorCount	= 1;
-		writes[0].descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		writes[0].pImageInfo		= &images[0];
-
-		vkUpdateDescriptorSets( vulkan.GetVkDevice(), uint(CountOf( writes )), writes, 0, null );
-	}
-	return true;
-}
-
-/*
-=================================================
-	CreateDownscaleComputePipeline
-=================================================
-*/
-bool GenMipmapsApp::CreateDownscaleComputePipeline ()
+bool ClearImageApp::CreateImageClearingComputePipeline ()
 {
 	// find the maximum group size
 	uint2	local_size;
@@ -1907,230 +1487,99 @@ bool GenMipmapsApp::CreateDownscaleComputePipeline ()
 		const uint	max_invocations = vulkan.GetDeviceProperties().limits.maxComputeWorkGroupInvocations;
 		uint2		size {2};
 
-		for (; (size.x * size.y <= max_invocations) and (IntLog2(size.x) <= int(numMipmaps)+1); size = size << 1) {
+		for (; (size.x * size.y <= max_invocations); size = size << 1) {
 			local_size = size;
 		}
 	}
-
-	const uint	dst_images_per_pass = IntLog2( local_size.x );
-
 
 	// create compute shader
 	{
 		String	comp_shader_source;
 		comp_shader_source <<
-"#extension GL_KHR_memory_scope_semantics : require\n"
-"layout (local_size_x = " << ToString(local_size.x) << ", local_size_y = " << ToString(local_size.y) << ", local_size_z = 1) in;\n"
-"layout(binding = 0, rgba8) readonly  uniform image2D  un_InImage;\n"
-"layout(binding = 1)        writeonly uniform image2D  un_OutImages[" << ToString(dst_images_per_pass) << "];\n"
-R"#(
-shared vec4  imageData[ gl_WorkGroupSize.x * gl_WorkGroupSize.y ];
+"layout (local_size_x = " << ToString(local_size.x) << ", local_size_y = " << ToString(local_size.y) << ", local_size_z = 1) in;\n" R"#(
+layout(binding = 0) writeonly uniform image2D  un_OutImage;
+
+layout(push_constant, std140) uniform PushConst {
+	vec4	color;
+};
 
 void main()
 {
-	ivec2	size	= ivec2(gl_WorkGroupSize.xy);
-	ivec2	coord	= ivec2(gl_LocalInvocationID.xy);
-	ivec2	gsize	= ivec2(gl_GlobalInvocationID.xy)*2;
-
-	imageData[gl_LocalInvocationIndex] = (imageLoad( un_InImage, gsize + ivec2(0,0) ) +
-										  imageLoad( un_InImage, gsize + ivec2(0,1) ) +
-										  imageLoad( un_InImage, gsize + ivec2(1,0) ) +
-										  imageLoad( un_InImage, gsize + ivec2(1,1) )) * 0.25f;
-
-	imageStore( un_OutImages[0], (gsize >> 1), imageData[gl_LocalInvocationIndex] );
-
+	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), color );
+}
 )#";
-		for (uint i = 1; i < dst_images_per_pass; ++i)
-		{
-			comp_shader_source <<
-				"\tbarrier();\n\n"
-				"\tif ( (gl_LocalInvocationIndex & " << ToString( (1u << (i+1)) - 1 ) << ") == 0 )\n\t{\n"
-				"\t\tmemoryBarrier( gl_ScopeWorkgroup, gl_StorageSemanticsShared, gl_SemanticsAcquireRelease );\n\n"
-				"\t\timageData[gl_LocalInvocationIndex] += (imageData[(coord.x+0) + (coord.y+" << ToString(i) << ") * size.x] +\n"
-				"\t\t                                       imageData[(coord.x+" << ToString(i) << ") + (coord.y+0) * size.x] +\n"
-				"\t\t                                       imageData[(coord.x+" << ToString(i) << ") + (coord.y+" << ToString(i) << ") * size.x]);\n"
-				"\t\timageData[gl_LocalInvocationIndex] *= 0.25f;\n"
-				"\t\timageStore( un_OutImages[" << ToString(i) << "], (gsize >> " << ToString(i+1) << "), imageData[gl_LocalInvocationIndex] );\n"
-				"\t}\n\n";
-		}
-		comp_shader_source << "}\n";
-		CHECK_ERR( spvCompiler.Compile( OUT genCompute.shader, vulkan, {comp_shader_source.data()}, "main", EShLangCompute ));
+		CHECK_ERR( spvCompiler.Compile( OUT clearCompute.shader, vulkan, {comp_shader_source.data()}, "main", EShLangCompute ));
 	}
 	
 	// create descriptor set layout
 	{
-		VkDescriptorSetLayoutBinding	binding[2] = {};
+		VkDescriptorSetLayoutBinding	binding = {};
 
-		// un_InImage
-		binding[0].binding			= 0;
-		binding[0].descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		binding[0].descriptorCount	= 1;
-		binding[0].stageFlags		= VK_SHADER_STAGE_COMPUTE_BIT;
-
-		// un_OutImages[]
-		binding[1].binding			= 1;
-		binding[1].descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		binding[1].descriptorCount	= dst_images_per_pass;
-		binding[1].stageFlags		= VK_SHADER_STAGE_COMPUTE_BIT;
+		// un_OutImage
+		binding.binding			= 0;
+		binding.descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		binding.descriptorCount	= 1;
+		binding.stageFlags		= VK_SHADER_STAGE_COMPUTE_BIT;
 
 		VkDescriptorSetLayoutCreateInfo		info = {};
 		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		info.bindingCount	= uint(CountOf( binding ));
-		info.pBindings		= binding;
+		info.bindingCount	= 1;
+		info.pBindings		= &binding;
 
-		VK_CHECK( vkCreateDescriptorSetLayout( vulkan.GetVkDevice(), &info, null, OUT &genCompute.dsLayout ));
+		VK_CHECK( vkCreateDescriptorSetLayout( vulkan.GetVkDevice(), &info, null, OUT &clearCompute.dsLayout ));
 	}
 
 	// create pipeline layout
 	{
+		VkPushConstantRange			range = {};
+		range.offset		= 0;
+		range.size			= sizeof(clearColor);
+		range.stageFlags	= VK_SHADER_STAGE_COMPUTE_BIT;
+
 		VkPipelineLayoutCreateInfo	info = {};
 		info.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		info.setLayoutCount			= 1;
-		info.pSetLayouts			= &genCompute.dsLayout;
-		info.pushConstantRangeCount	= 0;
-		info.pPushConstantRanges	= null;
+		info.pSetLayouts			= &clearCompute.dsLayout;
+		info.pushConstantRangeCount	= 1;
+		info.pPushConstantRanges	= &range;
 
-		VK_CHECK( vkCreatePipelineLayout( vulkan.GetVkDevice(), &info, null, OUT &genCompute.pipelineLayout ));
+		VK_CHECK( vkCreatePipelineLayout( vulkan.GetVkDevice(), &info, null, OUT &clearCompute.pipelineLayout ));
 	}
 
 	VkComputePipelineCreateInfo		info = {};
 	info.sType			= VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 	info.stage.sType	= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	info.stage.stage	= VK_SHADER_STAGE_COMPUTE_BIT;
-	info.stage.module	= genCompute.shader;
+	info.stage.module	= clearCompute.shader;
 	info.stage.pName	= "main";
-	info.layout			= genCompute.pipelineLayout;
+	info.layout			= clearCompute.pipelineLayout;
 
-	VK_CHECK( vkCreateComputePipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &genCompute.pipeline ));
+	VK_CHECK( vkCreateComputePipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &clearCompute.pipeline ));
 	
 	// allocate and update descriptor set
-	for (uint j = 0, ds = 0;
-		 (j+dst_images_per_pass < numMipmaps) and (ds < CountOf(genCompute.descSet));
-		 j += dst_images_per_pass, ++ds)
 	{
 		VkDescriptorSetAllocateInfo		ds_info = {};
 		ds_info.sType				= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		ds_info.descriptorPool		= descriptorPool;
 		ds_info.descriptorSetCount	= 1;
-		ds_info.pSetLayouts			= &genCompute.dsLayout;
-		VK_CHECK( vkAllocateDescriptorSets( vulkan.GetVkDevice(), &ds_info, OUT &genCompute.descSet[ds] ));
+		ds_info.pSetLayouts			= &clearCompute.dsLayout;
+		VK_CHECK( vkAllocateDescriptorSets( vulkan.GetVkDevice(), &ds_info, OUT &clearCompute.descSet ));
 
-		genCompute.groupCount[ds] = (((imageSize/2) >> (dst_images_per_pass * ds)) + local_size-1) / local_size;
-		genCompute.groupCount[ds] = Max( genCompute.groupCount[ds], 1u );
+		clearCompute.groupCount = Max( (imageSize + local_size-1) / local_size, 1u );
 
-		genCompute.mipmapRanges[ds] = { j+1, dst_images_per_pass };
+		VkDescriptorImageInfo	img_info = {};
+		img_info.imageLayout	= VK_IMAGE_LAYOUT_GENERAL;
+		img_info.imageView		= attachmentView;
 
-		VkDescriptorImageInfo	images[20] = {};
-		images[0].imageLayout	= VK_IMAGE_LAYOUT_GENERAL;
-		images[0].imageView		= mipmapViews[j];
+		VkWriteDescriptorSet	write = {};
+		write.sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.dstSet			= clearCompute.descSet;
+		write.dstBinding		= 0;
+		write.descriptorCount	= 1;
+		write.descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		write.pImageInfo		= &img_info;
 
-		for (uint i = 0; i < dst_images_per_pass; ++i)
-		{
-			images[i+1].imageLayout	= VK_IMAGE_LAYOUT_GENERAL;
-			images[i+1].imageView	= mipmapViews[j+i+1];
-		}
-
-		VkWriteDescriptorSet	writes[2] = {};
-		writes[0].sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writes[0].dstSet			= genCompute.descSet[ds];
-		writes[0].dstBinding		= 0;
-		writes[0].descriptorCount	= 1;
-		writes[0].descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		writes[0].pImageInfo		= &images[0];
-		
-		writes[1].sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writes[1].dstSet			= genCompute.descSet[ds];
-		writes[1].dstBinding		= 1;
-		writes[1].descriptorCount	= dst_images_per_pass;
-		writes[1].descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		writes[1].pImageInfo		= &images[1];
-
-		vkUpdateDescriptorSets( vulkan.GetVkDevice(), uint(CountOf(writes)), writes, 0, null );
-	}
-	return true;
-}
-
-/*
-=================================================
-	CreateDownscaleComputePipelineSM6
-=================================================
-*/
-bool GenMipmapsApp::CreateDownscaleComputePipelineSM6 ()
-{
-	// create compute shader
-	{
-		static const char	comp_shader_source[] = R"#(
-layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
-
-layout(binding = 0)				uniform sampler2D  un_Texture;
-layout(binding = 1) writeonly	uniform image2D	un_SwapchainImage;
-
-void main()
-{
-	vec2	point = (vec3(gl_GlobalInvocationID) / vec3(gl_NumWorkGroups * gl_WorkGroupSize - 1)).xy;
-
-	vec4	color = texture( un_Texture, point ).brga;
-
-	imageStore( un_SwapchainImage, ivec2(gl_GlobalInvocationID.xy), color );
-}
-)#";
-		CHECK_ERR( spvCompiler.Compile( OUT genSM6.shader, vulkan, {comp_shader_source}, "main", EShLangCompute ));
-	}
-	
-	// create descriptor set layout
-	{
-		VkDescriptorSetLayoutBinding	binding[2] = {};
-		binding[0].binding			= 0;
-		binding[0].descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		binding[0].descriptorCount	= 1;
-		binding[0].stageFlags		= VK_SHADER_STAGE_COMPUTE_BIT;
-
-		binding[1].binding			= 1;
-		binding[1].descriptorType	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		binding[1].descriptorCount	= 1;
-		binding[1].stageFlags		= VK_SHADER_STAGE_COMPUTE_BIT;
-
-		VkDescriptorSetLayoutCreateInfo		info = {};
-		info.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		info.bindingCount	= uint(CountOf( binding ));
-		info.pBindings		= binding;
-
-		VK_CHECK( vkCreateDescriptorSetLayout( vulkan.GetVkDevice(), &info, null, OUT &genSM6.dsLayout ));
-	}
-
-	// create pipeline layout
-	{
-		VkPipelineLayoutCreateInfo	info = {};
-		info.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		info.setLayoutCount			= 1;
-		info.pSetLayouts			= &genSM6.dsLayout;
-		info.pushConstantRangeCount	= 0;
-		info.pPushConstantRanges	= null;
-
-		VK_CHECK( vkCreatePipelineLayout( vulkan.GetVkDevice(), &info, null, OUT &genSM6.pipelineLayout ));
-	}
-
-	VkComputePipelineCreateInfo		info = {};
-	info.sType			= VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-	info.stage.sType	= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	info.stage.stage	= VK_SHADER_STAGE_COMPUTE_BIT;
-	info.stage.module	= genSM6.shader;
-	info.stage.pName	= "main";
-	info.layout			= genSM6.pipelineLayout;
-
-	VK_CHECK( vkCreateComputePipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &genSM6.pipeline ));
-	
-	// allocate descriptor set
-	{
-		VkDescriptorSetAllocateInfo		ds_info = {};
-		ds_info.sType				= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		ds_info.descriptorPool		= descriptorPool;
-		ds_info.descriptorSetCount	= 1;
-		ds_info.pSetLayouts			= &genSM6.dsLayout;
-
-		for (auto& ds : genSM6.descSet) {
-			VK_CHECK( vkAllocateDescriptorSets( vulkan.GetVkDevice(), &ds_info, OUT &ds ));
-		}
+		vkUpdateDescriptorSets( vulkan.GetVkDevice(), 1, &write, 0, null );
 	}
 	return true;
 }
@@ -2138,12 +1587,12 @@ void main()
 
 /*
 =================================================
-	GenMipmpas_Sample
+	ClearImage_Sample
 =================================================
 */
-extern void GenMipmpas_Sample ()
+extern void ClearImage_Sample ()
 {
-	GenMipmapsApp	app;
+	ClearImageApp	app;
 	
 	if ( app.Initialize() )
 	{

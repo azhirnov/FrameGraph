@@ -16,6 +16,7 @@ extern void AsyncCompute_Sample1 ();
 extern void AsyncCompute_Sample2 ();
 extern void AsyncCompute_Sample3 ();
 extern void GenMipmpas_Sample ();
+extern void ClearImage_Sample ();
 extern void CacheTest_Sample1 ();
 
 
@@ -32,6 +33,7 @@ int main ()
 	AsyncCompute_Sample2();
 	AsyncCompute_Sample3();
 	GenMipmpas_Sample();
+	ClearImage_Sample();
 	CacheTest_Sample1();
 
 	FG_LOGI( "Vulkan samples finished" );
