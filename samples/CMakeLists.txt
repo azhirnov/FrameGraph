@@ -12,6 +12,7 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLSLANG})
 		"vulkan/AsyncCompute2.cpp"
 		"vulkan/AsyncCompute3.cpp"
 		"vulkan/CacheTest.cpp"
+		"vulkan/ClearImage.cpp"
 		"vulkan/FragShaderBarycentric1.cpp"
 		"vulkan/GenMipmaps.cpp"
 		"vulkan/ImageFootprint1.cpp"
@@ -21,14 +22,15 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLSLANG})
 		"vulkan/RayTracing2.cpp"
 		"vulkan/Readme.md"
 		"vulkan/ShadingRate1.cpp"
-		"vulkan/SparseImage1.cpp" )
+		"vulkan/SparseImage1.cpp"
+		"vulkan/ZOrderPattern.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "Samples.Vulkan" SHARED ${SOURCES} )
 	else()
 		add_executable( "Samples.Vulkan" ${SOURCES} )
 	endif()
 	source_group( "compiler" FILES "vulkan/compiler/SpvCompiler.cpp" "vulkan/compiler/SpvCompiler.h" )
-	source_group( "" FILES "vulkan/AsyncCompute1.cpp" "vulkan/AsyncCompute2.cpp" "vulkan/AsyncCompute3.cpp" "vulkan/CacheTest.cpp" "vulkan/FragShaderBarycentric1.cpp" "vulkan/GenMipmaps.cpp" "vulkan/ImageFootprint1.cpp" "vulkan/main.cpp" "vulkan/MeshShader1.cpp" "vulkan/RayTracing1.cpp" "vulkan/RayTracing2.cpp" "vulkan/Readme.md" "vulkan/ShadingRate1.cpp" "vulkan/SparseImage1.cpp" )
+	source_group( "" FILES "vulkan/AsyncCompute1.cpp" "vulkan/AsyncCompute2.cpp" "vulkan/AsyncCompute3.cpp" "vulkan/CacheTest.cpp" "vulkan/ClearImage.cpp" "vulkan/FragShaderBarycentric1.cpp" "vulkan/GenMipmaps.cpp" "vulkan/ImageFootprint1.cpp" "vulkan/main.cpp" "vulkan/MeshShader1.cpp" "vulkan/RayTracing1.cpp" "vulkan/RayTracing2.cpp" "vulkan/Readme.md" "vulkan/ShadingRate1.cpp" "vulkan/SparseImage1.cpp" "vulkan/ZOrderPattern.cpp" )
 	set_property( TARGET "Samples.Vulkan" PROPERTY FOLDER "Samples" )
 	target_include_directories( "Samples.Vulkan" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Samples.Vulkan" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )
@@ -56,9 +58,18 @@ endif()
 #==================================================================================================
 if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM})
 	set( SOURCES 
+		"shadertoy/my_shaders/ConvexShape2D.glsl"
 		"shadertoy/st_shaders/Glowballs.glsl"
 		"shadertoy/st_shaders/Skyline.glsl"
 		"shadertoy/st_shaders/Skyline2.glsl"
+		"shadertoy/library/Color.glsl"
+		"shadertoy/library/DefaultSDF.glsl"
+		"shadertoy/library/Geometry.glsl"
+		"shadertoy/library/Hash.glsl"
+		"shadertoy/library/Lighting.glsl"
+		"shadertoy/library/Math.glsl"
+		"shadertoy/library/Quaternion.glsl"
+		"shadertoy/library/RayTracing.glsl"
 		"shadertoy/FGShadertoyApp.cpp"
 		"shadertoy/FGShadertoyApp.h" )
 	if (DEFINED ANDROID)
@@ -70,9 +81,6 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM})
 	source_group( "" FILES "shadertoy/FGShadertoyApp.cpp" "shadertoy/FGShadertoyApp.h" )
 	set_property( TARGET "Samples.Shadertoy" PROPERTY FOLDER "Samples" )
 	target_include_directories( "Samples.Shadertoy" PUBLIC "${FG_EXTERNALS_PATH}" )
-	if (${FG_ENABLE_GRAPHVIZ})
-		target_link_libraries( "Samples.Shadertoy" "GraphViz" )
-	endif()
 	if (${FG_ENABLE_GLM})
 		target_link_libraries( "Samples.Shadertoy" "Scene" )
 	endif()
