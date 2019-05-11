@@ -8,7 +8,7 @@
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>
-	namespace fs = std::filesystem;
+	namespace FS = std::filesystem;
 	using fpath = std::filesystem::path;
 #else
 #	error not supported!
@@ -142,9 +142,13 @@ namespace FG
 	{
 		_sources.reserve( 128 );
 		
-		_defaultDefines
-			<< "#define INOUT\n"
-			<< "#define OUT\n\n";
+		_defaultDefines << R"#(
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#define INOUT
+#define OUT
+)#";
 
 		for (EShader t = EShader(0); t < EShader::_Count; t = EShader(uint(t) + 1))
 		{
@@ -181,7 +185,7 @@ namespace FG
 	{
 		Clear();
 
-		CHECK_ERR( fs::exists( path ));
+		CHECK_ERR( FS::exists( path ));
 
 		_frameGraph		= fg;
 		_filePath		= path;
@@ -367,8 +371,7 @@ namespace FG
 		}
 
 		const String	header = "#version 460\n"
-								 "#extension GL_NV_ray_tracing : require\n"
-								 "#extension GL_EXT_nonuniform_qualifier : require\n"s
+								 "#extension GL_NV_ray_tracing : require\n"s
 								 << _defaultDefines
 								 << BuildShaderDefines( info )
 								 << _CacheRayTracingVertexBuffer( info );

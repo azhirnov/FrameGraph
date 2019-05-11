@@ -1,11 +1,11 @@
 # FrameGraph
 
-FrameGraph simplifies prototyping on Vulkan and can also be used as a base layer for the graphics engine.
+FrameGraph simplifies prototyping on Vulkan and can be used as a base layer for the graphics engine.
 FrameGraph designed for maximum performance but not at the expense of usability. API developed as simple as possible, it hides all synchronizations, memory allocations and all this boilerplate code that is needed to get Vulkan work. Builtin validations together with Vulkan validation layers allow you to quickly find and fix errors.
 
 ## Features
-* multithreaded command buffer building and submitting.
-* simple API, hides memory allocation, host to/from device transfers, synchronizations.
+* multithreaded command buffer building and submission.
+* simple API, hides memory allocation, host<->device transfers, synchronizations.
 * glsl debugging.
 * supports RTX extensions.
 

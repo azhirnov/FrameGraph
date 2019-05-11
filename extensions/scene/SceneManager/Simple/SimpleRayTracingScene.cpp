@@ -178,8 +178,8 @@ namespace {
 			if ( auto* refraction = UnionGetIf<float>( &settings.refraction ))
 				dst.indexOfRefraction = *refraction;
 
-			if ( settings.opticalDepth > 0.0f )
-				dst.opticalDepth = settings.opticalDepth;
+			if ( auto* optical_depth = UnionGetIf<float>( &settings.opticalDepth ))
+				dst.opticalDepth = *optical_depth;
 		}
 
 		_materialsBuffer = cmdbuf->GetFrameGraph()->CreateBuffer( BufferDesc{ ArraySizeOf(dst_materials), EBufferUsage::Storage | EBufferUsage::TransferDst }, Default, "Materials" );
@@ -347,7 +347,7 @@ namespace {
 */
 	SimpleRayTracingScene::MeshData*  SimpleRayTracingScene::_ChooseMaterialType (const IntermMaterialPtr &material, MeshMap_t &meshMap) const
 	{
-		if ( material->GetSettings().opticalDepth > 0.0f )
+		if ( auto* optical_depth = UnionGetIf<float>( &material->GetSettings().opticalDepth ); optical_depth and *optical_depth > 0.0f )
 			return meshMap[ SceneIDs[1] ];
 		else
 			return meshMap[ SceneIDs[0] ];

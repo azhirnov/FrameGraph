@@ -11,7 +11,7 @@
 
 namespace FG
 {
-	namespace fs = std::filesystem;
+	namespace FS = std::filesystem;
 	
 /*
 =================================================
@@ -64,14 +64,14 @@ namespace FG
 	Visualize
 =================================================
 */
-	bool GraphViz::Visualize (StringView graph, const fs::path &filepath, StringView format, bool autoOpen, bool deleteOrigin)
+	bool GraphViz::Visualize (StringView graph, const FS::path &filepath, StringView format, bool autoOpen, bool deleteOrigin)
 	{
 		CHECK_ERR( filepath.extension() == ".dot" );
 
-		fs::create_directories( filepath.parent_path() );
+		FS::create_directories( filepath.parent_path() );
 		
 		const String	path		= filepath.string();
-		const fs::path	graph_path	= fs::path{filepath}.concat( "."s << format );
+		const FS::path	graph_path	= FS::path{filepath}.concat( "."s << format );
 
 		// space in path is not supported
 		CHECK_ERR( path.find( ' ' ) == String::npos );
@@ -86,9 +86,9 @@ namespace FG
 		// generate graph
 		{
 			// delete previous version
-			if ( fs::exists( graph_path ) )
+			if ( FS::exists( graph_path ) )
 			{
-				CHECK( fs::remove( graph_path ));
+				CHECK( FS::remove( graph_path ));
 				std::this_thread::sleep_for( std::chrono::milliseconds(1) );
 			}
 			
@@ -96,7 +96,7 @@ namespace FG
 
 			if ( deleteOrigin )
 			{
-				CHECK( fs::remove( filepath ));
+				CHECK( FS::remove( filepath ));
 				std::this_thread::sleep_for( std::chrono::milliseconds(1) );
 			}
 		}

@@ -131,7 +131,7 @@ use `DrawTask::AddResources`, `RenderPassDesc::AddResources` or `ComputeTask::Ad
 | OpenGL | FrameGraph |
 |---|---|
 | glFenceSync + glClientWaitSync | FrameGraph::Wait for command buffers |
-| glFenceSync + glWaitSync | add dependency between command buffers by specializing `dependsOn` parameter in FrameGraph::Begin or to by calling CommandBuffer::AddDependency |
+| glFenceSync + glWaitSync | add dependency between command buffers by specializing `dependsOn` parameter in FrameGraph::Begin or by calling CommandBuffer::AddDependency |
 | glTextureBarrier | placed automaticaly |
 | glFlush | FrameGraph::Flush |
 | glFinish | FrameGraph::WaitIdle |

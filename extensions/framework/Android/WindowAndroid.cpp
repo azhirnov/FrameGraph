@@ -244,13 +244,13 @@ namespace FGC
 	
 /*
 =================================================
-	GetRequiredExtensions
+	constructor
 =================================================
 */
-	Array<const char*>  WindowAndroid::VulkanSurface::GetRequiredExtensions () const
-	{
-		return FGC::VulkanSurface::GetRequiredExtensions();
-	}
+	WindowAndroid::VulkanSurface::VulkanSurface (ANativeWindow *wnd) :
+		_window{ wnd },
+		_extensions{ FGC::VulkanSurface::GetRequiredExtensions() }
+	{}
 	
 /*
 =================================================

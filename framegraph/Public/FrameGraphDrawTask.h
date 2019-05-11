@@ -489,7 +489,7 @@ namespace _fg_hidden_
 		template <typename FN>
 		explicit CustomDraw (FN &&fn) : CustomDraw{}
 		{
-			callback = std::move(Callback_t{ fn });
+			callback = Callback_t{ fn };
 		}
 
 		CustomDraw&  AddImage (RawImageID id, EResourceState state = EResourceState::ShaderSample)

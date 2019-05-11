@@ -82,6 +82,8 @@ namespace FGC
 
 		bool GetRays (OUT Vec3_t &leftTop, OUT Vec3_t &leftBottom, OUT Vec3_t &rightTop, OUT Vec3_t &rightBottom) const;
 
+		ND_ Vec3_t  GetRay (const Vec2_t &unormCoord) const;
+
 
 	private:
 		void _SetPlane (EPlane type, T a, T b, T c, T d);
@@ -366,6 +368,27 @@ namespace FGC
 	
 /*
 =================================================
+	GetRay
+=================================================
+*/
+	template <typename T>
+	inline typename FrustumTempl<T>::Vec3_t  FrustumTempl<T>::GetRay (const Vec2_t &unormCoord) const
+	{
+		Vec3_t	left_bottom, left_top, right_bottom, right_top;
+		_GetIntersection( EPlane::Bottom, EPlane::Left,   OUT left_bottom  );
+		_GetIntersection( EPlane::Left,   EPlane::Top,    OUT left_top     );
+		_GetIntersection( EPlane::Right,  EPlane::Bottom, OUT right_bottom );
+		_GetIntersection( EPlane::Top,    EPlane::Right,  OUT right_top    );
+
+		const Vec3_t	vec	= mix(  mix( left_bottom, right_bottom, unormCoord.x ),
+									mix( left_top, right_top, unormCoord.x ),
+									unormCoord.y );
+
+		return normalize( vec );
+	}
+
+/*
+=================================================
 	_GetIntersection
 =================================================
 */
@@ -381,7 +404,7 @@ namespace FGC
 		if ( Equals( len, T(0), _err ) )
 			return false;
 
-		result = dir * (T(1) / sqrt(len));
+		result = dir * (T(1) / Sqrt(len));
 		return true;
 	}
 

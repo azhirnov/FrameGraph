@@ -17,7 +17,14 @@ namespace FGC
 	class RStream : public std::enable_shared_from_this< RStream >
 	{
 	public:
+		RStream () {}
+
+		RStream (const RStream &) = delete;
+		RStream (RStream &&) = delete;
 		virtual ~RStream () {}
+
+		RStream&  operator = (const RStream &) = delete;
+		RStream&  operator = (RStream &&) = delete;
 
 		ND_ virtual bool	IsOpen ()			const = 0;
 		ND_ virtual BytesU	Position ()			const = 0;
@@ -58,7 +65,14 @@ namespace FGC
 	class WStream : public std::enable_shared_from_this< WStream >
 	{
 	public:
+		WStream () {}
+
+		WStream (const WStream &) = delete;
+		WStream (WStream &&) = delete;
 		virtual ~WStream () {}
+
+		WStream&  operator = (const WStream &) = delete;
+		WStream&  operator = (WStream &&) = delete;
 
 		ND_ virtual bool	IsOpen ()	const = 0;
 		ND_ virtual BytesU	Position ()	const = 0;

@@ -25,13 +25,14 @@ namespace FGC
 		struct VulkanSurface final : public IVulkanSurface
 		{
 		private:
-			ANativeWindow *	_window;
+			ANativeWindow *		_window;
+			Array<const char*>	_extensions;
 
 		public:
-			explicit VulkanSurface (ANativeWindow *wnd) : _window{wnd} {}
+			explicit VulkanSurface (ANativeWindow *wnd);
 
-			ND_ Array<const char*>	GetRequiredExtensions () const override;
-			ND_ VkSurfaceKHR		Create (VkInstance inst) const override;
+			ND_ ArrayView<const char*>	GetRequiredExtensions () const override { return _extensions; }
+			ND_ VkSurfaceKHR			Create (VkInstance inst) const override;
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;

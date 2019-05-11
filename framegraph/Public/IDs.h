@@ -192,7 +192,7 @@ namespace _fg_hidden_
 	using VertexID					= _fg_hidden_::IDWithString< 32,  6, FG_OPTIMIZE_IDS >;
 	using VertexBufferID			= _fg_hidden_::IDWithString< 32,  7, FG_OPTIMIZE_IDS >;
 	using MemPoolID					= _fg_hidden_::IDWithString< 32,  8, FG_OPTIMIZE_IDS >;
-	using RTShaderID				= _fg_hidden_::IDWithString< 32, 10, FG_OPTIMIZE_IDS >;
+	using RTShaderID				= _fg_hidden_::IDWithString< 32, 10, false >;
 	using GeometryID				= _fg_hidden_::IDWithString< 32, 11, FG_OPTIMIZE_IDS >;
 	using InstanceID				= _fg_hidden_::IDWithString< 32, 12, FG_OPTIMIZE_IDS >;
 	

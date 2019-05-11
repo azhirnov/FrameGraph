@@ -245,15 +245,18 @@ namespace FGC
 	FindAndReplace
 =================================================
 */
-	inline void FindAndReplace (INOUT String& str, StringView oldStr, StringView newStr)
+	inline uint  FindAndReplace (INOUT String& str, StringView oldStr, StringView newStr)
 	{
-		String::size_type pos = 0;
+		String::size_type	pos		= 0;
+		uint				count	= 0;
 
 		while ( (pos = StringView{str}.find( oldStr, pos )) != StringView::npos )
 		{
 			str.replace( pos, oldStr.length(), newStr.data() );
 			pos += newStr.length();
+			++count;
 		}
+		return count;
 	}
 //-----------------------------------------------------------------------------
 

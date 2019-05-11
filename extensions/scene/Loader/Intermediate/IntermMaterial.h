@@ -40,7 +40,7 @@ namespace FG
 			uint					uvIndex			= UMax;
 		};
 
-		using Parameter = Union< NullUnion, float, RGBA32f, MtrTexture >;
+		using Parameter = Union< NullUnion, float, float3, RGBA32f, MtrTexture >;
 
 		struct Settings
 		{
@@ -57,13 +57,12 @@ namespace FG
 			Parameter	displacementMap;	// texture
 			Parameter	lightMap;			// texture
 			Parameter	reflectionMap;		// texture
-			Parameter	roughtness;			// texture or float		// UE4 'roughtness'
-			Parameter	metallic;			// texture or float		// UE4 'metallic'
-			Parameter	subsurface;			// texture or color		// UE4 'subsurface color'
-			Parameter	ambientOcclusion;	// texture				// UE4 'ambient occlusion'
-			Parameter	refraction;			// texture or float		// UE4 'index of refraction'
-
-			float		opticalDepth		= 0.0f;					//... exp( -distance * opticalDepth )
+			Parameter	roughtness;			// texture or float				// UE4 'roughtness'
+			Parameter	metallic;			// texture or float				// UE4 'metallic'
+			Parameter	subsurface;			// texture or color				// UE4 'subsurface color'
+			Parameter	ambientOcclusion;	// texture						// UE4 'ambient occlusion'
+			Parameter	refraction;			// texture, float, float3		// UE4 'index of refraction'
+			Parameter	opticalDepth;		// 3d texture, float, float3	//... exp( -distance * opticalDepth )
 			float		shininessStrength	= 0.0f;
 			float		alphaTestReference	= 0.0f;
 			ECullMode	cullMode			= Default;

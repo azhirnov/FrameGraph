@@ -31,6 +31,9 @@ public:
 	
 	void OnResize (const uint2 &size) override
 	{
+		if ( Any( size == uint2(0) ))
+			return;
+
 		VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
 
 		VK_CALL( vkResetCommandPool( vulkan.GetVkDevice(), cmdPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT ));
@@ -190,6 +193,11 @@ public:
 		{
 			if ( not window->Update() )
 				break;
+			
+			if ( Any( window->GetSize() == uint2(0) )) {
+				std::this_thread::sleep_for( std::chrono::milliseconds(16) );
+				continue;
+			}
 
 			window->SetTitle( title + ("[FPS: "s << ToString(uint(swapchain->GetFramesPerSecond())) << ']') );
 

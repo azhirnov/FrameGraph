@@ -115,7 +115,9 @@ namespace FGC
 	struct HSVColor
 	{
 	// variables
-		float	h, s, v;
+		float	h;	// hue
+		float	s;	// saturation
+		float	v;	// value, brightness
 
 	// methods
 		constexpr HSVColor () : h{0.0f}, s{0.0f}, v{0.0f} {}

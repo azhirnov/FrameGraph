@@ -442,10 +442,6 @@ if (${FG_ENABLE_GLM})
 		"scene/SceneManager/Simple/SimpleRayTracingScene.h"
 		"scene/SceneManager/Simple/SimpleScene.cpp"
 		"scene/SceneManager/Simple/SimpleScene.h"
-		"scene/ThreadPool/FGThread.h"
-		"scene/ThreadPool/IOThread.h"
-		"scene/ThreadPool/ThreadPool.cpp"
-		"scene/ThreadPool/ThreadPool.h"
 		"scene/Shaders/Utils/math.glsl"
 		"scene/SceneManager/Octree/OctreeScene.h"
 		"scene/Loader/Intermediate/IntermImage.h"
@@ -471,6 +467,8 @@ if (${FG_ENABLE_GLM})
 		"scene/Shaders/ShaderCache.h"
 		"scene/Shaders/Scene/simple_raytracing.glsl"
 		"scene/Shaders/Scene/simple_scene.glsl"
+		"scene/BaseSceneApp.cpp"
+		"scene/BaseSceneApp.h"
 		"scene/Common.h"
 		"scene/SceneManager/Resources/FpsCamera.h"
 		"scene/SceneManager/Resources/LightSource.h"
@@ -494,7 +492,6 @@ if (${FG_ENABLE_GLM})
 	add_library( "Scene" STATIC ${SOURCES} )
 	source_group( "Math" FILES "scene/Math/AABB.h" "scene/Math/Camera.h" "scene/Math/FPSCamera.h" "scene/Math/Frustum.h" "scene/Math/GLM.h" "scene/Math/OOBB.h" "scene/Math/Radians.h" "scene/Math/Sphere.h" "scene/Math/Spherical.h" "scene/Math/Transform.h" )
 	source_group( "SceneManager\\Simple" FILES "scene/SceneManager/Simple/SimpleRayTracingScene.cpp" "scene/SceneManager/Simple/SimpleRayTracingScene.h" "scene/SceneManager/Simple/SimpleScene.cpp" "scene/SceneManager/Simple/SimpleScene.h" )
-	source_group( "ThreadPool" FILES "scene/ThreadPool/FGThread.h" "scene/ThreadPool/IOThread.h" "scene/ThreadPool/ThreadPool.cpp" "scene/ThreadPool/ThreadPool.h" )
 	source_group( "Shaders\\Utils" FILES "scene/Shaders/Utils/math.glsl" )
 	source_group( "SceneManager\\Octree" FILES "scene/SceneManager/Octree/OctreeScene.h" )
 	source_group( "Loader\\Intermediate" FILES "scene/Loader/Intermediate/IntermImage.h" "scene/Loader/Intermediate/IntermLight.h" "scene/Loader/Intermediate/IntermMaterial.h" "scene/Loader/Intermediate/IntermMesh.cpp" "scene/Loader/Intermediate/IntermMesh.h" "scene/Loader/Intermediate/IntermScene.cpp" "scene/Loader/Intermediate/IntermScene.h" "scene/Loader/Intermediate/VertexAttributes.cpp" "scene/Loader/Intermediate/VertexAttributes.h" )
@@ -504,7 +501,7 @@ if (${FG_ENABLE_GLM})
 	source_group( "Loader" FILES "scene/Loader/IImageLoader.cpp" "scene/Loader/IImageLoader.h" )
 	source_group( "Shaders" FILES "scene/Shaders/ShaderCache.cpp" "scene/Shaders/ShaderCache.h" )
 	source_group( "Shaders\\Scene" FILES "scene/Shaders/Scene/simple_raytracing.glsl" "scene/Shaders/Scene/simple_scene.glsl" )
-	source_group( "" FILES "scene/Common.h" )
+	source_group( "" FILES "scene/BaseSceneApp.cpp" "scene/BaseSceneApp.h" "scene/Common.h" )
 	source_group( "SceneManager\\Resources" FILES "scene/SceneManager/Resources/FpsCamera.h" "scene/SceneManager/Resources/LightSource.h" "scene/SceneManager/Resources/Material.h" "scene/SceneManager/Resources/Model.cpp" "scene/SceneManager/Resources/Model.h" "scene/SceneManager/Resources/ParticleEmitter.h" "scene/SceneManager/Resources/SceletalModel.h" )
 	source_group( "Loader\\Assimp" FILES "scene/Loader/Assimp/AssimpLoader.cpp" "scene/Loader/Assimp/AssimpLoader.h" )
 	source_group( "SceneManager" FILES "scene/SceneManager/DefaultImageCache.cpp" "scene/SceneManager/DefaultImageCache.h" "scene/SceneManager/DefaultSceneManager.cpp" "scene/SceneManager/DefaultSceneManager.h" "scene/SceneManager/IImageCache.h" "scene/SceneManager/ISceneHierarchy.h" "scene/SceneManager/ISceneManager.h" "scene/SceneManager/IViewport.h" )

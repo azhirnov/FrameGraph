@@ -3,9 +3,11 @@
 #include "stl/Algorithms/EnumUtils.h"
 
 #ifdef COMPILER_MSVC
-#	include <intrin.h>
-#	pragma intrinsic( _BitScanForward, _BitScanForward64 )
-#	pragma intrinsic( _BitScanReverse, _BitScanReverse64 )
+# include <intrin.h>
+# pragma intrinsic( _BitScanForward, _BitScanReverse )
+# if PLATFORM_BITS == 64
+#	pragma intrinsic( _BitScanForward64, _BitScanReverse64 )
+# endif
 #endif
 	
 namespace FGC

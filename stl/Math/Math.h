@@ -169,6 +169,17 @@ namespace FGC
 	{
 		return value * value;
 	}
+	
+/*
+=================================================
+	Sqrt
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr EnableIf<IsFloatPoint<T>, T>  Sqrt (const T &value)
+	{
+		return std::sqrt( value );
+	}
 
 /*
 =================================================

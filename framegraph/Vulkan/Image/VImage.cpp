@@ -223,6 +223,9 @@ namespace FG
 			info.queueFamilyIndexCount	= 0;
 		}
 
+		// TODO:
+		// test usage with supported features (vkGetPhysicalDeviceFormatProperties2)
+
 		auto&	dev = resMngr.GetDevice();
 
 		VK_CHECK( dev.vkCreateImage( dev.GetVkDevice(), &info, null, OUT &_image ));

@@ -8,6 +8,8 @@
 #include "framework/Android/WindowAndroid.h"
 #include "stl/Math/Color.h"
 #include "stl/Algorithms/ArrayUtils.h"
+#include "stl/Algorithms/StringUtils.h"
+#include <thread>
 
 using namespace FGC;
 
@@ -30,6 +32,9 @@ public:
 
 	void OnResize (const uint2 &size) override
 	{
+		if ( Any( size == uint2(0) ))
+			return;
+
 		VK_CALL( vkDeviceWaitIdle( vulkan.GetVkDevice() ));
 
 		VK_CALL( vkResetCommandPool( vulkan.GetVkDevice(), cmdPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT ));
@@ -67,12 +72,14 @@ public:
 #		error unknown window library!
 #	 endif
 
+		const String	title = "Test";
+
 		// create window and vulkan device
 		{
-			CHECK_ERR( window->Create( { 800, 600 }, "Test" ));
+			CHECK_ERR( window->Create( { 800, 600 }, title ));
 			window->AddListener( this );
 
-			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_0, {}, {} ));
+			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_0, {}, {} ));
 		
 			// this is a test and the test should fail for any validation error
 			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
@@ -131,6 +138,13 @@ public:
 		{
 			if ( not window->Update() )
 				break;
+
+			if ( Any( window->GetSize() == uint2(0) )) {
+				std::this_thread::sleep_for( std::chrono::milliseconds(16) );
+				continue;
+			}
+			
+			window->SetTitle( title + ("[FPS: "s << ToString(uint(swapchain->GetFramesPerSecond())) << ']') );
 
 			// wait and acquire next image
 			{

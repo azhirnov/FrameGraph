@@ -613,7 +613,7 @@ namespace FG
 			dst[i].dataSize		= VkDeviceSize(ArraySizeOf(src.data));
 			dst[i].bufferOffset	= VkDeviceSize(src.offset);
 
-			memcpy( dst[i].dataPtr, src.data.data(), dst[i].dataSize );
+			memcpy( dst[i].dataPtr, src.data.data(), size_t(dst[i].dataSize) );
 		}
 
 		_regions = ArrayView{ dst, cnt };

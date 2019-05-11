@@ -12,8 +12,8 @@ namespace FG
 	using DeviceVk_t			= struct __VkDeviceType *;
 	using QueueVk_t				= struct __VkQueueType *;
 	using CommandBufferVk_t		= struct __VkCommandBufferType *;
-	using RenderPassVk_t		= struct __VkRenderPassType *;
 
+	enum RenderPassVk_t			: uint64_t {};
 	enum SurfaceVk_t			: uint64_t {};
 	enum EventVk_t				: uint64_t {};
 	enum FenceVk_t				: uint64_t {};

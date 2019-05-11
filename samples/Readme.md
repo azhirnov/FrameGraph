@@ -8,7 +8,7 @@ Experiments with ray tracing extension.
 Some shaders from [Shadertoy](https://www.shadertoy.com).
 
 
-## Vulkan
+## Vulkan samples
 Here are some prototypes of new features written on a pure Vulkan API before they are added to FrameGraph.
 * Async compute
 * Performace tests: Clear image, Generate mipmaps

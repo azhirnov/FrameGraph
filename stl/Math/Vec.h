@@ -459,6 +459,26 @@ namespace FGC
 	{
 		return Vec<T,I>( lhs ) * rhs;
 	}
+	
+/*
+=================================================
+	operator /=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr Vec<T,I>&  operator /= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] /= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator /= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs /= Vec<T,I>( rhs );
+	}
 
 /*
 =================================================
@@ -757,7 +777,7 @@ namespace FGC
 	template <typename T, uint I>
 	ND_ inline EnableIf<IsFloatPoint<T>, T>  Length (const Vec<T,I> &value)
 	{
-		return sqrt( Length2( value ));
+		return Sqrt( Length2( value ));
 	}
 
 /*
@@ -769,7 +789,7 @@ namespace FGC
 	ND_ inline constexpr EnableIf<IsFloatPoint<T>, Vec<T,I>>  Normalize (const Vec<T,I> &value)
 	{
 		T  len = Dot( value, value );
-		return not Equals( len, T(0) ) ? (value * (T(1) / sqrt(len))) : Vec<T,I>{T(0)};
+		return not Equals( len, T(0) ) ? (value * (T(1) / Sqrt(len))) : Vec<T,I>{T(0)};
 	}
 
 /*
@@ -813,7 +833,7 @@ namespace FGC
 		Vec<T,I>	r;
 
 		if ( k >= T(0) )
-			r = eta * incidentVec - (eta * nd + sqrt( k )) * normal;
+			r = eta * incidentVec - (eta * nd + Sqrt( k )) * normal;
 
 		return r;
 	}

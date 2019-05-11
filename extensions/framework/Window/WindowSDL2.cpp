@@ -200,11 +200,14 @@ namespace {
 						case SDL_WINDOWEVENT_MOVED :
 						case SDL_WINDOWEVENT_SIZE_CHANGED :
 						{
-							int2	size;
-							SDL_GetWindowSize( _window, OUT &size.x, OUT &size.y );
+							if ( _window )
+							{
+								int2	size;
+								SDL_GetWindowSize( _window, OUT &size.x, OUT &size.y );
 							
-							for (auto& listener : _listeners) {
-								listener->OnResize( uint2(size) );
+								for (auto& listener : _listeners) {
+									listener->OnResize( uint2(size) );
+								}
 							}
 							break;
 						}
@@ -220,9 +223,13 @@ namespace {
 			}
 		}
 		
+		if ( not _window )
+			return false;
+
 		for (auto& listener : _listeners) {
 			listener->OnUpdate();
 		}
+
 		return true;
 	}
 	

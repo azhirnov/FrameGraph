@@ -32,9 +32,17 @@ namespace FGC
 
 	// methods
 	public:
-		SphericalTempl () {}
-		SphericalTempl (T theta, T phi) : theta{theta}, phi{phi} {}
-		SphericalTempl (Angle_t theta, Angle_t phi) : theta{theta}, phi{phi} {}
+		constexpr SphericalTempl () {}
+		constexpr SphericalTempl (T theta, T phi) : theta{theta}, phi{phi} {}
+		constexpr SphericalTempl (Angle_t theta, Angle_t phi) : theta{theta}, phi{phi} {}
+		constexpr explicit SphericalTempl (const Vec<T,2> &angle) : theta{angle.x}, phi{angle.y} {}
+		constexpr explicit SphericalTempl (const Vec<Angle_t, 2> &angle) : theta{angle.x}, phi{angle.y} {}
+
+		ND_ constexpr explicit operator Vec<T,2> () const		{ return Vec<T,2>{ T(theta), T(phi) }; }
+		ND_ constexpr explicit operator Vec<Angle_t,2> () const	{ return Vec<Angle_t,2>{ theta, phi }; }
+
+		ND_ constexpr Self  operator + (const Self &rhs) const;
+		ND_ constexpr Self  operator - (const Self &rhs) const;
 
 		ND_ static Pair<Self, Value_t>	FromCartesian (const Vec3_t &cartesian);
 		ND_ Vec3_t						ToCartesian () const;
@@ -47,6 +55,23 @@ namespace FGC
 
 
 	
+/*
+=================================================
+	operator +, operator -
+=================================================
+*/
+	template <typename T>
+	inline constexpr SphericalTempl<T>  SphericalTempl<T>::operator + (const Self &rhs) const
+	{
+		return Self{ theta + rhs.theta, phi + rhs.phi };
+	}
+	
+	template <typename T>
+	inline constexpr SphericalTempl<T>  SphericalTempl<T>::operator - (const Self &rhs) const
+	{
+		return Self{ theta - rhs.theta, phi - rhs.phi };
+	}
+
 /*
 =================================================
 	FromCartesian
