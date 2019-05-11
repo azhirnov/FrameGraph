@@ -80,13 +80,13 @@ namespace FG
 		String	file_path;
 		
 #	ifdef FG_STD_FILESYSTEM
-		fs::path	fpath{ path.data() };
+		FS::path	fpath{ path.data() };
 
 		if ( not fpath.is_absolute() )
-			fpath = fs::absolute( fpath );
+			fpath = FS::absolute( fpath );
 
 		fpath.make_preferred();
-		CHECK_ERR( fs::exists( fpath ), void());
+		CHECK_ERR( FS::exists( fpath ), void());
 
 		file_path = fpath.string();
 #	else

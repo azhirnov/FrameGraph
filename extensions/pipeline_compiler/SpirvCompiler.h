@@ -9,7 +9,7 @@
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>
-	namespace fs = std::filesystem;
+	namespace FS = std::filesystem;
 #endif
 
 class TIntermNode;

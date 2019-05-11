@@ -40,7 +40,11 @@ namespace FG
 			const String	_data;
 
             IncludeResultImpl (String &&data, const String& headerName, void* userData = null) :
-				IncludeResult{headerName, data.c_str(), data.length(), userData}, _data{std::move(data)} {}
+				IncludeResult{headerName, null, 0, userData}, _data{std::move(data)}
+			{
+				const_cast<const char*&>(headerData) = _data.c_str();
+				const_cast<size_t&>(headerLength)    = _data.length();
+			}
 
 			ND_ StringView	GetSource () const	{ return _data; }
 		};
@@ -115,16 +119,16 @@ namespace FG
 #	ifdef FG_STD_FILESYSTEM
 		for (auto& folder : _directories)
 		{
-			fs::path	fpath = fs::path( folder ) / headerName;
+			FS::path	fpath = FS::path( folder ) / headerName;
 
-			if ( not fs::exists( fpath ) )
+			if ( not FS::exists( fpath ) )
 				continue;
 
 			const String	filename = fpath.make_preferred().string();
 
 			// prevent recursive include
-			if ( _includedFiles.count( filename ) )
-				return _results.emplace_back(new IncludeResultImpl{ " ", headerName }).get();
+			if ( _includedFiles.count( filename ))
+				return _results.emplace_back(new IncludeResultImpl{ "// skip header\n", headerName }).get();
 			
 			FileRStream  file{ filename };
 			CHECK_ERR( file.IsOpen() );
@@ -134,7 +138,7 @@ namespace FG
 
 			auto*	result = _results.emplace_back(new IncludeResultImpl{ std::move(data), headerName }).get();
 
-			_includedFiles.insert_or_assign( headerName, result );
+			_includedFiles.insert_or_assign( filename, result );
 			return result;
 		}
 
@@ -161,7 +165,7 @@ namespace FG
 
 			auto*	result = _results.emplace_back(new IncludeResultImpl{ std::move(data), headerName }).get();
 
-			_includedFiles.insert_or_assign( headerName, result );
+			_includedFiles.insert_or_assign( filename, result );
 			return result;
 		}
 #	endif
@@ -271,7 +275,7 @@ namespace FG
 				trace.SetSource( source.data(), source.length() );
 
 				for (auto& file : includer.GetIncludedFiles()) {
-					trace.IncludeSource( file.first.c_str(), file.second->GetSource().data(), file.second->GetSource().length() );
+					trace.IncludeSource( file.second->headerName.data(), file.second->GetSource().data(), file.second->GetSource().length() );
 				}
 
 				COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_DebugDescriptorSet ));
