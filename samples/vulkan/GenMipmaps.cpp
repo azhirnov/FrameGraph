@@ -31,7 +31,7 @@ class GenMipmapsApp final : public IWindowEventListener, public VulkanDeviceFn
 	
 	static constexpr uint2	imageSize	= uint2{ 1u << 12 };
 	static constexpr uint	numMipmaps	= CT_IntLog2< Max( imageSize.x, imageSize.y )>;
-	static constexpr bool	genInComputeShader = false;
+	static constexpr bool	genInComputeShader = true;
 
 private:
 	VulkanDeviceExt			vulkan;

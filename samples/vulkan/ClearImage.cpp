@@ -16,11 +16,11 @@ class ClearImageApp final : public IWindowEventListener, public VulkanDeviceFn
 {
 	using Nanoseconds	= std::chrono::nanoseconds;
 	
-	static constexpr uint2		imageSize		= uint2{ 1u << 14 };
-	//static constexpr RGBA32f	clearColor		{ 1.0f, 1.0f, 1.0f, 1.0f };
-	static constexpr RGBA32f	clearColor		{ 0.123f, 0.456f, 0.789f, 0.158f };
-	static constexpr bool		genInComputeShader		 = true;
-	static constexpr bool		invalidateBeforeClearing = true;
+	static constexpr uint2		imageSize		= uint2{ 1u << 12 };
+	static constexpr RGBA32f	clearColor		{ 1.0f, 1.0f, 1.0f, 1.0f };
+	//static constexpr RGBA32f	clearColor		{ 0.123f, 0.456f, 0.789f, 0.158f };
+	static constexpr bool		genInComputeShader		 = false;
+	static constexpr bool		invalidateBeforeClearing = false;
 
 private:
 	VulkanDeviceExt			vulkan;
