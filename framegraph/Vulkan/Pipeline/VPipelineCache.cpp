@@ -188,10 +188,6 @@ namespace FG
 			CHECK( _SetupShaderDebugging( fgThread, gppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
-		// check topology
-		CHECK_ERR(	uint(renderState.inputAssembly.topology) < gppln._supportedTopology.size() and
-					gppln._supportedTopology[uint(renderState.inputAssembly.topology)] );
-
 		VGraphicsPipeline::PipelineInstance		inst;
 		inst.layoutId		= layout_id;
 		inst.dynamicState	= dynamicStates;
@@ -203,8 +199,15 @@ namespace FG
 		inst.debugMode		= GetDebugModeHash( dbg_mode, dbg_stages );
 		inst.renderState	= renderState;
 
+		if ( gppln._patchControlPoints )
+			inst.renderState.inputAssembly.topology = EPrimitive::Patch;
+
 		inst.vertexInput.ApplyAttribs( gppln.GetVertexAttribs() );
 		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
+		
+		// check topology
+		CHECK_ERR(	uint(inst.renderState.inputAssembly.topology) < gppln._supportedTopology.size() and
+					gppln._supportedTopology[uint(inst.renderState.inputAssembly.topology)] );
 
 		inst.UpdateHash();
 		
