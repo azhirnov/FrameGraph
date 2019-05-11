@@ -4,11 +4,7 @@
 
 #include "scene/Renderer/IRenderTechnique.h"
 #include "scene/SceneManager/ISceneManager.h"
-#include "scene/SceneManager/IViewport.h"
-#include "scene/Math/FPSCamera.h"
-#include "framework/Window/IWindow.h"
-#include "framework/Vulkan/VulkanDeviceExt.h"
-#include <chrono>
+#include "scene/BaseSceneApp.h"
 
 namespace FG
 {
@@ -17,19 +13,12 @@ namespace FG
 	// Scene Tests Application
 	//
 
-	class SceneApp final : public IViewport, public IWindowEventListener
+	class SceneApp final : public BaseSceneApp
 	{
 	// variables
 	private:
-		VulkanDeviceExt			vulkan;
-		WindowPtr				window;
-		
-		FrameGraph				frameGraph;
-		PipelineCompiler		pplnCompiler;
-		SwapchainID				swapchainId;
-
-		RenderTechniquePtr		renderTech;
-		SceneManagerPtr			scene;
+		RenderTechniquePtr		_renderTech;
+		SceneManagerPtr			_scene;
 
 		
 	// methods
@@ -38,28 +27,16 @@ namespace FG
 		~SceneApp ();
 
 		bool Initialize ();
-		bool Update ();
-		
 
-	// IWindowEventListener
+
+	// BaseSceneApp
 	private:
-		void OnRefresh () override {}
-		void OnDestroy () override {}
-		void OnUpdate () override {}
-		void OnResize (const uint2 &size) override;
-		void OnKey (StringView, EKeyAction) override;
-		void OnMouseMove (const float2 &) override;
-
+		bool DrawScene () override;
 
 	// IViewport //
 	private:
 		void Prepare (ScenePreRender &) override;
 		void Draw (RenderQueue &) const override;
-		void AfterRender (const CommandBuffer &, Present &&) override;
-
-
-	private:
-		bool _CreateFrameGraph ();
 	};
 
 }	// FG

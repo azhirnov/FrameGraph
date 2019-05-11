@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "scene/ThreadPool/ThreadPool.h"
 #include "scene/Renderer/IRenderTechnique.h"
 
 namespace FG

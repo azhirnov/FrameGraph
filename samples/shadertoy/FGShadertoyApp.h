@@ -2,11 +2,7 @@
 
 #pragma once
 
-#include "framework/Window/IWindow.h"
-#include "framework/Vulkan/VulkanDeviceExt.h"
-#include "framegraph/FG.h"
-#include "scene/Math/FPSCamera.h"
-#include <chrono>
+#include "scene/BaseSceneApp.h"
 
 namespace FG
 {
@@ -15,7 +11,7 @@ namespace FG
 	// Shadertoy Application
 	//
 
-	class FGShadertoyApp final : public IWindowEventListener
+	class FGShadertoyApp final : public BaseSceneApp
 	{
 	// types
 	private:
@@ -114,17 +110,10 @@ namespace FG
 
 		using ImageCache_t	= HashMap< String, ImageID >;
 
-		using TimePoint_t	= std::chrono::high_resolution_clock::time_point;
-		using SecondsF		= std::chrono::duration< float >;
-
 
 	// variables
 	private:
-		VulkanDeviceExt			_vulkan;
-		WindowPtr				_window;
-		FrameGraph				_frameGraph;
 		CommandBuffer			_cmdBuffer;
-		SwapchainID				_swapchainId;
 
 		Samples_t				_samples;
 		size_t					_currSample		= UMax;
@@ -138,13 +127,7 @@ namespace FG
 
 		ImageCache_t			_imageCache;
 
-		FPSCamera				_camera;
-		Rad						_cameraFov		= 60_deg;
-		vec3					_positionDelta;
-		vec2					_mouseDelta;
-		vec2					_lastMousePos;
 		Optional<vec2>			_debugPixel;
-		bool					_mousePressed	= false;
 
 		ShadertoyUB				_ubData;
 		Task					_currTask;
@@ -156,22 +139,12 @@ namespace FG
 		uint					_frameCounter	= 0;
 		TimePoint_t				_startTime;
 		TimePoint_t				_lastUpdateTime;
+		RGBA32f					_selectedPixel;
 
 		SamplerID				_nearestClampSampler;
 		SamplerID				_linearClampSampler;
 		SamplerID				_nearestRepeatSampler;
 		SamplerID				_linearRepeatSampler;
-		
-		String					_debugOutputPath;
-
-		struct {
-			Nanoseconds				gpuTimeSum				{0};
-			Nanoseconds				cpuTimeSum				{0};
-			TimePoint_t				lastUpdateTime;
-			uint					frameCounter			= 0;
-			const uint				UpdateIntervalMillis	= 500;
-			RGBA32f					selectedPixel;
-		}						_frameStat;
 
 		static constexpr EPixelFormat	ImageFormat = EPixelFormat::RGBA16F;
 
@@ -181,23 +154,21 @@ namespace FG
 		FGShadertoyApp ();
 		~FGShadertoyApp ();
 		
-		bool Initialize (WindowPtr &&wnd);
-		bool Update ();
+		bool Initialize ();
 		void Destroy ();
+
+
+	// BaseSceneApp
+	public:
+		bool DrawScene () override;
 
 
 	// IWindowEventListener
 	private:
-		void OnResize (const uint2 &size) override;
-		void OnRefresh () override {}
-		void OnDestroy () override {}
-		void OnUpdate () override {}
 		void OnKey (StringView, EKeyAction) override;
-		void OnMouseMove (const float2 &) override;
 		
-	private:
-		//bool Visualize (StringView name, bool autoOpen = false) const;
 
+	private:
 		void _InitSamples ();
 		void _CreateSamplers ();
 
@@ -209,15 +180,12 @@ namespace FG
 		bool _DrawWithShader (const ShaderPtr &shader, uint passIndex, bool isLast);
 		void _UpdateShaderData ();
 
-		void _UpdateFrameStat ();
-
 		bool _LoadImage (const String &filename, OUT ImageID &id);
 		bool _HasImage (StringView filename) const;
 
 		GPipelineID  _Compile (StringView name, StringView defs) const;
 		bool _Recompile ();
 		
-		void _OnShaderTraceReady (StringView name, ArrayView<String> output) const;
 		void _OnPixelReadn (const uint2 &point, const ImageView &view);
 	};
 
