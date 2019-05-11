@@ -49,7 +49,6 @@ namespace FG
 
 
 	private:
-		ND_ SceneHierarchyPtr  _LoadScene1 (const CommandBuffer &) const;
 		ND_ SceneHierarchyPtr  _LoadScene2 (const CommandBuffer &) const;
 	};
 

@@ -55,7 +55,6 @@ namespace FG
 			CHECK_ERR( renderer->Create( _frameGraph ));
 			_renderTech = renderer;
 
-			//CHECK_ERR( _scene->Add( _LoadScene1( cmdbuf )) );
 			CHECK_ERR( _scene->Add( _LoadScene2( cmdbuf )) );
 		}
 		CHECK_ERR( _frameGraph->Execute( cmdbuf ));
@@ -68,65 +67,6 @@ namespace FG
 
 		GetFPSCamera().SetPosition({ -0.06f, 0.29f, 0.93f });
 		return true;
-	}
-	
-/*
-=================================================
-	_LoadScene1
-=================================================
-*/
-	SceneHierarchyPtr  SceneApp::_LoadScene1 (const CommandBuffer &cmdbuf) const
-	{
-		AssimpLoader			loader;
-		AssimpLoader::Config	cfg;
-
-		Array<IntermMeshPtr>		meshes;
-		Array<IntermMaterialPtr>	materials;
-		IntermScene::ModelData		model;
-		IntermScene::SceneNode		root;
-
-		const auto	LoadModel = [&] (StringView path, EDetailLevel detail)
-		{
-			auto	temp = loader.Load( cfg, path );
-			meshes.push_back( temp->GetMeshes().begin()->first );
-			materials.push_back( temp->GetMaterials().begin()->first );
-
-			using Texture = IntermMaterial::MtrTexture;
-			auto&	mtr = materials.back()->EditSettings();
-			mtr.albedo			= Texture{ MakeShared<IntermImage>("Aset_castle_wall_M_scDxB_8K_Albedo.jpg") };
-			/*mtr.heightMap		= Texture{ MakeShared<IntermImage>("Aset_castle_wall_M_scDxB_8K_Bump.jpg") };
-			mtr.ambientOcclusion= Texture{ MakeShared<IntermImage>("Aset_castle_wall_M_scDxB_8K_Cavity.jpg") };
-			mtr.displacementMap	= Texture{ MakeShared<IntermImage>("Aset_castle_wall_M_scDxB_8K_Displacement.jpg") };
-			mtr.normalsMap		= Texture{ MakeShared<IntermImage>("Aset_castle_wall_M_scDxB_8K_Normal_LOD0.jpg") };
-			mtr.roughtness		= Texture{ MakeShared<IntermImage>("Aset_castle_wall_M_scDxB_8K_Roughness.jpg") };
-			mtr.specular		= Texture{ MakeShared<IntermImage>("Aset_castle_wall_M_scDxB_8K_Specular.jpg") };*/
-
-			auto&	node1 = temp->GetRoot().nodes[0];
-			auto&	node2 = node1.nodes[0];
-
-			//root.localTransform			= node1.localTransform;
-			model.levels[uint(detail)]	= UnionGet<IntermScene::ModelData>( node2.data[0] ).levels[0];
-		};
-
-		LoadModel( FG_DATA_PATH "data/CastleWall/Aset_castle_wall_M_scDxB_High.FBX", EDetailLevel::High );
-		LoadModel( FG_DATA_PATH "data/CastleWall/Aset_castle_wall_M_scDxB_LOD5.FBX", EDetailLevel::High+1 );
-		
-		root.data.push_back( model );
-
-		IntermScenePtr	temp_scene = MakeShared<IntermScene>( std::move(materials), std::move(meshes), Array<IntermLightPtr>{}, std::move(root) );
-		CHECK_ERR( temp_scene );
-
-		DevILLoader		img_loader;
-		CHECK_ERR( img_loader.Load( temp_scene, {FG_DATA_PATH "data/CastleWall"}, _scene->GetImageCache() ));
-		
-		Transform	transform;
-		transform.orientation	= glm::rotate( quat{}, float(180_deg), vec3{1.0f, 0.0f, 0.0f} );
-		transform.scale			= 0.01f;
-
-		auto	hierarchy = MakeShared<SimpleRayTracingScene>();
-		CHECK_ERR( hierarchy->Create( cmdbuf, temp_scene, _scene->GetImageCache(), transform ));
-
-		return hierarchy;
 	}
 	
 /*
