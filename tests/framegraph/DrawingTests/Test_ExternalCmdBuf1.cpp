@@ -16,7 +16,7 @@ namespace FG
 		{
 			VkCommandPoolCreateInfo		info = {};
 			info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			info.queueFamilyIndex	= _vulkan.GetVkQuues()[0].familyIndex;
+			info.queueFamilyIndex	= _vulkan.GetVkQueues()[0].familyIndex;
 			info.flags				= 0;
 
 			VK_CHECK( _vulkan.vkCreateCommandPool( _vulkan.GetVkDevice(), &info, null, OUT &vk_cmdpool ));
@@ -128,7 +128,7 @@ namespace FG
 
 			VulkanCommandBatch	vk_cmdbatch = {};
 			vk_cmdbatch.commands			= { &BitCast<CommandBufferVk_t>( vk_cmdbuf ), 1 };
-			vk_cmdbatch.queueFamilyIndex	= _vulkan.GetVkQuues()[0].familyIndex;
+			vk_cmdbatch.queueFamilyIndex	= _vulkan.GetVkQueues()[0].familyIndex;
 
 			CHECK_ERR( cmd2->AddExternalCommands( vk_cmdbatch ));
 			CHECK_ERR( _frameGraph->Execute( cmd2 ));

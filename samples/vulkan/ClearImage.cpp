@@ -215,7 +215,7 @@ bool ClearImageApp::Initialize ()
 
 		shaderSubgroupSupported = EnumEq( vulkan.GetDeviceSubgroupProperties().supportedStages, VK_SHADER_STAGE_COMPUTE_BIT );
 
-		cmdQueue = vulkan.GetVkQuues()[0].handle;
+		cmdQueue = vulkan.GetVkQueues()[0].handle;
 
 		vulkan.CreateDebugUtilsCallback( VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT );
 	}
@@ -681,7 +681,7 @@ bool ClearImageApp::CreateCommandBuffers ()
 {
 	VkCommandPoolCreateInfo		pool_info = {};
 	pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	pool_info.queueFamilyIndex	= vulkan.GetVkQuues()[0].familyIndex;
+	pool_info.queueFamilyIndex	= vulkan.GetVkQueues()[0].familyIndex;
 	pool_info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmdPool ));
 
