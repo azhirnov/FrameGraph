@@ -198,7 +198,7 @@ namespace FG
 			//swapchain_ci.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
 			swapchain_info				= swapchain_ci;
 
-			for (auto& q : _vulkan.GetVkQuues())
+			for (auto& q : _vulkan.GetVkQueues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );

@@ -102,7 +102,7 @@ namespace FG
 			swapchain_info.surface		= BitCast<SurfaceVk_t>( vulkan.GetVkSurface() );
 			swapchain_info.surfaceSize	= window->GetSize();
 
-			for (auto& q : vulkan.GetVkQuues())
+			for (auto& q : vulkan.GetVkQueues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );

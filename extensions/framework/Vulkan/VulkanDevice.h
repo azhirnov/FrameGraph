@@ -119,7 +119,7 @@ namespace FGC
 		ND_ VkPhysicalDevice			GetVkPhysicalDevice ()		const	{ return _vkPhysicalDevice; }
 		ND_ VkDevice					GetVkDevice ()				const	{ return _vkDevice; }
 		ND_ VkSurfaceKHR				GetVkSurface ()				const	{ return _vkSurface; }
-		ND_ ArrayView<VulkanQueue>		GetVkQuues ()				const	{ return _vkQueues; }
+		ND_ ArrayView<VulkanQueue>		GetVkQueues ()				const	{ return _vkQueues; }
 
 		ND_ VkPhysicalDeviceFeatures const&								GetDeviceFeatures ()							const	{ return _features.main; }
 		ND_ VkPhysicalDeviceMultiviewFeatures const&					GetDeviceMultiviewFeatures ()					const	{ return _features.multiview; }

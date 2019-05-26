@@ -164,10 +164,10 @@ bool AsyncComputeApp2::Initialize ()
 								  {}
 			));
 		
-		CHECK_ERR( vulkan.GetVkQuues().size() == 2 );
-		CHECK_ERR( vulkan.GetVkQuues()[0].familyIndex != vulkan.GetVkQuues()[1].familyIndex );
+		CHECK_ERR( vulkan.GetVkQueues().size() == 2 );
+		CHECK_ERR( vulkan.GetVkQueues()[0].familyIndex != vulkan.GetVkQueues()[1].familyIndex );
 
-		presentInComputeQueueSupported = EnumEq( vulkan.GetVkQuues()[1].flags, VK_QUEUE_PRESENT_BIT );
+		presentInComputeQueueSupported = EnumEq( vulkan.GetVkQueues()[1].flags, VK_QUEUE_PRESENT_BIT );
 		
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 	}
@@ -296,7 +296,7 @@ void AsyncComputeApp2::GenGraphicsCommands1 (uint frameId)
 			barrier.srcAccessMask		= 0;
 			barrier.dstAccessMask		= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_EXTERNAL;
-			barrier.dstQueueFamilyIndex	= vulkan.GetVkQuues()[0].familyIndex;
+			barrier.dstQueueFamilyIndex	= vulkan.GetVkQueues()[0].familyIndex;
 			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 			vkCmdPipelineBarrier( g_cmd,
@@ -351,7 +351,7 @@ void AsyncComputeApp2::GenGraphicsCommands1 (uint frameId)
 			barrier.newLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			barrier.srcAccessMask		= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			barrier.dstAccessMask		= 0;
-			barrier.srcQueueFamilyIndex	= vulkan.GetVkQuues()[0].familyIndex;
+			barrier.srcQueueFamilyIndex	= vulkan.GetVkQueues()[0].familyIndex;
 			barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_EXTERNAL;
 			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
@@ -375,7 +375,7 @@ void AsyncComputeApp2::GenGraphicsCommands1 (uint frameId)
 		submit_info.signalSemaphoreCount	= 1;
 		submit_info.pSignalSemaphores		= &semaphores[0];
 
-		VK_CALL( vkQueueSubmit( vulkan.GetVkQuues()[0].handle, 1, &submit_info, VK_NULL_HANDLE ));
+		VK_CALL( vkQueueSubmit( vulkan.GetVkQueues()[0].handle, 1, &submit_info, VK_NULL_HANDLE ));
 	}
 }
 
@@ -431,7 +431,7 @@ void AsyncComputeApp2::GenComputeCommands1 (uint frameId)
 			barrier.srcAccessMask		= 0;
 			barrier.dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
 			barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_EXTERNAL;
-			barrier.dstQueueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
+			barrier.dstQueueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
 			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 			vkCmdPipelineBarrier( c_cmd,
@@ -448,8 +448,8 @@ void AsyncComputeApp2::GenComputeCommands1 (uint frameId)
 			barrier.newLayout			= VK_IMAGE_LAYOUT_GENERAL;
 			barrier.srcAccessMask		= VK_ACCESS_MEMORY_READ_BIT;
 			barrier.dstAccessMask		= VK_ACCESS_SHADER_WRITE_BIT;
-			barrier.srcQueueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
-			barrier.dstQueueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
+			barrier.srcQueueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
+			barrier.dstQueueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
 			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 			vkCmdPipelineBarrier( c_cmd,
@@ -477,7 +477,7 @@ void AsyncComputeApp2::GenComputeCommands1 (uint frameId)
 			barrier.newLayout			= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			barrier.srcAccessMask		= VK_ACCESS_SHADER_READ_BIT;
 			barrier.dstAccessMask		= 0;
-			barrier.srcQueueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
+			barrier.srcQueueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
 			barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_EXTERNAL;
 			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
@@ -496,7 +496,7 @@ void AsyncComputeApp2::GenComputeCommands1 (uint frameId)
 			barrier.newLayout			= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 			barrier.srcAccessMask		= VK_ACCESS_SHADER_WRITE_BIT;
 			barrier.dstAccessMask		= 0;
-			barrier.srcQueueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
+			barrier.srcQueueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
 			barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_EXTERNAL;
 			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
@@ -525,7 +525,7 @@ void AsyncComputeApp2::GenComputeCommands1 (uint frameId)
 		submit_info.signalSemaphoreCount	= 1;
 		submit_info.pSignalSemaphores		= &semaphores[2];
 
-		VK_CALL( vkQueueSubmit( vulkan.GetVkQuues()[1].handle, 1, &submit_info, VK_NULL_HANDLE ));
+		VK_CALL( vkQueueSubmit( vulkan.GetVkQueues()[1].handle, 1, &submit_info, VK_NULL_HANDLE ));
 	}
 }
 
@@ -556,7 +556,7 @@ void AsyncComputeApp2::Present1 (uint frameId)
 			barrier.srcAccessMask		= 0;
 			barrier.dstAccessMask		= VK_ACCESS_MEMORY_READ_BIT;
 			barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_EXTERNAL;
-			barrier.dstQueueFamilyIndex	= vulkan.GetVkQuues()[0].familyIndex;
+			barrier.dstQueueFamilyIndex	= vulkan.GetVkQueues()[0].familyIndex;
 			barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 			vkCmdPipelineBarrier( g_cmd,
@@ -581,11 +581,11 @@ void AsyncComputeApp2::Present1 (uint frameId)
 		submit_info.signalSemaphoreCount	= 1;
 		submit_info.pSignalSemaphores		= &semaphores[3];
 
-		VK_CALL( vkQueueSubmit( vulkan.GetVkQuues()[0].handle, 1, &submit_info, fences[frameId] ));
+		VK_CALL( vkQueueSubmit( vulkan.GetVkQueues()[0].handle, 1, &submit_info, fences[frameId] ));
 	}
 
 	// present
-	VkResult	err = swapchain->Present( vulkan.GetVkQuues()[0].handle, {semaphores[3]} );
+	VkResult	err = swapchain->Present( vulkan.GetVkQueues()[0].handle, {semaphores[3]} );
 	switch ( err ) {
 		case VK_SUCCESS :
 			break;
@@ -641,11 +641,11 @@ bool AsyncComputeApp2::CreateCommandBuffers ()
 {
 	VkCommandPoolCreateInfo		pool_info = {};
 	pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	pool_info.queueFamilyIndex	= vulkan.GetVkQuues()[0].familyIndex;
+	pool_info.queueFamilyIndex	= vulkan.GetVkQueues()[0].familyIndex;
 	pool_info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmdPoolGraphics ));
 	
-	pool_info.queueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
+	pool_info.queueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
 	VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmdPoolCompute ));
 
 	VkCommandBufferAllocateInfo	info = {};
@@ -882,8 +882,8 @@ bool AsyncComputeApp2::CreateResources ()
 				barrier.newLayout			= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				barrier.srcAccessMask		= 0;
 				barrier.dstAccessMask		= 0;
-				barrier.srcQueueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
-				barrier.dstQueueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
+				barrier.srcQueueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
+				barrier.dstQueueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
 				barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 				vkCmdPipelineBarrier( cmd,
@@ -901,7 +901,7 @@ bool AsyncComputeApp2::CreateResources ()
 				barrier.newLayout			= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 				barrier.srcAccessMask		= 0;
 				barrier.dstAccessMask		= 0;
-				barrier.srcQueueFamilyIndex	= vulkan.GetVkQuues()[1].familyIndex;
+				barrier.srcQueueFamilyIndex	= vulkan.GetVkQueues()[1].familyIndex;
 				barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_EXTERNAL;
 				barrier.subresourceRange	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
@@ -918,10 +918,10 @@ bool AsyncComputeApp2::CreateResources ()
 		submit_info.commandBufferCount	= 1;
 		submit_info.pCommandBuffers		= &cmd;
 
-		VK_CHECK( vkQueueSubmit( vulkan.GetVkQuues()[1].handle, 1, &submit_info, VK_NULL_HANDLE ));
+		VK_CHECK( vkQueueSubmit( vulkan.GetVkQueues()[1].handle, 1, &submit_info, VK_NULL_HANDLE ));
 	}
 
-	VK_CALL( vkQueueWaitIdle( vulkan.GetVkQuues()[1].handle ));
+	VK_CALL( vkQueueWaitIdle( vulkan.GetVkQueues()[1].handle ));
 	
 	// create framebuffers
 	{
