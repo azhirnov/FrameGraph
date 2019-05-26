@@ -147,7 +147,7 @@ namespace {
 			swapchain_ci.surfaceSize	= _window->GetSize();
 			swapchain_info				= swapchain_ci;
 
-			for (auto& q : _vulkan.GetVkQuues())
+			for (auto& q : _vulkan.GetVkQueues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );

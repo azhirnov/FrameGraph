@@ -2,7 +2,7 @@
 /*
 	FG_BARRIER_MODE:
 		0 - WinAPI native barrier implementation, requires Windows 8 desctop.
-		1 - implementation based only on atomics, requires another barrier between 'wait()'.
+		1 - implementation based only on atomics.
 		2 - implementation based on boost::fibers::barrier, shows same performance as native WinAPI barrier.
 		3 - wrapper around std::barrier, requires C++20.
 */
@@ -13,7 +13,7 @@
 
 #ifdef FG_STD_BARRIER
 #	define FG_BARRIER_MODE	3
-#elif defined(PLATFORM_WINDOWS)
+#elif defined(WINDOWS_TARGET_VERSION) and (WINDOWS_TARGET_VERSION >= 8)
 #	define FG_BARRIER_MODE	0
 #else
 #	define FG_BARRIER_MODE	2

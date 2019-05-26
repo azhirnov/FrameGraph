@@ -178,7 +178,7 @@ bool ShadingRateApp::Initialize ()
 
 
 	// initialize vulkan objects
-	cmdQueue = vulkan.GetVkQuues().front().handle;
+	cmdQueue = vulkan.GetVkQueues().front().handle;
 
 	CHECK_ERR( CreateCommandBuffers() );
 	CHECK_ERR( CreateSyncObjects() );
@@ -385,7 +385,7 @@ bool ShadingRateApp::CreateCommandBuffers ()
 {
 	VkCommandPoolCreateInfo		pool_info = {};
 	pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	pool_info.queueFamilyIndex	= vulkan.GetVkQuues().front().familyIndex;
+	pool_info.queueFamilyIndex	= vulkan.GetVkQueues().front().familyIndex;
 	pool_info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmdPool ));
 
