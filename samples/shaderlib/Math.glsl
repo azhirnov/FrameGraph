@@ -24,6 +24,8 @@
 #define and			&&
 #define or			||
 
+#define Any				any
+#define All				all
 #define Abs				abs
 #define ACos			acos
 #define ASin			asin
@@ -58,11 +60,14 @@
 #define Min				min
 #define Max				max
 #define Mod				mod
+#define MatInverse		inverse
+#define MatTranspose	transpose
 #define Normalize		normalize
 #define Pow				pow
 #define Round			round
 #define Reflect			reflect
 #define Refract			refract
+#define Step			step
 #define SmoothStep		smoothstep
 #define Saturate( x )	clamp( x, 0.0, 1.0 )
 #define Sqrt			sqrt
@@ -120,6 +125,9 @@ float Pi ()			{ return 3.14159265358979323846f; }
 
 float  Sign (const float x)  { return  x < 0.0 ? -1.0 : 1.0; }
 int    Sign (const int x)    { return  x < 0 ? -1 : 1; }
+
+
+float2  SinCos (const float x)  { return float2(sin(x), cos(x)); }
 
 
 //-----------------------------------------------------------------------------
@@ -222,12 +230,20 @@ uint BitRotateRight (const uint x, uint shift)
 //-----------------------------------------------------------------------------
 // interpolation
 
-float2  BaryLerp (const float2 a, const float2 b, const float2 c, const float3 barycentrics)
-{
-	return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z;
-}
+float   BaryLerp (const float  a, const float  b, const float  c, const float3 barycentrics)  { return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z; }
+float2  BaryLerp (const float2 a, const float2 b, const float2 c, const float3 barycentrics)  { return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z; }
+float3  BaryLerp (const float3 a, const float3 b, const float3 c, const float3 barycentrics)  { return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z; }
+float4  BaryLerp (const float4 a, const float4 b, const float4 c, const float3 barycentrics)  { return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z; }
 
-float3  BaryLerp (const float3 a, const float3 b, const float3 c, const float3 barycentrics)
-{
-	return a * barycentrics.x + b * barycentrics.y + c * barycentrics.z;
-}
+
+float   BiLerp (const float  x1y1, const float  x2y1, const float  x1y2, const float  x2y2, const float2 factor)  { return Lerp( Lerp( x1y1, x2y1, factor.x ), Lerp( x1y2, x2y2, factor.x ), factor.y ); }
+float2  BiLerp (const float2 x1y1, const float2 x2y1, const float2 x1y2, const float2 x2y2, const float2 factor)  { return Lerp( Lerp( x1y1, x2y1, factor.x ), Lerp( x1y2, x2y2, factor.x ), factor.y ); }
+float3  BiLerp (const float3 x1y1, const float3 x2y1, const float3 x1y2, const float3 x2y2, const float2 factor)  { return Lerp( Lerp( x1y1, x2y1, factor.x ), Lerp( x1y2, x2y2, factor.x ), factor.y ); }
+float4  BiLerp (const float4 x1y1, const float4 x2y1, const float4 x1y2, const float4 x2y2, const float2 factor)  { return Lerp( Lerp( x1y1, x2y1, factor.x ), Lerp( x1y2, x2y2, factor.x ), factor.y ); }
+
+
+// map 'x' in 'src' interval to 'dst' interval
+float   Remap (const float2 src, const float2 dst, const float  x)  { return (x - src.x) / (src.y - src.x) * (dst.y - dst.x) + dst.x; }
+float2  Remap (const float2 src, const float2 dst, const float2 x)  { return (x - src.x) / (src.y - src.x) * (dst.y - dst.x) + dst.x; }
+float3  Remap (const float2 src, const float2 dst, const float3 x)  { return (x - src.x) / (src.y - src.x) * (dst.y - dst.x) + dst.x; }
+float4  Remap (const float2 src, const float2 dst, const float4 x)  { return (x - src.x) / (src.y - src.x) * (dst.y - dst.x) + dst.x; }

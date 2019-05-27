@@ -19,13 +19,13 @@ struct Ray
 	Ray_Create
 =================================================
 */
-Ray		Ray_Create (const float3 origin, const float3 direction)
+Ray		Ray_Create (const float3 origin, const float3 direction, const float tmin)
 {
 	Ray	result;
 	result.origin	= origin;
-	result.pos		= origin;
-	result.t		= 0.0f;
+	result.t		= tmin;
 	result.dir		= direction;
+	result.pos		= origin + direction * tmin;
 	return result;
 }
 
@@ -151,17 +151,7 @@ void	Ray_Rotate (inout Ray ray, const quat rotation)
 void	Ray_Move (inout Ray ray, const float length)
 {
 	ray.t   += length;
-	ray.pos += ray.dir * length;
-}
-
-/*
-=================================================
-	Ray_Length
-=================================================
-*/
-float	Ray_Length (const Ray ray)
-{
-	return Distance( ray.origin, ray.pos );
+	ray.pos  = ray.origin + ray.dir * ray.t;
 }
 
 /*

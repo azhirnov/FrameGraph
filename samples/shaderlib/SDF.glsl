@@ -13,8 +13,8 @@ float SDF_Ellipsoid (const float3 position, const float3 radius);
 float SDF_Box (const float3 position, const float3 halfSize);
 float SDF_Torus (const float3 position, const float2 firstAndSecondRadius);
 float SDF_Cylinder (const float3 position, const float2 radiusHeight);
-//float SDF_Cone (const float3 position, const float2 radiusHeight);
-float SDF_Plane (const float3 position, const float4 n);
+float SDF_Cone (const float3 position, const float2 direction);
+float SDF_Plane (const float3 position, const float4 normDist);
 float SDF_HexagonalPrism (const float3 position, const float2 h);
 float SDF_TriangularPrism (const float3 position, const float2 h);
 float SDF_Capsule (const float3 position, const float3 a, const float3 b, const float r);
@@ -72,18 +72,18 @@ float SDF_Cylinder (const float3 position, const float2 radiusHeight)
 }
 
 
-float SDF_Cone (float3 position, float2 radiusHeight)
+float SDF_Cone (const float3 position, const float2 direction)
 {
-	// c must be normalized
+	// 'direction' must be normalized
 	float q = Length( position.xy );
-	return Dot( radiusHeight, float2( q, position.z ));
+	return Dot( direction, float2( q, position.z ));
 }
 
 
-float SDF_Plane (const float3 position, const float4 n)
+float SDF_Plane (const float3 position, const float4 normDist)
 {
-	// n must be normalized
-	return Dot( position, n.xyz ) + n.w;
+	// 'normDist' must be normalized
+	return Dot( position, normDist.xyz ) + normDist.w;
 }
 
 

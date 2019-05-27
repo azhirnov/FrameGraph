@@ -15,9 +15,9 @@ float4  ToNonLinear (const float4 color)
 	return float4(ToNonLinear( color.rgb ), color.a ); 
 }
 
-float4  ToLinear (const float4 color)
+float3  ToLinear (const float3 color)
 {
-	return ToLinear( color.rgb, float3(0.454545f) ); 
+	return Pow( color.rgb, float3(0.454545f) ); 
 }
 
 float4  ToLinear (const float4 color)

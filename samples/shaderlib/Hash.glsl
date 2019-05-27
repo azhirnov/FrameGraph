@@ -69,7 +69,7 @@ float3 DHash33 (const float3 p)
 {
 	float3 p3 = Fract( p * DHashScale_float().xyz );
 	p3 += Dot( p3, p3.yxz + 19.19 );
-return Fract( (p3.xxy + p3.yxx) * p3.zyx );
+	return Fract( (p3.xxy + p3.yxx) * p3.zyx );
 }
 
 float4 DHash41 (const float p)
@@ -168,7 +168,7 @@ uint IWeylHash (const uint2 p)
 	x *= IWeylConst().x;	// x' = Fx(x)
 	y *= IWeylConst().y;	// y' = Fy(y)
 	x ^= y;					// combine
-	x *= IWeylConst.z;		// MLCG constant
+	x *= IWeylConst().z;	// MLCG constant
 	return x;
 }
 
@@ -193,7 +193,7 @@ uint IWeylHash2 (const uint2 p)
 // from https://www.shadertoy.com/view/4ssXRX
 
 //note: uniformly distributed, normalized rand, [0;1[
-#define nrand (const float2 n) Fract( Sin( Dot( n.xy, float2(12.9898, 78.233) ) ) * 43758.5453 )
+#define nrand( n ) Fract( Sin( Dot( (n).xy, float2(12.9898, 78.233) ) ) * 43758.5453 )
 
 float Hash_Uniform (const float2 n, const float time)
 {

@@ -13,6 +13,8 @@ struct quat
 
 quat	QIdentity ();
 quat	QCreate (const float4 vec);
+quat	QCreate (const float3 axis, const float angle);
+quat	QCreate (float x, float y, float z, float w);
 
 quat	QNormalize (const quat q);
 quat	QInverse (const quat q);
@@ -24,6 +26,8 @@ float	QDot (const quat left, const quat right);
 quat	QSlerp (const quat qx, const quat qy, const float factor);
 
 float3	QDirection (const quat q);
+quat	QLookAt (const float3 from, const float3 to);
+quat	QLookAt (const float3 dir);
 
 quat	QRotationX (const float angleRad);
 quat	QRotationY (const float angleRad);
@@ -39,7 +43,7 @@ quat	QRotation (const float3 anglesRad);
 	QIdentity
 =================================================
 */
-quat QIdentity ()
+quat  QIdentity ()
 {
 	quat	ret;
 	ret.data = float4( 0.0, 0.0, 0.0, 1.0 );
@@ -51,10 +55,24 @@ quat QIdentity ()
 	QCreate
 =================================================
 */
-quat QCreate (const float4 vec)
+quat  QCreate (const float4 vec)
 {
 	quat	ret;
 	ret.data = vec;
+	return ret;
+}
+
+quat  QCreate (const float3 axis, const float angle)
+{
+	quat	ret;
+	ret.data = float4( axis, angle );
+	return ret;
+}
+
+quat  QCreate (float x, float y, float z, float w)
+{
+	quat	ret;
+	ret.data = float4( x, y, z, w );
 	return ret;
 }
 
@@ -63,7 +81,7 @@ quat QCreate (const float4 vec)
 	QNormalize
 =================================================
 */
-quat QNormalize (const quat q)
+quat  QNormalize (const quat q)
 {
 	quat	ret = q;
 	float	n	= Dot( q.data, q.data );
@@ -80,7 +98,7 @@ quat QNormalize (const quat q)
 	QInverse
 =================================================
 */
-quat QInverse (const quat q)
+quat  QInverse (const quat q)
 {
 	quat	ret;
 	ret.data.xyz = -q.data.xyz;
@@ -93,7 +111,7 @@ quat QInverse (const quat q)
 	QMul
 =================================================
 */
-quat QMul (const quat left, const quat right)
+quat  QMul (const quat left, const quat right)
 {
 	quat	ret;
 
@@ -112,7 +130,7 @@ quat QMul (const quat left, const quat right)
 	QMul
 =================================================
 */
-float3 QMul (const quat left, const float3 right)
+float3  QMul (const quat left, const float3 right)
 {
 	float3	q	= left.data.xyz;
 	float3	uv	= Cross( q, right );
@@ -126,7 +144,7 @@ float3 QMul (const quat left, const float3 right)
 	QDot
 =================================================
 */
-float QDot (const quat left, const quat right)
+float  QDot (const quat left, const quat right)
 {
 	return Dot( left.data, right.data );
 }
@@ -136,7 +154,7 @@ float QDot (const quat left, const quat right)
 	QSlerp
 =================================================
 */
-quat QSlerp (const quat qx, const quat qy, const float factor)
+quat  QSlerp (const quat qx, const quat qy, const float factor)
 {
 	quat	ret;
 	float4	qz			= qy.data;
@@ -167,7 +185,7 @@ quat QSlerp (const quat qx, const quat qy, const float factor)
 	QDirection
 =================================================
 */
-float3 QDirection (const quat q)
+float3  QDirection (const quat q)
 {
 	return float3( 2.0 * q.data.x * q.data.z + 2.0 * q.data.y * q.data.w,
 				  2.0 * q.data.z * q.data.y - 2.0 * q.data.x * q.data.w,
@@ -179,7 +197,7 @@ float3 QDirection (const quat q)
 	QRotationX
 =================================================
 */
-quat QRotationX (const float angleRad)
+quat  QRotationX (const float angleRad)
 {
 	quat	q;
 	float	a = angleRad * 0.5;
@@ -193,7 +211,7 @@ quat QRotationX (const float angleRad)
 	QRotationY
 =================================================
 */
-quat QRotationY (const float angleRad)
+quat  QRotationY (const float angleRad)
 {
 	quat	q;
 	float	a = angleRad * 0.5;
@@ -207,7 +225,7 @@ quat QRotationY (const float angleRad)
 	QRotationZ
 =================================================
 */
-quat QRotationZ (const float angleRad)
+quat  QRotationZ (const float angleRad)
 {
 	quat	q;
 	float	a = angleRad * 0.5;
@@ -221,7 +239,26 @@ quat QRotationZ (const float angleRad)
 	QRotation
 =================================================
 */
-quat QRotation (const float3 anglesRad)
+quat  QRotation (const float3 anglesRad)
 {
 	return QMul( QMul( QRotationX( anglesRad.x ), QRotationY( anglesRad.y ) ), QRotationZ( anglesRad.z ) );
+}
+
+/*
+=================================================
+	QLookAt
+=================================================
+*/
+quat  QLookAt (const float3 from, const float3 to)
+{
+	return QLookAt( to - from );
+}
+
+quat  QLookAt (const float3 dir)
+{
+	float3	fwd		= float3(0.0, 0.0, 1.0);
+	float3	axis	= Cross( fwd, dir );
+	float	angle	= Dot( fwd, dir );
+
+	return QNormalize( QCreate( axis, angle + 1.0 ));
 }
