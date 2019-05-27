@@ -568,14 +568,11 @@ namespace FG
 		optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());;
 		optimizer.RegisterPass(spvtools::CreateRemoveDuplicatesPass());
 		optimizer.RegisterPass(spvtools::CreateCFGCleanupPass());
+		
+		spvtools::OptimizerOptions spvOptOptions;
+		spvOptOptions.set_run_validator(false);
 
-		//Array<uint>		temp = spirv;
-		optimizer.Run(spirv.data(), spirv.size(), &spirv);
-
-		//String	origin, optimized;
-		//DisassempleSPIRV( target_env, temp, OUT origin );
-		//DisassempleSPIRV( target_env, spirv, OUT optimized );
-
+		optimizer.Run(spirv.data(), spirv.size(), &spirv, spvOptOptions);
 		return true;
 	}
 #endif	// ENABLE_OPT
@@ -946,21 +943,40 @@ namespace FG
 				if ( is_buf | is_un )
 				{
 					key_start = pos;
-					pos += max_length-1;
+					pos += max_length - size_t(is_buf);
 					break;
 				}
 			}
 
+			// skip 'image*'
+			const char	image_key[] = "image";
+			for (size_t i = pos; i < src.length()-1; ++i)
+			{
+				const char	c = src[i];
+				const char	n = src[i+1];
+
+				if ( (c == ' ') | (c == '\t') )
+					continue;
+
+				if ( (((c == 'i') | (c == 'u')) & (n == 'i')) | ((c == 'i') & (n == 'm')) )
+				{
+					for (; (i < src.length()) and (src[i] != ' ' and src[i] != '\t'); ++i) {}
+					pos = i;
+				}
+				break;
+			}
+
+			// read uniform name
 			size_t	word_start = UMax, word_end = 0;
 			for (; pos < src.length()-1; ++pos)
 			{
 				const char	c = src[pos];
 				const char	n = src[pos+1];
 
-				bool		is_space1 = (c == ' ') | (c == '\t');
-				bool		is_space2 = (n == ' ') | (n == '\t');
-				bool		is_word1  = ((c >= 'a') & (c <= 'z')) | ((c >= 'A') & (c <= 'Z'));
-				bool		is_word2  = ((n >= 'a') & (n <= 'z')) | ((n >= 'A') & (n <= 'Z'));
+				const bool	is_space1 = (c == ' ') | (c == '\t');
+				const bool	is_space2 = (n == ' ') | (n == '\t') | (n == ';') | (n == '{');
+				const bool	is_word1  = ((c >= 'a') & (c <= 'z')) | ((c >= 'A') & (c <= 'Z'));
+				const bool	is_word2  = ((n >= 'a') & (n <= 'z')) | ((n >= 'A') & (n <= 'Z'));
 
 				if ( is_space1 & is_word2 )
 					word_start = pos+1;

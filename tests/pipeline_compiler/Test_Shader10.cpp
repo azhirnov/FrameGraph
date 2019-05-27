@@ -21,12 +21,17 @@ layout (std430, binding=0) writeonly buffer SSB {
 	vec4	data[4];
 } ssb;
 
+// @discard
+layout(binding=2, rgba8) writeonly uniform image2D  un_Image;
+
 void main ()
 {
 	ssb.data[0] = ub.data[1];
 	ssb.data[3] = ub.data[2];
 	ssb.data[1] = ub.data[3];
 	ssb.data[2] = ub.data[0];
+
+	imageStore( un_Image, ivec2(gl_GlobalInvocationID.xy), ub.data[gl_GlobalInvocationID.x & 3] );
 }
 )#" );
 
@@ -43,6 +48,7 @@ void main ()
 
 	TEST( TestUniformBuffer( *ds, UniformID("UB"),  64_b, 1, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/UMax ));
 	TEST( TestStorageBuffer( *ds, UniformID("SSB"), 64_b, 0_b, EShaderAccess::WriteDiscard, 0, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/UMax ));
+	TEST( TestImageUniform( *ds, UniformID{"un_Image"}, EImage::Tex2D, EPixelFormat::RGBA8_UNorm, EShaderAccess::WriteDiscard, 2, EShaderStages::Compute ));
 
 	TEST(All( ppln._defaultLocalGroupSize == uint3(1, 1, 1) ));
 
