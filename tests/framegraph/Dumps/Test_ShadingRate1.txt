@@ -30,7 +30,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ColorAttachmentRead | TransferRead
@@ -91,7 +91,7 @@ CommandBuffer {
 					srcTask:         RenderPass (#3)
 					dstTask:         <final>
 					srcStageMask:    ShadingRateImage
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   ShadingRateImageRead
 					dstAccessMask:   ShadingRateImageRead
@@ -115,7 +115,7 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    AllCommands
+					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   

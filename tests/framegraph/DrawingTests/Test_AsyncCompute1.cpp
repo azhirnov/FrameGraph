@@ -135,7 +135,7 @@ void main ()
 			// graphics queue
 			{
 				LogicalPassID	render_pass	= cmd1->CreateRenderPass( RenderPassDesc( view_size )
-														.AddTarget( RenderTargetID(0), image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
+														.AddTarget( RenderTargetID::Color_0, image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
 														.AddViewport( view_size ) );
 		
 				cmd1->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
@@ -168,7 +168,7 @@ void main ()
 			// graphics queue
 			{
 				LogicalPassID	render_pass	= cmd3->CreateRenderPass( RenderPassDesc( view_size )
-														.AddTarget( RenderTargetID(0), image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
+														.AddTarget( RenderTargetID::Color_0, image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
 														.AddViewport( view_size ) );
 		
 				cmd3->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));

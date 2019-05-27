@@ -60,7 +60,7 @@ void main() {
 		const uint2		view_size	= _frameGraph->GetDescription( image ).dimension.xy();
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
-											.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 											.AddViewport( view_size ) );
 		
 		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));

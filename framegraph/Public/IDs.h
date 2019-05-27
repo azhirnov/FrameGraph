@@ -178,10 +178,16 @@ namespace _fg_hidden_
 
 	enum class RenderTargetID : uint
 	{
+		Color_0			= 0,
+		Color_1			= 1,
+		Color_2			= 2,
+		Color_3			= 3,
+		_LastColor,
 		DepthStencil	= FG_MaxColorBuffers,
 		Depth			= DepthStencil,
 		Unknown			= ~0u
 	};
+	STATIC_ASSERT( uint(RenderTargetID::_LastColor) <= FG_MaxColorBuffers );
 
 
 	using UniformID					= _fg_hidden_::IDWithString< 32,  1, FG_OPTIMIZE_IDS >;

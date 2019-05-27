@@ -42,7 +42,7 @@ namespace FG
 			image_guard.unlock();
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID(0), image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+												.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ) );
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
@@ -86,7 +86,7 @@ namespace FG
 			auto&	image_desc = fg->GetDescription( image );
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( image_desc.dimension.xy() )
-												.AddTarget( RenderTargetID(0), image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+												.AddTarget( RenderTargetID::Color_0, image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 												.AddViewport( image_desc.dimension.xy() ) );
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));

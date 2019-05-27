@@ -44,7 +44,7 @@ namespace FG
 			sync.wait();
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID(0), images[0], RGBA32f(0.0f), EAttachmentStoreOp::Store )
+												.AddTarget( RenderTargetID::Color_0, images[0], RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ) );
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
@@ -130,7 +130,7 @@ namespace FG
 			cmd->AddDependency( cmdBuffers[1] );
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID(0), images[2], RGBA32f(0.0f), EAttachmentStoreOp::Store )
+												.AddTarget( RenderTargetID::Color_0, images[2], RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ) );
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));

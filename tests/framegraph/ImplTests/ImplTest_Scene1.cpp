@@ -173,14 +173,14 @@ void main() {
 											.SetDepthTestEnabled(true).SetDepthWriteEnabled(true) );
 
 		LogicalPassID	opaque_pass = cmd->CreateRenderPass( RenderPassDesc{ view_size }
-											.AddTarget(  RenderTargetID(0),		color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
-											.AddTarget(  RenderTargetID::Depth,	depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+											.AddTarget( RenderTargetID::Color_0, color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+											.AddTarget( RenderTargetID::Depth, depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 											.SetDepthTestEnabled(true).SetDepthWriteEnabled(false) );
 	
 		LogicalPassID	transparent_pass = cmd->CreateRenderPass( RenderPassDesc{ view_size }
-											.AddTarget(  RenderTargetID(0),		color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
-											.AddTarget(  RenderTargetID::Depth,	depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Invalidate )
-											.AddColorBuffer( RenderTargetID(0), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
+											.AddTarget( RenderTargetID::Color_0, color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+											.AddTarget( RenderTargetID::Depth, depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Invalidate )
+											.AddColorBuffer( RenderTargetID::Color_0, EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
 											.SetDepthTestEnabled(true).SetDepthWriteEnabled(false) );
 
 		{

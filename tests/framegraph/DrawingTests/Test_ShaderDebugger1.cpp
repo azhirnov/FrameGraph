@@ -26,7 +26,7 @@ void main ()
 {
 	uint	index	= gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
 	uint	size	= gl_NumWorkGroups.x * gl_NumWorkGroups.y * gl_WorkGroupSize.x * gl_WorkGroupSize.y;
-	float	value	= sin( float(index) / size );
+	float	value	= fract( float(index) / size );
 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), vec4(value) );
 }
 )#", "ComputeShader" );
@@ -59,14 +59,14 @@ no source
 //> size: uint {256}
 12. size	= gl_NumWorkGroups.x * gl_NumWorkGroups.y * gl_WorkGroupSize.x * gl_WorkGroupSize.y;
 
-//> value: float {0.506611}
+//> value: float {0.531250}
 //  index: uint {136}
 //  size: uint {256}
-13. value	= sin( float(index) / size );
+13. value	= fract( float(index) / size );
 
 //> imageStore(): void
 //  gl_GlobalInvocationID: uint3 {8, 8, 0}
-//  value: float {0.506611}
+//  value: float {0.531250}
 14. 	imageStore( un_OutImage, ivec2(gl_GlobalInvocationID.xy), vec4(value) );
 
 )#";
@@ -83,7 +83,7 @@ no source
 		const auto	OnLoaded =	[OUT &data_is_correct, &debug_coord] (const ImageView &imageData) {
 			RGBA32f		dst;
 			imageData.Load( uint3(debug_coord,0), OUT dst );
-			data_is_correct = Equals( dst.r, 0.506611f, 0.000001f );	// must contains same value as in trace
+			data_is_correct = Equals( dst.r, 0.53125f, 0.000001f );	// must contains same value as in trace
 			ASSERT( data_is_correct );
 		};
 		

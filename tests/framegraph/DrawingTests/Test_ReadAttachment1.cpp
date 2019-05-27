@@ -103,7 +103,7 @@ void main() {
 		CHECK_ERR( cmd );
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID(0), color_image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+												.AddTarget( RenderTargetID::Color_0, color_image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddTarget( RenderTargetID::Depth, depth_image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 												.SetDepthTestEnabled( true ).SetDepthWriteEnabled( false )
 												.AddViewport( view_size ) );

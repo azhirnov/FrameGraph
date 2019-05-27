@@ -50,10 +50,10 @@ void main() {
 			ImageID			img	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::R8_UNorm,
 																			EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Color" );
 			LogicalPassID	rp1	= cmd->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID(0), rt, RGBA32f(0.0f), EAttachmentStoreOp::Store )
+												.AddTarget( RenderTargetID::Color_0, rt, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ));
 			LogicalPassID	rp2	= cmd->CreateRenderPass( RenderPassDesc( view_size )
-												.AddTarget( RenderTargetID(0), rt, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+												.AddTarget( RenderTargetID::Color_0, rt, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 												.AddViewport( view_size ));
 		
 			resources1.BindTexture( UniformID("un_Image"), img, sampler );

@@ -36,7 +36,7 @@ CommandBuffer {
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
-					srcTask:         BuildRayTracingScene (#3)
+					srcTask:         BuildRayTracingGeometry (#2)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
 					dstStageMask:    
@@ -55,7 +55,7 @@ CommandBuffer {
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
-					srcTask:         BuildRayTracingGeometry (#2)
+					srcTask:         BuildRayTracingScene (#3)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
 					dstStageMask:    
