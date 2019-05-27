@@ -6,6 +6,9 @@
 
 #ifdef FG_ENABLE_GLFW
 
+# define MOUSE_WHEEL_UP		10
+# define MOUSE_WHEEL_DOWN	11
+
 namespace FGC
 {
 namespace {
@@ -74,7 +77,8 @@ namespace {
 		glfwSetFramebufferSizeCallback( _window, &_GLFW_ResizeCallback );
 		glfwSetKeyCallback( _window, &_GLFW_KeyCallback );
 		glfwSetMouseButtonCallback( _window, &_GLFW_MouseButtonCallback );
-		glfwSetCursorPosCallback( _window, &_GLFW_CursorPos );
+		glfwSetCursorPosCallback( _window, &_GLFW_CursorPosCallback );
+		glfwSetScrollCallback( _window, &_GLFW_MouseWheelCallback );
 
 		return true;
 	}
@@ -148,17 +152,16 @@ namespace {
 	{
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 
-		StringView	key_name	= _MapKey( key );
-		EKeyAction	key_action	= (action == GLFW_PRESS    ? EKeyAction::Down :
-									action == GLFW_RELEASE ? EKeyAction::Up   :
-									EKeyAction::Pressed);
-
-		if ( key_name.empty() )
-			return;
-
-		for (auto& listener : self->_listeners) {
-			listener->OnKey( key_name, key_action );
+		for (auto& active : self->_activeKeys)
+		{
+			if ( active[0] == key )
+			{
+				active[1] = action;
+				return;
+			}
 		}
+
+		self->_activeKeys.push_back({ key, action });
 	}
 	
 /*
@@ -170,22 +173,24 @@ namespace {
 	{
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 		
-		StringView	key_name	= _MapMouseButton( button );
-		EKeyAction	key_action	= (action == GLFW_PRESS    ? EKeyAction::Down :
-									action == GLFW_RELEASE ? EKeyAction::Up   :
-									EKeyAction::Pressed);
-
-		for (auto& listener : self->_listeners) {
-			listener->OnKey( key_name, key_action );
+		for (auto& active : self->_activeKeys)
+		{
+			if ( active[0] == button )
+			{
+				active[1] = action;
+				return;
+			}
 		}
+
+		self->_activeKeys.push_back({ button, action });
 	}
 	
 /*
 =================================================
-	_GLFW_CursorPos
+	_GLFW_CursorPosCallback
 =================================================
 */
-	void WindowGLFW::_GLFW_CursorPos (GLFWwindow* wnd, double xpos, double ypos)
+	void WindowGLFW::_GLFW_CursorPosCallback (GLFWwindow* wnd, double xpos, double ypos)
 	{
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 		float2	pos  = { float(xpos), float(ypos) };
@@ -193,6 +198,29 @@ namespace {
 		for (auto& listener : self->_listeners) {
 			listener->OnMouseMove( pos );
 		}
+	}
+	
+/*
+=================================================
+	_GLFW_MouseWheelCallback
+=================================================
+*/
+	void WindowGLFW::_GLFW_MouseWheelCallback (GLFWwindow* wnd, double, double dy)
+	{
+		auto*	self	= static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
+		int		button	= dy > 0.0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
+		int		action	= GLFW_RELEASE;
+
+		for (auto& active : self->_activeKeys)
+		{
+			if ( active[0] == button )
+			{
+				active[1] = action;
+				return;
+			}
+		}
+
+		self->_activeKeys.push_back({ button, action });
 	}
 
 /*
@@ -205,12 +233,34 @@ namespace {
 		if ( not _window )
 			return false;
 
-		if ( glfwWindowShouldClose( _window ) ) {
+		if ( glfwWindowShouldClose( _window )) {
 			Destroy();
 			return false;
 		}
 
 		glfwPollEvents();
+
+		for (auto key_iter = _activeKeys.begin(); key_iter != _activeKeys.end();)
+		{
+			StringView	key_name	= _MapKey( key_iter->x );
+			EKeyAction	key_action	= (key_iter->y == GLFW_PRESS    ? EKeyAction::Down :
+									   key_iter->y == GLFW_RELEASE	? EKeyAction::Up   :
+																	  EKeyAction::Pressed);
+			if ( key_name.size() )
+			{
+				for (auto& listener : _listeners) {
+					listener->OnKey( key_name, key_action );
+				}
+			}
+
+			if ( key_iter->y == GLFW_RELEASE )
+				key_iter = _activeKeys.erase( key_iter );
+			else
+				++key_iter;
+		}
+		
+		if ( not _window )
+			return false;
 
 		for (auto& listener : _listeners) {
 			listener->OnUpdate();
@@ -239,10 +289,7 @@ namespace {
 */
 	void WindowGLFW::Destroy ()
 	{
-		Listeners_t		listeners;
-		std::swap( listeners, _listeners );
-
-		for (auto& listener : listeners) {
+		for (auto& listener : _listeners) {
 			listener->OnDestroy();
 		}
 
@@ -324,6 +371,18 @@ namespace {
 	{
 		switch ( key )
 		{
+			case GLFW_MOUSE_BUTTON_LEFT :	return "left mb";
+			case GLFW_MOUSE_BUTTON_RIGHT :	return "right mb";
+			case GLFW_MOUSE_BUTTON_MIDDLE :	return "middle mb";
+			case GLFW_MOUSE_BUTTON_4 :		return "mouse btn 4";
+			case GLFW_MOUSE_BUTTON_5 :		return "mouse btn 5";
+			case GLFW_MOUSE_BUTTON_6 :		return "mouse btn 6";
+			case GLFW_MOUSE_BUTTON_7 :		return "mouse btn 7";
+			case GLFW_MOUSE_BUTTON_8 :		return "mouse btn 8";
+
+			case MOUSE_WHEEL_UP :			return "mouse wheel +";
+			case MOUSE_WHEEL_DOWN :			return "mouse wheel -";
+
 			case GLFW_KEY_SPACE :		return "space";
 			case GLFW_KEY_APOSTROPHE :	return "'";
 			case GLFW_KEY_COMMA :		return ",";
@@ -403,27 +462,6 @@ namespace {
 			case GLFW_KEY_F10 :			return "F10";
 			case GLFW_KEY_F11 :			return "F11";
 			case GLFW_KEY_F12 :			return "F12";
-		}
-		return "";
-	}
-	
-/*
-=================================================
-	_MapMouseButton
-=================================================
-*/
-	StringView  WindowGLFW::_MapMouseButton (int button)
-	{
-		switch ( button )
-		{
-			case GLFW_MOUSE_BUTTON_LEFT :		return "left mb";
-			case GLFW_MOUSE_BUTTON_RIGHT :		return "right mb";
-			case GLFW_MOUSE_BUTTON_MIDDLE :		return "middle mb";
-			case GLFW_MOUSE_BUTTON_4 :			return "mouse btn 4";
-			case GLFW_MOUSE_BUTTON_5 :			return "mouse btn 5";
-			case GLFW_MOUSE_BUTTON_6 :			return "mouse btn 6";
-			case GLFW_MOUSE_BUTTON_7 :			return "mouse btn 7";
-			case GLFW_MOUSE_BUTTON_8 :			return "mouse btn 8";
 		}
 		return "";
 	}

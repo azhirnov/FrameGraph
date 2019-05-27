@@ -111,6 +111,31 @@ namespace {
 */
 	bool WindowSDL2::Update ()
 	{
+		const auto	OnKeyEvent = [this] (bool down, SDL_Scancode scancode)
+		{
+			auto&	state = _keyStates[ scancode ];
+
+			if ( down ) {
+				if ( state == EKeyAction::Down or state == EKeyAction::Pressed )
+					state = EKeyAction::Pressed;
+				else
+					state = EKeyAction::Down;
+			}else
+				state = EKeyAction::Up;
+			
+			for (auto& active : _activeKeys)
+			{
+				if ( active.first == scancode ) {
+					active.second = state;
+					return;
+				}
+			}
+
+			_activeKeys.push_back({ scancode, state });
+		};
+		//---------------------------------------------------------------------------
+
+
 		if ( not _window )
 			return false;
 
@@ -158,27 +183,32 @@ namespace {
 				case SDL_APP_DIDENTERFOREGROUND :
 					break;
 					
+				case SDL_MOUSEMOTION :
+				{
+					float2	pos  = { float(ev.motion.x), float(ev.motion.y) };
+
+					for (auto& listener : _listeners) {
+						listener->OnMouseMove( pos );
+					}
+					break;
+				}
+
+				case SDL_MOUSEBUTTONDOWN :
+				case SDL_MOUSEBUTTONUP :
+				{
+					OnKeyEvent( ev.type == SDL_MOUSEBUTTONDOWN, SDL_Scancode(SDL_NUM_SCANCODES + ev.button.button) );
+					break;
+				}
+
+				case SDL_MOUSEWHEEL :
+				{
+					break;
+				}
+
 				case SDL_KEYDOWN :
 				case SDL_KEYUP :
 				{
-					auto&	state = _keyStates[ ev.key.keysym.scancode ];
-
-					if ( ev.type == SDL_KEYDOWN ) {
-						if ( state == EKeyAction::Down or state == EKeyAction::Pressed )
-							state = EKeyAction::Pressed;
-						else
-							state = EKeyAction::Down;
-					}else
-						state = EKeyAction::Up;
-
-					const StringView	key = _MapKey( ev.key.keysym.scancode );
-					
-					if ( key.empty() )
-						break;
-
-					for (auto& listener : _listeners) {
-						listener->OnKey( key, state );
-					}
+					OnKeyEvent( ev.type == SDL_KEYDOWN, ev.key.keysym.scancode );
 					break;
 				}
 
@@ -197,8 +227,8 @@ namespace {
 						}
 
 						case SDL_WINDOWEVENT_RESIZED :
-						case SDL_WINDOWEVENT_MOVED :
-						case SDL_WINDOWEVENT_SIZE_CHANGED :
+						//case SDL_WINDOWEVENT_MOVED :
+						//case SDL_WINDOWEVENT_SIZE_CHANGED :
 						{
 							if ( _window )
 							{
@@ -221,6 +251,23 @@ namespace {
 					break;
 				}
 			}
+		}
+		
+		for (auto key_iter = _activeKeys.begin(); key_iter != _activeKeys.end();)
+		{
+			const StringView	key_name = _MapKey( key_iter->first );
+			
+			if ( key_name.size() )
+			{
+				for (auto& listener : _listeners) {
+					listener->OnKey( key_name, key_iter->second );
+				}
+			}
+
+			if ( key_iter->second == EKeyAction::Up )
+				key_iter = _activeKeys.erase( key_iter );
+			else
+				++key_iter;
 		}
 		
 		if ( not _window )
@@ -250,10 +297,7 @@ namespace {
 */
 	void WindowSDL2::Destroy ()
 	{
-		Listeners_t		listeners;
-		std::swap( listeners, _listeners );
-
-		for (auto& listener : listeners) {
+		for (auto& listener : _listeners) {
 			listener->OnDestroy();
 		}
 
@@ -331,7 +375,7 @@ namespace {
 */
 	StringView  WindowSDL2::_MapKey (SDL_Scancode code)
 	{
-		switch ( code )
+		switch ( int(code) )
 		{
 			case SDL_SCANCODE_BACKSPACE		: return "backspace";
 			case SDL_SCANCODE_TAB			: return "tab";
@@ -442,6 +486,15 @@ namespace {
 			case SDL_SCANCODE_SLASH			: return "\\";
 			case SDL_SCANCODE_RIGHTBRACKET	: return "]";
 			case SDL_SCANCODE_APOSTROPHE	: return "'";
+
+			case SDL_NUM_SCANCODES + 1		: return "left mb";
+			case SDL_NUM_SCANCODES + 2		: return "right mb";
+			case SDL_NUM_SCANCODES + 3		: return "middle mb";
+			case SDL_NUM_SCANCODES + 4		: return "mouse btn 4";
+			case SDL_NUM_SCANCODES + 5		: return "mouse btn 5";
+			case SDL_NUM_SCANCODES + 6		: return "mouse btn 6";
+			case SDL_NUM_SCANCODES + 7		: return "mouse btn 7";
+			case SDL_NUM_SCANCODES + 8		: return "mouse btn 8";
 		}
 
 		return "";

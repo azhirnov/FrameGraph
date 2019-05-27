@@ -44,7 +44,9 @@ namespace FGC
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
-		using KeyStates_t	= StaticArray< EKeyAction, SDL_NUM_SCANCODES >;
+		using KeyStates_t	= StaticArray< EKeyAction, SDL_NUM_SCANCODES+10 >;
+		
+		using ActiveKeys_t	= Array<Pair< SDL_Scancode, EKeyAction >>;
 
 
 	// variables
@@ -53,6 +55,7 @@ namespace FGC
 		uint			_wndID;
 		Listeners_t		_listeners;
 		KeyStates_t		_keyStates;
+		ActiveKeys_t	_activeKeys;
 
 
 	// methods

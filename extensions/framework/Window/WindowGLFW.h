@@ -32,11 +32,14 @@ namespace FGC
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
 
+		using ActiveKeys_t	= Array< int2 >;
+
 
 	// variables
 	private:
 		GLFWwindow *	_window;
 		Listeners_t		_listeners;
+		ActiveKeys_t	_activeKeys;
 
 
 	// methods
@@ -66,10 +69,10 @@ namespace FGC
 		static void _GLFW_ResizeCallback (GLFWwindow* wnd, int w, int h);
 		static void _GLFW_KeyCallback (GLFWwindow* wnd, int key, int, int, int);
 		static void _GLFW_MouseButtonCallback (GLFWwindow* wnd, int button, int action, int mods);
-		static void _GLFW_CursorPos (GLFWwindow* wnd, double xpos, double ypos);
+		static void _GLFW_CursorPosCallback (GLFWwindow* wnd, double xpos, double ypos);
+		static void _GLFW_MouseWheelCallback (GLFWwindow* wnd, double dx, double dy);
 
 		ND_ static StringView  _MapKey (int key);
-		ND_ static StringView  _MapMouseButton (int button);
 	};
 
 
