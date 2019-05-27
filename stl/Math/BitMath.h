@@ -21,7 +21,7 @@ namespace FGC
 	template <typename T>
 	ND_ forceinline constexpr bool  IsPowerOfTwo (const T &x)
 	{
-		return ( x != 0 and ( (x & (x - T(1))) == T(0) ) );
+		return (x != 0) & ((x & (x - T(1))) == T(0));
 	}
 	
 /*

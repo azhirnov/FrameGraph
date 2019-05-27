@@ -24,7 +24,7 @@ namespace FGC
 	// methods
 		constexpr RGBAColor () : r{T(0)}, g{T(0)}, b{T(0)}, a{T(0)}
 		{
-			// check is supported cast Color to array
+			// check if supported cast from Color to array
 			STATIC_ASSERT( offsetof(Self, r) + sizeof(T) == offsetof(Self, g) );
 			STATIC_ASSERT( offsetof(Self, g) + sizeof(T) == offsetof(Self, b) );
 			STATIC_ASSERT( offsetof(Self, b) + sizeof(T) == offsetof(Self, a) );
@@ -46,9 +46,9 @@ namespace FGC
 		ND_ constexpr bool operator == (const RGBAColor<T> &rhs) const
 		{
 			const T  eps = Epsilon();
-			return	Equals( r, rhs.r, eps ) and
-					Equals( g, rhs.g, eps ) and
-					Equals( b, rhs.b, eps ) and
+			return	Equals( r, rhs.r, eps ) &
+					Equals( g, rhs.g, eps ) &
+					Equals( b, rhs.b, eps ) &
 					Equals( a, rhs.a, eps );
 		}
 		
@@ -102,7 +102,7 @@ namespace FGC
 
 		ND_ bool operator == (const DepthStencil &rhs) const
 		{
-			return Equals( depth, rhs.depth ) and stencil == rhs.stencil;
+			return Equals( depth, rhs.depth ) & (stencil == rhs.stencil);
 		}
 	};
 
@@ -141,7 +141,7 @@ namespace FGC
 		{
 			const float eps = RGBA32f::Epsilon();
 
-			return Equals( h, rhs.h, eps ) and Equals( s, rhs.s, eps ) and Equals( v, rhs.v, eps );
+			return Equals( h, rhs.h, eps ) & Equals( s, rhs.s, eps ) & Equals( v, rhs.v, eps );
 		}
 
 		ND_ float *			data ()			{ return std::addressof(h); }

@@ -160,6 +160,7 @@ namespace FGC
 		constexpr Vec (T x, T y, T z, T w) : x{x}, y{y}, z{z}, w{w} {}
 		constexpr Vec (const Vec<T,3> &xyz, T w) : x{xyz[0]}, y{xyz[1]}, z{xyz[2]}, w{w} {}
 		constexpr Vec (const Vec<T,2> &xy, T z, T w) : x{xy[0]}, y{xy[1]}, z{z}, w{w} {}
+		constexpr Vec (const Vec<T,2> &xy, const Vec<T,2> &zw) : x{xy[0]}, y{xy[1]}, z{zw[0]}, w{zw[1]} {}
 		
 		template <typename B>
 		constexpr Vec (const Vec<B,4> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)}, w{T(other.w)} {}
@@ -496,13 +497,13 @@ namespace FGC
 	}
 
 	template <typename T, uint I, typename S>
-	ND_ inline constexpr Vec<T,I>  operator / (const Vec<T,I> &lhs, const S &rhs)
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator / (const Vec<T,I> &lhs, const S &rhs)
 	{
 		return lhs / Vec<T,I>( rhs );
 	}
 
 	template <typename T, uint I, typename S>
-	ND_ inline constexpr Vec<T,I>  operator / (const S &lhs, const Vec<T,I> &rhs)
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator / (const S &lhs, const Vec<T,I> &rhs)
 	{
 		return Vec<T,I>( lhs ) / rhs;
 	}
@@ -528,7 +529,7 @@ namespace FGC
 =================================================
 */
 	template <typename T, uint I, typename S>
-	ND_ inline constexpr Vec<T,I>  operator << (const Vec<T,I> &lhs, const S &rhs)
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator << (const Vec<T,I> &lhs, const S &rhs)
 	{
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {
@@ -543,7 +544,7 @@ namespace FGC
 =================================================
 */
 	template <typename T, uint I, typename S>
-	ND_ inline constexpr Vec<T,I>  operator >> (const Vec<T,I> &lhs, const S &rhs)
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator >> (const Vec<T,I> &lhs, const S &rhs)
 	{
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {
@@ -559,17 +560,17 @@ namespace FGC
 */
 	ND_ inline constexpr bool  All (const bool2 &value)
 	{
-		return value.x and value.y;
+		return value.x & value.y;
 	}
 	
 	ND_ inline constexpr bool  All (const bool3 &value)
 	{
-		return value.x and value.y and value.z;
+		return value.x & value.y & value.z;
 	}
 	
 	ND_ inline constexpr bool  All (const bool4 &value)
 	{
-		return value.x and value.y and value.z and value.w;
+		return value.x & value.y & value.z & value.w;
 	}
 	
 /*
@@ -579,17 +580,17 @@ namespace FGC
 */
 	ND_ inline constexpr bool  Any (const bool2 &value)
 	{
-		return value.x or value.y;
+		return value.x | value.y;
 	}
 	
 	ND_ inline constexpr bool  Any (const bool3 &value)
 	{
-		return value.x or value.y or value.z;
+		return value.x | value.y | value.z;
 	}
 	
 	ND_ inline constexpr bool  Any (const bool4 &value)
 	{
-		return value.x or value.y or value.z or value.w;
+		return value.x | value.y | value.z | value.w;
 	}
 
 /*

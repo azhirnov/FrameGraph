@@ -67,9 +67,9 @@ namespace FGC
 		ND_ constexpr const Vec2_t	Size ()			const	{ return { Width(), Height() }; }
 		ND_ constexpr const Vec2_t	Center ()		const	{ return { CenterX(), CenterY() }; }
 
-		ND_ constexpr bool			IsEmpty ()		const	{ return Equals( left, right ) or Equals( top, bottom ); }
-		ND_ constexpr bool			IsInvalid ()	const	{ return right < left or bottom < top; }
-		ND_ constexpr bool			IsValid ()		const	{ return not IsEmpty() and not IsInvalid(); }
+		ND_ constexpr bool			IsEmpty ()		const	{ return Equals( left, right ) | Equals( top, bottom ); }
+		ND_ constexpr bool			IsInvalid ()	const	{ return (right < left) | (bottom < top); }
+		ND_ constexpr bool			IsValid ()		const	{ return (not IsEmpty()) & (not IsInvalid()); }
 		
 		ND_ constexpr bool  IsNormalized () const;
 			Self &			Normalize ();

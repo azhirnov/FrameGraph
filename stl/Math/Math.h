@@ -39,8 +39,8 @@ namespace FGC
 		const T	min = std::numeric_limits<T>::min();
 		const T	max = std::numeric_limits<T>::max();
 		
-		bool	overflow =	((y > 0) and (x > max - y))	or
-							((y < 0) and (x < min - y));
+		bool	overflow =	((y > 0) & (x > max - y))	|
+							((y < 0) & (x < min - y));
 		return not overflow;
 	}
 
@@ -200,7 +200,7 @@ namespace FGC
 	template <typename T>
 	ND_ forceinline constexpr EnableIf<IsScalar<T>, bool>  Equals (const T &lhs, const T &rhs, const T &err = std::numeric_limits<T>::epsilon() * T(2))
 	{
-		if constexpr ( IsUnsignedInteger<T> )
+		if constexpr( IsUnsignedInteger<T> )
 		{
 			return lhs < rhs ? ((rhs - lhs) <= err) : ((lhs - rhs) <= err);
 		}else
@@ -218,6 +218,32 @@ namespace FGC
 		return std::floor( x );
 	}
 	
+/*
+=================================================
+	Ceil
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Ceil (const T& x)
+	{
+		return std::ceil( x );
+	}
+	
+/*
+=================================================
+	Trunc
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Trunc (const T& x)
+	{
+#	if 1
+		return std::trunc( x );
+#	else
+		return x > T(0) ? Floor(x) : Ceil(x);
+#	endif
+	}
+
 /*
 =================================================
 	Fract
@@ -242,7 +268,7 @@ namespace FGC
 	ND_ forceinline constexpr bool  IsIntersects (const T& begin1, const T& end1,
 												  const T& begin2, const T& end2)
 	{
-		return (end1 > begin2) and (begin1 < end2);
+		return (end1 > begin2) & (begin1 < end2);
 	}
 
 /*
