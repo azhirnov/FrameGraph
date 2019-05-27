@@ -7,6 +7,10 @@
 #include "stl/Stream/FileStream.h"
 #include <thread>
 
+#ifdef FG_STD_FILESYSTEM
+#include <filesystem>
+namespace FS = std::filesystem;
+#endif
 
 namespace FG
 {
@@ -51,25 +55,19 @@ namespace FG
 */
 	void FGShadertoyApp::_InitSamples ()
 	{
-		_samples.push_back( [this] ()
-		{
-			ShaderDescr	sh_main;
-			sh_main.Pipeline( "st_shaders/Glowballs.glsl" );
-			sh_main.InChannel( "main", 0 );
-			CHECK( _AddShader( "main", std::move(sh_main) ));
-		});
+		const auto	SinglePass = [this] (String&& fname) { ShaderDescr sh_main;  sh_main.Pipeline( std::move(fname) );  CHECK( _AddShader( "main", std::move(sh_main) )); };
+		
+		_samples.push_back( [this, SinglePass] ()  { SinglePass("st_shaders/Skyline.glsl"); });
+		_samples.push_back( [this, SinglePass] ()  { SinglePass("st_shaders/Skyline2.glsl"); });
+
+		_samples.push_back( [this, SinglePass] ()  { SinglePass("my_shaders/ConvexShape2D.glsl"); });
+		_samples.push_back( [this, SinglePass] ()  { SinglePass("my_shaders/ConvexShape3D.glsl"); });
 
 		_samples.push_back( [this] ()
 		{
-			ShaderDescr	sh_main;
-			sh_main.Pipeline( "st_shaders/Skyline.glsl" );
-			CHECK( _AddShader( "main", std::move(sh_main) ));
-		});
-		
-		_samples.push_back( [this] ()
-		{
-			ShaderDescr	sh_main;
-			sh_main.Pipeline( "st_shaders/Skyline2.glsl" );
+			ShaderDescr sh_main;
+			sh_main.Pipeline( "st_shaders/Glowballs.glsl" );
+			sh_main.InChannel( "main", 0 );
 			CHECK( _AddShader( "main", std::move(sh_main) ));
 		});
 	}
@@ -104,7 +102,7 @@ namespace FG
 */
 	bool FGShadertoyApp::Initialize ()
 	{
-		CHECK_ERR( _CreateFrameGraph( uint2(1024, 768), "Shadertoy", {FG_DATA_PATH "library"}, FG_DATA_PATH "_debug_output" ));
+		CHECK_ERR( _CreateFrameGraph( uint2(1024, 768), "Shadertoy", {FG_DATA_PATH "../shaderlib"}, FG_DATA_PATH "_debug_output" ));
 
 		_CreateSamplers();
 		_InitSamples();
@@ -254,9 +252,9 @@ namespace FG
 		}
 
 
-		auto	pass_id = _cmdBuffer->CreateRenderPass( RenderPassDesc( view_size )
-									.AddTarget( RenderTargetID(0), pass.renderTarget, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
-									.AddViewport( view_size ) );
+		LogicalPassID	pass_id = _cmdBuffer->CreateRenderPass( RenderPassDesc( view_size )
+										.AddTarget( RenderTargetID::Color_0, pass.renderTarget, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
+										.AddViewport( view_size ) );
 
 		DrawVertices	draw_task;
 		draw_task.SetPipeline( shader->_pipeline );
@@ -286,8 +284,15 @@ namespace FG
 	{
 		if ( _frameGraph )
 		{
+			_frameGraph->WaitIdle();
+
 			_ResetShaders();
 			_samples.clear();
+
+			for (auto& img : _imageCache) {
+				_frameGraph->ReleaseResource( INOUT img.second );
+			}
+			_imageCache.clear();
 			
 			_frameGraph->ReleaseResource( INOUT _nearestClampSampler );
 			_frameGraph->ReleaseResource( INOUT _linearClampSampler );
@@ -321,7 +326,7 @@ namespace FG
 		_ordered.clear();
 
 		// create all
-		while ( not sorted.empty() )
+		for (uint i = 0; not sorted.empty() and i < 1000; ++i)
 		{
 			for (auto iter = sorted.begin(); iter != sorted.end();)
 			{
@@ -334,6 +339,8 @@ namespace FG
 					++iter;
 			}
 		}
+
+		CHECK_ERR( sorted.empty() );
 		return true;
 	}
 	
@@ -632,7 +639,7 @@ namespace FG
 */
 	bool FGShadertoyApp::_LoadImage (const String &filename, OUT ImageID &id)
 	{
-#	ifdef FG_ENABLE_DEVIL
+#	if defined(FG_ENABLE_DEVIL) and defined(FG_STD_FILESYSTEM)
 		auto	iter = _imageCache.find( filename );
 		
 		if ( iter != _imageCache.end() )
@@ -642,16 +649,13 @@ namespace FG
 		}
 
 		DevILLoader		loader;
-		auto			image	= MakeShared<IntermImage>( filename );
+		FS::path		fpath	= FS::path{FG_DATA_PATH}.append(filename);
+		auto			image	= MakeShared<IntermImage>( fpath.string() );
 
 		CHECK_ERR( loader.LoadImage( image, {}, null ));
 
-		auto&	level = image->GetData()[0][0];
-		String	img_name;
-		
-		#ifdef FG_STD_FILESYSTEM
-			img_name = std::filesystem::path{filename}.filename().string();
-		#endif
+		auto&	level	 = image->GetData()[0][0];
+		String	img_name = fpath.filename().string();
 
 		id = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, level.dimension, level.format, EImageUsage::TransferDst | EImageUsage::Sampled },
 											Default, img_name );
@@ -673,7 +677,7 @@ namespace FG
 	bool FGShadertoyApp::_HasImage (StringView filename) const
 	{
 	#ifdef FG_STD_FILESYSTEM
-		return std::filesystem::exists({ filename });
+		return FS::exists( FS::path{FG_DATA_PATH}.append(filename) );
 	#else
 		return true;
 	#endif
