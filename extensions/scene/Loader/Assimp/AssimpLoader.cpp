@@ -485,10 +485,7 @@ namespace {
 		scene.root.localTransform	= ConvertMatrix( aiScene->mRootNode->mTransformation );
 		scene.root.name				= aiScene->mRootNode->mName.C_Str();
 		
-		for (uint i = 0; i < aiScene->mRootNode->mNumChildren; ++i)
-		{
-			CHECK_ERR( RecursiveLoadHierarchy( aiScene, aiScene->mRootNode->mChildren[i], scene, INOUT scene.root ));
-		}
+		CHECK_ERR( RecursiveLoadHierarchy( aiScene, aiScene->mRootNode, scene, INOUT scene.root ));
 		return true;
 	}
 

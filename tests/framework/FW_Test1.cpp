@@ -134,7 +134,7 @@ public:
 		}
 	
 		// main loop
-		for (uint i = 0; i < 60*2; ++i)
+		for (uint i = 0; i < 60; ++i)
 		{
 			if ( not window->Update() )
 				break;
@@ -164,20 +164,16 @@ public:
 
 				// image layout undefined to transfer optimal
 				VkImageMemoryBarrier	image_barrier1;
-				image_barrier1.sType					= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-				image_barrier1.pNext					= null;
-				image_barrier1.image					= swapchain->GetCurrentImage();
-				image_barrier1.oldLayout				= VK_IMAGE_LAYOUT_UNDEFINED;
-				image_barrier1.newLayout				= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				image_barrier1.srcAccessMask			= VK_ACCESS_MEMORY_READ_BIT;
-				image_barrier1.dstAccessMask			= VK_ACCESS_TRANSFER_WRITE_BIT;
-				image_barrier1.srcQueueFamilyIndex		= VK_QUEUE_FAMILY_IGNORED;
-				image_barrier1.dstQueueFamilyIndex		= VK_QUEUE_FAMILY_IGNORED;
-				image_barrier1.subresourceRange.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
-				image_barrier1.subresourceRange.baseMipLevel	= 0;
-				image_barrier1.subresourceRange.levelCount		= 1;
-				image_barrier1.subresourceRange.baseArrayLayer	= 0;
-				image_barrier1.subresourceRange.layerCount		= 1;
+				image_barrier1.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				image_barrier1.pNext				= null;
+				image_barrier1.image				= swapchain->GetCurrentImage();
+				image_barrier1.oldLayout			= VK_IMAGE_LAYOUT_UNDEFINED;
+				image_barrier1.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				image_barrier1.srcAccessMask		= 0;
+				image_barrier1.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
+				image_barrier1.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+				image_barrier1.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+				image_barrier1.subresourceRange		= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 				vkCmdPipelineBarrier( cmd_buffers[i&1], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									  0, null, 0, null, 1, &image_barrier1 );
@@ -199,20 +195,16 @@ public:
 
 				// image layout transfer optimal to present source
 				VkImageMemoryBarrier	image_barrier2;
-				image_barrier2.sType					= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-				image_barrier2.pNext					= null;
-				image_barrier2.image					= swapchain->GetCurrentImage();
-				image_barrier2.oldLayout				= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				image_barrier2.newLayout				= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-				image_barrier2.srcAccessMask			= VK_ACCESS_TRANSFER_WRITE_BIT;
-				image_barrier2.dstAccessMask			= 0;
-				image_barrier2.srcQueueFamilyIndex		= VK_QUEUE_FAMILY_IGNORED;
-				image_barrier2.dstQueueFamilyIndex		= VK_QUEUE_FAMILY_IGNORED;
-				image_barrier2.subresourceRange.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
-				image_barrier2.subresourceRange.baseMipLevel	= 0;
-				image_barrier2.subresourceRange.levelCount		= 1;
-				image_barrier2.subresourceRange.baseArrayLayer	= 0;
-				image_barrier2.subresourceRange.layerCount		= 1;
+				image_barrier2.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				image_barrier2.pNext				= null;
+				image_barrier2.image				= swapchain->GetCurrentImage();
+				image_barrier2.oldLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				image_barrier2.newLayout			= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+				image_barrier2.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
+				image_barrier2.dstAccessMask		= 0;
+				image_barrier2.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+				image_barrier2.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+				image_barrier2.subresourceRange		= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 				vkCmdPipelineBarrier( cmd_buffers[i&1], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0,
 									  0, null, 0, null, 1, &image_barrier2 );

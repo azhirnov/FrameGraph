@@ -92,7 +92,7 @@ namespace FG
 			//swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_MAILBOX_KHR) );
 			swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
 
-			for (auto& q : _vulkan.GetVkQuues())
+			for (auto& q : _vulkan.GetVkQueues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );
@@ -228,6 +228,8 @@ namespace FG
 	{
 		if ( Any( size == uint2(0) ))
 			return;
+
+		CHECK( _frameGraph->WaitIdle() );
 
 		VulkanSwapchainCreateInfo	swapchain_info;
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );

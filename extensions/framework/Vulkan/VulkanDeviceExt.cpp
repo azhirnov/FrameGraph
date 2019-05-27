@@ -153,16 +153,14 @@ namespace FGC
 	void VulkanDeviceExt::_WriteDeviceInfo ()
 	{
 		FG_LOGI( "apiVersion:    "s << ToString(VK_VERSION_MAJOR( GetDeviceProperties().apiVersion )) << '.' <<
-				 ToString(VK_VERSION_MINOR( GetDeviceProperties().apiVersion )) << ' ' <<
+				 ToString(VK_VERSION_MINOR( GetDeviceProperties().apiVersion )) << '.' <<
 				 ToString(VK_VERSION_PATCH( GetDeviceProperties().apiVersion )) );
 
 		FG_LOGI( "driverVersion: "s << ToString(VK_VERSION_MAJOR( GetDeviceProperties().driverVersion )) << '.' <<
-				 ToString(VK_VERSION_MINOR( GetDeviceProperties().driverVersion )) << ' ' <<
-				 ToString(VK_VERSION_PATCH( GetDeviceProperties().driverVersion ))  );
+				 ToString(VK_VERSION_MINOR( GetDeviceProperties().driverVersion )) );
 		
 		FG_LOGI( "vendorName:    "s << _GetVendorNameByID( GetDeviceProperties().vendorID ) );
 		FG_LOGI( "deviceName:    "s << GetDeviceProperties().deviceName );
-
 	}
 
 /*
@@ -342,22 +340,6 @@ namespace FGC
 */
 	void VulkanDeviceExt::_DebugReport (const DebugReport &msg)
 	{
-		// ignore some errors
-		/*{
-			// Queue *** is signaling semaphore *** that was previously signaled by queue *** but has not since been waited on by any queue.
-			{
-				size_t	pos = msg.message.find( "is signaling semaphore" );
-				if ( pos != StringView::npos )
-					pos = msg.message.find( "that was previously signaled by queue", pos+1 );
-				
-				if ( pos != StringView::npos )
-					pos = msg.message.find( "but has not since been waited on by any queue", pos+1 );
-				
-				if ( pos != StringView::npos )
-					return;
-			}
-		}*/
-
 		if ( _callback )
 			return _callback( msg );
 

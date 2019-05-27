@@ -298,7 +298,7 @@ namespace FG
 			ASSERT( quiet or data.GetInstanceID() == id.InstanceID() );
 		}
 
-		ASSERT( quiet );
+		ASSERT( quiet and "resource index is out of range" );
 		return static_cast< Result_t >(null);
 	}
 	

@@ -62,14 +62,6 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLM})
 		"shadertoy/st_shaders/Glowballs.glsl"
 		"shadertoy/st_shaders/Skyline.glsl"
 		"shadertoy/st_shaders/Skyline2.glsl"
-		"shadertoy/library/Color.glsl"
-		"shadertoy/library/DefaultSDF.glsl"
-		"shadertoy/library/Geometry.glsl"
-		"shadertoy/library/Hash.glsl"
-		"shadertoy/library/Lighting.glsl"
-		"shadertoy/library/Math.glsl"
-		"shadertoy/library/Quaternion.glsl"
-		"shadertoy/library/RayTracing.glsl"
 		"shadertoy/FGShadertoyApp.cpp"
 		"shadertoy/FGShadertoyApp.h" )
 	if (DEFINED ANDROID)

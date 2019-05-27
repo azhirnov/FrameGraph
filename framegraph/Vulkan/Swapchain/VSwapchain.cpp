@@ -537,8 +537,8 @@ namespace FG
 		VkFormatProperties	format_props;
 		vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), colorFormat, OUT &format_props );
 
-		CHECK_ERR( EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT ) );
-		ASSERT( EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT ) );
+		CHECK_ERR( EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT ));
+		ASSERT( EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT ));
 		
 		if ( EnumEq( imageUsage, VK_IMAGE_USAGE_TRANSFER_SRC_BIT ) and
 			 (not EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_TRANSFER_SRC_BIT ) or

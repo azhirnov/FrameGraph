@@ -523,8 +523,7 @@ namespace FG
 			{
 				if ( comp->IsSupported( desc, req_format ) )
 				{
-					CHECK_ERR( comp->Compile( INOUT desc, req_format ));
-					return true;
+					return comp->Compile( INOUT desc, req_format );
 				}
 			}
 		}
@@ -596,8 +595,7 @@ namespace FG
 			{
 				if ( comp->IsSupported( desc, req_format ) )
 				{
-					CHECK_ERR( comp->Compile( INOUT desc, req_format ));
-					return true;
+					return comp->Compile( INOUT desc, req_format );
 				}
 			}
 		}

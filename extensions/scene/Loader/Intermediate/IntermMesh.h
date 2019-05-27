@@ -31,8 +31,8 @@ namespace FG
 	public:
 		IntermMesh () {}
 		IntermMesh (Array<uint8_t> &&vertices, const VertexAttributesPtr &attribs,
-						  BytesU vertStride, EPrimitive topology,
-						  Array<uint8_t> &&indices, EIndex indexType);
+					BytesU vertStride, EPrimitive topology,
+					Array<uint8_t> &&indices, EIndex indexType);
 
 		void CalcAABB ();
 

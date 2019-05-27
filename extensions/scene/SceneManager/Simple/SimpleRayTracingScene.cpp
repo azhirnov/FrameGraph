@@ -447,12 +447,12 @@ namespace {
 		update_st.AddMissShader( RTShaderID{"ShadowMiss"}, 1 );
 
 		if ( _enabledInstances[0] ) {
-			update_st.AddHitShader( InstanceIDs[0], Default, 0, RTShaderID{"OpaquePrimaryHit"} );
-			update_st.AddHitShader( InstanceIDs[0], Default, 1, RTShaderID{"OpaqueShadowHit"} );
+			update_st.AddHitShader( InstanceIDs[0], 0, RTShaderID{"OpaquePrimaryHit"} );
+			update_st.AddHitShader( InstanceIDs[0], 1, RTShaderID{"OpaqueShadowHit"} );
 		}
 		if ( _enabledInstances[1] ) {
-			update_st.AddHitShader( InstanceIDs[1], Default, 0, RTShaderID{"TranslucentPrimaryHit"} );
-			update_st.AddHitShader( InstanceIDs[1], Default, 1, RTShaderID{"TranslucentPrimaryHit"} );
+			update_st.AddHitShader( InstanceIDs[1], 0, RTShaderID{"TranslucentPrimaryHit"} );
+			update_st.AddHitShader( InstanceIDs[1], 1, RTShaderID{"TranslucentPrimaryHit"} );
 		}
 
 		ShaderCache::RayTracingPipelineInfo	info;

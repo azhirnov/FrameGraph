@@ -35,7 +35,7 @@ namespace FG
 */
 	bool SceneApp::Initialize ()
 	{
-		CHECK_ERR( _CreateFrameGraph( uint2{1024, 768}, "Test", "" ));
+		CHECK_ERR( _CreateFrameGraph( uint2{1024, 768}, "Test", {}, "" ));
 
 		auto	renderer	= MakeShared<RendererPrototype>();
 				_scene		= MakeShared<DefaultSceneManager>();

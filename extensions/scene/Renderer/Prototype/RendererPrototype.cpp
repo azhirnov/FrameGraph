@@ -300,7 +300,7 @@ namespace FG
 		// opaque pass
 		{
 			RenderPassDesc	rp{ dimension };
-			rp.AddTarget( RenderTargetID(0), color_target, RGBA32f{0.0f}, EAttachmentStoreOp::Store )
+			rp.AddTarget( RenderTargetID::Color_0, color_target, RGBA32f{0.0f}, EAttachmentStoreOp::Store )
 			  .AddTarget( RenderTargetID::Depth, depth_target, DepthStencil{1.0f}, EAttachmentStoreOp::Store );
 			rp.AddViewport( dimension );
 			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( true );
@@ -355,7 +355,7 @@ namespace FG
 		RawImageID		color_target = _CreateColorTarget( dimension );
 		
 		RenderPassDesc	rp{ dimension };
-		rp.AddTarget( RenderTargetID(0), color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store );
+		rp.AddTarget( RenderTargetID::Color_0, color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store );
 		rp.AddViewport( dimension );
 
 		auto&	res = _shaderOutputResources[uint(ERenderLayer::RayTracing)];

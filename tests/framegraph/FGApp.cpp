@@ -92,6 +92,8 @@ namespace {
 	{
 		if ( Any( size == uint2(0) ))
 			return;
+		
+		CHECK( _frameGraph->WaitIdle() );
 
 		VulkanSwapchainCreateInfo	swapchain_info;
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );

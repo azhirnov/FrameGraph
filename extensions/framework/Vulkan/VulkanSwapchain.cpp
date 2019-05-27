@@ -340,15 +340,14 @@ namespace FGC
 	AcquireNextImage
 =================================================
 */
-	VkResult  VulkanSwapchain::AcquireNextImage (VkSemaphore imageAvailable)
+	VkResult  VulkanSwapchain::AcquireNextImage (VkSemaphore imageAvailable, VkFence fence)
 	{
-		CHECK_ERR( _vkDevice and _vkSwapchain and imageAvailable, VK_RESULT_MAX_ENUM );
+		CHECK_ERR( _vkDevice and _vkSwapchain and (imageAvailable or fence), VK_RESULT_MAX_ENUM );
 		CHECK_ERR( not IsImageAcquired(), VK_RESULT_MAX_ENUM );
 
 		_currImageIndex = UMax;
 
-		return vkAcquireNextImageKHR( _vkDevice, _vkSwapchain, UMax, imageAvailable,
-									  VK_NULL_HANDLE, OUT &_currImageIndex );
+		return vkAcquireNextImageKHR( _vkDevice, _vkSwapchain, UMax, imageAvailable, fence, OUT &_currImageIndex );
 	}
 	
 /*

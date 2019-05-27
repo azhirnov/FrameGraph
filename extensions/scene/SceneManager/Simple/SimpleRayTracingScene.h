@@ -90,7 +90,7 @@ namespace FG
 		bool _CreateMaterials (const CommandBuffer &, const IntermScenePtr &, const ImageCachePtr &);
 		bool _CreateGeometries (const CommandBuffer &, const IntermScenePtr &, const Transform &);
 		bool _ConvertHierarchy (const IntermScenePtr &, const Transform &, OUT MeshMap_t &) const;
-		bool _CreateMesh (const IntermScenePtr &, const IntermScene::ModelData &, const Transform &, uint objId, INOUT MeshMap_t &) const;
+		bool _CreateMesh (const IntermScenePtr &, const IntermScene::ModelData &, const Transform &, uint, INOUT MeshMap_t &) const;
 
 		ND_ Task		_CreateGeometry (const CommandBuffer &, uint index, const MeshData &meshData, OUT RTGeometryID &geom);
 		ND_ MeshData*	_ChooseMaterialType (const IntermMaterialPtr &, MeshMap_t &) const;

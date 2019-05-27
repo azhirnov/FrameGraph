@@ -256,3 +256,21 @@ namespace FGC
 #	error not supported!
 
 #endif	// FG_BARRIER_MODE
+
+
+// check definitions
+#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+
+#  if FG_BARRIER_MODE == 0
+#	pragma detect_mismatch( "FG_BARRIER_MODE", "0" )
+#  elif FG_BARRIER_MODE == 1
+#	pragma detect_mismatch( "FG_BARRIER_MODE", "1" )
+#  elif FG_BARRIER_MODE == 2
+#	pragma detect_mismatch( "FG_BARRIER_MODE", "2" )
+#  elif FG_BARRIER_MODE == 3
+#	pragma detect_mismatch( "FG_BARRIER_MODE", "3" )
+#  else
+#	error fix me!
+#  endif
+
+#endif	// COMPILER_MSVC or COMPILER_CLANG

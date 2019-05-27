@@ -8,6 +8,7 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 * simple API, hides memory allocation, host<->device transfers, synchronizations.
 * glsl debugging.
 * supports RTX extensions.
+* supports async compute and async transfer queues.
 
 
 ## Documentation

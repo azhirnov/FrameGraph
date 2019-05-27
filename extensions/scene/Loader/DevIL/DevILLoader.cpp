@@ -11,7 +11,7 @@
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>
-	using fpath = std::filesystem::path;
+	namespace FS = std::filesystem;
 #else
 #	error not supported!
 #endif
@@ -207,11 +207,11 @@ namespace FG
 	{
 		// check default directory
 		{
-			fpath	img_path {};
+			FS::path	img_path {};
 
 			img_path.append( name );
 
-			if ( std::filesystem::exists( img_path ) )
+			if ( FS::exists( img_path ) )
 			{
 				result = img_path.string();
 				return true;
@@ -221,11 +221,11 @@ namespace FG
 		// check directories
 		for (auto& dir : directories)
 		{
-			fpath	img_path {dir};
+			FS::path	img_path {dir};
 			
 			img_path.append( name );
 
-			if ( std::filesystem::exists( img_path ) )
+			if ( FS::exists( img_path ) )
 			{
 				result = img_path.string();
 				return true;
@@ -244,7 +244,7 @@ namespace FG
 		if ( FindImage2( name, directories, OUT result ) )
 			return true;
 		
-		if ( FindImage2( std::filesystem::path{name}.filename().string(), directories, OUT result ) )
+		if ( FindImage2( FS::path{name}.filename().string(), directories, OUT result ) )
 			return true;
 
 		RETURN_ERR( "image file not found!" );

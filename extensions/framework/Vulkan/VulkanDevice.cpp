@@ -95,8 +95,7 @@ namespace FGC
 			#endif
 			#ifdef VK_EXT_debug_utils
 				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-			#endif
-			#ifdef VK_EXT_debug_report
+			#elif defined VK_EXT_debug_report
 				VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 			#endif
 		};
@@ -529,12 +528,12 @@ namespace FGC
 	{
 		switch ( id )
 		{
-			case 0x1002 :		return "AMD";
-			case 0x1010 :		return "ImgTec";
-			case 0x10DE :		return "NVIDIA";
-			case 0x13B5 :		return "ARM";
-			case 0x5143 :		return "Qualcomm";
-			case 0x8086 :		return "INTEL";
+			case 0x1002 :	return "AMD";
+			case 0x1010 :	return "ImgTec";
+			case 0x10DE :	return "NVIDIA";
+			case 0x13B5 :	return "ARM";
+			case 0x5143 :	return "Qualcomm";
+			case 0x8086 :	return "INTEL";
 		}
 		return "unknown";
 	}
@@ -571,6 +570,8 @@ namespace FGC
 			vkGetPhysicalDeviceProperties( dev, OUT &prop );
 			vkGetPhysicalDeviceFeatures( dev, OUT &feat );
 			vkGetPhysicalDeviceMemoryProperties( dev, OUT &mem_prop );
+
+			FG_LOGI( "Found Vulkan device: "s << prop.deviceName );
 
 			const bool	is_gpu		  = (prop.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU or
 										 prop.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);

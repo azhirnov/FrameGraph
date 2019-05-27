@@ -439,6 +439,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+		ASSERT( task.pipeline );
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -453,6 +454,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+		ASSERT( task.pipeline );
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -1339,6 +1341,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( task.shaderTable );
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -1353,6 +1356,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1373,6 +1377,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1393,6 +1398,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1413,6 +1419,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1433,6 +1440,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1453,6 +1461,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());

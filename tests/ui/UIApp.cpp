@@ -29,6 +29,9 @@ namespace FG
 */
 	void UIApp::OnResize (const uint2 &size)
 	{
+		if ( Any( size == uint2(0) ))
+			return;
+
 		VulkanSwapchainCreateInfo	swapchain_info;
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 		swapchain_info.surfaceSize  = size;
@@ -78,7 +81,7 @@ namespace FG
 			swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 			swapchain_info.surfaceSize	= _window->GetSize();
 
-			for (auto& q : _vulkan.GetVkQuues())
+			for (auto& q : _vulkan.GetVkQueues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );
@@ -228,8 +231,8 @@ namespace FG
 
 			LogicalPassID	pass_id = cmdbuf->CreateRenderPass( RenderPassDesc{ int2{float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y }} }
 											.AddViewport(float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y })
-											.AddTarget( RenderTargetID(0), image, _clearColor, EAttachmentStoreOp::Store )
-											.AddColorBuffer( RenderTargetID(0), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
+											.AddTarget( RenderTargetID::Color_0, image, _clearColor, EAttachmentStoreOp::Store )
+											.AddColorBuffer( RenderTargetID::Color_0, EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
 											.SetDepthTestEnabled( false ).SetCullMode( ECullMode::None ));
 
 			Task	draw_ui	= _uiRenderer.Draw( cmdbuf, pass_id );

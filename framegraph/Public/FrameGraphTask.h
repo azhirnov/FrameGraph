@@ -173,7 +173,7 @@ namespace FG
 		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 
 		template <typename ValueType>
-		DispatchCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value) { return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
+		DispatchCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value);
 		DispatchCompute&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 	};
 
@@ -228,7 +228,7 @@ namespace FG
 		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 
 		template <typename ValueType>
-		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
+		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const ValueType &value);
 		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 	};
 
@@ -1179,6 +1179,9 @@ namespace FG
 		Self&  AddMissShader (const RTShaderID &shader, uint missIndex);
 		//Self&  AddCallableShader ();
 		
+		Self&  AddHitShader (const InstanceID &inst, uint offset,
+							 const RTShaderID &closestHit, const RTShaderID &anyHit = Default);
+
 		Self&  AddHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
 							 const RTShaderID &closestHit, const RTShaderID &anyHit = Default);
 
@@ -1217,7 +1220,7 @@ namespace FG
 		TraceRays&  SetShaderTable (RawRTShaderTableID id);
 
 		template <typename ValueType>
-		TraceRays&  AddPushConstant (const PushConstantID &id, const ValueType &value)	{ return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> ); }
+		TraceRays&  AddPushConstant (const PushConstantID &id, const ValueType &value);
 		TraceRays&  AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size);
 
 		TraceRays&  EnableDebugTrace (const uint3 &launchID);
@@ -1240,6 +1243,13 @@ namespace FG
 		ASSERT( id.IsDefined() and res );
 		resources.insert({ id, res });
 		return *this;
+	}
+	
+	template <typename ValueType>
+	DispatchCompute&  DispatchCompute::AddPushConstant (const PushConstantID &id, const ValueType &value)
+	{
+		STATIC_ASSERT( not IsPointer<ValueType> );
+		return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> );
 	}
 
 	inline DispatchCompute&  DispatchCompute::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
@@ -1267,6 +1277,13 @@ namespace FG
 		ASSERT( id.IsDefined() and res );
 		resources.insert({ id, res });
 		return *this;
+	}
+	
+	template <typename ValueType>
+	DispatchComputeIndirect&  DispatchComputeIndirect::AddPushConstant (const PushConstantID &id, const ValueType &value)
+	{
+		STATIC_ASSERT( not IsPointer<ValueType> );
+		return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> );
 	}
 
 	inline DispatchComputeIndirect&  DispatchComputeIndirect::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
@@ -1483,11 +1500,21 @@ namespace FG
 	}
 	
 	inline UpdateRayTracingShaderTable&
+		UpdateRayTracingShaderTable::AddHitShader (const InstanceID &inst, uint offset,
+													const RTShaderID &closestHit, const RTShaderID &anyHit)
+	{
+		ASSERT( inst.IsDefined() );
+		ASSERT( closestHit.IsDefined() );
+		shaderGroups.push_back(ShaderGroup{ inst, Default, offset, closestHit, anyHit });
+		return *this;
+	}
+
+	inline UpdateRayTracingShaderTable&
 		UpdateRayTracingShaderTable::AddHitShader (const InstanceID &inst, const GeometryID &geom, uint offset,
 													const RTShaderID &closestHit, const RTShaderID &anyHit)
 	{
 		ASSERT( inst.IsDefined() );
-		//ASSERT( geom.IsDefined() );
+		ASSERT( geom.IsDefined() );
 		ASSERT( closestHit.IsDefined() );
 		shaderGroups.push_back(ShaderGroup{ inst, geom, offset, closestHit, anyHit });
 		return *this;
@@ -1505,7 +1532,14 @@ namespace FG
 	}
 //-----------------------------------------------------------------------------
 
-
+	
+	
+	template <typename ValueType>
+	TraceRays&  TraceRays::AddPushConstant (const PushConstantID &id, const ValueType &value)
+	{
+		STATIC_ASSERT( not IsPointer<ValueType> );
+		return AddPushConstant( id, AddressOf(value), SizeOf<ValueType> );
+	}
 
 	inline TraceRays&  TraceRays::AddPushConstant (const PushConstantID &id, const void *ptr, BytesU size)
 	{

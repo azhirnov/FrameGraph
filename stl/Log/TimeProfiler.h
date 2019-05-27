@@ -4,6 +4,7 @@
 
 #include "stl/Algorithms/StringUtils.h"
 #include <chrono>
+#include <atomic>
 
 namespace FGC
 {
@@ -28,6 +29,9 @@ namespace FGC
 		TimeProfiler (StringView name)
 		{
 			_message = name;
+
+			// insert compiler barrier
+			std::atomic_signal_fence( std::memory_order_release );
 		}
 
 
@@ -35,11 +39,17 @@ namespace FGC
 			_file{ file }, _line{ line }
 		{
 			_message << "time profiler: " << name << (name.empty() ? "" : ", ") << "function: " << func;
+			
+			// insert compiler barrier
+			std::atomic_signal_fence( std::memory_order_release );
 		}
 		
 
 		~TimeProfiler ()
 		{
+			// insert compiler barrier
+			std::atomic_signal_fence( std::memory_order_acquire );
+
 			_message << "; TIME: " << ToString( Clock_t::now() - _startTime, 3 );
 
 			if ( _file ) {

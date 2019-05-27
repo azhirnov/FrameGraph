@@ -224,7 +224,7 @@ public:
 				image_barrier1.image					= swapchain->GetCurrentImage();
 				image_barrier1.oldLayout				= VK_IMAGE_LAYOUT_UNDEFINED;
 				image_barrier1.newLayout				= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				image_barrier1.srcAccessMask			= VK_ACCESS_MEMORY_READ_BIT;
+				image_barrier1.srcAccessMask			= 0;
 				image_barrier1.dstAccessMask			= VK_ACCESS_TRANSFER_WRITE_BIT;
 				image_barrier1.srcQueueFamilyIndex		= VK_QUEUE_FAMILY_IGNORED;
 				image_barrier1.dstQueueFamilyIndex		= VK_QUEUE_FAMILY_IGNORED;

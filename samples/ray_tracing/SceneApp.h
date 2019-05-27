@@ -32,6 +32,7 @@ namespace FG
 
 		bool Initialize ();
 
+
 	// BaseSceneApp
 	private:
 		bool DrawScene () override;

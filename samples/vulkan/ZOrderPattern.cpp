@@ -103,7 +103,7 @@ void ZOrderPatternApp::Destroy ()
 */
 bool ZOrderPatternApp::Run ()
 {
-	VkQueue			cmd_queue	= vulkan.GetVkQuues().front().handle;
+	VkQueue			cmd_queue	= vulkan.GetVkQueues().front().handle;
 	VkCommandPool	cmd_pool	= VK_NULL_HANDLE;
 	VkCommandBuffer	cmd_buffer	= VK_NULL_HANDLE;
 
@@ -111,7 +111,7 @@ bool ZOrderPatternApp::Run ()
 	{
 		VkCommandPoolCreateInfo		pool_info = {};
 		pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		pool_info.queueFamilyIndex	= vulkan.GetVkQuues().front().familyIndex;
+		pool_info.queueFamilyIndex	= vulkan.GetVkQueues().front().familyIndex;
 		pool_info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmd_pool ));
 

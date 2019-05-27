@@ -120,27 +120,6 @@
 # endif
 #endif
 
-/*
-// DLL import/export
-#if !defined(FG_DLL_EXPORT) || !defined(FG_DLL_IMPORT)
-# if defined(COMPILER_MSVC)
-#	define FG_DLL_EXPORT			__declspec( dllexport )
-#	define FG_DLL_IMPORT			__declspec( dllimport )
-
-# elif defined(COMPILER_GCC) || defined(COMPILER_CLANG)
-#  ifdef PLATFORM_WINDOWS
-#	define FG_DLL_EXPORT			__attribute__ (dllexport)
-#	define FG_DLL_IMPORT			__attribute__ (dllimport)
-#  else
-#	define FG_DLL_EXPORT			__attribute__ (visibility("default"))
-#	define FG_DLL_IMPORT			__attribute__ (visibility("default"))
-#  endif
-
-# else
-#	error define FG_DLL_EXPORT and FG_DLL_IMPORT for you compiler
-# endif
-#endif*/
-
 
 // helper macro
 #define FG_PRIVATE_GETARG_0( _0_, ... )				_0_
@@ -377,6 +356,36 @@
 #	pragma detect_mismatch( "FG_ENABLE_DATA_RACE_CHECK", "1" )
 #  else
 #	pragma detect_mismatch( "FG_ENABLE_DATA_RACE_CHECK", "0" )
+#  endif
+
+#  ifdef FG_STD_STRINGVIEW
+#	pragma detect_mismatch( "FG_STD_STRINGVIEW", "1" )
+#  else
+#	pragma detect_mismatch( "FG_STD_STRINGVIEW", "0" )
+#  endif
+
+#  ifdef FG_STD_OPTIONAL
+#	pragma detect_mismatch( "FG_STD_OPTIONAL", "1" )
+#  else
+#	pragma detect_mismatch( "FG_STD_OPTIONAL", "0" )
+#  endif
+
+#  ifdef FG_STD_VARIANT
+#	pragma detect_mismatch( "FG_STD_VARIANT", "1" )
+#  else
+#	pragma detect_mismatch( "FG_STD_VARIANT", "0" )
+#  endif
+
+#  ifdef FG_STD_FILESYSTEM
+#	pragma detect_mismatch( "FG_STD_FILESYSTEM", "1" )
+#  else
+#	pragma detect_mismatch( "FG_STD_FILESYSTEM", "0" )
+#  endif
+
+#  ifdef FG_STD_BARRIER
+#	pragma detect_mismatch( "FG_STD_BARRIER", "1" )
+#  else
+#	pragma detect_mismatch( "FG_STD_BARRIER", "0" )
 #  endif
 
 #endif	// COMPILER_MSVC or COMPILER_CLANG

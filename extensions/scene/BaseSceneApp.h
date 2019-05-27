@@ -6,7 +6,6 @@
 #include "framework/Window/IWindow.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "scene/SceneManager/IViewport.h"
-#include <chrono>
 
 namespace FG
 {

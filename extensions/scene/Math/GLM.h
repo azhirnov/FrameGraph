@@ -10,7 +10,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_CXX14
 //#define GLM_FORCE_EXPLICIT_CTOR
-#define GLM_FORCE_XYZW_ONLY
+//#define GLM_FORCE_XYZW_ONLY
 #define GLM_FORCE_SWIZZLE
 #define GLM_FORCE_CTOR_INIT
 
@@ -165,6 +165,31 @@ namespace FG
 namespace FGC
 {
 	using namespace ::glm;
+	
+/*
+=================================================
+	VecCast
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline glm::vec<I,T>  VecCast (const Vec<T,I> &v)
+	{
+		glm::vec<I,T>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = v[i];
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ inline Vec<T,I>  VecCast (const glm::vec<I,T> &v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = v[i];
+		}
+		return res;
+	}
 
 /*
 =================================================

@@ -458,6 +458,8 @@ namespace FG
 			CHECK( _SetupShaderDebugging( fgThread, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
+		ASSERT( not localGroupSize.has_value() or Any( cppln._localSizeSpec != uint3(ComputePipelineDesc::UNDEFINED_SPECIALIZATION) ));
+
 		VComputePipeline::PipelineInstance		inst;
 		inst.layoutId		= layout_id;
 		inst.flags			= pipelineFlags;
@@ -615,7 +617,7 @@ namespace FG
 		shaderTable._rayGenOffset	= offset;
 		shaderTable._rayMissOffset	= (offset += handle_size);
 		shaderTable._rayHitOffset	= (offset += (handle_size * miss_shader_count));
-		shaderTable._callableOffset	= (offset += (handle_size * hit_shader_count));
+		shaderTable._callableOffset	= (offset += (handle_size * max_hit_shaders));
 		shaderTable._blockSize		= (offset += (handle_size * callable_shader_count));
 		shaderTable._rayMissStride	= Bytes<uint16_t>{ handle_size };
 		shaderTable._rayHitStride	= Bytes<uint16_t>{ handle_size };
@@ -736,6 +738,7 @@ namespace FG
 						BytesU	dst_off	= shaderTable._rayMissOffset + handle_size * shader.offset; 
 						auto	group	= _tempShaderGraphMap.find( &shader );
 						CHECK_ERR( group != _tempShaderGraphMap.end() );
+						CHECK_ERR( dst_off + handle_size <= buf_size );
 						
 						VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
 						break;
@@ -746,6 +749,7 @@ namespace FG
 						BytesU	dst_off	= shaderTable._callableOffset + handle_size * callable_shader_index++;
 						auto	group	= _tempShaderGraphMap.find( &shader );
 						CHECK_ERR( group != _tempShaderGraphMap.end() );
+						CHECK_ERR( dst_off + handle_size <= buf_size );
 						
 						VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
 						break;
@@ -774,7 +778,8 @@ namespace FG
 							{
 								size_t	index	= index_offset + i * geom_stride + shader.offset;
 								BytesU	dst_off	= shaderTable._rayHitOffset + handle_size * index;
-								CHECK( index < max_hit_shaders );
+								CHECK_ERR( index < max_hit_shaders );
+								CHECK_ERR( dst_off + handle_size <= buf_size );
 
 								VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
 							}
@@ -783,7 +788,8 @@ namespace FG
 							{
 								size_t	index	= index_offset + (triangles.size() + i) * geom_stride + shader.offset;
 								BytesU	dst_off	= shaderTable._rayHitOffset + handle_size * index;
-								CHECK( index < max_hit_shaders );
+								CHECK_ERR( index < max_hit_shaders );
+								CHECK_ERR( dst_off + handle_size <= buf_size );
 
 								VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
 							}
@@ -792,7 +798,8 @@ namespace FG
 						{
 							size_t	index	= index_offset + geom->GetGeometryIndex( shader.geometryId ) * geom_stride + shader.offset;
 							BytesU	dst_off	= shaderTable._rayHitOffset + handle_size * index;
-							CHECK( index < max_hit_shaders );
+							CHECK_ERR( index < max_hit_shaders );
+							CHECK_ERR( dst_off + handle_size <= buf_size );
 						
 							VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, group->second, 1, size_t(handle_size), OUT mapped_ptr + dst_off ));
 						}

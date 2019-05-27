@@ -83,7 +83,7 @@ namespace FGC
 
 		bool Recreate (const uint2 &size);
 
-		ND_ VkResult  AcquireNextImage (VkSemaphore imageAvailable);
+		ND_ VkResult  AcquireNextImage (VkSemaphore imageAvailable, VkFence fence = VK_NULL_HANDLE);
 		ND_ VkResult  Present (VkQueue queue, ArrayView<VkSemaphore> renderFinished);
 
 
