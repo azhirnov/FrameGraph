@@ -52,7 +52,7 @@ namespace FG
 		~VImage ();
 
 		bool Create (VResourceManager &, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-					 EQueueFamilyMask queueFamilyMask, VkImageLayout defaultLayout, StringView dbgName);
+					 EQueueFamilyMask queueFamilyMask, EResourceState defaultState, StringView dbgName);
 
 		bool Create (const VDevice &dev, const VulkanImageDesc &desc, StringView dbgName, OnRelease_t &&onRelease);
 

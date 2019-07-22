@@ -67,9 +67,10 @@ namespace FGC
 	AlignToSmaller
 =================================================
 */
-	template <typename T>
-	ND_ forceinline constexpr T  AlignToSmaller (const T &value, const T &align)
+	template <typename T0, typename T1>
+	ND_ forceinline constexpr auto  AlignToSmaller (const T0 &value, const T1 &align)
 	{
+		ASSERT( align > 0 );
 		return (value / align) * align;
 	}
 
@@ -78,9 +79,10 @@ namespace FGC
 	AlignToLarger
 =================================================
 */
-	template <typename T>
-	ND_ forceinline constexpr T  AlignToLarger (const T &value, const T &align)
+	template <typename T0, typename T1>
+	ND_ forceinline constexpr auto  AlignToLarger (const T0 &value, const T1 &align)
 	{
+		ASSERT( align > 0 );
 		return ((value + align-1) / align) * align;
 	}
 
@@ -209,7 +211,7 @@ namespace FGC
 	
 /*
 =================================================
-	Floor
+	Floor / Ceil / Trunc
 =================================================
 */
 	template <typename T>
@@ -218,22 +220,12 @@ namespace FGC
 		return std::floor( x );
 	}
 	
-/*
-=================================================
-	Ceil
-=================================================
-*/
 	template <typename T>
 	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Ceil (const T& x)
 	{
 		return std::ceil( x );
 	}
 	
-/*
-=================================================
-	Trunc
-=================================================
-*/
 	template <typename T>
 	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Trunc (const T& x)
 	{
@@ -242,6 +234,41 @@ namespace FGC
 #	else
 		return x > T(0) ? Floor(x) : Ceil(x);
 #	endif
+	}
+	
+/*
+=================================================
+	Round / RoundToInt / RoundToUint
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Round (const T& x)
+	{
+		return std::round( x );
+	}
+
+	template <typename T>
+	ND_ forceinline constexpr auto  RoundToInt (const T& x)
+	{
+		STATIC_ASSERT( IsFloatPoint<T> );
+		
+		if constexpr( sizeof(T) >= sizeof(int64_t) )
+			return int64_t(std::round( x ));
+
+		if constexpr( sizeof(T) >= sizeof(int32_t) )
+			return int32_t(std::round( x ));
+	}
+
+	template <typename T>
+	ND_ forceinline constexpr auto  RoundToUint (const T& x)
+	{
+		STATIC_ASSERT( IsFloatPoint<T> );
+		
+		if constexpr( sizeof(T) >= sizeof(uint64_t) )
+			return uint64_t(std::round( x ));
+
+		if constexpr( sizeof(T) >= sizeof(uint32_t) )
+			return uint32_t(std::round( x ));
 	}
 
 /*
@@ -319,6 +346,36 @@ namespace FGC
 	ND_ forceinline constexpr auto  SafeDiv (const T1& lhs, const T2& rhs)
 	{
 		return SafeDiv( lhs, rhs, T1(0) );
+	}
+
+/*
+=================================================
+	Ln / Log / Log2 / Log10
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, T>  Ln (const T& x)
+	{
+		return std::log( x );
+	}
+
+	template <typename T>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, T>  Log2 (const T& x)
+	{
+		return std::log2( x );
+	}
+
+	template <typename T>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, T>  Log10 (const T& x)
+	{
+		return std::log10( x );
+	}
+
+	template <auto Base, typename T>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, T>  Log (const T& x)
+	{
+		static constexpr auto log_base = std::log( base );
+		return std::log( x ) / log_base;
 	}
 
 

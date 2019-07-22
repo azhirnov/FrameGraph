@@ -103,6 +103,7 @@ namespace FG
 		ND_ virtual Task		AddTask (const BuildRayTracingGeometry &) = 0;
 		ND_ virtual Task		AddTask (const BuildRayTracingScene &) = 0;
 		ND_ virtual Task		AddTask (const TraceRays &) = 0;
+		ND_ virtual Task		AddTask (const CustomTask &) = 0;
 		
 			// Begin secondary command buffer recording.
 		//ND_ virtual CommandBuffer  BeginSecondary () = 0;		// TODO

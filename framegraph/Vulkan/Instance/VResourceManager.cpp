@@ -670,6 +670,8 @@ namespace FG
 */
 	RawMPipelineID  VResourceManager::CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName)
 	{
+		CHECK_ERR( _device.IsMeshShaderEnabled() );
+
 		if ( not _CompileShaders( INOUT desc, _device ))
 			return Default;
 
@@ -766,6 +768,8 @@ namespace FG
 */
 	RawRTPipelineID  VResourceManager::CreatePipeline (INOUT RayTracingPipelineDesc &desc)
 	{
+		CHECK_ERR( _device.IsRayTracingEnabled() );
+
 		if ( not _CompileShaders( INOUT desc, _device ))
 			return Default;
 		
@@ -819,7 +823,7 @@ namespace FG
 =================================================
 */
 	RawImageID  VResourceManager::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask,
-											   VkImageLayout defaultLayout, StringView dbgName)
+											   EResourceState defaultState, StringView dbgName)
 	{
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -831,7 +835,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( *this, desc, mem_id, mem_obj->Data(), queueFamilyMask, defaultLayout, dbgName ))
+		if ( not data.Create( *this, desc, mem_id, mem_obj->Data(), queueFamilyMask, defaultState, dbgName ))
 		{
 			ReleaseResource( mem_id );
 			_Unassign( id );
@@ -1115,6 +1119,8 @@ namespace FG
 */
 	RawRTGeometryID  VResourceManager::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
+		CHECK_ERR( _device.IsRayTracingEnabled() );
+
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
 		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, dbgName ));
@@ -1153,6 +1159,8 @@ namespace FG
 */
 	RawRTSceneID  VResourceManager::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
+		CHECK_ERR( _device.IsRayTracingEnabled() );
+
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
 		CHECK_ERR( _CreateMemory( OUT mem_id, OUT mem_obj, mem, dbgName ));

@@ -156,6 +156,17 @@ namespace FG
 		ArrayView<Pair<SemaphoreVk_t, PipelineStageFlags_t>>	waitSemaphores;
 	};
 
+	
+
+	//
+	// Vulkan Context
+	//
+	struct VulkanContext
+	{
+		uint				queueFamilyIndex	= UMax;
+		CommandBufferVk_t	commandBuffer		= {};
+	};
+
 
 
 	//
@@ -163,9 +174,10 @@ namespace FG
 	//
 	struct VulkanDrawContext
 	{
-		CommandBufferVk_t	commandBuffer	= {};
-		RenderPassVk_t		renderPass		= {};
-		uint				subpassIndex	= UMax;
+		uint				queueFamilyIndex	= UMax;
+		CommandBufferVk_t	commandBuffer		= {};
+		RenderPassVk_t		renderPass			= {};
+		uint				subpassIndex		= UMax;
 	};
 
 

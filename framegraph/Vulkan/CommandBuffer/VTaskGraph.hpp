@@ -720,5 +720,45 @@ namespace FG
 	}
 //-----------------------------------------------------------------------------
 
+	
+/*
+=================================================
+	VFgTask< CustomTask >
+=================================================
+*/
+	VFgTask<CustomTask>::VFgTask (VCommandBuffer &cb, const CustomTask &task, ProcessFunc_t process) :
+		VFrameGraphTask{ task, process },	callback{ task.callback }
+	{
+		if ( task.images.size() )
+		{
+			auto*	img_ptr	= cb.GetAllocator().Alloc< Images_t::value_type >( task.images.size() );
+			
+			for (size_t i = 0; i < task.images.size(); ++i) {
+				img_ptr[i] = { cb.ToLocal( task.images[i].first ), task.images[i].second };
+			}
+			_images = { img_ptr, task.images.size() };
+		}
+
+		if ( task.buffers.size() )
+		{
+			auto*	buf_ptr	= cb.GetAllocator().Alloc< Buffers_t::value_type >( task.buffers.size() );
+			
+			for (size_t i = 0; i < task.buffers.size(); ++i) {
+				buf_ptr[i] = { cb.ToLocal( task.buffers[i].first ), task.buffers[i].second };
+			}
+			_buffers = { buf_ptr, task.buffers.size() };
+		}
+	}
+
+/*
+=================================================
+	VFgTask< CustomTask >::IsValid
+=================================================
+*/
+	inline bool  VFgTask<CustomTask>::IsValid () const
+	{
+		return true;
+	}
+//-----------------------------------------------------------------------------
 
 }	// FG

@@ -54,3 +54,4 @@ Dependencies:<br/>
 1. [FrameGraph in Frostbite](https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in).<br/>
 2. [Handles vs pointers](https://floooh.github.io/2018/06/17/handles-vs-pointers.html)<br/>
 3. [Porting engine to vulkan](https://gpuopen.com/presentation-porting-engine-to-vulkan-dx12/).<br/>
+4. [FrameGraph from Ubisoft](https://developer.download.nvidia.com/assets/gameworks/downloads/regular/GDC17/DX12CaseStudies_GDC2017_FINAL.pdf)

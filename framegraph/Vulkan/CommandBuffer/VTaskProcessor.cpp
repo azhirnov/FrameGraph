@@ -824,6 +824,7 @@ namespace FG
 		VRenderPass const*		render_pass	= _tp._GetResource( _logicalRP.GetRenderPassID() );
 
 		VulkanDrawContext	result;
+		result.queueFamilyIndex	= uint(_tp._fgThread.GetQueueFamily());
 		result.commandBuffer	= BitCast<CommandBufferVk_t>( _tp._cmdBuffer );
 		result.renderPass		= BitCast<RenderPassVk_t>( render_pass->Handle() );
 		result.subpassIndex		= _logicalRP.GetSubpassIndex();
@@ -1413,7 +1414,7 @@ namespace FG
 */
 	void VTaskProcessor::_CmdDebugMarker (StringView text) const
 	{
-		if ( text.size() and _enableDebugUtils )
+		/*if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
 			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -1421,7 +1422,7 @@ namespace FG
 			MemCopy( info.color, _dbgColor );
 			
 			vkCmdInsertDebugUtilsLabelEXT( _cmdBuffer, &info );
-		}
+		}*/
 	}
 
 /*
@@ -2830,6 +2831,37 @@ namespace FG
 							sbt_buffer->Handle(), callable_offset, callable_stride,
 							task.groupCount.x, task.groupCount.y, task.groupCount.z );
 		Stat().traceRaysCalls++;
+	}
+	
+/*
+=================================================
+	Visit (CustomTask)
+=================================================
+*/
+	void VTaskProcessor::Visit (const VFgTask<CustomTask> &task)
+	{
+		_CmdDebugMarker( task.Name() );
+
+		EResourceState	stages = _fgThread.GetDevice().GetGraphicsShaderStages();
+
+		for (auto& item : task.GetImages())
+		{
+			ImageViewDesc	desc{ item.first->Description() };
+			_AddImage( item.first, (item.second | stages), EResourceState_ToImageLayout( item.second, item.first->AspectMask() ), desc );
+		}
+
+		for (auto& item : task.GetBuffers())
+		{
+			_AddBuffer( item.first, item.second, 0, VK_WHOLE_SIZE );
+		}
+
+		_CommitBarriers();
+
+		VulkanContext	ctx;
+		ctx.queueFamilyIndex	= uint(_fgThread.GetQueueFamily());
+		ctx.commandBuffer		= BitCast<CommandBufferVk_t>(_cmdBuffer);
+
+		task.callback( ctx );
 	}
 
 /*

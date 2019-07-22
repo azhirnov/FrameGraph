@@ -666,6 +666,35 @@ namespace FG
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
 		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 	};
+
+
+
+	//
+	// Custom Task
+	//
+	template <>
+	class VFgTask< CustomTask > final : public VFrameGraphTask
+	{
+	// types
+		using Callback_t	= CustomTask::Callback_t;
+		using Images_t		= ArrayView< Pair< VLocalImage const*, EResourceState >>;
+		using Buffers_t		= ArrayView< Pair< VLocalBuffer const*, EResourceState >>;
+
+	// variables
+	private:
+		Images_t			_images;
+		Buffers_t			_buffers;
+	public:
+		const Callback_t	callback;
+
+	// methods
+		VFgTask (VCommandBuffer &cb, const CustomTask &task, ProcessFunc_t process);
+		
+		ND_ bool  IsValid () const;
+
+		ND_ Images_t	GetImages ()	const	{ return _images; }
+		ND_ Buffers_t	GetBuffers ()	const	{ return _buffers; }
+	};
 	
 
 

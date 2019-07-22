@@ -247,9 +247,14 @@ namespace FG
 */
 	ImageID  VFrameGraph::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
+		return CreateImage( desc, mem, Default, dbgName );
+	}
+
+	ImageID  VFrameGraph::CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EResourceState defaultState, StringView dbgName)
+	{
 		CHECK_ERR( _IsInitialized() );
 
-		RawImageID	result = _resourceMngr.CreateImage( desc, mem, _GetQueuesMask( desc.queues ), VK_IMAGE_LAYOUT_MAX_ENUM, dbgName );
+		RawImageID	result = _resourceMngr.CreateImage( desc, mem, _GetQueuesMask( desc.queues ), defaultState, dbgName );
 		
 		// add first image layout transition
 		if ( result )

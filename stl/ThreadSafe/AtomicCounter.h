@@ -46,11 +46,11 @@ namespace FGC
 
 		ND_ bool	DecAndTest ()
 		{
-			const T  res = _value.fetch_sub( 1, memory_order_release );
+			const T  res = _value.fetch_sub( 1, memory_order_relaxed );
 			ASSERT( res > 0 );
 
 			if ( res == 1 ) {
-				std::atomic_thread_fence( memory_order_acquire );
+				std::atomic_thread_fence( memory_order_acq_rel );
 				return true;
 			}
 			return false;

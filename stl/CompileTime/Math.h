@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Common.h"
+#include "stl/CompileTime/TypeTraits.h"
 
 namespace FGC
 {
@@ -28,6 +29,26 @@ namespace _fgc_hidden_
 
 	template <auto X>
 	static constexpr int	CT_IntLog2 = (X ? _fgc_hidden_::_IntLog2< decltype(X), X, sizeof(X)*8-1 >::value : -1);
+
+	
+/*
+=================================================
+	CT_Pow
+=================================================
+*/
+	template <auto Power, typename T>
+	inline constexpr T  CT_Pow (const T &base)
+	{
+		STATIC_ASSERT( IsInteger<T> and IsInteger<decltype(Power)> and Power >= 0 );
+
+		if constexpr( Power == 0 )
+		{
+			FG_UNUSED( base );
+			return 1;
+		}
+		else
+			return CT_Pow<Power-1>( base ) * base;
+	}
 
 
 }	// FGC

@@ -110,7 +110,7 @@ namespace FG
 	{
 		VkImageLayout	result = VK_IMAGE_LAYOUT_GENERAL;
 
-		if ( defaultLayout != VK_IMAGE_LAYOUT_MAX_ENUM )
+		if ( defaultLayout != VK_IMAGE_LAYOUT_MAX_ENUM and defaultLayout != VK_IMAGE_LAYOUT_UNDEFINED )
 			result = defaultLayout;
 		else
 		// render target layouts has high priority to avoid unnecessary decompressions
@@ -169,7 +169,7 @@ namespace FG
 =================================================
 */
 	bool VImage::Create (VResourceManager &resMngr, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
-						 EQueueFamilyMask queueFamilyMask, VkImageLayout defaultLayout, StringView dbgName)
+						 EQueueFamilyMask queueFamilyMask, EResourceState defaultState, StringView dbgName)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _image == VK_NULL_HANDLE );
@@ -239,7 +239,7 @@ namespace FG
 
 		_readAccessMask		= GetAllImageAccessMasks( info.usage );
 		_aspectMask			= ChooseAspect( _desc.format );
-		_defaultLayout		= ChooseDefaultLayout( _desc.usage, defaultLayout );
+		_defaultLayout		= ChooseDefaultLayout( _desc.usage, EResourceState_ToImageLayout( defaultState, _aspectMask ));
 		_queueFamilyMask	= queueFamilyMask;
 		_debugName			= dbgName;
 

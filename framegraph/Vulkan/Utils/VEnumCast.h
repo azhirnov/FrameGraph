@@ -938,7 +938,7 @@ namespace FG
 			case EResourceState::DepthStencilAttachmentRead :		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
 			case EResourceState::DepthStencilAttachmentWrite :
-			case EResourceState::DepthStencilAttachmentReadWrite :	return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;	// TODO: use other layouts
+			case EResourceState::DepthStencilAttachmentReadWrite :	return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;	// TODO: use another layouts too
 
 			case EResourceState::HostRead :
 			case EResourceState::HostWrite :

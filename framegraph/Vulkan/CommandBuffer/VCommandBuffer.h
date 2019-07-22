@@ -142,6 +142,7 @@ namespace FG
 		Task		AddTask (const BuildRayTracingGeometry &) override;
 		Task		AddTask (const BuildRayTracingScene &) override;
 		Task		AddTask (const TraceRays &) override;
+		Task		AddTask (const CustomTask &) override;
 
 
 		// draw tasks //
@@ -184,6 +185,7 @@ namespace FG
 		ND_ VResourceManager &		GetResourceManager ()		const	{ return _instance.GetResourceManager(); }
 		ND_ VMemoryManager &		GetMemoryManager ()			const	{ return GetResourceManager().GetMemoryManager(); }
 		ND_ uint					GetIndexInPool ()			const	{ return _indexInPool; }
+		ND_ EQueueFamily			GetQueueFamily ()			const	{ EXLOCK( _drCheck );  return _queueIndex; }
 
 
 	private:

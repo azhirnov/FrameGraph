@@ -1190,6 +1190,51 @@ namespace FG
 		TraceRays&  EnableDebugTrace (const uint3 &launchID);
 		TraceRays&  EnableDebugTrace ();
 	};
+
+
+
+	//
+	// Custom Task
+	//
+	struct CustomTask final : _fg_hidden_::BaseTask<CustomTask>
+	{
+	// types
+		using Context_t		= Union< NullUnion, VulkanContext >;
+		using Callback_t	= std::function< void (const Context_t &) >;
+		using Images_t		= FixedArray< Pair< RawImageID, EResourceState >, 8 >;
+		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;
+
+		
+	// variables
+		Callback_t		callback;
+		Images_t		images;		// can be used for pipeline barriers and layout transitions
+		Buffers_t		buffers;
+
+
+	// methods
+		CustomTask () :
+			BaseTask<CustomTask>{ "CustomTask", ColorScheme::Debug } {}
+		
+		template <typename FN>
+		explicit CustomTask (FN &&fn) : CustomTask{}
+		{
+			callback = Callback_t{ fn };
+		}
+
+		CustomTask&  AddImage (RawImageID id, EResourceState state = EResourceState::ShaderSample)
+		{
+			ASSERT( id );
+			images.emplace_back( id, state );
+			return *this;
+		}
+
+		CustomTask&  AddBuffer (RawBufferID id, EResourceState state = EResourceState::UniformRead)
+		{
+			ASSERT( id );
+			buffers.emplace_back( id, state );
+			return *this;
+		}
+	};
 //-----------------------------------------------------------------------------
 
 	

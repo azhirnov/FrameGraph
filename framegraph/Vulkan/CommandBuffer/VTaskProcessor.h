@@ -102,6 +102,7 @@ namespace FG
 		void Visit (const VFgTask<BuildRayTracingGeometry> &);
 		void Visit (const VFgTask<BuildRayTracingScene> &);
 		void Visit (const VFgTask<TraceRays> &);
+		void Visit (const VFgTask<CustomTask> &);
 
 		static void Visit1_DrawVertices (void *, void *);
 		static void Visit2_DrawVertices (void *, void *);

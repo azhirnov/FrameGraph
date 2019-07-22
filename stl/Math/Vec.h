@@ -885,6 +885,23 @@ namespace FGC
 	{
 		return SafeDiv( lhs, rhs, T1(0) );
 	}
+	
+/*
+=================================================
+	MinOf / MaxOf
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline T  MinOf (const Vec<T,I> &v)
+	{
+		if constexpr( I == 2 )
+			return Min( v.x, v.y );
+		if constexpr( I == 3 )
+			return Min( v.x, v.y, v.z );
+		if constexpr( I == 4 )
+			return Min( v.x, v.y, v.z, v.w );
+	}
+
 
 }	// FGC
 

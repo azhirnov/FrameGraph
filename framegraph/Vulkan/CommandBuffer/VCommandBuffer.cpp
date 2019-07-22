@@ -1332,6 +1332,20 @@ namespace {
 
 		return _taskGraph.Add( *this, task );
 	}
+	
+/*
+=================================================
+	AddTask (CustomTask)
+=================================================
+*/
+	Task  VCommandBuffer::AddTask (const CustomTask &task)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		ASSERT( task.callback );
+
+		return _taskGraph.Add( *this, task );
+	}
 
 /*
 =================================================
