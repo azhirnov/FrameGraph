@@ -2658,27 +2658,6 @@ namespace FG
 
 /*
 =================================================
-	Visit (PresentVR)
-=================================================
-*/
-	void VTaskProcessor::Visit (const VFgTask<PresentVR> &task)
-	{
-		/*
-		_CmdDebugMarker( task.Name() );
-
-		/*_AddImage( task.GetLeftEyeImage(), EResourceState::PresentImage | EResourceState::_InvalidateAfter, EImageLayout::PresentSrc,
-				   ImageRange{ task.GetLeftEyeLayer(), 1, 0_mipmap, 1 }, EImageAspect::Color );
-		
-		_AddImage( task.GetRightEyeImage(), EResourceState::PresentImage | EResourceState::_InvalidateAfter, EImageLayout::PresentSrc,
-				   ImageRange{ task.GetRightEyeLayer(), 1, 0_mipmap, 1 }, EImageAspect::Color );
-
-		_CommitBarriers();*/
-		
-		// TODO
-	}
-
-/*
-=================================================
 	Visit (UpdateRayTracingShaderTable)
 =================================================
 */

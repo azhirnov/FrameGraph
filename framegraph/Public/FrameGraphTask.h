@@ -922,42 +922,6 @@ namespace FG
 
 
 	//
-	// Present VR
-	//
-	struct PresentVR final : _fg_hidden_::BaseTask<Present>
-	{
-	// variables
-		RawImageID		leftEye;
-		ImageLayer		leftEyeLayer;
-
-		RawImageID		rightEye;
-		ImageLayer		rightEyeLayer;
-
-
-	// methods
-		PresentVR () :
-			BaseTask<Present>{ "PresentVR", ColorScheme::Present } {}
-
-		PresentVR&  SetLeftEye (RawImageID img, ImageLayer imgLayer = Default)
-		{
-			ASSERT( img );
-			leftEye			= img;
-			leftEyeLayer	= imgLayer;
-			return *this;
-		}
-		
-		PresentVR&  SetRightEye (RawImageID img, ImageLayer imgLayer = Default)
-		{
-			ASSERT( img );
-			rightEye		= img;
-			rightEyeLayer	= imgLayer;
-			return *this;
-		}
-	};
-
-
-
-	//
 	// Build Ray Tracing Geometry
 	//
 	struct BuildRayTracingGeometry final : _fg_hidden_::BaseTask<BuildRayTracingGeometry>

@@ -138,7 +138,6 @@ namespace FG
 		Task		AddTask (const ReadBuffer &) override;
 		Task		AddTask (const ReadImage &) override;
 		Task		AddTask (const Present &) override;
-		//Task		AddTask (const PresentVR &) override;
 		Task		AddTask (const UpdateRayTracingShaderTable &) override;
 		Task		AddTask (const BuildRayTracingGeometry &) override;
 		Task		AddTask (const BuildRayTracingScene &) override;

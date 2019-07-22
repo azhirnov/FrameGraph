@@ -99,7 +99,6 @@ namespace FG
 		ND_ virtual Task		AddTask (const ReadBuffer &) = 0;
 		ND_ virtual Task		AddTask (const ReadImage &) = 0;
 		ND_ virtual Task		AddTask (const Present &) = 0;
-		//ND_ virtual Task		AddTask (const PresentVR &) = 0;
 		ND_ virtual Task		AddTask (const UpdateRayTracingShaderTable &) = 0;
 		ND_ virtual Task		AddTask (const BuildRayTracingGeometry &) = 0;
 		ND_ virtual Task		AddTask (const BuildRayTracingScene &) = 0;

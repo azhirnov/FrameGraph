@@ -904,19 +904,6 @@ namespace {
 	
 /*
 =================================================
-	_PresentVRTaskToString
-=================================================
-*/
-	void VLocalDebugger::_PresentVRTaskToString (Ptr<const VFgTask<PresentVR>> task, INOUT String &str) const
-	{
-		str << indent << "	leftEyeImage:   \"" << task->leftEyeImage->GetDebugName() << "\"\n"
-			<< indent << "	leftEyeLayer:   " << ToString( task->leftEyeLayer.Get() ) << '\n'
-			<< indent << "	rightEyeImage:  \"" << task->rightEyeImage->GetDebugName() << "\"\n"
-			<< indent << "	rightEyeLayer:  " << ToString( task->rightEyeLayer.Get() ) << '\n';
-	}
-	
-/*
-=================================================
 	_BuildRayTracingGeometryTaskToString
 =================================================
 */
@@ -999,9 +986,6 @@ namespace {
 		
 		if ( auto task = DynCast< VFgTask<Present> >(taskPtr) )
 			return _PresentTaskToString( task, INOUT str );
-		
-		if ( auto task = DynCast< VFgTask<PresentVR> >(taskPtr) )
-			return _PresentVRTaskToString( task, INOUT str );
 
 		if ( auto task = DynCast< VFgTask<BuildRayTracingGeometry> >(taskPtr) )
 			return _BuildRayTracingGeometryTaskToString( task, INOUT str );

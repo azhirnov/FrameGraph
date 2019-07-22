@@ -169,7 +169,6 @@ namespace FG
 		void _ClearDepthStencilImageTaskToString (Ptr<const VFgTask<ClearDepthStencilImage>>, INOUT String &) const;
 		void _UpdateBufferTaskToString (Ptr<const VFgTask<UpdateBuffer>>, INOUT String &) const;
 		void _PresentTaskToString (Ptr<const VFgTask<Present>>, INOUT String &) const;
-		void _PresentVRTaskToString (Ptr<const VFgTask<PresentVR>>, INOUT String &) const;
 		void _BuildRayTracingGeometryTaskToString (Ptr<const VFgTask<BuildRayTracingGeometry>>, INOUT String &) const;
 		void _BuildRayTracingSceneTaskToString (Ptr<const VFgTask<BuildRayTracingScene>>, INOUT String &) const;
 		void _UpdateRayTracingShaderTableTaskToString (Ptr<const VFgTask<UpdateRayTracingShaderTable>>, INOUT String &) const;

@@ -1011,19 +1011,6 @@ namespace {
 	
 /*
 =================================================
-	AddTask (PresentVR)
-=================================================
-*
-	Task  VCommandBuffer::AddTask (const PresentVR &task)
-	{
-		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording() );
-
-		return _taskGraph.Add( *this, task );
-	}
-	
-/*
-=================================================
 	_AllocStorage
 =================================================
 */

@@ -520,30 +520,6 @@ namespace FG
 
 
 	//
-	// Present VR
-	//
-	template <>
-	class VFgTask< PresentVR > final : public VFrameGraphTask
-	{
-	// variables
-	public:
-		VLocalImage const* const	leftEyeImage;
-		const ImageLayer			leftEyeLayer;
-
-		VLocalImage const* const	rightEyeImage;
-		const ImageLayer			rightEyeLayer;
-
-
-	// methods
-	public:
-		VFgTask (VCommandBuffer &cb, const PresentVR &task, ProcessFunc_t process);
-		
-		ND_ bool  IsValid () const;
-	};
-
-
-
-	//
 	// Update Ray Tracing Shader Table
 	//
 	template <>

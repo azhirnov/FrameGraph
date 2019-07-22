@@ -653,29 +653,6 @@ namespace FG
 	}
 //-----------------------------------------------------------------------------
 	
-
-/*
-=================================================
-	VFgTask< PresentVR >
-=================================================
-*/
-	inline VFgTask<PresentVR>::VFgTask (VCommandBuffer &cb, const PresentVR &task, ProcessFunc_t process) :
-		VFrameGraphTask{ task, process },
-		leftEyeImage{ cb.ToLocal( task.leftEye )},		leftEyeLayer{ task.leftEyeLayer },
-		rightEyeImage{ cb.ToLocal( task.rightEye )},	rightEyeLayer{ task.rightEyeLayer }
-	{}
-	
-/*
-=================================================
-	VFgTask< PresentVR >::IsValid
-=================================================
-*/
-	inline bool  VFgTask<PresentVR>::IsValid () const
-	{
-		return leftEyeImage and rightEyeImage;
-	}
-//-----------------------------------------------------------------------------
-	
 	
 /*
 =================================================

@@ -98,7 +98,6 @@ namespace FG
 		void Visit (const VFgTask<ClearDepthStencilImage> &);
 		void Visit (const VFgTask<UpdateBuffer> &);
 		void Visit (const VFgTask<Present> &);
-		void Visit (const VFgTask<PresentVR> &);
 		void Visit (const VFgTask<UpdateRayTracingShaderTable> &);
 		void Visit (const VFgTask<BuildRayTracingGeometry> &);
 		void Visit (const VFgTask<BuildRayTracingScene> &);
