@@ -48,6 +48,7 @@ Dependencies:<br/>
 [DevIL](http://openil.sourceforge.net/) - (optional) for Scene extension.<br/>
 [FreeImage](http://freeimage.sourceforge.net/) - (optional) for Scene extension.<br/>
 [imgui](https://github.com/ocornut/imgui) - (optional) for UI extension.<br/>
+[OpenVR](https://github.com/ValveSoftware/openvr) - (optional) for VR support.<br/>
 
 
 ## References

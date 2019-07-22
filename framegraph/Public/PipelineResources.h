@@ -219,11 +219,11 @@ namespace FG
 
 		void  AllowEmptyResources (bool value)								{ EXLOCK(_drCheck);  _allowEmptyResources = value; }
 
-		ND_ bool  HasImage (const UniformID &id)					const	{ SHAREDLOCK(_drCheck);  return _HasResource< Image >( id ); }
-		ND_ bool  HasSampler (const UniformID &id)					const	{ SHAREDLOCK(_drCheck);  return _HasResource< Sampler >( id ); }
-		ND_ bool  HasTexture (const UniformID &id)					const	{ SHAREDLOCK(_drCheck);  return _HasResource< Texture >( id ); }
-		ND_ bool  HasBuffer (const UniformID &id)					const	{ SHAREDLOCK(_drCheck);  return _HasResource< Buffer >( id ); }
-		ND_ bool  HasRayTracingScene (const UniformID &id)			const	{ SHAREDLOCK(_drCheck);  return _HasResource< RayTracingScene >( id ); }
+		ND_ bool  HasImage (const UniformID &id)					const;
+		ND_ bool  HasSampler (const UniformID &id)					const;
+		ND_ bool  HasTexture (const UniformID &id)					const;
+		ND_ bool  HasBuffer (const UniformID &id)					const;
+		ND_ bool  HasRayTracingScene (const UniformID &id)			const;
 
 		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ SHAREDLOCK(_drCheck); ASSERT(_dataPtr);  return _dataPtr->layoutId; }
 		ND_ ArrayView< uint >			GetDynamicOffsets ()		const;

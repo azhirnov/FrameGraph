@@ -180,6 +180,12 @@ namespace FG
 		return uniforms[ index ].resType == T::TypeId;
 	}
 
+	bool  PipelineResources::HasImage (const UniformID &id)				const	{ SHAREDLOCK(_drCheck);  return _HasResource< Image >( id ); }
+	bool  PipelineResources::HasSampler (const UniformID &id)			const	{ SHAREDLOCK(_drCheck);  return _HasResource< Sampler >( id ); }
+	bool  PipelineResources::HasTexture (const UniformID &id)			const	{ SHAREDLOCK(_drCheck);  return _HasResource< Texture >( id ); }
+	bool  PipelineResources::HasBuffer (const UniformID &id)			const	{ SHAREDLOCK(_drCheck);  return _HasResource< Buffer >( id ); }
+	bool  PipelineResources::HasRayTracingScene (const UniformID &id)	const	{ SHAREDLOCK(_drCheck);  return _HasResource< RayTracingScene >( id ); }
+
 /*
 =================================================
 	BindImage
