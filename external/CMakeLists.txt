@@ -58,6 +58,7 @@ include( "${CMAKE_FOLDER}/download_devil.cmake" )
 include( "${CMAKE_FOLDER}/download_freeimage.cmake" )
 include( "${CMAKE_FOLDER}/graphviz.cmake" )
 include( "${CMAKE_FOLDER}/download_angelscript.cmake" )
+include( "${CMAKE_FOLDER}/download_openvr.cmake" )
 
 
 set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" CACHE INTERNAL "" FORCE )

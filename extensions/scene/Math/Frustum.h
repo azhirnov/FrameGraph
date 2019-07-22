@@ -63,9 +63,10 @@ namespace FGC
 	// methods
 	public:
 		FrustumTempl () {}
-
-		void Setup (const CameraTempl<T> &);
-		void Setup (const CameraTempl<T> &, const Vec2_t &range);
+		
+		void Setup (const glm::tmat4x4<T> &mvp);
+		void Setup (const CameraTempl<T> &camera);
+		void Setup (const CameraTempl<T> &camera, const Vec2_t &range);
 		
 		ND_ bool IsVisible (const BoundingSphere<T> &) const;
 		ND_ bool IsVisible (const AxisAlignedBoundingBox<T> &) const;
@@ -103,10 +104,21 @@ namespace FGC
 =================================================
 */
 	template <typename T>
+	inline void  FrustumTempl<T>::Setup (const CameraTempl<T> &camera, const Vec2_t &)
+	{
+		// temp
+		Setup( camera );
+	}
+
+	template <typename T>
 	inline void  FrustumTempl<T>::Setup (const CameraTempl<T> &camera)
 	{
-		auto	mat = camera.projection * camera.transform.ToMatrix();
-
+		return Setup( camera.projection * camera.transform.ToMatrix() );
+	}
+	
+	template <typename T>
+	inline void  FrustumTempl<T>::Setup (const glm::tmat4x4<T> &mat)
+	{
 		_SetPlane( EPlane::Top,    mat[0][3] - mat[0][1], mat[1][3] - mat[1][1], mat[2][3] - mat[2][1], -mat[3][3] + mat[3][1] );
 		_SetPlane( EPlane::Bottom, mat[0][3] + mat[0][1], mat[1][3] + mat[1][1], mat[2][3] + mat[2][1], -mat[3][3] - mat[3][1] );
 		_SetPlane( EPlane::Left,   mat[0][3] + mat[0][0], mat[1][3] + mat[1][0], mat[2][3] + mat[2][0], -mat[3][3] - mat[3][0] );
@@ -115,18 +127,6 @@ namespace FGC
 		_SetPlane( EPlane::Far,    mat[0][3] - mat[0][2], mat[1][3] - mat[1][2], mat[2][3] - mat[2][2], -mat[3][3] + mat[3][2] );
 
 		DEBUG_ONLY( _initialized = true );
-	}
-	
-/*
-=================================================
-	Setup
-=================================================
-*/
-	template <typename T>
-	inline void  FrustumTempl<T>::Setup (const CameraTempl<T> &camera, const Vec2_t &)
-	{
-		// temp
-		Setup( camera );
 	}
 
 /*

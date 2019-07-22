@@ -29,11 +29,11 @@ namespace FGC
 
 		void SetPerspective (Rad fovY, float aspect, float zNear, float zFar);
 
-		void Rotate (float horizontal, float vertical);
+		FPSCamera&  Rotate (float horizontal, float vertical);
 
-		void Move (const vec3 &delta);
-		void Move2 (const vec3 &delta);
-		void SetPosition (const vec3 &pos);
+		FPSCamera&  Move (const vec3 &delta);
+		FPSCamera&  Move2 (const vec3 &delta);
+		FPSCamera&  SetPosition (const vec3 &pos);
 	};
 	
 	
@@ -53,14 +53,14 @@ namespace FGC
 	Rotate
 =================================================
 */
-	inline void  FPSCamera::Rotate (float horizontal, float vertical)
+	inline FPSCamera&  FPSCamera::Rotate (float horizontal, float vertical)
 	{
 		quat&	q		= _camera.transform.orientation;
 		bool	has_ver	= not Equals( vertical, 0.0f );
 		bool	has_hor	= not Equals( horizontal, 0.0f );
 
 		if ( not (has_hor or has_ver) )
-			return;
+			return *this;
 
 		if ( has_ver )
 			q = quat{ cos(vertical * 0.5f), sin(vertical * 0.5f), 0.0f, 0.0f } * q;
@@ -71,6 +71,7 @@ namespace FGC
 		q = normalize( q );
 
 		_frustum.Setup( _camera );
+		return *this;
 	}
 	
 /*
@@ -82,7 +83,7 @@ namespace FGC
 	z - up/down
 =================================================
 */
-	inline void  FPSCamera::Move (const vec3 &delta)
+	inline FPSCamera&  FPSCamera::Move (const vec3 &delta)
 	{
 		const mat4x4	view_mat	= _camera.ToViewMatrix();
 		const vec3		up_dir		{ 0.0f, 1.0f, 0.0f };
@@ -93,6 +94,8 @@ namespace FGC
 		pos += forwards * delta.x;
 		pos += axis_x   * delta.y;
 		pos += up_dir   * delta.z;
+
+		return *this;
 	}
 
 /*
@@ -104,7 +107,7 @@ namespace FGC
 	z - up/down
 =================================================
 */
-	inline void  FPSCamera::Move2 (const vec3 &delta)
+	inline FPSCamera&  FPSCamera::Move2 (const vec3 &delta)
 	{
 		const mat4x4	view_mat	= _camera.ToViewMatrix();
 		const vec3		up_dir		{ 0.0f, 1.0f, 0.0f };
@@ -115,6 +118,8 @@ namespace FGC
 		pos += axis_z * -delta.x;
 		pos += axis_x *  delta.y;
 		pos += up_dir *  delta.z;
+
+		return *this;
 	}
 	
 /*
@@ -122,9 +127,10 @@ namespace FGC
 	SetPosition
 =================================================
 */
-	inline void  FPSCamera::SetPosition (const vec3 &pos)
+	inline FPSCamera&  FPSCamera::SetPosition (const vec3 &pos)
 	{
 		_camera.transform.position = pos;
+		return *this;
 	}
 
 

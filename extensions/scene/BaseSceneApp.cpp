@@ -5,6 +5,8 @@
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
 #include "framework/Window/WindowSFML.h"
+#include "framework/VR/OpenVRDevice.h"
+#include "framework/VR/VRDeviceEmulator.h"
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Stream/FileStream.h"
 
@@ -24,8 +26,7 @@ namespace FG
 	BaseSceneApp::BaseSceneApp () :
 		_frameId{0}
 	{
-		_frameStat.lastUpdateTime = TimePoint_t::clock::now();
-		_lastUpdateTime = TimePoint_t::clock::now();
+		_lastUpdateTime = _frameStat.lastUpdateTime = TimePoint_t::clock::now();
 	}
 	
 /*
@@ -67,14 +68,43 @@ namespace FG
 			_window->AddListener( this );
 		}
 
+		// initialize VR
+		{
+			#if defined(FG_ENABLE_OPENVR)
+				_vrDevice.reset( new OpenVRDevice{});
+			#elif 0
+			{
+				WindowPtr	wnd{ new WindowGLFW{}};
+				CHECK_ERR( wnd->Create( { 1024, 512 }, "emulator" ));
+				_vrDevice.reset( new VRDeviceEmulator{ std::move(wnd) });
+			}
+			#endif
+
+			if ( _vrDevice and not _vrDevice->Create() ) {
+				_vrDevice.reset();
+			}
+		}
+
 		// initialize vulkan device
 		{
+			Array<const char*>	inst_ext	{ VulkanDevice::GetRecomendedInstanceExtensions() };
+			Array<const char*>	dev_ext		{ VulkanDevice::GetAllDeviceExtensions() };
+			Array<String>		vr_inst_ext	= _vrDevice ? _vrDevice->GetRequiredInstanceExtensions() : Default;
+			Array<String>		vr_dev_ext	= _vrDevice ? _vrDevice->GetRequiredDeviceExtensions() : Default;
+
+			for (auto& ext : vr_inst_ext) {
+				inst_ext.push_back( ext.data() );
+			}
+			for (auto& ext : vr_dev_ext) {
+				dev_ext.push_back( ext.data() );
+			}
+
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {},
-									   VulkanDevice::GetRecomendedInstanceLayers(),
-									   VulkanDevice::GetRecomendedInstanceExtensions(),
-									   VulkanDevice::GetAllDeviceExtensions()
+									   {}, //VulkanDevice::GetRecomendedInstanceLayers(),
+									   inst_ext,
+									   dev_ext
 									));
 			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 		}
@@ -89,8 +119,11 @@ namespace FG
 			
 			swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 			swapchain_info.surfaceSize	= _window->GetSize();
-			//swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_MAILBOX_KHR) );
-			swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
+
+			if ( _vrDevice )
+				swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_MAILBOX_KHR) );
+			else
+				swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
 
 			for (auto& q : _vulkan.GetVkQueues())
 			{
@@ -103,6 +136,10 @@ namespace FG
 
 				vulkan_info.queues.push_back( qi );
 			}
+		}
+
+		if ( _vrDevice ) {
+			CHECK_ERR( _vrDevice->SetVKDevice( _vulkan.GetVkInstance(), _vulkan.GetVkPhysicalDevice(), _vulkan.GetVkDevice() ));
 		}
 
 		// initialize framegraph
@@ -146,6 +183,7 @@ namespace FG
 		}
 #		endif	// FG_STD_FILESYSTEM
 
+		_SetupCamera( _cameraFov, _viewRange );
 		return true;
 	}
 	
@@ -165,6 +203,12 @@ namespace FG
 			_frameGraph->ReleaseResource( _swapchainId );
 			_frameGraph->Deinitialize();
 			_frameGraph = null;
+		}
+
+		if ( _vrDevice )
+		{
+			_vrDevice->Destroy();
+			_vrDevice.reset();
 		}
 
 		_vulkan.Destroy();
@@ -190,6 +234,10 @@ namespace FG
 		const vec2	view_size	{ wnd_size.x, wnd_size.y };
 
 		_camera.SetPerspective( _cameraFov, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
+		
+		if ( _vrDevice ) {
+			_vrDevice->SetupCamera( VecCast(_viewRange) );
+		}
 	}
 
 /*
@@ -203,15 +251,34 @@ namespace FG
 		auto	dt		= std::chrono::duration_cast<SecondsF>( time - _lastUpdateTime ).count();
 		_lastUpdateTime = time;
 		
-		const uint2	wnd_size	= _window->GetSize();
-		const vec2	view_size	{ wnd_size.x, wnd_size.y };
+		if ( _vrDevice and _vrDevice->IsEnabled() )
+		{
+			IVRDevice::VRCamera	cam;
+			_vrDevice->GetCamera( OUT cam );
+			
+			if ( length2( _positionDelta ) > 0.01f ) {
+				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
+				_vrCamera.Move2( _positionDelta );
+			}
 
-		_camera.SetPerspective( _cameraFov, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
-		_camera.Rotate( -_mouseDelta.x, _mouseDelta.y );
+			_vrCamera.SetViewProjection( MatCast(cam.left.proj), MatCast(cam.left.view),
+										 MatCast(cam.right.proj), MatCast(cam.right.view),
+										 MatCast(cam.pose), VecCast(cam.position) );
+			_camera.SetPosition( _vrCamera.Position() );
+		}
+		else
+		{
+			const uint2	wnd_size	= _window->GetSize();
+			const vec2	view_size	{ wnd_size.x, wnd_size.y };
 
-		if ( length2( _positionDelta ) > 0.01f ) {
-			_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
-			_camera.Move2( _positionDelta );
+			_camera.SetPerspective( _cameraFov, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
+			_camera.Rotate( -_mouseDelta.x, _mouseDelta.y );
+
+			if ( length2( _positionDelta ) > 0.01f ) {
+				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
+				_camera.Move2( _positionDelta );
+			}
+			_vrCamera.SetPosition( _camera.GetCamera().transform.position );
 		}
 
 		// reset
@@ -346,6 +413,10 @@ namespace FG
 		{
 			std::this_thread::sleep_for(SecondsF{0.01f});	// ~100 fps
 			return true;
+		}
+
+		if ( _vrDevice ) {
+			_vrDevice->Update();
 		}
 
 		// wait frame-2 for double buffering

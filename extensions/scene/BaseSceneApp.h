@@ -3,9 +3,11 @@
 #pragma once
 
 #include "scene/Math/FPSCamera.h"
+#include "scene/Math/VRCamera.h"
 #include "framework/Window/IWindow.h"
 #include "framework/Vulkan/VulkanDeviceExt.h"
 #include "scene/SceneManager/IViewport.h"
+#include "framework/VR/IVRDevice.h"
 
 namespace FG
 {
@@ -29,6 +31,7 @@ namespace FG
 	private:
 		VulkanDeviceExt			_vulkan;
 		WindowPtr				_window;
+		VRDevicePtr				_vrDevice;
 		
 		SwapchainID				_swapchainId;
 
@@ -36,9 +39,12 @@ namespace FG
 		CommandBuffer			_submittedBuffers[2];
 		uint					_frameId : 1;
 
-		// camera and input
+		// camera
 		FPSCamera				_camera;
 		Rad						_cameraFov			= 60_deg;
+		// vr camera
+		VRCamera				_vrCamera;
+
 		vec3					_positionDelta;
 		vec2					_mouseDelta;
 		vec2					_lastMousePos;
@@ -82,12 +88,18 @@ namespace FG
 		ND_ bool				IsMousePressed ()	const	{ return _mousePressed; }
 
 		ND_ VulkanDeviceExt const&	GetVulkan ()	const	{ return _vulkan; }
-		ND_ IWindow*			GetWindow ()				{ return _window.get(); }
+		ND_ Ptr<IWindow>		GetWindow ()				{ return _window.get(); }
+		ND_ Ptr<IVRDevice>		GetVRDevice ()				{ return _vrDevice.get(); }
 		ND_ uint2				GetSurfaceSize ()	const	{ return _window->GetSize(); }
 		ND_ vec2				GetSurfaceSizeF ()	const	{ return vec2(_window->GetSize().x, _window->GetSize().y); }
 
 		ND_ RawSwapchainID		GetSwapchain ()		const	{ return _swapchainId; }
 
+		// vr camera
+		ND_ VRCamera &			GetVRCamera ()				{ ASSERT( _vrDevice ); return _vrCamera; }
+		ND_ VRCamera const&		GetVRCamera ()		const	{ ASSERT( _vrDevice ); return _vrCamera; }
+
+		// viewport camera
 		ND_ Camera const&		GetCamera ()		const	{ return _camera.GetCamera(); }
 		ND_ Frustum const&		GetFrustum ()		const	{ return _camera.GetFrustum(); }
 		ND_ FPSCamera &			GetFPSCamera ()				{ return _camera; }

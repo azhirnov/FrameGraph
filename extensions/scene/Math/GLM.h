@@ -172,23 +172,50 @@ namespace FGC
 =================================================
 */
 	template <typename T, uint I>
-	ND_ inline glm::vec<I,T>  VecCast (const Vec<T,I> &v)
+	ND_ inline glm::vec<I,T>  VecCast (const Vec<T,I> &src)
 	{
-		glm::vec<I,T>	res;
+		glm::vec<I,T>	dst;
 		for (uint i = 0; i < I; ++i) {
-			res[i] = v[i];
+			dst[i] = src[i];
 		}
-		return res;
+		return dst;
 	}
 	
 	template <typename T, uint I>
-	ND_ inline Vec<T,I>  VecCast (const glm::vec<I,T> &v)
+	ND_ inline Vec<T,I>  VecCast (const glm::vec<I,T> &src)
 	{
-		Vec<T,I>	res;
+		Vec<T,I>	dst;
 		for (uint i = 0; i < I; ++i) {
-			res[i] = v[i];
+			dst[i] = src[i];
 		}
-		return res;
+		return dst;
+	}
+
+/*
+=================================================
+	MatCast
+=================================================
+*/
+	template <typename T, uint C, uint R, size_t Align = alignof(T)>
+	ND_ inline glm::mat<4, 4, T>  MatCast (const Matrix<T, C, R, EMatrixOrder::ColumnMajor, Align> &src)
+	{
+		glm::mat<4, 4, T>	dst;
+		for (uint c = 0; c < C; ++c)
+		for (uint r = 0; r < R; ++r) {
+			dst[c][r] = src[c][r];
+		}
+		return dst;
+	}
+
+	template <typename T, uint C, uint R>
+	ND_ inline Matrix<T, C, R, EMatrixOrder::ColumnMajor>  MatCast (const glm::mat<4, 4, T> &src)
+	{
+		Matrix<T, C, R, EMatrixOrder::ColumnMajor>	dst;
+		for (uint c = 0; c < C; ++c)
+		for (uint r = 0; r < R; ++r) {
+			dst[c][r] = src[c][r];
+		}
+		return dst;
 	}
 
 /*

@@ -37,6 +37,11 @@ install( TARGETS "VulkanLoader" ARCHIVE DESTINATION "lib" )
 # project: Framework
 #==================================================================================================
 set( SOURCES 
+	"framework/VR/IVRDevice.h"
+	"framework/VR/OpenVRDevice.cpp"
+	"framework/VR/OpenVRDevice.h"
+	"framework/VR/VRDeviceEmulator.cpp"
+	"framework/VR/VRDeviceEmulator.h"
 	"framework/Window/IWindow.h"
 	"framework/Window/WindowGLFW.cpp"
 	"framework/Window/WindowGLFW.h"
@@ -57,14 +62,21 @@ set( SOURCES
 	"framework/Android/WindowAndroid.cpp"
 	"framework/Android/WindowAndroid.h" )
 add_library( "Framework" STATIC ${SOURCES} )
+source_group( "VR" FILES "framework/VR/IVRDevice.h" "framework/VR/OpenVRDevice.cpp" "framework/VR/OpenVRDevice.h" "framework/VR/VRDeviceEmulator.cpp" "framework/VR/VRDeviceEmulator.h" )
 source_group( "Window" FILES "framework/Window/IWindow.h" "framework/Window/WindowGLFW.cpp" "framework/Window/WindowGLFW.h" "framework/Window/WindowSDL2.cpp" "framework/Window/WindowSDL2.h" "framework/Window/WindowSFML.cpp" "framework/Window/WindowSFML.h" )
 source_group( "Vulkan" FILES "framework/Vulkan/VulkanDevice.cpp" "framework/Vulkan/VulkanDevice.h" "framework/Vulkan/VulkanDeviceExt.cpp" "framework/Vulkan/VulkanDeviceExt.h" "framework/Vulkan/VulkanSurface.cpp" "framework/Vulkan/VulkanSurface.h" "framework/Vulkan/VulkanSwapchain.cpp" "framework/Vulkan/VulkanSwapchain.h" )
 source_group( "Android" FILES "framework/Android/android_native_app_glue.c" "framework/Android/android_native_app_glue.h" "framework/Android/WindowAndroid.cpp" "framework/Android/WindowAndroid.h" )
 set_property( TARGET "Framework" PROPERTY FOLDER "Extensions" )
+if (${FG_ENABLE_OPENVR})
+	target_include_directories( "Framework" PUBLIC "${FG_OPENVR_INSTALL_DIR}/include" )
+endif()
 target_include_directories( "Framework" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "Framework" PRIVATE ".." )
 target_include_directories( "Framework" PRIVATE "framework/.." )
 target_include_directories( "Framework" PRIVATE "framework" )
+if (${FG_ENABLE_OPENVR})
+	target_link_libraries( "Framework" "${FG_OPENVR_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}openvr_api${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+endif()
 if (${FG_ENABLE_GLFW})
 	target_link_libraries( "Framework" "glfw" )
 endif()
@@ -77,6 +89,9 @@ endif()
 target_link_libraries( "Framework" "VulkanLoader" )
 target_link_libraries( "Framework" "STL" )
 target_compile_definitions( "Framework" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
+if (${FG_ENABLE_OPENVR})
+	add_dependencies( "Framework" External.OpenVR )
+endif()
 # compiler
 target_compile_definitions( "Framework" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
 set_target_properties( "Framework" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
@@ -98,13 +113,14 @@ if (${FG_ENABLE_TESTS})
 	set( SOURCES 
 		"../tests/framework/FW_Test1.cpp"
 		"../tests/framework/FW_Test2.cpp"
+		"../tests/framework/FW_Test3.cpp"
 		"../tests/framework/main.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "Tests.Framework" SHARED ${SOURCES} )
 	else()
 		add_executable( "Tests.Framework" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/framework/FW_Test1.cpp" "../tests/framework/FW_Test2.cpp" "../tests/framework/main.cpp" )
+	source_group( "" FILES "../tests/framework/FW_Test1.cpp" "../tests/framework/FW_Test2.cpp" "../tests/framework/FW_Test3.cpp" "../tests/framework/main.cpp" )
 	set_property( TARGET "Tests.Framework" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.Framework" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.Framework" PRIVATE "" )
@@ -438,6 +454,7 @@ if (${FG_ENABLE_GLM})
 		"scene/Math/Sphere.h"
 		"scene/Math/Spherical.h"
 		"scene/Math/Transform.h"
+		"scene/Math/VRCamera.h"
 		"scene/SceneManager/Simple/SimpleRayTracingScene.cpp"
 		"scene/SceneManager/Simple/SimpleRayTracingScene.h"
 		"scene/SceneManager/Simple/SimpleScene.cpp"
@@ -490,7 +507,7 @@ if (${FG_ENABLE_GLM})
 		"scene/Loader/DevIL/DevILLoader.cpp"
 		"scene/Loader/DevIL/DevILLoader.h" )
 	add_library( "Scene" STATIC ${SOURCES} )
-	source_group( "Math" FILES "scene/Math/AABB.h" "scene/Math/Camera.h" "scene/Math/FPSCamera.h" "scene/Math/Frustum.h" "scene/Math/GLM.h" "scene/Math/OOBB.h" "scene/Math/Radians.h" "scene/Math/Sphere.h" "scene/Math/Spherical.h" "scene/Math/Transform.h" )
+	source_group( "Math" FILES "scene/Math/AABB.h" "scene/Math/Camera.h" "scene/Math/FPSCamera.h" "scene/Math/Frustum.h" "scene/Math/GLM.h" "scene/Math/OOBB.h" "scene/Math/Radians.h" "scene/Math/Sphere.h" "scene/Math/Spherical.h" "scene/Math/Transform.h" "scene/Math/VRCamera.h" )
 	source_group( "SceneManager\\Simple" FILES "scene/SceneManager/Simple/SimpleRayTracingScene.cpp" "scene/SceneManager/Simple/SimpleRayTracingScene.h" "scene/SceneManager/Simple/SimpleScene.cpp" "scene/SceneManager/Simple/SimpleScene.h" )
 	source_group( "Shaders\\Utils" FILES "scene/Shaders/Utils/math.glsl" )
 	source_group( "SceneManager\\Octree" FILES "scene/SceneManager/Octree/OctreeScene.h" )
