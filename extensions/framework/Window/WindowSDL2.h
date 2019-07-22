@@ -61,7 +61,7 @@ namespace FGC
 	// methods
 	public:
 		WindowSDL2 ();
-		~WindowSDL2 ();
+		~WindowSDL2 () override;
 
 		bool Create (uint2 size, StringView title) override;
 		void AddListener (IWindowEventListener *listener) override;

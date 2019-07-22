@@ -43,7 +43,7 @@ namespace FGC
 	// methods
 	public:
 		WindowSFML ();
-		~WindowSFML ();
+		~WindowSFML () override;
 
 		bool Create (uint2 size, StringView title) override;
 		void AddListener (IWindowEventListener *listener) override;

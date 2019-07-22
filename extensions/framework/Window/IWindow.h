@@ -58,7 +58,7 @@ namespace FGC
 	class IWindow
 	{
 	// types
-	public:
+	protected:
 		using EKeyAction = IWindowEventListener::EKeyAction;
 		
 	// interface

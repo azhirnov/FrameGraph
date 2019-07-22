@@ -142,6 +142,32 @@ namespace {
 			listener->OnResize( uint2{int2{ w, h }} );
 		}
 	}
+	
+/*
+=================================================
+	_OnKeyEvent
+=================================================
+*/
+	void WindowGLFW::_OnKeyEvent (int key, int action)
+	{
+		EKeyAction	key_action	= (action == GLFW_PRESS   ? EKeyAction::Down :
+								   action == GLFW_RELEASE ? EKeyAction::Up   :
+															EKeyAction::Pressed);
+
+		for (auto& active : _activeKeys)
+		{
+			// skip duplicates
+			if ( active.first == key )
+			{
+				if ( key_action == EKeyAction::Up )
+					active.second = key_action;
+
+				return;
+			}
+		}
+
+		_activeKeys.push_back({ key, key_action });
+	}
 
 /*
 =================================================
@@ -152,16 +178,7 @@ namespace {
 	{
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 
-		for (auto& active : self->_activeKeys)
-		{
-			if ( active[0] == key )
-			{
-				active[1] = action;
-				return;
-			}
-		}
-
-		self->_activeKeys.push_back({ key, action });
+		self->_OnKeyEvent( key, action );
 	}
 	
 /*
@@ -173,16 +190,7 @@ namespace {
 	{
 		auto*	self = static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 		
-		for (auto& active : self->_activeKeys)
-		{
-			if ( active[0] == button )
-			{
-				active[1] = action;
-				return;
-			}
-		}
-
-		self->_activeKeys.push_back({ button, action });
+		self->_OnKeyEvent( button, action );
 	}
 	
 /*
@@ -210,17 +218,8 @@ namespace {
 		auto*	self	= static_cast<WindowGLFW *>(glfwGetWindowUserPointer( wnd ));
 		int		button	= dy > 0.0 ? MOUSE_WHEEL_UP : MOUSE_WHEEL_DOWN;
 		int		action	= GLFW_RELEASE;
-
-		for (auto& active : self->_activeKeys)
-		{
-			if ( active[0] == button )
-			{
-				active[1] = action;
-				return;
-			}
-		}
-
-		self->_activeKeys.push_back({ button, action });
+		
+		self->_OnKeyEvent( button, action );
 	}
 
 /*
@@ -242,21 +241,23 @@ namespace {
 
 		for (auto key_iter = _activeKeys.begin(); key_iter != _activeKeys.end();)
 		{
-			StringView	key_name	= _MapKey( key_iter->x );
-			EKeyAction	key_action	= (key_iter->y == GLFW_PRESS    ? EKeyAction::Down :
-									   key_iter->y == GLFW_RELEASE	? EKeyAction::Up   :
-																	  EKeyAction::Pressed);
+			StringView	key_name	= _MapKey( key_iter->first );
+			EKeyAction&	action		= key_iter->second;
+
 			if ( key_name.size() )
 			{
 				for (auto& listener : _listeners) {
-					listener->OnKey( key_name, key_action );
+					listener->OnKey( key_name, action );
 				}
 			}
 
-			if ( key_iter->y == GLFW_RELEASE )
-				key_iter = _activeKeys.erase( key_iter );
-			else
-				++key_iter;
+			ENABLE_ENUM_CHECKS();
+			switch ( action ) {
+				case EKeyAction::Up :		key_iter = _activeKeys.erase( key_iter );	break;
+				case EKeyAction::Down :		action = EKeyAction::Pressed;				break;
+				case EKeyAction::Pressed :	++key_iter;									break;
+			}
+			DISABLE_ENUM_CHECKS();
 		}
 		
 		if ( not _window )

@@ -32,7 +32,7 @@ namespace FGC
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
 
-		using ActiveKeys_t	= Array< int2 >;
+		using ActiveKeys_t	= Array<Pair< int, EKeyAction >>;
 
 
 	// variables
@@ -45,7 +45,7 @@ namespace FGC
 	// methods
 	public:
 		WindowGLFW ();
-		~WindowGLFW ();
+		~WindowGLFW () override;
 
 		bool Create (uint2 size, StringView title) override;
 		void AddListener (IWindowEventListener *listener) override;
@@ -71,6 +71,8 @@ namespace FGC
 		static void _GLFW_MouseButtonCallback (GLFWwindow* wnd, int button, int action, int mods);
 		static void _GLFW_CursorPosCallback (GLFWwindow* wnd, double xpos, double ypos);
 		static void _GLFW_MouseWheelCallback (GLFWwindow* wnd, double dx, double dy);
+
+		void _OnKeyEvent (int key, int action);
 
 		ND_ static StringView  _MapKey (int key);
 	};

@@ -125,8 +125,12 @@ namespace {
 			
 			for (auto& active : _activeKeys)
 			{
-				if ( active.first == scancode ) {
-					active.second = state;
+				// skip duplicates
+				if ( active.first == scancode )
+				{
+					if ( state == EKeyAction::Up )
+						active.second = state;
+
 					return;
 				}
 			}
@@ -255,19 +259,23 @@ namespace {
 		
 		for (auto key_iter = _activeKeys.begin(); key_iter != _activeKeys.end();)
 		{
-			const StringView	key_name = _MapKey( key_iter->first );
+			StringView	key_name	= _MapKey( key_iter->first );
+			EKeyAction&	action		= key_iter->second;
 			
 			if ( key_name.size() )
 			{
 				for (auto& listener : _listeners) {
-					listener->OnKey( key_name, key_iter->second );
+					listener->OnKey( key_name, action );
 				}
 			}
-
-			if ( key_iter->second == EKeyAction::Up )
-				key_iter = _activeKeys.erase( key_iter );
-			else
-				++key_iter;
+			
+			ENABLE_ENUM_CHECKS();
+			switch ( action ) {
+				case EKeyAction::Up :		key_iter = _activeKeys.erase( key_iter );	break;
+				case EKeyAction::Down :		action = EKeyAction::Pressed;				break;
+				case EKeyAction::Pressed :	++key_iter;									break;
+			}
+			DISABLE_ENUM_CHECKS();
 		}
 		
 		if ( not _window )
