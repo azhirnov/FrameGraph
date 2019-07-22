@@ -39,9 +39,8 @@ namespace FG
 			float		_padding6;
 			vec3		iCameraFrustumRayRT;	// offset: 256, align: 16	// right top
 			float		_padding7;
-			quat		iCameraOrientation;		// offset: 272, align: 16	// camera orientation
-			vec3		iCameraPos;				// offset: 288, align: 16	// camera position in world space
-			float		iCameraFovY;
+			vec3		iCameraPos;				// offset: 272, align: 16	// camera position in world space
+			float		_padding8;
 		};
 
 
@@ -55,11 +54,12 @@ namespace FG
 			using Channels_t = FixedArray< Channel, CountOf(&ShadertoyUB::iChannelResolution) >;
 			
 		// variables
-			String				_pplnFilename;
-			String				_pplnDefines;
-			Channels_t			_channels;
-			Optional<float>		_surfaceScale;
-			Optional<uint2>		_surfaceSize;
+			String					_pplnFilename;
+			String					_pplnDefines;
+			Channels_t				_channels;
+			Optional<float>			_surfaceScale;
+			Optional<uint2>			_surfaceSize;
+			Optional<EPixelFormat>	_format;
 
 		// methods
 			ShaderDescr () {}
@@ -67,6 +67,7 @@ namespace FG
 			ShaderDescr&  InChannel (const String &name, uint index)	{ _channels.push_back({ name, index });  return *this; }
 			ShaderDescr&  SetScale (float value)						{ _surfaceScale = value;  return *this; }
 			ShaderDescr&  SetDimension (uint2 value)					{ _surfaceSize = value;  return *this; }
+			ShaderDescr&  SetFormat (EPixelFormat value)				{ _format = value;  return *this; }
 		};
 
 
@@ -81,20 +82,26 @@ namespace FG
 				uint2				viewport;
 				ChannelImages_t		images;
 			};
-
 			using PerPass_t		= StaticArray< PerPass, 4 >;
+
+			struct PerEye {
+				PerPass_t		passes;
+				BufferID		ubuffer;
+			};
+
+			using PerEye_t		= FixedArray< PerEye, 2 >;
 			using Channels_t	= ShaderDescr::Channels_t;
 
 		// variables
-			GPipelineID			_pipeline;
-			const String		_name;
-			String				_pplnFilename;
-			String				_pplnDefines;
-			Channels_t			_channels;
-			PerPass_t			_perPass;
-			BufferID			_ubuffer;
-			Optional<float>		_surfaceScale;
-			Optional<uint2>		_surfaceSize;
+			GPipelineID				_pipeline;
+			const String			_name;
+			String					_pplnFilename;
+			String					_pplnDefines;
+			Channels_t				_channels;
+			PerEye_t				_perEye;
+			Optional<float>			_surfaceScale;
+			Optional<uint2>			_surfaceSize;
+			Optional<EPixelFormat>	_format;
 
 		// methods
 			explicit Shader (StringView name, ShaderDescr &&desc);
@@ -121,6 +128,9 @@ namespace FG
 		uint					_passIdx : 1;
 		bool					_pause			= false;
 		bool					_freeze			= false;
+		bool					_enableVRMode	= false;
+		bool					_vrMode			= false;
+		bool					_vrMirror		= true;
 
 		ShadersMap_t			_shaders;
 		Array< ShaderPtr >		_ordered;
@@ -174,10 +184,10 @@ namespace FG
 
 		bool _AddShader (const String &name, ShaderDescr &&desc);
 		void _ResetShaders ();
-		bool _RecreateShaders (const uint2 &size);
-		bool _CreateShader (const ShaderPtr &shader);
-		void _DestroyShader (const ShaderPtr &shader);
-		bool _DrawWithShader (const ShaderPtr &shader, uint passIndex, bool isLast);
+		bool _RecreateShaders (const uint2 &size, bool enableVR);
+		bool _CreateShader (const ShaderPtr &shader, bool enableVR);
+		void _DestroyShader (const ShaderPtr &shader, bool destroyPipeline);
+		bool _DrawWithShader (const ShaderPtr &shader, uint eye, uint passIndex, bool isLast);
 		void _UpdateShaderData ();
 
 		bool _LoadImage (const String &filename, OUT ImageID &id);

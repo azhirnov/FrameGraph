@@ -8,6 +8,8 @@ To the extent possible under law, the author(s) have dedicated all copyright and
 -Otavio Good
 */
 
+#include "RayTracing.glsl"
+
 // ---------------- Config ----------------
 // This is an option that lets you render high quality frames for screenshots. It enables
 // stochastic antialiasing and motion blur automatically for any shader.
@@ -379,7 +381,7 @@ void CalcWindows(vec2 block, vec3 pos, inout vec3 texColor, inout float windowRe
 
 // Input is UV coordinate of pixel to render.
 // Output is RGB color.
-vec3 RayTrace(in vec2 fragCoord )
+vec3 RayTrace (const Ray ray, const vec2 fragCoord)
 {
     marchCount = 0.0;
 	// -------------------------------- animate ---------------------------------------
@@ -396,18 +398,6 @@ vec3 RayTrace(in vec2 fragCoord )
 	vec2 uv = fragCoord.xy/iResolution.xy * 2.0 - 1.0;
     uv /= 2.0;  // zoom in
 
-#ifdef MANUAL_CAMERA
-    // Camera up vector.
-	camUp=vec3(0,1,0);
-
-	// Camera lookat.
-	camLookat=vec3(0,0.0,0);
-
-    // debugging camera
-    float mx=-iMouse.x/iResolution.x*PI*2.0;// + localTime * 0.05;
-	float my=iMouse.y/iResolution.y*3.14*0.5 + PI/2.0;// + sin(localTime * 0.3)*0.8+0.1;//*PI/2.01;
-	camPos = vec3(cos(my)*cos(mx),sin(my),cos(my)*sin(mx))*7.35;//7.35
-#else
     // Do the camera fly-by animation and different scenes.
     // Time variables for start and end of each scene
     const float t0 = 0.0;
@@ -417,13 +407,6 @@ vec3 RayTrace(in vec2 fragCoord )
     const float t4 = 38.0;
     const float t5 = 56.0;
     const float t6 = 58.0;
-    /*const float t0 = 0.0;
-    const float t1 = 0.0;
-    const float t2 = 0.0;
-    const float t3 = 0.0;
-    const float t4 = 0.0;
-    const float t5 = 16.0;
-    const float t6 = 18.0;*/
     // Repeat the animation after time t6
     localTime = fract(localTime / t6) * t6;
     if (localTime < t1)
@@ -496,15 +479,14 @@ vec3 RayTrace(in vec2 fragCoord )
         camUp=vec3(0,1,0);
         camLookat=vec3(0.3,0.15,0.0);
     }
-#endif
 
 	// Camera setup for ray tracing / marching
-	vec3 camVec=normalize(camLookat - camPos);
-	vec3 sideNorm=normalize(cross(camUp, camVec));
-	vec3 upNorm=cross(camVec, sideNorm);
-	vec3 worldFacing=(camPos + camVec);
+	vec3 rayVec = ray.dir;
+	camPos += ray.origin;
+	vec3 sideNorm=normalize(cross(camUp, rayVec));
+	vec3 upNorm=cross(rayVec, sideNorm);
+	vec3 worldFacing=(camPos + rayVec);
 	vec3 worldPix = worldFacing + uv.x * sideNorm * (iResolution.x/iResolution.y) + uv.y * upNorm;
-	vec3 rayVec = normalize(worldPix - camPos);
 
 	// ----------------------------- Ray march the scene ------------------------------
 	vec2 distAndMat;  // Distance and material
@@ -833,44 +815,24 @@ void BlockRender(in vec2 fragCoord)
 }
 #endif
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
+void mainVR (out vec4 fragColor, in vec2 fragCoord, in vec3 fragRayOri, in vec3 fragRayDir)
 {
-#ifdef NON_REALTIME_HQ_RENDER
-    // Optionally render a non-realtime scene with high quality
-    BlockRender(fragCoord);
-#endif
+	Ray	ray;
+	ray.origin	= fragRayOri;
+	ray.dir		= fragRayDir;
+	ray.pos		= ray.origin + ray.dir * 0.1;
 
-    // Do a multi-pass render
-    vec3 finalColor = vec3(0.0);
-#ifdef NON_REALTIME_HQ_RENDER
-    for (float i = 0.0; i < antialiasingSamples; i++)
-    {
-        const float motionBlurLengthInSeconds = 1.0 / 60.0;
-        // Set this to the time in seconds of the frame to render.
-	    localTime = frameToRenderHQ;
-        // This line will motion-blur the renders
-        localTime += Hash11(v21(fragCoord + seed)) * motionBlurLengthInSeconds;
-        // Jitter the pixel position so we get antialiasing when we do multiple passes.
-        vec2 jittered = fragCoord.xy + vec2(
-            Hash21(fragCoord + seed),
-            Hash21(fragCoord*7.234567 + seed)
-            );
-        // don't antialias if only 1 sample.
-        if (antialiasingSamples == 1.0) jittered = fragCoord;
-        // Accumulate one pass of raytracing into our pixel value
-	    finalColor += RayTrace(jittered);
-        // Change the random seed for each pass.
-	    seed *= 1.01234567;
-    }
-    // Average all accumulated pixel intensities
-    finalColor /= antialiasingSamples;
-#else
-    // Regular real-time rendering
     localTime = iTime;
-    finalColor = RayTrace(fragCoord);
-#endif
-
+    vec3 finalColor = RayTrace(ray, fragCoord);
     fragColor = vec4(sqrt(clamp(finalColor, 0.0, 1.0)),1.0);
 }
 
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+	Ray	ray = Ray_From( iCameraFrustumLB, iCameraFrustumRB, iCameraFrustumLT, iCameraFrustumRT,
+						iCameraPos, 0.1, fragCoord / iResolution.xy );
 
+    localTime = iTime;
+    vec3 finalColor = RayTrace(ray, fragCoord);
+    fragColor = vec4(sqrt(clamp(finalColor, 0.0, 1.0)),1.0);
+}

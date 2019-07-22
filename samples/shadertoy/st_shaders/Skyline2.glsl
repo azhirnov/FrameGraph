@@ -8,35 +8,7 @@ To the extent possible under law, the author(s) have dedicated all copyright and
 -Otavio Good
 */
 
-struct Ray
-{
-	vec3	origin;		// camera (eye, light, ...) position
-	vec3	pos;		// current position
-	vec3	dir;		// normalized direction
-};
-
-/*
-=================================================
-	Ray_From
-----
-	create ray from frustum rays and origin
-=================================================
-*/
-Ray		Ray_From (const vec3 leftBottom, const vec3 rightBottom, const vec3 leftTop, const vec3 rightTop,
-				  const vec3 origin, const float nearPlane, const vec2 unormCoord)
-{
-	const vec2	coord	= unormCoord;
-	const vec3	vec		= mix(  mix( leftBottom, rightBottom, coord.x ),
-								mix( leftTop, rightTop, coord.x ),
-								coord.y );
-
-	Ray	ray;
-	ray.origin	= origin;
-	ray.dir		= normalize( vec );
-	ray.pos		= ray.origin + ray.dir * nearPlane;
-
-	return ray;
-}
+#include "RayTracing.glsl"
 
 
 // ---------------- Config ----------------
@@ -408,11 +380,8 @@ void CalcWindows(vec2 block, vec3 pos, inout vec3 texColor, inout float windowRe
 
 // Input is UV coordinate of pixel to render.
 // Output is RGB color.
-vec3 RayTrace (in vec2 fragCoord)
+vec3 RayTrace (const Ray ray, const vec2 fragCoord)
 {
-	Ray	ray = Ray_From( iCameraFrustumLB, iCameraFrustumRB, iCameraFrustumLT, iCameraFrustumRT,
-						iCameraPos, 1.0, fragCoord / iResolution.xy );
-
     marchCount = 0.0;
 	// -------------------------------- animate ---------------------------------------
     sunCol = vec3(258.0, 248.0, 200.0) / 3555.0;
@@ -759,44 +728,24 @@ void BlockRender(in vec2 fragCoord)
 }
 #endif
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
+void mainVR (out vec4 fragColor, in vec2 fragCoord, in vec3 fragRayOri, in vec3 fragRayDir)
 {
-#ifdef NON_REALTIME_HQ_RENDER
-    // Optionally render a non-realtime scene with high quality
-    BlockRender(fragCoord);
-#endif
+	Ray	ray;
+	ray.origin	= fragRayOri;
+	ray.dir		= fragRayDir;
+	ray.pos		= ray.origin + ray.dir * 0.1;
 
-    // Do a multi-pass render
-    vec3 finalColor = vec3(0.0);
-#ifdef NON_REALTIME_HQ_RENDER
-    for (float i = 0.0; i < antialiasingSamples; i++)
-    {
-        const float motionBlurLengthInSeconds = 1.0 / 60.0;
-        // Set this to the time in seconds of the frame to render.
-	    localTime = frameToRenderHQ;
-        // This line will motion-blur the renders
-        localTime += Hash11(v21(fragCoord + seed)) * motionBlurLengthInSeconds;
-        // Jitter the pixel position so we get antialiasing when we do multiple passes.
-        vec2 jittered = fragCoord.xy + vec2(
-            Hash21(fragCoord + seed),
-            Hash21(fragCoord*7.234567 + seed)
-            );
-        // don't antialias if only 1 sample.
-        if (antialiasingSamples == 1.0) jittered = fragCoord;
-        // Accumulate one pass of raytracing into our pixel value
-	    finalColor += RayTrace(jittered);
-        // Change the random seed for each pass.
-	    seed *= 1.01234567;
-    }
-    // Average all accumulated pixel intensities
-    finalColor /= antialiasingSamples;
-#else
-    // Regular real-time rendering
     localTime = iTime;
-    finalColor = RayTrace(fragCoord);
-#endif
-
+    vec3 finalColor = RayTrace(ray, fragCoord);
     fragColor = vec4(sqrt(clamp(finalColor, 0.0, 1.0)),1.0);
 }
 
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+	Ray	ray = Ray_From( iCameraFrustumLB, iCameraFrustumRB, iCameraFrustumLT, iCameraFrustumRT,
+						iCameraPos, 0.1, fragCoord / iResolution.xy );
 
+    localTime = iTime;
+    vec3 finalColor = RayTrace(ray, fragCoord);
+    fragColor = vec4(sqrt(clamp(finalColor, 0.0, 1.0)),1.0);
+}
