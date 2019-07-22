@@ -9,6 +9,16 @@ Experiments with ray tracing extension.
 ![image](screenshots/ray_tracing.jpg)
 
 
+
+## Planet rendering
+- [x] Identity projection
+- [x] Tangential projection
+- [x] Displacement mapping
+- [ ] Atmosphere rendering
+- [ ] Procedural textures
+- [ ] Dynamic LODs
+
+
 ## Shadertoy
 Some shaders from [Shadertoy](https://www.shadertoy.com).
 - [x] Manual camera
