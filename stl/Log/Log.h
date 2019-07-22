@@ -13,7 +13,7 @@ namespace FGC
 	// Logger
 	//
 
-	struct Log
+	struct Logger
 	{
 		enum class EResult {
 			Continue,
@@ -32,11 +32,11 @@ namespace FGC
 
 
 #define FG_PRIVATE_LOGX( _level_, _msg_, _file_, _line_ ) \
-	{switch ( ::FGC::Log::_level_( (_msg_), (FG_FUNCTION_NAME), (_file_), (_line_) ) ) \
+	{switch ( ::FGC::Logger::_level_( (_msg_), (FG_FUNCTION_NAME), (_file_), (_line_) ) ) \
 	{ \
-		case ::FGC::Log::EResult::Continue :	break; \
-		case ::FGC::Log::EResult::Break :	FG_PRIVATE_BREAK_POINT();	break; \
-		case ::FGC::Log::EResult::Abort :	FG_PRIVATE_EXIT();			break; \
+		case ::FGC::Logger::EResult::Continue :	break; \
+		case ::FGC::Logger::EResult::Break :	FG_PRIVATE_BREAK_POINT();	break; \
+		case ::FGC::Logger::EResult::Abort :	FG_PRIVATE_EXIT();			break; \
 	}}
 
 #define FG_PRIVATE_LOGI( _msg_, _file_, _line_ )	FG_PRIVATE_LOGX( Info, (_msg_), (_file_), (_line_) )

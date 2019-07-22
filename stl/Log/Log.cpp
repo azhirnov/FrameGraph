@@ -26,12 +26,12 @@ using namespace FGC;
 	
 =================================================
 */
-	Log::EResult  FGC::Log::Info (const char *msg, const char *func, const char *file, int line)
+	Logger::EResult  FGC::Logger::Info (const char *msg, const char *func, const char *file, int line)
 	{
 		return Info( StringView{msg}, StringView{func}, StringView{file}, line );
 	}
 
-	Log::EResult  FGC::Log::Error (const char *msg, const char *func, const char *file, int line)
+	Logger::EResult  FGC::Logger::Error (const char *msg, const char *func, const char *file, int line)
 	{
 		return Error( StringView{msg}, StringView{func}, StringView{file}, line );
 	}
@@ -53,7 +53,7 @@ namespace {
 	Info
 =================================================
 */
-	Log::EResult  FGC::Log::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		(void)__android_log_print( ANDROID_LOG_WARN, FG_ANDROID_TAG, "%s (%i): %s", file.data(), line, msg.data() );
 		return EResult::Continue;
@@ -64,7 +64,7 @@ namespace {
 	Error
 =================================================
 */
-	Log::EResult  FGC::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		(void)__android_log_print( ANDROID_LOG_ERROR, FG_ANDROID_TAG, "%s (%i): %s", file.data(), line, msg.data() );
 		return EResult::Continue;
@@ -97,7 +97,7 @@ namespace {
 	Info
 =================================================
 */
-	Log::EResult  FGC::Log::Info (const StringView &msg, const StringView &, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Info (const StringView &msg, const StringView &, const StringView &file, int line)
 	{
 		IDEConsoleMessage( msg, file, line, false );
 		ConsoleOutput( msg, file, line, false );
@@ -110,7 +110,7 @@ namespace {
 	Error
 =================================================
 */
-	Log::EResult  FGC::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		IDEConsoleMessage( msg, file, line, true );
 		ConsoleOutput( msg, file, line, true );
@@ -127,10 +127,10 @@ namespace {
 									  MAKELANGID( LANG_ENGLISH, SUBLANG_ENGLISH_US ) );
 		switch ( result )
 		{
-			case IDABORT :		return Log::EResult::Abort;
-			case IDRETRY :		return Log::EResult::Break;
-			case IDIGNORE :		return Log::EResult::Continue;
-			default :			return Log::EResult(~0u);
+			case IDABORT :	return Logger::EResult::Abort;
+			case IDRETRY :	return Logger::EResult::Break;
+			case IDIGNORE :	return Logger::EResult::Continue;
+			default :		return Logger::EResult(~0u);
 		};
 	}
 //-----------------------------------------------------------------------------
@@ -145,7 +145,7 @@ namespace {
 	Info
 =================================================
 */
-	Log::EResult  FGC::Log::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
@@ -156,7 +156,7 @@ namespace {
 	Error
 =================================================
 */
-	Log::EResult  FGC::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, true );
 		return EResult::Abort;
@@ -177,7 +177,7 @@ namespace {
 	Info
 =================================================
 */
-	Log::EResult  FGC::Log::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
@@ -188,7 +188,7 @@ namespace {
 	Error
 =================================================
 */
-	Log::EResult  FGC::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		/*Widget top_wid, button;
 		XtAppContext  app;
@@ -222,7 +222,7 @@ namespace {
 	Info
 =================================================
 */
-	Log::EResult  FGC::Log::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, false );
 		return EResult::Continue;
@@ -233,7 +233,7 @@ namespace {
 	Error
 =================================================
 */
-	Log::EResult  FGC::Log::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
+	Logger::EResult  FGC::Logger::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, true );
 		return EResult::Abort;
