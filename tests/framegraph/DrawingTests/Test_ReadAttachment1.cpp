@@ -5,6 +5,30 @@
 namespace FG
 {
 
+	static EPixelFormat ChooseDepthStencilFormat (const VulkanDevice &dev)
+	{
+		const Pair<VkFormat, EPixelFormat> formats[] = {
+			{ VK_FORMAT_D24_UNORM_S8_UINT, EPixelFormat::Depth24_Stencil8 },
+			{ VK_FORMAT_D32_SFLOAT_S8_UINT, EPixelFormat::Depth32F_Stencil8 },
+			{ VK_FORMAT_D16_UNORM_S8_UINT, EPixelFormat::Depth16_Stencil8 }
+		};
+
+		for (auto fmt : formats)
+		{
+			VkFormatProperties2	props = {};
+			props.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2;
+			vkGetPhysicalDeviceFormatProperties2( dev.GetVkPhysicalDevice(), fmt.first, OUT &props );
+
+			VkFormatFeatureFlags	curr	 = props.formatProperties.optimalTilingFeatures;
+			VkFormatFeatureFlags	required = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+			if ( EnumEq( curr, required ) )
+				return fmt.second;
+		}
+		RETURN_ERR( "no suitable depth-stencil format found" );
+	}
+
+
 	bool FGApp::Test_ReadAttachment1 ()
 	{
 		GraphicsPipelineDesc	ppln;
@@ -51,9 +75,11 @@ void main() {
 )#" );
 		
 		const uint2		view_size	= {800, 600};
+		EPixelFormat	ds_format	= ChooseDepthStencilFormat( _vulkan );
+
 		ImageID			color_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "ColorTarget" );
-		ImageID			depth_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::Depth24_Stencil8,
+		ImageID			depth_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, ds_format,
 																			EImageUsage::DepthStencilAttachment | EImageUsage::TransferDst | EImageUsage::Sampled },
 																			Default, "DepthTarget" );
 
