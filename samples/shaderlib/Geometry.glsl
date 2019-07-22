@@ -5,14 +5,14 @@
 #include "Math.glsl"
 
 
-void GetRayPerpendicular (const vec3 dir, out vec3 outLeft, out vec3 outUp)
+void GetRayPerpendicular (const float3 dir, out float3 outLeft, out float3 outUp)
 {
-	const vec3	a	 = abs( dir );
-	const vec2	c	 = vec2( 1.0f, 0.0f );
-	const vec3	axis = a.x < a.y ? (a.x < a.z ? c.xyy : c.yyx) :
-									(a.y < a.z ? c.xyx : c.yyx);
+	const float3	a	 = Abs( dir );
+	const float2	c	 = float2( 1.0f, 0.0f );
+	const float3	axis = a.x < a.y ? (a.x < a.z ? c.xyy : c.yyx) :
+									   (a.y < a.z ? c.xyx : c.yyx);
 		
-	outLeft = normalize(cross( dir, axis ));
-	outUp   = normalize(cross( dir, outLeft ));
+	outLeft = Normalize( Cross( dir, axis ));
+	outUp   = Normalize( Cross( dir, outLeft ));
 }
 

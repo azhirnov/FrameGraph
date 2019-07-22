@@ -31,7 +31,7 @@
 #define ASin			asin
 #define ASinH			asinh
 #define ACosH			acosh
-#define ATan			atan
+#define ATan			atan			// result in range [-Pi...+Pi]
 #define BitScanReverse	findMSB
 #define BitScanForward	findLSB
 #define ATanH			atanh
@@ -90,7 +90,7 @@
 #define Greater					greaterThan
 #define LessEqual				lessThanEqual
 #define GreaterEqual			greaterThanEqual
-#define Not						mot
+#define Not						not
 
 bool  Equals (const float  lhs, const float  rhs)  { return lhs == rhs; }
 bool2 Equals (const float2 lhs, const float2 rhs)  { return equal( lhs, rhs ); }
@@ -121,6 +121,7 @@ bool4 Equals (const float4 lhs, const float4 rhs)  { return equal( lhs, rhs ); }
 
 float Epsilon ()	{ return 0.00001f; }
 float Pi ()			{ return 3.14159265358979323846f; }
+float Pi2 ()		{ return Pi() * 2.0; }
 
 
 float  Sign (const float x)  { return  x < 0.0 ? -1.0 : 1.0; }

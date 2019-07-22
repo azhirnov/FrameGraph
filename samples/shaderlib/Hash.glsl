@@ -6,96 +6,97 @@
 
 
 // DHash from https://www.shadertoy.com/view/4djSRW 
+// range [0..1]
 
-float4 DHashScale_float ()  { return float4( 0.1031, 0.1030, 0.0973, 0.1099 ); }
+float4 _DHashScale ()  { return float4( 0.1031, 0.1030, 0.0973, 0.1099 ); }
 
 float DHash11 (const float p)
 {
-	float3 p3 = Fract( float3(p) * DHashScale_float().x );
+	float3 p3 = Fract( float3(p) * _DHashScale().x );
 	p3 += Dot( p3, p3.yzx + 19.19 );
 	return Fract( (p3.x + p3.y) * p3.z );
 }
 
 float DHash12 (const float2 p)
 {
-	float3 p3 = Fract( float3(p.xyx) * DHashScale_float().x );
+	float3 p3 = Fract( float3(p.xyx) * _DHashScale().x );
 	p3 += Dot( p3, p3.yzx + 19.19 );
 	return Fract( (p3.x + p3.y) * p3.z );
 }
 
 float DHash13 (const float3 p)
 {
-	float3 p3 = Fract( p * DHashScale_float().x );
+	float3 p3 = Fract( p * _DHashScale().x );
 	p3 += Dot( p3, p3.yzx + 19.19 );
 	return Fract( (p3.x + p3.y) * p3.z );
 }
 
 float2 DHash21 (const float p)
 {
-	float3 p3 = Fract( float3(p) * DHashScale_float().xyz );
+	float3 p3 = Fract( float3(p) * _DHashScale().xyz );
 	p3 += Dot( p3, p3.yzx + 19.19 );
 	return Fract( (p3.xx + p3.yz) * p3.zy );
 }
 
 float2 DHash22 (const float2 p)
 {
-	float3 p3 = Fract( float3(p.xyx) * DHashScale_float().xyz );
+	float3 p3 = Fract( float3(p.xyx) * _DHashScale().xyz );
 	p3 += Dot( p3, p3.yzx + 19.19 );
 	return Fract( (p3.xx + p3.yz) * p3.zy );
 }
 
 float2 DHash23 (const float3 p)
 {
-	float3 p3 = Fract( p * DHashScale_float().xyz );
+	float3 p3 = Fract( p * _DHashScale().xyz );
 	p3 += Dot( p3, p3.yzx + 19.19 );
 	return Fract( (p3.xx + p3.yz) * p3.zy );
 }
 
 float3 DHash31 (const float p)
 {
-	float3 p3 = Fract( float3(p) * DHashScale_float().xyz );
+	float3 p3 = Fract( float3(p) * _DHashScale().xyz );
 	p3 += Dot( p3, p3.yzx + 19.19 );
 	return Fract( (p3.xxy + p3.yzz) * p3.zyx );
 }
 
 float3 DHash32 (const float2 p)
 {
-	float3 p3 = Fract( float3(p.xyx) * DHashScale_float().xyz );
+	float3 p3 = Fract( float3(p.xyx) * _DHashScale().xyz );
 	p3 += Dot( p3, p3.yxz + 19.19 );
 	return Fract( (p3.xxy + p3.yzz) * p3.zyx );
 }
 
 float3 DHash33 (const float3 p)
 {
-	float3 p3 = Fract( p * DHashScale_float().xyz );
+	float3 p3 = Fract( p * _DHashScale().xyz );
 	p3 += Dot( p3, p3.yxz + 19.19 );
 	return Fract( (p3.xxy + p3.yxx) * p3.zyx );
 }
 
 float4 DHash41 (const float p)
 {
-	float4 p4 = Fract( float4(p) * DHashScale_float() );
+	float4 p4 = Fract( float4(p) * _DHashScale() );
 	p4 += Dot( p4, p4.wzxy + 19.19 );
 	return Fract( (p4.xxyz + p4.yzzw) * p4.zywx );
 }
 
 float4 DHash42 (const float2 p)
 {
-	float4 p4 = Fract( float4(p.xyxy) * DHashScale_float() );
+	float4 p4 = Fract( float4(p.xyxy) * _DHashScale() );
 	p4 += Dot( p4, p4.wzxy + 19.19 );
 	return Fract( (p4.xxyz + p4.yzzw) * p4.zywx );
 }
 
 float4 DHash43 (const float3 p)
 {
-	float4 p4 = Fract( float4(p.xyzx) * DHashScale_float() );
+	float4 p4 = Fract( float4(p.xyzx) * _DHashScale() );
 	p4 += Dot( p4, p4.wzxy + 19.19 );
 	return Fract( (p4.xxyz + p4.yzzw) * p4.zywx );
 }
 
 float4 DHash44 (const float4 p)
 {
-	float4 p4 = Fract( p * DHashScale_float() );
+	float4 p4 = Fract( p * _DHashScale() );
 	p4 += Dot( p4, p4.wzxy + 19.19 );
 	return Fract( (p4.xxyz + p4.yzzw) * p4.zywx );
 }
@@ -149,7 +150,7 @@ float  HEHash (uint n)
 
 
 
-uint3 IWeylConst ()
+uint3 _IWeylConst ()
 {
 	return uint3(
 		0x3504f333u,	// W0 = 3*2309*128413 
@@ -165,10 +166,10 @@ uint IWeylHash (const uint2 p)
 	uint	x = p.x;
 	uint	y = p.y;
 
-	x *= IWeylConst().x;	// x' = Fx(x)
-	y *= IWeylConst().y;	// y' = Fy(y)
+	x *= _IWeylConst().x;	// x' = Fx(x)
+	y *= _IWeylConst().y;	// y' = Fy(y)
 	x ^= y;					// combine
-	x *= IWeylConst().z;	// MLCG constant
+	x *= _IWeylConst().z;	// MLCG constant
 	return x;
 }
 
@@ -178,12 +179,12 @@ uint IWeylHash2 (const uint2 p)
 	uint	x = p.x;
 	uint	y = p.y;
 	
-	x *= IWeylConst().x;	// x' = Fx(x)
-	y *= IWeylConst().y;	// y' = Fy(y)
-	x += IWeylConst().y;	// some odd constant
-	y += IWeylConst().x;	// some odd constant
+	x *= _IWeylConst().x;	// x' = Fx(x)
+	y *= _IWeylConst().y;	// y' = Fy(y)
+	x += _IWeylConst().y;	// some odd constant
+	y += _IWeylConst().x;	// some odd constant
 	x ^= y;					// combine
-	x *= IWeylConst().z;	// MLCG constant
+	x *= _IWeylConst().z;	// MLCG constant
 	return x;
 }
 //-----------------------------------------------------------------------------
@@ -192,27 +193,27 @@ uint IWeylHash2 (const uint2 p)
 
 // from https://www.shadertoy.com/view/4ssXRX
 
-//note: uniformly distributed, normalized rand, [0;1[
-#define nrand( n ) Fract( Sin( Dot( (n).xy, float2(12.9898, 78.233) ) ) * 43758.5453 )
+//note: uniformly distributed, normalized rand, [0;1]
+#define nrand( n ) Fract( Sin( Dot( (n).xy, float2(12.9898, 78.233) )) * 43758.5453 )
 
-float Hash_Uniform (const float2 n, const float time)
+float Hash_Uniform (const float2 n, const float seed)
 {
-	const float t = Fract( time );
+	const float t = Fract( seed );
 	const float nrnd0 = nrand( n + 0.07*t );
 	return nrnd0;
 }
 
-float Hash_Triangular (const float2 n, const float time)
+float Hash_Triangular (const float2 n, const float seed)
 {
-	const float t = Fract( time );
+	const float t = Fract( seed );
 	const float nrnd0 = nrand( n + 0.07*t );
 	const float nrnd1 = nrand( n + 0.11*t );
 	return (nrnd0+nrnd1) / 2.0;
 }
 
-float Hash_Gaussianish (const float2 n, const float time)
+float Hash_Gaussianish (const float2 n, const float seed)
 {
-	const float t = Fract( time );
+	const float t = Fract( seed );
 	const float nrnd0 = nrand( n + 0.07*t );
 	const float nrnd1 = nrand( n + 0.11*t );	
 	const float nrnd2 = nrand( n + 0.13*t );
@@ -220,9 +221,9 @@ float Hash_Gaussianish (const float2 n, const float time)
 	return (nrnd0+nrnd1+nrnd2+nrnd3) / 4.0;
 }
 
-float Hash_MoarGaussianish (const float2 n, const float time)
+float Hash_MoarGaussianish (const float2 n, const float seed)
 {
-	const float t = Fract( time );
+	const float t = Fract( seed );
 	const float nrnd0 = nrand( n + 0.07*t );
 	const float nrnd1 = nrand( n + 0.11*t );	
 	const float nrnd2 = nrand( n + 0.13*t );
