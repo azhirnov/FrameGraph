@@ -208,6 +208,7 @@ namespace FGC
 			case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT	: return "DebugReportCallback";
 			case VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT	: return "DebugUtilsMessenger";
 			case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION	: return "SamplerYcBr";
+			case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL: return "PerformanceConfigIntel";
 
 			case VK_OBJECT_TYPE_UNKNOWN :
 			case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE :

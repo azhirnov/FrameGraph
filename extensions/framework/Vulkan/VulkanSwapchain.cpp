@@ -4,10 +4,7 @@
 #include "stl/Algorithms/EnumUtils.h"
 #include "stl/Algorithms/ArrayUtils.h"
 #include "stl/Memory/MemUtils.h"
-
-#ifndef FG_NO_VULKANDEVICE
 #include "VulkanDevice.h"
-#endif
 
 namespace FGC
 {
@@ -47,18 +44,11 @@ namespace FGC
 		CHECK( _vkPhysicalDevice and _vkDevice and _vkSurface );
 		VulkanDeviceFn_Init( fn );
 	}
-		
-/*
-=================================================
-	constructor
-=================================================
-*/
-#ifndef FG_NO_VULKANDEVICE
+	
 	VulkanSwapchain::VulkanSwapchain (const VulkanDevice &dev) :
 		VulkanSwapchain( dev.GetVkPhysicalDevice(), dev.GetVkDevice(), dev.GetVkSurface(), dev )
 	{
 	}
-#endif
 
 /*
 =================================================

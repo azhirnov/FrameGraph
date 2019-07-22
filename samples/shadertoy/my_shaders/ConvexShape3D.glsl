@@ -11,7 +11,6 @@
 #define HEXAGON			3
 #define DIAMOND			4
 #define RANDOM_1		1000
-#define RANDOM_1		1001
 
 #define SHAPE			RANDOM_1
 

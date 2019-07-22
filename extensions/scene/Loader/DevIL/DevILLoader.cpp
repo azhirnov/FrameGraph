@@ -269,7 +269,7 @@ namespace FG
 
 		CHECK_ERR( ilLoadImage( filename.data() ) == IL_TRUE );
 
-		if ( EndsWithIC( filename, ".jpg" ) or EndsWithIC( filename, ".jpeg" ) or EndsWithIC( filename, ".png" ) )
+		if ( EndsWithIC( filename, ".jpg" ) or EndsWithIC( filename, ".jpeg" ) /*or EndsWithIC( filename, ".png" )*/ )
 		{
 			CHECK( iluFlipImage() == IL_TRUE );
 		}

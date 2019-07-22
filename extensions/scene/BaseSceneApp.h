@@ -96,8 +96,8 @@ namespace FG
 		ND_ RawSwapchainID		GetSwapchain ()		const	{ return _swapchainId; }
 
 		// vr camera
-		ND_ VRCamera &			GetVRCamera ()				{ ASSERT( _vrDevice ); return _vrCamera; }
-		ND_ VRCamera const&		GetVRCamera ()		const	{ ASSERT( _vrDevice ); return _vrCamera; }
+		ND_ VRCamera &			GetVRCamera ()				{ return _vrCamera; }
+		ND_ VRCamera const&		GetVRCamera ()		const	{ return _vrCamera; }
 
 		// viewport camera
 		ND_ Camera const&		GetCamera ()		const	{ return _camera.GetCamera(); }

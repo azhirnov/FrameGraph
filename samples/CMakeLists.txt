@@ -20,7 +20,6 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLSLANG})
 		"vulkan/MeshShader1.cpp"
 		"vulkan/RayTracing1.cpp"
 		"vulkan/RayTracing2.cpp"
-		"vulkan/Readme.md"
 		"vulkan/ShadingRate1.cpp"
 		"vulkan/SparseImage1.cpp"
 		"vulkan/ZOrderPattern.cpp" )
@@ -30,7 +29,7 @@ if (${FG_ENABLE_SAMPLES} AND ${FG_ENABLE_GLSLANG})
 		add_executable( "Samples.Vulkan" ${SOURCES} )
 	endif()
 	source_group( "compiler" FILES "vulkan/compiler/SpvCompiler.cpp" "vulkan/compiler/SpvCompiler.h" )
-	source_group( "" FILES "vulkan/AsyncCompute1.cpp" "vulkan/AsyncCompute2.cpp" "vulkan/AsyncCompute3.cpp" "vulkan/CacheTest.cpp" "vulkan/ClearImage.cpp" "vulkan/FragShaderBarycentric1.cpp" "vulkan/GenMipmaps.cpp" "vulkan/ImageFootprint1.cpp" "vulkan/main.cpp" "vulkan/MeshShader1.cpp" "vulkan/RayTracing1.cpp" "vulkan/RayTracing2.cpp" "vulkan/Readme.md" "vulkan/ShadingRate1.cpp" "vulkan/SparseImage1.cpp" "vulkan/ZOrderPattern.cpp" )
+	source_group( "" FILES "vulkan/AsyncCompute1.cpp" "vulkan/AsyncCompute2.cpp" "vulkan/AsyncCompute3.cpp" "vulkan/CacheTest.cpp" "vulkan/ClearImage.cpp" "vulkan/FragShaderBarycentric1.cpp" "vulkan/GenMipmaps.cpp" "vulkan/ImageFootprint1.cpp" "vulkan/main.cpp" "vulkan/MeshShader1.cpp" "vulkan/RayTracing1.cpp" "vulkan/RayTracing2.cpp" "vulkan/ShadingRate1.cpp" "vulkan/SparseImage1.cpp" "vulkan/ZOrderPattern.cpp" )
 	set_property( TARGET "Samples.Vulkan" PROPERTY FOLDER "Samples" )
 	target_include_directories( "Samples.Vulkan" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Samples.Vulkan" PRIVATE "${FG_GLSLANG_INCLUDE_DIR}" )

@@ -2,10 +2,17 @@
 
 ## Ray tracing
 Experiments with ray tracing extension.
+- [x] Order independent transparency
+- [x] Refraction
+- [ ] Reflection
+- [ ] PBR
 ![image](screenshots/ray_tracing.jpg)
+
 
 ## Shadertoy
 Some shaders from [Shadertoy](https://www.shadertoy.com).
+- [x] Manual camera
+- [x] VR
 
 
 ## Vulkan samples
