@@ -19,35 +19,39 @@ namespace FGC
 	{
 	// variables
 	private:
-		alignas(FG_CACHE_LINE) std::atomic_flag		_flag;
+		alignas(FG_CACHE_LINE) std::atomic<uint>		_flag {0};
 
 
 	// methods
 	public:
-		SpinLock () : _flag{ATOMIC_FLAG_INIT}
+		SpinLock ()
 		{}
 
 		ND_ forceinline bool try_lock ()
 		{
-			return not _flag.test_and_set( memory_order_acquire );
+			uint	exp = 0;
+			return not _flag.compare_exchange_strong( INOUT exp, 1, memory_order_acquire, memory_order_relaxed );
 		}
 
 
 		// for std::lock_guard
 		forceinline void lock ()
 		{
-			for (uint i = 0; _flag.test_and_set( memory_order_acquire ); ++i)
+			uint	exp = 0;
+			for (uint i = 0; not _flag.compare_exchange_weak( INOUT exp, 1, memory_order_acquire, memory_order_relaxed ); ++i)
 			{
 				if ( i > 100 ) {
 					i = 0;
 					std::this_thread::yield();
 				}
+				exp = 0;
 			}
 		}
 
 		forceinline void unlock ()
 		{
-			_flag.clear( memory_order_release );
+			uint	exp = 1;
+			_flag.compare_exchange_strong( INOUT exp, 0, memory_order_release, memory_order_relaxed );
 		}
 	};
 
