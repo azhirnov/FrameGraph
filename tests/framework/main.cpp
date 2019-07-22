@@ -7,11 +7,16 @@ using namespace FGC;
 
 extern void FW_Test1 ();
 extern void FW_Test2 ();
+extern void FW_Test3 ();
 
 
 int main ()
 {
-#ifdef PLATFORM_ANDROID
+#if 1
+	// VR
+	FW_Test3();
+	
+#elif defined(PLATFORM_ANDROID)
 	// single-threaded
 	FW_Test1();
 #else

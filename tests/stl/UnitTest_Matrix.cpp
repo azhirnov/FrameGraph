@@ -112,6 +112,26 @@ static void Matrix_Test6 ()
 }
 
 
+static void Matrix_Test7 ()
+{
+	using float4x4_t = Matrix< float, 4, 4, EMatrixOrder::ColumnMajor >;
+
+	float4x4_t	m1{
+		3.0f, 4.0f, 5.0f, 1.0f,
+		7.0f, 2.0f, 6.0f, 0.5f,
+		3.0f, 1.0f, 9.0f, 4.0f,
+		5.0f, 2.0f, 4.0f, 2.0f
+	};
+	float4x4_t	m2 = m1.Inverse();
+	float4x4_t	m3 = m2.Inverse();
+	
+	for (uint c = 0; c < 4; ++c)
+	for (uint r = 0; r < 4; ++r) {
+		TEST(Equals( m1[c][r], m3[c][r], 0.01f ));
+	}
+}
+
+
 extern void UnitTest_Matrix ()
 {
 	Matrix_Test1();
@@ -120,6 +140,7 @@ extern void UnitTest_Matrix ()
 	Matrix_Test4();
 	Matrix_Test5();
 	Matrix_Test6();
+	Matrix_Test7();
 
 	FG_LOGI( "UnitTest_Matrix - passed" );
 }

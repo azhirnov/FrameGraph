@@ -5,12 +5,6 @@
 #include "stl/Math/Vec.h"
 #include "stl/Algorithms/ArrayUtils.h"
 
-# ifdef COMPILER_MSVC
-#	pragma warning (push)
-#	pragma warning (disable: 4324)	// structure was padded due to alignment specifier
-# endif
-
-
 namespace FGC
 {
 
@@ -60,7 +54,7 @@ namespace FGC
 	// methods
 	public:
 		constexpr Matrix () : _columns{} {}
-		
+
 		template <typename Arg0, typename ...Args>
 		constexpr explicit Matrix (const Arg0 &arg0, const Args& ...args)
 		{
@@ -74,21 +68,21 @@ namespace FGC
 								(CountOf<Arg0, Args...>() == Columns) );
 		}
 
-		template <size_t Align2>
-		constexpr explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align2 > &other)
+		template <uint Columns2, uint Rows2, size_t Align2>
+		constexpr explicit Matrix (const Matrix< T, Columns2, Rows2, EMatrixOrder::ColumnMajor, Align2 > &other)
 		{
 			for (uint c = 0; c < Columns; ++c)
 			for (uint r = 0; r < Rows; ++r) {
-				(*this)[c][r] = other[c][r];
+				(*this)[c][r] = ((c < Columns2) & (r < Rows2)) ? other[c][r] : (c == r ? T(1) : T(0));
 			}
 		}
-
-		template <size_t Align2>
-		constexpr explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::RowMajor, Align2 > &other)
+		
+		template <uint Columns2, uint Rows2, size_t Align2>
+		constexpr explicit Matrix (const Matrix< T, Columns2, Rows2, EMatrixOrder::RowMajor, Align2 > &other)
 		{
 			for (uint c = 0; c < Columns; ++c)
 			for (uint r = 0; r < Rows; ++r) {
-				(*this)[c][r] = other[r][c];
+				(*this)[c][r] = ((r < Columns2) & (c < Rows2)) ? other[r][c] : (c == r ? T(1) : T(0));
 			}
 		}
 
@@ -146,6 +140,13 @@ namespace FGC
 
 		ND_ static constexpr bool		IsColumnMajor ()				{ return true; }
 		ND_ static constexpr bool		IsRowMajor ()					{ return not IsColumnMajor(); }
+
+		ND_ Self  Translate (const Vec<T,Rows> &) const;
+		ND_ Self  Translate (const Vec<T,Rows-1> &) const;
+
+		ND_ Self  Inverse () const;
+
+		ND_ Matrix<T, Rows, Columns, EMatrixOrder::ColumnMajor, Align>  Transpose () const;
 
 
 	private:
@@ -223,21 +224,21 @@ namespace FGC
 								(CountOf<Arg0, Args...>() == Rows) );
 		}
 		
-		template <size_t Align2>
-		constexpr explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::RowMajor, Align2 > &other)
+		template <uint Columns2, uint Rows2, size_t Align2>
+		constexpr explicit Matrix (const Matrix< T, Columns2, Rows2, EMatrixOrder::RowMajor, Align2 > &other)
 		{
 			for (uint r = 0; r < Rows; ++r)
 			for (uint c = 0; c < Columns; ++c) {
-				(*this)[r][c] = other[r][c];
+				(*this)[r][c] = ((c < Columns2) & (r < Rows2)) ? other[r][c] : (c == r ? T(1) : T(0));
 			}
 		}
-
-		template <size_t Align2>
-		constexpr explicit Matrix (const Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align2 > &other)
+		
+		template <uint Columns2, uint Rows2, size_t Align2>
+		constexpr explicit Matrix (const Matrix< T, Columns2, Rows2, EMatrixOrder::ColumnMajor, Align2 > &other)
 		{
 			for (uint r = 0; r < Rows; ++r)
 			for (uint c = 0; c < Columns; ++c) {
-				(*this)[r][c] = other[c][r];
+				(*this)[r][c] = ((r < Columns2) & (c < Rows2)) ? other[c][r] : (c == r ? T(1) : T(0));
 			}
 		}
 
@@ -318,10 +319,165 @@ namespace FGC
 				_CopyRows< I+1 >( args... );
 		}
 	};
+	
+		
+/*
+=================================================
+	Inverse
+=================================================
+*/
+namespace _fgc_hidden_
+{
+	template <typename T, size_t Align>
+	inline auto  Mat44_Inverse (const Matrix< T, 4, 4, EMatrixOrder::ColumnMajor, Align > &m)
+	{
+		// based on code from GLM https://glm.g-truc.net (MIT license)
+
+		using M = Matrix< T, 4, 4, EMatrixOrder::ColumnMajor, Align >;
+
+		T c00 = m[2][2] * m[3][3] - m[3][2] * m[2][3];
+		T c02 = m[1][2] * m[3][3] - m[3][2] * m[1][3];
+		T c03 = m[1][2] * m[2][3] - m[2][2] * m[1][3];
+
+		T c04 = m[2][1] * m[3][3] - m[3][1] * m[2][3];
+		T c06 = m[1][1] * m[3][3] - m[3][1] * m[1][3];
+		T c07 = m[1][1] * m[2][3] - m[2][1] * m[1][3];
+
+		T c08 = m[2][1] * m[3][2] - m[3][1] * m[2][2];
+		T c10 = m[1][1] * m[3][2] - m[3][1] * m[1][2];
+		T c11 = m[1][1] * m[2][2] - m[2][1] * m[1][2];
+
+		T c12 = m[2][0] * m[3][3] - m[3][0] * m[2][3];
+		T c14 = m[1][0] * m[3][3] - m[3][0] * m[1][3];
+		T c15 = m[1][0] * m[2][3] - m[2][0] * m[1][3];
+
+		T c16 = m[2][0] * m[3][2] - m[3][0] * m[2][2];
+		T c18 = m[1][0] * m[3][2] - m[3][0] * m[1][2];
+		T c19 = m[1][0] * m[2][2] - m[2][0] * m[1][2];
+
+		T c20 = m[2][0] * m[3][1] - m[3][0] * m[2][1];
+		T c22 = m[1][0] * m[3][1] - m[3][0] * m[1][1];
+		T c23 = m[1][0] * m[2][1] - m[2][0] * m[1][1];
+
+		Vec<T,4> f0{ c00, c00, c02, c03 };
+		Vec<T,4> f1{ c04, c04, c06, c07 };
+		Vec<T,4> f2{ c08, c08, c10, c11 };
+		Vec<T,4> f3{ c12, c12, c14, c15 };
+		Vec<T,4> f4{ c16, c16, c18, c19 };
+		Vec<T,4> f5{ c20, c20, c22, c23 };
+
+		Vec<T,4> v0{ m[1][0], m[0][0], m[0][0], m[0][0] };
+		Vec<T,4> v1{ m[1][1], m[0][1], m[0][1], m[0][1] };
+		Vec<T,4> v2{ m[1][2], m[0][2], m[0][2], m[0][2] };
+		Vec<T,4> v3{ m[1][3], m[0][3], m[0][3], m[0][3] };
+
+		Vec<T,4> i0{ v1 * f0 - v2 * f1 + v3 * f2 };
+		Vec<T,4> i1{ v0 * f0 - v2 * f3 + v3 * f4 };
+		Vec<T,4> i2{ v0 * f1 - v1 * f3 + v3 * f5 };
+		Vec<T,4> i3{ v0 * f2 - v1 * f4 + v2 * f5 };
+
+		Vec<T,4> sign_a{ T(+1), T(-1), T(+1), T(-1) };
+		Vec<T,4> sign_b{ T(-1), T(+1), T(-1), T(+1) };
+		M        result{ i0 * sign_a, i1 * sign_b, i2 * sign_a, i3 * sign_b };
+
+		Vec<T,4> d0		= m[0] * Vec<T,4>{result[0][0], result[1][0], result[2][0], result[3][0]};
+		T        d1		= (d0.x + d0.y) + (d0.z + d0.w);
+		T        inv_det= T(1) / d1;
+		
+		for (uint c = 0; c < 4; ++c)
+		for (uint r = 0; r < 4; ++r) {
+			result[c][r] *= inv_det;
+		}
+		return result;
+	}
+
+	template <typename T, size_t Align>
+	inline auto  Mat33_Inverse (const Matrix< T, 3, 3, EMatrixOrder::ColumnMajor, Align > &m)
+	{
+		// based on code from GLM https://glm.g-truc.net (MIT license)
+		
+		using M = Matrix< T, 3, 3, EMatrixOrder::ColumnMajor, Align >;
+
+		const T inv_det = T(1) / (
+			+ m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2])
+			- m[1][0] * (m[0][1] * m[2][2] - m[2][1] * m[0][2])
+			+ m[2][0] * (m[0][1] * m[1][2] - m[1][1] * m[0][2]));
+
+		M result;
+		result[0][0] = + (m[1][1] * m[2][2] - m[2][1] * m[1][2]) * inv_det;
+		result[1][0] = - (m[1][0] * m[2][2] - m[2][0] * m[1][2]) * inv_det;
+		result[2][0] = + (m[1][0] * m[2][1] - m[2][0] * m[1][1]) * inv_det;
+		result[0][1] = - (m[0][1] * m[2][2] - m[2][1] * m[0][2]) * inv_det;
+		result[1][1] = + (m[0][0] * m[2][2] - m[2][0] * m[0][2]) * inv_det;
+		result[2][1] = - (m[0][0] * m[2][1] - m[2][0] * m[0][1]) * inv_det;
+		result[0][2] = + (m[0][1] * m[1][2] - m[1][1] * m[0][2]) * inv_det;
+		result[1][2] = - (m[0][0] * m[1][2] - m[1][0] * m[0][2]) * inv_det;
+		result[2][2] = + (m[0][0] * m[1][1] - m[1][0] * m[0][1]) * inv_det;
+		return result;
+	}
+}	// _fgc_hidden_
+
+	template <typename T, uint Columns, uint Rows, size_t Align>
+	inline Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align >
+		Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align >::Inverse () const
+	{
+		if constexpr( Columns == 4 and Rows == 4 )
+			return _fgc_hidden_::Mat44_Inverse( *this );
+		
+		if constexpr( Columns == 3 and Rows == 3 )
+			return _fgc_hidden_::Mat33_Inverse( *this );
+	}
+	
+/*
+=================================================
+	Translate
+=================================================
+*/
+namespace _fgc_hidden_
+{
+	template <typename T, uint I, size_t Align>
+	inline auto  Mat44_Translate (const Matrix< T, 4, 4, EMatrixOrder::ColumnMajor, Align > &m, const Vec<T,I> &v)
+	{
+		Matrix< T, 4, 4, EMatrixOrder::ColumnMajor, Align >  result{m};
+		result[3] = Vec<T,4>{ m[0] * v[0] + m[1] * v[1] + m[2] * v[2] + m[3] };
+		return result;
+	}
+
+}	// _fgc_hidden_
+
+	template <typename T, uint Columns, uint Rows, size_t Align>
+	inline Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align >
+		Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align >::Translate (const Vec<T,Rows> &v) const
+	{
+		if constexpr( Columns == 4 and Rows == 4 )
+			return _fgc_hidden_::Mat44_Translate( *this, v );
+	}
+
+	template <typename T, uint Columns, uint Rows, size_t Align>
+	inline Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align >
+		Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align >::Translate (const Vec<T,Rows-1> &v) const
+	{
+		if constexpr( Columns == 4 and Rows == 4 )
+			return _fgc_hidden_::Mat44_Translate( *this, v );
+	}
+	
+/*
+=================================================
+	Transpose
+=================================================
+*/
+	template <typename T, uint Columns, uint Rows, size_t Align>
+	inline Matrix<T, Rows, Columns, EMatrixOrder::ColumnMajor, Align>
+		Matrix< T, Columns, Rows, EMatrixOrder::ColumnMajor, Align >::Transpose () const
+	{
+		Matrix<T, Rows, Columns, EMatrixOrder::ColumnMajor, Align>	result;
+
+		for (uint c = 0; c < Columns; ++c)
+		for (uint r = 0; r < Rows; ++r) {
+			result[r][c] = (*this)[c][r];
+		}
+		return result;
+	}
+
 
 }	// FGC
-
-
-# ifdef COMPILER_MSVC
-#	pragma warning (pop)
-# endif
