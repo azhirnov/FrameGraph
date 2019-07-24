@@ -47,7 +47,7 @@ namespace std
 	template <>
 	struct hash< FG::ImageLayer >
 	{
-		ND_ size_t  operator () (const FG::ImageLayer &value) const noexcept
+        ND_ size_t  operator () (const FG::ImageLayer &value) const
 		{
 			return size_t(FGC::HashOf( value.Get() ));
 		}

@@ -128,7 +128,7 @@ namespace FGC
 =================================================
 */
 	template <typename To, typename From>
-	ND_ inline constexpr To&  BitCast (From& from) noexcept
+    ND_ inline constexpr To&  BitCast (From& from)
 	{
 		//STATIC_ASSERT( std::is_trivial_v<To> and std::is_trivial_v<From>, "must be trivial types!" );
 		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );
@@ -138,7 +138,7 @@ namespace FGC
 	}
 
 	template <typename To, typename From>
-	ND_ inline constexpr const To&  BitCast (const From& from) noexcept
+    ND_ inline constexpr const To&  BitCast (const From& from)
 	{
 		//STATIC_ASSERT( std::is_trivial_v<To> and std::is_trivial_v<From>, "must be trivial types!" );
 		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );

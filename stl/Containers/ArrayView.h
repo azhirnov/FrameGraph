@@ -116,7 +116,7 @@ namespace std
 	template <typename T>
 	struct hash< FGC::ArrayView<T> >
 	{
-		ND_ size_t  operator () (const FGC::ArrayView<T> &value) const noexcept
+        ND_ size_t  operator () (const FGC::ArrayView<T> &value) const
 		{
 			if constexpr ( FG_FAST_HASH and FGC::IsPOD<T> )
 			{
@@ -138,7 +138,7 @@ namespace std
 	template <typename T>
 	struct hash< vector<T> >
 	{
-		ND_ size_t  operator () (const vector<T> &value) const noexcept
+        ND_ size_t  operator () (const vector<T> &value) const
 		{
 			return size_t(FGC::HashOf( FGC::ArrayView<T>{ value } ));
 		}
@@ -148,7 +148,7 @@ namespace std
 	template <typename T, size_t S>
 	struct hash< array<T,S> >
 	{
-		ND_ size_t  operator () (const array<T,S> &value) const noexcept
+        ND_ size_t  operator () (const array<T,S> &value) const
 		{
 			return size_t(FGC::HashOf( FGC::ArrayView<T>{ value } ));
 		}

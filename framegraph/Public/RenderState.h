@@ -256,47 +256,47 @@ namespace std
 {
 	template <>
 	struct hash< FG::RenderState::ColorBuffer > {
-		ND_ size_t  operator () (const FG::RenderState::ColorBuffer &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState::ColorBuffer &value) const;
 	};
 
 	template <>
 	struct hash< FG::RenderState::ColorBuffersState > {
-		ND_ size_t  operator () (const FG::RenderState::ColorBuffersState &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState::ColorBuffersState &value) const;
 	};
 
 	template <>
 	struct hash< FG::RenderState::DepthBufferState > {
-		ND_ size_t  operator () (const FG::RenderState::DepthBufferState &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState::DepthBufferState &value) const;
 	};
 
 	template <>
 	struct hash< FG::RenderState::StencilFaceState > {
-		ND_ size_t  operator () (const FG::RenderState::StencilFaceState &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState::StencilFaceState &value) const;
 	};
 
 	template <>
 	struct hash< FG::RenderState::StencilBufferState > {
-		ND_ size_t  operator () (const FG::RenderState::StencilBufferState &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState::StencilBufferState &value) const;
 	};
 
 	template <>
 	struct hash< FG::RenderState::InputAssemblyState > {
-		ND_ size_t  operator () (const FG::RenderState::InputAssemblyState &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState::InputAssemblyState &value) const;
 	};
 
 	template <>
 	struct hash< FG::RenderState::RasterizationState > {
-		ND_ size_t  operator () (const FG::RenderState::RasterizationState &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState::RasterizationState &value) const;
 	};
 
 	template <>
 	struct hash< FG::RenderState::MultisampleState > {
-		ND_ size_t  operator () (const FG::RenderState::MultisampleState &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState::MultisampleState &value) const;
 	};
 
 	template <>
 	struct hash< FG::RenderState > {
-		ND_ size_t  operator () (const FG::RenderState &value) const noexcept;
+        ND_ size_t  operator () (const FG::RenderState &value) const;
 	};
 
 }	// std

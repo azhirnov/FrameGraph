@@ -117,7 +117,7 @@ namespace std
 	template <typename CharT, size_t StringSize>
 	struct hash< FGC::TStaticString< CharT, StringSize > >
 	{
-		ND_ size_t  operator () (const FGC::TStaticString<CharT, StringSize> &value) const noexcept
+        ND_ size_t  operator () (const FGC::TStaticString<CharT, StringSize> &value) const
 		{
 			return hash< FGC::BasicStringView<CharT> >()( value );
 		}

@@ -405,7 +405,7 @@ namespace std
 	template <typename T>
 	struct hash< FGC::Rectangle<T> >
 	{
-		ND_ size_t  operator () (const FGC::Rectangle<T> &value) const noexcept
+        ND_ size_t  operator () (const FGC::Rectangle<T> &value) const
 		{
 		#if FG_FAST_HASH
 			return	size_t( FGC::HashOf( this, sizeof(*this) ));

@@ -517,7 +517,7 @@ namespace std
 	template <typename Key, typename Value, size_t ArraySize>
 	struct hash< FGC::FixedMap<Key, Value, ArraySize> >
 	{
-		ND_ size_t  operator () (const FGC::FixedMap<Key, Value, ArraySize> &value) const noexcept
+        ND_ size_t  operator () (const FGC::FixedMap<Key, Value, ArraySize> &value) const
 		{
 			return size_t(value.CalcHash());
 		}

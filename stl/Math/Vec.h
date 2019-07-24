@@ -911,7 +911,7 @@ namespace std
 #if FG_FAST_HASH
 	template <typename T, uint I>
 	struct hash< FGC::Vec<T,I> > {
-		ND_ size_t  operator () (const FGC::Vec<T,I> &value) const noexcept {
+        ND_ size_t  operator () (const FGC::Vec<T,I> &value) const {
 			return size_t(FGC::HashOf( value.data(), value.size() * sizeof(T) ));
 		}
 	};
@@ -919,21 +919,21 @@ namespace std
 #else
 	template <typename T>
 	struct hash< FGC::Vec<T,2> > {
-		ND_ size_t  operator () (const FGC::Vec<T,2> &value) const noexcept {
+        ND_ size_t  operator () (const FGC::Vec<T,2> &value) const {
 			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ));
 		}
 	};
 	
 	template <typename T>
 	struct hash< FGC::Vec<T,3> > {
-		ND_ size_t  operator () (const FGC::Vec<T,3> &value) const noexcept {
+        ND_ size_t  operator () (const FGC::Vec<T,3> &value) const {
 			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ) + FGC::HashOf( value.z ));
 		}
 	};
 	
 	template <typename T>
 	struct hash< FGC::Vec<T,4> > {
-		ND_ size_t  operator () (const FGC::Vec<T,4> &value) const noexcept {
+        ND_ size_t  operator () (const FGC::Vec<T,4> &value) const {
 			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ) + FGC::HashOf( value.z ) + FGC::HashOf( value.w ));
 		}
 	};

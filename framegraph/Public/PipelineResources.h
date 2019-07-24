@@ -159,11 +159,11 @@ namespace FG
 	
 		struct DynamicDataDeleter
 		{
-			constexpr DynamicDataDeleter () noexcept {}
+            constexpr DynamicDataDeleter () {}
 
-			DynamicDataDeleter (const DynamicDataDeleter &) noexcept {}
+            DynamicDataDeleter (const DynamicDataDeleter &) {}
 
-			void operator () (DynamicData *) const noexcept;
+            void operator () (DynamicData *) const;
 		};
 
 		using DynamicDataPtr = std::unique_ptr< DynamicData, DynamicDataDeleter >;

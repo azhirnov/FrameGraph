@@ -151,7 +151,7 @@ namespace std
 {
 	template <typename T>
 	struct hash< FGC::BasicStringView<T> > {
-		ND_ size_t  operator () (const FGC::BasicStringView<T> &value) const noexcept {
+        ND_ size_t  operator () (const FGC::BasicStringView<T> &value) const {
 			return size_t(value._CalcHash());
 		}
 	};

@@ -26,7 +26,7 @@ namespace FGC
 =================================================
 */
 	template <typename T>
-	ND_ forceinline bool  CheckPointerAlignment (void *ptr) noexcept
+    ND_ forceinline bool  CheckPointerAlignment (void *ptr)
 	{
 		constexpr size_t	align = alignof(T);
 
@@ -41,7 +41,7 @@ namespace FGC
 =================================================
 */
 	template <typename T, typename ...Types>
-	forceinline T *  PlacementNew (OUT void *ptr, Types&&... args) noexcept
+    forceinline T *  PlacementNew (OUT void *ptr, Types&&... args)
 	{
 		ASSERT( CheckPointerAlignment<T>( ptr ) );
 		return ( new(ptr) T{ std::forward<Types &&>(args)... } );

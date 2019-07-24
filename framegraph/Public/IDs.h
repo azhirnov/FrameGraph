@@ -241,7 +241,7 @@ namespace std
 	template <size_t Size, uint32_t UID, bool Optimize, uint32_t Seed>
 	struct hash< FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> >
 	{
-		ND_ size_t  operator () (const FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &value) const noexcept {
+        ND_ size_t  operator () (const FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &value) const {
 			return size_t(value.GetHash());
 		}
 	};
@@ -250,7 +250,7 @@ namespace std
 	template <uint32_t UID>
 	struct hash< FG::_fg_hidden_::ResourceID<UID> >
 	{
-		ND_ size_t  operator () (const FG::_fg_hidden_::ResourceID<UID> &value) const noexcept {
+        ND_ size_t  operator () (const FG::_fg_hidden_::ResourceID<UID> &value) const {
 			return size_t(value.GetHash());
 		}
 	};
@@ -259,7 +259,7 @@ namespace std
 	template <typename T>
 	struct hash< FG::_fg_hidden_::ResourceIDWrap<T> >
 	{
-		ND_ size_t  operator () (const FG::_fg_hidden_::ResourceIDWrap<T> &value) const noexcept {
+        ND_ size_t  operator () (const FG::_fg_hidden_::ResourceIDWrap<T> &value) const {
 			return size_t(value.GetHash());
 		}
 	};

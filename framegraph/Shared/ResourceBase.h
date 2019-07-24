@@ -132,7 +132,7 @@ namespace std
 	template <typename T>
 	struct hash< FG::ResourceBase<T> >
 	{
-		ND_ size_t  operator () (const FG::ResourceBase<T> &value) const noexcept {
+        ND_ size_t  operator () (const FG::ResourceBase<T> &value) const {
 			return std::hash<T>{}( value.Data() );
 		}
 	};

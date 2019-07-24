@@ -49,7 +49,7 @@ namespace std
 	template <>
 	struct hash< FG::MultiSamples >
 	{
-		ND_ size_t  operator () (const FG::MultiSamples &value) const noexcept
+        ND_ size_t  operator () (const FG::MultiSamples &value) const
 		{
 			return size_t(FGC::HashOf( value.Get() ));
 		}

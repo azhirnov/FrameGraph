@@ -147,7 +147,7 @@ namespace std
 	hash::operator (ColorBuffer)
 =================================================
 */
-	size_t  hash< RenderState::ColorBuffer >::operator () (const RenderState::ColorBuffer &value) const noexcept
+    size_t  hash< RenderState::ColorBuffer >::operator () (const RenderState::ColorBuffer &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
@@ -170,7 +170,7 @@ namespace std
 	hash::operator (ColorBuffer)
 =================================================
 */
-	size_t  hash< RenderState::ColorBuffersState >::operator () (const RenderState::ColorBuffersState &value) const noexcept
+    size_t  hash< RenderState::ColorBuffersState >::operator () (const RenderState::ColorBuffersState &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
@@ -188,7 +188,7 @@ namespace std
 	hash::operator (DepthBufferState)
 =================================================
 */
-	size_t  hash< RenderState::DepthBufferState >::operator () (const RenderState::DepthBufferState &value) const noexcept
+    size_t  hash< RenderState::DepthBufferState >::operator () (const RenderState::DepthBufferState &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
@@ -208,7 +208,7 @@ namespace std
 	hash::operator (StencilFaceState)
 =================================================
 */
-	size_t  hash< RenderState::StencilFaceState >::operator () (const RenderState::StencilFaceState &value) const noexcept
+    size_t  hash< RenderState::StencilFaceState >::operator () (const RenderState::StencilFaceState &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
@@ -230,7 +230,7 @@ namespace std
 	hash::operator (StencilBufferState)
 =================================================
 */
-	size_t  hash< RenderState::StencilBufferState >::operator () (const RenderState::StencilBufferState &value) const noexcept
+    size_t  hash< RenderState::StencilBufferState >::operator () (const RenderState::StencilBufferState &value) const
 	{
 		HashVal	result;
 		if ( value.enabled )
@@ -250,7 +250,7 @@ namespace std
 	hash::operator (InputAssemblyState)
 =================================================
 */
-	size_t  hash< RenderState::InputAssemblyState >::operator () (const RenderState::InputAssemblyState &value) const noexcept
+    size_t  hash< RenderState::InputAssemblyState >::operator () (const RenderState::InputAssemblyState &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
@@ -267,7 +267,7 @@ namespace std
 	hash::operator (RasterizationState)
 =================================================
 */
-	size_t  hash< RenderState::RasterizationState >::operator () (const RenderState::RasterizationState &value) const noexcept
+    size_t  hash< RenderState::RasterizationState >::operator () (const RenderState::RasterizationState &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
@@ -292,7 +292,7 @@ namespace std
 	hash::operator (MultisampleState)
 =================================================
 */
-	size_t  hash< RenderState::MultisampleState >::operator () (const RenderState::MultisampleState &value) const noexcept
+    size_t  hash< RenderState::MultisampleState >::operator () (const RenderState::MultisampleState &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
@@ -313,7 +313,7 @@ namespace std
 	hash::operator (RenderState)
 =================================================
 */
-	size_t  hash< RenderState >::operator () (const RenderState &value) const noexcept
+    size_t  hash< RenderState >::operator () (const RenderState &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
