@@ -41,6 +41,7 @@ namespace FGC
 	private:
 		Listeners_t				_listeners;
 		VulkanDeviceFnTable		_deviceFnTable;
+		VRCamera				_camera;
 
 		VkInstance				_vkInstance;
 		VkPhysicalDevice		_vkPhysicalDevice;
@@ -51,8 +52,6 @@ namespace FGC
 		WindowPtr				_output;
 		VulkanSwapchainPtr		_swapchain;
 
-		mutable Mat4_t			_projection;
-		mutable float2			_clipPlanes;
 		bool					_isCreated;
 
 
@@ -67,13 +66,14 @@ namespace FGC
 		void AddListener (IVRDeviceEventListener *listener) override;
 		void RemoveListener (IVRDeviceEventListener *listener) override;
 		bool Update () override;
-		void GetCamera (OUT VRCamera &) const override;
 		void SetupCamera (const float2 &clipPlanes) override;
 		bool Submit (const VRImage &, Eye) override;
-		bool IsEnabled () const override;
-		Array<String> GetRequiredInstanceExtensions () const override;
-		Array<String> GetRequiredDeviceExtensions (VkInstance) const override;
-		uint2 GetRenderTargetDimension () const override;
+
+		VRCamera const&	GetCamera () const override						{ return _camera; }
+		EHmdStatus		GetHmdStatus () const override;
+		Array<String>	GetRequiredInstanceExtensions () const override;
+		Array<String>	GetRequiredDeviceExtensions (VkInstance) const override;
+		uint2			GetRenderTargetDimension () const override;
 	};
 
 }	// FGC

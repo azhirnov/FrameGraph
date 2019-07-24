@@ -195,22 +195,6 @@ namespace FGC
 		// controllers emulation
 		return true;
 	}
-	
-/*
-=================================================
-	GetCamera
-=================================================
-*/
-	void  VRDeviceEmulator::GetCamera (OUT VRCamera &camera) const
-	{
-		camera.clipPlanes	= _clipPlanes;
-		camera.left.proj	= _projection;
-		camera.left.view	= Mat4_t::Identity();
-		camera.right.proj	= _projection;
-		camera.right.view	= Mat4_t::Identity();
-		camera.pose			= Mat3_t::Identity();
-		camera.position		= float3(0.0f);
-	}
 
 /*
 =================================================
@@ -219,20 +203,28 @@ namespace FGC
 */
 	void VRDeviceEmulator::SetupCamera (const float2 &clipPlanes)
 	{
-		if ( not Any( Equals( _clipPlanes, clipPlanes )) )
+		if ( not Any( Equals( _camera.clipPlanes, clipPlanes )) )
 		{
-			_clipPlanes = clipPlanes;
+			_camera.clipPlanes = clipPlanes;
 			
 			const float	fov_y			= 1.0f;
 			const float	aspect			= 1.0f;
 			const float	tan_half_fovy	= tan( fov_y * 0.5f );
-			_projection = Mat4_t{};
 
-			_projection[0][0] = 1.0f / (aspect * tan_half_fovy);
-			_projection[1][1] = 1.0f / tan_half_fovy;
-			_projection[2][2] = _clipPlanes[1] / (_clipPlanes[1] - _clipPlanes[0]);
-			_projection[2][3] = 1.0f;
-			_projection[3][2] = -(_clipPlanes[1] * _clipPlanes[0]) / (_clipPlanes[1] - _clipPlanes[0]);
+			Mat4_t	proj;
+			proj[0][0] = 1.0f / (aspect * tan_half_fovy);
+			proj[1][1] = 1.0f / tan_half_fovy;
+			proj[2][2] = clipPlanes[1] / (clipPlanes[1] - clipPlanes[0]);
+			proj[2][3] = 1.0f;
+			proj[3][2] = -(clipPlanes[1] * clipPlanes[0]) / (clipPlanes[1] - clipPlanes[0]);
+			
+			_camera.left.proj  = proj;
+			_camera.right.proj = proj;
+
+			_camera.left.view	= Mat4_t::Identity();
+			_camera.right.view	= Mat4_t::Identity();
+			_camera.pose		= Mat3_t::Identity();
+			_camera.position	= float3(0.0f);
 		}
 	}
 	
@@ -455,12 +447,12 @@ namespace FGC
 		
 /*
 =================================================
-	IsEnabled
+	GetHmdStatus
 =================================================
 */
-	bool  VRDeviceEmulator::IsEnabled () const
+	IVRDevice::EHmdStatus  VRDeviceEmulator::GetHmdStatus () const
 	{
-		return _isCreated;
+		return _isCreated ? EHmdStatus::Mounted : EHmdStatus::PowerOff;
 	}
 
 }	// FGC

@@ -251,7 +251,7 @@ namespace FG
 		auto	dt		= std::chrono::duration_cast<SecondsF>( time - _lastUpdateTime ).count();
 		_lastUpdateTime = time;
 		
-		if ( _vrDevice and _vrDevice->IsEnabled() )
+		if ( _vrDevice and _vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Mounted )
 		{
 			IVRDevice::VRCamera	cam;
 			_vrDevice->GetCamera( OUT cam );
@@ -265,6 +265,7 @@ namespace FG
 										 MatCast(cam.right.proj), MatCast(cam.right.view),
 										 MatCast(cam.pose), VecCast(cam.position) );
 			_camera.SetPosition( _vrCamera.Position() );
+			_camera.SetRotation( _vrCamera.Orientation() );
 		}
 		else
 		{

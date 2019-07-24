@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "framework/VR/IVRDevice.h"
-#include "stl/Containers/Ptr.h"
-
 #ifdef FG_ENABLE_OPENVR
+
+# include "framework/VR/IVRDevice.h"
+# include "stl/Containers/Ptr.h"
+# include "stl/Containers/FixedMap.h"
 # include "openvr.h"
 
 namespace FGC
@@ -19,7 +20,21 @@ namespace FGC
 	{
 	// types
 	private:
-		using Listeners_t	= HashSet< IVRDeviceEventListener *>;
+		using Listeners_t		 = HashSet< IVRDeviceEventListener *>;
+
+		struct Controller
+		{
+			using AxisStates_t	= StaticArray< float2, vr::k_unControllerStateAxisCount >;
+			using Keys_t		= StaticArray< bool, vr::k_EButton_Max >;
+
+			ControllerID	id;
+			uint			lastPacket = ~0u;
+			Keys_t			keys;
+			AxisStates_t	axis;
+
+			explicit Controller (ControllerID id);
+		};
+		using Controllers_t	= FixedMap< uint, Controller, 8 >;
 
 
 	// variables
@@ -33,9 +48,9 @@ namespace FGC
 		VkDevice					_vkLogicalDevice;
 
 		BitSet<2>					_submitted;
-		bool						_enabled		= false;
+		EHmdStatus					_hmdStatus		= EHmdStatus::PowerOff;
 
-		Mat4_t						_devicePose [vr::k_unMaxTrackedDeviceCount];
+		Controllers_t				_controllers;
 		vr::TrackedDevicePose_t		_trackedDevicePose [vr::k_unMaxTrackedDeviceCount];
 		Ptr<vr::IVRRenderModels>	_renderModels;
 
@@ -51,15 +66,18 @@ namespace FGC
 		void AddListener (IVRDeviceEventListener *listener) override;
 		void RemoveListener (IVRDeviceEventListener *listener) override;
 		bool Update () override;
-		void GetCamera (OUT VRCamera &) const override;
 		void SetupCamera (const float2 &clipPlanes) override;
 		bool Submit (const VRImage &, Eye) override;
-		bool IsEnabled () const override;
-		Array<String> GetRequiredInstanceExtensions () const override;
-		Array<String> GetRequiredDeviceExtensions (VkInstance instance) const override;
-		uint2 GetRenderTargetDimension () const override;
+		
+		VRCamera const&	GetCamera () const override						{ return _camera; }
+		EHmdStatus		GetHmdStatus () const override;
+		Array<String>	GetRequiredInstanceExtensions () const override;
+		Array<String>	GetRequiredDeviceExtensions (VkInstance instance) const override;
+		uint2			GetRenderTargetDimension () const override;
 
 	private:
+		void _ProcessHmdEvents (const vr::VREvent_t &);
+		void _ProcessControllerEvents (INOUT Controller&, const vr::VREvent_t &);
 		void _UpdateHMDMatrixPose ();
 	};
 

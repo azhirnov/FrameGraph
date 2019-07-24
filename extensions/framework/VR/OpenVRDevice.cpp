@@ -31,6 +31,29 @@ namespace FGC
 				mat.m[0][3], mat.m[1][3], mat.m[2][3], 1.0f };
 	}
 
+	ND_ forceinline IVRDevice::Mat3_t  OpenVRMatToMat3 (const vr::HmdMatrix34_t &mat)
+	{
+		return IVRDevice::Mat3_t{
+				mat.m[0][0], mat.m[1][0], mat.m[2][0],
+				mat.m[0][1], mat.m[1][1], mat.m[2][1],
+				mat.m[0][2], mat.m[1][2], mat.m[2][2] };
+	}
+//-----------------------------------------------------------------------------
+
+	
+/*
+=================================================
+	constructor
+=================================================
+*/
+	OpenVRDevice::Controller::Controller (ControllerID id) :
+		id{ id }
+	{
+		keys.fill( false );
+	}
+//-----------------------------------------------------------------------------
+
+
 /*
 =================================================
 	constructor
@@ -92,6 +115,50 @@ namespace FGC
 		
 		CHECK_ERR( vr::VRCompositor() );
 
+		vr::VRCompositor()->SetTrackingSpace( vr::TrackingUniverseStanding );
+
+		vr::EDeviceActivityLevel level = _hmd->GetTrackedDeviceActivityLevel( vr::k_unTrackedDeviceIndex_Hmd );
+		ENABLE_ENUM_CHECKS();
+		switch ( level )
+		{
+			case vr::k_EDeviceActivityLevel_Unknown :					_hmdStatus = EHmdStatus::PowerOff;	break;
+			case vr::k_EDeviceActivityLevel_Idle :						_hmdStatus = EHmdStatus::Standby;	break;
+			case vr::k_EDeviceActivityLevel_UserInteraction :			_hmdStatus = EHmdStatus::Active;	break;
+			case vr::k_EDeviceActivityLevel_UserInteraction_Timeout :	_hmdStatus = EHmdStatus::Standby;	break;
+			case vr::k_EDeviceActivityLevel_Standby :					_hmdStatus = EHmdStatus::Standby;	break;
+		}
+		DISABLE_ENUM_CHECKS();
+
+		for (auto& listener : _listeners) {
+			listener->HmdStatusChanged( _hmdStatus );
+		}
+		
+		_controllers.clear();
+		for (vr::TrackedDeviceIndex_t i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+		{
+			vr::ETrackedDeviceClass	dev_class = _hmd->GetTrackedDeviceClass( i );
+
+			if ( dev_class == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller or
+				 dev_class == vr::ETrackedDeviceClass::TrackedDeviceClass_GenericTracker )
+			{
+				vr::ETrackedControllerRole	role	= _hmd->GetControllerRoleForTrackedDeviceIndex( i );
+				ControllerID				id		= ControllerID::Unknown;
+				
+				ENABLE_ENUM_CHECKS();
+				switch ( role )
+				{
+					case vr::TrackedControllerRole_LeftHand :	id = ControllerID::LeftHand;	break;
+					case vr::TrackedControllerRole_RightHand :	id = ControllerID::RightHand;	break;
+					case vr::TrackedControllerRole_Invalid :
+					case vr::TrackedControllerRole_OptOut :
+					case vr::TrackedControllerRole_Treadmill :
+					case vr::TrackedControllerRole_Max :		break;	// TODO
+				}
+				DISABLE_ENUM_CHECKS();
+
+				_controllers.insert_or_assign( i, Controller{ id });
+			}
+		}
 		return true;
 	}
 	
@@ -129,7 +196,11 @@ namespace FGC
 		_vkLogicalDevice	= VK_NULL_HANDLE;
 
 		_renderModels		= null;
-		_enabled			= false;
+		_hmdStatus			= EHmdStatus::PowerOff;
+		_camera				= Default;
+
+		_controllers.clear();
+		_listeners.clear();
 
 		if ( _hmd )
 		{
@@ -173,95 +244,190 @@ namespace FGC
 		vr::VREvent_t	ev;
 		while ( _hmd->PollNextEvent( OUT &ev, sizeof(ev) ))
 		{
-			switch( ev.eventType )
-			{
-				case vr::VREvent_TrackedDeviceActivated :
-					FG_LOGI( "TrackedDeviceActivated" );
-					_enabled = true;
-					for (auto& listener : _listeners) {
-						listener->DeviceActivated();
-					}
-					break;
+			if ( ev.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd )
+				_ProcessHmdEvents( ev );
 
-				case vr::VREvent_TrackedDeviceDeactivated :
-					FG_LOGI( "TrackedDeviceDeactivated" );
-					_enabled = false;
-					for (auto& listener : _listeners) {
-						listener->DeviceActivated();
-					}
-					break;
-					
-				case vr::VREvent_TrackedDeviceUserInteractionStarted :
-					FG_LOGI( "TrackedDeviceUserInteractionStarted" );
-					break;
-
-				case vr::VREvent_TrackedDeviceUserInteractionEnded :
-					FG_LOGI( "TrackedDeviceUserInteractionEnded" );
-					break;
-
-				case vr::VREvent_EnterStandbyMode :
-					FG_LOGI( "EnterStandbyMode" );
-					break;
-
-				case vr::VREvent_LeaveStandbyMode :
-					FG_LOGI( "LeaveStandbyMode" );
-					break;
-
-				case vr::VREvent_LensDistortionChanged :
-					FG_LOGI( "LensDistortionChanged" );
-					break;
-
-				case vr::VREvent_PropertyChanged :
-					FG_LOGI( "PropertyChanged" );
-					break;
-
-				case vr::VREvent_TrackedDeviceUpdated :
-					FG_LOGI( "TrackedDeviceUpdated" );
-					break;
-
-				case vr::VREvent_ButtonPress :
-					FG_LOGI( "ButtonPress: " + ToString(ev.data.controller.button) );
-					break;
-				case vr::VREvent_ButtonUnpress :
-					FG_LOGI( "ButtonUnpress: " + ToString(ev.data.controller.button) );
-					break;
-				case vr::VREvent_ButtonTouch :
-					FG_LOGI( "ButtonTouch: " + ToString(ev.data.controller.button) );
-					break;
-				case vr::VREvent_ButtonUntouch :
-					FG_LOGI( "ButtonUntouch: " + ToString(ev.data.controller.button) );
-					break;
-
-				case vr::VREvent_MouseMove :
-					FG_LOGI( "MouseMove: " + ToString(ev.data.mouse.button) );
-					break;
-				case vr::VREvent_MouseButtonDown :
-					FG_LOGI( "MouseButtonDown: " + ToString(ev.data.mouse.button) );
-					break;
-				case vr::VREvent_MouseButtonUp :
-					FG_LOGI( "MouseButtonUp: " + ToString(ev.data.mouse.button) );
-					break;
-				case vr::VREvent_TouchPadMove :
-					FG_LOGI( "TouchPadMove: " + ToString(ev.data.mouse.button) );
-					break;
-
-				case vr::VREvent_Quit :
-					break;
-			}
+			auto	iter = _controllers.find( ev.trackedDeviceIndex );
+			if ( iter != _controllers.end() )
+				_ProcessControllerEvents( iter->second, ev );
 		}
 
-		for (vr::TrackedDeviceIndex_t i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+		for (auto& cont : _controllers)
 		{
 			vr::VRControllerState_t	state;
-			if ( _hmd->GetControllerState( i, OUT &state, sizeof(state) ))
+			if ( _hmd->GetControllerState( cont.first, OUT &state, sizeof(state) ))
 			{
-				//m_rbShowTrackedDevice[i] = state.ulButtonPressed == 0;
+				if ( state.unPacketNum == cont.second.lastPacket )
+					continue;
+
+				cont.second.lastPacket = state.unPacketNum;
+
+				for (size_t i = 0; i < CountOf(state.rAxis); ++i)
+				{
+					float2	v	= float2{ state.rAxis[i].x, state.rAxis[i].y };
+					float2	old = cont.second.axis[i];
+					float2	del = v - old;
+
+					if ( All( Equals( v, old, 0.01f )) )
+						continue;
+					
+					for (auto& listener : _listeners) {
+						listener->OnAxisStateChanged( cont.second.id, v, del );
+					}
+					cont.second.axis[i] = v;
+				}
 			}
 		}
 
 		return true;
 	}
 	
+/*
+=================================================
+	_ProcessHmdEvents
+=================================================
+*/
+	void OpenVRDevice::_ProcessHmdEvents (const vr::VREvent_t &ev)
+	{
+		switch( ev.eventType )
+		{
+			case vr::VREvent_TrackedDeviceActivated :
+			case vr::VREvent_TrackedDeviceUserInteractionStarted :
+				if ( _hmdStatus < EHmdStatus::Active ) {
+					_hmdStatus = EHmdStatus::Active;
+
+					for (auto& listener : _listeners) {
+						listener->HmdStatusChanged( _hmdStatus );
+					}
+				}
+				break;
+
+			case vr::VREvent_TrackedDeviceUserInteractionEnded :
+				_hmdStatus = EHmdStatus::Standby;
+
+				for (auto& listener : _listeners) {
+					listener->HmdStatusChanged( _hmdStatus );
+				}
+				break;
+
+			case vr::VREvent_ButtonPress :
+				if ( ev.data.controller.button == vr::k_EButton_ProximitySensor ) {
+					_hmdStatus = EHmdStatus::Mounted;
+					
+					for (auto& listener : _listeners) {
+						listener->HmdStatusChanged( _hmdStatus );
+					}
+				}
+				break;
+
+			case vr::VREvent_ButtonUnpress :
+				if ( ev.data.controller.button == vr::k_EButton_ProximitySensor ) {
+					_hmdStatus = EHmdStatus::Active;
+					
+					for (auto& listener : _listeners) {
+						listener->HmdStatusChanged( _hmdStatus );
+					}
+				}
+				break;
+
+			case vr::VREvent_Quit :
+				_hmdStatus = EHmdStatus::PowerOff;
+				
+				for (auto& listener : _listeners) {
+					listener->HmdStatusChanged( _hmdStatus );
+				}
+				break;
+
+			case vr::VREvent_LensDistortionChanged :
+				SetupCamera( _camera.clipPlanes );
+				FG_LOGI( "LensDistortionChanged" );
+				break;
+
+			case vr::VREvent_PropertyChanged :
+				FG_LOGI( "PropertyChanged" );
+				break;
+		}
+	}
+	
+/*
+=================================================
+	MapOpenVRButton
+=================================================
+*/
+	ND_ static StringView  MapOpenVRButton (uint key)
+	{
+		switch ( key )
+		{
+			case vr::k_EButton_System :			return "system";
+			case vr::k_EButton_ApplicationMenu:	return "app menu";
+			case vr::k_EButton_Grip :			return "grip";
+			case vr::k_EButton_DPad_Left :		return "dpad left";
+			case vr::k_EButton_DPad_Up :		return "dpad up";
+			case vr::k_EButton_DPad_Right :		return "dpad right";
+			case vr::k_EButton_DPad_Down :		return "dpad down";
+			case vr::k_EButton_A :				return "A";
+			case vr::k_EButton_Axis0 :			return "Axis 0";
+			case vr::k_EButton_Axis1 :			return "Axis 1";
+			case vr::k_EButton_Axis2 :			return "Axis 2";
+			case vr::k_EButton_Axis3 :			return "Axis 3";
+			case vr::k_EButton_Axis4 :			return "Axis 4";
+		}
+		return "";
+	}
+
+/*
+=================================================
+	_ProcessControllerEvents
+=================================================
+*/
+	void OpenVRDevice::_ProcessControllerEvents (INOUT Controller &cont, const vr::VREvent_t &ev)
+	{
+		switch( ev.eventType )
+		{
+			case vr::VREvent_ButtonPress : {
+				StringView	key		= MapOpenVRButton( ev.data.controller.button );
+				bool &		curr	= cont.keys[ ev.data.controller.button ];
+				EKeyAction	act		= curr ? EKeyAction::Pressed : EKeyAction::Down;
+				curr = true;
+
+				for (auto& listener : _listeners) {
+					listener->OnKey( cont.id, key, act );
+				}
+				break;
+			}
+
+			case vr::VREvent_ButtonUnpress : {
+				StringView	key		= MapOpenVRButton( ev.data.controller.button );
+				cont.keys[ ev.data.controller.button ] = false;
+
+				for (auto& listener : _listeners) {
+					listener->OnKey( cont.id, key, EKeyAction::Up );
+				}
+				break;
+			}
+
+			case vr::VREvent_ButtonTouch :
+				FG_LOGI( "ButtonTouch: " + ToString(ev.data.controller.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
+				break;
+			case vr::VREvent_ButtonUntouch :
+				FG_LOGI( "ButtonUntouch: " + ToString(ev.data.controller.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
+				break;
+
+			case vr::VREvent_MouseMove :
+				FG_LOGI( "MouseMove: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
+				break;
+			case vr::VREvent_MouseButtonDown :
+				FG_LOGI( "MouseButtonDown: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
+				break;
+			case vr::VREvent_MouseButtonUp :
+				FG_LOGI( "MouseButtonUp: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
+				break;
+			case vr::VREvent_TouchPadMove :
+				FG_LOGI( "TouchPadMove: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
+				break;
+		}
+	}
+
 /*
 =================================================
 	Submit
@@ -334,30 +500,23 @@ namespace FGC
 	void  OpenVRDevice::_UpdateHMDMatrixPose ()
 	{
 		CHECK( vr::VRCompositor()->WaitGetPoses( OUT _trackedDevicePose, uint(CountOf(_trackedDevicePose)), null, 0 ) == vr::VRCompositorError_None );
-			
-		for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
-		{
-			if ( _trackedDevicePose[i].bPoseIsValid )
-			{
-				_devicePose[i] = OpenVRMatToMat4( _trackedDevicePose[i].mDeviceToAbsoluteTracking );
-			}
-		}
 
 		if ( _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid )
 		{
-			_camera.pose	 = Mat3_t{ _devicePose[vr::k_unTrackedDeviceIndex_Hmd] }.Inverse();
-			_camera.position = _devicePose[vr::k_unTrackedDeviceIndex_Hmd][3].xyz();
+			auto&	mat		= _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking;
+			auto&	vel		= _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].vVelocity;
+			auto&	avel	= _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].vAngularVelocity;
+
+			_camera.pose			= OpenVRMatToMat3( mat ).Inverse();
+			_camera.position		= { mat.m[0][3], mat.m[1][3], mat.m[2][3] };
+			_camera.velocity		= { vel.v[0], vel.v[1], vel.v[2] };
+			_camera.angularVelocity	= { avel.v[0], avel.v[1], avel.v[2] };
 		}
-	}
-	
-/*
-=================================================
-	GetCamera
-=================================================
-*/
-	void  OpenVRDevice::GetCamera (OUT VRCamera &camera) const
-	{
-		camera = _camera;
+		else
+		{
+			_camera.velocity		= float3{0.0f};
+			_camera.angularVelocity	= float3{0.0f};
+		}
 	}
 
 /*
@@ -469,12 +628,12 @@ namespace FGC
 	
 /*
 =================================================
-	IsEnabled
+	GetHmdStatus
 =================================================
 */
-	bool OpenVRDevice::IsEnabled () const
+	IVRDevice::EHmdStatus  OpenVRDevice::GetHmdStatus () const
 	{
-		return _enabled;
+		return _hmdStatus;
 	}
 
 
