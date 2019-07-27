@@ -15,8 +15,9 @@ message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VER
 set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
-set( FG_ENABLE_OPENVR OFF CACHE BOOL "use OpenVR (optional)" )
+set( FG_ENABLE_OPENVR ON CACHE BOOL "use OpenVR (optional)" )
 set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS OFF CACHE BOOL "use simplified compiler settings if you have problem with it" )
+set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version instead of master branch" )
 
 # test & samples dependencies
 set( FG_ENABLE_TESTS ON CACHE BOOL "enable tests" )
@@ -25,7 +26,6 @@ set( FG_ENABLE_GLFW ON CACHE BOOL "use glfw (optional, required for tests)" )
 set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )
 set( FG_ENABLE_LODEPNG OFF CACHE BOOL "use lodepng (optional, may be used in tests)" )
 set( FG_ENABLE_GRAPHVIZ OFF CACHE BOOL "use graphviz (optional)" )
-set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version instead of master branch" )
 
 # UI dependencies
 set( FG_ENABLE_IMGUI OFF CACHE BOOL "use imgui (optional, required for UI extension)" )

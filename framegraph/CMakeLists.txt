@@ -1,8 +1,8 @@
 # auto generated file
-cmake_minimum_required (VERSION 3.6.0)
+cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 set( FrameGraph_VERSION_MAJOR 0 )
-set( FrameGraph_VERSION_MINOR 10 )
+set( FrameGraph_VERSION_MINOR 11 )
 
 #==================================================================================================
 # project: FrameGraph
@@ -118,6 +118,7 @@ set( SOURCES
 	"Vulkan/Buffer/VLocalBuffer.h"
 	"../cmake/angelscript_CMakeLists.txt"
 	"../cmake/compilers.cmake"
+	"../cmake/compilers_minimal.cmake"
 	"../cmake/compiler_tests.cmake"
 	"../cmake/download_angelscript.cmake"
 	"../cmake/download_assimp.cmake"
@@ -128,10 +129,11 @@ set( SOURCES
 	"../cmake/download_glslang.cmake"
 	"../cmake/download_imgui.cmake"
 	"../cmake/download_lodepng.cmake"
-	"../cmake/download_mem.cmake"
 	"../cmake/download_openvr.cmake"
 	"../cmake/download_sdl2.cmake"
+	"../cmake/download_stdalloc.cmake"
 	"../cmake/download_stdoptional.cmake"
+	"../cmake/download_stdstringview.cmake"
 	"../cmake/download_stdvariant.cmake"
 	"../cmake/download_vk.cmake"
 	"../cmake/download_vma.cmake"
@@ -183,7 +185,7 @@ source_group( "Shared" FILES "Shared/CreateFrameGraph.cpp" "Shared/EnumToString.
 source_group( "Vulkan\\RenderPass" FILES "Vulkan/RenderPass/VFramebuffer.cpp" "Vulkan/RenderPass/VFramebuffer.h" "Vulkan/RenderPass/VLogicalRenderPass.cpp" "Vulkan/RenderPass/VLogicalRenderPass.h" "Vulkan/RenderPass/VRenderPass.cpp" "Vulkan/RenderPass/VRenderPass.h" )
 source_group( "Vulkan\\Utils" FILES "Vulkan/Utils/FGEnumCast.h" "Vulkan/Utils/VEnumCast.h" "Vulkan/Utils/VEnums.h" "Vulkan/Utils/VEnumToString.h" )
 source_group( "Vulkan\\Buffer" FILES "Vulkan/Buffer/VBuffer.cpp" "Vulkan/Buffer/VBuffer.h" "Vulkan/Buffer/VLocalBuffer.cpp" "Vulkan/Buffer/VLocalBuffer.h" )
-source_group( "cmake" FILES "../cmake/angelscript_CMakeLists.txt" "../cmake/compilers.cmake" "../cmake/compiler_tests.cmake" "../cmake/download_angelscript.cmake" "../cmake/download_assimp.cmake" "../cmake/download_devil.cmake" "../cmake/download_freeimage.cmake" "../cmake/download_glfw.cmake" "../cmake/download_glm.cmake" "../cmake/download_glslang.cmake" "../cmake/download_imgui.cmake" "../cmake/download_lodepng.cmake" "../cmake/download_mem.cmake" "../cmake/download_openvr.cmake" "../cmake/download_sdl2.cmake" "../cmake/download_sfml.cmake" "../cmake/download_stdoptional.cmake" "../cmake/download_stdvariant.cmake" "../cmake/download_vk.cmake" "../cmake/download_vma.cmake" "../cmake/graphviz.cmake" "../cmake/imgui_CMakeLists.txt" "../cmake/lodepng_CMakeLists.txt" )
+source_group( "cmake" FILES "../cmake/angelscript_CMakeLists.txt" "../cmake/compilers.cmake" "../cmake/compilers_minimal.cmake" "../cmake/compiler_tests.cmake" "../cmake/download_angelscript.cmake" "../cmake/download_assimp.cmake" "../cmake/download_devil.cmake" "../cmake/download_freeimage.cmake" "../cmake/download_freetype.cmake" "../cmake/download_glfw.cmake" "../cmake/download_glm.cmake" "../cmake/download_glslang.cmake" "../cmake/download_imgui.cmake" "../cmake/download_lodepng.cmake" "../cmake/download_openvr.cmake" "../cmake/download_sdl2.cmake" "../cmake/download_stdalloc.cmake" "../cmake/download_stdoptional.cmake" "../cmake/download_stdstringview.cmake" "../cmake/download_stdvariant.cmake" "../cmake/download_utf8proc.cmake" "../cmake/download_vk.cmake" "../cmake/download_vma.cmake" "../cmake/graphviz.cmake" "../cmake/imgui_CMakeLists.txt" "../cmake/lodepng_CMakeLists.txt" )
 source_group( "Vulkan\\Pipeline" FILES "Vulkan/Pipeline/VComputePipeline.cpp" "Vulkan/Pipeline/VComputePipeline.h" "Vulkan/Pipeline/VGraphicsPipeline.cpp" "Vulkan/Pipeline/VGraphicsPipeline.h" "Vulkan/Pipeline/VMeshPipeline.cpp" "Vulkan/Pipeline/VMeshPipeline.h" "Vulkan/Pipeline/VPipelineCache.cpp" "Vulkan/Pipeline/VPipelineCache.h" "Vulkan/Pipeline/VPipelineLayout.cpp" "Vulkan/Pipeline/VPipelineLayout.h" )
 source_group( "" FILES "CMakeLists.txt" "FG.h" )
 source_group( "Vulkan\\CommandBuffer" FILES "Vulkan/CommandBuffer/VBarrierManager.h" "Vulkan/CommandBuffer/VCmdBatch.cpp" "Vulkan/CommandBuffer/VCmdBatch.h" "Vulkan/CommandBuffer/VCommandBuffer.cpp" "Vulkan/CommandBuffer/VCommandBuffer.h" "Vulkan/CommandBuffer/VCommandPool.cpp" "Vulkan/CommandBuffer/VCommandPool.h" "Vulkan/CommandBuffer/VDrawTask.h" "Vulkan/CommandBuffer/VSubmitted.cpp" "Vulkan/CommandBuffer/VSubmitted.h" "Vulkan/CommandBuffer/VTaskGraph.h" "Vulkan/CommandBuffer/VTaskGraph.hpp" "Vulkan/CommandBuffer/VTaskProcessor.cpp" "Vulkan/CommandBuffer/VTaskProcessor.h" )
@@ -211,15 +213,35 @@ target_link_libraries( "FrameGraph" "VulkanLoader" )
 target_link_libraries( "FrameGraph" "STL" )
 target_compile_definitions( "FrameGraph" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
 # compiler
-target_compile_definitions( "FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-set_target_properties( "FrameGraph" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-target_compile_definitions( "FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-target_compile_options( "FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-set_target_properties( "FrameGraph" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-target_compile_options( "FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-set_target_properties( "FrameGraph" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-target_compile_options( "FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-target_compile_definitions( "FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+if (PROJECTS_SHARED_CXX_FLAGS_DEBUG)
+	target_compile_options( "FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+endif()
+if (PROJECTS_SHARED_CXX_FLAGS_RELEASE)
+	target_compile_options( "FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+endif()
+if (PROJECTS_SHARED_DEFINES_RELEASE)
+	target_compile_definitions( "FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+endif()
+if (PROJECTS_SHARED_DEFINES_DEBUG)
+	target_compile_definitions( "FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+endif()
+if (PROJECTS_SHARED_DEFINES_PROFILE)
+	target_compile_definitions( "FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+endif()
+if (PROJECTS_SHARED_LINKER_FLAGS_PROFILE)
+	set_target_properties( "FrameGraph" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+endif()
+if (PROJECTS_SHARED_LINKER_FLAGS_DEBUG)
+	set_target_properties( "FrameGraph" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+endif()
+if (PROJECTS_SHARED_LINKER_FLAGS_RELEASE)
+	set_target_properties( "FrameGraph" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+endif()
+if (PROJECTS_SHARED_CXX_FLAGS_PROFILE)
+	target_compile_options( "FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+endif()
+set_target_properties( "FrameGraph" PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
+
 
 install( TARGETS "FrameGraph" ARCHIVE DESTINATION "lib" )
 
@@ -315,15 +337,35 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	target_compile_definitions( "Tests.FrameGraph" PUBLIC "FG_TEST_GRAPHS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Graphs\"" )
 	target_compile_definitions( "Tests.FrameGraph" PUBLIC "FG_TEST_DUMPS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Dumps\"" )
 	# compiler
-	target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	if (PROJECTS_SHARED_CXX_FLAGS_DEBUG)
+		target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
+	endif()
+	if (PROJECTS_SHARED_CXX_FLAGS_RELEASE)
+		target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
+	endif()
+	if (PROJECTS_SHARED_DEFINES_RELEASE)
+		target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
+	endif()
+	if (PROJECTS_SHARED_DEFINES_DEBUG)
+		target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
+	endif()
+	if (PROJECTS_SHARED_DEFINES_PROFILE)
+		target_compile_definitions( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
+	endif()
+	if (PROJECTS_SHARED_LINKER_FLAGS_PROFILE)
+		set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
+	endif()
+	if (PROJECTS_SHARED_LINKER_FLAGS_DEBUG)
+		set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
+	endif()
+	if (PROJECTS_SHARED_LINKER_FLAGS_RELEASE)
+		set_target_properties( "Tests.FrameGraph" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
+	endif()
+	if (PROJECTS_SHARED_CXX_FLAGS_PROFILE)
+		target_compile_options( "Tests.FrameGraph" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
+	endif()
+	set_target_properties( "Tests.FrameGraph" PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
+	
 	
 endif()
 
