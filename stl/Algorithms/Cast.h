@@ -4,6 +4,7 @@
 
 #include "stl/Common.h"
 #include "stl/Containers/Ptr.h"
+#include "stl/Math/BitMath.h"
 
 namespace FGC
 {
@@ -32,30 +33,49 @@ namespace FGC
 
 /*
 =================================================
+	CheckPointerAlignment
+=================================================
+*/
+	template <typename R, typename T>
+    ND_ forceinline bool  CheckPointerAlignment (T const* ptr)
+	{
+		constexpr size_t	align = alignof(R);
+
+		STATIC_ASSERT( IsPowerOfTwo( align ), "Align must be power of 2" );
+
+		return (sizeof(R) < align) or not (size_t(ptr) & (align-1));
+	}
+
+/*
+=================================================
 	Cast
 =================================================
 */
 	template <typename R, typename T>
 	ND_ forceinline constexpr R const volatile*  Cast (T const volatile* value)
 	{
+		CheckPointerAlignment<R const volatile*>( value );
 		return static_cast< R const volatile *>( static_cast< void const volatile *>(value) );
 	}
 
 	template <typename R, typename T>
 	ND_ forceinline constexpr R volatile*  Cast (T volatile* value)
 	{
+		CheckPointerAlignment<R volatile*>( value );
 		return static_cast< R volatile *>( static_cast< void volatile *>(value) );
 	}
 
 	template <typename R, typename T>
 	ND_ forceinline constexpr R const*  Cast (T const* value)
 	{
+		CheckPointerAlignment<R const *>( value );
 		return static_cast< R const *>( static_cast< void const *>(value) );
 	}
 	
 	template <typename R, typename T>
 	ND_ forceinline constexpr R*  Cast (T* value)
 	{
+		CheckPointerAlignment<R *>( value );
 		return static_cast< R *>( static_cast< void *>(value) );
 	}
 

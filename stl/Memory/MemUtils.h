@@ -3,7 +3,6 @@
 #pragma once
 
 #include "stl/Math/Bytes.h"
-#include "stl/Math/BitMath.h"
 #include "stl/CompileTime/TypeTraits.h"
 
 namespace FGC
@@ -18,21 +17,6 @@ namespace FGC
 	ND_ forceinline decltype(auto)  AddressOf (T &value)
 	{
 		return std::addressof( value );
-	}
-
-/*
-=================================================
-	CheckPointerAlignment
-=================================================
-*/
-	template <typename T>
-    ND_ forceinline bool  CheckPointerAlignment (void *ptr)
-	{
-		constexpr size_t	align = alignof(T);
-
-		STATIC_ASSERT( IsPowerOfTwo( align ), "Align must be power of 2" );
-
-		return (sizeof(T) < align) or not (size_t(ptr) & (align-1));
 	}
 	
 /*
