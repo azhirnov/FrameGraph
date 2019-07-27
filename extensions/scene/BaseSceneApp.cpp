@@ -4,7 +4,6 @@
 #include "pipeline_compiler/VPipelineCompiler.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Window/WindowSFML.h"
 #include "framework/VR/OpenVRDevice.h"
 #include "framework/VR/VRDeviceEmulator.h"
 #include "stl/Algorithms/StringUtils.h"
@@ -54,9 +53,6 @@ namespace FG
 
 			#elif defined( FG_ENABLE_SDL2 )
 				_window.reset( new WindowSDL2() );
-			
-			#elif defined(FG_ENABLE_SFML)
-				_window.reset( new WindowSFML() );
 
 			#else
 			#	error Unknown window library!

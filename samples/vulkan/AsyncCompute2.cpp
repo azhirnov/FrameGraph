@@ -8,7 +8,6 @@
 #include "framework/Vulkan/VulkanSwapchain.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Window/WindowSFML.h"
 #include "compiler/SpvCompiler.h"
 #include "stl/Math/Color.h"
 
@@ -137,9 +136,6 @@ bool AsyncComputeApp2::Initialize ()
 
 # elif defined(FG_ENABLE_SDL2)
 	window.reset( new WindowSDL2() );
-
-# elif defined(FG_ENABLE_SFML)
-	window.reset( new WindowSFML() );
 
 # else
 #	error unknown window library!

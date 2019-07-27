@@ -131,7 +131,6 @@ set( SOURCES
 	"../cmake/download_mem.cmake"
 	"../cmake/download_openvr.cmake"
 	"../cmake/download_sdl2.cmake"
-	"../cmake/download_sfml.cmake"
 	"../cmake/download_stdoptional.cmake"
 	"../cmake/download_stdvariant.cmake"
 	"../cmake/download_vk.cmake"

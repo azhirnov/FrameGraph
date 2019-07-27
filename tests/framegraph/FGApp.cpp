@@ -5,7 +5,6 @@
 #include "pipeline_compiler/VPipelineCompiler.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Window/WindowSFML.h"
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringParser.h"
 #include <thread>
@@ -473,9 +472,6 @@ namespace {
 
 		#elif defined( FG_ENABLE_SDL2 )
 			wnd.reset( new WindowSDL2() );
-			
-		#elif defined(FG_ENABLE_SFML)
-			wnd.reset( new WindowSFML() );
 
 		#else
 		#	error Unknown window library!
