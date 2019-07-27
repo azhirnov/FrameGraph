@@ -1,5 +1,5 @@
 # auto generated file
-cmake_minimum_required (VERSION 3.6.0)
+cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 message( STATUS "==========================================================================\n" )
 message( STATUS "project 'FrameGraph' generation started" )
@@ -12,13 +12,11 @@ message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" 
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
 
 
-include( "cmake/compilers.cmake" )
-include( "cmake/compiler_tests.cmake" )
-
 set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
 set( FG_ENABLE_OPENVR OFF CACHE BOOL "use OpenVR (optional)" )
+set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS OFF CACHE BOOL "use simplified compiler settings if you have problem with it" )
 
 # test & samples dependencies
 set( FG_ENABLE_TESTS ON CACHE BOOL "enable tests" )
@@ -37,6 +35,15 @@ set( FG_ENABLE_ASSIMP ON CACHE BOOL "use Assimp (optional, required for Scene ex
 set( FG_ENABLE_GLM ON CACHE BOOL "use glm (optional, required for Scene extension)" )
 set( FG_ENABLE_DEVIL ON CACHE BOOL "use DevIL (optional, required for Scene extension)" )
 set( FG_ENABLE_FREEIMAGE OFF CACHE BOOL "use FreeImage (optional, required for Scene extension)" )
+
+
+if (${FG_ENABLE_SIMPLE_COMPILER_OPTIONS})
+	include( "cmake/compilers_minimal.cmake" )
+else()
+	include( "cmake/compilers.cmake" )
+endif()
+
+include( "cmake/compiler_tests.cmake" )
 
 set( CMAKE_DEBUG_POSTFIX "d" )
 set( CMAKE_RELEASE_POSTFIX "" )
