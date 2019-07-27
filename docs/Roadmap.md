@@ -1,6 +1,7 @@
 # Roadmap
 
-## Stage 1
+## FrameGraph
+### Stage 1
 - [x] glsl compilation to spirv + reflection.<br/>
 - [x] automatic placement of pipeline barrier.<br/>
 - [x] unit tests: stl, resource barriers, glsl compiler, resource cache, ...<br/>
@@ -21,6 +22,11 @@
 - [ ] render pass subpasses.<br/>
 - [ ] immutable descriptor sets.<br/>
 
-## Stage 3
+### Stage 3
 - [ ] sparse memory support.<br/>
 - [ ] optimization for mobile and integrated GPUs.<br/>
+
+
+## Extensions
+- [ ] Shader graph
+- [ ] Script bindings
