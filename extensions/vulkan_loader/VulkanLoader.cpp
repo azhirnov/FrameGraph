@@ -59,7 +59,7 @@ namespace {
 	must be externally synchronized!
 =================================================
 */
-	bool VulkanLoader::Initialize (StringView libName)
+	bool VulkanLoader::Initialize (NtStringView libName)
 	{
 		VulkanLib *		lib = Singleton< VulkanLib >();
 		
