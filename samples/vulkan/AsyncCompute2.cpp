@@ -817,7 +817,7 @@ bool AsyncComputeApp2::CreateResources ()
 
 		VK_CHECK( vkCreateImage( vulkan.GetVkDevice(), &info, null, OUT &rt ));
 
-		vulkan.SetObjectName( uint64_t(rt), "RenderTarget", VK_OBJECT_TYPE_IMAGE );
+		vulkan.SetObjectName( BitCast<uint64_t>(rt), "RenderTarget", VK_OBJECT_TYPE_IMAGE );
 		
 		VkMemoryRequirements	mem_req;
 		vkGetImageMemoryRequirements( vulkan.GetVkDevice(), rt, OUT &mem_req );

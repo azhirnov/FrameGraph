@@ -148,23 +148,15 @@ namespace FGC
 =================================================
 */
 	template <typename To, typename From>
-    ND_ inline constexpr To&  BitCast (From& from)
+    ND_ inline constexpr To  BitCast (const From& src)
 	{
-		//STATIC_ASSERT( std::is_trivial_v<To> and std::is_trivial_v<From>, "must be trivial types!" );
 		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );
 		STATIC_ASSERT( alignof(To) == alignof(From), "must be same align!" );
+		STATIC_ASSERT( std::is_trivially_copyable<From>::value and std::is_trivial<To>::value, "must be trivial types!" );
 
-		return reinterpret_cast< To& >( from );
-	}
-
-	template <typename To, typename From>
-    ND_ inline constexpr const To&  BitCast (const From& from)
-	{
-		//STATIC_ASSERT( std::is_trivial_v<To> and std::is_trivial_v<From>, "must be trivial types!" );
-		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );
-		STATIC_ASSERT( alignof(To) == alignof(From), "must be same align!" );
-
-		return reinterpret_cast< const To& >( from );
+		To	dst;
+		std::memcpy( OUT &dst, &src, sizeof(To) );
+		return dst;
 	}
 
 

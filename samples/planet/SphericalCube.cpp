@@ -84,9 +84,9 @@ namespace {
 			Vertex *		vb_mapped	= null;
 			uint *			ib_mapped	= null;
 
-			CHECK_ERR( cmdbuf->AllocBuffer( vert_size, SizeOf<Vertex>, OUT staging_vb, OUT vb_offset, OUT BitCast<void*>(vb_mapped) ));
-			CHECK_ERR( cmdbuf->AllocBuffer( idx_size, SizeOf<uint>, OUT staging_ib, OUT ib_offset, OUT BitCast<void*>(ib_mapped) ));
-
+			CHECK_ERR( cmdbuf->AllocBuffer( vert_size, SizeOf<Vertex>, OUT staging_vb, OUT vb_offset, OUT vb_mapped ));
+			CHECK_ERR( cmdbuf->AllocBuffer( idx_size, SizeOf<uint>, OUT staging_ib, OUT ib_offset, OUT ib_mapped ));
+			
 			last_task = cmdbuf->AddTask( CopyBuffer{}.From( staging_vb ).To( _vertexBuffer ).AddRegion( vb_offset, vert_offset, vert_size ).DependsOn( last_task ));
 			last_task = cmdbuf->AddTask( CopyBuffer{}.From( staging_ib ).To( _indexBuffer ).AddRegion( ib_offset, index_offset, idx_size ).DependsOn( last_task ));
 

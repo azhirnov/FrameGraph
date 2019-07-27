@@ -38,7 +38,7 @@ namespace FG
 			}
 		}
 		
-		ShaderModuleVk_t const&	GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
+		ShaderModuleVk_t const&	GetData () const override		{ return *Cast<ShaderModuleVk_t>( &_module ); }
 
 		StringView				GetEntry () const override		{ return _entry; }
 		

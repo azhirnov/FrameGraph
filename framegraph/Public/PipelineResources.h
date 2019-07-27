@@ -232,10 +232,10 @@ namespace FG
 
 
 	private:
-		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint>(id), memory_order_relaxed ); }
+		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint>(id.Data()), memory_order_relaxed ); }
 		void _ResetCachedID ()								const	{ _cachedId.store( UMax, memory_order_relaxed ); }
 		
-		ND_ RawPipelineResourcesID	_GetCachedID ()			const	{ return BitCast<RawPipelineResourcesID>( _cachedId.load( memory_order_acquire )); }
+		ND_ RawPipelineResourcesID	_GetCachedID ()			const	{ return RawPipelineResourcesID( _cachedId.load( memory_order_acquire )); }
 
 		ND_ uint &					_GetDynamicOffset (uint i)		{ ASSERT( _dataPtr and i < _dataPtr->dynamicOffsetsCount );  return _dataPtr->DynamicOffsets()[i]; }
 

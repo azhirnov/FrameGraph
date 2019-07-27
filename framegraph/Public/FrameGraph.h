@@ -152,7 +152,12 @@ namespace FG
 		ND_ virtual ExternalBufferDesc_t GetApiSpecificDescription (RawBufferID id) const = 0;
 		ND_ virtual ExternalImageDesc_t  GetApiSpecificDescription (RawImageID id) const = 0;
 		
+			// TODO
 			virtual bool			UpdateHostBuffer (RawBufferID id, BytesU offset, BytesU size, const void *data) = 0;
+			
+			// TODO
+			template <typename T>
+					bool			MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT T* &data);
 			virtual bool			MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT void* &data) = 0;
 
 
@@ -186,5 +191,15 @@ namespace FG
 			virtual bool	DumpToGraphViz (OUT String &result) const = 0;
 	};
 
+	
+
+	template <typename T>
+	inline bool  IFrameGraph::MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT T* &data)
+	{
+		void*	ptr = null;
+		bool	res = MapBufferRange( id, offset, OUT size, OUT ptr );
+		data = Cast<T>( ptr );
+		return res;
+	}
 
 }	// FG

@@ -114,12 +114,14 @@ namespace _fg_hidden_
 	public:
 		constexpr ResourceID () {}
 		constexpr ResourceID (const ResourceID &other) : _value{other._value} {}
+		explicit constexpr ResourceID (Value_t data) : _value{ data } {}
 		explicit constexpr ResourceID (Index_t val, InstanceID_t inst) : _value{Value_t(val) | (Value_t(inst) << _InstOffset)} {}
 
 		ND_ constexpr bool			IsValid ()						const	{ return _value != UMax; }
 		ND_ constexpr Index_t		Index ()						const	{ return _value & _IndexMask; }
 		ND_ constexpr InstanceID_t	InstanceID ()					const	{ return _value >> _InstOffset; }
 		ND_ constexpr HashVal		GetHash ()						const	{ return HashOf(_value) + HashVal{UID}; }
+		ND_ constexpr Value_t		Data ()							const	{ return _value; }
 
 		ND_ constexpr bool			operator == (const Self &rhs)	const	{ return _value == rhs._value; }
 		ND_ constexpr bool			operator != (const Self &rhs)	const	{ return not (*this == rhs); }

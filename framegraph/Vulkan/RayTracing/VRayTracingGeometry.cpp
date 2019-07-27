@@ -144,7 +144,9 @@ namespace FG
 
 		CHECK_ERR( memObj.AllocateForAccelStruct( resMngr.GetMemoryManager(), _bottomLevelAS ));
 
-		VK_CHECK( dev.vkGetAccelerationStructureHandleNV( dev.GetVkDevice(), _bottomLevelAS, sizeof(_handle), OUT &BitCast<uint64_t>(_handle) ));
+		uint64_t	as_handle;
+		VK_CHECK( dev.vkGetAccelerationStructureHandleNV( dev.GetVkDevice(), _bottomLevelAS, sizeof(as_handle), OUT &as_handle ));
+		_handle = BitCast<BLASHandle_t>(as_handle);
 
 		if ( not dbgName.empty() )
 		{

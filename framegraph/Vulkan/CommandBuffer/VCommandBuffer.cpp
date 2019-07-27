@@ -1019,10 +1019,12 @@ namespace {
 	{
 		RawBufferID		buffer;
 		BytesU			buf_offset, buf_size;
-		
-		CHECK_ERR( _batch->GetWritable( SizeOf<T> * count, 1_b, 16_b, SizeOf<T> * count,
-										OUT buffer, OUT buf_offset, OUT buf_size, OUT BitCast<void *>(outPtr) ));
+		void*			ptr = null;
 
+		CHECK_ERR( _batch->GetWritable( SizeOf<T> * count, 1_b, 16_b, SizeOf<T> * count,
+										OUT buffer, OUT buf_offset, OUT buf_size, OUT ptr ));
+
+		outPtr		= Cast<T>(ptr);
 		outBuffer	= ToLocal( buffer );
 		outOffset	= VkDeviceSize(buf_offset);
 		return true;
