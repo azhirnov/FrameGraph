@@ -97,5 +97,50 @@ if (STD_BARRIER_SUPPORTED)
 endif ()
 
 #------------------------------------------------------------------------------
+check_cxx_source_compiles(
+	"#include <functional>
+	int main () {
+		char buffer[128] = {};
+		(void)(std::_Hash_array_representation( reinterpret_cast<const unsigned char*>(buffer), std::size(buffer) ));
+		return 0;
+	}"
+	HAS_HASHFN_HashArrayRepresentation
+)
+
+if (HAS_HASHFN_HashArrayRepresentation)
+	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_HAS_HASHFN_HashArrayRepresentation" )
+endif ()
+
+#------------------------------------------------------------------------------
+check_cxx_source_compiles(
+	"#include <functional>
+	int main () {
+		char buffer[128] = {};
+		(void)(std::__murmur2_or_cityhash<size_t>()( buffer, std::size(buffer) ));
+		return 0;
+	}"
+	HAS_HASHFN_Murmur2OrCityhash
+)
+
+if (HAS_HASHFN_Murmur2OrCityhash)
+	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_HAS_HASHFN_Murmur2OrCityhash" )
+endif ()
+
+#------------------------------------------------------------------------------
+check_cxx_source_compiles(
+	"#include <functional>
+	int main () {
+		char buffer[128] = {};
+		(void)(std::_Hash_bytes( buffer, std::size(buffer), 0 ));
+		return 0;
+	}"
+	HAS_HASHFN_HashBytes
+)
+
+if (HAS_HASHFN_HashBytes)
+	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_HAS_HASHFN_HashBytes" )
+endif ()
+
+#------------------------------------------------------------------------------
 
 set( CMAKE_REQUIRED_FLAGS "" )

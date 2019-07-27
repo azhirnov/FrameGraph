@@ -96,23 +96,23 @@ namespace FGC
 	{
 		ASSERT( ptr and sizeInBytes );
 
-		// MS Visual C++ std implementation
-		#if defined(COMPILER_MSVC)
-		# if defined(_HASH_SEQ_DEFINED)
-			return HashVal{std::_Hash_seq( static_cast<const unsigned char*>(ptr), sizeInBytes )};
-		# elif _MSC_VER >= 1916
+		# if defined(FG_HAS_HASHFN_HashArrayRepresentation)
 			return HashVal{std::_Hash_array_representation( static_cast<const unsigned char*>(ptr), sizeInBytes )};
-		# elif _MSC_VER >= 1911
-			return HashVal{std::_Hash_bytes( static_cast<const unsigned char*>(ptr), sizeInBytes )};
-		# endif
 
-        #elif defined(COMPILER_CLANG)
-            return HashVal{std::_Hash_array_representation( static_cast<const unsigned char*>(ptr), sizeInBytes )};
-            //return HashVal{std::__murmur2_or_cityhash<size_t>()( ptr, sizeInBytes )};
-		#elif defined(COMPILER_GCC)
+        #elif defined(FG_HAS_HASHFN_Murmur2OrCityhash)
+			return HashVal{std::__murmur2_or_cityhash<size_t>()( ptr, sizeInBytes )};
+
+		#elif defined(FG_HAS_HASHFN_HashBytes)
 			return HashVal{std::_Hash_bytes( ptr, sizeInBytes, 0 )};
+
 		#else
-			#error "hash function not defined!"
+			FG_COMPILATION_MESSAGE( "used fallback hash function" )
+			const uint8_t*	buf		= static_cast<const uint8_t*>(ptr);
+			HashVal			result;
+			for (size_t i = 0; i < sizeInBytes; ++i) {
+				result << HashVal{buf[i]);
+			}
+			return result;
 		#endif
 	}
 
