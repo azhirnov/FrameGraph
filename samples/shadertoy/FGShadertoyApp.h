@@ -40,7 +40,7 @@ namespace FG
 			vec3		iCameraFrustumRayRT;	// offset: 256, align: 16	// right top
 			float		_padding7;
 			vec3		iCameraPos;				// offset: 272, align: 16	// camera position in world space
-			float		_padding8;
+			int			iEyeIndex;
 		};
 
 
@@ -94,6 +94,7 @@ namespace FG
 
 		// variables
 			GPipelineID				_pipeline;
+			GPipelineID				_pipelineVR;
 			const String			_name;
 			String					_pplnFilename;
 			String					_pplnDefines;
@@ -128,9 +129,8 @@ namespace FG
 		uint					_passIdx : 1;
 		bool					_pause			= false;
 		bool					_freeze			= false;
-		bool					_enableVRMode	= false;
 		bool					_vrMode			= false;
-		bool					_vrMirror		= true;
+		bool					_vrMirror		= false;
 
 		ShadersMap_t			_shaders;
 		Array< ShaderPtr >		_ordered;
@@ -171,6 +171,7 @@ namespace FG
 	// BaseSceneApp
 	public:
 		bool DrawScene () override;
+		void OnUpdateFrameStat (OUT String &) const;
 
 
 	// IWindowEventListener

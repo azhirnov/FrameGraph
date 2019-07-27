@@ -64,7 +64,7 @@ namespace FG
 	Prepare
 =================================================
 */
-	void SceneApp::Prepare (ScenePreRender &preRender)
+	void SceneApp::Prepare (ScenePreRender &)
 	{
 		_UpdateCamera();
 	}

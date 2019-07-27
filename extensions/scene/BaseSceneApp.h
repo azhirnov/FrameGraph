@@ -51,6 +51,7 @@ namespace FG
 		TimePoint_t				_lastUpdateTime;
 		bool					_mousePressed		= false;
 		float					_cameraVelocity		= 1.0f;
+		float					_mouseSens			= 0.01f;
 		vec2					_viewRange			{ 0.05f, 100.0f };
 		
 		String					_debugOutputPath;
@@ -76,7 +77,7 @@ namespace FG
 		void _SetLastCommandBuffer (const CommandBuffer &);
 
 		void _UpdateCamera ();
-		void _UpdateFrameStat (StringView additionalParams = Default);
+		void _UpdateFrameStat ();
 		
 		void _SetupCamera (Rad fovY, const vec2 &viewRange);
 
@@ -90,8 +91,7 @@ namespace FG
 		ND_ VulkanDeviceExt const&	GetVulkan ()	const	{ return _vulkan; }
 		ND_ Ptr<IWindow>		GetWindow ()				{ return _window.get(); }
 		ND_ Ptr<IVRDevice>		GetVRDevice ()				{ return _vrDevice.get(); }
-		ND_ uint2				GetSurfaceSize ()	const	{ return _window->GetSize(); }
-		ND_ vec2				GetSurfaceSizeF ()	const	{ return vec2(_window->GetSize().x, _window->GetSize().y); }
+		ND_ uint2				GetSurfaceSize ()	const	{ return _window ? _window->GetSize() : uint2(); }
 
 		ND_ RawSwapchainID		GetSwapchain ()		const	{ return _swapchainId; }
 
@@ -112,6 +112,7 @@ namespace FG
 		ND_ virtual bool Update ();
 	protected:
 		ND_ virtual bool DrawScene () = 0;
+			virtual void OnUpdateFrameStat (OUT String &) const {}
 
 
 	// IWindowEventListener

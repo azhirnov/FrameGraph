@@ -249,8 +249,7 @@ namespace FG
 		
 		if ( _vrDevice and _vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Mounted )
 		{
-			IVRDevice::VRCamera	cam;
-			_vrDevice->GetCamera( OUT cam );
+			auto&	cam = _vrDevice->GetCamera();
 			
 			if ( length2( _positionDelta ) > 0.01f ) {
 				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
@@ -328,12 +327,12 @@ namespace FG
 			if ( key == "C" )			_positionDelta.z -= 1.0f;
 
 			// rotate up/down
-			if ( key == "arrow up" )	_mouseDelta.y -= 0.01f;		else
-			if ( key == "arrow down" )	_mouseDelta.y += 0.01f;
+			if ( key == "arrow up" )	_mouseDelta.y -= _mouseSens;	else
+			if ( key == "arrow down" )	_mouseDelta.y += _mouseSens;
 
 			// rotate left/right
-			if ( key == "arrow right" )	_mouseDelta.x += 0.01f;		else
-			if ( key == "arrow left" )	_mouseDelta.x -= 0.01f;
+			if ( key == "arrow right" )	_mouseDelta.x += _mouseSens;	else
+			if ( key == "arrow left" )	_mouseDelta.x -= _mouseSens;
 		}
 
 		if ( action == EKeyAction::Down )
@@ -354,7 +353,7 @@ namespace FG
 		if ( _mousePressed )
 		{
 			vec2	delta = vec2{pos.x, pos.y} - _lastMousePos;
-			_mouseDelta   += delta * 0.01f;
+			_mouseDelta   += delta * _mouseSens;
 		}
 		_lastMousePos = vec2{pos.x, pos.y};
 	}
@@ -364,7 +363,7 @@ namespace FG
 	_UpdateFrameStat
 =================================================
 */
-	void BaseSceneApp::_UpdateFrameStat (StringView additionalParams)
+	void BaseSceneApp::_UpdateFrameStat ()
 	{
 		using namespace std::chrono;
 
@@ -389,10 +388,13 @@ namespace FG
 			_frameStat.cpuTimeSum		= Default;
 			_frameStat.frameCounter		= 0;
 
+			String	additional;
+			OnUpdateFrameStat( OUT additional );
+
 			_window->SetTitle( String(_title) << " [FPS: " << ToString(fps_value) <<
 							   ", GPU: " << ToString(gpu_time) <<
 							   ", CPU: " << ToString(cpu_time) <<
-							   additionalParams << ']' );
+							   additional << ']' );
 		}
 	}
 	
@@ -403,17 +405,19 @@ namespace FG
 */
 	bool BaseSceneApp::Update ()
 	{
-		if ( not GetWindow()->Update() )
-			return false;
+		if ( _window )
+		{
+			if ( not _window->Update() )
+				return false;
+		}
 
-		if ( Any( GetSurfaceSize() == uint2(0) ))
+		if ( _vrDevice )
+			_vrDevice->Update();
+
+		if ( not _vrDevice and Any( GetSurfaceSize() == uint2(0) ))
 		{
 			std::this_thread::sleep_for(SecondsF{0.01f});	// ~100 fps
 			return true;
-		}
-
-		if ( _vrDevice ) {
-			_vrDevice->Update();
 		}
 
 		// wait frame-2 for double buffering

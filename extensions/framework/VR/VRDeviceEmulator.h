@@ -34,6 +34,31 @@ namespace FGC
 			uint			frame		= 0;
 		};
 
+		class WindowEventListener final : public IWindowEventListener
+		{
+		private:
+			using TimePoint_t	= std::chrono::high_resolution_clock::time_point;
+
+		private:
+			float3			_positionDelta;
+			float2			_cameraAngle;
+			float2			_lastMousePos;
+			TimePoint_t		_lastUpdateTime;
+			bool			_mousePressed		= false;
+			const float		_mouseSens			= 0.01f;
+			bool			_isActive			= true;
+
+		public:
+			void OnResize (const uint2 &) override {}
+			void OnRefresh () override {}
+			void OnDestroy () override;
+			void OnUpdate () override {}
+			void OnKey (StringView key, EKeyAction action) override;
+			void OnMouseMove (const float2 &pos) override;
+			void Update (OUT Mat3_t &pose, INOUT float3 &pos);
+			ND_ bool IsActive () const { return _isActive; }
+		};
+
 		using Queues_t = FixedArray< PerQueue, 16 >;
 
 
@@ -42,6 +67,7 @@ namespace FGC
 		Listeners_t				_listeners;
 		VulkanDeviceFnTable		_deviceFnTable;
 		VRCamera				_camera;
+		WindowEventListener		_wndListener;
 
 		VkInstance				_vkInstance;
 		VkPhysicalDevice		_vkPhysicalDevice;
@@ -51,7 +77,8 @@ namespace FGC
 		
 		WindowPtr				_output;
 		VulkanSwapchainPtr		_swapchain;
-
+		
+		BitSet<2>				_submitted;
 		bool					_isCreated;
 
 

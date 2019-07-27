@@ -504,13 +504,27 @@ namespace {
 				ASSERT( aspect == EImageAspect::Depth or aspect == EImageAspect::Stencil );
 				ASSERT(false);
 				break;
+
+			case EPixelFormat::sRGB8 :
+			case EPixelFormat::sBGR8 :
+				ASSERT( aspect == EImageAspect::Color );
+				_bitsPerPixel	= 3*8;
+				_loadF4			= &ReadUNorm<8,8,8,0>;
+				_loadI4			= &ReadInt<8,8,8,0>;
+				_loadU4			= &ReadUInt<8,8,8,0>;
+				break;
+
+			case EPixelFormat::sRGB8_A8 :
+			case EPixelFormat::sBGR8_A8 :
+				ASSERT( aspect == EImageAspect::Color );
+				_bitsPerPixel	= 4*8;
+				_loadF4			= &ReadUNorm<8,8,8,8>;
+				_loadI4			= &ReadInt<8,8,8,8>;
+				_loadU4			= &ReadUInt<8,8,8,8>;
+				break;
 				
 			case EPixelFormat::BGR8_UNorm :
 			case EPixelFormat::BGRA8_UNorm :
-			case EPixelFormat::sRGB8 :
-			case EPixelFormat::sRGB8_A8 :
-			case EPixelFormat::sBGR8 :
-			case EPixelFormat::sBGR8_A8 :
 			case EPixelFormat::BC1_RGB8_UNorm :
 			case EPixelFormat::BC1_sRGB8_UNorm :
 			case EPixelFormat::BC1_RGB8_A1_UNorm :

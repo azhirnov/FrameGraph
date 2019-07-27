@@ -117,7 +117,8 @@ namespace FG
 
 			if ( key == "F" )		_freeze = not _freeze;
 			if ( key == "space" )	_pause = not _pause;
-			if ( key == "O" )		_enableVRMode = GetVRDevice() ? not _enableVRMode : false;
+
+			if ( key == "M" )		_vrMirror = not _vrMirror;
 		}
 	}
 
@@ -163,11 +164,20 @@ namespace FG
 
 		_cmdBuffer = _frameGraph->Begin( CommandBufferDesc{ EQueueType::Graphics });
 
-		const uint2	required_size = GetVRDevice() ? GetVRDevice()->GetRenderTargetDimension() : GetSurfaceSize();
+		uint2	required_size;
+		bool	enable_vr;
 
-		if ( Any(_surfaceSize != required_size) or (_enableVRMode != _vrMode) )
+		if ( GetVRDevice() and GetVRDevice()->GetHmdStatus() == IVRDevice::EHmdStatus::Mounted ) {
+			enable_vr		= true;
+			required_size	= GetVRDevice()->GetRenderTargetDimension();
+		} else {
+			enable_vr		= false;
+			required_size	= GetSurfaceSize();
+		}
+
+		if ( Any(_surfaceSize != required_size) or (enable_vr != _vrMode) )
 		{
-			CHECK_ERR( _RecreateShaders( required_size, _enableVRMode ));
+			CHECK_ERR( _RecreateShaders( required_size, enable_vr ));
 
 			GetFPSCamera().SetPerspective( GetCameraFov(), float(_surfaceSize.x) / _surfaceSize.y, 0.1f, 100.0f );
 		}
@@ -246,6 +256,16 @@ namespace FG
 	
 /*
 =================================================
+	OnUpdateFrameStat
+=================================================
+*/
+	void FGShadertoyApp::OnUpdateFrameStat (OUT String &str) const
+	{
+		str << ", Pixel: " << ToString( _selectedPixel );
+	}
+
+/*
+=================================================
 	_UpdateShaderData
 =================================================
 */
@@ -314,6 +334,7 @@ namespace FG
 			}
 		
 			_ubData.iResolution = vec3{ float(view_size.x), float(view_size.y), 0.0f };
+			_ubData.iEyeIndex	= eye;
 
 			_currTask = _cmdBuffer->AddTask( UpdateBuffer{}.SetBuffer( eye_data.ubuffer ).AddData( &_ubData, 1 ).DependsOn( _currTask ));
 		}
@@ -324,7 +345,7 @@ namespace FG
 										.AddViewport( view_size ));
 
 		DrawVertices	draw_task;
-		draw_task.SetPipeline( shader->_pipeline );
+		draw_task.SetPipeline( _vrMode ? shader->_pipelineVR : shader->_pipeline );
 		draw_task.AddResources( DescriptorSetID{"0"}, &pass.resources );
 		draw_task.Draw( 4 ).SetTopology( EPrimitive::TriangleStrip );
 
@@ -388,7 +409,7 @@ namespace FG
 		for (auto& sh : _shaders)
 		{
 			sorted.push_back( sh.second );
-			_DestroyShader( sh.second, (_enableVRMode != _vrMode) );
+			_DestroyShader( sh.second, false );
 		}
 		_ordered.clear();
 
@@ -419,10 +440,16 @@ namespace FG
 	bool FGShadertoyApp::_CreateShader (const ShaderPtr &shader, bool enableVR)
 	{
 		// compile pipeline
-		if ( not shader->_pipeline )
+		if ( not enableVR and not shader->_pipeline )
 		{
-			shader->_pipeline = _Compile( shader->_pplnFilename, shader->_pplnDefines + (enableVR ? "\n#define VR_MODE\n" : "") );
+			shader->_pipeline = _Compile( shader->_pplnFilename, shader->_pplnDefines );
 			CHECK_ERR( shader->_pipeline );
+		}
+
+		if ( enableVR and not shader->_pipelineVR )
+		{
+			shader->_pipelineVR = _Compile( shader->_pplnFilename, shader->_pplnDefines + "\n#define VR_MODE\n" );
+			CHECK_ERR( shader->_pipelineVR );
 		}
 
 		// check dependencies
@@ -470,11 +497,13 @@ namespace FG
 			desc.imageType	= EImage::Tex2D;
 			desc.dimension	= uint3{ pass.viewport, 1 };
 			desc.format		= shader->_format.value_or( ImageFormat );
-			desc.usage		= EImageUsage::Transfer | EImageUsage::Sampled | EImageUsage::ColorAttachment;
+			desc.usage		= EImageUsage::TransferSrc | EImageUsage::Sampled | EImageUsage::ColorAttachment;
 
-			EResourceState	def_state = enableVR ? EResourceState::TransferSrc : EResourceState::Unknown;
+			EResourceState	def_state	= enableVR ? EResourceState::TransferSrc : EResourceState::Unknown;
+			const String	name		= String(shader->Name()) << "-RT-" << ToString(Distance( eye_data.passes.data(), &pass ))
+											<< (enableVR ? (shader->_perEye.data() == &eye_data ? "-left" : "-right") : "");
 
-			pass.renderTarget = _frameGraph->CreateImage( desc, Default, def_state, String(shader->Name()) << "-RT-" << ToString(Distance( eye_data.passes.data(), &pass )) );
+			pass.renderTarget = _frameGraph->CreateImage( desc, Default, def_state, name );
 			CHECK_ERR( pass.renderTarget );
 		}
 		
@@ -495,7 +524,7 @@ namespace FG
 		{
 			auto&	pass = shader->_perEye[eye].passes[i];
 			
-			CHECK( _frameGraph->InitPipelineResources( shader->_pipeline, DescriptorSetID{"0"}, OUT pass.resources ));
+			CHECK( _frameGraph->InitPipelineResources( enableVR ? shader->_pipelineVR : shader->_pipeline, DescriptorSetID{"0"}, OUT pass.resources ));
 
 			pass.resources.BindBuffer( UniformID{"ShadertoyUB"}, shader->_perEye[eye].ubuffer );
 			pass.images.resize( shader->_channels.size() );
@@ -546,6 +575,7 @@ namespace FG
 		
 		if ( destroyPipeline ) {
 			_frameGraph->ReleaseResource( INOUT shader->_pipeline );
+			_frameGraph->ReleaseResource( INOUT shader->_pipelineVR );
 		}
 
 		for (auto& eye_data : shader->_perEye)
@@ -602,24 +632,25 @@ namespace FG
 				vec3	iCameraFrustumLT;
 				vec3	iCameraFrustumRT;
 				vec3	iCameraPos;				// camera position in world space
+				int		iEyeIndex;
 			};
 
 			layout(location=0) out vec4	out_Color;
 
-			void mainImage (out vec4 fragColor, in vec2 fragCoord);
-			void mainVR (out vec4 fragColor, in vec2 fragCoord, in vec3 fragRayOri, in vec3 fragRayDir);
-
 			#ifdef VR_MODE
+				void mainVR (out vec4 fragColor, in vec2 fragCoord, in vec3 fragRayOri, in vec3 fragRayDir);
+
 				void main ()
 				{
-					vec2 coord = gl_FragCoord.xy;
-					vec2 uv    = coord / iResolution.xy;
+					vec2 uv    = gl_FragCoord.xy / iResolution.xy;
 					vec3 dir   = mix( mix( iCameraFrustumLB, iCameraFrustumRB, uv.x ),
 									  mix( iCameraFrustumLT, iCameraFrustumRT, uv.x ),
 									  uv.y );
-					mainVR( out_Color, coord, iCameraPos, dir );
+					mainVR( out_Color, gl_FragCoord.xy, iCameraPos, dir );
 				}
 			#else
+				void mainImage (out vec4 fragColor, in vec2 fragCoord);
+
 				void main ()
 				{
 					vec2 coord = gl_FragCoord.xy;
@@ -668,12 +699,21 @@ namespace FG
 	{
 		for (auto& shader : _ordered)
 		{
-			GPipelineID		ppln = _Compile( shader->_pplnFilename, shader->_pplnDefines );
-
-			if ( ppln )
+			if ( _vrMode )
 			{
-				_frameGraph->ReleaseResource( INOUT shader->_pipeline );
-				shader->_pipeline = std::move(ppln);
+				if ( GPipelineID ppln = _Compile( shader->_pplnFilename, shader->_pplnDefines + "\n#define VR_MODE\n" ))
+				{
+					_frameGraph->ReleaseResource( INOUT shader->_pipelineVR );
+					shader->_pipelineVR = std::move(ppln);
+				}
+			}
+			else
+			{
+				if ( GPipelineID ppln = _Compile( shader->_pplnFilename, shader->_pplnDefines ))
+				{
+					_frameGraph->ReleaseResource( INOUT shader->_pipeline );
+					shader->_pipeline = std::move(ppln);
+				}
 			}
 		}
 		return true;

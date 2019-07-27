@@ -143,7 +143,7 @@ namespace FG
 		LayerBits	layers;
 		layers[uint(ERenderLayer::RayTracing)] = true;
 
-		preRender.AddCamera( GetCamera(), GetSurfaceSizeF(), GetViewRange(), DetailLevelRange{}, ECameraType::Main, layers, shared_from_this() );
+		preRender.AddCamera( GetCamera(), VecCast(GetSurfaceSize()), GetViewRange(), DetailLevelRange{}, ECameraType::Main, layers, shared_from_this() );
 	}
 	
 /*

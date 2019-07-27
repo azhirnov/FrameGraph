@@ -220,7 +220,7 @@ public:
 				if ( not vrDevice->Update() )
 					break;
 
-				vrDevice->GetCamera( OUT camera );
+				camera = vrDevice->GetCamera();
 			}
 			
 			window->SetTitle( title + ("[FPS: "s << ToString(uint(swapchain->GetFramesPerSecond())) << ']') );
