@@ -122,7 +122,7 @@ namespace FG
 		ND_ bool HasExtension (StringView name) const;
 		ND_ bool HasDeviceExtension (StringView name) const;
 		
-		bool SetObjectName (uint64_t id, StringView name, VkObjectType type) const;
+		bool SetObjectName (uint64_t id, NtStringView name, VkObjectType type) const;
 
 
 	private:

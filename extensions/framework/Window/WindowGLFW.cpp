@@ -44,7 +44,7 @@ namespace {
 	Create
 =================================================
 */
-	bool WindowGLFW::Create (uint2 size, StringView title)
+	bool WindowGLFW::Create (uint2 size, NtStringView title)
 	{
 		CHECK_ERR( not _window );
 
@@ -317,7 +317,7 @@ namespace {
 	SetTitle
 =================================================
 */
-	void WindowGLFW::SetTitle (StringView value)
+	void WindowGLFW::SetTitle (NtStringView value)
 	{
 		CHECK_ERR( _window, void() );
 

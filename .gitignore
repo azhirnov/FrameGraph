@@ -15,6 +15,7 @@
 /external/AngelScript
 /external/optional
 /external/variant
+external/string_view
 /external/OpenVR
 /tests/framegraph/Graphs
 /samples/_data

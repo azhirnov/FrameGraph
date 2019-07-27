@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "stl/Containers/StringView.h"
+#include "stl/Containers/NtStringView.h"
 #include <thread>
 
 namespace FGC
 {
 
 	//void SetThreadName (const std::thread &, StringView name);
-	void SetCurrentThreadName (StringView name);
+	void SetCurrentThreadName (NtStringView name);
 
 }	// FGC

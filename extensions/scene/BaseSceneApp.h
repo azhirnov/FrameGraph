@@ -70,7 +70,7 @@ namespace FG
 		BaseSceneApp ();
 		~BaseSceneApp ();
 
-		bool _CreateFrameGraph (const uint2 &surfaceSize, StringView windowTitle,
+		bool _CreateFrameGraph (const uint2 &surfaceSize, NtStringView windowTitle,
 								ArrayView<StringView> shaderDirectories = Default, StringView dbgOutputPath = Default);
 		void _DestroyFrameGraph ();
 		void _SetLastCommandBuffer (const CommandBuffer &);

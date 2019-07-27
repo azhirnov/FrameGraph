@@ -46,7 +46,7 @@ namespace {
 	Create
 =================================================
 */
-	bool WindowSDL2::Create (uint2 surfaceSize, StringView title)
+	bool WindowSDL2::Create (uint2 surfaceSize, NtStringView title)
 	{
 		CHECK_ERR( not _window );
 
@@ -330,7 +330,7 @@ namespace {
 	SetTitle
 =================================================
 */
-	void WindowSDL2::SetTitle (StringView value)
+	void WindowSDL2::SetTitle (NtStringView value)
 	{
 		CHECK_ERR( _window, void() );
 

@@ -17,6 +17,7 @@
 #include <bitset>
 #include <cstring>
 #include <cmath>
+#include <malloc.h>
 
 #include "stl/Log/Log.h"
 #include "stl/Algorithms/Hash.h"

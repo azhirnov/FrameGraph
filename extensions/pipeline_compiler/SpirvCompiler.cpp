@@ -224,8 +224,8 @@ namespace FG
 =================================================
 */
 	bool SpirvCompiler::Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-								StringView entry, StringView source, StringView debugName,
-								OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
+								 NtStringView entry, NtStringView source, StringView debugName,
+								 OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
 	{
 		using SpirvShaderData	= PipelineDescription::SharedShaderPtr< Array<uint> >;
 		using DebugUtils		= VCachedDebuggableSpirv::ShaderDebugUtils_t;
@@ -345,7 +345,7 @@ namespace FG
 =================================================
 */
 	bool SpirvCompiler::_ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-									StringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
+									NtStringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
 									OUT GLSLangResult &glslangData, OUT String &log)
 	{
 		using namespace glslang;
@@ -1764,7 +1764,7 @@ namespace FG
 			un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 			un.stageFlags	= _currentStage;
 			un.data			= std::move(rt_scene);
-				un.arraySize	= GetArraySize( type );
+			un.arraySize	= GetArraySize( type );
 
 			uniforms.insert({ ExtractUniformID( node ), std::move(un) });
 			return true;

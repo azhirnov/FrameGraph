@@ -54,5 +54,19 @@ namespace FGC
 		::memcpy( dst, src, size_t(std::min(srcSize, dstSize)) );
 	}
 
+/*
+=================================================
+	AllocOnStack
+=================================================
+*/
+	ND_ forceinline void* AllocOnStack (BytesU size)
+	{
+	#ifdef PLATFORM_WINDOWS
+		return _alloca( size_t(size) );
+	#else
+		return alloca( size_t(size) );
+	#endif
+	}
+
 
 }	// FGC

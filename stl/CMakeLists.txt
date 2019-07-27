@@ -32,12 +32,12 @@ set( SOURCES
 	"Containers/FixedTupleArray.h"
 	"Containers/InPlace.h"
 	"Containers/Iterators.h"
+	"Containers/NtStringView.h"
 	"Containers/Optional.h"
 	"Containers/Ptr.h"
 	"Containers/Singleton.h"
 	"Containers/StaticString.h"
 	"Containers/StringView.h"
-	"Containers/StringViewFwd.h"
 	"Containers/StructView.h"
 	"Containers/Union.h"
 	"Containers/UntypedStorage.h"
@@ -80,7 +80,7 @@ add_library( "STL" STATIC ${SOURCES} )
 source_group( "CompileTime" FILES "CompileTime/DefaultType.h" "CompileTime/Hash.h" "CompileTime/Math.h" "CompileTime/TypeList.h" "CompileTime/TypeTraits.h" "CompileTime/UMax.h" )
 source_group( "Platforms" FILES "Platforms/ThreadName.cpp" "Platforms/ThreadName.h" "Platforms/WindowsHeader.h" )
 source_group( "Math" FILES "Math/BitMath.h" "Math/Bytes.h" "Math/Color.h" "Math/Math.h" "Math/Matrix.h" "Math/Rectangle.h" "Math/Vec.h" )
-source_group( "Containers" FILES "Containers/AnyTypeRef.h" "Containers/Appendable.h" "Containers/ArrayView.h" "Containers/BitTree.h" "Containers/CachedIndexedPool.h" "Containers/ChunkedIndexedPool.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/FixedTupleArray.h" "Containers/InPlace.h" "Containers/Iterators.h" "Containers/Optional.h" "Containers/Ptr.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/StringView.h" "Containers/StringViewFwd.h" "Containers/StructView.h" "Containers/Union.h" "Containers/UntypedStorage.h" )
+source_group( "Containers" FILES "Containers/AnyTypeRef.h" "Containers/Appendable.h" "Containers/ArrayView.h" "Containers/BitTree.h" "Containers/CachedIndexedPool.h" "Containers/ChunkedIndexedPool.h" "Containers/FixedArray.h" "Containers/FixedMap.h" "Containers/FixedTupleArray.h" "Containers/InPlace.h" "Containers/Iterators.h" "Containers/NtStringView.h" "Containers/Optional.h" "Containers/Ptr.h" "Containers/Singleton.h" "Containers/StaticString.h" "Containers/StringView.h" "Containers/StructView.h" "Containers/Union.h" "Containers/UntypedStorage.h" )
 source_group( "Algorithms" FILES "Algorithms/ArrayUtils.h" "Algorithms/Cast.h" "Algorithms/EnumUtils.h" "Algorithms/Hash.h" "Algorithms/StringParser.cpp" "Algorithms/StringParser.h" "Algorithms/StringUtils.h" )
 source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/TimeProfiler.h" )
 source_group( "Memory" FILES "Memory/LinearAllocator.h" "Memory/MemUtils.h" "Memory/MemWriter.h" "Memory/UntypedAllocator.h" )
@@ -137,6 +137,7 @@ if (${FG_ENABLE_TESTS})
 		"../tests/stl/UnitTest_LfIndexedPool.cpp"
 		"../tests/stl/UnitTest_Math.cpp"
 		"../tests/stl/UnitTest_Matrix.cpp"
+		"../tests/stl/UnitTest_NtStringView.cpp"
 		"../tests/stl/UnitTest_PoolAllocator.cpp"
 		"../tests/stl/UnitTest_Rectangle.cpp"
 		"../tests/stl/UnitTest_StaticString.cpp"
@@ -148,7 +149,7 @@ if (${FG_ENABLE_TESTS})
 	else()
 		add_executable( "Tests.STL" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTest_Array.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_FixedTupleArray.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_LfIndexedPool.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_Rectangle.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_StringParser.cpp" "../tests/stl/UnitTest_StructView.cpp" "../tests/stl/UnitTest_ToString.cpp" )
+	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTest_Array.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_FixedTupleArray.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_LfIndexedPool.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_NtStringView.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_Rectangle.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_StringParser.cpp" "../tests/stl/UnitTest_StructView.cpp" "../tests/stl/UnitTest_ToString.cpp" )
 	set_property( TARGET "Tests.STL" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.STL" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.STL" PRIVATE "../tests/.." )

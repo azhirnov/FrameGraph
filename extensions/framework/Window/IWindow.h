@@ -4,6 +4,7 @@
 
 #include "stl/Math/Vec.h"
 #include "stl/Containers/FixedArray.h"
+#include "stl/Containers/NtStringView.h"
 #include "stl/Memory/MemUtils.h"
 #include "vulkan_loader/VulkanLoader.h"
 #include "vulkan_loader/VulkanCheckError.h"
@@ -64,13 +65,13 @@ namespace FGC
 	// interface
 	public:
 		virtual ~IWindow () {}
-		virtual bool Create (uint2 size, StringView title) = 0;
+		virtual bool Create (uint2 size, NtStringView title) = 0;
 		virtual void AddListener (IWindowEventListener *listener) = 0;
 		virtual void RemoveListener (IWindowEventListener *listener) = 0;
 		virtual bool Update () = 0;
 		virtual void Quit () = 0;
 		virtual void Destroy () = 0;
-		virtual void SetTitle (StringView value) = 0;
+		virtual void SetTitle (NtStringView value) = 0;
 		virtual void SetSize (const uint2 &value) = 0;
 		virtual void SetPosition (const int2 &value) = 0;
 

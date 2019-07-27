@@ -4,6 +4,7 @@
 
 #include "stl/Containers/ArrayView.h"
 #include "stl/Containers/StaticString.h"
+#include "stl/Containers/NtStringView.h"
 #include "stl/Containers/FixedArray.h"
 #include "stl/Containers/FixedMap.h"
 #include "stl/Containers/Union.h"

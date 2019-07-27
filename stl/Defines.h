@@ -331,6 +331,22 @@
 #endif
 
 
+// compile time messages
+#ifndef FG_COMPILATION_MESSAGE
+#	define FG_PRIVATE_MESSAGE_TOSTR(x)	#x
+
+#	if defined(COMPILER_CLANG) or defined(COMPILER_GCC)
+#		define FG_COMPILATION_MESSAGE( _message_ )	_Pragma(FG_PRIVATE_MESSAGE_TOSTR(GCC warning ("" _message_) ))
+
+#	elif defined(COMPILER_MSVC)
+#		define FG_COMPILATION_MESSAGE( _message_ )	__pragma(message( _message_ ))
+
+#	else
+#		define FG_COMPILATION_MESSAGE( _message )	// not supported
+#	endif
+#endif
+
+
 // check definitions
 #if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
 

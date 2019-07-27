@@ -43,7 +43,7 @@ namespace FG
 	_CreateFrameGraph
 =================================================
 */
-	bool BaseSceneApp::_CreateFrameGraph (const uint2 &windowSize, StringView windowTitle,
+	bool BaseSceneApp::_CreateFrameGraph (const uint2 &windowSize, NtStringView windowTitle,
 										  ArrayView<StringView> shaderDirectories, StringView dbgOutputPath)
 	{
 		// initialize window

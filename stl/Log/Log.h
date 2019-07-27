@@ -3,7 +3,7 @@
 #pragma once
 
 #include "stl/Defines.h"
-#include "stl/Containers/StringViewFwd.h"
+#include "stl/Containers/StringView.h"
 
 namespace FGC
 {

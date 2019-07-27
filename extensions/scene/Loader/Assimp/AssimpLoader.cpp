@@ -525,7 +525,7 @@ namespace {
 	Load
 =================================================
 */
-	IntermScenePtr  AssimpLoader::Load (const Config &config, StringView filename)
+	IntermScenePtr  AssimpLoader::Load (const Config &config, NtStringView filename)
 	{
 		const uint sceneLoadFlags = 0
 									| (config.calculateTBN ? aiProcess_CalcTangentSpace : 0)

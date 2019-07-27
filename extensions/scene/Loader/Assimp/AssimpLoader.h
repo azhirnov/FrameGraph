@@ -45,7 +45,7 @@ namespace FG
 		AssimpLoader ();
 		~AssimpLoader ();
 
-		ND_ IntermScenePtr  Load (const Config &config, StringView filename);
+		ND_ IntermScenePtr  Load (const Config &config, NtStringView filename);
 	};
 
 
