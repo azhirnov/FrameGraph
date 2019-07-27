@@ -8,6 +8,7 @@ elseif ( COMPILER_GCC OR COMPILER_CLANG OR COMPILER_CLANG_APPLE OR COMPILER_CLAN
 endif ()
 
 set( FG_COMPILER_DEFINITIONS "" )
+set( FG_LINK_LIBRARIES "" )
 
 #------------------------------------------------------------------------------
 check_cxx_source_compiles(
@@ -64,6 +65,10 @@ check_cxx_source_compiles(
 
 if (STD_FILESYSTEM_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_FILESYSTEM" )
+
+	if (${COMPILER_CLANG} OR ${COMPILER_CLANG_APPLE} OR ${COMPILER_CLANG_ANDROID} OR ${COMPILER_GCC})
+		set( FG_LINK_LIBRARIES "${FG_LINK_LIBRARIES}" "std++fs" )
+	endif()
 endif ()
 
 #------------------------------------------------------------------------------

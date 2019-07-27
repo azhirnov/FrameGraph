@@ -1,6 +1,9 @@
 cmake_minimum_required (VERSION 3.6.0)
 
+# defined in compiler_tests.cmake
 set( FG_GLOBAL_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" )
+set( FG_GLOBAL_LIBRARIES "${FG_LINK_LIBRARIES}" )
+
 set( FG_EXTERNALS_PATH "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH "Path to external projects sources" )
 set( FG_EXTERNALS_INSTALL_PATH "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Path to install external projects libraries" )
 #message( STATUS "FG_EXTERNALS_PATH: ${FG_EXTERNALS_PATH}" )
@@ -62,3 +65,4 @@ include( "${CMAKE_FOLDER}/download_openvr.cmake" )
 
 
 set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" CACHE INTERNAL "" FORCE )
+set( FG_GLOBAL_LIBRARIES "${FG_GLOBAL_LIBRARIES}" CACHE INTERNAL "" FORCE )
