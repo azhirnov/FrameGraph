@@ -377,6 +377,25 @@ namespace FGC
 		static constexpr auto log_base = std::log( base );
 		return std::log( x ) / log_base;
 	}
+	
+/*
+=================================================
+	Wrap
+=================================================
+*/
+	template <typename T>
+	forceinline EnableIf<IsFloatPoint<T>, T>  Wrap (const T& value, const T& minValue, const T& maxValue)
+	{
+		// check for NaN
+		if ( minValue >= maxValue )
+			return minValue;
 
+		T	result = T( minValue + std::fmod( value - minValue, maxValue - minValue ));
+		
+		if ( result < minValue )
+			result += (maxValue - minValue);
+
+		return result;
+	}
 
 }	// FGC

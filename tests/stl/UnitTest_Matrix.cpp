@@ -115,6 +115,7 @@ static void Matrix_Test6 ()
 static void Matrix_Test7 ()
 {
 	using float4x4_t = Matrix< float, 4, 4, EMatrixOrder::ColumnMajor >;
+	using float3x3_t = Matrix< float, 3, 3, EMatrixOrder::ColumnMajor >;
 
 	float4x4_t	m1{
 		3.0f, 4.0f, 5.0f, 1.0f,
@@ -129,6 +130,53 @@ static void Matrix_Test7 ()
 	for (uint r = 0; r < 4; ++r) {
 		TEST(Equals( m1[c][r], m3[c][r], 0.01f ));
 	}
+	
+	float3x3_t	m4{
+		3.0f, 4.0f, 5.0f,
+		7.0f, 2.0f, 6.0f,
+		3.0f, 1.0f, 9.0f,
+	};
+	float3x3_t	m5 = m4.Inverse();
+	float3x3_t	m6 = m5.Inverse();
+	
+	for (uint c = 0; c < 3; ++c)
+	for (uint r = 0; r < 3; ++r) {
+		TEST(Equals( m4[c][r], m6[c][r], 0.01f ));
+	}
+}
+
+
+static void Matrix_Test8 ()
+{
+	/*using float4x4_t = Matrix< float, 4, 4, EMatrixOrder::RowMajor >;
+	using float3x3_t = Matrix< float, 3, 3, EMatrixOrder::RowMajor >;
+
+	float4x4_t	m1{
+		3.0f, 4.0f, 5.0f, 1.0f,
+		7.0f, 2.0f, 6.0f, 0.5f,
+		3.0f, 1.0f, 9.0f, 4.0f,
+		5.0f, 2.0f, 4.0f, 2.0f
+	};
+	float4x4_t	m2 = m1.Inverse();
+	float4x4_t	m3 = m2.Inverse();
+	
+	for (uint c = 0; c < 4; ++c)
+	for (uint r = 0; r < 4; ++r) {
+		TEST(Equals( m1[c][r], m3[c][r], 0.01f ));
+	}
+	
+	float3x3_t	m4{
+		3.0f, 4.0f, 5.0f,
+		7.0f, 2.0f, 6.0f,
+		3.0f, 1.0f, 9.0f,
+	};
+	float3x3_t	m5 = m4.Inverse();
+	float3x3_t	m6 = m5.Inverse();
+	
+	for (uint c = 0; c < 3; ++c)
+	for (uint r = 0; r < 3; ++r) {
+		TEST(Equals( m4[c][r], m6[c][r], 0.01f ));
+	}*/
 }
 
 
@@ -141,6 +189,7 @@ extern void UnitTest_Matrix ()
 	Matrix_Test5();
 	Matrix_Test6();
 	Matrix_Test7();
+	Matrix_Test8();
 
 	FG_LOGI( "UnitTest_Matrix - passed" );
 }

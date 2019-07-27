@@ -901,7 +901,105 @@ namespace FGC
 		if constexpr( I == 4 )
 			return Min( v.x, v.y, v.z, v.w );
 	}
+	
+/*
+=================================================
+	Ln / Log / Log2 / Log10
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Ln (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Ln( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Log2 (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Log2( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Log10 (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Log10( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Log (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Log( v[i] );
+		}
+		return res;
+	}
+	
+/*
+=================================================
+	Wrap
+=================================================
+*/
+	template <typename T, uint I>
+	forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Wrap (const Vec<T,I>& value, const T& minValue, const T& maxValue)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Wrap( v[i], minValue, maxValue );
+		}
+		return res;
+	}
 
+/*
+=================================================
+	Round / RoundToInt / RoundToUint
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Round (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Round( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline constexpr auto  RoundToInt (const Vec<T,I>& v)
+	{
+		using R = decltype(RoundToInt(T()));
+
+		Vec<R,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = RoundToInt( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline constexpr auto  RoundToUint (const Vec<T,I>& v)
+	{
+		using R = decltype(RoundToUint(T()));
+
+		Vec<R,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = RoundToUint( v[i] );
+		}
+		return res;
+	}
 
 }	// FGC
 
