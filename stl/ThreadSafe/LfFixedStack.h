@@ -73,7 +73,7 @@ namespace FGC
 	private:
 		std::atomic<uint>			_count {0};
 		TupleOfArrays_t				_data;
-		static constexpr size_t		_tupleSize = std::tuple_size_v< TupleOfArrays_t >;
+		static constexpr size_t		_tupleSize = std::tuple_size< TupleOfArrays_t >::value;
 
 		
 	// methods

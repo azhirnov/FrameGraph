@@ -165,7 +165,7 @@ namespace FG
 
 			auto*	result = _results.emplace_back(new IncludeResultImpl{ std::move(data), headerName }).get();
 
-			_includedFiles.insert_or_assign( filename, result );
+			_includedFiles.insert_or_assign( fpath, result );
 			return result;
 		}
 #	endif

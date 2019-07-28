@@ -11,7 +11,7 @@ namespace FGC
 	template <typename T>	using BasicStringView	= std::basic_string_view<T>;
 }
 
-#else
+#elif defined(FG_ENABLE_STRINGVIEW)
 
 #	include "external/string_view/include/nonstd/string_view.hpp"
 

@@ -357,8 +357,8 @@ namespace FG
 		VkDevice				dev = _device.GetVkDevice();
 		VmaVulkanFunctions		funcs = {};
 
-		funcs.vkGetPhysicalDeviceProperties			= vkGetPhysicalDeviceProperties;
-		funcs.vkGetPhysicalDeviceMemoryProperties	= vkGetPhysicalDeviceMemoryProperties;
+		funcs.vkGetPhysicalDeviceProperties			= _var_vkGetPhysicalDeviceProperties;
+		funcs.vkGetPhysicalDeviceMemoryProperties	= _var_vkGetPhysicalDeviceMemoryProperties;
 		funcs.vkAllocateMemory						= BitCast<PFN_vkAllocateMemory>(vkGetDeviceProcAddr( dev, "vkAllocateMemory" ));
 		funcs.vkFreeMemory							= BitCast<PFN_vkFreeMemory>(vkGetDeviceProcAddr( dev, "vkFreeMemory" ));
 		funcs.vkMapMemory							= BitCast<PFN_vkMapMemory>(vkGetDeviceProcAddr( dev, "vkMapMemory" ));

@@ -18,6 +18,7 @@
 #include <cstring>
 #include <cmath>
 #include <malloc.h>
+#include <atomic>
 
 #include "stl/Log/Log.h"
 #include "stl/Algorithms/Hash.h"

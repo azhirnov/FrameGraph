@@ -110,7 +110,7 @@ namespace FGC
 			const uint8_t*	buf		= static_cast<const uint8_t*>(ptr);
 			HashVal			result;
 			for (size_t i = 0; i < sizeInBytes; ++i) {
-				result << HashVal{buf[i]);
+				result << HashVal{buf[i]};
 			}
 			return result;
 		#endif

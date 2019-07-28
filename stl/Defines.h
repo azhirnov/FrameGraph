@@ -94,19 +94,23 @@
 
 // debug break
 #ifndef FG_PRIVATE_BREAK_POINT
-# if defined(COMPILER_MSVC)
+# if defined(COMPILER_MSVC) and defined(FG_DEBUG)
 #	define FG_PRIVATE_BREAK_POINT()		__debugbreak()
 
-# elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
-#  if defined(PLATFORM_ANDROID) && defined(FG_DEBUG)
+# elif defined(PLATFORM_ANDROID) and defined(FG_DEBUG)
 #	define FG_PRIVATE_BREAK_POINT()		{}
-#  elif 1
+
+# elif (defined(COMPILER_CLANG) or defined(COMPILER_GCC)) and defined(FG_DEBUG)
+#  if 1
 #	include <exception>
 #	define FG_PRIVATE_BREAK_POINT() 	throw std::runtime_error("breakpoint")
-#  elif 0
+#  else
 #	include <csignal>
 #	define FG_PRIVATE_BREAK_POINT()		std::raise(SIGINT)
 #  endif
+
+# else
+#	define FG_PRIVATE_BREAK_POINT()		{}
 # endif
 #endif
 
@@ -333,16 +337,15 @@
 
 // compile time messages
 #ifndef FG_COMPILATION_MESSAGE
-#	define FG_PRIVATE_MESSAGE_TOSTR(x)	#x
-
-#	if defined(COMPILER_CLANG) or defined(COMPILER_GCC)
-#		define FG_COMPILATION_MESSAGE( _message_ )	_Pragma(FG_PRIVATE_MESSAGE_TOSTR(GCC warning ("" _message_) ))
+#	if defined(COMPILER_CLANG)
+#		define FG_PRIVATE_MESSAGE_TOSTR(x)	#x
+#		define FG_COMPILATION_MESSAGE( _message_ )	_Pragma(FG_PRIVATE_MESSAGE_TOSTR( GCC warning ("" _message_) ))
 
 #	elif defined(COMPILER_MSVC)
 #		define FG_COMPILATION_MESSAGE( _message_ )	__pragma(message( _message_ ))
 
 #	else
-#		define FG_COMPILATION_MESSAGE( _message )	// not supported
+#		define FG_COMPILATION_MESSAGE( _message_ )	// not supported
 #	endif
 #endif
 

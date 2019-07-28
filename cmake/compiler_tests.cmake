@@ -1,11 +1,12 @@
 include( CheckCXXSourceCompiles )
 
-if ( COMPILER_MSVC )
+if ( ${COMPILER_MSVC} )
 	set( CMAKE_REQUIRED_FLAGS "/std:c++latest" )
-
-elseif ( COMPILER_GCC OR COMPILER_CLANG OR COMPILER_CLANG_APPLE OR COMPILER_CLANG_ANDROID )
-	set( CMAKE_REQUIRED_FLAGS "-std=c++1z" )
+else()
+	set( CMAKE_REQUIRED_FLAGS "-std=c++17" )
 endif ()
+
+message( STATUS "Run compiler tests with flags: ${CMAKE_REQUIRED_FLAGS}" )
 
 set( FG_COMPILER_DEFINITIONS "" )
 set( FG_LINK_LIBRARIES "" )
@@ -22,6 +23,9 @@ check_cxx_source_compiles(
 
 if (STD_STRINGVIEW_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_STRINGVIEW" )
+	set( STD_STRINGVIEW_SUPPORTED ON CACHE INTERNAL "" FORCE )
+else()
+	set( STD_STRINGVIEW_SUPPORTED OFF CACHE INTERNAL "" FORCE )
 endif ()
 
 #------------------------------------------------------------------------------
@@ -36,6 +40,9 @@ check_cxx_source_compiles(
 
 if (STD_OPTIONAL_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_OPTIONAL" )
+	set( STD_OPTIONAL_SUPPORTED ON CACHE INTERNAL "" FORCE )
+else()
+	set( STD_OPTIONAL_SUPPORTED OFF CACHE INTERNAL "" FORCE )
 endif ()
 
 #------------------------------------------------------------------------------
@@ -51,6 +58,9 @@ check_cxx_source_compiles(
 
 if (STD_VARIANT_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_VARIANT" )
+	set( STD_VARIANT_SUPPORTED ON CACHE INTERNAL "" FORCE )
+else()
+	set( STD_VARIANT_SUPPORTED OFF CACHE INTERNAL "" FORCE )
 endif ()
 
 #------------------------------------------------------------------------------
@@ -67,8 +77,11 @@ if (STD_FILESYSTEM_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_FILESYSTEM" )
 
 	if (${COMPILER_CLANG} OR ${COMPILER_CLANG_APPLE} OR ${COMPILER_CLANG_ANDROID} OR ${COMPILER_GCC})
-		set( FG_LINK_LIBRARIES "${FG_LINK_LIBRARIES}" "std++fs" )
+		set( FG_LINK_LIBRARIES "${FG_LINK_LIBRARIES}" "stdc++fs" )
 	endif()
+	set( STD_FILESYSTEM_SUPPORTED ON CACHE INTERNAL "" FORCE )
+else()
+	set( STD_FILESYSTEM_SUPPORTED OFF CACHE INTERNAL "" FORCE )
 endif ()
 
 #------------------------------------------------------------------------------

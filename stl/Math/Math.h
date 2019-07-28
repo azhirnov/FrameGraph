@@ -374,7 +374,7 @@ namespace FGC
 	template <auto Base, typename T>
 	ND_ forceinline EnableIf<IsFloatPoint<T>, T>  Log (const T& x)
 	{
-		static constexpr auto log_base = std::log( base );
+		static constexpr auto log_base = std::log( Base );
 		return std::log( x ) / log_base;
 	}
 	

@@ -953,7 +953,7 @@ namespace FGC
 =================================================
 */
 	template <typename T, uint I>
-	forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Wrap (const Vec<T,I>& value, const T& minValue, const T& maxValue)
+	forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Wrap (const Vec<T,I>& v, const T& minValue, const T& maxValue)
 	{
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {

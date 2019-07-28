@@ -7,7 +7,6 @@ message( STATUS "project 'FrameGraph' generation started" )
 project( "FrameGraph" LANGUAGES C CXX )
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
 message( STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSION})" )
-message( STATUS "Compiler name: ${DETECTED_COMPILER}" )
 message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" )
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
 
@@ -21,7 +20,6 @@ set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version ins
 
 # test & samples dependencies
 set( FG_ENABLE_TESTS ON CACHE BOOL "enable tests" )
-set( FG_ENABLE_SAMPLES ON CACHE BOOL "enable samples" )
 set( FG_ENABLE_GLFW ON CACHE BOOL "use glfw (optional, required for tests)" )
 set( FG_ENABLE_SDL2 OFF CACHE BOOL "use SDL2 (optional, required for tests)" )
 set( FG_ENABLE_LODEPNG OFF CACHE BOOL "use lodepng (optional, may be used in tests)" )
@@ -59,8 +57,6 @@ add_subdirectory( "stl" "stl" )
 add_subdirectory( "framegraph" "framegraph" )
 
 add_subdirectory( "extensions" "extensions" )
-
-add_subdirectory( "samples" "samples" )
 
 message( STATUS "project 'FrameGraph' generation ended" )
 message( STATUS "\n==========================================================================" )

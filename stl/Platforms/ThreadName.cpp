@@ -43,9 +43,16 @@ namespace
 		}
 	#pragma warning(pop)
 	}
-}
-#endif
 //-----------------------------------------------------------------------------
+#else
+
+	static void SetCurrentThreadNameImpl (const char*)
+	{
+		FG_COMPILATION_MESSAGE( "SetCurrentThreadName() - not supported for current platform" )
+	}
+
+#endif
+}	// namespace
 
 
 /*
