@@ -27,15 +27,15 @@ namespace FGC
 		using Allocator_t	= UntypedAllocator;
 
 	private:
-		static constexpr BytesU	AllocOnStackMaxSize	= 64_b;
-		static constexpr T		NullChar			= T(0);
+		static constexpr T	NullChar = T(0);
 
 
 	// variables
 	private:
 		T const *	_data;
 		size_t		_length;
-		bool		_isDynamic	= false;
+		T			_buffer [32];
+		bool		_isAllocated	= false;
 
 
 	// methods
@@ -56,16 +56,17 @@ namespace FGC
 		Self& operator = (const std::basic_string<T> &) = delete;
 		Self& operator = (const T*) = delete;
 
-		operator StringView ()		const	{ return StringView{ _data, _length }; }
+		explicit operator StringView ()	const	{ return StringView{ _data, _length }; }
 
-		ND_ T const*	data ()		const	{ return _data; }
-		ND_ T const*	c_str ()	const	{ return _data; }
-		ND_ size_t		size ()		const	{ return _length; }
-		ND_ size_t		length ()	const	{ return _length; }
-		ND_ bool		empty ()	const	{ return _length == 0; }
+		ND_ T const*	data ()			const	{ return _data; }
+		ND_ T const*	c_str ()		const	{ return _data; }
+		ND_ size_t		size ()			const	{ return _length; }
+		ND_ size_t		length ()		const	{ return _length; }
+		ND_ bool		empty ()		const	{ return _length == 0; }
 
 	private:
-		void _Validate ();
+		bool  _Validate ();
+		bool  _IsStatic ()				const	{ return _data == &_buffer[0]; }
 	};
 
 
@@ -75,7 +76,7 @@ namespace FGC
 
 	template <typename T>
 	inline NtBasicStringView<T>::NtBasicStringView () :
-		_data{ &NullChar }, _length{ 0 }
+		_data{ _buffer }, _length{ 0 }, _buffer{ 0 }
 	{}
 
 	template <typename T>
@@ -96,14 +97,25 @@ namespace FGC
 	inline NtBasicStringView<T>::NtBasicStringView (const Self &other) :
 		_data{ other._data }, _length{ other._length }
 	{
-		_Validate();
+		if ( other._IsStatic() )
+		{
+			_data = _buffer;
+			std::memcpy( _buffer, other._buffer, sizeof(_buffer) );
+		}
+		else
+			_Validate();
 	}
 	
 	template <typename T>
 	inline NtBasicStringView<T>::NtBasicStringView (Self &&other) :
-		_data{ other._data }, _length{ other._length }, _isDynamic{ other._isDynamic }
+		_data{ other._data }, _length{ other._length }, _isAllocated{ other._isAllocated }
 	{
-		other._isDynamic = false;
+		if ( other._IsStatic() )
+		{
+			_data = _buffer;
+			std::memcpy( _buffer, other._buffer, sizeof(_buffer) );
+		}
+		other._isAllocated = false;
 	}
 
 	template <typename T>
@@ -123,37 +135,40 @@ namespace FGC
 	template <typename T>
 	inline NtBasicStringView<T>::~NtBasicStringView ()
 	{
-		if ( _isDynamic )
+		if ( _isAllocated )
 			Allocator_t::Deallocate( const_cast<T *>(_data), SizeOf<T> * (_length+1) );
 	}
 		
 	template <typename T>
-	inline void  NtBasicStringView<T>::_Validate ()
+	inline bool  NtBasicStringView<T>::_Validate ()
 	{
 		if ( not _data )
 		{
-			_data	= &NullChar;
-			_length	= 0;
-			return;
+			_buffer[0]	= 0;
+			_data		= _buffer;
+			_length		= 0;
+			return false;
 		}
 
 		if ( _data[_length] == NullChar )
-			return;
+			return false;
 		
 		T *		new_data;
 		BytesU	size	= SizeOf<T> * (_length+1);
 
-		if ( size > AllocOnStackMaxSize )
+		if ( size > sizeof(_buffer) )
 		{
-			_isDynamic	= true;
+			_isAllocated= true;
 			new_data	= Cast<T>( Allocator_t::Allocate( size ));
 		}
 		else
-			new_data	= Cast<T>( AllocOnStack( size ));
+			new_data	= _buffer;
 
 		memcpy( OUT new_data, _data, size_t(size) );
 		new_data[_length] = NullChar;
 		_data = new_data;
+
+		return true;
 	}
 
 }   // FGC

@@ -902,6 +902,17 @@ namespace FGC
 			return Min( v.x, v.y, v.z, v.w );
 	}
 	
+	template <typename T, uint I>
+	ND_ inline T  MaxOf (const Vec<T,I> &v)
+	{
+		if constexpr( I == 2 )
+			return Max( v.x, v.y );
+		if constexpr( I == 3 )
+			return Max( v.x, v.y, v.z );
+		if constexpr( I == 4 )
+			return Max( v.x, v.y, v.z, v.w );
+	}
+
 /*
 =================================================
 	Ln / Log / Log2 / Log10

@@ -4,6 +4,7 @@
 
 #include "stl/Math/Bytes.h"
 #include "stl/Math/Math.h"
+#include "stl/Memory/MemUtils.h"
 
 namespace FGC
 {
@@ -48,14 +49,14 @@ namespace FGC
 		template <typename T, typename ...Args>
 		ND_ T&  Emplace (Args&& ...args)
 		{
-			return *new(&Reserve<T>()) T{ std::forward<Args&&>( args )...};
+			return *PlacementNew<T>( &Reserve<T>(), std::forward<Args&&>( args )... );
 		}
 
 		template <typename T, typename ...Args>
 		ND_ T&  EmplaceSized (BytesU size, Args&& ...args)
 		{
 			ASSERT( size >= SizeOf<T> );
-			return *new(Reserve( size, AlignOf<T> )) T{ std::forward<Args&&>( args )...};
+			return *PlacementNew<T>( Reserve( size, AlignOf<T> ), std::forward<Args&&>( args )... );
 		}
 
 
@@ -71,7 +72,7 @@ namespace FGC
 			T*	result = ReserveArray<T>( count );
 
 			for (size_t i = 0; i < count; ++i) {
-				new(result + i) T{ std::forward<Args&&>( args )...};
+				PlacementNew<T>( result + i, std::forward<Args&&>( args )... );
 			}
 			return result;
 		}
@@ -84,13 +85,13 @@ namespace FGC
 		}
 
 
-		ND_ BytesU  OffsetOf (void *ptr) const
+		ND_ BytesU  OffsetOf (void *ptr, BytesU defaultValue = ~0_b) const
 		{
 			if ( ptr ) {
 				ASSERT( ptr >= _ptr and ptr < _ptr + _size );
 				return BytesU{size_t(ptr) - size_t(_ptr)};
 			}
-			return ~0_b;
+			return defaultValue;
 		}
 	};
 

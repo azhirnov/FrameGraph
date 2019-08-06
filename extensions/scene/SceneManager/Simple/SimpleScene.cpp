@@ -186,7 +186,7 @@ namespace {
 		for (size_t i = 0; i < _instances.size(); ++i)
 		{
 			auto&	tr = _instances[i].transform;
-			memcpy( mapped_ptr + SizeOf<Transform> * i, &tr, sizeof(tr) );
+			std::memcpy( mapped_ptr + SizeOf<Transform> * i, &tr, sizeof(tr) );
 		}
 
 		return true;

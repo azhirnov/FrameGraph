@@ -30,3 +30,4 @@
 ## Extensions
 - [ ] Shader graph
 - [ ] Script bindings
+- [ ] Static analyzer for shader source

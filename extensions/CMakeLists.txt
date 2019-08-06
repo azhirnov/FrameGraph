@@ -907,7 +907,5 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_IMGUI})
 endif()
 
 
-add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
 
-add_test( NAME "Tests.OfflineCompiler" COMMAND "Tests.OfflineCompiler" )
 

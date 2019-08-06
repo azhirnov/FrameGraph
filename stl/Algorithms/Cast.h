@@ -54,28 +54,28 @@ namespace FGC
 	template <typename R, typename T>
 	ND_ forceinline constexpr R const volatile*  Cast (T const volatile* value)
 	{
-		ASSERT( CheckPointerAlignment<R const volatile*>( value ));
+		ASSERT( CheckPointerAlignment<R>( value ));
 		return static_cast< R const volatile *>( static_cast< void const volatile *>(value) );
 	}
 
 	template <typename R, typename T>
 	ND_ forceinline constexpr R volatile*  Cast (T volatile* value)
 	{
-		ASSERT( CheckPointerAlignment<R volatile*>( value ));
+		ASSERT( CheckPointerAlignment<R>( value ));
 		return static_cast< R volatile *>( static_cast< void volatile *>(value) );
 	}
 
 	template <typename R, typename T>
 	ND_ forceinline constexpr R const*  Cast (T const* value)
 	{
-		ASSERT( CheckPointerAlignment<R const *>( value ));
+		ASSERT( CheckPointerAlignment<R>( value ));
 		return static_cast< R const *>( static_cast< void const *>(value) );
 	}
 	
 	template <typename R, typename T>
 	ND_ forceinline constexpr R*  Cast (T* value)
 	{
-		ASSERT( CheckPointerAlignment<R *>( value ));
+		ASSERT( CheckPointerAlignment<R>( value ));
 		return static_cast< R *>( static_cast< void *>(value) );
 	}
 
@@ -152,7 +152,7 @@ namespace FGC
 	{
 		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );
 		STATIC_ASSERT( alignof(To) == alignof(From), "must be same align!" );
-		STATIC_ASSERT( std::is_trivially_copyable<From>::value and std::is_trivial<To>::value, "must be trivial types!" );
+		//STATIC_ASSERT( std::is_trivially_copyable<From>::value and std::is_trivial<To>::value, "must be trivial types!" );
 
 		To	dst;
 		std::memcpy( OUT &dst, &src, sizeof(To) );

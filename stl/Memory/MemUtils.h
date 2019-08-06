@@ -43,7 +43,7 @@ namespace FGC
 		//STATIC_ASSERT( std::is_trivial_v<T1> and std::is_trivial_v<T2> );	// TODO
 		STATIC_ASSERT( not IsConst<T1> );
 
-		::memcpy( &dst, &src, sizeof(src) );
+		std::memcpy( &dst, &src, sizeof(src) );
 	}
 
 	forceinline void  MemCopy (void *dst, BytesU dstSize, const void *src, BytesU srcSize)
@@ -51,7 +51,7 @@ namespace FGC
 		ASSERT( srcSize <= dstSize );
 		ASSERT( dst and src );
 
-		::memcpy( dst, src, size_t(std::min(srcSize, dstSize)) );
+		std::memcpy( dst, src, size_t(std::min(srcSize, dstSize)) );
 	}
 
 /*

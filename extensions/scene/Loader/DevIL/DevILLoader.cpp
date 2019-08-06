@@ -174,7 +174,7 @@ namespace FG
 			CHECK_ERR( data_size == calc_data_size );
 
 			imageLevel.pixels.resize( data_size, false );
-			memcpy( OUT imageLevel.pixels.data(), ilGetData(), data_size );
+			std::memcpy( OUT imageLevel.pixels.data(), ilGetData(), data_size );
 		}
 
 		imageLevel.dimension	= uint3{int3{ width, height, depth }};

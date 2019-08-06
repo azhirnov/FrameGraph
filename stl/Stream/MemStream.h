@@ -40,7 +40,7 @@ namespace FGC
 		{
 			size = Min( size, Size() - _pos );
 
-			memcpy( OUT buffer, _data.data() + _pos, size_t(size) );
+			std::memcpy( OUT buffer, _data.data() + _pos, size_t(size) );
 			_pos += size;
 
 			return size;
@@ -78,7 +78,7 @@ namespace FGC
 			const size_t	prev_size = _data.size();
 
 			_data.resize( prev_size + size_t(size) );
-			memcpy( OUT _data.data() + BytesU(prev_size), buffer, size_t(size) );
+			std::memcpy( OUT _data.data() + BytesU(prev_size), buffer, size_t(size) );
 
 			return size;
 		}

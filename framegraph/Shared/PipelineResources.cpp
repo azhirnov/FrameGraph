@@ -773,7 +773,7 @@ namespace {
 		res._ResetCachedID();
 		res._dataPtr = DynamicDataPtr{ Cast<PipelineResources::DynamicData>( Allocator::Allocate( dataPtr->memSize ))};
 
-		memcpy( OUT res._dataPtr.get(), dataPtr.get(), size_t(dataPtr->memSize) );
+		std::memcpy( OUT res._dataPtr.get(), dataPtr.get(), size_t(dataPtr->memSize) );
 		res._dataPtr->layoutId = layoutId;
 
 		return true;
@@ -794,7 +794,7 @@ namespace {
 		auto&	data	= res._dataPtr;
 		auto*	result	= Cast<PipelineResources::DynamicData>( Allocator::Allocate( data->memSize ));
 		
-		memcpy( OUT result, data.get(), size_t(data->memSize) );
+		std::memcpy( OUT result, data.get(), size_t(data->memSize) );
 		return DynamicDataPtr{ result };
 	}
 	

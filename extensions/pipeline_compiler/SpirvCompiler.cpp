@@ -249,7 +249,7 @@ namespace FG
 		
 		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnoations ))
 		{
-			_ParseAnnotations( source, INOUT outReflection );
+			_ParseAnnotations( StringView{source}, INOUT outReflection );
 
 			for (auto& file : includer.GetIncludedFiles()) {
 				_ParseAnnotations( file.second->GetSource(), INOUT outReflection );
@@ -257,7 +257,7 @@ namespace FG
 		}
 
 		outShader.specConstants	= outReflection.specConstants;
-		outShader.AddShaderData( dstShaderFmt, entry, std::move(spirv), debugName );
+		outShader.AddShaderData( dstShaderFmt, StringView{entry}, std::move(spirv), debugName );
 
 		// compile shader with debug info
 		EShaderLangFormat			dbg_mode = (srcShaderFmt & EShaderLangFormat::_ModeMask);
@@ -281,7 +281,7 @@ namespace FG
 
 				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
-				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( entry, std::move(spirv), debugName, std::move(debug_utils) ) });
+				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( StringView{entry}, std::move(spirv), debugName, std::move(debug_utils) ) });
 				break;
 			}
 			//case EShaderLangFormat::EnableDebugAsserts :

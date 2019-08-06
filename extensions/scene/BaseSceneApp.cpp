@@ -58,7 +58,7 @@ namespace FG
 			#	error Unknown window library!
 			#endif
 
-			_title = windowTitle;
+			_title = StringView{windowTitle};
 
 			CHECK_ERR( _window->Create( windowSize, _title ));
 			_window->AddListener( this );

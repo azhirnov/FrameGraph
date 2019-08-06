@@ -144,7 +144,7 @@ namespace FG
 
 			for (uint i = 0, cnt = NumChannels(); i < cnt; ++i)
 			{
-				memcpy( col.data() + i, row.data() + i * channel_size, channel_size );
+				std::memcpy( col.data() + i, row.data() + i * channel_size, channel_size );
 			}
 		}
 		*/
@@ -159,7 +159,7 @@ namespace FG
 
 			for (uint i = 0, cnt = NumChannels(); i < cnt; ++i)
 			{
-				memcpy( col.data() + i, row.data() + i * channel_size, channel_size );
+				std::memcpy( col.data() + i, row.data() + i * channel_size, channel_size );
 			}
 		}*/
 	};

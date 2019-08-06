@@ -329,7 +329,7 @@ namespace {
 			{
 				auto	row = imageData.GetRow( y );
 
-				::memcpy( pixels.data() + (row_size * y), row.data(), row_size );
+				std::memcpy( pixels.data() + (row_size * y), row.data(), row_size );
 			}
 
 			err = lodepng::encode( filename, pixels.data(), imageData.Dimension().x, imageData.Dimension().y, colortype, bitdepth );

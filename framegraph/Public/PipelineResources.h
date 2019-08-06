@@ -256,7 +256,7 @@ namespace FG
 	inline ArrayView<uint>  PipelineResources::GetDynamicOffsets () const
 	{
 		SHAREDLOCK( _drCheck );
-		return _dataPtr ? ArrayView<uint>{ _dataPtr->DynamicOffsets(), _dataPtr->dynamicOffsetsCount } : ArrayView<uint>{};
+		return _dataPtr and _dataPtr->dynamicOffsetsCount ? ArrayView<uint>{ _dataPtr->DynamicOffsets(), _dataPtr->dynamicOffsetsCount } : ArrayView<uint>{};
 	}
 
 /*

@@ -10,6 +10,8 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 * supports RTX extensions.
 * supports async compute and async transfer queues.
 
+## Samples
+[FrameGraph-Samples](https://github.com/azhirnov/FrameGraph-Samples)
 
 ## Documentation
 * [Introduction](docs/Introduction.md)
@@ -50,6 +52,7 @@ Dependencies:<br/>
 [FreeImage](http://freeimage.sourceforge.net/) - (optional) for Scene extension.<br/>
 [imgui](https://github.com/ocornut/imgui) - (optional) for UI extension.<br/>
 [OpenVR](https://github.com/ValveSoftware/openvr) - (optional) for VR support.<br/>
+[GLM](https://glm.g-truc.net/0.9.9/index.html) - (optional) for Scene extension.<br/>
 
 
 ## References
