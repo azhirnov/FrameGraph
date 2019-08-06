@@ -113,7 +113,7 @@ namespace FG
 	Visualize
 =================================================
 */
-	bool GraphViz::Visualize (const FrameGraph &instance, const std::filesystem::path &filepath, StringView format, bool autoOpen, bool deleteOrigin)
+	bool GraphViz::Visualize (const FrameGraph &instance, const std::filesystem::path &filepath, StringView, bool autoOpen, bool deleteOrigin)
 	{
 		String	str;
 		CHECK_ERR( instance->DumpToGraphViz( OUT str ));

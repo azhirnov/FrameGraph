@@ -55,6 +55,7 @@ public:
 
 	bool Run (void* app = null)
 	{
+		FG_UNUSED( app );
 #	 if defined(FG_ENABLE_GLFW)
 		window.reset( new WindowGLFW{} );
 

@@ -89,7 +89,12 @@ if (${FG_ENABLE_GLSLANG})
 		# build
 		BINARY_DIR			""
 		BUILD_COMMAND		""
-		INSTALL_COMMAND		""
+		INSTALL_COMMAND		${CMAKE_COMMAND} -E copy_if_different
+								"${FG_EXTERNAL_GLSLANG_PATH}/StandAlone/ResourceLimits.h"
+								"${FG_GLSLANG_INSTALL_DIR}/include/StandAlone/ResourceLimits.h"
+							COMMAND ${CMAKE_COMMAND} -E copy_if_different
+								"${FG_EXTERNAL_GLSLANG_PATH}/StandAlone/ResourceLimits.cpp"
+								"${FG_GLSLANG_INSTALL_DIR}/include/StandAlone/ResourceLimits.cpp"
 		TEST_COMMAND		""
 	)
 	
@@ -134,12 +139,7 @@ if (${FG_ENABLE_GLSLANG})
 		# build
 		BINARY_DIR			""
 		BUILD_COMMAND		""
-		INSTALL_COMMAND		${CMAKE_COMMAND} -E copy_if_different
-								"${FG_EXTERNAL_GLSLANG_PATH}/StandAlone/ResourceLimits.h"
-								"${FG_GLSLANG_INSTALL_DIR}/include/StandAlone/ResourceLimits.h"
-							COMMAND ${CMAKE_COMMAND} -E copy_if_different
-								"${FG_EXTERNAL_GLSLANG_PATH}/StandAlone/ResourceLimits.cpp"
-								"${FG_GLSLANG_INSTALL_DIR}/include/StandAlone/ResourceLimits.cpp"
+		INSTALL_COMMAND		""
 		TEST_COMMAND		""
 	)
 	
