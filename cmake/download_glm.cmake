@@ -2,6 +2,7 @@
 
 if (${FG_ENABLE_GLM})
 	set( FG_EXTERNAL_GLM_PATH "" CACHE PATH "path to glm source" )
+	mark_as_advanced( FG_EXTERNAL_GLM_PATH )
 
 	# reset to default
 	if (NOT EXISTS "${FG_EXTERNAL_GLM_PATH}/glm/glm.hpp")
@@ -52,6 +53,9 @@ if (${FG_ENABLE_GLM})
 	)
 	
 	set_property( TARGET "External.GLM" PROPERTY FOLDER "External" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_GLM" )
-	set( FG_GLM_INCLUDE_DIR "${FG_EXTERNAL_GLM_PATH}/glm" CACHE INTERNAL "" FORCE )
+
+	add_library( "GLM-lib" INTERFACE )
+	target_include_directories( "GLM-lib" INTERFACE "${FG_EXTERNAL_GLM_PATH}/glm" )
+	target_compile_definitions( "GLM-lib" INTERFACE "FG_ENABLE_GLM" )
+	add_dependencies( "GLM-lib" "External.GLM" )
 endif ()

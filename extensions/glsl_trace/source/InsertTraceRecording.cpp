@@ -5,10 +5,9 @@
 #define HIGH_DETAIL_TRACE
 
 // glslang includes
-#include "glslang/glslang/Include/revision.h"
-#include "glslang/glslang/OSDependent/osinclude.h"
-#include "glslang/glslang/MachineIndependent/localintermediate.h"
-#include "glslang/glslang/Include/intermediate.h"
+#include "glslang/Include/revision.h"
+#include "glslang/MachineIndependent/localintermediate.h"
+#include "glslang/Include/intermediate.h"
 
 using namespace glslang;
 using VariableID = ShaderTrace::VariableID;
@@ -1823,6 +1822,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 		dbgInfo.CacheSymbolNode( symb );
 	}
 
+# ifdef NV_EXTENSIONS
 	if ( need_launch_id and not dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" ))
 	{
 		TPublicType		uint_type;	uint_type.init({});
@@ -1835,6 +1835,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 		symb->setLoc( loc );
 		dbgInfo.CacheSymbolNode( symb );
 	}
+# endif	// NV_EXTENSIONS
 
 	if ( shader == EShLangVertex and not dbgInfo.GetCachedSymbolNode( "gl_VertexIndex" ))
 	{

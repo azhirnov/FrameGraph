@@ -130,6 +130,7 @@ set( SOURCES
 	"../cmake/download_imgui.cmake"
 	"../cmake/download_lodepng.cmake"
 	"../cmake/download_openvr.cmake"
+	"../cmake/download_prebuild.cmake"
 	"../cmake/download_sdl2.cmake"
 	"../cmake/download_stdalloc.cmake"
 	"../cmake/download_stdoptional.cmake"
@@ -191,7 +192,6 @@ source_group( "" FILES "CMakeLists.txt" "FG.h" )
 source_group( "Vulkan\\CommandBuffer" FILES "Vulkan/CommandBuffer/VBarrierManager.h" "Vulkan/CommandBuffer/VCmdBatch.cpp" "Vulkan/CommandBuffer/VCmdBatch.h" "Vulkan/CommandBuffer/VCommandBuffer.cpp" "Vulkan/CommandBuffer/VCommandBuffer.h" "Vulkan/CommandBuffer/VCommandPool.cpp" "Vulkan/CommandBuffer/VCommandPool.h" "Vulkan/CommandBuffer/VDrawTask.h" "Vulkan/CommandBuffer/VSubmitted.cpp" "Vulkan/CommandBuffer/VSubmitted.h" "Vulkan/CommandBuffer/VTaskGraph.h" "Vulkan/CommandBuffer/VTaskGraph.hpp" "Vulkan/CommandBuffer/VTaskProcessor.cpp" "Vulkan/CommandBuffer/VTaskProcessor.h" )
 source_group( "Vulkan\\Descriptors" FILES "Vulkan/Descriptors/VDescriptorManager.cpp" "Vulkan/Descriptors/VDescriptorManager.h" "Vulkan/Descriptors/VDescriptorSetLayout.cpp" "Vulkan/Descriptors/VDescriptorSetLayout.h" "Vulkan/Descriptors/VPipelineResources.cpp" "Vulkan/Descriptors/VPipelineResources.h" )
 target_include_directories( "FrameGraph" PUBLIC ".." )
-target_include_directories( "FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Utils" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/RenderPass" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Pipeline" )
@@ -207,11 +207,13 @@ target_include_directories( "FrameGraph" PRIVATE "Vulkan" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Buffer" )
 target_include_directories( "FrameGraph" PRIVATE "Vulkan/Descriptors" )
 if (${FG_ENABLE_STDALLOC})
-	target_link_libraries( "FrameGraph" "foonathan_memory" )
+	target_link_libraries( "FrameGraph" "StdAlloc-lib" )
 endif()
 target_link_libraries( "FrameGraph" "VulkanLoader" )
 target_link_libraries( "FrameGraph" "STL" )
-target_compile_definitions( "FrameGraph" PUBLIC "${FG_GLOBAL_DEFINITIONS}" )
+if (${FG_ENABLE_VMA})
+	target_link_libraries( "FrameGraph" "VMA-lib" )
+endif()
 # compiler
 if (PROJECTS_SHARED_CXX_FLAGS_DEBUG)
 	target_compile_options( "FrameGraph" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
@@ -309,7 +311,6 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	source_group( "" FILES "../tests/framegraph/FGApp.cpp" "../tests/framegraph/FGApp.h" "../tests/framegraph/main.cpp" )
 	source_group( "ImplTests" FILES "../tests/framegraph/ImplTests/ImplTest_CacheOverflow1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading1.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading2.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading3.cpp" "../tests/framegraph/ImplTests/ImplTest_Multithreading4.cpp" "../tests/framegraph/ImplTests/ImplTest_Scene1.cpp" )
 	set_property( TARGET "Tests.FrameGraph" PROPERTY FOLDER "Tests" )
-	target_include_directories( "Tests.FrameGraph" PUBLIC "${FG_EXTERNALS_PATH}" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/CommandBuffer" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/framegraph/../../framegraph/Vulkan/Buffer" )
 	target_include_directories( "Tests.FrameGraph" PRIVATE "../tests/.." )
@@ -329,10 +330,10 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	if (${FG_ENABLE_GRAPHVIZ})
 		target_link_libraries( "Tests.FrameGraph" "GraphViz" )
 	endif()
-	if (${FG_ENABLE_LODEPNG})
-		target_link_libraries( "Tests.FrameGraph" "lodepng" )
-	endif()
 	target_link_libraries( "Tests.FrameGraph" "PipelineCompiler" )
+	if (${FG_ENABLE_LODEPNG})
+		target_link_libraries( "Tests.FrameGraph" "lodepng-lib" )
+	endif()
 	target_link_libraries( "Tests.FrameGraph" "Framework" )
 	target_compile_definitions( "Tests.FrameGraph" PUBLIC "FG_TEST_GRAPHS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Graphs\"" )
 	target_compile_definitions( "Tests.FrameGraph" PUBLIC "FG_TEST_DUMPS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../tests/framegraph/Dumps\"" )
@@ -369,6 +370,4 @@ if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND ${FG_ENABLE_GLFW} OR ${FG_EN
 	
 endif()
 
-
-add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
 

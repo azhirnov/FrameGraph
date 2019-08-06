@@ -5,7 +5,7 @@
 #include "stl/Containers/Singleton.h"
 
 #ifdef FG_ENABLE_SDL2
-#	include "SDL2/include/SDL_syswm.h"
+#	include "SDL_syswm.h"
 
 namespace FGC
 {

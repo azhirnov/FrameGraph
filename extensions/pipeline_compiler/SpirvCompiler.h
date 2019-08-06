@@ -5,7 +5,7 @@
 #include "EShaderCompilationFlags.h"
 #include "framegraph/Public/ResourceEnums.h"
 #include "framegraph/Public/VertexEnums.h"
-#include "glslang/glslang/Include/ResourceLimits.h"
+#include "glslang/Include/ResourceLimits.h"
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>

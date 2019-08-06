@@ -1,7 +1,18 @@
 # find or download AngelScript SDK
 
-if (${FG_ENABLE_ANGELSCRIPT})
+if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_ANGELSCRIPT})
+	add_library( "AngelScript-lib" INTERFACE )
+	target_include_directories( "AngelScript-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/angelscript/include" )
+	target_compile_definitions( "AngelScript-lib" INTERFACE "FG_ENABLE_ANGELSCRIPT" )
+	add_dependencies( "AngelScript-lib" "FG.External" )
+	set_property( TARGET "AngelScript-lib" PROPERTY INTERFACE_LINK_LIBRARIES
+		"${FG_EXTERNAL_PREBUILD_PATH}/angelscript/lib/${CMAKE_STATIC_LIBRARY_PREFIX}angelscript${CMAKE_STATIC_LIBRARY_SUFFIX}"
+		"${FG_EXTERNAL_PREBUILD_PATH}/angelscript/lib/${CMAKE_STATIC_LIBRARY_PREFIX}angelscript_addons${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+
+
+elseif (${FG_ENABLE_ANGELSCRIPT})
 	set( FG_EXTERNAL_ANGELSCRIPT_PATH "" CACHE PATH "path to AngelScript SDK" )
+	mark_as_advanced( FG_EXTERNAL_ANGELSCRIPT_PATH )
 
 	# reset to default
 	if (NOT EXISTS "${FG_EXTERNAL_ANGELSCRIPT_PATH}/angelscript/projects/cmake/CMakeLists.txt")
@@ -17,7 +28,7 @@ if (${FG_ENABLE_ANGELSCRIPT})
 		set( FG_ANGELSCRIPT_DOWNLOAD_LINK "" )
 	endif ()
 	
-	set( FG_ANGELSCRIPT_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/angelscript" CACHE INTERNAL "" FORCE )
+	set( FG_ANGELSCRIPT_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/angelscript" )
 
 	ExternalProject_Add( "External.AngelScript"
 		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
@@ -58,7 +69,13 @@ if (${FG_ENABLE_ANGELSCRIPT})
 	)
 	
 	set_property( TARGET "External.AngelScript" PROPERTY FOLDER "External" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_ANGELSCRIPT" )
-	set( FG_ANGELSCRIPT_INCLUDE_DIR "${FG_ANGELSCRIPT_INSTALL_DIR}/include" CACHE INTERNAL "" FORCE )
-	set( FG_ANGELSCRIPT_LIBRARY_DIR "${FG_ANGELSCRIPT_INSTALL_DIR}/lib" CACHE INTERNAL "" FORCE )
+	
+	add_library( "AngelScript-lib" INTERFACE )
+	target_include_directories( "AngelScript-lib" INTERFACE "${FG_ANGELSCRIPT_INSTALL_DIR}/include" )
+	target_compile_definitions( "AngelScript-lib" INTERFACE "FG_ENABLE_ANGELSCRIPT" )
+	add_dependencies( "AngelScript-lib" "External.AngelScript" )
+	set_property( TARGET "AngelScript-lib" PROPERTY INTERFACE_LINK_LIBRARIES
+		"${FG_ANGELSCRIPT_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}angelscript${CMAKE_STATIC_LIBRARY_SUFFIX}"
+		"${FG_ANGELSCRIPT_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}angelscript_addons${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+
 endif ()

@@ -5,7 +5,7 @@
 #include <array>
 #include <assert.h>
 
-#include "glslang/glslang/Include/BaseTypes.h"
+#include "glslang/Include/BaseTypes.h"
 using namespace glslang;
 
 using VariableID = ShaderTrace::VariableID;

@@ -11,12 +11,28 @@ message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" 
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
 
 
+if(CI_BUILD)
+	set( FG_ENABLE_OPENVR OFF CACHE INTERNAL "" FORCE )
+	set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS ON CACHE INTERNAL "" FORCE )
+	set( FG_ENABLE_TESTS ON CACHE INTERNAL "" FORCE )
+	set( FG_ENABLE_ASSIMP OFF CACHE INTERNAL "" FORCE )
+	set( FG_ENABLE_GLM OFF CACHE INTERNAL "" FORCE )
+	set( FG_ENABLE_DEVIL OFF CACHE INTERNAL "" FORCE )
+	set( FG_ENABLE_FREEIMAGE OFF CACHE INTERNAL "" FORCE )
+
+	enable_testing()
+	add_test( NAME "Tests.STL" COMMAND "Tests.STL" )
+	add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
+	#add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
+endif()
+
 set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
 set( FG_ENABLE_OPENVR ON CACHE BOOL "use OpenVR (optional)" )
 set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS OFF CACHE BOOL "use simplified compiler settings if you have problem with it" )
 set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version instead of master branch" )
+set( FG_EXTERNALS_USE_PREBUILD OFF CACHE BOOL "use stable prebuild libraries" )
 
 # test & samples dependencies
 set( FG_ENABLE_TESTS ON CACHE BOOL "enable tests" )

@@ -5,6 +5,9 @@
 #include "stl/Common.h"
 #include "stl/Containers/NtStringView.h"
 
+#ifndef FG_ENABLE_VULKAN
+#	error Required Vulkan support!
+#endif
 
 #ifdef FG_VULKAN_STATIC
 

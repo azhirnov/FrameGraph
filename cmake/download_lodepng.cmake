@@ -2,9 +2,10 @@
 
 if (${FG_ENABLE_LODEPNG})
 	set( FG_EXTERNAL_LODEPNG_PATH "" CACHE PATH "path to lodepng source" )
+	mark_as_advanced( FG_EXTERNAL_LODEPNG_PATH )
 	
 	# reset to default
-	if (NOT EXISTS ${FG_EXTERNAL_LODEPNG_PATH})
+	if (NOT EXISTS "${FG_EXTERNAL_LODEPNG_PATH}/lodepng.h")
 		message( STATUS "lodepng is not found in \"${FG_EXTERNAL_LODEPNG_PATH}\"" )
 		set( FG_EXTERNAL_LODEPNG_PATH "${FG_EXTERNALS_PATH}/lodepng" CACHE PATH "" FORCE )
 	else ()
@@ -34,5 +35,9 @@ if (${FG_ENABLE_LODEPNG})
 	endif ()
 	
 	add_subdirectory( "${FG_EXTERNAL_LODEPNG_PATH}" "lodepng" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_LODEPNG" )
+
+	add_library( "lodepng-lib" INTERFACE )
+	set_property( TARGET "lodepng-lib" PROPERTY INTERFACE_LINK_LIBRARIES "lodepng" )
+	target_include_directories( "lodepng-lib" INTERFACE "${FG_EXTERNAL_LODEPNG_PATH}" )
+	target_compile_definitions( "lodepng-lib" INTERFACE "FG_ENABLE_LODEPNG" )
 endif ()

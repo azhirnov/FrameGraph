@@ -5,7 +5,7 @@
 #include "framework/Window/IWindow.h"
 
 #ifdef FG_ENABLE_GLFW
-# include "glfw/include/GLFW/glfw3.h"
+# include "GLFW/glfw3.h"
 
 namespace FGC
 {

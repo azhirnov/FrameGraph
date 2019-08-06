@@ -2,9 +2,10 @@
 
 if (NOT ${STD_STRINGVIEW_SUPPORTED})
 	set( FG_EXTERNAL_STDSTRINGVIEW_PATH "" CACHE PATH "path to std::string_view source" )
+	mark_as_advanced( FG_EXTERNAL_STDSTRINGVIEW_PATH )
 
 	# reset to default
-	if (NOT EXISTS ${FG_EXTERNAL_STDSTRINGVIEW_PATH})
+	if (NOT EXISTS "${FG_EXTERNAL_STDSTRINGVIEW_PATH}/include/nonstd/string_view.hpp")
 		message( STATUS "std::string_view is not found in \"${FG_EXTERNAL_STDSTRINGVIEW_PATH}\"" )
 		set( FG_EXTERNAL_STDSTRINGVIEW_PATH "${FG_EXTERNALS_PATH}/string_view" CACHE PATH "" FORCE )
 	else ()
@@ -26,5 +27,7 @@ if (NOT ${STD_STRINGVIEW_SUPPORTED})
 		endif ()
 	endif ()
 
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_OPTIONAL" )
+	add_library( "StdStringView-lib" INTERFACE )
+	target_include_directories( "StdStringView-lib" INTERFACE "${FG_EXTERNAL_STDSTRINGVIEW_PATH}/include" )
+	target_compile_definitions( "StdStringView-lib" INTERFACE "FG_ENABLE_STRINGVIEW" )
 endif ()

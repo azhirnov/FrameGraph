@@ -6,8 +6,8 @@
 #include "scene/SceneManager/IImageCache.h"
 #include "stl/Algorithms/StringUtils.h"
 
-#include "DevIL/include/IL/il.h"
-#include "DevIL/include/IL/ilu.h"
+#include "IL/il.h"
+#include "IL/ilu.h"
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>

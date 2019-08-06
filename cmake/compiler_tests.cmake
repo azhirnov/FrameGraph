@@ -18,8 +18,7 @@ check_cxx_source_compiles(
 		std::string_view str{\"1234\"};
 		return 0;
 	}"
-	STD_STRINGVIEW_SUPPORTED
-)
+	STD_STRINGVIEW_SUPPORTED )
 
 if (STD_STRINGVIEW_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_STRINGVIEW" )
@@ -35,8 +34,7 @@ check_cxx_source_compiles(
 		std::optional<int> opt;
 		return opt.has_value() ? 0 : 1;
 	}"
-	STD_OPTIONAL_SUPPORTED
-)
+	STD_OPTIONAL_SUPPORTED )
 
 if (STD_OPTIONAL_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_OPTIONAL" )
@@ -53,8 +51,7 @@ check_cxx_source_compiles(
 		var = 1.0f;
 		return 0;
 	}"
-	STD_VARIANT_SUPPORTED
-)
+	STD_VARIANT_SUPPORTED )
 
 if (STD_VARIANT_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_VARIANT" )
@@ -70,8 +67,7 @@ check_cxx_source_compiles(
 	int main () {
 		return 0;
 	}"
-	STD_FILESYSTEM_SUPPORTED
-)
+	STD_FILESYSTEM_SUPPORTED )
 
 if (STD_FILESYSTEM_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_FILESYSTEM" )
@@ -91,8 +87,7 @@ check_cxx_source_compiles(
 	int main () {
 		return 0;
 	}"
-	STD_CACHELINESIZE_SUPPORTED
-)
+	STD_CACHELINESIZE_SUPPORTED )
 
 if (STD_CACHELINESIZE_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_CACHE_LINE=std::hardware_destructive_interference_size" )
@@ -107,8 +102,7 @@ check_cxx_source_compiles(
 		std::barrier  temp;
 		return 0;
 	}"
-	STD_BARRIER_SUPPORTED
-)
+	STD_BARRIER_SUPPORTED )
 
 if (STD_BARRIER_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_BARRIER" )
@@ -122,8 +116,7 @@ check_cxx_source_compiles(
 		(void)(std::_Hash_array_representation( reinterpret_cast<const unsigned char*>(buffer), std::size(buffer) ));
 		return 0;
 	}"
-	HAS_HASHFN_HashArrayRepresentation
-)
+	HAS_HASHFN_HashArrayRepresentation )
 
 if (HAS_HASHFN_HashArrayRepresentation)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_HAS_HASHFN_HashArrayRepresentation" )
@@ -137,8 +130,7 @@ check_cxx_source_compiles(
 		(void)(std::__murmur2_or_cityhash<size_t>()( buffer, std::size(buffer) ));
 		return 0;
 	}"
-	HAS_HASHFN_Murmur2OrCityhash
-)
+	HAS_HASHFN_Murmur2OrCityhash )
 
 if (HAS_HASHFN_Murmur2OrCityhash)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_HAS_HASHFN_Murmur2OrCityhash" )
@@ -152,8 +144,7 @@ check_cxx_source_compiles(
 		(void)(std::_Hash_bytes( buffer, std::size(buffer), 0 ));
 		return 0;
 	}"
-	HAS_HASHFN_HashBytes
-)
+	HAS_HASHFN_HashBytes )
 
 if (HAS_HASHFN_HashBytes)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_HAS_HASHFN_HashBytes" )
@@ -162,3 +153,7 @@ endif ()
 #------------------------------------------------------------------------------
 
 set( CMAKE_REQUIRED_FLAGS "" )
+set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" CACHE INTERNAL "" FORCE )
+
+#message( STATUS "Supported features = ${CMAKE_CXX_COMPILE_FEATURES}" )
+

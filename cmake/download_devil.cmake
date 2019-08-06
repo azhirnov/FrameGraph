@@ -2,6 +2,7 @@
 
 if (${FG_ENABLE_DEVIL})
 	set( FG_EXTERNAL_DEVIL_PATH "" CACHE PATH "path to DevIL SDK" )
+	mark_as_advanced( FG_EXTERNAL_DEVIL_PATH )
 
 	# reset to default
 	if (NOT EXISTS "${FG_EXTERNAL_DEVIL_PATH}/include/IL/il.h")
@@ -17,12 +18,10 @@ if (${FG_ENABLE_DEVIL})
 		set( FG_DEVIL_DOWNLOAD_LINK "" )
 	endif ()
 	
-	set( FG_DEVIL_INCLUDE_DIR "${FG_EXTERNAL_DEVIL_PATH}/include" CACHE INTERNAL "" FORCE )
-	
 	if ("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
-		set( FG_DEVIL_LIBRARY_DIR "${FG_EXTERNAL_DEVIL_PATH}/lib/x86/Release" CACHE INTERNAL "" FORCE )
+		set( FG_DEVIL_LIBRARY_DIR "${FG_EXTERNAL_DEVIL_PATH}/lib/x86/Release" )
 	elseif ("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
-		set( FG_DEVIL_LIBRARY_DIR "${FG_EXTERNAL_DEVIL_PATH}/lib/x64/Release" CACHE INTERNAL "" FORCE )
+		set( FG_DEVIL_LIBRARY_DIR "${FG_EXTERNAL_DEVIL_PATH}/lib/x64/Release" )
 	else ()
 		message( FATAL_ERROR "can't detect 32 or 64-bit platform" )
 	endif()
@@ -55,5 +54,10 @@ if (${FG_ENABLE_DEVIL})
 	)
 	
 	set_property( TARGET "External.DevIL" PROPERTY FOLDER "External" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_DEVIL" )
+
+	add_library( "DevIL-lib" INTERFACE )
+	set_property( TARGET "DevIL-lib" PROPERTY INTERFACE_LINK_LIBRARIES "${FG_DEVIL_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}ILU${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+	target_include_directories( "DevIL-lib" INTERFACE "${FG_EXTERNAL_DEVIL_PATH}/include" )
+	target_compile_definitions( "DevIL-lib" INTERFACE "FG_ENABLE_DEVIL" )
+	add_dependencies( "DevIL-lib" "External.DevIL" )
 endif ()

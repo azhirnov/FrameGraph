@@ -1,7 +1,17 @@
 # find or download imgui
 
-if (${FG_ENABLE_IMGUI})
+if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_IMGUI})
+	add_library( "imgui-lib" INTERFACE )
+	target_include_directories( "imgui-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/imgui/include" )
+	target_compile_definitions( "imgui-lib" INTERFACE "FG_ENABLE_IMGUI" )
+	add_dependencies( "imgui-lib" "FG.External" )
+	set_property( TARGET "imgui-lib" PROPERTY INTERFACE_LINK_LIBRARIES
+		"${FG_EXTERNAL_PREBUILD_PATH}/imgui/lib/${CMAKE_STATIC_LIBRARY_PREFIX}imgui${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+
+
+elseif (${FG_ENABLE_IMGUI})
 	set( FG_EXTERNAL_IMGUI_PATH "" CACHE PATH "path to imgui source" )
+	mark_as_advanced( FG_EXTERNAL_IMGUI_PATH )
 
 	# reset to default
 	if (NOT EXISTS "${FG_EXTERNAL_IMGUI_PATH}/imgui.h")
@@ -17,7 +27,7 @@ if (${FG_ENABLE_IMGUI})
 		set( FG_IMGUI_REPOSITORY "" )
 	endif ()
 	
-	set( FG_IMGUI_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/imgui" CACHE INTERNAL "" FORCE )
+	set( FG_IMGUI_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/imgui" )
 
 	ExternalProject_Add( "External.imgui"
 		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
@@ -60,7 +70,12 @@ if (${FG_ENABLE_IMGUI})
 	)
 	
 	set_property( TARGET "External.imgui" PROPERTY FOLDER "External" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_IMGUI" )
-	set( FG_IMGUI_SOURCE_DIR "${FG_EXTERNAL_IMGUI_PATH}" CACHE INTERNAL "" FORCE)
-	set( FG_IMGUI_LIBRARY "${FG_IMGUI_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}imgui${CMAKE_STATIC_LIBRARY_SUFFIX}" CACHE INTERNAL "" FORCE )
+	
+	add_library( "imgui-lib" INTERFACE )
+	target_include_directories( "imgui-lib" INTERFACE "${FG_EXTERNAL_IMGUI_PATH}" )
+	target_compile_definitions( "imgui-lib" INTERFACE "FG_ENABLE_IMGUI" )
+	add_dependencies( "imgui-lib" "External.imgui" )
+	set_property( TARGET "imgui-lib" PROPERTY INTERFACE_LINK_LIBRARIES
+		"${FG_IMGUI_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}imgui${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+
 endif ()

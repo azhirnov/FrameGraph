@@ -1,20 +1,18 @@
-cmake_minimum_required (VERSION 3.6.0)
-
-# defined in compiler_tests.cmake
-set( FG_GLOBAL_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" )
-set( FG_GLOBAL_LIBRARIES "${FG_LINK_LIBRARIES}" )
+cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 set( FG_EXTERNALS_PATH "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH "Path to external projects sources" )
 set( FG_EXTERNALS_INSTALL_PATH "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Path to install external projects libraries" )
 #message( STATUS "FG_EXTERNALS_PATH: ${FG_EXTERNALS_PATH}" )
 #message( STATUS "FG_EXTERNALS_INSTALL_PATH: ${FG_EXTERNALS_INSTALL_PATH}" )
-
+mark_as_advanced( FG_EXTERNALS_PATH FG_EXTERNALS_INSTALL_PATH )
 
 # prepare for FetchContent
 if (NOT CMAKE_VERSION VERSION_LESS 3.11.0)
 	include(FetchContent)
 	#set( FETCHCONTENT_FULLY_DISCONNECTED ON CACHE BOOL "don't download externals" )
 	set( FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "don't update externals" )
+	mark_as_advanced( FETCHCONTENT_BASE_DIR FETCHCONTENT_FULLY_DISCONNECTED )
+	mark_as_advanced( FETCHCONTENT_QUIET FETCHCONTENT_UPDATES_DISCONNECTED )
 endif ()
 
 
@@ -48,6 +46,7 @@ endif ()
 
 set( CMAKE_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../cmake" )
 
+include( "${CMAKE_FOLDER}/download_prebuild.cmake" )
 include( "${CMAKE_FOLDER}/download_stdoptional.cmake" )
 include( "${CMAKE_FOLDER}/download_stdvariant.cmake" )
 include( "${CMAKE_FOLDER}/download_stdstringview.cmake" )
@@ -65,8 +64,6 @@ include( "${CMAKE_FOLDER}/download_devil.cmake" )
 include( "${CMAKE_FOLDER}/download_freeimage.cmake" )
 include( "${CMAKE_FOLDER}/graphviz.cmake" )
 include( "${CMAKE_FOLDER}/download_angelscript.cmake" )
+include( "${CMAKE_FOLDER}/download_freetype.cmake" )
+include( "${CMAKE_FOLDER}/download_utf8proc.cmake" )
 include( "${CMAKE_FOLDER}/download_openvr.cmake" )
-
-
-set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" CACHE INTERNAL "" FORCE )
-set( FG_GLOBAL_LIBRARIES "${FG_GLOBAL_LIBRARIES}" CACHE INTERNAL "" FORCE )

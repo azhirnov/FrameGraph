@@ -10,7 +10,7 @@
 #include <thread>
 
 #ifdef FG_ENABLE_LODEPNG
-#	include "lodepng/lodepng.h"
+#	include "lodepng.h"
 #endif
 
 extern void UnitTest_VResourceManager (const FG::FrameGraph &fg);
