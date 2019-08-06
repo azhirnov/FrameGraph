@@ -7,6 +7,16 @@
 
 namespace FGC
 {
+namespace
+{
+	static constexpr char*	AxisNames[] = {
+		"dpad",		// X,Y
+		"trigger",	// only X axis
+		"stick",	// X,Y
+		"axis-3",
+		"axis-4"
+	};
+	STATIC_ASSERT( CountOf(AxisNames) == vr::k_unControllerStateAxisCount );
 
 /*
 =================================================
@@ -38,20 +48,10 @@ namespace FGC
 				mat.m[0][1], mat.m[1][1], mat.m[2][1],
 				mat.m[0][2], mat.m[1][2], mat.m[2][2] };
 	}
+
+}	// namespace
 //-----------------------------------------------------------------------------
 
-	
-/*
-=================================================
-	constructor
-=================================================
-*/
-	OpenVRDevice::Controller::Controller (ControllerID id) :
-		id{ id }
-	{
-		keys.fill( false );
-	}
-//-----------------------------------------------------------------------------
 
 
 /*
@@ -133,6 +133,19 @@ namespace FGC
 			listener->HmdStatusChanged( _hmdStatus );
 		}
 		
+		_InitControllers();
+		return true;
+	}
+	
+/*
+=================================================
+	_InitControllers
+=================================================
+*/
+	void OpenVRDevice::_InitControllers ()
+	{
+		const auto	now = TimePoint_t::clock::now();
+
 		_controllers.clear();
 		for (vr::TrackedDeviceIndex_t i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
 		{
@@ -156,12 +169,17 @@ namespace FGC
 				}
 				DISABLE_ENUM_CHECKS();
 
-				_controllers.insert_or_assign( i, Controller{ id });
+				Controller	cont;
+				cont.id			= id;
+				cont.lastPacket	= ~0u;
+				cont.lastUpdate	= now;
+				cont.keys.fill( false );
+
+				_controllers.insert_or_assign( i, cont );
 			}
 		}
-		return true;
 	}
-	
+
 /*
 =================================================
 	SetVKDevice
@@ -252,6 +270,8 @@ namespace FGC
 				_ProcessControllerEvents( iter->second, ev );
 		}
 
+		const auto	now = TimePoint_t::clock::now();
+
 		for (auto& cont : _controllers)
 		{
 			vr::VRControllerState_t	state;
@@ -260,21 +280,26 @@ namespace FGC
 				if ( state.unPacketNum == cont.second.lastPacket )
 					continue;
 
-				cont.second.lastPacket = state.unPacketNum;
+				const float	dt = std::chrono::duration_cast<SecondsF>( now - cont.second.lastUpdate ).count();
+
+				cont.second.lastPacket	= state.unPacketNum;
+				cont.second.lastUpdate	= now;
 
 				for (size_t i = 0; i < CountOf(state.rAxis); ++i)
 				{
-					float2	v	= float2{ state.rAxis[i].x, state.rAxis[i].y };
-					float2	old = cont.second.axis[i];
-					float2	del = v - old;
+					auto&	axis	= cont.second.axis[i];
+					float2	v		= float2{ state.rAxis[i].x, state.rAxis[i].y };
+					float2	old		= axis.value;
+					float2	del		= v - old;
 
-					if ( All( Equals( v, old, 0.01f )) )
+					axis.value = v;
+
+					if ( not axis.pressed )
 						continue;
 					
 					for (auto& listener : _listeners) {
-						listener->OnAxisStateChanged( cont.second.id, v, del );
+						listener->OnAxisStateChanged( cont.second.id, AxisNames[i], v, del, dt );
 					}
-					cont.second.axis[i] = v;
 				}
 			}
 		}
@@ -344,7 +369,7 @@ namespace FGC
 				break;
 
 			case vr::VREvent_PropertyChanged :
-				FG_LOGI( "PropertyChanged" );
+				//FG_LOGI( "PropertyChanged" );
 				break;
 		}
 	}
@@ -384,34 +409,39 @@ namespace FGC
 	{
 		switch( ev.eventType )
 		{
-			case vr::VREvent_ButtonPress : {
+			case vr::VREvent_ButtonPress :
+			{
 				StringView	key		= MapOpenVRButton( ev.data.controller.button );
 				bool &		curr	= cont.keys[ ev.data.controller.button ];
-				EKeyAction	act		= curr ? EKeyAction::Pressed : EKeyAction::Down;
+				auto		act		= curr ? EButtonAction::Pressed : EButtonAction::Down;
 				curr = true;
 
 				for (auto& listener : _listeners) {
-					listener->OnKey( cont.id, key, act );
+					listener->OnButton( cont.id, key, act );
 				}
 				break;
 			}
 
-			case vr::VREvent_ButtonUnpress : {
+			case vr::VREvent_ButtonUnpress :
+			{
 				StringView	key		= MapOpenVRButton( ev.data.controller.button );
 				cont.keys[ ev.data.controller.button ] = false;
 
 				for (auto& listener : _listeners) {
-					listener->OnKey( cont.id, key, EKeyAction::Up );
+					listener->OnButton( cont.id, key, EButtonAction::Up );
 				}
 				break;
 			}
 
 			case vr::VREvent_ButtonTouch :
-				FG_LOGI( "ButtonTouch: " + ToString(ev.data.controller.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
-				break;
 			case vr::VREvent_ButtonUntouch :
-				FG_LOGI( "ButtonUntouch: " + ToString(ev.data.controller.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
+			{
+				uint	idx = ev.data.controller.button - vr::k_EButton_Axis0;
+				if ( idx < cont.axis.size() ) {
+					cont.axis[idx].pressed = (ev.eventType == vr::VREvent_ButtonTouch);
+				}
 				break;
+			}
 
 			case vr::VREvent_MouseMove :
 				FG_LOGI( "MouseMove: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );

@@ -136,6 +136,7 @@ namespace FG
 
 		if ( _vrDevice ) {
 			CHECK_ERR( _vrDevice->SetVKDevice( _vulkan.GetVkInstance(), _vulkan.GetVkPhysicalDevice(), _vulkan.GetVkDevice() ));
+			_vrDevice->AddListener( this );
 		}
 
 		// initialize framegraph
@@ -251,9 +252,11 @@ namespace FG
 		{
 			auto&	cam = _vrDevice->GetCamera();
 			
-			if ( length2( _positionDelta ) > 0.01f ) {
+			if ( length2( _positionDelta ) > 0.001f )
+			{
 				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
 				_vrCamera.Move2( _positionDelta );
+				_positionDelta = vec3{0.0f};
 			}
 
 			_vrCamera.SetViewProjection( MatCast(cam.left.proj), MatCast(cam.left.view),
@@ -270,16 +273,16 @@ namespace FG
 			_camera.SetPerspective( _cameraFov, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
 			_camera.Rotate( -_mouseDelta.x, _mouseDelta.y );
 
-			if ( length2( _positionDelta ) > 0.01f ) {
+			if ( length2( _positionDelta ) > 0.001f )
+			{
 				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
 				_camera.Move2( _positionDelta );
+				_positionDelta = vec3{0.0f};
 			}
 			_vrCamera.SetPosition( _camera.GetCamera().transform.position );
 		}
 
-		// reset
-		_positionDelta	= vec3{0.0f};
-		_mouseDelta		= vec2{0.0f};
+		_mouseDelta = vec2{0.0f};
 	}
 
 /*
@@ -358,6 +361,46 @@ namespace FG
 		_lastMousePos = vec2{pos.x, pos.y};
 	}
 	
+/*
+=================================================
+	HmdStatusChanged
+=================================================
+*/
+	void BaseSceneApp::HmdStatusChanged (EHmdStatus)
+	{
+	}
+	
+/*
+=================================================
+	OnAxisStateChanged
+=================================================
+*/
+	void BaseSceneApp::OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt)
+	{
+		if ( name == "dpad" )
+		{
+			_positionDelta += vec3{ value.y * dt, -value.x * dt, 0.0f } * 1.0f;
+		}
+
+		//FG_LOGI( "Idx: "s << ToString(index) << ", delta: " << ToString(delta) );
+	}
+	
+/*
+=================================================
+	OnButton
+=================================================
+*/
+	void BaseSceneApp::OnButton (ControllerID id, StringView btn, EButtonAction action)
+	{
+		/*if ( id == ControllerID::RightHand and action != EButtonAction::Up )
+		{
+			if ( btn == "dpad up" )			_positionDelta.x += 1.0f;	else
+			if ( btn == "dpad down" )		_positionDelta.x -= 1.0f;
+			if ( btn == "dpad right" )		_positionDelta.y -= 1.0f;	else
+			if ( btn == "dpad left" )		_positionDelta.y += 1.0f;
+		}*/
+	}
+
 /*
 =================================================
 	_UpdateFrameStat

@@ -8,6 +8,7 @@
 # include "stl/Containers/Ptr.h"
 # include "stl/Containers/FixedMap.h"
 # include "openvr.h"
+# include <chrono>
 
 namespace FGC
 {
@@ -20,19 +21,25 @@ namespace FGC
 	{
 	// types
 	private:
-		using Listeners_t		 = HashSet< IVRDeviceEventListener *>;
+		using Listeners_t	 = HashSet< IVRDeviceEventListener *>;
+		using TimePoint_t	= std::chrono::high_resolution_clock::time_point;
+		using SecondsF		= std::chrono::duration< float >;
+
+		struct ControllerAxis
+		{
+			float2		value;
+			bool		pressed	= false;
+		};
+		using AxisStates_t	= StaticArray< ControllerAxis, vr::k_unControllerStateAxisCount >;
+		using Keys_t		= StaticArray< bool, vr::k_EButton_Max >;
 
 		struct Controller
 		{
-			using AxisStates_t	= StaticArray< float2, vr::k_unControllerStateAxisCount >;
-			using Keys_t		= StaticArray< bool, vr::k_EButton_Max >;
-
 			ControllerID	id;
 			uint			lastPacket = ~0u;
 			Keys_t			keys;
 			AxisStates_t	axis;
-
-			explicit Controller (ControllerID id);
+			TimePoint_t		lastUpdate;
 		};
 		using Controllers_t	= FixedMap< uint, Controller, 8 >;
 
@@ -79,6 +86,7 @@ namespace FGC
 		void _ProcessHmdEvents (const vr::VREvent_t &);
 		void _ProcessControllerEvents (INOUT Controller&, const vr::VREvent_t &);
 		void _UpdateHMDMatrixPose ();
+		void _InitControllers ();
 	};
 
 

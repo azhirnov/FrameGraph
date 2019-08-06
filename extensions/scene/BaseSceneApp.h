@@ -16,7 +16,7 @@ namespace FG
 	// Base Scene Application
 	//
 
-	class BaseSceneApp : public IViewport, public IWindowEventListener
+	class BaseSceneApp : public IViewport, public IWindowEventListener, public IVRDeviceEventListener
 	{
 	// types
 	protected:
@@ -123,6 +123,13 @@ namespace FG
 		void OnResize (const uint2 &size) override;
 		void OnKey (StringView, EKeyAction) override;
 		void OnMouseMove (const float2 &) override;
+		
+
+	// IVRDeviceEventListener
+	protected:
+		void HmdStatusChanged (EHmdStatus) override;
+		void OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) override;
+		void OnButton (ControllerID id, StringView btn, EButtonAction action) override;
 
 
 	// IViewport //

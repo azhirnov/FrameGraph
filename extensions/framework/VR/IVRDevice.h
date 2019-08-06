@@ -32,10 +32,10 @@ namespace FGC
 			RightHand,
 		};
 		
-		enum class EKeyAction {
-			Up,			// signle event when key up
-			Down,		// single event when key down
-			Pressed,	// continiously event until key is pressed
+		enum class EButtonAction {
+			Up,			// signle event when controller button up
+			Down,		// single event when controller button down
+			Pressed,	// continiously event until controller button is pressed
 		};
 
 		
@@ -43,8 +43,8 @@ namespace FGC
 	public:
 		virtual void HmdStatusChanged (EHmdStatus) = 0;
 
-		virtual void OnAxisStateChanged (ControllerID id, const float2 &value, const float2 &delta) = 0;
-		virtual void OnKey (ControllerID id, StringView key, EKeyAction action) = 0;
+		virtual void OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) = 0;
+		virtual void OnButton (ControllerID id, StringView btn, EButtonAction action) = 0;
 	};
 
 
@@ -61,7 +61,7 @@ namespace FGC
 		using Mat3_t		= Matrix< float, 3, 3, EMatrixOrder::ColumnMajor >;
 		using EHmdStatus	= IVRDeviceEventListener::EHmdStatus;
 		using ControllerID	= IVRDeviceEventListener::ControllerID;
-		using EKeyAction	= IVRDeviceEventListener::EKeyAction;
+		using EButtonAction	= IVRDeviceEventListener::EButtonAction;
 
 		struct VRImage
 		{
