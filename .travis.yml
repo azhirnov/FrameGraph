@@ -1,0 +1,65 @@
+language: cpp
+matrix:
+  include:
+    # Linux GCC x64
+    - os: linux
+      dist: trusty
+      compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - xorg-dev
+            - g++-8
+      before_install:
+        - eval "CC=gcc-8 && CXX=g++-8"
+        # Download and install cmake
+        - mkdir $HOME/cmake;
+        - export PATH="$HOME/cmake/bin:$PATH";
+        - travis_retry wget -q https://cmake.org/files/v3.15/cmake-3.15.1-Linux-x86_64.sh;
+        - sh cmake-3.15.1-Linux-x86_64.sh --prefix=$HOME/cmake --exclude-subdir --skip-license;
+      script:
+        - mkdir -p build
+        - cd build
+        - cmake -DCMAKE_BUILD_TYPE=Release -DCI_BUILD=ON .. 
+        - cmake --build . --config Release
+        - ctest --verbose
+     
+    # Windows MSVC x86
+    - os: windows
+      before_install:
+        - choco install python2
+        - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
+      script:
+        - mkdir -p build
+        - cd build
+        - cmake  -G "Visual Studio 15 2017" -DCI_BUILD=ON .. 
+        - cmake --build . --config Release
+        - ctest -C Release --verbose
+    
+    # Windows MSVC x64
+    - os: windows
+      before_install:
+        - choco install python2
+        - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
+      script:
+        - mkdir -p build
+        - cd build
+        - cmake -G "Visual Studio 15 2017 Win64"  -DCI_BUILD=ON .. 
+        - cmake --build . --config Release
+        - ctest -C Release --verbose
+      
+    # Linux Clang
+    #- os: linux
+    #  dist: trusty
+    #  addons:
+    #    apt:
+    #        sources:
+    #          - ubuntu-toolchain-r-test
+    #          - llvm-toolchain-trusty-8
+    #        packages:
+    #          - xorg-dev
+    #          - clang-8
+    #  env: MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
+      
