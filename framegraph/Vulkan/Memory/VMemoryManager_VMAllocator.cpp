@@ -323,7 +323,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EMemoryTypeExt::HostRead :			flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;	break;
@@ -342,7 +342,7 @@ namespace FG
 				case EMemoryTypeExt::Virtual :			break;	// to shutup warnings
 				default :								RETURN_ERR( "unknown memory type flag!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return flags;
 	}

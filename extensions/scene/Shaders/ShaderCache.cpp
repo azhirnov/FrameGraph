@@ -79,7 +79,7 @@ namespace FG
 */
 	ND_ static StringView  ShaderTypeToString (EShader type)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( type )
 		{
 			case EShader::Vertex :			return "SH_VERTEX";
@@ -102,7 +102,7 @@ namespace FG
 			case EShader::_Count :
 			case EShader::Unknown :			break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown shader type" );
 	}
 	
@@ -113,7 +113,7 @@ namespace FG
 */
 	ND_ static StringView  TextureTypeToString (ETextureType type)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( type )
 		{
 			case ETextureType::Albedo :		return "ALBEDO_MAP";
@@ -127,7 +127,7 @@ namespace FG
 			case ETextureType::_Last :
 			case ETextureType::All :		break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown texture type" );
 	}
 //-----------------------------------------------------------------------------

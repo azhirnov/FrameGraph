@@ -118,7 +118,7 @@ namespace
 		vr::VRCompositor()->SetTrackingSpace( vr::TrackingUniverseStanding );
 
 		vr::EDeviceActivityLevel level = _hmd->GetTrackedDeviceActivityLevel( vr::k_unTrackedDeviceIndex_Hmd );
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( level )
 		{
 			case vr::k_EDeviceActivityLevel_Unknown :					_hmdStatus = EHmdStatus::PowerOff;	break;
@@ -127,7 +127,7 @@ namespace
 			case vr::k_EDeviceActivityLevel_UserInteraction_Timeout :	_hmdStatus = EHmdStatus::Standby;	break;
 			case vr::k_EDeviceActivityLevel_Standby :					_hmdStatus = EHmdStatus::Standby;	break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 
 		for (auto& listener : _listeners) {
 			listener->HmdStatusChanged( _hmdStatus );
@@ -157,7 +157,7 @@ namespace
 				vr::ETrackedControllerRole	role	= _hmd->GetControllerRoleForTrackedDeviceIndex( i );
 				ControllerID				id		= ControllerID::Unknown;
 				
-				ENABLE_ENUM_CHECKS();
+				BEGIN_ENUM_CHECKS();
 				switch ( role )
 				{
 					case vr::TrackedControllerRole_LeftHand :	id = ControllerID::LeftHand;	break;
@@ -167,7 +167,7 @@ namespace
 					case vr::TrackedControllerRole_Treadmill :
 					case vr::TrackedControllerRole_Max :		break;	// TODO
 				}
-				DISABLE_ENUM_CHECKS();
+				END_ENUM_CHECKS();
 
 				Controller	cont;
 				cont.id			= id;

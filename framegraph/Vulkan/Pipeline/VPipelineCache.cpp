@@ -926,7 +926,7 @@ namespace FG
 		group_ci.anyHitShader		= VK_SHADER_UNUSED_NV;
 		group_ci.intersectionShader	= VK_SHADER_UNUSED_NV;
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( group.type )
 		{
 			case EGroupType::MissShader :
@@ -983,7 +983,7 @@ namespace FG
 			case EGroupType::CallableShader :
 			case EGroupType::Unknown : break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		return false;
 	}
 
@@ -1340,7 +1340,7 @@ namespace FG
 			if ( not EnumEq( dynamicStates, t ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EPipelineDynamicState::Viewport :
@@ -1400,7 +1400,7 @@ namespace FG
 					ASSERT(false);	// not supported
 					break;
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 
 		// validate color buffer states

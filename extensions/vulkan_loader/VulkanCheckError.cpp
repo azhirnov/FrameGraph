@@ -23,7 +23,7 @@ namespace FGC
 		
 		String	msg( "Vulkan error: " );
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( errCode )
 		{
 			VK1_CASE_ERR( VK_NOT_READY )
@@ -62,7 +62,7 @@ namespace FGC
 			case VK_RESULT_MAX_ENUM :
 			default :	msg = msg + "unknown (" + ToString(int(errCode)) + ')';  break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		#undef VK1_CASE_ERR
 		
 		msg = msg + ", in " + vkcall + ", function: " + func;

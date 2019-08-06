@@ -274,7 +274,7 @@ namespace FG
 			auto&	un  = self.Uniforms()[i];
 			auto*	ptr = (&self + BytesU{un.offset});
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( un.resType )
 			{
 				case EDescriptorType::Unknown :			break;
@@ -285,7 +285,7 @@ namespace FG
 				case EDescriptorType::Sampler :			fn( un.id, *Cast<Sampler>(ptr) );			break;
 				case EDescriptorType::RayTracingScene :	fn( un.id, *Cast<RayTracingScene>(ptr) );	break;
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 	}
 

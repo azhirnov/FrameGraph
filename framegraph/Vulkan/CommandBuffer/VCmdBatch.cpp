@@ -1106,7 +1106,7 @@ namespace FG
 			if ( not EnumEq( dbgMode.shaderStages, s ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( s )
 			{
 				case EShaderStages::Vertex :		stage = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;					break;
@@ -1130,7 +1130,7 @@ namespace FG
 				case EShaderStages::All :			// to shutup warnings	
 				default :							RETURN_ERR( "unknown shader type" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 
 		dbgMode.size = Min( size, _shaderDebugger.bufferSize );

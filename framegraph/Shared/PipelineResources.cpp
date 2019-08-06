@@ -738,7 +738,7 @@ namespace {
 				 lhs_un.resType != rhs_un.resType )
 				return false;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( lhs_un.resType )
 			{
 				case EDescriptorType::Unknown :			break;
@@ -749,7 +749,7 @@ namespace {
 				case EDescriptorType::Sampler :			equals = (*Cast<Sampler>(lhs_ptr)		  == *Cast<Sampler>(rhs_ptr));			break;
 				case EDescriptorType::RayTracingScene :	equals = (*Cast<RayTracingScene>(lhs_ptr) == *Cast<RayTracingScene>(rhs_ptr));	break;
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 
 			if ( not equals )
 				return false;

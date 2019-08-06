@@ -10,21 +10,7 @@ message( STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSIO
 message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" )
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
 
-
-if(CI_BUILD)
-	set( FG_ENABLE_OPENVR OFF CACHE INTERNAL "" FORCE )
-	set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS ON CACHE INTERNAL "" FORCE )
-	set( FG_ENABLE_TESTS ON CACHE INTERNAL "" FORCE )
-	set( FG_ENABLE_ASSIMP OFF CACHE INTERNAL "" FORCE )
-	set( FG_ENABLE_GLM OFF CACHE INTERNAL "" FORCE )
-	set( FG_ENABLE_DEVIL OFF CACHE INTERNAL "" FORCE )
-	set( FG_ENABLE_FREEIMAGE OFF CACHE INTERNAL "" FORCE )
-
-	enable_testing()
-	add_test( NAME "Tests.STL" COMMAND "Tests.STL" )
-	add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
-	#add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
-endif()
+include( "cmake/ci_build.cmake" )
 
 set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )

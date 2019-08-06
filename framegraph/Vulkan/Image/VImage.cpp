@@ -29,7 +29,7 @@ namespace FG
 */
 	ND_ static VkImageType  GetImageType (EImage type)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( type )
 		{
 			case EImage::Tex1D :
@@ -54,7 +54,7 @@ namespace FG
 			case EImage::Unknown :
 				break;		// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "not supported", VK_IMAGE_TYPE_MAX_ENUM );
 	}
 
@@ -143,7 +143,7 @@ namespace FG
 			if ( not EnumEq( usage, t ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkImageUsageFlagBits(t) )
 			{
 				case VK_IMAGE_USAGE_TRANSFER_SRC_BIT :				result |= VK_ACCESS_TRANSFER_READ_BIT;					break;
@@ -158,7 +158,7 @@ namespace FG
 				case VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT :
 				case VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM :			break;	// to shutup compiler warnings
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}

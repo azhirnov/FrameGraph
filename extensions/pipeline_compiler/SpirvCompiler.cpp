@@ -304,7 +304,7 @@ namespace FG
 */
 	ND_ static EShLanguage  ConvertShaderType (EShader shaderType)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( shaderType )
 		{
 			case EShader::Vertex :			return EShLangVertex;
@@ -324,7 +324,7 @@ namespace FG
 			case EShader::Unknown :
 			case EShader::_Count :			break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown shader type", EShLangCount );
 	}
 
@@ -1212,7 +1212,7 @@ namespace FG
 		{
 			TSampler const&	samp = type.getSampler();
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( samp.dim )
 			{
 				case TSamplerDim::Esd1D :
@@ -1253,7 +1253,7 @@ namespace FG
 				default :
 					COMP_RETURN_ERR( "unknown sampler dimension type!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		COMP_RETURN_ERR( "type is not image/sampler type!" );
 	}
@@ -1267,7 +1267,7 @@ namespace FG
 	{
 		using namespace glslang;
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( BitCast<TLayoutFormat>(format) )
 		{
 			case TLayoutFormat::ElfNone :			return EPixelFormat::Unknown;
@@ -1317,7 +1317,7 @@ namespace FG
 			case TLayoutFormat::ElfEsUintGuard :
 			case TLayoutFormat::ElfCount :			break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		COMP_RETURN_ERR( "Unsupported image format!" );
 	}
 	
@@ -1411,7 +1411,7 @@ namespace FG
 
 		COMP_CHECK_ERR( not type.isArray() );
 		
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( type.getBasicType() )
 		{
 			case TBasicType::EbtFloat :		result |= EVertexType::_Float;	break;
@@ -1440,7 +1440,7 @@ namespace FG
 			case TBasicType::EbtNumTypes :
 			default :						COMP_RETURN_ERR( "unsupported basic type!" );
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 
 		if ( type.isScalarOrVec1() )
 			return result;
@@ -1797,7 +1797,7 @@ namespace FG
 	{
 		using namespace glslang;
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( BitCast<TLayoutGeometry>(type) )
 		{
 			case TLayoutGeometry::ElgPoints : {
@@ -1831,7 +1831,7 @@ namespace FG
 			case TLayoutGeometry::ElgQuads :
 			case TLayoutGeometry::ElgIsolines :		break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		COMP_RETURN_ERR( "invalid geometry input primitive type!", void() );
 	}
 	
@@ -1844,7 +1844,7 @@ namespace FG
 	{
 		using namespace glslang;
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( _intermediate->getStage() )
 		{
 			case EShLangVertex :
@@ -1932,7 +1932,7 @@ namespace FG
 				result.mesh.maxPrimitives	= uint(_intermediate->getPrimitives());
 				result.mesh.maxIndices		= result.mesh.maxPrimitives;
 
-				DISABLE_ENUM_CHECKS();
+				END_ENUM_CHECKS();
 				switch ( _intermediate->getOutputPrimitive() )
 				{
 					case TLayoutGeometry::ElgPoints :
@@ -1954,7 +1954,7 @@ namespace FG
 						CHECK(false);
 						break;
 				}
-				ENABLE_ENUM_CHECKS();
+				BEGIN_ENUM_CHECKS();
 
 				result.mesh.meshGroupSize.x	= _intermediate->getLocalSize(0);
 				result.mesh.meshGroupSize.y = _intermediate->getLocalSize(1);
@@ -1968,7 +1968,7 @@ namespace FG
 
 			case EShLangCount : break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		return true;
 	}
 

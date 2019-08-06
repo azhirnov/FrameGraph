@@ -41,7 +41,7 @@ namespace FG
 			if ( not EnumEq( flags, t ) )
 				continue;
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkBufferUsageFlagBits(t) )
 			{
 				case VK_BUFFER_USAGE_TRANSFER_SRC_BIT :			result |= EBufferUsage::TransferSrc;	break;
@@ -61,7 +61,7 @@ namespace FG
 				case VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM :
 				default :										RETURN_ERR( "invalid buffer usage" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -78,7 +78,7 @@ namespace FG
 		const bool	is_multisampled	= samples > VK_SAMPLE_COUNT_1_BIT;
 		const bool	is_cube			= is_array and EnumEq( flags, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT );
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( type )
 		{
 			case VK_IMAGE_TYPE_1D :
@@ -96,7 +96,7 @@ namespace FG
 			case VK_IMAGE_TYPE_RANGE_SIZE :
 			case VK_IMAGE_TYPE_MAX_ENUM :	break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "not supported" );
 	}
 
@@ -114,7 +114,7 @@ namespace FG
 			if ( not EnumEq( usage, t ) )
 				continue;
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkImageUsageFlagBits(t) )
 			{
 				case VK_IMAGE_USAGE_TRANSFER_SRC_BIT :				result |= EImageUsage::TransferSrc;				break;
@@ -129,7 +129,7 @@ namespace FG
 				case VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT :
 				case VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM :			RETURN_ERR( "not supported" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -162,7 +162,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkImageAspectFlagBits(t) )
 			{
 				case VK_IMAGE_ASPECT_COLOR_BIT :		result |= EImageAspect::Color;		break;
@@ -179,7 +179,7 @@ namespace FG
 				case VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM :	// to shutup warnings
 				default :								RETURN_ERR( "invalid image aspect type", EImageAspect::Auto );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}

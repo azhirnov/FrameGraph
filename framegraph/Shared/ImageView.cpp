@@ -274,7 +274,7 @@ namespace {
 		_format{ format }
 	{
 		FG_UNUSED( aspect );
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( _format )
 		{
 			case EPixelFormat::RGBA4_UNorm :
@@ -586,7 +586,7 @@ namespace {
 			case EPixelFormat::Unknown :
 				break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 	}
 
 }	// FG

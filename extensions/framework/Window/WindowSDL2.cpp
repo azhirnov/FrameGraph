@@ -269,13 +269,13 @@ namespace {
 				}
 			}
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( action ) {
 				case EKeyAction::Up :		key_iter = _activeKeys.erase( key_iter );	break;
 				case EKeyAction::Down :		action = EKeyAction::Pressed;				break;
 				case EKeyAction::Pressed :	++key_iter;									break;
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		
 		if ( not _window )

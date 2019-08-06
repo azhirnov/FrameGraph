@@ -107,7 +107,7 @@ namespace {
 */
 	ND_ static EAddressMode  ConvertWrapMode (aiTextureMapMode mode)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( mode )
 		{
 			case aiTextureMapMode_Wrap :	return EAddressMode::Repeat;
@@ -118,7 +118,7 @@ namespace {
 			case _aiTextureMapMode_Force32Bit : break;
 			#endif
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown wrap mode", EAddressMode::Repeat );
 	}
 	
@@ -131,7 +131,7 @@ namespace {
 
 	ND_ static ETextureMapping  ConvertMapping (aiTextureMapping mapping)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( mapping )
 		{
 			case aiTextureMapping_UV :			return ETextureMapping::UV;
@@ -144,7 +144,7 @@ namespace {
 			case _aiTextureMapping_Force32Bit :	break;
 			#endif
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown texture mapping" );
 	};
 

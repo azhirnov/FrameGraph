@@ -87,7 +87,7 @@ namespace FG
 */
 	static void AddRenderLayer (ERenderLayer layer, INOUT ShaderCache::GraphicsPipelineInfo &info)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( layer )
 		{
 			case ERenderLayer::Shadow :			info.constants.emplace_back( "LAYER_SHADOWMAP", 1 );	break;
@@ -107,7 +107,7 @@ namespace FG
 			case ERenderLayer::_Count :
 			default :							CHECK(!"unknown render layer");				break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 	}
 
 /*

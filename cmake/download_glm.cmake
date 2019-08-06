@@ -11,6 +11,13 @@ if (${FG_ENABLE_GLM})
 	else ()
 		message( STATUS "glm found in \"${FG_EXTERNAL_GLM_PATH}\"" )
 	endif ()
+	
+	# select version
+	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+		set( GLM_TAG "0.9.9.5" )
+	else ()
+		set( GLM_TAG "master" )
+	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_GLM_PATH}/glm/glm.hpp")
 		set( FG_GLM_REPOSITORY "https://github.com/g-truc/glm.git" )
@@ -22,7 +29,7 @@ if (${FG_ENABLE_GLM})
 		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
 		# download
 		GIT_REPOSITORY		${FG_GLM_REPOSITORY}
-		GIT_TAG				master
+		GIT_TAG				${GLM_TAG}
 		GIT_PROGRESS		1
 		EXCLUDE_FROM_ALL	1
 		LOG_DOWNLOAD		1

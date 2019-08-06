@@ -170,7 +170,7 @@ namespace FGC
 */
 	ND_ static StringView  ObjectTypeToString (VkObjectType objType)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( objType )
 		{
 			case VK_OBJECT_TYPE_INSTANCE			: return "Instance";
@@ -217,7 +217,7 @@ namespace FGC
 			case VK_OBJECT_TYPE_MAX_ENUM :
 				break;	// used to shutup compilation warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 
 		CHECK(	objType >= VK_OBJECT_TYPE_BEGIN_RANGE and
 				objType <= VK_OBJECT_TYPE_END_RANGE );
@@ -231,7 +231,7 @@ namespace FGC
 */
 	ND_ static VkObjectType  DebugReportObjectTypeToObjectType (VkDebugReportObjectTypeEXT objType)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( objType )
 		{
 			case VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT :				return VK_OBJECT_TYPE_UNKNOWN;
@@ -274,7 +274,7 @@ namespace FGC
 			case VK_DEBUG_REPORT_OBJECT_TYPE_RANGE_SIZE_EXT :
 			case VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT :					break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		return VK_OBJECT_TYPE_MAX_ENUM;
 	}
 

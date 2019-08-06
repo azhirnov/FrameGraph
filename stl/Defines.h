@@ -98,7 +98,8 @@
 #	define FG_PRIVATE_BREAK_POINT()		__debugbreak()
 
 # elif defined(PLATFORM_ANDROID) and defined(FG_DEBUG)
-#	define FG_PRIVATE_BREAK_POINT()		{}
+#	include <csignal>
+#	define FG_PRIVATE_BREAK_POINT()		std::raise( SIGINT )
 
 # elif (defined(COMPILER_CLANG) or defined(COMPILER_GCC)) and defined(FG_DEBUG)
 #  if 1
@@ -277,22 +278,22 @@
 
 // enable/disable checks for enums
 #ifdef COMPILER_MSVC
-#	define ENABLE_ENUM_CHECKS() \
+#	define BEGIN_ENUM_CHECKS() \
 		__pragma (warning (push)) \
 		__pragma (warning (error: 4061)) /*enumerator 'identifier' in switch of enum 'enumeration' is not explicitly handled by a case label*/ \
 		__pragma (warning (error: 4062)) /*enumerator 'identifier' in switch of enum 'enumeration' is not handled*/ \
 		__pragma (warning (error: 4063)) /*case 'number' is not a valid value for switch of enum 'type'*/ \
 
-#	define DISABLE_ENUM_CHECKS() \
+#	define END_ENUM_CHECKS() \
 		__pragma (warning (pop)) \
 
 #elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
-#	define ENABLE_ENUM_CHECKS()		// TODO
-#	define DISABLE_ENUM_CHECKS()	// TODO
+#	define BEGIN_ENUM_CHECKS()		// TODO
+#	define END_ENUM_CHECKS()	// TODO
 
 #else
-#	define ENABLE_ENUM_CHECKS()
-#	define DISABLE_ENUM_CHECKS()
+#	define BEGIN_ENUM_CHECKS()
+#	define END_ENUM_CHECKS()
 
 #endif
 
@@ -347,6 +348,44 @@
 #	else
 #		define FG_COMPILATION_MESSAGE( _message_ )	// not supported
 #	endif
+#endif
+
+
+// setup for build on CI
+#ifdef FG_CI_BUILD
+
+#	undef  FG_PRIVATE_BREAK_POINT
+#	define FG_PRIVATE_BREAK_POINT()	{}
+
+#	undef  FG_PRIVATE_CHECK
+#	define FG_PRIVATE_CHECK( _expr_, _text_ ) \
+		{if ( !(_expr_) ) { \
+			FG_LOGI( _text_ ); \
+			FG_PRIVATE_EXIT(); \
+		}}
+
+#	undef  FG_PRIVATE_CHECK_ERR
+#	define FG_PRIVATE_CHECK_ERR( _expr_, _ret_ ) \
+		{if ( !(_expr_) ) { \
+			FG_LOGI( FG_PRIVATE_TOSTRING( _expr_ )); \
+			FG_PRIVATE_EXIT(); \
+			return (_ret_); \
+		}}
+
+#	undef  CHECK_FATAL
+#	define CHECK_FATAL( _expr_ ) \
+		{if ( !(_expr_) ) { \
+			FG_LOGI( FG_PRIVATE_TOSTRING( _expr_ ) ); \
+			FG_PRIVATE_EXIT(); \
+		}}
+
+#	undef  FG_PRIVATE_RETURN_ERR
+#	define FG_PRIVATE_RETURN_ERR( _text_, _ret_ ) \
+		{FG_LOGI( _text_ ); \
+		 FG_PRIVATE_EXIT(); \
+		 return (_ret_); \
+		}
+
 #endif
 
 
