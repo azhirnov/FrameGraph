@@ -22,7 +22,7 @@ matrix:
       script:
         - mkdir -p build
         - cd build
-        - cmake -DCMAKE_BUILD_TYPE=Release -DCI_BUILD=ON .. 
+        - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON .. 
         - cmake --build . --config Release
         - ctest --verbose
      
@@ -34,7 +34,7 @@ matrix:
       script:
         - mkdir -p build
         - cd build
-        - cmake  -G "Visual Studio 15 2017" -DCI_BUILD=ON .. 
+        - cmake  -G "Visual Studio 15 2017" -DFG_CI_BUILD=ON .. 
         - cmake --build . --config Release
         - ctest -C Release --verbose
     
@@ -46,7 +46,7 @@ matrix:
       script:
         - mkdir -p build
         - cd build
-        - cmake -G "Visual Studio 15 2017 Win64"  -DCI_BUILD=ON .. 
+        - cmake -G "Visual Studio 15 2017 Win64"  -DFG_CI_BUILD=ON .. 
         - cmake --build . --config Release
         - ctest -C Release --verbose
       

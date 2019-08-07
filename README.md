@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/azhirnov/FrameGraph.svg?branch=v0.11-dev)](https://travis-ci.com/azhirnov/FrameGraph)
+
 # FrameGraph
 
 FrameGraph simplifies prototyping on Vulkan and can be used as a base layer for the graphics engine.
