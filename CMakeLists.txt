@@ -10,6 +10,9 @@ message( STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSIO
 message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" )
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
 
+set( FG_LINK_LIBRARIES "" )
+set( FG_COMPILER_DEFINITIONS "" )
+
 include( "cmake/ci_build.cmake" )
 
 set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
@@ -45,6 +48,8 @@ endif()
 
 include( "cmake/compiler_tests.cmake" )
 
+set( FG_LINK_LIBRARIES "${FG_LINK_LIBRARIES}" CACHE INTERNAL "" FORCE )
+set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" CACHE INTERNAL "" FORCE )
 set( CMAKE_DEBUG_POSTFIX "d" )
 set( CMAKE_RELEASE_POSTFIX "" )
 set( CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "installation directory" )
@@ -52,6 +57,7 @@ set( MAIN_BINARY_DIR "${CMAKE_BINARY_DIR}/bin" CACHE INTERNAL "" FORCE )
 set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
+
 add_subdirectory( "external" "external" )
 
 add_subdirectory( "stl" "stl" )

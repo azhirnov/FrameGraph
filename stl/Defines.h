@@ -446,4 +446,10 @@
 #	pragma detect_mismatch( "FG_STD_BARRIER", "0" )
 #  endif
 
+#  ifdef FG_CI_BUILD
+#	pragma detect_mismatch( "FG_CI_BUILD", "1" )
+#  else
+#	pragma detect_mismatch( "FG_CI_BUILD", "0" )
+#  endif
+
 #endif	// COMPILER_MSVC or COMPILER_CLANG
