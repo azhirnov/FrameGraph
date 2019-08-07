@@ -56,7 +56,7 @@ elseif (${FG_ENABLE_ANGELSCRIPT})
 		LOG_CONFIGURE 		1
 		# build
 		BINARY_DIR			"${CMAKE_BINARY_DIR}/build-AngelScript"
-		BUILD_COMMAND		"${CMAKE_COMMAND}"
+		BUILD_COMMAND		${CMAKE_COMMAND}
 							--build .
 							--target ALL_BUILD
 							--config $<CONFIG>

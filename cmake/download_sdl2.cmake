@@ -35,9 +35,14 @@ if (${FG_ENABLE_SDL2})
 	set( RENDER_D3D OFF CACHE BOOL "SDL2 option" FORCE )
 
 	add_subdirectory( "${FG_EXTERNAL_SDL2_PATH}" "SDL2" )
+	
+	if (TARGET SDL2main)
+		set_property( TARGET "SDL2main" PROPERTY FOLDER "External" )
+	endif ()
 
-	set_property( TARGET "SDL2main" PROPERTY FOLDER "External" )
-	set_property( TARGET "uninstall" PROPERTY FOLDER "External" )
+	if (TARGET uninstall)
+		set_property( TARGET "uninstall" PROPERTY FOLDER "External" )
+	endif ()
 
 	mark_as_advanced( 3DNOW ALSA ALTIVEC ARTS ASSEMBLY ASSERTIONS CLOCK_GETTIME DIRECTX
 					  DISKAUDIO DUMMYAUDIO ESD FORCE_STATIC_VCRT FUSIONSOUND GCC_ATOMICS

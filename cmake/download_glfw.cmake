@@ -42,6 +42,10 @@ if (${FG_ENABLE_GLFW})
 	
 	add_subdirectory( "${FG_EXTERNAL_GLFW_PATH}" "glfw" )
 	set_property( TARGET "glfw" PROPERTY FOLDER "External" )
+
+	if (TARGET uninstall)
+		set_property( TARGET "uninstall" PROPERTY FOLDER "External" )
+	endif ()
 	
 	mark_as_advanced( GLFW_INSTALL GLFW_BUILD_TESTS GLFW_BUILD_EXAMPLES GLFW_BUILD_DOCS GLFW_DOCUMENT_INTERNALS )
 	mark_as_advanced( GLFW_USE_HYBRID_HPG GLFW_VULKAN_STATIC USE_MSVC_RUNTIME_LIBRARY_DLL )

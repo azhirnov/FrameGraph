@@ -58,7 +58,7 @@ elseif (${FG_ENABLE_IMGUI})
 		LOG_CONFIGURE 		1
 		# build
 		BINARY_DIR			"${CMAKE_BINARY_DIR}/build-imgui"
-		BUILD_COMMAND		"${CMAKE_COMMAND}"
+		BUILD_COMMAND		${CMAKE_COMMAND}
 							--build .
 							--target imgui
 							--config $<CONFIG>
