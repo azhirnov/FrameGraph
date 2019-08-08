@@ -117,6 +117,7 @@ set( SOURCES
 	"Vulkan/Buffer/VLocalBuffer.cpp"
 	"Vulkan/Buffer/VLocalBuffer.h"
 	"../cmake/angelscript_CMakeLists.txt"
+	"../cmake/ci_build.cmake"
 	"../cmake/compilers.cmake"
 	"../cmake/compilers_minimal.cmake"
 	"../cmake/compiler_tests.cmake"

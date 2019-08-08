@@ -48,9 +48,6 @@ endif ()
 
 if (NOT Vulkan_FOUND)
 	message( FATAL_ERROR "Vulkan headers is not found! Install VulkanSDK or download from https://github.com/KhronosGroup/Vulkan-Headers" )
-else ()
-	#message( STATUS "Vulkan_LIBRARIES: ${Vulkan_LIBRARIES}" )
-	message( STATUS "Vulkan_INCLUDE_DIRS: ${Vulkan_INCLUDE_DIRS}" )
 endif ()
 
 set( FG_VULKAN_DEFINITIONS "FG_ENABLE_VULKAN" )

@@ -8,8 +8,15 @@ if (${FG_EXTERNALS_USE_PREBUILD})
 	# set tag
 	set( FGEXTERNAL_TAG "master" )
 
-	if (${COMPILER_MSVC} AND ${CMAKE_SYSTEM_NAME} STREQUAL "Windows" AND ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-		set( FGEXTERNAL_TAG "win-x64" )
+	if (${COMPILER_MSVC} AND ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+		if (NOT ${CMAKE_GENERATOR_TOOLSET} STREQUAL "v141")
+			message( FATAL_ERROR "Toolset ${CMAKE_GENERATOR_TOOLSET} is not supported, required v141 toolset" )
+		endif ()
+		if (${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+			set( FGEXTERNAL_TAG "win64-msvc-v141" )
+		elseif (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
+			set( FGEXTERNAL_TAG "win32-msvc-v141" )
+		endif ()
 	endif ()
 	
 	# reset to default

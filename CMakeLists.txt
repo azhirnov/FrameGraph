@@ -10,8 +10,6 @@ message( STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSIO
 message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" )
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
 
-set( FG_LINK_LIBRARIES "" )
-set( FG_COMPILER_DEFINITIONS "" )
 
 include( "cmake/ci_build.cmake" )
 
@@ -37,7 +35,7 @@ set( FG_ENABLE_IMGUI OFF CACHE BOOL "use imgui (optional, required for UI extens
 set( FG_ENABLE_ASSIMP ON CACHE BOOL "use Assimp (optional, required for Scene extension)" )
 set( FG_ENABLE_GLM ON CACHE BOOL "use glm (optional, required for Scene extension)" )
 set( FG_ENABLE_DEVIL ON CACHE BOOL "use DevIL (optional, required for Scene extension)" )
-set( FG_ENABLE_FREEIMAGE OFF CACHE BOOL "use FreeImage (optional, required for Scene extension)" )
+set( FG_ENABLE_FREEIMAGE OFF CACHE BOOL "use FreeImage (optional, GPL license)" )
 
 
 if (${FG_ENABLE_SIMPLE_COMPILER_OPTIONS})
@@ -48,8 +46,6 @@ endif()
 
 include( "cmake/compiler_tests.cmake" )
 
-set( FG_LINK_LIBRARIES "${FG_LINK_LIBRARIES}" CACHE INTERNAL "" FORCE )
-set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" CACHE INTERNAL "" FORCE )
 set( CMAKE_DEBUG_POSTFIX "d" )
 set( CMAKE_RELEASE_POSTFIX "" )
 set( CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "installation directory" )

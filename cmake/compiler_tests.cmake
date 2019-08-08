@@ -8,6 +8,9 @@ endif ()
 
 message( STATUS "Run compiler tests with flags: ${CMAKE_REQUIRED_FLAGS}" )
 
+set( FG_COMPILER_DEFINITIONS "" )
+set( FG_LINK_LIBRARIES "" )
+
 #------------------------------------------------------------------------------
 check_cxx_source_compiles(
 	"#include <string_view>
@@ -150,6 +153,8 @@ endif ()
 #------------------------------------------------------------------------------
 
 set( CMAKE_REQUIRED_FLAGS "" )
+set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" CACHE INTERNAL "" FORCE )
+set( FG_LINK_LIBRARIES "${FG_LINK_LIBRARIES}" CACHE INTERNAL "" FORCE )
 
 #message( STATUS "Supported features = ${CMAKE_CXX_COMPILE_FEATURES}" )
 

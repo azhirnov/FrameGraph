@@ -1,6 +1,6 @@
 # find or download GLSLANG
 
-#[[if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_GLSLANG})
+if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_GLSLANG})
 	add_library( "GLSLang-lib" INTERFACE )
 	target_include_directories( "GLSLang-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/glslang/include" )
 	target_compile_definitions( "GLSLang-lib" INTERFACE FG_ENABLE_GLSLANG ENABLE_HLSL ENABLE_OPT AMD_EXTENSIONS NV_EXTENSIONS )
@@ -20,8 +20,7 @@
 	set_property( TARGET "GLSLang-lib" PROPERTY INTERFACE_LINK_LIBRARIES "${FG_GLSLANG_LIBRARIES}" )
 
 
-else]]
-if (${FG_ENABLE_GLSLANG})
+elseif (${FG_ENABLE_GLSLANG})
 	set( FG_EXTERNAL_GLSLANG_PATH "" CACHE PATH "path to glslang source" )
 	mark_as_advanced( FG_EXTERNAL_GLSLANG_PATH )
 
