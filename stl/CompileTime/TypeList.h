@@ -63,7 +63,7 @@ namespace _fgc_hidden_
 			if constexpr( I < Count )
 			{
 				using T = Get<I>;
-				fn.operator()<T,I>();
+				fn.template operator()<T,I>();
 				_Visit< I+1 >( std::forward<FN>(fn) );
 			}
 			FG_UNUSED( fn );
