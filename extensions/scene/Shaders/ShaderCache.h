@@ -32,7 +32,7 @@ namespace FG
 
 			GraphicsPipelineInfo () {}
 
-            ND_ bool  operator == (const GraphicsPipelineInfo &) const;
+			ND_ bool  operator == (const GraphicsPipelineInfo &) const;
 		};
 
 
@@ -44,7 +44,7 @@ namespace FG
 
 			RayTracingPipelineInfo () {}
 
-            ND_ bool  operator == (const RayTracingPipelineInfo &) const;
+			ND_ bool  operator == (const RayTracingPipelineInfo &) const;
 		};
 
 
@@ -54,21 +54,21 @@ namespace FG
 
 			ComputePipelineInfo () {}
 
-            ND_ bool  operator == (const ComputePipelineInfo &) const;
+			ND_ bool  operator == (const ComputePipelineInfo &) const;
 		};
 
 		
 	private:
 		struct GraphicsPipelineInfoHash {
-            ND_ size_t  operator () (const GraphicsPipelineInfo &) const;
+			ND_ size_t  operator () (const GraphicsPipelineInfo &) const;
 		};
 		
 		struct RayTracingPipelineInfoHash {
-            ND_ size_t  operator () (const RayTracingPipelineInfo &) const;
+			ND_ size_t  operator () (const RayTracingPipelineInfo &) const;
 		};
 
 		struct ComputePipelineInfoHash {
-            ND_ size_t  operator () (const ComputePipelineInfo &) const;
+			ND_ size_t  operator () (const ComputePipelineInfo &) const;
 		};
 
 		using GPipelineCache_t	= HashMap< GraphicsPipelineInfo, GPipelineID, GraphicsPipelineInfoHash >;

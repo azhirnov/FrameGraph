@@ -91,7 +91,7 @@ namespace std
 	template <>
 	struct hash< FG::VPipelineLayout >
 	{
-        ND_ size_t  operator () (const FG::VPipelineLayout &value) const {
+		ND_ size_t  operator () (const FG::VPipelineLayout &value) const {
 			return size_t(value.GetHash());
 		}
 	};

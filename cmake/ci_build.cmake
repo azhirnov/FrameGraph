@@ -2,7 +2,6 @@
 
 if (FG_CI_BUILD)
 	message( STATUS "configured CI build" )
-	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_CI_BUILD=ON" )
 
 	set( FG_ENABLE_OPENVR OFF CACHE INTERNAL "" FORCE )
 	set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS ON CACHE INTERNAL "" FORCE )
@@ -24,7 +23,11 @@ if (FG_CI_BUILD)
 
 	enable_testing()
 	add_test( NAME "Tests.STL" COMMAND "Tests.STL" )
-	add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
+	
+	if (NOT UNIX)
+		add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
+	endif ()
+	
 	#add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
 
 endif ()

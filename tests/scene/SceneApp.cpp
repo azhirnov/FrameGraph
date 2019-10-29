@@ -35,7 +35,12 @@ namespace FG
 */
 	bool SceneApp::Initialize ()
 	{
-		CHECK_ERR( _CreateFrameGraph( uint2{1024, 768}, "Test", {}, "" ));
+		{
+			AppConfig	cfg;
+			cfg.surfaceSize	= uint2(1024, 768);
+			cfg.windowTitle	= "Test";
+			CHECK_ERR( _CreateFrameGraph( cfg ));
+		}
 
 		auto	renderer	= MakeShared<RendererPrototype>();
 				_scene		= MakeShared<DefaultSceneManager>();

@@ -38,7 +38,7 @@ namespace FG
 		{
 			const String	_data;
 
-            IncludeResultImpl (String &&data, const String& headerName, void* userData = null) :
+			IncludeResultImpl (String &&data, const String& headerName, void* userData = null) :
 				IncludeResult{headerName, null, 0, userData}, _data{std::move(data)}
 			{
 				const_cast<const char*&>(headerData) = _data.c_str();
@@ -70,8 +70,8 @@ namespace FG
 		ND_ IncludedFiles_t const&  GetIncludedFiles () const	{ return _includedFiles; }
 
 		// TShader::Includer //
-        IncludeResult* includeSystem (const char* headerName, const char* includerName, size_t inclusionDepth) override;
-        IncludeResult* includeLocal (const char* headerName, const char* includerName, size_t inclusionDepth) override;
+		IncludeResult* includeSystem (const char* headerName, const char* includerName, size_t inclusionDepth) override;
+		IncludeResult* includeLocal (const char* headerName, const char* includerName, size_t inclusionDepth) override;
 
 		void releaseInclude (IncludeResult *) override {}
 	};
@@ -99,7 +99,7 @@ namespace FG
 	includeSystem
 =================================================
 */
-    SpirvCompiler::ShaderIncluder::IncludeResult*
+	SpirvCompiler::ShaderIncluder::IncludeResult*
 		SpirvCompiler::ShaderIncluder::includeSystem (const char* headerName, const char *, size_t)
 	{
 		return null;
@@ -110,7 +110,7 @@ namespace FG
 	includeLocal
 =================================================
 */
-    SpirvCompiler::ShaderIncluder::IncludeResult*
+	SpirvCompiler::ShaderIncluder::IncludeResult*
 		SpirvCompiler::ShaderIncluder::includeLocal (const char* headerName, const char *, size_t)
 	{
 		ASSERT( _directories.size() );
@@ -535,27 +535,27 @@ namespace FG
 		spvtools::Optimizer	optimizer{ target_env };
 		optimizer.SetMessageConsumer(
 			[&log] (spv_message_level_t level, const char *source, const spv_position_t &position, const char *message) {
-				switch (level)
+				switch ( level )
 				{
-				case SPV_MSG_FATAL:
-				case SPV_MSG_INTERNAL_ERROR:
-				case SPV_MSG_ERROR:
-					log << "error: ";
-					break;
-				case SPV_MSG_WARNING:
-					log << "warning: ";
-					break;
-				case SPV_MSG_INFO:
-				case SPV_MSG_DEBUG:
-					log << "info: ";
-					break;
+					case SPV_MSG_FATAL:
+					case SPV_MSG_INTERNAL_ERROR:
+					case SPV_MSG_ERROR:
+						log << "error: ";
+						break;
+					case SPV_MSG_WARNING:
+						log << "warning: ";
+						break;
+					case SPV_MSG_INFO:
+					case SPV_MSG_DEBUG:
+						log << "info: ";
+						break;
 				}
 
-				if (source)
+				if ( source )
 					log << source << ":";
 				
 				log << ToString(position.line) << ":" << ToString(position.column) << ":" << ToString(position.index) << ":";
-				if (message)
+				if ( message )
 					log << " " << message;
 			});
 
@@ -1443,7 +1443,7 @@ namespace FG
 		END_ENUM_CHECKS();
 
 		if ( type.isScalarOrVec1() )
-			return result;
+			return result | EVertexType::_Vec1;
 
 		if ( type.isVector() )
 		{

@@ -37,7 +37,7 @@ namespace FGC
 =================================================
 */
 	template <typename R, typename T>
-    ND_ forceinline bool  CheckPointerAlignment (T const* ptr)
+	ND_ forceinline bool  CheckPointerAlignment (T const* ptr)
 	{
 		constexpr size_t	align = alignof(R);
 
@@ -148,7 +148,7 @@ namespace FGC
 =================================================
 */
 	template <typename To, typename From>
-    ND_ inline constexpr To  BitCast (const From& src)
+	ND_ inline constexpr To  BitCast (const From& src)
 	{
 		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );
 		STATIC_ASSERT( alignof(To) == alignof(From), "must be same align!" );

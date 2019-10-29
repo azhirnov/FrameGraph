@@ -58,7 +58,7 @@ namespace FGC
 =================================================
 */
 	template <typename T>
-    ND_ forceinline EnableIf<not IsFloatPoint<T>, HashVal>  HashOf (const T &value)
+	ND_ forceinline EnableIf<not IsFloatPoint<T>, HashVal>  HashOf (const T &value)
 	{
 		return HashVal( std::hash<T>()( value ));
 	}
@@ -68,10 +68,13 @@ namespace FGC
 	HashOf (float)
 =================================================
 */
-    ND_ forceinline HashVal  HashOf (const float &value, uint32_t ignoreMantissaBits = (23-10))
+	ND_ forceinline HashVal  HashOf (const float &value, uint32_t ignoreMantissaBits = (23-10))
 	{
 		ASSERT( ignoreMantissaBits < 23 );
-		return HashVal( std::hash<uint32_t>()( reinterpret_cast< const uint32_t &>(value) & ~((1 << ignoreMantissaBits)-1) ));
+		uint32_t	dst;
+		std::memcpy( OUT &dst, &value, sizeof(dst) );
+		dst &= ~((1 << ignoreMantissaBits)-1);
+		return HashVal( std::hash<uint32_t>()( dst ));
 	}
 
 /*
@@ -79,10 +82,13 @@ namespace FGC
 	HashOf (double)
 =================================================
 */
-    ND_ forceinline HashVal  HashOf (const double &value, uint32_t ignoreMantissaBits = (52-10))
+	ND_ forceinline HashVal  HashOf (const double &value, uint32_t ignoreMantissaBits = (52-10))
 	{
 		ASSERT( ignoreMantissaBits < 52 );
-		return HashVal( std::hash<uint64_t>()( reinterpret_cast< const uint64_t &>(value) & ~((1 << ignoreMantissaBits)-1) ));
+		uint64_t	dst;
+		std::memcpy( OUT &dst, &value, sizeof(dst) );
+		dst &= ~((1 << ignoreMantissaBits)-1);
+		return HashVal( std::hash<uint64_t>()( dst ));
 	}
 
 /*
@@ -92,14 +98,14 @@ namespace FGC
 	use private api to calculate hash of buffer
 =================================================
 */
-    ND_ forceinline HashVal  HashOf (const void *ptr, size_t sizeInBytes)
+	ND_ forceinline HashVal  HashOf (const void *ptr, size_t sizeInBytes)
 	{
 		ASSERT( ptr and sizeInBytes );
 
 		# if defined(FG_HAS_HASHFN_HashArrayRepresentation)
 			return HashVal{std::_Hash_array_representation( static_cast<const unsigned char*>(ptr), sizeInBytes )};
 
-        #elif defined(FG_HAS_HASHFN_Murmur2OrCityhash)
+		#elif defined(FG_HAS_HASHFN_Murmur2OrCityhash)
 			return HashVal{std::__murmur2_or_cityhash<size_t>()( ptr, sizeInBytes )};
 
 		#elif defined(FG_HAS_HASHFN_HashBytes)
@@ -124,7 +130,7 @@ namespace std
 	template <typename First, typename Second>
 	struct hash< std::pair<First, Second> >
 	{
-        ND_ size_t  operator () (const std::pair<First, Second> &value) const
+		ND_ size_t  operator () (const std::pair<First, Second> &value) const
 		{
 			return size_t(FGC::HashOf( value.first ) + FGC::HashOf( value.second ));
 		}

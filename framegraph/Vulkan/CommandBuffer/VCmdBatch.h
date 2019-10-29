@@ -96,7 +96,7 @@ namespace FG
 		};
 
 		struct ResourceHash {
-            ND_ size_t  operator () (const Resource &x) const {
+			ND_ size_t  operator () (const Resource &x) const {
 				return std::hash<decltype(x.value)>{}( x.value );
 			}
 		};

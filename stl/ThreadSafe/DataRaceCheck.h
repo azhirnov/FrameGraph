@@ -125,7 +125,7 @@ namespace std
 	{
 	private:
 		FGC::DataRaceCheck &	_lock;
-		bool						_locked	= false;
+		bool					_locked	= false;
 
 	public:
 		explicit unique_lock (FGC::DataRaceCheck &ref) : _lock{ref}
@@ -158,7 +158,7 @@ namespace std
 	{
 	private:
 		FGC::RWDataRaceCheck &	_lock;
-		bool						_locked	= false;
+		bool					_locked	= false;
 
 	public:
 		explicit unique_lock (FGC::RWDataRaceCheck &ref) : _lock{ref}
@@ -191,7 +191,7 @@ namespace std
 	{
 	private:
 		FGC::RWDataRaceCheck &	_lock;
-		bool						_locked	= false;
+		bool					_locked	= false;
 
 	public:
 		explicit shared_lock (FGC::RWDataRaceCheck &ref) : _lock{ref}

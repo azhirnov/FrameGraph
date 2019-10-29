@@ -25,7 +25,7 @@ namespace FGC
 =================================================
 */
 	template <typename T, typename ...Types>
-    forceinline T *  PlacementNew (OUT void *ptr, Types&&... args)
+	forceinline T *  PlacementNew (OUT void *ptr, Types&&... args)
 	{
 		ASSERT( CheckPointerAlignment<T>( ptr ) );
 		return ( new(ptr) T{ std::forward<Types &&>(args)... } );
@@ -58,7 +58,7 @@ namespace FGC
 =================================================
 	AllocOnStack
 =================================================
-*/
+*
 	ND_ forceinline void* AllocOnStack (BytesU size)
 	{
 	#ifdef PLATFORM_WINDOWS
@@ -66,7 +66,7 @@ namespace FGC
 	#else
 		return alloca( size_t(size) );
 	#endif
-	}
+	}*/
 
 
 }	// FGC

@@ -54,7 +54,7 @@ namespace std
 {
 	template <>
 	struct hash< FG::VSampler > {
-        ND_ size_t  operator () (const FG::VSampler &value) const {
+		ND_ size_t  operator () (const FG::VSampler &value) const {
 			return size_t(value.GetHash());
 		}
 	};

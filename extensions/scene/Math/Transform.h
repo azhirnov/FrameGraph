@@ -163,7 +163,7 @@ namespace FGC
 	template <typename T>
 	inline Transformation<T>&  Transformation<T>::Inverse ()
 	{
-		orientation.Inverse();
+		orientation = glm::inverse(orientation);
 		scale		= T(1) / scale;
 		position	= orientation * (-position * scale);
 		return *this;

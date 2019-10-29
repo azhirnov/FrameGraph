@@ -110,7 +110,7 @@ namespace FG
 
 			if ( debugger ) {
 				debugger->AddRayTracingBarrier( _rtSceneData.get(), _accessForReadWrite.index, _pendingAccesses.index,
-											    _accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
+												_accessForReadWrite.stages, _pendingAccesses.stages, 0, barrier );
 			}
 
 			_accessForReadWrite = _pendingAccesses;

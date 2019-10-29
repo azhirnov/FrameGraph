@@ -555,7 +555,7 @@ namespace {
 		CHECK_ERR( LoadHierarchy( scene, INOUT scene_data ));
 		
 		return MakeShared<IntermScene>( scene_data.materials, scene_data.meshes,
-									    std::move(scene_data.lights), std::move(scene_data.root) );
+										std::move(scene_data.lights), std::move(scene_data.root) );
 	}
 
 

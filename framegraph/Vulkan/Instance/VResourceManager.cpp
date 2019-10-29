@@ -422,7 +422,7 @@ namespace FG
 =================================================
 */
 	bool  VResourceManager::_CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout>* &layoutPtr,
-													    const PipelineDescription::UniformMapPtr &uniforms)
+														const PipelineDescription::UniformMapPtr &uniforms)
 	{
 		CHECK_ERR( _Assign( OUT id ));
 		

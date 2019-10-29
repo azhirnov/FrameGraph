@@ -23,6 +23,23 @@ namespace FG
 		using TimePoint_t	= std::chrono::high_resolution_clock::time_point;
 		using SecondsF		= std::chrono::duration< float >;
 
+		struct AppConfig
+		{
+		// types
+			enum class EVRMode
+			{
+				Disabled,
+				Emulator,
+				OpenVR,
+			};
+
+		// variables
+			String			windowTitle;
+			uint2			surfaceSize;
+			EVRMode			vrMode		= EVRMode::Disabled;
+			Array<String>	shaderDirectories;
+			String			dbgOutputPath;
+		};
 
 	// variables
 	protected:
@@ -71,8 +88,7 @@ namespace FG
 		BaseSceneApp ();
 		~BaseSceneApp ();
 
-		bool _CreateFrameGraph (const uint2 &surfaceSize, NtStringView windowTitle,
-								ArrayView<StringView> shaderDirectories = Default, StringView dbgOutputPath = Default);
+		bool _CreateFrameGraph (const AppConfig &cfg);
 		void _DestroyFrameGraph ();
 		void _SetLastCommandBuffer (const CommandBuffer &);
 

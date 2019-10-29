@@ -27,7 +27,7 @@ namespace FGC
 	struct ChunkedIndexedPool final
 	{
 		STATIC_ASSERT( ChunkSize > 0 and MaxChunks > 0 );
-		STATIC_ASSERT( IsPowerOfTwo( ChunkSize ) );	// must be power of 2 to increase performance
+		STATIC_ASSERT( IsPowerOfTwo( ChunkSize ) );	// must be power of 2 for best performance
 
 	// types
 	public:
@@ -114,6 +114,9 @@ namespace FGC
 
 		void Swap (Self &other)
 		{
+			EXLOCK( _assignOpGuard );
+			EXLOCK( other._assignOpGuard );
+
 			// TODO: swap _assignOpGuard ?
 			CHECK( _alloc == other._alloc );
 			std::swap( _indexCount,	other._indexCount );

@@ -850,7 +850,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 
 		res.onDraw.push_back( [&vulkan, shaderBindingTable, rtPipeline, numGroups, size = info.size] (VkCommandBuffer cmd)
 		{
-			Array<uint8_t>	handles;  handles.resize(size);
+			Array<uint8_t>	handles;  handles.resize( size_t(size) );
 
 			VK_CALL( vulkan.vkGetRayTracingShaderGroupHandlesNV( vulkan.GetVkDevice(), rtPipeline, 0, numGroups, handles.size(), OUT handles.data() ));
 		

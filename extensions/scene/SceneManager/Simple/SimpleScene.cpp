@@ -6,7 +6,6 @@
 #include "scene/Renderer/RenderQueue.h"
 #include "scene/Renderer/IRenderTechnique.h"
 #include "scene/Loader/Intermediate/IntermMesh.h"
-#include "framegraph/Shared/EnumUtils.h"
 
 namespace FG
 {
@@ -100,7 +99,6 @@ namespace {
 		const float	inv_range	= 1.0f / camera.visibilityRange[1];
 		const int	first_layer	= BitScanForward( camera.layers.to_ulong() );
 		const int	last_layer	= BitScanReverse( camera.layers.to_ulong() );
-		bool		debug		= false;
 
 		for (size_t inst_idx = 0; inst_idx < _instances.size(); ++inst_idx)
 		{
@@ -148,9 +146,6 @@ namespace {
 						 .Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )
 						 .AddResources( DescriptorSetID{"PerObject"}, &model.resources )
 						 .AddPushConstant( PushConstantID{"VSPushConst"}, uint2{model.materialID, uint(inst_idx)} );
-
-				if ( debug )
-					draw_task.EnableDebugTrace( EShaderStages::Vertex );
 
 				queue.Draw( lod.layer, draw_task );
 			}
@@ -259,7 +254,7 @@ namespace {
 		for (auto& src : scene->GetMeshes())
 		{
 			vert_stride	= Max( vert_stride, src.first->GetVertexStride() );
-			idx_stride	= Max( idx_stride,  EIndex_SizeOf(src.first->GetIndexType()) );
+			idx_stride	= Max( idx_stride,  src.first->GetIndexStride() );
 		}
 
 		BytesU	vert_size, idx_size;
@@ -289,11 +284,48 @@ namespace {
 			dst.topology		= src.first->GetTopology();
 			dst.vertexOffset	= uint(vert_size / vert_stride);
 			dst.firstIndex		= uint(idx_size / idx_stride);
-			dst.indexCount		= uint(ArraySizeOf(src.first->GetIndices()) / idx_stride);
+			dst.indexCount		= uint(src.first->GetIndexCount());
 
-			last_task = cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _vertexBuffer ).AddData( src.first->GetVertices(), vert_size ).DependsOn( last_task ));
-			last_task = cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _indexBuffer ).AddData( src.first->GetIndices(), idx_size ).DependsOn( last_task ));
-			
+			// copy vertices
+			{
+				RawBufferID	id;
+				BytesU		offset;
+				void*		dst_ptr	= null;
+				BytesU		size	= src.first->GetVertexCount() * vert_stride;
+				const void*	src_ptr	= src.first->GetVertices().data();
+
+				CHECK_ERR( cmdbuf->AllocBuffer( size, vert_stride, OUT id, OUT offset, OUT dst_ptr ));
+
+				for (size_t i = 0, cnt = src.first->GetVertexCount(); i < cnt; ++i)
+				{
+					std::memcpy( dst_ptr, src_ptr, size_t(src.first->GetVertexStride()) );
+					src_ptr	+= src.first->GetVertexStride();
+					dst_ptr	+= vert_stride;
+				}
+
+				last_task = cmdbuf->AddTask( CopyBuffer{}.From( id ).To( _vertexBuffer ).AddRegion( offset, vert_size, size ).DependsOn( last_task ));
+			}
+
+			// copy indices
+			{
+				RawBufferID	id;
+				BytesU		offset;
+				void*		dst_ptr	= null;
+				BytesU		size	= src.first->GetIndexCount() * idx_stride;
+				const void*	src_ptr	= src.first->GetIndices().data();
+
+				CHECK_ERR( cmdbuf->AllocBuffer( size, idx_stride, OUT id, OUT offset, OUT dst_ptr ));
+
+				for (size_t i = 0, cnt = src.first->GetIndexCount(); i < cnt; ++i)
+				{
+					std::memcpy( dst_ptr, src_ptr, size_t(src.first->GetIndexStride()) );
+					src_ptr	+= src.first->GetIndexStride();
+					dst_ptr	+= idx_stride;
+				}
+
+				last_task = cmdbuf->AddTask( CopyBuffer{}.From( id ).To( _indexBuffer ).AddRegion( offset, idx_size, size ).DependsOn( last_task ));
+			}
+
 			vert_size = AlignToLarger( vert_size + ArraySizeOf(src.first->GetVertices()), vert_stride );
 			idx_size  = AlignToLarger( idx_size  + ArraySizeOf(src.first->GetIndices()),  idx_stride  );
 

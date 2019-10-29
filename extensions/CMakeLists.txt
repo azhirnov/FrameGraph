@@ -380,7 +380,7 @@ endif()
 #==================================================================================================
 # project: Tests.PipelineCompiler
 #==================================================================================================
-if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS} AND NOT UNIX)
+if (${FG_ENABLE_GLSLANG} AND ${FG_ENABLE_TESTS})
 	set( SOURCES 
 		"../tests/pipeline_compiler/main.cpp"
 		"../tests/pipeline_compiler/Test_Shader1.cpp"
@@ -905,70 +905,4 @@ if (${FG_ENABLE_TESTS} AND ${FG_ENABLE_IMGUI})
 	
 	
 endif()
-
-
-#==================================================================================================
-# project: ScriptBinding
-#==================================================================================================
-if (${FG_ENABLE_ANGELSCRIPT})
-	set( SOURCES 
-		"script_binding/Bindings/BindScalarMath.cpp"
-		"script_binding/Bindings/BindVectorMath.cpp"
-		"script_binding/Bindings/DefaultBindings.h"
-		"script_binding/main.cpp"
-		"script_binding/Impl/ClassBinder.h"
-		"script_binding/Impl/EnumBinder.h"
-		"script_binding/Impl/ScriptBinder.cpp"
-		"script_binding/Impl/ScriptEngine.cpp"
-		"script_binding/Impl/ScriptEngine.h"
-		"script_binding/Impl/ScriptEngine.inl.h"
-		"script_binding/Impl/ScriptModule.cpp"
-		"script_binding/Impl/ScriptModule.h"
-		"script_binding/Impl/ScriptTypes.h" )
-	add_library( "ScriptBinding" STATIC ${SOURCES} )
-	source_group( "Bindings" FILES "script_binding/Bindings/BindScalarMath.cpp" "script_binding/Bindings/BindVectorMath.cpp" "script_binding/Bindings/DefaultBindings.h" )
-	source_group( "" FILES "script_binding/main.cpp" )
-	source_group( "Impl" FILES "script_binding/Impl/ClassBinder.h" "script_binding/Impl/EnumBinder.h" "script_binding/Impl/ScriptBinder.cpp" "script_binding/Impl/ScriptEngine.cpp" "script_binding/Impl/ScriptEngine.h" "script_binding/Impl/ScriptEngine.inl.h" "script_binding/Impl/ScriptModule.cpp" "script_binding/Impl/ScriptModule.h" "script_binding/Impl/ScriptTypes.h" )
-	set_property( TARGET "ScriptBinding" PROPERTY FOLDER "Extensions" )
-	target_link_libraries( "ScriptBinding" "FrameGraph" )
-	target_link_libraries( "ScriptBinding" "Framework" )
-	if (${FG_ENABLE_GLM})
-		target_link_libraries( "ScriptBinding" "Scene" )
-	endif()
-	if (${FG_ENABLE_GLSLANG})
-		target_link_libraries( "ScriptBinding" "PipelineCompiler" )
-	endif()
-	# compiler
-	if (PROJECTS_SHARED_CXX_FLAGS_DEBUG)
-		target_compile_options( "ScriptBinding" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_CXX_FLAGS_DEBUG}> )
-	endif()
-	if (PROJECTS_SHARED_CXX_FLAGS_RELEASE)
-		target_compile_options( "ScriptBinding" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_CXX_FLAGS_RELEASE}> )
-	endif()
-	if (PROJECTS_SHARED_DEFINES_RELEASE)
-		target_compile_definitions( "ScriptBinding" PRIVATE $<$<CONFIG:Release>: ${PROJECTS_SHARED_DEFINES_RELEASE}> )
-	endif()
-	if (PROJECTS_SHARED_DEFINES_DEBUG)
-		target_compile_definitions( "ScriptBinding" PRIVATE $<$<CONFIG:Debug>: ${PROJECTS_SHARED_DEFINES_DEBUG}> )
-	endif()
-	if (PROJECTS_SHARED_DEFINES_PROFILE)
-		target_compile_definitions( "ScriptBinding" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_DEFINES_PROFILE}> )
-	endif()
-	if (PROJECTS_SHARED_LINKER_FLAGS_PROFILE)
-		set_target_properties( "ScriptBinding" PROPERTIES LINK_FLAGS_PROFILE ${PROJECTS_SHARED_LINKER_FLAGS_PROFILE} )
-	endif()
-	if (PROJECTS_SHARED_LINKER_FLAGS_DEBUG)
-		set_target_properties( "ScriptBinding" PROPERTIES LINK_FLAGS_DEBUG ${PROJECTS_SHARED_LINKER_FLAGS_DEBUG} )
-	endif()
-	if (PROJECTS_SHARED_LINKER_FLAGS_RELEASE)
-		set_target_properties( "ScriptBinding" PROPERTIES LINK_FLAGS_RELEASE ${PROJECTS_SHARED_LINKER_FLAGS_RELEASE} )
-	endif()
-	if (PROJECTS_SHARED_CXX_FLAGS_PROFILE)
-		target_compile_options( "ScriptBinding" PRIVATE $<$<CONFIG:Profile>: ${PROJECTS_SHARED_CXX_FLAGS_PROFILE}> )
-	endif()
-	set_target_properties( "ScriptBinding" PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
-	
-	
-endif()
-
 

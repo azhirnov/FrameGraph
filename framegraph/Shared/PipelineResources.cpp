@@ -695,7 +695,7 @@ namespace {
 	DynamicDataDeleter::operator ()
 =================================================
 */
-    void PipelineResources::DynamicDataDeleter::operator () (DynamicData *ptr) const
+	void PipelineResources::DynamicDataDeleter::operator () (DynamicData *ptr) const
 	{
 		ASSERT( ptr != null );
 		Allocator::Deallocate( ptr, ptr->memSize );

@@ -70,7 +70,6 @@ set( SOURCES
 	"ThreadSafe/LfFixedStack.h"
 	"ThreadSafe/LfIndexedPool.h"
 	"ThreadSafe/SpinLock.h"
-	"Stream/BufferedStream.h"
 	"Stream/FileStream.cpp"
 	"Stream/FileStream.h"
 	"Stream/MemStream.h"
@@ -86,7 +85,7 @@ source_group( "Log" FILES "Log/Log.cpp" "Log/Log.h" "Log/TimeProfiler.h" )
 source_group( "Memory" FILES "Memory/LinearAllocator.h" "Memory/MemUtils.h" "Memory/MemWriter.h" "Memory/UntypedAllocator.h" )
 source_group( "" FILES "CMakeLists.txt" "Common.h" "Config.h" "Defines.h" )
 source_group( "ThreadSafe" FILES "ThreadSafe/AtomicCounter.h" "ThreadSafe/AtomicPtr.h" "ThreadSafe/Barrier.cpp" "ThreadSafe/Barrier.h" "ThreadSafe/DataRaceCheck.h" "ThreadSafe/DummyLock.h" "ThreadSafe/LfDoubleBuffer.h" "ThreadSafe/LfFixedList.h" "ThreadSafe/LfFixedStack.h" "ThreadSafe/LfIndexedPool.h" "ThreadSafe/SpinLock.h" )
-source_group( "Stream" FILES "Stream/BufferedStream.h" "Stream/FileStream.cpp" "Stream/FileStream.h" "Stream/MemStream.h" "Stream/Stream.cpp" "Stream/Stream.h" )
+source_group( "Stream" FILES "Stream/FileStream.cpp" "Stream/FileStream.h" "Stream/MemStream.h" "Stream/Stream.cpp" "Stream/Stream.h" )
 target_include_directories( "STL" PUBLIC ".." )
 target_include_directories( "STL" PRIVATE "" )
 if (NOT ${STD_VARIANT_SUPPORTED})
@@ -174,13 +173,14 @@ if (${FG_ENABLE_TESTS})
 		"../tests/stl/UnitTest_StaticString.cpp"
 		"../tests/stl/UnitTest_StringParser.cpp"
 		"../tests/stl/UnitTest_StructView.cpp"
-		"../tests/stl/UnitTest_ToString.cpp" )
+		"../tests/stl/UnitTest_ToString.cpp"
+		"../tests/stl/UnitTest_TypeList.cpp" )
 	if (DEFINED ANDROID)
 		add_library( "Tests.STL" SHARED ${SOURCES} )
 	else()
 		add_executable( "Tests.STL" ${SOURCES} )
 	endif()
-	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTest_Array.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_FixedTupleArray.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_LfIndexedPool.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_NtStringView.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_Rectangle.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_StringParser.cpp" "../tests/stl/UnitTest_StructView.cpp" "../tests/stl/UnitTest_ToString.cpp" )
+	source_group( "" FILES "../tests/stl/main.cpp" "../tests/stl/UnitTest_Array.cpp" "../tests/stl/UnitTest_BitTree.cpp" "../tests/stl/UnitTest_Color.cpp" "../tests/stl/UnitTest_Common.h" "../tests/stl/UnitTest_FixedArray.cpp" "../tests/stl/UnitTest_FixedMap.cpp" "../tests/stl/UnitTest_FixedTupleArray.cpp" "../tests/stl/UnitTest_IndexedPool.cpp" "../tests/stl/UnitTest_LfDoubleBuffer.cpp" "../tests/stl/UnitTest_LfFixedStack.cpp" "../tests/stl/UnitTest_LfIndexedPool.cpp" "../tests/stl/UnitTest_Math.cpp" "../tests/stl/UnitTest_Matrix.cpp" "../tests/stl/UnitTest_NtStringView.cpp" "../tests/stl/UnitTest_PoolAllocator.cpp" "../tests/stl/UnitTest_Rectangle.cpp" "../tests/stl/UnitTest_StaticString.cpp" "../tests/stl/UnitTest_StringParser.cpp" "../tests/stl/UnitTest_StructView.cpp" "../tests/stl/UnitTest_ToString.cpp" "../tests/stl/UnitTest_TypeList.cpp" )
 	set_property( TARGET "Tests.STL" PROPERTY FOLDER "Tests" )
 	target_include_directories( "Tests.STL" PRIVATE "../tests/.." )
 	target_link_libraries( "Tests.STL" "STL" )

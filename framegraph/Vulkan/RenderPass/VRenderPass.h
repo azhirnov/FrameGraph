@@ -84,7 +84,7 @@ namespace std
 {
 	template <>
 	struct hash< FG::VRenderPass > {
-        ND_ size_t  operator () (const FG::VRenderPass &value) const {
+		ND_ size_t  operator () (const FG::VRenderPass &value) const {
 			return size_t(value.GetHash());
 		}
 	};

@@ -22,7 +22,7 @@ namespace FG
 	GraphicsPipelineInfo
 =================================================
 */
-    inline bool  ShaderCache::GraphicsPipelineInfo::operator == (const GraphicsPipelineInfo &rhs) const
+	inline bool  ShaderCache::GraphicsPipelineInfo::operator == (const GraphicsPipelineInfo &rhs) const
 	{
 		return	attribs			== rhs.attribs			and
 				vertexStride	== rhs.vertexStride		and
@@ -32,7 +32,7 @@ namespace FG
 				sourceIDs		== rhs.sourceIDs;
 	}
 
-    inline size_t  ShaderCache::GraphicsPipelineInfoHash::operator () (const GraphicsPipelineInfo &x) const
+	inline size_t  ShaderCache::GraphicsPipelineInfoHash::operator () (const GraphicsPipelineInfo &x) const
 	{
 		return size_t(HashOf( x.attribs )   + HashOf( x.vertexStride ) +
 					  HashOf( x.textures )	+ HashOf( x.detailLevel )  +
@@ -44,13 +44,13 @@ namespace FG
 	RayTracingPipelineInfo
 =================================================
 */
-    inline bool  ShaderCache::RayTracingPipelineInfo::operator == (const RayTracingPipelineInfo &rhs) const
+	inline bool  ShaderCache::RayTracingPipelineInfo::operator == (const RayTracingPipelineInfo &rhs) const
 	{
 		return	GraphicsPipelineInfo::operator == (rhs) and
 				shaders == rhs.shaders;
 	}
 
-    inline size_t  ShaderCache::RayTracingPipelineInfoHash::operator () (const RayTracingPipelineInfo &x) const
+	inline size_t  ShaderCache::RayTracingPipelineInfoHash::operator () (const RayTracingPipelineInfo &x) const
 	{
 		return	size_t(HashVal{GraphicsPipelineInfoHash{}( x )} + HashOf( x.shaders ));
 	}
@@ -60,12 +60,12 @@ namespace FG
 	ComputePipelineInfo
 =================================================
 */
-    inline bool  ShaderCache::ComputePipelineInfo::operator == (const ComputePipelineInfo &rhs) const
+	inline bool  ShaderCache::ComputePipelineInfo::operator == (const ComputePipelineInfo &rhs) const
 	{
 		return	sourceIDs == rhs.sourceIDs;
 	}
 
-    inline size_t  ShaderCache::ComputePipelineInfoHash::operator () (const ComputePipelineInfo &x) const
+	inline size_t  ShaderCache::ComputePipelineInfoHash::operator () (const ComputePipelineInfo &x) const
 	{
 		return size_t(HashOf( x.sourceIDs ));
 	}
@@ -259,6 +259,11 @@ namespace FG
 		String	result	= "#define TEXTURE_BITS ";
 		bool	is_first= true;
 
+		if ( info.textures == Default )
+		{
+			result << "0";
+		}
+		else
 		for (ETextureType t = ETextureType(1); t <= info.textures; t = ETextureType(uint(t) << 1))
 		{
 			if ( not EnumEq( info.textures, t ) )

@@ -64,7 +64,7 @@ void main ()
 		const uint2		view_size	= {800, 600};
 		ImageID			dst_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
 																			EImageUsage::Storage | EImageUsage::TransferSrc },
-															    Default, "OutputImage" );
+																Default, "OutputImage" );
 		
 		RTPipelineID	pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );

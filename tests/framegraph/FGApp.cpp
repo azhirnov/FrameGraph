@@ -123,8 +123,8 @@ namespace {
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {{ VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_PRESENT_BIT, 0.0f },
-									    { VK_QUEUE_COMPUTE_BIT,  0.0f },
-									    { VK_QUEUE_TRANSFER_BIT, 0.0f }},
+										{ VK_QUEUE_COMPUTE_BIT,  0.0f },
+										{ VK_QUEUE_TRANSFER_BIT, 0.0f }},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetAllDeviceExtensions()

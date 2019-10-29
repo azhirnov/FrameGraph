@@ -86,7 +86,7 @@ namespace std
 	template <>
 	struct hash< FG::VPipelineResources >
 	{
-        ND_ size_t  operator () (const FG::VPipelineResources &value) const {
+		ND_ size_t  operator () (const FG::VPipelineResources &value) const {
 			return size_t(value.GetHash());
 		}
 	};

@@ -109,7 +109,7 @@ namespace std
 	template <>
 	struct hash< FG::ImageDesc >
 	{
-        ND_ size_t  operator () (const FG::ImageDesc &value) const
+		ND_ size_t  operator () (const FG::ImageDesc &value) const
 		{
 		#if FG_FAST_HASH
 			return size_t(FGC::HashOf( AddressOf(value), sizeof(value) ));
@@ -130,7 +130,7 @@ namespace std
 	template <>
 	struct hash< FG::ImageViewDesc >
 	{
-        ND_ size_t  operator () (const FG::ImageViewDesc &value) const
+		ND_ size_t  operator () (const FG::ImageViewDesc &value) const
 		{
 		#if FG_FAST_HASH
 			return size_t(FGC::HashOf( AddressOf(value), sizeof(value) ));

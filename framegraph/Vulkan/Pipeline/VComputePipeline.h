@@ -35,7 +35,7 @@ namespace FG
 		};
 
 		struct PipelineInstanceHash {
-            ND_ size_t	operator () (const PipelineInstance &value) const	{ return size_t(value._hash); }
+			ND_ size_t	operator () (const PipelineInstance &value) const	{ return size_t(value._hash); }
 		};
 
 		struct ShaderModule

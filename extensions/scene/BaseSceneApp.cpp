@@ -43,8 +43,7 @@ namespace FG
 	_CreateFrameGraph
 =================================================
 */
-	bool BaseSceneApp::_CreateFrameGraph (const uint2 &windowSize, NtStringView windowTitle,
-										  ArrayView<StringView> shaderDirectories, StringView dbgOutputPath)
+	bool BaseSceneApp::_CreateFrameGraph (const AppConfig &cfg)
 	{
 		// initialize window
 		{
@@ -58,18 +57,20 @@ namespace FG
 			#	error Unknown window library!
 			#endif
 
-			_title = StringView{windowTitle};
+			_title = cfg.windowTitle;
 
-			CHECK_ERR( _window->Create( windowSize, _title ));
+			CHECK_ERR( _window->Create( cfg.surfaceSize, _title ));
 			_window->AddListener( this );
 		}
 
 		// initialize VR
 		{
 			#if defined(FG_ENABLE_OPENVR)
+			if ( cfg.vrMode == AppConfig::EVRMode::OpenVR ) {
 				_vrDevice.reset( new OpenVRDevice{});
+			}
 			#elif 0
-			{
+			if ( cfg.vrMode == AppConfig::EVRMode::Emulator ) {
 				WindowPtr	wnd{ new WindowGLFW{}};
 				CHECK_ERR( wnd->Create( { 1024, 512 }, "emulator" ));
 				_vrDevice.reset( new VRDeviceEmulator{ std::move(wnd) });
@@ -98,7 +99,7 @@ namespace FG
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {},
-									   {}, //VulkanDevice::GetRecomendedInstanceLayers(),
+									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   inst_ext,
 									   dev_ext
 									));
@@ -158,7 +159,7 @@ namespace FG
 										   EShaderCompilationFlags::ParseAnnoations	|
 										   EShaderCompilationFlags::UseCurrentDeviceLimits );
 
-			for (auto& dir : shaderDirectories) {
+			for (auto& dir : cfg.shaderDirectories) {
 				compiler->AddDirectory( dir );
 			}
 
@@ -167,9 +168,9 @@ namespace FG
 		
 		// setup debug output
 #		ifdef FG_STD_FILESYSTEM
-		if ( dbgOutputPath.size() )
+		if ( cfg.dbgOutputPath.size() )
 		{
-			FS::path	path{ dbgOutputPath };
+			FS::path	path{ cfg.dbgOutputPath };
 		
 			if ( FS::exists( path ) )
 				FS::remove_all( path );

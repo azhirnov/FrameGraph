@@ -58,10 +58,10 @@ namespace FG
 					 ArrayView<IntermLightPtr> lights,
 					 SceneNode &&root);
 
-		ND_ MaterialMap_t		GetMaterials ()	const	{ return _materials; }
-		ND_ MeshMap_t			GetMeshes ()	const	{ return _meshes; }
-		ND_ LightMap_t			GetLights ()	const	{ return _lights; }
-		ND_ SceneNode const&	GetRoot ()		const	{ return _root; }
+		ND_ MaterialMap_t const&	GetMaterials ()	const	{ return _materials; }
+		ND_ MeshMap_t const&		GetMeshes ()	const	{ return _meshes; }
+		ND_ LightMap_t const&		GetLights ()	const	{ return _lights; }
+		ND_ SceneNode const&		GetRoot ()		const	{ return _root; }
 
 		ND_ uint  GetIndexOfMesh (const IntermMeshPtr &) const;
 		ND_ uint  GetIndexOfMaterial (const IntermMaterialPtr &) const;

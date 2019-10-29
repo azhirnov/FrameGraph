@@ -1,6 +1,7 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "scene/Loader/Intermediate/IntermMesh.h"
+#include "framegraph/Shared/EnumUtils.h"
 
 namespace FG
 {
@@ -11,8 +12,8 @@ namespace FG
 =================================================
 */
 	IntermMesh::IntermMesh (Array<uint8_t> &&vertices, const VertexAttributesPtr &attribs,
-									    BytesU vertStride, EPrimitive topology,
-									    Array<uint8_t> &&indices, EIndex indexType) :
+							BytesU vertStride, EPrimitive topology,
+							Array<uint8_t> &&indices, EIndex indexType) :
 		_vertices{ std::move(vertices) },	_attribs{ attribs },
 		_vertexStride{ vertStride },		_topology{ topology },
 		_indices{ std::move(indices) },		_indexType{ indexType }
@@ -43,6 +44,15 @@ namespace FG
 
 		_boundingBox = bbox;
 	}
-
+	
+/*
+=================================================
+	GetIndexStride
+=================================================
+*/
+	BytesU  IntermMesh::GetIndexStride () const
+	{
+		return EIndex_SizeOf(_indexType);
+	}
 
 }	// FG

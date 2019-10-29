@@ -38,12 +38,12 @@ namespace FG
 		using RTShaderGroup				= UpdateRayTracingShaderTable::ShaderGroup;
 		
 		struct RTShaderGroupHash {
-            ND_ size_t  operator () (const RTShaderGroup *value) const {
+			ND_ size_t  operator () (const RTShaderGroup *value) const {
 				return size_t(HashOf( value->type ) + HashOf( value->mainShader ) + HashOf( value->anyHitShader ) + HashOf( value->intersectionShader ));
 			}
 		};
 		struct RTShaderGroupEqual {
-            ND_ bool  operator () (const RTShaderGroup *lhs, const RTShaderGroup *rhs) const {
+			ND_ bool  operator () (const RTShaderGroup *lhs, const RTShaderGroup *rhs) const {
 				return	lhs->type == rhs->type and lhs->mainShader == rhs->mainShader and
 						lhs->anyHitShader == rhs->anyHitShader and lhs->intersectionShader == rhs->intersectionShader;
 			}

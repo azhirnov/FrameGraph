@@ -47,6 +47,8 @@ namespace FGC
 		constexpr explicit Rectangle (const Rectangle<B> &other) :
 			left{T(other.left)}, top{T(other.top)}, right{T(other.right)}, bottom{T(other.bottom)} {}
 
+		Self& LeftTop (const Vec2_t& v);
+		Self& RightBottom (const Vec2_t& v);
 
 		ND_ constexpr const T		Width ()		const	{ return right - left; }
 		ND_ constexpr const T		Height ()		const	{ return bottom - top; }
@@ -57,9 +59,6 @@ namespace FGC
 		ND_ constexpr const Vec2_t	RightBottom ()	const	{ return { right, bottom }; }
 		ND_ constexpr const Vec2_t	LeftBottom ()	const	{ return { left, bottom }; }
 		ND_ constexpr const Vec2_t	RightTop ()		const	{ return { right, top }; }
-		
-		ND_ Vec2_t &				LeftTop ();
-		ND_ Vec2_t &				RightBottom ();
 
 		ND_ T const*				data ()			const	{ return std::addressof( left ); }
 		ND_ T *						data ()					{ return std::addressof( left ); }
@@ -97,26 +96,23 @@ namespace FGC
 	
 /*
 =================================================
-	LeftTop
+	LeftTop / RightBottom
 =================================================
 */
 	template <typename T>
-	inline Vec<T,2>&  Rectangle<T>::LeftTop ()
+	inline Rectangle<T>&  Rectangle<T>::LeftTop (const Vec2_t& v)
 	{
-		STATIC_ASSERT( offsetof(Self, left) + sizeof(T) == offsetof(Self, top) );
-		return *reinterpret_cast<Vec2_t *>( &left );
+		left = v.x;
+		top = v.y;
+		return *this;
 	}
 	
-/*
-=================================================
-	RightBottom
-=================================================
-*/
 	template <typename T>
-	inline Vec<T,2>&  Rectangle<T>::RightBottom ()
+	inline Rectangle<T>&  Rectangle<T>::RightBottom (const Vec2_t& v)
 	{
-		STATIC_ASSERT( offsetof(Self, right) + sizeof(T) == offsetof(Self, bottom) );
-		return *reinterpret_cast<Vec2_t *>( &right );
+		right = v.x;
+		bottom = v.y;
+		return *this;
 	}
 
 /*
@@ -405,7 +401,7 @@ namespace std
 	template <typename T>
 	struct hash< FGC::Rectangle<T> >
 	{
-        ND_ size_t  operator () (const FGC::Rectangle<T> &value) const
+		ND_ size_t  operator () (const FGC::Rectangle<T> &value) const
 		{
 		#if FG_FAST_HASH
 			return	size_t( FGC::HashOf( this, sizeof(*this) ));

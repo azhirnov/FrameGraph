@@ -10,7 +10,7 @@ namespace FG
 	//
 	// Draw Command Buffer interface
 	//
-
+	/*
 	class IDrawCommandBuffer : public std::enable_shared_from_this<IDrawCommandBuffer>
 	{
 	// interface
@@ -23,6 +23,6 @@ namespace FG
 		virtual void  AddTask (const DrawMeshesIndirect &) = 0;
 		virtual void  AddTask (const CustomDraw &) = 0;
 	};
-
+	*/
 
 }	// FG

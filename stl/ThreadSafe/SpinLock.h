@@ -10,7 +10,6 @@
 namespace FGC
 {
 
-
 	//
 	// Spin Lock
 	//
@@ -19,7 +18,7 @@ namespace FGC
 	{
 	// variables
 	private:
-		alignas(FG_CACHE_LINE) std::atomic<uint>		_flag {0};
+		alignas(FG_CACHE_LINE) std::atomic<uint>	_flag { 0 };
 
 
 	// methods

@@ -238,6 +238,24 @@ namespace FGC
 				Equals( lhs.z, rhs.z, err )};
 	}
 	
+	template <typename T>
+	inline bool4  Equals (const glm::tvec4<T> &lhs, const glm::tvec4<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	{
+		return {Equals( lhs.x, rhs.x, err ),
+				Equals( lhs.y, rhs.y, err ),
+				Equals( lhs.z, rhs.z, err ),
+				Equals( lhs.w, rhs.w, err )};
+	}
+
+	template <typename T>
+	inline bool4  Equals (const glm::qua<T> &lhs, const glm::qua<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	{
+		return {Equals( lhs.x, rhs.x, err ),
+				Equals( lhs.y, rhs.y, err ),
+				Equals( lhs.z, rhs.z, err ),
+				Equals( lhs.w, rhs.w, err )};
+	}
+	
 /*
 =================================================
 	ToString
@@ -309,7 +327,7 @@ namespace _fg_hidden_
 }	// _fg_hidden_
 
 
-    static constexpr _fg_hidden_::GLMIdentity	Identity {};
+	static constexpr _fg_hidden_::GLMIdentity	Identity {};
 
 	static constexpr glm::quat					Quat_Identity	= Identity;
 	static const     glm::mat4x4				Mat4x4_Identity = Identity;

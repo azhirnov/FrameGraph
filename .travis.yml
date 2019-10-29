@@ -50,16 +50,3 @@ matrix:
         - cmake --build . --config Release
         - ctest -C Release --verbose
       
-    # Linux Clang
-    #- os: linux
-    #  dist: trusty
-    #  addons:
-    #    apt:
-    #        sources:
-    #          - ubuntu-toolchain-r-test
-    #          - llvm-toolchain-trusty-8
-    #        packages:
-    #          - xorg-dev
-    #          - clang-8
-    #  env: MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
-      

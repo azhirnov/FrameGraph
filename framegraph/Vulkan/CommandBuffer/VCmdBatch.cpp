@@ -1169,8 +1169,8 @@ namespace FG
 		}
 
 		CHECK_ERR( _AllocDescriptorSet( dbgMode.mode, dbgMode.shaderStages,
-									    _shaderDebugger.buffers[dbgMode.sbIndex].shaderTraceBuffer.Get(),
-									    dbgMode.size, OUT dbgMode.descriptorSet ));
+										_shaderDebugger.buffers[dbgMode.sbIndex].shaderTraceBuffer.Get(),
+										dbgMode.size, OUT dbgMode.descriptorSet ));
 		return true;
 	}
 	

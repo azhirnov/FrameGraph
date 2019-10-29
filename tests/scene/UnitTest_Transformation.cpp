@@ -73,10 +73,25 @@ static void Transformation_Test2 ()
 }
 
 
+static void Transformation_Test3 ()
+{
+	const Transform	tr1{ vec3{1.0f, 2.0f, -3.0f},
+						 QRotate(45.0f, 0.0f, 10.0f),
+						 2.0f };
+	const Transform tr2 = tr1.Inversed();
+	const Transform tr3 = tr2.Inversed();
+
+	TEST(All(Equals( tr1.position, tr3.position, 0.01f )));
+	TEST(All(Equals( tr1.orientation, tr3.orientation, 0.01f )));
+	TEST(Equals( tr1.scale, tr3.scale ));
+}
+
+
 extern void UnitTest_Transformation ()
 {
 	Transformation_Test1();
 	Transformation_Test2();
+	Transformation_Test3();
 
 	FG_LOGI( "UnitTest_Transformation - passed" );
 }

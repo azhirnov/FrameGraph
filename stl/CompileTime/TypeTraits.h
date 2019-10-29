@@ -3,6 +3,7 @@
 #pragma once
 
 #include <type_traits>
+#include <cstdint>
 
 namespace FGC
 {
@@ -60,5 +61,19 @@ namespace FGC
 	template <bool Test, typename IfTrue, typename IfFalse>
 	using Conditional	= std::conditional_t< Test, IfTrue, IfFalse >;
 
+
+	template <typename T>
+	using ToUnsignedInteger	= Conditional< sizeof(T) == sizeof(uint64_t), uint64_t,
+								Conditional< sizeof(T) == sizeof(uint32_t), uint32_t,
+									Conditional< sizeof(T) == sizeof(uint16_t), uint16_t,
+										Conditional< sizeof(T) == sizeof(uint8_t), uint8_t,
+											void >>>>;
+	
+	template <typename T>
+	using ToSignedInteger	= Conditional< sizeof(T) == sizeof(int64_t), int64_t,
+								Conditional< sizeof(T) == sizeof(int32_t), int32_t,
+									Conditional< sizeof(T) == sizeof(int16_t), int16_t,
+										Conditional< sizeof(T) == sizeof(int8_t), int8_t,
+											void >>>>;
 
 }	// FGC
