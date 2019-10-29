@@ -521,7 +521,7 @@ namespace {
 			if ( not EnumEq( flags, t ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkAccessFlagBits(t) )
 			{
 				case VK_ACCESS_INDIRECT_COMMAND_READ_BIT :					result |= EAccessType::Read;	break;
@@ -555,7 +555,7 @@ namespace {
 				case VK_ACCESS_FLAG_BITS_MAX_ENUM :
 				default :													ASSERT(false);  break;
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}

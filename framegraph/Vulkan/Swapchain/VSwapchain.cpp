@@ -285,8 +285,8 @@ namespace FG
 		VK_CHECK( dev.vkCreateSemaphore( dev.GetVkDevice(), &info, null, OUT &_imageAvailable ));
 		VK_CHECK( dev.vkCreateSemaphore( dev.GetVkDevice(), &info, null, OUT &_renderFinished ));
 
-		dev.SetObjectName( uint64_t(_imageAvailable), "ImageAvailable", VK_OBJECT_TYPE_SEMAPHORE );
-		dev.SetObjectName( uint64_t(_renderFinished), "RenderAvailable", VK_OBJECT_TYPE_SEMAPHORE );
+		dev.SetObjectName( BitCast<uint64_t>(_imageAvailable), "ImageAvailable", VK_OBJECT_TYPE_SEMAPHORE );
+		dev.SetObjectName( BitCast<uint64_t>(_renderFinished), "RenderAvailable", VK_OBJECT_TYPE_SEMAPHORE );
 
 		return true;
 	}

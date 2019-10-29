@@ -5,7 +5,7 @@
 #include "EShaderCompilationFlags.h"
 #include "framegraph/Public/ResourceEnums.h"
 #include "framegraph/Public/VertexEnums.h"
-#include "glslang/glslang/Include/ResourceLimits.h"
+#include "glslang/Include/ResourceLimits.h"
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>
@@ -114,13 +114,13 @@ namespace FG
 		bool SetCurrentResourceLimits (PhysicalDeviceVk_t physicalDevice);
 
 		bool Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-					  StringView entry, StringView source, StringView debugName,
+					  NtStringView entry, NtStringView source, StringView debugName,
 					  OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log);
 		
 
 	private:
 		bool _ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-						 StringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
+						 NtStringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
 						 OUT GLSLangResult &glslangData, INOUT String &log);
 
 		bool _CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, INOUT String &log) const;

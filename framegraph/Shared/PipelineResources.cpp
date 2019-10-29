@@ -695,7 +695,7 @@ namespace {
 	DynamicDataDeleter::operator ()
 =================================================
 */
-	void PipelineResources::DynamicDataDeleter::operator () (DynamicData *ptr) const noexcept
+	void PipelineResources::DynamicDataDeleter::operator () (DynamicData *ptr) const
 	{
 		ASSERT( ptr != null );
 		Allocator::Deallocate( ptr, ptr->memSize );
@@ -738,7 +738,7 @@ namespace {
 				 lhs_un.resType != rhs_un.resType )
 				return false;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( lhs_un.resType )
 			{
 				case EDescriptorType::Unknown :			break;
@@ -749,7 +749,7 @@ namespace {
 				case EDescriptorType::Sampler :			equals = (*Cast<Sampler>(lhs_ptr)		  == *Cast<Sampler>(rhs_ptr));			break;
 				case EDescriptorType::RayTracingScene :	equals = (*Cast<RayTracingScene>(lhs_ptr) == *Cast<RayTracingScene>(rhs_ptr));	break;
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 
 			if ( not equals )
 				return false;
@@ -773,7 +773,7 @@ namespace {
 		res._ResetCachedID();
 		res._dataPtr = DynamicDataPtr{ Cast<PipelineResources::DynamicData>( Allocator::Allocate( dataPtr->memSize ))};
 
-		memcpy( OUT res._dataPtr.get(), dataPtr.get(), size_t(dataPtr->memSize) );
+		std::memcpy( OUT res._dataPtr.get(), dataPtr.get(), size_t(dataPtr->memSize) );
 		res._dataPtr->layoutId = layoutId;
 
 		return true;
@@ -794,7 +794,7 @@ namespace {
 		auto&	data	= res._dataPtr;
 		auto*	result	= Cast<PipelineResources::DynamicData>( Allocator::Allocate( data->memSize ));
 		
-		memcpy( OUT result, data.get(), size_t(data->memSize) );
+		std::memcpy( OUT result, data.get(), size_t(data->memSize) );
 		return DynamicDataPtr{ result };
 	}
 	

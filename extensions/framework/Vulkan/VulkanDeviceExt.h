@@ -87,7 +87,7 @@ namespace FGC
 		bool GetMemoryTypeIndex (uint memoryTypeBits, VkMemoryPropertyFlags flags, OUT uint &memoryTypeIndex) const;
 		bool CompareMemoryTypes (uint memoryTypeBits, VkMemoryPropertyFlags flags, uint memoryTypeIndex) const;
 
-		bool SetObjectName (uint64_t id, StringView name, VkObjectType type) const;
+		bool SetObjectName (uint64_t id, NtStringView name, VkObjectType type) const;
 
 		void SetBreakOnValidationError (bool value);
 

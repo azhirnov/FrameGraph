@@ -78,13 +78,13 @@ namespace FGC
 		}
 
 
-		void SetBlockSize (BytesU size) noexcept
+		void SetBlockSize (BytesU size)
 		{
 			_blockSize = size;
 		}
 
 
-		ND_ FG_ALLOCATOR void*  Alloc (const BytesU size, const BytesU align) noexcept
+		ND_ FG_ALLOCATOR void*  Alloc (const BytesU size, const BytesU align)
 		{
 			for (auto& block : _blocks)
 			{
@@ -108,20 +108,20 @@ namespace FGC
 
 
 		template <typename T>
-		ND_ FG_ALLOCATOR T*  Alloc (size_t count = 1) noexcept
+		ND_ FG_ALLOCATOR T*  Alloc (size_t count = 1)
 		{
 			return BitCast<T *>( Alloc( SizeOf<T> * count, AlignOf<T> ));
 		}
 
 
-		void Discard () noexcept
+		void Discard ()
 		{
 			for (auto& block : _blocks) {
 				block.size = 0_b;
 			}
 		}
 
-		void Release () noexcept
+		void Release ()
 		{
 			for (auto& block : _blocks) {
 				_alloc.Deallocate( block.ptr, block.capacity, _ptrAlign );
@@ -156,9 +156,9 @@ namespace FGC
 
 	// methods
 	public:
-		UntypedLinearAllocator (Self &&other) noexcept : _alloc{other._alloc} {}
-		UntypedLinearAllocator (const Self &other) noexcept : _alloc{other._alloc} {}
-		UntypedLinearAllocator (LinearAllocator_t &alloc) noexcept : _alloc{alloc} {}
+		UntypedLinearAllocator (Self &&other) : _alloc{other._alloc} {}
+		UntypedLinearAllocator (const Self &other) : _alloc{other._alloc} {}
+		UntypedLinearAllocator (LinearAllocator_t &alloc) : _alloc{alloc} {}
 
 
 		ND_ FG_ALLOCATOR void*  Allocate (BytesU size, BytesU align)
@@ -209,14 +209,14 @@ namespace FGC
 
 	// methods
 	public:
-		StdLinearAllocator (LinearAllocator_t &alloc) noexcept : _alloc{alloc} {}
-		StdLinearAllocator (const UntypedAllocator_t &alloc) noexcept : _alloc{alloc.GetAllocatorRef()} {}
+		StdLinearAllocator (LinearAllocator_t &alloc) : _alloc{alloc} {}
+		StdLinearAllocator (const UntypedAllocator_t &alloc) : _alloc{alloc.GetAllocatorRef()} {}
 
-		StdLinearAllocator (Self &&other) noexcept : _alloc{other._alloc} {}
-		StdLinearAllocator (const Self &other) noexcept : _alloc{other._alloc} {}
+		StdLinearAllocator (Self &&other) : _alloc{other._alloc} {}
+		StdLinearAllocator (const Self &other) : _alloc{other._alloc} {}
 		
 		template <typename B>
-		StdLinearAllocator (const StdLinearAllocator<B,Allocator_t>& other) noexcept : _alloc{other.GetAllocatorRef()} {}
+		StdLinearAllocator (const StdLinearAllocator<B,Allocator_t>& other) : _alloc{other.GetAllocatorRef()} {}
 
 		Self& operator = (const Self &) = delete;
 
@@ -226,11 +226,11 @@ namespace FGC
 			return _alloc.template Alloc<T>( count );
 		}
 
-		void deallocate (T * const, const size_t) noexcept
+		void deallocate (T * const, const size_t)
 		{
 		}
 
-		ND_ Self  select_on_container_copy_construction() const noexcept
+		ND_ Self  select_on_container_copy_construction() const
 		{
 			return Self{ _alloc };
 		}

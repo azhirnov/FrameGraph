@@ -49,8 +49,8 @@ namespace FG
 			_cmdBuf{ static_cast<ICommandBuffer *>(cb) },
 			_batch{ static_cast<Batch *>(batch) }
 		{
-			STATIC_ASSERT( std::is_base_of_v< ICommandBuffer, T1 > );
-			STATIC_ASSERT( std::is_base_of_v< Batch, T2 > );
+			STATIC_ASSERT( std::is_base_of< ICommandBuffer, T1 >::value );
+			STATIC_ASSERT( std::is_base_of< Batch, T2 >::value );
 
 			_IncRef();
 		}

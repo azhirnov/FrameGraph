@@ -25,7 +25,7 @@ namespace FGC
 */
 	ND_ inline String  ToString (const EImage value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EImage::Tex1D :		return "Image1D";
@@ -40,7 +40,7 @@ namespace FGC
 			case EImage::Buffer :		return "ImageBuffer";
 			case EImage::Unknown :		break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown image type!" );
 	}
 
@@ -61,7 +61,7 @@ namespace FGC
 			if ( not result.empty() )
 				result << " | ";
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EImageUsage::TransferSrc				: result << "TransferSrc";				break;
@@ -79,7 +79,7 @@ namespace FGC
 				case EImageUsage::Unknown					:
 				default										: RETURN_ERR( "invalid image usage type!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -101,7 +101,7 @@ namespace FGC
 			if ( not result.empty() )
 				result << " | ";
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EBufferUsage::TransferSrc	: result << "TransferSrc";		break;
@@ -120,7 +120,7 @@ namespace FGC
 				case EBufferUsage::Unknown		:
 				default							: RETURN_ERR( "invalid buffer usage type!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -147,7 +147,7 @@ namespace FGC
 			if ( not result.empty() )
 				result << " | ";
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EImageAspect::Color		: result << "Color";	break;
@@ -160,7 +160,7 @@ namespace FGC
 				case EImageAspect::Unknown		:
 				default							: RETURN_ERR( "invalid image aspect type!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -235,7 +235,7 @@ namespace FGC
 */
 	ND_ inline String  ToString (const EPixelFormat value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EPixelFormat::RGBA16_SNorm : return "RGBA16_SNorm";
@@ -360,7 +360,7 @@ namespace FGC
 			case EPixelFormat::_Count :
 			case EPixelFormat::Unknown : break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown pixel format type!" );
 	}
 

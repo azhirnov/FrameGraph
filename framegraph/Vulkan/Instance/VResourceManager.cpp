@@ -38,7 +38,7 @@ namespace FG
 			}
 		}
 		
-		ShaderModuleVk_t const&	GetData () const override		{ return BitCast<ShaderModuleVk_t>( _module ); }
+		ShaderModuleVk_t const&	GetData () const override		{ return *Cast<ShaderModuleVk_t>( &_module ); }
 
 		StringView				GetEntry () const override		{ return _entry; }
 		
@@ -422,7 +422,7 @@ namespace FG
 =================================================
 */
 	bool  VResourceManager::_CreateDescriptorSetLayout (OUT RawDescriptorSetLayoutID &id, OUT ResourceBase<VDescriptorSetLayout>* &layoutPtr,
-													    const PipelineDescription::UniformMapPtr &uniforms)
+														const PipelineDescription::UniformMapPtr &uniforms)
 	{
 		CHECK_ERR( _Assign( OUT id ));
 		

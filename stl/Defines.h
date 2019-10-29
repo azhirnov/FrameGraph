@@ -94,19 +94,24 @@
 
 // debug break
 #ifndef FG_PRIVATE_BREAK_POINT
-# if defined(COMPILER_MSVC)
+# if defined(COMPILER_MSVC) and defined(FG_DEBUG)
 #	define FG_PRIVATE_BREAK_POINT()		__debugbreak()
 
-# elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
-#  if defined(PLATFORM_ANDROID) && defined(FG_DEBUG)
-#	define FG_PRIVATE_BREAK_POINT()		{}
-#  elif 1
+# elif defined(PLATFORM_ANDROID) and defined(FG_DEBUG)
+#	include <csignal>
+#	define FG_PRIVATE_BREAK_POINT()		std::raise( SIGINT )
+
+# elif (defined(COMPILER_CLANG) or defined(COMPILER_GCC)) and defined(FG_DEBUG)
+#  if 1
 #	include <exception>
 #	define FG_PRIVATE_BREAK_POINT() 	throw std::runtime_error("breakpoint")
-#  elif 0
+#  else
 #	include <csignal>
 #	define FG_PRIVATE_BREAK_POINT()		std::raise(SIGINT)
 #  endif
+
+# else
+#	define FG_PRIVATE_BREAK_POINT()		{}
 # endif
 #endif
 
@@ -261,34 +266,34 @@
 
 // bit operators
 #define FG_BIT_OPERATORS( _type_ ) \
-	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
-	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	noexcept	{ return _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
 	\
-	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
-	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	noexcept	{ return lhs = _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
 	\
-	ND_ constexpr _type_  operator ~ (_type_ lhs) noexcept					{ return _type_(~FGC::EnumToUInt(lhs)); } \
-	ND_ constexpr bool    operator ! (_type_ lhs) noexcept					{ return not FGC::EnumToUInt(lhs); } \
+	ND_ constexpr _type_  operator ~ (_type_ lhs)				{ return _type_(~FGC::EnumToUInt(lhs)); } \
+	ND_ constexpr bool   operator ! (_type_ lhs)				{ return not FGC::EnumToUInt(lhs); } \
 	
 
 // enable/disable checks for enums
 #ifdef COMPILER_MSVC
-#	define ENABLE_ENUM_CHECKS() \
+#	define BEGIN_ENUM_CHECKS() \
 		__pragma (warning (push)) \
 		__pragma (warning (error: 4061)) /*enumerator 'identifier' in switch of enum 'enumeration' is not explicitly handled by a case label*/ \
 		__pragma (warning (error: 4062)) /*enumerator 'identifier' in switch of enum 'enumeration' is not handled*/ \
 		__pragma (warning (error: 4063)) /*case 'number' is not a valid value for switch of enum 'type'*/ \
 
-#	define DISABLE_ENUM_CHECKS() \
+#	define END_ENUM_CHECKS() \
 		__pragma (warning (pop)) \
 
 #elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
-#	define ENABLE_ENUM_CHECKS()		// TODO
-#	define DISABLE_ENUM_CHECKS()	// TODO
+#	define BEGIN_ENUM_CHECKS()		// TODO
+#	define END_ENUM_CHECKS()	// TODO
 
 #else
-#	define ENABLE_ENUM_CHECKS()
-#	define DISABLE_ENUM_CHECKS()
+#	define BEGIN_ENUM_CHECKS()
+#	define END_ENUM_CHECKS()
 
 #endif
 
@@ -328,6 +333,59 @@
 // to fix compiler error C2338
 #ifdef COMPILER_MSVC
 #	define _ENABLE_EXTENDED_ALIGNED_STORAGE
+#endif
+
+
+// compile time messages
+#ifndef FG_COMPILATION_MESSAGE
+#	if defined(COMPILER_CLANG)
+#		define FG_PRIVATE_MESSAGE_TOSTR(x)	#x
+#		define FG_COMPILATION_MESSAGE( _message_ )	_Pragma(FG_PRIVATE_MESSAGE_TOSTR( GCC warning ("" _message_) ))
+
+#	elif defined(COMPILER_MSVC)
+#		define FG_COMPILATION_MESSAGE( _message_ )	__pragma(message( _message_ ))
+
+#	else
+#		define FG_COMPILATION_MESSAGE( _message_ )	// not supported
+#	endif
+#endif
+
+
+// setup for build on CI
+#ifdef FG_CI_BUILD
+
+#	undef  FG_PRIVATE_BREAK_POINT
+#	define FG_PRIVATE_BREAK_POINT()	{}
+
+#	undef  FG_PRIVATE_CHECK
+#	define FG_PRIVATE_CHECK( _expr_, _text_ ) \
+		{if ( !(_expr_) ) { \
+			FG_LOGI( _text_ ); \
+			FG_PRIVATE_EXIT(); \
+		}}
+
+#	undef  FG_PRIVATE_CHECK_ERR
+#	define FG_PRIVATE_CHECK_ERR( _expr_, _ret_ ) \
+		{if ( !(_expr_) ) { \
+			FG_LOGI( FG_PRIVATE_TOSTRING( _expr_ )); \
+			FG_PRIVATE_EXIT(); \
+			return (_ret_); \
+		}}
+
+#	undef  CHECK_FATAL
+#	define CHECK_FATAL( _expr_ ) \
+		{if ( !(_expr_) ) { \
+			FG_LOGI( FG_PRIVATE_TOSTRING( _expr_ ) ); \
+			FG_PRIVATE_EXIT(); \
+		}}
+
+#	undef  FG_PRIVATE_RETURN_ERR
+#	define FG_PRIVATE_RETURN_ERR( _text_, _ret_ ) \
+		{FG_LOGI( _text_ ); \
+		 FG_PRIVATE_EXIT(); \
+		 return (_ret_); \
+		}
+
 #endif
 
 
@@ -386,6 +444,12 @@
 #	pragma detect_mismatch( "FG_STD_BARRIER", "1" )
 #  else
 #	pragma detect_mismatch( "FG_STD_BARRIER", "0" )
+#  endif
+
+#  ifdef FG_CI_BUILD
+#	pragma detect_mismatch( "FG_CI_BUILD", "1" )
+#  else
+#	pragma detect_mismatch( "FG_CI_BUILD", "0" )
 #  endif
 
 #endif	// COMPILER_MSVC or COMPILER_CLANG

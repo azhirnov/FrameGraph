@@ -2,9 +2,10 @@
 
 if (NOT ${STD_VARIANT_SUPPORTED})
 	set( FG_EXTERNAL_STDVARIANT_PATH "" CACHE PATH "path to std::variant source" )
+	mark_as_advanced( FG_EXTERNAL_STDVARIANT_PATH )
 
 	# reset to default
-	if (NOT EXISTS ${FG_EXTERNAL_STDVARIANT_PATH})
+	if (NOT EXISTS "${FG_EXTERNAL_STDVARIANT_PATH}/include/mpark/variant.hpp")
 		message( STATUS "std::variant is not found in \"${FG_EXTERNAL_STDVARIANT_PATH}\"" )
 		set( FG_EXTERNAL_STDVARIANT_PATH "${FG_EXTERNALS_PATH}/variant" CACHE PATH "" FORCE )
 	else ()
@@ -26,5 +27,7 @@ if (NOT ${STD_VARIANT_SUPPORTED})
 		endif ()
 	endif ()
 
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_VARIANT" )
+	add_library( "StdVariant-lib" INTERFACE )
+	target_include_directories( "StdVariant-lib" INTERFACE "${FG_EXTERNAL_STDVARIANT_PATH}/include" )
+	target_compile_definitions( "StdVariant-lib" INTERFACE "FG_ENABLE_VARIANT" )
 endif ()

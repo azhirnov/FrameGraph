@@ -6,18 +6,15 @@
 #include "glsl_trace/include/ShaderTrace.h"
 
 // glslang includes
-#include "glslang/glslang/Include/revision.h"
-#include "glslang/glslang/OSDependent/osinclude.h"
-#include "glslang/glslang/MachineIndependent/localintermediate.h"
-#include "glslang/glslang/Include/intermediate.h"
-#include "glslang/SPIRV/doc.h"
-#include "glslang/SPIRV/disassemble.h"
-#include "glslang/SPIRV/GlslangToSpv.h"
-#include "glslang/SPIRV/GLSL.std.450.h"
-#include "glslang/StandAlone/ResourceLimits.cpp"
-
-//#include <sstream>
-#include "glslang/External/SPIRV-Tools/include/spirv-tools/libspirv.h"
+#include "glslang/Include/revision.h"
+#include "glslang/MachineIndependent/localintermediate.h"
+#include "glslang/Include/intermediate.h"
+#include "SPIRV/doc.h"
+#include "SPIRV/disassemble.h"
+#include "SPIRV/GlslangToSpv.h"
+#include "SPIRV/GLSL.std.450.h"
+#include "StandAlone/ResourceLimits.cpp"
+#include "spirv-tools/libspirv.h"
 
 using namespace glslang;
 

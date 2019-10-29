@@ -51,7 +51,7 @@ namespace std
 
 	template <typename T>
 	struct hash< FGC::Ptr<T> > {
-		ND_ size_t  operator () (const FGC::Ptr<T> &value) const noexcept {
+		ND_ size_t  operator () (const FGC::Ptr<T> &value) const {
 			return hash<T *>()( value.operator->() );
 		}
 	};

@@ -44,7 +44,7 @@ namespace {
 	Create
 =================================================
 */
-	bool WindowGLFW::Create (uint2 size, StringView title)
+	bool WindowGLFW::Create (uint2 size, NtStringView title)
 	{
 		CHECK_ERR( not _window );
 
@@ -251,13 +251,13 @@ namespace {
 				}
 			}
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( action ) {
 				case EKeyAction::Up :		key_iter = _activeKeys.erase( key_iter );	break;
 				case EKeyAction::Down :		action = EKeyAction::Pressed;				break;
 				case EKeyAction::Pressed :	++key_iter;									break;
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		
 		if ( not _window )
@@ -317,7 +317,7 @@ namespace {
 	SetTitle
 =================================================
 */
-	void WindowGLFW::SetTitle (StringView value)
+	void WindowGLFW::SetTitle (NtStringView value)
 	{
 		CHECK_ERR( _window, void() );
 

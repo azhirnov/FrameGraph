@@ -52,11 +52,11 @@ namespace FG
 		ND_ constexpr bool operator >  (const ImageSwizzle &rhs) const	{ return _value >  rhs._value; }
 
 
-		friend constexpr ImageSwizzle  operator "" _swizzle (const char *str, const size_t len) noexcept;
+		friend constexpr ImageSwizzle  operator "" _swizzle (const char *str, const size_t len);
 
 
 	private:
-		static constexpr uint _CharToValue (char c) noexcept
+		static constexpr uint _CharToValue (char c)
 		{
 			return	c == 'r' or c == 'R'	? 1 :
 					c == 'g' or c == 'G'	? 2 :
@@ -68,7 +68,7 @@ namespace FG
 	};
 	
 
-	ND_ constexpr ImageSwizzle  operator "" _swizzle (const char *str, const size_t len) noexcept
+	ND_ constexpr ImageSwizzle  operator "" _swizzle (const char *str, const size_t len)
 	{
 		ASSERT( len > 0 and len <= 4 );
 
@@ -94,7 +94,7 @@ namespace std
 	template <>
 	struct hash< FG::ImageSwizzle >
 	{
-		ND_ size_t  operator () (const FG::ImageSwizzle &value) const noexcept
+		ND_ size_t  operator () (const FG::ImageSwizzle &value) const
 		{
 			return size_t(FGC::HashOf( value.Get() == 0 ? FG::ImageSwizzle().Get() : value.Get() ));
 		}

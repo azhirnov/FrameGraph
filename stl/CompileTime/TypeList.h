@@ -35,9 +35,7 @@ namespace _fgc_hidden_
 	template <typename... Types>
 	struct TypeList
 	{
-		template <size_t I>
-		using							Get		= typename std::tuple_element<I, std::tuple<Types...>>::type;
-
+	public:
 		template <typename T>
 		inline static constexpr size_t	Index	= _fgc_hidden_::TL_GetIndex< T, 0, std::tuple<Types...> >::value;
 
@@ -45,6 +43,31 @@ namespace _fgc_hidden_
 
 		template <typename T>
 		inline static constexpr bool	HasType	= (Index<T> != UMax);
+		
+		template <size_t I>
+		using							Get		= typename std::tuple_element<I, std::tuple<Types...>>::type;
+		
+		template <size_t I>
+		using							GetT	= std::tuple_element<I, std::tuple<Types...>>;
+
+		struct Front { using			type	= Get<0>; };
+		struct Back  { using			type	= Get<Count-1>; };
+
+		template <typename FN>
+		static constexpr void Visit (FN&& fn)	{ return _Visit<0>( std::forward<FN>(fn) ); }
+
+	private:
+		template <size_t I, typename FN>
+		static constexpr void _Visit (FN&& fn)
+		{
+			if constexpr( I < Count )
+			{
+				using T = Get<I>;
+				fn.template operator()<T,I>();
+				_Visit< I+1 >( std::forward<FN>(fn) );
+			}
+			FG_UNUSED( fn );
+		}
 	};
 
 	

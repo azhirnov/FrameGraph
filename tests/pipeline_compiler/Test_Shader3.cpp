@@ -14,14 +14,17 @@ extern void Test_Shader3 (VPipelineCompiler* compiler)
 
 layout (location=1) in  vec2	at_Position;
 layout (location=0) in  vec2	at_Texcoord;
+layout (location=2) in  uint	at_MaterialID;
 
 layout (binding=0) uniform sampler2D un_ColorTexture;
 
 out vec2	v_Texcoord;
+out uint	v_MaterialID;
 
 void main() {
-	gl_Position	= vec4( at_Position, 0.0, 1.0 );
-	v_Texcoord	= at_Texcoord * texelFetch( un_ColorTexture, ivec2(at_Texcoord), 0 ).xy;
+	gl_Position	 = vec4( at_Position, 0.0, 1.0 );
+	v_Texcoord	 = at_Texcoord * texelFetch( un_ColorTexture, ivec2(at_Texcoord), 0 ).xy;
+	v_MaterialID = at_MaterialID;
 }
 )#" );
 
@@ -52,6 +55,7 @@ void main() {
 
 	TEST( TestVertexInput( ppln, VertexID("at_Position"), EVertexType::Float2, 1 ));
 	TEST( TestVertexInput( ppln, VertexID("at_Texcoord"), EVertexType::Float2, 0 ));
+	TEST( TestVertexInput( ppln, VertexID("at_MaterialID"), EVertexType::UInt, 2 ));
 
 	TEST( TestFragmentOutput( ppln, RenderTargetID::Color_0, EFragOutput::Float4, 0 ));
 

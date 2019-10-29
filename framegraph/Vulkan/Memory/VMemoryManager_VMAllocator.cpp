@@ -23,7 +23,7 @@
 
 #define VMA_IMPLEMENTATION	1
 #define VMA_ASSERT(expr)	{}
-#include "VulkanMemoryAllocator/src/vk_mem_alloc.h"
+#include "vk_mem_alloc.h"
 
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic pop
@@ -323,7 +323,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EMemoryTypeExt::HostRead :			flags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;	break;
@@ -342,7 +342,7 @@ namespace FG
 				case EMemoryTypeExt::Virtual :			break;	// to shutup warnings
 				default :								RETURN_ERR( "unknown memory type flag!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return flags;
 	}
@@ -357,8 +357,8 @@ namespace FG
 		VkDevice				dev = _device.GetVkDevice();
 		VmaVulkanFunctions		funcs = {};
 
-		funcs.vkGetPhysicalDeviceProperties			= vkGetPhysicalDeviceProperties;
-		funcs.vkGetPhysicalDeviceMemoryProperties	= vkGetPhysicalDeviceMemoryProperties;
+		funcs.vkGetPhysicalDeviceProperties			= _var_vkGetPhysicalDeviceProperties;
+		funcs.vkGetPhysicalDeviceMemoryProperties	= _var_vkGetPhysicalDeviceMemoryProperties;
 		funcs.vkAllocateMemory						= BitCast<PFN_vkAllocateMemory>(vkGetDeviceProcAddr( dev, "vkAllocateMemory" ));
 		funcs.vkFreeMemory							= BitCast<PFN_vkFreeMemory>(vkGetDeviceProcAddr( dev, "vkFreeMemory" ));
 		funcs.vkMapMemory							= BitCast<PFN_vkMapMemory>(vkGetDeviceProcAddr( dev, "vkMapMemory" ));

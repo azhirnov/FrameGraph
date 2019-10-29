@@ -3,8 +3,11 @@
 #pragma once
 
 #include "stl/Common.h"
-#include "stl/Containers/StringView.h"
+#include "stl/Containers/NtStringView.h"
 
+#ifndef FG_ENABLE_VULKAN
+#	error Required Vulkan support!
+#endif
 
 #ifdef FG_VULKAN_STATIC
 
@@ -105,7 +108,7 @@ namespace FGC
 	{
 		VulkanLoader () = delete;
 
-		static bool Initialize (StringView libName = {});
+		static bool Initialize (NtStringView libName = {});
 		static void LoadInstance (VkInstance instance);
 		static void Unload ();
 		

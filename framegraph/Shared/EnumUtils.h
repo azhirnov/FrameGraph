@@ -17,13 +17,13 @@ namespace FG
 */
 	ND_ inline BytesU  EIndex_SizeOf (EIndex value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value ) {
 			case EIndex::UShort :	return SizeOf<uint16_t>;
 			case EIndex::UInt :		return SizeOf<uint32_t>;
 			case EIndex::Unknown :	break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown index type!" );
 	}
 //-----------------------------------------------------------------------------
@@ -36,7 +36,7 @@ namespace FG
 */
 	ND_ inline EShaderStages  EShaderStages_FromShader (EShader value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EShader::Vertex :			return EShaderStages::Vertex;
@@ -56,7 +56,7 @@ namespace FG
 			case EShader::Unknown :
 			case EShader::_Count :			break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unsupported shader type!" );
 	}
 //-----------------------------------------------------------------------------
@@ -148,7 +148,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EShaderStages::Vertex :			result |= EResourceState::_VertexShader;			break;
@@ -172,7 +172,7 @@ namespace FG
 				case EShaderStages::Unknown :
 				default :								RETURN_ERR( "unknown shader type" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -206,14 +206,14 @@ namespace FG
 */
 	ND_ inline EResourceState  EResourceState_FromShaderAccess (EShaderAccess access)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( access ) {
 			case EShaderAccess::ReadOnly :		return EResourceState::ShaderRead;
 			case EShaderAccess::WriteOnly :		return EResourceState::ShaderWrite;
 			case EShaderAccess::ReadWrite :		return EResourceState::ShaderReadWrite;
 			case EShaderAccess::WriteDiscard :	return EResourceState::ShaderWrite | EResourceState::InvalidateBefore;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unsupported shader access" );
 	}
 //-----------------------------------------------------------------------------

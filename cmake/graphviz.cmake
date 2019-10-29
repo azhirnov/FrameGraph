@@ -38,10 +38,13 @@ if (${FG_ENABLE_GRAPHVIZ})
 	# TODO
 	endif ()
 
+	add_library( "GraphViz-lib" INTERFACE )
+
 	if (FG_GRAPHVIZ_DOT_EXECUTABLE)
-		set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_GRAPHVIZ_DOT_EXECUTABLE=\"${FG_GRAPHVIZ_DOT_EXECUTABLE}\"" )
+		target_compile_definitions( "GraphViz-lib" INTERFACE "FG_GRAPHVIZ_DOT_EXECUTABLE=\"${FG_GRAPHVIZ_DOT_EXECUTABLE}\"" )
 	else ()
 		message( WARNING "GraphViz is not found, download and install library from https://www.graphviz.org/" )
 	endif ()
-
+	
+	mark_as_advanced( FG_GRAPHVIZ_ROOT FG_GRAPHVIZ_DOT_EXECUTABLE )
 endif ()

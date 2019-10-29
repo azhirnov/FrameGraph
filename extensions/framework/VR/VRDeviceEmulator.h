@@ -34,6 +34,31 @@ namespace FGC
 			uint			frame		= 0;
 		};
 
+		class WindowEventListener final : public IWindowEventListener
+		{
+		private:
+			using TimePoint_t	= std::chrono::high_resolution_clock::time_point;
+
+		private:
+			float3			_positionDelta;
+			float2			_cameraAngle;
+			float2			_lastMousePos;
+			TimePoint_t		_lastUpdateTime;
+			bool			_mousePressed		= false;
+			const float		_mouseSens			= 0.01f;
+			bool			_isActive			= true;
+
+		public:
+			void OnResize (const uint2 &) override {}
+			void OnRefresh () override {}
+			void OnDestroy () override;
+			void OnUpdate () override {}
+			void OnKey (StringView key, EKeyAction action) override;
+			void OnMouseMove (const float2 &pos) override;
+			void Update (OUT Mat3_t &pose, INOUT float3 &pos);
+			ND_ bool IsActive () const { return _isActive; }
+		};
+
 		using Queues_t = FixedArray< PerQueue, 16 >;
 
 
@@ -41,6 +66,8 @@ namespace FGC
 	private:
 		Listeners_t				_listeners;
 		VulkanDeviceFnTable		_deviceFnTable;
+		VRCamera				_camera;
+		WindowEventListener		_wndListener;
 
 		VkInstance				_vkInstance;
 		VkPhysicalDevice		_vkPhysicalDevice;
@@ -50,9 +77,8 @@ namespace FGC
 		
 		WindowPtr				_output;
 		VulkanSwapchainPtr		_swapchain;
-
-		mutable Mat4_t			_projection;
-		mutable float2			_clipPlanes;
+		
+		BitSet<2>				_submitted;
 		bool					_isCreated;
 
 
@@ -67,13 +93,14 @@ namespace FGC
 		void AddListener (IVRDeviceEventListener *listener) override;
 		void RemoveListener (IVRDeviceEventListener *listener) override;
 		bool Update () override;
-		void GetCamera (OUT VRCamera &) const override;
 		void SetupCamera (const float2 &clipPlanes) override;
 		bool Submit (const VRImage &, Eye) override;
-		bool IsEnabled () const override;
-		Array<String> GetRequiredInstanceExtensions () const override;
-		Array<String> GetRequiredDeviceExtensions (VkInstance) const override;
-		uint2 GetRenderTargetDimension () const override;
+
+		VRCamera const&	GetCamera () const override						{ return _camera; }
+		EHmdStatus		GetHmdStatus () const override;
+		Array<String>	GetRequiredInstanceExtensions () const override;
+		Array<String>	GetRequiredDeviceExtensions (VkInstance) const override;
+		uint2			GetRenderTargetDimension () const override;
 	};
 
 }	// FGC

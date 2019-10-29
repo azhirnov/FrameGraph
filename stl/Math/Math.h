@@ -88,16 +88,6 @@ namespace FGC
 
 /*
 =================================================
-	RoundToInt
-=================================================
-*/
-	ND_ forceinline int  RoundToInt (float value)
-	{
-		return int(std::round( value ));
-	}
-
-/*
-=================================================
 	All/Any
 =================================================
 */
@@ -374,9 +364,28 @@ namespace FGC
 	template <auto Base, typename T>
 	ND_ forceinline EnableIf<IsFloatPoint<T>, T>  Log (const T& x)
 	{
-		static constexpr auto log_base = std::log( base );
+		static constexpr auto log_base = std::log( Base );
 		return std::log( x ) / log_base;
 	}
+	
+/*
+=================================================
+	Wrap
+=================================================
+*/
+	template <typename T>
+	forceinline EnableIf<IsFloatPoint<T>, T>  Wrap (const T& value, const T& minValue, const T& maxValue)
+	{
+		// check for NaN
+		if ( minValue >= maxValue )
+			return minValue;
 
+		T	result = T( minValue + std::fmod( value - minValue, maxValue - minValue ));
+		
+		if ( result < minValue )
+			result += (maxValue - minValue);
+
+		return result;
+	}
 
 }	// FGC

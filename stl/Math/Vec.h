@@ -71,6 +71,12 @@ namespace FGC
 		template <typename B>
 		constexpr Vec (const Vec<B,2> &other) : x{T(other.x)}, y{T(other.y)} {}
 
+		template <typename B>
+		explicit constexpr Vec (const Vec<B,3> &other);
+
+		template <typename B>
+		explicit constexpr Vec (const Vec<B,4> &other);
+
 		ND_ static constexpr size_t		size ()					{ return 2; }
 
 		ND_ constexpr T *		data ()							{ return std::addressof(x); }
@@ -115,6 +121,9 @@ namespace FGC
 		
 		template <typename B>
 		constexpr Vec (const Vec<B,3> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)} {}
+		
+		template <typename B>
+		explicit constexpr Vec (const Vec<B,4> &other);
 
 		ND_ static constexpr size_t		size ()					{ return 3; }
 		
@@ -164,6 +173,12 @@ namespace FGC
 		
 		template <typename B>
 		constexpr Vec (const Vec<B,4> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)}, w{T(other.w)} {}
+		
+		template <typename B>
+		explicit constexpr Vec (const Vec<B,2> &other);
+
+		template <typename B>
+		explicit constexpr Vec (const Vec<B,3> &other);
 
 		ND_ static constexpr size_t		size ()					{ return 4; }
 		
@@ -180,6 +195,31 @@ namespace FGC
 	};
 
 	
+	
+/*
+=================================================
+	constructor
+=================================================
+*/
+	template <typename T>
+	template <typename B>
+	constexpr Vec<T,2>::Vec (const Vec<B,3> &other) : x{T(other.x)}, y{T(other.y)} {}
+	
+	template <typename T>
+	template <typename B>
+	constexpr Vec<T,2>::Vec (const Vec<B,4> &other) : x{T(other.x)}, y{T(other.y)} {}
+	
+	template <typename T>
+	template <typename B>
+	constexpr Vec<T,3>::Vec (const Vec<B,4> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)} {}
+	
+	template <typename T>
+	template <typename B>
+	constexpr Vec<T,4>::Vec (const Vec<B,2> &other) : x{T(other.x)}, y{T(other.y)}, z{T(0)}, w{T(0)} {}
+	
+	template <typename T>
+	template <typename B>
+	constexpr Vec<T,4>::Vec (const Vec<B,3> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)}, w{T(0)} {}
 
 /*
 =================================================
@@ -507,6 +547,30 @@ namespace FGC
 	{
 		return Vec<T,I>( lhs ) / rhs;
 	}
+
+/*
+=================================================
+	operator %=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr Vec<T,I>&  operator %= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i)
+		{
+			if constexpr( IsFloatPoint<T> )
+				lhs[i] = std::fmod( lhs[i], rhs[i] );
+			else
+				lhs[i] %= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator %= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs %= Vec<T,I>( rhs );
+	}
 	
 /*
 =================================================
@@ -517,10 +581,46 @@ namespace FGC
 	ND_ inline constexpr Vec<T,I>  operator % (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
 	{
 		Vec<T,I>	res;
-		for (uint i = 0; i < I; ++i) {
-			res[i] = lhs[i] % rhs[i];
+		for (uint i = 0; i < I; ++i)
+		{
+			if constexpr( IsFloatPoint<T> )
+				res[i] = std::fmod( lhs[i], rhs[i] );
+			else
+				res[i] = lhs[i] % rhs[i];
 		}
 		return res;
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator % (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs % Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator % (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) % rhs;
+	}
+	
+/*
+=================================================
+	operator <<=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr EnableIf<IsInteger<T>, Vec<T,I>&>  operator <<= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] <<= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator <<= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs <<= Vec<T,I>( rhs );
 	}
 
 /*
@@ -528,14 +628,46 @@ namespace FGC
 	operator <<
 =================================================
 */
-	template <typename T, uint I, typename S>
-	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator << (const Vec<T,I> &lhs, const S &rhs)
+	template <typename T, uint I>
+	ND_ inline constexpr EnableIf<IsInteger<T>, Vec<T,I>>  operator << (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
 	{
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {
-			res[i] = lhs[i] << rhs;
+			res[i] = lhs[i] << rhs[i];
 		}
 		return res;
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator << (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs << Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator << (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) << rhs;
+	}
+	
+/*
+=================================================
+	operator >>=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr EnableIf<IsInteger<T>, Vec<T,I>&>  operator >>= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] >>= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator >>= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs >>= Vec<T,I>( rhs );
 	}
 
 /*
@@ -543,16 +675,169 @@ namespace FGC
 	operator >>
 =================================================
 */
-	template <typename T, uint I, typename S>
-	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator >> (const Vec<T,I> &lhs, const S &rhs)
+	template <typename T, uint I>
+	ND_ inline constexpr EnableIf<IsInteger<T>, Vec<T,I>>  operator >> (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
 	{
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {
-			res[i] = lhs[i] >> rhs;
+			res[i] = lhs[i] >> rhs[i];
 		}
 		return res;
 	}
 	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator >> (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs >> Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator >> (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) >> rhs;
+	}
+	
+/*
+=================================================
+	operator &=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr EnableIf<IsInteger<T>, Vec<T,I>&>  operator &= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] &= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator &= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs &= Vec<T,I>( rhs );
+	}
+
+/*
+=================================================
+	operator &
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr EnableIf<IsInteger<T>, Vec<T,I>>  operator & (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = lhs[i] & rhs[i];
+		}
+		return res;
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator & (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs & Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator & (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) & rhs;
+	}
+	
+/*
+=================================================
+	operator |=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr EnableIf<IsInteger<T>, Vec<T,I>&>  operator |= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] |= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator |= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs |= Vec<T,I>( rhs );
+	}
+
+/*
+=================================================
+	operator |
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr EnableIf<IsInteger<T>, Vec<T,I>>  operator | (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = lhs[i] | rhs[i];
+		}
+		return res;
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator | (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs | Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator | (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) | rhs;
+	}
+	
+/*
+=================================================
+	operator ^=
+=================================================
+*/
+	template <typename T, uint I>
+	inline constexpr EnableIf<IsInteger<T>, Vec<T,I>&>  operator ^= (Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		for (uint i = 0; i < I; ++i) {
+			lhs[i] ^= rhs[i];
+		}
+		return lhs;
+	}
+	
+	template <typename T, uint I, typename S>
+	inline constexpr EnableIf<IsScalar<S>, Vec<T,I> &>  operator ^= (Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs ^= Vec<T,I>( rhs );
+	}
+
+/*
+=================================================
+	operator ^
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ inline constexpr EnableIf<IsInteger<T>, Vec<T,I>>  operator ^ (const Vec<T,I> &lhs, const Vec<T,I> &rhs)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = lhs[i] ^ rhs[i];
+		}
+		return res;
+	}
+	
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator ^ (const Vec<T,I> &lhs, const S &rhs)
+	{
+		return lhs ^ Vec<T,I>( rhs );
+	}
+
+	template <typename T, uint I, typename S>
+	ND_ inline constexpr EnableIf<IsScalar<S>, Vec<T,I>>  operator ^ (const S &lhs, const Vec<T,I> &rhs)
+	{
+		return Vec<T,I>( lhs ) ^ rhs;
+	}
+
 /*
 =================================================
 	All
@@ -901,7 +1186,116 @@ namespace FGC
 		if constexpr( I == 4 )
 			return Min( v.x, v.y, v.z, v.w );
 	}
+	
+	template <typename T, uint I>
+	ND_ inline T  MaxOf (const Vec<T,I> &v)
+	{
+		if constexpr( I == 2 )
+			return Max( v.x, v.y );
+		if constexpr( I == 3 )
+			return Max( v.x, v.y, v.z );
+		if constexpr( I == 4 )
+			return Max( v.x, v.y, v.z, v.w );
+	}
 
+/*
+=================================================
+	Ln / Log / Log2 / Log10
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Ln (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Ln( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Log2 (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Log2( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Log10 (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Log10( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Log (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Log( v[i] );
+		}
+		return res;
+	}
+	
+/*
+=================================================
+	Wrap
+=================================================
+*/
+	template <typename T, uint I>
+	forceinline EnableIf<IsFloatPoint<T>, Vec<T,I>>  Wrap (const Vec<T,I>& v, const T& minValue, const T& maxValue)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Wrap( v[i], minValue, maxValue );
+		}
+		return res;
+	}
+
+/*
+=================================================
+	Round / RoundToInt / RoundToUint
+=================================================
+*/
+	template <typename T, uint I>
+	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Round (const Vec<T,I>& v)
+	{
+		Vec<T,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = Round( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline constexpr auto  RoundToInt (const Vec<T,I>& v)
+	{
+		using R = decltype(RoundToInt(T()));
+
+		Vec<R,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = RoundToInt( v[i] );
+		}
+		return res;
+	}
+	
+	template <typename T, uint I>
+	ND_ forceinline constexpr auto  RoundToUint (const Vec<T,I>& v)
+	{
+		using R = decltype(RoundToUint(T()));
+
+		Vec<R,I>	res;
+		for (uint i = 0; i < I; ++i) {
+			res[i] = RoundToUint( v[i] );
+		}
+		return res;
+	}
 
 }	// FGC
 
@@ -911,7 +1305,7 @@ namespace std
 #if FG_FAST_HASH
 	template <typename T, uint I>
 	struct hash< FGC::Vec<T,I> > {
-		ND_ size_t  operator () (const FGC::Vec<T,I> &value) const noexcept {
+		ND_ size_t  operator () (const FGC::Vec<T,I> &value) const {
 			return size_t(FGC::HashOf( value.data(), value.size() * sizeof(T) ));
 		}
 	};
@@ -919,21 +1313,21 @@ namespace std
 #else
 	template <typename T>
 	struct hash< FGC::Vec<T,2> > {
-		ND_ size_t  operator () (const FGC::Vec<T,2> &value) const noexcept {
+		ND_ size_t  operator () (const FGC::Vec<T,2> &value) const {
 			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ));
 		}
 	};
 	
 	template <typename T>
 	struct hash< FGC::Vec<T,3> > {
-		ND_ size_t  operator () (const FGC::Vec<T,3> &value) const noexcept {
+		ND_ size_t  operator () (const FGC::Vec<T,3> &value) const {
 			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ) + FGC::HashOf( value.z ));
 		}
 	};
 	
 	template <typename T>
 	struct hash< FGC::Vec<T,4> > {
-		ND_ size_t  operator () (const FGC::Vec<T,4> &value) const noexcept {
+		ND_ size_t  operator () (const FGC::Vec<T,4> &value) const {
 			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ) + FGC::HashOf( value.z ) + FGC::HashOf( value.w ));
 		}
 	};

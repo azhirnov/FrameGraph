@@ -8,5 +8,9 @@ add_library( "imgui" STATIC
 		"imgui_draw.cpp"
 		"imgui_demo.cpp"
 		"imgui_widgets.cpp" )
+
+set_target_properties( "imgui" PROPERTIES PUBLIC_HEADER "imgui.h;imgui_internal.h" )
 		
-install( TARGETS "imgui" ARCHIVE DESTINATION "lib" )
+install( TARGETS "imgui"
+		 ARCHIVE DESTINATION "lib"
+		 PUBLIC_HEADER DESTINATION "include" )

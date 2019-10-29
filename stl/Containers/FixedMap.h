@@ -70,7 +70,7 @@ namespace FGC
 			Self&	operator = (Self &&);
 			Self&	operator = (const Self &);
 
-		ND_ Pair_t const&	operator [] (size_t i)	const	{ ASSERT( i < _count );  return BitCast<Pair_t>( _array[ _indices[i]]); }
+		ND_ Pair_t const&	operator [] (size_t i)	const;
 
 		ND_ bool	operator == (const Self &rhs) const;
 		ND_ bool	operator != (const Self &rhs) const		{ return not (*this == rhs); }
@@ -212,6 +212,18 @@ namespace FGC
 				return false;
 		}
 		return true;
+	}
+	
+/*
+=================================================
+	operator []
+=================================================
+*/
+	template <typename K, typename V, size_t S>
+	inline typename FixedMap<K,V,S>::Pair_t const&  FixedMap<K,V,S>::operator [] (size_t i) const
+	{
+		ASSERT( i < _count );
+		return reinterpret_cast<Pair_t const&>( _array[ _indices[i]]);
 	}
 
 /*
@@ -517,7 +529,7 @@ namespace std
 	template <typename Key, typename Value, size_t ArraySize>
 	struct hash< FGC::FixedMap<Key, Value, ArraySize> >
 	{
-		ND_ size_t  operator () (const FGC::FixedMap<Key, Value, ArraySize> &value) const noexcept
+		ND_ size_t  operator () (const FGC::FixedMap<Key, Value, ArraySize> &value) const
 		{
 			return size_t(value.CalcHash());
 		}

@@ -9,15 +9,14 @@
 #include "VCachedDebuggableShaderData.h"
 
 // glslang includes
-#include "glslang/glslang/Include/revision.h"
-#include "glslang/glslang/Public/ShaderLang.h"
-#include "glslang/glslang/OSDependent/osinclude.h"
-#include "glslang/glslang/MachineIndependent/localintermediate.h"
-#include "glslang/glslang/Include/intermediate.h"
-#include "glslang/SPIRV/doc.h"
-#include "glslang/SPIRV/disassemble.h"
-#include "glslang/SPIRV/GlslangToSpv.h"
-#include "glslang/SPIRV/GLSL.std.450.h"
+#include "glslang/Include/revision.h"
+#include "glslang/Public/ShaderLang.h"
+#include "glslang/MachineIndependent/localintermediate.h"
+#include "glslang/Include/intermediate.h"
+#include "SPIRV/doc.h"
+#include "SPIRV/disassemble.h"
+#include "SPIRV/GlslangToSpv.h"
+#include "SPIRV/GLSL.std.450.h"
 
 // SPIRV-Tools includes
 #ifdef ENABLE_OPT
@@ -39,7 +38,7 @@ namespace FG
 		{
 			const String	_data;
 
-            IncludeResultImpl (String &&data, const String& headerName, void* userData = null) :
+			IncludeResultImpl (String &&data, const String& headerName, void* userData = null) :
 				IncludeResult{headerName, null, 0, userData}, _data{std::move(data)}
 			{
 				const_cast<const char*&>(headerData) = _data.c_str();
@@ -71,8 +70,8 @@ namespace FG
 		ND_ IncludedFiles_t const&  GetIncludedFiles () const	{ return _includedFiles; }
 
 		// TShader::Includer //
-        IncludeResult* includeSystem (const char* headerName, const char* includerName, size_t inclusionDepth) override;
-        IncludeResult* includeLocal (const char* headerName, const char* includerName, size_t inclusionDepth) override;
+		IncludeResult* includeSystem (const char* headerName, const char* includerName, size_t inclusionDepth) override;
+		IncludeResult* includeLocal (const char* headerName, const char* includerName, size_t inclusionDepth) override;
 
 		void releaseInclude (IncludeResult *) override {}
 	};
@@ -100,7 +99,7 @@ namespace FG
 	includeSystem
 =================================================
 */
-    SpirvCompiler::ShaderIncluder::IncludeResult*
+	SpirvCompiler::ShaderIncluder::IncludeResult*
 		SpirvCompiler::ShaderIncluder::includeSystem (const char* headerName, const char *, size_t)
 	{
 		return null;
@@ -111,7 +110,7 @@ namespace FG
 	includeLocal
 =================================================
 */
-    SpirvCompiler::ShaderIncluder::IncludeResult*
+	SpirvCompiler::ShaderIncluder::IncludeResult*
 		SpirvCompiler::ShaderIncluder::includeLocal (const char* headerName, const char *, size_t)
 	{
 		ASSERT( _directories.size() );
@@ -165,7 +164,7 @@ namespace FG
 
 			auto*	result = _results.emplace_back(new IncludeResultImpl{ std::move(data), headerName }).get();
 
-			_includedFiles.insert_or_assign( filename, result );
+			_includedFiles.insert_or_assign( fpath, result );
 			return result;
 		}
 #	endif
@@ -224,8 +223,8 @@ namespace FG
 =================================================
 */
 	bool SpirvCompiler::Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-								StringView entry, StringView source, StringView debugName,
-								OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
+								 NtStringView entry, NtStringView source, StringView debugName,
+								 OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
 	{
 		using SpirvShaderData	= PipelineDescription::SharedShaderPtr< Array<uint> >;
 		using DebugUtils		= VCachedDebuggableSpirv::ShaderDebugUtils_t;
@@ -250,7 +249,7 @@ namespace FG
 		
 		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnoations ))
 		{
-			_ParseAnnotations( source, INOUT outReflection );
+			_ParseAnnotations( StringView{source}, INOUT outReflection );
 
 			for (auto& file : includer.GetIncludedFiles()) {
 				_ParseAnnotations( file.second->GetSource(), INOUT outReflection );
@@ -258,7 +257,7 @@ namespace FG
 		}
 
 		outShader.specConstants	= outReflection.specConstants;
-		outShader.AddShaderData( dstShaderFmt, entry, std::move(spirv), debugName );
+		outShader.AddShaderData( dstShaderFmt, StringView{entry}, std::move(spirv), debugName );
 
 		// compile shader with debug info
 		EShaderLangFormat			dbg_mode = (srcShaderFmt & EShaderLangFormat::_ModeMask);
@@ -282,7 +281,7 @@ namespace FG
 
 				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 
-				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( entry, std::move(spirv), debugName, std::move(debug_utils) ) });
+				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( StringView{entry}, std::move(spirv), debugName, std::move(debug_utils) ) });
 				break;
 			}
 			//case EShaderLangFormat::EnableDebugAsserts :
@@ -305,7 +304,7 @@ namespace FG
 */
 	ND_ static EShLanguage  ConvertShaderType (EShader shaderType)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( shaderType )
 		{
 			case EShader::Vertex :			return EShLangVertex;
@@ -325,7 +324,7 @@ namespace FG
 			case EShader::Unknown :
 			case EShader::_Count :			break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown shader type", EShLangCount );
 	}
 
@@ -345,7 +344,7 @@ namespace FG
 =================================================
 */
 	bool SpirvCompiler::_ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-									StringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
+									NtStringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
 									OUT GLSLangResult &glslangData, OUT String &log)
 	{
 		using namespace glslang;
@@ -536,27 +535,27 @@ namespace FG
 		spvtools::Optimizer	optimizer{ target_env };
 		optimizer.SetMessageConsumer(
 			[&log] (spv_message_level_t level, const char *source, const spv_position_t &position, const char *message) {
-				switch (level)
+				switch ( level )
 				{
-				case SPV_MSG_FATAL:
-				case SPV_MSG_INTERNAL_ERROR:
-				case SPV_MSG_ERROR:
-					log << "error: ";
-					break;
-				case SPV_MSG_WARNING:
-					log << "warning: ";
-					break;
-				case SPV_MSG_INFO:
-				case SPV_MSG_DEBUG:
-					log << "info: ";
-					break;
+					case SPV_MSG_FATAL:
+					case SPV_MSG_INTERNAL_ERROR:
+					case SPV_MSG_ERROR:
+						log << "error: ";
+						break;
+					case SPV_MSG_WARNING:
+						log << "warning: ";
+						break;
+					case SPV_MSG_INFO:
+					case SPV_MSG_DEBUG:
+						log << "info: ";
+						break;
 				}
 
-				if (source)
+				if ( source )
 					log << source << ":";
 				
 				log << ToString(position.line) << ":" << ToString(position.column) << ":" << ToString(position.index) << ":";
-				if (message)
+				if ( message )
 					log << " " << message;
 			});
 
@@ -1213,7 +1212,7 @@ namespace FG
 		{
 			TSampler const&	samp = type.getSampler();
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( samp.dim )
 			{
 				case TSamplerDim::Esd1D :
@@ -1254,7 +1253,7 @@ namespace FG
 				default :
 					COMP_RETURN_ERR( "unknown sampler dimension type!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		COMP_RETURN_ERR( "type is not image/sampler type!" );
 	}
@@ -1268,7 +1267,7 @@ namespace FG
 	{
 		using namespace glslang;
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( BitCast<TLayoutFormat>(format) )
 		{
 			case TLayoutFormat::ElfNone :			return EPixelFormat::Unknown;
@@ -1318,7 +1317,7 @@ namespace FG
 			case TLayoutFormat::ElfEsUintGuard :
 			case TLayoutFormat::ElfCount :			break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		COMP_RETURN_ERR( "Unsupported image format!" );
 	}
 	
@@ -1412,7 +1411,7 @@ namespace FG
 
 		COMP_CHECK_ERR( not type.isArray() );
 		
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( type.getBasicType() )
 		{
 			case TBasicType::EbtFloat :		result |= EVertexType::_Float;	break;
@@ -1441,10 +1440,10 @@ namespace FG
 			case TBasicType::EbtNumTypes :
 			default :						COMP_RETURN_ERR( "unsupported basic type!" );
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 
 		if ( type.isScalarOrVec1() )
-			return result;
+			return result | EVertexType::_Vec1;
 
 		if ( type.isVector() )
 		{
@@ -1764,7 +1763,7 @@ namespace FG
 			un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
 			un.stageFlags	= _currentStage;
 			un.data			= std::move(rt_scene);
-				un.arraySize	= GetArraySize( type );
+			un.arraySize	= GetArraySize( type );
 
 			uniforms.insert({ ExtractUniformID( node ), std::move(un) });
 			return true;
@@ -1798,7 +1797,7 @@ namespace FG
 	{
 		using namespace glslang;
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( BitCast<TLayoutGeometry>(type) )
 		{
 			case TLayoutGeometry::ElgPoints : {
@@ -1832,7 +1831,7 @@ namespace FG
 			case TLayoutGeometry::ElgQuads :
 			case TLayoutGeometry::ElgIsolines :		break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		COMP_RETURN_ERR( "invalid geometry input primitive type!", void() );
 	}
 	
@@ -1845,7 +1844,7 @@ namespace FG
 	{
 		using namespace glslang;
 
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( _intermediate->getStage() )
 		{
 			case EShLangVertex :
@@ -1933,7 +1932,7 @@ namespace FG
 				result.mesh.maxPrimitives	= uint(_intermediate->getPrimitives());
 				result.mesh.maxIndices		= result.mesh.maxPrimitives;
 
-				DISABLE_ENUM_CHECKS();
+				END_ENUM_CHECKS();
 				switch ( _intermediate->getOutputPrimitive() )
 				{
 					case TLayoutGeometry::ElgPoints :
@@ -1955,7 +1954,7 @@ namespace FG
 						CHECK(false);
 						break;
 				}
-				ENABLE_ENUM_CHECKS();
+				BEGIN_ENUM_CHECKS();
 
 				result.mesh.meshGroupSize.x	= _intermediate->getLocalSize(0);
 				result.mesh.meshGroupSize.y = _intermediate->getLocalSize(1);
@@ -1969,7 +1968,7 @@ namespace FG
 
 			case EShLangCount : break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		return true;
 	}
 

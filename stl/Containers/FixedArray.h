@@ -279,7 +279,7 @@ namespace std
 	template <typename T, size_t ArraySize>
 	struct hash< FGC::FixedArray<T, ArraySize> >
 	{
-		ND_ size_t  operator () (const FGC::FixedArray<T, ArraySize> &value) const noexcept
+		ND_ size_t  operator () (const FGC::FixedArray<T, ArraySize> &value) const
 		{
 			return size_t(FGC::HashOf( FGC::ArrayView<T>{ value } ));
 		}

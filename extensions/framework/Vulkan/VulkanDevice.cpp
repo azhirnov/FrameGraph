@@ -228,8 +228,8 @@ namespace FGC
 =================================================
 */
 	bool VulkanDevice::Create (UniquePtr<IVulkanSurface>&&	surface,
-							   StringView					appName,
-							   StringView					engineName,
+							   NtStringView					appName,
+							   NtStringView					engineName,
 							   const uint					version,
 							   StringView					deviceName,
 							   ArrayView<QueueCreateInfo>	queues,
@@ -259,8 +259,8 @@ namespace FGC
 	Create
 =================================================
 */
-	bool VulkanDevice::Create (StringView					appName,
-							   StringView					engineName,
+	bool VulkanDevice::Create (NtStringView					appName,
+							   NtStringView					engineName,
 							   const uint					version,
 							   StringView					deviceName,
 							   ArrayView<QueueCreateInfo>	queues,
@@ -324,7 +324,7 @@ namespace FGC
 	_CreateInstance
 =================================================
 */
-	bool VulkanDevice::_CreateInstance (StringView appName, StringView engineName,
+	bool VulkanDevice::_CreateInstance (NtStringView appName, NtStringView engineName,
 										ArrayView<const char*> layers, Array<const char*> &&extensions, uint version)
 	{
 		CHECK_ERR( not _vkInstance );

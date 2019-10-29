@@ -39,7 +39,7 @@ namespace {
 		f.m = m << (23-10);
 
 		float	result;
-		memcpy( OUT &result, &f, sizeof(result) );
+		std::memcpy( OUT &result, &f, sizeof(result) );
 		return result;
 	}
 }
@@ -133,7 +133,7 @@ namespace {
 	static void ReadInt (ArrayView<ImageView::T> pixel, OUT RGBA32i &result)
 	{
 		StaticArray< uint, 4 >	bits;
-		memcpy( bits.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+		std::memcpy( bits.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
 
 		result.r = ReadIntScalar< R, 0 >( bits );
 		result.g = ReadIntScalar< G, R >( bits );
@@ -150,7 +150,7 @@ namespace {
 	static void ReadUInt (ArrayView<ImageView::T> pixel, OUT RGBA32u &result)
 	{
 		StaticArray< uint, 4 >	bits;
-		memcpy( bits.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+		std::memcpy( bits.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
 
 		result.r = ReadUIntScalar< R, 0 >( bits );
 		result.g = ReadUIntScalar< G, R >( bits );
@@ -203,7 +203,7 @@ namespace {
 		if constexpr ( R == 16 )
 		{
 			StaticArray< HalfBits, 4 >	src = {};
-			memcpy( src.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+			std::memcpy( src.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
 
 			for (size_t i = 0; i < src.size(); ++i)
 			{
@@ -214,7 +214,7 @@ namespace {
 		if constexpr ( R == 32 )
 		{
 			result = {};
-			memcpy( result.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
+			std::memcpy( result.data(), pixel.data(), Min( (R+G+B+A+7)/8, size_t(ArraySizeOf(pixel)) ));
 		}
 		else
 		{
@@ -244,7 +244,7 @@ namespace {
 		STATIC_ASSERT( sizeof(RGBBits)*8 == (11+11+10) );
 
 		RGBBits	bits;
-		memcpy( &bits, pixel.data(), sizeof(bits) );
+		std::memcpy( &bits, pixel.data(), sizeof(bits) );
 
 		FloatBits	f;
 		
@@ -274,7 +274,7 @@ namespace {
 		_format{ format }
 	{
 		FG_UNUSED( aspect );
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( _format )
 		{
 			case EPixelFormat::RGBA4_UNorm :
@@ -504,13 +504,27 @@ namespace {
 				ASSERT( aspect == EImageAspect::Depth or aspect == EImageAspect::Stencil );
 				ASSERT(false);
 				break;
+
+			case EPixelFormat::sRGB8 :
+			case EPixelFormat::sBGR8 :
+				ASSERT( aspect == EImageAspect::Color );
+				_bitsPerPixel	= 3*8;
+				_loadF4			= &ReadUNorm<8,8,8,0>;
+				_loadI4			= &ReadInt<8,8,8,0>;
+				_loadU4			= &ReadUInt<8,8,8,0>;
+				break;
+
+			case EPixelFormat::sRGB8_A8 :
+			case EPixelFormat::sBGR8_A8 :
+				ASSERT( aspect == EImageAspect::Color );
+				_bitsPerPixel	= 4*8;
+				_loadF4			= &ReadUNorm<8,8,8,8>;
+				_loadI4			= &ReadInt<8,8,8,8>;
+				_loadU4			= &ReadUInt<8,8,8,8>;
+				break;
 				
 			case EPixelFormat::BGR8_UNorm :
 			case EPixelFormat::BGRA8_UNorm :
-			case EPixelFormat::sRGB8 :
-			case EPixelFormat::sRGB8_A8 :
-			case EPixelFormat::sBGR8 :
-			case EPixelFormat::sBGR8_A8 :
 			case EPixelFormat::BC1_RGB8_UNorm :
 			case EPixelFormat::BC1_sRGB8_UNorm :
 			case EPixelFormat::BC1_RGB8_A1_UNorm :
@@ -572,7 +586,7 @@ namespace {
 			case EPixelFormat::Unknown :
 				break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 	}
 
 }	// FG

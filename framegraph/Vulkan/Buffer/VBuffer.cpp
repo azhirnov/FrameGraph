@@ -35,7 +35,7 @@ namespace FG
 			if ( not EnumEq( usage, t ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkBufferUsageFlagBits(t) )
 			{
 				case VK_BUFFER_USAGE_TRANSFER_SRC_BIT :			result |= VK_ACCESS_TRANSFER_READ_BIT;			break;
@@ -54,7 +54,7 @@ namespace FG
 				case VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT :
 				case VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM :		break;	// to shutup compiler warnings
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}

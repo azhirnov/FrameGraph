@@ -13,7 +13,7 @@ namespace FG
 	PushConstantEquals
 =================================================
 */
-	ND_ inline bool PushConstantEquals (const PipelineDescription::PushConstant &lhs, const PipelineDescription::PushConstant &rhs) noexcept
+	ND_ inline bool PushConstantEquals (const PipelineDescription::PushConstant &lhs, const PipelineDescription::PushConstant &rhs)
 	{
 		return	lhs.offset	== rhs.offset;
 	}
@@ -23,7 +23,7 @@ namespace FG
 	PushConstantGreater
 =================================================
 */
-	ND_ inline bool PushConstantGreater (const PipelineDescription::PushConstant &lhs, const PipelineDescription::PushConstant &rhs) noexcept
+	ND_ inline bool PushConstantGreater (const PipelineDescription::PushConstant &lhs, const PipelineDescription::PushConstant &rhs)
 	{
 		return	lhs.offset	> rhs.offset;
 	}

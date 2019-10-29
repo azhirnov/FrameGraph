@@ -12,7 +12,7 @@
 # endif
 
 #	define SDL_MAIN_HANDLED
-#	include "SDL2/include/SDL.h"
+#	include "SDL.h"
 
 # ifdef COMPILER_MSVC
 #	pragma warning (pop)
@@ -63,14 +63,14 @@ namespace FGC
 		WindowSDL2 ();
 		~WindowSDL2 () override;
 
-		bool Create (uint2 size, StringView title) override;
+		bool Create (uint2 size, NtStringView title) override;
 		void AddListener (IWindowEventListener *listener) override;
 		void RemoveListener (IWindowEventListener *listener) override;
 		bool Update () override;
 		void Quit () override;
 		void Destroy () override;
 		
-		void SetTitle (StringView value) override;
+		void SetTitle (NtStringView value) override;
 		void SetSize (const uint2 &value) override;
 		void SetPosition (const int2 &value) override;
 		

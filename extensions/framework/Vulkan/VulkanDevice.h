@@ -89,8 +89,8 @@ namespace FGC
 		~VulkanDevice ();
 		
 		bool Create (UniquePtr<IVulkanSurface> &&surf,
-					 StringView					applicationName,
-					 StringView					engineName,
+					 NtStringView				applicationName,
+					 NtStringView				engineName,
 					 uint						version				= VK_API_VERSION_1_1,
 					 StringView					deviceName			= Default,
 					 ArrayView<QueueCreateInfo>	queues				= Default,
@@ -98,8 +98,8 @@ namespace FGC
 					 ArrayView<const char*>		instanceExtensions	= GetRecomendedInstanceExtensions(),
 					 ArrayView<const char*>		deviceExtensions	= GetRecomendedDeviceExtensions());
 		
-		bool Create (StringView					applicationName,
-					 StringView					engineName,
+		bool Create (NtStringView				applicationName,
+					 NtStringView				engineName,
 					 uint						version				= VK_API_VERSION_1_1,
 					 StringView					deviceName			= Default,
 					 ArrayView<QueueCreateInfo>	queues				= Default,
@@ -154,7 +154,7 @@ namespace FGC
 
 
 	private:
-		bool _CreateInstance (StringView appName, StringView engineName, ArrayView<const char*> instanceLayers, Array<const char*> &&instanceExtensions, uint version);
+		bool _CreateInstance (NtStringView appName, NtStringView engineName, ArrayView<const char*> instanceLayers, Array<const char*> &&instanceExtensions, uint version);
 		bool _ChooseGpuDevice (StringView deviceName);
 		bool _SetupQueues (ArrayView<QueueCreateInfo> queue);
 		bool _CreateDevice (ArrayView<const char*> extensions);

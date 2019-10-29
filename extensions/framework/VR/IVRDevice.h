@@ -19,11 +19,32 @@ namespace FGC
 	{
 	// types
 	public:
+		enum class EHmdStatus {
+			PowerOff,
+			Standby,
+			Active,
+			Mounted,
+		};
+
+		enum class ControllerID {
+			Unknown,
+			LeftHand,
+			RightHand,
+		};
+		
+		enum class EButtonAction {
+			Up,			// signle event when controller button up
+			Down,		// single event when controller button down
+			Pressed,	// continiously event until controller button is pressed
+		};
+
 		
 	// interface
 	public:
-		virtual void DeviceActivated () = 0;
-		virtual void DeviceDeactivated () = 0;
+		virtual void HmdStatusChanged (EHmdStatus) = 0;
+
+		virtual void OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) = 0;
+		virtual void OnButton (ControllerID id, StringView btn, EButtonAction action) = 0;
 	};
 
 
@@ -36,8 +57,11 @@ namespace FGC
 	{
 	// types
 	public:
-		using Mat4_t	= Matrix< float, 4, 4, EMatrixOrder::ColumnMajor >;
-		using Mat3_t	= Matrix< float, 3, 3, EMatrixOrder::ColumnMajor >;
+		using Mat4_t		= Matrix< float, 4, 4, EMatrixOrder::ColumnMajor >;
+		using Mat3_t		= Matrix< float, 3, 3, EMatrixOrder::ColumnMajor >;
+		using EHmdStatus	= IVRDeviceEventListener::EHmdStatus;
+		using ControllerID	= IVRDeviceEventListener::ControllerID;
+		using EButtonAction	= IVRDeviceEventListener::EButtonAction;
 
 		struct VRImage
 		{
@@ -61,6 +85,8 @@ namespace FGC
 			Mat3_t		pose;			// hmd rotation
 			float3		position;		// hmd position
 			float2		clipPlanes;
+			float3		velocity;
+			float3		angularVelocity;
 		};
 
 		enum class Eye
@@ -79,16 +105,22 @@ namespace FGC
 		virtual void AddListener (IVRDeviceEventListener *listener) = 0;
 		virtual void RemoveListener (IVRDeviceEventListener *listener) = 0;
 		virtual bool Update () = 0;
-		virtual void GetCamera (OUT VRCamera &) const = 0;
 		virtual void SetupCamera (const float2 &clipPlanes) = 0;
 		virtual bool Submit (const VRImage &, Eye) = 0;
-		ND_ virtual bool IsEnabled () const = 0;
-		ND_ virtual Array<String> GetRequiredInstanceExtensions () const = 0;
-		ND_ virtual Array<String> GetRequiredDeviceExtensions (VkInstance instance = VK_NULL_HANDLE) const = 0;
-		ND_ virtual uint2 GetRenderTargetDimension () const = 0;
+
+		ND_ virtual EHmdStatus		GetHmdStatus () const = 0;
+		ND_ virtual VRCamera const&	GetCamera () const = 0;
+		ND_ virtual Array<String>	GetRequiredInstanceExtensions () const = 0;
+		ND_ virtual Array<String>	GetRequiredDeviceExtensions (VkInstance instance = VK_NULL_HANDLE) const = 0;
+		ND_ virtual uint2			GetRenderTargetDimension () const = 0;
 	};
 
 
 	using VRDevicePtr = UniquePtr< IVRDevice >;
+
+
+	ND_ inline bool  operator < (IVRDevice::EHmdStatus lhs, IVRDevice::EHmdStatus rhs) {
+		return uint(lhs) < uint(rhs);
+	}
 
 }	// FGC

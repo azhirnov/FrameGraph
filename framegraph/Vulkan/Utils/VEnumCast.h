@@ -31,7 +31,7 @@ namespace FG
 */
 	ND_ inline VkLogicOp  VEnumCast (ELogicOp value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case ELogicOp::Clear		: return VK_LOGIC_OP_CLEAR;
@@ -53,7 +53,7 @@ namespace FG
 			case ELogicOp::None			:
 			case ELogicOp::Unknown		: break;	// not supported
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid logical op", VK_LOGIC_OP_MAX_ENUM );
 	}
 	
@@ -64,7 +64,7 @@ namespace FG
 */
 	ND_ inline VkBlendFactor  VEnumCast (EBlendFactor value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EBlendFactor::Zero					: return VK_BLEND_FACTOR_ZERO;
@@ -88,7 +88,7 @@ namespace FG
 			case EBlendFactor::OneMinusSrc1Alpha	: return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
 			case EBlendFactor::Unknown				: break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid blend func", VK_BLEND_FACTOR_MAX_ENUM );
 	}
 	
@@ -99,7 +99,7 @@ namespace FG
 */
 	ND_ inline VkBlendOp  VEnumCast (EBlendOp value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EBlendOp::Add		: return VK_BLEND_OP_ADD;
@@ -109,7 +109,7 @@ namespace FG
 			case EBlendOp::Max		: return VK_BLEND_OP_MAX;
 			case EBlendOp::Unknown	: break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid blend equation", VK_BLEND_OP_MAX_ENUM );
 	}
 
@@ -205,14 +205,14 @@ namespace FG
 */
 	ND_ inline VkVertexInputRate  VEnumCast (EVertexInputRate value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EVertexInputRate::Vertex :		return VK_VERTEX_INPUT_RATE_VERTEX;
 			case EVertexInputRate::Instance :	return VK_VERTEX_INPUT_RATE_INSTANCE;
 			case EVertexInputRate::Unknown :	break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown vertex input rate", VK_VERTEX_INPUT_RATE_MAX_ENUM );
 	}
 	
@@ -223,7 +223,7 @@ namespace FG
 */
 	ND_ inline VkShaderStageFlagBits  VEnumCast (EShader value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EShader::Vertex :			return VK_SHADER_STAGE_VERTEX_BIT;
@@ -246,7 +246,7 @@ namespace FG
 			case EShader::Unknown :
 			case EShader::_Count :			break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown shader type!", VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM );
 	}
 
@@ -264,7 +264,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EShaderStages::Vertex :			flags |= VK_SHADER_STAGE_VERTEX_BIT;					break;
@@ -288,7 +288,7 @@ namespace FG
 				case EShaderStages::All :				// to shutup warnings	
 				default :								RETURN_ERR( "unknown shader type!", VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return flags;
 	}
@@ -300,7 +300,7 @@ namespace FG
 */
 	ND_ inline VkDynamicState  VEnumCast (EPipelineDynamicState value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EPipelineDynamicState::Viewport :			return VK_DYNAMIC_STATE_VIEWPORT;
@@ -314,7 +314,7 @@ namespace FG
 			case EPipelineDynamicState::Default :
 			case EPipelineDynamicState::_Last :				break;	// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown dynamic state type!", VK_DYNAMIC_STATE_MAX_ENUM );
 	}
 
@@ -325,7 +325,7 @@ namespace FG
 */
 	ND_ inline VkAttachmentLoadOp  VEnumCast (EAttachmentLoadOp value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EAttachmentLoadOp::Invalidate :	return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -333,7 +333,7 @@ namespace FG
 			case EAttachmentLoadOp::Clear :			return VK_ATTACHMENT_LOAD_OP_CLEAR;
 			case EAttachmentLoadOp::Unknown :		break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid load op type", VK_ATTACHMENT_LOAD_OP_MAX_ENUM );
 	}
 	
@@ -344,14 +344,14 @@ namespace FG
 */
 	ND_ inline VkAttachmentStoreOp  VEnumCast (EAttachmentStoreOp value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EAttachmentStoreOp::Invalidate :	return VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			case EAttachmentStoreOp::Store :		return VK_ATTACHMENT_STORE_OP_STORE;
 			case EAttachmentStoreOp::Unknown :		break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid store op type", VK_ATTACHMENT_STORE_OP_MAX_ENUM );
 	}
 
@@ -362,7 +362,7 @@ namespace FG
 */
 	ND_ inline VkCompareOp  VEnumCast (ECompareOp value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case ECompareOp::Never :	return VK_COMPARE_OP_NEVER;
@@ -375,7 +375,7 @@ namespace FG
 			case ECompareOp::Always :	return VK_COMPARE_OP_ALWAYS;
 			case ECompareOp::Unknown :	break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid compare op", VK_COMPARE_OP_MAX_ENUM );
 	}
 
@@ -386,7 +386,7 @@ namespace FG
 */
 	ND_ inline VkStencilOp  VEnumCast (EStencilOp value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EStencilOp::Keep		: return VK_STENCIL_OP_KEEP;
@@ -399,7 +399,7 @@ namespace FG
 			case EStencilOp::Invert		: return VK_STENCIL_OP_INVERT;
 			case EStencilOp::Unknown	: break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid stencil op", VK_STENCIL_OP_MAX_ENUM );
 	}
 
@@ -410,7 +410,7 @@ namespace FG
 */
 	ND_ inline VkPolygonMode  VEnumCast (EPolygonMode value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EPolygonMode::Point	: return VK_POLYGON_MODE_POINT;
@@ -418,7 +418,7 @@ namespace FG
 			case EPolygonMode::Fill		: return VK_POLYGON_MODE_FILL;
 			case EPolygonMode::Unknown	: break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid polygon mode", VK_POLYGON_MODE_MAX_ENUM );
 	}
 
@@ -429,7 +429,7 @@ namespace FG
 */
 	ND_ inline VkCullModeFlags  VEnumCast (ECullMode value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case ECullMode::None :			return VK_CULL_MODE_NONE;
@@ -437,7 +437,7 @@ namespace FG
 			case ECullMode::Back :			return VK_CULL_MODE_BACK_BIT;
 			case ECullMode::FontAndBack :	return VK_CULL_MODE_FRONT_BIT | VK_CULL_MODE_BACK_BIT;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown cull mode" );
 	}
 
@@ -448,14 +448,14 @@ namespace FG
 */
 	ND_ inline VkFilter  VEnumCast (EFilter value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EFilter::Nearest :	return VK_FILTER_NEAREST;
 			case EFilter::Linear :	return VK_FILTER_LINEAR;
 			case EFilter::Unknown :	break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown filter mode", VK_FILTER_MAX_ENUM );
 	}
 
@@ -466,14 +466,14 @@ namespace FG
 */
 	ND_ inline VkSamplerMipmapMode  VEnumCast (EMipmapFilter value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EMipmapFilter::Nearest :	return VK_SAMPLER_MIPMAP_MODE_NEAREST;
 			case EMipmapFilter::Linear :	return VK_SAMPLER_MIPMAP_MODE_LINEAR;
 			case EMipmapFilter::Unknown :	break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown sampler mipmap mode", VK_SAMPLER_MIPMAP_MODE_MAX_ENUM );
 	}
 
@@ -484,7 +484,7 @@ namespace FG
 */
 	ND_ inline VkSamplerAddressMode  VEnumCast (EAddressMode value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EAddressMode::Repeat :				return VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -494,7 +494,7 @@ namespace FG
 			case EAddressMode::MirrorClampToEdge :	return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
 			case EAddressMode::Unknown :			break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown sampler address mode", VK_SAMPLER_ADDRESS_MODE_MAX_ENUM );
 	}
 
@@ -505,7 +505,7 @@ namespace FG
 */
 	ND_ inline VkBorderColor  VEnumCast (EBorderColor value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EBorderColor::FloatTransparentBlack :	return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
@@ -516,7 +516,7 @@ namespace FG
 			case EBorderColor::IntOpaqueWhite :			return VK_BORDER_COLOR_INT_OPAQUE_WHITE;
 			case EBorderColor::Unknown :				break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown border color type", VK_BORDER_COLOR_MAX_ENUM );
 	}
 
@@ -527,7 +527,7 @@ namespace FG
 */
 	ND_ inline VkImageViewType  VEnumCast (EImage value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EImage::Tex1D			: return VK_IMAGE_VIEW_TYPE_1D;
@@ -542,7 +542,7 @@ namespace FG
 			case EImage::Buffer			:
 			case EImage::Unknown		: break;	// not supported
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unsupported image view type", VK_IMAGE_VIEW_TYPE_MAX_ENUM );
 	}
 
@@ -560,7 +560,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EImageUsage::TransferSrc				: flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;				break;
@@ -578,7 +578,7 @@ namespace FG
 				case EImageUsage::All						: // to shutup warnings
 				default										: RETURN_ERR( "invalid image usage type", VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return flags;
 	}
@@ -597,7 +597,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EImageAspect::Color		: flags |= VK_IMAGE_ASPECT_COLOR_BIT;		break;
@@ -610,7 +610,7 @@ namespace FG
 				case EImageAspect::Unknown		: // to shutup warnings
 				default							: RETURN_ERR( "invalid image aspect type", VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return flags;
 	}
@@ -656,7 +656,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case EBufferUsage::TransferSrc	:	result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;			break;
@@ -675,7 +675,7 @@ namespace FG
 				case EBufferUsage::All			:	// to shutup warnings
 				default							:	RETURN_ERR( "invalid buffer usage", 0 );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -687,14 +687,14 @@ namespace FG
 */
 	ND_ inline VkIndexType  VEnumCast (EIndex value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EIndex::UShort		: return VK_INDEX_TYPE_UINT16;
 			case EIndex::UInt		: return VK_INDEX_TYPE_UINT32;
 			case EIndex::Unknown	: break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid index type", VK_INDEX_TYPE_MAX_ENUM );
 	}
 
@@ -705,7 +705,7 @@ namespace FG
 */
 	ND_ inline VkPrimitiveTopology  VEnumCast (EPrimitive value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EPrimitive::Point					: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
@@ -722,7 +722,7 @@ namespace FG
 			case EPrimitive::Unknown				:
 			case EPrimitive::_Count					: break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid primitive type", VK_PRIMITIVE_TOPOLOGY_MAX_ENUM );
 	}
 	
@@ -740,7 +740,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case ERayTracingGeometryFlags::Opaque						: result |= VK_GEOMETRY_OPAQUE_BIT_NV;							break;
@@ -749,7 +749,7 @@ namespace FG
 				case ERayTracingGeometryFlags::Unknown						:
 				default														: RETURN_ERR( "invalid geometry flags", 0 );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -768,7 +768,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 		
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case ERayTracingInstanceFlags::TriangleCullDisable	: return VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
@@ -779,7 +779,7 @@ namespace FG
 				case ERayTracingInstanceFlags::Unknown				:
 				default												: RETURN_ERR( "invalid geometry instance flags", 0 );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -798,7 +798,7 @@ namespace FG
 			if ( not EnumEq( values, t ) )
 				continue;
 		
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
 				case ERayTracingFlags::AllowUpdate		: result |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;		break;
@@ -810,7 +810,7 @@ namespace FG
 				case ERayTracingFlags::Unknown			:
 				default									: RETURN_ERR( "invalid flags", 0 );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -957,7 +957,7 @@ namespace FG
 */
 	ND_ inline VkShadingRatePaletteEntryNV  VEnumCast (EShadingRatePalette value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case EShadingRatePalette::NoInvocations :	return VK_SHADING_RATE_PALETTE_ENTRY_NO_INVOCATIONS_NV;
@@ -974,7 +974,7 @@ namespace FG
 			case EShadingRatePalette::Block_4x4_1 :		return VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_4X4_PIXELS_NV;
 			case EShadingRatePalette::_Count :			break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown shading rate palette value", VK_SHADING_RATE_PALETTE_ENTRY_MAX_ENUM_NV );
 	}
 
@@ -1115,14 +1115,14 @@ namespace FG
 #		define FMT_BUILDER( _engineFmt_, _vkFormat_ ) \
 			case EPixelFormat::_engineFmt_ : return _vkFormat_;
 		
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			FG_PRIVATE_VKPIXELFORMATS( FMT_BUILDER )
 			case EPixelFormat::_Count :
 			case EPixelFormat::Unknown :	break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 
 #		undef FMT_BUILDER
 

@@ -464,7 +464,7 @@ namespace std
 	template <typename T>
 	struct hash< FGC::RGBAColor<T> >
 	{
-		ND_ size_t  operator () (const FGC::RGBAColor<T> &value) const noexcept
+		ND_ size_t  operator () (const FGC::RGBAColor<T> &value) const
 		{
 			return	size_t(	FGC::HashOf( value.r ) + FGC::HashOf( value.g ) +
 							FGC::HashOf( value.b ) + FGC::HashOf( value.a ));
@@ -475,7 +475,7 @@ namespace std
 	template <>
 	struct hash< FGC::DepthStencil >
 	{
-		ND_ size_t  operator () (const FGC::DepthStencil &value) const noexcept
+		ND_ size_t  operator () (const FGC::DepthStencil &value) const
 		{
 			return size_t(FGC::HashOf( value.depth ) + FGC::HashOf( value.stencil ));
 		}

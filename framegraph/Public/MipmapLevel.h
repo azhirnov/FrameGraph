@@ -46,7 +46,7 @@ namespace std
 	template <>
 	struct hash< FG::MipmapLevel >
 	{
-		ND_ size_t  operator () (const FG::MipmapLevel &value) const noexcept
+		ND_ size_t  operator () (const FG::MipmapLevel &value) const
 		{
 			return size_t(FGC::HashOf( value.Get() ));
 		}

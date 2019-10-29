@@ -226,7 +226,7 @@ namespace std
 	hash::operator (VertexInput)
 =================================================
 */
-	size_t  hash< VertexInputState::VertexInput >::operator () (const VertexInputState::VertexInput &value) const noexcept
+	size_t  hash< VertexInputState::VertexInput >::operator () (const VertexInputState::VertexInput &value) const
 	{
 		ASSERT( value.index != VertexInputState::VertexIndex_Unknown );	// vertex location must be defined
 		
@@ -243,7 +243,7 @@ namespace std
 	hash::operator (BufferBinding)
 =================================================
 */
-	size_t  hash< VertexInputState::BufferBinding >::operator () (const VertexInputState::BufferBinding &value) const noexcept
+	size_t  hash< VertexInputState::BufferBinding >::operator () (const VertexInputState::BufferBinding &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));
@@ -257,7 +257,7 @@ namespace std
 	hash::operator (VertexInputState)
 =================================================
 */
-	size_t  hash< VertexInputState >::operator () (const VertexInputState &value) const noexcept
+	size_t  hash< VertexInputState >::operator () (const VertexInputState &value) const
 	{
 	#if FG_FAST_HASH
 		return size_t(HashOf( AddressOf(value), sizeof(value) ));

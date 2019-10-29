@@ -245,7 +245,7 @@ namespace FG
 	SetObjectName
 =================================================
 */
-	bool VDevice::SetObjectName (uint64_t id, StringView name, VkObjectType type) const
+	bool VDevice::SetObjectName (uint64_t id, NtStringView name, VkObjectType type) const
 	{
 		if ( name.empty() or id == VK_NULL_HANDLE )
 			return false;

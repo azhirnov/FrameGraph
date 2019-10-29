@@ -6,8 +6,8 @@
 #include "stl/Algorithms/ArrayUtils.h"
 
 // glslang includes
-#include "glslang/glslang/Public/ShaderLang.h"
-#include "glslang/glslang/Include/ResourceLimits.h"
+#include "glslang/Public/ShaderLang.h"
+#include "glslang/Include/ResourceLimits.h"
 
 using namespace FGC;
 

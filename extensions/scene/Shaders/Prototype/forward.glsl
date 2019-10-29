@@ -75,9 +75,10 @@
 	{
 		// TODO
 	}
+# endif
 
-
-// Opaque, color only
+	/*
+// Opaque, color texture only
 # elif defined(LAYER_OPAQUE) && (TEXTURE_BITS & ALBEDO_MAP)
 	layout(location=0) in vec3  inWorldPos;
 	layout(location=1) in vec2  inTexcoord0;
@@ -85,11 +86,11 @@
 	void main ()
 	{
 		out_Color = SampleAlbedoLinear( inTexcoord0 );
-	}
+	}*/
 
 
 // Opaque
-# elif defined(LAYER_OPAQUE)
+# if defined(LAYER_OPAQUE)
 	layout(location=1) in vec2  inTexcoord0;
 
 	void main ()

@@ -4,7 +4,6 @@
 #include "framework/Vulkan/VulkanSwapchain.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Window/WindowSFML.h"
 #include "framework/Android/WindowAndroid.h"
 #include "stl/Math/Color.h"
 #include "stl/Algorithms/ArrayUtils.h"
@@ -61,9 +60,6 @@ public:
 
 #	 elif defined(FG_ENABLE_SDL2)
 		window.reset( new WindowSDL2{} );
-
-#	 elif defined(FG_ENABLE_SFML)
-		window.reset( new WindowSFML{} );
 
 #	 elif defined(PLATFORM_ANDROID)
 		window.reset( new WindowAndroid{ Cast<android_app>(app) });

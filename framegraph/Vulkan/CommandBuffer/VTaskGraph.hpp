@@ -137,7 +137,7 @@ namespace FG
 			return;
 		
 		auto*	ptr = cb.GetAllocator().Alloc< RectI >( inScissors.size() );
-		memcpy( OUT ptr, inScissors.data(), size_t(ArraySizeOf(inScissors)) );
+		std::memcpy( OUT ptr, inScissors.data(), size_t(ArraySizeOf(inScissors)) );
 
 		outScissors = { ptr, inScissors.size() };
 	}
@@ -549,9 +549,9 @@ namespace FG
 		//ASSERT( not _dstImage->IsImmutable() );
 
 		Visit(	task.clearValue,
-				[&] (const RGBA32f &col)	{ memcpy( _clearValue.float32, &col, sizeof(_clearValue.float32) ); },
-				[&] (const RGBA32u &col)	{ memcpy( _clearValue.uint32, &col, sizeof(_clearValue.uint32) ); },
-				[&] (const RGBA32i &col)	{ memcpy( _clearValue.int32, &col, sizeof(_clearValue.int32) );} ,
+				[&] (const RGBA32f &col)	{ std::memcpy( _clearValue.float32, &col, sizeof(_clearValue.float32) ); },
+				[&] (const RGBA32u &col)	{ std::memcpy( _clearValue.uint32, &col, sizeof(_clearValue.uint32) ); },
+				[&] (const RGBA32i &col)	{ std::memcpy( _clearValue.int32, &col, sizeof(_clearValue.int32) );} ,
 				[&] (const NullUnion &)		{}
 			);
 	}
@@ -613,7 +613,7 @@ namespace FG
 			dst[i].dataSize		= VkDeviceSize(ArraySizeOf(src.data));
 			dst[i].bufferOffset	= VkDeviceSize(src.offset);
 
-			memcpy( dst[i].dataPtr, src.data.data(), size_t(dst[i].dataSize) );
+			std::memcpy( dst[i].dataPtr, src.data.data(), size_t(dst[i].dataSize) );
 		}
 
 		_regions = ArrayView{ dst, cnt };
@@ -667,7 +667,7 @@ namespace FG
 		_shaderGroupCount{ uint(task.shaderGroups.size()) }
 	{
 		_shaderGroups = cb.GetAllocator().Alloc<ShaderGroup>( _shaderGroupCount );
-		memcpy( OUT _shaderGroups, task.shaderGroups.data(), size_t(ArraySizeOf(task.shaderGroups)) );
+		std::memcpy( OUT _shaderGroups, task.shaderGroups.data(), size_t(ArraySizeOf(task.shaderGroups)) );
 	}
 	
 /*

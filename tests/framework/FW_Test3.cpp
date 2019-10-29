@@ -4,7 +4,6 @@
 #include "framework/Vulkan/VulkanSwapchain.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Window/WindowSFML.h"
 #include "framework/VR/OpenVRDevice.h"
 #include "framework/VR/VRDeviceEmulator.h"
 #include "stl/Math/Color.h"
@@ -63,9 +62,6 @@ public:
 
 #	 elif defined(FG_ENABLE_SDL2)
 		window.reset( new WindowSDL2{} );
-
-#	 elif defined(FG_ENABLE_SFML)
-		window.reset( new WindowSFML{} );
 
 #	 elif defined(PLATFORM_ANDROID)
 		window.reset( new WindowAndroid{ Cast<android_app>(app) });
@@ -224,7 +220,7 @@ public:
 				if ( not vrDevice->Update() )
 					break;
 
-				vrDevice->GetCamera( OUT camera );
+				camera = vrDevice->GetCamera();
 			}
 			
 			window->SetTitle( title + ("[FPS: "s << ToString(uint(swapchain->GetFramesPerSecond())) << ']') );

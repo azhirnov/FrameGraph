@@ -4,6 +4,7 @@
 if (${FG_ENABLE_FREEIMAGE})
 	message( WARNING "Warning: GPL contagion!" )
 	set( FG_EXTERNAL_FREEIMAGE_PATH "" CACHE PATH "path to FreeImage source" )
+	mark_as_advanced( FG_EXTERNAL_FREEIMAGE_PATH )
 
 	# reset to default
 	if (NOT EXISTS "${FG_EXTERNAL_FREEIMAGE_PATH}/Source/FreeImage.h")

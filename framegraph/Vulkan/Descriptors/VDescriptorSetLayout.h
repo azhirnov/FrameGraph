@@ -91,7 +91,7 @@ namespace std
 	template <>
 	struct hash< FG::VDescriptorSetLayout >
 	{
-		ND_ size_t  operator () (const FG::VDescriptorSetLayout &value) const noexcept {
+		ND_ size_t  operator () (const FG::VDescriptorSetLayout &value) const {
 			return size_t(value.GetHash());
 		}
 	};

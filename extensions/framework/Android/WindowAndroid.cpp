@@ -35,7 +35,7 @@ namespace FGC
 	Create
 =================================================
 */
-	bool WindowAndroid::Create (uint2, StringView)
+	bool WindowAndroid::Create (uint2, NtStringView)
 	{
 		CHECK_ERR( _application );
 		CHECK_ERR( not _window );

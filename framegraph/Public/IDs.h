@@ -54,13 +54,14 @@ namespace _fg_hidden_
 	{
 	// variables
 	private:
-		StaticString<Size>	_name;
-		HashVal				_hash;
+		StaticString<Size>			_name;
+		HashVal						_hash;
+		static constexpr HashVal	_emptyHash	= CT_Hash( "", 0, Seed );
 
 
 	// methods
 	public:
-		constexpr IDWithString () {}
+		constexpr IDWithString () : _hash{_emptyHash} {}
 		explicit constexpr IDWithString (StringView name)  : _name{name}, _hash{CT_Hash( name.data(), name.length(), Seed )} {}
 		explicit constexpr IDWithString (const char *name) : _name{name}, _hash{CT_Hash( name, UMax, Seed )} {}
 
@@ -114,12 +115,14 @@ namespace _fg_hidden_
 	public:
 		constexpr ResourceID () {}
 		constexpr ResourceID (const ResourceID &other) : _value{other._value} {}
+		explicit constexpr ResourceID (Value_t data) : _value{ data } {}
 		explicit constexpr ResourceID (Index_t val, InstanceID_t inst) : _value{Value_t(val) | (Value_t(inst) << _InstOffset)} {}
 
 		ND_ constexpr bool			IsValid ()						const	{ return _value != UMax; }
 		ND_ constexpr Index_t		Index ()						const	{ return _value & _IndexMask; }
 		ND_ constexpr InstanceID_t	InstanceID ()					const	{ return _value >> _InstOffset; }
 		ND_ constexpr HashVal		GetHash ()						const	{ return HashOf(_value) + HashVal{UID}; }
+		ND_ constexpr Value_t		Data ()							const	{ return _value; }
 
 		ND_ constexpr bool			operator == (const Self &rhs)	const	{ return _value == rhs._value; }
 		ND_ constexpr bool			operator != (const Self &rhs)	const	{ return not (*this == rhs); }
@@ -182,7 +185,7 @@ namespace _fg_hidden_
 		Color_1			= 1,
 		Color_2			= 2,
 		Color_3			= 3,
-		_LastColor,
+		_LastColor		= FG_MaxColorBuffers-1,
 		DepthStencil	= FG_MaxColorBuffers,
 		Depth			= DepthStencil,
 		Unknown			= ~0u
@@ -192,7 +195,6 @@ namespace _fg_hidden_
 
 	using UniformID					= _fg_hidden_::IDWithString< 32,  1, FG_OPTIMIZE_IDS >;
 	using PushConstantID			= _fg_hidden_::IDWithString< 32,  2, FG_OPTIMIZE_IDS >;
-	//using RenderTargetID			= _fg_hidden_::IDWithString< 32,  3, FG_OPTIMIZE_IDS >;
 	using DescriptorSetID			= _fg_hidden_::IDWithString< 32,  4, FG_OPTIMIZE_IDS >;
 	using SpecializationID			= _fg_hidden_::IDWithString< 32,  5, FG_OPTIMIZE_IDS >;
 	using VertexID					= _fg_hidden_::IDWithString< 32,  6, FG_OPTIMIZE_IDS >;
@@ -231,7 +233,6 @@ namespace _fg_hidden_
 	using RTShaderTableID			= _fg_hidden_::ResourceIDWrap< RawRTShaderTableID >;
 	using SwapchainID				= _fg_hidden_::ResourceIDWrap< RawSwapchainID >;
 
-
 }	// FG
 
 
@@ -241,7 +242,7 @@ namespace std
 	template <size_t Size, uint32_t UID, bool Optimize, uint32_t Seed>
 	struct hash< FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> >
 	{
-		ND_ size_t  operator () (const FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &value) const noexcept {
+		ND_ size_t  operator () (const FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &value) const {
 			return size_t(value.GetHash());
 		}
 	};
@@ -250,7 +251,7 @@ namespace std
 	template <uint32_t UID>
 	struct hash< FG::_fg_hidden_::ResourceID<UID> >
 	{
-		ND_ size_t  operator () (const FG::_fg_hidden_::ResourceID<UID> &value) const noexcept {
+		ND_ size_t  operator () (const FG::_fg_hidden_::ResourceID<UID> &value) const {
 			return size_t(value.GetHash());
 		}
 	};
@@ -259,7 +260,7 @@ namespace std
 	template <typename T>
 	struct hash< FG::_fg_hidden_::ResourceIDWrap<T> >
 	{
-		ND_ size_t  operator () (const FG::_fg_hidden_::ResourceIDWrap<T> &value) const noexcept {
+		ND_ size_t  operator () (const FG::_fg_hidden_::ResourceIDWrap<T> &value) const {
 			return size_t(value.GetHash());
 		}
 	};

@@ -3,7 +3,6 @@
 #include "UIApp.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Window/WindowSFML.h"
 #include "pipeline_compiler/VPipelineCompiler.h"
 #include "imgui_internal.h"
 
@@ -163,7 +162,7 @@ namespace FG
 		
 		bool	show_demo_window	= true;
 		bool	show_another_window	= false;
-		auto&	clear_color			= BitCast<ImVec4>( _clearColor );
+		ImVec4	clear_color			= { _clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a };
 
 		ImGui::NewFrame();
 		
@@ -205,6 +204,8 @@ namespace FG
 		}
 
 		ImGui::Render();
+
+		_clearColor = { clear_color.x, clear_color.y, clear_color.z, clear_color.w };
 
 		//if ( not show_demo_window )
 		//	return false;
@@ -328,9 +329,6 @@ namespace FG
 
 		#elif defined( FG_ENABLE_SDL2 )
 			wnd.reset( new WindowSDL2() );
-			
-		#elif defined(FG_ENABLE_SFML)
-			wnd.reset( new WindowSFML() );
 
 		#else
 		#	error Unknown window library!

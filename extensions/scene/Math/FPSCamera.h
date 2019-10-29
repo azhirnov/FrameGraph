@@ -33,7 +33,9 @@ namespace FGC
 
 		FPSCamera&  Move (const vec3 &delta);
 		FPSCamera&  Move2 (const vec3 &delta);
+
 		FPSCamera&  SetPosition (const vec3 &pos);
+		FPSCamera&  SetRotation (const quat &q);
 	};
 	
 	
@@ -132,6 +134,16 @@ namespace FGC
 		_camera.transform.position = pos;
 		return *this;
 	}
-
+	
+/*
+=================================================
+	SetRotation
+=================================================
+*/
+	inline FPSCamera&  FPSCamera::SetRotation (const quat &q)
+	{
+		_camera.transform.orientation = q;
+		return *this;
+	}
 
 }	// FGC

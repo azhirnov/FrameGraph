@@ -5,7 +5,7 @@
 #include <array>
 #include <assert.h>
 
-#include "glslang/glslang/Include/BaseTypes.h"
+#include "glslang/Include/BaseTypes.h"
 using namespace glslang;
 
 using VariableID = ShaderTrace::VariableID;
@@ -149,7 +149,7 @@ inline void CopyValue (TBasicType type, INOUT Trace::Value &value, uint32_t valu
 	switch ( type )
 	{
 		case TBasicType::EbtInt :
-			memcpy( OUT &value.i[valueIndex], &data[dataIndex++], sizeof(int) );
+			std::memcpy( OUT &value.i[valueIndex], &data[dataIndex++], sizeof(int) );
 			break;
 		
 		case TBasicType::EbtBool :
@@ -161,21 +161,21 @@ inline void CopyValue (TBasicType type, INOUT Trace::Value &value, uint32_t valu
 			break;
 		
 		case TBasicType::EbtFloat :
-			memcpy( OUT &value.f[valueIndex], &data[dataIndex++], sizeof(float) );
+			std::memcpy( OUT &value.f[valueIndex], &data[dataIndex++], sizeof(float) );
 			break;
 		
 		case TBasicType::EbtDouble :
-			memcpy( OUT &value.d[valueIndex], &data[dataIndex], sizeof(double) );
+			std::memcpy( OUT &value.d[valueIndex], &data[dataIndex], sizeof(double) );
 			dataIndex += 2;
 			break;
 		
 		case TBasicType::EbtInt64 :
-			memcpy( OUT &value.d[valueIndex], &data[dataIndex], sizeof(int64_t) );
+			std::memcpy( OUT &value.d[valueIndex], &data[dataIndex], sizeof(int64_t) );
 			dataIndex += 2;
 			break;
 		
 		case TBasicType::EbtUint64 :
-			memcpy( OUT &value.u64[valueIndex], &data[dataIndex], sizeof(uint64_t) );
+			std::memcpy( OUT &value.u64[valueIndex], &data[dataIndex], sizeof(uint64_t) );
 			dataIndex += 2;
 			break;
 		

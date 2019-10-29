@@ -154,7 +154,7 @@ namespace FG
 		const uint2	view_size	= {1024, 1024};
 		
 		images[3] = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-											    EImageUsage::TransferDst }.SetQueues( queueUsage ),
+												EImageUsage::TransferDst }.SetQueues( queueUsage ),
 									 Default, "RenderTarget4" );
 		
 		// (0) wait until all shared resources has been initialized

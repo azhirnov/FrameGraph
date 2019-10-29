@@ -3,7 +3,6 @@
 #pragma once
 
 #include "stl/Math/Bytes.h"
-#include "stl/Math/BitMath.h"
 #include "stl/CompileTime/TypeTraits.h"
 
 namespace FGC
@@ -19,21 +18,6 @@ namespace FGC
 	{
 		return std::addressof( value );
 	}
-
-/*
-=================================================
-	CheckPointerAlignment
-=================================================
-*/
-	template <typename T>
-	ND_ forceinline bool  CheckPointerAlignment (void *ptr) noexcept
-	{
-		constexpr size_t	align = alignof(T);
-
-		STATIC_ASSERT( IsPowerOfTwo( align ), "Align must be power of 2" );
-
-		return (sizeof(T) < align) or not (size_t(ptr) & (align-1));
-	}
 	
 /*
 =================================================
@@ -41,7 +25,7 @@ namespace FGC
 =================================================
 */
 	template <typename T, typename ...Types>
-	forceinline T *  PlacementNew (OUT void *ptr, Types&&... args) noexcept
+	forceinline T *  PlacementNew (OUT void *ptr, Types&&... args)
 	{
 		ASSERT( CheckPointerAlignment<T>( ptr ) );
 		return ( new(ptr) T{ std::forward<Types &&>(args)... } );
@@ -59,7 +43,7 @@ namespace FGC
 		//STATIC_ASSERT( std::is_trivial_v<T1> and std::is_trivial_v<T2> );	// TODO
 		STATIC_ASSERT( not IsConst<T1> );
 
-		::memcpy( &dst, &src, sizeof(src) );
+		std::memcpy( &dst, &src, sizeof(src) );
 	}
 
 	forceinline void  MemCopy (void *dst, BytesU dstSize, const void *src, BytesU srcSize)
@@ -67,8 +51,22 @@ namespace FGC
 		ASSERT( srcSize <= dstSize );
 		ASSERT( dst and src );
 
-		::memcpy( dst, src, size_t(std::min(srcSize, dstSize)) );
+		std::memcpy( dst, src, size_t(std::min(srcSize, dstSize)) );
 	}
+
+/*
+=================================================
+	AllocOnStack
+=================================================
+*
+	ND_ forceinline void* AllocOnStack (BytesU size)
+	{
+	#ifdef PLATFORM_WINDOWS
+		return _alloca( size_t(size) );
+	#else
+		return alloca( size_t(size) );
+	#endif
+	}*/
 
 
 }	// FGC

@@ -1,17 +1,27 @@
 # find or download OpenVR SDK
 
-if (${FG_ENABLE_OPENVR})
+if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_OPENVR})
+	add_library( "OpenVR-lib" INTERFACE )
+	target_include_directories( "OpenVR-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/OpenVR/include" )
+	target_compile_definitions( "OpenVR-lib" INTERFACE "FG_ENABLE_OPENVR" )
+	add_dependencies( "OpenVR-lib" "FG.External" )
+	set_property( TARGET "OpenVR-lib" PROPERTY INTERFACE_LINK_LIBRARIES
+		"${FG_EXTERNAL_PREBUILD_PATH}/OpenVR/lib/${CMAKE_STATIC_LIBRARY_PREFIX}openvr_api${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+
+
+elseif (${FG_ENABLE_OPENVR})
 	set( FG_EXTERNAL_OPENVR_PATH "" CACHE PATH "path to OpenVR SDK" )
+	mark_as_advanced( FG_EXTERNAL_OPENVR_PATH )
 
 	# reset to default
-	if (NOT EXISTS "${FG_EXTERNAL_OPENVR_PATH}/include/IL/il.h")
+	if (NOT EXISTS "${FG_EXTERNAL_OPENVR_PATH}/headers/openvr.h")
 		message( STATUS "OpenVR SDK is not found in \"${FG_EXTERNAL_OPENVR_PATH}\"" )
 		set( FG_EXTERNAL_OPENVR_PATH "${FG_EXTERNALS_PATH}/OpenVR" CACHE PATH "" FORCE )
 	else ()
 		message( STATUS "OpenVR SDK found in \"${FG_EXTERNAL_OPENVR_PATH}\"" )
 	endif ()
 	
-	if (NOT EXISTS "${FG_EXTERNAL_OPENVR_PATH}/include/assimp")
+	if (NOT EXISTS "${FG_EXTERNAL_OPENVR_PATH}/headers/openvr.h")
 		set( FG_OPENVR_REPOSITORY "https://github.com/ValveSoftware/openvr.git" )
 	else ()
 		set( FG_OPENVR_REPOSITORY "" )
@@ -43,8 +53,7 @@ if (${FG_ENABLE_OPENVR})
 		message( FATAL_ERROR "OpenVR does not supporte current platform ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION}" )
 	endif ()
 	
-	set( FG_OPENVR_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/OpenVR" CACHE INTERNAL "" FORCE )
-
+	set( FG_OPENVR_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/OpenVR" )
 	set( FG_OPENVR_LIB_DIR "${FG_EXTERNAL_OPENVR_PATH}/lib/${FG_OPENVR_PLATFORM_NAME}" )
 	set( FG_OPENVR_BIN_DIR "${FG_EXTERNAL_OPENVR_PATH}/bin/${FG_OPENVR_PLATFORM_NAME}" )
 
@@ -84,5 +93,12 @@ if (${FG_ENABLE_OPENVR})
 	)
 	
 	set_property( TARGET "External.OpenVR" PROPERTY FOLDER "External" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_OPENVR" )
+
+	add_library( "OpenVR-lib" INTERFACE )
+	target_include_directories( "OpenVR-lib" INTERFACE "${FG_OPENVR_INSTALL_DIR}/include" )
+	target_compile_definitions( "OpenVR-lib" INTERFACE "FG_ENABLE_OPENVR" )
+	add_dependencies( "OpenVR-lib" "External.OpenVR" )
+	set_property( TARGET "OpenVR-lib" PROPERTY INTERFACE_LINK_LIBRARIES
+		"${FG_OPENVR_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}openvr_api${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+
 endif ()

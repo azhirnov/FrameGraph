@@ -24,7 +24,7 @@ namespace FG
 			if ( not result.empty() )
 				result << " | ";
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkPipelineStageFlagBits(t) )
 			{
 				case VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT :					result << "TopOfPipe";					break;
@@ -56,7 +56,7 @@ namespace FG
 				case VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM :
 				default :													RETURN_ERR( "unknown pipeline stage!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -77,7 +77,7 @@ namespace FG
 			if ( not result.empty() )
 				result << " | ";
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkDependencyFlagBits(t) )
 			{
 				case VK_DEPENDENCY_BY_REGION_BIT :		result << "ByRegion";		break;
@@ -86,7 +86,7 @@ namespace FG
 				case VK_DEPENDENCY_FLAG_BITS_MAX_ENUM :
 				default :								RETURN_ERR( "unknown dependency flags!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -107,7 +107,7 @@ namespace FG
 			if ( not result.empty() )
 				result << " | ";
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkAccessFlagBits(t) )
 			{
 				case VK_ACCESS_INDIRECT_COMMAND_READ_BIT :					result << "IndirectCommandRead";				break;
@@ -141,7 +141,7 @@ namespace FG
 				case VK_ACCESS_FLAG_BITS_MAX_ENUM :
 				default :													RETURN_ERR( "unknown access flags!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -153,7 +153,7 @@ namespace FG
 */
 	ND_ inline String  VkImageLayout_ToString (const VkImageLayout value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case VK_IMAGE_LAYOUT_UNDEFINED :									return "Undefined";
@@ -174,7 +174,7 @@ namespace FG
 			case VK_IMAGE_LAYOUT_RANGE_SIZE :
 			case VK_IMAGE_LAYOUT_MAX_ENUM :										break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown image layout!" );
 	}
 	
@@ -194,7 +194,7 @@ namespace FG
 			if ( not result.empty() )
 				result << " | ";
 			
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( VkImageAspectFlagBits(t) )
 			{
 				case VK_IMAGE_ASPECT_COLOR_BIT :				result << "Color";			break;
@@ -211,7 +211,7 @@ namespace FG
 				case VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM :
 				default :										RETURN_ERR( "unknown access flags!" );
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 		return result;
 	}
@@ -223,7 +223,7 @@ namespace FG
 */
 	ND_ inline StringView  VkFilter_ToString (const VkFilter value)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( value )
 		{
 			case VK_FILTER_NEAREST :		return "Nearest";
@@ -232,7 +232,7 @@ namespace FG
 			case VK_FILTER_RANGE_SIZE :
 			case VK_FILTER_MAX_ENUM :		break;
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown filter type!" );
 	}
 

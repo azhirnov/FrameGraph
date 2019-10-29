@@ -16,13 +16,30 @@ namespace FG
 	// Base Scene Application
 	//
 
-	class BaseSceneApp : public IViewport, public IWindowEventListener
+	class BaseSceneApp : public IViewport, public IWindowEventListener, public IVRDeviceEventListener
 	{
 	// types
 	protected:
 		using TimePoint_t	= std::chrono::high_resolution_clock::time_point;
 		using SecondsF		= std::chrono::duration< float >;
 
+		struct AppConfig
+		{
+		// types
+			enum class EVRMode
+			{
+				Disabled,
+				Emulator,
+				OpenVR,
+			};
+
+		// variables
+			String			windowTitle;
+			uint2			surfaceSize;
+			EVRMode			vrMode		= EVRMode::Disabled;
+			Array<String>	shaderDirectories;
+			String			dbgOutputPath;
+		};
 
 	// variables
 	protected:
@@ -51,6 +68,7 @@ namespace FG
 		TimePoint_t				_lastUpdateTime;
 		bool					_mousePressed		= false;
 		float					_cameraVelocity		= 1.0f;
+		float					_mouseSens			= 0.01f;
 		vec2					_viewRange			{ 0.05f, 100.0f };
 		
 		String					_debugOutputPath;
@@ -70,13 +88,12 @@ namespace FG
 		BaseSceneApp ();
 		~BaseSceneApp ();
 
-		bool _CreateFrameGraph (const uint2 &surfaceSize, StringView windowTitle,
-								ArrayView<StringView> shaderDirectories = Default, StringView dbgOutputPath = Default);
+		bool _CreateFrameGraph (const AppConfig &cfg);
 		void _DestroyFrameGraph ();
 		void _SetLastCommandBuffer (const CommandBuffer &);
 
 		void _UpdateCamera ();
-		void _UpdateFrameStat (StringView additionalParams = Default);
+		void _UpdateFrameStat ();
 		
 		void _SetupCamera (Rad fovY, const vec2 &viewRange);
 
@@ -90,8 +107,7 @@ namespace FG
 		ND_ VulkanDeviceExt const&	GetVulkan ()	const	{ return _vulkan; }
 		ND_ Ptr<IWindow>		GetWindow ()				{ return _window.get(); }
 		ND_ Ptr<IVRDevice>		GetVRDevice ()				{ return _vrDevice.get(); }
-		ND_ uint2				GetSurfaceSize ()	const	{ return _window->GetSize(); }
-		ND_ vec2				GetSurfaceSizeF ()	const	{ return vec2(_window->GetSize().x, _window->GetSize().y); }
+		ND_ uint2				GetSurfaceSize ()	const	{ return _window ? _window->GetSize() : uint2(); }
 
 		ND_ RawSwapchainID		GetSwapchain ()		const	{ return _swapchainId; }
 
@@ -112,6 +128,7 @@ namespace FG
 		ND_ virtual bool Update ();
 	protected:
 		ND_ virtual bool DrawScene () = 0;
+			virtual void OnUpdateFrameStat (OUT String &) const {}
 
 
 	// IWindowEventListener
@@ -122,6 +139,13 @@ namespace FG
 		void OnResize (const uint2 &size) override;
 		void OnKey (StringView, EKeyAction) override;
 		void OnMouseMove (const float2 &) override;
+		
+
+	// IVRDeviceEventListener
+	protected:
+		void HmdStatusChanged (EHmdStatus) override;
+		void OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) override;
+		void OnButton (ControllerID id, StringView btn, EButtonAction action) override;
 
 
 	// IViewport //

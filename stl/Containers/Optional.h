@@ -23,4 +23,8 @@ namespace FGC
 
 }	// FGC
 
+#else
+
+# error Optional is not supported!
+
 #endif	// FG_STD_OPTIONAL

@@ -159,4 +159,8 @@ namespace FGC
 
 }	// FGC
 
+#else
+
+# error Variant is not supported!
+
 #endif	// FG_STD_VARIANT

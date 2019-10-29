@@ -159,11 +159,11 @@ namespace FG
 	
 		struct DynamicDataDeleter
 		{
-			constexpr DynamicDataDeleter () noexcept {}
+			constexpr DynamicDataDeleter () {}
 
-			DynamicDataDeleter (const DynamicDataDeleter &) noexcept {}
+			DynamicDataDeleter (const DynamicDataDeleter &) {}
 
-			void operator () (DynamicData *) const noexcept;
+			void operator () (DynamicData *) const;
 		};
 
 		using DynamicDataPtr = std::unique_ptr< DynamicData, DynamicDataDeleter >;
@@ -232,10 +232,10 @@ namespace FG
 
 
 	private:
-		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint>(id), memory_order_relaxed ); }
+		void _SetCachedID (RawPipelineResourcesID id)		const	{ _cachedId.store( BitCast<uint>(id.Data()), memory_order_relaxed ); }
 		void _ResetCachedID ()								const	{ _cachedId.store( UMax, memory_order_relaxed ); }
 		
-		ND_ RawPipelineResourcesID	_GetCachedID ()			const	{ return BitCast<RawPipelineResourcesID>( _cachedId.load( memory_order_acquire )); }
+		ND_ RawPipelineResourcesID	_GetCachedID ()			const	{ return RawPipelineResourcesID( _cachedId.load( memory_order_acquire )); }
 
 		ND_ uint &					_GetDynamicOffset (uint i)		{ ASSERT( _dataPtr and i < _dataPtr->dynamicOffsetsCount );  return _dataPtr->DynamicOffsets()[i]; }
 
@@ -256,7 +256,7 @@ namespace FG
 	inline ArrayView<uint>  PipelineResources::GetDynamicOffsets () const
 	{
 		SHAREDLOCK( _drCheck );
-		return _dataPtr ? ArrayView<uint>{ _dataPtr->DynamicOffsets(), _dataPtr->dynamicOffsetsCount } : ArrayView<uint>{};
+		return _dataPtr and _dataPtr->dynamicOffsetsCount ? ArrayView<uint>{ _dataPtr->DynamicOffsets(), _dataPtr->dynamicOffsetsCount } : ArrayView<uint>{};
 	}
 
 /*
@@ -274,7 +274,7 @@ namespace FG
 			auto&	un  = self.Uniforms()[i];
 			auto*	ptr = (&self + BytesU{un.offset});
 
-			ENABLE_ENUM_CHECKS();
+			BEGIN_ENUM_CHECKS();
 			switch ( un.resType )
 			{
 				case EDescriptorType::Unknown :			break;
@@ -285,7 +285,7 @@ namespace FG
 				case EDescriptorType::Sampler :			fn( un.id, *Cast<Sampler>(ptr) );			break;
 				case EDescriptorType::RayTracingScene :	fn( un.id, *Cast<RayTracingScene>(ptr) );	break;
 			}
-			DISABLE_ENUM_CHECKS();
+			END_ENUM_CHECKS();
 		}
 	}
 

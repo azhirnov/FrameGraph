@@ -582,7 +582,7 @@ namespace FG
 		{
 			uint	cmd_index;
 			if ( _cmdBufferPool.Assign( OUT cmd_index,
-									    [this](VCommandBuffer *ptr, uint idx){ PlacementNew<VCommandBuffer>( ptr, *this, idx ); }) )
+										[this](VCommandBuffer *ptr, uint idx){ PlacementNew<VCommandBuffer>( ptr, *this, idx ); }) )
 			{
 				cmd = &_cmdBufferPool[cmd_index];
 				break;

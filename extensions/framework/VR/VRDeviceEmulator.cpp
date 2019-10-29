@@ -4,6 +4,138 @@
 
 namespace FGC
 {
+namespace {
+
+	template <typename T>
+	static constexpr T  Pi = T( 3.14159265358979323846 );
+
+/*
+=================================================
+	Rotate*
+=================================================
+*/
+	IVRDevice::Mat3_t  RotateX (float angle)
+	{
+		float	s = sin( angle );
+		float	c = cos( angle );
+
+		return IVRDevice::Mat3_t{
+			1.0f,  0.0f,  0.0f,
+			0.0f,   c,     s,
+			0.0f,  -s,     c
+		};
+	}
+
+	IVRDevice::Mat3_t  RotateY (float angle)
+	{
+		float	s = sin( angle );
+		float	c = cos( angle );
+
+		return IVRDevice::Mat3_t{
+			 c,    0.0f,  -s,
+			0.0f,  1.0f,  0.0f,
+			 s,    0.0f,   c
+		};
+	}
+
+	IVRDevice::Mat3_t  RotateZ (float angle)
+	{
+		float	s = sin( angle );
+		float	c = cos( angle );
+
+		return IVRDevice::Mat3_t{
+			 c,    0.0f,   s,
+			-s,     c,    0.0f,
+			0.0f,  0.0f,  1.0f
+		};
+	}
+}
+//-----------------------------------------------------------------------------
+
+
+/*
+=================================================
+	OnKey
+=================================================
+*/
+	void VRDeviceEmulator::WindowEventListener::OnKey (StringView key, EKeyAction action)
+	{
+		if ( action != EKeyAction::Up )
+		{
+			// forward/backward
+			if ( key == "W" )			_positionDelta.x += 1.0f;	else
+			if ( key == "S" )			_positionDelta.x -= 1.0f;
+
+			// left/right
+			if ( key == "D" )			_positionDelta.y -= 1.0f;	else
+			if ( key == "A" )			_positionDelta.y += 1.0f;
+
+			// up/down
+			if ( key == "V" )			_positionDelta.z += 1.0f;	else
+			if ( key == "C" )			_positionDelta.z -= 1.0f;
+
+			// rotate up/down
+			if ( key == "arrow up" )	_cameraAngle.y -= _mouseSens;	else
+			if ( key == "arrow down" )	_cameraAngle.y += _mouseSens;
+
+			// rotate left/right
+			if ( key == "arrow right" )	_cameraAngle.x += _mouseSens;	else
+			if ( key == "arrow left" )	_cameraAngle.x -= _mouseSens;
+		}
+
+		if ( key == "left mb" )			_mousePressed = (action != EKeyAction::Up);
+	}
+	
+/*
+=================================================
+	OnMouseMove
+=================================================
+*/
+	void VRDeviceEmulator::WindowEventListener::OnMouseMove (const float2 &pos)
+	{
+		if ( _mousePressed )
+		{
+			float2	delta  = pos - _lastMousePos;
+			_cameraAngle   += delta * _mouseSens;
+		}
+		_lastMousePos = pos;
+	}
+			
+/*
+=================================================
+	Update
+=================================================
+*/
+	void VRDeviceEmulator::WindowEventListener::Update (OUT Mat3_t &view, INOUT float3 &pos)
+	{
+		_cameraAngle.x = Wrap( _cameraAngle.x, -Pi<float>, Pi<float> );
+		_cameraAngle.y = Wrap( _cameraAngle.y, -Pi<float>, Pi<float> );
+
+		view = RotateX( -_cameraAngle.y ) * RotateY( -_cameraAngle.x );
+		
+		const float3	up_dir	{ 0.0f, 1.0f, 0.0f };
+		const float3	axis_x	{ view[0][0], view[1][0], view[2][0] };
+		const float3	axis_z	{ view[0][2], view[1][2], view[2][2] };
+		
+		pos += axis_z * -_positionDelta.x;
+		pos += axis_x *  _positionDelta.y;
+		pos += up_dir * -_positionDelta.z;
+
+		// reset
+		_positionDelta = Default;
+	}
+			
+/*
+=================================================
+	OnDestroy
+=================================================
+*/
+	void VRDeviceEmulator::WindowEventListener::OnDestroy ()
+	{
+		_isActive = false;
+	}
+//-----------------------------------------------------------------------------
+
 
 /*
 =================================================
@@ -19,6 +151,23 @@ namespace FGC
 		_isCreated{false}
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
+		_output->AddListener( &_wndListener );
+
+		_camera.pose		= Mat3_t::Identity();
+		_camera.position	= float3(0.0f);
+
+		_camera.left.view	= Mat4_t{
+			1.00000072f, -0.000183293581f, -0.000353380980f, -0.000000000f,
+			0.000182049334f, 0.999995828f, -0.00308410777f, 0.000000000f,
+			0.000353740237f, 0.00308382465f, 0.999995828f, -0.000000000f,
+			0.0329737701f, -0.000433419773f, 0.000178515897f, 1.00000000f
+		};
+		_camera.right.view	= Mat4_t{
+			1.00000072f, 0.000182215153f, 0.000351947267f, -0.000000000f,
+			-0.000183455661f, 0.999995947f, 0.00308232009f, 0.000000000f,
+			-0.000351546332f, -0.00308261835f, 0.999995947f, -0.000000000f,
+			-0.0329739153f, 0.000422920042f, -0.000199772359f, 1.00000000f
+		};
 	}
 	
 /*
@@ -143,6 +292,7 @@ namespace FGC
 
 		if ( _output )
 		{
+			_output->RemoveListener( &_wndListener );
 			_output->Destroy();
 			_output.reset();
 		}
@@ -193,23 +343,9 @@ namespace FGC
 		}
 
 		// controllers emulation
+		_wndListener.Update( OUT _camera.pose, INOUT _camera.position );
+
 		return true;
-	}
-	
-/*
-=================================================
-	GetCamera
-=================================================
-*/
-	void  VRDeviceEmulator::GetCamera (OUT VRCamera &camera) const
-	{
-		camera.clipPlanes	= _clipPlanes;
-		camera.left.proj	= _projection;
-		camera.left.view	= Mat4_t::Identity();
-		camera.right.proj	= _projection;
-		camera.right.view	= Mat4_t::Identity();
-		camera.pose			= Mat3_t::Identity();
-		camera.position		= float3(0.0f);
 	}
 
 /*
@@ -219,20 +355,23 @@ namespace FGC
 */
 	void VRDeviceEmulator::SetupCamera (const float2 &clipPlanes)
 	{
-		if ( not Any( Equals( _clipPlanes, clipPlanes )) )
+		if ( not Any( Equals( _camera.clipPlanes, clipPlanes )) )
 		{
-			_clipPlanes = clipPlanes;
+			_camera.clipPlanes = clipPlanes;
 			
 			const float	fov_y			= 1.0f;
 			const float	aspect			= 1.0f;
 			const float	tan_half_fovy	= tan( fov_y * 0.5f );
-			_projection = Mat4_t{};
 
-			_projection[0][0] = 1.0f / (aspect * tan_half_fovy);
-			_projection[1][1] = 1.0f / tan_half_fovy;
-			_projection[2][2] = _clipPlanes[1] / (_clipPlanes[1] - _clipPlanes[0]);
-			_projection[2][3] = 1.0f;
-			_projection[3][2] = -(_clipPlanes[1] * _clipPlanes[0]) / (_clipPlanes[1] - _clipPlanes[0]);
+			Mat4_t	proj;
+			proj[0][0] = 1.0f / (aspect * tan_half_fovy);
+			proj[1][1] = 1.0f / tan_half_fovy;
+			proj[2][2] = clipPlanes[1] / (clipPlanes[1] - clipPlanes[0]);
+			proj[2][3] = 1.0f;
+			proj[3][2] = -(clipPlanes[1] * clipPlanes[0]) / (clipPlanes[1] - clipPlanes[0]);
+			
+			_camera.left.proj  = proj;
+			_camera.right.proj = proj;
 		}
 	}
 	
@@ -248,6 +387,7 @@ namespace FGC
 	{
 		CHECK_ERR( img.queueFamilyIndex < _queues.capacity() );
 		CHECK_ERR( _swapchain and _vkLogicalDevice );
+		CHECK_ERR( _wndListener.IsActive() );
 
 		VkBool32	supports_present = false;
 		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, img.queueFamilyIndex, _swapchain->GetVkSurface(), OUT &supports_present ));
@@ -398,8 +538,13 @@ namespace FGC
 			_lastSignal = q.signalSemaphores[q.frame];
 		}
 		
-		if ( not just_acquired )
+		_submitted[uint(eye)] = true;
+		
+		if ( _submitted[uint(Eye::Left)] and _submitted[uint(Eye::Right)] )
 		{
+			_submitted[uint(Eye::Left)]  = false;
+			_submitted[uint(Eye::Right)] = false;
+
 			VK_CHECK( _swapchain->Present( img.currQueue, {_lastSignal} ));
 			_lastSignal = VK_NULL_HANDLE;
 
@@ -455,12 +600,12 @@ namespace FGC
 		
 /*
 =================================================
-	IsEnabled
+	GetHmdStatus
 =================================================
 */
-	bool  VRDeviceEmulator::IsEnabled () const
+	IVRDevice::EHmdStatus  VRDeviceEmulator::GetHmdStatus () const
 	{
-		return _isCreated;
+		return _isCreated and _wndListener.IsActive() ? EHmdStatus::Mounted : EHmdStatus::PowerOff;
 	}
 
 }	// FGC

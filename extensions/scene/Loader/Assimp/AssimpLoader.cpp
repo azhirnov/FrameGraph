@@ -38,7 +38,6 @@ namespace {
 		Array<IntermLightPtr>		lights;
 		IntermScene::SceneNode		root;
 	};
-}
 
 /*
 =================================================
@@ -59,37 +58,48 @@ namespace {
 		Assimp::DefaultLogger::create( "", severity, aiDefaultLogStream_STDOUT );
 		//Assimp::DefaultLogger::create( "assimp_log.txt", severity, aiDefaultLogStream_FILE );
 	}
-
-/*
-=================================================
-	constructor
-=================================================
-*/
-	AssimpLoader::AssimpLoader () :
-		_importerPtr{ new Assimp::Importer{} }
-	{
-		AssimpInit();
-	}
-
-/*
-=================================================
-	destructor
-=================================================
-*/
-	AssimpLoader::~AssimpLoader ()
-	{
-	}
 	
 /*
 =================================================
 	ConvertMatrix
 =================================================
 */
-	ND_ static Transform  ConvertMatrix (const aiMatrix4x4 &mat)
+	ND_ static Transform  ConvertMatrix (const aiMatrix4x4 &src)
 	{
-		return Transform{ transpose( BitCast<mat4x4>(mat) )};
+		const mat4x4	dst {
+			src[0][0], src[0][1], src[0][2], src[0][3],
+			src[1][0], src[1][1], src[1][2], src[1][3],
+			src[2][0], src[2][1], src[2][2], src[2][3],
+			src[3][0], src[3][1], src[3][2], src[3][3]
+		};
+		return Transform{ transpose( dst )};
 	}
 	
+/*
+=================================================
+	ConvertVec
+=================================================
+*/
+	ND_ static vec3  ConvertVec (const aiVector3D &src)
+	{
+		return vec3{ src.x, src.y, src.z };
+	}
+
+	ND_ static vec3  ConvertVec (const aiColor3D &src)
+	{
+		return vec3{ src.r, src.g, src.b };
+	}
+
+/*
+=================================================
+	ConvertColor
+=================================================
+*/
+	ND_ static RGBA32f  ConvertColor (const aiColor4D &src)
+	{
+		return RGBA32f{ src.r, src.g, src.b, src.a };
+	}
+
 /*
 =================================================
 	ConvertWrapMode
@@ -97,7 +107,7 @@ namespace {
 */
 	ND_ static EAddressMode  ConvertWrapMode (aiTextureMapMode mode)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( mode )
 		{
 			case aiTextureMapMode_Wrap :	return EAddressMode::Repeat;
@@ -108,7 +118,7 @@ namespace {
 			case _aiTextureMapMode_Force32Bit : break;
 			#endif
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown wrap mode", EAddressMode::Repeat );
 	}
 	
@@ -121,7 +131,7 @@ namespace {
 
 	ND_ static ETextureMapping  ConvertMapping (aiTextureMapping mapping)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( mapping )
 		{
 			case aiTextureMapping_UV :			return ETextureMapping::UV;
@@ -134,7 +144,7 @@ namespace {
 			case _aiTextureMapping_Force32Bit :	break;
 			#endif
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown texture mapping" );
 	};
 
@@ -156,16 +166,16 @@ namespace {
 		mtr.name = mtr_name.C_Str();
 
 		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_DIFFUSE, OUT &color ) == aiReturn_SUCCESS )
-			mtr.albedo = BitCast<RGBA32f>( color );
+			mtr.albedo = ConvertColor( color );
 
 		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_SPECULAR, OUT &color ) == aiReturn_SUCCESS )
-			mtr.specular = BitCast<RGBA32f>( color );
+			mtr.specular = ConvertColor( color );
 
 		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_AMBIENT, OUT &color ) == aiReturn_SUCCESS )
-			mtr.ambient = BitCast<RGBA32f>( color );
+			mtr.ambient = ConvertColor( color );
 	
 		if ( aiGetMaterialColor( src, AI_MATKEY_COLOR_EMISSIVE, OUT &color ) == aiReturn_SUCCESS )
-			mtr.emissive = BitCast<RGBA32f>( color );
+			mtr.emissive = ConvertColor( color );
 	
 		if ( aiGetMaterialFloatArray( src, AI_MATKEY_OPACITY, OUT &fvalue, &max_size ) == aiReturn_SUCCESS and fvalue < 1.0f )
 			mtr.opacity = fvalue;
@@ -366,14 +376,14 @@ namespace {
 
 		IntermLight::Settings		light;
 		
-		light.position		= BitCast<vec3>( src->mPosition );
-		light.direction		= normalize( BitCast<vec3>( src->mDirection ));
-		light.upDirection	= normalize( BitCast<vec3>( src->mUp ));
+		light.position		= ConvertVec( src->mPosition );
+		light.direction		= normalize( ConvertVec( src->mDirection ));
+		light.upDirection	= normalize( ConvertVec( src->mUp ));
 
 		light.attenuation	= vec3{ src->mAttenuationConstant, src->mAttenuationLinear, src->mAttenuationQuadratic };
-		light.diffuseColor	= BitCast<vec3>( src->mColorDiffuse );
-		light.specularColor	= BitCast<vec3>( src->mColorSpecular );
-		light.ambientColor	= BitCast<vec3>( src->mColorAmbient );
+		light.diffuseColor	= ConvertVec( src->mColorDiffuse );
+		light.specularColor	= ConvertVec( src->mColorSpecular );
+		light.ambientColor	= ConvertVec( src->mColorAmbient );
 
 		light.coneAngleInnerOuter = vec2{ src->mAngleInnerCone, src->mAngleOuterCone };
 
@@ -488,13 +498,34 @@ namespace {
 		CHECK_ERR( RecursiveLoadHierarchy( aiScene, aiScene->mRootNode, scene, INOUT scene.root ));
 		return true;
 	}
+}
+
+/*
+=================================================
+	constructor
+=================================================
+*/
+	AssimpLoader::AssimpLoader () :
+		_importerPtr{ new Assimp::Importer{} }
+	{
+		AssimpInit();
+	}
+
+/*
+=================================================
+	destructor
+=================================================
+*/
+	AssimpLoader::~AssimpLoader ()
+	{
+	}
 
 /*
 =================================================
 	Load
 =================================================
 */
-	IntermScenePtr  AssimpLoader::Load (const Config &config, StringView filename)
+	IntermScenePtr  AssimpLoader::Load (const Config &config, NtStringView filename)
 	{
 		const uint sceneLoadFlags = 0
 									| (config.calculateTBN ? aiProcess_CalcTangentSpace : 0)
@@ -524,7 +555,7 @@ namespace {
 		CHECK_ERR( LoadHierarchy( scene, INOUT scene_data ));
 		
 		return MakeShared<IntermScene>( scene_data.materials, scene_data.meshes,
-									    std::move(scene_data.lights), std::move(scene_data.root) );
+										std::move(scene_data.lights), std::move(scene_data.root) );
 	}
 
 

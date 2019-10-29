@@ -4,7 +4,6 @@
 #include "pipeline_compiler/VPipelineCompiler.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Window/WindowSFML.h"
 #include "framework/VR/OpenVRDevice.h"
 #include "framework/VR/VRDeviceEmulator.h"
 #include "stl/Algorithms/StringUtils.h"
@@ -44,8 +43,7 @@ namespace FG
 	_CreateFrameGraph
 =================================================
 */
-	bool BaseSceneApp::_CreateFrameGraph (const uint2 &windowSize, StringView windowTitle,
-										  ArrayView<StringView> shaderDirectories, StringView dbgOutputPath)
+	bool BaseSceneApp::_CreateFrameGraph (const AppConfig &cfg)
 	{
 		// initialize window
 		{
@@ -54,26 +52,25 @@ namespace FG
 
 			#elif defined( FG_ENABLE_SDL2 )
 				_window.reset( new WindowSDL2() );
-			
-			#elif defined(FG_ENABLE_SFML)
-				_window.reset( new WindowSFML() );
 
 			#else
 			#	error Unknown window library!
 			#endif
 
-			_title = windowTitle;
+			_title = cfg.windowTitle;
 
-			CHECK_ERR( _window->Create( windowSize, _title ));
+			CHECK_ERR( _window->Create( cfg.surfaceSize, _title ));
 			_window->AddListener( this );
 		}
 
 		// initialize VR
 		{
 			#if defined(FG_ENABLE_OPENVR)
+			if ( cfg.vrMode == AppConfig::EVRMode::OpenVR ) {
 				_vrDevice.reset( new OpenVRDevice{});
+			}
 			#elif 0
-			{
+			if ( cfg.vrMode == AppConfig::EVRMode::Emulator ) {
 				WindowPtr	wnd{ new WindowGLFW{}};
 				CHECK_ERR( wnd->Create( { 1024, 512 }, "emulator" ));
 				_vrDevice.reset( new VRDeviceEmulator{ std::move(wnd) });
@@ -102,7 +99,7 @@ namespace FG
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {},
-									   {}, //VulkanDevice::GetRecomendedInstanceLayers(),
+									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   inst_ext,
 									   dev_ext
 									));
@@ -140,6 +137,7 @@ namespace FG
 
 		if ( _vrDevice ) {
 			CHECK_ERR( _vrDevice->SetVKDevice( _vulkan.GetVkInstance(), _vulkan.GetVkPhysicalDevice(), _vulkan.GetVkDevice() ));
+			_vrDevice->AddListener( this );
 		}
 
 		// initialize framegraph
@@ -161,7 +159,7 @@ namespace FG
 										   EShaderCompilationFlags::ParseAnnoations	|
 										   EShaderCompilationFlags::UseCurrentDeviceLimits );
 
-			for (auto& dir : shaderDirectories) {
+			for (auto& dir : cfg.shaderDirectories) {
 				compiler->AddDirectory( dir );
 			}
 
@@ -170,9 +168,9 @@ namespace FG
 		
 		// setup debug output
 #		ifdef FG_STD_FILESYSTEM
-		if ( dbgOutputPath.size() )
+		if ( cfg.dbgOutputPath.size() )
 		{
-			FS::path	path{ dbgOutputPath };
+			FS::path	path{ cfg.dbgOutputPath };
 		
 			if ( FS::exists( path ) )
 				FS::remove_all( path );
@@ -251,20 +249,22 @@ namespace FG
 		auto	dt		= std::chrono::duration_cast<SecondsF>( time - _lastUpdateTime ).count();
 		_lastUpdateTime = time;
 		
-		if ( _vrDevice and _vrDevice->IsEnabled() )
+		if ( _vrDevice and _vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Mounted )
 		{
-			IVRDevice::VRCamera	cam;
-			_vrDevice->GetCamera( OUT cam );
+			auto&	cam = _vrDevice->GetCamera();
 			
-			if ( length2( _positionDelta ) > 0.01f ) {
+			if ( length2( _positionDelta ) > 0.001f )
+			{
 				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
 				_vrCamera.Move2( _positionDelta );
+				_positionDelta = vec3{0.0f};
 			}
 
 			_vrCamera.SetViewProjection( MatCast(cam.left.proj), MatCast(cam.left.view),
 										 MatCast(cam.right.proj), MatCast(cam.right.view),
 										 MatCast(cam.pose), VecCast(cam.position) );
 			_camera.SetPosition( _vrCamera.Position() );
+			_camera.SetRotation( _vrCamera.Orientation() );
 		}
 		else
 		{
@@ -274,16 +274,16 @@ namespace FG
 			_camera.SetPerspective( _cameraFov, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
 			_camera.Rotate( -_mouseDelta.x, _mouseDelta.y );
 
-			if ( length2( _positionDelta ) > 0.01f ) {
+			if ( length2( _positionDelta ) > 0.001f )
+			{
 				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
 				_camera.Move2( _positionDelta );
+				_positionDelta = vec3{0.0f};
 			}
 			_vrCamera.SetPosition( _camera.GetCamera().transform.position );
 		}
 
-		// reset
-		_positionDelta	= vec3{0.0f};
-		_mouseDelta		= vec2{0.0f};
+		_mouseDelta = vec2{0.0f};
 	}
 
 /*
@@ -331,12 +331,12 @@ namespace FG
 			if ( key == "C" )			_positionDelta.z -= 1.0f;
 
 			// rotate up/down
-			if ( key == "arrow up" )	_mouseDelta.y -= 0.01f;		else
-			if ( key == "arrow down" )	_mouseDelta.y += 0.01f;
+			if ( key == "arrow up" )	_mouseDelta.y -= _mouseSens;	else
+			if ( key == "arrow down" )	_mouseDelta.y += _mouseSens;
 
 			// rotate left/right
-			if ( key == "arrow right" )	_mouseDelta.x += 0.01f;		else
-			if ( key == "arrow left" )	_mouseDelta.x -= 0.01f;
+			if ( key == "arrow right" )	_mouseDelta.x += _mouseSens;	else
+			if ( key == "arrow left" )	_mouseDelta.x -= _mouseSens;
 		}
 
 		if ( action == EKeyAction::Down )
@@ -357,17 +357,57 @@ namespace FG
 		if ( _mousePressed )
 		{
 			vec2	delta = vec2{pos.x, pos.y} - _lastMousePos;
-			_mouseDelta   += delta * 0.01f;
+			_mouseDelta   += delta * _mouseSens;
 		}
 		_lastMousePos = vec2{pos.x, pos.y};
 	}
 	
 /*
 =================================================
+	HmdStatusChanged
+=================================================
+*/
+	void BaseSceneApp::HmdStatusChanged (EHmdStatus)
+	{
+	}
+	
+/*
+=================================================
+	OnAxisStateChanged
+=================================================
+*/
+	void BaseSceneApp::OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt)
+	{
+		if ( name == "dpad" )
+		{
+			_positionDelta += vec3{ value.y * dt, -value.x * dt, 0.0f } * 1.0f;
+		}
+
+		//FG_LOGI( "Idx: "s << ToString(index) << ", delta: " << ToString(delta) );
+	}
+	
+/*
+=================================================
+	OnButton
+=================================================
+*/
+	void BaseSceneApp::OnButton (ControllerID id, StringView btn, EButtonAction action)
+	{
+		/*if ( id == ControllerID::RightHand and action != EButtonAction::Up )
+		{
+			if ( btn == "dpad up" )			_positionDelta.x += 1.0f;	else
+			if ( btn == "dpad down" )		_positionDelta.x -= 1.0f;
+			if ( btn == "dpad right" )		_positionDelta.y -= 1.0f;	else
+			if ( btn == "dpad left" )		_positionDelta.y += 1.0f;
+		}*/
+	}
+
+/*
+=================================================
 	_UpdateFrameStat
 =================================================
 */
-	void BaseSceneApp::_UpdateFrameStat (StringView additionalParams)
+	void BaseSceneApp::_UpdateFrameStat ()
 	{
 		using namespace std::chrono;
 
@@ -392,10 +432,13 @@ namespace FG
 			_frameStat.cpuTimeSum		= Default;
 			_frameStat.frameCounter		= 0;
 
+			String	additional;
+			OnUpdateFrameStat( OUT additional );
+
 			_window->SetTitle( String(_title) << " [FPS: " << ToString(fps_value) <<
 							   ", GPU: " << ToString(gpu_time) <<
 							   ", CPU: " << ToString(cpu_time) <<
-							   additionalParams << ']' );
+							   additional << ']' );
 		}
 	}
 	
@@ -406,17 +449,19 @@ namespace FG
 */
 	bool BaseSceneApp::Update ()
 	{
-		if ( not GetWindow()->Update() )
-			return false;
+		if ( _window )
+		{
+			if ( not _window->Update() )
+				return false;
+		}
 
-		if ( Any( GetSurfaceSize() == uint2(0) ))
+		if ( _vrDevice )
+			_vrDevice->Update();
+
+		if ( not _vrDevice and Any( GetSurfaceSize() == uint2(0) ))
 		{
 			std::this_thread::sleep_for(SecondsF{0.01f});	// ~100 fps
 			return true;
-		}
-
-		if ( _vrDevice ) {
-			_vrDevice->Update();
 		}
 
 		// wait frame-2 for double buffering

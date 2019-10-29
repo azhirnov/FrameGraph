@@ -32,7 +32,7 @@ namespace FG
 */
 	static bool ValidateDimension (const EImage imageType, INOUT uint3 &dim, INOUT ImageLayer &layers)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( imageType )
 		{
 			case EImage::Buffer :
@@ -94,7 +94,7 @@ namespace FG
 			case EImage::Unknown :
 				break;		// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid texture type" );
 	}
 
@@ -105,7 +105,7 @@ namespace FG
 */	
 	ND_ static uint  NumberOfMipmaps (const EImage imageType, const uint3 &dim)
 	{
-		ENABLE_ENUM_CHECKS();
+		BEGIN_ENUM_CHECKS();
 		switch ( imageType )
 		{
 			case EImage::Buffer :
@@ -124,7 +124,7 @@ namespace FG
 
 			case EImage::Unknown :			break;		// to shutup warnings
 		}
-		DISABLE_ENUM_CHECKS();
+		END_ENUM_CHECKS();
 		RETURN_ERR( "invalid texture type", 1u );
 	}
 

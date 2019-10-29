@@ -63,7 +63,7 @@ namespace std
 {
 	template <>
 	struct hash< FG::VFramebuffer > {
-		ND_ size_t  operator () (const FG::VFramebuffer &value) const noexcept {
+		ND_ size_t  operator () (const FG::VFramebuffer &value) const {
 			return size_t(value.GetHash());
 		}
 	};

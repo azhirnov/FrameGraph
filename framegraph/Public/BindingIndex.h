@@ -46,7 +46,7 @@ namespace std
 	template <>
 	struct hash< FG::BindingIndex >
 	{
-		ND_ size_t  operator () (const FG::BindingIndex &value) const noexcept
+		ND_ size_t  operator () (const FG::BindingIndex &value) const
 		{
 		#if FG_FAST_HASH
 			return size_t(FGC::HashOf( this, sizeof(this) ));

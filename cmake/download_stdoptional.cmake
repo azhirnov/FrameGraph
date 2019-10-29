@@ -2,9 +2,10 @@
 
 if (NOT ${STD_OPTIONAL_SUPPORTED})
 	set( FG_EXTERNAL_STDOPTIONAL_PATH "" CACHE PATH "path to std::optional source" )
+	mark_as_advanced( FG_EXTERNAL_STDOPTIONAL_PATH )
 
 	# reset to default
-	if (NOT EXISTS ${FG_EXTERNAL_STDOPTIONAL_PATH})
+	if (NOT EXISTS "${FG_EXTERNAL_STDOPTIONAL_PATH}/optional.hpp")
 		message( STATUS "std::optional is not found in \"${FG_EXTERNAL_STDOPTIONAL_PATH}\"" )
 		set( FG_EXTERNAL_STDOPTIONAL_PATH "${FG_EXTERNALS_PATH}/optional" CACHE PATH "" FORCE )
 	else ()
@@ -26,5 +27,7 @@ if (NOT ${STD_OPTIONAL_SUPPORTED})
 		endif ()
 	endif ()
 
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_OPTIONAL" )
+	add_library( "StdOptional-lib" INTERFACE )
+	target_include_directories( "StdOptional-lib" INTERFACE "${FG_EXTERNAL_STDOPTIONAL_PATH}" )
+	target_compile_definitions( "StdOptional-lib" INTERFACE "FG_ENABLE_OPTIONAL" )
 endif ()

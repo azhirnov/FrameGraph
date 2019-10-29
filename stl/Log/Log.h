@@ -3,7 +3,7 @@
 #pragma once
 
 #include "stl/Defines.h"
-#include "stl/Containers/StringViewFwd.h"
+#include "stl/Containers/StringView.h"
 
 namespace FGC
 {
@@ -32,12 +32,14 @@ namespace FGC
 
 
 #define FG_PRIVATE_LOGX( _level_, _msg_, _file_, _line_ ) \
+	BEGIN_ENUM_CHECKS() \
 	{switch ( ::FGC::Logger::_level_( (_msg_), (FG_FUNCTION_NAME), (_file_), (_line_) ) ) \
 	{ \
 		case ::FGC::Logger::EResult::Continue :	break; \
 		case ::FGC::Logger::EResult::Break :	FG_PRIVATE_BREAK_POINT();	break; \
 		case ::FGC::Logger::EResult::Abort :	FG_PRIVATE_EXIT();			break; \
-	}}
+	}} \
+	END_ENUM_CHECKS()
 
 #define FG_PRIVATE_LOGI( _msg_, _file_, _line_ )	FG_PRIVATE_LOGX( Info, (_msg_), (_file_), (_line_) )
 #define FG_PRIVATE_LOGE( _msg_, _file_, _line_ )	FG_PRIVATE_LOGX( Error, (_msg_), (_file_), (_line_) )

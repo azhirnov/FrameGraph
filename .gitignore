@@ -1,3 +1,5 @@
+*.user
+*.glsl_dbg
 /build
 /external/glfw
 /external/glslang
@@ -15,8 +17,8 @@
 /external/AngelScript
 /external/optional
 /external/variant
+/external/string_view
 /external/OpenVR
+/external/prebuild
 /tests/framegraph/Graphs
 /samples/_data
-*.user
-*.glsl_dbg

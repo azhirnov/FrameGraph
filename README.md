@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/azhirnov/FrameGraph.svg?branch=v0.11-dev)](https://travis-ci.com/azhirnov/FrameGraph)
+
 # FrameGraph
 
 FrameGraph simplifies prototyping on Vulkan and can be used as a base layer for the graphics engine.
@@ -10,6 +12,8 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 * supports RTX extensions.
 * supports async compute and async transfer queues.
 
+## Samples
+[FrameGraph-Samples](https://github.com/azhirnov/FrameGraph-Samples)
 
 ## Documentation
 * [Introduction](docs/Introduction.md)
@@ -32,6 +36,7 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 ## Building
 Generate project with CMake and build.<br/>
 Required C++17 standard support.
+Warning: VC toolset v142 has bug with very long compilation of cmake external projects, so use v141 toolset.
 
 CMake version 3.11 and greater will download all dependencies during configuration time.<br/>
 If it didn't, manualy download dependencies into 'external' directory or in cmake specify `FG_EXTERNAL_***` pathes for each dependency.
@@ -39,7 +44,7 @@ If it didn't, manualy download dependencies into 'external' directory or in cmak
 Dependencies:<br/>
 [Vulkan-headers](https://github.com/KhronosGroup/Vulkan-Headers) or [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) - required.<br/>
 [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) - required.<br/>
-[glfw](https://github.com/glfw/glfw) or [SDL2](https://www.libsdl.org) or [SFML](https://github.com/SFML/SFML) - required for framework and some tests.<br/>
+[glfw](https://github.com/glfw/glfw) or [SDL2](https://www.libsdl.org) - required for framework and some tests.<br/>
 [glslang](https://github.com/KhronosGroup/glslang) - required for glsl compiler.<br/>
 [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools), [SPIRV-Headers](https://github.com/KhronosGroup/SPIRV-Headers) and Python - optional, for spirv optimization.<br/>
 [lodepng](https://github.com/lvandeve/lodepng) - optional.<br/>
@@ -49,6 +54,7 @@ Dependencies:<br/>
 [FreeImage](http://freeimage.sourceforge.net/) - (optional) for Scene extension.<br/>
 [imgui](https://github.com/ocornut/imgui) - (optional) for UI extension.<br/>
 [OpenVR](https://github.com/ValveSoftware/openvr) - (optional) for VR support.<br/>
+[GLM](https://glm.g-truc.net/0.9.9/index.html) - (optional) for Scene extension.<br/>
 
 
 ## References

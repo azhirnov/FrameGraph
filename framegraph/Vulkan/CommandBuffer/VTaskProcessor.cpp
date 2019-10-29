@@ -541,7 +541,7 @@ namespace FG
 
 		_depthWrite |= (ds.hasDepthWrite & ds.depthWrite);
 
-		_stencilWrite |= not (ds.hasStencilTest or _logicalRP.GetStencilState().enabled) ? false :
+		_stencilWrite |= not (ds.hasStencilTest | _logicalRP.GetStencilState().enabled) ? false :
 						 bool(ds.hasStencilFailOp      & (ds.stencilFailOp      != EStencilOp::Keep)) |
 						 bool(ds.hasStencilDepthFailOp & (ds.stencilDepthFailOp != EStencilOp::Keep)) |
 						 bool(ds.hasStencilPassOp      & (ds.stencilPassOp      != EStencilOp::Keep));
@@ -693,8 +693,8 @@ namespace FG
 			_tp.vkCmdDrawIndirect( _cmdBuffer,
 									task.indirectBuffer->Handle(),
 									VkDeviceSize(cmd.indirectBufferOffset),
-								    cmd.drawCount,
-								    uint(cmd.stride) );
+									cmd.drawCount,
+									uint(cmd.stride) );
 		}
 		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
@@ -1995,7 +1995,7 @@ namespace FG
 
 		OverrideColorStates( INOUT render_state.color, task.colorBuffers );
 		OverrideDepthStencilStates( INOUT render_state.depth, INOUT render_state.stencil,
-								    INOUT render_state.rasterization, INOUT dynamic_states, task.dynamicStates );
+									INOUT render_state.rasterization, INOUT dynamic_states, task.dynamicStates );
 		SetupExtensions( logicalRP, INOUT dynamic_states );
 
 		VkPipeline	ppln_id;
@@ -2030,7 +2030,7 @@ namespace FG
 
 		OverrideColorStates( INOUT render_state.color, task.colorBuffers );
 		OverrideDepthStencilStates( INOUT render_state.depth, INOUT render_state.stencil,
-								    INOUT render_state.rasterization, INOUT dynamic_states, task.dynamicStates );
+									INOUT render_state.rasterization, INOUT dynamic_states, task.dynamicStates );
 		SetupExtensions( logicalRP, INOUT dynamic_states );
 
 		VkPipeline	ppln_id;
@@ -2090,7 +2090,7 @@ namespace FG
 		for (auto& cmd : task.commands)
 		{
 			vkCmdDispatchBase( _cmdBuffer, cmd.baseGroup.x, cmd.baseGroup.y, cmd.baseGroup.z,
-							    cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+								cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
 		}
 		Stat().dispatchCalls += uint(task.commands.size());
 	}
@@ -2113,14 +2113,14 @@ namespace FG
 		for (auto& cmd : task.commands)
 		{
 			_AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset),
-					    sizeof(DispatchComputeIndirect::DispatchIndirectCommand) );
+						sizeof(DispatchComputeIndirect::DispatchIndirectCommand) );
 		}
 		_CommitBarriers();
 		
 		for (auto& cmd : task.commands)
 		{
 			vkCmdDispatchIndirect( _cmdBuffer,
-								    task.indirectBuffer->Handle(),
+									task.indirectBuffer->Handle(),
 									VkDeviceSize(cmd.indirectBufferOffset) );
 		}
 		Stat().dispatchCalls += uint(task.commands.size());

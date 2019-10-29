@@ -12,19 +12,33 @@ set( SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" )
 #----------------------------------------------------------------------------------
 # dependent projects
 
-add_definitions( -DAS_USE_NAMESPACE )
-
 add_subdirectory( "${SOURCE_PATH}/angelscript/projects/cmake" "angelscript" )
+target_compile_definitions( "angelscript" PUBLIC "AS_USE_NAMESPACE=1" )
 
-add_library( "angelscript_addons" STATIC
+
+add_library( "angelscript_stdstring" STATIC
 	"${SOURCE_PATH}/add_on/scriptstdstring/scriptstdstring.cpp"
 	"${SOURCE_PATH}/add_on/scriptstdstring/scriptstdstring.h"
 	"${SOURCE_PATH}/add_on/scriptstdstring/scriptstdstring_utils.cpp"
 )
+target_include_directories( "angelscript_stdstring" PRIVATE "${SOURCE_PATH}/angelscript/include" )
+target_link_libraries( "angelscript_stdstring" PUBLIC "angelscript" )
 
-target_include_directories( "angelscript_addons" PRIVATE "${SOURCE_PATH}/angelscript/include" )
 
-target_link_libraries( "angelscript_addons" PUBLIC "angelscript" )
+add_library( "angelscript_stdvector" STATIC
+	"${SOURCE_PATH}/add_on/scriptarray/scriptarray.cpp"
+	"${SOURCE_PATH}/add_on/scriptarray/scriptarray.h"
+)
+target_include_directories( "angelscript_stdvector" PRIVATE "${SOURCE_PATH}/angelscript/include" )
+target_link_libraries( "angelscript_stdvector" PUBLIC "angelscript" )
+target_compile_definitions( "angelscript_stdvector" PUBLIC "AS_USE_STLNAMES=1" )
 
-install( TARGETS "angelscript_addons" LIBRARY DESTINATION "lib" ARCHIVE DESTINATION "lib" )
+
+#----------------------------------------------------------------------------------
+# install
+
+install( TARGETS "angelscript_stdstring" LIBRARY DESTINATION "lib" ARCHIVE DESTINATION "lib" )
 install( DIRECTORY "${SOURCE_PATH}/add_on/scriptstdstring/" DESTINATION "include" FILES_MATCHING PATTERN "*.h" )
+
+install( TARGETS "angelscript_stdvector" LIBRARY DESTINATION "lib" ARCHIVE DESTINATION "lib" )
+install( DIRECTORY "${SOURCE_PATH}/add_on/scriptarray/" DESTINATION "include" FILES_MATCHING PATTERN "*.h" )

@@ -586,7 +586,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 
 		res.onBind.push_back( [&vulkan, &host_memory, vertex_buffer, offset] (void *ptr) -> bool
 		{
-			memcpy( ptr + BytesU(offset), vertices, sizeof(vertices) );
+			std::memcpy( ptr + BytesU(offset), vertices, sizeof(vertices) );
 			VK_CHECK( vulkan.vkBindBufferMemory( vulkan.GetVkDevice(), vertex_buffer, host_memory, offset ));
 			return true;
 		});
@@ -612,7 +612,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 
 		res.onBind.push_back( [&vulkan, index_buffer, &host_memory, offset] (void *ptr) -> bool
 		{
-			memcpy( ptr + BytesU(offset), indices, sizeof(indices) );
+			std::memcpy( ptr + BytesU(offset), indices, sizeof(indices) );
 			VK_CHECK( vulkan.vkBindBufferMemory( vulkan.GetVkDevice(), index_buffer, host_memory, offset ));
 			return true;
 		});
@@ -716,7 +716,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 			instance.flags			= 0;
 			instance.accelerationStructureHandle = bottom_level_as_handle;
 
-			memcpy( ptr + BytesU(offset), &instance, sizeof(instance) );
+			std::memcpy( ptr + BytesU(offset), &instance, sizeof(instance) );
 
 			VK_CHECK( vulkan.vkBindBufferMemory( vulkan.GetVkDevice(), instance_buffer, host_memory, offset ));
 			return true;
@@ -850,7 +850,7 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 
 		res.onDraw.push_back( [&vulkan, shaderBindingTable, rtPipeline, numGroups, size = info.size] (VkCommandBuffer cmd)
 		{
-			Array<uint8_t>	handles;  handles.resize(size);
+			Array<uint8_t>	handles;  handles.resize( size_t(size) );
 
 			VK_CALL( vulkan.vkGetRayTracingShaderGroupHandlesNV( vulkan.GetVkDevice(), rtPipeline, 0, numGroups, handles.size(), OUT handles.data() ));
 		

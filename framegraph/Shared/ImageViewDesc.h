@@ -46,7 +46,7 @@ namespace FG
 
 	struct HashOfImageViewDesc
 	{
-		ND_ size_t  operator () (const HashedImageViewDesc &value) const noexcept
+		ND_ size_t  operator () (const HashedImageViewDesc &value) const
 		{
 			return size_t(value.Hash());
 		}

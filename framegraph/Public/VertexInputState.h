@@ -141,17 +141,17 @@ namespace std
 	
 	template <>
 	struct hash < FG::VertexInputState::VertexInput > {
-		ND_ size_t  operator () (const FG::VertexInputState::VertexInput &) const noexcept;
+		ND_ size_t  operator () (const FG::VertexInputState::VertexInput &) const;
 	};
 	
 	template <>
 	struct hash < FG::VertexInputState::BufferBinding > {
-		ND_ size_t  operator () (const FG::VertexInputState::BufferBinding &) const noexcept;
+		ND_ size_t  operator () (const FG::VertexInputState::BufferBinding &) const;
 	};
 	
 	template <>
 	struct hash < FG::VertexInputState > {
-		ND_ size_t  operator () (const FG::VertexInputState &) const noexcept;
+		ND_ size_t  operator () (const FG::VertexInputState &) const;
 	};
 
 }	// std

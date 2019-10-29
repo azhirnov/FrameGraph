@@ -5,13 +5,12 @@
 #include "pipeline_compiler/VPipelineCompiler.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Window/WindowSFML.h"
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringParser.h"
 #include <thread>
 
 #ifdef FG_ENABLE_LODEPNG
-#	include "lodepng/lodepng.h"
+#	include "lodepng.h"
 #endif
 
 extern void UnitTest_VResourceManager (const FG::FrameGraph &fg);
@@ -124,8 +123,8 @@ namespace {
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {{ VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_PRESENT_BIT, 0.0f },
-									    { VK_QUEUE_COMPUTE_BIT,  0.0f },
-									    { VK_QUEUE_TRANSFER_BIT, 0.0f }},
+										{ VK_QUEUE_COMPUTE_BIT,  0.0f },
+										{ VK_QUEUE_TRANSFER_BIT, 0.0f }},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
 									   VulkanDevice::GetAllDeviceExtensions()
@@ -330,7 +329,7 @@ namespace {
 			{
 				auto	row = imageData.GetRow( y );
 
-				::memcpy( pixels.data() + (row_size * y), row.data(), row_size );
+				std::memcpy( pixels.data() + (row_size * y), row.data(), row_size );
 			}
 
 			err = lodepng::encode( filename, pixels.data(), imageData.Dimension().x, imageData.Dimension().y, colortype, bitdepth );
@@ -473,9 +472,6 @@ namespace {
 
 		#elif defined( FG_ENABLE_SDL2 )
 			wnd.reset( new WindowSDL2() );
-			
-		#elif defined(FG_ENABLE_SFML)
-			wnd.reset( new WindowSFML() );
 
 		#else
 		#	error Unknown window library!

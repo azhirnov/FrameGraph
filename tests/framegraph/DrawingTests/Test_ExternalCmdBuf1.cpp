@@ -127,7 +127,7 @@ namespace FG
 			VK_CALL( _vulkan.vkEndCommandBuffer( vk_cmdbuf ));
 
 			VulkanCommandBatch	vk_cmdbatch = {};
-			vk_cmdbatch.commands			= { &BitCast<CommandBufferVk_t>( vk_cmdbuf ), 1 };
+			vk_cmdbatch.commands			= { Cast<CommandBufferVk_t>( &vk_cmdbuf ), 1 };
 			vk_cmdbatch.queueFamilyIndex	= _vulkan.GetVkQueues()[0].familyIndex;
 
 			CHECK_ERR( cmd2->AddExternalCommands( vk_cmdbatch ));

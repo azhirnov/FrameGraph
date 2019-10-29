@@ -22,7 +22,7 @@ namespace FG
 		using VkShaderPtr		= PipelineDescription::VkShaderPtr;
 
 		struct BinaryShaderDataHash {
-			ND_ size_t  operator () (const BinaryShaderData &value) const noexcept {
+			ND_ size_t  operator () (const BinaryShaderData &value) const {
 				return value->GetHashOfData();
 			}
 		};

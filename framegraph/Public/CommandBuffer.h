@@ -69,6 +69,8 @@ namespace FG
 			virtual bool		AddDependency (const CommandBuffer &) = 0;
 
 			// Allocate space in the staging buffer.
+			template <typename T>
+					bool		AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &id, OUT BytesU &offset, OUT T* &mapped);
 			virtual bool		AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) = 0;
 
 			// Starts tracking image state in current command buffer.
@@ -127,5 +129,15 @@ namespace FG
 			virtual void		AddTask (LogicalPassID, const CustomDraw &) = 0;
 	};
 
+
+	
+	template <typename T>
+	inline bool  ICommandBuffer::AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &id, OUT BytesU &offset, OUT T* &mapped)
+	{
+		void*	ptr = null;
+		bool	res = AllocBuffer( size, align, id, OUT offset, OUT ptr );
+		mapped = Cast<T>( ptr );
+		return res;
+	}
 
 }	// FG

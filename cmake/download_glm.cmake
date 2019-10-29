@@ -2,6 +2,7 @@
 
 if (${FG_ENABLE_GLM})
 	set( FG_EXTERNAL_GLM_PATH "" CACHE PATH "path to glm source" )
+	mark_as_advanced( FG_EXTERNAL_GLM_PATH )
 
 	# reset to default
 	if (NOT EXISTS "${FG_EXTERNAL_GLM_PATH}/glm/glm.hpp")
@@ -9,6 +10,13 @@ if (${FG_ENABLE_GLM})
 		set( FG_EXTERNAL_GLM_PATH "${FG_EXTERNALS_PATH}/glm" CACHE PATH "" FORCE )
 	else ()
 		message( STATUS "glm found in \"${FG_EXTERNAL_GLM_PATH}\"" )
+	endif ()
+	
+	# select version
+	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+		set( GLM_TAG "0.9.9.5" )
+	else ()
+		set( GLM_TAG "master" )
 	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_GLM_PATH}/glm/glm.hpp")
@@ -21,7 +29,7 @@ if (${FG_ENABLE_GLM})
 		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
 		# download
 		GIT_REPOSITORY		${FG_GLM_REPOSITORY}
-		GIT_TAG				master
+		GIT_TAG				${GLM_TAG}
 		GIT_PROGRESS		1
 		EXCLUDE_FROM_ALL	1
 		LOG_DOWNLOAD		1
@@ -52,6 +60,9 @@ if (${FG_ENABLE_GLM})
 	)
 	
 	set_property( TARGET "External.GLM" PROPERTY FOLDER "External" )
-	set( FG_GLOBAL_DEFINITIONS "${FG_GLOBAL_DEFINITIONS}" "FG_ENABLE_GLM" )
-	set( FG_GLM_INCLUDE_DIR "${FG_EXTERNAL_GLM_PATH}/glm" CACHE INTERNAL "" FORCE )
+
+	add_library( "GLM-lib" INTERFACE )
+	target_include_directories( "GLM-lib" INTERFACE "${FG_EXTERNAL_GLM_PATH}/glm" )
+	target_compile_definitions( "GLM-lib" INTERFACE "FG_ENABLE_GLM" )
+	add_dependencies( "GLM-lib" "External.GLM" )
 endif ()

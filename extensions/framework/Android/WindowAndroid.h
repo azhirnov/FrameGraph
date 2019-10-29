@@ -53,14 +53,14 @@ namespace FGC
 		explicit WindowAndroid (android_app* app);
 		~WindowAndroid ();
 
-		bool Create (uint2 size, StringView title) override;
+		bool Create (uint2 size, NtStringView title) override;
 		void AddListener (IWindowEventListener *listener) override;
 		void RemoveListener (IWindowEventListener *listener) override;
 		bool Update () override;
 		void Quit () override;
 		void Destroy () override;
 		
-		void SetTitle (StringView) override {}
+		void SetTitle (NtStringView) override {}
 		void SetSize (const uint2 &) override {}
 		void SetPosition (const int2 &) override {}
 		

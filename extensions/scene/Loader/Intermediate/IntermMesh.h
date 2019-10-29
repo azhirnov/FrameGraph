@@ -33,6 +33,11 @@ namespace FG
 		IntermMesh (Array<uint8_t> &&vertices, const VertexAttributesPtr &attribs,
 					BytesU vertStride, EPrimitive topology,
 					Array<uint8_t> &&indices, EIndex indexType);
+		
+		template <typename V, typename I>
+		IntermMesh (ArrayView<V> vertices, const VertexAttributesPtr &attribs,
+					BytesU vertStride, EPrimitive topology,
+					ArrayView<I> indices, EIndex indexType);
 
 		void CalcAABB ();
 
@@ -44,6 +49,8 @@ namespace FG
 		ND_ BytesU					GetVertexStride ()	const	{ return _vertexStride; }
 		ND_ EPrimitive				GetTopology ()		const	{ return _topology; }
 		ND_ EIndex					GetIndexType ()		const	{ return _indexType; }
+		ND_ BytesU					GetIndexStride ()	const;
+		ND_ size_t					GetIndexCount ()	const	{ return size_t(ArraySizeOf(_indices) / GetIndexStride()); }
 
 		ND_ Optional<AABB> const&	GetAABB ()			const	{ return _boundingBox; }
 		
@@ -51,6 +58,21 @@ namespace FG
 		ND_ StructView<T>			GetData (const VertexID &id) const;
 	};
 
+	
+
+	template <typename V, typename I>
+	inline IntermMesh::IntermMesh (ArrayView<V> vertices, const VertexAttributesPtr &attribs,
+								   BytesU vertStride, EPrimitive topology,
+								   ArrayView<I> indices, EIndex indexType) :
+		_attribs{ attribs }, _vertexStride{ vertStride },
+		_topology{ topology }, _indexType{ indexType }
+	{
+		auto*	verts	= reinterpret_cast<const uint8_t*>(vertices.data());
+		auto*	indcs	= reinterpret_cast<const uint8_t*>(indices.data());
+
+		_vertices.assign( verts, verts + ArraySizeOf(vertices) );
+		_indices.assign( indcs, indcs + ArraySizeOf(indices) );
+	}
 
 	template <typename T>
 	inline StructView<T>  IntermMesh::GetData (const VertexID &id) const
