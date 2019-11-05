@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/azhirnov/FrameGraph.svg?branch=v0.11-dev)](https://travis-ci.com/azhirnov/FrameGraph)
+[![Build Status](https://api.travis-ci.com/azhirnov/FrameGraph.svg?branch=dev)](https://travis-ci.com/azhirnov/FrameGraph)
 
 # FrameGraph
 

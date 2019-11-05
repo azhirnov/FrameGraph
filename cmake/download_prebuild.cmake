@@ -36,6 +36,7 @@ if (${FG_EXTERNALS_USE_PREBUILD})
 		LOG_DOWNLOAD		1
 		# update
 		PATCH_COMMAND		""
+		UPDATE_COMMAND		git lfs pull
 		UPDATE_DISCONNECTED	1
 		LOG_UPDATE			1
 		# configure
