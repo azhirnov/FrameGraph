@@ -77,6 +77,9 @@ namespace FG
 		mutable std::mutex		_statisticGuard;
 		mutable Statistics		_lastStatistic;
 
+		mutable std::atomic<uint64_t>   _submitingTime {0};
+		mutable std::atomic<uint64_t>   _waitingTime   {0};
+
 
 	// methods
 	public:

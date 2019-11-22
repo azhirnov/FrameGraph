@@ -13,6 +13,7 @@ namespace FG
 	using TempSemaphores_t		= VSubmitted::Semaphores_t;
 	using PendingSwapchains_t	= FixedArray< VSwapchain const*, 16 >;
 	using TempFences_t			= FixedArray< VkFence, 32 >;
+	using TimePoint_t			= std::chrono::high_resolution_clock::time_point;
 
 /*
 =================================================
@@ -710,6 +711,8 @@ namespace FG
 */
 	bool  VFrameGraph::_FlushQueue (EQueueType queueIndex, uint maxIter)
 	{
+		const auto	start_time = TimePoint_t::clock::now();
+
 		uint				qi		= uint(queueIndex);
 		auto&				q		= _queueMap[qi];
 		EQueueUsage			q_mask	= Default;
@@ -757,7 +760,10 @@ namespace FG
 		}
 		
 		if ( pending.empty() )
+		{
+			_submitingTime.fetch_add( (TimePoint_t::clock::now() - start_time).count(), memory_order_relaxed );
 			return false;
+		}
 
 		// add semaphores
 		for (size_t qj = 0; qj < _queueMap.size(); ++qj)
@@ -860,8 +866,11 @@ namespace FG
 
 			if ( is_complete )
 			{
-				EXLOCK( _statisticGuard );
-				submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
+				{
+					EXLOCK( _statisticGuard );
+					submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
+				}
+
 				iter = q.submitted.erase( iter );
 				_submittedPool.Unassign( submitted->GetIndexInPool() );
 			}
@@ -872,6 +881,8 @@ namespace FG
 		q.submitted.push_back( submit );
 		
 		_resourceMngr.OnSubmit();
+		
+		_submitingTime.fetch_add( (TimePoint_t::clock::now() - start_time).count(), memory_order_relaxed );
 		return true;
 	}
 
@@ -882,6 +893,8 @@ namespace FG
 */
 	bool  VFrameGraph::Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout)
 	{
+		const auto	start_time = TimePoint_t::clock::now();
+
 		EXLOCK( _queueGuard );
 
 		TempFences_t	fences;
@@ -918,12 +931,12 @@ namespace FG
 
 		if ( fences.size() )
 		{
-			EXLOCK( _statisticGuard );
-
 			auto  res = _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, timeout.count() );
 
 			if ( res == VK_SUCCESS )
 			{
+				EXLOCK( _statisticGuard );
+
 				// release resources
 				for (auto& cmd : commands)
 				{
@@ -937,7 +950,8 @@ namespace FG
 				CHECK( res == VK_TIMEOUT );
 			}
 		}
-
+		
+		_waitingTime.fetch_add( (TimePoint_t::clock::now() - start_time).count(), memory_order_relaxed );
 		return result;
 	}
 
@@ -948,6 +962,8 @@ namespace FG
 */
 	bool  VFrameGraph::WaitIdle ()
 	{
+		const auto	start_time = TimePoint_t::clock::now();
+
 		{
 			EXLOCK( _queueGuard );
 
@@ -986,6 +1002,8 @@ namespace FG
 		}
 
 		_resourceMngr.RunValidation( 100 );
+
+		_waitingTime.fetch_add( (TimePoint_t::clock::now() - start_time).count(), memory_order_relaxed );
 		return true;
 	}
 	
@@ -1030,6 +1048,8 @@ namespace FG
 		EXLOCK( _statisticGuard );
 
 		result = _lastStatistic;
+		result.renderer.submitingTime   = Nanoseconds{_submitingTime.exchange( 0, memory_order_relaxed )};
+		result.renderer.waitingTime	 = Nanoseconds{_waitingTime.exchange( 0, memory_order_relaxed )};
 		
 		_lastStatistic = Default;
 		return true;

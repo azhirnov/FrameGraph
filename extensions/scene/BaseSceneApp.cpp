@@ -419,7 +419,7 @@ namespace FG
 		IFrameGraph::Statistics		stat;
 		_frameGraph->GetStatistics( OUT stat );
 		_frameStat.gpuTimeSum += stat.renderer.gpuTime;
-		_frameStat.cpuTimeSum += stat.renderer.cpuTime;
+		_frameStat.cpuTimeSum += stat.renderer.cpuTime + stat.renderer.submitingTime + stat.renderer.waitingTime;
 
 		if ( duration > _frameStat.UpdateIntervalMillis )
 		{
