@@ -1,7 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Common.h"
-#include <iostream>
 
 extern void UnitTest_StaticString ();
 extern void UnitTest_FixedArray ();
@@ -49,9 +48,5 @@ int main ()
 	UnitTest_TypeList();
 
 	FG_LOGI( "Tests.STL finished" );
-
-	#ifdef PLATFORM_WINDOWS
-	std::cin.ignore();
-	#endif
 	return 0;
 }

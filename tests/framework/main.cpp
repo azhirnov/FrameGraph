@@ -1,7 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Common.h"
-#include <iostream>
 
 using namespace FGC;
 
@@ -12,7 +11,7 @@ extern void FW_Test3 ();
 
 int main ()
 {
-#if 1
+#if 0
 	// VR
 	FW_Test3();
 	
@@ -25,9 +24,5 @@ int main ()
 #endif
 
 	FG_LOGI( "Tests.Framework finished" );
-
-	#ifdef PLATFORM_WINDOWS
-	std::cin.ignore();
-	#endif
 	return 0;
 }

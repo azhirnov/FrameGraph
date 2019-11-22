@@ -1,7 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "SceneApp.h"
-#include <iostream>
 
 using namespace FG;
 
@@ -22,9 +21,5 @@ int main ()
 	}*/
 
 	FG_LOGI( "Tests.Scene finished" );
-	
-	#ifdef PLATFORM_WINDOWS
-	std::cin.ignore();
-	#endif
 	return 0;
 }

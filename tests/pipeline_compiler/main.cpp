@@ -1,7 +1,6 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "Utils.h"
-#include <iostream>
 
 extern void Test_Shader1 (VPipelineCompiler* compiler);
 extern void Test_Shader2 (VPipelineCompiler* compiler);
@@ -46,7 +45,5 @@ int main ()
 	Test_Shader17( &compiler );
 	
 	FG_LOGI( "Tests.PipelineCompiler finished" );
-	
-	std::cin.ignore();
 	return 0;
 }
