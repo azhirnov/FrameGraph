@@ -69,13 +69,13 @@ namespace FG
 			if ( cfg.vrMode == AppConfig::EVRMode::OpenVR ) {
 				_vrDevice.reset( new OpenVRDevice{});
 			}
-			#elif 0
+			#endif
+
 			if ( cfg.vrMode == AppConfig::EVRMode::Emulator ) {
 				WindowPtr	wnd{ new WindowGLFW{}};
 				CHECK_ERR( wnd->Create( { 1024, 512 }, "emulator" ));
 				_vrDevice.reset( new VRDeviceEmulator{ std::move(wnd) });
 			}
-			#endif
 
 			if ( _vrDevice and not _vrDevice->Create() ) {
 				_vrDevice.reset();
@@ -84,10 +84,11 @@ namespace FG
 
 		// initialize vulkan device
 		{
-			Array<const char*>	inst_ext	{ VulkanDevice::GetRecomendedInstanceExtensions() };
-			Array<const char*>	dev_ext		{ VulkanDevice::GetAllDeviceExtensions() };
-			Array<String>		vr_inst_ext	= _vrDevice ? _vrDevice->GetRequiredInstanceExtensions() : Default;
-			Array<String>		vr_dev_ext	= _vrDevice ? _vrDevice->GetRequiredDeviceExtensions() : Default;
+			ArrayView<const char*>	layers		= _vrDevice ? Default : (cfg.enableDebugLayers ? VulkanDevice::GetRecomendedInstanceLayers() : Default);
+			Array<const char*>		inst_ext	{ VulkanDevice::GetRecomendedInstanceExtensions() };
+			Array<const char*>		dev_ext		{ VulkanDevice::GetAllDeviceExtensions() };
+			Array<String>			vr_inst_ext	= _vrDevice ? _vrDevice->GetRequiredInstanceExtensions() : Default;
+			Array<String>			vr_dev_ext	= _vrDevice ? _vrDevice->GetRequiredDeviceExtensions() : Default;
 
 			for (auto& ext : vr_inst_ext) {
 				inst_ext.push_back( ext.data() );
@@ -97,9 +98,9 @@ namespace FG
 			}
 
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_1,
-									   "",
+									   cfg.deviceName,
 									   {},
-									   VulkanDevice::GetRecomendedInstanceLayers(),
+									   layers,
 									   inst_ext,
 									   dev_ext
 									));

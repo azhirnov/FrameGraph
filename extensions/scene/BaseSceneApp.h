@@ -36,9 +36,11 @@ namespace FG
 		// variables
 			String			windowTitle;
 			uint2			surfaceSize;
-			EVRMode			vrMode		= EVRMode::Disabled;
+			EVRMode			vrMode		        = EVRMode::Disabled;
 			Array<String>	shaderDirectories;
 			String			dbgOutputPath;
+            String          deviceName;
+            bool            enableDebugLayers   = true;
 		};
 
 	// variables
