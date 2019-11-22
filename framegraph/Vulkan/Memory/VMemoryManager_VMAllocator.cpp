@@ -5,10 +5,14 @@
 
 #ifdef FG_ENABLE_VULKAN_MEMORY_ALLOCATOR
 
-#define VMA_USE_STL_CONTAINERS		0
-#define VMA_STATIC_VULKAN_FUNCTIONS	0
-#define VMA_RECORDING_ENABLED		0
-#define VMA_DEDICATED_ALLOCATION	0	// TODO: set 0 to avoid crash on Intel
+#define VMA_USE_STL_CONTAINERS				0
+#define VMA_STATIC_VULKAN_FUNCTIONS			0
+#define VMA_RECORDING_ENABLED				0
+#define VMA_DEDICATED_ALLOCATION			0	// TODO: set 0 to avoid crash on Intel
+#define VMA_DEBUG_INITIALIZE_ALLOCATIONS	0
+#define VMA_DEBUG_ALWAYS_DEDICATED_MEMORY	0
+#define VMA_DEBUG_DETECT_CORRUPTION			0	// TODO: use for debugging ?
+#define VMA_DEBUG_GLOBAL_MUTEX				0	// will be externally synchronized
 
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic push
@@ -375,8 +379,16 @@ namespace FG
 		funcs.vkInvalidateMappedMemoryRanges		= BitCast<PFN_vkInvalidateMappedMemoryRanges>(vkGetDeviceProcAddr( dev, "vkInvalidateMappedMemoryRanges" ));
 
 	#if VMA_DEDICATED_ALLOCATION
-		funcs.vkGetBufferMemoryRequirements2KHR		= BitCast<PFN_vkGetBufferMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetBufferMemoryRequirements2KHR" ));
-		funcs.vkGetImageMemoryRequirements2KHR		= BitCast<PFN_vkGetImageMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetImageMemoryRequirements2KHR" ));
+		if ( _device.GetVkVersion() == EShaderLangFormat::Vulkan_100 )
+		{
+			funcs.vkGetBufferMemoryRequirements2KHR		= BitCast<PFN_vkGetBufferMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetBufferMemoryRequirements2KHR" ));
+			funcs.vkGetImageMemoryRequirements2KHR		= BitCast<PFN_vkGetImageMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetImageMemoryRequirements2KHR" ));
+		}
+		else
+		{
+			funcs.vkGetBufferMemoryRequirements2KHR		= BitCast<PFN_vkGetBufferMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetBufferMemoryRequirements2" ));
+			funcs.vkGetImageMemoryRequirements2KHR		= BitCast<PFN_vkGetImageMemoryRequirements2KHR>(vkGetDeviceProcAddr( dev, "vkGetImageMemoryRequirements2" ));
+		}
 	#endif
 
 		VmaAllocatorCreateInfo	info = {};
