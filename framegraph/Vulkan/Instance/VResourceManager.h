@@ -8,6 +8,7 @@
 #include "stl/Memory/LinearAllocator.h"
 #include "stl/Containers/ChunkedIndexedPool.h"
 #include "stl/Containers/CachedIndexedPool.h"
+#include "stl/ThreadSafe/LfIndexedPool.h"
 #include "VBuffer.h"
 #include "VImage.h"
 #include "VSampler.h"
@@ -75,6 +76,8 @@ namespace FG
 		using DSLayouts_t			= FixedArray<Pair< RawDescriptorSetLayoutID, ResourceBase<VDescriptorSetLayout> *>, FG_MaxDescriptorSets >;
 		
 		using DebugLayoutCache_t	= HashMap< uint, RawDescriptorSetLayoutID >;
+		
+		using StagingBufferfPool_t	= LfIndexedPool< BufferID, uint, 32, 16 >;
 
 
 	// variables
@@ -115,6 +118,11 @@ namespace FG
 		std::atomic<uint>			_submissionCounter;
 
 		DebugLayoutCache_t			_debugDSLayoutsCache;
+
+		struct {
+			StagingBufferfPool_t		write;
+			StagingBufferfPool_t		read;
+		}							_stagingBuf;
 
 		// cached resources validation
 		struct {
@@ -205,6 +213,9 @@ namespace FG
 		void CheckTask (const BuildRayTracingScene &);
 
 		void RunValidation (uint maxIter);
+		
+		bool CreateStagingBuffer (const BufferDesc &desc, bool write, OUT RawBufferID &id, OUT StagingBufferIdx &index);
+		void ReleaseStagingBuffer (StagingBufferIdx index);
 
 
 	private:
@@ -235,6 +246,8 @@ namespace FG
 		
 		template <typename DataT, size_t CS, size_t MC>
 		void  _ReleaseResource (CachedPoolTmpl<DataT,CS,MC> &pool, DataT& data, Index_t index, uint refCount);
+
+		void  _DestroyStagingBuffers ();
 
 
 	// resource pool

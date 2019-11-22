@@ -11,6 +11,9 @@
 
 namespace FG
 {
+	enum class StagingBufferIdx : uint {};
+
+
 
 	//
 	// Command Batch pointer
@@ -110,25 +113,25 @@ namespace FG
 		static constexpr uint	MaxBufferParts	= 3;
 		static constexpr uint	MaxImageParts	= 4;
 
-
 		struct StagingBuffer
 		{
 		// variables
-			BufferID		bufferId;
-			RawMemoryID		memoryId;
-			BytesU			capacity;
-			BytesU			size;
+			RawBufferID			bufferId;
+			RawMemoryID			memoryId;
+			BytesU				capacity;
+			BytesU				size;
+			StagingBufferIdx	index;
 			
-			void *			mappedPtr	= null;
-			BytesU			memOffset;					// can be used to flush memory ranges
-			VkDeviceMemory	mem			= VK_NULL_HANDLE;
-			bool			isCoherent	= false;
+			void *				mappedPtr	= null;
+			BytesU				memOffset;					// can be used to flush memory ranges
+			VkDeviceMemory		mem			= VK_NULL_HANDLE;
+			bool				isCoherent	= false;
 
 		// methods
 			StagingBuffer () {}
 
-			StagingBuffer (BufferID &&buf, RawMemoryID mem, BytesU capacity) :
-				bufferId{std::move(buf)}, memoryId{mem}, capacity{capacity} {}
+			StagingBuffer (StagingBufferIdx idx, RawBufferID buf, RawMemoryID mem, BytesU capacity) :
+				bufferId{std::move(buf)}, memoryId{mem}, capacity{capacity}, index{idx} {}
 
 			ND_ bool	IsFull ()	const	{ return size >= capacity; }
 			ND_ bool	Empty ()	const	{ return size == 0_b; }

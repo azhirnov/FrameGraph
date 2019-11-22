@@ -424,12 +424,12 @@ namespace FG
 			auto&	rm = _frameGraph.GetResourceManager();
 
 			for (auto& sb : _staging.hostToDevice) {
-				rm.ReleaseResource( sb.bufferId.Release() );
+				rm.ReleaseStagingBuffer( sb.index );
 			}
 			_staging.hostToDevice.clear();
 
 			for (auto& sb : _staging.deviceToHost) {
-				rm.ReleaseResource( sb.bufferId.Release() );
+				rm.ReleaseStagingBuffer( sb.index );
 			}
 			_staging.deviceToHost.clear();
 		}
@@ -716,14 +716,16 @@ namespace FG
 			ASSERT( dstMinSize < _staging.hostWritableBufferSize );
 			CHECK_ERR( staging_buffers.size() < staging_buffers.capacity() );
 
-			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _staging.hostWritableBufferSize, _staging.hostWritebleBufferUsage }, 
-															MemoryDesc{ EMemoryType::HostWrite }, "HostWriteBuffer" );
-			CHECK_ERR( buf_id );
+			VResourceManager&	rm = _frameGraph.GetResourceManager();
+			
+			RawBufferID			buf_id;
+			StagingBufferIdx	buf_idx;
+			CHECK_ERR( rm.CreateStagingBuffer( BufferDesc{ _staging.hostWritableBufferSize, _staging.hostWritebleBufferUsage }, true, OUT buf_id, OUT buf_idx ));
 
-			RawMemoryID	mem_id = _frameGraph.GetResourceManager().GetResource( buf_id.Get() )->GetMemoryID();
+			RawMemoryID		mem_id = rm.GetResource( buf_id )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
-			staging_buffers.push_back({ std::move(buf_id), mem_id, _staging.hostWritableBufferSize });
+			staging_buffers.push_back({ buf_idx, buf_id, mem_id, _staging.hostWritableBufferSize });
 
 			suitable = &staging_buffers.back();
 			CHECK( _MapMemory( *suitable ));
@@ -732,7 +734,7 @@ namespace FG
 		// write data to buffer
 		dstOffset	= AlignToLarger( suitable->size, offsetAlign );
 		outSize		= Min( AlignToSmaller( suitable->capacity - dstOffset, blockAlign ), srcRequiredSize );
-		dstBuffer	= suitable->bufferId.Get();
+		dstBuffer	= suitable->bufferId;
 		mappedPtr	= suitable->mappedPtr + dstOffset;
 
 		suitable->size = dstOffset + outSize;
@@ -787,17 +789,19 @@ namespace FG
 		{
 			ASSERT( dstMinSize < _staging.hostReadableBufferSize );
 			CHECK_ERR( staging_buffers.size() < staging_buffers.capacity() );
-
-			BufferID	buf_id = _frameGraph.CreateBuffer( BufferDesc{ _staging.hostReadableBufferSize, EBufferUsage::TransferDst },
-															MemoryDesc{ EMemoryType::HostRead }, "HostReadBuffer" );
-			CHECK_ERR( buf_id );
 			
-			RawMemoryID	mem_id = _frameGraph.GetResourceManager().GetResource( buf_id.Get() )->GetMemoryID();
+			VResourceManager&	rm = _frameGraph.GetResourceManager();
+			
+			RawBufferID			buf_id;
+			StagingBufferIdx	buf_idx;
+			CHECK_ERR( rm.CreateStagingBuffer( BufferDesc{ _staging.hostReadableBufferSize, EBufferUsage::TransferDst }, false, OUT buf_id, OUT buf_idx ));
+			
+			RawMemoryID		mem_id = rm.GetResource( buf_id )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
 			// TODO: make immutable because read after write happens after waiting for fences and it implicitly make changes visible to the host
 
-			staging_buffers.push_back({ std::move(buf_id), mem_id, _staging.hostReadableBufferSize });
+			staging_buffers.push_back({ buf_idx, buf_id, mem_id, _staging.hostReadableBufferSize });
 
 			suitable = &staging_buffers.back();
 			CHECK( _MapMemory( *suitable ));
@@ -807,7 +811,7 @@ namespace FG
 		range.buffer	= suitable;
 		range.offset	= AlignToLarger( suitable->size, offsetAlign );
 		range.size		= Min( AlignToSmaller( suitable->capacity - range.offset, blockAlign ), srcRequiredSize );
-		dstBuffer		= suitable->bufferId.Get();
+		dstBuffer		= suitable->bufferId;
 
 		suitable->size = range.offset + range.size;
 		return true;

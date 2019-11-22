@@ -95,6 +95,7 @@ namespace FG
 */
 	void VResourceManager::Deinitialize ()
 	{
+		_DestroyStagingBuffers();
 		_debugDSLayoutsCache.clear();
 
 		_DestroyResourceCache( INOUT _samplerCache );
@@ -1313,6 +1314,77 @@ namespace FG
 		ValidateResources( _validation.createdPplnResources, _validation.lastCheckedPipelineResource, _pplnResourcesCache );
 		ValidateResources( _validation.createdFramebuffers, _validation.lastCheckedFramebuffer, _framebufferCache );
 	}
+	
+/*
+=================================================
+	CreateStagingBuffer
+=================================================
+*/
+	bool VResourceManager::CreateStagingBuffer (const BufferDesc &desc, bool write, OUT RawBufferID &outBufferId, OUT StagingBufferIdx &outIndex)
+	{
+		const auto	ctor = [this, write, &desc] (BufferID *ptr, uint)
+		{
+			RawBufferID	id = CreateBuffer( desc, MemoryDesc{ write ? EMemoryType::HostWrite : EMemoryType::HostRead },
+											EQueueFamilyMask::Unknown, write ? "HostWriteBuffer" : "HostReadBuffer" );
+			CHECK( id );
+			PlacementNew< BufferID >( ptr, id );
+		};
 
+		auto&	pool	= write ? _stagingBuf.write : _stagingBuf.read;
+		uint	index;
+
+		CHECK_ERR( pool.Assign( OUT index, ctor ));
+		
+		outBufferId = pool[ index ];
+
+		if ( write )
+			index |= (1u << 30);
+		else
+			index |= (2u << 30);
+
+		outIndex = StagingBufferIdx(index);
+		return true;
+	}
+	
+/*
+=================================================
+	ReleaseStagingBuffer
+=================================================
+*/
+	void VResourceManager::ReleaseStagingBuffer (StagingBufferIdx index)
+	{
+		const uint	idx = uint(index) & ~(3u << 30);
+
+		switch ( uint(index) >> 30 )
+		{
+			case 1 :
+				_stagingBuf.write.Unassign( idx );
+				break;
+
+			case 2 :
+				_stagingBuf.read.Unassign( idx );
+				break;
+
+			default :
+				CHECK( !"something goes wrong!" );
+				break;
+		}
+	}
+	
+/*
+=================================================
+	_DestroyStagingBuffers
+=================================================
+*/
+	void VResourceManager::_DestroyStagingBuffers ()
+	{
+		const auto	dtor = [this] (BufferID &id)
+		{
+			ReleaseResource( id.Release() );
+		};
+
+		_stagingBuf.write.Release( dtor );
+		_stagingBuf.read.Release( dtor );
+	}
 
 }	// FG
