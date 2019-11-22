@@ -23,11 +23,7 @@ if (FG_CI_BUILD)
 
 	enable_testing()
 	add_test( NAME "Tests.STL" COMMAND "Tests.STL" )
-	
-	if (NOT UNIX)
-		add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
-	endif ()
-	
+	add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
 	#add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
 
 endif ()

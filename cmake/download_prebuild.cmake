@@ -8,7 +8,7 @@ if (${FG_EXTERNALS_USE_PREBUILD})
 	# set tag
 	set( FGEXTERNAL_TAG "master" )
 
-	if (${COMPILER_MSVC} AND ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+	if (MSVC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 		if (NOT ${CMAKE_GENERATOR_TOOLSET} STREQUAL "v141")
 			message( FATAL_ERROR "Toolset ${CMAKE_GENERATOR_TOOLSET} is not supported, required v141 toolset" )
 		endif ()

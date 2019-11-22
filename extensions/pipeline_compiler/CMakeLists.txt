@@ -1,0 +1,12 @@
+cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
+
+if (${FG_ENABLE_GLSLANG})
+	file( GLOB_RECURSE SOURCES "*.*" )
+	add_library( "PipelineCompiler" STATIC ${SOURCES} )
+	source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} )
+	target_include_directories( "PipelineCompiler" PUBLIC "." )
+	set_property( TARGET "PipelineCompiler" PROPERTY FOLDER "Extensions" )
+	target_link_libraries( "PipelineCompiler" "FrameGraph" )
+	target_link_libraries( "PipelineCompiler" "GLSLTrace" )
+	install( TARGETS "PipelineCompiler" ARCHIVE DESTINATION "lib" )
+endif ()

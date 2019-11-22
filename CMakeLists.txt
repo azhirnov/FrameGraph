@@ -1,4 +1,3 @@
-# auto generated file
 cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 message( STATUS "==========================================================================\n" )
@@ -9,9 +8,6 @@ set_property( GLOBAL PROPERTY USE_FOLDERS ON )
 message( STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSION})" )
 message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" )
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
-
-
-include( "cmake/ci_build.cmake" )
 
 set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
@@ -38,13 +34,7 @@ set( FG_ENABLE_DEVIL ON CACHE BOOL "use DevIL (optional, required for Scene exte
 set( FG_ENABLE_FREEIMAGE OFF CACHE BOOL "use FreeImage (optional, GPL license)" )
 
 
-if (${FG_ENABLE_SIMPLE_COMPILER_OPTIONS})
-	include( "cmake/compilers_minimal.cmake" )
-else()
-	include( "cmake/compilers.cmake" )
-endif()
 
-include( "cmake/compiler_tests.cmake" )
 
 set( CMAKE_DEBUG_POSTFIX "d" )
 set( CMAKE_RELEASE_POSTFIX "" )
@@ -54,13 +44,28 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 
-add_subdirectory( "external" "external" )
+add_subdirectory( "external" )
+include( "cmake/project_template.cmake" )
+add_subdirectory( "stl" )
+add_subdirectory( "extensions/vulkan_loader" )
+add_subdirectory( "extensions/framework" )
+add_subdirectory( "framegraph" )
+add_subdirectory( "extensions/glsl_trace" )
+add_subdirectory( "extensions/pipeline_compiler" )
+add_subdirectory( "extensions/scene" )
+add_subdirectory( "extensions/ui" )
+add_subdirectory( "extensions/graphviz" )
 
-add_subdirectory( "stl" "stl" )
-
-add_subdirectory( "framegraph" "framegraph" )
-
-add_subdirectory( "extensions" "extensions" )
+if (${FG_ENABLE_TESTS})
+	enable_testing()
+	add_subdirectory( "tests/stl" )
+	add_subdirectory( "tests/framegraph" )
+	add_subdirectory( "tests/framework" )
+	add_subdirectory( "tests/glsl_trace" )
+	add_subdirectory( "tests/pipeline_compiler" )
+	add_subdirectory( "tests/scene" )
+	add_subdirectory( "tests/ui" )
+endif ()
 
 message( STATUS "project 'FrameGraph' generation ended" )
 message( STATUS "\n==========================================================================" )
