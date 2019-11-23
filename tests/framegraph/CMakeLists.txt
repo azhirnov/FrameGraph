@@ -37,4 +37,6 @@ if (${FG_ENABLE_LODEPNG})
 	target_link_libraries( "Tests.FrameGraph" "lodepng-lib" )
 endif()
 
-add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
+if (NOT FG_CI_BUILD)
+	add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
+endif ()

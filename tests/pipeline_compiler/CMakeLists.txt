@@ -10,5 +10,6 @@ if (${FG_ENABLE_GLSLANG})
 	source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} )
 	set_property( TARGET "Tests.PipelineCompiler" PROPERTY FOLDER "Tests" )
 	target_link_libraries( "Tests.PipelineCompiler" "PipelineCompiler" )
+	
 	add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
 endif ()
