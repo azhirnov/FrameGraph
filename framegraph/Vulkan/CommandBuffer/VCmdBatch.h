@@ -262,10 +262,11 @@ namespace FG
 		VFrameGraph &						_frameGraph;
 
 		const uint							_indexInPool;
-		EQueueType							_queueType;
+		EQueueType							_queueType			= Default;
 
 		Dependencies_t						_dependencies;
 		bool								_submitImmediately	= false;
+		bool								_supportsQuery		= false;
 
 		// command batch data
 		struct {

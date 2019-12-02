@@ -62,6 +62,11 @@ namespace FG
 
 		_queueType = type;
 
+		if ( auto queue = _frameGraph.FindQueue( type ))
+		{
+			_supportsQuery = EnumAny( queue->familyFlags, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
+		}
+
 		_state.store( EState::Initial, memory_order_relaxed );
 		
 		for (auto& dep : dependsOn)
@@ -205,10 +210,14 @@ namespace FG
 		EXLOCK( _drCheck );
 		CHECK( GetState() == EState::Recording );
 
-		VDevice const&	dev		= _frameGraph.GetDevice();
-		VkQueryPool		pool	= _frameGraph.GetQueryPool();
+		if ( _supportsQuery )
+		{
+			VDevice const&	dev		= _frameGraph.GetDevice();
+			VkQueryPool		pool	= _frameGraph.GetQueryPool();
 		
-		dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, pool, _indexInPool*2 );
+			dev.vkCmdResetQueryPool( cmd, pool, _indexInPool*2, 2 );
+			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, pool, _indexInPool*2 );
+		}
 
 		_BeginShaderDebugger( cmd );
 	}
@@ -224,11 +233,14 @@ namespace FG
 		CHECK( GetState() == EState::Recording );
 		
 		_EndShaderDebugger( cmd );
+		
+		if ( _supportsQuery )
+		{
+			VDevice const&	dev		= _frameGraph.GetDevice();
+			VkQueryPool		pool	= _frameGraph.GetQueryPool();
 
-		VDevice const&	dev		= _frameGraph.GetDevice();
-		VkQueryPool		pool	= _frameGraph.GetQueryPool();
-
-		dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, pool, _indexInPool*2 + 1 );
+			dev.vkCmdWriteTimestamp( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, pool, _indexInPool*2 + 1 );
+		}
 	}
 
 /*
@@ -326,6 +338,7 @@ namespace FG
 		_debugGraph	= Default;
 		
 		// read frame time
+		if ( _supportsQuery )
 		{
 			VDevice const&	dev		= _frameGraph.GetDevice();
 			VkQueryPool		pool	= _frameGraph.GetQueryPool();
