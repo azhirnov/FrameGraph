@@ -58,7 +58,6 @@ namespace FGC
 
 		explicit operator StringView ()	const	{ return StringView{ _data, _length }; }
 
-		ND_ T const*	data ()			const	{ return _data; }
 		ND_ T const*	c_str ()		const	{ return _data; }
 		ND_ size_t		size ()			const	{ return _length; }
 		ND_ size_t		length ()		const	{ return _length; }

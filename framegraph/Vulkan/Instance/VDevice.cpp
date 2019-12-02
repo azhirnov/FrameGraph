@@ -256,7 +256,7 @@ namespace FG
 			info.sType			= VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 			info.objectType		= type;
 			info.objectHandle	= id;
-			info.pObjectName	= name.data();
+			info.pObjectName	= name.c_str();
 
 			VK_CALL( vkSetDebugUtilsObjectNameEXT( _vkDevice, &info ));
 			return true;

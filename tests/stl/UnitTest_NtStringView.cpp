@@ -7,7 +7,7 @@
 static void NtStringView_Test1 ()
 {
 	const auto	Func = [] (NtStringView str, const char* expected) -> bool {
-		return strcmp( str.data(), expected ) == 0;
+		return strcmp( str.c_str(), expected ) == 0;
 	};
 
 	TEST( Func( "test", "test" ));
