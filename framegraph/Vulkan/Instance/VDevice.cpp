@@ -188,7 +188,7 @@ namespace FG
 	_LoadInstanceExtensions
 =================================================
 */
-	bool VDevice::_LoadInstanceExtensions () const
+	bool VDevice::_LoadInstanceExtensions ()
 	{
 		if ( not _instanceExtensions.empty() )
 			return true;
@@ -215,7 +215,7 @@ namespace FG
 	_LoadDeviceExtensions
 =================================================
 */
-	bool VDevice::_LoadDeviceExtensions () const
+	bool VDevice::_LoadDeviceExtensions ()
 	{
 		CHECK_ERR( _vkPhysicalDevice );
 

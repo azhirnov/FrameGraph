@@ -87,22 +87,6 @@ namespace FG
 
 
 	//
-	// Vulkan VR Emulator Swapchain Create Info
-	//
-	/*struct VulkanVREmulatorSwapchainCreateInfo
-	{
-	// types
-		using RequiredColorFormats_t = FixedArray< FormatVk_t, 4 >;
-
-	// variables
-		SurfaceVk_t					surface			= {};
-		uint2						eyeImageSize	= { 1024, 1024 };
-		RequiredColorFormats_t		formats;		// from highest priority to lowest
-	};*/
-
-
-
-	//
 	// Vulkan Image Description
 	//
 	struct VulkanImageDesc

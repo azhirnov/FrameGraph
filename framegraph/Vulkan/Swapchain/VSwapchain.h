@@ -20,7 +20,7 @@ namespace FG
 
 
 	// variables
-	protected:
+	private:
 		VDeviceQueueInfoPtr				_presentQueue;
 		SwapchainImages_t				_imageIDs;
 		uint2							_surfaceSize;

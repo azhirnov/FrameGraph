@@ -80,8 +80,8 @@ namespace FG
 			VkPhysicalDeviceRayTracingPropertiesNV			rayTracingProperties;
 		}										_deviceInfo;
 
-		mutable ExtensionSet_t					_instanceExtensions;
-		mutable ExtensionSet_t					_deviceExtensions;
+		ExtensionSet_t							_instanceExtensions;
+		ExtensionSet_t							_deviceExtensions;
 		
 		VulkanDeviceFnTable						_deviceFnTable;
 
@@ -126,8 +126,8 @@ namespace FG
 
 
 	private:
-		bool _LoadInstanceExtensions () const;
-		bool _LoadDeviceExtensions () const;
+		bool _LoadInstanceExtensions ();
+		bool _LoadDeviceExtensions ();
 	};
 
 
