@@ -88,7 +88,7 @@ namespace FGC
 		VulkanDevice ();
 		~VulkanDevice ();
 		
-		bool Create (UniquePtr<IVulkanSurface> &&surf,
+		bool Create (UniquePtr<IVulkanSurface>	surf,
 					 NtStringView				applicationName,
 					 NtStringView				engineName,
 					 uint						version				= VK_API_VERSION_1_1,
@@ -108,7 +108,7 @@ namespace FGC
 					 ArrayView<const char*>		deviceExtensions	= GetRecomendedDeviceExtensions());
 
 		bool Create (VkInstance					instance,
-					 UniquePtr<IVulkanSurface> &&surf,
+					 UniquePtr<IVulkanSurface>	surf,
 					 StringView					deviceName			= Default,
 					 ArrayView<QueueCreateInfo>	queues				= Default,
 					 ArrayView<const char*>		deviceExtensions	= GetRecomendedDeviceExtensions());

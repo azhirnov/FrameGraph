@@ -227,7 +227,7 @@ namespace FGC
 	Create
 =================================================
 */
-	bool VulkanDevice::Create (UniquePtr<IVulkanSurface>&&	surface,
+	bool VulkanDevice::Create (UniquePtr<IVulkanSurface>	surface,
 							   NtStringView					appName,
 							   NtStringView					engineName,
 							   const uint					version,
@@ -283,7 +283,7 @@ namespace FGC
 =================================================
 */
 	bool VulkanDevice::Create (VkInstance					instance,
-							   UniquePtr<IVulkanSurface>&&	surface,
+							   UniquePtr<IVulkanSurface>	surface,
 							   StringView					deviceName,
 							   ArrayView<QueueCreateInfo>	queues,
 							   ArrayView<const char*>		deviceExtensions)
@@ -341,9 +341,9 @@ namespace FGC
 		VkApplicationInfo		app_info = {};
 		app_info.sType				= VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		app_info.apiVersion			= version;
-		app_info.pApplicationName	= appName.data();
+		app_info.pApplicationName	= appName.c_str();
 		app_info.applicationVersion	= 0;
-		app_info.pEngineName		= engineName.data();
+		app_info.pEngineName		= engineName.c_str();
 		app_info.engineVersion		= 0;
 		
 		VkInstanceCreateInfo			instance_create_info = {};

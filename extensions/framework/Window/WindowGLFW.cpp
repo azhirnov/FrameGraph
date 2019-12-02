@@ -67,7 +67,7 @@ namespace {
 
 		_window = glfwCreateWindow( int(size.x),
 									int(size.y),
-									title.data(),
+									title.c_str(),
 									null,
 									null );
 		CHECK_ERR( _window );
@@ -321,7 +321,7 @@ namespace {
 	{
 		CHECK_ERR( _window, void() );
 
-		glfwSetWindowTitle( _window, value.data() );
+		glfwSetWindowTitle( _window, value.c_str() );
 	}
 	
 /*

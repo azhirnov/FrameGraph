@@ -240,7 +240,7 @@ namespace FG
 		ShaderIncluder	includer	{_directories};
 		GLSLangResult	glslang_data;
 
-		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.data()}, INOUT includer, OUT glslang_data, INOUT log ));
+		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.c_str()}, INOUT includer, OUT glslang_data, INOUT log ));
 
 		Array<uint>		spirv;
 		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
@@ -271,7 +271,7 @@ namespace FG
 				DebugUtilsPtr	debug_utils	{new DebugUtils{ InPlaceIndex<ShaderTrace> }};
 				ShaderTrace&	trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
 
-				trace.SetSource( source.data(), source.length() );
+				trace.SetSource( source.c_str(), source.length() );
 
 				for (auto& file : includer.GetIncludedFiles()) {
 					trace.IncludeSource( file.second->headerName.data(), file.second->GetSource().data(), file.second->GetSource().length() );
@@ -432,7 +432,7 @@ namespace FG
 
 		shader.reset( new TShader( stage ));
 		shader->setStrings( source.data(), int(source.size()) );
-		shader->setEntryPoint( entry.data() );
+		shader->setEntryPoint( entry.c_str() );
 		shader->setEnvInput( sh_source, stage, client, version );
 		shader->setEnvClient( client, client_version );
 		shader->setEnvTarget( target, target_version );

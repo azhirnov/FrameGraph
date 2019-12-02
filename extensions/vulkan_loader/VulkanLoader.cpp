@@ -71,7 +71,7 @@ namespace {
 
 #	ifdef PLATFORM_WINDOWS
 		if ( not libName.empty() )
-			lib->module = ::LoadLibraryA( libName.data() );
+			lib->module = ::LoadLibraryA( libName.c_str() );
 
 		if ( lib->module == null )
 			lib->module = ::LoadLibraryA( "vulkan-1.dll" );

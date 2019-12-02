@@ -506,7 +506,7 @@ namespace FGC
 			info.sType			= VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 			info.objectType		= type;
 			info.objectHandle	= id;
-			info.pObjectName	= name.data();
+			info.pObjectName	= name.c_str();
 
 			VK_CALL( vkSetDebugUtilsObjectNameEXT( GetVkDevice(), &info ));
 		}
@@ -517,7 +517,7 @@ namespace FGC
 			info.sType			= VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
 			info.objectType		= VkDebugReportObjectTypeEXT(type);
 			info.object			= id;
-			info.pObjectName	= name.data();
+			info.pObjectName	= name.c_str();
 
 			VK_CALL( vkDebugMarkerSetObjectNameEXT( GetVkDevice(), &info ));
 		}

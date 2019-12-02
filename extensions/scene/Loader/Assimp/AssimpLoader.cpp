@@ -542,7 +542,7 @@ namespace {
 		_importerPtr->SetPropertyInteger( AI_CONFIG_PP_SLM_TRIANGLE_LIMIT, config.maxTrianglesPerMesh );
 		_importerPtr->SetPropertyInteger( AI_CONFIG_PP_SLM_VERTEX_LIMIT, config.maxVerticesPerMesh );
 
-		const aiScene *	scene	= _importerPtr->ReadFile( filename.data(), sceneLoadFlags );
+		const aiScene *	scene	= _importerPtr->ReadFile( filename.c_str(), sceneLoadFlags );
 		const char*		errStr	= _importerPtr->GetErrorString();
 		CHECK_ERR( scene );
 		FG_UNUSED( errStr );
