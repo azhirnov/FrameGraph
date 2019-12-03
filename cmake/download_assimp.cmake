@@ -45,8 +45,6 @@ elseif (${FG_ENABLE_ASSIMP})
 		GIT_REPOSITORY		${FG_ASSIMP_REPOSITORY}
 		GIT_TAG				${ASSIMP_TAG}
 		GIT_PROGRESS		1
-		EXCLUDE_FROM_ALL	1
-		LOG_DOWNLOAD		1
 		# update
 		PATCH_COMMAND		${CMAKE_COMMAND} -E make_directory "${FG_EXTERNAL_ASSIMP_PATH}/cmake-ext"
 					COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_FOLDER}/assimp_CMakeLists.txt" "${FG_EXTERNAL_ASSIMP_PATH}/cmake-ext/CMakeLists.txt"

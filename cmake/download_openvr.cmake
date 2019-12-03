@@ -48,9 +48,16 @@ elseif (${FG_ENABLE_OPENVR})
 		else ()
 			set( FG_OPENVR_PLATFORM_NAME "win32" )
 		endif ()
-
+		
 	else ()
-		message( FATAL_ERROR "OpenVR does not supporte current platform ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION}" )
+		message( FATAL_ERROR "OpenVR does not support current platform ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION}" )
+	endif ()
+	
+	# select version
+	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+		set( OPENVR_TAG "v1.8.19" )
+	else ()
+		set( OPENVR_TAG "master" )
 	endif ()
 	
 	set( FG_OPENVR_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/OpenVR" )
@@ -59,13 +66,12 @@ elseif (${FG_ENABLE_OPENVR})
 
 	ExternalProject_Add( "External.OpenVR"
 		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
+		LOG_OUTPUT_ON_FAILURE 1
 		# download
 		GIT_REPOSITORY		${FG_OPENVR_REPOSITORY}
 		SOURCE_DIR			"${FG_EXTERNAL_OPENVR_PATH}"
-		GIT_TAG				master
+		GIT_TAG				${OPENVR_TAG}
 		GIT_PROGRESS		1
-		EXCLUDE_FROM_ALL	1
-		LOG_DOWNLOAD		1
 		# update
 		PATCH_COMMAND		""
 		UPDATE_DISCONNECTED	1

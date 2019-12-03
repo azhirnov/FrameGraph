@@ -28,12 +28,11 @@ if (${FG_EXTERNALS_USE_PREBUILD})
 	endif ()
 
 	ExternalProject_Add( "FG.External"
+		LOG_OUTPUT_ON_FAILURE 1
 		# download
 		GIT_REPOSITORY		"https://github.com/azhirnov/FrameGraph-External.git"
 		GIT_TAG				${FGEXTERNAL_TAG}
 		GIT_PROGRESS		1
-		EXCLUDE_FROM_ALL	1
-		LOG_DOWNLOAD		1
 		# update
 		PATCH_COMMAND		""
 		UPDATE_COMMAND		git lfs pull

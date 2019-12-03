@@ -22,8 +22,5 @@ if (FG_CI_BUILD)
 	endif ()
 
 	enable_testing()
-	add_test( NAME "Tests.STL" COMMAND "Tests.STL" )
-	add_test( NAME "Tests.PipelineCompiler" COMMAND "Tests.PipelineCompiler" )
-	#add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
 
 endif ()

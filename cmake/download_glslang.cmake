@@ -72,12 +72,11 @@ elseif (${FG_ENABLE_GLSLANG})
 	endif ()
 
 	ExternalProject_Add( "External.glslang"
+		LOG_OUTPUT_ON_FAILURE 1
 		# download
 		GIT_REPOSITORY		${FG_GLSLANG_REPOSITORY}
 		GIT_TAG				${GLSLANG_TAG}
 		GIT_PROGRESS		1
-		EXCLUDE_FROM_ALL	1
-		LOG_DOWNLOAD		1
 		# update
 		PATCH_COMMAND		""
 		UPDATE_DISCONNECTED	1
@@ -93,13 +92,12 @@ elseif (${FG_ENABLE_GLSLANG})
 	)
 	
 	ExternalProject_Add( "External.SPIRV-Tools"
+		LOG_OUTPUT_ON_FAILURE 1
 		DEPENDS				"External.glslang"
 		# download
 		GIT_REPOSITORY		${FG_SPIRVTOOLS_REPOSITORY}
 		GIT_TAG				${SPIRV_TOOLS_TAG}
 		GIT_PROGRESS		1
-		EXCLUDE_FROM_ALL	1
-		LOG_DOWNLOAD		1
 		# update
 		PATCH_COMMAND		""
 		UPDATE_DISCONNECTED	1
@@ -115,14 +113,13 @@ elseif (${FG_ENABLE_GLSLANG})
 	)
 	
 	ExternalProject_Add( "External.SPIRV-Headers"
+		LOG_OUTPUT_ON_FAILURE 1
 		DEPENDS				"External.glslang"
 							"External.SPIRV-Tools"
 		# download
 		GIT_REPOSITORY		${FG_SPIRVHEADERS_REPOSITORY}
 		GIT_TAG				${SPIRV_HEADERS_TAG}
 		GIT_PROGRESS		1
-		EXCLUDE_FROM_ALL	1
-		LOG_DOWNLOAD		1
 		# update
 		PATCH_COMMAND		""
 		UPDATE_DISCONNECTED	1
@@ -141,10 +138,10 @@ elseif (${FG_ENABLE_GLSLANG})
 
 	ExternalProject_Add( "External.glslang-main"
 		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
+		LOG_OUTPUT_ON_FAILURE 1
 		DEPENDS				"External.glslang"
 							"External.SPIRV-Tools"
 							"External.SPIRV-Headers"
-		EXCLUDE_FROM_ALL	1
 		# configure
 		SOURCE_DIR			"${FG_EXTERNAL_GLSLANG_PATH}"
 		CMAKE_GENERATOR		"${CMAKE_GENERATOR}"

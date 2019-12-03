@@ -58,6 +58,7 @@ if (PROJECTS_SHARED_CXX_FLAGS_PROFILE)
 endif()
 
 set_target_properties( "ProjectTemplate" PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES )
+target_compile_features( "ProjectTemplate" PUBLIC cxx_std_17 )
 
 if (FG_CI_BUILD)
 	target_compile_definitions( "ProjectTemplate" PUBLIC "FG_CI_BUILD" )

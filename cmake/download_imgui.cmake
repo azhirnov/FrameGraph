@@ -31,13 +31,12 @@ elseif (${FG_ENABLE_IMGUI})
 
 	ExternalProject_Add( "External.imgui"
 		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
+		LOG_OUTPUT_ON_FAILURE 1
 		# download
 		DOWNLOAD_DIR		"${FG_EXTERNAL_IMGUI_PATH}"
 		GIT_REPOSITORY		${FG_IMGUI_REPOSITORY}
 		GIT_TAG				master
 		GIT_PROGRESS		1
-		EXCLUDE_FROM_ALL	1
-		LOG_DOWNLOAD		1
 		# update
 		PATCH_COMMAND		${CMAKE_COMMAND} -E copy
 							${CMAKE_FOLDER}/imgui_CMakeLists.txt
