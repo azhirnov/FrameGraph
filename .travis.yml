@@ -3,6 +3,7 @@ matrix:
   include:
     # Linux GCC x64
     - os: linux
+      name: linux 64
       dist: trusty
       compiler: gcc
       addons:
@@ -28,6 +29,7 @@ matrix:
      
     # Windows MSVC x86
     - os: windows
+      name: win32
       before_install:
         - choco install python2
         - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
@@ -40,6 +42,7 @@ matrix:
     
     # Windows MSVC x64
     - os: windows
+      name: win64
       before_install:
         - choco install python2
         - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"

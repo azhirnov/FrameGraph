@@ -44,6 +44,7 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 
+include( "cmake/ci_build.cmake" )
 add_subdirectory( "external" )
 include( "cmake/project_template.cmake" )
 add_subdirectory( "stl" )

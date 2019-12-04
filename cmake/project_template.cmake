@@ -11,7 +11,6 @@ else()
 endif()
 
 include( "${CMAKE_FOLDER}/compiler_tests.cmake" )
-include( "${CMAKE_FOLDER}/ci_build.cmake" )
 
 #----------------------------------------------------------
 
