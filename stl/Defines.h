@@ -287,9 +287,12 @@
 #	define END_ENUM_CHECKS() \
 		__pragma (warning (pop)) \
 
-#elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
-#	define BEGIN_ENUM_CHECKS()		// TODO
-#	define END_ENUM_CHECKS()	// TODO
+#elif defined(COMPILER_CLANG)
+#	define BEGIN_ENUM_CHECKS() \
+		 _Pragma( "clang diagnostic error \"-Wswitch\"" )
+
+#	define END_ENUM_CHECKS() \
+		 _Pragma( "clang diagnostic ignored \"-Wswitch\"" )
 
 #else
 #	define BEGIN_ENUM_CHECKS()

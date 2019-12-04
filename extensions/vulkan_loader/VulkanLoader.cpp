@@ -96,7 +96,7 @@ namespace {
 
 #	else
 		if ( not libName.empty() )
-			lib->module = ::dlopen( libName.data(), RTLD_NOW | RTLD_LOCAL );
+			lib->module = ::dlopen( libName.c_str(), RTLD_NOW | RTLD_LOCAL );
 
 		if ( lib->module == null )
 			lib->module = ::dlopen( "libvulkan.so", RTLD_NOW | RTLD_LOCAL );

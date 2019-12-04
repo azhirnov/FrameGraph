@@ -4,7 +4,6 @@ if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_ANGELSCRIPT})
 	add_library( "AngelScript-lib" INTERFACE )
 	target_include_directories( "AngelScript-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/angelscript/include" )
 	target_compile_definitions( "AngelScript-lib" INTERFACE "FG_ENABLE_ANGELSCRIPT" )
-	add_dependencies( "AngelScript-lib" "FG.External" )
 	set_property( TARGET "AngelScript-lib" PROPERTY INTERFACE_LINK_LIBRARIES
 		"${FG_EXTERNAL_PREBUILD_PATH}/angelscript/lib/${CMAKE_STATIC_LIBRARY_PREFIX}angelscript${CMAKE_STATIC_LIBRARY_SUFFIX}"
 		"${FG_EXTERNAL_PREBUILD_PATH}/angelscript/lib/${CMAKE_STATIC_LIBRARY_PREFIX}angelscript_stdstring${CMAKE_STATIC_LIBRARY_SUFFIX}"

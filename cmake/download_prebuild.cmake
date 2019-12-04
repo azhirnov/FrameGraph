@@ -27,27 +27,24 @@ if (${FG_EXTERNALS_USE_PREBUILD})
 		message( STATUS "prebuild found in \"${FG_EXTERNAL_PREBUILD_PATH}\"" )
 	endif ()
 
-	ExternalProject_Add( "FG.External"
-		LOG_OUTPUT_ON_FAILURE 1
-		# download
-		GIT_REPOSITORY		"https://github.com/azhirnov/FrameGraph-External.git"
-		GIT_TAG				${FGEXTERNAL_TAG}
-		GIT_PROGRESS		1
-		# update
-		PATCH_COMMAND		""
-		UPDATE_COMMAND		git lfs pull
-		UPDATE_DISCONNECTED	1
-		LOG_UPDATE			1
-		# configure
-		SOURCE_DIR			"${FG_EXTERNAL_PREBUILD_PATH}"
-		CONFIGURE_COMMAND	""
-		# build
-		BINARY_DIR			""
-		BUILD_COMMAND		""
-		INSTALL_COMMAND		""
-		TEST_COMMAND		""
-	)
 	
-	set_property( TARGET "FG.External" PROPERTY FOLDER "External" )
+	set( EXTERNAL_REPOSITORY "https://github.com/azhirnov/FrameGraph-External.git" )
+	
+	if (EXISTS "${FG_EXTERNAL_PREBUILD_PATH}")
+		execute_process(
+			COMMAND git checkout "${FGEXTERNAL_TAG}"
+			WORKING_DIRECTORY "${FG_EXTERNAL_PREBUILD_PATH}"
+		)
+	else ()
+		execute_process(
+			COMMAND git clone "${EXTERNAL_REPOSITORY}" "prebuild/${FGEXTERNAL_TAG}" --branch "${FGEXTERNAL_TAG}"
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+	endif ()
+
+	execute_process(
+		COMMAND git lfs pull
+		WORKING_DIRECTORY "${FG_EXTERNAL_PREBUILD_PATH}"
+	)
 
 endif ()

@@ -4,7 +4,6 @@ if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_ASSIMP})
 	add_library( "Assimp-lib" INTERFACE )
 	target_include_directories( "Assimp-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/Assimp/include" )
 	target_compile_definitions( "Assimp-lib" INTERFACE "FG_ENABLE_ASSIMP" )
-	add_dependencies( "Assimp-lib" "FG.External" )
 	set_property( TARGET "Assimp-lib" PROPERTY INTERFACE_LINK_LIBRARIES 
 		"${FG_EXTERNAL_PREBUILD_PATH}/Assimp/lib/${CMAKE_STATIC_LIBRARY_PREFIX}assimp${CMAKE_STATIC_LIBRARY_SUFFIX}"
 		"${FG_EXTERNAL_PREBUILD_PATH}/Assimp/lib/${CMAKE_STATIC_LIBRARY_PREFIX}IrrXML${CMAKE_STATIC_LIBRARY_SUFFIX}"

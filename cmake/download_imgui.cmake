@@ -4,7 +4,6 @@ if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_IMGUI})
 	add_library( "imgui-lib" INTERFACE )
 	target_include_directories( "imgui-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/imgui/include" )
 	target_compile_definitions( "imgui-lib" INTERFACE "FG_ENABLE_IMGUI" )
-	add_dependencies( "imgui-lib" "FG.External" )
 	set_property( TARGET "imgui-lib" PROPERTY INTERFACE_LINK_LIBRARIES
 		"${FG_EXTERNAL_PREBUILD_PATH}/imgui/lib/${CMAKE_STATIC_LIBRARY_PREFIX}imgui${CMAKE_STATIC_LIBRARY_SUFFIX}" )
 

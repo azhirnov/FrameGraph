@@ -4,7 +4,6 @@ if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_OPENVR})
 	add_library( "OpenVR-lib" INTERFACE )
 	target_include_directories( "OpenVR-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/OpenVR/include" )
 	target_compile_definitions( "OpenVR-lib" INTERFACE "FG_ENABLE_OPENVR" )
-	add_dependencies( "OpenVR-lib" "FG.External" )
 	set_property( TARGET "OpenVR-lib" PROPERTY INTERFACE_LINK_LIBRARIES
 		"${FG_EXTERNAL_PREBUILD_PATH}/OpenVR/lib/${CMAKE_STATIC_LIBRARY_PREFIX}openvr_api${CMAKE_STATIC_LIBRARY_SUFFIX}" )
 
