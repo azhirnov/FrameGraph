@@ -1,4 +1,5 @@
 [![Build Status](https://api.travis-ci.com/azhirnov/FrameGraph.svg?branch=dev)](https://travis-ci.com/azhirnov/FrameGraph)
+[![Discord Chat](https://img.shields.io/discord/651853834246815744.svg)](https://discord.gg/cMW955R)
 
 # FrameGraph
 
