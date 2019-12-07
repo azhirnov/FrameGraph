@@ -23,9 +23,9 @@ elseif (${FG_ENABLE_GLSLANG})
 	set( FG_EXTERNAL_GLSLANG_PATH "" CACHE PATH "path to glslang source" )
 	mark_as_advanced( FG_EXTERNAL_GLSLANG_PATH )
 
-	# SPIRV-Tools require Python 3 for building
-	find_package( PythonInterp 3.7 REQUIRED )
-	find_package( PythonLibs 3.7 REQUIRED )
+	# SPIRV-Tools require Python 2.7 for building
+	find_package( PythonInterp 2.7 REQUIRED )
+	find_package( PythonLibs 2.7 REQUIRED )
 	
 	# reset to default
 	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/CMakeLists.txt")
