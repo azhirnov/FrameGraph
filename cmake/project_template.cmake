@@ -1,19 +1,6 @@
 cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
-#----------------------------------------------------------
-
 set( CMAKE_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
-
-if (${FG_ENABLE_SIMPLE_COMPILER_OPTIONS})
-	include( "${CMAKE_FOLDER}/compilers_minimal.cmake" )
-else()
-	include( "${CMAKE_FOLDER}/compilers.cmake" )
-endif()
-
-include( "${CMAKE_FOLDER}/compiler_tests.cmake" )
-
-#----------------------------------------------------------
-
 file( GLOB_RECURSE CMAKE_SOURCES "${CMAKE_FOLDER}/*.*" )
 
 add_library( "ProjectTemplate" STATIC EXCLUDE_FROM_ALL ${CMAKE_SOURCES} )

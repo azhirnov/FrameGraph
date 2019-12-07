@@ -32,8 +32,7 @@ set( FG_ENABLE_ASSIMP ON CACHE BOOL "use Assimp (optional, required for Scene ex
 set( FG_ENABLE_GLM ON CACHE BOOL "use glm (optional, required for Scene extension)" )
 set( FG_ENABLE_DEVIL ON CACHE BOOL "use DevIL (optional, required for Scene extension)" )
 set( FG_ENABLE_FREEIMAGE OFF CACHE BOOL "use FreeImage (optional, GPL license)" )
-
-
+set( FG_ENABLE_FFMPEG OFF CACHE BOOL "use FFmpeg (optional, LGPL license)" )
 
 
 set( CMAKE_DEBUG_POSTFIX "d" )
@@ -44,7 +43,14 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" )
 
+if (${FG_ENABLE_SIMPLE_COMPILER_OPTIONS})
+	include( "cmake/compilers_minimal.cmake" )
+else()
+	include( "cmake/compilers.cmake" )
+endif()
+include( "cmake/compiler_tests.cmake" )
 include( "cmake/ci_build.cmake" )
+
 add_subdirectory( "external" )
 include( "cmake/project_template.cmake" )
 add_subdirectory( "stl" )
@@ -56,6 +62,7 @@ add_subdirectory( "extensions/pipeline_compiler" )
 add_subdirectory( "extensions/scene" )
 add_subdirectory( "extensions/ui" )
 add_subdirectory( "extensions/graphviz" )
+add_subdirectory( "extensions/video" )
 
 if (${FG_ENABLE_TESTS})
 	enable_testing()

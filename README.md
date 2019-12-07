@@ -37,7 +37,6 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 ## Building
 Generate project with CMake and build.<br/>
 Required C++17 standard support.
-Warning: VC toolset v142 has bug with very long compilation of cmake external projects, so use v141 toolset.
 
 CMake version 3.11 and greater will download all dependencies during configuration time.<br/>
 If it didn't, manualy download dependencies into 'external' directory or in cmake specify `FG_EXTERNAL_***` pathes for each dependency.
