@@ -1,0 +1,11 @@
+cmake_minimum_required( VERSION 3.10.0 )
+
+project( "AssimpExt" LANGUAGES CXX )
+set_property( GLOBAL PROPERTY USE_FOLDERS ON )
+
+add_subdirectory( "${CMAKE_CURRENT_SOURCE_DIR}/.." "assimp2" )
+
+if (MSVC)
+	target_compile_definitions( "assimp" PUBLIC $<$<CONFIG:Debug>: "_ITERATOR_DEBUG_LEVEL=1" )
+	target_compile_definitions( "IrrXML" PUBLIC $<$<CONFIG:Debug>: "_ITERATOR_DEBUG_LEVEL=1" )
+endif ()
