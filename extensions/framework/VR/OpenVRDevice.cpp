@@ -126,6 +126,7 @@ namespace
 			case vr::k_EDeviceActivityLevel_UserInteraction :			_hmdStatus = EHmdStatus::Active;	break;
 			case vr::k_EDeviceActivityLevel_UserInteraction_Timeout :	_hmdStatus = EHmdStatus::Standby;	break;
 			case vr::k_EDeviceActivityLevel_Standby :					_hmdStatus = EHmdStatus::Standby;	break;
+			case vr::k_EDeviceActivityLevel_Idle_Timeout :				_hmdStatus = EHmdStatus::Standby;	break;
 		}
 		END_ENUM_CHECKS();
 
