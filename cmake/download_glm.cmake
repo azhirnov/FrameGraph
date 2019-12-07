@@ -1,6 +1,11 @@
 # find or download glm
 
-if (${FG_ENABLE_GLM})
+if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_GLM})
+	add_library( "GLM-lib" INTERFACE )
+	target_include_directories( "GLM-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/glm" )
+	target_compile_definitions( "GLM-lib" INTERFACE "FG_ENABLE_GLM" )
+
+elseif (${FG_ENABLE_GLM})
 	set( FG_EXTERNAL_GLM_PATH "" CACHE PATH "path to glm source" )
 	mark_as_advanced( FG_EXTERNAL_GLM_PATH )
 

@@ -63,5 +63,5 @@ matrix:
         - mkdir -p build
         - cd build
         - cmake -G "Visual Studio 15 2017 Win64" -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
-        - cmake --build . --config Debug
+        - travis_wait cmake --build . --config Debug
         - ctest -C Debug --verbose

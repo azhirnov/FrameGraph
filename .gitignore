@@ -20,5 +20,6 @@
 /external/string_view
 /external/OpenVR
 /external/prebuild
+/external/ffmpeg
 /tests/framegraph/Graphs
 /samples/_data
