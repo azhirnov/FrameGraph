@@ -198,6 +198,12 @@ namespace FGC
 			#ifdef VK_EXT_memory_budget
 				VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
 			#endif
+			#ifdef VK_KHR_shader_clock
+				VK_KHR_SHADER_CLOCK_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_timeline_semaphore
+				VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+			#endif
 
 			// Vendor specific extensions
 			#ifdef VK_NV_mesh_shader
@@ -937,6 +943,10 @@ namespace FGC
 	{
 		_BeforeDestroy();
 
+		if ( _vkSurface ) {
+			vkDestroySurfaceKHR( _vkInstance, _vkSurface, null );
+		}
+
 		if ( _vkDevice ) {
 			vkDestroyDevice( _vkDevice, null );
 			VulkanLoader::ResetDevice( OUT _deviceFnTable );
@@ -950,10 +960,11 @@ namespace FGC
 			VulkanLoader::Unload();
 		}
 
-		_vkInstance				= VK_NULL_HANDLE;
-		_vkPhysicalDevice		= VK_NULL_HANDLE;
-		_vkDevice				= VK_NULL_HANDLE;
-		_usedSharedInstance		= false;
+		_vkSurface			= VK_NULL_HANDLE;
+		_vkInstance			= VK_NULL_HANDLE;
+		_vkPhysicalDevice	= VK_NULL_HANDLE;
+		_vkDevice			= VK_NULL_HANDLE;
+		_usedSharedInstance	= false;
 		_vkQueues.clear();
 
 		_AfterDestroy();
