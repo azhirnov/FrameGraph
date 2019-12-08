@@ -509,6 +509,14 @@ namespace FG
 		ResolveImage&  From (RawImageID img)		{ ASSERT( img );  srcImage = img;  return *this; }
 		ResolveImage&  To   (RawImageID img)		{ ASSERT( img );  dstImage = img;  return *this; }
 		
+		ResolveImage&  AddRegion (const ImageSubresourceRange &srcSubresource, const int2 &srcOffset,
+								  const ImageSubresourceRange &dstSubresource, const int2 &dstOffset,
+								  const uint2 &extent)
+		{
+			regions.push_back(Region{ srcSubresource, int3{srcOffset, 0}, dstSubresource, int3{dstOffset, 0}, uint3{extent, 1} });
+			return *this;
+		}
+
 		ResolveImage&  AddRegion (const ImageSubresourceRange &srcSubresource, const int3 &srcOffset,
 								  const ImageSubresourceRange &dstSubresource, const int3 &dstOffset,
 								  const uint3 &extent)

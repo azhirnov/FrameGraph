@@ -532,13 +532,13 @@ namespace FG
 		{
 			case EImage::Tex1D			: return VK_IMAGE_VIEW_TYPE_1D;
 			case EImage::Tex1DArray		: return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+			case EImage::Tex2DMS		:
 			case EImage::Tex2D			: return VK_IMAGE_VIEW_TYPE_2D;
+			case EImage::Tex2DMSArray	:
 			case EImage::Tex2DArray		: return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 			case EImage::TexCube		: return VK_IMAGE_VIEW_TYPE_CUBE;
 			case EImage::TexCubeArray	: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
 			case EImage::Tex3D			: return VK_IMAGE_VIEW_TYPE_3D;
-			case EImage::Tex2DMS		:
-			case EImage::Tex2DMSArray	:
 			case EImage::Buffer			:
 			case EImage::Unknown		: break;	// not supported
 		}

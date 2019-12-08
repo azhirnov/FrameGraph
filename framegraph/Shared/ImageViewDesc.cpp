@@ -143,7 +143,7 @@ namespace FG
 		if ( EImage_IsMultisampled( imageType ) )
 		{
 			ASSERT( samples > 1_samples );
-			ASSERT( maxLevel == 1_mipmap );
+			ASSERT( maxLevel <= 1_mipmap );
 			maxLevel = 1_mipmap;
 		}
 		else

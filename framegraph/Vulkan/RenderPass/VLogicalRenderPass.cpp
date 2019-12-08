@@ -51,6 +51,8 @@ namespace {
 		//_parallelExecution= desc.parallelExecution;
 		_canBeMerged		= desc.canBeMerged;
 		
+		Optional<MultiSamples>	samples;
+
 
 		// copy descriptor sets
 		size_t	offset_count = 0;
@@ -98,6 +100,11 @@ namespace {
 			if ( dst.desc.format == EPixelFormat::Unknown )
 				dst.desc.format = dst.imagePtr->Description().format;
 
+			if ( samples.has_value() )
+				CHECK_ERR( *samples == dst.imagePtr->Description().samples )
+			else
+				samples = dst.imagePtr->Description().samples;
+
 			// add resource state flags
 			if ( desc.area.left == 0 and desc.area.right  == int(dst.imagePtr->Width())  and
 				 desc.area.top  == 0 and desc.area.bottom == int(dst.imagePtr->Height()) )
@@ -114,7 +121,7 @@ namespace {
 			{
 				ASSERT( RenderTargetID(i) == RenderTargetID::DepthStencil );
 				
-				dst.state |= EResourceState::DepthStencilAttachmentReadWrite;	// TODO: support other layouts
+				dst.state |= EResourceState::DepthStencilAttachmentReadWrite;	// TODO: add support for other layouts
 
 				_depthStencilTarget = DepthStencilTarget{ dst };
 			}
@@ -123,6 +130,20 @@ namespace {
 				dst.state |= EResourceState::ColorAttachmentReadWrite;		// TODO: remove 'Read' state if blending disabled or 'loadOp' is 'Clear'
 
 				_colorTargets.push_back( dst );
+			}
+		}
+
+		// validate image samples
+		if ( samples.has_value() )
+		{
+			if ( _multisampleState.samples != *samples )
+			{
+				//FG_LOGD( "Render pass attachment sample count was changed, sample mask updated" );
+
+				for (auto& mask : _multisampleState.sampleMask) {
+					mask = UMax;
+				}
+				_multisampleState.samples = *samples;
 			}
 		}
 
