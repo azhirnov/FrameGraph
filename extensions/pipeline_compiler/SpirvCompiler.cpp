@@ -1539,7 +1539,7 @@ namespace FG
 			if ( member_qualifier.hasAlign() )
 				member_alignment = std::max( member_alignment, member_qualifier.layoutAlign );
 
-			RoundToPow2( offset, member_alignment );
+			glslang::RoundToPow2( offset, member_alignment );
 			//member_type.getQualifier().layoutOffset = offset;
 
 			minOffset = Min( minOffset, uint(offset) );
@@ -1829,7 +1829,8 @@ namespace FG
 			case TLayoutGeometry::ElgLineStrip :
 			case TLayoutGeometry::ElgTriangleStrip :
 			case TLayoutGeometry::ElgQuads :
-			case TLayoutGeometry::ElgIsolines :		break;	// to shutup warnings
+			case TLayoutGeometry::ElgIsolines :
+				break;	// to shutup warnings
 		}
 		END_ENUM_CHECKS();
 		COMP_RETURN_ERR( "invalid geometry input primitive type!", void() );

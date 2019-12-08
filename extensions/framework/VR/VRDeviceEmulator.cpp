@@ -62,25 +62,15 @@ namespace {
 	{
 		if ( action != EKeyAction::Up )
 		{
-			// forward/backward
-			if ( key == "W" )			_positionDelta.x += 1.0f;	else
-			if ( key == "S" )			_positionDelta.x -= 1.0f;
+			if ( key == "W" )			_controller.left.dpad.y += 1.0f;		else
+			if ( key == "S" )			_controller.left.dpad.y -= 1.0f;
+			if ( key == "D" )			_controller.left.dpad.x -= 1.0f;		else
+			if ( key == "A" )			_controller.left.dpad.x += 1.0f;
 
-			// left/right
-			if ( key == "D" )			_positionDelta.y -= 1.0f;	else
-			if ( key == "A" )			_positionDelta.y += 1.0f;
-
-			// up/down
-			if ( key == "V" )			_positionDelta.z += 1.0f;	else
-			if ( key == "C" )			_positionDelta.z -= 1.0f;
-
-			// rotate up/down
-			if ( key == "arrow up" )	_cameraAngle.y -= _mouseSens;	else
-			if ( key == "arrow down" )	_cameraAngle.y += _mouseSens;
-
-			// rotate left/right
-			if ( key == "arrow right" )	_cameraAngle.x += _mouseSens;	else
-			if ( key == "arrow left" )	_cameraAngle.x -= _mouseSens;
+			if ( key == "arrow up" )	_controller.right.dpad.y += 1.0f;		else
+			if ( key == "arrow down" )	_controller.right.dpad.y -= 1.0f;
+			if ( key == "arrow right" )	_controller.right.dpad.x -= 1.0f;		else
+			if ( key == "arrow left" )	_controller.right.dpad.x += 1.0f;
 		}
 
 		if ( key == "left mb" )			_mousePressed = (action != EKeyAction::Up);
@@ -96,7 +86,7 @@ namespace {
 		if ( _mousePressed )
 		{
 			float2	delta  = pos - _lastMousePos;
-			_cameraAngle   += delta * _mouseSens;
+			_cameraAngle   += float2{delta.x, -delta.y} * _mouseSens;
 		}
 		_lastMousePos = pos;
 	}
@@ -106,23 +96,34 @@ namespace {
 	Update
 =================================================
 */
-	void VRDeviceEmulator::WindowEventListener::Update (OUT Mat3_t &view, INOUT float3 &pos)
+	void VRDeviceEmulator::WindowEventListener::Update (OUT Mat3_t &view, INOUT ControllerEmulator &cont)
 	{
 		_cameraAngle.x = Wrap( _cameraAngle.x, -Pi<float>, Pi<float> );
 		_cameraAngle.y = Wrap( _cameraAngle.y, -Pi<float>, Pi<float> );
 
 		view = RotateX( -_cameraAngle.y ) * RotateY( -_cameraAngle.x );
 		
-		const float3	up_dir	{ 0.0f, 1.0f, 0.0f };
-		const float3	axis_x	{ view[0][0], view[1][0], view[2][0] };
-		const float3	axis_z	{ view[0][2], view[1][2], view[2][2] };
+		_controller.left.dpad	= Normalize( _controller.left.dpad );
+		_controller.right.dpad	= Normalize( _controller.right.dpad );
 		
-		pos += axis_z * -_positionDelta.x;
-		pos += axis_x *  _positionDelta.y;
-		pos += up_dir * -_positionDelta.z;
+		cont.left.dpadChanged	= false;
+		cont.right.dpadChanged	= false;
 
-		// reset
-		_positionDelta = Default;
+		if ( Length( _controller.left.dpad ) > 0.01f )
+		{
+			cont.left.dpadDelta		= _controller.left.dpad - cont.left.dpad;
+			cont.left.dpad			= _controller.left.dpad;
+			cont.left.dpadChanged	= true;
+		}
+		
+		if ( Length( _controller.right.dpad ) > 0.01f )
+		{
+			cont.right.dpadDelta	= _controller.right.dpad - cont.right.dpad;
+			cont.right.dpad			= _controller.right.dpad;
+			cont.right.dpadChanged	= true;
+		}
+
+		_controller	= Default;
 	}
 			
 /*
@@ -132,7 +133,21 @@ namespace {
 */
 	void VRDeviceEmulator::WindowEventListener::OnDestroy ()
 	{
-		_isActive = false;
+		_isActive	= false;
+		_isVisible	= false;
+	}
+			
+/*
+=================================================
+	OnResize
+=================================================
+*/
+	void VRDeviceEmulator::WindowEventListener::OnResize (const uint2 &newSize)
+	{
+		if ( All( newSize > uint2(0) ))
+			_isVisible = true;
+		else
+			_isVisible = false;
 	}
 //-----------------------------------------------------------------------------
 
@@ -189,7 +204,14 @@ namespace {
 		CHECK_ERR( _output );
 		CHECK_ERR( not _isCreated );
 
-		_isCreated = true;
+		_isCreated	= true;
+		_hmdStatus	= EHmdStatus::Mounted;
+
+		for (auto& listener : _listeners) {
+			listener->HmdStatusChanged( _hmdStatus );
+		}
+
+		_lastUpdateTime = TimePoint_t::clock::now();
 		return true;
 	}
 	
@@ -252,6 +274,13 @@ namespace {
 */
 	void VRDeviceEmulator::Destroy ()
 	{
+		_hmdStatus = EHmdStatus::PowerOff;
+
+		for (auto& listener : _listeners) {
+			listener->HmdStatusChanged( _hmdStatus );
+		}
+		_listeners.clear();
+
 		if ( _vkLogicalDevice ) {
 			VK_CALL( vkDeviceWaitIdle( _vkLogicalDevice ));
 		}
@@ -329,6 +358,21 @@ namespace {
 */
 	bool VRDeviceEmulator::Update ()
 	{
+		// update hmd status
+		{
+			const EHmdStatus	new_stat =	not _wndListener.IsActive()	? EHmdStatus::PowerOff	:
+											_wndListener.IsVisible()	? EHmdStatus::Mounted	: EHmdStatus::Active;
+
+			if ( new_stat != _hmdStatus )
+			{
+				_hmdStatus = new_stat;
+
+				for (auto& listener : _listeners) {
+					listener->HmdStatusChanged( _hmdStatus );
+				}
+			}
+		}
+
 		if ( not _output or not _swapchain )
 			return false;
 
@@ -343,7 +387,24 @@ namespace {
 		}
 
 		// controllers emulation
-		_wndListener.Update( OUT _camera.pose, INOUT _camera.position );
+		_wndListener.Update( OUT _camera.pose, INOUT _controller );
+		
+		auto	time	= TimePoint_t::clock::now();
+		auto	dt		= std::chrono::duration_cast<SecondsF>( time - _lastUpdateTime ).count();
+		_lastUpdateTime = time;
+
+		if ( _controller.left.dpadChanged )
+		{
+			for (auto& listener : _listeners) {
+				listener->OnAxisStateChanged( ControllerID::LeftHand, "dpad", _controller.left.dpad, _controller.left.dpadDelta, dt );
+			}
+		}
+		if ( _controller.right.dpadChanged )
+		{
+			for (auto& listener : _listeners) {
+				listener->OnAxisStateChanged( ControllerID::RightHand, "dpad", _controller.right.dpad, _controller.right.dpadDelta, dt );
+			}
+		}
 
 		return true;
 	}
@@ -483,10 +544,11 @@ namespace {
 			region.srcOffsets[0]	= { int(img.dimension.x * img.bounds.left + 0.5f), int(img.dimension.y * img.bounds.top - 0.5f), 0 };
 			region.srcOffsets[1]	= { int(img.dimension.x * img.bounds.right + 0.5f), int(img.dimension.y * img.bounds.bottom + 0.5f), 1 };
 			region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-			region.dstOffsets[0]	= eye == Eye::Left ? VkOffset3D{ 0, 0, 0 } : VkOffset3D{ int(surf_size.x/2), 0, 0 };
-			region.dstOffsets[1]	= eye == Eye::Left ? VkOffset3D{ int(surf_size.x/2), int(surf_size.y), 1 } : VkOffset3D{ int(surf_size.x), int(surf_size.y), 1 };
+			region.dstOffsets[0]	= ( eye == Eye::Left ?	VkOffset3D{ 0, int(surf_size.y), 0 }	: VkOffset3D{ int(surf_size.x/2), int(surf_size.y), 0 });
+			region.dstOffsets[1]	= ( eye == Eye::Left ?	VkOffset3D{ int(surf_size.x/2), 0, 1 }	: VkOffset3D{ int(surf_size.x), 0, 1 });
 			region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-			vkCmdBlitImage( q.cmdBuffers[q.frame], img.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, _swapchain->GetCurrentImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
+			vkCmdBlitImage( q.cmdBuffers[q.frame], img.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, _swapchain->GetCurrentImage(),
+						    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
 		}
 
 		// barrier
@@ -596,16 +658,6 @@ namespace {
 	{
 		CHECK_ERR( _isCreated );
 		return uint2{1024};
-	}
-		
-/*
-=================================================
-	GetHmdStatus
-=================================================
-*/
-	IVRDevice::EHmdStatus  VRDeviceEmulator::GetHmdStatus () const
-	{
-		return _isCreated and _wndListener.IsActive() ? EHmdStatus::Mounted : EHmdStatus::PowerOff;
 	}
 
 }	// FGC

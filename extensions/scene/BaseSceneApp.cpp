@@ -272,7 +272,11 @@ namespace FG
 			const uint2	wnd_size	= _window->GetSize();
 			const vec2	view_size	{ wnd_size.x, wnd_size.y };
 
-			_camera.SetPerspective( _cameraFov, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
+			if ( All( wnd_size > uint2(0) ))
+			{
+				_camera.SetPerspective( _cameraFov, view_size.x / view_size.y, _viewRange.x, _viewRange.y );
+			}
+
 			_camera.Rotate( -_mouseDelta.x, _mouseDelta.y );
 
 			if ( length2( _positionDelta ) > 0.001f )
