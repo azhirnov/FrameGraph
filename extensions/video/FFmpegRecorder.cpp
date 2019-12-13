@@ -9,6 +9,7 @@
 #ifdef FG_ENABLE_FFMPEG
 
 #include "video/FFmpegRecorder.h"
+#include "stl/Algorithms/StringUtils.h"
 
 #ifdef FG_STD_FILESYSTEM
 #	include <filesystem>
@@ -23,76 +24,6 @@ namespace
 	{
 		if ( err == 0 )
 			return true;
-		
-		/*switch ( err )
-		{
-			case AVERROR(EPERM) :
-			case AVERROR(ENOENT) :
-			case AVERROR(ESRCH) :
-			case AVERROR(EINTR) :
-			case AVERROR(EIO) :
-			case AVERROR(ENXIO) :
-			case AVERROR(E2BIG) :
-			case AVERROR(ENOEXEC) :
-			case AVERROR(EBADF) :
-			case AVERROR(ECHILD) :
-			case AVERROR(EAGAIN) :
-			case AVERROR(ENOMEM) :
-			case AVERROR(EACCES) :
-			case AVERROR(EFAULT) :
-			case AVERROR(EBUSY) :
-			case AVERROR(EEXIST) :
-			case AVERROR(EXDEV) :
-			case AVERROR(ENODEV) :
-			case AVERROR(ENOTDIR) :
-			case AVERROR(EISDIR) :
-			case AVERROR(ENFILE) :
-			case AVERROR(EMFILE) :
-			case AVERROR(ENOTTY) :
-			case AVERROR(EFBIG) :
-			case AVERROR(ENOSPC) :
-			case AVERROR(ESPIPE) :
-			case AVERROR(EROFS) :
-			case AVERROR(EMLINK) :
-			case AVERROR(EPIPE) :
-			case AVERROR(EDOM) :
-			case AVERROR(EDEADLK) :
-			case AVERROR(ENAMETOOLONG) :
-			case AVERROR(ENOLCK) :
-			case AVERROR(ENOSYS) :
-			case AVERROR(ENOTEMPTY) :
-			case AVERROR_BSF_NOT_FOUND :
-			case AVERROR_BUG :
-			case AVERROR_BUFFER_TOO_SMALL :
-			case AVERROR_DECODER_NOT_FOUND :
-			case AVERROR_DEMUXER_NOT_FOUND :
-			case AVERROR_ENCODER_NOT_FOUND :
-			case AVERROR_EOF :
-			case AVERROR_EXIT :
-			case AVERROR_EXTERNAL :
-			case AVERROR_FILTER_NOT_FOUND :
-			case AVERROR_INVALIDDATA :
-			case AVERROR_MUXER_NOT_FOUND :
-			case AVERROR_OPTION_NOT_FOUND :
-			case AVERROR_PATCHWELCOME :
-			case AVERROR_PROTOCOL_NOT_FOUND :
-			case AVERROR_STREAM_NOT_FOUND :
-			case AVERROR_BUG2 :
-			case AVERROR_UNKNOWN :
-			case AVERROR_EXPERIMENTAL :
-			case AVERROR_INPUT_CHANGED :
-			case AVERROR_OUTPUT_CHANGED :
-			case AVERROR_HTTP_BAD_REQUEST :
-			case AVERROR_HTTP_UNAUTHORIZED :
-			case AVERROR_HTTP_FORBIDDEN :
-			case AVERROR_HTTP_NOT_FOUND :
-			case AVERROR_HTTP_OTHER_4XX :
-			case AVERROR_HTTP_SERVER_ERROR :
-				break;
-			default :
-				ASSERT(!"unknown error code");
-				break;
-		}*/
 
 		String	msg{ "FFmpeg error: " };
 		char	buf [AV_ERROR_MAX_STRING_SIZE] = "";
@@ -162,78 +93,228 @@ namespace
 */
 	FFmpegVideoRecorder::~FFmpegVideoRecorder ()
 	{}
-	
+
 /*
 =================================================
 	Begin
 =================================================
 */
-	bool  FFmpegVideoRecorder::Begin (const uint2 &size, uint fps, uint bitrateInKbps, EVideoFormat fmt, StringView filename)
+	bool  FFmpegVideoRecorder::Begin (const Config &cfg, StringView filename)
 	{
 		CHECK_ERR( not _formatCtx and not _videoFrame and not _videoStream );
 		
 		#ifdef FG_STD_FILESYSTEM
-			_tempFile = FS::path{filename}.replace_filename("tmp").replace_extension("h264").string();
+			_tempFile = FS::path{filename}.replace_filename("tmp").replace_extension("video").string();
 		#else
-			_tempFile = "tmp.h264";
+			_tempFile = "tmp.video";
 		#endif
 
-		_format = av_guess_format( null, _tempFile.c_str(), null );
-		CHECK_ERR( _format );
-		
-		FF_CHECK( avformat_alloc_output_context2( OUT &_formatCtx, _format, null, _tempFile.c_str() ));
+		Config	config		= cfg;
+		bool	initialized = false;
 
-		_codec = avcodec_find_encoder( _format->video_codec );
-		CHECK_ERR( _codec );
-		
-		_videoStream = avformat_new_stream( _formatCtx, _codec );
-		CHECK_ERR( _videoStream );
-		
-		_codecCtx = avcodec_alloc_context3( _codec );
-		CHECK_ERR( _codecCtx );
-		
-		_videoStream->codecpar->codec_id	= _format->video_codec;
-		_videoStream->codecpar->codec_type	= AVMEDIA_TYPE_VIDEO;
-		_videoStream->codecpar->width		= int(size.x);
-		_videoStream->codecpar->height		= int(size.y);
-		_videoStream->codecpar->format		= EnumCast( fmt );
-		_videoStream->codecpar->bit_rate	= int64_t(bitrateInKbps) << 10;
-		_videoStream->time_base				= { 1, int(fps) };
-		
-		avcodec_parameters_to_context( _codecCtx, _videoStream->codecpar );
-		_codecCtx->time_base	= { 1, int(fps) };
-		_codecCtx->max_b_frames	= 1;
-		_codecCtx->gop_size		= 10;
+		for (uint i = 0;; ++i)
+		{
+			if ( _Init( config ))
+			{
+				initialized = true;
+				break;
+			}
 
-		if ( _videoStream->codecpar->codec_id == AV_CODEC_ID_H264 )
-			av_opt_set( _codecCtx, "preset", "ultrafast", 0 );
+			_Destroy();
 
-		if ( _formatCtx->oformat->flags & AVFMT_GLOBALHEADER )
-			_codecCtx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-		
-		avcodec_parameters_from_context( _videoStream->codecpar, _codecCtx );
-		
-		FF_CHECK( avcodec_open2( _codecCtx, _codec, null ));
-		
-		if ( not (_format->flags & AVFMT_NOFILE) )
-			FF_CHECK( avio_open( OUT &_formatCtx->pb, _tempFile.c_str(), AVIO_FLAG_WRITE ));
-		
-		FF_CHECK( avformat_write_header( _formatCtx, null ));
-		
-		av_dump_format( _formatCtx, 0, _tempFile.c_str(), 1 );
+			if ( config.preferGPU )
+			{
+				config.preferGPU = false;
+				continue;
+			}
+			if ( config.codec != EVideoCodec::H264 )
+			{
+				config.codec = EVideoCodec::H264;
+				continue;
+			}
+			if ( config.format != EVideoFormat::YUV_420P )
+			{
+				config.format = EVideoFormat::YUV_420P;
+				continue;
+			}
+			break;
+		}
+			
+		CHECK_ERR( initialized );
 
-		_videoFrame			= av_frame_alloc();
-		_videoFrame->format	= _codecCtx->pix_fmt;
-		_videoFrame->width	= int(size.x);
-		_videoFrame->height	= int(size.y);
-		FF_CHECK( av_frame_get_buffer( _videoFrame, 32 ));
-
-		_swsCtx = sws_getContext( int(size.x), int(size.y), AV_PIX_FMT_RGBA, int(size.x), int(size.y), _codecCtx->pix_fmt, SWS_BICUBIC, 0, 0, 0 );
-		CHECK_ERR( _swsCtx );
-
-		_fps			= fps;
+		_fps			= cfg.fps;
 		_frameCounter	= 0;
 		_videoFile		= filename;
+		
+		FG_LOGD( "Begin recording to temporary: '"s << _tempFile << "', resulting: '" << _videoFile << "'" );
+		return true;
+	}
+	
+/*
+=================================================
+	_GetEncoderInfo
+----
+	add list of hardware accelerated encoders
+	https://trac.ffmpeg.org/wiki/HWAccelIntro
+=================================================
+*/
+	FFmpegVideoRecorder::CodecInfo  FFmpegVideoRecorder::_GetEncoderInfo (const Config &cfg)
+	{
+		CodecInfo	result;
+		
+		BEGIN_ENUM_CHECKS();
+		switch ( cfg.codec )
+		{
+			case EVideoCodec::H264 :
+			{
+				result.format = "h264";
+
+				if ( cfg.preferGPU )
+				{
+					result.codecs.push_back( "h264_nvenc" );	// nvidia
+					result.codecs.push_back( "h264_qsv" );		// intel
+				}
+				break;
+			}
+
+			/*
+				hevc_nvenc
+			*/
+		}
+		END_ENUM_CHECKS();
+
+		return result;
+	}
+	
+/*
+=================================================
+	_SetOptions
+=================================================
+*/
+	void  FFmpegVideoRecorder::_SetOptions (INOUT AVDictionary **dict, const Config &cfg) const
+	{
+		StaticString<64>	preset;
+		StringView			codec_name {_codec->name};
+
+		if ( codec_name == "h264" )
+		{
+			BEGIN_ENUM_CHECKS();
+			switch ( cfg.preset )
+			{
+				case EVideoPreset::UltraFast :	preset = "ultrafast";	break;
+				case EVideoPreset::SuperFast :	preset = "superfast";	break;
+				case EVideoPreset::VeryFast :	preset = "veryfast";	break;
+				case EVideoPreset::Faster :		preset = "faster";		break;
+				case EVideoPreset::Fast :		preset = "fast";		break;
+				case EVideoPreset::Medium :		preset = "medium";		break;
+				case EVideoPreset::Slow :		preset = "slow";		break;
+				case EVideoPreset::Slower :		preset = "slower";		break;
+				case EVideoPreset::VerySlow :	preset = "veryslow";	break;
+			}
+			END_ENUM_CHECKS();
+		}
+		else
+		if ( codec_name == "h264_nvec" )
+		{
+			if ( cfg.preset <= EVideoPreset::Fast )
+				preset = "fast";
+			else
+			if ( cfg.preset >= EVideoPreset::Slow )
+				preset = "slow";
+			else
+				preset = "medium";
+		}
+
+		if ( preset.size() )
+			av_dict_set( INOUT dict, "preset", preset.c_str(), 0 );
+	}
+	
+/*
+=================================================
+	_Init
+=================================================
+*/
+	bool  FFmpegVideoRecorder::_Init (const Config &cfg)
+	{
+		// create codec
+		{
+			const CodecInfo	info = _GetEncoderInfo( cfg );
+
+			_format = av_guess_format( info.format.c_str(), null, null );
+			CHECK_ERR( _format );
+		
+			FF_CHECK( avformat_alloc_output_context2( OUT &_formatCtx, _format, null, _tempFile.c_str() ));
+
+			for (auto& codec_name : info.codecs)
+			{
+				if ( _codec = avcodec_find_encoder_by_name( codec_name.c_str() ); _codec )
+					break;
+			}
+
+			if ( not _codec )
+				_codec = avcodec_find_encoder( _format->video_codec );
+
+			CHECK_ERR( _codec );
+			FG_LOGD( "Used codec: "s << _codec->name );
+		
+			_codecCtx = avcodec_alloc_context3( _codec );
+			CHECK_ERR( _codecCtx );
+		}
+
+		// create video stream
+		{
+			_videoStream = avformat_new_stream( _formatCtx, _codec );
+			CHECK_ERR( _videoStream );
+		
+			_videoStream->codecpar->codec_id	= _format->video_codec;
+			_videoStream->codecpar->codec_type	= AVMEDIA_TYPE_VIDEO;
+			_videoStream->codecpar->width		= int(cfg.size.x);
+			_videoStream->codecpar->height		= int(cfg.size.y);
+			_videoStream->codecpar->format		= EnumCast( cfg.format );
+			_videoStream->codecpar->bit_rate	= int64_t(cfg.bitrate);
+			_videoStream->time_base				= { 1, int(cfg.fps) };
+		
+			FF_CALL( avcodec_parameters_to_context( _codecCtx, _videoStream->codecpar ));
+
+			_codecCtx->time_base	= { 1, int(cfg.fps) };
+			_codecCtx->max_b_frames	= 1;
+			_codecCtx->gop_size		= 10;
+
+			if ( _formatCtx->oformat->flags & AVFMT_GLOBALHEADER )
+				_codecCtx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+		
+			FF_CALL( avcodec_parameters_from_context( _videoStream->codecpar, _codecCtx ));
+		}
+
+		// create output file
+		{
+			AVDictionary*	codec_options	= null;
+			_SetOptions( INOUT &codec_options, cfg );
+
+			int	err = avcodec_open2( _codecCtx, _codec, INOUT &codec_options );
+			av_dict_free( &codec_options );
+			FF_CHECK( err );
+		
+			if ( not (_format->flags & AVFMT_NOFILE) )
+				FF_CHECK( avio_open( OUT &_formatCtx->pb, _tempFile.c_str(), AVIO_FLAG_WRITE ));
+		
+			FF_CHECK( avformat_write_header( _formatCtx, null ));
+		
+			av_dump_format( _formatCtx, 0, _tempFile.c_str(), 1 );
+
+			_videoFrame			= av_frame_alloc();
+			_videoFrame->format	= _codecCtx->pix_fmt;
+			_videoFrame->width	= int(cfg.size.x);
+			_videoFrame->height	= int(cfg.size.y);
+			FF_CHECK( av_frame_get_buffer( _videoFrame, 32 ));
+		}
+
+		// create scaler
+		{
+			_swsCtx = sws_getContext( int(cfg.size.x), int(cfg.size.y), AV_PIX_FMT_RGBA, _codecCtx->width, _codecCtx->height, _codecCtx->pix_fmt, SWS_BICUBIC, 0, 0, 0 );
+			CHECK_ERR( _swsCtx );
+		}
+
 		return true;
 	}
 	
@@ -315,6 +396,8 @@ namespace
 	bool  FFmpegVideoRecorder::End ()
 	{
 		CHECK( _Finish() );
+		
+		FG_LOGD( "End recording to: '"s << _tempFile << "', start remuxing to: '" << _videoFile << "'" );
 
 		_Destroy();
 
@@ -343,14 +426,14 @@ namespace
 		if ( _swsCtx )
 			sws_freeContext( _swsCtx );
 		
-		_format		= null;
-		_formatCtx	= null;
-		_videoFrame	= null;
-		_codec		= null;
-		_codecCtx	= null;
-		_swsCtx		= null;
-		_frameCounter= 0;
-		_fps		= 0;
+		_format			= null;
+		_formatCtx		= null;
+		_videoFrame		= null;
+		_codec			= null;
+		_codecCtx		= null;
+		_swsCtx			= null;
+		_frameCounter	= 0;
+		_fps			= 0;
 	}
 	
 /*
@@ -360,7 +443,7 @@ namespace
 */
 	bool  FFmpegVideoRecorder::_Remux ()
 	{
-		CHECK_ERR( not _videoFile.empty() );
+		CHECK_ERR( _tempFile.size() and _videoFile.size() );
 
 		AVFormatContext*	ifmt_ctx		= null;
 		AVFormatContext*	ofmt_ctx		= null;
@@ -471,6 +554,11 @@ namespace
 
 		std::error_code	err;
 		CHECK( FS::remove( FS::path{_tempFile}, OUT err ));
+		
+		FG_LOGD( "End remuxing: '"s << _videoFile << "'" );
+
+		_tempFile.clear();
+		_videoFile.clear();
 
 		return res;
 	}

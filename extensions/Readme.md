@@ -25,3 +25,6 @@ Can produce debuggable shaders using GLSLTrace library.
 ## Offline Pipeline Compiler
 Compile glsl shader using PipelineCompiler library and serialize it to the C++ code.<br/>
 Required for Android because shader compilation is not supported for it.
+
+## Video
+Video recorder implementation.

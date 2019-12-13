@@ -255,7 +255,7 @@ namespace FG
 	LoadImage
 =================================================
 */
-	bool DevILLoader::LoadImage (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool DevILLoader::LoadImage (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache, bool flipY)
 	{
 		CHECK_ERR( image );
 
@@ -269,7 +269,9 @@ namespace FG
 
 		CHECK_ERR( ilLoadImage( filename.data() ) == IL_TRUE );
 
-		if ( EndsWithIC( filename, ".jpg" ) or EndsWithIC( filename, ".jpeg" ) /*or EndsWithIC( filename, ".png" )*/ )
+		const bool	require_flip = (EndsWithIC( filename, ".jpg" ) or EndsWithIC( filename, ".jpeg" ));
+
+		if ( flipY != require_flip )
 		{
 			CHECK( iluFlipImage() == IL_TRUE );
 		}

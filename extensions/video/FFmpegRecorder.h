@@ -44,6 +44,17 @@ namespace FG
 
 	class FFmpegVideoRecorder final : public IVideoRecorder
 	{
+	// types
+	private:
+		struct CodecInfo
+		{
+			using Name_t = StaticString<64>;
+			
+			Name_t					format;
+			FixedArray<Name_t, 8>	codecs;
+		};
+
+
 	// variables
 	private:
 		AVOutputFormat *	_format			= null;
@@ -72,14 +83,19 @@ namespace FG
 		FFmpegVideoRecorder ();
 		~FFmpegVideoRecorder () override;
 		
-		bool Begin (const uint2 &size, uint fps, uint bitrateInKbps, EVideoFormat fmt, StringView filename) override;
+		bool Begin (const Config &cfg, StringView filename) override;
 		bool AddFrame (const ImageView &view) override;
 		bool End () override;
 
 	private:
+		bool _Init (const Config &cfg);
 		bool _Remux ();
 		bool _Finish ();
 		void _Destroy ();
+
+		void _SetOptions (INOUT AVDictionary **dict, const Config &cfg) const;
+
+		static ND_ CodecInfo  _GetEncoderInfo (const Config &cfg);
 	};
 
 

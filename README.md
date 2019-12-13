@@ -55,6 +55,7 @@ Dependencies:<br/>
 [imgui](https://github.com/ocornut/imgui) - (optional) for UI extension.<br/>
 [OpenVR](https://github.com/ValveSoftware/openvr) - (optional) for VR support.<br/>
 [GLM](https://glm.g-truc.net/0.9.9/index.html) - (optional) for Scene extension.<br/>
+[ffmpeg](https://www.ffmpeg.org/) - (optional) for video recording.<br/>
 
 
 ## References
