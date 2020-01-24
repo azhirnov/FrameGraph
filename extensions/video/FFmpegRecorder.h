@@ -6,34 +6,7 @@
 
 #include "video/IVideoRecorder.h"
 #include "stl/Stream/Stream.h"
-
-# ifdef COMPILER_MSVC
-#	pragma warning (push)
-#	pragma warning (disable: 4244)	// conversion from '...' to '...', possible loss of data
-# endif
-
-extern "C"
-{
-# include <libavcodec/avcodec.h>
-# include <libavcodec/avfft.h>
-
-# include <libavdevice/avdevice.h>
-
-# include <libavfilter/avfilter.h>
-# include <libavfilter/buffersink.h>
-# include <libavfilter/buffersrc.h>
-
-# include <libavformat/avformat.h>
-# include <libavformat/avio.h>
-	
-# include <libswscale/swscale.h>
-
-}	// extern "C"
-
-# ifdef COMPILER_MSVC
-#	pragma warning (pop)
-# endif
-
+#include "video/FFMpegLoader.h"
 
 namespace FG
 {

@@ -15,6 +15,8 @@ namespace FG
 	enum class EVideoCodec : uint
 	{
 		H264,
+		VP8,
+		VP9
 	};
 
 	enum class EVideoPreset : uint
