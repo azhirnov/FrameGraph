@@ -24,6 +24,10 @@
 #	include "spirv-tools/libspirv.h"
 #endif
 
+#if GLSLANG_PATCH_LEVEL < 3559
+#	error update glslang!
+#endif
+
 namespace FG
 {
 	

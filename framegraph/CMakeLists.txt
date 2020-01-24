@@ -1,7 +1,7 @@
 cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 set( FrameGraph_VERSION_MAJOR 0 )
-set( FrameGraph_VERSION_MINOR 12 )
+set( FrameGraph_VERSION_MINOR 13 )
 
 file( GLOB_RECURSE SOURCES "*.*" )
 add_library( "FrameGraph" STATIC ${SOURCES} )

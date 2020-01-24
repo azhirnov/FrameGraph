@@ -104,6 +104,7 @@ namespace FG
 		OpenCL_210			= (210 << _VersionOffset) | OpenCL,
 		Vulkan_100			= (100 << _VersionOffset) | Vulkan,
 		Vulkan_110			= (110 << _VersionOffset) | Vulkan,
+		Vulkan_120			= (120 << _VersionOffset) | Vulkan,
 		Software_100		= (100 << _VersionOffset) | Software,
 
 		// storage
@@ -155,10 +156,13 @@ namespace FG
 		GLSL_460		= OpenGL_460 | HighLevel,
 		VKSL_100		= Vulkan_100 | HighLevel,
 		VKSL_110		= Vulkan_110 | HighLevel,
+		VKSL_120		= Vulkan_120 | HighLevel,
 		SPIRV_100		= Vulkan_100 | SPIRV,
-		SPIRV_110		= Vulkan_110 | SPIRV,
+		SPIRV_110		= Vulkan_110 | SPIRV,			// SPIRV 1.3
+		SPIRV_120		= Vulkan_120 | SPIRV,			// SPIRV 1.4
 		VkShader_100	= Vulkan_100 | ShaderModule,
 		VkShader_110	= Vulkan_110 | ShaderModule,
+		VkShader_120	= Vulkan_120 | ShaderModule,
 	};
 	FG_BIT_OPERATORS( EShaderLangFormat );
 
