@@ -28,6 +28,8 @@
 namespace FGC
 {
 
+#	define VK_LOG	FG_LOGD
+
 #	define VKLOADER_STAGE_FNPOINTER
 #	 include "fn_vulkan_lib.h"
 #	 include "fn_vulkan_inst.h"
@@ -47,7 +49,7 @@ namespace FGC
 namespace {
 	struct VulkanLib
 	{
-		SharedLib_t		module;
+		SharedLib_t		module		= null;
 		VkInstance		instance	= VK_NULL_HANDLE;
 		int				refCounter	= 0;
 	};

@@ -79,6 +79,7 @@ namespace FGC
 			VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV		fragmentShaderBarycentric;
 			VkPhysicalDeviceShaderImageFootprintFeaturesNV			shaderImageFootprint;
 			VkPhysicalDeviceShadingRateImageFeaturesNV				shadingRateImage;
+			VkPhysicalDeviceShaderClockFeaturesKHR					shaderClock;
 
 		}	_features;
 
@@ -136,12 +137,14 @@ namespace FGC
 		ND_ VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV const&	GetDeviceFragmentShaderBarycentricFeatures ()	const	{ return _features.fragmentShaderBarycentric; }
 		ND_ VkPhysicalDeviceShaderImageFootprintFeaturesNV const&		GetDeviceShaderImageFootprintFeatures ()		const	{ return _features.shaderImageFootprint; }
 		ND_ VkPhysicalDeviceShadingRateImageFeaturesNV const&			GetDeviceShadingRateImageFeatures ()			const	{ return _features.shadingRateImage; }
+		ND_ VkPhysicalDeviceShaderClockFeaturesKHR const&				GetDeviceShaderClockFeatures ()					const	{ return _features.shaderClock; }
 
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceLayers ();
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceExtensions ();
 		ND_ static ArrayView<const char*>	GetRecomendedDeviceExtensions ();
 		ND_ static ArrayView<const char*>	GetAllDeviceExtensions_v100 ();
-		ND_ static ArrayView<const char*>	GetAllDeviceExtensions ();
+		ND_ static ArrayView<const char*>	GetAllDeviceExtensions_v110 ();
+		//ND_ static ArrayView<const char*>	GetAllDeviceExtensions_v120 ();	// TODO
 
 
 	protected:
