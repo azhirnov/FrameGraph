@@ -37,7 +37,7 @@ void main()
 	out_Color = mix(vec4(1.0, 0.3, 0.0, 0.8), vec4(0.6, 0.9, 0.1, 1.0), float(gl_VertexIndex) / float(g_Positions.length()));
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex, 0 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex, ETraceMode::DebugTrace, 0 ));
 	}
 
 	// create fragment shader
@@ -79,7 +79,7 @@ void main ()
 	return;
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, 0 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, ETraceMode::DebugTrace, 0 ));
 	}
 	return true;
 }
@@ -248,7 +248,7 @@ extern bool ShaderTrace_Test13 (VulkanDeviceExt& vulkan, const TestHelpers &help
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, {vert_shader, frag_shader}, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugTraceOutput( helper, {vert_shader, frag_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

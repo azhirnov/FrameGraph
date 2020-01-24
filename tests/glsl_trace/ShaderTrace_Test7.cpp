@@ -54,7 +54,7 @@ void main ()
 	out_Level[I] = in_Level[I];
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT tessContShader, vulkan, {cont_shader_source}, EShLangTessControl, 0 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT tessContShader, vulkan, {cont_shader_source}, EShLangTessControl, ETraceMode::DebugTrace, 0 ));
 	}
 	
 	// create fragment shader
@@ -259,7 +259,7 @@ extern bool ShaderTrace_Test7 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, {cont_shader}, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugTraceOutput( helper, {cont_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

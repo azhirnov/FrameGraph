@@ -48,7 +48,7 @@ void main ()
 	imageStore( un_Output, ivec2(gl_LaunchIDNV), payload );
 }
 )#";
-		CHECK_ERR( shaderCompiler.Compile( OUT rayGenShader, vulkan, {rt_shader, raygen_shader_source}, EShLangRayGenNV, 1 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT rayGenShader, vulkan, {rt_shader, raygen_shader_source}, EShLangRayGenNV, ETraceMode::DebugTrace, 1 ));
 	}
 
 	// create ray miss shader
@@ -63,7 +63,7 @@ void main ()
 	payload = vec4( 0.412f, 0.796f, 1.0f, 1.0f );
 }
 )#";
-		CHECK_ERR( shaderCompiler.Compile( OUT rayMissShader, vulkan, {rt_shader, raymiss_shader_source}, EShLangMissNV, 1 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT rayMissShader, vulkan, {rt_shader, raymiss_shader_source}, EShLangMissNV, ETraceMode::DebugTrace, 1 ));
 	}
 
 	// create ray closest hit shader
@@ -80,7 +80,7 @@ void main ()
 	payload = vec4(barycentrics, 1.0);
 }
 )#";
-		CHECK_ERR( shaderCompiler.Compile( OUT rayClosestHitShader, vulkan, {rt_shader, closesthit_shader_source}, EShLangClosestHitNV, 1 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT rayClosestHitShader, vulkan, {rt_shader, closesthit_shader_source}, EShLangClosestHitNV, ETraceMode::DebugTrace, 1 ));
 	}
 	return true;
 }
@@ -425,7 +425,7 @@ extern bool ShaderTrace_Test14 (VulkanDeviceExt& vulkan, const TestHelpers &help
 		vulkan.vkFreeMemory( vulkan.GetVkDevice(), dev_memory, null );
 	}
 
-	CHECK_ERR( TestDebugOutput( helper, {raygen_shader, miss_shader, hit_shader}, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugTraceOutput( helper, {raygen_shader, miss_shader, hit_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

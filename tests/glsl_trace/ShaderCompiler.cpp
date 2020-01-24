@@ -15,8 +15,13 @@
 #include "SPIRV/GLSL.std.450.h"
 #include "StandAlone/ResourceLimits.cpp"
 #include "spirv-tools/libspirv.h"
-
 using namespace glslang;
+
+#ifdef FG_ENABLE_SPIRV_CROSS
+#	include "spirv_cross.hpp"
+#	include "spirv_msl.hpp"
+#	include "spirv_glsl.hpp"
+#endif
 
 
 ShaderCompiler::ShaderCompiler ()
@@ -43,6 +48,7 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 							   const VulkanDevice &		vulkan,
 							   ArrayView<const char *>	source,
 							   EShLanguage				shaderType,
+							   ETraceMode				mode,
 							   uint						dbgBufferSetIndex,
 							   EShTargetLanguageVersion	spvVersion)
 {
@@ -56,7 +62,7 @@ bool ShaderCompiler::Compile  (OUT VkShaderModule &		shaderModule,
 	shader_src.push_back( header.data() );
 	shader_src.insert( shader_src.end(), source.begin(), source.end() );
 
-	if ( not _Compile( OUT _tempBuf, OUT debug_info.get(), dbgBufferSetIndex, shader_src, shaderType, spvVersion ) )
+	if ( not _Compile( OUT _tempBuf, OUT debug_info.get(), dbgBufferSetIndex, shader_src, shaderType, mode, spvVersion, vulkan ))
 		return false;
 
 	VkShaderModuleCreateInfo	info = {};
@@ -83,7 +89,9 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 							   uint						dbgBufferSetIndex,
 							   ArrayView<const char *>	source,
 							   EShLanguage				shaderType,
-							   EShTargetLanguageVersion	spvVersion)
+							   ETraceMode				mode,
+							   EShTargetLanguageVersion	spvVersion,
+							   const VulkanDevice &		vulkan)
 {
 	EShMessages				messages		= EShMsgDefault;
 	TProgram				program;
@@ -117,8 +125,22 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 
 	if ( dbgInfo )
 	{
-		CHECK_ERR( dbgInfo->InsertTraceRecording( INOUT *intermediate, dbgBufferSetIndex ));
-		
+		switch ( mode )
+		{
+			case ETraceMode::DebugTrace :
+				CHECK_ERR( dbgInfo->InsertTraceRecording( INOUT *intermediate, dbgBufferSetIndex ));
+				break;
+
+			case ETraceMode::Performance :
+				CHECK_ERR( dbgInfo->InsertFunctionProfiler( INOUT *intermediate, dbgBufferSetIndex, true, true ));
+														    //vulkan.GetDeviceShaderClockFeatures().shaderSubgroupClock,
+														    //vulkan.GetDeviceShaderClockFeatures().shaderDeviceClock ));
+				break;
+
+			default :
+				RETURN_ERR( "unknown shader trace mode" );
+		}
+	
 		dbgInfo->SetSource( source.data(), null, source.size() );
 	}
 
@@ -128,45 +150,63 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 	spv_options.generateDebugInfo	= false;
 	spv_options.disableOptimizer	= true;
 	spv_options.optimizeSize		= false;
-	spv_options.validate			= true;
+	spv_options.validate			= false;
 		
 	spirvData.clear();
 	GlslangToSpv( *intermediate, OUT spirvData, &logger, &spv_options );
 
 	if ( spirvData.empty() )
 		return false;
-
+		
+#if 1
 	// disassemble
-	/*{
-		spv_context	ctx = spvContextCreate( SPV_ENV_VULKAN_1_1 );
+	if ( mode != ETraceMode::None )
+	{
+		spv_context	ctx = spvContextCreate( SPV_ENV_VULKAN_1_1_SPIRV_1_4 );
 		CHECK_ERR( ctx != null );
-
+				
 		spv_text		text		= null;
 		spv_diagnostic	diagnostic	= null;
 		std::string		disasm;
-
+		
 		if ( spvBinaryToText( ctx, spirvData.data(), spirvData.size(), 0, &text, &diagnostic ) == SPV_SUCCESS )
 		{
 			disasm = std::string{ text->str, text->length };
+			FG_LOGI( disasm );
 		}
 		
 		spvTextDestroy( text );
 		spvDiagnosticDestroy( diagnostic );
 		spvContextDestroy( ctx );
 	}
-
-	// to string
+#endif
+	
+#ifdef FG_ENABLE_SPIRV_CROSS
+	// decompile to GLSL
+	if ( mode != ETraceMode::None )
 	{
-		FGC::String	temp = "{";
-		for (auto& val : spirvData) {
-			temp << "0x" << ToString<16>( val ) << ", ";
-		}
+		spirv_cross::CompilerGLSL			compiler {spirvData.data(), spirvData.size()};
+		spirv_cross::CompilerGLSL::Options	opt = {};
 
-		temp.pop_back();
-		temp.pop_back();
-		temp << "};\n";
-		temp << "\n";
-	}*/
+		opt.version						= 460;
+		opt.es							= false;
+		opt.vulkan_semantics			= false;
+		opt.separate_shader_objects		= true;
+		opt.enable_420pack_extension	= true;
+
+		opt.vertex.fixup_clipspace		= false;
+		opt.vertex.flip_vert_y			= false;
+		opt.vertex.support_nonzero_base_instance = true;
+
+		opt.fragment.default_float_precision	= spirv_cross::CompilerGLSL::Options::Precision::Highp;
+		opt.fragment.default_int_precision		= spirv_cross::CompilerGLSL::Options::Precision::Highp;
+
+		compiler.set_common_options(opt);
+
+		std::string	glsl_src = compiler.compile();
+		FG_LOGI( glsl_src );
+	}
+#endif
 
 	return true;
 }

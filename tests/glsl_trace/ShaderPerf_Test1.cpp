@@ -2,6 +2,8 @@
 
 #include "ShaderTraceTestUtils.h"
 
+using namespace std::string_view_literals;
+
 /*
 =================================================
 	CompileShaders
@@ -13,31 +15,27 @@ static bool CompileShaders (VulkanDevice &vulkan, ShaderCompiler &shaderCompiler
 	{
 		static const char	vert_shader_source[] = R"#(
 const vec2	g_Positions[] = {
-	{-1.0f, -1.0f}, {-1.0f, 2.0f}, {2.0f, -1.0f},	// primitive 0
-	{-1.0f,  2.0f},									// primitive 1
-	{-2.0f,  0.0f}									// primitive 2
+	{-1.0f, -1.0f}, {-1.0f, 2.0f}, {2.0f, -1.0f},	// primitive 0 - must hit
+	{-1.0f,  2.0f},									// primitive 1 - miss
+	{-2.0f,  0.0f}									// primitive 2 - must hit
 };
 
-layout(location=0) out vec4  out_Position;
+layout(location = 0) out vec4  out_Position;
 
 layout(location=2) out VertOutput {
 	vec2	out_Texcoord;
 	vec4	out_Color;
 };
 
-void dbg_EnableTraceRecording (bool b) {}
-
 void main()
 {
-	dbg_EnableTraceRecording( gl_VertexIndex == 4 );
-
 	out_Position = vec4( g_Positions[gl_VertexIndex], float(gl_VertexIndex) * 0.01f, 1.0f );
 	gl_Position = out_Position;
 	out_Texcoord = g_Positions[gl_VertexIndex].xy * 0.5f + 0.5f;
 	out_Color = mix(vec4(1.0, 0.3, 0.0, 0.8), vec4(0.6, 0.9, 0.1, 1.0), float(gl_VertexIndex) / float(g_Positions.length()));
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex, ETraceMode::DebugTrace, 0 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT vertShader, vulkan, {vert_shader_source}, EShLangVertex ));
 	}
 
 	// create fragment shader
@@ -45,22 +43,48 @@ void main()
 		static const char	frag_shader_source[] = R"#(
 layout(location = 0) out vec4  out_Color;
 
+layout(location = 0) in vec4  in_Position;
+
+layout(location=2) in VertOutput {
+	vec2	in_Texcoord;
+	vec4	in_Color;
+};
+
+float Fn2 (int i, float x)
+{
+	return sin( x ) * float(i);
+}
+
+float Fn1 (const int i, in vec2 k)
+{
+	float f = 0.0f;
+	for (int j = 0; j < 10; ++j)
+	{
+		f += cos( 1.5432f * float(j) ) * Fn2( j, k[j&1] );
+
+		if ( j+i == 12 )
+			return f + 12.0f;
+	}
+	return f;
+}
+
 void main ()
 {
-	out_Color = gl_FragCoord;
+	float c = Fn1( 3, in_Texcoord.xy + in_Position.yx );
+	out_Color = vec4(c);
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment ));
+		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, ETraceMode::Performance, 0 ));
 	}
 	return true;
 }
 
 /*
 =================================================
-	ShaderTrace_Test5
+	ShaderPerf_Test1
 =================================================
 */
-extern bool ShaderTrace_Test5 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
+extern bool ShaderPerf_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helper)
 {
 	// create renderpass and framebuffer
 	uint			width = 16, height = 16;
@@ -78,7 +102,7 @@ extern bool ShaderTrace_Test5 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 
 	VkDescriptorSetLayout	ds_layout;
 	VkDescriptorSet			desc_set;
-	CHECK_ERR( CreateDebugDescriptorSet( vulkan, helper, VK_SHADER_STAGE_VERTEX_BIT, OUT ds_layout, OUT desc_set ));
+	CHECK_ERR( CreateDebugDescriptorSet( vulkan, helper, VK_SHADER_STAGE_FRAGMENT_BIT, OUT ds_layout, OUT desc_set ));
 
 	VkPipelineLayout	ppln_layout;
 	VkPipeline			pipeline;
@@ -108,7 +132,10 @@ extern bool ShaderTrace_Test5 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 	
 	// setup storage buffer
 	{
-		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, VK_WHOLE_SIZE, 0 );
+		const uint	data[] = { width/2, height/2 };		// selected pixel
+
+		vulkan.vkCmdFillBuffer( helper.cmdBuffer, helper.debugOutputBuf, sizeof(data), VK_WHOLE_SIZE, 0 );
+		vulkan.vkCmdUpdateBuffer( helper.cmdBuffer, helper.debugOutputBuf, 0, sizeof(data), data );
 	}
 
 	// debug output storage read/write after write
@@ -123,7 +150,7 @@ extern bool ShaderTrace_Test5 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		
-		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0,
+		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 									 0, null, 1, &barrier, 0, null);
 	}
 
@@ -175,7 +202,7 @@ extern bool ShaderTrace_Test5 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		
-		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+		vulkan.vkCmdPipelineBarrier( helper.cmdBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									 0, null, 1, &barrier, 0, null);
 	}
 
@@ -216,8 +243,12 @@ extern bool ShaderTrace_Test5 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugTraceOutput( helper, {vert_shader}, TEST_NAME + ".txt" ));
-
+	CHECK_ERR( TestPerformanceOutput( helper, {frag_shader}, {
+										"float Fn2 (int i, float x)"sv,
+										"float Fn1 (const int i, in vec2 k)"sv,
+										"void main ()"sv
+									 }));
+	
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;
 }
