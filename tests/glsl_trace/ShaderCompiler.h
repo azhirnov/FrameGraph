@@ -13,6 +13,13 @@ using namespace FGC;
 
 struct ShaderTrace;
 
+enum class ETraceMode
+{
+	None,
+	DebugTrace,
+	Performance,
+};
+
 
 class ShaderCompiler
 {
@@ -33,6 +40,7 @@ public:
 				  const VulkanDevice&		device,
 				  ArrayView<const char *>	source,
 				  EShLanguage				shaderType,
+				  ETraceMode				mode				= ETraceMode::None,
 				  uint						dbgBufferSetIndex	= ~0u,
 				  glslang::EShTargetLanguageVersion	spvVersion	= glslang::EShTargetSpv_1_3);
 
@@ -45,5 +53,7 @@ private:
 				   uint						dbgBufferSetIndex,
 				   ArrayView<const char *>	source,
 				   EShLanguage				shaderType,
-				   glslang::EShTargetLanguageVersion	spvVersion);
+				   ETraceMode				mode,
+				   glslang::EShTargetLanguageVersion	spvVersion,
+				   const VulkanDevice &		vulkan);
 };

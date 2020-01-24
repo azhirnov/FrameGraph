@@ -18,7 +18,7 @@ namespace FGC
 	{
 	// variables
 	private:
-		std::atomic<uint>			_count {0};
+		Atomic<uint>				_count {0};
 		StaticArray< T, Size >		_data;
 
 
@@ -71,7 +71,7 @@ namespace FGC
 
 	// variables
 	private:
-		std::atomic<uint>			_count {0};
+		Atomic<uint>			_count {0};
 		TupleOfArrays_t				_data;
 		static constexpr size_t		_tupleSize = std::tuple_size< TupleOfArrays_t >::value;
 

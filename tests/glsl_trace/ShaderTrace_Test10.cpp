@@ -51,7 +51,7 @@ void main ()
 		gl_PrimitiveCountNV = 3;
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT meshShader, vulkan, {mesh_shader_source}, EShLangMeshNV, 0 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT meshShader, vulkan, {mesh_shader_source}, EShLangMeshNV, ETraceMode::DebugTrace, 0 ));
 	}
 
 	// create fragment shader
@@ -237,7 +237,7 @@ extern bool ShaderTrace_Test10 (VulkanDeviceExt& vulkan, const TestHelpers &help
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, {mesh_shader}, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugTraceOutput( helper, {mesh_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

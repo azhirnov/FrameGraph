@@ -24,6 +24,10 @@
 #	include "spirv-tools/libspirv.h"
 #endif
 
+#if GLSLANG_PATCH_LEVEL < 3559
+#	error update glslang!
+#endif
+
 namespace FG
 {
 	
@@ -219,6 +223,17 @@ namespace FG
 	
 /*
 =================================================
+	SetShaderClockFeatures
+=================================================
+*/
+	void SpirvCompiler::SetShaderClockFeatures (bool shaderSubgroupClock, bool shaderDeviceClock)
+	{
+		_features.shaderSubgroupClock	= shaderSubgroupClock;
+		_features.shaderDeviceClock		= shaderDeviceClock;
+	}
+
+/*
+=================================================
 	Compile
 =================================================
 */
@@ -247,7 +262,7 @@ namespace FG
 
 		COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
 		
-		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnoations ))
+		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnotations ))
 		{
 			_ParseAnnotations( StringView{source}, INOUT outReflection );
 
@@ -264,35 +279,41 @@ namespace FG
 		EShLanguage					stage	 = glslang_data.shader->getStage();
 		glslang::TIntermediate&		interm	 = *glslang_data.prog.getIntermediate( stage );
 
-		switch ( dbg_mode )
+		if ( dbg_mode != EShaderLangFormat::Unknown )
 		{
-			case EShaderLangFormat::EnableDebugTrace :
-			{
-				DebugUtilsPtr	debug_utils	{new DebugUtils{ InPlaceIndex<ShaderTrace> }};
-				ShaderTrace&	trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
+			DebugUtilsPtr	debug_utils	{new DebugUtils{ InPlaceIndex<ShaderTrace> }};
+			ShaderTrace&	trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
 
-				trace.SetSource( source.c_str(), source.length() );
+			trace.SetSource( source.c_str(), source.length() );
 
-				for (auto& file : includer.GetIncludedFiles()) {
-					trace.IncludeSource( file.second->headerName.data(), file.second->GetSource().data(), file.second->GetSource().length() );
-				}
-
-				COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_DebugDescriptorSet ));
-
-				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
-
-				outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( StringView{entry}, std::move(spirv), debugName, std::move(debug_utils) ) });
-				break;
+			for (auto& file : includer.GetIncludedFiles()) {
+				trace.IncludeSource( file.second->headerName.data(), file.second->GetSource().data(), file.second->GetSource().length() );
 			}
-			//case EShaderLangFormat::EnableDebugAsserts :
-			//case EShaderLangFormat::EnableDebugView :
-			//case EShaderLangFormat::EnableProfiling :
-			//case EShaderLangFormat::EnableInstrCounter :
-			//	ASSERT( !"not supported yet" );
-			//	break;
 
-			case EShaderLangFormat::Unknown :
-				break;
+			switch ( dbg_mode )
+			{
+				case EShaderLangFormat::EnableDebugTrace :
+					COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_DebugDescriptorSet ));
+					break;
+
+				case EShaderLangFormat::EnableProfiling :
+					COMP_CHECK_ERR( trace.InsertFunctionProfiler( interm, FG_DebugDescriptorSet, _features.shaderSubgroupClock, _features.shaderDeviceClock ));
+					break;
+
+				//case EShaderLangFormat::EnableDebugAsserts :
+				//case EShaderLangFormat::EnableDebugView :
+				//case EShaderLangFormat::EnableInstrCounter :
+				//	ASSERT( !"not supported yet" );
+				//	break;
+
+				default :
+					FG_LOGI( "unsupported shader debug mode: 0x" + ToString<16>( dbg_mode ) );
+					break;
+			}
+
+			COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
+
+			outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( StringView{entry}, std::move(spirv), debugName, std::move(debug_utils) ) });
 		}
 		return true;
 	}
@@ -402,13 +423,32 @@ namespace FG
 			{
 				uint	dst_ver	= EShaderLangFormat_GetVersion( dstShaderFmt );
 				client			= EShClientVulkan;
-				client_version	= (dst_ver == 110 ? EShTargetVulkan_1_1 : EShTargetVulkan_1_0);
 				target			= EShTargetSpv;
-				target_version	= (dst_ver == 110 ? EShTargetSpv_1_3 : EShTargetSpv_1_0);
-				#ifdef ENABLE_OPT
-				_spirvTraget	= (dst_ver == 110 ? SPV_ENV_VULKAN_1_1 : SPV_ENV_VULKAN_1_0);
-				#endif
 				_targetVulkan	= true;
+
+				switch ( dst_ver )
+				{
+					case 100 :
+						client_version	= EShTargetVulkan_1_0;
+						target_version	= EShTargetSpv_1_0;
+						_spirvTraget	= SPV_ENV_VULKAN_1_0;
+						break;
+
+					case 110 :
+						client_version	= EShTargetVulkan_1_1;
+						target_version	= EShTargetSpv_1_3;
+						_spirvTraget	= SPV_ENV_VULKAN_1_1;
+						break;
+
+					case 120 :
+						client_version	= EShTargetVulkan_1_1;	// TODO
+						target_version	= EShTargetSpv_1_4;
+						_spirvTraget	= SPV_ENV_VULKAN_1_1_SPIRV_1_4;
+						break;
+
+					default :
+						RETURN_ERR( "Unsupported vulkan version: " + ToString(dst_ver) );
+				}
 				break;
 			}
 
@@ -1432,9 +1472,7 @@ namespace FG
 			case TBasicType::EbtSampler :
 			case TBasicType::EbtStruct :
 			case TBasicType::EbtBlock :
-			#ifdef NV_EXTENSIONS
 			case TBasicType::EbtAccStructNV :
-			#endif
 			case TBasicType::EbtString :
 			case TBasicType::EbtReference :
 			case TBasicType::EbtNumTypes :
@@ -1753,7 +1791,6 @@ namespace FG
 		}
 		
 		// acceleration structure
-		#ifdef NV_EXTENSIONS
 		if ( type.getBasicType() == TBasicType::EbtAccStructNV )
 		{
 			PipelineDescription::RayTracingScene	rt_scene;
@@ -1777,7 +1814,6 @@ namespace FG
 		{
 			return true;	// TODO
 		}
-		#endif
 
 		// uniform
 		if ( qual.storage == TStorageQualifier::EvqUniform )

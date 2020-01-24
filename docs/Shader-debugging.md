@@ -1,4 +1,7 @@
-Shader debugging supported only for GLSL source. But you can use SPIRV-Cross to convert SPIRV binary into GLSL source.<br/>
+Shader debugging and profiling supported only for GLSL source. But you can use SPIRV-Cross to convert SPIRV binary into GLSL source.<br/>
+
+## Shader debugging
+
 For each shader, that you want to debug, add `EnableDebugTrace` flag:
 ```cpp
 desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, ... );
@@ -76,3 +79,80 @@ no source
 ```
 
 The `//>` symbol marks the modified variable or function result.
+
+
+## Shader profiling
+
+For each shader, that you want to profile, add `EnableProfiling` flag:
+```cpp
+desc.AddShader( ... | EShaderLangFormat::EnableProfiling, ... );
+```
+Then setup debug callback:
+```cpp
+frameGraph.SetShaderDebugCallback( ... );
+```
+For task that you want to profile add one of this:
+```cpp
+// record if {thread_x, thread_y, thread_z} == gl_GlobalInvocationID
+DispatchCompute().EnableShaderProfiling({ thread_x, thread_y, thread_z });
+
+// record if {pixel_x, pixel_y} == gl_FragCoord.xy
+DrawIndexed().EnableFragmentProfiling( pixel_x, pixel_y );
+
+// record if {launch_x, launch_y, launch_z} == gl_LaunchIDNV
+TraceRays().EnableShaderProfiling({ launch_x, launch_y, launch_z });
+```
+Shader profiling will be recorded only for selected thread/pixel/launch.
+<br/>
+<br/>
+Aloso you can enable shader profiling during shader execution:
+```cpp
+desc.AddShader( ... | EShaderLangFormat::EnableProfiling, "main", R"#(
+    // empty function will be replaced during shader compilation
+    void dbg_EnableProfiling (bool b) {}
+    
+    void main ()
+    {
+        bool condition = ...
+        
+        // if condition is true then profiling will started here
+        dbg_EnableProfiling( condition );
+        ...
+    }
+)#" );
+
+// supports any shader stage
+DrawIndexed().EnableShaderProfiling( EShaderStages::Vertex | EShaderStages::Fragment );
+
+TraceRays().EnableShaderProfiling();
+
+DispatchCompute().EnableShaderProfiling();
+```
+
+Example of shader profiling output:
+```cpp
+//> gl_GlobalInvocationID: uint3 {512, 512, 0}
+//> gl_LocalInvocationID: uint3 {0, 0, 0}
+//> gl_WorkGroupID: uint3 {64, 64, 0}
+no source
+
+// subgroup total: 100.00%,  avr: 100.00%,  (95108.00)
+// device   total: 100.00%,  avr: 100.00%,  (2452.00)
+// invocations:    1
+106. void main ()
+
+// subgroup total: 89.57%,  avr: 89.57%,  (85192.00)
+// device   total: 89.56%,  avr: 89.56%,  (2196.00)
+// invocations:    1
+29. float FBM (in float3 coord)
+
+// subgroup total: 84.67%,  avr: 12.10%,  (11504.57)
+// device   total: 84.18%,  avr: 12.03%,  (294.86)
+// invocations:    7
+56. float GradientNoise (const float3 pos)
+
+// subgroup total: 45.15%,  avr: 0.81%,  (766.86)
+// device   total: 44.54%,  avr: 0.80%,  (19.50)
+// invocations:    56
+72. float3 DHash33 (const float3 p)
+```

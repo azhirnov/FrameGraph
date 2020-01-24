@@ -104,6 +104,7 @@ namespace FG
 		OpenCL_210			= (210 << _VersionOffset) | OpenCL,
 		Vulkan_100			= (100 << _VersionOffset) | Vulkan,
 		Vulkan_110			= (110 << _VersionOffset) | Vulkan,
+		Vulkan_120			= (120 << _VersionOffset) | Vulkan,
 		Software_100		= (100 << _VersionOffset) | Software,
 
 		// storage
@@ -131,7 +132,7 @@ namespace FG
 		EnableDebugTrace	= 1 << _ModeOffset,		// writes trace only for selected shader invocation (may be very slow)
 		//EnableDebugAsserts	= 2 << _ModeOffset,		// TODO: writes only shader unique invocation id in which assert was trigged
 		//EnableDebugView		= 3 << _ModeOffset,		// TODO: if assertion failed then writes specified value in separate image
-		//EnableProfiling		= 4 << _ModeOffset,		// TODO: use 'subgroupBallot' and 'timeAMD' to profile shaders
+		EnableProfiling		= 4 << _ModeOffset,		// writes shader function execution time for selected invocation.
 		//EnableInstrCounter	= 5 << _ModeOffset,		// TODO: writes count of instruction in shader invocation
 
 		// independent flags
@@ -155,10 +156,13 @@ namespace FG
 		GLSL_460		= OpenGL_460 | HighLevel,
 		VKSL_100		= Vulkan_100 | HighLevel,
 		VKSL_110		= Vulkan_110 | HighLevel,
+		VKSL_120		= Vulkan_120 | HighLevel,
 		SPIRV_100		= Vulkan_100 | SPIRV,
-		SPIRV_110		= Vulkan_110 | SPIRV,
+		SPIRV_110		= Vulkan_110 | SPIRV,			// SPIRV 1.3
+		SPIRV_120		= Vulkan_120 | SPIRV,			// SPIRV 1.4
 		VkShader_100	= Vulkan_100 | ShaderModule,
 		VkShader_110	= Vulkan_110 | ShaderModule,
+		VkShader_120	= Vulkan_120 | ShaderModule,
 	};
 	FG_BIT_OPERATORS( EShaderLangFormat );
 
@@ -167,9 +171,10 @@ namespace FG
 	{
 		None	= 0,
 		Trace,
-		Asserts,
-		View,
-		InstructionCounter,
+		Profiling,
+		//Asserts,
+		//View,
+		//InstructionCounter,
 		Unknown	= None,
 	};
 

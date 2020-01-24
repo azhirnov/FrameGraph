@@ -43,7 +43,7 @@ void main ()
 
 
 	const auto	old_flags = compiler->GetCompilationFlags();
-	compiler->SetCompilationFlags( old_flags | EShaderCompilationFlags::ParseAnnoations );
+	compiler->SetCompilationFlags( old_flags | EShaderCompilationFlags::ParseAnnotations );
 
 	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_100 ));
 	

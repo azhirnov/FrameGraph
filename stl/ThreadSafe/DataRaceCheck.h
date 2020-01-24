@@ -23,7 +23,7 @@ namespace FGC
 	{
 	// variables
 	private:
-		mutable std::atomic<size_t>		_state  { 0 };
+		mutable Atomic<size_t>		_state  { 0 };
 
 
 	// methods
@@ -62,7 +62,7 @@ namespace FGC
 	// variables
 	private:
 		mutable std::recursive_mutex	_lockWrite;
-		mutable std::atomic<int>		_readCounter { 0 };
+		mutable Atomic<int>				_readCounter { 0 };
 
 
 	// methods

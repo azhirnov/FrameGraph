@@ -48,7 +48,9 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 							OUT VkBuffer &shaderBindingTable, OUT VkDeviceMemory &outMemory,
 							OUT VkAccelerationStructureNV &topLevelAS, OUT VkAccelerationStructureNV &bottomLevelAS);
 
-bool TestDebugOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modules, StringView referenceFile);
+bool TestDebugTraceOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modules, StringView referenceFile);
+
+bool TestPerformanceOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modules, ArrayView<StringView> fnNames);
 
 
 inline String  _GetFuncName (StringView src)

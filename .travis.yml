@@ -2,37 +2,37 @@ language: cpp
 matrix:
   include:
     # Linux GCC x64
-    - os: linux
-      name: linux 64
-      dist: trusty
-      compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - xorg-dev
-            - g++-8
-      before_install:
-        - eval "CC=gcc-8 && CXX=g++-8"
-        # Download and install cmake
-        - mkdir $HOME/cmake;
-        - export PATH="$HOME/cmake/bin:$PATH";
-        - travis_retry wget -q https://cmake.org/files/v3.15/cmake-3.15.1-Linux-x86_64.sh;
-        - sh cmake-3.15.1-Linux-x86_64.sh --prefix=$HOME/cmake --exclude-subdir --skip-license;
-      script:
-        - mkdir -p build
-        - cd build
-        - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
-        - cmake --build . --config Release
-        - ctest --verbose
+    #- os: linux
+    #  name: linux 64
+    #  dist: trusty
+    #  compiler: gcc
+    #  addons:
+    #    apt:
+    #      sources:
+    #        - ubuntu-toolchain-r-test
+    #      packages:
+    #        - xorg-dev
+    #        - g++-8
+    #  before_install:
+    #    - eval "CC=gcc-8 && CXX=g++-8"
+    #    # Download and install cmake
+    #    - mkdir $HOME/cmake;
+    #    - export PATH="$HOME/cmake/bin:$PATH";
+    #    - travis_retry wget -q https://cmake.org/files/v3.15/cmake-3.15.1-Linux-x86_64.sh;
+    #    - sh cmake-3.15.1-Linux-x86_64.sh --prefix=$HOME/cmake --exclude-subdir --skip-license;
+    #  script:
+    #    - mkdir -p build
+    #    - cd build
+    #    - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
+    #    - cmake --build . --config Release
+    #    - ctest --verbose
      
     # Windows MSVC x86
     - os: windows
       name: win32
       before_install:
-        - choco install python2
-        - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
+        - choco install python3
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
       script:
         - mkdir -p build
         - cd build
@@ -44,8 +44,8 @@ matrix:
     - os: windows
       name: win64
       before_install:
-        - choco install python2
-        - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
+        - choco install python3
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
       script:
         - mkdir -p build
         - cd build
@@ -54,14 +54,14 @@ matrix:
         - ctest -C Release --verbose
       
     # Windows MSVC x64 Debug
-    - os: windows
-      name: win64 debug
-      before_install:
-        - choco install python2
-        - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
-      script:
-        - mkdir -p build
-        - cd build
-        - cmake -G "Visual Studio 15 2017 Win64" -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
-        - travis_wait 40 cmake --build . --config Debug
-        - ctest -C Debug --verbose
+    #- os: windows
+    #  name: win64 debug
+    #  before_install:
+    #    - choco install python3
+    #    - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+    #  script:
+    #    - mkdir -p build
+    #    - cd build
+    #    - cmake -G "Visual Studio 15 2017 Win64" -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
+    #    - travis_wait 40 cmake --build . --config Debug
+    #    - ctest -C Debug --verbose

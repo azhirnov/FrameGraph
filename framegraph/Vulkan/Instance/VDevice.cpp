@@ -64,7 +64,8 @@ namespace FG
 			if ( major == 1 )
 			{
 				if ( minor == 0 )	_vkVersion = EShaderLangFormat::Vulkan_100;	else
-				if ( minor == 1 )	_vkVersion = EShaderLangFormat::Vulkan_110;
+				if ( minor == 1 )	_vkVersion = EShaderLangFormat::Vulkan_110;	else
+				if ( minor == 2 )	_vkVersion = EShaderLangFormat::Vulkan_120;
 			}
 			CHECK( _vkVersion != EShaderLangFormat::Unknown );
 		}

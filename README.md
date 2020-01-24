@@ -12,6 +12,7 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 * glsl debugging.
 * supports RTX extensions.
 * supports async compute and async transfer queues.
+* all render tasks are stateless.
 
 ## Samples
 [FrameGraph-Samples](https://github.com/azhirnov/FrameGraph-Samples)
@@ -24,7 +25,7 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 * [Porting from OpenGL](docs/Porting-from-OpenGL.md)
 * [Porting from Vulkan](docs/Porting-from-Vulkan.md)
 * [Extensions overview](extensions/Readme.md)
-* [Shader debugging](docs/Shader-debugging.md)
+* [Shader debugging and profiling](docs/Shader-debugging.md)
 * [Graph visualization](docs/Graph-visualization.md)
 * [Roadmap](docs/Roadmap.md)
 
@@ -55,6 +56,7 @@ Dependencies:<br/>
 [imgui](https://github.com/ocornut/imgui) - (optional) for UI extension.<br/>
 [OpenVR](https://github.com/ValveSoftware/openvr) - (optional) for VR support.<br/>
 [GLM](https://glm.g-truc.net/0.9.9/index.html) - (optional) for Scene extension.<br/>
+[ffmpeg](https://www.ffmpeg.org/) - (optional) for video recording.<br/>
 
 
 ## References
@@ -62,3 +64,4 @@ Dependencies:<br/>
 2. [Handles vs pointers](https://floooh.github.io/2018/06/17/handles-vs-pointers.html)<br/>
 3. [Porting engine to vulkan](https://gpuopen.com/presentation-porting-engine-to-vulkan-dx12/).<br/>
 4. [FrameGraph from Ubisoft](https://developer.download.nvidia.com/assets/gameworks/downloads/regular/GDC17/DX12CaseStudies_GDC2017_FINAL.pdf)
+5. [RenderGraph from EA](https://www.khronos.org/assets/uploads/developers/library/2019-reboot-develop-blue/SEED-EA_Rapid-Innovation-Using-Modern-Graphics_Apr19.pdf)

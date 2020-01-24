@@ -17,6 +17,7 @@ extern bool ShaderTrace_Test12 (VulkanDeviceExt& vulkan, const TestHelpers &help
 extern bool ShaderTrace_Test13 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 extern bool ShaderTrace_Test14 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 
+extern bool ShaderPerf_Test1 (VulkanDeviceExt& vulkan, const TestHelpers &helper);
 
 /*
 =================================================
@@ -30,12 +31,12 @@ int main ()
 	// create vulkan device
 	{
 		CHECK_ERR( vulkan.Create( "GLSL debugger unit tests", "",
-								  VK_API_VERSION_1_1,
+								  VK_API_VERSION_1_2,
 								  "",
 								  {{ VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.0f }},
 								  VulkanDevice::GetRecomendedInstanceLayers(),
 								  VulkanDevice::GetRecomendedInstanceExtensions(),
-								  VulkanDevice::GetAllDeviceExtensions()
+								  VulkanDevice::GetAllDeviceExtensions_v110()
 			));
 		vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 	}
@@ -160,6 +161,13 @@ int main ()
 		passed &= ShaderTrace_Test13( vulkan, helper );
 		passed &= ShaderTrace_Test14( vulkan, helper );
 	}
+	
+# ifdef VK_KHR_shader_clock
+	if ( vulkan.HasDeviceExtension( VK_KHR_SHADER_CLOCK_EXTENSION_NAME ))
+	{
+		passed &= ShaderPerf_Test1( vulkan, helper );
+	}
+# endif	// VK_KHR_shader_clock
 
 	// destroy all
 	{

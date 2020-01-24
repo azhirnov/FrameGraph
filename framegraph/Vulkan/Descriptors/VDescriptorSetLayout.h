@@ -38,7 +38,7 @@ namespace FG
 		uint					_dynamicOffsetCount	= 0;
 		DynamicDataPtr			_resourcesTemplate;
 
-		mutable SpinLock		_descSetCacheGuard;
+		mutable Mutex			_descSetCacheGuard;
 		mutable DescSetCache_t	_descSetCache;
 
 		DebugName_t				_debugName;

@@ -11,6 +11,7 @@ if (${FG_ENABLE_GLSLANG})
 	set_property( TARGET "Tests.GLSLTrace" PROPERTY FOLDER "Tests" )
 	target_link_libraries( "Tests.GLSLTrace" "GLSLTrace" )
 	target_link_libraries( "Tests.GLSLTrace" "Framework" )
+	#target_link_libraries( "Tests.GLSLTrace" "SPIRV-Cross-lib" )
 	target_compile_definitions( "Tests.GLSLTrace" PUBLIC "FG_DATA_PATH=R\"(${CMAKE_CURRENT_SOURCE_DIR}/ref/)\"" )
 	
 	if (NOT FG_CI_BUILD)

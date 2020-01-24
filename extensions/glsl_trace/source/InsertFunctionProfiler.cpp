@@ -1,8 +1,12 @@
 // Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	docs:
+	https://github.com/KhronosGroup/GLSL/blob/master/extensions/ext/GL_EXT_shader_realtime_clock.txt
+	https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_shader_clock.txt
+	https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/vkspec.html#VK_KHR_shader_clock
+*/
 
 #include "Common.h"
-
-#define HIGH_DETAIL_TRACE
 
 // glslang includes
 #include "glslang/Include/revision.h"
@@ -12,7 +16,12 @@
 using namespace glslang;
 using VariableID = ShaderTrace::VariableID;
 
-namespace {
+namespace
+{
+	//
+	// Debug Info
+	//
+
 	struct DebugInfo
 	{
 	public:
@@ -23,7 +32,7 @@ namespace {
 
 		struct StackFrame
 		{
-			TIntermNode*		node;
+			TIntermNode*		node			= nullptr;
 			SrcLoc				loc;
 		};
 
@@ -66,11 +75,16 @@ namespace {
 		using StructFieldMap_t		= std::unordered_map< FieldInfo, VariableInfo, FieldInfoHash >;
 		using CallStack_t			= std::vector< StackFrame >;
 		using FileMap_t				= std::unordered_map< std::string, uint32_t >;
+		using StartTimeStack_t		= std::vector< TIntermSymbol* >;
+		using StartTimeNodes_t		= std::vector< TIntermSymbol* >;
+
+		static constexpr int	InvalidSymbolID = -1;
 
 
 	public:
 		CallStack_t				_callStack;
-		TIntermTyped *			_injection		= nullptr;
+		StartTimeStack_t		_startTimeStack;
+		StartTimeNodes_t		_uniqueStartTimes;
 
 		RequiredFunctions_t		_requiredFunctions;
 		CachedSymbols_t			_cachedSymbols;
@@ -80,9 +94,13 @@ namespace {
 		FnCallMap_t				_fnCallMap;
 		StructFieldMap_t		_fieldMap;
 
-		int						_maxSymbolId	= 0;
+		int						_maxSymbolId				= 0;
+		bool					_startedUserDefinedSymbols	= false;
 
-		TIntermSymbol *			_dbgStorage		= nullptr;
+		bool					_shaderSubgroupClock		= false;
+		bool					_shaderDeviceClock			= false;
+
+		TIntermSymbol *			_dbgStorage					= nullptr;
 
 		FileMap_t const&		_includedFilesMap;
 
@@ -90,8 +108,10 @@ namespace {
 
 
 	public:
-		DebugInfo (EShLanguage shLang, OUT ExprInfos_t &exprLoc, const FileMap_t &includedFiles) :
+		DebugInfo (EShLanguage shLang, OUT ExprInfos_t &exprLoc, const FileMap_t &includedFiles, bool shaderSubgroupClock, bool shaderDeviceClock) :
 			_exprLocations{ exprLoc },
+			_shaderSubgroupClock{ shaderSubgroupClock },
+			_shaderDeviceClock{ shaderDeviceClock },
 			_includedFilesMap{ includedFiles },
 			_shLang{ shLang }
 		{}
@@ -99,14 +119,17 @@ namespace {
 		void Enter (TIntermNode* node);
 		void Leave (TIntermNode* node);
 
+		bool PushStartTime (TIntermSymbol* node);
+		bool PopStartTime ();
+		TIntermSymbol*  GetStartTime ();
+		TIntermSymbol*	CreateStartTimeSymbolNode ();
+
 		CallStack_t const&	GetCallStack ()			const				{ return _callStack; }
 		TIntermAggregate*	GetCurrentFunction ();
 
-		TIntermTyped*	GetInjection ();
-		void			InjectNode (TIntermTyped *node);
-
 		uint32_t		GetSourceLocation (TIntermNode* node, const TSourceLoc &curr);
 		uint32_t		GetCustomSourceLocation (TIntermNode* node, const TSourceLoc &curr);
+		uint32_t		GetCustomSourceLocation2 (TIntermNode* node, const TSourceLoc &begin, const TSourceLoc &end);
 
 		SrcLoc const&	GetCurrentLocation () const						{ return _callStack.back().loc; }
 		void			AddLocation (const TSourceLoc &loc);
@@ -115,14 +138,13 @@ namespace {
 		void						RequestFunc (const TString &fname)	{ _requiredFunctions.insert( fname ); }
 		RequiredFunctions_t const&	GetRequiredFunctions ()		const	{ return _requiredFunctions; }
 
-		void			AddSymbol (TIntermSymbol* node);
-		int				GetUniqueSymbolID ()							{ return ++_maxSymbolId; }
+		void			AddSymbol (TIntermSymbol* node, bool isUserDefined);
+		int				GetUniqueSymbolID ();
 
-
-		void CacheSymbolNode (TIntermSymbol* node)
+		void CacheSymbolNode (TIntermSymbol* node, bool isUserDefined)
 		{
 			_cachedSymbols.insert({ node->getName(), node });
-			AddSymbol( node );
+			AddSymbol( node, isUserDefined );
 		}
 
 		TIntermSymbol*  GetCachedSymbolNode (const TString &name)
@@ -137,6 +159,7 @@ namespace {
 		TIntermBinary*  GetDebugStorageField (const char* name)	const;
 	
 
+		bool			UpdateSymbolIDs ();
 		bool			PostProcess (OUT VarNames_t &);
 
 		EShLanguage		GetShaderType ()	const						{ return _shLang; }
@@ -146,23 +169,51 @@ namespace {
 		void		_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint32_t &swizzle);
 		uint32_t	_GetSourceId (const TSourceLoc &) const;
 	};
-}
+
+
+	struct FunctionScope
+	{
+		DebugInfo &						_info;
+		TIntermNode *					_node;
+		ShaderTrace::SourceLocation		_location;
+		bool							_hasLocation = false;
+
+		FunctionScope (TIntermNode* node, DebugInfo &info) : _info{info}, _node{node}
+		{
+			_info.Enter( _node );
+		}
+
+		~FunctionScope ()
+		{
+			_info.Leave( _node );
+			
+			// propagate source location to root
+			if ( _hasLocation )
+				_info.AddLocation( _location );
+		}
+
+		void SetLoc (const ShaderTrace::SourceLocation &loc)
+		{
+			_location		= loc;
+			_hasLocation	= true;
+		}
+	};
 //-----------------------------------------------------------------------------
 
 
 
-static bool RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo);
-static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT uint64_t &posOffset, OUT uint64_t &dataOffset);
-static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo);
-static bool CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPosition, DebugInfo &dbgInfo);
-static TIntermAggregate*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo);
+bool RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo);
+void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT uint64_t &posOffset, OUT uint64_t &dataOffset);
+void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo);
+bool CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPosition, DebugInfo &dbgInfo);
+TIntermAggregate*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo);
 
 /*
 =================================================
 	CombineHash
 =================================================
 */
-inline size_t CombineHash (size_t lhs, size_t rhs)
+inline size_t  CombineHash (size_t lhs, size_t rhs)
 {
 	const size_t	mask	= (sizeof(lhs)*8 - 1);
 	size_t			shift	= 4;
@@ -173,45 +224,10 @@ inline size_t CombineHash (size_t lhs, size_t rhs)
 
 /*
 =================================================
-	InsertTraceRecording
-=================================================
-*/
-bool ShaderTrace::InsertTraceRecording (TIntermediate &intermediate, uint32_t setIndex)
-{
-	DebugInfo		dbg_info{ intermediate.getStage(), OUT _exprLocations, _fileMap };
-
-	TIntermNode*	root = intermediate.getTreeRoot();
-	CHECK_ERR( root );
-
-	_initialPosition = uint32_t(CombineHash( std::hash<void*>{}( this ), setIndex+1 ));
-	ASSERT( _initialPosition != 0 );
-	_initialPosition |= 0x80000000u;
-
-	CreateShaderDebugStorage( setIndex, dbg_info, OUT _posOffset, OUT _dataOffset );
-
-	dbg_info.Enter( root );
-	{
-		CHECK_ERR( RecursiveProcessNode( root, dbg_info ));
-		CHECK( not dbg_info.GetInjection() );
-
-		CreateShaderBuiltinSymbols( root, dbg_info );
-
-		CHECK_ERR( CreateDebugTraceFunctions( root, _initialPosition, dbg_info ));
-	}
-	dbg_info.Leave( root );
-	dbg_info.PostProcess( OUT _varNames );
-	return true;
-}
-//-----------------------------------------------------------------------------
-
-
-
-/*
-=================================================
 	Enter
 =================================================
 */
-void DebugInfo::Enter (TIntermNode* node)
+void  DebugInfo::Enter (TIntermNode* node)
 {
 	CHECK( node );
 
@@ -229,10 +245,68 @@ void DebugInfo::Enter (TIntermNode* node)
 	Leave
 =================================================
 */
-void DebugInfo::Leave (TIntermNode* node)
+void  DebugInfo::Leave (TIntermNode* node)
 {
 	CHECK( _callStack.back().node == node );
 	_callStack.pop_back();
+}
+
+/*
+=================================================
+	PushStartTime
+=================================================
+*/
+bool  DebugInfo::PushStartTime (TIntermSymbol* node)
+{
+	CHECK_ERR( node );
+
+	_startTimeStack.push_back( node );
+	return true;
+}
+
+/*
+=================================================
+	PopStartTime
+=================================================
+*/
+bool  DebugInfo::PopStartTime ()
+{
+	CHECK_ERR( _startTimeStack.size() );
+
+	_startTimeStack.pop_back();
+	return true;
+}
+
+/*
+=================================================
+	GetStartTime
+=================================================
+*/
+TIntermSymbol*  DebugInfo::GetStartTime ()
+{
+	CHECK_ERR( _startTimeStack.size() );
+
+	return _startTimeStack.back();
+}
+
+/*
+=================================================
+	CreateStartTimeSymbolNode
+=================================================
+*/
+TIntermSymbol*	DebugInfo::CreateStartTimeSymbolNode ()
+{
+	TPublicType			uint_type;	uint_type.init({});
+	uint_type.basicType				= TBasicType::EbtUint;
+	uint_type.vectorSize			= 4;
+	uint_type.qualifier.storage		= TStorageQualifier::EvqTemporary;
+	uint_type.qualifier.precision	= TPrecisionQualifier::EpqHigh;
+
+	TIntermSymbol*	node = new TIntermSymbol{ InvalidSymbolID, TString{"dbg_StartTime_"} + std::to_string(_uniqueStartTimes.size()).c_str(), TType{uint_type} };
+
+	_uniqueStartTimes.push_back( node );
+
+	return node;
 }
 
 /*
@@ -254,32 +328,6 @@ TIntermAggregate*  DebugInfo::GetCurrentFunction ()
 
 /*
 =================================================
-	GetInjection
-=================================================
-*/
-TIntermTyped*  DebugInfo::GetInjection ()
-{
-	auto	temp = _injection;
-	_injection = nullptr;
-	return temp;
-}
-
-/*
-=================================================
-	InjectNode
-=================================================
-*/
-void DebugInfo::InjectNode (TIntermTyped *node)
-{
-	if ( not node )
-		return;
-
-	CHECK( not _injection );
-	_injection = node;
-}
-
-/*
-=================================================
 	GetSourceLocation
 =================================================
 */
@@ -296,8 +344,8 @@ uint32_t  DebugInfo::GetSourceLocation (TIntermNode* node, const TSourceLoc &cur
 	ASSERT( range.sourceId != ~0u );
 	ASSERT( range.sourceId == src_id );
 	
-	range.begin.value = Min( range.begin.value,	point.value );
-	range.end.value   = Max( range.end.value,   point.value );
+	range.begin.value = std::min( range.begin.value, point.value );
+	range.end.value   = std::max( range.end.value,   point.value );
 
 	_exprLocations.push_back({ id, swizzle, range, point, {} });
 	return uint32_t(_exprLocations.size()-1);
@@ -323,15 +371,40 @@ uint32_t  DebugInfo::GetCustomSourceLocation (TIntermNode* node, const TSourceLo
 
 /*
 =================================================
+	GetCustomSourceLocation2
+=================================================
+*/
+uint32_t  DebugInfo::GetCustomSourceLocation2 (TIntermNode* node, const TSourceLoc &begin, const TSourceLoc &end)
+{
+	VariableID	id;
+	uint32_t	swizzle;
+	_GetVariableID( node, OUT id, OUT swizzle );
+
+	SrcLoc	range { 0, uint32_t(begin.line), uint32_t(begin.column) };
+	SrcLoc	range2{ 0, uint32_t(end.line),   uint32_t(end.column)   };
+	range.sourceId  = _GetSourceId( begin );
+	range2.sourceId = _GetSourceId( end );
+	
+	ASSERT( range.sourceId == range2.sourceId );
+
+	range.begin.value = std::min( range.begin.value, range2.begin.value );
+	range.end.value   = std::max( range.end.value,   range2.end.value );
+
+	_exprLocations.push_back({ id, swizzle, range, range.begin, {} });
+	return uint32_t(_exprLocations.size()-1);
+}
+
+/*
+=================================================
 	AddLocation
 =================================================
 */
-void DebugInfo::AddLocation (const TSourceLoc &loc)
+void  DebugInfo::AddLocation (const TSourceLoc &loc)
 {
 	return AddLocation({ _GetSourceId( loc ), uint32_t(loc.line), uint32_t(loc.column) });
 }
 
-void DebugInfo::AddLocation (const SrcLoc &src)
+void  DebugInfo::AddLocation (const SrcLoc &src)
 {
 	if ( _callStack.empty() )
 		return;
@@ -345,8 +418,8 @@ void DebugInfo::AddLocation (const SrcLoc &src)
 	}
 
 	CHECK( src.sourceId == dst.sourceId );
-	dst.begin.value = Min( dst.begin.value,	src.begin.value );
-	dst.end.value	= Max( dst.end.value,	src.end.value );
+	dst.begin.value = std::min( dst.begin.value, src.begin.value );
+	dst.end.value	= std::max( dst.end.value,	 src.end.value );
 }
 
 /*
@@ -354,7 +427,7 @@ void DebugInfo::AddLocation (const SrcLoc &src)
 	SetDebugStorage
 =================================================
 */
-bool DebugInfo::SetDebugStorage (TIntermSymbol* symb)
+bool  DebugInfo::SetDebugStorage (TIntermSymbol* symb)
 {
 	if ( _dbgStorage )
 		return true;
@@ -400,9 +473,11 @@ TIntermBinary*  DebugInfo::GetDebugStorageField (const char* name) const
 	AddSymbol
 =================================================
 */
-void DebugInfo::AddSymbol (TIntermSymbol* node)
+void  DebugInfo::AddSymbol (TIntermSymbol* node, bool isUserDefined)
 {
 	ASSERT( node );
+	ASSERT( isUserDefined or not _startedUserDefinedSymbols );
+
 	_maxSymbolId = Max( _maxSymbolId, node->getId() );
 
 	// register symbol
@@ -413,10 +488,21 @@ void DebugInfo::AddSymbol (TIntermSymbol* node)
 
 /*
 =================================================
+	GetUniqueSymbolID
+=================================================
+*/
+int  DebugInfo::GetUniqueSymbolID ()
+{
+	_startedUserDefinedSymbols = true;
+	return ++_maxSymbolId;
+}
+
+/*
+=================================================
 	TSourceLoc::operator ==
 =================================================
 */
-inline bool operator == (const TSourceLoc &lhs, const TSourceLoc &rhs)
+inline bool  operator == (const TSourceLoc &lhs, const TSourceLoc &rhs)
 {
 	if ( lhs.name != rhs.name )
 	{
@@ -431,12 +517,12 @@ inline bool operator == (const TSourceLoc &lhs, const TSourceLoc &rhs)
 			lhs.column	== rhs.column;
 }
 
-inline bool operator != (const TSourceLoc &lhs, const TSourceLoc &rhs)
+inline bool  operator != (const TSourceLoc &lhs, const TSourceLoc &rhs)
 {
 	return not (lhs == rhs);
 }
 
-inline bool operator < (const TSourceLoc &lhs, const TSourceLoc &rhs)
+inline bool  operator < (const TSourceLoc &lhs, const TSourceLoc &rhs)
 {
 	if ( lhs.name != rhs.name )
 	{
@@ -458,13 +544,8 @@ inline bool operator < (const TSourceLoc &lhs, const TSourceLoc &rhs)
 	IsBuiltinFunction
 =================================================
 */
-inline bool IsBuiltinFunction (TOperator op)
+inline bool  IsBuiltinFunction (TOperator op)
 {
-#if 0 //def HIGH_DETAIL_TRACE
-	if ( op > TOperator::EOpPreDecrement and op < TOperator::EOpAdd )
-		return true;
-#endif
-
 	return	(op > TOperator::EOpRadians			and op < TOperator::EOpKill)	or
 			(op > TOperator::EOpArrayLength		and op < TOperator::EOpClip);
 }
@@ -474,14 +555,14 @@ inline bool IsBuiltinFunction (TOperator op)
 	IsDebugFunction
 =================================================
 */
-inline bool IsDebugFunction (TIntermOperator* node)
+inline bool  IsDebugFunction (TIntermOperator* node)
 {
 	auto*	aggr = node->getAsAggregate();
 
 	if ( not (aggr and aggr->getOp() == TOperator::EOpFunctionCall) )
 		return false;
 
-	return aggr->getName().rfind( "dbg_EnableTraceRecording", 0 ) == 0;
+	return aggr->getName().rfind( "dbg_EnableProfiling", 0 ) == 0;
 }
 
 /*
@@ -489,7 +570,7 @@ inline bool IsDebugFunction (TIntermOperator* node)
 	GetFunctionName
 =================================================
 */
-static std::string  GetFunctionName (TIntermOperator *op)
+std::string  GetFunctionName (TIntermOperator *op)
 {
 	if ( TIntermAggregate* aggr = op->getAsAggregate(); aggr and aggr->getOp() == TOperator::EOpFunctionCall )
 	{
@@ -497,23 +578,9 @@ static std::string  GetFunctionName (TIntermOperator *op)
 		return pos != TString::npos ? aggr->getName().substr( 0, pos ).c_str() : aggr->getName().c_str();
 	}
 
-#ifdef HIGH_DETAIL_TRACE
-	std::string	suffix;
-	if ( op->getOp() >= TOperator::EOpConvInt8ToBool and op->getOp() <= TOperator::EOpConvDoubleToFloat )
-	{
-		TType const&	type = op->getType();
-
-		if ( type.isVector() )
-			suffix = "vec" + std::to_string( type.getVectorSize() );
-		else
-		if ( type.isMatrix() )
-			suffix = "mat" + std::to_string( type.getMatrixCols() ) + "x" + std::to_string( type.getMatrixRows() );
-	}
-#endif
-
 	switch ( op->getOp() )
 	{
-#	if 0 //def HIGH_DETAIL_TRACE
+#	if 0
 		case TOperator::EOpConvInt8ToBool :
 		case TOperator::EOpConvUint8ToBool :
 		case TOperator::EOpConvInt16ToBool :
@@ -657,7 +724,7 @@ static std::string  GetFunctionName (TIntermOperator *op)
 		case TOperator::EOpConvUint64ToDouble :
 		case TOperator::EOpConvFloat16ToDouble :
 		case TOperator::EOpConvFloatToDouble : return suffix.size() ? "d" + suffix : "double";
-#	endif	// HIGH_DETAIL_TRACE
+#	endif
 #	if 0
 		case TOperator::EOpAssign : return "=";
 		case TOperator::EOpAddAssign : return "+=";
@@ -1101,7 +1168,7 @@ inline size_t  DebugInfo::FieldInfoHash::operator () (const FieldInfo &value) co
 	GetVectorSwizzleMask
 =================================================
 */
-static uint32_t  GetVectorSwizzleMask (TIntermBinary* binary)
+uint32_t  GetVectorSwizzleMask (TIntermBinary* binary)
 {
 	std::vector<uint32_t>		sw_mask;
 	std::vector<TIntermBinary*>	swizzle_op;		swizzle_op.push_back( binary );
@@ -1171,35 +1238,10 @@ static uint32_t  GetVectorSwizzleMask (TIntermBinary* binary)
 
 /*
 =================================================
-	GetStructFieldInfo
-=================================================
-*/
-static bool  GetStructFieldInfo (TIntermBinary* binary, OUT DebugInfo::FieldInfo &result, OUT TString &name)
-{
-	ASSERT( binary and binary->getOp() == TOperator::EOpIndexDirectStruct );
-
-	TIntermSymbol*			symb	= binary->getLeft()->getAsSymbolNode();
-	TIntermConstantUnion*	cu		= binary->getRight()->getAsConstantUnion();
-
-	CHECK_ERR( symb );
-	CHECK_ERR( cu and cu->getConstArray().size() and cu->getConstArray()[0].getType() == TBasicType::EbtInt );
-
-	result.baseId		= symb->getId();
-	result.fieldIndex	= cu->getConstArray()[0].getIConst();
-
-	auto*	fields = symb->getType().getStruct();
-	CHECK_ERR( fields and result.fieldIndex < int(fields->size()) );
-
-	name = (symb->getName().rfind("anon@", 0) == 0 ? "" : symb->getName() + ".") + (*fields)[result.fieldIndex].type->getFieldName();
-	return true;
-}
-
-/*
-=================================================
 	_GetVariableID
 =================================================
 */
-void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint32_t &swizzle)
+void  DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint32_t &swizzle)
 {
 	CHECK_ERR( node, void());
 
@@ -1210,6 +1252,9 @@ void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint3
 
 	if ( TIntermSymbol* symb = node->getAsSymbolNode() )
 	{
+		if ( symb->getId() == InvalidSymbolID )
+			return;
+
 		auto	iter = _varInfos.find( symb->getId() );
 		if ( iter == _varInfos.end() )
 			iter = _varInfos.insert({ symb->getId(), VariableInfo{new_id, symb->getName().c_str(), {}} }).first;
@@ -1261,23 +1306,6 @@ void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint3
 		else
 		if ( binary->getOp() == TOperator::EOpIndexDirectStruct )
 		{
-			// TODO
-			/*FieldInfo	field;
-			TString		name;
-			if ( GetStructFieldInfo( binary, OUT field, OUT name ))
-			{
-				auto	iter = _fieldMap.find( field );
-				if ( iter == _fieldMap.end() )
-					iter = _fieldMap.insert({ field, VariableInfo{new_id, name.c_str(), {}} }).first;
-
-				auto&	locations = iter->second.locations;
-
-				if ( locations.empty() or locations.back() != node->getLoc() )
-					locations.push_back( node->getLoc() );
-
-				id = iter->second.id;
-				return;
-			}*/
 			return; // temp
 		}
 		else
@@ -1317,7 +1345,7 @@ void DebugInfo::_GetVariableID (TIntermNode* node, OUT VariableID &id, OUT uint3
 	_GetSourceId
 =================================================
 */
-uint32_t DebugInfo::_GetSourceId (const TSourceLoc &loc) const
+uint32_t  DebugInfo::_GetSourceId (const TSourceLoc &loc) const
 {
 	if ( loc.name )
 	{
@@ -1329,6 +1357,23 @@ uint32_t DebugInfo::_GetSourceId (const TSourceLoc &loc) const
 	}
 	else
 		return loc.string;
+}
+
+/*
+=================================================
+	UpdateSymbolIDs
+=================================================
+*/
+bool  DebugInfo::UpdateSymbolIDs ()
+{
+	for (auto* symb : _uniqueStartTimes)
+	{
+		if ( symb->getId() == InvalidSymbolID )
+		{
+			symb->changeId( GetUniqueSymbolID() );
+		}
+	}
+	return true;
 }
 
 /*
@@ -1405,70 +1450,114 @@ bool  DebugInfo::PostProcess (OUT VarNames_t &varNames)
 
 
 
-static bool RecursiveProcessAggregateNode (TIntermAggregate* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessBranchNode (TIntermBranch* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessSwitchNode (TIntermSwitch* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessSelectionNode (TIntermSelection* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessUnaryNode (TIntermUnary* node, DebugInfo &dbgInfo);
-static bool RecursiveProcessBinaryNode (TIntermBinary* node, DebugInfo &dbgInfo);
-static bool RecursiveProccessLoop (TIntermLoop* node, DebugInfo &dbgInfo);
-static TIntermAggregate*  CreateAppendToTrace (TIntermTyped* exprNode, uint32_t sourceLoc, DebugInfo &dbgInfo);
+bool  ProcessFunctionDefinition (TIntermAggregate* node, DebugInfo &dbgInfo);
+bool  ProcessFunctionDefinition2 (TIntermAggregate* node, DebugInfo &dbgInfo);
+bool  RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo);
+TIntermBinary*     AssignClock (TIntermSymbol* dst, const TSourceLoc &loc, DebugInfo &dbgInfo);
+TIntermAggregate*  CreateAppendToTrace (TIntermTyped* exprNode, uint32_t sourceLoc, DebugInfo &dbgInfo);
+TIntermAggregate*  CreateAddTimeToTrace2 (TIntermSymbol* startTimeNode, DebugInfo &dbgInfo);
+TIntermAggregate*  CreateAddTimeToTrace (TIntermTyped* exprNode, TIntermSymbol* startTimeNode, DebugInfo &dbgInfo);
 
 /*
 =================================================
 	RecursiveProcessNode
 =================================================
 */
-static bool RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo)
+bool  RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo)
 {
 	if ( not node )
 		return true;
 
+	FunctionScope	fn_scope{ node, dbgInfo };
+	
 	if ( auto* aggr = node->getAsAggregate() )
 	{
-		CHECK_ERR( RecursiveProcessAggregateNode( aggr, dbgInfo ));
+		bool	is_func = (aggr->getOp() == TOperator::EOpFunction);
+
+		if ( is_func )
+			CHECK_ERR( ProcessFunctionDefinition( aggr, dbgInfo ));
+
+		for (auto& n : aggr->getSequence())
+		{
+			CHECK_ERR( RecursiveProcessNode( n, dbgInfo ));
+		}
+
+		if ( is_func )
+			CHECK_ERR( ProcessFunctionDefinition2( aggr, dbgInfo ));
+
+		if ( aggr->getOp() >= TOperator::EOpNegative	 or
+			 aggr->getOp() == TOperator::EOpFunctionCall or
+			 aggr->getOp() == TOperator::EOpParameters	 )
+		{
+			fn_scope.SetLoc( dbgInfo.GetCurrentLocation() );
+		}
 		return true;
 	}
 
 	if ( auto* unary = node->getAsUnaryNode() )
 	{
-		CHECK_ERR( RecursiveProcessUnaryNode( unary, dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( unary->getOperand(), dbgInfo ));
+		fn_scope.SetLoc( dbgInfo.GetCurrentLocation() );
 		return true;
 	}
 
 	if ( auto* binary = node->getAsBinaryNode() )
 	{
-		CHECK_ERR( RecursiveProcessBinaryNode( binary, dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( binary->getLeft(), dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( binary->getRight(), dbgInfo ));
+		fn_scope.SetLoc( dbgInfo.GetCurrentLocation() );
 		return true;
 	}
 
 	if ( auto* op = node->getAsOperator() )
 	{
-		return false;
+		return true;
 	}
 
 	if ( auto* branch = node->getAsBranchNode() )
 	{
-		CHECK_ERR( RecursiveProcessBranchNode( branch, dbgInfo ));
+		// record function time at the end
+		if ( branch->getFlowOp() == TOperator::EOpReturn )
+		{
+			if ( auto* start_time_node = dbgInfo.GetStartTime() )
+			{
+				if ( not branch->getExpression() or
+					 branch->getExpression()->getType().getBasicType() == TBasicType::EbtVoid )
+				{
+					branch->~TIntermBranch();
+					new(branch) TIntermBranch{ TOperator::EOpReturn, CreateAddTimeToTrace2( start_time_node, dbgInfo )};
+				}
+				else
+				{
+					branch->~TIntermBranch();
+					new(branch) TIntermBranch{ TOperator::EOpReturn, CreateAddTimeToTrace( branch->getExpression(), start_time_node, dbgInfo )};
+				}
+			}
+		}
+
+		fn_scope.SetLoc( dbgInfo.GetCurrentLocation() );
+		CHECK_ERR( RecursiveProcessNode( branch->getExpression(), dbgInfo ));
 		return true;
 	}
 
 	if ( auto* sw = node->getAsSwitchNode() )
 	{
-		CHECK_ERR( RecursiveProcessSwitchNode( sw, dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( sw->getCondition(), dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( sw->getBody(), dbgInfo ));
 		return true;
 	}
 
 	if ( auto* cunion = node->getAsConstantUnion() )
 	{
-		dbgInfo.AddLocation( node->getLoc() );
+		fn_scope.SetLoc( dbgInfo.GetCurrentLocation() );
 		return true;
 	}
 
 	if ( auto* selection = node->getAsSelectionNode() )
 	{
-		CHECK_ERR( RecursiveProcessSelectionNode( selection, dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( selection->getCondition(), dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( selection->getTrueBlock(), dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( selection->getFalseBlock(), dbgInfo ));
 		return true;
 	}
 
@@ -1479,20 +1568,22 @@ static bool RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo)
 
 	if ( auto* symbol = node->getAsSymbolNode() )
 	{
-		dbgInfo.AddLocation( node->getLoc() );
+		fn_scope.SetLoc( dbgInfo.GetCurrentLocation() );
 		CHECK_ERR( RecursiveProcessSymbolNode( symbol, dbgInfo ));
 		return true;
 	}
 
 	if ( auto* typed = node->getAsTyped() )
 	{
-		dbgInfo.AddLocation( node->getLoc() );
+		fn_scope.SetLoc( dbgInfo.GetCurrentLocation() );
 		return true;
 	}
 
 	if ( auto* loop = node->getAsLoopNode() )
 	{
-		CHECK_ERR( RecursiveProccessLoop( loop, dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( loop->getBody(), dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( loop->getTerminal(), dbgInfo ));
+		CHECK_ERR( RecursiveProcessNode( loop->getTest(), dbgInfo ));
 		return true;
 	}
 
@@ -1504,7 +1595,7 @@ static bool RecursiveProcessNode (TIntermNode* node, DebugInfo &dbgInfo)
 	CreateGraphicsShaderDebugStorage
 =================================================
 */
-static void CreateGraphicsShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+void  CreateGraphicsShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
 {
 	type.basicType = TBasicType::EbtInt;
 
@@ -1527,7 +1618,7 @@ static void CreateGraphicsShaderDebugStorage (TTypeList* typeList, INOUT TPublic
 	CreateComputeShaderDebugStorage
 =================================================
 */
-static void CreateComputeShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+void  CreateComputeShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
 {
 	type.basicType = TBasicType::EbtUint;
 	
@@ -1550,7 +1641,7 @@ static void CreateComputeShaderDebugStorage (TTypeList* typeList, INOUT TPublicT
 	CreateRayTracingShaderDebugStorage
 =================================================
 */
-static void CreateRayTracingShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
+void  CreateRayTracingShaderDebugStorage (TTypeList* typeList, INOUT TPublicType &type)
 {
 	type.basicType = TBasicType::EbtUint;
 	
@@ -1573,7 +1664,7 @@ static void CreateRayTracingShaderDebugStorage (TTypeList* typeList, INOUT TPubl
 	CreateShaderDebugStorage
 =================================================
 */
-static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT uint64_t &posOffset, OUT uint64_t &dataOffset)
+void  CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT uint64_t &posOffset, OUT uint64_t &dataOffset)
 {
 	// "layout(binding=x, std430) buffer dbg_ShaderTraceStorage { ... } dbg_ShaderTrace"
 	
@@ -1584,6 +1675,7 @@ static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT
 	uint_type.qualifier.layoutPacking	= TLayoutPacking::ElpStd430;
 	uint_type.qualifier.precision		= TPrecisionQualifier::EpqHigh;
 	uint_type.qualifier.layoutOffset	= 0;
+	uint_type.qualifier.coherent		= true;
 	
 	TTypeList*		type_list	= new TTypeList{};
 	TPublicType		temp		= uint_type;
@@ -1615,6 +1707,8 @@ static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT
 	TType*			position	= new TType{uint_type};		position->setFieldName( "position" );
 	
 	uint_type.qualifier.layoutOffset += sizeof(uint32_t);
+	uint_type.qualifier.restrict	 = true;
+	uint_type.qualifier.coherent	 = false;
 	uint_type.arraySizes			 = new TArraySizes{};
 	uint_type.arraySizes->addInnerSize();
 	
@@ -1643,7 +1737,7 @@ static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT
 	CreateShaderBuiltinSymbols
 =================================================
 */
-static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
+void  CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 {
 	const auto	shader				= dbgInfo.GetShaderType();
 	const bool	is_compute			= (shader == EShLangCompute or shader == EShLangTaskNV or shader == EShLangMeshNV);
@@ -1652,22 +1746,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 	const bool	need_launch_id		= (shader == EShLangRayGenNV or shader == EShLangIntersectNV or shader == EShLangAnyHitNV or
 									   shader == EShLangClosestHitNV or shader == EShLangMissNV or shader == EShLangCallableNV);
 	
-	TSourceLoc	loc		{};
-
-	// find default source location
-	/*if ( auto* aggr = root->getAsAggregate() )
-	{
-		for (auto& node : aggr->getSequence())
-		{
-			auto*	fn = node->getAsAggregate();
-
-			if ( fn and fn->getOp() == TOperator::EOpFunction and fn->getName() == "main(" )
-			{
-				loc = fn->getLoc();
-				break;
-			}
-		}
-	}*/
+	TSourceLoc	loc	{};
 
 	if ( shader == EShLangFragment and not dbgInfo.GetCachedSymbolNode( "gl_FragCoord" ))
 	{
@@ -1679,7 +1758,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 		
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_FragCoord", TType{vec4_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 	
 	// "Any static use of this variable in a fragment shader causes the entire shader to be evaluated per-sample rather than per-fragment."
@@ -1695,7 +1774,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_PrimitiveID", TType{int_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 
 	if ( is_compute and not dbgInfo.GetCachedSymbolNode( "gl_GlobalInvocationID" ))
@@ -1708,7 +1787,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_GlobalInvocationID", TType{uint_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 
 	if ( is_compute and not dbgInfo.GetCachedSymbolNode( "gl_LocalInvocationID" ))
@@ -1721,7 +1800,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_LocalInvocationID", TType{uint_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 
 	if ( is_compute and not dbgInfo.GetCachedSymbolNode( "gl_WorkGroupID" ))
@@ -1734,7 +1813,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_WorkGroupID", TType{uint_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 	
 	if ( need_invocation_id and not dbgInfo.GetCachedSymbolNode( "gl_InvocationID" ))
@@ -1746,7 +1825,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_InvocationID", TType{int_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 	
 	if ( shader == EShLangGeometry and not dbgInfo.GetCachedSymbolNode( "gl_PrimitiveIDIn" ))
@@ -1758,7 +1837,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_PrimitiveIDIn", TType{int_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 	
 	if ( shader == EShLangTessEvaluation and not dbgInfo.GetCachedSymbolNode( "gl_TessCoord" ))
@@ -1771,7 +1850,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_TessCoord", TType{float_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 	
 	if ( shader == EShLangTessEvaluation and not dbgInfo.GetCachedSymbolNode( "gl_TessLevelInner" ))
@@ -1785,7 +1864,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_TessLevelInner", TType{float_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 	
 	if ( shader == EShLangTessEvaluation and not dbgInfo.GetCachedSymbolNode( "gl_TessLevelOuter" ))
@@ -1799,7 +1878,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_TessLevelOuter", TType{float_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 
 	if ( need_launch_id and not dbgInfo.GetCachedSymbolNode( "gl_LaunchIDNV" ))
@@ -1812,7 +1891,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_LaunchIDNV", TType{uint_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 
 	if ( shader == EShLangVertex and not dbgInfo.GetCachedSymbolNode( "gl_VertexIndex" ))
@@ -1824,7 +1903,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_VertexIndex", TType{int_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 	
 	if ( shader == EShLangVertex and not dbgInfo.GetCachedSymbolNode( "gl_InstanceIndex" ))
@@ -1836,7 +1915,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 
 		TIntermSymbol*	symb = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "gl_InstanceIndex", TType{int_type} };
 		symb->setLoc( loc );
-		dbgInfo.CacheSymbolNode( symb );
+		dbgInfo.CacheSymbolNode( symb, true );
 	}
 }
 
@@ -1847,7 +1926,7 @@ static void CreateShaderBuiltinSymbols (TIntermNode* root, DebugInfo &dbgInfo)
 	also see 'CreateAppendToTrace2()'
 =================================================
 */
-static TIntermAggregate*  CreateAppendToTraceBody2 (DebugInfo &dbgInfo)
+TIntermAggregate*  CreateAppendToTraceBody2 (DebugInfo &dbgInfo)
 {
 	TPublicType		uint_type;	uint_type.init({});
 	uint_type.basicType			= TBasicType::EbtUint;
@@ -1987,7 +2066,7 @@ static TIntermAggregate*  CreateAppendToTraceBody2 (DebugInfo &dbgInfo)
 	also see 'CreateAppendToTrace()'
 =================================================
 */
-static TIntermAggregate*  CreateAppendToTraceBody (const TString &fnName, DebugInfo &dbgInfo)
+TIntermAggregate*  CreateAppendToTraceBody (const TString &fnName, DebugInfo &dbgInfo)
 {
 	TPublicType		value_type;	value_type.init({});
 	TPublicType		uint_type;	uint_type.init({});
@@ -2003,7 +2082,7 @@ static TIntermAggregate*  CreateAppendToTraceBody (const TString &fnName, DebugI
 	int	scale = 1;
 	{
 		size_t	pos  = fnName.find( '(' );
-		size_t	pos1 = fnName.find( ';', pos );
+		size_t	pos1 = fnName.find( ';' );
 		CHECK_ERR( pos != TString::npos and pos1 != TString::npos and pos < pos1 );
 		++pos;
 
@@ -2370,10 +2449,593 @@ static TIntermAggregate*  CreateAppendToTraceBody (const TString &fnName, DebugI
 
 /*
 =================================================
+	CreateAddTimeToTraceBody2
+----
+	also see 'CreateAddTimeToTrace2()'
+=================================================
+*/
+TIntermAggregate*  CreateAddTimeToTraceBody2 (DebugInfo &dbgInfo)
+{
+	TPublicType		uint_type;	uint_type.init({});
+	uint_type.basicType			= TBasicType::EbtUint;
+	uint_type.qualifier.storage = TStorageQualifier::EvqConstReadOnly;
+
+	// last_pos, location, size, startTime, endTime
+	const uint32_t		dbg_data_size = 3 + 4 + 4;
+
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	TIntermAggregate*	branch_body = new TIntermAggregate{ TOperator::EOpSequence };
+
+	// build function body
+	{
+		fn_node->setType( TType{ TBasicType::EbtVoid, TStorageQualifier::EvqGlobal } );
+		fn_body->setType( TType{ TBasicType::EbtVoid } );
+		fn_node->setName( "dbg_AddTimeToTrace(vu4;u1;" );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+	}
+	
+	// build function argument sequence
+	{
+		uint_type.vectorSize	= 4;
+		TIntermSymbol*	arg0	 = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "startTime", TType{uint_type} };
+		
+		uint_type.vectorSize	= 1;
+		TIntermSymbol*	arg1	= new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "sourceLocation", TType{uint_type} };
+
+		fn_args->setType( TType{EbtVoid} );
+		fn_args->getSequence().push_back( arg0 );
+		fn_args->getSequence().push_back( arg1 );
+	}
+
+	// build branch body
+	branch_body->setType( TType{EbtVoid} );
+
+	// "endTime = vec4( clock(), clock() );"
+	uint_type.qualifier.storage = TStorageQualifier::EvqTemporary;
+	uint_type.vectorSize		= 4;
+	TIntermSymbol*	end_time	= new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "endTime", TType{uint_type} };
+	
+	TIntermBinary*  end_time_assign = AssignClock( end_time, {}, dbgInfo );
+	branch_body->getSequence().push_back( end_time_assign );
+
+	// "pos" variable
+	uint_type.vectorSize		= 1;
+	TIntermSymbol*	var_pos		= new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "pos", TType{uint_type} };
+	
+	// "uint pos = atomicAdd( dbg_ShaderTrace.position, x );"
+	{
+		TIntermAggregate*	move_pos	= new TIntermAggregate{ TOperator::EOpSequence };
+		TIntermBinary*		assign_op	= new TIntermBinary{ TOperator::EOpAssign };			// pos = ...
+		
+		branch_body->getSequence().push_back( move_pos );
+
+		move_pos->setType( TType{EbtVoid} );
+		move_pos->getSequence().push_back( assign_op );
+		
+		uint_type.qualifier.storage = TStorageQualifier::EvqConst;
+		TConstUnionArray		data_size_value(1);	data_size_value[0].setUConst( dbg_data_size );
+		TIntermConstantUnion*	data_size	= new TIntermConstantUnion{ data_size_value, TType{uint_type} };
+		
+		TIntermAggregate*		add_op	= new TIntermAggregate{ TOperator::EOpAtomicAdd };		// atomicAdd
+		uint_type.qualifier.storage = TStorageQualifier::EvqGlobal;
+		add_op->setType( TType{uint_type} );
+		add_op->setOperationPrecision( TPrecisionQualifier::EpqHigh );
+		add_op->getQualifierList().push_back( TStorageQualifier::EvqInOut );
+		add_op->getQualifierList().push_back( TStorageQualifier::EvqIn );
+		add_op->getSequence().push_back( dbgInfo.GetDebugStorageField("position") );
+		add_op->getSequence().push_back( data_size );
+
+		assign_op->setType( TType{uint_type} );
+		assign_op->setLeft( var_pos );
+		assign_op->setRight( add_op );
+	}
+
+	// "dbg_ShaderTrace.outData[pos++] = ..."
+	{
+		uint_type.qualifier.storage = TStorageQualifier::EvqConst;
+		TConstUnionArray		type_value(1);	type_value[0].setUConst( (ShaderTrace::TBasicType_Clock & 0xFF) | (4 << 8) );
+		TIntermConstantUnion*	type_id			= new TIntermConstantUnion{ type_value, TType{uint_type} };
+		TConstUnionArray		const_value(1);	const_value[0].setUConst( 1 );
+		TIntermConstantUnion*	const_one		= new TIntermConstantUnion{ const_value, TType{uint_type} };
+		
+		uint_type.qualifier.storage = TStorageQualifier::EvqTemporary;
+		TIntermBinary*			assign_data0	= new TIntermBinary{ TOperator::EOpAssign };
+		TIntermBinary*			assign_data1	= new TIntermBinary{ TOperator::EOpAssign };
+		TIntermBinary*			assign_data2	= new TIntermBinary{ TOperator::EOpAssign };
+		TIntermBinary*			indexed_access	= new TIntermBinary{ TOperator::EOpIndexIndirect };
+		TIntermUnary*			inc_pos			= new TIntermUnary{ TOperator::EOpPostIncrement };
+		TIntermSymbol*			last_pos		= dbgInfo.GetCachedSymbolNode( "dbg_LastPosition" );
+		TIntermBinary*			new_last_pos	= new TIntermBinary{ TOperator::EOpAssign };
+		TIntermBinary*			prev_pos		= new TIntermBinary{ TOperator::EOpSub };
+
+		// "pos++"
+		inc_pos->setType( TType{uint_type} );
+		inc_pos->setOperand( var_pos );
+
+		// "dbg_ShaderTrace.outData[pos++]"
+		indexed_access->setType( TType{uint_type} );
+		indexed_access->getWritableType().setFieldName( "outData" );
+		indexed_access->setLeft( dbgInfo.GetDebugStorageField("outData") );
+		indexed_access->setRight( inc_pos );
+		
+		// "dbg_ShaderTrace.outData[pos++] = dbg_LastPosition"
+		assign_data0->setType( TType{uint_type} );
+		assign_data0->setLeft( indexed_access );
+		assign_data0->setRight( last_pos );
+		branch_body->getSequence().push_back( assign_data0 );
+		
+		// "pos - 1"
+		prev_pos->setType( TType{uint_type} );
+		prev_pos->setLeft( var_pos );
+		prev_pos->setRight( const_one );
+
+		// "dbg_LastPosition = pos - 1"
+		new_last_pos->setType( TType{uint_type} );
+		new_last_pos->setLeft( last_pos );
+		new_last_pos->setRight( prev_pos );
+		branch_body->getSequence().push_back( new_last_pos );
+
+		// "dbg_ShaderTrace.outData[pos++] = sourceLocation"
+		assign_data1->setType( TType{uint_type} );
+		assign_data1->setLeft( indexed_access );
+		assign_data1->setRight( fn_args->getSequence()[1]->getAsTyped() );
+		branch_body->getSequence().push_back( assign_data1 );
+		
+		// "dbg_ShaderTrace.outData[pos++] = typeid"
+		assign_data2->setType( TType{uint_type} );
+		assign_data2->setLeft( indexed_access );
+		assign_data2->setRight( type_id );
+		branch_body->getSequence().push_back( assign_data2 );
+
+		const auto	WriteUVec4 = [&branch_body, &indexed_access, &uint_type] (TIntermTyped* vec)
+		{
+			TPublicType		index_type;	index_type.init({});
+			index_type.basicType		= TBasicType::EbtInt;
+			index_type.qualifier.storage= TStorageQualifier::EvqConst;
+
+			for (int i = 0; i < vec->getType().getVectorSize(); ++i)
+			{
+				TIntermBinary*			assign_data		= new TIntermBinary{ TOperator::EOpAssign };
+				TConstUnionArray		field_index(1);	field_index[0].setIConst( i );
+				TIntermConstantUnion*	vec_field		= new TIntermConstantUnion{ field_index, TType{index_type} };
+				TIntermBinary*			field_access	= new TIntermBinary{ TOperator::EOpIndexDirect };
+			
+				TPublicType		pub_type;	pub_type.init({});
+				pub_type.basicType			= vec->getType().getBasicType();
+				pub_type.qualifier.storage	= vec->getType().getQualifier().storage;
+
+				// "value.x"
+				field_access->setType( TType{pub_type} );
+				field_access->setLeft( vec );
+				field_access->setRight( vec_field );
+			
+				// "dbg_ShaderTrace.outData[pos++] = value.x"
+				assign_data->setType( TType{uint_type} );
+				assign_data->setLeft( indexed_access );
+				assign_data->setRight( field_access );
+				branch_body->getSequence().push_back( assign_data );
+			}
+		};
+
+		// "dbg_ShaderTrace.outData[pos++] = startTime"
+		WriteUVec4( fn_args->getSequence()[0]->getAsTyped() );
+
+		// "dbg_ShaderTrace.outData[pos++] = endTime"
+		WriteUVec4( end_time );
+	}
+	
+	// "if ( dbg_IsEnabled )"
+	{
+		TIntermSymbol*		condition	= dbgInfo.GetCachedSymbolNode( "dbg_IsEnabled" );
+		TIntermSelection*	selection	= new TIntermSelection{ condition, branch_body, nullptr };
+		selection->setType( TType{EbtVoid} );
+
+		fn_body->getSequence().push_back( selection );
+	}
+
+	return fn_node;
+}
+
+/*
+=================================================
+	CreateAddTimeToTraceBody
+----
+	also see 'CreateAddTimeToTrace()'
+=================================================
+*/
+TIntermAggregate*  CreateAddTimeToTraceBody (const TString &fnName, DebugInfo &dbgInfo)
+{
+	TPublicType		value_type;	value_type.init({});
+	TPublicType		uint_type;	uint_type.init({});
+	TPublicType		index_type;	index_type.init({});
+
+	uint_type.basicType			= TBasicType::EbtUint;
+	uint_type.qualifier.storage = TStorageQualifier::EvqConstReadOnly;
+	
+	index_type.basicType		= TBasicType::EbtInt;
+	index_type.qualifier.storage= TStorageQualifier::EvqConst;
+
+	// extract type
+	{
+		size_t	pos  = fnName.find( ';' );
+		size_t	pos1 = fnName.find( ';', pos+1 );
+		CHECK_ERR( pos != TString::npos and pos1 != TString::npos and pos < pos1 );
+		++pos;
+
+		const bool	is_vector	= (fnName[pos] == 'v');
+		const bool	is_matrix	= (fnName[pos] == 'm');
+
+		if ( is_vector or is_matrix )	++pos;
+
+		const bool	is_64	= (pos+2 < fnName.size() and fnName[pos+1] == '6' and fnName[pos+2] == '4');
+		//const bool	is_16	= (pos+2 < fnName.size() and fnName[pos+1] == '1' and fnName[pos+2] == '6');
+
+		switch ( fnName[pos] )
+		{
+			case 'f' :	value_type.basicType = TBasicType::EbtFloat;	break;
+			case 'd' :	value_type.basicType = TBasicType::EbtDouble;	break;
+			case 'b' :	value_type.basicType = TBasicType::EbtBool;		break;
+			case 'i' :	if ( is_64 ) { value_type.basicType = TBasicType::EbtInt64;  } else value_type.basicType = TBasicType::EbtInt;	break;
+			case 'u' :	if ( is_64 ) { value_type.basicType = TBasicType::EbtUint64; } else value_type.basicType = TBasicType::EbtUint;	break;
+			default  :	RETURN_ERR( "unknown type" );
+		}
+		++pos;
+
+		if ( is_matrix ) {
+			value_type.setMatrix( fnName[pos] - '0', fnName[pos+1] - '0' );
+			CHECK_ERR(	value_type.matrixCols > 0 and value_type.matrixCols <= 4 and
+						value_type.matrixRows > 0 and value_type.matrixRows <= 4 );
+		}
+		else
+		if ( is_vector ) {
+			value_type.setVector( fnName[pos] - '0' );
+			CHECK_ERR( value_type.vectorSize > 0 and value_type.vectorSize <= 4 );
+		}
+		else {
+			// scalar
+			value_type.vectorSize = 1;
+		}
+	}
+
+	// last_pos, location, size, startTime, endTime
+	const uint32_t		dbg_data_size = 3 + 4 + 4;
+
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	TIntermAggregate*	branch_body = new TIntermAggregate{ TOperator::EOpSequence };
+
+	// build function body
+	{
+		value_type.qualifier.storage = TStorageQualifier::EvqGlobal;
+		fn_node->setType( TType{value_type} );
+		fn_node->setName( fnName );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+	}
+	
+	// build function argument sequence
+	{
+		uint_type.vectorSize		= 4;
+		TIntermSymbol*		arg0	 = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "startTime", TType{uint_type} };
+		
+		value_type.qualifier.storage = TStorageQualifier::EvqConstReadOnly;
+		TIntermSymbol*		arg1	 = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "value", TType{value_type} };
+
+		uint_type.vectorSize		= 1;
+		TIntermSymbol*		arg2	 = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "sourceLocation", TType{uint_type} };
+
+		fn_args->setType( TType{EbtVoid} );
+		fn_args->getSequence().push_back( arg0 );
+		fn_args->getSequence().push_back( arg1 );
+		fn_args->getSequence().push_back( arg2 );
+	}
+
+	// build function body
+	{
+		value_type.qualifier.storage = TStorageQualifier::EvqTemporary;
+		fn_body->setType( TType{value_type} );
+	}
+	
+	// build branch body
+	branch_body->setType( TType{EbtVoid} );
+
+	// "endTime = vec4( clock(), clock() );"
+	uint_type.qualifier.storage = TStorageQualifier::EvqTemporary;
+	uint_type.vectorSize		= 4;
+	TIntermSymbol*	end_time	= new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "endTime", TType{uint_type} };
+	
+	TIntermBinary*  end_time_assign = AssignClock( end_time, {}, dbgInfo );
+	branch_body->getSequence().push_back( end_time_assign );
+
+	// "pos" variable
+	uint_type.vectorSize		= 1;
+	TIntermSymbol*	var_pos		= new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "pos", TType{uint_type} };
+	
+	// "uint pos = atomicAdd( dbg_ShaderTrace.position, x );"
+	{
+		TIntermAggregate*	move_pos	= new TIntermAggregate{ TOperator::EOpSequence };
+		TIntermBinary*		assign_op	= new TIntermBinary{ TOperator::EOpAssign };			// pos = ...
+		
+		branch_body->getSequence().push_back( move_pos );
+
+		move_pos->setType( TType{EbtVoid} );
+		move_pos->getSequence().push_back( assign_op );
+		
+		uint_type.qualifier.storage = TStorageQualifier::EvqConst;
+		TConstUnionArray		data_size_value(1);	data_size_value[0].setUConst( dbg_data_size );
+		TIntermConstantUnion*	data_size	= new TIntermConstantUnion{ data_size_value, TType{uint_type} };
+		
+		TIntermAggregate*		add_op	= new TIntermAggregate{ TOperator::EOpAtomicAdd };		// atomicAdd
+		uint_type.qualifier.storage = TStorageQualifier::EvqGlobal;
+		add_op->setType( TType{uint_type} );
+		add_op->setOperationPrecision( TPrecisionQualifier::EpqHigh );
+		add_op->getQualifierList().push_back( TStorageQualifier::EvqInOut );
+		add_op->getQualifierList().push_back( TStorageQualifier::EvqIn );
+		add_op->getSequence().push_back( dbgInfo.GetDebugStorageField("position") );
+		add_op->getSequence().push_back( data_size );
+
+		assign_op->setType( TType{uint_type} );
+		assign_op->setLeft( var_pos );
+		assign_op->setRight( add_op );
+	}
+
+	// "dbg_ShaderTrace.outData[pos++] = ..."
+	{
+		uint_type.qualifier.storage = TStorageQualifier::EvqConst;
+		TConstUnionArray		type_value(1);	type_value[0].setUConst( (ShaderTrace::TBasicType_Clock & 0xFF) | (4 << 8) );
+		TIntermConstantUnion*	type_id			= new TIntermConstantUnion{ type_value, TType{uint_type} };
+		TConstUnionArray		const_value(1);	const_value[0].setUConst( 1 );
+		TIntermConstantUnion*	const_one		= new TIntermConstantUnion{ const_value, TType{uint_type} };
+		
+		uint_type.qualifier.storage = TStorageQualifier::EvqTemporary;
+		TIntermBinary*			assign_data0	= new TIntermBinary{ TOperator::EOpAssign };
+		TIntermBinary*			assign_data1	= new TIntermBinary{ TOperator::EOpAssign };
+		TIntermBinary*			assign_data2	= new TIntermBinary{ TOperator::EOpAssign };
+		TIntermBinary*			indexed_access	= new TIntermBinary{ TOperator::EOpIndexIndirect };
+		TIntermUnary*			inc_pos			= new TIntermUnary{ TOperator::EOpPostIncrement };
+		TIntermSymbol*			last_pos		= dbgInfo.GetCachedSymbolNode( "dbg_LastPosition" );
+		TIntermBinary*			new_last_pos	= new TIntermBinary{ TOperator::EOpAssign };
+		TIntermBinary*			prev_pos		= new TIntermBinary{ TOperator::EOpSub };
+
+		// "pos++"
+		inc_pos->setType( TType{uint_type} );
+		inc_pos->setOperand( var_pos );
+
+		// "dbg_ShaderTrace.outData[pos++]"
+		indexed_access->setType( TType{uint_type} );
+		indexed_access->getWritableType().setFieldName( "outData" );
+		indexed_access->setLeft( dbgInfo.GetDebugStorageField("outData") );
+		indexed_access->setRight( inc_pos );
+		
+		// "dbg_ShaderTrace.outData[pos++] = dbg_LastPosition"
+		assign_data0->setType( TType{uint_type} );
+		assign_data0->setLeft( indexed_access );
+		assign_data0->setRight( last_pos );
+		branch_body->getSequence().push_back( assign_data0 );
+		
+		// "pos - 1"
+		prev_pos->setType( TType{uint_type} );
+		prev_pos->setLeft( var_pos );
+		prev_pos->setRight( const_one );
+
+		// "dbg_LastPosition = pos - 1"
+		new_last_pos->setType( TType{uint_type} );
+		new_last_pos->setLeft( last_pos );
+		new_last_pos->setRight( prev_pos );
+		branch_body->getSequence().push_back( new_last_pos );
+
+		// "dbg_ShaderTrace.outData[pos++] = sourceLocation"
+		assign_data1->setType( TType{uint_type} );
+		assign_data1->setLeft( indexed_access );
+		assign_data1->setRight( fn_args->getSequence()[2]->getAsTyped() );
+		branch_body->getSequence().push_back( assign_data1 );
+		
+		// "dbg_ShaderTrace.outData[pos++] = typeid"
+		assign_data2->setType( TType{uint_type} );
+		assign_data2->setLeft( indexed_access );
+		assign_data2->setRight( type_id );
+		branch_body->getSequence().push_back( assign_data2 );
+		
+		const auto	WriteUVec4 = [&branch_body, &indexed_access, &uint_type] (TIntermTyped* vec)
+		{
+			TPublicType		index_type;	index_type.init({});
+			index_type.basicType		= TBasicType::EbtInt;
+			index_type.qualifier.storage= TStorageQualifier::EvqConst;
+
+			for (int i = 0; i < vec->getType().getVectorSize(); ++i)
+			{
+				TIntermBinary*			assign_data		= new TIntermBinary{ TOperator::EOpAssign };
+				TConstUnionArray		field_index(1);	field_index[0].setIConst( i );
+				TIntermConstantUnion*	vec_field		= new TIntermConstantUnion{ field_index, TType{index_type} };
+				TIntermBinary*			field_access	= new TIntermBinary{ TOperator::EOpIndexDirect };
+			
+				TPublicType		pub_type;	pub_type.init({});
+				pub_type.basicType			= vec->getType().getBasicType();
+				pub_type.qualifier.storage	= vec->getType().getQualifier().storage;
+
+				// "value.x"
+				field_access->setType( TType{pub_type} );
+				field_access->setLeft( vec );
+				field_access->setRight( vec_field );
+			
+				// "dbg_ShaderTrace.outData[pos++] = value.x"
+				assign_data->setType( TType{uint_type} );
+				assign_data->setLeft( indexed_access );
+				assign_data->setRight( field_access );
+				branch_body->getSequence().push_back( assign_data );
+			}
+		};
+
+		// "dbg_ShaderTrace.outData[pos++] = startTime"
+		WriteUVec4( fn_args->getSequence()[0]->getAsTyped() );
+
+		// "dbg_ShaderTrace.outData[pos++] = endTime"
+		WriteUVec4( end_time );
+	}
+	
+	// "if ( dbg_IsEnabled )"
+	{
+		TIntermSymbol*		condition	= dbgInfo.GetCachedSymbolNode( "dbg_IsEnabled" );
+		TIntermSelection*	selection	= new TIntermSelection{ condition, branch_body, nullptr };
+		selection->setType( TType{EbtVoid} );
+
+		fn_body->getSequence().push_back( selection );
+	}
+
+	// "return value"
+	{
+		TIntermBranch*		fn_return	= new TIntermBranch{ TOperator::EOpReturn, fn_args->getSequence()[1]->getAsTyped() };
+		fn_body->getSequence().push_back( fn_return );
+	}
+
+	return fn_node;
+}
+
+/*
+=================================================
+	CreateGetCurrentTimeBody
+----
+	also see 'AssignClock()'
+=================================================
+*/
+TIntermAggregate*  CreateGetCurrentTimeBody (DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	fn_node		= new TIntermAggregate{ TOperator::EOpFunction };
+	TIntermAggregate*	fn_args		= new TIntermAggregate{ TOperator::EOpParameters };
+	TIntermAggregate*	fn_body		= new TIntermAggregate{ TOperator::EOpSequence };
+	TIntermAggregate*	branch_true = new TIntermAggregate{ TOperator::EOpSequence };
+	TIntermSymbol*		curr_time	= nullptr;
+	TPublicType			uint_type;	uint_type.init({});
+
+	// build function body
+	{
+		uint_type.basicType				= TBasicType::EbtUint;
+		uint_type.vectorSize			= 4;
+		uint_type.qualifier.storage		= TStorageQualifier::EvqGlobal;
+		uint_type.qualifier.precision	= TPrecisionQualifier::EpqHigh;
+
+		fn_node->setType( TType{uint_type} );
+		fn_node->setName( "dbg_GetCurrentTime(" );
+		fn_node->getSequence().push_back( fn_args );
+		fn_node->getSequence().push_back( fn_body );
+
+		uint_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+		curr_time					= new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "curr_time", TType{uint_type} };
+		
+		TConstUnionArray		zero_value{ 4 };
+		zero_value[0].setUConst( 0 );
+		zero_value[1].setUConst( 0 );
+		zero_value[2].setUConst( 0 );
+		zero_value[3].setUConst( 0 );
+		uint_type.qualifier.storage			= TStorageQualifier::EvqConst;
+		TIntermConstantUnion*	zero_const	= new TIntermConstantUnion{ zero_value, TType{uint_type} };
+
+		TIntermBinary*		init_time	= new TIntermBinary{ TOperator::EOpAssign };
+		uint_type.qualifier.storage		= TStorageQualifier::EvqTemporary;
+		init_time->setType( TType{uint_type} );
+		init_time->setLeft( curr_time );
+		init_time->setRight( zero_const );
+
+		fn_body->getSequence().push_back( init_time );
+	}
+
+	// build 'true' branch body
+	{
+		branch_true->setType( TType{EbtVoid} );
+		
+		TPublicType		int_type;	int_type.init({});
+		int_type.basicType			= TBasicType::EbtInt;
+		int_type.vectorSize			= 1;
+		int_type.qualifier.storage	= TStorageQualifier::EvqConst;
+		
+		uint_type.vectorSize		= 2;
+		uint_type.qualifier.storage	= TStorageQualifier::EvqTemporary;
+
+		if ( dbgInfo._shaderSubgroupClock )
+		{
+			TConstUnionArray		x_value{1};	x_value[0].setIConst( 0 );
+			TConstUnionArray		y_value{1};	y_value[0].setIConst( 1 );
+			TIntermConstantUnion*	x_index		= new TIntermConstantUnion{ x_value, TType{int_type} };
+			TIntermConstantUnion*	y_index		= new TIntermConstantUnion{ y_value, TType{int_type} };
+			TIntermAggregate*		xy_index	= new TIntermAggregate{ TOperator::EOpSequence };
+
+			xy_index->getSequence().push_back( x_index );
+			xy_index->getSequence().push_back( y_index );
+
+			TIntermBinary*			assign		= new TIntermBinary{ TOperator::EOpAssign };
+			TIntermBinary*			swizzle		= new TIntermBinary{ TOperator::EOpVectorSwizzle };
+			TIntermAggregate*		time_call	= new TIntermAggregate( TOperator::EOpReadClockSubgroupKHR );
+			
+			swizzle->setType( TType{uint_type} );
+			swizzle->setLeft( curr_time );
+			swizzle->setRight( xy_index );
+
+			assign->setType( TType{uint_type} );
+			assign->setLeft( swizzle );
+			assign->setRight( time_call );
+			
+			time_call->setType( TType{uint_type} );
+
+			branch_true->getSequence().push_back( assign );
+		}
+
+		if ( dbgInfo._shaderDeviceClock )
+		{
+			TConstUnionArray		z_value{1};	z_value[0].setIConst( 2 );
+			TConstUnionArray		w_value{1};	w_value[0].setIConst( 3 );
+			TIntermConstantUnion*	z_index		= new TIntermConstantUnion{ z_value, TType{int_type} };
+			TIntermConstantUnion*	w_index		= new TIntermConstantUnion{ w_value, TType{int_type} };
+			TIntermAggregate*		zw_index	= new TIntermAggregate{ TOperator::EOpSequence };
+
+			zw_index->getSequence().push_back( z_index );
+			zw_index->getSequence().push_back( w_index );
+
+			TIntermBinary*			assign		= new TIntermBinary{ TOperator::EOpAssign };
+			TIntermBinary*			swizzle		= new TIntermBinary{ TOperator::EOpVectorSwizzle };
+			TIntermAggregate*		time_call	= new TIntermAggregate( TOperator::EOpReadClockDeviceKHR );
+
+			swizzle->setType( TType{uint_type} );
+			swizzle->setLeft( curr_time );
+			swizzle->setRight( zw_index );
+			
+			assign->setType( TType{uint_type} );
+			assign->setLeft( swizzle );
+			assign->setRight( time_call );
+			
+			time_call->setType( TType{uint_type} );
+
+			branch_true->getSequence().push_back( assign );
+		}
+	}
+
+	// "if ( dbg_IsEnabled )"
+	{
+		TIntermSymbol*		condition	= dbgInfo.GetCachedSymbolNode( "dbg_IsEnabled" );
+		TIntermSelection*	selection	= new TIntermSelection{ condition, branch_true, nullptr };
+		selection->setType( TType{EbtVoid} );
+
+		fn_body->getSequence().push_back( selection );
+	}
+
+	// "return curr_time;"
+	{
+		TIntermBranch*		fn_return	= new TIntermBranch{ TOperator::EOpReturn, curr_time };
+		fn_body->getSequence().push_back( fn_return );
+	}
+
+	return fn_node;
+}
+
+/*
+=================================================
 	AppendShaderInputVaryings
 =================================================
 */
-static bool  AppendShaderInputVaryings (TIntermAggregate* body, DebugInfo &dbgInfo)
+bool  AppendShaderInputVaryings (TIntermAggregate* body, DebugInfo &dbgInfo)
 {
 	CHECK_ERR( dbgInfo.GetCallStack().size() );
 
@@ -2440,7 +3102,7 @@ static bool  AppendShaderInputVaryings (TIntermAggregate* body, DebugInfo &dbgIn
 	RecordVertexShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordVertexShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordVertexShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2476,7 +3138,7 @@ static TIntermAggregate*  RecordVertexShaderInfo (const TSourceLoc &loc, DebugIn
 	RecordTessControlShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordTessControlShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordTessControlShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2505,7 +3167,7 @@ static TIntermAggregate*  RecordTessControlShaderInfo (const TSourceLoc &loc, De
 	RecordTessEvaluationShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordTessEvaluationShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordTessEvaluationShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2596,7 +3258,7 @@ static TIntermAggregate*  RecordTessEvaluationShaderInfo (const TSourceLoc &loc,
 	RecordGeometryShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordGeometryShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordGeometryShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2625,7 +3287,7 @@ static TIntermAggregate*  RecordGeometryShaderInfo (const TSourceLoc &loc, Debug
 	RecordFragmentShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordFragmentShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordFragmentShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2691,7 +3353,7 @@ static TIntermAggregate*  RecordFragmentShaderInfo (const TSourceLoc &loc, Debug
 	RecordComputeShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordComputeShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordComputeShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2742,7 +3404,7 @@ static TIntermAggregate*  RecordComputeShaderInfo (const TSourceLoc &loc, DebugI
 	RecordRayGenShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordRayGenShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordRayGenShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2762,7 +3424,7 @@ static TIntermAggregate*  RecordRayGenShaderInfo (const TSourceLoc &loc, DebugIn
 	RecordHitShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordHitShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordHitShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2880,7 +3542,7 @@ static TIntermAggregate*  RecordHitShaderInfo (const TSourceLoc &loc, DebugInfo 
 	RecordIntersectionShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordIntersectionShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordIntersectionShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -2984,7 +3646,7 @@ static TIntermAggregate*  RecordIntersectionShaderInfo (const TSourceLoc &loc, D
 	RecordMissShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordMissShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordMissShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -3032,7 +3694,7 @@ static TIntermAggregate*  RecordMissShaderInfo (const TSourceLoc &loc, DebugInfo
 	RecordCallableShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordCallableShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordCallableShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	body = new TIntermAggregate{ TOperator::EOpSequence };
 	body->setType( TType{EbtVoid} );
@@ -3059,7 +3721,7 @@ static TIntermAggregate*  RecordCallableShaderInfo (const TSourceLoc &loc, Debug
 	RecordShaderInfo
 =================================================
 */
-static TIntermAggregate*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
+TIntermAggregate*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &dbgInfo)
 {
 	switch ( dbgInfo.GetShaderType() )
 	{
@@ -3086,7 +3748,7 @@ static TIntermAggregate*  RecordShaderInfo (const TSourceLoc &loc, DebugInfo &db
 	CreateFragmentShaderIsDebugInvocation
 =================================================
 */
-static TIntermOperator*  CreateFragmentShaderIsDebugInvocation (DebugInfo &dbgInfo)
+TIntermOperator*  CreateFragmentShaderIsDebugInvocation (DebugInfo &dbgInfo)
 {
 	TPublicType		bool_type;	bool_type.init({});
 	bool_type.basicType			= TBasicType::EbtBool;
@@ -3168,7 +3830,7 @@ static TIntermOperator*  CreateFragmentShaderIsDebugInvocation (DebugInfo &dbgIn
 	CreateComputeShaderIsDebugInvocation
 =================================================
 */
-static TIntermOperator*  CreateComputeShaderIsDebugInvocation (DebugInfo &dbgInfo)
+TIntermOperator*  CreateComputeShaderIsDebugInvocation (DebugInfo &dbgInfo)
 {
 	TPublicType		bool_type;	bool_type.init({});
 	bool_type.basicType			= TBasicType::EbtBool;
@@ -3262,7 +3924,7 @@ static TIntermOperator*  CreateComputeShaderIsDebugInvocation (DebugInfo &dbgInf
 	CreateRayTracingShaderIsDebugInvocation
 =================================================
 */
-static TIntermOperator*  CreateRayTracingShaderIsDebugInvocation (DebugInfo &dbgInfo)
+TIntermOperator*  CreateRayTracingShaderIsDebugInvocation (DebugInfo &dbgInfo)
 {	
 	TPublicType		bool_type;	bool_type.init({});
 	bool_type.basicType			= TBasicType::EbtBool;
@@ -3356,7 +4018,7 @@ static TIntermOperator*  CreateRayTracingShaderIsDebugInvocation (DebugInfo &dbg
 	InsertGlobalVariablesAndBuffers
 =================================================
 */
-static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TIntermAggregate* globalVars, uint32_t initialPosition, DebugInfo &dbgInfo)
+bool  InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TIntermAggregate* globalVars, uint32_t initialPosition, DebugInfo &dbgInfo)
 {
 	// "bool dbg_IsEnabled"
 	TPublicType		type;	type.init({});
@@ -3364,7 +4026,7 @@ static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TInte
 	type.qualifier.storage	= TStorageQualifier::EvqGlobal;
 
 	TIntermSymbol*			is_debug_enabled = new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "dbg_IsEnabled", TType{type} };
-	dbgInfo.CacheSymbolNode( is_debug_enabled );
+	dbgInfo.CacheSymbolNode( is_debug_enabled, true );
 	linkerObjs->getSequence().insert( linkerObjs->getSequence().begin(), is_debug_enabled );
 	
 	// "dbg_IsEnabled = ..."
@@ -3410,7 +4072,7 @@ static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TInte
 	type.qualifier.storage	= TStorageQualifier::EvqGlobal;
 
 	TIntermSymbol*			last_pos		= new TIntermSymbol{ dbgInfo.GetUniqueSymbolID(), "dbg_LastPosition", TType{type} };
-	dbgInfo.CacheSymbolNode( last_pos );
+	dbgInfo.CacheSymbolNode( last_pos, true );
 	linkerObjs->getSequence().insert( linkerObjs->getSequence().begin(), last_pos );
 	
 	// "dbg_LastPosition = ~0u"
@@ -3435,9 +4097,9 @@ static bool InsertGlobalVariablesAndBuffers (TIntermAggregate* linkerObjs, TInte
 	CreateEnableIfBody
 =================================================
 */
-static bool CreateEnableIfBody (TIntermAggregate* fnDecl, DebugInfo &dbgInfo)
+bool  CreateEnableIfBody (TIntermAggregate* fnDecl, DebugInfo &dbgInfo)
 {
-	CHECK_ERR( fnDecl->getName() == "dbg_EnableTraceRecording(b1;" );
+	CHECK_ERR( fnDecl->getName() == "dbg_EnableProfiling(b1;" );
 	CHECK_ERR( fnDecl->getSequence().size() >= 1 );
 	
 	auto*	params = fnDecl->getSequence()[0]->getAsAggregate();
@@ -3492,7 +4154,7 @@ static bool CreateEnableIfBody (TIntermAggregate* fnDecl, DebugInfo &dbgInfo)
 	CreateDebugTraceFunctions
 =================================================
 */
-static bool CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPosition, DebugInfo &dbgInfo)
+bool  CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPosition, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	aggr = root->getAsAggregate();
 	CHECK_ERR( aggr );
@@ -3542,7 +4204,7 @@ static bool CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPositi
 			body->getSequence().insert( body->getSequence().begin(), shader_info );
 		}
 		else
-		if ( aggr2->getName().rfind( "dbg_EnableTraceRecording(", 0 ) == 0 )
+		if ( aggr2->getName().rfind( "dbg_EnableProfiling(", 0 ) == 0 )
 		{
 			CHECK_ERR( CreateEnableIfBody( INOUT aggr2, dbgInfo ));
 		}
@@ -3566,6 +4228,30 @@ static bool CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPositi
 			aggr->getSequence().push_back( body );
 		}
 		else
+		if ( fn == "dbg_AddTimeToTrace(vu4;u1;" )
+		{
+			auto*	body = CreateAddTimeToTraceBody2( dbgInfo );
+			CHECK_ERR( body );
+
+			aggr->getSequence().push_back( body );
+		}
+		else
+		if ( fn.rfind( "dbg_AddTimeToTrace(", 0 ) == 0 )
+		{
+			auto*	body = CreateAddTimeToTraceBody( fn, dbgInfo );
+			CHECK_ERR( body );
+
+			aggr->getSequence().push_back( body );
+		}
+		else
+		if ( fn == "dbg_GetCurrentTime(" )
+		{
+			auto*	body = CreateGetCurrentTimeBody( dbgInfo );
+			CHECK_ERR( body );
+
+			aggr->getSequence().push_back( body );
+		}
+		else
 			RETURN_ERR( "unknown function" );
 	}
 	return true;
@@ -3575,16 +4261,16 @@ static bool CreateDebugTraceFunctions (TIntermNode* root, uint32_t initialPositi
 =================================================
 	CreateAppendToTrace2
 ----
-	'sourceLoc' - location index returned by DebugInfo::GetSourceLocation or ::GetCustomSourceLocation.
+	'sourceLoc' - location index returned by DebugInfo::GetSourceLocation or DebugInfo::GetCustomSourceLocation.
 	also see 'CreateAppendToTraceBody2()'
 =================================================
 */
-static TIntermAggregate*  CreateAppendToTrace2 (uint32_t sourceLoc, DebugInfo &dbgInfo)
+TIntermAggregate*  CreateAppendToTrace2 (uint32_t sourceLoc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	fcall = new TIntermAggregate( TOperator::EOpFunctionCall );
 
 	fcall->setUserDefined();
-	fcall->setName( TString{"dbg_AppendToTrace(u1;"} );
+	fcall->setName( "dbg_AppendToTrace(u1;" );
 	fcall->setType( TType{ TBasicType::EbtVoid, TStorageQualifier::EvqGlobal });
 	fcall->getQualifierList().push_back( TStorageQualifier::EvqConstReadOnly );
 	
@@ -3609,11 +4295,11 @@ static TIntermAggregate*  CreateAppendToTrace2 (uint32_t sourceLoc, DebugInfo &d
 ----
 	returns new node instead of 'exprNode'.
 	'exprNode' - any operator.
-	'sourceLoc' - location index returned by DebugInfo::GetSourceLocation or ::GetCustomSourceLocation.
+	'sourceLoc' - location index returned by DebugInfo::GetSourceLocation or DebugInfo::GetCustomSourceLocation.
 	also see 'CreateAppendToTraceBody()'
 =================================================
 */
-static TIntermAggregate*  CreateAppendToTrace (TIntermTyped* exprNode, uint32_t sourceLoc, DebugInfo &dbgInfo)
+TIntermAggregate*  CreateAppendToTrace (TIntermTyped* exprNode, uint32_t sourceLoc, DebugInfo &dbgInfo)
 {
 	TIntermAggregate*	fcall		= new TIntermAggregate( TOperator::EOpFunctionCall );
 	std::string			type_name;
@@ -3686,447 +4372,207 @@ static TIntermAggregate*  CreateAppendToTrace (TIntermTyped* exprNode, uint32_t 
 
 /*
 =================================================
-	ProcessFunctionCall
+	CreateAddTimeToTrace2
 ----
-	log out/inout parameters and returned value
+	also see 'CreateAddTimeToTraceBody2()'
 =================================================
 */
-static void ProcessFunctionCall (TIntermOperator* node, DebugInfo &dbgInfo)
+TIntermAggregate*  CreateAddTimeToTrace2 (TIntermSymbol* startTimeNode, DebugInfo &dbgInfo)
 {
-	bool	is_builtin		= IsBuiltinFunction( node->getOp() );
-	bool	is_user_defined	= (node->getOp() == TOperator::EOpFunctionCall);
-	bool	is_debug		= IsDebugFunction( node );
+	TIntermAggregate*	fcall = new TIntermAggregate( TOperator::EOpFunctionCall );
 
-	if ( not (is_builtin or is_user_defined) or is_debug )
-		return;
+	fcall->setUserDefined();
+	fcall->setName( TString{"dbg_AddTimeToTrace(vu4;u1;"} );
+	fcall->setType( TType{ TBasicType::EbtVoid, TStorageQualifier::EvqGlobal });
+	fcall->getQualifierList().push_back( TStorageQualifier::EvqConstReadOnly );
+	fcall->getQualifierList().push_back( TStorageQualifier::EvqConstReadOnly );
 	
-	/*bool	has_output = false;
-	for (auto& qual : node->getQualifierList()) {
-		if ( qual == TStorageQualifier::EvqOut or qual == TStorageQualifier::EvqInOut )
-			has_output = true;
-	}*/
+	TPublicType		uint_type;		uint_type.init({});
+	uint_type.basicType				= TBasicType::EbtUint;
+	uint_type.qualifier.storage		= TStorageQualifier::EvqConst;
 
-	// record returned value
-	if ( node->getType().getBasicType() == TBasicType::EbtVoid or
-		 node->getType().isScalarOrVec1() or node->getType().isVector() or node->getType().isMatrix() )
-	{
-		// this is location at the end of the function call
-		TSourceLoc	loc = node->getLoc();
+	auto	end_loc = startTimeNode->getLoc();
+	end_loc.column = 0;
 
-		// try to find location at the begin of the function call
-		if ( dbgInfo.GetCallStack().size() > 1 and
-			 node->getType().getBasicType() != TBasicType::EbtVoid )
-		{
-			TIntermNode*	temp = (dbgInfo.GetCallStack().end()-2)->node;
+	const uint32_t			source_loc		= dbgInfo.GetCustomSourceLocation2( startTimeNode, startTimeNode->getLoc(), end_loc );
+	TConstUnionArray		loc_value(1);	loc_value[0].setUConst( source_loc );
+	TIntermConstantUnion*	loc_const		= new TIntermConstantUnion{ loc_value, TType{uint_type} };
+	
+	loc_const->setLoc({});
+	fcall->getSequence().push_back( startTimeNode );
+	fcall->getSequence().push_back( loc_const );
 
-			if ( temp->getLoc() != TSourceLoc{} and temp->getLoc() < loc )
-				loc = temp->getLoc();
+	dbgInfo.RequestFunc( fcall->getName() );
 
-			// pattern: "value = FunctionCall(...)"
-			// returned value will be recorded later
-			if ( TIntermOperator* op = temp->getAsOperator(); op and op->getOp() == TOperator::EOpAssign )
-				return;
-
-#		ifdef HIGH_DETAIL_TRACE
-			// pattern: "return FunctionCall(...)"
-			// returned value will be recorded later
-			if ( TIntermBranch* branch = temp->getAsBranchNode(); branch and branch->getFlowOp() == TOperator::EOpReturn )
-				return;
-#		endif
-		}
-
-		// temporary fix
-		if ( loc == node->getLoc() )
-			loc.column = 0;
-		
-		const uint32_t	loc_id = dbgInfo.GetSourceLocation( node, loc );
-
-		if ( node->getType().getBasicType() == TBasicType::EbtVoid )
-		{
-			TIntermAggregate*	temp = new TIntermAggregate{ TOperator::EOpSequence };
-			temp->getSequence().push_back( node );
-			temp->getSequence().push_back( CreateAppendToTrace2( loc_id, dbgInfo ));
-			dbgInfo.InjectNode( temp );
-		}
-		else
-			dbgInfo.InjectNode( CreateAppendToTrace( node, loc_id, dbgInfo ));
-	}
+	return fcall;
 }
 
 /*
 =================================================
-	RecursiveProcessAggregateNode
+	CreateAddTimeToTrace
+----
+	returns new node instead of 'exprNode'.
+	'exprNode' - any operator.
+	also see 'CreateAddTimeToTraceBody()'
 =================================================
 */
-static bool RecursiveProcessAggregateNode (TIntermAggregate* aggr, DebugInfo &dbgInfo)
+TIntermAggregate*  CreateAddTimeToTrace (TIntermTyped* exprNode, TIntermSymbol* startTimeNode, DebugInfo &dbgInfo)
 {
-	dbgInfo.Enter( aggr );
+	TIntermAggregate*	fcall		= new TIntermAggregate( TOperator::EOpFunctionCall );
+	std::string			type_name;
+	const TType &		type		= exprNode->getType();
 
-	for (auto& node : aggr->getSequence())
+	switch ( type.getBasicType() )
 	{
-		CHECK_ERR( RecursiveProcessNode( node, dbgInfo ));
-		
-		if ( auto* inj = dbgInfo.GetInjection() )
-			node = inj;
-	}
-	
-	ProcessFunctionCall( aggr, dbgInfo );
-
-	if ( aggr->getOp() == TOperator::EOpFunction and
-		 aggr->getSequence().size() == 2 )
-	{
-		TIntermAggregate*	parameters	= aggr->getSequence()[0]->getAsAggregate();
-		TIntermAggregate*	body		= aggr->getSequence()[1]->getAsAggregate();
-		CHECK_ERR( parameters and body );
-
-		auto		begin_iter	= body->getSequence().begin();
-		TSourceLoc	loc			= aggr->getLoc();
-		loc.column = 0;	// TODO
-
-		for (auto& arg : parameters->getSequence())
-		{
-			TIntermSymbol*		symb	= arg->getAsSymbolNode();
-			TStorageQualifier	qual	= symb->getQualifier().storage;
-
-			if ( qual == TStorageQualifier::EvqConstReadOnly or
-				 qual == TStorageQualifier::EvqIn			 or
-				 qual == TStorageQualifier::EvqInOut )
-			{
-				if ( auto* fncall = CreateAppendToTrace( symb, dbgInfo.GetSourceLocation( symb, loc ), dbgInfo ))
-					begin_iter = body->getSequence().insert( begin_iter, fncall );
-			}
-		}
-	}
-
-	const auto	loc = dbgInfo.GetCurrentLocation();
-	dbgInfo.Leave( aggr );
-
-	if ( aggr->getOp() >= TOperator::EOpNegative	 or
-		 aggr->getOp() == TOperator::EOpFunctionCall or
-		 aggr->getOp() == TOperator::EOpParameters	 )
-	{
-		// propagate source location to root
-		dbgInfo.AddLocation( loc );
-	}
-	return true;
-}
-
-/*
-=================================================
-	RecursiveProcessUnaryNode
-=================================================
-*/
-static bool RecursiveProcessUnaryNode (TIntermUnary* unary, DebugInfo &dbgInfo)
-{
-	dbgInfo.Enter( unary );
-
-	CHECK_ERR( RecursiveProcessNode( unary->getOperand(), dbgInfo ));
-	
-	if ( auto* inj = dbgInfo.GetInjection() )
-		unary->setOperand( inj );
-	
-	switch ( unary->getOp() )
-	{
-		case TOperator::EOpPreIncrement :
-		case TOperator::EOpPostIncrement :	// TODO: log as result+1
-		case TOperator::EOpPreDecrement :
-		case TOperator::EOpPostDecrement :	// TODO: log as result-1
-		{
-			dbgInfo.InjectNode( CreateAppendToTrace( unary, dbgInfo.GetSourceLocation( unary->getOperand(), unary->getOperand()->getLoc() ), dbgInfo ));
-			break;
-		}
-		default :
-			ProcessFunctionCall( unary, dbgInfo );
-			break;
-	}
-
-	const auto	loc = dbgInfo.GetCurrentLocation();
-	dbgInfo.Leave( unary );
-
-	// propagate source location to root
-	dbgInfo.AddLocation( loc );
-	return true;
-}
-
-/*
-=================================================
-	RecursiveProcessBinaryNode
-=================================================
-*/
-static bool RecursiveProcessBinaryNode (TIntermBinary* binary, DebugInfo &dbgInfo)
-{
-	dbgInfo.Enter( binary );
-
-	CHECK_ERR( RecursiveProcessNode( binary->getLeft(), dbgInfo ));
-
-	if ( auto* inj = dbgInfo.GetInjection() )
-		binary->setLeft( inj );
-
-	CHECK_ERR( RecursiveProcessNode( binary->getRight(), dbgInfo ));
-
-	if ( auto* inj = dbgInfo.GetInjection() )
-		binary->setRight( inj );
-
-	switch ( binary->getOp() )
-	{
-		case TOperator::EOpAssign :
-		case TOperator::EOpAddAssign :
-		case TOperator::EOpSubAssign :
-		case TOperator::EOpMulAssign :
-		case TOperator::EOpDivAssign :
-		case TOperator::EOpModAssign :
-		case TOperator::EOpAndAssign :
-		case TOperator::EOpInclusiveOrAssign :
-		case TOperator::EOpExclusiveOrAssign :
-		case TOperator::EOpLeftShiftAssign :
-		case TOperator::EOpRightShiftAssign :
-		{
-			dbgInfo.InjectNode( CreateAppendToTrace( binary, dbgInfo.GetSourceLocation( binary->getLeft(), binary->getLeft()->getLoc() ), dbgInfo ));
-			break;
-		}
-		default :
-			ProcessFunctionCall( binary, dbgInfo );
-			break;
-	}
-
-	const auto	loc = dbgInfo.GetCurrentLocation();
-	dbgInfo.Leave( binary );
-
-	// propagate source location to root
-	dbgInfo.AddLocation( loc );
-	return true;
-}
-
-/*
-=================================================
-	RecursiveProcessBranchNode
-=================================================
-*/
-static bool RecursiveProcessBranchNode (TIntermBranch* branch, DebugInfo &dbgInfo)
-{
-	dbgInfo.Enter( branch );
-
-	const TSourceLoc	loc = branch->getLoc();
-
-	CHECK_ERR( RecursiveProcessNode( branch->getExpression(), dbgInfo ));
-
-	if ( auto* inj = dbgInfo.GetInjection() )
-	{
-		new(branch) TIntermBranch{ branch->getFlowOp(), inj };
-		branch->setLoc( loc );
-	}
-	
-#ifdef HIGH_DETAIL_TRACE
-	else
-	if ( branch->getFlowOp() == TOperator::EOpCase or
-		 branch->getFlowOp() == TOperator::EOpDefault )
-	{}
-	else
-	if ( auto* expr = branch->getExpression(); expr and not expr->getAsConstantUnion() )
-	{
-		if ( auto* fncall = CreateAppendToTrace( expr, dbgInfo.GetSourceLocation( expr, branch->getLoc() ), dbgInfo ))
-		{
-			new(branch) TIntermBranch{ branch->getFlowOp(), fncall };
-			branch->setLoc( loc );
-		}
-	}
-	else
-	{
-		if ( auto* fncall = CreateAppendToTrace2( dbgInfo.GetSourceLocation( branch, branch->getLoc() ), dbgInfo ))
-		{
-			TIntermAggregate*	temp = new TIntermAggregate{ TOperator::EOpSequence };
-			dbgInfo.InjectNode( temp );
+		case TBasicType::EbtFloat :		type_name = "f";	break;
+		case TBasicType::EbtInt :		type_name = "i";	break;
+		case TBasicType::EbtUint :		type_name = "u";	break;
+		case TBasicType::EbtBool :		type_name = "b";	break;
+		case TBasicType::EbtDouble :	type_name = "d";	break;
+		case TBasicType::EbtInt64 :		type_name = "i64";	break;
+		case TBasicType::EbtUint64 :	type_name = "u64";	break;
 			
-			temp->getSequence().push_back( fncall );
-			temp->getSequence().push_back( branch );
-		}
+		case TBasicType::EbtSampler :	return nullptr;
+		case TBasicType::EbtStruct :	return nullptr;
+
+		case TBasicType::EbtVoid :
+		case TBasicType::EbtFloat16 :
+		case TBasicType::EbtInt8 :
+		case TBasicType::EbtUint8 :
+		case TBasicType::EbtInt16 :
+		case TBasicType::EbtUint16 :
+		case TBasicType::EbtAtomicUint :
+		case TBasicType::EbtBlock :
+		case TBasicType::EbtAccStructNV :
+		case TBasicType::EbtString :
+		case TBasicType::EbtNumTypes :
+		default :						RETURN_ERR( "not supported" );
 	}
-#endif
-
-	dbgInfo.Leave( branch );
-	return true;
-}
-
-/*
-=================================================
-	ReplaceIntermSwitch
-=================================================
-*/
-static void ReplaceIntermSwitch (INOUT TIntermSwitch* sw, TIntermTyped* cond, TIntermAggregate* b)
-{
-	const bool			is_flatten		= sw->getFlatten();
-	const bool			dont_flatten	= sw->getDontFlatten();
-	const TSourceLoc	loc				= sw->getLoc();
-
-	new(sw) TIntermSwitch{ cond, b };
 	
-	sw->setLoc( loc );
-
-	if ( is_flatten )	sw->setFlatten();
-	if ( dont_flatten )	sw->setDontFlatten();
-}
-
-/*
-=================================================
-	RecursiveProcessSwitchNode
-=================================================
-*/
-static bool RecursiveProcessSwitchNode (TIntermSwitch* sw, DebugInfo &dbgInfo)
-{
-	dbgInfo.Enter( sw );
-
-	CHECK_ERR( RecursiveProcessNode( sw->getCondition(), dbgInfo ));
-	
-	if ( auto* inj = dbgInfo.GetInjection() )
-		ReplaceIntermSwitch( INOUT sw, inj, sw->getBody() );
-	
-#ifdef HIGH_DETAIL_TRACE
+	if ( type.isArray() )
+		RETURN_ERR( "arrays is not supported yet" )
 	else
-	if ( not sw->getCondition()->getAsConstantUnion() and sw->getCondition()->getAsTyped() )
-	{
-		auto*	cond	= sw->getCondition()->getAsTyped();
-		auto*	fncall	= CreateAppendToTrace( cond, dbgInfo.GetSourceLocation( cond, cond->getLoc() ), dbgInfo );
-
-		if ( fncall )
-			ReplaceIntermSwitch( INOUT sw, fncall, sw->getBody() );
-	}
-#endif
-
-	CHECK_ERR( RecursiveProcessNode( sw->getBody(), dbgInfo ));
-	
-	if ( auto* inj = dbgInfo.GetInjection() )
-		ReplaceIntermSwitch( INOUT sw, sw->getCondition()->getAsTyped(), inj->getAsAggregate() );
-
-	dbgInfo.Leave( sw );
-	return true;
-}
-
-/*
-=================================================
-	ReplaceIntermSelection
-=================================================
-*/
-static void ReplaceIntermSelection (INOUT TIntermSelection *selection, TIntermTyped* cond, TIntermNode* trueB, TIntermNode* falseB)
-{
-	const bool			is_flatten			= selection->getFlatten();
-	const bool			dont_flatten		= selection->getDontFlatten();
-	const bool			is_short_circuit	= selection->getShortCircuit();
-	const TSourceLoc	loc					= selection->getLoc();
-	TType				type;				type.shallowCopy( selection->getType() );
-
-	new(selection) TIntermSelection{ cond, trueB, falseB, type };
-
-	selection->setLoc( loc );
-	
-	if ( is_flatten )			selection->setFlatten();
-	if ( dont_flatten )			selection->setDontFlatten();
-	if ( not is_short_circuit )	selection->setNoShortCircuit();
-}
-
-/*
-=================================================
-	RecursiveProcessSelectionNode
-=================================================
-*/
-static bool RecursiveProcessSelectionNode (TIntermSelection* selection, DebugInfo &dbgInfo)
-{
-	dbgInfo.Enter( selection );
-
-	CHECK_ERR( RecursiveProcessNode( selection->getCondition(), dbgInfo ));
-	
-	if ( auto* inj = dbgInfo.GetInjection() )
-		ReplaceIntermSelection( INOUT selection, inj, selection->getTrueBlock(), selection->getFalseBlock() );
-
-#ifdef HIGH_DETAIL_TRACE
+	if ( type.isMatrix() )
+		type_name = "m" + type_name + std::to_string(type.getMatrixCols()) + std::to_string(type.getMatrixRows());
 	else
-	if ( not selection->getCondition()->getAsConstantUnion() )
-	{
-		auto*	cond	= selection->getCondition();
-		auto*	fncall	= CreateAppendToTrace( cond, dbgInfo.GetSourceLocation( cond, cond->getLoc() ), dbgInfo );
-
-		if ( fncall )
-			ReplaceIntermSelection( INOUT selection, fncall, selection->getTrueBlock(), selection->getFalseBlock() );
-	}
-#endif
-
-	CHECK_ERR( RecursiveProcessNode( selection->getTrueBlock(), dbgInfo ));
+	if ( type.isVector() )
+		type_name = "v" + type_name + std::to_string(type.getVectorSize());
+	else
+	if ( type.isScalarOrVec1() )
+		type_name += "1";
+	else
+		RETURN_ERR( "unknown type" );
 	
-	if ( auto* inj = dbgInfo.GetInjection() )
-		ReplaceIntermSelection( INOUT selection, selection->getCondition(), inj, selection->getFalseBlock() );
-
-	CHECK_ERR( RecursiveProcessNode( selection->getFalseBlock(), dbgInfo ));
+	fcall->setLoc( exprNode->getLoc() );
+	fcall->setUserDefined();
+	fcall->setName( TString{"dbg_AddTimeToTrace(vu4;"} + TString{type_name.c_str()} + ";u1;" );
+	fcall->setType( exprNode->getType() );
+	fcall->getQualifierList().push_back( TStorageQualifier::EvqConstReadOnly );
+	fcall->getQualifierList().push_back( TStorageQualifier::EvqConstReadOnly );
+	fcall->getQualifierList().push_back( TStorageQualifier::EvqConstReadOnly );
+	fcall->getSequence().push_back( startTimeNode );
+	fcall->getSequence().push_back( exprNode );
 	
-	if ( auto* inj = dbgInfo.GetInjection() )
-		ReplaceIntermSelection( INOUT selection, selection->getCondition(), selection->getTrueBlock(), inj );
+	TPublicType		uint_type;		uint_type.init( exprNode->getLoc() );
+	uint_type.basicType				= TBasicType::EbtUint;
+	uint_type.qualifier.storage		= TStorageQualifier::EvqConst;
+	
+	auto	end_loc = startTimeNode->getLoc();
+	end_loc.column = 0;
+
+	const uint32_t			source_loc		= dbgInfo.GetCustomSourceLocation2( startTimeNode, startTimeNode->getLoc(), end_loc );
+	TConstUnionArray		loc_value(1);	loc_value[0].setUConst( source_loc );
+	TIntermConstantUnion*	loc_const		= new TIntermConstantUnion{ loc_value, TType{uint_type} };
+	
+	loc_const->setLoc( exprNode->getLoc() );
+	fcall->getSequence().push_back( loc_const );
+
+	dbgInfo.RequestFunc( fcall->getName() );
+
+	return fcall;
+}
+
+/*
+=================================================
+	AssignClock
+----
+	also see 'CreateGetCurrentTimeBody'
+=================================================
+*/
+TIntermBinary*  AssignClock (TIntermSymbol* dst, const TSourceLoc &loc, DebugInfo &dbgInfo)
+{
+	TIntermAggregate*	fcall		= new TIntermAggregate( TOperator::EOpFunctionCall );
+	TPublicType			uint_type;	uint_type.init({});
+	uint_type.basicType				= TBasicType::EbtUint;
+	uint_type.vectorSize			= 4;
+	uint_type.qualifier.storage		= TStorageQualifier::EvqTemporary;
+	uint_type.qualifier.precision	= TPrecisionQualifier::EpqHigh;
+
+	fcall->setLoc( loc );
+	fcall->setUserDefined();
+	fcall->setName( "dbg_GetCurrentTime(" );
+	fcall->setType( TType{uint_type} );
 		
-	dbgInfo.Leave( selection );
+	TIntermBinary*		assign_time	= new TIntermBinary{ TOperator::EOpAssign };
+	assign_time->setLoc( loc );
+	assign_time->setType( TType{uint_type} );
+	assign_time->setLeft( dst );
+	assign_time->setRight( fcall );
+
+	dbgInfo.RequestFunc( fcall->getName() );
+
+	return assign_time;
+}
+
+/*
+=================================================
+	ProcessFunctionDefinition
+=================================================
+*/
+bool  ProcessFunctionDefinition (TIntermAggregate* node, DebugInfo &dbgInfo)
+{
+	CHECK_ERR( node->getSequence().size() >= 2 );
+	CHECK_ERR( node->getSequence()[0]->getAsOperator()->getOp() == TOperator::EOpParameters );
+	CHECK_ERR( node->getSequence()[1]->getAsOperator()->getOp() == TOperator::EOpSequence );
+
+	TIntermAggregate*	body = node->getSequence()[1]->getAsAggregate();
+
+	TIntermSymbol*		start_time_node	= dbgInfo.CreateStartTimeSymbolNode();
+	start_time_node->setLoc( node->getLoc() );
+
+	TIntermBinary*		assign_time	= AssignClock( start_time_node, body->getLoc(), dbgInfo );
+
+	body->getSequence().insert( body->getSequence().begin(), assign_time );
+
+	CHECK_ERR( dbgInfo.PushStartTime( start_time_node ));
 	return true;
 }
 
 /*
 =================================================
-	ReplaceIntermLoop
+	ProcessFunctionDefinition2
 =================================================
 */
-static void ReplaceIntermLoop (INOUT TIntermLoop* loop, TIntermNode* aBody, TIntermTyped* aTest, TIntermTyped* aTerminal)
+bool  ProcessFunctionDefinition2 (TIntermAggregate* node, DebugInfo &dbgInfo)
 {
-	const bool			test_first	= loop->testFirst();
-	const bool			is_unroll	= loop->getUnroll();
-	const bool			dont_unroll	= loop->getDontUnroll();
-	const int			dependency	= loop->getLoopDependency();
-	const TSourceLoc	loc			= loop->getLoc();
+	CHECK_ERR( node->getSequence().size() >= 2 );
+	CHECK_ERR( node->getSequence()[0]->getAsOperator()->getOp() == TOperator::EOpParameters );
+	CHECK_ERR( node->getSequence()[1]->getAsOperator()->getOp() == TOperator::EOpSequence );
 
-	new(loop) TIntermLoop{ aBody, aTest, aTerminal, test_first };
+	TIntermAggregate*	body		= node->getSequence()[1]->getAsAggregate();
+	TIntermNode*		last_node	= body->getSequence().back();
 
-	if ( is_unroll )		loop->setUnroll();
-	if ( dont_unroll )		loop->setDontUnroll();
+	if ( auto* branch = last_node->getAsBranchNode(); branch and branch->getFlowOp() == TOperator::EOpReturn )
+		return true;
 
-	loop->setLoopDependency( dependency );
-	loop->setLoc( loc );
-}
-
-/*
-=================================================
-	RecursiveProccessLoop
-=================================================
-*/
-static bool RecursiveProccessLoop (TIntermLoop* loop, DebugInfo &dbgInfo)
-{
-	dbgInfo.Enter( loop );
-
-	CHECK_ERR( RecursiveProcessNode( loop->getBody(), dbgInfo ));
+	TIntermSymbol*		start_time	= dbgInfo.GetStartTime();
+	CHECK_ERR( start_time );
 	
-	if ( auto* inj = dbgInfo.GetInjection() )
-		ReplaceIntermLoop( INOUT loop, inj, loop->getTest(), loop->getTerminal() );
+	const uint32_t		loc_id		= dbgInfo.GetSourceLocation( last_node, last_node->getLoc() );
 
-	if ( loop->getTerminal() )
-	{
-		CHECK_ERR( RecursiveProcessNode( loop->getTerminal(), dbgInfo ));
-		
-		if ( auto* inj = dbgInfo.GetInjection() )
-			ReplaceIntermLoop( INOUT loop, loop->getBody(), loop->getTest(), inj );
-	}
+	body->getSequence().push_back( CreateAddTimeToTrace2( start_time, dbgInfo ));
 
-	if ( loop->getTest() )
-	{
-		CHECK_ERR( RecursiveProcessNode( loop->getTest(), dbgInfo ));
-		
-		if ( auto* inj = dbgInfo.GetInjection() )
-			ReplaceIntermLoop( INOUT loop, loop->getBody(), inj, loop->getTerminal() );
-
-#ifdef HIGH_DETAIL_TRACE
-		else
-		{
-			auto*	test	= loop->getTest();
-			auto*	fncall	= CreateAppendToTrace( test, dbgInfo.GetSourceLocation( test, test->getLoc() ), dbgInfo );
-
-			if ( fncall )
-				ReplaceIntermLoop( INOUT loop, loop->getBody(), fncall, loop->getTerminal() );
-		}
-#endif
-	}
-	
-	dbgInfo.Leave( loop );
+	CHECK_ERR( dbgInfo.PopStartTime() );
 	return true;
 }
 
@@ -4135,9 +4581,9 @@ static bool RecursiveProccessLoop (TIntermLoop* loop, DebugInfo &dbgInfo)
 	RecursiveProcessSymbolNode
 =================================================
 */
-static bool RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo)
+bool  RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo)
 {
-	dbgInfo.AddSymbol( node );
+	//dbgInfo.AddSymbol( node, false );
 
 	if ( // fragment shader
 		 node->getName() == "gl_FragCoord"				or
@@ -4203,10 +4649,55 @@ static bool RecursiveProcessSymbolNode (TIntermSymbol* node, DebugInfo &dbgInfo)
 		 // all shaders
 		 node->getName() == "gl_SubgroupInvocationID"	)
 	{
-		dbgInfo.CacheSymbolNode( node );
+		dbgInfo.CacheSymbolNode( node, false );
 		return true;
 	}
 
 	// do nothing
+	return true;
+}
+}	// namespace
+//-----------------------------------------------------------------------------
+
+
+
+/*
+=================================================
+	InsertFunctionProfiler
+=================================================
+*/
+bool  ShaderTrace::InsertFunctionProfiler (TIntermediate &intermediate, uint32_t setIndex, bool shaderSubgroupClock, bool shaderDeviceClock)
+{
+	//CHECK_ERR( shaderSubgroupClock or shaderDeviceClock );
+
+	if ( shaderSubgroupClock )
+		intermediate.addRequestedExtension( "GL_ARB_shader_clock" );
+
+	if ( shaderDeviceClock )
+		intermediate.addRequestedExtension( "GL_EXT_shader_realtime_clock" );
+
+	DebugInfo		dbg_info{ intermediate.getStage(), OUT _exprLocations, _fileMap, shaderSubgroupClock, shaderDeviceClock };
+
+	TIntermNode*	root = intermediate.getTreeRoot();
+	CHECK_ERR( root );
+
+	_initialPosition = uint32_t(CombineHash( std::hash<void*>{}( this ), setIndex+1 ));
+	ASSERT( _initialPosition != 0 );
+	_initialPosition |= 0x80000000u;
+
+	CreateShaderDebugStorage( setIndex, dbg_info, OUT _posOffset, OUT _dataOffset );
+
+	dbg_info.Enter( root );
+	{
+		CHECK_ERR( RecursiveProcessNode( root, dbg_info ));
+
+		CreateShaderBuiltinSymbols( root, dbg_info );
+
+		CHECK_ERR( CreateDebugTraceFunctions( root, _initialPosition, dbg_info ));
+	}
+	dbg_info.Leave( root );
+	
+	CHECK_ERR( dbg_info.UpdateSymbolIDs() );
+	CHECK_ERR( dbg_info.PostProcess( OUT _varNames ));
 	return true;
 }

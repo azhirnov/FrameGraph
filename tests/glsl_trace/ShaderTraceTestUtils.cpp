@@ -3,6 +3,7 @@
 #include "ShaderTraceTestUtils.h"
 #include "stl/Algorithms/ArrayUtils.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "stl/Algorithms/StringParser.h"
 #include "stl/Stream/FileStream.h"
 
 // Warning:
@@ -10,7 +11,7 @@
 // using git compare new references with origin, only float values may differ slightly.
 // Then set 'UpdateReferences' to 'false' and run tests again.
 // All tests must pass.
-static const bool	UpdateReferences = false;
+static const bool	UpdateReferences = true;
 
 /*
 =================================================
@@ -919,10 +920,10 @@ bool CreateRayTracingScene (VulkanDeviceExt &vulkan, const TestHelpers &helper, 
 
 /*
 =================================================
-	TestDebugOutput
+	TestDebugTraceOutput
 =================================================
 */
-bool TestDebugOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modules, StringView referenceFile)
+bool TestDebugTraceOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modules, StringView referenceFile)
 {
 	CHECK_ERR( referenceFile.size() );
 	CHECK_ERR( modules.size() );
@@ -958,5 +959,34 @@ bool TestDebugOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modul
 	}
 
 	CHECK_ERR( file_data == merged );
+	return true;
+}
+
+/*
+=================================================
+	TestPerformanceOutput
+=================================================
+*/
+bool TestPerformanceOutput (const TestHelpers &helper, ArrayView<VkShaderModule> modules, ArrayView<StringView> fnNames)
+{
+	CHECK_ERR( fnNames.size() );
+	CHECK_ERR( modules.size() );
+
+	for (auto& module : modules)
+	{
+		Array<String>	temp;
+		CHECK_ERR( helper.compiler.GetDebugOutput( module, helper.readBackPtr, helper.debugOutputSize, OUT temp ));
+		CHECK_ERR( temp.size() );
+
+		for (auto& output : temp)
+		{
+			for (auto& fn : fnNames)
+			{
+				size_t	pos = output.find( fn );
+				CHECK_ERR( pos != String::npos );
+			}
+		}
+	}
+
 	return true;
 }

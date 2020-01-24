@@ -17,7 +17,7 @@ namespace FGC
 	{
 	// variables
 	private:
-		alignas(FG_CACHE_LINE) std::atomic< T *>	_ptr;
+		alignas(FG_CACHE_LINE) Atomic< T *>		_ptr;
 
 
 	// methods

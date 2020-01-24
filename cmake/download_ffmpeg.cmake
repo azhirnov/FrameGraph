@@ -6,7 +6,8 @@ if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_FFMPEG})
 	add_library( "ffmpeg-lib" INTERFACE )
 	target_include_directories( "ffmpeg-lib" INTERFACE "${FFMPEG_PATH}/include" )
 	target_compile_definitions( "ffmpeg-lib" INTERFACE "FG_ENABLE_FFMPEG" )
-	set_property( TARGET "ffmpeg-lib" PROPERTY INTERFACE_LINK_LIBRARIES 
+	
+	#[[set_property( TARGET "ffmpeg-lib" PROPERTY INTERFACE_LINK_LIBRARIES 
 		"${FFMPEG_PATH}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}avcodec${CMAKE_STATIC_LIBRARY_SUFFIX}"
 		"${FFMPEG_PATH}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}avdevice${CMAKE_STATIC_LIBRARY_SUFFIX}"
 		"${FFMPEG_PATH}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}avfilter${CMAKE_STATIC_LIBRARY_SUFFIX}"
@@ -15,13 +16,14 @@ if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_FFMPEG})
 		"${FFMPEG_PATH}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}postproc${CMAKE_STATIC_LIBRARY_SUFFIX}" 
 		"${FFMPEG_PATH}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}swresample${CMAKE_STATIC_LIBRARY_SUFFIX}" 
 		"${FFMPEG_PATH}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}swscale${CMAKE_STATIC_LIBRARY_SUFFIX}" )
-		
+	]]
+
 elseif (${FG_ENABLE_FFMPEG})
 	set( FG_EXTERNAL_FFMPEG_PATH "" CACHE PATH "path to ffmpeg SDK" )
 	mark_as_advanced( FG_EXTERNAL_FFMPEG_PATH )
 
 	if ((NOT WIN32) OR (NOT MSVC))
-		message( FATAL_ERROR "only win64 and Visual Stuido are supported" )
+		message( FATAL_ERROR "only Windows 32/64 with Visual Stuido are supported" )
 	endif ()
 	
 	# reset to default
@@ -32,15 +34,27 @@ elseif (${FG_ENABLE_FFMPEG})
 		message( STATUS "ffmpeg SDK found in \"${FG_EXTERNAL_FFMPEG_PATH}\"" )
 	endif ()
 	
+	if (${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+		set( FFMPEG_DEV_NAME "ffmpeg-4.2.1-win64-dev.zip" )
+		set( FFMPEG_DEV_URL "https://ffmpeg.zeranoe.com/builds/win64/dev/ffmpeg-4.2.1-win64-dev.zip" )
+		set( FFMPEG_SHARED_NAME "ffmpeg-4.2.1-win64-shared.zip" )
+		set( FFMPEG_SHARED_URL "https://ffmpeg.zeranoe.com/builds/win64/shared/ffmpeg-4.2.1-win64-shared.zip" )
+	elseif (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
+		set( FFMPEG_DEV_NAME "ffmpeg-4.2.1-win32-dev.zip" )
+		set( FFMPEG_DEV_URL "https://ffmpeg.zeranoe.com/builds/win32/dev/ffmpeg-4.2.1-win32-dev.zip" )
+		set( FFMPEG_SHARED_NAME "ffmpeg-4.2.1-win32-shared.zip" )
+		set( FFMPEG_SHARED_URL "https://ffmpeg.zeranoe.com/builds/win32/shared/ffmpeg-4.2.1-win32-shared.zip" )
+	endif ()
+
 	ExternalProject_Add( "External.FFmpeg-dev"
 		LOG_OUTPUT_ON_FAILURE 1
 		# download
-		URL					"https://ffmpeg.zeranoe.com/builds/win64/dev/ffmpeg-4.2.1-win64-dev.zip"
+		URL					${FFMPEG_DEV_URL}
 		DOWNLOAD_DIR		"${FG_EXTERNAL_FFMPEG_PATH}/dev-temp"
 		LOG_DOWNLOAD		1
 		# configure
 		SOURCE_DIR			"${FG_EXTERNAL_FFMPEG_PATH}/dev"
-		CONFIGURE_COMMAND	${CMAKE_COMMAND} -E tar -xf "${FG_EXTERNAL_FFMPEG_PATH}/dev-temp/ffmpeg-4.2.1-win64-dev.zip"
+		CONFIGURE_COMMAND	${CMAKE_COMMAND} -E tar -xf "${FG_EXTERNAL_FFMPEG_PATH}/dev-temp/${FFMPEG_DEV_NAME}"
 		LOG_CONFIGURE 		1
 		# build
 		BUILD_COMMAND		${CMAKE_COMMAND} -E remove_directory "${FG_EXTERNAL_FFMPEG_PATH}/dev-temp"
@@ -54,12 +68,12 @@ elseif (${FG_ENABLE_FFMPEG})
 	ExternalProject_Add( "External.FFmpeg-shared"
 		LOG_OUTPUT_ON_FAILURE 1
 		# download
-		URL					"https://ffmpeg.zeranoe.com/builds/win64/shared/ffmpeg-4.2.1-win64-shared.zip"
+		URL					${FFMPEG_SHARED_URL}
 		DOWNLOAD_DIR		"${FG_EXTERNAL_FFMPEG_PATH}/shared-temp"
 		LOG_DOWNLOAD		1
 		# configure
 		SOURCE_DIR			"${FG_EXTERNAL_FFMPEG_PATH}/shared"
-		CONFIGURE_COMMAND	${CMAKE_COMMAND} -E tar -xf "${FG_EXTERNAL_FFMPEG_PATH}/shared-temp/ffmpeg-4.2.1-win64-shared.zip"
+		CONFIGURE_COMMAND	${CMAKE_COMMAND} -E tar -xf "${FG_EXTERNAL_FFMPEG_PATH}/shared-temp/${FFMPEG_SHARED_NAME}"
 		LOG_CONFIGURE 		1
 		# build
 		BUILD_COMMAND		${CMAKE_COMMAND} -E remove_directory "${FG_EXTERNAL_FFMPEG_PATH}/shared-temp"

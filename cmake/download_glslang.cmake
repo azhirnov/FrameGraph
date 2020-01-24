@@ -23,9 +23,9 @@ elseif (${FG_ENABLE_GLSLANG})
 	set( FG_EXTERNAL_GLSLANG_PATH "" CACHE PATH "path to glslang source" )
 	mark_as_advanced( FG_EXTERNAL_GLSLANG_PATH )
 
-	# SPIRV-Tools require Python 2.7 for building
-	find_package( PythonInterp 2.7 REQUIRED )
-	find_package( PythonLibs 2.7 REQUIRED )
+	# SPIRV-Tools require Python 3.7 for building
+	find_package( PythonInterp 3.7 REQUIRED )
+	find_package( PythonLibs 3.7 REQUIRED )
 	
 	# reset to default
 	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/CMakeLists.txt")
@@ -55,20 +55,18 @@ elseif (${FG_ENABLE_GLSLANG})
 	
 	set( ENABLE_HLSL ON CACHE BOOL "glslang option" )
 	set( ENABLE_OPT ON CACHE BOOL "glslang option" )
-	set( ENABLE_AMD_EXTENSIONS ON CACHE BOOL "glslang option" )
-	set( ENABLE_NV_EXTENSIONS ON CACHE BOOL "glslang option" )
-	mark_as_advanced( ENABLE_HLSL ENABLE_OPT ENABLE_AMD_EXTENSIONS ENABLE_NV_EXTENSIONS )
+	mark_as_advanced( ENABLE_HLSL ENABLE_OPT )
 
-	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+	#if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
 		# stable release February 8, 2019
-		set( GLSLANG_TAG "7.11.3113" )
-		set( SPIRV_TOOLS_TAG "v2019.1" )
-		set( SPIRV_HEADERS_TAG "1.3.7" )
-	else ()
+	#	set( GLSLANG_TAG "7.11.3113" )
+	#	set( SPIRV_TOOLS_TAG "v2019.1" )
+	#	set( SPIRV_HEADERS_TAG "1.3.7" )
+	#else ()
 		set( GLSLANG_TAG "master" )
 		set( SPIRV_TOOLS_TAG "master" )
 		set( SPIRV_HEADERS_TAG "master" )
-	endif ()
+	#endif ()
 
 	ExternalProject_Add( "External.glslang"
 		LOG_OUTPUT_ON_FAILURE 1
@@ -149,8 +147,6 @@ elseif (${FG_ENABLE_GLSLANG})
 		CMAKE_ARGS			"-DCMAKE_CONFIGURATION_TYPES=${FG_EXTERNAL_CONFIGURATION_TYPES}"
 							"-DCMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION}"
 							"-DCMAKE_INSTALL_PREFIX=${FG_GLSLANG_INSTALL_DIR}"
-							"-DENABLE_AMD_EXTENSIONS=${ENABLE_AMD_EXTENSIONS}"
-							"-DENABLE_NV_EXTENSIONS=${ENABLE_NV_EXTENSIONS}"
 							"-DENABLE_HLSL=${ENABLE_HLSL}"
 							"-DENABLE_OPT=${ENABLE_OPT}"
 							"-DENABLE_SPVREMAPPER=ON"
@@ -200,14 +196,6 @@ elseif (${FG_ENABLE_GLSLANG})
 
 	if (${ENABLE_HLSL})
 		set( FG_GLSLANG_DEFINITIONS "${FG_GLSLANG_DEFINITIONS}" "ENABLE_HLSL" )
-	endif ()
-
-	if (${ENABLE_AMD_EXTENSIONS})
-		set( FG_GLSLANG_DEFINITIONS "${FG_GLSLANG_DEFINITIONS}" "AMD_EXTENSIONS" )
-	endif ()
-
-	if (${ENABLE_NV_EXTENSIONS})
-		set( FG_GLSLANG_DEFINITIONS "${FG_GLSLANG_DEFINITIONS}" "NV_EXTENSIONS" )
 	endif ()
 
 	# glslang libraries

@@ -42,6 +42,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_Draw4,			1 });
 		_tests.push_back({ &FGApp::Test_Draw5,			1 });
 		_tests.push_back({ &FGApp::Test_Draw6,			1 });
+		_tests.push_back({ &FGApp::Test_Draw7,			1 });
 		_tests.push_back({ &FGApp::Test_RawDraw1,			1 });
 		_tests.push_back({ &FGApp::Test_ExternalCmdBuf1,	1 });
 		_tests.push_back({ &FGApp::Test_ReadAttachment1,	1 });
@@ -120,14 +121,14 @@ namespace {
 
 		// initialize vulkan device
 		{
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_1,
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_2,
 									   "",
 									   {{ VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_PRESENT_BIT, 0.0f },
 										{ VK_QUEUE_COMPUTE_BIT,  0.0f },
 										{ VK_QUEUE_TRANSFER_BIT, 0.0f }},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
-									   VulkanDevice::GetAllDeviceExtensions()
+									   VulkanDevice::GetAllDeviceExtensions_v110()
 									));
 
 			// this is a test and the test should fail for any validation error
@@ -172,10 +173,9 @@ namespace {
 
 		// add glsl pipeline compiler
 		{
-			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
-			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations	|	// TODO: remove
-												EShaderCompilationFlags::Quiet				|
-												EShaderCompilationFlags::ParseAnnoations	|
+			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.instance, vulkan_info.physicalDevice, vulkan_info.device );
+			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::Quiet				|
+												EShaderCompilationFlags::ParseAnnotations	|
 												EShaderCompilationFlags::UseCurrentDeviceLimits );
 
 			_frameGraph->AddPipelineCompiler( _pplnCompiler );

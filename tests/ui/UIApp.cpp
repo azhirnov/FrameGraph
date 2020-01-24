@@ -64,7 +64,7 @@ namespace FG
 									   {},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
 									   VulkanDevice::GetRecomendedInstanceExtensions(),
-									   VulkanDevice::GetAllDeviceExtensions()
+									   VulkanDevice::GetAllDeviceExtensions_v110()
 									));
 			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
 		}
@@ -104,7 +104,7 @@ namespace FG
 
 		// add glsl pipeline compiler
 		{
-			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
+			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.instance, vulkan_info.physicalDevice, vulkan_info.device );
 			compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
 
 			_frameGraph->AddPipelineCompiler( compiler );

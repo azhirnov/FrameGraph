@@ -13,11 +13,7 @@ extern void Test_Shader8 (VPipelineCompiler* compiler)
 #extension GL_NV_ray_tracing : enable
 layout(binding = 0, set = 0) uniform accelerationStructureNV accNV;
 layout(location = 0) rayPayloadNV vec4 payload;
-layout(shaderRecordNV) buffer block
-{
-	float arr[4];
-	vec4 pad;
-};
+
 void main()
 {
 	uint lx = gl_LaunchIDNV.x;
@@ -25,8 +21,6 @@ void main()
 	uint sx = gl_LaunchSizeNV.x;
 	uint sy = gl_LaunchSizeNV.y;
 	traceNV(accNV, lx, ly, sx, sy, 0u, vec3(0.0f), 0.5f, vec3(1.0f), 0.75f, 1);
-	arr[3] = 1.0f;
-	pad = payload;
 }
 )#" );
 
@@ -70,8 +64,6 @@ void main()
 {
 	uvec3 id = gl_LaunchIDNV;
 	uvec3 size = gl_LaunchSizeNV;
-	uint curFlags = gl_IncomingRayFlagsNV;
-	curFlags = curFlags & gl_RayFlagsOpaqueNV;
 	data1 = 256U;
 	executeCallableNV(2,1);
 }

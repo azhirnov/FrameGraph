@@ -44,7 +44,7 @@ void main ()
 	imageStore( un_Output, ivec2(gl_LaunchIDNV), payload );
 }
 )#";
-		CHECK_ERR( shaderCompiler.Compile( OUT rayGenShader, vulkan, {rt_shader, raygen_shader_source}, EShLangRayGenNV, 1 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT rayGenShader, vulkan, {rt_shader, raygen_shader_source}, EShLangRayGenNV, ETraceMode::DebugTrace, 1 ));
 	}
 
 	// create ray miss shader
@@ -417,7 +417,7 @@ extern bool ShaderTrace_Test9 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkFreeMemory( vulkan.GetVkDevice(), dev_memory, null );
 	}
 
-	CHECK_ERR( TestDebugOutput( helper, {raygen_shader}, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugTraceOutput( helper, {raygen_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

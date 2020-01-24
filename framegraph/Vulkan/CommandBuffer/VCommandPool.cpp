@@ -50,6 +50,10 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 
+		EXLOCK( _cmdGuard );
+		_freePrimaries.clear();
+		_freeSecondaries.clear();
+
 		if ( _pool )
 		{
 			dev.vkDestroyCommandPool( dev.GetVkDevice(), _pool, null );
@@ -60,10 +64,6 @@ namespace FG
 				_cmdBufCount = 0;
 			)
 		}
-
-		EXLOCK( _cmdGuard );
-		_freePrimaries.clear();
-		_freeSecondaries.clear();
 	}
 	
 /*
@@ -204,7 +204,7 @@ namespace FG
 
 		dev.vkFreeCommandBuffers( dev.GetVkDevice(), _pool, 1, &cmd );
 
-		//DEBUG_ONLY( --_cmdBufCount );
+		DEBUG_ONLY( --_cmdBufCount );
 	}
 
 

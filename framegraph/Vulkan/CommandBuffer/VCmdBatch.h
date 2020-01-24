@@ -258,7 +258,7 @@ namespace FG
 
 	// variables
 	private:
-		std::atomic<EState>					_state;
+		Atomic<EState>						_state;
 		VFrameGraph &						_frameGraph;
 
 		const uint							_indexInPool;

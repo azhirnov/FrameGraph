@@ -16,7 +16,7 @@ namespace FG
 	struct VDeviceQueueInfo
 	{
 	// variables
-		mutable std::mutex	guard;			// use when call vkQueueSubmit, vkQueueWaitIdle, vkQueueBindSparse, vkQueuePresentKHR
+		mutable Mutex		guard;			// use when call vkQueueSubmit, vkQueueWaitIdle, vkQueueBindSparse, vkQueuePresentKHR
 		VkQueue				handle			= VK_NULL_HANDLE;
 		EQueueFamily		familyIndex		= Default;
 		VkQueueFlags		familyFlags		= {};

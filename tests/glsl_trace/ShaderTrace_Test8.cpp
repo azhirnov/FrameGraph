@@ -77,7 +77,7 @@ void main ()
 	out_Color   = vec4( in_Level[0], in_Level[1], in_Level[2], 1.0f );
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT tessEvalShader, vulkan, {eval_shader_source}, EShLangTessEvaluation, 0 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT tessEvalShader, vulkan, {eval_shader_source}, EShLangTessEvaluation, ETraceMode::DebugTrace, 0 ));
 	}
 
 	// create fragment shader
@@ -259,7 +259,7 @@ extern bool ShaderTrace_Test8 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, {eval_shader}, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugTraceOutput( helper, {eval_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;

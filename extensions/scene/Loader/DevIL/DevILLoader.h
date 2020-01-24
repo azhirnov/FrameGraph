@@ -19,7 +19,7 @@ namespace FG
 	public:
 		DevILLoader ();
 
-		bool LoadImage (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache) override;
+		bool LoadImage (INOUT IntermImagePtr &image, ArrayView<StringView> directories, const ImageCachePtr &imgCache, bool flipY) override;
 	};
 
 

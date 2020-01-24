@@ -86,7 +86,7 @@ namespace FG
 		{
 			ArrayView<const char*>	layers		= _vrDevice ? Default : (cfg.enableDebugLayers ? VulkanDevice::GetRecomendedInstanceLayers() : Default);
 			Array<const char*>		inst_ext	{ VulkanDevice::GetRecomendedInstanceExtensions() };
-			Array<const char*>		dev_ext		{ VulkanDevice::GetAllDeviceExtensions() };
+			Array<const char*>		dev_ext		{ VulkanDevice::GetAllDeviceExtensions_v110() };
 			Array<String>			vr_inst_ext	= _vrDevice ? _vrDevice->GetRequiredInstanceExtensions() : Default;
 			Array<String>			vr_dev_ext	= _vrDevice ? _vrDevice->GetRequiredDeviceExtensions() : Default;
 
@@ -97,7 +97,7 @@ namespace FG
 				dev_ext.push_back( ext.data() );
 			}
 
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_1,
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_2,
 									   cfg.deviceName,
 									   {},
 									   layers,
@@ -155,9 +155,9 @@ namespace FG
 		// add glsl pipeline compiler
 		// TODO: ShaderCache also adds shader compiler, so remove one of them
 		{
-			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
+			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.instance, vulkan_info.physicalDevice, vulkan_info.device );
 			compiler->SetCompilationFlags( EShaderCompilationFlags::Quiet			|
-										   EShaderCompilationFlags::ParseAnnoations	|
+										   EShaderCompilationFlags::ParseAnnotations	|
 										   EShaderCompilationFlags::UseCurrentDeviceLimits );
 
 			for (auto& dir : cfg.shaderDirectories) {

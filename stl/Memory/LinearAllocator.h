@@ -101,6 +101,8 @@ namespace FGC
 					block_size	= size*2 < block_size ? block_size : size*2;
 			auto&	block		= _blocks.emplace_back(Block{ _alloc.Allocate( block_size, _ptrAlign ), 0_b, block_size });	// TODO: check for null
 			BytesU	offset		= AlignToLarger( size_t(block.ptr) + block.size, align ) - size_t(block.ptr);
+			
+			DEBUG_ONLY( std::memset( block.ptr, 0xCD, size_t(block.capacity) ));
 
 			block.size = offset + size;
 			return block.ptr + offset;

@@ -329,9 +329,7 @@ namespace FG
 		if ( _isImmutable )
 			return;
 
-		VkPipelineStageFlags	dst_stages = 0;
-
-		const auto	AddBarrier	= [this, &barrierMngr, debugger, &dst_stages] (const BufferRange &sharedRange, const BufferAccess &src, const BufferAccess &dst)
+		const auto	AddBarrier	= [this, &barrierMngr, debugger] (const BufferRange &sharedRange, const BufferAccess &src, const BufferAccess &dst)
 		{
 			if ( not sharedRange.IsEmpty() )
 			{
@@ -346,7 +344,6 @@ namespace FG
 				barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 				barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 
-				dst_stages |= dst.stages;
 				barrierMngr.AddBufferBarrier( src.stages, dst.stages, barrier );
 
 				if ( debugger ) {

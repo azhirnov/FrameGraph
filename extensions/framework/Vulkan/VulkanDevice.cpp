@@ -59,7 +59,7 @@ namespace FGC
 		#else
 			static const char*	instance_layers[] = {
 				"VK_LAYER_LUNARG_standard_validation",
-				"VK_LAYER_LUNARG_assistant_layer",
+				//"VK_LAYER_LUNARG_assistant_layer",
 				//"VK_LAYER_GOOGLE_threading",					// inside VK_LAYER_LUNARG_standard_validation
 				//"VK_LAYER_LUNARG_parameter_validation",		// inside VK_LAYER_LUNARG_standard_validation
 				//"VK_LAYER_LUNARG_device_limits",				// inside VK_LAYER_LUNARG_standard_validation
@@ -110,10 +110,7 @@ namespace FGC
 */
 	ArrayView<const char*>  VulkanDevice::GetRecomendedDeviceExtensions ()
 	{
-		static const char *	device_extensions[] = {
-			"none"
-		};
-		return device_extensions;
+		return {};
 	}
 
 /*
@@ -149,10 +146,10 @@ namespace FGC
 
 /*
 =================================================
-	GetAllDeviceExtensions
+	GetAllDeviceExtensions_v110
 =================================================
 */
-	ArrayView<const char*>  VulkanDevice::GetAllDeviceExtensions ()
+	ArrayView<const char*>  VulkanDevice::GetAllDeviceExtensions_v110 ()
 	{
 		static const char *	device_extensions[] =
 		{
@@ -204,6 +201,18 @@ namespace FGC
 			#ifdef VK_KHR_timeline_semaphore
 				VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
 			#endif
+			#ifdef VK_EXT_subgroup_size_control
+				VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_performance_query
+				VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_filter_cubic
+				VK_EXT_FILTER_CUBIC_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_spirv_1_4
+				VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+			#endif
 
 			// Vendor specific extensions
 			#ifdef VK_NV_mesh_shader
@@ -223,6 +232,22 @@ namespace FGC
 			#endif
 			#ifdef VK_NVX_device_generated_commands
 				VK_NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME,
+			#endif
+			#ifdef VK_NV_shader_sm_builtins
+				VK_NV_SHADER_SM_BUILTINS_EXTENSION_NAME,
+			#endif
+
+			#ifdef VK_AMD_shader_info
+				VK_AMD_SHADER_INFO_EXTENSION_NAME,
+			#endif
+			#ifdef VK_AMD_shader_core_properties
+				VK_AMD_SHADER_CORE_PROPERTIES_EXTENSION_NAME,
+			#endif
+			#ifdef VK_AMD_shader_core_properties2
+				VK_AMD_SHADER_CORE_PROPERTIES_2_EXTENSION_NAME,
+			#endif
+			#ifdef VK_AMD_rasterization_order
+				VK_AMD_RASTERIZATION_ORDER_EXTENSION_NAME,
 			#endif
 		};
 		return device_extensions;
@@ -869,6 +894,13 @@ namespace FGC
 				*next_feat	= *nextExt				= &_features.descriptorIndexing;
 				next_feat	= nextExt				= &_features.descriptorIndexing.pNext;
 				_features.descriptorIndexing.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+			}
+			else
+			if ( ext == VK_KHR_SHADER_CLOCK_EXTENSION_NAME )
+			{
+				*next_feat	= *nextExt		= &_features.shaderClock;
+				next_feat	= nextExt		= &_features.shaderClock.pNext;
+				_features.shaderClock.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR;
 			}
 		}
 		

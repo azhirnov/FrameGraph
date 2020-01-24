@@ -47,7 +47,7 @@ void main ()
 	out_Color = (m4 * vec4(8.0f)) + vec4(m2 * vec2(9.0f), 1.0f);
 })#";
 
-		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, 0 ));
+		CHECK_ERR( shaderCompiler.Compile( OUT fragShader, vulkan, {frag_shader_source}, EShLangFragment, ETraceMode::DebugTrace, 0 ));
 	}
 	return true;
 }
@@ -216,7 +216,7 @@ extern bool ShaderTrace_Test3 (VulkanDeviceExt& vulkan, const TestHelpers &helpe
 		vulkan.vkDestroyFramebuffer( vulkan.GetVkDevice(), framebuffer, null );
 	}
 	
-	CHECK_ERR( TestDebugOutput( helper, {frag_shader}, TEST_NAME + ".txt" ));
+	CHECK_ERR( TestDebugTraceOutput( helper, {frag_shader}, TEST_NAME + ".txt" ));
 
 	FG_LOGI( TEST_NAME << " - passed" );
 	return true;
