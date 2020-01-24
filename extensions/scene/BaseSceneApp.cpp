@@ -157,7 +157,7 @@ namespace FG
 		{
 			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
 			compiler->SetCompilationFlags( EShaderCompilationFlags::Quiet			|
-										   EShaderCompilationFlags::ParseAnnoations	|
+										   EShaderCompilationFlags::ParseAnnotations	|
 										   EShaderCompilationFlags::UseCurrentDeviceLimits );
 
 			for (auto& dir : cfg.shaderDirectories) {

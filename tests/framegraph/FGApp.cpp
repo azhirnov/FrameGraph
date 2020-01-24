@@ -172,10 +172,9 @@ namespace {
 
 		// add glsl pipeline compiler
 		{
-			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
-			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations	|	// TODO: remove
-												EShaderCompilationFlags::Quiet				|
-												EShaderCompilationFlags::ParseAnnoations	|
+			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.instance, vulkan_info.physicalDevice, vulkan_info.device );
+			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::Quiet				|
+												EShaderCompilationFlags::ParseAnnotations	|
 												EShaderCompilationFlags::UseCurrentDeviceLimits );
 
 			_frameGraph->AddPipelineCompiler( _pplnCompiler );
