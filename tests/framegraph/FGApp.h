@@ -65,12 +65,9 @@ namespace FG
 		bool Visualize (StringView name) const;
 		bool CompareDumps (StringView filename) const;
 		bool SavePNG (const String &filename, const ImageView &imageData) const;
-
-		template <typename ...Args>
-		void DeleteResources (Args& ...args);
-
+		
 		template <typename Arg0, typename ...Args>
-		void _RecursiveDeleteResources (Arg0 &arg0, Args& ...args);
+		void DeleteResources (Arg0 &arg0, Args& ...args);
 
 		ND_ Array<uint8_t>	CreateData (BytesU size) const;
 
@@ -103,6 +100,7 @@ namespace FG
 		bool Test_Draw4 ();
 		bool Test_Draw5 ();
 		bool Test_Draw6 ();
+		bool Test_Draw7 ();				// multi render target
 		bool Test_RawDraw1 ();			// with vulkan api calls
 		bool Test_ExternalCmdBuf1 ();	// with vulkan api calls
 		bool Test_InvalidID ();
@@ -124,20 +122,13 @@ namespace FG
 	};
 
 	
-	template <typename ...Args>
-	inline void FGApp::DeleteResources (Args& ...args)
-	{
-		_RecursiveDeleteResources( std::forward<Args&>( args )... );
-	}
-
-
 	template <typename Arg0, typename ...Args>
-	inline void  FGApp::_RecursiveDeleteResources (Arg0 &arg0, Args& ...args)
+	inline void FGApp::DeleteResources (Arg0 &arg0, Args& ...args)
 	{
 		_frameGraph->ReleaseResource( INOUT arg0 );
-
+		
 		if constexpr ( CountOf<Args...>() )
-			_RecursiveDeleteResources( std::forward<Args&>( args )... );
+			DeleteResources( std::forward<Args&>( args )... );
 	}
 	
 

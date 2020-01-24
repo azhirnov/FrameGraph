@@ -46,7 +46,6 @@ namespace FG
 		using PerQueueArray_t	= FixedArray< VCommandPool, 4 >;
 		
 		using Index_t			= VResourceManager::Index_t;
-		static constexpr uint	MaxLocalResources = Max( VResourceManager::MaxImages, VResourceManager::MaxBuffers );
 		
 		template <typename T, size_t CS, size_t MC>
 		using PoolTmpl			= ChunkedIndexedPool< ResourceBase<T>, Index_t, CS, MC >;

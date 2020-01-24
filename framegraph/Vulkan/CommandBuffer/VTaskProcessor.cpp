@@ -431,6 +431,12 @@ namespace FG
 			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
 		}
 		
+		// add indirect buffer
+		for (auto& cmd : task.commands)
+		{
+			_tp._AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset), VkDeviceSize(cmd.stride) * cmd.drawCount );
+		}
+
 		_MergePipeline( task.dynamicStates, task.pipeline );
 	}
 	
@@ -2432,16 +2438,14 @@ namespace FG
 
 		VLocalImage const*		image		= task.image;
 		const VkImage			vk_image	= image->Handle();
-		const uint				level_count	= Min( task.levelCount, image->MipmapLevels() - Min( image->MipmapLevels()-1, task.baseLevel ));
-		const uint				arr_layers	= image->ArrayLayers();
 		const uint3				dimension	= image->Dimension() >> task.baseLevel;
 		VkImageSubresourceRange	subres;
 
 		subres.aspectMask		= image->AspectMask();
 		subres.baseArrayLayer	= 0;
-		subres.layerCount		= arr_layers;
+		subres.layerCount		= image->ArrayLayers();
 		subres.baseMipLevel		= task.baseLevel;
-		subres.levelCount		= level_count;
+		subres.levelCount		= Min( task.levelCount, image->MipmapLevels() - Min( image->MipmapLevels()-1, task.baseLevel ));
 
 		_AddImage( image, EResourceState::TransferSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subres );
 		_CommitBarriers();
@@ -2452,7 +2456,7 @@ namespace FG
 		barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
 		barrier.image				= vk_image;
 
-		for (uint i = 1; i < level_count; ++i)
+		for (uint i = 1; i < subres.levelCount; ++i)
 		{
 			const int3	src_size	= Max( 1u, dimension >> (i-1) );
 			const int3	dst_size	= Max( 1u, dimension >> i );
@@ -2462,7 +2466,7 @@ namespace FG
 			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.srcAccessMask		= 0;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.subresourceRange	= { subres.aspectMask, (task.baseLevel+i), 1, 0, arr_layers };
+			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, 0, subres.layerCount };
 
 			vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									0, null, 0, null, 1, &barrier );
@@ -2470,10 +2474,10 @@ namespace FG
 			VkImageBlit		region	= {};
 			region.srcOffsets[0]	= { 0, 0, 0 };
 			region.srcOffsets[1]	= { src_size.x, src_size.y, src_size.z };
-			region.srcSubresource	= { subres.aspectMask, (task.baseLevel+i-1), 0, arr_layers };
+			region.srcSubresource	= { subres.aspectMask, (subres.baseMipLevel+i-1), 0, subres.layerCount };
 			region.dstOffsets[0]	= { 0, 0, 0 };
 			region.dstOffsets[1]	= { dst_size.x, dst_size.y, dst_size.z };
-			region.dstSubresource	= { subres.aspectMask, (task.baseLevel+i), 0, arr_layers };
+			region.dstSubresource	= { subres.aspectMask, (subres.baseMipLevel+i), 0, subres.layerCount };
 
 			vkCmdBlitImage( _cmdBuffer, vk_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 							 vk_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
@@ -2485,7 +2489,7 @@ namespace FG
 			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
-			barrier.subresourceRange	= { subres.aspectMask, (task.baseLevel+i), 1, 0, arr_layers };
+			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, 0, subres.layerCount };
 
 			vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									0, null, 0, null, 1, &barrier );
