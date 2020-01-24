@@ -19,6 +19,7 @@
 #include <cmath>
 #include <malloc.h>
 #include <atomic>
+#include <mutex>
 
 #include "stl/Log/Log.h"
 #include "stl/Algorithms/Hash.h"
@@ -46,6 +47,11 @@ namespace FGC
 	template <size_t N>		using BitSet		= std::bitset< N >;
 
 	template <typename...T>	using Tuple			= std::tuple< T... >;
+
+	template <typename T>	using Atomic		= std::atomic< T >;
+
+
+	using Mutex	= std::mutex;
 
 
 	template <typename T,

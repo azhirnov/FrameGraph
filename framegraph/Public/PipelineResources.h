@@ -120,7 +120,7 @@ namespace FG
 			Element				elements[1];
 		};
 
-		using CachedID			= std::atomic< RawPipelineResourcesID::Value_t >;
+		using CachedID			= Atomic< RawPipelineResourcesID::Value_t >;
 		using DeallocatorFn_t	= void (*) (void*, void*, BytesU);
 
 		struct Uniform

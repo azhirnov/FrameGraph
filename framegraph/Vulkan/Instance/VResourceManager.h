@@ -37,7 +37,7 @@ namespace FG
 	// types
 	public:
 		using Index_t			= RawImageID::Index_t;
-		using AssignOpGuard_t	= std::mutex;
+		using AssignOpGuard_t	= Mutex;
 		using CacheGuard_t		= std::shared_mutex;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
@@ -109,13 +109,13 @@ namespace FG
 
 		SwapchainPool_t				_swapchainPool;
 		
-		std::mutex					_shaderCacheGuard;
+		Mutex						_shaderCacheGuard;
 		ShaderModules_t				_shaderCache;
 
 		std::shared_mutex			_compilersGuard;
 		PipelineCompilers_t			_compilers;
 
-		std::atomic<uint>			_submissionCounter;
+		Atomic<uint>				_submissionCounter;
 
 		DebugLayoutCache_t			_debugDSLayoutsCache;
 
@@ -126,11 +126,11 @@ namespace FG
 
 		// cached resources validation
 		struct {
-			std::atomic<uint>			createdFramebuffers			{0};
-			std::atomic<uint>			lastCheckedFramebuffer		{0};
+			Atomic<uint>				createdFramebuffers			{0};
+			Atomic<uint>				lastCheckedFramebuffer		{0};
 
-			std::atomic<uint>			createdPplnResources		{0};
-			std::atomic<uint>			lastCheckedPipelineResource	{0};
+			Atomic<uint>				createdPplnResources		{0};
+			Atomic<uint>				lastCheckedPipelineResource	{0};
 		}							_validation;
 
 		// dummy resource descriptions

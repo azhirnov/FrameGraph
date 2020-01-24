@@ -56,11 +56,11 @@ namespace FG
 
 	// variables
 	private:
-		std::atomic<EState>		_state;
+		Atomic<EState>			_state;
 
 		VDevice					_device;
 
-		std::mutex				_queueGuard;		// TODO: remove global lock
+		Mutex					_queueGuard;		// TODO: remove global lock
 		QueueMap_t				_queueMap;
 		EQueueUsage				_queueUsage;
 
@@ -74,11 +74,11 @@ namespace FG
 
 		ShaderDebugCallback_t	_shaderDebugCallback;
 
-		mutable std::mutex		_statisticGuard;
+		mutable Mutex			_statisticGuard;
 		mutable Statistics		_lastStatistic;
 
-		mutable std::atomic<uint64_t>   _submitingTime {0};
-		mutable std::atomic<uint64_t>   _waitingTime   {0};
+		mutable Atomic<uint64_t>   _submitingTime {0};
+		mutable Atomic<uint64_t>   _waitingTime   {0};
 
 
 	// methods

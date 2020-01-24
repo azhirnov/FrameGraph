@@ -33,7 +33,7 @@ namespace FG
 
 	// variables
 	private:
-		std::mutex							_lock;
+		Mutex								_lock;
 		Array< String >						_directories;
 		UniquePtr< class SpirvCompiler >	_spirvCompiler;
 		ShaderCache_t						_shaderCache;

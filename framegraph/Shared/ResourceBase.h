@@ -3,8 +3,6 @@
 #pragma once
 
 #include "framegraph/Shared/LocalResourceID.h"
-#include "stl/ThreadSafe/AtomicCounter.h"
-#include "stl/ThreadSafe/DataRaceCheck.h"
 
 namespace FG
 {
@@ -33,17 +31,17 @@ namespace FG
 	// variables
 	private:
 		// instance counter used to detect deprecated handles
-		std::atomic<uint>			_instanceId	= 0;
+		Atomic<uint>			_instanceId	= 0;
 
-		std::atomic<EState>			_state		= EState::Initial;
+		Atomic<EState>			_state		= EState::Initial;
 
-		ResType						_data;
+		ResType					_data;
 
 		// reference counter may be used for cached resources like samples, pipeline layout and other
-		mutable std::atomic<int>	_refCounter	= 0;
+		mutable Atomic<int>		_refCounter	= 0;
 
 		// cached resource may be deleted if reference counter is 1 and last usage was a long ago
-		//mutable std::atomic<uint>	_lastUsage	= 0;
+		//mutable Atomic<uint>	_lastUsage	= 0;
 
 
 	// methods

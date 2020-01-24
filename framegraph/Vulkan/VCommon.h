@@ -14,7 +14,6 @@
 #include "extensions/vulkan_loader/VulkanCheckError.h"
 
 #include "stl/ThreadSafe/DataRaceCheck.h"
-#include "stl/ThreadSafe/SpinLock.h"
 #include "stl/Containers/Appendable.h"
 #include "stl/Containers/InPlace.h"
 #include "stl/Memory/LinearAllocator.h"

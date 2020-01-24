@@ -22,14 +22,14 @@ namespace FG
 	private:
 		VkCommandPool			_pool		= VK_NULL_HANDLE;
 
-		mutable SpinLock		_cmdGuard;			// TODO: use lock-free ?
+		mutable Mutex			_cmdGuard;
 		mutable CmdBufPool_t	_freePrimaries;
 		mutable CmdBufPool_t	_freeSecondaries;
 		
 		RWDataRaceCheck			_drCheck;
 
 		DEBUG_ONLY(
-			int					_cmdBufCount	= 0;
+			Atomic<int>			_cmdBufCount	{0};
 		)
 
 

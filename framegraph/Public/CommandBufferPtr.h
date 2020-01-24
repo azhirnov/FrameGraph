@@ -23,7 +23,7 @@ namespace FG
 			friend struct CommandBuffer;
 			
 		protected:
-			std::atomic<int>	_counter;
+			Atomic<int>		_counter;
 
 			virtual void Release () = 0;
 		};

@@ -1262,7 +1262,7 @@ namespace FG
 	{
 		static constexpr uint	scale = MaxCached / 16;
 
-		const auto	UpdateCounter = [] (INOUT std::atomic<uint> &counter, uint maxValue) -> uint
+		const auto	UpdateCounter = [] (INOUT Atomic<uint> &counter, uint maxValue) -> uint
 		{
 			if ( not maxValue )
 				return 0;
@@ -1275,7 +1275,7 @@ namespace FG
 			return count;
 		};
 
-		const auto	UpdateLastIndex = [] (INOUT std::atomic<uint> &lastIndex, uint count, uint size)
+		const auto	UpdateLastIndex = [] (INOUT Atomic<uint> &lastIndex, uint count, uint size)
 		{
 			uint	new_value = count;
 			uint	expected  = 0;
@@ -1287,7 +1287,7 @@ namespace FG
 			return expected;
 		};
 
-		const auto	ValidateResources = [this, &UpdateCounter, &UpdateLastIndex, maxIter] (INOUT std::atomic<uint> &counter, INOUT std::atomic<uint> &lastIndex, auto& pool)
+		const auto	ValidateResources = [this, &UpdateCounter, &UpdateLastIndex, maxIter] (INOUT Atomic<uint> &counter, INOUT Atomic<uint> &lastIndex, auto& pool)
 		{
 			const uint	max_iter = UpdateCounter( INOUT counter, maxIter );
 			if ( max_iter )

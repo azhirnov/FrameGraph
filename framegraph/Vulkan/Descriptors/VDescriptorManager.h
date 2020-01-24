@@ -20,7 +20,6 @@ namespace FG
 
 		struct DSPool
 		{
-			//SpinLock			guard;
 			VkDescriptorPool	pool	= VK_NULL_HANDLE;
 		};
 
@@ -32,7 +31,7 @@ namespace FG
 	private:
 		VDevice const&				_device;
 
-		std::mutex					_guard;
+		Mutex						_guard;
 		DescriptorPoolArray_t		_descriptorPools;
 
 

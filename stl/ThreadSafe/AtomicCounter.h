@@ -15,7 +15,7 @@ namespace FGC
 	template <typename T>
 	struct AtomicCounter final
 	{
-		STATIC_ASSERT( std::atomic<T>::is_always_lock_free );
+		STATIC_ASSERT( Atomic<T>::is_always_lock_free );
 
 	// types
 	public:
@@ -25,7 +25,7 @@ namespace FGC
 
 	// variables
 	private:
-		alignas(FG_CACHE_LINE) std::atomic<T>		_value;
+		alignas(FG_CACHE_LINE) Atomic<T>		_value;
 		
 
 	// methods

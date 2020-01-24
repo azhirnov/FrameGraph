@@ -36,10 +36,10 @@ namespace FGC
 
 	private:
 		using Bitfield_t		= Conditional< (ChunkSize > 64), void, Conditional< (ChunkSize > 32), uint64_t, Conditional< (ChunkSize > 16), uint32_t, uint16_t >>>;
-		using BitfieldArray_t	= StaticArray< std::atomic<Bitfield_t>, MaxChunks >;
+		using BitfieldArray_t	= StaticArray< Atomic<Bitfield_t>, MaxChunks >;
 		
 		using ValueChunk_t		= StaticArray< Value_t, ChunkSize >;
-		using ValueChunks_t		= StaticArray< std::atomic<ValueChunk_t *>, MaxChunks >;
+		using ValueChunks_t		= StaticArray< Atomic<ValueChunk_t *>, MaxChunks >;
 		
 		static constexpr uint	ChunkSizePOT = CT_IntLog2< ChunkSize >;
 
@@ -159,7 +159,7 @@ namespace FGC
 					{
 						outIndex = Index_t(index) | (Index_t(i) << ChunkSizePOT);
 
-						if ( !(_createdBits[i].fetch_or( mask, memory_order_relaxed ) & mask) )
+						if ( not (_createdBits[i].fetch_or( mask, memory_order_relaxed ) & mask) )
 						{
 							ctor( &(*ptr)[index], outIndex );
 						}

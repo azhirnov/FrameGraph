@@ -75,7 +75,7 @@ namespace FGC
 			uint	index		: 1;
 		};
 
-		using Atomic_t	= std::atomic< Bitfield >;
+		using Atomic_t	= Atomic< Bitfield >;
 
 		STATIC_ASSERT( Atomic_t::is_always_lock_free );
 
@@ -173,7 +173,7 @@ namespace FGC
 		uint					_value;
 		uint					_cycle;
 		const uint				_numThreads;
-		std::mutex				_mutex;
+		Mutex					_mutex;
 		std::condition_variable	_cv;
 
 

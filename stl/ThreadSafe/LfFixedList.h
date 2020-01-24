@@ -29,9 +29,9 @@ namespace FGC
 
 		static constexpr uint	BitsCount = sizeof(uint64_t) * 8;
 
-		using AtomicArray_t		= StaticArray< std::atomic<uint>, Size >;
+		using AtomicArray_t		= StaticArray< Atomic<uint>, Size >;
 		using ValueArray_t		= StaticArray< T, Size >;
-		using Bitfields_t		= StaticArray< std::atomic<uint64_t>, (Size + BitsCount-1) / BitsCount >;
+		using Bitfields_t		= StaticArray< Atomic<uint64_t>, (Size + BitsCount-1) / BitsCount >;
 
 
 	// variables

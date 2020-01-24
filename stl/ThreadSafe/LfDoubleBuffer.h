@@ -70,7 +70,7 @@ namespace FGC
 
 		using Self			= LfDoubleBuffer< MaxThreads >;
 		using Value_t		= Conditional< (Offset * MaxItems > sizeof(uint32_t)*8), uint64_t, uint32_t >;	// TODO: uint128_t support
-		using Atomic_t		= std::atomic< Value_t >;
+		using Atomic_t		= Atomic< Value_t >;
 
 		STATIC_ASSERT( MaxThreads >= 2 );
 		STATIC_ASSERT( Offset * MaxItems <= sizeof(Value_t)*8 );
