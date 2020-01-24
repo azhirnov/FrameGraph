@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	Async compute with one render target and with synchronization
 	between frames to avoid race condition.

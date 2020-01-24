@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	EResourceState contains information about pipeline stage,
 	memory access mask, data invalidation and other.

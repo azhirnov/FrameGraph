@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	FG_BARRIER_MODE:
 		0 - WinAPI native barrier implementation, requires Windows 8 desctop.

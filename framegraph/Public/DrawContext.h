@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	Default states - all render states except 'InputAssemblyState' will be copied from render pass,
 	the 'InputAssemblyState' will be invalidated, all pipelines will be invalidated.

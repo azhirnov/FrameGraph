@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
 	This is abstraction of different scene hierarchy algorithms,
 	for example: octree, quadtree, BVH, indoor portals and other.
