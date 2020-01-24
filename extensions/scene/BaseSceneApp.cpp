@@ -155,7 +155,7 @@ namespace FG
 		// add glsl pipeline compiler
 		// TODO: ShaderCache also adds shader compiler, so remove one of them
 		{
-			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.physicalDevice, vulkan_info.device );
+			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.instance, vulkan_info.physicalDevice, vulkan_info.device );
 			compiler->SetCompilationFlags( EShaderCompilationFlags::Quiet			|
 										   EShaderCompilationFlags::ParseAnnotations	|
 										   EShaderCompilationFlags::UseCurrentDeviceLimits );

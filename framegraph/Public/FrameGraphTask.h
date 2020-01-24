@@ -170,6 +170,9 @@ namespace FG
 		DispatchCompute&  EnableDebugTrace (const uint3 &globalID);
 		DispatchCompute&  EnableDebugTrace ()								{ return EnableDebugTrace( uint3{~0u} ); }
 		
+		DispatchCompute&  EnableShaderProfiling (const uint3 &globalID);
+		DispatchCompute&  EnableShaderProfiling ()							{ return EnableShaderProfiling( uint3{~0u} ); }
+
 		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
 
 		template <typename ValueType>
@@ -221,6 +224,9 @@ namespace FG
 
 		DispatchComputeIndirect&  EnableDebugTrace (const uint3 &globalID);
 		DispatchComputeIndirect&  EnableDebugTrace ()								{ return EnableDebugTrace( uint3{~0u} ); }
+		
+		DispatchComputeIndirect&  EnableShaderProfiling (const uint3 &globalID);
+		DispatchComputeIndirect&  EnableShaderProfiling ()							{ return EnableShaderProfiling( uint3{~0u} ); }
 
 		DispatchComputeIndirect&  SetPipeline (RawCPipelineID ppln)					{ ASSERT( ppln );  pipeline = ppln;  return *this; }
 		DispatchComputeIndirect&  SetIndirectBuffer (RawBufferID buffer)			{ ASSERT( buffer );  indirectBuffer = buffer;  return *this; }
@@ -1197,6 +1203,9 @@ namespace FG
 
 		TraceRays&  EnableDebugTrace (const uint3 &launchID);
 		TraceRays&  EnableDebugTrace ();
+
+		TraceRays&  EnableShaderProfiling (const uint3 &launchID);
+		TraceRays&  EnableShaderProfiling ();
 	};
 
 
@@ -1254,6 +1263,13 @@ namespace FG
 		debugMode.globalID	= globalID;
 		return *this;
 	}
+	
+	inline DispatchCompute&  DispatchCompute::EnableShaderProfiling (const uint3 &globalID)
+	{
+		debugMode.mode		= EShaderDebugMode::Profiling;
+		debugMode.globalID	= globalID;
+		return *this;
+	}
 
 	inline DispatchCompute&  DispatchCompute::AddResources (const DescriptorSetID &id, const PipelineResources *res)
 	{
@@ -1285,6 +1301,13 @@ namespace FG
 	inline DispatchComputeIndirect&  DispatchComputeIndirect::EnableDebugTrace (const uint3 &globalID)
 	{
 		debugMode.mode		= EShaderDebugMode::Trace;
+		debugMode.globalID	= globalID;
+		return *this;
+	}
+	
+	inline DispatchComputeIndirect&  DispatchComputeIndirect::EnableShaderProfiling (const uint3 &globalID)
+	{
+		debugMode.mode		= EShaderDebugMode::Profiling;
 		debugMode.globalID	= globalID;
 		return *this;
 	}
@@ -1594,6 +1617,18 @@ namespace FG
 		debugMode.mode = EShaderDebugMode::Trace;
 		return *this;
 	}
+	
+	inline TraceRays&  TraceRays::EnableShaderProfiling (const uint3 &launchID)
+	{
+		debugMode.mode		 = EShaderDebugMode::Profiling;
+		debugMode.launchID	 = launchID;
+		return *this;
+	}
 
+	inline TraceRays&  TraceRays::EnableShaderProfiling ()
+	{
+		debugMode.mode = EShaderDebugMode::Profiling;
+		return *this;
+	}
 
 }	// FG

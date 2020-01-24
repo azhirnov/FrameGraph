@@ -86,7 +86,9 @@ namespace FG
 
 		bool ParseDebugOutput (EShaderDebugMode mode, ArrayView<uint8_t> debugOutput, OUT Array<String> &result) const override
 		{
-			CHECK_ERR( mode == EShaderDebugMode::Trace );
+			CHECK_ERR( mode == EShaderDebugMode::Trace	or
+					   mode == EShaderDebugMode::Profiling );
+
 			if ( not _debugInfo )
 				return false;
 

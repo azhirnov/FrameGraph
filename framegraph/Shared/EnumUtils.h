@@ -104,6 +104,7 @@ namespace FG
 		{
 			case EShaderLangFormat::Unknown :				return EShaderDebugMode::None;
 			case EShaderLangFormat::EnableDebugTrace :		return EShaderDebugMode::Trace;
+			case EShaderLangFormat::EnableProfiling :		return EShaderDebugMode::Profiling;
 			//case EShaderLangFormat::EnableDebugAsserts :	return EShaderDebugMode::Asserts;
 			//case EShaderLangFormat::EnableDebugView :		return EShaderDebugMode::View;
 			//case EShaderLangFormat::EnableProfiling :		return EShaderDebugMode::None;

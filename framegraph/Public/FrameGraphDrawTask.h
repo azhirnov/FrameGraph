@@ -167,6 +167,9 @@ namespace _fg_hidden_
 		
 		TaskType&  EnableDebugTrace (EShaderStages stages);
 		TaskType&  EnableFragmentDebugTrace (int x, int y);
+
+		TaskType&  EnableShaderProfiling (EShaderStages stages);
+		TaskType&  EnableFragmentProfiling (int x, int y);
 	};
 	
 
@@ -700,6 +703,23 @@ namespace _fg_hidden_
 	inline TaskType&  BaseDrawCall<TaskType>::EnableFragmentDebugTrace (int x, int y)
 	{
 		debugMode.mode		 = EShaderDebugMode::Trace;
+		debugMode.stages	|= EShaderStages::Fragment;
+		debugMode.fragCoord	 = { int16_t(x), int16_t(y) };
+		return static_cast<TaskType &>( *this );
+	}
+
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableShaderProfiling (EShaderStages stages)
+	{
+		debugMode.mode	  = EShaderDebugMode::Profiling;
+		debugMode.stages |= stages;
+		return static_cast<TaskType &>( *this );
+	}
+
+	template <typename TaskType>
+	inline TaskType&  BaseDrawCall<TaskType>::EnableFragmentProfiling (int x, int y)
+	{
+		debugMode.mode		 = EShaderDebugMode::Profiling;
 		debugMode.stages	|= EShaderStages::Fragment;
 		debugMode.fragCoord	 = { int16_t(x), int16_t(y) };
 		return static_cast<TaskType &>( *this );

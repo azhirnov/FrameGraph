@@ -44,16 +44,17 @@ namespace FG
 		)
 
 		// immutable:
-		PhysicalDeviceVk_t					_physicalDevice;
-		DeviceVk_t							_logicalDevice;
-		void *								_fpCreateShaderModule	= null;
-		void *								_fpDestroyShaderModule	= null;
+		InstanceVk_t						_vkInstance;
+		PhysicalDeviceVk_t					_vkPhysicalDevice;
+		DeviceVk_t							_vkLogicalDevice;
+		void *								_fpCreateShaderModule			= null;
+		void *								_fpDestroyShaderModule			= null;
 
 
 	// methods
 	public:
 		VPipelineCompiler ();
-		VPipelineCompiler (PhysicalDeviceVk_t physicalDevice, DeviceVk_t device);
+		VPipelineCompiler (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t device);
 		~VPipelineCompiler ();
 
 		bool SetCompilationFlags (EShaderCompilationFlags flags);

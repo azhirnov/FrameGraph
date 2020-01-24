@@ -19,8 +19,9 @@ namespace FG
 */
 	VPipelineCompiler::VPipelineCompiler () :
 		_spirvCompiler{ new SpirvCompiler{ _directories }},
-		_physicalDevice{ VK_NULL_HANDLE },
-		_logicalDevice{ VK_NULL_HANDLE }
+		_vkInstance{ VK_NULL_HANDLE },
+		_vkPhysicalDevice{ VK_NULL_HANDLE },
+		_vkLogicalDevice{ VK_NULL_HANDLE }
 	{
 	}
 	
@@ -29,14 +30,31 @@ namespace FG
 	constructor
 =================================================
 */
-	VPipelineCompiler::VPipelineCompiler (PhysicalDeviceVk_t physicalDevice, DeviceVk_t device) :
+	VPipelineCompiler::VPipelineCompiler (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t device) :
 		VPipelineCompiler()
 	{
-		_physicalDevice	= physicalDevice;
-		_logicalDevice	= device;
+		_vkInstance			= instance;
+		_vkPhysicalDevice	= physicalDevice;
+		_vkLogicalDevice	= device;
 
-		_fpCreateShaderModule  = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_logicalDevice), "vkCreateShaderModule" ));
-		_fpDestroyShaderModule = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_logicalDevice), "vkDestroyShaderModule" ));
+		auto fpGetPhysicalDeviceFeatures2 = BitCast<PFN_vkGetPhysicalDeviceFeatures2>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures2" ));
+
+		_fpCreateShaderModule  = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_vkLogicalDevice), "vkCreateShaderModule" ));
+		_fpDestroyShaderModule = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_vkLogicalDevice), "vkDestroyShaderModule" ));
+
+		if ( fpGetPhysicalDeviceFeatures2 )
+		{
+			VkPhysicalDeviceShaderClockFeaturesKHR	clock_feat = {};
+			clock_feat.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR;
+
+			VkPhysicalDeviceFeatures2	feats = {};
+			feats.sType		= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+			feats.pNext		= &clock_feat;
+
+			fpGetPhysicalDeviceFeatures2( BitCast<VkPhysicalDevice>(_vkPhysicalDevice), OUT &feats );
+
+			_spirvCompiler->SetShaderClockFeatures( clock_feat.shaderSubgroupClock, clock_feat.shaderDeviceClock );
+		}
 	}
 
 /*
@@ -61,7 +79,7 @@ namespace FG
 		_compilerFlags = flags;
 		
 		if ( EnumEq( flags, EShaderCompilationFlags::UseCurrentDeviceLimits ) )
-			CHECK_ERR( _spirvCompiler->SetCurrentResourceLimits( _physicalDevice ))
+			CHECK_ERR( _spirvCompiler->SetCurrentResourceLimits( _vkPhysicalDevice ))
 		else
 			CHECK_ERR( _spirvCompiler->SetDefaultResourceLimits() );
 
@@ -107,12 +125,12 @@ namespace FG
 */
 	void VPipelineCompiler::ReleaseUnusedShaders ()
 	{
-		if ( _logicalDevice == VK_NULL_HANDLE )
+		if ( _vkLogicalDevice == VK_NULL_HANDLE )
 			return;
 	
 		EXLOCK( _lock );
 
-		VkDevice	dev					= BitCast<VkDevice>( _logicalDevice );
+		VkDevice	dev					= BitCast<VkDevice>( _vkLogicalDevice );
 		auto		DestroyShaderModule = BitCast<PFN_vkDestroyShaderModule>(_fpDestroyShaderModule);
 		
 		for (auto iter = _shaderCache.begin(); iter != _shaderCache.end();)
@@ -136,12 +154,12 @@ namespace FG
 */
 	void VPipelineCompiler::ReleaseShaderCache ()
 	{
-		if ( _logicalDevice == VK_NULL_HANDLE )
+		if ( _vkLogicalDevice == VK_NULL_HANDLE )
 			return;
 		
 		EXLOCK( _lock );
 
-		VkDevice	dev					= BitCast<VkDevice>( _logicalDevice );
+		VkDevice	dev					= BitCast<VkDevice>( _vkLogicalDevice );
 		auto		DestroyShaderModule = BitCast<PFN_vkDestroyShaderModule>(_fpDestroyShaderModule);
 
 		for (auto& sh : _shaderCache)
@@ -192,12 +210,12 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const MeshPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
-		// lock is not needed because only '_logicalDevice' read access is used
+		// lock is not needed because only '_vkLogicalDevice' read access is used
 
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
 			return false;
 
 		bool	is_supported = true;
@@ -217,12 +235,12 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
-		// lock is not needed because only '_logicalDevice' read access is used
+		// lock is not needed because only '_vkLogicalDevice' read access is used
 
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
 			return false;
 
 		bool	is_supported = true;
@@ -242,12 +260,12 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
-		// lock is not needed because only '_logicalDevice' read access is used
+		// lock is not needed because only '_vkLogicalDevice' read access is used
 
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
 			return false;
 
 		bool	is_supported = true;
@@ -267,9 +285,9 @@ namespace FG
 */
 	bool VPipelineCompiler::IsSupported (const ComputePipelineDesc &ppln, EShaderLangFormat dstFormat) const
 	{
-		// lock is not needed because only '_logicalDevice' read access is used
+		// lock is not needed because only '_vkLogicalDevice' read access is used
 
-		if ( not IsDstFormatSupported( dstFormat, (_logicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
 			return false;
 		
 		return _IsSupported( ppln._shader.data );
@@ -1045,7 +1063,7 @@ namespace FG
 						shader_info.pCode		= spv_data->GetData().data();
 
 						VkShaderModule		shader_id;
-						COMP_CHECK_ERR( CreateShaderModule( BitCast<VkDevice>( _logicalDevice ), &shader_info, null, OUT &shader_id ) == VK_SUCCESS );
+						COMP_CHECK_ERR( CreateShaderModule( BitCast<VkDevice>( _vkLogicalDevice ), &shader_info, null, OUT &shader_id ) == VK_SUCCESS );
 
 						auto	module	= MakeShared<VCachedDebuggableShaderModule>( shader_id, spv_data );
 						auto	base	= Cast< PipelineDescription::IShaderData<ShaderModuleVk_t> >( module );
