@@ -103,12 +103,12 @@ public:
 				dev_ext.push_back( ext.data() );
 			}
 
-			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_1, {}, {},
+			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_2, {}, {},
 									  VulkanDevice::GetRecomendedInstanceLayers(), inst_ext, dev_ext ));
 		
 			// this is a test and the test should fail for any validation error
-			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All);
-			//								[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
+			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
+											[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
 
 			if ( vrDevice )
 				CHECK_ERR( vrDevice->SetVKDevice( vulkan.GetVkInstance(), vulkan.GetVkPhysicalDevice(), vulkan.GetVkDevice() ));

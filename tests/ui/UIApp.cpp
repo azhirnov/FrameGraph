@@ -59,7 +59,7 @@ namespace FG
 
 		// initialize vulkan device
 		{
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "UITest", "FrameGraph", VK_API_VERSION_1_1,
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "UITest", "FrameGraph", VK_API_VERSION_1_2,
 									   "",
 									   {},
 									   VulkanDevice::GetRecomendedInstanceLayers(),

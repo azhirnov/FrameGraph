@@ -11,7 +11,7 @@
 // using git compare new references with origin, only float values may differ slightly.
 // Then set 'UpdateReferences' to 'false' and run tests again.
 // All tests must pass.
-static const bool	UpdateReferences = true;
+static const bool	UpdateReferences = false;
 
 /*
 =================================================
