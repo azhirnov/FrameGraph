@@ -30,7 +30,7 @@ namespace FG
 												 Default, "Default white" );
 			CHECK_ERR( image );
 
-			FG_UNUSED( cmdbuf->AddTask( ClearColorImage{}.SetImage( image ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{ 1.0f }) ));
+			cmdbuf->AddTask( ClearColorImage{}.SetImage( image ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{ 1.0f }) );
 
 			_defaultImages.insert_or_assign( "white", std::move(image) );
 		}

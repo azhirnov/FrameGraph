@@ -185,8 +185,7 @@ namespace {
 		_materialsBuffer = cmdbuf->GetFrameGraph()->CreateBuffer( BufferDesc{ ArraySizeOf(dst_materials), EBufferUsage::Storage | EBufferUsage::TransferDst }, Default, "Materials" );
 		CHECK_ERR( _materialsBuffer );
 
-		Task	t_upload = cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _materialsBuffer ).AddData( dst_materials ));
-		FG_UNUSED( t_upload );
+		cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _materialsBuffer ).AddData( dst_materials ));
 
 		_albedoMaps.resize( albedo_maps.size() + albedo_maps_offset );
 		_normalMaps.resize( normal_maps.size() );
@@ -282,9 +281,8 @@ namespace {
 		if ( meshData.primitives.empty() )
 			return null;
 
-		Task	t_upload1 = cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _primitivesBuffers[index] ).AddData( meshData.primitives ));
-		Task	t_upload2 = cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _attribsBuffers[index] ).AddData( meshData.attribs ));
-		FG_UNUSED( t_upload1 and t_upload2 );
+		cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _primitivesBuffers[index] ).AddData( meshData.primitives ));
+		cmdbuf->AddTask( UpdateBuffer{}.SetBuffer( _attribsBuffers[index] ).AddData( meshData.attribs ));
 
 		RayTracingGeometryDesc::Triangles	mesh_info;
 		mesh_info.SetID( SceneIDs[index] )
@@ -486,7 +484,7 @@ namespace {
 
 		CHECK_ERR( renTech->GetPipeline( ERenderLayer::RayTracing, info, OUT update_st.pipeline ));
 
-		FG_UNUSED( cmdbuf->AddTask( update_st ));
+		cmdbuf->AddTask( update_st );
 		
 
 		// set pipeline resources

@@ -503,7 +503,7 @@ namespace FG
 */
 	void BaseSceneApp::AfterRender (const CommandBuffer &cmdbuf, Present &&task)
 	{
-		FG_UNUSED( cmdbuf->AddTask( task.SetSwapchain( GetSwapchain() ) ));
+		cmdbuf->AddTask( task.SetSwapchain( GetSwapchain() ));
 
 		_SetLastCommandBuffer( cmdbuf );
 	}
