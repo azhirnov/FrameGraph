@@ -9,16 +9,9 @@
 #include "IL/il.h"
 #include "IL/ilu.h"
 
-#ifdef FG_STD_FILESYSTEM
-#	include <filesystem>
-	namespace FS = std::filesystem;
-#else
-#	error not supported!
-#endif
-
 namespace FG
 {
-
+namespace {
 /*
 =================================================
 	InitDevlIL
@@ -184,6 +177,8 @@ namespace FG
 
 		return true;
 	}
+
+}	// namespace
 //-----------------------------------------------------------------------------
 
 
@@ -197,58 +192,6 @@ namespace FG
 	{
 		InitDevlIL();
 	}
-	
-/*
-=================================================
-	FindImage2
-=================================================
-*/
-	static bool  FindImage2 (StringView name, ArrayView<StringView> directories, OUT String &result)
-	{
-		// check default directory
-		{
-			FS::path	img_path {};
-
-			img_path.append( name );
-
-			if ( FS::exists( img_path ) )
-			{
-				result = img_path.string();
-				return true;
-			}
-		}
-
-		// check directories
-		for (auto& dir : directories)
-		{
-			FS::path	img_path {dir};
-			
-			img_path.append( name );
-
-			if ( FS::exists( img_path ) )
-			{
-				result = img_path.string();
-				return true;
-			}
-		}
-		return false;
-	}
-
-/*
-=================================================
-	FindImage
-=================================================
-*/
-	static bool  FindImage (StringView name, ArrayView<StringView> directories, OUT String &result)
-	{
-		if ( FindImage2( name, directories, OUT result ) )
-			return true;
-		
-		if ( FindImage2( FS::path{name}.filename().string(), directories, OUT result ) )
-			return true;
-
-		RETURN_ERR( "image file not found!" );
-	}
 
 /*
 =================================================
@@ -260,14 +203,14 @@ namespace FG
 		CHECK_ERR( image );
 
 		String	filename;
-		CHECK_ERR( FindImage( image->GetPath(), directories, OUT filename ));
+		CHECK_ERR( _FindImage( image->GetPath(), directories, OUT filename ));
 
 		// search in cache
-		if ( imgCache and imgCache->GetImageData( filename, OUT image ) )
+		if ( imgCache and imgCache->GetImageData( filename, OUT image ))
 			return true;
 
 
-		CHECK_ERR( ilLoadImage( filename.data() ) == IL_TRUE );
+		CHECK_ERR( ilLoadImage( filename.c_str() ) == IL_TRUE );
 
 		const bool	require_flip = (EndsWithIC( filename, ".jpg" ) or EndsWithIC( filename, ".jpeg" ));
 
@@ -278,35 +221,71 @@ namespace FG
 		
 		CHECK( ilActiveImage( 0 ) == IL_TRUE );
 		
-		int layer = 0;
+		const ILint		width	= Max( 1, ilGetInteger(IL_IMAGE_WIDTH) );
+		const ILint		height	= Max( 1, ilGetInteger(IL_IMAGE_HEIGHT) );
+		const ILint		depth	= Max( 1, ilGetInteger(IL_IMAGE_DEPTH) );
+		const ILint		layers	= Max( 1, ilGetInteger(IL_NUM_LAYERS) );
+		const ILint		faces	= Max( 1, ilGetInteger(IL_NUM_FACES) );
+		EImage			img_type= Default;
+
+		if ( depth > 1 )
+			img_type = EImage::Tex3D;
+		else
+		if ( faces > 1 and layers > 1 )
+			img_type = EImage::TexCubeArray;
+		else
+		if ( faces > 1 )
+			img_type = EImage::TexCube;
+		else
+		if ( height > 1 and layers > 1 )
+			img_type = EImage::Tex2DArray;
+		else
+		if ( layers > 1 )
+			img_type = EImage::Tex1DArray;
+		else
+		if ( height > 1 )
+			img_type = EImage::Tex2D;
+		else
+			img_type = EImage::Tex1D;
+
 
 		IntermImage::Mipmaps_t	image_data;
 
-		for (int mm = 0, num_mipmaps = ilGetInteger(IL_NUM_MIPMAPS)+1;
-				mm < num_mipmaps; ++mm)
+		for (int face = 0; face < faces; ++face)
 		{
-			CHECK( ilActiveMipmap( mm ) == IL_TRUE );
+			CHECK( ilActiveFace( face ) == IL_TRUE );
 
-			IntermImage::Level	image_lavel;
-			CHECK_ERR( LoadFromDevIL( OUT image_lavel ));
+			for (int layer = 0; layer < layers; ++layer)
+			{
+				CHECK( ilActiveLayer( layer ) == IL_TRUE );
 
-			image_lavel.mipmap	= MipmapLevel{ uint(mm) };
-			image_lavel.layer	= ImageLayer{ uint(layer) };
+				for (int mm = 0, num_mipmaps = ilGetInteger(IL_NUM_MIPMAPS)+1;
+					 mm < num_mipmaps; ++mm)
+				{
+					CHECK( ilActiveMipmap( mm ) == IL_TRUE );
 
-			if ( size_t(mm) >= image_data.size() )
-				image_data.resize( size_t(mm)+1 );
+					IntermImage::Level	image_level;
+					CHECK_ERR( LoadFromDevIL( OUT image_level ));
 
-			if ( size_t(layer) >= image_data[mm].size() )
-				image_data[mm].resize( size_t(layer)+1 );
+					image_level.mipmap	= MipmapLevel{ uint(mm) };
+					image_level.layer	= ImageLayer{ uint(layer) };
 
-			auto&	curr_mm = image_data[mm][layer];
+					if ( size_t(mm) >= image_data.size() )
+						image_data.resize( size_t(mm)+1 );
 
-			CHECK( curr_mm.pixels.empty() );	// warning: previous data will be discarded
+					if ( size_t(layer) >= image_data[mm].size() )
+						image_data[mm].resize( size_t(layer)+1 );
 
-			curr_mm = std::move(image_lavel);
+					auto&	curr_mm = image_data[mm][layer];
+
+					CHECK( curr_mm.pixels.empty() );	// warning: previous data will be discarded
+
+					curr_mm = std::move(image_level);
+				}
+			}
 		}
 
-		image->SetData( std::move(image_data) );
+		image->SetData( std::move(image_data), img_type );
 
 		if ( imgCache )
 			imgCache->AddImageData( filename, image );

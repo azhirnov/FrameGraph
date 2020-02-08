@@ -22,6 +22,7 @@ namespace FG
 	public:
 		constexpr ImageLayer () {}
 		explicit constexpr ImageLayer (uint value) : _value(value) {}
+		explicit constexpr ImageLayer (uint64_t value) : _value(uint(value)) {}
 
 		ND_ constexpr uint	Get ()								const	{ return _value; }
 		

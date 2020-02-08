@@ -20,9 +20,10 @@ namespace FG
 
 	// methods
 	public:
-		constexpr MipmapLevel () : _value(0) {}
+		constexpr MipmapLevel () : _value{0} {}
 
 		explicit constexpr MipmapLevel (uint value) : _value(value) {}
+		explicit constexpr MipmapLevel (uint64_t value) : _value(uint(value)) {}
 
 		ND_ constexpr uint	Get ()								 const		{ return _value; }
 		

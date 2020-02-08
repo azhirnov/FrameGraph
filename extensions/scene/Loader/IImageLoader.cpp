@@ -3,15 +3,75 @@
 #include "scene/Loader/IImageLoader.h"
 #include "scene/Loader/Intermediate/IntermScene.h"
 
+#ifdef FG_STD_FILESYSTEM
+#	include <filesystem>
+	namespace FS = std::filesystem;
+#else
+#	error not supported!
+#endif
+
 namespace FG
 {
+
+/*
+=================================================
+	FindImage2
+=================================================
+*/
+namespace {
+	bool  FindImage2 (StringView name, ArrayView<StringView> directories, OUT String &result)
+	{
+		// check default directory
+		{
+			FS::path	img_path {};
+
+			img_path.append( name );
+
+			if ( FS::exists( img_path ) )
+			{
+				result = img_path.string();
+				return true;
+			}
+		}
+
+		// check directories
+		for (auto& dir : directories)
+		{
+			FS::path	img_path {dir};
+			
+			img_path.append( name );
+
+			if ( FS::exists( img_path ) )
+			{
+				result = img_path.string();
+				return true;
+			}
+		}
+		return false;
+	}
+}
+/*
+=================================================
+	_FindImage
+=================================================
+*/
+	bool  IImageLoader::_FindImage (StringView name, ArrayView<StringView> directories, OUT String &result)
+	{
+		if ( FindImage2( name, directories, OUT result ) )
+			return true;
+		
+		if ( FindImage2( FS::path{name}.filename().string(), directories, OUT result ) )
+			return true;
+
+		RETURN_ERR( "image file not found!" );
+	}
 
 /*
 =================================================
 	Load
 =================================================
 */
-	bool IImageLoader::Load (const IntermMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool  IImageLoader::Load (const IntermMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		using Texture = IntermMaterial::MtrTexture;
 
@@ -75,7 +135,7 @@ namespace FG
 	Load
 =================================================
 */
-	bool IImageLoader::Load (ArrayView<IntermMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool  IImageLoader::Load (ArrayView<IntermMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		for (auto& mtr : materials)
 		{
@@ -89,7 +149,7 @@ namespace FG
 	Load
 =================================================
 */
-	bool IImageLoader::Load (const IntermScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
+	bool  IImageLoader::Load (const IntermScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache)
 	{
 		CHECK_ERR( scene );
 

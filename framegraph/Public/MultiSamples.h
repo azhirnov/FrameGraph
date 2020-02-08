@@ -20,7 +20,7 @@ namespace FG
 
 	// methods
 	public:
-		constexpr MultiSamples () : _value(0) {}
+		constexpr MultiSamples () : _value{0} {}
 
 		explicit MultiSamples (uint samples) : _value( IntLog2( samples ) ) {}
 

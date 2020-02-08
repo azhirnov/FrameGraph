@@ -34,7 +34,8 @@ namespace FG
 	private:
 		String		_srcPath;
 
-		Mipmaps_t	_data;		// mipmaps[] { layers[] { level{} } }
+		Mipmaps_t	_data;					// mipmaps[] { layers[] { level } }
+		EImage		_imageType	= Default;
 
 		bool		_immutable	= false;
 
@@ -46,12 +47,13 @@ namespace FG
 		explicit IntermImage (Mipmaps_t &&data, StringView path = Default) : _srcPath{path}, _data{std::move(data)} {}
 
 		void  MakeImmutable ()							{ _immutable = true; }
-		void  SetData (Mipmaps_t &&data)				{ ASSERT( not _immutable );  _data = std::move(data); }
+		void  SetData (Mipmaps_t &&data, EImage type)	{ ASSERT( not _immutable );  _data = std::move(data);  _imageType = type; }
 		void  ReleaseData ()							{ Mipmaps_t temp;  std::swap( temp, _data ); }
 
 		ND_ StringView			GetPath ()		const	{ return _srcPath; }
 		ND_ bool				IsImmutable ()	const	{ return _immutable; }
 		ND_ Mipmaps_t const&	GetData ()		const	{ return _data; }
+		ND_ EImage				GetType ()		const	{ return _imageType; }
 	};
 
 

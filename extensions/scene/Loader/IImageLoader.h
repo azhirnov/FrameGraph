@@ -20,6 +20,9 @@ namespace FG
 		bool Load (const IntermMaterialPtr &material, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
 		bool Load (ArrayView<IntermMaterialPtr> materials, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
 		bool Load (const IntermScenePtr &scene, ArrayView<StringView> directories, const ImageCachePtr &imgCache = null);
+
+	protected:
+		static bool  _FindImage (StringView name, ArrayView<StringView> directories, OUT String &result);
 	};
 
 
