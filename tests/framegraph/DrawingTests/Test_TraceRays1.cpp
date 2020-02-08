@@ -15,9 +15,9 @@ namespace FG
 		ppln.AddShader( RTShaderID("Main"), EShader::RayGen, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460 core
 #extension GL_NV_ray_tracing : require
-layout(binding = 0) uniform accelerationStructureNV  un_RtScene;
-layout(binding = 1, rgba8) writeonly uniform image2D  un_Output;
-layout(location = 0) rayPayloadNV vec4  payload;
+layout(set=0, binding=0) uniform accelerationStructureNV  un_RtScene;
+layout(set=0, binding=1, rgba8) writeonly uniform image2D  un_Output;
+layout(location=0) rayPayloadNV vec4  payload;
 
 layout (constant_id = 0) const int sbtRecordStride = 1;
 
@@ -40,7 +40,7 @@ void main ()
 		ppln.AddShader( RTShaderID("PrimaryMiss"), EShader::RayMiss, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460 core
 #extension GL_NV_ray_tracing : require
-layout(location = 0) rayPayloadInNV vec4  payload;
+layout(location=0) rayPayloadInNV vec4  payload;
 
 void main ()
 {
@@ -51,8 +51,8 @@ void main ()
 		ppln.AddShader( RTShaderID("PrimaryHit"), EShader::RayClosestHit, EShaderLangFormat::VKSL_110, "main", R"#(
 #version 460 core
 #extension GL_NV_ray_tracing : require
-layout(location = 0) rayPayloadInNV vec4  payload;
-					 hitAttributeNV vec2  hitAttribs;
+layout(location=0) rayPayloadInNV vec4  payload;
+				   hitAttributeNV vec2  hitAttribs;
 
 void main ()
 {

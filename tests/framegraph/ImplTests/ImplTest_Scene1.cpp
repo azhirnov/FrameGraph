@@ -26,10 +26,10 @@ layout (binding=0, std140) uniform un_ConstBuf
 
 } ub;
 
-in  vec3	at_Position;
-in  vec2	at_Texcoord;
+layout(location=0) in  vec3	at_Position;
+layout(location=1) in  vec2	at_Texcoord;
 
-out vec2	v_Texcoord;
+layout(location=0) out vec2	v_Texcoord;
 
 void main() {
 	gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
@@ -56,9 +56,9 @@ layout (binding=0, std140) uniform un_ConstBuf
 
 layout (binding=1) uniform sampler2D un_ColorTexture;
 
-in  vec2	v_Texcoord;
+layout(location=0) in  vec2	v_Texcoord;
 
-out vec4	out_Color;
+layout(location=0) out vec4	out_Color;
 
 void main() {
 	out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
@@ -85,10 +85,10 @@ layout (binding=0, std140) uniform un_ConstBuf
 
 } ub;
 
-in  vec3	at_Position;
-in  vec2	at_Texcoord;
+layout(location=0) in  vec3	at_Position;
+layout(location=1) in  vec2	at_Texcoord;
 
-out vec2	v_Texcoord;
+layout(location=0) out vec2	v_Texcoord;
 
 void main() {
 	gl_Position	= vec4( at_Position, 1.0 ) * ub.mvp;
@@ -115,7 +115,7 @@ layout (binding=0, std140) uniform un_ConstBuf
 
 layout (binding=1) uniform sampler2D un_ColorTexture;
 
-in  vec2	v_Texcoord;
+layout(location=0) in  vec2	v_Texcoord;
 
 void main() {
 	if ( texture(un_ColorTexture, v_Texcoord).a * ub.color.a < 0.1f )
@@ -154,6 +154,7 @@ void main() {
 		
 		GPipelineID		pipeline1	= _frameGraph->CreatePipeline( ppln1 );
 		GPipelineID		pipeline2	= _frameGraph->CreatePipeline( ppln2 );
+		CHECK_ERR( pipeline1 and pipeline2 );
 
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline1, DescriptorSetID("0"), OUT resources ));

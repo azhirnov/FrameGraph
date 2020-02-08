@@ -25,7 +25,7 @@ out gl_MeshPerVertexNV {
 	vec4	gl_Position;
 } gl_MeshVerticesNV[]; // [max_vertices]
 
-layout(location = 0) out MeshOutput {
+layout(location=0) out MeshOutput {
 	vec4	color;
 } Output[]; // [max_vertices]
 
@@ -58,7 +58,7 @@ void main ()
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout(location = 0) in MeshOutput {
+layout(location=0) in MeshOutput {
 	vec4	color;
 } Input;
 

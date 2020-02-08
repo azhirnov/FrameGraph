@@ -16,12 +16,12 @@ namespace FG
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 // @dynamic-offset
-layout (std140) uniform UB {
+layout (binding=0, std140) uniform UB {
 	vec4	data[4];
 } ub;
 
 // @dynamic-offset
-layout (std430) writeonly buffer SSB {
+layout (binding=1, std430) writeonly buffer SSB {
 	vec4	data[4];
 } ssb;
 

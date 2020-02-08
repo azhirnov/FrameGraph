@@ -16,7 +16,7 @@ namespace FG
 layout (local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(rgba8) writeonly uniform image2D  un_OutImage;
+layout(binding=0, rgba8) writeonly uniform image2D  un_OutImage;
 
 void main ()
 {

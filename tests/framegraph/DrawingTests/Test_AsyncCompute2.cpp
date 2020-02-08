@@ -29,7 +29,7 @@ namespace FG
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-out vec3  v_Color;
+layout(location=0) out vec3  v_Color;
 
 const vec2	g_Positions[3] = vec2[](
 	vec2(0.0, -0.5),
@@ -56,7 +56,7 @@ void main() {
 
 layout(location=0) out vec4  out_Color;
 
-in  vec3  v_Color;
+layout(location=0) in  vec3  v_Color;
 
 void main() {
 	out_Color = 1.0f - vec4(v_Color, 1.0);
@@ -69,7 +69,7 @@ void main() {
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(rgba8) uniform image2D  un_Image;
+layout(binding=0, rgba8) uniform image2D  un_Image;
 
 void main ()
 {
@@ -90,7 +90,6 @@ void main ()
 
 		GPipelineID		gpipeline	= _frameGraph->CreatePipeline( gppln );
 		CPipelineID		cpipeline	= _frameGraph->CreatePipeline( cppln );
-		
 		CHECK_ERR( gpipeline and cpipeline );
 
 		PipelineResources	resources;

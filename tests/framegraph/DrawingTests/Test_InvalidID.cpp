@@ -15,7 +15,7 @@ namespace FG
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(rgba8) writeonly uniform image2D  un_OutImage;
+layout(binding=0, rgba8) writeonly uniform image2D  un_OutImage;
 
 void main ()
 {
@@ -40,6 +40,7 @@ void main ()
 		ImageID			image4		{RawImageID{ 2222, 0 }};
 
 		CPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
+		CHECK_ERR( pipeline );
 		
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));

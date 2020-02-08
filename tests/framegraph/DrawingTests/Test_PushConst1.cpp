@@ -20,7 +20,7 @@ layout (push_constant, std140) uniform PushConst {
 	layout(offset = 32) float	f1;
 } pc;
 
-layout (std430) writeonly buffer SSB {
+layout (binding=0, std430) writeonly buffer SSB {
 	vec4	data[2];
 } ssb;
 

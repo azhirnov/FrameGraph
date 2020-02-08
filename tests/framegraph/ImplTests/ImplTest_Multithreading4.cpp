@@ -196,7 +196,7 @@ namespace FG
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-out vec3	v_Color;
+layout(location=0) out vec3	v_Color;
 
 const vec2	g_Positions[3] = vec2[](
 	vec2(0.0, -0.5),
@@ -220,14 +220,15 @@ void main() {
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-in  vec3	v_Color;
-out vec4	out_Color;
+layout(location=0) in  vec3	v_Color;
+layout(location=0) out vec4	out_Color;
 
 void main() {
 	out_Color = vec4(v_Color, 1.0);
 }
 )#" );
 		gpipeline = _frameGraph->CreatePipeline( gppln );
+		CHECK_ERR( gpipeline );
 		
 		ComputePipelineDesc	cppln;
 		cppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
@@ -237,7 +238,7 @@ void main() {
 layout (local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(rgba8) writeonly uniform image2D  un_OutImage;
+layout(binding=0, rgba8) writeonly uniform image2D  un_OutImage;
 
 void main ()
 {
@@ -249,6 +250,7 @@ void main ()
 }
 )#" );
 		cpipeline = _frameGraph->CreatePipeline( cppln );
+		CHECK_ERR( cpipeline );
 
 		bool			thread1_result, thread2_result, thread3_result, thread4_result;
 

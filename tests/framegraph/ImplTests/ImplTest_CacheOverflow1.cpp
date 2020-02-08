@@ -26,10 +26,12 @@ void main() {
 }
 )#" );
 		
-		const uint2		view_size	= {800, 600};
 		GPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
+		CHECK_ERR( pipeline );
+
 		SamplerID		sampler		= _frameGraph->CreateSampler( SamplerDesc{} );
 		CommandBuffer	cmdBuffers[2] = {};
+		const uint2		view_size	= {800, 600};
 
 		PipelineResources	resources1, resources2;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources1 ));
