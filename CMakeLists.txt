@@ -50,6 +50,7 @@ else()
 endif()
 include( "cmake/compiler_tests.cmake" )
 include( "cmake/ci_build.cmake" )
+include( "cmake/version.cmake" )
 
 add_subdirectory( "external" )
 include( "cmake/project_template.cmake" )

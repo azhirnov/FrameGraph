@@ -14,6 +14,8 @@ extern void UnitTest_VImage ();
 
 int main ()
 {
+	FG_LOGI( "Run tests for "s << IFrameGraph::GetVersion() );
+
 	// unit tests
 	{
 		UnitTest_VertexInput();

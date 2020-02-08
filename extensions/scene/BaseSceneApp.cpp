@@ -45,6 +45,8 @@ namespace FG
 */
 	bool BaseSceneApp::_CreateFrameGraph (const AppConfig &cfg)
 	{
+		FG_LOGI( "Create "s << IFrameGraph::GetVersion() );
+
 		// initialize window
 		{
 			#if defined( FG_ENABLE_GLFW )

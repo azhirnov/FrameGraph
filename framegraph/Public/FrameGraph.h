@@ -86,6 +86,9 @@ namespace FG
 			// Creates the framegraph.
 		ND_ static FrameGraph		CreateFrameGraph (const DeviceInfo_t &);
 
+			// Returns name and version number.
+		ND_ static const char*		GetVersion ();
+
 
 		// initialization //
 
@@ -186,13 +189,13 @@ namespace FG
 		// debugging //
 
 			// Returns framegraph statistics.
-			virtual bool	GetStatistics (OUT Statistics &result) const = 0;
+			virtual bool			GetStatistics (OUT Statistics &result) const = 0;
 
 			// Returns serialized tasks, resource usage and barriers, can be used for regression testing.
-			virtual bool	DumpToString (OUT String &result) const = 0;
+			virtual bool			DumpToString (OUT String &result) const = 0;
 
 			// Returns graph written on dot language, can be used for graph visualization with graphviz.
-			virtual bool	DumpToGraphViz (OUT String &result) const = 0;
+			virtual bool			DumpToGraphViz (OUT String &result) const = 0;
 	};
 
 	

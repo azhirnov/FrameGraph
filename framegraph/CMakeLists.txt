@@ -30,4 +30,10 @@ if (${FG_ENABLE_STDALLOC})
 	target_link_libraries( "FrameGraph" "StdAlloc-lib" )
 endif()
 
+# Version
+target_compile_definitions( "FrameGraph" PRIVATE "FG_VERSION_STR=\"${FrameGraph_VERSION_MAJOR}.${FrameGraph_VERSION_MINOR}\"" )
+if (DEFINED FG_COMMIT_HASH)
+	target_compile_definitions( "FrameGraph" PRIVATE "FG_COMMIT_HASH=\"${FG_COMMIT_HASH}\"" )
+endif()
+
 install( TARGETS "FrameGraph" ARCHIVE DESTINATION "lib" )

@@ -33,6 +33,17 @@ namespace FG
 
 		return result;
 	}
+	
+/*
+=================================================
+	GetVersion
+=================================================
+*/
+	const char*  IFrameGraph::GetVersion ()
+	{
+		static constexpr char version[] = "FrameGraph v" FG_VERSION_STR " (" FG_COMMIT_HASH ")";
+		return version;
+	}
 
 
 }	// FG
