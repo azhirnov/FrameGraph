@@ -532,8 +532,8 @@ namespace {
 			case EPixelFormat::BC2_RGBA8_UNorm :
 			case EPixelFormat::BC3_RGBA8_UNorm :
 			case EPixelFormat::BC3_sRGB :
-			case EPixelFormat::BC4_RED8_SNorm :
-			case EPixelFormat::BC4_RED8_UNorm :
+			case EPixelFormat::BC4_R8_SNorm :
+			case EPixelFormat::BC4_R8_UNorm :
 			case EPixelFormat::BC5_RG8_SNorm :
 			case EPixelFormat::BC5_RG8_UNorm :
 			case EPixelFormat::BC7_RGBA8_UNorm :
