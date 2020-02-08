@@ -54,7 +54,7 @@ namespace FG
 	private:
 		VkAccelerationStructureNV	_bottomLevelAS		= VK_NULL_HANDLE;
 		MemoryID					_memoryId;
-		BLASHandle_t				_handle				= BLASHandle_t(0);
+		BLASHandle_t				_handle				= Zero;
 		
 		Array< Triangles >			_triangles;
 		Array< AABB >				_aabbs;

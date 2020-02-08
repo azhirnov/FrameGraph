@@ -24,7 +24,7 @@
 #include "stl/Log/Log.h"
 #include "stl/Algorithms/Hash.h"
 #include "stl/CompileTime/TypeTraits.h"
-#include "stl/CompileTime/UMax.h"
+#include "stl/CompileTime/Constants.h"
 #include "stl/CompileTime/DefaultType.h"
 
 

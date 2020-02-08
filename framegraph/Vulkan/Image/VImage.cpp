@@ -63,11 +63,11 @@ namespace FG
 	GetImageFlags
 =================================================
 */
-	ND_ static VkImageCreateFlags  GetImageFlags (EImage imageType)
+	ND_ static VkImageCreateFlagBits  GetImageFlags (EImage imageType)
 	{
-		VkImageCreateFlags	flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+		VkImageCreateFlagBits	flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 			
-		if ( EImage_IsCube( imageType ) )
+		if ( EImage_IsCube( imageType ))
 			flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
 		// TODO: VK_IMAGE_CREATE_EXTENDED_USAGE_BIT
@@ -84,18 +84,18 @@ namespace FG
 	_ChooseAspect
 =================================================
 */
-	ND_ static VkImageAspectFlags  ChooseAspect (EPixelFormat format)
+	ND_ static VkImageAspectFlagBits  ChooseAspect (EPixelFormat format)
 	{
-		VkImageAspectFlags	result = 0;
+		VkImageAspectFlagBits	result = Zero;
 
-		if ( EPixelFormat_IsColor( format ) )
+		if ( EPixelFormat_IsColor( format ))
 			result |= VK_IMAGE_ASPECT_COLOR_BIT;
 		else
 		{
-			if ( EPixelFormat_HasDepth( format ) )
+			if ( EPixelFormat_HasDepth( format ))
 				result |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
-			if ( EPixelFormat_HasStencil( format ) )
+			if ( EPixelFormat_HasStencil( format ))
 				result |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		}
 		return result;
@@ -134,9 +134,9 @@ namespace FG
 	GetAllImageAccessMasks
 =================================================
 */
-	ND_ static VkAccessFlags  GetAllImageAccessMasks (VkImageUsageFlags usage)
+	ND_ static VkAccessFlagBits  GetAllImageAccessMasks (VkImageUsageFlags usage)
 	{
-		VkAccessFlags	result = 0;
+		VkAccessFlagBits	result = Zero;
 
 		for (VkImageUsageFlags t = 1; t <= usage; t <<= 1)
 		{
@@ -321,8 +321,8 @@ namespace FG
 		_image				= VK_NULL_HANDLE;
 		_memoryId			= Default;
 		_desc				= Default;
-		_aspectMask			= 0;
-		_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
+		_aspectMask			= Zero;
+		_defaultLayout		= Zero;
 		_queueFamilyMask	= Default;
 		_onRelease			= {};
 	}

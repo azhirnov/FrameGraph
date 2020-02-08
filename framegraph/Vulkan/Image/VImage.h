@@ -34,9 +34,9 @@ namespace FG
 		mutable ImageViewMap_t		_viewMap;
 
 		MemoryID					_memoryId;
-		VkImageAspectFlags			_aspectMask			= 0;
-		VkImageLayout				_defaultLayout		= VK_IMAGE_LAYOUT_MAX_ENUM;
-		VkAccessFlags				_readAccessMask		= 0;
+		VkImageAspectFlagBits		_aspectMask			= Zero;
+		VkImageLayout				_defaultLayout		= Zero;
+		VkAccessFlagBits			_readAccessMask		= Zero;
 		EQueueFamilyMask			_queueFamilyMask	= Default;
 
 		DebugName_t					_debugName;
@@ -82,7 +82,7 @@ namespace FG
 		ND_ EImage				ImageType ()			const	{ SHAREDLOCK( _drCheck );  return _desc.imageType; }
 		ND_ uint const			Samples ()				const	{ SHAREDLOCK( _drCheck );  return _desc.samples.Get(); }
 		
-		ND_ VkAccessFlags		GetAllReadAccessMask ()	const	{ SHAREDLOCK( _drCheck );  return _readAccessMask; }
+		ND_ VkAccessFlagBits	GetAllReadAccessMask ()	const	{ SHAREDLOCK( _drCheck );  return _readAccessMask; }
 
 		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask == Default; }
 		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask; }

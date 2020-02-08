@@ -179,7 +179,7 @@ namespace FG
 		}
 
 		_bottomLevelAS	= VK_NULL_HANDLE;
-		_handle			= BLASHandle_t(0);
+		_handle			= Zero;
 		_flags			= Default;
 		
 		{

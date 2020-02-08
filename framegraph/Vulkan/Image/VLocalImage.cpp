@@ -39,7 +39,7 @@ namespace FG
 			pending.isReadable	= false;
 			pending.isWritable	= false;
 			pending.stages		= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			pending.access		= 0;
+			pending.access		= Zero;
 			pending.layout		= _imageData->DefaultLayout();
 			pending.index		= ExeOrderIndex::Initial;
 			pending.range		= SubRange{ 0, ArrayLayers() * MipmapLevels() };
@@ -310,7 +310,7 @@ namespace FG
 			pending.isWritable		= false;
 			pending.invalidateBefore= false;
 			pending.invalidateAfter	= false;
-			pending.stages			= 0;
+			pending.stages			= Zero;
 			pending.access			= _imageData->GetAllReadAccessMask();
 			pending.layout			= _finalLayout;
 			pending.index			= index;

@@ -379,7 +379,7 @@ namespace FG
 		
 		compositeAlpha = VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR;
 
-		for (VkCompositeAlphaFlagBitsKHR flag = VkCompositeAlphaFlagBitsKHR(0);
+		for (VkCompositeAlphaFlagBitsKHR flag = Zero;
 			 flag < VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR;
 			 flag = VkCompositeAlphaFlagBitsKHR(flag << 1))
 		{

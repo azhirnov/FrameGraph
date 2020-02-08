@@ -26,13 +26,13 @@ namespace FG
 	GetAllBufferReadAccessMasks
 =================================================
 */
-	static VkAccessFlags  GetAllBufferReadAccessMasks (VkBufferUsageFlags usage)
+	static VkAccessFlagBits  GetAllBufferReadAccessMasks (VkBufferUsageFlags usage)
 	{
-		VkAccessFlags	result = 0;
+		VkAccessFlagBits	result = Zero;
 
 		for (VkBufferUsageFlags t = 1; t <= usage; t <<= 1)
 		{
-			if ( not EnumEq( usage, t ) )
+			if ( not EnumEq( usage, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();

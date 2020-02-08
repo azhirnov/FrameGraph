@@ -303,7 +303,7 @@ namespace FG
 		{
 			BufferAccess		pending;
 			pending.range		= BufferRange{ 0, VkDeviceSize(Size()) };
-			pending.stages		= 0;
+			pending.stages		= Zero;
 			pending.access		= _bufferData->GetAllReadAccessMask();
 			pending.isReadable	= true;
 			pending.isWritable	= false;

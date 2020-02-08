@@ -255,13 +255,13 @@ namespace FG
 	ShaderStages
 =================================================
 */
-	ND_ inline VkShaderStageFlags  VEnumCast (EShaderStages values)
+	ND_ inline VkShaderStageFlagBits  VEnumCast (EShaderStages values)
 	{
-		VkShaderStageFlags	flags = 0;
+		VkShaderStageFlagBits	flags = Zero;
 
 		for (EShaderStages t = EShaderStages(1); t <= values; t = EShaderStages(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not EnumEq( values, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
@@ -286,7 +286,7 @@ namespace FG
 				case EShaderStages::AllGraphics :
 				case EShaderStages::AllRayTracing :
 				case EShaderStages::All :				// to shutup warnings	
-				default :								RETURN_ERR( "unknown shader type!", VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM );
+				default :								RETURN_ERR( "unknown shader type!", Zero );
 			}
 			END_ENUM_CHECKS();
 		}
@@ -427,7 +427,7 @@ namespace FG
 	CullMode
 =================================================
 */
-	ND_ inline VkCullModeFlags  VEnumCast (ECullMode value)
+	ND_ inline VkCullModeFlagBits  VEnumCast (ECullMode value)
 	{
 		BEGIN_ENUM_CHECKS();
 		switch ( value )
@@ -435,10 +435,10 @@ namespace FG
 			case ECullMode::None :			return VK_CULL_MODE_NONE;
 			case ECullMode::Front :			return VK_CULL_MODE_FRONT_BIT;
 			case ECullMode::Back :			return VK_CULL_MODE_BACK_BIT;
-			case ECullMode::FontAndBack :	return VK_CULL_MODE_FRONT_BIT | VK_CULL_MODE_BACK_BIT;
+			case ECullMode::FontAndBack :	return VK_CULL_MODE_FRONT_AND_BACK;
 		}
 		END_ENUM_CHECKS();
-		RETURN_ERR( "unknown cull mode" );
+		RETURN_ERR( "unknown cull mode", VK_CULL_MODE_NONE );
 	}
 
 /*
@@ -551,13 +551,13 @@ namespace FG
 	ImageUsage
 =================================================
 */
-	ND_ inline VkImageUsageFlags  VEnumCast (EImageUsage values)
+	ND_ inline VkImageUsageFlagBits  VEnumCast (EImageUsage values)
 	{
-		VkImageUsageFlags	flags = 0;
+		VkImageUsageFlagBits	flags = Zero;
 
 		for (EImageUsage t = EImageUsage(1); t <= values; t = EImageUsage(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not EnumEq( values, t ))
 				continue;
 			
 			BEGIN_ENUM_CHECKS();
@@ -576,7 +576,7 @@ namespace FG
 				case EImageUsage::Unknown					:
 				case EImageUsage::Transfer					:
 				case EImageUsage::All						: // to shutup warnings
-				default										: RETURN_ERR( "invalid image usage type", VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM );
+				default										: RETURN_ERR( "invalid image usage type", Zero );
 			}
 			END_ENUM_CHECKS();
 		}
@@ -585,16 +585,16 @@ namespace FG
 
 /*
 =================================================
-	ImageAspectFlags
+	ImageAspect
 =================================================
 */
-	ND_ inline VkImageAspectFlags  VEnumCast (EImageAspect values)
+	ND_ inline VkImageAspectFlagBits  VEnumCast (EImageAspect values)
 	{
-		VkImageAspectFlags	flags = 0;
+		VkImageAspectFlagBits	flags = Zero;
 		
 		for (EImageAspect t = EImageAspect(1); t <= values; t = EImageAspect(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not EnumEq( values, t ))
 				continue;
 			
 			BEGIN_ENUM_CHECKS();
@@ -608,7 +608,7 @@ namespace FG
 				case EImageAspect::Auto			:
 				case EImageAspect::DepthStencil	:
 				case EImageAspect::Unknown		: // to shutup warnings
-				default							: RETURN_ERR( "invalid image aspect type", VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM );
+				default							: RETURN_ERR( "invalid image aspect type", Zero );
 			}
 			END_ENUM_CHECKS();
 		}
@@ -617,10 +617,10 @@ namespace FG
 	
 /*
 =================================================
-	ImageAspectFlags
+	ImageAspect
 =================================================
 */
-	ND_ inline VkImageAspectFlags  VEnumCast (EImageAspect values, EPixelFormat format)
+	ND_ inline VkImageAspectFlagBits  VEnumCast (EImageAspect values, EPixelFormat format)
 	{
 		if ( values == EImageAspect::Auto )
 		{
@@ -647,13 +647,13 @@ namespace FG
 	BufferUsage
 =================================================
 */
-	ND_ inline VkBufferUsageFlags  VEnumCast (EBufferUsage values)
+	ND_ inline VkBufferUsageFlagBits  VEnumCast (EBufferUsage values)
 	{
-		VkBufferUsageFlags	result = 0;
+		VkBufferUsageFlagBits	result = Zero;
 		
 		for (EBufferUsage t = EBufferUsage(1); t <= values; t = EBufferUsage(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not EnumEq( values, t ))
 				continue;
 			
 			BEGIN_ENUM_CHECKS();
@@ -673,7 +673,7 @@ namespace FG
 				case EBufferUsage::Transfer		:
 				case EBufferUsage::Unknown		:
 				case EBufferUsage::All			:	// to shutup warnings
-				default							:	RETURN_ERR( "invalid buffer usage", 0 );
+				default							:	RETURN_ERR( "invalid buffer usage", Zero );
 			}
 			END_ENUM_CHECKS();
 		}
@@ -731,13 +731,13 @@ namespace FG
 	GeometryFlags
 =================================================
 */
-	ND_ inline VkGeometryFlagsNV  VEnumCast (ERayTracingGeometryFlags values)
+	ND_ inline VkGeometryFlagBitsNV  VEnumCast (ERayTracingGeometryFlags values)
 	{
-		VkGeometryFlagsNV	result = 0;
+		VkGeometryFlagBitsNV	result = Zero;
 		
 		for (ERayTracingGeometryFlags t = ERayTracingGeometryFlags(1); t <= values; t = ERayTracingGeometryFlags(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not EnumEq( values, t ))
 				continue;
 			
 			BEGIN_ENUM_CHECKS();
@@ -747,7 +747,7 @@ namespace FG
 				case ERayTracingGeometryFlags::NoDuplicateAnyHitInvocation	: result |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NV;	break;
 				case ERayTracingGeometryFlags::_Last						:
 				case ERayTracingGeometryFlags::Unknown						:
-				default														: RETURN_ERR( "invalid geometry flags", 0 );
+				default														: RETURN_ERR( "invalid geometry flags", Zero );
 			}
 			END_ENUM_CHECKS();
 		}
@@ -759,13 +759,13 @@ namespace FG
 	GeometryInstanceFlags
 =================================================
 */
-	ND_ inline VkGeometryInstanceFlagsNV   VEnumCast (ERayTracingInstanceFlags values)
+	ND_ inline VkGeometryInstanceFlagBitsNV   VEnumCast (ERayTracingInstanceFlags values)
 	{
-		VkGeometryInstanceFlagsNV	result = 0;
+		VkGeometryInstanceFlagBitsNV	result = Zero;
 		
 		for (ERayTracingInstanceFlags t = ERayTracingInstanceFlags(1); t <= values; t = ERayTracingInstanceFlags(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not EnumEq( values, t ))
 				continue;
 		
 			BEGIN_ENUM_CHECKS();
@@ -777,7 +777,7 @@ namespace FG
 				case ERayTracingInstanceFlags::ForceNonOpaque		: return VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
 				case ERayTracingInstanceFlags::_Last				:
 				case ERayTracingInstanceFlags::Unknown				:
-				default												: RETURN_ERR( "invalid geometry instance flags", 0 );
+				default												: RETURN_ERR( "invalid geometry instance flags", Zero );
 			}
 			END_ENUM_CHECKS();
 		}
@@ -789,13 +789,13 @@ namespace FG
 	AccelerationStructureFlags
 =================================================
 */
-	ND_ inline VkBuildAccelerationStructureFlagsNV   VEnumCast (ERayTracingFlags values)
+	ND_ inline VkBuildAccelerationStructureFlagBitsNV   VEnumCast (ERayTracingFlags values)
 	{
-		VkBuildAccelerationStructureFlagsNV	result = 0;
+		VkBuildAccelerationStructureFlagBitsNV	result = Zero;
 		
 		for (ERayTracingFlags t = ERayTracingFlags(1); t <= values; t = ERayTracingFlags(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not EnumEq( values, t ))
 				continue;
 		
 			BEGIN_ENUM_CHECKS();
@@ -808,7 +808,7 @@ namespace FG
 				case ERayTracingFlags::LowMemory		: result |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;			break;
 				case ERayTracingFlags::_Last			:
 				case ERayTracingFlags::Unknown			:
-				default									: RETURN_ERR( "invalid flags", 0 );
+				default									: RETURN_ERR( "invalid flags", Zero );
 			}
 			END_ENUM_CHECKS();
 		}
@@ -820,7 +820,7 @@ namespace FG
 	EResourceState_ToPipelineStages
 =================================================
 */
-	ND_ inline VkPipelineStageFlags  EResourceState_ToPipelineStages (EResourceState value)
+	ND_ inline VkPipelineStageFlagBits  EResourceState_ToPipelineStages (EResourceState value)
 	{
 		switch ( value & EResourceState::_AccessMask )
 		{								  
@@ -843,7 +843,7 @@ namespace FG
 			case EResourceState::_Access_Uniform :
 			case EResourceState::_Access_ShaderSample : {
 				ASSERT( EnumAny( value, EResourceState::_ShaderMask ));
-				VkPipelineStageFlags	result = 0;
+				VkPipelineStageFlagBits	result = Zero;
 				if ( EnumEq( value, EResourceState::_VertexShader ) )			result |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
 				if ( EnumEq( value, EResourceState::_TessControlShader ) )		result |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
 				if ( EnumEq( value, EResourceState::_TessEvaluationShader ) )	result |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
@@ -858,13 +858,13 @@ namespace FG
 
 			case EResourceState::_Access_DepthStencilAttachment : {
 				ASSERT( EnumAny( value, EResourceState::EarlyFragmentTests | EResourceState::LateFragmentTests ));
-				VkPipelineStageFlags	result = 0;
+				VkPipelineStageFlagBits	result = Zero;
 				if ( EnumEq( value, EResourceState::EarlyFragmentTests ) )		result |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 				if ( EnumEq( value, EResourceState::LateFragmentTests ) )		result |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 				return result;
 			}
 		}
-		RETURN_ERR( "unknown resource state!" );
+		RETURN_ERR( "unknown resource state!", Zero );
 	}
 	
 /*
@@ -872,11 +872,11 @@ namespace FG
 	EResourceState_ToAccess
 =================================================
 */
-	ND_ inline VkAccessFlags  EResourceState_ToAccess (EResourceState value)
+	ND_ inline VkAccessFlagBits  EResourceState_ToAccess (EResourceState value)
 	{
 		switch ( value & EResourceState::_StateMask )
 		{
-			case EResourceState::Unknown :							return 0;
+			case EResourceState::Unknown :							return Zero;
 			case EResourceState::UniformRead :						return VK_ACCESS_UNIFORM_READ_BIT;
 			case EResourceState::ShaderSample :
 			case EResourceState::ShaderRead :						return VK_ACCESS_SHADER_READ_BIT;
@@ -898,15 +898,15 @@ namespace FG
 			case EResourceState::IndexBuffer :						return VK_ACCESS_INDEX_READ_BIT;
 			case EResourceState::VertexBuffer :						return VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
 			//case EResourceState::TransientAttachment
-			case EResourceState::PresentImage :						return 0;
+			case EResourceState::PresentImage :						return Zero;
 			case EResourceState::BuildRayTracingStructRead :		return VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
 			case EResourceState::BuildRayTracingStructWrite :		return VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
 			case EResourceState::BuildRayTracingStructReadWrite :	return VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
 			case EResourceState::RTASBuildingBufferRead :
-			case EResourceState::RTASBuildingBufferReadWrite :		return 0;	// ceche invalidation is not needed for buffers
+			case EResourceState::RTASBuildingBufferReadWrite :		return Zero;	// ceche invalidation is not needed for buffers
 			case EResourceState::ShadingRateImageRead :				return VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;
 		}
-		RETURN_ERR( "unknown resource state!" );
+		RETURN_ERR( "unknown resource state!", Zero );
 	}
 	
 /*
@@ -1058,8 +1058,8 @@ namespace FG
 		_builder_( BC2_RGBA8_UNorm,		VK_FORMAT_BC2_UNORM_BLOCK ) \
 		_builder_( BC3_RGBA8_UNorm,		VK_FORMAT_BC3_UNORM_BLOCK ) \
 		_builder_( BC3_sRGB,			VK_FORMAT_BC3_SRGB_BLOCK ) \
-		_builder_( BC4_RED8_SNorm,		VK_FORMAT_BC4_SNORM_BLOCK ) \
-		_builder_( BC4_RED8_UNorm,		VK_FORMAT_BC4_UNORM_BLOCK ) \
+		_builder_( BC4_R8_SNorm,		VK_FORMAT_BC4_SNORM_BLOCK ) \
+		_builder_( BC4_R8_UNorm,		VK_FORMAT_BC4_UNORM_BLOCK ) \
 		_builder_( BC5_RG8_SNorm,		VK_FORMAT_BC5_SNORM_BLOCK ) \
 		_builder_( BC5_RG8_UNorm,		VK_FORMAT_BC5_UNORM_BLOCK ) \
 		_builder_( BC7_RGBA8_UNorm,		VK_FORMAT_BC7_UNORM_BLOCK ) \

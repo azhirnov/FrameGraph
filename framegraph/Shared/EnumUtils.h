@@ -142,11 +142,11 @@ namespace FG
 */
 	ND_ inline EResourceState  EResourceState_FromShaders (EShaderStages values)
 	{
-		EResourceState	result = EResourceState(0);
+		EResourceState	result = Zero;
 		
 		for (EShaderStages t = EShaderStages(1 << 0); t < EShaderStages::_Last; t = EShaderStages(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not EnumEq( values, t ))
 				continue;
 			
 			BEGIN_ENUM_CHECKS();
@@ -185,16 +185,16 @@ namespace FG
 */
 	ND_ inline EShaderAccess  EResourceState_ToShaderAccess (EResourceState state)
 	{
-		if ( EnumEq( state, EResourceState::ShaderReadWrite ) )
+		if ( EnumEq( state, EResourceState::ShaderReadWrite ))
 			return EShaderAccess::ReadWrite;
 		
-		if ( EnumEq( state, EResourceState::ShaderWrite | EResourceState::InvalidateBefore ) )
+		if ( EnumEq( state, EResourceState::ShaderWrite | EResourceState::InvalidateBefore ))
 			return EShaderAccess::WriteDiscard;
 		
-		if ( EnumEq( state, EResourceState::ShaderWrite ) )
+		if ( EnumEq( state, EResourceState::ShaderWrite ))
 			return EShaderAccess::WriteOnly;
 		
-		if ( EnumEq( state, EResourceState::ShaderRead ) )
+		if ( EnumEq( state, EResourceState::ShaderRead ))
 			return EShaderAccess::ReadOnly;
 
 		RETURN_ERR( "unsupported shader access", EShaderAccess(~0u) );

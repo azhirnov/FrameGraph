@@ -29,7 +29,7 @@ namespace FG
 		MemoryID				_memoryId;
 		BufferDesc				_desc;
 		EQueueFamilyMask		_queueFamilyMask	= Default;
-		VkAccessFlags			_readAccessMask		= 0;
+		VkAccessFlagBits		_readAccessMask		= Zero;
 
 		DebugName_t				_debugName;
 		OnRelease_t				_onRelease;
@@ -64,7 +64,7 @@ namespace FG
 		ND_ BufferDesc const&	Description ()			const	{ SHAREDLOCK( _drCheck );  return _desc; }
 		ND_ BytesU				Size ()					const	{ SHAREDLOCK( _drCheck );  return _desc.size; }
 		
-		ND_ VkAccessFlags		GetAllReadAccessMask ()	const	{ SHAREDLOCK( _drCheck );  return _readAccessMask; }
+		ND_ VkAccessFlagBits	GetAllReadAccessMask ()	const	{ SHAREDLOCK( _drCheck );  return _readAccessMask; }
 
 		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask == Default; }
 		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask; }

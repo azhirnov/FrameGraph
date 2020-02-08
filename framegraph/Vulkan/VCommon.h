@@ -106,5 +106,31 @@ namespace FG
 		mutable FixedArray< uint, FG_MaxBufferDynamicOffsets >		dynamicOffsets;
 	};
 
+	
+	// debugger can't show enum names for VkFlags, so use enum instead
+#	define VULKAN_ENUM_BIT_OPERATORS( _type_ ) \
+			inline constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs) { return lhs = _type_( EnumToUInt( lhs ) | EnumToUInt( rhs )); } \
+		ND_ inline constexpr _type_   operator |  (_type_ lhs, _type_ rhs)	{ return _type_( EnumToUInt( lhs ) | EnumToUInt( rhs )); } \
+			inline constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs) { return lhs = _type_( EnumToUInt( lhs ) & EnumToUInt( rhs )); } \
+		ND_ inline constexpr _type_   operator &  (_type_ lhs, _type_ rhs)	{ return _type_( EnumToUInt( lhs ) & EnumToUInt( rhs )); } \
+		ND_ inline constexpr _type_   operator ~  (_type_ value)			{ return _type_( ~EnumToUInt( value )); } \
+
+
+	VULKAN_ENUM_BIT_OPERATORS( VkPipelineStageFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkAccessFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkDependencyFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkImageAspectFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkStencilFaceFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkShaderStageFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkImageCreateFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkQueueFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkImageUsageFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkBufferUsageFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkSampleCountFlagBits );
+	VULKAN_ENUM_BIT_OPERATORS( VkGeometryFlagBitsNV );
+	VULKAN_ENUM_BIT_OPERATORS( VkBuildAccelerationStructureFlagBitsNV );
+	
+#	undef VULKAN_ENUM_BIT_OPERATORS
+
 
 }	// FG

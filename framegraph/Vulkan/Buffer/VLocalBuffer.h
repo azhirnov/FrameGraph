@@ -40,8 +40,8 @@ namespace FG
 		{
 		// variables
 			BufferRange				range;
-			VkPipelineStageFlags	stages		= 0;
-			VkAccessFlags			access		= 0;
+			VkPipelineStageFlagBits	stages		= Zero;
+			VkAccessFlagBits		access		= Zero;
 			ExeOrderIndex			index		= ExeOrderIndex::Initial;
 			bool					isReadable : 1;
 			bool					isWritable : 1;

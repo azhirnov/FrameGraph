@@ -684,7 +684,7 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
-		if ( All( task.imageSize == uint3(0) ) )
+		if ( All( task.imageSize == Zero ))
 			return null;	// TODO: is it an error?
 
 		return _AddUpdateImageTask( task );
@@ -702,7 +702,7 @@ namespace {
 
 		ASSERT( task.mipmapLevel < img_desc.maxLevel );
 		ASSERT( task.arrayLayer < img_desc.arrayLayers );
-		ASSERT(Any( task.imageSize > uint3(0) ));
+		ASSERT(Any( task.imageSize > Zero ));
 
 		const uint3		image_size		= Max( task.imageSize, 1u );
 		const auto&		fmt_info		= EPixelFormat_GetInfo( img_desc.format );
@@ -877,7 +877,7 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
 		
-		if ( All( task.imageSize == uint3(0) ) )
+		if ( All( task.imageSize == Zero ))
 			return null;	// TODO: is it an error?
 
 		return _AddReadImageTask( task );
@@ -897,7 +897,7 @@ namespace {
 
 		ASSERT( task.mipmapLevel < img_desc.maxLevel );
 		ASSERT( task.arrayLayer < img_desc.arrayLayers );
-		ASSERT(Any( task.imageSize > uint3(0) ));
+		ASSERT(Any( task.imageSize > Zero ));
 		
 		const uint3			image_size		= Max( task.imageSize, 1u );
 		const BytesU		min_size		= _batch->GetMaxReadableStorageSize();

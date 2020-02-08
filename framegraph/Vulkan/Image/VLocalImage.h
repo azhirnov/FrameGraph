@@ -24,16 +24,16 @@ namespace FG
 		struct ImageState
 		{
 		// variables
-			EResourceState		state		= Default;
-			VkImageLayout		layout		= VK_IMAGE_LAYOUT_MAX_ENUM;
-			VkImageAspectFlags	aspect		= 0;
-			ImageRange			range;
-			VTask				task;
+			EResourceState			state		= Default;
+			VkImageLayout			layout		= Zero;
+			VkImageAspectFlagBits	aspect		= Zero;
+			ImageRange				range;
+			VTask					task;
 			
 		// methods
 			ImageState () {}
 
-			ImageState (EResourceState state, VkImageLayout layout, const ImageRange &range, VkImageAspectFlags aspect, VTask task) :
+			ImageState (EResourceState state, VkImageLayout layout, const ImageRange &range, VkImageAspectFlagBits aspect, VTask task) :
 				state{state}, layout{layout}, aspect{aspect}, range{range}, task{task} {}
 		};
 
@@ -44,9 +44,9 @@ namespace FG
 		{
 		// variables
 			SubRange				range;
-			VkImageLayout			layout			= VK_IMAGE_LAYOUT_MAX_ENUM;
-			VkPipelineStageFlags	stages			= 0;
-			VkAccessFlags			access			= 0;
+			VkImageLayout			layout			= Zero;
+			VkPipelineStageFlagBits	stages			= Zero;
+			VkAccessFlagBits		access			= Zero;
 			ExeOrderIndex			index			= ExeOrderIndex::Initial;
 			bool					isReadable		: 1;
 			bool					isWritable		: 1;

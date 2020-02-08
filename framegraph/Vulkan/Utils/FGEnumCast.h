@@ -155,7 +155,7 @@ namespace FG
 */
 	ND_ inline EImageAspect  FGEnumCast (VkImageAspectFlagBits values)
 	{
-		EImageAspect	result = EImageAspect(0);
+		EImageAspect	result = Zero;
 
 		for (VkImageAspectFlags t = 1; t <= VK_IMAGE_ASPECT_METADATA_BIT; t <<= 1)
 		{

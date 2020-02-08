@@ -31,7 +31,7 @@ namespace FG
 
 	// methods
 	public:
-		ResourceDataRange () : begin{UMax}, end{T(0)} {}
+		ResourceDataRange () : begin{UMax}, end{Zero} {}
 		ResourceDataRange (T begin, T end) : begin{begin}, end{end} {}
 
 		ND_ T		Count ()							const	{ ASSERT( not IsEmpty() );  return end == UMax ? UMax : end - begin; }

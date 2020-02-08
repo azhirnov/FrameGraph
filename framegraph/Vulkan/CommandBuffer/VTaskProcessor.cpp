@@ -2900,7 +2900,7 @@ namespace FG
 							state, layout,
 							ImageRange{ desc.baseLayer, desc.layerCount, desc.baseLevel, desc.levelCount },
 							(EPixelFormat_HasDepth( desc.format )   ? VK_IMAGE_ASPECT_DEPTH_BIT   :
-							 EPixelFormat_HasStencil( desc.format ) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT) | 0u,
+							 EPixelFormat_HasStencil( desc.format ) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT),
 							_currTask
 						});
 	}
@@ -2916,7 +2916,7 @@ namespace FG
 						ImageState{
 							state, layout,
 							ImageRange{ ImageLayer(subres.baseArrayLayer), subres.layerCount, MipmapLevel(subres.mipLevel), 1 },
-							subres.aspectMask,
+							VkImageAspectFlagBits(subres.aspectMask),
 							_currTask
 						});
 	}
@@ -2932,7 +2932,7 @@ namespace FG
 						ImageState{
 							state, layout,
 							ImageRange{ ImageLayer(subres.baseArrayLayer), subres.layerCount, MipmapLevel(subres.baseMipLevel), subres.levelCount },
-							subres.aspectMask,
+							VkImageAspectFlagBits(subres.aspectMask),
 							_currTask
 						});
 	}

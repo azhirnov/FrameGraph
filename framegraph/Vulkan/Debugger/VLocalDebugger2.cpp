@@ -514,7 +514,7 @@ namespace {
 
 	ND_ static EAccessType  GetAccessType (VkAccessFlags flags)
 	{
-		EAccessType		result = EAccessType(0);
+		EAccessType		result = Zero;
 
 		for (VkAccessFlags t = 1; t < VK_ACCESS_FLAG_BITS_MAX_ENUM; t <<= 1)
 		{
