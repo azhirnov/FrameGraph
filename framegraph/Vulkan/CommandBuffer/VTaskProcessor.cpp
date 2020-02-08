@@ -2447,6 +2447,9 @@ namespace FG
 		subres.baseMipLevel		= task.baseLevel;
 		subres.levelCount		= Min( task.levelCount, image->MipmapLevels() - Min( image->MipmapLevels()-1, task.baseLevel ));
 
+		if ( subres.levelCount <= 1 )
+			return;
+
 		_AddImage( image, EResourceState::TransferSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subres );
 		_CommitBarriers();
 	

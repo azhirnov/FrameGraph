@@ -37,9 +37,9 @@ static void CheckLayers (const VImageUnitTest::Barrier &barrier, uint arrayLayer
 						 uint baseMipLevel, uint levelCount, uint baseArrayLayer, uint layerCount)
 {
 	uint	base_mip_level		= (barrier.range.begin / arrayLayers);
-	uint	level_count			= Max( 1u, (barrier.range.end - barrier.range.begin) / arrayLayers );
+	uint	level_count			= (barrier.range.end - barrier.range.begin - 1) / arrayLayers + 1;
 	uint	base_array_layer	= (barrier.range.begin % arrayLayers);
-	uint	layer_count			= Max( 1u, (barrier.range.end - barrier.range.begin) % arrayLayers );
+	uint	layer_count			= (barrier.range.end - barrier.range.begin - 1) % arrayLayers + 1;
 
 	TEST( base_mip_level == baseMipLevel );
 	TEST( level_count == levelCount );
@@ -129,42 +129,125 @@ static void VImage_Test2 ()
 
 	// pass 1
 	{
-		img->AddPendingState(ImageState{ EResourceState::TransferDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-								ImageRange{ 0_layer, 2, 0_mipmap, img->MipmapLevels() },
-								VK_IMAGE_ASPECT_COLOR_BIT, (task_iter++)->get() });
+		img->AddPendingState( ImageState{ EResourceState::TransferDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+										  ImageRange{ 0_layer, 2, 0_mipmap, img->MipmapLevels() },
+										  VK_IMAGE_ASPECT_COLOR_BIT, (task_iter++)->get() });
 
 		img->CommitBarrier( barrier_mngr, null );
 
 		auto	barriers = VImageUnitTest::GetRWBarriers( img );
-		
 		TEST( barriers.size() == 14 );
 
-		TEST( barriers[0].range.begin == 0 );
-		TEST( barriers[0].range.end == 2 );
-		TEST( barriers[0].stages == VK_PIPELINE_STAGE_TRANSFER_BIT );
-		TEST( barriers[0].access == VK_ACCESS_TRANSFER_WRITE_BIT );
-		TEST( barriers[0].isReadable == false );
-		TEST( barriers[0].isWritable == true );
-		TEST( barriers[0].layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
-		TEST( barriers[0].index == ExeOrderIndex(1) );
-		
-		CheckLayers( barriers[0], img->ArrayLayers(), 0, 1, 0, 2 );
+		for (size_t i = 0; i < barriers.size(); ++i)
+		{
+			const uint	j = uint(i/2);
 
-		TEST( barriers[1].range.begin == 2 );
-		TEST( barriers[1].range.end == 8 );
-		TEST( barriers[1].stages == VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
-		TEST( barriers[1].access == 0 );
-		TEST( barriers[1].isReadable == false );
-		TEST( barriers[1].isWritable == false );
-		TEST( barriers[1].layout == VK_IMAGE_LAYOUT_UNDEFINED );
-		TEST( barriers[1].index == ExeOrderIndex::Initial );
-
-		CheckLayers( barriers[1], img->ArrayLayers(), 0, 1, 2, img->ArrayLayers()-2 );
+			TEST( barriers[i].range.begin == j*8 );
+			TEST( barriers[i].range.end == 2 + j*8 );
+			TEST( barriers[i].stages == VK_PIPELINE_STAGE_TRANSFER_BIT );
+			TEST( barriers[i].access == VK_ACCESS_TRANSFER_WRITE_BIT );
+			TEST( barriers[i].isReadable == false );
+			TEST( barriers[i].isWritable == true );
+			TEST( barriers[i].layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
+			TEST( barriers[i].index == ExeOrderIndex(1) );
 		
-		CheckLayers( barriers[2], img->ArrayLayers(), 1, 1, 0, 2 );
-		CheckLayers( barriers[3], img->ArrayLayers(), 1, 1, 2, img->ArrayLayers()-2 );
+			CheckLayers( barriers[i], img->ArrayLayers(), j, 1, 0, 2 );
+
+			++i;
+			TEST( barriers[i].range.begin == 2 + j*8 );
+			TEST( barriers[i].range.end == 8 + j*8 );
+			TEST( barriers[i].stages == VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
+			TEST( barriers[i].access == 0 );
+			TEST( barriers[i].isReadable == false );
+			TEST( barriers[i].isWritable == false );
+			TEST( barriers[i].layout == VK_IMAGE_LAYOUT_UNDEFINED );
+			TEST( barriers[i].index == ExeOrderIndex::Initial );
+
+			CheckLayers( barriers[i], img->ArrayLayers(), j, 1, 2, img->ArrayLayers()-2 );
+		}
 	}
 	
+	// pass 2
+	{
+		img->AddPendingState( ImageState{ EResourceState::ShaderSample | EResourceState::_FragmentShader, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+										  ImageRange{ 0_layer, img->ArrayLayers(), 0_mipmap, 2 },
+										  VK_IMAGE_ASPECT_COLOR_BIT, (task_iter++)->get() });
+
+		img->CommitBarrier( barrier_mngr, null );
+
+		auto	barriers = VImageUnitTest::GetRWBarriers( img );
+		TEST( barriers.size() == 12 );
+		
+		for (size_t i = 0; i < 2; ++i)
+		{
+			TEST( barriers[i].range.begin == 8*i + 0 );
+			TEST( barriers[i].range.end == 8*i + 8 );
+			TEST( barriers[i].stages == VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT );
+			TEST( barriers[i].access == VK_ACCESS_SHADER_READ_BIT );
+			TEST( barriers[i].isReadable == true );
+			TEST( barriers[i].isWritable == false );
+			TEST( barriers[i].layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+			TEST( barriers[i].index == ExeOrderIndex(2) );
+
+			CheckLayers( barriers[i], img->ArrayLayers(), uint(i), 1, 0, img->ArrayLayers() );
+		}
+
+		// from previous pass
+		for (size_t i = 2; i < barriers.size(); ++i)
+		{
+			const uint	j = uint(i/2) + 1;
+
+			TEST( barriers[i].range.begin == j*8 );
+			TEST( barriers[i].range.end == 2 + j*8 );
+			TEST( barriers[i].stages == VK_PIPELINE_STAGE_TRANSFER_BIT );
+			TEST( barriers[i].access == VK_ACCESS_TRANSFER_WRITE_BIT );
+			TEST( barriers[i].isReadable == false );
+			TEST( barriers[i].isWritable == true );
+			TEST( barriers[i].layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
+			TEST( barriers[i].index == ExeOrderIndex(1) );
+		
+			CheckLayers( barriers[i], img->ArrayLayers(), j, 1, 0, 2 );
+
+			++i;
+			TEST( barriers[i].range.begin == 2 + j*8 );
+			TEST( barriers[i].range.end == 8 + j*8 );
+			TEST( barriers[i].stages == VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
+			TEST( barriers[i].access == 0 );
+			TEST( barriers[i].isReadable == false );
+			TEST( barriers[i].isWritable == false );
+			TEST( barriers[i].layout == VK_IMAGE_LAYOUT_UNDEFINED );
+			TEST( barriers[i].index == ExeOrderIndex::Initial );
+
+			CheckLayers( barriers[i], img->ArrayLayers(), j, 1, 2, img->ArrayLayers()-2 );
+		}
+	}
+	
+	// pass 3
+	{
+		img->AddPendingState( ImageState{ EResourceState::ShaderWrite | EResourceState::_ComputeShader, VK_IMAGE_LAYOUT_GENERAL,
+										  ImageRange{ 0_layer, img->ArrayLayers(), 0_mipmap, img->MipmapLevels() },
+										  VK_IMAGE_ASPECT_COLOR_BIT, (task_iter++)->get() });
+
+		img->CommitBarrier( barrier_mngr, null );
+
+		auto	barriers = VImageUnitTest::GetRWBarriers( img );
+		TEST( barriers.size() == 7 );
+		
+		for (size_t i = 0; i < barriers.size(); ++i)
+		{
+			TEST( barriers[i].range.begin == i*8 );
+			TEST( barriers[i].range.end == (i+1)*8 );
+			TEST( barriers[i].stages == VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT );
+			TEST( barriers[i].access == VK_ACCESS_SHADER_WRITE_BIT );
+			TEST( barriers[i].isReadable == false );
+			TEST( barriers[i].isWritable == true );
+			TEST( barriers[i].layout == VK_IMAGE_LAYOUT_GENERAL );
+			TEST( barriers[i].index == ExeOrderIndex(3) );
+
+			CheckLayers( barriers[i], img->ArrayLayers(), uint(i), 1, 0, img->ArrayLayers() );
+		}
+	}
+
 	local_image.ResetState( ExeOrderIndex::Final, barrier_mngr, null );
 
 	local_image.Destroy();

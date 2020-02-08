@@ -362,9 +362,9 @@ namespace FG
 			
 					barrier.subresourceRange.aspectMask		= AspectMask();
 					barrier.subresourceRange.baseMipLevel	= (range.begin / arr_layers);
-					barrier.subresourceRange.levelCount		= Max( 1u, (range.end - range.begin) / arr_layers );	// TODO: use power of 2 values?
+					barrier.subresourceRange.levelCount		= (range.end - range.begin - 1) / arr_layers + 1;	// TODO: use power of 2 values?
 					barrier.subresourceRange.baseArrayLayer	= (range.begin % arr_layers);
-					barrier.subresourceRange.layerCount		= Max( 1u, (range.end - range.begin) % arr_layers );
+					barrier.subresourceRange.layerCount		= (range.end - range.begin - 1) % arr_layers + 1;
 
 					ASSERT( barrier.subresourceRange.levelCount > 0 );
 					ASSERT( barrier.subresourceRange.layerCount > 0 );
