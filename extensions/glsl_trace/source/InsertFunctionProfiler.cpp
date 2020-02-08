@@ -1707,11 +1707,13 @@ void  CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT uint6
 	TType*			position	= new TType{uint_type};		position->setFieldName( "position" );
 	
 	uint_type.qualifier.layoutOffset += sizeof(uint32_t);
-	uint_type.qualifier.restrict	 = true;
-	uint_type.qualifier.coherent	 = false;
 	uint_type.arraySizes			 = new TArraySizes{};
 	uint_type.arraySizes->addInnerSize();
 	
+	uint_type.qualifier.coherent	= false;
+	uint_type.qualifier.restrict	= true;
+	uint_type.qualifier.writeonly	= true;
+
 	TType*			data_arr	= new TType{uint_type};		data_arr->setFieldName( "outData" );
 
 	type_list->push_back({ position,	TSourceLoc{} });

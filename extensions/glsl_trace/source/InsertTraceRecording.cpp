@@ -1584,6 +1584,7 @@ static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT
 	uint_type.qualifier.layoutPacking	= TLayoutPacking::ElpStd430;
 	uint_type.qualifier.precision		= TPrecisionQualifier::EpqHigh;
 	uint_type.qualifier.layoutOffset	= 0;
+	uint_type.qualifier.coherent		= true;
 	
 	TTypeList*		type_list	= new TTypeList{};
 	TPublicType		temp		= uint_type;
@@ -1618,6 +1619,10 @@ static void CreateShaderDebugStorage (uint32_t setIndex, DebugInfo &dbgInfo, OUT
 	uint_type.arraySizes			 = new TArraySizes{};
 	uint_type.arraySizes->addInnerSize();
 	
+	uint_type.qualifier.coherent	= false;
+	uint_type.qualifier.restrict	= true;
+	uint_type.qualifier.writeonly	= true;
+
 	TType*			data_arr	= new TType{uint_type};		data_arr->setFieldName( "outData" );
 
 	type_list->push_back({ position,	TSourceLoc{} });

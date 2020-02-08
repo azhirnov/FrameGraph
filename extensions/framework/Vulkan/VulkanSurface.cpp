@@ -6,7 +6,7 @@
 #if defined(PLATFORM_WINDOWS) && !defined(VK_USE_PLATFORM_WIN32_KHR)
 #	include "stl/Platforms/WindowsHeader.h"
 #	define VK_USE_PLATFORM_WIN32_KHR	1
-#	include <Vulkan/vulkan_win32.h>
+#	include <vulkan/vulkan_win32.h>
 #endif
 
 namespace FGC
