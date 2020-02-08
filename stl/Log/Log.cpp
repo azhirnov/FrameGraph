@@ -88,7 +88,7 @@ namespace {
 	#ifdef COMPILER_MSVC
 		const String	str = String(file) << '(' << ToString( line ) << "): " << (isError ? "Error: " : "") << message << '\n';
 
-		::OutputDebugStringA( str.data() );
+		::OutputDebugStringA( str.c_str() );
 	#endif
 	}
 	
@@ -122,7 +122,7 @@ namespace {
 								  "\nFunction: " << func <<
 								  "\n\nMessage:\n" << msg;
 
-		int	result = ::MessageBoxExA( null, str.data(), caption.data(),
+		int	result = ::MessageBoxExA( null, str.c_str(), caption.c_str(),
 									  MB_ABORTRETRYIGNORE | MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST | MB_DEFBUTTON3,
 									  MAKELANGID( LANG_ENGLISH, SUBLANG_ENGLISH_US ) );
 		switch ( result )

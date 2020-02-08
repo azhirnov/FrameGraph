@@ -29,20 +29,20 @@ namespace FGC
 	constructor
 =================================================
 */
-	FileRStream::FileRStream (StringView filename)
+	FileRStream::FileRStream (NtStringView filename)
 	{
-		fopen_s( OUT &_file, filename.data(), "rb" );
+		fopen_s( OUT &_file, filename.c_str(), "rb" );
 		
 		if ( _file )
 			_fileSize = _GetSize();
 		else
-			FG_LOGI( "Can't open file: \""s << filename << '"' );
+			FG_LOGI( "Can't open file: \""s << StringView{filename} << '"' );
 	}
 	
-	FileRStream::FileRStream (const char *filename) : FileRStream{ StringView{filename} }
+	FileRStream::FileRStream (const char *filename) : FileRStream{ NtStringView{filename} }
 	{}
 
-	FileRStream::FileRStream (const String &filename) : FileRStream{ StringView{filename} }
+	FileRStream::FileRStream (const String &filename) : FileRStream{ NtStringView{filename} }
 	{}
 
 /*
@@ -136,18 +136,18 @@ namespace FGC
 	constructor
 =================================================
 */
-	FileWStream::FileWStream (StringView filename)
+	FileWStream::FileWStream (NtStringView filename)
 	{
-		fopen_s( OUT &_file, filename.data(), "wb" );
+		fopen_s( OUT &_file, filename.c_str(), "wb" );
 
 		if ( not _file )
-			FG_LOGI( "Can't open file: \""s << filename << '"' );
+			FG_LOGI( "Can't open file: \""s << StringView{filename} << '"' );
 	}
 	
-	FileWStream::FileWStream (const char *filename) : FileWStream{ StringView{filename} }
+	FileWStream::FileWStream (const char *filename) : FileWStream{ NtStringView{filename} }
 	{}
 
-	FileWStream::FileWStream (const String &filename) : FileWStream{ StringView{filename} }
+	FileWStream::FileWStream (const String &filename) : FileWStream{ NtStringView{filename} }
 	{}
 
 /*

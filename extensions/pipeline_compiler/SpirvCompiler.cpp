@@ -1395,9 +1395,9 @@ namespace FG
 		CHECK_ERR( node and node->getAsSymbolNode() );
 		
 		String				name	= node->getAsSymbolNode()->getName().c_str();
-		const StringView	prefix	= "anon@";
+		const NtStringView	prefix	= "anon@";
 
-		if ( not name.compare( 0, prefix.size(), prefix.data() ))
+		if ( not name.compare( 0, prefix.size(), prefix.c_str() ))
 			name.clear();
 
 		return name;

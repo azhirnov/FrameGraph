@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Stream/Stream.h"
+#include "stl/Containers/NtStringView.h"
 #include <stdio.h>
 
 #ifdef FG_STD_FILESYSTEM
@@ -28,7 +29,7 @@ namespace FGC
 	// methods
 	public:
 		FileRStream () {}
-		FileRStream (StringView filename);
+		FileRStream (NtStringView filename);
 		FileRStream (const char *filename);
 		FileRStream (const String &filename);
 	#ifdef FG_STD_FILESYSTEM
@@ -63,7 +64,7 @@ namespace FGC
 	// methods
 	public:
 		FileWStream () {}
-		FileWStream (StringView filename);
+		FileWStream (NtStringView filename);
 		FileWStream (const char *filename);
 		FileWStream (const String &filename);
 	#ifdef FG_STD_FILESYSTEM

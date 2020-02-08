@@ -70,7 +70,7 @@ namespace {
 
 		const uint	flags	= int(SDL_WINDOW_ALLOW_HIGHDPI) | int(SDL_WINDOW_RESIZABLE);
 
-		CHECK_ERR( (_window = SDL_CreateWindow( title.data(),
+		CHECK_ERR( (_window = SDL_CreateWindow( title.c_str(),
 												SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 												surfaceSize.x, surfaceSize.y,
 												flags )) != null );
@@ -334,7 +334,7 @@ namespace {
 	{
 		CHECK_ERR( _window, void() );
 
-		SDL_SetWindowTitle( _window, value.data() );
+		SDL_SetWindowTitle( _window, value.c_str() );
 	}
 	
 /*

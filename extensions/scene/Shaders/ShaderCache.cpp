@@ -562,7 +562,7 @@ namespace FG
 			}
 			temp << "  " << name << ";\n";
 
-			sorted.push_back(Attrib{ temp.data(), BytesU{attr.second.offset}, EVertexType_SizeOf( type ) });
+			sorted.push_back(Attrib{ temp.c_str(), BytesU{attr.second.offset}, EVertexType_SizeOf( type ) });
 			str << "#define ATTRIB" << name.substr( 2 ) << ' ' << size_suffix << '\n';
 		}
 

@@ -91,10 +91,10 @@ namespace FG
 			Array<String>			vr_dev_ext	= _vrDevice ? _vrDevice->GetRequiredDeviceExtensions() : Default;
 
 			for (auto& ext : vr_inst_ext) {
-				inst_ext.push_back( ext.data() );
+				inst_ext.push_back( ext.c_str() );
 			}
 			for (auto& ext : vr_dev_ext) {
-				dev_ext.push_back( ext.data() );
+				dev_ext.push_back( ext.c_str() );
 			}
 
 			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_2,
