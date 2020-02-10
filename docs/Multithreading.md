@@ -1,4 +1,4 @@
-Warning: this is just an example, something may change, so see [tests](../tests/framegraph) or [samples](../samples) for currently working code.
+Warning: this is just an example, something may change, so see [tests](../tests/framegraph) or [samples](https://github.com/azhirnov/FrameGraph-Samples/tree/dev/samples) for currently working code.
 
 
 ## Validation

@@ -1,4 +1,4 @@
-Warning: this is just an example, something may change, so see [tests](../tests/framegraph) or [samples](../samples) for currently working code.
+Warning: this is just an example, something may change, so see [tests](../tests/framegraph) or [samples](https://github.com/azhirnov/FrameGraph-Samples/tree/dev/samples) for currently working code.
 
 ## Initialization
 The FrameGraph doesn't support device initialization and window creation, so you must create it before creating FrameGraph instance. You can use [framework](../extensions/framework) for this.
@@ -32,7 +32,7 @@ queue.familyIndex = vulkan.GetVkQueues()[0].familyIndex;
 vulkan_info.push_back( queue );
 
 // create framegraph instance
-FrameGraph frameGraph = IFrameGraph::CreateFrameGraph( vulkan_info );
+FrameGraph frameGraoh = IFrameGraph::CreateFrameGraph( vulkan_info );
 
 // setup swapchain description
 VulkanSwapchainCreateInfo swapchain_info;
@@ -57,7 +57,7 @@ IPipelineCompilerPtr compiler = MakeShared<VPipelineCompiler>( vulkan.GetVkPhysi
 compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
 
 // add to framegraph
-frameGraph->AddPipelineCompiler( compiler );
+frameGraoh->AddPipelineCompiler( compiler );
 ```
 
 Now create graphics pipeline:
@@ -129,7 +129,7 @@ for (uint frame_id = 0;; ++frame_id)
 
 	// finilize recording, compile frame graph for command buffer.
 	// command buffer may be submitted at any time.
-	frameGraph->Execute( cmdBuffer );
+	frameGraoh->Execute( cmdBuffer );
 
 	// submit all pending command buffers and present all pending swapchain images.
 	frameGraph->Flush();
@@ -140,8 +140,8 @@ submittedCmdBuffers[0] = null;
 submittedCmdBuffers[1] = null;
 
 // deinitialize
-frameGraph->Deinitialize();
-frameGraph = nullptr;
+frameGraoh->Deinitialize();
+frameGraoh = nullptr;
 ```
 
 ## Drawing
@@ -188,10 +188,16 @@ cmdBuffer->AddTask( render_pass, draw_triangles );
 
 // add render pass to the frame graph.
 // after that you can not add draw tasks into the render pass.
-Task submit = cmdBuffer->AddTask( SubmitRenderPass{ render_pass });
+cmdBuffer->AddTask( SubmitRenderPass{ render_pass });
 
 // present to swapchain.
 // this task must be executed after drawing.
-Task present = cmdBuffer->AddTask( Present{ swapchain, image }.DependsOn( submit ));
+cmdBuffer->AddTask( Present{ swapchain, image });
 ```
+
+## Task dependencies
+
+By default all tasks executed in same order that they has been recorded to command buffer.<br/>
+Additionally you can add explicit dependencies `taskN.DependsOn( task1, task2, task3 )`.<br/>
+Tasks `task1, task2, task3, taskN` may execute in any order, taking into account only explicit dependencies.<br/>
 

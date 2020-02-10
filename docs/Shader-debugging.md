@@ -156,3 +156,14 @@ no source
 // invocations:    56
 72. float3 DHash33 (const float3 p)
 ```
+
+
+`subgroup` - time measured with extension [GL_ARB_shader_clock](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_shader_clock.txt)
+    Spec says: "...function returns value representing the current execution clock as seen by the shader processor. Time is guaranteed to be dynamically uniform across a single sub-group but only in a given shader stage".<br/>
+`device` - time measured with execution [GL_EXT_shader_realtime_clock](https://github.com/KhronosGroup/GLSL/blob/master/extensions/ext/GL_EXT_shader_realtime_clock.txt)
+    Spec says:  "...function returns value representing a real-time clock that is globally coherent by all invocations on the GPU.".<br/>
+`invocations` - number of function invocations.<br/>
+`total` - calculated as `sum_of_all_function_invocations / total_shader_time) * 100`.<br/>
+`avr` - calculated as `total / invocations`.<br/>
+`(xx)` - calculated as `sum_of_all_function_invocations / invocations`.<br/>
+
