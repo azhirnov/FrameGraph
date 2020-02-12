@@ -1838,28 +1838,28 @@ namespace FG
 		{
 			case TLayoutGeometry::ElgPoints : {
 				topologyBits.set( uint(EPrimitive::Point) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgLines : {
 				topologyBits.set( uint(EPrimitive::LineList) );
 				topologyBits.set( uint(EPrimitive::LineStrip) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgLinesAdjacency : {
 				topologyBits.set( uint(EPrimitive::LineListAdjacency) );
 				topologyBits.set( uint(EPrimitive::LineStripAdjacency) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgTriangles : {
 				topologyBits.set( uint(EPrimitive::TriangleList) );
 				topologyBits.set( uint(EPrimitive::TriangleStrip) );
 				topologyBits.set( uint(EPrimitive::TriangleFan) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgTrianglesAdjacency : {
 				topologyBits.set( uint(EPrimitive::TriangleListAdjacency) );
 				topologyBits.set( uint(EPrimitive::TriangleStripAdjacency) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgNone :
 			case TLayoutGeometry::ElgLineStrip :
