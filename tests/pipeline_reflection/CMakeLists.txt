@@ -1,0 +1,16 @@
+cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
+
+if (${FG_ENABLE_SPIRVREFLECT})
+	file( GLOB_RECURSE SOURCES "*.*" )
+	if (DEFINED ANDROID)
+		add_library( "Tests.PipelineReflection" SHARED ${SOURCES} )
+	else()
+		add_executable( "Tests.PipelineReflection" ${SOURCES} )
+	endif()
+	source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} )
+	set_property( TARGET "Tests.PipelineReflection" PROPERTY FOLDER "Tests" )
+	target_link_libraries( "Tests.PipelineReflection" "PipelineReflection" )
+	target_link_libraries( "Tests.PipelineReflection" "PipelineCompiler" )
+
+	add_test( NAME "Tests.PipelineReflection" COMMAND "Tests.PipelineReflection" )
+endif ()

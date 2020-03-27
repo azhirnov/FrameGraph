@@ -66,3 +66,6 @@ include( "${CMAKE_FOLDER}/download_freeimage.cmake" )
 include( "${CMAKE_FOLDER}/graphviz.cmake" )
 include( "${CMAKE_FOLDER}/download_openvr.cmake" )
 include( "${CMAKE_FOLDER}/download_ffmpeg.cmake" )
+include( "${CMAKE_FOLDER}/download_spirv-reflect.cmake" )
+
+install( DIRECTORY "${FG_EXTERNALS_INSTALL_PATH}" DESTINATION "${CMAKE_INSTALL_PREFIX}" )
