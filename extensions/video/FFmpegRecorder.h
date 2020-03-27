@@ -25,6 +25,8 @@ namespace FG
 			
 			Name_t					format;
 			FixedArray<Name_t, 8>	codecs;
+			bool					remux		= true;
+			bool					hasBFrames	= true;
 		};
 
 
@@ -48,6 +50,9 @@ namespace FG
 
 		String				_tempFile;
 		String				_videoFile;
+		bool				_remuxRequired	= false;
+
+		Config				_config;
 
 
 
@@ -59,6 +64,9 @@ namespace FG
 		bool Begin (const Config &cfg, StringView filename) override;
 		bool AddFrame (const ImageView &view) override;
 		bool End () override;
+		
+		Config		GetConfig () const override;
+		StringView	GetExtension (EVideoCodec codec) const override;
 
 	private:
 		bool _Init (const Config &cfg);
