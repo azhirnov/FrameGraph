@@ -1,7 +1,7 @@
 cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 set( FG_EXTERNALS_PATH "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH "Path to external projects sources" )
-set( FG_EXTERNALS_INSTALL_PATH "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Path to install external projects libraries" )
+set( FG_EXTERNALS_INSTALL_PATH "${CMAKE_BINARY_DIR}/external_libs" CACHE PATH "Path to install external projects libraries" )
 #message( STATUS "FG_EXTERNALS_PATH: ${FG_EXTERNALS_PATH}" )
 #message( STATUS "FG_EXTERNALS_INSTALL_PATH: ${FG_EXTERNALS_INSTALL_PATH}" )
 mark_as_advanced( FG_EXTERNALS_PATH FG_EXTERNALS_INSTALL_PATH )

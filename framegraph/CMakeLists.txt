@@ -36,4 +36,7 @@ if (DEFINED FG_COMMIT_HASH)
 	target_compile_definitions( "FrameGraph" PRIVATE "FG_COMMIT_HASH=\"${FG_COMMIT_HASH}\"" )
 endif()
 
-install( TARGETS "FrameGraph" ARCHIVE DESTINATION "lib" )
+install( TARGETS "FrameGraph" ARCHIVE DESTINATION "libs/$<CONFIG>" )
+install( DIRECTORY "Public" DESTINATION "include/FrameGraph" FILES_MATCHING PATTERN "*.h*" )
+install( DIRECTORY "Shared" DESTINATION "include/FrameGraph" FILES_MATCHING PATTERN "*.h*" )
+install( FILES "FG.h" DESTINATION "include/FrameGraph" )

@@ -14,4 +14,5 @@ if (UNIX)
 	target_compile_definitions( "STL" PUBLIC _FILE_OFFSET_BITS=64 )
 endif()
 
-install( TARGETS "STL" ARCHIVE DESTINATION "lib" )
+install( TARGETS "STL" ARCHIVE DESTINATION "libs/$<CONFIG>" )
+install( DIRECTORY "." DESTINATION "include/STL" FILES_MATCHING PATTERN "*.h*" )
