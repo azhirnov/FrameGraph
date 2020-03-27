@@ -589,8 +589,7 @@ namespace FG
 				break;
 			}
 			
-			ASSERT( !"overflow" );
-			std::this_thread::yield();
+			RETURN_ERR( "command buffer pool overflow!" );
 		}
 
 		// acquire command batch
@@ -605,8 +604,7 @@ namespace FG
 				break;
 			}
 			
-			ASSERT( !"overflow" );
-			std::this_thread::yield();
+			RETURN_ERR( "command batch pool overflow!" );
 		}
 
 		CHECK_ERR( cmd->Begin( desc, batch, queue.ptr ));
@@ -805,8 +803,7 @@ namespace FG
 				break;
 			}
 			
-			ASSERT( !"overflow" );
-			std::this_thread::yield();
+			RETURN_ERR( "submited batch pool overflow!" );
 		}
 
 		// add image layout transitions

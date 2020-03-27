@@ -23,6 +23,10 @@ namespace FG
 	// methods
 		BufferDesc () {}
 		BufferDesc (BytesU size, EBufferUsage usage, EQueueUsage queues = Default) : size{size}, usage{usage}, queues{queues} {}
+
+		BufferDesc&  Size (BytesU value)			{ size = value;  return *this; }
+		BufferDesc&  Size (size_t value)			{ size = BytesU{value};  return *this; }
+		BufferDesc&  Usage (EBufferUsage value)		{ usage = value;  return *this; }
 	};
 
 

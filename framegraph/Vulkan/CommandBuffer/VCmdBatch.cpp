@@ -193,7 +193,7 @@ namespace FG
 
 		//_submitImmediatly			= // TODO
 		_staging.hostWritableBufferSize		= desc.hostWritableBufferSize;
-		_staging.hostReadableBufferSize		= desc.hostWritableBufferSize;
+		_staging.hostReadableBufferSize		= desc.hostReadableBufferSize;
 		_staging.hostWritebleBufferUsage	= desc.hostWritebleBufferUsage | EBufferUsage::TransferSrc;
 		
 		_statistic = Default;
@@ -289,6 +289,33 @@ namespace FG
 		submitInfo.pWaitDstStageMask	= _batch.waitSemaphores.get<1>().data();
 		submitInfo.waitSemaphoreCount	= uint(_batch.waitSemaphores.size());
 
+
+		// flush mapped memory before submitting
+		FixedArray<VkMappedMemoryRange, 32>		regions;
+		VDevice const&							dev = _frameGraph.GetDevice();
+		
+		for (auto& buf : _staging.hostToDevice)
+		{
+			if ( buf.isCoherent )
+				continue;
+
+			if ( regions.size() == regions.capacity() )
+			{
+				VK_CALL( dev.vkFlushMappedMemoryRanges( dev.GetVkDevice(), uint(regions.size()), regions.data() ));
+				regions.clear();
+			}
+
+			auto&	reg = regions.emplace_back();
+			reg.sType	= VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			reg.pNext	= null;
+			reg.memory	= buf.mem;
+			reg.offset	= VkDeviceSize(buf.memOffset);
+			reg.size	= VkDeviceSize(buf.size);
+		}
+		
+		if ( regions.size() )
+			VK_CALL( dev.vkFlushMappedMemoryRanges( dev.GetVkDevice(), uint(regions.size()), regions.data() ));
+
 		return true;
 	}
 	
@@ -327,7 +354,7 @@ namespace FG
 
 		_FinalizeCommands();
 		_ParseDebugOutput( shaderDbgCallback );
-		_FinalizeStagingBuffers();
+		_FinalizeStagingBuffers( _frameGraph.GetDevice() );
 		_ReleaseResources();
 		_ReleaseVkObjects();
 
@@ -379,16 +406,39 @@ namespace FG
 	_FinalizeStagingBuffers
 =================================================
 */
-	void  VCmdBatch::_FinalizeStagingBuffers ()
+	void  VCmdBatch::_FinalizeStagingBuffers (const VDevice &dev)
 	{
 		using T = BufferView::value_type;
 		
+		FixedArray<VkMappedMemoryRange, 32>		regions;
+
 		// map device-to-host staging buffers
 		for (auto& buf : _staging.deviceToHost)
 		{
 			// buffer may be recreated on defragmentation pass, so we need to obtain actual pointer every frame
 			CHECK( _MapMemory( INOUT buf ));
+			
+			if ( buf.isCoherent )
+				continue;
+
+			// invalidate non-cocherent memory before reading
+			if ( regions.size() == regions.capacity() )
+			{
+				VK_CALL( dev.vkInvalidateMappedMemoryRanges( dev.GetVkDevice(), uint(regions.size()), regions.data() ));
+				regions.clear();
+			}
+
+			auto&	reg = regions.emplace_back();
+			reg.sType	= VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			reg.pNext	= null;
+			reg.memory	= buf.mem;
+			reg.offset	= VkDeviceSize(buf.memOffset);
+			reg.size	= VkDeviceSize(buf.size);
 		}
+
+		if ( regions.size() )
+			VK_CALL( dev.vkInvalidateMappedMemoryRanges( dev.GetVkDevice(), uint(regions.size()), regions.data() ));
+
 
 		// trigger buffer events
 		for (auto& ev : _staging.onBufferLoadedEvents)

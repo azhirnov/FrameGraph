@@ -386,7 +386,7 @@ namespace FG
 		bool  _AddPendingLoad (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
 							   OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
 		bool  _MapMemory (INOUT StagingBuffer &) const;
-		void  _FinalizeStagingBuffers ();
+		void  _FinalizeStagingBuffers (const VDevice &);
 	};
 
 

@@ -200,11 +200,11 @@ namespace FG
 		for (uint i = 0; i < buf.elementCount; ++i)
 		{
 			auto&			elem	= buf.elements[i];
-			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId );		
+			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, _allowEmptyResources );		
 			CHECK( buffer or _allowEmptyResources );
 
 			if ( not buffer )
-				continue;
+				return false;
 
 			info[i].buffer	= buffer->Handle();
 			info[i].offset	= VkDeviceSize(elem.offset);
@@ -240,11 +240,11 @@ namespace FG
 		for (uint i = 0; i < img.elementCount; ++i)
 		{
 			auto&			elem	= img.elements[i];
-			VImage const*	img_res	= resMngr.GetResource( elem.imageId );
+			VImage const*	img_res	= resMngr.GetResource( elem.imageId, false, _allowEmptyResources );
 			CHECK( img_res or _allowEmptyResources );
-
+			
 			if ( not img_res )
-				continue;
+				return false;
 
 			info[i].imageLayout	= EResourceState_ToImageLayout( img.state, img_res->AspectMask() );
 			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
@@ -276,12 +276,12 @@ namespace FG
 		for (uint i = 0; i < tex.elementCount; ++i)
 		{
 			auto&			elem	= tex.elements[i];
-			VImage const*	img_res	= resMngr.GetResource( elem.imageId );
-			VSampler const*	sampler	= resMngr.GetResource( elem.samplerId );
+			VImage const*	img_res	= resMngr.GetResource( elem.imageId, false, _allowEmptyResources );
+			VSampler const*	sampler	= resMngr.GetResource( elem.samplerId, false, _allowEmptyResources );
 			CHECK( (img_res and sampler) or _allowEmptyResources );
 
 			if ( not (img_res and sampler) )
-				continue;
+				return false;
 
 			info[i].imageLayout	= EResourceState_ToImageLayout( tex.state, img_res->AspectMask() );
 			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
@@ -312,11 +312,11 @@ namespace FG
 		for (uint i = 0; i < samp.elementCount; ++i)
 		{
 			auto&			elem	= samp.elements[i];
-			VSampler const*	sampler = resMngr.GetResource( elem.samplerId );
+			VSampler const*	sampler = resMngr.GetResource( elem.samplerId, false, _allowEmptyResources );
 			CHECK( sampler or _allowEmptyResources );
-
+			
 			if ( not sampler )
-				continue;
+				return false;
 
 			info[i].imageLayout	= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			info[i].imageView	= VK_NULL_HANDLE;
@@ -347,10 +347,13 @@ namespace FG
 		for (uint i = 0; i < rtScene.elementCount; ++i)
 		{
 			auto&					elem	= rtScene.elements[i];
-			VRayTracingScene const*	scene	= resMngr.GetResource( elem.sceneId );
+			VRayTracingScene const*	scene	= resMngr.GetResource( elem.sceneId, false, _allowEmptyResources );
 			CHECK( scene or _allowEmptyResources );
 
-			tlas[i] = scene ? scene->Handle() : VK_NULL_HANDLE;
+			if ( not scene )
+				return false;
+
+			tlas[i] = scene->Handle();
 		}
 
 		auto& 	top_as = *list.allocator.Alloc<VkWriteDescriptorSetAccelerationStructureNV>( 1 );

@@ -34,7 +34,7 @@ namespace FG
 	enum ImageTypeVk_t				: uint {};
 	enum ImageFlagsVk_t				: uint {};
 	enum SampleCountFlagBitsVk_t	: uint {};
-	enum PipelineStageFlags_t		: uint {};
+	enum PipelineStageFlagsVk_t		: uint {};
 
 
 
@@ -137,7 +137,7 @@ namespace FG
 		uint													queueFamilyIndex	= UMax;
 		ArrayView<CommandBufferVk_t>							commands;
 		ArrayView<SemaphoreVk_t>								signalSemaphores;
-		ArrayView<Pair<SemaphoreVk_t, PipelineStageFlags_t>>	waitSemaphores;
+		ArrayView<Pair<SemaphoreVk_t, PipelineStageFlagsVk_t>>	waitSemaphores;
 	};
 
 	
