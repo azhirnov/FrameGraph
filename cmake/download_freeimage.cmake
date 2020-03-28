@@ -1,7 +1,8 @@
 # find or download FreeImage
 # Warning: GPLv3 license!
 
-if (${FG_ENABLE_FREEIMAGE})
+if (${FG_ALLOW_GPL})
+ if (${FG_ENABLE_FREEIMAGE})
 	message( WARNING "Warning: GPL contagion!" )
 	set( FG_EXTERNAL_FREEIMAGE_PATH "" CACHE PATH "path to FreeImage source" )
 	mark_as_advanced( FG_EXTERNAL_FREEIMAGE_PATH )
@@ -16,5 +17,6 @@ if (${FG_ENABLE_FREEIMAGE})
 	endif ()
 	
 	# download from https://sourceforge.net/projects/freeimage/files/Source%20Distribution/3.18.0/FreeImage3180.zip/download
-	
+
+ endif ()	
 endif ()

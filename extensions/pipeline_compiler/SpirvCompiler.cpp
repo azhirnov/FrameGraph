@@ -431,19 +431,25 @@ namespace FG
 					case 100 :
 						client_version	= EShTargetVulkan_1_0;
 						target_version	= EShTargetSpv_1_0;
+						#ifdef ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_0;
+						#endif
 						break;
 
 					case 110 :
 						client_version	= EShTargetVulkan_1_1;
 						target_version	= EShTargetSpv_1_3;
+						#ifdef ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_1;
+						#endif
 						break;
 
 					case 120 :
 						client_version	= EShTargetVulkan_1_1;	// TODO
 						target_version	= EShTargetSpv_1_4;
+						#ifdef ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_1_SPIRV_1_4;
+						#endif
 						break;
 
 					default :

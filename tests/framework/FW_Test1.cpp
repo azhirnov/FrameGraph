@@ -75,7 +75,7 @@ public:
 			CHECK_ERR( window->Create( { 800, 600 }, title ));
 			window->AddListener( this );
 
-			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_2, {}, {} ));
+			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_0, {}, {} ));
 		
 			// this is a test and the test should fail for any validation error
 			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,

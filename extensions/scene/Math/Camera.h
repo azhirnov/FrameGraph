@@ -36,6 +36,7 @@ namespace FGC
 	// methods
 		CameraTempl () {}
 		
+		ND_ Mat4_t  ToModelViewMatrix ()		const	{ return transform.ToMatrix(); }
 		ND_ Mat4_t  ToModelViewProjMatrix ()	const	{ return projection * transform.ToMatrix(); }
 		ND_ Mat4_t	ToViewProjMatrix ()			const	{ return projection * transform.ToRotationMatrix(); }
 		ND_ Mat4_t	ToViewMatrix ()				const	{ return transform.ToRotationMatrix(); }

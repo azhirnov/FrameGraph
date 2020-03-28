@@ -23,3 +23,6 @@
 /external/ffmpeg
 /tests/framegraph/Graphs
 /samples/_data
+/external/tinyobj
+/external/stb
+/external/SPIRV-Reflect

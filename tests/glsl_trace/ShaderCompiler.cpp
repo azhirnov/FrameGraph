@@ -132,9 +132,9 @@ bool ShaderCompiler::_Compile (OUT Array<uint>&			spirvData,
 				break;
 
 			case ETraceMode::Performance :
-				CHECK_ERR( dbgInfo->InsertFunctionProfiler( INOUT *intermediate, dbgBufferSetIndex, true, true ));
-														    //vulkan.GetDeviceShaderClockFeatures().shaderSubgroupClock,
-														    //vulkan.GetDeviceShaderClockFeatures().shaderDeviceClock ));
+				CHECK_ERR( dbgInfo->InsertFunctionProfiler( INOUT *intermediate, dbgBufferSetIndex,
+														    vulkan.GetDeviceShaderClockFeatures().shaderSubgroupClock,
+														    vulkan.GetDeviceShaderClockFeatures().shaderDeviceClock ));
 				break;
 
 			default :

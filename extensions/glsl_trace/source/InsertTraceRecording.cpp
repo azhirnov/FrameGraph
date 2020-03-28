@@ -3652,7 +3652,7 @@ static TIntermAggregate*  CreateAppendToTrace (TIntermTyped* exprNode, uint32_t 
 	}
 	
 	if ( type.isArray() )
-		RETURN_ERR( "arrays is not supported yet" )
+		return false;	//RETURN_ERR( "arrays is not supported yet" )
 	else
 	if ( type.isMatrix() )
 		type_name = "m" + type_name + std::to_string(type.getMatrixCols()) + std::to_string(type.getMatrixRows());

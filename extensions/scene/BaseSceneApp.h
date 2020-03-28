@@ -66,11 +66,12 @@ namespace FG
 
 		vec3					_positionDelta;
 		vec2					_mouseDelta;
-		vec2					_lastMousePos;
+		vec2					_lastMousePos;		// pixels
 		TimePoint_t				_lastUpdateTime;
+		SecondsF				_timeDelta			{0.0f};
 		bool					_mousePressed		= false;
 		float					_cameraVelocity		= 1.0f;
-		float					_mouseSens			= 0.01f;
+		vec2					_mouseSens			{ 0.01f, 0.01f };
 		vec2					_viewRange			{ 0.05f, 100.0f };
 		
 		String					_debugOutputPath;
@@ -90,16 +91,19 @@ namespace FG
 		BaseSceneApp ();
 		~BaseSceneApp ();
 
-		bool _CreateFrameGraph (const AppConfig &cfg);
-		void _DestroyFrameGraph ();
-		void _SetLastCommandBuffer (const CommandBuffer &);
+		bool  _CreateFrameGraph (const AppConfig &cfg);
+		void  _DestroyFrameGraph ();
+		void  _SetLastCommandBuffer (const CommandBuffer &);
 
-		void _UpdateCamera ();
-		void _UpdateFrameStat ();
+		void  _UpdateCamera ();
 		
-		void _SetupCamera (Rad fovY, const vec2 &viewRange);
+		void  _SetupCamera (Rad fovY, const vec2 &viewRange);
+		void  _SetCameraVelocity (float value);
+		void  _SetMouseSens (vec2 value);
 
-		void _OnShaderTraceReady (StringView name, ArrayView<String> output) const;
+	private:
+		void  _UpdateFrameStat ();
+		void  _OnShaderTraceReady (StringView name, ArrayView<String> output) const;
 
 
 	public:
@@ -124,37 +128,40 @@ namespace FG
 		ND_ Rad					GetCameraFov ()		const	{ return _cameraFov; }
 		ND_ vec2 const&			GetViewRange ()		const	{ return _viewRange; }
 
+		ND_ Nanoseconds			CurrentTime ()		const	{ return _lastUpdateTime.time_since_epoch(); }
+		ND_ SecondsF			FrameTime ()		const	{ return _timeDelta; }
+
 
 	// interface
 	public:
-		ND_ virtual bool Update ();
+		ND_ virtual bool  Update ();
 	protected:
-		ND_ virtual bool DrawScene () = 0;
-			virtual void OnUpdateFrameStat (OUT String &) const {}
+		ND_ virtual bool  DrawScene () = 0;
+			virtual void  OnUpdateFrameStat (OUT String &) const {}
 
 
 	// IWindowEventListener
 	protected:
-		void OnRefresh () override {}
-		void OnDestroy () override {}
-		void OnUpdate () override {}
-		void OnResize (const uint2 &size) override;
-		void OnKey (StringView, EKeyAction) override;
-		void OnMouseMove (const float2 &) override;
+		void  OnRefresh () override {}
+		void  OnDestroy () override {}
+		void  OnUpdate () override {}
+		void  OnResize (const uint2 &size) override;
+		void  OnKey (StringView, EKeyAction) override;
+		void  OnMouseMove (const float2 &) override;
 		
 
 	// IVRDeviceEventListener
 	protected:
-		void HmdStatusChanged (EHmdStatus) override;
-		void OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) override;
-		void OnButton (ControllerID id, StringView btn, EButtonAction action) override;
+		void  HmdStatusChanged (EHmdStatus) override;
+		void  OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) override;
+		void  OnButton (ControllerID id, StringView btn, EButtonAction action) override;
 
 
 	// IViewport //
 	private:
-		void Prepare (ScenePreRender &) override {}
-		void Draw (RenderQueue &) const override {}
-		void AfterRender (const CommandBuffer &, Present &&) override;
+		void  Prepare (ScenePreRender &) override {}
+		void  Draw (RenderQueue &) const override {}
+		void  AfterRender (const CommandBuffer &, Present &&) override;
 	};
 
 }	// FG
