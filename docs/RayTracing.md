@@ -228,12 +228,12 @@ update_st.SetTraget( rt_shaders );
 
 // bind ray-generation shader.
 // this shader invoces for each thread
-update_st.SetRayGenShader( RTShaderGroupID{"Main"} );
+update_st.SetRayGenShader( RTShaderID{"Main"} );
 
 // bind ray-miss shaders.
 // the current shader selected in the ray-gen shader by passing missIndex into the 'traceNV()'
-update_st.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 );  // for missIndex = 0
-update_st.AddMissShader( RTShaderID{"ShadowMiss"},  1 );  // for missIndex = 1
+update_st.AddMissShader( RTShaderID{"PrimaryMiss"}, 0 );  // for missIndex = 0 (1)
+update_st.AddMissShader( RTShaderID{"ShadowMiss"},  1 );  // for missIndex = 1 (2)
 
 // bind ray-hit shader for each geometry instance
 update_st.AddHitShader( InstanceID{"First"},  GeometryID{"Triangle1"}, /*offset*/0, RTShaderID{"PrimaryHit1"} );  // (3)
