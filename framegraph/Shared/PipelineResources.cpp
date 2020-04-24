@@ -789,7 +789,7 @@ namespace {
 		SHAREDLOCK( res._drCheck );
 
 		if ( not res._dataPtr )
-			return Default;
+			return {};
 
 		auto&	data	= res._dataPtr;
 		auto*	result	= Cast<PipelineResources::DynamicData>( Allocator::Allocate( data->memSize ));

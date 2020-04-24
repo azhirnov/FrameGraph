@@ -1264,7 +1264,7 @@ namespace FGC
 =================================================
 */
 	template <typename T, uint I>
-	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, T>  Round (const Vec<T,I>& v)
+	ND_ forceinline constexpr EnableIf<IsScalar<T> and IsFloatPoint<T>, Vec<T,I>>  Round (const Vec<T,I>& v)
 	{
 		Vec<T,I>	res;
 		for (uint i = 0; i < I; ++i) {

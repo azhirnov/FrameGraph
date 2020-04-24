@@ -252,6 +252,7 @@ namespace FG
 
 				if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
 				{
+					//ASSERT( AlignToLarger( size, 16_b ) == AlignToLarger( buf.staticSize, 16_b ));
 					ASSERT( (offset % limits.minUniformBufferOffsetAlignment) == 0 );
 					ASSERT( size <= limits.maxUniformBufferRange );
 				}else{
@@ -1530,11 +1531,12 @@ namespace FG
 		if ( logicalRP.GetDepthStencilTarget().IsDefined() )
 		{
 			auto &			rt		= logicalRP.GetDepthStencilTarget();
+			const bool		clear	= (rt.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR);
 			EResourceState	state	= rt.state;
 
 			state |= (info.IsEarlyFragmentTests() ? EResourceState::EarlyFragmentTests : Default);
 			state |= (info.IsLateFragmentTests()  ? EResourceState::LateFragmentTests : Default);
-			state &= ~(info.HasDepthWriteAccess() ? EResourceState::Unknown : EResourceState::_Write);
+			state &= ~((info.HasDepthWriteAccess() | clear) ? EResourceState::Unknown : EResourceState::_Write);
 			
 			VkImageLayout&	layout	= rt._layout;
 			layout = EResourceState_ToImageLayout( state, rt.imagePtr->AspectMask() );
@@ -2366,13 +2368,13 @@ namespace FG
 		_CommitBarriers();
 		
 		vkCmdBlitImage( _cmdBuffer,
-						 src_image->Handle(),
-						 task.srcLayout,
-						 dst_image->Handle(),
-						 task.dstLayout,
-						 uint(regions.size()),
-						 regions.data(),
-						 task.filter );
+						src_image->Handle(),
+						task.srcLayout,
+						dst_image->Handle(),
+						task.dstLayout,
+						uint(regions.size()),
+						regions.data(),
+						task.filter );
 		
 		Stat().transferOps++;
 	}

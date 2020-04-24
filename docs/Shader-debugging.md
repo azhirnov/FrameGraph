@@ -18,7 +18,7 @@ DispatchCompute().EnableDebugTrace({ thread_x, thread_y, thread_z });
 // record if {pixel_x, pixel_y} == gl_FragCoord.xy
 DrawIndexed().EnableFragmentDebugTrace( pixel_x, pixel_y );
 
-// record if {launch_x, launch_y, launch_z} == gl_LaunchIDNV
+// record if {launch_x, launch_y, launch_z} == gl_LaunchID
 TraceRays().EnableDebugTrace({ launch_x, launch_y, launch_z });
 ```
 Shader trace will be recorded only for selected thread/pixel/launch.
@@ -34,7 +34,7 @@ desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, "main", R"#(
     {
         bool condition = ...
         
-        // if condition is true then trace recording will started here
+        // if condition is true then trace recording will start here
         dbg_EnableTraceRecording( condition );
         ...
     }
@@ -99,7 +99,7 @@ DispatchCompute().EnableShaderProfiling({ thread_x, thread_y, thread_z });
 // record if {pixel_x, pixel_y} == gl_FragCoord.xy
 DrawIndexed().EnableFragmentProfiling( pixel_x, pixel_y );
 
-// record if {launch_x, launch_y, launch_z} == gl_LaunchIDNV
+// record if {launch_x, launch_y, launch_z} == gl_LaunchID
 TraceRays().EnableShaderProfiling({ launch_x, launch_y, launch_z });
 ```
 Shader profiling will be recorded only for selected thread/pixel/launch.
@@ -115,7 +115,7 @@ desc.AddShader( ... | EShaderLangFormat::EnableProfiling, "main", R"#(
     {
         bool condition = ...
         
-        // if condition is true then profiling will started here
+        // if condition is true then profiling will start here
         dbg_EnableProfiling( condition );
         ...
     }

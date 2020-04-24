@@ -116,6 +116,7 @@ namespace {
 		
 		_taskGraph.OnDiscardMemory();
 		_AfterCompilation();
+		_mainAllocator.Discard();
 		
 		EditStatistic().renderer.cpuTime += TimePoint_t::clock::now() - start_time;
 		_batch = null;
@@ -314,6 +315,9 @@ namespace {
 
 		RawImageID	id;
 		CHECK_ERR( swapchain->Acquire( *this, type, OUT id ));
+
+		// transit to undefined layout
+		AcquireImage( id, true, true );
 
 		_batch->_swapchains.push_back( swapchain );
 

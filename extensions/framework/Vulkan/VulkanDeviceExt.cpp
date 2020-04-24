@@ -104,7 +104,7 @@ namespace FGC
 				_properties.rayTracing.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 			}
 
-			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), &props2 );
+			vkGetPhysicalDeviceProperties2( GetVkPhysicalDevice(), OUT &props2 );
 		}
 
 		_WriteDeviceInfo();
@@ -410,7 +410,7 @@ namespace FGC
 		info.pfnUserCallback	= _DebugUtilsCallback;
 		info.pUserData			= this;
 
-		VK_CHECK( vkCreateDebugUtilsMessengerEXT( GetVkInstance(), &info, NULL, &_debugUtilsMessenger ));
+		VK_CHECK( vkCreateDebugUtilsMessengerEXT( GetVkInstance(), &info, null, OUT &_debugUtilsMessenger ));
 
 		_callback = std::move(callback);
 		return true;
