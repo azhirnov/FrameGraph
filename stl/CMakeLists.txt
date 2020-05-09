@@ -6,7 +6,7 @@ target_include_directories( "STL" PUBLIC ".." )
 set_property( TARGET "STL" PROPERTY FOLDER "" )
 
 if (UNIX)
-	target_link_libraries( "STL" "dl;pthread" )
+	target_link_libraries( "STL" PUBLIC "dl;pthread" )
 	target_compile_definitions( "STL" PUBLIC _LARGEFILE_SOURCE )
 	target_compile_definitions( "STL" PUBLIC _LARGE_FILES )
 	target_compile_definitions( "STL" PUBLIC _FILE_OFFSET_BITS=64 )

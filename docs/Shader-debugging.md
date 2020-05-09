@@ -1,4 +1,5 @@
 Shader debugging and profiling supported only for GLSL source. But you can use SPIRV-Cross to convert SPIRV binary into GLSL source.<br/>
+For debugging and profiling used [GLSL-Trace](https://github.com/azhirnov/glsl_trace) library, cmake variable `FG_ENABLE_GLSL_TRACE` must be ON.
 
 ## Shader debugging
 
@@ -181,12 +182,12 @@ no source
 
 ## Shader profiling for render pass
 
-For each shader, that you want to debug, add `EnableTimeMap` flag:
+For each shader, that you want to profile, add `EnableTimeMap` flag:
 ```cpp
 desc.AddShader( ... | EShaderLangFormat::EnableTimeMap, ... );
 ```
-To begin profiling call `CommandBuffer::BeginShaderTimeMap( dimension, EShaderStages::All )` it enables shader time recording for all subsequent tasks with shaders that builded with flag `EnableTimeMap` and for all specified shader stages.
-To stop profiling and get results call `EndShaderTimeMap( dstImage )`, inside this function will be executed some commands:
+To begin profiling call `CommandBuffer::BeginShaderTimeMap( dimension, EShaderStages::All )` it enables shader time recording for all subsequent tasks with shaders that builded with flag `EnableTimeMap` and for all specified shader stages.<br/>
+To stop profiling and get results call `CommandBuffer::EndShaderTimeMap( dstImage )`, inside this function will be executed some commands:
 * searching for max time
 * remaping time to unorm value and then converts it to heatmap (red - max time, blue - min time)
 * result will be stored into `dstImage`

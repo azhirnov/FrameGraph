@@ -3,6 +3,7 @@
 #pragma once
 
 #include "stl/Common.h"
+#include "stl/Algorithms/Cast.h"
 
 namespace FGC
 {

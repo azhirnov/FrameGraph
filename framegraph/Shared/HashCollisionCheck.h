@@ -5,6 +5,7 @@
 #include "framegraph/Public/IDs.h"
 #include "stl/ThreadSafe/DummyLock.h"
 #include <random>
+#include <shared_mutex>
 
 namespace FG
 {

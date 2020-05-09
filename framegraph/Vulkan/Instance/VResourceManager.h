@@ -77,7 +77,7 @@ namespace FG
 		
 		using DebugLayoutCache_t	= HashMap< uint, RawDescriptorSetLayoutID >;
 		
-		using StagingBufferfPool_t	= LfIndexedPool< BufferID, uint, 64, 1 >;
+		using StagingBufferfPool_t	= LfIndexedPool< BufferID, uint, 32, 2 >;
 
 
 	// variables

@@ -62,7 +62,7 @@ elseif (${FG_ENABLE_GLSLANG})
 	endif ()
 	
 	set( ENABLE_HLSL ON CACHE BOOL "glslang option" )
-	set( ENABLE_OPT OFF CACHE BOOL "glslang option" FORCE )
+	set( ENABLE_OPT OFF CACHE BOOL "glslang option" )
 	mark_as_advanced( ENABLE_HLSL ENABLE_OPT )
 
 	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})

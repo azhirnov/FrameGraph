@@ -1609,6 +1609,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( _shaderDbg.timemapIndex == Default );	// already started
+		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 
 		_shaderDbg.timemapStages	= stages;
 		_shaderDbg.timemapIndex		= _batch->AppendTimemap( dim, stages );
@@ -1627,6 +1628,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( _shaderDbg.timemapIndex != Default );	// not started
+		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 
 		auto&	rm		= GetResourceManager();
 		auto	desc	= rm.GetDescription( dstImage );
