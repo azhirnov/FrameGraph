@@ -131,7 +131,11 @@ namespace FG
 			virtual bool			InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
 			virtual bool			InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
 			virtual bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-		
+
+		ND_ virtual bool			IsSupported (RawImageID image, const ImageViewDesc &desc) const = 0;
+		ND_ virtual bool			IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const = 0;
+		ND_ virtual bool			IsSupported (const ImageDesc &desc, EMemoryType memType = EMemoryType::Default) const = 0;
+		ND_ virtual bool			IsSupported (const BufferDesc &desc, EMemoryType memType = EMemoryType::Default) const = 0;
 
 			// Creates internal descriptor set and release dynamically allocated memory in the 'resources'.
 			// After that your can not modify the 'resources', but you still can use it in the tasks.

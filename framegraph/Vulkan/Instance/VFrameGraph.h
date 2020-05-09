@@ -127,6 +127,11 @@ namespace FG
 		void			ReleaseResource (INOUT RTGeometryID &id) override;
 		void			ReleaseResource (INOUT RTSceneID &id) override;
 		void			ReleaseResource (INOUT RTShaderTableID &id) override;
+		
+		bool			IsSupported (RawImageID image, const ImageViewDesc &desc) const override;
+		bool			IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const override;
+		bool			IsSupported (const ImageDesc &desc, EMemoryType memType) const override;
+		bool			IsSupported (const BufferDesc &desc, EMemoryType memType) const override;
 
 		BufferDesc const&	GetDescription (RawBufferID id) const override;
 		ImageDesc const&	GetDescription (RawImageID id) const override;

@@ -58,21 +58,24 @@ namespace FG
 
 	enum class EBufferUsage : uint
 	{
-		TransferSrc		= 1 << 0,
-		TransferDst		= 1 << 1,
-		UniformTexel	= 1 << 2,
-		StorageTexel	= 1 << 3,
-		Uniform			= 1 << 4,
-		Storage			= 1 << 5,
-		Index			= 1 << 6,
-		Vertex			= 1 << 7,
-		Indirect		= 1 << 8,
-		RayTracing		= 1 << 9,
+		TransferSrc			= 1 << 0,
+		TransferDst			= 1 << 1,
+		UniformTexel		= 1 << 2,		// glsl: 'uniform samplerBuffer'
+		StorageTexel		= 1 << 3,		// glsl: 'uniform imageBuffer'
+		Uniform				= 1 << 4,		// uniform buffer
+		Storage				= 1 << 5,		// shader storage buffer
+		Index				= 1 << 6,		// index buffer
+		Vertex				= 1 << 7,		// vertex buffer
+		Indirect			= 1 << 8,		// indirect buffer for draw and dispatch
+		RayTracing			= 1 << 9,		// for scratch buffer, instance data, shader binding table
+		VertexPplnStore		= 1 << 10,		// storage buffer store and atomic operations in vertex, geometry, tessellation shaders
+		FragmentPplnStore	= 1 << 11,		// storage buffer store and atomic operations in fragment shader
+		StorageTexelAtomic	= 1 << 12,		// atomic ops on imageBuffer
 		_Last,
 		
-		All				= ((_Last-1) << 1) - 1,
-		Transfer		= TransferDst | TransferSrc,
-		Unknown			= 0,
+		All					= ((_Last-1) << 1) - 1,
+		Transfer			= TransferDst | TransferSrc,
+		Unknown				= 0,
 	};
 	FG_BIT_OPERATORS( EBufferUsage );
 
@@ -104,6 +107,8 @@ namespace FG
 		TransientAttachment		= 1 << 6,		// color, resolve, depth/stencil, input attachment
 		InputAttachment			= 1 << 7,		// input attachment in shader
 		ShadingRate				= 1 << 8,
+		StorageAtomic			= 1 << 9,		// same as 'Storage'
+		ColorAttachmentBlend	= 1 << 10,		// same as 'ColorAttachment'
 		_Last,
 
 		All						= ((_Last-1) << 1) - 1,

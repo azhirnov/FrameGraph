@@ -73,6 +73,8 @@ namespace FGC
 				case EImageUsage::TransientAttachment		: result << "TransientAttachment";		break;
 				case EImageUsage::InputAttachment			: result << "InputAttachment";			break;
 				case EImageUsage::ShadingRate				: result << "ShadingRate";				break;
+				case EImageUsage::StorageAtomic				: result << "StorageAtomic";			break;
+				case EImageUsage::ColorAttachmentBlend		: result << "ColorAttachmentBlend";		break;
 				case EImageUsage::_Last						:
 				case EImageUsage::All						:	// to shutup warnings
 				case EImageUsage::Transfer					:
@@ -104,21 +106,24 @@ namespace FGC
 			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
-				case EBufferUsage::TransferSrc	: result << "TransferSrc";		break;
-				case EBufferUsage::TransferDst	: result << "TransferDst";		break;
-				case EBufferUsage::UniformTexel	: result << "UniformTexel";		break;
-				case EBufferUsage::StorageTexel	: result << "StorageTexel";		break;
-				case EBufferUsage::Uniform		: result << "Uniform";			break;
-				case EBufferUsage::Storage		: result << "Storage";			break;
-				case EBufferUsage::Index		: result << "Index";			break;
-				case EBufferUsage::Vertex		: result << "Vertex";			break;
-				case EBufferUsage::Indirect		: result << "Indirect";			break;
-				case EBufferUsage::RayTracing	: result << "RayTracing";		break;
-				case EBufferUsage::_Last		:
-				case EBufferUsage::All			:	// to shutup warnings
-				case EBufferUsage::Transfer		:
-				case EBufferUsage::Unknown		:
-				default							: RETURN_ERR( "invalid buffer usage type!" );
+				case EBufferUsage::TransferSrc		:  result << "TransferSrc";			break;
+				case EBufferUsage::TransferDst		:  result << "TransferDst";			break;
+				case EBufferUsage::UniformTexel		:  result << "UniformTexel";		break;
+				case EBufferUsage::StorageTexel		:  result << "StorageTexel";		break;
+				case EBufferUsage::Uniform			:  result << "Uniform";				break;
+				case EBufferUsage::Storage			:  result << "Storage";				break;
+				case EBufferUsage::Index			:  result << "Index";				break;
+				case EBufferUsage::Vertex			:  result << "Vertex";				break;
+				case EBufferUsage::Indirect			:  result << "Indirect";			break;
+				case EBufferUsage::RayTracing		:  result << "RayTracing";			break;
+				case EBufferUsage::VertexPplnStore	:  result << "VertexPplnStore";		break;
+				case EBufferUsage::FragmentPplnStore:  result << "FragmentPplnStore";	break;
+				case EBufferUsage::StorageTexelAtomic: result << "StorageTexelAtomic";	break;
+				case EBufferUsage::_Last			:
+				case EBufferUsage::All				:	// to shutup warnings
+				case EBufferUsage::Transfer			:
+				case EBufferUsage::Unknown			:
+				default								: RETURN_ERR( "invalid buffer usage type!" );
 			}
 			END_ENUM_CHECKS();
 		}

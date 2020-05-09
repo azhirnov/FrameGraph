@@ -481,6 +481,52 @@ namespace FG
 		CHECK_ERR( _IsInitialized(), void());
 		return _resourceMngr.ReleaseResource( INOUT resources );
 	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VFrameGraph::IsSupported (RawImageID image, const ImageViewDesc &desc) const
+	{
+		auto*	img = _resourceMngr.GetResource( image );
+		CHECK_ERR( img );
+
+		return img->IsSupported( _device, desc );
+	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VFrameGraph::IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const
+	{
+		auto*	buf = _resourceMngr.GetResource( buffer );
+		CHECK_ERR( buf );
+
+		return buf->IsSupported( _device, desc );
+	}
+
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VFrameGraph::IsSupported (const ImageDesc &desc, EMemoryType memType) const
+	{
+		return VImage::IsSupported( _device, desc, memType );
+	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VFrameGraph::IsSupported (const BufferDesc &desc, EMemoryType memType) const
+	{
+		return VBuffer::IsSupported( _device, desc, memType );
+	}
 
 /*
 =================================================

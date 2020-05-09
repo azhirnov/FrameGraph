@@ -75,6 +75,9 @@ namespace FG
 		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask; }
 		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 
+		ND_ static bool  IsSupported (const VDevice &dev, const BufferDesc &desc, EMemoryType memType);
+		ND_ bool		 IsSupported (const VDevice &dev, const BufferViewDesc &desc) const;
+
 	private:
 		bool  _CreateView (const VDevice &, const BufferViewDesc &, OUT VkBufferView &) const;
 	};

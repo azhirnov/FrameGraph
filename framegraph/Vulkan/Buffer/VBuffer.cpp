@@ -71,6 +71,9 @@ namespace FG
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( not desc.isExternal );
+		
+		auto&	dev = resMngr.GetDevice();
+		ASSERT( IsSupported( dev, desc, EMemoryType(memObj.MemoryType()) ));
 
 		_desc		= desc;
 		_memoryId	= MemoryID{ memId };
@@ -108,7 +111,6 @@ namespace FG
 			info.queueFamilyIndexCount	= 0;
 		}
 
-		auto&	dev = resMngr.GetDevice();
 		VK_CHECK( dev.vkCreateBuffer( dev.GetVkDevice(), &info, null, OUT &_buffer ));
 
 		CHECK_ERR( memObj.AllocateForBuffer( resMngr.GetMemoryManager(), _buffer ));
@@ -139,6 +141,8 @@ namespace FG
 		_desc.size			= desc.size;
 		_desc.usage			= FGEnumCast( BitCast<VkBufferUsageFlagBits>( desc.usage ));
 		_desc.isExternal	= true;
+		
+		ASSERT( IsSupported( dev, _desc, EMemoryType::Default ));
 
 		if ( not dbgName.empty() )
 		{
@@ -277,6 +281,94 @@ namespace FG
 		//desc.queueFamilyIndices	// TODO
 		return desc;
 	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool  VBuffer::IsSupported (const VDevice &dev, const BufferDesc &desc, EMemoryType memType)
+	{
+		FG_UNUSED( memType );
 
+		for (EBufferUsage t = EBufferUsage(1); t <= desc.usage; t = EBufferUsage(uint(t) << 1))
+		{
+			if ( not EnumEq( desc.usage, t ))
+				continue;
+
+			BEGIN_ENUM_CHECKS();
+			switch ( t )
+			{
+				case EBufferUsage::UniformTexel :		break;
+				case EBufferUsage::StorageTexel :		break;
+				case EBufferUsage::StorageTexelAtomic:	break;
+				case EBufferUsage::TransferSrc :		break;
+				case EBufferUsage::TransferDst :		break;
+				case EBufferUsage::Uniform :			break;
+				case EBufferUsage::Storage :			break;
+				case EBufferUsage::Index :				break;
+				case EBufferUsage::Vertex :				break;
+				case EBufferUsage::Indirect :			break;
+				case EBufferUsage::RayTracing :			if ( not dev.IsRayTracingEnabled() ) return false;								break;
+				case EBufferUsage::VertexPplnStore :	if ( not dev.GetDeviceFeatures().vertexPipelineStoresAndAtomics ) return false;	break;
+				case EBufferUsage::FragmentPplnStore :	if ( not dev.GetDeviceFeatures().fragmentStoresAndAtomics ) return false;		break;
+				case EBufferUsage::_Last :
+				case EBufferUsage::All :
+				case EBufferUsage::Transfer :
+				case EBufferUsage::Unknown :
+				default :								ASSERT(false);	break;
+			}
+			END_ENUM_CHECKS();
+		}
+		return true;
+	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool  VBuffer::IsSupported (const VDevice &dev, const BufferViewDesc &desc) const
+	{
+		SHAREDLOCK( _drCheck );
+
+		VkFormatProperties	props = {};
+		vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), VEnumCast( desc.format ), OUT &props );
+		
+		const VkFormatFeatureFlags	dev_flags	= props.bufferFeatures;
+		VkFormatFeatureFlags		buf_flags	= 0;
+		
+		for (EBufferUsage t = EBufferUsage(1); t <= _desc.usage; t = EBufferUsage(uint(t) << 1))
+		{
+			if ( not EnumEq( _desc.usage, t ))
+				continue;
+
+			BEGIN_ENUM_CHECKS();
+			switch ( t )
+			{
+				case EBufferUsage::UniformTexel :		buf_flags |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;		break;
+				case EBufferUsage::StorageTexel :		buf_flags |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;		break;
+				case EBufferUsage::StorageTexelAtomic:	buf_flags |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;	break;
+				case EBufferUsage::TransferSrc :		break;
+				case EBufferUsage::TransferDst :		break;
+				case EBufferUsage::Uniform :			break;
+				case EBufferUsage::Storage :			break;
+				case EBufferUsage::Index :				break;
+				case EBufferUsage::Vertex :				break;
+				case EBufferUsage::Indirect :			break;
+				case EBufferUsage::RayTracing :			break;
+				case EBufferUsage::VertexPplnStore :	break;
+				case EBufferUsage::FragmentPplnStore :	break;
+				case EBufferUsage::_Last :
+				case EBufferUsage::All :
+				case EBufferUsage::Transfer :
+				case EBufferUsage::Unknown :
+				default :								ASSERT(false);	break;
+			}
+			END_ENUM_CHECKS();
+		}
+
+		return (dev_flags & buf_flags);
+	}
 
 }	// FG
