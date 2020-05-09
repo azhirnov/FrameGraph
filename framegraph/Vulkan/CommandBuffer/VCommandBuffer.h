@@ -95,8 +95,10 @@ namespace FG
 			uint					logicalRenderPassCount	= 0;
 		}						_rm;
 		
-		PerQueueArray_t			_perQueue;
+		PerQueueArray_t			_perQueue;		// TODO: use global command pool manager to minimize memory usage
 		DebugName_t				_dbgName;
+		bool					_dbgFullBarriers	= false;
+		bool					_dbgQueueSync		= false;
 
 		DataRaceCheck			_drCheck;
 
@@ -193,6 +195,8 @@ namespace FG
 		ND_ VMemoryManager &		GetMemoryManager ()			const	{ return GetResourceManager().GetMemoryManager(); }
 		ND_ uint					GetIndexInPool ()			const	{ return _indexInPool; }
 		ND_ EQueueFamily			GetQueueFamily ()			const	{ EXLOCK( _drCheck );  return _queueIndex; }
+		ND_ bool					IsDebugFullBarriers ()		const	{ EXLOCK( _drCheck );  return _dbgFullBarriers; }
+		ND_ bool					IsDebugQueueSync ()			const	{ EXLOCK( _drCheck );  return _dbgQueueSync; }
 
 
 	private:

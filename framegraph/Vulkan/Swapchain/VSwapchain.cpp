@@ -3,6 +3,7 @@
 #include "VSwapchain.h"
 #include "VDevice.h"
 #include "VCommandBuffer.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -12,8 +13,11 @@ namespace FG
 	constructor
 =================================================
 */
-	VSwapchain::VSwapchain ()
+	VSwapchain::VSwapchain () :
+		_semaphoreId{0}
 	{
+		_imageAvailable.fill( VK_NULL_HANDLE );
+		_renderFinished.fill( VK_NULL_HANDLE );
 	}
 
 /*
@@ -24,8 +28,6 @@ namespace FG
 	VSwapchain::~VSwapchain ()
 	{
 		ASSERT( not _vkSwapchain );
-		ASSERT( not _imageAvailable );
-		ASSERT( not _renderFinished );
 	}
 	
 /*
@@ -43,7 +45,7 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VSwapchain::Destroy (VResourceManager &resMngr)
+	void  VSwapchain::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( not _IsImageAcquired(), void());
@@ -53,22 +55,32 @@ namespace FG
 		if ( _vkSwapchain )
 			dev.vkDestroySwapchainKHR( dev.GetVkDevice(), _vkSwapchain, null );
 
-		if ( _imageAvailable )
-			dev.vkDestroySemaphore( dev.GetVkDevice(), _imageAvailable, null );
-		
-		if ( _renderFinished )
-			dev.vkDestroySemaphore( dev.GetVkDevice(), _renderFinished, null );
+		for (auto& sem : _imageAvailable) {
+			if ( sem ) {
+				dev.vkDestroySemaphore( dev.GetVkDevice(), sem, null );
+				sem = VK_NULL_HANDLE;
+			}
+		}
+
+		for (auto& sem : _renderFinished) {
+			if ( sem ) {
+				dev.vkDestroySemaphore( dev.GetVkDevice(), sem, null );
+				sem = VK_NULL_HANDLE;
+			}
+		}
+
+		if ( _fence )
+			dev.vkDestroyFence( dev.GetVkDevice(), _fence, null );
 
 		_DestroyImages( resMngr );
 
-		_imageAvailable	= VK_NULL_HANDLE;
-		_renderFinished	= VK_NULL_HANDLE;
 		_presentQueue	= null;
 		
 		_surfaceSize	= Default;
 		_vkSwapchain	= VK_NULL_HANDLE;
 		_vkSurface		= VK_NULL_HANDLE;
 		_currImageIndex	= UMax;
+		_fence			= VK_NULL_HANDLE;
 
 		_colorFormat	= VK_FORMAT_UNDEFINED;
 		_colorSpace		= VK_COLOR_SPACE_MAX_ENUM_KHR;
@@ -84,7 +96,7 @@ namespace FG
 	Acquire
 =================================================
 */
-	bool VSwapchain::Acquire (VCommandBuffer &fgThread, ESwapchainImage type, OUT RawImageID &outImageId) const
+	bool  VSwapchain::Acquire (VCommandBuffer &fgThread, ESwapchainImage type, bool dbgSync, OUT RawImageID &outImageId) const
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _vkSwapchain );
@@ -100,16 +112,27 @@ namespace FG
 		info.sType		= VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR;
 		info.swapchain	= _vkSwapchain;
 		info.timeout	= UMax;
-		info.semaphore	= _imageAvailable;
+		info.semaphore	= _imageAvailable[_semaphoreId];
 		info.deviceMask	= 1;
+
+		if ( dbgSync )
+		{
+			info.fence = _fence;
+		}
 
 		auto&	dev = fgThread.GetDevice();
 		VK_CHECK( dev.vkAcquireNextImage2KHR( dev.GetVkDevice(), &info, OUT &_currImageIndex ));
+		
+		if ( dbgSync )
+		{
+			VK_CALL( dev.vkWaitForFences( dev.GetVkDevice(), 1, &_fence, VK_TRUE, ~0ull ));
+			VK_CALL( dev.vkResetFences( dev.GetVkDevice(), 1, &_fence ));
+		}
 
 		outImageId = _imageIDs[ _currImageIndex ].Get();
 
-		fgThread.WaitSemaphore( _imageAvailable, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
-		fgThread.SignalSemaphore( _renderFinished );
+		fgThread.WaitSemaphore( _imageAvailable[_semaphoreId], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
+		fgThread.SignalSemaphore( _renderFinished[_semaphoreId] );
 
 		return true;
 	}
@@ -119,7 +142,7 @@ namespace FG
 	Present
 =================================================
 */
-	bool VSwapchain::Present (const VDevice &dev) const
+	bool  VSwapchain::Present (const VDevice &dev) const
 	{
 		EXLOCK( _drCheck );
 
@@ -132,11 +155,12 @@ namespace FG
 		present_info.pSwapchains		= &_vkSwapchain;
 		present_info.pImageIndices		= &_currImageIndex;
 		present_info.waitSemaphoreCount	= 1;
-		present_info.pWaitSemaphores	= &_renderFinished;
+		present_info.pWaitSemaphores	= &_renderFinished[_semaphoreId];
 
 		VkResult	err = dev.vkQueuePresentKHR( _presentQueue->handle, &present_info );
 
 		_currImageIndex	= UMax;
+		_semaphoreId ++;
 		
 		switch ( err ) {
 			case VK_SUCCESS :
@@ -157,7 +181,7 @@ namespace FG
 	_CreateSwapchain
 =================================================
 */
-	bool VSwapchain::_CreateSwapchain (VFrameGraph &fg, StringView dbgName)
+	bool  VSwapchain::_CreateSwapchain (VFrameGraph &fg, StringView dbgName)
 	{
 		VkSwapchainKHR				old_swapchain	= _vkSwapchain;
 		VkSwapchainCreateInfoKHR	swapchain_info	= {};
@@ -205,7 +229,9 @@ namespace FG
 
 		CHECK_ERR( _CreateImages( fg.GetResourceManager() ));
 		CHECK_ERR( _CreateSemaphores( dev ));
+		CHECK_ERR( _CreateFence( dev ));
 		CHECK_ERR( _ChoosePresentQueue( fg ));
+
 		return true;
 	}
 	
@@ -214,7 +240,7 @@ namespace FG
 	_CreateImages
 =================================================
 */
-	bool VSwapchain::_CreateImages (VResourceManager &resMngr)
+	bool  VSwapchain::_CreateImages (VResourceManager &resMngr)
 	{
 		ASSERT( _imageIDs.empty() );
 
@@ -260,7 +286,7 @@ namespace FG
 	_DestroyImages
 =================================================
 */
-	void VSwapchain::_DestroyImages (VResourceManager &resMngr)
+	void  VSwapchain::_DestroyImages (VResourceManager &resMngr)
 	{
 		for (auto& id : _imageIDs)
 		{
@@ -274,29 +300,50 @@ namespace FG
 	_CreateSemaphores
 =================================================
 */
-	bool VSwapchain::_CreateSemaphores (const VDevice &dev)
+	bool  VSwapchain::_CreateSemaphores (const VDevice &dev)
 	{
-		if ( _imageAvailable and _renderFinished )
-			return true;
-
 		VkSemaphoreCreateInfo	info = {};
 		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-		VK_CHECK( dev.vkCreateSemaphore( dev.GetVkDevice(), &info, null, OUT &_imageAvailable ));
-		VK_CHECK( dev.vkCreateSemaphore( dev.GetVkDevice(), &info, null, OUT &_renderFinished ));
+		for (auto& sem : _imageAvailable) {
+			if ( not sem ) {
+				VK_CHECK( dev.vkCreateSemaphore( dev.GetVkDevice(), &info, null, OUT &sem ));
+				dev.SetObjectName( BitCast<uint64_t>(sem), "ImageAvailable", VK_OBJECT_TYPE_SEMAPHORE );
+			}
+		}
 
-		dev.SetObjectName( BitCast<uint64_t>(_imageAvailable), "ImageAvailable", VK_OBJECT_TYPE_SEMAPHORE );
-		dev.SetObjectName( BitCast<uint64_t>(_renderFinished), "RenderAvailable", VK_OBJECT_TYPE_SEMAPHORE );
-
+		for (auto& sem : _renderFinished) {
+			if ( not sem ) {
+				VK_CHECK( dev.vkCreateSemaphore( dev.GetVkDevice(), &info, null, OUT &sem ));
+				dev.SetObjectName( BitCast<uint64_t>(sem), "RenderAvailable", VK_OBJECT_TYPE_SEMAPHORE );
+			}
+		}
 		return true;
 	}
 	
 /*
 =================================================
+	_CreateFence
+=================================================
+*/
+	bool  VSwapchain::_CreateFence (const VDevice &dev)
+	{
+		if ( not _fence )
+		{
+			VkFenceCreateInfo	info = {};
+			info.sType	= VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+			VK_CHECK( dev.vkCreateFence( dev.GetVkDevice(), &info, null, OUT &_fence ));
+		}
+		return true;
+	}
+
+/*
+=================================================
 	_ChoosePresentQueue
 =================================================
 */
-	bool VSwapchain::_ChoosePresentQueue (const VFrameGraph &fg)
+	bool  VSwapchain::_ChoosePresentQueue (const VFrameGraph &fg)
 	{
 		if ( _presentQueue )
 			return true;
@@ -324,7 +371,7 @@ namespace FG
 	GetDefaultPresentModes
 =================================================
 */
-	static void GetDefaultPresentModes (ArrayView<VkPresentModeKHR> presentModes, OUT Appendable<VkPresentModeKHR> result)
+	static void  GetDefaultPresentModes (ArrayView<VkPresentModeKHR> presentModes, OUT Appendable<VkPresentModeKHR> result)
 	{
 		bool	fifo_mode_supported			= false;
 		bool	mailbox_mode_supported		= false;
@@ -354,7 +401,7 @@ namespace FG
 	IsPresentModeSupported
 =================================================
 */
-	ND_ static bool IsPresentModeSupported (ArrayView<VkPresentModeKHR> presentModes, VkPresentModeKHR required)
+	ND_ static bool  IsPresentModeSupported (ArrayView<VkPresentModeKHR> presentModes, VkPresentModeKHR required)
 	{
 		for (size_t i = 0; i < presentModes.size(); ++i)
 		{
@@ -369,7 +416,7 @@ namespace FG
 	GetCompositeAlpha
 =================================================
 */
-	static bool GetCompositeAlpha (INOUT VkCompositeAlphaFlagBitsKHR &compositeAlpha, const VkSurfaceCapabilitiesKHR &surfaceCaps)
+	static bool  GetCompositeAlpha (INOUT VkCompositeAlphaFlagBitsKHR &compositeAlpha, const VkSurfaceCapabilitiesKHR &surfaceCaps)
 	{
 		if ( compositeAlpha == 0 )
 			compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -397,7 +444,7 @@ namespace FG
 	GetSwapChainExtent
 =================================================
 */
-	static void GetSwapChainExtent (INOUT uint2 &extent, const VkSurfaceCapabilitiesKHR &surfaceCaps)
+	static void  GetSwapChainExtent (INOUT uint2 &extent, const VkSurfaceCapabilitiesKHR &surfaceCaps)
 	{
 		if ( surfaceCaps.currentExtent.width  == UMax and
 			 surfaceCaps.currentExtent.height == UMax )
@@ -416,7 +463,7 @@ namespace FG
 	GetSurfaceImageCount
 =================================================
 */
-	static void GetSurfaceImageCount (INOUT uint &minImageCount, const VkSurfaceCapabilitiesKHR &surfaceCaps)
+	static void  GetSurfaceImageCount (INOUT uint &minImageCount, const VkSurfaceCapabilitiesKHR &surfaceCaps)
 	{
 		if ( minImageCount < surfaceCaps.minImageCount )
 		{
@@ -434,7 +481,7 @@ namespace FG
 	GetSurfaceTransform
 =================================================
 */
-	static void GetSurfaceTransform (INOUT VkSurfaceTransformFlagBitsKHR &transform, const VkSurfaceCapabilitiesKHR &surfaceCaps)
+	static void  GetSurfaceTransform (INOUT VkSurfaceTransformFlagBitsKHR &transform, const VkSurfaceCapabilitiesKHR &surfaceCaps)
 	{
 		if ( transform == 0 )
 			transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -457,7 +504,7 @@ namespace FG
 	GetDefaultColorFormats
 =================================================
 */
-	static void GetDefaultColorFormats (ArrayView<VkSurfaceFormat2KHR> formats, OUT Appendable<Pair<VkFormat, VkColorSpaceKHR>> result)
+	static void  GetDefaultColorFormats (ArrayView<VkSurfaceFormat2KHR> formats, OUT Appendable<Pair<VkFormat, VkColorSpaceKHR>> result)
 	{
 		const VkFormat	default_fmt = VK_FORMAT_B8G8R8A8_UNORM;
 
@@ -475,7 +522,7 @@ namespace FG
 	IsColorFormatSupported
 =================================================
 */
-	ND_ static bool IsColorFormatSupported (ArrayView<VkSurfaceFormat2KHR> formats, const VkFormat requiredFormat, const VkColorSpaceKHR requiredColorSpace)
+	ND_ static bool  IsColorFormatSupported (ArrayView<VkSurfaceFormat2KHR> formats, const VkFormat requiredFormat, const VkColorSpaceKHR requiredColorSpace)
 	{
 		for (size_t i = 0; i < formats.size(); ++i)
 		{
@@ -498,8 +545,8 @@ namespace FG
 	GetImageUsage
 =================================================
 */
-	static bool GetImageUsage (OUT VkImageUsageFlags &imageUsage, const VDevice &dev, const VkPresentModeKHR presentMode,
-							   const VkFormat colorFormat, const VkSurfaceCapabilities2KHR &surfaceCaps)
+	static bool  GetImageUsage (OUT VkImageUsageFlags &imageUsage, const VDevice &dev, const VkPresentModeKHR presentMode,
+							    const VkFormat colorFormat, const VkSurfaceCapabilities2KHR &surfaceCaps)
 	{
 		if ( presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR	or
 			 presentMode == VK_PRESENT_MODE_MAILBOX_KHR		or
@@ -579,8 +626,8 @@ namespace FG
 	IsSupported
 =================================================
 */
-	static bool IsSupported (const VDevice &dev, const VkSurfaceCapabilities2KHR &surfaceCaps, const uint2 &surfaceSize, const VkPresentModeKHR presentMode,
-							 const VkFormat colorFormat, INOUT VkImageUsageFlags &colorImageUsage)
+	static bool  IsSupported (const VDevice &dev, const VkSurfaceCapabilities2KHR &surfaceCaps, const uint2 &surfaceSize, const VkPresentModeKHR presentMode,
+							  const VkFormat colorFormat, INOUT VkImageUsageFlags &colorImageUsage)
 	{
 		VkImageUsageFlags	image_usage = 0;
 		if ( not GetImageUsage( OUT image_usage, dev, presentMode, colorFormat, surfaceCaps ))
@@ -613,7 +660,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VSwapchain::Create (VFrameGraph &fg, const VulkanSwapchainCreateInfo &info, StringView dbgName)
+	bool  VSwapchain::Create (VFrameGraph &fg, const VulkanSwapchainCreateInfo &info, StringView dbgName)
 	{
 		EXLOCK( _drCheck );
 

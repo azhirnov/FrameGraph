@@ -10,6 +10,8 @@ namespace {
 	static constexpr auto	ComputeBit		= EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
 	static constexpr auto	RayTracingBit	= EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
 	static constexpr auto	TransferBit		= EQueueUsage::Graphics | EQueueUsage::AsyncCompute | EQueueUsage::AsyncTransfer;
+
+	static constexpr auto	CmdDebugFlags	= EDebugFlags::FullBarrier | EDebugFlags::QueueSync;
 }
 	
 /*
@@ -49,16 +51,18 @@ namespace {
 	Begin
 =================================================
 */
-	bool VCommandBuffer::Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue)
+	bool  VCommandBuffer::Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( batch );
 		CHECK_ERR( _state == EState::Initial );
 
-		_batch		= batch;
-		_dbgName	= desc.name;
-		_state		= EState::Recording;
-		_queueIndex	= queue->familyIndex;
+		_batch			= batch;
+		_dbgName		= desc.name;
+		_dbgFullBarriers= EnumEq( desc.debugFlags, EDebugFlags::FullBarrier );
+		_dbgQueueSync	= EnumEq( desc.debugFlags, EDebugFlags::QueueSync );
+		_state			= EState::Recording;
+		_queueIndex		= queue->familyIndex;
 		
 		// create command pool
 		{
@@ -77,12 +81,14 @@ namespace {
 		_batch->OnBegin( desc );
 		
 		// setup local debugger
-		if ( desc.debugFlags != Default )
+		const EDebugFlags	debugger_flags = desc.debugFlags & ~CmdDebugFlags;
+
+		if ( debugger_flags != Default )
 		{
 			if ( not _debugger )
 				_debugger.reset( new VLocalDebugger{} );
 			
-			_debugger->Begin( desc.debugFlags );
+			_debugger->Begin( debugger_flags );
 		}
 		else
 			_debugger.reset();
@@ -320,7 +326,7 @@ namespace {
 		CHECK_ERR( swapchain );
 
 		RawImageID	id;
-		CHECK_ERR( swapchain->Acquire( *this, type, OUT id ));
+		CHECK_ERR( swapchain->Acquire( *this, type, _dbgQueueSync, OUT id ));
 
 		// transit to undefined layout
 		AcquireImage( id, true, true );

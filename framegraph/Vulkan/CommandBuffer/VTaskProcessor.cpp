@@ -2656,7 +2656,7 @@ namespace FG
 		_CmdDebugMarker( task.Name() );
 		
 		RawImageID	swapchain_image;
-		CHECK( task.swapchain->Acquire( _fgThread, ESwapchainImage::Primary, OUT swapchain_image ));
+		CHECK( task.swapchain->Acquire( _fgThread, ESwapchainImage::Primary, _fgThread.IsDebugQueueSync(), OUT swapchain_image ));
 
 		VLocalImage const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= _ToLocal( swapchain_image );
@@ -3073,14 +3073,45 @@ namespace FG
 */
 	inline void VTaskProcessor::_CommitBarriers ()
 	{
+		auto&	barrier_mngr = _fgThread.GetBarrierManager();
+
 		for (auto& res : _pendingResourceBarriers)
 		{
-			res.second( res.first, _fgThread.GetBarrierManager(), _fgThread.GetDebugger() );
+			res.second( res.first, barrier_mngr, _fgThread.GetDebugger() );
 		}
 
 		_pendingResourceBarriers.clear();
 
-		_fgThread.GetBarrierManager().Commit( _fgThread.GetDevice(), _cmdBuffer );
+		// only for debugging!
+	#ifdef FG_DEBUG
+		if ( _fgThread.IsDebugFullBarriers() )
+		{
+			VkMemoryBarrier	barrier = {};
+			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+			barrier.srcAccessMask	= VK_ACCESS_INDIRECT_COMMAND_READ_BIT |
+									  VK_ACCESS_INDEX_READ_BIT |
+									  VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT |
+									  VK_ACCESS_UNIFORM_READ_BIT |
+									  VK_ACCESS_INPUT_ATTACHMENT_READ_BIT |
+									  VK_ACCESS_SHADER_READ_BIT |
+									  VK_ACCESS_SHADER_WRITE_BIT |
+									  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+									  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+									  VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+									  VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+									  VK_ACCESS_TRANSFER_READ_BIT |
+									  VK_ACCESS_TRANSFER_WRITE_BIT |
+									  VK_ACCESS_HOST_READ_BIT |
+									  VK_ACCESS_HOST_WRITE_BIT;
+									// TODO: VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV, VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV
+			barrier.dstAccessMask	= barrier.srcAccessMask;
+
+			barrier_mngr.ForceCommit( _fgThread.GetDevice(), _cmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
+		}
+		else
+	#endif
+
+		barrier_mngr.Commit( _fgThread.GetDevice(), _cmdBuffer );
 	}
 	
 /*

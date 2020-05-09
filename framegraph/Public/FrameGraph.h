@@ -181,7 +181,7 @@ namespace FG
 			virtual bool			Execute (INOUT CommandBuffer &) = 0;
 
 			// Wait until all commands complete execution on the GPU or until time runs out.
-			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = Nanoseconds{~0ull}) = 0;
+			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = Nanoseconds{3600'000'000'000}) = 0;
 
 			// Submit all pending command buffers and present all pending swapchain images.
 			virtual bool			Flush (EQueueUsage queues = EQueueUsage::All) = 0;

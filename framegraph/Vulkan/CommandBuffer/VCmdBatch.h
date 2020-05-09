@@ -267,6 +267,7 @@ namespace FG
 		Dependencies_t						_dependencies;
 		bool								_submitImmediately	= false;
 		bool								_supportsQuery		= false;
+		bool								_dbgQueueSync		= false;
 
 		// command batch data
 		struct {
@@ -359,6 +360,7 @@ namespace FG
 		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()				const	{ SHAREDLOCK( _drCheck );  return _dependencies; }
 		ND_ VSubmitted *			GetSubmitted ()					const	{ SHAREDLOCK( _drCheck );  return _submitted; }		// TODO: rename
 		ND_ uint					GetIndexInPool ()				const	{ return _indexInPool; }
+		ND_ bool					IsQueueSyncRequired ()			const	{ SHAREDLOCK( _drCheck );  return _dbgQueueSync; }
 
 
 	private:
