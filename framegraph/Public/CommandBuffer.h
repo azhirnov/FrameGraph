@@ -103,6 +103,17 @@ namespace FG
 		//ND_ virtual CommandBuffer  BeginSecondary () = 0;		// TODO
 
 
+	// profiling //
+		// Begin shader time measurement for all subsequent tasks.
+		// Draw tasks are not affected, but timemap enabled for render pass.
+		// Dimension should be same as in 'dstImage' argument in 'EndShaderTimeMap()', otherwise result will be scaled.
+		virtual bool		BeginShaderTimeMap (const uint2 &dim, EShaderStages stages = EShaderStages::All) = 0;
+
+		// Stop shader time measurement, result will be copied into specified image.
+		// Image must be RGBA UNorm/Float 2D image.
+		virtual Task		EndShaderTimeMap (RawImageID dstImage, ImageLayer layer = Default, MipmapLevel level = Default, ArrayView<Task> dependsOn = Default) = 0;
+
+
 	// draw tasks //
 
 		// Create render pass.

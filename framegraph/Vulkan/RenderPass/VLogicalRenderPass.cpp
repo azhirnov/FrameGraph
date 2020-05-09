@@ -316,6 +316,18 @@ namespace {
 	{
 		ASSERT( _drawTasks.empty() );
 	}
-
+	
+/*
+=================================================
+	_SetShaderDebugIndex
+=================================================
+*/
+	void VLogicalRenderPass::_SetShaderDebugIndex (ShaderDbgIndex id)
+	{
+		for (auto* draw : _drawTasks)
+		{
+			draw->debugModeIndex = id;
+		}
+	}
 
 }	// FG

@@ -132,6 +132,12 @@ namespace {
 */
 	void  VCommandBuffer::_AfterCompilation ()
 	{
+		// reset global shader debugger
+		{
+			_shaderDbg.timemapIndex		= Default;
+			_shaderDbg.timemapStages	= Default;
+		}
+
 		// destroy logical render passes
 		for (uint i = 0; i < _rm.logicalRenderPassCount; ++i)
 		{
@@ -425,7 +431,14 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
 
-		auto*	rp_task = _taskGraph.Add( *this, task );
+		// TODO: add scale to shader timemap
+
+		auto	rp_task = _taskGraph.Add( *this, task );
+		
+		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Fragment ) and _shaderDbg.timemapIndex != Default )
+		{
+			rp_task->GetLogicalPass()->_SetShaderDebugIndex( _shaderDbg.timemapIndex );
+		}
 
 		// TODO
 		//_renderPassGraph.Add( rp_task );
@@ -445,7 +458,15 @@ namespace {
 		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 		ASSERT( task.pipeline );
 
-		return _taskGraph.Add( *this, task );
+		auto	result = _taskGraph.Add( *this, task );
+		
+		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Compute ) and _shaderDbg.timemapIndex != Default )
+		{
+			ASSERT( result->debugModeIndex == Default );
+			result->debugModeIndex = _shaderDbg.timemapIndex;
+		}
+
+		return result;
 	}
 	
 /*
@@ -459,8 +480,16 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 		ASSERT( task.pipeline );
+		
+		auto	result = _taskGraph.Add( *this, task );
+		
+		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Compute ) and _shaderDbg.timemapIndex != Default )
+		{
+			ASSERT( result->debugModeIndex == Default );
+			result->debugModeIndex = _shaderDbg.timemapIndex;
+		}
 
-		return _taskGraph.Add( *this, task );
+		return result;
 	}
 	
 /*
@@ -1340,7 +1369,15 @@ namespace {
 		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
 		ASSERT( task.shaderTable );
 
-		return _taskGraph.Add( *this, task );
+		auto	result = _taskGraph.Add( *this, task );
+
+		if ( EnumAny( _shaderDbg.timemapStages, EShaderStages::AllRayTracing ) and _shaderDbg.timemapIndex != Default )
+		{
+			ASSERT( result->debugModeIndex == Default );
+			result->debugModeIndex = _shaderDbg.timemapIndex;
+		}
+
+		return result;
 	}
 	
 /*
@@ -1543,6 +1580,113 @@ namespace {
 		_rm.logicalRenderPassCount = Max( uint(index)+1, _rm.logicalRenderPassCount );
 
 		return LogicalPassID( index, 0 );
+	}
+	
+/*
+=================================================
+	BeginShaderTimeMap
+=================================================
+*/
+	bool  VCommandBuffer::BeginShaderTimeMap (const uint2 &dim, EShaderStages stages)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		CHECK_ERR( _shaderDbg.timemapIndex == Default );	// already started
+
+		_shaderDbg.timemapStages	= stages;
+		_shaderDbg.timemapIndex		= _batch->AppendTimemap( dim, stages );
+		CHECK_ERR( _shaderDbg.timemapIndex != Default );
+
+		return true;
+	}
+	
+/*
+=================================================
+	EndShaderTimeMap
+=================================================
+*/
+	Task  VCommandBuffer::EndShaderTimeMap (RawImageID dstImage, ImageLayer layer, MipmapLevel level, ArrayView<Task> dependsOn)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		CHECK_ERR( _shaderDbg.timemapIndex != Default );	// not started
+
+		auto&	rm		= GetResourceManager();
+		auto	desc	= rm.GetDescription( dstImage );
+		auto	pplns	= rm.GetShaderTimemapPipelines();
+
+		CHECK_ERR( desc.imageType == EImage::Tex2D or desc.imageType == EImage::Tex2DArray );
+		//CHECK_ERR( desc.format == EPixelFormat::RGBA8_UNorm );
+		CHECK_ERR( EnumEq( desc.usage, EImageUsage::Storage ));
+		CHECK_ERR( std::get<0>(pplns) and std::get<1>(pplns) and std::get<2>(pplns) );
+
+		PipelineResources	res;
+		RawBufferID			ssb;
+		BytesU				ssb_offset, ssb_size, ssb_offset2, ssb_size2;
+		uint2				ssb_dim;
+		Task				task;
+
+		CHECK_ERR( _batch->GetShaderTimemap( _shaderDbg.timemapIndex, OUT ssb, OUT ssb_offset, OUT ssb_size, OUT ssb_dim ));
+		_shaderDbg.timemapIndex = Default;
+
+		ssb_size2	= ssb_dim.y * SizeOf<uint64_t>;
+		ssb_size	-= ssb_size2;
+		ssb_offset2	= ssb_offset + ssb_size;
+
+		// pass 1
+		{
+			RawCPipelineID	ppln = std::get<0>(pplns);
+			CHECK_ERR( GetInstance().InitPipelineResources( ppln, DescriptorSetID{"0"}, OUT res ));
+
+			res.BindBuffer( UniformID{"un_Timemap"},   ssb, ssb_offset, ssb_size );
+			res.BindBuffer( UniformID{"un_MaxValues"}, ssb, ssb_offset2, ssb_size2 );
+
+			DispatchCompute		comp;
+			comp.SetPipeline( ppln );
+			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.SetLocalSize({ 32, 1, 1 });
+			comp.Dispatch({ (ssb_dim.y + 31) / 32, 1, 1 });
+			comp.depends = dependsOn;
+
+			task = AddTask( comp );
+		}
+
+		// pass 2
+		{
+			RawCPipelineID	ppln = std::get<1>(pplns);
+			CHECK_ERR( GetInstance().InitPipelineResources( ppln, DescriptorSetID{"0"}, OUT res ));
+			
+			res.BindBuffer( UniformID{"un_Timemap"},   ssb, ssb_offset, ssb_size );
+			res.BindBuffer( UniformID{"un_MaxValues"}, ssb, ssb_offset2, ssb_size2 );
+
+			DispatchCompute		comp;
+			comp.SetPipeline( ppln );
+			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.SetLocalSize({ 1, 1, 1 });
+			comp.Dispatch({ 1, 1, 1 });
+			comp.DependsOn( task );
+
+			task = AddTask( comp );
+		}
+
+		// pass 3
+		{
+			RawCPipelineID	ppln = std::get<2>(pplns);
+			CHECK_ERR( GetInstance().InitPipelineResources( ppln, DescriptorSetID{"0"}, OUT res ));
+			
+			res.BindBuffer( UniformID{"un_Timemap"}, ssb, ssb_offset, ssb_size );
+			res.BindImage( UniformID{"un_OutImage"}, dstImage, ImageViewDesc{}.SetViewType( EImage::Tex2D ).SetBaseLayer( layer.Get() ).SetBaseLevel( level.Get() ));
+
+			DispatchCompute		comp;
+			comp.SetPipeline( ppln );
+			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.SetLocalSize({ 8, 8, 1 });
+			comp.Dispatch( (desc.dimension.xy() + 7) / 8 );
+			comp.DependsOn( task );
+
+			task = AddTask( comp );
+		}
+		return task;
 	}
 //-----------------------------------------------------------------------------
 

@@ -223,6 +223,16 @@ namespace FG
 	
 /*
 =================================================
+	SetDebugFlags
+=================================================
+*/
+	void  SpirvCompiler::SetDebugFlags (EShaderLangFormat flags)
+	{
+		_debugFlags = flags;
+	}
+
+/*
+=================================================
 	SetShaderClockFeatures
 =================================================
 */
@@ -230,6 +240,59 @@ namespace FG
 	{
 		_features.shaderSubgroupClock	= shaderSubgroupClock;
 		_features.shaderDeviceClock		= shaderDeviceClock;
+	}
+	
+/*
+=================================================
+	SetShaderFeatures
+=================================================
+*/
+	void  SpirvCompiler::SetShaderFeatures (bool vertexPipelineStoresAndAtomics, bool fragmentStoresAndAtomics)
+	{
+		_features.vertexPipelineStoresAndAtomics = vertexPipelineStoresAndAtomics;
+		_features.fragmentStoresAndAtomics		 = fragmentStoresAndAtomics;
+	}
+	
+/*
+=================================================
+	_CheckShaderFeatures
+=================================================
+*/
+	bool  SpirvCompiler::_CheckShaderFeatures (EShader shaderType) const
+	{
+		BEGIN_ENUM_CHECKS();
+		switch ( shaderType )
+		{
+			case EShader::Vertex :
+			case EShader::TessControl :
+			case EShader::TessEvaluation :
+			case EShader::Geometry :
+				return _features.vertexPipelineStoresAndAtomics;
+
+			case EShader::Fragment :
+				return _features.fragmentStoresAndAtomics;
+
+			case EShader::Compute :
+				return true;
+
+			case EShader::MeshTask :
+			case EShader::Mesh :
+				return true;
+		
+			case EShader::RayGen :
+			case EShader::RayAnyHit :
+			case EShader::RayClosestHit :
+			case EShader::RayMiss :
+			case EShader::RayIntersection :
+			case EShader::RayCallable :
+				return true;
+
+			case EShader::_Count :
+			case EShader::Unknown :
+				break;
+		}
+		END_ENUM_CHECKS();
+		return false;
 	}
 
 /*
@@ -242,79 +305,99 @@ namespace FG
 								 OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
 	{
 		using SpirvShaderData	= PipelineDescription::SharedShaderPtr< Array<uint> >;
-		using DebugUtils		= VCachedDebuggableSpirv::ShaderDebugUtils_t;
-		using DebugUtilsPtr		= VCachedDebuggableSpirv::ShaderDebugUtilsPtr;
 
 		log.clear();
 		COMP_CHECK_ERR( (dstShaderFmt & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV );
 
-		dstShaderFmt &= ~EShaderLangFormat::_ModeMask;
+		dstShaderFmt &= ~EShaderLangFormat::_DebugModeMask;
 
 		_currentStage = EShaderStages_FromShader( shaderType );
 		
-		ShaderIncluder	includer	{_directories};
-		GLSLangResult	glslang_data;
 
-		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.c_str()}, INOUT includer, OUT glslang_data, INOUT log ));
-
-		Array<uint>		spirv;
-		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
-
-		COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
-		
-		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnotations ))
+		// compile shader without debug info
 		{
-			_ParseAnnotations( StringView{source}, INOUT outReflection );
+			ShaderIncluder	includer	{_directories};
+			GLSLangResult	glslang_data;
 
-			for (auto& file : includer.GetIncludedFiles()) {
-				_ParseAnnotations( file.second->GetSource(), INOUT outReflection );
+			COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.c_str()}, INOUT includer, OUT glslang_data, INOUT log ));
+
+			Array<uint>		spirv;
+			COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
+
+			COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
+		
+			if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnotations ))
+			{
+				_ParseAnnotations( StringView{source}, INOUT outReflection );
+
+				for (auto& file : includer.GetIncludedFiles()) {
+					_ParseAnnotations( file.second->GetSource(), INOUT outReflection );
+				}
 			}
+
+			outShader.specConstants	= outReflection.specConstants;
+			outShader.AddShaderData( dstShaderFmt, StringView{entry}, std::move(spirv), debugName );
 		}
 
-		outShader.specConstants	= outReflection.specConstants;
-		outShader.AddShaderData( dstShaderFmt, StringView{entry}, std::move(spirv), debugName );
 
 		// compile shader with debug info
-		EShaderLangFormat			dbg_mode = (srcShaderFmt & EShaderLangFormat::_ModeMask);
-		EShLanguage					stage	 = glslang_data.shader->getStage();
-		glslang::TIntermediate&		interm	 = *glslang_data.prog.getIntermediate( stage );
+	#ifdef FG_ENABLE_GLSL_TRACE
+		using DebugUtils		= VCachedDebuggableSpirv::ShaderDebugUtils_t;
+		using DebugUtilsPtr		= VCachedDebuggableSpirv::ShaderDebugUtilsPtr;
+		
+		EShaderLangFormat	dbg_mode = (srcShaderFmt & EShaderLangFormat::_DebugModeMask) | _debugFlags;
 
 		if ( dbg_mode != EShaderLangFormat::Unknown )
 		{
-			DebugUtilsPtr	debug_utils	{new DebugUtils{ InPlaceIndex<ShaderTrace> }};
-			ShaderTrace&	trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
+			CHECK_ERR( _CheckShaderFeatures( shaderType ));
 
-			trace.SetSource( source.c_str(), source.length() );
-
-			for (auto& file : includer.GetIncludedFiles()) {
-				trace.IncludeSource( file.second->headerName.data(), file.second->GetSource().data(), file.second->GetSource().length() );
-			}
-
-			switch ( dbg_mode )
+			for (uint j = BitScanForward(dbg_mode); (1u << j) <= uint(EShaderLangFormat::_DebugModeMask); ++j)
 			{
-				case EShaderLangFormat::EnableDebugTrace :
-					COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_DebugDescriptorSet ));
-					break;
+				EShaderLangFormat	mode = EShaderLangFormat(1u << j);
 
-				case EShaderLangFormat::EnableProfiling :
-					COMP_CHECK_ERR( trace.InsertFunctionProfiler( interm, FG_DebugDescriptorSet, _features.shaderSubgroupClock, _features.shaderDeviceClock ));
-					break;
+				if ( not EnumEq( dbg_mode, mode ))
+					continue;
+				
+				ShaderIncluder	includer	{_directories};
+				GLSLangResult	glslang_data;
+				
+				COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.c_str()}, INOUT includer, OUT glslang_data, INOUT log ));
 
-				//case EShaderLangFormat::EnableDebugAsserts :
-				//case EShaderLangFormat::EnableDebugView :
-				//case EShaderLangFormat::EnableInstrCounter :
-				//	ASSERT( !"not supported yet" );
-				//	break;
+				DebugUtilsPtr				debug_utils	{new DebugUtils{ InPlaceIndex<ShaderTrace> }};
+				ShaderTrace&				trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
+				EShLanguage					stage		= glslang_data.shader->getStage();
+				glslang::TIntermediate&		interm		= *glslang_data.prog.getIntermediate( stage );
 
-				default :
-					FG_LOGI( "unsupported shader debug mode: 0x" + ToString<16>( dbg_mode ) );
-					break;
-			}
+				trace.SetSource( source.c_str(), source.length() );
 
-			COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
+				for (auto& file : includer.GetIncludedFiles()) {
+					trace.IncludeSource( file.second->headerName.data(), file.second->GetSource().data(), file.second->GetSource().length() );
+				}
 
-			outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( StringView{entry}, std::move(spirv), debugName, std::move(debug_utils) ) });
+				switch ( mode )
+				{
+					case EShaderLangFormat::EnableDebugTrace :
+						COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_DebugDescriptorSet ));
+						break;
+
+					case EShaderLangFormat::EnableProfiling :
+						COMP_CHECK_ERR( trace.InsertFunctionProfiler( interm, FG_DebugDescriptorSet, _features.shaderSubgroupClock, _features.shaderDeviceClock ));
+						break;
+
+					case EShaderLangFormat::EnableTimeMap :
+						COMP_CHECK_ERR( trace.InsertShaderClockMap( interm, FG_DebugDescriptorSet ));
+						break;
+
+					default :
+						FG_LOGI( "unsupported shader debug mode: 0x" + ToString<16>( mode ));
+						break;
+				}
+				
+				Array<uint>		spirv;
+				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
 		}
+	#endif	// FG_ENABLE_GLSL_TRACE
+
 		return true;
 	}
 	

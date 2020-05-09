@@ -117,7 +117,12 @@ namespace FG
 
 		Atomic<uint>				_submissionCounter;
 
-		DebugLayoutCache_t			_debugDSLayoutsCache;
+		struct {
+			DebugLayoutCache_t			dsLayoutsCache;
+			CPipelineID					pplnFindMaxValue1;
+			CPipelineID					pplnFindMaxValue2;
+			CPipelineID					pplnRemap;
+		}							_shaderDbg;
 
 		struct {
 			StagingBufferfPool_t		write;
@@ -212,11 +217,13 @@ namespace FG
 		
 		ND_ uint				GetSubmitIndex ()			const	{ return _submissionCounter.load( memory_order_relaxed ); }
 		
-		ND_ static BytesU		GetDebugShaderStorageSize (EShaderStages stages);
+		ND_ static BytesU		GetDebugShaderStorageSize (EShaderStages stages, EShaderDebugMode mode);
 		
 		ND_ BytesU				GetHostReadBufferSize ()	const	{ return _staging.readBufPageSize; }
 		ND_ BytesU				GetHostWriteBufferSize ()	const	{ return _staging.writeBufPageSize; }
 		ND_ BytesU				GetUniformBufferSize ()		const	{ return _staging.uniformBufPageSize; }
+		
+		ND_ Tuple<RawCPipelineID, RawCPipelineID, RawCPipelineID>	GetShaderTimemapPipelines ();
 
 		void CheckTask (const BuildRayTracingScene &);
 
@@ -291,6 +298,13 @@ namespace FG
 	// empty descriptor set layout
 			bool _CreateEmptyDescriptorSetLayout ();
 		ND_ auto _GetEmptyDescriptorSetLayout ()		{ return _emptyDSLayout; }
+
+
+	// shader debugger
+		bool  _CreateFindMaxValuePipeline1 ();
+		bool  _CreateFindMaxValuePipeline2 ();
+		bool  _CreateTimemapRemapPipeline ();
+		void  _DestroyShaderDebuggerResources ();
 	};
 
 	

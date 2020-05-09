@@ -43,7 +43,7 @@ int main ()
 	Test_Shader15( &compiler );
 	Test_Shader16( &compiler );
 	Test_Shader17( &compiler );
-	
+
 	FG_LOGI( "Tests.PipelineCompiler finished" );
 	return 0;
 }

@@ -26,10 +26,12 @@ namespace FG
 
 	// variables
 	private:
-		ProcessFunc_t	_pass1	= null;
-		ProcessFunc_t	_pass2	= null;
-		Name_t			_taskName;
-		RGBA8u			_debugColor;
+		ProcessFunc_t		_pass1			= null;
+		ProcessFunc_t		_pass2			= null;
+		Name_t				_taskName;
+		RGBA8u				_debugColor;
+	public:
+		ShaderDbgIndex		debugModeIndex	= Default;
 
 
 	// interface
@@ -70,7 +72,6 @@ namespace FG
 		const uint								_vbCount;
 
 		ArrayView< RectI >						_scissors;
-		ShaderDbgIndex							_debugModeIndex	= Default;
 
 	public:
 		VGraphicsPipeline const* const			pipeline;
@@ -95,7 +96,6 @@ namespace FG
 	public:
 		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
 		ND_ ArrayView< RectI >				GetScissors ()			const	{ return _scissors; }
-		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
 
 		ND_ ArrayView< VLocalBuffer const*>	GetVertexBuffers ()		const	{ return ArrayView{ _vertexBuffers.data(), _vbCount }; }
 		ND_ ArrayView< VkDeviceSize >		GetVBOffsets ()			const	{ return ArrayView{ _vbOffsets.data(), _vbCount }; }
@@ -187,7 +187,6 @@ namespace FG
 	private:
 		VPipelineResourceSet					_resources;
 		ArrayView< RectI >						_scissors;
-		ShaderDbgIndex							_debugModeIndex	= Default;
 	public:
 		VMeshPipeline const* const				pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
@@ -204,9 +203,8 @@ namespace FG
 		VBaseDrawMeshes (VLogicalRenderPass &rp, VCommandBuffer &cb, const TaskType &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 
 	public:
-		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ ArrayView< RectI >				GetScissors ()			const	{ return _scissors; }
-		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ VPipelineResourceSet const&		GetResources ()		const	{ return _resources; }
+		ND_ ArrayView< RectI >				GetScissors ()		const	{ return _scissors; }
 	};
 
 

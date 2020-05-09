@@ -23,6 +23,11 @@ namespace FG
 		_vkPhysicalDevice{ VK_NULL_HANDLE },
 		_vkLogicalDevice{ VK_NULL_HANDLE }
 	{
+		EXLOCK( _lock );
+
+		// enable all features
+		_spirvCompiler->SetShaderClockFeatures( true, true );
+		_spirvCompiler->SetShaderFeatures( true, true );
 	}
 	
 /*
@@ -33,27 +38,46 @@ namespace FG
 	VPipelineCompiler::VPipelineCompiler (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t device) :
 		VPipelineCompiler()
 	{
+		EXLOCK( _lock );
+
 		_vkInstance			= instance;
 		_vkPhysicalDevice	= physicalDevice;
 		_vkLogicalDevice	= device;
 
-		auto fpGetPhysicalDeviceFeatures2 = BitCast<PFN_vkGetPhysicalDeviceFeatures2>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures2" ));
-
-		_fpCreateShaderModule  = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_vkLogicalDevice), "vkCreateShaderModule" ));
-		_fpDestroyShaderModule = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_vkLogicalDevice), "vkDestroyShaderModule" ));
-
-		if ( fpGetPhysicalDeviceFeatures2 )
+		if ( _vkInstance and _vkPhysicalDevice )
 		{
-			VkPhysicalDeviceShaderClockFeaturesKHR	clock_feat = {};
-			clock_feat.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR;
+			auto fpGetPhysicalDeviceFeatures2 = BitCast<PFN_vkGetPhysicalDeviceFeatures2>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures2" ));
 
-			VkPhysicalDeviceFeatures2	feats = {};
-			feats.sType		= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-			feats.pNext		= &clock_feat;
+			_fpCreateShaderModule  = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_vkLogicalDevice), "vkCreateShaderModule" ));
+			_fpDestroyShaderModule = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_vkLogicalDevice), "vkDestroyShaderModule" ));
 
-			fpGetPhysicalDeviceFeatures2( BitCast<VkPhysicalDevice>(_vkPhysicalDevice), OUT &feats );
+			if ( fpGetPhysicalDeviceFeatures2 )
+			{
+				VkPhysicalDeviceShaderClockFeaturesKHR	clock_feat = {};
+				clock_feat.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR;
 
-			_spirvCompiler->SetShaderClockFeatures( clock_feat.shaderSubgroupClock, clock_feat.shaderDeviceClock );
+				VkPhysicalDeviceFeatures2	feats = {};
+				feats.sType		= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+				feats.pNext		= &clock_feat;
+
+				fpGetPhysicalDeviceFeatures2( BitCast<VkPhysicalDevice>(_vkPhysicalDevice), OUT &feats );
+
+				_spirvCompiler->SetShaderClockFeatures( clock_feat.shaderSubgroupClock, clock_feat.shaderDeviceClock );
+				_spirvCompiler->SetShaderFeatures( feats.features.vertexPipelineStoresAndAtomics, feats.features.fragmentStoresAndAtomics );
+			}
+			else
+			{
+				auto fpGetPhysicalDeviceFeatures = BitCast<PFN_vkGetPhysicalDeviceFeatures>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures" ));
+
+				if ( fpGetPhysicalDeviceFeatures )
+				{
+					VkPhysicalDeviceFeatures	feats = {};
+					fpGetPhysicalDeviceFeatures( BitCast<VkPhysicalDevice>(_vkPhysicalDevice), OUT &feats );
+
+					_spirvCompiler->SetShaderFeatures( feats.vertexPipelineStoresAndAtomics, feats.fragmentStoresAndAtomics );
+				}
+				_spirvCompiler->SetShaderClockFeatures( false, false );
+			}
 		}
 	}
 
@@ -83,9 +107,21 @@ namespace FG
 		else
 			CHECK_ERR( _spirvCompiler->SetDefaultResourceLimits() );
 
-		return _spirvCompiler->SetCompilationFlags( flags );
+		_spirvCompiler->SetCompilationFlags( flags );
+		return true;
 	}
 	
+/*
+=================================================
+	SetDebugFlags
+=================================================
+*/
+	void VPipelineCompiler::SetDebugFlags (EShaderLangFormat flags)
+	{
+		EXLOCK( _lock );
+		_spirvCompiler->SetDebugFlags( flags & EShaderLangFormat::_DebugModeMask );
+	}
+
 /*
 =================================================
 	AddDirectory
@@ -125,11 +161,11 @@ namespace FG
 */
 	void VPipelineCompiler::ReleaseUnusedShaders ()
 	{
+		EXLOCK( _lock );
+
 		if ( _vkLogicalDevice == VK_NULL_HANDLE )
 			return;
 	
-		EXLOCK( _lock );
-
 		VkDevice	dev					= BitCast<VkDevice>( _vkLogicalDevice );
 		auto		DestroyShaderModule = BitCast<PFN_vkDestroyShaderModule>(_fpDestroyShaderModule);
 		
@@ -154,11 +190,11 @@ namespace FG
 */
 	void VPipelineCompiler::ReleaseShaderCache ()
 	{
+		EXLOCK( _lock );
+
 		if ( _vkLogicalDevice == VK_NULL_HANDLE )
 			return;
 		
-		EXLOCK( _lock );
-
 		VkDevice	dev					= BitCast<VkDevice>( _vkLogicalDevice );
 		auto		DestroyShaderModule = BitCast<PFN_vkDestroyShaderModule>(_fpDestroyShaderModule);
 
@@ -809,6 +845,8 @@ namespace FG
 
 		std::swap( ppln, new_ppln );
 		_CheckHashCollision( ppln );
+		
+		ASSERT( _CheckDescriptorBindings( ppln ));
 		return true;
 	}
 	
@@ -884,6 +922,8 @@ namespace FG
 
 		std::swap( ppln, new_ppln );
 		_CheckHashCollision( ppln );
+		
+		ASSERT( _CheckDescriptorBindings( ppln ));
 		return true;
 	}
 
@@ -972,6 +1012,8 @@ namespace FG
 
 		std::swap( ppln, new_ppln );
 		_CheckHashCollision( ppln );
+
+		ASSERT( _CheckDescriptorBindings( ppln ));
 		return true;
 	}
 	
@@ -1020,6 +1062,8 @@ namespace FG
 
 			std::swap( ppln, new_ppln );
 			_CheckHashCollision( ppln );
+
+			ASSERT( _CheckDescriptorBindings( ppln ));
 			return true;
 		}
 
@@ -1176,6 +1220,27 @@ namespace FG
 			}
 		})
 	}
+	
+/*
+=================================================
+	_CheckDescriptorBindings
+=================================================
+*/
+	bool VPipelineCompiler::_CheckDescriptorBindings (const PipelineDescription &desc) const
+	{
+		HashSet<uint>	binding_indices;
 
+		for (auto& ds : desc._pipelineLayout.descriptorSets)
+		{
+			binding_indices.clear();
+
+			for (auto& un : *ds.uniforms)
+			{
+				// binding index already occupied
+				CHECK_ERR( binding_indices.insert( un.second.index.VKBinding() ).second );
+			}
+		}
+		return true;
+	}
 
 }	// FG

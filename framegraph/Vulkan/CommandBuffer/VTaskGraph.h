@@ -125,13 +125,14 @@ namespace FG
 	// variables
 	private:
 		VPipelineResourceSet					_resources;
-		ShaderDbgIndex							_debugModeIndex	= Default;
 	public:
 		VComputePipeline const* const			pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
 		
 		const DispatchCompute::ComputeCmds_t	commands;
 		const Optional< uint3 >					localGroupSize;
+
+		ShaderDbgIndex							debugModeIndex	= Default;
 
 
 	// methods
@@ -140,8 +141,7 @@ namespace FG
 		
 		ND_ bool  IsValid () const;
 
-		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
 
 
@@ -155,7 +155,6 @@ namespace FG
 	// variables
 	private:
 		VPipelineResourceSet					_resources;
-		ShaderDbgIndex							_debugModeIndex	= Default;
 	public:
 		VComputePipeline const* const			pipeline;
 		const _fg_hidden_::PushConstants_t		pushConstants;
@@ -165,6 +164,8 @@ namespace FG
 		VLocalBuffer const* const				indirectBuffer;
 		const Optional< uint3 >					localGroupSize;
 
+		ShaderDbgIndex							debugModeIndex	= Default;
+
 
 	// methods
 	public:
@@ -172,8 +173,7 @@ namespace FG
 		
 		ND_ bool  IsValid () const;
 
-		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
 
 
@@ -649,10 +649,10 @@ namespace FG
 	// variables
 	private:
 		VPipelineResourceSet				_resources;
-		ShaderDbgIndex						_debugModeIndex	= Default;
 	public:
 		VRayTracingShaderTable const* const	shaderTable;
 		const _fg_hidden_::PushConstants_t	pushConstants;
+		ShaderDbgIndex						debugModeIndex	= Default;
 
 		const uint3							groupCount;
 
@@ -663,8 +663,7 @@ namespace FG
 		
 		ND_ bool  IsValid () const;
 
-		ND_ VPipelineResourceSet const&		GetResources ()			const	{ return _resources; }
-		ND_ ShaderDbgIndex					GetDebugModeIndex ()	const	{ return _debugModeIndex; }
+		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
 
 

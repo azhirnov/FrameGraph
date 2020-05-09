@@ -611,11 +611,11 @@ namespace FG
 			_tp.Stat().descriptorBinds++;
 		}
 		
-		if ( task.GetDebugModeIndex() != Default )
+		if ( task.debugModeIndex != Default )
 		{
 			VkDescriptorSet		desc_set;
 			uint				offset, binding;
-			_tp._fgThread.GetBatch().GetDescriptotSet( task.GetDebugModeIndex(), OUT binding, OUT desc_set, OUT offset );
+			_tp._fgThread.GetBatch().GetDescriptotSet( task.debugModeIndex, OUT binding, OUT desc_set, OUT offset );
 			
 			_tp.vkCmdBindDescriptorSets( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout.Handle(), binding, 1, &desc_set, 1, &offset );
 			_tp.Stat().descriptorBinds++;
@@ -2014,7 +2014,7 @@ namespace FG
 										task.vertexInput,
 										render_state,
 										dynamic_states,
-										task.GetDebugModeIndex(),
+										task.debugModeIndex,
 										OUT ppln_id, OUT pplnLayout );
 
 		_BindPipeline2( logicalRP, ppln_id );
@@ -2048,7 +2048,7 @@ namespace FG
 										*task.pipeline,
 										render_state,
 										dynamic_states,
-										task.GetDebugModeIndex(),
+										task.debugModeIndex,
 										OUT ppln_id, OUT pplnLayout );
 		
 		_BindPipeline2( logicalRP, ppln_id );
@@ -2089,8 +2089,8 @@ namespace FG
 
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( task.pipeline, task.localGroupSize, task.GetDebugModeIndex(), VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout );
-		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.GetDebugModeIndex() );
+		_BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout );
+		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
 
 		_CommitBarriers();
@@ -2114,8 +2114,8 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( task.pipeline, task.localGroupSize, task.GetDebugModeIndex(), 0, OUT layout );
-		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.GetDebugModeIndex() );
+		_BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, 0, OUT layout );
+		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
 		
 		for (auto& cmd : task.commands)
@@ -2784,7 +2784,7 @@ namespace FG
 	{
 		_CmdDebugMarker( task.Name() );
 
-		const bool			is_debuggable	= (task.GetDebugModeIndex() != Default);
+		const bool			is_debuggable	= (task.debugModeIndex != Default);
 		EShaderDebugMode	dbg_mode		= Default;
 		EShaderStages		dbg_stages		= Default;
 		RawPipelineLayoutID	layout_id;
@@ -2804,12 +2804,12 @@ namespace FG
 			auto*	ppln	 = _GetResource( task.shaderTable->GetPipeline() );
 
 			CHECK_ERR( ppln, void());
-			CHECK( debugger.GetDebugModeInfo( task.GetDebugModeIndex(), OUT dbg_mode, OUT dbg_stages ));
+			CHECK( debugger.GetDebugModeInfo( task.debugModeIndex, OUT dbg_mode, OUT dbg_stages ));
 
 			for (auto& shader : ppln->GetShaderModules())
 			{
 				if ( shader.debugMode == dbg_mode )
-					debugger.SetShaderModule( task.GetDebugModeIndex(), shader.module );
+					debugger.SetShaderModule( task.debugModeIndex, shader.module );
 			}
 		}
 
@@ -2827,7 +2827,7 @@ namespace FG
 			Stat().rayTracingPipelineBindings++;
 		}
 
-		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, task.GetDebugModeIndex() );
+		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
 
 		_AddBuffer( sbt_buffer, EResourceState::UniformRead | EResourceState::_RayTracingShader, raygen_offset, block_size );

@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "extensions/glsl_trace/include/ShaderTrace.h"
+#ifdef FG_ENABLE_GLSL_TRACE
+# include "ShaderTrace.h"
+#endif
+
 #include "extensions/vulkan_loader/VulkanLoader.h"
 
 namespace FG
@@ -26,8 +29,10 @@ namespace FG
 
 	// types
 	public:
+		#ifdef FG_ENABLE_GLSL_TRACE
 		using ShaderDebugUtils_t	= Union< NullUnion, ShaderTrace >;
 		using ShaderDebugUtilsPtr	= UniquePtr< ShaderDebugUtils_t >;
+		#endif
 
 
 	// variables
@@ -35,7 +40,10 @@ namespace FG
 		T						_data;
 		StaticString<64>		_entry;
 		StaticString<64>		_debugName;
+		
+		#ifdef FG_ENABLE_GLSL_TRACE
 		ShaderDebugUtilsPtr		_debugInfo;
+		#endif
 
 
 	// methods
@@ -43,10 +51,12 @@ namespace FG
 		VCachedDebuggableShaderData (StringView entry, T &&data, StringView dbgName) :
 			_data{std::move(data)}, _entry{entry}, _debugName{dbgName}
 		{}
-
+		
+		#ifdef FG_ENABLE_GLSL_TRACE
 		VCachedDebuggableShaderData (StringView entry, T &&data, StringView dbgName, ShaderDebugUtilsPtr &&debugUtilsPtr) :
 			_data{std::move(data)}, _entry{entry}, _debugName{dbgName}, _debugInfo{std::move(debugUtilsPtr)}
 		{}
+		#endif
 
 		VCachedDebuggableShaderData (VkShaderModule module, const PipelineDescription::SharedShaderPtr<Array<uint>> &spirvCache)
 		{
@@ -55,9 +65,11 @@ namespace FG
 				_data		= BitCast<ShaderModuleVk_t>( module );
 				_entry		= spirvCache->GetEntry();
 				_debugName	= spirvCache->GetDebugName();
-
+				
+				#ifdef FG_ENABLE_GLSL_TRACE
 				if ( auto other = DynCast<VCachedDebuggableSpirv>( spirvCache ))
 					_debugInfo = std::move(other->_debugInfo);
+				#endif
 			}
 		}
 		
@@ -86,6 +98,7 @@ namespace FG
 
 		bool ParseDebugOutput (EShaderDebugMode mode, ArrayView<uint8_t> debugOutput, OUT Array<String> &result) const override
 		{
+		#ifdef FG_ENABLE_GLSL_TRACE
 			CHECK_ERR( mode == EShaderDebugMode::Trace	or
 					   mode == EShaderDebugMode::Profiling );
 
@@ -96,6 +109,10 @@ namespace FG
 						  [&] (const ShaderTrace &trace) { return trace.ParseShaderTrace( debugOutput.data(), debugOutput.size(), OUT result ); },
 						  []  (const NullUnion &)		 { return false; }
 						);
+		#else
+			FG_UNUSED( mode, debugOutput, result );
+			return false;
+		#endif
 		}
 
 

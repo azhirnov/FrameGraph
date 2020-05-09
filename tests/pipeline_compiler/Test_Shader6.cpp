@@ -23,7 +23,7 @@ void main() {
 }
 )#" );
 
-	ppln.AddShader( EShader::Vertex, EShaderLangFormat::GLSL_450, "main",
+	ppln.AddShader( EShader::Vertex, EShaderLangFormat::GLSL_460, "main",
 R"#(
 #error 1
 )#" );
@@ -33,7 +33,7 @@ R"#(
 #error 2
 )#" );
 
-	ppln.AddShader( EShader::Fragment, EShaderLangFormat::GLSL_450, "main", R"#(
+	ppln.AddShader( EShader::Fragment, EShaderLangFormat::GLSL_460, "main", R"#(
 #version 450 core
 #pragma shader_stage(vertex)
 #extension GL_ARB_separate_shader_objects : enable
@@ -55,7 +55,7 @@ void main() {
 }
 )#" );
 	
-	ppln.AddShader( EShader::Fragment, EShaderLangFormat::GLSL_440, "main",
+	ppln.AddShader( EShader::Fragment, EShaderLangFormat::GLSL_450, "main",
 R"#(
 #error 3
 )#" );
@@ -67,7 +67,7 @@ R"#(
 	auto	old_flags = compiler->GetCompilationFlags();
 	compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
 
-	TEST(	 compiler->Compile( INOUT ppln1, EShaderLangFormat::SPIRV_100 ));
+	TEST(     compiler->Compile( INOUT ppln1, EShaderLangFormat::SPIRV_100 ));
 	TEST( not compiler->Compile( INOUT ppln2, EShaderLangFormat::SPIRV_110 ));
 	
 

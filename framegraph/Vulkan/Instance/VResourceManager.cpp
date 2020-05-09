@@ -98,7 +98,7 @@ namespace FG
 	void VResourceManager::Deinitialize ()
 	{
 		_DestroyStagingBuffers();
-		_debugDSLayoutsCache.clear();
+		_DestroyShaderDebuggerResources();
 
 		_DestroyResourceCache( INOUT _samplerCache );
 		_DestroyResourceCache( INOUT _pplnLayoutCache );
@@ -218,16 +218,24 @@ namespace FG
 	GetDebugShaderStorageSize
 =================================================
 */
-	ND_ BytesU  VResourceManager::GetDebugShaderStorageSize (EShaderStages stages)
+	ND_ BytesU  VResourceManager::GetDebugShaderStorageSize (EShaderStages stages, EShaderDebugMode mode)
 	{
-		if ( EnumEq( EShaderStages::AllGraphics, stages ) )
-			return SizeOf<uint> * 3;	// fragcoord
+		if ( mode == EShaderDebugMode::Timemap )
+		{
+			return SizeOf<uint> * 4;	// tile size, width, (padding)
+		}
+		else
+		if ( mode == EShaderDebugMode::Trace or mode == EShaderDebugMode::Profiling )
+		{
+			if ( EnumEq( EShaderStages::AllGraphics, stages ))
+				return SizeOf<uint> * 4;	// fragcoord, (padding), position
 		
-		if ( stages == EShaderStages::Compute )
-			return SizeOf<uint> * 3;	// global invocation
+			if ( stages == EShaderStages::Compute )
+				return SizeOf<uint> * 4;	// global invocation, position
 		
-		if ( EnumEq( EShaderStages::AllRayTracing, stages ) )
-			return SizeOf<uint> * 3;	// launch
+			if ( EnumEq( EShaderStages::AllRayTracing, stages ))
+				return SizeOf<uint> * 4;	// launch, position
+		}
 
 		RETURN_ERR( "unsupported shader type" );
 	}
@@ -240,9 +248,9 @@ namespace FG
 	RawDescriptorSetLayoutID  VResourceManager::GetDescriptorSetLayout (EShaderDebugMode debugMode, EShaderStages debuggableShaders)
 	{
 		const uint	key  = (uint(debuggableShaders) & 0xFFFFFF) | (uint(debugMode) << 24);
-		auto		iter = _debugDSLayoutsCache.find( key );
+		auto		iter = _shaderDbg.dsLayoutsCache.find( key );
 
-		if ( iter != _debugDSLayoutsCache.end() )
+		if ( iter != _shaderDbg.dsLayoutsCache.end() )
 			return iter->second;
 
 		PipelineDescription::UniformMap_t	uniforms;
@@ -251,7 +259,7 @@ namespace FG
 
 		sb_desc.state				= EResourceState_FromShaders( debuggableShaders ) | EResourceState::ShaderReadWrite | EResourceState::_BufferDynamicOffset;
 		sb_desc.arrayStride			= SizeOf<uint>;
-		sb_desc.staticSize			= GetDebugShaderStorageSize( debuggableShaders ) + SizeOf<uint>;	// per shader data + position
+		sb_desc.staticSize			= GetDebugShaderStorageSize( debuggableShaders, debugMode );
 		sb_desc.dynamicOffsetIndex	= 0;
 
 		sb_uniform.index			= BindingIndex{ UMax, 0 };
@@ -264,7 +272,7 @@ namespace FG
 		auto	layout = CreateDescriptorSetLayout( MakeShared<const PipelineDescription::UniformMap_t>( std::move(uniforms) ));
 		CHECK_ERR( layout );
 
-		_debugDSLayoutsCache.insert({ key, layout });
+		_shaderDbg.dsLayoutsCache.insert({ key, layout });
 		return layout;
 	}
 
@@ -1511,6 +1519,228 @@ namespace FG
 		_staging.read.Release( dtor );
 	}
 	
+/*
+=================================================
+	_CreateFindMaxValuePipeline1
+=================================================
+*/
+	bool  VResourceManager::_CreateFindMaxValuePipeline1 ()
+	{
+		if ( _shaderDbg.pplnFindMaxValue1 )
+			return true;
+
+		ComputePipelineDesc		desc;
+		desc.AddShader( EShaderLangFormat::VKSL_110, "main", R"#(
+layout (local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std430) readonly buffer un_Timemap
+{
+	uvec2	maxValue;
+	uvec2	dimension;
+	uvec2	pixels[];
+};
+
+layout(binding = 1, std430) buffer un_MaxValues
+{
+	uvec2	line[];
+};
+
+bool Greater (uvec2 lhs, uvec2 rhs)
+{
+	return lhs.x == rhs.x ? lhs.y > rhs.y : lhs.x > rhs.x;
+}
+
+void main ()
+{
+	uvec2	mv = uvec2(0);
+
+	for (uint x = 0; x < dimension.x; ++x)
+	{
+		uint	i = x + dimension.x * gl_GlobalInvocationID.x;
+		uvec2	v = pixels[i];
+
+		if ( Greater( v, mv ))
+			mv = v;
+	}
+
+	line[gl_GlobalInvocationID.x] = mv;
+}
+)#");
+		_shaderDbg.pplnFindMaxValue1 = CPipelineID{ CreatePipeline( desc, Default )};
+		CHECK_ERR( _shaderDbg.pplnFindMaxValue1 );
+
+		return true;
+	}
+	
+/*
+=================================================
+	_CreateFindMaxValuePipeline2
+=================================================
+*/
+	bool  VResourceManager::_CreateFindMaxValuePipeline2 ()
+	{
+		if ( _shaderDbg.pplnFindMaxValue2 )
+			return true;
+
+		ComputePipelineDesc		desc;
+		desc.AddShader( EShaderLangFormat::VKSL_110, "main", R"#(
+layout (local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std430) buffer un_Timemap
+{
+	coherent uvec2	maxValue;
+	readonly uvec2	dimension;
+	readonly uvec2	pixels[];
+};
+
+layout(binding = 1, std430) readonly buffer un_MaxValues
+{
+	uvec2	line[];
+};
+
+bool Greater (uvec2 lhs, uvec2 rhs)
+{
+	return lhs.x == rhs.x ? lhs.y > rhs.y : lhs.x > rhs.x;
+}
+
+void main ()
+{
+	uvec2	mv = uvec2(0);
+
+	for (uint i = 0; i < dimension.y; ++i)
+	{
+		uvec2	v = line[i];
+
+		if ( Greater( v, mv ))
+			mv = v;
+	}
+
+	//if ( gl_LocalInvocationID.x == 0 )
+	{
+		maxValue = mv;
+	}
+}
+)#");
+		_shaderDbg.pplnFindMaxValue2 = CPipelineID{ CreatePipeline( desc, Default )};
+		CHECK_ERR( _shaderDbg.pplnFindMaxValue2 );
+
+		return true;
+	}
+
+/*
+=================================================
+	_CreateTimemapRemapPipeline
+=================================================
+*/
+	bool  VResourceManager::_CreateTimemapRemapPipeline ()
+	{
+		if ( _shaderDbg.pplnRemap )
+			return true;
+
+		ComputePipelineDesc		desc;
+		desc.AddShader( EShaderLangFormat::VKSL_110, "main", R"#(
+layout (local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+
+layout(binding = 0, std430) buffer un_Timemap
+{
+	readonly uvec2	maxValue;
+	readonly ivec2	dimension;
+	readonly uvec2	pixels[];
+};
+
+layout(binding = 1) writeonly uniform image2D  un_OutImage;
+
+double ToDouble (uvec2 v)
+{
+	return double(v.x) + double(v.y) * double(0xFFFFFFFF);
+}
+
+vec3 HSVtoRGB (const vec3 hsv)
+{
+	// from http://chilliant.blogspot.ru/2014/04/rgbhsv-in-hlsl-5.html
+	vec3 col = vec3( abs( hsv.x * 6.0 - 3.0 ) - 1.0,
+					 2.0 - abs( hsv.x * 6.0 - 2.0 ),
+					 2.0 - abs( hsv.x * 6.0 - 4.0 ) );
+	return (( clamp( col, vec3(0.0), vec3(1.0) ) - 1.0 ) * hsv.y + 1.0 ) * hsv.z;
+}
+
+float Remap (const vec2 src, const vec2 dst, const float x)
+{
+	return (x - src.x) / (src.y - src.x) * (dst.y - dst.x) + dst.x;
+}
+
+float RemapClamped (const vec2 src, const vec2 dst, const float x)
+{
+	return clamp( Remap( src, dst, x ), dst.x, dst.y );
+}
+
+vec3 Rainbow (float factor)
+{
+	return HSVtoRGB( vec3(RemapClamped( vec2(0.0, 1.45), vec2(0.0, 1.0), 1.0 - factor ), 1.0, 1.0) );
+}
+
+void main ()
+{
+	double	mv			= ToDouble( maxValue );
+	double	vsum		= 0.0;
+	ivec2	coord		= ivec2(gl_GlobalInvocationID.xy);
+	ivec2	size		= ivec2(gl_WorkGroupSize.xy * gl_NumWorkGroups.xy);
+	vec2	ncoord		= vec2(coord) / vec2(size);
+	ivec2	px_coord	= ivec2( ncoord * vec2(dimension) );
+	ivec2	px_size		= ivec2(1); // vec2(size) / vec2(dimension) + 0.5 );
+
+	for (int y = 0; y < px_size.y; ++y)
+	for (int x = 0; x < px_size.x; ++x)
+	{
+		double	v = ToDouble( pixels[ (px_coord.x + x) + (px_coord.y + y) * dimension.x ] );
+		vsum += v;
+	}
+
+	vsum /= double(px_size.x * px_size.y);
+
+	imageStore( un_OutImage, coord, vec4(Rainbow( float(vsum / mv) ), 1.0 ));
+}
+)#");
+		_shaderDbg.pplnRemap = CPipelineID{ CreatePipeline( desc, Default )};
+		CHECK_ERR( _shaderDbg.pplnRemap );
+
+		return true;
+	}
+	
+/*
+=================================================
+	_DestroyShaderDebuggerResources
+=================================================
+*/
+	void  VResourceManager::_DestroyShaderDebuggerResources ()
+	{
+		if ( _shaderDbg.pplnFindMaxValue1 )
+			ReleaseResource( _shaderDbg.pplnFindMaxValue1.Release() );
+
+		if ( _shaderDbg.pplnFindMaxValue2 )
+			ReleaseResource( _shaderDbg.pplnFindMaxValue2.Release() );
+
+		if ( _shaderDbg.pplnRemap )
+			ReleaseResource( _shaderDbg.pplnRemap.Release() );
+	
+		_shaderDbg.dsLayoutsCache.clear();
+	}
+	
+/*
+=================================================
+	GetShaderTimemapPipelines
+=================================================
+*/
+	Tuple<RawCPipelineID, RawCPipelineID, RawCPipelineID>  VResourceManager::GetShaderTimemapPipelines ()
+	{
+		CHECK_ERR( _CreateFindMaxValuePipeline1() );
+		CHECK_ERR( _CreateFindMaxValuePipeline2() );
+		CHECK_ERR( _CreateTimemapRemapPipeline() );
+
+		return Tuple<RawCPipelineID, RawCPipelineID, RawCPipelineID>{
+					_shaderDbg.pplnFindMaxValue1.Get(),
+					_shaderDbg.pplnFindMaxValue2.Get(),
+					_shaderDbg.pplnRemap.Get() };
 	}
 
 }	// FG

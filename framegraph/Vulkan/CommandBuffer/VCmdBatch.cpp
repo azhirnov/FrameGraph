@@ -505,12 +505,9 @@ namespace FG
 		if ( _shaderDebugger.buffers.empty() )
 			return;
 
-		ASSERT( cb );
-
-		auto&	dev = _frameGraph.GetDevice();
 		auto&	rm  = _frameGraph.GetResourceManager();
 
-		VK_CHECK( dev.vkDeviceWaitIdle( dev.GetVkDevice() ), void());
+		//VK_CHECK( dev.vkDeviceWaitIdle( dev.GetVkDevice() ), void());
 
 		// release descriptor sets
 		for (auto& ds : _shaderDebugger.descCache) {
@@ -545,6 +542,11 @@ namespace FG
 */
 	bool  VCmdBatch::_ParseDebugOutput2 (const ShaderDebugCallback_t &cb, const DebugMode &dbg, Array<String> &tempStrings) const
 	{
+		ASSERT( cb );
+
+		if ( (not cb) or (dbg.mode == EShaderDebugMode::Timemap) )
+			return true;
+
 		CHECK_ERR( dbg.modules.size() );
 		
 		auto&	rm				= _frameGraph.GetResourceManager();
@@ -581,7 +583,7 @@ namespace FG
 		VMemoryObj::MemoryInfo	info;
 		auto&					rm = _frameGraph.GetResourceManager();
 
-		if ( rm.GetResource( buf.memoryId )->GetInfo( rm.GetMemoryManager(),OUT info ) )
+		if ( rm.GetResource( buf.memoryId )->GetInfo( rm.GetMemoryManager(),OUT info ))
 		{
 			buf.mappedPtr	= info.mappedPtr;
 			buf.memOffset	= info.offset;
@@ -952,46 +954,62 @@ namespace FG
 		
 		auto&	dev = _frameGraph.GetDevice();
 		auto&	rm  = _frameGraph.GetResourceManager();
+		
+		auto	AddBarriers = [&dev, &rm, cmd, this] (VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags dstStage)
+		{
+			FixedArray< VkBufferMemoryBarrier, 16 >		barriers;
+			VkPipelineStageFlags						dst_stage_flags = 0;
+
+			for (auto& sb : _shaderDebugger.buffers)
+			{
+				VkBufferMemoryBarrier	barrier = {};
+				barrier.sType			= VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+				barrier.srcAccessMask	= srcAccess;
+				barrier.dstAccessMask	= dstAccess;
+				barrier.buffer			= rm.GetResource( sb.shaderTraceBuffer.Get() )->Handle();
+				barrier.offset			= 0;
+				barrier.size			= VkDeviceSize(sb.size);
+				barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+				barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
+
+				dst_stage_flags |= sb.stages;
+				barriers.push_back( barrier );
+
+				if ( barriers.size() == barriers.capacity() )
+				{
+					dev.vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage_flags | dstStage, 0, 0, null, uint(barriers.size()), barriers.data(), 0, null );
+					barriers.clear();
+					dst_stage_flags = 0;
+				}
+			}
+		
+			if ( barriers.size() )
+				dev.vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage_flags | dstStage, 0, 0, null, uint(barriers.size()), barriers.data(), 0, null );
+		};
+		
+		AddBarriers( 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT );
+
+		// clear
+		for (auto& sb : _shaderDebugger.buffers)
+		{
+			VkBuffer	buf = rm.GetResource( sb.shaderTraceBuffer.Get() )->Handle();
+
+			dev.vkCmdFillBuffer( cmd, buf, 0, VkDeviceSize(sb.size), 0 );
+		}
+
+		AddBarriers( VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT );
 
 		// copy data
 		for (auto& dbg : _shaderDebugger.modes)
 		{
-			auto	buf		= rm.GetResource( _shaderDebugger.buffers[dbg.sbIndex].shaderTraceBuffer.Get() )->Handle();
-			BytesU	size	= rm.GetDebugShaderStorageSize( dbg.shaderStages ) + SizeOf<uint>;	// per shader data + position
+			VkBuffer	buf		= rm.GetResource( _shaderDebugger.buffers[dbg.sbIndex].shaderTraceBuffer.Get() )->Handle();
+			BytesU		size	= rm.GetDebugShaderStorageSize( dbg.shaderStages, dbg.mode );
 			ASSERT( size <= BytesU::SizeOf(dbg.data) );
 
 			dev.vkCmdUpdateBuffer( cmd, buf, VkDeviceSize(dbg.offset), VkDeviceSize(size), dbg.data );
 		}
 
-		// add pipeline barriers
-		FixedArray< VkBufferMemoryBarrier, 16 >		barriers;
-		VkPipelineStageFlags						dst_stage_flags = 0;
-
-		for (auto& sb : _shaderDebugger.buffers)
-		{
-			VkBufferMemoryBarrier	barrier = {};
-			barrier.sType			= VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-			barrier.srcAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask	= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-			barrier.buffer			= rm.GetResource( sb.shaderTraceBuffer.Get() )->Handle();
-			barrier.offset			= 0;
-			barrier.size			= VkDeviceSize(sb.size);
-			barrier.srcQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-			barrier.dstQueueFamilyIndex	= VK_QUEUE_FAMILY_IGNORED;
-
-			dst_stage_flags |= sb.stages;
-			barriers.push_back( barrier );
-
-			if ( barriers.size() == barriers.capacity() )
-			{
-				dev.vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage_flags, 0, 0, null, uint(barriers.size()), barriers.data(), 0, null );
-				barriers.clear();
-			}
-		}
-		
-		if ( barriers.size() ) {
-			dev.vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage_flags, 0, 0, null, uint(barriers.size()), barriers.data(), 0, null );
-		}
+		AddBarriers( VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, 0 );
 	}
 	
 /*
@@ -1085,6 +1103,26 @@ namespace FG
 	
 /*
 =================================================
+	GetShaderTimemap
+=================================================
+*/
+	bool  VCmdBatch::GetShaderTimemap (ShaderDbgIndex id, RawBufferID &buf, OUT BytesU &offset, OUT BytesU &size, OUT uint2 &dim) const
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( uint(id) < _shaderDebugger.modes.size() );
+		
+		auto&	dbg  = _shaderDebugger.modes[ uint(id) ];
+		
+		buf		= _shaderDebugger.buffers[ dbg.sbIndex ].shaderTraceBuffer;
+		offset	= dbg.offset;
+		size	= dbg.size;
+		dim		= uint2{ dbg.data[2], dbg.data[3] };
+
+		return true;
+	}
+
+/*
+=================================================
 	AppendShader
 =================================================
 */
@@ -1159,6 +1197,33 @@ namespace FG
 	
 /*
 =================================================
+	AppendTimemap
+=================================================
+*/
+	ShaderDbgIndex  VCmdBatch::AppendTimemap (const uint2 &dim, EShaderStages stages)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( FG_EnableShaderDebugging );
+
+		DebugMode	dbg_mode;
+		dbg_mode.mode			= EShaderDebugMode::Timemap;
+		dbg_mode.shaderStages	= stages;
+
+		BytesU		size = SizeOf<uint> * 4 + (dim.x * dim.y * SizeOf<uint64_t>) + (dim.y * SizeOf<uint64_t>);
+		
+		CHECK_ERR( _AllocStorage( INOUT dbg_mode, size ));
+		
+		dbg_mode.data[0] = BitCast<uint>( 1.0f );
+		dbg_mode.data[1] = BitCast<uint>( 1.0f );
+		dbg_mode.data[2] = dim.x;
+		dbg_mode.data[3] = dim.y;
+		
+		_shaderDebugger.modes.push_back( std::move(dbg_mode) );
+		return ShaderDbgIndex(_shaderDebugger.modes.size() - 1);
+	}
+
+/*
+=================================================
 	_AllocStorage
 =================================================
 */
@@ -1168,26 +1233,26 @@ namespace FG
 
 		for (EShaderStages s = EShaderStages(1); s <= dbgMode.shaderStages; s = EShaderStages(uint(s) << 1))
 		{
-			if ( not EnumEq( dbgMode.shaderStages, s ) )
+			if ( not EnumEq( dbgMode.shaderStages, s ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
 			switch ( s )
 			{
-				case EShaderStages::Vertex :		stage = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;					break;
-				case EShaderStages::TessControl :	stage = VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;		break;
-				case EShaderStages::TessEvaluation:	stage = VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;	break;
-				case EShaderStages::Geometry :		stage = VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;					break;
-				case EShaderStages::Fragment :		stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;					break;
-				case EShaderStages::Compute :		stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;					break;
-				case EShaderStages::MeshTask :		stage = VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;					break;
-				case EShaderStages::Mesh :			stage = VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;					break;
+				case EShaderStages::Vertex :		stage |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;					break;
+				case EShaderStages::TessControl :	stage |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;		break;
+				case EShaderStages::TessEvaluation:	stage |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;	break;
+				case EShaderStages::Geometry :		stage |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;					break;
+				case EShaderStages::Fragment :		stage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;					break;
+				case EShaderStages::Compute :		stage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;					break;
+				case EShaderStages::MeshTask :		stage |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;					break;
+				case EShaderStages::Mesh :			stage |= VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;					break;
 				case EShaderStages::RayGen :
 				case EShaderStages::RayAnyHit :
 				case EShaderStages::RayClosestHit :
 				case EShaderStages::RayMiss :
 				case EShaderStages::RayIntersection:
-				case EShaderStages::RayCallable :	stage = VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;			break;
+				case EShaderStages::RayCallable :	stage |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;			break;
 				case EShaderStages::_Last :
 				case EShaderStages::Unknown :
 				case EShaderStages::AllGraphics :

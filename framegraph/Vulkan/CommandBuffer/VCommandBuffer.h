@@ -81,6 +81,11 @@ namespace FG
 		Debugger_t				_debugger;
 
 		struct {
+			ShaderDbgIndex			timemapIndex		= Default;
+			EShaderStages			timemapStages		= Default;
+		}						_shaderDbg;
+
+		struct {
 			ResourceMap_t			resourceMap;
 			LocalImages_t			images;
 			LocalBuffers_t			buffers;
@@ -142,7 +147,10 @@ namespace FG
 		Task		AddTask (const BuildRayTracingScene &) override;
 		Task		AddTask (const TraceRays &) override;
 		Task		AddTask (const CustomTask &) override;
-
+		
+		// profiling //
+		bool		BeginShaderTimeMap (const uint2 &dim, EShaderStages stages) override;
+		Task		EndShaderTimeMap (RawImageID dstImage, ImageLayer layer, MipmapLevel level, ArrayView<Task> dependsOn) override;
 
 		// draw tasks //
 		LogicalPassID  CreateRenderPass (const RenderPassDesc &desc) override;

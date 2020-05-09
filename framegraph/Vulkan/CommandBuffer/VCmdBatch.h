@@ -337,10 +337,12 @@ namespace FG
 		bool  SetShaderModule (ShaderDbgIndex id, const SharedShaderPtr &module);
 		bool  GetDebugModeInfo (ShaderDbgIndex id, OUT EShaderDebugMode &mode, OUT EShaderStages &stages) const;
 		bool  GetDescriptotSet (ShaderDbgIndex id, OUT uint &binding, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const;
+		bool  GetShaderTimemap (ShaderDbgIndex id, OUT RawBufferID &buf, OUT BytesU &offset, OUT BytesU &size, OUT uint2 &dim) const;
 
 		ND_ ShaderDbgIndex  AppendShader (INOUT ArrayView<RectI> &, const TaskName_t &name, const _fg_hidden_::GraphicsShaderDebugMode &mode, BytesU size = 8_Mb);
 		ND_ ShaderDbgIndex  AppendShader (const TaskName_t &name, const _fg_hidden_::ComputeShaderDebugMode &mode, BytesU size = 8_Mb);
 		ND_ ShaderDbgIndex  AppendShader (const TaskName_t &name, const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size = 8_Mb);
+		ND_ ShaderDbgIndex  AppendTimemap (const uint2 &dim, EShaderStages stages);
 
 
 		// staging buffer //

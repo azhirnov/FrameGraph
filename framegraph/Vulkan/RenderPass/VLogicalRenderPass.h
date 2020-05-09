@@ -115,6 +115,7 @@ namespace FG
 		bool Submit (VCommandBuffer &, ArrayView<Pair<RawImageID, EResourceState>>, ArrayView<Pair<RawBufferID, EResourceState>>);
 
 		void _SetRenderPass (RawRenderPassID rp, uint subpass, RawFramebufferID fb, uint depthIndex);
+		void _SetShaderDebugIndex (ShaderDbgIndex id);
 		
 		bool GetShadingRateImage (OUT VLocalImage const* &, OUT ImageViewDesc &) const;
 

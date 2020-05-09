@@ -101,10 +101,13 @@ namespace FG
 		uint						_spirvTraget	= 0;		// spv_target_env
 
 		struct {
-			bool						shaderSubgroupClock	= false;
-			bool						shaderDeviceClock	= false;
+			bool						shaderSubgroupClock				= false;
+			bool						shaderDeviceClock				= false;
+			bool						vertexPipelineStoresAndAtomics	= false;
+			bool						fragmentStoresAndAtomics		= false;
 		}							_features;
 
+		EShaderLangFormat			_debugFlags		= Default;
 		TBuiltInResource			_builtinResource;
 
 

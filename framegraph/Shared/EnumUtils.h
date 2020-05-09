@@ -100,15 +100,12 @@ namespace FG
 */
 	ND_ inline EShaderDebugMode  EShaderDebugMode_From (EShaderLangFormat value)
 	{
-		switch ( value & EShaderLangFormat::_ModeMask )
+		switch ( value & EShaderLangFormat::_DebugModeMask )
 		{
 			case EShaderLangFormat::Unknown :				return EShaderDebugMode::None;
 			case EShaderLangFormat::EnableDebugTrace :		return EShaderDebugMode::Trace;
 			case EShaderLangFormat::EnableProfiling :		return EShaderDebugMode::Profiling;
-			//case EShaderLangFormat::EnableDebugAsserts :	return EShaderDebugMode::Asserts;
-			//case EShaderLangFormat::EnableDebugView :		return EShaderDebugMode::View;
-			//case EShaderLangFormat::EnableProfiling :		return EShaderDebugMode::None;
-			//case EShaderLangFormat::EnableInstrCounter :	return EShaderDebugMode::InstructionCounter;
+			case EShaderLangFormat::EnableTimeMap :			return EShaderDebugMode::Timemap;
 		}
 		RETURN_ERR( "unknown mode" );
 	}
