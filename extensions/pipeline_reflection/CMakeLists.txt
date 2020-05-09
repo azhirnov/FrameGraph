@@ -1,5 +1,3 @@
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
-
 if (${FG_ENABLE_SPIRVREFLECT})
 	file( GLOB_RECURSE SOURCES "*.*" )
 	add_library( "PipelineReflection" STATIC ${SOURCES} )

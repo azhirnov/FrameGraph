@@ -1,9 +1,12 @@
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.11 FATAL_ERROR )
 
 message( STATUS "==========================================================================\n" )
 message( STATUS "project 'FrameGraph' generation started" )
 
-project( "FrameGraph" LANGUAGES C CXX )
+project( "FrameGraph"
+		 VERSION 2020.1.0
+		 LANGUAGES C CXX)
+
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
 message( STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSION})" )
 message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" )
@@ -16,6 +19,9 @@ set( FG_ENABLE_OPENVR ON CACHE BOOL "use OpenVR (optional)" )
 set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS OFF CACHE BOOL "use simplified compiler settings if you have problem with it" )
 set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version instead of master branch" )
 set( FG_EXTERNALS_USE_PREBUILD OFF CACHE BOOL "use stable prebuild libraries" )
+set( FG_ENABLE_GLSL_TRACE ON CACHE BOOL "used for shader debugging and profiling" )
+set( FG_USE_VULKAN_SDK OFF CACHE BOOL "use vulkan headers and glslang source from VulkanSDK" )
+
 
 # test & samples dependencies
 set( FG_ENABLE_TESTS ON CACHE BOOL "enable tests" )
@@ -26,7 +32,7 @@ set( FG_ENABLE_GRAPHVIZ OFF CACHE BOOL "use graphviz (optional)" )
 set( FG_ENABLE_SPIRVREFLECT ON CACHE BOOL "for runtime spirv shader reflection (optional)" )
 
 # UI dependencies
-set( FG_ENABLE_IMGUI OFF CACHE BOOL "use imgui (optional, required for UI extension)" )
+set( FG_ENABLE_IMGUI ON CACHE BOOL "use imgui (optional, required for UI extension)" )
 
 # Scene dependencies
 set( FG_ENABLE_ASSIMP ON CACHE BOOL "use Assimp (optional, required for Scene extension)" )
@@ -64,7 +70,6 @@ add_subdirectory( "stl" )
 add_subdirectory( "extensions/vulkan_loader" )
 add_subdirectory( "extensions/framework" )
 add_subdirectory( "framegraph" )
-add_subdirectory( "extensions/glsl_trace" )
 add_subdirectory( "extensions/pipeline_compiler" )
 add_subdirectory( "extensions/pipeline_reflection" )
 add_subdirectory( "extensions/scene" )
@@ -77,7 +82,6 @@ if (${FG_ENABLE_TESTS})
 	add_subdirectory( "tests/stl" )
 	add_subdirectory( "tests/framegraph" )
 	add_subdirectory( "tests/framework" )
-	add_subdirectory( "tests/glsl_trace" )
 	add_subdirectory( "tests/pipeline_compiler" )
 	add_subdirectory( "tests/pipeline_reflection" )
 	add_subdirectory( "tests/scene" )

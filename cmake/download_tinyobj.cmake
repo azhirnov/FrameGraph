@@ -14,7 +14,7 @@ if (${FG_ENABLE_TINYOBJ})
 	
 	# select version
 	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
-		set( TINYOBJ_TAG "v2.0.0rc5" )
+		set( TINYOBJ_TAG "v1.0.6" )
 	else ()
 		set( TINYOBJ_TAG "master" )
 	endif ()

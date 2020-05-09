@@ -8,20 +8,33 @@ if (${FG_ENABLE_SPIRVREFLECT})
 	if (NOT EXISTS "${FG_EXTERNAL_SPIRVREFLECT_PATH}/spirv_reflect.h")
 		message( STATUS "SPIRV-Reflect is not found in \"${FG_EXTERNAL_SPIRVREFLECT_PATH}\"" )
 		set( FG_EXTERNAL_SPIRVREFLECT_PATH "${FG_EXTERNALS_PATH}/SPIRV-Reflect" CACHE PATH "" FORCE )
+	else ()
+		message( STATUS "SPIRV-Reflect found in \"${FG_EXTERNAL_SPIRVREFLECT_PATH}\"" )
 	endif ()
-	
+
 	# download
-	if (NOT EXISTS "${FG_EXTERNAL_SPIRVREFLECT_PATH}/spirv_reflect.h" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
-		FetchContent_Declare( ExternalSPIRVREFLECT
-			GIT_REPOSITORY		https://github.com/chaoticbob/SPIRV-Reflect.git
-			GIT_TAG				master
+	if (NOT EXISTS "${FG_EXTERNAL_SPIRVREFLECT_PATH}/spirv_reflect.c")
+		FetchContent_Declare( ExternalSpirvReflect
+			# download
+			URL  				"https://github.com/chaoticbob/SPIRV-Reflect/archive/master.zip"
+			DOWNLOAD_DIR		"${FG_EXTERNAL_SPIRVREFLECT_PATH}"
 			SOURCE_DIR			"${FG_EXTERNAL_SPIRVREFLECT_PATH}"
+			LOG_DOWNLOAD		1
+			# build
+			BINARY_DIR			""
+			BUILD_COMMAND		""
+			LOG_BUILD 			1
+			# install
+			INSTALL_DIR 		""
+			LOG_INSTALL 		1
+			# test
+			TEST_COMMAND		""
 		)
 		
-		FetchContent_GetProperties( ExternalSPIRVREFLECT )
-		if (NOT ExternalSPIRVREFLECT_POPULATED)
-			message( STATUS "downloading spirv-reflect" )
-			FetchContent_Populate( ExternalSPIRVREFLECT )
+		FetchContent_GetProperties( ExternalSpirvReflect )
+		if (NOT ExternalSpirvReflect_POPULATED)
+			message( STATUS "downloading SPIRV-Reflect..." )
+			FetchContent_Populate( ExternalSpirvReflect )
 		endif ()
 	endif ()
 

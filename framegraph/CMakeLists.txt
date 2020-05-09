@@ -1,7 +1,3 @@
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
-
-set( FrameGraph_VERSION_MAJOR 0 )
-set( FrameGraph_VERSION_MINOR 13 )
 
 file( GLOB_RECURSE SOURCES "*.*" )
 add_library( "FrameGraph" STATIC ${SOURCES} )
@@ -31,7 +27,7 @@ if (${FG_ENABLE_STDALLOC})
 endif()
 
 # Version
-target_compile_definitions( "FrameGraph" PRIVATE "FG_VERSION_STR=\"${FrameGraph_VERSION_MAJOR}.${FrameGraph_VERSION_MINOR}\"" )
+target_compile_definitions( "FrameGraph" PRIVATE "FG_VERSION_STR=\"${PROJECT_VERSION}\"" )
 if (DEFINED FG_COMMIT_HASH)
 	target_compile_definitions( "FrameGraph" PRIVATE "FG_COMMIT_HASH=\"${FG_COMMIT_HASH}\"" )
 endif()

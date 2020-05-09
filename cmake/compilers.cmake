@@ -1,6 +1,4 @@
 # auto generated file
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
-
 
 # detect target platform
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

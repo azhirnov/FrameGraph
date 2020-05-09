@@ -13,7 +13,7 @@ if (${FG_ENABLE_LODEPNG})
 	endif ()
 	
 	# download
-	if (NOT EXISTS "${FG_EXTERNAL_LODEPNG_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+	if (NOT EXISTS "${FG_EXTERNAL_LODEPNG_PATH}/lodepng.h")
 		if (NOT DEFINED CMAKE_FOLDER)
 			message( FATAL_ERROR "CMAKE_FOLDER is not defined!" )
 		endif ()

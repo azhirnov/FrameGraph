@@ -20,7 +20,7 @@ if (${FG_ENABLE_VMA})
 	endif ()
 
 	# download
-	if (NOT EXISTS "${FG_EXTERNAL_VMA_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+	if (NOT EXISTS "${FG_EXTERNAL_VMA_PATH}/src/vk_mem_alloc.h")
 		FetchContent_Declare( ExternalVMA
 			GIT_REPOSITORY		https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
 			SOURCE_DIR			"${FG_EXTERNAL_VMA_PATH}"

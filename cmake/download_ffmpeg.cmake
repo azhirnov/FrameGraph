@@ -1,4 +1,4 @@
-# find or download ffmpeg SDK (GPL license)
+# find or download ffmpeg SDK (LGPL / GPL license)
 # https://ffmpeg.zeranoe.com/builds/
 
 if (TRUE) #(${FG_ALLOW_GPL})

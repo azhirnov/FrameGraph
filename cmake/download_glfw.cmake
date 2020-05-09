@@ -20,16 +20,16 @@ if (${FG_ENABLE_GLFW})
 	endif ()
 
 	# download
-	if (NOT EXISTS "${FG_EXTERNAL_GLFW_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+	if (NOT EXISTS "${FG_EXTERNAL_GLFW_PATH}/include/GLFW/glfw3.h")
 		FetchContent_Declare( ExternalGLFW
-			GIT_REPOSITORY		https://github.com/glfw/glfw.git
 			GIT_TAG				${GLFW_TAG}
+			GIT_REPOSITORY		"https://github.com/glfw/glfw.git"
 			SOURCE_DIR			"${FG_EXTERNAL_GLFW_PATH}"
 		)
 		
 		FetchContent_GetProperties( ExternalGLFW )
 		if (NOT ExternalGLFW_POPULATED)
-			message( STATUS "downloading glfw" )
+			message( STATUS "downloading glfw..." )
 			FetchContent_Populate( ExternalGLFW )
 		endif ()
 	endif ()

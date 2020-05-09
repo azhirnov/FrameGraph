@@ -15,9 +15,6 @@ FrameGraph renderer for [imgui](https://github.com/ocornut/imgui).
 ## Scene
 Work in progress.
 
-## GLSL Trace
-Standalone library (only glslang is required), that adds shader trace recording into glslang AST.
-
 ## Pipeline Compiler
 Intergrated into FrameGraph and add ability to compile glsl shaders and generates shader reflection.<br/>
 Can produce debuggable shaders using GLSLTrace library.

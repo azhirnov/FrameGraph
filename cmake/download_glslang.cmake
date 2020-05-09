@@ -34,6 +34,14 @@ elseif (${FG_ENABLE_GLSLANG})
 	else ()
 		message( STATUS "glslang found in \"${FG_EXTERNAL_GLSLANG_PATH}\"" )
 	endif ()
+	
+	if (${FG_USE_VULKAN_SDK})
+		find_package( Vulkan )
+		if (Vulkan_FOUND)
+			message( STATUS "used glslang from VulkanSDK" )
+			set( FG_EXTERNAL_GLSLANG_PATH "${Vulkan_INCLUDE_DIR}/../glslang" CACHE PATH "" FORCE )
+		endif ()
+	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/CMakeLists.txt")
 		set( FG_GLSLANG_REPOSITORY "https://github.com/KhronosGroup/glslang.git" )
@@ -170,7 +178,7 @@ elseif (${FG_ENABLE_GLSLANG})
 		INSTALL_COMMAND		${CMAKE_COMMAND}
 							--build .
 							--config $<CONFIG>
-							--target
+							--target glslang
 							install
 							COMMAND ${CMAKE_COMMAND} -E copy_if_different
 								"${FG_EXTERNAL_GLSLANG_PATH}/StandAlone/ResourceLimits.h"

@@ -1,4 +1,3 @@
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 file( GLOB_RECURSE SOURCES "*.*" )
 add_library( "Framework" STATIC ${SOURCES} )
