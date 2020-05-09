@@ -1479,8 +1479,8 @@ namespace FG
 				VkRect2D		dst = {};
 				dst.offset.x		= src.left;
 				dst.offset.y		= src.top;
-				dst.extent.width	= uint(src.Width());
-				dst.extent.height	= uint(src.Height());
+				dst.extent.width	= CheckCast<uint>(src.Width());
+				dst.extent.height	= CheckCast<uint>(src.Height());
 				vk_scissors.push_back( dst );
 			}
 
@@ -1709,8 +1709,8 @@ namespace FG
 		pass_info.renderPass				= render_pass->Handle();
 		pass_info.renderArea.offset.x		= area.left;
 		pass_info.renderArea.offset.y		= area.top;
-		pass_info.renderArea.extent.width	= uint(area.Width());
-		pass_info.renderArea.extent.height	= uint(area.Height());
+		pass_info.renderArea.extent.width	= CheckCast<uint>(area.Width());
+		pass_info.renderArea.extent.height	= CheckCast<uint>(area.Height());
 		pass_info.clearValueCount			= render_pass->GetCreateInfo().attachmentCount;
 		pass_info.pClearValues				= task.GetLogicalPass()->GetClearValues().data();
 		pass_info.framebuffer				= framebuffer->Handle();

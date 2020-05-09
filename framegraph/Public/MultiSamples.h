@@ -38,7 +38,7 @@ namespace FG
 	};
 	
 
-	ND_ inline MultiSamples operator "" _samples (unsigned long long value)		{ return MultiSamples( uint(value) ); }
+	ND_ inline MultiSamples operator "" _samples (unsigned long long value)		{ return MultiSamples( CheckCast<uint>(value) ); }
 
 
 }	// FG

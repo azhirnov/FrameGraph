@@ -720,8 +720,8 @@ namespace {
 		CHECK_ERR( total_size == ArraySizeOf(task.data) );
 
 		const BytesU		min_size	= _batch->GetMaxWritableStoregeSize();
-		const uint			row_length	= uint((row_pitch * block_dim.x * 8) / block_size);
-		const uint			img_height	= uint((slice_pitch * block_dim.y) / row_pitch);
+		const uint			row_length	= CheckCast<uint>((row_pitch * block_dim.x * 8) / block_size);
+		const uint			img_height	= CheckCast<uint>((slice_pitch * block_dim.y) / row_pitch);
 		CopyBufferToImage	copy;
 
 		copy.taskName	= task.taskName;
@@ -750,7 +750,7 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	z_size = uint(size / slice_pitch);
+				const uint	z_size = CheckCast<uint>(size / slice_pitch);
 
 				ASSERT( image_size.x % block_dim.x == 0 );
 				ASSERT( image_size.y % block_dim.y == 0 );
@@ -787,7 +787,7 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	y_size = uint((size * block_dim.y) / row_pitch);
+				const uint	y_size = CheckCast<uint>((size * block_dim.y) / row_pitch);
 
 				ASSERT( (task.imageOffset.y + y_offset) % block_dim.y == 0 );
 				ASSERT( image_size.x % block_dim.x == 0 );
@@ -940,7 +940,7 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	z_size = uint(range.size / slice_pitch);
+				const uint	z_size = CheckCast<uint>(range.size / slice_pitch);
 
 				copy.AddRegion( ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
 								task.imageOffset + int3(0, 0, z_offset), uint3(image_size.x, image_size.y, z_size),
@@ -975,7 +975,7 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	y_size = uint((range.size * block_dim.y) / row_pitch);
+				const uint	y_size = CheckCast<uint>((range.size * block_dim.y) / row_pitch);
 
 				copy.AddRegion( ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
 								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, y_size, 1),
@@ -1224,7 +1224,7 @@ namespace {
 			dst.flags					= VEnumCast( ref.flags );
 			dst.geometry.aabbs.sType	= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
 			dst.geometry.aabbs.numAABBs	= src.aabbCount;
-			dst.geometry.aabbs.stride	= uint(src.aabbStride);
+			dst.geometry.aabbs.stride	= CheckCast<uint>(src.aabbStride);
 
 			if ( src.aabbData.size() )
 			{
@@ -1288,7 +1288,7 @@ namespace {
 
 		result->_rtGeometries			= _mainAllocator.Alloc< VLocalRTGeometry const *>( task.instances.size() );
 		result->_instances				= _mainAllocator.Alloc< VFgTask<BuildRayTracingScene>::Instance >( task.instances.size() );
-		result->_instanceCount			= uint(task.instances.size());
+		result->_instanceCount			= CheckCast<uint>(task.instances.size());
 		result->_hitShadersPerInstance	= Max( 1u, task.hitShadersPerInstance );
 
 		for (size_t i = 0; i < task.instances.size(); ++i)

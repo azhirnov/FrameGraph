@@ -16,6 +16,11 @@ namespace FGC
 	{
 		STATIC_ASSERT( IsInteger<T> and IsScalar<T>, "must be integer scalar" );
 
+	// types
+	public:
+		using Value_t	= T;
+
+
 	// variables
 	private:
 		T	_value;
@@ -30,15 +35,18 @@ namespace FGC
 		template <typename B>
 		explicit constexpr Bytes (const Bytes<B> &other) : _value(T(other)) {}
 		
-		ND_ explicit constexpr operator int8_t ()	const	{ return static_cast<int8_t>( _value ); }
-		ND_ explicit constexpr operator int16_t ()	const	{ return static_cast<int16_t>( _value ); }
-		ND_ explicit constexpr operator int ()		const	{ return static_cast<int>( _value ); }
-		ND_ explicit constexpr operator int64_t ()	const	{ return static_cast<int64_t>( _value ); }
+		ND_ explicit constexpr operator int8_t ()	const	{ return CheckCast<int8_t>( _value ); }
+		ND_ explicit constexpr operator int16_t ()	const	{ return CheckCast<int16_t>( _value ); }
+		ND_ explicit constexpr operator int ()		const	{ return CheckCast<int>( _value ); }
+		ND_ explicit constexpr operator int64_t ()	const	{ return CheckCast<int64_t>( _value ); }
 
-		ND_ explicit constexpr operator uint8_t ()	const	{ return static_cast<uint8_t>( _value ); }
-		ND_ explicit constexpr operator uint16_t ()	const	{ return static_cast<uint16_t>( _value ); }
-		ND_ explicit constexpr operator uint32_t ()	const	{ return static_cast<uint32_t>( _value ); }
-		ND_ explicit constexpr operator uint64_t ()	const	{ return static_cast<uint64_t>( _value ); }
+		ND_ explicit constexpr operator uint8_t ()	const	{ return CheckCast<uint8_t>( _value ); }
+		ND_ explicit constexpr operator uint16_t ()	const	{ return CheckCast<uint16_t>( _value ); }
+		ND_ explicit constexpr operator uint32_t ()	const	{ return CheckCast<uint32_t>( _value ); }
+		ND_ explicit constexpr operator uint64_t ()	const	{ return CheckCast<uint64_t>( _value ); }
+
+		template <typename R>
+		ND_ explicit constexpr operator R * ()		const	{ return BitCast<R *>( CheckCast<size_t>( _value )); }
 		
 		ND_ constexpr T		Kb ()	const					{ return _value >> 10; }
 		ND_ constexpr T		Mb ()	const					{ return _value >> 20; }
@@ -134,11 +142,11 @@ namespace FGC
 	template <typename T>
 	inline static constexpr BytesU	AlignOf = BytesU::AlignOf<T>();
 	
-
-	ND_ constexpr BytesU  operator "" _b (unsigned long long value)		{ return BytesU( value ); }
-	ND_ constexpr BytesU  operator "" _Kb (unsigned long long value)	{ return BytesU::FromKb( value ); }
-	ND_ constexpr BytesU  operator "" _Mb (unsigned long long value)	{ return BytesU::FromMb( value ); }
-	ND_ constexpr BytesU  operator "" _Gb (unsigned long long value)	{ return BytesU::FromGb( value ); }
+	
+	ND_ constexpr BytesU  operator "" _b (unsigned long long value)		{ return BytesU( CheckCast<BytesU::Value_t>(value) ); }
+	ND_ constexpr BytesU  operator "" _Kb (unsigned long long value)	{ return BytesU::FromKb( CheckCast<BytesU::Value_t>(value) ); }
+	ND_ constexpr BytesU  operator "" _Mb (unsigned long long value)	{ return BytesU::FromMb( CheckCast<BytesU::Value_t>(value) ); }
+	ND_ constexpr BytesU  operator "" _Gb (unsigned long long value)	{ return BytesU::FromGb( CheckCast<BytesU::Value_t>(value) ); }
 
 	
 /*

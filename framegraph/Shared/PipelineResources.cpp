@@ -835,18 +835,18 @@ namespace {
 		auto*	data			= &mem.Emplace<PRs::DynamicData>();
 		auto*	uniforms_ptr	= mem.EmplaceArray<PRs::Uniform>( uniforms->size() );
 		data->memSize			= req_size;
-		data->uniformCount		= uint(uniforms->size());
-		data->uniformsOffset	= uint(mem.OffsetOf( uniforms_ptr ));
+		data->uniformCount		= CheckCast<uint>(uniforms->size());
+		data->uniformsOffset	= uint(mem.OffsetOf( uniforms_ptr, 0_b ));
 
 		auto*	dyn_offsets		= mem.EmplaceArray<uint>( bufferDynamicOffsetCount );
 		data->dynamicOffsetsCount	= bufferDynamicOffsetCount;
-		data->dynamicOffsetsOffset	= uint(mem.OffsetOf( dyn_offsets ));
+		data->dynamicOffsetsOffset	= uint(mem.OffsetOf( dyn_offsets, 0_b ));
 
 		for (auto& un : *uniforms)
 		{
 			auto&			curr			= uniforms_ptr[ un_index++ ];
-			const uint16_t	array_capacity	= uint16_t(un.second.arraySize ? un.second.arraySize : FG_MaxElementsInUnsizedDesc);
-			const uint16_t	array_size		= uint16_t(un.second.arraySize);
+			const uint16_t	array_capacity	= CheckCast<uint16_t>(un.second.arraySize ? un.second.arraySize : FG_MaxElementsInUnsizedDesc);
+			const uint16_t	array_size		= CheckCast<uint16_t>(un.second.arraySize);
 			
 			curr.id = un.first;
 
@@ -858,7 +858,7 @@ namespace {
 											un.second.index, tex.state, array_capacity, array_size, Default );
 
 						curr.resType	= PRs::Texture::TypeId;
-						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
+						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
 					},
 
 					[&] (const PipelineDescription::Sampler &)
@@ -868,7 +868,7 @@ namespace {
 											un.second.index, array_capacity, array_size, Default );
 
 						curr.resType	= PRs::Sampler::TypeId;
-						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
+						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
 					},
 
 					[&] (const PipelineDescription::SubpassInput &spi)
@@ -878,7 +878,7 @@ namespace {
 											un.second.index, spi.state, array_capacity, array_size, Default );
 
 						curr.resType	= PRs::Image::TypeId;
-						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
+						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
 					},
 
 					[&] (const PipelineDescription::Image &img)
@@ -888,7 +888,7 @@ namespace {
 											un.second.index, img.state, array_capacity, array_size, Default );
 
 						curr.resType	= PRs::Image::TypeId;
-						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
+						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
 					},
 
 					[&] (const PipelineDescription::UniformBuffer &ubuf)
@@ -900,7 +900,7 @@ namespace {
 
 						dbo_count		+= uint(ubuf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET) * array_capacity;
 						curr.resType	= PRs::Buffer::TypeId;
-						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
+						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
 					},
 
 					[&] (const PipelineDescription::StorageBuffer &sbuf)
@@ -912,7 +912,7 @@ namespace {
 
 						dbo_count		+= uint(sbuf.dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET) * array_capacity;
 						curr.resType	= PRs::Buffer::TypeId;
-						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
+						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
 					},
 
 					[&] (const PipelineDescription::RayTracingScene &)
@@ -922,7 +922,7 @@ namespace {
 											un.second.index, array_capacity, array_size, Default );
 
 						curr.resType	= PRs::RayTracingScene::TypeId;
-						curr.offset		= uint16_t(mem.OffsetOf( ptr ));
+						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
 					},
 
 					[] (const NullUnion &) { ASSERT(false); }

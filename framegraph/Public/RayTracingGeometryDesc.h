@@ -56,7 +56,7 @@ namespace FG
 			AABB () {}
 			explicit AABB (const GeometryID &id) : geometryId{id} {}
 
-			template <typename Idx>	AABB&  SetCount (Idx count)			{ STATIC_ASSERT(IsInteger<Idx>);  aabbCount = uint(count);  return *this; }
+			template <typename Idx>	AABB&  SetCount (Idx count)			{ STATIC_ASSERT(IsInteger<Idx>);  aabbCount = CheckCast<uint>(count);  return *this; }
 									AABB&  AddFlags (EFlags value)		{ flags |= value;  return *this; }
 									AABB&  SetID (const GeometryID &id)	{ geometryId = id;  return *this; }
 		};
@@ -82,7 +82,7 @@ namespace FG
 		RayTracingGeometryDesc::Triangles::SetVertices (Idx count)
 	{
 		STATIC_ASSERT( IsInteger<Idx> );
-		vertexCount  = uint(count);
+		vertexCount  = CheckCast<uint>(count);
 		vertexFormat = VertexDesc<T>::attrib;
 		return *this;
 	}
@@ -92,7 +92,7 @@ namespace FG
 		RayTracingGeometryDesc::Triangles::SetVertices (Idx count, EVertexType fmt)
 	{
 		STATIC_ASSERT( IsInteger<Idx> );
-		vertexCount  = uint(count);
+		vertexCount  = CheckCast<uint>(count);
 		vertexFormat = fmt;
 		return *this;
 	}
@@ -102,7 +102,7 @@ namespace FG
 		RayTracingGeometryDesc::Triangles::SetIndices (Idx count, EIndex type)
 	{
 		STATIC_ASSERT( IsInteger<Idx> );
-		indexCount = uint(count);
+		indexCount = CheckCast<uint>(count);
 		indexType  = type;
 		return *this;
 	}
@@ -116,7 +116,7 @@ namespace FG
 		STATIC_ASSERT( IsInteger<Idx> );
 		STATIC_ASSERT( (IsSameTypes<type, uint32_t>) or (IsSameTypes<type, uint16_t>) );
 
-		indexCount = uint(count); 
+		indexCount = CheckCast<uint>(count); 
 		indexType  = IsSameTypes<type, uint> ? EIndex::UInt : EIndex::UShort;
 		return *this;
 	}

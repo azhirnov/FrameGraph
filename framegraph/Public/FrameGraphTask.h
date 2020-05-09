@@ -1363,7 +1363,7 @@ namespace FG
 		ASSERT( vertices.size() );
 		vertexBuffer	= Default;
 		vertexData		= ArrayView<uint8_t>{ Cast<uint8_t>(vertices.data()), vertices.size() * sizeof(VertexT) };
-		vertexCount		= uint(vertices.size());
+		vertexCount		= CheckCast<uint>(vertices.size());
 		vertexFormat	= VertexDesc<VertexT>::attrib;
 		vertexStride	= Bytes<uint>::SizeOf<VertexT>();
 		return *this;
@@ -1374,8 +1374,8 @@ namespace FG
 		BuildRayTracingGeometry::Triangles::SetVertices (Idx count, BytesU stride)
 	{
 		STATIC_ASSERT( IsInteger<Idx> );
-		vertexCount		= uint(count);
-		vertexStride	= Bytes<uint>{ uint(stride) };
+		vertexCount		= CheckCast<uint>(count);
+		vertexStride	= Bytes<uint>{ CheckCast<uint>(stride) };
 		vertexFormat	= VertexDesc<T>::attrib;
 		return *this;
 	}
@@ -1385,8 +1385,8 @@ namespace FG
 		BuildRayTracingGeometry::Triangles::SetVertices (Idx count, EVertexType format, BytesU stride)
 	{
 		STATIC_ASSERT( IsInteger<Idx> );
-		vertexCount		= uint(count);
-		vertexStride	= Bytes<uint>{ uint(stride) };
+		vertexCount		= CheckCast<uint>(count);
+		vertexStride	= Bytes<uint>{ CheckCast<uint>(stride) };
 		vertexFormat	= format;
 		return *this;
 	}
@@ -1413,7 +1413,7 @@ namespace FG
 		BuildRayTracingGeometry::Triangles::SetIndices (Idx count, EIndex type)
 	{
 		STATIC_ASSERT( IsInteger<Idx> );
-		indexCount	= uint(count);
+		indexCount	= CheckCast<uint>(count);
 		indexType	= type;
 		return *this;
 	}
@@ -1425,7 +1425,7 @@ namespace FG
 		ASSERT( indices.size() );
 		indexBuffer	= Default;
 		indexData	= ArrayView<uint8_t>{ Cast<uint8_t>(indices.data()), indices.size() * sizeof(IndexT) };
-		indexCount	= uint(indices.size());
+		indexCount	= CheckCast<uint>(indices.size());
 		indexType	= (IsSameTypes<IndexT, uint32_t> ? EIndex::UInt : (IsSameTypes<IndexT, uint16_t> ? EIndex::UShort : EIndex::Unknown));
 		return *this;
 	}
@@ -1472,8 +1472,8 @@ namespace FG
 		BuildRayTracingGeometry::AABB::SetCount (Idx count, BytesU stride)
 	{
 		STATIC_ASSERT( IsInteger<Idx> );
-		aabbCount	= uint(count);
-		aabbStride	= Bytes<uint>{ uint(stride) };
+		aabbCount	= CheckCast<uint>(count);
+		aabbStride	= Bytes<uint>{ CheckCast<uint>(stride) };
 		return *this;
 	}
 //-----------------------------------------------------------------------------

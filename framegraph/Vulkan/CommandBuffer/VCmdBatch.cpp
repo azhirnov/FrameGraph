@@ -1081,7 +1081,7 @@ namespace FG
 
 		binding			= FG_DebugDescriptorSet;
 		descSet			= dbg.descriptorSet;
-		dynamicOffset	= uint(dbg.offset);
+		dynamicOffset	= CheckCast<uint>(dbg.offset);
 		return true;
 	}
 	
@@ -1209,7 +1209,7 @@ namespace FG
 
 			if ( dbgMode.size <= (sb.capacity - dbgMode.offset) )
 			{
-				dbgMode.sbIndex	= uint(Distance( _shaderDebugger.buffers.data(), &sb ));
+				dbgMode.sbIndex	= CheckCast<uint>( Distance( _shaderDebugger.buffers.data(), &sb ));
 				sb.size			= dbgMode.offset + size;
 				sb.stages		|= stage;
 				break;
@@ -1227,7 +1227,7 @@ namespace FG
 															 MemoryDesc{EMemoryType::HostRead}, "ReadBackDebugOutput" );
 			CHECK_ERR( sb.shaderTraceBuffer and sb.readBackBuffer );
 			
-			dbgMode.sbIndex	= uint(_shaderDebugger.buffers.size());
+			dbgMode.sbIndex	= CheckCast<uint>(_shaderDebugger.buffers.size());
 			dbgMode.offset	= 0_b;
 			sb.size			= dbgMode.offset + size;
 			sb.stages		|= stage;
