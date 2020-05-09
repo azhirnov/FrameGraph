@@ -21,23 +21,15 @@ namespace FG
 	
 	struct CommandBufferDesc
 	{
-		EQueueType		queueType					= EQueueType::Graphics;
-		BytesU			hostWritableBufferSize		= 256_Mb;
-		BytesU			hostReadableBufferSize		= 256_Mb;
-		EBufferUsage	hostWritebleBufferUsage		= EBufferUsage::TransferSrc;
-		//bool			immutableResources			= true;		// all resources except render targets and storage buffer/image will be immutable
-		//bool			submitImmediately			= true;		// set 'false' to merge commands into some betches
-		EDebugFlags		debugFlags					= Default;
+		EQueueType		queueType	= EQueueType::Graphics;
+		EDebugFlags		debugFlags	= Default;
 		StringView		name;
 		
 				 CommandBufferDesc () {}
 		explicit CommandBufferDesc (EQueueType type) : queueType{type} {}
 
-		CommandBufferDesc&  SetHostWritableBufferSize (BytesU value)		{ hostWritableBufferSize = value;  return *this; }
-		CommandBufferDesc&  SetHostReadableBufferSize (BytesU value)		{ hostReadableBufferSize = value;  return *this; }
-		CommandBufferDesc&  SetHostWritableBufferUsage (EBufferUsage value)	{ hostWritebleBufferUsage = value;  return *this; }
-		CommandBufferDesc&  SetDebugFlags (EDebugFlags value)				{ debugFlags = value;  return *this; }
-		CommandBufferDesc&  SetDebugName (StringView value)					{ name = value;  return *this; }
+		CommandBufferDesc&  SetDebugFlags (EDebugFlags value)	{ debugFlags = value;  return *this; }
+		CommandBufferDesc&  SetDebugName (StringView value)		{ name = value;  return *this; }
 	};
 
 

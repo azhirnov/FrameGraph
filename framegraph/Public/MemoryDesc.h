@@ -4,6 +4,7 @@
 
 #include "framegraph/Public/ResourceEnums.h"
 #include "framegraph/Public/IDs.h"
+#include "framegraph/Public/VulkanTypes.h"
 
 namespace FG
 {
@@ -14,10 +15,13 @@ namespace FG
 
 	struct MemoryDesc
 	{
-	// variables
-		EMemoryType		type	= EMemoryType::Default;
-		MemPoolID		poolId;
+	// types
+		using MemRequirements_t = Union< NullUnion, VulkanMemRequirements >;
 
+	// variables
+		EMemoryType			type	= EMemoryType::Default;
+		MemPoolID			poolId;
+		MemRequirements_t	req;
 
 	// methods
 		MemoryDesc () {}

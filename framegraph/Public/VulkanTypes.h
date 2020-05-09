@@ -130,6 +130,17 @@ namespace FG
 
 
 	//
+	// Vulkan Memory Requirements
+	//
+	struct VulkanMemRequirements
+	{
+		uint			memTypeBits	= 0;
+		uint			alignment	= 0;
+	};
+
+
+
+	//
 	// Vulkan Command Batch
 	//
 	struct VulkanCommandBatch

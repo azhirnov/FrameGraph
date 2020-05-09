@@ -13,8 +13,8 @@ namespace FG
 		HostRead		= uint(EMemoryType::HostRead),
 		HostWrite		= uint(EMemoryType::HostWrite),
 		Dedicated		= uint(EMemoryType::Dedicated),
-		AllowAliasing	= uint(EMemoryType::AllowAliasing),
-		Sparse			= uint(EMemoryType::Sparse),
+		//AllowAliasing	= uint(EMemoryType::AllowAliasing),
+		//Sparse		= uint(EMemoryType::Sparse),
 		_Offset			= uint(EMemoryType::_Last)-1,
 
 		LocalInGPU		= _Offset << 1,

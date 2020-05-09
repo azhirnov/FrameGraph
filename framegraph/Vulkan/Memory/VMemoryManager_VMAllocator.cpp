@@ -13,6 +13,8 @@
 #define VMA_DEBUG_ALWAYS_DEDICATED_MEMORY	0
 #define VMA_DEBUG_DETECT_CORRUPTION			0	// TODO: use for debugging ?
 #define VMA_DEBUG_GLOBAL_MUTEX				0	// will be externally synchronized
+#define VMA_STATIC_VULKAN_FUNCTIONS			0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS		1
 
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic push
@@ -70,7 +72,7 @@ namespace FG
 			
 		bool AllocForImage (VkImage image, const MemoryDesc &mem, OUT Storage_t &data) override;
 		bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &mem, OUT Storage_t &data) override;
-		bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) override;
+		bool AllocForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) override;
 
 		bool Dealloc (INOUT Storage_t &data) override;
 		
@@ -165,7 +167,29 @@ namespace FG
 		info.pUserData		= null;
 
 		VmaAllocation	mem = null;
-		VK_CHECK( vmaAllocateMemoryForImage( _allocator, image, &info, OUT &mem, null ));
+		
+		if ( auto* req = UnionGetIf<VulkanMemRequirements>( &desc.req ))
+		{
+			// because used private api
+			VMA_DEBUG_GLOBAL_MUTEX_LOCK
+				
+			VkMemoryRequirements vkMemReq = {};
+			bool requires_dedicated_allocation	= false;
+			bool prefers_dedicated_allocation	= false;
+			_allocator->GetImageMemoryRequirements( image, OUT vkMemReq, OUT requires_dedicated_allocation, OUT prefers_dedicated_allocation );
+
+			vkMemReq.alignment		= Max( vkMemReq.alignment, req->alignment );
+			vkMemReq.memoryTypeBits	&= (req->memTypeBits ? req->memTypeBits : ~0u);
+			
+			CHECK_ERR( vkMemReq.memoryTypeBits != 0 );
+
+			VK_CHECK( _allocator->AllocateMemory( vkMemReq, requires_dedicated_allocation, prefers_dedicated_allocation,
+												  VK_NULL_HANDLE, image, info, VMA_SUBALLOCATION_TYPE_IMAGE_UNKNOWN, 1, OUT &mem ));
+		}
+		else
+		{
+			VK_CHECK( vmaAllocateMemoryForImage( _allocator, image, &info, OUT &mem, null ));
+		}
 
 		VK_CHECK( vmaBindImageMemory( _allocator, mem, image ));
 		
@@ -188,9 +212,31 @@ namespace FG
 		info.memoryTypeBits	= 0;
 		info.pool			= VK_NULL_HANDLE;
 		info.pUserData		= null;
-
+		
 		VmaAllocation	mem = null;
-		VK_CHECK( vmaAllocateMemoryForBuffer( _allocator, buffer, &info, OUT &mem, null ));
+
+		if ( auto* req = UnionGetIf<VulkanMemRequirements>( &desc.req ))
+		{
+			// because used private api
+			VMA_DEBUG_GLOBAL_MUTEX_LOCK
+
+			VkMemoryRequirements vkMemReq = {};
+			bool requires_dedicated_allocation	= false;
+			bool prefers_dedicated_allocation	= false;
+			_allocator->GetBufferMemoryRequirements( buffer, OUT vkMemReq, OUT requires_dedicated_allocation, OUT prefers_dedicated_allocation );
+
+			vkMemReq.alignment		= Max( vkMemReq.alignment, req->alignment );
+			vkMemReq.memoryTypeBits	&= (req->memTypeBits ? req->memTypeBits : ~0u);
+			
+			CHECK_ERR( vkMemReq.memoryTypeBits != 0 );
+
+			VK_CHECK( _allocator->AllocateMemory( vkMemReq, requires_dedicated_allocation, prefers_dedicated_allocation,
+												  buffer, VK_NULL_HANDLE, info, VMA_SUBALLOCATION_TYPE_BUFFER, 1, OUT &mem ));
+		}
+		else
+		{
+			VK_CHECK( vmaAllocateMemoryForBuffer( _allocator, buffer, &info, OUT &mem, null ));
+		}
 
 		VK_CHECK( vmaBindBufferMemory( _allocator, mem, buffer ));
 		
@@ -200,10 +246,10 @@ namespace FG
 	
 /*
 =================================================
-	AllocateForAccelStruct
+	AllocForAccelStruct
 =================================================
 */
-	bool VMemoryManager::VulkanMemoryAllocator::AllocateForAccelStruct (VkAccelerationStructureNV accelStruct, const MemoryDesc &desc, OUT Storage_t &data)
+	bool VMemoryManager::VulkanMemoryAllocator::AllocForAccelStruct (VkAccelerationStructureNV accelStruct, const MemoryDesc &desc, OUT Storage_t &data)
 	{
 		VkAccelerationStructureMemoryRequirementsInfoNV	mem_info = {};
 		mem_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
@@ -222,6 +268,9 @@ namespace FG
 		info.pool			= VK_NULL_HANDLE;
 		info.pUserData		= null;
 		
+		// because used private api
+	    VMA_DEBUG_GLOBAL_MUTEX_LOCK
+
 		VmaAllocation	mem = null;
 		VK_CHECK( _allocator->AllocateMemory( mem_req.memoryRequirements, false, false, VK_NULL_HANDLE, VK_NULL_HANDLE, info, VMA_SUBALLOCATION_TYPE_UNKNOWN, 1, OUT &mem ));
 		
@@ -336,8 +385,8 @@ namespace FG
 				case EMemoryTypeExt::HostCoherent :		flags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;	break;
 				case EMemoryTypeExt::HostCached :		flags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;	break;
 				case EMemoryTypeExt::Dedicated :
-				case EMemoryTypeExt::AllowAliasing :
-				case EMemoryTypeExt::Sparse :
+				//case EMemoryTypeExt::AllowAliasing :
+				//case EMemoryTypeExt::Sparse :
 				case EMemoryTypeExt::ForBuffer :
 				case EMemoryTypeExt::ForImage :			break;
 				case EMemoryTypeExt::_Last :

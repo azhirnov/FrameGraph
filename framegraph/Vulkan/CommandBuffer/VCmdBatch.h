@@ -277,9 +277,6 @@ namespace FG
 
 		// staging buffers
 		struct {
-			BytesU								hostWritableBufferSize;
-			BytesU								hostReadableBufferSize;
-			EBufferUsage						hostWritebleBufferUsage	= Default;
 			FixedArray< StagingBuffer, 8 >		hostToDevice;	// CPU write, GPU read
 			FixedArray< StagingBuffer, 8 >		deviceToHost;	// CPU read, GPU write
 			Array< OnBufferDataLoadedEvent >	onBufferLoadedEvents;
@@ -353,9 +350,6 @@ namespace FG
 		bool  AddPendingLoad (BytesU srcOffset, BytesU srcTotalSize, BytesU srcPitch, OUT RawBufferID &dstBuffer, OUT OnImageDataLoadedEvent::Range &range);
 		bool  AddDataLoadedEvent (OnImageDataLoadedEvent &&);
 		bool  AddDataLoadedEvent (OnBufferDataLoadedEvent &&);
-
-		ND_ BytesU					GetMaxWritableStoregeSize ()	const	{ SHAREDLOCK( _drCheck );  return _staging.hostWritableBufferSize / 4; }
-		ND_ BytesU					GetMaxReadableStorageSize ()	const	{ SHAREDLOCK( _drCheck );  return _staging.hostReadableBufferSize / 4; }
 
 
 		ND_ EQueueType				GetQueueType ()					const	{ SHAREDLOCK( _drCheck );  return _queueType; }

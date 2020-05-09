@@ -49,8 +49,8 @@ namespace FG
 		HostRead		= 1 << 0,
 		HostWrite		= 1 << 1,
 		Dedicated		= 1 << 2,		// force to use dedicated allocation
-		AllowAliasing	= 1 << 3,		// 
-		Sparse			= 1 << 4,
+		//AllowAliasing	= 1 << 3,		// 
+		//Sparse		= 1 << 4,
 		_Last,
 	};
 	FG_BIT_OPERATORS( EMemoryType );

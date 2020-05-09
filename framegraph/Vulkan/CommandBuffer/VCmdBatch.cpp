@@ -190,13 +190,10 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		_SetState( EState::Recording );
-
-		//_submitImmediatly			= // TODO
-		_staging.hostWritableBufferSize		= desc.hostWritableBufferSize;
-		_staging.hostReadableBufferSize		= desc.hostReadableBufferSize;
-		_staging.hostWritebleBufferUsage	= desc.hostWritebleBufferUsage | EBufferUsage::TransferSrc;
 		
-		_statistic = Default;
+		_dbgQueueSync	= EnumEq( desc.debugFlags, EDebugFlags::QueueSync );
+		_statistic		= Default;
+
 		return true;
 	}
 	
@@ -741,8 +738,8 @@ namespace FG
 		ASSERT( blockAlign > 0_b and offsetAlign > 0_b );
 		ASSERT( dstMinSize == AlignToSmaller( dstMinSize, blockAlign ));
 
-		auto&	staging_buffers = _staging.hostToDevice;
-
+		auto&			staging_buffers = _staging.hostToDevice;
+		const BytesU	stagingbuf_size	= _frameGraph.GetResourceManager().GetHostWriteBufferSize();
 
 		// search in existing
 		StagingBuffer*	suitable		= null;
@@ -776,19 +773,19 @@ namespace FG
 		// allocate new buffer
 		if ( not suitable )
 		{
-			ASSERT( dstMinSize < _staging.hostWritableBufferSize );
+			ASSERT( dstMinSize < stagingbuf_size );
 			CHECK_ERR( staging_buffers.size() < staging_buffers.capacity() );
 
 			VResourceManager&	rm = _frameGraph.GetResourceManager();
 			
 			RawBufferID			buf_id;
 			StagingBufferIdx	buf_idx;
-			CHECK_ERR( rm.CreateStagingBuffer( BufferDesc{ _staging.hostWritableBufferSize, _staging.hostWritebleBufferUsage }, true, OUT buf_id, OUT buf_idx ));
+			CHECK_ERR( rm.CreateStagingBuffer( EBufferUsage::TransferSrc, OUT buf_id, OUT buf_idx ));
 
 			RawMemoryID		mem_id = rm.GetResource( buf_id )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
-			staging_buffers.push_back({ buf_idx, buf_id, mem_id, _staging.hostWritableBufferSize });
+			staging_buffers.push_back({ buf_idx, buf_id, mem_id, stagingbuf_size });
 
 			suitable = &staging_buffers.back();
 			CHECK( _MapMemory( *suitable ));
@@ -815,7 +812,8 @@ namespace FG
 		ASSERT( blockAlign > 0_b and offsetAlign > 0_b );
 		ASSERT( dstMinSize == AlignToSmaller( dstMinSize, blockAlign ));
 
-		auto&	staging_buffers = _staging.deviceToHost;
+		auto&			staging_buffers = _staging.deviceToHost;
+		const BytesU	stagingbuf_size	= _frameGraph.GetResourceManager().GetHostReadBufferSize();
 		
 
 		// search in existing
@@ -850,21 +848,21 @@ namespace FG
 		// allocate new buffer
 		if ( not suitable )
 		{
-			ASSERT( dstMinSize < _staging.hostReadableBufferSize );
+			ASSERT( dstMinSize < stagingbuf_size );
 			CHECK_ERR( staging_buffers.size() < staging_buffers.capacity() );
 			
 			VResourceManager&	rm = _frameGraph.GetResourceManager();
 			
 			RawBufferID			buf_id;
 			StagingBufferIdx	buf_idx;
-			CHECK_ERR( rm.CreateStagingBuffer( BufferDesc{ _staging.hostReadableBufferSize, EBufferUsage::TransferDst }, false, OUT buf_id, OUT buf_idx ));
+			CHECK_ERR( rm.CreateStagingBuffer( EBufferUsage::TransferDst, OUT buf_id, OUT buf_idx ));
 			
 			RawMemoryID		mem_id = rm.GetResource( buf_id )->GetMemoryID();
 			CHECK_ERR( mem_id );
 
 			// TODO: make immutable because read after write happens after waiting for fences and it implicitly make changes visible to the host
 
-			staging_buffers.push_back({ buf_idx, buf_id, mem_id, _staging.hostReadableBufferSize });
+			staging_buffers.push_back({ buf_idx, buf_id, mem_id, stagingbuf_size });
 
 			suitable = &staging_buffers.back();
 			CHECK( _MapMemory( *suitable ));

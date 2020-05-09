@@ -77,7 +77,7 @@ namespace FG
 		
 		using DebugLayoutCache_t	= HashMap< uint, RawDescriptorSetLayoutID >;
 		
-		using StagingBufferfPool_t	= LfIndexedPool< BufferID, uint, 32, 16 >;
+		using StagingBufferfPool_t	= LfIndexedPool< BufferID, uint, 64, 1 >;
 
 
 	// variables
@@ -122,7 +122,11 @@ namespace FG
 		struct {
 			StagingBufferfPool_t		write;
 			StagingBufferfPool_t		read;
-		}							_stagingBuf;
+			StagingBufferfPool_t		uniform;
+			BytesU						writeBufPageSize;
+			BytesU						readBufPageSize;
+			BytesU						uniformBufPageSize;
+		}							_staging;
 
 		// cached resources validation
 		struct {
@@ -209,16 +213,22 @@ namespace FG
 		ND_ uint				GetSubmitIndex ()			const	{ return _submissionCounter.load( memory_order_relaxed ); }
 		
 		ND_ static BytesU		GetDebugShaderStorageSize (EShaderStages stages);
+		
+		ND_ BytesU				GetHostReadBufferSize ()	const	{ return _staging.readBufPageSize; }
+		ND_ BytesU				GetHostWriteBufferSize ()	const	{ return _staging.writeBufPageSize; }
+		ND_ BytesU				GetUniformBufferSize ()		const	{ return _staging.uniformBufPageSize; }
 
 		void CheckTask (const BuildRayTracingScene &);
 
 		void RunValidation (uint maxIter);
 		
-		bool CreateStagingBuffer (const BufferDesc &desc, bool write, OUT RawBufferID &id, OUT StagingBufferIdx &index);
-		void ReleaseStagingBuffer (StagingBufferIdx index);
+		bool  CreateStagingBuffer (EBufferUsage usage, OUT RawBufferID &id, OUT StagingBufferIdx &index);
+		void  ReleaseStagingBuffer (StagingBufferIdx index);
 
 
 	private:
+		bool  _CheckHostVisibleMemory ();
+
 		bool  _CreateMemory (OUT RawMemoryID &id, OUT ResourceBase<VMemoryObj>* &memPtr, const MemoryDesc &desc, StringView dbgName);
 
 		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,

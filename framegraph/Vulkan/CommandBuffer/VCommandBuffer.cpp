@@ -719,7 +719,7 @@ namespace {
 
 		CHECK_ERR( total_size == ArraySizeOf(task.data) );
 
-		const BytesU		min_size	= _batch->GetMaxWritableStoregeSize();
+		const BytesU		min_size	= _instance.GetResourceManager().GetHostWriteBufferSize() / 4;
 		const uint			row_length	= CheckCast<uint>((row_pitch * block_dim.x * 8) / block_size);
 		const uint			img_height	= CheckCast<uint>((slice_pitch * block_dim.y) / row_pitch);
 		CopyBufferToImage	copy;
@@ -904,7 +904,7 @@ namespace {
 		ASSERT(Any( task.imageSize > Zero ));
 		
 		const uint3			image_size		= Max( task.imageSize, 1u );
-		const BytesU		min_size		= _batch->GetMaxReadableStorageSize();
+		const BytesU		min_size		= _instance.GetResourceManager().GetHostReadBufferSize() / 4;
 		const auto&			fmt_info		= EPixelFormat_GetInfo( img_desc.format );
 		const auto&			block_dim		= fmt_info.blockSize;
 		const uint			block_size		= task.aspectMask != EImageAspect::Stencil ? fmt_info.bitsPerBlock : fmt_info.bitsPerBlock2;
@@ -1272,8 +1272,12 @@ namespace {
 		as_info.accelerationStructure	= scene->Handle();
 		GetDevice().vkGetAccelerationStructureMemoryRequirementsNV( GetDevice().GetVkDevice(), &as_info, OUT &mem_req );
 		
+		MemoryDesc	mem;
+		mem.type	= EMemoryType::Default;
+		mem.req		= VulkanMemRequirements{ mem_req.memoryRequirements.memoryTypeBits, CheckCast<uint>(mem_req.memoryRequirements.alignment) };
+
 		// TODO: virtual buffer or buffer cache
-		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, "ScratchBuffer" );
+		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, mem, "ScratchBuffer" );
 		result->_scratchBuffer = ToLocal( buf.Get() );
 		ReleaseResource( buf.Release() );
 

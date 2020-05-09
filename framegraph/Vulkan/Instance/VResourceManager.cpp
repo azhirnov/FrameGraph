@@ -79,12 +79,14 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool VResourceManager::Initialize ()
+	bool  VResourceManager::Initialize ()
 	{
 		CHECK_ERR( _memoryMngr.Initialize() );
 		CHECK_ERR( _descMngr.Initialize() );
 
 		_CreateEmptyDescriptorSetLayout();
+		_CheckHostVisibleMemory();
+
 		return true;
 	}
 	
@@ -1317,32 +1319,150 @@ namespace FG
 	
 /*
 =================================================
+	_CheckHostVisibleMemory
+=================================================
+*/
+	bool  VResourceManager::_CheckHostVisibleMemory ()
+	{
+		auto&	dev		= _device;
+		auto&	props	= dev.GetDeviceMemoryProperties();
+		
+		VkMemoryRequirements	transfer_mem_req = {};
+		VkMemoryRequirements	uniform_mem_req  = {};
+		{
+			VkBuffer			id;
+			VkBufferCreateInfo	info = {};
+			info.sType	= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			info.pNext	= null;
+			info.flags	= 0;
+			info.usage	= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			info.size	= 64 << 10;
+			info.sharingMode			= VK_SHARING_MODE_EXCLUSIVE;
+			info.pQueueFamilyIndices	= null;
+			info.queueFamilyIndexCount	= 0;
+
+			VK_CHECK( dev.vkCreateBuffer( dev.GetVkDevice(), &info, null, OUT &id ));
+			dev.vkGetBufferMemoryRequirements( dev.GetVkDevice(), id, OUT &transfer_mem_req );
+			dev.vkDestroyBuffer( dev.GetVkDevice(), id, null );
+			
+			info.size  = 256;
+			info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+			VK_CHECK( dev.vkCreateBuffer( dev.GetVkDevice(), &info, null, OUT &id ));
+			dev.vkGetBufferMemoryRequirements( dev.GetVkDevice(), id, OUT &uniform_mem_req );
+			dev.vkDestroyBuffer( dev.GetVkDevice(), id, null );
+		}
+
+		BitSet<VK_MAX_MEMORY_HEAPS>		cached_heaps;
+		BitSet<VK_MAX_MEMORY_HEAPS>		cocherent_heaps;
+		BitSet<VK_MAX_MEMORY_HEAPS>		uniform_heaps;
+
+		for (uint i = 0; i < props.memoryTypeCount; ++i)
+		{
+			auto&	mt = props.memoryTypes[i];
+
+			if ( EnumEq( transfer_mem_req.memoryTypeBits, 1u << i ))
+			{
+				if ( EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_CACHED_BIT ))
+					cached_heaps[ mt.heapIndex ] = true;
+			
+				if ( EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
+					cocherent_heaps[ mt.heapIndex ] = true;
+			}
+
+			if ( EnumEq( uniform_mem_req.memoryTypeBits, 1u << i ) and
+				 EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
+			{
+				uniform_heaps[ mt.heapIndex ] = true;
+			}
+		}
+
+		BytesU	uniform_heap_size;
+		BytesU	transfer_heap_size;
+
+		for (uint i = 0; i < props.memoryHeapCount; ++i)
+		{
+			if ( uniform_heaps[i] )
+				uniform_heap_size += props.memoryHeaps[i].size;
+
+			if ( cached_heaps[i] or cocherent_heaps[i] )
+				transfer_heap_size += props.memoryHeaps[i].size;
+		}
+
+		BytesU	un_size = uniform_heap_size  / StagingBufferfPool_t::Capacity();
+		BytesU	tr_size = transfer_heap_size / StagingBufferfPool_t::Capacity();
+
+		if ( un_size > 128_Mb )		un_size = 32_Mb;	else
+		if ( un_size > 64_Mb )		un_size = 16_Mb;	else
+									un_size = 8_Mb;
+
+		if ( tr_size > 512_Mb )		tr_size = 256_Mb;	else
+		if ( tr_size > 128_Mb )		tr_size = 128_Mb;	else
+									tr_size = 64_Mb;
+
+		_staging.writeBufPageSize   = _staging.readBufPageSize = tr_size;
+		_staging.uniformBufPageSize = un_size;
+
+		return true;
+	}
+
+/*
+=================================================
 	CreateStagingBuffer
 =================================================
 */
-	bool VResourceManager::CreateStagingBuffer (const BufferDesc &desc, bool write, OUT RawBufferID &outBufferId, OUT StagingBufferIdx &outIndex)
+	bool  VResourceManager::CreateStagingBuffer (EBufferUsage usage, OUT RawBufferID &outBufferId, OUT StagingBufferIdx &outIndex)
 	{
-		const auto	ctor = [this, write, &desc] (BufferID *ptr, uint)
+		BufferDesc				desc;
+		EMemoryType				mem_type;
+		StagingBufferfPool_t*	pool		= null;
+		uint					idx_mask	= 0;
+		const char *			name		= "";
+		desc.usage = usage;
+
+		switch ( usage )
 		{
-			RawBufferID	id = CreateBuffer( desc, MemoryDesc{ write ? EMemoryType::HostWrite : EMemoryType::HostRead },
-											EQueueFamilyMask::Unknown, write ? "HostWriteBuffer" : "HostReadBuffer" );
+			case EBufferUsage::TransferSrc :
+				pool		= &_staging.write;
+				desc.size	= _staging.writeBufPageSize;
+				mem_type	= EMemoryType::HostWrite;
+				idx_mask	= 1u << 30;
+				name		= "HostWriteBuffer";
+				break;
+
+			case EBufferUsage::TransferDst :
+				pool		= &_staging.read;
+				desc.size	= _staging.readBufPageSize;
+				mem_type	= EMemoryType::HostRead;
+				idx_mask	= 2u << 30;
+				name		= "HostReadBuffer";
+				break;
+
+			case EBufferUsage::Uniform :
+				pool		= &_staging.uniform;
+				desc.size	= _staging.uniformBufPageSize;
+				mem_type	= EMemoryType::HostWrite;
+				idx_mask	= 3u << 30;
+				name		= "HostUniformBuffer";
+				break;
+
+			default :
+				RETURN_ERR( "unsupported buffer usage" );
+		}
+
+		const auto	ctor = [this, name, mem_type, &desc] (BufferID *ptr, uint)
+		{
+			RawBufferID	id = CreateBuffer( desc, MemoryDesc{ mem_type }, EQueueFamilyMask::Unknown, name );
 			CHECK( id );
 			PlacementNew< BufferID >( ptr, id );
 		};
 
-		auto&	pool	= write ? _stagingBuf.write : _stagingBuf.read;
 		uint	index;
-
-		CHECK_ERR( pool.Assign( OUT index, ctor ));
+		CHECK_ERR( pool->Assign( OUT index, ctor ));
 		
-		outBufferId = pool[ index ];
+		outBufferId = (*pool)[ index ];
 
-		if ( write )
-			index |= (1u << 30);
-		else
-			index |= (2u << 30);
-
-		outIndex = StagingBufferIdx(index);
+		outIndex = StagingBufferIdx(index | idx_mask);
 		return true;
 	}
 	
@@ -1351,18 +1471,22 @@ namespace FG
 	ReleaseStagingBuffer
 =================================================
 */
-	void VResourceManager::ReleaseStagingBuffer (StagingBufferIdx index)
+	void  VResourceManager::ReleaseStagingBuffer (StagingBufferIdx index)
 	{
 		const uint	idx = uint(index) & ~(3u << 30);
 
 		switch ( uint(index) >> 30 )
 		{
 			case 1 :
-				_stagingBuf.write.Unassign( idx );
+				_staging.write.Unassign( idx );
 				break;
 
 			case 2 :
-				_stagingBuf.read.Unassign( idx );
+				_staging.read.Unassign( idx );
+				break;
+				
+			case 3 :
+				_staging.uniform.Unassign( idx );
 				break;
 
 			default :
@@ -1376,15 +1500,17 @@ namespace FG
 	_DestroyStagingBuffers
 =================================================
 */
-	void VResourceManager::_DestroyStagingBuffers ()
+	void  VResourceManager::_DestroyStagingBuffers ()
 	{
 		const auto	dtor = [this] (BufferID &id)
 		{
 			ReleaseResource( id.Release() );
 		};
 
-		_stagingBuf.write.Release( dtor );
-		_stagingBuf.read.Release( dtor );
+		_staging.write.Release( dtor );
+		_staging.read.Release( dtor );
+	}
+	
 	}
 
 }	// FG
