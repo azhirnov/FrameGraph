@@ -32,6 +32,23 @@ namespace {
 		}
 		return result;
 	}
+
+/*
+=================================================
+	HashOf (TexelBuffer)
+=================================================
+*/
+	inline HashVal  HashOf (const FG::PipelineResources::TexelBuffer &buf)
+	{
+		HashVal	result = FGC::HashOf( buf.index ) + FGC::HashOf( buf.state );
+
+		for (uint16_t i = 0; i < buf.elementCount; ++i)
+		{
+			auto&	elem = buf.elements[i];
+			result << (FGC::HashOf( elem.bufferId ) + FGC::HashOf( elem.desc ));
+		}
+		return result;
+	}
 	
 /*
 =================================================
@@ -184,6 +201,7 @@ namespace FG
 	bool  PipelineResources::HasSampler (const UniformID &id)			const	{ SHAREDLOCK(_drCheck);  return _HasResource< Sampler >( id ); }
 	bool  PipelineResources::HasTexture (const UniformID &id)			const	{ SHAREDLOCK(_drCheck);  return _HasResource< Texture >( id ); }
 	bool  PipelineResources::HasBuffer (const UniformID &id)			const	{ SHAREDLOCK(_drCheck);  return _HasResource< Buffer >( id ); }
+	bool  PipelineResources::HasTexelBuffer (const UniformID &name)		const	{ SHAREDLOCK(_drCheck);  return _HasResource< TexelBuffer >( name ); }
 	bool  PipelineResources::HasRayTracingScene (const UniformID &id)	const	{ SHAREDLOCK(_drCheck);  return _HasResource< RayTracingScene >( id ); }
 
 /*
@@ -504,7 +522,7 @@ namespace FG
 				}
 				else
 				{
-					ASSERT( offset >= buf.offset and offset - buf.offset < std::numeric_limits<uint>::max() );
+					ASSERT( (offset >= buf.offset) and (offset - buf.offset < std::numeric_limits<uint>::max()) );
 					_GetDynamicOffset( res->dynamicOffsetIndex + uint(i) ) = uint(offset - buf.offset);
 				}
 
@@ -539,7 +557,7 @@ namespace FG
 			if ( res->dynamicOffsetIndex != PipelineDescription::STATIC_OFFSET )
 			{
 				changed |= (buf.offset != offset);
-				_GetDynamicOffset( res->dynamicOffsetIndex + index ) = uint(_GetDynamicOffset( res->dynamicOffsetIndex + index ) + buf.offset - offset);
+				_GetDynamicOffset( res->dynamicOffsetIndex + index ) = uint(uint64_t(_GetDynamicOffset( res->dynamicOffsetIndex + index ) + buf.offset - offset) & 0xFFFFFFFFull);
 				buf.offset = offset;
 			}
 		
@@ -549,6 +567,35 @@ namespace FG
 		return *this;
 	}
 	
+/*
+=================================================
+	BindTexelBuffer
+=================================================
+*/
+	PipelineResources&  PipelineResources::BindTexelBuffer (const UniformID &name, RawBufferID buffer, const BufferViewDesc &desc, uint index)
+	{
+		EXLOCK( _drCheck );
+		UNIFORM_EXISTS( HasTexelBuffer( name ));
+
+		if ( auto* res = _GetResource<TexelBuffer>( name ))
+		{
+			auto&	texbuf  = res->elements[ index ];
+			bool	changed	= res->elementCount <= index;
+			
+			changed |= ((texbuf.bufferId != buffer) or not (texbuf.desc == desc));
+
+			ASSERT( index < res->elementCapacity );
+			res->elementCount = Max( uint16_t(index+1), res->elementCount );
+
+			texbuf.bufferId	= buffer;
+			texbuf.desc		= desc;
+			
+			if ( changed )
+				_ResetCachedID();
+		}
+		return *this;
+	}
+
 /*
 =================================================
 	BindRayTracingScene
@@ -561,16 +608,67 @@ namespace FG
 
 		if ( auto* res = _GetResource<RayTracingScene>( id ))
 		{
-			auto&	rts	= res->elements[ index ];
+			auto&	rts		= res->elements[ index ];
+			bool	changed	= (res->elementCount <= index) or (rts.sceneId != scene);
+
 			ASSERT( index < res->elementCapacity );
 
-			if ( rts.sceneId != scene or res->elementCount <= index )
-				_ResetCachedID();
-		
 			res->elementCount	= Max( uint16_t(index+1), res->elementCount );
 			rts.sceneId			= scene;
+
+			if ( changed )
+				_ResetCachedID();
 		}
 		return *this;
+	}
+/*
+=================================================
+	Reset
+=================================================
+*/
+	void  PipelineResources::Reset (const UniformID &name)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _dataPtr, void());
+		
+		auto*	uniforms = _dataPtr->Uniforms();
+		size_t	index	 = BinarySearch( ArrayView<Uniform>{uniforms, _dataPtr->uniformCount}, name );
+		
+		CHECK_ERR( index < _dataPtr->uniformCount, void())
+		
+		auto&	un  = uniforms[ index ];
+		void*	ptr = _dataPtr.get() + BytesU{un.offset};
+
+		BEGIN_ENUM_CHECKS();
+		switch ( un.resType )
+		{
+			case EDescriptorType::Unknown :				break;
+			case EDescriptorType::Buffer :				Cast<Buffer>(ptr)->elementCount = 0;			break;
+			case EDescriptorType::TexelBuffer :			Cast<TexelBuffer>(ptr)->elementCount = 0;		break;
+			case EDescriptorType::SubpassInput :
+			case EDescriptorType::Image :				Cast<Image>(ptr)->elementCount = 0;				break;
+			case EDescriptorType::Texture :				Cast<Texture>(ptr)->elementCount = 0;			break;
+			case EDescriptorType::Sampler :				Cast<Sampler>(ptr)->elementCount = 0;			break;
+			case EDescriptorType::RayTracingScene :		Cast<RayTracingScene>(ptr)->elementCount = 0;	break;
+			default :									CHECK(false);									break;
+		}
+		END_ENUM_CHECKS();
+		
+		_ResetCachedID();
+	}
+	
+/*
+=================================================
+	ResetAll
+=================================================
+*/
+	void  PipelineResources::ResetAll ()
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _dataPtr, void());
+
+		_dataPtr->ForEachUniform( [](auto&, auto& data) { data.elementCount = 0; });
+		_ResetCachedID();
 	}
 //-----------------------------------------------------------------------------
 
@@ -596,6 +694,27 @@ namespace {
 			if ( lhs.elements[i].bufferId	!= rhs.elements[i].bufferId or
 				 lhs.elements[i].offset		!= rhs.elements[i].offset	or
 				 lhs.elements[i].size		!= rhs.elements[i].size )
+				return false;
+		}
+		return true;
+	}
+
+/*
+=================================================
+	operator == (TexelBuffer)
+=================================================
+*/
+	inline bool  operator == (const PipelineResources::TexelBuffer &lhs, const PipelineResources::TexelBuffer &rhs)
+	{
+		if ( lhs.index			!= rhs.index		or
+			 lhs.state			!= rhs.state		or
+			 lhs.elementCount	!= rhs.elementCount )
+			return false;
+
+		for (uint16_t i = 0; i < lhs.elementCount; ++i)
+		{
+			if ( lhs.elements[i].bufferId	!= rhs.elements[i].bufferId or
+				 not (lhs.elements[i].desc	== rhs.elements[i].desc)	)
 				return false;
 		}
 		return true;
@@ -743,6 +862,7 @@ namespace {
 			{
 				case EDescriptorType::Unknown :			break;
 				case EDescriptorType::Buffer :			equals = (*Cast<Buffer>(lhs_ptr)		  == *Cast<Buffer>(rhs_ptr));			break;
+				case EDescriptorType::TexelBuffer :		equals = (*Cast<TexelBuffer>(lhs_ptr)	  == *Cast<TexelBuffer>(rhs_ptr));		break;
 				case EDescriptorType::SubpassInput :
 				case EDescriptorType::Image :			equals = (*Cast<Image>(lhs_ptr)			  == *Cast<Image>(rhs_ptr));			break;
 				case EDescriptorType::Texture :			equals = (*Cast<Texture>(lhs_ptr)		  == *Cast<Texture>(rhs_ptr));			break;

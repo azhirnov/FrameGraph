@@ -127,6 +127,15 @@ namespace FG
 					alive &= not elem.bufferId or resMngr.IsResourceAlive( elem.bufferId );
 				}
 			}
+			
+			void operator () (const UniformID &, const PipelineResources::TexelBuffer &texbuf)
+			{
+				for (uint i = 0; i < texbuf.elementCount; ++i)
+				{
+					auto&	elem = texbuf.elements[i];
+					alive &= not elem.bufferId or resMngr.IsResourceAlive( elem.bufferId );
+				}
+			}
 
 			void operator () (const UniformID &, const PipelineResources::Image &img)
 			{
@@ -200,7 +209,7 @@ namespace FG
 		for (uint i = 0; i < buf.elementCount; ++i)
 		{
 			auto&			elem	= buf.elements[i];
-			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, _allowEmptyResources );		
+			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, _allowEmptyResources );
 			CHECK( buffer or _allowEmptyResources );
 
 			if ( not buffer )
@@ -228,6 +237,41 @@ namespace FG
 		return true;
 	}
 	
+/*
+=================================================
+	_AddResource
+=================================================
+*/
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, INOUT PipelineResources::TexelBuffer &texbuf, INOUT UpdateDescriptors &list)
+	{
+		auto*	info = list.allocator.Alloc< VkBufferView >( texbuf.elementCount );
+
+		for (uint i = 0; i < texbuf.elementCount; ++i)
+		{
+			auto&			elem	= texbuf.elements[i];
+			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, _allowEmptyResources );
+			CHECK( buffer or _allowEmptyResources );
+			
+			if ( not buffer )
+				return false;
+
+			info[i] = buffer->GetView( resMngr.GetDevice(), elem.desc );
+		}
+		
+		const bool	is_uniform	= ((texbuf.state & EResourceState::_StateMask) == EResourceState::UniformRead);
+
+		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
+		wds = {};
+		wds.sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		wds.descriptorType		= is_uniform ? VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+		wds.descriptorCount		= texbuf.elementCount;
+		wds.dstBinding			= texbuf.index.VKBinding();
+		wds.dstSet				= _descriptorSet.first;
+		wds.pTexelBufferView	= info;
+
+		return true;
+	}
+
 /*
 =================================================
 	_AddResource

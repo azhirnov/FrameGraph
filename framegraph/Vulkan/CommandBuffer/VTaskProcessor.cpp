@@ -59,6 +59,7 @@ namespace FG
 		//void operator () (const UniformID &, const PipelineResources::SubpassInput &sp);
 		void operator () (const UniformID &, const PipelineResources::Sampler &) {}
 		void operator () (const UniformID &, const PipelineResources::RayTracingScene &);
+		void  operator () (const UniformID &, const PipelineResources::TexelBuffer &texbuf);
 	};
 
 	
@@ -239,7 +240,7 @@ namespace FG
 				continue;
 
 			const VkDeviceSize	offset	= VkDeviceSize(elem.offset) + (buf.dynamicOffsetIndex < _dynamicOffsets.size() ? _dynamicOffsets[buf.dynamicOffsetIndex] : 0);		
-			const VkDeviceSize	size	= VkDeviceSize(elem.size == ~0_b ? buffer->Size() - offset : elem.size);
+			const VkDeviceSize	size	= VkDeviceSize(elem.size == ~0_b ? (buffer->Size() - offset) : elem.size);
 
 			// validation
 			{
@@ -264,7 +265,28 @@ namespace FG
 			_tp._AddBuffer( buffer, buf.state, offset, size );
 		}
 	}
-		
+
+/*
+=================================================
+	operator (TexelBuffer)
+=================================================
+*/
+	void  VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::TexelBuffer &texbuf)
+	{
+		for (uint i = 0; i < texbuf.elementCount; ++i)
+		{
+			auto&				elem	= texbuf.elements[i];
+			VLocalBuffer const*	buffer	= _tp._ToLocal( elem.bufferId );
+			if ( not buffer )
+				continue;
+			
+			const VkDeviceSize	offset	= VkDeviceSize(elem.desc.offset);		
+			const VkDeviceSize	size	= VkDeviceSize(elem.desc.size == ~0_b ? (buffer->Size() - offset) : elem.desc.size);
+
+			_tp._AddBuffer( buffer, texbuf.state, offset, size );
+		}
+	}
+
 /*
 =================================================
 	operator (Image / Texture / SubpassInput)

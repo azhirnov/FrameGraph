@@ -170,6 +170,14 @@ namespace FG
 		EXLOCK( _drCheck );
 
 		auto&	dev = resMngr.GetDevice();
+		
+		{
+			SHAREDLOCK( _viewMapLock );
+			for (auto& view : _viewMap) {
+				dev.vkDestroyBufferView( dev.GetVkDevice(), view.second, null );
+			}
+			_viewMap.clear();
+		}
 
 		if ( _desc.isExternal and _onRelease ) {
 			_onRelease( BitCast<BufferVk_t>(_buffer) );
@@ -192,6 +200,57 @@ namespace FG
 		_debugName.clear();
 	}
 	
+/*
+=================================================
+	GetView
+=================================================
+*/
+	VkBufferView  VBuffer::GetView (const VDevice &dev, const BufferViewDesc &desc) const
+	{
+		SHAREDLOCK( _drCheck );
+
+		// find already created image view
+		{
+			SHAREDLOCK( _viewMapLock );
+
+			auto	iter = _viewMap.find( desc );
+
+			if ( iter != _viewMap.end() )
+				return iter->second;
+		}
+
+		// create new image view
+		EXLOCK( _viewMapLock );
+
+		auto[iter, inserted] = _viewMap.insert({ desc, VK_NULL_HANDLE });
+
+		if ( not inserted )
+			return iter->second;	// other thread create view before
+		
+		CHECK_ERR( _CreateView( dev, desc, OUT iter->second ));
+
+		return iter->second;
+	}
+
+/*
+=================================================
+	_CreateView
+=================================================
+*/
+	bool  VBuffer::_CreateView (const VDevice &dev, const BufferViewDesc &desc, OUT VkBufferView &outView) const
+	{
+		VkBufferViewCreateInfo	info = {};
+		info.sType		= VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+		info.flags		= 0;
+		info.buffer		= _buffer;
+		info.format		= VEnumCast( desc.format );
+		info.offset		= VkDeviceSize(desc.offset);
+		info.range		= VkDeviceSize(desc.size);
+
+		VK_CHECK( dev.vkCreateBufferView( dev.GetVkDevice(), &info, null, OUT &outView ));
+		return true;
+	}
+
 /*
 =================================================
 	IsReadOnly
