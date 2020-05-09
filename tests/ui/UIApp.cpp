@@ -59,7 +59,7 @@ namespace FG
 
 		// initialize vulkan device
 		{
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "UITest", "FrameGraph", VK_API_VERSION_1_2,
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "UITest", "FrameGraph", VK_API_VERSION_1_1,
 									   "",
 									   {},
 									   VulkanDevice::GetRecomendedInstanceLayers(),
@@ -232,9 +232,7 @@ namespace FG
 
 			LogicalPassID	pass_id = cmdbuf->CreateRenderPass( RenderPassDesc{ int2{float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y }} }
 											.AddViewport(float2{ draw_data.DisplaySize.x, draw_data.DisplaySize.y })
-											.AddTarget( RenderTargetID::Color_0, image, _clearColor, EAttachmentStoreOp::Store )
-											.AddColorBuffer( RenderTargetID::Color_0, EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
-											.SetDepthTestEnabled( false ).SetCullMode( ECullMode::None ));
+											.AddTarget( RenderTargetID::Color_0, image, _clearColor, EAttachmentStoreOp::Store ));
 
 			Task	draw_ui	= _uiRenderer.Draw( cmdbuf, pass_id );
 			FG_UNUSED( draw_ui );
