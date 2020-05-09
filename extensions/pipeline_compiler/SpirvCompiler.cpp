@@ -394,6 +394,9 @@ namespace FG
 				
 				Array<uint>		spirv;
 				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
+
+				outShader.data.insert({ dstShaderFmt | mode, MakeShared<VCachedDebuggableSpirv>( StringView{entry}, std::move(spirv), debugName, std::move(debug_utils) ) });
+			}
 		}
 	#endif	// FG_ENABLE_GLSL_TRACE
 

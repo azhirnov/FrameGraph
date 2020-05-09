@@ -1,6 +1,6 @@
 # download SPIRV-Cross (Apache-2.0 license)
 
-if (TRUE)
+if (FALSE)
 	set( FG_EXTERNAL_SPIRV_CROSS_PATH "" CACHE PATH "path to SPIRV-Cross source" )
 	mark_as_advanced( FG_EXTERNAL_SPIRV_CROSS_PATH )
 

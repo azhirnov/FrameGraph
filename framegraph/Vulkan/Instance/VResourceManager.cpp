@@ -1687,7 +1687,7 @@ void main ()
 	ivec2	size		= ivec2(gl_WorkGroupSize.xy * gl_NumWorkGroups.xy);
 	vec2	ncoord		= vec2(coord) / vec2(size);
 	ivec2	px_coord	= ivec2( ncoord * vec2(dimension) );
-	ivec2	px_size		= ivec2(1); // vec2(size) / vec2(dimension) + 0.5 );
+	ivec2	px_size		= ivec2( vec2(size) / vec2(dimension) + 0.5 );
 
 	for (int y = 0; y < px_size.y; ++y)
 	for (int x = 0; x < px_size.x; ++x)

@@ -46,10 +46,7 @@ namespace {
 		_stencilState		= desc.stencilState;
 		_rasterizationState	= desc.rasterizationState;
 		_multisampleState	= desc.multisampleState;
-
 		_area				= desc.area;
-		//_parallelExecution= desc.parallelExecution;
-		_canBeMerged		= desc.canBeMerged;
 		
 		Optional<MultiSamples>	samples;
 

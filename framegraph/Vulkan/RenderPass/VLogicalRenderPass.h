@@ -78,8 +78,6 @@ namespace FG
 		RS::MultisampleState		_multisampleState;
 
 		RectI						_area;
-		//bool						_parallelExecution		= true;
-		bool						_canBeMerged			= true;
 		bool						_isSubmited				= false;
 		
 		VPipelineResourceSet		_perPassResources;

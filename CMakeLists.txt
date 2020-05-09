@@ -5,7 +5,7 @@ message( STATUS "project 'FrameGraph' generation started" )
 
 project( "FrameGraph"
 		 VERSION 2020.1.0
-		 LANGUAGES C CXX)
+		 LANGUAGES C CXX )
 
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
 message( STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSION})" )
