@@ -106,9 +106,9 @@ namespace
 		if ( err != vr::VRInitError_None )
 			RETURN_ERR( "VR_Init error: "s << vr::VR_GetVRInitErrorAsEnglishDescription( err ));
 		
-		_renderModels = Cast<vr::IVRRenderModels>(vr::VR_GetGenericInterface( vr::IVRRenderModels_Version, OUT &err ));
-		if ( !_renderModels )
-			RETURN_ERR( "VR_GetGenericInterface error: "s << vr::VR_GetVRInitErrorAsEnglishDescription( err ));
+		//_renderModels = Cast<vr::IVRRenderModels>(vr::VR_GetGenericInterface( vr::IVRRenderModels_Version, OUT &err ));
+		//if ( !_renderModels )
+		//	RETURN_ERR( "VR_GetGenericInterface error: "s << vr::VR_GetVRInitErrorAsEnglishDescription( err ));
 		
 		FG_LOGI( "driver:  "s << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_TrackingSystemName_String ) <<
 				 "display: " << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String ) );
@@ -135,6 +135,7 @@ namespace
 		}
 		
 		_InitControllers();
+
 		return true;
 	}
 	
@@ -155,23 +156,8 @@ namespace
 			if ( dev_class == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller or
 				 dev_class == vr::ETrackedDeviceClass::TrackedDeviceClass_GenericTracker )
 			{
-				vr::ETrackedControllerRole	role	= _hmd->GetControllerRoleForTrackedDeviceIndex( i );
-				ControllerID				id		= ControllerID::Unknown;
-				
-				BEGIN_ENUM_CHECKS();
-				switch ( role )
-				{
-					case vr::TrackedControllerRole_LeftHand :	id = ControllerID::LeftHand;	break;
-					case vr::TrackedControllerRole_RightHand :	id = ControllerID::RightHand;	break;
-					case vr::TrackedControllerRole_Invalid :
-					case vr::TrackedControllerRole_OptOut :
-					case vr::TrackedControllerRole_Treadmill :
-					case vr::TrackedControllerRole_Max :		break;	// TODO
-				}
-				END_ENUM_CHECKS();
-
 				Controller	cont;
-				cont.id			= id;
+				cont.id			= _GetControllerID( i );
 				cont.lastPacket	= ~0u;
 				cont.lastUpdate	= now;
 				cont.keys.fill( false );
@@ -179,6 +165,29 @@ namespace
 				_controllers.insert_or_assign( i, cont );
 			}
 		}
+	}
+	
+/*
+=================================================
+	_GetControllerID
+=================================================
+*/
+	OpenVRDevice::ControllerID  OpenVRDevice::_GetControllerID (uint tdi) const
+	{
+		vr::ETrackedControllerRole	role = _hmd->GetControllerRoleForTrackedDeviceIndex( tdi );
+		
+		BEGIN_ENUM_CHECKS();
+		switch ( role )
+		{
+			case vr::TrackedControllerRole_LeftHand :	return ControllerID::LeftHand;
+			case vr::TrackedControllerRole_RightHand :	return ControllerID::RightHand;
+			case vr::TrackedControllerRole_Invalid :
+			case vr::TrackedControllerRole_OptOut :
+			case vr::TrackedControllerRole_Treadmill :
+			case vr::TrackedControllerRole_Max :		break;
+		}
+		END_ENUM_CHECKS();
+		return ControllerID::Unknown;
 	}
 
 /*
@@ -193,7 +202,10 @@ namespace
 			uint64_t	hmd_physical_device = 0;
 			_hmd->GetOutputDevice( OUT &hmd_physical_device, vr::TextureType_Vulkan, (VkInstance_T *)instance );
 
-			CHECK_ERR( VkPhysicalDevice(hmd_physical_device) == physicalDevice );
+			if ( hmd_physical_device != 0 )
+			{
+				CHECK_ERR( VkPhysicalDevice(hmd_physical_device) == physicalDevice );
+			}
 		}
 
 		_vkInstance			= instance;
@@ -214,7 +226,7 @@ namespace
 		_vkPhysicalDevice	= VK_NULL_HANDLE;
 		_vkLogicalDevice	= VK_NULL_HANDLE;
 
-		_renderModels		= null;
+		//_renderModels		= null;
 		_hmdStatus			= EHmdStatus::PowerOff;
 		_camera				= Default;
 
@@ -273,22 +285,23 @@ namespace
 
 		const auto	now = TimePoint_t::clock::now();
 
-		for (auto& cont : _controllers)
+		for (auto& [idx, cont] : _controllers)
 		{
 			vr::VRControllerState_t	state;
-			if ( _hmd->GetControllerState( cont.first, OUT &state, sizeof(state) ))
+			if ( _hmd->GetControllerState( idx, OUT &state, sizeof(state) ))
 			{
-				if ( state.unPacketNum == cont.second.lastPacket )
+				if ( state.unPacketNum == cont.lastPacket )
 					continue;
 
-				const float	dt = std::chrono::duration_cast<SecondsF>( now - cont.second.lastUpdate ).count();
+				const float	dt = std::chrono::duration_cast<SecondsF>( now - cont.lastUpdate ).count();
 
-				cont.second.lastPacket	= state.unPacketNum;
-				cont.second.lastUpdate	= now;
+				cont.lastPacket	= state.unPacketNum;
+				cont.lastUpdate	= now;
+				cont.id			= _GetControllerID( idx );
 
 				for (size_t i = 0; i < CountOf(state.rAxis); ++i)
 				{
-					auto&	axis	= cont.second.axis[i];
+					auto&	axis	= cont.axis[i];
 					float2	v		= float2{ state.rAxis[i].x, state.rAxis[i].y };
 					float2	old		= axis.value;
 					float2	del		= v - old;
@@ -299,7 +312,7 @@ namespace
 						continue;
 					
 					for (auto& listener : _listeners) {
-						listener->OnAxisStateChanged( cont.second.id, AxisNames[i], v, del, dt );
+						listener->OnAxisStateChanged( cont.id, AxisNames[i], v, del, dt );
 					}
 				}
 			}
@@ -532,11 +545,13 @@ namespace
 	{
 		CHECK( vr::VRCompositor()->WaitGetPoses( OUT _trackedDevicePose, uint(CountOf(_trackedDevicePose)), null, 0 ) == vr::VRCompositorError_None );
 
-		if ( _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid )
+		auto&	hmd_pose = _trackedDevicePose[ vr::k_unTrackedDeviceIndex_Hmd ];
+
+		if ( hmd_pose.bPoseIsValid )
 		{
-			auto&	mat		= _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking;
-			auto&	vel		= _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].vVelocity;
-			auto&	avel	= _trackedDevicePose[vr::k_unTrackedDeviceIndex_Hmd].vAngularVelocity;
+			auto&	mat		= hmd_pose.mDeviceToAbsoluteTracking;
+			auto&	vel		= hmd_pose.vVelocity;
+			auto&	avel	= hmd_pose.vAngularVelocity;
 
 			_camera.pose			= OpenVRMatToMat3( mat ).Inverse();
 			_camera.position		= { mat.m[0][3], mat.m[1][3], mat.m[2][3] };
@@ -547,6 +562,28 @@ namespace
 		{
 			_camera.velocity		= float3{0.0f};
 			_camera.angularVelocity	= float3{0.0f};
+		}
+		
+		for (auto& [idx, cont] : _controllers)
+		{
+			auto&	cont_pose	= _trackedDevicePose[ idx ];
+			auto&	data		= _vrControllers( cont.id );
+
+			if ( not cont_pose.bPoseIsValid )
+			{
+				data.isValid = false;
+				continue;
+			}
+			
+			auto&	mat		= cont_pose.mDeviceToAbsoluteTracking;
+			auto&	vel		= cont_pose.vVelocity;
+			auto&	avel	= cont_pose.vAngularVelocity;
+
+			data.pose			 = OpenVRMatToMat3( mat ).Inverse();
+			data.position		 = { mat.m[0][3], mat.m[1][3], mat.m[2][3] };
+			data.velocity		 = { vel.v[0], vel.v[1], vel.v[2] };
+			data.angularVelocity = { avel.v[0], avel.v[1], avel.v[2] };
+			data.isValid		 = true;
 		}
 	}
 

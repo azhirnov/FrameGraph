@@ -39,22 +39,22 @@ namespace FG
 	protected:
 		RenderQueue () {}
 
-		void _Create (const CommandBuffer &, const CameraInfo &);
+		void  _Create (const CommandBuffer &, const CameraInfo &);
 
 		ND_ Task  _Submit (ArrayView<Task> dependsOn);
 
-		void _AddLayer (ERenderLayer, LogicalPassID, const PipelineResources*, StringView);
-		void _AddLayer (ERenderLayer, const RenderPassDesc &, const PipelineResources*, StringView);
+		void  _AddLayer (ERenderLayer, LogicalPassID, const PipelineResources*, StringView);
+		void  _AddLayer (ERenderLayer, const RenderPassDesc &, const PipelineResources*, StringView);
 
 	public:
 		template <typename DrawTask>
-		void Draw (ERenderLayer layer, const DrawTask &task);
+		void  Draw (ERenderLayer layer, const DrawTask &task);
 
 		template <typename ComputeTask>
-		void Compute (ERenderLayer layer, ComputeTask &task);
+		void  Compute (ERenderLayer layer, ComputeTask &task);
 
 		template <typename TaskType>
-		void AddTask (ERenderLayer beforeLayer, const TaskType &task);
+		void  AddTask (ERenderLayer beforeLayer, const TaskType &task);
 
 		ND_ CameraInfo  const&		GetCamera ()		const	{ return _camera; }
 		ND_ CommandBuffer const&	GetCommandBuffer ()	const	{ return _cmdBuffer; }

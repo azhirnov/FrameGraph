@@ -96,6 +96,8 @@ namespace FGC
 		ControllerEmulator		_controller;
 		TimePoint_t				_lastUpdateTime;
 
+		VRControllers_t			_vrControllers;
+
 		EHmdStatus				_hmdStatus			= EHmdStatus::PowerOff;
 		BitSet<2>				_submitted;
 		bool					_isCreated;
@@ -116,6 +118,7 @@ namespace FGC
 		bool  Submit (const VRImage &, Eye) override;
 
 		VRCamera const&			GetCamera () const override				{ return _camera; }
+		VRControllers_t const&	GetControllers () const override		{ return _vrControllers; }
 		EHmdStatus				GetHmdStatus () const override			{ return _hmdStatus; }
 
 		Array<String>	GetRequiredInstanceExtensions () const override;

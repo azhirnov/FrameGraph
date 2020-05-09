@@ -58,8 +58,8 @@ namespace FGC
 		EHmdStatus					_hmdStatus		= EHmdStatus::PowerOff;
 
 		Controllers_t				_controllers;
+		VRControllers_t				_vrControllers;
 		vr::TrackedDevicePose_t		_trackedDevicePose [vr::k_unMaxTrackedDeviceCount];
-		Ptr<vr::IVRRenderModels>	_renderModels;
 
 
 	// methods
@@ -77,6 +77,7 @@ namespace FGC
 		bool  Submit (const VRImage &, Eye) override;
 		
 		VRCamera const&			GetCamera () const override				{ return _camera; }
+		VRControllers_t const&	GetControllers () const override		{ return _vrControllers; }
 		
 		EHmdStatus		GetHmdStatus () const override;
 		Array<String>	GetRequiredInstanceExtensions () const override;

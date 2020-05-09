@@ -76,7 +76,7 @@ IntermMaterial  LoadMaterial (uint instanceID, uint primitiveID, const vec3 bary
 
 	void main ()
 	{
-		PrimaryRay.color	= vec3(0.412f, 0.796f, 1.0f);
+		PrimaryRay.color	= vec3(0.412f, 0.796f, 1.0f);	// sky color
 		PrimaryRay.distance	= gl_RayTmaxNV * 2.0f;
 		PrimaryRay.objectID	= ~0u;
 	}

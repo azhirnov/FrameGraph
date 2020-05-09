@@ -120,7 +120,7 @@ namespace FG
 			swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 			swapchain_info.surfaceSize	= _window->GetSize();
 
-			if ( _vrDevice )
+			if ( _vrDevice or not cfg.vsync )
 				swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_MAILBOX_KHR) );
 			else
 				swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
@@ -151,7 +151,7 @@ namespace FG
 			_swapchainId = _frameGraph->CreateSwapchain( swapchain_info );
 			CHECK_ERR( _swapchainId );
 
-			_frameGraph->SetShaderDebugCallback([this] (auto name, auto, auto, auto output) { _OnShaderTraceReady(name, output); });
+			_frameGraph->SetShaderDebugCallback([this] (auto name, auto, auto, auto output) { _OnShaderTraceReady( name, output ); });
 		}
 
 		// add glsl pipeline compiler
@@ -263,12 +263,24 @@ namespace FG
 
 /*
 =================================================
+	IsActiveVR
+=================================================
+*/
+	bool  BaseSceneApp::IsActiveVR () const
+	{
+		return	_vrDevice and
+				(_vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Active or
+				 _vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Mounted);
+	}
+	
+/*
+=================================================
 	_UpdateCamera
 =================================================
 */
 	void  BaseSceneApp::_UpdateCamera ()
 	{
-		if ( _vrDevice and _vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Mounted )
+		if ( IsActiveVR() )
 		{
 			auto&	cam = _vrDevice->GetCamera();
 			
@@ -481,7 +493,7 @@ namespace FG
 		if ( _vrDevice )
 			_vrDevice->Update();
 
-		if ( not _vrDevice and Any( GetSurfaceSize() == uint2(0) ))
+		if ( not IsActiveVR() and Any( GetSurfaceSize() == uint2(0) ))
 		{
 			std::this_thread::sleep_for(SecondsF{0.01f});	// ~100 fps
 			return true;
@@ -543,13 +555,33 @@ namespace FG
 
 		String	fname;
 
+		const auto	BuildName = [this, &fname, &name] (uint index)
+		{
+			fname = String(_debugOutputPath) << '/' << name << '_' << ToString(index) << ".glsl_dbg";
+		};
+
 		for (auto& str : output)
 		{
-			for (uint index = 0; index < 100; ++index)
-			{
-				fname = String(_debugOutputPath) << '/' << name << '_' << ToString(index) << ".glsl_dbg";
+			uint		min_index	= 0;
+			uint		max_index	= 1;
+			const uint	step		= 100;
 
-				if ( IsExists( fname ) )
+			for (; min_index < max_index;)
+			{
+				BuildName( max_index );
+
+				if ( not IsExists( fname ))
+					break;
+
+				min_index = max_index;
+				max_index += step;
+			}
+
+			for (uint index = min_index; index <= max_index; ++index)
+			{
+				BuildName( index );
+
+				if ( IsExists( fname ))
 					continue;
 
 				FileWStream		file{ fname };

@@ -41,6 +41,7 @@ namespace FG
 			String			dbgOutputPath;
             String          deviceName;
             bool            enableDebugLayers   = true;
+			bool			vsync				= true;
 		};
 
 

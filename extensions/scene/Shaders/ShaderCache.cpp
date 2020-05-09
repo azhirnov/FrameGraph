@@ -311,7 +311,7 @@ namespace FG
 
 		const String		defines		= _defaultDefines + BuildShaderDefines( info ); //+ "void dbg_EnableTraceRecording (bool b) {}\n\n";
 		String				shared_src;
-		EShaderLangFormat	sh_lang		= EShaderLangFormat::VKSL_110;
+		EShaderLangFormat	sh_lang		= EShaderLangFormat::VKSL_110 | EShaderLangFormat::EnableTimeMap;
 		EShaderStages		all_stages	= EShaderStages::Vertex | EShaderStages::Fragment;
 
 		for (auto& id : info.sourceIDs) {
@@ -384,18 +384,19 @@ namespace FG
 								 << _CacheRayTracingVertexBuffer( info );
 
 		RayTracingPipelineDesc	desc;
-		EShaderLangFormat		mode = Default; // EShaderLangFormat::EnableDebugTrace;
+		EShaderLangFormat		sh_lang	= EShaderLangFormat::VKSL_110;
 
-		for (auto& sh : info.shaders)
+		for (auto& [sh_id, sh_type] : info.shaders)
 		{
 			String	source = header;
-			source << "#define RAYSHADER_" << sh.first.GetName() << "\n"
-				   << "#define SHADER " << ShaderTypeToString( sh.second ) << "\n";
+			source << "#define RAYSHADER_" << sh_id.GetName() << "\n"
+				   << "#define SHADER " << ShaderTypeToString( sh_type ) << "\n";
 			
 			for (auto& id : info.sourceIDs) {
 				source << _GetCachedSource( id );
 			}
-			desc.AddShader( sh.first, sh.second, EShaderLangFormat::VKSL_110 | mode, "main", std::move(source) );
+
+			desc.AddShader( sh_id, sh_type, sh_lang, "main", std::move(source) );
 		}
 
 		RTPipelineID	pipeline = _frameGraph->CreatePipeline( desc );

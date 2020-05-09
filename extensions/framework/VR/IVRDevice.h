@@ -5,6 +5,7 @@
 #include "stl/Math/Vec.h"
 #include "stl/Math/Rectangle.h"
 #include "stl/Math/Matrix.h"
+#include "stl/Containers/FixedMap.h"
 #include "vulkan_loader/VulkanLoader.h"
 #include "vulkan_loader/VulkanCheckError.h"
 
@@ -37,6 +38,8 @@ namespace FGC
 			Down,		// single event when controller button down
 			Pressed,	// continiously event until controller button is pressed
 		};
+		
+		using Mat3_t = Matrix< float, 3, 3, EMatrixOrder::ColumnMajor >;
 
 		
 	// interface
@@ -89,6 +92,16 @@ namespace FGC
 			float3		angularVelocity;
 		};
 
+		struct VRController
+		{
+			Mat3_t		pose;			// hmd rotation
+			float3		position;		// hmd position
+			float3		velocity;
+			float3		angularVelocity;
+			bool		isValid			= false;
+		};
+		using VRControllers_t = FixedMap< ControllerID, VRController, 8 >;
+
 		enum class Eye
 		{
 			Left,
@@ -110,6 +123,7 @@ namespace FGC
 
 		ND_ virtual EHmdStatus				GetHmdStatus () const = 0;
 		ND_ virtual VRCamera const&			GetCamera () const = 0;
+		ND_ virtual VRControllers_t const&	GetControllers () const = 0;
 		ND_ virtual Array<String>			GetRequiredInstanceExtensions () const = 0;
 		ND_ virtual Array<String>			GetRequiredDeviceExtensions (VkInstance instance = VK_NULL_HANDLE) const = 0;
 		ND_ virtual uint2					GetRenderTargetDimension () const = 0;
