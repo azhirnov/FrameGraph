@@ -36,10 +36,17 @@ namespace FGC
 	// methods
 		CameraTempl () {}
 		
-		ND_ Mat4_t  ToModelViewMatrix ()		const	{ return transform.ToMatrix(); }
-		ND_ Mat4_t  ToModelViewProjMatrix ()	const	{ return projection * transform.ToMatrix(); }
+		ND_ Mat4_t  ToModelViewProjMatrix ()	const	{ return projection * ToModelViewMatrix(); }
 		ND_ Mat4_t	ToViewProjMatrix ()			const	{ return projection * transform.ToRotationMatrix(); }
 		ND_ Mat4_t	ToViewMatrix ()				const	{ return transform.ToRotationMatrix(); }
+		
+		ND_ Mat4_t  ToModelViewMatrix ()		const
+		{
+			Mat4_t	orient_mat		= glm::mat4_cast( transform.orientation );
+			Mat4_t	translate_mat	= glm::translate( Mat4x4_Identity, transform.position );
+			Mat4_t	scale_mat		= glm::scale( Mat4x4_Identity, Vec3_t{ transform.scale });
+			return orient_mat * scale_mat * translate_mat;
+		}
 
 
 		// for transformation

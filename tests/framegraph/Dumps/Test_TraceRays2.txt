@@ -91,7 +91,7 @@ CommandBuffer {
 				name:     "HostWriteBuffer"
 				usage:    RTASBuild-Buffer-R
 				offset:   0 b
-				size:     256 Mb
+				size:     128 Mb
 			}
 			BufferUsage {
 				name:     "ScratchBuffer"
@@ -272,7 +272,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    256 Mb
+		size:    128 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {

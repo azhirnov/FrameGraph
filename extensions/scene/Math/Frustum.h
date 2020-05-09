@@ -113,7 +113,7 @@ namespace FGC
 	template <typename T>
 	inline void  FrustumTempl<T>::Setup (const CameraTempl<T> &camera)
 	{
-		return Setup( camera.projection * camera.transform.ToMatrix() );
+		return Setup( camera.ToViewProjMatrix() );
 	}
 	
 	template <typename T>

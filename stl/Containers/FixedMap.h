@@ -70,10 +70,12 @@ namespace FGC
 			Self&	operator = (Self &&);
 			Self&	operator = (const Self &);
 
-		ND_ Pair_t const&	operator [] (size_t i)	const;
-
 		ND_ bool	operator == (const Self &rhs) const;
 		ND_ bool	operator != (const Self &rhs) const		{ return not (*this == rhs); }
+
+		ND_ Pair_t const&	operator [] (size_t i)	const;
+
+		ND_ Value &			operator () (const Key &key);
 
 			Pair<iterator,bool>  insert (const pair_type &value);
 			Pair<iterator,bool>  insert (pair_type &&value);
@@ -224,6 +226,17 @@ namespace FGC
 	{
 		ASSERT( i < _count );
 		return reinterpret_cast<Pair_t const&>( _array[ _indices[i]]);
+	}
+	
+/*
+=================================================
+	operator ()
+=================================================
+*/
+	template <typename K, typename V, size_t S>
+	inline V&  FixedMap<K,V,S>::operator () (const K &key)
+	{
+		return insert({ key, V{} }).first->second;
 	}
 
 /*

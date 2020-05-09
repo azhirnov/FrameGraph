@@ -164,6 +164,17 @@ namespace FGC
 	
 /*
 =================================================
+	Hypotenuse
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr T  Hypotenuse (const T &a, const T &b)
+	{
+		return Sqrt( a*a + b*b );
+	}
+
+/*
+=================================================
 	Sqrt
 =================================================
 */
@@ -387,5 +398,31 @@ namespace FGC
 
 		return result;
 	}
+	
+/*
+=================================================
+	FastPow2
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline T  FastPow2 (const T &x, int pow)
+	{
+		if constexpr( IsSameTypes< T, float >)
+		{
+			auto	u = BitCast<uint>( x );
+			uint	e = int((u >> 23) & ((1u << 8) - 1)) + pow;
+			u = (u & ~(((1u << 8) - 1) << 23)) | ((e & ((1u << 8) - 1)) << 23);
+			return BitCast<float>( u );
+		}
+		else
+		if constexpr( IsSameTypes< T, double >)
+		{
+			auto		u = BitCast<uint64_t>( x );
+			uint64_t	e = int((u >> 52) & ((1ull << 11) - 1)) + pow;
+			u = (u & ~(((1ull << 11) - 1) << 52)) | ((e & ((1ull << 11) - 1)) << 52);
+			return BitCast<double>( u );
+		}
+	}
+
 
 }	// FGC

@@ -31,6 +31,10 @@ namespace FGC
 	using int2		= Vec< int, 2 >;
 	using int3		= Vec< int, 3 >;
 	using int4		= Vec< int, 4 >;
+	
+	using long2		= Vec< int64_t, 2 >;
+	using long3		= Vec< int64_t, 3 >;
+	using long4		= Vec< int64_t, 4 >;
 
 	using float2	= Vec< float, 2 >;
 	using float3	= Vec< float, 3 >;
@@ -136,6 +140,7 @@ namespace FGC
 		ND_ constexpr Self		operator - ()			const	{ return {-x, -y, -z}; }
 
 		ND_ const Vec<T,2>		xy ()					const	{ return {x, y}; }
+		ND_ const Vec<T,2>		xz ()					const	{ return {x, z}; }
 	};
 
 

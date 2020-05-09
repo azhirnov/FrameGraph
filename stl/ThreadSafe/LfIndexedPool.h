@@ -109,7 +109,7 @@ namespace FGC
 
 				for (size_t j = 0; j < ChunkSize; ++j)
 				{
-					if ( ctor_bits & (1u<<j) )
+					if ( ctor_bits & (Bitfield_t(1) << j) )
 						dtor( value->data()[j] );
 				}
 
@@ -182,7 +182,7 @@ namespace FGC
 		{
 			const uint	chunk_idx	= index >> ChunkSizePOT;
 			const uint	bit_idx		= index & (ChunkSize-1);
-			Bitfield_t	mask		= 1 << bit_idx;
+			Bitfield_t	mask		= Bitfield_t(1) << bit_idx;
 			Bitfield_t	old_bits	= _assignedBits[chunk_idx].fetch_or( mask, memory_order_relaxed );	// 0 -> 1
 
 			FG_UNUSED( old_bits );
@@ -194,7 +194,7 @@ namespace FGC
 		{
 			const uint	chunk_idx	= index >> ChunkSizePOT;
 			const uint	bit_idx		= index & (ChunkSize-1);
-			Bitfield_t	mask		= 1 << bit_idx;
+			Bitfield_t	mask		= Bitfield_t(1) << bit_idx;
 			Bitfield_t	bits		= _assignedBits[chunk_idx].load( memory_order_relaxed );
 
 			return !(bits & mask);
