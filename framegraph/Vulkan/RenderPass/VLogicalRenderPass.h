@@ -131,7 +131,6 @@ namespace FG
 		ND_ RectI const&						GetArea ()					const	{ return _area; }
 
 		ND_ bool								IsSubmited ()				const	{ return _isSubmited; }
-		ND_ bool								IsMergingAvailable ()		const	{ return _canBeMerged; }
 		
 		ND_ RawFramebufferID					GetFramebufferID ()			const	{ return _framebufferId; }
 		ND_ RawRenderPassID						GetRenderPassID ()			const	{ return _renderPassId; }

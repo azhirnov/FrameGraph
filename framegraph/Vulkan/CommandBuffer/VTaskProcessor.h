@@ -83,87 +83,87 @@ namespace FG
 		explicit VTaskProcessor (VCommandBuffer &, VkCommandBuffer);
 		~VTaskProcessor ();
 
-		void Visit (const VFgTask<SubmitRenderPass> &);
-		void Visit (const VFgTask<DispatchCompute> &);
-		void Visit (const VFgTask<DispatchComputeIndirect> &);
-		void Visit (const VFgTask<CopyBuffer> &);
-		void Visit (const VFgTask<CopyImage> &);
-		void Visit (const VFgTask<CopyBufferToImage> &);
-		void Visit (const VFgTask<CopyImageToBuffer> &);
-		void Visit (const VFgTask<BlitImage> &);
-		void Visit (const VFgTask<ResolveImage> &);
-		void Visit (const VFgTask<GenerateMipmaps> &);
-		void Visit (const VFgTask<FillBuffer> &);
-		void Visit (const VFgTask<ClearColorImage> &);
-		void Visit (const VFgTask<ClearDepthStencilImage> &);
-		void Visit (const VFgTask<UpdateBuffer> &);
-		void Visit (const VFgTask<Present> &);
-		void Visit (const VFgTask<UpdateRayTracingShaderTable> &);
-		void Visit (const VFgTask<BuildRayTracingGeometry> &);
-		void Visit (const VFgTask<BuildRayTracingScene> &);
-		void Visit (const VFgTask<TraceRays> &);
-		void Visit (const VFgTask<CustomTask> &);
+		void  Visit (const VFgTask<SubmitRenderPass> &);
+		void  Visit (const VFgTask<DispatchCompute> &);
+		void  Visit (const VFgTask<DispatchComputeIndirect> &);
+		void  Visit (const VFgTask<CopyBuffer> &);
+		void  Visit (const VFgTask<CopyImage> &);
+		void  Visit (const VFgTask<CopyBufferToImage> &);
+		void  Visit (const VFgTask<CopyImageToBuffer> &);
+		void  Visit (const VFgTask<BlitImage> &);
+		void  Visit (const VFgTask<ResolveImage> &);
+		void  Visit (const VFgTask<GenerateMipmaps> &);
+		void  Visit (const VFgTask<FillBuffer> &);
+		void  Visit (const VFgTask<ClearColorImage> &);
+		void  Visit (const VFgTask<ClearDepthStencilImage> &);
+		void  Visit (const VFgTask<UpdateBuffer> &);
+		void  Visit (const VFgTask<Present> &);
+		void  Visit (const VFgTask<UpdateRayTracingShaderTable> &);
+		void  Visit (const VFgTask<BuildRayTracingGeometry> &);
+		void  Visit (const VFgTask<BuildRayTracingScene> &);
+		void  Visit (const VFgTask<TraceRays> &);
+		void  Visit (const VFgTask<CustomTask> &);
 
-		static void Visit1_DrawVertices (void *, void *);
-		static void Visit2_DrawVertices (void *, void *);
-		static void Visit1_DrawIndexed (void *, void *);
-		static void Visit2_DrawIndexed (void *, void *);
-		static void Visit1_DrawMeshes (void *, void *);
-		static void Visit2_DrawMeshes (void *, void *);
-		static void Visit1_DrawVerticesIndirect (void *, void *);
-		static void Visit2_DrawVerticesIndirect (void *, void *);
-		static void Visit1_DrawIndexedIndirect (void *, void *);
-		static void Visit2_DrawIndexedIndirect (void *, void *);
-		static void Visit1_DrawMeshesIndirect (void *, void *);
-		static void Visit2_DrawMeshesIndirect (void *, void *);
-		static void Visit1_CustomDraw (void *, void *);
-		static void Visit2_CustomDraw (void *, void *);
+		static void  Visit1_DrawVertices (void *, void *);
+		static void  Visit2_DrawVertices (void *, void *);
+		static void  Visit1_DrawIndexed (void *, void *);
+		static void  Visit2_DrawIndexed (void *, void *);
+		static void  Visit1_DrawMeshes (void *, void *);
+		static void  Visit2_DrawMeshes (void *, void *);
+		static void  Visit1_DrawVerticesIndirect (void *, void *);
+		static void  Visit2_DrawVerticesIndirect (void *, void *);
+		static void  Visit1_DrawIndexedIndirect (void *, void *);
+		static void  Visit2_DrawIndexedIndirect (void *, void *);
+		static void  Visit1_DrawMeshesIndirect (void *, void *);
+		static void  Visit2_DrawMeshesIndirect (void *, void *);
+		static void  Visit1_CustomDraw (void *, void *);
+		static void  Visit2_CustomDraw (void *, void *);
 
-		void Run (VTask);
+		void  Run (VTask);
 
 
 	private:
-		void _CmdDebugMarker (StringView text) const;
-		void _CmdPushDebugGroup (StringView text) const;
-		void _CmdPopDebugGroup () const;
+		void  _CmdDebugMarker (StringView text) const;
+		void  _CmdPushDebugGroup (StringView text) const;
+		void  _CmdPopDebugGroup () const;
 		
 		template <typename ID>	ND_ auto const*  _ToLocal (ID id) const;
 		template <typename ID>	ND_ auto const*  _GetResource (ID id) const;
 		
-		void _CommitBarriers ();
+		void  _CommitBarriers ();
 		
-		void _AddRenderTargetBarriers (const VLogicalRenderPass &logicalRP, const DrawTaskBarriers &info);
-		void _SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view);
-		void _BeginRenderPass (const VFgTask<SubmitRenderPass> &task);
-		void _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
-		bool _CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses);
+		void  _AddRenderTargetBarriers (const VLogicalRenderPass &logicalRP, const DrawTaskBarriers &info);
+		void  _SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view);
+		void  _BeginRenderPass (const VFgTask<SubmitRenderPass> &task);
+		void  _BeginSubpass (const VFgTask<SubmitRenderPass> &task);
+		bool  _CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses);
 
-		void _ExtractDescriptorSets (const VPipelineLayout &, const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
-		void _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint, ShaderDbgIndex debugModeIndex);
-		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, OUT VPipelineLayout const* &pplnLayout);
-		void _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, OUT VPipelineLayout const* &pplnLayout);
-		void _BindPipeline2 (const VLogicalRenderPass &logicalRP, VkPipeline pipelineId);
-		void _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize, ShaderDbgIndex debugModeIndex,
-							VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout);
-		void _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
-		void _SetScissor (const VLogicalRenderPass &, ArrayView<RectI>);
-		void _SetDynamicStates (const _fg_hidden_::DynamicStates &) const;
-		void _BindShadingRateImage (VkImageView view);
-		void _ResetDrawContext ();
+		void  _ExtractDescriptorSets (const VPipelineLayout &, const VPipelineResourceSet &, OUT VkDescriptorSets_t &);
+		void  _BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet, VkPipelineBindPoint bindPoint, ShaderDbgIndex debugModeIndex);
+		void  _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, OUT VPipelineLayout const* &pplnLayout);
+		void  _BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, OUT VPipelineLayout const* &pplnLayout);
+		void  _BindPipeline2 (const VLogicalRenderPass &logicalRP, VkPipeline pipelineId);
+		void  _BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize, ShaderDbgIndex debugModeIndex,
+							 VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout);
+		void  _PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pc) const;
+		void  _SetScissor (const VLogicalRenderPass &, ArrayView<RectI>);
+		void  _SetDynamicStates (const _fg_hidden_::DynamicStates &) const;
+		void  _BindShadingRateImage (VkImageView view);
+		void  _ResetDrawContext ();
 
-		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
-		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);
-		void _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceRange &subres);
-		void _AddImageState (const VLocalImage *img, const ImageState &state);
+		void  _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc);
+		void  _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subresLayers);
+		void  _AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceRange &subres);
+		void  _AddImageState (const VLocalImage *img, const ImageState &state);
 
-		void _AddBuffer (const VLocalBuffer *buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size);
-		void _AddBuffer (const VLocalBuffer *buf, EResourceState state, const VkBufferImageCopy &reg, const VLocalImage *img);
-		void _AddBufferState (const VLocalBuffer *buf, const BufferState &state);
+		void  _AddBuffer (const VLocalBuffer *buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size);
+		void  _AddBuffer (const VLocalBuffer *buf, EResourceState state, const VkBufferImageCopy &reg, const VLocalImage *img);
+		void  _AddBufferState (const VLocalBuffer *buf, const BufferState &state);
 
-		void _AddRTGeometry (const VLocalRTGeometry *geom, EResourceState state);
-		void _AddRTScene (const VLocalRTScene *scene, EResourceState state);
+		void  _AddRTGeometry (const VLocalRTGeometry *geom, EResourceState state);
+		void  _AddRTScene (const VLocalRTScene *scene, EResourceState state);
 
-		void _BindIndexBuffer (VkBuffer indexBuffer, VkDeviceSize indexOffset, VkIndexType indexType);
+		void  _BindIndexBuffer (VkBuffer indexBuffer, VkDeviceSize indexOffset, VkIndexType indexType);
 
 		ND_ Statistic_t&  Stat () const;
 	};

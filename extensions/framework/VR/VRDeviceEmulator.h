@@ -106,17 +106,18 @@ namespace FGC
 		explicit VRDeviceEmulator (WindowPtr);
 		~VRDeviceEmulator () override;
 		
-		bool Create () override;
-		bool SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) override;
-		void Destroy () override;
-		void AddListener (IVRDeviceEventListener *listener) override;
-		void RemoveListener (IVRDeviceEventListener *listener) override;
-		bool Update () override;
-		void SetupCamera (const float2 &clipPlanes) override;
-		bool Submit (const VRImage &, Eye) override;
+		bool  Create () override;
+		bool  SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) override;
+		void  Destroy () override;
+		void  AddListener (IVRDeviceEventListener *listener) override;
+		void  RemoveListener (IVRDeviceEventListener *listener) override;
+		bool  Update () override;
+		void  SetupCamera (const float2 &clipPlanes) override;
+		bool  Submit (const VRImage &, Eye) override;
 
-		VRCamera const&	GetCamera () const override						{ return _camera; }
-		EHmdStatus		GetHmdStatus () const override					{ return _hmdStatus; }
+		VRCamera const&			GetCamera () const override				{ return _camera; }
+		EHmdStatus				GetHmdStatus () const override			{ return _hmdStatus; }
+
 		Array<String>	GetRequiredInstanceExtensions () const override;
 		Array<String>	GetRequiredDeviceExtensions (VkInstance) const override;
 		uint2			GetRenderTargetDimension () const override;

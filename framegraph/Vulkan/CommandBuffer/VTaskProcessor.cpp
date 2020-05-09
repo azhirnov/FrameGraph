@@ -53,13 +53,13 @@ namespace FG
 		PipelineResourceBarriers (VTaskProcessor &tp, ArrayView<uint> offsets) : _tp{tp}, _dynamicOffsets{offsets} {}
 
 		// ResourceGraph //
-		void operator () (const UniformID &, const PipelineResources::Buffer &buf);
-		void operator () (const UniformID &, const PipelineResources::Image &img);
-		void operator () (const UniformID &, const PipelineResources::Texture &tex);
-		//void operator () (const UniformID &, const PipelineResources::SubpassInput &sp);
-		void operator () (const UniformID &, const PipelineResources::Sampler &) {}
-		void operator () (const UniformID &, const PipelineResources::RayTracingScene &);
+		void  operator () (const UniformID &, const PipelineResources::Buffer &buf);
 		void  operator () (const UniformID &, const PipelineResources::TexelBuffer &texbuf);
+		void  operator () (const UniformID &, const PipelineResources::Image &img);
+		void  operator () (const UniformID &, const PipelineResources::Texture &tex);
+		//void  operator () (const UniformID &, const PipelineResources::SubpassInput &sp);
+		void  operator () (const UniformID &, const PipelineResources::Sampler &) {}
+		void  operator () (const UniformID &, const PipelineResources::RayTracingScene &);
 	};
 
 	
@@ -95,19 +95,19 @@ namespace FG
 	public:
 		DrawTaskBarriers (VTaskProcessor &tp, const VLogicalRenderPass &);
 
-		void Visit (const VFgDrawTask<FG::DrawVertices> &task);
-		void Visit (const VFgDrawTask<FG::DrawIndexed> &task);
-		void Visit (const VFgDrawTask<FG::DrawMeshes> &task);
-		void Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task);
-		void Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task);
-		void Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task);
-		void Visit (const VFgDrawTask<FG::CustomDraw> &task);
+		void  Visit (const VFgDrawTask<FG::DrawVertices> &task);
+		void  Visit (const VFgDrawTask<FG::DrawIndexed> &task);
+		void  Visit (const VFgDrawTask<FG::DrawMeshes> &task);
+		void  Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task);
+		void  Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task);
+		void  Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task);
+		void  Visit (const VFgDrawTask<FG::CustomDraw> &task);
 
 		template <typename PipelineType>
-		void _MergePipeline (const _fg_hidden_::DynamicStates &, const PipelineType *);
+		void  _MergePipeline (const _fg_hidden_::DynamicStates &, const PipelineType *);
 		
 		template <typename DrawTask>
-		void _ExtractDescriptorSets (RawPipelineLayoutID layoutId, const DrawTask &task);
+		void  _ExtractDescriptorSets (RawPipelineLayoutID layoutId, const DrawTask &task);
 
 		ND_ bool						IsEarlyFragmentTests ()			const	{ return _earlyFragmentTests; }
 		ND_ bool						IsLateFragmentTests ()			const	{ return _lateFragmentTests; }
@@ -137,19 +137,19 @@ namespace FG
 	public:
 		DrawTaskCommands (VTaskProcessor &tp, VFgTask<SubmitRenderPass> const* task, VkCommandBuffer cmd);
 
-		void Visit (const VFgDrawTask<FG::DrawVertices> &task);
-		void Visit (const VFgDrawTask<FG::DrawIndexed> &task);
-		void Visit (const VFgDrawTask<FG::DrawMeshes> &task);
-		void Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task);
-		void Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task);
-		void Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task);
-		void Visit (const VFgDrawTask<FG::CustomDraw> &task);
+		void  Visit (const VFgDrawTask<FG::DrawVertices> &task);
+		void  Visit (const VFgDrawTask<FG::DrawIndexed> &task);
+		void  Visit (const VFgDrawTask<FG::DrawMeshes> &task);
+		void  Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task);
+		void  Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task);
+		void  Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task);
+		void  Visit (const VFgDrawTask<FG::CustomDraw> &task);
 
 	private:
-		void _BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const;
+		void  _BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const;
 
 		template <typename DrawTask>
-		void _BindPipelineResources (const VPipelineLayout &layout, const DrawTask &task) const;
+		void  _BindPipelineResources (const VPipelineLayout &layout, const DrawTask &task) const;
 	};
 	
 
@@ -190,36 +190,36 @@ namespace FG
 		DrawContext (VTaskProcessor &tp, const VLogicalRenderPass &rp);
 
 		Context_t  GetData () override;
-		void Reset () override;
-		void BindPipeline (RawGPipelineID id, EPipelineDynamicState dynamicState) override;
-		void BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState) override;
-		void BindResources (const DescriptorSetID &id, const PipelineResources &res) override;
-		void PushConstants (const PushConstantID &id, const void *data, BytesU dataSize) override;
-		void BindShadingRateImage (RawImageID value, ImageLayer layer, MipmapLevel level) override;
-		void BindVertexAttribs (const VertexInputState &) override;
-		void BindVertexBuffer (const VertexBufferID &id, RawBufferID vbuf, BytesU offset) override;
-		void BindIndexBuffer (RawBufferID ibuf, BytesU offset, EIndex type) override;
-		void SetColorBuffer (RenderTargetID id, const RenderState::ColorBuffer &value) override;
-		void SetLogicOp (ELogicOp value) override;
-		void SetBlendColor (const RGBA32f &value) override;
-		void SetStencilBuffer (const RenderState::StencilBufferState &value) override;
-		void SetDepthBuffer (const RenderState::DepthBufferState &value) override;
-		void SetInputAssembly (const RenderState::InputAssemblyState &value) override;
-		void SetRasterization (const RenderState::RasterizationState &value) override;
-		void SetMultisample (const RenderState::MultisampleState &value) override;
-		void SetStencilCompareMask (uint value) override;
-		void SetStencilWriteMask (uint value) override;
-		void SetStencilReference (uint value) override;
-		void SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value) override;
-		void DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance) override;
-		void DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance) override;
-		void DrawVerticesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
-		void DrawIndexedIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
-		void DrawMeshes (uint taskCount, uint firstTask) override;
-		void DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
+		void  Reset () override;
+		void  BindPipeline (RawGPipelineID id, EPipelineDynamicState dynamicState) override;
+		void  BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState) override;
+		void  BindResources (const DescriptorSetID &id, const PipelineResources &res) override;
+		void  PushConstants (const PushConstantID &id, const void *data, BytesU dataSize) override;
+		void  BindShadingRateImage (RawImageID value, ImageLayer layer, MipmapLevel level) override;
+		void  BindVertexAttribs (const VertexInputState &) override;
+		void  BindVertexBuffer (const VertexBufferID &id, RawBufferID vbuf, BytesU offset) override;
+		void  BindIndexBuffer (RawBufferID ibuf, BytesU offset, EIndex type) override;
+		void  SetColorBuffer (RenderTargetID id, const RenderState::ColorBuffer &value) override;
+		void  SetLogicOp (ELogicOp value) override;
+		void  SetBlendColor (const RGBA32f &value) override;
+		void  SetStencilBuffer (const RenderState::StencilBufferState &value) override;
+		void  SetDepthBuffer (const RenderState::DepthBufferState &value) override;
+		void  SetInputAssembly (const RenderState::InputAssemblyState &value) override;
+		void  SetRasterization (const RenderState::RasterizationState &value) override;
+		void  SetMultisample (const RenderState::MultisampleState &value) override;
+		void  SetStencilCompareMask (uint value) override;
+		void  SetStencilWriteMask (uint value) override;
+		void  SetStencilReference (uint value) override;
+		void  SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value) override;
+		void  DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance) override;
+		void  DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance) override;
+		void  DrawVerticesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
+		void  DrawIndexedIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
+		void  DrawMeshes (uint taskCount, uint firstTask) override;
+		void  DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
 		
 	private:
-		void _BindPipeline (uint mask);
+		void  _BindPipeline (uint mask);
 	};
 //-----------------------------------------------------------------------------
 	
@@ -230,7 +230,7 @@ namespace FG
 	operator (Buffer)
 =================================================
 */
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Buffer &buf)
+	void  VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Buffer &buf)
 	{
 		for (uint i = 0; i < buf.elementCount; ++i)
 		{
@@ -292,7 +292,7 @@ namespace FG
 	operator (Image / Texture / SubpassInput)
 =================================================
 */
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Image &img)
+	void  VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Image &img)
 	{
 		for (uint i = 0; i < img.elementCount; ++i)
 		{
@@ -304,7 +304,7 @@ namespace FG
 		}
 	}
 	
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Texture &tex)
+	void  VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::Texture &tex)
 	{
 		for (uint i = 0; i < tex.elementCount; ++i)
 		{
@@ -321,7 +321,7 @@ namespace FG
 	operator (RayTracingScene)
 =================================================
 */
-	void VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::RayTracingScene &rts)
+	void  VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::RayTracingScene &rts)
 	{
 		for (uint i = 0; i < rts.elementCount; ++i)
 		{
@@ -384,7 +384,7 @@ namespace FG
 	Visit (DrawVertices)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawVertices> &task)
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawVertices> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
@@ -412,7 +412,7 @@ namespace FG
 	Visit (DrawIndexed)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawIndexed> &task)
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawIndexed> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
@@ -443,7 +443,7 @@ namespace FG
 	Visit (DrawVerticesIndirect)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task)
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
@@ -468,7 +468,7 @@ namespace FG
 	Visit (DrawIndexedIndirect)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task)
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
@@ -496,7 +496,7 @@ namespace FG
 	Visit (DrawMeshes)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshes> &task)
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshes> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
@@ -509,7 +509,7 @@ namespace FG
 	Visit (DrawMeshesIndirect)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task)
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task)
 	{
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
@@ -528,7 +528,7 @@ namespace FG
 	Visit (CustomDraw)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::CustomDraw> &task)
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::CustomDraw> &task)
 	{
 		EResourceState	stages = _tp._fgThread.GetDevice().GetGraphicsShaderStages();
 
@@ -550,7 +550,7 @@ namespace FG
 =================================================
 */
 	template <typename DrawTask>
-	inline void VTaskProcessor::DrawTaskBarriers::_ExtractDescriptorSets (RawPipelineLayoutID layoutId, const DrawTask &task)
+	inline void  VTaskProcessor::DrawTaskBarriers::_ExtractDescriptorSets (RawPipelineLayoutID layoutId, const DrawTask &task)
 	{
 		_tp._ExtractDescriptorSets( *_tp._GetResource( layoutId ), task.GetResources(), OUT task.descriptorSets );
 	}
@@ -561,7 +561,7 @@ namespace FG
 =================================================
 */
 	template <typename PipelineType>
-	void VTaskProcessor::DrawTaskBarriers::_MergePipeline (const _fg_hidden_::DynamicStates &ds,const PipelineType* pipeline)
+	inline void  VTaskProcessor::DrawTaskBarriers::_MergePipeline (const _fg_hidden_::DynamicStates &ds,const PipelineType* pipeline)
 	{
 		STATIC_ASSERT(	(IsSameTypes<PipelineType, VGraphicsPipeline>) or
 						(IsSameTypes<PipelineType, VMeshPipeline>) );
@@ -596,7 +596,7 @@ namespace FG
 	_BindVertexBuffers
 =================================================
 */
-	void VTaskProcessor::DrawTaskCommands::_BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const
+	void  VTaskProcessor::DrawTaskCommands::_BindVertexBuffers (ArrayView<VLocalBuffer const*> vertexBuffers, ArrayView<VkDeviceSize> vertexOffsets) const
 	{
 		if ( vertexBuffers.empty() )
 			return;
@@ -618,7 +618,7 @@ namespace FG
 =================================================
 */
 	template <typename DrawTask>
-	void VTaskProcessor::DrawTaskCommands::_BindPipelineResources (const VPipelineLayout &layout, const DrawTask &task) const
+	void  VTaskProcessor::DrawTaskCommands::_BindPipelineResources (const VPipelineLayout &layout, const DrawTask &task) const
 	{
 		if ( task.descriptorSets.size() )
 		{
@@ -649,7 +649,7 @@ namespace FG
 	Visit (DrawVertices)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawVertices> &task)
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawVertices> &task)
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 
@@ -675,7 +675,7 @@ namespace FG
 	Visit (DrawIndexed)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawIndexed> &task)
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawIndexed> &task)
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
@@ -703,7 +703,7 @@ namespace FG
 	Visit (DrawVerticesIndirect)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task)
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task)
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
@@ -733,7 +733,7 @@ namespace FG
 	Visit (DrawIndexedIndirect)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task)
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task)
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
@@ -764,7 +764,7 @@ namespace FG
 	Visit (DrawMeshes)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshes> &task)
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshes> &task)
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
@@ -789,7 +789,7 @@ namespace FG
 	Visit (DrawMeshesIndirect)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task)
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task)
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
@@ -818,7 +818,7 @@ namespace FG
 	Visit (CustomDraw)
 =================================================
 */
-	inline void VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::CustomDraw> &task)
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::CustomDraw> &task)
 	{
 		DrawContext	ctx{ _tp, *_currTask->GetLogicalPass() };
 
@@ -866,7 +866,7 @@ namespace FG
 	Reset
 =================================================
 */
-	void VTaskProcessor::DrawContext::Reset ()
+	void  VTaskProcessor::DrawContext::Reset ()
 	{
 		_gpipeline		= null;
 		_pplnLayout		= null;
@@ -893,7 +893,7 @@ namespace FG
 	BindPipeline
 =================================================
 */
-	void VTaskProcessor::DrawContext::BindPipeline (RawGPipelineID id, EPipelineDynamicState dynamicState)
+	void  VTaskProcessor::DrawContext::BindPipeline (RawGPipelineID id, EPipelineDynamicState dynamicState)
 	{
 		_dynamicStates	= dynamicState;
 		_gpipeline		= _tp._GetResource( id );
@@ -906,7 +906,7 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	void VTaskProcessor::DrawContext::_BindPipeline (uint mask)
+	void  VTaskProcessor::DrawContext::_BindPipeline (uint mask)
 	{
 		mask = _changed & mask;
 
@@ -953,7 +953,7 @@ namespace FG
 	BindPipeline
 =================================================
 */
-	void VTaskProcessor::DrawContext::BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState)
+	void  VTaskProcessor::DrawContext::BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState)
 	{
 		_dynamicStates	= dynamicState;
 		_gpipeline		= null;
@@ -966,7 +966,7 @@ namespace FG
 	BindResources
 =================================================
 */
-	void VTaskProcessor::DrawContext::BindResources (const DescriptorSetID &id, const PipelineResources &res)
+	void  VTaskProcessor::DrawContext::BindResources (const DescriptorSetID &id, const PipelineResources &res)
 	{
 		_BindPipeline( ALL_BITS );
 		CHECK_ERR( _pplnLayout, void());
@@ -988,7 +988,7 @@ namespace FG
 	PushConstants
 =================================================
 */
-	void VTaskProcessor::DrawContext::PushConstants (const PushConstantID &id, const void *data, BytesU dataSize)
+	void  VTaskProcessor::DrawContext::PushConstants (const PushConstantID &id, const void *data, BytesU dataSize)
 	{
 		_BindPipeline( ALL_BITS );
 		CHECK_ERR( _pplnLayout, void());
@@ -1008,7 +1008,7 @@ namespace FG
 	BindVertexAttribs
 =================================================
 */
-	void VTaskProcessor::DrawContext::BindVertexAttribs (const VertexInputState &value)
+	void  VTaskProcessor::DrawContext::BindVertexAttribs (const VertexInputState &value)
 	{
 		_vertexInput = value;
 		_changed	 |= GRAPHICS_BIT;
@@ -1019,7 +1019,7 @@ namespace FG
 	BindVertexBuffer
 =================================================
 */
-	void VTaskProcessor::DrawContext::BindVertexBuffer (const VertexBufferID &id, RawBufferID vbuf, BytesU offset)
+	void  VTaskProcessor::DrawContext::BindVertexBuffer (const VertexBufferID &id, RawBufferID vbuf, BytesU offset)
 	{
 		auto	iter = _vertexInput.BufferBindings().find( id );
 		auto*	buf  = _tp._GetResource( vbuf );
@@ -1039,7 +1039,7 @@ namespace FG
 	BindIndexBuffer
 =================================================
 */
-	void VTaskProcessor::DrawContext::BindIndexBuffer (RawBufferID ibuf, BytesU offset, EIndex type)
+	void  VTaskProcessor::DrawContext::BindIndexBuffer (RawBufferID ibuf, BytesU offset, EIndex type)
 	{
 		auto*	buf = _tp._GetResource( ibuf );
 		if ( buf ) {
@@ -1052,7 +1052,7 @@ namespace FG
 	SetColorBuffer
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetColorBuffer (RenderTargetID id, const RenderState::ColorBuffer &value)
+	void  VTaskProcessor::DrawContext::SetColorBuffer (RenderTargetID id, const RenderState::ColorBuffer &value)
 	{
 		CHECK_ERR( size_t(id) < _renderState.color.buffers.size(), void());
 
@@ -1065,7 +1065,7 @@ namespace FG
 	SetLogicOp
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetLogicOp (ELogicOp value)
+	void  VTaskProcessor::DrawContext::SetLogicOp (ELogicOp value)
 	{
 		_renderState.color.logicOp = value;
 		_changed |= ALL_BITS;
@@ -1076,7 +1076,7 @@ namespace FG
 	SetBlendColor
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetBlendColor (const RGBA32f &value)
+	void  VTaskProcessor::DrawContext::SetBlendColor (const RGBA32f &value)
 	{
 		_renderState.color.blendColor = value;
 		_changed |= ALL_BITS;
@@ -1087,7 +1087,7 @@ namespace FG
 	SetStencilBuffer
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetStencilBuffer (const RenderState::StencilBufferState &value)
+	void  VTaskProcessor::DrawContext::SetStencilBuffer (const RenderState::StencilBufferState &value)
 	{
 		_renderState.stencil = value;
 		_changed |= ALL_BITS;
@@ -1098,7 +1098,7 @@ namespace FG
 	SetDepthBuffer
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetDepthBuffer (const RenderState::DepthBufferState &value)
+	void  VTaskProcessor::DrawContext::SetDepthBuffer (const RenderState::DepthBufferState &value)
 	{
 		_renderState.depth = value;
 		_changed |= ALL_BITS;
@@ -1109,7 +1109,7 @@ namespace FG
 	SetInputAssembly
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetInputAssembly (const RenderState::InputAssemblyState &value)
+	void  VTaskProcessor::DrawContext::SetInputAssembly (const RenderState::InputAssemblyState &value)
 	{
 		_renderState.inputAssembly = value;
 		_changed |= GRAPHICS_BIT;
@@ -1120,7 +1120,7 @@ namespace FG
 	SetRasterization
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetRasterization (const RenderState::RasterizationState &value)
+	void  VTaskProcessor::DrawContext::SetRasterization (const RenderState::RasterizationState &value)
 	{
 		_renderState.rasterization = value;
 		_changed |= ALL_BITS;
@@ -1131,7 +1131,7 @@ namespace FG
 	SetMultisample
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetMultisample (const RenderState::MultisampleState &value)
+	void  VTaskProcessor::DrawContext::SetMultisample (const RenderState::MultisampleState &value)
 	{
 		_renderState.multisample = value;
 		_changed |= ALL_BITS;
@@ -1142,7 +1142,7 @@ namespace FG
 	SetStencilCompareMask
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetStencilCompareMask (uint value)
+	void  VTaskProcessor::DrawContext::SetStencilCompareMask (uint value)
 	{
 		_BindPipeline( ALL_BITS );
 		_tp.vkCmdSetStencilCompareMask( _tp._cmdBuffer, VK_STENCIL_FRONT_AND_BACK, value );
@@ -1153,7 +1153,7 @@ namespace FG
 	SetStencilWriteMask
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetStencilWriteMask (uint value)
+	void  VTaskProcessor::DrawContext::SetStencilWriteMask (uint value)
 	{
 		_BindPipeline( ALL_BITS );
 		_tp.vkCmdSetStencilWriteMask( _tp._cmdBuffer, VK_STENCIL_FRONT_AND_BACK, value );
@@ -1164,7 +1164,7 @@ namespace FG
 	SetStencilReference
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetStencilReference (uint value)
+	void  VTaskProcessor::DrawContext::SetStencilReference (uint value)
 	{
 		_BindPipeline( ALL_BITS );
 		_tp.vkCmdSetStencilReference( _tp._cmdBuffer, VK_STENCIL_FRONT_AND_BACK, value );
@@ -1175,7 +1175,7 @@ namespace FG
 	SetShadingRatePalette
 =================================================
 */
-	void VTaskProcessor::DrawContext::SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value)
+	void  VTaskProcessor::DrawContext::SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value)
 	{
 		_BindPipeline( ALL_BITS );
 		
@@ -1198,7 +1198,7 @@ namespace FG
 	BindShadingRateImage
 =================================================
 */
-	void VTaskProcessor::DrawContext::BindShadingRateImage (RawImageID value, ImageLayer layer, MipmapLevel level)
+	void  VTaskProcessor::DrawContext::BindShadingRateImage (RawImageID value, ImageLayer layer, MipmapLevel level)
 	{
 		auto*	image = _tp._GetResource( value );
 		CHECK_ERR( image, void());
@@ -1220,7 +1220,7 @@ namespace FG
 	DrawVertices
 =================================================
 */
-	void VTaskProcessor::DrawContext::DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
+	void  VTaskProcessor::DrawContext::DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
 	{
 		CHECK( _gpipeline );
 		_BindPipeline( GRAPHICS_BIT );
@@ -1233,7 +1233,7 @@ namespace FG
 	DrawIndexed
 =================================================
 */
-	void VTaskProcessor::DrawContext::DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
+	void  VTaskProcessor::DrawContext::DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
 	{
 		CHECK( _gpipeline );
 		_BindPipeline( GRAPHICS_BIT );
@@ -1246,7 +1246,7 @@ namespace FG
 	DrawVerticesIndirect
 =================================================
 */
-	void VTaskProcessor::DrawContext::DrawVerticesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
+	void  VTaskProcessor::DrawContext::DrawVerticesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
 	{
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		
@@ -1262,7 +1262,7 @@ namespace FG
 	DrawIndexedIndirect
 =================================================
 */
-	void VTaskProcessor::DrawContext::DrawIndexedIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
+	void  VTaskProcessor::DrawContext::DrawIndexedIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
 	{
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		CHECK_ERR( buf, void());
@@ -1277,7 +1277,7 @@ namespace FG
 	DrawMeshes
 =================================================
 */
-	void VTaskProcessor::DrawContext::DrawMeshes (uint taskCount, uint firstTask)
+	void  VTaskProcessor::DrawContext::DrawMeshes (uint taskCount, uint firstTask)
 	{
 		CHECK( _mpipeline );
 		_BindPipeline( MESH_BIT );
@@ -1290,7 +1290,7 @@ namespace FG
 	DrawMeshesIndirect
 =================================================
 */
-	void VTaskProcessor::DrawContext::DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
+	void  VTaskProcessor::DrawContext::DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
 	{
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		CHECK_ERR( buf, void());
@@ -1310,8 +1310,8 @@ namespace FG
 */
 	VTaskProcessor::VTaskProcessor (VCommandBuffer &fgThread, VkCommandBuffer cmd) :
 		_fgThread{ fgThread },
-		_cmdBuffer{ cmd },						_enableDebugUtils{ _fgThread.GetDevice().IsDebugUtilsEnabled() },
-		_isDefaultScissor{ false },				_perPassStatesUpdated{ false },
+		_cmdBuffer{ cmd },				_enableDebugUtils{ _fgThread.GetDevice().IsDebugUtilsEnabled() },
+		_isDefaultScissor{ false },		_perPassStatesUpdated{ false },
 		_pendingResourceBarriers{ fgThread.GetAllocator() }
 	{
 		ASSERT( _cmdBuffer );
@@ -1336,12 +1336,12 @@ namespace FG
 	Visit*_DrawVertices
 =================================================
 */
-	void VTaskProcessor::Visit1_DrawVertices (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit1_DrawVertices (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawVertices>*>( taskData ));
 	}
 	
-	void VTaskProcessor::Visit2_DrawVertices (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit2_DrawVertices (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawVertices>*>( taskData ));
 	}
@@ -1351,12 +1351,12 @@ namespace FG
 	Visit*_DrawIndexed
 =================================================
 */
-	void VTaskProcessor::Visit1_DrawIndexed (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit1_DrawIndexed (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawIndexed>*>( taskData ));
 	}
 
-	void VTaskProcessor::Visit2_DrawIndexed (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit2_DrawIndexed (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawIndexed>*>( taskData ));
 	}
@@ -1366,12 +1366,12 @@ namespace FG
 	Visit*_DrawMeshes
 =================================================
 */
-	void VTaskProcessor::Visit1_DrawMeshes (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit1_DrawMeshes (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawMeshes>*>( taskData ));
 	}
 
-	void VTaskProcessor::Visit2_DrawMeshes (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit2_DrawMeshes (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawMeshes>*>( taskData ));
 	}
@@ -1381,12 +1381,12 @@ namespace FG
 	Visit*_DrawVerticesIndirect
 =================================================
 */
-	void VTaskProcessor::Visit1_DrawVerticesIndirect (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit1_DrawVerticesIndirect (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawVerticesIndirect>*>( taskData ));
 	}
 
-	void VTaskProcessor::Visit2_DrawVerticesIndirect (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit2_DrawVerticesIndirect (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawVerticesIndirect>*>( taskData ));
 	}
@@ -1396,12 +1396,12 @@ namespace FG
 	Visit*_DrawIndexedIndirect
 =================================================
 */
-	void VTaskProcessor::Visit1_DrawIndexedIndirect (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit1_DrawIndexedIndirect (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawIndexedIndirect>*>( taskData ));
 	}
 
-	void VTaskProcessor::Visit2_DrawIndexedIndirect (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit2_DrawIndexedIndirect (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawIndexedIndirect>*>( taskData ));
 	}
@@ -1411,12 +1411,12 @@ namespace FG
 	Visit*_DrawMeshesIndirect
 =================================================
 */
-	void VTaskProcessor::Visit1_DrawMeshesIndirect (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit1_DrawMeshesIndirect (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawMeshesIndirect>*>( taskData ));
 	}
 
-	void VTaskProcessor::Visit2_DrawMeshesIndirect (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit2_DrawMeshesIndirect (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawMeshesIndirect>*>( taskData ));
 	}
@@ -1426,12 +1426,12 @@ namespace FG
 	Visit*_CustomDraw
 =================================================
 */
-	void VTaskProcessor::Visit1_CustomDraw (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit1_CustomDraw (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::CustomDraw>*>( taskData ));
 	}
 
-	void VTaskProcessor::Visit2_CustomDraw (void *visitor, void *taskData)
+	void  VTaskProcessor::Visit2_CustomDraw (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::CustomDraw>*>( taskData ));
 	}
@@ -1441,7 +1441,7 @@ namespace FG
 	_CmdDebugMarker
 =================================================
 */
-	void VTaskProcessor::_CmdDebugMarker (StringView text) const
+	void  VTaskProcessor::_CmdDebugMarker (StringView text) const
 	{
 		/*if ( text.size() and _enableDebugUtils )
 		{
@@ -1459,7 +1459,7 @@ namespace FG
 	_CmdPushDebugGroup
 =================================================
 */
-	void VTaskProcessor::_CmdPushDebugGroup (StringView text) const
+	void  VTaskProcessor::_CmdPushDebugGroup (StringView text) const
 	{
 		/*if ( text.size() and _enableDebugUtils )
 		{
@@ -1477,7 +1477,7 @@ namespace FG
 	_CmdPopDebugGroup
 =================================================
 */
-	void VTaskProcessor::_CmdPopDebugGroup () const
+	void  VTaskProcessor::_CmdPopDebugGroup () const
 	{
 		/*if ( _enableDebugUtils )
 		{
@@ -1490,7 +1490,7 @@ namespace FG
 	_SetScissor
 =================================================
 */
-	void VTaskProcessor::_SetScissor (const VLogicalRenderPass &logicalPsss, ArrayView<RectI> srcScissors)
+	void  VTaskProcessor::_SetScissor (const VLogicalRenderPass &logicalPsss, ArrayView<RectI> srcScissors)
 	{
 		if ( not srcScissors.empty() )
 		{
@@ -1524,7 +1524,7 @@ namespace FG
 	_SetDynamicStates
 =================================================
 */
-	void VTaskProcessor::_SetDynamicStates (const _fg_hidden_::DynamicStates &state) const
+	void  VTaskProcessor::_SetDynamicStates (const _fg_hidden_::DynamicStates &state) const
 	{
 		if ( state.hasStencilTest and state.stencilTest )
 		{
@@ -1546,7 +1546,7 @@ namespace FG
 	_AddRenderTargetBarriers
 =================================================
 */
-	void VTaskProcessor::_AddRenderTargetBarriers (const VLogicalRenderPass &logicalRP, const DrawTaskBarriers &info)
+	void  VTaskProcessor::_AddRenderTargetBarriers (const VLogicalRenderPass &logicalRP, const DrawTaskBarriers &info)
 	{
 		CHECK( info.IsFragmentOutputCompatible() );
 
@@ -1584,7 +1584,7 @@ namespace FG
 	_SetShadingRateImage
 =================================================
 */
-	void VTaskProcessor::_SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view)
+	void  VTaskProcessor::_SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view)
 	{
 		VLocalImage const*	image;
 		ImageViewDesc		desc;
@@ -1602,7 +1602,7 @@ namespace FG
 	_BindShadingRateImage
 =================================================
 */
-	void VTaskProcessor::_BindShadingRateImage (VkImageView view)
+	void  VTaskProcessor::_BindShadingRateImage (VkImageView view)
 	{
 		if ( _shadingRateImage != view )
 		{
@@ -1616,7 +1616,7 @@ namespace FG
 	_CreateRenderPass
 =================================================
 */
-	bool VTaskProcessor::_CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses)
+	bool  VTaskProcessor::_CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses)
 	{
 		using Attachment_t = FixedArray< Pair<RawImageID, ImageViewDesc>, FG_MaxColorBuffers+1 >;
 
@@ -1675,7 +1675,7 @@ namespace FG
 	_BeginRenderPass
 =================================================
 */
-	void VTaskProcessor::_BeginRenderPass (const VFgTask<SubmitRenderPass> &task)
+	void  VTaskProcessor::_BeginRenderPass (const VFgTask<SubmitRenderPass> &task)
 	{
 		ASSERT( not task.IsSubpass() );
 
@@ -1747,7 +1747,7 @@ namespace FG
 	_BeginSubpass
 =================================================
 */
-	void VTaskProcessor::_BeginSubpass (const VFgTask<SubmitRenderPass> &task)
+	void  VTaskProcessor::_BeginSubpass (const VFgTask<SubmitRenderPass> &task)
 	{
 		ASSERT( task.IsSubpass() );
 
@@ -1768,7 +1768,7 @@ namespace FG
 	Visit (SubmitRenderPass)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<SubmitRenderPass> &task)
+	void  VTaskProcessor::Visit (const VFgTask<SubmitRenderPass> &task)
 	{
 		if ( task.GetLogicalPass()->GetDrawTasks().empty() )
 			return;
@@ -1811,8 +1811,8 @@ namespace FG
 	_ExtractDescriptorSets
 =================================================
 */
-	void VTaskProcessor::_ExtractDescriptorSets (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet,
-												 OUT VkDescriptorSets_t &descriptorSets)
+	void  VTaskProcessor::_ExtractDescriptorSets (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet,
+												  OUT VkDescriptorSets_t &descriptorSets)
 	{
 		const FixedArray< uint, FG_MaxBufferDynamicOffsets >	old_offsets = resourceSet.dynamicOffsets;
 		StaticArray< Pair<uint, uint>, FG_MaxDescriptorSets >	new_offsets = {};
@@ -1856,8 +1856,8 @@ namespace FG
 	_BindPipelineResources
 =================================================
 */
-	void VTaskProcessor::_BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet,
-												 VkPipelineBindPoint bindPoint, ShaderDbgIndex debugModeIndex)
+	void  VTaskProcessor::_BindPipelineResources (const VPipelineLayout &layout, const VPipelineResourceSet &resourceSet,
+												  VkPipelineBindPoint bindPoint, ShaderDbgIndex debugModeIndex)
 	{
 		// update descriptor sets and add pipeline barriers
 		VkDescriptorSets_t	descriptor_sets;
@@ -1892,7 +1892,7 @@ namespace FG
 	_PushConstants
 =================================================
 */
-	void VTaskProcessor::_PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pushConstants) const
+	void  VTaskProcessor::_PushConstants (const VPipelineLayout &layout, const _fg_hidden_::PushConstants_t &pushConstants) const
 	{
 		auto const&		pc_map = layout.GetPushConstants();
 			
@@ -1919,7 +1919,7 @@ namespace FG
 	_BindPipeline2
 =================================================
 */
-	inline void VTaskProcessor::_BindPipeline2 (const VLogicalRenderPass &logicalRP, VkPipeline pipelineId)
+	inline void  VTaskProcessor::_BindPipeline2 (const VLogicalRenderPass &logicalRP, VkPipeline pipelineId)
 	{
 		if ( _graphicsPipeline.pipeline != pipelineId )
 		{
@@ -1946,7 +1946,7 @@ namespace FG
 	OverrideColorStates
 =================================================
 */
-	static void OverrideColorStates (INOUT RenderState::ColorBuffersState &currColorStates, const _fg_hidden_::ColorBuffers_t &newStates)
+	static void  OverrideColorStates (INOUT RenderState::ColorBuffersState &currColorStates, const _fg_hidden_::ColorBuffers_t &newStates)
 	{
 		for (auto& cb : newStates)
 		{
@@ -1959,9 +1959,9 @@ namespace FG
 	OverrideDepthStencilStates
 =================================================
 */
-	static void OverrideDepthStencilStates (INOUT RenderState::DepthBufferState &currDepthState, INOUT RenderState::StencilBufferState &currStencilState,
-											INOUT RenderState::RasterizationState &currRasterState, INOUT EPipelineDynamicState &dynamicState,
-											const _fg_hidden_::DynamicStates &newStates)
+	static void  OverrideDepthStencilStates (INOUT RenderState::DepthBufferState &currDepthState, INOUT RenderState::StencilBufferState &currStencilState,
+											 INOUT RenderState::RasterizationState &currRasterState, INOUT EPipelineDynamicState &dynamicState,
+											 const _fg_hidden_::DynamicStates &newStates)
 	{
 		currDepthState.test					= newStates.hasDepthTest ? newStates.depthTest : currDepthState.test;
 		currDepthState.write				= newStates.hasDepthWrite ? newStates.depthWrite : currDepthState.write;
@@ -1998,7 +1998,7 @@ namespace FG
 	SetupExtensions
 =================================================
 */
-	static void SetupExtensions (const VLogicalRenderPass &logicalRP, INOUT EPipelineDynamicState &dynamicState)
+	static void  SetupExtensions (const VLogicalRenderPass &logicalRP, INOUT EPipelineDynamicState &dynamicState)
 	{
 		if ( logicalRP.HasShadingRateImage() )
 			dynamicState |= EPipelineDynamicState::ShadingRatePalette;
@@ -2009,7 +2009,7 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, VPipelineLayout const* &pplnLayout)
+	inline void  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, VPipelineLayout const* &pplnLayout)
 	{
 		RenderState				render_state;
 		EPipelineDynamicState	dynamic_states = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
@@ -2047,7 +2047,7 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
+	inline void  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
 	{
 		RenderState				render_state;
 		EPipelineDynamicState	dynamic_states = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
@@ -2081,8 +2081,8 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize,
-											   ShaderDbgIndex debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout)
+	inline void  VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize,
+											    ShaderDbgIndex debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout)
 	{
 		VkPipeline	ppln_id;
 		_fgThread.GetPipelineCache().CreatePipelineInstance(
@@ -2105,7 +2105,7 @@ namespace FG
 	Visit (DispatchCompute)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<DispatchCompute> &task)
+	void  VTaskProcessor::Visit (const VFgTask<DispatchCompute> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2130,7 +2130,7 @@ namespace FG
 	Visit (DispatchComputeIndirect)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<DispatchComputeIndirect> &task)
+	void  VTaskProcessor::Visit (const VFgTask<DispatchComputeIndirect> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 		
@@ -2161,7 +2161,7 @@ namespace FG
 	Visit (CopyBuffer)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<CopyBuffer> &task)
+	void  VTaskProcessor::Visit (const VFgTask<CopyBuffer> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2206,7 +2206,7 @@ namespace FG
 	Visit (CopyImage)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<CopyImage> &task)
+	void  VTaskProcessor::Visit (const VFgTask<CopyImage> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2263,7 +2263,7 @@ namespace FG
 	Visit (CopyBufferToImage)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<CopyBufferToImage> &task)
+	void  VTaskProcessor::Visit (const VFgTask<CopyBufferToImage> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2310,7 +2310,7 @@ namespace FG
 	Visit (CopyImageToBuffer)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<CopyImageToBuffer> &task)
+	void  VTaskProcessor::Visit (const VFgTask<CopyImageToBuffer> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2356,7 +2356,7 @@ namespace FG
 	Visit (BlitImage)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<BlitImage> &task)
+	void  VTaskProcessor::Visit (const VFgTask<BlitImage> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2406,7 +2406,7 @@ namespace FG
 	Visit (ResolveImage)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<ResolveImage> &task)
+	void  VTaskProcessor::Visit (const VFgTask<ResolveImage> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 		
@@ -2456,7 +2456,7 @@ namespace FG
 	Visit (GenerateMipmaps)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<GenerateMipmaps> &task)
+	void  VTaskProcessor::Visit (const VFgTask<GenerateMipmaps> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2528,7 +2528,7 @@ namespace FG
 	Visit (FillBuffer)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<FillBuffer> &task)
+	void  VTaskProcessor::Visit (const VFgTask<FillBuffer> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2552,7 +2552,7 @@ namespace FG
 	Visit (ClearColorImage)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<ClearColorImage> &task)
+	void  VTaskProcessor::Visit (const VFgTask<ClearColorImage> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2590,7 +2590,7 @@ namespace FG
 	Visit (ClearDepthStencilImage)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<ClearDepthStencilImage> &task)
+	void  VTaskProcessor::Visit (const VFgTask<ClearDepthStencilImage> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 		
@@ -2628,7 +2628,7 @@ namespace FG
 	Visit (UpdateBuffer)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<UpdateBuffer> &task)
+	void  VTaskProcessor::Visit (const VFgTask<UpdateBuffer> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 		
@@ -2651,7 +2651,7 @@ namespace FG
 	Visit (Present)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<Present> &task)
+	void  VTaskProcessor::Visit (const VFgTask<Present> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 		
@@ -2693,7 +2693,7 @@ namespace FG
 	Visit (UpdateRayTracingShaderTable)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<UpdateRayTracingShaderTable> &task)
+	void  VTaskProcessor::Visit (const VFgTask<UpdateRayTracingShaderTable> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2729,7 +2729,7 @@ namespace FG
 	Visit (BuildRayTracingGeometry)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<BuildRayTracingGeometry> &task)
+	void  VTaskProcessor::Visit (const VFgTask<BuildRayTracingGeometry> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 		
@@ -2765,7 +2765,7 @@ namespace FG
 	Visit (BuildRayTracingScene)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<BuildRayTracingScene> &task)
+	void  VTaskProcessor::Visit (const VFgTask<BuildRayTracingScene> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 		
@@ -2802,7 +2802,7 @@ namespace FG
 	Visit (TraceRays)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<TraceRays> &task)
+	void  VTaskProcessor::Visit (const VFgTask<TraceRays> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2869,7 +2869,7 @@ namespace FG
 	Visit (CustomTask)
 =================================================
 */
-	void VTaskProcessor::Visit (const VFgTask<CustomTask> &task)
+	void  VTaskProcessor::Visit (const VFgTask<CustomTask> &task)
 	{
 		_CmdDebugMarker( task.Name() );
 
@@ -2900,7 +2900,7 @@ namespace FG
 	_AddImageState
 =================================================
 */
-	inline void VTaskProcessor::_AddImageState (const VLocalImage *img, const ImageState &state)
+	inline void  VTaskProcessor::_AddImageState (const VLocalImage *img, const ImageState &state)
 	{
 		ASSERT( img );
 		ASSERT( not state.range.IsEmpty() );
@@ -2918,7 +2918,7 @@ namespace FG
 	_AddImage
 =================================================
 */
-	inline void VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc)
+	inline void  VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const ImageViewDesc &desc)
 	{
 		ASSERT( desc.layerCount > 0 and desc.levelCount > 0 );
 
@@ -2937,7 +2937,7 @@ namespace FG
 	_AddImage
 =================================================
 */
-	inline void VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subres)
+	inline void  VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceLayers &subres)
 	{
 		_AddImageState( img,
 						ImageState{
@@ -2953,7 +2953,7 @@ namespace FG
 	_AddImage
 =================================================
 */
-	inline void VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceRange &subres)
+	inline void  VTaskProcessor::_AddImage (const VLocalImage *img, EResourceState state, VkImageLayout layout, const VkImageSubresourceRange &subres)
 	{
 		_AddImageState( img,
 						ImageState{
@@ -2969,7 +2969,7 @@ namespace FG
 	_AddBufferState
 =================================================
 */
-	inline void VTaskProcessor::_AddBufferState (const VLocalBuffer *buf, const BufferState &state)
+	inline void  VTaskProcessor::_AddBufferState (const VLocalBuffer *buf, const BufferState &state)
 	{
 		ASSERT( buf );
 		_pendingResourceBarriers.insert({ buf, &CommitResourceBarrier<VLocalBuffer> });
@@ -2985,7 +2985,7 @@ namespace FG
 	_AddBuffer
 =================================================
 */
-	inline void VTaskProcessor::_AddBuffer (const VLocalBuffer *buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size)
+	inline void  VTaskProcessor::_AddBuffer (const VLocalBuffer *buf, EResourceState state, VkDeviceSize offset, VkDeviceSize size)
 	{
 		ASSERT( buf );
 		ASSERT( size > 0 );
@@ -3002,8 +3002,8 @@ namespace FG
 	_AddBuffer
 =================================================
 */
-	inline void VTaskProcessor::_AddBuffer (const VLocalBuffer *buf, EResourceState state,
-											const VkBufferImageCopy &reg, const VLocalImage *img)
+	inline void  VTaskProcessor::_AddBuffer (const VLocalBuffer *buf, EResourceState state,
+											 const VkBufferImageCopy &reg, const VLocalImage *img)
 	{
 		ASSERT( img );
 
@@ -3039,7 +3039,7 @@ namespace FG
 	_AddRTGeometry
 =================================================
 */
-	void VTaskProcessor::_AddRTGeometry (const VLocalRTGeometry *geom, EResourceState state)
+	void  VTaskProcessor::_AddRTGeometry (const VLocalRTGeometry *geom, EResourceState state)
 	{
 		ASSERT( geom );
 		_pendingResourceBarriers.insert({ geom, &CommitResourceBarrier<VLocalRTGeometry> });
@@ -3055,7 +3055,7 @@ namespace FG
 	_AddRTScene
 =================================================
 */
-	void VTaskProcessor::_AddRTScene (const VLocalRTScene *scene, EResourceState state)
+	void  VTaskProcessor::_AddRTScene (const VLocalRTScene *scene, EResourceState state)
 	{
 		ASSERT( scene );
 		_pendingResourceBarriers.insert({ scene, &CommitResourceBarrier<VLocalRTScene> });
@@ -3071,7 +3071,7 @@ namespace FG
 	_CommitBarriers
 =================================================
 */
-	inline void VTaskProcessor::_CommitBarriers ()
+	inline void  VTaskProcessor::_CommitBarriers ()
 	{
 		auto&	barrier_mngr = _fgThread.GetBarrierManager();
 
@@ -3119,7 +3119,7 @@ namespace FG
 	_BindIndexBuffer
 =================================================
 */
-	inline void VTaskProcessor::_BindIndexBuffer (VkBuffer indexBuffer, VkDeviceSize indexOffset, VkIndexType indexType)
+	inline void  VTaskProcessor::_BindIndexBuffer (VkBuffer indexBuffer, VkDeviceSize indexOffset, VkIndexType indexType)
 	{
 		if ( _indexBuffer		!= indexBuffer	or
 			 _indexBufferOffset	!= indexOffset	or

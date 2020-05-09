@@ -162,7 +162,7 @@ namespace FG
 		RemapVertexBuffers( cb, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
 
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( INOUT _scissors, task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( INOUT _scissors, task.taskName, task.debugMode );
 	}
 
 /*
@@ -223,7 +223,7 @@ namespace FG
 		CopyDescriptorSets( &rp, cb, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( INOUT _scissors, task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( INOUT _scissors, task.taskName, task.debugMode );
 	}
 
 /*
@@ -291,7 +291,7 @@ namespace FG
 		CopyDescriptorSets( null, cb, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -319,7 +319,7 @@ namespace FG
 		CopyDescriptorSets( null, cb, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -706,7 +706,7 @@ namespace FG
 		CopyDescriptorSets( null, cb, task.resources, OUT _resources );
 
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
 	}
 	
 /*

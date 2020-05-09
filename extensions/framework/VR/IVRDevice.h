@@ -41,10 +41,10 @@ namespace FGC
 		
 	// interface
 	public:
-		virtual void HmdStatusChanged (EHmdStatus) = 0;
+		virtual void  HmdStatusChanged (EHmdStatus) = 0;
 
-		virtual void OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) = 0;
-		virtual void OnButton (ControllerID id, StringView btn, EButtonAction action) = 0;
+		virtual void  OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) = 0;
+		virtual void  OnButton (ControllerID id, StringView btn, EButtonAction action) = 0;
 	};
 
 
@@ -99,20 +99,20 @@ namespace FGC
 	// interface
 	public:
 		virtual ~IVRDevice () {}
-		virtual bool Create () = 0;
-		virtual bool SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) = 0;
-		virtual void Destroy () = 0;
-		virtual void AddListener (IVRDeviceEventListener *listener) = 0;
-		virtual void RemoveListener (IVRDeviceEventListener *listener) = 0;
-		virtual bool Update () = 0;
-		virtual void SetupCamera (const float2 &clipPlanes) = 0;
-		virtual bool Submit (const VRImage &, Eye) = 0;
+		virtual bool  Create () = 0;
+		virtual bool  SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) = 0;
+		virtual void  Destroy () = 0;
+		virtual void  AddListener (IVRDeviceEventListener *listener) = 0;
+		virtual void  RemoveListener (IVRDeviceEventListener *listener) = 0;
+		virtual bool  Update () = 0;
+		virtual void  SetupCamera (const float2 &clipPlanes) = 0;
+		virtual bool  Submit (const VRImage &, Eye) = 0;
 
-		ND_ virtual EHmdStatus		GetHmdStatus () const = 0;
-		ND_ virtual VRCamera const&	GetCamera () const = 0;
-		ND_ virtual Array<String>	GetRequiredInstanceExtensions () const = 0;
-		ND_ virtual Array<String>	GetRequiredDeviceExtensions (VkInstance instance = VK_NULL_HANDLE) const = 0;
-		ND_ virtual uint2			GetRenderTargetDimension () const = 0;
+		ND_ virtual EHmdStatus				GetHmdStatus () const = 0;
+		ND_ virtual VRCamera const&			GetCamera () const = 0;
+		ND_ virtual Array<String>			GetRequiredInstanceExtensions () const = 0;
+		ND_ virtual Array<String>			GetRequiredDeviceExtensions (VkInstance instance = VK_NULL_HANDLE) const = 0;
+		ND_ virtual uint2					GetRenderTargetDimension () const = 0;
 	};
 
 

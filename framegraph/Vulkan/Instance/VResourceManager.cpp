@@ -95,7 +95,7 @@ namespace FG
 	Deinitialize
 =================================================
 */
-	void VResourceManager::Deinitialize ()
+	void  VResourceManager::Deinitialize ()
 	{
 		_DestroyStagingBuffers();
 		_DestroyShaderDebuggerResources();
@@ -135,7 +135,7 @@ namespace FG
 	AddCompiler
 =================================================
 */
-	void VResourceManager::AddCompiler (const PipelineCompiler &comp)
+	void  VResourceManager::AddCompiler (const PipelineCompiler &comp)
 	{
 		EXLOCK( _compilersGuard );
 		_compilers.insert( comp );
@@ -146,7 +146,7 @@ namespace FG
 	OnSubmit
 =================================================
 */
-	void VResourceManager::OnSubmit ()
+	void  VResourceManager::OnSubmit ()
 	{
 		_submissionCounter.fetch_add( 1, memory_order_relaxed );
 	}
@@ -157,7 +157,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC>
-	inline void VResourceManager::_DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &res)
+	inline void  VResourceManager::_DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &res)
 	{
 		for (size_t i = 0, count = res.size(); i < count; ++i)
 		{
@@ -207,7 +207,7 @@ namespace FG
 =================================================
 */
 	template <typename ResType, typename ...Args>
-	inline void Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
+	inline void  Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
 	{
 		target.Data().~ResType();
 		new (&target.Data()) ResType{ std::forward<Args &&>(args)... };
@@ -594,7 +594,7 @@ namespace FG
 	_CompileShader
 =================================================
 */
-	bool VResourceManager::_CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
+	bool  VResourceManager::_CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
 	{
 		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
 		

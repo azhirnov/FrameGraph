@@ -642,6 +642,7 @@ namespace FG
 		
 		for (auto& pair : _readyToDelete)
 		{
+			BEGIN_ENUM_CHECKS();
 			switch ( pair.first )
 			{
 				case VK_OBJECT_TYPE_SEMAPHORE :
@@ -720,10 +721,33 @@ namespace FG
 					dev.vkDestroyAccelerationStructureNV( vdev, VkAccelerationStructureNV(pair.second), null );
 					break;
 
+				case VK_OBJECT_TYPE_UNKNOWN :
+				case VK_OBJECT_TYPE_INSTANCE :
+				case VK_OBJECT_TYPE_PHYSICAL_DEVICE :
+				case VK_OBJECT_TYPE_DEVICE :
+				case VK_OBJECT_TYPE_QUEUE :
+				case VK_OBJECT_TYPE_COMMAND_BUFFER :
+				case VK_OBJECT_TYPE_SHADER_MODULE :
+				case VK_OBJECT_TYPE_PIPELINE_CACHE :
+				case VK_OBJECT_TYPE_DESCRIPTOR_SET :
+				case VK_OBJECT_TYPE_COMMAND_POOL :
+				case VK_OBJECT_TYPE_SURFACE_KHR :
+				case VK_OBJECT_TYPE_SWAPCHAIN_KHR :
+				case VK_OBJECT_TYPE_DISPLAY_KHR :
+				case VK_OBJECT_TYPE_DISPLAY_MODE_KHR :
+				case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT :
+				case VK_OBJECT_TYPE_OBJECT_TABLE_NVX :
+				case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX :
+				case VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT :
+				case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT :
+				case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL :
+				case VK_OBJECT_TYPE_RANGE_SIZE :
+				case VK_OBJECT_TYPE_MAX_ENUM :
 				default :
 					FG_LOGE( "resource type is not supported" );
 					break;
 			}
+			END_ENUM_CHECKS();
 		}
 		_readyToDelete.clear();
 	}

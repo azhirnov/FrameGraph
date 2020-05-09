@@ -163,7 +163,7 @@ namespace {
 	SignalSemaphore
 =================================================
 */
-	void VCommandBuffer::SignalSemaphore (VkSemaphore sem)
+	void  VCommandBuffer::SignalSemaphore (VkSemaphore sem)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
@@ -176,7 +176,7 @@ namespace {
 	WaitSemaphore
 =================================================
 */
-	void VCommandBuffer::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
+	void  VCommandBuffer::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
@@ -189,7 +189,7 @@ namespace {
 	_BuildCommandBuffers
 =================================================
 */
-	bool VCommandBuffer::_BuildCommandBuffers ()
+	bool  VCommandBuffer::_BuildCommandBuffers ()
 	{
 		//if ( _taskGraph.Empty() )
 		//	return true;
@@ -213,6 +213,12 @@ namespace {
 
 			VK_CALL( dev.vkBeginCommandBuffer( cmd, &info ));
 			_batch->OnBeginRecording( cmd );
+
+			VkMemoryBarrier	barrier = {};
+			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+			barrier.srcAccessMask	= VK_ACCESS_HOST_WRITE_BIT;
+			barrier.dstAccessMask	= VK_ACCESS_TRANSFER_READ_BIT;
+			_barrierMngr.AddMemoryBarrier( VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, barrier );
 		}
 
 		// commit image layout transition and other
@@ -223,6 +229,12 @@ namespace {
 		// transit image layout to default state
 		// add memory dependency to flush caches
 		{
+			VkMemoryBarrier	barrier = {};
+			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+			barrier.srcAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask	= VK_ACCESS_HOST_READ_BIT;
+			_barrierMngr.AddMemoryBarrier( VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, barrier );
+
 			_FlushLocalResourceStates( ExeOrderIndex::Final, _barrierMngr, GetDebugger() );
 			_barrierMngr.ForceCommit( dev, cmd, dev.GetAllWritableStages(), dev.GetAllReadableStages() );
 		}
@@ -240,7 +252,7 @@ namespace {
 	VTaskProcessor::Run
 =================================================
 */
-	forceinline void VTaskProcessor::Run (VTask node)
+	forceinline void  VTaskProcessor::Run (VTask node)
 	{
 		// reset states
 		_currTask = node;
@@ -256,10 +268,9 @@ namespace {
 	_ProcessTasks
 =================================================
 */
-	bool VCommandBuffer::_ProcessTasks (VkCommandBuffer cmd)
+	bool  VCommandBuffer::_ProcessTasks (VkCommandBuffer cmd)
 	{
 		VTaskProcessor	processor{ *this, cmd };
-
 		uint			visitor_id		= 1;
 		ExeOrderIndex	exe_order_index	= ExeOrderIndex::First;
 
@@ -1054,7 +1065,7 @@ namespace {
 =================================================
 */
 	template <typename T>
-	inline bool VCommandBuffer::_AllocStorage (size_t count, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset, OUT T* &outPtr)
+	inline bool  VCommandBuffer::_AllocStorage (size_t count, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset, OUT T* &outPtr)
 	{
 		RawBufferID		buffer;
 		BytesU			buf_offset, buf_size;
@@ -1074,7 +1085,7 @@ namespace {
 	_StoreData
 =================================================
 */
-	inline bool VCommandBuffer::_StoreData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset)
+	inline bool  VCommandBuffer::_StoreData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset)
 	{
 		RawBufferID		buffer;
 		BytesU			buf_offset, buf_size;
@@ -1554,7 +1565,7 @@ namespace {
 =================================================
 */
 	template <typename ResType, typename ...Args>
-	inline void Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
+	inline void  Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
 	{
 		target.Data().~ResType();
 		new (&target.Data()) ResType{ std::forward<Args &&>(args)... };
@@ -1848,7 +1859,7 @@ namespace {
 	_ResetLocalRemaping
 =================================================
 */
-	void VCommandBuffer::_ResetLocalRemaping ()
+	void  VCommandBuffer::_ResetLocalRemaping ()
 	{
 		memset( _rm.images.toLocal.data(), ~0u, sizeof(Index_t)*_rm.images.maxGlobalIndex );
 		memset( _rm.buffers.toLocal.data(), ~0u, sizeof(Index_t)*_rm.buffers.maxGlobalIndex );
@@ -1868,7 +1879,7 @@ namespace {
 	_StorePartialData
 =================================================
 */
-	bool VCommandBuffer::_StorePartialData (ArrayView<uint8_t> srcData, const BytesU srcOffset, OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
+	bool  VCommandBuffer::_StorePartialData (ArrayView<uint8_t> srcData, const BytesU srcOffset, OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		// skip blocks less than 1/N of data size
 		const BytesU	src_size	= ArraySizeOf(srcData);
@@ -1888,8 +1899,8 @@ namespace {
 	_StoreImageData
 =================================================
 */
-	bool VCommandBuffer::_StoreImageData (ArrayView<uint8_t> srcData, const BytesU srcOffset, const BytesU srcPitch, const BytesU srcTotalSize,
-										  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
+	bool  VCommandBuffer::_StoreImageData (ArrayView<uint8_t> srcData, const BytesU srcOffset, const BytesU srcPitch, const BytesU srcTotalSize,
+										   OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		// skip blocks less than 1/N of total data size
 		const BytesU	src_size	= ArraySizeOf(srcData);

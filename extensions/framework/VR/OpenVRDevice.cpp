@@ -80,7 +80,7 @@ namespace
 	GetTrackedDeviceString
 =================================================
 */
-	static String GetTrackedDeviceString (Ptr<vr::IVRSystem> pHmd, vr::TrackedDeviceIndex_t unDevice, vr::TrackedDeviceProperty prop, vr::TrackedPropertyError *peError = null)
+	ND_ static String  GetTrackedDeviceString (Ptr<vr::IVRSystem> pHmd, vr::TrackedDeviceIndex_t unDevice, vr::TrackedDeviceProperty prop, vr::TrackedPropertyError *peError = null)
 	{
 		uint32_t unRequiredBufferLen = pHmd->GetStringTrackedDeviceProperty( unDevice, prop, null, 0, peError );
 		if( unRequiredBufferLen == 0 )
@@ -98,7 +98,7 @@ namespace
 	Create
 =================================================
 */
-	bool OpenVRDevice::Create ()
+	bool  OpenVRDevice::Create ()
 	{
 		vr::EVRInitError err = vr::VRInitError_None;
 		_hmd = vr::VR_Init( OUT &err, vr::VRApplication_Scene );
@@ -143,7 +143,7 @@ namespace
 	_InitControllers
 =================================================
 */
-	void OpenVRDevice::_InitControllers ()
+	void  OpenVRDevice::_InitControllers ()
 	{
 		const auto	now = TimePoint_t::clock::now();
 
@@ -186,7 +186,7 @@ namespace
 	SetVKDevice
 =================================================
 */
-	bool OpenVRDevice::SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
+	bool  OpenVRDevice::SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
 	{
 		// check is vulkan device supports output to VR device
 		{
@@ -208,7 +208,7 @@ namespace
 	Destroy
 =================================================
 */
-	void OpenVRDevice::Destroy ()
+	void  OpenVRDevice::Destroy ()
 	{
 		_vkInstance			= VK_NULL_HANDLE;
 		_vkPhysicalDevice	= VK_NULL_HANDLE;
@@ -233,7 +233,7 @@ namespace
 	AddListener
 =================================================
 */
-	void OpenVRDevice::AddListener (IVRDeviceEventListener *listener)
+	void  OpenVRDevice::AddListener (IVRDeviceEventListener *listener)
 	{
 		ASSERT( listener );
 		_listeners.insert( listener );
@@ -244,7 +244,7 @@ namespace
 	RemoveListener
 =================================================
 */
-	void OpenVRDevice::RemoveListener (IVRDeviceEventListener *listener)
+	void  OpenVRDevice::RemoveListener (IVRDeviceEventListener *listener)
 	{
 		ASSERT( listener );
 		_listeners.erase( listener );
@@ -255,7 +255,7 @@ namespace
 	Update
 =================================================
 */
-	bool OpenVRDevice::Update ()
+	bool  OpenVRDevice::Update ()
 	{
 		if ( not _hmd or not vr::VRCompositor() )
 			return false;
@@ -313,7 +313,7 @@ namespace
 	_ProcessHmdEvents
 =================================================
 */
-	void OpenVRDevice::_ProcessHmdEvents (const vr::VREvent_t &ev)
+	void  OpenVRDevice::_ProcessHmdEvents (const vr::VREvent_t &ev)
 	{
 		switch( ev.eventType )
 		{
@@ -406,7 +406,7 @@ namespace
 	_ProcessControllerEvents
 =================================================
 */
-	void OpenVRDevice::_ProcessControllerEvents (INOUT Controller &cont, const vr::VREvent_t &ev)
+	void  OpenVRDevice::_ProcessControllerEvents (INOUT Controller &cont, const vr::VREvent_t &ev)
 	{
 		switch( ev.eventType )
 		{
@@ -467,7 +467,7 @@ namespace
 	must be created with usage flags 'VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT'
 =================================================
 */
-	bool OpenVRDevice::Submit (const VRImage &image, Eye eye)
+	bool  OpenVRDevice::Submit (const VRImage &image, Eye eye)
 	{
 		CHECK_ERR( _hmd and vr::VRCompositor() );
 
@@ -646,7 +646,7 @@ namespace
 	SetupCamera
 =================================================
 */
-	void OpenVRDevice::SetupCamera (const float2 &clipPlanes)
+	void  OpenVRDevice::SetupCamera (const float2 &clipPlanes)
 	{
 		CHECK_ERR( _hmd, void());
 

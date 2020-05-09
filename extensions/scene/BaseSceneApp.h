@@ -43,6 +43,7 @@ namespace FG
             bool            enableDebugLayers   = true;
 		};
 
+
 	// variables
 	protected:
 		FrameGraph				_frameGraph;
@@ -107,29 +108,30 @@ namespace FG
 
 
 	public:
-		ND_ vec2				GetMousePos ()		const	{ return _lastMousePos; }
-		ND_ bool				IsMousePressed ()	const	{ return _mousePressed; }
+		ND_ vec2					GetMousePos ()		const	{ return _lastMousePos; }
+		ND_ bool					IsMousePressed ()	const	{ return _mousePressed; }
 
-		ND_ VulkanDeviceExt const&	GetVulkan ()	const	{ return _vulkan; }
-		ND_ Ptr<IWindow>		GetWindow ()				{ return _window.get(); }
-		ND_ Ptr<IVRDevice>		GetVRDevice ()				{ return _vrDevice.get(); }
-		ND_ uint2				GetSurfaceSize ()	const	{ return _window ? _window->GetSize() : uint2(); }
+		ND_ VulkanDeviceExt const&	GetVulkan ()		const	{ return _vulkan; }
+		ND_ Ptr<IWindow>			GetWindow ()				{ return _window.get(); }
+		ND_ Ptr<IVRDevice>			GetVRDevice ()				{ return _vrDevice.get(); }
+		ND_ uint2					GetSurfaceSize ()	const	{ return _window ? _window->GetSize() : uint2(); }
 
-		ND_ RawSwapchainID		GetSwapchain ()		const	{ return _swapchainId; }
+		ND_ RawSwapchainID			GetSwapchain ()		const	{ return _swapchainId; }
 
 		// vr camera
-		ND_ VRCamera &			GetVRCamera ()				{ return _vrCamera; }
-		ND_ VRCamera const&		GetVRCamera ()		const	{ return _vrCamera; }
+		ND_ VRCamera &				GetVRCamera ()				{ return _vrCamera; }
+		ND_ VRCamera const&			GetVRCamera ()		const	{ return _vrCamera; }
+		ND_ bool					IsActiveVR ()		const;
 
 		// viewport camera
-		ND_ Camera const&		GetCamera ()		const	{ return _camera.GetCamera(); }
-		ND_ Frustum const&		GetFrustum ()		const	{ return _camera.GetFrustum(); }
-		ND_ FPSCamera &			GetFPSCamera ()				{ return _camera; }
-		ND_ Rad					GetCameraFov ()		const	{ return _cameraFov; }
-		ND_ vec2 const&			GetViewRange ()		const	{ return _viewRange; }
+		ND_ Camera const&			GetCamera ()		const	{ return _camera.GetCamera(); }
+		ND_ Frustum const&			GetFrustum ()		const	{ return _camera.GetFrustum(); }
+		ND_ FPSCamera &				GetFPSCamera ()				{ return _camera; }
+		ND_ Rad						GetCameraFov ()		const	{ return _cameraFov; }
+		ND_ vec2 const&				GetViewRange ()		const	{ return _viewRange; }
 
-		ND_ Nanoseconds			CurrentTime ()		const	{ return _lastUpdateTime.time_since_epoch(); }
-		ND_ SecondsF			FrameTime ()		const	{ return _timeDelta; }
+		ND_ Nanoseconds				CurrentTime ()		const	{ return _lastUpdateTime.time_since_epoch(); }
+		ND_ SecondsF				FrameTime ()		const	{ return _timeDelta; }
 
 
 	// interface

@@ -116,45 +116,49 @@ namespace FG
 		explicit SpirvCompiler (const Array<String> &);
 		~SpirvCompiler ();
 		
-		bool SetCompilationFlags (EShaderCompilationFlags flags);
-		void SetShaderClockFeatures (bool shaderSubgroupClock, bool shaderDeviceClock);
+		void  SetCompilationFlags (EShaderCompilationFlags flags);
+		void  SetDebugFlags (EShaderLangFormat flags);
+		void  SetShaderClockFeatures (bool shaderSubgroupClock, bool shaderDeviceClock);
+		void  SetShaderFeatures (bool vertexPipelineStoresAndAtomics, bool fragmentStoresAndAtomics);
 
-		bool SetDefaultResourceLimits ();
-		bool SetCurrentResourceLimits (PhysicalDeviceVk_t physicalDevice);
+		bool  SetDefaultResourceLimits ();
+		bool  SetCurrentResourceLimits (PhysicalDeviceVk_t physicalDevice);
 
-		bool Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-					  NtStringView entry, NtStringView source, StringView debugName,
-					  OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log);
+		bool  Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
+					   NtStringView entry, NtStringView source, StringView debugName,
+					   OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log);
 		
 
 	private:
-		bool _ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-						 NtStringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
-						 OUT GLSLangResult &glslangData, INOUT String &log);
+		bool  _ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
+						  NtStringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
+						  OUT GLSLangResult &glslangData, INOUT String &log);
 
-		bool _CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, INOUT String &log) const;
-		bool _OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const;
+		bool  _CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, INOUT String &log) const;
+		bool  _OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const;
 
-		bool _BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &reflection);
+		bool  _BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &reflection);
 
-		bool _OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const;
+		bool  _OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const;
 
-		bool _ParseAnnotations (StringView source, INOUT ShaderReflection &) const;
+		bool  _ParseAnnotations (StringView source, INOUT ShaderReflection &) const;
 
-		static void _GenerateResources (OUT TBuiltInResource& res);
+		bool  _CheckShaderFeatures (EShader shaderType) const;
+
+		static void  _GenerateResources (OUT TBuiltInResource& res);
 
 
 	// GLSL deserializer
 	private:
-		bool _ProcessExternalObjects (TIntermNode* root, TIntermNode* node, INOUT ShaderReflection &result) const;
+		bool  _ProcessExternalObjects (TIntermNode* root, TIntermNode* node, INOUT ShaderReflection &result) const;
 
-		bool _DeserializeExternalObjects (TIntermNode* node, INOUT ShaderReflection &result) const;
+		bool  _DeserializeExternalObjects (TIntermNode* node, INOUT ShaderReflection &result) const;
 
-		bool _ProcessShaderInfo (INOUT ShaderReflection &result) const;
+		bool  _ProcessShaderInfo (INOUT ShaderReflection &result) const;
 		
-		bool _CalculateStructSize (const glslang::TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride, OUT BytesU &offset) const;
+		bool  _CalculateStructSize (const glslang::TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride, OUT BytesU &offset) const;
 		
-		void _MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, /*TLayoutGeometry*/uint type) const;
+		void  _MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, /*TLayoutGeometry*/uint type) const;
 
 		ND_ BindingIndex	_ToBindingIndex (uint index) const;
 		ND_ EImage			_ExtractImageType (const glslang::TType &type) const;

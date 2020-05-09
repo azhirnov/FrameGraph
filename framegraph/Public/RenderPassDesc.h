@@ -60,8 +60,8 @@ namespace FG
 		
 		PipelineResourceSet			perPassResources;	// this resources will be added for all draw tasks
 
-		bool						parallelExecution	= true;		// (optimization) if 'false' all draw and compute tasks will be executed in initial order
-		bool						canBeMerged			= true;		// (optimization) g-buffer render passes can be merged, but don't merge conditional passes
+		//bool						parallelExecution	= true;		// (optimization) if 'false' all draw and compute tasks will be executed in initial order
+		//bool						canBeMerged			= true;		// (optimization) g-buffer render passes can be merged, but don't merge conditional passes
 		// TODO: push constants, specialization constants
 
 

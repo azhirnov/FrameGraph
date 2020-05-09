@@ -169,14 +169,14 @@ namespace FG
 	private:
 		// resource manager //
 		template <typename PplnID>
-		bool _InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const;
+		bool  _InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const;
 
 		template <typename ID>
-		void _ReleaseResource (INOUT ID &id);
+		void  _ReleaseResource (INOUT ID &id);
 		
-		void _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily);
+		void  _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily);
 
-		ND_ VkSemaphore	_CreateSemaphore ();
+		ND_ VkSemaphore	 _CreateSemaphore ();
 
 
 		// queues //

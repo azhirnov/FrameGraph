@@ -158,11 +158,11 @@ namespace FG
 		explicit VResourceManager (const VDevice &dev);
 		~VResourceManager ();
 
-		bool Initialize ();
-		void Deinitialize ();
+		bool  Initialize ();
+		void  Deinitialize ();
 		
-		void AddCompiler (const PipelineCompiler &comp);
-		void OnSubmit ();
+		void  AddCompiler (const PipelineCompiler &comp);
+		void  OnSubmit ();
 
 		ND_ RawMPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName);
 		ND_ RawGPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName);
@@ -225,9 +225,9 @@ namespace FG
 		
 		ND_ Tuple<RawCPipelineID, RawCPipelineID, RawCPipelineID>	GetShaderTimemapPipelines ();
 
-		void CheckTask (const BuildRayTracingScene &);
+		void  CheckTask (const BuildRayTracingScene &);
 
-		void RunValidation (uint maxIter);
+		void  RunValidation (uint maxIter);
 		
 		bool  CreateStagingBuffer (EBufferUsage usage, OUT RawBufferID &id, OUT StagingBufferIdx &index);
 		void  ReleaseStagingBuffer (StagingBufferIdx index);
@@ -296,8 +296,8 @@ namespace FG
 		
 
 	// empty descriptor set layout
-			bool _CreateEmptyDescriptorSetLayout ();
-		ND_ auto _GetEmptyDescriptorSetLayout ()		{ return _emptyDSLayout; }
+			bool  _CreateEmptyDescriptorSetLayout ();
+		ND_ auto  _GetEmptyDescriptorSetLayout ()		{ return _emptyDSLayout; }
 
 
 	// shader debugger

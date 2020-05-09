@@ -108,11 +108,11 @@ namespace FG
 		explicit VCommandBuffer (VFrameGraph &, uint);
 		~VCommandBuffer ();
 
-		bool Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue);
-		bool Execute ();
+		bool  Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue);
+		bool  Execute ();
 
-		void SignalSemaphore (VkSemaphore sem);
-		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
+		void  SignalSemaphore (VkSemaphore sem);
+		void  WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
 		
 		FrameGraph	GetFrameGraph () override	{ return _instance.shared_from_this(); }
 
@@ -121,8 +121,8 @@ namespace FG
 		bool		AddDependency (const CommandBuffer &) override;
 		bool		AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) override;
 
-		void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate);
-		void		AcquireBuffer (RawBufferID id, bool makeMutable);
+		void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate) override;
+		void		AcquireBuffer (RawBufferID id, bool makeMutable) override;
 
 
 		// tasks //

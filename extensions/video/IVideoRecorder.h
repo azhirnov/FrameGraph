@@ -52,7 +52,7 @@ namespace FG
 			EVideoPreset	preset			= EVideoPreset::Default;
 			uint			fps				= 30;
 			uint2			size			= {1920, 1080};
-			uint64_t		bitrate			= 50 << 20;		// Mbit/s
+			uint64_t		bitrate			= 50 << 20;		// bit/s
 			bool			hwAccelerated	= false;		// use hardware acceleration on GPU or CPU
 		};
 
