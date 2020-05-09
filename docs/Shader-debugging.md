@@ -27,17 +27,28 @@ Shader trace will be recorded only for selected thread/pixel/launch.
 Aloso you can enable shader recording during shader execution:
 ```cpp
 desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, "main", R"#(
-    // empty function will be replaced during shader compilation
-    void dbg_EnableTraceRecording (bool b) {}
-    
-    void main ()
-    {
-        bool condition = ...
-        
-        // if condition is true then trace recording will start here
-        dbg_EnableTraceRecording( condition );
-        ...
-    }
+	// empty functions will be replaced during shader compilation
+	void dbg_EnableTraceRecording (bool b) {}
+	void dbg_PauseTraceRecording (bool b) {}
+
+	void main ()
+	{
+		bool condition = ...
+		
+		// if 'condition' is true then trace recording will start here
+		dbg_EnableTraceRecording( condition );
+		...
+		
+		// pause
+		dbg_PauseTraceRecording( true );
+		
+		// trace will not be recorded
+		...
+		
+		// resume
+		dbg_PauseTraceRecording( false );
+		...
+	}
 )#" );
 
 // supports any shader stage
@@ -81,7 +92,7 @@ no source
 The `//>` symbol marks the modified variable or function result.
 
 
-## Shader profiling
+## Shader profiling for single pixel/invocation
 
 For each shader, that you want to profile, add `EnableProfiling` flag:
 ```cpp
@@ -167,3 +178,19 @@ no source
 `avr` - calculated as `total / invocations`.<br/>
 `(xx)` - calculated as `sum_of_all_function_invocations / invocations`.<br/>
 
+
+## Shader profiling for render pass
+
+For each shader, that you want to debug, add `EnableTimeMap` flag:
+```cpp
+desc.AddShader( ... | EShaderLangFormat::EnableTimeMap, ... );
+```
+To begin profiling call `CommandBuffer::BeginShaderTimeMap( dimension, EShaderStages::All )` it enables shader time recording for all subsequent tasks with shaders that builded with flag `EnableTimeMap` and for all specified shader stages.
+To stop profiling and get results call `EndShaderTimeMap( dstImage )`, inside this function will be executed some commands:
+* searching for max time
+* remaping time to unorm value and then converts it to heatmap (red - max time, blue - min time)
+* result will be stored into `dstImage`
+
+Example:
+![image](ShaderTimemap1.jpg)
+![image](ShaderTimemap2.jpg)
