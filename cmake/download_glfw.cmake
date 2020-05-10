@@ -14,27 +14,27 @@ if (${FG_ENABLE_GLFW})
 	
 	# select version
 	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
-		set( GLWF_TAG "3.2.1" )
+		set( GLFW_TAG "3.2.1" )
 	else ()
-		set( GLWF_TAG "master" )
+		set( GLFW_TAG "master" )
 	endif ()
 
 	# download
-	if (NOT EXISTS "${FG_EXTERNAL_GLFW_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+	if (NOT EXISTS "${FG_EXTERNAL_GLFW_PATH}/include/GLFW/glfw3.h")
 		FetchContent_Declare( ExternalGLFW
-			GIT_REPOSITORY		https://github.com/glfw/glfw.git
-			GIT_TAG				${GLWF_TAG}
+			GIT_REPOSITORY		"https://github.com/glfw/glfw.git"
+			GIT_TAG				${GLFW_TAG}
 			SOURCE_DIR			"${FG_EXTERNAL_GLFW_PATH}"
 		)
 		
 		FetchContent_GetProperties( ExternalGLFW )
 		if (NOT ExternalGLFW_POPULATED)
-			message( STATUS "downloading glfw" )
+			message( STATUS "downloading glfw..." )
 			FetchContent_Populate( ExternalGLFW )
 		endif ()
 	endif ()
 		
-	set( GLFW_INSTALL ON CACHE BOOL "glfw option" )
+	set( GLFW_INSTALL OFF CACHE INTERNAL "glfw option" FORCE )
 	set( GLFW_BUILD_TESTS OFF CACHE BOOL "glfw option" )
 	set( GLFW_BUILD_EXAMPLES OFF CACHE BOOL "glfw option" )
 	set( GLFW_BUILD_DOCS OFF CACHE BOOL "glfw option" )

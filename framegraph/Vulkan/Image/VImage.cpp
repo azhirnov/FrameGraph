@@ -70,8 +70,10 @@ namespace FG
 		if ( EImage_IsCube( imageType ))
 			flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
+		if ( imageType == EImage::Tex3D )
+			flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+
 		// TODO: VK_IMAGE_CREATE_EXTENDED_USAGE_BIT
-		// TODO: VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT for 3D image
 		// TODO: VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT 
 		// TODO: VK_IMAGE_CREATE_ALIAS_BIT 
 		// TODO: VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT 
@@ -176,6 +178,9 @@ namespace FG
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( not desc.isExternal );
 		
+		auto&	dev = resMngr.GetDevice();
+		ASSERT( IsSupported( dev, desc, EMemoryType(memObj.MemoryType()) ));
+		
 		const bool	opt_tiling	= not uint(memObj.MemoryType() & EMemoryTypeExt::HostVisible);
 
 		_desc		= desc;		_desc.Validate();
@@ -226,8 +231,6 @@ namespace FG
 		// TODO:
 		// test usage with supported features (vkGetPhysicalDeviceFormatProperties2)
 
-		auto&	dev = resMngr.GetDevice();
-
 		VK_CHECK( dev.vkCreateImage( dev.GetVkDevice(), &info, null, OUT &_image ));
 
 		CHECK_ERR( memObj.AllocateForImage( resMngr.GetMemoryManager(), _image ));
@@ -266,6 +269,8 @@ namespace FG
 		_desc.maxLevel		= MipmapLevel{ desc.maxLevels };
 		_desc.samples		= FGEnumCast( BitCast<VkSampleCountFlagBits>( desc.samples ));
 		_desc.isExternal	= true;
+		
+		ASSERT( IsSupported( dev, _desc, EMemoryType::Default ));
 
 		if ( not dbgName.empty() )
 		{
@@ -299,11 +304,15 @@ namespace FG
 		EXLOCK( _drCheck );
 		
 		auto&	dev = resMngr.GetDevice();
-
-		for (auto& view : _viewMap) {
-			dev.vkDestroyImageView( dev.GetVkDevice(), view.second, null );
-		}
 		
+		{
+			SHAREDLOCK( _viewMapLock );
+			for (auto& view : _viewMap) {
+				dev.vkDestroyImageView( dev.GetVkDevice(), view.second, null );
+			}
+			_viewMap.clear();
+		}
+
 		if ( _desc.isExternal and _onRelease ) {
 			_onRelease( BitCast<ImageVk_t>(_image) );
 		}
@@ -316,8 +325,8 @@ namespace FG
 			resMngr.ReleaseResource( _memoryId.Release() );
 		}
 		
-		_viewMap.clear();
 		_debugName.clear();
+
 		_image				= VK_NULL_HANDLE;
 		_memoryId			= Default;
 		_desc				= Default;
@@ -449,6 +458,71 @@ namespace FG
 		desc.queueFamily	= VK_QUEUE_FAMILY_IGNORED;
 		//desc.queueFamilyIndices	// TODO
 		return desc;
+	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool  VImage::IsSupported (const VDevice &dev, const ImageDesc &desc, EMemoryType memType)
+	{
+		VkFormatProperties	props = {};
+		vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), VEnumCast( desc.format ), OUT &props );
+		
+		const bool					opt_tiling	= not EnumAny( memType, EMemoryType::HostRead | EMemoryType::HostWrite );
+		const VkFormatFeatureFlags	dev_flags	= opt_tiling ? props.optimalTilingFeatures : props.linearTilingFeatures;
+		VkFormatFeatureFlags		img_flags	= 0;
+
+		for (EImageUsage t = EImageUsage(1); t <= desc.usage; t = EImageUsage(uint(t) << 1))
+		{
+			if ( not EnumEq( desc.usage, t ))
+				continue;
+
+			BEGIN_ENUM_CHECKS();
+			switch ( t )
+			{
+				case EImageUsage::TransferSrc :				img_flags |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT;	break;
+				case EImageUsage::TransferDst :				img_flags |= VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;	break;
+				case EImageUsage::Sampled :					img_flags |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;	break;
+				case EImageUsage::Storage :					img_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;				break;
+				case EImageUsage::StorageAtomic :			img_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;		break;
+				case EImageUsage::ColorAttachment :			img_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;			break;
+				case EImageUsage::ColorAttachmentBlend :	img_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;		break;
+				case EImageUsage::DepthStencilAttachment :	img_flags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;	break;
+				case EImageUsage::TransientAttachment :		break;	// TODO
+				case EImageUsage::InputAttachment :			break;
+				case EImageUsage::ShadingRate :				if ( not dev.IsShadingRateImageEnabled() ) return false;		break;
+				case EImageUsage::_Last :
+				case EImageUsage::All :
+				case EImageUsage::Transfer :
+				case EImageUsage::Unknown :
+				default :									ASSERT(false);	break;
+			}
+			END_ENUM_CHECKS();
+		}
+
+		return (dev_flags & img_flags);
+	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool  VImage::IsSupported (const VDevice &dev, const ImageViewDesc &desc) const
+	{
+		SHAREDLOCK( _drCheck );
+
+		if ( desc.viewType == EImage::TexCubeArray and not dev.GetDeviceFeatures().imageCubeArray )
+			return false;
+
+		// TODO: mutable format
+
+		if ( desc.format != Default and desc.format != _desc.format )
+			return false;
+
+		return true;
 	}
 
 

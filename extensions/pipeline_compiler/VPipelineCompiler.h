@@ -59,8 +59,11 @@ namespace FG
 
 		bool SetCompilationFlags (EShaderCompilationFlags flags);
 		void AddDirectory (StringView path);
+		
+		// set debug flags for all shaders
+		void SetDebugFlags (EShaderLangFormat flags);
 
-		ND_ EShaderCompilationFlags  GetCompilationFlags () const	{ return _compilerFlags; }
+		ND_ EShaderCompilationFlags  GetCompilationFlags ()		{ EXLOCK( _lock );  return _compilerFlags; }
 
 		void ReleaseUnusedShaders ();
 		void ReleaseShaderCache ();
@@ -92,6 +95,8 @@ namespace FG
 		void _CheckHashCollision (const GraphicsPipelineDesc &);
 		void _CheckHashCollision (const ComputePipelineDesc &);
 		void _CheckHashCollision2 (const PipelineDescription &);
+
+		bool _CheckDescriptorBindings (const PipelineDescription &) const;
 	};
 
 

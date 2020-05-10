@@ -69,6 +69,7 @@ namespace FG
 
 	private:
 		bool _AddResource (VResourceManager &, INOUT PipelineResources::Buffer &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, INOUT PipelineResources::TexelBuffer &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManager &, INOUT PipelineResources::Image &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManager &, INOUT PipelineResources::Texture &, INOUT UpdateDescriptors &);
 		bool _AddResource (VResourceManager &, const PipelineResources::Sampler &, INOUT UpdateDescriptors &);

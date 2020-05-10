@@ -44,7 +44,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool RendererPrototype::Create (const FrameGraph &fg)
+	bool  RendererPrototype::Create (const FrameGraph &fg)
 	{
 		CHECK_ERR( fg );
 
@@ -63,7 +63,7 @@ namespace FG
 	Destroy
 =================================================
 */
-	void RendererPrototype::Destroy ()
+	void  RendererPrototype::Destroy ()
 	{
 		if ( _frameGraph )
 		{
@@ -85,7 +85,7 @@ namespace FG
 	AddRenderLayer
 =================================================
 */
-	static void AddRenderLayer (ERenderLayer layer, INOUT ShaderCache::GraphicsPipelineInfo &info)
+	static void  AddRenderLayer (ERenderLayer layer, INOUT ShaderCache::GraphicsPipelineInfo &info)
 	{
 		BEGIN_ENUM_CHECKS();
 		switch ( layer )
@@ -115,7 +115,7 @@ namespace FG
 	GetPipeline
 =================================================
 */
-	bool RendererPrototype::GetPipeline (ERenderLayer layer, INOUT GraphicsPipelineInfo &info, OUT RawGPipelineID &outPipeline)
+	bool  RendererPrototype::GetPipeline (ERenderLayer layer, INOUT GraphicsPipelineInfo &info, OUT RawGPipelineID &outPipeline)
 	{
 		AddRenderLayer( layer, INOUT info );
 		info.sourceIDs.push_back( _graphicsShaderSource );
@@ -143,7 +143,7 @@ namespace FG
 	GetPipeline
 =================================================
 */
-	bool RendererPrototype::GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawMPipelineID &)
+	bool  RendererPrototype::GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawMPipelineID &)
 	{
 		return false;
 	}
@@ -153,7 +153,7 @@ namespace FG
 	GetPipeline
 =================================================
 */
-	bool RendererPrototype::GetPipeline (ERenderLayer, INOUT ComputePipelineInfo &, OUT RawCPipelineID &)
+	bool  RendererPrototype::GetPipeline (ERenderLayer, INOUT ComputePipelineInfo &, OUT RawCPipelineID &)
 	{
 		return false;
 	}
@@ -163,7 +163,7 @@ namespace FG
 	GetPipeline
 =================================================
 */
-	bool RendererPrototype::GetPipeline (ERenderLayer layer, INOUT RayTracingPipelineInfo &info, OUT RawRTPipelineID &outPipeline)
+	bool  RendererPrototype::GetPipeline (ERenderLayer layer, INOUT RayTracingPipelineInfo &info, OUT RawRTPipelineID &outPipeline)
 	{
 		CHECK_ERR( layer == ERenderLayer::RayTracing );
 
@@ -191,7 +191,7 @@ namespace FG
 	Render
 =================================================
 */
-	bool RendererPrototype::Render (const ScenePreRender &preRender)
+	bool  RendererPrototype::Render (const ScenePreRender &preRender)
 	{
 		auto&	cameras = _GetCameras( preRender );
 
@@ -226,6 +226,11 @@ namespace FG
 				CHECK_ERR( _SetupRayTracingPass( cam, INOUT queue, OUT image ));
 			}
 
+			if ( cam.layers[uint(ERenderLayer::HUD)] )
+			{
+				CHECK_ERR( _SetupUIPass( cam, INOUT queue, image ));
+			}
+
 			// build render queue
 			for (auto& scene : cam.scenes) {
 				scene->Draw( INOUT queue );
@@ -256,7 +261,7 @@ namespace FG
 	_SetupShadowPass
 =================================================
 *
-	bool RendererPrototype::_SetupShadowPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
+	bool  RendererPrototype::_SetupShadowPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
 	{
 		ASSERT( cameraData.layers.count() == 1 );	// other layers will be ignored
 
@@ -291,7 +296,7 @@ namespace FG
 	_SetupColorPass
 =================================================
 */
-	bool RendererPrototype::_SetupColorPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
+	bool  RendererPrototype::_SetupColorPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
 	{
 		const uint2		dimension	 = uint2{float2{cameraData.viewportSize.x, cameraData.viewportSize.y} + 0.5f};
 		RawImageID		color_target = _CreateColorTarget( dimension );
@@ -347,10 +352,11 @@ namespace FG
 	_SetupRayTracingPass
 =================================================
 */
-	bool RendererPrototype::_SetupRayTracingPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
+	bool  RendererPrototype::_SetupRayTracingPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, OUT RawImageID &outImage)
 	{
-		ASSERT( cameraData.layers.count() == 1 );	// other layers will be ignored
-		
+		// not supported
+		ASSERT( not cameraData.layers[uint(ERenderLayer::Opaque_1)] );
+
 		const uint2		dimension	 = uint2{float2{cameraData.viewportSize.x, cameraData.viewportSize.y} + 0.5f};
 		RawImageID		color_target = _CreateColorTarget( dimension );
 		
@@ -373,6 +379,30 @@ namespace FG
 	
 /*
 =================================================
+	_SetupUIPass
+=================================================
+*/
+	bool  RendererPrototype::_SetupUIPass (const CameraData_t &cameraData, INOUT RenderQueueImpl &queue, RawImageID image)
+	{
+		CHECK_ERR( image );
+
+		const uint2		dimension	 = uint2{float2{cameraData.viewportSize.x, cameraData.viewportSize.y} + 0.5f};
+
+		RenderPassDesc	rp{ dimension };
+		rp.AddTarget( RenderTargetID::Color_0, image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store );
+		rp.AddViewport( dimension );
+		
+		auto&	res = _shaderOutputResources[uint(ERenderLayer::HUD)];
+		if ( res.IsInitialized() ) {
+			// TODO
+		}
+
+		queue.AddLayer( ERenderLayer::HUD, rp, res, "HUD" );
+		return true;
+	}
+
+/*
+=================================================
 	_CreateColorTarget
 =================================================
 */
@@ -382,10 +412,10 @@ namespace FG
 		{
 			ImageDesc const&	old_desc = _frameGraph->GetDescription( _colorTarget );
 
-			if ( Any( old_desc.dimension.xy() != dim ))
-				_frameGraph->ReleaseResource( _colorTarget );
-			else
+			if ( All( old_desc.dimension.xy() == dim ))
 				return _colorTarget;
+
+			_frameGraph->ReleaseResource( _colorTarget );
 		}
 
 		ImageDesc	desc;
@@ -430,7 +460,7 @@ namespace FG
 	_CreateUniformBuffer
 =================================================
 */
-	bool RendererPrototype::_CreateUniformBuffer ()
+	bool  RendererPrototype::_CreateUniformBuffer ()
 	{
 		_cameraUB = _frameGraph->CreateBuffer( BufferDesc{ SizeOf<CameraUB>, EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "CameraUB" );
 		CHECK_ERR( _cameraUB );
@@ -446,7 +476,7 @@ namespace FG
 	_UpdateUniformBuffer
 =================================================
 */
-	void RendererPrototype::_UpdateUniformBuffer (ERenderLayer firstLayer, const CameraData_t &cameraData, INOUT RenderQueueImpl &queue)
+	void  RendererPrototype::_UpdateUniformBuffer (ERenderLayer firstLayer, const CameraData_t &cameraData, INOUT RenderQueueImpl &queue)
 	{
 		// update camera data
 		{

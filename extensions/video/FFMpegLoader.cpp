@@ -73,6 +73,11 @@ namespace {
 			CHECK_ERR( lib.avcodec );
 			FG_FFMPEG_AVCODEC_FUNCS( GET_AVCODEC_FN );
 			CHECK_ERR( loaded );
+			
+		#ifndef FG_ALLOW_GPL
+			StringView	license = FFMpegLoader::avcodec_license();
+			CHECK_ERR( license != "GPL version 3 or later" );
+		#endif
 		}
 
 		// avformat
@@ -94,6 +99,11 @@ namespace {
 			CHECK_ERR( lib.avformat );
 			FG_FFMPEG_AVFORMAT_FUNCS( GET_AVFORMAT_FN );
 			CHECK_ERR( loaded );
+			
+		#ifndef FG_ALLOW_GPL
+			StringView	license = FFMpegLoader::avformat_license();
+			CHECK_ERR( license != "GPL version 3 or later" );
+		#endif
 		}
 
 		// avutil
@@ -136,6 +146,11 @@ namespace {
 			CHECK_ERR( lib.swscale );
 			FG_FFMPEG_SWSCALE_FUNCS( GET_SWSCALE_FN );
 			CHECK_ERR( loaded );
+			
+		#ifndef FG_ALLOW_GPL
+			StringView	license = FFMpegLoader::swscale_license();
+			CHECK_ERR( license != "GPL version 3 or later" );
+		#endif
 		}
 		
 		lib.refCounter	= 1;

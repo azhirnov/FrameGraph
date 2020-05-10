@@ -21,23 +21,15 @@ namespace FG
 	
 	struct CommandBufferDesc
 	{
-		EQueueType		queueType					= EQueueType::Graphics;
-		BytesU			hostWritableBufferSize		= 256_Mb;
-		BytesU			hostReadableBufferSize		= 256_Mb;
-		EBufferUsage	hostWritebleBufferUsage		= EBufferUsage::TransferSrc;
-		//bool			immutableResources			= true;		// all resources except render targets and storage buffer/image will be immutable
-		//bool			submitImmediately			= true;		// set 'false' to merge commands into some betches
-		EDebugFlags		debugFlags					= Default;
+		EQueueType		queueType	= EQueueType::Graphics;
+		EDebugFlags		debugFlags	= Default;
 		StringView		name;
 		
 				 CommandBufferDesc () {}
 		explicit CommandBufferDesc (EQueueType type) : queueType{type} {}
 
-		CommandBufferDesc&  SetHostWritableBufferSize (BytesU value)		{ hostWritableBufferSize = value;  return *this; }
-		CommandBufferDesc&  SetHostReadableBufferSize (BytesU value)		{ hostReadableBufferSize = value;  return *this; }
-		CommandBufferDesc&  SetHostWritableBufferUsage (EBufferUsage value)	{ hostWritebleBufferUsage = value;  return *this; }
-		CommandBufferDesc&  SetDebugFlags (EDebugFlags value)				{ debugFlags = value;  return *this; }
-		CommandBufferDesc&  SetDebugName (StringView value)					{ name = value;  return *this; }
+		CommandBufferDesc&  SetDebugFlags (EDebugFlags value)	{ debugFlags = value;  return *this; }
+		CommandBufferDesc&  SetDebugName (StringView value)		{ name = value;  return *this; }
 	};
 
 
@@ -109,6 +101,17 @@ namespace FG
 		
 		// Begin secondary command buffer recording.
 		//ND_ virtual CommandBuffer  BeginSecondary () = 0;		// TODO
+
+
+	// profiling //
+		// Begin shader time measurement for all subsequent tasks.
+		// Draw tasks are not affected, but timemap enabled for render pass.
+		// Dimension should be same as in 'dstImage' argument in 'EndShaderTimeMap()', otherwise result will be scaled.
+		virtual bool		BeginShaderTimeMap (const uint2 &dim, EShaderStages stages = EShaderStages::All) = 0;
+
+		// Stop shader time measurement, result will be copied into specified image.
+		// Image must be RGBA UNorm/Float 2D image.
+		virtual Task		EndShaderTimeMap (RawImageID dstImage, ImageLayer layer = Default, MipmapLevel level = Default, ArrayView<Task> dependsOn = Default) = 0;
 
 
 	// draw tasks //

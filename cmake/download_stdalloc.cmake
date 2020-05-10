@@ -13,7 +13,7 @@ if (${FG_ENABLE_STDALLOC})
 	endif ()
 	
 	# download
-	if (NOT EXISTS "${FG_EXTERNAL_STDALLOC_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+	if (NOT EXISTS "${FG_EXTERNAL_STDALLOC_PATH}/include/foonathan/memory/config.hpp")
 		FetchContent_Declare( ExternalSTDALLOC
 			GIT_REPOSITORY		https://github.com/foonathan/memory.git
 			GIT_TAG				master

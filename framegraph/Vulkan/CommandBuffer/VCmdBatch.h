@@ -267,6 +267,7 @@ namespace FG
 		Dependencies_t						_dependencies;
 		bool								_submitImmediately	= false;
 		bool								_supportsQuery		= false;
+		bool								_dbgQueueSync		= false;
 
 		// command batch data
 		struct {
@@ -277,9 +278,6 @@ namespace FG
 
 		// staging buffers
 		struct {
-			BytesU								hostWritableBufferSize;
-			BytesU								hostReadableBufferSize;
-			EBufferUsage						hostWritebleBufferUsage	= Default;
 			FixedArray< StagingBuffer, 8 >		hostToDevice;	// CPU write, GPU read
 			FixedArray< StagingBuffer, 8 >		deviceToHost;	// CPU read, GPU write
 			Array< OnBufferDataLoadedEvent >	onBufferLoadedEvents;
@@ -340,10 +338,12 @@ namespace FG
 		bool  SetShaderModule (ShaderDbgIndex id, const SharedShaderPtr &module);
 		bool  GetDebugModeInfo (ShaderDbgIndex id, OUT EShaderDebugMode &mode, OUT EShaderStages &stages) const;
 		bool  GetDescriptotSet (ShaderDbgIndex id, OUT uint &binding, OUT VkDescriptorSet &descSet, OUT uint &dynamicOffset) const;
+		bool  GetShaderTimemap (ShaderDbgIndex id, OUT RawBufferID &buf, OUT BytesU &offset, OUT BytesU &size, OUT uint2 &dim) const;
 
 		ND_ ShaderDbgIndex  AppendShader (INOUT ArrayView<RectI> &, const TaskName_t &name, const _fg_hidden_::GraphicsShaderDebugMode &mode, BytesU size = 8_Mb);
 		ND_ ShaderDbgIndex  AppendShader (const TaskName_t &name, const _fg_hidden_::ComputeShaderDebugMode &mode, BytesU size = 8_Mb);
 		ND_ ShaderDbgIndex  AppendShader (const TaskName_t &name, const _fg_hidden_::RayTracingShaderDebugMode &mode, BytesU size = 8_Mb);
+		ND_ ShaderDbgIndex  AppendTimemap (const uint2 &dim, EShaderStages stages);
 
 
 		// staging buffer //
@@ -354,15 +354,13 @@ namespace FG
 		bool  AddDataLoadedEvent (OnImageDataLoadedEvent &&);
 		bool  AddDataLoadedEvent (OnBufferDataLoadedEvent &&);
 
-		ND_ BytesU					GetMaxWritableStoregeSize ()	const	{ SHAREDLOCK( _drCheck );  return _staging.hostWritableBufferSize / 4; }
-		ND_ BytesU					GetMaxReadableStorageSize ()	const	{ SHAREDLOCK( _drCheck );  return _staging.hostReadableBufferSize / 4; }
-
 
 		ND_ EQueueType				GetQueueType ()					const	{ SHAREDLOCK( _drCheck );  return _queueType; }
 		ND_ EState					GetState ()								{ return _state.load( memory_order_relaxed ); }
 		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()				const	{ SHAREDLOCK( _drCheck );  return _dependencies; }
 		ND_ VSubmitted *			GetSubmitted ()					const	{ SHAREDLOCK( _drCheck );  return _submitted; }		// TODO: rename
 		ND_ uint					GetIndexInPool ()				const	{ return _indexInPool; }
+		ND_ bool					IsQueueSyncRequired ()			const	{ SHAREDLOCK( _drCheck );  return _dbgQueueSync; }
 
 
 	private:
@@ -386,7 +384,7 @@ namespace FG
 		bool  _AddPendingLoad (const BytesU srcRequiredSize, const BytesU blockAlign, const BytesU offsetAlign, const BytesU dstMinSize,
 							   OUT RawBufferID &dstBuffer, OUT OnBufferDataLoadedEvent::Range &range);
 		bool  _MapMemory (INOUT StagingBuffer &) const;
-		void  _FinalizeStagingBuffers ();
+		void  _FinalizeStagingBuffers (const VDevice &);
 	};
 
 

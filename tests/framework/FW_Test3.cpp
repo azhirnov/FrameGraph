@@ -103,7 +103,7 @@ public:
 				dev_ext.push_back( ext.data() );
 			}
 
-			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_2, {}, {},
+			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_1, {}, {},
 									  VulkanDevice::GetRecomendedInstanceLayers(), inst_ext, dev_ext ));
 		
 			// this is a test and the test should fail for any validation error

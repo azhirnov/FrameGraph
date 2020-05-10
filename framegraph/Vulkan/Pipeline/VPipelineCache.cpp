@@ -572,11 +572,14 @@ namespace FG
 
 		CHECK_ERR( ppln );
 
-		FixedArray<EShaderDebugMode, 4>  debug_modes { EShaderDebugMode::None };
+		FixedArray<EShaderDebugMode, uint(EShaderDebugMode::_Count)>  debug_modes { EShaderDebugMode::None };
 
 		if ( FG_EnableShaderDebugging )
+		{
 			debug_modes.push_back( EShaderDebugMode::Trace );
-
+			debug_modes.push_back( EShaderDebugMode::Profiling );
+			debug_modes.push_back( EShaderDebugMode::Timemap );
+		}
 
 		uint	miss_shader_count		= 0;
 		uint	hit_shader_count		= 0;

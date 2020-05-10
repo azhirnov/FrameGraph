@@ -36,12 +36,12 @@ namespace FGC
 		struct Controller
 		{
 			ControllerID	id;
-			uint			lastPacket = ~0u;
+			uint			lastPacket	= ~0u;
 			Keys_t			keys;
 			AxisStates_t	axis;
 			TimePoint_t		lastUpdate;
 		};
-		using Controllers_t	= FixedMap< uint, Controller, 8 >;
+		using Controllers_t	= FixedMap< /*tracked device index*/uint, Controller, 8 >;
 
 
 	// variables
@@ -58,8 +58,8 @@ namespace FGC
 		EHmdStatus					_hmdStatus		= EHmdStatus::PowerOff;
 
 		Controllers_t				_controllers;
+		VRControllers_t				_vrControllers;
 		vr::TrackedDevicePose_t		_trackedDevicePose [vr::k_unMaxTrackedDeviceCount];
-		Ptr<vr::IVRRenderModels>	_renderModels;
 
 
 	// methods
@@ -67,26 +67,30 @@ namespace FGC
 		OpenVRDevice ();
 		~OpenVRDevice () override;
 		
-		bool Create () override;
-		bool SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) override;
-		void Destroy () override;
-		void AddListener (IVRDeviceEventListener *listener) override;
-		void RemoveListener (IVRDeviceEventListener *listener) override;
-		bool Update () override;
-		void SetupCamera (const float2 &clipPlanes) override;
-		bool Submit (const VRImage &, Eye) override;
+		bool  Create () override;
+		bool  SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) override;
+		void  Destroy () override;
+		void  AddListener (IVRDeviceEventListener *listener) override;
+		void  RemoveListener (IVRDeviceEventListener *listener) override;
+		bool  Update () override;
+		void  SetupCamera (const float2 &clipPlanes) override;
+		bool  Submit (const VRImage &, Eye) override;
 		
-		VRCamera const&	GetCamera () const override						{ return _camera; }
+		VRCamera const&			GetCamera () const override				{ return _camera; }
+		VRControllers_t const&	GetControllers () const override		{ return _vrControllers; }
+		
 		EHmdStatus		GetHmdStatus () const override;
 		Array<String>	GetRequiredInstanceExtensions () const override;
 		Array<String>	GetRequiredDeviceExtensions (VkInstance instance) const override;
 		uint2			GetRenderTargetDimension () const override;
 
 	private:
-		void _ProcessHmdEvents (const vr::VREvent_t &);
-		void _ProcessControllerEvents (INOUT Controller&, const vr::VREvent_t &);
-		void _UpdateHMDMatrixPose ();
-		void _InitControllers ();
+		void  _ProcessHmdEvents (const vr::VREvent_t &);
+		void  _ProcessControllerEvents (INOUT Controller&, const vr::VREvent_t &);
+		void  _UpdateHMDMatrixPose ();
+		void  _InitControllers ();
+
+		ND_ ControllerID  _GetControllerID (uint tdi) const;
 	};
 
 

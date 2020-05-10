@@ -67,10 +67,14 @@ namespace
 */
 	ND_ AVPixelFormat  EnumCast (EVideoFormat fmt)
 	{
+		BEGIN_ENUM_CHECKS();
 		switch ( fmt )
 		{
-			case EVideoFormat::YUV_420P : return AV_PIX_FMT_YUV420P;
+			case EVideoFormat::YUV420P :	return AV_PIX_FMT_YUV420P;
+			case EVideoFormat::YUV422P :	return AV_PIX_FMT_YUV422P;
+			case EVideoFormat::YUV444P :	return AV_PIX_FMT_YUV444P;
 		}
+		END_ENUM_CHECKS();
 		RETURN_ERR( "unknown video format", AV_PIX_FMT_NONE );
 	}
 }
@@ -117,6 +121,8 @@ namespace FG
 			_tempFile = "tmp.video";
 		#endif
 
+		_videoFile = filename;
+
 		Config	config		= cfg;
 		bool	initialized = false;
 
@@ -130,9 +136,19 @@ namespace FG
 
 			_Destroy();
 
-			if ( config.preferGPU )
+			if ( config.preset != EVideoPreset::Default )
 			{
-				config.preferGPU = false;
+				config.preset = EVideoPreset::Default;
+				continue;
+			}
+			if ( config.hwAccelerated )
+			{
+				config.hwAccelerated = false;
+				continue;
+			}
+			if ( config.format != EVideoFormat::YUV420P )
+			{
+				config.format = EVideoFormat::YUV420P;
 				continue;
 			}
 			if ( config.codec != EVideoCodec::H264 )
@@ -140,20 +156,16 @@ namespace FG
 				config.codec = EVideoCodec::H264;
 				continue;
 			}
-			if ( config.format != EVideoFormat::YUV_420P )
-			{
-				config.format = EVideoFormat::YUV_420P;
-				continue;
-			}
 			break;
 		}
 			
 		CHECK_ERR( initialized );
 
-		_fps			= cfg.fps;
+		_fps			= config.fps;
 		_frameCounter	= 0;
-		_videoFile		= filename;
+		_config			= config;
 		
+		FG_LOGD( "Used codec: "s << _codec->long_name );
 		FG_LOGD( "Begin recording to temporary: '"s << _tempFile << "', resulting: '" << _videoFile << "'" );
 		return true;
 	}
@@ -164,6 +176,7 @@ namespace FG
 ----
 	add list of hardware accelerated encoders
 	https://trac.ffmpeg.org/wiki/HWAccelIntro
+	https://gist.github.com/Brainiarc7/c6164520f082c27ae7bbea9556d4a3ba
 =================================================
 */
 	FFmpegVideoRecorder::CodecInfo  FFmpegVideoRecorder::_GetEncoderInfo (const Config &cfg)
@@ -177,27 +190,50 @@ namespace FG
 			{
 				result.format = "h264";
 
-				if ( cfg.preferGPU )
+				if ( cfg.hwAccelerated )
 				{
-					result.codecs.push_back( "h264_nvenc" );	// nvidia
-					result.codecs.push_back( "h264_qsv" );		// intel
+					result.codecs.push_back( "h264_nvenc" );		// nvidia gpu
+					result.codecs.push_back( "h264_amf" );			// amd gpu (windows only)
+					result.codecs.push_back( "h264_qsv" );			// intel cpu
+				//	result.codecs.push_back( "h264_v4l2m2m" );		// linux only
+				//	result.codecs.push_back( "h264_vaapi" );		// linux only
+				//	result.codecs.push_back( "h264_videotoolbox" );	// MacOS only
 				}
+				result.codecs.push_back( "libx264" );
 				break;
 			}
-			case EVideoCodec::VP8 :
+			case EVideoCodec::H265 :
 			{
-				result.format = "vp8";
+				result.format = "hevc";	// ???
+				
+				if ( cfg.hwAccelerated )
+				{
+					result.codecs.push_back( "hevc_nvenc" );		// nvidia gpu
+					result.codecs.push_back( "hevc_amf" );			// amd gpu (windows only)
+					result.codecs.push_back( "hevc_qsv" );			// intel cpu
+				}
+				result.codecs.push_back( "libx265" );
 				break;
 			}
-			case EVideoCodec::VP9 :
+			//case EVideoCodec::VP8 :
+			//{
+			//	result.format = "webm";
+			//	result.codecs.push_back( "libvpx" );
+			//	break;
+			//}
+			//case EVideoCodec::VP9 :
+			//{
+			//	result.format = "webm";
+			//	result.codecs.push_back( "libvpx-vp9" );
+			//	break;
+			//}
+			case EVideoCodec::WEBP :
 			{
-				result.format = "vp9";
+				result.remux  = false;
+				result.format = "webp";
+				result.codecs.push_back( "libwebp_anim" );
 				break;
 			}
-
-			/*
-				hevc_nvenc
-			*/
 		}
 		END_ENUM_CHECKS();
 
@@ -211,10 +247,25 @@ namespace FG
 */
 	void  FFmpegVideoRecorder::_SetOptions (INOUT AVDictionary **dict, const Config &cfg) const
 	{
+		if ( cfg.preset == EVideoPreset::Default )
+			return;
+
 		StaticString<64>	preset;
 		StringView			codec_name {_codec->name};
 
-		if ( codec_name == "h264" )
+		if ( codec_name == "h264_nvec" or
+			 codec_name == "hevc_nvenc" )
+		{
+			if ( cfg.preset <= EVideoPreset::Fast )
+				preset = "fast";
+			else
+			if ( cfg.preset >= EVideoPreset::Slow )
+				preset = "slow";
+			else
+				preset = "medium";
+		}
+		else
+		//if ( codec_name == "h264" or codec_name == "hevc" )
 		{
 			BEGIN_ENUM_CHECKS();
 			switch ( cfg.preset )
@@ -228,23 +279,13 @@ namespace FG
 				case EVideoPreset::Slow :		preset = "slow";		break;
 				case EVideoPreset::Slower :		preset = "slower";		break;
 				case EVideoPreset::VerySlow :	preset = "veryslow";	break;
+				case EVideoPreset::Default :	break;
 			}
 			END_ENUM_CHECKS();
 		}
-		else
-		if ( codec_name == "h264_nvec" )
-		{
-			if ( cfg.preset <= EVideoPreset::Fast )
-				preset = "fast";
-			else
-			if ( cfg.preset >= EVideoPreset::Slow )
-				preset = "slow";
-			else
-				preset = "medium";
-		}
 
 		if ( preset.size() )
-			ffmpeg.av_dict_set( INOUT dict, "preset", preset.c_str(), 0 );
+			FF_CALL( ffmpeg.av_dict_set( INOUT dict, "preset", preset.c_str(), 0 ));
 	}
 	
 /*
@@ -254,14 +295,14 @@ namespace FG
 */
 	bool  FFmpegVideoRecorder::_Init (const Config &cfg)
 	{
+		const CodecInfo	info = _GetEncoderInfo( cfg );
+
 		// create codec
 		{
-			const CodecInfo	info = _GetEncoderInfo( cfg );
-
 			_format = ffmpeg.av_guess_format( info.format.c_str(), null, null );
 			CHECK_ERR( _format );
 		
-			FF_CHECK( ffmpeg.avformat_alloc_output_context2( OUT &_formatCtx, _format, null, _tempFile.c_str() ));
+			FF_CHECK( ffmpeg.avformat_alloc_output_context2( OUT &_formatCtx, _format, null, null ));
 
 			for (auto& codec_name : info.codecs)
 			{
@@ -273,7 +314,6 @@ namespace FG
 				_codec = ffmpeg.avcodec_find_encoder( _format->video_codec );
 
 			CHECK_ERR( _codec );
-			FG_LOGD( "Used codec: "s << _codec->name );
 		
 			_codecCtx = ffmpeg.avcodec_alloc_context3( _codec );
 			CHECK_ERR( _codecCtx );
@@ -284,8 +324,8 @@ namespace FG
 			_videoStream = ffmpeg.avformat_new_stream( _formatCtx, _codec );
 			CHECK_ERR( _videoStream );
 		
-			_videoStream->codecpar->codec_id	= _format->video_codec;
-			_videoStream->codecpar->codec_type	= AVMEDIA_TYPE_VIDEO;
+			_videoStream->codecpar->codec_id	= _codec->id;
+			_videoStream->codecpar->codec_type	= _codec->type;
 			_videoStream->codecpar->width		= int(cfg.size.x);
 			_videoStream->codecpar->height		= int(cfg.size.y);
 			_videoStream->codecpar->format		= EnumCast( cfg.format );
@@ -294,9 +334,10 @@ namespace FG
 		
 			FF_CALL( ffmpeg.avcodec_parameters_to_context( _codecCtx, _videoStream->codecpar ));
 
-			_codecCtx->time_base	= { 1, int(cfg.fps) };
-			_codecCtx->max_b_frames	= 1;
-			_codecCtx->gop_size		= 10;
+			_codecCtx->time_base		= { 1, int(cfg.fps) };
+			_codecCtx->max_b_frames		= info.hasBFrames ? 1 : 0;
+			_codecCtx->gop_size			= 10;							// TODO: set 0 ?
+			//_codecCtx->rc_buffer_size	= int(cfg.bitrate / cfg.fps);	// TODO: check
 
 			if ( _formatCtx->oformat->flags & AVFMT_GLOBALHEADER )
 				_codecCtx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -313,6 +354,9 @@ namespace FG
 			ffmpeg.av_dict_free( &codec_options );
 			FF_CHECK( err );
 		
+			if ( not info.remux )
+				_tempFile = _videoFile;
+
 			if ( not (_format->flags & AVFMT_NOFILE) )
 				FF_CHECK( ffmpeg.avio_open( OUT &_formatCtx->pb, _tempFile.c_str(), AVIO_FLAG_WRITE ));
 		
@@ -333,6 +377,7 @@ namespace FG
 			CHECK_ERR( _swsCtx );
 		}
 
+		_remuxRequired = info.remux;
 		return true;
 	}
 	
@@ -384,7 +429,7 @@ namespace FG
 	bool  FFmpegVideoRecorder::_Finish ()
 	{
 		CHECK_ERR( _codecCtx and _formatCtx );
-		
+
 		AVPacket&	packet = _videoPacket;
 			
 		FF_CHECK( ffmpeg.avcodec_send_frame( _codecCtx, null ));
@@ -419,9 +464,43 @@ namespace FG
 
 		_Destroy();
 
+		if ( not _remuxRequired )
+			return true;
+
 		return _Remux();
 	}
 	
+/*
+=================================================
+	GetConfig
+=================================================
+*/
+	IVideoRecorder::Config  FFmpegVideoRecorder::GetConfig () const
+	{
+		return _config;
+	}
+	
+/*
+=================================================
+	GetExtension
+=================================================
+*/
+	StringView  FFmpegVideoRecorder::GetExtension (EVideoCodec codec) const
+	{
+		BEGIN_ENUM_CHECKS();
+		switch ( codec )
+		{
+			case EVideoCodec::H264 :
+			case EVideoCodec::H265 :
+				return ".mp4";
+
+			case EVideoCodec::WEBP :
+				return ".webp";
+		}
+		END_ENUM_CHECKS();
+		RETURN_ERR( "unknown codec" );
+	}
+
 /*
 =================================================
 	_Destroy
@@ -469,8 +548,6 @@ namespace FG
 		
 		const auto	Remux = [&] () -> bool
 		{
-			AVOutputFormat *ofmt = null;
-
 			FF_CHECK( ffmpeg.avformat_open_input( OUT &ifmt_ctx, _tempFile.c_str(), 0, 0 ));
 			FF_CHECK( ffmpeg.avformat_find_stream_info( ifmt_ctx, 0 ));
 			ffmpeg.av_dump_format( ifmt_ctx, 0, _tempFile.c_str(), 0 );
@@ -481,8 +558,6 @@ namespace FG
 			stream_mapping			= Cast<int>( ffmpeg.av_mallocz_array( stream_mapping_size, sizeof(*stream_mapping) ));
 			CHECK_ERR( stream_mapping );
 
-			ofmt = ofmt_ctx->oformat;
-			
 			int stream_index = 0;
 			for (uint i = 0; i < ifmt_ctx->nb_streams; ++i)
 			{
@@ -536,10 +611,17 @@ namespace FG
 				pkt.stream_index	= stream_mapping[ pkt.stream_index ];
 				out_stream			= ofmt_ctx->streams[ pkt.stream_index ];
 				
-				pkt.pts		= ts; //av_rescale_q_rnd( pkt.pts, in_stream->time_base, out_stream->time_base, AVRounding(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX) );
-				pkt.dts		= ts; //av_rescale_q_rnd( pkt.dts, in_stream->time_base, out_stream->time_base, AVRounding(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX) );
+			#if 1
+				pkt.pts = ts;
+				pkt.dts = ts;
 				pkt.duration= ffmpeg.av_rescale_q( pkt.duration, in_stream->time_base, out_stream->time_base );
-				pkt.pos		= -1;
+			#else
+				pkt.pts		= av_rescale_q_rnd( pkt.pts, in_stream->time_base, out_stream->time_base, AVRounding(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX) );
+				pkt.dts		= av_rescale_q_rnd( pkt.dts, in_stream->time_base, out_stream->time_base, AVRounding(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX) );
+				pkt.duration= ffmpeg.av_rescale_q( pkt.duration, in_stream->time_base, out_stream->time_base );
+			#endif
+
+				pkt.pos = -1;
 
 				ts += pkt.duration;
 

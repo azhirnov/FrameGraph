@@ -1,4 +1,3 @@
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 file( GLOB_RECURSE SOURCES "*.*" )
 add_library( "Framework" STATIC ${SOURCES} )
@@ -18,4 +17,5 @@ if (${FG_ENABLE_OPENVR})
 	target_link_libraries( "Framework" PUBLIC "OpenVR-lib" )
 endif()
 
-install( TARGETS "Framework" ARCHIVE DESTINATION "lib" )
+install( TARGETS "Framework" ARCHIVE DESTINATION "libs/$<CONFIG>" )
+install( DIRECTORY "." DESTINATION "include/Framework" FILES_MATCHING PATTERN "*.h*" )

@@ -78,8 +78,6 @@ namespace FG
 		RS::MultisampleState		_multisampleState;
 
 		RectI						_area;
-		//bool						_parallelExecution		= true;
-		bool						_canBeMerged			= true;
 		bool						_isSubmited				= false;
 		
 		VPipelineResourceSet		_perPassResources;
@@ -115,6 +113,7 @@ namespace FG
 		bool Submit (VCommandBuffer &, ArrayView<Pair<RawImageID, EResourceState>>, ArrayView<Pair<RawBufferID, EResourceState>>);
 
 		void _SetRenderPass (RawRenderPassID rp, uint subpass, RawFramebufferID fb, uint depthIndex);
+		void _SetShaderDebugIndex (ShaderDbgIndex id);
 		
 		bool GetShadingRateImage (OUT VLocalImage const* &, OUT ImageViewDesc &) const;
 
@@ -130,7 +129,6 @@ namespace FG
 		ND_ RectI const&						GetArea ()					const	{ return _area; }
 
 		ND_ bool								IsSubmited ()				const	{ return _isSubmited; }
-		ND_ bool								IsMergingAvailable ()		const	{ return _canBeMerged; }
 		
 		ND_ RawFramebufferID					GetFramebufferID ()			const	{ return _framebufferId; }
 		ND_ RawRenderPassID						GetRenderPassID ()			const	{ return _renderPassId; }

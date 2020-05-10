@@ -372,7 +372,6 @@
 		{if ( !(_expr_) ) { \
 			FG_LOGI( FG_PRIVATE_TOSTRING( _expr_ )); \
 			FG_PRIVATE_EXIT(); \
-			return (_ret_); \
 		}}
 
 #	undef  CHECK_FATAL
@@ -386,7 +385,6 @@
 #	define FG_PRIVATE_RETURN_ERR( _text_, _ret_ ) \
 		{FG_LOGI( _text_ ); \
 		 FG_PRIVATE_EXIT(); \
-		 return (_ret_); \
 		}
 
 #endif

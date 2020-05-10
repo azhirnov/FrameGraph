@@ -72,75 +72,55 @@ namespace FG
 	enum class EShaderLangFormat : uint
 	{
 		// api
-		_ApiOffset			= 18,
-		_ApiMask			= 0xF << _ApiOffset,
-		OpenGL				= 1 << _ApiOffset,
-		OpenGLES			= 2 << _ApiOffset,
-		DirectX				= 3 << _ApiOffset,
-		OpenCL				= 4 << _ApiOffset,
-		Vulkan				= 5 << _ApiOffset,
-		Metal				= 6 << _ApiOffset,
-		CUDA				= 7 << _ApiOffset,
-		Software			= 8 << _ApiOffset,	// c++ shader for software renderer
-
+		_ApiOffset			= 0,
+		_ApiMask			= 0x7 << _ApiOffset,
+		Vulkan				= 1 << _ApiOffset,
+		OpenGL				= 2 << _ApiOffset,
+		OpenGLES			= 3 << _ApiOffset,
+		DirectX				= 4 << _ApiOffset,
+		// reserved 5..7
+		
 		// version
-		_VersionOffset		= 8,
+		_VersionOffset		= 3,
 		_VersionMask		= 0x3FF << _VersionOffset,
-		OpenGL_330			= (330 << _VersionOffset) | OpenGL,
-		OpenGL_420			= (420 << _VersionOffset) | OpenGL,
-		OpenGL_430			= (430 << _VersionOffset) | OpenGL,
-		OpenGL_440			= (440 << _VersionOffset) | OpenGL,
-		OpenGL_450			= (450 << _VersionOffset) | OpenGL,
-		OpenGL_460			= (460 << _VersionOffset) | OpenGL,
-		OpenGLES_200		= (200 << _VersionOffset) | OpenGLES,
-		OpenGLES_300		= (300 << _VersionOffset) | OpenGLES,
-		OpenGLES_310		= (310 << _VersionOffset) | OpenGLES,
-		OpenGLES_320		= (320 << _VersionOffset) | OpenGLES,
-		DirectX_10			= (100 << _VersionOffset) | DirectX,
-		DirectX_11			= (110 << _VersionOffset) | DirectX,
-		DirectX_12			= (120 << _VersionOffset) | DirectX,
-		OpenCL_120			= (120 << _VersionOffset) | OpenCL,
-		OpenCL_200			= (200 << _VersionOffset) | OpenCL,
-		OpenCL_210			= (210 << _VersionOffset) | OpenCL,
 		Vulkan_100			= (100 << _VersionOffset) | Vulkan,
 		Vulkan_110			= (110 << _VersionOffset) | Vulkan,
 		Vulkan_120			= (120 << _VersionOffset) | Vulkan,
-		Software_100		= (100 << _VersionOffset) | Software,
+		OpenGL_450			= (450 << _VersionOffset) | OpenGL,
+		OpenGL_460			= (460 << _VersionOffset) | OpenGL,
+		OpenGLES_200		= (200 << _VersionOffset) | OpenGLES,
+		OpenGLES_320		= (320 << _VersionOffset) | OpenGLES,
+		DirectX_11			= (110 << _VersionOffset) | DirectX,
+		DirectX_12			= (120 << _VersionOffset) | DirectX,
 
 		// storage
-		_StorageOffset		= 4,
-		_StorageMask		= 0xF << _StorageOffset,
+		_StorageOffset		= 13,
+		_StorageMask		= 0x3 << _StorageOffset,
 		Source				= 1 << _StorageOffset,
 		Binary				= 2 << _StorageOffset,					// compiled program (HLSL bytecode, SPIRV)
 		Executable			= 3 << _StorageOffset,					// compiled program (exe, dll, so, ...)
 
 		// format
-		_FormatOffset		= 0,
-		_FormatMask			= 0xF << _FormatOffset,
+		_FormatOffset		= 15,
+		_FormatMask			= 0x7 << _FormatOffset,
 		HighLevel			= (1 << _FormatOffset) | Source,		// GLSL, HLSL, CL
 		SPIRV				= (2 << _FormatOffset) | Binary,
-		GL_Binary			= (3 << _FormatOffset) | Binary,		// vendor specific
-		DXBC				= (4 << _FormatOffset) | Binary,		// HLSL bytecode
-		DXIL				= (5 << _FormatOffset) | Binary,		// HLSL IL
-		Assembler			= (6 << _FormatOffset) | Source,
-		Invocable			= (7 << _FormatOffset) | Executable,	// function pointer
-		ShaderModule		= (8 << _FormatOffset) | Executable,	// vkShaderModule, GLuint, ...
-
-		// debug/profiling mode
-		_ModeOffset			= 22,
-		_ModeMask			= 0xF << _ModeOffset,
-		EnableDebugTrace	= 1 << _ModeOffset,		// writes trace only for selected shader invocation (may be very slow)
-		//EnableDebugAsserts	= 2 << _ModeOffset,		// TODO: writes only shader unique invocation id in which assert was trigged
-		//EnableDebugView		= 3 << _ModeOffset,		// TODO: if assertion failed then writes specified value in separate image
-		EnableProfiling		= 4 << _ModeOffset,		// writes shader function execution time for selected invocation.
-		//EnableInstrCounter	= 5 << _ModeOffset,		// TODO: writes count of instruction in shader invocation
-
+		ShaderModule		= (3 << _FormatOffset) | Executable,	// vkShaderModule, GLuint, ...
+		// reserved 4..7
+		
 		// independent flags
-		_FlagsOffset		= 26,
-		_FlagsMask			= 0xF << _FlagsOffset,
-		HasInputAttachment	= 1 << _FlagsOffset,	// if shader contains input attachment then may be generated 2 shaders:
-													// 1. keep input attachments and add flag 'HasInputAttachment'.
-													// 2. replaces attachments by sampler2D and texelFetch function.
+		_FlagsOffset		= 18,
+		_FlagsMask			= 0xFF << _FlagsOffset,
+		EnableDebugTrace	= 1 << (_FlagsOffset + 0),	// writes trace only for selected shader invocation (may be very slow)
+		EnableProfiling		= 1 << (_FlagsOffset + 1),	// writes shader function execution time for selected invocation.
+		EnableTimeMap		= 1 << (_FlagsOffset + 2),	// writes summarized shader invocation times per pixel.
+		_DebugModeMask		= EnableDebugTrace | EnableProfiling | EnableTimeMap,
+
+		//HasInputAttachment= 1 << (_FlagsOffset + 3),	// if shader contains input attachment then may be generated 2 shaders:
+														// 1. keep input attachments and add flag 'HasInputAttachment'.
+														// 2. replaces attachments by sampler2D and texelFetch function.
+
+		// available bits: 26..31
 
 		Unknown				= 0,
 
@@ -148,12 +128,13 @@ namespace FG
 		_StorageFormatMask		= _StorageMask | _FormatMask,
 		_ApiStorageFormatMask	= _ApiMask | _StorageMask | _FormatMask,
 		_ApiVersionMask			= _ApiMask | _VersionMask,
-		_VersionModeFlagsMask	= _VersionMask | _ModeMask | _FlagsMask,
+		_VersionModeFlagsMask	= _VersionMask | _FlagsMask,
 
 		// default
-		GLSL_440		= OpenGL_440 | HighLevel,
 		GLSL_450		= OpenGL_450 | HighLevel,
 		GLSL_460		= OpenGL_460 | HighLevel,
+		HLSL_11			= DirectX_11 | HighLevel,
+		HLSL_12			= DirectX_12 | HighLevel,
 		VKSL_100		= Vulkan_100 | HighLevel,
 		VKSL_110		= Vulkan_110 | HighLevel,
 		VKSL_120		= Vulkan_120 | HighLevel,
@@ -172,9 +153,11 @@ namespace FG
 		None	= 0,
 		Trace,
 		Profiling,
+		Timemap,
 		//Asserts,
 		//View,
 		//InstructionCounter,
+		_Count,
 		Unknown	= None,
 	};
 

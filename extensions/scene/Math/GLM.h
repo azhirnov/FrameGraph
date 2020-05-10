@@ -196,10 +196,10 @@ namespace FGC
 	MatCast
 =================================================
 */
-	template <typename T, uint C, uint R, size_t Align = alignof(T)>
-	ND_ inline glm::mat<4, 4, T>  MatCast (const Matrix<T, C, R, EMatrixOrder::ColumnMajor, Align> &src)
+	template <typename T, uint C, uint R, size_t Align>
+	ND_ inline glm::mat<C, R, T>  MatCast (const Matrix<T, C, R, EMatrixOrder::ColumnMajor, Align> &src)
 	{
-		glm::mat<4, 4, T>	dst;
+		glm::mat<C, R, T>	dst;
 		for (uint c = 0; c < C; ++c)
 		for (uint r = 0; r < R; ++r) {
 			dst[c][r] = src[c][r];
@@ -207,15 +207,22 @@ namespace FGC
 		return dst;
 	}
 
-	template <typename T, uint C, uint R>
-	ND_ inline Matrix<T, C, R, EMatrixOrder::ColumnMajor>  MatCast (const glm::mat<4, 4, T> &src)
+	template <typename T, uint C, uint R, size_t Align>
+	ND_ inline void  MatCast (const glm::mat<C, R, T> &src, OUT Matrix<T, C, R, EMatrixOrder::ColumnMajor, Align> &dst)
 	{
-		Matrix<T, C, R, EMatrixOrder::ColumnMajor>	dst;
 		for (uint c = 0; c < C; ++c)
 		for (uint r = 0; r < R; ++r) {
 			dst[c][r] = src[c][r];
 		}
-		return dst;
+	}
+	
+	template <typename T, uint C, uint R, size_t Align>
+	ND_ inline void  MatCast (const glm::mat<R, C, T> &src, OUT Matrix<T, C, R, EMatrixOrder::RowMajor, Align> &dst)
+	{
+		for (uint c = 0; c < C; ++c)
+		for (uint r = 0; r < R; ++r) {
+			dst[c][r] = src[r][c];
+		}
 	}
 
 /*
@@ -335,3 +342,29 @@ namespace _fg_hidden_
 
 
 }	// FGC
+
+
+namespace std
+{
+	template <typename T>
+	struct hash< glm::vec<2,T> > {
+		ND_ size_t  operator () (const glm::vec<2,T> &value) const {
+			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ));
+		}
+	};
+	
+	template <typename T>
+	struct hash< glm::vec<3,T> > {
+		ND_ size_t  operator () (const glm::vec<3,T> &value) const {
+			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ) + FGC::HashOf( value.z ));
+		}
+	};
+	
+	template <typename T>
+	struct hash< glm::vec<4,T> > {
+		ND_ size_t  operator () (const glm::vec<4,T> &value) const {
+			return size_t(FGC::HashOf( value.x ) + FGC::HashOf( value.y ) + FGC::HashOf( value.z ) + FGC::HashOf( value.w ));
+		}
+	};
+
+}	// std

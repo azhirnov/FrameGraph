@@ -21,6 +21,8 @@ namespace FGC
 	template <typename T>
 	ND_ forceinline constexpr bool  IsPowerOfTwo (const T &x)
 	{
+		STATIC_ASSERT( IsInteger<T> or IsEnum<T> );
+
 		return (x != 0) & ((x & (x - T(1))) == T(0));
 	}
 	
@@ -32,24 +34,28 @@ namespace FGC
 	template <typename T>
 	ND_ forceinline int  IntLog2 (const T& x)
 	{
+		STATIC_ASSERT( IsInteger<T> or IsEnum<T> );
+
 		constexpr int	INVALID_INDEX = std::numeric_limits<int>::min();
 
 	#ifdef COMPILER_MSVC
 		unsigned long	index;
-
-		if constexpr ( sizeof(x) > sizeof(uint) )
-			return _BitScanReverse64( OUT &index, x ) ? index : INVALID_INDEX;
+		
+		if constexpr( sizeof(x) == 8 )
+			return _BitScanReverse64( OUT &index, uint64_t(x) ) ? index : INVALID_INDEX;
 		else
-			return _BitScanReverse( OUT &index, x ) ? index : INVALID_INDEX;
+		if constexpr( sizeof(x) <= 4 )
+			return _BitScanReverse( OUT &index, uint(x) ) ? index : INVALID_INDEX;
 		
 	#elif defined(COMPILER_GCC) or defined(COMPILER_CLANG)
-		if constexpr ( sizeof(x) > sizeof(uint) )
-			return x ? (sizeof(x)*8)-1 - __builtin_clzll( x ) : INVALID_INDEX;
+		if constexpr( sizeof(x) == 8 )
+			return x ? (sizeof(x)*8)-1 - __builtin_clzll( uint64_t(x) ) : INVALID_INDEX;
 		else
-			return x ? (sizeof(x)*8)-1 - __builtin_clz( x ) : INVALID_INDEX;
+		if constexpr( sizeof(x) <= 4 )
+			return x ? (sizeof(x)*8)-1 - __builtin_clz( uint(x) ) : INVALID_INDEX;
 
 	#else
-		//return std::ilogb( x );
+		#error add BitScanReverse implementation
 	#endif
 	}
 
@@ -67,20 +73,24 @@ namespace FGC
 	template <typename T>
 	ND_ forceinline int  BitScanForward (const T& x)
 	{
+		STATIC_ASSERT( IsInteger<T> or IsEnum<T> );
+
 	#ifdef COMPILER_MSVC
 		constexpr int	INVALID_INDEX = std::numeric_limits<int>::min();
 		unsigned long	index;
-
-		if constexpr ( sizeof(x) > sizeof(uint) )
-			return _BitScanForward64( OUT &index, x ) ? index : INVALID_INDEX;
+		
+		if constexpr( sizeof(x) == 8 )
+			return _BitScanForward64( OUT &index, uint64_t(x) ) ? index : INVALID_INDEX;
 		else
-			return _BitScanForward( OUT &index, x ) ? index : INVALID_INDEX;
+		if constexpr( sizeof(x) <= 4 )
+			return _BitScanForward( OUT &index, uint(x) ) ? index : INVALID_INDEX;
 		
 	#elif defined(COMPILER_GCC) or defined(COMPILER_CLANG)
-		if constexpr ( sizeof(x) > sizeof(uint) )
-			return __builtin_ffsll( x ) - 1;
+		if constexpr( sizeof(x) == 8 )
+			return __builtin_ffsll( uint64_t(x) ) - 1;
 		else
-			return __builtin_ffs( x ) - 1;
+		if constexpr( sizeof(x) <= 4 )
+			return __builtin_ffs( uint(x) ) - 1;
 
 	#else
 		#error add BitScanForward implementation
@@ -95,13 +105,13 @@ namespace FGC
 	template <typename T>
 	ND_ forceinline size_t  BitCount (const T& x)
 	{
-		STATIC_ASSERT( IsUnsignedInteger<T> );
+		STATIC_ASSERT( IsInteger<T> or IsEnum<T> );
 
 		if constexpr( sizeof(x) == 8 )
-			return std::bitset<64>{ x }.count();
+			return std::bitset<64>{ uint64_t(x) }.count();
 		else
 		if constexpr( sizeof(x) <= 4 )
-			return std::bitset<32>{ x }.count();
+			return std::bitset<32>{ uint(x) }.count();
 	}
 
 

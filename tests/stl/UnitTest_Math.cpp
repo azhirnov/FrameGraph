@@ -54,12 +54,22 @@ static void Wrap_Test1 ()
 }
 
 
+static void FastPow2_Test1 ()
+{
+	float	a0 = FastPow2(  1.0f, 2 );	TEST( Equals( a0,  4.0f ));
+	float	a1 = FastPow2( -2.0f, 2 );	TEST( Equals( a1, -8.0f ));
+	double	a2 = FastPow2(  1.0, 2 );	TEST( Equals( a2,  4.0 ));
+	double	a3 = FastPow2( -2.0, 2 );	TEST( Equals( a3, -8.0 ));
+}
+
+
 extern void UnitTest_Math ()
 {
 	IsIntersects_Test1();
 	IntLog2_Test1();
 	BitScanForward_Test1();
 	Wrap_Test1();
+	FastPow2_Test1();
 
 	FG_LOGI( "UnitTest_Math - passed" );
 }

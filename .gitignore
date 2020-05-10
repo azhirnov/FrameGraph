@@ -23,3 +23,8 @@
 /external/ffmpeg
 /tests/framegraph/Graphs
 /samples/_data
+/external/SPIRV-Cross
+/external/SPIRV-Reflect
+/external/tinyobj
+/external/stb
+external/glsl_trace

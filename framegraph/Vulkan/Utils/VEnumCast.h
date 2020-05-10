@@ -566,7 +566,9 @@ namespace FG
 				case EImageUsage::TransferSrc				: flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;				break;
 				case EImageUsage::TransferDst				: flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;				break;
 				case EImageUsage::Sampled					: flags |= VK_IMAGE_USAGE_SAMPLED_BIT;					break;
+				case EImageUsage::StorageAtomic :
 				case EImageUsage::Storage					: flags |= VK_IMAGE_USAGE_STORAGE_BIT;					break;
+				case EImageUsage::ColorAttachmentBlend :
 				case EImageUsage::ColorAttachment			: flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;			break;
 				case EImageUsage::DepthStencilAttachment	: flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;	break;
 				case EImageUsage::TransientAttachment		: flags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;		break;
@@ -659,16 +661,19 @@ namespace FG
 			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
-				case EBufferUsage::TransferSrc	:	result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;			break;
-				case EBufferUsage::TransferDst	:	result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;			break;
-				case EBufferUsage::UniformTexel	:	result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;	break;
-				case EBufferUsage::StorageTexel	:	result |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;	break;
-				case EBufferUsage::Uniform		:	result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;		break;
-				case EBufferUsage::Storage		:	result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;		break;
-				case EBufferUsage::Index		:	result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;			break;
-				case EBufferUsage::Vertex		:	result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;		break;
-				case EBufferUsage::Indirect		:	result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;		break;
-				case EBufferUsage::RayTracing	:	result |= VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;		break;
+				case EBufferUsage::TransferSrc	:		result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;			break;
+				case EBufferUsage::TransferDst	:		result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;			break;
+				case EBufferUsage::UniformTexel	:		result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;	break;
+				case EBufferUsage::StorageTexelAtomic :
+				case EBufferUsage::StorageTexel	:		result |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;	break;
+				case EBufferUsage::Uniform		:		result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;		break;
+				case EBufferUsage::VertexPplnStore:
+				case EBufferUsage::FragmentPplnStore :
+				case EBufferUsage::Storage		:		result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;		break;
+				case EBufferUsage::Index		:		result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;			break;
+				case EBufferUsage::Vertex		:		result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;		break;
+				case EBufferUsage::Indirect		:		result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;		break;
+				case EBufferUsage::RayTracing	:		result |= VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;		break;
 				case EBufferUsage::_Last		:
 				case EBufferUsage::Transfer		:
 				case EBufferUsage::Unknown		:
@@ -1052,26 +1057,27 @@ namespace FG
 		_builder_( Depth24_Stencil8,	VK_FORMAT_D24_UNORM_S8_UINT ) \
 		_builder_( Depth32F_Stencil8,	VK_FORMAT_D32_SFLOAT_S8_UINT ) \
 		_builder_( BC1_RGB8_UNorm,		VK_FORMAT_BC1_RGB_UNORM_BLOCK ) \
-		_builder_( BC1_sRGB8_UNorm,		VK_FORMAT_BC1_RGB_SRGB_BLOCK ) \
+		_builder_( BC1_sRGB8,			VK_FORMAT_BC1_RGB_SRGB_BLOCK ) \
 		_builder_( BC1_RGB8_A1_UNorm,	VK_FORMAT_BC1_RGBA_UNORM_BLOCK ) \
-		_builder_( BC1_sRGB8_A1_UNorm,	VK_FORMAT_BC1_RGBA_SRGB_BLOCK ) \
+		_builder_( BC1_sRGB8_A1,		VK_FORMAT_BC1_RGBA_SRGB_BLOCK ) \
 		_builder_( BC2_RGBA8_UNorm,		VK_FORMAT_BC2_UNORM_BLOCK ) \
+		_builder_( BC2_sRGB8_A8,		VK_FORMAT_BC2_SRGB_BLOCK ) \
 		_builder_( BC3_RGBA8_UNorm,		VK_FORMAT_BC3_UNORM_BLOCK ) \
-		_builder_( BC3_sRGB,			VK_FORMAT_BC3_SRGB_BLOCK ) \
+		_builder_( BC3_sRGB8,			VK_FORMAT_BC3_SRGB_BLOCK ) \
 		_builder_( BC4_R8_SNorm,		VK_FORMAT_BC4_SNORM_BLOCK ) \
 		_builder_( BC4_R8_UNorm,		VK_FORMAT_BC4_UNORM_BLOCK ) \
 		_builder_( BC5_RG8_SNorm,		VK_FORMAT_BC5_SNORM_BLOCK ) \
 		_builder_( BC5_RG8_UNorm,		VK_FORMAT_BC5_UNORM_BLOCK ) \
 		_builder_( BC7_RGBA8_UNorm,		VK_FORMAT_BC7_UNORM_BLOCK ) \
-		_builder_( BC7_SRGB8_A8,		VK_FORMAT_BC7_SRGB_BLOCK ) \
+		_builder_( BC7_sRGB8_A8,		VK_FORMAT_BC7_SRGB_BLOCK ) \
 		_builder_( BC6H_RGB16F,			VK_FORMAT_BC6H_SFLOAT_BLOCK ) \
 		_builder_( BC6H_RGB16UF,		VK_FORMAT_BC6H_UFLOAT_BLOCK ) \
 		_builder_( ETC2_RGB8_UNorm,		VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK ) \
-		_builder_( ECT2_SRGB8,			VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK ) \
+		_builder_( ECT2_sRGB8,			VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK ) \
 		_builder_( ETC2_RGB8_A1_UNorm,	VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK ) \
-		_builder_( ETC2_SRGB8_A1,		VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK ) \
+		_builder_( ETC2_sRGB8_A1,		VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK ) \
 		_builder_( ETC2_RGBA8_UNorm,	VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK ) \
-		_builder_( ETC2_SRGB8_A8,		VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK ) \
+		_builder_( ETC2_sRGB8_A8,		VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK ) \
 		_builder_( EAC_R11_SNorm,		VK_FORMAT_EAC_R11_SNORM_BLOCK ) \
 		_builder_( EAC_R11_UNorm,		VK_FORMAT_EAC_R11_UNORM_BLOCK ) \
 		_builder_( EAC_RG11_SNorm,		VK_FORMAT_EAC_R11G11_SNORM_BLOCK ) \
@@ -1090,20 +1096,20 @@ namespace FG
 		_builder_( ASTC_RGBA_10x10,		VK_FORMAT_ASTC_10x10_UNORM_BLOCK ) \
 		_builder_( ASTC_RGBA_12x10,		VK_FORMAT_ASTC_12x10_UNORM_BLOCK ) \
 		_builder_( ASTC_RGBA_12x12,		VK_FORMAT_ASTC_12x12_UNORM_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_4x4,	VK_FORMAT_ASTC_4x4_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_5x4,	VK_FORMAT_ASTC_5x4_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_5x5,	VK_FORMAT_ASTC_5x5_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_6x5,	VK_FORMAT_ASTC_6x5_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_6x6,	VK_FORMAT_ASTC_6x6_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_8x5,	VK_FORMAT_ASTC_8x5_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_8x6,	VK_FORMAT_ASTC_8x6_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_8x8,	VK_FORMAT_ASTC_8x8_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_10x5,	VK_FORMAT_ASTC_10x5_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_10x6,	VK_FORMAT_ASTC_10x6_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_10x8,	VK_FORMAT_ASTC_10x8_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_10x10,	VK_FORMAT_ASTC_10x10_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_12x10,	VK_FORMAT_ASTC_12x10_SRGB_BLOCK ) \
-		_builder_( ASTC_SRGB8_A8_12x12,	VK_FORMAT_ASTC_12x12_SRGB_BLOCK )
+		_builder_( ASTC_sRGB8_A8_4x4,	VK_FORMAT_ASTC_4x4_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_5x4,	VK_FORMAT_ASTC_5x4_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_5x5,	VK_FORMAT_ASTC_5x5_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_6x5,	VK_FORMAT_ASTC_6x5_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_6x6,	VK_FORMAT_ASTC_6x6_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_8x5,	VK_FORMAT_ASTC_8x5_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_8x6,	VK_FORMAT_ASTC_8x6_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_8x8,	VK_FORMAT_ASTC_8x8_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_10x5,	VK_FORMAT_ASTC_10x5_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_10x6,	VK_FORMAT_ASTC_10x6_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_10x8,	VK_FORMAT_ASTC_10x8_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_10x10,	VK_FORMAT_ASTC_10x10_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_12x10,	VK_FORMAT_ASTC_12x10_SRGB_BLOCK ) \
+		_builder_( ASTC_sRGB8_A8_12x12,	VK_FORMAT_ASTC_12x12_SRGB_BLOCK )
 			
 /*
 =================================================

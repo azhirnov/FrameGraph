@@ -79,12 +79,14 @@ namespace FG
 	Initialize
 =================================================
 */
-	bool VResourceManager::Initialize ()
+	bool  VResourceManager::Initialize ()
 	{
 		CHECK_ERR( _memoryMngr.Initialize() );
 		CHECK_ERR( _descMngr.Initialize() );
 
 		_CreateEmptyDescriptorSetLayout();
+		_CheckHostVisibleMemory();
+
 		return true;
 	}
 	
@@ -93,10 +95,10 @@ namespace FG
 	Deinitialize
 =================================================
 */
-	void VResourceManager::Deinitialize ()
+	void  VResourceManager::Deinitialize ()
 	{
 		_DestroyStagingBuffers();
-		_debugDSLayoutsCache.clear();
+		_DestroyShaderDebuggerResources();
 
 		_DestroyResourceCache( INOUT _samplerCache );
 		_DestroyResourceCache( INOUT _pplnLayoutCache );
@@ -133,7 +135,7 @@ namespace FG
 	AddCompiler
 =================================================
 */
-	void VResourceManager::AddCompiler (const PipelineCompiler &comp)
+	void  VResourceManager::AddCompiler (const PipelineCompiler &comp)
 	{
 		EXLOCK( _compilersGuard );
 		_compilers.insert( comp );
@@ -144,7 +146,7 @@ namespace FG
 	OnSubmit
 =================================================
 */
-	void VResourceManager::OnSubmit ()
+	void  VResourceManager::OnSubmit ()
 	{
 		_submissionCounter.fetch_add( 1, memory_order_relaxed );
 	}
@@ -155,7 +157,7 @@ namespace FG
 =================================================
 */
 	template <typename DataT, size_t CS, size_t MC>
-	inline void VResourceManager::_DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &res)
+	inline void  VResourceManager::_DestroyResourceCache (INOUT CachedPoolTmpl<DataT,CS,MC> &res)
 	{
 		for (size_t i = 0, count = res.size(); i < count; ++i)
 		{
@@ -205,7 +207,7 @@ namespace FG
 =================================================
 */
 	template <typename ResType, typename ...Args>
-	inline void Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
+	inline void  Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
 	{
 		target.Data().~ResType();
 		new (&target.Data()) ResType{ std::forward<Args &&>(args)... };
@@ -216,16 +218,24 @@ namespace FG
 	GetDebugShaderStorageSize
 =================================================
 */
-	ND_ BytesU  VResourceManager::GetDebugShaderStorageSize (EShaderStages stages)
+	ND_ BytesU  VResourceManager::GetDebugShaderStorageSize (EShaderStages stages, EShaderDebugMode mode)
 	{
-		if ( EnumEq( EShaderStages::AllGraphics, stages ) )
-			return SizeOf<uint> * 3;	// fragcoord
+		if ( mode == EShaderDebugMode::Timemap )
+		{
+			return SizeOf<uint> * 4;	// tile size, width, (padding)
+		}
+		else
+		if ( mode == EShaderDebugMode::Trace or mode == EShaderDebugMode::Profiling )
+		{
+			if ( EnumEq( EShaderStages::AllGraphics, stages ))
+				return SizeOf<uint> * 4;	// fragcoord, (padding), position
 		
-		if ( stages == EShaderStages::Compute )
-			return SizeOf<uint> * 3;	// global invocation
+			if ( stages == EShaderStages::Compute )
+				return SizeOf<uint> * 4;	// global invocation, position
 		
-		if ( EnumEq( EShaderStages::AllRayTracing, stages ) )
-			return SizeOf<uint> * 3;	// launch
+			if ( EnumEq( EShaderStages::AllRayTracing, stages ))
+				return SizeOf<uint> * 4;	// launch, position
+		}
 
 		RETURN_ERR( "unsupported shader type" );
 	}
@@ -238,9 +248,9 @@ namespace FG
 	RawDescriptorSetLayoutID  VResourceManager::GetDescriptorSetLayout (EShaderDebugMode debugMode, EShaderStages debuggableShaders)
 	{
 		const uint	key  = (uint(debuggableShaders) & 0xFFFFFF) | (uint(debugMode) << 24);
-		auto		iter = _debugDSLayoutsCache.find( key );
+		auto		iter = _shaderDbg.dsLayoutsCache.find( key );
 
-		if ( iter != _debugDSLayoutsCache.end() )
+		if ( iter != _shaderDbg.dsLayoutsCache.end() )
 			return iter->second;
 
 		PipelineDescription::UniformMap_t	uniforms;
@@ -249,7 +259,7 @@ namespace FG
 
 		sb_desc.state				= EResourceState_FromShaders( debuggableShaders ) | EResourceState::ShaderReadWrite | EResourceState::_BufferDynamicOffset;
 		sb_desc.arrayStride			= SizeOf<uint>;
-		sb_desc.staticSize			= GetDebugShaderStorageSize( debuggableShaders ) + SizeOf<uint>;	// per shader data + position
+		sb_desc.staticSize			= GetDebugShaderStorageSize( debuggableShaders, debugMode );
 		sb_desc.dynamicOffsetIndex	= 0;
 
 		sb_uniform.index			= BindingIndex{ UMax, 0 };
@@ -262,7 +272,7 @@ namespace FG
 		auto	layout = CreateDescriptorSetLayout( MakeShared<const PipelineDescription::UniformMap_t>( std::move(uniforms) ));
 		CHECK_ERR( layout );
 
-		_debugDSLayoutsCache.insert({ key, layout });
+		_shaderDbg.dsLayoutsCache.insert({ key, layout });
 		return layout;
 	}
 
@@ -584,7 +594,7 @@ namespace FG
 	_CompileShader
 =================================================
 */
-	bool VResourceManager::_CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
+	bool  VResourceManager::_CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
 	{
 		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
 		
@@ -1317,32 +1327,150 @@ namespace FG
 	
 /*
 =================================================
+	_CheckHostVisibleMemory
+=================================================
+*/
+	bool  VResourceManager::_CheckHostVisibleMemory ()
+	{
+		auto&	dev		= _device;
+		auto&	props	= dev.GetDeviceMemoryProperties();
+		
+		VkMemoryRequirements	transfer_mem_req = {};
+		VkMemoryRequirements	uniform_mem_req  = {};
+		{
+			VkBuffer			id;
+			VkBufferCreateInfo	info = {};
+			info.sType	= VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			info.pNext	= null;
+			info.flags	= 0;
+			info.usage	= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			info.size	= 64 << 10;
+			info.sharingMode			= VK_SHARING_MODE_EXCLUSIVE;
+			info.pQueueFamilyIndices	= null;
+			info.queueFamilyIndexCount	= 0;
+
+			VK_CHECK( dev.vkCreateBuffer( dev.GetVkDevice(), &info, null, OUT &id ));
+			dev.vkGetBufferMemoryRequirements( dev.GetVkDevice(), id, OUT &transfer_mem_req );
+			dev.vkDestroyBuffer( dev.GetVkDevice(), id, null );
+			
+			info.size  = 256;
+			info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+			VK_CHECK( dev.vkCreateBuffer( dev.GetVkDevice(), &info, null, OUT &id ));
+			dev.vkGetBufferMemoryRequirements( dev.GetVkDevice(), id, OUT &uniform_mem_req );
+			dev.vkDestroyBuffer( dev.GetVkDevice(), id, null );
+		}
+
+		BitSet<VK_MAX_MEMORY_HEAPS>		cached_heaps;
+		BitSet<VK_MAX_MEMORY_HEAPS>		cocherent_heaps;
+		BitSet<VK_MAX_MEMORY_HEAPS>		uniform_heaps;
+
+		for (uint i = 0; i < props.memoryTypeCount; ++i)
+		{
+			auto&	mt = props.memoryTypes[i];
+
+			if ( EnumEq( transfer_mem_req.memoryTypeBits, 1u << i ))
+			{
+				if ( EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_CACHED_BIT ))
+					cached_heaps[ mt.heapIndex ] = true;
+			
+				if ( EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
+					cocherent_heaps[ mt.heapIndex ] = true;
+			}
+
+			if ( EnumEq( uniform_mem_req.memoryTypeBits, 1u << i ) and
+				 EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
+			{
+				uniform_heaps[ mt.heapIndex ] = true;
+			}
+		}
+
+		BytesU	uniform_heap_size;
+		BytesU	transfer_heap_size;
+
+		for (uint i = 0; i < props.memoryHeapCount; ++i)
+		{
+			if ( uniform_heaps[i] )
+				uniform_heap_size += props.memoryHeaps[i].size;
+
+			if ( cached_heaps[i] or cocherent_heaps[i] )
+				transfer_heap_size += props.memoryHeaps[i].size;
+		}
+
+		BytesU	un_size = uniform_heap_size  / StagingBufferfPool_t::Capacity();
+		BytesU	tr_size = transfer_heap_size / StagingBufferfPool_t::Capacity();
+
+		if ( un_size > 128_Mb )		un_size = 32_Mb;	else
+		if ( un_size > 64_Mb )		un_size = 16_Mb;	else
+									un_size = 8_Mb;
+
+		if ( tr_size > 512_Mb )		tr_size = 256_Mb;	else
+		if ( tr_size > 128_Mb )		tr_size = 128_Mb;	else
+									tr_size = 64_Mb;
+
+		_staging.writeBufPageSize   = _staging.readBufPageSize = tr_size;
+		_staging.uniformBufPageSize = un_size;
+
+		return true;
+	}
+
+/*
+=================================================
 	CreateStagingBuffer
 =================================================
 */
-	bool VResourceManager::CreateStagingBuffer (const BufferDesc &desc, bool write, OUT RawBufferID &outBufferId, OUT StagingBufferIdx &outIndex)
+	bool  VResourceManager::CreateStagingBuffer (EBufferUsage usage, OUT RawBufferID &outBufferId, OUT StagingBufferIdx &outIndex)
 	{
-		const auto	ctor = [this, write, &desc] (BufferID *ptr, uint)
+		BufferDesc				desc;
+		EMemoryType				mem_type;
+		StagingBufferfPool_t*	pool		= null;
+		uint					idx_mask	= 0;
+		const char *			name		= "";
+		desc.usage = usage;
+
+		switch ( usage )
 		{
-			RawBufferID	id = CreateBuffer( desc, MemoryDesc{ write ? EMemoryType::HostWrite : EMemoryType::HostRead },
-											EQueueFamilyMask::Unknown, write ? "HostWriteBuffer" : "HostReadBuffer" );
+			case EBufferUsage::TransferSrc :
+				pool		= &_staging.write;
+				desc.size	= _staging.writeBufPageSize;
+				mem_type	= EMemoryType::HostWrite;
+				idx_mask	= 1u << 30;
+				name		= "HostWriteBuffer";
+				break;
+
+			case EBufferUsage::TransferDst :
+				pool		= &_staging.read;
+				desc.size	= _staging.readBufPageSize;
+				mem_type	= EMemoryType::HostRead;
+				idx_mask	= 2u << 30;
+				name		= "HostReadBuffer";
+				break;
+
+			case EBufferUsage::Uniform :
+				pool		= &_staging.uniform;
+				desc.size	= _staging.uniformBufPageSize;
+				mem_type	= EMemoryType::HostWrite;
+				idx_mask	= 3u << 30;
+				name		= "HostUniformBuffer";
+				break;
+
+			default :
+				RETURN_ERR( "unsupported buffer usage" );
+		}
+
+		const auto	ctor = [this, name, mem_type, &desc] (BufferID *ptr, uint)
+		{
+			RawBufferID	id = CreateBuffer( desc, MemoryDesc{ mem_type }, EQueueFamilyMask::Unknown, name );
 			CHECK( id );
 			PlacementNew< BufferID >( ptr, id );
 		};
 
-		auto&	pool	= write ? _stagingBuf.write : _stagingBuf.read;
 		uint	index;
-
-		CHECK_ERR( pool.Assign( OUT index, ctor ));
+		CHECK_ERR( pool->Assign( OUT index, ctor ));
 		
-		outBufferId = pool[ index ];
+		outBufferId = (*pool)[ index ];
 
-		if ( write )
-			index |= (1u << 30);
-		else
-			index |= (2u << 30);
-
-		outIndex = StagingBufferIdx(index);
+		outIndex = StagingBufferIdx(index | idx_mask);
 		return true;
 	}
 	
@@ -1351,18 +1479,22 @@ namespace FG
 	ReleaseStagingBuffer
 =================================================
 */
-	void VResourceManager::ReleaseStagingBuffer (StagingBufferIdx index)
+	void  VResourceManager::ReleaseStagingBuffer (StagingBufferIdx index)
 	{
 		const uint	idx = uint(index) & ~(3u << 30);
 
 		switch ( uint(index) >> 30 )
 		{
 			case 1 :
-				_stagingBuf.write.Unassign( idx );
+				_staging.write.Unassign( idx );
 				break;
 
 			case 2 :
-				_stagingBuf.read.Unassign( idx );
+				_staging.read.Unassign( idx );
+				break;
+				
+			case 3 :
+				_staging.uniform.Unassign( idx );
 				break;
 
 			default :
@@ -1376,15 +1508,239 @@ namespace FG
 	_DestroyStagingBuffers
 =================================================
 */
-	void VResourceManager::_DestroyStagingBuffers ()
+	void  VResourceManager::_DestroyStagingBuffers ()
 	{
 		const auto	dtor = [this] (BufferID &id)
 		{
 			ReleaseResource( id.Release() );
 		};
 
-		_stagingBuf.write.Release( dtor );
-		_stagingBuf.read.Release( dtor );
+		_staging.write.Release( dtor );
+		_staging.read.Release( dtor );
+	}
+	
+/*
+=================================================
+	_CreateFindMaxValuePipeline1
+=================================================
+*/
+	bool  VResourceManager::_CreateFindMaxValuePipeline1 ()
+	{
+		if ( _shaderDbg.pplnFindMaxValue1 )
+			return true;
+
+		ComputePipelineDesc		desc;
+		desc.AddShader( EShaderLangFormat::VKSL_110, "main", R"#(
+layout (local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std430) readonly buffer un_Timemap
+{
+	uvec2	maxValue;
+	uvec2	dimension;
+	uvec2	pixels[];
+};
+
+layout(binding = 1, std430) buffer un_MaxValues
+{
+	uvec2	line[];
+};
+
+bool Greater (uvec2 lhs, uvec2 rhs)
+{
+	return lhs.x == rhs.x ? lhs.y > rhs.y : lhs.x > rhs.x;
+}
+
+void main ()
+{
+	uvec2	mv = uvec2(0);
+
+	for (uint x = 0; x < dimension.x; ++x)
+	{
+		uint	i = x + dimension.x * gl_GlobalInvocationID.x;
+		uvec2	v = pixels[i];
+
+		if ( Greater( v, mv ))
+			mv = v;
+	}
+
+	line[gl_GlobalInvocationID.x] = mv;
+}
+)#");
+		_shaderDbg.pplnFindMaxValue1 = CPipelineID{ CreatePipeline( desc, Default )};
+		CHECK_ERR( _shaderDbg.pplnFindMaxValue1 );
+
+		return true;
+	}
+	
+/*
+=================================================
+	_CreateFindMaxValuePipeline2
+=================================================
+*/
+	bool  VResourceManager::_CreateFindMaxValuePipeline2 ()
+	{
+		if ( _shaderDbg.pplnFindMaxValue2 )
+			return true;
+
+		ComputePipelineDesc		desc;
+		desc.AddShader( EShaderLangFormat::VKSL_110, "main", R"#(
+layout (local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0, std430) buffer un_Timemap
+{
+	coherent uvec2	maxValue;
+	readonly uvec2	dimension;
+	readonly uvec2	pixels[];
+};
+
+layout(binding = 1, std430) readonly buffer un_MaxValues
+{
+	uvec2	line[];
+};
+
+bool Greater (uvec2 lhs, uvec2 rhs)
+{
+	return lhs.x == rhs.x ? lhs.y > rhs.y : lhs.x > rhs.x;
+}
+
+void main ()
+{
+	uvec2	mv = uvec2(0);
+
+	for (uint i = 0; i < dimension.y; ++i)
+	{
+		uvec2	v = line[i];
+
+		if ( Greater( v, mv ))
+			mv = v;
+	}
+
+	//if ( gl_LocalInvocationID.x == 0 )
+	{
+		maxValue = mv;
+	}
+}
+)#");
+		_shaderDbg.pplnFindMaxValue2 = CPipelineID{ CreatePipeline( desc, Default )};
+		CHECK_ERR( _shaderDbg.pplnFindMaxValue2 );
+
+		return true;
+	}
+
+/*
+=================================================
+	_CreateTimemapRemapPipeline
+=================================================
+*/
+	bool  VResourceManager::_CreateTimemapRemapPipeline ()
+	{
+		if ( _shaderDbg.pplnRemap )
+			return true;
+
+		ComputePipelineDesc		desc;
+		desc.AddShader( EShaderLangFormat::VKSL_110, "main", R"#(
+layout (local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+
+layout(binding = 0, std430) buffer un_Timemap
+{
+	readonly uvec2	maxValue;
+	readonly ivec2	dimension;
+	readonly uvec2	pixels[];
+};
+
+layout(binding = 1) writeonly uniform image2D  un_OutImage;
+
+double ToDouble (uvec2 v)
+{
+	return double(v.x) + double(v.y) * double(0xFFFFFFFF);
+}
+
+vec3 HSVtoRGB (const vec3 hsv)
+{
+	// from http://chilliant.blogspot.ru/2014/04/rgbhsv-in-hlsl-5.html
+	vec3 col = vec3( abs( hsv.x * 6.0 - 3.0 ) - 1.0,
+					 2.0 - abs( hsv.x * 6.0 - 2.0 ),
+					 2.0 - abs( hsv.x * 6.0 - 4.0 ) );
+	return (( clamp( col, vec3(0.0), vec3(1.0) ) - 1.0 ) * hsv.y + 1.0 ) * hsv.z;
+}
+
+float Remap (const vec2 src, const vec2 dst, const float x)
+{
+	return (x - src.x) / (src.y - src.x) * (dst.y - dst.x) + dst.x;
+}
+
+float RemapClamped (const vec2 src, const vec2 dst, const float x)
+{
+	return clamp( Remap( src, dst, x ), dst.x, dst.y );
+}
+
+vec3 Rainbow (float factor)
+{
+	return HSVtoRGB( vec3(RemapClamped( vec2(0.0, 1.45), vec2(0.0, 1.0), 1.0 - factor ), 1.0, 1.0) );
+}
+
+void main ()
+{
+	double	mv			= ToDouble( maxValue );
+	double	vsum		= 0.0;
+	ivec2	coord		= ivec2(gl_GlobalInvocationID.xy);
+	ivec2	size		= ivec2(gl_WorkGroupSize.xy * gl_NumWorkGroups.xy);
+	vec2	ncoord		= vec2(coord) / vec2(size);
+	ivec2	px_coord	= ivec2( ncoord * vec2(dimension) );
+	ivec2	px_size		= ivec2( vec2(size) / vec2(dimension) + 0.5 );
+
+	for (int y = 0; y < px_size.y; ++y)
+	for (int x = 0; x < px_size.x; ++x)
+	{
+		double	v = ToDouble( pixels[ (px_coord.x + x) + (px_coord.y + y) * dimension.x ] );
+		vsum += v;
+	}
+
+	vsum /= double(px_size.x * px_size.y);
+
+	imageStore( un_OutImage, coord, vec4(Rainbow( float(vsum / mv) ), 1.0 ));
+}
+)#");
+		_shaderDbg.pplnRemap = CPipelineID{ CreatePipeline( desc, Default )};
+		CHECK_ERR( _shaderDbg.pplnRemap );
+
+		return true;
+	}
+	
+/*
+=================================================
+	_DestroyShaderDebuggerResources
+=================================================
+*/
+	void  VResourceManager::_DestroyShaderDebuggerResources ()
+	{
+		if ( _shaderDbg.pplnFindMaxValue1 )
+			ReleaseResource( _shaderDbg.pplnFindMaxValue1.Release() );
+
+		if ( _shaderDbg.pplnFindMaxValue2 )
+			ReleaseResource( _shaderDbg.pplnFindMaxValue2.Release() );
+
+		if ( _shaderDbg.pplnRemap )
+			ReleaseResource( _shaderDbg.pplnRemap.Release() );
+	
+		_shaderDbg.dsLayoutsCache.clear();
+	}
+	
+/*
+=================================================
+	GetShaderTimemapPipelines
+=================================================
+*/
+	Tuple<RawCPipelineID, RawCPipelineID, RawCPipelineID>  VResourceManager::GetShaderTimemapPipelines ()
+	{
+		CHECK_ERR( _CreateFindMaxValuePipeline1() );
+		CHECK_ERR( _CreateFindMaxValuePipeline2() );
+		CHECK_ERR( _CreateTimemapRemapPipeline() );
+
+		return Tuple<RawCPipelineID, RawCPipelineID, RawCPipelineID>{
+					_shaderDbg.pplnFindMaxValue1.Get(),
+					_shaderDbg.pplnFindMaxValue2.Get(),
+					_shaderDbg.pplnRemap.Get() };
 	}
 
 }	// FG

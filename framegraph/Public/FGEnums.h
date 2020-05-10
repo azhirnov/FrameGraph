@@ -30,6 +30,9 @@ namespace FG
 		VisBarrierLabels				= 1 << 14,
 		VisTaskDependencies				= 1 << 15,
 
+		FullBarrier						= 1u << 30,	// use global memory barrier addtionally to per-resource barriers
+		QueueSync						= 1u << 31,	// after each submit wait until queue complete execution
+
 		/*LogUnreleasedResources			= 1 << 3,	// 
 		
 		CheckNonOptimalLayouts			= 1 << 16,	// if used 'General' layout instead optimal layout.

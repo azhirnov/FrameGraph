@@ -71,14 +71,14 @@ namespace FG
 */
 	inline void CopyDescriptorSets (VLogicalRenderPass *rp, VCommandBuffer &cb, const PipelineResourceSet &inResourceSet, OUT VPipelineResourceSet &outResourceSet)
 	{
-		size_t	offset_count = 0;
+		uint	offset_count = 0;
 
 		for (auto& src : inResourceSet)
 		{
 			auto	offsets = src.second->GetDynamicOffsets();
 
 			outResourceSet.resources.emplace_back( src.first, cb.CreateDescriptorSet( *src.second ),
-												   uint(offset_count), uint(offsets.size()) );
+												   offset_count, CheckCast<uint>(offsets.size()) );
 			
 			for (size_t i = 0; i < offsets.size(); ++i, ++offset_count) {
 				outResourceSet.dynamicOffsets.push_back( offsets[i] );
@@ -162,7 +162,7 @@ namespace FG
 		RemapVertexBuffers( cb, task.vertexBuffers, task.vertexInput, OUT _vertexBuffers, OUT _vbOffsets, OUT _vbStrides );
 
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( INOUT _scissors, task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( INOUT _scissors, task.taskName, task.debugMode );
 	}
 
 /*
@@ -223,7 +223,7 @@ namespace FG
 		CopyDescriptorSets( &rp, cb, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( INOUT _scissors, task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( INOUT _scissors, task.taskName, task.debugMode );
 	}
 
 /*
@@ -291,7 +291,7 @@ namespace FG
 		CopyDescriptorSets( null, cb, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -319,7 +319,7 @@ namespace FG
 		CopyDescriptorSets( null, cb, task.resources, OUT _resources );
 		
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
 	}
 	
 /*
@@ -664,7 +664,7 @@ namespace FG
 		rtScene{ cb.ToLocal( task.rtScene )},
 		shaderTable{const_cast<VRayTracingShaderTable*>( cb.AcquireTemporary( task.shaderTable ))},
 		rayGenShader{ task.rayGenShader },		maxRecursionDepth{ task.maxRecursionDepth },
-		_shaderGroupCount{ uint(task.shaderGroups.size()) }
+		_shaderGroupCount{ CheckCast<uint>(task.shaderGroups.size()) }
 	{
 		_shaderGroups = cb.GetAllocator().Alloc<ShaderGroup>( _shaderGroupCount );
 		std::memcpy( OUT _shaderGroups, task.shaderGroups.data(), size_t(ArraySizeOf(task.shaderGroups)) );
@@ -706,7 +706,7 @@ namespace FG
 		CopyDescriptorSets( null, cb, task.resources, OUT _resources );
 
 		if ( task.debugMode.mode != Default )
-			_debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
+			debugModeIndex = cb.GetBatch().AppendShader( task.taskName, task.debugMode );
 	}
 	
 /*

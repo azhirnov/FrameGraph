@@ -1,4 +1,5 @@
 Shader debugging and profiling supported only for GLSL source. But you can use SPIRV-Cross to convert SPIRV binary into GLSL source.<br/>
+For debugging and profiling used [GLSL-Trace](https://github.com/azhirnov/glsl_trace) library, cmake variable `FG_ENABLE_GLSL_TRACE` must be ON.
 
 ## Shader debugging
 
@@ -18,7 +19,7 @@ DispatchCompute().EnableDebugTrace({ thread_x, thread_y, thread_z });
 // record if {pixel_x, pixel_y} == gl_FragCoord.xy
 DrawIndexed().EnableFragmentDebugTrace( pixel_x, pixel_y );
 
-// record if {launch_x, launch_y, launch_z} == gl_LaunchIDNV
+// record if {launch_x, launch_y, launch_z} == gl_LaunchID
 TraceRays().EnableDebugTrace({ launch_x, launch_y, launch_z });
 ```
 Shader trace will be recorded only for selected thread/pixel/launch.
@@ -27,17 +28,28 @@ Shader trace will be recorded only for selected thread/pixel/launch.
 Aloso you can enable shader recording during shader execution:
 ```cpp
 desc.AddShader( ... | EShaderLangFormat::EnableDebugTrace, "main", R"#(
-    // empty function will be replaced during shader compilation
-    void dbg_EnableTraceRecording (bool b) {}
-    
-    void main ()
-    {
-        bool condition = ...
-        
-        // if condition is true then trace recording will started here
-        dbg_EnableTraceRecording( condition );
-        ...
-    }
+	// empty functions will be replaced during shader compilation
+	void dbg_EnableTraceRecording (bool b) {}
+	void dbg_PauseTraceRecording (bool b) {}
+
+	void main ()
+	{
+		bool condition = ...
+		
+		// if 'condition' is true then trace recording will start here
+		dbg_EnableTraceRecording( condition );
+		...
+		
+		// pause
+		dbg_PauseTraceRecording( true );
+		
+		// trace will not be recorded
+		...
+		
+		// resume
+		dbg_PauseTraceRecording( false );
+		...
+	}
 )#" );
 
 // supports any shader stage
@@ -81,7 +93,7 @@ no source
 The `//>` symbol marks the modified variable or function result.
 
 
-## Shader profiling
+## Shader profiling for single pixel/invocation
 
 For each shader, that you want to profile, add `EnableProfiling` flag:
 ```cpp
@@ -99,7 +111,7 @@ DispatchCompute().EnableShaderProfiling({ thread_x, thread_y, thread_z });
 // record if {pixel_x, pixel_y} == gl_FragCoord.xy
 DrawIndexed().EnableFragmentProfiling( pixel_x, pixel_y );
 
-// record if {launch_x, launch_y, launch_z} == gl_LaunchIDNV
+// record if {launch_x, launch_y, launch_z} == gl_LaunchID
 TraceRays().EnableShaderProfiling({ launch_x, launch_y, launch_z });
 ```
 Shader profiling will be recorded only for selected thread/pixel/launch.
@@ -115,7 +127,7 @@ desc.AddShader( ... | EShaderLangFormat::EnableProfiling, "main", R"#(
     {
         bool condition = ...
         
-        // if condition is true then profiling will started here
+        // if condition is true then profiling will start here
         dbg_EnableProfiling( condition );
         ...
     }
@@ -156,3 +168,30 @@ no source
 // invocations:    56
 72. float3 DHash33 (const float3 p)
 ```
+
+
+`subgroup` - time measured with extension [GL_ARB_shader_clock](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_shader_clock.txt)
+    Spec says: "...function returns value representing the current execution clock as seen by the shader processor. Time is guaranteed to be dynamically uniform across a single sub-group but only in a given shader stage".<br/>
+`device` - time measured with execution [GL_EXT_shader_realtime_clock](https://github.com/KhronosGroup/GLSL/blob/master/extensions/ext/GL_EXT_shader_realtime_clock.txt)
+    Spec says:  "...function returns value representing a real-time clock that is globally coherent by all invocations on the GPU.".<br/>
+`invocations` - number of function invocations.<br/>
+`total` - calculated as `sum_of_all_function_invocations / total_shader_time) * 100`.<br/>
+`avr` - calculated as `total / invocations`.<br/>
+`(xx)` - calculated as `sum_of_all_function_invocations / invocations`.<br/>
+
+
+## Shader profiling for render pass
+
+For each shader, that you want to profile, add `EnableTimeMap` flag:
+```cpp
+desc.AddShader( ... | EShaderLangFormat::EnableTimeMap, ... );
+```
+To begin profiling call `CommandBuffer::BeginShaderTimeMap( dimension, EShaderStages::All )` it enables shader time recording for all subsequent tasks with shaders that builded with flag `EnableTimeMap` and for all specified shader stages.<br/>
+To stop profiling and get results call `CommandBuffer::EndShaderTimeMap( dstImage )`, inside this function will be executed some commands:
+* searching for max time
+* remaping time to unorm value and then converts it to heatmap (red - max time, blue - min time)
+* result will be stored into `dstImage`
+
+Example:
+![image](ShaderTimemap1.jpg)
+![image](ShaderTimemap2.jpg)

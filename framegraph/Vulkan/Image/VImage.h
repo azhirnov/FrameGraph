@@ -87,6 +87,9 @@ namespace FG
 		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask == Default; }
 		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask; }
 		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _drCheck );  return _debugName; }
+		
+		ND_ static bool	IsSupported (const VDevice &dev, const ImageDesc &desc, EMemoryType memType);
+		ND_ bool		IsSupported (const VDevice &dev, const ImageViewDesc &desc) const;
 
 
 	private:

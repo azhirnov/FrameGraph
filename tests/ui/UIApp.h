@@ -43,27 +43,27 @@ namespace FG
 	public:
 		UIApp ();
 
-		static void Run ();
+		static void  Run ();
 
 
 	// IWindowEventListener
 	private:
-		void OnResize (const uint2 &size) override;
-		void OnRefresh () override {}
-		void OnDestroy () override {}
-		void OnUpdate () override {}
-		void OnKey (StringView, EKeyAction) override;
-		void OnMouseMove (const float2 &pos) override;
+		void  OnResize (const uint2 &size) override;
+		void  OnRefresh () override {}
+		void  OnDestroy () override {}
+		void  OnUpdate () override {}
+		void  OnKey (StringView, EKeyAction) override;
+		void  OnMouseMove (const float2 &pos) override;
 		
 
 	private:
-		bool _Initialize (WindowPtr &&wnd);
-		bool _Update ();
-		void _Destroy ();
+		bool  _Initialize (WindowPtr &&wnd);
+		bool  _Update ();
+		void  _Destroy ();
 
-		bool _UpdateInput ();
-		bool _UpdateUI ();
-		bool _Draw ();
+		bool  _UpdateInput ();
+		bool  _UpdateUI ();
+		bool  _Draw ();
 	};
 
 

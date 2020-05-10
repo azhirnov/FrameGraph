@@ -13,6 +13,7 @@ namespace FG
 	using TempSemaphores_t		= VSubmitted::Semaphores_t;
 	using PendingSwapchains_t	= FixedArray< VSwapchain const*, 16 >;
 	using TempFences_t			= FixedArray< VkFence, 32 >;
+	using TempSubmitted_t		= FixedArray< VSubmitted*, 32 >;
 	using TimePoint_t			= std::chrono::high_resolution_clock::time_point;
 
 /*
@@ -481,6 +482,52 @@ namespace FG
 		CHECK_ERR( _IsInitialized(), void());
 		return _resourceMngr.ReleaseResource( INOUT resources );
 	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VFrameGraph::IsSupported (RawImageID image, const ImageViewDesc &desc) const
+	{
+		auto*	img = _resourceMngr.GetResource( image );
+		CHECK_ERR( img );
+
+		return img->IsSupported( _device, desc );
+	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VFrameGraph::IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const
+	{
+		auto*	buf = _resourceMngr.GetResource( buffer );
+		CHECK_ERR( buf );
+
+		return buf->IsSupported( _device, desc );
+	}
+
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VFrameGraph::IsSupported (const ImageDesc &desc, EMemoryType memType) const
+	{
+		return VImage::IsSupported( _device, desc, memType );
+	}
+	
+/*
+=================================================
+	IsSupported
+=================================================
+*/
+	bool VFrameGraph::IsSupported (const BufferDesc &desc, EMemoryType memType) const
+	{
+		return VBuffer::IsSupported( _device, desc, memType );
+	}
 
 /*
 =================================================
@@ -589,8 +636,7 @@ namespace FG
 				break;
 			}
 			
-			ASSERT( !"overflow" );
-			std::this_thread::yield();
+			RETURN_ERR( "command buffer pool overflow!" );
 		}
 
 		// acquire command batch
@@ -605,8 +651,7 @@ namespace FG
 				break;
 			}
 			
-			ASSERT( !"overflow" );
-			std::this_thread::yield();
+			RETURN_ERR( "command batch pool overflow!" );
 		}
 
 		CHECK_ERR( cmd->Begin( desc, batch, queue.ptr ));
@@ -713,9 +758,10 @@ namespace FG
 	{
 		const auto	start_time = TimePoint_t::clock::now();
 
-		uint				qi		= uint(queueIndex);
-		auto&				q		= _queueMap[qi];
-		EQueueUsage			q_mask	= Default;
+		uint				qi			= uint(queueIndex);
+		auto&				q			= _queueMap[qi];
+		EQueueUsage			q_mask		= Default;
+		bool				wait_idle	= false;
 
 		CmdBatches_t		pending;
 		SubmitInfos_t		submit_infos;
@@ -747,6 +793,10 @@ namespace FG
 
 				if ( is_ready )
 				{
+					if ( pending.size() == pending.capacity() )
+						break;
+
+					wait_idle |= batch->IsQueueSyncRequired();
 					batch->OnReadyToSubmit();
 					pending.push_back( std::move(batch) );
 							
@@ -805,8 +855,7 @@ namespace FG
 				break;
 			}
 			
-			ASSERT( !"overflow" );
-			std::this_thread::yield();
+			RETURN_ERR( "submited batch pool overflow!" );
 		}
 
 		// add image layout transitions
@@ -847,10 +896,24 @@ namespace FG
 				pending[i]->AfterSubmit( OUT swapchains, submit );
 			}
 
+			// for debugging
+			if ( wait_idle )
+			{
+				// sync after command submission
+				VK_CALL( _device.vkQueueWaitIdle( q.ptr->handle ));
+			}
+
 			for (auto* sw : swapchains)
 			{
 				ASSERT( q.ptr == sw->GetPresentQueue() );
 				CHECK( sw->Present( _device ));
+			}
+
+			// for debugging
+			if ( wait_idle and swapchains.size() )
+			{
+				// sync after presenting
+				VK_CALL( _device.vkDeviceWaitIdle( _device.GetVkDevice() ));
 			}
 		}
 
@@ -897,7 +960,32 @@ namespace FG
 
 		EXLOCK( _queueGuard );
 
-		TempFences_t	fences;
+		TempFences_t		tmp_fences;
+		TempSubmitted_t		tmp_submitted;
+		bool				result = true;
+
+		const auto	WaitAndRelease = [this, &tmp_fences, &tmp_submitted, &result, timeout] ()
+		{
+			auto  res = _device.vkWaitForFences( _device.GetVkDevice(), uint(tmp_fences.size()), tmp_fences.data(), VK_TRUE, uint64_t(timeout.count()) );
+
+			if ( res == VK_SUCCESS )
+			{
+				EXLOCK( _statisticGuard );
+
+				// release resources
+				for (auto* submitted : tmp_submitted) {
+					submitted->_Release( _device, _debugger, _shaderDebugCallback, INOUT _lastStatistic );
+				}
+			}
+			else
+			{
+				result = false;
+				CHECK( res == VK_TIMEOUT );
+			}
+
+			tmp_fences.clear();
+			tmp_submitted.clear();
+		};
 
 		for (auto& cmd : commands)
 		{
@@ -918,38 +1006,23 @@ namespace FG
 
 				ASSERT( fence );
 
-				for (auto& f : fences) {
+				for (auto& f : tmp_fences) {
 					found |= (f == fence);
 				}
 
 				if ( not found )
-					fences.push_back( fence );
-			}
-		}
-
-		bool	result = true;
-
-		if ( fences.size() )
-		{
-			auto  res = _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, timeout.count() );
-
-			if ( res == VK_SUCCESS )
-			{
-				EXLOCK( _statisticGuard );
-
-				// release resources
-				for (auto& cmd : commands)
 				{
-					if ( auto*  submitted = Cast<VCmdBatch>(cmd.GetBatch())->GetSubmitted() )
-						submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
+					tmp_fences.push_back( fence );
+					tmp_submitted.push_back( submitted );
 				}
 			}
-			else
-			{
-				result = false;
-				CHECK( res == VK_TIMEOUT );
-			}
+
+			if ( tmp_fences.size() == tmp_fences.capacity() )
+				WaitAndRelease();
 		}
+
+		if ( tmp_fences.size() )
+			WaitAndRelease();
 		
 		_waitingTime.fetch_add( (TimePoint_t::clock::now() - start_time).count(), memory_order_relaxed );
 		return result;

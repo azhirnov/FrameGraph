@@ -18,9 +18,9 @@ namespace FG
 		struct Level
 		{
 			uint3			dimension;
-			EPixelFormat	format;
-			ImageLayer		layer;
-			MipmapLevel		mipmap;
+			EPixelFormat	format		= Default;
+			ImageLayer		layer		= 0_layer;
+			MipmapLevel		mipmap		= 0_mipmap;
 			BytesU			rowPitch;
 			BytesU			slicePitch;
 			Array<uint8_t>	pixels;
@@ -44,7 +44,7 @@ namespace FG
 	public:
 		IntermImage () {}
 		explicit IntermImage (StringView path) : _srcPath{path} {}
-		explicit IntermImage (Mipmaps_t &&data, StringView path = Default) : _srcPath{path}, _data{std::move(data)} {}
+		explicit IntermImage (Mipmaps_t &&data, EImage type, StringView path = Default) : _srcPath{path}, _data{std::move(data)}, _imageType{type} {}
 
 		void  MakeImmutable ()							{ _immutable = true; }
 		void  SetData (Mipmaps_t &&data, EImage type)	{ ASSERT( not _immutable );  _data = std::move(data);  _imageType = type; }

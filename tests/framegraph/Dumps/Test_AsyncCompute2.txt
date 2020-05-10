@@ -213,7 +213,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    256 Mb
+		size:    128 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -335,7 +335,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    256 Mb
+		size:    128 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -457,7 +457,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    256 Mb
+		size:    128 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {

@@ -81,6 +81,11 @@ namespace FG
 		Debugger_t				_debugger;
 
 		struct {
+			ShaderDbgIndex			timemapIndex		= Default;
+			EShaderStages			timemapStages		= Default;
+		}						_shaderDbg;
+
+		struct {
 			ResourceMap_t			resourceMap;
 			LocalImages_t			images;
 			LocalBuffers_t			buffers;
@@ -90,8 +95,10 @@ namespace FG
 			uint					logicalRenderPassCount	= 0;
 		}						_rm;
 		
-		PerQueueArray_t			_perQueue;
+		PerQueueArray_t			_perQueue;		// TODO: use global command pool manager to minimize memory usage
 		DebugName_t				_dbgName;
+		bool					_dbgFullBarriers	= false;
+		bool					_dbgQueueSync		= false;
 
 		DataRaceCheck			_drCheck;
 
@@ -101,11 +108,11 @@ namespace FG
 		explicit VCommandBuffer (VFrameGraph &, uint);
 		~VCommandBuffer ();
 
-		bool Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue);
-		bool Execute ();
+		bool  Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue);
+		bool  Execute ();
 
-		void SignalSemaphore (VkSemaphore sem);
-		void WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
+		void  SignalSemaphore (VkSemaphore sem);
+		void  WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage);
 		
 		FrameGraph	GetFrameGraph () override	{ return _instance.shared_from_this(); }
 
@@ -114,8 +121,8 @@ namespace FG
 		bool		AddDependency (const CommandBuffer &) override;
 		bool		AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) override;
 
-		void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate);
-		void		AcquireBuffer (RawBufferID id, bool makeMutable);
+		void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate) override;
+		void		AcquireBuffer (RawBufferID id, bool makeMutable) override;
 
 
 		// tasks //
@@ -142,7 +149,10 @@ namespace FG
 		Task		AddTask (const BuildRayTracingScene &) override;
 		Task		AddTask (const TraceRays &) override;
 		Task		AddTask (const CustomTask &) override;
-
+		
+		// profiling //
+		bool		BeginShaderTimeMap (const uint2 &dim, EShaderStages stages) override;
+		Task		EndShaderTimeMap (RawImageID dstImage, ImageLayer layer, MipmapLevel level, ArrayView<Task> dependsOn) override;
 
 		// draw tasks //
 		LogicalPassID  CreateRenderPass (const RenderPassDesc &desc) override;
@@ -185,6 +195,8 @@ namespace FG
 		ND_ VMemoryManager &		GetMemoryManager ()			const	{ return GetResourceManager().GetMemoryManager(); }
 		ND_ uint					GetIndexInPool ()			const	{ return _indexInPool; }
 		ND_ EQueueFamily			GetQueueFamily ()			const	{ EXLOCK( _drCheck );  return _queueIndex; }
+		ND_ bool					IsDebugFullBarriers ()		const	{ EXLOCK( _drCheck );  return _dbgFullBarriers; }
+		ND_ bool					IsDebugQueueSync ()			const	{ EXLOCK( _drCheck );  return _dbgQueueSync; }
 
 
 	private:

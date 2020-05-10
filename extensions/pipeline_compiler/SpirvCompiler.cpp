@@ -74,10 +74,10 @@ namespace FG
 		ND_ IncludedFiles_t const&  GetIncludedFiles () const	{ return _includedFiles; }
 
 		// TShader::Includer //
-		IncludeResult* includeSystem (const char* headerName, const char* includerName, size_t inclusionDepth) override;
-		IncludeResult* includeLocal (const char* headerName, const char* includerName, size_t inclusionDepth) override;
+		IncludeResult*  includeSystem (const char* headerName, const char* includerName, size_t inclusionDepth) override;
+		IncludeResult*  includeLocal (const char* headerName, const char* includerName, size_t inclusionDepth) override;
 
-		void releaseInclude (IncludeResult *) override {}
+		void  releaseInclude (IncludeResult *) override {}
 	};
 
 	
@@ -86,7 +86,7 @@ namespace FG
 	GetHeaderSource
 =================================================
 *
-	bool SpirvCompiler::ShaderIncluder::GetHeaderSource (StringView header, OUT StringView &source) const
+	bool  SpirvCompiler::ShaderIncluder::GetHeaderSource (StringView header, OUT StringView &source) const
 	{
 		auto	iter = _includedFiles.find( String{header} );
 
@@ -215,21 +215,83 @@ namespace FG
 	SetCompilationFlags
 =================================================
 */
-	bool SpirvCompiler::SetCompilationFlags (EShaderCompilationFlags flags)
+	void  SpirvCompiler::SetCompilationFlags (EShaderCompilationFlags flags)
 	{
 		_compilerFlags = flags;
-		return true;
 	}
 	
+/*
+=================================================
+	SetDebugFlags
+=================================================
+*/
+	void  SpirvCompiler::SetDebugFlags (EShaderLangFormat flags)
+	{
+		_debugFlags = flags;
+	}
+
 /*
 =================================================
 	SetShaderClockFeatures
 =================================================
 */
-	void SpirvCompiler::SetShaderClockFeatures (bool shaderSubgroupClock, bool shaderDeviceClock)
+	void  SpirvCompiler::SetShaderClockFeatures (bool shaderSubgroupClock, bool shaderDeviceClock)
 	{
 		_features.shaderSubgroupClock	= shaderSubgroupClock;
 		_features.shaderDeviceClock		= shaderDeviceClock;
+	}
+	
+/*
+=================================================
+	SetShaderFeatures
+=================================================
+*/
+	void  SpirvCompiler::SetShaderFeatures (bool vertexPipelineStoresAndAtomics, bool fragmentStoresAndAtomics)
+	{
+		_features.vertexPipelineStoresAndAtomics = vertexPipelineStoresAndAtomics;
+		_features.fragmentStoresAndAtomics		 = fragmentStoresAndAtomics;
+	}
+	
+/*
+=================================================
+	_CheckShaderFeatures
+=================================================
+*/
+	bool  SpirvCompiler::_CheckShaderFeatures (EShader shaderType) const
+	{
+		BEGIN_ENUM_CHECKS();
+		switch ( shaderType )
+		{
+			case EShader::Vertex :
+			case EShader::TessControl :
+			case EShader::TessEvaluation :
+			case EShader::Geometry :
+				return _features.vertexPipelineStoresAndAtomics;
+
+			case EShader::Fragment :
+				return _features.fragmentStoresAndAtomics;
+
+			case EShader::Compute :
+				return true;
+
+			case EShader::MeshTask :
+			case EShader::Mesh :
+				return true;
+		
+			case EShader::RayGen :
+			case EShader::RayAnyHit :
+			case EShader::RayClosestHit :
+			case EShader::RayMiss :
+			case EShader::RayIntersection :
+			case EShader::RayCallable :
+				return true;
+
+			case EShader::_Count :
+			case EShader::Unknown :
+				break;
+		}
+		END_ENUM_CHECKS();
+		return false;
 	}
 
 /*
@@ -237,84 +299,107 @@ namespace FG
 	Compile
 =================================================
 */
-	bool SpirvCompiler::Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-								 NtStringView entry, NtStringView source, StringView debugName,
-								 OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
+	bool  SpirvCompiler::Compile (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
+								  NtStringView entry, NtStringView source, StringView debugName,
+								  OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
 	{
 		using SpirvShaderData	= PipelineDescription::SharedShaderPtr< Array<uint> >;
-		using DebugUtils		= VCachedDebuggableSpirv::ShaderDebugUtils_t;
-		using DebugUtilsPtr		= VCachedDebuggableSpirv::ShaderDebugUtilsPtr;
 
 		log.clear();
 		COMP_CHECK_ERR( (dstShaderFmt & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV );
 
-		dstShaderFmt &= ~EShaderLangFormat::_ModeMask;
+		dstShaderFmt &= ~EShaderLangFormat::_DebugModeMask;
 
 		_currentStage = EShaderStages_FromShader( shaderType );
 		
-		ShaderIncluder	includer	{_directories};
-		GLSLangResult	glslang_data;
 
-		COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.c_str()}, INOUT includer, OUT glslang_data, INOUT log ));
-
-		Array<uint>		spirv;
-		COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
-
-		COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
-		
-		if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnotations ))
+		// compile shader without debug info
 		{
-			_ParseAnnotations( StringView{source}, INOUT outReflection );
+			ShaderIncluder	includer	{_directories};
+			GLSLangResult	glslang_data;
 
-			for (auto& file : includer.GetIncludedFiles()) {
-				_ParseAnnotations( file.second->GetSource(), INOUT outReflection );
+			COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.c_str()}, INOUT includer, OUT glslang_data, INOUT log ));
+
+			Array<uint>		spirv;
+			COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
+
+			COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
+		
+			if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnotations ))
+			{
+				_ParseAnnotations( StringView{source}, INOUT outReflection );
+
+				for (auto& file : includer.GetIncludedFiles()) {
+					_ParseAnnotations( file.second->GetSource(), INOUT outReflection );
+				}
 			}
+
+			outShader.specConstants	= outReflection.specConstants;
+			outShader.AddShaderData( dstShaderFmt, StringView{entry}, std::move(spirv), debugName );
 		}
 
-		outShader.specConstants	= outReflection.specConstants;
-		outShader.AddShaderData( dstShaderFmt, StringView{entry}, std::move(spirv), debugName );
 
 		// compile shader with debug info
-		EShaderLangFormat			dbg_mode = (srcShaderFmt & EShaderLangFormat::_ModeMask);
-		EShLanguage					stage	 = glslang_data.shader->getStage();
-		glslang::TIntermediate&		interm	 = *glslang_data.prog.getIntermediate( stage );
+	#ifdef FG_ENABLE_GLSL_TRACE
+		using DebugUtils		= VCachedDebuggableSpirv::ShaderDebugUtils_t;
+		using DebugUtilsPtr		= VCachedDebuggableSpirv::ShaderDebugUtilsPtr;
+		
+		EShaderLangFormat	dbg_mode = (srcShaderFmt & EShaderLangFormat::_DebugModeMask) | _debugFlags;
 
 		if ( dbg_mode != EShaderLangFormat::Unknown )
 		{
-			DebugUtilsPtr	debug_utils	{new DebugUtils{ InPlaceIndex<ShaderTrace> }};
-			ShaderTrace&	trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
+			CHECK_ERR( _CheckShaderFeatures( shaderType ));
 
-			trace.SetSource( source.c_str(), source.length() );
-
-			for (auto& file : includer.GetIncludedFiles()) {
-				trace.IncludeSource( file.second->headerName.data(), file.second->GetSource().data(), file.second->GetSource().length() );
-			}
-
-			switch ( dbg_mode )
+			for (uint j = BitScanForward(dbg_mode); (1u << j) <= uint(EShaderLangFormat::_DebugModeMask); ++j)
 			{
-				case EShaderLangFormat::EnableDebugTrace :
-					COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_DebugDescriptorSet ));
-					break;
+				EShaderLangFormat	mode = EShaderLangFormat(1u << j);
 
-				case EShaderLangFormat::EnableProfiling :
-					COMP_CHECK_ERR( trace.InsertFunctionProfiler( interm, FG_DebugDescriptorSet, _features.shaderSubgroupClock, _features.shaderDeviceClock ));
-					break;
+				if ( not EnumEq( dbg_mode, mode ))
+					continue;
+				
+				ShaderIncluder	includer	{_directories};
+				GLSLangResult	glslang_data;
+				
+				COMP_CHECK_ERR( _ParseGLSL( shaderType, srcShaderFmt, dstShaderFmt, entry, {source.c_str()}, INOUT includer, OUT glslang_data, INOUT log ));
 
-				//case EShaderLangFormat::EnableDebugAsserts :
-				//case EShaderLangFormat::EnableDebugView :
-				//case EShaderLangFormat::EnableInstrCounter :
-				//	ASSERT( !"not supported yet" );
-				//	break;
+				DebugUtilsPtr				debug_utils	{new DebugUtils{ InPlaceIndex<ShaderTrace> }};
+				ShaderTrace&				trace		= UnionGet<ShaderTrace>( *debug_utils.get() );
+				EShLanguage					stage		= glslang_data.shader->getStage();
+				glslang::TIntermediate&		interm		= *glslang_data.prog.getIntermediate( stage );
 
-				default :
-					FG_LOGI( "unsupported shader debug mode: 0x" + ToString<16>( dbg_mode ) );
-					break;
+				trace.SetSource( source.c_str(), source.length() );
+
+				for (auto& file : includer.GetIncludedFiles()) {
+					trace.IncludeSource( file.second->headerName.data(), file.second->GetSource().data(), file.second->GetSource().length() );
+				}
+
+				switch ( mode )
+				{
+					case EShaderLangFormat::EnableDebugTrace :
+						COMP_CHECK_ERR( trace.InsertTraceRecording( interm, FG_DebugDescriptorSet ));
+						break;
+
+					case EShaderLangFormat::EnableProfiling :
+						COMP_CHECK_ERR( trace.InsertFunctionProfiler( interm, FG_DebugDescriptorSet, _features.shaderSubgroupClock, _features.shaderDeviceClock ));
+						break;
+
+					case EShaderLangFormat::EnableTimeMap :
+						COMP_CHECK_ERR( trace.InsertShaderClockMap( interm, FG_DebugDescriptorSet ));
+						break;
+
+					default :
+						FG_LOGI( "unsupported shader debug mode: 0x" + ToString<16>( mode ));
+						break;
+				}
+				
+				Array<uint>		spirv;
+				COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
+
+				outShader.data.insert({ dstShaderFmt | mode, MakeShared<VCachedDebuggableSpirv>( StringView{entry}, std::move(spirv), debugName, std::move(debug_utils) ) });
 			}
-
-			COMP_CHECK_ERR( _CompileSPIRV( glslang_data, OUT spirv, INOUT log ));
-
-			outShader.data.insert({ dstShaderFmt | dbg_mode, MakeShared<VCachedDebuggableSpirv>( StringView{entry}, std::move(spirv), debugName, std::move(debug_utils) ) });
 		}
+	#endif	// FG_ENABLE_GLSL_TRACE
+
 		return true;
 	}
 	
@@ -364,9 +449,9 @@ namespace FG
 	_ParseGLSL
 =================================================
 */
-	bool SpirvCompiler::_ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
-									NtStringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
-									OUT GLSLangResult &glslangData, OUT String &log)
+	bool  SpirvCompiler::_ParseGLSL (EShader shaderType, EShaderLangFormat srcShaderFmt, EShaderLangFormat dstShaderFmt,
+									 NtStringView entry, ArrayView<const char *> source, INOUT ShaderIncluder &includer,
+									 OUT GLSLangResult &glslangData, OUT String &log)
 	{
 		using namespace glslang;
 
@@ -404,7 +489,7 @@ namespace FG
 			case EShaderLangFormat::DirectX :
 				sh_source		= EShSourceHlsl;
 				version			= EShaderLangFormat_GetVersion( srcShaderFmt );
-				sh_profile		= ENoProfile;	// TODO
+				sh_profile		= ENoProfile;	// TODO: check
 				break;
 
 			case EShaderLangFormat::Vulkan :
@@ -431,19 +516,25 @@ namespace FG
 					case 100 :
 						client_version	= EShTargetVulkan_1_0;
 						target_version	= EShTargetSpv_1_0;
+						#ifdef ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_0;
+						#endif
 						break;
 
 					case 110 :
 						client_version	= EShTargetVulkan_1_1;
 						target_version	= EShTargetSpv_1_3;
+						#ifdef ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_1;
+						#endif
 						break;
 
 					case 120 :
 						client_version	= EShTargetVulkan_1_1;	// TODO
 						target_version	= EShTargetSpv_1_4;
+						#ifdef ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_1_SPIRV_1_4;
+						#endif
 						break;
 
 					default :
@@ -489,7 +580,7 @@ namespace FG
 		
 		glslangData.prog.addShader( shader.get() );
 
-		if ( not glslangData.prog.link( messages ) )
+		if ( not glslangData.prog.link( messages ))
 		{
 			log += glslangData.prog.getInfoLog();
 			_OnCompilationFailed( source, INOUT log );
@@ -510,7 +601,7 @@ namespace FG
 	_CompileSPIRV
 =================================================
 */
-	bool SpirvCompiler::_CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, OUT String &log) const
+	bool  SpirvCompiler::_CompileSPIRV (const GLSLangResult &glslangData, OUT Array<uint> &spirv, OUT String &log) const
 	{
 		using namespace glslang;
 
@@ -541,7 +632,7 @@ namespace FG
 	DisassembleSPIRV
 =================================================
 */
-	inline bool DisassembleSPIRV (spv_target_env targetEnv, const Array<uint> &spirv, OUT String &result)
+	inline bool  DisassembleSPIRV (spv_target_env targetEnv, const Array<uint> &spirv, OUT String &result)
 	{
 		result.clear();
 
@@ -568,7 +659,7 @@ namespace FG
 	_OptimizeSPIRV
 =================================================
 */
-	bool SpirvCompiler::_OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const
+	bool  SpirvCompiler::_OptimizeSPIRV (INOUT Array<uint> &spirv, INOUT String &log) const
 	{
 		spv_target_env	target_env = BitCast<spv_target_env>( _spirvTraget );
 
@@ -621,7 +712,7 @@ namespace FG
 	ReadLine
 =================================================
 */
-	inline bool ReadLine (StringView log, INOUT size_t &pos, OUT StringView &line)
+	inline bool  ReadLine (StringView log, INOUT size_t &pos, OUT StringView &line)
 	{
 		size_t	begin = pos;
 
@@ -668,7 +759,7 @@ namespace FG
 		GLSLErrorInfo () : sourceIndex{0}, line{UMax}, isError{false} {}
 	};
 	
-	static bool ParseGLSLError (StringView line, OUT GLSLErrorInfo &info)
+	static bool  ParseGLSLError (StringView line, OUT GLSLErrorInfo &info)
 	{
 		const StringView	c_error		= "error";
 		const StringView	c_warning	= "warning";
@@ -755,7 +846,7 @@ namespace FG
 	_OnCompilationFailed
 =================================================
 */
-	bool SpirvCompiler::_OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const
+	bool  SpirvCompiler::_OnCompilationFailed (ArrayView<const char *> source, INOUT String &log) const
 	{
 		// glslang errors format:
 		// pattern: <error/warning>: <number>:<line>: <description>
@@ -844,7 +935,7 @@ namespace FG
 	_BuildReflection 
 =================================================
 */
-	bool SpirvCompiler::_BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &result)
+	bool  SpirvCompiler::_BuildReflection (const GLSLangResult &glslangData, OUT ShaderReflection &result)
 	{
 		_intermediate = glslangData.prog.getIntermediate( glslangData.shader->getStage() );
 		COMP_CHECK_ERR( _intermediate );
@@ -871,7 +962,7 @@ namespace FG
 		@<annotation-1>, @<annotation-2>, ...
 =================================================
 */
-	bool SpirvCompiler::_ParseAnnotations (StringView source, INOUT ShaderReflection &reflection) const
+	bool  SpirvCompiler::_ParseAnnotations (StringView source, INOUT ShaderReflection &reflection) const
 	{
 		struct Annotation
 		{
@@ -1152,7 +1243,7 @@ namespace FG
 	_ProcessExternalObjects
 =================================================
 */
-	bool SpirvCompiler::_ProcessExternalObjects (TIntermNode*, TIntermNode* node, INOUT ShaderReflection &result) const
+	bool  SpirvCompiler::_ProcessExternalObjects (TIntermNode*, TIntermNode* node, INOUT ShaderReflection &result) const
 	{
 		using namespace glslang;
 
@@ -1531,7 +1622,7 @@ namespace FG
 	based on TParseContext::fixBlockUniformOffsets
 =================================================
 */
-	bool SpirvCompiler::_CalculateStructSize (const glslang::TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride, OUT BytesU &minOffset) const
+	bool  SpirvCompiler::_CalculateStructSize (const glslang::TType &bufferType, OUT BytesU &staticSize, OUT BytesU &arrayStride, OUT BytesU &minOffset) const
 	{
 		using namespace glslang;
 
@@ -1601,7 +1692,7 @@ namespace FG
 	_DeserializeExternalObjects
 =================================================
 */
-	bool SpirvCompiler::_DeserializeExternalObjects (TIntermNode* node, INOUT ShaderReflection &result) const
+	bool  SpirvCompiler::_DeserializeExternalObjects (TIntermNode* node, INOUT ShaderReflection &result) const
 	{
 		using namespace glslang;
 
@@ -1829,7 +1920,7 @@ namespace FG
 	_MergeWithGeometryInputPrimitive
 =================================================
 */
-	void SpirvCompiler::_MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, uint type) const
+	void  SpirvCompiler::_MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, uint type) const
 	{
 		using namespace glslang;
 
@@ -1838,28 +1929,28 @@ namespace FG
 		{
 			case TLayoutGeometry::ElgPoints : {
 				topologyBits.set( uint(EPrimitive::Point) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgLines : {
 				topologyBits.set( uint(EPrimitive::LineList) );
 				topologyBits.set( uint(EPrimitive::LineStrip) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgLinesAdjacency : {
 				topologyBits.set( uint(EPrimitive::LineListAdjacency) );
 				topologyBits.set( uint(EPrimitive::LineStripAdjacency) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgTriangles : {
 				topologyBits.set( uint(EPrimitive::TriangleList) );
 				topologyBits.set( uint(EPrimitive::TriangleStrip) );
 				topologyBits.set( uint(EPrimitive::TriangleFan) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgTrianglesAdjacency : {
 				topologyBits.set( uint(EPrimitive::TriangleListAdjacency) );
 				topologyBits.set( uint(EPrimitive::TriangleStripAdjacency) );
-				break;
+				return;
 			}
 			case TLayoutGeometry::ElgNone :
 			case TLayoutGeometry::ElgLineStrip :
@@ -1877,7 +1968,7 @@ namespace FG
 	_ProcessShaderInfo
 =================================================
 */
-	bool SpirvCompiler::_ProcessShaderInfo (INOUT ShaderReflection &result) const
+	bool  SpirvCompiler::_ProcessShaderInfo (INOUT ShaderReflection &result) const
 	{
 		using namespace glslang;
 

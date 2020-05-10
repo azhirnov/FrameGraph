@@ -23,7 +23,7 @@ namespace FG
 		constexpr MipmapLevel () : _value{0} {}
 
 		explicit constexpr MipmapLevel (uint value) : _value(value) {}
-		explicit constexpr MipmapLevel (uint64_t value) : _value(uint(value)) {}
+		explicit constexpr MipmapLevel (uint64_t value) : _value(CheckCast<uint>(value)) {}
 
 		ND_ constexpr uint	Get ()								 const		{ return _value; }
 		
@@ -36,7 +36,7 @@ namespace FG
 	};
 
 	
-	ND_ inline constexpr MipmapLevel operator "" _mipmap (unsigned long long value)		{ return MipmapLevel( uint(value) ); }
+	ND_ inline constexpr MipmapLevel operator "" _mipmap (unsigned long long value)		{ return MipmapLevel( CheckCast<uint>(value) ); }
 
 
 }	// FG

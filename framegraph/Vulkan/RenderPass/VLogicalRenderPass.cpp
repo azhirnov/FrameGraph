@@ -46,10 +46,7 @@ namespace {
 		_stencilState		= desc.stencilState;
 		_rasterizationState	= desc.rasterizationState;
 		_multisampleState	= desc.multisampleState;
-
 		_area				= desc.area;
-		//_parallelExecution= desc.parallelExecution;
-		_canBeMerged		= desc.canBeMerged;
 		
 		Optional<MultiSamples>	samples;
 
@@ -316,6 +313,18 @@ namespace {
 	{
 		ASSERT( _drawTasks.empty() );
 	}
-
+	
+/*
+=================================================
+	_SetShaderDebugIndex
+=================================================
+*/
+	void VLogicalRenderPass::_SetShaderDebugIndex (ShaderDbgIndex id)
+	{
+		for (auto* draw : _drawTasks)
+		{
+			draw->debugModeIndex = id;
+		}
+	}
 
 }	// FG

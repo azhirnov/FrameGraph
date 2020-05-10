@@ -26,7 +26,7 @@ namespace FG
 			EShaderDebugMode	mode		= Default;
 		};
 
-		using Tables_t	= FixedArray< ShaderTable, 4 >;
+		using Tables_t	= FixedArray< ShaderTable, uint(EShaderDebugMode::_Count) >;
 
 
 	// variables

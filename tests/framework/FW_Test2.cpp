@@ -113,7 +113,7 @@ public:
 			}
 			else
 			{
-				CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_2, "nvidia" ));
+				CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_1, "nvidia" ));
 				
 				// this is a test and the test should fail for any validation error
 				vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,

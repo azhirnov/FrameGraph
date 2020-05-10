@@ -127,6 +127,11 @@ namespace FG
 		void			ReleaseResource (INOUT RTGeometryID &id) override;
 		void			ReleaseResource (INOUT RTSceneID &id) override;
 		void			ReleaseResource (INOUT RTShaderTableID &id) override;
+		
+		bool			IsSupported (RawImageID image, const ImageViewDesc &desc) const override;
+		bool			IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const override;
+		bool			IsSupported (const ImageDesc &desc, EMemoryType memType) const override;
+		bool			IsSupported (const BufferDesc &desc, EMemoryType memType) const override;
 
 		BufferDesc const&	GetDescription (RawBufferID id) const override;
 		ImageDesc const&	GetDescription (RawImageID id) const override;
@@ -164,14 +169,14 @@ namespace FG
 	private:
 		// resource manager //
 		template <typename PplnID>
-		bool _InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const;
+		bool  _InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const;
 
 		template <typename ID>
-		void _ReleaseResource (INOUT ID &id);
+		void  _ReleaseResource (INOUT ID &id);
 		
-		void _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily);
+		void  _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily);
 
-		ND_ VkSemaphore	_CreateSemaphore ();
+		ND_ VkSemaphore	 _CreateSemaphore ();
 
 
 		// queues //

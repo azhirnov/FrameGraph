@@ -10,6 +10,8 @@ namespace {
 	static constexpr auto	ComputeBit		= EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
 	static constexpr auto	RayTracingBit	= EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
 	static constexpr auto	TransferBit		= EQueueUsage::Graphics | EQueueUsage::AsyncCompute | EQueueUsage::AsyncTransfer;
+
+	static constexpr auto	CmdDebugFlags	= EDebugFlags::FullBarrier | EDebugFlags::QueueSync;
 }
 	
 /*
@@ -49,16 +51,18 @@ namespace {
 	Begin
 =================================================
 */
-	bool VCommandBuffer::Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue)
+	bool  VCommandBuffer::Begin (const CommandBufferDesc &desc, const VCmdBatchPtr &batch, VDeviceQueueInfoPtr queue)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( batch );
 		CHECK_ERR( _state == EState::Initial );
 
-		_batch		= batch;
-		_dbgName	= desc.name;
-		_state		= EState::Recording;
-		_queueIndex	= queue->familyIndex;
+		_batch			= batch;
+		_dbgName		= desc.name;
+		_dbgFullBarriers= EnumEq( desc.debugFlags, EDebugFlags::FullBarrier );
+		_dbgQueueSync	= EnumEq( desc.debugFlags, EDebugFlags::QueueSync );
+		_state			= EState::Recording;
+		_queueIndex		= queue->familyIndex;
 		
 		// create command pool
 		{
@@ -77,12 +81,14 @@ namespace {
 		_batch->OnBegin( desc );
 		
 		// setup local debugger
-		if ( desc.debugFlags != Default )
+		const EDebugFlags	debugger_flags = desc.debugFlags & ~CmdDebugFlags;
+
+		if ( debugger_flags != Default )
 		{
 			if ( not _debugger )
 				_debugger.reset( new VLocalDebugger{} );
 			
-			_debugger->Begin( desc.debugFlags );
+			_debugger->Begin( debugger_flags );
 		}
 		else
 			_debugger.reset();
@@ -116,6 +122,7 @@ namespace {
 		
 		_taskGraph.OnDiscardMemory();
 		_AfterCompilation();
+		_mainAllocator.Discard();
 		
 		EditStatistic().renderer.cpuTime += TimePoint_t::clock::now() - start_time;
 		_batch = null;
@@ -131,6 +138,12 @@ namespace {
 */
 	void  VCommandBuffer::_AfterCompilation ()
 	{
+		// reset global shader debugger
+		{
+			_shaderDbg.timemapIndex		= Default;
+			_shaderDbg.timemapStages	= Default;
+		}
+
 		// destroy logical render passes
 		for (uint i = 0; i < _rm.logicalRenderPassCount; ++i)
 		{
@@ -150,7 +163,7 @@ namespace {
 	SignalSemaphore
 =================================================
 */
-	void VCommandBuffer::SignalSemaphore (VkSemaphore sem)
+	void  VCommandBuffer::SignalSemaphore (VkSemaphore sem)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
@@ -163,7 +176,7 @@ namespace {
 	WaitSemaphore
 =================================================
 */
-	void VCommandBuffer::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
+	void  VCommandBuffer::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
@@ -176,7 +189,7 @@ namespace {
 	_BuildCommandBuffers
 =================================================
 */
-	bool VCommandBuffer::_BuildCommandBuffers ()
+	bool  VCommandBuffer::_BuildCommandBuffers ()
 	{
 		//if ( _taskGraph.Empty() )
 		//	return true;
@@ -200,6 +213,12 @@ namespace {
 
 			VK_CALL( dev.vkBeginCommandBuffer( cmd, &info ));
 			_batch->OnBeginRecording( cmd );
+
+			VkMemoryBarrier	barrier = {};
+			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+			barrier.srcAccessMask	= VK_ACCESS_HOST_WRITE_BIT;
+			barrier.dstAccessMask	= VK_ACCESS_TRANSFER_READ_BIT;
+			_barrierMngr.AddMemoryBarrier( VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, barrier );
 		}
 
 		// commit image layout transition and other
@@ -210,6 +229,12 @@ namespace {
 		// transit image layout to default state
 		// add memory dependency to flush caches
 		{
+			VkMemoryBarrier	barrier = {};
+			barrier.sType			= VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+			barrier.srcAccessMask	= VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask	= VK_ACCESS_HOST_READ_BIT;
+			_barrierMngr.AddMemoryBarrier( VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, barrier );
+
 			_FlushLocalResourceStates( ExeOrderIndex::Final, _barrierMngr, GetDebugger() );
 			_barrierMngr.ForceCommit( dev, cmd, dev.GetAllWritableStages(), dev.GetAllReadableStages() );
 		}
@@ -227,7 +252,7 @@ namespace {
 	VTaskProcessor::Run
 =================================================
 */
-	forceinline void VTaskProcessor::Run (VTask node)
+	forceinline void  VTaskProcessor::Run (VTask node)
 	{
 		// reset states
 		_currTask = node;
@@ -243,10 +268,9 @@ namespace {
 	_ProcessTasks
 =================================================
 */
-	bool VCommandBuffer::_ProcessTasks (VkCommandBuffer cmd)
+	bool  VCommandBuffer::_ProcessTasks (VkCommandBuffer cmd)
 	{
 		VTaskProcessor	processor{ *this, cmd };
-
 		uint			visitor_id		= 1;
 		ExeOrderIndex	exe_order_index	= ExeOrderIndex::First;
 
@@ -313,7 +337,10 @@ namespace {
 		CHECK_ERR( swapchain );
 
 		RawImageID	id;
-		CHECK_ERR( swapchain->Acquire( *this, type, OUT id ));
+		CHECK_ERR( swapchain->Acquire( *this, type, _dbgQueueSync, OUT id ));
+
+		// transit to undefined layout
+		AcquireImage( id, true, true );
 
 		_batch->_swapchains.push_back( swapchain );
 
@@ -421,7 +448,14 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
 
-		auto*	rp_task = _taskGraph.Add( *this, task );
+		// TODO: add scale to shader timemap
+
+		auto	rp_task = _taskGraph.Add( *this, task );
+		
+		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Fragment ) and _shaderDbg.timemapIndex != Default )
+		{
+			rp_task->GetLogicalPass()->_SetShaderDebugIndex( _shaderDbg.timemapIndex );
+		}
 
 		// TODO
 		//_renderPassGraph.Add( rp_task );
@@ -441,7 +475,15 @@ namespace {
 		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 		ASSERT( task.pipeline );
 
-		return _taskGraph.Add( *this, task );
+		auto	result = _taskGraph.Add( *this, task );
+		
+		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Compute ) and _shaderDbg.timemapIndex != Default )
+		{
+			ASSERT( result->debugModeIndex == Default );
+			result->debugModeIndex = _shaderDbg.timemapIndex;
+		}
+
+		return result;
 	}
 	
 /*
@@ -455,8 +497,16 @@ namespace {
 		CHECK_ERR( _IsRecording() );
 		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
 		ASSERT( task.pipeline );
+		
+		auto	result = _taskGraph.Add( *this, task );
+		
+		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Compute ) and _shaderDbg.timemapIndex != Default )
+		{
+			ASSERT( result->debugModeIndex == Default );
+			result->debugModeIndex = _shaderDbg.timemapIndex;
+		}
 
-		return _taskGraph.Add( *this, task );
+		return result;
 	}
 	
 /*
@@ -715,9 +765,9 @@ namespace {
 
 		CHECK_ERR( total_size == ArraySizeOf(task.data) );
 
-		const BytesU		min_size	= _batch->GetMaxWritableStoregeSize();
-		const uint			row_length	= uint((row_pitch * block_dim.x * 8) / block_size);
-		const uint			img_height	= uint((slice_pitch * block_dim.y) / row_pitch);
+		const BytesU		min_size	= _instance.GetResourceManager().GetHostWriteBufferSize() / 4;
+		const uint			row_length	= CheckCast<uint>((row_pitch * block_dim.x * 8) / block_size);
+		const uint			img_height	= CheckCast<uint>((slice_pitch * block_dim.y) / row_pitch);
 		CopyBufferToImage	copy;
 
 		copy.taskName	= task.taskName;
@@ -746,7 +796,7 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	z_size = uint(size / slice_pitch);
+				const uint	z_size = CheckCast<uint>(size / slice_pitch);
 
 				ASSERT( image_size.x % block_dim.x == 0 );
 				ASSERT( image_size.y % block_dim.y == 0 );
@@ -783,7 +833,7 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	y_size = uint((size * block_dim.y) / row_pitch);
+				const uint	y_size = CheckCast<uint>((size * block_dim.y) / row_pitch);
 
 				ASSERT( (task.imageOffset.y + y_offset) % block_dim.y == 0 );
 				ASSERT( image_size.x % block_dim.x == 0 );
@@ -900,7 +950,7 @@ namespace {
 		ASSERT(Any( task.imageSize > Zero ));
 		
 		const uint3			image_size		= Max( task.imageSize, 1u );
-		const BytesU		min_size		= _batch->GetMaxReadableStorageSize();
+		const BytesU		min_size		= _instance.GetResourceManager().GetHostReadBufferSize() / 4;
 		const auto&			fmt_info		= EPixelFormat_GetInfo( img_desc.format );
 		const auto&			block_dim		= fmt_info.blockSize;
 		const uint			block_size		= task.aspectMask != EImageAspect::Stencil ? fmt_info.bitsPerBlock : fmt_info.bitsPerBlock2;
@@ -936,7 +986,7 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	z_size = uint(range.size / slice_pitch);
+				const uint	z_size = CheckCast<uint>(range.size / slice_pitch);
 
 				copy.AddRegion( ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
 								task.imageOffset + int3(0, 0, z_offset), uint3(image_size.x, image_size.y, z_size),
@@ -971,7 +1021,7 @@ namespace {
 					copy.depends.push_back( last_task );
 				}
 
-				const uint	y_size = uint((range.size * block_dim.y) / row_pitch);
+				const uint	y_size = CheckCast<uint>((range.size * block_dim.y) / row_pitch);
 
 				copy.AddRegion( ImageSubresourceRange{ task.mipmapLevel, task.arrayLayer, 1, task.aspectMask },
 								task.imageOffset + int3(0, y_offset, slice), uint3(image_size.x, y_size, 1),
@@ -1015,7 +1065,7 @@ namespace {
 =================================================
 */
 	template <typename T>
-	inline bool VCommandBuffer::_AllocStorage (size_t count, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset, OUT T* &outPtr)
+	inline bool  VCommandBuffer::_AllocStorage (size_t count, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset, OUT T* &outPtr)
 	{
 		RawBufferID		buffer;
 		BytesU			buf_offset, buf_size;
@@ -1035,7 +1085,7 @@ namespace {
 	_StoreData
 =================================================
 */
-	inline bool VCommandBuffer::_StoreData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset)
+	inline bool  VCommandBuffer::_StoreData (const void *dataPtr, BytesU dataSize, BytesU offsetAlign, OUT const VLocalBuffer* &outBuffer, OUT VkDeviceSize &outOffset)
 	{
 		RawBufferID		buffer;
 		BytesU			buf_offset, buf_size;
@@ -1220,7 +1270,7 @@ namespace {
 			dst.flags					= VEnumCast( ref.flags );
 			dst.geometry.aabbs.sType	= VK_STRUCTURE_TYPE_GEOMETRY_AABB_NV;
 			dst.geometry.aabbs.numAABBs	= src.aabbCount;
-			dst.geometry.aabbs.stride	= uint(src.aabbStride);
+			dst.geometry.aabbs.stride	= CheckCast<uint>(src.aabbStride);
 
 			if ( src.aabbData.size() )
 			{
@@ -1268,8 +1318,12 @@ namespace {
 		as_info.accelerationStructure	= scene->Handle();
 		GetDevice().vkGetAccelerationStructureMemoryRequirementsNV( GetDevice().GetVkDevice(), &as_info, OUT &mem_req );
 		
+		MemoryDesc	mem;
+		mem.type	= EMemoryType::Default;
+		mem.req		= VulkanMemRequirements{ mem_req.memoryRequirements.memoryTypeBits, CheckCast<uint>(mem_req.memoryRequirements.alignment) };
+
 		// TODO: virtual buffer or buffer cache
-		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, "ScratchBuffer" );
+		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, mem, "ScratchBuffer" );
 		result->_scratchBuffer = ToLocal( buf.Get() );
 		ReleaseResource( buf.Release() );
 
@@ -1284,7 +1338,7 @@ namespace {
 
 		result->_rtGeometries			= _mainAllocator.Alloc< VLocalRTGeometry const *>( task.instances.size() );
 		result->_instances				= _mainAllocator.Alloc< VFgTask<BuildRayTracingScene>::Instance >( task.instances.size() );
-		result->_instanceCount			= uint(task.instances.size());
+		result->_instanceCount			= CheckCast<uint>(task.instances.size());
 		result->_hitShadersPerInstance	= Max( 1u, task.hitShadersPerInstance );
 
 		for (size_t i = 0; i < task.instances.size(); ++i)
@@ -1332,7 +1386,15 @@ namespace {
 		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
 		ASSERT( task.shaderTable );
 
-		return _taskGraph.Add( *this, task );
+		auto	result = _taskGraph.Add( *this, task );
+
+		if ( EnumAny( _shaderDbg.timemapStages, EShaderStages::AllRayTracing ) and _shaderDbg.timemapIndex != Default )
+		{
+			ASSERT( result->debugModeIndex == Default );
+			result->debugModeIndex = _shaderDbg.timemapIndex;
+		}
+
+		return result;
 	}
 	
 /*
@@ -1503,7 +1565,7 @@ namespace {
 =================================================
 */
 	template <typename ResType, typename ...Args>
-	inline void Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
+	inline void  Replace (INOUT ResourceBase<ResType> &target, Args&& ...args)
 	{
 		target.Data().~ResType();
 		new (&target.Data()) ResType{ std::forward<Args &&>(args)... };
@@ -1535,6 +1597,115 @@ namespace {
 		_rm.logicalRenderPassCount = Max( uint(index)+1, _rm.logicalRenderPassCount );
 
 		return LogicalPassID( index, 0 );
+	}
+	
+/*
+=================================================
+	BeginShaderTimeMap
+=================================================
+*/
+	bool  VCommandBuffer::BeginShaderTimeMap (const uint2 &dim, EShaderStages stages)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		CHECK_ERR( _shaderDbg.timemapIndex == Default );	// already started
+		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+
+		_shaderDbg.timemapStages	= stages;
+		_shaderDbg.timemapIndex		= _batch->AppendTimemap( dim, stages );
+		CHECK_ERR( _shaderDbg.timemapIndex != Default );
+
+		return true;
+	}
+	
+/*
+=================================================
+	EndShaderTimeMap
+=================================================
+*/
+	Task  VCommandBuffer::EndShaderTimeMap (RawImageID dstImage, ImageLayer layer, MipmapLevel level, ArrayView<Task> dependsOn)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording() );
+		CHECK_ERR( _shaderDbg.timemapIndex != Default );	// not started
+		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+
+		auto&	rm		= GetResourceManager();
+		auto	desc	= rm.GetDescription( dstImage );
+		auto	pplns	= rm.GetShaderTimemapPipelines();
+
+		CHECK_ERR( desc.imageType == EImage::Tex2D or desc.imageType == EImage::Tex2DArray );
+		//CHECK_ERR( desc.format == EPixelFormat::RGBA8_UNorm );
+		CHECK_ERR( EnumEq( desc.usage, EImageUsage::Storage ));
+		CHECK_ERR( std::get<0>(pplns) and std::get<1>(pplns) and std::get<2>(pplns) );
+
+		PipelineResources	res;
+		RawBufferID			ssb;
+		BytesU				ssb_offset, ssb_size, ssb_offset2, ssb_size2;
+		uint2				ssb_dim;
+		Task				task;
+
+		CHECK_ERR( _batch->GetShaderTimemap( _shaderDbg.timemapIndex, OUT ssb, OUT ssb_offset, OUT ssb_size, OUT ssb_dim ));
+		_shaderDbg.timemapIndex = Default;
+
+		ssb_size2	= ssb_dim.y * SizeOf<uint64_t>;
+		ssb_size	-= ssb_size2;
+		ssb_offset2	= ssb_offset + ssb_size;
+
+		// pass 1
+		{
+			RawCPipelineID	ppln = std::get<0>(pplns);
+			CHECK_ERR( GetInstance().InitPipelineResources( ppln, DescriptorSetID{"0"}, OUT res ));
+
+			res.BindBuffer( UniformID{"un_Timemap"},   ssb, ssb_offset, ssb_size );
+			res.BindBuffer( UniformID{"un_MaxValues"}, ssb, ssb_offset2, ssb_size2 );
+
+			DispatchCompute		comp;
+			comp.SetPipeline( ppln );
+			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.SetLocalSize({ 32, 1, 1 });
+			comp.Dispatch({ (ssb_dim.y + 31) / 32, 1, 1 });
+			comp.depends = dependsOn;
+
+			task = AddTask( comp );
+		}
+
+		// pass 2
+		{
+			RawCPipelineID	ppln = std::get<1>(pplns);
+			CHECK_ERR( GetInstance().InitPipelineResources( ppln, DescriptorSetID{"0"}, OUT res ));
+			
+			res.BindBuffer( UniformID{"un_Timemap"},   ssb, ssb_offset, ssb_size );
+			res.BindBuffer( UniformID{"un_MaxValues"}, ssb, ssb_offset2, ssb_size2 );
+
+			DispatchCompute		comp;
+			comp.SetPipeline( ppln );
+			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.SetLocalSize({ 1, 1, 1 });
+			comp.Dispatch({ 1, 1, 1 });
+			comp.DependsOn( task );
+
+			task = AddTask( comp );
+		}
+
+		// pass 3
+		{
+			RawCPipelineID	ppln = std::get<2>(pplns);
+			CHECK_ERR( GetInstance().InitPipelineResources( ppln, DescriptorSetID{"0"}, OUT res ));
+			
+			res.BindBuffer( UniformID{"un_Timemap"}, ssb, ssb_offset, ssb_size );
+			res.BindImage( UniformID{"un_OutImage"}, dstImage, ImageViewDesc{}.SetViewType( EImage::Tex2D ).SetBaseLayer( layer.Get() ).SetBaseLevel( level.Get() ));
+
+			DispatchCompute		comp;
+			comp.SetPipeline( ppln );
+			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.SetLocalSize({ 8, 8, 1 });
+			comp.Dispatch( (desc.dimension.xy() + 7) / 8 );
+			comp.DependsOn( task );
+
+			task = AddTask( comp );
+		}
+		return task;
 	}
 //-----------------------------------------------------------------------------
 
@@ -1690,7 +1861,7 @@ namespace {
 	_ResetLocalRemaping
 =================================================
 */
-	void VCommandBuffer::_ResetLocalRemaping ()
+	void  VCommandBuffer::_ResetLocalRemaping ()
 	{
 		memset( _rm.images.toLocal.data(), ~0u, sizeof(Index_t)*_rm.images.maxGlobalIndex );
 		memset( _rm.buffers.toLocal.data(), ~0u, sizeof(Index_t)*_rm.buffers.maxGlobalIndex );
@@ -1710,7 +1881,7 @@ namespace {
 	_StorePartialData
 =================================================
 */
-	bool VCommandBuffer::_StorePartialData (ArrayView<uint8_t> srcData, const BytesU srcOffset, OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
+	bool  VCommandBuffer::_StorePartialData (ArrayView<uint8_t> srcData, const BytesU srcOffset, OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		// skip blocks less than 1/N of data size
 		const BytesU	src_size	= ArraySizeOf(srcData);
@@ -1730,8 +1901,8 @@ namespace {
 	_StoreImageData
 =================================================
 */
-	bool VCommandBuffer::_StoreImageData (ArrayView<uint8_t> srcData, const BytesU srcOffset, const BytesU srcPitch, const BytesU srcTotalSize,
-										  OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
+	bool  VCommandBuffer::_StoreImageData (ArrayView<uint8_t> srcData, const BytesU srcOffset, const BytesU srcPitch, const BytesU srcTotalSize,
+										   OUT RawBufferID &dstBuffer, OUT BytesU &dstOffset, OUT BytesU &size)
 	{
 		// skip blocks less than 1/N of total data size
 		const BytesU	src_size	= ArraySizeOf(srcData);

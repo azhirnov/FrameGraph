@@ -1,5 +1,3 @@
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
-
 file( GLOB_RECURSE SOURCES "*.*" )
 add_library( "VulkanLoader" STATIC ${SOURCES} )
 source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} )
@@ -7,4 +5,5 @@ target_include_directories( "VulkanLoader" PUBLIC ".." )
 set_property( TARGET "VulkanLoader" PROPERTY FOLDER "Extensions" )
 target_link_libraries( "VulkanLoader" PUBLIC "STL" )
 target_link_libraries( "VulkanLoader" PUBLIC "Vulkan-lib" )
-install( TARGETS "VulkanLoader" ARCHIVE DESTINATION "lib" )
+install( TARGETS "VulkanLoader" ARCHIVE DESTINATION "libs/$<CONFIG>" )
+install( DIRECTORY "." DESTINATION "include/VulkanLoader" FILES_MATCHING PATTERN "*.h*" )

@@ -28,13 +28,13 @@ void main() {
 #pragma shader_stage(vertex)
 #extension GL_ARB_separate_shader_objects : enable
 
-layout (std140) uniform UB
+layout(binding=0, std140) uniform UB
 {
 	vec4	color;
 
 } ub;
 
-uniform sampler2D un_ColorTexture;
+layout(binding=1) uniform sampler2D un_ColorTexture;
 
 in  vec2	v_Texcoord;
 

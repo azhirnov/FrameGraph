@@ -128,7 +128,7 @@ namespace FG
 
 			if ( alloc->IsSupported( desc.type ) )
 			{
-				CHECK_ERR( alloc->AllocateForAccelStruct( accelStruct, desc, OUT data ));
+				CHECK_ERR( alloc->AllocForAccelStruct( accelStruct, desc, OUT data ));
 				
 				*data.Cast<uint>() = uint(i);
 				return true;

@@ -1,7 +1,10 @@
 # Find or download Vulkan headers
 
-if (NOT CMAKE_VERSION VERSION_LESS 3.7.0)
-#	find_package( Vulkan )
+if (${FG_USE_VULKAN_SDK})
+	find_package( Vulkan )
+	if (Vulkan_FOUND)
+		message( STATUS "found VulkanSDK, warning: current headers may be incompatible with FrameGraph" )
+	endif ()
 endif ()
 
 
@@ -21,14 +24,10 @@ if (NOT Vulkan_FOUND)
 endif ()
 
 # select version
-if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
-	set( VULKAN_HEADERS_TAG "v1.2.132" )
-else ()
-	set( VULKAN_HEADERS_TAG "master" )
-endif ()
+set( VULKAN_HEADERS_TAG "v1.2.132" )
 
 # download
-if (NOT Vulkan_FOUND AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+if (NOT Vulkan_FOUND)
 	FetchContent_Declare( ExternalVulkanHeaders
 		GIT_REPOSITORY		https://github.com/KhronosGroup/Vulkan-Headers.git
 		GIT_TAG				${VULKAN_HEADERS_TAG}

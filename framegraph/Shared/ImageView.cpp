@@ -526,26 +526,27 @@ namespace {
 			case EPixelFormat::BGR8_UNorm :
 			case EPixelFormat::BGRA8_UNorm :
 			case EPixelFormat::BC1_RGB8_UNorm :
-			case EPixelFormat::BC1_sRGB8_UNorm :
+			case EPixelFormat::BC1_sRGB8 :
 			case EPixelFormat::BC1_RGB8_A1_UNorm :
-			case EPixelFormat::BC1_sRGB8_A1_UNorm :
+			case EPixelFormat::BC1_sRGB8_A1 :
 			case EPixelFormat::BC2_RGBA8_UNorm :
+			case EPixelFormat::BC2_sRGB8_A8 :
 			case EPixelFormat::BC3_RGBA8_UNorm :
-			case EPixelFormat::BC3_sRGB :
+			case EPixelFormat::BC3_sRGB8 :
 			case EPixelFormat::BC4_R8_SNorm :
 			case EPixelFormat::BC4_R8_UNorm :
 			case EPixelFormat::BC5_RG8_SNorm :
 			case EPixelFormat::BC5_RG8_UNorm :
 			case EPixelFormat::BC7_RGBA8_UNorm :
-			case EPixelFormat::BC7_SRGB8_A8 :
+			case EPixelFormat::BC7_sRGB8_A8 :
 			case EPixelFormat::BC6H_RGB16F :
 			case EPixelFormat::BC6H_RGB16UF :
 			case EPixelFormat::ETC2_RGB8_UNorm :
-			case EPixelFormat::ECT2_SRGB8 :
+			case EPixelFormat::ECT2_sRGB8 :
 			case EPixelFormat::ETC2_RGB8_A1_UNorm :
-			case EPixelFormat::ETC2_SRGB8_A1 :
+			case EPixelFormat::ETC2_sRGB8_A1 :
 			case EPixelFormat::ETC2_RGBA8_UNorm :
-			case EPixelFormat::ETC2_SRGB8_A8 :
+			case EPixelFormat::ETC2_sRGB8_A8 :
 			case EPixelFormat::EAC_R11_SNorm :
 			case EPixelFormat::EAC_R11_UNorm :
 			case EPixelFormat::EAC_RG11_SNorm :
@@ -564,20 +565,20 @@ namespace {
 			case EPixelFormat::ASTC_RGBA_10x10 :
 			case EPixelFormat::ASTC_RGBA_12x10 :
 			case EPixelFormat::ASTC_RGBA_12x12 :
-			case EPixelFormat::ASTC_SRGB8_A8_4x4 :
-			case EPixelFormat::ASTC_SRGB8_A8_5x4 :
-			case EPixelFormat::ASTC_SRGB8_A8_5x5 :
-			case EPixelFormat::ASTC_SRGB8_A8_6x5 :
-			case EPixelFormat::ASTC_SRGB8_A8_6x6 :
-			case EPixelFormat::ASTC_SRGB8_A8_8x5 :
-			case EPixelFormat::ASTC_SRGB8_A8_8x6 :
-			case EPixelFormat::ASTC_SRGB8_A8_8x8 :
-			case EPixelFormat::ASTC_SRGB8_A8_10x5 :
-			case EPixelFormat::ASTC_SRGB8_A8_10x6 :
-			case EPixelFormat::ASTC_SRGB8_A8_10x8 :
-			case EPixelFormat::ASTC_SRGB8_A8_10x10 :
-			case EPixelFormat::ASTC_SRGB8_A8_12x10 :
-			case EPixelFormat::ASTC_SRGB8_A8_12x12 :
+			case EPixelFormat::ASTC_sRGB8_A8_4x4 :
+			case EPixelFormat::ASTC_sRGB8_A8_5x4 :
+			case EPixelFormat::ASTC_sRGB8_A8_5x5 :
+			case EPixelFormat::ASTC_sRGB8_A8_6x5 :
+			case EPixelFormat::ASTC_sRGB8_A8_6x6 :
+			case EPixelFormat::ASTC_sRGB8_A8_8x5 :
+			case EPixelFormat::ASTC_sRGB8_A8_8x6 :
+			case EPixelFormat::ASTC_sRGB8_A8_8x8 :
+			case EPixelFormat::ASTC_sRGB8_A8_10x5 :
+			case EPixelFormat::ASTC_sRGB8_A8_10x6 :
+			case EPixelFormat::ASTC_sRGB8_A8_10x8 :
+			case EPixelFormat::ASTC_sRGB8_A8_10x10 :
+			case EPixelFormat::ASTC_sRGB8_A8_12x10 :
+			case EPixelFormat::ASTC_sRGB8_A8_12x12 :
 				ASSERT( aspect == EImageAspect::Color );
 				ASSERT(false);
 				break;	// TODO

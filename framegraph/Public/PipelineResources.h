@@ -3,6 +3,7 @@
 #pragma once
 
 #include "framegraph/Public/IDs.h"
+#include "framegraph/Public/BufferDesc.h"
 #include "framegraph/Public/ImageDesc.h"
 #include "framegraph/Public/Pipeline.h"
 #include "stl/ThreadSafe/DataRaceCheck.h"
@@ -26,6 +27,7 @@ namespace FG
 		{
 			Unknown		= 0,
 			Buffer,
+			TexelBuffer,
 			Image,
 			Texture,
 			SubpassInput,
@@ -48,6 +50,22 @@ namespace FG
 			uint				dynamicOffsetIndex;
 			BytesU				staticSize;
 			BytesU				arrayStride;
+			const uint16_t		elementCapacity;
+			uint16_t			elementCount;
+			Element				elements[1];
+		};
+		
+		struct TexelBuffer
+		{
+			static constexpr EDescriptorType	TypeId = EDescriptorType::TexelBuffer;
+
+			struct Element {
+				RawBufferID		bufferId;
+				BufferViewDesc	desc;
+			};
+
+			BindingIndex		index;
+			EResourceState		state;
 			const uint16_t		elementCapacity;
 			uint16_t			elementCount;
 			Element				elements[1];
@@ -214,15 +232,21 @@ namespace FG
 		Self&  BindBuffers (const UniformID &id, ArrayView<BufferID> buffers);
 		Self&  BindBuffers (const UniformID &id, ArrayView<RawBufferID> buffers);
 		Self&  SetBufferBase (const UniformID &id, BytesU offset, uint elementIndex = 0);
+		
+		Self&  BindTexelBuffer (const UniformID &name, RawBufferID buffer, const BufferViewDesc &desc, uint elementIndex = 0);
 
 		Self&  BindRayTracingScene (const UniformID &id, RawRTSceneID scene, uint elementIndex = 0);
 
 		void  AllowEmptyResources (bool value)								{ EXLOCK(_drCheck);  _allowEmptyResources = value; }
+		
+		void  Reset (const UniformID &name);
+		void  ResetAll ();
 
 		ND_ bool  HasImage (const UniformID &id)					const;
 		ND_ bool  HasSampler (const UniformID &id)					const;
 		ND_ bool  HasTexture (const UniformID &id)					const;
 		ND_ bool  HasBuffer (const UniformID &id)					const;
+		ND_ bool  HasTexelBuffer (const UniformID &name)			const;
 		ND_ bool  HasRayTracingScene (const UniformID &id)			const;
 
 		ND_ RawDescriptorSetLayoutID	GetLayout ()				const	{ SHAREDLOCK(_drCheck); ASSERT(_dataPtr);  return _dataPtr->layoutId; }
@@ -279,6 +303,7 @@ namespace FG
 			{
 				case EDescriptorType::Unknown :			break;
 				case EDescriptorType::Buffer :			fn( un.id, *Cast<Buffer>(ptr) );			break;
+				case EDescriptorType::TexelBuffer :		fn( un.id, *Cast<TexelBuffer>(ptr) );		break;
 				case EDescriptorType::SubpassInput :
 				case EDescriptorType::Image :			fn( un.id, *Cast<Image>(ptr) );				break;
 				case EDescriptorType::Texture :			fn( un.id, *Cast<Texture>(ptr) );			break;

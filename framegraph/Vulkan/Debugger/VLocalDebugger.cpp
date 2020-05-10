@@ -105,12 +105,12 @@ namespace {
 =================================================
 */
 	void VLocalDebugger::AddBufferBarrier (const VBuffer *				buffer,
-												ExeOrderIndex				srcIndex,
-												ExeOrderIndex				dstIndex,
-												VkPipelineStageFlags		srcStageMask,
-												VkPipelineStageFlags		dstStageMask,
-												VkDependencyFlags			dependencyFlags,
-												const VkBufferMemoryBarrier	&barrier)
+										   ExeOrderIndex				srcIndex,
+										   ExeOrderIndex				dstIndex,
+										   VkPipelineStageFlags			srcStageMask,
+										   VkPipelineStageFlags			dstStageMask,
+										   VkDependencyFlags			dependencyFlags,
+										   const VkBufferMemoryBarrier	&barrier)
 	{
 		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
 			return;
@@ -126,12 +126,12 @@ namespace {
 =================================================
 */
 	void VLocalDebugger::AddImageBarrier (const VImage *				image,
-											   ExeOrderIndex				srcIndex,
-											   ExeOrderIndex				dstIndex,
-											   VkPipelineStageFlags			srcStageMask,
-											   VkPipelineStageFlags			dstStageMask,
-											   VkDependencyFlags			dependencyFlags,
-											   const VkImageMemoryBarrier	&barrier)
+										  ExeOrderIndex					srcIndex,
+										  ExeOrderIndex					dstIndex,
+										  VkPipelineStageFlags			srcStageMask,
+										  VkPipelineStageFlags			dstStageMask,
+										  VkDependencyFlags				dependencyFlags,
+										  const VkImageMemoryBarrier	&barrier)
 	{
 		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
 			return;
@@ -147,12 +147,12 @@ namespace {
 =================================================
 */
 	void VLocalDebugger::AddRayTracingBarrier (const VRayTracingGeometry*	rtGeometry,
-													ExeOrderIndex				srcIndex,
-													ExeOrderIndex				dstIndex,
-													VkPipelineStageFlags		srcStageMask,
-													VkPipelineStageFlags		dstStageMask,
-													VkDependencyFlags			dependencyFlags,
-													const VkMemoryBarrier		&barrier)
+											   ExeOrderIndex				srcIndex,
+											   ExeOrderIndex				dstIndex,
+											   VkPipelineStageFlags			srcStageMask,
+											   VkPipelineStageFlags			dstStageMask,
+											   VkDependencyFlags			dependencyFlags,
+											   const VkMemoryBarrier		&barrier)
 	{
 		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
 			return;
@@ -168,12 +168,12 @@ namespace {
 =================================================
 */
 	void VLocalDebugger::AddRayTracingBarrier (const VRayTracingScene*		rtScene,
-													ExeOrderIndex				srcIndex,
-													ExeOrderIndex				dstIndex,
-													VkPipelineStageFlags		srcStageMask,
-													VkPipelineStageFlags		dstStageMask,
-													VkDependencyFlags			dependencyFlags,
-													const VkMemoryBarrier		&barrier)
+											   ExeOrderIndex				srcIndex,
+											   ExeOrderIndex				dstIndex,
+											   VkPipelineStageFlags			srcStageMask,
+											   VkPipelineStageFlags			dstStageMask,
+											   VkDependencyFlags			dependencyFlags,
+											   const VkMemoryBarrier		&barrier)
 	{
 		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
 			return;

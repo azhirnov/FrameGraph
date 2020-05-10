@@ -43,7 +43,7 @@ namespace FG
 	_CreateFrameGraph
 =================================================
 */
-	bool BaseSceneApp::_CreateFrameGraph (const AppConfig &cfg)
+	bool  BaseSceneApp::_CreateFrameGraph (const AppConfig &cfg)
 	{
 		FG_LOGI( "Create "s << IFrameGraph::GetVersion() );
 
@@ -120,7 +120,7 @@ namespace FG
 			swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 			swapchain_info.surfaceSize	= _window->GetSize();
 
-			if ( _vrDevice )
+			if ( _vrDevice or not cfg.vsync )
 				swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_MAILBOX_KHR) );
 			else
 				swapchain_info.presentModes.push_back( BitCast<PresentModeVk_t>(VK_PRESENT_MODE_FIFO_KHR) );	// enable vsync
@@ -151,7 +151,7 @@ namespace FG
 			_swapchainId = _frameGraph->CreateSwapchain( swapchain_info );
 			CHECK_ERR( _swapchainId );
 
-			_frameGraph->SetShaderDebugCallback([this] (auto name, auto, auto, auto output) { _OnShaderTraceReady(name, output); });
+			_frameGraph->SetShaderDebugCallback([this] (auto name, auto, auto, auto output) { _OnShaderTraceReady( name, output ); });
 		}
 
 		// add glsl pipeline compiler
@@ -193,7 +193,7 @@ namespace FG
 	_DestroyFrameGraph
 =================================================
 */
-	void BaseSceneApp::_DestroyFrameGraph ()
+	void  BaseSceneApp::_DestroyFrameGraph ()
 	{
 		for (auto& cmd : _submittedBuffers) {
 			cmd = null;
@@ -226,7 +226,7 @@ namespace FG
 	_SetupCamera
 =================================================
 */
-	void BaseSceneApp::_SetupCamera (Rad fovY, const vec2 &viewRange)
+	void  BaseSceneApp::_SetupCamera (Rad fovY, const vec2 &viewRange)
 	{
 		_cameraFov	= fovY;
 		_viewRange	= viewRange;
@@ -240,25 +240,53 @@ namespace FG
 			_vrDevice->SetupCamera( VecCast(_viewRange) );
 		}
 	}
+	
+/*
+=================================================
+	_SetCameraVelocity
+=================================================
+*/
+	void  BaseSceneApp::_SetCameraVelocity (float value)
+	{
+		_cameraVelocity = value;
+	}
+	
+/*
+=================================================
+	_SetMouseSens
+=================================================
+*/
+	void  BaseSceneApp::_SetMouseSens (vec2 value)
+	{
+		_mouseSens = value;
+	}
 
+/*
+=================================================
+	IsActiveVR
+=================================================
+*/
+	bool  BaseSceneApp::IsActiveVR () const
+	{
+		return	_vrDevice and
+				(_vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Active or
+				 _vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Mounted);
+	}
+	
 /*
 =================================================
 	_UpdateCamera
 =================================================
 */
-	void BaseSceneApp::_UpdateCamera ()
+	void  BaseSceneApp::_UpdateCamera ()
 	{
-		auto	time	= TimePoint_t::clock::now();
-		auto	dt		= std::chrono::duration_cast<SecondsF>( time - _lastUpdateTime ).count();
-		_lastUpdateTime = time;
-		
-		if ( _vrDevice and _vrDevice->GetHmdStatus() == IVRDevice::EHmdStatus::Mounted )
+		if ( IsActiveVR() )
 		{
 			auto&	cam = _vrDevice->GetCamera();
 			
 			if ( length2( _positionDelta ) > 0.001f )
 			{
-				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
+				_positionDelta = normalize(_positionDelta) * _cameraVelocity * _timeDelta.count();
 				_vrCamera.Move2( _positionDelta );
 				_positionDelta = vec3{0.0f};
 			}
@@ -283,7 +311,7 @@ namespace FG
 
 			if ( length2( _positionDelta ) > 0.001f )
 			{
-				_positionDelta = normalize(_positionDelta) * _cameraVelocity * dt;
+				_positionDelta = normalize(_positionDelta) * _cameraVelocity * _timeDelta.count();
 				_camera.Move2( _positionDelta );
 				_positionDelta = vec3{0.0f};
 			}
@@ -298,7 +326,7 @@ namespace FG
 	OnResize
 =================================================
 */
-	void BaseSceneApp::OnResize (const uint2 &size)
+	void  BaseSceneApp::OnResize (const uint2 &size)
 	{
 		if ( Any( size == uint2(0) ))
 			return;
@@ -321,7 +349,7 @@ namespace FG
 	OnKey
 =================================================
 */
-	void BaseSceneApp::OnKey (StringView key, EKeyAction action)
+	void  BaseSceneApp::OnKey (StringView key, EKeyAction action)
 	{
 		if ( action != EKeyAction::Up )
 		{
@@ -338,12 +366,12 @@ namespace FG
 			if ( key == "C" )			_positionDelta.z -= 1.0f;
 
 			// rotate up/down
-			if ( key == "arrow up" )	_mouseDelta.y -= _mouseSens;	else
-			if ( key == "arrow down" )	_mouseDelta.y += _mouseSens;
+			if ( key == "arrow up" )	_mouseDelta.y -= _mouseSens.y;	else
+			if ( key == "arrow down" )	_mouseDelta.y += _mouseSens.y;
 
 			// rotate left/right
-			if ( key == "arrow right" )	_mouseDelta.x += _mouseSens;	else
-			if ( key == "arrow left" )	_mouseDelta.x -= _mouseSens;
+			if ( key == "arrow right" )	_mouseDelta.x += _mouseSens.x;	else
+			if ( key == "arrow left" )	_mouseDelta.x -= _mouseSens.x;
 		}
 
 		if ( action == EKeyAction::Down )
@@ -359,7 +387,7 @@ namespace FG
 	OnMouseMove
 =================================================
 */
-	void BaseSceneApp::OnMouseMove (const float2 &pos)
+	void  BaseSceneApp::OnMouseMove (const float2 &pos)
 	{
 		if ( _mousePressed )
 		{
@@ -374,7 +402,7 @@ namespace FG
 	HmdStatusChanged
 =================================================
 */
-	void BaseSceneApp::HmdStatusChanged (EHmdStatus)
+	void  BaseSceneApp::HmdStatusChanged (EHmdStatus)
 	{
 	}
 	
@@ -383,7 +411,7 @@ namespace FG
 	OnAxisStateChanged
 =================================================
 */
-	void BaseSceneApp::OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt)
+	void  BaseSceneApp::OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt)
 	{
 		if ( name == "dpad" )
 		{
@@ -398,7 +426,7 @@ namespace FG
 	OnButton
 =================================================
 */
-	void BaseSceneApp::OnButton (ControllerID id, StringView btn, EButtonAction action)
+	void  BaseSceneApp::OnButton (ControllerID id, StringView btn, EButtonAction action)
 	{
 		/*if ( id == ControllerID::RightHand and action != EButtonAction::Up )
 		{
@@ -414,7 +442,7 @@ namespace FG
 	_UpdateFrameStat
 =================================================
 */
-	void BaseSceneApp::_UpdateFrameStat ()
+	void  BaseSceneApp::_UpdateFrameStat ()
 	{
 		using namespace std::chrono;
 
@@ -454,7 +482,7 @@ namespace FG
 	Update
 =================================================
 */
-	bool BaseSceneApp::Update ()
+	bool  BaseSceneApp::Update ()
 	{
 		if ( _window )
 		{
@@ -465,7 +493,7 @@ namespace FG
 		if ( _vrDevice )
 			_vrDevice->Update();
 
-		if ( not _vrDevice and Any( GetSurfaceSize() == uint2(0) ))
+		if ( not IsActiveVR() and Any( GetSurfaceSize() == uint2(0) ))
 		{
 			std::this_thread::sleep_for(SecondsF{0.01f});	// ~100 fps
 			return true;
@@ -474,6 +502,10 @@ namespace FG
 		// wait frame-2 for double buffering
 		_frameGraph->Wait({ _submittedBuffers[_frameId] });
 		_submittedBuffers[_frameId] = null;
+		
+		auto	time	= TimePoint_t::clock::now();
+		_timeDelta		= std::chrono::duration_cast<SecondsF>( time - _lastUpdateTime );
+		_lastUpdateTime = time;
 
 		if ( not DrawScene() )
 			return true;
@@ -491,7 +523,7 @@ namespace FG
 	_SetLastCommandBuffer
 =================================================
 */
-	void BaseSceneApp::_SetLastCommandBuffer (const CommandBuffer &cmdbuf)
+	void  BaseSceneApp::_SetLastCommandBuffer (const CommandBuffer &cmdbuf)
 	{
 		_submittedBuffers[_frameId] = cmdbuf;
 	}
@@ -501,7 +533,7 @@ namespace FG
 	AfterRender
 =================================================
 */
-	void BaseSceneApp::AfterRender (const CommandBuffer &cmdbuf, Present &&task)
+	void  BaseSceneApp::AfterRender (const CommandBuffer &cmdbuf, Present &&task)
 	{
 		cmdbuf->AddTask( task.SetSwapchain( GetSwapchain() ));
 
@@ -513,7 +545,7 @@ namespace FG
 	_OnShaderTraceReady
 =================================================
 */
-	void BaseSceneApp::_OnShaderTraceReady (StringView name, ArrayView<String> output) const
+	void  BaseSceneApp::_OnShaderTraceReady (StringView name, ArrayView<String> output) const
 	{
 	#	ifdef FG_STD_FILESYSTEM
 		const auto	IsExists = [] (StringView path) { return FS::exists(FS::path{ path }); };
@@ -523,13 +555,33 @@ namespace FG
 
 		String	fname;
 
+		const auto	BuildName = [this, &fname, &name] (uint index)
+		{
+			fname = String(_debugOutputPath) << '/' << name << '_' << ToString(index) << ".glsl_dbg";
+		};
+
 		for (auto& str : output)
 		{
-			for (uint index = 0; index < 100; ++index)
-			{
-				fname = String(_debugOutputPath) << '/' << name << '_' << ToString(index) << ".glsl_dbg";
+			uint		min_index	= 0;
+			uint		max_index	= 1;
+			const uint	step		= 100;
 
-				if ( IsExists( fname ) )
+			for (; min_index < max_index;)
+			{
+				BuildName( max_index );
+
+				if ( not IsExists( fname ))
+					break;
+
+				min_index = max_index;
+				max_index += step;
+			}
+
+			for (uint index = min_index; index <= max_index; ++index)
+			{
+				BuildName( index );
+
+				if ( IsExists( fname ))
 					continue;
 
 				FileWStream		file{ fname };

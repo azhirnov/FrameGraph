@@ -13,7 +13,7 @@ if (${FG_ENABLE_SDL2})
 	endif ()
 	
 	# download
-	if (NOT EXISTS "${FG_EXTERNAL_SDL2_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+	if (NOT EXISTS "${FG_EXTERNAL_SDL2_PATH}/include/SDL.h")
 		FetchContent_Declare( ExternalSDL2
 			URL					https://www.libsdl.org/release/SDL2-2.0.8.zip
 			SOURCE_DIR			"${FG_EXTERNAL_SDL2_PATH}"
@@ -21,7 +21,7 @@ if (${FG_ENABLE_SDL2})
 		
 		FetchContent_GetProperties( ExternalSDL2 )
 		if (NOT ExternalSDL2_POPULATED)
-			message( STATUS "downloading SDL2" )
+			message( STATUS "downloading SDL2..." )
 			FetchContent_Populate( ExternalSDL2 )
 		endif ()
 	endif ()

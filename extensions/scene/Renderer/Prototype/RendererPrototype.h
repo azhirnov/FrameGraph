@@ -71,30 +71,31 @@ namespace FG
 		RendererPrototype ();
 		~RendererPrototype ();
 
-		bool Create (const FrameGraph &);
-		void Destroy () override;
+		bool  Create (const FrameGraph &);
+		void  Destroy () override;
 
-		bool Render (const ScenePreRender &) override;
+		bool  Render (const ScenePreRender &) override;
 
-		bool GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawGPipelineID &) override;
-		bool GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawMPipelineID &) override;
-		bool GetPipeline (ERenderLayer, INOUT RayTracingPipelineInfo &, OUT RawRTPipelineID &) override;
-		bool GetPipeline (ERenderLayer, INOUT ComputePipelineInfo &, OUT RawCPipelineID &) override;
+		bool  GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawGPipelineID &) override;
+		bool  GetPipeline (ERenderLayer, INOUT GraphicsPipelineInfo &, OUT RawMPipelineID &) override;
+		bool  GetPipeline (ERenderLayer, INOUT RayTracingPipelineInfo &, OUT RawRTPipelineID &) override;
+		bool  GetPipeline (ERenderLayer, INOUT ComputePipelineInfo &, OUT RawCPipelineID &) override;
 		
 		Ptr<ShaderCache>	GetShaderBuilder ()	override	{ return &_shaderCache; }
 		FrameGraph			GetFrameGraph ()	override	{ return _frameGraph; }
 
 
 	private:
-		//bool _SetupShadowPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
-		bool _SetupColorPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
-		bool _SetupRayTracingPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
+		//bool  _SetupShadowPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
+		bool  _SetupColorPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
+		bool  _SetupRayTracingPass (const CameraData_t &, INOUT RenderQueueImpl &, OUT RawImageID &);
+		bool  _SetupUIPass (const CameraData_t &, INOUT RenderQueueImpl &, RawImageID);
 
 		ND_ RawImageID  _CreateColorTarget (const uint2 &dim);
 		ND_ RawImageID  _CreateDepthTarget (const uint2 &dim);
 
-		bool _CreateUniformBuffer ();
-		void _UpdateUniformBuffer (ERenderLayer firstLayer, const CameraData_t &cameraData, INOUT RenderQueueImpl &queue);
+		bool  _CreateUniformBuffer ();
+		void  _UpdateUniformBuffer (ERenderLayer firstLayer, const CameraData_t &cameraData, INOUT RenderQueueImpl &queue);
 	};
 
 

@@ -15,7 +15,7 @@ extern void Test_Shader7 (VPipelineCompiler* compiler)
 layout(local_size_x = 32) in;
 
 layout(binding=0) writeonly uniform image2D uni_image;
-uniform block0 {
+layout(binding=1) uniform block0 {
 	uint uni_value;
 };
 shared vec4 mem[10];
@@ -69,7 +69,7 @@ taskNV in taskBlock {
 	vec4 gid2;
 } mytask;
 
-buffer bufferBlock {
+layout(binding=2, std430) buffer bufferBlock {
 	float gid3[2];
 	vec4 gid4;
 } mybuf;

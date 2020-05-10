@@ -79,9 +79,9 @@ namespace FG
 
 		VertexInputState	vert_input;
 		vert_input.Bind( VertexBufferID(), SizeOf<ImDrawVert> );
-		vert_input.Add( VertexID("aPos"),   EVertexType::Float2,  OffsetOf( &ImDrawVert::pos ) );
-		vert_input.Add( VertexID("aUV"),    EVertexType::Float2,  OffsetOf( &ImDrawVert::uv  ) );
-		vert_input.Add( VertexID("aColor"), EVertexType::UByte4_Norm, OffsetOf( &ImDrawVert::col ) );
+		vert_input.Add( VertexID("aPos"),   EVertexType::Float2,  OffsetOf( &ImDrawVert::pos ));
+		vert_input.Add( VertexID("aUV"),    EVertexType::Float2,  OffsetOf( &ImDrawVert::uv  ));
+		vert_input.Add( VertexID("aColor"), EVertexType::UByte4_Norm, OffsetOf( &ImDrawVert::col ));
 
 		uint	idx_offset	= 0;
 		uint	vtx_offset	= 0;
@@ -113,6 +113,8 @@ namespace FG
 									.SetPipeline( _pipeline ).AddResources( DescriptorSetID{"0"}, &_resources )
 									.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input ).SetTopology( EPrimitive::TriangleList )
 									.SetIndexBuffer( _indexBuffer, 0_b, EIndex::UShort )
+									.AddColorBuffer( RenderTargetID::Color_0, EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
+									.SetDepthTestEnabled( false ).SetCullMode( ECullMode::None )
 									.Draw( cmd.ElemCount, 1, idx_offset, int(vtx_offset), 0 ).AddScissor( scissor ));
 				}
 				idx_offset += cmd.ElemCount;

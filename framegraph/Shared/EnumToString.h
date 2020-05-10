@@ -73,6 +73,8 @@ namespace FGC
 				case EImageUsage::TransientAttachment		: result << "TransientAttachment";		break;
 				case EImageUsage::InputAttachment			: result << "InputAttachment";			break;
 				case EImageUsage::ShadingRate				: result << "ShadingRate";				break;
+				case EImageUsage::StorageAtomic				: result << "StorageAtomic";			break;
+				case EImageUsage::ColorAttachmentBlend		: result << "ColorAttachmentBlend";		break;
 				case EImageUsage::_Last						:
 				case EImageUsage::All						:	// to shutup warnings
 				case EImageUsage::Transfer					:
@@ -104,21 +106,24 @@ namespace FGC
 			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
-				case EBufferUsage::TransferSrc	: result << "TransferSrc";		break;
-				case EBufferUsage::TransferDst	: result << "TransferDst";		break;
-				case EBufferUsage::UniformTexel	: result << "UniformTexel";		break;
-				case EBufferUsage::StorageTexel	: result << "StorageTexel";		break;
-				case EBufferUsage::Uniform		: result << "Uniform";			break;
-				case EBufferUsage::Storage		: result << "Storage";			break;
-				case EBufferUsage::Index		: result << "Index";			break;
-				case EBufferUsage::Vertex		: result << "Vertex";			break;
-				case EBufferUsage::Indirect		: result << "Indirect";			break;
-				case EBufferUsage::RayTracing	: result << "RayTracing";		break;
-				case EBufferUsage::_Last		:
-				case EBufferUsage::All			:	// to shutup warnings
-				case EBufferUsage::Transfer		:
-				case EBufferUsage::Unknown		:
-				default							: RETURN_ERR( "invalid buffer usage type!" );
+				case EBufferUsage::TransferSrc		:  result << "TransferSrc";			break;
+				case EBufferUsage::TransferDst		:  result << "TransferDst";			break;
+				case EBufferUsage::UniformTexel		:  result << "UniformTexel";		break;
+				case EBufferUsage::StorageTexel		:  result << "StorageTexel";		break;
+				case EBufferUsage::Uniform			:  result << "Uniform";				break;
+				case EBufferUsage::Storage			:  result << "Storage";				break;
+				case EBufferUsage::Index			:  result << "Index";				break;
+				case EBufferUsage::Vertex			:  result << "Vertex";				break;
+				case EBufferUsage::Indirect			:  result << "Indirect";			break;
+				case EBufferUsage::RayTracing		:  result << "RayTracing";			break;
+				case EBufferUsage::VertexPplnStore	:  result << "VertexPplnStore";		break;
+				case EBufferUsage::FragmentPplnStore:  result << "FragmentPplnStore";	break;
+				case EBufferUsage::StorageTexelAtomic: result << "StorageTexelAtomic";	break;
+				case EBufferUsage::_Last			:
+				case EBufferUsage::All				:	// to shutup warnings
+				case EBufferUsage::Transfer			:
+				case EBufferUsage::Unknown			:
+				default								: RETURN_ERR( "invalid buffer usage type!" );
 			}
 			END_ENUM_CHECKS();
 		}
@@ -305,26 +310,27 @@ namespace FGC
 			case EPixelFormat::Depth24_Stencil8 : return "Depth24_Stencil8";
 			case EPixelFormat::Depth32F_Stencil8 : return "Depth32F_Stencil8";
 			case EPixelFormat::BC1_RGB8_UNorm : return "BC1_RGB8_UNorm";
-			case EPixelFormat::BC1_sRGB8_UNorm : return "BC1_sRGB8_UNorm";
+			case EPixelFormat::BC1_sRGB8 : return "BC1_sRGB8";
 			case EPixelFormat::BC1_RGB8_A1_UNorm : return "BC1_RGB8_A1_UNorm";
-			case EPixelFormat::BC1_sRGB8_A1_UNorm : return "BC1_sRGB8_A1_UNorm";
+			case EPixelFormat::BC1_sRGB8_A1 : return "BC1_sRGB8_A1";
 			case EPixelFormat::BC2_RGBA8_UNorm : return "BC2_RGBA8_UNorm";
+			case EPixelFormat::BC2_sRGB8_A8 : return "BC2_sRGB8_A8";
 			case EPixelFormat::BC3_RGBA8_UNorm : return "BC3_RGBA8_UNorm";
-			case EPixelFormat::BC3_sRGB : return "BC3_sRGB";
+			case EPixelFormat::BC3_sRGB8 : return "BC3_sRGB8";
 			case EPixelFormat::BC4_R8_SNorm : return "BC4_R8_SNorm";
 			case EPixelFormat::BC4_R8_UNorm : return "BC4_R8_UNorm";
 			case EPixelFormat::BC5_RG8_SNorm : return "BC5_RG8_SNorm";
 			case EPixelFormat::BC5_RG8_UNorm : return "BC5_RG8_UNorm";
 			case EPixelFormat::BC7_RGBA8_UNorm : return "BC7_RGBA8_UNorm";
-			case EPixelFormat::BC7_SRGB8_A8 : return "BC7_SRGB8_A8";
+			case EPixelFormat::BC7_sRGB8_A8 : return "BC7_sRGB8_A8";
 			case EPixelFormat::BC6H_RGB16F : return "BC6H_RGB16F";
 			case EPixelFormat::BC6H_RGB16UF : return "BC6H_RGB16UF";
 			case EPixelFormat::ETC2_RGB8_UNorm : return "ETC2_RGB8_UNorm";
-			case EPixelFormat::ECT2_SRGB8 : return "ECT2_SRGB8";
+			case EPixelFormat::ECT2_sRGB8 : return "ECT2_sRGB8";
 			case EPixelFormat::ETC2_RGB8_A1_UNorm : return "ETC2_RGB8_A1_UNorm";
-			case EPixelFormat::ETC2_SRGB8_A1 : return "ETC2_SRGB8_A1";
+			case EPixelFormat::ETC2_sRGB8_A1 : return "ETC2_sRGB8_A1";
 			case EPixelFormat::ETC2_RGBA8_UNorm : return "ETC2_RGBA8_UNorm";
-			case EPixelFormat::ETC2_SRGB8_A8 : return "ETC2_SRGB8_A8";
+			case EPixelFormat::ETC2_sRGB8_A8 : return "ETC2_sRGB8_A8";
 			case EPixelFormat::EAC_R11_SNorm : return "EAC_R11_SNorm";
 			case EPixelFormat::EAC_R11_UNorm : return "EAC_R11_UNorm";
 			case EPixelFormat::EAC_RG11_SNorm : return "EAC_RG11_SNorm";
@@ -343,20 +349,20 @@ namespace FGC
 			case EPixelFormat::ASTC_RGBA_10x10 : return "ASTC_RGBA_10x10";
 			case EPixelFormat::ASTC_RGBA_12x10 : return "ASTC_RGBA_12x10";
 			case EPixelFormat::ASTC_RGBA_12x12 : return "ASTC_RGBA_12x12";
-			case EPixelFormat::ASTC_SRGB8_A8_4x4 : return "ASTC_SRGB8_A8_4x4";
-			case EPixelFormat::ASTC_SRGB8_A8_5x4 : return "ASTC_SRGB8_A8_5x4";
-			case EPixelFormat::ASTC_SRGB8_A8_5x5 : return "ASTC_SRGB8_A8_5x5";
-			case EPixelFormat::ASTC_SRGB8_A8_6x5 : return "ASTC_SRGB8_A8_6x5";
-			case EPixelFormat::ASTC_SRGB8_A8_6x6 : return "ASTC_SRGB8_A8_6x6";
-			case EPixelFormat::ASTC_SRGB8_A8_8x5 : return "ASTC_SRGB8_A8_8x5";
-			case EPixelFormat::ASTC_SRGB8_A8_8x6 : return "ASTC_SRGB8_A8_8x6";
-			case EPixelFormat::ASTC_SRGB8_A8_8x8 : return "ASTC_SRGB8_A8_8x8";
-			case EPixelFormat::ASTC_SRGB8_A8_10x5 : return "ASTC_SRGB8_A8_10x5";
-			case EPixelFormat::ASTC_SRGB8_A8_10x6 : return "ASTC_SRGB8_A8_10x6";
-			case EPixelFormat::ASTC_SRGB8_A8_10x8 : return "ASTC_SRGB8_A8_10x8";
-			case EPixelFormat::ASTC_SRGB8_A8_10x10 : return "ASTC_SRGB8_A8_10x10";
-			case EPixelFormat::ASTC_SRGB8_A8_12x10 : return "ASTC_SRGB8_A8_12x10";
-			case EPixelFormat::ASTC_SRGB8_A8_12x12 : return "ASTC_SRGB8_A8_12x12";
+			case EPixelFormat::ASTC_sRGB8_A8_4x4 : return "ASTC_sRGB8_A8_4x4";
+			case EPixelFormat::ASTC_sRGB8_A8_5x4 : return "ASTC_sRGB8_A8_5x4";
+			case EPixelFormat::ASTC_sRGB8_A8_5x5 : return "ASTC_sRGB8_A8_5x5";
+			case EPixelFormat::ASTC_sRGB8_A8_6x5 : return "ASTC_sRGB8_A8_6x5";
+			case EPixelFormat::ASTC_sRGB8_A8_6x6 : return "ASTC_sRGB8_A8_6x6";
+			case EPixelFormat::ASTC_sRGB8_A8_8x5 : return "ASTC_sRGB8_A8_8x5";
+			case EPixelFormat::ASTC_sRGB8_A8_8x6 : return "ASTC_sRGB8_A8_8x6";
+			case EPixelFormat::ASTC_sRGB8_A8_8x8 : return "ASTC_sRGB8_A8_8x8";
+			case EPixelFormat::ASTC_sRGB8_A8_10x5 : return "ASTC_sRGB8_A8_10x5";
+			case EPixelFormat::ASTC_sRGB8_A8_10x6 : return "ASTC_sRGB8_A8_10x6";
+			case EPixelFormat::ASTC_sRGB8_A8_10x8 : return "ASTC_sRGB8_A8_10x8";
+			case EPixelFormat::ASTC_sRGB8_A8_10x10 : return "ASTC_sRGB8_A8_10x10";
+			case EPixelFormat::ASTC_sRGB8_A8_12x10 : return "ASTC_sRGB8_A8_12x10";
+			case EPixelFormat::ASTC_sRGB8_A8_12x12 : return "ASTC_sRGB8_A8_12x12";
 			case EPixelFormat::_Count :
 			case EPixelFormat::Unknown : break;
 		}

@@ -47,7 +47,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    ""
-		size:    128 b
+		size:    256 b
 		usage:   TransferDst | RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -59,6 +59,17 @@ CommandBuffer {
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          64 b
+					size:            48 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         UpdateRayTracingShaderTable (#4)
+					dstTask:         DebuggableRayTracing (#5)
+					srcStageMask:    Transfer
+					dstStageMask:    RayTracing
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   UniformRead
+					offset:          128 b
 					size:            48 b
 				}
 				BufferMemoryBarrier {
@@ -83,12 +94,34 @@ CommandBuffer {
 					offset:          64 b
 					size:            48 b
 				}
+				BufferMemoryBarrier {
+					srcTask:         UpdateRayTracingShaderTable (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          128 b
+					size:            48 b
+				}
+				BufferMemoryBarrier {
+					srcTask:         UpdateRayTracingShaderTable (#4)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          192 b
+					size:            48 b
+				}
 		}
 	}
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    256 Mb
+		size:    128 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -166,7 +199,7 @@ CommandBuffer {
 				name:     "HostWriteBuffer"
 				usage:    RTASBuild-Buffer-R
 				offset:   0 b
-				size:     256 Mb
+				size:     128 Mb
 			}
 			BufferUsage {
 				name:     "ScratchBuffer"
@@ -194,6 +227,18 @@ CommandBuffer {
 				size:     48 b
 			}
 			BufferUsage {
+				name:     ""
+				usage:    Transfer-W
+				offset:   128 b
+				size:     48 b
+			}
+			BufferUsage {
+				name:     ""
+				usage:    Transfer-W
+				offset:   192 b
+				size:     48 b
+			}
+			BufferUsage {
 				name:     "HostWriteBuffer"
 				usage:    Transfer-R
 				offset:   112 b
@@ -203,6 +248,18 @@ CommandBuffer {
 				name:     "HostWriteBuffer"
 				usage:    Transfer-R
 				offset:   160 b
+				size:     48 b
+			}
+			BufferUsage {
+				name:     "HostWriteBuffer"
+				usage:    Transfer-R
+				offset:   208 b
+				size:     48 b
+			}
+			BufferUsage {
+				name:     "HostWriteBuffer"
+				usage:    Transfer-R
+				offset:   256 b
 				size:     48 b
 			}
 		}
@@ -216,7 +273,7 @@ CommandBuffer {
 				name:     ""
 				usage:    Uniform, RTS
 				offset:   64 b
-				size:     64 b
+				size:     112 b
 			}
 			ImageUsage {
 				name:           "OutputImage"

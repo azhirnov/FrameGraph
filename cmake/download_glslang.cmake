@@ -3,7 +3,7 @@
 if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_GLSLANG})
 	add_library( "GLSLang-lib" INTERFACE )
 	target_include_directories( "GLSLang-lib" INTERFACE "${FG_EXTERNAL_PREBUILD_PATH}/glslang/include" )
-	target_compile_definitions( "GLSLang-lib" INTERFACE FG_ENABLE_GLSLANG ENABLE_HLSL ENABLE_OPT AMD_EXTENSIONS NV_EXTENSIONS )
+	target_compile_definitions( "GLSLang-lib" INTERFACE FG_ENABLE_GLSLANG ENABLE_HLSL )
 	set( FG_GLSLANG_LIBRARIES
 		"${FG_EXTERNAL_PREBUILD_PATH}/glslang/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SPIRV${CMAKE_STATIC_LIBRARY_SUFFIX}"
 		"${FG_EXTERNAL_PREBUILD_PATH}/glslang/lib/${CMAKE_STATIC_LIBRARY_PREFIX}glslang${CMAKE_STATIC_LIBRARY_SUFFIX}"
@@ -23,7 +23,7 @@ elseif (${FG_ENABLE_GLSLANG})
 	set( FG_EXTERNAL_GLSLANG_PATH "" CACHE PATH "path to glslang source" )
 	mark_as_advanced( FG_EXTERNAL_GLSLANG_PATH )
 
-	# SPIRV-Tools require Python 3.7 for building
+	# SPIRV-Tools require Python 3 for building
 	find_package( PythonInterp 3.7 REQUIRED )
 	find_package( PythonLibs 3.7 REQUIRED )
 	
@@ -33,6 +33,14 @@ elseif (${FG_ENABLE_GLSLANG})
 		set( FG_EXTERNAL_GLSLANG_PATH "${FG_EXTERNALS_PATH}/glslang" CACHE PATH "" FORCE )
 	else ()
 		message( STATUS "glslang found in \"${FG_EXTERNAL_GLSLANG_PATH}\"" )
+	endif ()
+	
+	if (${FG_USE_VULKAN_SDK})
+		find_package( Vulkan )
+		if (Vulkan_FOUND)
+			message( STATUS "used glslang from VulkanSDK" )
+			set( FG_EXTERNAL_GLSLANG_PATH "${Vulkan_INCLUDE_DIR}/../glslang" CACHE PATH "" FORCE )
+		endif ()
 	endif ()
 
 	if (NOT EXISTS "${FG_EXTERNAL_GLSLANG_PATH}/CMakeLists.txt")
@@ -54,19 +62,19 @@ elseif (${FG_ENABLE_GLSLANG})
 	endif ()
 	
 	set( ENABLE_HLSL ON CACHE BOOL "glslang option" )
-	set( ENABLE_OPT ON CACHE BOOL "glslang option" )
+	set( ENABLE_OPT OFF CACHE BOOL "glslang option" )
 	mark_as_advanced( ENABLE_HLSL ENABLE_OPT )
 
-	#if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
-		# stable release February 8, 2019
-	#	set( GLSLANG_TAG "7.11.3113" )
-	#	set( SPIRV_TOOLS_TAG "v2019.1" )
-	#	set( SPIRV_HEADERS_TAG "1.3.7" )
-	#else ()
+	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+		# stable release January 22, 2020
+		set( GLSLANG_TAG "8.13.3559" )
+		set( SPIRV_TOOLS_TAG "v2019.4" )
+		set( SPIRV_HEADERS_TAG "1.5.1.corrected" )
+	else ()
 		set( GLSLANG_TAG "master" )
 		set( SPIRV_TOOLS_TAG "master" )
 		set( SPIRV_HEADERS_TAG "master" )
-	#endif ()
+	endif ()
 
 	ExternalProject_Add( "External.glslang"
 		LOG_OUTPUT_ON_FAILURE 1
@@ -170,7 +178,7 @@ elseif (${FG_ENABLE_GLSLANG})
 		INSTALL_COMMAND		${CMAKE_COMMAND}
 							--build .
 							--config $<CONFIG>
-							--target
+							--target glslang
 							install
 							COMMAND ${CMAKE_COMMAND} -E copy_if_different
 								"${FG_EXTERNAL_GLSLANG_PATH}/StandAlone/ResourceLimits.h"

@@ -21,20 +21,25 @@ namespace FG
 	// types
 	private:
 		using OnRelease_t	= IFrameGraph::OnExternalBufferReleased_t;
+		using BufferViewMap_t	= HashMap< BufferViewDesc, VkBufferView >;
 
 
 	// variables
 	private:
-		VkBuffer				_buffer				= VK_NULL_HANDLE;
-		MemoryID				_memoryId;
-		BufferDesc				_desc;
-		EQueueFamilyMask		_queueFamilyMask	= Default;
-		VkAccessFlagBits		_readAccessMask		= Zero;
+		VkBuffer					_buffer				= VK_NULL_HANDLE;
+		MemoryID					_memoryId;
+		BufferDesc					_desc;
+		
+		mutable std::shared_mutex	_viewMapLock;
+		mutable BufferViewMap_t		_viewMap;
 
-		DebugName_t				_debugName;
-		OnRelease_t				_onRelease;
+		EQueueFamilyMask			_queueFamilyMask	= Default;
+		VkAccessFlagBits			_readAccessMask		= Zero;
 
-		RWDataRaceCheck			_drCheck;
+		DebugName_t					_debugName;
+		OnRelease_t					_onRelease;
+
+		RWDataRaceCheck				_drCheck;
 
 
 	// methods
@@ -52,7 +57,7 @@ namespace FG
 
 		//void Merge (BufferViewMap_t &, OUT AppendableVkResources_t) const;
 
-		//ND_ VkBufferView		GetView (const HashedBufferViewDesc &) const;
+		ND_ VkBufferView		GetView (const VDevice &, const BufferViewDesc &) const;
 		
 		ND_ VulkanBufferDesc	GetApiSpecificDescription () const;
 
@@ -69,6 +74,12 @@ namespace FG
 		ND_ bool				IsExclusiveSharing ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask == Default; }
 		ND_ EQueueFamilyMask	GetQueueFamilyMask ()	const	{ SHAREDLOCK( _drCheck );  return _queueFamilyMask; }
 		ND_ StringView			GetDebugName ()			const	{ SHAREDLOCK( _drCheck );  return _debugName; }
+
+		ND_ static bool  IsSupported (const VDevice &dev, const BufferDesc &desc, EMemoryType memType);
+		ND_ bool		 IsSupported (const VDevice &dev, const BufferViewDesc &desc) const;
+
+	private:
+		bool  _CreateView (const VDevice &, const BufferViewDesc &, OUT VkBufferView &) const;
 	};
 	
 

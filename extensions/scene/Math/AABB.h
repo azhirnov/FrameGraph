@@ -134,6 +134,12 @@ namespace FGC
 
 			return *this;
 		}
+		
+		ND_ T  Distance (const Vec3_t &point) const
+		{
+			const Vec3_t	d = glm::abs( point ) - HalfExtent();
+			return glm::min( glm::max( d.x, glm::max( d.y, d.z )), T(0) ) + glm::length( glm::max( d, T(0) ));
+		}
 	};
 
 

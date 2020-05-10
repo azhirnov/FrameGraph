@@ -28,8 +28,11 @@ namespace FG
 		VkSwapchainKHR					_vkSwapchain		= VK_NULL_HANDLE;
 		VkSurfaceKHR					_vkSurface			= VK_NULL_HANDLE;
 		mutable uint					_currImageIndex		= UMax;
-		VkSemaphore						_imageAvailable		= VK_NULL_HANDLE;
-		VkSemaphore						_renderFinished		= VK_NULL_HANDLE;
+
+		StaticArray< VkSemaphore, 2 >	_imageAvailable;
+		StaticArray< VkSemaphore, 2 >	_renderFinished;
+		VkFence							_fence				= VK_NULL_HANDLE;
+		mutable uint					_semaphoreId : 1;
 
 		VkFormat						_colorFormat		= VK_FORMAT_UNDEFINED;
 		VkColorSpaceKHR					_colorSpace			= VK_COLOR_SPACE_MAX_ENUM_KHR;
@@ -49,24 +52,25 @@ namespace FG
 		explicit VSwapchain ();
 		~VSwapchain ();
 
-		bool Create (VFrameGraph &, const VulkanSwapchainCreateInfo &, StringView dbgName);
-		void Destroy (VResourceManager &);
+		bool  Create (VFrameGraph &, const VulkanSwapchainCreateInfo &, StringView dbgName);
+		void  Destroy (VResourceManager &);
 
-		bool Acquire (VCommandBuffer &, ESwapchainImage type, OUT RawImageID &outImageId) const;
-		bool Present (const VDevice &) const;
+		bool  Acquire (VCommandBuffer &, ESwapchainImage type, bool dbgSync, OUT RawImageID &outImageId) const;
+		bool  Present (const VDevice &) const;
 
-		ND_ VDeviceQueueInfoPtr	GetPresentQueue ()	const	{ SHAREDLOCK( _drCheck );  return _presentQueue; }
+		ND_ VDeviceQueueInfoPtr  GetPresentQueue ()	const	{ SHAREDLOCK( _drCheck );  return _presentQueue; }
 
 
 	private:
-		bool _CreateSwapchain (VFrameGraph &, StringView dbgName);
-		bool _CreateImages (VResourceManager &);
-		void _DestroyImages (VResourceManager &);
+		bool  _CreateSwapchain (VFrameGraph &, StringView dbgName);
+		bool  _CreateImages (VResourceManager &);
+		void  _DestroyImages (VResourceManager &);
 
-		bool _CreateSemaphores (const VDevice &dev);
-		bool _ChoosePresentQueue (const VFrameGraph &);
+		bool  _CreateSemaphores (const VDevice &dev);
+		bool  _CreateFence (const VDevice &dev);
+		bool  _ChoosePresentQueue (const VFrameGraph &);
 		
-		ND_ bool _IsImageAcquired () const;
+		ND_ bool  _IsImageAcquired () const;
 	};
 
 

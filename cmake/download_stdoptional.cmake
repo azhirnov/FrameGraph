@@ -13,7 +13,7 @@ if (NOT ${STD_OPTIONAL_SUPPORTED})
 	endif ()
 	
 	# download
-	if (NOT EXISTS "${FG_EXTERNAL_STDOPTIONAL_PATH}" AND NOT CMAKE_VERSION VERSION_LESS 3.11.0)
+	if (NOT EXISTS "${FG_EXTERNAL_STDOPTIONAL_PATH}/optional.hpp")
 		FetchContent_Declare( ExternalStdOpt
 			GIT_REPOSITORY		https://github.com/akrzemi1/Optional.git
 			SOURCE_DIR			"${FG_EXTERNAL_STDOPTIONAL_PATH}"

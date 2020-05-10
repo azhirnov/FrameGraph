@@ -58,7 +58,7 @@ namespace {
 	OnKey
 =================================================
 */
-	void VRDeviceEmulator::WindowEventListener::OnKey (StringView key, EKeyAction action)
+	void  VRDeviceEmulator::WindowEventListener::OnKey (StringView key, EKeyAction action)
 	{
 		if ( action != EKeyAction::Up )
 		{
@@ -81,7 +81,7 @@ namespace {
 	OnMouseMove
 =================================================
 */
-	void VRDeviceEmulator::WindowEventListener::OnMouseMove (const float2 &pos)
+	void  VRDeviceEmulator::WindowEventListener::OnMouseMove (const float2 &pos)
 	{
 		if ( _mousePressed )
 		{
@@ -96,7 +96,7 @@ namespace {
 	Update
 =================================================
 */
-	void VRDeviceEmulator::WindowEventListener::Update (OUT Mat3_t &view, INOUT ControllerEmulator &cont)
+	void  VRDeviceEmulator::WindowEventListener::Update (OUT Mat3_t &view, INOUT ControllerEmulator &cont)
 	{
 		_cameraAngle.x = Wrap( _cameraAngle.x, -Pi<float>, Pi<float> );
 		_cameraAngle.y = Wrap( _cameraAngle.y, -Pi<float>, Pi<float> );
@@ -131,7 +131,7 @@ namespace {
 	OnDestroy
 =================================================
 */
-	void VRDeviceEmulator::WindowEventListener::OnDestroy ()
+	void  VRDeviceEmulator::WindowEventListener::OnDestroy ()
 	{
 		_isActive	= false;
 		_isVisible	= false;
@@ -142,7 +142,7 @@ namespace {
 	OnResize
 =================================================
 */
-	void VRDeviceEmulator::WindowEventListener::OnResize (const uint2 &newSize)
+	void  VRDeviceEmulator::WindowEventListener::OnResize (const uint2 &newSize)
 	{
 		if ( All( newSize > uint2(0) ))
 			_isVisible = true;
@@ -199,7 +199,7 @@ namespace {
 	Create
 =================================================
 */
-	bool VRDeviceEmulator::Create ()
+	bool  VRDeviceEmulator::Create ()
 	{
 		CHECK_ERR( _output );
 		CHECK_ERR( not _isCreated );
@@ -220,7 +220,7 @@ namespace {
 	SetVKDevice
 =================================================
 */
-	bool VRDeviceEmulator::SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
+	bool  VRDeviceEmulator::SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
 	{
 		CHECK_ERR( _output and _isCreated );
 
@@ -272,7 +272,7 @@ namespace {
 	Destroy
 =================================================
 */
-	void VRDeviceEmulator::Destroy ()
+	void  VRDeviceEmulator::Destroy ()
 	{
 		_hmdStatus = EHmdStatus::PowerOff;
 
@@ -334,7 +334,7 @@ namespace {
 	AddListener
 =================================================
 */
-	void VRDeviceEmulator::AddListener (IVRDeviceEventListener *listener)
+	void  VRDeviceEmulator::AddListener (IVRDeviceEventListener *listener)
 	{
 		ASSERT( listener );
 		_listeners.insert( listener );
@@ -345,7 +345,7 @@ namespace {
 	RemoveListener
 =================================================
 */
-	void VRDeviceEmulator::RemoveListener (IVRDeviceEventListener *listener)
+	void  VRDeviceEmulator::RemoveListener (IVRDeviceEventListener *listener)
 	{
 		ASSERT( listener );
 		_listeners.erase( listener );
@@ -356,7 +356,7 @@ namespace {
 	Update
 =================================================
 */
-	bool VRDeviceEmulator::Update ()
+	bool  VRDeviceEmulator::Update ()
 	{
 		// update hmd status
 		{
@@ -414,7 +414,7 @@ namespace {
 	SetupCamera
 =================================================
 */
-	void VRDeviceEmulator::SetupCamera (const float2 &clipPlanes)
+	void  VRDeviceEmulator::SetupCamera (const float2 &clipPlanes)
 	{
 		if ( not Any( Equals( _camera.clipPlanes, clipPlanes )) )
 		{
@@ -444,7 +444,7 @@ namespace {
 	must be created with usage flags 'VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT'
 =================================================
 */
-	bool VRDeviceEmulator::Submit (const VRImage &img, Eye eye)
+	bool  VRDeviceEmulator::Submit (const VRImage &img, Eye eye)
 	{
 		CHECK_ERR( img.queueFamilyIndex < _queues.capacity() );
 		CHECK_ERR( _swapchain and _vkLogicalDevice );

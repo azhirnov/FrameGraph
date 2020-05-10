@@ -5,6 +5,7 @@
 #include "stl/Math/Vec.h"
 #include "stl/Math/Rectangle.h"
 #include "stl/Math/Matrix.h"
+#include "stl/Containers/FixedMap.h"
 #include "vulkan_loader/VulkanLoader.h"
 #include "vulkan_loader/VulkanCheckError.h"
 
@@ -37,14 +38,16 @@ namespace FGC
 			Down,		// single event when controller button down
 			Pressed,	// continiously event until controller button is pressed
 		};
+		
+		using Mat3_t = Matrix< float, 3, 3, EMatrixOrder::ColumnMajor >;
 
 		
 	// interface
 	public:
-		virtual void HmdStatusChanged (EHmdStatus) = 0;
+		virtual void  HmdStatusChanged (EHmdStatus) = 0;
 
-		virtual void OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) = 0;
-		virtual void OnButton (ControllerID id, StringView btn, EButtonAction action) = 0;
+		virtual void  OnAxisStateChanged (ControllerID id, StringView name, const float2 &value, const float2 &delta, float dt) = 0;
+		virtual void  OnButton (ControllerID id, StringView btn, EButtonAction action) = 0;
 	};
 
 
@@ -89,6 +92,16 @@ namespace FGC
 			float3		angularVelocity;
 		};
 
+		struct VRController
+		{
+			Mat3_t		pose;			// hmd rotation
+			float3		position;		// hmd position
+			float3		velocity;
+			float3		angularVelocity;
+			bool		isValid			= false;
+		};
+		using VRControllers_t = FixedMap< ControllerID, VRController, 8 >;
+
 		enum class Eye
 		{
 			Left,
@@ -99,20 +112,21 @@ namespace FGC
 	// interface
 	public:
 		virtual ~IVRDevice () {}
-		virtual bool Create () = 0;
-		virtual bool SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) = 0;
-		virtual void Destroy () = 0;
-		virtual void AddListener (IVRDeviceEventListener *listener) = 0;
-		virtual void RemoveListener (IVRDeviceEventListener *listener) = 0;
-		virtual bool Update () = 0;
-		virtual void SetupCamera (const float2 &clipPlanes) = 0;
-		virtual bool Submit (const VRImage &, Eye) = 0;
+		virtual bool  Create () = 0;
+		virtual bool  SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) = 0;
+		virtual void  Destroy () = 0;
+		virtual void  AddListener (IVRDeviceEventListener *listener) = 0;
+		virtual void  RemoveListener (IVRDeviceEventListener *listener) = 0;
+		virtual bool  Update () = 0;
+		virtual void  SetupCamera (const float2 &clipPlanes) = 0;
+		virtual bool  Submit (const VRImage &, Eye) = 0;
 
-		ND_ virtual EHmdStatus		GetHmdStatus () const = 0;
-		ND_ virtual VRCamera const&	GetCamera () const = 0;
-		ND_ virtual Array<String>	GetRequiredInstanceExtensions () const = 0;
-		ND_ virtual Array<String>	GetRequiredDeviceExtensions (VkInstance instance = VK_NULL_HANDLE) const = 0;
-		ND_ virtual uint2			GetRenderTargetDimension () const = 0;
+		ND_ virtual EHmdStatus				GetHmdStatus () const = 0;
+		ND_ virtual VRCamera const&			GetCamera () const = 0;
+		ND_ virtual VRControllers_t const&	GetControllers () const = 0;
+		ND_ virtual Array<String>			GetRequiredInstanceExtensions () const = 0;
+		ND_ virtual Array<String>			GetRequiredDeviceExtensions (VkInstance instance = VK_NULL_HANDLE) const = 0;
+		ND_ virtual uint2					GetRenderTargetDimension () const = 0;
 	};
 
 

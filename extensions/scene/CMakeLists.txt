@@ -1,5 +1,3 @@
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
-
 if (${FG_ENABLE_GLM})
 	file( GLOB_RECURSE SOURCES "*.*" )
 	add_library( "Scene" STATIC ${SOURCES} )
@@ -23,5 +21,5 @@ if (${FG_ENABLE_GLM})
 
 	target_compile_definitions( "Scene" PUBLIC "FG_SHADER_PATH=R\"(${CMAKE_CURRENT_SOURCE_DIR}/Shaders/)\"" )
 
-	install( TARGETS "Scene" ARCHIVE DESTINATION "lib" )
+	install( TARGETS "Scene" ARCHIVE DESTINATION "libs/$<CONFIG>" )
 endif ()

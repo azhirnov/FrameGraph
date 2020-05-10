@@ -77,7 +77,7 @@ namespace FG
 		
 		using DebugLayoutCache_t	= HashMap< uint, RawDescriptorSetLayoutID >;
 		
-		using StagingBufferfPool_t	= LfIndexedPool< BufferID, uint, 32, 16 >;
+		using StagingBufferfPool_t	= LfIndexedPool< BufferID, uint, 32, 2 >;
 
 
 	// variables
@@ -117,12 +117,21 @@ namespace FG
 
 		Atomic<uint>				_submissionCounter;
 
-		DebugLayoutCache_t			_debugDSLayoutsCache;
+		struct {
+			DebugLayoutCache_t			dsLayoutsCache;
+			CPipelineID					pplnFindMaxValue1;
+			CPipelineID					pplnFindMaxValue2;
+			CPipelineID					pplnRemap;
+		}							_shaderDbg;
 
 		struct {
 			StagingBufferfPool_t		write;
 			StagingBufferfPool_t		read;
-		}							_stagingBuf;
+			StagingBufferfPool_t		uniform;
+			BytesU						writeBufPageSize;
+			BytesU						readBufPageSize;
+			BytesU						uniformBufPageSize;
+		}							_staging;
 
 		// cached resources validation
 		struct {
@@ -149,11 +158,11 @@ namespace FG
 		explicit VResourceManager (const VDevice &dev);
 		~VResourceManager ();
 
-		bool Initialize ();
-		void Deinitialize ();
+		bool  Initialize ();
+		void  Deinitialize ();
 		
-		void AddCompiler (const PipelineCompiler &comp);
-		void OnSubmit ();
+		void  AddCompiler (const PipelineCompiler &comp);
+		void  OnSubmit ();
 
 		ND_ RawMPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName);
 		ND_ RawGPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName);
@@ -208,17 +217,25 @@ namespace FG
 		
 		ND_ uint				GetSubmitIndex ()			const	{ return _submissionCounter.load( memory_order_relaxed ); }
 		
-		ND_ static BytesU		GetDebugShaderStorageSize (EShaderStages stages);
-
-		void CheckTask (const BuildRayTracingScene &);
-
-		void RunValidation (uint maxIter);
+		ND_ static BytesU		GetDebugShaderStorageSize (EShaderStages stages, EShaderDebugMode mode);
 		
-		bool CreateStagingBuffer (const BufferDesc &desc, bool write, OUT RawBufferID &id, OUT StagingBufferIdx &index);
-		void ReleaseStagingBuffer (StagingBufferIdx index);
+		ND_ BytesU				GetHostReadBufferSize ()	const	{ return _staging.readBufPageSize; }
+		ND_ BytesU				GetHostWriteBufferSize ()	const	{ return _staging.writeBufPageSize; }
+		ND_ BytesU				GetUniformBufferSize ()		const	{ return _staging.uniformBufPageSize; }
+		
+		ND_ Tuple<RawCPipelineID, RawCPipelineID, RawCPipelineID>	GetShaderTimemapPipelines ();
+
+		void  CheckTask (const BuildRayTracingScene &);
+
+		void  RunValidation (uint maxIter);
+		
+		bool  CreateStagingBuffer (EBufferUsage usage, OUT RawBufferID &id, OUT StagingBufferIdx &index);
+		void  ReleaseStagingBuffer (StagingBufferIdx index);
 
 
 	private:
+		bool  _CheckHostVisibleMemory ();
+
 		bool  _CreateMemory (OUT RawMemoryID &id, OUT ResourceBase<VMemoryObj>* &memPtr, const MemoryDesc &desc, StringView dbgName);
 
 		bool  _CreatePipelineLayout (OUT RawPipelineLayoutID &id, OUT ResourceBase<VPipelineLayout> const* &layoutPtr,
@@ -279,8 +296,15 @@ namespace FG
 		
 
 	// empty descriptor set layout
-			bool _CreateEmptyDescriptorSetLayout ();
-		ND_ auto _GetEmptyDescriptorSetLayout ()		{ return _emptyDSLayout; }
+			bool  _CreateEmptyDescriptorSetLayout ();
+		ND_ auto  _GetEmptyDescriptorSetLayout ()		{ return _emptyDSLayout; }
+
+
+	// shader debugger
+		bool  _CreateFindMaxValuePipeline1 ();
+		bool  _CreateFindMaxValuePipeline2 ();
+		bool  _CreateTimemapRemapPipeline ();
+		void  _DestroyShaderDebuggerResources ();
 	};
 
 	
