@@ -342,7 +342,19 @@ namespace {
 		// transit to undefined layout
 		AcquireImage( id, true, true );
 
-		_batch->_swapchains.push_back( swapchain );
+		bool	found = false;
+
+		for (auto& sw : _batch->_swapchains)
+		{
+			if ( sw == swapchain )
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if ( not found )
+			_batch->_swapchains.push_back( swapchain );
 
 		return id;
 	}
