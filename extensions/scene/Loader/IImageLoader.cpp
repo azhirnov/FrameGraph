@@ -2,11 +2,9 @@
 
 #include "scene/Loader/IImageLoader.h"
 #include "scene/Loader/Intermediate/IntermScene.h"
+#include "stl/Stream/FileStream.h"
 
-#ifdef FG_STD_FILESYSTEM
-#	include <filesystem>
-	namespace FS = std::filesystem;
-#else
+#ifndef FS_HAS_FILESYSTEM
 #	error not supported!
 #endif
 

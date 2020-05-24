@@ -7,11 +7,6 @@
 #include "framegraph/Public/VertexEnums.h"
 #include "glslang/Include/ResourceLimits.h"
 
-#ifdef FG_STD_FILESYSTEM
-#	include <filesystem>
-	namespace FS = std::filesystem;
-#endif
-
 class TIntermNode;
 
 namespace glslang

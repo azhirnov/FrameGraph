@@ -119,7 +119,7 @@ namespace FG
 	{
 		ASSERT( _directories.size() );
 
-#	ifdef FG_STD_FILESYSTEM
+#	ifdef FS_HAS_FILESYSTEM
 		for (auto& folder : _directories)
 		{
 			FS::path	fpath = FS::path( folder ) / headerName;

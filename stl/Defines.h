@@ -435,12 +435,6 @@
 #	pragma detect_mismatch( "FG_STD_VARIANT", "0" )
 #  endif
 
-#  ifdef FG_STD_FILESYSTEM
-#	pragma detect_mismatch( "FG_STD_FILESYSTEM", "1" )
-#  else
-#	pragma detect_mismatch( "FG_STD_FILESYSTEM", "0" )
-#  endif
-
 #  ifdef FG_STD_BARRIER
 #	pragma detect_mismatch( "FG_STD_BARRIER", "1" )
 #  else

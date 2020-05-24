@@ -9,10 +9,6 @@
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Stream/FileStream.h"
 
-#ifdef FG_STD_FILESYSTEM
-#	include <filesystem>
-	namespace FS = std::filesystem;
-#endif
 
 namespace FG
 {
@@ -170,7 +166,7 @@ namespace FG
 		}
 		
 		// setup debug output
-#		ifdef FG_STD_FILESYSTEM
+	#ifdef FS_HAS_FILESYSTEM
 		if ( cfg.dbgOutputPath.size() )
 		{
 			FS::path	path{ cfg.dbgOutputPath };
@@ -182,7 +178,7 @@ namespace FG
 
 			_debugOutputPath = path.string();
 		}
-#		endif	// FG_STD_FILESYSTEM
+	#endif	// FG_STD_FILESYSTEM
 
 		_SetupCamera( _cameraFov, _viewRange );
 		return true;
@@ -547,11 +543,11 @@ namespace FG
 */
 	void  BaseSceneApp::_OnShaderTraceReady (StringView name, ArrayView<String> output) const
 	{
-	#	ifdef FG_STD_FILESYSTEM
+	#ifdef FS_HAS_FILESYSTEM
 		const auto	IsExists = [] (StringView path) { return FS::exists(FS::path{ path }); };
-	#	else
-		// TODO
-	#	endif
+	#else
+		const auto	IsExists = [] (StringView path) { return false; };	// TODO
+	#endif
 
 		String	fname;
 

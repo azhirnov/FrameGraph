@@ -6,9 +6,19 @@
 #include "stl/Containers/NtStringView.h"
 #include <stdio.h>
 
-#ifdef FG_STD_FILESYSTEM
-#   include <filesystem>
+#if defined(FG_STD_FILESYSTEM)
+#	define FS_HAS_FILESYSTEM
+#	include <filesystem>
+	namespace FGC { namespace FS = std::filesystem; }
+
+#elif defined(FG_ENABLE_FILESYSTEM)
+#	define FS_HAS_FILESYSTEM
+#	include "stl/Platforms/WindowsHeader.h"
+#	include "ghc/filesystem.hpp"
+	namespace FGC { namespace FS = ghc::filesystem; }
+
 #endif
+
 
 namespace FGC
 {
@@ -32,8 +42,8 @@ namespace FGC
 		FileRStream (NtStringView filename);
 		FileRStream (const char *filename);
 		FileRStream (const String &filename);
-	#ifdef FG_STD_FILESYSTEM
-		FileRStream (const std::filesystem::path &path);
+	#ifdef FS_HAS_FILESYSTEM
+		FileRStream (const FS::path &path);
 	#endif
 		~FileRStream ();
 
@@ -67,8 +77,8 @@ namespace FGC
 		FileWStream (NtStringView filename);
 		FileWStream (const char *filename);
 		FileWStream (const String &filename);
-	#ifdef FG_STD_FILESYSTEM
-		FileWStream (const std::filesystem::path &path);
+	#ifdef FS_HAS_FILESYSTEM
+		FileWStream (const FS::path &path);
 	#endif
 		~FileWStream ();
 		
@@ -98,6 +108,18 @@ namespace FGC
 #	pragma detect_mismatch( "FG_STD_FILESYSTEM", "1" )
 #  else
 #	pragma detect_mismatch( "FG_STD_FILESYSTEM", "0" )
+#  endif
+
+#  ifdef FG_ENABLE_FILESYSTEM
+#	pragma detect_mismatch( "FG_ENABLE_FILESYSTEM", "1" )
+#  else
+#	pragma detect_mismatch( "FG_ENABLE_FILESYSTEM", "0" )
+#  endif
+
+#  ifdef FS_HAS_FILESYSTEM
+#	pragma detect_mismatch( "FS_HAS_FILESYSTEM", "1" )
+#  else
+#	pragma detect_mismatch( "FS_HAS_FILESYSTEM", "0" )
 #  endif
 
 #endif	// COMPILER_MSVC or COMPILER_CLANG

@@ -17,7 +17,7 @@
 #	define ftell	ftello
 #endif
 #if defined(PLATFORM_LINUX) or defined(PLATFORM_ANDROID)
-#   define fopen_s( _outFile_, _name_, _mode_ ) (*_outFile_=fopen(_name_, _mode_))
+#   define fopen_s( _outFile_, _name_, _mode_ ) (*(_outFile_) = fopen( (_name_), (_mode_) ))
 #endif
 
 
@@ -50,8 +50,8 @@ namespace FGC
 	constructor
 =================================================
 */
-#ifdef FG_STD_FILESYSTEM
-	FileRStream::FileRStream (const std::filesystem::path &path)
+#ifdef FS_HAS_FILESYSTEM
+	FileRStream::FileRStream (const FS::path &path)
 	{
 #	ifdef PLATFORM_WINDOWS
 		_wfopen_s( OUT &_file, path.c_str(), L"rb" );

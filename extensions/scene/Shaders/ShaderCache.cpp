@@ -6,16 +6,14 @@
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringUtils.h"
 
-#ifdef FG_STD_FILESYSTEM
-#	include <filesystem>
-	namespace FS = std::filesystem;
-	using fpath = std::filesystem::path;
-#else
+#ifndef FS_HAS_FILESYSTEM
 #	error not supported!
 #endif
 
+
 namespace FG
 {
+	using fpath = FS::path;
 
 /*
 =================================================
