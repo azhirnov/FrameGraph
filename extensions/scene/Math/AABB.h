@@ -140,6 +140,17 @@ namespace FGC
 			const Vec3_t	d = glm::abs( point ) - HalfExtent();
 			return glm::min( glm::max( d.x, glm::max( d.y, d.z )), T(0) ) + glm::length( glm::max( d, T(0) ));
 		}
+
+		ND_ static Self  FromPoints (ArrayView<Vec3_t> points)
+		{
+			CHECK_ERR( points.size() );
+
+			Self	result{ points[0] };
+			for (size_t i = 1; i < points.size(); ++i) {
+				result.Add( points[i] );
+			}
+			return result;
+		}
 	};
 
 

@@ -1,7 +1,6 @@
 # download filesystem (MIT license)
 
-if (TRUE)
-#if (NOT ${STD_FILESYSTEM_SUPPORTED})
+if (NOT ${STD_FILESYSTEM_SUPPORTED})
 	set( FG_EXTERNAL_GFS_PATH "" CACHE PATH "path to FileSystem source" )
 	mark_as_advanced( FG_EXTERNAL_GFS_PATH )
 

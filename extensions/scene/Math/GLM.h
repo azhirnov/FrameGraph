@@ -271,14 +271,13 @@ namespace FGC
 	template <typename T, int length>
 	inline String  ToString (const glm::vec<length, T> &vec)
 	{
-		String	result = "( ";
-		for (int i = 0; i < length; ++i)
-		{
-			if ( i ) result += ", ";
-			result += std::to_string( vec[i] );
-		}
-		result += " )";
-		return result;
+		return ToString( VecCast( vec ));
+	}
+
+	template <typename T>
+	inline String  ToString (const glm::tquat<T> &q)
+	{
+		return ToString( Vec<T,4>{ q.x, q.y, q.z, q.w });
 	}
 
 /*

@@ -17,7 +17,7 @@ if (TRUE) #(${FG_ALLOW_GPL})
 	endif ()
 	
 	# reset to default
-	if (NOT EXISTS "${FG_EXTERNAL_FFMPEG_PATH}/ffmpeg/dev/README.txt")
+	if (NOT EXISTS "${FG_EXTERNAL_FFMPEG_PATH}/dev/LICENSE.txt")
 		message( STATUS "ffmpeg SDK is not found in \"${FG_EXTERNAL_FFMPEG_PATH}\"" )
 		set( FG_EXTERNAL_FFMPEG_PATH "${FG_EXTERNALS_PATH}/ffmpeg" CACHE PATH "" FORCE )
 	else ()

@@ -1905,7 +1905,7 @@ namespace FG
 
 			if ( iter != pc_map.end() )
 			{
-				ASSERT( pc.size == iter->second.size );
+				ASSERT( ((size_t(pc.size) + 15) & ~15) == ((size_t(iter->second.size) + 15) & ~15) );
 
 				vkCmdPushConstants( _cmdBuffer, layout.Handle(), VEnumCast( iter->second.stageFlags ), uint(iter->second.offset),
 									 uint(iter->second.size), pc.data );
