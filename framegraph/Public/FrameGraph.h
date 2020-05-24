@@ -163,10 +163,34 @@ namespace FG
 		ND_ virtual ExternalBufferDesc_t GetApiSpecificDescription (RawBufferID id) const = 0;
 		ND_ virtual ExternalImageDesc_t  GetApiSpecificDescription (RawImageID id) const = 0;
 		
-			// TODO
+			// Returns 'true' if resource is not deleted.
+		ND_	virtual bool			IsResourceAlive (RawGPipelineID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawCPipelineID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawMPipelineID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawRTPipelineID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawImageID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawBufferID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawSwapchainID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawRTGeometryID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawRTSceneID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawRTShaderTableID id) const = 0;
+
+			// 
+		ND_ virtual GPipelineID		AcquireResource (RawGPipelineID id) = 0;
+		ND_ virtual CPipelineID		AcquireResource (RawCPipelineID id) = 0;
+		ND_ virtual MPipelineID		AcquireResource (RawMPipelineID id) = 0;
+		ND_ virtual RTPipelineID	AcquireResource (RawRTPipelineID id) = 0;
+		ND_ virtual ImageID			AcquireResource (RawImageID id) = 0;
+		ND_ virtual BufferID		AcquireResource (RawBufferID id) = 0;
+		ND_ virtual SwapchainID		AcquireResource (RawSwapchainID id) = 0;
+		ND_ virtual RTGeometryID	AcquireResource (RawRTGeometryID id) = 0;
+		ND_ virtual RTSceneID		AcquireResource (RawRTSceneID id) = 0;
+		ND_ virtual RTShaderTableID	AcquireResource (RawRTShaderTableID id) = 0;
+
+			// Copy data into host-visible memory.
 			virtual bool			UpdateHostBuffer (RawBufferID id, BytesU offset, BytesU size, const void *data) = 0;
 			
-			// TODO
+			// Returns pointer to host-visible memory.
 			template <typename T>
 					bool			MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT T* &data);
 			virtual bool			MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT void* &data) = 0;

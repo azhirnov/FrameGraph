@@ -132,6 +132,28 @@ namespace FG
 		bool			IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const override;
 		bool			IsSupported (const ImageDesc &desc, EMemoryType memType) const override;
 		bool			IsSupported (const BufferDesc &desc, EMemoryType memType) const override;
+		
+		bool			IsResourceAlive (RawGPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawCPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawMPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawRTPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawImageID id) const override				{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawBufferID id) const override				{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawSwapchainID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawRTGeometryID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawRTSceneID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawRTShaderTableID id) const override		{ return _resourceMngr.IsResourceAlive( id ); }
+		
+		GPipelineID		AcquireResource (RawGPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? GPipelineID{id}		: Default; }
+		CPipelineID		AcquireResource (RawCPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? CPipelineID{id}		: Default; }
+		MPipelineID		AcquireResource (RawMPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? MPipelineID{id}		: Default; }
+		RTPipelineID	AcquireResource (RawRTPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? RTPipelineID{id}		: Default; }
+		ImageID			AcquireResource (RawImageID id) override					{ return _resourceMngr.AcquireResource( id ) ? ImageID{id}			: Default; }
+		BufferID		AcquireResource (RawBufferID id) override					{ return _resourceMngr.AcquireResource( id ) ? BufferID{id}			: Default; }
+		SwapchainID		AcquireResource (RawSwapchainID id) override				{ return _resourceMngr.AcquireResource( id ) ? SwapchainID{id}		: Default; }
+		RTGeometryID	AcquireResource (RawRTGeometryID id) override				{ return _resourceMngr.AcquireResource( id ) ? RTGeometryID{id}		: Default; }
+		RTSceneID		AcquireResource (RawRTSceneID id) override					{ return _resourceMngr.AcquireResource( id ) ? RTSceneID{id}		: Default; }
+		RTShaderTableID	AcquireResource (RawRTShaderTableID id) override			{ return _resourceMngr.AcquireResource( id ) ? RTShaderTableID{id}	: Default; }
 
 		BufferDesc const&	GetDescription (RawBufferID id) const override;
 		ImageDesc const&	GetDescription (RawImageID id) const override;
