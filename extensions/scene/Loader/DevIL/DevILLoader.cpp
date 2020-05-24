@@ -11,13 +11,12 @@
 
 namespace FG
 {
-namespace {
 /*
 =================================================
 	InitDevlIL
 =================================================
 */
-	static bool InitDevlIL ()
+	extern bool InitDevlIL ()
 	{
 		static bool	isDevILInit = false;
 
@@ -44,6 +43,7 @@ namespace {
 		return true;
 	}
 	
+namespace {
 /*
 =================================================
 	ConvertDevILFormat
