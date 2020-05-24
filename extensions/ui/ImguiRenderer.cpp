@@ -45,13 +45,15 @@ namespace FG
 */
 	void ImguiRenderer::Deinitialize (const FrameGraph &fg)
 	{
-		fg->ReleaseResource( INOUT _fontTexture );
-		fg->ReleaseResource( INOUT _fontSampler );
-		fg->ReleaseResource( INOUT _pipeline );
-		fg->ReleaseResource( INOUT _vertexBuffer );
-		fg->ReleaseResource( INOUT _indexBuffer );
-		fg->ReleaseResource( INOUT _uniformBuffer );
-
+		if ( fg )
+		{
+			fg->ReleaseResource( INOUT _fontTexture );
+			fg->ReleaseResource( INOUT _fontSampler );
+			fg->ReleaseResource( INOUT _pipeline );
+			fg->ReleaseResource( INOUT _vertexBuffer );
+			fg->ReleaseResource( INOUT _indexBuffer );
+			fg->ReleaseResource( INOUT _uniformBuffer );
+		}
 		_context = null;
 	}
 	
