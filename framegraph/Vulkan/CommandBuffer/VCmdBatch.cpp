@@ -1233,7 +1233,10 @@ namespace FG
 		dbg_mode.mode			= EShaderDebugMode::Timemap;
 		dbg_mode.shaderStages	= stages;
 
-		BytesU		size = SizeOf<uint> * 4 + (dim.x * dim.y * SizeOf<uint64_t>) + (dim.y * SizeOf<uint64_t>);
+		BytesU		size =	(SizeOf<uint> * 4) +																	// first 4 components
+							(dim.x * dim.y * SizeOf<uint64_t>) +													// output pixels
+							_frameGraph.GetDevice().GetDeviceProperties().limits.minStorageBufferOffsetAlignment +	// align
+							(dim.y * SizeOf<uint64_t>);																// temporary line
 		
 		CHECK_ERR( _AllocStorage( INOUT dbg_mode, size ));
 		
