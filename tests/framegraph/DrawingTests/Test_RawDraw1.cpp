@@ -6,8 +6,8 @@
 namespace FG
 {
 
-	static bool CreatePipeline (const VulkanDevice &vulkan, const VulkanDrawContext &ctx, const GraphicsPipelineDesc &desc,
-								OUT VkPipelineLayout &pplnLayout, OUT VkPipeline &pipeline)
+	static bool  CreatePipeline (const VulkanDevice &vulkan, const VulkanDrawContext &ctx, const GraphicsPipelineDesc &desc,
+								 OUT VkPipelineLayout &pplnLayout, OUT VkPipeline &pipeline)
 	{
 		// create pipeline layout
 		{
@@ -116,6 +116,38 @@ namespace FG
 		VK_CHECK( vulkan.vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &pipeline ));
 		return true;
 	}
+	
+
+	struct CustomDrawData
+	{
+		VulkanDevice &			vulkan;
+		VkPipeline &			pipeline;
+		GraphicsPipelineDesc &	pplnDesc;
+		VkPipelineLayout &		pplnLayout;
+		const uint2				viewSize;
+	};
+
+	static void  CustomDrawFn (void* param, IDrawContext& ctx)
+	{
+		auto*	data = Cast<CustomDrawData>( param );
+
+		VulkanDrawContext const&	vk_ctx = UnionGet<VulkanDrawContext>( ctx.GetData() );
+		VkCommandBuffer				cmdbuf = BitCast<VkCommandBuffer>( vk_ctx.commandBuffer );
+
+		if ( not data->pipeline )
+			CreatePipeline( data->vulkan, vk_ctx, data->pplnDesc, OUT data->pplnLayout, OUT data->pipeline );
+
+		VkRect2D	scissor  = { {}, {data->viewSize.x, data->viewSize.y} };
+		VkViewport	viewport = {};
+		viewport.minDepth	= 0.0f;						viewport.maxDepth	= 1.0f;
+		viewport.x			= 0.0f;						viewport.y			= 0.0f;
+		viewport.width		= float(data->viewSize.x);	viewport.height		= float(data->viewSize.y);
+
+		data->vulkan.vkCmdBindPipeline( cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, data->pipeline );
+		data->vulkan.vkCmdSetViewport( cmdbuf, 0, 1, &viewport );
+		data->vulkan.vkCmdSetScissor( cmdbuf, 0, 1, &scissor );
+		data->vulkan.vkCmdDraw( cmdbuf, 3, 1, 0, 0 );
+	}
 
 
 	bool FGApp::Test_RawDraw1 ()
@@ -208,26 +240,8 @@ void main() {
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 											.AddViewport( view_size ) );
 		
-		cmd->AddTask( render_pass, CustomDraw{ [&] (IDrawContext &ctx)
-											{
-												VulkanDrawContext const&	vk_ctx = UnionGet<VulkanDrawContext>( ctx.GetData() );
-												VkCommandBuffer				cmdbuf = BitCast<VkCommandBuffer>( vk_ctx.commandBuffer );
-
-												if ( not pipeline )
-													CreatePipeline( _vulkan, vk_ctx, ppln, OUT ppln_layout, OUT pipeline );
-
-												VkViewport	viewport = {};
-												viewport.minDepth	= 0.0f;					viewport.maxDepth	= 1.0f;
-												viewport.x			= 0.0f;					viewport.y			= 0.0f;
-												viewport.width		= float(view_size.x);	viewport.height		= float(view_size.y);
-
-												VkRect2D	scissor = { {}, {view_size.x, view_size.y} };
-
-												_vulkan.vkCmdBindPipeline( cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline );
-												_vulkan.vkCmdSetViewport( cmdbuf, 0, 1, &viewport );
-												_vulkan.vkCmdSetScissor( cmdbuf, 0, 1, &scissor );
-												_vulkan.vkCmdDraw( cmdbuf, 3, 1, 0, 0 );
-											} });
+		CustomDrawData	draw_data{ _vulkan, pipeline, ppln, ppln_layout, view_size };
+		cmd->AddTask( render_pass, CustomDraw{ &CustomDrawFn, &draw_data });
 
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );

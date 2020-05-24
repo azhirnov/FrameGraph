@@ -259,6 +259,7 @@ namespace FG
 		Buffers_t			_buffers;
 	public:
 		const Callback_t	callback;
+		void* const			callbackParam;
 
 	// methods
 		VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const CustomDraw &task, ProcessFunc_t pass1, ProcessFunc_t pass2);

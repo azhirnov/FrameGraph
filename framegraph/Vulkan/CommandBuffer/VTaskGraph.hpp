@@ -253,7 +253,7 @@ namespace FG
 =================================================
 */
 	inline VFgDrawTask<CustomDraw>::VFgDrawTask (VLogicalRenderPass &, VCommandBuffer &cb, const CustomDraw &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
-		IDrawTask{ task, pass1, pass2 },	callback{ task.callback }
+		IDrawTask{ task, pass1, pass2 },	callback{ task.callback },	callbackParam{ task.callbackParam }
 	{
 		if ( task.images.size() )
 		{

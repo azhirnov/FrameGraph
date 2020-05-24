@@ -474,13 +474,14 @@ namespace _fg_hidden_
 	struct CustomDraw final : _fg_hidden_::BaseDrawTask<CustomDraw>
 	{
 	// types
-		using Callback_t	= std::function< void (IDrawContext &) >;
+		using Callback_t	= void (*) (void*, IDrawContext &);
 		using Images_t		= FixedArray< Pair< RawImageID, EResourceState >, 8 >;
 		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;
 
 
 	// variables
 		Callback_t		callback;
+		void *			callbackParam	= null;
 		Images_t		images;		// can be used for pipeline barriers and layout transitions
 		Buffers_t		buffers;
 
@@ -489,10 +490,10 @@ namespace _fg_hidden_
 		CustomDraw () :
 			BaseDrawTask<CustomDraw>{ "CustomDraw", ColorScheme::CustomDraw } {}
 
-		template <typename FN>
-		explicit CustomDraw (FN &&fn) : CustomDraw{}
+		explicit CustomDraw (Callback_t cb, void* param = null) : CustomDraw{}
 		{
-			callback = Callback_t{ fn };
+			callback		= cb;
+			callbackParam	= param;
 		}
 
 		CustomDraw&  AddImage (RawImageID id, EResourceState state = EResourceState::ShaderSample)

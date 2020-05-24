@@ -822,7 +822,7 @@ namespace FG
 	{
 		DrawContext	ctx{ _tp, *_currTask->GetLogicalPass() };
 
-		task.callback( ctx );
+		task.callback( task.callbackParam, ctx );
 	}
 //-----------------------------------------------------------------------------
 	
