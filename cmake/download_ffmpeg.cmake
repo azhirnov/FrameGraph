@@ -70,13 +70,13 @@ if (TRUE) #(${FG_ALLOW_GPL})
 		LOG_BUILD 			1
 		# install
 		INSTALL_COMMAND 	${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avcodec-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avcodec-58.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avdevice-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avdevice-58.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avfilter-7.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/aavfilter-7.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avformat-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avformat-58.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avutil-56.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avutil-56.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/postproc-55.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/postproc-55.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/swresample-3.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/swresample-3.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/swscale-5.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/swscale-5.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avdevice-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avdevice-58.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avfilter-7.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/aavfilter-7.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avformat-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avformat-58.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avutil-56.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avutil-56.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/postproc-55.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/postproc-55.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/swresample-3.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/swresample-3.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/swscale-5.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/swscale-5.dll"
 		LOG_INSTALL 		1
 		# test
 		TEST_COMMAND		""

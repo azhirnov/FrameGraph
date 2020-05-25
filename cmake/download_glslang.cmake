@@ -214,8 +214,12 @@ elseif (${FG_ENABLE_GLSLANG})
 	endif ()
 
 	# glslang libraries
-	set( FG_GLSLANG_LIBNAMES "SPIRV" "glslang" "OSDependent" "HLSL" )
+	set( FG_GLSLANG_LIBNAMES "SPIRV" "glslang" "OSDependent" )
 	
+	if (${ENABLE_HLSL})
+		set( FG_GLSLANG_LIBNAMES ${FG_GLSLANG_LIBNAMES} "HLSL" )
+	endif ()
+
 	if (UNIX)
 		set( FG_GLSLANG_LIBNAMES "${FG_GLSLANG_LIBNAMES}" "pthread" )
 	endif ()

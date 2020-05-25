@@ -1,6 +1,6 @@
 # find or download DevIL SDK
 
-if (${FG_ENABLE_DEVIL})
+if (${FG_ENABLE_DEVIL} AND WIN32)
 	set( FG_EXTERNAL_DEVIL_PATH "" CACHE PATH "path to DevIL SDK" )
 	mark_as_advanced( FG_EXTERNAL_DEVIL_PATH )
 
@@ -25,6 +25,8 @@ if (${FG_ENABLE_DEVIL})
 	else ()
 		message( FATAL_ERROR "can't detect 32 or 64-bit platform" )
 	endif()
+	
+	set( FG_DEVIL_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/DevIL" )
 
 	ExternalProject_Add( "External.DevIL"
 		LIST_SEPARATOR		"${FG_LIST_SEPARATOR}"
@@ -45,9 +47,13 @@ if (${FG_ENABLE_DEVIL})
 		BUILD_COMMAND		""
 		LOG_BUILD 			1
 		# install
-		INSTALL_COMMAND		${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/DevIL.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/DevIL.dll"
-							COMMAND  ${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/ILU.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/ILU.dll"
-		INSTALL_DIR 		""
+		INSTALL_COMMAND		${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/DevIL.dll"	"${MAIN_BINARY_DIR}/$<CONFIG>/DevIL.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/ILU.dll"		"${MAIN_BINARY_DIR}/$<CONFIG>/ILU.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/DevIL.lib"	"${FG_DEVIL_INSTALL_DIR}/lib/DevIL.lib"
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FG_DEVIL_LIBRARY_DIR}/ILU.lib"		"${FG_DEVIL_INSTALL_DIR}/lib/ILU.lib"
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FG_EXTERNAL_DEVIL_PATH}/include/IL/il.h"	"${FG_DEVIL_INSTALL_DIR}/include/IL/il.h"
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FG_EXTERNAL_DEVIL_PATH}/include/IL/ilu.h"	"${FG_DEVIL_INSTALL_DIR}/include/IL/ilu.h"
+		INSTALL_DIR 		${FG_DEVIL_INSTALL_DIR}
 		LOG_INSTALL 		1
 		# test
 		TEST_COMMAND		""
@@ -57,9 +63,9 @@ if (${FG_ENABLE_DEVIL})
 
 	add_library( "DevIL-lib" INTERFACE )
 	set_property( TARGET "DevIL-lib" PROPERTY INTERFACE_LINK_LIBRARIES
-		"${FG_DEVIL_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}DevIL${CMAKE_STATIC_LIBRARY_SUFFIX}"
-		"${FG_DEVIL_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}ILU${CMAKE_STATIC_LIBRARY_SUFFIX}" )
-	target_include_directories( "DevIL-lib" INTERFACE "${FG_EXTERNAL_DEVIL_PATH}/include" )
+		"${FG_DEVIL_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}DevIL${CMAKE_STATIC_LIBRARY_SUFFIX}"
+		"${FG_DEVIL_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}ILU${CMAKE_STATIC_LIBRARY_SUFFIX}" )
+	target_include_directories( "DevIL-lib" INTERFACE "${FG_DEVIL_INSTALL_DIR}/include" )
 	target_compile_definitions( "DevIL-lib" INTERFACE "FG_ENABLE_DEVIL" )
 	add_dependencies( "DevIL-lib" "External.DevIL" )
 endif ()
