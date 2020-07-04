@@ -32,7 +32,7 @@ queue.familyIndex = vulkan.GetVkQueues()[0].familyIndex;
 vulkan_info.push_back( queue );
 
 // create framegraph instance
-FrameGraph frameGraoh = IFrameGraph::CreateFrameGraph( vulkan_info );
+FrameGraph frameGraph = IFrameGraph::CreateFrameGraph( vulkan_info );
 
 // setup swapchain description
 VulkanSwapchainCreateInfo swapchain_info;
@@ -57,7 +57,7 @@ IPipelineCompilerPtr compiler = MakeShared<VPipelineCompiler>( vulkan.GetVkPhysi
 compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations );
 
 // add to framegraph
-frameGraoh->AddPipelineCompiler( compiler );
+frameGraph->AddPipelineCompiler( compiler );
 ```
 
 Now create graphics pipeline:
@@ -129,7 +129,7 @@ for (uint frame_id = 0;; ++frame_id)
 
 	// finilize recording, compile frame graph for command buffer.
 	// command buffer may be submitted at any time.
-	frameGraoh->Execute( cmdBuffer );
+	frameGraph->Execute( cmdBuffer );
 
 	// submit all pending command buffers and present all pending swapchain images.
 	frameGraph->Flush();
@@ -140,8 +140,8 @@ submittedCmdBuffers[0] = null;
 submittedCmdBuffers[1] = null;
 
 // deinitialize
-frameGraoh->Deinitialize();
-frameGraoh = nullptr;
+frameGraph->Deinitialize();
+frameGraph = nullptr;
 ```
 
 ## Drawing
@@ -197,7 +197,7 @@ cmdBuffer->AddTask( Present{ swapchain, image });
 
 ## Task dependencies
 
-By default all tasks executed in same order that they has been recorded to command buffer.<br/>
+By default, all tasks executed in same order that they has been recorded to command buffer.<br/>
 Additionally you can add explicit dependencies `taskN.DependsOn( task1, task2, task3 )`.<br/>
 Tasks `task1, task2, task3, taskN` may execute in any order, taking into account only explicit dependencies.<br/>
 
