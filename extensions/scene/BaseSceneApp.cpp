@@ -447,8 +447,9 @@ namespace FG
 		TimePoint_t		now			= TimePoint_t::clock::now();
 		int64_t			duration	= duration_cast<milliseconds>(now - _frameStat.lastUpdateTime).count();
 
-		IFrameGraph::Statistics		stat;
+		auto&	stat = _frameStat.fgStat;
 		_frameGraph->GetStatistics( OUT stat );
+
 		_frameStat.gpuTimeSum += stat.renderer.gpuTime;
 		_frameStat.cpuTimeSum += stat.renderer.cpuTime + stat.renderer.submitingTime + stat.renderer.waitingTime;
 
