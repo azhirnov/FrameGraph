@@ -151,7 +151,7 @@ namespace FGC
 	ND_ inline constexpr To  BitCast (const From& src)
 	{
 		STATIC_ASSERT( sizeof(To) == sizeof(From), "must be same size!" );
-		STATIC_ASSERT( alignof(To) == alignof(From), "must be same align!" );
+		//STATIC_ASSERT( alignof(To) == alignof(From), "must be same align!" );
 		//STATIC_ASSERT( std::is_trivially_copyable<From>::value and std::is_trivial<To>::value, "must be trivial types!" );
 
 		To	dst;

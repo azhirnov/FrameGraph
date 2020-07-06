@@ -1,17 +1,16 @@
-// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
-
-#if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) && defined(FG_STD_FILESYSTEM)
+// Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "GraphViz.h"
+
+#if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) && defined(FS_HAS_FILESYSTEM)
+
 #include "stl/Algorithms/ArrayUtils.h"
 #include "stl/Algorithms/StringUtils.h"
-#include "stl/Stream/FileStream.h"
 #include "stl/Platforms/WindowsHeader.h"
 #include <thread>
 
 namespace FG
 {
-	namespace FS = std::filesystem;
 	
 /*
 =================================================
@@ -51,6 +50,8 @@ namespace FG
 		
 		DWORD process_exit;
 		::GetExitCodeProcess( proc_info.hProcess, OUT &process_exit );
+		
+		::CloseHandle( proc_info.hProcess );
 
 		//std::this_thread::sleep_for( std::chrono::milliseconds(1) );
 		return true;
@@ -113,7 +114,7 @@ namespace FG
 	Visualize
 =================================================
 */
-	bool GraphViz::Visualize (const FrameGraph &instance, const std::filesystem::path &filepath, StringView format, bool autoOpen, bool deleteOrigin)
+	bool GraphViz::Visualize (const FrameGraph &instance, const FS::path &filepath, StringView format, bool autoOpen, bool deleteOrigin)
 	{
 		String	str;
 		CHECK_ERR( instance->DumpToGraphViz( OUT str ));
@@ -125,4 +126,4 @@ namespace FG
 
 }	// FG
 
-#endif	// FG_GRAPHVIZ_DOT_EXECUTABLE and FG_STD_FILESYSTEM
+#endif	// FG_GRAPHVIZ_DOT_EXECUTABLE and FS_HAS_FILESYSTEM

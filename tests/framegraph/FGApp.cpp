@@ -27,7 +27,7 @@ namespace {
 =================================================
 */
 	FGApp::FGApp ()
-	{	
+	{
 		_tests.push_back({ &FGApp::Test_CopyBuffer1,	1 });
 		_tests.push_back({ &FGApp::Test_CopyImage1,		1 });
 		_tests.push_back({ &FGApp::Test_CopyImage2,		1 });
@@ -349,12 +349,12 @@ namespace {
 */
 	bool FGApp::Visualize (StringView name) const
 	{
-#	if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FG_STD_FILESYSTEM)
+#	if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FS_HAS_FILESYSTEM)
 
 		String	str;
 		CHECK_ERR( _frameGraph->DumpToGraphViz( OUT str ));
 		
-		auto	path = std::filesystem::path{ FG_TEST_GRAPHS_DIR }.append( name.data() ).replace_extension( "dot" );
+		auto	path = FS::path{ FG_TEST_GRAPHS_DIR }.append( name.data() ).replace_extension( "dot" );
 
 		CHECK( GraphViz::Visualize( str, path, "png", false, true ));
 

@@ -95,7 +95,10 @@ namespace FG
 				dev_ext.push_back( ext.c_str() );
 			}
 
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_2,
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(),
+									   _title,
+									   IFrameGraph::GetVersion(),
+									   VK_API_VERSION_1_2,
 									   cfg.deviceName,
 									   {},
 									   layers,
@@ -178,7 +181,7 @@ namespace FG
 
 			_debugOutputPath = path.string();
 		}
-	#endif	// FG_STD_FILESYSTEM
+	#endif	// FS_HAS_FILESYSTEM
 
 		_SetupCamera( _cameraFov, _viewRange );
 		return true;

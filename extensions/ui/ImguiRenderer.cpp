@@ -14,6 +14,16 @@ namespace FG
 	ImguiRenderer::ImguiRenderer ()
 	{
 	}
+
+/*
+=================================================
+	destructor
+=================================================
+*/
+	ImguiRenderer::~ImguiRenderer ()
+	{
+		ImGui::DestroyContext();
+	}
 	
 /*
 =================================================

@@ -35,6 +35,7 @@ namespace FG
 	// methods
 	public:
 		ImguiRenderer ();
+		~ImguiRenderer ();
 
 		bool  Initialize (const FrameGraph &fg, ImGuiContext *ctx);
 		void  Deinitialize (const FrameGraph &fg);

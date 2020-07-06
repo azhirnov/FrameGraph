@@ -155,8 +155,8 @@ namespace FGC
 	constructor
 =================================================
 */
-#ifdef FG_STD_FILESYSTEM
-	FileWStream::FileWStream (const std::filesystem::path &path)
+#ifdef FS_HAS_FILESYSTEM
+	FileWStream::FileWStream (const FS::path &path)
 	{
 #	ifdef PLATFORM_WINDOWS
 		_wfopen_s( OUT &_file, path.c_str(), L"wb" );
