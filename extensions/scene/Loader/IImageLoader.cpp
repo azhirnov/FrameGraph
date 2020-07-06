@@ -23,7 +23,7 @@ namespace {
 		{
 			FS::path	img_path {};
 
-			img_path.append( name );
+			img_path.append( name.begin(), name.end() );
 
 			if ( FS::exists( img_path ) )
 			{
@@ -37,7 +37,7 @@ namespace {
 		{
 			FS::path	img_path {dir};
 			
-			img_path.append( name );
+			img_path.append( name.begin(), name.end() );
 
 			if ( FS::exists( img_path ) )
 			{

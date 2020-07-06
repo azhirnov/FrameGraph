@@ -451,34 +451,34 @@ namespace FGC
 =================================================
 	StringTo***
 =================================================
-*/
+*
 	ND_ inline int  StringToInt (StringView str)
 	{
 		int		val = 0;
-		std::from_chars( str.data(), str.data() + str.size(), OUT val );
+		std::from_chars( str.data(), str.data() + str.size(), OUT val, 10 );
 		return val;
 	}
 	
 	ND_ inline uint  StringToUInt (StringView str)
 	{
 		uint	val = 0;
-		std::from_chars( str.data(), str.data() + str.size(), OUT val );
+		std::from_chars( str.data(), str.data() + str.size(), OUT val, 10 );
 		return val;
 	}
 	
 	ND_ inline float  StringToFloat (StringView str)
 	{
 		float	val = 0.0f;
-		std::from_chars( str.data(), str.data() + str.size(), OUT val );
+		std::from_chars( str.data(), str.data() + str.size(), OUT val, std::chars_format::general );
 		return val;
 	}
 	
 	ND_ inline double  StringToDouble (StringView str)
 	{
 		double	val = 0.0;
-		std::from_chars( str.data(), str.data() + str.size(), OUT val );
+		std::from_chars( str.data(), str.data() + str.size(), OUT val, std::chars_format::general );
 		return val;
 	}
-
+*/
 
 }	// FGC

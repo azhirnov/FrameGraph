@@ -236,7 +236,7 @@ namespace FG
 	ShaderCache::ShaderSourceID  ShaderCache::CacheFileSource (StringView filename)
 	{
 		fpath	path{ _filePath };
-		path.append( filename );
+		path.append( filename.begin(), filename.end() );
 
 		FileRStream		file{ path };
 		CHECK_ERR( file.IsOpen() );

@@ -169,7 +169,7 @@ namespace FG
 			Visit( un.second.data,
 				[&] (const PipelineDescription::Texture &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Texture>( &iter->second.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Texture>( &iter->second.data ))
 					{
 						ASSERT( lhs.textureType	== rhs->textureType );
 						ASSERT( un.second.index	== iter->second.index );
@@ -186,7 +186,7 @@ namespace FG
 				   
 				[&] (const PipelineDescription::Sampler &)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Sampler>( &iter->second.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Sampler>( &iter->second.data ))
 					{
 						ASSERT( un.second.index == iter->second.index );
 
@@ -200,7 +200,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::SubpassInput &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::SubpassInput>( &iter->second.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::SubpassInput>( &iter->second.data ))
 					{
 						ASSERT( lhs.attachmentIndex	== rhs->attachmentIndex );
 						ASSERT( lhs.isMultisample	== rhs->isMultisample );
@@ -219,7 +219,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::Image &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::Image>( &iter->second.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Image>( &iter->second.data ))
 					{
 						ASSERT( lhs.imageType	== rhs->imageType );
 						ASSERT( lhs.format		== rhs->format );
@@ -240,7 +240,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::UniformBuffer &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::UniformBuffer>( &iter->second.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::UniformBuffer>( &iter->second.data ))
 					{
 						ASSERT( lhs.size		== rhs->size );
 						ASSERT( un.second.index	== iter->second.index );
@@ -257,7 +257,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::StorageBuffer &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::StorageBuffer>( &iter->second.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::StorageBuffer>( &iter->second.data ))
 					{
 						ASSERT( lhs.staticSize	== rhs->staticSize );
 						ASSERT( lhs.arrayStride	== rhs->arrayStride );
@@ -278,7 +278,7 @@ namespace FG
 					
 				[&] (const PipelineDescription::RayTracingScene &lhs)
 				{
-					if ( auto* rhs = std::get_if<PipelineDescription::RayTracingScene>( &iter->second.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::RayTracingScene>( &iter->second.data ))
 					{
 						ASSERT( lhs.state == rhs->state );
 
@@ -290,7 +290,7 @@ namespace FG
 					}
 				},
 
-				[] (const std::monostate &) { ASSERT(false); }
+				[] (const NullUnion &) { ASSERT(false); }
 			);
 
 			CHECK_ERR( not type_missmatch );

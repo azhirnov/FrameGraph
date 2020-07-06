@@ -14,7 +14,14 @@
 #elif defined(FG_ENABLE_FILESYSTEM)
 #	define FS_HAS_FILESYSTEM
 #	include "stl/Platforms/WindowsHeader.h"
-#	include "ghc/filesystem.hpp"
+#	ifdef COMPILER_MSVC
+#	  pragma warning (push)
+#	  pragma warning (disable: 4668)
+#	  include "ghc/filesystem.hpp"
+#	  pragma warning (pop)
+#	else
+#	  include "ghc/filesystem.hpp"
+#	endif
 	namespace FGC { namespace FS = ghc::filesystem; }
 
 #endif

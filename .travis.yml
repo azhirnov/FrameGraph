@@ -3,7 +3,7 @@ matrix:
   include:
     # Linux x64 GCC 8
     - os: linux
-      name: linux64 GCC 8
+      name: Linux64 GCC 8
       dist: xenial
       addons:
         apt:
@@ -28,7 +28,7 @@ matrix:
      
     # Linux x64 GCC 9
     - os: linux
-      name: linux64 GCC 9
+      name: Linux64 GCC 9
       dist: xenial
       addons:
         apt:
@@ -53,18 +53,19 @@ matrix:
      
     # Linux x64 Clang 8
     - os: linux
-      name: linux64 Clang 8
+      name: Linux64 Clang 8
       dist: xenial
+      compiler: clang
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-8.0
+            - llvm-toolchain-xenial-8
           packages:
             - xorg-dev
-            - clang-8.0
+            - clang-8
       before_install:
-        - eval "CC=clang-8.0 && CXX=clang++-8.0"
+        - eval "CC=clang-8 && CXX=clang++-8"
         # Download and install cmake
         - mkdir $HOME/cmake;
         - export PATH="$HOME/cmake/bin:$PATH";

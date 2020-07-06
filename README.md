@@ -30,8 +30,8 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 
 
 ## Suported Platforms
-* Windows (with MSVC 2017, 2019)
-* Linux (with GCC 8.2)
+* Windows (with MSVC 2017+)
+* Linux (with GCC 8+, Clang 8+)
 
 
 ## Building

@@ -54,7 +54,7 @@ namespace FGC
 	FileRStream::FileRStream (const FS::path &path)
 	{
 #	ifdef PLATFORM_WINDOWS
-		_wfopen_s( OUT &_file, path.c_str(), L"rb" );
+		_wfopen_s( OUT &_file, path.wstring().c_str(), L"rb" );
 #	else
 		fopen_s( OUT &_file, path.c_str(), "rb" );
 #	endif
@@ -159,7 +159,7 @@ namespace FGC
 	FileWStream::FileWStream (const FS::path &path)
 	{
 #	ifdef PLATFORM_WINDOWS
-		_wfopen_s( OUT &_file, path.c_str(), L"wb" );
+		_wfopen_s( OUT &_file, path.wstring().c_str(), L"wb" );
 #	else
 		fopen_s( OUT &_file, path.c_str(), "wb" );
 #	endif
