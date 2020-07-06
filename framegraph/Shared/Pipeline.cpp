@@ -45,17 +45,17 @@ namespace FG
 */
 	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName)
 	{
-		data.insert({ fmt, MakeShared<ShaderDataImpl<String>>( std::move(src), entry, dbgName ) });
+		data.insert_or_assign( fmt, MakeShared<ShaderDataImpl<String>>( std::move(src), entry, dbgName ));
 	}
 	
 	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
 	{
-		data.insert({ fmt, MakeShared<ShaderDataImpl<Array<uint8_t>>>( std::move(bin), entry, dbgName ) });
+		data.insert_or_assign( fmt, MakeShared<ShaderDataImpl<Array<uint8_t>>>( std::move(bin), entry, dbgName ));
 	}
 	
 	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
-		data.insert({ fmt, MakeShared<ShaderDataImpl<Array<uint>>>( std::move(bin), entry, dbgName ) });
+		data.insert_or_assign( fmt, MakeShared<ShaderDataImpl<Array<uint>>>( std::move(bin), entry, dbgName ));
 	}
 //-----------------------------------------------------------------------------
 	
@@ -252,31 +252,31 @@ namespace FG
 						  uniformBuffers.size() + storageBuffers.size() + rtScenes.size() );
 
 		for (auto& tex : textures) {
-			uniforms.insert({ tex.id, {Texture{ tex.data }, tex.index, tex.arraySize, tex.stageFlags} });
+			uniforms.insert_or_assign( tex.id, Uniform{ Texture{ tex.data }, tex.index, tex.arraySize, tex.stageFlags });
 		}
 
 		for (auto& samp : samplers) {
-			uniforms.insert({ samp.id, {Sampler{ samp.data }, samp.index, samp.arraySize, samp.stageFlags} });
+			uniforms.insert_or_assign( samp.id, Uniform{ Sampler{ samp.data }, samp.index, samp.arraySize, samp.stageFlags });
 		}
 
 		for (auto& spi : subpassInputs) {
-			uniforms.insert({ spi.id, {SubpassInput{ spi.data }, spi.index, spi.arraySize, spi.stageFlags} });
+			uniforms.insert_or_assign( spi.id, Uniform{ SubpassInput{ spi.data }, spi.index, spi.arraySize, spi.stageFlags });
 		}
 
 		for (auto& img : images) {
-			uniforms.insert({ img.id, {Image{ img.data }, img.index, img.arraySize, img.stageFlags} });
+			uniforms.insert_or_assign( img.id, Uniform{ Image{ img.data }, img.index, img.arraySize, img.stageFlags });
 		}
 
 		for (auto& ub : uniformBuffers) {
-			uniforms.insert({ ub.id, {UniformBuffer{ ub.data }, ub.index, ub.arraySize, ub.stageFlags} });
+			uniforms.insert_or_assign( ub.id, Uniform{ UniformBuffer{ ub.data }, ub.index, ub.arraySize, ub.stageFlags });
 		}
 
 		for (auto& sb : storageBuffers) {
-			uniforms.insert({ sb.id, {StorageBuffer{ sb.data }, sb.index, sb.arraySize, sb.stageFlags} });
+			uniforms.insert_or_assign( sb.id, Uniform{ StorageBuffer{ sb.data }, sb.index, sb.arraySize, sb.stageFlags });
 		}
 
 		for (auto& rts : rtScenes) {
-			uniforms.insert({ rts.id, {RayTracingScene{ rts.data.state }, rts.index, rts.arraySize, rts.stageFlags} });
+			uniforms.insert_or_assign( rts.id, Uniform{ RayTracingScene{ rts.data.state }, rts.index, rts.arraySize, rts.stageFlags });
 		}
 
 		ds.uniforms = MakeShared<UniformMap_t>( std::move(uniforms) );
@@ -292,7 +292,7 @@ namespace FG
 	{
 		for (auto& pc : values)
 		{
-			_pipelineLayout.pushConstants.insert({ pc.id, pc.data });
+			_pipelineLayout.pushConstants.insert_or_assign( pc.id, PushConstant{pc.data} );
 		}
 	}
 
@@ -304,10 +304,10 @@ namespace FG
 	static void CopySpecConstants (ArrayView<PipelineDescription::SpecConstant> src, OUT PipelineDescription::SpecConstants_t &dst)
 	{
 		for (auto& val : src) {
-			dst.insert({ val.id, val.index });
+			dst.insert_or_assign( val.id, uint(val.index) );
 		}
 
-		CHECK( src.size() == dst.size() );
+		CHECK( dst.size() >= src.size() );
 	}
 //-----------------------------------------------------------------------------
 	
@@ -381,7 +381,7 @@ namespace FG
 		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
 		ASSERT( shader.data.count( fmt ) == 0 );
 
-		shader.data.insert({ fmt, module });
+		shader.data.insert_or_assign( fmt, module );
 	}
 
 /*
@@ -630,7 +630,7 @@ namespace FG
 		ASSERT( shader.data.count( fmt ) == 0 );
 
 		shader.shaderType = shaderType;
-		shader.data.insert({ fmt, module });
+		shader.data.insert_or_assign( fmt, module );
 		return *this;
 	}
 
@@ -690,7 +690,7 @@ namespace FG
 	ComputePipelineDesc&  ComputePipelineDesc::AddShader (EShaderLangFormat fmt, const VkShaderPtr &module)
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
-		_shader.data.insert({ fmt, module });
+		_shader.data.insert_or_assign( fmt, module );
 		return *this;
 	}
 
