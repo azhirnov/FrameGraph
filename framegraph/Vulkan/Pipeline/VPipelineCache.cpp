@@ -239,7 +239,7 @@ namespace FG
 		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
 		VkPipelineViewportStateCreateInfo		viewport_info		= {};
 
-		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, gppln._shaders, dbg_mode, dbg_stages );
+		CHECK_ERR( _SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, gppln._shaders, dbg_mode, dbg_stages ));
 		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
 		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
 		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
@@ -372,7 +372,7 @@ namespace FG
 		VkPipelineVertexInputStateCreateInfo	vertex_input_info	= {};
 		VkPipelineViewportStateCreateInfo		viewport_info		= {};
 
-		_SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln._shaders, dbg_mode, dbg_stages );
+		CHECK_ERR( _SetShaderStages( OUT _tempStages, INOUT _tempSpecialization, INOUT _tempSpecEntries, mppln._shaders, dbg_mode, dbg_stages ));
 		_SetDynamicState( OUT dynamic_state_info, OUT _tempDynamicStates, inst.dynamicState );
 		_SetColorBlendState( OUT blend_info, OUT _tempAttachments, inst.renderState.color, *render_pass, inst.subpassIndex );
 		_SetMultisampleState( OUT multisample_info, inst.renderState.multisample );
@@ -490,12 +490,14 @@ namespace FG
 		VkSpecializationInfo			spec = {};
 		VkComputePipelineCreateInfo		pipeline_info = {};
 
-		pipeline_info.sType			= VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-		pipeline_info.layout		= outLayout->Handle();
-		pipeline_info.flags			= inst.flags;
-		pipeline_info.stage.sType	= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		pipeline_info.stage.flags	= 0;
-		pipeline_info.stage.stage	= VK_SHADER_STAGE_COMPUTE_BIT;
+		pipeline_info.sType				= VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		pipeline_info.layout			= outLayout->Handle();
+		pipeline_info.flags				= inst.flags;
+		pipeline_info.basePipelineIndex	= -1;
+		pipeline_info.basePipelineHandle= VK_NULL_HANDLE;
+		pipeline_info.stage.sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		pipeline_info.stage.flags		= 0;
+		pipeline_info.stage.stage		= VK_SHADER_STAGE_COMPUTE_BIT;
 
 		// find module with required debug mode
 		for (auto& sh : cppln._shaders)
@@ -995,7 +997,7 @@ namespace FG
 	_SetShaderStages
 =================================================
 */
-	void VPipelineCache::_SetShaderStages (OUT ShaderStages_t &stages,
+	bool VPipelineCache::_SetShaderStages (OUT ShaderStages_t &stages,
 										   INOUT Specializations_t &,
 										   INOUT SpecializationEntries_t &,
 										   ArrayView< ShaderModule_t > shaders,
@@ -1031,7 +1033,33 @@ namespace FG
 		}
 
 		// check if all shader stages added
-		ASSERT( exist_stages == used_stages );
+		if ( exist_stages != used_stages and debuggable_stages != 0 )
+		{
+			VkShaderStageFlags	req_stages = exist_stages & ~used_stages;
+			
+			for (auto& sh : shaders)
+			{
+				if ( EnumEq( req_stages, sh.stage ) and sh.debugMode == Default )
+				{
+					used_stages |= sh.stage;
+					req_stages  &= ~sh.stage;
+
+					VkPipelineShaderStageCreateInfo	info = {};
+					info.sType	= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+					info.pNext	= null;
+					info.flags	= 0;
+					info.module	= BitCast<VkShaderModule>( sh.module->GetData() );
+					info.pName	= sh.module->GetEntry().data();
+					info.stage	= sh.stage;
+					info.pSpecializationInfo = null;	// TODO
+
+					stages.push_back( info );
+				}
+			}
+		}
+
+		CHECK_ERR( exist_stages == used_stages );
+		return true;
 	}
 
 /*

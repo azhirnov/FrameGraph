@@ -242,7 +242,7 @@ namespace FG
 		void  DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
 		
 	private:
-		void  _BindPipeline (uint mask);
+		bool  _BindPipeline (uint mask);
 	};
 //-----------------------------------------------------------------------------
 	
@@ -679,8 +679,8 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -709,7 +709,8 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -739,7 +740,8 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -772,7 +774,8 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -806,7 +809,8 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
@@ -834,7 +838,8 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
@@ -947,8 +952,10 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	void  VTaskProcessor::DrawContext::_BindPipeline (uint mask)
+	bool  VTaskProcessor::DrawContext::_BindPipeline (uint mask)
 	{
+		bool	result = true;
+
 		mask = _changed & mask;
 
 		if ( _gpipeline and (mask & GRAPHICS_BIT) )
@@ -956,7 +963,7 @@ namespace FG
 			_changed ^= GRAPHICS_BIT;
 
 			VkPipeline	ppln_id;
-			_tp._fgThread.GetPipelineCache().CreatePipelineInstance(
+			if ( _tp._fgThread.GetPipelineCache().CreatePipelineInstance(
 											_tp._fgThread,
 											_logicalRP,
 											*_gpipeline,
@@ -964,10 +971,13 @@ namespace FG
 											_renderState,
 											_dynamicStates,
 											Default,
-											OUT ppln_id, OUT _pplnLayout );
-
-			_tp._BindPipeline2( _logicalRP, ppln_id );
-			_tp._SetScissor( _logicalRP, Default );
+											OUT ppln_id, OUT _pplnLayout ))
+			{
+				_tp._BindPipeline2( _logicalRP, ppln_id );
+				_tp._SetScissor( _logicalRP, Default );
+			}
+			else
+				result = false;
 		}
 
 		if ( _mpipeline and (mask & MESH_BIT) )
@@ -975,18 +985,23 @@ namespace FG
 			_changed ^= MESH_BIT;
 			
 			VkPipeline	ppln_id;
-			_tp._fgThread.GetPipelineCache().CreatePipelineInstance(
+			if ( _tp._fgThread.GetPipelineCache().CreatePipelineInstance(
 											_tp._fgThread,
 											_logicalRP,
 											*_mpipeline,
 											_renderState,
 											_dynamicStates,
 											Default,
-											OUT ppln_id, OUT _pplnLayout );
-		
-			_tp._BindPipeline2( _logicalRP, ppln_id );
-			_tp._SetScissor( _logicalRP, Default );
+											OUT ppln_id, OUT _pplnLayout ))
+			{
+				_tp._BindPipeline2( _logicalRP, ppln_id );
+				_tp._SetScissor( _logicalRP, Default );
+			}
+			else
+				result = false;
 		}
+
+		return result;
 	}
 
 /*
@@ -1264,7 +1279,7 @@ namespace FG
 	void  VTaskProcessor::DrawContext::DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
 	{
 		CHECK( _gpipeline );
-		_BindPipeline( GRAPHICS_BIT );
+		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
 
 		_tp.vkCmdDraw( _tp._cmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
 		
@@ -1282,7 +1297,7 @@ namespace FG
 	void  VTaskProcessor::DrawContext::DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
 	{
 		CHECK( _gpipeline );
-		_BindPipeline( GRAPHICS_BIT );
+		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
 
 		_tp.vkCmdDrawIndexed( _tp._cmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
 		
@@ -1304,7 +1319,7 @@ namespace FG
 		CHECK_ERR( buf, void());
 		CHECK( _gpipeline );
 
-		_BindPipeline( GRAPHICS_BIT );
+		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
 		_tp.vkCmdDrawIndirect( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
 
 		_tp.Stat().drawCalls += drawCount;
@@ -1323,7 +1338,7 @@ namespace FG
 		CHECK_ERR( buf, void());
 		CHECK( _gpipeline );
 		
-		_BindPipeline( GRAPHICS_BIT );
+		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
 		_tp.vkCmdDrawIndexedIndirect( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
 		
 		_tp.Stat().drawCalls += drawCount;
@@ -1339,7 +1354,7 @@ namespace FG
 	void  VTaskProcessor::DrawContext::DrawMeshes (uint taskCount, uint firstTask)
 	{
 		CHECK( _mpipeline );
-		_BindPipeline( MESH_BIT );
+		CHECK_ERR( _BindPipeline( MESH_BIT ), void());
 
 		_tp.vkCmdDrawMeshTasksNV( _tp._cmdBuffer, taskCount, firstTask );
 		_tp.Stat().drawCalls ++;
@@ -1354,9 +1369,9 @@ namespace FG
 	{
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		CHECK_ERR( buf, void());
+
 		CHECK( _mpipeline );
-		
-		_BindPipeline( MESH_BIT );
+		CHECK_ERR( _BindPipeline( MESH_BIT ), void());
 
 		_tp.vkCmdDrawMeshTasksIndirectNV( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
 		_tp.Stat().drawCalls += drawCount;
@@ -2071,7 +2086,7 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, VPipelineLayout const* &pplnLayout)
+	inline bool  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, VPipelineLayout const* &pplnLayout)
 	{
 		RenderState				render_state;
 		EPipelineDynamicState	dynamic_states = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
@@ -2091,7 +2106,7 @@ namespace FG
 		SetupExtensions( logicalRP, INOUT dynamic_states );
 
 		VkPipeline	ppln_id;
-		_fgThread.GetPipelineCache().CreatePipelineInstance(
+		CHECK_ERR( _fgThread.GetPipelineCache().CreatePipelineInstance(
 										_fgThread,
 										logicalRP,
 										*task.pipeline,
@@ -2099,9 +2114,10 @@ namespace FG
 										render_state,
 										dynamic_states,
 										task.debugModeIndex,
-										OUT ppln_id, OUT pplnLayout );
-
+										OUT ppln_id, OUT pplnLayout ));
+		
 		_BindPipeline2( logicalRP, ppln_id );
+		return true;
 	}
 	
 /*
@@ -2109,7 +2125,7 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
+	inline bool  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
 	{
 		RenderState				render_state;
 		EPipelineDynamicState	dynamic_states = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
@@ -2126,16 +2142,17 @@ namespace FG
 		SetupExtensions( logicalRP, INOUT dynamic_states );
 
 		VkPipeline	ppln_id;
-		_fgThread.GetPipelineCache().CreatePipelineInstance(
+		CHECK_ERR( _fgThread.GetPipelineCache().CreatePipelineInstance(
 										_fgThread,
 										logicalRP,
 										*task.pipeline,
 										render_state,
 										dynamic_states,
 										task.debugModeIndex,
-										OUT ppln_id, OUT pplnLayout );
+										OUT ppln_id, OUT pplnLayout ));
 		
 		_BindPipeline2( logicalRP, ppln_id );
+		return true;
 	}
 
 /*
@@ -2143,23 +2160,24 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void  VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize,
+	inline bool  VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize,
 											    ShaderDbgIndex debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout)
 	{
 		VkPipeline	ppln_id;
-		_fgThread.GetPipelineCache().CreatePipelineInstance(
+		CHECK_ERR( _fgThread.GetPipelineCache().CreatePipelineInstance(
 										_fgThread,
 										*pipeline, localSize,
 										flags,
 										debugModeIndex,
-										OUT ppln_id, OUT pplnLayout );
+										OUT ppln_id, OUT pplnLayout ));
 		
 		if ( _computePipeline.pipeline != ppln_id )
 		{
 			_computePipeline.pipeline = ppln_id;
 			vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_id );
-			Stat().computePipelineBindings++;
+			Stat().computePipelineBindings ++;
 		}
+		return true;
 	}
 
 /*
@@ -2173,7 +2191,8 @@ namespace FG
 
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout );
+		CHECK_ERR( _BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
 
@@ -2198,7 +2217,8 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, 0, OUT layout );
+		CHECK_ERR( _BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, 0, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
 		

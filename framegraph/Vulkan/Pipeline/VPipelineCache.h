@@ -151,7 +151,7 @@ namespace FG
 								  const VRenderPass &renderPass,
 								  uint subpassIndex) const;
 
-		void _SetShaderStages (OUT ShaderStages_t &stages,
+		bool _SetShaderStages (OUT ShaderStages_t &stages,
 							   INOUT Specializations_t &specialization,
 							   INOUT SpecializationEntries_t &specEntries,
 							   ArrayView<ShaderModule_t> shaders,
