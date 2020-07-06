@@ -142,19 +142,19 @@ namespace FG
 			virtual bool			CachePipelineResources (INOUT PipelineResources &resources) = 0;
 			virtual void			ReleaseResource (INOUT PipelineResources &resources) = 0;
 
-			// Release reference to resource, if reference counter is 0 then resource will be destroyed after frame execution.
+			// Release reference to resource, Returns 'true' if resource has been deleted.
 			// See synchronization requirements on top of this file.
-			virtual void			ReleaseResource (INOUT GPipelineID &id) = 0;
-			virtual void			ReleaseResource (INOUT CPipelineID &id) = 0;
-			virtual void			ReleaseResource (INOUT MPipelineID &id) = 0;
-			virtual void			ReleaseResource (INOUT RTPipelineID &id) = 0;
-			virtual void			ReleaseResource (INOUT ImageID &id) = 0;
-			virtual void			ReleaseResource (INOUT BufferID &id) = 0;
-			virtual void			ReleaseResource (INOUT SamplerID &id) = 0;
-			virtual void			ReleaseResource (INOUT SwapchainID &id) = 0;
-			virtual void			ReleaseResource (INOUT RTGeometryID &id) = 0;
-			virtual void			ReleaseResource (INOUT RTSceneID &id) = 0;
-			virtual void			ReleaseResource (INOUT RTShaderTableID &id) = 0;
+			virtual bool			ReleaseResource (INOUT GPipelineID &id) = 0;
+			virtual bool			ReleaseResource (INOUT CPipelineID &id) = 0;
+			virtual bool			ReleaseResource (INOUT MPipelineID &id) = 0;
+			virtual bool			ReleaseResource (INOUT RTPipelineID &id) = 0;
+			virtual bool			ReleaseResource (INOUT ImageID &id) = 0;
+			virtual bool			ReleaseResource (INOUT BufferID &id) = 0;
+			virtual bool			ReleaseResource (INOUT SamplerID &id) = 0;
+			virtual bool			ReleaseResource (INOUT SwapchainID &id) = 0;
+			virtual bool			ReleaseResource (INOUT RTGeometryID &id) = 0;
+			virtual bool			ReleaseResource (INOUT RTSceneID &id) = 0;
+			virtual bool			ReleaseResource (INOUT RTShaderTableID &id) = 0;
 
 			// Returns resource description.
 		ND_ virtual BufferDesc const&	GetDescription (RawBufferID id) const = 0;

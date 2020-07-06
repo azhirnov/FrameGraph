@@ -116,17 +116,17 @@ namespace FG
 		bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			CachePipelineResources (INOUT PipelineResources &resources) override;
 		void			ReleaseResource (INOUT PipelineResources &resources) override;
-		void			ReleaseResource (INOUT GPipelineID &id) override;
-		void			ReleaseResource (INOUT CPipelineID &id) override;
-		void			ReleaseResource (INOUT MPipelineID &id) override;
-		void			ReleaseResource (INOUT RTPipelineID &id) override;
-		void			ReleaseResource (INOUT ImageID &id) override;
-		void			ReleaseResource (INOUT BufferID &id) override;
-		void			ReleaseResource (INOUT SamplerID &id) override;
-		void			ReleaseResource (INOUT SwapchainID &id) override;
-		void			ReleaseResource (INOUT RTGeometryID &id) override;
-		void			ReleaseResource (INOUT RTSceneID &id) override;
-		void			ReleaseResource (INOUT RTShaderTableID &id) override;
+		bool			ReleaseResource (INOUT GPipelineID &id) override;
+		bool			ReleaseResource (INOUT CPipelineID &id) override;
+		bool			ReleaseResource (INOUT MPipelineID &id) override;
+		bool			ReleaseResource (INOUT RTPipelineID &id) override;
+		bool			ReleaseResource (INOUT ImageID &id) override;
+		bool			ReleaseResource (INOUT BufferID &id) override;
+		bool			ReleaseResource (INOUT SamplerID &id) override;
+		bool			ReleaseResource (INOUT SwapchainID &id) override;
+		bool			ReleaseResource (INOUT RTGeometryID &id) override;
+		bool			ReleaseResource (INOUT RTSceneID &id) override;
+		bool			ReleaseResource (INOUT RTShaderTableID &id) override;
 		
 		bool			IsSupported (RawImageID image, const ImageViewDesc &desc) const override;
 		bool			IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const override;
@@ -194,7 +194,7 @@ namespace FG
 		bool  _InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const;
 
 		template <typename ID>
-		void  _ReleaseResource (INOUT ID &id);
+		bool  _ReleaseResource (INOUT ID &id);
 		
 		void  _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily);
 
