@@ -452,6 +452,7 @@ namespace {
 
 		VkBool32	supports_present = false;
 		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, img.queueFamilyIndex, _swapchain->GetVkSurface(), OUT &supports_present ));
+		CHECK_ERR( supports_present );
 
 		_queues.resize( Max(_queues.size(), img.queueFamilyIndex+1 ));
 

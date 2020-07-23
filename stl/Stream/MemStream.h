@@ -91,6 +91,7 @@ namespace FGC
 
 
 		ND_ ArrayView<uint8_t>  GetData () const	{ return _data; }
+		ND_ Array<uint8_t>		MoveData ()			{ Array<uint8_t> res;  std::swap( res, _data );  return res; };
 
 		void Clear ()								{ _data.clear(); }
 	};
