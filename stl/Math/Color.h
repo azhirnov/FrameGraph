@@ -12,7 +12,7 @@ namespace FGC
 	//
 
 	template <typename T>
-	struct RGBAColor
+	struct alignas(Max( alignof(T), sizeof(uint) ))  RGBAColor
 	{
 	// types
 		using Self			= RGBAColor<T>;

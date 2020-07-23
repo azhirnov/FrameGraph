@@ -24,5 +24,7 @@
 #undef DeleteFile
 #undef CreateWindow
 #undef CreateDirectory
+#undef BitScanForward
+#undef LoadImage
 
 #endif	// PLATFORM_WINDOWS

@@ -113,6 +113,32 @@ namespace FGC
 		if constexpr( sizeof(x) <= 4 )
 			return std::bitset<32>{ uint(x) }.count();
 	}
+	
+/*
+=================================================
+	SafeLeftBitShift
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr T  SafeLeftBitShift (const T& x, size_t shift)
+	{
+		STATIC_ASSERT( IsEnum<T> or IsInteger<T> );
+		
+		return T( EnumToUInt(x) << (shift & (sizeof(x)*8 - 1)) );
+	}
+	
+/*
+=================================================
+	SafeRightBitShift
+=================================================
+*/
+	template <typename T>
+	ND_ forceinline constexpr T  SafeRightBitShift (const T& x, size_t shift)
+	{
+		STATIC_ASSERT( IsEnum<T> or IsInteger<T> );
+
+		return T( EnumToUInt(x) >> (shift & (sizeof(x)*8 - 1)) );
+	}
 
 
 }	// FGC

@@ -133,7 +133,7 @@ namespace FG
 
 		String	file_path;
 		
-#	ifdef FG_STD_FILESYSTEM
+#	ifdef FS_HAS_FILESYSTEM
 		FS::path	fpath{ path };
 
 		if ( not fpath.is_absolute() )

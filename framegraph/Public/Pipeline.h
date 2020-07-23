@@ -184,7 +184,7 @@ namespace FG
 		struct SpecConstant
 		{
 			SpecializationID	id;
-			int					index;
+			uint				index;
 		};
 
 		using UniformData_t		= Union< NullUnion, Texture, Sampler, SubpassInput, Image, UniformBuffer, StorageBuffer, RayTracingScene >;
@@ -236,7 +236,7 @@ namespace FG
 
 		using ShaderDataUnion_t	= Union< NullUnion, SharedShaderPtr<String>, SharedShaderPtr<Array<uint8_t>>, SharedShaderPtr<Array<uint>>, VkShaderPtr >;
 		using ShaderDataMap_t	= HashMap< EShaderLangFormat, ShaderDataUnion_t >;
-		using SpecConstants_t	= FixedMap< SpecializationID, uint, FG_MaxSpecConstants >;
+		using SpecConstants_t	= FixedMap< SpecializationID, uint, FG_MaxSpecConstants >;	// id, index
 
 		struct Shader
 		{

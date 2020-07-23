@@ -88,6 +88,7 @@ namespace FG
 		
 		ND_ RawPipelineLayoutID		GetLayoutID ()			const	{ SHAREDLOCK( _drCheck );  return _baseLayoutId.Get(); }
 		ND_ ArrayView<VertexAttrib>	GetVertexAttribs ()		const	{ SHAREDLOCK( _drCheck );  return _vertexAttribs; }
+		ND_ uint					PatchControlPoints ()	const	{ SHAREDLOCK( _drCheck );  return _patchControlPoints; }
 
 		ND_ bool					IsEarlyFragmentTests ()	const	{ SHAREDLOCK( _drCheck );  return _earlyFragmentTests; }
 		

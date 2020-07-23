@@ -17,7 +17,7 @@ if (TRUE) #(${FG_ALLOW_GPL})
 	endif ()
 	
 	# reset to default
-	if (NOT EXISTS "${FG_EXTERNAL_FFMPEG_PATH}/ffmpeg/dev/README.txt")
+	if (NOT EXISTS "${FG_EXTERNAL_FFMPEG_PATH}/dev/LICENSE.txt")
 		message( STATUS "ffmpeg SDK is not found in \"${FG_EXTERNAL_FFMPEG_PATH}\"" )
 		set( FG_EXTERNAL_FFMPEG_PATH "${FG_EXTERNALS_PATH}/ffmpeg" CACHE PATH "" FORCE )
 	else ()
@@ -70,13 +70,13 @@ if (TRUE) #(${FG_ALLOW_GPL})
 		LOG_BUILD 			1
 		# install
 		INSTALL_COMMAND 	${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avcodec-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avcodec-58.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avdevice-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avdevice-58.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avfilter-7.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/aavfilter-7.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avformat-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avformat-58.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avutil-56.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avutil-56.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/postproc-55.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/postproc-55.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/swresample-3.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/swresample-3.dll"
-							COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/swscale-5.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/swscale-5.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avdevice-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avdevice-58.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avfilter-7.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/aavfilter-7.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avformat-58.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avformat-58.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/avutil-56.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/avutil-56.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/postproc-55.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/postproc-55.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/swresample-3.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/swresample-3.dll"
+					COMMAND ${CMAKE_COMMAND} -E copy "${FG_EXTERNAL_FFMPEG_PATH}/shared/bin/swscale-5.dll" "${MAIN_BINARY_DIR}/$<CONFIG>/swscale-5.dll"
 		LOG_INSTALL 		1
 		# test
 		TEST_COMMAND		""
@@ -89,15 +89,6 @@ if (TRUE) #(${FG_ALLOW_GPL})
 	target_include_directories( "ffmpeg-lib" INTERFACE "${FG_EXTERNAL_FFMPEG_PATH}/dev/include" )
 	target_compile_definitions( "ffmpeg-lib" INTERFACE "FG_ENABLE_FFMPEG" )
 	add_dependencies( "ffmpeg-lib" "External.FFmpeg-dev" "External.FFmpeg-shared" )
-	set_property( TARGET "ffmpeg-lib" PROPERTY INTERFACE_LINK_LIBRARIES 
-		"${FG_EXTERNAL_FFMPEG_PATH}/dev/lib/${CMAKE_STATIC_LIBRARY_PREFIX}avcodec${CMAKE_STATIC_LIBRARY_SUFFIX}"
-		"${FG_EXTERNAL_FFMPEG_PATH}/dev/lib/${CMAKE_STATIC_LIBRARY_PREFIX}avdevice${CMAKE_STATIC_LIBRARY_SUFFIX}"
-		"${FG_EXTERNAL_FFMPEG_PATH}/dev/lib/${CMAKE_STATIC_LIBRARY_PREFIX}avfilter${CMAKE_STATIC_LIBRARY_SUFFIX}"
-		"${FG_EXTERNAL_FFMPEG_PATH}/dev/lib/${CMAKE_STATIC_LIBRARY_PREFIX}avformat${CMAKE_STATIC_LIBRARY_SUFFIX}"
-		"${FG_EXTERNAL_FFMPEG_PATH}/dev/lib/${CMAKE_STATIC_LIBRARY_PREFIX}avutil${CMAKE_STATIC_LIBRARY_SUFFIX}" 
-		"${FG_EXTERNAL_FFMPEG_PATH}/dev/lib/${CMAKE_STATIC_LIBRARY_PREFIX}postproc${CMAKE_STATIC_LIBRARY_SUFFIX}" 
-		"${FG_EXTERNAL_FFMPEG_PATH}/dev/lib/${CMAKE_STATIC_LIBRARY_PREFIX}swresample${CMAKE_STATIC_LIBRARY_SUFFIX}" 
-		"${FG_EXTERNAL_FFMPEG_PATH}/dev/lib/${CMAKE_STATIC_LIBRARY_PREFIX}swscale${CMAKE_STATIC_LIBRARY_SUFFIX}" )
 
  endif ()
 endif ()

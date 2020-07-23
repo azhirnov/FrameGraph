@@ -130,6 +130,15 @@ namespace FGC
 			}
 			_blocks.clear();
 		}
+
+		ND_ BytesU  TotalSize () const
+		{
+			BytesU	size;
+			for (auto& block : _blocks) {
+				size += block.capacity;
+			}
+			return size;
+		}
 	};
 
 

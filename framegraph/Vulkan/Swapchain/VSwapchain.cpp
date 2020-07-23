@@ -756,36 +756,43 @@ namespace FG
 		const auto	required_usage	= BitCast<VkImageUsageFlags>( info.requiredUsage );
 		const auto	optional_usage	= BitCast<VkImageUsageFlags>( info.optionalUsage ) | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		const auto	required_present_modes	= info.presentModes.empty() ?
+		auto	required_present_modes	= info.presentModes.empty() ?
 							ArrayView<VkPresentModeKHR>{ default_present_modes } :
 							ArrayView{ BitCast<VkPresentModeKHR const *>(info.presentModes.data()), info.presentModes.size() };
 
-		const auto	required_color_formats	= info.formats.empty() ?
+		auto	required_color_formats	= info.formats.empty() ?
 							ArrayView<Pair<VkFormat, VkColorSpaceKHR>>{ default_color_formats } :
 							ArrayView{ BitCast<Pair<VkFormat, VkColorSpaceKHR> const *>(info.formats.data()), info.formats.size() };
 
-		for (auto mode : required_present_modes)
+		for (uint i = 0; i < 3; ++i)
 		{
-			if ( not IsPresentModeSupported( present_modes, mode ) )
-				continue;
-			
-			for (auto fmt : required_color_formats)
+			for (auto mode : required_present_modes)
 			{
-				_colorFormat = fmt.first;
-				_colorSpace  = fmt.second;
-
-				if ( not IsColorFormatSupported( surf_formats, _colorFormat, _colorSpace ) )
+				if ( not IsPresentModeSupported( present_modes, mode ))
 					continue;
-
-				_colorImageUsage	= required_usage | optional_usage;
-				_presentMode		= mode;
-
-				if ( IsSupported( dev, surf_caps, _surfaceSize, _presentMode, _colorFormat, INOUT _colorImageUsage ) and
-					 (not required_usage or EnumEq( _colorImageUsage, required_usage )) )
+			
+				for (auto fmt : required_color_formats)
 				{
-					return _CreateSwapchain( fg, dbgName );
+					_colorFormat = fmt.first;
+					_colorSpace  = fmt.second;
+
+					if ( not IsColorFormatSupported( surf_formats, _colorFormat, _colorSpace ) )
+						continue;
+
+					_colorImageUsage	= required_usage | optional_usage;
+					_presentMode		= mode;
+
+					if ( IsSupported( dev, surf_caps, _surfaceSize, _presentMode, _colorFormat, INOUT _colorImageUsage ) and
+						 (not required_usage or EnumEq( _colorImageUsage, required_usage )) )
+					{
+						return _CreateSwapchain( fg, dbgName );
+					}
 				}
 			}
+
+			// reset to default
+			required_present_modes	= default_present_modes;
+			required_color_formats	= default_color_formats;
 		}
 
 		RETURN_ERR( "can't find suitable format" );

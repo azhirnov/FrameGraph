@@ -116,22 +116,44 @@ namespace FG
 		bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
 		bool			CachePipelineResources (INOUT PipelineResources &resources) override;
 		void			ReleaseResource (INOUT PipelineResources &resources) override;
-		void			ReleaseResource (INOUT GPipelineID &id) override;
-		void			ReleaseResource (INOUT CPipelineID &id) override;
-		void			ReleaseResource (INOUT MPipelineID &id) override;
-		void			ReleaseResource (INOUT RTPipelineID &id) override;
-		void			ReleaseResource (INOUT ImageID &id) override;
-		void			ReleaseResource (INOUT BufferID &id) override;
-		void			ReleaseResource (INOUT SamplerID &id) override;
-		void			ReleaseResource (INOUT SwapchainID &id) override;
-		void			ReleaseResource (INOUT RTGeometryID &id) override;
-		void			ReleaseResource (INOUT RTSceneID &id) override;
-		void			ReleaseResource (INOUT RTShaderTableID &id) override;
+		bool			ReleaseResource (INOUT GPipelineID &id) override;
+		bool			ReleaseResource (INOUT CPipelineID &id) override;
+		bool			ReleaseResource (INOUT MPipelineID &id) override;
+		bool			ReleaseResource (INOUT RTPipelineID &id) override;
+		bool			ReleaseResource (INOUT ImageID &id) override;
+		bool			ReleaseResource (INOUT BufferID &id) override;
+		bool			ReleaseResource (INOUT SamplerID &id) override;
+		bool			ReleaseResource (INOUT SwapchainID &id) override;
+		bool			ReleaseResource (INOUT RTGeometryID &id) override;
+		bool			ReleaseResource (INOUT RTSceneID &id) override;
+		bool			ReleaseResource (INOUT RTShaderTableID &id) override;
 		
 		bool			IsSupported (RawImageID image, const ImageViewDesc &desc) const override;
 		bool			IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const override;
 		bool			IsSupported (const ImageDesc &desc, EMemoryType memType) const override;
 		bool			IsSupported (const BufferDesc &desc, EMemoryType memType) const override;
+		
+		bool			IsResourceAlive (RawGPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawCPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawMPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawRTPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawImageID id) const override				{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawBufferID id) const override				{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawSwapchainID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawRTGeometryID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawRTSceneID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		bool			IsResourceAlive (RawRTShaderTableID id) const override		{ return _resourceMngr.IsResourceAlive( id ); }
+		
+		GPipelineID		AcquireResource (RawGPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? GPipelineID{id}		: Default; }
+		CPipelineID		AcquireResource (RawCPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? CPipelineID{id}		: Default; }
+		MPipelineID		AcquireResource (RawMPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? MPipelineID{id}		: Default; }
+		RTPipelineID	AcquireResource (RawRTPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? RTPipelineID{id}		: Default; }
+		ImageID			AcquireResource (RawImageID id) override					{ return _resourceMngr.AcquireResource( id ) ? ImageID{id}			: Default; }
+		BufferID		AcquireResource (RawBufferID id) override					{ return _resourceMngr.AcquireResource( id ) ? BufferID{id}			: Default; }
+		SwapchainID		AcquireResource (RawSwapchainID id) override				{ return _resourceMngr.AcquireResource( id ) ? SwapchainID{id}		: Default; }
+		RTGeometryID	AcquireResource (RawRTGeometryID id) override				{ return _resourceMngr.AcquireResource( id ) ? RTGeometryID{id}		: Default; }
+		RTSceneID		AcquireResource (RawRTSceneID id) override					{ return _resourceMngr.AcquireResource( id ) ? RTSceneID{id}		: Default; }
+		RTShaderTableID	AcquireResource (RawRTShaderTableID id) override			{ return _resourceMngr.AcquireResource( id ) ? RTShaderTableID{id}	: Default; }
 
 		BufferDesc const&	GetDescription (RawBufferID id) const override;
 		ImageDesc const&	GetDescription (RawImageID id) const override;
@@ -172,7 +194,7 @@ namespace FG
 		bool  _InitPipelineResources (const PplnID &pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const;
 
 		template <typename ID>
-		void  _ReleaseResource (INOUT ID &id);
+		bool  _ReleaseResource (INOUT ID &id);
 		
 		void  _TransitImageLayoutToDefault (RawImageID imageId, VkImageLayout initialLayout, uint queueFamily);
 

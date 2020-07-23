@@ -34,6 +34,29 @@ namespace FG
 	{
 		return _fgThread.EditStatistic().renderer;
 	}
+
+	inline uint64_t  CalcPrimitiveCount (uint vertCount, EPrimitive topology, uint patchSize)
+	{
+		BEGIN_ENUM_CHECKS();
+		switch ( topology )
+		{
+			case EPrimitive::Point :					return vertCount;
+			case EPrimitive::LineList :					return vertCount / 2;
+			case EPrimitive::LineStrip :				return vertCount - 1;		// inaccurate because indices may contain restart index
+			case EPrimitive::LineListAdjacency :		return vertCount / 2 - 2;
+			case EPrimitive::LineStripAdjacency :		return vertCount - 3;		// inaccurate because indices may contain restart index
+			case EPrimitive::TriangleList :				return vertCount / 3;
+			case EPrimitive::TriangleStrip :			return vertCount - 2;		// inaccurate because indices may contain restart index
+			case EPrimitive::TriangleFan :				return vertCount - 2;		// inaccurate because indices may contain restart index
+			case EPrimitive::TriangleListAdjacency :	return vertCount / 2 - 2;
+			case EPrimitive::TriangleStripAdjacency :	return vertCount - 4;		// inaccurate because indices may contain restart index
+			case EPrimitive::Patch :					return vertCount / patchSize;
+			case EPrimitive::_Count :
+			case EPrimitive::Unknown :					break;
+		}
+		END_ENUM_CHECKS();
+		return 0;
+	}
 //-----------------------------------------------------------------------------
 
 
@@ -219,7 +242,7 @@ namespace FG
 		void  DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
 		
 	private:
-		void  _BindPipeline (uint mask);
+		bool  _BindPipeline (uint mask);
 	};
 //-----------------------------------------------------------------------------
 	
@@ -609,7 +632,7 @@ namespace FG
 		}
 
 		_tp.vkCmdBindVertexBuffers( _cmdBuffer, 0, uint(buffers.size()), buffers.data(), vertexOffsets.data() );
-		_tp.Stat().vertexBufferBindings++;
+		_tp.Stat().vertexBufferBindings ++;
 	}
 
 /*
@@ -630,7 +653,7 @@ namespace FG
 										  task.descriptorSets.data(),
 										  uint(task.GetResources().dynamicOffsets.size()),
 										  task.GetResources().dynamicOffsets.data() );
-			_tp.Stat().descriptorBinds++;
+			_tp.Stat().descriptorBinds ++;
 		}
 		
 		if ( task.debugModeIndex != Default )
@@ -640,7 +663,7 @@ namespace FG
 			_tp._fgThread.GetBatch().GetDescriptotSet( task.debugModeIndex, OUT binding, OUT desc_set, OUT offset );
 			
 			_tp.vkCmdBindDescriptorSets( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout.Handle(), binding, 1, &desc_set, 1, &offset );
-			_tp.Stat().descriptorBinds++;
+			_tp.Stat().descriptorBinds ++;
 		}
 	}
 
@@ -653,9 +676,11 @@ namespace FG
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 
-		VPipelineLayout const*	layout = null;
+		VPipelineLayout const*	layout	= null;
+		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -666,8 +691,10 @@ namespace FG
 		for (auto& cmd : task.commands)
 		{
 			_tp.vkCmdDraw( _cmdBuffer, cmd.vertexCount, cmd.instanceCount, cmd.firstVertex, cmd.firstInstance );
+			stat.vertexCount    += uint64_t(cmd.vertexCount) * cmd.instanceCount;
+			stat.primitiveCount += CalcPrimitiveCount( uint64_t(cmd.vertexCount) * cmd.instanceCount, task.topology, task.pipeline->PatchControlPoints() );
 		}
-		_tp.Stat().drawCalls += uint(task.commands.size());
+		stat.drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -679,9 +706,11 @@ namespace FG
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
-		VPipelineLayout const*	layout = null;
+		VPipelineLayout const*	layout	= null;
+		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -692,10 +721,11 @@ namespace FG
 
 		for (auto& cmd : task.commands)
 		{
-			_tp.vkCmdDrawIndexed( _cmdBuffer, cmd.indexCount, cmd.instanceCount,
-								   cmd.firstIndex, cmd.vertexOffset, cmd.firstInstance );
+			_tp.vkCmdDrawIndexed( _cmdBuffer, cmd.indexCount, cmd.instanceCount, cmd.firstIndex, cmd.vertexOffset, cmd.firstInstance );
+			stat.vertexCount    += uint64_t(cmd.indexCount) * cmd.instanceCount;
+			stat.primitiveCount += CalcPrimitiveCount( uint64_t(cmd.indexCount) * cmd.instanceCount, task.topology, task.pipeline->PatchControlPoints() );
 		}
-		_tp.Stat().drawCalls += uint(task.commands.size());
+		stat.drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -707,9 +737,11 @@ namespace FG
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
-		VPipelineLayout const*	layout = null;
+		VPipelineLayout const*	layout	= null;
+		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -724,8 +756,10 @@ namespace FG
 									VkDeviceSize(cmd.indirectBufferOffset),
 									cmd.drawCount,
 									uint(cmd.stride) );
+			stat.drawCalls += cmd.drawCount;
+			//stat.vertexCount += unknown
+			//stat.primitiveCount += unknown
 		}
-		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -737,9 +771,11 @@ namespace FG
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
-		VPipelineLayout const*	layout = null;
+		VPipelineLayout const*	layout	= null;
+		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 
@@ -755,8 +791,10 @@ namespace FG
 										   VkDeviceSize(cmd.indirectBufferOffset),
 										   cmd.drawCount,
 										   uint(cmd.stride) );
+			stat.drawCalls += cmd.drawCount;
+			//stat.vertexCount += unknown
+			//stat.primitiveCount += unknown
 		}
-		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 		
 /*
@@ -768,9 +806,11 @@ namespace FG
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
-		VPipelineLayout const*	layout = null;
+		VPipelineLayout const*	layout	= null;
+		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
@@ -780,8 +820,10 @@ namespace FG
 		for (auto& cmd : task.commands)
 		{
 			_tp.vkCmdDrawMeshTasksNV( _cmdBuffer, cmd.count, cmd.first );
+			//stat.vertexCount += unknown
+			//stat.primitiveCount += unknown
 		}
-		_tp.Stat().drawCalls += uint(task.commands.size());
+		stat.drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -793,9 +835,11 @@ namespace FG
 	{
 		//_tp._CmdDebugMarker( task.GetName() );
 		
-		VPipelineLayout const*	layout = null;
+		VPipelineLayout const*	layout	= null;
+		auto&					stat	= _tp.Stat();
 
-		_tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout );
+		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
 		
@@ -809,8 +853,10 @@ namespace FG
 											   VkDeviceSize(cmd.indirectBufferOffset),
 											   cmd.drawCount,
 											   uint(cmd.stride) );
+			stat.drawCalls += cmd.drawCount;
+			//stat.vertexCount += unknown
+			//stat.primitiveCount += unknown
 		}
-		_tp.Stat().drawCalls += uint(task.commands.size());
 	}
 	
 /*
@@ -822,7 +868,7 @@ namespace FG
 	{
 		DrawContext	ctx{ _tp, *_currTask->GetLogicalPass() };
 
-		task.callback( ctx );
+		task.callback( task.callbackParam, ctx );
 	}
 //-----------------------------------------------------------------------------
 	
@@ -906,8 +952,10 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	void  VTaskProcessor::DrawContext::_BindPipeline (uint mask)
+	bool  VTaskProcessor::DrawContext::_BindPipeline (uint mask)
 	{
+		bool	result = true;
+
 		mask = _changed & mask;
 
 		if ( _gpipeline and (mask & GRAPHICS_BIT) )
@@ -915,7 +963,7 @@ namespace FG
 			_changed ^= GRAPHICS_BIT;
 
 			VkPipeline	ppln_id;
-			_tp._fgThread.GetPipelineCache().CreatePipelineInstance(
+			if ( _tp._fgThread.GetPipelineCache().CreatePipelineInstance(
 											_tp._fgThread,
 											_logicalRP,
 											*_gpipeline,
@@ -923,10 +971,13 @@ namespace FG
 											_renderState,
 											_dynamicStates,
 											Default,
-											OUT ppln_id, OUT _pplnLayout );
-
-			_tp._BindPipeline2( _logicalRP, ppln_id );
-			_tp._SetScissor( _logicalRP, Default );
+											OUT ppln_id, OUT _pplnLayout ))
+			{
+				_tp._BindPipeline2( _logicalRP, ppln_id );
+				_tp._SetScissor( _logicalRP, Default );
+			}
+			else
+				result = false;
 		}
 
 		if ( _mpipeline and (mask & MESH_BIT) )
@@ -934,18 +985,23 @@ namespace FG
 			_changed ^= MESH_BIT;
 			
 			VkPipeline	ppln_id;
-			_tp._fgThread.GetPipelineCache().CreatePipelineInstance(
+			if ( _tp._fgThread.GetPipelineCache().CreatePipelineInstance(
 											_tp._fgThread,
 											_logicalRP,
 											*_mpipeline,
 											_renderState,
 											_dynamicStates,
 											Default,
-											OUT ppln_id, OUT _pplnLayout );
-		
-			_tp._BindPipeline2( _logicalRP, ppln_id );
-			_tp._SetScissor( _logicalRP, Default );
+											OUT ppln_id, OUT _pplnLayout ))
+			{
+				_tp._BindPipeline2( _logicalRP, ppln_id );
+				_tp._SetScissor( _logicalRP, Default );
+			}
+			else
+				result = false;
 		}
+
+		return result;
 	}
 
 /*
@@ -980,7 +1036,7 @@ namespace FG
 		_pplnLayout->GetDescriptorSetLayout( id, OUT ds_layout, OUT binding );
 
 		_tp.vkCmdBindDescriptorSets( _tp._cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pplnLayout->Handle(), binding, 1, &ds, uint(dyn_offs.size()), dyn_offs.data() );
-		_tp.Stat().descriptorBinds++;
+		_tp.Stat().descriptorBinds ++;
 	}
 	
 /*
@@ -999,7 +1055,7 @@ namespace FG
 			ASSERT( uint(dataSize) == uint(iter->second.size) );
 
 			_tp.vkCmdPushConstants( _tp._cmdBuffer, _pplnLayout->Handle(), VEnumCast( iter->second.stageFlags ), uint(iter->second.offset), uint(dataSize), data );
-			_tp.Stat().pushConstants++;
+			_tp.Stat().pushConstants ++;
 		}
 	}
 
@@ -1030,7 +1086,7 @@ namespace FG
 			VkDeviceSize	off		{ offset };
 
 			_tp.vkCmdBindVertexBuffers( _tp._cmdBuffer, iter->second.index, 1, &vk_buf, &off );
-			_tp.Stat().vertexBufferBindings++;
+			_tp.Stat().vertexBufferBindings ++;
 		}
 	}
 	
@@ -1223,9 +1279,14 @@ namespace FG
 	void  VTaskProcessor::DrawContext::DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
 	{
 		CHECK( _gpipeline );
-		_BindPipeline( GRAPHICS_BIT );
+		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
 
 		_tp.vkCmdDraw( _tp._cmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
+		
+		auto&	stat = _tp.Stat();
+		stat.drawCalls      ++;
+		stat.vertexCount    += uint64_t(vertexCount) * instanceCount;
+		stat.primitiveCount += CalcPrimitiveCount( uint64_t(vertexCount) * instanceCount, _renderState.inputAssembly.topology, _gpipeline->PatchControlPoints() );
 	}
 	
 /*
@@ -1236,9 +1297,14 @@ namespace FG
 	void  VTaskProcessor::DrawContext::DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
 	{
 		CHECK( _gpipeline );
-		_BindPipeline( GRAPHICS_BIT );
+		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
 
 		_tp.vkCmdDrawIndexed( _tp._cmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+		
+		auto&	stat = _tp.Stat();
+		stat.drawCalls      ++;
+		stat.vertexCount    += uint64_t(indexCount) * instanceCount;
+		stat.primitiveCount += CalcPrimitiveCount( uint64_t(indexCount) * instanceCount, _renderState.inputAssembly.topology, _gpipeline->PatchControlPoints() );
 	}
 	
 /*
@@ -1253,8 +1319,12 @@ namespace FG
 		CHECK_ERR( buf, void());
 		CHECK( _gpipeline );
 
-		_BindPipeline( GRAPHICS_BIT );
+		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
 		_tp.vkCmdDrawIndirect( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
+
+		_tp.Stat().drawCalls += drawCount;
+		//_tp.Stat().vertexCount += unknown
+		//_tp.Stat().primitiveCount += unknown
 	}
 	
 /*
@@ -1268,8 +1338,12 @@ namespace FG
 		CHECK_ERR( buf, void());
 		CHECK( _gpipeline );
 		
-		_BindPipeline( GRAPHICS_BIT );
+		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
 		_tp.vkCmdDrawIndexedIndirect( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
+		
+		_tp.Stat().drawCalls += drawCount;
+		//_tp.Stat().vertexCount += unknown
+		//_tp.Stat().primitiveCount += unknown
 	}
 	
 /*
@@ -1280,9 +1354,10 @@ namespace FG
 	void  VTaskProcessor::DrawContext::DrawMeshes (uint taskCount, uint firstTask)
 	{
 		CHECK( _mpipeline );
-		_BindPipeline( MESH_BIT );
+		CHECK_ERR( _BindPipeline( MESH_BIT ), void());
 
 		_tp.vkCmdDrawMeshTasksNV( _tp._cmdBuffer, taskCount, firstTask );
+		_tp.Stat().drawCalls ++;
 	}
 	
 /*
@@ -1294,10 +1369,12 @@ namespace FG
 	{
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		CHECK_ERR( buf, void());
+
 		CHECK( _mpipeline );
-		
-		_BindPipeline( MESH_BIT );
+		CHECK_ERR( _BindPipeline( MESH_BIT ), void());
+
 		_tp.vkCmdDrawMeshTasksIndirectNV( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
+		_tp.Stat().drawCalls += drawCount;
 	}
 //-----------------------------------------------------------------------------
 
@@ -1873,7 +1950,7 @@ namespace FG
 									  descriptor_sets.data(),
 									  uint(resourceSet.dynamicOffsets.size()),
 									  resourceSet.dynamicOffsets.data() );
-			Stat().descriptorBinds++;
+			Stat().descriptorBinds ++;
 		}
 
 		if ( debugModeIndex != Default )
@@ -1883,7 +1960,7 @@ namespace FG
 			_fgThread.GetBatch().GetDescriptotSet( debugModeIndex, OUT binding, OUT desc_set, OUT offset );
 
 			vkCmdBindDescriptorSets( _cmdBuffer, bindPoint, layout.Handle(), binding, 1, &desc_set, 1, &offset );
-			Stat().descriptorBinds++;
+			Stat().descriptorBinds ++;
 		}
 	}
 
@@ -1896,7 +1973,7 @@ namespace FG
 	{
 		auto const&		pc_map = layout.GetPushConstants();
 			
-		ASSERT( pushConstants.size() == pc_map.size() );	// used push constants from previous draw/dispatch calls or may contains undefined values
+		ASSERT( pushConstants.size() == pc_map.size() );	// will be used push constants from previous draw/dispatch calls or may contains undefined values
 
 		for (auto& pc : pushConstants)
 		{
@@ -1905,11 +1982,11 @@ namespace FG
 
 			if ( iter != pc_map.end() )
 			{
-				ASSERT( pc.size == iter->second.size );
+				ASSERT( ((size_t(pc.size) + 15) & ~15) == ((size_t(iter->second.size) + 15) & ~15) );
 
 				vkCmdPushConstants( _cmdBuffer, layout.Handle(), VEnumCast( iter->second.stageFlags ), uint(iter->second.offset),
 									 uint(iter->second.size), pc.data );
-				Stat().pushConstants++;
+				Stat().pushConstants ++;
 			}
 		}
 	}
@@ -1925,7 +2002,7 @@ namespace FG
 		{
 			_graphicsPipeline.pipeline = pipelineId;
 			vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineId );
-			Stat().graphicsPipelineBindings++;
+			Stat().graphicsPipelineBindings ++;
 		}
 		
 		// all pipelines in current render pass have same viewport count and same dynamic states, so this values should not be invalidated.
@@ -2009,7 +2086,7 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, VPipelineLayout const* &pplnLayout)
+	inline bool  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawVerticesTask &task, VPipelineLayout const* &pplnLayout)
 	{
 		RenderState				render_state;
 		EPipelineDynamicState	dynamic_states = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
@@ -2029,7 +2106,7 @@ namespace FG
 		SetupExtensions( logicalRP, INOUT dynamic_states );
 
 		VkPipeline	ppln_id;
-		_fgThread.GetPipelineCache().CreatePipelineInstance(
+		CHECK_ERR( _fgThread.GetPipelineCache().CreatePipelineInstance(
 										_fgThread,
 										logicalRP,
 										*task.pipeline,
@@ -2037,9 +2114,10 @@ namespace FG
 										render_state,
 										dynamic_states,
 										task.debugModeIndex,
-										OUT ppln_id, OUT pplnLayout );
-
+										OUT ppln_id, OUT pplnLayout ));
+		
 		_BindPipeline2( logicalRP, ppln_id );
+		return true;
 	}
 	
 /*
@@ -2047,7 +2125,7 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
+	inline bool  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
 	{
 		RenderState				render_state;
 		EPipelineDynamicState	dynamic_states = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
@@ -2064,16 +2142,17 @@ namespace FG
 		SetupExtensions( logicalRP, INOUT dynamic_states );
 
 		VkPipeline	ppln_id;
-		_fgThread.GetPipelineCache().CreatePipelineInstance(
+		CHECK_ERR( _fgThread.GetPipelineCache().CreatePipelineInstance(
 										_fgThread,
 										logicalRP,
 										*task.pipeline,
 										render_state,
 										dynamic_states,
 										task.debugModeIndex,
-										OUT ppln_id, OUT pplnLayout );
+										OUT ppln_id, OUT pplnLayout ));
 		
 		_BindPipeline2( logicalRP, ppln_id );
+		return true;
 	}
 
 /*
@@ -2081,23 +2160,24 @@ namespace FG
 	_BindPipeline
 =================================================
 */
-	inline void  VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize,
+	inline bool  VTaskProcessor::_BindPipeline (const VComputePipeline* pipeline, const Optional<uint3> &localSize,
 											    ShaderDbgIndex debugModeIndex, VkPipelineCreateFlags flags, OUT VPipelineLayout const* &pplnLayout)
 	{
 		VkPipeline	ppln_id;
-		_fgThread.GetPipelineCache().CreatePipelineInstance(
+		CHECK_ERR( _fgThread.GetPipelineCache().CreatePipelineInstance(
 										_fgThread,
 										*pipeline, localSize,
 										flags,
 										debugModeIndex,
-										OUT ppln_id, OUT pplnLayout );
+										OUT ppln_id, OUT pplnLayout ));
 		
 		if ( _computePipeline.pipeline != ppln_id )
 		{
 			_computePipeline.pipeline = ppln_id;
 			vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, ppln_id );
-			Stat().computePipelineBindings++;
+			Stat().computePipelineBindings ++;
 		}
+		return true;
 	}
 
 /*
@@ -2111,7 +2191,8 @@ namespace FG
 
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout );
+		CHECK_ERR( _BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
 
@@ -2136,7 +2217,8 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		_BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, 0, OUT layout );
+		CHECK_ERR( _BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, 0, OUT layout ), void());
+
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
 		
@@ -2182,8 +2264,7 @@ namespace FG
 			ASSERT( src.size + src.dstOffset <= dst_buffer->Size() );
 
 			if ( src_buffer == dst_buffer ) {
-				ASSERT( IsIntersects( dst.srcOffset, dst.size == VK_WHOLE_SIZE ? dst.size : dst.srcOffset + dst.size,
-									  dst.dstOffset, dst.size == VK_WHOLE_SIZE ? dst.size : dst.dstOffset + dst.size ));
+				ASSERT( IsIntersects( dst.srcOffset, dst.srcOffset + dst.size, dst.dstOffset, dst.dstOffset + dst.size ));
 			}
 
 			_AddBuffer( src_buffer, EResourceState::TransferSrc, dst.srcOffset, dst.size );
@@ -2198,7 +2279,7 @@ namespace FG
 						  uint(regions.size()),
 						  regions.data() );
 
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 	
 /*
@@ -2255,7 +2336,7 @@ namespace FG
 						 uint(regions.size()),
 						 regions.data() );
 		
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 	
 /*
@@ -2302,7 +2383,7 @@ namespace FG
 								 uint(regions.size()),
 								 regions.data() );
 		
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 	
 /*
@@ -2348,7 +2429,7 @@ namespace FG
 								 uint(regions.size()),
 								 regions.data() );
 		
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 	
 /*
@@ -2398,7 +2479,7 @@ namespace FG
 						regions.data(),
 						task.filter );
 		
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 	
 /*
@@ -2448,7 +2529,7 @@ namespace FG
 							uint(regions.size()),
 							regions.data() );
 		
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 	
 /*
@@ -2509,7 +2590,7 @@ namespace FG
 			vkCmdBlitImage( _cmdBuffer, vk_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 							 vk_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
 			
-			Stat().transferOps++;
+			Stat().transferOps ++;
 
 			// read after write
 			barrier.oldLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -2544,7 +2625,7 @@ namespace FG
 						  task.size,
 						  task.pattern );
 		
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 	
 /*
@@ -2582,7 +2663,7 @@ namespace FG
 							   uint(ranges.size()),
 							   ranges.data() );
 		
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 	
 /*
@@ -2620,7 +2701,7 @@ namespace FG
 									  uint(ranges.size()),
 									  ranges.data() );
 		
-		Stat().transferOps++;
+		Stat().transferOps ++;
 	}
 
 /*
@@ -2757,7 +2838,7 @@ namespace FG
 											task.RTGeometry()->Handle(), VK_NULL_HANDLE,
 											task.ScratchBuffer()->Handle(),
 											task.ScratchBufferOffset() );
-		Stat().buildASCalls++;
+		Stat().buildASCalls ++;
 	}
 	
 /*
@@ -2794,7 +2875,7 @@ namespace FG
 											task.RTScene()->Handle(), VK_NULL_HANDLE,
 											task.ScratchBuffer()->Handle(),
 											task.ScratchBufferOffset() );
-		Stat().buildASCalls++;
+		Stat().buildASCalls ++;
 	}
 	
 /*
@@ -2846,7 +2927,7 @@ namespace FG
 		{
 			_rayTracingPipeline.pipeline = pipeline;
 			vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline );
-			Stat().rayTracingPipelineBindings++;
+			Stat().rayTracingPipelineBindings ++;
 		}
 
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, task.debugModeIndex );
@@ -2861,7 +2942,7 @@ namespace FG
 							sbt_buffer->Handle(), rayhit_offset,  rayhit_stride,
 							sbt_buffer->Handle(), callable_offset, callable_stride,
 							task.groupCount.x, task.groupCount.y, task.groupCount.z );
-		Stat().traceRaysCalls++;
+		Stat().traceRaysCalls ++;
 	}
 	
 /*
@@ -3130,7 +3211,7 @@ namespace FG
 			_indexType			= indexType;
 
 			vkCmdBindIndexBuffer( _cmdBuffer, _indexBuffer, _indexBufferOffset, _indexType );
-			Stat().indexBufferBindings++;
+			Stat().indexBufferBindings ++;
 		}
 	}
 	

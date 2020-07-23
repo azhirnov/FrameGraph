@@ -6,16 +6,14 @@
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringUtils.h"
 
-#ifdef FG_STD_FILESYSTEM
-#	include <filesystem>
-	namespace FS = std::filesystem;
-	using fpath = std::filesystem::path;
-#else
+#ifndef FS_HAS_FILESYSTEM
 #	error not supported!
 #endif
 
+
 namespace FG
 {
+	using fpath = FS::path;
 
 /*
 =================================================
@@ -238,7 +236,7 @@ namespace FG
 	ShaderCache::ShaderSourceID  ShaderCache::CacheFileSource (StringView filename)
 	{
 		fpath	path{ _filePath };
-		path.append( filename );
+		path.append( filename.begin(), filename.end() );
 
 		FileRStream		file{ path };
 		CHECK_ERR( file.IsOpen() );

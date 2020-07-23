@@ -46,6 +46,8 @@ namespace FG
 			uint		indexBufferBindings			= 0;
 			uint		vertexBufferBindings		= 0;
 			uint		drawCalls					= 0;
+			uint64_t	vertexCount					= 0;	// sum of vertices / indices, indirect draw isn't measured
+			uint64_t	primitiveCount				= 0;	// sum of primitives
 			uint		graphicsPipelineBindings	= 0;
 			uint		dynamicStateChanges			= 0;
 
@@ -142,19 +144,19 @@ namespace FG
 			virtual bool			CachePipelineResources (INOUT PipelineResources &resources) = 0;
 			virtual void			ReleaseResource (INOUT PipelineResources &resources) = 0;
 
-			// Release reference to resource, if reference counter is 0 then resource will be destroyed after frame execution.
+			// Release reference to resource, Returns 'true' if resource has been deleted.
 			// See synchronization requirements on top of this file.
-			virtual void			ReleaseResource (INOUT GPipelineID &id) = 0;
-			virtual void			ReleaseResource (INOUT CPipelineID &id) = 0;
-			virtual void			ReleaseResource (INOUT MPipelineID &id) = 0;
-			virtual void			ReleaseResource (INOUT RTPipelineID &id) = 0;
-			virtual void			ReleaseResource (INOUT ImageID &id) = 0;
-			virtual void			ReleaseResource (INOUT BufferID &id) = 0;
-			virtual void			ReleaseResource (INOUT SamplerID &id) = 0;
-			virtual void			ReleaseResource (INOUT SwapchainID &id) = 0;
-			virtual void			ReleaseResource (INOUT RTGeometryID &id) = 0;
-			virtual void			ReleaseResource (INOUT RTSceneID &id) = 0;
-			virtual void			ReleaseResource (INOUT RTShaderTableID &id) = 0;
+			virtual bool			ReleaseResource (INOUT GPipelineID &id) = 0;
+			virtual bool			ReleaseResource (INOUT CPipelineID &id) = 0;
+			virtual bool			ReleaseResource (INOUT MPipelineID &id) = 0;
+			virtual bool			ReleaseResource (INOUT RTPipelineID &id) = 0;
+			virtual bool			ReleaseResource (INOUT ImageID &id) = 0;
+			virtual bool			ReleaseResource (INOUT BufferID &id) = 0;
+			virtual bool			ReleaseResource (INOUT SamplerID &id) = 0;
+			virtual bool			ReleaseResource (INOUT SwapchainID &id) = 0;
+			virtual bool			ReleaseResource (INOUT RTGeometryID &id) = 0;
+			virtual bool			ReleaseResource (INOUT RTSceneID &id) = 0;
+			virtual bool			ReleaseResource (INOUT RTShaderTableID &id) = 0;
 
 			// Returns resource description.
 		ND_ virtual BufferDesc const&	GetDescription (RawBufferID id) const = 0;
@@ -163,10 +165,34 @@ namespace FG
 		ND_ virtual ExternalBufferDesc_t GetApiSpecificDescription (RawBufferID id) const = 0;
 		ND_ virtual ExternalImageDesc_t  GetApiSpecificDescription (RawImageID id) const = 0;
 		
-			// TODO
+			// Returns 'true' if resource is not deleted.
+		ND_	virtual bool			IsResourceAlive (RawGPipelineID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawCPipelineID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawMPipelineID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawRTPipelineID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawImageID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawBufferID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawSwapchainID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawRTGeometryID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawRTSceneID id) const = 0;
+		ND_	virtual bool			IsResourceAlive (RawRTShaderTableID id) const = 0;
+
+			// 
+		ND_ virtual GPipelineID		AcquireResource (RawGPipelineID id) = 0;
+		ND_ virtual CPipelineID		AcquireResource (RawCPipelineID id) = 0;
+		ND_ virtual MPipelineID		AcquireResource (RawMPipelineID id) = 0;
+		ND_ virtual RTPipelineID	AcquireResource (RawRTPipelineID id) = 0;
+		ND_ virtual ImageID			AcquireResource (RawImageID id) = 0;
+		ND_ virtual BufferID		AcquireResource (RawBufferID id) = 0;
+		ND_ virtual SwapchainID		AcquireResource (RawSwapchainID id) = 0;
+		ND_ virtual RTGeometryID	AcquireResource (RawRTGeometryID id) = 0;
+		ND_ virtual RTSceneID		AcquireResource (RawRTSceneID id) = 0;
+		ND_ virtual RTShaderTableID	AcquireResource (RawRTShaderTableID id) = 0;
+
+			// Copy data into host-visible memory.
 			virtual bool			UpdateHostBuffer (RawBufferID id, BytesU offset, BytesU size, const void *data) = 0;
 			
-			// TODO
+			// Returns pointer to host-visible memory.
 			template <typename T>
 					bool			MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT T* &data);
 			virtual bool			MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT void* &data) = 0;

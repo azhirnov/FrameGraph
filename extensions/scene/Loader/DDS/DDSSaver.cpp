@@ -4,7 +4,7 @@
 	https://docs.microsoft.com/en-us/windows/desktop/direct3ddds/dx-graphics-dds-pguide
 */
 
-#include "scene/Saver/DDS/DDSSaver.h"
+#include "scene/Loader/DDS/DDSSaver.h"
 #include "scene/Loader/Intermediate/IntermImage.h"
 #include "scene/Loader/DDS/DDSUtils.h"
 

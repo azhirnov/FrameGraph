@@ -9,10 +9,6 @@
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Stream/FileStream.h"
 
-#ifdef FG_STD_FILESYSTEM
-#	include <filesystem>
-	namespace FS = std::filesystem;
-#endif
 
 namespace FG
 {
@@ -99,7 +95,10 @@ namespace FG
 				dev_ext.push_back( ext.c_str() );
 			}
 
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), _title, "FrameGraph", VK_API_VERSION_1_2,
+			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(),
+									   _title,
+									   IFrameGraph::GetVersion(),
+									   VK_API_VERSION_1_2,
 									   cfg.deviceName,
 									   {},
 									   layers,
@@ -170,7 +169,7 @@ namespace FG
 		}
 		
 		// setup debug output
-#		ifdef FG_STD_FILESYSTEM
+	#ifdef FS_HAS_FILESYSTEM
 		if ( cfg.dbgOutputPath.size() )
 		{
 			FS::path	path{ cfg.dbgOutputPath };
@@ -182,7 +181,7 @@ namespace FG
 
 			_debugOutputPath = path.string();
 		}
-#		endif	// FG_STD_FILESYSTEM
+	#endif	// FS_HAS_FILESYSTEM
 
 		_SetupCamera( _cameraFov, _viewRange );
 		return true;
@@ -451,8 +450,9 @@ namespace FG
 		TimePoint_t		now			= TimePoint_t::clock::now();
 		int64_t			duration	= duration_cast<milliseconds>(now - _frameStat.lastUpdateTime).count();
 
-		IFrameGraph::Statistics		stat;
+		auto&	stat = _frameStat.fgStat;
 		_frameGraph->GetStatistics( OUT stat );
+
 		_frameStat.gpuTimeSum += stat.renderer.gpuTime;
 		_frameStat.cpuTimeSum += stat.renderer.cpuTime + stat.renderer.submitingTime + stat.renderer.waitingTime;
 
@@ -547,11 +547,11 @@ namespace FG
 */
 	void  BaseSceneApp::_OnShaderTraceReady (StringView name, ArrayView<String> output) const
 	{
-	#	ifdef FG_STD_FILESYSTEM
+	#ifdef FS_HAS_FILESYSTEM
 		const auto	IsExists = [] (StringView path) { return FS::exists(FS::path{ path }); };
-	#	else
-		// TODO
-	#	endif
+	#else
+		const auto	IsExists = [] (StringView path) { return false; };	// TODO
+	#endif
 
 		String	fname;
 

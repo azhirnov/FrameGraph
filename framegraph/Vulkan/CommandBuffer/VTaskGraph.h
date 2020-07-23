@@ -725,7 +725,7 @@ namespace FG
 		template <typename T>
 		ND_ VFgTask<T>*  Add (VCommandBuffer &cb, const T &task);
 
-		void OnStart (LinearAllocator<> &);
+		void OnStart (Allocator_t &);
 		void OnDiscardMemory ();
 
 		ND_ ArrayView<VTask>	Entries ()		const	{ return *_entries; }
@@ -767,7 +767,7 @@ namespace FG
 =================================================
 */
 	template <typename VisitorT>
-	inline void  VTaskGraph<VisitorT>::OnStart (LinearAllocator<> &alloc)
+	inline void  VTaskGraph<VisitorT>::OnStart (Allocator_t &alloc)
 	{
 		_nodes.Create( alloc );
 		_entries.Create( alloc );

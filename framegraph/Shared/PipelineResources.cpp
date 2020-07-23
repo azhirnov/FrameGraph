@@ -934,6 +934,11 @@ namespace {
 	CreateDynamicData
 =================================================
 */
+#ifdef COMPILER_GCC
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wmissing-braces"
+#endif
+
 	PipelineResources::DynamicDataPtr
 		PipelineResourcesHelper::CreateDynamicData (const PipelineDescription::UniformMapPtr &uniforms,
 													uint resourceCount, uint arrayElemCount, uint bufferDynamicOffsetCount)
@@ -1056,5 +1061,8 @@ namespace {
 		return DynamicDataPtr{ data };
 	}
 	
+#ifdef COMPILER_GCC
+#   pragma GCC diagnostic pop
+#endif
 
 }	// FG

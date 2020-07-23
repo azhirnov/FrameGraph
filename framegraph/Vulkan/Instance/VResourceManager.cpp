@@ -991,30 +991,33 @@ namespace FG
 	RawSamplerID  VResourceManager::CreateSampler (const SamplerDesc &desc, StringView dbgName)
 	{
 		return _CreateCachedResource<RawSamplerID>( "failed when creating sampler",
-										[&] (auto& data) { return Replace( data, _device, desc ); },
+										[&] (auto& data) { Replace( data, _device, desc ); },
 										[&] (auto& data) { return data.Create( _device, dbgName ); });
 	}
 	
 	RawRenderPassID  VResourceManager::CreateRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses, StringView dbgName)
 	{
 		return _CreateCachedResource<RawRenderPassID>( "failed when creating render pass",
-										[&] (auto& data) { return Replace( data, logicalPasses ); },
+										[&] (auto& data) { Replace( data, logicalPasses ); },
 										[&] (auto& data) { return data.Create( _device, dbgName ); });
 	}
 	
 	RawFramebufferID  VResourceManager::CreateFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments,
-																 RawRenderPassID rp, uint2 dim, uint layers, StringView dbgName)
+														   RawRenderPassID rp, uint2 dim, uint layers, StringView dbgName)
 	{
+		CHECK_ERR( AcquireResource( rp ));
 		return _CreateCachedResource<RawFramebufferID>( "failed when creating framebuffer",
 										[&] (auto& data) {
-											return Replace( data, attachments, rp, dim, layers );
+											Replace( data, attachments, rp, dim, layers );
 										},
 										[&] (auto& data) {
 											if ( data.Create( *this, dbgName )) {
 												_validation.createdFramebuffers.fetch_add( 1, memory_order_relaxed );
 												return true;
+											}else{
+												ReleaseResource( rp );
+												return false;
 											}
-											return false;
 										});
 	}
 	

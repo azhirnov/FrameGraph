@@ -5,6 +5,19 @@
 namespace FG
 {
 
+	static void  CustomDrawFn (void* param, IDrawContext& ctx)
+	{
+		auto*	pipeline = Cast<GPipelineID>( param );
+
+		RenderState::InputAssemblyState	ia;
+		ia.topology = EPrimitive::TriangleList;
+
+		ctx.BindPipeline( *pipeline );
+		ctx.SetInputAssembly( ia );
+		ctx.DrawVertices( 3 );
+	}
+
+
 	bool FGApp::Test_Draw5 ()
 	{
 		GraphicsPipelineDesc	ppln;
@@ -94,15 +107,7 @@ void main() {
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 											.AddViewport( view_size ) );
 		
-		cmd->AddTask( render_pass, CustomDraw{ [&] (IDrawContext &ctx)
-											{
-												RenderState::InputAssemblyState	ia;
-												ia.topology = EPrimitive::TriangleList;
-
-												ctx.BindPipeline( pipeline );
-												ctx.SetInputAssembly( ia );
-												ctx.DrawVertices( 3 );
-											} });
+		cmd->AddTask( render_pass, CustomDraw{ &CustomDrawFn, &pipeline });
 
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );

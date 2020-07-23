@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "scene/Saver/ImageSaver.h"
+#include "scene/Loader/ImageSaver.h"
 
 namespace FG
 {
 
 	//
-	// Image Saver interface
+	// DDS Image Saver
 	//
 
 	class DDSSaver final : public IImageSaver

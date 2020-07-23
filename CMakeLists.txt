@@ -4,7 +4,7 @@ message( STATUS "===============================================================
 message( STATUS "project 'FrameGraph' generation started" )
 
 project( "FrameGraph"
-		 VERSION 2020.1.0
+		 VERSION 2020.1.2
 		 LANGUAGES C CXX )
 
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
@@ -41,10 +41,6 @@ set( FG_ENABLE_DEVIL ON CACHE BOOL "use DevIL (optional, required for Scene exte
 set( FG_ENABLE_FREEIMAGE OFF CACHE BOOL "use FreeImage (optional, GPL license)" )
 set( FG_ENABLE_FFMPEG OFF CACHE BOOL "use FFmpeg (optional, LGPL license)" )
 set( FG_ALLOW_GPL OFF CACHE BOOL "allow GNU GPL code and libraries" )
-
-# Samples dependencies
-set( FG_ENABLE_STB OFF CACHE BOOL "" )
-set( FG_ENABLE_TINYOBJ OFF CACHE BOOL "" )
 
 
 set( CMAKE_DEBUG_POSTFIX "d" )

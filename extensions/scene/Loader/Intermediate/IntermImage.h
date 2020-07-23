@@ -43,11 +43,12 @@ namespace FG
 	// methods
 	public:
 		IntermImage () {}
+		explicit IntermImage (const ImageView &view);
 		explicit IntermImage (StringView path) : _srcPath{path} {}
-		explicit IntermImage (Mipmaps_t &&data, EImage type, StringView path = Default) : _srcPath{path}, _data{std::move(data)}, _imageType{type} {}
+		IntermImage (Mipmaps_t &&data, EImage type, StringView path = Default) : _srcPath{path}, _data{std::move(data)}, _imageType{type} {}
 
 		void  MakeImmutable ()							{ _immutable = true; }
-		void  SetData (Mipmaps_t &&data, EImage type)	{ ASSERT( not _immutable );  _data = std::move(data);  _imageType = type; }
+		void  SetData (Mipmaps_t &&data, EImage type);
 		void  ReleaseData ()							{ Mipmaps_t temp;  std::swap( temp, _data ); }
 
 		ND_ StringView			GetPath ()		const	{ return _srcPath; }

@@ -20,6 +20,8 @@ namespace FG
 		dst.indexBufferBindings			+= src.indexBufferBindings;
 		dst.vertexBufferBindings		+= src.vertexBufferBindings;
 		dst.drawCalls					+= src.drawCalls;
+		dst.vertexCount					+= src.vertexCount;
+		dst.primitiveCount				+= src.primitiveCount;
 		dst.graphicsPipelineBindings	+= src.graphicsPipelineBindings;
 		dst.dynamicStateChanges			+= src.dynamicStateChanges;
 		

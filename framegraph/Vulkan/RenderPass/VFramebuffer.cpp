@@ -72,7 +72,6 @@ namespace FG
 	VFramebuffer::VFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( not attachments.empty() );
 
 		_attachments	= attachments;
 		_renderPassId	= rp;
@@ -144,10 +143,6 @@ namespace FG
 
 		if ( _renderPassId ) {
 			resMngr.ReleaseResource( _renderPassId );
-		}
-
-		for (auto& att : _attachments) {
-			resMngr.ReleaseResource( att.first );
 		}
 
 		_framebuffer	= VK_NULL_HANDLE;

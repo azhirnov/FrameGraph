@@ -446,12 +446,12 @@ namespace FG
 =================================================
 */
 	template <typename ID>
-	inline void VFrameGraph::_ReleaseResource (INOUT ID &id)
+	inline bool  VFrameGraph::_ReleaseResource (INOUT ID &id)
 	{
 		if ( not id )
-			return;
+			return false;
 
-		CHECK_ERR( _IsInitialized(), void());
+		CHECK_ERR( _IsInitialized() );
 		return _resourceMngr.ReleaseResource( id.Release() );
 	}
 	
@@ -460,17 +460,17 @@ namespace FG
 	ReleaseResource
 =================================================
 */
-	void VFrameGraph::ReleaseResource (INOUT GPipelineID &id)		{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT CPipelineID &id)		{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT MPipelineID &id)		{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT RTPipelineID &id)		{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT ImageID &id)			{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT BufferID &id)			{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT SamplerID &id)			{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT SwapchainID &id)		{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT RTGeometryID &id)		{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT RTSceneID &id)			{ _ReleaseResource( INOUT id ); }
-	void VFrameGraph::ReleaseResource (INOUT RTShaderTableID &id)	{ _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT GPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT CPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT MPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT RTPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT ImageID &id)			{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT BufferID &id)			{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT SamplerID &id)		{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT SwapchainID &id)		{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT RTGeometryID &id)		{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT RTSceneID &id)		{ return _ReleaseResource( INOUT id ); }
+	bool  VFrameGraph::ReleaseResource (INOUT RTShaderTableID &id)	{ return _ReleaseResource( INOUT id ); }
 	
 /*
 =================================================

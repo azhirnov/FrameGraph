@@ -19,6 +19,7 @@
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#   pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
 #ifdef COMPILER_MSVC

@@ -1,4 +1,3 @@
-# auto generated file
 
 # detect target platform
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

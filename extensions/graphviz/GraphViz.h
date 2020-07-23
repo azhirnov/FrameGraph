@@ -1,9 +1,8 @@
-// Copyright (c) 2018-2019,  Zhirnov Andrey. For more information see 'LICENSE'
+// Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "stl/Common.h"
+#include "stl/Stream/FileStream.h"
 
-#if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) && defined(FG_STD_FILESYSTEM)
-#include <filesystem>
+#if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) && defined(FS_HAS_FILESYSTEM)
 
 #include "framegraph/FG.h"
 
@@ -16,14 +15,14 @@ namespace FG
 
 	struct GraphViz
 	{
-		static bool Visualize (StringView graph, const std::filesystem::path &filepath,
+		static bool Visualize (StringView graph, const FS::path &filepath,
 							   StringView format = "png", bool autoOpen = false, bool deleteOrigin = false);
 
-		static bool Visualize (const FrameGraph &instance, const std::filesystem::path &filepath,
+		static bool Visualize (const FrameGraph &instance, const FS::path &filepath,
 							   StringView format = "png", bool autoOpen = false, bool deleteOrigin = false);
 	};
 
 
 }	// FG
 
-#endif	// FG_GRAPHVIZ_DOT_EXECUTABLE and FG_STD_FILESYSTEM
+#endif	// FG_GRAPHVIZ_DOT_EXECUTABLE and FS_HAS_FILESYSTEM

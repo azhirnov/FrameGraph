@@ -22,6 +22,7 @@ namespace FG
 	protected:
 		using TimePoint_t	= std::chrono::high_resolution_clock::time_point;
 		using SecondsF		= std::chrono::duration< float >;
+		using FGStat_t		= IFrameGraph::Statistics;
 
 		struct AppConfig
 		{
@@ -80,6 +81,7 @@ namespace FG
 		String					_title;
 		
 		struct {
+			FGStat_t				fgStat;
 			Nanoseconds				gpuTimeSum				{0};
 			Nanoseconds				cpuTimeSum				{0};
 			TimePoint_t				lastUpdateTime;
@@ -133,6 +135,7 @@ namespace FG
 
 		ND_ Nanoseconds				CurrentTime ()		const	{ return _lastUpdateTime.time_since_epoch(); }
 		ND_ SecondsF				FrameTime ()		const	{ return _timeDelta; }
+		ND_ FGStat_t const&			GetStatistic ()		const	{ return _frameStat.fgStat; }
 
 
 	// interface

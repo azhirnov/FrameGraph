@@ -23,11 +23,11 @@ namespace FG
 	private:
 		HashVal					_hash;
 		VkFramebuffer			_framebuffer;
-		RawRenderPassID			_renderPassId;
+		RawRenderPassID			_renderPassId;		// strong ref
 
 		uint2					_dimension;
 		ImageLayer				_layers;
-		Attachments_t			_attachments;
+		Attachments_t			_attachments;		// weak ref
 		
 		DebugName_t				_debugName;
 		

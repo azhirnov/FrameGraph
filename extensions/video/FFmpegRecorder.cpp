@@ -11,11 +11,6 @@
 #include "video/FFmpegRecorder.h"
 #include "stl/Algorithms/StringUtils.h"
 
-#ifdef FG_STD_FILESYSTEM
-#	include <filesystem>
-	namespace FS = std::filesystem;
-#endif
-
 #define FF_CALL( ... ) \
 	{ \
 		int __ff_err__ = (__VA_ARGS__); \
@@ -115,7 +110,7 @@ namespace FG
 	{
 		CHECK_ERR( not _formatCtx and not _videoFrame and not _videoStream );
 		
-		#ifdef FG_STD_FILESYSTEM
+		#ifdef FS_HAS_FILESYSTEM
 			_tempFile = FS::path{filename}.replace_filename("tmp").replace_extension("video").string();
 		#else
 			_tempFile = "tmp.video";
@@ -652,8 +647,10 @@ namespace FG
 		
 		ffmpeg.av_freep( &stream_mapping );
 
+	#ifdef FS_HAS_FILESYSTEM
 		std::error_code	err;
 		CHECK( FS::remove( FS::path{_tempFile}, OUT err ));
+	#endif
 		
 		FG_LOGD( "End remuxing: '"s << _videoFile << "'" );
 

@@ -136,8 +136,10 @@ namespace FG
 		if ( not _UpdateUI() )
 			return false;
 
-		_Draw();
-
+		if ( All( _window->GetSize() > uint2(0) ))
+		{
+			_Draw();
+		}
 		return true;
 	}
 	

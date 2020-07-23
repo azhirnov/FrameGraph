@@ -424,6 +424,29 @@ namespace FGC
 			return BitCast<double>( u );
 		}
 	}
+	
+/*
+=================================================
+	IntCeil / IntFloor / IntRound
+=================================================
+*/
+	template <typename T>
+	ND_ inline T  IntCeil (const T &x, const T &divider)
+	{
+		return (x + divider - 1) / divider;
+	}
+	
+	template <typename T>
+	ND_ inline T  IntFloor (const T &x, const T &divider)
+	{
+		return x / divider;
+	}
+	
+	template <typename T>
+	ND_ inline T  IntRound (const T &x, const T &divider)
+	{
+		return (x + divider / 2 - 1) / divider;
+	}
 
 
 }	// FGC

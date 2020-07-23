@@ -12,6 +12,7 @@
 #include "stl/Memory/MemUtils.h"
 #include <chrono>
 #include <sstream>
+#include <charconv>
 
 namespace FGC
 {
@@ -294,6 +295,11 @@ namespace FGC
 	template <int Radix, typename T>
 	ND_ forceinline EnableIf< IsEnum<T> or IsInteger<T>, String>  ToString (const T &value)
 	{
+		if constexpr ( Radix == 10 )
+		{
+			return std::to_string( value );
+		}
+		else
 		if constexpr ( Radix == 16 )
 		{
 			std::stringstream	str;
@@ -315,6 +321,24 @@ namespace FGC
 		fractParts = Clamp( fractParts, 1u, 99u );
 
 		const char	fmt[8]  = {'%', '0', '.', char('0' + fractParts/10), char('0' + fractParts%10), 'f', '\0' };
+		char		buf[32] = {};
+
+		const int	len = std::snprintf( buf, CountOf(buf), fmt, value );
+		ASSERT( len > 0 );
+		return buf;
+	}
+
+/*
+=================================================
+	ToStringExp (double)
+=================================================
+*/
+	ND_ inline String  ToStringExp (const double &value, uint fractParts)
+	{
+		ASSERT( fractParts > 0 and fractParts < 100 );
+		fractParts = Clamp( fractParts, 1u, 99u );
+
+		const char	fmt[8]  = {'%', '0', '.', char('0' + fractParts/10), char('0' + fractParts%10), 'e', '\0' };
 		char		buf[32] = {};
 
 		const int	len = std::snprintf( buf, CountOf(buf), fmt, value );
@@ -368,17 +392,20 @@ namespace FGC
 	template <typename T>
 	ND_ inline String  ToString (const Bytes<T> &value)
 	{
-		const T	kb	= T(1) << 12;
-		const T mb	= T(1) << 22;
-		const T	gb	= T(1) << Min( T(32), T(sizeof(T)*8)-1 );
+		const T	kb	= SafeLeftBitShift( T(1), 12 );
+		const T mb	= SafeLeftBitShift( T(1), 22 );
+		const T	gb	= SafeLeftBitShift( T(1), 32 );
+		const T	tb	= SafeLeftBitShift( T(1), 42 );
 		const T	val	= T(value);
 
 		String	str;
 
-		if ( val < kb )	str << ToString( val ) << " b";			else
-		if ( val < mb )	str << ToString( val >> 10 ) << " Kb";	else
-		if ( val < gb )	str << ToString( val >> 20 ) << " Mb";	else
-						str << ToString( val >> 30 ) << " Gb";
+		if ( val < kb )	str << ToString( val ) << " b";								else
+		if ( val < mb )	str << ToString( SafeRightBitShift( val, 10 )) << " Kb";	else
+		if ( val < gb )	str << ToString( SafeRightBitShift( val, 20 )) << " Mb";	else
+		if ( val < tb )	str << ToString( SafeRightBitShift( val, 30 )) << " Gb";	else
+						str << ToString( SafeRightBitShift( val, 40 )) << " Tb";
+		
 		return str;
 	}
 
@@ -416,6 +443,42 @@ namespace FGC
 
 		return str;
 	}
+//-----------------------------------------------------------------------------
 
+	
+
+/*
+=================================================
+	StringTo***
+=================================================
+*
+	ND_ inline int  StringToInt (StringView str)
+	{
+		int		val = 0;
+		std::from_chars( str.data(), str.data() + str.size(), OUT val, 10 );
+		return val;
+	}
+	
+	ND_ inline uint  StringToUInt (StringView str)
+	{
+		uint	val = 0;
+		std::from_chars( str.data(), str.data() + str.size(), OUT val, 10 );
+		return val;
+	}
+	
+	ND_ inline float  StringToFloat (StringView str)
+	{
+		float	val = 0.0f;
+		std::from_chars( str.data(), str.data() + str.size(), OUT val, std::chars_format::general );
+		return val;
+	}
+	
+	ND_ inline double  StringToDouble (StringView str)
+	{
+		double	val = 0.0;
+		std::from_chars( str.data(), str.data() + str.size(), OUT val, std::chars_format::general );
+		return val;
+	}
+*/
 
 }	// FGC

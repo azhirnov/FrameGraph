@@ -35,11 +35,12 @@ namespace FG
 	// methods
 	public:
 		ImguiRenderer ();
+		~ImguiRenderer ();
 
-		bool Initialize (const FrameGraph &fg, ImGuiContext *ctx);
-		void Deinitialize (const FrameGraph &fg);
+		bool  Initialize (const FrameGraph &fg, ImGuiContext *ctx);
+		void  Deinitialize (const FrameGraph &fg);
 
-		ND_ Task  Draw (const CommandBuffer &cmdbuf, LogicalPassID passId, ArrayView<Task> dependencies = Default);
+		Task  Draw (const CommandBuffer &cmdbuf, LogicalPassID passId, ArrayView<Task> dependencies = Default);
 
 
 	private:

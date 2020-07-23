@@ -4,6 +4,27 @@
 
 namespace FG
 {
+	struct CustomDrawData
+	{
+		RawGPipelineID			pipeline;
+		PipelineResources &		resources0;
+		PipelineResources &		resources1;
+	};
+
+	static void CustomDrawFn (void* param, IDrawContext &ctx)
+	{
+		auto*	data = Cast<CustomDrawData>( param );
+
+		RenderState::InputAssemblyState	ia;
+		ia.topology = EPrimitive::TriangleList;
+
+		ctx.SetInputAssembly( ia );
+		ctx.BindPipeline( data->pipeline );
+		ctx.BindResources( DescriptorSetID{"PerObject"}, data->resources0 );
+		ctx.BindResources( DescriptorSetID{"PerPass"},   data->resources1 );
+		ctx.DrawVertices( 3 );
+	}
+
 
 	bool FGApp::Test_Draw6 ()
 	{
@@ -124,17 +145,8 @@ void main() {
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 											.AddViewport( view_size ) );
 		
-		cmd->AddTask( render_pass, CustomDraw{ [&] (IDrawContext &ctx)
-											{
-												RenderState::InputAssemblyState	ia;
-												ia.topology = EPrimitive::TriangleList;
-
-												ctx.SetInputAssembly( ia );
-												ctx.BindPipeline( pipeline );
-												ctx.BindResources( DescriptorSetID{"PerObject"}, resources0 );
-												ctx.BindResources( DescriptorSetID{"PerPass"},   resources1 );
-												ctx.DrawVertices( 3 );
-											}}.AddImage( texture, EResourceState::ShaderSample ));
+		CustomDrawData	draw_data{ pipeline.Get(), resources0, resources1 };
+		cmd->AddTask( render_pass, CustomDraw{ &CustomDrawFn, &draw_data }.AddImage( texture, EResourceState::ShaderSample ));
 		
 		Task	t_clear	= cmd->AddTask( ClearColorImage{}.SetImage( texture ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{HtmlColor::White}) );
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass }.DependsOn( t_clear ));

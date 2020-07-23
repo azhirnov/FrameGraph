@@ -342,7 +342,19 @@ namespace {
 		// transit to undefined layout
 		AcquireImage( id, true, true );
 
-		_batch->_swapchains.push_back( swapchain );
+		bool	found = false;
+
+		for (auto& sw : _batch->_swapchains)
+		{
+			if ( sw == swapchain )
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if ( not found )
+			_batch->_swapchains.push_back( swapchain );
 
 		return id;
 	}
@@ -1642,6 +1654,7 @@ namespace {
 		PipelineResources	res;
 		RawBufferID			ssb;
 		BytesU				ssb_offset, ssb_size, ssb_offset2, ssb_size2;
+		BytesU				ssb_align { _instance.GetDevice().GetDeviceProperties().limits.minStorageBufferOffsetAlignment };
 		uint2				ssb_dim;
 		Task				task;
 
@@ -1649,8 +1662,8 @@ namespace {
 		_shaderDbg.timemapIndex = Default;
 
 		ssb_size2	= ssb_dim.y * SizeOf<uint64_t>;
-		ssb_size	-= ssb_size2;
-		ssb_offset2	= ssb_offset + ssb_size;
+		ssb_size	-= ssb_size2 + ssb_align;
+		ssb_offset2	= AlignToLarger( ssb_offset + ssb_size, ssb_align );
 
 		// pass 1
 		{
