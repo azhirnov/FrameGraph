@@ -358,7 +358,7 @@ namespace FG
 		debugger.AddBatchDump( std::move(_debugDump) );
 		debugger.AddBatchGraph( std::move(_debugGraph) );
 
-		_debugDump.clear();
+		_debugDump  = {};
 		_debugGraph	= Default;
 		
 		// read frame time

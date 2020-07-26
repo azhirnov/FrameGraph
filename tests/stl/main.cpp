@@ -46,6 +46,8 @@ int main ()
 	UnitTest_Rectangle();
 	UnitTest_NtStringView();
 	UnitTest_TypeList();
+	
+	CHECK_FATAL( FG_DUMP_MEMLEAKS() );
 
 	FG_LOGI( "Tests.STL finished" );
 	return 0;

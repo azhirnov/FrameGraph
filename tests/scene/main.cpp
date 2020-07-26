@@ -19,6 +19,8 @@ int main ()
 
 		for (; scene.Update();) {}
 	}*/
+	
+	CHECK_FATAL( FG_DUMP_MEMLEAKS() );
 
 	FG_LOGI( "Tests.Scene finished" );
 	return 0;

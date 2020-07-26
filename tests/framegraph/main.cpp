@@ -27,6 +27,8 @@ int main ()
 	}
 
 	FGApp::Run();
+	
+	CHECK_FATAL( FG_DUMP_MEMLEAKS() );
 
 	FG_LOGI( "Tests.FrameGraph finished" );
 	return 0;

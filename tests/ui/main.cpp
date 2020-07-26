@@ -9,6 +9,8 @@ using namespace FG;
 int main ()
 {
 	UIApp::Run();
+	
+	CHECK_FATAL( FG_DUMP_MEMLEAKS() );
 
 	FG_LOGI( "Tests.UI finished" );
 	return 0;
