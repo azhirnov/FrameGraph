@@ -663,7 +663,8 @@ namespace FG
 		for (uint i = 0; i < module.push_constant_block_count; ++i) {
 			CHECK_ERR( GetPushConstantReflection( module.push_constant_blocks[i], FGEnumCast(module.shader_stage), INOUT layout ));
 		}
-
+		
+		spvReflectDestroyShaderModule( &module );
 		return true;
 	}
 	
@@ -685,7 +686,8 @@ namespace FG
 		for (uint i = 0; i < module.push_constant_block_count; ++i) {
 			CHECK_ERR( GetPushConstantReflection( module.push_constant_blocks[i], FGEnumCast(module.shader_stage), INOUT layout ));
 		}
-
+		
+		spvReflectDestroyShaderModule( &module );
 		return true;
 	}
 
