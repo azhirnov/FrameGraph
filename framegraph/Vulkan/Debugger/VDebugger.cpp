@@ -25,7 +25,8 @@ namespace FG
 */
 	void VDebugger::AddBatchDump (String &&value)
 	{
-		_fullDump.push_back( std::move(value) );
+		if ( value.size() )
+			_fullDump.push_back( std::move(value) );
 	}
 
 /*
@@ -48,7 +49,8 @@ namespace FG
 */
 	void VDebugger::AddBatchGraph (BatchGraph &&value)
 	{
-		_graphs.push_back( std::move(value) );
+		if ( value.body.size() )
+			_graphs.push_back( std::move(value) );
 	}
 
 /*
