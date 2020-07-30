@@ -246,6 +246,8 @@ namespace {
 */
 	void VLogicalRenderPass::Destroy (VResourceManager &)
 	{
+		ASSERT( _isSubmited and "render pass was not submitted" );
+
 		_drawTasks.clear();
 
 		_allocator.Destroy();
