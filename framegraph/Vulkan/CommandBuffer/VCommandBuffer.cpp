@@ -1158,8 +1158,12 @@ namespace {
 
 		// TODO: virtual buffer or buffer cache
 		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, Default, "ScratchBuffer" );
+		CHECK_ERR( buf );
+
 		result->_scratchBuffer = ToLocal( buf.Get() );
 		ReleaseResource( buf.Release() );
+		
+		ASSERT( EnumEq( result->_scratchBuffer->Description().usage, EBufferUsage::RayTracing ));
 		
 		result->_geometryCount	= task.triangles.size() + task.aabbs.size();
 		result->_geometry		= _mainAllocator.Alloc<VkGeometryNV>( result->_geometryCount );
@@ -1335,12 +1339,24 @@ namespace {
 		mem.req		= VulkanMemRequirements{ mem_req.memoryRequirements.memoryTypeBits, CheckCast<uint>(mem_req.memoryRequirements.alignment) };
 
 		// TODO: virtual buffer or buffer cache
-		BufferID	buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, mem, "ScratchBuffer" );
-		result->_scratchBuffer = ToLocal( buf.Get() );
-		ReleaseResource( buf.Release() );
+		BufferID	scratch_buf = _instance.CreateBuffer( BufferDesc{ BytesU(mem_req.memoryRequirements.size), EBufferUsage::RayTracing }, mem, "ScratchBuffer" );
+		CHECK_ERR( scratch_buf );
+
+		result->_scratchBuffer = ToLocal( scratch_buf.Get() );
+		ReleaseResource( scratch_buf.Release() );
+		
+		// TODO: virtual buffer or buffer cache
+		BufferID	instance_buf = _instance.CreateBuffer( BufferDesc{ ArraySizeOf(task.instances), EBufferUsage::TransferDst | EBufferUsage::RayTracing }, mem, "InstanceBuffer" );
+		CHECK_ERR( instance_buf );
+
+		result->_instanceBuffer = ToLocal( instance_buf.Get() );
+		ReleaseResource( instance_buf.Release() );
 
 		VkGeometryInstance*  vk_instances;
-		CHECK_ERR( _AllocStorage<VkGeometryInstance>( task.instances.size(), OUT result->_instanceBuffer, OUT result->_instanceBufferOffset, OUT vk_instances ));
+		CHECK_ERR( _AllocStorage<VkGeometryInstance>( task.instances.size(), OUT result->_instanceStagingBuffer, OUT result->_instanceStagingBufferOffset, OUT vk_instances ));
+		
+		ASSERT( EnumEq( result->_scratchBuffer->Description().usage, EBufferUsage::RayTracing ));
+		ASSERT( EnumEq( result->_instanceBuffer->Description().usage, EBufferUsage::RayTracing ));
 
 		// sort instances by ID
 		Array<uint>	sorted;		// TODO: use temporary allocator

@@ -58,19 +58,13 @@ namespace FGC
 			};
 		#else
 			static const char*	instance_layers[] = {
-				"VK_LAYER_LUNARG_standard_validation",
-				//"VK_LAYER_LUNARG_assistant_layer",
-				//"VK_LAYER_GOOGLE_threading",					// inside VK_LAYER_LUNARG_standard_validation
-				//"VK_LAYER_LUNARG_parameter_validation",		// inside VK_LAYER_LUNARG_standard_validation
-				//"VK_LAYER_LUNARG_device_limits",				// inside VK_LAYER_LUNARG_standard_validation
-				//"VK_LAYER_LUNARG_object_tracker",				// inside VK_LAYER_LUNARG_standard_validation
-				//"VK_LAYER_LUNARG_image",						// inside VK_LAYER_LUNARG_standard_validation
-				//"VK_LAYER_LUNARG_core_validation",			// inside VK_LAYER_LUNARG_standard_validation
-				//"VK_LAYER_LUNARG_swapchain",					// inside VK_LAYER_LUNARG_standard_validation
-				//"VK_LAYER_GOOGLE_unique_objects",				// inside VK_LAYER_LUNARG_standard_validation
-				//"VK_LAYER_LUNARG_device_simulation",
+				"VK_LAYER_KHRONOS_validation",				// for new VulkanSDK
+				"VK_LAYER_LUNARG_standard_validation",		// for old VulkanSDK
+				//"VK_LAYER_LUNARG_gfxreconstruct",
 				//"VK_LAYER_LUNARG_api_dump",
-				//"VK_LAYER_LUNARG_vktrace"
+				//"VK_LAYER_LUNARG_device_simulation",
+				//"VK_LAYER_LUNARG_monitor",
+				//"VK_LAYER_LUNARG_vktrace",
 			};
 		#endif
 		return instance_layers;

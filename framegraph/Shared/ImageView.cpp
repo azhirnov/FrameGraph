@@ -333,11 +333,15 @@ namespace {
 
 			case EPixelFormat::RGB8_SNorm :
 			case EPixelFormat::RGB8_UNorm :
+			case EPixelFormat::BGR8_UNorm :
 			case EPixelFormat::RGB8I :
 			case EPixelFormat::RGB8U :
 				ASSERT( aspect == EImageAspect::Color );
 				_bitsPerPixel	= 3*8;
-				_loadF4			= (_format == EPixelFormat::RGB8_SNorm ? &ReadSNorm<8,8,8,0> : _format == EPixelFormat::RGB8_UNorm ? &ReadUNorm<8,8,8,0> : null);
+				_loadF4			= (_format == EPixelFormat::RGB8_SNorm ? &ReadSNorm<8,8,8,0> :
+								   _format == EPixelFormat::RGB8_UNorm ? &ReadUNorm<8,8,8,0> :
+								   _format == EPixelFormat::BGR8_UNorm ? &ReadUNorm<8,8,8,0> :
+								   null);
 				_loadI4			= &ReadInt<8,8,8,0>;
 				_loadU4			= &ReadUInt<8,8,8,0>;
 				break;
@@ -345,11 +349,15 @@ namespace {
 
 			case EPixelFormat::RGBA8_SNorm :
 			case EPixelFormat::RGBA8_UNorm :
+			case EPixelFormat::BGRA8_UNorm :
 			case EPixelFormat::RGBA8I :
 			case EPixelFormat::RGBA8U :
 				ASSERT( aspect == EImageAspect::Color );
 				_bitsPerPixel	= 4*8;
-				_loadF4			= (_format == EPixelFormat::RGBA8_SNorm ? &ReadSNorm<8,8,8,8> : _format == EPixelFormat::RGBA8_UNorm ? &ReadUNorm<8,8,8,8> : null);
+				_loadF4			= (_format == EPixelFormat::RGBA8_SNorm ? &ReadSNorm<8,8,8,8> :
+								   _format == EPixelFormat::RGBA8_UNorm ? &ReadUNorm<8,8,8,8> :
+								   _format == EPixelFormat::BGRA8_UNorm ? &ReadUNorm<8,8,8,8> :
+								   null);
 				_loadI4			= &ReadInt<8,8,8,8>;
 				_loadU4			= &ReadUInt<8,8,8,8>;
 				break;
@@ -523,8 +531,6 @@ namespace {
 				_loadU4			= &ReadUInt<8,8,8,8>;
 				break;
 				
-			case EPixelFormat::BGR8_UNorm :
-			case EPixelFormat::BGRA8_UNorm :
 			case EPixelFormat::BC1_RGB8_UNorm :
 			case EPixelFormat::BC1_sRGB8 :
 			case EPixelFormat::BC1_RGB8_A1_UNorm :

@@ -85,10 +85,10 @@ elseif (${FG_ENABLE_OPENVR})
 		INSTALL_COMMAND		${CMAKE_COMMAND} -E copy_if_different
 									"${FG_OPENVR_BIN_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}openvr_api${CMAKE_SHARED_LIBRARY_SUFFIX}"
 									"${MAIN_BINARY_DIR}/$<CONFIG>/${CMAKE_SHARED_LIBRARY_PREFIX}openvr_api${CMAKE_SHARED_LIBRARY_SUFFIX}"
-							COMMAND  ${CMAKE_COMMAND} -E copy_if_different
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different
 									"${FG_OPENVR_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}openvr_api${CMAKE_STATIC_LIBRARY_SUFFIX}"
 									"${FG_OPENVR_INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}openvr_api${CMAKE_STATIC_LIBRARY_SUFFIX}"
-							COMMAND  ${CMAKE_COMMAND} -E copy_if_different
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different
 									"${FG_EXTERNAL_OPENVR_PATH}/headers/openvr.h"
 									"${FG_OPENVR_INSTALL_DIR}/include/openvr.h"
 		INSTALL_DIR 		""

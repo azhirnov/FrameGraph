@@ -22,6 +22,8 @@ int main ()
 	// multi-threaded and multi-device
 	FW_Test2();
 #endif
+	
+	CHECK_FATAL( FG_DUMP_MEMLEAKS() );
 
 	FG_LOGI( "Tests.Framework finished" );
 	return 0;

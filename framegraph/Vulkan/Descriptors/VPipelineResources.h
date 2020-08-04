@@ -68,13 +68,19 @@ namespace FG
 
 
 	private:
-		bool _AddResource (VResourceManager &, INOUT PipelineResources::Buffer &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManager &, INOUT PipelineResources::TexelBuffer &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManager &, INOUT PipelineResources::Image &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManager &, INOUT PipelineResources::Texture &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManager &, const PipelineResources::Sampler &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManager &, const PipelineResources::RayTracingScene &, INOUT UpdateDescriptors &);
-		bool _AddResource (VResourceManager &, const NullUnion &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const UniformID &, INOUT PipelineResources::Buffer &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const UniformID &, INOUT PipelineResources::TexelBuffer &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const UniformID &, INOUT PipelineResources::Image &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const UniformID &, INOUT PipelineResources::Texture &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const UniformID &, const PipelineResources::Sampler &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const UniformID &, const PipelineResources::RayTracingScene &, INOUT UpdateDescriptors &);
+		bool _AddResource (VResourceManager &, const UniformID &, const NullUnion &, INOUT UpdateDescriptors &);
+
+		void _LogUniform (const UniformID &, uint idx) const;
+
+		static void _CheckBufferUsage (const class VBuffer &, EResourceState state);
+		static void _CheckTexelBufferUsage (const class VBuffer &, EResourceState state);
+		static void _CheckImageUsage (const class VImage &, EResourceState state);
 	};
 	
 

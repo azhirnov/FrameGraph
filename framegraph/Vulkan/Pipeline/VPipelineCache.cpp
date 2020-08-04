@@ -572,15 +572,19 @@ namespace FG
 		const uint		geom_stride		= scene_data.hitShadersPerInstance;
 		const uint		max_hit_shaders	= scene_data.maxHitShaderCount;
 
+		ASSERT( (alignment >= handle_size) and (alignment % handle_size == 0) );
 		CHECK_ERR( ppln );
 
 		FixedArray<EShaderDebugMode, uint(EShaderDebugMode::_Count)>  debug_modes { EShaderDebugMode::None };
 
 		if ( FG_EnableShaderDebugging )
 		{
-			debug_modes.push_back( EShaderDebugMode::Trace );
-			debug_modes.push_back( EShaderDebugMode::Profiling );
-			debug_modes.push_back( EShaderDebugMode::Timemap );
+			const auto	dbg_modes = ppln->GetDebugModes();
+
+			for (size_t i = 1; i < dbg_modes.size(); ++i) {
+				if ( dbg_modes[i] )
+					debug_modes.push_back( EShaderDebugMode(i) );
+			}
 		}
 
 		uint	miss_shader_count		= 0;
@@ -620,15 +624,23 @@ namespace FG
 		// setup offsets
 		BytesU		offset {0};
 		shaderTable._rayGenOffset	= offset;
-		shaderTable._rayMissOffset	= (offset += handle_size);
-		shaderTable._rayHitOffset	= (offset += (handle_size * miss_shader_count));
-		shaderTable._callableOffset	= (offset += (handle_size * max_hit_shaders));
-		shaderTable._blockSize		= (offset += (handle_size * callable_shader_count));
+		shaderTable._rayMissOffset	= offset = AlignToLarger( offset + handle_size,							  alignment );
+		shaderTable._rayHitOffset	= offset = AlignToLarger( offset + (handle_size * miss_shader_count),	  alignment );
+		shaderTable._callableOffset	= offset = AlignToLarger( offset + (handle_size * max_hit_shaders),		  alignment );
+		shaderTable._blockSize		= offset = AlignToLarger( offset + (handle_size * callable_shader_count), alignment );
 		shaderTable._rayMissStride	= Bytes<uint16_t>{ handle_size };
 		shaderTable._rayHitStride	= Bytes<uint16_t>{ handle_size };
 		shaderTable._callableStride	= Bytes<uint16_t>{ handle_size };
 
-		const BytesU	req_size	= AlignToLarger( shaderTable._blockSize, alignment ) * debug_modes.size();
+		ASSERT( shaderTable._rayMissOffset  % alignment == 0 );
+		ASSERT( shaderTable._rayMissOffset  % uint(shaderTable._rayMissStride) == 0 );
+		ASSERT( shaderTable._rayHitOffset   % alignment == 0 );
+		ASSERT( shaderTable._rayHitOffset   % uint(shaderTable._rayHitStride) == 0 );
+		ASSERT( shaderTable._callableOffset % alignment == 0 );
+		ASSERT( shaderTable._callableOffset % uint(shaderTable._callableStride) == 0 );
+		ASSERT( shaderTable._rayGenOffset   % alignment == 0 );
+
+		const BytesU	req_size	= shaderTable._blockSize * debug_modes.size();
 
 		// recreate buffer
 		if ( shaderTable._bufferId )
@@ -701,6 +713,8 @@ namespace FG
 			table.bufferOffset	= offset;
 			table.mode			= mode;
 
+			ASSERT( table.bufferOffset % alignment == 0 );
+
 			// create pipeline
 			VkRayTracingPipelineCreateInfoNV 	pipeline_info = {};
 			pipeline_info.sType					= VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
@@ -721,13 +735,17 @@ namespace FG
 			table.layoutId = PipelineLayoutID{layout_id};
 			
 
-			// 
+			// allocate staging buffer
 			RawBufferID		staging_buffer;
 			BytesU			buf_offset, buf_size = shaderTable._blockSize;
 			void *			mapped_ptr = null;
 		
-			CHECK_ERR( fgThread.AllocBuffer( shaderTable._blockSize, 16_b, OUT staging_buffer, OUT buf_offset, OUT mapped_ptr ));
-			DEBUG_ONLY( memset( OUT mapped_ptr, 0xAE, size_t(buf_size) ));
+			CHECK_ERR( fgThread.AllocBuffer( shaderTable._blockSize, alignment, OUT staging_buffer, OUT buf_offset, OUT mapped_ptr ));
+			DEBUG_ONLY( memset( OUT mapped_ptr, 0, size_t(buf_size) ));
+			DEBUG_ONLY( memset( OUT mapped_ptr + shaderTable._rayGenOffset,   0xAE, size_t(handle_size) ));
+			DEBUG_ONLY( memset( OUT mapped_ptr + shaderTable._rayMissOffset,  0xAE, size_t(handle_size * miss_shader_count) ));
+			DEBUG_ONLY( memset( OUT mapped_ptr + shaderTable._rayHitOffset,   0xAE, size_t(handle_size * max_hit_shaders) ));
+			DEBUG_ONLY( memset( OUT mapped_ptr + shaderTable._callableOffset, 0xAE, size_t(handle_size * callable_shader_count) ));
 	
 			// ray-gen shader
 			VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, 0, 1, size_t(handle_size), OUT mapped_ptr + shaderTable._rayGenOffset ));

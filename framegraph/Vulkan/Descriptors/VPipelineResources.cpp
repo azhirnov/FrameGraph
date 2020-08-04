@@ -5,6 +5,7 @@
 #include "VResourceManager.h"
 #include "VDevice.h"
 #include "VEnumCast.h"
+#include "stl/Algorithms/StringUtils.h"
 
 namespace FG
 {
@@ -70,7 +71,7 @@ namespace FG
 		update.descriptors		= update.allocator.Alloc< VkWriteDescriptorSet >( ds_layout->GetMaxIndex() + 1 );
 		update.descriptorIndex	= 0;
 
-		_dataPtr->ForEachUniform( [&](auto&, auto& data) { _AddResource( resMngr, data, INOUT update ); });
+		_dataPtr->ForEachUniform( [&](auto& un, auto& data) { _AddResource( resMngr, un, data, INOUT update ); });
 		
 		dev.vkUpdateDescriptorSets( dev.GetVkDevice(), update.descriptorIndex, update.descriptors, 0, null );
 		return true;
@@ -199,25 +200,45 @@ namespace FG
 	
 /*
 =================================================
+	_LogUniform
+=================================================
+*/
+	inline void  VPipelineResources::_LogUniform (const UniformID &un, uint idx) const
+	{
+		#if FG_OPTIMIZE_IDS
+			FG_UNUSED( un );
+			CHECK( _allowEmptyResources );
+		#else
+			if ( not _allowEmptyResources )
+				FG_LOGE( "Uniform '"s << un.GetName() << "[" << ToString(idx) << "]' contains invalid resource!" );
+		#endif
+	}
+
+/*
+=================================================
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorBufferInfo >( buf.elementCount );
 
 		for (uint i = 0; i < buf.elementCount; ++i)
 		{
 			auto&			elem	= buf.elements[i];
-			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, _allowEmptyResources );
-			CHECK( buffer or _allowEmptyResources );
-
+			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, true );
+			
 			if ( not buffer )
+			{
+				_LogUniform( un, i );
 				return false;
+			}
 
 			info[i].buffer	= buffer->Handle();
 			info[i].offset	= VkDeviceSize(elem.offset);
 			info[i].range	= VkDeviceSize(elem.size);
+
+			_CheckBufferUsage( *buffer, buf.state );
 		}
 
 		const bool	is_uniform	= ((buf.state & EResourceState::_StateMask) == EResourceState::UniformRead);
@@ -242,20 +263,24 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, INOUT PipelineResources::TexelBuffer &texbuf, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::TexelBuffer &texbuf, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkBufferView >( texbuf.elementCount );
 
 		for (uint i = 0; i < texbuf.elementCount; ++i)
 		{
 			auto&			elem	= texbuf.elements[i];
-			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, _allowEmptyResources );
-			CHECK( buffer or _allowEmptyResources );
+			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, true );
 			
 			if ( not buffer )
+			{
+				_LogUniform( un, i );
 				return false;
+			}
 
 			info[i] = buffer->GetView( resMngr.GetDevice(), elem.desc );
+			
+			_CheckTexelBufferUsage( *buffer, texbuf.state );
 		}
 		
 		const bool	is_uniform	= ((texbuf.state & EResourceState::_StateMask) == EResourceState::UniformRead);
@@ -277,22 +302,26 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( img.elementCount );
 
 		for (uint i = 0; i < img.elementCount; ++i)
 		{
 			auto&			elem	= img.elements[i];
-			VImage const*	img_res	= resMngr.GetResource( elem.imageId, false, _allowEmptyResources );
-			CHECK( img_res or _allowEmptyResources );
+			VImage const*	img_res	= resMngr.GetResource( elem.imageId, false, true );
 			
 			if ( not img_res )
+			{
+				_LogUniform( un, i );
 				return false;
+			}
 
 			info[i].imageLayout	= EResourceState_ToImageLayout( img.state, img_res->AspectMask() );
 			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
 			info[i].sampler		= VK_NULL_HANDLE;
+			
+			_CheckImageUsage( *img_res, img.state );
 		}		
 		
 		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
@@ -313,23 +342,27 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( tex.elementCount );
 
 		for (uint i = 0; i < tex.elementCount; ++i)
 		{
 			auto&			elem	= tex.elements[i];
-			VImage const*	img_res	= resMngr.GetResource( elem.imageId, false, _allowEmptyResources );
-			VSampler const*	sampler	= resMngr.GetResource( elem.samplerId, false, _allowEmptyResources );
-			CHECK( (img_res and sampler) or _allowEmptyResources );
+			VImage const*	img_res	= resMngr.GetResource( elem.imageId, false, true );
+			VSampler const*	sampler	= resMngr.GetResource( elem.samplerId, false, true );
 
 			if ( not (img_res and sampler) )
+			{
+				_LogUniform( un, i );
 				return false;
+			}
 
 			info[i].imageLayout	= EResourceState_ToImageLayout( tex.state, img_res->AspectMask() );
 			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
 			info[i].sampler		= sampler->Handle();
+			
+			_CheckImageUsage( *img_res, tex.state );
 		}
 		
 		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
@@ -349,18 +382,20 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( samp.elementCount );
 
 		for (uint i = 0; i < samp.elementCount; ++i)
 		{
 			auto&			elem	= samp.elements[i];
-			VSampler const*	sampler = resMngr.GetResource( elem.samplerId, false, _allowEmptyResources );
-			CHECK( sampler or _allowEmptyResources );
+			VSampler const*	sampler = resMngr.GetResource( elem.samplerId, false, true );
 			
 			if ( not sampler )
+			{
+				_LogUniform( un, i );
 				return false;
+			}
 
 			info[i].imageLayout	= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			info[i].imageView	= VK_NULL_HANDLE;
@@ -384,18 +419,20 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const PipelineResources::RayTracingScene &rtScene, INOUT UpdateDescriptors &list)
+	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, const PipelineResources::RayTracingScene &rtScene, INOUT UpdateDescriptors &list)
 	{
 		auto*	tlas = list.allocator.Alloc<VkAccelerationStructureNV>( rtScene.elementCount );
 
 		for (uint i = 0; i < rtScene.elementCount; ++i)
 		{
 			auto&					elem	= rtScene.elements[i];
-			VRayTracingScene const*	scene	= resMngr.GetResource( elem.sceneId, false, _allowEmptyResources );
-			CHECK( scene or _allowEmptyResources );
+			VRayTracingScene const*	scene	= resMngr.GetResource( elem.sceneId, false, true );
 
 			if ( not scene )
+			{
+				_LogUniform( un, i );
 				return false;
+			}
 
 			tlas[i] = scene->Handle();
 		}
@@ -424,11 +461,73 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &, const NullUnion &, INOUT UpdateDescriptors &)
+	bool VPipelineResources::_AddResource (VResourceManager &, const UniformID &un, const NullUnion &, INOUT UpdateDescriptors &)
 	{
-		CHECK( _allowEmptyResources and "uninitialized uniform!" );
+		#if FG_OPTIMIZE_IDS
+			FG_UNUSED( un );
+			CHECK( _allowEmptyResources and "uninitialized uniform!" );
+		#else
+			if ( not _allowEmptyResources )
+				FG_LOGE( "Uninitialized uniform "s << un.GetName() );
+		#endif
 		return false;
 	}
+	
+/*
+=================================================
+	_CheckBufferUsage
+=================================================
+*/
+	inline void VPipelineResources::_CheckBufferUsage (const VBuffer &buffer, EResourceState state)
+	{
+	#ifdef FG_DEBUG
+		const EBufferUsage	usage = buffer.Description().usage;
 
+		switch ( state & EResourceState::_AccessMask )
+		{
+			case EResourceState::_Access_ShaderStorage :	CHECK( EnumEq( usage, EBufferUsage::Storage ));		break;
+			case EResourceState::_Access_Uniform :			CHECK( EnumEq( usage, EBufferUsage::Uniform ));		break;
+			default :										CHECK( !"unknown resource state" );					break;
+		}
+	#endif
+	}
+
+/*
+=================================================
+	_CheckTexelBufferUsage
+=================================================
+*/
+	inline void VPipelineResources::_CheckTexelBufferUsage (const VBuffer &buffer, EResourceState state)
+	{
+	#ifdef FG_DEBUG
+		const EBufferUsage	usage = buffer.Description().usage;
+
+		switch ( state & EResourceState::_AccessMask )
+		{
+			case EResourceState::_Access_ShaderStorage :	CHECK( EnumAny( usage, EBufferUsage::StorageTexel | EBufferUsage::StorageTexelAtomic ));	break;
+			case EResourceState::_Access_Uniform :			CHECK( EnumEq( usage, EBufferUsage::UniformTexel ));										break;
+			default :										CHECK( !"unknown resource state" );															break;
+		}
+	#endif
+	}
+	
+/*
+=================================================
+	_CheckImageUsage
+=================================================
+*/
+	inline void VPipelineResources::_CheckImageUsage (const VImage &image, EResourceState state)
+	{
+	#ifdef FG_DEBUG
+		const EImageUsage	usage = image.Description().usage;
+
+		switch ( state & EResourceState::_AccessMask )
+		{
+			case EResourceState::_Access_ShaderStorage :	CHECK( EnumAny( usage, EImageUsage::Storage | EImageUsage::StorageAtomic ));	break;
+			case EResourceState::_Access_ShaderSample :		CHECK( EnumEq(  usage, EImageUsage::Sampled ));									break;
+			default :										CHECK( !"unknown resource state" );												break;
+		}
+	#endif
+	}
 
 }	// FG

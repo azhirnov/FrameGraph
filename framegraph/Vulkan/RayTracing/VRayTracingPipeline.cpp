@@ -26,8 +26,10 @@ namespace FG
 	bool VRayTracingPipeline::Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId)
 	{
 		EXLOCK( _drCheck );
+		CHECK_ERR( _shaders.empty() );
 		
 		_shaders.reserve( desc._shaders.size() * 2 );
+		_debugModeBits = Default;
 
 		for (auto& stage : desc._shaders)
 		{
@@ -39,6 +41,8 @@ namespace FG
 				CHECK_ERR( vk_shader );
 
 				_shaders.push_back(ShaderModule{ stage.first, vk_stage, *vk_shader, EShaderDebugMode_From(sh.first), stage.second.specConstants });
+
+				_debugModeBits.set( uint(_shaders.back().debugMode) );
 			}
 		}
 
@@ -62,9 +66,14 @@ namespace FG
 			resMngr.ReleaseResource( _baseLayoutId.Release() );
 		}
 
-		_shaders.clear();
+		// clear and release memory
+		{
+			ShaderModules_t	tmp;
+			std::swap( tmp, _shaders );
+		}
 
-		_baseLayoutId = Default;
+		_debugModeBits = Default;
+		_baseLayoutId  = Default;
 	}
 
 
