@@ -63,6 +63,22 @@ static void FastPow2_Test1 ()
 }
 
 
+static void AlignToSmaller_Test1 ()
+{
+	uint		a0 = AlignToSmaller( 4u,   1 );		TEST( a0 == 4 );
+	uint		a1 = AlignToSmaller( 7,    4u );	TEST( a1 == 4 );
+	uint64_t	a2 = AlignToSmaller( 7ull, 3 );		TEST( a2 == 6 );
+}
+
+
+static void AlignToLarger_Test1 ()
+{
+	uint64_t	a0 = AlignToLarger( 4ull, 1 );		TEST( a0 == 4 );
+	uint		a1 = AlignToLarger( 7,    4u );		TEST( a1 == 8 );
+	uint		a2 = AlignToLarger( 7u,   3 );		TEST( a2 == 9 );
+}
+
+
 extern void UnitTest_Math ()
 {
 	IsIntersects_Test1();
@@ -70,6 +86,8 @@ extern void UnitTest_Math ()
 	BitScanForward_Test1();
 	Wrap_Test1();
 	FastPow2_Test1();
+	AlignToSmaller_Test1();
+	AlignToLarger_Test1();
 
 	FG_LOGI( "UnitTest_Math - passed" );
 }

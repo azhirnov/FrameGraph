@@ -26,8 +26,8 @@ namespace FGC
 
 	// variables
 	public:
-		Angle_t		theta;		// polar angle
-		Angle_t		phi;		// azimuthal angle
+		Angle_t		theta;		// polar angle (vertical)
+		Angle_t		phi;		// azimuthal angle (horizontal)
 
 
 	// methods

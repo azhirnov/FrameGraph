@@ -25,7 +25,7 @@ namespace FGC
 
 	// variables
 	public:
-		Quat_t		orientation		{ T(1), T(0), T(0), T(0) };
+		Quat_t		orientation		= Quat_Identity;
 		Vec3_t		position		{ T(0) };
 		Value_t		scale			{ T(1) };
 

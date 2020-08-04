@@ -84,6 +84,7 @@ namespace FGC
 	ND_ forceinline constexpr auto  AlignToLarger (const T0 &value, const T1 &align)
 	{
 		ASSERT( align > 0 );
+		ASSERT( value >= 0 );
 		return ((value + align-1) / align) * align;
 	}
 

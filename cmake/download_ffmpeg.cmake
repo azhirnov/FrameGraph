@@ -1,7 +1,7 @@
 # find or download ffmpeg SDK (LGPL / GPL license)
 # https://ffmpeg.zeranoe.com/builds/
 
-if (TRUE) #(${FG_ALLOW_GPL})
+if (${FG_ALLOW_GPL})
  if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_FFMPEG})
 	set( FFMPEG_PATH "${FG_EXTERNALS_PATH}/ffmpeg" )
 	add_library( "ffmpeg-lib" INTERFACE )
