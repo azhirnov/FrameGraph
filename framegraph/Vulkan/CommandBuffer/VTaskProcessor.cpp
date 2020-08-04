@@ -439,23 +439,21 @@ namespace FG
 	{
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
+		
+		// add vertex buffers
+		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
+		{
+			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
+		}
 
+		// add index buffer
 		for (auto& cmd : task.commands)
 		{
-			// add vertex buffers
-			for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
-			{
-				_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
-			}
-		
-			// add index buffer
-			{
-				const VkDeviceSize	index_size	= VkDeviceSize(EIndex_SizeOf( task.indexType ));
-				const VkDeviceSize	offset		= VkDeviceSize(task.indexBufferOffset);
-				const VkDeviceSize	size		= index_size * cmd.indexCount;
+			const VkDeviceSize	index_size	= VkDeviceSize(EIndex_SizeOf( task.indexType ));
+			const VkDeviceSize	offset		= VkDeviceSize(task.indexBufferOffset);
+			const VkDeviceSize	size		= index_size * cmd.indexCount;
 
-				_tp._AddBuffer( task.indexBuffer, EResourceState::IndexBuffer, offset, size );
-			}
+			_tp._AddBuffer( task.indexBuffer, EResourceState::IndexBuffer, offset, size );
 		}
 		
 		_MergePipeline( task.dynamicStates, task.pipeline );
@@ -2746,6 +2744,7 @@ namespace FG
 		const VkFilter			filter		= src_dim.x == dst_dim.x and src_dim.y == dst_dim.y ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
 		VkImageBlit				region;
 
+		ASSERT( EnumEq( dst_image->Description().usage, EImageUsage::TransferDst ));
 		CHECK( src_image != dst_image );
 		
 		region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, task.mipmap.Get(), task.layer.Get(), 1 };
@@ -2792,6 +2791,9 @@ namespace FG
 
 		for (auto& copy : copy_regions)
 		{
+			ASSERT( EnumEq( copy.srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
+			ASSERT( EnumEq( copy.dstBuffer->Description().usage, EBufferUsage::TransferDst ));
+
 			_AddBuffer( copy.srcBuffer, EResourceState::TransferSrc, copy.region.srcOffset, copy.region.size );
 			_AddBuffer( copy.dstBuffer, EResourceState::TransferDst, copy.region.dstOffset, copy.region.size );
 		}
@@ -2932,8 +2934,10 @@ namespace FG
 
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
+		
+		ASSERT( EnumEq( sbt_buffer->Description().usage, EBufferUsage::RayTracing ));
 
-		_AddBuffer( sbt_buffer, EResourceState::UniformRead | EResourceState::_RayTracingShader, raygen_offset, block_size );
+		_AddBuffer( sbt_buffer, EResourceState::ShaderRead | EResourceState::_RayTracingShader, raygen_offset, block_size );
 		_CommitBarriers();
 		
 		vkCmdTraceRaysNV( _cmdBuffer, 

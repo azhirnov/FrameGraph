@@ -77,6 +77,10 @@ namespace FG
 		bool _AddResource (VResourceManager &, const UniformID &, const NullUnion &, INOUT UpdateDescriptors &);
 
 		void _LogUniform (const UniformID &, uint idx) const;
+
+		static void _CheckBufferUsage (const class VBuffer &, EResourceState state);
+		static void _CheckTexelBufferUsage (const class VBuffer &, EResourceState state);
+		static void _CheckImageUsage (const class VImage &, EResourceState state);
 	};
 	
 

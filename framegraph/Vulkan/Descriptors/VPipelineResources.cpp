@@ -237,6 +237,8 @@ namespace FG
 			info[i].buffer	= buffer->Handle();
 			info[i].offset	= VkDeviceSize(elem.offset);
 			info[i].range	= VkDeviceSize(elem.size);
+
+			_CheckBufferUsage( *buffer, buf.state );
 		}
 
 		const bool	is_uniform	= ((buf.state & EResourceState::_StateMask) == EResourceState::UniformRead);
@@ -277,6 +279,8 @@ namespace FG
 			}
 
 			info[i] = buffer->GetView( resMngr.GetDevice(), elem.desc );
+			
+			_CheckTexelBufferUsage( *buffer, texbuf.state );
 		}
 		
 		const bool	is_uniform	= ((texbuf.state & EResourceState::_StateMask) == EResourceState::UniformRead);
@@ -316,6 +320,8 @@ namespace FG
 			info[i].imageLayout	= EResourceState_ToImageLayout( img.state, img_res->AspectMask() );
 			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
 			info[i].sampler		= VK_NULL_HANDLE;
+			
+			_CheckImageUsage( *img_res, img.state );
 		}		
 		
 		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
@@ -355,6 +361,8 @@ namespace FG
 			info[i].imageLayout	= EResourceState_ToImageLayout( tex.state, img_res->AspectMask() );
 			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
 			info[i].sampler		= sampler->Handle();
+			
+			_CheckImageUsage( *img_res, tex.state );
 		}
 		
 		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
@@ -382,7 +390,6 @@ namespace FG
 		{
 			auto&			elem	= samp.elements[i];
 			VSampler const*	sampler = resMngr.GetResource( elem.samplerId, false, true );
-			CHECK( sampler or _allowEmptyResources );
 			
 			if ( not sampler )
 			{
@@ -465,6 +472,62 @@ namespace FG
 		#endif
 		return false;
 	}
+	
+/*
+=================================================
+	_CheckBufferUsage
+=================================================
+*/
+	inline void VPipelineResources::_CheckBufferUsage (const VBuffer &buffer, EResourceState state)
+	{
+	#ifdef FG_DEBUG
+		const EBufferUsage	usage = buffer.Description().usage;
 
+		switch ( state & EResourceState::_AccessMask )
+		{
+			case EResourceState::_Access_ShaderStorage :	CHECK( EnumEq( usage, EBufferUsage::Storage ));		break;
+			case EResourceState::_Access_Uniform :			CHECK( EnumEq( usage, EBufferUsage::Uniform ));		break;
+			default :										CHECK( !"unknown resource state" );					break;
+		}
+	#endif
+	}
+
+/*
+=================================================
+	_CheckTexelBufferUsage
+=================================================
+*/
+	inline void VPipelineResources::_CheckTexelBufferUsage (const VBuffer &buffer, EResourceState state)
+	{
+	#ifdef FG_DEBUG
+		const EBufferUsage	usage = buffer.Description().usage;
+
+		switch ( state & EResourceState::_AccessMask )
+		{
+			case EResourceState::_Access_ShaderStorage :	CHECK( EnumAny( usage, EBufferUsage::StorageTexel | EBufferUsage::StorageTexelAtomic ));	break;
+			case EResourceState::_Access_Uniform :			CHECK( EnumEq( usage, EBufferUsage::UniformTexel ));										break;
+			default :										CHECK( !"unknown resource state" );															break;
+		}
+	#endif
+	}
+	
+/*
+=================================================
+	_CheckImageUsage
+=================================================
+*/
+	inline void VPipelineResources::_CheckImageUsage (const VImage &image, EResourceState state)
+	{
+	#ifdef FG_DEBUG
+		const EImageUsage	usage = image.Description().usage;
+
+		switch ( state & EResourceState::_AccessMask )
+		{
+			case EResourceState::_Access_ShaderStorage :	CHECK( EnumAny( usage, EImageUsage::Storage | EImageUsage::StorageAtomic ));	break;
+			case EResourceState::_Access_ShaderSample :		CHECK( EnumEq(  usage, EImageUsage::Sampled ));									break;
+			default :										CHECK( !"unknown resource state" );												break;
+		}
+	#endif
+	}
 
 }	// FG

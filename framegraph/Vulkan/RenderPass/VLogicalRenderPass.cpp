@@ -117,6 +117,7 @@ namespace {
 			if ( EPixelFormat_HasDepthOrStencil( dst.desc.format ) )
 			{
 				ASSERT( RenderTargetID(i) == RenderTargetID::DepthStencil );
+				ASSERT( EnumEq( dst.imagePtr->Description().usage, EImageUsage::DepthStencilAttachment ));
 				
 				dst.state |= EResourceState::DepthStencilAttachmentReadWrite;	// TODO: add support for other layouts
 
@@ -124,6 +125,8 @@ namespace {
 			}
 			else
 			{
+				ASSERT( EnumAny( dst.imagePtr->Description().usage, EImageUsage::ColorAttachment | EImageUsage::ColorAttachmentBlend ));
+
 				dst.state |= EResourceState::ColorAttachmentReadWrite;		// TODO: remove 'Read' state if blending disabled or 'loadOp' is 'Clear'
 
 				_colorTargets.push_back( dst );

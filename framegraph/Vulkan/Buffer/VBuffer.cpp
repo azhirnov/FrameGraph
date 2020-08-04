@@ -71,6 +71,8 @@ namespace FG
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
 		CHECK_ERR( not _memoryId );
 		CHECK_ERR( not desc.isExternal );
+		CHECK_ERR( desc.size > 0 );
+		CHECK_ERR( desc.usage != Default );
 		
 		auto&	dev = resMngr.GetDevice();
 		ASSERT( IsSupported( dev, desc, EMemoryType(memObj.MemoryType()) ));
@@ -136,6 +138,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _buffer == VK_NULL_HANDLE );
+		CHECK_ERR( desc.buffer != VK_NULL_HANDLE );
 
 		_buffer				= BitCast<VkBuffer>( desc.buffer );
 		_desc.size			= desc.size;
