@@ -18,6 +18,7 @@ namespace FG
 	// types
 	public:
 		using SpecConstants_t	= PipelineDescription::SpecConstants_t;
+		using DebugModeBits_t	= BitSet< uint(EShaderDebugMode::_Count) >;
 
 		struct ShaderModule
 		{
@@ -38,6 +39,7 @@ namespace FG
 	private:
 		PipelineLayoutID		_baseLayoutId;
 		ShaderModules_t			_shaders;
+		DebugModeBits_t			_debugModeBits;
 
 		RWDataRaceCheck			_drCheck;
 
@@ -52,6 +54,7 @@ namespace FG
 		void Destroy (VResourceManager &);
 		
 		ND_ ArrayView<ShaderModule>	GetShaderModules ()	const	{ SHAREDLOCK( _drCheck );  return _shaders; }
+		ND_ DebugModeBits_t			GetDebugModes ()	const	{ SHAREDLOCK( _drCheck );  return _debugModeBits; }
 		ND_ RawPipelineLayoutID		GetLayoutID ()		const	{ SHAREDLOCK( _drCheck );  return _baseLayoutId.Get(); }
 	};
 

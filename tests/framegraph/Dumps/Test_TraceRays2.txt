@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Buffer {
 		name:    ""
-		size:    256 b
+		size:    192 b
 		usage:   TransferDst | RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -14,47 +14,44 @@ CommandBuffer {
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
 					offset:          0 b
-					size:            48 b
+					size:            192 b
+				}
+		}
+	}
+
+	Buffer {
+		name:    "InstanceBuffer"
+		size:    112 b
+		usage:   TransferDst | RayTracing
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         BuildRayTracingScene (#3)
+					dstTask:         BuildRayTracingScene (#3)
+					srcStageMask:    Transfer
+					dstStageMask:    AccelerationStructureBuild
+					dependencyFlags: 
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   
+					offset:          0 b
+					size:            64 b
 				}
 				BufferMemoryBarrier {
-					srcTask:         UpdateRayTracingShaderTable (#4)
+					srcTask:         BuildRayTracingScene (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
 					dstStageMask:    
 					dependencyFlags: 
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   
-					offset:          64 b
-					size:            48 b
-				}
-				BufferMemoryBarrier {
-					srcTask:         UpdateRayTracingShaderTable (#4)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   
-					offset:          128 b
-					size:            48 b
-				}
-				BufferMemoryBarrier {
-					srcTask:         UpdateRayTracingShaderTable (#4)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   
-					offset:          192 b
-					size:            48 b
+					offset:          0 b
+					size:            64 b
 				}
 		}
 	}
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    64 Kb
+		size:    256 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -66,14 +63,14 @@ CommandBuffer {
 					srcAccessMask:   
 					dstAccessMask:   
 					offset:          0 b
-					size:            64 Kb
+					size:            256 b
 				}
 		}
 	}
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    64 Kb
+		size:    768 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -85,7 +82,7 @@ CommandBuffer {
 					srcAccessMask:   
 					dstAccessMask:   
 					offset:          0 b
-					size:            64 Kb
+					size:            768 b
 				}
 		}
 	}
@@ -100,7 +97,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     64 Kb
+				size:     256 b
 			}
 		}
 	}
@@ -111,15 +108,27 @@ CommandBuffer {
 		resource_usage = {
 			BufferUsage {
 				name:     "HostWriteBuffer"
+				usage:    Transfer-R
+				offset:   48 b
+				size:     64 b
+			}
+			BufferUsage {
+				name:     "InstanceBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     64 b
+			}
+			BufferUsage {
+				name:     "InstanceBuffer"
 				usage:    RTASBuild-Buffer-R
 				offset:   0 b
-				size:     128 Mb
+				size:     64 b
 			}
 			BufferUsage {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     64 Kb
+				size:     768 b
 			}
 		}
 	}
@@ -132,49 +141,13 @@ CommandBuffer {
 				name:     ""
 				usage:    Transfer-W
 				offset:   0 b
-				size:     48 b
+				size:     192 b
 			}
 			BufferUsage {
-				name:     ""
-				usage:    Transfer-W
-				offset:   64 b
-				size:     48 b
-			}
-			BufferUsage {
-				name:     ""
-				usage:    Transfer-W
+				name:     "HostWriteBuffer"
+				usage:    Transfer-R
 				offset:   128 b
-				size:     48 b
-			}
-			BufferUsage {
-				name:     ""
-				usage:    Transfer-W
-				offset:   192 b
-				size:     48 b
-			}
-			BufferUsage {
-				name:     "HostWriteBuffer"
-				usage:    Transfer-R
-				offset:   112 b
-				size:     48 b
-			}
-			BufferUsage {
-				name:     "HostWriteBuffer"
-				usage:    Transfer-R
-				offset:   160 b
-				size:     48 b
-			}
-			BufferUsage {
-				name:     "HostWriteBuffer"
-				usage:    Transfer-R
-				offset:   208 b
-				size:     48 b
-			}
-			BufferUsage {
-				name:     "HostWriteBuffer"
-				usage:    Transfer-R
-				offset:   256 b
-				size:     48 b
+				size:     192 b
 			}
 		}
 	}
@@ -214,7 +187,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    64 Kb
+		size:    256 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -226,7 +199,7 @@ CommandBuffer {
 					srcAccessMask:   
 					dstAccessMask:   
 					offset:          0 b
-					size:            64 Kb
+					size:            256 b
 				}
 		}
 	}
@@ -241,7 +214,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     64 Kb
+				size:     256 b
 			}
 		}
 	}
@@ -252,9 +225,9 @@ CommandBuffer {
 		resource_usage = {
 			BufferUsage {
 				name:     ""
-				usage:    Uniform, RTS
+				usage:    Storage-R, RTS
 				offset:   0 b
-				size:     48 b
+				size:     192 b
 			}
 			ImageUsage {
 				name:           "OutputImage"
@@ -337,7 +310,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    64 Kb
+		size:    256 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -349,7 +322,7 @@ CommandBuffer {
 					srcAccessMask:   
 					dstAccessMask:   
 					offset:          0 b
-					size:            64 Kb
+					size:            256 b
 				}
 		}
 	}
@@ -364,7 +337,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     64 Kb
+				size:     256 b
 			}
 		}
 	}
@@ -375,9 +348,9 @@ CommandBuffer {
 		resource_usage = {
 			BufferUsage {
 				name:     ""
-				usage:    Uniform, RTS
+				usage:    Storage-R, RTS
 				offset:   0 b
-				size:     48 b
+				size:     192 b
 			}
 			ImageUsage {
 				name:           "OutputImage"

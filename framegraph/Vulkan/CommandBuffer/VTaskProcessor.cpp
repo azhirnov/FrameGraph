@@ -2817,8 +2817,8 @@ namespace FG
 		_CmdDebugMarker( task.Name() );
 		
 		_AddRTGeometry( task.RTGeometry(), EResourceState::BuildRayTracingStructWrite );
-		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VK_WHOLE_SIZE );
-		
+		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, task.ScratchBufferOffset(), task.ScratchBufferSize() );
+
 		for (auto& buf : task.GetBuffers())
 		{
 			// resource state doesn't matter
@@ -2852,12 +2852,29 @@ namespace FG
 	{
 		_CmdDebugMarker( task.Name() );
 		
+		// copy instance data to GPU memory
+		_AddBuffer( task.InstanceStagingBuffer(), EResourceState::TransferSrc, task.InstanceStagingBufferOffset(), task.InstanceBufferSize() );
+		_AddBuffer( task.InstanceBuffer(), EResourceState::TransferDst, task.InstanceBufferOffset(), task.InstanceBufferSize() );
+		
+		_CommitBarriers();
+
+		VkBufferCopy	region;
+		region.srcOffset	= task.InstanceStagingBufferOffset();
+		region.dstOffset	= task.InstanceBufferOffset();
+		region.size			= task.InstanceBufferSize();
+
+		vkCmdCopyBuffer( _cmdBuffer, task.InstanceStagingBuffer()->Handle(), task.InstanceBuffer()->Handle(), 1, &region );
+		
+		Stat().transferOps ++;
+
+
+		// build TLAS
 		task.RTScene()->ToGlobal()->SetGeometryInstances( _fgThread.GetResourceManager(), task.Instances(), task.InstanceCount(),
 														  task.HitShadersPerInstance(), task.MaxHitShaderCount() );
 
 		_AddRTScene( task.RTScene(), EResourceState::BuildRayTracingStructWrite );
-		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, 0, VK_WHOLE_SIZE );
-		_AddBuffer( task.InstanceBuffer(), EResourceState::RTASBuildingBufferRead, 0, VK_WHOLE_SIZE );
+		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, task.ScratchBufferOffset(), task.ScratchBufferSize() );
+		_AddBuffer( task.InstanceBuffer(), EResourceState::RTASBuildingBufferRead, task.InstanceBufferOffset(), task.InstanceBufferSize() );
 
 		for (auto& blas : task.Geometries()) {
 			_AddRTGeometry( blas, EResourceState::BuildRayTracingStructRead );

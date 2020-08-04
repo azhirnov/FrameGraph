@@ -572,7 +572,6 @@ namespace FG
 	private:
 		VLocalRTGeometry const*		_rtGeometry				= null;
 		VLocalBuffer const*			_scratchBuffer			= null;
-		VkDeviceSize				_scratchBufferOffset	= 0;
 		VkGeometryNV *				_geometry				= null;
 		size_t						_geometryCount			= 0;
 		UsableBuffers_t				_usableBuffers;
@@ -586,7 +585,8 @@ namespace FG
 
 		ND_ VLocalRTGeometry const*		RTGeometry ()			const	{ return _rtGeometry; }
 		ND_ VLocalBuffer const*			ScratchBuffer ()		const	{ return _scratchBuffer; }
-		ND_ VkDeviceSize				ScratchBufferOffset ()	const	{ return _scratchBufferOffset; }
+		ND_ VkDeviceSize				ScratchBufferOffset ()	const	{ return 0; }
+		ND_ VkDeviceSize				ScratchBufferSize ()	const	{ return VK_WHOLE_SIZE; }
 		ND_ ArrayView<VkGeometryNV>		GetGeometry ()			const	{ return ArrayView{ _geometry, _geometryCount }; }
 		ND_ UsableBuffers_t const&		GetBuffers ()			const	{ return _usableBuffers; }
 	};
@@ -608,16 +608,17 @@ namespace FG
 
 	// variables
 	private:
-		VLocalRTScene const*		_rtScene				= null;
-		VLocalBuffer const*			_scratchBuffer			= null;
-		VkDeviceSize				_scratchBufferOffset	= 0;
-		VLocalBuffer const*			_instanceBuffer			= null;
-		VkDeviceSize				_instanceBufferOffset	= 0;
-		VLocalRTGeometry const**	_rtGeometries			= null;
-		Instance *					_instances				= null;		// strong references
-		uint						_instanceCount			= 0;
-		uint						_hitShadersPerInstance	= 0;
-		uint						_maxHitShaderCount		= 0;
+		VLocalRTScene const*		_rtScene						= null;
+		VLocalBuffer const*			_scratchBuffer					= null;
+		VLocalBuffer const*			_instanceStagingBuffer			= null;
+		VkDeviceSize				_instanceStagingBufferOffset	= 0;
+		VLocalBuffer const*			_instanceBuffer					= null;
+		VkDeviceSize				_instanceBufferOffset			= 0;
+		VLocalRTGeometry const**	_rtGeometries					= null;
+		Instance *					_instances						= null;		// strong references
+		uint						_instanceCount					= 0;
+		uint						_hitShadersPerInstance			= 0;
+		uint						_maxHitShaderCount				= 0;
 
 
 	// methods
@@ -626,16 +627,22 @@ namespace FG
 		
 		ND_ bool  IsValid () const	{ return true; }
 
-		ND_ VLocalRTScene const*				RTScene ()				const	{ return _rtScene; }
-		ND_ VLocalBuffer const*					ScratchBuffer ()		const	{ return _scratchBuffer; }
-		ND_ VkDeviceSize						ScratchBufferOffset ()	const	{ return _scratchBufferOffset; }
-		ND_ VLocalBuffer const*					InstanceBuffer ()		const	{ return _instanceBuffer; }
-		ND_ VkDeviceSize						InstanceBufferOffset ()	const	{ return _instanceBufferOffset; }
-		ND_ uint								InstanceCount ()		const	{ return _instanceCount; }
-		ND_ ArrayView<VLocalRTGeometry const*>	Geometries ()			const	{ return ArrayView{ _rtGeometries, _instanceCount }; }
-		ND_ Instance *							Instances ()			const	{ return _instances; }
-		ND_ uint								HitShadersPerInstance()	const	{ return _hitShadersPerInstance; }
-		ND_ uint								MaxHitShaderCount ()	const	{ return _maxHitShaderCount; }
+		ND_ VLocalRTScene const*				RTScene ()						const	{ return _rtScene; }
+		ND_ VLocalBuffer const*					ScratchBuffer ()				const	{ return _scratchBuffer; }
+		ND_ VkDeviceSize						ScratchBufferOffset ()			const	{ return 0; }
+		ND_ VkDeviceSize						ScratchBufferSize ()			const	{ return VK_WHOLE_SIZE; }
+
+		ND_ VLocalBuffer const*					InstanceStagingBuffer ()		const	{ return _instanceStagingBuffer; }
+		ND_ VkDeviceSize						InstanceStagingBufferOffset ()	const	{ return _instanceStagingBufferOffset; }
+		ND_ VLocalBuffer const*					InstanceBuffer ()				const	{ return _instanceBuffer; }
+		ND_ VkDeviceSize						InstanceBufferOffset ()			const	{ return _instanceBufferOffset; }
+		ND_ VkDeviceSize						InstanceBufferSize ()			const	{ return _instanceCount * sizeof(VkGeometryInstance); }
+
+		ND_ uint								InstanceCount ()				const	{ return _instanceCount; }
+		ND_ ArrayView<VLocalRTGeometry const*>	Geometries ()					const	{ return ArrayView{ _rtGeometries, _instanceCount }; }
+		ND_ Instance *							Instances ()					const	{ return _instances; }
+		ND_ uint								HitShadersPerInstance()			const	{ return _hitShadersPerInstance; }
+		ND_ uint								MaxHitShaderCount ()			const	{ return _maxHitShaderCount; }
 	};
 
 
