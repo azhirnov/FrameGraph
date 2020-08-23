@@ -51,7 +51,7 @@ void main() {
 	TEST( FindVertexInput( ppln, VertexID("at_Position") ));
 	TEST( FindVertexInput( ppln, VertexID("at_Texcoord") ));
 
-	TEST( FindFragmentOutput( ppln, RenderTargetID::Color_0 ));
+	TEST( TestFragmentOutput( ppln, EFragOutput::Float4, 0 ));
 
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );

@@ -1518,6 +1518,7 @@ namespace FG
 */
 	void  VTaskProcessor::_CmdDebugMarker (StringView text) const
 	{
+		FG_UNUSED( text );
 		/*if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};

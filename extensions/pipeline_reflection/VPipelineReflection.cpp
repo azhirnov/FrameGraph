@@ -631,7 +631,6 @@ namespace FG
 			auto&	dst = fragOutput.emplace_back();
 
 			dst.type	= FGEnumCastToFragOutput( src.format );
-			dst.id		= RenderTargetID( src.location );
 			dst.index	= src.location;
 		}
 		return true;

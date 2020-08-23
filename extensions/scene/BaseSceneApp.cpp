@@ -418,6 +418,7 @@ namespace FG
 		}
 
 		//FG_LOGI( "Idx: "s << ToString(index) << ", delta: " << ToString(delta) );
+		FG_UNUSED( id, delta );
 	}
 	
 /*
@@ -427,6 +428,7 @@ namespace FG
 */
 	void  BaseSceneApp::OnButton (ControllerID id, StringView btn, EButtonAction action)
 	{
+		FG_UNUSED( id, btn, action );
 		/*if ( id == ControllerID::RightHand and action != EButtonAction::Up )
 		{
 			if ( btn == "dpad up" )			_positionDelta.x += 1.0f;	else

@@ -37,7 +37,6 @@ namespace FGC
 			case EImage::TexCube :		return "ImageCube";
 			case EImage::TexCubeArray :	return "ImageCube_Array";
 			case EImage::Tex3D :		return "Image3D";
-			case EImage::Buffer :		return "ImageBuffer";
 			case EImage::Unknown :		break;
 		}
 		END_ENUM_CHECKS();

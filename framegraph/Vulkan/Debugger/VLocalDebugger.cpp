@@ -945,6 +945,9 @@ namespace {
 */
 	void VLocalDebugger::_DumpTaskData (VTask taskPtr, INOUT String &str) const
 	{
+		FG_UNUSED( taskPtr, str );
+
+		// TODO: fix compilation
 		/*if ( auto task = DynCast< VFgTask<SubmitRenderPass> >(taskPtr) )
 			return _SubmitRenderPassTaskToString( task, INOUT str );
 

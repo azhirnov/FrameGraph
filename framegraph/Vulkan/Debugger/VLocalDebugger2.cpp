@@ -297,9 +297,9 @@ namespace {
 			if ( firstNode.empty() )
 				firstNode = _VisResourceName( image.first, ExeOrderIndex::Initial );
 
-			for (auto& bar : image.second.barriers) {
-				str << VkImageLayout_ToString( bar.info.oldLayout );
-				break;
+			// TODO: log all barriers
+			if ( image.second.barriers.size() ) {
+				str << VkImageLayout_ToString( image.second.barriers.front().info.oldLayout );
 			}
 			str << "\", fontsize=10, fillcolor=\"#" << _ResourceBG( image.first ) << "\"];\n";
 		}
@@ -447,9 +447,13 @@ namespace {
 
 					[] (const RTGeometryUsage_t &geometry)
 					{
+						// TODO
+						FG_UNUSED( geometry );
 					},
 					[] (const RTSceneUsage_t &scene)
 					{
+						// TODO
+						FG_UNUSED( scene );
 					},
 					[] (const NullUnion &) { ASSERT(false); }
 				);

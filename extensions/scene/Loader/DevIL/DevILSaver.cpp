@@ -100,7 +100,6 @@ namespace
 
 			case EImage::Tex2DMS :
 			case EImage::Tex2DMSArray :
-			case EImage::Buffer :
 			case EImage::Unknown :
 				RETURN_ERR( "unsupported image type" );
 		}
@@ -128,7 +127,7 @@ namespace
 
 					CHECK_ERR( GetImageFormat( level.format, OUT format, OUT type, OUT channels ));
 
-					CHECK_ERR( ilTexImage( dim.x, dim.y, dim.z, channels, format, type, const_cast<uint8_t*>(level.pixels.data()) ) == IL_TRUE );
+					CHECK_ERR( ilTexImage( dim.x, dim.y, dim.z, ILubyte(channels), format, type, const_cast<uint8_t*>(level.pixels.data()) ) == IL_TRUE );
 				}
 			}
 		}

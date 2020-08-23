@@ -320,8 +320,7 @@ namespace FG
 */
 	bool GraphicsPipelineDesc::FragmentOutput::operator == (const FragmentOutput &rhs) const
 	{
-		return	id		== rhs.id		and
-				index	== rhs.index	and
+		return	index	== rhs.index	and
 				type	== rhs.type;
 	}
 //-----------------------------------------------------------------------------

@@ -95,7 +95,7 @@ namespace {
 	void SimpleScene::Draw (RenderQueue &queue) const
 	{
 		const auto&	camera		= queue.GetCamera();
-		const auto&	camera_pos	= camera.camera.transform.position;
+		//const auto&	camera_pos	= camera.camera.transform.position;
 		const float	inv_range	= 1.0f / camera.visibilityRange[1];
 		const int	first_layer	= BitScanForward( camera.layers.to_ulong() );
 		const int	last_layer	= BitScanReverse( camera.layers.to_ulong() );

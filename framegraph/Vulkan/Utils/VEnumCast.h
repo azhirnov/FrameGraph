@@ -539,7 +539,6 @@ namespace FG
 			case EImage::TexCube		: return VK_IMAGE_VIEW_TYPE_CUBE;
 			case EImage::TexCubeArray	: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
 			case EImage::Tex3D			: return VK_IMAGE_VIEW_TYPE_3D;
-			case EImage::Buffer			:
 			case EImage::Unknown		: break;	// not supported
 		}
 		END_ENUM_CHECKS();
