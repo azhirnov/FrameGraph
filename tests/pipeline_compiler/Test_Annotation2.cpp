@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader10 (VPipelineCompiler* compiler)
+extern void Test_Annotation2 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
@@ -51,6 +51,6 @@ void main ()
 	TEST( TestImageUniform( *ds, UniformID{"un_Image"}, EImage::Tex2D, EPixelFormat::RGBA8_UNorm, EShaderAccess::WriteDiscard, 2, EShaderStages::Compute ));
 
 	TEST(All( ppln._defaultLocalGroupSize == uint3(1, 1, 1) ));
-
-	FG_LOGI( "Test_Shader10 - passed" );
+	
+	TEST_PASSED();
 }

@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader3 (VPipelineCompiler* compiler)
+extern void Test_Reflection2 (VPipelineCompiler* compiler)
 {
 	GraphicsPipelineDesc	ppln;
 
@@ -18,8 +18,8 @@ layout (location=2) in  uint	at_MaterialID;
 
 layout (binding=0) uniform sampler2D un_ColorTexture;
 
-out vec2	v_Texcoord;
-out uint	v_MaterialID;
+layout(location=0) out vec2	v_Texcoord;
+layout(location=1) out uint	v_MaterialID;
 
 void main() {
 	gl_Position	 = vec4( at_Position, 0.0, 1.0 );
@@ -41,9 +41,9 @@ layout (std140, binding=1) uniform UB
 
 layout (binding=0) uniform sampler2D un_ColorTexture;
 
-in  vec2	v_Texcoord;
+layout(location=0) in  vec2	v_Texcoord;
 
-out vec4	out_Color;
+layout(location=0) out vec4	out_Color;
 
 void main() {
 	out_Color = texture(un_ColorTexture, v_Texcoord) * ub.color;
@@ -56,7 +56,7 @@ void main() {
 	TEST( TestVertexInput( ppln, VertexID("at_Position"), EVertexType::Float2, 1 ));
 	TEST( TestVertexInput( ppln, VertexID("at_Texcoord"), EVertexType::Float2, 0 ));
 	TEST( TestVertexInput( ppln, VertexID("at_MaterialID"), EVertexType::UInt, 2 ));
-	
+
 	TEST( TestFragmentOutput( ppln, EFragOutput::Float4, 0 ));
 
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
@@ -78,6 +78,6 @@ void main() {
 	TEST( not ppln._supportedTopology.test( uint(EPrimitive::TriangleListAdjacency) ));
 	TEST( not ppln._supportedTopology.test( uint(EPrimitive::TriangleStripAdjacency) ));
 	TEST( not ppln._supportedTopology.test( uint(EPrimitive::Patch) ));
-
-	FG_LOGI( "Test_Shader3 - passed" );
+	
+	TEST_PASSED();
 }

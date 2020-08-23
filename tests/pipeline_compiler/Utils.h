@@ -8,6 +8,8 @@ using namespace FG;
 
 #define TEST	CHECK_FATAL
 
+#define TEST_PASSED()	FG_LOGI( String{FG_FUNCTION_NAME} + " - passed" )
+
 
 /*
 =================================================

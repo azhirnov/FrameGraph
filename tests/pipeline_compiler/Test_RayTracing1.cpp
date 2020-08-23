@@ -4,7 +4,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader8 (VPipelineCompiler* compiler)
+extern void Test_RayTracing1 (VPipelineCompiler* compiler)
 {
 	RayTracingPipelineDesc	ppln;
 	
@@ -147,6 +147,6 @@ void main()
 	TEST( ds );
 
 	TEST( TestRayTracingScene( *ds, UniformID("accNV"), 0, EShaderStages::RayGen | EShaderStages::RayClosestHit | EShaderStages::RayMiss ));
-
-	FG_LOGI( "Test_Shader8 - passed" );
+	
+	TEST_PASSED();
 }

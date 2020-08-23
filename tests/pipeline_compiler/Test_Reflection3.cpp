@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader2 (VPipelineCompiler* compiler)
+extern void Test_Reflection3 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
@@ -39,6 +39,6 @@ void main ()
 	TEST( TestStorageBuffer( *ds, UniformID("un_SSBO"), 16_b, 0_b, EShaderAccess::ReadOnly, 1, EShaderStages::Compute ));
 
 	TEST(All( ppln._defaultLocalGroupSize == uint3(16, 8, 1) ));
-
-	FG_LOGI( "Test_Shader2 - passed" );
+	
+	TEST_PASSED();
 }

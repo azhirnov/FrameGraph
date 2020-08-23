@@ -4,7 +4,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader7 (VPipelineCompiler* compiler)
+extern void Test_MeshShader1 (VPipelineCompiler* compiler)
 {
 	MeshPipelineDesc	ppln;
 
@@ -99,6 +99,6 @@ void main()
 	TEST(All( ppln._defaultMeshGroupSize == uint3{ 1, 1, 1 } ));
 	TEST(All( ppln._taskSizeSpec == uint3{ ~0u } ));
 	TEST(All( ppln._meshSizeSpec == uint3{ 0, UMax, UMax } ));
-
-	FG_LOGI( "Test_Shader7 - passed" );
+	
+	TEST_PASSED();
 }

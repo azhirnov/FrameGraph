@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader11 (VPipelineCompiler* compiler)
+extern void Test_ShaderTrace1 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
@@ -36,6 +36,6 @@ void main ()
 	
 	auto	iter3 = ppln._shader.data.find( EShaderLangFormat::SPIRV_100 | EShaderLangFormat::EnableTimeMap );
 	TEST( iter3 != ppln._shader.data.end() );
-
-	FG_LOGI( "Test_Shader11 - passed" );
+	
+	TEST_PASSED();
 }

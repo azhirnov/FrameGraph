@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader12 (VPipelineCompiler* compiler)
+extern void Test_Optimization1 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln1;
 	ppln1.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
@@ -46,7 +46,11 @@ void main ()
 	TEST( shader1 and shader2 );
 
 	TEST( (*shader1)->GetEntry() == (*shader2)->GetEntry() );
-	//TEST( (*shader1)->GetData().size() > (*shader2)->GetData().size() );	// optimized code should be smaller
-
-	FG_LOGI( "Test_Shader12 - passed" );
+	
+	// TODO: fix on CI
+#ifndef FG_CI_BUILD
+	TEST( (*shader1)->GetData().size() > (*shader2)->GetData().size() );	// optimized code should be smaller
+#endif
+	
+	TEST_PASSED();
 }

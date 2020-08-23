@@ -6,6 +6,7 @@
 #include "framegraph/Public/EResourceState.h"
 #include "framegraph/Public/ShaderEnums.h"
 #include "framegraph/Public/VertexEnums.h"
+#include "framegraph/Public/IDs.h"
 #include "stl/Algorithms/StringUtils.h"
 
 namespace FGC
@@ -17,6 +18,21 @@ namespace FGC
 	using EResourceState	= FG::EResourceState;
 	using EPixelFormat		= FG::EPixelFormat;
 
+	
+	
+/*
+=================================================
+	ToString (IDWithString)
+=================================================
+*/
+	template <size_t Size, uint UID, bool Optimize, uint Seed>
+	inline String  ToString (const FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &id)
+	{
+		if constexpr( Optimize )
+			return ToString<16>( size_t(id.GetHash()) );
+		else
+			return String{ id.GetName() };
+	}
 
 /*
 =================================================

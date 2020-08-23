@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader13 (VPipelineCompiler* compiler)
+extern void Test_Annotation4 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
@@ -12,20 +12,14 @@ extern void Test_Shader13 (VPipelineCompiler* compiler)
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-// @set 0 test // comment
-layout (std140, set=0, binding=0) uniform UB {
+layout (std140, binding=1) uniform UB {
 	vec4	data[4];
 } ub;
 
-// @set 1 "test 2"  
-layout (std430, set=1, binding=0) writeonly buffer SSB {
+// @dynamic-offset
+layout (std430, binding=0) writeonly buffer SSB {
 	vec4	data[4];
 } ssb;
-
-// @set 2 test3
-layout (std430, set=2, binding=0) writeonly buffer SSB2 {
-	vec4	data[4];
-} ssb2;
 
 void main ()
 {
@@ -33,15 +27,10 @@ void main ()
 	ssb.data[3] = ub.data[2];
 	ssb.data[1] = ub.data[3];
 	ssb.data[2] = ub.data[0];
-
-	ssb2.data[0] = ub.data[1];
-	ssb2.data[3] = ub.data[2];
-	ssb2.data[1] = ub.data[3];
-	ssb2.data[2] = ub.data[0];
 }
 )#" );
 
-
+	
 	const auto	old_flags = compiler->GetCompilationFlags();
 	compiler->SetCompilationFlags( old_flags | EShaderCompilationFlags::ParseAnnotations );
 
@@ -49,9 +38,13 @@ void main ()
 	
 	compiler->SetCompilationFlags( old_flags );
 
-	TEST( FindDescriptorSet( ppln, DescriptorSetID{"test"} ));
-	TEST( FindDescriptorSet( ppln, DescriptorSetID{"test 2"} ));
-	TEST( FindDescriptorSet( ppln, DescriptorSetID{"test3"} ));
+	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
+	TEST( ds );
 
-	FG_LOGI( "Test_Shader13 - passed" );
+	TEST( TestUniformBuffer( *ds, UniformID("UB"),  64_b, 1, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/UMax ));
+	TEST( TestStorageBuffer( *ds, UniformID("SSB"), 64_b, 0_b, EShaderAccess::WriteOnly, 0, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/0 ));
+
+	TEST(All( ppln._defaultLocalGroupSize == uint3(1, 1, 1) ));
+	
+	TEST_PASSED();
 }

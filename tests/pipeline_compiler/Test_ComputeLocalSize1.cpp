@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader5 (VPipelineCompiler* compiler)
+extern void Test_ComputeLocalSize1 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
@@ -51,6 +51,6 @@ void main ()
 
 	TEST( ppln._shader.specConstants.size() == 1 );
 	TEST( TestSpecializationConstant( ppln._shader, SpecializationID("SCALE"), 2 ));
-
-	FG_LOGI( "Test_Shader5 - passed" );
+	
+	TEST_PASSED();
 }

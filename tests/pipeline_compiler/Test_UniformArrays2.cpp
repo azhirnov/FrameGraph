@@ -3,7 +3,7 @@
 #include "Utils.h"
 
 
-extern void Test_Shader15 (VPipelineCompiler* compiler)
+extern void Test_UniformArrays2 (VPipelineCompiler* compiler)
 {
 	ComputePipelineDesc	ppln;
 
@@ -37,6 +37,6 @@ void main ()
 	TEST( TestTextureUniform( *ds, UniformID("un_Textures"), EImage::Tex2D, /*binding*/0, EShaderStages::Compute, /*arraySize*/0 ));
 	TEST( TestSamplerUniform( *ds, UniformID{"un_Sampler"}, 2, EShaderStages::Compute, /*arraySize*/1 ));
 	TEST( TestImageUniform( *ds, UniformID{"un_OutImage"}, EImage::Tex2D, EPixelFormat::Unknown, EShaderAccess::WriteOnly, 1, EShaderStages::Compute, /*arraySize*/1 ));
-
-	FG_LOGI( "Test_Shader15 - passed" );
+	
+	TEST_PASSED();
 }
