@@ -261,7 +261,7 @@ namespace FG
 		Atomic<EState>						_state;
 		VFrameGraph &						_frameGraph;
 
-		const uint							_indexInPool;
+		const uint							_indexInPool;		// index in VFrameGraph::_cmdBatchPool
 		EQueueType							_queueType			= Default;
 
 		Dependencies_t						_dependencies;

@@ -15,8 +15,8 @@ CommandBuffer {
 					dstTask:         ClearColorImage (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   TransferWrite
 					oldLayout:       General
 					newLayout:       TransferDstOptimal
@@ -31,7 +31,7 @@ CommandBuffer {
 					dstTask:         CopyImage (#4)
 					srcStageMask:    Transfer
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferWrite
 					oldLayout:       TransferDstOptimal
@@ -46,8 +46,8 @@ CommandBuffer {
 					srcTask:         CopyImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       TransferDstOptimal
@@ -76,8 +76,8 @@ CommandBuffer {
 					dstTask:         UpdateImage (#3)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   TransferWrite
 					oldLayout:       General
 					newLayout:       TransferDstOptimal
@@ -92,7 +92,7 @@ CommandBuffer {
 					dstTask:         CopyImage (#4)
 					srcStageMask:    Transfer
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       TransferDstOptimal
@@ -107,8 +107,8 @@ CommandBuffer {
 					srcTask:         CopyImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -202,8 +202,8 @@ CommandBuffer {
 					dstTask:         CopyImage (#3)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   TransferWrite
 					oldLayout:       General
 					newLayout:       TransferDstOptimal
@@ -218,7 +218,7 @@ CommandBuffer {
 					dstTask:         ReadImage (#4)
 					srcStageMask:    Transfer
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       TransferDstOptimal
@@ -233,8 +233,8 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -263,8 +263,8 @@ CommandBuffer {
 					dstTask:         UpdateImage (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   TransferWrite
 					oldLayout:       General
 					newLayout:       TransferDstOptimal
@@ -279,7 +279,7 @@ CommandBuffer {
 					dstTask:         CopyImage (#3)
 					srcStageMask:    Transfer
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       TransferDstOptimal
@@ -294,8 +294,8 @@ CommandBuffer {
 					srcTask:         CopyImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -318,10 +318,10 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            64 Kb
 				}

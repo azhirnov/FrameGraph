@@ -1,4 +1,7 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	IFrameGraph contains resource manager, batch graph and debugger.
+*/
 
 #pragma once
 
@@ -26,7 +29,7 @@ namespace FG
 	// types
 	public:
 		using DeviceInfo_t			= Union< NullUnion, VulkanDeviceInfo >;
-		using SwapchainCreateInfo_t	= Union< NullUnion, VulkanSwapchainCreateInfo/*, VulkanVREmulatorSwapchainCreateInfo*/ >;
+		using SwapchainCreateInfo_t	= Union< NullUnion, VulkanSwapchainCreateInfo>;
 		using ExternalImageDesc_t	= Union< NullUnion, VulkanImageDesc >;
 		using ExternalBufferDesc_t	= Union< NullUnion, VulkanBufferDesc >;
 		using ExternalImage_t		= Union< NullUnion, ImageVk_t >;
@@ -84,20 +87,25 @@ namespace FG
 
 	// interface
 	public:
-		
+
+		// initialization //
+
 			// Creates the framegraph.
 		ND_ static FrameGraph		CreateFrameGraph (const DeviceInfo_t &);
 
 			// Returns name and version number.
 		ND_ static const char*		GetVersion ();
-
-
-		// initialization //
+		
+			virtual					~IFrameGraph () {}
 
 			// Deinitialize instance systems.
+			// Shared pointer may prevent object destruction in specified place,
+			// so use this method to destroy all resources and release systems.
 			virtual void			Deinitialize () = 0;
 			
 			// Add pipeline compiler.
+			// By default pipelines may be created from SPIRV binary and doesn't extract reflection.
+			// External compilers can build SPIRV binary from source and extract reflection.
 			virtual bool			AddPipelineCompiler (const PipelineCompiler &comp) = 0;
 			
 			// Callback will be called at end of the frame if debugging enabled by
@@ -116,7 +124,7 @@ namespace FG
 			// Create resources: pipeline, image, buffer, etc.
 			// See synchronization requirements on top of this file.
 		ND_ virtual MPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName = Default) = 0;
-		ND_ virtual RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc) = 0;
+		ND_ virtual RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual GPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual CPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName = Default) = 0;
 		ND_ virtual ImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
@@ -177,7 +185,7 @@ namespace FG
 		ND_	virtual bool			IsResourceAlive (RawRTSceneID id) const = 0;
 		ND_	virtual bool			IsResourceAlive (RawRTShaderTableID id) const = 0;
 
-			// 
+			// Returns strong reference to resource if it valid, otherwise returns invalid ID.
 		ND_ virtual GPipelineID		AcquireResource (RawGPipelineID id) = 0;
 		ND_ virtual CPipelineID		AcquireResource (RawCPipelineID id) = 0;
 		ND_ virtual MPipelineID		AcquireResource (RawMPipelineID id) = 0;
@@ -203,7 +211,7 @@ namespace FG
 			// Begin command buffer recording.
 		ND_ virtual CommandBuffer	Begin (const CommandBufferDesc &, ArrayView<CommandBuffer> dependsOn = {}) = 0;
 
-			// Compile framegraph for current command buffer and append it to the pending command buffer queue (waiting to submit).
+			// Compile framegraph for current command buffer and append it to the pending command buffer queue (that are waiting for submitting to GPU).
 			virtual bool			Execute (INOUT CommandBuffer &) = 0;
 
 			// Wait until all commands complete execution on the GPU or until time runs out.

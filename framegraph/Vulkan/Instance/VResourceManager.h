@@ -167,7 +167,7 @@ namespace FG
 		ND_ RawMPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName);
 		ND_ RawGPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName);
 		ND_ RawCPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName);
-		ND_ RawRTPipelineID		CreatePipeline (INOUT RayTracingPipelineDesc &desc);
+		ND_ RawRTPipelineID		CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName);
 		
 		ND_ RawImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, EResourceState defaultState, StringView dbgName);
 		ND_ RawBufferID			CreateBuffer (const BufferDesc &desc, const MemoryDesc &mem, EQueueFamilyMask queueFamilyMask, StringView dbgName);

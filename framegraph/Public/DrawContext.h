@@ -1,7 +1,13 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
-	Default states - all render states except 'InputAssemblyState' will be copied from render pass,
-	the 'InputAssemblyState' will be invalidated, all pipelines will be invalidated.
+	IDrawContext wraps only render commands of Vulkan command buffer for single render pass.
+
+	Render pass contains default render states, that can be overwritten by IDrawContext::Set*** methods
+	or can be reseted back by calling IDrawContext::Reset().
+
+	IDrawContext allow you to use raw Vulkan API.
+	Call IDrawContext::GetData() to get access to Vulkan command buffer.
+	Call IDrawContext::Reset() and continue using wrapped methods.
 */
 
 #pragma once
@@ -30,7 +36,10 @@ namespace FG
 		// this data can be used to set states and write draw commands directly to the vulkan command buffer.
 		ND_ virtual Context_t  GetData () = 0;
 
-		// reset current states to default states (see above).
+		// reset current states to default states:
+		//    - render states copied from logical render pass
+		//    - resets all pipelines and descriptor sets
+		//    - resets vertex and index buffers
 		// use this if you set states by raw vulkan function call and want to continue using context api.
 		virtual void Reset () = 0;
 

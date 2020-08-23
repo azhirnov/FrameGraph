@@ -119,7 +119,7 @@ namespace FGC
 }	// FGC
 
 
-// check for 'VulkanDeviceFnTable' structure size missmatch
+// check for 'VulkanDeviceFnTable' structure size mismatch
 #if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
 
 # if defined(VK_USE_PLATFORM_ANDROID_KHR) and VK_USE_PLATFORM_ANDROID_KHR

@@ -115,7 +115,7 @@ namespace {
 
 		CHECK_ERR( _BuildCommandBuffers() );
 		
-		if ( _debugger )
+		if_unlikely( _debugger )
 			_debugger->End( GetName(), _indexInPool, OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
 
 		CHECK_ERR( _batch->OnBaked( INOUT _rm.resourceMap ));
@@ -257,7 +257,7 @@ namespace {
 		// reset states
 		_currTask = node;
 		
-		if ( _fgThread.GetDebugger() )
+		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddTask( _currTask );
 
 		node->Process( this );

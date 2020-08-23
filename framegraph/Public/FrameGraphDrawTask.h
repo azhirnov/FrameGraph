@@ -313,6 +313,7 @@ namespace _fg_hidden_
 			uint	firstVertex;
 			uint	firstInstance;
 		};
+		STATIC_ASSERT( sizeof(DrawIndirectCommand) == 16 );
 
 
 	// variables
@@ -358,6 +359,7 @@ namespace _fg_hidden_
 			int		vertexOffset;
 			uint	firstInstance;
 		};
+		STATIC_ASSERT( sizeof(DrawIndexedIndirectCommand) == 20 );
 
 
 	// variables
@@ -443,6 +445,7 @@ namespace _fg_hidden_
 			uint		taskCount;
 			uint		firstTask;
 		};
+		STATIC_ASSERT( sizeof(DrawMeshTasksIndirectCommand) == 8 );
 
 
 	// variables

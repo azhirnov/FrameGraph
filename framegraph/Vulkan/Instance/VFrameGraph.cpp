@@ -224,10 +224,10 @@ namespace FG
 		return MPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName )};
 	}
 	
-	RTPipelineID  VFrameGraph::CreatePipeline (INOUT RayTracingPipelineDesc &desc)
+	RTPipelineID  VFrameGraph::CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName)
 	{
 		CHECK_ERR( _IsInitialized() );
-		return RTPipelineID{ _resourceMngr.CreatePipeline( INOUT desc )};
+		return RTPipelineID{ _resourceMngr.CreatePipeline( INOUT desc, dbgName )};
 	}
 	
 	GPipelineID  VFrameGraph::CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName)

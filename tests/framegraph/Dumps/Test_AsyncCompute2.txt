@@ -14,8 +14,8 @@ CommandBuffer {
 					srcTask:         RenderPass (#2)
 					dstTask:         <final>
 					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
 					oldLayout:       ColorAttachmentOptimal
@@ -64,8 +64,8 @@ CommandBuffer {
 					srcTask:         RenderPass (#2)
 					dstTask:         <final>
 					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
 					oldLayout:       ColorAttachmentOptimal
@@ -114,8 +114,8 @@ CommandBuffer {
 					srcTask:         RenderPass (#2)
 					dstTask:         <final>
 					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
 					oldLayout:       ColorAttachmentOptimal
@@ -165,8 +165,8 @@ CommandBuffer {
 					dstTask:         DispatchCompute (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    ComputeShader
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   ShaderRead | ShaderWrite
 					oldLayout:       ColorAttachmentOptimal
 					newLayout:       General
@@ -181,7 +181,7 @@ CommandBuffer {
 					dstTask:         ReadImage (#3)
 					srcStageMask:    ComputeShader
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ShaderRead | ShaderWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       General
@@ -196,8 +196,8 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -220,10 +220,10 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            1875 Kb
 				}
@@ -287,8 +287,8 @@ CommandBuffer {
 					dstTask:         DispatchCompute (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    ComputeShader
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   ShaderRead | ShaderWrite
 					oldLayout:       ColorAttachmentOptimal
 					newLayout:       General
@@ -303,7 +303,7 @@ CommandBuffer {
 					dstTask:         ReadImage (#3)
 					srcStageMask:    ComputeShader
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ShaderRead | ShaderWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       General
@@ -318,8 +318,8 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -342,10 +342,10 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            1875 Kb
 				}
@@ -409,8 +409,8 @@ CommandBuffer {
 					dstTask:         DispatchCompute (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    ComputeShader
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   ShaderRead | ShaderWrite
 					oldLayout:       ColorAttachmentOptimal
 					newLayout:       General
@@ -425,7 +425,7 @@ CommandBuffer {
 					dstTask:         ReadImage (#3)
 					srcStageMask:    ComputeShader
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ShaderRead | ShaderWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       General
@@ -440,8 +440,8 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -464,10 +464,10 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            1875 Kb
 				}

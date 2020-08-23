@@ -1,4 +1,13 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	Contains pointers to ICommandBuffer and hiden Batch interface.
+
+	Pointer to ICommandBuffer is valid between FrameGraph::Begin() and FrameGraph::Execute().
+
+	Pointer to Batch used to keep alive internal implementation of Batch.
+	Batch used in FrameGraph::Wait(), in 'dependsOn' argument in FrameGraph::Begin(), in ICommandBuffer::AddDependency()
+	to synchronize between command buffers in GPU side and between command buffer and host in CPU side.
+*/
 
 #pragma once
 
@@ -109,7 +118,7 @@ namespace FG
 
 		ND_ ICommandBuffer*  operator -> () const		{ ASSERT( _cmdBuf );  return _cmdBuf; }
 
-		ND_ explicit operator bool () const				{ return _batch != null; }
+		ND_ explicit operator bool () const				{ return _cmdBuf != null; }
 
 		ND_ ICommandBuffer*	GetCommandBuffer () const	{ return _cmdBuf; }
 		ND_ Batch *			GetBatch ()			const	{ return _batch; }
@@ -126,10 +135,10 @@ namespace FG
 		{
 			if ( _batch )
 			{
-				auto	res = _batch->_counter.fetch_sub( 1, memory_order_relaxed );
-				ASSERT( res > 0 );
+				auto	old_cnt = _batch->_counter.fetch_sub( 1, memory_order_relaxed );
+				ASSERT( old_cnt > 0 );
 
-				if ( res == 1 ) {
+				if ( old_cnt == 1 ) {
 					std::atomic_thread_fence( std::memory_order_acquire );
 					_batch->Release();
 				}

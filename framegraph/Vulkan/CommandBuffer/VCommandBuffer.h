@@ -75,7 +75,7 @@ namespace FG
 		EQueueFamily			_queueIndex;
 
 		VFrameGraph &			_instance;
-		const uint				_indexInPool;
+		const uint				_indexInPool;		// index in VFrameGraph::_cmdBufferPool
 		VBarrierManager			_barrierMngr;
 		VPipelineCache			_pipelineCache;
 		Debugger_t				_debugger;

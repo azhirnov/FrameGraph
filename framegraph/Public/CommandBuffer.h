@@ -1,6 +1,19 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 /*
-	Access to the command buffer must be externally synchronized.
+	ICommandBuffer wraps Vulkan command buffer.
+	To start recording call FrameGraph::Begin(), to finilize recording call FrameGraph::Execute().
+
+	ICommandBuffer track state of all resources that are used in it.
+	When recording finished:
+	 * sorts task graph
+	 * processing tasks:
+	   - inserts barriers before task
+	   - calls vulkan commands
+	 * resets resource states:
+	   - flush cache after write operations
+	   - transit image layouts to default layout
+
+	Access to the ICommandBuffer must be externally synchronized.
 */
 
 #pragma once
@@ -57,7 +70,7 @@ namespace FG
 		virtual bool		AddExternalCommands (const ExternalCmdBatch_t &) = 0;
 
 		// Add input dependency.
-		// Current command buffer will be executed on the GPU only after all input dependencies.
+		// Current command buffer will be executed on the GPU only when input dependencies finished execution.
 		virtual bool		AddDependency (const CommandBuffer &) = 0;
 
 		// Allocate space in the staging buffer.
@@ -67,11 +80,11 @@ namespace FG
 
 		// Starts tracking image state in current command buffer.
 		// Image may be in immutable or mutable state, immutable state disables layout transitions and barrier placement.
-		// If 'invalidate' sets to 'true' then previous content of the image may be invalidated.
+		// If 'invalidate' sets to 'true' then previous content of the image may be invalidated, this may improve performance on GPU.
 		virtual void		AcquireImage (RawImageID id, bool makeMutable, bool invalidate) = 0;
 
 		// Starts tracking buffer state in current command buffer.
-		// Buffer may be in immutable or mutable state, immutable state disables barrier placement that increases CPU performance.
+		// Buffer may be in immutable or mutable state, immutable state disables barrier placement that increases performance on CPU.
 		virtual void		AcquireBuffer (RawBufferID id, bool makeMutable) = 0;
 
 	// tasks //

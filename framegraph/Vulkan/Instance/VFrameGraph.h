@@ -84,7 +84,7 @@ namespace FG
 	// methods
 	public:
 		explicit VFrameGraph (const VulkanDeviceInfo &);
-		~VFrameGraph ();
+		~VFrameGraph () override;
 
 		// initialization //
 		bool			Initialize ();
@@ -97,7 +97,7 @@ namespace FG
 
 		// resource manager //
 		MPipelineID		CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName) override;
-		RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc) override;
+		RTPipelineID	CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName) override;
 		GPipelineID		CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName) override;
 		CPipelineID		CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName) override;
 		ImageID			CreateImage (const ImageDesc &desc, const MemoryDesc &mem, StringView dbgName) override;

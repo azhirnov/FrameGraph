@@ -1,6 +1,7 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "Public/VertexInputState.h"
+#include "Shared/EnumToString.h"
 
 namespace FG
 {
@@ -208,7 +209,14 @@ namespace FG
 			{
 				iter->second.index = attr.index;
 
-				ASSERT( attr.type == iter->second.ToDstType() );
+				#ifdef FG_DEBUG
+				if ( attr.type != iter->second.ToDstType() )
+				{
+					FG_LOGE( "Vertex attribute index: "s << ToString( attr.index ) << ", name: '" << ToString( attr.id ) << "' mismatch:\n"
+							 "    " << ToString( attr.type ) << " - in shader\n"
+							 "    " << ToString( iter->second.ToDstType() ) << " - in declaration" );
+				}
+				#endif
 			}
 		}
 		return true;

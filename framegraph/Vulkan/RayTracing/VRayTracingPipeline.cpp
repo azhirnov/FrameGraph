@@ -23,7 +23,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VRayTracingPipeline::Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId)
+	bool VRayTracingPipeline::Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _shaders.empty() );
@@ -49,7 +49,8 @@ namespace FG
 		std::sort( _shaders.begin(), _shaders.end(),
 				   [] (auto& lhs, auto& rhs) { return lhs.shaderId < rhs.shaderId; });
 
-		_baseLayoutId = PipelineLayoutID{layoutId};
+		_baseLayoutId	= PipelineLayoutID{layoutId};
+		_debugName		= dbgName;
 		return true;
 	}
 
@@ -74,6 +75,8 @@ namespace FG
 
 		_debugModeBits = Default;
 		_baseLayoutId  = Default;
+
+		_debugName.clear();
 	}
 
 
