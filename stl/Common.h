@@ -6,7 +6,7 @@
 #pragma once
 
 // mem leak check
-#if defined(COMPILER_MSVC) && /*defined(FG_ENABLE_MEMLEAK_CHECKS) &&*/ defined(_DEBUG)
+#if defined(COMPILER_MSVC) && defined(FG_ENABLE_MEMLEAK_CHECKS) && defined(_DEBUG)
 #	define _CRTDBG_MAP_ALLOC
 #	include <stdlib.h>
 #	include <crtdbg.h>

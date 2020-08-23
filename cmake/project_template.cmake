@@ -49,6 +49,10 @@ if (${FG_CI_BUILD})
 	target_compile_definitions( "ProjectTemplate" PUBLIC "FG_CI_BUILD" )
 endif ()
 
+if (${FG_ENABLE_MEMLEAK_CHECKS})
+	target_compile_definitions( "ProjectTemplate" PUBLIC "FG_ENABLE_MEMLEAK_CHECKS" )
+endif ()
+
 if (${FG_ALLOW_GPL})
 	target_compile_definitions( "ProjectTemplate" PUBLIC "FG_ALLOW_GPL" )
 endif ()

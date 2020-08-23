@@ -90,6 +90,8 @@ namespace FGC
 		ND_ constexpr T const&	operator [] (size_t i)	const	{ ASSERT( i < size() );  return std::addressof(x)[i]; }
 
 		ND_ constexpr Self		operator - ()			const	{ return {-x, -y}; }
+
+		ND_ const Vec<T,3>		xoy ()					const;
 	};
 
 
@@ -141,6 +143,7 @@ namespace FGC
 
 		ND_ const Vec<T,2>		xy ()					const	{ return {x, y}; }
 		ND_ const Vec<T,2>		xz ()					const	{ return {x, z}; }
+		ND_ const Vec<T,3>		xzy ()					const	{ return {x, z, y}; }
 	};
 
 
@@ -225,6 +228,14 @@ namespace FGC
 	template <typename T>
 	template <typename B>
 	constexpr Vec<T,4>::Vec (const Vec<B,3> &other) : x{T(other.x)}, y{T(other.y)}, z{T(other.z)}, w{T(0)} {}
+	
+/*
+=================================================
+	swizzle
+=================================================
+*/
+	template <typename T>
+	inline const Vec<T,3>  Vec<T,2>::xoy () const { return {x, T(0), y}; }
 
 /*
 =================================================
