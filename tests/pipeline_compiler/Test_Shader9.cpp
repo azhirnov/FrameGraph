@@ -59,7 +59,7 @@ void main() {
 	TEST( compiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_100 ));
 	
 	TEST( TestPushConstant( ppln, PushConstantID("VSPushConst"), EShaderStages::Vertex,    0_b, 36_b ));
-	TEST( TestPushConstant( ppln, PushConstantID("FSPushConst"), EShaderStages::Fragment, 32_b, 80_b ));
+	TEST( TestPushConstant( ppln, PushConstantID("FSPushConst"), EShaderStages::Fragment, 32_b, 48_b ));
 
 	FG_LOGI( "Test_Shader9 - passed" );
 }

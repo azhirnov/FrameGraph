@@ -1683,7 +1683,7 @@ namespace FG
 				arrayStride = BytesU(uint( dummy_stride ));
 			}
 		}
-		staticSize = BytesU(uint( offset ));
+		staticSize = BytesU(uint( offset )) - minOffset;
 		return true;
 	}
 
