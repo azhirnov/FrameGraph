@@ -58,7 +58,7 @@ elseif (${FG_ENABLE_GLSLANG})
 	endif ()
 	
 	set( ENABLE_HLSL OFF CACHE BOOL "glslang option" )
-	set( ENABLE_OPT OFF CACHE BOOL "glslang option" )
+	set( ENABLE_OPT ON CACHE BOOL "glslang option" )
 	mark_as_advanced( ENABLE_HLSL ENABLE_OPT )
 
 	# SPIRV-Tools require Python 3 for building
@@ -68,10 +68,10 @@ elseif (${FG_ENABLE_GLSLANG})
 	endif ()
 
 	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
-		# stable release January 22, 2020
-		set( GLSLANG_TAG "8.13.3559" )
-		set( SPIRV_TOOLS_TAG "v2019.4" )
-		set( SPIRV_HEADERS_TAG "1.5.1.corrected" )
+		# stable release April 27, 2020
+		set( GLSLANG_TAG "8.13.3743" )
+		set( SPIRV_TOOLS_TAG "v2020.3" )
+		set( SPIRV_HEADERS_TAG "1.5.3" )
 	else ()
 		set( GLSLANG_TAG "master" )
 		set( SPIRV_TOOLS_TAG "master" )

@@ -1578,9 +1578,10 @@ namespace FG
 			case TBasicType::EbtSampler :
 			case TBasicType::EbtStruct :
 			case TBasicType::EbtBlock :
-			case TBasicType::EbtAccStructNV :
+			case TBasicType::EbtAccStruct :
 			case TBasicType::EbtString :
 			case TBasicType::EbtReference :
+			case TBasicType::EbtRayQuery :
 			case TBasicType::EbtNumTypes :
 			default :						COMP_RETURN_ERR( "unsupported basic type!" );
 		}
@@ -1853,7 +1854,7 @@ namespace FG
 		{
 			COMP_CHECK_ERR( type.isStruct() );
 
-			if ( qual.layoutShaderRecordNV )
+			if ( qual.layoutShaderRecord )
 				return true;
 
 			// uniform block
@@ -1896,7 +1897,7 @@ namespace FG
 		}
 		
 		// acceleration structure
-		if ( type.getBasicType() == TBasicType::EbtAccStructNV )
+		if ( type.getBasicType() == TBasicType::EbtAccStruct )
 		{
 			PipelineDescription::RayTracingScene	rt_scene;
 			rt_scene.state = EResourceState::_RayTracingShader | EResourceState::ShaderRead;
@@ -1911,11 +1912,11 @@ namespace FG
 			return true;
 		}
 
-		if ( qual.storage == TStorageQualifier::EvqPayloadNV		or
-			 qual.storage == TStorageQualifier::EvqPayloadInNV		or
-			 qual.storage == TStorageQualifier::EvqHitAttrNV		or
-			 qual.storage == TStorageQualifier::EvqCallableDataNV	or
-			 qual.storage == TStorageQualifier::EvqCallableDataInNV )
+		if ( qual.storage == TStorageQualifier::EvqPayload		or
+			 qual.storage == TStorageQualifier::EvqPayloadIn	or
+			 qual.storage == TStorageQualifier::EvqHitAttr		or
+			 qual.storage == TStorageQualifier::EvqCallableData	or
+			 qual.storage == TStorageQualifier::EvqCallableDataIn )
 		{
 			return true;	// TODO
 		}
