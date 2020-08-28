@@ -14,6 +14,18 @@ FrameGraph designed for maximum performance but not at the expense of usability.
 * supports async compute and async transfer queues.
 * all render tasks are stateless.
 
+Used vulkan features and extensions:
+* push constants
+* dynamic buffer offset
+* specialization constants
+* VK_EXT_debug_utils
+* VK_KHR_dedicated_allocation
+* VK_EXT_descriptor_indexing
+* VK_NV_mesh_shader
+* VK_NV_shading_rate_image
+* VK_NV_ray_tracing
+* VK_KHR_shader_clock
+
 ## Samples
 [FrameGraph-Samples](https://github.com/azhirnov/FrameGraph-Samples)
 
