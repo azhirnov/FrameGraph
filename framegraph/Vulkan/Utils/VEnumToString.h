@@ -58,6 +58,10 @@ namespace FG
 			}
 			END_ENUM_CHECKS();
 		}
+
+		if ( result.empty() )
+			result << "0";
+
 		return result;
 	}
 	
@@ -88,6 +92,10 @@ namespace FG
 			}
 			END_ENUM_CHECKS();
 		}
+
+		if ( result.empty() )
+			result << "0";
+
 		return result;
 	}
 	
@@ -143,6 +151,10 @@ namespace FG
 			}
 			END_ENUM_CHECKS();
 		}
+
+		if ( result.empty() )
+			result << "0";
+
 		return result;
 	}
 	
@@ -217,6 +229,10 @@ namespace FG
 			}
 			END_ENUM_CHECKS();
 		}
+
+		if ( result.empty() )
+			result << "0";
+
 		return result;
 	}
 	

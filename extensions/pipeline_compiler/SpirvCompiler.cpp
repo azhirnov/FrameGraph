@@ -9,6 +9,11 @@
 #include "VCachedDebuggableShaderData.h"
 
 // glslang includes
+#ifdef COMPILER_MSVC
+#	pragma warning (push)
+#	pragma warning (disable: 4005)
+#endif
+
 #include "glslang/Include/revision.h"
 #include "glslang/Public/ShaderLang.h"
 #include "glslang/MachineIndependent/localintermediate.h"
@@ -17,6 +22,10 @@
 #include "SPIRV/disassemble.h"
 #include "SPIRV/GlslangToSpv.h"
 #include "SPIRV/GLSL.std.450.h"
+
+#ifdef COMPILER_MSVC
+#	pragma warning (pop)
+#endif
 
 // SPIRV-Tools includes
 #ifdef ENABLE_OPT
@@ -104,7 +113,7 @@ namespace FG
 =================================================
 */
 	SpirvCompiler::ShaderIncluder::IncludeResult*
-		SpirvCompiler::ShaderIncluder::includeSystem (const char* headerName, const char *, size_t)
+		SpirvCompiler::ShaderIncluder::includeSystem (const char*, const char *, size_t)
 	{
 		return null;
 	}
@@ -1374,9 +1383,6 @@ namespace FG
 					break;
 				}
 				case TSamplerDim::EsdBuffer :
-				{
-					return EImage::Buffer;
-				}
 				case TSamplerDim::EsdNone :		// to shutup warnings
 				case TSamplerDim::EsdRect :
 				case TSamplerDim::EsdSubpass :
@@ -1459,18 +1465,22 @@ namespace FG
 */
 	ND_ static EResourceState  ExtractShaderAccessType (const glslang::TQualifier &q)
 	{
-		if ( q.coherent or
-			 q.volatil	or
-			 q.restrict )
-		{
-			return EResourceState::ShaderReadWrite;
-		}
+		if ( q.writeonly )
+			return EResourceState::ShaderWrite;
 
 		if ( q.readonly )
 			return EResourceState::ShaderRead;
 
-		if ( q.writeonly )
-			return EResourceState::ShaderWrite;
+		if ( q.coherent				or
+			 q.devicecoherent		or
+			 q.queuefamilycoherent	or
+			 q.workgroupcoherent	or
+			 q.subgroupcoherent		or
+			 q.volatil				or
+			 q.restrict )
+		{
+			return EResourceState::ShaderReadWrite;
+		}
 
 		// defualt:
 		return EResourceState::ShaderReadWrite;
@@ -1509,10 +1519,15 @@ namespace FG
 		return VertexID( ExtractNodeName( node ));
 	}
 
-	ND_ static RenderTargetID  ExtractRenderTargetID (TIntermNode *node)
+	/*ND_ static RenderTargetID  ExtractRenderTargetID (TIntermNode *node)
 	{
-		return RenderTargetID(); //RenderTargetID( ExtractNodeName( node ));	// TODO
-	}
+		CHECK_ERR( node and node->getAsSymbolNode() );
+
+		auto const&		qual = node->getAsSymbolNode()->getType().getQualifier();
+		CHECK_ERR( qual.hasLocation() );
+
+		return RenderTargetID( uint(RenderTargetID::Color_0) + qual.layoutLocation );
+	}*/
 
 	ND_ static SpecializationID  ExtractSpecializationID (TIntermNode *node)
 	{
@@ -1563,9 +1578,10 @@ namespace FG
 			case TBasicType::EbtSampler :
 			case TBasicType::EbtStruct :
 			case TBasicType::EbtBlock :
-			case TBasicType::EbtAccStructNV :
+			case TBasicType::EbtAccStruct :
 			case TBasicType::EbtString :
 			case TBasicType::EbtReference :
+			case TBasicType::EbtRayQuery :
 			case TBasicType::EbtNumTypes :
 			default :						COMP_RETURN_ERR( "unsupported basic type!" );
 		}
@@ -1683,7 +1699,7 @@ namespace FG
 				arrayStride = BytesU(uint( dummy_stride ));
 			}
 		}
-		staticSize = BytesU(uint( offset ));
+		staticSize = BytesU(uint( offset )) - minOffset;
 		return true;
 	}
 
@@ -1730,7 +1746,6 @@ namespace FG
 				return true;	// skip
 
 			GraphicsPipelineDesc::FragmentOutput	frag_out;
-			frag_out.id		= ExtractRenderTargetID( node );
 			frag_out.index	= (qual.hasLocation() ? uint(qual.layoutLocation) : UMax);
 			frag_out.type	= _ExtractFragmentOutputType( type );
 
@@ -1839,7 +1854,7 @@ namespace FG
 		{
 			COMP_CHECK_ERR( type.isStruct() );
 
-			if ( qual.layoutShaderRecordNV )
+			if ( qual.layoutShaderRecord )
 				return true;
 
 			// uniform block
@@ -1882,7 +1897,7 @@ namespace FG
 		}
 		
 		// acceleration structure
-		if ( type.getBasicType() == TBasicType::EbtAccStructNV )
+		if ( type.getBasicType() == TBasicType::EbtAccStruct )
 		{
 			PipelineDescription::RayTracingScene	rt_scene;
 			rt_scene.state = EResourceState::_RayTracingShader | EResourceState::ShaderRead;
@@ -1897,11 +1912,11 @@ namespace FG
 			return true;
 		}
 
-		if ( qual.storage == TStorageQualifier::EvqPayloadNV		or
-			 qual.storage == TStorageQualifier::EvqPayloadInNV		or
-			 qual.storage == TStorageQualifier::EvqHitAttrNV		or
-			 qual.storage == TStorageQualifier::EvqCallableDataNV	or
-			 qual.storage == TStorageQualifier::EvqCallableDataInNV )
+		if ( qual.storage == TStorageQualifier::EvqPayload		or
+			 qual.storage == TStorageQualifier::EvqPayloadIn	or
+			 qual.storage == TStorageQualifier::EvqHitAttr		or
+			 qual.storage == TStorageQualifier::EvqCallableData	or
+			 qual.storage == TStorageQualifier::EvqCallableDataIn )
 		{
 			return true;	// TODO
 		}

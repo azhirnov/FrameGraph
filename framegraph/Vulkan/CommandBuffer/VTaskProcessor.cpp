@@ -276,7 +276,7 @@ namespace FG
 
 				if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
 				{
-					//ASSERT( AlignToLarger( size, 16_b ) == AlignToLarger( buf.staticSize, 16_b ));
+					ASSERT( size == buf.staticSize );
 					ASSERT( (offset % limits.minUniformBufferOffsetAlignment) == 0 );
 					ASSERT( size <= limits.maxUniformBufferRange );
 				}else{
@@ -1393,7 +1393,7 @@ namespace FG
 		
 		VulkanDeviceFn_Init( _fgThread.GetDevice() );
 
-		//_CmdPushDebugGroup( "SubBatch: "s << batchId.GetName() << ", index: " << ToString(indexInBatch) );
+		_CmdPushDebugGroup( "CommandBuffer: "s << (fgThread.GetName().size() ? fgThread.GetName() : ToString<16>( size_t(_cmdBuffer) )) );
 	}
 	
 /*
@@ -1403,7 +1403,7 @@ namespace FG
 */
 	VTaskProcessor::~VTaskProcessor ()
 	{
-		//_CmdPopDebugGroup();
+		_CmdPopDebugGroup();
 	}
 	
 /*
@@ -1518,6 +1518,7 @@ namespace FG
 */
 	void  VTaskProcessor::_CmdDebugMarker (StringView text) const
 	{
+		FG_UNUSED( text );
 		/*if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
@@ -1536,7 +1537,7 @@ namespace FG
 */
 	void  VTaskProcessor::_CmdPushDebugGroup (StringView text) const
 	{
-		/*if ( text.size() and _enableDebugUtils )
+		if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
 			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -1544,7 +1545,7 @@ namespace FG
 			MemCopy( info.color, _dbgColor );
 
 			vkCmdBeginDebugUtilsLabelEXT( _cmdBuffer, &info );
-		}*/
+		}
 	}
 
 /*
@@ -1554,10 +1555,10 @@ namespace FG
 */
 	void  VTaskProcessor::_CmdPopDebugGroup () const
 	{
-		/*if ( _enableDebugUtils )
+		if ( _enableDebugUtils )
 		{
 			vkCmdEndDebugUtilsLabelEXT( _cmdBuffer );
-		}*/
+		}
 	}
 	
 /*
@@ -1971,7 +1972,8 @@ namespace FG
 	{
 		auto const&		pc_map = layout.GetPushConstants();
 			
-		ASSERT( pushConstants.size() == pc_map.size() );	// will be used push constants from previous draw/dispatch calls or may contains undefined values
+		ASSERT( pushConstants.size() == pc_map.size() and
+			    "will be used push constants from previous draw/dispatch calls or may contains undefined values" );
 
 		for (auto& pc : pushConstants)
 		{
@@ -1980,7 +1982,7 @@ namespace FG
 
 			if ( iter != pc_map.end() )
 			{
-				ASSERT( ((size_t(pc.size) + 15) & ~15) == ((size_t(iter->second.size) + 15) & ~15) );
+				ASSERT( pc.size == iter->second.size and "push constant size mismatch" );
 
 				vkCmdPushConstants( _cmdBuffer, layout.Handle(), VEnumCast( iter->second.stageFlags ), uint(iter->second.offset),
 									 uint(iter->second.size), pc.data );
@@ -3011,7 +3013,7 @@ namespace FG
 
 		img->AddPendingState( state );
 
-		if ( _fgThread.GetDebugger() )
+		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddImageUsage( img->ToGlobal(), state );
 	}
 	
@@ -3078,7 +3080,7 @@ namespace FG
 
 		buf->AddPendingState( state );
 		
-		if ( _fgThread.GetDebugger() )
+		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddBufferUsage( buf->ToGlobal(), state );
 	}
 
@@ -3148,7 +3150,7 @@ namespace FG
 
 		geom->AddPendingState(RTGeometryState{ state, _currTask });
 
-		if ( _fgThread.GetDebugger() )
+		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddRTGeometryUsage( geom->ToGlobal(), RTGeometryState{ state, _currTask });
 	}
 	
@@ -3164,7 +3166,7 @@ namespace FG
 
 		scene->AddPendingState(RTSceneState{ state, _currTask });
 
-		if ( _fgThread.GetDebugger() )
+		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddRTSceneUsage( scene->ToGlobal(), RTSceneState{ state, _currTask });
 	}
 
@@ -3205,13 +3207,23 @@ namespace FG
 									  VK_ACCESS_TRANSFER_WRITE_BIT |
 									  VK_ACCESS_HOST_READ_BIT |
 									  VK_ACCESS_HOST_WRITE_BIT;
-									// TODO: VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV, VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV
+
+			EQueueUsage q_usage	= EQueueUsage(0) | _fgThread.GetBatch().GetQueueType();
+			auto&		dev		= _fgThread.GetDevice();
+
+			if ( EnumEq( q_usage, EQueueUsage::Graphics ) and dev.IsShadingRateImageEnabled() )
+				barrier.srcAccessMask |= VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;
+			
+			if ( EnumEq( q_usage, EQueueUsage::Graphics | EQueueUsage::AsyncCompute ) and dev.IsRayTracingEnabled() )
+				barrier.srcAccessMask |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
+
 			barrier.dstAccessMask	= barrier.srcAccessMask;
 
-			barrier_mngr.ForceCommit( _fgThread.GetDevice(), _cmdBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
+			barrier_mngr.AddMemoryBarrier( VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, barrier );
+			barrier_mngr.Commit( _fgThread.GetDevice(), _cmdBuffer );
 		}
 		else
-	#endif
+	#endif	// FG_DEBUG
 
 		barrier_mngr.Commit( _fgThread.GetDevice(), _cmdBuffer );
 	}

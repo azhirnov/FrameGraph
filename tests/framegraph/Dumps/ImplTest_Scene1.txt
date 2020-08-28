@@ -15,8 +15,8 @@ CommandBuffer {
 					dstTask:         Present (#9)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   TransferWrite
 					oldLayout:       Undefined
 					newLayout:       TransferDstOptimal
@@ -30,10 +30,10 @@ CommandBuffer {
 					srcTask:         Present (#9)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					oldLayout:       TransferDstOptimal
 					newLayout:       PresentSrc
 					aspectMask:      Color
@@ -60,7 +60,7 @@ CommandBuffer {
 					dstTask:         TransparentPass (#8)
 					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    ColorAttachmentOutput
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					oldLayout:       ColorAttachmentOptimal
@@ -76,7 +76,7 @@ CommandBuffer {
 					dstTask:         Present (#9)
 					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       ColorAttachmentOptimal
@@ -91,8 +91,8 @@ CommandBuffer {
 					srcTask:         Present (#9)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -121,7 +121,7 @@ CommandBuffer {
 					dstTask:         OpaquePass (#7)
 					srcStageMask:    EarlyFragmentTests
 					dstStageMask:    EarlyFragmentTests
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   DepthStencilAttachmentRead | DepthStencilAttachmentWrite
 					dstAccessMask:   DepthStencilAttachmentRead
 					oldLayout:       DepthStencilAttachmentOptimal
@@ -136,8 +136,8 @@ CommandBuffer {
 					srcTask:         TransparentPass (#8)
 					dstTask:         <final>
 					srcStageMask:    EarlyFragmentTests
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   DepthStencilAttachmentRead
 					dstAccessMask:   DepthStencilAttachmentRead
 					oldLayout:       Undefined
@@ -161,7 +161,7 @@ CommandBuffer {
 					dstTask:         OpaquePass (#7)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          0 b
@@ -171,8 +171,8 @@ CommandBuffer {
 					srcTask:         update_buf1 (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          0 b
@@ -191,7 +191,7 @@ CommandBuffer {
 					dstTask:         DepthOnlyPass (#6)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          0 b
@@ -202,7 +202,7 @@ CommandBuffer {
 					dstTask:         OpaquePass (#7)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          0 b
@@ -213,7 +213,7 @@ CommandBuffer {
 					dstTask:         OpaquePass (#7)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          256 b
@@ -224,7 +224,7 @@ CommandBuffer {
 					dstTask:         TransparentPass (#8)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          0 b
@@ -235,7 +235,7 @@ CommandBuffer {
 					dstTask:         TransparentPass (#8)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          256 b
@@ -245,8 +245,8 @@ CommandBuffer {
 					srcTask:         update_buf0 (#2)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          0 b
@@ -256,8 +256,8 @@ CommandBuffer {
 					srcTask:         update_buf2 (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          256 b
@@ -276,7 +276,7 @@ CommandBuffer {
 					dstTask:         TransparentPass (#8)
 					srcStageMask:    Transfer
 					dstStageMask:    VertexShader | FragmentShader
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          0 b
@@ -286,8 +286,8 @@ CommandBuffer {
 					srcTask:         update_buf3 (#5)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead
 					offset:          0 b

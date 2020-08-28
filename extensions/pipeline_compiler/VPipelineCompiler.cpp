@@ -6,7 +6,7 @@
 #include "extensions/vulkan_loader/VulkanLoader.h"
 #include "extensions/vulkan_loader/VulkanCheckError.h"
 #include "framegraph/Shared/EnumUtils.h"
-#include "stl/Algorithms/StringUtils.h"
+#include "framegraph/Shared/EnumToString.h"
 #include "VCachedDebuggableShaderData.h"
 
 namespace FG
@@ -591,20 +591,48 @@ namespace FG
 		// merge push constants
 		for (auto& src_pc : srcLayout.pushConstants)
 		{
+			// Vulkan valid usage:
+			// * offset must be a multiple of 4
+			// * size must be a multiple of 4
+			// https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#VUID-vkCmdPushConstants-offset-00368
+			COMP_CHECK_ERR( src_pc.second.offset % 4 == 0 );
+			COMP_CHECK_ERR( src_pc.second.size   % 4 == 0 );
+
 			auto	iter = dstLayout.pushConstants.find( src_pc.first );
 
-			// add new push constant
 			if ( iter == dstLayout.pushConstants.end() )
 			{
+				// check intersections
+				for (auto& dst_pc : dstLayout.pushConstants)
+				{
+					// Vulkan valid usage:
+					// * Any two elements of pPushConstantRanges must not include the same stage in stageFlags
+					// https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#VUID-VkPipelineLayoutCreateInfo-pPushConstantRanges-00292
+
+					if ( IsIntersects( src_pc.second.offset, src_pc.second.offset + src_pc.second.size,
+									   dst_pc.second.offset, dst_pc.second.offset + dst_pc.second.size ))
+					{
+						// It is forbidden because FG can't handle this case.
+						COMP_RETURN_ERR( "Push constants with different names uses same memory range:\n"s <<
+										 "    First  (" << ToString( src_pc.first ) << "): " << ToString(src_pc.second.offset) << " .. " << ToString(src_pc.second.offset + src_pc.second.size) << '\n' <<
+										 "    Second (" << ToString( dst_pc.first ) << "): " << ToString(dst_pc.second.offset) << " .. " << ToString(dst_pc.second.offset + dst_pc.second.size) );
+					}
+				}
+
+				// add new push constant
 				dstLayout.pushConstants.insert( src_pc );
 				continue;
 			}
 			
-			// compare and merge
-			COMP_CHECK_ERR( src_pc.second.offset == iter->second.offset );
-			COMP_CHECK_ERR( src_pc.second.size == iter->second.size );
-
+			// merge
+			iter->second.size		  = Max( src_pc.second.offset + src_pc.second.size, iter->second.offset + iter->second.size );
+			iter->second.offset		  = Min( src_pc.second.offset, iter->second.offset );
+			iter->second.size		 -= iter->second.offset;
 			iter->second.stageFlags |= src_pc.second.stageFlags;
+			
+			// same as above
+			COMP_CHECK_ERR( iter->second.offset % 4 == 0 );
+			COMP_CHECK_ERR( iter->second.size   % 4 == 0 );
 		}
 
 		return true;

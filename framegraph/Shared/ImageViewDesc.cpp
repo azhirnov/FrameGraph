@@ -35,7 +35,6 @@ namespace FG
 		BEGIN_ENUM_CHECKS();
 		switch ( imageType )
 		{
-			case EImage::Buffer :
 			case EImage::Tex1D :
 			{
 				ASSERT( dim.x > 0 );
@@ -56,6 +55,7 @@ namespace FG
 			case EImage::TexCube :
 			{
 				ASSERT( dim.x > 0 and dim.y > 0 and dim.z <= 1 );
+				ASSERT( dim.x == dim.y );
 				ASSERT( layers.Get() == 6 );
 				dim		= Max( uint3( dim.x, dim.y, 1 ), 1u );
 				layers	= 6_layer;
@@ -86,6 +86,7 @@ namespace FG
 			case EImage::TexCubeArray :
 			{
 				ASSERT( dim.x > 0 and dim.y > 0 and dim.z <= 1 );
+				ASSERT( dim.x == dim.y );
 				ASSERT( layers.Get() > 0 and layers.Get() % 6 == 0 );
 				dim		= Max( uint3( dim.x, dim.y, 0 ), 1u );
 				layers	= Max( layers, 6_layer );
@@ -108,7 +109,6 @@ namespace FG
 		BEGIN_ENUM_CHECKS();
 		switch ( imageType )
 		{
-			case EImage::Buffer :
 			case EImage::Tex2DMS :
 			case EImage::Tex2DMSArray :		return 1;
 
@@ -194,9 +194,6 @@ namespace FG
 */
 	void ImageViewDesc::Validate (const ImageDesc &desc)
 	{
-		if ( viewType == EImage::Unknown )
-			viewType = desc.imageType;
-
 		if ( format == EPixelFormat::Unknown )
 			format = desc.format;
 
@@ -212,6 +209,44 @@ namespace FG
 		aspectMask   = (aspectMask == Default ? mask : aspectMask & mask);
 
 		ASSERT( aspectMask != Default );
+
+		if ( viewType == EImage::Unknown )
+		{
+			switch ( desc.imageType )
+			{
+				case EImage::TexCube :
+					if ( layerCount == 6 )	viewType = EImage::TexCube;		else
+					if ( layerCount == 1 )	viewType = EImage::Tex2D;		else
+											viewType = EImage::Tex2DArray;
+					break;
+
+				case EImage::TexCubeArray :
+					if ( layerCount % 6  == 0)	viewType = EImage::TexCubeArray;	else
+					if ( layerCount == 1 )		viewType = EImage::Tex2D;			else
+												viewType = EImage::Tex2DArray;
+					break;
+
+				case EImage::Tex2DArray :
+					viewType = layerCount == 1 ? EImage::Tex2D : EImage::Tex2DArray;
+					break;
+
+				case EImage::Tex2DMSArray :
+					viewType = layerCount == 1 ? EImage::Tex2DMS : EImage::Tex2DMSArray;
+					break;
+
+				case EImage::Tex1DArray :
+					viewType = layerCount == 1 ? EImage::Tex1D : EImage::Tex1DArray;
+					break;
+
+				case EImage::Tex1D :
+				case EImage::Tex2D :
+				case EImage::Tex3D :
+				case EImage::Tex2DMS :
+				case EImage::Unknown :
+				default :
+					viewType = desc.imageType;
+			}
+		}
 	}
 
 /*

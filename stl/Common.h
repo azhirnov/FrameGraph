@@ -6,7 +6,7 @@
 #pragma once
 
 // mem leak check
-#if defined(COMPILER_MSVC) && /*defined(FG_ENABLE_MEMLEAK_CHECKS) &&*/ defined(_DEBUG)
+#if defined(COMPILER_MSVC) && defined(FG_ENABLE_MEMLEAK_CHECKS) && defined(_DEBUG)
 #	define _CRTDBG_MAP_ALLOC
 #	include <stdlib.h>
 #	include <crtdbg.h>
@@ -31,9 +31,9 @@
 #include <bitset>
 #include <cstring>
 #include <cmath>
-#include <malloc.h>
 #include <atomic>
 #include <mutex>
+#include <algorithm>
 
 #include "stl/Log/Log.h"
 #include "stl/Algorithms/Hash.h"

@@ -15,7 +15,7 @@ CommandBuffer {
 					dstTask:         ReadImage (#6)
 					srcStageMask:    RayTracing
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ShaderWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       General
@@ -30,8 +30,8 @@ CommandBuffer {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ShaderRead | TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -55,7 +55,7 @@ CommandBuffer {
 					dstTask:         TraceRays (#5)
 					srcStageMask:    Transfer
 					dstStageMask:    RayTracing
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   ShaderRead
 					offset:          0 b
@@ -65,10 +65,10 @@ CommandBuffer {
 					srcTask:         UpdateRayTracingShaderTable (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            192 b
 				}
@@ -84,10 +84,10 @@ CommandBuffer {
 					srcTask:         ReadImage (#6)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            1875 Kb
 				}
@@ -104,9 +104,9 @@ CommandBuffer {
 					dstTask:         BuildRayTracingScene (#3)
 					srcStageMask:    Transfer
 					dstStageMask:    AccelerationStructureBuild
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            64 b
 				}
@@ -114,10 +114,10 @@ CommandBuffer {
 					srcTask:         BuildRayTracingScene (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            64 b
 				}
@@ -133,10 +133,10 @@ CommandBuffer {
 					srcTask:         BuildRayTracingScene (#3)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   0
+					dstAccessMask:   0
 					offset:          0 b
 					size:            768 b
 				}
@@ -152,10 +152,10 @@ CommandBuffer {
 					srcTask:         BuildRayTracingGeometry (#2)
 					dstTask:         <final>
 					srcStageMask:    AccelerationStructureBuild
-					dstStageMask:    
-					dependencyFlags: 
-					srcAccessMask:   
-					dstAccessMask:   
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   0
+					dstAccessMask:   0
 					offset:          0 b
 					size:            256 b
 				}

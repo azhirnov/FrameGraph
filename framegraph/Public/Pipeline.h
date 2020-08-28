@@ -284,13 +284,12 @@ namespace FG
 		struct FragmentOutput
 		{
 		// variables
-			RenderTargetID	id;
 			uint			index	= UMax;
 			EFragOutput		type	= Default;
 
 		// methods
 			FragmentOutput () {}
-			FragmentOutput (const RenderTargetID &id, uint index, EFragOutput type) : id{id}, index{index}, type{type} {}
+			FragmentOutput (uint index, EFragOutput type) : index{index}, type{type} {}
 
 			ND_ bool operator == (const FragmentOutput &rhs) const;
 		};

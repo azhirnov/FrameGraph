@@ -29,6 +29,7 @@ layout(binding = 1, rgba8) writeonly uniform image2D  un_Output;
 layout(location = PRIMARY_RAY_LOC) rayPayloadNV PrimaryRayPayload  PrimaryRay;
 layout(location = SHADOW_RAY_LOC)  rayPayloadNV ShadowRayPayload   ShadowRay;
 
+// this constant will be automatically initialized during pipeline creation
 layout (constant_id = 0) const int sbtRecordStride = 1;
 	
 void main ()
@@ -228,7 +229,7 @@ update_st.SetTraget( rt_shaders );
 
 // bind ray-generation shader.
 // this shader invoces for each thread
-update_st.SetRayGenShader( RTShaderID{"Main"} );
+update_st.SetRayGenShader( RTShaderID{"Main"} ); // (0)
 
 // bind ray-miss shaders.
 // the current shader selected in the ray-gen shader by passing missIndex into the 'traceNV()'
@@ -251,24 +252,24 @@ Task  t_update_table = cmdBuffer->AddTask( update_st.DependsOn( t_build_scene ))
 ```
 
 ## Shader binding table
-| Shader groups → | raygen group | miss group | miss group | hit group | hit group | hit group | hit group |
-|---|---|---|---|---|---|---|---|
-| Instance and Geometry ↓ | Main | PrimaryMiss | ShadowMiss | PrimaryHit1 | ShadowHit | PrimaryHit2 | ShadowHit |
-| primary ray with `sbtRecordOffset=0` | 
-| First, Triangle1  |   |  |  | (3) |     |     |     |
-| First, Triangle2  |   |  |  |     |     | (5) |     |
-| shadow ray with `sbtRecordOffset=1` |
-| First, Triangle1  |   |  |  |     | (4) |     |     |
-| First, Triangle2  |   |  |  |     |     |     | (6) |
-| primary ray with `sbtRecordOffset=0` |
-| Second, Triangle1 |   |  |  |     |     | (7) |     |
-| Second, Triangle2 |   |  |  | (9) |     |     |     |
-| shadow ray with `sbtRecordOffset=1` |
-| Second, Triangle1 |   |  |  |     | (8) |     |     |
-| Second, Triangle2 |   |  |  |     |     |     | (10) |
-| each thread       | X |
-| primary ray with `missIndex=0` |  | (1) |  |  |  |  |
-| shadow ray with `missIndex=1` |  |  | (2) |  |  |  |
+| Shader groups → | Instance, Geometry | raygen group | miss group | miss group | hit group | hit group | hit group | hit group |
+|---|---|---|---|---|---|---|---|---|
+| **Instance and Geometry ↓** |  | Main | PrimaryMiss | ShadowMiss | PrimaryHit1 | ShadowHit | PrimaryHit2 | ShadowHit |
+| primary ray with `sbtRecordOffset=0` |  | - | - | - | - | - | - | - |
+|  | First, Triangle1  |   |  |  | (3) |     |     |     |
+|  | First, Triangle2  |   |  |  |     |     | (5) |     |
+| shadow ray with `sbtRecordOffset=1` |  | - | - | - | - | - | - | - |
+|  | First, Triangle1  |   |  |  |     | (4) |     |     |
+|  | First, Triangle2  |   |  |  |     |     |     | (6) |
+| primary ray with `sbtRecordOffset=0` |  | - | - | - | - | - | - | - |
+|  | Second, Triangle1 |   |  |  |     |     | (7) |     |
+|  | Second, Triangle2 |   |  |  | (9) |     |     |     |
+| shadow ray with `sbtRecordOffset=1` |  | - | - | - | - | - | - | - |
+|  | Second, Triangle1 |   |  |  |     | (8) |     |     |
+|  | Second, Triangle2 |   |  |  |     |     |     | (10) |
+| each thread       |  | (0) |
+| primary ray with `missIndex=0` |  |  | (1) |  |  |  |  |
+| shadow ray with `missIndex=1` |  |  |  | (2) |  |  |  |
 
 `sbtRecordOffset` and `missIndex` are the arguments to the `traceNV()` function.
 

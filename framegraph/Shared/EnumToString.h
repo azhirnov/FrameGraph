@@ -6,6 +6,7 @@
 #include "framegraph/Public/EResourceState.h"
 #include "framegraph/Public/ShaderEnums.h"
 #include "framegraph/Public/VertexEnums.h"
+#include "framegraph/Public/IDs.h"
 #include "stl/Algorithms/StringUtils.h"
 
 namespace FGC
@@ -16,7 +17,22 @@ namespace FGC
 	using EImageAspect		= FG::EImageAspect;
 	using EResourceState	= FG::EResourceState;
 	using EPixelFormat		= FG::EPixelFormat;
-
+	using EVertexType		= FG::EVertexType;
+	
+	
+/*
+=================================================
+	ToString (IDWithString)
+=================================================
+*/
+	template <size_t Size, uint UID, bool Optimize, uint Seed>
+	inline String  ToString (const FG::_fg_hidden_::IDWithString<Size, UID, Optimize, Seed> &id)
+	{
+		if constexpr( Optimize )
+			return ToString<16>( size_t(id.GetHash()) );
+		else
+			return String{ id.GetName() };
+	}
 
 /*
 =================================================
@@ -37,7 +53,6 @@ namespace FGC
 			case EImage::TexCube :		return "ImageCube";
 			case EImage::TexCubeArray :	return "ImageCube_Array";
 			case EImage::Tex3D :		return "Image3D";
-			case EImage::Buffer :		return "ImageBuffer";
 			case EImage::Unknown :		break;
 		}
 		END_ENUM_CHECKS();
@@ -128,6 +143,91 @@ namespace FGC
 			END_ENUM_CHECKS();
 		}
 		return result;
+	}
+	
+/*
+=================================================
+	ToString (EVertexType)
+=================================================
+*/
+	ND_ inline String  ToString (EVertexType value)
+	{
+		switch ( value )
+		{
+			case EVertexType::Byte			: return "Byte";
+			case EVertexType::Byte2			: return "Byte2";
+			case EVertexType::Byte3			: return "Byte3";
+			case EVertexType::Byte4			: return "Byte4";
+			case EVertexType::Byte_Norm		: return "Byte_Norm";
+			case EVertexType::Byte2_Norm	: return "Byte2_Norm";
+			case EVertexType::Byte3_Norm	: return "Byte3_Norm";
+			case EVertexType::Byte4_Norm	: return "Byte4_Norm";
+			case EVertexType::Byte_Scaled	: return "Byte_Scaled";
+			case EVertexType::Byte2_Scaled	: return "Byte2_Scaled";
+			case EVertexType::Byte3_Scaled	: return "Byte3_Scaled";
+			case EVertexType::Byte4_Scaled	: return "Byte4_Scaled";
+			case EVertexType::UByte			: return "UByte";
+			case EVertexType::UByte2		: return "UByte2";
+			case EVertexType::UByte3		: return "UByte3";
+			case EVertexType::UByte4		: return "UByte4";
+			case EVertexType::UByte_Norm	: return "UByte_Norm";
+			case EVertexType::UByte2_Norm	: return "UByte2_Norm";
+			case EVertexType::UByte3_Norm	: return "UByte3_Norm";
+			case EVertexType::UByte4_Norm	: return "UByte4_Norm";
+			case EVertexType::UByte_Scaled	: return "UByte_Scaled";
+			case EVertexType::UByte2_Scaled	: return "UByte2_Scaled";
+			case EVertexType::UByte3_Scaled	: return "UByte3_Scaled";
+			case EVertexType::UByte4_Scaled	: return "UByte4_Scaled";
+			case EVertexType::Short			: return "Short";
+			case EVertexType::Short2		: return "Short2";
+			case EVertexType::Short3		: return "Short3";
+			case EVertexType::Short4		: return "Short4";
+			case EVertexType::Short_Norm	: return "Short_Norm";
+			case EVertexType::Short2_Norm	: return "Short2_Norm";
+			case EVertexType::Short3_Norm	: return "Short3_Norm";
+			case EVertexType::Short4_Norm	: return "Short4_Norm";
+			case EVertexType::Short_Scaled	: return "Short_Scaled";
+			case EVertexType::Short2_Scaled	: return "Short2_Scaled";
+			case EVertexType::Short3_Scaled	: return "Short3_Scaled";
+			case EVertexType::Short4_Scaled	: return "Short4_Scaled";
+			case EVertexType::UShort		: return "UShort";
+			case EVertexType::UShort2		: return "UShort2";
+			case EVertexType::UShort3		: return "UShort3";
+			case EVertexType::UShort4		: return "UShort4";
+			case EVertexType::UShort_Norm	: return "UShort_Norm";
+			case EVertexType::UShort2_Norm	: return "UShort2_Norm";
+			case EVertexType::UShort3_Norm	: return "UShort3_Norm";
+			case EVertexType::UShort4_Norm	: return "UShort4_Norm";
+			case EVertexType::UShort_Scaled	: return "UShort_Scaled";
+			case EVertexType::UShort2_Scaled: return "UShort2_Scaled";
+			case EVertexType::UShort3_Scaled: return "UShort3_Scaled";
+			case EVertexType::UShort4_Scaled: return "UShort4_Scaled";
+			case EVertexType::Int			: return "Int";
+			case EVertexType::Int2			: return "Int2";
+			case EVertexType::Int3			: return "Int3";
+			case EVertexType::Int4			: return "Int4";
+			case EVertexType::UInt			: return "UInt";
+			case EVertexType::UInt2			: return "UInt2";
+			case EVertexType::UInt3			: return "UInt3";
+			case EVertexType::UInt4			: return "UInt4";
+			case EVertexType::Long			: return "Long";
+			case EVertexType::Long2			: return "Long2";
+			case EVertexType::Long3			: return "Long3";
+			case EVertexType::Long4			: return "Long4";
+			case EVertexType::ULong			: return "ULong";
+			case EVertexType::ULong2		: return "ULong2";
+			case EVertexType::ULong3		: return "ULong3";
+			case EVertexType::ULong4		: return "ULong4";
+			case EVertexType::Float			: return "Float";
+			case EVertexType::Float2		: return "Float2";
+			case EVertexType::Float3		: return "Float3";
+			case EVertexType::Float4		: return "Float4";
+			case EVertexType::Double		: return "Double";
+			case EVertexType::Double2		: return "Double2";
+			case EVertexType::Double3		: return "Double3";
+			case EVertexType::Double4		: return "Double4";
+		}
+		RETURN_ERR( "unknown vertex type!" );
 	}
 
 /*

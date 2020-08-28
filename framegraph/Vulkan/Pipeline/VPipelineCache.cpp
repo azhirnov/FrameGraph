@@ -458,7 +458,8 @@ namespace FG
 			CHECK( _SetupShaderDebugging( fgThread, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
-		ASSERT( not localGroupSize.has_value() or Any( cppln._localSizeSpec != uint3(ComputePipelineDesc::UNDEFINED_SPECIALIZATION) ));
+		ASSERT( (not localGroupSize.has_value() or Any( cppln._localSizeSpec != uint3(ComputePipelineDesc::UNDEFINED_SPECIALIZATION) )) and
+				"defined local group size but shader doesn't support variable local group size, you should use 'layout (local_size_x_id = 0, local_size_y_id = 1, local_size__idz = 2) in;'" );
 
 		VComputePipeline::PipelineInstance		inst;
 		inst.layoutId		= layout_id;
@@ -470,6 +471,11 @@ namespace FG
 		inst.debugMode		= GetDebugModeHash( dbg_mode, dbg_stages );
 		inst.UpdateHash();
 		
+		ASSERT( (inst.localGroupSize.x * inst.localGroupSize.y * inst.localGroupSize.z) <= dev.GetDeviceLimits().maxComputeWorkGroupInvocations );
+		ASSERT( inst.localGroupSize.x <= dev.GetDeviceLimits().maxComputeWorkGroupSize[0] );
+		ASSERT( inst.localGroupSize.y <= dev.GetDeviceLimits().maxComputeWorkGroupSize[1] );
+		ASSERT( inst.localGroupSize.z <= dev.GetDeviceLimits().maxComputeWorkGroupSize[2] );
+
 		outLayout = fgThread.AcquireTemporary( layout_id );
 
 		// find existing instance

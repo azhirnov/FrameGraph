@@ -134,6 +134,7 @@ namespace
 */
 	static bool  LoadDDSImage (IntermImagePtr &image, const DDS_HEADER &header, FileRStream &file)
 	{
+		FG_UNUSED( image, header, file );
 		// TODO
 		return false;
 	}

@@ -15,8 +15,8 @@ CommandBuffer {
 					dstTask:         RenderPass (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    ColorAttachmentOutput
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					oldLayout:       Undefined
 					newLayout:       ColorAttachmentOptimal
@@ -30,10 +30,10 @@ CommandBuffer {
 					srcTask:         RenderPass (#2)
 					dstTask:         <final>
 					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					oldLayout:       ColorAttachmentOptimal
 					newLayout:       PresentSrc
 					aspectMask:      Color

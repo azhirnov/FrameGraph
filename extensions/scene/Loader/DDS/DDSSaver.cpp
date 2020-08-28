@@ -121,12 +121,13 @@ namespace
 =================================================
 	SaveDDSImage
 =================================================
-*/
+*
 	static bool  SaveDDSImage (FileWStream &file, const IntermImage &image)
 	{
+		FG_UNUSED( file, image );
 		return false;
 	}
-
+*/
 }	// namespace
 //-----------------------------------------------------------------------------
 
@@ -158,7 +159,6 @@ namespace
 
 			case EImage::Tex2DMS :
 			case EImage::Tex2DMSArray :
-			case EImage::Buffer :
 			case EImage::Unknown :
 				RETURN_ERR( "unsupported image type" );
 		}

@@ -8,6 +8,8 @@ using namespace FG;
 
 #define TEST	CHECK_FATAL
 
+#define TEST_PASSED()	FG_LOGI( String{FG_FUNCTION_NAME} + " - passed" )
+
 
 /*
 =================================================
@@ -41,32 +43,17 @@ inline bool  TestVertexInput (const GraphicsPipelineDesc &ppln, const VertexID &
 
 /*
 =================================================
-	FindFragmentOutput
-=================================================
-*/
-inline const GraphicsPipelineDesc::FragmentOutput*  FindFragmentOutput (const GraphicsPipelineDesc &ppln, const RenderTargetID &id)
-{
-	for (auto& frag : ppln._fragmentOutput)
-	{
-		if ( frag.id == id )
-			return &frag;
-	}
-	return null;
-}
-
-/*
-=================================================
 	TestFragmentOutput
 =================================================
 */
-inline bool  TestFragmentOutput (const GraphicsPipelineDesc &ppln, const RenderTargetID &id, EFragOutput type, uint index)
+inline bool  TestFragmentOutput (const GraphicsPipelineDesc &ppln, EFragOutput type, uint index)
 {
-	auto	ptr = FindFragmentOutput( ppln, id );
-	if ( not ptr )
-		return false;
-
-	return	ptr->index	== index	and
-			ptr->type	== type;
+	for (auto& frag : ppln._fragmentOutput)
+	{
+		if ( frag.index == index )
+			return frag.type == type;
+	}
+	return false;
 }
 
 /*

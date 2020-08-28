@@ -91,7 +91,6 @@ namespace FG
 		TexCube,
 		TexCubeArray,
 		Tex3D,
-		Buffer,
 		Unknown		= ~0u,
 	};
 

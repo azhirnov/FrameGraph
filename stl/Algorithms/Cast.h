@@ -43,7 +43,7 @@ namespace FGC
 
 		STATIC_ASSERT( IsPowerOfTwo( align ), "Align must be power of 2" );
 
-		return (sizeof(R) < align) or not (size_t(ptr) & (align-1));
+		return (size_t(ptr) & (align-1)) == 0;
 	}
 
 /*

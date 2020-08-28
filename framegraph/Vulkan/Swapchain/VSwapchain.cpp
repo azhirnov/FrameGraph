@@ -125,7 +125,7 @@ namespace FG
 		
 		if ( dbgSync )
 		{
-			VK_CALL( dev.vkWaitForFences( dev.GetVkDevice(), 1, &_fence, VK_TRUE, ~0ull ));
+			VK_CALL( dev.vkWaitForFences( dev.GetVkDevice(), 1, &_fence, VK_TRUE, UMax ));
 			VK_CALL( dev.vkResetFences( dev.GetVkDevice(), 1, &_fence ));
 		}
 

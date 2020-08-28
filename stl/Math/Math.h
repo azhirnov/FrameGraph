@@ -257,7 +257,7 @@ namespace FGC
 		
 		if constexpr( sizeof(T) >= sizeof(int64_t) )
 			return int64_t(std::round( x ));
-
+		else
 		if constexpr( sizeof(T) >= sizeof(int32_t) )
 			return int32_t(std::round( x ));
 	}
@@ -269,7 +269,7 @@ namespace FGC
 		
 		if constexpr( sizeof(T) >= sizeof(uint64_t) )
 			return uint64_t(std::round( x ));
-
+		else
 		if constexpr( sizeof(T) >= sizeof(uint32_t) )
 			return uint32_t(std::round( x ));
 	}

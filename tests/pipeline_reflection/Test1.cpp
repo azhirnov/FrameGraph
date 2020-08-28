@@ -50,7 +50,7 @@ void main() {
 	TEST( FindVertexInput( ppln, VertexID("at_Position") ));
 	TEST( FindVertexInput( ppln, VertexID("at_Texcoord") ));
 
-	TEST( FindFragmentOutput( ppln, RenderTargetID::Color_0 ));
+	TEST( TestFragmentOutput( ppln, EFragOutput::Float4, 0 ));
 
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );
@@ -81,8 +81,8 @@ void main() {
 	VPipelineReflection		pr;
 	TEST( pr.Reflect( INOUT ppln2 ));
 
-	std::sort( ppln2._fragmentOutput.begin(), ppln2._fragmentOutput.end(), [](auto& lhs, auto& rhs) { return lhs.id < rhs.id; });
-	std::sort( ppln._fragmentOutput.begin(),  ppln._fragmentOutput.end(),  [](auto& lhs, auto& rhs) { return lhs.id < rhs.id; });
+	std::sort( ppln2._fragmentOutput.begin(), ppln2._fragmentOutput.end(), [](auto& lhs, auto& rhs) { return lhs.index < rhs.index; });
+	std::sort( ppln._fragmentOutput.begin(),  ppln._fragmentOutput.end(),  [](auto& lhs, auto& rhs) { return lhs.index < rhs.index; });
 	TEST( ppln2._fragmentOutput == ppln._fragmentOutput );
 
 	std::sort( ppln2._vertexAttribs.begin(), ppln2._vertexAttribs.end(), [](auto& lhs, auto& rhs) { return lhs.id < rhs.id; });

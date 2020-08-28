@@ -47,10 +47,6 @@ namespace FG
 			case EImage::Tex3D :
 				return VK_IMAGE_TYPE_3D;
 
-			case EImage::Buffer :
-				ASSERT(false);
-				break;		// TODO
-
 			case EImage::Unknown :
 				break;		// to shutup warnings
 		}
@@ -67,9 +63,11 @@ namespace FG
 	{
 		VkImageCreateFlagBits	flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 			
+		// allow to create cubemap from 2D array
 		if ( EImage_IsCube( imageType ))
 			flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
+		// allow to create 2D view from 3D
 		if ( imageType == EImage::Tex3D )
 			flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
 
@@ -229,9 +227,6 @@ namespace FG
 			info.pQueueFamilyIndices	= null;
 			info.queueFamilyIndexCount	= 0;
 		}
-
-		// TODO:
-		// test usage with supported features (vkGetPhysicalDeviceFormatProperties2)
 
 		VK_CHECK( dev.vkCreateImage( dev.GetVkDevice(), &info, null, OUT &_image ));
 

@@ -684,7 +684,10 @@ namespace FG
 		CHECK_ERR( _device.IsMeshShaderEnabled() );
 
 		if ( not _CompileShaders( INOUT desc, _device ))
+		{
+			FG_LOGI( "Failed to compile shaders for mesh pipeline "s << (dbgName.size() ? "'"s << dbgName << "'" : ""));
 			return Default;
+		}
 
 		RawPipelineLayoutID						layout_id;
 		ResourceBase<VPipelineLayout> const*	layout	= null;
@@ -716,7 +719,10 @@ namespace FG
 	RawGPipelineID  VResourceManager::CreatePipeline (INOUT GraphicsPipelineDesc &desc, StringView dbgName)
 	{
 		if ( not _CompileShaders( INOUT desc, _device ))
+		{
+			FG_LOGI( "Failed to compile shaders for graphics pipeline "s << (dbgName.size() ? "'"s << dbgName << "'" : ""));
 			return Default;
+		}
 		
 		RawPipelineLayoutID						layout_id;
 		ResourceBase<VPipelineLayout> const*	layout	= null;
@@ -748,8 +754,11 @@ namespace FG
 	RawCPipelineID  VResourceManager::CreatePipeline (INOUT ComputePipelineDesc &desc, StringView dbgName)
 	{
 		if ( not _CompileShader( INOUT desc, _device ))
+		{
+			FG_LOGI( "Failed to compile shaders for compute pipeline "s << (dbgName.size() ? "'"s << dbgName << "'" : ""));
 			return Default;
-		
+		}
+
 		RawPipelineLayoutID						layout_id;
 		ResourceBase<VPipelineLayout> const*	layout	= null;
 		CHECK_ERR( _CreatePipelineLayout( OUT layout_id, OUT layout, std::move(desc._pipelineLayout) ));
@@ -777,12 +786,15 @@ namespace FG
 	CreatePipeline
 =================================================
 */
-	RawRTPipelineID  VResourceManager::CreatePipeline (INOUT RayTracingPipelineDesc &desc)
+	RawRTPipelineID  VResourceManager::CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName)
 	{
 		CHECK_ERR( _device.IsRayTracingEnabled() );
 
 		if ( not _CompileShaders( INOUT desc, _device ))
+		{
+			FG_LOGI( "Failed to compile shaders for ray tracing pipeline "s << (dbgName.size() ? "'"s << dbgName << "'" : ""));
 			return Default;
+		}
 		
 		RawPipelineLayoutID						layout_id;
 		ResourceBase<VPipelineLayout> const*	layout	= null;
@@ -794,7 +806,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( desc, layout_id ) )
+		if ( not data.Create( desc, layout_id, dbgName ) )
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating ray tracing pipeline" );

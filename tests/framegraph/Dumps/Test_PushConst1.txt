@@ -10,7 +10,7 @@ CommandBuffer {
 					dstTask:         ReadBuffer (#3)
 					srcStageMask:    ComputeShader
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ShaderWrite
 					dstAccessMask:   TransferRead
 					offset:          0 b
@@ -20,8 +20,8 @@ CommandBuffer {
 					srcTask:         DispatchCompute (#2)
 					dstTask:         <final>
 					srcStageMask:    ComputeShader
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   ShaderWrite
 					dstAccessMask:   ShaderRead | TransferRead
 					offset:          0 b
@@ -39,10 +39,10 @@ CommandBuffer {
 					srcTask:         ReadBuffer (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            32 b
 				}

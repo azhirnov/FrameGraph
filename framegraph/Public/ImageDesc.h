@@ -51,6 +51,7 @@ namespace FG
 		ImageDesc&  SetQueues (EQueueUsage value)		{ queues = value;  return *this; }
 		ImageDesc&  SetArrayLayers (uint value)			{ arrayLayers = ImageLayer{value};  return *this; }
 		ImageDesc&  SetMaxMipmaps (uint value)			{ maxLevel = MipmapLevel{value};  return *this; }
+		ImageDesc&  SetAllMipmaps ()					{ maxLevel = MipmapLevel{~0u};  return *this; }
 		ImageDesc&  SetSamples (uint value)				{ samples = MultiSamples{value};  return *this; }
 	};
 		

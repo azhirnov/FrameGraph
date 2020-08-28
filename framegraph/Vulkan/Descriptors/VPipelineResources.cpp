@@ -228,7 +228,7 @@ namespace FG
 			auto&			elem	= buf.elements[i];
 			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, true );
 			
-			if ( not buffer )
+			if_unlikely( not buffer )
 			{
 				_LogUniform( un, i );
 				return false;
@@ -272,13 +272,19 @@ namespace FG
 			auto&			elem	= texbuf.elements[i];
 			VBuffer const*	buffer	= resMngr.GetResource( elem.bufferId, false, true );
 			
-			if ( not buffer )
+			if_unlikely( not buffer )
 			{
 				_LogUniform( un, i );
 				return false;
 			}
 
 			info[i] = buffer->GetView( resMngr.GetDevice(), elem.desc );
+			
+			if_unlikely( info[i] == VK_NULL_HANDLE )
+			{
+				_LogUniform( un, i );
+				return false;
+			}
 			
 			_CheckTexelBufferUsage( *buffer, texbuf.state );
 		}
@@ -311,7 +317,7 @@ namespace FG
 			auto&			elem	= img.elements[i];
 			VImage const*	img_res	= resMngr.GetResource( elem.imageId, false, true );
 			
-			if ( not img_res )
+			if_unlikely( not img_res )
 			{
 				_LogUniform( un, i );
 				return false;
@@ -321,6 +327,12 @@ namespace FG
 			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
 			info[i].sampler		= VK_NULL_HANDLE;
 			
+			if_unlikely( info[i].imageView == VK_NULL_HANDLE )
+			{
+				_LogUniform( un, i );
+				return false;
+			}
+
 			_CheckImageUsage( *img_res, img.state );
 		}		
 		
@@ -352,7 +364,7 @@ namespace FG
 			VImage const*	img_res	= resMngr.GetResource( elem.imageId, false, true );
 			VSampler const*	sampler	= resMngr.GetResource( elem.samplerId, false, true );
 
-			if ( not (img_res and sampler) )
+			if_unlikely( not (img_res and sampler) )
 			{
 				_LogUniform( un, i );
 				return false;
@@ -361,6 +373,12 @@ namespace FG
 			info[i].imageLayout	= EResourceState_ToImageLayout( tex.state, img_res->AspectMask() );
 			info[i].imageView	= img_res->GetView( resMngr.GetDevice(), not elem.hasDesc, INOUT elem.desc );
 			info[i].sampler		= sampler->Handle();
+			
+			if_unlikely( info[i].imageView == VK_NULL_HANDLE )
+			{
+				_LogUniform( un, i );
+				return false;
+			}
 			
 			_CheckImageUsage( *img_res, tex.state );
 		}
@@ -391,7 +409,7 @@ namespace FG
 			auto&			elem	= samp.elements[i];
 			VSampler const*	sampler = resMngr.GetResource( elem.samplerId, false, true );
 			
-			if ( not sampler )
+			if_unlikely( not sampler )
 			{
 				_LogUniform( un, i );
 				return false;
@@ -428,7 +446,7 @@ namespace FG
 			auto&					elem	= rtScene.elements[i];
 			VRayTracingScene const*	scene	= resMngr.GetResource( elem.sceneId, false, true );
 
-			if ( not scene )
+			if_unlikely( not scene )
 			{
 				_LogUniform( un, i );
 				return false;

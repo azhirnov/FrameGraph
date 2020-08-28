@@ -40,6 +40,8 @@ namespace FG
 		PipelineLayoutID		_baseLayoutId;
 		ShaderModules_t			_shaders;
 		DebugModeBits_t			_debugModeBits;
+		
+		DebugName_t				_debugName;
 
 		RWDataRaceCheck			_drCheck;
 
@@ -50,7 +52,7 @@ namespace FG
 		VRayTracingPipeline (VRayTracingPipeline &&) = default;
 		~VRayTracingPipeline ();
 		
-		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId);
+		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
 		void Destroy (VResourceManager &);
 		
 		ND_ ArrayView<ShaderModule>	GetShaderModules ()	const	{ SHAREDLOCK( _drCheck );  return _shaders; }

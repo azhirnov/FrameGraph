@@ -201,6 +201,7 @@ namespace FG
 		{
 			uint3		groudCount;
 		};
+		STATIC_ASSERT( sizeof(DispatchIndirectCommand) == 12 );
 
 
 	// variables
@@ -564,9 +565,10 @@ namespace FG
 			return *this;
 		}
 
-		FillBuffer&  SetPattern (uint value)
+		template <typename T>
+		FillBuffer&  SetPattern (const T &value)
 		{
-			pattern = value;
+			pattern = BitCast<uint>( value );
 			return *this;
 		}
 	};
@@ -1116,7 +1118,7 @@ namespace FG
 			EGroupType			type		= Default;
 			InstanceID			instanceId;
 			GeometryID			geometryId;
-			uint				offset		= 0;
+			uint				offset		= 0;	// 'sbtRecordOffset'
 			RTShaderID			mainShader;			// miss or closest hit shader
 			RTShaderID			anyHitShader;		// optional
 			RTShaderID			intersectionShader;	// only for procedural geometry

@@ -164,7 +164,7 @@ namespace FG
 				continue;
 			}
 
-			bool	type_missmatch = true;
+			bool	type_mismatch = true;
 
 			Visit( un.second.data,
 				[&] (const PipelineDescription::Texture &lhs)
@@ -179,7 +179,7 @@ namespace FG
 						{
 							iter->second.stageFlags |= un.second.stageFlags;
 							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
-							type_missmatch			 = false;
+							type_mismatch			 = false;
 						}
 					}
 				},
@@ -193,7 +193,7 @@ namespace FG
 						if ( un.second.index == iter->second.index )
 						{
 							iter->second.stageFlags |= un.second.stageFlags;
-							type_missmatch			 = false;
+							type_mismatch			 = false;
 						}
 					}
 				},
@@ -212,7 +212,7 @@ namespace FG
 						{
 							iter->second.stageFlags |= un.second.stageFlags;
 							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
-							type_missmatch			 = false;
+							type_mismatch			 = false;
 						}
 					}
 				},
@@ -233,7 +233,7 @@ namespace FG
 
 							iter->second.stageFlags |= un.second.stageFlags;
 							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
-							type_missmatch			 = false;
+							type_mismatch			 = false;
 						}
 					}
 				},
@@ -250,7 +250,7 @@ namespace FG
 						{
 							iter->second.stageFlags |= un.second.stageFlags;
 							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
-							type_missmatch			 = false;
+							type_mismatch			 = false;
 						}
 					}
 				},
@@ -271,7 +271,7 @@ namespace FG
 
 							iter->second.stageFlags |= un.second.stageFlags;
 							rhs->state				|= EResourceState_FromShaders( iter->second.stageFlags );
-							type_missmatch			 = false;
+							type_mismatch			 = false;
 						}
 					}
 				},
@@ -285,7 +285,7 @@ namespace FG
 						if ( lhs.state == rhs->state )
 						{
 							iter->second.stageFlags |= un.second.stageFlags;
-							type_missmatch			 = false;
+							type_mismatch			 = false;
 						}
 					}
 				},
@@ -293,7 +293,7 @@ namespace FG
 				[] (const NullUnion &) { ASSERT(false); }
 			);
 
-			CHECK_ERR( not type_missmatch );
+			CHECK_ERR( not type_mismatch );
 		}
 		return true;
 	}
@@ -631,7 +631,6 @@ namespace FG
 			auto&	dst = fragOutput.emplace_back();
 
 			dst.type	= FGEnumCastToFragOutput( src.format );
-			dst.id		= RenderTargetID( src.location );
 			dst.index	= src.location;
 		}
 		return true;

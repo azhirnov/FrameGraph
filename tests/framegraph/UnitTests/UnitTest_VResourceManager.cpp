@@ -26,11 +26,6 @@ static void SamplerCache_Test1 (const FrameGraph &fg)
 }
 
 
-static void PipelineCache_Test1 (const FrameGraph &fg)
-{
-}
-
-
 static void PipelineResources_Test1 (const FrameGraph &fg)
 {
 	ComputePipelineDesc	desc;
@@ -104,7 +99,6 @@ static void PipelineResources_Test1 (const FrameGraph &fg)
 extern void UnitTest_VResourceManager (const FrameGraph &fg)
 {
 	SamplerCache_Test1( fg );
-	PipelineCache_Test1( fg );
 	PipelineResources_Test1( fg );
 
 	FG_LOGI( "UnitTest_VResourceManager - passed" );

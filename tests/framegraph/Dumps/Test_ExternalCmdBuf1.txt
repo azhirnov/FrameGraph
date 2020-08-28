@@ -9,8 +9,8 @@ CommandBuffer {
 					srcTask:         CopyBuffer (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					offset:          64 b
@@ -29,7 +29,7 @@ CommandBuffer {
 					dstTask:         CopyBuffer (#3)
 					srcStageMask:    Transfer
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					offset:          0 b
@@ -39,8 +39,8 @@ CommandBuffer {
 					srcTask:         UpdateBuffer (#2)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					offset:          0 b
@@ -109,7 +109,7 @@ CommandBuffer {
 					dstTask:         ReadBuffer (#3)
 					srcStageMask:    Transfer
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					offset:          192 b
@@ -119,8 +119,8 @@ CommandBuffer {
 					srcTask:         CopyBuffer (#2)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   TransferRead
 					offset:          192 b
@@ -138,10 +138,10 @@ CommandBuffer {
 					srcTask:         ReadBuffer (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            512 b
 				}
