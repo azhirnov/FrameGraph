@@ -458,7 +458,7 @@ namespace FG
 			CHECK( _SetupShaderDebugging( fgThread, cppln, debugModeIndex, OUT dbg_mode, OUT dbg_stages, OUT layout_id ));
 		}
 
-		ASSERT( not localGroupSize.has_value() or Any( cppln._localSizeSpec != uint3(ComputePipelineDesc::UNDEFINED_SPECIALIZATION) ) and
+		ASSERT( (not localGroupSize.has_value() or Any( cppln._localSizeSpec != uint3(ComputePipelineDesc::UNDEFINED_SPECIALIZATION) )) and
 				"defined local group size but shader doesn't support variable local group size, you should use 'layout (local_size_x_id = 0, local_size_y_id = 1, local_size__idz = 2) in;'" );
 
 		VComputePipeline::PipelineInstance		inst;
