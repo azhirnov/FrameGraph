@@ -34,7 +34,11 @@ extern void Test_UniformArrays2 (VPipelineCompiler* compiler);
 extern void Test_VersionSelector1 (VPipelineCompiler* compiler);
 
 
+#ifdef PLATFORM_ANDROID
+extern int Tests_PipelineCompiler_main ()
+#else
 int main ()
+#endif
 {
 	{
 		VPipelineCompiler	compiler;

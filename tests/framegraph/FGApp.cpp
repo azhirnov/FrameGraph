@@ -4,6 +4,7 @@
 #include "graphviz/GraphViz.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
+#include "framework/Window/WindowAndroid.h"
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringParser.h"
 
@@ -131,7 +132,12 @@ namespace {
 			CHECK_ERR( _vulkan.CreateInstance( _window->GetVulkanSurface(), "Test", "FrameGraph", _vulkan.GetRecomendedInstanceLayers(), {}, {1,2} ));
 			CHECK_ERR( _vulkan.ChooseHighPerformanceDevice() );
 
+			#ifdef PLATFORM_ANDROID
+			CHECK_ERR( _vulkan.CreateLogicalDevice( {{VK_QUEUE_GRAPHICS_BIT}}, Default ));
+			#else
 			CHECK_ERR( _vulkan.CreateLogicalDevice( {{VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT}, {VK_QUEUE_COMPUTE_BIT}, {VK_QUEUE_TRANSFER_BIT}}, Default ));
+			#endif
+
 			// this is a test and the test should fail for any validation error
 			_vulkan.CreateDebugCallback( DefaultDebugMessageSeverity,
 										 [] (const VulkanDeviceInitializer::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
@@ -374,6 +380,7 @@ namespace {
 */
 	bool FGApp::CompareDumps (StringView filename) const
 	{
+	#ifndef PLATFORM_ANDROID
 		String	fname {FG_TEST_DUMPS_DIR};	fname << '/' << filename << ".txt";
 
 		String	right;
@@ -445,6 +452,12 @@ namespace {
 		}
 		
 		return true;
+
+	#else
+		Unused( filename );
+		return true;
+
+	#endif	// not PLATFORM_ANDROID
 	}
 
 /*
@@ -465,8 +478,10 @@ namespace {
 	Run
 =================================================
 */
-	void FGApp::Run ()
+	void FGApp::Run (void* nativeHandle)
 	{
+		Unused( nativeHandle );
+
 		FGApp				app;
 		UniquePtr<IWindow>	wnd;
 		
@@ -475,6 +490,9 @@ namespace {
 
 		#elif defined( FG_ENABLE_SDL2 )
 			wnd.reset( new WindowSDL2() );
+
+		#elif defined(PLATFORM_ANDROID)
+			wnd.reset( new WindowAndroid{ static_cast<android_app*>(nativeHandle) });
 
 		#else
 		#	error Unknown window library!

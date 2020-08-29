@@ -13,8 +13,13 @@ extern void UnitTest_VImage ();
 extern void UnitTest_ImageDesc ();
 
 
-int main ()
-{
+#ifdef PLATFORM_ANDROID
+extern int Tests_FrameGraph_main (void* nativeHandle) {
+#else
+int main () {
+	void* nativeHandle = null;
+#endif
+
 	FG_LOGI( "Run tests for "s << IFrameGraph::GetVersion() );
 
 	// unit tests
@@ -28,7 +33,7 @@ int main ()
 		UnitTest_ImageDesc();
 	}
 
-	FGApp::Run();
+	FGApp::Run( nativeHandle );
 	
 	CHECK_FATAL( FG_DUMP_MEMLEAKS() );
 

@@ -483,24 +483,6 @@ namespace {
 	{
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( _window )};
 	}
-		
-/*
-=================================================
-	GetPlatformHandle
-=================================================
-*/
-	void*  WindowGLFW::GetPlatformHandle () const
-	{
-		if ( not _window )
-			return null;
-
-	#ifdef PLATFORM_WINDOWS
-		return glfwGetWin32Window( _window );
-	#else
-	#	error not implemented!
-		return null;
-	#endif
-	}
 //-----------------------------------------------------------------------------
 
 

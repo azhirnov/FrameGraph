@@ -67,7 +67,6 @@ namespace FGC
 		uint2 GetSize () const override;
 
 		UniquePtr<IVulkanSurface>  GetVulkanSurface () const override;
-		
 
 	private:
 		static void		_HandleCmd (android_app* app, int32_t cmd);

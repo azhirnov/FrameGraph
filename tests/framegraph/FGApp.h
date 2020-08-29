@@ -43,7 +43,7 @@ namespace FG
 		FGApp ();
 		~FGApp ();
 
-		static void Run ();
+		static void Run (void* nativeHandle);
 
 
 	// IWindowEventListener

@@ -78,9 +78,6 @@ namespace FGC
 		ND_ virtual uint2 GetSize () const = 0;
 
 		ND_ virtual UniquePtr<IVulkanSurface>  GetVulkanSurface () const = 0;
-
-		// returns HWND, etc
-		ND_ virtual void * GetPlatformHandle () const = 0;
 	};
 
 

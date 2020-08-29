@@ -517,36 +517,6 @@ namespace {
 	{
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( _window )};
 	}
-	
-/*
-=================================================
-	GetPlatformHandle
-=================================================
-*/
-	void*  WindowSDL2::GetPlatformHandle () const
-	{
-		if ( not _window )
-			return null;
-
-		SDL_SysWMinfo	info = {};
-			
-		SDL_VERSION( OUT &info.version );
-		CHECK_ERR( SDL_GetWindowWMInfo( _window, OUT &info ) == SDL_TRUE );
-		
-		switch ( info.subsystem )
-		{
-			#ifdef PLATFORM_ANDROID
-			case SDL_SYSWM_ANDROID :
-				return info.info.android.window;
-			#endif
-				
-			#ifdef PLATFORM_WINDOWS
-			case SDL_SYSWM_WINDOWS :
-				return info.info.win.window;
-			#endif
-		}
-		return null;
-	}
 //-----------------------------------------------------------------------------
 
 
