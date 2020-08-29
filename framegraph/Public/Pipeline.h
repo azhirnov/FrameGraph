@@ -26,7 +26,7 @@ namespace FG
 		struct Texture
 		{
 			EResourceState		state				= Default;
-			EImage				textureType			= Default;
+			EImageSampler		textureType			= Default;
 
 			ND_ bool  operator == (const Texture &rhs) const;
 		};
@@ -48,8 +48,7 @@ namespace FG
 		struct Image
 		{
 			EResourceState		state				= Default;
-			EImage				imageType			= Default;
-			EPixelFormat		format				= Default;
+			EImageSampler		imageType			= Default;
 			
 			ND_ bool  operator == (const Image &rhs) const;
 		};
@@ -90,7 +89,7 @@ namespace FG
 			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index, uint arraySize, EShaderStages stageFlags);
+			_TextureUniform (const UniformID &id, EImageSampler textureType, const BindingIndex &index, uint arraySize, EShaderStages stageFlags);
 		};
 
 		struct _SamplerUniform
@@ -124,7 +123,7 @@ namespace FG
 			const uint				arraySize;
 			const EShaderStages		stageFlags;
 
-			_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access,
+			_ImageUniform (const UniformID &id, EImageSampler imageType, EShaderAccess access,
 						   const BindingIndex &index, uint arraySize, EShaderStages stageFlags);
 		};
 

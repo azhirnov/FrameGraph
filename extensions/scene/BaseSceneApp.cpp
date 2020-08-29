@@ -82,9 +82,9 @@ namespace FG
 
 		// initialize vulkan device
 		{
-			ArrayView<const char*>	layers		= _vrDevice ? Default : (cfg.enableDebugLayers ? VulkanDevice::GetRecomendedInstanceLayers() : Default);
-			Array<const char*>		inst_ext	{ VulkanDevice::GetRecomendedInstanceExtensions() };
-			Array<const char*>		dev_ext		{ VulkanDevice::GetAllDeviceExtensions_v110() };
+			ArrayView<const char*>	layers		= _vrDevice ? Default : (cfg.enableDebugLayers ? VulkanDeviceInitializer::GetRecomendedInstanceLayers() : Default);
+			Array<const char*>		inst_ext;
+			Array<const char*>		dev_ext;
 			Array<String>			vr_inst_ext	= _vrDevice ? _vrDevice->GetRequiredInstanceExtensions() : Default;
 			Array<String>			vr_dev_ext	= _vrDevice ? _vrDevice->GetRequiredDeviceExtensions() : Default;
 
@@ -94,18 +94,15 @@ namespace FG
 			for (auto& ext : vr_dev_ext) {
 				dev_ext.push_back( ext.c_str() );
 			}
+			
+			CHECK_ERR( _vulkan.CreateInstance( _window->GetVulkanSurface(), _title, IFrameGraph::GetVersion(), layers, inst_ext, {1,2} ));
 
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(),
-									   _title,
-									   IFrameGraph::GetVersion(),
-									   VK_API_VERSION_1_2,
-									   cfg.deviceName,
-									   {},
-									   layers,
-									   inst_ext,
-									   dev_ext
-									));
-			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
+			if ( not _vulkan.ChooseDevice( cfg.deviceName ))
+				CHECK_ERR( _vulkan.ChooseHighPerformanceDevice() );
+
+			CHECK_ERR( _vulkan.CreateLogicalDevice( {{VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT}, {VK_QUEUE_COMPUTE_BIT}, {VK_QUEUE_TRANSFER_BIT}}, dev_ext ));
+			
+			_vulkan.CreateDebugCallback( DefaultDebugMessageSeverity );
 		}
 
 		// setup device info
@@ -128,10 +125,10 @@ namespace FG
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );
-				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.flags );
-				qi.familyIndex	= q.familyIndex;
+				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.familyFlags );
+				qi.familyIndex	= uint(q.familyIndex);
 				qi.priority		= q.priority;
-				qi.debugName	= "";
+				qi.debugName	= q.debugName;
 
 				vulkan_info.queues.push_back( qi );
 			}
@@ -159,6 +156,7 @@ namespace FG
 			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.instance, vulkan_info.physicalDevice, vulkan_info.device );
 			compiler->SetCompilationFlags( EShaderCompilationFlags::Quiet				|
 										   EShaderCompilationFlags::ParseAnnotations	|
+										   EShaderCompilationFlags::Optimize			|
 										   EShaderCompilationFlags::UseCurrentDeviceLimits );
 
 			for (auto& dir : cfg.shaderDirectories) {
@@ -174,7 +172,7 @@ namespace FG
 		{
 			FS::path	path{ cfg.dbgOutputPath };
 		
-			if ( FS::exists( path ) )
+			if ( FS::exists( path ))
 				FS::remove_all( path );
 		
 			CHECK( FS::create_directory( path ));
@@ -210,8 +208,9 @@ namespace FG
 			_vrDevice->Destroy();
 			_vrDevice.reset();
 		}
-
-		_vulkan.Destroy();
+		
+		_vulkan.DestroyLogicalDevice();
+		_vulkan.DestroyInstance();
 
 		if ( _window )
 		{
@@ -258,6 +257,16 @@ namespace FG
 	void  BaseSceneApp::_SetMouseSens (vec2 value)
 	{
 		_mouseSens = value;
+	}
+	
+/*
+=================================================
+	_EnableCameraMovement
+=================================================
+*/
+	void  BaseSceneApp::_EnableCameraMovement (bool enable)
+	{
+		_enableCamera = enable;
 	}
 
 /*
@@ -388,7 +397,7 @@ namespace FG
 */
 	void  BaseSceneApp::OnMouseMove (const float2 &pos)
 	{
-		if ( _mousePressed )
+		if ( _mousePressed and _enableCamera )
 		{
 			vec2	delta = vec2{pos.x, pos.y} - _lastMousePos;
 			_mouseDelta   += delta * _mouseSens;
@@ -418,7 +427,7 @@ namespace FG
 		}
 
 		//FG_LOGI( "Idx: "s << ToString(index) << ", delta: " << ToString(delta) );
-		FG_UNUSED( id, delta );
+		Unused( id, delta );
 	}
 	
 /*
@@ -428,7 +437,7 @@ namespace FG
 */
 	void  BaseSceneApp::OnButton (ControllerID id, StringView btn, EButtonAction action)
 	{
-		FG_UNUSED( id, btn, action );
+		Unused( id, btn, action );
 		/*if ( id == ControllerID::RightHand and action != EButtonAction::Up )
 		{
 			if ( btn == "dpad up" )			_positionDelta.x += 1.0f;	else

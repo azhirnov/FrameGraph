@@ -111,7 +111,7 @@ namespace
 		//	RETURN_ERR( "VR_GetGenericInterface error: "s << vr::VR_GetVRInitErrorAsEnglishDescription( err ));
 		
 		FG_LOGI( "driver:  "s << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_TrackingSystemName_String ) <<
-				 "display: " << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String ) );
+				 "display: " << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String ));
 		
 		CHECK_ERR( vr::VRCompositor() );
 
@@ -491,12 +491,12 @@ namespace
 		bounds.vMax = image.bounds.bottom;
 
 		vr::VRVulkanTextureData_t	vk_data;
-		vk_data.m_nImage			= (uint64_t) image.handle;
-		vk_data.m_pDevice			= (VkDevice_T *) _vkLogicalDevice;
-		vk_data.m_pPhysicalDevice	= (VkPhysicalDevice_T *) _vkPhysicalDevice;
-		vk_data.m_pInstance			= (VkInstance_T *) _vkInstance;
-		vk_data.m_pQueue			= (VkQueue_T *) image.currQueue;
-		vk_data.m_nQueueFamilyIndex	= image.queueFamilyIndex;
+		vk_data.m_nImage			= BitCast<uint64_t>( image.handle );
+		vk_data.m_pDevice			= reinterpret_cast<VkDevice_T *>( _vkLogicalDevice );
+		vk_data.m_pPhysicalDevice	= reinterpret_cast<VkPhysicalDevice_T *>( _vkPhysicalDevice );
+		vk_data.m_pInstance			= reinterpret_cast<VkInstance_T *>( _vkInstance );
+		vk_data.m_pQueue			= reinterpret_cast<VkQueue_T *>( image.currQueue );
+		vk_data.m_nQueueFamilyIndex	= uint(image.queueFamilyIndex);
 		vk_data.m_nWidth			= image.dimension.x;
 		vk_data.m_nHeight			= image.dimension.y;
 		vk_data.m_nFormat			= image.format;
@@ -522,6 +522,7 @@ namespace
 		vr::Texture_t			texture		= { &vk_data, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
 		vr::EVRCompositorError	err			= vr::VRCompositor()->Submit( vr_eye, &texture, &bounds );
 
+		Unused( err );
 		//CHECK_ERR( err == vr::VRCompositorError_None );
 
 		_submitted[uint(eye)] = true;

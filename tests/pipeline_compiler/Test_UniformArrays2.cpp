@@ -34,9 +34,9 @@ void main ()
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );
 	
-	TEST( TestTextureUniform( *ds, UniformID("un_Textures"), EImage::Tex2D, /*binding*/0, EShaderStages::Compute, /*arraySize*/0 ));
+	TEST( TestTextureUniform( *ds, UniformID("un_Textures"), EImageSampler::Float2D, /*binding*/0, EShaderStages::Compute, /*arraySize*/0 ));
 	TEST( TestSamplerUniform( *ds, UniformID{"un_Sampler"}, 2, EShaderStages::Compute, /*arraySize*/1 ));
-	TEST( TestImageUniform( *ds, UniformID{"un_OutImage"}, EImage::Tex2D, EPixelFormat::Unknown, EShaderAccess::WriteOnly, 1, EShaderStages::Compute, /*arraySize*/1 ));
+	TEST( TestImageUniform( *ds, UniformID{"un_OutImage"}, EImageSampler::Float2D, EShaderAccess::WriteOnly, 1, EShaderStages::Compute, /*arraySize*/1 ));
 	
 	TEST_PASSED();
 }

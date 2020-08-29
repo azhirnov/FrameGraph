@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "framegraph/FG.h"
-#include "imgui.h"
+#include "ui/Common.h"
 
 namespace FG
 {

@@ -6,6 +6,7 @@
 #include "VDevice.h"
 #include "VEnumCast.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "Shared/EnumToString.h"
 
 namespace FG
 {
@@ -55,7 +56,7 @@ namespace FG
 	Create
 =================================================
 */
-	bool VPipelineResources::Create (VResourceManager &resMngr)
+	bool  VPipelineResources::Create (VResourceManager &resMngr)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( not _descriptorSet.first );
@@ -82,7 +83,7 @@ namespace FG
 	Destroy
 =================================================
 */
-	void VPipelineResources::Destroy (VResourceManager &resMngr)
+	void  VPipelineResources::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _drCheck );
 
@@ -168,11 +169,15 @@ namespace FG
 
 			void operator () (const UniformID &, const PipelineResources::RayTracingScene &rts)
 			{
+			#ifdef VK_NV_ray_tracing
 				for (uint i = 0; i < rts.elementCount; ++i)
 				{
 					auto&	elem = rts.elements[i];
 					alive &= not elem.sceneId or resMngr.IsResourceAlive( elem.sceneId );
 				}
+			#else
+				Unused( rts );
+			#endif
 			}
 		};
 
@@ -206,7 +211,7 @@ namespace FG
 	inline void  VPipelineResources::_LogUniform (const UniformID &un, uint idx) const
 	{
 		#if FG_OPTIMIZE_IDS
-			FG_UNUSED( un );
+			Unused( un, idx );
 			CHECK( _allowEmptyResources );
 		#else
 			if ( not _allowEmptyResources )
@@ -219,7 +224,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
+	bool  VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Buffer &buf, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorBufferInfo >( buf.elementCount );
 
@@ -242,7 +247,7 @@ namespace FG
 		}
 
 		const bool	is_uniform	= ((buf.state & EResourceState::_StateMask) == EResourceState::UniformRead);
-		const bool	is_dynamic	= EnumEq( buf.state, EResourceState::_BufferDynamicOffset );
+		const bool	is_dynamic	= AllBits( buf.state, EResourceState::_BufferDynamicOffset );
 
 		VkWriteDescriptorSet&	wds = list.descriptors[list.descriptorIndex++];
 		wds = {};
@@ -263,7 +268,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::TexelBuffer &texbuf, INOUT UpdateDescriptors &list)
+	bool  VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::TexelBuffer &texbuf, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkBufferView >( texbuf.elementCount );
 
@@ -308,7 +313,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
+	bool  VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Image &img, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( img.elementCount );
 
@@ -333,6 +338,7 @@ namespace FG
 				return false;
 			}
 
+			_CheckImageType( un, i, *img_res, elem.desc, img.imageType );
 			_CheckImageUsage( *img_res, img.state );
 		}		
 		
@@ -354,7 +360,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
+	bool  VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, INOUT PipelineResources::Texture &tex, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( tex.elementCount );
 
@@ -380,6 +386,7 @@ namespace FG
 				return false;
 			}
 			
+			_CheckTextureType( un, i, *img_res, elem.desc, tex.samplerType );
 			_CheckImageUsage( *img_res, tex.state );
 		}
 		
@@ -400,7 +407,7 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
+	bool  VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, const PipelineResources::Sampler &samp, INOUT UpdateDescriptors &list)
 	{
 		auto*	info = list.allocator.Alloc< VkDescriptorImageInfo >( samp.elementCount );
 
@@ -437,8 +444,9 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, const PipelineResources::RayTracingScene &rtScene, INOUT UpdateDescriptors &list)
+	bool  VPipelineResources::_AddResource (VResourceManager &resMngr, const UniformID &un, const PipelineResources::RayTracingScene &rtScene, INOUT UpdateDescriptors &list)
 	{
+	#ifdef VK_NV_ray_tracing
 		auto*	tlas = list.allocator.Alloc<VkAccelerationStructureNV>( rtScene.elementCount );
 
 		for (uint i = 0; i < rtScene.elementCount; ++i)
@@ -472,6 +480,11 @@ namespace FG
 		wds.dstSet			= _descriptorSet.first;
 
 		return true;
+	#else
+		Unused( resMngr, un, rtScene, list );
+		ASSERT( !"ray tracing is not supported" );
+		return false;
+	#endif
 	}
 
 /*
@@ -479,10 +492,10 @@ namespace FG
 	_AddResource
 =================================================
 */
-	bool VPipelineResources::_AddResource (VResourceManager &, const UniformID &un, const NullUnion &, INOUT UpdateDescriptors &)
+	bool  VPipelineResources::_AddResource (VResourceManager &, const UniformID &un, const NullUnion &, INOUT UpdateDescriptors &)
 	{
 		#if FG_OPTIMIZE_IDS
-			FG_UNUSED( un );
+			Unused( un );
 			CHECK( _allowEmptyResources and "uninitialized uniform!" );
 		#else
 			if ( not _allowEmptyResources )
@@ -496,17 +509,19 @@ namespace FG
 	_CheckBufferUsage
 =================================================
 */
-	inline void VPipelineResources::_CheckBufferUsage (const VBuffer &buffer, EResourceState state)
+	inline void  VPipelineResources::_CheckBufferUsage (const VBuffer &buffer, EResourceState state)
 	{
 	#ifdef FG_DEBUG
 		const EBufferUsage	usage = buffer.Description().usage;
 
 		switch ( state & EResourceState::_AccessMask )
 		{
-			case EResourceState::_Access_ShaderStorage :	CHECK( EnumEq( usage, EBufferUsage::Storage ));		break;
-			case EResourceState::_Access_Uniform :			CHECK( EnumEq( usage, EBufferUsage::Uniform ));		break;
+			case EResourceState::_Access_ShaderStorage :	CHECK( AllBits( usage, EBufferUsage::Storage ));	break;
+			case EResourceState::_Access_Uniform :			CHECK( AllBits( usage, EBufferUsage::Uniform ));	break;
 			default :										CHECK( !"unknown resource state" );					break;
 		}
+	#else
+		Unused( buffer, state );
 	#endif
 	}
 
@@ -515,17 +530,19 @@ namespace FG
 	_CheckTexelBufferUsage
 =================================================
 */
-	inline void VPipelineResources::_CheckTexelBufferUsage (const VBuffer &buffer, EResourceState state)
+	inline void  VPipelineResources::_CheckTexelBufferUsage (const VBuffer &buffer, EResourceState state)
 	{
 	#ifdef FG_DEBUG
 		const EBufferUsage	usage = buffer.Description().usage;
 
 		switch ( state & EResourceState::_AccessMask )
 		{
-			case EResourceState::_Access_ShaderStorage :	CHECK( EnumAny( usage, EBufferUsage::StorageTexel | EBufferUsage::StorageTexelAtomic ));	break;
-			case EResourceState::_Access_Uniform :			CHECK( EnumEq( usage, EBufferUsage::UniformTexel ));										break;
+			case EResourceState::_Access_ShaderStorage :	CHECK( AnyBits( usage, EBufferUsage::StorageTexel | EBufferUsage::StorageTexelAtomic ));	break;
+			case EResourceState::_Access_Uniform :			CHECK( AllBits( usage, EBufferUsage::UniformTexel ));										break;
 			default :										CHECK( !"unknown resource state" );															break;
 		}
+	#else
+		Unused( buffer, state );
 	#endif
 	}
 	
@@ -534,17 +551,105 @@ namespace FG
 	_CheckImageUsage
 =================================================
 */
-	inline void VPipelineResources::_CheckImageUsage (const VImage &image, EResourceState state)
+	inline void  VPipelineResources::_CheckImageUsage (const VImage &image, EResourceState state)
 	{
 	#ifdef FG_DEBUG
 		const EImageUsage	usage = image.Description().usage;
 
 		switch ( state & EResourceState::_AccessMask )
 		{
-			case EResourceState::_Access_ShaderStorage :	CHECK( EnumAny( usage, EImageUsage::Storage | EImageUsage::StorageAtomic ));	break;
-			case EResourceState::_Access_ShaderSample :		CHECK( EnumEq(  usage, EImageUsage::Sampled ));									break;
+			case EResourceState::_Access_ShaderStorage :	CHECK( AnyBits( usage, EImageUsage::Storage | EImageUsage::StorageAtomic ));	break;
+			case EResourceState::_Access_ShaderSample :		CHECK( AllBits( usage, EImageUsage::Sampled ));									break;
 			default :										CHECK( !"unknown resource state" );												break;
 		}
+	#else
+		Unused( image, state );
+	#endif
+	}
+	
+/*
+=================================================
+	_CheckImageType
+=================================================
+*/
+	inline void  VPipelineResources::_CheckImageType (const UniformID &un, uint idx, const VImage &img, const ImageViewDesc &desc, EImageSampler type)
+	{
+	#ifdef FG_DEBUG
+		EPixelFormat	fmt = EPixelFormat(type & EImageSampler::_FormatMask);
+
+		if ( fmt != Zero and fmt != desc.format )
+		{
+			FG_LOGE( "Uncompatible image formats in uniform "s << un.GetName() << "[" << ToString(idx) << "]:\n"
+					 "    in shader: " << ToString( fmt ) << "\n"
+					 "    in image:  " << ToString( desc.format ) << ", name: " << img.GetDebugName() );
+		}
+		_CheckTextureType( un, idx, img, desc, (type & ~EImageSampler::_FormatMask) );
+	#else
+		Unused( un, idx, img, type );
+	#endif
+	}
+	
+/*
+=================================================
+	_CheckTextureType
+=================================================
+*/
+	inline void  VPipelineResources::_CheckTextureType (const UniformID &un, uint idx, const VImage &img, const ImageViewDesc &desc, EImageSampler shaderType)
+	{
+	#ifdef FG_DEBUG
+		using EType = PixelFormatInfo::EType;
+
+		ASSERT( not AnyBits( shaderType, EImageSampler::_FormatMask ));
+
+		EImageSampler	img_type = Zero;
+
+		BEGIN_ENUM_CHECKS();
+		switch ( desc.viewType )
+		{
+			case EImage_1D :			img_type = EImageSampler::_1D;			break;
+			case EImage_2D :			img_type = EImageSampler::_2D;			break;
+			case EImage_3D :			img_type = EImageSampler::_3D;			break;
+			case EImage::_1DArray :		img_type = EImageSampler::_1DArray;		break;
+			case EImage::_2DArray :		img_type = EImageSampler::_2DArray;		break;
+			case EImage_Cube :			img_type = EImageSampler::_Cube;		break;
+			case EImage_CubeArray :	img_type = EImageSampler::_CubeArray;	break;
+			case EImage::Unknown :		ASSERT(false);							break;
+		}
+		END_ENUM_CHECKS();
+
+		auto&	info = EPixelFormat_GetInfo( desc.format );
+
+		if ( desc.aspectMask == EImageAspect::Stencil )
+		{
+			ASSERT( AnyBits( info.valueType, EType::Stencil | EType::DepthStencil ));
+			img_type |= EImageSampler::_Int;
+		}
+		else
+		if ( desc.aspectMask == EImageAspect::Depth )
+		{
+			ASSERT( AnyBits( info.valueType, EType::Depth | EType::DepthStencil ));
+			img_type |= EImageSampler::_Float;
+		}
+		else
+		if ( AllBits( info.valueType, EType::Int ))
+			img_type |= EImageSampler::_Int;
+		else
+		if ( AllBits( info.valueType, EType::UInt ))
+			img_type |= EImageSampler::_Uint;
+		else
+		if ( AnyBits( info.valueType, EType::SFloat | EType::UFloat | EType::UNorm | EType::SNorm ))
+			img_type |= EImageSampler::_Float;
+		else
+			ASSERT( !"unknown value type" );
+
+		if ( img_type != shaderType )
+		{
+			FG_LOGE( "Uncompatible image formats in uniform "s << un.GetName() << "[" << ToString(idx) << "]:\n"
+					 "    in shader: " << ToString( shaderType ) << "\n"
+					 "    in image:  " << ToString( img_type ) << ", name: " << img.GetDebugName() );
+		}
+	#else
+		Unused( un, idx, img, desc, shaderType );
 	#endif
 	}
 

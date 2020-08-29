@@ -1,9 +1,10 @@
-if (${FG_ENABLE_SPIRVREFLECT})
+if (TARGET "SPIRV-Reflect-lib")
 	file( GLOB_RECURSE SOURCES "*.*" )
 	add_library( "PipelineReflection" STATIC ${SOURCES} )
 	source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} )
 	target_include_directories( "PipelineReflection" PUBLIC "." )
 	set_property( TARGET "PipelineReflection" PROPERTY FOLDER "Extensions" )
-	target_link_libraries( "PipelineReflection" "FrameGraph" )
-	target_link_libraries( "PipelineReflection" "SPIRV-Reflect-lib" )
+
+	target_link_libraries( "PipelineReflection" PUBLIC "FrameGraph" )
+	target_link_libraries( "PipelineReflection" PUBLIC "SPIRV-Reflect-lib" )
 endif ()

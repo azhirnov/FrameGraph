@@ -80,7 +80,6 @@ namespace FG
 	// methods
 	public:
 		VGraphicsPipeline () {}
-		VGraphicsPipeline (VGraphicsPipeline &&) = default;
 		~VGraphicsPipeline ();
 
 		bool Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);

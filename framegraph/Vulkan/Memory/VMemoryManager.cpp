@@ -40,12 +40,6 @@ namespace FG
 		// TODO: use custom mem allocator?
 #	ifdef FG_ENABLE_VULKAN_MEMORY_ALLOCATOR
 		_allocators.push_back( _CreateVMA() );
-#	else
-		_allocators.push_back(AllocatorPtr{ new HostMemAllocator{ _frameGraph, MT::HostCached | MT::HostWrite | MT::ForBuffer } });
-		_allocators.push_back(AllocatorPtr{ new HostMemAllocator{ _frameGraph, MT::HostCached | MT::HostRead | MT::ForBuffer } });
-		_allocators.push_back(AllocatorPtr{ new DedicatedMemAllocator{ _frameGraph, MT::LocalInGPU | MT::Dedicated | MT::ForBuffer | MT::ForImage } });
-		_allocators.push_back(AllocatorPtr{ new DeviceMemAllocator{ _frameGraph, MT::LocalInGPU | MT::ForBuffer | MT::ForImage } });
-		_allocators.push_back(AllocatorPtr{ new VirtualMemAllocator{ _frameGraph, MT::LocalInGPU | MT::Virtual | MT::AllowAliasing | MT::ForBuffer | MT::ForImage } });
 #	endif
 		return true;
 	}
@@ -76,7 +70,7 @@ namespace FG
 		{
 			auto&	alloc = _allocators[i];
 
-			if ( alloc->IsSupported( desc.type ) )
+			if ( alloc->IsSupported( desc.type ))
 			{
 				CHECK_ERR( alloc->AllocForImage( image, desc, OUT data ));
 				
@@ -101,7 +95,7 @@ namespace FG
 		{
 			auto&	alloc = _allocators[i];
 
-			if ( alloc->IsSupported( desc.type ) )
+			if ( alloc->IsSupported( desc.type ))
 			{
 				CHECK_ERR( alloc->AllocForBuffer( buffer, desc, OUT data ));
 				
@@ -117,6 +111,7 @@ namespace FG
 	AllocateForAccelStruct
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	bool VMemoryManager::AllocateForAccelStruct (VkAccelerationStructureNV accelStruct, const MemoryDesc &desc, OUT Storage_t &data)
 	{
 		SHAREDLOCK( _drCheck );
@@ -126,7 +121,7 @@ namespace FG
 		{
 			auto&	alloc = _allocators[i];
 
-			if ( alloc->IsSupported( desc.type ) )
+			if ( alloc->IsSupported( desc.type ))
 			{
 				CHECK_ERR( alloc->AllocForAccelStruct( accelStruct, desc, OUT data ));
 				
@@ -136,6 +131,7 @@ namespace FG
 		}
 		RETURN_ERR( "unsupported memory type" );
 	}
+#endif
 
 /*
 =================================================

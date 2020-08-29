@@ -35,20 +35,23 @@ namespace FG
 			// (1) wake up all render threads
 			sync.wait();
 
-			image = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-												EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget1" );
+			image = fg->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+												.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+									 Default, "RenderTarget1" );
+			CHECK_ERR( image );
 
 			// notify all threads that image is created
 			image_guard.unlock();
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-												.AddViewport( view_size ) );
-		
+												.AddViewport( view_size ));
+			CHECK_ERR( render_pass );
+
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
 			Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-			FG_UNUSED( t_draw );
+			Unused( t_draw );
 
 			CHECK_ERR( fg->Execute( cmd ));
 			
@@ -87,12 +90,12 @@ namespace FG
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( image_desc.dimension.xy() )
 												.AddTarget( RenderTargetID::Color_0, image, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
-												.AddViewport( image_desc.dimension.xy() ) );
+												.AddViewport( image_desc.dimension.xy() ));
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
 			Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-			FG_UNUSED( t_draw );
+			Unused( t_draw );
 
 			CHECK_ERR( fg->Execute( cmd ));
 

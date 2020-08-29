@@ -7,8 +7,11 @@ namespace FG
 
 	bool FGApp::Test_DrawMeshes1 ()
 	{
-		if ( not _vulkan.GetDeviceMeshShaderFeatures().meshShader )
+		if ( not _vulkan.GetFeatures().meshShaderNV )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;
+		}
 
 		MeshPipelineDesc	ppln;
 
@@ -70,11 +73,12 @@ void main() {
 )#" );
 		
 		const uint2		view_size	= {800, 600};
-		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+																Default, "RenderTarget" );
 
 		MPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
-		CHECK_ERR( pipeline );
+		CHECK_ERR( image and pipeline );
 
 		
 		bool		data_is_correct = false;
@@ -113,13 +117,13 @@ void main() {
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-											.AddViewport( view_size ) );
+											.AddViewport( view_size ));
 		
 		cmd->AddTask( render_pass, DrawMeshes().Draw( 1 ).SetPipeline( pipeline ));
 
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
-		FG_UNUSED( t_read );
+		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ));
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

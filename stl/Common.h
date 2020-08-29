@@ -6,7 +6,7 @@
 #pragma once
 
 // mem leak check
-#if defined(COMPILER_MSVC) && defined(FG_ENABLE_MEMLEAK_CHECKS) && defined(_DEBUG)
+#if defined(COMPILER_MSVC) && /*defined(FG_ENABLE_MEMLEAK_CHECKS) &&*/ defined(_DEBUG)
 #	define _CRTDBG_MAP_ALLOC
 #	include <stdlib.h>
 #	include <crtdbg.h>
@@ -63,7 +63,8 @@ namespace FGC
 	template <typename...T>	using Tuple			= std::tuple< T... >;
 
 	template <typename T>	using Atomic		= std::atomic< T >;
-
+	
+	template <typename T>	using Function		= std::function< T >;
 
 	using Mutex	= std::mutex;
 
@@ -101,5 +102,13 @@ namespace FGC
 	static constexpr std::memory_order	memory_order_relaxed	= std::memory_order_seq_cst;
 #	endif	// FG_OPTIMAL_MEMORY_ORDER
 
+	
+/*
+=================================================
+	Unused
+=================================================
+*/
+	template <typename... Args>
+	constexpr void Unused (Args&& ...) {}
 
 }	// FGC

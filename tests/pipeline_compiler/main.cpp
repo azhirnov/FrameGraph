@@ -24,6 +24,7 @@ extern void Test_Reflection1 (VPipelineCompiler* compiler);
 extern void Test_Reflection2 (VPipelineCompiler* compiler);
 extern void Test_Reflection3 (VPipelineCompiler* compiler);
 extern void Test_Reflection4 (VPipelineCompiler* compiler);
+extern void Test_Reflection5 (VPipelineCompiler* compiler);
 
 extern void Test_ShaderTrace1 (VPipelineCompiler* compiler);
 
@@ -61,6 +62,7 @@ int main ()
 		Test_Reflection2( &compiler );
 		Test_Reflection3( &compiler );
 		Test_Reflection4( &compiler );
+		Test_Reflection5( &compiler );
 		
 		Test_ShaderTrace1( &compiler );
 		

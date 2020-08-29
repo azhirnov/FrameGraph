@@ -1,10 +1,10 @@
-cmake_minimum_required( VERSION 3.11 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
 
 message( STATUS "==========================================================================\n" )
 message( STATUS "project 'FrameGraph' generation started" )
 
 project( "FrameGraph"
-		 VERSION 2020.2.1
+		 VERSION 2020.3.0
 		 LANGUAGES C CXX )
 
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
@@ -20,7 +20,7 @@ set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS OFF CACHE BOOL "use simplified compiler s
 set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version instead of master branch" )
 set( FG_EXTERNALS_USE_PREBUILD OFF CACHE BOOL "use stable prebuild libraries" )
 set( FG_ENABLE_GLSL_TRACE ON CACHE BOOL "used for shader debugging and profiling" )
-set( FG_USE_VULKAN_SDK OFF CACHE BOOL "use vulkan headers and glslang source from VulkanSDK" )
+set( FG_VULKAN_VERSION "110" CACHE STRING "choose target Vulkan API version" )
 
 
 # test & samples dependencies
@@ -60,12 +60,17 @@ include( "cmake/compiler_tests.cmake" )
 include( "cmake/ci_build.cmake" )
 include( "cmake/version.cmake" )
 
-add_subdirectory( "external" )
+if (DEFINED ANDROID)
+	add_subdirectory( "external/android" )
+else ()
+	add_subdirectory( "external" )
+endif ()
+
 include( "cmake/project_template.cmake" )
 add_subdirectory( "stl" )
 add_subdirectory( "extensions/vulkan_loader" )
-add_subdirectory( "extensions/framework" )
 add_subdirectory( "framegraph" )
+add_subdirectory( "extensions/framework" )
 add_subdirectory( "extensions/pipeline_compiler" )
 add_subdirectory( "extensions/pipeline_reflection" )
 add_subdirectory( "extensions/scene" )

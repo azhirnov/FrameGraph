@@ -48,8 +48,8 @@ namespace FG
 
 
 		// validate
-		const VkPhysicalDeviceLimits&	limits	= dev.GetDeviceProperties().limits;
-		const VkPhysicalDeviceFeatures&	feat	= dev.GetDeviceFeatures();
+		const VkPhysicalDeviceLimits&	limits	= dev.GetDeviceLimits();
+		const VkPhysicalDeviceFeatures&	feat	= dev.GetProperties().features;
 
 		if ( _createInfo.unnormalizedCoordinates )
 		{
@@ -122,7 +122,7 @@ namespace FG
 			_createInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		}
 		
-		if ( not dev.IsSamplerMirrorClampEnabled() )
+		if ( not dev.GetFeatures().samplerMirrorClamp )
 		{
 			if ( _createInfo.addressModeU == VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE )
 			{

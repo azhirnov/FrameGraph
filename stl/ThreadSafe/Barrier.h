@@ -259,7 +259,7 @@ namespace FGC
 
 
 // check definitions
-#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+#ifdef FG_CPP_DETECT_MISSMATCH
 
 #  if FG_BARRIER_MODE == 0
 #	pragma detect_mismatch( "FG_BARRIER_MODE", "0" )
@@ -273,4 +273,4 @@ namespace FGC
 #	error fix me!
 #  endif
 
-#endif	// COMPILER_MSVC or COMPILER_CLANG
+#endif	// FG_CPP_DETECT_MISSMATCH

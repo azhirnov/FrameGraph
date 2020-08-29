@@ -89,8 +89,12 @@ namespace FG
 			ResourceMap_t			resourceMap;
 			LocalImages_t			images;
 			LocalBuffers_t			buffers;
+
+			#ifdef VK_NV_ray_tracing
 			LocalRTScenes_t			rtScenes;
 			LocalRTGeometries_t		rtGeometries;
+			#endif
+			
 			LogicalRenderPasses_t	logicalRenderPasses;
 			uint					logicalRenderPassCount	= 0;
 		}						_rm;

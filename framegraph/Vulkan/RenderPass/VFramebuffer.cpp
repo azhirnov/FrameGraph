@@ -39,7 +39,7 @@ namespace FG
 
 		for (auto& attach : _attachments)
 		{
-			if ( not resMngr.IsResourceAlive( attach.first ) )
+			if ( not resMngr.IsResourceAlive( attach.first ))
 				return false;
 		}
 		return true;

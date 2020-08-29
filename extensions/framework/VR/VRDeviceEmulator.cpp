@@ -229,8 +229,8 @@ namespace {
 		_vkLogicalDevice	= logicalDevice;
 		
 		CHECK_ERR( VulkanLoader::Initialize() );
-		VulkanLoader::LoadInstance( _vkInstance );
-		VulkanLoader::LoadDevice( _vkLogicalDevice, OUT _deviceFnTable );
+		CHECK_ERR( VulkanLoader::LoadInstance( _vkInstance ));
+		CHECK_ERR( VulkanLoader::LoadDevice( _vkLogicalDevice, OUT _deviceFnTable ));
 
 		auto	surface		= _output->GetVulkanSurface();
 		auto	vk_surface	= surface->Create( _vkInstance );
@@ -446,17 +446,17 @@ namespace {
 */
 	bool  VRDeviceEmulator::Submit (const VRImage &img, Eye eye)
 	{
-		CHECK_ERR( img.queueFamilyIndex < _queues.capacity() );
+		CHECK_ERR( uint(img.queueFamilyIndex) < _queues.capacity() );
 		CHECK_ERR( _swapchain and _vkLogicalDevice );
 		CHECK_ERR( _wndListener.IsActive() );
 
 		VkBool32	supports_present = false;
-		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, img.queueFamilyIndex, _swapchain->GetVkSurface(), OUT &supports_present ));
+		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, uint(img.queueFamilyIndex), _swapchain->GetVkSurface(), OUT &supports_present ));
 		CHECK_ERR( supports_present );
 
-		_queues.resize( Max(_queues.size(), img.queueFamilyIndex+1 ));
+		_queues.resize( Max(_queues.size(), uint(img.queueFamilyIndex) + 1 ));
 
-		auto&	q = _queues[img.queueFamilyIndex];
+		auto&	q = _queues[ uint(img.queueFamilyIndex) ];
 
 		// create command pool
 		if ( not q.cmdPool )
@@ -464,7 +464,7 @@ namespace {
 			VkCommandPoolCreateInfo	info = {};
 			info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-			info.queueFamilyIndex	= img.queueFamilyIndex;
+			info.queueFamilyIndex	= uint(img.queueFamilyIndex);
 			VK_CHECK( vkCreateCommandPool( _vkLogicalDevice, &info, null, OUT &q.cmdPool ));
 		}
 

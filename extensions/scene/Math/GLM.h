@@ -190,7 +190,16 @@ namespace FGC
 		}
 		return dst;
 	}
-
+	
+	template <typename T>
+	ND_ inline glm::vec<4,T>  VecCast (const RGBAColor<T> &src)
+	{
+		glm::vec<4,T>	dst;
+		for (uint i = 0; i < 4; ++i) {
+			dst[i] = src[i];
+		}
+		return dst;
+	}
 /*
 =================================================
 	MatCast

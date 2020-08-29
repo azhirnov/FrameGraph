@@ -62,6 +62,7 @@ namespace FG
 	AllocateForAccelStruct
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	bool VMemoryObj::AllocateForAccelStruct (VMemoryManager &memMngr, VkAccelerationStructureNV accelStruct)
 	{
 		EXLOCK( _drCheck );
@@ -69,6 +70,7 @@ namespace FG
 		CHECK_ERR( memMngr.AllocateForAccelStruct( accelStruct, _desc, INOUT _storage ));
 		return true;
 	}
+#endif
 
 /*
 =================================================

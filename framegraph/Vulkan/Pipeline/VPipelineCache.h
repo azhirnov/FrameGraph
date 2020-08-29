@@ -31,8 +31,11 @@ namespace FG
 		using SpecializationEntries_t	= Array< VkSpecializationMapEntry >;
 		using SpecializationData_t		= Array< uint >;
 		using ShaderStages_t			= Array< VkPipelineShaderStageCreateInfo >;
+
+		#ifdef VK_NV_ray_tracing
 		using RTShaderGroups_t			= Array< VkRayTracingShaderGroupCreateInfoNV >;
-		
+		#endif
+
 		using EGroupType				= UpdateRayTracingShaderTable::EGroupType;
 		using RayGenShader				= UpdateRayTracingShaderTable::RayGenShader;
 		using RTShaderGroup				= UpdateRayTracingShaderTable::ShaderGroup;
@@ -84,9 +87,11 @@ namespace FG
 		ColorAttachments_t			_tempAttachments;
 		SpecializationEntries_t		_tempSpecEntries;
 		SpecializationData_t		_tempSpecData;
+		#ifdef VK_NV_ray_tracing
 		RTShaderGroups_t			_tempShaderGroups;
 		RTShaderGroupMap_t			_tempShaderGraphMap;
 		RTShaderSpecializations_t	_rtShaderSpecs;
+		#endif
 
 
 	// methods
@@ -195,13 +200,16 @@ namespace FG
 											   const uint3 &localSizeSpec,
 											   const uint3 &localGroupSize) const;
 		
+	#ifdef VK_NV_ray_tracing
 		bool _InitShaderStage (const VRayTracingPipeline *ppln, const RTShaderID &id, EShaderDebugMode mode,
 							   OUT VkPipelineShaderStageCreateInfo &stage);
 		
 		bool _GetShaderGroup (const VRayTracingPipeline *ppln, const RTShaderGroup &group, EShaderDebugMode mode,
 								OUT VkRayTracingShaderGroupCreateInfoNV &group_ci);
+	#endif
 
-		void _ValidateRenderState (const VDevice &dev, INOUT RenderState &renderState, INOUT EPipelineDynamicState &dynamicStates) const;
+		void _ValidateRenderState (const VDevice &dev, const VLogicalRenderPass &logicalRP,
+								   INOUT RenderState &renderState, INOUT EPipelineDynamicState &dynamicStates) const;
 	};
 
 

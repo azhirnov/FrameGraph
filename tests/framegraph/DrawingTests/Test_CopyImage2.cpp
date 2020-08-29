@@ -13,10 +13,9 @@ namespace FG
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
 		
-		ImageID			src_image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																				EImageUsage::Transfer }, Default, "SrcImage" );
-		ImageID			dst_image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																				EImageUsage::Transfer }, Default, "DstImage" );
+		ImageID		src_image	= _frameGraph->CreateImage( ImageDesc{}.SetDimension( src_dim ).SetFormat( EPixelFormat::RGBA8_UNorm ).SetUsage( EImageUsage::Transfer ), Default, "SrcImage" );
+		ImageID		dst_image	= _frameGraph->CreateImage( ImageDesc{}.SetDimension( dst_dim ).SetFormat( EPixelFormat::RGBA8_UNorm ).SetUsage( EImageUsage::Transfer ), Default, "DstImage" );
+		CHECK_ERR( src_image and dst_image );
 
 		Array<uint8_t>	src_data;		src_data.resize( size_t(src_row_pitch * src_dim.y) );
 
@@ -72,7 +71,7 @@ namespace FG
 
 			Task	t_update	= cmd->AddTask( UpdateImage().SetImage( src_image ).SetData( data, dim ));
 			Task	t_copy		= cmd->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update ));
-			FG_UNUSED( t_copy );
+			Unused( t_copy );
 
 			CHECK_ERR( _frameGraph->Execute( cmd ));
 		}
@@ -89,7 +88,7 @@ namespace FG
 			Task	t_update	= cmd->AddTask( UpdateImage().SetImage( src_image, offset ).SetData( data, dim ));
 			Task	t_copy		= cmd->AddTask( CopyImage().From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ));
 			Task	t_read		= cmd->AddTask( ReadImage().SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ));
-			FG_UNUSED( t_read );
+			Unused( t_read );
 		
 			CHECK_ERR( _frameGraph->Execute( cmd ));
 		}

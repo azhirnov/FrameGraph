@@ -230,10 +230,9 @@ namespace FG
 
 		size_t		upload_size = width * height * 4 * sizeof(char);
 
-		_fontTexture = rq.GetCommandBuffer()->GetFrameGraph()
-						->CreateImage( ImageDesc{ EImage::Tex2D, uint3{uint(width), uint(height), 1},
-													EPixelFormat::RGBA8_UNorm, EImageUsage::Sampled | EImageUsage::TransferDst },
-										Default, "UI.FontTexture" );
+		_fontTexture = rq.GetCommandBuffer()->GetFrameGraph()->CreateImage( ImageDesc{}.SetDimension({ uint(width), uint(height) })
+								.SetFormat( EPixelFormat::RGBA8_UNorm ).SetUsage( EImageUsage::Sampled | EImageUsage::TransferDst ),
+							Default, "UI.FontTexture" );
 		CHECK_ERR( _fontTexture );
 
 		rq.AddTask( layer, UpdateImage{}.SetImage( _fontTexture ).SetData( pixels, upload_size, uint2{int2{ width, height }} ));
@@ -251,9 +250,8 @@ namespace FG
 
 		if ( not _uniformBuffer )
 		{
-			_uniformBuffer = rq.GetCommandBuffer()->GetFrameGraph()
-								->CreateBuffer( BufferDesc{ 16_b, EBufferUsage::Uniform | EBufferUsage::TransferDst },
-												Default, "UI.UniformBuffer" );
+			_uniformBuffer = rq.GetCommandBuffer()->GetFrameGraph()->CreateBuffer( BufferDesc{ 16_b, EBufferUsage::Uniform | EBufferUsage::TransferDst },
+								Default, "UI.UniformBuffer" );
 			CHECK_ERR( _uniformBuffer );
 		}
 		

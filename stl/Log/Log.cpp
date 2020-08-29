@@ -124,7 +124,7 @@ namespace {
 
 		int	result = ::MessageBoxExA( null, str.c_str(), caption.c_str(),
 									  MB_ABORTRETRYIGNORE | MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST | MB_DEFBUTTON3,
-									  MAKELANGID( LANG_ENGLISH, SUBLANG_ENGLISH_US ) );
+									  MAKELANGID( LANG_ENGLISH, SUBLANG_ENGLISH_US ));
 		switch ( result )
 		{
 			case IDABORT :	return Logger::EResult::Abort;

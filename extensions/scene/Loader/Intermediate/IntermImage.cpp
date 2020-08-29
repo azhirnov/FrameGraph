@@ -12,9 +12,9 @@ namespace FG
 */
 	IntermImage::IntermImage (const ImageView &view)
 	{
-		_imageType = view.Dimension().z > 1 ? EImage::Tex3D :
-					 view.Dimension().y > 1 ? EImage::Tex2D :
-											  EImage::Tex1D;
+		_imageType = view.Dimension().z > 1 ? EImage_3D :
+					 view.Dimension().y > 1 ? EImage_2D :
+											  EImage_1D;
 
 		_data.resize( 1 );
 		_data[0].resize( 1 );
@@ -50,6 +50,26 @@ namespace FG
 		ASSERT( not _immutable );
 		_data = std::move(data);
 		_imageType = type;
+	}
+	
+/*
+=================================================
+	GetImageDim
+=================================================
+*/
+	EImageDim  IntermImage::GetImageDim () const
+	{
+		switch ( _imageType )
+		{
+			case EImage_1D :
+			case EImage::_1DArray :		return EImageDim_1D;
+			case EImage_2D :
+			case EImage::_2DArray :
+			case EImage_Cube :
+			case EImage_CubeArray :	return EImageDim_2D;
+			case EImage_3D :			return EImageDim_3D;
+		}
+		return Default;
 	}
 
 }	// FG

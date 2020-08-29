@@ -48,8 +48,8 @@ namespace FG
 	{
 		const EVertexType	scalar_type	= (type & EVertexType::_TypeMask);
 		const EVertexType	vec_size	= (type & EVertexType::_VecMask);
-		const bool			is_float	= EnumEq( type, EVertexType::NormalizedFlag ) or
-										  EnumEq( type, EVertexType::ScaledFlag );
+		const bool			is_float	= AllBits( type, EVertexType::NormalizedFlag ) or
+										  AllBits( type, EVertexType::ScaledFlag );
 		const EVertexType	float_type	= (EVertexType::_Float | vec_size);
 
 		switch ( scalar_type )

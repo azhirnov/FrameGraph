@@ -235,7 +235,6 @@ namespace _fg_hidden_
 
 }	// FG
 
-
 namespace std
 {
 

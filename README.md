@@ -20,6 +20,7 @@ Used vulkan features and extensions:
 * specialization constants
 * VK_EXT_debug_utils
 * VK_KHR_dedicated_allocation
+* VK_KHR_sampler_mirror_clamp_to_edge
 * VK_EXT_descriptor_indexing
 * VK_NV_mesh_shader
 * VK_NV_shading_rate_image
@@ -44,6 +45,7 @@ Used vulkan features and extensions:
 ## Suported Platforms
 * Windows (with MSVC 2017, 2019)
 * Linux (with GCC 8.2)
+* Android
 
 
 ## Building

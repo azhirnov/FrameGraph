@@ -29,7 +29,7 @@ namespace FG
 
 		for (auto in_node : ptr->Inputs())
 		{
-			ASSERT( !!_nodes->count( in_node ) );
+			ASSERT( !!_nodes->count( in_node ));
 
 			in_node->Attach( ptr );
 		}
@@ -120,7 +120,7 @@ namespace FG
 			
 			CHECK_ERR( iter != vertexInput.BufferBindings().end(), void());
 
-			ASSERT( buffer and EnumEq( buffer->Description().usage, EBufferUsage::Vertex ));
+			ASSERT( buffer and AllBits( buffer->Description().usage, EBufferUsage::Vertex ));
 			
 			vertexBuffers[ iter->second.index ]	= buffer;
 			vertexOffsets[ iter->second.index ]	= VkDeviceSize( vb.second.offset );
@@ -186,7 +186,7 @@ namespace FG
 		indexBuffer{ cb.ToLocal( task.indexBuffer )},
 		indexBufferOffset{ task.indexBufferOffset },		indexType{ task.indexType }
 	{
-		ASSERT( indexBuffer and EnumEq( indexBuffer->Description().usage, EBufferUsage::Index ));
+		ASSERT( indexBuffer and AllBits( indexBuffer->Description().usage, EBufferUsage::Index ));
 	}
 	
 /*
@@ -198,7 +198,7 @@ namespace FG
 		VBaseDrawVerticesTask{ rp, cb, task, pass1, pass2 },	commands{ task.commands },
 		indirectBuffer{ cb.ToLocal( task.indirectBuffer )}
 	{
-		ASSERT( indirectBuffer and EnumEq( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
+		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
 	}
 	
 /*
@@ -211,12 +211,13 @@ namespace FG
 		indirectBuffer{ cb.ToLocal( task.indirectBuffer )},		indexBuffer{ cb.ToLocal( task.indexBuffer )},
 		indexBufferOffset{ task.indexBufferOffset },			indexType{ task.indexType }
 	{
-		ASSERT( indexBuffer and EnumEq( indexBuffer->Description().usage, EBufferUsage::Index ));
-		ASSERT( indirectBuffer and EnumEq( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
+		ASSERT( indexBuffer and AllBits( indexBuffer->Description().usage, EBufferUsage::Index ));
+		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
 	}
 //-----------------------------------------------------------------------------
 
 	
+#ifdef VK_NV_mesh_shader
 /*
 =================================================
 	VBaseDrawMeshes
@@ -253,8 +254,10 @@ namespace FG
 		VBaseDrawMeshes{ rp, cb, task, pass1, pass2 },	commands{ task.commands },
 		indirectBuffer{ cb.ToLocal( task.indirectBuffer )}
 	{
-		ASSERT( indirectBuffer and EnumEq( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
+		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
 	}
+
+#endif	// VK_NV_mesh_shader
 //-----------------------------------------------------------------------------
 	
 
@@ -327,7 +330,7 @@ namespace FG
 		pushConstants{ task.pushConstants },				commands{ task.commands },
 		indirectBuffer{ cb.ToLocal( task.indirectBuffer )},	localGroupSize{ task.localGroupSize }
 	{
-		ASSERT( indirectBuffer and EnumEq( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
+		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
 
 		CopyDescriptorSets( null, cb, task.resources, OUT _resources );
 		
@@ -357,8 +360,8 @@ namespace FG
 		srcBuffer{ cb.ToLocal( task.srcBuffer )},	dstBuffer{ cb.ToLocal( task.dstBuffer )},
 		regions{ task.regions }
 	{
-		ASSERT( srcBuffer and EnumEq( srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
-		ASSERT( dstBuffer and EnumEq( dstBuffer->Description().usage, EBufferUsage::TransferDst ));
+		ASSERT( srcBuffer and AllBits( srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
+		ASSERT( dstBuffer and AllBits( dstBuffer->Description().usage, EBufferUsage::TransferDst ));
 	}
 	
 /*
@@ -385,8 +388,8 @@ namespace FG
 		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
-		ASSERT( srcImage and EnumEq( srcImage->Description().usage, EImageUsage::TransferSrc ));
-		ASSERT( dstImage and EnumEq( dstImage->Description().usage, EImageUsage::TransferDst ));
+		ASSERT( srcImage and AllBits( srcImage->Description().usage, EImageUsage::TransferSrc ));
+		ASSERT( dstImage and AllBits( dstImage->Description().usage, EImageUsage::TransferDst ));
 	}
 	
 /*
@@ -412,8 +415,8 @@ namespace FG
 		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
-		ASSERT( srcBuffer and EnumEq( srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
-		ASSERT( dstImage and EnumEq( dstImage->Description().usage,  EImageUsage::TransferDst ));
+		ASSERT( srcBuffer and AllBits( srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
+		ASSERT( dstImage and AllBits( dstImage->Description().usage,  EImageUsage::TransferDst ));
 	}
 	
 /*
@@ -438,8 +441,8 @@ namespace FG
 		srcImage{ cb.ToLocal( task.srcImage )},		srcLayout{ /*_srcImage->IsImmutable() ? VK_IMAGE_LAYOUT_GENERAL :*/ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL },
 		dstBuffer{ cb.ToLocal( task.dstBuffer )},	regions{ task.regions }
 	{
-		ASSERT( srcImage and EnumEq( srcImage->Description().usage,  EImageUsage::TransferSrc ));
-		ASSERT( dstBuffer and EnumEq( dstBuffer->Description().usage, EBufferUsage::TransferDst ));
+		ASSERT( srcImage and AllBits( srcImage->Description().usage,  EImageUsage::TransferSrc ));
+		ASSERT( dstBuffer and AllBits( dstBuffer->Description().usage, EBufferUsage::TransferDst ));
 	}
 	
 /*
@@ -467,14 +470,14 @@ namespace FG
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
 
-		//if ( EPixelFormat_HasDepthOrStencil( _srcImage->PixelFormat() ) )
+		//if ( EPixelFormat_HasDepthOrStencil( _srcImage->PixelFormat() ))
 		//{
 		//	ASSERT( _filter != VK_FILTER_NEAREST );
 		//	_filter = VK_FILTER_NEAREST;
 		//}
 		
-		ASSERT( srcImage and EnumEq( srcImage->Description().usage, EImageUsage::TransferSrc ));
-		ASSERT( dstImage and EnumEq( dstImage->Description().usage, EImageUsage::TransferDst ));
+		ASSERT( srcImage and AllBits( srcImage->Description().usage, EImageUsage::TransferSrc ));
+		ASSERT( dstImage and AllBits( dstImage->Description().usage, EImageUsage::TransferDst ));
 	}
 	
 /*
@@ -495,10 +498,11 @@ namespace FG
 =================================================
 */
 	inline VFgTask<GenerateMipmaps>::VFgTask (VCommandBuffer &cb, const GenerateMipmaps &task, ProcessFunc_t process) :
-		VFrameGraphTask{ task, process },	image{ cb.ToLocal( task.image )},
-		baseLevel{ task.baseLevel.Get() },	levelCount{ task.levelCount }
+		VFrameGraphTask{ task, process },			image{ cb.ToLocal( task.image )},
+		baseMipLevel{ task.baseMipLevel.Get() },	levelCount{ task.levelCount },
+		baseLayer{ task.baseLayer.Get() },			layerCount{ task.layerCount }
 	{
-		ASSERT( image and EnumEq( image->Description().usage, EImageUsage::TransferSrc | EImageUsage::TransferDst ));
+		ASSERT( image and AllBits( image->Description().usage, EImageUsage::TransferSrc | EImageUsage::TransferDst ));
 	}
 		
 /*
@@ -525,8 +529,8 @@ namespace FG
 		regions{ task.regions }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
-		ASSERT( srcImage and EnumEq( srcImage->Description().usage, EImageUsage::TransferSrc ));
-		ASSERT( dstImage and EnumEq( dstImage->Description().usage, EImageUsage::TransferDst ));
+		ASSERT( srcImage and AllBits( srcImage->Description().usage, EImageUsage::TransferSrc ));
+		ASSERT( dstImage and AllBits( dstImage->Description().usage, EImageUsage::TransferDst ));
 	}
 	
 /*
@@ -551,7 +555,7 @@ namespace FG
 		dstBuffer{ cb.ToLocal( task.dstBuffer )},	dstOffset{ VkDeviceSize(task.dstOffset) },
 		size{ VkDeviceSize(task.size) },			pattern{ task.pattern }
 	{
-		ASSERT( dstBuffer and EnumEq( dstBuffer->Description().usage, EBufferUsage::TransferDst ));
+		ASSERT( dstBuffer and AllBits( dstBuffer->Description().usage, EBufferUsage::TransferDst ));
 	}
 	
 /*
@@ -577,7 +581,7 @@ namespace FG
 		ranges{ task.ranges },						_clearValue{}
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
-		ASSERT( dstImage and EnumEq( dstImage->Description().usage, EImageUsage::TransferDst ));
+		ASSERT( dstImage and AllBits( dstImage->Description().usage, EImageUsage::TransferDst ));
 
 		Visit(	task.clearValue,
 				[&] (const RGBA32f &col)	{ std::memcpy( _clearValue.float32, &col, sizeof(_clearValue.float32) ); },
@@ -610,7 +614,7 @@ namespace FG
 		clearValue{ task.clearValue.depth, task.clearValue.stencil },	ranges{ task.ranges }
 	{
 		//ASSERT( not _dstImage->IsImmutable() );
-		ASSERT( dstImage and EnumEq( dstImage->Description().usage, EImageUsage::TransferDst ));
+		ASSERT( dstImage and AllBits( dstImage->Description().usage, EImageUsage::TransferDst ));
 	}
 	
 /*
@@ -634,7 +638,7 @@ namespace FG
 		VFrameGraphTask{ task, process },
 		dstBuffer{ cb.ToLocal( task.dstBuffer )}
 	{
-		ASSERT( dstBuffer and EnumEq( dstBuffer->Description().usage, EBufferUsage::TransferDst ));
+		ASSERT( dstBuffer and AllBits( dstBuffer->Description().usage, EBufferUsage::TransferDst ));
 
 		size_t	cnt = task.regions.size();
 		Region*	dst = cb.GetAllocator().Alloc<Region>( cnt );
@@ -675,7 +679,7 @@ namespace FG
 		swapchain{ cb.AcquireTemporary( task.swapchain )},	srcImage{ cb.ToLocal( task.srcImage )},
 		layer{ task.layer },								mipmap{ task.mipmap }
 	{
-		ASSERT( srcImage and EnumEq( srcImage->Description().usage, EImageUsage::TransferSrc ));
+		ASSERT( srcImage and AllBits( srcImage->Description().usage, EImageUsage::TransferSrc ));
 	}
 	
 /*
@@ -690,6 +694,7 @@ namespace FG
 //-----------------------------------------------------------------------------
 	
 	
+#ifdef VK_NV_ray_tracing
 /*
 =================================================
 	VFgTask< UpdateRayTracingShaderTable >
@@ -717,7 +722,7 @@ namespace FG
 	}
 //-----------------------------------------------------------------------------
 	
-
+	
 /*
 =================================================
 	VFgTask< BuildRayTracingGeometry >
@@ -754,6 +759,8 @@ namespace FG
 	{
 		return shaderTable;
 	}
+
+#endif	// VK_NV_ray_tracing
 //-----------------------------------------------------------------------------
 
 	

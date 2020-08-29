@@ -6,9 +6,12 @@
 
 namespace FG
 {
+				
+#ifdef VK_NV_shading_rate_image
 namespace {
 	static const VkShadingRatePaletteEntryNV	shadingRateDefaultEntry	= VK_SHADING_RATE_PALETTE_ENTRY_1_INVOCATION_PER_PIXEL_NV;
 }
+#endif
 
 /*
 =================================================
@@ -22,7 +25,7 @@ namespace {
 			[&result] (const RGBA32u &src)		{ MemCopy( result.color.uint32, src ); },
 			[&result] (const RGBA32i &src)		{ MemCopy( result.color.int32, src ); },
 			[&result] (const DepthStencil &src)	{ result.depthStencil = {src.depth, src.stencil}; },
-			[&result] (const NullUnion &)		{ memset( &result, 0, sizeof(result) ); }
+			[&result] (const NullUnion &)		{ std::memset( &result, 0, sizeof(result) ); }
 		);
 	}
 //-----------------------------------------------------------------------------
@@ -46,7 +49,11 @@ namespace {
 		_stencilState		= desc.stencilState;
 		_rasterizationState	= desc.rasterizationState;
 		_multisampleState	= desc.multisampleState;
+
 		_area				= desc.area;
+		//_parallelExecution= desc.parallelExecution;
+		//_canBeMerged		= desc.canBeMerged;
+		//_useSecondaryCmdbuf	= desc.useSecondaryCmdbuf;
 		
 		Optional<MultiSamples>	samples;
 
@@ -114,10 +121,10 @@ namespace {
 			}
 
 			// add color or depth-stencil render target
-			if ( EPixelFormat_HasDepthOrStencil( dst.desc.format ) )
+			if ( EPixelFormat_HasDepthOrStencil( dst.desc.format ))
 			{
 				ASSERT( RenderTargetID(i) == RenderTargetID::DepthStencil );
-				ASSERT( EnumEq( dst.imagePtr->Description().usage, EImageUsage::DepthStencilAttachment ));
+				ASSERT( AllBits( dst.imagePtr->Description().usage, EImageUsage::DepthStencilAttachment ));
 				
 				dst.state |= EResourceState::DepthStencilAttachmentReadWrite;	// TODO: add support for other layouts
 
@@ -125,7 +132,7 @@ namespace {
 			}
 			else
 			{
-				ASSERT( EnumAny( dst.imagePtr->Description().usage, EImageUsage::ColorAttachment | EImageUsage::ColorAttachmentBlend ));
+				ASSERT( AnyBits( dst.imagePtr->Description().usage, EImageUsage::ColorAttachment | EImageUsage::ColorAttachmentBlend ));
 
 				dst.state |= EResourceState::ColorAttachmentReadWrite;		// TODO: remove 'Read' state if blending disabled or 'loadOp' is 'Clear'
 
@@ -171,6 +178,7 @@ namespace {
 			_defaultScissors.push_back( rect );
 
 			// shading rate palette
+			#ifdef VK_NV_shading_rate_image
 			if ( enable_sri )
 			{
 				VkShadingRatePaletteNV			palette = {};
@@ -188,6 +196,7 @@ namespace {
 				}
 				_shadingRatePalette.push_back( palette );
 			}
+			#endif
 		}
 
 		// create default viewport
@@ -211,12 +220,14 @@ namespace {
 		}
 
 		// set shading rate image
+		#ifdef VK_NV_shading_rate_image
 		if ( enable_sri )
 		{
 			_shadingRateImage		= fgThread.ToLocal( desc.shadingRate.image );
 			_shadingRateImageLayer	= desc.shadingRate.layer;
 			_shadingRateImageLevel	= desc.shadingRate.mipmap;
 		}
+		#endif
 		
 		return true;
 	}
@@ -228,18 +239,23 @@ namespace {
 */
 	bool VLogicalRenderPass::GetShadingRateImage (OUT VLocalImage const* &outImage, OUT ImageViewDesc &outDesc) const
 	{
+	#ifdef VK_NV_shading_rate_image
 		if ( not _shadingRateImage )
 			return false;
 
 		outImage			= _shadingRateImage;
 
-		outDesc.viewType	= EImage::Tex2D;
+		outDesc.viewType	= EImage_2D;
 		outDesc.format		= EPixelFormat::R8U;
 		outDesc.baseLevel	= _shadingRateImageLevel;
 		outDesc.baseLayer	= _shadingRateImageLayer;
 		outDesc.aspectMask	= EImageAspect::Color;
 
 		return true;
+	#else
+		Unused( outImage, outDesc );
+		return false;
+	#endif
 	}
 
 /*
@@ -254,8 +270,10 @@ namespace {
 		_drawTasks.clear();
 
 		_allocator.Destroy();
-
+		
+		#ifdef VK_NV_shading_rate_image
 		_shadingRateImage = null;
+		#endif
 	}
 	
 /*

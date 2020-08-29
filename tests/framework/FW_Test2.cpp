@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framework/Vulkan/VulkanDeviceExt.h"
+#include "framework/Vulkan/VulkanDevice.h"
 #include "framework/Vulkan/VulkanSwapchain.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
@@ -15,11 +15,11 @@ using namespace FGC;
 class FWApp2 final : public IWindowEventListener, public VulkanDeviceFn
 {
 private:
-	VulkanDeviceExt		vulkan;
-	VulkanSwapchainPtr	swapchain;
-	WindowPtr			window;
-	String				title;
-	VkCommandPool		cmdPool	= VK_NULL_HANDLE;
+	VulkanDeviceInitializer		vulkan;
+	VulkanSwapchainPtr			swapchain;
+	WindowPtr					window;
+	String						title;
+	VkCommandPool				cmdPool	= VK_NULL_HANDLE;
 
 
 public:
@@ -109,15 +109,19 @@ public:
 
 			if ( inst )
 			{
-				CHECK_ERR( vulkan.Create( inst, window->GetVulkanSurface(), "intel" ));
+				CHECK_ERR( vulkan.SetInstance( window->GetVulkanSurface(), inst ));
+				CHECK_ERR( vulkan.ChooseDevice( "intel" ));
+				CHECK_ERR( vulkan.CreateLogicalDevice( Default, Default ));
 			}
 			else
 			{
-				CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), "Test", "Engine", VK_API_VERSION_1_1, "nvidia" ));
+				CHECK_ERR( vulkan.CreateInstance( window->GetVulkanSurface(), "Test", "Engine", vulkan.GetRecomendedInstanceLayers(), {}, {1,0} ));
+				CHECK_ERR( vulkan.ChooseDevice( "nvidia" ));
+				CHECK_ERR( vulkan.CreateLogicalDevice( Default, Default ));
 				
 				// this is a test and the test should fail for any validation error
-				vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
-												[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
+				vulkan.CreateDebugCallback( DefaultDebugMessageSeverity,
+											[] (const VulkanDeviceInitializer::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
 			}
 		}
 
@@ -127,7 +131,7 @@ public:
 			VkFormat		color_fmt	= VK_FORMAT_UNDEFINED;
 			VkColorSpaceKHR	color_space	= VK_COLOR_SPACE_MAX_ENUM_KHR;
 
-			swapchain.reset( new VulkanSwapchain{ vulkan } );
+			swapchain.reset( new VulkanSwapchain{ vulkan });
 
 			CHECK_ERR( swapchain->ChooseColorFormat( INOUT color_fmt, INOUT color_space ));
 
@@ -141,8 +145,9 @@ public:
 	{
 		swapchain->Destroy();
 		swapchain.reset();
-
-		vulkan.Destroy();
+		
+		vulkan.DestroyLogicalDevice();
+		vulkan.DestroyInstance();
 
 		window->Destroy();
 		window.reset();
@@ -159,7 +164,7 @@ public:
 		{
 			VkCommandPoolCreateInfo		pool_info = {};
 			pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			pool_info.queueFamilyIndex	= vulkan.GetVkQueues().front().familyIndex;
+			pool_info.queueFamilyIndex	= uint(vulkan.GetVkQueues().front().familyIndex);
 			pool_info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 			VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmdPool ));
 
@@ -180,8 +185,8 @@ public:
 			VkSemaphoreCreateInfo	sem_info = {};
 			sem_info.sType		= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 			sem_info.flags		= 0;
-			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[0] ) );
-			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[1] ) );
+			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[0] ));
+			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[1] ));
 		}
 	
 		// main loop

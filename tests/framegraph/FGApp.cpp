@@ -2,12 +2,12 @@
 
 #include "FGApp.h"
 #include "graphviz/GraphViz.h"
-#include "pipeline_compiler/VPipelineCompiler.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringParser.h"
-#include <thread>
+
+#include "pipeline_compiler/VPipelineCompiler.h"
 
 #ifdef FG_ENABLE_LODEPNG
 #	include "lodepng.h"
@@ -48,8 +48,12 @@ namespace {
 		_tests.push_back({ &FGApp::Test_ReadAttachment1,	1 });
 		_tests.push_back({ &FGApp::Test_AsyncCompute1,		1 });
 		_tests.push_back({ &FGApp::Test_AsyncCompute2,		1 });
+		
+		#ifdef FG_ENABLE_GLSL_TRACE
 		_tests.push_back({ &FGApp::Test_ShaderDebugger1,	1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger2,	1 });
+		#endif
+
 		_tests.push_back({ &FGApp::Test_ArrayOfTextures1,	1 });
 		_tests.push_back({ &FGApp::Test_ArrayOfTextures2,	1 });
 		
@@ -65,7 +69,10 @@ namespace {
 		_tests.push_back({ &FGApp::Test_TraceRays2,			1 });
 		_tests.push_back({ &FGApp::Test_TraceRays3,			1 });
 		_tests.push_back({ &FGApp::Test_ShadingRate1,		1 });
+		
+		#ifdef FG_ENABLE_GLSL_TRACE
 		_tests.push_back({ &FGApp::Test_RayTracingDebugger1, 1 });
+		#endif
 		
 		// very slow
 		//_tests.push_back({ &FGApp::ImplTest_CacheOverflow1,	1 });
@@ -115,25 +122,19 @@ namespace {
 		// initialize window
 		{
 			_window = std::move(wnd);
-			CHECK_ERR( _window->Create( wnd_size, "Test" ) );
+			CHECK_ERR( _window->Create( wnd_size, "Test" ));
 			_window->AddListener( this );
 		}
 
 		// initialize vulkan device
 		{
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "Test", "FrameGraph", VK_API_VERSION_1_2,
-									   "",
-									   {{ VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_PRESENT_BIT, 0.0f },
-										{ VK_QUEUE_COMPUTE_BIT,  0.0f },
-										{ VK_QUEUE_TRANSFER_BIT, 0.0f }},
-									   VulkanDevice::GetRecomendedInstanceLayers(),
-									   VulkanDevice::GetRecomendedInstanceExtensions(),
-									   VulkanDevice::GetAllDeviceExtensions_v110()
-									));
+			CHECK_ERR( _vulkan.CreateInstance( _window->GetVulkanSurface(), "Test", "FrameGraph", _vulkan.GetRecomendedInstanceLayers(), {}, {1,2} ));
+			CHECK_ERR( _vulkan.ChooseHighPerformanceDevice() );
 
+			CHECK_ERR( _vulkan.CreateLogicalDevice( {{VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_SPARSE_BINDING_BIT}, {VK_QUEUE_COMPUTE_BIT}, {VK_QUEUE_TRANSFER_BIT}}, Default ));
 			// this is a test and the test should fail for any validation error
-			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
-											  [] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
+			_vulkan.CreateDebugCallback( DefaultDebugMessageSeverity,
+										 [] (const VulkanDeviceInitializer::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
 		}
 
 		// setup device info
@@ -153,10 +154,10 @@ namespace {
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );
-				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.flags );
-				qi.familyIndex	= q.familyIndex;
+				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.familyFlags );
+				qi.familyIndex	= uint(q.familyIndex);
 				qi.priority		= q.priority;
-				qi.debugName	= "";
+				qi.debugName	= q.debugName;
 
 				vulkan_info.queues.push_back( qi );
 			}
@@ -222,7 +223,7 @@ namespace {
 		{
 			_window->Quit();
 
-			FG_LOGI( "Tests passed: " + ToString( _testsPassed ) + ", failed: " + ToString( _testsFailed ) );
+			FG_LOGI( "Tests passed: " + ToString( _testsPassed ) + ", failed: " + ToString( _testsFailed ));
 			CHECK_FATAL( _testsFailed == 0 );
 		}
 		return true;
@@ -247,8 +248,9 @@ namespace {
 			_frameGraph->Deinitialize();
 			_frameGraph = null;
 		}
-
-		_vulkan.Destroy();
+		
+		_vulkan.DestroyLogicalDevice();
+		_vulkan.DestroyInstance();
 		
 		if ( _window )
 		{
@@ -349,7 +351,7 @@ namespace {
 */
 	bool FGApp::Visualize (StringView name) const
 	{
-#	if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FS_HAS_FILESYSTEM)
+	#if defined(FG_GRAPHVIZ_DOT_EXECUTABLE) and defined(FS_HAS_FILESYSTEM)
 
 		String	str;
 		CHECK_ERR( _frameGraph->DumpToGraphViz( OUT str ));
@@ -358,9 +360,10 @@ namespace {
 
 		CHECK( GraphViz::Visualize( str, path, "png", false, true ));
 
-#	else
+	#else
 		// not supported
-#	endif
+		Unused( name );
+	#endif
 		return true;
 	}
 	

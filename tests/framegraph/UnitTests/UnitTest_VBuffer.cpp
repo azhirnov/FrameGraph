@@ -44,7 +44,7 @@ static void VBuffer_Test1 ()
 	VLocalBuffer		local_buffer;
 	VLocalBuffer const*	buf			= &local_buffer;
 
-	TEST( VBufferUnitTest::Create( global_buffer, BufferDesc{ 1024_b, EBufferUsage::All } ));
+	TEST( VBufferUnitTest::Create( global_buffer, BufferDesc{ 1024_b, EBufferUsage::All }));
 
 	TEST( local_buffer.Create( &global_buffer ));
 

@@ -29,11 +29,12 @@ void main ()
 		
 		const uint2		image_dim	= { 16, 16 };
 
-		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_0" );
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( image_dim ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
+															    Default, "MyImage_0" );
 
 		CPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
-		CHECK_ERR( pipeline );
+		CHECK_ERR( image and pipeline );
 		
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("2"), OUT resources ));
@@ -72,7 +73,7 @@ void main ()
 
 		Task	t_run	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("2"), &resources ).Dispatch({ 2, 2 }) );
 		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_run ));
-		FG_UNUSED( t_read );
+		Unused( t_read );
 		
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

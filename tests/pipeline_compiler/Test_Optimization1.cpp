@@ -5,6 +5,7 @@
 
 extern void Test_Optimization1 (VPipelineCompiler* compiler)
 {
+#ifdef FG_GLSLANG_ENABLE_OPT
 	ComputePipelineDesc	ppln1;
 	ppln1.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
 #extension GL_ARB_shading_language_420pack : enable
@@ -46,11 +47,8 @@ void main ()
 	TEST( shader1 and shader2 );
 
 	TEST( (*shader1)->GetEntry() == (*shader2)->GetEntry() );
-	
-	// TODO: fix on CI
-#ifndef FG_CI_BUILD
 	TEST( (*shader1)->GetData().size() > (*shader2)->GetData().size() );	// optimized code should be smaller
-#endif
 	
 	TEST_PASSED();
+#endif
 }

@@ -87,7 +87,6 @@ namespace FG
 	bool  PipelineDescription::Image::operator == (const PipelineDescription::Image &rhs) const
 	{
 		return	this->imageType		== rhs.imageType	and
-				this->format		== rhs.format		and
 				this->state			== rhs.state;
 	}
 	
@@ -127,7 +126,7 @@ namespace FG
 	_TextureUniform
 =================================================
 */
-	PipelineDescription::_TextureUniform::_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index,
+	PipelineDescription::_TextureUniform::_TextureUniform (const UniformID &id, EImageSampler textureType, const BindingIndex &index,
 														   uint arraySize, EShaderStages stageFlags) :
 		id{id}, data{ EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags ), textureType },
 		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
@@ -164,9 +163,9 @@ namespace FG
 	_ImageUniform
 =================================================
 */
-	PipelineDescription::_ImageUniform::_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access,
+	PipelineDescription::_ImageUniform::_ImageUniform (const UniformID &id, EImageSampler imageType, EShaderAccess access,
 													   const BindingIndex &index, uint arraySize, EShaderStages stageFlags) :
-		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), imageType, format },
+		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), imageType },
 		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );

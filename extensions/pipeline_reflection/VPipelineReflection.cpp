@@ -1,6 +1,6 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "pipeline_reflection/VPipelineReflection.h"
+#include "VPipelineReflection.h"
 #include "framegraph/Shared/EnumUtils.h"
 #include "stl/Algorithms/StringUtils.h"
 
@@ -24,6 +24,8 @@ namespace FG
 */
 	bool  VPipelineReflection::Reflect (INOUT MeshPipelineDesc &ppln)
 	{
+		// TODO
+		Unused( ppln );
 		return false;
 	}
 	
@@ -34,6 +36,8 @@ namespace FG
 */
 	bool  VPipelineReflection::Reflect (INOUT RayTracingPipelineDesc &ppln)
 	{
+		// TODO
+		Unused( ppln );
 		return false;
 	}
 	
@@ -57,10 +61,10 @@ namespace FG
 
 			for (auto& d : sh.second.data)
 			{
-				if ( not EnumEq( d.first, EShaderLangFormat::SPIRV ))
+				if ( not AllBits( d.first, EShaderLangFormat::SPIRV ))
 					continue;
 
-				if ( not EnumAny( d.first, EShaderLangFormat::EnableDebugTrace | EShaderLangFormat::EnableProfiling ))
+				if ( not AnyBits( d.first, EShaderLangFormat::EnableDebugTrace | EShaderLangFormat::EnableProfiling ))
 				{
 					best_sh_data = &d.second;
 					break;
@@ -101,10 +105,10 @@ namespace FG
 
 		for (auto& d : ppln._shader.data)
 		{
-			if ( not EnumEq( d.first, EShaderLangFormat::SPIRV ))
+			if ( not AllBits( d.first, EShaderLangFormat::SPIRV ))
 				continue;
 
-			if ( not EnumAny( d.first, EShaderLangFormat::EnableDebugTrace | EShaderLangFormat::EnableProfiling ))
+			if ( not AnyBits( d.first, EShaderLangFormat::EnableDebugTrace | EShaderLangFormat::EnableProfiling ))
 			{
 				best_sh_data = &d.second;
 				break;
@@ -139,8 +143,8 @@ namespace FG
 
 		dstAccess |= srcAccess;
 
-		if ( EnumEq( dstAccess, EResourceState::InvalidateBefore ) and
-			 EnumEq( dstAccess, EResourceState::ShaderRead ) )
+		if ( AllBits( dstAccess, EResourceState::InvalidateBefore ) and
+			 AllBits( dstAccess, EResourceState::ShaderRead ))
 		{
 			dstAccess &= ~EResourceState::InvalidateBefore;
 		}
@@ -222,11 +226,9 @@ namespace FG
 					if ( auto* rhs = UnionGetIf<PipelineDescription::Image>( &iter->second.data ))
 					{
 						ASSERT( lhs.imageType	== rhs->imageType );
-						ASSERT( lhs.format		== rhs->format );
 						ASSERT( un.second.index	== iter->second.index );
 						
 						if ( lhs.imageType		== rhs->imageType	and
-							 lhs.format			== rhs->format		and
 							 un.second.index	== iter->second.index )
 						{
 							MergeShaderAccess( lhs.state, INOUT rhs->state );
@@ -324,17 +326,17 @@ namespace FG
 	FGEnumCast (SpvReflectImageTraits)
 =================================================
 */
-	ND_ static EImage  FGEnumCast (const SpvReflectImageTraits &value)
+	ND_ static EImageSampler  FGEnumCast (const SpvReflectImageTraits &value)
 	{
 		BEGIN_ENUM_CHECKS();
 		switch ( value.dim )
 		{
-			case SpvDim1D :		return value.arrayed ? EImage::Tex1DArray : EImage::Tex1D;
+			case SpvDim1D :		return value.arrayed ? EImageSampler::_1DArray : EImageSampler::_1D;
 			case SpvDim2D :		return value.ms ?
-										(value.arrayed ? EImage::Tex2DMSArray : EImage::Tex2DMS) :
-										(value.arrayed ? EImage::Tex2DArray : EImage::Tex2D);
-			case SpvDim3D :		return EImage::Tex3D;
-			case SpvDimCube :	return value.arrayed ? EImage::TexCubeArray : EImage::TexCube;
+										(value.arrayed ? EImageSampler::_2DMSArray : EImageSampler::_2DMS) :
+										(value.arrayed ? EImageSampler::_2DArray : EImageSampler::_2D);
+			case SpvDim3D :		return EImageSampler::_3D;
+			case SpvDimCube :	return value.arrayed ? EImageSampler::_CubeArray : EImageSampler::_Cube;
 			case SpvDimRect :
 			case SpvDimBuffer :
 			case SpvDimSubpassData :
@@ -343,61 +345,78 @@ namespace FG
 		END_ENUM_CHECKS();
 		RETURN_ERR( "unsupported image dimension type" );
 	}
-	
+
 /*
 =================================================
-	FGEnumCast (SpvImageFormat)
+	FGEnumCast (SpvReflectImageTraits)
 =================================================
 */
-	ND_ static EPixelFormat  FGEnumCast (SpvImageFormat value)
+	ND_ static EImageSampler  FGEnumCast (const SpvReflectImageTraits &value, SpvImageFormat fmt)
 	{
+		EImageSampler	result = Zero;
+
 		BEGIN_ENUM_CHECKS();
-		switch ( value )
+		switch ( fmt )
 		{
-			case SpvImageFormatUnknown :		break;
-			case SpvImageFormatRgba32f :		return EPixelFormat::RGBA32F;
-			case SpvImageFormatRgba16f :		return EPixelFormat::RGBA16F;
-			case SpvImageFormatR32f :			return EPixelFormat::R32F;
-			case SpvImageFormatRgba8 :			return EPixelFormat::RGBA8_UNorm;
-			case SpvImageFormatRgba8Snorm :		return EPixelFormat::RGBA8_SNorm;
-			case SpvImageFormatRg32f :			return EPixelFormat::RG32F;
-			case SpvImageFormatRg16f :			return EPixelFormat::RG16F;
-			case SpvImageFormatR11fG11fB10f :	return EPixelFormat::RGB_11_11_10F;
-			case SpvImageFormatR16f :			return EPixelFormat::R16F;
-			case SpvImageFormatRgba16 :			return EPixelFormat::RGBA16_UNorm;
-			case SpvImageFormatRgb10A2 :		return EPixelFormat::RGB10_A2_UNorm;
-			case SpvImageFormatRg16 :			return EPixelFormat::RG16_UNorm;
-			case SpvImageFormatRg8 :			return EPixelFormat::RG8_UNorm;
-			case SpvImageFormatR16 :			return EPixelFormat::R16_UNorm;
-			case SpvImageFormatR8 :				return EPixelFormat::R8_UNorm;
-			case SpvImageFormatRgba16Snorm :	return EPixelFormat::RGBA16_SNorm;
-			case SpvImageFormatRg16Snorm :		return EPixelFormat::RG16_SNorm;
-			case SpvImageFormatRg8Snorm :		return EPixelFormat::RG8_SNorm;
-			case SpvImageFormatR16Snorm :		return EPixelFormat::R16_SNorm;
-			case SpvImageFormatR8Snorm :		return EPixelFormat::R8_SNorm;
-			case SpvImageFormatRgba32i :		return EPixelFormat::RGBA32I;
-			case SpvImageFormatRgba16i :		return EPixelFormat::RGBA16I;
-			case SpvImageFormatRgba8i :			return EPixelFormat::RGBA8I;
-			case SpvImageFormatR32i :			return EPixelFormat::R32I;
-			case SpvImageFormatRg32i :			return EPixelFormat::RG32I;
-			case SpvImageFormatRg16i :			return EPixelFormat::RG16I;
-			case SpvImageFormatRg8i :			return EPixelFormat::RG8I;
-			case SpvImageFormatR16i :			return EPixelFormat::R16I;
-			case SpvImageFormatR8i :			return EPixelFormat::R8I;
-			case SpvImageFormatRgba32ui :		return EPixelFormat::RGBA32U;
-			case SpvImageFormatRgba16ui :		return EPixelFormat::RGBA16U;
-			case SpvImageFormatRgba8ui :		return EPixelFormat::RGBA8U;
-			case SpvImageFormatR32ui :			return EPixelFormat::R32U;
-			case SpvImageFormatRgb10a2ui :		return EPixelFormat::RGB10_A2U;
-			case SpvImageFormatRg32ui :			return EPixelFormat::RG32U;
-			case SpvImageFormatRg16ui :			return EPixelFormat::RG16U;
-			case SpvImageFormatRg8ui :			return EPixelFormat::RG8U;
-			case SpvImageFormatR16ui :			return EPixelFormat::R16U;
-			case SpvImageFormatR8ui :			return EPixelFormat::R8U;
-			case SpvImageFormatMax :			break;
+			case SpvImageFormatRgba32f :		result = EImageSampler(EPixelFormat::RGBA32F);			break;
+			case SpvImageFormatRgba16f :		result = EImageSampler(EPixelFormat::RGBA16F);			break;
+			case SpvImageFormatR32f :			result = EImageSampler(EPixelFormat::R32F);				break;
+			case SpvImageFormatRgba8 :			result = EImageSampler(EPixelFormat::RGBA8_UNorm);		break;
+			case SpvImageFormatRgba8Snorm :		result = EImageSampler(EPixelFormat::RGBA8_SNorm);		break;
+			case SpvImageFormatRg32f :			result = EImageSampler(EPixelFormat::RG32F);			break;
+			case SpvImageFormatRg16f :			result = EImageSampler(EPixelFormat::RG16F);			break;
+			case SpvImageFormatR11fG11fB10f :	result = EImageSampler(EPixelFormat::RGB_11_11_10F);	break;
+			case SpvImageFormatR16f :			result = EImageSampler(EPixelFormat::R16F);				break;
+			case SpvImageFormatRgba16 :			result = EImageSampler(EPixelFormat::RGBA16_UNorm);		break;
+			case SpvImageFormatRgb10A2 :		result = EImageSampler(EPixelFormat::RGB10_A2_UNorm);	break;
+			case SpvImageFormatRg16 :			result = EImageSampler(EPixelFormat::RG16_UNorm);		break;
+			case SpvImageFormatRg8 :			result = EImageSampler(EPixelFormat::RG8_UNorm);		break;
+			case SpvImageFormatR16 :			result = EImageSampler(EPixelFormat::R16_UNorm);		break;
+			case SpvImageFormatR8 :				result = EImageSampler(EPixelFormat::R8_UNorm);			break;
+			case SpvImageFormatRgba16Snorm :	result = EImageSampler(EPixelFormat::RGBA16_SNorm);		break;
+			case SpvImageFormatRg16Snorm :		result = EImageSampler(EPixelFormat::RG16_SNorm);		break;
+			case SpvImageFormatRg8Snorm :		result = EImageSampler(EPixelFormat::RG8_SNorm);		break;
+			case SpvImageFormatR16Snorm :		result = EImageSampler(EPixelFormat::R16_SNorm);		break;
+			case SpvImageFormatR8Snorm :		result = EImageSampler(EPixelFormat::R8_SNorm);			break;
+			case SpvImageFormatRgba32i :		result = EImageSampler(EPixelFormat::RGBA32I);			break;
+			case SpvImageFormatRgba16i :		result = EImageSampler(EPixelFormat::RGBA16I);			break;
+			case SpvImageFormatRgba8i :			result = EImageSampler(EPixelFormat::RGBA8I);			break;
+			case SpvImageFormatR32i :			result = EImageSampler(EPixelFormat::R32I);				break;
+			case SpvImageFormatRg32i :			result = EImageSampler(EPixelFormat::RG32I);			break;
+			case SpvImageFormatRg16i :			result = EImageSampler(EPixelFormat::RG16I);			break;
+			case SpvImageFormatRg8i :			result = EImageSampler(EPixelFormat::RG8I);				break;
+			case SpvImageFormatR16i :			result = EImageSampler(EPixelFormat::R16I);				break;
+			case SpvImageFormatR8i :			result = EImageSampler(EPixelFormat::R8I);				break;
+			case SpvImageFormatRgba32ui :		result = EImageSampler(EPixelFormat::RGBA32U);			break;
+			case SpvImageFormatRgba16ui :		result = EImageSampler(EPixelFormat::RGBA16U);			break;
+			case SpvImageFormatRgba8ui :		result = EImageSampler(EPixelFormat::RGBA8U);			break;
+			case SpvImageFormatR32ui :			result = EImageSampler(EPixelFormat::R32U);				break;
+			case SpvImageFormatRgb10a2ui :		result = EImageSampler(EPixelFormat::RGB10_A2U);		break;
+			case SpvImageFormatRg32ui :			result = EImageSampler(EPixelFormat::RG32U);			break;
+			case SpvImageFormatRg16ui :			result = EImageSampler(EPixelFormat::RG16U);			break;
+			case SpvImageFormatRg8ui :			result = EImageSampler(EPixelFormat::RG8U);				break;
+			case SpvImageFormatR16ui :			result = EImageSampler(EPixelFormat::R16U);				break;
+			case SpvImageFormatR8ui :			result = EImageSampler(EPixelFormat::R8U);				break;
+			case SpvImageFormatUnknown :
+			case SpvImageFormatMax :
+			default :							RETURN_ERR( "unsupported pixel format!" );
+		}
+		switch ( value.dim )
+		{
+			case SpvDim1D :		result |= (value.arrayed ? EImageSampler::_1DArray : EImageSampler::_1D);		break;
+			case SpvDim2D :		result |= (value.ms ?
+											(value.arrayed ? EImageSampler::_2DMSArray : EImageSampler::_2DMS) :
+											(value.arrayed ? EImageSampler::_2DArray : EImageSampler::_2D));	break;
+			case SpvDim3D :		result |= EImageSampler::_3D;													break;
+			case SpvDimCube :	result |= (value.arrayed ? EImageSampler::_CubeArray : EImageSampler::_Cube);	break;
+			case SpvDimRect :
+			case SpvDimBuffer :
+			case SpvDimSubpassData :
+			case SpvDimMax :
+			default :			RETURN_ERR( "unsupported image dimension type" );
 		}
 		END_ENUM_CHECKS();
-		RETURN_ERR( "unsupported pixel format!" );
+		return result;
 	}
 
 /*
@@ -453,7 +472,7 @@ namespace FG
 					break;
 
 				case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE :
-					dst.data = PipelineDescription::Image{ rs_stages | EResourceState::ShaderReadWrite, FGEnumCast(src.image), FGEnumCast(src.image.image_format) };
+					dst.data = PipelineDescription::Image{ rs_stages | EResourceState::ShaderReadWrite, FGEnumCast(src.image, src.image.image_format) };
 					break;
 
 				case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT :
@@ -675,6 +694,9 @@ namespace FG
 	static bool GetReflection (const Array<uint> &spvShader, bool forceDBO,
 							   INOUT uint3 &localSize, INOUT uint3 &localSizeSpec, INOUT PipelineDescription::PipelineLayout &layout)
 	{
+		// TODO
+		Unused( localSize, localSizeSpec );
+
 		SpvReflectShaderModule	module = {};
 		CHECK_ERR( spvReflectCreateShaderModule( size_t(ArraySizeOf(spvShader)), spvShader.data(), OUT &module ) == SPV_REFLECT_RESULT_SUCCESS );
 		

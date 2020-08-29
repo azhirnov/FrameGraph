@@ -142,7 +142,7 @@ namespace {
 		{
 			RawImageID	img;
 
-			if ( imageCache->GetDefaultImage( "white", OUT img ) )
+			if ( imageCache->GetDefaultImage( "white", OUT img ))
 			{
 				_albedoMaps.push_back( img );
 				++albedo_maps_offset;

@@ -38,7 +38,7 @@ static void PipelineResources_Test1 (const FrameGraph &fg)
 			{},
 			{},
 			{},
-			{{ UniformID{"un_OutImage"}, EImage::Tex2D, EPixelFormat::RGBA8_UNorm, EShaderAccess::WriteOnly, BindingIndex{UMax, 0u}, 1, EShaderStages::Compute }},
+			{{ UniformID{"un_OutImage"}, EImageSampler::Float2D, EShaderAccess::WriteOnly, BindingIndex{UMax, 0u}, 1, EShaderStages::Compute }},
 			{},
 			{{ UniformID{"un_SSBO"}, 16_b, 0_b, EShaderAccess::ReadOnly, BindingIndex{UMax, 1u}, 1, EShaderStages::Compute, false }} );
 

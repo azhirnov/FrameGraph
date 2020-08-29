@@ -334,8 +334,10 @@ namespace FG
 	// variables
 	public:
 		VLocalImage const* const	image;
-		const uint					baseLevel;
+		const uint					baseMipLevel;
 		const uint					levelCount;
+		const uint					baseLayer;
+		const uint					layerCount;
 
 	// methods
 	public:
@@ -518,6 +520,8 @@ namespace FG
 	};
 
 
+	
+#ifdef VK_NV_ray_tracing
 
 	//
 	// Update Ray Tracing Shader Table
@@ -672,6 +676,8 @@ namespace FG
 
 		ND_ VPipelineResourceSet const&		GetResources ()	const	{ return _resources; }
 	};
+
+#endif	// VK_NV_ray_tracing
 
 
 

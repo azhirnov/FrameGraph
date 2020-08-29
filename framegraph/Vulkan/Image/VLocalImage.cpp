@@ -188,6 +188,7 @@ namespace FG
 */
 	void VLocalImage::SetInitialState (bool immutable, bool invalidate) const
 	{
+		// image must be in initial state
 		ASSERT( _accessForReadWrite.size() == 1 );
 		ASSERT( _accessForReadWrite.front().stages == VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT );
 
@@ -219,8 +220,8 @@ namespace FG
 		ImageAccess		pending;
 		pending.isReadable		= EResourceState_IsReadable( is.state );
 		pending.isWritable		= EResourceState_IsWritable( is.state );
-		pending.invalidateBefore= EnumEq( is.state, EResourceState::InvalidateBefore );
-		pending.invalidateAfter	= EnumEq( is.state, EResourceState::InvalidateAfter );
+		pending.invalidateBefore= AllBits( is.state, EResourceState::InvalidateBefore );
+		pending.invalidateAfter	= AllBits( is.state, EResourceState::InvalidateAfter );
 		pending.stages			= EResourceState_ToPipelineStages( is.state );
 		pending.access			= EResourceState_ToAccess( is.state );
 		pending.layout			= is.layout;
@@ -273,8 +274,8 @@ namespace FG
 
 			for (; iter != _pendingAccesses.end() and iter->range.IsIntersects( range ); ++iter)
 			{
-				ASSERT( iter->index == pending.index );
-				ASSERT( iter->layout == pending.layout );
+				ASSERT( iter->index == pending.index and "something goes wrong - resource has uncommited state from another task" );
+				ASSERT( iter->layout == pending.layout and "can't use different layouts inside single task" );
 
 				iter->range.begin		= Min( iter->range.begin, range.begin );
 				range.begin				= iter->range.end;
@@ -301,7 +302,7 @@ namespace FG
 */
 	void VLocalImage::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const
 	{
-		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
+		ASSERT( _pendingAccesses.empty() and "you must commit all pending states before reseting" );
 		
 		// add full range barrier
 		{

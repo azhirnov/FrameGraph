@@ -82,16 +82,6 @@
 #endif
 
 
-// macro for unused variables
-#ifndef FG_UNUSED
-# if 0 // TODO: C++17
-#	define FG_UNUSED( ... )		[[maybe_unused]]( __VA_ARGS__ )
-# else
-#	define FG_UNUSED( ... )		(void)( __VA_ARGS__ )
-# endif
-#endif
-
-
 // debug break
 #ifndef FG_PRIVATE_BREAK_POINT
 # if defined(COMPILER_MSVC) and defined(FG_DEBUG)
@@ -266,14 +256,14 @@
 
 // bit operators
 #define FG_BIT_OPERATORS( _type_ ) \
-	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
-	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::ToNearUInt(lhs) | FGC::ToNearUInt(rhs) ); } \
+	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::ToNearUInt(lhs) & FGC::ToNearUInt(rhs) ); } \
 	\
-	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
-	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::ToNearUInt(lhs) | FGC::ToNearUInt(rhs) ); } \
+	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::ToNearUInt(lhs) & FGC::ToNearUInt(rhs) ); } \
 	\
-	ND_ constexpr _type_  operator ~ (_type_ lhs)				{ return _type_(~FGC::EnumToUInt(lhs)); } \
-	ND_ constexpr bool   operator ! (_type_ lhs)				{ return not FGC::EnumToUInt(lhs); } \
+	ND_ constexpr _type_  operator ~ (_type_ lhs)				{ return _type_(~FGC::ToNearUInt(lhs)); } \
+	ND_ constexpr bool   operator ! (_type_ lhs)				{ return not FGC::ToNearUInt(lhs); } \
 	
 
 // enable/disable checks for enums
@@ -391,7 +381,7 @@
 
 
 // check definitions
-#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+#ifdef FG_CPP_DETECT_MISSMATCH
 
 #  ifdef FG_OPTIMAL_MEMORY_ORDER
 #	pragma detect_mismatch( "FG_OPTIMAL_MEMORY_ORDER", "1" )
@@ -447,4 +437,4 @@
 #	pragma detect_mismatch( "FG_CI_BUILD", "0" )
 #  endif
 
-#endif	// COMPILER_MSVC or COMPILER_CLANG
+#endif	// FG_CPP_DETECT_MISSMATCH

@@ -77,6 +77,8 @@ namespace FGC
 		uint2 GetSize () const override;
 
 		UniquePtr<IVulkanSurface>  GetVulkanSurface () const override;
+		
+		void * GetPlatformHandle () const override;
 
 	private:
 		static StringView  _MapKey (SDL_Scancode code);

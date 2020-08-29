@@ -38,6 +38,14 @@ namespace FG
 		using Targets_t		= StaticArray< RT, FG_MaxColorBuffers+1 >;
 		using Viewports_t	= FixedArray< Viewport, FG_MaxViewports >;
 		using RS			= RenderState;
+		
+		struct ShaderDebugMode
+		{
+			EShaderDebugMode	mode		= Default;
+			EShaderStages		stages		= Default;
+			short2				fragCoord	{ std::numeric_limits<short>::min() };
+			RawImageID			dstImage;	// for timemap
+		};
 
 
 	// variables
@@ -59,6 +67,10 @@ namespace FG
 		RectI						area;
 		
 		PipelineResourceSet			perPassResources;	// this resources will be added for all draw tasks
+
+		ShaderDebugMode				debugMode;
+
+		//bool						useSecondaryCmdbuf	= false;	// CPU optimization
 
 		//bool						parallelExecution	= true;		// (optimization) if 'false' all draw and compute tasks will be executed in initial order
 		//bool						canBeMerged			= true;		// (optimization) g-buffer render passes can be merged, but don't merge conditional passes
@@ -155,6 +167,11 @@ namespace FG
 		RenderPassDesc&  SetShadingRateImage (RawImageID image, ImageLayer layer = Default, MipmapLevel level = Default);
 		
 		RenderPassDesc&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+
+		// debugging
+		RenderPassDesc&  EnableShaderTrace (EShaderStages stages);
+		RenderPassDesc&  EnableFragmentShaderTrace (int x, int y);
+		RenderPassDesc&  EnableShaderTimemap (RawImageID target, EShaderStages stages = EShaderStages::Fragment);
 	};
 
 
@@ -410,19 +427,21 @@ namespace FG
 	inline RenderPassDesc&  RenderPassDesc::SetDepthBiasConstFactor (float value)
 	{
 		rasterizationState.depthBiasConstFactor	= value;
+		rasterizationState.depthBias			= true;
 		return *this;
 	}
 
 	inline RenderPassDesc&  RenderPassDesc::SetDepthBiasClamp (float value)
 	{
 		rasterizationState.depthBiasClamp	= value;
-		//rasterizationState.depthClamp		= true;	// TODO ???
+		rasterizationState.depthBias		= true;
 		return *this;
 	}
 
 	inline RenderPassDesc&  RenderPassDesc::SetDepthBiasSlopeFactor (float value)
 	{
 		rasterizationState.depthBiasSlopeFactor = value;
+		rasterizationState.depthBias			= true;
 		return *this;
 	}
 
@@ -431,7 +450,7 @@ namespace FG
 		rasterizationState.depthBiasConstFactor	= constFactor;
 		rasterizationState.depthBiasClamp		= clamp;
 		rasterizationState.depthBiasSlopeFactor	= slopeFactor;
-		//rasterizationState.depthBias			= true;	// TODO ???
+		rasterizationState.depthBias			= true;
 		return *this;
 	}
 
@@ -540,6 +559,56 @@ namespace FG
 		perPassResources.insert({ id, res });
 		return *this;
 	}
-
+	
+/*
+=================================================
+	EnableShaderTrace
+----
+	enable shader trace recording for all draw calls in the render pass
+=================================================
+*/
+	inline RenderPassDesc&  RenderPassDesc::EnableShaderTrace (EShaderStages stages)
+	{
+		debugMode.mode		 = EShaderDebugMode::Trace;
+		debugMode.stages	|= stages;
+		debugMode.dstImage	 = Default;
+		return *this;
+	}
+	
+/*
+=================================================
+	EnableFragmentShaderTrace
+----
+	enable shader trace recording for specified pixel coordinate
+	for all draw calls in the render pass
+=================================================
+*/
+	inline RenderPassDesc&  RenderPassDesc::EnableFragmentShaderTrace (int x, int y)
+	{
+		debugMode.mode		 = EShaderDebugMode::Trace;
+		debugMode.stages	|= EShaderStages::Fragment;
+		debugMode.fragCoord	 = { int16_t(x), int16_t(y) };
+		debugMode.dstImage	 = Default;
+		return *this;
+	}
+	
+/*
+=================================================
+	EnableShaderTimemap
+----
+	create timemap for all draw calls in the render pass.
+	'target' must be RGBA UNorm/Float texture with CollorAttachment usage.
+	'target' can be one of render targets, drawing order is sequential (no data races).
+=================================================
+*/
+	inline RenderPassDesc&  RenderPassDesc::EnableShaderTimemap (RawImageID target, EShaderStages stages)
+	{
+		ASSERT( target );
+		debugMode.mode		 = EShaderDebugMode::Timemap;
+		debugMode.stages	|= stages;
+		debugMode.fragCoord	 = short2{ std::numeric_limits<short>::min() };
+		debugMode.dstImage	 = target;
+		return *this;
+	}
 
 }	// FG

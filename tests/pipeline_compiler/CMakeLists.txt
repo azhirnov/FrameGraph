@@ -1,4 +1,4 @@
-if (${FG_ENABLE_GLSLANG})
+if (TARGET "PipelineCompiler")
 	file( GLOB_RECURSE SOURCES "*.*" )
 	add_executable( "Tests.PipelineCompiler" ${SOURCES} )
 	source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} )

@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "MyImage_0"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage
@@ -47,7 +47,7 @@ CommandBuffer {
 
 	Image {
 		name:         "MyImage_1"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage
@@ -92,7 +92,7 @@ CommandBuffer {
 
 	Image {
 		name:         "MyImage_2"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage

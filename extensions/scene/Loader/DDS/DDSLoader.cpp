@@ -24,13 +24,13 @@ namespace
 */
 	static bool  LoadDX10Image (IntermImagePtr &image, const DDS_HEADER &header, const DDS_HEADER_DXT10 &headerDX10, FileRStream &file)
 	{
-		CHECK_ERR( EnumEq( header.dwFlags, DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT ));
+		CHECK_ERR( AllBits( header.dwFlags, DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT ));
 
 		EPixelFormat	format = DDSFormatToPixelFormat( headerDX10.dxgiFormat );
 		CHECK_ERR( format != Default );
 		
-		const bool		is_cube			= EnumEq( headerDX10.miscFlag, D3D11_RESOURCE_MISC_TEXTURECUBE );
-		const uint		mipmap_count	= EnumEq( header.dwFlags, DDSD_MIPMAPCOUNT ) ? header.dwMipMapCount : 1;
+		const bool		is_cube			= AllBits( headerDX10.miscFlag, D3D11_RESOURCE_MISC_TEXTURECUBE );
+		const uint		mipmap_count	= AllBits( header.dwFlags, DDSD_MIPMAPCOUNT ) ? header.dwMipMapCount : 1;
 		const uint		array_layers	= (is_cube ? 6 : 1) * headerDX10.arraySize;
 		uint3			dim				= { header.dwWidth, header.dwHeight, 1 };
 		EImage			img_type		= Default;
@@ -43,21 +43,21 @@ namespace
 				break;
 
 			case D3D11_RESOURCE_DIMENSION_TEXTURE1D :
-				img_type = array_layers > 1 ? EImage::Tex1DArray : EImage::Tex1D;
+				img_type = array_layers > 1 ? EImage::_1DArray : EImage_1D;
 				break;
 
 			case D3D11_RESOURCE_DIMENSION_TEXTURE2D :
 				if ( is_cube )
-					img_type = array_layers > 6 ? EImage::TexCubeArray : EImage::TexCube;
+					img_type = array_layers > 6 ? EImage_CubeArray : EImage_Cube;
 				else
-					img_type = array_layers > 1 ? EImage::Tex2DArray : EImage::Tex2D;
+					img_type = array_layers > 1 ? EImage::_2DArray : EImage_2D;
 				break;
 
 			case D3D11_RESOURCE_DIMENSION_TEXTURE3D :
-				CHECK_ERR( EnumEq( header.dwFlags, DDSD_DEPTH ));
+				CHECK_ERR( AllBits( header.dwFlags, DDSD_DEPTH ));
 				CHECK_ERR( array_layers == 1 );
 				dim.z	 = header.dwDepth;
-				img_type = EImage::Tex3D;
+				img_type = EImage_3D;
 				break;
 
 			case D3D11_RESOURCE_DIMENSION_UNKNOWN :
@@ -75,7 +75,7 @@ namespace
 		if ( All( info.blockSize == uint2(1) ))
 		{
 			// uncompressed texture
-			if ( EnumEq( header.dwFlags, DDSD_PITCH ))
+			if ( AllBits( header.dwFlags, DDSD_PITCH ))
 				pitch = header.dwPitchOrLinearSize;
 			else
 				pitch = (dim.x * info.bitsPerBlock + 7) / 8;
@@ -83,7 +83,7 @@ namespace
 		else
 		{
 			// compressed texture
-			if ( EnumEq( header.dwFlags, DDSD_LINEARSIZE ))
+			if ( AllBits( header.dwFlags, DDSD_LINEARSIZE ))
 				pitch = header.dwPitchOrLinearSize;
 			else
 				pitch = Max( 1u, (dim.x + 3) / 4 ) * (info.bitsPerBlock / 8);
@@ -134,7 +134,7 @@ namespace
 */
 	static bool  LoadDDSImage (IntermImagePtr &image, const DDS_HEADER &header, FileRStream &file)
 	{
-		FG_UNUSED( image, header, file );
+		Unused( image, header, file );
 		// TODO
 		return false;
 	}
@@ -174,7 +174,7 @@ namespace
 		CHECK_ERR( header.dwSize == sizeof(header) - sizeof(header.dwMagic) );
 		CHECK_ERR( header.ddspf.dwSize == sizeof(header.ddspf) );
 
-		if ( EnumEq( header.ddspf.dwFlags, DDPF_FOURCC ) and header.ddspf.dwFourCC == MakeFourCC('D','X','1','0') )
+		if ( AllBits( header.ddspf.dwFlags, DDPF_FOURCC ) and header.ddspf.dwFourCC == MakeFourCC('D','X','1','0') )
 		{
 			header_10  = DDS_HEADER_DXT10{};
 			result    &= file.Read( OUT *header_10 );

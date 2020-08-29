@@ -5,98 +5,94 @@
 
 namespace FG
 {
-
+	
 /*
 =================================================
 	ImageDesc
 =================================================
 */
-	ImageDesc::ImageDesc (EImage		imageType,
-						  const uint3 &	dimension,
+	ImageDesc::ImageDesc (EImageDim		imageType,
+						  const uint3	&dimension,
 						  EPixelFormat	format,
 						  EImageUsage	usage,
+						  EImageFlags	flags,
 						  ImageLayer	arrayLayers,
 						  MipmapLevel	maxLevel,
 						  MultiSamples	samples,
-						  EQueueUsage	queues)  :
-		imageType(imageType),		dimension(dimension),
-		format(format),				usage(usage),
-		arrayLayers{arrayLayers},	maxLevel(maxLevel),
-		samples(samples),			queues{queues}
+						  EQueueUsage	queues) :
+		imageType{ imageType },		viewType{ Default },
+		flags{ flags },				dimension{ dimension },
+		format{ format },			usage{ usage },
+		arrayLayers{ arrayLayers },	maxLevel{ maxLevel },
+		samples{ samples },			queues{ queues }
 	{}
 	
 /*
 =================================================
-	ValidateDimension
+	ImageDesc::SetDimension
 =================================================
 */
-	static bool ValidateDimension (const EImage imageType, INOUT uint3 &dim, INOUT ImageLayer &layers)
+	ImageDesc&  ImageDesc::SetDimension (const uint value)
 	{
+		dimension = uint3{ value, 1, 1 };
+		imageType = EImageDim_1D;
+		return *this;
+	}
+
+	ImageDesc&  ImageDesc::SetDimension (const uint2 &value)
+	{
+		dimension = uint3{ value, 1 };
+		imageType = EImageDim_2D;
+		return *this;
+	}
+
+	ImageDesc&  ImageDesc::SetDimension (const uint3 &value)
+	{
+		dimension = value;
+		imageType = EImageDim_3D;
+		return *this;
+	}
+	
+/*
+=================================================
+	SetView
+=================================================
+*/	
+	ImageDesc&  ImageDesc::SetView (EImage value)
+	{
+		viewType = value;
+
 		BEGIN_ENUM_CHECKS();
-		switch ( imageType )
+		switch ( viewType )
 		{
-			case EImage::Tex1D :
-			{
-				ASSERT( dim.x > 0 );
-				ASSERT( dim.y <= 1 and dim.z <= 1 and layers.Get() <= 1 );
-				dim		= Max( uint3( dim.x, 0, 0 ), 1u );
-				layers	= 1_layer;
-				return true;
-			}	
-			case EImage::Tex2DMS :
-			case EImage::Tex2D :
-			{
-				ASSERT( dim.x > 0 and dim.y > 0 );
-				ASSERT( dim.z <= 1 and layers.Get() <= 1 );
-				dim		= Max( uint3( dim.x, dim.y, 0 ), 1u );
-				layers	= 1_layer;
-				return true;
-			}
-			case EImage::TexCube :
-			{
-				ASSERT( dim.x > 0 and dim.y > 0 and dim.z <= 1 );
-				ASSERT( dim.x == dim.y );
-				ASSERT( layers.Get() == 6 );
-				dim		= Max( uint3( dim.x, dim.y, 1 ), 1u );
-				layers	= 6_layer;
-				return true;
-			}
-			case EImage::Tex1DArray :
-			{
-				ASSERT( dim.x > 0 and layers.Get() > 0 );
-				[[fallthrough]];
-			}
-			case EImage::Tex2DMSArray :
-			case EImage::Tex2DArray :
-			{
-				ASSERT( dim.x > 0 and dim.y > 0 and layers.Get() > 0 );
-				ASSERT( dim.z <= 1 );
-				dim		= Max( uint3( dim.x, dim.y, 0 ), 1u );
-				layers	= Max( layers, 1_layer );
-				return true;
-			}
-			case EImage::Tex3D :
-			{
-				ASSERT( dim.x > 0 and dim.y > 0 and dim.z > 0 );
-				ASSERT( layers.Get() <= 1 );
-				dim		= Max( uint3( dim.x, dim.y, dim.z ), 1u );
-				layers	= 1_layer;
-				return true;
-			}
-			case EImage::TexCubeArray :
-			{
-				ASSERT( dim.x > 0 and dim.y > 0 and dim.z <= 1 );
-				ASSERT( dim.x == dim.y );
-				ASSERT( layers.Get() > 0 and layers.Get() % 6 == 0 );
-				dim		= Max( uint3( dim.x, dim.y, 0 ), 1u );
-				layers	= Max( layers, 6_layer );
-				return true;
-			}
+			case EImage_1D :
+			case EImage::_1DArray :
+				imageType = EImageDim_1D;
+				break;
+
+			case EImage_2D :
+			case EImage::_2DArray :
+				imageType = EImageDim_2D;
+				break;
+
+			case EImage_Cube :
+			case EImage_CubeArray :
+				imageType = EImageDim_2D;
+				flags    |= EImageFlags::CubeCompatible;
+				break;
+				
+			case EImage_3D :
+				imageType = EImageDim_3D;
+				flags    |= EImageFlags::Array2DCompatible;
+				break;
+
 			case EImage::Unknown :
-				break;		// to shutup warnings
+			default :
+				ASSERT( !"unknown image view type" );
 		}
 		END_ENUM_CHECKS();
-		RETURN_ERR( "invalid texture type" );
+
+		return *this;
 	}
 
 /*
@@ -104,64 +100,120 @@ namespace FG
 	NumberOfMipmaps
 =================================================
 */	
-	ND_ static uint  NumberOfMipmaps (const EImage imageType, const uint3 &dim)
+namespace {
+	ND_ inline uint  NumberOfMipmaps (const uint3 &dim)
 	{
-		BEGIN_ENUM_CHECKS();
-		switch ( imageType )
-		{
-			case EImage::Tex2DMS :
-			case EImage::Tex2DMSArray :		return 1;
-
-			case EImage::Tex2D :
-			case EImage::Tex3D :			return std::ilogb( Max(Max( dim.x, dim.y ), dim.z )) + 1;
-				
-			case EImage::Tex1D :
-			case EImage::Tex1DArray :		return std::ilogb( dim.x ) + 1;
-
-			case EImage::TexCube :
-			case EImage::TexCubeArray :
-			case EImage::Tex2DArray :		return std::ilogb( Max( dim.x, dim.y )) + 1;
-
-			case EImage::Unknown :			break;		// to shutup warnings
-		}
-		END_ENUM_CHECKS();
-		RETURN_ERR( "invalid texture type", 1u );
+		return IntLog2( Max(Max( dim.x, dim.y ), dim.z )) + 1;
 	}
-
+}
 /*
 =================================================
-	ValidateDescription
+	Validate
 =================================================
 */
 	void ImageDesc::Validate ()
 	{
-		ASSERT( format != EPixelFormat::Unknown );
-		ASSERT( imageType != EImage::Unknown );
+		ASSERT( format != Default );
+		ASSERT( imageType != Default );
+		
+		dimension	= Max( dimension, uint3{1} );
+		arrayLayers	= Max( arrayLayers, 1_layer );
 
-		ValidateDimension( imageType, INOUT dimension, INOUT arrayLayers );
-
-		if ( EImage_IsMultisampled( imageType ) )
+		BEGIN_ENUM_CHECKS();
+		switch ( imageType )
 		{
-			ASSERT( samples > 1_samples );
+			case EImageDim_1D :
+				ASSERT( not samples.IsEnabled() );
+				ASSERT( dimension.y == 1 and dimension.z == 1 );
+				ASSERT( not AnyBits( flags, EImageFlags::Array2DCompatible | EImageFlags::CubeCompatible ));	// flags are not supported for 1D
+
+				flags		&= ~(EImageFlags::Array2DCompatible | EImageFlags::CubeCompatible);
+				samples		= 1_samples;
+				dimension	= uint3{ dimension.x, 1, 1 };
+				break;
+
+			case EImageDim_2D :
+				ASSERT( dimension.z == 1 );
+				if ( AllBits( flags, EImageFlags::CubeCompatible ) and (arrayLayers.Get() % 6 != 0) )
+					flags &= ~EImageFlags::CubeCompatible;
+				
+				dimension.z	= 1;
+				break;
+
+			case EImageDim_3D :
+				ASSERT( not samples.IsEnabled() );
+				ASSERT( arrayLayers == 1_layer );
+				ASSERT( not AnyBits( flags, EImageFlags::CubeCompatible ));	// flags are not supported for 1D
+
+				flags		&= ~EImageFlags::CubeCompatible;
+				samples		= 1_samples;
+				arrayLayers	= 1_layer;
+				break;
+
+			case EImageDim::Unknown :
+				break;
+		}
+		END_ENUM_CHECKS();
+
+		// validate samples and mipmaps
+		if ( samples.IsEnabled() )
+		{
 			ASSERT( maxLevel <= 1_mipmap );
 			maxLevel = 1_mipmap;
 		}
 		else
 		{
-			ASSERT( samples <= 1_samples );
 			samples  = 1_samples;
-			maxLevel = MipmapLevel( Clamp( maxLevel.Get(), 1u, NumberOfMipmaps( imageType, dimension ) ));
+			maxLevel = MipmapLevel( Clamp( maxLevel.Get(), 1u, NumberOfMipmaps( dimension )));
+		}
+		
+		// set default view
+		if ( viewType == Default )
+		{
+			BEGIN_ENUM_CHECKS();
+			switch ( imageType )
+			{
+				case EImageDim_1D :
+					if ( arrayLayers > 1_layer )
+						viewType = EImage::_1DArray;
+					else
+						viewType = EImage_1D;
+					break;
+
+				case EImageDim_2D :
+					if ( arrayLayers > 6_layer and AllBits( flags, EImageFlags::CubeCompatible ))
+						viewType = EImage_CubeArray;
+					else
+					if ( arrayLayers == 6_layer and AllBits( flags, EImageFlags::CubeCompatible ))
+						viewType = EImage_Cube;
+					else
+					if ( arrayLayers > 1_layer )
+						viewType = EImage::_2DArray;
+					else
+						viewType = EImage_2D;
+					break;
+
+				case EImageDim_3D :
+					viewType = EImage_3D;
+					break;
+
+				case EImageDim::Unknown :
+				default :
+					ASSERT( !"unknown image dimension" );
+					break;
+			}
+			END_ENUM_CHECKS();
 		}
 	}
 //-----------------------------------------------------------------------------
 
-
+	
 /*
 =================================================
 	ImageViewDesc
 =================================================
 */	
-	ImageViewDesc::ImageViewDesc (EImage			viewType,
+	ImageViewDesc::ImageViewDesc (EImage		viewType,
 								  EPixelFormat		format,
 								  MipmapLevel		baseLevel,
 								  uint				levelCount,
@@ -169,10 +221,10 @@ namespace FG
 								  uint				layerCount,
 								  ImageSwizzle		swizzle,
 								  EImageAspect		aspectMask) :
-		viewType{viewType},		format{format},
-		baseLevel{baseLevel},	levelCount{levelCount},
-		baseLayer{baseLayer},	layerCount{layerCount},
-		swizzle{swizzle},		aspectMask{aspectMask}
+		viewType{ viewType },		format{ format },
+		baseLevel{ baseLevel },		levelCount{ levelCount },
+		baseLayer{ baseLayer },		layerCount{ layerCount },
+		swizzle{ swizzle },			aspectMask{ aspectMask }
 	{}
 	
 /*
@@ -181,11 +233,12 @@ namespace FG
 =================================================
 */
 	ImageViewDesc::ImageViewDesc (const ImageDesc &desc) :
-		viewType{ desc.imageType },	format{ desc.format },
+		viewType{ desc.viewType },	format{ desc.format },
 		baseLevel{},				levelCount{ desc.maxLevel.Get() },
 		baseLayer{},				layerCount{ desc.arrayLayers.Get() },
-		swizzle{ "RGBA"_swizzle },	aspectMask{EPixelFormat_ToImageAspect(format)}
-	{}
+		swizzle{ "RGBA"_swizzle },	aspectMask{ EPixelFormat_ToImageAspect( format )}
+	{
+	}
 	
 /*
 =================================================
@@ -194,10 +247,7 @@ namespace FG
 */
 	void ImageViewDesc::Validate (const ImageDesc &desc)
 	{
-		if ( format == EPixelFormat::Unknown )
-			format = desc.format;
-
-		uint	max_layers	= desc.imageType == EImage::Tex3D ? 1 : desc.arrayLayers.Get();
+		const uint	max_layers	= desc.arrayLayers.Get();
 
 		baseLayer	= ImageLayer{Clamp( baseLayer.Get(), 0u, max_layers-1 )};
 		layerCount	= Clamp( layerCount, 1u, max_layers - baseLayer.Get() );
@@ -205,47 +255,58 @@ namespace FG
 		baseLevel	= MipmapLevel{Clamp( baseLevel.Get(), 0u, desc.maxLevel.Get()-1 )};
 		levelCount	= Clamp( levelCount, 1u, desc.maxLevel.Get() - baseLevel.Get() );
 
-		auto	mask = EPixelFormat_ToImageAspect( format );
-		aspectMask   = (aspectMask == Default ? mask : aspectMask & mask);
+		// validate format
+		if ( format == Default )
+		{
+			format = desc.format;
+		}
+		else
+		if ( format != desc.format and not AllBits( desc.flags, EImageFlags::MutableFormat ))
+		{
+			ASSERT( !"can't change format for immutable image" );
+			format = desc.format;
+		}
 
+		// validate aspect mask
+		EImageAspect	mask = EPixelFormat_ToImageAspect( format );
+		aspectMask			 = (aspectMask == Default ? mask : (aspectMask & mask));
 		ASSERT( aspectMask != Default );
 
-		if ( viewType == EImage::Unknown )
+
+		// choose view type
+		if ( viewType == Default )
 		{
+			BEGIN_ENUM_CHECKS();
 			switch ( desc.imageType )
 			{
-				case EImage::TexCube :
-					if ( layerCount == 6 )	viewType = EImage::TexCube;		else
-					if ( layerCount == 1 )	viewType = EImage::Tex2D;		else
-											viewType = EImage::Tex2DArray;
+				case EImageDim_1D :
+					if ( layerCount > 1 )
+						viewType = EImage::_1DArray;
+					else
+						viewType = EImage_1D;
 					break;
 
-				case EImage::TexCubeArray :
-					if ( layerCount % 6  == 0)	viewType = EImage::TexCubeArray;	else
-					if ( layerCount == 1 )		viewType = EImage::Tex2D;			else
-												viewType = EImage::Tex2DArray;
+				case EImageDim_2D :
+					if ( layerCount > 6 and AllBits( desc.flags, EImageFlags::CubeCompatible ))
+						viewType = EImage_CubeArray;
+					else
+					if ( layerCount == 6 and AllBits( desc.flags, EImageFlags::CubeCompatible ))
+						viewType = EImage_Cube;
+					else
+					if ( layerCount > 1 )
+						viewType = EImage::_2DArray;
+					else
+						viewType = EImage_2D;
 					break;
 
-				case EImage::Tex2DArray :
-					viewType = layerCount == 1 ? EImage::Tex2D : EImage::Tex2DArray;
+				case EImageDim_3D :
+					viewType = EImage_3D;
 					break;
 
-				case EImage::Tex2DMSArray :
-					viewType = layerCount == 1 ? EImage::Tex2DMS : EImage::Tex2DMSArray;
+				case EImageDim::Unknown :
 					break;
-
-				case EImage::Tex1DArray :
-					viewType = layerCount == 1 ? EImage::Tex1D : EImage::Tex1DArray;
-					break;
-
-				case EImage::Tex1D :
-				case EImage::Tex2D :
-				case EImage::Tex3D :
-				case EImage::Tex2DMS :
-				case EImage::Unknown :
-				default :
-					viewType = desc.imageType;
 			}
+			END_ENUM_CHECKS();
 		}
 	}
 
@@ -256,15 +317,40 @@ namespace FG
 */
 	bool ImageViewDesc::operator == (const ImageViewDesc &rhs) const
 	{
-		return	this->viewType		== rhs.viewType		and
-				this->format		== rhs.format		and
-				this->baseLevel		== rhs.baseLevel	and
-				this->levelCount	== rhs.levelCount	and
-				this->baseLayer		== rhs.baseLayer	and
-				this->layerCount	== rhs.layerCount	and
-				this->aspectMask	== rhs.aspectMask	and
-				this->swizzle		== rhs.swizzle;
+		return	(this->viewType		== rhs.viewType)	&
+				(this->format		== rhs.format)		&
+				(this->baseLevel	== rhs.baseLevel)	&
+				(this->levelCount	== rhs.levelCount)	&
+				(this->baseLayer	== rhs.baseLayer)	&
+				(this->layerCount	== rhs.layerCount)	&
+				(this->aspectMask	== rhs.aspectMask)	&
+				(this->swizzle		== rhs.swizzle);
 	}
 
-
 }	// FG
+
+namespace std
+{
+/*
+=================================================
+	hash<ImageViewDesc>::operator ()
+=================================================
+*/
+	size_t  hash< FG::ImageViewDesc >::operator () (const FG::ImageViewDesc &value) const
+	{
+	#if FG_FAST_HASH
+		return size_t(FGC::HashOf( AddressOf(value), sizeof(value) ));
+	#else
+		FG::HashVal	result;
+		result << FGC::HashOf( value.viewType );
+		result << FGC::HashOf( value.format );
+		result << FGC::HashOf( value.baseLevel );
+		result << FGC::HashOf( value.levelCount );
+		result << FGC::HashOf( value.baseLayer );
+		result << FGC::HashOf( value.layerCount );
+		result << FGC::HashOf( value.swizzle );
+		return size_t(result);
+	#endif
+	}
+
+}	// std

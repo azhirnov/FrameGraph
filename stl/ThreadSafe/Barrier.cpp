@@ -29,7 +29,7 @@ namespace FGC
 */
 	Barrier::~Barrier ()
 	{
-		CHECK( DeleteSynchronizationBarrier( BitCast<SYNCHRONIZATION_BARRIER *>( &_data[0] ) ));
+		CHECK( DeleteSynchronizationBarrier( BitCast<SYNCHRONIZATION_BARRIER *>( &_data[0] )));
 	}
 	
 /*

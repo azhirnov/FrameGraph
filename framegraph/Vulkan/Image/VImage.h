@@ -48,7 +48,6 @@ namespace FG
 	// methods
 	public:
 		VImage () {}
-		VImage (VImage &&) = default;
 		~VImage ();
 
 		bool Create (VResourceManager &, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,
@@ -79,7 +78,6 @@ namespace FG
 		ND_ uint const			ArrayLayers ()			const	{ SHAREDLOCK( _drCheck );  return _desc.arrayLayers.Get(); }
 		ND_ uint const			MipmapLevels ()			const	{ SHAREDLOCK( _drCheck );  return _desc.maxLevel.Get(); }
 		ND_ EPixelFormat		PixelFormat ()			const	{ SHAREDLOCK( _drCheck );  return _desc.format; }
-		ND_ EImage				ImageType ()			const	{ SHAREDLOCK( _drCheck );  return _desc.imageType; }
 		ND_ uint const			Samples ()				const	{ SHAREDLOCK( _drCheck );  return _desc.samples.Get(); }
 		
 		ND_ VkAccessFlagBits	GetAllReadAccessMask ()	const	{ SHAREDLOCK( _drCheck );  return _readAccessMask; }

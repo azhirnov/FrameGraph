@@ -62,7 +62,7 @@ void main() {
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );
 
-	TEST( TestTextureUniform( *ds, UniformID("un_ColorTexture"), EImage::Tex2D, 0, EShaderStages::Vertex | EShaderStages::Fragment ));
+	TEST( TestTextureUniform( *ds, UniformID("un_ColorTexture"), EImageSampler::Float2D, 0, EShaderStages::Vertex | EShaderStages::Fragment ));
 	TEST( TestUniformBuffer( *ds, UniformID("UB"), 16_b, 1, EShaderStages::Fragment ));
 
 	TEST( ppln._earlyFragmentTests );

@@ -119,7 +119,7 @@ namespace FG
 */
 	ND_ inline constexpr bool EResourceState_IsReadable (EResourceState value)
 	{
-		return EnumEq( value, EResourceState::_Read );
+		return AllBits( value, EResourceState::_Read );
 	}
 	
 /*
@@ -129,7 +129,7 @@ namespace FG
 */
 	ND_ inline constexpr bool EResourceState_IsWritable (EResourceState value)
 	{
-		return EnumEq( value, EResourceState::_Write );
+		return AllBits( value, EResourceState::_Write );
 	}
 
 /*
@@ -143,7 +143,7 @@ namespace FG
 		
 		for (EShaderStages t = EShaderStages(1 << 0); t < EShaderStages::_Last; t = EShaderStages(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ))
+			if ( not AllBits( values, t ))
 				continue;
 			
 			BEGIN_ENUM_CHECKS();
@@ -182,16 +182,16 @@ namespace FG
 */
 	ND_ inline EShaderAccess  EResourceState_ToShaderAccess (EResourceState state)
 	{
-		if ( EnumEq( state, EResourceState::ShaderReadWrite ))
+		if ( AllBits( state, EResourceState::ShaderReadWrite ))
 			return EShaderAccess::ReadWrite;
 		
-		if ( EnumEq( state, EResourceState::ShaderWrite | EResourceState::InvalidateBefore ))
+		if ( AllBits( state, EResourceState::ShaderWrite | EResourceState::InvalidateBefore ))
 			return EShaderAccess::WriteDiscard;
 		
-		if ( EnumEq( state, EResourceState::ShaderWrite ))
+		if ( AllBits( state, EResourceState::ShaderWrite ))
 			return EShaderAccess::WriteOnly;
 		
-		if ( EnumEq( state, EResourceState::ShaderRead ))
+		if ( AllBits( state, EResourceState::ShaderRead ))
 			return EShaderAccess::ReadOnly;
 
 		RETURN_ERR( "unsupported shader access", EShaderAccess(~0u) );
@@ -213,42 +213,6 @@ namespace FG
 		}
 		END_ENUM_CHECKS();
 		RETURN_ERR( "unsupported shader access" );
-	}
-//-----------------------------------------------------------------------------
-
-
-	
-/*
-=================================================
-	EImage_IsMultisampled
-=================================================
-*/
-	ND_ inline constexpr bool EImage_IsMultisampled (EImage value)
-	{
-		return value == EImage::Tex2DMS or value == EImage::Tex2DMSArray;
-	}
-	
-/*
-=================================================
-	EImage_IsCube
-=================================================
-*/
-	ND_ inline constexpr bool EImage_IsCube (EImage value)
-	{
-		return value == EImage::TexCube or value == EImage::TexCubeArray;
-	}
-	
-/*
-=================================================
-	EImage_IsArray
-=================================================
-*/
-	ND_ inline constexpr bool EImage_IsArray (EImage value)
-	{
-		return	value == EImage::Tex1DArray		or
-				value == EImage::Tex2DArray		or
-				value == EImage::Tex2DMSArray	or
-				value == EImage::TexCubeArray;
 	}
 //-----------------------------------------------------------------------------
 
@@ -445,7 +409,7 @@ namespace FG
 	ND_ inline uint  EPixelFormat_BitPerPixel (EPixelFormat value, EImageAspect aspect)
 	{
 		auto	info = EPixelFormat_GetInfo( value );
-		ASSERT( EnumEq( info.aspectMask, aspect ) );
+		ASSERT( AllBits( info.aspectMask, aspect ) );
 
 		if ( aspect != EImageAspect::Stencil )
 			return info.bitsPerBlock / (info.blockSize.x * info.blockSize.y);
@@ -475,7 +439,7 @@ namespace FG
 	
 	ND_ inline bool  EPixelFormat_IsColor (EPixelFormat value)
 	{
-		return not EnumAny( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
+		return not AnyBits( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
 	}
 
 /*
@@ -485,17 +449,17 @@ namespace FG
 */
 	ND_ inline bool  EPixelFormat_HasDepth (EPixelFormat value)
 	{
-		return EnumEq( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::Depth );
+		return AllBits( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::Depth );
 	}
 	
 	ND_ inline bool  EPixelFormat_HasStencil (EPixelFormat value)
 	{
-		return EnumEq( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::Stencil );
+		return AllBits( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::Stencil );
 	}
 	
 	ND_ inline bool  EPixelFormat_HasDepthOrStencil (EPixelFormat value)
 	{
-		return EnumAny( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
+		return AnyBits( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
 	}
 	
 /*
@@ -506,8 +470,8 @@ namespace FG
 	ND_ inline EImageAspect  EPixelFormat_ToImageAspect (EPixelFormat format)
 	{
 		auto&	fmt_info	= EPixelFormat_GetInfo( format );
-		auto	depth_bit	= EnumEq( fmt_info.valueType, PixelFormatInfo::EType::Depth ) ? EImageAspect::Depth : Default;
-		auto	stencil_bit	= EnumEq( fmt_info.valueType, PixelFormatInfo::EType::Stencil ) ? EImageAspect::Stencil : Default;
+		auto	depth_bit	= AllBits( fmt_info.valueType, PixelFormatInfo::EType::Depth ) ? EImageAspect::Depth : Default;
+		auto	stencil_bit	= AllBits( fmt_info.valueType, PixelFormatInfo::EType::Stencil ) ? EImageAspect::Stencil : Default;
 		auto	color_bit	= (not (depth_bit | stencil_bit) ? EImageAspect::Color : Default);
 
 		return depth_bit | stencil_bit | color_bit;

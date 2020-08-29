@@ -226,27 +226,27 @@ namespace {
 		const ILint		depth	= Max( 1, ilGetInteger(IL_IMAGE_DEPTH) );
 		const ILint		layers	= Max( 1, ilGetInteger(IL_NUM_LAYERS) );
 		const ILint		faces	= Max( 1, ilGetInteger(IL_NUM_FACES) );
-		EImage			img_type= Default;
+		EImage			img_type= Zero;
 
 		if ( depth > 1 )
-			img_type = EImage::Tex3D;
+			img_type = EImage_3D;
 		else
 		if ( faces > 1 and layers > 1 )
-			img_type = EImage::TexCubeArray;
+			img_type = EImage_CubeArray;
 		else
 		if ( faces > 1 )
-			img_type = EImage::TexCube;
+			img_type = EImage_Cube;
 		else
 		if ( height > 1 and layers > 1 )
-			img_type = EImage::Tex2DArray;
+			img_type = EImage::_2DArray;
 		else
 		if ( layers > 1 )
-			img_type = EImage::Tex1DArray;
+			img_type = EImage::_1DArray;
 		else
 		if ( height > 1 )
-			img_type = EImage::Tex2D;
+			img_type = EImage_2D;
 		else
-			img_type = EImage::Tex1D;
+			img_type = EImage_1D;
 
 
 		IntermImage::Mipmaps_t	image_data;

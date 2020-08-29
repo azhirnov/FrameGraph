@@ -49,40 +49,40 @@ namespace
 		
 		switch ( image.GetType() )
 		{
-			case EImage::Tex1D :
+			case EImage_1D :
 			{
 				header10.resourceDimension = D3D11_RESOURCE_DIMENSION_TEXTURE1D;
 				break;
 			}
 
-			case EImage::Tex2D :
+			case EImage_2D :
 			{
 				header10.resourceDimension = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
 				break;
 			}
 
-			case EImage::Tex1DArray :
+			case EImage::_1DArray :
 			{
 				header10.resourceDimension	= D3D11_RESOURCE_DIMENSION_TEXTURE1D;
 				header10.arraySize			= arr_layers;
 				break;
 			}
 
-			case EImage::Tex2DArray :
+			case EImage::_2DArray :
 			{
 				header10.resourceDimension	= D3D11_RESOURCE_DIMENSION_TEXTURE2D;
 				header10.arraySize			= arr_layers;
 				break;
 			}
 
-			case EImage::TexCube :
+			case EImage_Cube :
 			{
 				header10.resourceDimension	= D3D11_RESOURCE_DIMENSION_TEXTURE2D;
 				header10.miscFlag			= D3D11_RESOURCE_MISC_TEXTURECUBE;
 				break;
 			}
 
-			case EImage::TexCubeArray :
+			case EImage_CubeArray :
 			{
 				header10.resourceDimension	= D3D11_RESOURCE_DIMENSION_TEXTURE2D;
 				header10.arraySize			= arr_layers / 6;
@@ -90,7 +90,7 @@ namespace
 				break;
 			}
 
-			case EImage::Tex3D :
+			case EImage_3D :
 			{
 				header10.resourceDimension = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
 				header.dwFlags	= DDS_FLAGS(header.dwFlags | DDSD_DEPTH);
@@ -124,7 +124,7 @@ namespace
 *
 	static bool  SaveDDSImage (FileWStream &file, const IntermImage &image)
 	{
-		FG_UNUSED( file, image );
+		Unused( file, image );
 		return false;
 	}
 */
@@ -145,24 +145,20 @@ namespace
 		FileWStream		file{ NtStringView{filename} };
 		CHECK_ERR( file.IsOpen() );
 
-		BEGIN_ENUM_CHECKS();
 		switch ( image->GetType() )
 		{
-			case EImage::Tex1D :
-			case EImage::Tex2D :
-			case EImage::Tex1DArray :
-			case EImage::Tex2DArray :
-			case EImage::TexCube :
-			case EImage::TexCubeArray :
-			case EImage::Tex3D :
+			case EImage_1D :
+			case EImage_2D :
+			case EImage::_1DArray :
+			case EImage::_2DArray :
+			case EImage_Cube :
+			case EImage_CubeArray :
+			case EImage_3D :
 				return SaveDX10Image( file, *image );
 
-			case EImage::Tex2DMS :
-			case EImage::Tex2DMSArray :
-			case EImage::Unknown :
+			default :
 				RETURN_ERR( "unsupported image type" );
 		}
-		END_ENUM_CHECKS();
 
 		return true;
 	}

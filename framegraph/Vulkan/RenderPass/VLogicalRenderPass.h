@@ -45,11 +45,16 @@ namespace FG
 		using ColorTargets_t			= FixedArray< ColorTarget, FG_MaxColorBuffers >;
 		using Viewports_t				= FixedArray< VkViewport, FG_MaxViewports >;
 		using Scissors_t				= FixedArray< VkRect2D, FG_MaxViewports >;
+		
+		#ifdef VK_NV_shading_rate_image
 		using SRPalettePerViewport_t	= FixedArray< VkShadingRatePaletteNV, FG_MaxViewports >;
+		#endif
+
 		using RS						= RenderState;
 		using Allocator_t				= LinearAllocator< UntypedLinearAllocator<> >;
 		using MutableImages_t			= ArrayView< Pair< VLocalImage const*, EResourceState >>;
 		using MutableBuffers_t			= ArrayView< Pair< VLocalBuffer const*, EResourceState >>;
+		using ShaderDebugMode			= RenderPassDesc::ShaderDebugMode;
 		
 
 	// variables
@@ -60,7 +65,7 @@ namespace FG
 		RawRenderPassID				_renderPassId;
 		uint						_subpassIndex			= 0;
 
-		// TODO: DOD
+		// TODO: DOD ?
 		Array< IDrawTask *>			_drawTasks;				// all draw tasks created with custom allocator in FrameGraph and
 															// will be released after frame execution.
 		
@@ -78,17 +83,24 @@ namespace FG
 		RS::MultisampleState		_multisampleState;
 
 		RectI						_area;
+		//bool						_parallelExecution		= true;
+		//bool						_canBeMerged			= true;
+		//bool						_useSecondaryCmdbuf		= false;
 		bool						_isSubmited				= false;
 		
 		VPipelineResourceSet		_perPassResources;
-
+		
+		#ifdef VK_NV_shading_rate_image
 		VLocalImage const*			_shadingRateImage		= null;
 		ImageLayer					_shadingRateImageLayer;
 		MipmapLevel					_shadingRateImageLevel;
 		SRPalettePerViewport_t		_shadingRatePalette;
+		#endif
 		
 		MutableImages_t				_mutableImages;
 		MutableBuffers_t			_mutableBuffers;
+		
+		//ShaderDebugMode			_debugMode;
 
 
 	// methods
@@ -117,9 +129,6 @@ namespace FG
 		
 		bool GetShadingRateImage (OUT VLocalImage const* &, OUT ImageViewDesc &) const;
 
-
-		ND_ bool								HasShadingRateImage ()		const	{ return _shadingRateImage != null; }
-
 		ND_ ArrayView< IDrawTask *>				GetDrawTasks ()				const	{ return _drawTasks; }
 		
 		ND_ ColorTargets_t const&				GetColorTargets ()			const	{ return _colorTargets; }
@@ -136,7 +145,13 @@ namespace FG
 
 		ND_ ArrayView<VkViewport>				GetViewports ()				const	{ return _viewports; }
 		ND_ ArrayView<VkRect2D>					GetScissors ()				const	{ return _defaultScissors; }
+		
+		#ifdef VK_NV_shading_rate_image
+		ND_ bool								HasShadingRateImage ()		const	{ return _shadingRateImage != null; }
 		ND_ ArrayView<VkShadingRatePaletteNV>	GetShadingRatePalette ()	const	{ return _shadingRatePalette; }
+		#else
+		ND_ bool								HasShadingRateImage ()		const	{ return false; }
+		#endif
 		
 		ND_ RS::ColorBuffersState const&		GetColorState ()			const	{ return _colorState; }
 		ND_ RS::DepthBufferState const&			GetDepthState ()			const	{ return _depthState; }

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "framegraph/Public/Types.h"
+#include "stl/CompileTime/Math.h"
 
 namespace FG
 {
@@ -68,9 +69,10 @@ namespace FG
 		Vertex				= 1 << 7,		// vertex buffer
 		Indirect			= 1 << 8,		// indirect buffer for draw and dispatch
 		RayTracing			= 1 << 9,		// for scratch buffer, instance data, shader binding table
-		VertexPplnStore		= 1 << 10,		// storage buffer store and atomic operations in vertex, geometry, tessellation shaders
-		FragmentPplnStore	= 1 << 11,		// storage buffer store and atomic operations in fragment shader
-		StorageTexelAtomic	= 1 << 12,		// atomic ops on imageBuffer
+		ShaderAddress		= 1 << 10,		// shader device address
+		VertexPplnStore		= 1 << 11,		// same as 'Storage', storage buffer store and atomic operations in vertex, geometry, tessellation shaders
+		FragmentPplnStore	= 1 << 12,		// same as 'Storage', storage buffer store and atomic operations in fragment shader
+		StorageTexelAtomic	= 1 << 13,		// same as 'StorageTexel', atomic ops on imageBuffer
 		_Last,
 		
 		All					= ((_Last-1) << 1) - 1,
@@ -79,20 +81,57 @@ namespace FG
 	};
 	FG_BIT_OPERATORS( EBufferUsage );
 
-
-	enum class EImage : uint
+	
+	enum class EImageDim : uint8_t
 	{
-		Tex1D		= 0,
-		Tex1DArray,
-		Tex2D,
-		Tex2DArray,
-		Tex2DMS,
-		Tex2DMSArray,
-		TexCube,
-		TexCubeArray,
-		Tex3D,
-		Unknown		= ~0u,
+		_1D,
+		_2D,
+		_3D,
+		OneDim		= _1D,
+		TwoDim		= _2D,
+		ThreeDim	= _3D,
+		Unknown		= uint8_t(~0u),
 	};
+	
+	static constexpr auto	EImageDim_1D	= EImageDim::_1D;
+	static constexpr auto	EImageDim_2D	= EImageDim::_2D;
+	static constexpr auto	EImageDim_3D	= EImageDim::_3D;
+
+
+	enum class EImage : uint8_t
+	{
+		_1D,
+		_2D,
+		_3D,
+		_1DArray,
+		_2DArray,
+		Cube,
+		CubeArray,
+		OneDim			= _1D,
+		TwoDim			= _2D,
+		ThreeDim		= _3D,
+		OneDimArray		= _1DArray,
+		TwoDimArray		= _2DArray,
+		Unknown			= uint8_t(~0u),
+	};
+
+	static constexpr auto	EImage_1D			= EImage::_1D;
+	static constexpr auto	EImage_2D			= EImage::_2D;
+	static constexpr auto	EImage_3D			= EImage::_3D;
+	static constexpr auto	EImage_Cube			= EImage::Cube;
+	static constexpr auto	EImage_CubeArray	= EImage::CubeArray;
+
+
+	enum class EImageFlags : uint8_t
+	{
+		CubeCompatible		= 1 << 0,
+		MutableFormat		= 1 << 1,
+		Array2DCompatible	= 1 << 2,
+		_Last,
+		
+		Unknown				= 0,
+	};
+	FG_BIT_OPERATORS( EImageFlags );
 
 
 	enum class EImageUsage : uint
@@ -106,8 +145,9 @@ namespace FG
 		TransientAttachment		= 1 << 6,		// color, resolve, depth/stencil, input attachment
 		InputAttachment			= 1 << 7,		// input attachment in shader
 		ShadingRate				= 1 << 8,
-		StorageAtomic			= 1 << 9,		// same as 'Storage'
-		ColorAttachmentBlend	= 1 << 10,		// same as 'ColorAttachment'
+		FragmentDensityMap		= 1 << 9,
+		StorageAtomic			= 1 << 10,		// same as 'Storage', atomic operations on image
+		ColorAttachmentBlend	= 1 << 11,		// same as 'ColorAttachment', blend operations on render target
 		_Last,
 
 		All						= ((_Last-1) << 1) - 1,
@@ -310,6 +350,72 @@ namespace FG
 		_Count,
 		Unknown					= ~0u,
 	};
+	
+
+	enum class EImageSampler : uint
+	{
+		// dimension
+		_DimOffset		= CT_IntLog2< uint(EPixelFormat::_Count) > + 1,
+		_DimMask		= 0xF << _DimOffset,
+		_1D				= 1 << _DimOffset,
+		_1DArray		= 2 << _DimOffset,
+		_2D				= 3 << _DimOffset,
+		_2DArray		= 4 << _DimOffset,
+		_2DMS			= 5 << _DimOffset,
+		_2DMSArray		= 6 << _DimOffset,
+		_Cube			= 7 << _DimOffset,
+		_CubeArray		= 8 << _DimOffset,
+		_3D				= 9 << _DimOffset,
+
+		// type
+		_TypeOffset		= _DimOffset + 4,
+		_TypeMask		= 0xF << _TypeOffset,
+		_Float			= 1 << _TypeOffset,
+		_Int			= 2 << _TypeOffset,
+		_Uint			= 3 << _TypeOffset,
+
+		// flags
+		_FlagsOffset	= _TypeOffset + 4,
+		_FlagsMask		= 0xF << _FlagsOffset,
+		_Shadow			= 1 << _FlagsOffset,
+
+		// format
+		_FormatMask		= (1u << _DimOffset) - 1,
+
+		// default
+		Float1D			= _Float | _1D,
+		Float1DArray	= _Float | _1DArray,
+		Float2D			= _Float | _2D,
+		Float2DArray	= _Float | _2DArray,
+		Float2DMS		= _Float | _2DMS,
+		Float2DMSArray	= _Float | _2DMSArray,
+		FloatCube		= _Float | _Cube,
+		FloatCubeArray	= _Float | _CubeArray,
+		Float3D			= _Float | _3D,
+		
+		Int1D			= _Int | _1D,
+		Int1DArray		= _Int | _1DArray,
+		Int2D			= _Int | _2D,
+		Int2DArray		= _Int | _2DArray,
+		Int2DMS			= _Int | _2DMS,
+		Int2DMSArray	= _Int | _2DMSArray,
+		IntCube			= _Int | _Cube,
+		IntCubeArray	= _Int | _CubeArray,
+		Int3D			= _Int | _3D,
+		
+		Uint1D			= _Uint | _1D,
+		Uint1DArray		= _Uint | _1DArray,
+		Uint2D			= _Uint | _2D,
+		Uint2DArray		= _Uint | _2DArray,
+		Uint2DMS		= _Uint | _2DMS,
+		Uint2DMSArray	= _Uint | _2DMSArray,
+		UintCube		= _Uint | _Cube,
+		UintCubeArray	= _Uint | _CubeArray,
+		Uint3D			= _Uint | _3D,
+
+		Unknown			= ~0u,
+	};
+	FG_BIT_OPERATORS( EImageSampler );
 	
 
 	enum class EFragOutput : uint

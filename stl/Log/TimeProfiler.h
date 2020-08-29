@@ -63,7 +63,7 @@ namespace FGC
 
 #	define FG_TIMEPROFILER( ... ) \
 		::FGC::TimeProfiler	FG_PRIVATE_UNITE_RAW( __timeProf, __COUNTER__ ) ( \
-								FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_0( "" __VA_ARGS__, "no name" ) ), \
+								FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_0( "" __VA_ARGS__, "no name" )), \
 								FG_FUNCTION_NAME, \
 								__FILE__, \
 								__LINE__ ) \

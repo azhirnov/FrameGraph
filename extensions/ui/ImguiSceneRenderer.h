@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "framegraph/FG.h"
-#include "imgui.h"
+#include "ui/Common.h"
 #include "scene/Renderer/RenderQueue.h"
 
 namespace FG

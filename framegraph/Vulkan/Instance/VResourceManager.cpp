@@ -227,13 +227,13 @@ namespace FG
 		else
 		if ( mode == EShaderDebugMode::Trace or mode == EShaderDebugMode::Profiling )
 		{
-			if ( EnumEq( EShaderStages::AllGraphics, stages ))
+			if ( AllBits( EShaderStages::AllGraphics, stages ))
 				return SizeOf<uint> * 4;	// fragcoord, (padding), position
 		
 			if ( stages == EShaderStages::Compute )
 				return SizeOf<uint> * 4;	// global invocation, position
 		
-			if ( EnumEq( EShaderStages::AllRayTracing, stages ))
+			if ( AllBits( EShaderStages::AllRayTracing, stages ))
 				return SizeOf<uint> * 4;	// launch, position
 		}
 
@@ -532,7 +532,7 @@ namespace FG
 
 			for (auto& comp : _compilers)
 			{
-				if ( comp->IsSupported( desc, req_format ) )
+				if ( comp->IsSupported( desc, req_format ))
 				{
 					return comp->Compile( INOUT desc, req_format );
 				}
@@ -557,7 +557,7 @@ namespace FG
 				if ( iter == sh.second.data.end() )
 					continue;
 
-				if ( EnumEq( fmt, EShaderLangFormat::ShaderModule ) )
+				if ( AllBits( fmt, EShaderLangFormat::ShaderModule ))
 				{
 					auto	shader_data = iter->second;
 				
@@ -568,7 +568,7 @@ namespace FG
 					break;
 				}
 			
-				if ( EnumEq( fmt, EShaderLangFormat::SPIRV ) )
+				if ( AllBits( fmt, EShaderLangFormat::SPIRV ))
 				{
 					VkShaderPtr		mod;
 					CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
@@ -621,7 +621,7 @@ namespace FG
 			if ( iter == desc._shader.data.end() )
 				continue;
 
-			if ( EnumEq( fmt, EShaderLangFormat::ShaderModule ) )
+			if ( AllBits( fmt, EShaderLangFormat::ShaderModule ))
 			{
 				auto	shader_data = iter->second;
 				
@@ -630,7 +630,7 @@ namespace FG
 				return true;
 			}
 			
-			if ( EnumEq( fmt, EShaderLangFormat::SPIRV ) )
+			if ( AllBits( fmt, EShaderLangFormat::SPIRV ))
 			{
 				VkShaderPtr		mod;
 				CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
@@ -681,7 +681,8 @@ namespace FG
 */
 	RawMPipelineID  VResourceManager::CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName)
 	{
-		CHECK_ERR( _device.IsMeshShaderEnabled() );
+	#ifdef VK_NV_mesh_shader
+		CHECK_ERR( _device.GetFeatures().meshShaderNV );
 
 		if ( not _CompileShaders( INOUT desc, _device ))
 		{
@@ -709,6 +710,10 @@ namespace FG
 		data.AddRef();
 
 		return id;
+	#else
+		Unused( desc, dbgName );
+		RETURN_ERR( "mesh shader is not supported" );
+	#endif
 	}
 	
 /*
@@ -769,7 +774,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( desc, layout_id, dbgName ) )
+		if ( not data.Create( desc, layout_id, dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating compute pipeline" );
@@ -788,7 +793,8 @@ namespace FG
 */
 	RawRTPipelineID  VResourceManager::CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName)
 	{
-		CHECK_ERR( _device.IsRayTracingEnabled() );
+	#ifdef VK_NV_ray_tracing
+		CHECK_ERR( _device.GetFeatures().rayTracingNV );
 
 		if ( not _CompileShaders( INOUT desc, _device ))
 		{
@@ -806,7 +812,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( desc, layout_id, dbgName ) )
+		if ( not data.Create( desc, layout_id, dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating ray tracing pipeline" );
@@ -816,6 +822,10 @@ namespace FG
 		data.AddRef();
 
 		return id;
+	#else
+		Unused( desc, dbgName );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -830,7 +840,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( desc, dbgName ) )
+		if ( not data.Create( desc, dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating memory object" );
@@ -967,7 +977,7 @@ namespace FG
 		if ( temp_id == UMax )
 		{
 			// create new
-			if ( not fnCreate( data ) )
+			if ( not fnCreate( data ))
 			{
 				_Unassign( id );
 				RETURN_ERR( errorStr );
@@ -1145,7 +1155,8 @@ namespace FG
 */
 	RawRTGeometryID  VResourceManager::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
-		CHECK_ERR( _device.IsRayTracingEnabled() );
+	#ifdef VK_NV_ray_tracing
+		CHECK_ERR( _device.GetFeatures().rayTracingNV );
 
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -1176,6 +1187,10 @@ namespace FG
 			}
 		})
 		return id;
+	#else
+		Unused( desc, mem, dbgName );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -1185,7 +1200,8 @@ namespace FG
 */
 	RawRTSceneID  VResourceManager::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
-		CHECK_ERR( _device.IsRayTracingEnabled() );
+	#ifdef VK_NV_ray_tracing
+		CHECK_ERR( _device.GetFeatures().rayTracingNV );
 
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -1207,6 +1223,10 @@ namespace FG
 		mem_obj->AddRef();
 		data.AddRef();
 		return id;
+	#else
+		Unused( desc, mem, dbgName );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -1216,13 +1236,16 @@ namespace FG
 */
 	RawRTShaderTableID  VResourceManager::CreateRayTracingShaderTable (StringView dbgName)
 	{
+	#ifdef VK_NV_ray_tracing
+		CHECK_ERR( _device.GetFeatures().rayTracingNV );
+
 		RawRTShaderTableID	id;
 		CHECK_ERR( _Assign( OUT id ));
 		
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( dbgName ) )
+		if ( not data.Create( dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating raytracing shader binding table" );
@@ -1230,6 +1253,10 @@ namespace FG
 
 		data.AddRef();
 		return id;
+	#else
+		Unused( dbgName );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -1240,7 +1267,7 @@ namespace FG
 	RawSwapchainID  VResourceManager::CreateSwapchain (const VulkanSwapchainCreateInfo &desc, RawSwapchainID oldSwapchain,
 													   VFrameGraph &fg, StringView dbgName)
 	{
-		if ( auto* swapchain = GetResource( oldSwapchain, false, true ) )
+		if ( auto* swapchain = GetResource( oldSwapchain, false, true ))
 		{
 			if ( not const_cast<VSwapchain*>(swapchain)->Create( fg, desc, dbgName ))
 				RETURN_ERR( "failed when recreating swapchain" );
@@ -1326,7 +1353,7 @@ namespace FG
 					Index_t	index	= Index_t(j);
 
 					auto&	res = pool [index];
-					if ( res.IsCreated() and not res.Data().IsAllResourcesAlive( *this ) )
+					if ( res.IsCreated() and not res.Data().IsAllResourcesAlive( *this ))
 					{
 						pool.RemoveFromCache( index );
 						res.Destroy( *this );
@@ -1348,7 +1375,7 @@ namespace FG
 	bool  VResourceManager::_CheckHostVisibleMemory ()
 	{
 		auto&	dev		= _device;
-		auto&	props	= dev.GetDeviceMemoryProperties();
+		auto&	props	= dev.GetProperties().memoryProperties;
 		
 		VkMemoryRequirements	transfer_mem_req = {};
 		VkMemoryRequirements	uniform_mem_req  = {};
@@ -1384,17 +1411,17 @@ namespace FG
 		{
 			auto&	mt = props.memoryTypes[i];
 
-			if ( EnumEq( transfer_mem_req.memoryTypeBits, 1u << i ))
+			if ( AllBits( transfer_mem_req.memoryTypeBits, 1u << i ))
 			{
-				if ( EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_CACHED_BIT ))
+				if ( AllBits( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_CACHED_BIT ))
 					cached_heaps[ mt.heapIndex ] = true;
 			
-				if ( EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
+				if ( AllBits( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
 					cocherent_heaps[ mt.heapIndex ] = true;
 			}
 
-			if ( EnumEq( uniform_mem_req.memoryTypeBits, 1u << i ) and
-				 EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
+			if ( AllBits( uniform_mem_req.memoryTypeBits, 1u << i ) and
+				 AllBits( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
 			{
 				uniform_heaps[ mt.heapIndex ] = true;
 			}
@@ -1675,7 +1702,7 @@ vec3 HSVtoRGB (const vec3 hsv)
 	// from http://chilliant.blogspot.ru/2014/04/rgbhsv-in-hlsl-5.html
 	vec3 col = vec3( abs( hsv.x * 6.0 - 3.0 ) - 1.0,
 					 2.0 - abs( hsv.x * 6.0 - 2.0 ),
-					 2.0 - abs( hsv.x * 6.0 - 4.0 ) );
+					 2.0 - abs( hsv.x * 6.0 - 4.0 ));
 	return (( clamp( col, vec3(0.0), vec3(1.0) ) - 1.0 ) * hsv.y + 1.0 ) * hsv.z;
 }
 

@@ -22,7 +22,7 @@ matrix:
       script:
         - mkdir -p build
         - cd build
-        - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
+        - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF -DFG_VULKAN_VERSION=110 .. 
         - cmake --build . --config Release
         - ctest --verbose
      
@@ -47,7 +47,7 @@ matrix:
       script:
         - mkdir -p build
         - cd build
-        - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
+        - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF -DFG_VULKAN_VERSION=120 .. 
         - cmake --build . --config Release
         - ctest --verbose
      
@@ -90,7 +90,7 @@ matrix:
       script:
         - mkdir -p build
         - cd build
-        - cmake  -G "Visual Studio 15 2017" -DFG_CI_BUILD=ON .. 
+        - cmake  -G "Visual Studio 15 2017" -DFG_CI_BUILD=ON -DFG_VULKAN_VERSION=100 .. 
         - cmake --build . --config Release
         - ctest -C Release --verbose
     
@@ -100,7 +100,7 @@ matrix:
       script:
         - mkdir -p build
         - cd build
-        - cmake -G "Visual Studio 15 2017 Win64" -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=ON .. 
+        - cmake -G "Visual Studio 15 2017 Win64" -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=ON -DFG_VULKAN_VERSION=110 .. 
         - cmake --build . --config Release
         - ctest -C Release --verbose
       
@@ -116,6 +116,6 @@ matrix:
       script:
         - mkdir -p build
         - cd build
-        - cmake -G "Visual Studio 15 2017 Win64" -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF -DFG_ENABLE_MEMLEAK_CHECKS=ON .. 
+        - cmake -G "Visual Studio 15 2017 Win64" -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF -DFG_ENABLE_MEMLEAK_CHECKS=ON -DFG_VULKAN_VERSION=120 .. 
         - cmake --build . --config Debug
         - ctest -C Debug --verbose

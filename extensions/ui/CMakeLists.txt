@@ -1,4 +1,4 @@
-if (${FG_ENABLE_IMGUI})
+if (TARGET "imgui-lib")
 	file( GLOB_RECURSE SOURCES "*.*" )
 	add_library( "UI" STATIC ${SOURCES} )
 	source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} )
@@ -10,7 +10,7 @@ if (${FG_ENABLE_IMGUI})
 	target_link_libraries( "UI" "Framework" )
 	target_link_libraries( "UI" "imgui-lib" )
 
-	if (${FG_ENABLE_GLM})
+	if (TARGET "GLM-lib")
 		target_link_libraries( "UI" "GLM-lib" )
 	endif ()
 

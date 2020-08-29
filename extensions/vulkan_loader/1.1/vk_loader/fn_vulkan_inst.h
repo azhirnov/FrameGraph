@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #ifdef VKLOADER_STAGE_DECLFNPOINTER
 	extern PFN_vkCreateDevice  _var_vkCreateDevice;

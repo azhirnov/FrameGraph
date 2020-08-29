@@ -28,7 +28,6 @@ namespace FG
 	// methods
 	public:
 		VSampler () {}
-		VSampler (VSampler &&) = default;
 		VSampler (const VDevice &dev, const SamplerDesc &desc);
 		~VSampler ();
 

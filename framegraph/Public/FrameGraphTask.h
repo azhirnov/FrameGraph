@@ -473,15 +473,18 @@ namespace FG
 	{
 	// variables
 		RawImageID		image;
-		MipmapLevel		baseLevel;
+		MipmapLevel		baseMipLevel;
 		uint			levelCount	= UMax;
+		ImageLayer		baseLayer;
+		uint			layerCount	= UMax;
 
 	// methods
 		GenerateMipmaps () :
 			BaseTask<GenerateMipmaps>{ "GenerateMipmaps", ColorScheme::DeviceLocalTransfer } {}
 
-		GenerateMipmaps&  SetImage (RawImageID img)					{ ASSERT( img );  image = img;  return *this; }
-		GenerateMipmaps&  SetRange (MipmapLevel base, uint count)	{ baseLevel = base;  levelCount = count;  return *this; }
+		GenerateMipmaps&  SetImage (RawImageID img)					{ ASSERT( img );                     image      = img;    return *this; }
+		GenerateMipmaps&  SetMipmaps (uint base, uint count)		{ baseMipLevel = MipmapLevel{base};  levelCount = count;  return *this; }
+		GenerateMipmaps&  SetArrayLayers (uint base, uint count)	{ baseLayer    = ImageLayer{base};   layerCount = count;  return *this; }
 	};
 
 

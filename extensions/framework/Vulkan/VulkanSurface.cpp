@@ -102,7 +102,7 @@ namespace FGC
 
 		surface_info.sType	= VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
 		surface_info.flags	= 0;
-		surface_info.window	= Cast<ANativeWindow>(window);
+		surface_info.window	= static_cast<ANativeWindow *>(window);
 
 		PFN_vkCreateAndroidSurfaceKHR  fpCreateAndroidSurfaceKHR = BitCast<PFN_vkCreateAndroidSurfaceKHR>( vkGetInstanceProcAddr( instance, "vkCreateAndroidSurfaceKHR" ));
 		CHECK_ERR( fpCreateAndroidSurfaceKHR );

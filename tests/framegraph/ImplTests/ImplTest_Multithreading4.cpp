@@ -20,9 +20,10 @@ namespace FG
 	{
 		const uint2	view_size	= {800, 600};
 
-		images[0] = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-												EImageUsage::ColorAttachment | EImageUsage::TransferSrc }.SetQueues( queueUsage ),
+		images[0] = fg->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+											.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ).SetQueues( queueUsage ),
 									 Default, "RenderTarget1" );
+		CHECK_ERR( images[0] );
 		
 		// (0) wait until all shared resources has been initialized
 		sync.wait();
@@ -45,12 +46,12 @@ namespace FG
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID::Color_0, images[0], RGBA32f(0.0f), EAttachmentStoreOp::Store )
-												.AddViewport( view_size ) );
+												.AddViewport( view_size ));
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
 			Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-			FG_UNUSED( t_draw );
+			Unused( t_draw );
 
 			CHECK_ERR( fg->Execute( cmd ));
 			
@@ -68,11 +69,12 @@ namespace FG
 	static bool RenderThread2 (const FrameGraph &fg)
 	{
 		const uint2	view_size	= {1024, 1024};
-		const uint2	local_size	= { 16, 16 };
+		const uint2	local_size	= { 8, 8 };
 		
-		images[1] = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-												EImageUsage::Storage | EImageUsage::TransferSrc }.SetQueues( queueUsage ),
+		images[1] = fg->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+											.SetUsage(	EImageUsage::Storage | EImageUsage::TransferSrc ).SetQueues( queueUsage ),
 									 Default, "RenderTarget2" );
+		CHECK_ERR( images[1] );
 		
 		PipelineResources	resources;
 		CHECK_ERR( fg->InitPipelineResources( cpipeline, DescriptorSetID("0"), OUT resources ));
@@ -94,7 +96,7 @@ namespace FG
 			
 			Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources )
 														.SetLocalSize( local_size ).Dispatch( IntCeil( view_size, local_size )));
-			FG_UNUSED( t_comp );
+			Unused( t_comp );
 
 			CHECK_ERR( fg->Execute( cmd ));
 			
@@ -111,9 +113,10 @@ namespace FG
 	{
 		const uint2	view_size	= {500, 1700};
 		
-		images[2] = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA16_UNorm,
-												EImageUsage::ColorAttachment | EImageUsage::TransferSrc }.SetQueues( queueUsage ),
+		images[2] = fg->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA16_UNorm )
+										.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ).SetQueues( queueUsage ),
 									 Default, "RenderTarget3" );
+		CHECK_ERR( images[2] );
 		
 		// (0) wait until all shared resources has been initialized
 		sync.wait();
@@ -131,12 +134,12 @@ namespace FG
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID::Color_0, images[2], RGBA32f(0.0f), EAttachmentStoreOp::Store )
-												.AddViewport( view_size ) );
+												.AddViewport( view_size ));
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
 			Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-			FG_UNUSED( t_draw );
+			Unused( t_draw );
 
 			CHECK_ERR( fg->Execute( cmd ));
 			
@@ -153,9 +156,10 @@ namespace FG
 	{
 		const uint2	view_size	= {1024, 1024};
 		
-		images[3] = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-												EImageUsage::TransferDst }.SetQueues( queueUsage ),
+		images[3] = fg->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+											.SetUsage( EImageUsage::TransferDst ).SetQueues( queueUsage ),
 									 Default, "RenderTarget4" );
+		CHECK_ERR( images[3] );
 		
 		// (0) wait until all shared resources has been initialized
 		sync.wait();
@@ -175,7 +179,7 @@ namespace FG
 
 			Task	t_copy1 = cmd->AddTask( CopyImage{}.From( images[0] ).To( images[3] ).AddRegion( {}, int2{16, 16}, {}, int2{0,0}, uint2{256, 256} ));
 			Task	t_copy2 = cmd->AddTask( CopyImage{}.From( images[1] ).To( images[3] ).AddRegion( {}, int2{256, 256}, {}, int2{256, 256}, uint2{256, 256} ));
-			FG_UNUSED( t_copy1 and t_copy2 );
+			Unused( t_copy1 and t_copy2 );
 
 			CHECK_ERR( fg->Execute( cmd ));
 			

@@ -142,7 +142,11 @@ namespace FG
 		
 		VkPhysicalDevice						dev					= BitCast<VkPhysicalDevice>( physicalDevice );
 		VkPhysicalDeviceProperties				props				= {};
+
+		#ifdef VK_NV_mesh_shader
+		VkPhysicalDeviceMeshShaderFeaturesNV	mesh_shader_feats	= {};
 		VkPhysicalDeviceMeshShaderPropertiesNV	mesh_shader_props	= {};
+		#endif
 
 		vkGetPhysicalDeviceProperties( dev, OUT &props );
 		
@@ -159,13 +163,19 @@ namespace FG
 
 			feat2.sType				= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 			next_feat				= &feat2.pNext;
+			
+		#ifdef VK_NV_mesh_shader
+			*next_feat				= &mesh_shader_feats;
+			next_feat				= &mesh_shader_feats.pNext;
+			mesh_shader_feats.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
 
 			*next_props				= &mesh_shader_props;
 			next_props				= &mesh_shader_props.pNext;
 			mesh_shader_props.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV;
-			
-			vkGetPhysicalDeviceFeatures2( dev, &feat2 );
-			vkGetPhysicalDeviceProperties2( dev, &props2 );
+		#endif
+		
+			vkGetPhysicalDeviceFeatures2KHR( dev, OUT &feat2 );
+			vkGetPhysicalDeviceProperties2KHR( dev, OUT &props2 );
 		}
 
 
@@ -203,17 +213,21 @@ namespace FG
 		res.maxClipDistances = props.limits.maxClipDistances;
 		res.maxCullDistances = props.limits.maxCullDistances;
 		res.maxCombinedClipAndCullDistances = props.limits.maxCombinedClipAndCullDistances;
-
-		ASSERT( mesh_shader_props.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV );
-		res.maxMeshOutputVerticesNV = mesh_shader_props.maxMeshOutputVertices;
-		res.maxMeshOutputPrimitivesNV = mesh_shader_props.maxMeshOutputPrimitives;
-		res.maxMeshWorkGroupSizeX_NV = mesh_shader_props.maxMeshWorkGroupSize[0];
-		res.maxMeshWorkGroupSizeY_NV = mesh_shader_props.maxMeshWorkGroupSize[1];
-		res.maxMeshWorkGroupSizeZ_NV = mesh_shader_props.maxMeshWorkGroupSize[2];
-		res.maxTaskWorkGroupSizeX_NV = mesh_shader_props.maxTaskWorkGroupSize[0];
-		res.maxTaskWorkGroupSizeY_NV = mesh_shader_props.maxTaskWorkGroupSize[1];
-		res.maxTaskWorkGroupSizeZ_NV = mesh_shader_props.maxTaskWorkGroupSize[2];
-		res.maxMeshViewCountNV = mesh_shader_props.maxMeshMultiviewViewCount;
+		
+	#ifdef VK_NV_mesh_shader
+		if ( mesh_shader_feats.meshShader and mesh_shader_feats.taskShader )
+		{
+			res.maxMeshOutputVerticesNV = mesh_shader_props.maxMeshOutputVertices;
+			res.maxMeshOutputPrimitivesNV = mesh_shader_props.maxMeshOutputPrimitives;
+			res.maxMeshWorkGroupSizeX_NV = mesh_shader_props.maxMeshWorkGroupSize[0];
+			res.maxMeshWorkGroupSizeY_NV = mesh_shader_props.maxMeshWorkGroupSize[1];
+			res.maxMeshWorkGroupSizeZ_NV = mesh_shader_props.maxMeshWorkGroupSize[2];
+			res.maxTaskWorkGroupSizeX_NV = mesh_shader_props.maxTaskWorkGroupSize[0];
+			res.maxTaskWorkGroupSizeY_NV = mesh_shader_props.maxTaskWorkGroupSize[1];
+			res.maxTaskWorkGroupSizeZ_NV = mesh_shader_props.maxTaskWorkGroupSize[2];
+			res.maxMeshViewCountNV = mesh_shader_props.maxMeshMultiviewViewCount;
+		}
+	#endif
 
 		return true;
 	}

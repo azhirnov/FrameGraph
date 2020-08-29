@@ -196,8 +196,10 @@ void main() {
 		CHECK_ERR( _pplnCompiler->Compile( INOUT ppln, EShaderLangFormat::VkShader_100 ));
 		
 		const uint2		view_size	= {800, 600};
-		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+																Default, "RenderTarget" );
+		CHECK_ERR( image );
 
 		VkPipeline			pipeline	= VK_NULL_HANDLE;
 		VkPipelineLayout	ppln_layout	= VK_NULL_HANDLE;
@@ -238,14 +240,15 @@ void main() {
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-											.AddViewport( view_size ) );
+											.AddViewport( view_size ));
+		CHECK_ERR( render_pass );
 		
 		CustomDrawData	draw_data{ _vulkan, pipeline, ppln, ppln_layout, view_size };
 		cmd->AddTask( render_pass, CustomDraw{ &CustomDrawFn, &draw_data });
 
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
-		FG_UNUSED( t_read );
+		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ));
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

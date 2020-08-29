@@ -5,7 +5,7 @@
 #include "scene/Math/FPSCamera.h"
 #include "scene/Math/VRCamera.h"
 #include "framework/Window/IWindow.h"
-#include "framework/Vulkan/VulkanDeviceExt.h"
+#include "framework/Vulkan/VulkanDevice.h"
 #include "scene/SceneManager/IViewport.h"
 #include "framework/VR/IVRDevice.h"
 
@@ -51,7 +51,7 @@ namespace FG
 		FrameGraph				_frameGraph;
 
 	private:
-		VulkanDeviceExt			_vulkan;
+		VulkanDeviceInitializer	_vulkan;
 		WindowPtr				_window;
 		VRDevicePtr				_vrDevice;
 		
@@ -73,6 +73,7 @@ namespace FG
 		TimePoint_t				_lastUpdateTime;
 		SecondsF				_timeDelta			{0.0f};
 		bool					_mousePressed		= false;
+		bool					_enableCamera		= true;
 		float					_cameraVelocity		= 1.0f;
 		vec2					_mouseSens			{ 0.01f, 0.01f };
 		vec2					_viewRange			{ 0.05f, 100.0f };
@@ -104,6 +105,7 @@ namespace FG
 		void  _SetupCamera (Rad fovY, const vec2 &viewRange);
 		void  _SetCameraVelocity (float value);
 		void  _SetMouseSens (vec2 value);
+		void  _EnableCameraMovement (bool enable);
 
 	private:
 		void  _UpdateFrameStat ();
@@ -114,7 +116,7 @@ namespace FG
 		ND_ vec2					GetMousePos ()		const	{ return _lastMousePos; }
 		ND_ bool					IsMousePressed ()	const	{ return _mousePressed; }
 
-		ND_ VulkanDeviceExt const&	GetVulkan ()		const	{ return _vulkan; }
+		ND_ VulkanDevice const&		GetVulkan ()		const	{ return _vulkan; }
 		ND_ Ptr<IWindow>			GetWindow ()				{ return _window.get(); }
 		ND_ Ptr<IVRDevice>			GetVRDevice ()				{ return _vrDevice.get(); }
 		ND_ uint2					GetSurfaceSize ()	const	{ return _window ? _window->GetSize() : uint2(); }

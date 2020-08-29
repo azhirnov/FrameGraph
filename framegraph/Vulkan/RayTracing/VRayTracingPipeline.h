@@ -4,6 +4,8 @@
 
 #include "VPipelineLayout.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -49,7 +51,6 @@ namespace FG
 	// methods
 	public:
 		VRayTracingPipeline () {}
-		VRayTracingPipeline (VRayTracingPipeline &&) = default;
 		~VRayTracingPipeline ();
 		
 		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
@@ -62,3 +63,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

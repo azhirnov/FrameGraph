@@ -5,6 +5,8 @@
 #include "framegraph/Public/RayTracingSceneDesc.h"
 #include "VRayTracingGeometry.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -74,3 +76,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

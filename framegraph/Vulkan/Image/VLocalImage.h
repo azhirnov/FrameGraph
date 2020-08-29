@@ -101,7 +101,6 @@ namespace FG
 		ND_ uint const			ArrayLayers ()		const	{ return Description().arrayLayers.Get(); }
 		ND_ uint const			MipmapLevels ()		const	{ return Description().maxLevel.Get(); }
 		ND_ EPixelFormat		PixelFormat ()		const	{ return Description().format; }
-		ND_ EImage				ImageType ()		const	{ return Description().imageType; }
 		ND_ uint const			Samples ()			const	{ return Description().samples.Get(); }
 		
 		ND_ StringView			GetDebugName ()		const	{ return _imageData->GetDebugName(); }

@@ -57,7 +57,7 @@ elseif (${FG_ENABLE_GLSLANG})
 		set( FG_SPIRVHEADERS_REPOSITORY "" )
 	endif ()
 	
-	set( ENABLE_HLSL OFF CACHE BOOL "glslang option" )
+	set( ENABLE_HLSL ON CACHE BOOL "glslang option" )
 	set( ENABLE_OPT ON CACHE BOOL "glslang option" )
 	mark_as_advanced( ENABLE_HLSL ENABLE_OPT )
 

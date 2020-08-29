@@ -23,14 +23,16 @@ target_compile_definitions( "Tests.FrameGraph" PUBLIC "FG_TEST_DUMPS_DIR=\"${CMA
 target_link_libraries( "Tests.FrameGraph" "FrameGraph" )
 target_link_libraries( "Tests.FrameGraph" "Framework" )
 
-if (${FG_ENABLE_GRAPHVIZ})
+if (TARGET "GraphViz")
 	target_link_libraries( "Tests.FrameGraph" "GraphViz" )
 endif()
+
 target_link_libraries( "Tests.FrameGraph" "PipelineCompiler" )
-if (${FG_ENABLE_LODEPNG})
+
+if (TARGET "lodepng-lib")
 	target_link_libraries( "Tests.FrameGraph" "lodepng-lib" )
 endif()
 
-if (NOT FG_CI_BUILD)
+if (NOT DEFINED ANDROID AND NOT FG_CI_BUILD)
 	add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
 endif ()

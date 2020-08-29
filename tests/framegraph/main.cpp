@@ -10,6 +10,7 @@ extern void UnitTest_PixelFormat ();
 extern void UnitTest_ID ();
 extern void UnitTest_VBuffer ();
 extern void UnitTest_VImage ();
+extern void UnitTest_ImageDesc ();
 
 
 int main ()
@@ -24,6 +25,7 @@ int main ()
 		UnitTest_ID();
 		UnitTest_VBuffer();
 		UnitTest_VImage();
+		UnitTest_ImageDesc();
 	}
 
 	FGApp::Run();

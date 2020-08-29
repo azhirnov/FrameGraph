@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "OutImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       R32F
 		usage:        TransferSrc | Storage

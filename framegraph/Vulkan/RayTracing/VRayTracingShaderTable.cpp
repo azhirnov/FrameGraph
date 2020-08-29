@@ -4,6 +4,8 @@
 #include "VResourceManager.h"
 #include "VDevice.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -98,3 +100,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

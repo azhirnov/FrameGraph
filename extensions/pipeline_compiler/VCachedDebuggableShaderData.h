@@ -110,7 +110,7 @@ namespace FG
 						  []  (const NullUnion &)		 { return false; }
 						);
 		#else
-			FG_UNUSED( mode, debugOutput, result );
+			Unused( mode, debugOutput, result );
 			return false;
 		#endif
 		}

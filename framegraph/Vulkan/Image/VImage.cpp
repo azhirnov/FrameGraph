@@ -21,63 +21,6 @@ namespace FG
 		ASSERT( _viewMap.empty() );
 		ASSERT( not _memoryId );
 	}
-
-/*
-=================================================
-	GetImageType
-=================================================
-*/
-	ND_ static VkImageType  GetImageType (EImage type)
-	{
-		BEGIN_ENUM_CHECKS();
-		switch ( type )
-		{
-			case EImage::Tex1D :
-			case EImage::Tex1DArray :
-				return VK_IMAGE_TYPE_1D;
-
-			case EImage::Tex2D :
-			case EImage::Tex2DMS :
-			case EImage::TexCube :
-			case EImage::Tex2DArray :
-			case EImage::Tex2DMSArray :
-			case EImage::TexCubeArray :
-				return VK_IMAGE_TYPE_2D;
-
-			case EImage::Tex3D :
-				return VK_IMAGE_TYPE_3D;
-
-			case EImage::Unknown :
-				break;		// to shutup warnings
-		}
-		END_ENUM_CHECKS();
-		RETURN_ERR( "not supported", VK_IMAGE_TYPE_MAX_ENUM );
-	}
-
-/*
-=================================================
-	GetImageFlags
-=================================================
-*/
-	ND_ static VkImageCreateFlagBits  GetImageFlags (EImage imageType)
-	{
-		VkImageCreateFlagBits	flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-			
-		// allow to create cubemap from 2D array
-		if ( EImage_IsCube( imageType ))
-			flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-
-		// allow to create 2D view from 3D
-		if ( imageType == EImage::Tex3D )
-			flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
-
-		// TODO: VK_IMAGE_CREATE_EXTENDED_USAGE_BIT
-		// TODO: VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT 
-		// TODO: VK_IMAGE_CREATE_ALIAS_BIT 
-		// TODO: VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT 
-
-		return flags;
-	}
 	
 /*
 =================================================
@@ -114,16 +57,16 @@ namespace FG
 			result = defaultLayout;
 		else
 		// render target layouts has high priority to avoid unnecessary decompressions
-		if ( EnumEq( usage, EImageUsage::ColorAttachment ) )
+		if ( AllBits( usage, EImageUsage::ColorAttachment ))
 			result = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		else
-		if ( EnumEq( usage, EImageUsage::DepthStencilAttachment ) )
+		if ( AllBits( usage, EImageUsage::DepthStencilAttachment ))
 			result = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		else
-		if ( EnumEq( usage, EImageUsage::Sampled ) )
+		if ( AllBits( usage, EImageUsage::Sampled ))
 			result = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		else
-		if ( EnumEq( usage, EImageUsage::Storage ) )
+		if ( AllBits( usage, EImageUsage::Storage ))
 			result = VK_IMAGE_LAYOUT_GENERAL;
 
 		return result;
@@ -140,7 +83,7 @@ namespace FG
 
 		for (VkImageUsageFlags t = 1; t <= usage; t <<= 1)
 		{
-			if ( not EnumEq( usage, t ) )
+			if ( not AllBits( usage, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
@@ -154,8 +97,14 @@ namespace FG
 				case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT :	result |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;	break;
 				case VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT :		break;
 				case VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT :			result |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;			break;
+
+				#ifdef VK_NV_shading_rate_image
 				case VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV :		result |= VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;		break;
+				#endif	
+				#ifdef VK_EXT_fragment_density_map
 				case VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT :
+				#endif
+
 				case VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM :			break;	// to shutup compiler warnings
 			}
 			END_ENUM_CHECKS();
@@ -190,8 +139,8 @@ namespace FG
 		VkImageCreateInfo	info = {};
 		info.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		info.pNext			= null;
-		info.flags			= GetImageFlags( _desc.imageType );
-		info.imageType		= GetImageType( _desc.imageType );
+		info.flags			= VEnumCast( _desc.flags );
+		info.imageType		= VEnumCast( _desc.imageType );
 		info.format			= VEnumCast( _desc.format );
 		info.extent.width	= _desc.dimension.x;
 		info.extent.height	= _desc.dimension.y;
@@ -215,7 +164,7 @@ namespace FG
 				 mask <= uint(queueFamilyMask) and info.queueFamilyIndexCount < queue_family_indices.size();
 				 ++i, mask = (1u<<i))
 			{
-				if ( EnumEq( queueFamilyMask, mask ) )
+				if ( AllBits( queueFamilyMask, mask ))
 					queue_family_indices[ info.queueFamilyIndexCount++ ] = i;
 			}
 		}
@@ -258,8 +207,8 @@ namespace FG
 		CHECK_ERR( desc.image );
 
 		_image				= BitCast<VkImage>( desc.image );
-		_desc.imageType		= FGEnumCast( BitCast<VkImageType>( desc.imageType ), BitCast<ImageFlagsVk_t>( desc.flags ),
-										  desc.arrayLayers, BitCast<VkSampleCountFlagBits>( desc.samples ) );
+		_desc.imageType		= FGEnumCast( BitCast<VkImageType>( desc.imageType ));
+		_desc.flags			= FGEnumCast( BitCast<VkImageCreateFlagBits>( desc.flags ));
 		_desc.dimension		= desc.dimension;
 		_desc.format		= FGEnumCast( BitCast<VkFormat>( desc.format ));
 		_desc.usage			= FGEnumCast( BitCast<VkImageUsageFlagBits>( desc.usage ));
@@ -430,7 +379,7 @@ namespace FG
 	bool  VImage::IsReadOnly () const
 	{
 		SHAREDLOCK( _drCheck );
-		return not EnumEq( _desc.usage, EImageUsage::TransferDst | EImageUsage::ColorAttachment | EImageUsage::Storage |
+		return not AllBits( _desc.usage, EImageUsage::TransferDst | EImageUsage::ColorAttachment | EImageUsage::Storage |
 										EImageUsage::DepthStencilAttachment | EImageUsage::TransientAttachment );
 	}
 	
@@ -443,8 +392,8 @@ namespace FG
 	{
 		VulkanImageDesc		desc;
 		desc.image			= BitCast<ImageVk_t>( _image );
-		desc.imageType		= BitCast<ImageTypeVk_t>( GetImageType( _desc.imageType ));
-		desc.flags			= BitCast<ImageFlagsVk_t>( GetImageFlags( _desc.imageType ));
+		desc.imageType		= BitCast<ImageTypeVk_t>( VEnumCast( _desc.imageType ));
+		desc.flags			= BitCast<ImageFlagsVk_t>( VEnumCast( _desc.flags ));
 		desc.usage			= BitCast<ImageUsageVk_t>( VEnumCast( _desc.usage ));
 		desc.format			= BitCast<FormatVk_t>( VEnumCast( _desc.format ));
 		desc.currentLayout	= BitCast<ImageLayoutVk_t>( _defaultLayout );	// TODO
@@ -468,29 +417,30 @@ namespace FG
 		VkFormatProperties	props = {};
 		vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), VEnumCast( desc.format ), OUT &props );
 		
-		const bool					opt_tiling	= not EnumAny( memType, EMemoryType::HostRead | EMemoryType::HostWrite );
-		const VkFormatFeatureFlags	dev_flags	= opt_tiling ? props.optimalTilingFeatures : props.linearTilingFeatures;
-		VkFormatFeatureFlags		img_flags	= 0;
+		const bool					opt_tiling		= not AnyBits( memType, EMemoryType::HostRead | EMemoryType::HostWrite );
+		const VkFormatFeatureFlags	available_flags	= opt_tiling ? props.optimalTilingFeatures : props.linearTilingFeatures;
+		VkFormatFeatureFlags		required_flags	= 0;
 
 		for (EImageUsage t = EImageUsage(1); t <= desc.usage; t = EImageUsage(uint(t) << 1))
 		{
-			if ( not EnumEq( desc.usage, t ))
+			if ( not AllBits( desc.usage, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
-				case EImageUsage::TransferSrc :				img_flags |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT;	break;
-				case EImageUsage::TransferDst :				img_flags |= VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;	break;
-				case EImageUsage::Sampled :					img_flags |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;	break;
-				case EImageUsage::Storage :					img_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;				break;
-				case EImageUsage::StorageAtomic :			img_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;		break;
-				case EImageUsage::ColorAttachment :			img_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;			break;
-				case EImageUsage::ColorAttachmentBlend :	img_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;		break;
-				case EImageUsage::DepthStencilAttachment :	img_flags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;	break;
+				case EImageUsage::TransferSrc :				required_flags |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT;	break;
+				case EImageUsage::TransferDst :				required_flags |= VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;	break;
+				case EImageUsage::Sampled :					required_flags |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;	break;
+				case EImageUsage::Storage :					required_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;				break;
+				case EImageUsage::StorageAtomic :			required_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;		break;
+				case EImageUsage::ColorAttachment :			required_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;			break;
+				case EImageUsage::ColorAttachmentBlend :	required_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;		break;
+				case EImageUsage::DepthStencilAttachment :	required_flags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;	break;
 				case EImageUsage::TransientAttachment :		break;	// TODO
 				case EImageUsage::InputAttachment :			break;
-				case EImageUsage::ShadingRate :				if ( not dev.IsShadingRateImageEnabled() ) return false;		break;
+				case EImageUsage::ShadingRate :				if ( not dev.GetFeatures().shadingRateImageNV ) return false;		break;
+				case EImageUsage::FragmentDensityMap :		return false;	// not supported yet
 				case EImageUsage::_Last :
 				case EImageUsage::All :
 				case EImageUsage::Transfer :
@@ -500,7 +450,7 @@ namespace FG
 			END_ENUM_CHECKS();
 		}
 
-		return (dev_flags & img_flags);
+		return AllBits( available_flags, required_flags );
 	}
 	
 /*
@@ -511,9 +461,15 @@ namespace FG
 	bool  VImage::IsSupported (const VDevice &dev, const ImageViewDesc &desc) const
 	{
 		SHAREDLOCK( _drCheck );
+		
+		if ( desc.viewType == EImage_CubeArray )
+		{
+			if ( not dev.GetProperties().features.imageCubeArray )
+				return false;
 
-		if ( desc.viewType == EImage::TexCubeArray and not dev.GetDeviceFeatures().imageCubeArray )
-			return false;
+			if ( not AllBits( _desc.flags, EImageFlags::CubeCompatible ))
+				return false;
+		}
 
 		// TODO: mutable format
 

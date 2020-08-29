@@ -41,7 +41,6 @@ namespace FG
 	// methods
 	public:
 		VMemoryObj () {}
-		VMemoryObj (VMemoryObj &&) = default;
 		~VMemoryObj ();
 
 		bool Create (const MemoryDesc &, StringView dbgName);
@@ -49,7 +48,10 @@ namespace FG
 
 		bool AllocateForImage (VMemoryManager &, VkImage);
 		bool AllocateForBuffer (VMemoryManager &, VkBuffer);
+
+		#ifdef VK_NV_ray_tracing
 		bool AllocateForAccelStruct (VMemoryManager &, VkAccelerationStructureNV);
+		#endif
 
 		bool GetInfo (VMemoryManager &, OUT MemoryInfo &) const;
 

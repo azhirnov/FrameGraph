@@ -50,7 +50,6 @@ namespace FG
 	// methods
 	public:
 		VDescriptorSetLayout () {}
-		VDescriptorSetLayout (VDescriptorSetLayout &&) = default;
 		VDescriptorSetLayout (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding);
 		~VDescriptorSetLayout ();
 

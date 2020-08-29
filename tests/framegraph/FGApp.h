@@ -3,7 +3,7 @@
 #pragma once
 
 #include "framework/Window/IWindow.h"
-#include "framework/Vulkan/VulkanDeviceExt.h"
+#include "framework/Vulkan/VulkanDevice.h"
 #include "framegraph/FG.h"
 #include "stl/Algorithms/StringUtils.h"
 
@@ -20,13 +20,13 @@ namespace FG
 	private:
 		using TestFunc_t			= bool (FGApp::*) ();
 		using TestQueue_t			= Deque<Pair< TestFunc_t, uint >>;
-		using DebugReport			= VulkanDeviceExt::DebugReport;
+		using DebugReport			= VulkanDeviceInitializer::DebugReport;
 		using VPipelineCompilerPtr	= SharedPtr< class VPipelineCompiler >;
 
 
 	// variables
 	private:
-		VulkanDeviceExt			_vulkan;
+		VulkanDeviceInitializer	_vulkan;
 		WindowPtr				_window;
 		FrameGraph				_frameGraph;
 		VPipelineCompilerPtr	_pplnCompiler;

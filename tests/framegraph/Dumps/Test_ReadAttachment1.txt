@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "ColorTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | ColorAttachment
@@ -47,7 +47,7 @@ CommandBuffer {
 
 	Image {
 		name:         "DepthTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       Depth24_Stencil8
 		usage:        TransferDst | Sampled | DepthStencilAttachment

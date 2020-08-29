@@ -62,6 +62,8 @@ namespace FGC
 
 		UniquePtr<IVulkanSurface>  GetVulkanSurface () const override;
 		
+		void * GetPlatformHandle () const override;
+
 
 	private:
 		static void _GLFW_ErrorCallback (int code, const char* msg);

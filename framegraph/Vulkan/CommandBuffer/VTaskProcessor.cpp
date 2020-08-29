@@ -271,12 +271,12 @@ namespace FG
 				ASSERT( offset < buffer->Size() );
 				ASSERT( offset + size <= buffer->Size() );
 
-				auto&	limits	= _tp._fgThread.GetDevice().GetDeviceProperties().limits;
-				FG_UNUSED( limits );
+				auto&	limits	= _tp._fgThread.GetDevice().GetDeviceLimits();
+				Unused( limits );
 
 				if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
 				{
-					ASSERT( size == buf.staticSize );
+					//ASSERT( size == buf.staticSize );
 					ASSERT( (offset % limits.minUniformBufferOffsetAlignment) == 0 );
 					ASSERT( size <= limits.maxUniformBufferRange );
 				}else{
@@ -346,6 +346,7 @@ namespace FG
 */
 	void  VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::RayTracingScene &rts)
 	{
+	#ifdef VK_NV_ray_tracing
 		for (uint i = 0; i < rts.elementCount; ++i)
 		{
 			VLocalRTScene const*  scene = _tp._ToLocal( rts.elements[i].sceneId );
@@ -366,6 +367,10 @@ namespace FG
 				}
 			}
 		}
+	#else
+		Unused( rts );
+		ASSERT( !"ray tracing is not supported" );
+	#endif
 	}
 //-----------------------------------------------------------------------------
 
@@ -519,10 +524,14 @@ namespace FG
 */
 	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshes> &task)
 	{
+	#ifdef VK_NV_mesh_shader
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
 		
 		_MergePipeline( task.dynamicStates, task.pipeline );
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -532,6 +541,7 @@ namespace FG
 */
 	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task)
 	{
+	#ifdef VK_NV_mesh_shader
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
 		
@@ -542,6 +552,9 @@ namespace FG
 		}
 
 		_MergePipeline( task.dynamicStates, task.pipeline );
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -587,7 +600,10 @@ namespace FG
 		STATIC_ASSERT(	(IsSameTypes<PipelineType, VGraphicsPipeline>) or
 						(IsSameTypes<PipelineType, VMeshPipeline>) );
 
-		pipeline->IsEarlyFragmentTests() ? _earlyFragmentTests = true : _lateFragmentTests = true;
+		if ( pipeline->IsEarlyFragmentTests() )
+			_earlyFragmentTests = true;
+		else
+			_lateFragmentTests = true;
 
 		_depthWrite |= (ds.hasDepthWrite & ds.depthWrite);
 
@@ -802,6 +818,7 @@ namespace FG
 */
 	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshes> &task)
 	{
+	#ifdef VK_NV_mesh_shader
 		//_tp._CmdDebugMarker( task.GetName() );
 		
 		VPipelineLayout const*	layout	= null;
@@ -822,6 +839,9 @@ namespace FG
 			//stat.primitiveCount += unknown
 		}
 		stat.drawCalls += uint(task.commands.size());
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -831,6 +851,7 @@ namespace FG
 */
 	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task)
 	{
+	#ifdef VK_NV_mesh_shader
 		//_tp._CmdDebugMarker( task.GetName() );
 		
 		VPipelineLayout const*	layout	= null;
@@ -855,6 +876,9 @@ namespace FG
 			//stat.vertexCount += unknown
 			//stat.primitiveCount += unknown
 		}
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -1009,10 +1033,15 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState)
 	{
+	#ifdef VK_NV_mesh_shader
 		_dynamicStates	= dynamicState;
 		_gpipeline		= null;
 		_mpipeline		= _tp._GetResource( id );
 		_changed		|= ALL_BITS;
+	#else
+		Unused( id, dynamicState );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
 	}
 	
 /*
@@ -1231,6 +1260,7 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value)
 	{
+	#ifdef VK_NV_shading_rate_image
 		_BindPipeline( ALL_BITS );
 		
 		StaticArray< VkShadingRatePaletteEntryNV, 32 >	entries;
@@ -1245,6 +1275,10 @@ namespace FG
 		}
 
 		_tp.vkCmdSetViewportShadingRatePaletteNV( _tp._cmdBuffer, viewportIndex, 1, &palette );
+	#else
+		Unused( viewportIndex, value );
+		ASSERT( !"shading rate image is not supported" );
+	#endif
 	}
 	
 /*
@@ -1254,11 +1288,12 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::BindShadingRateImage (RawImageID value, ImageLayer layer, MipmapLevel level)
 	{
+	#ifdef VK_NV_shading_rate_image
 		auto*	image = _tp._GetResource( value );
 		CHECK_ERR( image, void());
 		
 		ImageViewDesc	desc;
-		desc.viewType	= EImage::Tex2D;
+		desc.viewType	= EImage_2D;
 		desc.format		= EPixelFormat::R8U;
 		desc.baseLevel	= level;
 		desc.baseLayer	= layer;
@@ -1267,6 +1302,10 @@ namespace FG
 		VkImageView	view = image->GetView( _tp._fgThread.GetDevice(), false, desc );
 
 		_tp._BindShadingRateImage( view );
+	#else
+		Unused( value, layer, level );
+		ASSERT( !"shading rate image is not supported" );
+	#endif
 	}
 
 /*
@@ -1351,11 +1390,16 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::DrawMeshes (uint taskCount, uint firstTask)
 	{
+	#ifdef VK_NV_mesh_shader
 		CHECK( _mpipeline );
 		CHECK_ERR( _BindPipeline( MESH_BIT ), void());
 
 		_tp.vkCmdDrawMeshTasksNV( _tp._cmdBuffer, taskCount, firstTask );
 		_tp.Stat().drawCalls ++;
+	#else
+		Unused( taskCount, firstTask );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
 	}
 	
 /*
@@ -1365,6 +1409,7 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
 	{
+	#ifdef VK_NV_mesh_shader
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		CHECK_ERR( buf, void());
 
@@ -1373,6 +1418,10 @@ namespace FG
 
 		_tp.vkCmdDrawMeshTasksIndirectNV( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
 		_tp.Stat().drawCalls += drawCount;
+	#else
+		Unused( indirectBuffer, indirectBufferOffset, drawCount, stride );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
 	}
 //-----------------------------------------------------------------------------
 
@@ -1385,15 +1434,18 @@ namespace FG
 */
 	VTaskProcessor::VTaskProcessor (VCommandBuffer &fgThread, VkCommandBuffer cmd) :
 		_fgThread{ fgThread },
-		_cmdBuffer{ cmd },				_enableDebugUtils{ _fgThread.GetDevice().IsDebugUtilsEnabled() },
-		_isDefaultScissor{ false },		_perPassStatesUpdated{ false },
+		_cmdBuffer{ cmd },
+		_enableDebugUtils{ _fgThread.GetDevice().GetFeatures().debugUtils },
+		_isDefaultScissor{ false },	
+		_perPassStatesUpdated{ false },
+		_dispatchBase{ _fgThread.GetDevice().GetFeatures().dispatchBase },
 		_pendingResourceBarriers{ fgThread.GetAllocator() }
 	{
 		ASSERT( _cmdBuffer );
 		
 		VulkanDeviceFn_Init( _fgThread.GetDevice() );
 
-		_CmdPushDebugGroup( "CommandBuffer: "s << (fgThread.GetName().size() ? fgThread.GetName() : ToString<16>( size_t(_cmdBuffer) )) );
+		_CmdPushDebugGroup( "CommandBuffer: "s << (fgThread.GetName().size() ? fgThread.GetName() : ToString<16>( size_t(_cmdBuffer) )), RGBA8u{255} );
 	}
 	
 /*
@@ -1518,7 +1570,7 @@ namespace FG
 */
 	void  VTaskProcessor::_CmdDebugMarker (StringView text) const
 	{
-		FG_UNUSED( text );
+		Unused( text );
 		/*if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
@@ -1535,14 +1587,14 @@ namespace FG
 	_CmdPushDebugGroup
 =================================================
 */
-	void  VTaskProcessor::_CmdPushDebugGroup (StringView text) const
+	void  VTaskProcessor::_CmdPushDebugGroup (StringView text, RGBA8u color) const
 	{
 		if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
 			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 			info.pLabelName	= text.data();
-			MemCopy( info.color, _dbgColor );
+			MemCopy( info.color, RGBA32f{color} );
 
 			vkCmdBeginDebugUtilsLabelEXT( _cmdBuffer, &info );
 		}
@@ -1662,15 +1714,19 @@ namespace FG
 */
 	void  VTaskProcessor::_SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view)
 	{
+	#ifdef VK_NV_shading_rate_image
 		VLocalImage const*	image;
 		ImageViewDesc		desc;
 
-		if ( not logicalRP.GetShadingRateImage( OUT image, OUT desc ) )
+		if ( not logicalRP.GetShadingRateImage( OUT image, OUT desc ))
 			return;
 
 		view = image->GetView( _fgThread.GetDevice(), false, desc );
 
 		_AddImage( image, EResourceState::ShadingRateImageRead, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV, desc );
+	#else
+		Unused( logicalRP, view );
+	#endif
 	}
 	
 /*
@@ -1680,11 +1736,15 @@ namespace FG
 */
 	void  VTaskProcessor::_BindShadingRateImage (VkImageView view)
 	{
+	#ifdef VK_NV_shading_rate_image
 		if ( _shadingRateImage != view )
 		{
 			_shadingRateImage = view;
 			vkCmdBindShadingRateImageNV( _cmdBuffer, _shadingRateImage, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV );
 		}
+	#else
+		Unused( view );
+	#endif
 	}
 	
 /*
@@ -1855,13 +1915,13 @@ namespace FG
 
 		if ( not task.IsSubpass() )
 		{
-			_CmdPushDebugGroup( task.Name() );
+			_CmdPushDebugGroup( task.Name(), task.DebugColor() );
 			_BeginRenderPass( task );
 		}
 		else
 		{
 			_CmdPopDebugGroup();
-			_CmdPushDebugGroup( task.Name() );
+			_CmdPushDebugGroup( task.Name(), task.DebugColor() );
 			_BeginSubpass( task );
 		}
 
@@ -2013,9 +2073,11 @@ namespace FG
 		
 		if ( auto viewports = logicalRP.GetViewports(); viewports.size() )
 			vkCmdSetViewport( _cmdBuffer, 0, uint(viewports.size()), viewports.data() );
-
+		
+		#ifdef VK_NV_shading_rate_image
 		if ( auto palette = logicalRP.GetShadingRatePalette(); palette.size() )
 			vkCmdSetViewportShadingRatePaletteNV( _cmdBuffer, 0, uint(palette.size()), palette.data() );
+		#endif
 	}
 	
 /*
@@ -2127,6 +2189,7 @@ namespace FG
 */
 	inline bool  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
 	{
+	#ifdef VK_NV_mesh_shader
 		RenderState				render_state;
 		EPipelineDynamicState	dynamic_states = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		
@@ -2153,6 +2216,10 @@ namespace FG
 		
 		_BindPipeline2( logicalRP, ppln_id );
 		return true;
+	#else
+		Unused( logicalRP, task, pplnLayout );
+		return false;
+	#endif
 	}
 
 /*
@@ -2200,8 +2267,21 @@ namespace FG
 
 		for (auto& cmd : task.commands)
 		{
-			vkCmdDispatchBase( _cmdBuffer, cmd.baseGroup.x, cmd.baseGroup.y, cmd.baseGroup.z,
-								cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+		#if defined(VK_KHR_device_group) || defined(VK_VERSION_1_1)
+			if ( _dispatchBase )
+			{
+				vkCmdDispatchBaseKHR( _cmdBuffer, cmd.baseGroup.x, cmd.baseGroup.y, cmd.baseGroup.z,
+									  cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+			}
+			else
+			{
+				ASSERT( All( cmd.baseGroup == uint3(0) ));
+				vkCmdDispatch( _cmdBuffer, cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+			}
+		#else
+			ASSERT( All( cmd.baseGroup == uint3(0) ));
+			vkCmdDispatch( _cmdBuffer, cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+		#endif
 		}
 		Stat().dispatchCalls += uint(task.commands.size());
 	}
@@ -2543,14 +2623,14 @@ namespace FG
 
 		VLocalImage const*		image		= task.image;
 		const VkImage			vk_image	= image->Handle();
-		const uint3				dimension	= image->Dimension() >> task.baseLevel;
+		const uint3				dimension	= image->Dimension() >> task.baseMipLevel;
 		VkImageSubresourceRange	subres;
 
 		subres.aspectMask		= image->AspectMask();
-		subres.baseArrayLayer	= 0;
-		subres.layerCount		= image->ArrayLayers();
-		subres.baseMipLevel		= task.baseLevel;
-		subres.levelCount		= Min( task.levelCount, image->MipmapLevels() - Min( image->MipmapLevels()-1, task.baseLevel ));
+		subres.baseArrayLayer	= task.baseLayer;
+		subres.layerCount		= Min( task.layerCount, image->ArrayLayers() );
+		subres.baseMipLevel		= task.baseMipLevel;
+		subres.levelCount		= Min( task.levelCount, image->MipmapLevels() - Min( image->MipmapLevels()-1, task.baseMipLevel ));
 
 		if ( subres.levelCount <= 1 )
 			return;
@@ -2574,7 +2654,7 @@ namespace FG
 			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.srcAccessMask		= 0;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, 0, subres.layerCount };
+			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, subres.baseArrayLayer, subres.layerCount };
 
 			vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									0, null, 0, null, 1, &barrier );
@@ -2582,10 +2662,10 @@ namespace FG
 			VkImageBlit		region	= {};
 			region.srcOffsets[0]	= { 0, 0, 0 };
 			region.srcOffsets[1]	= { src_size.x, src_size.y, src_size.z };
-			region.srcSubresource	= { subres.aspectMask, (subres.baseMipLevel+i-1), 0, subres.layerCount };
+			region.srcSubresource	= { subres.aspectMask, (subres.baseMipLevel+i-1), subres.baseArrayLayer, subres.layerCount };
 			region.dstOffsets[0]	= { 0, 0, 0 };
 			region.dstOffsets[1]	= { dst_size.x, dst_size.y, dst_size.z };
-			region.dstSubresource	= { subres.aspectMask, (subres.baseMipLevel+i), 0, subres.layerCount };
+			region.dstSubresource	= { subres.aspectMask, (subres.baseMipLevel+i), subres.baseArrayLayer, subres.layerCount };
 
 			vkCmdBlitImage( _cmdBuffer, vk_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 							 vk_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
@@ -2597,7 +2677,7 @@ namespace FG
 			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
-			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, 0, subres.layerCount };
+			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, subres.baseArrayLayer, subres.layerCount };
 
 			vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									0, null, 0, null, 1, &barrier );
@@ -2746,7 +2826,7 @@ namespace FG
 		const VkFilter			filter		= src_dim.x == dst_dim.x and src_dim.y == dst_dim.y ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
 		VkImageBlit				region;
 
-		ASSERT( EnumEq( dst_image->Description().usage, EImageUsage::TransferDst ));
+		ASSERT( AllBits( dst_image->Description().usage, EImageUsage::TransferDst ));
 		CHECK( src_image != dst_image );
 		
 		region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, task.mipmap.Get(), task.layer.Get(), 1 };
@@ -2777,6 +2857,7 @@ namespace FG
 */
 	void  VTaskProcessor::Visit (const VFgTask<UpdateRayTracingShaderTable> &task)
 	{
+	#ifdef VK_NV_ray_tracing
 		_CmdDebugMarker( task.Name() );
 
 		VPipelineCache::BufferCopyRegions_t	copy_regions;
@@ -2793,8 +2874,8 @@ namespace FG
 
 		for (auto& copy : copy_regions)
 		{
-			ASSERT( EnumEq( copy.srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
-			ASSERT( EnumEq( copy.dstBuffer->Description().usage, EBufferUsage::TransferDst ));
+			ASSERT( AllBits( copy.srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
+			ASSERT( AllBits( copy.dstBuffer->Description().usage, EBufferUsage::TransferDst ));
 
 			_AddBuffer( copy.srcBuffer, EResourceState::TransferSrc, copy.region.srcOffset, copy.region.size );
 			_AddBuffer( copy.dstBuffer, EResourceState::TransferDst, copy.region.dstOffset, copy.region.size );
@@ -2807,6 +2888,9 @@ namespace FG
 		}
 
 		Stat().transferOps += uint(copy_regions.size());
+	#else
+		Unused( task );
+	#endif
 	}
 
 /*
@@ -2816,6 +2900,7 @@ namespace FG
 */
 	void  VTaskProcessor::Visit (const VFgTask<BuildRayTracingGeometry> &task)
 	{
+	#ifdef VK_NV_ray_tracing
 		_CmdDebugMarker( task.Name() );
 		
 		_AddRTGeometry( task.RTGeometry(), EResourceState::BuildRayTracingStructWrite );
@@ -2843,6 +2928,9 @@ namespace FG
 											task.ScratchBuffer()->Handle(),
 											task.ScratchBufferOffset() );
 		Stat().buildASCalls ++;
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -2852,6 +2940,7 @@ namespace FG
 */
 	void  VTaskProcessor::Visit (const VFgTask<BuildRayTracingScene> &task)
 	{
+	#ifdef VK_NV_ray_tracing
 		_CmdDebugMarker( task.Name() );
 		
 		// copy instance data to GPU memory
@@ -2897,6 +2986,9 @@ namespace FG
 											task.ScratchBuffer()->Handle(),
 											task.ScratchBufferOffset() );
 		Stat().buildASCalls ++;
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -2906,6 +2998,7 @@ namespace FG
 */
 	void  VTaskProcessor::Visit (const VFgTask<TraceRays> &task)
 	{
+	#ifdef VK_NV_ray_tracing
 		_CmdDebugMarker( task.Name() );
 
 		const bool			is_debuggable	= (task.debugModeIndex != Default);
@@ -2954,7 +3047,7 @@ namespace FG
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
 		
-		ASSERT( EnumEq( sbt_buffer->Description().usage, EBufferUsage::RayTracing ));
+		ASSERT( AllBits( sbt_buffer->Description().usage, EBufferUsage::RayTracing ));
 
 		_AddBuffer( sbt_buffer, EResourceState::ShaderRead | EResourceState::_RayTracingShader, raygen_offset, block_size );
 		_CommitBarriers();
@@ -2966,6 +3059,9 @@ namespace FG
 							sbt_buffer->Handle(), callable_offset, callable_stride,
 							task.groupCount.x, task.groupCount.y, task.groupCount.z );
 		Stat().traceRaysCalls ++;
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -3145,6 +3241,7 @@ namespace FG
 */
 	void  VTaskProcessor::_AddRTGeometry (const VLocalRTGeometry *geom, EResourceState state)
 	{
+	#ifdef VK_NV_ray_tracing
 		ASSERT( geom );
 		_pendingResourceBarriers.insert({ geom, &CommitResourceBarrier<VLocalRTGeometry> });
 
@@ -3152,6 +3249,9 @@ namespace FG
 
 		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddRTGeometryUsage( geom->ToGlobal(), RTGeometryState{ state, _currTask });
+	#else
+		Unused( geom, state );
+	#endif
 	}
 	
 /*
@@ -3161,6 +3261,7 @@ namespace FG
 */
 	void  VTaskProcessor::_AddRTScene (const VLocalRTScene *scene, EResourceState state)
 	{
+	#ifdef VK_NV_ray_tracing
 		ASSERT( scene );
 		_pendingResourceBarriers.insert({ scene, &CommitResourceBarrier<VLocalRTScene> });
 
@@ -3168,6 +3269,9 @@ namespace FG
 
 		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddRTSceneUsage( scene->ToGlobal(), RTSceneState{ state, _currTask });
+	#else
+		Unused( scene, state );
+	#endif
 	}
 
 /*
@@ -3210,12 +3314,17 @@ namespace FG
 
 			EQueueUsage q_usage	= EQueueUsage(0) | _fgThread.GetBatch().GetQueueType();
 			auto&		dev		= _fgThread.GetDevice();
-
-			if ( EnumEq( q_usage, EQueueUsage::Graphics ) and dev.IsShadingRateImageEnabled() )
-				barrier.srcAccessMask |= VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;
+			Unused( dev, q_usage );
 			
-			if ( EnumEq( q_usage, EQueueUsage::Graphics | EQueueUsage::AsyncCompute ) and dev.IsRayTracingEnabled() )
+			#ifdef VK_NV_shading_rate_image
+			if ( AllBits( q_usage, EQueueUsage::Graphics ) and dev.GetFeatures().shadingRateImageNV )
+				barrier.srcAccessMask |= VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;
+			#endif
+			
+			#ifdef VK_NV_ray_tracing
+			if ( AllBits( q_usage, EQueueUsage::Graphics | EQueueUsage::AsyncCompute ) and dev.GetFeatures().rayTracingNV )
 				barrier.srcAccessMask |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
+			#endif
 
 			barrier.dstAccessMask	= barrier.srcAccessMask;
 

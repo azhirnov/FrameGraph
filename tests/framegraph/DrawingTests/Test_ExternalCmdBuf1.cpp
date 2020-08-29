@@ -16,7 +16,7 @@ namespace FG
 		{
 			VkCommandPoolCreateInfo		info = {};
 			info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			info.queueFamilyIndex	= _vulkan.GetVkQueues()[0].familyIndex;
+			info.queueFamilyIndex	= uint(_vulkan.GetVkQueues()[0].familyIndex);
 			info.flags				= 0;
 
 			VK_CHECK( _vulkan.vkCreateCommandPool( _vulkan.GetVkDevice(), &info, null, OUT &vk_cmdpool ));
@@ -88,7 +88,7 @@ namespace FG
 		};
 		
 
-		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ) );
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ), {cmd1} );
 		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ), {cmd2} );
 		CHECK_ERR( cmd1 and cmd2 and cmd3 );
@@ -97,7 +97,7 @@ namespace FG
 		{
 			Task	t_update	= cmd1->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( ArrayView<uint8_t>{src_data}.section( 0, 128 ) ));
 			Task	t_copy		= cmd1->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 64_b, 128_b ).DependsOn( t_update ));
-			FG_UNUSED( t_copy );
+			Unused( t_copy );
 
 			CHECK_ERR( _frameGraph->Execute( cmd1 ));
 		}
@@ -128,7 +128,7 @@ namespace FG
 
 			VulkanCommandBatch	vk_cmdbatch = {};
 			vk_cmdbatch.commands			= { Cast<CommandBufferVk_t>( &vk_cmdbuf ), 1 };
-			vk_cmdbatch.queueFamilyIndex	= _vulkan.GetVkQueues()[0].familyIndex;
+			vk_cmdbatch.queueFamilyIndex	= uint(_vulkan.GetVkQueues()[0].familyIndex);
 
 			CHECK_ERR( cmd2->AddExternalCommands( vk_cmdbatch ));
 			CHECK_ERR( _frameGraph->Execute( cmd2 ));
@@ -138,7 +138,7 @@ namespace FG
 		{
 			Task	t_copy	= cmd3->AddTask( CopyBuffer().From( ext_buffer ).To( dst_buffer ).AddRegion( 128_b, 192_b, 128_b ));
 			Task	t_read	= cmd3->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_copy ));
-			FG_UNUSED( t_read );
+			Unused( t_read );
 			
 			CHECK_ERR( _frameGraph->Execute( cmd3 ));
 		}

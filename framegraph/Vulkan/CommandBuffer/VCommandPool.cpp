@@ -60,7 +60,7 @@ namespace FG
 			_pool = VK_NULL_HANDLE;
 			
 			DEBUG_ONLY(
-				FG_LOGD( "Max command buffers: "s << ToString( _cmdBufCount ) );
+				FG_LOGD( "Max command buffers: "s << ToString( _cmdBufCount ));
 				_cmdBufCount = 0;
 			)
 		}
@@ -89,7 +89,9 @@ namespace FG
 		EXLOCK( _drCheck );
 		CHECK_ERR( IsCreated(), void());
 
-		dev.vkTrimCommandPool( dev.GetVkDevice(), _pool, flags );
+	#ifdef VK_KHR_maintenance1
+		dev.vkTrimCommandPoolKHR( dev.GetVkDevice(), _pool, flags );
+	#endif
 	}
 
 /*

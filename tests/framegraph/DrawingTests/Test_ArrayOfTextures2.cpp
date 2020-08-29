@@ -7,8 +7,11 @@ namespace FG
 
 	bool FGApp::Test_ArrayOfTextures2 ()
 	{
-		if ( not _vulkan.HasDeviceExtension( VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME ))
+		if ( not _vulkan.GetFeatures().descriptorIndexing )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;
+		}
 
 		ComputePipelineDesc	ppln;
 
@@ -37,18 +40,20 @@ void main ()
 		const uint2		tex_dim		= { 16, 16 };
 
 		ImageID			textures[8];
-		for (size_t i = 0; i < CountOf(textures); ++i) {
-			textures[i] = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{tex_dim.x, tex_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-															   EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Texture-" + ToString(i) );
+		for (size_t i = 0; i < CountOf(textures); ++i)
+		{
+			textures[i] = _frameGraph->CreateImage( ImageDesc{}.SetDimension({ tex_dim.x, tex_dim.y }).SetFormat( EPixelFormat::RGBA8_UNorm )
+																.SetUsage( EImageUsage::Sampled | EImageUsage::TransferDst ),
+												    Default, "Texture-" + ToString(i) );
+			CHECK_ERR( textures[i] );
 		}
 
-		ImageID			dst_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "OutImage" );
-		
+		ImageID			dst_image	= _frameGraph->CreateImage( ImageDesc{}.SetDimension({ image_dim.x, image_dim.y }).SetFormat( EPixelFormat::RGBA8_UNorm )
+																			.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
+															    Default, "OutImage" );
 		SamplerID		sampler		= _frameGraph->CreateSampler( SamplerDesc{} );
-
 		CPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
-		CHECK_ERR( pipeline );
+		CHECK_ERR( dst_image and sampler and pipeline );
 		
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID{"0"}, OUT resources ));
@@ -108,7 +113,7 @@ void main ()
 																.AddResources( DescriptorSetID{"0"}, &resources ).DependsOn( t_update ));
 		
 		Task	t_read	= cmd->AddTask( ReadImage().SetImage( dst_image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_comp ));
-		FG_UNUSED( t_read );
+		Unused( t_read );
 		
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

@@ -177,6 +177,8 @@ namespace FG
 	};
 	
 
+	
+#ifdef VK_NV_mesh_shader
 
 	//
 	// Base Draw Meshes
@@ -239,6 +241,8 @@ namespace FG
 	// methods
 		VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawMeshesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
+
+#endif	// VK_NV_mesh_shader
 	
 
 

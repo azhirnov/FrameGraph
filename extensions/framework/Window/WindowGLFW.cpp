@@ -6,6 +6,13 @@
 
 #ifdef FG_ENABLE_GLFW
 
+# ifdef PLATFORM_WINDOWS
+#	define GLFW_EXPOSE_NATIVE_WIN32
+#	include "stl/Platforms/WindowsHeader.h"
+# endif
+
+# include "GLFW/glfw3native.h"
+
 # define MOUSE_WHEEL_UP		10
 # define MOUSE_WHEEL_DOWN	11
 
@@ -475,6 +482,24 @@ namespace {
 	UniquePtr<IVulkanSurface>  WindowGLFW::GetVulkanSurface () const
 	{
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( _window )};
+	}
+		
+/*
+=================================================
+	GetPlatformHandle
+=================================================
+*/
+	void*  WindowGLFW::GetPlatformHandle () const
+	{
+		if ( not _window )
+			return null;
+
+	#ifdef PLATFORM_WINDOWS
+		return glfwGetWin32Window( _window );
+	#else
+	#	error not implemented!
+		return null;
+	#endif
 	}
 //-----------------------------------------------------------------------------
 

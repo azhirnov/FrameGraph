@@ -26,7 +26,8 @@ namespace FG
 
 		// create default white image
 		{
-			ImageID		image = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{1,1,1}, EPixelFormat::RGBA8_UNorm, EImageUsage::Sampled | EImageUsage::Transfer },
+			ImageID		image = fg->CreateImage( ImageDesc{}.SetView( EImage_2D ).SetDimension({1,1}).SetFormat( EPixelFormat::RGBA8_UNorm )
+														.SetUsage( EImageUsage::Sampled | EImageUsage::Transfer ),
 												 Default, "Default white" );
 			CHECK_ERR( image );
 
@@ -132,12 +133,12 @@ namespace FG
 		uint	layer_count	= uint(levels.front().size());
 
 		ImageDesc	desc;
-		desc.imageType		= layer_count > 1 ? EImage::Tex2DArray : EImage::Tex2D;
-		desc.dimension		= layer.dimension;
-		desc.format			= layer.format;
-		desc.arrayLayers	= ImageLayer{ layer_count };
-		desc.maxLevel		= MipmapLevel{ genMipmaps ? ~0u : base_level+1 };
-		desc.usage			= EImageUsage::Sampled | EImageUsage::Transfer;
+		desc.SetView( image->GetType() );
+		desc.SetDimension( layer.dimension );
+		desc.SetFormat( layer.format );
+		desc.SetArrayLayers( layer_count );
+		desc.SetMaxMipmaps( genMipmaps ? ~0u : base_level+1 );
+		desc.SetUsage( EImageUsage::Sampled | EImageUsage::Transfer );
 
 		ImageID		id;
 		CHECK_ERR( id = cmdbuf->GetFrameGraph()->CreateImage( desc ));
@@ -167,7 +168,7 @@ namespace FG
 
 		if ( genMipmaps )
 		{
-			t_upload = cmdbuf->AddTask( GenerateMipmaps{}.SetImage( id ).SetRange( MipmapLevel{base_level}, UMax ).DependsOn( t_upload ));
+			t_upload = cmdbuf->AddTask( GenerateMipmaps{}.SetImage( id ).SetMipmaps( base_level, UMax ).DependsOn( t_upload ));
 		}
 
 		_handleCache.insert_or_assign( image.operator->(), Pair<IntermImageWeak, ImageID>{ image, std::move(id) });

@@ -64,7 +64,7 @@ namespace {
 		//const int	disp_idx= 0;
 
 		//SDL_Rect	area	= {};
-		//CHECK( SDL_GetDisplayUsableBounds( disp_idx, OUT &area ) );
+		//CHECK( SDL_GetDisplayUsableBounds( disp_idx, OUT &area ));
 
 		//const int2	pos		= int2(area.x + area.w/2 - surfaceSize.x/2, area.y + area.h/2 - surfaceSize.y/2);
 
@@ -516,6 +516,36 @@ namespace {
 	UniquePtr<IVulkanSurface>  WindowSDL2::GetVulkanSurface () const
 	{
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( _window )};
+	}
+	
+/*
+=================================================
+	GetPlatformHandle
+=================================================
+*/
+	void*  WindowSDL2::GetPlatformHandle () const
+	{
+		if ( not _window )
+			return null;
+
+		SDL_SysWMinfo	info = {};
+			
+		SDL_VERSION( OUT &info.version );
+		CHECK_ERR( SDL_GetWindowWMInfo( _window, OUT &info ) == SDL_TRUE );
+		
+		switch ( info.subsystem )
+		{
+			#ifdef PLATFORM_ANDROID
+			case SDL_SYSWM_ANDROID :
+				return info.info.android.window;
+			#endif
+				
+			#ifdef PLATFORM_WINDOWS
+			case SDL_SYSWM_WINDOWS :
+				return info.info.win.window;
+			#endif
+		}
+		return null;
 	}
 //-----------------------------------------------------------------------------
 

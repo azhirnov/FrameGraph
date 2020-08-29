@@ -6,8 +6,7 @@
 #include "stl/Math/Rectangle.h"
 #include "stl/Math/Matrix.h"
 #include "stl/Containers/FixedMap.h"
-#include "vulkan_loader/VulkanLoader.h"
-#include "vulkan_loader/VulkanCheckError.h"
+#include "framework/Vulkan/VulkanDevice.h"
 
 namespace FGC
 {
@@ -68,13 +67,13 @@ namespace FGC
 
 		struct VRImage
 		{
-			VkImage		handle				= VK_NULL_HANDLE;
-			VkQueue		currQueue			= VK_NULL_HANDLE;
-			uint		queueFamilyIndex	= UMax;
-			uint2		dimension;
-			RectF		bounds;
-			VkFormat	format				= VK_FORMAT_UNDEFINED;
-			uint		sampleCount			= 1;
+			VkImage			handle				= VK_NULL_HANDLE;
+			VkQueue			currQueue			= VK_NULL_HANDLE;
+			VQueueFamily	queueFamilyIndex	= Default;
+			uint2			dimension;
+			RectF			bounds;
+			VkFormat		format				= VK_FORMAT_UNDEFINED;
+			uint			sampleCount			= 1;
 		};
 
 		struct VRCamera

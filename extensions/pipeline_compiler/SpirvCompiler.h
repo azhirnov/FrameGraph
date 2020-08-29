@@ -156,9 +156,8 @@ namespace FG
 		void  _MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, /*TLayoutGeometry*/uint type) const;
 
 		ND_ BindingIndex	_ToBindingIndex (uint index) const;
-		ND_ EImage			_ExtractImageType (const glslang::TType &type) const;
+		ND_ EImageSampler	_ExtractImageType (const glslang::TType &type) const;
 		ND_ EVertexType		_ExtractVertexType (const glslang::TType &type) const;
-		ND_ EPixelFormat	_ExtractImageFormat (/*TLayoutFormat*/uint format) const;
 		ND_ EFragOutput		_ExtractFragmentOutputType (const glslang::TType &type) const;
 	};
 

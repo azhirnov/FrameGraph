@@ -1,14 +1,15 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "stl/Platforms/ThreadName.h"
-#include "stl/Platforms/WindowsHeader.h"
 
+
+#ifdef PLATFORM_WINDOWS
+# include "stl/Platforms/WindowsHeader.h"
 
 namespace FGC
 {
 namespace
 {
-#ifdef PLATFORM_WINDOWS
 	#pragma pack(push,8)
 	typedef struct tagTHREADNAME_INFO
 	{
@@ -18,6 +19,7 @@ namespace
 		DWORD dwFlags; // Reserved for future use, must be zero.
 	 } THREADNAME_INFO;
 	#pragma pack(pop)
+}	// namespace
 
 /*
 =================================================
@@ -43,18 +45,22 @@ namespace
 		}
 	#pragma warning(pop)
 	}
-//-----------------------------------------------------------------------------
-#else
-
-	static void SetCurrentThreadNameImpl (const char*)
+	
+	void SetCurrentThreadName (NtStringView name)
 	{
-		FG_COMPILATION_MESSAGE( "SetCurrentThreadName() - not supported for current platform" )
+		SetCurrentThreadNameImpl( name.c_str() );
 	}
 
-#endif
-}	// namespace
+}	// FGC
+//-----------------------------------------------------------------------------
 
 
+#elif defined(PLATFORM_ANDROID)
+# include <sys/prctl.h>
+# include <sched.h>
+
+namespace FGC
+{
 /*
 =================================================
 	SetCurrentThreadName
@@ -62,7 +68,27 @@ namespace
 */
 	void SetCurrentThreadName (NtStringView name)
 	{
-		SetCurrentThreadNameImpl( name.c_str() );
+		ASSERT(name.length() <= 16);
+		int res = ::prctl(PR_SET_NAME, (unsigned long) name.c_str(), 0, 0, 0);
+		ASSERT(res == 0);
 	}
 
 }	// FGC
+//-----------------------------------------------------------------------------
+
+
+#else
+namespace FGC
+{
+/*
+=================================================
+	SetCurrentThreadName
+=================================================
+*/
+	void SetCurrentThreadName (NtStringView)
+	{
+		FG_COMPILATION_MESSAGE( "SetCurrentThreadName() - not supported for current platform" )
+	}
+
+}	// FGC
+#endif

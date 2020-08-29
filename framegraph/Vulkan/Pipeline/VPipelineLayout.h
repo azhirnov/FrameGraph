@@ -52,7 +52,6 @@ namespace FG
 	// methods
 	public:
 		VPipelineLayout () {}
-		VPipelineLayout (VPipelineLayout &&) = default;
 		VPipelineLayout (const PipelineDescription::PipelineLayout &ppln, DSLayoutArray_t sets);
 		~VPipelineLayout ();
 

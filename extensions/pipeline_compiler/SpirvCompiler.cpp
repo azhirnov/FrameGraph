@@ -133,7 +133,7 @@ namespace FG
 		{
 			FS::path	fpath = FS::path( folder ) / headerName;
 
-			if ( not FS::exists( fpath ) )
+			if ( not FS::exists( fpath ))
 				continue;
 
 			const String	filename = fpath.make_preferred().string();
@@ -169,7 +169,7 @@ namespace FG
 			if ( not file.IsOpen() )
 				continue;
 
-			if ( _includedFiles.count( fpath ) )
+			if ( _includedFiles.count( fpath ))
 				return _results.emplace_back(new IncludeResultImpl{ " ", headerName }).get();
 
 			String	data;
@@ -334,7 +334,7 @@ namespace FG
 
 			COMP_CHECK_ERR( _BuildReflection( glslang_data, OUT outReflection ));
 		
-			if ( EnumEq( _compilerFlags, EShaderCompilationFlags::ParseAnnotations ))
+			if ( AllBits( _compilerFlags, EShaderCompilationFlags::ParseAnnotations ))
 			{
 				_ParseAnnotations( StringView{source}, INOUT outReflection );
 
@@ -363,7 +363,7 @@ namespace FG
 			{
 				EShaderLangFormat	mode = EShaderLangFormat(1u << j);
 
-				if ( not EnumEq( dbg_mode, mode ))
+				if ( not AllBits( dbg_mode, mode ))
 					continue;
 				
 				ShaderIncluder	includer	{_directories};
@@ -568,7 +568,7 @@ namespace FG
 		EShMessages		messages	= EShMsgDefault;
 		EShLanguage		stage		= ConvertShaderType( shaderType );
 		auto&			shader		= glslangData.shader;
-		const bool		auto_map	= EnumEq( _compilerFlags, EShaderCompilationFlags::AutoMapLocations );
+		const bool		auto_map	= AllBits( _compilerFlags, EShaderCompilationFlags::AutoMapLocations );
 
 		shader.reset( new TShader( stage ));
 		shader->setStrings( source.data(), int(source.size()) );
@@ -621,14 +621,14 @@ namespace FG
 		spv::SpvBuildLogger		logger;
 
 		spv_options.generateDebugInfo	= false;
-		spv_options.disableOptimizer	= not EnumEq( _compilerFlags, EShaderCompilationFlags::Optimize );
-		spv_options.optimizeSize		= EnumEq( _compilerFlags, EShaderCompilationFlags::OptimizeSize );
+		spv_options.disableOptimizer	= not AllBits( _compilerFlags, EShaderCompilationFlags::Optimize );
+		spv_options.optimizeSize		= AllBits( _compilerFlags, EShaderCompilationFlags::OptimizeSize );
 		
 		GlslangToSpv( *intermediate, OUT spirv, &logger, &spv_options );
 		log += logger.getAllMessages();
 
 		#ifdef ENABLE_OPT
-			if ( EnumEq( _compilerFlags, EShaderCompilationFlags::StrongOptimization ) )
+			if ( AllBits( _compilerFlags, EShaderCompilationFlags::StrongOptimization ))
 				CHECK_ERR( _OptimizeSPIRV( INOUT spirv, OUT log ));
 		#endif
 
@@ -1344,42 +1344,112 @@ namespace FG
 	_ExtractImageType
 =================================================
 */
-	EImage  SpirvCompiler::_ExtractImageType (const glslang::TType &type) const
+	EImageSampler  SpirvCompiler::_ExtractImageType (const glslang::TType &type) const
 	{
 		using namespace glslang;
 
 		if ( type.getBasicType() == TBasicType::EbtSampler and not type.isSubpass() )
 		{
-			TSampler const&	samp = type.getSampler();
+			TSampler const&	samp		= type.getSampler();
+			EImageSampler	res_type	= Zero;
 			
+			if ( samp.isImage() )
+			{
+				BEGIN_ENUM_CHECKS();
+				switch ( type.getQualifier().layoutFormat )
+				{
+					case TLayoutFormat::ElfRgba32f :		res_type = EImageSampler(EPixelFormat::RGBA32F);		break;
+					case TLayoutFormat::ElfRgba16f :		res_type = EImageSampler(EPixelFormat::RGBA16F);		break;
+					case TLayoutFormat::ElfR32f :			res_type = EImageSampler(EPixelFormat::R32F);			break;
+					case TLayoutFormat::ElfRgba8 :			res_type = EImageSampler(EPixelFormat::RGBA8_UNorm);	break;
+					case TLayoutFormat::ElfRgba8Snorm :		res_type = EImageSampler(EPixelFormat::RGBA8_SNorm);	break;
+					case TLayoutFormat::ElfRg32f :			res_type = EImageSampler(EPixelFormat::RG32F);			break;
+					case TLayoutFormat::ElfRg16f :			res_type = EImageSampler(EPixelFormat::RG16F);			break;
+					case TLayoutFormat::ElfR11fG11fB10f :	res_type = EImageSampler(EPixelFormat::RGB_11_11_10F);	break;
+					case TLayoutFormat::ElfR16f :			res_type = EImageSampler(EPixelFormat::R16F);			break;
+					case TLayoutFormat::ElfRgba16 :			res_type = EImageSampler(EPixelFormat::RGBA16_UNorm);	break;
+					case TLayoutFormat::ElfRgb10A2 :		res_type = EImageSampler(EPixelFormat::RGB10_A2_UNorm);	break;
+					case TLayoutFormat::ElfRg16 :			res_type = EImageSampler(EPixelFormat::RG16_UNorm);		break;
+					case TLayoutFormat::ElfRg8 :			res_type = EImageSampler(EPixelFormat::RG8_UNorm);		break;
+					case TLayoutFormat::ElfR16 :			res_type = EImageSampler(EPixelFormat::R16_UNorm);		break;
+					case TLayoutFormat::ElfR8 :				res_type = EImageSampler(EPixelFormat::R8_UNorm);		break;
+					case TLayoutFormat::ElfRgba16Snorm :	res_type = EImageSampler(EPixelFormat::RGBA16_SNorm);	break;
+					case TLayoutFormat::ElfRg16Snorm :		res_type = EImageSampler(EPixelFormat::RG16_SNorm);		break;
+					case TLayoutFormat::ElfRg8Snorm :		res_type = EImageSampler(EPixelFormat::RG8_SNorm);		break;
+					case TLayoutFormat::ElfR16Snorm :		res_type = EImageSampler(EPixelFormat::R16_SNorm);		break;
+					case TLayoutFormat::ElfR8Snorm :		res_type = EImageSampler(EPixelFormat::R8_SNorm);		break;
+					case TLayoutFormat::ElfRgba32i :		res_type = EImageSampler(EPixelFormat::RGBA32I);		break;
+					case TLayoutFormat::ElfRgba16i :		res_type = EImageSampler(EPixelFormat::RGBA16I);		break;
+					case TLayoutFormat::ElfRgba8i :			res_type = EImageSampler(EPixelFormat::RGBA8I);			break;
+					case TLayoutFormat::ElfR32i :			res_type = EImageSampler(EPixelFormat::R32I);			break;
+					case TLayoutFormat::ElfRg32i :			res_type = EImageSampler(EPixelFormat::RG32I);			break;
+					case TLayoutFormat::ElfRg16i :			res_type = EImageSampler(EPixelFormat::RG16I);			break;
+					case TLayoutFormat::ElfRg8i :			res_type = EImageSampler(EPixelFormat::RG8I);			break;
+					case TLayoutFormat::ElfR16i :			res_type = EImageSampler(EPixelFormat::R16I);			break;
+					case TLayoutFormat::ElfR8i :			res_type = EImageSampler(EPixelFormat::R8I);			break;
+					case TLayoutFormat::ElfRgba32ui :		res_type = EImageSampler(EPixelFormat::RGBA32U);		break;
+					case TLayoutFormat::ElfRgba16ui :		res_type = EImageSampler(EPixelFormat::RGBA16U);		break;
+					case TLayoutFormat::ElfRgba8ui :		res_type = EImageSampler(EPixelFormat::RGBA8U);			break;
+					case TLayoutFormat::ElfR32ui :			res_type = EImageSampler(EPixelFormat::R32U);			break;
+					case TLayoutFormat::ElfRg32ui :			res_type = EImageSampler(EPixelFormat::RG32U);			break;
+					case TLayoutFormat::ElfRg16ui :			res_type = EImageSampler(EPixelFormat::RG16U);			break;
+					case TLayoutFormat::ElfRgb10a2ui :		res_type = EImageSampler(EPixelFormat::RGB10_A2U);		break;
+					case TLayoutFormat::ElfRg8ui :			res_type = EImageSampler(EPixelFormat::RG8U);			break;
+					case TLayoutFormat::ElfR16ui :			res_type = EImageSampler(EPixelFormat::R16U);			break;
+					case TLayoutFormat::ElfR8ui :			res_type = EImageSampler(EPixelFormat::R8U);			break;
+
+					case TLayoutFormat::ElfNone :			break;
+
+					case TLayoutFormat::ElfEsFloatGuard :
+					case TLayoutFormat::ElfFloatGuard :
+					case TLayoutFormat::ElfEsIntGuard :
+					case TLayoutFormat::ElfIntGuard :
+					case TLayoutFormat::ElfEsUintGuard :
+					case TLayoutFormat::ElfCount :
+					default :								COMP_RETURN_ERR( "unknown image format" );
+				}
+				END_ENUM_CHECKS();
+			}
+
+			if ( samp.type == TBasicType::EbtFloat )
+				res_type |= EImageSampler::_Float;
+			else
+			if ( samp.type == TBasicType::EbtUint )
+				res_type |= EImageSampler::_Uint;
+			else
+			if ( samp.type == TBasicType::EbtInt )
+				res_type |= EImageSampler::_Int;
+			else
+				COMP_RETURN_ERR( "unsupported image value type" );
+
 			BEGIN_ENUM_CHECKS();
 			switch ( samp.dim )
 			{
 				case TSamplerDim::Esd1D :
 				{
-					if ( samp.isShadow() and samp.isArrayed() )		return EImage::Tex1DArray;		else
-					if ( samp.isShadow() )							return EImage::Tex1D;			else
-					if ( samp.isArrayed() )							return EImage::Tex1DArray;		else
-																	return EImage::Tex1D;
+					if ( samp.isShadow() and samp.isArrayed() )		return res_type | EImageSampler::_1DArray | EImageSampler::_Shadow;		else
+					if ( samp.isShadow() )							return res_type | EImageSampler::_1D      | EImageSampler::_Shadow;		else
+					if ( samp.isArrayed() )							return res_type | EImageSampler::_1DArray;								else
+																	return res_type | EImageSampler::_1D;
 				}
 				case TSamplerDim::Esd2D :
 				{
-					if ( samp.isShadow() and samp.isArrayed() )			return EImage::Tex2DArray;		else
-					if ( samp.isShadow() )								return EImage::Tex2D;			else
-					if ( samp.isMultiSample() and samp.isArrayed() )	return EImage::Tex2DMSArray;	else
-					if ( samp.isArrayed() )								return EImage::Tex2DArray;		else
-					if ( samp.isMultiSample() )							return EImage::Tex2DMS;			else
-																		return EImage::Tex2D;
+					if ( samp.isShadow() and samp.isArrayed() )			return res_type | EImageSampler::_2DArray | EImageSampler::_Shadow;	else
+					if ( samp.isShadow() )								return res_type | EImageSampler::_2D      | EImageSampler::_Shadow;	else
+					if ( samp.isMultiSample() and samp.isArrayed() )	return res_type | EImageSampler::_2DMSArray;	else
+					if ( samp.isArrayed() )								return res_type | EImageSampler::_2DArray;		else
+					if ( samp.isMultiSample() )							return res_type | EImageSampler::_2DMS;			else
+																		return res_type | EImageSampler::_2D;
 				}
 				case TSamplerDim::Esd3D :
 				{
-					return EImage::Tex3D;
+					return res_type | EImageSampler::_3D;
 				}
 				case TSamplerDim::EsdCube :
 				{
-					if ( samp.isShadow() )		return EImage::TexCube;			else
-					if ( samp.isArrayed() )		return EImage::TexCubeArray;	else
-												return EImage::TexCube;
+					if ( samp.isShadow() )		return res_type | EImageSampler::_Cube | EImageSampler::_Shadow;	else
+					if ( samp.isArrayed() )		return res_type | EImageSampler::_CubeArray;						else
+												return res_type | EImageSampler::_Cube;
 					break;
 				}
 				case TSamplerDim::EsdBuffer :
@@ -1393,69 +1463,6 @@ namespace FG
 			END_ENUM_CHECKS();
 		}
 		COMP_RETURN_ERR( "type is not image/sampler type!" );
-	}
-	
-/*
-=================================================
-	_ExtractImageFormat
-=================================================
-*/
-	EPixelFormat  SpirvCompiler::_ExtractImageFormat (uint format) const
-	{
-		using namespace glslang;
-
-		BEGIN_ENUM_CHECKS();
-		switch ( BitCast<TLayoutFormat>(format) )
-		{
-			case TLayoutFormat::ElfNone :			return EPixelFormat::Unknown;
-			case TLayoutFormat::ElfRgba32f :		return EPixelFormat::RGBA32F;
-			case TLayoutFormat::ElfRgba16f :		return EPixelFormat::RGBA16F;
-			case TLayoutFormat::ElfR32f :			return EPixelFormat::R32F;
-			case TLayoutFormat::ElfRgba8 :			return EPixelFormat::RGBA8_UNorm;
-			case TLayoutFormat::ElfRgba8Snorm :		return EPixelFormat::RGBA8_SNorm;
-			case TLayoutFormat::ElfRg32f :			return EPixelFormat::RG32F;
-			case TLayoutFormat::ElfRg16f :			return EPixelFormat::RG16F;
-			case TLayoutFormat::ElfR11fG11fB10f :	return EPixelFormat::RGB_11_11_10F;
-			case TLayoutFormat::ElfR16f :			return EPixelFormat::R16F;
-			case TLayoutFormat::ElfRgba16 :			return EPixelFormat::RGBA16_UNorm;
-			case TLayoutFormat::ElfRgb10A2 :		return EPixelFormat::RGB10_A2_UNorm;
-			case TLayoutFormat::ElfRg16 :			return EPixelFormat::RG16_UNorm;
-			case TLayoutFormat::ElfRg8 :			return EPixelFormat::RG8_UNorm;
-			case TLayoutFormat::ElfR16 :			return EPixelFormat::R16_UNorm;
-			case TLayoutFormat::ElfR8 :				return EPixelFormat::R8_UNorm;
-			case TLayoutFormat::ElfRgba16Snorm :	return EPixelFormat::RGBA16_SNorm;
-			case TLayoutFormat::ElfRg16Snorm :		return EPixelFormat::RG16_SNorm;
-			case TLayoutFormat::ElfRg8Snorm :		return EPixelFormat::RG8_SNorm;
-			case TLayoutFormat::ElfR16Snorm :		return EPixelFormat::R16_SNorm;
-			case TLayoutFormat::ElfR8Snorm :		return EPixelFormat::R8_SNorm;
-			case TLayoutFormat::ElfRgba32i :		return EPixelFormat::RGBA32I;
-			case TLayoutFormat::ElfRgba16i :		return EPixelFormat::RGBA16I;
-			case TLayoutFormat::ElfRgba8i :			return EPixelFormat::RGBA8I;
-			case TLayoutFormat::ElfR32i :			return EPixelFormat::R32I;
-			case TLayoutFormat::ElfRg32i :			return EPixelFormat::RG32I;
-			case TLayoutFormat::ElfRg16i :			return EPixelFormat::RG16I;
-			case TLayoutFormat::ElfRg8i :			return EPixelFormat::RG8I;
-			case TLayoutFormat::ElfR16i :			return EPixelFormat::R16I;
-			case TLayoutFormat::ElfR8i :			return EPixelFormat::R8I;
-			case TLayoutFormat::ElfRgba32ui :		return EPixelFormat::RGBA32U;
-			case TLayoutFormat::ElfRgba16ui :		return EPixelFormat::RGBA16U;
-			case TLayoutFormat::ElfRgba8ui :		return EPixelFormat::RGBA8U;
-			case TLayoutFormat::ElfR32ui :			return EPixelFormat::R32U;
-			case TLayoutFormat::ElfRg32ui :			return EPixelFormat::RG32U;
-			case TLayoutFormat::ElfRg16ui :			return EPixelFormat::RG16U;
-			case TLayoutFormat::ElfRgb10a2ui :		return EPixelFormat::RGB10_A2U;
-			case TLayoutFormat::ElfRg8ui :			return EPixelFormat::RG8U;
-			case TLayoutFormat::ElfR16ui :			return EPixelFormat::R16U;
-			case TLayoutFormat::ElfR8ui :			return EPixelFormat::R8U;
-			case TLayoutFormat::ElfEsFloatGuard :
-			case TLayoutFormat::ElfFloatGuard :
-			case TLayoutFormat::ElfEsIntGuard :
-			case TLayoutFormat::ElfIntGuard :
-			case TLayoutFormat::ElfEsUintGuard :
-			case TLayoutFormat::ElfCount :			break;	// to shutup warnings
-		}
-		END_ENUM_CHECKS();
-		COMP_RETURN_ERR( "Unsupported image format!" );
 	}
 	
 /*
@@ -1699,7 +1706,7 @@ namespace FG
 				arrayStride = BytesU(uint( dummy_stride ));
 			}
 		}
-		staticSize = BytesU(uint( offset )) - minOffset;
+		staticSize = BytesU(uint( offset ));
 		return true;
 	}
 
@@ -1776,7 +1783,6 @@ namespace FG
 			{
 				PipelineDescription::Image		image;
 				image.imageType	= _ExtractImageType( type );
-				image.format	= _ExtractImageFormat( qual.layoutFormat );
 				image.state		= ExtractShaderAccessType( qual ) | EResourceState_FromShaders( _currentStage );
 				
 				PipelineDescription::Uniform	un;
@@ -1843,6 +1849,7 @@ namespace FG
 		{
 			BytesU	size, stride, offset;
 			COMP_CHECK_ERR( _CalculateStructSize( type, OUT size, OUT stride, OUT offset ));
+			size -= offset;
 
 			result.layout.pushConstants.insert({ PushConstantID(type.getTypeName().c_str()), {_currentStage, offset, size} });
 			return true;
@@ -1865,6 +1872,7 @@ namespace FG
 
 				BytesU	stride, offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT ubuf.size, OUT stride, OUT offset ));
+				COMP_CHECK_ERR( offset == 0_b );
 				
 				PipelineDescription::Uniform	un;
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );
@@ -1884,6 +1892,7 @@ namespace FG
 			
 				BytesU	offset;
 				COMP_CHECK_ERR( _CalculateStructSize( type, OUT sbuf.staticSize, OUT sbuf.arrayStride, OUT offset ));
+				COMP_CHECK_ERR( offset == 0_b );
 				
 				PipelineDescription::Uniform	un;
 				un.index		= _ToBindingIndex( qual.hasBinding() ? uint(qual.layoutBinding) : UMax );

@@ -18,13 +18,15 @@ namespace FG
 	struct ImageDesc
 	{
 	// variables
-		EImage				imageType	= Default;
-		uint3				dimension;	// width, height, depth, layers
+		EImageDim			imageType	= Default;
+		EImage				viewType	= Default;	// optional
+		EImageFlags			flags		= Default;
+		uint3				dimension;				// width, height, depth
 		EPixelFormat		format		= Default;
 		EImageUsage			usage		= Default;
-		ImageLayer			arrayLayers;
-		MipmapLevel			maxLevel;
-		MultiSamples		samples;	// if > 1 then enabled multisampling
+		ImageLayer			arrayLayers	= 1_layer;
+		MipmapLevel			maxLevel	= 1_mipmap;
+		MultiSamples		samples;				// if > 1 then enabled multisampling
 		EQueueUsage			queues		= Default;
 		//bool				isLogical	= false;
 		bool				isExternal	= false;
@@ -32,31 +34,35 @@ namespace FG
 	// methods
 		ImageDesc () {}
 		
-		ImageDesc (EImage		imageType,
+		ImageDesc (EImageDim	imageType,
 				   const uint3 &dimension,
 				   EPixelFormat	format,
 				   EImageUsage	usage,
-				   ImageLayer	arrayLayers	= Default,
-				   MipmapLevel	maxLevel	= Default,
+				   EImageFlags	flags		= Default,
+				   ImageLayer	arrayLayers	= 1_layer,
+				   MipmapLevel	maxLevel	= 1_mipmap,
 				   MultiSamples	samples		= Default,
 				   EQueueUsage	queues		= Default);
 
 		void Validate ();
-
-		ImageDesc&  SetType (EImage value)				{ imageType = value;  return *this; }
-		ImageDesc&  SetDimension (const uint2 &value)	{ dimension = uint3{ value, 1 };  return *this; }
-		ImageDesc&  SetDimension (const uint3 &value)	{ dimension = value;  return *this; }
-		ImageDesc&  SetUsage (EImageUsage value)		{ usage = value;  return *this; }
-		ImageDesc&  SetFormat (EPixelFormat value)		{ format = value;  return *this; }
-		ImageDesc&  SetQueues (EQueueUsage value)		{ queues = value;  return *this; }
-		ImageDesc&  SetArrayLayers (uint value)			{ arrayLayers = ImageLayer{value};  return *this; }
-		ImageDesc&  SetMaxMipmaps (uint value)			{ maxLevel = MipmapLevel{value};  return *this; }
-		ImageDesc&  SetAllMipmaps ()					{ maxLevel = MipmapLevel{~0u};  return *this; }
-		ImageDesc&  SetSamples (uint value)				{ samples = MultiSamples{value};  return *this; }
+		
+		ImageDesc&  SetType (EImageDim value)			{ imageType		= value;				return *this; }
+		ImageDesc&  SetView (EImage value);
+		ImageDesc&  AddFlags (EImageFlags value)		{ flags			|= value;				return *this; }
+		ImageDesc&  SetDimension (const uint value);
+		ImageDesc&  SetDimension (const uint2 &value);
+		ImageDesc&  SetDimension (const uint3 &value);
+		ImageDesc&  SetUsage (EImageUsage value)		{ usage			= value;				return *this; }
+		ImageDesc&  SetFormat (EPixelFormat value)		{ format		= value;				return *this; }
+		ImageDesc&  SetArrayLayers (uint value)			{ arrayLayers	= ImageLayer{value};	return *this; }
+		ImageDesc&  SetMaxMipmaps (uint value)			{ maxLevel		= MipmapLevel{value};	return *this; }
+		ImageDesc&  SetSamples (uint value)				{ samples		= MultiSamples{value};	return *this; }
+		ImageDesc&  SetAllMipmaps ()					{ maxLevel		= MipmapLevel{~0u};		return *this; }
+		ImageDesc&  SetQueues (EQueueUsage value)		{ queues		= value;				return *this; }
 	};
 		
 
-
+	
 	//
 	// Image View Description
 	//
@@ -67,9 +73,9 @@ namespace FG
 		EImage				viewType	= Default;
 		EPixelFormat		format		= Default;
 		MipmapLevel			baseLevel;
-		uint				levelCount	= 1;
+		uint				levelCount	= UMax;
 		ImageLayer			baseLayer;
-		uint				layerCount	= 1;
+		uint				layerCount	= UMax;
 		ImageSwizzle		swizzle;
 		EImageAspect		aspectMask	= Default;
 
@@ -91,14 +97,14 @@ namespace FG
 
 		ND_ bool operator == (const ImageViewDesc &rhs) const;
 		
-		ImageViewDesc&  SetViewType (EImage value)				{ viewType = value;  return *this; }
-		ImageViewDesc&  SetFormat (EPixelFormat value)			{ format = value;  return *this; }
-		ImageViewDesc&  SetBaseLevel (uint value)				{ baseLevel = MipmapLevel{value};  return *this; }
-		ImageViewDesc&  SetLevels (uint base, uint count)		{ baseLevel = MipmapLevel{base};  levelCount = count;  return *this; }
-		ImageViewDesc&  SetBaseLayer (uint value)				{ baseLayer = ImageLayer{value};  return *this; }
-		ImageViewDesc&  SetArrayLayers (uint base, uint count)	{ baseLayer = ImageLayer{base};  layerCount = count;  return *this; }
-		ImageViewDesc&  SetSwizzle (ImageSwizzle value)			{ swizzle = value;  return *this; }
-		ImageViewDesc&  SetAspect (EImageAspect value)			{ aspectMask = value;  return *this; }
+		ImageViewDesc&  SetType (EImage value)					{ viewType	= value;				return *this; }
+		ImageViewDesc&  SetFormat (EPixelFormat value)			{ format	= value;				return *this; }
+		ImageViewDesc&  SetBaseMipmap (uint value)				{ baseLevel	= MipmapLevel{value};	return *this; }
+		ImageViewDesc&  SetLevels (uint base, uint count)		{ baseLevel	= MipmapLevel{base};	levelCount = count;  return *this; }
+		ImageViewDesc&  SetBaseLayer (uint value)				{ baseLayer	= ImageLayer{value};	return *this; }
+		ImageViewDesc&  SetArrayLayers (uint base, uint count)	{ baseLayer	= ImageLayer{base};		layerCount = count;  return *this; }
+		ImageViewDesc&  SetSwizzle (ImageSwizzle value)			{ swizzle	= value;				return *this; }
+		ImageViewDesc&  SetAspect (EImageAspect value)			{ aspectMask= value;				return *this; }
 	};
 
 
@@ -108,45 +114,9 @@ namespace FG
 namespace std
 {
 	template <>
-	struct hash< FG::ImageDesc >
-	{
-		ND_ size_t  operator () (const FG::ImageDesc &value) const
-		{
-		#if FG_FAST_HASH
-			return size_t(FGC::HashOf( AddressOf(value), sizeof(value) ));
-		#else
-			FG::HashVal	result;
-			result << FGC::HashOf( value.imageType );
-			result << FGC::HashOf( value.dimension );
-			result << FGC::HashOf( value.format );
-			result << FGC::HashOf( value.usage );
-			result << FGC::HashOf( value.maxLevel );
-			result << FGC::HashOf( value.samples );
-			return size_t(result);
-		#endif
-		}
-	};
-	
-
-	template <>
 	struct hash< FG::ImageViewDesc >
 	{
-		ND_ size_t  operator () (const FG::ImageViewDesc &value) const
-		{
-		#if FG_FAST_HASH
-			return size_t(FGC::HashOf( AddressOf(value), sizeof(value) ));
-		#else
-			FG::HashVal	result;
-			result << FGC::HashOf( value.viewType );
-			result << FGC::HashOf( value.format );
-			result << FGC::HashOf( value.baseLevel );
-			result << FGC::HashOf( value.levelCount );
-			result << FGC::HashOf( value.baseLayer );
-			result << FGC::HashOf( value.layerCount );
-			result << FGC::HashOf( value.swizzle );
-			return size_t(result);
-		#endif
-		}
+		ND_ size_t  operator () (const FG::ImageViewDesc &value) const;
 	};
 
 }	// std

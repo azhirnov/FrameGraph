@@ -34,11 +34,15 @@ void main ()
 }
 )#" );
 		
-		const BytesU	base_off		= 128_b;
-		const BytesU	buf_off			= 128_b;
+		const BytesU	sb_align		= BytesU{ _vulkan.GetProperties().properties.limits.minStorageBufferOffsetAlignment };
+		const BytesU	ub_align		= BytesU{ _vulkan.GetProperties().properties.limits.minUniformBufferOffsetAlignment };
+		const BytesU	base_off		= Max( sb_align, ub_align );
+		const BytesU	buf_off			= base_off;
 		const BytesU	src_size		= SizeOf<float4> * 4;
 		const BytesU	dst_size		= SizeOf<float4> * 4;
-		BufferID		buffer			= _frameGraph->CreateBuffer( BufferDesc{ base_off + buf_off + src_size + dst_size,
+		const BytesU	ub_offset		= AlignToLarger( base_off + buf_off, ub_align );
+		const BytesU	sb_offset		= AlignToLarger( base_off + buf_off + src_size, sb_align );
+		BufferID		buffer			= _frameGraph->CreateBuffer( BufferDesc{ Max( ub_offset + src_size, sb_offset + dst_size ),
 																				 EBufferUsage::Uniform | EBufferUsage::Storage | EBufferUsage::Transfer },
 																	 Default, "SharedBuffer" );
 		const float		src_data[]		= { 1.0f, 2.0f, 3.0f, 4.0f,
@@ -46,7 +50,7 @@ void main ()
 											1.1f, 2.2f, 2.3f, 2.4f,
 											1.5f, 1.6f, 1.7f, 1.8f };
 		CPipelineID		pipeline		= _frameGraph->CreatePipeline( ppln );
-		CHECK_ERR( pipeline );
+		CHECK_ERR( buffer and pipeline );
 
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
@@ -90,13 +94,13 @@ void main ()
 		resources.SetBufferBase( UniformID("UB"),  0_b );
 		resources.SetBufferBase( UniformID("SSB"), base_off );
 
-		resources.BindBuffer( UniformID("UB"),  buffer, base_off + buf_off,  src_size );
-		resources.BindBuffer( UniformID("SSB"), buffer, base_off + buf_off + src_size,  dst_size );
+		resources.BindBuffer( UniformID("UB"),  buffer, ub_offset, src_size );
+		resources.BindBuffer( UniformID("SSB"), buffer, sb_offset, dst_size );
 
-		Task	t_write		= cmd->AddTask( UpdateBuffer{}.SetBuffer( buffer ).AddData( src_data, CountOf(src_data), base_off + buf_off ));
+		Task	t_write		= cmd->AddTask( UpdateBuffer{}.SetBuffer( buffer ).AddData( src_data, CountOf(src_data), ub_offset ));
 		Task	t_dispatch	= cmd->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch({ 1, 1 }).DependsOn( t_write ));
-		Task	t_read		= cmd->AddTask( ReadBuffer{}.SetBuffer( buffer, base_off + buf_off + src_size, dst_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
-		FG_UNUSED( t_read );
+		Task	t_read		= cmd->AddTask( ReadBuffer{}.SetBuffer( buffer, sb_offset, dst_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		

@@ -3,10 +3,41 @@
 #pragma once
 
 #include "framework/Window/IWindow.h"
+#include "stl/Containers/StaticString.h"
+#include "stl/Containers/Ptr.h"
 
 namespace FGC
 {
-	static constexpr VkQueueFlagBits	VK_QUEUE_PRESENT_BIT = VkQueueFlagBits(0x80000000u);
+	enum class VQueueFamily : uint
+	{
+		External	= VK_QUEUE_FAMILY_EXTERNAL,
+		Foreign		= VK_QUEUE_FAMILY_FOREIGN_EXT,
+		Ignored		= VK_QUEUE_FAMILY_IGNORED,
+		Unknown		= Ignored,
+	};
+
+	// same as EQueueType in FG
+	enum class VQueueType : uint
+	{
+		Graphics,			// also supports compute and transfer commands
+		AsyncCompute,		// separate compute queue
+		AsyncTransfer,		// separate transfer queue
+		//Present,			// queue must support present, may be a separate queue
+		_Count,
+		Unknown			= ~0u,
+	};
+
+	// same as EQueueMask in FG
+	enum class VQueueMask : uint
+	{
+		Graphics		= 1 << uint(VQueueType::Graphics),
+		AsyncCompute	= 1 << uint(VQueueType::AsyncCompute),
+		AsyncTransfer	= 1 << uint(VQueueType::AsyncTransfer),
+		All				= Graphics | AsyncCompute | AsyncTransfer,
+		Unknown			= 0,
+	};
+	FG_BIT_OPERATORS( VQueueMask );
+
 
 
 	//
@@ -17,71 +48,145 @@ namespace FGC
 	{
 	// types
 	public:
-		struct QueueCreateInfo
+		struct InstanceVersion
 		{
-			VkQueueFlags			flags		= 0;
-			float					priority	= 0.0f;
+			uint	major	: 16;
+			uint	minor	: 16;
 
-			QueueCreateInfo () {}
-			QueueCreateInfo (int flags, float priority = 0.0f) : flags{VkQueueFlags(flags)}, priority{priority} {}
-			QueueCreateInfo (VkQueueFlags flags, float priority = 0.0f) : flags{flags}, priority{priority} {}
+			InstanceVersion () : major{0}, minor{0} {}
+			InstanceVersion (uint maj, uint min) : major{maj}, minor{min} {}
+
+			ND_ bool  operator == (const InstanceVersion &rhs) const;
+			ND_ bool  operator >  (const InstanceVersion &rhs) const;
+			ND_ bool  operator >= (const InstanceVersion &rhs) const;
+		};
+		
+		struct EnabledFeatures
+		{
+			// vulkan 1.1 core
+			bool	bindMemory2				: 1;
+			bool	dedicatedAllocation		: 1;
+			bool	descriptorUpdateTemplate: 1;
+			bool	imageViewUsage			: 1;
+			bool	create2DArrayCompatible	: 1;
+			bool	commandPoolTrim			: 1;
+			bool	dispatchBase			: 1;
+			// vulkan 1.2 core
+			bool	samplerMirrorClamp		: 1;
+			bool	shaderAtomicInt64		: 1;	// for uniform/storage buffer, for shared variables check features
+			bool	float16Arithmetic		: 1;
+			bool	bufferAddress			: 1;
+			bool	descriptorIndexing		: 1;
+			bool	renderPass2				: 1;
+			bool	depthStencilResolve		: 1;
+			bool	drawIndirectCount		: 1;
+			bool	spirv14					: 1;
+			bool	memoryModel				: 1;
+			// window extensions
+			bool	surface					: 1;
+			bool	surfaceCaps2			: 1;
+			bool	swapchain				: 1;
+			// extensions
+			bool	debugUtils				: 1;
+			bool	meshShaderNV			: 1;
+			bool	rayTracingNV			: 1;
+			bool	shadingRateImageNV		: 1;
+		//	bool	pushDescriptor			: 1;
+		//	bool	inlineUniformBlock		: 1;
+			bool	shaderClock				: 1;
+			bool	timelineSemaphore		: 1;
+			bool	pushDescriptor			: 1;
 		};
 
-		struct VulkanQueue
+		struct DeviceProperties
 		{
-			VkQueue					handle		= VK_NULL_HANDLE;
-			uint					familyIndex	= UMax;
-			uint					queueIndex	= UMax;
-			VkQueueFlags			flags		= 0;
-			float					priority	= 0.0f;
+			VkPhysicalDeviceProperties							properties;
+			VkPhysicalDeviceFeatures							features;
+			VkPhysicalDeviceMemoryProperties					memoryProperties;
+			#ifdef VK_VERSION_1_1
+			VkPhysicalDeviceSubgroupProperties					subgroup;
+			#endif
+			#ifdef VK_KHR_vulkan_memory_model
+			VkPhysicalDeviceVulkanMemoryModelFeaturesKHR		memoryModel;
+			#endif
+			#ifdef VK_NV_mesh_shader
+			VkPhysicalDeviceMeshShaderFeaturesNV				meshShaderFeatures;
+			VkPhysicalDeviceMeshShaderPropertiesNV				meshShaderProperties;
+			#endif
+			#ifdef VK_NV_shading_rate_image
+			VkPhysicalDeviceShadingRateImageFeaturesNV			shadingRateImageFeatures;
+			VkPhysicalDeviceShadingRateImagePropertiesNV		shadingRateImageProperties;
+			#endif
+			#ifdef VK_NV_ray_tracing
+			VkPhysicalDeviceRayTracingPropertiesNV				rayTracingProperties;
+			#endif
+			#ifdef VK_KHR_shader_clock
+			VkPhysicalDeviceShaderClockFeaturesKHR				shaderClock;
+			#endif
+			#ifdef VK_KHR_timeline_semaphore
+			VkPhysicalDeviceTimelineSemaphorePropertiesKHR		timelineSemaphoreProps;
+			#endif
+			#ifdef VK_KHR_buffer_device_address
+			VkPhysicalDeviceBufferDeviceAddressFeaturesKHR		bufferDeviceAddress;
+			#endif
+			#ifdef VK_KHR_depth_stencil_resolve
+			VkPhysicalDeviceDepthStencilResolvePropertiesKHR	depthStencilResolve;
+			#endif
+			#ifdef VK_KHR_shader_atomic_int64
+			VkPhysicalDeviceShaderAtomicInt64FeaturesKHR		shaderAtomicInt64;
+			#endif
+			#ifdef VK_VERSION_1_2
+			VkPhysicalDeviceVulkan11Properties					properties110;
+			VkPhysicalDeviceVulkan12Properties					properties120;
+			#endif
 		};
+		
+		using DebugName_t			= StaticString<64>;
+		using VQueueFamilyIndices_t	= FixedArray< uint, uint(VQueueType::_Count) >;
+		
+		struct VQueue
+		{
+			VkQueue				handle			= VK_NULL_HANDLE;
+			VQueueType			type			= Default;
+			VQueueFamily		familyIndex		= Default;
+			uint				queueIndex		= UMax;
+			VkQueueFlagBits		familyFlags		= Zero;
+			float				priority		= 0.0f;
+			bool				supportsPresent	= false;
+			uint3				minImageTransferGranularity;
+			DebugName_t			debugName;
+		};
+		using VQueuePtr = Ptr<VQueue>;
 
-		static constexpr uint	maxQueues = 16;
 
-		using SurfaceCtor_t = std::function< VkSurfaceKHR (VkInstance) >;
-		using Queues_t		= FixedArray< VulkanQueue, maxQueues >;
+	private:
+		using Queues_t			= FixedArray< VQueue, 4 >;
+		using QueueTypes_t		= StaticArray< VQueuePtr, uint(VQueueType::_Count) >;
+		
+		using ExtensionName_t	= StaticString<VK_MAX_EXTENSION_NAME_SIZE>;
+		using ExtensionSet_t	= HashSet< ExtensionName_t >;
 
 
 	// variables
-	private:
-		VkDevice					_vkDevice;
-		Queues_t					_vkQueues;
+	protected:
+		VkDevice				_vkLogicalDevice;
 
-		VkSurfaceKHR				_vkSurface;
-		VkPhysicalDevice			_vkPhysicalDevice;
-		VkInstance					_vkInstance;
-		bool						_usedSharedInstance;
+		Queues_t				_vkQueues;
+		QueueTypes_t			_queueTypes;
 
-		VulkanDeviceFnTable			_deviceFnTable;
+		VkPhysicalDevice		_vkPhysicalDevice;
+		VkInstance				_vkInstance;
+		InstanceVersion			_vkVersion;
+		VkSurfaceKHR			_vkSurface;
+		
+		EnabledFeatures			_features;
 
-		// enabled features
-		struct {
-			VkPhysicalDeviceFeatures								main;
-			//VkDeviceGeneratedCommandsFeaturesNVX					generatedCommands;
-			VkPhysicalDeviceMultiviewFeatures						multiview;
-			//VkPhysicalDeviceShaderAtomicInt64FeaturesKHR			shaderAtomicI64;
-			VkPhysicalDevice8BitStorageFeaturesKHR					storage8Bit;
-			VkPhysicalDevice16BitStorageFeatures					storage16Bit;
-			VkPhysicalDeviceSamplerYcbcrConversionFeatures			samplerYcbcrConversion;
-			VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT		blendOpAdvanced;
-			VkPhysicalDeviceConditionalRenderingFeaturesEXT			conditionalRendering;
-			VkPhysicalDeviceShaderDrawParameterFeatures				shaderDrawParameters;
-			VkPhysicalDeviceMeshShaderFeaturesNV					meshShader;
-			VkPhysicalDeviceDescriptorIndexingFeaturesEXT			descriptorIndexing;
-			//VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT		vertexAttribDivisor;
-			//VkPhysicalDeviceASTCDecodeFeaturesEXT					astcDecode;
-			VkPhysicalDeviceVulkanMemoryModelFeaturesKHR			memoryModel;
-			VkPhysicalDeviceInlineUniformBlockFeaturesEXT			inlineUniformBlock;
-			VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV	representativeFragmentTest;
-			//VkPhysicalDeviceExclusiveScissorFeaturesNV			exclusiveScissorTest;
-			//VkPhysicalDeviceCornerSampledImageFeaturesNV			cornerSampledImage;
-			//VkPhysicalDeviceComputeShaderDerivativesFeaturesNV	computeShaderDerivatives;
-			VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV		fragmentShaderBarycentric;
-			VkPhysicalDeviceShaderImageFootprintFeaturesNV			shaderImageFootprint;
-			VkPhysicalDeviceShadingRateImageFeaturesNV				shadingRateImage;
-			VkPhysicalDeviceShaderClockFeaturesKHR					shaderClock;
-
-		}	_features;
+		VulkanDeviceFnTable		_deviceFnTable;
+		
+		DeviceProperties		_properties;
+		
+		ExtensionSet_t			_instanceExtensions;
+		ExtensionSet_t			_deviceExtensions;
 
 
 	// methods
@@ -89,87 +194,161 @@ namespace FGC
 		VulkanDevice ();
 		~VulkanDevice ();
 		
-		bool Create (UniquePtr<IVulkanSurface>	surf,
-					 NtStringView				applicationName,
-					 NtStringView				engineName,
-					 uint						version				= VK_API_VERSION_1_1,
-					 StringView					deviceName			= Default,
-					 ArrayView<QueueCreateInfo>	queues				= Default,
-					 ArrayView<const char*>		instanceLayers		= GetRecomendedInstanceLayers(),
-					 ArrayView<const char*>		instanceExtensions	= GetRecomendedInstanceExtensions(),
-					 ArrayView<const char*>		deviceExtensions	= GetRecomendedDeviceExtensions());
+		ND_ EnabledFeatures const&	GetFeatures ()					const	{ return _features; }
+		ND_ DeviceProperties const&	GetProperties ()				const	{ return _properties; }
+
+		ND_ VkDevice				GetVkDevice ()					const	{ return _vkLogicalDevice; }
+		ND_ VkPhysicalDevice		GetVkPhysicalDevice ()			const	{ return _vkPhysicalDevice; }
+		ND_ VkInstance				GetVkInstance ()				const	{ return _vkInstance; }
+		ND_ InstanceVersion			GetVkVersion ()					const	{ return _vkVersion; }
+		ND_ VkSurfaceKHR			GetVkSurface ()					const	{ return _vkSurface; }
+		ND_ ArrayView< VQueue >		GetVkQueues ()					const	{ return _vkQueues; }
+		ND_ VQueuePtr				GetQueue (VQueueType type)		const	{ return uint(type) < _queueTypes.size() ? _queueTypes[uint(type)] : null; }
+
+		// check extensions
+		ND_ bool HasInstanceExtension (StringView name) const;
+		ND_ bool HasDeviceExtension (StringView name) const;
 		
-		bool Create (NtStringView				applicationName,
-					 NtStringView				engineName,
-					 uint						version				= VK_API_VERSION_1_1,
-					 StringView					deviceName			= Default,
-					 ArrayView<QueueCreateInfo>	queues				= Default,
-					 ArrayView<const char*>		instanceLayers		= GetRecomendedInstanceLayers(),
-					 ArrayView<const char*>		instanceExtensions	= GetRecomendedInstanceExtensions(),
-					 ArrayView<const char*>		deviceExtensions	= GetRecomendedDeviceExtensions());
+		bool SetObjectName (uint64_t id, NtStringView name, VkObjectType type) const;
 
-		bool Create (VkInstance					instance,
-					 UniquePtr<IVulkanSurface>	surf,
-					 StringView					deviceName			= Default,
-					 ArrayView<QueueCreateInfo>	queues				= Default,
-					 ArrayView<const char*>		deviceExtensions	= GetRecomendedDeviceExtensions());
+		void GetQueueFamilies (VQueueMask mask, OUT VQueueFamilyIndices_t &) const;
+	};
 
-		void Destroy ();
+
+
+	//
+	// Vulkan Device Initializer
+	//
+
+	class VulkanDeviceInitializer final : public VulkanDevice
+	{
+	// types
+	public:
+		struct QueueCreateInfo
+		{
+			VkQueueFlagBits		flags		= Zero;
+			float				priority	= 0.0f;
+			DebugName_t			debugName;
+
+			QueueCreateInfo () {}
+			QueueCreateInfo (VkQueueFlagBits flags, float priority = 0.0f, StringView name = {}) : flags{flags}, priority{priority}, debugName{name} {}
+		};
 		
-		ND_ VkInstance					GetVkInstance ()			const	{ return _vkInstance; }
-		ND_ VkPhysicalDevice			GetVkPhysicalDevice ()		const	{ return _vkPhysicalDevice; }
-		ND_ VkDevice					GetVkDevice ()				const	{ return _vkDevice; }
-		ND_ VkSurfaceKHR				GetVkSurface ()				const	{ return _vkSurface; }
-		ND_ ArrayView<VulkanQueue>		GetVkQueues ()				const	{ return _vkQueues; }
+		struct ObjectDbgInfo
+		{
+			StringView				type;
+			StringView				name;
+			uint64_t				handle;
+		};
 
-		ND_ VkPhysicalDeviceFeatures const&								GetDeviceFeatures ()							const	{ return _features.main; }
-		ND_ VkPhysicalDeviceMultiviewFeatures const&					GetDeviceMultiviewFeatures ()					const	{ return _features.multiview; }
-		ND_ VkPhysicalDevice8BitStorageFeaturesKHR const&				GetDevice8BitStorageFeatures ()					const	{ return _features.storage8Bit; }
-		ND_ VkPhysicalDevice16BitStorageFeatures const&					GetDevice16BitStorageFeatures ()				const	{ return _features.storage16Bit; }
-		ND_ VkPhysicalDeviceSamplerYcbcrConversionFeatures const&		GetDeviceSamplerYcbcrConversionFeatures ()		const	{ return _features.samplerYcbcrConversion; }
-		ND_ VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT const&	GetDeviceBlendOperationAdvancedFeatures ()		const	{ return _features.blendOpAdvanced; }
-		ND_ VkPhysicalDeviceConditionalRenderingFeaturesEXT const&		GetDeviceConditionalRenderingFeatures ()		const	{ return _features.conditionalRendering; }
-		ND_ VkPhysicalDeviceMeshShaderFeaturesNV const&					GetDeviceMeshShaderFeatures ()					const	{ return _features.meshShader; }
-		ND_ VkPhysicalDeviceDescriptorIndexingFeaturesEXT const&		GetDeviceDescriptorIndexingFeatures ()			const	{ return _features.descriptorIndexing; }
-		ND_ VkPhysicalDeviceVulkanMemoryModelFeaturesKHR const&			GetDeviceVulkanMemoryModelFeatures ()			const	{ return _features.memoryModel; }
-		ND_ VkPhysicalDeviceInlineUniformBlockFeaturesEXT const&		GetDeviceInlineUniformBlockFeatures ()			const	{ return _features.inlineUniformBlock; }
-		ND_ VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV const&	GetDeviceRepresentativeFragmentTestFeatures ()	const	{ return _features.representativeFragmentTest; }
-		ND_ VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV const&	GetDeviceFragmentShaderBarycentricFeatures ()	const	{ return _features.fragmentShaderBarycentric; }
-		ND_ VkPhysicalDeviceShaderImageFootprintFeaturesNV const&		GetDeviceShaderImageFootprintFeatures ()		const	{ return _features.shaderImageFootprint; }
-		ND_ VkPhysicalDeviceShadingRateImageFeaturesNV const&			GetDeviceShadingRateImageFeatures ()			const	{ return _features.shadingRateImage; }
-		ND_ VkPhysicalDeviceShaderClockFeaturesKHR const&				GetDeviceShaderClockFeatures ()					const	{ return _features.shaderClock; }
+		struct DebugReport
+		{
+			ArrayView<ObjectDbgInfo>	objects;
+			StringView					message;
+			bool						isError		= false;
+		};
+		using DebugReport_t = Function< void (const DebugReport &) >;
+
+
+	// variable
+	private:
+		VkDebugUtilsMessengerEXT	_debugUtilsMessenger	= VK_NULL_HANDLE;
+		DebugReport_t				_callback;
+		
+		bool						_breakOnValidationError	= true;
+		Array<ObjectDbgInfo>		_tempObjectDbgInfos;
+		String						_tempString;
+
+
+	// methods
+	public:
+		VulkanDeviceInitializer ();
+		~VulkanDeviceInitializer ();
+
+		ND_ InstanceVersion  GetInstanceVersion () const;
+
+		bool CreateInstance (NtStringView appName, NtStringView engineName, ArrayView<const char*> instanceLayers,
+							 ArrayView<const char*> instanceExtensions = {}, InstanceVersion version = {1,2}, uint appVer = 0, uint engineVer = 0);
+		bool SetInstance (VkInstance value, ArrayView<const char*> instanceExtensions = {});
+		
+		bool CreateInstance (UniquePtr<IVulkanSurface> surface, NtStringView appName, NtStringView engineName, ArrayView<const char*> instanceLayers,
+							 ArrayView<const char*> instanceExtensions = {}, InstanceVersion version = {1,2}, uint appVer = 0, uint engineVer = 0);
+		bool SetInstance (UniquePtr<IVulkanSurface> surface, VkInstance value, ArrayView<const char*> instanceExtensions = {});
+
+		bool DestroyInstance ();
+
+		bool ChooseDevice (StringView deviceName);
+		bool ChooseHighPerformanceDevice ();
+		bool SetPhysicalDevice (VkPhysicalDevice value);
+		
+		bool CreateLogicalDevice (ArrayView<QueueCreateInfo> queues, ArrayView<const char*> extensions = {});
+		bool SetLogicalDevice (VkDevice value, ArrayView<const char*> extensions = {});
+		bool DestroyLogicalDevice ();
+		
+		bool CreateDebugCallback (VkDebugUtilsMessageSeverityFlagsEXT severity, DebugReport_t &&callback = Default);
+		void DestroyDebugCallback ();
+		
+		bool GetMemoryTypeIndex (uint memoryTypeBits, VkMemoryPropertyFlags flags, OUT uint &memoryTypeIndex) const;
+		bool CompareMemoryTypes (uint memoryTypeBits, VkMemoryPropertyFlags flags, uint memoryTypeIndex) const;
 
 		ND_ static ArrayView<const char*>	GetRecomendedInstanceLayers ();
-		ND_ static ArrayView<const char*>	GetRecomendedInstanceExtensions ();
-		ND_ static ArrayView<const char*>	GetRecomendedDeviceExtensions ();
-		ND_ static ArrayView<const char*>	GetAllDeviceExtensions_v100 ();
-		ND_ static ArrayView<const char*>	GetAllDeviceExtensions_v110 ();
-		//ND_ static ArrayView<const char*>	GetAllDeviceExtensions_v120 ();	// TODO
-
-
-	protected:
-		virtual void _OnInstanceCreated (Array<const char*> &&, Array<const char*> &&) {}
-		virtual void _OnLogicalDeviceCreated (Array<const char *> &&) {}
-		virtual void _BeforeDestroy () {}
-		virtual void _AfterDestroy () {}
-		
-		ND_ static StringView  _GetVendorNameByID (uint id);
 
 
 	private:
-		bool _CreateInstance (NtStringView appName, NtStringView engineName, ArrayView<const char*> instanceLayers, Array<const char*> &&instanceExtensions, uint version);
-		bool _ChooseGpuDevice (StringView deviceName);
-		bool _SetupQueues (ArrayView<QueueCreateInfo> queue);
-		bool _CreateDevice (ArrayView<const char*> extensions);
-		bool _SetupDeviceFeatures (void** next, ArrayView<const char*> extensions);
-		bool _ChooseQueueIndex (ArrayView<VkQueueFamilyProperties> props, INOUT VkQueueFlags &flags, OUT uint &index) const;
-		void _DestroyDevice ();
+		// TODO: make public?
+		ND_ static ArrayView<const char*>	GetInstanceExtensions_v100 ();
+		ND_ static ArrayView<const char*>	GetInstanceExtensions_v110 ();
+		ND_ static ArrayView<const char*>	GetInstanceExtensions_v120 ();
+		ND_ static ArrayView<const char*>	GetDeviceExtensions_v100 ();
+		ND_ static ArrayView<const char*>	GetDeviceExtensions_v110 ();
+		ND_ static ArrayView<const char*>	GetDeviceExtensions_v120 ();
+
+		ND_ static ArrayView<const char*>	_GetInstanceExtensions (InstanceVersion ver);
+		ND_ static ArrayView<const char*>	_GetDeviceExtensions (InstanceVersion ver);
 
 		void _ValidateInstanceVersion (INOUT uint &version) const;
 		void _ValidateInstanceLayers (INOUT Array<const char*> &layers) const;
 		void _ValidateInstanceExtensions (INOUT Array<const char*> &ext) const;
 		void _ValidateDeviceExtensions (INOUT Array<const char*> &ext) const;
-	};
 
+		bool _SetupQueues (ArrayView<QueueCreateInfo> queue);
+		bool _ChooseQueueIndex (ArrayView<VkQueueFamilyProperties> props, INOUT VkQueueFlagBits &flags, OUT uint &index) const;
+		bool _InitDeviceFeatures ();
+		void _UpdateInstanceVersion (uint ver);
+
+		bool _SetupQueueTypes ();
+		bool _AddGraphicsQueue ();
+		bool _AddAsyncComputeQueue ();
+		bool _AddAsyncTransferQueue ();
+		
+		VKAPI_ATTR static VkBool32 VKAPI_CALL
+			_DebugUtilsCallback (VkDebugUtilsMessageSeverityFlagBitsEXT			messageSeverity,
+								 VkDebugUtilsMessageTypeFlagsEXT				messageTypes,
+								 const VkDebugUtilsMessengerCallbackDataEXT*	pCallbackData,
+								 void*											pUserData);
+
+		ND_ static StringView  _ObjectTypeToString (VkObjectType objType);
+
+		void _DebugReport (const DebugReport &);
+	};
+	
+	static constexpr VkDebugUtilsMessageSeverityFlagsEXT	DefaultDebugMessageSeverity = //VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+																							//VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+																							VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+																							VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	
+	
+
+	forceinline constexpr VQueueMask&  operator |= (VQueueMask &lhs, VQueueType rhs)
+	{
+		ASSERT( uint(rhs) < 32 );
+		return lhs = BitCast<VQueueMask>( uint(lhs) | (1u << (uint(rhs) & 31)) );
+	}
+
+	forceinline constexpr VQueueMask   operator |  (VQueueMask lhs, VQueueType rhs)
+	{
+		ASSERT( uint(rhs) < 32 );
+		return BitCast<VQueueMask>( uint(lhs) | (1u << (uint(rhs) & 31)) );
+	}
 
 }	// FGC

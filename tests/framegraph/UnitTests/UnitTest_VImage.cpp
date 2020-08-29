@@ -60,9 +60,9 @@ static void VImage_Test1 ()
 	VLocalImage const*	img			= &local_image;
 
 	TEST( VImageUnitTest::Create( global_image,
-								  ImageDesc{ EImage::Tex2D, uint3(64, 64, 0), EPixelFormat::RGBA8_UNorm,
-											 EImageUsage::ColorAttachment | EImageUsage::Transfer | EImageUsage::Storage | EImageUsage::Sampled,
-											 0_layer, 11_mipmap } ));
+								  ImageDesc{}.SetDimension({ 64, 64 }).SetFormat( EPixelFormat::RGBA8_UNorm )
+											.SetUsage( EImageUsage::ColorAttachment | EImageUsage::Transfer | EImageUsage::Storage | EImageUsage::Sampled )
+											.SetMaxMipmaps( 11 )));
 
 	TEST( local_image.Create( &global_image ));
 
@@ -121,9 +121,9 @@ static void VImage_Test2 ()
 	VLocalImage const*	img			= &local_image;
 
 	TEST( VImageUnitTest::Create( global_image,
-								  ImageDesc{ EImage::Tex2DArray, uint3(64, 64, 0), EPixelFormat::RGBA8_UNorm,
-											 EImageUsage::ColorAttachment | EImageUsage::Transfer | EImageUsage::Storage | EImageUsage::Sampled,
-											 8_layer, 11_mipmap } ));
+								  ImageDesc{}.SetDimension({ 64, 64 }).SetFormat( EPixelFormat::RGBA8_UNorm )
+											.SetUsage( EImageUsage::ColorAttachment | EImageUsage::Transfer | EImageUsage::Storage | EImageUsage::Sampled )
+											.SetMaxMipmaps( 11 ).SetArrayLayers( 8 )));
 
 	TEST( local_image.Create( &global_image ));
 
