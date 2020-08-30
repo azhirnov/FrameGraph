@@ -8,48 +8,27 @@ namespace FG
 	
 /*
 =================================================
-	ImageDesc
-=================================================
-*/
-	ImageDesc::ImageDesc (EImageDim		imageType,
-						  const uint3	&dimension,
-						  EPixelFormat	format,
-						  EImageUsage	usage,
-						  EImageFlags	flags,
-						  ImageLayer	arrayLayers,
-						  MipmapLevel	maxLevel,
-						  MultiSamples	samples,
-						  EQueueUsage	queues) :
-		imageType{ imageType },		viewType{ Default },
-		flags{ flags },				dimension{ dimension },
-		format{ format },			usage{ usage },
-		arrayLayers{ arrayLayers },	maxLevel{ maxLevel },
-		samples{ samples },			queues{ queues }
-	{}
-	
-/*
-=================================================
 	ImageDesc::SetDimension
 =================================================
 */
 	ImageDesc&  ImageDesc::SetDimension (const uint value)
 	{
 		dimension = uint3{ value, 1, 1 };
-		imageType = EImageDim_1D;
+		imageType = imageType == Default ? EImageDim_1D : imageType;
 		return *this;
 	}
 
 	ImageDesc&  ImageDesc::SetDimension (const uint2 &value)
 	{
 		dimension = uint3{ value, 1 };
-		imageType = EImageDim_2D;
+		imageType = imageType == Default ? EImageDim_2D : imageType;
 		return *this;
 	}
 
 	ImageDesc&  ImageDesc::SetDimension (const uint3 &value)
 	{
 		dimension = value;
-		imageType = EImageDim_3D;
+		imageType = imageType == Default ? EImageDim_3D : imageType;
 		return *this;
 	}
 	
@@ -66,12 +45,12 @@ namespace FG
 		switch ( viewType )
 		{
 			case EImage_1D :
-			case EImage::_1DArray :
+			case EImage_1DArray :
 				imageType = EImageDim_1D;
 				break;
 
 			case EImage_2D :
-			case EImage::_2DArray :
+			case EImage_2DArray :
 				imageType = EImageDim_2D;
 				break;
 
@@ -125,7 +104,7 @@ namespace {
 			case EImageDim_1D :
 				ASSERT( not samples.IsEnabled() );
 				ASSERT( dimension.y == 1 and dimension.z == 1 );
-				ASSERT( not AnyBits( flags, EImageFlags::Array2DCompatible | EImageFlags::CubeCompatible ));	// flags are not supported for 1D
+				ASSERT( not AnyBits( flags, EImageFlags::Array2DCompatible | EImageFlags::CubeCompatible ));	// this flags are not supported for 1D
 
 				flags		&= ~(EImageFlags::Array2DCompatible | EImageFlags::CubeCompatible);
 				samples		= 1_samples;
@@ -175,7 +154,7 @@ namespace {
 			{
 				case EImageDim_1D :
 					if ( arrayLayers > 1_layer )
-						viewType = EImage::_1DArray;
+						viewType = EImage_1DArray;
 					else
 						viewType = EImage_1D;
 					break;
@@ -188,7 +167,7 @@ namespace {
 						viewType = EImage_Cube;
 					else
 					if ( arrayLayers > 1_layer )
-						viewType = EImage::_2DArray;
+						viewType = EImage_2DArray;
 					else
 						viewType = EImage_2D;
 					break;
@@ -247,11 +226,6 @@ namespace {
 */
 	void ImageViewDesc::Validate (const ImageDesc &desc)
 	{
-		const uint	max_layers	= desc.arrayLayers.Get();
-
-		baseLayer	= ImageLayer{Clamp( baseLayer.Get(), 0u, max_layers-1 )};
-		layerCount	= Clamp( layerCount, 1u, max_layers - baseLayer.Get() );
-
 		baseLevel	= MipmapLevel{Clamp( baseLevel.Get(), 0u, desc.maxLevel.Get()-1 )};
 		levelCount	= Clamp( levelCount, 1u, desc.maxLevel.Get() - baseLevel.Get() );
 
@@ -276,12 +250,17 @@ namespace {
 		// choose view type
 		if ( viewType == Default )
 		{
+			const uint	max_layers	= desc.arrayLayers.Get();
+
+			baseLayer	= ImageLayer{Clamp( baseLayer.Get(), 0u, max_layers-1 )};
+			layerCount	= Clamp( layerCount, 1u, max_layers - baseLayer.Get() );
+
 			BEGIN_ENUM_CHECKS();
 			switch ( desc.imageType )
 			{
 				case EImageDim_1D :
 					if ( layerCount > 1 )
-						viewType = EImage::_1DArray;
+						viewType = EImage_1DArray;
 					else
 						viewType = EImage_1D;
 					break;
@@ -294,7 +273,7 @@ namespace {
 						viewType = EImage_Cube;
 					else
 					if ( layerCount > 1 )
-						viewType = EImage::_2DArray;
+						viewType = EImage_2DArray;
 					else
 						viewType = EImage_2D;
 					break;
@@ -305,6 +284,68 @@ namespace {
 
 				case EImageDim::Unknown :
 					break;
+			}
+			END_ENUM_CHECKS();
+		}
+		else
+		// validate view type
+		{
+			const uint	max_layers	= (desc.imageType == EImageDim_3D and viewType != EImage_3D ? desc.dimension.z : desc.arrayLayers.Get());
+
+			baseLayer = ImageLayer{Clamp( baseLayer.Get(), 0u, max_layers-1 )};
+
+			BEGIN_ENUM_CHECKS();
+			switch ( viewType )
+			{
+				case EImage_1D :
+					ASSERT( desc.imageType == EImageDim_1D );
+					ASSERT( layerCount == UMax or layerCount == 1 );
+					layerCount = 1;
+					break;
+
+				case EImage_1DArray :
+					ASSERT( desc.imageType == EImageDim_1D );
+					layerCount = Clamp( layerCount, 1u, max_layers - baseLayer.Get() );
+					break;
+
+				case EImage_2D :
+					ASSERT( desc.imageType == EImageDim_2D or
+						    (desc.imageType == EImageDim_3D and AllBits( desc.flags, EImageFlags::Array2DCompatible )));
+					ASSERT( layerCount == UMax or layerCount == 1 );
+					layerCount = 1;
+					break;
+
+				case EImage_2DArray :
+					ASSERT( desc.imageType == EImageDim_2D or
+						    (desc.imageType == EImageDim_3D and AllBits( desc.flags, EImageFlags::Array2DCompatible )));
+					layerCount = Clamp( layerCount, 1u, max_layers - baseLayer.Get() );
+					break;
+
+				case EImage_Cube :
+					ASSERT( desc.imageType == EImageDim_2D or
+						    (desc.imageType == EImageDim_3D and AllBits( desc.flags, EImageFlags::Array2DCompatible )));
+					ASSERT( AllBits( desc.flags, EImageFlags::CubeCompatible ));
+					ASSERT( layerCount == UMax or layerCount == 6 );
+					layerCount = 6;
+					break;
+
+				case EImage_CubeArray :
+					ASSERT( desc.imageType == EImageDim_2D or
+						    (desc.imageType == EImageDim_3D and AllBits( desc.flags, EImageFlags::Array2DCompatible )));
+					ASSERT( AllBits( desc.flags, EImageFlags::CubeCompatible ));
+					ASSERT( layerCount == UMax or layerCount % 6 == 0 );
+					layerCount = Max( 1u, ((max_layers - baseLayer.Get()) / 6) ) * 6;
+					break;
+				
+				case EImage_3D :
+					ASSERT( desc.imageType == EImageDim_3D );
+					ASSERT( layerCount == UMax or layerCount == 1 );
+					layerCount = 1;
+					break;
+
+				case EImage::Unknown :
+				default :
+					ASSERT( !"unknown image view type" );
 			}
 			END_ENUM_CHECKS();
 		}

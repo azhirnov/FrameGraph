@@ -441,6 +441,11 @@ namespace FG
 	{
 		return not AnyBits( EPixelFormat_GetInfo( value ).valueType, PixelFormatInfo::EType::DepthStencil );
 	}
+	
+	ND_ inline bool  EPixelFormat_IsCompressed (EPixelFormat value)
+	{
+		return Any( EPixelFormat_GetInfo( value ).blockSize > uint2{1} );
+	}
 
 /*
 =================================================

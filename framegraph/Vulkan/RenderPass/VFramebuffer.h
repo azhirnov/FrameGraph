@@ -37,6 +37,8 @@ namespace FG
 	// methods
 	public:
 		VFramebuffer ();
+		VFramebuffer (VFramebuffer &&) = delete;
+		VFramebuffer (const VFramebuffer &) = delete;
 		VFramebuffer (ArrayView<Pair<RawImageID, ImageViewDesc>> attachments, RawRenderPassID rp, uint2 dim, uint layers);
 		~VFramebuffer ();
 		

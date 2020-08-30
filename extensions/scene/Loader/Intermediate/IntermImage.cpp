@@ -62,9 +62,9 @@ namespace FG
 		switch ( _imageType )
 		{
 			case EImage_1D :
-			case EImage::_1DArray :		return EImageDim_1D;
+			case EImage_1DArray :		return EImageDim_1D;
 			case EImage_2D :
-			case EImage::_2DArray :
+			case EImage_2DArray :
 			case EImage_Cube :
 			case EImage_CubeArray :	return EImageDim_2D;
 			case EImage_3D :			return EImageDim_3D;

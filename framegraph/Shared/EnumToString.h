@@ -67,6 +67,8 @@ namespace FGC
 				case EImageUsage::StorageAtomic				: result << "StorageAtomic";			break;
 				case EImageUsage::ColorAttachmentBlend		: result << "ColorAttachmentBlend";		break;
 				case EImageUsage::FragmentDensityMap		: result << "FragmentDensityMap";		break;
+				case EImageUsage::SampledCubic				: result << "SampledCubic";				break;
+				case EImageUsage::SampledMinMax				: result << "SampledMinMax";			break;
 				case EImageUsage::_Last						:
 				case EImageUsage::All						:	// to shutup warnings
 				case EImageUsage::Transfer					:

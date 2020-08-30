@@ -261,6 +261,8 @@ namespace {
 */
 	void VulkanLoader::SetupInstanceBackwardCompatibility (uint version)
 	{
+		Unused( version );
+
 	#ifdef VK_VERSION_1_1
 		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 1) )
 		{
@@ -288,7 +290,8 @@ namespace {
 */
 	void VulkanLoader::SetupDeviceBackwardCompatibility (uint version, INOUT VulkanDeviceFnTable &table)
 	{
-		// for backward compatibility
+		Unused( version, table );
+
 	#ifdef VK_VERSION_1_1
 		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 1) )
 		{

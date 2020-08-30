@@ -24,11 +24,13 @@ namespace FG
 	constructor
 =================================================
 */
-	VDescriptorSetLayout::VDescriptorSetLayout (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding) :
-		_uniforms{uniforms}
+	VDescriptorSetLayout::VDescriptorSetLayout (const VDevice &dev, const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding) :
+		_uniforms{ uniforms }
 	{
 		EXLOCK( _drCheck );
 		ASSERT( uniforms );
+
+		const bool	has_desc_indexing_ext = dev.GetFeatures().descriptorIndexing;
 
 		// bind uniforms
 		binding.clear();
@@ -39,6 +41,9 @@ namespace FG
 			ASSERT( un.first.IsDefined() );
 
 			_hash << HashOf( un.first );
+			
+			// requires Vulkan 1.2 or VK_EXT_descriptor_indexing
+			ASSERT( has_desc_indexing_ext or un.second.arraySize != 0 );
 
 			_AddUniform( un.second, INOUT binding );
 		}

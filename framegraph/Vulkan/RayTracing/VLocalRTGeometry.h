@@ -54,6 +54,7 @@ namespace FG
 	public:
 		VLocalRTGeometry () {}
 		VLocalRTGeometry (VLocalRTGeometry &&) = delete;
+		VLocalRTGeometry (const VLocalRTGeometry &) = delete;
 		~VLocalRTGeometry ();
 		
 		bool Create (const VRayTracingGeometry *);

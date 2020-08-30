@@ -54,6 +54,8 @@ namespace FG
 			bool	create2DArrayCompatible	: 1;
 			bool	commandPoolTrim			: 1;
 			bool	dispatchBase			: 1;
+			bool	array2DCompatible		: 1;
+			bool	blockTexelView			: 1;
 			// vulkan 1.2 core
 			bool	samplerMirrorClamp		: 1;
 			bool	shaderAtomicInt64		: 1;	// for uniform/storage buffer, for shared variables check features
@@ -79,6 +81,7 @@ namespace FG
 			bool	shaderClock				: 1;
 			bool	timelineSemaphore		: 1;
 			bool	pushDescriptor			: 1;
+			bool	robustness2				: 1;
 		};
 
 		struct DeviceProperties
@@ -126,6 +129,19 @@ namespace FG
 			VkPhysicalDeviceVulkan11Properties					properties110;
 			VkPhysicalDeviceVulkan12Properties					properties120;
 			#endif
+			#ifdef VK_EXT_robustness2
+			VkPhysicalDeviceRobustness2FeaturesEXT				robustness2Features;
+			VkPhysicalDeviceRobustness2PropertiesEXT			robustness2Properties;
+			#endif
+		};
+
+		struct DeviceFlags
+		{
+			EQueueFamilyMask			availableQueues			= Zero;
+			EResourceState				graphicsShaderStages	= Zero;
+			VkPipelineStageFlagBits		allWritableStages		= Zero;
+			VkPipelineStageFlagBits		allReadableStages		= Zero;
+			VkImageCreateFlagBits		imageCreateFlags		= Zero;
 		};
 		
 	private:
@@ -143,16 +159,14 @@ namespace FG
 		EShaderLangFormat		_vkVersion;
 		Queues_t				_vkQueues;
 
-		EQueueFamilyMask		_availableQueues;
-		EResourceState			_graphicsShaderStages;
-		VkPipelineStageFlagBits	_allWritableStages;
-		VkPipelineStageFlagBits	_allReadableStages;
 		
 		EnabledFeatures			_features;
+		DeviceFlags				_flags;
 		
 		VulkanDeviceFnTable		_deviceFnTable;
 		
 		DeviceProperties		_properties;
+
 		ExtensionSet_t			_instanceExtensions;
 		ExtensionSet_t			_deviceExtensions;
 
@@ -162,20 +176,21 @@ namespace FG
 		explicit VDevice (const VulkanDeviceInfo &vdi);
 		~VDevice ();
 
-		ND_ EResourceState					GetGraphicsShaderStages ()		const	{ return _graphicsShaderStages; }
-		ND_ VkPipelineStageFlagBits			GetAllWritableStages ()			const	{ return _allWritableStages; }
-		ND_ VkPipelineStageFlagBits			GetAllReadableStages ()			const	{ return _allReadableStages; }
+		ND_ EResourceState					GetGraphicsShaderStages ()		const	{ return _flags.graphicsShaderStages; }
+		ND_ VkPipelineStageFlagBits			GetAllWritableStages ()			const	{ return _flags.allWritableStages; }
+		ND_ VkPipelineStageFlagBits			GetAllReadableStages ()			const	{ return _flags.allReadableStages; }
 
 		ND_ VkDevice						GetVkDevice ()					const	{ return _vkDevice; }
 		ND_ VkPhysicalDevice				GetVkPhysicalDevice ()			const	{ return _vkPhysicalDevice; }
 		ND_ VkInstance						GetVkInstance ()				const	{ return _vkInstance; }
 		ND_ EShaderLangFormat				GetVkVersion ()					const	{ return _vkVersion; }
 		ND_ ArrayView< VDeviceQueueInfo >	GetVkQueues ()					const	{ return _vkQueues; }
-		ND_ EQueueFamilyMask				GetQueueFamilyMask ()			const	{ return _availableQueues; }
+		ND_ EQueueFamilyMask				GetQueueFamilyMask ()			const	{ return _flags.availableQueues; }
 		
 		ND_ EnabledFeatures const&			GetFeatures ()					const	{ return _features; }
 		ND_ DeviceProperties const&			GetProperties ()				const	{ return _properties; }
 		ND_ VkPhysicalDeviceLimits const&	GetDeviceLimits ()				const	{ return _properties.properties.limits; }
+		ND_ DeviceFlags const&				GetFlags ()						const	{ return _flags; }
 
 		// check extensions
 		ND_ bool  HasInstanceExtension (StringView name) const;
@@ -185,10 +200,11 @@ namespace FG
 
 
 	private:
-		void _InitDeviceFeatures ();
+		void  _InitDeviceFeatures ();
+		void  _InitDeviceFlags ();
 
-		bool _LoadInstanceExtensions ();
-		bool _LoadDeviceExtensions ();
+		bool  _LoadInstanceExtensions ();
+		bool  _LoadDeviceExtensions ();
 	};
 
 

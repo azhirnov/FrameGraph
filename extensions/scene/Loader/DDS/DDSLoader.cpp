@@ -43,14 +43,14 @@ namespace
 				break;
 
 			case D3D11_RESOURCE_DIMENSION_TEXTURE1D :
-				img_type = array_layers > 1 ? EImage::_1DArray : EImage_1D;
+				img_type = array_layers > 1 ? EImage_1DArray : EImage_1D;
 				break;
 
 			case D3D11_RESOURCE_DIMENSION_TEXTURE2D :
 				if ( is_cube )
 					img_type = array_layers > 6 ? EImage_CubeArray : EImage_Cube;
 				else
-					img_type = array_layers > 1 ? EImage::_2DArray : EImage_2D;
+					img_type = array_layers > 1 ? EImage_2DArray : EImage_2D;
 				break;
 
 			case D3D11_RESOURCE_DIMENSION_TEXTURE3D :

@@ -62,6 +62,8 @@ namespace FG
 	// methods
 	public:
 		VRayTracingShaderTable () {}
+		VRayTracingShaderTable (VRayTracingShaderTable &&) = delete;
+		VRayTracingShaderTable (const VRayTracingShaderTable &) = delete;
 		~VRayTracingShaderTable ();
 
 		bool Create (StringView dbgName);

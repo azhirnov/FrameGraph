@@ -28,12 +28,18 @@
 #endif
 
 // SPIRV-Tools includes
-#ifdef ENABLE_OPT
+#ifdef FG_GLSLANG_ENABLE_OPT
 #	include "spirv-tools/optimizer.hpp"
 #	include "spirv-tools/libspirv.h"
+#else
+#	pragma message("SPIRV-Tolls library is missing, SPIRV optimization will be disabled")
 #endif
 
-#if GLSLANG_PATCH_LEVEL < 3559
+#ifndef FG_ENABLE_GLSL_TRACE
+#	pragma message("GLSL-Trace library is missing, shader debugging and profiling will be disabled")
+#endif
+
+#if GLSLANG_PATCH_LEVEL < 3743
 #	error update glslang!
 #endif
 
@@ -475,7 +481,7 @@ namespace FG
 		EProfile					sh_profile		= ENoProfile;
 		EShSource					sh_source;
 
-		#ifdef ENABLE_OPT
+		#ifdef FG_GLSLANG_ENABLE_OPT
 		_spirvTraget	= SPV_ENV_UNIVERSAL_1_0;
 		#endif
 
@@ -525,7 +531,7 @@ namespace FG
 					case 100 :
 						client_version	= EShTargetVulkan_1_0;
 						target_version	= EShTargetSpv_1_0;
-						#ifdef ENABLE_OPT
+						#ifdef FG_GLSLANG_ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_0;
 						#endif
 						break;
@@ -533,7 +539,7 @@ namespace FG
 					case 110 :
 						client_version	= EShTargetVulkan_1_1;
 						target_version	= EShTargetSpv_1_3;
-						#ifdef ENABLE_OPT
+						#ifdef FG_GLSLANG_ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_1;
 						#endif
 						break;
@@ -541,7 +547,7 @@ namespace FG
 					case 120 :
 						client_version	= EShTargetVulkan_1_1;	// TODO
 						target_version	= EShTargetSpv_1_4;
-						#ifdef ENABLE_OPT
+						#ifdef FG_GLSLANG_ENABLE_OPT
 						_spirvTraget	= SPV_ENV_VULKAN_1_1_SPIRV_1_4;
 						#endif
 						break;
@@ -557,7 +563,7 @@ namespace FG
 				{
 					target			= EShTargetSpv;
 					target_version	= EShTargetSpv_1_0;
-					#ifdef ENABLE_OPT
+					#ifdef FG_GLSLANG_ENABLE_OPT
 					_spirvTraget	= SPV_ENV_OPENGL_4_5;
 					#endif
 				}
@@ -627,7 +633,7 @@ namespace FG
 		GlslangToSpv( *intermediate, OUT spirv, &logger, &spv_options );
 		log += logger.getAllMessages();
 
-		#ifdef ENABLE_OPT
+		#ifdef FG_GLSLANG_ENABLE_OPT
 			if ( AllBits( _compilerFlags, EShaderCompilationFlags::StrongOptimization ))
 				CHECK_ERR( _OptimizeSPIRV( INOUT spirv, OUT log ));
 		#endif
@@ -635,7 +641,7 @@ namespace FG
 		return true;
 	}
 	
-#ifdef ENABLE_OPT
+#ifdef FG_GLSLANG_ENABLE_OPT
 /*
 =================================================
 	DisassembleSPIRV
@@ -714,7 +720,7 @@ namespace FG
 		optimizer.Run(spirv.data(), spirv.size(), &spirv, spvOptOptions);
 		return true;
 	}
-#endif	// ENABLE_OPT
+#endif	// FG_GLSLANG_ENABLE_OPT
 
 /*
 =================================================

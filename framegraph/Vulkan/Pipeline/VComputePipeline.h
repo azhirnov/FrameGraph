@@ -68,6 +68,8 @@ namespace FG
 	// methods
 	public:
 		VComputePipeline ();
+		VComputePipeline (VComputePipeline &&) = delete;
+		VComputePipeline (const VComputePipeline &) = delete;
 		~VComputePipeline ();
 		
 		bool Create (const ComputePipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);

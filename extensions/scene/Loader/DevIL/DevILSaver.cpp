@@ -92,8 +92,8 @@ namespace
 				ilSetInteger( IL_NUM_LAYERS, arr_layers );
 				break;
 
-			case EImage::_1DArray :
-			case EImage::_2DArray :
+			case EImage_1DArray :
+			case EImage_2DArray :
 				ilSetInteger( IL_NUM_LAYERS, arr_layers );
 				break;
 

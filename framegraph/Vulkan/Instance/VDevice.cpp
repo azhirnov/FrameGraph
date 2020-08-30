@@ -14,11 +14,7 @@ namespace FG
 		_vkInstance{ BitCast<VkInstance>( vdi.instance )},
 		_vkPhysicalDevice{ BitCast<VkPhysicalDevice>( vdi.physicalDevice )},
 		_vkDevice{ BitCast<VkDevice>( vdi.device )},
-		_vkVersion{ EShaderLangFormat::Unknown },
-		_availableQueues{ Default },
-		_graphicsShaderStages{ EResourceState::_VertexShader | EResourceState::_FragmentShader },
-		_allWritableStages{ VK_PIPELINE_STAGE_ALL_COMMANDS_BIT },
-		_allReadableStages{ VK_PIPELINE_STAGE_ALL_COMMANDS_BIT }
+		_vkVersion{ EShaderLangFormat::Unknown }
 	{
 		VulkanDeviceFn_Init( &_deviceFnTable );
 
@@ -42,7 +38,7 @@ namespace FG
 			dst.minImageTransferGranularity	= { props.minImageTransferGranularity.width,
 												props.minImageTransferGranularity.height,
 												props.minImageTransferGranularity.depth };
-			_availableQueues |= dst.familyIndex;
+			_flags.availableQueues |= dst.familyIndex;
 
 			CHECK( dst.familyIndex < EQueueFamily::_Count );
 
@@ -61,21 +57,7 @@ namespace FG
 		CHECK( _LoadDeviceExtensions() );
 
 		_InitDeviceFeatures();
-
-		// add shader stages
-		if ( _properties.features.tessellationShader )
-			_graphicsShaderStages |= (EResourceState::_TessControlShader | EResourceState::_TessEvaluationShader);
-
-		if ( _properties.features.geometryShader )
-			_graphicsShaderStages |= (EResourceState::_GeometryShader);
-
-		if ( _features.meshShaderNV )
-			_graphicsShaderStages |= (EResourceState::_MeshTaskShader | EResourceState::_MeshShader);
-		
-		#ifdef VK_NV_ray_tracing
-		//if ( _features.rayTracingNV )
-		//	_allReadableStages |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV | VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
-		#endif
+		_InitDeviceFlags();
 
 		auto&	limits = _properties.properties.limits;
 
@@ -167,11 +149,15 @@ namespace FG
 		_features.descriptorUpdateTemplate	= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME );
 		#endif
 		#ifdef VK_KHR_maintenance2
-		_features.imageViewUsage			= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE2_EXTENSION_NAME );
+		const bool	has_maintenance2		= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE2_EXTENSION_NAME );
+		_features.imageViewUsage			= has_maintenance2;
+		_features.blockTexelView			= has_maintenance2;
 		#endif
 		#ifdef VK_KHR_maintenance1
-		_features.create2DArrayCompatible	= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
-		_features.commandPoolTrim			= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
+		const bool	has_maintenance1		= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
+		_features.create2DArrayCompatible	= has_maintenance1;
+		_features.commandPoolTrim			= has_maintenance1;
+		_features.array2DCompatible			= has_maintenance1;
 		#endif
 		#ifdef VK_KHR_device_group
 		_features.dispatchBase				= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_DEVICE_GROUP_EXTENSION_NAME );
@@ -223,6 +209,9 @@ namespace FG
 		#endif
 		#ifdef VK_KHR_vulkan_memory_model
 		_features.memoryModel				= _vkVersion >= EShaderLangFormat::Vulkan_120 or HasDeviceExtension( VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME );
+		#endif
+		#ifdef VK_EXT_robustness2
+		_features.robustness2				= HasDeviceExtension( VK_EXT_ROBUSTNESS_2_EXTENSION_NAME );
 		#endif
 
 		// load extensions
@@ -306,6 +295,14 @@ namespace FG
 				_properties.descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
 			}
 			#endif
+			#ifdef VK_EXT_robustness2
+			if ( _features.robustness2 )
+			{
+				*next_feat	= &_properties.robustness2Features;
+				next_feat	= &_properties.robustness2Features.pNext;
+				_properties.robustness2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+			}
+			#endif
 			Unused( next_feat );
 
 			vkGetPhysicalDeviceFeatures2KHR( GetVkPhysicalDevice(), OUT &feat2 );
@@ -333,6 +330,9 @@ namespace FG
 			#endif
 			#ifdef VK_KHR_vulkan_memory_model
 			_features.memoryModel			&= (_properties.memoryModel.vulkanMemoryModel == VK_TRUE);
+			#endif
+			#ifdef VK_EXT_robustness2
+			_features.robustness2			&= !!(_properties.robustness2Features.robustBufferAccess2 | _properties.robustness2Features.robustImageAccess2 | _properties.robustness2Features.nullDescriptor);
 			#endif
 
 			VkPhysicalDeviceProperties2	props2		= {};
@@ -407,12 +407,62 @@ namespace FG
 				_properties.descriptorIndexingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT;
 			}
 			#endif
+			#ifdef VK_EXT_robustness2
+			if ( _features.robustness2 )
+			{
+				*next_props	= &_properties.robustness2Properties;
+				next_props	= &_properties.robustness2Properties.pNext;
+				_properties.robustness2Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT;
+			}
+			#endif
 			Unused( next_props );
 
 			vkGetPhysicalDeviceProperties2KHR( GetVkPhysicalDevice(), OUT &props2 );
 		}
 
 		VulkanLoader::SetupDeviceBackwardCompatibility( _properties.properties.apiVersion, INOUT _deviceFnTable );
+	}
+	
+/*
+=================================================
+	_InitDeviceFlags
+=================================================
+*/
+	void  VDevice::_InitDeviceFlags ()
+	{
+		// add shader stages
+		{
+			_flags.graphicsShaderStages = EResourceState::_VertexShader | EResourceState::_FragmentShader;
+
+			if ( _properties.features.tessellationShader )
+				_flags.graphicsShaderStages |= (EResourceState::_TessControlShader | EResourceState::_TessEvaluationShader);
+
+			if ( _properties.features.geometryShader )
+				_flags.graphicsShaderStages |= (EResourceState::_GeometryShader);
+
+			if ( _features.meshShaderNV )
+				_flags.graphicsShaderStages |= (EResourceState::_MeshTaskShader | EResourceState::_MeshShader);
+		}
+
+		// pipeline stages
+		{
+			_flags.allWritableStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+			_flags.allReadableStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+			#ifdef VK_NV_ray_tracing
+			//if ( _features.rayTracingNV )
+			//	_allReadableStages |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV | VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV;
+			#endif
+		}
+
+		// image create flags
+		{
+			_flags.imageCreateFlags =
+				VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT |
+				VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT |
+				(_features.array2DCompatible ? VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT : Zero) |
+				(_features.blockTexelView ? VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT : Zero);	
+		}
 	}
 
 /*

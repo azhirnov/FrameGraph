@@ -134,7 +134,7 @@ namespace FG
 		fgThread.GetBatch().GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShaders );
 		ASSERT( debugMode != Default );
 		
-		const VkShaderStageFlags	stages = VEnumCast( debuggableShaders );
+		const VkShaderStageFlagBits	stages = VEnumCast( debuggableShaders );
 
 		for (auto& sh : ppln._shaders)
 		{
@@ -1592,11 +1592,8 @@ namespace FG
 
 		// validate depth states
 		{
-
 			if ( not renderState.depth.test )
 				renderState.depth.compareOp = ECompareOp::LEqual;
-
-			//if ( not renderState.depth.write )
 
 			if ( not renderState.depth.boundsEnabled )
 				renderState.depth.bounds = { 0.0f, 1.0f };

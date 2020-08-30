@@ -91,6 +91,7 @@ namespace FGC
 			bool	meshShaderNV			: 1;
 			bool	rayTracingNV			: 1;
 			bool	shadingRateImageNV		: 1;
+			bool	imageFootprintNV		: 1;
 		//	bool	pushDescriptor			: 1;
 		//	bool	inlineUniformBlock		: 1;
 			bool	shaderClock				: 1;
@@ -119,6 +120,9 @@ namespace FGC
 			#endif
 			#ifdef VK_NV_ray_tracing
 			VkPhysicalDeviceRayTracingPropertiesNV				rayTracingProperties;
+			#endif
+			#ifdef VK_NV_shader_image_footprint
+			VkPhysicalDeviceShaderImageFootprintFeaturesNV		shaderImageFootprintFeatures;
 			#endif
 			#ifdef VK_KHR_shader_clock
 			VkPhysicalDeviceShaderClockFeaturesKHR				shaderClock;
@@ -310,6 +314,8 @@ namespace FGC
 		void _ValidateInstanceLayers (INOUT Array<const char*> &layers) const;
 		void _ValidateInstanceExtensions (INOUT Array<const char*> &ext) const;
 		void _ValidateDeviceExtensions (INOUT Array<const char*> &ext) const;
+
+		void _LogPhysicalDevices () const;
 
 		bool _SetupQueues (ArrayView<QueueCreateInfo> queue);
 		bool _ChooseQueueIndex (ArrayView<VkQueueFamilyProperties> props, INOUT VkQueueFlagBits &flags, OUT uint &index) const;

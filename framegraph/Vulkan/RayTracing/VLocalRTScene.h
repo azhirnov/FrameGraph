@@ -54,6 +54,7 @@ namespace FG
 	public:
 		VLocalRTScene () {}
 		VLocalRTScene (VLocalRTScene &&) = delete;
+		VLocalRTScene (const VLocalRTScene &) = delete;
 		~VLocalRTScene ();
 		
 		bool Create (const VRayTracingScene *);

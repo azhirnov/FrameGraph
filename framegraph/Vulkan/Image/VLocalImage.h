@@ -76,6 +76,7 @@ namespace FG
 	public:
 		VLocalImage () {}
 		VLocalImage (VLocalImage &&) = delete;
+		VLocalImage (const VLocalImage &) = delete;
 		~VLocalImage ();
 
 		bool Create (const VImage *);

@@ -69,6 +69,8 @@ namespace FG
 	// methods
 	public:
 		VMeshPipeline () {}
+		VMeshPipeline (VMeshPipeline &&) = delete;
+		VMeshPipeline (const VMeshPipeline &) = delete;
 		~VMeshPipeline ();
 
 		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);

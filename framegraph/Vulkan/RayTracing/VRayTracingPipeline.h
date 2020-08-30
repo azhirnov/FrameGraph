@@ -51,6 +51,8 @@ namespace FG
 	// methods
 	public:
 		VRayTracingPipeline () {}
+		VRayTracingPipeline (VRayTracingPipeline &&) = delete;
+		VRayTracingPipeline (const VRayTracingPipeline &) = delete;
 		~VRayTracingPipeline ();
 		
 		bool Create (const RayTracingPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);

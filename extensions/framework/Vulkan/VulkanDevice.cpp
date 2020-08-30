@@ -211,6 +211,7 @@ namespace FGC
 			_instanceExtensions.insert( inst );
 		}
 
+		_LogPhysicalDevices();
 		VulkanLoader::SetupInstanceBackwardCompatibility( vk_ver );
 		return true;
 	}
@@ -259,6 +260,7 @@ namespace FGC
 		_ValidateInstanceVersion( INOUT vk_ver );
 		_UpdateInstanceVersion( vk_ver );
 
+		_LogPhysicalDevices();
 		VulkanLoader::SetupInstanceBackwardCompatibility( vk_ver );
 		return true;
 	}
@@ -317,13 +319,14 @@ namespace {
 	template <typename Fn>
 	void  WithPhysicalDevices (const VulkanDevice &vulkan, Fn &&fn)
 	{
-		uint						count	= 0;
-		Array< VkPhysicalDevice >	devices;
+		uint								count	= 0;
+		FixedArray< VkPhysicalDevice, 16 >	devices;
 		
 		VK_CALL( vkEnumeratePhysicalDevices( vulkan.GetVkInstance(), OUT &count, null ));
 		CHECK_ERR( count > 0, void());
 
 		devices.resize( count );
+		count = uint(devices.size());
 		VK_CALL( vkEnumeratePhysicalDevices( vulkan.GetVkInstance(), OUT &count, OUT devices.data() ));
 
 		for (auto& dev : devices)
@@ -335,8 +338,6 @@ namespace {
 			vkGetPhysicalDeviceProperties( dev, OUT &prop );
 			vkGetPhysicalDeviceFeatures( dev, OUT &feat );
 			vkGetPhysicalDeviceMemoryProperties( dev, OUT &mem_prop );
-
-			FG_LOGI( "Found Vulkan device: "s << prop.deviceName );
 
 			fn( dev, prop, feat, mem_prop );
 		}
@@ -443,7 +444,7 @@ namespace {
 
 				//const BytesU global_mem   = CalcTotalMemory( mem );
 																										// magic function:
-				const float	perf	=	//float(global_mem.Mb()) / 1024.0f +									// commented because of bug on Intel (incorrect heap size)
+				const float	perf	=	//float(global_mem.Mb()) / 1024.0f +								// commented because of bug on Intel (incorrect heap size)
 										float(prop.limits.maxComputeSharedMemorySize >> 10) / 64.0f +		// big local cache is good
 										float(is_gpu and not is_integrated ? 4 : 1) +						// 
 										float(prop.limits.maxComputeWorkGroupInvocations) / 1024.0f +		// 
@@ -1035,6 +1036,9 @@ namespace {
 		#ifdef VK_NV_shading_rate_image
 		_features.shadingRateImageNV		= HasDeviceExtension( VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME );
 		#endif
+		#ifdef VK_NV_shader_image_footprint
+		_features.imageFootprintNV			= HasDeviceExtension( VK_NV_SHADER_IMAGE_FOOTPRINT_EXTENSION_NAME );
+		#endif
 		#ifdef VK_KHR_shader_clock
 		_features.shaderClock				= HasDeviceExtension( VK_KHR_SHADER_CLOCK_EXTENSION_NAME );
 		#endif
@@ -1084,6 +1088,14 @@ namespace {
 				*next_feat	= &_properties.shadingRateImageFeatures;
 				next_feat	= &_properties.shadingRateImageFeatures.pNext;
 				_properties.shadingRateImageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV;
+			}
+			#endif
+			#ifdef VK_NV_shader_image_footprint
+			if ( _features.imageFootprintNV )
+			{
+				*next_feat	= &_properties.shaderImageFootprintFeatures;
+				next_feat	= &_properties.shaderImageFootprintFeatures.pNext;
+				_properties.shaderImageFootprintFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV;
 			}
 			#endif
 			#ifdef VK_KHR_shader_clock
@@ -1145,6 +1157,9 @@ namespace {
 			#endif
 			#ifdef VK_NV_shading_rate_image
 			_features.shadingRateImageNV	&= (_properties.shadingRateImageFeatures.shadingRateImage == VK_TRUE);
+			#endif
+			#ifdef VK_NV_shader_image_footprint
+			_features.imageFootprintNV		&= (_properties.shaderImageFootprintFeatures.imageFootprint == VK_TRUE);
 			#endif
 			#ifdef VK_KHR_shader_clock
 			_features.shaderClock			&= !!(_properties.shaderClock.shaderDeviceClock | _properties.shaderClock.shaderSubgroupClock);
@@ -1632,7 +1647,7 @@ namespace {
 
 			if ( not found )
 			{
-				FG_LOGI( "Vulkan layer \""s << (*iter) << "\" not supported and will be removed" );
+				FG_LOGI( "Removed layer '"s << (*iter) << "'" );
 
 				iter = layers.erase( iter );
 			}
@@ -1678,7 +1693,7 @@ namespace {
 		{
 			if ( instance_extensions.find( ExtName_t{*iter} ) == instance_extensions.end() )
 			{
-				FG_LOGI( "Vulkan instance extension \""s << (*iter) << "\" not supported and will be removed" );
+				FG_LOGI( "Removed instance extension '"s << (*iter) << "'" );
 
 				iter = extensions.erase( iter );
 			}
@@ -1726,7 +1741,7 @@ namespace {
 
 			if ( not found )
 			{
-				FG_LOGI( "Vulkan device extension \""s << (*iter) << "\" not supported and will be removed" );
+				FG_LOGI( "Removed device extension '"s << (*iter) << "'" );
 
 				iter = extensions.erase( iter );
 			}
@@ -1735,6 +1750,32 @@ namespace {
 		}
 	}
 	
+/*
+=================================================
+	_LogPhysicalDevices
+=================================================
+*/
+	void  VulkanDeviceInitializer::_LogPhysicalDevices () const
+	{
+		uint								count	= 0;
+		FixedArray< VkPhysicalDevice, 16 >	devices;
+		
+		VK_CALL( vkEnumeratePhysicalDevices( GetVkInstance(), OUT &count, null ));
+		CHECK_ERR( count > 0, void());
+
+		devices.resize( count );
+		count = uint(devices.size());
+		VK_CALL( vkEnumeratePhysicalDevices( GetVkInstance(), OUT &count, OUT devices.data() ));
+
+		for (auto& dev : devices)
+		{
+			VkPhysicalDeviceProperties	prop = {};
+			vkGetPhysicalDeviceProperties( dev, OUT &prop );
+
+			FG_LOGI( "Found Vulkan device: "s << prop.deviceName );
+		}
+	}
+
 /*
 =================================================
 	CreateDebugCallback
@@ -2010,20 +2051,15 @@ namespace {
 	{
 		#ifdef PLATFORM_ANDROID
 			static const char*	instance_layers[] = {
-				"VK_LAYER_GOOGLE_threading",
-				"VK_LAYER_LUNARG_parameter_validation",
-				"VK_LAYER_LUNARG_object_tracker",
-				"VK_LAYER_LUNARG_core_validation",
-				"VK_LAYER_GOOGLE_unique_objects",
+				"VK_LAYER_KHRONOS_validation",
 
 				// may be unsupported:
-				"VK_LAYER_LUNARG_vktrace",
 				"VK_LAYER_ARM_MGD",
 				"VK_LAYER_ARM_mali_perf_doc"
 			};
 		#else
 			static const char*	instance_layers[] = {
-				"VK_LAYER_LUNARG_standard_validation"
+				"VK_LAYER_KHRONOS_validation"
 			};
 		#endif
 		return instance_layers;

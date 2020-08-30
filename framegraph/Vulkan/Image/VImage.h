@@ -48,6 +48,8 @@ namespace FG
 	// methods
 	public:
 		VImage () {}
+		VImage (VImage &&) = delete;
+		VImage (const VImage &) = delete;
 		~VImage ();
 
 		bool Create (VResourceManager &, const ImageDesc &desc, RawMemoryID memId, VMemoryObj &memObj,

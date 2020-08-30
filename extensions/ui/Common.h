@@ -2,6 +2,8 @@
 
 #pragma once
 
+#ifdef FG_ENABLE_IMGUI
+
 #include "framegraph/FG.h"
 #include "imgui.h"
 
@@ -24,3 +26,5 @@ namespace FGC
 	}
 
 }	// FGC
+
+#endif	// FG_ENABLE_IMGUI

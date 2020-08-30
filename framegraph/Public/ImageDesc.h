@@ -33,16 +33,6 @@ namespace FG
 
 	// methods
 		ImageDesc () {}
-		
-		ImageDesc (EImageDim	imageType,
-				   const uint3 &dimension,
-				   EPixelFormat	format,
-				   EImageUsage	usage,
-				   EImageFlags	flags		= Default,
-				   ImageLayer	arrayLayers	= 1_layer,
-				   MipmapLevel	maxLevel	= 1_mipmap,
-				   MultiSamples	samples		= Default,
-				   EQueueUsage	queues		= Default);
 
 		void Validate ();
 		
@@ -77,19 +67,19 @@ namespace FG
 		ImageLayer			baseLayer;
 		uint				layerCount	= UMax;
 		ImageSwizzle		swizzle;
-		EImageAspect		aspectMask	= Default;
+		EImageAspect		aspectMask	= EImageAspect::Auto;
 
 	// methods
 		ImageViewDesc () {}
 
-		ImageViewDesc (EImage			viewType,
-					   EPixelFormat		format,
-					   MipmapLevel		baseLevel	= Default,
-					   uint				levelCount	= 1,
-					   ImageLayer		baseLayer	= Default,
-					   uint				layerCount	= 1,
-					   ImageSwizzle		swizzle		= Default,
-					   EImageAspect		aspectMask	= Default);
+		explicit ImageViewDesc (EImage			viewType,
+								EPixelFormat	format		= Default,
+								MipmapLevel		baseLevel	= Default,
+								uint			levelCount	= UMax,
+								ImageLayer		baseLayer	= Default,
+								uint			layerCount	= UMax,
+								ImageSwizzle	swizzle		= Default,
+								EImageAspect	aspectMask	= EImageAspect::Auto);
 
 		explicit ImageViewDesc (const ImageDesc &desc);
 

@@ -54,7 +54,6 @@ namespace FG
 		using Allocator_t				= LinearAllocator< UntypedLinearAllocator<> >;
 		using MutableImages_t			= ArrayView< Pair< VLocalImage const*, EResourceState >>;
 		using MutableBuffers_t			= ArrayView< Pair< VLocalBuffer const*, EResourceState >>;
-		using ShaderDebugMode			= RenderPassDesc::ShaderDebugMode;
 		
 
 	// variables
@@ -99,14 +98,13 @@ namespace FG
 		
 		MutableImages_t				_mutableImages;
 		MutableBuffers_t			_mutableBuffers;
-		
-		//ShaderDebugMode			_debugMode;
 
 
 	// methods
 	public:
 		VLogicalRenderPass () {}
 		VLogicalRenderPass (VLogicalRenderPass &&) = delete;
+		VLogicalRenderPass (const VLogicalRenderPass &) = delete;
 		~VLogicalRenderPass ();
 
 		bool Create (VCommandBuffer &, const RenderPassDesc &);

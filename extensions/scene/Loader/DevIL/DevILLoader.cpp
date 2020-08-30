@@ -238,10 +238,10 @@ namespace {
 			img_type = EImage_Cube;
 		else
 		if ( height > 1 and layers > 1 )
-			img_type = EImage::_2DArray;
+			img_type = EImage_2DArray;
 		else
 		if ( layers > 1 )
-			img_type = EImage::_1DArray;
+			img_type = EImage_1DArray;
 		else
 		if ( height > 1 )
 			img_type = EImage_2D;

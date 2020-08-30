@@ -41,6 +41,8 @@ namespace FG
 	// methods
 	public:
 		VMemoryObj () {}
+		VMemoryObj (VMemoryObj &&) = delete;
+		VMemoryObj (const VMemoryObj &) = delete;
 		~VMemoryObj ();
 
 		bool Create (const MemoryDesc &, StringView dbgName);

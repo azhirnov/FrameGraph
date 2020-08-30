@@ -13,7 +13,7 @@ static void ImageDesc_Test1 ()
 
 		TEST( desc.imageType == EImageDim_1D );
 		TEST( desc.viewType == Default );
-		TEST( All( desc.dimension == uint3{2, 0, 0} ));
+		TEST( All( desc.dimension == uint3{2, 1, 1} ));
 	
 		desc.Validate();
 
@@ -28,7 +28,7 @@ static void ImageDesc_Test1 ()
 
 		TEST( desc.imageType == EImageDim_2D );
 		TEST( desc.viewType == Default );
-		TEST( All( desc.dimension == uint3{2, 3, 0} ));
+		TEST( All( desc.dimension == uint3{2, 3, 1} ));
 	
 		desc.Validate();
 
@@ -72,14 +72,14 @@ static void ImageDesc_Test2 ()
 	{
 		ImageDesc	desc;
 		desc.format = EPixelFormat::RGBA8_UNorm;
-		desc.SetView( EImage::_1DArray );
+		desc.SetView( EImage_1DArray );
 
-		TEST( desc.viewType == EImage::_1DArray );
+		TEST( desc.viewType == EImage_1DArray );
 		TEST( desc.imageType == EImageDim_1D );
 	
 		desc.Validate();
 		
-		TEST( desc.viewType == EImage::_1DArray );
+		TEST( desc.viewType == EImage_1DArray );
 		TEST( desc.imageType == EImageDim_1D );
 	}
 	{
@@ -98,14 +98,14 @@ static void ImageDesc_Test2 ()
 	{
 		ImageDesc	desc;
 		desc.format = EPixelFormat::RGBA8_UNorm;
-		desc.SetView( EImage::_2DArray );
+		desc.SetView( EImage_2DArray );
 
-		TEST( desc.viewType == EImage::_2DArray );
+		TEST( desc.viewType == EImage_2DArray );
 		TEST( desc.imageType == EImageDim_2D );
 	
 		desc.Validate();
 		
-		TEST( desc.viewType == EImage::_2DArray );
+		TEST( desc.viewType == EImage_2DArray );
 		TEST( desc.imageType == EImageDim_2D );
 	}
 	{
@@ -165,7 +165,7 @@ static void ImageDesc_Test3 ()
 	
 		desc.Validate();
 		
-		TEST( desc.viewType == EImage::_1DArray );
+		TEST( desc.viewType == EImage_1DArray );
 		TEST( desc.imageType == EImageDim_1D );
 		TEST( desc.maxLevel == 1_mipmap );
 		TEST( not desc.samples.IsEnabled() );
@@ -184,7 +184,7 @@ static void ImageDesc_Test3 ()
 	
 		desc.Validate();
 		
-		TEST( desc.viewType == EImage::_2DArray );
+		TEST( desc.viewType == EImage_2DArray );
 		TEST( desc.imageType == EImageDim_2D );
 		TEST( desc.arrayLayers == 4_layer );
 		TEST( desc.maxLevel == 1_mipmap );
@@ -205,7 +205,7 @@ static void ImageDesc_Test3 ()
 	
 		desc.Validate();
 		
-		TEST( desc.viewType == EImage::_2DArray );
+		TEST( desc.viewType == EImage_2DArray );
 		TEST( desc.imageType == EImageDim_2D );
 		TEST( desc.arrayLayers == 4_layer );
 		TEST( desc.maxLevel == 4_mipmap );
@@ -226,14 +226,14 @@ static void ImageDesc_Test3 ()
 	
 		desc.Validate();
 		
-		TEST( desc.viewType == EImage::_2DArray );
+		TEST( desc.viewType == EImage_2DArray );
 		TEST( desc.imageType == EImageDim_2D );
 		TEST( desc.arrayLayers == 4_layer );
 		TEST( desc.maxLevel == 1_mipmap );
 		TEST( desc.samples == 8_samples );
 	}
 
-	// crashed on CI decause of assertion
+	// crashed on CI because of assertion
 	/*{
 		ImageDesc	desc;
 		desc.format = EPixelFormat::RGBA8_UNorm;
@@ -250,7 +250,7 @@ static void ImageDesc_Test3 ()
 	
 		desc.Validate();
 		
-		TEST( desc.viewType == EImage::_2DArray );
+		TEST( desc.viewType == EImage_2DArray );
 		TEST( desc.imageType == EImageDim_2D );
 		TEST( desc.arrayLayers == 4_layer );
 		TEST( desc.maxLevel == 1_mipmap );
@@ -271,7 +271,7 @@ static void ImageView_Test1 ()
 
 		desc.Validate();
 
-		TEST( desc.viewType == EImage::_2DArray );
+		TEST( desc.viewType == EImage_2DArray );
 
 		ImageViewDesc	view;
 
@@ -279,7 +279,7 @@ static void ImageView_Test1 ()
 
 		view.Validate( desc );
 		
-		TEST( view.viewType == EImage::_2DArray );
+		TEST( view.viewType == EImage_2DArray );
 		TEST( view.format == EPixelFormat::RGBA8_UNorm );
 		TEST( view.baseLayer == 0_layer );
 		TEST( view.layerCount == 6 );
@@ -328,10 +328,77 @@ static void ImageView_Test1 ()
 
 		view.Validate( desc );
 		
-		TEST( view.viewType == EImage::_2DArray );
+		TEST( view.viewType == EImage_2DArray );
 		TEST( view.format == EPixelFormat::RGBA8_UNorm );
 		TEST( view.baseLayer == 2_layer );
 		TEST( view.layerCount == 2 );
+	}
+	{
+		ImageDesc	desc;
+		desc.format = EPixelFormat::RGBA8_UNorm;
+		desc.SetDimension({ 32, 32, 32 });
+		desc.AddFlags( EImageFlags::Array2DCompatible );
+		
+		TEST( desc.viewType == Default );
+		
+		desc.Validate();
+
+		TEST( desc.viewType == EImage_3D );
+		
+		ImageViewDesc	view;
+		view.SetType( EImage_2D );
+
+		view.Validate( desc );
+		
+		TEST( view.viewType == EImage_2D );
+		TEST( view.format == EPixelFormat::RGBA8_UNorm );
+		TEST( view.baseLayer == 0_layer );
+		TEST( view.layerCount == 1 );
+	}
+	{
+		ImageDesc	desc;
+		desc.format = EPixelFormat::RGBA8_UNorm;
+		desc.SetDimension({ 32, 32, 32 });
+		desc.AddFlags( EImageFlags::Array2DCompatible );
+		
+		TEST( desc.viewType == Default );
+		
+		desc.Validate();
+
+		TEST( desc.viewType == EImage_3D );
+		
+		ImageViewDesc	view;
+		view.SetType( EImage_2DArray );
+
+		view.Validate( desc );
+		
+		TEST( view.viewType == EImage_2DArray );
+		TEST( view.format == EPixelFormat::RGBA8_UNorm );
+		TEST( view.baseLayer == 0_layer );
+		TEST( view.layerCount == 32 );
+	}
+	{
+		ImageDesc	desc;
+		desc.format = EPixelFormat::RGBA8_UNorm;
+		desc.SetDimension({ 32, 32, 32 });
+		desc.AddFlags( EImageFlags::Array2DCompatible );
+		
+		TEST( desc.viewType == Default );
+		
+		desc.Validate();
+
+		TEST( desc.viewType == EImage_3D );
+		
+		ImageViewDesc	view;
+		view.SetType( EImage_2DArray );
+		view.SetArrayLayers( 3, 6 );
+
+		view.Validate( desc );
+		
+		TEST( view.viewType == EImage_2DArray );
+		TEST( view.format == EPixelFormat::RGBA8_UNorm );
+		TEST( view.baseLayer == 3_layer );
+		TEST( view.layerCount == 6 );
 	}
 }
 

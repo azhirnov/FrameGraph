@@ -59,6 +59,8 @@ namespace FG
 	// methods
 	public:
 		VRayTracingScene () {}
+		VRayTracingScene (VRayTracingScene &&) = delete;
+		VRayTracingScene (const VRayTracingScene &) = delete;
 		~VRayTracingScene ();
 		
 		bool Create (VResourceManager &, const RayTracingSceneDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);

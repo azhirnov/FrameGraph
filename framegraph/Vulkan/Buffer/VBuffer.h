@@ -45,6 +45,8 @@ namespace FG
 	// methods
 	public:
 		VBuffer () {}
+		VBuffer (VBuffer &&) = delete;
+		VBuffer (const VBuffer &) = delete;
 		~VBuffer ();
 
 		bool Create (VResourceManager &, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,

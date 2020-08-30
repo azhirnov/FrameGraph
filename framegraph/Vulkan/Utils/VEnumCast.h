@@ -579,9 +579,10 @@ namespace FG
 			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
-				case EImageFlags::CubeCompatible :		flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;		break;
-				case EImageFlags::MutableFormat :		flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;		break;
-				case EImageFlags::Array2DCompatible :	flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;	break;
+				case EImageFlags::CubeCompatible :			flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;				break;
+				case EImageFlags::MutableFormat :			flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;				break;
+				case EImageFlags::Array2DCompatible :		flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;			break;
+				case EImageFlags::BlockTexelViewCompatible:	flags |= VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT;	break;
 				case EImageFlags::_Last :
 				case EImageFlags::Unknown :
 				default :								RETURN_ERR( "unknown image flag", Zero );
@@ -621,9 +622,9 @@ namespace FG
 		switch ( value )
 		{
 			case EImage_1D :			return VK_IMAGE_VIEW_TYPE_1D;
-			case EImage::_1DArray :		return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+			case EImage_1DArray :		return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
 			case EImage_2D :			return VK_IMAGE_VIEW_TYPE_2D;
-			case EImage::_2DArray :		return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			case EImage_2DArray :		return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 			case EImage_Cube :			return VK_IMAGE_VIEW_TYPE_CUBE;
 			case EImage_CubeArray :	return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
 			case EImage_3D :			return VK_IMAGE_VIEW_TYPE_3D;
@@ -652,7 +653,9 @@ namespace FG
 			{
 				case EImageUsage::TransferSrc :				flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;				break;
 				case EImageUsage::TransferDst :				flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;				break;
-				case EImageUsage::Sampled :					flags |= VK_IMAGE_USAGE_SAMPLED_BIT;					break;
+				case EImageUsage::Sampled :
+				case EImageUsage::SampledCubic :
+				case EImageUsage::SampledMinMax :			flags |= VK_IMAGE_USAGE_SAMPLED_BIT;					break;
 				case EImageUsage::StorageAtomic :
 				case EImageUsage::Storage :					flags |= VK_IMAGE_USAGE_STORAGE_BIT;					break;
 				case EImageUsage::ColorAttachmentBlend :

@@ -61,14 +61,14 @@ namespace
 				break;
 			}
 
-			case EImage::_1DArray :
+			case EImage_1DArray :
 			{
 				header10.resourceDimension	= D3D11_RESOURCE_DIMENSION_TEXTURE1D;
 				header10.arraySize			= arr_layers;
 				break;
 			}
 
-			case EImage::_2DArray :
+			case EImage_2DArray :
 			{
 				header10.resourceDimension	= D3D11_RESOURCE_DIMENSION_TEXTURE2D;
 				header10.arraySize			= arr_layers;
@@ -149,8 +149,8 @@ namespace
 		{
 			case EImage_1D :
 			case EImage_2D :
-			case EImage::_1DArray :
-			case EImage::_2DArray :
+			case EImage_1DArray :
+			case EImage_2DArray :
 			case EImage_Cube :
 			case EImage_CubeArray :
 			case EImage_3D :

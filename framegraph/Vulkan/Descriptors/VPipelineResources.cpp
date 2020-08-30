@@ -65,6 +65,21 @@ namespace FG
 		VDevice const&	dev			= resMngr.GetDevice();
 		auto const*		ds_layout	= resMngr.GetResource( _layoutId );
 		
+		// Without the nullDescriptor feature enabled, when updating a VkDescriptorSet, all the resources backing it must be non-null,
+		// even if the descriptor is statically not used by the shader. This feature allows descriptors to be backed by null resources or views.
+		// Loads from a null descriptor return zero values and stores and atomics to a null descriptor are discarded.
+		// https://github.com/KhronosGroup/Vulkan-Guide/blob/master/chapters/robustness.md
+	#ifdef VK_EXT_robustness2
+		if ( dev.GetFeatures().robustness2 and dev.GetProperties().robustness2Features.nullDescriptor )
+		{
+			// '_allowEmptyResources' can be 'true'
+		}
+		else
+	#endif
+		{
+			_allowEmptyResources = false;
+		}
+
 		CHECK_ERR( ds_layout );
 		CHECK_ERR( ds_layout->AllocDescriptorSet( resMngr, OUT _descriptorSet ));
 		
@@ -609,8 +624,8 @@ namespace FG
 			case EImage_1D :			img_type = EImageSampler::_1D;			break;
 			case EImage_2D :			img_type = EImageSampler::_2D;			break;
 			case EImage_3D :			img_type = EImageSampler::_3D;			break;
-			case EImage::_1DArray :		img_type = EImageSampler::_1DArray;		break;
-			case EImage::_2DArray :		img_type = EImageSampler::_2DArray;		break;
+			case EImage_1DArray :		img_type = EImageSampler::_1DArray;		break;
+			case EImage_2DArray :		img_type = EImageSampler::_2DArray;		break;
 			case EImage_Cube :			img_type = EImageSampler::_Cube;		break;
 			case EImage_CubeArray :	img_type = EImageSampler::_CubeArray;	break;
 			case EImage::Unknown :		ASSERT(false);							break;

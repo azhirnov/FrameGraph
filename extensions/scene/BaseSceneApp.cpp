@@ -8,6 +8,7 @@
 #include "framework/VR/VRDeviceEmulator.h"
 #include "stl/Algorithms/StringUtils.h"
 #include "stl/Stream/FileStream.h"
+#include "stl/Platforms/WindowsHeader.h"
 
 
 namespace FG
@@ -601,6 +602,11 @@ namespace FG
 					CHECK( file.Write( str ));
 				
 				FG_LOGI( "Shader trace saved to '"s << fname << "'" );
+				
+				// for quick access from VS
+				#if defined(COMPILER_MSVC) and defined(FG_DEBUG)
+				::OutputDebugStringA( (String{fname} << "(1): trace saved\n").c_str() );
+				#endif
 				break;
 			}
 		}

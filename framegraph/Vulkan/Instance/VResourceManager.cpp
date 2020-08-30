@@ -172,32 +172,6 @@ namespace FG
 			}
 		}
 	}
-
-/*
-=================================================
-	_CreateEmptyDescriptorSetLayout
-=================================================
-*/
-	bool  VResourceManager::_CreateEmptyDescriptorSetLayout ()
-	{
-		auto&		pool	= _GetResourcePool( RawDescriptorSetLayoutID{} );
-		Index_t		index	= UMax;
-		CHECK_ERR( pool.Assign( OUT index ));
-
-		auto&										res			= pool[ index ];
-		PipelineDescription::UniformMapPtr			uniforms	= MakeShared<PipelineDescription::UniformMap_t>();
-		VDescriptorSetLayout::DescriptorBinding_t	binding;
-
-		res.Data().~VDescriptorSetLayout();
-		new (&res.Data()) VDescriptorSetLayout{ uniforms, OUT binding };
-		
-		CHECK_ERR( res.Create( _device, binding ));
-		CHECK_ERR( pool.AddToCache( index ).second );
-		res.AddRef();
-
-		_emptyDSLayout = RawDescriptorSetLayoutID{ index, res.GetInstanceID() };
-		return true;
-	}
 	
 /*
 =================================================
@@ -211,6 +185,31 @@ namespace FG
 	{
 		target.Data().~ResType();
 		new (&target.Data()) ResType{ std::forward<Args &&>(args)... };
+	}
+
+/*
+=================================================
+	_CreateEmptyDescriptorSetLayout
+=================================================
+*/
+	bool  VResourceManager::_CreateEmptyDescriptorSetLayout ()
+	{
+		auto&		pool	= _GetResourcePool( RawDescriptorSetLayoutID{} );
+		Index_t		index	= UMax;
+		CHECK_ERR( pool.Assign( OUT index ));
+
+		auto&										res			= pool[ index ];
+		const PipelineDescription::UniformMapPtr	uniforms	= MakeShared<PipelineDescription::UniformMap_t>();
+		VDescriptorSetLayout::DescriptorBinding_t	binding;
+
+		Replace( res, _device, uniforms, OUT binding );
+		
+		CHECK_ERR( res.Create( _device, binding ));
+		CHECK_ERR( pool.AddToCache( index ).second );
+		res.AddRef();
+
+		_emptyDSLayout = RawDescriptorSetLayoutID{ index, res.GetInstanceID() };
+		return true;
 	}
 	
 /*
@@ -442,7 +441,7 @@ namespace FG
 
 		auto&	pool		= _GetResourcePool( id );
 		auto&	ds_layout	= pool[ id.Index() ];
-		Replace( ds_layout, uniforms, OUT binding );
+		Replace( ds_layout, _device, uniforms, OUT binding );
 		
 		// search in cache
 		Index_t	temp_id		= pool.Find( &ds_layout );

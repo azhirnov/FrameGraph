@@ -43,16 +43,17 @@ set( FG_ENABLE_FFMPEG OFF CACHE BOOL "use FFmpeg (optional, LGPL license)" )
 set( FG_ALLOW_GPL OFF CACHE BOOL "allow GNU GPL code and libraries" )
 
 
+
 set( MAIN_BINARY_DIR "${CMAKE_BINARY_DIR}/bin" CACHE INTERNAL "" FORCE )
 
-
-# this settings breaks native debugger on android
 if (DEFINED ANDROID)
 	set( CMAKE_DEBUG_POSTFIX "" )
 	set( CMAKE_RELEASE_POSTFIX "" )
 else ()
 	set( CMAKE_DEBUG_POSTFIX "d" )
 	set( CMAKE_RELEASE_POSTFIX "" )
+	
+	# this settings breaks native debugger on android
 	set( CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "installation directory" )
 	set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" CACHE INTERNAL "" FORCE )
 	set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${MAIN_BINARY_DIR}" CACHE INTERNAL "" FORCE )

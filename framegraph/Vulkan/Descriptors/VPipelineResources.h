@@ -35,7 +35,7 @@ namespace FG
 		RawDescriptorSetLayoutID	_layoutId;
 		HashVal						_hash;
 		DynamicDataPtr				_dataPtr;
-		const bool					_allowEmptyResources;
+		bool						_allowEmptyResources;
 		
 		DebugName_t					_debugName;
 		
@@ -45,6 +45,8 @@ namespace FG
 	// methods
 	public:
 		VPipelineResources () : _allowEmptyResources{false} {}
+		VPipelineResources (VPipelineResources &&) = delete;
+		VPipelineResources (const VPipelineResources &) = delete;
 		explicit VPipelineResources (const PipelineResources &desc);
 		explicit VPipelineResources (INOUT PipelineResources &desc);
 		~VPipelineResources ();

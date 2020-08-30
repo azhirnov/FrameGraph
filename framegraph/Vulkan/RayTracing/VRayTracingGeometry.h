@@ -70,6 +70,8 @@ namespace FG
 	// methods
 	public:
 		VRayTracingGeometry () {}
+		VRayTracingGeometry (VRayTracingGeometry &&) = delete;
+		VRayTracingGeometry (const VRayTracingGeometry &) = delete;
 		~VRayTracingGeometry ();
 
 		bool Create (VResourceManager &, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);

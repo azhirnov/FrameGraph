@@ -55,6 +55,8 @@ namespace FG
 	// methods
 	public:
 		VRenderPass () {}
+		VRenderPass (VRenderPass &&) = delete;
+		VRenderPass (const VRenderPass &) = delete;
 		explicit VRenderPass (ArrayView<VLogicalRenderPass*> logicalPasses);
 		~VRenderPass ();
 
