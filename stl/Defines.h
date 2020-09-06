@@ -380,6 +380,37 @@
 #endif
 
 
+// replace assertions by exceptions
+#ifndef FG_NO_EXCEPTIONS
+
+#	include <stdexcept>
+
+#	undef  FG_PRIVATE_BREAK_POINT
+#	define FG_PRIVATE_BREAK_POINT()	{}
+
+#	undef  FG_LOGE
+#	define FG_LOGE	FG_LOGI
+
+	// keep ASSERT and CHECK behaviour because they may be used in destructor
+	// but override CHECK_ERR, CHECK_FATAL and RETURN_ERR to allow user to handle this errors
+
+#	undef  FG_PRIVATE_CHECK_ERR
+#	define FG_PRIVATE_CHECK_ERR( _expr_, _ret_ ) \
+		{if ( !(_expr_) ) { \
+			throw std::runtime_error{ FG_PRIVATE_TOSTRING( _expr_ )}; \
+		}}
+
+#	undef  CHECK_FATAL
+#	define CHECK_FATAL( _expr_ ) \
+		{if ( !(_expr_) ) { \
+			throw std::runtime_error{ FG_PRIVATE_TOSTRING( _expr_ )}; \
+		}}
+
+#	undef  FG_PRIVATE_RETURN_ERR
+#	define FG_PRIVATE_RETURN_ERR( _text_, _ret_ ) \
+		{throw std::runtime_error{ _text_ };}
+
+#endif
 // check definitions
 #ifdef FG_CPP_DETECT_MISSMATCH
 

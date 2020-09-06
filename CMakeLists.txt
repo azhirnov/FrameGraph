@@ -12,6 +12,7 @@ message( STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSIO
 message( STATUS "target system: ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION})" )
 message( STATUS "host system: ${CMAKE_HOST_SYSTEM_NAME} (${CMAKE_HOST_SYSTEM_VERSION})" )
 
+set( FG_NO_EXCEPTIONS ON CACHE BOOL "disable C++ exceptions" )
 set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )

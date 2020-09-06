@@ -56,3 +56,7 @@ endif ()
 if (${FG_ALLOW_GPL})
 	target_compile_definitions( "ProjectTemplate" PUBLIC "FG_ALLOW_GPL" )
 endif ()
+
+if (${FG_NO_EXCEPTIONS})
+	target_compile_definitions( "ProjectTemplate" PUBLIC "FG_NO_EXCEPTIONS" )
+endif ()
