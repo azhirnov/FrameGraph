@@ -671,9 +671,9 @@ namespace FG
 				#endif
 
 				#ifdef VK_EXT_fragment_density_map
-				case EImageUsage::FragmentDensityMap :		flags |= VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;	break;
+				//case EImageUsage::FragmentDensityMap :		flags |= VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;	break;
 				#else
-				case EImageUsage::FragmentDensityMap :		RETURN_ERR( "fragment density is not supported", Zero );
+				//case EImageUsage::FragmentDensityMap :		RETURN_ERR( "fragment density is not supported", Zero );
 				#endif
 
 				case EImageUsage::_Last :
@@ -784,9 +784,9 @@ namespace FG
 				#endif
 
 				#ifdef VK_KHR_buffer_device_address
-				case EBufferUsage::ShaderAddress :	result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;	break;
+				//case EBufferUsage::ShaderAddress :	result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;	break;
 				#else
-				case EBufferUsage::ShaderAddress :	RETURN_ERR( "buffer address is not supported", Zero );
+				//case EBufferUsage::ShaderAddress :	RETURN_ERR( "buffer address is not supported", Zero );
 				#endif
 
 				case EBufferUsage::_Last :

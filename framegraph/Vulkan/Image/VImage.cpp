@@ -462,7 +462,7 @@ namespace
 					case EImageUsage::TransientAttachment :		break;	// TODO
 					case EImageUsage::InputAttachment :			break;
 					case EImageUsage::ShadingRate :				if ( not dev.GetFeatures().shadingRateImageNV ) return false;		break;
-					case EImageUsage::FragmentDensityMap :		return false;	// not supported yet
+					//case EImageUsage::FragmentDensityMap :	return false;	// not supported yet
 					case EImageUsage::_Last :
 					case EImageUsage::All :
 					case EImageUsage::Transfer :

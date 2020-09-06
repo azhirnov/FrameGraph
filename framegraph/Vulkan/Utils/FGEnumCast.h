@@ -58,7 +58,7 @@ namespace FG
 				case VK_BUFFER_USAGE_RAY_TRACING_BIT_NV :			result |= EBufferUsage::RayTracing;		break;
 				#endif
 				#ifdef VK_KHR_buffer_device_address
-				case VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT:	result |= EBufferUsage::ShaderAddress;	break;
+				case VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT:	//result |= EBufferUsage::ShaderAddress;	break;
 				#endif
 				#ifdef VK_EXT_transform_feedback
 				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT :
@@ -177,7 +177,7 @@ namespace FG
 				case VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV :		result |= EImageUsage::ShadingRate;				break;
 				#endif
 				#ifdef VK_EXT_fragment_density_map
-				case VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT :	result |= EImageUsage::FragmentDensityMap;		break;
+				case VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT :	//result |= EImageUsage::FragmentDensityMap;		break;
 				#endif
 				case VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM :			RETURN_ERR( "not supported" );
 			}

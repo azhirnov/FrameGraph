@@ -323,7 +323,7 @@ namespace FG
 				case EBufferUsage::Vertex :				break;
 				case EBufferUsage::Indirect :			break;
 				case EBufferUsage::RayTracing :			if ( not dev.GetFeatures().rayTracingNV ) return false;									break;
-				case EBufferUsage::ShaderAddress :		if ( not dev.GetFeatures().bufferAddress ) return false;								break;
+				//case EBufferUsage::ShaderAddress :	if ( not dev.GetFeatures().bufferAddress ) return false;								break;
 				case EBufferUsage::VertexPplnStore :	if ( not dev.GetProperties().features.vertexPipelineStoresAndAtomics ) return false;	break;
 				case EBufferUsage::FragmentPplnStore :	if ( not dev.GetProperties().features.fragmentStoresAndAtomics ) return false;			break;
 				case EBufferUsage::_Last :
@@ -371,7 +371,7 @@ namespace FG
 				case EBufferUsage::Vertex :				break;
 				case EBufferUsage::Indirect :			break;
 				case EBufferUsage::RayTracing :			break;
-				case EBufferUsage::ShaderAddress :		break;
+				//case EBufferUsage::ShaderAddress :	break;
 				case EBufferUsage::VertexPplnStore :	break;
 				case EBufferUsage::FragmentPplnStore :	break;
 				case EBufferUsage::_Last :

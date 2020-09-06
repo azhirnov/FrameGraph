@@ -66,7 +66,7 @@ namespace FGC
 				case EImageUsage::ShadingRate				: result << "ShadingRate";				break;
 				case EImageUsage::StorageAtomic				: result << "StorageAtomic";			break;
 				case EImageUsage::ColorAttachmentBlend		: result << "ColorAttachmentBlend";		break;
-				case EImageUsage::FragmentDensityMap		: result << "FragmentDensityMap";		break;
+				//case EImageUsage::FragmentDensityMap		: result << "FragmentDensityMap";		break;
 				case EImageUsage::SampledCubic				: result << "SampledCubic";				break;
 				case EImageUsage::SampledMinMax				: result << "SampledMinMax";			break;
 				case EImageUsage::_Last						:
@@ -113,7 +113,7 @@ namespace FGC
 				case EBufferUsage::VertexPplnStore	:  result << "VertexPplnStore";		break;
 				case EBufferUsage::FragmentPplnStore:  result << "FragmentPplnStore";	break;
 				case EBufferUsage::StorageTexelAtomic: result << "StorageTexelAtomic";	break;
-				case EBufferUsage::ShaderAddress	:  result << "ShaderAddress";		break;
+				//case EBufferUsage::ShaderAddress	:  result << "ShaderAddress";		break;
 				case EBufferUsage::_Last			:
 				case EBufferUsage::All				:	// to shutup warnings
 				case EBufferUsage::Transfer			:

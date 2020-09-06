@@ -69,7 +69,7 @@ namespace FG
 		Vertex				= 1 << 7,		// vertex buffer
 		Indirect			= 1 << 8,		// indirect buffer for draw and dispatch
 		RayTracing			= 1 << 9,		// for scratch buffer, instance data, shader binding table
-		ShaderAddress		= 1 << 10,		// shader device address
+		//ShaderAddress		= 1 << 10,		// shader device address	// not supported yet
 		
 		// special flags for IsSupported() method
 		VertexPplnStore		= 1 << 11,		// same as 'Storage', storage buffer store and atomic operations in vertex, geometry, tessellation shaders
@@ -150,7 +150,7 @@ namespace FG
 		TransientAttachment		= 1 << 6,		// color, resolve, depth/stencil, input attachment
 		InputAttachment			= 1 << 7,		// input attachment in shader
 		ShadingRate				= 1 << 8,
-		FragmentDensityMap		= 1 << 9,
+		//FragmentDensityMap	= 1 << 9,		// not supported yet
 
 		// special flags for IsSupported() method
 		StorageAtomic			= 1 << 10,		// same as 'Storage', atomic operations on image
