@@ -8,7 +8,7 @@ namespace FG
 	bool FGApp::Test_ShadingRate1 ()
 	{
 	#ifdef VK_NV_shading_rate_image
-		if ( not _vulkan.GetFeatures().shadingRateImageNV )
+		if ( not _vulkan.GetFeatures().shadingRateImageNV  or not _pplnCompiler )
 		{
 			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;

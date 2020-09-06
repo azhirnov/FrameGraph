@@ -7,7 +7,7 @@ namespace FG
 
 	bool FGApp::Test_TraceRays1 ()
 	{
-		if ( not _vulkan.GetFeatures().rayTracingNV )
+		if ( not _features.rayTracingNV or not _pplnCompiler )
 		{
 			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;

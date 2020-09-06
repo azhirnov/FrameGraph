@@ -111,6 +111,12 @@ namespace FG
 
 	bool FGApp::ImplTest_Multithreading2 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln;
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
 #pragma shader_stage(vertex)

@@ -1,6 +1,10 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "VFrameGraph.h"
+#include "framegraph/Public/FrameGraph.h"
+
+#ifdef FG_ENABLE_VULKAN
+#	include "framegraph/Vulkan/Instance/VFrameGraph.h"
+#endif
 
 namespace FG
 {
@@ -13,6 +17,8 @@ namespace FG
 	FrameGraph  IFrameGraph::CreateFrameGraph (const DeviceInfo_t &ci)
 	{
 		FrameGraph	result = Visit( ci,
+
+			#ifdef FG_ENABLE_VULKAN
 				[] (const VulkanDeviceInfo &vdi) -> FrameGraph
 				{
 					CHECK_ERR( vdi.instance and vdi.physicalDevice and vdi.device and not vdi.queues.empty() );
@@ -23,6 +29,7 @@ namespace FG
 
 					return fg;
 				},
+			#endif
 
 				[] (const auto &) -> FrameGraph
 				{

@@ -107,6 +107,8 @@ namespace FG
 		void  _SetMouseSens (vec2 value);
 		void  _EnableCameraMovement (bool enable);
 
+		void  _VRPresent (const VulkanDevice::VQueue &queue, RawImageID leftEyeImage, RawImageID righteyeImage);
+
 	private:
 		void  _UpdateFrameStat ();
 		void  _OnShaderTraceReady (StringView name, ArrayView<String> output) const;

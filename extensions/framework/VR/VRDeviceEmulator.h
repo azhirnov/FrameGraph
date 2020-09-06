@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "framework/VR/IVRDevice.h"
-#include "framework/Window/IWindow.h"
-#include "framework/Vulkan/VulkanSwapchain.h"
+#ifdef FG_ENABLE_VULKAN
+
+# include "framework/VR/IVRDevice.h"
+# include "framework/Window/IWindow.h"
+# include "framework/Vulkan/VulkanSwapchain.h"
 
 namespace FGC
 {
@@ -109,7 +111,7 @@ namespace FGC
 		~VRDeviceEmulator () override;
 		
 		bool  Create () override;
-		bool  SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) override;
+		bool  SetVKDevice (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t logicalDevice) override;
 		void  Destroy () override;
 		void  AddListener (IVRDeviceEventListener *listener) override;
 		void  RemoveListener (IVRDeviceEventListener *listener) override;
@@ -122,8 +124,10 @@ namespace FGC
 		EHmdStatus				GetHmdStatus () const override			{ return _hmdStatus; }
 
 		Array<String>	GetRequiredInstanceExtensions () const override;
-		Array<String>	GetRequiredDeviceExtensions (VkInstance) const override;
+		Array<String>	GetRequiredDeviceExtensions (InstanceVk_t) const override;
 		uint2			GetRenderTargetDimension () const override;
 	};
 
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

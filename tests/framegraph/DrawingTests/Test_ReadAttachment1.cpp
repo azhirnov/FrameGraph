@@ -5,36 +5,14 @@
 namespace FG
 {
 
-	ND_ static bool  ChooseDepthStencilFormat (const VulkanDevice &dev, OUT EPixelFormat &outFormat)
-	{
-		const Tuple<VkFormat, EPixelFormat, String> formats[] = {
-			{ VK_FORMAT_D24_UNORM_S8_UINT,	EPixelFormat::Depth24_Stencil8,	 "Depth24_Stencil8" },
-			{ VK_FORMAT_D32_SFLOAT_S8_UINT,	EPixelFormat::Depth32F_Stencil8, "Depth32F_Stencil8" },
-			{ VK_FORMAT_D16_UNORM_S8_UINT,	EPixelFormat::Depth16_Stencil8,	 "Depth16_Stencil8" },
-			{ VK_FORMAT_D16_UNORM,			EPixelFormat::Depth16,			 "Depth16" }
-		};
-
-		for (auto fmt : formats)
-		{
-			VkFormatProperties	props = {};
-			vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), std::get<0>(fmt), OUT &props );
-
-			VkFormatFeatureFlags	curr	 = props.optimalTilingFeatures;
-			VkFormatFeatureFlags	required = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-			if ( AllBits( curr, required ))
-			{
-				outFormat = std::get<1>(fmt);
-				FG_LOGI( "Used depth format: " + std::get<2>(fmt) );
-				return true;
-			}
-		}
-		RETURN_ERR( "no suitable depth-stencil format found" );
-	}
-
-
 	bool FGApp::Test_ReadAttachment1 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln;
 
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
@@ -81,7 +59,29 @@ void main() {
 		const uint2		view_size	= {800, 600};
 		EPixelFormat	ds_format	= Default;
 		
-		CHECK_ERR( ChooseDepthStencilFormat( _vulkan, OUT ds_format ));
+		// find suitable depth format
+		const Tuple<EPixelFormat, String> formats[] = {
+			{ EPixelFormat::Depth24_Stencil8,	"Depth24_Stencil8" },
+			{ EPixelFormat::Depth32F_Stencil8,	"Depth32F_Stencil8" },
+			{ EPixelFormat::Depth16_Stencil8,	"Depth16_Stencil8" },
+			{ EPixelFormat::Depth16,			"Depth16" }
+		};
+
+		for (auto fmt : formats)
+		{
+			ImageDesc	desc;
+			desc.SetDimension( view_size );
+			desc.SetFormat( std::get<0>(fmt) );
+			desc.SetUsage( EImageUsage::Sampled | EImageUsage::TransferDst | EImageUsage::DepthStencilAttachment );
+
+			if ( _frameGraph->IsSupported( desc ))
+			{
+				ds_format = std::get<0>(fmt);
+				FG_LOGI( "Used depth format: " + std::get<1>(fmt) );
+				break;
+			}
+		}
+		CHECK_ERR( ds_format != Default );
 
 		ImageID			color_image	= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
 																			.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),

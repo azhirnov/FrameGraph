@@ -2,19 +2,16 @@
 
 #pragma once
 
-#include "framework/Window/IWindow.h"
-#include "stl/Containers/StaticString.h"
-#include "stl/Containers/Ptr.h"
+#ifdef FG_ENABLE_VULKAN
+
+# include "framework/Window/IWindow.h"
+# include "stl/Containers/StaticString.h"
+# include "stl/Containers/Ptr.h"
+# include "vulkan_loader/VulkanLoader.h"
+# include "vulkan_loader/VulkanCheckError.h"
 
 namespace FGC
 {
-	enum class VQueueFamily : uint
-	{
-		External	= VK_QUEUE_FAMILY_EXTERNAL,
-		Foreign		= VK_QUEUE_FAMILY_FOREIGN_EXT,
-		Ignored		= VK_QUEUE_FAMILY_IGNORED,
-		Unknown		= Ignored,
-	};
 
 	// same as EQueueType in FG
 	enum class VQueueType : uint
@@ -71,17 +68,21 @@ namespace FGC
 			bool	create2DArrayCompatible	: 1;
 			bool	commandPoolTrim			: 1;
 			bool	dispatchBase			: 1;
+			bool	array2DCompatible		: 1;
+			bool	blockTexelView			: 1;
+			bool	maintenance3			: 1;
 			// vulkan 1.2 core
 			bool	samplerMirrorClamp		: 1;
 			bool	shaderAtomicInt64		: 1;	// for uniform/storage buffer, for shared variables check features
 			bool	float16Arithmetic		: 1;
 			bool	bufferAddress			: 1;
-			bool	descriptorIndexing		: 1;
+			bool	descriptorIndexing		: 1;	// to use GL_EXT_nonuniform_qualifier 
 			bool	renderPass2				: 1;
 			bool	depthStencilResolve		: 1;
 			bool	drawIndirectCount		: 1;
 			bool	spirv14					: 1;
-			bool	memoryModel				: 1;
+			bool	memoryModel				: 1;	// to use GL_KHR_memory_scope_semantics, SPV_KHR_vulkan_memory_model
+			bool	samplerFilterMinmax		: 1;
 			// window extensions
 			bool	surface					: 1;
 			bool	surfaceCaps2			: 1;
@@ -92,11 +93,11 @@ namespace FGC
 			bool	rayTracingNV			: 1;
 			bool	shadingRateImageNV		: 1;
 			bool	imageFootprintNV		: 1;
-		//	bool	pushDescriptor			: 1;
 		//	bool	inlineUniformBlock		: 1;
 			bool	shaderClock				: 1;
 			bool	timelineSemaphore		: 1;
 			bool	pushDescriptor			: 1;
+			bool	robustness2				: 1;
 		};
 
 		struct DeviceProperties
@@ -139,9 +140,23 @@ namespace FGC
 			#ifdef VK_KHR_shader_atomic_int64
 			VkPhysicalDeviceShaderAtomicInt64FeaturesKHR		shaderAtomicInt64;
 			#endif
+			#ifdef VK_EXT_descriptor_indexing
+			VkPhysicalDeviceDescriptorIndexingFeaturesEXT		descriptorIndexingFeatures;
+			VkPhysicalDeviceDescriptorIndexingPropertiesEXT		descriptorIndexingProperties;
+			#endif
 			#ifdef VK_VERSION_1_2
-			VkPhysicalDeviceVulkan11Properties					properties110;
-			VkPhysicalDeviceVulkan12Properties					properties120;
+			//VkPhysicalDeviceVulkan11Properties				properties110;		// duplicates values from other properties
+			//VkPhysicalDeviceVulkan12Properties				properties120;
+			#endif
+			#ifdef VK_EXT_robustness2
+			VkPhysicalDeviceRobustness2FeaturesEXT				robustness2Features;
+			VkPhysicalDeviceRobustness2PropertiesEXT			robustness2Properties;
+			#endif
+			#ifdef VK_KHR_maintenance3
+			VkPhysicalDeviceMaintenance3Properties				maintenance3Properties;
+			#endif
+			#ifdef VK_EXT_sampler_filter_minmax
+			VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT	samplerFilerMinmaxProperties;
 			#endif
 		};
 		
@@ -152,7 +167,7 @@ namespace FGC
 		{
 			VkQueue				handle			= VK_NULL_HANDLE;
 			VQueueType			type			= Default;
-			VQueueFamily		familyIndex		= Default;
+			uint				familyIndex		= UMax;
 			uint				queueIndex		= UMax;
 			VkQueueFlagBits		familyFlags		= Zero;
 			float				priority		= 0.0f;
@@ -259,6 +274,8 @@ namespace FGC
 		VkDebugUtilsMessengerEXT	_debugUtilsMessenger	= VK_NULL_HANDLE;
 		DebugReport_t				_callback;
 		
+		bool						_usedSharedInstance		= false;
+		
 		bool						_breakOnValidationError	= true;
 		Array<ObjectDbgInfo>		_tempObjectDbgInfos;
 		String						_tempString;
@@ -358,3 +375,5 @@ namespace FGC
 	}
 
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

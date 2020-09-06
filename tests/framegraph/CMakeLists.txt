@@ -32,13 +32,11 @@ target_link_libraries( "Tests.FrameGraph" "Framework" )
 if (TARGET "GraphViz")
 	target_link_libraries( "Tests.FrameGraph" "GraphViz" )
 endif()
-
-target_link_libraries( "Tests.FrameGraph" "PipelineCompiler" )
-
+if (TARGET "PipelineCompiler")
+	target_link_libraries( "Tests.FrameGraph" "PipelineCompiler" )
+endif ()
 if (TARGET "lodepng-lib")
 	target_link_libraries( "Tests.FrameGraph" "lodepng-lib" )
 endif()
 
-if (NOT DEFINED ANDROID AND NOT FG_CI_BUILD)
-	add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
-endif ()
+add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )

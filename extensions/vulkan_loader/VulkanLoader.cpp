@@ -95,13 +95,13 @@ namespace {
 
 #	else
 		if ( not libName.empty() )
-			lib->module = ::dlopen( libName.c_str(), RTLD_NOW | RTLD_LOCAL );
+			lib->module = ::dlopen( libName.c_str(), RTLD_LAZY | RTLD_LOCAL );
 
 		if ( lib->module == null )
-			lib->module = ::dlopen( "libvulkan.so", RTLD_NOW | RTLD_LOCAL );
+			lib->module = ::dlopen( "libvulkan.so", RTLD_LAZY | RTLD_LOCAL );
 		
 		if ( lib->module == null )
-			lib->module = ::dlopen( "libvulkan.so.1", RTLD_NOW | RTLD_LOCAL );
+			lib->module = ::dlopen( "libvulkan.so.1", RTLD_LAZY | RTLD_LOCAL );
 		
 		if ( lib->module == null )
 			return false;
@@ -303,7 +303,7 @@ namespace {
 			table._var_vkBindImageMemory2KHR	= table._var_vkBindImageMemory2;
 
 		// VK_KHR_get_memory_requirements2
-			table._var_vkGetImageMemoryRequirements2KHR		= table._var_vkGetImageMemoryRequirements2;
+			table._var_vkGetImageMemoryRequirements2KHR			= table._var_vkGetImageMemoryRequirements2;
 			table._var_vkGetBufferMemoryRequirements2KHR		= table._var_vkGetBufferMemoryRequirements2;
 			table._var_vkGetImageSparseMemoryRequirements2KHR	= table._var_vkGetImageSparseMemoryRequirements2;
 
@@ -324,23 +324,23 @@ namespace {
 		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 2) )
 		{
 		// VK_KHR_draw_indirect_count
-			table._var_vkCmdDrawIndirectCountKHR			= table._var_vkCmdDrawIndirectCount;
+			table._var_vkCmdDrawIndirectCountKHR		= table._var_vkCmdDrawIndirectCount;
 			table._var_vkCmdDrawIndexedIndirectCountKHR	= table._var_vkCmdDrawIndexedIndirectCountKHR;
 
 		// VK_KHR_create_renderpass2
-			table._var_vkCreateRenderPass2KHR		= table._var_vkCreateRenderPass2;
+			table._var_vkCreateRenderPass2KHR	= table._var_vkCreateRenderPass2;
 			table._var_vkCmdBeginRenderPass2KHR	= table._var_vkCmdBeginRenderPass2;
 			table._var_vkCmdNextSubpass2KHR		= table._var_vkCmdNextSubpass2;
-			table._var_vkCmdEndRenderPass2KHR		= table._var_vkCmdEndRenderPass2;
+			table._var_vkCmdEndRenderPass2KHR	= table._var_vkCmdEndRenderPass2;
 
 		// VK_KHR_timeline_semaphore
 			table._var_vkGetSemaphoreCounterValueKHR	= table._var_vkGetSemaphoreCounterValue;
-			table._var_vkWaitSemaphoresKHR			= table._var_vkWaitSemaphores;
-			table._var_vkSignalSemaphoreKHR			= table._var_vkSignalSemaphore;
+			table._var_vkWaitSemaphoresKHR				= table._var_vkWaitSemaphores;
+			table._var_vkSignalSemaphoreKHR				= table._var_vkSignalSemaphore;
 
 		// VK_KHR_buffer_device_address
 			table._var_vkGetBufferDeviceAddressKHR				= table._var_vkGetBufferDeviceAddress;
-			table._var_vkGetBufferOpaqueCaptureAddressKHR			= table._var_vkGetBufferOpaqueCaptureAddress;
+			table._var_vkGetBufferOpaqueCaptureAddressKHR		= table._var_vkGetBufferOpaqueCaptureAddress;
 			table._var_vkGetDeviceMemoryOpaqueCaptureAddressKHR	= table._var_vkGetDeviceMemoryOpaqueCaptureAddress;
 		}
 	#endif

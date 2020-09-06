@@ -115,13 +115,13 @@ public:
 			}
 			else
 			{
-				CHECK_ERR( vulkan.CreateInstance( window->GetVulkanSurface(), "Test", "Engine", vulkan.GetRecomendedInstanceLayers(), {}, {1,0} ));
+				CHECK_ERR( vulkan.CreateInstance( window->GetVulkanSurface(), "Test", "Engine", vulkan.GetRecomendedInstanceLayers(), {}, {1,2} ));
 				CHECK_ERR( vulkan.ChooseDevice( "nvidia" ));
 				CHECK_ERR( vulkan.CreateLogicalDevice( Default, Default ));
 				
 				// this is a test and the test should fail for any validation error
 				vulkan.CreateDebugCallback( DefaultDebugMessageSeverity,
-											[] (const VulkanDeviceInitializer::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
+										[] (const VulkanDeviceInitializer::DebugReport &rep) { FG_LOGI(rep.message);  CHECK_FATAL(not rep.isError); });
 			}
 		}
 
@@ -164,7 +164,7 @@ public:
 		{
 			VkCommandPoolCreateInfo		pool_info = {};
 			pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			pool_info.queueFamilyIndex	= uint(vulkan.GetVkQueues().front().familyIndex);
+			pool_info.queueFamilyIndex	= vulkan.GetVkQueues().front().familyIndex;
 			pool_info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 			VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmdPool ));
 
@@ -190,7 +190,7 @@ public:
 		}
 	
 		// main loop
-		for (uint i = 0; i < 60*count; ++i)
+		for (uint i = 0; i < 20*count; ++i)
 		{
 			if ( not window->Update() )
 				break;

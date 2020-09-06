@@ -20,13 +20,15 @@ namespace FG
 	private:
 		using TestFunc_t			= bool (FGApp::*) ();
 		using TestQueue_t			= Deque<Pair< TestFunc_t, uint >>;
-		using DebugReport			= VulkanDeviceInitializer::DebugReport;
 		using VPipelineCompilerPtr	= SharedPtr< class VPipelineCompiler >;
 
 
 	// variables
 	private:
+		#ifdef FG_ENABLE_VULKAN
 		VulkanDeviceInitializer	_vulkan;
+		#endif
+
 		WindowPtr				_window;
 		FrameGraph				_frameGraph;
 		VPipelineCompilerPtr	_pplnCompiler;
@@ -36,6 +38,17 @@ namespace FG
 		uint					_testInvocations	= 0;
 		uint					_testsPassed		= 0;
 		uint					_testsFailed		= 0;
+
+		struct {
+			bool					hasShaderDebugger	: 1;
+			bool					descriptorIndexing	: 1;
+			bool					meshShaderNV		: 1;
+			bool					rayTracingNV		: 1;
+		}						_features;
+		struct {
+			BytesU					minStorageBufferOffsetAlignment;
+			BytesU					minUniformBufferOffsetAlignment;
+		}						_properties;
 
 
 	// methods
@@ -59,6 +72,7 @@ namespace FG
 	// helpers
 	private:
 		bool _Initialize (WindowPtr &&wnd);
+		bool _InitializeForVulkan (WindowPtr &&wnd);
 		bool _Update ();
 		void _Destroy ();
 

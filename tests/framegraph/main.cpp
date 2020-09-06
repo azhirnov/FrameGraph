@@ -28,13 +28,16 @@ int main () {
 		UnitTest_ImageSwizzle();
 		UnitTest_PixelFormat();
 		UnitTest_ID();
+		UnitTest_ImageDesc();
+
+		#ifdef FG_ENABLE_VULKAN
 		UnitTest_VBuffer();
 		UnitTest_VImage();
-		UnitTest_ImageDesc();
+		#endif
 	}
 
 	FGApp::Run( nativeHandle );
-	
+
 	CHECK_FATAL( FG_DUMP_MEMLEAKS() );
 
 	FG_LOGI( "Tests.FrameGraph finished" );

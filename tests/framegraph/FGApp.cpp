@@ -8,7 +8,9 @@
 #include "stl/Stream/FileStream.h"
 #include "stl/Algorithms/StringParser.h"
 
-#include "pipeline_compiler/VPipelineCompiler.h"
+#ifdef FG_ENABLE_GLSLANG
+#	include "pipeline_compiler/VPipelineCompiler.h"
+#endif
 
 #ifdef FG_ENABLE_LODEPNG
 #	include "lodepng.h"
@@ -103,12 +105,14 @@ namespace {
 		
 		CHECK( _frameGraph->WaitIdle() );
 
+	#ifdef FG_ENABLE_VULKAN
 		VulkanSwapchainCreateInfo	swapchain_info;
 		swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 		swapchain_info.surfaceSize  = size;
 
 		_swapchainId = _frameGraph->CreateSwapchain( swapchain_info, _swapchainId.Release() );
 		CHECK_FATAL( _swapchainId );
+	#endif
 	}
 
 /*
@@ -117,6 +121,25 @@ namespace {
 =================================================
 */
 	bool FGApp::_Initialize (WindowPtr &&wnd)
+	{
+		std::memset( &_features, 0, sizeof(_features) );
+		std::memset( &_properties, 0, sizeof(_properties) );
+
+	#ifdef FG_ENABLE_VULKAN
+		return _InitializeForVulkan( std::move(wnd) );
+
+	#else
+		return false;
+	#endif
+	}
+	
+/*
+=================================================
+	_InitializeForVulkan
+=================================================
+*/
+#ifdef FG_ENABLE_VULKAN
+	bool FGApp::_InitializeForVulkan (WindowPtr &&wnd)
 	{
 		const uint2		wnd_size{ 800, 600 };
 
@@ -140,28 +163,35 @@ namespace {
 
 			// this is a test and the test should fail for any validation error
 			_vulkan.CreateDebugCallback( DefaultDebugMessageSeverity,
-										 [] (const VulkanDeviceInitializer::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
+										[] (const VulkanDeviceInitializer::DebugReport &rep) { FG_LOGI(rep.message);  CHECK_FATAL(not rep.isError); });
+		}
+
+		// initialize vulkan features
+		{
+			_features.descriptorIndexing				= _vulkan.GetFeatures().descriptorIndexing;
+			_features.meshShaderNV						= _vulkan.GetFeatures().meshShaderNV;
+			_features.rayTracingNV						= _vulkan.GetFeatures().rayTracingNV;
+			_properties.minStorageBufferOffsetAlignment	= BytesU{ _vulkan.GetProperties().properties.limits.minStorageBufferOffsetAlignment };
+			_properties.minUniformBufferOffsetAlignment	= BytesU{ _vulkan.GetProperties().properties.limits.minUniformBufferOffsetAlignment };
 		}
 
 		// setup device info
-		VulkanDeviceInfo					vulkan_info;
-		IFrameGraph::SwapchainCreateInfo_t	swapchain_info;
+		VulkanDeviceInfo			vulkan_info;
+		VulkanSwapchainCreateInfo	swapchain_info;
 		{
 			vulkan_info.instance		= BitCast<InstanceVk_t>( _vulkan.GetVkInstance() );
 			vulkan_info.physicalDevice	= BitCast<PhysicalDeviceVk_t>( _vulkan.GetVkPhysicalDevice() );
 			vulkan_info.device			= BitCast<DeviceVk_t>( _vulkan.GetVkDevice() );
 			
-			VulkanSwapchainCreateInfo	swapchain_ci;
-			swapchain_ci.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
-			swapchain_ci.surfaceSize	= _window->GetSize();
-			swapchain_info				= swapchain_ci;
+			swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
+			swapchain_info.surfaceSize	= _window->GetSize();
 
 			for (auto& q : _vulkan.GetVkQueues())
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );
 				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.familyFlags );
-				qi.familyIndex	= uint(q.familyIndex);
+				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;
 				qi.debugName	= q.debugName;
 
@@ -179,18 +209,26 @@ namespace {
 		}
 
 		// add glsl pipeline compiler
+		#ifdef FG_ENABLE_GLSLANG
 		{
+			//_pplnCompiler = MakeShared<VPipelineCompiler>();
 			_pplnCompiler = MakeShared<VPipelineCompiler>( vulkan_info.instance, vulkan_info.physicalDevice, vulkan_info.device );
 			_pplnCompiler->SetCompilationFlags( EShaderCompilationFlags::Quiet				|
 												EShaderCompilationFlags::ParseAnnotations	|
 												EShaderCompilationFlags::UseCurrentDeviceLimits );
 
 			_frameGraph->AddPipelineCompiler( _pplnCompiler );
+
+			#ifdef FG_ENABLE_GLSL_TRACE
+			_features.hasShaderDebugger = _pplnCompiler and FG_EnableShaderDebugging;
+			#endif
 		}
+		#endif	// FG_ENABLE_GLSLANG
 		
 		UnitTest_VResourceManager( _frameGraph );
 		return true;
 	}
+#endif	// FG_ENABLE_VULKAN
 
 /*
 =================================================
@@ -255,8 +293,10 @@ namespace {
 			_frameGraph = null;
 		}
 		
+	#ifdef FG_ENABLE_VULKAN
 		_vulkan.DestroyLogicalDevice();
 		_vulkan.DestroyInstance();
+	#endif
 		
 		if ( _window )
 		{
@@ -491,8 +531,11 @@ namespace {
 		#elif defined( FG_ENABLE_SDL2 )
 			wnd.reset( new WindowSDL2() );
 
-		#elif defined(PLATFORM_ANDROID)
+		#elif defined( PLATFORM_ANDROID )
 			wnd.reset( new WindowAndroid{ static_cast<android_app*>(nativeHandle) });
+			
+		#elif defined( FG_CI_BUILD )
+			return;
 
 		#else
 		#	error Unknown window library!

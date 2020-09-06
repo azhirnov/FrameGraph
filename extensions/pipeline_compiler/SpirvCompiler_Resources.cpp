@@ -1,7 +1,10 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "SpirvCompiler.h"
-#include "extensions/vulkan_loader/VulkanLoader.h"
+
+#ifdef FG_ENABLE_VULKAN
+#	include "extensions/vulkan_loader/VulkanLoader.h"
+#endif
 
 namespace FG
 {
@@ -134,6 +137,7 @@ namespace FG
 	SetCurrentResourceLimits
 =================================================
 */
+#ifdef FG_ENABLE_VULKAN
 	bool SpirvCompiler::SetCurrentResourceLimits (PhysicalDeviceVk_t physicalDevice)
 	{
 		CHECK_ERR( physicalDevice );
@@ -232,5 +236,6 @@ namespace FG
 		return true;
 	}
 
+#endif	// FG_ENABLE_VULKAN
 
 }	// FG

@@ -1,13 +1,18 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "../FGApp.h"
-#include "pipeline_compiler/VPipelineCompiler.h"
 
 namespace FG
 {
 
 	bool FGApp::Test_DynamicOffset ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		ComputePipelineDesc	ppln;
 
 		ppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
@@ -34,8 +39,8 @@ void main ()
 }
 )#" );
 		
-		const BytesU	sb_align		= BytesU{ _vulkan.GetProperties().properties.limits.minStorageBufferOffsetAlignment };
-		const BytesU	ub_align		= BytesU{ _vulkan.GetProperties().properties.limits.minUniformBufferOffsetAlignment };
+		const BytesU	sb_align		= _properties.minStorageBufferOffsetAlignment;
+		const BytesU	ub_align		= _properties.minUniformBufferOffsetAlignment;
 		const BytesU	base_off		= Max( sb_align, ub_align );
 		const BytesU	buf_off			= base_off;
 		const BytesU	src_size		= SizeOf<float4> * 4;

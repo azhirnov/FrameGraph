@@ -6,8 +6,6 @@
 #include "stl/Containers/FixedArray.h"
 #include "stl/Containers/NtStringView.h"
 #include "stl/Memory/MemUtils.h"
-#include "vulkan_loader/VulkanLoader.h"
-#include "vulkan_loader/VulkanCheckError.h"
 
 namespace FGC
 {
@@ -44,10 +42,16 @@ namespace FGC
 
 	class IVulkanSurface
 	{
+	// types
+	public:
+		using InstanceVk_t	= struct __VSVkInstanceType *;
+		enum  SurfaceVk_t	: uint64_t {};
+
+	// interface
 	public:
 		virtual ~IVulkanSurface () {}
 		ND_ virtual ArrayView<const char*>	GetRequiredExtensions () const = 0;
-		ND_ virtual VkSurfaceKHR			Create (VkInstance inst) const = 0;
+		ND_ virtual SurfaceVk_t				Create (InstanceVk_t inst) const = 0;
 	};
 
 
@@ -78,6 +82,9 @@ namespace FGC
 		ND_ virtual uint2 GetSize () const = 0;
 
 		ND_ virtual UniquePtr<IVulkanSurface>  GetVulkanSurface () const = 0;
+
+		// returns HWND, etc
+		ND_ virtual void * GetPlatformHandle () const = 0;
 	};
 
 

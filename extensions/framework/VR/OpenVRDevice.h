@@ -2,8 +2,10 @@
 
 #pragma once
 
-#ifdef FG_ENABLE_OPENVR
+#if defined(FG_ENABLE_OPENVR) && defined(FG_ENABLE_VULKAN)
 
+# include "extensions/vulkan_loader/VulkanLoader.h"
+# include "extensions/vulkan_loader/VulkanCheckError.h"
 # include "framework/VR/IVRDevice.h"
 # include "stl/Containers/Ptr.h"
 # include "stl/Containers/FixedMap.h"
@@ -68,7 +70,7 @@ namespace FGC
 		~OpenVRDevice () override;
 		
 		bool  Create () override;
-		bool  SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) override;
+		bool  SetVKDevice (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t logicalDevice) override;
 		void  Destroy () override;
 		void  AddListener (IVRDeviceEventListener *listener) override;
 		void  RemoveListener (IVRDeviceEventListener *listener) override;
@@ -81,7 +83,7 @@ namespace FGC
 		
 		EHmdStatus		GetHmdStatus () const override;
 		Array<String>	GetRequiredInstanceExtensions () const override;
-		Array<String>	GetRequiredDeviceExtensions (VkInstance instance) const override;
+		Array<String>	GetRequiredDeviceExtensions (InstanceVk_t instance) const override;
 		uint2			GetRenderTargetDimension () const override;
 
 	private:
@@ -96,4 +98,4 @@ namespace FGC
 
 }	// FGC
 
-#endif	// FG_ENABLE_OPENVR
+#endif	// FG_ENABLE_OPENVR and FG_ENABLE_VULKAN

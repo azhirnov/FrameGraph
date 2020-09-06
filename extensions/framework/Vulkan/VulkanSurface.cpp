@@ -1,13 +1,15 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "VulkanSurface.h"
-#include "stl/Algorithms/Cast.h"
+#ifdef FG_ENABLE_VULKAN
 
-#if defined(PLATFORM_WINDOWS) && !defined(VK_USE_PLATFORM_WIN32_KHR)
+# include "VulkanSurface.h"
+# include "stl/Algorithms/Cast.h"
+
+# if defined(PLATFORM_WINDOWS) && !defined(VK_USE_PLATFORM_WIN32_KHR)
 #	include "stl/Platforms/WindowsHeader.h"
 #	define VK_USE_PLATFORM_WIN32_KHR	1
 #	include <vulkan/vulkan_win32.h>
-#endif
+# endif
 
 namespace FGC
 {
@@ -113,3 +115,5 @@ namespace FGC
 # endif
 
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

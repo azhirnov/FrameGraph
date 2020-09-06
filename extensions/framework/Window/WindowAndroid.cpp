@@ -238,6 +238,16 @@ namespace FGC
 		_windowSize.x = ANativeWindow_getWidth( _window );
 		_windowSize.y = ANativeWindow_getHeight( _window );
 	}
+	
+/*
+=================================================
+	GetPlatformHandle
+=================================================
+*/
+	void*  WindowAndroid::GetPlatformHandle () const
+	{
+		return _application;
+	}
 //-----------------------------------------------------------------------------
 
 

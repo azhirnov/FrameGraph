@@ -21,6 +21,12 @@ namespace FG
 
 	bool FGApp::Test_AsyncCompute2 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	gppln;
 		ComputePipelineDesc		cppln;
 

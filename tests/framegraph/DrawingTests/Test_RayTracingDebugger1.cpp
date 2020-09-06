@@ -7,7 +7,7 @@ namespace FG
 
 	bool FGApp::Test_RayTracingDebugger1 ()
 	{
-		if ( not _vulkan.GetFeatures().rayTracingNV or not FG_EnableShaderDebugging )
+		if ( not _features.rayTracingNV or not _features.hasShaderDebugger or not _pplnCompiler )
 		{
 			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;

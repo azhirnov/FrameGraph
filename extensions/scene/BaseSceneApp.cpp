@@ -127,7 +127,7 @@ namespace FG
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );
 				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.familyFlags );
-				qi.familyIndex	= uint(q.familyIndex);
+				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;
 				qi.debugName	= q.debugName;
 
@@ -135,8 +135,11 @@ namespace FG
 			}
 		}
 
-		if ( _vrDevice ) {
-			CHECK_ERR( _vrDevice->SetVKDevice( _vulkan.GetVkInstance(), _vulkan.GetVkPhysicalDevice(), _vulkan.GetVkDevice() ));
+		if ( _vrDevice )
+		{
+			CHECK_ERR( _vrDevice->SetVKDevice( BitCast<IVRDevice::InstanceVk_t>(_vulkan.GetVkInstance()),
+											   BitCast<IVRDevice::PhysicalDeviceVk_t>(_vulkan.GetVkPhysicalDevice()),
+											   BitCast<IVRDevice::DeviceVk_t>(_vulkan.GetVkDevice()) ));
 			_vrDevice->AddListener( this );
 		}
 
@@ -268,6 +271,33 @@ namespace FG
 	void  BaseSceneApp::_EnableCameraMovement (bool enable)
 	{
 		_enableCamera = enable;
+	}
+	
+/*
+=================================================
+	_VRPresent
+=================================================
+*/
+	void  BaseSceneApp::_VRPresent (const VulkanDevice::VQueue &queue, RawImageID leftEyeImage, RawImageID righteyeImage)
+	{
+		const auto&			desc_l 		= _frameGraph->GetApiSpecificDescription( leftEyeImage );
+		const auto&			desc_r		= _frameGraph->GetApiSpecificDescription( righteyeImage );
+		const auto&			vk_desc_l	= std::get<VulkanImageDesc>( desc_l );
+		const auto&			vk_desc_r	= std::get<VulkanImageDesc>( desc_r );
+		IVRDevice::VRImage	vr_img;
+
+		vr_img.currQueue		= BitCast<IVRDevice::QueueVk_t>(queue.handle);
+		vr_img.queueFamilyIndex	= queue.familyIndex;
+		vr_img.dimension		= vk_desc_l.dimension.xy();
+		vr_img.bounds			= RectF{ 0.0f, 0.0f, 1.0f, 1.0f };
+		vr_img.format			= BitCast<IVRDevice::FormatVk_t>(vk_desc_l.format);
+		vr_img.sampleCount		= vk_desc_l.samples;
+
+		vr_img.handle = BitCast<IVRDevice::ImageVk_t>(vk_desc_l.image);
+		GetVRDevice()->Submit( vr_img, IVRDevice::Eye::Left );
+					
+		vr_img.handle = BitCast<IVRDevice::ImageVk_t>(vk_desc_r.image);
+		GetVRDevice()->Submit( vr_img, IVRDevice::Eye::Right );
 	}
 
 /*
@@ -564,7 +594,7 @@ namespace FG
 	#else
 		const auto	IsExists = [] (StringView path) { return false; };	// TODO
 	#endif
-
+		
 		String	fname;
 
 		const auto	BuildName = [this, &fname, &name] (uint index)

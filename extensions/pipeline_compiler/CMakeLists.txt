@@ -5,7 +5,10 @@ if (TARGET "GLSLang-lib")
 	target_include_directories( "PipelineCompiler" PUBLIC "." )
 	set_property( TARGET "PipelineCompiler" PROPERTY FOLDER "Extensions" )
 	
-	target_link_libraries( "PipelineCompiler" PUBLIC "VulkanLoader" )
+	if (TARGET "VulkanLoader")
+		target_link_libraries( "PipelineCompiler" PUBLIC "VulkanLoader" )
+	endif ()
+
 	target_link_libraries( "PipelineCompiler" PUBLIC "FrameGraph" )
 	target_link_libraries( "PipelineCompiler" PUBLIC "GLSLang-lib" )
 

@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "framework/Vulkan/VulkanDevice.h"
+#ifdef FG_ENABLE_VULKAN
+
+# include "framework/Vulkan/VulkanDevice.h"
 
 namespace FGC
 {
@@ -31,3 +33,5 @@ namespace FGC
 	};
 
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

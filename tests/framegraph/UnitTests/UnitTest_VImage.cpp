@@ -1,5 +1,7 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
+#ifdef FG_ENABLE_VULKAN
+
 #include "VLocalImage.h"
 #include "VBarrierManager.h"
 #include "framegraph/Public/FrameGraph.h"
@@ -261,3 +263,5 @@ extern void UnitTest_VImage ()
 	VImage_Test2();
 	FG_LOGI( "UnitTest_VImage - passed" );
 }
+
+#endif	// FG_ENABLE_VULKAN

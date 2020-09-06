@@ -6,8 +6,10 @@ target_include_directories( "Framework" PUBLIC ".." )
 set_property( TARGET "Framework" PROPERTY FOLDER "Extensions" )
 
 target_link_libraries( "Framework" PUBLIC "STL" )
-target_link_libraries( "Framework" PUBLIC "VulkanLoader" )
 
+if (TARGET "VulkanLoader")
+	target_link_libraries( "Framework" PUBLIC "VulkanLoader" )
+endif ()
 if (TARGET "GLFW-lib")
 	target_link_libraries( "Framework" PUBLIC "GLFW-lib" )
 endif()

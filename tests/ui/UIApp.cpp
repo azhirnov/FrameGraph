@@ -82,7 +82,7 @@ namespace FG
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );
 				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.familyFlags );
-				qi.familyIndex	= uint(q.familyIndex);
+				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;
 				qi.debugName	= q.debugName;
 

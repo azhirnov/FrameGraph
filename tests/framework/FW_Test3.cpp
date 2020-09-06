@@ -103,16 +103,20 @@ public:
 				dev_ext.push_back( ext.data() );
 			}
 
-			CHECK_ERR( vulkan.CreateInstance( window->GetVulkanSurface(), title, "Engine", vulkan.GetRecomendedInstanceLayers(), inst_ext, {1,0} ));
+			CHECK_ERR( vulkan.CreateInstance( window->GetVulkanSurface(), title, "Engine", vulkan.GetRecomendedInstanceLayers(), inst_ext, {1,2} ));
 			CHECK_ERR( vulkan.ChooseHighPerformanceDevice() );
 			CHECK_ERR( vulkan.CreateLogicalDevice( Default, dev_ext ));
 
 			// this is a test and the test should fail for any validation error
 			vulkan.CreateDebugCallback( DefaultDebugMessageSeverity,
-										[] (const VulkanDeviceInitializer::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
+										[] (const VulkanDeviceInitializer::DebugReport &rep) { FG_LOGI(rep.message);  CHECK_FATAL(not rep.isError); });
 
 			if ( vrDevice )
-				CHECK_ERR( vrDevice->SetVKDevice( vulkan.GetVkInstance(), vulkan.GetVkPhysicalDevice(), vulkan.GetVkDevice() ));
+			{
+				CHECK_ERR( vrDevice->SetVKDevice( BitCast<IVRDevice::InstanceVk_t>(vulkan.GetVkInstance()),
+												  BitCast<IVRDevice::PhysicalDeviceVk_t>(vulkan.GetVkPhysicalDevice()),
+												  BitCast<IVRDevice::DeviceVk_t>(vulkan.GetVkDevice()) ));
+			}
 		}
 
 
@@ -137,7 +141,7 @@ public:
 		{
 			VkCommandPoolCreateInfo		pool_info = {};
 			pool_info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			pool_info.queueFamilyIndex	= uint(vulkan.GetVkQueues().front().familyIndex);
+			pool_info.queueFamilyIndex	= vulkan.GetVkQueues().front().familyIndex;
 			pool_info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 			VK_CHECK( vkCreateCommandPool( vulkan.GetVkDevice(), &pool_info, null, OUT &cmdPool ));
 
@@ -205,7 +209,7 @@ public:
 		}
 	
 		// main loop
-		for (uint i = 0; i < 60*1000; ++i)
+		for (uint i = 0; i < 20*1000; ++i)
 		{
 			if ( not window->Update() )
 				break;
@@ -343,16 +347,16 @@ public:
 			{
 				IVRDevice::VRImage	image;
 				image.bounds			= RectF{ 0.0f, 0.0f, 1.0f, 1.0f };
-				image.currQueue			= vulkan.GetVkQueues()[0].handle;
+				image.currQueue			= BitCast<IVRDevice::QueueVk_t>(vulkan.GetVkQueues()[0].handle);
 				image.queueFamilyIndex	= vulkan.GetVkQueues()[0].familyIndex;
 				image.dimension			= vr_dim;
-				image.format			= vr_img_format;
+				image.format			= BitCast<IVRDevice::FormatVk_t>(vr_img_format);
 				image.sampleCount		= 1;
 
-				image.handle = vr_image[0];
+				image.handle = BitCast<IVRDevice::ImageVk_t>(vr_image[0]);
 				CHECK_ERR( vrDevice->Submit( image, IVRDevice::Eye::Left ));
-
-				image.handle = vr_image[1];
+				
+				image.handle = BitCast<IVRDevice::ImageVk_t>(vr_image[1]);
 				CHECK_ERR( vrDevice->Submit( image, IVRDevice::Eye::Right ));
 			}
 

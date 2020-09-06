@@ -5,7 +5,5 @@ if (TARGET "Scene")
 	set_property( TARGET "Tests.Scene" PROPERTY FOLDER "Tests" )
 	target_link_libraries( "Tests.Scene" "Scene" )
 	
-	if (NOT FG_CI_BUILD)
-		add_test( NAME "Tests.Scene" COMMAND "Tests.Scene" )
-	endif ()
+	add_test( NAME "Tests.Scene" COMMAND "Tests.Scene" )
 endif ()

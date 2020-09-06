@@ -18,7 +18,7 @@ if (DEFINED ANDROID)
 		target_link_libraries( "FGTestLauncher" PUBLIC "Tests.PipelineCompiler" )
 	endif ()
 	
-	if (TARGET "PipelineCompiler" AND TARGET "Tests.FrameGraph")
+	if (TARGET "Tests.FrameGraph")
 		target_compile_definitions( "FGTestLauncher" PUBLIC "ENABLE_FRAMEGRAPH_TESTS" )
 		target_link_libraries( "FGTestLauncher" PUBLIC "Tests.FrameGraph" )
 	endif ()

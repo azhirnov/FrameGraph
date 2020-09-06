@@ -1,5 +1,7 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
+#ifdef FG_ENABLE_VULKAN
+
 #include "VLocalBuffer.h"
 #include "VBarrierManager.h"
 #include "framegraph/Public/FrameGraph.h"
@@ -325,3 +327,5 @@ extern void UnitTest_VBuffer ()
 	VBuffer_Test1();
 	FG_LOGI( "UnitTest_VBuffer - passed" );
 }
+
+#endif	// FG_ENABLE_VULKAN

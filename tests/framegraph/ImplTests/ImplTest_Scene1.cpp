@@ -7,6 +7,12 @@ namespace FG
 
 	bool FGApp::ImplTest_Scene1 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln1;
 
 		ppln1.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
@@ -131,7 +137,7 @@ void main() {
 
 		const uint2		view_size			{ 1024, 1024 };
 		const BytesU	cbuf_size			= 256_b;
-		const BytesU	cbuf_offset			= Max( cbuf_size, BytesU(_vulkan.GetProperties().properties.limits.minUniformBufferOffsetAlignment) );
+		const BytesU	cbuf_offset			= Max( cbuf_size, _properties.minUniformBufferOffsetAlignment );
 		const BytesU	cbuf_aligned_size	= AlignToLarger( cbuf_size, cbuf_offset );
 
 		BufferID	const_buf1 = _frameGraph->CreateBuffer( BufferDesc{ cbuf_aligned_size,   EBufferUsage::Uniform | EBufferUsage::TransferDst }, Default, "const_buf1" );

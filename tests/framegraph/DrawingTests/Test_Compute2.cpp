@@ -7,6 +7,12 @@ namespace FG
 
 	bool FGApp::Test_Compute2 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		ComputePipelineDesc	ppln;
 
 		ppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(

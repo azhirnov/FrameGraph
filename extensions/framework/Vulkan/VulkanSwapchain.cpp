@@ -1,9 +1,11 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "VulkanSwapchain.h"
-#include "stl/Algorithms/ArrayUtils.h"
-#include "stl/Memory/MemUtils.h"
-#include "VulkanDevice.h"
+#ifdef FG_ENABLE_VULKAN
+
+# include "VulkanSwapchain.h"
+# include "stl/Algorithms/ArrayUtils.h"
+# include "stl/Memory/MemUtils.h"
+# include "VulkanDevice.h"
 
 namespace FGC
 {
@@ -679,3 +681,5 @@ namespace FGC
 
 
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

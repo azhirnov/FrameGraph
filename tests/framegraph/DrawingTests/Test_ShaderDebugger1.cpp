@@ -9,8 +9,11 @@ namespace FG
 
 	bool FGApp::Test_ShaderDebugger1 ()
 	{
-		if ( not FG_EnableShaderDebugging )
+		if ( not _features.hasShaderDebugger or not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;
+		}
 
 		ComputePipelineDesc	ppln;
 

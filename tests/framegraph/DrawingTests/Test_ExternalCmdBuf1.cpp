@@ -5,6 +5,8 @@
 namespace FG
 {
 
+#ifdef FG_ENABLE_VULKAN
+
 	bool FGApp::Test_ExternalCmdBuf1 ()
 	{
 		const BytesU	src_buffer_size = 256_b;
@@ -16,7 +18,7 @@ namespace FG
 		{
 			VkCommandPoolCreateInfo		info = {};
 			info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			info.queueFamilyIndex	= uint(_vulkan.GetVkQueues()[0].familyIndex);
+			info.queueFamilyIndex	= _vulkan.GetVkQueues()[0].familyIndex;
 			info.flags				= 0;
 
 			VK_CHECK( _vulkan.vkCreateCommandPool( _vulkan.GetVkDevice(), &info, null, OUT &vk_cmdpool ));
@@ -128,7 +130,7 @@ namespace FG
 
 			VulkanCommandBatch	vk_cmdbatch = {};
 			vk_cmdbatch.commands			= { Cast<CommandBufferVk_t>( &vk_cmdbuf ), 1 };
-			vk_cmdbatch.queueFamilyIndex	= uint(_vulkan.GetVkQueues()[0].familyIndex);
+			vk_cmdbatch.queueFamilyIndex	= _vulkan.GetVkQueues()[0].familyIndex;
 
 			CHECK_ERR( cmd2->AddExternalCommands( vk_cmdbatch ));
 			CHECK_ERR( _frameGraph->Execute( cmd2 ));
@@ -164,5 +166,15 @@ namespace FG
 		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
+
+#else
+
+	bool FGApp::Test_ExternalCmdBuf1 ()
+	{
+		FG_LOGI( TEST_NAME << " - skipped" );
+		return true;
+	}
+
+#endif	// FG_ENABLE_VULKAN
 
 }	// FG

@@ -6,8 +6,12 @@
 #include "stl/Containers/NtStringView.h"
 #include "stl/Math/BitMath.h"
 
+#if not defined(FG_ENABLE_VULKAN) or not defined(FG_VULKAN_TARGET_VERSION)
+#	error 'FG_ENABLE_VULKAN' and 'FG_VULKAN_TARGET_VERSION' must be defined.
+#endif
+
 #if not defined(VK_NO_PROTOTYPES) and defined(VULKAN_CORE_H_)
-#	error invalid configuration, define FG_VULKAN_STATIC or include vulkan.h after this file.
+#	error invalid configuration, include vulkan.h after this file.
 #endif
 
 #ifndef VK_NO_PROTOTYPES

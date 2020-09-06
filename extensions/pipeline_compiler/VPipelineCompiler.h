@@ -4,6 +4,7 @@
 
 #include "EShaderCompilationFlags.h"
 #include "framegraph/Shared/HashCollisionCheck.h"
+#include "framegraph/Public/VulkanTypes.h"
 #include <mutex>
 
 namespace FG
@@ -44,11 +45,11 @@ namespace FG
 		)
 
 		// immutable:
-		InstanceVk_t						_vkInstance;
-		PhysicalDeviceVk_t					_vkPhysicalDevice;
-		DeviceVk_t							_vkLogicalDevice;
-		void *								_fpCreateShaderModule			= null;
-		void *								_fpDestroyShaderModule			= null;
+		InstanceVk_t						_vkInstance				= Zero;
+		PhysicalDeviceVk_t					_vkPhysicalDevice		= Zero;
+		DeviceVk_t							_vkLogicalDevice		= Zero;
+		void *								_fpCreateShaderModule	= null;
+		void *								_fpDestroyShaderModule	= null;
 
 
 	// methods

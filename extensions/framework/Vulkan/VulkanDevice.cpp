@@ -1,9 +1,11 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "VulkanDevice.h"
-#include "stl/Containers/StaticString.h"
-#include "stl/Algorithms/StringUtils.h"
-#include <bitset>
+#ifdef FG_ENABLE_VULKAN
+
+# include "framework/Vulkan/VulkanDevice.h"
+# include "stl/Containers/StaticString.h"
+# include "stl/Algorithms/StringUtils.h"
+# include <bitset>
 
 namespace FGC
 {
@@ -116,7 +118,7 @@ namespace FGC
 			if ( not q )
 				continue;
 
-			result.push_back( uint(q->familyIndex) );
+			result.push_back( q->familyIndex );
 		}
 	}
 //-----------------------------------------------------------------------------
@@ -231,7 +233,7 @@ namespace FGC
 
 		CHECK_ERR( CreateInstance( appName, engineName, instanceLayers, inst_ext, version, appVer, engineVer ));
 	
-		_vkSurface = surface->Create( _vkInstance );
+		_vkSurface = BitCast<VkSurfaceKHR>( surface->Create( BitCast<IVulkanSurface::InstanceVk_t>( _vkInstance )));
 		CHECK_ERR( _vkSurface );
 
 		return true;
@@ -248,7 +250,8 @@ namespace FGC
 		CHECK_ERR( newInstance );
 		CHECK_ERR( VulkanLoader::Initialize() );
 
-		_vkInstance = newInstance;
+		_vkInstance			= newInstance;
+		_usedSharedInstance	= true;
 
 		CHECK_ERR( VulkanLoader::LoadInstance( _vkInstance ));
 		
@@ -275,7 +278,7 @@ namespace FGC
 		CHECK_ERR( surface );
 		CHECK_ERR( SetInstance( value, instanceExtensions ));
 
-		_vkSurface = surface->Create( _vkInstance );
+		_vkSurface = BitCast<VkSurfaceKHR>( surface->Create( BitCast<IVulkanSurface::InstanceVk_t>( _vkInstance )));
 		CHECK_ERR( _vkSurface );
 
 		return true;
@@ -297,12 +300,16 @@ namespace FGC
 			vkDestroySurfaceKHR( _vkInstance, _vkSurface, null );
 		}
 
-		vkDestroyInstance( _vkInstance, null );
+		if ( not _usedSharedInstance )
+		{
+			vkDestroyInstance( _vkInstance, null );
+		}
 		VulkanLoader::Unload();
 		
 		_vkSurface			= VK_NULL_HANDLE;
 		_vkInstance			= VK_NULL_HANDLE;
 		_vkPhysicalDevice	= VK_NULL_HANDLE;
+		_usedSharedInstance	= false;
 		
 		_instanceExtensions.clear();
 
@@ -857,8 +864,8 @@ namespace {
 
 			for (auto& q : _vkQueues)
 			{
-				auto&	qinfo = queue_infos[ uint(q.familyIndex) ];
-				auto&	prior = priorities[ uint(q.familyIndex) ];
+				auto&	qinfo = queue_infos[ q.familyIndex ];
+				auto&	prior = priorities[ q.familyIndex ];
 
 				CHECK_ERR( qinfo.queueCount < priorities[0].capacity() );
 
@@ -895,7 +902,7 @@ namespace {
 		CHECK_ERR( VulkanLoader::LoadDevice( _vkLogicalDevice, OUT _deviceFnTable ));
 
 		for (auto& q : _vkQueues) {
-			vkGetDeviceQueue( _vkLogicalDevice, uint(q.familyIndex), q.queueIndex, OUT &q.handle );
+			vkGetDeviceQueue( _vkLogicalDevice, q.familyIndex, q.queueIndex, OUT &q.handle );
 		}
 		
 		for (auto* ext : device_extensions) {
@@ -1009,21 +1016,53 @@ namespace {
 		
 		VulkanLoader::SetupInstanceBackwardCompatibility( _properties.properties.apiVersion );
 
+		#ifdef VK_KHR_surface
 		_features.surface					= HasInstanceExtension( VK_KHR_SURFACE_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_get_surface_capabilities2
 		_features.surfaceCaps2				= HasInstanceExtension( VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_swapchain
 		_features.swapchain					= HasDeviceExtension( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
+		#endif
+		#ifdef VK_EXT_debug_utils
 		_features.debugUtils				= HasInstanceExtension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
+		#endif
+		#if defined(VK_KHR_get_memory_requirements2) and defined(VK_KHR_bind_memory2)
 		_features.bindMemory2				= _vkVersion >= InstanceVersion{1,1} or (HasDeviceExtension( VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME ) and HasDeviceExtension( VK_KHR_BIND_MEMORY_2_EXTENSION_NAME ));
+		#endif
+		#ifdef VK_KHR_dedicated_allocation
 		_features.dedicatedAllocation		= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_descriptor_update_template
 		_features.descriptorUpdateTemplate	= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME );
-		_features.imageViewUsage			= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_MAINTENANCE2_EXTENSION_NAME );
-		_features.create2DArrayCompatible	= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
-		_features.commandPoolTrim			= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_maintenance1
+		const bool	has_maintenance1		= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
+		_features.create2DArrayCompatible	= has_maintenance1;
+		_features.commandPoolTrim			= has_maintenance1;
+		_features.array2DCompatible			= has_maintenance1;
+		#endif
+		#ifdef VK_KHR_maintenance2
+		const bool	has_maintenance2		= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_MAINTENANCE2_EXTENSION_NAME );
+		_features.imageViewUsage			= has_maintenance2;
+		_features.blockTexelView			= has_maintenance2;
+		#endif
+		#ifdef VK_KHR_maintenance3
+		_features.maintenance3				= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_MAINTENANCE3_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_device_group
 		_features.dispatchBase				= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_DEVICE_GROUP_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_create_renderpass2
 		_features.renderPass2				= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_sampler_mirror_clamp_to_edge
 		_features.samplerMirrorClamp		= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_draw_indirect_count
 		_features.drawIndirectCount			= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME );
-		
+		#endif
 		#ifdef VK_EXT_descriptor_indexing
 		_features.descriptorIndexing		= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME );
 		#endif
@@ -1064,7 +1103,13 @@ namespace {
 		_features.pushDescriptor			= HasDeviceExtension( VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME );
 		#endif
 		#ifdef VK_KHR_vulkan_memory_model
-		_features.memoryModel				= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME );
+		_features.memoryModel				= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME );
+		#endif
+		#ifdef VK_EXT_robustness2
+		_features.robustness2				= HasDeviceExtension( VK_EXT_ROBUSTNESS_2_EXTENSION_NAME );
+		#endif
+		#ifdef VK_EXT_sampler_filter_minmax
+		_features.samplerFilterMinmax		= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
 		#endif
 
 		// load extensions
@@ -1148,6 +1193,22 @@ namespace {
 				_properties.memoryModel.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR;
 			}
 			#endif
+			#ifdef VK_EXT_descriptor_indexing
+			if ( _features.descriptorIndexing )
+			{
+				*next_feat	= &_properties.descriptorIndexingFeatures;
+				next_feat	= &_properties.descriptorIndexingFeatures.pNext;
+				_properties.descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+			}
+			#endif
+			#ifdef VK_EXT_robustness2
+			if ( _features.robustness2 )
+			{
+				*next_feat	= &_properties.robustness2Features;
+				next_feat	= &_properties.robustness2Features.pNext;
+				_properties.robustness2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+			}
+			#endif
 			Unused( next_feat );
 
 			vkGetPhysicalDeviceFeatures2KHR( GetVkPhysicalDevice(), OUT &feat2 );
@@ -1178,6 +1239,9 @@ namespace {
 			#endif
 			#ifdef VK_KHR_vulkan_memory_model
 			_features.memoryModel			&= (_properties.memoryModel.vulkanMemoryModel == VK_TRUE);
+			#endif
+			#ifdef VK_EXT_robustness2
+			_features.robustness2			&= !!(_properties.robustness2Features.robustBufferAccess2 | _properties.robustness2Features.robustImageAccess2 | _properties.robustness2Features.nullDescriptor);
 			#endif
 
 			VkPhysicalDeviceProperties2	props2		= {};
@@ -1225,16 +1289,16 @@ namespace {
 			}
 			#endif
 			#ifdef VK_VERSION_1_2
-			if ( _vkVersion >= InstanceVersion{1,2} )
-			{
-				*next_props	= &_properties.properties120;
-				next_props	= &_properties.properties120.pNext;
-				_properties.properties120.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
-
-				*next_props	= &_properties.properties110;
-				next_props	= &_properties.properties110.pNext;
-				_properties.properties110.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
-			}
+			//if ( _vkVersion >= InstanceVersion{1,2} )
+			//{
+			//	*next_props	= &_properties.properties120;
+			//	next_props	= &_properties.properties120.pNext;
+			//	_properties.properties120.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
+			//
+			//	*next_props	= &_properties.properties110;
+			//	next_props	= &_properties.properties110.pNext;
+			//	_properties.properties110.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
+			//}
 			#endif
 			#ifdef VK_VERSION_1_1
 			if ( _vkVersion >= InstanceVersion{1,1} )
@@ -1244,20 +1308,82 @@ namespace {
 				_properties.subgroup.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
 			}
 			#endif
+			#ifdef VK_EXT_descriptor_indexing
+			if ( _features.descriptorIndexing )
+			{
+				*next_props	= &_properties.descriptorIndexingProperties;
+				next_props	= &_properties.descriptorIndexingProperties.pNext;
+				_properties.descriptorIndexingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT;
+			}
+			#endif
+			#ifdef VK_EXT_robustness2
+			if ( _features.robustness2 )
+			{
+				*next_props	= &_properties.robustness2Properties;
+				next_props	= &_properties.robustness2Properties.pNext;
+				_properties.robustness2Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT;
+			}
+			#endif
+			#ifdef VK_KHR_maintenance3
+			if ( _features.maintenance3 )
+			{
+				*next_props	= &_properties.maintenance3Properties;
+				next_props	= &_properties.maintenance3Properties.pNext;
+				_properties.maintenance3Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES_KHR;
+			}
+			#endif
+			#ifdef VK_EXT_sampler_filter_minmax
+			if ( _features.samplerFilterMinmax )
+			{
+				*next_props	= &_properties.samplerFilerMinmaxProperties;
+				next_props	= &_properties.samplerFilerMinmaxProperties.pNext;
+				_properties.samplerFilerMinmaxProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT;
+			}
+			#endif
 			Unused( next_props );
 
 			vkGetPhysicalDeviceProperties2KHR( GetVkPhysicalDevice(), OUT &props2 );
 		}
 
 		FG_LOGI( "Created vulkan device on GPU: "s << _properties.properties.deviceName
-			<< "\n  version:             " << ToString(_vkVersion.major) << '.' << ToString(_vkVersion.minor)
-			<< "\n  debug_utils:         " << ToString( _features.debugUtils )
-			<< "\n  mesh_shader:         " << ToString( _features.meshShaderNV )
-			<< "\n  ray_tracing:         " << ToString( _features.rayTracingNV )
-			<< "\n  shading_rate_image:  " << ToString( _features.shadingRateImageNV )
-			<< "\n  descriptor_indexing: " << ToString( _features.descriptorIndexing )
-			<< "\n  shader_clock:        " << ToString( _features.shaderClock )
-			<< "\n  buffer address:      " << ToString( _features.bufferAddress )
+			<< "\n  version:                  " << ToString(_vkVersion.major) << '.' << ToString(_vkVersion.minor)
+			<< "\n  ---------- 1.1 ----------"
+			<< "\n  bindMemory2:              " << ToString( _features.bindMemory2 )
+			<< "\n  dedicatedAllocation:      " << ToString( _features.dedicatedAllocation )
+			<< "\n  descriptorUpdateTemplate: " << ToString( _features.descriptorUpdateTemplate )
+			<< "\n  imageViewUsage:           " << ToString( _features.imageViewUsage )
+			<< "\n  create2DArrayCompatible:  " << ToString( _features.create2DArrayCompatible )
+			<< "\n  commandPoolTrim:          " << ToString( _features.commandPoolTrim )
+			<< "\n  dispatchBase:             " << ToString( _features.dispatchBase )
+			<< "\n  array2DCompatible:        " << ToString( _features.array2DCompatible )
+			<< "\n  blockTexelView:           " << ToString( _features.blockTexelView )
+			<< "\n  maintenance3:             " << ToString( _features.maintenance3 )
+			<< "\n  ---------- 1.2 ----------"
+			<< "\n  samplerMirrorClamp:       " << ToString( _features.samplerMirrorClamp )
+			<< "\n  shaderAtomicInt64:        " << ToString( _features.shaderAtomicInt64 )
+			<< "\n  float16Arithmetic:        " << ToString( _features.float16Arithmetic )
+			<< "\n  bufferAddress:            " << ToString( _features.bufferAddress )
+			<< "\n  descriptorIndexing:       " << ToString( _features.descriptorIndexing )
+			<< "\n  renderPass2:              " << ToString( _features.renderPass2 )
+			<< "\n  depthStencilResolve:      " << ToString( _features.depthStencilResolve )
+			<< "\n  drawIndirectCount:        " << ToString( _features.drawIndirectCount )
+			<< "\n  spirv14:                  " << ToString( _features.spirv14 )
+			<< "\n  memoryModel:              " << ToString( _features.memoryModel )
+			<< "\n  samplerFilterMinmax       " << ToString( _features.samplerFilterMinmax )
+			<< "\n  ---------- Ext ----------"
+			<< "\n  surface:                  " << ToString( _features.surface )
+			<< "\n  surfaceCaps2:             " << ToString( _features.surfaceCaps2 )
+			<< "\n  swapchain:                " << ToString( _features.swapchain )
+			<< "\n  debug_utils:              " << ToString( _features.debugUtils )
+			<< "\n  meshShaderNV:             " << ToString( _features.meshShaderNV )
+			<< "\n  rayTracingNV:             " << ToString( _features.rayTracingNV )
+			<< "\n  shadingRateImageNV:       " << ToString( _features.shadingRateImageNV )
+			//<< "\n  inlineUniformBlock:       " << ToString( _features.inlineUniformBlock )
+			<< "\n  shaderClock:              " << ToString( _features.shaderClock )
+			<< "\n  timelineSemaphore:        " << ToString( _features.timelineSemaphore )
+			<< "\n  pushDescriptor:           " << ToString( _features.pushDescriptor )
+			<< "\n  robustness2:              " << ToString( _features.robustness2 )
+			<< "\n  ----------"
 		);
 
 		VulkanLoader::SetupDeviceBackwardCompatibility( _properties.properties.apiVersion, INOUT _deviceFnTable );
@@ -1326,7 +1452,7 @@ namespace {
 			{
 				if ( _vkSurface )
 				{
-					VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, uint(queue.familyIndex), _vkSurface, OUT &supports_present ));
+					VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, queue.familyIndex, _vkSurface, OUT &supports_present ));
 					presentable = &queue;
 				}
 
@@ -1501,7 +1627,7 @@ namespace {
 			return true;
 		}
 
-		RETURN_ERR( "no suitable queue family found!" );
+		return false;
 	}
 
 /*
@@ -1536,7 +1662,7 @@ namespace {
 
 			VQueue	vq;
 			vq.type			= VQueueType::Graphics;
-			vq.familyIndex	= VQueueFamily(family_index);
+			vq.familyIndex	= family_index;
 			vq.familyFlags	= flags;
 			vq.minImageTransferGranularity = { queue_family_props[family_index].minImageTransferGranularity.width,
 											   queue_family_props[family_index].minImageTransferGranularity.height,
@@ -1559,12 +1685,13 @@ namespace {
 		{
 			uint			family_index	= 0;
 			VkQueueFlagBits	flags			= q.flags;
-			CHECK_ERR( _ChooseQueueIndex( queue_family_props, INOUT flags, OUT family_index ));
+			if ( not _ChooseQueueIndex( queue_family_props, INOUT flags, OUT family_index ))
+				continue;
 
 			if ( qcount[family_index]++ < queue_family_props[family_index].queueCount )
 			{
 				VQueue	vq;
-				vq.familyIndex	= VQueueFamily(family_index);
+				vq.familyIndex	= family_index;
 				vq.familyFlags	= flags;
 				vq.priority		= q.priority;
 				vq.debugName	= q.debugName;
@@ -1582,7 +1709,8 @@ namespace {
 				_vkQueues.push_back( std::move(vq) );
 			}
 		}
-
+		
+		CHECK_ERR( _vkQueues.size() );
 		return true;
 	}
 
@@ -2169,6 +2297,9 @@ namespace {
 			#ifdef VK_KHR_maintenance2
 				VK_KHR_MAINTENANCE2_EXTENSION_NAME,
 			#endif
+			#ifdef VK_KHR_maintenance3
+				VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+			#endif
 			#ifdef VK_KHR_create_renderpass2
 				VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
 			#endif
@@ -2187,6 +2318,12 @@ namespace {
 			#ifdef VK_EXT_filter_cubic
 				VK_IMG_FILTER_CUBIC_EXTENSION_NAME,
 				VK_EXT_FILTER_CUBIC_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_sampler_filter_minmax
+				VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_shader_stencil_export
+				VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME,	// TODO
 			#endif
 		};
 		return device_extensions;
@@ -2231,6 +2368,9 @@ namespace {
 			#ifdef VK_EXT_blend_operation_advanced
 				VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME,
 			#endif
+			#ifdef VK_KHR_maintenance1
+				VK_KHR_MAINTENANCE1_EXTENSION_NAME,		// required for VK_EXT_inline_uniform_block
+			#endif
 			#ifdef VK_EXT_inline_uniform_block
 				VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME,
 			#endif
@@ -2267,6 +2407,12 @@ namespace {
 			#endif
 			#ifdef VK_EXT_depth_range_unrestricted
 				VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_sampler_filter_minmax
+				VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_shader_stencil_export
+				VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME,
 			#endif
 
 			// Vendor specific extensions
@@ -2323,6 +2469,9 @@ namespace {
 			#ifdef VK_EXT_blend_operation_advanced
 				VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME,
 			#endif
+			#ifdef VK_KHR_maintenance1
+				VK_KHR_MAINTENANCE1_EXTENSION_NAME,		// required for VK_EXT_inline_uniform_block
+			#endif
 			#ifdef VK_EXT_inline_uniform_block
 				VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME,
 			#endif
@@ -2344,6 +2493,12 @@ namespace {
 			#endif
 			#ifdef VK_EXT_depth_range_unrestricted
 				VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME,
+			#endif
+			#ifdef VK_EXT_extended_dynamic_state
+				VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,	// TODO
+			#endif
+			#ifdef VK_EXT_shader_stencil_export
+				VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME,
 			#endif
 
 			// Vendor specific extensions
@@ -2379,6 +2534,6 @@ namespace {
 		return device_extensions;
 	}
 
-
-
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

@@ -3,11 +3,14 @@
 #include "VPipelineCompiler.h"
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
-#include "extensions/vulkan_loader/VulkanLoader.h"
-#include "extensions/vulkan_loader/VulkanCheckError.h"
 #include "framegraph/Shared/EnumUtils.h"
 #include "framegraph/Shared/EnumToString.h"
 #include "VCachedDebuggableShaderData.h"
+
+#ifdef FG_ENABLE_VULKAN
+#	include "extensions/vulkan_loader/VulkanLoader.h"
+#	include "extensions/vulkan_loader/VulkanCheckError.h"
+#endif
 
 namespace FG
 {
@@ -18,10 +21,7 @@ namespace FG
 =================================================
 */
 	VPipelineCompiler::VPipelineCompiler () :
-		_spirvCompiler{ new SpirvCompiler{ _directories }},
-		_vkInstance{ VK_NULL_HANDLE },
-		_vkPhysicalDevice{ VK_NULL_HANDLE },
-		_vkLogicalDevice{ VK_NULL_HANDLE }
+		_spirvCompiler{ new SpirvCompiler{ _directories }}
 	{
 		EXLOCK( _lock );
 
@@ -40,6 +40,7 @@ namespace FG
 	{
 		EXLOCK( _lock );
 
+	#ifdef FG_ENABLE_VULKAN
 		_vkInstance			= instance;
 		_vkPhysicalDevice	= physicalDevice;
 		_vkLogicalDevice	= device;
@@ -81,6 +82,9 @@ namespace FG
 				_spirvCompiler->SetShaderClockFeatures( false, false );
 			}
 		}
+	#else
+		Unused( instance, physicalDevice, device );
+	#endif
 	}
 
 /*
@@ -104,9 +108,11 @@ namespace FG
 
 		_compilerFlags = flags;
 		
-		if ( AllBits( flags, EShaderCompilationFlags::UseCurrentDeviceLimits ))
+	#ifdef FG_ENABLE_VULKAN
+		if ( AllBits( flags, EShaderCompilationFlags::UseCurrentDeviceLimits ) and _vkPhysicalDevice != Zero )
 			CHECK_ERR( _spirvCompiler->SetCurrentResourceLimits( _vkPhysicalDevice ))
 		else
+	#endif
 			CHECK_ERR( _spirvCompiler->SetDefaultResourceLimits() );
 
 		_spirvCompiler->SetCompilationFlags( flags );
@@ -163,6 +169,7 @@ namespace FG
 */
 	void VPipelineCompiler::ReleaseUnusedShaders ()
 	{
+	#ifdef FG_ENABLE_VULKAN
 		EXLOCK( _lock );
 
 		if ( _vkLogicalDevice == VK_NULL_HANDLE )
@@ -183,6 +190,7 @@ namespace FG
 
 			iter = _shaderCache.erase( iter );
 		}
+	#endif
 	}
 	
 /*
@@ -192,6 +200,7 @@ namespace FG
 */
 	void VPipelineCompiler::ReleaseShaderCache ()
 	{
+	#ifdef FG_ENABLE_VULKAN
 		EXLOCK( _lock );
 
 		if ( _vkLogicalDevice == VK_NULL_HANDLE )
@@ -208,6 +217,7 @@ namespace FG
 			Cast<VCachedDebuggableShaderModule>( sh.second )->Destroy( DestroyShaderModule, dev );
 		}
 		_shaderCache.clear();
+	#endif
 	}
 
 /*
@@ -253,7 +263,7 @@ namespace FG
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != Zero) ))
 			return false;
 
 		bool	is_supported = true;
@@ -278,7 +288,7 @@ namespace FG
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != Zero) ))
 			return false;
 
 		bool	is_supported = true;
@@ -303,7 +313,7 @@ namespace FG
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != Zero) ))
 			return false;
 
 		bool	is_supported = true;
@@ -325,7 +335,7 @@ namespace FG
 	{
 		// lock is not needed because only '_vkLogicalDevice' read access is used
 
-		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != Zero) ))
 			return false;
 		
 		return _IsSupported( ppln._shader.data );
@@ -1105,6 +1115,7 @@ namespace FG
 */
 	bool VPipelineCompiler::_CreateVulkanShader (INOUT PipelineDescription::Shader &shader)
 	{
+	#ifdef FG_ENABLE_VULKAN
 		CHECK_ERR( _fpCreateShaderModule and _fpDestroyShaderModule );
 
 		auto CreateShaderModule = BitCast<PFN_vkCreateShaderModule>(_fpCreateShaderModule);
@@ -1166,6 +1177,10 @@ namespace FG
 			COMP_RETURN_ERR( "SPIRV shader data is not found!" );
 
 		return true;
+	#else
+		Unused( shader );
+		return false;
+	#endif
 	}
 	
 /*
