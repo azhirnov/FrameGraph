@@ -2,13 +2,7 @@
 # https://ffmpeg.zeranoe.com/builds/
 
 if (${FG_ALLOW_GPL})
- if (${FG_EXTERNALS_USE_PREBUILD} AND ${FG_ENABLE_FFMPEG})
-	set( FFMPEG_PATH "${FG_EXTERNALS_PATH}/ffmpeg" )
-	add_library( "ffmpeg-lib" INTERFACE )
-	target_include_directories( "ffmpeg-lib" INTERFACE "${FFMPEG_PATH}/include" )
-	target_compile_definitions( "ffmpeg-lib" INTERFACE "FG_ENABLE_FFMPEG" )
-
- elseif (${FG_ENABLE_FFMPEG})
+ if (${FG_ENABLE_FFMPEG})
 	set( FG_EXTERNAL_FFMPEG_PATH "" CACHE PATH "path to ffmpeg SDK" )
 	mark_as_advanced( FG_EXTERNAL_FFMPEG_PATH )
 

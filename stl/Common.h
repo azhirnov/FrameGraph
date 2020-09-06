@@ -5,20 +5,6 @@
 
 #pragma once
 
-// mem leak check
-#if defined(COMPILER_MSVC) && /*defined(FG_ENABLE_MEMLEAK_CHECKS) &&*/ defined(_DEBUG)
-#	define _CRTDBG_MAP_ALLOC
-#	include <stdlib.h>
-#	include <crtdbg.h>
-
-	// call at exit
-	// returns 'true' if no mem leaks
-#	define FG_DUMP_MEMLEAKS()	(::_CrtDumpMemoryLeaks() != 1)
-#else
-
-#	define FG_DUMP_MEMLEAKS()	(true)
-#endif
-
 #include "stl/Defines.h"
 
 #include <vector>

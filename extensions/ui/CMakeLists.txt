@@ -5,13 +5,13 @@ if (TARGET "imgui-lib")
 	target_include_directories( "UI" PUBLIC ".." )
 	set_property( TARGET "UI" PROPERTY FOLDER "Extensions" )
 
-	target_link_libraries( "UI" "FrameGraph" )
-	target_link_libraries( "UI" "PipelineCompiler" )
-	target_link_libraries( "UI" "Framework" )
-	target_link_libraries( "UI" "imgui-lib" )
+	target_link_libraries( "UI" PUBLIC "FrameGraph" )
+	target_link_libraries( "UI" PUBLIC "PipelineCompiler" )
+	target_link_libraries( "UI" PUBLIC "Framework" )
+	target_link_libraries( "UI" PUBLIC "imgui-lib" )
 
 	if (TARGET "GLM-lib")
-		target_link_libraries( "UI" "GLM-lib" )
+		target_link_libraries( "UI" PUBLIC "GLM-lib" )
 	endif ()
 
 	install( TARGETS "UI" ARCHIVE DESTINATION "lib" )

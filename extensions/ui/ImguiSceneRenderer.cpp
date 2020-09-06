@@ -1,6 +1,9 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
+#if defined(FG_ENABLE_GLM) && defined(FG_ENABLE_IMGUI)
+
 #include "ImguiSceneRenderer.h"
+#include "imgui.h"
 #include "imgui_internal.h"
 
 namespace FG
@@ -315,3 +318,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// FG_ENABLE_GLM and FG_ENABLE_IMGUI

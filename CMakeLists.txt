@@ -20,9 +20,9 @@ set( FG_ENABLE_OPENVR OFF CACHE BOOL "use OpenVR (optional)" )
 set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS OFF CACHE BOOL "use simplified compiler settings if you have problem with it" )
 set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version instead of master branch" )
 set( FG_EXTERNALS_USE_PREBUILD OFF CACHE BOOL "use stable prebuild libraries" )
-set( FG_ENABLE_GLSL_TRACE OFF CACHE BOOL "used for shader debugging and profiling" FORCE )
+set( FG_ENABLE_GLSL_TRACE OFF CACHE BOOL "used for shader debugging and profiling" )
 set( FG_VULKAN_VERSION "110" CACHE STRING "choose target Vulkan API version" )
-
+set( FG_ENABLE_MEMLEAK_CHECKS ON CACHE BOOL "" )
 
 # test & samples dependencies
 set( FG_ENABLE_TESTS ON CACHE BOOL "enable tests" )
@@ -42,6 +42,9 @@ set( FG_ENABLE_DEVIL OFF CACHE BOOL "use DevIL (optional, required for Scene ext
 set( FG_ENABLE_FFMPEG OFF CACHE BOOL "use FFmpeg (optional, LGPL license)" )
 set( FG_ALLOW_GPL OFF CACHE BOOL "allow GNU GPL code and libraries" )
 
+if (NOT DEFINED ANDROID)
+	set( FG_ENABLE_GLSL_TRACE ON )
+endif ()
 
 if (WIN32)
 	set( FG_ENABLE_OPENVR ON )
@@ -95,6 +98,9 @@ add_subdirectory( "extensions/graphviz" )
 add_subdirectory( "extensions/video" )
 
 if (${FG_ENABLE_TESTS})
+	if (NOT DEFINED ANDROID)
+		enable_testing()
+	endif ()
 	add_subdirectory( "tests/stl" )
 	add_subdirectory( "tests/framegraph" )
 	add_subdirectory( "tests/framework" )

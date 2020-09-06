@@ -2,6 +2,8 @@
 
 #pragma once
 
+#if defined(FG_ENABLE_GLM) && defined(FG_ENABLE_IMGUI)
+
 #include "ui/Common.h"
 #include "scene/Renderer/RenderQueue.h"
 
@@ -54,3 +56,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// FG_ENABLE_GLM and FG_ENABLE_IMGUI

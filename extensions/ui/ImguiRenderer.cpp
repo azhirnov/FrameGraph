@@ -1,6 +1,9 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
+#ifdef FG_ENABLE_IMGUI
+
 #include "ImguiRenderer.h"
+#include "imgui.h"
 #include "imgui_internal.h"
 
 namespace FG
@@ -322,3 +325,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// FG_ENABLE_IMGUI

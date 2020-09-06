@@ -145,13 +145,8 @@ namespace FG
 		#ifdef VK_KHR_dedicated_allocation
 		_features.dedicatedAllocation		= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME );
 		#endif
-		#ifdef VK_KHR_descriptor_update_template
-		_features.descriptorUpdateTemplate	= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME );
-		#endif
 		#ifdef VK_KHR_maintenance2
-		const bool	has_maintenance2		= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE2_EXTENSION_NAME );
-		_features.imageViewUsage			= has_maintenance2;
-		_features.blockTexelView			= has_maintenance2;
+		_features.blockTexelView			= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE2_EXTENSION_NAME );
 		#endif
 		#ifdef VK_KHR_maintenance1
 		const bool	has_maintenance1		= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
@@ -183,32 +178,8 @@ namespace FG
 		#ifdef VK_NV_shading_rate_image
 		_features.shadingRateImageNV		= HasDeviceExtension( VK_NV_SHADING_RATE_IMAGE_EXTENSION_NAME );
 		#endif
-		#ifdef VK_KHR_shader_clock
-		_features.shaderClock				= HasDeviceExtension( VK_KHR_SHADER_CLOCK_EXTENSION_NAME );
-		#endif
-		#ifdef VK_KHR_shader_float16_int8
-		_features.float16Arithmetic			= _vkVersion >= EShaderLangFormat::Vulkan_120 or HasDeviceExtension( VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME );
-		#endif
-		#ifdef VK_KHR_timeline_semaphore
-		_features.timelineSemaphore			= _vkVersion >= EShaderLangFormat::Vulkan_120 or HasDeviceExtension( VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME ),
-		#endif
-		#ifdef VK_KHR_buffer_device_address
-		_features.bufferAddress				= _vkVersion >= EShaderLangFormat::Vulkan_120 or HasDeviceExtension( VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME ),
-		#endif
 		#ifdef VK_KHR_depth_stencil_resolve
 		_features.depthStencilResolve		= _vkVersion >= EShaderLangFormat::Vulkan_120 or HasDeviceExtension( VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME );
-		#endif
-		#ifdef VK_KHR_shader_atomic_int64
-		_features.shaderAtomicInt64			= _vkVersion >= EShaderLangFormat::Vulkan_120 or HasDeviceExtension( VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME );
-		#endif
-		#ifdef VK_KHR_spirv_1_4
-		_features.spirv14					= _vkVersion >= EShaderLangFormat::Vulkan_120 or HasDeviceExtension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
-		#endif
-		#ifdef VK_KHR_push_descriptor
-		_features.pushDescriptor			= HasDeviceExtension( VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME );
-		#endif
-		#ifdef VK_KHR_vulkan_memory_model
-		_features.memoryModel				= _vkVersion >= EShaderLangFormat::Vulkan_120 or HasDeviceExtension( VK_KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME );
 		#endif
 		#ifdef VK_EXT_robustness2
 		_features.robustness2				= HasDeviceExtension( VK_EXT_ROBUSTNESS_2_EXTENSION_NAME );
@@ -237,56 +208,6 @@ namespace FG
 				_properties.shadingRateImageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV;
 			}
 			#endif
-			#ifdef VK_KHR_shader_clock
-			if ( _features.shaderClock )
-			{
-				*next_feat	= &_properties.shaderClock;
-				next_feat	= &_properties.shaderClock.pNext;
-				_properties.shaderClock.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR;
-			}
-			#endif
-			#ifdef VK_KHR_shader_float16_int8
-			VkPhysicalDeviceShaderFloat16Int8FeaturesKHR	shader_float16_int8_feat = {};
-			if ( _features.float16Arithmetic )
-			{
-				*next_feat	= &shader_float16_int8_feat;
-				next_feat	= &shader_float16_int8_feat.pNext;
-				shader_float16_int8_feat.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR;
-			}
-			#endif
-			#ifdef VK_KHR_timeline_semaphore
-			VkPhysicalDeviceTimelineSemaphoreFeaturesKHR	timeline_sem_feat = {};
-			if ( _features.timelineSemaphore )
-			{
-				*next_feat	= &timeline_sem_feat;
-				next_feat	= &timeline_sem_feat.pNext;
-				timeline_sem_feat.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR;
-			}
-			#endif
-			#ifdef VK_KHR_buffer_device_address
-			if ( _features.bufferAddress )
-			{
-				*next_feat	= &_properties.bufferDeviceAddress;
-				next_feat	= &_properties.bufferDeviceAddress.pNext;
-				_properties.bufferDeviceAddress.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR;
-			}
-			#endif
-			#ifdef VK_KHR_shader_atomic_int64
-			if ( _features.shaderAtomicInt64 )
-			{
-				*next_feat	= &_properties.shaderAtomicInt64;
-				next_feat	= &_properties.shaderAtomicInt64.pNext;
-				_properties.shaderAtomicInt64.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR;
-			}
-			#endif
-			#ifdef VK_KHR_vulkan_memory_model
-			if ( _features.memoryModel )
-			{
-				*next_feat	= &_properties.memoryModel;
-				next_feat	= &_properties.memoryModel.pNext;
-				_properties.memoryModel.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR;
-			}
-			#endif
 			#ifdef VK_EXT_descriptor_indexing
 			if ( _features.descriptorIndexing )
 			{
@@ -312,24 +233,6 @@ namespace FG
 			#endif
 			#ifdef VK_NV_shading_rate_image
 			_features.shadingRateImageNV	&= (_properties.shadingRateImageFeatures.shadingRateImage == VK_TRUE);
-			#endif
-			#ifdef VK_KHR_shader_clock
-			_features.shaderClock			&= !!(_properties.shaderClock.shaderDeviceClock | _properties.shaderClock.shaderSubgroupClock);
-			#endif
-			#ifdef VK_KHR_shader_float16_int8
-			_features.float16Arithmetic		&= (shader_float16_int8_feat.shaderFloat16 == VK_TRUE);
-			#endif
-			#ifdef VK_KHR_timeline_semaphore
-			_features.timelineSemaphore		&= (timeline_sem_feat.timelineSemaphore == VK_TRUE);
-			#endif
-			#ifdef VK_KHR_buffer_device_address
-			_features.bufferAddress			&= (_properties.bufferDeviceAddress.bufferDeviceAddress == VK_TRUE);
-			#endif
-			#ifdef VK_KHR_shader_atomic_int64
-			_features.shaderAtomicInt64		&= (_properties.shaderAtomicInt64.shaderBufferInt64Atomics == VK_TRUE);
-			#endif
-			#ifdef VK_KHR_vulkan_memory_model
-			_features.memoryModel			&= (_properties.memoryModel.vulkanMemoryModel == VK_TRUE);
 			#endif
 			#ifdef VK_EXT_robustness2
 			_features.robustness2			&= !!(_properties.robustness2Features.robustBufferAccess2 | _properties.robustness2Features.robustImageAccess2 | _properties.robustness2Features.nullDescriptor);
@@ -363,14 +266,6 @@ namespace FG
 				_properties.rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 			}
 			#endif
-			#ifdef VK_KHR_timeline_semaphore
-			if ( _features.timelineSemaphore )
-			{
-				*next_props	= &_properties.timelineSemaphoreProps;
-				next_props	= &_properties.timelineSemaphoreProps.pNext;
-				_properties.timelineSemaphoreProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR;
-			}
-			#endif
 			#ifdef VK_KHR_depth_stencil_resolve
 			if ( _features.depthStencilResolve )
 			{
@@ -389,14 +284,6 @@ namespace FG
 				*next_props	= &_properties.properties110;
 				next_props	= &_properties.properties110.pNext;
 				_properties.properties110.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
-			}
-			#endif
-			#ifdef VK_VERSION_1_1
-			if ( _vkVersion >= EShaderLangFormat::Vulkan_110 )
-			{
-				*next_props	= &_properties.subgroup;
-				next_props	= &_properties.subgroup.pNext;
-				_properties.subgroup.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
 			}
 			#endif
 			#ifdef VK_EXT_descriptor_indexing

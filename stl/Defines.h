@@ -2,13 +2,6 @@
 
 #pragma once
 
-
-#if defined(DEBUG) || defined(_DEBUG)
-#	define FG_DEBUG
-#else
-#	define FG_RELEASE
-#endif
-
 #include "stl/Config.h"
 
 

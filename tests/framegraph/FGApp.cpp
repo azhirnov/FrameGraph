@@ -525,7 +525,10 @@ namespace {
 		FGApp				app;
 		UniquePtr<IWindow>	wnd;
 		
-		#if defined( FG_ENABLE_GLFW )
+		#if defined( FG_CI_BUILD )
+			return;
+
+		#elif defined( FG_ENABLE_GLFW )
 			wnd.reset( new WindowGLFW() );
 
 		#elif defined( FG_ENABLE_SDL2 )
@@ -533,9 +536,6 @@ namespace {
 
 		#elif defined( PLATFORM_ANDROID )
 			wnd.reset( new WindowAndroid{ static_cast<android_app*>(nativeHandle) });
-			
-		#elif defined( FG_CI_BUILD )
-			return;
 
 		#else
 		#	error Unknown window library!

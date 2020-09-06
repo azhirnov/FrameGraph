@@ -1588,6 +1588,8 @@ namespace FG
 			}
 			END_ENUM_CHECKS();
 		}
+		#else
+			Unused( logicalRP );
 		#endif	// FG_DEBUG
 
 		// validate depth states

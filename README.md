@@ -44,7 +44,7 @@ Used vulkan features and extensions:
 
 ## Suported Platforms
 * Windows (with MSVC 2017, 2019)
-* Linux (with GCC 8.2)
+* Linux (with GCC 8.2, Clang 9)
 * Android
 
 

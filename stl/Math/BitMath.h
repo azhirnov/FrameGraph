@@ -168,9 +168,11 @@ namespace FGC
 		constexpr int	INVALID_INDEX = std::numeric_limits<int>::min();
 		unsigned long	index;
 		
+	  #if PLATFORM_BITS == 64
 		if constexpr( sizeof(x) == 8 )
 			return _BitScanForward64( OUT &index, uint64_t(x) ) ? index : INVALID_INDEX;
 		else
+	  #endif
 		if constexpr( sizeof(x) <= 4 )
 			return _BitScanForward( OUT &index, uint(x) ) ? index : INVALID_INDEX;
 		

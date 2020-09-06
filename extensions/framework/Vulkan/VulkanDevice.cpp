@@ -1109,7 +1109,7 @@ namespace {
 		_features.robustness2				= HasDeviceExtension( VK_EXT_ROBUSTNESS_2_EXTENSION_NAME );
 		#endif
 		#ifdef VK_EXT_sampler_filter_minmax
-		_features.samplerFilterMinmax		= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
+		_features.samplerFilterMinmax		= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME );
 		#endif
 
 		// load extensions

@@ -49,8 +49,6 @@ namespace FG
 			// vulkan 1.1 core
 			bool	bindMemory2				: 1;
 			bool	dedicatedAllocation		: 1;
-			bool	descriptorUpdateTemplate: 1;
-			bool	imageViewUsage			: 1;
 			bool	create2DArrayCompatible	: 1;
 			bool	commandPoolTrim			: 1;
 			bool	dispatchBase			: 1;
@@ -58,15 +56,10 @@ namespace FG
 			bool	blockTexelView			: 1;
 			// vulkan 1.2 core
 			bool	samplerMirrorClamp		: 1;
-			bool	shaderAtomicInt64		: 1;	// for uniform/storage buffer, for shared variables check features
-			bool	float16Arithmetic		: 1;
-			bool	bufferAddress			: 1;
 			bool	descriptorIndexing		: 1;
 			bool	renderPass2				: 1;
 			bool	depthStencilResolve		: 1;
 			bool	drawIndirectCount		: 1;
-			bool	spirv14					: 1;
-			bool	memoryModel				: 1;
 			// window extensions
 			bool	surface					: 1;
 			bool	surfaceCaps2			: 1;
@@ -76,11 +69,6 @@ namespace FG
 			bool	meshShaderNV			: 1;
 			bool	rayTracingNV			: 1;
 			bool	shadingRateImageNV		: 1;
-		//	bool	pushDescriptor			: 1;
-		//	bool	inlineUniformBlock		: 1;
-			bool	shaderClock				: 1;
-			bool	timelineSemaphore		: 1;
-			bool	pushDescriptor			: 1;
 			bool	robustness2				: 1;
 		};
 
@@ -89,12 +77,6 @@ namespace FG
 			VkPhysicalDeviceProperties							properties;
 			VkPhysicalDeviceFeatures							features;
 			VkPhysicalDeviceMemoryProperties					memoryProperties;
-			#ifdef VK_VERSION_1_1
-			VkPhysicalDeviceSubgroupProperties					subgroup;
-			#endif
-			#ifdef VK_KHR_vulkan_memory_model
-			VkPhysicalDeviceVulkanMemoryModelFeaturesKHR		memoryModel;
-			#endif
 			#ifdef VK_NV_mesh_shader
 			VkPhysicalDeviceMeshShaderFeaturesNV				meshShaderFeatures;
 			VkPhysicalDeviceMeshShaderPropertiesNV				meshShaderProperties;
@@ -106,20 +88,8 @@ namespace FG
 			#ifdef VK_NV_ray_tracing
 			VkPhysicalDeviceRayTracingPropertiesNV				rayTracingProperties;
 			#endif
-			#ifdef VK_KHR_shader_clock
-			VkPhysicalDeviceShaderClockFeaturesKHR				shaderClock;
-			#endif
-			#ifdef VK_KHR_timeline_semaphore
-			VkPhysicalDeviceTimelineSemaphorePropertiesKHR		timelineSemaphoreProps;
-			#endif
-			#ifdef VK_KHR_buffer_device_address
-			VkPhysicalDeviceBufferDeviceAddressFeaturesKHR		bufferDeviceAddress;
-			#endif
 			#ifdef VK_KHR_depth_stencil_resolve
 			VkPhysicalDeviceDepthStencilResolvePropertiesKHR	depthStencilResolve;
-			#endif
-			#ifdef VK_KHR_shader_atomic_int64
-			VkPhysicalDeviceShaderAtomicInt64FeaturesKHR		shaderAtomicInt64;
 			#endif
 			#ifdef VK_EXT_descriptor_indexing
 			VkPhysicalDeviceDescriptorIndexingFeaturesEXT		descriptorIndexingFeatures;

@@ -600,7 +600,7 @@ namespace FG
 		}
 		_CheckTextureType( un, idx, img, desc, (type & ~EImageSampler::_FormatMask) );
 	#else
-		Unused( un, idx, img, type );
+		Unused( un, idx, img, desc, type );
 	#endif
 	}
 	

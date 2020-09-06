@@ -1339,6 +1339,7 @@ namespace FG
 */
 	void  VResourceManager::CheckTask (const BuildRayTracingScene &task)
 	{
+		Unused( task );
 		DEBUG_ONLY({
 			for (auto& inst : task.instances) {
 				_hashCollisionCheck.Add( inst.instanceId );
