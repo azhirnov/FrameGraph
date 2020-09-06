@@ -140,8 +140,11 @@ namespace FG
 		virtual void		AddTask (LogicalPassID, const DrawIndexed &) = 0;
 		virtual void		AddTask (LogicalPassID, const DrawVerticesIndirect &) = 0;
 		virtual void		AddTask (LogicalPassID, const DrawIndexedIndirect &) = 0;
+		virtual void		AddTask (LogicalPassID, const DrawVerticesIndirectCount &) = 0;
+		virtual void		AddTask (LogicalPassID, const DrawIndexedIndirectCount &) = 0;
 		virtual void		AddTask (LogicalPassID, const DrawMeshes &) = 0;
 		virtual void		AddTask (LogicalPassID, const DrawMeshesIndirect &) = 0;
+		virtual void		AddTask (LogicalPassID, const DrawMeshesIndirectCount &) = 0;
 		virtual void		AddTask (LogicalPassID, const CustomDraw &) = 0;
 	};
 

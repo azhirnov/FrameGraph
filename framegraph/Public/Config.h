@@ -73,6 +73,7 @@ namespace FG
 	static constexpr unsigned	FG_MaxClearRanges			= 8;
 	static constexpr unsigned	FG_MaxBlitRegions			= 8;
 	static constexpr unsigned	FG_MaxResolveRegions		= 8;
+	static constexpr unsigned	FG_MaxDrawCommands			= 4;
 
 
 }	// FG

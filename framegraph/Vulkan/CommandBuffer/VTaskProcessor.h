@@ -64,7 +64,11 @@ namespace FG
 		bool						_enableDebugUtils		: 1;
 		bool						_isDefaultScissor		: 1;
 		bool						_perPassStatesUpdated	: 1;
-		bool						_dispatchBase			: 1;
+		const bool					_dispatchBase			: 1;
+		const bool					_drawIndirectCount		: 1;
+		const bool					_meshShaderNV			: 1;
+		const bool					_rayTracingNV			: 1;
+		const uint					_maxDrawIndirectCount;
 
 		PendingResourceBarriers_t	_pendingResourceBarriers;
 
@@ -118,6 +122,12 @@ namespace FG
 		static void  Visit2_DrawIndexedIndirect (void *, void *);
 		static void  Visit1_DrawMeshesIndirect (void *, void *);
 		static void  Visit2_DrawMeshesIndirect (void *, void *);
+		static void  Visit1_DrawVerticesIndirectCount (void *, void *);
+		static void  Visit2_DrawVerticesIndirectCount (void *, void *);
+		static void  Visit1_DrawIndexedIndirectCount (void *, void *);
+		static void  Visit2_DrawIndexedIndirectCount (void *, void *);
+		static void  Visit1_DrawMeshesIndirectCount (void *, void *);
+		static void  Visit2_DrawMeshesIndirectCount (void *, void *);
 		static void  Visit1_CustomDraw (void *, void *);
 		static void  Visit2_CustomDraw (void *, void *);
 

@@ -165,8 +165,11 @@ namespace FG
 		void		AddTask (LogicalPassID, const DrawIndexed &) override;
 		void		AddTask (LogicalPassID, const DrawVerticesIndirect &) override;
 		void		AddTask (LogicalPassID, const DrawIndexedIndirect &) override;
+		void		AddTask (LogicalPassID, const DrawVerticesIndirectCount &) override;
+		void		AddTask (LogicalPassID, const DrawIndexedIndirectCount &) override;
 		void		AddTask (LogicalPassID, const DrawMeshes &) override;
 		void		AddTask (LogicalPassID, const DrawMeshesIndirect &) override;
+		void		AddTask (LogicalPassID, const DrawMeshesIndirectCount &) override;
 		void		AddTask (LogicalPassID, const CustomDraw &) override;
 
 

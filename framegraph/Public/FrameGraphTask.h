@@ -140,7 +140,7 @@ namespace FG
 			uint3	baseGroup;
 			uint3	groupCount;
 		};
-		using ComputeCmds_t		= FixedArray< ComputeCmd, 16 >;
+		using ComputeCmds_t		= FixedArray< ComputeCmd, FG_MaxDrawCommands >;
 
 
 	// variables
@@ -195,7 +195,7 @@ namespace FG
 		{
 			BytesU		indirectBufferOffset;
 		};
-		using ComputeCmds_t		= FixedArray< ComputeCmd, 16 >;
+		using ComputeCmds_t		= FixedArray< ComputeCmd, FG_MaxDrawCommands >;
 
 		struct DispatchIndirectCommand
 		{
@@ -1224,7 +1224,7 @@ namespace FG
 		using Context_t		= Union< NullUnion, VulkanContext >;
 		using Callback_t	= std::function< void (const Context_t &) >;
 		using Images_t		= FixedArray< Pair< RawImageID, EResourceState >, 8 >;
-		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;
+		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;	// TODO: use ArrayView
 
 		
 	// variables

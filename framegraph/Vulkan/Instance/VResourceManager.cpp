@@ -1266,6 +1266,8 @@ namespace FG
 	RawSwapchainID  VResourceManager::CreateSwapchain (const VulkanSwapchainCreateInfo &desc, RawSwapchainID oldSwapchain,
 													   VFrameGraph &fg, StringView dbgName)
 	{
+		CHECK_ERR( _device.GetFeatures().swapchain );
+
 		if ( auto* swapchain = GetResource( oldSwapchain, false, true ))
 		{
 			if ( not const_cast<VSwapchain*>(swapchain)->Create( fg, desc, dbgName ))

@@ -214,6 +214,35 @@ namespace FG
 		ASSERT( indexBuffer and AllBits( indexBuffer->Description().usage, EBufferUsage::Index ));
 		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
 	}
+	
+/*
+=================================================
+	VFgDrawTask< DrawVerticesIndirectCount >
+=================================================
+*/
+	inline VFgDrawTask<DrawVerticesIndirectCount>::VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawVerticesIndirectCount &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawVerticesTask{ rp, cb, task, pass1, pass2 },	commands{ task.commands },
+		indirectBuffer{ cb.ToLocal( task.indirectBuffer )},		countBuffer{ cb.ToLocal( task.countBuffer )}
+	{
+		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
+		ASSERT( countBuffer and AllBits( countBuffer->Description().usage, EBufferUsage::Index ));
+	}
+	
+/*
+=================================================
+	VFgDrawTask< DrawIndexedIndirectCount >
+=================================================
+*/
+	inline VFgDrawTask<DrawIndexedIndirectCount>::VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawIndexedIndirectCount &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawVerticesTask{ rp, cb, task, pass1, pass2 },	commands{ task.commands },
+		indirectBuffer{ cb.ToLocal( task.indirectBuffer )},		countBuffer{ cb.ToLocal( task.countBuffer )},
+		indexBuffer{ cb.ToLocal( task.indexBuffer )},			indexBufferOffset{ task.indexBufferOffset },
+		indexType{ task.indexType }
+	{
+		ASSERT( indexBuffer and AllBits( indexBuffer->Description().usage, EBufferUsage::Index ));
+		ASSERT( countBuffer and AllBits( countBuffer->Description().usage, EBufferUsage::Index ));
+		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
+	}
 //-----------------------------------------------------------------------------
 
 	
@@ -255,6 +284,19 @@ namespace FG
 		indirectBuffer{ cb.ToLocal( task.indirectBuffer )}
 	{
 		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
+	}
+
+/*
+=================================================
+	VFgDrawTask< DrawMeshesIndirectCount >
+=================================================
+*/
+	inline VFgDrawTask<DrawMeshesIndirectCount>::VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawMeshesIndirectCount &task, ProcessFunc_t pass1, ProcessFunc_t pass2) :
+		VBaseDrawMeshes{ rp, cb, task, pass1, pass2 },		commands{ task.commands },
+		indirectBuffer{ cb.ToLocal( task.indirectBuffer )},	countBuffer{ cb.ToLocal( task.countBuffer )}
+	{
+		ASSERT( indirectBuffer and AllBits( indirectBuffer->Description().usage, EBufferUsage::Indirect ));
+		ASSERT( countBuffer and AllBits( countBuffer->Description().usage, EBufferUsage::Index ));
 	}
 
 #endif	// VK_NV_mesh_shader

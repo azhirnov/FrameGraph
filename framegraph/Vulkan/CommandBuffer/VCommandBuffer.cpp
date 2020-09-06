@@ -1126,6 +1126,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( AllBits( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( GetDevice().GetFeatures().rayTracingNV );
 
 		return _taskGraph.Add( *this, task );
 	#else
@@ -1146,6 +1147,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( AllBits( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( GetDevice().GetFeatures().rayTracingNV );
 		
 		auto*	result	= _taskGraph.Add( *this, task );
 		auto*	geom	= ToLocal( task.rtGeometry );
@@ -1331,6 +1333,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( AllBits( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( GetDevice().GetFeatures().rayTracingNV );
 		
 		auto*	result	= _taskGraph.Add( *this, task );
 		auto*	scene	= ToLocal( task.rtScene );
@@ -1431,6 +1434,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		ASSERT( AllBits( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( GetDevice().GetFeatures().rayTracingNV );
 		ASSERT( task.shaderTable );
 
 		auto	result = _taskGraph.Add( *this, task );
@@ -1517,6 +1521,7 @@ namespace {
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().meshShaderNV );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1542,6 +1547,7 @@ namespace {
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
+		ASSERT( task.indirectBuffer );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1563,6 +1569,7 @@ namespace {
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
+		ASSERT( task.indirectBuffer );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1575,6 +1582,50 @@ namespace {
 	
 /*
 =================================================
+	AddTask (DrawVerticesIndirectCount)
+=================================================
+*/
+	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVerticesIndirectCount &task)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().drawIndirectCount );
+		
+		auto *	rp  = ToLocal( renderPass );
+		CHECK_ERR( rp, void());
+
+		rp->AddTask< VFgDrawTask<DrawVerticesIndirectCount> >(
+						*this, task,
+						VTaskProcessor::Visit1_DrawVerticesIndirectCount,
+						VTaskProcessor::Visit2_DrawVerticesIndirectCount );
+	}
+	
+/*
+=================================================
+	AddTask (DrawIndexedIndirectCount)
+=================================================
+*/
+	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexedIndirectCount &task)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().drawIndirectCount );
+		
+		auto *	rp  = ToLocal( renderPass );
+		CHECK_ERR( rp, void());
+
+		rp->AddTask< VFgDrawTask<DrawIndexedIndirectCount> >(
+						*this, task,
+						VTaskProcessor::Visit1_DrawIndexedIndirectCount,
+						VTaskProcessor::Visit2_DrawIndexedIndirectCount );
+	}
+
+/*
+=================================================
 	AddTask (DrawMeshesIndirect)
 =================================================
 */
@@ -1585,6 +1636,7 @@ namespace {
 		CHECK_ERR( _IsRecording(), void());
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().meshShaderNV );
 		
 		auto *	rp  = ToLocal( renderPass );
 		CHECK_ERR( rp, void());
@@ -1599,6 +1651,33 @@ namespace {
 	#endif
 	}
 	
+/*
+=================================================
+	AddTask (DrawMeshesIndirectCount)
+=================================================
+*/
+	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawMeshesIndirectCount &task)
+	{
+	#ifdef VK_NV_mesh_shader
+		EXLOCK( _drCheck );
+		CHECK_ERR( _IsRecording(), void());
+		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().meshShaderNV );
+		
+		auto *	rp  = ToLocal( renderPass );
+		CHECK_ERR( rp, void());
+
+		rp->AddTask< VFgDrawTask<DrawMeshesIndirectCount> >(
+						*this, task,
+						VTaskProcessor::Visit1_DrawMeshesIndirectCount,
+						VTaskProcessor::Visit2_DrawMeshesIndirectCount );
+	#else
+		Unused( renderPass, task );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
+	}
+
 /*
 =================================================
 	AddTask (CustomDraw)

@@ -223,7 +223,7 @@ namespace _fg_hidden_
 			uint		firstVertex		= 0;
 			uint		firstInstance	= 0;
 		};
-		using DrawCommands_t	= FixedArray< DrawCmd, 16 >;
+		using DrawCommands_t	= FixedArray< DrawCmd, FG_MaxDrawCommands >;
 
 
 	// variables
@@ -234,7 +234,7 @@ namespace _fg_hidden_
 		DrawVertices () :
 			BaseDrawVertices<DrawVertices>{ "DrawVertices", ColorScheme::Draw } {}
 
-		DrawVertices&  Draw (uint vertexCount, uint instanceCount	= 1, uint firstVertex = 0, uint firstInstance = 0)
+		DrawVertices&  Draw (uint vertexCount, uint instanceCount = 1, uint firstVertex = 0, uint firstInstance = 0)
 		{
 			ASSERT( vertexCount > 0 );
 			commands.emplace_back( vertexCount, instanceCount, firstVertex, firstInstance );
@@ -258,7 +258,7 @@ namespace _fg_hidden_
 			int			vertexOffset	= 0;
 			uint		firstInstance	= 0;
 		};
-		using DrawCommands_t	= FixedArray< DrawCmd, 16 >;
+		using DrawCommands_t	= FixedArray< DrawCmd, FG_MaxDrawCommands >;
 
 
 	// variables
@@ -301,17 +301,17 @@ namespace _fg_hidden_
 		struct DrawCmd
 		{
 			BytesU			indirectBufferOffset;
-			uint			drawCount;
+			uint			drawCount;				// may be limitted, check 'maxDrawIndirectCount' in device properties
 			Bytes<uint>		stride;
 		};
-		using DrawCommands_t	= FixedArray< DrawCmd, 16 >;
+		using DrawCommands_t	= FixedArray< DrawCmd, FG_MaxDrawCommands >;
 		
 		struct DrawIndirectCommand
 		{
 			uint	vertexCount;
 			uint	instanceCount;
 			uint	firstVertex;
-			uint	firstInstance;
+			uint	firstInstance;		// may be unsupported, check 'drawIndirectFirstInstance' in device features
 		};
 		STATIC_ASSERT( sizeof(DrawIndirectCommand) == 16 );
 
@@ -351,7 +351,7 @@ namespace _fg_hidden_
 		using DrawCmd			= DrawVerticesIndirect::DrawCmd;
 		using DrawCommands_t	= DrawVerticesIndirect::DrawCommands_t;
 		
-		struct DrawIndexedIndirectCommand
+		struct DrawIndirectCommand
 		{
 			uint	indexCount;
 			uint	instanceCount;
@@ -359,7 +359,7 @@ namespace _fg_hidden_
 			int		vertexOffset;
 			uint	firstInstance;
 		};
-		STATIC_ASSERT( sizeof(DrawIndexedIndirectCommand) == 20 );
+		STATIC_ASSERT( sizeof(DrawIndirectCommand) == 20 );
 
 
 	// variables
@@ -369,7 +369,7 @@ namespace _fg_hidden_
 
 		DrawCommands_t			commands;
 
-		RawBufferID				indirectBuffer;		// contains array of 'DrawIndexedIndirectCommand'
+		RawBufferID				indirectBuffer;		// contains array of 'DrawIndirectCommand'
 
 
 	// methods
@@ -392,10 +392,120 @@ namespace _fg_hidden_
 			return *this;
 		}
 
-		DrawIndexedIndirect&  Draw (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndexedIndirectCommand>)
+		DrawIndexedIndirect&  Draw (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndirectCommand>)
 		{
 			ASSERT( drawCount > 0 );
 			commands.emplace_back( indirectBufferOffset, drawCount, Bytes<uint>{stride} );
+			return *this;
+		}
+	};
+
+
+
+	//
+	// Draw Vertices indirect Count
+	//
+	struct DrawVerticesIndirectCount final : _fg_hidden_::BaseDrawVertices<DrawVerticesIndirectCount>
+	{
+	// types
+		struct DrawCmd
+		{
+			BytesU			indirectBufferOffset;
+			BytesU			countBufferOffset;
+			Bytes<uint>		indirectBufferStride;
+			uint			maxDrawCount;
+		};
+		using DrawCommands_t		= FixedArray< DrawCmd, FG_MaxDrawCommands >;
+		using DrawIndirectCommand	= DrawVerticesIndirect::DrawIndirectCommand;
+
+
+	// variables
+		DrawCommands_t			commands;
+		RawBufferID				indirectBuffer;		// contains array of 'DrawIndirectCommand'
+		RawBufferID				countBuffer;		// contains single 'uint' value
+
+
+	// methods
+		DrawVerticesIndirectCount () :
+			BaseDrawVertices<DrawVerticesIndirectCount>{ "DrawVerticesIndirectCount", ColorScheme::Draw } {}
+
+		DrawVerticesIndirectCount&  SetIndirectBuffer (RawBufferID buffer)
+		{
+			ASSERT( buffer );
+			indirectBuffer = buffer;
+			return *this;
+		}
+
+		DrawVerticesIndirectCount&  SetCountBuffer (RawBufferID buffer)
+		{
+			ASSERT( buffer );
+			countBuffer = buffer;
+			return *this;
+		}
+		
+		DrawVerticesIndirectCount&  Draw (uint maxDrawCount, BytesU indirectBufferOffset = 0_b, BytesU countBufferOffset = 0_b, BytesU indirectBufferStride = SizeOf<DrawIndirectCommand>)
+		{
+			ASSERT( maxDrawCount > 0 );
+			commands.emplace_back( indirectBufferOffset, countBufferOffset, Bytes<uint>{indirectBufferStride}, maxDrawCount );
+			return *this;
+		}
+	};
+
+
+
+	//
+	// Draw Indexed Vertices Indirect Count
+	//
+	struct DrawIndexedIndirectCount final : _fg_hidden_::BaseDrawVertices<DrawIndexedIndirectCount>
+	{
+	// types
+		using DrawCmd				= DrawVerticesIndirectCount::DrawCmd;
+		using DrawCommands_t		= DrawVerticesIndirectCount::DrawCommands_t;
+		using DrawIndirectCommand	= DrawIndexedIndirect::DrawIndirectCommand;
+
+
+	// variables
+		RawBufferID				indexBuffer;
+		BytesU					indexBufferOffset;
+		EIndex					indexType		= Default;
+
+		DrawCommands_t			commands;
+
+		RawBufferID				indirectBuffer;		// contains array of 'DrawIndirectCommand'
+		RawBufferID				countBuffer;		// contains single 'uint' value
+
+
+	// methods
+		DrawIndexedIndirectCount () :
+			BaseDrawVertices<DrawIndexedIndirectCount>{ "DrawIndexedIndirectCount", ColorScheme::Draw } {}
+		
+		DrawIndexedIndirectCount&  SetIndexBuffer (RawBufferID ib, BytesU off, EIndex type)
+		{
+			ASSERT( ib );
+			indexBuffer			= ib;
+			indexBufferOffset	= off;
+			indexType			= type;
+			return *this;
+		}
+
+		DrawIndexedIndirectCount&  SetIndirectBuffer (RawBufferID buffer)
+		{
+			ASSERT( buffer );
+			indirectBuffer = buffer;
+			return *this;
+		}
+
+		DrawIndexedIndirectCount&  SetCountBuffer (RawBufferID buffer)
+		{
+			ASSERT( buffer );
+			countBuffer = buffer;
+			return *this;
+		}
+
+		DrawIndexedIndirectCount&  Draw (uint maxDrawCount, BytesU indirectBufferOffset = 0_b, BytesU countBufferOffset = 0_b, BytesU indirectBufferStride = SizeOf<DrawIndirectCommand>)
+		{
+			ASSERT( maxDrawCount > 0 );
+			commands.emplace_back( indirectBufferOffset, countBufferOffset, Bytes<uint>{indirectBufferStride}, maxDrawCount );
 			return *this;
 		}
 	};
@@ -413,7 +523,7 @@ namespace _fg_hidden_
 			uint		count	= 0;
 			uint		first	= 0;
 		};
-		using DrawCommands_t	= FixedArray< DrawCmd, 16 >;
+		using DrawCommands_t	= FixedArray< DrawCmd, FG_MaxDrawCommands >;
 
 
 	// variables
@@ -440,31 +550,94 @@ namespace _fg_hidden_
 	// types
 		using DrawCommands_t = DrawVerticesIndirect::DrawCommands_t;
 		
-		struct DrawMeshTasksIndirectCommand
+		struct DrawIndirectCommand
 		{
 			uint		taskCount;
 			uint		firstTask;
 		};
-		STATIC_ASSERT( sizeof(DrawMeshTasksIndirectCommand) == 8 );
+		STATIC_ASSERT( sizeof(DrawIndirectCommand) == 8 );
 
 
 	// variables
 		RawMPipelineID			pipeline;
 		DrawCommands_t			commands;
-		RawBufferID				indirectBuffer;		// contains array of 'DrawMeshTasksIndirectCommand'
+		RawBufferID				indirectBuffer;		// contains array of 'DrawIndirectCommand'
 
 
 	// methods
 		DrawMeshesIndirect () :
 			BaseDrawCall<DrawMeshesIndirect>{ "DrawMeshesIndirect", ColorScheme::DrawMeshes } {}
 
-		DrawMeshesIndirect&  SetPipeline (RawMPipelineID ppln)		{ ASSERT( ppln );  pipeline = ppln;  return *this; }
-		DrawMeshesIndirect&  SetIndirectBuffer (RawBufferID buffer)	{ ASSERT( buffer );  indirectBuffer = buffer;  return *this; }
+		DrawMeshesIndirect&  SetPipeline (RawMPipelineID ppln)
+		{
+			ASSERT( ppln );
+			pipeline = ppln;
+			return *this;
+		}
 
-		DrawMeshesIndirect&  Draw (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawMeshTasksIndirectCommand>)
+		DrawMeshesIndirect&  SetIndirectBuffer (RawBufferID buffer)
+		{
+			ASSERT( buffer );
+			indirectBuffer = buffer;
+			return *this;
+		}
+
+		DrawMeshesIndirect&  Draw (uint drawCount, BytesU indirectBufferOffset = 0_b, BytesU stride = SizeOf<DrawIndirectCommand>)
 		{
 			ASSERT( drawCount > 0 );
 			commands.emplace_back( indirectBufferOffset, drawCount, Bytes<uint>{stride} );
+			return *this;
+		}
+	};
+
+
+
+	//
+	// Draw Meshes Indirect Count
+	//
+	struct DrawMeshesIndirectCount final : _fg_hidden_::BaseDrawCall<DrawMeshesIndirectCount>
+	{
+	// types
+		using DrawCommands_t		= DrawVerticesIndirectCount::DrawCommands_t;
+		using DrawIndirectCommand	= DrawMeshesIndirect::DrawIndirectCommand;
+
+
+	// variables
+		RawMPipelineID			pipeline;
+		DrawCommands_t			commands;
+		RawBufferID				indirectBuffer;		// contains array of 'DrawIndirectCommand'
+		RawBufferID				countBuffer;		// contains single 'uint' value
+
+
+	// methods
+		DrawMeshesIndirectCount () :
+			BaseDrawCall<DrawMeshesIndirectCount>{ "DrawMeshesIndirectCount", ColorScheme::DrawMeshes } {}
+
+		DrawMeshesIndirectCount&  SetPipeline (RawMPipelineID ppln)
+		{
+			ASSERT( ppln );
+			pipeline = ppln;
+			return *this;
+		}
+
+		DrawMeshesIndirectCount&  SetIndirectBuffer (RawBufferID buffer)
+		{
+			ASSERT( buffer );
+			indirectBuffer = buffer;
+			return *this;
+		}
+
+		DrawMeshesIndirectCount&  SetCountBuffer (RawBufferID buffer)
+		{
+			ASSERT( buffer );
+			countBuffer = buffer;
+			return *this;
+		}
+		
+		DrawMeshesIndirectCount&  Draw (uint maxDrawCount, BytesU indirectBufferOffset = 0_b, BytesU countBufferOffset = 0_b, BytesU indirectBufferStride = SizeOf<DrawIndirectCommand>)
+		{
+			ASSERT( maxDrawCount > 0 );
+			commands.emplace_back( indirectBufferOffset, countBufferOffset, Bytes<uint>{indirectBufferStride}, maxDrawCount );
 			return *this;
 		}
 	};
@@ -479,7 +652,7 @@ namespace _fg_hidden_
 	// types
 		using Callback_t	= void (*) (void*, IDrawContext &);
 		using Images_t		= FixedArray< Pair< RawImageID, EResourceState >, 8 >;
-		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;
+		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;	// TODO: use ArrayView
 
 
 	// variables
