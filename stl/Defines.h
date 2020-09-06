@@ -411,8 +411,10 @@
 		{throw std::runtime_error{ _text_ };}
 
 #endif
+
+
 // check definitions
-#ifdef FG_CPP_DETECT_MISSMATCH
+#ifdef FG_CPP_DETECT_MISMATCH
 
 #  ifdef FG_OPTIMAL_MEMORY_ORDER
 #	pragma detect_mismatch( "FG_OPTIMAL_MEMORY_ORDER", "1" )
@@ -468,4 +470,10 @@
 #	pragma detect_mismatch( "FG_CI_BUILD", "0" )
 #  endif
 
-#endif	// FG_CPP_DETECT_MISSMATCH
+#  ifdef FG_NO_EXCEPTIONS
+#	pragma detect_mismatch( "FG_NO_EXCEPTIONS", "1" )
+#  else
+#	pragma detect_mismatch( "FG_NO_EXCEPTIONS", "0" )
+#  endif
+
+#endif	// FG_CPP_DETECT_MISMATCH

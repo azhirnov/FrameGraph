@@ -259,7 +259,7 @@ namespace FGC
 
 
 // check definitions
-#ifdef FG_CPP_DETECT_MISSMATCH
+#ifdef FG_CPP_DETECT_MISMATCH
 
 #  if FG_BARRIER_MODE == 0
 #	pragma detect_mismatch( "FG_BARRIER_MODE", "0" )
@@ -273,4 +273,4 @@ namespace FGC
 #	error fix me!
 #  endif
 
-#endif	// FG_CPP_DETECT_MISSMATCH
+#endif	// FG_CPP_DETECT_MISMATCH

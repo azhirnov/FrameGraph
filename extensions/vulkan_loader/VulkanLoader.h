@@ -150,7 +150,7 @@ namespace FGC
 
 
 // check for 'VulkanDeviceFnTable' structure size mismatch
-#ifdef FG_CPP_DETECT_MISSMATCH
+#ifdef FG_CPP_DETECT_MISMATCH
 
 # if defined(VK_USE_PLATFORM_ANDROID_KHR) and VK_USE_PLATFORM_ANDROID_KHR
 #	pragma detect_mismatch( "VK_USE_PLATFORM_ANDROID_KHR", "1" )
@@ -284,4 +284,4 @@ namespace FGC
 #	pragma detect_mismatch( "VK_VERSION_1_2", "0" )
 # endif
 
-#endif	// FG_CPP_DETECT_MISSMATCH
+#endif	// FG_CPP_DETECT_MISMATCH

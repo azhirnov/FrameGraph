@@ -101,7 +101,7 @@ namespace FGC
 
 
 // check definitions
-#ifdef FG_CPP_DETECT_MISSMATCH
+#ifdef FG_CPP_DETECT_MISMATCH
 
 # ifdef _FILE_OFFSET_BITS
 #  if _FILE_OFFSET_BITS == 64
@@ -129,4 +129,4 @@ namespace FGC
 #	pragma detect_mismatch( "FS_HAS_FILESYSTEM", "0" )
 #  endif
 
-#endif	// FG_CPP_DETECT_MISSMATCH
+#endif	// FG_CPP_DETECT_MISMATCH
