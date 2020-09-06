@@ -18,8 +18,8 @@ namespace FG
 	{
 	// types
 	private:
-		using StringShaderData	= PipelineDescription::SharedShaderPtr< String >;
-		using BinaryShaderData	= PipelineDescription::SharedShaderPtr< Array<uint> >;
+		using StringShaderData	= PipelineDescription::ShaderSourcePtr;
+		using BinaryShaderData	= PipelineDescription::SpirvShaderPtr;
 		using VkShaderPtr		= PipelineDescription::VkShaderPtr;
 
 		struct BinaryShaderDataHash {

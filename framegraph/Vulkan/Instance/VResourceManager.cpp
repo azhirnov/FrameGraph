@@ -523,7 +523,8 @@ namespace FG
 	template <typename DescT>
 	bool  VResourceManager::_CompileShaders (INOUT DescT &desc, const VDevice &dev)
 	{
-		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		const EShaderLangFormat		sm_format	= dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		const EShaderLangFormat		spv_format	= dev.GetVkVersion() | EShaderLangFormat::SPIRV;
 
 		// try to use external compilers
 		{
@@ -531,9 +532,31 @@ namespace FG
 
 			for (auto& comp : _compilers)
 			{
-				if ( comp->IsSupported( desc, req_format ))
+				if ( comp->IsSupported( desc, sm_format ))
 				{
-					return comp->Compile( INOUT desc, req_format );
+					return comp->Compile( INOUT desc, sm_format );
+				}
+
+				if ( comp->IsSupported( desc, spv_format ))
+				{
+					if ( not comp->Compile( INOUT desc, spv_format ))
+						return false;
+
+					for (auto& sh : desc._shaders)
+					{
+						if ( sh.second.data.empty() )
+							continue;
+
+						auto	iter = sh.second.data.find( spv_format );
+						CHECK_ERR( iter != sh.second.data.end() );
+
+						VkShaderPtr		mod;
+						CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
+						
+						sh.second.data.clear();
+						sh.second.data.insert({ spv_format, mod });
+					}
+					return true;
 				}
 			}
 		}
@@ -595,7 +618,8 @@ namespace FG
 */
 	bool  VResourceManager::_CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
 	{
-		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		const EShaderLangFormat		sm_format	= dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		const EShaderLangFormat		spv_format	= dev.GetVkVersion() | EShaderLangFormat::SPIRV;
 		
 		// try to use external compilers
 		{
@@ -603,9 +627,25 @@ namespace FG
 
 			for (auto& comp : _compilers)
 			{
-				if ( comp->IsSupported( desc, req_format ) )
+				if ( comp->IsSupported( desc, sm_format ))
 				{
-					return comp->Compile( INOUT desc, req_format );
+					return comp->Compile( INOUT desc, sm_format );
+				}
+
+				if ( comp->IsSupported( desc, spv_format ))
+				{
+					if ( not comp->Compile( INOUT desc, spv_format ))
+						return false;
+					
+					auto	iter = desc._shader.data.find( spv_format );
+					CHECK_ERR( iter != desc._shader.data.end() );
+
+					VkShaderPtr		mod;
+					CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
+
+					desc._shader.data.clear();
+					desc._shader.data.insert({ spv_format, mod });
+					return true;
 				}
 			}
 		}
@@ -650,7 +690,7 @@ namespace FG
 */
 	bool  VResourceManager::_CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module)
 	{
-		const auto*	shader_data = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &shaderData );
+		const auto*	shader_data = UnionGetIf< PipelineDescription::SpirvShaderPtr >( &shaderData );
 
 		if ( not (shader_data and *shader_data) )
 			RETURN_ERR( "invalid shader data format!" );

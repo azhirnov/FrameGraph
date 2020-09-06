@@ -33,7 +33,7 @@ namespace FG
 				auto	m_iter = sh_iter->second.data.find( EShaderLangFormat::SPIRV_100 );
 				if ( m_iter != sh_iter->second.data.end() )
 				{
-					if ( auto* module = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &m_iter->second ))
+					if ( auto* module = UnionGetIf< PipelineDescription::SpirvShaderPtr >( &m_iter->second ))
 					{
 						VkShaderModuleCreateInfo	shader_info = {};
 						shader_info.sType		= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

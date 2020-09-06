@@ -61,7 +61,7 @@ namespace FG
 		#endif
 
 		#ifdef FG_ENABLE_VULKAN
-		VCachedDebuggableShaderData (VkShaderModule module, const PipelineDescription::SharedShaderPtr<Array<uint>> &spirvCache)
+		VCachedDebuggableShaderData (VkShaderModule module, const PipelineDescription::SpirvShaderPtr &spirvCache)
 		{
 			if constexpr( IsSameTypes< T, ShaderModuleVk_t > )
 			{

@@ -318,8 +318,6 @@ namespace FG
 								  NtStringView entry, NtStringView source, StringView debugName,
 								  OUT PipelineDescription::Shader &outShader, OUT ShaderReflection &outReflection, OUT String &log)
 	{
-		using SpirvShaderData	= PipelineDescription::SharedShaderPtr< Array<uint> >;
-
 		log.clear();
 		COMP_CHECK_ERR( (dstShaderFmt & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::SPIRV );
 
@@ -574,7 +572,6 @@ namespace FG
 		EShMessages		messages	= EShMsgDefault;
 		EShLanguage		stage		= ConvertShaderType( shaderType );
 		auto&			shader		= glslangData.shader;
-		const bool		auto_map	= AllBits( _compilerFlags, EShaderCompilationFlags::AutoMapLocations );
 
 		shader.reset( new TShader( stage ));
 		shader->setStrings( source.data(), int(source.size()) );
@@ -582,9 +579,6 @@ namespace FG
 		shader->setEnvInput( sh_source, stage, client, version );
 		shader->setEnvClient( client, client_version );
 		shader->setEnvTarget( target, target_version );
-		
-		shader->setAutoMapLocations( auto_map );
-		shader->setAutoMapBindings( auto_map );
 
 		if ( not shader->parse( &_builtinResource, sh_version, sh_profile, false, true, messages, includer ))
 		{
@@ -599,12 +593,6 @@ namespace FG
 		{
 			log += glslangData.prog.getInfoLog();
 			_OnCompilationFailed( source, INOUT log );
-			return false;
-		}
-
-		if ( auto_map and not glslangData.prog.mapIO() )
-		{
-			log += "mapIO - failed";
 			return false;
 		}
 

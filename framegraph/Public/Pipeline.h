@@ -232,8 +232,10 @@ namespace FG
 		template <typename T>
 		using SharedShaderPtr	= SharedPtr< IShaderData<T> >;
 		using VkShaderPtr		= SharedShaderPtr< ShaderModuleVk_t >;
+		using SpirvShaderPtr	= SharedShaderPtr< Array<uint> >;
+		using ShaderSourcePtr	= SharedShaderPtr< String >;
 
-		using ShaderDataUnion_t	= Union< NullUnion, SharedShaderPtr<String>, SharedShaderPtr<Array<uint8_t>>, SharedShaderPtr<Array<uint>>, VkShaderPtr >;
+		using ShaderDataUnion_t	= Union< NullUnion, ShaderSourcePtr, SpirvShaderPtr, VkShaderPtr >;
 		using ShaderDataMap_t	= HashMap< EShaderLangFormat, ShaderDataUnion_t >;
 		using SpecConstants_t	= FixedMap< SpecializationID, uint, FG_MaxSpecConstants >;	// id, index
 
@@ -244,7 +246,6 @@ namespace FG
 
 			Shader () {}
 			void AddShaderData (EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName = Default);
-			void AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName = Default);
 			void AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName = Default);
 		};
 
@@ -314,7 +315,6 @@ namespace FG
 		GraphicsPipelineDesc ();
 
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName = Default);
-		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName = Default);
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName = Default);
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
 		
@@ -387,7 +387,6 @@ namespace FG
 		ComputePipelineDesc ();
 		
 		Self&  AddShader (EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName = Default);
-		Self&  AddShader (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName = Default);
 		Self&  AddShader (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName = Default);
 		Self&  AddShader (EShaderLangFormat fmt, const VkShaderPtr &module);
 
@@ -462,7 +461,6 @@ namespace FG
 		MeshPipelineDesc ();
 
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName = Default);
-		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName = Default);
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName = Default);
 		Self&  AddShader (EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
 		
@@ -532,7 +530,6 @@ namespace FG
 		RayTracingPipelineDesc ();
 
 		Self&  AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, String &&src, StringView dbgName = Default);
-		Self&  AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName = Default);
 		Self&  AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName = Default);
 		Self&  AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, const VkShaderPtr &module);
 		

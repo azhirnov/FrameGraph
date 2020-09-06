@@ -15,7 +15,7 @@ namespace FG
 	static bool GetReflection (const Array<uint> &, bool, INOUT uint3 &, INOUT uint3 &, INOUT PipelineDescription::PipelineLayout &);
 	
 	using ShaderDataUnion_t	= PipelineDescription::ShaderDataUnion_t;
-	using SpirvShaderData_t	= PipelineDescription::SharedShaderPtr<Array<uint>>;
+	using SpirvShaderData_t	= PipelineDescription::SpirvShaderPtr;
 
 /*
 =================================================
