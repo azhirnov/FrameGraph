@@ -8,6 +8,12 @@ namespace FG
 
 	bool FGApp::Test_Draw2 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln;
 
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
@@ -61,12 +67,12 @@ void main() {
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-											.AddViewport( view_size ) );
+											.AddViewport( view_size ));
 		
 		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-		FG_UNUSED( t_draw );
+		Unused( t_draw );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

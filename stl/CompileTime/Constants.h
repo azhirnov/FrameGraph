@@ -96,33 +96,4 @@ namespace FGC
 	static constexpr _fgc_hidden_::_Zero	Zero {};
 
 
-
-	//
-	// Any Float Constant
-	//
-
-	struct AnyFloatConst
-	{
-	private:
-		const double	_d;
-		const float		_f;
-
-
-	public:
-		constexpr AnyFloatConst (double val) : _d{val}, _f{float(val)} {}
-		
-		template <typename T>
-		ND_ constexpr operator const T () const
-		{
-			if constexpr( std::is_same_v< T, double >)
-				return _d;
-			
-			if constexpr( std::is_same_v< T, float >)
-				return _f;
-
-			// fail to compile
-		}
-	};
-
-
 }	// FGC

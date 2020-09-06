@@ -5,6 +5,7 @@
 
 extern void Test_Optimization1 (VPipelineCompiler* compiler)
 {
+#ifdef FG_GLSLANG_ENABLE_OPT
 	ComputePipelineDesc	ppln1;
 	ppln1.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
 #extension GL_ARB_shading_language_420pack : enable
@@ -41,16 +42,13 @@ void main ()
 	auto	iter2 = ppln2._shader.data.find( EShaderLangFormat::SPIRV_100 );
 	TEST( iter2 != ppln2._shader.data.end() );
 
-	auto*	shader1 = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &iter1->second );
-	auto*	shader2 = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &iter2->second );
+	auto*	shader1 = UnionGetIf< PipelineDescription::SpirvShaderPtr >( &iter1->second );
+	auto*	shader2 = UnionGetIf< PipelineDescription::SpirvShaderPtr >( &iter2->second );
 	TEST( shader1 and shader2 );
 
 	TEST( (*shader1)->GetEntry() == (*shader2)->GetEntry() );
-	
-	// TODO: fix on CI
-#ifndef FG_CI_BUILD
 	TEST( (*shader1)->GetData().size() > (*shader2)->GetData().size() );	// optimized code should be smaller
-#endif
 	
 	TEST_PASSED();
+#endif
 }

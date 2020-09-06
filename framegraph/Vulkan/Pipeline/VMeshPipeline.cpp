@@ -5,6 +5,8 @@
 #include "VResourceManager.h"
 #include "VDevice.h"
 
+#ifdef VK_NV_mesh_shader
+
 namespace FG
 {
 
@@ -99,3 +101,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_mesh_shader

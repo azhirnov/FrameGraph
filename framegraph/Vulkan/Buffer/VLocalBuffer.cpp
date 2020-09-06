@@ -224,6 +224,7 @@ namespace FG
 */
 	void VLocalBuffer::SetInitialState (bool immutable) const
 	{
+		// buffer must be in initial state
 		ASSERT( _pendingAccesses.empty() );
 		ASSERT( _accessForWrite.empty() );
 		ASSERT( _accessForRead.empty() );
@@ -269,7 +270,7 @@ namespace FG
 
 		for (; iter != _pendingAccesses.end() and iter->range.IsIntersects( range ); ++iter)
 		{
-			ASSERT( iter->index == pending.index );
+			ASSERT( iter->index == pending.index and "something goes wrong - resource has uncommited state from another task" );
 
 			iter->range.begin	= Min( iter->range.begin, range.begin );
 			range.begin			= iter->range.end;
@@ -294,7 +295,7 @@ namespace FG
 */
 	void VLocalBuffer::ResetState (ExeOrderIndex index, VBarrierManager &barrierMngr, Ptr<VLocalDebugger> debugger) const
 	{
-		ASSERT( _pendingAccesses.empty() );	// you must commit all pending states before reseting
+		ASSERT( _pendingAccesses.empty() and "you must commit all pending states before reseting" );
 		
 		if ( _isImmutable )
 			return;

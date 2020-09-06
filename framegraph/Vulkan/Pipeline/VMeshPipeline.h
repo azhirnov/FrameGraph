@@ -4,6 +4,8 @@
 
 #include "VGraphicsPipeline.h"
 
+#ifdef VK_NV_mesh_shader
+
 namespace FG
 {
 
@@ -67,7 +69,8 @@ namespace FG
 	// methods
 	public:
 		VMeshPipeline () {}
-		VMeshPipeline (VMeshPipeline &&) = default;
+		VMeshPipeline (VMeshPipeline &&) = delete;
+		VMeshPipeline (const VMeshPipeline &) = delete;
 		~VMeshPipeline ();
 
 		bool Create (const MeshPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);
@@ -102,3 +105,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_mesh_shader

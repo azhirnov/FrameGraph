@@ -21,10 +21,14 @@ namespace FG
 		const uint	max_stages = 32;
 
 		_tempStages.reserve( max_stages );
+
+		#ifdef VK_NV_ray_tracing
 		_tempShaderGroups.reserve( max_stages );
+		_tempShaderGraphMap.reserve( max_stages );
+		#endif
+
 		_tempSpecialization.reserve( max_stages * FG_MaxSpecConstants );
 		_tempSpecEntries.reserve( max_stages * FG_MaxSpecConstants );
-		_tempShaderGraphMap.reserve( max_stages );
 	}
 	
 /*
@@ -110,9 +114,12 @@ namespace FG
 		_tempAttachments.clear();
 		_tempSpecEntries.clear();
 		_tempSpecData.clear();
+
+		#ifdef VK_NV_ray_tracing
 		_tempShaderGroups.clear();
 		_tempShaderGraphMap.clear();
 		_rtShaderSpecs.clear();
+		#endif
 	}
 
 /*
@@ -127,7 +134,7 @@ namespace FG
 		fgThread.GetBatch().GetDebugModeInfo( debugModeIndex, OUT debugMode, OUT debuggableShaders );
 		ASSERT( debugMode != Default );
 		
-		const VkShaderStageFlags	stages = VEnumCast( debuggableShaders );
+		const VkShaderStageFlagBits	stages = VEnumCast( debuggableShaders );
 
 		for (auto& sh : ppln._shaders)
 		{
@@ -138,7 +145,7 @@ namespace FG
 			}
 			else
 			{
-				if ( not EnumEq( stages, sh.stage ) or sh.debugMode != debugMode )
+				if ( not AllBits( stages, sh.stage ) or sh.debugMode != debugMode )
 					continue;
 			}
 
@@ -203,7 +210,7 @@ namespace FG
 			inst.renderState.inputAssembly.topology = EPrimitive::Patch;
 
 		inst.vertexInput.ApplyAttribs( gppln.GetVertexAttribs() );
-		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
+		_ValidateRenderState( dev, logicalRP, INOUT inst.renderState, INOUT inst.dynamicState );
 		
 		// check topology
 		CHECK_ERR(	uint(inst.renderState.inputAssembly.topology) < gppln._supportedTopology.size() and
@@ -317,7 +324,8 @@ namespace FG
 												  OUT VkPipeline				&outPipeline,
 												  OUT VPipelineLayout const*	&outLayout)
 	{
-		CHECK_ERR( fgThread.GetDevice().IsMeshShaderEnabled() );
+	#ifdef VK_NV_mesh_shader
+		CHECK_ERR( fgThread.GetDevice().GetFeatures().meshShaderNV );
 		CHECK_ERR( logicalRP.GetRenderPassID() );
 
 		VDevice const&			dev			= fgThread.GetDevice();
@@ -341,7 +349,7 @@ namespace FG
 		inst.renderState	= renderState;
 		
 		inst.renderState.inputAssembly.topology	= mppln._topology;
-		_ValidateRenderState( dev, INOUT inst.renderState, INOUT inst.dynamicState );
+		_ValidateRenderState( dev, logicalRP, INOUT inst.renderState, INOUT inst.dynamicState );
 
 		inst.UpdateHash();
 		
@@ -434,6 +442,11 @@ namespace FG
 
 		CHECK( fgThread.GetResourceManager().AcquireResource( layout_id ));
 		return true;
+
+	#else
+		Unused( fgThread, logicalRP, mppln, renderState, dynamicStates, debugModeIndex, outPipeline, outLayout );
+		return false;
+	#endif	// VK_NV_mesh_shader
 	}
 
 /*
@@ -567,13 +580,14 @@ namespace FG
 										  INOUT VRayTracingShaderTable	&shaderTable,
 										  OUT BufferCopyRegions_t		&copyRegions)
 	{
+	#ifdef VK_NV_ray_tracing
 		auto&			scene_data		= rtScene.CurrentData();
 		SHAREDLOCK( scene_data.guard );
 
 		auto&			dev				= fgThread.GetDevice();
 		auto&			res_mngr		= fgThread.GetResourceManager();
-		const BytesU	handle_size		{ dev.GetDeviceRayTracingProperties().shaderGroupHandleSize };
-		const BytesU	alignment		{ dev.GetDeviceRayTracingProperties().shaderGroupBaseAlignment };
+		const BytesU	handle_size		{ dev.GetProperties().rayTracingProperties.shaderGroupHandleSize };
+		const BytesU	alignment		{ dev.GetProperties().rayTracingProperties.shaderGroupBaseAlignment };
 		auto*			ppln			= fgThread.AcquireTemporary( pipelineId );
 		const uint		geom_stride		= scene_data.hitShadersPerInstance;
 		const uint		max_hit_shaders	= scene_data.maxHitShaderCount;
@@ -747,11 +761,11 @@ namespace FG
 			void *			mapped_ptr = null;
 		
 			CHECK_ERR( fgThread.AllocBuffer( shaderTable._blockSize, alignment, OUT staging_buffer, OUT buf_offset, OUT mapped_ptr ));
-			DEBUG_ONLY( memset( OUT mapped_ptr, 0, size_t(buf_size) ));
-			DEBUG_ONLY( memset( OUT mapped_ptr + shaderTable._rayGenOffset,   0xAE, size_t(handle_size) ));
-			DEBUG_ONLY( memset( OUT mapped_ptr + shaderTable._rayMissOffset,  0xAE, size_t(handle_size * miss_shader_count) ));
-			DEBUG_ONLY( memset( OUT mapped_ptr + shaderTable._rayHitOffset,   0xAE, size_t(handle_size * max_hit_shaders) ));
-			DEBUG_ONLY( memset( OUT mapped_ptr + shaderTable._callableOffset, 0xAE, size_t(handle_size * callable_shader_count) ));
+			DEBUG_ONLY( std::memset( OUT mapped_ptr, 0, size_t(buf_size) ));
+			DEBUG_ONLY( std::memset( OUT mapped_ptr + shaderTable._rayGenOffset,   0xAE, size_t(handle_size) ));
+			DEBUG_ONLY( std::memset( OUT mapped_ptr + shaderTable._rayMissOffset,  0xAE, size_t(handle_size * miss_shader_count) ));
+			DEBUG_ONLY( std::memset( OUT mapped_ptr + shaderTable._rayHitOffset,   0xAE, size_t(handle_size * max_hit_shaders) ));
+			DEBUG_ONLY( std::memset( OUT mapped_ptr + shaderTable._callableOffset, 0xAE, size_t(handle_size * callable_shader_count) ));
 	
 			// ray-gen shader
 			VK_CALL( dev.vkGetRayTracingShaderGroupHandlesNV( dev.GetVkDevice(), table.pipeline, 0, 1, size_t(handle_size), OUT mapped_ptr + shaderTable._rayGenOffset ));
@@ -866,6 +880,11 @@ namespace FG
 		}
 
 		return true;
+
+	#else
+		Unused( fgThread, pipelineId, rtScene, rayGenShader, shaderGroups, maxRecursionDepth, shaderTable, copyRegions );
+		return false;
+	#endif	// VK_NV_ray_tracing
 	}
 	
 /*
@@ -873,6 +892,7 @@ namespace FG
 	_InitShaderStage
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	bool VPipelineCache::_InitShaderStage (const VRayTracingPipeline *ppln, const RTShaderID &id, EShaderDebugMode mode,
 											OUT VkPipelineShaderStageCreateInfo &stage)
 	{
@@ -939,12 +959,14 @@ namespace FG
 
 		return true;
 	}
+#endif	// VK_NV_ray_tracing
 	
 /*
 =================================================
 	_GetShaderGroup
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	bool VPipelineCache::_GetShaderGroup (const VRayTracingPipeline *ppln, const RTShaderGroup &group, EShaderDebugMode mode,
 											OUT VkRayTracingShaderGroupCreateInfoNV &group_ci)
 	{
@@ -1015,6 +1037,7 @@ namespace FG
 		END_ENUM_CHECKS();
 		return false;
 	}
+#endif	// VK_NV_ray_tracing
 
 /*
 =================================================
@@ -1038,8 +1061,8 @@ namespace FG
 
 			exist_stages |= sh.stage;
 
-			if ( (EnumEq( debuggable_stages, sh.stage ) and sh.debugMode != debugMode) or
-				 (not EnumEq( debuggable_stages, sh.stage ) and sh.debugMode != Default) )
+			if ( (AllBits( debuggable_stages, sh.stage ) and sh.debugMode != debugMode) or
+				 (not AllBits( debuggable_stages, sh.stage ) and sh.debugMode != Default) )
 				continue;
 
 			used_stages |= sh.stage;
@@ -1063,7 +1086,7 @@ namespace FG
 			
 			for (auto& sh : shaders)
 			{
-				if ( EnumEq( req_stages, sh.stage ) and sh.debugMode == Default )
+				if ( AllBits( req_stages, sh.stage ) and sh.debugMode == Default )
 				{
 					used_stages |= sh.stage;
 					req_stages  &= ~sh.stage;
@@ -1103,7 +1126,7 @@ namespace FG
 			 t < EPipelineDynamicState::_Last;
 			 t = EPipelineDynamicState(uint(t) << 1)) 
 		{
-			if ( not EnumEq( inState, t ) )
+			if ( not AllBits( inState, t ))
 				continue;
 
 			states.push_back( VEnumCast( t ));
@@ -1300,9 +1323,9 @@ namespace FG
 		outState.sType			= VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		outState.pNext			= null;
 		outState.flags			= 0;
-		outState.pViewports		= EnumEq( dynamicStates, EPipelineDynamicState::Viewport ) ? null : tmpViewports.data();
+		outState.pViewports		= AllBits( dynamicStates, EPipelineDynamicState::Viewport ) ? null : tmpViewports.data();
 		outState.viewportCount	= uint(tmpViewports.size());
-		outState.pScissors		= EnumEq( dynamicStates, EPipelineDynamicState::Scissor ) ? null : tmpScissors.data();
+		outState.pScissors		= AllBits( dynamicStates, EPipelineDynamicState::Scissor ) ? null : tmpScissors.data();
 		outState.scissorCount	= uint(tmpScissors.size());
 	}
 	
@@ -1376,7 +1399,8 @@ namespace FG
 	_ValidateRenderState
 =================================================
 */
-	void VPipelineCache::_ValidateRenderState (const VDevice &dev, INOUT RenderState &renderState, INOUT EPipelineDynamicState &dynamicStates) const
+	void VPipelineCache::_ValidateRenderState (const VDevice &dev, const VLogicalRenderPass &logicalRP,
+											   INOUT RenderState &renderState, INOUT EPipelineDynamicState &dynamicStates) const
 	{
 		if ( renderState.rasterization.rasterizerDiscard )
 		{
@@ -1392,7 +1416,7 @@ namespace FG
 			 t < EPipelineDynamicState::_Last;
 			 t = EPipelineDynamicState(uint(t) << 1)) 
 		{
-			if ( not EnumEq( dynamicStates, t ) )
+			if ( not AllBits( dynamicStates, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
@@ -1460,7 +1484,7 @@ namespace FG
 
 		// validate color buffer states
 		{
-			const bool	dual_src_blend	= dev.GetDeviceFeatures().dualSrcBlend;
+			const bool	dual_src_blend	= dev.GetProperties().features.dualSrcBlend;
 
 			const auto	IsDualSrcBlendFactor = [] (EBlendFactor value) {
 				switch ( value ) {
@@ -1484,20 +1508,94 @@ namespace FG
 				else
 				if ( not dual_src_blend )
 				{
-					ASSERT( not IsDualSrcBlendFactor( cb.srcBlendFactor.color ) );
-					ASSERT( not IsDualSrcBlendFactor( cb.srcBlendFactor.alpha ) );
-					ASSERT( not IsDualSrcBlendFactor( cb.dstBlendFactor.color ) );
-					ASSERT( not IsDualSrcBlendFactor( cb.dstBlendFactor.alpha ) );
+					ASSERT( not IsDualSrcBlendFactor( cb.srcBlendFactor.color ));
+					ASSERT( not IsDualSrcBlendFactor( cb.srcBlendFactor.alpha ));
+					ASSERT( not IsDualSrcBlendFactor( cb.dstBlendFactor.color ));
+					ASSERT( not IsDualSrcBlendFactor( cb.dstBlendFactor.alpha ));
 				}
 			}
 		}
+
+		// check depth stencil attachment
+		#ifdef FG_DEBUG
+		{
+			BEGIN_ENUM_CHECKS();
+			switch ( logicalRP.GetDepthStencilTarget()._layout )
+			{
+				case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL :
+					// depth & stencil test are allowed
+					break;
+
+				case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL :
+					ASSERT( renderState.stencil.IsReadOnly() and "can't write to read-only stencil attachment" );
+					break;
+
+				case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL :
+					ASSERT( not renderState.depth.write and "can't write to read-only depth attachment" );
+					break;
+
+				case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL :
+					ASSERT( not renderState.depth.write and "can't write to read-only depth attachment" );
+					ASSERT( renderState.stencil.IsReadOnly() and "can't write to read-only stencil attachment" );
+					break;
+
+				#ifdef VK_KHR_separate_depth_stencil_layouts
+				case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL_KHR :
+					ASSERT( not renderState.stencil.enabled and "stencil attachment doesn't exists" );
+					break;
+
+				case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR :
+					ASSERT( not renderState.depth.write and "can't write to read-only depth attachment" );
+					break;
+
+				case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL_KHR :
+					ASSERT( (not renderState.depth.test and not renderState.depth.write) and "depth attachment doesn't exists" );
+					break;
+
+				case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL_KHR :
+					ASSERT( (not renderState.depth.test and not renderState.depth.write) and "depth attachment doesn't exists" );
+					ASSERT( renderState.stencil.IsReadOnly() and "can't write to read-only stencil attachment" );
+					break;
+				#endif
+
+				case VK_IMAGE_LAYOUT_UNDEFINED :
+					ASSERT( (not renderState.depth.test and not renderState.depth.write) and "depth attachment doesn't exists" );
+					ASSERT( not renderState.stencil.enabled and "stencil attachment doesn't exists" );
+					break;
+
+				case VK_IMAGE_LAYOUT_GENERAL :
+				case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL :
+				case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL :
+				case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL :
+				case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL :
+				case VK_IMAGE_LAYOUT_PREINITIALIZED :
+				case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR :
+				case VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR :
+			
+				#ifdef VK_NV_shading_rate_image
+				case VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV :
+				#endif	
+				#ifdef VK_EXT_fragment_density_map
+				case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT :
+				#endif
+					
+				#ifndef VK_VERSION_1_2
+				case VK_IMAGE_LAYOUT_RANGE_SIZE :
+				#endif
+				case VK_IMAGE_LAYOUT_MAX_ENUM :
+					ASSERT( !"unsupported depth stencil layout" );
+					break;
+			}
+			END_ENUM_CHECKS();
+		}
+		#else
+			Unused( logicalRP );
+		#endif	// FG_DEBUG
 
 		// validate depth states
 		{
 			if ( not renderState.depth.test )
 				renderState.depth.compareOp = ECompareOp::LEqual;
-
-			//if ( not renderState.depth.write )
 
 			if ( not renderState.depth.boundsEnabled )
 				renderState.depth.bounds = { 0.0f, 1.0f };

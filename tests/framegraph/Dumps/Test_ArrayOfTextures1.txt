@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "OutImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 32, 32, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage
@@ -47,7 +47,7 @@ CommandBuffer {
 
 	Image {
 		name:         "Texture-0"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferDst | Sampled
@@ -92,7 +92,7 @@ CommandBuffer {
 
 	Image {
 		name:         "Texture-1"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferDst | Sampled
@@ -137,7 +137,7 @@ CommandBuffer {
 
 	Image {
 		name:         "Texture-2"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferDst | Sampled
@@ -182,7 +182,7 @@ CommandBuffer {
 
 	Image {
 		name:         "Texture-3"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferDst | Sampled
@@ -227,7 +227,7 @@ CommandBuffer {
 
 	Image {
 		name:         "Texture-4"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferDst | Sampled
@@ -272,7 +272,7 @@ CommandBuffer {
 
 	Image {
 		name:         "Texture-5"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferDst | Sampled
@@ -317,7 +317,7 @@ CommandBuffer {
 
 	Image {
 		name:         "Texture-6"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferDst | Sampled
@@ -362,7 +362,7 @@ CommandBuffer {
 
 	Image {
 		name:         "Texture-7"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferDst | Sampled

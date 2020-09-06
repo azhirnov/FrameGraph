@@ -3,7 +3,7 @@
 #pragma once
 
 #include "framework/Window/IWindow.h"
-#include "framework/Vulkan/VulkanDeviceExt.h"
+#include "framework/Vulkan/VulkanDevice.h"
 #include "ui/ImguiRenderer.h"
 #include <chrono>
 
@@ -25,18 +25,18 @@ namespace FG
 
 	// variables
 	private:
-		VulkanDeviceExt		_vulkan;
-		WindowPtr			_window;
-		FrameGraph			_frameGraph;
-		SwapchainID			_swapchainId;
+		VulkanDeviceInitializer	_vulkan;
+		WindowPtr				_window;
+		FrameGraph				_frameGraph;
+		SwapchainID				_swapchainId;
 
-		ImguiRenderer		_uiRenderer;
+		ImguiRenderer			_uiRenderer;
 
-		TimePoint_t			_lastUpdateTime;
-		RGBA32f				_clearColor;
+		TimePoint_t				_lastUpdateTime;
+		RGBA32f					_clearColor;
 		
-		KeyStates_t			_mouseJustPressed;
-		float2				_lastMousePos;
+		KeyStates_t				_mouseJustPressed;
+		float2					_lastMousePos;
 
 
 	// methods

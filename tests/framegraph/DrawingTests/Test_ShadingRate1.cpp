@@ -7,8 +7,12 @@ namespace FG
 
 	bool FGApp::Test_ShadingRate1 ()
 	{
-		if ( not _vulkan.GetDeviceShadingRateImageFeatures().shadingRateImage )
+	#ifdef VK_NV_shading_rate_image
+		if ( not _vulkan.GetFeatures().shadingRateImageNV  or not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;
+		}
 
 		GraphicsPipelineDesc	ppln;
 
@@ -66,21 +70,24 @@ void main ()
 			EShadingRatePalette::Block_2x4_1,
 			EShadingRatePalette::Block_4x4_1
 		};
-		CHECK( CountOf(shading_rate_palette) <= _vulkan.GetDeviceShadingRateImageProperties().shadingRatePaletteSize );
+		CHECK( CountOf(shading_rate_palette) <= _vulkan.GetProperties().shadingRateImageProperties.shadingRatePaletteSize );
 
 
 		GPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
 
 		const uint2		view_size	= {256, 256};
-		const auto&		sri_size	= _vulkan.GetDeviceShadingRateImageProperties().shadingRateTexelSize;
+		const auto&		sri_size	= _vulkan.GetProperties().shadingRateImageProperties.shadingRateTexelSize;
 		const uint2		sr_img_size	= { view_size.x / sri_size.width, view_size.y / sri_size.height };
 
-		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																		   EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																			.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+																Default, "RenderTarget" );
 
-		ImageID			shading_rate = _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{sr_img_size.x, sr_img_size.y, 1}, EPixelFormat::R8U,
-																			EImageUsage::ShadingRate | EImageUsage::TransferDst }, Default, "ShadingRate" );
+		ImageID			shading_rate = _frameGraph->CreateImage( ImageDesc{}.SetDimension( sr_img_size ).SetFormat( EPixelFormat::R8U )
+																			.SetUsage( EImageUsage::ShadingRate | EImageUsage::TransferDst ),
+																 Default, "ShadingRate" );
+		CHECK_ERR( image and shading_rate );
 
 		Array<uint8_t>	sri_data;	sri_data.resize( sr_img_size.x * sr_img_size.y );
 
@@ -128,7 +135,7 @@ void main ()
 		Task	t_update	= cmd->AddTask( UpdateImage{}.SetImage( shading_rate ).SetData( sri_data, sr_img_size, 1_b * sr_img_size.x ));
 		Task	t_draw		= cmd->AddTask( SubmitRenderPass{ render_pass }.DependsOn( t_update ));
 		Task	t_read		= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ));
-		FG_UNUSED( t_read );
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );
@@ -142,6 +149,11 @@ void main ()
 
 		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
+	#else
+
+		FG_LOGI( TEST_NAME << " - skipped" );
+		return true;
+	#endif
 	}
 
 }	// FG

@@ -1,6 +1,7 @@
 *.user
 *.glsl_dbg
 /build
+/tests/framegraph/Graphs
 /external/glfw
 /external/glslang
 /external/lodepng
@@ -21,11 +22,7 @@
 /external/OpenVR
 /external/prebuild
 /external/ffmpeg
-/tests/framegraph/Graphs
-/samples/_data
 /external/SPIRV-Cross
 /external/SPIRV-Reflect
-/external/tinyobj
-/external/stb
-external/glsl_trace
-external/FileSystem
+/external/glsl_trace
+/external/FileSystem

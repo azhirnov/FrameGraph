@@ -5,6 +5,8 @@
 #include "framegraph/Public/EResourceState.h"
 #include "VRayTracingScene.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -52,6 +54,7 @@ namespace FG
 	public:
 		VLocalRTScene () {}
 		VLocalRTScene (VLocalRTScene &&) = delete;
+		VLocalRTScene (const VLocalRTScene &) = delete;
 		~VLocalRTScene ();
 		
 		bool Create (const VRayTracingScene *);
@@ -69,3 +72,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

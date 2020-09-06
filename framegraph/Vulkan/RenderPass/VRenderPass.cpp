@@ -212,7 +212,7 @@ namespace FG
 		EXLOCK( _drCheck );
 		CHECK_ERR( _renderPass == VK_NULL_HANDLE );
 
-		VK_CHECK( dev.vkCreateRenderPass( dev.GetVkDevice(), &_createInfo, null, OUT &_renderPass ) );
+		VK_CHECK( dev.vkCreateRenderPass( dev.GetVkDevice(), &_createInfo, null, OUT &_renderPass ));
 		
 		_debugName = dbgName;
 		return true;
@@ -251,10 +251,9 @@ namespace FG
 	}
 
 }	// FG
+//-----------------------------------------------------------------------------
 
 
-namespace FGC
-{
 /*
 =================================================
 	operator ==
@@ -291,8 +290,8 @@ namespace FGC
 */
 	inline bool operator == (const VkSubpassDescription &lhs, const VkSubpassDescription &rhs)
 	{
-		using AttachView	= ArrayView< VkAttachmentReference >;
-		using PreserveView	= ArrayView< uint >;
+		using AttachView	= FG::ArrayView< VkAttachmentReference >;
+		using PreserveView	= FG::ArrayView< uint32_t >;
 
 		auto	lhs_resolve_attachments = lhs.pResolveAttachments ? AttachView{lhs.pResolveAttachments, lhs.colorAttachmentCount} : AttachView{};
 		auto	rhs_resolve_attachments = rhs.pResolveAttachments ? AttachView{rhs.pResolveAttachments, rhs.colorAttachmentCount} : AttachView{};
@@ -322,8 +321,7 @@ namespace FGC
 				lhs.dstAccessMask	== rhs.dstAccessMask	and
 				lhs.dependencyFlags	== rhs.dependencyFlags;
 	}
-
-}	// FGC
+//-----------------------------------------------------------------------------
 
 
 namespace FG

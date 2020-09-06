@@ -45,7 +45,7 @@ namespace {
 									EDebugFlags::LogBarriers	|
 									EDebugFlags::LogResourceUsage;
 		
-		if ( EnumEq( _flags, DumpFlags ) )
+		if ( AllBits( _flags, DumpFlags ))
 		{
 			_subBatchUID = ToString<16>( (cmdBufferUID & 0xFFF) | (_counter << 12) );
 
@@ -70,7 +70,7 @@ namespace {
 */
 	void VLocalDebugger::AddTask (VTask task)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogTasks ) )
+		if ( not AllBits( _flags, EDebugFlags::LogTasks ))
 			return;
 
 		const size_t	idx = size_t(task->ExecutionOrder());
@@ -112,7 +112,7 @@ namespace {
 										   VkDependencyFlags			dependencyFlags,
 										   const VkBufferMemoryBarrier	&barrier)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
+		if ( not AllBits( _flags, EDebugFlags::LogBarriers ))
 			return;
 
 		auto&	barriers = _buffers.insert({ buffer, {} }).first->second.barriers;
@@ -133,7 +133,7 @@ namespace {
 										  VkDependencyFlags				dependencyFlags,
 										  const VkImageMemoryBarrier	&barrier)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
+		if ( not AllBits( _flags, EDebugFlags::LogBarriers ))
 			return;
 
 		auto&	barriers = _images.insert({ image, {} }).first->second.barriers;
@@ -154,7 +154,7 @@ namespace {
 											   VkDependencyFlags			dependencyFlags,
 											   const VkMemoryBarrier		&barrier)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
+		if ( not AllBits( _flags, EDebugFlags::LogBarriers ))
 			return;
 
 		auto&	barriers = _rtGeometries.insert({ rtGeometry, {} }).first->second.barriers;
@@ -175,7 +175,7 @@ namespace {
 											   VkDependencyFlags			dependencyFlags,
 											   const VkMemoryBarrier		&barrier)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogBarriers ) )
+		if ( not AllBits( _flags, EDebugFlags::LogBarriers ))
 			return;
 
 		auto&	barriers = _rtScenes.insert({ rtScene, {} }).first->second.barriers;
@@ -190,7 +190,7 @@ namespace {
 */
 	void VLocalDebugger::AddBufferUsage (const VBuffer* buffer, const VLocalBuffer::BufferState &state)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogResourceUsage ) )
+		if ( not AllBits( _flags, EDebugFlags::LogResourceUsage ))
 			return;
 		
 		ASSERT( buffer and state.task );
@@ -212,7 +212,7 @@ namespace {
 */
 	void VLocalDebugger::AddImageUsage (const VImage* image, const VLocalImage::ImageState &state)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogResourceUsage ) )
+		if ( not AllBits( _flags, EDebugFlags::LogResourceUsage ))
 			return;
 
 		ASSERT( image and state.task );
@@ -232,9 +232,10 @@ namespace {
 	AddRTGeometryUsage
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	void VLocalDebugger::AddRTGeometryUsage (const VRayTracingGeometry *geometry, const VLocalRTGeometry::GeometryState &state)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogResourceUsage ) )
+		if ( not AllBits( _flags, EDebugFlags::LogResourceUsage ))
 			return;
 
 		ASSERT( geometry and state.task );
@@ -248,15 +249,17 @@ namespace {
 		
 		_tasks[idx].resources.push_back(RTGeometryUsage_t{ geometry, state });
 	}
+#endif
 	
 /*
 =================================================
 	AddRTSceneUsage
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	void VLocalDebugger::AddRTSceneUsage (const VRayTracingScene *scene, const VLocalRTScene::SceneState &state)
 	{
-		if ( not EnumEq( _flags, EDebugFlags::LogResourceUsage ) )
+		if ( not AllBits( _flags, EDebugFlags::LogResourceUsage ))
 			return;
 
 		ASSERT( scene and state.task );
@@ -270,6 +273,7 @@ namespace {
 		
 		_tasks[idx].resources.push_back(RTSceneUsage_t{ scene, state });
 	}
+#endif
 
 /*
 =================================================
@@ -333,7 +337,7 @@ namespace {
 	{
 		str << indent << "Image {\n"
 			<< indent << "	name:         \"" << image->GetDebugName() << "\"\n"
-			<< indent << "	iamgeType:    " << ToString( image->Description().imageType ) << '\n'
+			<< indent << "	imageType:    " << ToString( image->Description().imageType ) << '\n'
 			<< indent << "	dimension:    " << ToString( image->Description().dimension ) << '\n'
 			<< indent << "	format:       " << ToString( image->Description().format ) << '\n'
 			<< indent << "	usage:        " << ToString( image->Description().usage ) << '\n'
@@ -543,25 +547,27 @@ namespace {
 		// prepare for sorting
 		for (auto& res : resources)
 		{
-			if ( auto* image = UnionGetIf<ImageUsage_t>( &res ) )
+			if ( auto* image = UnionGetIf<ImageUsage_t>( &res ))
 			{
 				sorted.push_back({ image->first->GetDebugName(), &res });
 			}
 			else
-			if ( auto* buffer = UnionGetIf<BufferUsage_t>( &res ) )
+			if ( auto* buffer = UnionGetIf<BufferUsage_t>( &res ))
 			{
 				sorted.push_back({ buffer->first->GetDebugName(), &res });
 			}
+			#ifdef VK_NV_ray_tracing
 			else
-			if ( auto* scene = UnionGetIf<RTSceneUsage_t>( &res ) )
+			if ( auto* scene = UnionGetIf<RTSceneUsage_t>( &res ))
 			{
 				sorted.push_back({ scene->first->GetDebugName(), &res });
 			}
 			else
-			if ( auto* geom = UnionGetIf<RTGeometryUsage_t>( &res ) )
+			if ( auto* geom = UnionGetIf<RTGeometryUsage_t>( &res ))
 			{
 				sorted.push_back({ geom->first->GetDebugName(), &res });
 			}
+			#endif
 			else
 			{
 				ASSERT( !"unknown resource type!" );
@@ -570,14 +576,14 @@ namespace {
 
 		// sort
 		std::sort( sorted.begin(), sorted.end(),
-					[] (auto& lhs, auto& rhs) { return lhs.name != rhs.name ? lhs.name < rhs.name : lhs.usage < rhs.usage; } );
+					[] (auto& lhs, auto& rhs) { return lhs.name != rhs.name ? lhs.name < rhs.name : lhs.usage < rhs.usage; });
 
 		// serialize
 		str << indent << "\tresource_usage = {\n";
 
 		for (auto& res : sorted)
 		{
-			if ( auto* image = UnionGetIf<ImageUsage_t>( res.usage ) )
+			if ( auto* image = UnionGetIf<ImageUsage_t>( res.usage ))
 			{
 				str << indent << "\t	ImageUsage {\n"
 					<< indent << "\t		name:           \"" << res.name << "\"\n"
@@ -589,7 +595,7 @@ namespace {
 					<< indent << "\t	}\n";
 			}
 			else
-			if ( auto* buffer = UnionGetIf<BufferUsage_t>( res.usage ) )
+			if ( auto* buffer = UnionGetIf<BufferUsage_t>( res.usage ))
 			{
 				str << indent << "\t	BufferUsage {\n"
 					<< indent << "\t		name:     \"" << res.name << "\"\n"
@@ -945,7 +951,7 @@ namespace {
 */
 	void VLocalDebugger::_DumpTaskData (VTask taskPtr, INOUT String &str) const
 	{
-		FG_UNUSED( taskPtr, str );
+		Unused( taskPtr, str );
 
 		// TODO: fix compilation
 		/*if ( auto task = DynCast< VFgTask<SubmitRenderPass> >(taskPtr) )

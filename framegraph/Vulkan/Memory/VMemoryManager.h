@@ -35,7 +35,10 @@ namespace FG
 			
 			virtual bool AllocForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data) = 0;
 			virtual bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data) = 0;
+			
+			#ifdef VK_NV_ray_tracing
 			virtual bool AllocForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) = 0;
+			#endif
 
 			virtual bool Dealloc (INOUT Storage_t &data) = 0;
 			
@@ -64,7 +67,11 @@ namespace FG
 
 		virtual bool AllocateForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data);
 		virtual bool AllocateForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data);
+		
+		#ifdef VK_NV_ray_tracing
 		virtual bool AllocateForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data);
+		#endif
+
 		virtual bool Deallocate (INOUT Storage_t &data);
 
 		virtual bool GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const;

@@ -5,6 +5,8 @@
 #include "framegraph/Public/EResourceState.h"
 #include "VRayTracingGeometry.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -52,6 +54,7 @@ namespace FG
 	public:
 		VLocalRTGeometry () {}
 		VLocalRTGeometry (VLocalRTGeometry &&) = delete;
+		VLocalRTGeometry (const VLocalRTGeometry &) = delete;
 		~VLocalRTGeometry ();
 		
 		bool Create (const VRayTracingGeometry *);
@@ -74,3 +77,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

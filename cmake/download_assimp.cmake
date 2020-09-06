@@ -72,7 +72,7 @@ elseif (${FG_ENABLE_ASSIMP})
 		BINARY_DIR			"${CMAKE_BINARY_DIR}/build-Assimp"
 		BUILD_COMMAND		${CMAKE_COMMAND}
 							--build .
-							--target ALL_BUILD
+							--target assimp
 							--config $<CONFIG>
 		LOG_BUILD 			1
 		# install

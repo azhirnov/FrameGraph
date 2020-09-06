@@ -1,10 +1,10 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framework/Vulkan/VulkanDeviceExt.h"
+#include "framework/Vulkan/VulkanDevice.h"
 #include "framework/Vulkan/VulkanSwapchain.h"
 #include "framework/Window/WindowGLFW.h"
 #include "framework/Window/WindowSDL2.h"
-#include "framework/Android/WindowAndroid.h"
+#include "framework/Window/WindowAndroid.h"
 #include "stl/Math/Color.h"
 #include "stl/Algorithms/ArrayUtils.h"
 #include "stl/Algorithms/StringUtils.h"
@@ -16,11 +16,11 @@ using namespace FGC;
 class FWApp1 final : public IWindowEventListener, public VulkanDeviceFn
 {
 private:
-	VulkanDeviceExt		vulkan;
-	VulkanSwapchainPtr	swapchain;
-	WindowPtr			window;
+	VulkanDeviceInitializer		vulkan;
+	VulkanSwapchainPtr			swapchain;
+	WindowPtr					window;
 	
-	VkCommandPool		cmdPool	= VK_NULL_HANDLE;
+	VkCommandPool				cmdPool	= VK_NULL_HANDLE;
 
 
 public:
@@ -75,11 +75,13 @@ public:
 			CHECK_ERR( window->Create( { 800, 600 }, title ));
 			window->AddListener( this );
 
-			CHECK_ERR( vulkan.Create( window->GetVulkanSurface(), title, "Engine", VK_API_VERSION_1_0, {}, {} ));
+			CHECK_ERR( vulkan.CreateInstance( window->GetVulkanSurface(), title, "Engine", vulkan.GetRecomendedInstanceLayers(), {}, {1,2} ));
+			CHECK_ERR( vulkan.ChooseHighPerformanceDevice() );
+			CHECK_ERR( vulkan.CreateLogicalDevice( Default, Default ));
 		
 			// this is a test and the test should fail for any validation error
-			vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All,
-											[] (const VulkanDeviceExt::DebugReport &rep) { CHECK_FATAL(not rep.isError); });
+			vulkan.CreateDebugCallback( DefaultDebugMessageSeverity,
+										[] (const VulkanDeviceInitializer::DebugReport &rep) { FG_LOGI(rep.message);  CHECK_FATAL(not rep.isError); });
 		}
 
 
@@ -88,7 +90,7 @@ public:
 			VkFormat		color_fmt	= VK_FORMAT_UNDEFINED;
 			VkColorSpaceKHR	color_space	= VK_COLOR_SPACE_MAX_ENUM_KHR;
 
-			swapchain.reset( new VulkanSwapchain{ vulkan } );
+			swapchain.reset( new VulkanSwapchain{ vulkan });
 
 			CHECK_ERR( swapchain->ChooseColorFormat( INOUT color_fmt, INOUT color_space ));
 
@@ -125,12 +127,12 @@ public:
 			VkSemaphoreCreateInfo	sem_info = {};
 			sem_info.sType		= VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 			sem_info.flags		= 0;
-			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[0] ) );
-			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[1] ) );
+			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[0] ));
+			VK_CALL( vkCreateSemaphore( vulkan.GetVkDevice(), &sem_info, null, OUT &semaphores[1] ));
 		}
 	
 		// main loop
-		for (uint i = 0; i < 60; ++i)
+		for (uint i = 0; i < 20; ++i)
 		{
 			if ( not window->Update() )
 				break;
@@ -265,7 +267,8 @@ public:
 			swapchain->Destroy();
 			swapchain.reset();
 
-			vulkan.Destroy();
+			vulkan.DestroyLogicalDevice();
+			vulkan.DestroyInstance();
 
 			window->Destroy();
 			window.reset();

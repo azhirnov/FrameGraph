@@ -5,6 +5,8 @@
 #include "framegraph/Public/Pipeline.h"
 #include "VCommon.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -60,6 +62,8 @@ namespace FG
 	// methods
 	public:
 		VRayTracingShaderTable () {}
+		VRayTracingShaderTable (VRayTracingShaderTable &&) = delete;
+		VRayTracingShaderTable (const VRayTracingShaderTable &) = delete;
 		~VRayTracingShaderTable ();
 
 		bool Create (StringView dbgName);
@@ -79,3 +83,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

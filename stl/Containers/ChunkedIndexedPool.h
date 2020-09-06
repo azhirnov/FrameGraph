@@ -8,6 +8,7 @@
 #include "stl/ThreadSafe/AtomicPtr.h"
 #include "stl/CompileTime/Math.h"
 #include "stl/Memory/UntypedAllocator.h"
+#include "stl/Math/BitMath.h"
 
 namespace FGC
 {

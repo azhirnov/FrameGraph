@@ -93,8 +93,6 @@ namespace FG
 
 		GPipelinePool_t				_graphicsPplnPool;
 		CPipelinePool_t				_computePplnPool;
-		MPipelinePool_t				_meshPplnPool;
-		RTPipelinePool_t			_rayTracingPplnPool;
 
 		PplnLayoutPool_t			_pplnLayoutCache;
 		DSLayoutPool_t				_dsLayoutCache;
@@ -102,10 +100,17 @@ namespace FG
 
 		RenderPassPool_t			_renderPassCache;
 		FramebufferPool_t			_framebufferCache;
+		
+		#ifdef VK_NV_mesh_shader
+		MPipelinePool_t				_meshPplnPool;
+		#endif
 
+		#ifdef VK_NV_ray_tracing
+		RTPipelinePool_t			_rayTracingPplnPool;
 		RTGeometryPool_t			_rtGeometryPool;
 		RTScenePool_t				_rtScenePool;
 		RTShaderTablePool_t			_rtShaderTablePool;
+		#endif
 
 		SwapchainPool_t				_swapchainPool;
 		
@@ -274,17 +279,21 @@ namespace FG
 		ND_ auto&  _GetResourcePool (const RawMemoryID &)				{ return _memoryObjPool; }
 		ND_ auto&  _GetResourcePool (const RawGPipelineID &)			{ return _graphicsPplnPool; }
 		ND_ auto&  _GetResourcePool (const RawCPipelineID &)			{ return _computePplnPool; }
-		ND_ auto&  _GetResourcePool (const RawMPipelineID &)			{ return _meshPplnPool; }
-		ND_ auto&  _GetResourcePool (const RawRTPipelineID &)			{ return _rayTracingPplnPool; }
 		ND_ auto&  _GetResourcePool (const RawPipelineLayoutID &)		{ return _pplnLayoutCache; }
 		ND_ auto&  _GetResourcePool (const RawDescriptorSetLayoutID &)	{ return _dsLayoutCache; }
 		ND_ auto&  _GetResourcePool (const RawRenderPassID &)			{ return _renderPassCache; }
 		ND_ auto&  _GetResourcePool (const RawFramebufferID &)			{ return _framebufferCache; }
 		ND_ auto&  _GetResourcePool (const RawPipelineResourcesID &)	{ return _pplnResourcesCache; }
+		ND_ auto&  _GetResourcePool (const RawSwapchainID &)			{ return _swapchainPool; }
+		#ifdef VK_NV_mesh_shader
+		ND_ auto&  _GetResourcePool (const RawMPipelineID &)			{ return _meshPplnPool; }
+		#endif
+		#ifdef VK_NV_ray_tracing
+		ND_ auto&  _GetResourcePool (const RawRTPipelineID &)			{ return _rayTracingPplnPool; }
 		ND_ auto&  _GetResourcePool (const RawRTGeometryID &)			{ return _rtGeometryPool; }
 		ND_ auto&  _GetResourcePool (const RawRTSceneID &)				{ return _rtScenePool; }
 		ND_ auto&  _GetResourcePool (const RawRTShaderTableID &)		{ return _rtShaderTablePool; }
-		ND_ auto&  _GetResourcePool (const RawSwapchainID &)			{ return _swapchainPool; }
+		#endif
 
 		template <typename ID>
 		ND_ const auto&  _GetResourceCPool (const ID &id)		const	{ return const_cast<VResourceManager *>(this)->_GetResourcePool( id ); }
@@ -335,6 +344,7 @@ namespace FG
 			ASSERT( quiet or data.GetInstanceID() == id.InstanceID() );
 		}
 
+		Unused( quiet );
 		ASSERT( quiet and "resource index is out of range" );
 		return static_cast< Result_t >(null);
 	}

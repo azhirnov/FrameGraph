@@ -6,6 +6,17 @@
 
 #ifdef FG_ENABLE_GLFW
 
+# ifdef FG_ENABLE_VULKAN
+#	include "vulkan_loader/VulkanLoader.h"
+# endif
+# ifdef PLATFORM_WINDOWS
+#	define GLFW_EXPOSE_NATIVE_WIN32
+#	include "stl/Platforms/WindowsHeader.h"
+# endif
+
+# include "GLFW/glfw3.h"
+# include "GLFW/glfw3native.h"
+
 # define MOUSE_WHEEL_UP		10
 # define MOUSE_WHEEL_DOWN	11
 
@@ -474,12 +485,34 @@ namespace {
 */
 	UniquePtr<IVulkanSurface>  WindowGLFW::GetVulkanSurface () const
 	{
+	#ifdef FG_ENABLE_VULKAN
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( _window )};
+	#else
+		return {};
+	#endif
+	}
+		
+/*
+=================================================
+	GetPlatformHandle
+=================================================
+*/
+	void*  WindowGLFW::GetPlatformHandle () const
+	{
+		if ( not _window )
+			return null;
+
+	#ifdef PLATFORM_WINDOWS
+		return glfwGetWin32Window( _window );
+	#else
+	//#	error not implemented!
+		return null;
+	#endif
 	}
 //-----------------------------------------------------------------------------
 
 
-	
+# ifdef FG_ENABLE_VULKAN
 /*
 =================================================
 	GetRequiredExtensions
@@ -498,13 +531,14 @@ namespace {
 	Create
 =================================================
 */
-	VkSurfaceKHR  WindowGLFW::VulkanSurface::Create (VkInstance inst) const
+	IVulkanSurface::SurfaceVk_t  WindowGLFW::VulkanSurface::Create (InstanceVk_t inst) const
 	{
 		VkSurfaceKHR	surf = VK_NULL_HANDLE;
-		glfwCreateWindowSurface( inst, _window, null, OUT &surf );
-		return surf;
+		glfwCreateWindowSurface( BitCast<VkInstance>(inst), _window, null, OUT &surf );
+		return BitCast<SurfaceVk_t>( surf );
 	}
 
+# endif	// FG_ENABLE_VULKAN
 
 }	// FGC
 

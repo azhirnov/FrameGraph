@@ -1,6 +1,9 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
+#if defined(FG_ENABLE_GLM) && defined(FG_ENABLE_IMGUI)
+
 #include "ImguiSceneRenderer.h"
+#include "imgui.h"
 #include "imgui_internal.h"
 
 namespace FG
@@ -201,12 +204,9 @@ namespace FG
 	bool  ImguiSceneRenderer::_CreateSampler (const FrameGraph &fg)
 	{
 		SamplerDesc		desc;
-		desc.magFilter		= EFilter::Linear;
-		desc.minFilter		= EFilter::Linear;
-		desc.mipmapMode		= EMipmapFilter::Linear;
-		desc.addressMode	= { EAddressMode::Repeat };
-		desc.minLod			= -1000.0f;
-		desc.maxLod			= 1000.0f;
+		desc.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear );
+		desc.SetAddressMode( EAddressMode::Repeat );
+		desc.SetLodRange( -1000.0f, 1000.0f );
 
 		_fontSampler = fg->CreateSampler( desc );
 		CHECK_ERR( _fontSampler );
@@ -230,10 +230,9 @@ namespace FG
 
 		size_t		upload_size = width * height * 4 * sizeof(char);
 
-		_fontTexture = rq.GetCommandBuffer()->GetFrameGraph()
-						->CreateImage( ImageDesc{ EImage::Tex2D, uint3{uint(width), uint(height), 1},
-													EPixelFormat::RGBA8_UNorm, EImageUsage::Sampled | EImageUsage::TransferDst },
-										Default, "UI.FontTexture" );
+		_fontTexture = rq.GetCommandBuffer()->GetFrameGraph()->CreateImage( ImageDesc{}.SetDimension({ uint(width), uint(height) })
+								.SetFormat( EPixelFormat::RGBA8_UNorm ).SetUsage( EImageUsage::Sampled | EImageUsage::TransferDst ),
+							Default, "UI.FontTexture" );
 		CHECK_ERR( _fontTexture );
 
 		rq.AddTask( layer, UpdateImage{}.SetImage( _fontTexture ).SetData( pixels, upload_size, uint2{int2{ width, height }} ));
@@ -251,9 +250,8 @@ namespace FG
 
 		if ( not _uniformBuffer )
 		{
-			_uniformBuffer = rq.GetCommandBuffer()->GetFrameGraph()
-								->CreateBuffer( BufferDesc{ 16_b, EBufferUsage::Uniform | EBufferUsage::TransferDst },
-												Default, "UI.UniformBuffer" );
+			_uniformBuffer = rq.GetCommandBuffer()->GetFrameGraph()->CreateBuffer( BufferDesc{ 16_b, EBufferUsage::Uniform | EBufferUsage::TransferDst },
+								Default, "UI.UniformBuffer" );
 			CHECK_ERR( _uniformBuffer );
 		}
 		
@@ -320,3 +318,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// FG_ENABLE_GLM and FG_ENABLE_IMGUI

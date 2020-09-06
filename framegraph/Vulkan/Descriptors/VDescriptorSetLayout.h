@@ -50,8 +50,9 @@ namespace FG
 	// methods
 	public:
 		VDescriptorSetLayout () {}
-		VDescriptorSetLayout (VDescriptorSetLayout &&) = default;
-		VDescriptorSetLayout (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding);
+		VDescriptorSetLayout (VDescriptorSetLayout &&) = delete;
+		VDescriptorSetLayout (const VDescriptorSetLayout &) = delete;
+		VDescriptorSetLayout (const VDevice &dev, const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding);
 		~VDescriptorSetLayout ();
 
 		bool Create (const VDevice &dev, const DescriptorBinding_t &binding);

@@ -73,16 +73,17 @@ namespace FG
 	static constexpr unsigned	FG_MaxClearRanges			= 8;
 	static constexpr unsigned	FG_MaxBlitRegions			= 8;
 	static constexpr unsigned	FG_MaxResolveRegions		= 8;
+	static constexpr unsigned	FG_MaxDrawCommands			= 4;
 
 
 }	// FG
 
 
 // check definitions
-#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+#ifdef FG_CPP_DETECT_MISMATCH
 #  if FG_OPTIMIZE_IDS
 #	pragma detect_mismatch( "FG_OPTIMIZE_IDS", "1" )
 #  else
 #	pragma detect_mismatch( "FG_OPTIMIZE_IDS", "0" )
 #  endif
-#endif	// COMPILER_MSVC or COMPILER_CLANG
+#endif	// FG_CPP_DETECT_MISMATCH

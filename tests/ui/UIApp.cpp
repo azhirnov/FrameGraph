@@ -53,20 +53,17 @@ namespace FG
 		// initialize window
 		{
 			_window = std::move(wnd);
-			CHECK_ERR( _window->Create( wnd_size, "UITest" ) );
+			CHECK_ERR( _window->Create( wnd_size, "UITest" ));
 			_window->AddListener( this );
 		}
 
 		// initialize vulkan device
 		{
-			CHECK_ERR( _vulkan.Create( _window->GetVulkanSurface(), "UITest", "FrameGraph", VK_API_VERSION_1_1,
-									   "",
-									   {},
-									   VulkanDevice::GetRecomendedInstanceLayers(),
-									   VulkanDevice::GetRecomendedInstanceExtensions(),
-									   VulkanDevice::GetAllDeviceExtensions_v110()
-									));
-			_vulkan.CreateDebugUtilsCallback( DebugUtilsMessageSeverity_All );
+			CHECK_ERR( _vulkan.CreateInstance( _window->GetVulkanSurface(), "UITest", "FrameGraph", _vulkan.GetRecomendedInstanceLayers(), {}, {1,1} ));
+			CHECK_ERR( _vulkan.ChooseHighPerformanceDevice() );
+			CHECK_ERR( _vulkan.CreateLogicalDevice( Default, Default ));
+			
+			_vulkan.CreateDebugCallback( DefaultDebugMessageSeverity );
 		}
 		
 		// setup device info
@@ -84,10 +81,10 @@ namespace FG
 			{
 				VulkanDeviceInfo::QueueInfo	qi;
 				qi.handle		= BitCast<QueueVk_t>( q.handle );
-				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.flags );
+				qi.familyFlags	= BitCast<QueueFlagsVk_t>( q.familyFlags );
 				qi.familyIndex	= q.familyIndex;
 				qi.priority		= q.priority;
-				qi.debugName	= "";
+				qi.debugName	= q.debugName;
 
 				vulkan_info.queues.push_back( qi );
 			}
@@ -105,7 +102,7 @@ namespace FG
 		// add glsl pipeline compiler
 		{
 			auto	compiler = MakeShared<VPipelineCompiler>( vulkan_info.instance, vulkan_info.physicalDevice, vulkan_info.device );
-			compiler->SetCompilationFlags( EShaderCompilationFlags::AutoMapLocations | EShaderCompilationFlags::Quiet );
+			compiler->SetCompilationFlags( EShaderCompilationFlags::Quiet );
 
 			_frameGraph->AddPipelineCompiler( compiler );
 		}
@@ -237,7 +234,7 @@ namespace FG
 											.AddTarget( RenderTargetID::Color_0, image, _clearColor, EAttachmentStoreOp::Store ));
 
 			Task	draw_ui	= _uiRenderer.Draw( cmdbuf, pass_id );
-			FG_UNUSED( draw_ui );
+			Unused( draw_ui );
 		}
 
 		CHECK_ERR( _frameGraph->Execute( cmdbuf ));
@@ -262,7 +259,7 @@ namespace FG
 
 		io.MousePos = { _lastMousePos.x, _lastMousePos.y };
 
-		memset( io.NavInputs, 0, sizeof(io.NavInputs) );
+		std::memset( io.NavInputs, 0, sizeof(io.NavInputs) );
 		return true;
 	}
 	
@@ -304,8 +301,9 @@ namespace FG
 			_frameGraph->Deinitialize();
 			_frameGraph = null;
 		}
-
-		_vulkan.Destroy();
+		
+		_vulkan.DestroyLogicalDevice();
+		_vulkan.DestroyInstance();
 
 		if ( _window )
 		{

@@ -1,6 +1,8 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#include "framework/VR/VRDeviceEmulator.h"
+#ifdef FG_ENABLE_VULKAN
+
+# include "framework/VR/VRDeviceEmulator.h"
 
 namespace FGC
 {
@@ -16,8 +18,8 @@ namespace {
 */
 	IVRDevice::Mat3_t  RotateX (float angle)
 	{
-		float	s = sin( angle );
-		float	c = cos( angle );
+		float	s = std::sin( angle );
+		float	c = std::cos( angle );
 
 		return IVRDevice::Mat3_t{
 			1.0f,  0.0f,  0.0f,
@@ -28,8 +30,8 @@ namespace {
 
 	IVRDevice::Mat3_t  RotateY (float angle)
 	{
-		float	s = sin( angle );
-		float	c = cos( angle );
+		float	s = std::sin( angle );
+		float	c = std::cos( angle );
 
 		return IVRDevice::Mat3_t{
 			 c,    0.0f,  -s,
@@ -38,17 +40,17 @@ namespace {
 		};
 	}
 
-	IVRDevice::Mat3_t  RotateZ (float angle)
+	/*IVRDevice::Mat3_t  RotateZ (float angle)
 	{
-		float	s = sin( angle );
-		float	c = cos( angle );
+		float	s = std::sin( angle );
+		float	c = std::cos( angle );
 
 		return IVRDevice::Mat3_t{
 			 c,    0.0f,   s,
 			-s,     c,    0.0f,
 			0.0f,  0.0f,  1.0f
 		};
-	}
+	}*/
 }
 //-----------------------------------------------------------------------------
 
@@ -220,20 +222,20 @@ namespace {
 	SetVKDevice
 =================================================
 */
-	bool  VRDeviceEmulator::SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
+	bool  VRDeviceEmulator::SetVKDevice (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t logicalDevice)
 	{
 		CHECK_ERR( _output and _isCreated );
 
-		_vkInstance			= instance;
-		_vkPhysicalDevice	= physicalDevice;
-		_vkLogicalDevice	= logicalDevice;
+		_vkInstance			= BitCast<VkInstance>( instance );
+		_vkPhysicalDevice	= BitCast<VkPhysicalDevice>( physicalDevice );
+		_vkLogicalDevice	= BitCast<VkDevice>( logicalDevice );
 		
 		CHECK_ERR( VulkanLoader::Initialize() );
-		VulkanLoader::LoadInstance( _vkInstance );
-		VulkanLoader::LoadDevice( _vkLogicalDevice, OUT _deviceFnTable );
+		CHECK_ERR( VulkanLoader::LoadInstance( _vkInstance ));
+		CHECK_ERR( VulkanLoader::LoadDevice( _vkLogicalDevice, OUT _deviceFnTable ));
 
 		auto	surface		= _output->GetVulkanSurface();
-		auto	vk_surface	= surface->Create( _vkInstance );
+		auto	vk_surface	= BitCast<VkSurfaceKHR>( surface->Create( BitCast<IVulkanSurface::InstanceVk_t>( _vkInstance )));
 		CHECK_ERR( vk_surface );
 		
 		// check if physical device supports present on this surface
@@ -252,7 +254,7 @@ namespace {
 			CHECK_ERR( is_supported );
 		}
 
-		_swapchain.reset(new VulkanSwapchain{ physicalDevice, logicalDevice, vk_surface, VulkanDeviceFn{&_deviceFnTable} });
+		_swapchain.reset(new VulkanSwapchain{ _vkPhysicalDevice, _vkLogicalDevice, vk_surface, VulkanDeviceFn{&_deviceFnTable} });
 		
 		VkFormat		color_fmt	= VK_FORMAT_UNDEFINED;
 		VkColorSpaceKHR	color_space	= VK_COLOR_SPACE_MAX_ENUM_KHR;
@@ -422,7 +424,7 @@ namespace {
 			
 			const float	fov_y			= 1.0f;
 			const float	aspect			= 1.0f;
-			const float	tan_half_fovy	= tan( fov_y * 0.5f );
+			const float	tan_half_fovy	= std::tan( fov_y * 0.5f );
 
 			Mat4_t	proj;
 			proj[0][0] = 1.0f / (aspect * tan_half_fovy);
@@ -446,17 +448,17 @@ namespace {
 */
 	bool  VRDeviceEmulator::Submit (const VRImage &img, Eye eye)
 	{
-		CHECK_ERR( img.queueFamilyIndex < _queues.capacity() );
+		CHECK_ERR( uint(img.queueFamilyIndex) < _queues.capacity() );
 		CHECK_ERR( _swapchain and _vkLogicalDevice );
 		CHECK_ERR( _wndListener.IsActive() );
 
 		VkBool32	supports_present = false;
-		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, img.queueFamilyIndex, _swapchain->GetVkSurface(), OUT &supports_present ));
+		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, uint(img.queueFamilyIndex), _swapchain->GetVkSurface(), OUT &supports_present ));
 		CHECK_ERR( supports_present );
 
-		_queues.resize( Max(_queues.size(), img.queueFamilyIndex+1 ));
+		_queues.resize( Max(_queues.size(), uint(img.queueFamilyIndex) + 1 ));
 
-		auto&	q = _queues[img.queueFamilyIndex];
+		auto&	q = _queues[ uint(img.queueFamilyIndex) ];
 
 		// create command pool
 		if ( not q.cmdPool )
@@ -464,7 +466,7 @@ namespace {
 			VkCommandPoolCreateInfo	info = {};
 			info.sType				= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			info.flags				= VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-			info.queueFamilyIndex	= img.queueFamilyIndex;
+			info.queueFamilyIndex	= uint(img.queueFamilyIndex);
 			VK_CHECK( vkCreateCommandPool( _vkLogicalDevice, &info, null, OUT &q.cmdPool ));
 		}
 
@@ -548,7 +550,7 @@ namespace {
 			region.dstOffsets[0]	= ( eye == Eye::Left ?	VkOffset3D{ 0, int(surf_size.y), 0 }	: VkOffset3D{ int(surf_size.x/2), int(surf_size.y), 0 });
 			region.dstOffsets[1]	= ( eye == Eye::Left ?	VkOffset3D{ int(surf_size.x/2), 0, 1 }	: VkOffset3D{ int(surf_size.x), 0, 1 });
 			region.dstSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-			vkCmdBlitImage( q.cmdBuffers[q.frame], img.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, _swapchain->GetCurrentImage(),
+			vkCmdBlitImage( q.cmdBuffers[q.frame], BitCast<VkImage>(img.handle), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, _swapchain->GetCurrentImage(),
 						    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
 		}
 
@@ -596,7 +598,7 @@ namespace {
 				info.signalSemaphoreCount	= 1;
 			}
 
-			VK_CHECK( vkQueueSubmit( img.currQueue, 1, &info, q.fences[q.frame] ));
+			VK_CHECK( vkQueueSubmit( BitCast<VkQueue>(img.currQueue), 1, &info, q.fences[q.frame] ));
 
 			_lastSignal = q.signalSemaphores[q.frame];
 		}
@@ -608,10 +610,10 @@ namespace {
 			_submitted[uint(Eye::Left)]  = false;
 			_submitted[uint(Eye::Right)] = false;
 
-			VK_CHECK( _swapchain->Present( img.currQueue, {_lastSignal} ));
+			VK_CHECK( _swapchain->Present( BitCast<VkQueue>(img.currQueue), {_lastSignal} ));
 			_lastSignal = VK_NULL_HANDLE;
 
-			VK_CHECK( vkQueueWaitIdle( img.currQueue ));
+			VK_CHECK( vkQueueWaitIdle( BitCast<VkQueue>(img.currQueue) ));
 		}
 
 		if ( ++q.frame >= PerQueue::MaxFrames )
@@ -644,7 +646,7 @@ namespace {
 	GetRequiredDeviceExtensions
 =================================================
 */
-	Array<String>  VRDeviceEmulator::GetRequiredDeviceExtensions (VkInstance) const
+	Array<String>  VRDeviceEmulator::GetRequiredDeviceExtensions (InstanceVk_t) const
 	{
 		CHECK_ERR( _isCreated );
 		return {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -662,3 +664,5 @@ namespace {
 	}
 
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

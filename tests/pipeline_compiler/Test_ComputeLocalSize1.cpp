@@ -41,7 +41,7 @@ void main ()
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );
 
-	TEST( TestImageUniform( *ds, UniformID("un_OutImage"), EImage::Tex2D, EPixelFormat::RGBA8_UNorm, EShaderAccess::WriteOnly, 0, EShaderStages::Compute ));
+	TEST( TestImageUniform( *ds, UniformID("un_OutImage"), EImageSampler::Float2D | EImageSampler(EPixelFormat::RGBA8_UNorm), EShaderAccess::WriteOnly, 0, EShaderStages::Compute ));
 	TEST( TestStorageBuffer( *ds, UniformID("un_SSBO"), 16_b, 0_b, EShaderAccess::ReadOnly, 1, EShaderStages::Compute ));
 
 	TEST(All( ppln._defaultLocalGroupSize == uint3(8, 8, 1) ));

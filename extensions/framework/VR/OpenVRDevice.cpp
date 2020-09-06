@@ -1,9 +1,9 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
-#ifdef FG_ENABLE_OPENVR
+#if defined(FG_ENABLE_OPENVR) && defined(FG_ENABLE_VULKAN)
 
-#include "framework/VR/OpenVRDevice.h"
-#include "stl/Algorithms/StringUtils.h"
+# include "framework/VR/OpenVRDevice.h"
+# include "stl/Algorithms/StringUtils.h"
 
 namespace FGC
 {
@@ -111,7 +111,7 @@ namespace
 		//	RETURN_ERR( "VR_GetGenericInterface error: "s << vr::VR_GetVRInitErrorAsEnglishDescription( err ));
 		
 		FG_LOGI( "driver:  "s << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_TrackingSystemName_String ) <<
-				 "display: " << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String ) );
+				 "display: " << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String ));
 		
 		CHECK_ERR( vr::VRCompositor() );
 
@@ -195,22 +195,22 @@ namespace
 	SetVKDevice
 =================================================
 */
-	bool  OpenVRDevice::SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
+	bool  OpenVRDevice::SetVKDevice (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t logicalDevice)
 	{
+		_vkInstance			= BitCast<VkInstance>( instance );
+		_vkPhysicalDevice	= BitCast<VkPhysicalDevice>( physicalDevice );
+		_vkLogicalDevice	= BitCast<VkDevice>( logicalDevice );
+
 		// check is vulkan device supports output to VR device
 		{
 			uint64_t	hmd_physical_device = 0;
-			_hmd->GetOutputDevice( OUT &hmd_physical_device, vr::TextureType_Vulkan, (VkInstance_T *)instance );
+			_hmd->GetOutputDevice( OUT &hmd_physical_device, vr::TextureType_Vulkan, _vkInstance );
 
 			if ( hmd_physical_device != 0 )
 			{
-				CHECK_ERR( VkPhysicalDevice(hmd_physical_device) == physicalDevice );
+				CHECK_ERR( VkPhysicalDevice(hmd_physical_device) == _vkPhysicalDevice );
 			}
 		}
-
-		_vkInstance			= instance;
-		_vkPhysicalDevice	= physicalDevice;
-		_vkLogicalDevice	= logicalDevice;
 
 		return true;
 	}
@@ -491,19 +491,19 @@ namespace
 		bounds.vMax = image.bounds.bottom;
 
 		vr::VRVulkanTextureData_t	vk_data;
-		vk_data.m_nImage			= (uint64_t) image.handle;
-		vk_data.m_pDevice			= (VkDevice_T *) _vkLogicalDevice;
-		vk_data.m_pPhysicalDevice	= (VkPhysicalDevice_T *) _vkPhysicalDevice;
-		vk_data.m_pInstance			= (VkInstance_T *) _vkInstance;
-		vk_data.m_pQueue			= (VkQueue_T *) image.currQueue;
-		vk_data.m_nQueueFamilyIndex	= image.queueFamilyIndex;
+		vk_data.m_nImage			= BitCast<uint64_t>( image.handle );
+		vk_data.m_pDevice			= reinterpret_cast<VkDevice_T *>( _vkLogicalDevice );
+		vk_data.m_pPhysicalDevice	= reinterpret_cast<VkPhysicalDevice_T *>( _vkPhysicalDevice );
+		vk_data.m_pInstance			= reinterpret_cast<VkInstance_T *>( _vkInstance );
+		vk_data.m_pQueue			= reinterpret_cast<VkQueue_T *>( image.currQueue );
+		vk_data.m_nQueueFamilyIndex	= uint(image.queueFamilyIndex);
 		vk_data.m_nWidth			= image.dimension.x;
 		vk_data.m_nHeight			= image.dimension.y;
 		vk_data.m_nFormat			= image.format;
 		vk_data.m_nSampleCount		= image.sampleCount;
 
 		DEBUG_ONLY(
-		switch( image.format )
+		switch( BitCast<VkFormat>(image.format) )
 		{
 			case VK_FORMAT_R8G8B8A8_UNORM :
 			case VK_FORMAT_R8G8B8A8_SRGB :
@@ -522,6 +522,7 @@ namespace
 		vr::Texture_t			texture		= { &vk_data, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
 		vr::EVRCompositorError	err			= vr::VRCompositor()->Submit( vr_eye, &texture, &bounds );
 
+		Unused( err );
 		//CHECK_ERR( err == vr::VRCompositorError_None );
 
 		_submitted[uint(eye)] = true;
@@ -630,12 +631,12 @@ namespace
 	GetRequiredDeviceExtensions
 =================================================
 */
-	Array<String>  OpenVRDevice::GetRequiredDeviceExtensions (VkInstance instance) const
+	Array<String>  OpenVRDevice::GetRequiredDeviceExtensions (InstanceVk_t instance) const
 	{
 		CHECK_ERR( _hmd and vr::VRCompositor() );
 		
 		uint64_t	hmd_physical_device = 0;
-		_hmd->GetOutputDevice( OUT &hmd_physical_device, vr::TextureType_Vulkan, (VkInstance_T *)instance );
+		_hmd->GetOutputDevice( OUT &hmd_physical_device, vr::TextureType_Vulkan, BitCast<VkInstance>(instance) );
 
 		Array<String>	result;
 		uint			count;
@@ -707,4 +708,4 @@ namespace
 
 }	// FGC
 
-#endif	// FG_ENABLE_OPENVR
+#endif	// FG_ENABLE_OPENVR and FG_ENABLE_VULKAN

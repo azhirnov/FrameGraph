@@ -191,7 +191,7 @@ namespace {
 				continue;
 
 			// add task with resource usage
-			if ( EnumEq( _flags, EDebugFlags::VisResources ) )
+			if ( AllBits( _flags, EDebugFlags::VisResources ))
 			{
 				String	res_style;
 				String	bar_style;
@@ -214,7 +214,7 @@ namespace {
 					<< indent << "\t}\n\n";
 				
 				// add dependencies
-				if ( EnumEq( _flags, EDebugFlags::VisTaskDependencies ) )
+				if ( AllBits( _flags, EDebugFlags::VisTaskDependencies ))
 				{
 					for (auto& in_node : info.task->Inputs())
 					{
@@ -252,7 +252,7 @@ namespace {
 					<< "\", fontcolor=\"#" << _TaskLabelColor( info.task->DebugColor() ) << "\"];\n";
 
 				// add dependencies
-				if ( EnumEq( _flags, EDebugFlags::VisTaskDependencies ) and
+				if ( AllBits( _flags, EDebugFlags::VisTaskDependencies ) and
 					 not info.task->Outputs().empty() )
 				{
 					deps << indent << '\t' << _VisTaskName( info.task ) << ":e -> { ";
@@ -445,16 +445,19 @@ namespace {
 						_GetBufferBarrier( buffer.first, buffer.second.task, INOUT barStyle, INOUT deps );
 					},
 
+				#ifdef VK_NV_ray_tracing
 					[] (const RTGeometryUsage_t &geometry)
 					{
 						// TODO
-						FG_UNUSED( geometry );
+						Unused( geometry );
 					},
 					[] (const RTSceneUsage_t &scene)
 					{
 						// TODO
-						FG_UNUSED( scene );
+						Unused( scene );
 					},
+				#endif
+
 					[] (const NullUnion &) { ASSERT(false); }
 				);
 		}
@@ -522,7 +525,7 @@ namespace {
 
 		for (VkAccessFlags t = 1; t < VK_ACCESS_FLAG_BITS_MAX_ENUM; t <<= 1)
 		{
-			if ( not EnumEq( flags, t ) )
+			if ( not AllBits( flags, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
@@ -545,17 +548,34 @@ namespace {
 				case VK_ACCESS_HOST_WRITE_BIT :								result |= EAccessType::Write;	break;
 				case VK_ACCESS_MEMORY_READ_BIT :							result |= EAccessType::Read;	break;
 				case VK_ACCESS_MEMORY_WRITE_BIT :							result |= EAccessType::Write;	break;
+				#ifdef VK_EXT_transform_feedback
 				case VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT :			result |= EAccessType::Write;	break;
 				case VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT :	result |= EAccessType::Read;	break;
 				case VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT :	result |= EAccessType::Write;	break;
+				#endif
+				#ifdef VK_EXT_conditional_rendering
 				case VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT :			result |= EAccessType::Read;	break;
+				#endif
+				#ifdef VK_NV_device_generated_commands
+				case VK_ACCESS_COMMAND_PREPROCESS_READ_BIT_NV :				result |= EAccessType::Read;	break;
+				case VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV :			result |= EAccessType::Write;	break;
+				#elif defined(VK_NVX_device_generated_commands)
 				case VK_ACCESS_COMMAND_PROCESS_READ_BIT_NVX :				result |= EAccessType::Read;	break;
 				case VK_ACCESS_COMMAND_PROCESS_WRITE_BIT_NVX :				result |= EAccessType::Write;	break;
+				#endif
+				#ifdef VK_EXT_blend_operation_advanced
 				case VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT :	result |= EAccessType::Read;	break;
+				#endif
+				#ifdef VK_NV_shading_rate_image
 				case VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV :				result |= EAccessType::Read;	break;
+				#endif
+				#ifdef VK_NV_ray_tracing
 				case VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV :			result |= EAccessType::Read;	break;
 				case VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV :		result |= EAccessType::Write;	break;
+				#endif
+				#ifdef VK_EXT_fragment_density_map
 				case VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT :			result |= EAccessType::Read;	break;
+				#endif
 				case VK_ACCESS_FLAG_BITS_MAX_ENUM :
 				default :													ASSERT(false);  break;
 			}
@@ -583,12 +603,23 @@ namespace {
 									StringView barrierStyle, INOUT String &style)
 	{
 		static constexpr VkPipelineStageFlags	all_graphics =
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV |
-			VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV | VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
 			VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT |
 			VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT |
-			VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT | VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT | VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV;
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT
+			#ifdef VK_NV_mesh_shader
+			| VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV | VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV
+			#endif
+			#ifdef VK_EXT_transform_feedback
+			| VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT
+			#endif
+			#ifdef VK_EXT_conditional_rendering
+			| VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT
+			#endif
+			#ifdef VK_NV_shading_rate_image
+			| VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV
+			#endif
+			;
 
 		static const VkPipelineStageFlagBits	all_stages[] = {
 			// all stages
@@ -599,8 +630,10 @@ namespace {
 			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
 			VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT,
 			VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT,
+			#ifdef VK_NV_mesh_shader
 			VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV,
 			VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV,
+			#endif
 			VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT,
 			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
@@ -611,8 +644,10 @@ namespace {
 			// transfer only
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			// ray tracing & AS update
+			#ifdef VK_NV_ray_tracing
 			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV,
 			VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV,
+			#endif
 			// all stages
 			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 			//VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT,
@@ -622,9 +657,9 @@ namespace {
 
 		auto	TestStage = [] (VkPipelineStageFlags stages, size_t i)
 							{
-								return	EnumEq( stages, all_stages[i] ) or
-										(EnumEq( stages, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT ) and EnumEq( all_graphics, all_stages[i] )) or
-										EnumEq( stages, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
+								return	AllBits( stages, all_stages[i] ) or
+										(AllBits( stages, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT ) and AllBits( all_graphics, all_stages[i] )) or
+										AllBits( stages, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
 							};
 
 		// colors for empty, exists and skip cells
@@ -691,22 +726,22 @@ namespace {
 			else
 		
 			// write -> write
-			if ( EnumEq( src_access, EAccessType::Write ) and
-				 EnumEq( dst_access, EAccessType::Write ) )
+			if ( AllBits( src_access, EAccessType::Write ) and
+				 AllBits( dst_access, EAccessType::Write ))
 			{
 				label << " W <BR/>--<BR/> W ";
 			}
 			else
 
 			// read -> write
-			if ( EnumEq( dst_access, EAccessType::Write ) )
+			if ( AllBits( dst_access, EAccessType::Write ))
 			{
 				label << " R <BR/>--<BR/> W ";
 			}
 			else
 
 			// write -> read
-			if ( EnumEq( src_access, EAccessType::Write ) )
+			if ( AllBits( src_access, EAccessType::Write ))
 			{
 				label << " W <BR/>--<BR/> R ";
 			}
@@ -739,8 +774,8 @@ namespace {
 			else
 		
 			// write -> write
-			if ( EnumEq( src_access, EAccessType::Write ) and
-				 EnumEq( dst_access, EAccessType::Write ) )
+			if ( AllBits( src_access, EAccessType::Write ) and
+				 AllBits( dst_access, EAccessType::Write ))
 			{
 				label = "w\\n--\\nW\\n";
 				color = ColorScheme::WriteAfterWriteBarrier;
@@ -748,8 +783,8 @@ namespace {
 			else
 
 			// read -> write
-			if ( EnumEq( src_access, EAccessType::Read ) and
-				 EnumEq( dst_access, EAccessType::Write ) )
+			if ( AllBits( src_access, EAccessType::Read ) and
+				 AllBits( dst_access, EAccessType::Write ))
 			{
 				label = "R\\n--\\nW\\n";
 				color = ColorScheme::WriteAfterReadBarrier;
@@ -757,8 +792,8 @@ namespace {
 			else
 
 			// write -> read
-			if ( EnumEq( src_access, EAccessType::Write ) and
-				 EnumEq( dst_access, EAccessType::Read ) )
+			if ( AllBits( src_access, EAccessType::Write ) and
+				 AllBits( dst_access, EAccessType::Read ))
 			{
 				label = "W\\n--\\nR\\n";
 				color = ColorScheme::ReadAfterWriteBarrier;
@@ -791,7 +826,7 @@ namespace {
 		const String	edge_color2	 = _ResourceToResourceEdgeColor( dst_task );
 
 		// add barrier style
-		if ( not _existingNodes.count( barrier_name ) )
+		if ( not _existingNodes.count( barrier_name ))
 		{
 			ASSERT( bar.info.srcQueueFamilyIndex == bar.info.dstQueueFamilyIndex );	// not supported yet
 
@@ -806,7 +841,7 @@ namespace {
 		}
 
 		// add barrier dependency
-		if ( EnumEq( _flags, EDebugFlags::VisBarrierLabels ) )
+		if ( AllBits( _flags, EDebugFlags::VisBarrierLabels ))
 		{
 			String	src_stage = VkPipelineStage_ToString( bar.srcStageMask );
 			String	dst_stage = VkPipelineStage_ToString( bar.dstStageMask );

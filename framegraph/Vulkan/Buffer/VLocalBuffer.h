@@ -68,6 +68,7 @@ namespace FG
 	public:
 		VLocalBuffer () {}
 		VLocalBuffer (VLocalBuffer &&) = delete;
+		VLocalBuffer (const VLocalBuffer &) = delete;
 		~VLocalBuffer ();
 
 		bool Create (const VBuffer *);

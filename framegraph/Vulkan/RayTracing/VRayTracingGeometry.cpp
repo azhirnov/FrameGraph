@@ -6,6 +6,8 @@
 #include "VEnumCast.h"
 #include "VResourceManager.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -83,7 +85,7 @@ namespace FG
 		CHECK_ERR( desc.triangles.size() or desc.aabbs.size() );
 
 		auto&	dev = resMngr.GetDevice();
-		ASSERT( (desc.triangles.size() + desc.aabbs.size()) <= dev.GetDeviceRayTracingProperties().maxGeometryCount );
+		ASSERT( (desc.triangles.size() + desc.aabbs.size()) <= dev.GetProperties().rayTracingProperties.maxGeometryCount );
 
 		CopyAndSortGeometry( desc, OUT _triangles, OUT _aabbs );
 
@@ -212,3 +214,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

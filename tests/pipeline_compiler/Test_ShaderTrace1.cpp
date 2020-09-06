@@ -5,6 +5,7 @@
 
 extern void Test_ShaderTrace1 (VPipelineCompiler* compiler)
 {
+#ifdef FG_ENABLE_GLSL_TRACE
 	ComputePipelineDesc	ppln;
 
 	ppln.AddShader( EShaderLangFormat::VKSL_100 | EShaderLangFormat::EnableDebugTrace | EShaderLangFormat::EnableTimeMap, "main", R"#(
@@ -38,4 +39,5 @@ void main ()
 	TEST( iter3 != ppln._shader.data.end() );
 	
 	TEST_PASSED();
+#endif
 }

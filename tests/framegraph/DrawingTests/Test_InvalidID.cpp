@@ -7,6 +7,12 @@ namespace FG
 
 	bool FGApp::Test_InvalidID ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		ComputePipelineDesc	ppln;
 
 		ppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
@@ -29,11 +35,13 @@ void main ()
 		
 		const uint2		image_dim	= { 16, 16 };
 
-		ImageID			image0		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_0" );
+		ImageID			image0		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( image_dim ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
+																Default, "MyImage_0" );
 
-		ImageID			image1		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_1" );
+		ImageID			image1		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( image_dim ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
+																Default, "MyImage_1" );
 
 		ImageID			image2		{ image0.Get() };
 		ImageID			image3		{RawImageID{ 1111, 0 }};
@@ -53,9 +61,9 @@ void main ()
 		CHECK_ERR( cmd1 );
 		{
 			resources.BindImage( UniformID("un_OutImage"), image0 );
-			Task	t_run	= cmd1->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ) );
+			Task	t_run	= cmd1->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ));
 			Task	t_copy	= cmd1->AddTask( CopyImage().From( image0 ).To( image4 ).AddRegion({}, int2(), {}, int2(), image_dim) );
-			FG_UNUSED( t_run );
+			Unused( t_run );
 		
 			CHECK_ERR( _frameGraph->Execute( cmd1 ));
 		}
@@ -67,9 +75,9 @@ void main ()
 		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{} );
 		CHECK_ERR( cmd2 );
 		{
-			Task	t_run	= cmd2->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ) );
+			Task	t_run	= cmd2->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ));
 			Task	t_copy	= cmd2->AddTask( CopyImage().From( image2 ).To( image1 ).AddRegion({}, int2(), {}, int2(), image_dim) );
-			FG_UNUSED( t_run, t_copy );
+			Unused( t_run, t_copy );
 
 			CHECK_ERR( _frameGraph->Execute( cmd2 ));
 		}
@@ -77,8 +85,8 @@ void main ()
 		CHECK_ERR( _frameGraph->WaitIdle() );
 		
 		DeleteResources( pipeline, image1, image2 );
-		FG_UNUSED( image3.Release() );
-		FG_UNUSED( image4.Release() );
+		Unused( image3.Release() );
+		Unused( image4.Release() );
 
 		FG_LOGI( TEST_NAME << " - passed" );
 		return true;

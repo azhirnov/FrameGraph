@@ -7,6 +7,7 @@
 #include "stl/CompileTime/Math.h"
 #include "stl/ThreadSafe/AtomicPtr.h"
 #include "stl/Memory/UntypedAllocator.h"
+#include "stl/Math/BitMath.h"
 #include <atomic>
 
 namespace FGC
@@ -96,7 +97,7 @@ namespace FGC
 				Bitfield_t		ctor_bits	= _createdBits[i].load( memory_order_relaxed );
 				Bitfield_t		assigned	= _assignedBits[i].load( memory_order_relaxed );
 
-				FG_UNUSED( assigned );
+				Unused( assigned );
 				ASSERT( assigned == UMax );
 
 				if ( not value )
@@ -185,7 +186,7 @@ namespace FGC
 			Bitfield_t	mask		= Bitfield_t(1) << bit_idx;
 			Bitfield_t	old_bits	= _assignedBits[chunk_idx].fetch_or( mask, memory_order_relaxed );	// 0 -> 1
 
-			FG_UNUSED( old_bits );
+			Unused( old_bits );
 			ASSERT( !(old_bits & mask) );
 		}
 

@@ -162,9 +162,11 @@ namespace FG
 		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,		MaxDescriptorPoolSize });
 		pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,		MaxDescriptorPoolSize });
 		
-		if ( _device.IsRayTracingEnabled() ) {
+		#ifdef VK_NV_ray_tracing
+		if ( _device.GetFeatures().rayTracingNV ) {
 			pool_sizes.push_back({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, MaxDescriptorPoolSize });
 		}
+		#endif
 
 		
 		VkDescriptorPoolCreateInfo	info = {};

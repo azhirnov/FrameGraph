@@ -21,7 +21,11 @@ if (TARGET "FileSystem-lib")
 	target_link_libraries( "STL" PUBLIC "FileSystem-lib" )
 endif()
 
-if (UNIX)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
+	target_link_libraries( "STL" PUBLIC "log" "android" )
+endif ()
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	target_link_libraries( "STL" PUBLIC "dl;pthread" )
 	target_compile_definitions( "STL" PUBLIC _LARGEFILE_SOURCE )
 	target_compile_definitions( "STL" PUBLIC _LARGE_FILES )

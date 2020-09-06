@@ -2,13 +2,6 @@
 
 #pragma once
 
-
-#if defined(DEBUG) || defined(_DEBUG)
-#	define FG_DEBUG
-#else
-#	define FG_RELEASE
-#endif
-
 #include "stl/Config.h"
 
 
@@ -78,16 +71,6 @@
 # else
 #	pragma warning ("forceinline is not supported")
 #	define forceinline		inline
-# endif
-#endif
-
-
-// macro for unused variables
-#ifndef FG_UNUSED
-# if 0 // TODO: C++17
-#	define FG_UNUSED( ... )		[[maybe_unused]]( __VA_ARGS__ )
-# else
-#	define FG_UNUSED( ... )		(void)( __VA_ARGS__ )
 # endif
 #endif
 
@@ -266,14 +249,14 @@
 
 // bit operators
 #define FG_BIT_OPERATORS( _type_ ) \
-	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
-	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::ToNearUInt(lhs) | FGC::ToNearUInt(rhs) ); } \
+	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::ToNearUInt(lhs) & FGC::ToNearUInt(rhs) ); } \
 	\
-	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
-	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::ToNearUInt(lhs) | FGC::ToNearUInt(rhs) ); } \
+	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::ToNearUInt(lhs) & FGC::ToNearUInt(rhs) ); } \
 	\
-	ND_ constexpr _type_  operator ~ (_type_ lhs)				{ return _type_(~FGC::EnumToUInt(lhs)); } \
-	ND_ constexpr bool   operator ! (_type_ lhs)				{ return not FGC::EnumToUInt(lhs); } \
+	ND_ constexpr _type_  operator ~ (_type_ lhs)				{ return _type_(~FGC::ToNearUInt(lhs)); } \
+	ND_ constexpr bool   operator ! (_type_ lhs)				{ return not FGC::ToNearUInt(lhs); } \
 	
 
 // enable/disable checks for enums
@@ -390,8 +373,41 @@
 #endif
 
 
+// replace assertions by exceptions
+#ifndef FG_NO_EXCEPTIONS
+
+#	include <stdexcept>
+
+#	undef  FG_PRIVATE_BREAK_POINT
+#	define FG_PRIVATE_BREAK_POINT()	{}
+
+#	undef  FG_LOGE
+#	define FG_LOGE	FG_LOGI
+
+	// keep ASSERT and CHECK behaviour because they may be used in destructor
+	// but override CHECK_ERR, CHECK_FATAL and RETURN_ERR to allow user to handle this errors
+
+#	undef  FG_PRIVATE_CHECK_ERR
+#	define FG_PRIVATE_CHECK_ERR( _expr_, _ret_ ) \
+		{if ( !(_expr_) ) { \
+			throw std::runtime_error{ FG_PRIVATE_TOSTRING( _expr_ )}; \
+		}}
+
+#	undef  CHECK_FATAL
+#	define CHECK_FATAL( _expr_ ) \
+		{if ( !(_expr_) ) { \
+			throw std::runtime_error{ FG_PRIVATE_TOSTRING( _expr_ )}; \
+		}}
+
+#	undef  FG_PRIVATE_RETURN_ERR
+#	define FG_PRIVATE_RETURN_ERR( _text_, _ret_ ) \
+		{throw std::runtime_error{ _text_ };}
+
+#endif
+
+
 // check definitions
-#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+#ifdef FG_CPP_DETECT_MISMATCH
 
 #  ifdef FG_OPTIMAL_MEMORY_ORDER
 #	pragma detect_mismatch( "FG_OPTIMAL_MEMORY_ORDER", "1" )
@@ -447,4 +463,10 @@
 #	pragma detect_mismatch( "FG_CI_BUILD", "0" )
 #  endif
 
-#endif	// COMPILER_MSVC or COMPILER_CLANG
+#  ifdef FG_NO_EXCEPTIONS
+#	pragma detect_mismatch( "FG_NO_EXCEPTIONS", "1" )
+#  else
+#	pragma detect_mismatch( "FG_NO_EXCEPTIONS", "0" )
+#  endif
+
+#endif	// FG_CPP_DETECT_MISMATCH

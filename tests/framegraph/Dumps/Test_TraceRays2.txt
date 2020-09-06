@@ -12,7 +12,7 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
 					size:            192 b
 				}
@@ -42,7 +42,7 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
 					size:            64 b
 				}
@@ -61,7 +61,7 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   0
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
 					size:            256 b
 				}
@@ -80,7 +80,7 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   0
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
 					size:            768 b
 				}
@@ -158,7 +158,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "OutputImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage
@@ -197,7 +197,7 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   0
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
 					size:            256 b
 				}
@@ -246,7 +246,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "OutputImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage
@@ -320,7 +320,7 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   0
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
 					size:            256 b
 				}

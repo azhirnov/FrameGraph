@@ -125,7 +125,7 @@ namespace FG
 			auto	fg  = _renderTech->GetFrameGraph();
 			auto	cmd = fg->Begin( CommandBufferDesc{ EQueueType::Graphics });
 
-			if ( not scene->Build( cmd, _renderTech ) )
+			if ( not scene->Build( cmd, _renderTech ))
 			{
 				_hierarchies.erase( iter );
 				RETURN_ERR( "building scene failed" );

@@ -112,31 +112,31 @@ namespace FGC
 */
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToModelViewProjMatrix () const
 	{
-		return { _perEye[0].viewProj * _transform.ToMatrix(),
-				 _perEye[1].viewProj * _transform.ToMatrix() };
+		return {{ _perEye[0].viewProj * _transform.ToMatrix(),
+				 _perEye[1].viewProj * _transform.ToMatrix() }};
 	}
 
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToModelViewMatrix () const
 	{
-		return { _perEye[0].view * _transform.ToMatrix(),
-				 _perEye[1].view * _transform.ToMatrix() };
+		return {{ _perEye[0].view * _transform.ToMatrix(),
+				 _perEye[1].view * _transform.ToMatrix() }};
 	}
 
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToViewProjMatrix () const
 	{
-		return { _perEye[0].viewProj * _transform.ToRotationMatrix(),
-				 _perEye[1].viewProj * _transform.ToRotationMatrix() };
+		return {{ _perEye[0].viewProj * _transform.ToRotationMatrix(),
+				 _perEye[1].viewProj * _transform.ToRotationMatrix() }};
 	}
 	
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToViewMatrix () const
 	{
-		return { _perEye[0].view * _transform.ToRotationMatrix(),
-				 _perEye[1].view * _transform.ToRotationMatrix() };
+		return {{ _perEye[0].view * _transform.ToRotationMatrix(),
+				 _perEye[1].view * _transform.ToRotationMatrix() }};
 	}
 	
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToProjectionMatrix () const
 	{
-		return { _perEye[0].proj, _perEye[1].proj };
+		return {{ _perEye[0].proj, _perEye[1].proj }};
 	}
 	
 /*
@@ -146,7 +146,7 @@ namespace FGC
 */
 	inline typename VRCamera::FrustumRef_t  VRCamera::GetFrustum () const
 	{
-		return { &_perEye[0].frustum, &_perEye[1].frustum };
+		return {{ &_perEye[0].frustum, &_perEye[1].frustum }};
 	}
 	
 /*

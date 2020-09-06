@@ -37,7 +37,7 @@ vec3 HSVtoRGB (const vec3 hsv)
 	// from http://chilliant.blogspot.ru/2014/04/rgbhsv-in-hlsl-5.html
 	vec3 col = vec3( abs( hsv.x * 6.0 - 3.0 ) - 1.0,
 					 2.0 - abs( hsv.x * 6.0 - 2.0 ),
-					 2.0 - abs( hsv.x * 6.0 - 4.0 ) );
+					 2.0 - abs( hsv.x * 6.0 - 4.0 ));
 	return (( clamp( col, vec3(0.0), vec3(1.0) ) - 1.0 ) * hsv.y + 1.0 ) * hsv.z;
 }
 

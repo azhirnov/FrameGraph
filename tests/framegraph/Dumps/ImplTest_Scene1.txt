@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "SwapchainImage-1"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       BGRA8_UNorm
 		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment | InputAttachment
@@ -47,7 +47,7 @@ CommandBuffer {
 
 	Image {
 		name:         "color_target"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 1024, 1024, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | ColorAttachment
@@ -108,7 +108,7 @@ CommandBuffer {
 
 	Image {
 		name:         "depth_target"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 1024, 1024, 1 )
 		format:       Depth32F
 		usage:        DepthStencilAttachment

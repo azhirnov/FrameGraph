@@ -15,19 +15,19 @@ namespace FG
 	{
 	// variables
 	private:
-		uint	_value;
+		uint8_t		_value;
 
 
 	// methods
 	public:
 		constexpr MultiSamples () : _value{0} {}
 
-		explicit MultiSamples (uint samples) : _value( IntLog2( samples ) ) {}
+		explicit MultiSamples (uint samples) : _value{ CheckCast<uint8_t>( IntLog2( samples ))} {}
 
-		ND_ constexpr uint	Get ()								const		{ return 1u << _value; }
-		ND_ constexpr uint	GetPowerOf2 ()						const		{ return _value; }
+		ND_ constexpr uint		Get ()							const		{ return 1u << _value; }
+		ND_ constexpr uint8_t	GetPowerOf2 ()					const		{ return _value; }
 
-		ND_ constexpr bool	IsEnabled ()						const		{ return _value > 0; }
+		ND_ constexpr bool		IsEnabled ()					const		{ return _value > 0; }
 
 		ND_ constexpr bool	operator == (const MultiSamples &rhs) const		{ return _value == rhs._value; }
 		ND_ constexpr bool	operator != (const MultiSamples &rhs) const		{ return _value != rhs._value; }
@@ -38,7 +38,7 @@ namespace FG
 	};
 	
 
-	ND_ inline MultiSamples operator "" _samples (unsigned long long value)		{ return MultiSamples( CheckCast<uint>(value) ); }
+	ND_ inline MultiSamples operator "" _samples (unsigned long long value)	{ return MultiSamples{ uint(value) }; }
 
 
 }	// FG

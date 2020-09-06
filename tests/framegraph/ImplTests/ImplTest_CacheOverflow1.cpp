@@ -7,6 +7,12 @@ namespace FG
 
 	bool FGApp::ImplTest_CacheOverflow1 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln;
 
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
@@ -47,16 +53,21 @@ void main() {
 			
 			cmdBuffers[i&1] = cmd;
 
-			ImageID			rt	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
-			ImageID			img	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::R8_UNorm,
-																			EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Color" );
+			ImageID			rt	= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																	.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+															Default, "RenderTarget" );
+			ImageID			img	= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::R8_UNorm )
+																	.SetUsage( EImageUsage::Sampled | EImageUsage::TransferDst ),
+															Default, "Color" );
+			CHECK_ERR( rt and img );
+
 			LogicalPassID	rp1	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID::Color_0, rt, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 												.AddViewport( view_size ));
 			LogicalPassID	rp2	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID::Color_0, rt, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
 												.AddViewport( view_size ));
+			CHECK_ERR( rp1 and rp2 );
 		
 			resources1.BindTexture( UniformID("un_Image"), img, sampler );
 			resources2.BindTexture( UniformID("un_Image"), img, sampler );
@@ -68,7 +79,7 @@ void main() {
 			Task	t_draw1	= cmd->AddTask( SubmitRenderPass{ rp1 }.DependsOn( t_clear ));
 			Task	t_draw2	= cmd->AddTask( SubmitRenderPass{ rp2 }.DependsOn( t_draw1 ));
 			Task	t_read	= cmd->AddTask( ReadImage().SetImage( rt, int2{}, uint2{1} ).SetCallback([](auto&) {}).DependsOn( t_draw2 ));
-			FG_UNUSED( t_read );
+			Unused( t_read );
 
 			CHECK_ERR( _frameGraph->Execute( cmd ));
 

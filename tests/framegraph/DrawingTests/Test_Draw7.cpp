@@ -8,6 +8,12 @@ namespace FG
 
 	bool FGApp::Test_Draw7 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln;
 
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
@@ -49,13 +55,15 @@ void main() {
 )#" );
 		
 		const uint2		view_size	= {800, 600};
-		ImageID			image_1		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget_1" );
-		ImageID			image_2		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget_2" );
+		ImageID			image_1		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+																Default, "RenderTarget_1" );
+		ImageID			image_2		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+																Default, "RenderTarget_2" );
 
 		GPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
-		CHECK_ERR( pipeline );
+		CHECK_ERR( image_1 and image_2 and pipeline );
 
 		
 		Optional<bool>		data_is_correct;
@@ -107,14 +115,15 @@ void main() {
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID::Color_0, image_1, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 											.AddTarget( RenderTargetID::Color_1, image_2, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-											.AddViewport( view_size ) );
+											.AddViewport( view_size ));
+		CHECK_ERR( render_pass );
 		
 		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
 		Task	t_read1	= cmd->AddTask( ReadImage().SetImage( image_1, int2(), view_size ).SetCallback( OnLoaded1 ).DependsOn( t_draw ));
 		Task	t_read2	= cmd->AddTask( ReadImage().SetImage( image_2, int2(), view_size ).SetCallback( OnLoaded2 ).DependsOn( t_draw ));
-		FG_UNUSED( t_read1, t_read2 );
+		Unused( t_read1, t_read2 );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

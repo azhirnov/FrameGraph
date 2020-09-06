@@ -124,6 +124,9 @@ namespace FG
 		void  Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task);
 		void  Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task);
 		void  Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task);
+		void  Visit (const VFgDrawTask<FG::DrawVerticesIndirectCount> &task);
+		void  Visit (const VFgDrawTask<FG::DrawIndexedIndirectCount> &task);
+		void  Visit (const VFgDrawTask<FG::DrawMeshesIndirectCount> &task);
 		void  Visit (const VFgDrawTask<FG::CustomDraw> &task);
 
 		template <typename PipelineType>
@@ -166,6 +169,9 @@ namespace FG
 		void  Visit (const VFgDrawTask<FG::DrawVerticesIndirect> &task);
 		void  Visit (const VFgDrawTask<FG::DrawIndexedIndirect> &task);
 		void  Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task);
+		void  Visit (const VFgDrawTask<FG::DrawVerticesIndirectCount> &task);
+		void  Visit (const VFgDrawTask<FG::DrawIndexedIndirectCount> &task);
+		void  Visit (const VFgDrawTask<FG::DrawMeshesIndirectCount> &task);
 		void  Visit (const VFgDrawTask<FG::CustomDraw> &task);
 
 	private:
@@ -271,12 +277,12 @@ namespace FG
 				ASSERT( offset < buffer->Size() );
 				ASSERT( offset + size <= buffer->Size() );
 
-				auto&	limits	= _tp._fgThread.GetDevice().GetDeviceProperties().limits;
-				FG_UNUSED( limits );
+				auto&	limits	= _tp._fgThread.GetDevice().GetDeviceLimits();
+				Unused( limits );
 
 				if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
 				{
-					ASSERT( size == buf.staticSize );
+					//ASSERT( size == buf.staticSize );
 					ASSERT( (offset % limits.minUniformBufferOffsetAlignment) == 0 );
 					ASSERT( size <= limits.maxUniformBufferRange );
 				}else{
@@ -346,6 +352,7 @@ namespace FG
 */
 	void  VTaskProcessor::PipelineResourceBarriers::operator () (const UniformID &, const PipelineResources::RayTracingScene &rts)
 	{
+	#ifdef VK_NV_ray_tracing
 		for (uint i = 0; i < rts.elementCount; ++i)
 		{
 			VLocalRTScene const*  scene = _tp._ToLocal( rts.elements[i].sceneId );
@@ -366,6 +373,10 @@ namespace FG
 				}
 			}
 		}
+	#else
+		Unused( rts );
+		ASSERT( !"ray tracing is not supported" );
+	#endif
 	}
 //-----------------------------------------------------------------------------
 
@@ -514,15 +525,74 @@ namespace FG
 	
 /*
 =================================================
+	Visit (DrawVerticesIndirectCount)
+=================================================
+*/
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawVerticesIndirectCount> &task)
+	{
+		// update descriptor sets and add pipeline barriers
+		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
+
+		// add vertex buffers
+		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
+		{
+			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
+		}
+		
+		// add indirect buffer
+		for (auto& cmd : task.commands)
+		{
+			_tp._AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset), VkDeviceSize(cmd.indirectBufferStride) * cmd.maxDrawCount );
+			_tp._AddBuffer( task.countBuffer,    EResourceState::IndirectBuffer, VkDeviceSize(cmd.countBufferOffset),    sizeof(uint) );
+		}
+
+		_MergePipeline( task.dynamicStates, task.pipeline );
+	}
+	
+/*
+=================================================
+	Visit (DrawIndexedIndirectCount)
+=================================================
+*/
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawIndexedIndirectCount> &task)
+	{
+		// update descriptor sets and add pipeline barriers
+		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
+		
+		// add vertex buffers
+		for (size_t i = 0; i < task.GetVertexBuffers().size(); ++i)
+		{
+			_tp._AddBuffer( task.GetVertexBuffers()[i], EResourceState::VertexBuffer, task.GetVBOffsets()[i], VK_WHOLE_SIZE );
+		}
+		
+		// add index buffer
+		_tp._AddBuffer( task.indexBuffer, EResourceState::IndexBuffer, VkDeviceSize(task.indexBufferOffset), VK_WHOLE_SIZE );
+
+		// add indirect buffer
+		for (auto& cmd : task.commands)
+		{
+			_tp._AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset), VkDeviceSize(cmd.indirectBufferStride) * cmd.maxDrawCount );
+			_tp._AddBuffer( task.countBuffer,    EResourceState::IndirectBuffer, VkDeviceSize(cmd.countBufferOffset),    sizeof(uint) );
+		}
+		
+		_MergePipeline( task.dynamicStates, task.pipeline );
+	}
+	
+/*
+=================================================
 	Visit (DrawMeshes)
 =================================================
 */
 	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshes> &task)
 	{
+	#ifdef VK_NV_mesh_shader
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
 		
 		_MergePipeline( task.dynamicStates, task.pipeline );
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -532,6 +602,7 @@ namespace FG
 */
 	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task)
 	{
+	#ifdef VK_NV_mesh_shader
 		// update descriptor sets and add pipeline barriers
 		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
 		
@@ -542,6 +613,33 @@ namespace FG
 		}
 
 		_MergePipeline( task.dynamicStates, task.pipeline );
+	#else
+		Unused( task );
+	#endif
+	}
+	
+/*
+=================================================
+	Visit (DrawMeshesIndirectCount)
+=================================================
+*/
+	inline void  VTaskProcessor::DrawTaskBarriers::Visit (const VFgDrawTask<FG::DrawMeshesIndirectCount> &task)
+	{
+	#ifdef VK_NV_mesh_shader
+		// update descriptor sets and add pipeline barriers
+		_ExtractDescriptorSets( task.pipeline->GetLayoutID(), task );
+		
+		// add indirect buffer
+		for (auto& cmd : task.commands)
+		{
+			_tp._AddBuffer( task.indirectBuffer, EResourceState::IndirectBuffer, VkDeviceSize(cmd.indirectBufferOffset), VkDeviceSize(cmd.indirectBufferStride) * cmd.maxDrawCount );
+			_tp._AddBuffer( task.countBuffer,    EResourceState::IndirectBuffer, VkDeviceSize(cmd.countBufferOffset),    sizeof(uint) );
+		}
+
+		_MergePipeline( task.dynamicStates, task.pipeline );
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -587,7 +685,10 @@ namespace FG
 		STATIC_ASSERT(	(IsSameTypes<PipelineType, VGraphicsPipeline>) or
 						(IsSameTypes<PipelineType, VMeshPipeline>) );
 
-		pipeline->IsEarlyFragmentTests() ? _earlyFragmentTests = true : _lateFragmentTests = true;
+		if ( pipeline->IsEarlyFragmentTests() )
+			_earlyFragmentTests = true;
+		else
+			_lateFragmentTests = true;
 
 		_depthWrite |= (ds.hasDepthWrite & ds.depthWrite);
 
@@ -749,6 +850,8 @@ namespace FG
 
 		for (auto& cmd : task.commands)
 		{
+			ASSERT( cmd.drawCount <= _tp._maxDrawIndirectCount );
+
 			_tp.vkCmdDrawIndirect( _cmdBuffer,
 									task.indirectBuffer->Handle(),
 									VkDeviceSize(cmd.indirectBufferOffset),
@@ -784,6 +887,8 @@ namespace FG
 
 		for (auto& cmd : task.commands)
 		{
+			ASSERT( cmd.drawCount <= _tp._maxDrawIndirectCount );
+
 			_tp.vkCmdDrawIndexedIndirect( _cmdBuffer,
 										   task.indirectBuffer->Handle(),
 										   VkDeviceSize(cmd.indirectBufferOffset),
@@ -794,6 +899,89 @@ namespace FG
 			//stat.primitiveCount += unknown
 		}
 	}
+	
+/*
+=================================================
+	Visit (DrawVerticesIndirectCount)
+=================================================
+*/
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawVerticesIndirectCount> &task)
+	{
+		//_tp._CmdDebugMarker( task.GetName() );
+
+		if ( _tp._drawIndirectCount )
+		{
+			VPipelineLayout const*	layout	= null;
+			auto&					stat	= _tp.Stat();
+
+			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
+			_BindPipelineResources( *layout, task );
+			_tp._PushConstants( *layout, task.pushConstants );
+
+			_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
+			_tp._SetScissor( *_currTask->GetLogicalPass(), task.GetScissors() );
+			_tp._SetDynamicStates( task.dynamicStates );
+
+			for (auto& cmd : task.commands)
+			{
+				ASSERT( cmd.maxDrawCount <= _tp._maxDrawIndirectCount );
+
+				_tp.vkCmdDrawIndirectCountKHR(	_cmdBuffer,
+												task.indirectBuffer->Handle(),
+												VkDeviceSize(cmd.indirectBufferOffset),
+												task.countBuffer->Handle(),
+												VkDeviceSize(cmd.countBufferOffset),
+												cmd.maxDrawCount,
+												uint(cmd.indirectBufferStride) );
+				//stat.vertexCount += unknown
+				//stat.primitiveCount += unknown
+			}
+			stat.drawCalls += uint(task.commands.size());
+		}
+	}
+	
+/*
+=================================================
+	Visit (DrawIndexedIndirectCount)
+=================================================
+*/
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawIndexedIndirectCount> &task)
+	{
+		//_tp._CmdDebugMarker( task.GetName() );
+		
+		if ( _tp._drawIndirectCount )
+		{
+			VPipelineLayout const*	layout	= null;
+			auto&					stat	= _tp.Stat();
+
+			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
+			_BindPipelineResources( *layout, task );
+			_tp._PushConstants( *layout, task.pushConstants );
+
+			_BindVertexBuffers( task.GetVertexBuffers(), task.GetVBOffsets() );
+			_tp._SetScissor( *_currTask->GetLogicalPass(), task.GetScissors() );
+			_tp._BindIndexBuffer( task.indexBuffer->Handle(), VkDeviceSize(task.indexBufferOffset), VEnumCast(task.indexType) );
+			_tp._SetDynamicStates( task.dynamicStates );
+
+			for (auto& cmd : task.commands)
+			{
+				ASSERT( cmd.maxDrawCount <= _tp._maxDrawIndirectCount );
+
+				_tp.vkCmdDrawIndexedIndirectCountKHR( _cmdBuffer,
+													  task.indirectBuffer->Handle(),
+													  VkDeviceSize(cmd.indirectBufferOffset),
+													  task.countBuffer->Handle(),
+													  VkDeviceSize(cmd.countBufferOffset),
+													  cmd.maxDrawCount,
+													  uint(cmd.indirectBufferStride) );
+				//stat.vertexCount += unknown
+				//stat.primitiveCount += unknown
+			}
+			stat.drawCalls += uint(task.commands.size());
+		}
+	}
 		
 /*
 =================================================
@@ -802,26 +990,33 @@ namespace FG
 */
 	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshes> &task)
 	{
-		//_tp._CmdDebugMarker( task.GetName() );
-		
-		VPipelineLayout const*	layout	= null;
-		auto&					stat	= _tp.Stat();
-
-		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
-
-		_BindPipelineResources( *layout, task );
-		_tp._PushConstants( *layout, task.pushConstants );
-		
-		_tp._SetScissor( *_currTask->GetLogicalPass(), task.GetScissors() );
-		_tp._SetDynamicStates( task.dynamicStates );
-
-		for (auto& cmd : task.commands)
+	#ifdef VK_NV_mesh_shader
+		if ( _tp._meshShaderNV )
 		{
-			_tp.vkCmdDrawMeshTasksNV( _cmdBuffer, cmd.count, cmd.first );
-			//stat.vertexCount += unknown
-			//stat.primitiveCount += unknown
+			//_tp._CmdDebugMarker( task.GetName() );
+		
+			VPipelineLayout const*	layout	= null;
+			auto&					stat	= _tp.Stat();
+
+			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
+			_BindPipelineResources( *layout, task );
+			_tp._PushConstants( *layout, task.pushConstants );
+		
+			_tp._SetScissor( *_currTask->GetLogicalPass(), task.GetScissors() );
+			_tp._SetDynamicStates( task.dynamicStates );
+
+			for (auto& cmd : task.commands)
+			{
+				_tp.vkCmdDrawMeshTasksNV( _cmdBuffer, cmd.count, cmd.first );
+				//stat.vertexCount += unknown
+				//stat.primitiveCount += unknown
+			}
+			stat.drawCalls += uint(task.commands.size());
 		}
-		stat.drawCalls += uint(task.commands.size());
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -831,30 +1026,83 @@ namespace FG
 */
 	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshesIndirect> &task)
 	{
-		//_tp._CmdDebugMarker( task.GetName() );
-		
-		VPipelineLayout const*	layout	= null;
-		auto&					stat	= _tp.Stat();
-
-		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
-
-		_BindPipelineResources( *layout, task );
-		_tp._PushConstants( *layout, task.pushConstants );
-		
-		_tp._SetScissor( *_currTask->GetLogicalPass(), task.GetScissors() );
-		_tp._SetDynamicStates( task.dynamicStates );
-
-		for (auto& cmd : task.commands)
+	#ifdef VK_NV_mesh_shader
+		if ( _tp._meshShaderNV )
 		{
-			_tp.vkCmdDrawMeshTasksIndirectNV( _cmdBuffer,
-											   task.indirectBuffer->Handle(),
-											   VkDeviceSize(cmd.indirectBufferOffset),
-											   cmd.drawCount,
-											   uint(cmd.stride) );
-			stat.drawCalls += cmd.drawCount;
-			//stat.vertexCount += unknown
-			//stat.primitiveCount += unknown
+			//_tp._CmdDebugMarker( task.GetName() );
+		
+			VPipelineLayout const*	layout	= null;
+			auto&					stat	= _tp.Stat();
+
+			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
+			_BindPipelineResources( *layout, task );
+			_tp._PushConstants( *layout, task.pushConstants );
+		
+			_tp._SetScissor( *_currTask->GetLogicalPass(), task.GetScissors() );
+			_tp._SetDynamicStates( task.dynamicStates );
+
+			for (auto& cmd : task.commands)
+			{
+				ASSERT( cmd.drawCount <= _tp._maxDrawIndirectCount );
+
+				_tp.vkCmdDrawMeshTasksIndirectNV( _cmdBuffer,
+												   task.indirectBuffer->Handle(),
+												   VkDeviceSize(cmd.indirectBufferOffset),
+												   cmd.drawCount,
+												   uint(cmd.stride) );
+				stat.drawCalls += cmd.drawCount;
+				//stat.vertexCount += unknown
+				//stat.primitiveCount += unknown
+			}
 		}
+	#else
+		Unused( task );
+	#endif
+	}
+	
+/*
+=================================================
+	Visit (DrawMeshesIndirectCount)
+=================================================
+*/
+	inline void  VTaskProcessor::DrawTaskCommands::Visit (const VFgDrawTask<FG::DrawMeshesIndirectCount> &task)
+	{
+	#ifdef VK_NV_mesh_shader
+		if ( _tp._meshShaderNV )
+		{
+			//_tp._CmdDebugMarker( task.GetName() );
+		
+			VPipelineLayout const*	layout	= null;
+			auto&					stat	= _tp.Stat();
+
+			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+
+			_BindPipelineResources( *layout, task );
+			_tp._PushConstants( *layout, task.pushConstants );
+		
+			_tp._SetScissor( *_currTask->GetLogicalPass(), task.GetScissors() );
+			_tp._SetDynamicStates( task.dynamicStates );
+
+			for (auto& cmd : task.commands)
+			{
+				ASSERT( cmd.maxDrawCount <= _tp._maxDrawIndirectCount );
+
+				_tp.vkCmdDrawMeshTasksIndirectCountNV( _cmdBuffer,
+														task.indirectBuffer->Handle(),
+														VkDeviceSize(cmd.indirectBufferOffset),
+														task.countBuffer->Handle(),
+														VkDeviceSize(cmd.countBufferOffset),
+														cmd.maxDrawCount,
+														uint(cmd.indirectBufferStride) );
+				//stat.vertexCount += unknown
+				//stat.primitiveCount += unknown
+			}
+			stat.drawCalls += uint(task.commands.size());
+		}
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -1009,10 +1257,15 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::BindPipeline (RawMPipelineID id, EPipelineDynamicState dynamicState)
 	{
+	#ifdef VK_NV_mesh_shader
 		_dynamicStates	= dynamicState;
 		_gpipeline		= null;
 		_mpipeline		= _tp._GetResource( id );
 		_changed		|= ALL_BITS;
+	#else
+		Unused( id, dynamicState );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
 	}
 	
 /*
@@ -1231,6 +1484,7 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::SetShadingRatePalette (uint viewportIndex, ArrayView<EShadingRatePalette> value)
 	{
+	#ifdef VK_NV_shading_rate_image
 		_BindPipeline( ALL_BITS );
 		
 		StaticArray< VkShadingRatePaletteEntryNV, 32 >	entries;
@@ -1245,6 +1499,10 @@ namespace FG
 		}
 
 		_tp.vkCmdSetViewportShadingRatePaletteNV( _tp._cmdBuffer, viewportIndex, 1, &palette );
+	#else
+		Unused( viewportIndex, value );
+		ASSERT( !"shading rate image is not supported" );
+	#endif
 	}
 	
 /*
@@ -1254,11 +1512,12 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::BindShadingRateImage (RawImageID value, ImageLayer layer, MipmapLevel level)
 	{
+	#ifdef VK_NV_shading_rate_image
 		auto*	image = _tp._GetResource( value );
 		CHECK_ERR( image, void());
 		
 		ImageViewDesc	desc;
-		desc.viewType	= EImage::Tex2D;
+		desc.viewType	= EImage_2D;
 		desc.format		= EPixelFormat::R8U;
 		desc.baseLevel	= level;
 		desc.baseLayer	= layer;
@@ -1267,6 +1526,10 @@ namespace FG
 		VkImageView	view = image->GetView( _tp._fgThread.GetDevice(), false, desc );
 
 		_tp._BindShadingRateImage( view );
+	#else
+		Unused( value, layer, level );
+		ASSERT( !"shading rate image is not supported" );
+	#endif
 	}
 
 /*
@@ -1351,11 +1614,16 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::DrawMeshes (uint taskCount, uint firstTask)
 	{
+	#ifdef VK_NV_mesh_shader
 		CHECK( _mpipeline );
 		CHECK_ERR( _BindPipeline( MESH_BIT ), void());
 
 		_tp.vkCmdDrawMeshTasksNV( _tp._cmdBuffer, taskCount, firstTask );
 		_tp.Stat().drawCalls ++;
+	#else
+		Unused( taskCount, firstTask );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
 	}
 	
 /*
@@ -1365,6 +1633,7 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
 	{
+	#ifdef VK_NV_mesh_shader
 		auto*	buf = _tp._GetResource( indirectBuffer );
 		CHECK_ERR( buf, void());
 
@@ -1373,6 +1642,10 @@ namespace FG
 
 		_tp.vkCmdDrawMeshTasksIndirectNV( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
 		_tp.Stat().drawCalls += drawCount;
+	#else
+		Unused( indirectBuffer, indirectBufferOffset, drawCount, stride );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
 	}
 //-----------------------------------------------------------------------------
 
@@ -1385,15 +1658,22 @@ namespace FG
 */
 	VTaskProcessor::VTaskProcessor (VCommandBuffer &fgThread, VkCommandBuffer cmd) :
 		_fgThread{ fgThread },
-		_cmdBuffer{ cmd },				_enableDebugUtils{ _fgThread.GetDevice().IsDebugUtilsEnabled() },
-		_isDefaultScissor{ false },		_perPassStatesUpdated{ false },
+		_cmdBuffer{ cmd },
+		_enableDebugUtils{ _fgThread.GetDevice().GetFeatures().debugUtils },
+		_isDefaultScissor{ false },	
+		_perPassStatesUpdated{ false },
+		_dispatchBase{ _fgThread.GetDevice().GetFeatures().dispatchBase },
+		_drawIndirectCount{ _fgThread.GetDevice().GetFeatures().drawIndirectCount },
+		_meshShaderNV{ _fgThread.GetDevice().GetFeatures().meshShaderNV },
+		_rayTracingNV{ _fgThread.GetDevice().GetFeatures().rayTracingNV },
+		_maxDrawIndirectCount{ _fgThread.GetDevice().GetProperties().properties.limits.maxDrawIndirectCount },
 		_pendingResourceBarriers{ fgThread.GetAllocator() }
 	{
 		ASSERT( _cmdBuffer );
 		
 		VulkanDeviceFn_Init( _fgThread.GetDevice() );
 
-		_CmdPushDebugGroup( "CommandBuffer: "s << (fgThread.GetName().size() ? fgThread.GetName() : ToString<16>( size_t(_cmdBuffer) )) );
+		_CmdPushDebugGroup( "CommandBuffer: "s << (fgThread.GetName().size() ? fgThread.GetName() : ToString<16>( size_t(_cmdBuffer) )), RGBA8u{255} );
 	}
 	
 /*
@@ -1483,6 +1763,36 @@ namespace FG
 	
 /*
 =================================================
+	Visit*_DrawVerticesIndirectCount
+=================================================
+*/
+	void  VTaskProcessor::Visit1_DrawVerticesIndirectCount (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawVerticesIndirectCount>*>( taskData ));
+	}
+
+	void  VTaskProcessor::Visit2_DrawVerticesIndirectCount (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawVerticesIndirectCount>*>( taskData ));
+	}
+	
+/*
+=================================================
+	Visit*_DrawIndexedIndirectCount
+=================================================
+*/
+	void  VTaskProcessor::Visit1_DrawIndexedIndirectCount (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawIndexedIndirectCount>*>( taskData ));
+	}
+
+	void  VTaskProcessor::Visit2_DrawIndexedIndirectCount (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawIndexedIndirectCount>*>( taskData ));
+	}
+	
+/*
+=================================================
 	Visit*_DrawMeshesIndirect
 =================================================
 */
@@ -1494,6 +1804,21 @@ namespace FG
 	void  VTaskProcessor::Visit2_DrawMeshesIndirect (void *visitor, void *taskData)
 	{
 		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawMeshesIndirect>*>( taskData ));
+	}
+	
+/*
+=================================================
+	Visit*_DrawMeshesIndirectCount
+=================================================
+*/
+	void  VTaskProcessor::Visit1_DrawMeshesIndirectCount (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskBarriers *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawMeshesIndirectCount>*>( taskData ));
+	}
+
+	void  VTaskProcessor::Visit2_DrawMeshesIndirectCount (void *visitor, void *taskData)
+	{
+		static_cast<DrawTaskCommands *>(visitor)->Visit( *static_cast<VFgDrawTask<FG::DrawMeshesIndirectCount>*>( taskData ));
 	}
 	
 /*
@@ -1518,7 +1843,7 @@ namespace FG
 */
 	void  VTaskProcessor::_CmdDebugMarker (StringView text) const
 	{
-		FG_UNUSED( text );
+		Unused( text );
 		/*if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
@@ -1535,14 +1860,14 @@ namespace FG
 	_CmdPushDebugGroup
 =================================================
 */
-	void  VTaskProcessor::_CmdPushDebugGroup (StringView text) const
+	void  VTaskProcessor::_CmdPushDebugGroup (StringView text, RGBA8u color) const
 	{
 		if ( text.size() and _enableDebugUtils )
 		{
 			VkDebugUtilsLabelEXT	info = {};
 			info.sType		= VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 			info.pLabelName	= text.data();
-			MemCopy( info.color, _dbgColor );
+			MemCopy( info.color, RGBA32f{color} );
 
 			vkCmdBeginDebugUtilsLabelEXT( _cmdBuffer, &info );
 		}
@@ -1662,15 +1987,19 @@ namespace FG
 */
 	void  VTaskProcessor::_SetShadingRateImage (const VLogicalRenderPass &logicalRP, OUT VkImageView &view)
 	{
+	#ifdef VK_NV_shading_rate_image
 		VLocalImage const*	image;
 		ImageViewDesc		desc;
 
-		if ( not logicalRP.GetShadingRateImage( OUT image, OUT desc ) )
+		if ( not logicalRP.GetShadingRateImage( OUT image, OUT desc ))
 			return;
 
 		view = image->GetView( _fgThread.GetDevice(), false, desc );
 
 		_AddImage( image, EResourceState::ShadingRateImageRead, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV, desc );
+	#else
+		Unused( logicalRP, view );
+	#endif
 	}
 	
 /*
@@ -1680,11 +2009,15 @@ namespace FG
 */
 	void  VTaskProcessor::_BindShadingRateImage (VkImageView view)
 	{
+	#ifdef VK_NV_shading_rate_image
 		if ( _shadingRateImage != view )
 		{
 			_shadingRateImage = view;
 			vkCmdBindShadingRateImageNV( _cmdBuffer, _shadingRateImage, VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV );
 		}
+	#else
+		Unused( view );
+	#endif
 	}
 	
 /*
@@ -1855,13 +2188,13 @@ namespace FG
 
 		if ( not task.IsSubpass() )
 		{
-			_CmdPushDebugGroup( task.Name() );
+			_CmdPushDebugGroup( task.Name(), task.DebugColor() );
 			_BeginRenderPass( task );
 		}
 		else
 		{
 			_CmdPopDebugGroup();
-			_CmdPushDebugGroup( task.Name() );
+			_CmdPushDebugGroup( task.Name(), task.DebugColor() );
 			_BeginSubpass( task );
 		}
 
@@ -2013,9 +2346,11 @@ namespace FG
 		
 		if ( auto viewports = logicalRP.GetViewports(); viewports.size() )
 			vkCmdSetViewport( _cmdBuffer, 0, uint(viewports.size()), viewports.data() );
-
+		
+		#ifdef VK_NV_shading_rate_image
 		if ( auto palette = logicalRP.GetShadingRatePalette(); palette.size() )
 			vkCmdSetViewportShadingRatePaletteNV( _cmdBuffer, 0, uint(palette.size()), palette.data() );
+		#endif
 	}
 	
 /*
@@ -2127,6 +2462,7 @@ namespace FG
 */
 	inline bool  VTaskProcessor::_BindPipeline (const VLogicalRenderPass &logicalRP, const VBaseDrawMeshes &task, VPipelineLayout const* &pplnLayout)
 	{
+	#ifdef VK_NV_mesh_shader
 		RenderState				render_state;
 		EPipelineDynamicState	dynamic_states = EPipelineDynamicState::Viewport | EPipelineDynamicState::Scissor;
 		
@@ -2153,6 +2489,10 @@ namespace FG
 		
 		_BindPipeline2( logicalRP, ppln_id );
 		return true;
+	#else
+		Unused( logicalRP, task, pplnLayout );
+		return false;
+	#endif
 	}
 
 /*
@@ -2200,8 +2540,21 @@ namespace FG
 
 		for (auto& cmd : task.commands)
 		{
-			vkCmdDispatchBase( _cmdBuffer, cmd.baseGroup.x, cmd.baseGroup.y, cmd.baseGroup.z,
-								cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+		#if defined(VK_KHR_device_group) || defined(VK_VERSION_1_1)
+			if ( _dispatchBase )
+			{
+				vkCmdDispatchBaseKHR( _cmdBuffer, cmd.baseGroup.x, cmd.baseGroup.y, cmd.baseGroup.z,
+									  cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+			}
+			else
+			{
+				ASSERT( All( cmd.baseGroup == uint3(0) ));
+				vkCmdDispatch( _cmdBuffer, cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+			}
+		#else
+			ASSERT( All( cmd.baseGroup == uint3(0) ));
+			vkCmdDispatch( _cmdBuffer, cmd.groupCount.x, cmd.groupCount.y, cmd.groupCount.z );
+		#endif
 		}
 		Stat().dispatchCalls += uint(task.commands.size());
 	}
@@ -2543,14 +2896,14 @@ namespace FG
 
 		VLocalImage const*		image		= task.image;
 		const VkImage			vk_image	= image->Handle();
-		const uint3				dimension	= image->Dimension() >> task.baseLevel;
+		const uint3				dimension	= image->Dimension() >> task.baseMipLevel;
 		VkImageSubresourceRange	subres;
 
 		subres.aspectMask		= image->AspectMask();
-		subres.baseArrayLayer	= 0;
-		subres.layerCount		= image->ArrayLayers();
-		subres.baseMipLevel		= task.baseLevel;
-		subres.levelCount		= Min( task.levelCount, image->MipmapLevels() - Min( image->MipmapLevels()-1, task.baseLevel ));
+		subres.baseArrayLayer	= task.baseLayer;
+		subres.layerCount		= Min( task.layerCount, image->ArrayLayers() );
+		subres.baseMipLevel		= task.baseMipLevel;
+		subres.levelCount		= Min( task.levelCount, image->MipmapLevels() - Min( image->MipmapLevels()-1, task.baseMipLevel ));
 
 		if ( subres.levelCount <= 1 )
 			return;
@@ -2574,7 +2927,7 @@ namespace FG
 			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.srcAccessMask		= 0;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, 0, subres.layerCount };
+			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, subres.baseArrayLayer, subres.layerCount };
 
 			vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									0, null, 0, null, 1, &barrier );
@@ -2582,10 +2935,10 @@ namespace FG
 			VkImageBlit		region	= {};
 			region.srcOffsets[0]	= { 0, 0, 0 };
 			region.srcOffsets[1]	= { src_size.x, src_size.y, src_size.z };
-			region.srcSubresource	= { subres.aspectMask, (subres.baseMipLevel+i-1), 0, subres.layerCount };
+			region.srcSubresource	= { subres.aspectMask, (subres.baseMipLevel+i-1), subres.baseArrayLayer, subres.layerCount };
 			region.dstOffsets[0]	= { 0, 0, 0 };
 			region.dstOffsets[1]	= { dst_size.x, dst_size.y, dst_size.z };
-			region.dstSubresource	= { subres.aspectMask, (subres.baseMipLevel+i), 0, subres.layerCount };
+			region.dstSubresource	= { subres.aspectMask, (subres.baseMipLevel+i), subres.baseArrayLayer, subres.layerCount };
 
 			vkCmdBlitImage( _cmdBuffer, vk_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 							 vk_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR );
@@ -2597,7 +2950,7 @@ namespace FG
 			barrier.newLayout			= VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.srcAccessMask		= VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask		= VK_ACCESS_TRANSFER_READ_BIT;
-			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, 0, subres.layerCount };
+			barrier.subresourceRange	= { subres.aspectMask, (subres.baseMipLevel+i), 1, subres.baseArrayLayer, subres.layerCount };
 
 			vkCmdPipelineBarrier( _cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 									0, null, 0, null, 1, &barrier );
@@ -2746,7 +3099,7 @@ namespace FG
 		const VkFilter			filter		= src_dim.x == dst_dim.x and src_dim.y == dst_dim.y ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
 		VkImageBlit				region;
 
-		ASSERT( EnumEq( dst_image->Description().usage, EImageUsage::TransferDst ));
+		ASSERT( AllBits( dst_image->Description().usage, EImageUsage::TransferDst ));
 		CHECK( src_image != dst_image );
 		
 		region.srcSubresource	= { VK_IMAGE_ASPECT_COLOR_BIT, task.mipmap.Get(), task.layer.Get(), 1 };
@@ -2777,36 +3130,43 @@ namespace FG
 */
 	void  VTaskProcessor::Visit (const VFgTask<UpdateRayTracingShaderTable> &task)
 	{
-		_CmdDebugMarker( task.Name() );
-
-		VPipelineCache::BufferCopyRegions_t	copy_regions;
-
-		CHECK_ERR( _fgThread.GetPipelineCache().InitShaderTable(
-													_fgThread,
-													task.pipeline,
-													*task.rtScene->ToGlobal(),
-													task.rayGenShader,
-													task.GetShaderGroups(),
-													task.maxRecursionDepth,
-													INOUT *task.shaderTable,
-													OUT copy_regions ), void());
-
-		for (auto& copy : copy_regions)
+	#ifdef VK_NV_ray_tracing
+		if ( _rayTracingNV )
 		{
-			ASSERT( EnumEq( copy.srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
-			ASSERT( EnumEq( copy.dstBuffer->Description().usage, EBufferUsage::TransferDst ));
+			_CmdDebugMarker( task.Name() );
 
-			_AddBuffer( copy.srcBuffer, EResourceState::TransferSrc, copy.region.srcOffset, copy.region.size );
-			_AddBuffer( copy.dstBuffer, EResourceState::TransferDst, copy.region.dstOffset, copy.region.size );
-		}
-		
-		_CommitBarriers();
-		
-		for (auto& copy : copy_regions) {
-			vkCmdCopyBuffer( _cmdBuffer, copy.srcBuffer->Handle(), copy.dstBuffer->Handle(), 1, &copy.region );
-		}
+			VPipelineCache::BufferCopyRegions_t	copy_regions;
 
-		Stat().transferOps += uint(copy_regions.size());
+			CHECK_ERR( _fgThread.GetPipelineCache().InitShaderTable(
+														_fgThread,
+														task.pipeline,
+														*task.rtScene->ToGlobal(),
+														task.rayGenShader,
+														task.GetShaderGroups(),
+														task.maxRecursionDepth,
+														INOUT *task.shaderTable,
+														OUT copy_regions ), void());
+
+			for (auto& copy : copy_regions)
+			{
+				ASSERT( AllBits( copy.srcBuffer->Description().usage, EBufferUsage::TransferSrc ));
+				ASSERT( AllBits( copy.dstBuffer->Description().usage, EBufferUsage::TransferDst ));
+
+				_AddBuffer( copy.srcBuffer, EResourceState::TransferSrc, copy.region.srcOffset, copy.region.size );
+				_AddBuffer( copy.dstBuffer, EResourceState::TransferDst, copy.region.dstOffset, copy.region.size );
+			}
+		
+			_CommitBarriers();
+		
+			for (auto& copy : copy_regions) {
+				vkCmdCopyBuffer( _cmdBuffer, copy.srcBuffer->Handle(), copy.dstBuffer->Handle(), 1, &copy.region );
+			}
+
+			Stat().transferOps += uint(copy_regions.size());
+		}
+	#else
+		Unused( task );
+	#endif
 	}
 
 /*
@@ -2816,33 +3176,40 @@ namespace FG
 */
 	void  VTaskProcessor::Visit (const VFgTask<BuildRayTracingGeometry> &task)
 	{
-		_CmdDebugMarker( task.Name() );
-		
-		_AddRTGeometry( task.RTGeometry(), EResourceState::BuildRayTracingStructWrite );
-		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, task.ScratchBufferOffset(), task.ScratchBufferSize() );
-
-		for (auto& buf : task.GetBuffers())
+	#ifdef VK_NV_ray_tracing
+		if ( _rayTracingNV )
 		{
-			// resource state doesn't matter
-			_AddBuffer( buf, EResourceState::TransferSrc, 0, VK_WHOLE_SIZE );
+			_CmdDebugMarker( task.Name() );
+		
+			_AddRTGeometry( task.RTGeometry(), EResourceState::BuildRayTracingStructWrite );
+			_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, task.ScratchBufferOffset(), task.ScratchBufferSize() );
+
+			for (auto& buf : task.GetBuffers())
+			{
+				// resource state doesn't matter
+				_AddBuffer( buf, EResourceState::TransferSrc, 0, VK_WHOLE_SIZE );
+			}
+
+			_CommitBarriers();
+
+			VkAccelerationStructureInfoNV	info = {};
+			info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+			info.type			= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
+			info.geometryCount	= uint(task.GetGeometry().size());
+			info.pGeometries	= task.GetGeometry().data();
+			info.flags			= VEnumCast( task.RTGeometry()->GetFlags() );
+
+			vkCmdBuildAccelerationStructureNV( _cmdBuffer, &info,
+												VK_NULL_HANDLE, 0,
+												VK_FALSE,
+												task.RTGeometry()->Handle(), VK_NULL_HANDLE,
+												task.ScratchBuffer()->Handle(),
+												task.ScratchBufferOffset() );
+			Stat().buildASCalls ++;
 		}
-
-		_CommitBarriers();
-
-		VkAccelerationStructureInfoNV	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-		info.type			= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV;
-		info.geometryCount	= uint(task.GetGeometry().size());
-		info.pGeometries	= task.GetGeometry().data();
-		info.flags			= VEnumCast( task.RTGeometry()->GetFlags() );
-
-		vkCmdBuildAccelerationStructureNV( _cmdBuffer, &info,
-											VK_NULL_HANDLE, 0,
-											VK_FALSE,
-											task.RTGeometry()->Handle(), VK_NULL_HANDLE,
-											task.ScratchBuffer()->Handle(),
-											task.ScratchBufferOffset() );
-		Stat().buildASCalls ++;
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -2852,51 +3219,58 @@ namespace FG
 */
 	void  VTaskProcessor::Visit (const VFgTask<BuildRayTracingScene> &task)
 	{
-		_CmdDebugMarker( task.Name() );
+	#ifdef VK_NV_ray_tracing
+		if ( _rayTracingNV )
+		{
+			_CmdDebugMarker( task.Name() );
 		
-		// copy instance data to GPU memory
-		_AddBuffer( task.InstanceStagingBuffer(), EResourceState::TransferSrc, task.InstanceStagingBufferOffset(), task.InstanceBufferSize() );
-		_AddBuffer( task.InstanceBuffer(), EResourceState::TransferDst, task.InstanceBufferOffset(), task.InstanceBufferSize() );
+			// copy instance data to GPU memory
+			_AddBuffer( task.InstanceStagingBuffer(), EResourceState::TransferSrc, task.InstanceStagingBufferOffset(), task.InstanceBufferSize() );
+			_AddBuffer( task.InstanceBuffer(), EResourceState::TransferDst, task.InstanceBufferOffset(), task.InstanceBufferSize() );
 		
-		_CommitBarriers();
+			_CommitBarriers();
 
-		VkBufferCopy	region;
-		region.srcOffset	= task.InstanceStagingBufferOffset();
-		region.dstOffset	= task.InstanceBufferOffset();
-		region.size			= task.InstanceBufferSize();
+			VkBufferCopy	region;
+			region.srcOffset	= task.InstanceStagingBufferOffset();
+			region.dstOffset	= task.InstanceBufferOffset();
+			region.size			= task.InstanceBufferSize();
 
-		vkCmdCopyBuffer( _cmdBuffer, task.InstanceStagingBuffer()->Handle(), task.InstanceBuffer()->Handle(), 1, &region );
+			vkCmdCopyBuffer( _cmdBuffer, task.InstanceStagingBuffer()->Handle(), task.InstanceBuffer()->Handle(), 1, &region );
 		
-		Stat().transferOps ++;
+			Stat().transferOps ++;
 
 
-		// build TLAS
-		task.RTScene()->ToGlobal()->SetGeometryInstances( _fgThread.GetResourceManager(), task.Instances(), task.InstanceCount(),
-														  task.HitShadersPerInstance(), task.MaxHitShaderCount() );
+			// build TLAS
+			task.RTScene()->ToGlobal()->SetGeometryInstances( _fgThread.GetResourceManager(), task.Instances(), task.InstanceCount(),
+															  task.HitShadersPerInstance(), task.MaxHitShaderCount() );
 
-		_AddRTScene( task.RTScene(), EResourceState::BuildRayTracingStructWrite );
-		_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, task.ScratchBufferOffset(), task.ScratchBufferSize() );
-		_AddBuffer( task.InstanceBuffer(), EResourceState::RTASBuildingBufferRead, task.InstanceBufferOffset(), task.InstanceBufferSize() );
+			_AddRTScene( task.RTScene(), EResourceState::BuildRayTracingStructWrite );
+			_AddBuffer( task.ScratchBuffer(), EResourceState::RTASBuildingBufferReadWrite, task.ScratchBufferOffset(), task.ScratchBufferSize() );
+			_AddBuffer( task.InstanceBuffer(), EResourceState::RTASBuildingBufferRead, task.InstanceBufferOffset(), task.InstanceBufferSize() );
 
-		for (auto& blas : task.Geometries()) {
-			_AddRTGeometry( blas, EResourceState::BuildRayTracingStructRead );
+			for (auto& blas : task.Geometries()) {
+				_AddRTGeometry( blas, EResourceState::BuildRayTracingStructRead );
+			}
+
+			_CommitBarriers();
+		
+			VkAccelerationStructureInfoNV	info = {};
+			info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
+			info.type			= VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
+			info.flags			= VEnumCast( task.RTScene()->GetFlags() );
+			info.instanceCount	= task.InstanceCount();
+
+			vkCmdBuildAccelerationStructureNV( _cmdBuffer, &info,
+												task.InstanceBuffer()->Handle(), task.InstanceBufferOffset(),
+												VK_FALSE,
+												task.RTScene()->Handle(), VK_NULL_HANDLE,
+												task.ScratchBuffer()->Handle(),
+												task.ScratchBufferOffset() );
+			Stat().buildASCalls ++;
 		}
-
-		_CommitBarriers();
-		
-		VkAccelerationStructureInfoNV	info = {};
-		info.sType			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-		info.type			= VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
-		info.flags			= VEnumCast( task.RTScene()->GetFlags() );
-		info.instanceCount	= task.InstanceCount();
-
-		vkCmdBuildAccelerationStructureNV( _cmdBuffer, &info,
-											task.InstanceBuffer()->Handle(), task.InstanceBufferOffset(),
-											VK_FALSE,
-											task.RTScene()->Handle(), VK_NULL_HANDLE,
-											task.ScratchBuffer()->Handle(),
-											task.ScratchBufferOffset() );
-		Stat().buildASCalls ++;
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -2906,66 +3280,73 @@ namespace FG
 */
 	void  VTaskProcessor::Visit (const VFgTask<TraceRays> &task)
 	{
-		_CmdDebugMarker( task.Name() );
-
-		const bool			is_debuggable	= (task.debugModeIndex != Default);
-		EShaderDebugMode	dbg_mode		= Default;
-		EShaderStages		dbg_stages		= Default;
-		RawPipelineLayoutID	layout_id;
-		VkPipeline			pipeline		= VK_NULL_HANDLE;
-		VkDeviceSize		raygen_offset	= 0;
-		VkDeviceSize		raymiss_offset	= 0;
-		VkDeviceSize		raymiss_stride	= 0;
-		VkDeviceSize		rayhit_offset	= 0;
-		VkDeviceSize		rayhit_stride	= 0;
-		VkDeviceSize		callable_offset	= 0;
-		VkDeviceSize		callable_stride	= 0;
-		VkDeviceSize		block_size		= 0;
-
-		if ( is_debuggable )
+	#ifdef VK_NV_ray_tracing
+		if ( _rayTracingNV )
 		{
-			auto&	debugger = _fgThread.GetBatch();
-			auto*	ppln	 = _GetResource( task.shaderTable->GetPipeline() );
+			_CmdDebugMarker( task.Name() );
 
-			CHECK_ERR( ppln, void());
-			CHECK( debugger.GetDebugModeInfo( task.debugModeIndex, OUT dbg_mode, OUT dbg_stages ));
+			const bool			is_debuggable	= (task.debugModeIndex != Default);
+			EShaderDebugMode	dbg_mode		= Default;
+			EShaderStages		dbg_stages		= Default;
+			RawPipelineLayoutID	layout_id;
+			VkPipeline			pipeline		= VK_NULL_HANDLE;
+			VkDeviceSize		raygen_offset	= 0;
+			VkDeviceSize		raymiss_offset	= 0;
+			VkDeviceSize		raymiss_stride	= 0;
+			VkDeviceSize		rayhit_offset	= 0;
+			VkDeviceSize		rayhit_stride	= 0;
+			VkDeviceSize		callable_offset	= 0;
+			VkDeviceSize		callable_stride	= 0;
+			VkDeviceSize		block_size		= 0;
 
-			for (auto& shader : ppln->GetShaderModules())
+			if ( is_debuggable )
 			{
-				if ( shader.debugMode == dbg_mode )
-					debugger.SetShaderModule( task.debugModeIndex, shader.module );
+				auto&	debugger = _fgThread.GetBatch();
+				auto*	ppln	 = _GetResource( task.shaderTable->GetPipeline() );
+
+				CHECK_ERR( ppln, void());
+				CHECK( debugger.GetDebugModeInfo( task.debugModeIndex, OUT dbg_mode, OUT dbg_stages ));
+
+				for (auto& shader : ppln->GetShaderModules())
+				{
+					if ( shader.debugMode == dbg_mode )
+						debugger.SetShaderModule( task.debugModeIndex, shader.module );
+				}
 			}
+
+			CHECK_ERR( task.shaderTable->GetBindings( dbg_mode, OUT layout_id, OUT pipeline, OUT block_size, OUT raygen_offset,
+													  OUT raymiss_offset, OUT raymiss_stride, OUT rayhit_offset, OUT rayhit_stride,
+													  OUT callable_offset, OUT callable_stride ), void());
+
+			VPipelineLayout const*	layout		= _GetResource( layout_id );
+			VLocalBuffer const*		sbt_buffer	= _ToLocal( task.shaderTable->GetBuffer() );
+		
+			if ( _rayTracingPipeline.pipeline != pipeline )
+			{
+				_rayTracingPipeline.pipeline = pipeline;
+				vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline );
+				Stat().rayTracingPipelineBindings ++;
+			}
+
+			_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, task.debugModeIndex );
+			_PushConstants( *layout, task.pushConstants );
+		
+			ASSERT( AllBits( sbt_buffer->Description().usage, EBufferUsage::RayTracing ));
+
+			_AddBuffer( sbt_buffer, EResourceState::ShaderRead | EResourceState::_RayTracingShader, raygen_offset, block_size );
+			_CommitBarriers();
+		
+			vkCmdTraceRaysNV( _cmdBuffer, 
+								sbt_buffer->Handle(), raygen_offset,
+								sbt_buffer->Handle(), raymiss_offset, raymiss_stride,
+								sbt_buffer->Handle(), rayhit_offset,  rayhit_stride,
+								sbt_buffer->Handle(), callable_offset, callable_stride,
+								task.groupCount.x, task.groupCount.y, task.groupCount.z );
+			Stat().traceRaysCalls ++;
 		}
-
-		CHECK_ERR( task.shaderTable->GetBindings( dbg_mode, OUT layout_id, OUT pipeline, OUT block_size, OUT raygen_offset,
-												  OUT raymiss_offset, OUT raymiss_stride, OUT rayhit_offset, OUT rayhit_stride,
-												  OUT callable_offset, OUT callable_stride ), void());
-
-		VPipelineLayout const*	layout		= _GetResource( layout_id );
-		VLocalBuffer const*		sbt_buffer	= _ToLocal( task.shaderTable->GetBuffer() );
-		
-		if ( _rayTracingPipeline.pipeline != pipeline )
-		{
-			_rayTracingPipeline.pipeline = pipeline;
-			vkCmdBindPipeline( _cmdBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pipeline );
-			Stat().rayTracingPipelineBindings ++;
-		}
-
-		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, task.debugModeIndex );
-		_PushConstants( *layout, task.pushConstants );
-		
-		ASSERT( EnumEq( sbt_buffer->Description().usage, EBufferUsage::RayTracing ));
-
-		_AddBuffer( sbt_buffer, EResourceState::ShaderRead | EResourceState::_RayTracingShader, raygen_offset, block_size );
-		_CommitBarriers();
-		
-		vkCmdTraceRaysNV( _cmdBuffer, 
-							sbt_buffer->Handle(), raygen_offset,
-							sbt_buffer->Handle(), raymiss_offset, raymiss_stride,
-							sbt_buffer->Handle(), rayhit_offset,  rayhit_stride,
-							sbt_buffer->Handle(), callable_offset, callable_stride,
-							task.groupCount.x, task.groupCount.y, task.groupCount.z );
-		Stat().traceRaysCalls ++;
+	#else
+		Unused( task );
+	#endif
 	}
 	
 /*
@@ -3143,6 +3524,7 @@ namespace FG
 	_AddRTGeometry
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	void  VTaskProcessor::_AddRTGeometry (const VLocalRTGeometry *geom, EResourceState state)
 	{
 		ASSERT( geom );
@@ -3153,12 +3535,14 @@ namespace FG
 		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddRTGeometryUsage( geom->ToGlobal(), RTGeometryState{ state, _currTask });
 	}
+#endif
 	
 /*
 =================================================
 	_AddRTScene
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	void  VTaskProcessor::_AddRTScene (const VLocalRTScene *scene, EResourceState state)
 	{
 		ASSERT( scene );
@@ -3169,6 +3553,7 @@ namespace FG
 		if_unlikely( _fgThread.GetDebugger() )
 			_fgThread.GetDebugger()->AddRTSceneUsage( scene->ToGlobal(), RTSceneState{ state, _currTask });
 	}
+#endif
 
 /*
 =================================================
@@ -3210,12 +3595,17 @@ namespace FG
 
 			EQueueUsage q_usage	= EQueueUsage(0) | _fgThread.GetBatch().GetQueueType();
 			auto&		dev		= _fgThread.GetDevice();
-
-			if ( EnumEq( q_usage, EQueueUsage::Graphics ) and dev.IsShadingRateImageEnabled() )
-				barrier.srcAccessMask |= VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;
+			Unused( dev, q_usage );
 			
-			if ( EnumEq( q_usage, EQueueUsage::Graphics | EQueueUsage::AsyncCompute ) and dev.IsRayTracingEnabled() )
+			#ifdef VK_NV_shading_rate_image
+			if ( AllBits( q_usage, EQueueUsage::Graphics ) and dev.GetFeatures().shadingRateImageNV )
+				barrier.srcAccessMask |= VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV;
+			#endif
+			
+			#ifdef VK_NV_ray_tracing
+			if ( AllBits( q_usage, EQueueUsage::Graphics | EQueueUsage::AsyncCompute ) and dev.GetFeatures().rayTracingNV )
 				barrier.srcAccessMask |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
+			#endif
 
 			barrier.dstAccessMask	= barrier.srcAccessMask;
 

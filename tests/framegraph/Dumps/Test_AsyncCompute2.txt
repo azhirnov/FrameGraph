@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      "Graphics-1"
 	Image {
 		name:         "RenderTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage | ColorAttachment
@@ -52,7 +52,7 @@ CommandBuffer {
 	name:      "Graphics-2"
 	Image {
 		name:         "RenderTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage | ColorAttachment
@@ -102,7 +102,7 @@ CommandBuffer {
 	name:      "Graphics-3"
 	Image {
 		name:         "RenderTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage | ColorAttachment
@@ -152,7 +152,7 @@ CommandBuffer {
 	name:      "Compute-1"
 	Image {
 		name:         "RenderTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage | ColorAttachment
@@ -274,7 +274,7 @@ CommandBuffer {
 	name:      "Compute-2"
 	Image {
 		name:         "RenderTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage | ColorAttachment
@@ -396,7 +396,7 @@ CommandBuffer {
 	name:      "Compute-3"
 	Image {
 		name:         "RenderTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage | ColorAttachment

@@ -100,7 +100,7 @@ inline Pair<const PipelineDescription::Uniform*, const T*>
 =================================================
 */
 inline bool TestTextureUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
-								EImage textureType, uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1)
+								EImageSampler textureType, uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1)
 {
 	auto[un, ptr] = FindUniform< PipelineDescription::Texture >( ds, id );
 	if ( not ptr )
@@ -121,7 +121,7 @@ inline bool TestTextureUniform (const PipelineDescription::DescriptorSet &ds, co
 =================================================
 */
 inline bool TestImageUniform (const PipelineDescription::DescriptorSet &ds, const UniformID &id,
-							  EImage imageType, EPixelFormat format, EShaderAccess access,
+							  EImageSampler imageType, EShaderAccess access,
 							  uint bindingIndex, EShaderStages stageFlags, uint arraySize = 1)
 {
 	auto[un, ptr] = FindUniform< PipelineDescription::Image >( ds, id );
@@ -131,7 +131,6 @@ inline bool TestImageUniform (const PipelineDescription::DescriptorSet &ds, cons
 	EResourceState	state = EResourceState_FromShaderAccess( access ) | EResourceState_FromShaders( stageFlags );
 
 	return	ptr->imageType			== imageType	and
-			ptr->format				== format		and
 			ptr->state				== state		and
 			un->index.VKBinding()	== bindingIndex	and
 			un->stageFlags			== stageFlags	and

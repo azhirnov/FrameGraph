@@ -32,19 +32,23 @@ namespace FG
 			sync.wait();
 
 			// create image in async mode to avoid manual synchronizations
-			if ( i == 0 ) {
-				image = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-													EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget1" );
+			if ( i == 0 )
+			{
+				image = fg->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+													.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+										 Default, "RenderTarget1" );
+				CHECK_ERR( image );
 			}
 			
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-												.AddViewport( view_size ) );
+												.AddViewport( view_size ));
+			CHECK_ERR( render_pass );
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
 			Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-			FG_UNUSED( t_draw );
+			Unused( t_draw );
 
 			// release image in async mode to avoid manual synchronizations
 			if ( i+1 == max_count )
@@ -79,19 +83,23 @@ namespace FG
 			cmd->AddDependency( cmdBuffers[0] );
 			
 			// create image in async mode to avoid manual synchronizations
-			if ( i == 0 ) {
-				image = fg->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA16_UNorm,
-													EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget2" );
+			if ( i == 0 )
+			{
+				image = fg->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA16_UNorm )
+													.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+										 Default, "RenderTarget2" );
+				CHECK_ERR( image );
 			}
 
 			LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 												.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-												.AddViewport( view_size ) );
+												.AddViewport( view_size ));
+			CHECK_ERR( render_pass );
 		
 			cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ));
 
 			Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-			FG_UNUSED( t_draw );
+			Unused( t_draw );
 			
 			// release image in async mode to avoid manual synchronizations
 			if ( i+1 == max_count )
@@ -109,6 +117,12 @@ namespace FG
 
 	bool FGApp::ImplTest_Multithreading3 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln;
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
 #pragma shader_stage(vertex)

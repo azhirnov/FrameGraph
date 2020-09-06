@@ -357,7 +357,7 @@ namespace FG
 		RawDescriptorSetLayoutID	layout_id;
 		uint						binding;
 
-		if ( not ppln_layout->GetDescriptorSetLayout( id, OUT layout_id, OUT binding ) )
+		if ( not ppln_layout->GetDescriptorSetLayout( id, OUT layout_id, OUT binding ))
 			return false;
 
 		VDescriptorSetLayout const*	ds_layout = _resourceMngr.GetResource( layout_id );
@@ -384,12 +384,22 @@ namespace FG
 
 	bool  VFrameGraph::InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
+	#ifdef VK_NV_mesh_shader
 		return _InitPipelineResources( pplnId, id, OUT resources );
+	#else
+		Unused( pplnId, id, resources );
+		RETURN_ERR( "mesh shader is not supported" );
+	#endif
 	}
 
 	bool  VFrameGraph::InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
 	{
+	#ifdef VK_NV_ray_tracing
 		return _InitPipelineResources( pplnId, id, OUT resources );
+	#else
+		Unused( pplnId, id, resources );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -462,16 +472,29 @@ namespace FG
 */
 	bool  VFrameGraph::ReleaseResource (INOUT GPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT CPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
-	bool  VFrameGraph::ReleaseResource (INOUT MPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
-	bool  VFrameGraph::ReleaseResource (INOUT RTPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT ImageID &id)			{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT BufferID &id)			{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT SamplerID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT SwapchainID &id)		{ return _ReleaseResource( INOUT id ); }
+
+#ifdef VK_NV_mesh_shader
+	bool  VFrameGraph::ReleaseResource (INOUT MPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
+#else
+	bool  VFrameGraph::ReleaseResource (INOUT MPipelineID &)		{ return false; }
+#endif
+
+#ifdef VK_NV_ray_tracing
+	bool  VFrameGraph::ReleaseResource (INOUT RTPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT RTGeometryID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT RTSceneID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT RTShaderTableID &id)	{ return _ReleaseResource( INOUT id ); }
-	
+#else
+	bool  VFrameGraph::ReleaseResource (INOUT RTPipelineID &)		{ return false; }
+	bool  VFrameGraph::ReleaseResource (INOUT RTGeometryID &)		{ return false; }
+	bool  VFrameGraph::ReleaseResource (INOUT RTSceneID &)			{ return false; }
+	bool  VFrameGraph::ReleaseResource (INOUT RTShaderTableID &)	{ return false; }
+#endif
+
 /*
 =================================================
 	ReleaseResource
@@ -742,7 +765,7 @@ namespace FG
 			// for each queue type
 			for (size_t qi = 0; qi < _queueMap.size(); ++qi)
 			{
-				if ( _queueMap[qi].ptr and EnumEq( queues, 1u<<qi ) )
+				if ( _queueMap[qi].ptr and AllBits( queues, 1u<<qi ))
 					changed |= size_t(_FlushQueue( EQueueType(qi), 10u ));
 			}
 		}
@@ -824,7 +847,7 @@ namespace FG
 				continue;
 			
 			// input
-			if ( EnumEq( q_mask, 1u<<qj ) and q2.semaphores[qi] )
+			if ( AllBits( q_mask, 1u<<qj ) and q2.semaphores[qi] )
 			{
 				pending.front()->WaitSemaphore( q2.semaphores[qi], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
 				release_semaphores.push_back( q2.semaphores[qi] );
@@ -1196,7 +1219,7 @@ namespace FG
 		for (auto& queue : _device.GetVkQueues())
 		{
 			const bool	is_unique		= _IsUnique( &queue );
-			const bool	has_graphics	= EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
+			const bool	has_graphics	= AllBits( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
 
 			if ( has_graphics )
 			{
@@ -1232,8 +1255,8 @@ namespace FG
 		for (auto& queue : _device.GetVkQueues())
 		{
 			const bool	is_unique		= _IsUnique( &queue );
-			const bool	has_compute		= EnumEq( queue.familyFlags, VK_QUEUE_COMPUTE_BIT );
-			const bool	has_graphics	= EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
+			const bool	has_compute		= AllBits( queue.familyFlags, VK_QUEUE_COMPUTE_BIT );
+			const bool	has_graphics	= AllBits( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
 
 			// compute without graphics
 			if ( has_compute and not has_graphics )
@@ -1281,8 +1304,8 @@ namespace FG
 		for (auto& queue : _device.GetVkQueues())
 		{
 			const bool	is_unique			= _IsUnique( &queue );
-			const bool	has_transfer		= EnumEq( queue.familyFlags, VK_QUEUE_TRANSFER_BIT );
-			const bool	supports_transfer	= EnumAny( queue.familyFlags, VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT );
+			const bool	has_transfer		= AllBits( queue.familyFlags, VK_QUEUE_TRANSFER_BIT );
+			const bool	supports_transfer	= AnyBits( queue.familyFlags, VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT );
 
 			// transfer without graphics or compute
 			if ( has_transfer and not supports_transfer )
@@ -1337,7 +1360,7 @@ namespace FG
 
 		for (uint i = 0; ((1u<<i) <= uint(types)) and (i < _queueMap.size()); ++i)
 		{
-			if ( not EnumEq( types, 1u<<i ) )
+			if ( not AllBits( types, 1u<<i ))
 				continue;
 
 			if ( _queueMap[i].ptr )

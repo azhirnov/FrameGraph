@@ -21,7 +21,11 @@ extern void UnitTest_NtStringView ();
 extern void UnitTest_TypeList ();
 
 
+#ifdef PLATFORM_ANDROID
+extern int Tests_STL_main ()
+#else
 int main ()
+#endif
 {
 	UnitTest_Math();
 	UnitTest_Matrix();

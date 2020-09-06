@@ -64,7 +64,7 @@ namespace {
 		//const int	disp_idx= 0;
 
 		//SDL_Rect	area	= {};
-		//CHECK( SDL_GetDisplayUsableBounds( disp_idx, OUT &area ) );
+		//CHECK( SDL_GetDisplayUsableBounds( disp_idx, OUT &area ));
 
 		//const int2	pos		= int2(area.x + area.w/2 - surfaceSize.x/2, area.y + area.h/2 - surfaceSize.y/2);
 
@@ -515,12 +515,46 @@ namespace {
 */
 	UniquePtr<IVulkanSurface>  WindowSDL2::GetVulkanSurface () const
 	{
+	#ifdef FG_ENABLE_VULKAN
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( _window )};
+	#else
+		return {};
+	#endif
+	}
+	
+/*
+=================================================
+	GetPlatformHandle
+=================================================
+*/
+	void*  WindowSDL2::GetPlatformHandle () const
+	{
+		if ( not _window )
+			return null;
+
+		SDL_SysWMinfo	info = {};
+			
+		SDL_VERSION( OUT &info.version );
+		CHECK_ERR( SDL_GetWindowWMInfo( _window, OUT &info ) == SDL_TRUE );
+		
+		switch ( info.subsystem )
+		{
+			#ifdef PLATFORM_ANDROID
+			case SDL_SYSWM_ANDROID :
+				return info.info.android.window;
+			#endif
+				
+			#ifdef PLATFORM_WINDOWS
+			case SDL_SYSWM_WINDOWS :
+				return info.info.win.window;
+			#endif
+		}
+		return null;
 	}
 //-----------------------------------------------------------------------------
 
 
-
+# ifdef FG_ENABLE_VULKAN
 /*
 =================================================
 	VulkanSurface
@@ -535,7 +569,7 @@ namespace {
 	Create
 =================================================
 */
-	VkSurfaceKHR  WindowSDL2::VulkanSurface::Create (VkInstance instance) const
+	IVulkanSurface::SurfaceVk_t  WindowSDL2::VulkanSurface::Create (InstanceVk_t instance) const
 	{
 		SDL_SysWMinfo	info = {};
 			
@@ -545,27 +579,29 @@ namespace {
 		switch ( info.subsystem )
 		{
 			case SDL_SYSWM_X11 :
-				return 0;	// TODO
+				return Zero;	// TODO
 
 			case SDL_SYSWM_WAYLAND :
-				return 0;	// TODO
+				return Zero;	// TODO
 
 			case SDL_SYSWM_MIR :
-				return 0;	// TODO
+				return Zero;	// TODO
 
 #			if defined(VK_USE_PLATFORM_ANDROID_KHR)
 			case SDL_SYSWM_ANDROID :
-				return FGC::VulkanSurface::CreateAndroidSurface( instance, info.info.android.window );
+				return BitCast<SurfaceVk_t>( FGC::VulkanSurface::CreateAndroidSurface( instance, info.info.android.window ));
 #			endif
 				
 #			if defined(PLATFORM_WINDOWS) or defined(VK_USE_PLATFORM_WIN32_KHR)
 			case SDL_SYSWM_WINDOWS :
-				return FGC::VulkanSurface::CreateWin32Surface( instance, info.info.win.hinstance, info.info.win.window );
+				return BitCast<SurfaceVk_t>( FGC::VulkanSurface::CreateWin32Surface( instance, info.info.win.hinstance, info.info.win.window ));
 #			endif
 		}
 
 		RETURN_ERR( "current subsystem type is not supported!" );
 	}
+
+# endif	// FG_ENABLE_VULKAN
 
 }	// FGC
 

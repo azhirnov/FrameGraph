@@ -29,8 +29,11 @@ namespace FG
 		using ImageRange				= VLocalImage::ImageRange;
 		using BufferState				= VLocalBuffer::BufferState;
 		using ImageState				= VLocalImage::ImageState;
+
+		#ifdef VK_NV_ray_tracing
 		using RTGeometryState			= VLocalRTGeometry::GeometryState;
 		using RTSceneState				= VLocalRTScene::SceneState;
+		#endif
 
 		using CommitBarrierFn_t			= void (*) (const void *, VBarrierManager &, Ptr<VLocalDebugger>);
 		using PendingResourceBarriers_t	= std::unordered_map< void const*, CommitBarrierFn_t, std::hash<void const*>, std::equal_to<void const*>,
@@ -61,6 +64,11 @@ namespace FG
 		bool						_enableDebugUtils		: 1;
 		bool						_isDefaultScissor		: 1;
 		bool						_perPassStatesUpdated	: 1;
+		const bool					_dispatchBase			: 1;
+		const bool					_drawIndirectCount		: 1;
+		const bool					_meshShaderNV			: 1;
+		const bool					_rayTracingNV			: 1;
+		const uint					_maxDrawIndirectCount;
 
 		PendingResourceBarriers_t	_pendingResourceBarriers;
 
@@ -74,8 +82,6 @@ namespace FG
 		VkIndexType					_indexType			= VK_INDEX_TYPE_MAX_ENUM;
 
 		VkImageView					_shadingRateImage	= VK_NULL_HANDLE;
-
-		static constexpr float		_dbgColor[4]		= { 1.0f, 1.0f, 1.0f, 1.0f };
 
 
 	// methods
@@ -116,6 +122,12 @@ namespace FG
 		static void  Visit2_DrawIndexedIndirect (void *, void *);
 		static void  Visit1_DrawMeshesIndirect (void *, void *);
 		static void  Visit2_DrawMeshesIndirect (void *, void *);
+		static void  Visit1_DrawVerticesIndirectCount (void *, void *);
+		static void  Visit2_DrawVerticesIndirectCount (void *, void *);
+		static void  Visit1_DrawIndexedIndirectCount (void *, void *);
+		static void  Visit2_DrawIndexedIndirectCount (void *, void *);
+		static void  Visit1_DrawMeshesIndirectCount (void *, void *);
+		static void  Visit2_DrawMeshesIndirectCount (void *, void *);
 		static void  Visit1_CustomDraw (void *, void *);
 		static void  Visit2_CustomDraw (void *, void *);
 
@@ -124,7 +136,7 @@ namespace FG
 
 	private:
 		void  _CmdDebugMarker (StringView text) const;
-		void  _CmdPushDebugGroup (StringView text) const;
+		void  _CmdPushDebugGroup (StringView text, RGBA8u color) const;
 		void  _CmdPopDebugGroup () const;
 		
 		template <typename ID>	ND_ auto const*  _ToLocal (ID id) const;

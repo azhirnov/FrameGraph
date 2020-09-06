@@ -17,6 +17,8 @@ namespace FGC
 	// types
 		using Self		= AxisAlignedBoundingBox<T>;
 		using Vec3_t	= glm::tvec3<T>;
+		using Vec4_t	= glm::tvec4<T>;
+		using Mat4x4_t	= glm::tmat4x4<T>;
 		using Value_t	= T;
 
 
@@ -131,8 +133,21 @@ namespace FGC
 			point.z = max.z;		Add( tr.ToGlobalPosition( point ));
 			point.y = min.y;		Add( tr.ToGlobalPosition( point ));
 			point.z = min.z;		Add( tr.ToGlobalPosition( point ));
-
 			return *this;
+		}
+
+		ND_ Self  Project (const Mat4x4_t &proj) const
+		{
+			Self	res;
+			Vec3_t	point = min;	res.min = res.max = Vec3_t{ proj * Vec4_t{ point, T(1) }};
+			point.z = max.z;		res.Add( Vec3_t{ proj * Vec4_t{ point, T(1) }});
+			point.y = max.y;		res.Add( Vec3_t{ proj * Vec4_t{ point, T(1) }});
+			point.z = min.z;		res.Add( Vec3_t{ proj * Vec4_t{ point, T(1) }});
+			point.x = max.x;		res.Add( Vec3_t{ proj * Vec4_t{ point, T(1) }});
+			point.z = max.z;		res.Add( Vec3_t{ proj * Vec4_t{ point, T(1) }});
+			point.y = min.y;		res.Add( Vec3_t{ proj * Vec4_t{ point, T(1) }});
+			point.z = min.z;		res.Add( Vec3_t{ proj * Vec4_t{ point, T(1) }});
+			return res;
 		}
 		
 		ND_ T  Distance (const Vec3_t &point) const

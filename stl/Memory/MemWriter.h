@@ -81,7 +81,7 @@ namespace FGC
 		void Clear ()
 		{
 			ASSERT( _ptr );
-			memset( _ptr, 0, size_t(_size) );
+			std::memset( _ptr, 0, size_t(_size) );
 		}
 
 

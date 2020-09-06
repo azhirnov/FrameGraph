@@ -5,6 +5,8 @@
 namespace FG
 {
 
+#ifdef FG_ENABLE_VULKAN
+
 	bool FGApp::Test_ExternalCmdBuf1 ()
 	{
 		const BytesU	src_buffer_size = 256_b;
@@ -88,7 +90,7 @@ namespace FG
 		};
 		
 
-		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ) );
+		CommandBuffer	cmd1 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ), {cmd1} );
 		CommandBuffer	cmd3 = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ), {cmd2} );
 		CHECK_ERR( cmd1 and cmd2 and cmd3 );
@@ -97,7 +99,7 @@ namespace FG
 		{
 			Task	t_update	= cmd1->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( ArrayView<uint8_t>{src_data}.section( 0, 128 ) ));
 			Task	t_copy		= cmd1->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 64_b, 128_b ).DependsOn( t_update ));
-			FG_UNUSED( t_copy );
+			Unused( t_copy );
 
 			CHECK_ERR( _frameGraph->Execute( cmd1 ));
 		}
@@ -138,7 +140,7 @@ namespace FG
 		{
 			Task	t_copy	= cmd3->AddTask( CopyBuffer().From( ext_buffer ).To( dst_buffer ).AddRegion( 128_b, 192_b, 128_b ));
 			Task	t_read	= cmd3->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_copy ));
-			FG_UNUSED( t_read );
+			Unused( t_read );
 			
 			CHECK_ERR( _frameGraph->Execute( cmd3 ));
 		}
@@ -164,5 +166,15 @@ namespace FG
 		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
+
+#else
+
+	bool FGApp::Test_ExternalCmdBuf1 ()
+	{
+		FG_LOGI( TEST_NAME << " - skipped" );
+		return true;
+	}
+
+#endif	// FG_ENABLE_VULKAN
 
 }	// FG

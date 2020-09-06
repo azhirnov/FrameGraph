@@ -89,8 +89,12 @@ namespace FG
 			ResourceMap_t			resourceMap;
 			LocalImages_t			images;
 			LocalBuffers_t			buffers;
+
+			#ifdef VK_NV_ray_tracing
 			LocalRTScenes_t			rtScenes;
 			LocalRTGeometries_t		rtGeometries;
+			#endif
+			
 			LogicalRenderPasses_t	logicalRenderPasses;
 			uint					logicalRenderPassCount	= 0;
 		}						_rm;
@@ -161,8 +165,11 @@ namespace FG
 		void		AddTask (LogicalPassID, const DrawIndexed &) override;
 		void		AddTask (LogicalPassID, const DrawVerticesIndirect &) override;
 		void		AddTask (LogicalPassID, const DrawIndexedIndirect &) override;
+		void		AddTask (LogicalPassID, const DrawVerticesIndirectCount &) override;
+		void		AddTask (LogicalPassID, const DrawIndexedIndirectCount &) override;
 		void		AddTask (LogicalPassID, const DrawMeshes &) override;
 		void		AddTask (LogicalPassID, const DrawMeshesIndirect &) override;
+		void		AddTask (LogicalPassID, const DrawMeshesIndirectCount &) override;
 		void		AddTask (LogicalPassID, const CustomDraw &) override;
 
 

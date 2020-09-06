@@ -2,6 +2,10 @@
 
 #pragma once
 
+#ifndef FG_ENABLE_GLSLANG
+#	error can't compile glsl without glslang library!
+#endif
+
 #include "EShaderCompilationFlags.h"
 #include "framegraph/Public/ResourceEnums.h"
 #include "framegraph/Public/VertexEnums.h"
@@ -45,25 +49,21 @@ namespace FG
 			struct {
 				TopologyBits_t		supportedTopology;
 				VertexAttribs_t		vertexAttribs;
-
-			}				vertex;
+			}					vertex;
 
 			struct {
 				uint				patchControlPoints;
-
-			}				tessellation;
+			}					tessellation;
 
 			struct {
 				FragmentOutputs_t	fragmentOutput;
 				bool				earlyFragmentTests	= true;
-
-			}				fragment;
+			}					fragment;
 
 			struct {
 				uint3				localGroupSize;
 				uint3				localGroupSpecialization;
-
-			}				compute;
+			}					compute;
 
 			struct {
 				uint3				taskGroupSize;
@@ -76,8 +76,7 @@ namespace FG
 				uint				maxPrimitives	= 0;
 				uint				maxIndices		= 0;
 				uint				maxVertices		= 0;
-
-			}				mesh;
+			}					mesh;
 		};
 
 	private:
@@ -156,9 +155,8 @@ namespace FG
 		void  _MergeWithGeometryInputPrimitive (INOUT GraphicsPipelineDesc::TopologyBits_t &topologyBits, /*TLayoutGeometry*/uint type) const;
 
 		ND_ BindingIndex	_ToBindingIndex (uint index) const;
-		ND_ EImage			_ExtractImageType (const glslang::TType &type) const;
+		ND_ EImageSampler	_ExtractImageType (const glslang::TType &type) const;
 		ND_ EVertexType		_ExtractVertexType (const glslang::TType &type) const;
-		ND_ EPixelFormat	_ExtractImageFormat (/*TLayoutFormat*/uint format) const;
 		ND_ EFragOutput		_ExtractFragmentOutputType (const glslang::TType &type) const;
 	};
 

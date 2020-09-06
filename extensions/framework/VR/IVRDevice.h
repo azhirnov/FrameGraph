@@ -6,8 +6,6 @@
 #include "stl/Math/Rectangle.h"
 #include "stl/Math/Matrix.h"
 #include "stl/Containers/FixedMap.h"
-#include "vulkan_loader/VulkanLoader.h"
-#include "vulkan_loader/VulkanCheckError.h"
 
 namespace FGC
 {
@@ -65,16 +63,23 @@ namespace FGC
 		using EHmdStatus	= IVRDeviceEventListener::EHmdStatus;
 		using ControllerID	= IVRDeviceEventListener::ControllerID;
 		using EButtonAction	= IVRDeviceEventListener::EButtonAction;
+		
+		using InstanceVk_t			= struct __VrVkInstanceType *;
+		using PhysicalDeviceVk_t	= struct __VrVkPhysicalDeviceType *;
+		using DeviceVk_t			= struct __VrVkDeviceType *;
+		enum  ImageVk_t				: uint64_t {};
+		using QueueVk_t				= struct __VrVkQueueType *;
+		enum  FormatVk_t			: uint {};
 
 		struct VRImage
 		{
-			VkImage		handle				= VK_NULL_HANDLE;
-			VkQueue		currQueue			= VK_NULL_HANDLE;
-			uint		queueFamilyIndex	= UMax;
-			uint2		dimension;
-			RectF		bounds;
-			VkFormat	format				= VK_FORMAT_UNDEFINED;
-			uint		sampleCount			= 1;
+			ImageVk_t		handle				= Zero;
+			QueueVk_t		currQueue			= Zero;
+			uint			queueFamilyIndex	= UMax;
+			uint2			dimension;
+			RectF			bounds;
+			FormatVk_t		format				= Zero;
+			uint			sampleCount			= 1;
 		};
 
 		struct VRCamera
@@ -113,7 +118,7 @@ namespace FGC
 	public:
 		virtual ~IVRDevice () {}
 		virtual bool  Create () = 0;
-		virtual bool  SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) = 0;
+		virtual bool  SetVKDevice (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t logicalDevice) = 0;
 		virtual void  Destroy () = 0;
 		virtual void  AddListener (IVRDeviceEventListener *listener) = 0;
 		virtual void  RemoveListener (IVRDeviceEventListener *listener) = 0;
@@ -125,7 +130,7 @@ namespace FGC
 		ND_ virtual VRCamera const&			GetCamera () const = 0;
 		ND_ virtual VRControllers_t const&	GetControllers () const = 0;
 		ND_ virtual Array<String>			GetRequiredInstanceExtensions () const = 0;
-		ND_ virtual Array<String>			GetRequiredDeviceExtensions (VkInstance instance = VK_NULL_HANDLE) const = 0;
+		ND_ virtual Array<String>			GetRequiredDeviceExtensions (InstanceVk_t instance = Zero) const = 0;
 		ND_ virtual uint2					GetRenderTargetDimension () const = 0;
 	};
 

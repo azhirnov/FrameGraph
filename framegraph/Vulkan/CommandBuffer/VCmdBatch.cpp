@@ -64,7 +64,7 @@ namespace FG
 
 		if ( auto queue = _frameGraph.FindQueue( type ))
 		{
-			_supportsQuery = EnumAny( queue->familyFlags, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
+			_supportsQuery = AnyBits( queue->familyFlags, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
 		}
 
 		_state.store( EState::Initial, memory_order_relaxed );
@@ -191,7 +191,7 @@ namespace FG
 		EXLOCK( _drCheck );
 		_SetState( EState::Recording );
 		
-		_dbgQueueSync	= EnumEq( desc.debugFlags, EDebugFlags::QueueSync );
+		_dbgQueueSync	= AllBits( desc.debugFlags, EDebugFlags::QueueSync );
 		_statistic		= Default;
 
 		return true;
@@ -588,7 +588,7 @@ namespace FG
 			buf.mappedPtr	= info.mappedPtr;
 			buf.memOffset	= info.offset;
 			buf.mem			= info.mem;
-			buf.isCoherent	= EnumEq( info.flags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
+			buf.isCoherent	= AllBits( info.flags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
 			return true;
 		}
 		return false;
@@ -610,15 +610,22 @@ namespace FG
 				case RawBufferID::GetUID() :			rm.ReleaseResource( RawBufferID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawImageID::GetUID() :				rm.ReleaseResource( RawImageID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawGPipelineID::GetUID() :			rm.ReleaseResource( RawGPipelineID{ res.Index(), res.InstanceID() }, count );			break;
-				case RawMPipelineID::GetUID() :			rm.ReleaseResource( RawMPipelineID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawCPipelineID::GetUID() :			rm.ReleaseResource( RawCPipelineID{ res.Index(), res.InstanceID() }, count );			break;
-				case RawRTPipelineID::GetUID() :		rm.ReleaseResource( RawRTPipelineID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawSamplerID::GetUID() :			rm.ReleaseResource( RawSamplerID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawDescriptorSetLayoutID::GetUID():rm.ReleaseResource( RawDescriptorSetLayoutID{ res.Index(), res.InstanceID() }, count );	break;
 				case RawPipelineResourcesID::GetUID() :	rm.ReleaseResource( RawPipelineResourcesID{ res.Index(), res.InstanceID() }, count );	break;
+
+				#ifdef VK_NV_mesh_shader
+				case RawMPipelineID::GetUID() :			rm.ReleaseResource( RawMPipelineID{ res.Index(), res.InstanceID() }, count );			break;
+				#endif
+
+				#ifdef VK_NV_ray_tracing
+				case RawRTPipelineID::GetUID() :		rm.ReleaseResource( RawRTPipelineID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawRTSceneID::GetUID() :			rm.ReleaseResource( RawRTSceneID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawRTGeometryID::GetUID() :		rm.ReleaseResource( RawRTGeometryID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawRTShaderTableID::GetUID() :		rm.ReleaseResource( RawRTShaderTableID{ res.Index(), res.InstanceID() }, count );		break;
+				#endif
+
 				case RawSwapchainID::GetUID() :			rm.ReleaseResource( RawSwapchainID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawMemoryID::GetUID() :			rm.ReleaseResource( RawMemoryID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawPipelineLayoutID::GetUID() :	rm.ReleaseResource( RawPipelineLayoutID{ res.Index(), res.InstanceID() }, count );		break;
@@ -709,17 +716,21 @@ namespace FG
 					dev.vkDestroyFramebuffer( vdev, VkFramebuffer(pair.second), null );
 					break;
 
+				#ifdef VK_KHR_sampler_ycbcr_conversion
 				case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION :
-					dev.vkDestroySamplerYcbcrConversion( vdev, VkSamplerYcbcrConversion(pair.second), null );
+					dev.vkDestroySamplerYcbcrConversionKHR( vdev, VkSamplerYcbcrConversion(pair.second), null );
 					break;
+				#endif
 
 				case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE :
-					dev.vkDestroyDescriptorUpdateTemplate( vdev, VkDescriptorUpdateTemplate(pair.second), null );
+					dev.vkDestroyDescriptorUpdateTemplateKHR( vdev, VkDescriptorUpdateTemplate(pair.second), null );
 					break;
 
+				#ifdef VK_NV_ray_tracing
 				case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV :
 					dev.vkDestroyAccelerationStructureNV( vdev, VkAccelerationStructureNV(pair.second), null );
 					break;
+				#endif
 
 				case VK_OBJECT_TYPE_UNKNOWN :
 				case VK_OBJECT_TYPE_INSTANCE :
@@ -736,12 +747,32 @@ namespace FG
 				case VK_OBJECT_TYPE_DISPLAY_KHR :
 				case VK_OBJECT_TYPE_DISPLAY_MODE_KHR :
 				case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT :
-				case VK_OBJECT_TYPE_OBJECT_TABLE_NVX :
-				case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX :
 				case VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT :
 				case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT :
+					
+				#ifdef VK_KHR_deferred_host_operations
+				case VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR :
+				#endif
+
+				#ifdef VK_EXT_private_data
+				case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT_EXT :
+				#endif
+
+				#ifdef VK_NV_device_generated_commands
+				case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NV :
+				#elif defined(VK_NVX_device_generated_commands)
+				case VK_OBJECT_TYPE_OBJECT_TABLE_NVX :
+				case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX :
+				#endif
+
+				#ifdef VK_INTEL_performance_query
 				case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL :
+				#endif
+
+				#ifndef VK_VERSION_1_2
 				case VK_OBJECT_TYPE_RANGE_SIZE :
+				#endif
+
 				case VK_OBJECT_TYPE_MAX_ENUM :
 				default :
 					FG_LOGE( "resource type is not supported" );
@@ -1233,10 +1264,10 @@ namespace FG
 		dbg_mode.mode			= EShaderDebugMode::Timemap;
 		dbg_mode.shaderStages	= stages;
 
-		BytesU		size =	(SizeOf<uint> * 4) +																	// first 4 components
-							(dim.x * dim.y * SizeOf<uint64_t>) +													// output pixels
-							_frameGraph.GetDevice().GetDeviceProperties().limits.minStorageBufferOffsetAlignment +	// align
-							(dim.y * SizeOf<uint64_t>);																// temporary line
+		BytesU		size =	(SizeOf<uint> * 4) +														// first 4 components
+							(dim.x * dim.y * SizeOf<uint64_t>) +										// output pixels
+							_frameGraph.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment +	// align
+							(dim.y * SizeOf<uint64_t>);													// temporary line
 		
 		CHECK_ERR( _AllocStorage( INOUT dbg_mode, size ));
 		
@@ -1260,7 +1291,7 @@ namespace FG
 
 		for (EShaderStages s = EShaderStages(1); s <= dbgMode.shaderStages; s = EShaderStages(uint(s) << 1))
 		{
-			if ( not EnumEq( dbgMode.shaderStages, s ))
+			if ( not AllBits( dbgMode.shaderStages, s ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
@@ -1272,14 +1303,31 @@ namespace FG
 				case EShaderStages::Geometry :		stage |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;					break;
 				case EShaderStages::Fragment :		stage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;					break;
 				case EShaderStages::Compute :		stage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;					break;
+
+				#ifdef VK_NV_mesh_shader
 				case EShaderStages::MeshTask :		stage |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;					break;
 				case EShaderStages::Mesh :			stage |= VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;					break;
+				#else
+				case EShaderStages::MeshTask :
+				case EShaderStages::Mesh :			break;
+				#endif
+
+				#ifdef VK_NV_ray_tracing
 				case EShaderStages::RayGen :
 				case EShaderStages::RayAnyHit :
 				case EShaderStages::RayClosestHit :
 				case EShaderStages::RayMiss :
 				case EShaderStages::RayIntersection:
 				case EShaderStages::RayCallable :	stage |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;			break;
+				#else
+				case EShaderStages::RayGen :
+				case EShaderStages::RayAnyHit :
+				case EShaderStages::RayClosestHit :
+				case EShaderStages::RayMiss :
+				case EShaderStages::RayIntersection:
+				case EShaderStages::RayCallable :	break;
+				#endif
+
 				case EShaderStages::_Last :
 				case EShaderStages::Unknown :
 				case EShaderStages::AllGraphics :

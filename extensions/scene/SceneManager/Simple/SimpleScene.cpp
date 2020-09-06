@@ -108,7 +108,7 @@ namespace {
 			bbox.Move( camera_pos );
 
 			// frustum culling
-			if ( not camera.frustum.IsVisible( bbox ) )
+			if ( not camera.frustum.IsVisible( bbox ))
 				continue;
 
 			// calc detail level
@@ -214,7 +214,7 @@ namespace {
 			info.sourceIDs.push_back( source_id );
 			info.constants.emplace_back( "MAX_INSTANCE_COUNT", max_instance_count );
 
-			if ( not renTech->GetPipeline( model.layer, info, OUT model.pipeline ) )
+			if ( not renTech->GetPipeline( model.layer, info, OUT model.pipeline ))
 				continue;
 
 			CHECK_ERR( fg->InitPipelineResources( model.pipeline, DescriptorSetID{"PerObject"}, OUT model.resources ));
@@ -235,7 +235,7 @@ namespace {
 			//model.resources.BindBuffer( UniformID{"MaterialsUB"}, _materialsUB );
 		}
 
-		FG_UNUSED( sampler.Release() );
+		Unused( sampler.Release() );
 		return true;
 	}
 
@@ -367,25 +367,25 @@ namespace {
 
 			dst.dataID = uint(_materials.size());
 
-			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.albedo ) )
+			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.albedo ))
 			{
 				CHECK_ERR( imageCache->CreateImage( cmdbuf, tex->image, true, OUT dst.albedoTex ));
 				dst.textureBits |= ETextureType::Albedo;
 			}
 
-			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.specular ) )
+			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.specular ))
 			{
 				CHECK_ERR( imageCache->CreateImage( cmdbuf, tex->image, true, OUT dst.specularTex ));
 				dst.textureBits |= ETextureType::Specular;
 			}
 
-			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.roughtness ) )
+			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.roughtness ))
 			{
 				CHECK_ERR( imageCache->CreateImage( cmdbuf, tex->image, true, OUT dst.roughtnessTex ));
 				dst.textureBits |= ETextureType::Roughtness;
 			}
 
-			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.metallic ) )
+			if ( auto* tex = UnionGetIf<MtrTexture>( &settings.metallic ))
 			{
 				CHECK_ERR( imageCache->CreateImage( cmdbuf, tex->image, true, OUT dst.metallicTex ));
 				dst.textureBits |= ETextureType::Metallic;

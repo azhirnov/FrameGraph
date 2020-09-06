@@ -140,7 +140,7 @@ namespace FG
 			uint3	baseGroup;
 			uint3	groupCount;
 		};
-		using ComputeCmds_t		= FixedArray< ComputeCmd, 16 >;
+		using ComputeCmds_t		= FixedArray< ComputeCmd, FG_MaxDrawCommands >;
 
 
 	// variables
@@ -195,7 +195,7 @@ namespace FG
 		{
 			BytesU		indirectBufferOffset;
 		};
-		using ComputeCmds_t		= FixedArray< ComputeCmd, 16 >;
+		using ComputeCmds_t		= FixedArray< ComputeCmd, FG_MaxDrawCommands >;
 
 		struct DispatchIndirectCommand
 		{
@@ -473,15 +473,18 @@ namespace FG
 	{
 	// variables
 		RawImageID		image;
-		MipmapLevel		baseLevel;
+		MipmapLevel		baseMipLevel;
 		uint			levelCount	= UMax;
+		ImageLayer		baseLayer;
+		uint			layerCount	= UMax;
 
 	// methods
 		GenerateMipmaps () :
 			BaseTask<GenerateMipmaps>{ "GenerateMipmaps", ColorScheme::DeviceLocalTransfer } {}
 
-		GenerateMipmaps&  SetImage (RawImageID img)					{ ASSERT( img );  image = img;  return *this; }
-		GenerateMipmaps&  SetRange (MipmapLevel base, uint count)	{ baseLevel = base;  levelCount = count;  return *this; }
+		GenerateMipmaps&  SetImage (RawImageID img)					{ ASSERT( img );                     image      = img;    return *this; }
+		GenerateMipmaps&  SetMipmaps (uint base, uint count)		{ baseMipLevel = MipmapLevel{base};  levelCount = count;  return *this; }
+		GenerateMipmaps&  SetArrayLayers (uint base, uint count)	{ baseLayer    = ImageLayer{base};   layerCount = count;  return *this; }
 	};
 
 
@@ -1221,7 +1224,7 @@ namespace FG
 		using Context_t		= Union< NullUnion, VulkanContext >;
 		using Callback_t	= std::function< void (const Context_t &) >;
 		using Images_t		= FixedArray< Pair< RawImageID, EResourceState >, 8 >;
-		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;
+		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;	// TODO: use ArrayView
 
 		
 	// variables

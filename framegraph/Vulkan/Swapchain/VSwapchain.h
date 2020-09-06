@@ -49,7 +49,9 @@ namespace FG
 
 	// methods
 	public:
-		explicit VSwapchain ();
+		VSwapchain ();
+		VSwapchain (VSwapchain &&) = delete;
+		VSwapchain (const VSwapchain &) = delete;
 		~VSwapchain ();
 
 		bool  Create (VFrameGraph &, const VulkanSwapchainCreateInfo &, StringView dbgName);

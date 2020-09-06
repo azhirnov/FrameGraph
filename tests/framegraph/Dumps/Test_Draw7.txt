@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "RenderTarget_1"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | ColorAttachment
@@ -47,7 +47,7 @@ CommandBuffer {
 
 	Image {
 		name:         "RenderTarget_2"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | ColorAttachment

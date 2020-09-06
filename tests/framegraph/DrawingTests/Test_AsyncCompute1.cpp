@@ -19,6 +19,12 @@ namespace FG
 
 	bool FGApp::Test_AsyncCompute1 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	gppln;
 		ComputePipelineDesc		cppln;
 
@@ -79,11 +85,13 @@ void main ()
 )#" );
 		
 		const uint2		view_size	= {800, 600};
-		ImageDesc		image_desc	{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-									  EImageUsage::ColorAttachment | EImageUsage::TransferSrc | EImageUsage::Storage };
-						image_desc.queues = EQueueUsage::Graphics | EQueueUsage::AsyncCompute;
+		ImageDesc		image_desc;
+		image_desc.SetDimension({ view_size.x, view_size.y }).SetFormat( EPixelFormat::RGBA8_UNorm );
+		image_desc.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc | EImageUsage::Storage );
+		image_desc.SetQueues( EQueueUsage::Graphics | EQueueUsage::AsyncCompute );
 
 		ImageID			image		= _frameGraph->CreateImage( image_desc, Default, "RenderTarget" );
+		CHECK_ERR( image );
 
 		GPipelineID		gpipeline	= _frameGraph->CreatePipeline( gppln );
 		CPipelineID		cpipeline	= _frameGraph->CreatePipeline( cppln );
@@ -135,12 +143,12 @@ void main ()
 			{
 				LogicalPassID	render_pass	= cmd1->CreateRenderPass( RenderPassDesc( view_size )
 														.AddTarget( RenderTargetID::Color_0, image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
-														.AddViewport( view_size ) );
+														.AddViewport( view_size ));
 		
 				cmd1->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
 				Task	t_draw	= cmd1->AddTask( SubmitRenderPass{ render_pass });
-				FG_UNUSED( t_draw );
+				Unused( t_draw );
 
 				CHECK_ERR( _frameGraph->Execute( cmd1 ));
 			}
@@ -150,7 +158,7 @@ void main ()
 				resources.BindImage( UniformID("un_Image"), image );
 				Task	t_comp	= cmd2->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
 				Task	t_read	= cmd2->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
-				FG_UNUSED( t_read );
+				Unused( t_read );
 
 				CHECK_ERR( _frameGraph->Execute( cmd2 ));
 			}
@@ -168,12 +176,12 @@ void main ()
 			{
 				LogicalPassID	render_pass	= cmd3->CreateRenderPass( RenderPassDesc( view_size )
 														.AddTarget( RenderTargetID::Color_0, image, RGBA32f(1.0f), EAttachmentStoreOp::Store )
-														.AddViewport( view_size ) );
+														.AddViewport( view_size ));
 		
 				cmd3->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( gpipeline ).SetTopology( EPrimitive::TriangleList ));
 
 				Task	t_draw	= cmd3->AddTask( SubmitRenderPass{ render_pass });
-				FG_UNUSED( t_draw );
+				Unused( t_draw );
 
 				CHECK_ERR( _frameGraph->Execute( cmd3 ));
 			}
@@ -183,7 +191,7 @@ void main ()
 				resources.BindImage( UniformID("un_Image"), image );
 				Task	t_comp	= cmd4->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
 				Task	t_read	= cmd4->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
-				FG_UNUSED( t_read );
+				Unused( t_read );
 
 				CHECK_ERR( _frameGraph->Execute( cmd4 ));
 			}

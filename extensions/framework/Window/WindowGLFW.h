@@ -5,7 +5,8 @@
 #include "framework/Window/IWindow.h"
 
 #ifdef FG_ENABLE_GLFW
-# include "GLFW/glfw3.h"
+
+typedef struct GLFWwindow GLFWwindow;
 
 namespace FGC
 {
@@ -27,7 +28,7 @@ namespace FGC
 			explicit VulkanSurface (GLFWwindow *wnd) : _window{wnd} {}
 
 			ND_ ArrayView<const char*>	GetRequiredExtensions () const override;
-			ND_ VkSurfaceKHR			Create (VkInstance inst) const override;
+			ND_ SurfaceVk_t				Create (InstanceVk_t inst) const override;
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
@@ -62,6 +63,8 @@ namespace FGC
 
 		UniquePtr<IVulkanSurface>  GetVulkanSurface () const override;
 		
+		void * GetPlatformHandle () const override;
+
 
 	private:
 		static void _GLFW_ErrorCallback (int code, const char* msg);

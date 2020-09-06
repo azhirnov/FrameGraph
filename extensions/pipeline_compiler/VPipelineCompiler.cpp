@@ -3,11 +3,14 @@
 #include "VPipelineCompiler.h"
 #include "SpirvCompiler.h"
 #include "PrivateDefines.h"
-#include "extensions/vulkan_loader/VulkanLoader.h"
-#include "extensions/vulkan_loader/VulkanCheckError.h"
 #include "framegraph/Shared/EnumUtils.h"
 #include "framegraph/Shared/EnumToString.h"
 #include "VCachedDebuggableShaderData.h"
+
+#ifdef FG_ENABLE_VULKAN
+#	include "extensions/vulkan_loader/VulkanLoader.h"
+#	include "extensions/vulkan_loader/VulkanCheckError.h"
+#endif
 
 namespace FG
 {
@@ -18,10 +21,7 @@ namespace FG
 =================================================
 */
 	VPipelineCompiler::VPipelineCompiler () :
-		_spirvCompiler{ new SpirvCompiler{ _directories }},
-		_vkInstance{ VK_NULL_HANDLE },
-		_vkPhysicalDevice{ VK_NULL_HANDLE },
-		_vkLogicalDevice{ VK_NULL_HANDLE }
+		_spirvCompiler{ new SpirvCompiler{ _directories }}
 	{
 		EXLOCK( _lock );
 
@@ -40,16 +40,18 @@ namespace FG
 	{
 		EXLOCK( _lock );
 
+	#ifdef FG_ENABLE_VULKAN
 		_vkInstance			= instance;
 		_vkPhysicalDevice	= physicalDevice;
 		_vkLogicalDevice	= device;
 
 		if ( _vkInstance and _vkPhysicalDevice )
 		{
-			auto fpGetPhysicalDeviceFeatures2 = BitCast<PFN_vkGetPhysicalDeviceFeatures2>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures2" ));
-
 			_fpCreateShaderModule  = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_vkLogicalDevice), "vkCreateShaderModule" ));
 			_fpDestroyShaderModule = BitCast<void*>( vkGetDeviceProcAddr( BitCast<VkDevice>(_vkLogicalDevice), "vkDestroyShaderModule" ));
+
+			#ifdef VK_KHR_shader_clock
+			auto fpGetPhysicalDeviceFeatures2 = BitCast<PFN_vkGetPhysicalDeviceFeatures2KHR>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures2KHR" ));
 
 			if ( fpGetPhysicalDeviceFeatures2 )
 			{
@@ -66,6 +68,7 @@ namespace FG
 				_spirvCompiler->SetShaderFeatures( feats.features.vertexPipelineStoresAndAtomics, feats.features.fragmentStoresAndAtomics );
 			}
 			else
+			#endif	// VK_KHR_shader_clock
 			{
 				auto fpGetPhysicalDeviceFeatures = BitCast<PFN_vkGetPhysicalDeviceFeatures>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures" ));
 
@@ -79,6 +82,9 @@ namespace FG
 				_spirvCompiler->SetShaderClockFeatures( false, false );
 			}
 		}
+	#else
+		Unused( instance, physicalDevice, device );
+	#endif
 	}
 
 /*
@@ -102,9 +108,11 @@ namespace FG
 
 		_compilerFlags = flags;
 		
-		if ( EnumEq( flags, EShaderCompilationFlags::UseCurrentDeviceLimits ) )
+	#ifdef FG_ENABLE_VULKAN
+		if ( AllBits( flags, EShaderCompilationFlags::UseCurrentDeviceLimits ) and _vkPhysicalDevice != Zero )
 			CHECK_ERR( _spirvCompiler->SetCurrentResourceLimits( _vkPhysicalDevice ))
 		else
+	#endif
 			CHECK_ERR( _spirvCompiler->SetDefaultResourceLimits() );
 
 		_spirvCompiler->SetCompilationFlags( flags );
@@ -161,6 +169,7 @@ namespace FG
 */
 	void VPipelineCompiler::ReleaseUnusedShaders ()
 	{
+	#ifdef FG_ENABLE_VULKAN
 		EXLOCK( _lock );
 
 		if ( _vkLogicalDevice == VK_NULL_HANDLE )
@@ -171,7 +180,7 @@ namespace FG
 		
 		for (auto iter = _shaderCache.begin(); iter != _shaderCache.end();)
 		{
-			if ( not iter->second.use_count() == 1 )
+			if ( not (iter->second.use_count() == 1) )
 			{
 				++iter;
 				continue;
@@ -181,6 +190,7 @@ namespace FG
 
 			iter = _shaderCache.erase( iter );
 		}
+	#endif
 	}
 	
 /*
@@ -190,6 +200,7 @@ namespace FG
 */
 	void VPipelineCompiler::ReleaseShaderCache ()
 	{
+	#ifdef FG_ENABLE_VULKAN
 		EXLOCK( _lock );
 
 		if ( _vkLogicalDevice == VK_NULL_HANDLE )
@@ -206,6 +217,7 @@ namespace FG
 			Cast<VCachedDebuggableShaderModule>( sh.second )->Destroy( DestroyShaderModule, dev );
 		}
 		_shaderCache.clear();
+	#endif
 	}
 
 /*
@@ -251,7 +263,7 @@ namespace FG
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != Zero) ))
 			return false;
 
 		bool	is_supported = true;
@@ -276,7 +288,7 @@ namespace FG
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != Zero) ))
 			return false;
 
 		bool	is_supported = true;
@@ -301,7 +313,7 @@ namespace FG
 		if ( ppln._shaders.empty() )
 			return false;
 
-		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != Zero) ))
 			return false;
 
 		bool	is_supported = true;
@@ -323,7 +335,7 @@ namespace FG
 	{
 		// lock is not needed because only '_vkLogicalDevice' read access is used
 
-		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != VK_NULL_HANDLE) ))
+		if ( not IsDstFormatSupported( dstFormat, (_vkLogicalDevice != Zero) ))
 			return false;
 		
 		return _IsSupported( ppln._shader.data );
@@ -342,7 +354,7 @@ namespace FG
 
 		for (auto& data : shaderDataMap)
 		{
-			if ( data.second.index() and IsSrcFormatSupported( data.first ) )
+			if ( data.second.index() and IsSrcFormatSupported( data.first ))
 			{
 				is_supported = true;
 				break;
@@ -363,8 +375,8 @@ namespace FG
 
 		dstAccess |= srcAccess;
 
-		if ( EnumEq( dstAccess, EResourceState::InvalidateBefore ) and
-			 EnumEq( dstAccess, EResourceState::ShaderRead ) )
+		if ( AllBits( dstAccess, EResourceState::InvalidateBefore ) and
+			 AllBits( dstAccess, EResourceState::ShaderRead ))
 		{
 			dstAccess &= ~EResourceState::InvalidateBefore;
 		}
@@ -380,7 +392,7 @@ namespace FG
 		return Visit( src.data,
 				[&] (const PipelineDescription::Texture &lhs)
 				{
-					if ( auto* rhs = UnionGetIf<PipelineDescription::Texture>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Texture>( &dst.data ))
 					{
 						ASSERT( lhs.textureType	== rhs->textureType );
 						ASSERT( src.index		== dst.index );
@@ -398,7 +410,7 @@ namespace FG
 				   
 				[&] (const PipelineDescription::Sampler &)
 				{
-					if ( auto* rhs = UnionGetIf<PipelineDescription::Sampler>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Sampler>( &dst.data ))
 					{
 						ASSERT( src.index == dst.index );
 
@@ -413,7 +425,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::SubpassInput &lhs)
 				{
-					if ( auto* rhs = UnionGetIf<PipelineDescription::SubpassInput>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::SubpassInput>( &dst.data ))
 					{
 						ASSERT( lhs.attachmentIndex	== rhs->attachmentIndex );
 						ASSERT( lhs.isMultisample	== rhs->isMultisample );
@@ -433,14 +445,12 @@ namespace FG
 				
 				[&] (const PipelineDescription::Image &lhs)
 				{
-					if ( auto* rhs = UnionGetIf<PipelineDescription::Image>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::Image>( &dst.data ))
 					{
 						ASSERT( lhs.imageType	== rhs->imageType );
-						ASSERT( lhs.format		== rhs->format );
 						ASSERT( src.index		== dst.index );
 						
 						if ( lhs.imageType	== rhs->imageType	and
-							 lhs.format		== rhs->format		and
 							 src.index		== dst.index )
 						{
 							MergeShaderAccess( lhs.state, INOUT rhs->state );
@@ -455,7 +465,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::UniformBuffer &lhs)
 				{
-					if ( auto* rhs = UnionGetIf<PipelineDescription::UniformBuffer>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::UniformBuffer>( &dst.data ))
 					{
 						ASSERT( lhs.size	== rhs->size );
 						ASSERT( src.index	== dst.index );
@@ -473,7 +483,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::StorageBuffer &lhs)
 				{
-					if ( auto* rhs = UnionGetIf<PipelineDescription::StorageBuffer>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::StorageBuffer>( &dst.data ))
 					{
 						ASSERT( lhs.staticSize	== rhs->staticSize );
 						ASSERT( lhs.arrayStride	== rhs->arrayStride );
@@ -495,7 +505,7 @@ namespace FG
 				
 				[&] (const PipelineDescription::RayTracingScene &lhs)
 				{
-					if ( auto* rhs = UnionGetIf<PipelineDescription::RayTracingScene>( &dst.data ) )
+					if ( auto* rhs = UnionGetIf<PipelineDescription::RayTracingScene>( &dst.data ))
 					{
 						ASSERT( lhs.state == rhs->state );
 
@@ -647,7 +657,7 @@ namespace FG
 	{
 		for (size_t i = 0; i < src.size(); ++i)
 		{
-			if ( src.test( i ) )
+			if ( src.test( i ))
 				dst.set( i );
 		}
 	}
@@ -707,13 +717,13 @@ namespace FG
 			for (auto& un : *ds_layout.uniforms)
 			{
 				if ( auto* ubuf = UnionGetIf< PipelineDescription::UniformBuffer >( &un.second.data );
-					 ubuf and EnumEq( ubuf->state, EResourceState::_BufferDynamicOffset ) )
+					 ubuf and AllBits( ubuf->state, EResourceState::_BufferDynamicOffset ))
 				{
 					sorted.push_back( const_cast< PipelineDescription::Uniform *>( &un.second ));
 				}
 				else
 				if ( auto* sbuf = UnionGetIf< PipelineDescription::StorageBuffer >( &un.second.data );
-					sbuf and EnumEq( sbuf->state, EResourceState::_BufferDynamicOffset ) )
+					sbuf and AllBits( sbuf->state, EResourceState::_BufferDynamicOffset ))
 				{
 					sorted.push_back( const_cast< PipelineDescription::Uniform *>( &un.second ));
 				}
@@ -755,7 +765,7 @@ namespace FG
 		// search nearest shader format
 		for (auto iter = shaderData.begin(); iter != shaderData.end(); ++iter)
 		{
-			if ( not IsSrcFormatSupported( iter->first ) )
+			if ( not IsSrcFormatSupported( iter->first ))
 				continue;
 
 			// vulkan has most priority than opengl
@@ -800,7 +810,7 @@ namespace FG
 	bool VPipelineCompiler::Compile (INOUT MeshPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
 		EXLOCK( _lock );
-		ASSERT( IsSupported( ppln, dstFormat ) );
+		ASSERT( IsSupported( ppln, dstFormat ));
 
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
 		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
@@ -819,7 +829,7 @@ namespace FG
 			
 
 			// compile glsl
-			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ) )
+			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ))
 			{
 				SpirvCompiler::ShaderReflection	reflection;
 				String							log;
@@ -833,7 +843,7 @@ namespace FG
 				}
 				
 				if ( create_module )
-					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ) );
+					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ));
 
 				COMP_CHECK_ERR( _MergePipelineResources( reflection.layout, INOUT new_ppln._pipelineLayout ));
 
@@ -886,7 +896,7 @@ namespace FG
 	bool VPipelineCompiler::Compile (INOUT RayTracingPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
 		EXLOCK( _lock );
-		ASSERT( IsSupported( ppln, dstFormat ) );
+		ASSERT( IsSupported( ppln, dstFormat ));
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
 		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
@@ -905,7 +915,7 @@ namespace FG
 			
 
 			// compile glsl
-			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ) )
+			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ))
 			{
 				SpirvCompiler::ShaderReflection		reflection;
 				String								log;
@@ -919,7 +929,7 @@ namespace FG
 				}
 				
 				if ( create_module )
-					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ) );
+					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ));
 
 				COMP_CHECK_ERR( _MergePipelineResources( reflection.layout, INOUT new_ppln._pipelineLayout ));
 
@@ -963,7 +973,7 @@ namespace FG
 	bool VPipelineCompiler::Compile (INOUT GraphicsPipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
 		EXLOCK( _lock );
-		ASSERT( IsSupported( ppln, dstFormat ) );
+		ASSERT( IsSupported( ppln, dstFormat ));
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
 		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
@@ -982,7 +992,7 @@ namespace FG
 			
 
 			// compile glsl
-			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ) )
+			if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ))
 			{
 				SpirvCompiler::ShaderReflection	reflection;
 				String							log;
@@ -996,7 +1006,7 @@ namespace FG
 				}
 				
 				if ( create_module )
-					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ) );
+					COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_shader ));
 
 				COMP_CHECK_ERR( _MergePipelineResources( reflection.layout, INOUT new_ppln._pipelineLayout ));
 						
@@ -1053,7 +1063,7 @@ namespace FG
 	bool VPipelineCompiler::Compile (INOUT ComputePipelineDesc &ppln, EShaderLangFormat dstFormat)
 	{
 		EXLOCK( _lock );
-		ASSERT( IsSupported( ppln, dstFormat ) );
+		ASSERT( IsSupported( ppln, dstFormat ));
 		
 		const bool					create_module	= ((dstFormat & EShaderLangFormat::_StorageFormatMask) == EShaderLangFormat::ShaderModule);
 		const EShaderLangFormat		spirv_format	= not create_module ? dstFormat :
@@ -1066,7 +1076,7 @@ namespace FG
 			RETURN_ERR( "no suitable shader format found!" );
 		}
 
-		if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ) )
+		if ( auto* shader_data = UnionGetIf< StringShaderData >( &iter->second ))
 		{
 			SpirvCompiler::ShaderReflection	reflection;
 			String							log;
@@ -1080,7 +1090,7 @@ namespace FG
 			}
 			
 			if ( create_module )
-				COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_ppln._shader ) );
+				COMP_CHECK_ERR( _CreateVulkanShader( INOUT new_ppln._shader ));
 
 			new_ppln._defaultLocalGroupSize = reflection.compute.localGroupSize;
 			new_ppln._localSizeSpec			= reflection.compute.localGroupSpecialization;
@@ -1105,6 +1115,7 @@ namespace FG
 */
 	bool VPipelineCompiler::_CreateVulkanShader (INOUT PipelineDescription::Shader &shader)
 	{
+	#ifdef FG_ENABLE_VULKAN
 		CHECK_ERR( _fpCreateShaderModule and _fpDestroyShaderModule );
 
 		auto CreateShaderModule = BitCast<PFN_vkCreateShaderModule>(_fpCreateShaderModule);
@@ -1166,6 +1177,10 @@ namespace FG
 			COMP_RETURN_ERR( "SPIRV shader data is not found!" );
 
 		return true;
+	#else
+		Unused( shader );
+		return false;
+	#endif
 	}
 	
 /*

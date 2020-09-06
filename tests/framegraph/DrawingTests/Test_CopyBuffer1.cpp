@@ -42,7 +42,7 @@ namespace FG
 		Task	t_update	= cmd->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( src_data ));
 		Task	t_copy		= cmd->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 128_b, 256_b ).DependsOn( t_update ));
 		Task	t_read		= cmd->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_copy ));
-		FG_UNUSED( t_read );
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		

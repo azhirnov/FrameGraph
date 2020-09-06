@@ -11,13 +11,14 @@
 
 namespace FGC
 {
-	using EImage			= FG::EImage;
+	using EImageDim			= FG::EImageDim;
 	using EImageUsage		= FG::EImageUsage;
 	using EBufferUsage		= FG::EBufferUsage;
 	using EImageAspect		= FG::EImageAspect;
 	using EResourceState	= FG::EResourceState;
 	using EPixelFormat		= FG::EPixelFormat;
 	using EVertexType		= FG::EVertexType;
+	using EImageSampler		= FG::EImageSampler;
 	
 	
 /*
@@ -36,31 +37,6 @@ namespace FGC
 
 /*
 =================================================
-	ToString (EImage)
-=================================================
-*/
-	ND_ inline String  ToString (const EImage value)
-	{
-		BEGIN_ENUM_CHECKS();
-		switch ( value )
-		{
-			case EImage::Tex1D :		return "Image1D";
-			case EImage::Tex1DArray :	return "Image1D_Array";
-			case EImage::Tex2D :		return "Image2D";
-			case EImage::Tex2DArray :	return "Image2D_Array";
-			case EImage::Tex2DMS :		return "Image2D_MS";
-			case EImage::Tex2DMSArray :	return "Image2D_MS_Array";
-			case EImage::TexCube :		return "ImageCube";
-			case EImage::TexCubeArray :	return "ImageCube_Array";
-			case EImage::Tex3D :		return "Image3D";
-			case EImage::Unknown :		break;
-		}
-		END_ENUM_CHECKS();
-		RETURN_ERR( "unknown image type!" );
-	}
-
-/*
-=================================================
 	ToString (EImageUsage)
 =================================================
 */
@@ -70,7 +46,7 @@ namespace FGC
 
 		for (EImageUsage t = EImageUsage(1 << 0); t < EImageUsage::_Last; t = EImageUsage(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not AllBits( values, t ) )
 				continue;
 
 			if ( not result.empty() )
@@ -90,6 +66,9 @@ namespace FGC
 				case EImageUsage::ShadingRate				: result << "ShadingRate";				break;
 				case EImageUsage::StorageAtomic				: result << "StorageAtomic";			break;
 				case EImageUsage::ColorAttachmentBlend		: result << "ColorAttachmentBlend";		break;
+				//case EImageUsage::FragmentDensityMap		: result << "FragmentDensityMap";		break;
+				case EImageUsage::SampledCubic				: result << "SampledCubic";				break;
+				case EImageUsage::SampledMinMax				: result << "SampledMinMax";			break;
 				case EImageUsage::_Last						:
 				case EImageUsage::All						:	// to shutup warnings
 				case EImageUsage::Transfer					:
@@ -112,7 +91,7 @@ namespace FGC
 
 		for (EBufferUsage t = EBufferUsage(1 << 0); t < EBufferUsage::_Last; t = EBufferUsage(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not AllBits( values, t ) )
 				continue;
 
 			if ( not result.empty() )
@@ -134,6 +113,7 @@ namespace FGC
 				case EBufferUsage::VertexPplnStore	:  result << "VertexPplnStore";		break;
 				case EBufferUsage::FragmentPplnStore:  result << "FragmentPplnStore";	break;
 				case EBufferUsage::StorageTexelAtomic: result << "StorageTexelAtomic";	break;
+				//case EBufferUsage::ShaderAddress	:  result << "ShaderAddress";		break;
 				case EBufferUsage::_Last			:
 				case EBufferUsage::All				:	// to shutup warnings
 				case EBufferUsage::Transfer			:
@@ -246,7 +226,7 @@ namespace FGC
 		String	result;
 		for (EImageAspect t = EImageAspect(1 << 0); t < EImageAspect::_Last; t = EImageAspect(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not AllBits( values, t ) )
 				continue;
 
 			if ( not result.empty() )
@@ -277,8 +257,6 @@ namespace FGC
 */
 	ND_ inline String  ToString (const EResourceState value)
 	{
-		const auto	mask = EResourceState::_StateMask;
-
 		String	str;
 		switch ( value & EResourceState::_StateMask )
 		{
@@ -312,27 +290,73 @@ namespace FGC
 			default :													RETURN_ERR( "unknown resource state!" );
 		}
 
-		if ( EnumEq( value, EResourceState::_VertexShader ))			str << ", VS";
-		if ( EnumEq( value, EResourceState::_TessControlShader ))		str << ", TCS";
-		if ( EnumEq( value, EResourceState::_TessEvaluationShader ))	str << ", TES";
-		if ( EnumEq( value, EResourceState::_GeometryShader ))			str << ", GS";
-		if ( EnumEq( value, EResourceState::_FragmentShader ))			str << ", FS";
-		if ( EnumEq( value, EResourceState::_ComputeShader ))			str << ", CS";
-		if ( EnumEq( value, EResourceState::_MeshTaskShader ))			str << ", MTS";
-		if ( EnumEq( value, EResourceState::_MeshShader ))				str << ", MS";
-		if ( EnumEq( value, EResourceState::_RayTracingShader ))		str << ", RTS";
+		if ( AllBits( value, EResourceState::_VertexShader ))			str << ", VS";
+		if ( AllBits( value, EResourceState::_TessControlShader ))		str << ", TCS";
+		if ( AllBits( value, EResourceState::_TessEvaluationShader ))	str << ", TES";
+		if ( AllBits( value, EResourceState::_GeometryShader ))			str << ", GS";
+		if ( AllBits( value, EResourceState::_FragmentShader ))			str << ", FS";
+		if ( AllBits( value, EResourceState::_ComputeShader ))			str << ", CS";
+		if ( AllBits( value, EResourceState::_MeshTaskShader ))			str << ", MTS";
+		if ( AllBits( value, EResourceState::_MeshShader ))				str << ", MS";
+		if ( AllBits( value, EResourceState::_RayTracingShader ))		str << ", RTS";
 		
-		if ( EnumEq( value, EResourceState::InvalidateBefore ))			str << ", InvalidateBefore";
-		if ( EnumEq( value, EResourceState::InvalidateAfter ))			str << ", InvalidateAfter";
-		if ( EnumEq( value, EResourceState::_BufferDynamicOffset ))		str << ", Dynamic";
+		if ( AllBits( value, EResourceState::InvalidateBefore ))			str << ", InvalidateBefore";
+		if ( AllBits( value, EResourceState::InvalidateAfter ))			str << ", InvalidateAfter";
+		if ( AllBits( value, EResourceState::_BufferDynamicOffset ))		str << ", Dynamic";
 
-		if ( not EnumEq( value, EResourceState::EarlyFragmentTests | EResourceState::LateFragmentTests )) {
-			if ( EnumEq( value, EResourceState::EarlyFragmentTests ) )	str << ", EarlyTests";
-			if ( EnumEq( value, EResourceState::LateFragmentTests ) )	str << ", LateTests";
+		if ( not AllBits( value, EResourceState::EarlyFragmentTests | EResourceState::LateFragmentTests )) {
+			if ( AllBits( value, EResourceState::EarlyFragmentTests ) )	str << ", EarlyTests";
+			if ( AllBits( value, EResourceState::LateFragmentTests ) )	str << ", LateTests";
 		}
 		return str;
 	}
 	
+/*
+=================================================
+	ToString (EImageSampler)
+=================================================
+*/
+	ND_ inline String  ToString (const EImageSampler value)
+	{
+		String	res;
+		switch ( value & (EImageSampler::_TypeMask | EImageSampler::_DimMask) )
+		{
+			case EImageSampler::Float1D :			res = "Float1D";		break;
+			case EImageSampler::Float1DArray :		res = "Float1DArray";	break;
+			case EImageSampler::Float2D :			res = "Float2D";		break;
+			case EImageSampler::Float2DArray :		res = "Float2DArray";	break;
+			case EImageSampler::Float2DMS :			res = "Float2DMS";		break;
+			case EImageSampler::Float2DMSArray :	res = "Float2DMSArray";	break;
+			case EImageSampler::FloatCube :			res = "FloatCube";		break;
+			case EImageSampler::FloatCubeArray :	res = "FloatCubeArray";	break;
+			case EImageSampler::Float3D :			res = "Float3D";		break;
+			case EImageSampler::Int1D :				res = "Int1D";			break;
+			case EImageSampler::Int1DArray :		res = "Int1DArray";		break;
+			case EImageSampler::Int2D :				res = "Int2D";			break;
+			case EImageSampler::Int2DArray :		res = "Int2DArray";		break;
+			case EImageSampler::Int2DMS :			res = "Int2DMS";		break;
+			case EImageSampler::Int2DMSArray :		res = "Int2DMSArray";	break;
+			case EImageSampler::IntCube :			res = "IntCube";		break;
+			case EImageSampler::IntCubeArray :		res = "IntCubeArray";	break;
+			case EImageSampler::Int3D :				res = "Int3D";			break;
+			case EImageSampler::Uint1D :			res = "Uint1D";			break;
+			case EImageSampler::Uint1DArray :		res = "Uint1DArray";	break;
+			case EImageSampler::Uint2D :			res = "Uint2D";			break;
+			case EImageSampler::Uint2DArray :		res = "Uint2DArray";	break;
+			case EImageSampler::Uint2DMS :			res = "Uint2DMS";		break;
+			case EImageSampler::Uint2DMSArray :		res = "Uint2DMSArray";	break;
+			case EImageSampler::UintCube :			res = "UintCube";		break;
+			case EImageSampler::UintCubeArray :		res = "UintCubeArray";	break;
+			case EImageSampler::Uint3D :			res = "Uint3D";			break;
+			default :								res = "unknown";		break;
+		}
+		
+		if ( AllBits( value, EImageSampler::_Shadow ))
+			res << "Shadow";
+
+		return res;
+	}
+
 /*
 =================================================
 	ToString (EPixelFormat)

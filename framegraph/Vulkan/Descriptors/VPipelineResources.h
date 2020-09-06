@@ -24,7 +24,7 @@ namespace FG
 			uint						descriptorIndex;
 		};
 
-		using Element_t			= Union< VkDescriptorBufferInfo, VkDescriptorImageInfo, VkAccelerationStructureNV >;
+		//using Element_t			= Union< VkDescriptorBufferInfo, VkDescriptorImageInfo, VkAccelerationStructureNV >;
 		using DynamicDataPtr	= PipelineResources::DynamicDataPtr;
 		using DescriptorSet		= VDescriptorSetLayout::DescriptorSet;
 
@@ -35,7 +35,7 @@ namespace FG
 		RawDescriptorSetLayoutID	_layoutId;
 		HashVal						_hash;
 		DynamicDataPtr				_dataPtr;
-		const bool					_allowEmptyResources;
+		bool						_allowEmptyResources;
 		
 		DebugName_t					_debugName;
 		
@@ -45,7 +45,8 @@ namespace FG
 	// methods
 	public:
 		VPipelineResources () : _allowEmptyResources{false} {}
-		VPipelineResources (VPipelineResources &&) = default;
+		VPipelineResources (VPipelineResources &&) = delete;
+		VPipelineResources (const VPipelineResources &) = delete;
 		explicit VPipelineResources (const PipelineResources &desc);
 		explicit VPipelineResources (INOUT PipelineResources &desc);
 		~VPipelineResources ();
@@ -78,9 +79,11 @@ namespace FG
 
 		void _LogUniform (const UniformID &, uint idx) const;
 
-		static void _CheckBufferUsage (const class VBuffer &, EResourceState state);
-		static void _CheckTexelBufferUsage (const class VBuffer &, EResourceState state);
-		static void _CheckImageUsage (const class VImage &, EResourceState state);
+		static void _CheckBufferUsage (const VBuffer &, EResourceState state);
+		static void _CheckTexelBufferUsage (const VBuffer &, EResourceState state);
+		static void _CheckImageUsage (const VImage &, EResourceState state);
+		static void _CheckImageType (const UniformID &un, uint idx, const VImage &, const ImageViewDesc &, EImageSampler type);
+		static void _CheckTextureType (const UniformID &un, uint idx, const VImage &,  const ImageViewDesc &, EImageSampler type);
 	};
 	
 

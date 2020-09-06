@@ -273,7 +273,7 @@ namespace {
 		_rowPitch{ size_t(rowPitch) },	_slicePitch{ size_t(slicePitch) },
 		_format{ format }
 	{
-		FG_UNUSED( aspect );
+		Unused( aspect );
 		BEGIN_ENUM_CHECKS();
 		switch ( _format )
 		{

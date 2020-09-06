@@ -135,25 +135,51 @@ namespace FG
 		
 		bool			IsResourceAlive (RawGPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
 		bool			IsResourceAlive (RawCPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
-		bool			IsResourceAlive (RawMPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
-		bool			IsResourceAlive (RawRTPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
 		bool			IsResourceAlive (RawImageID id) const override				{ return _resourceMngr.IsResourceAlive( id ); }
 		bool			IsResourceAlive (RawBufferID id) const override				{ return _resourceMngr.IsResourceAlive( id ); }
 		bool			IsResourceAlive (RawSwapchainID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		
+		#ifdef VK_NV_mesh_shader
+		bool			IsResourceAlive (RawMPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
+		#else
+		bool			IsResourceAlive (RawMPipelineID) const override				{ return false; }
+		#endif
+
+		#ifdef VK_NV_ray_tracing
+		bool			IsResourceAlive (RawRTPipelineID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
 		bool			IsResourceAlive (RawRTGeometryID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
 		bool			IsResourceAlive (RawRTSceneID id) const override			{ return _resourceMngr.IsResourceAlive( id ); }
 		bool			IsResourceAlive (RawRTShaderTableID id) const override		{ return _resourceMngr.IsResourceAlive( id ); }
+		#else
+		bool			IsResourceAlive (RawRTPipelineID) const override			{ return false; }
+		bool			IsResourceAlive (RawRTGeometryID) const override			{ return false; }
+		bool			IsResourceAlive (RawRTSceneID) const override				{ return false; }
+		bool			IsResourceAlive (RawRTShaderTableID) const override			{ return false; }
+		#endif
 		
 		GPipelineID		AcquireResource (RawGPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? GPipelineID{id}		: Default; }
 		CPipelineID		AcquireResource (RawCPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? CPipelineID{id}		: Default; }
-		MPipelineID		AcquireResource (RawMPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? MPipelineID{id}		: Default; }
-		RTPipelineID	AcquireResource (RawRTPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? RTPipelineID{id}		: Default; }
 		ImageID			AcquireResource (RawImageID id) override					{ return _resourceMngr.AcquireResource( id ) ? ImageID{id}			: Default; }
 		BufferID		AcquireResource (RawBufferID id) override					{ return _resourceMngr.AcquireResource( id ) ? BufferID{id}			: Default; }
 		SwapchainID		AcquireResource (RawSwapchainID id) override				{ return _resourceMngr.AcquireResource( id ) ? SwapchainID{id}		: Default; }
+		
+		#ifdef VK_NV_mesh_shader
+		MPipelineID		AcquireResource (RawMPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? MPipelineID{id}		: Default; }
+		#else
+		MPipelineID		AcquireResource (RawMPipelineID) override					{ return Default; }
+		#endif
+
+		#ifdef VK_NV_ray_tracing
+		RTPipelineID	AcquireResource (RawRTPipelineID id) override				{ return _resourceMngr.AcquireResource( id ) ? RTPipelineID{id}		: Default; }
 		RTGeometryID	AcquireResource (RawRTGeometryID id) override				{ return _resourceMngr.AcquireResource( id ) ? RTGeometryID{id}		: Default; }
 		RTSceneID		AcquireResource (RawRTSceneID id) override					{ return _resourceMngr.AcquireResource( id ) ? RTSceneID{id}		: Default; }
 		RTShaderTableID	AcquireResource (RawRTShaderTableID id) override			{ return _resourceMngr.AcquireResource( id ) ? RTShaderTableID{id}	: Default; }
+		#else
+		RTPipelineID	AcquireResource (RawRTPipelineID) override					{ return Default; }
+		RTGeometryID	AcquireResource (RawRTGeometryID) override					{ return Default; }
+		RTSceneID		AcquireResource (RawRTSceneID) override						{ return Default; }
+		RTShaderTableID	AcquireResource (RawRTShaderTableID) override				{ return Default; }
+		#endif
 
 		BufferDesc const&	GetDescription (RawBufferID id) const override;
 		ImageDesc const&	GetDescription (RawImageID id) const override;
