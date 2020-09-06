@@ -32,7 +32,7 @@ namespace FGC
 			explicit VulkanSurface (ANativeWindow *wnd);
 
 			ND_ ArrayView<const char*>	GetRequiredExtensions () const override { return _extensions; }
-			ND_ VkSurfaceKHR			Create (VkInstance inst) const override;
+			ND_ SurfaceVk_t				Create (InstanceVk_t inst) const override;
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;

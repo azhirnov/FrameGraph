@@ -159,7 +159,11 @@ namespace FGC
 */
 	UniquePtr<IVulkanSurface>  WindowAndroid::GetVulkanSurface () const
 	{
+	#ifdef FG_ENABLE_VULKAN
 		return UniquePtr<IVulkanSurface>{new VulkanSurface( _window )};
+	#else
+		return null;
+	#endif
 	}
 
 /*
@@ -252,6 +256,8 @@ namespace FGC
 
 
 	
+# ifdef FG_ENABLE_VULKAN
+
 /*
 =================================================
 	constructor
@@ -267,11 +273,12 @@ namespace FGC
 	Create
 =================================================
 */
-	VkSurfaceKHR  WindowAndroid::VulkanSurface::Create (VkInstance instance) const
+	IVulkanSurface::SurfaceVk_t  WindowAndroid::VulkanSurface::Create (InstanceVk_t instance) const
 	{
-		return FGC::VulkanSurface::CreateAndroidSurface( instance, _window );
+		return BitCast<SurfaceVk_t>( FGC::VulkanSurface::CreateAndroidSurface( BitCast<VkInstance>(instance), _window ));
 	}
-
+	
+# endif	// FG_ENABLE_VULKAN
 
 }	// FGC
 

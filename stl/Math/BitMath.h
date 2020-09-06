@@ -130,9 +130,11 @@ namespace FGC
 	#ifdef COMPILER_MSVC
 		unsigned long	index;
 		
+	  #if PLATFORM_BITS == 64
 		if constexpr( sizeof(x) == 8 )
 			return _BitScanReverse64( OUT &index, uint64_t(x) ) ? index : INVALID_INDEX;
 		else
+	  #endif
 		if constexpr( sizeof(x) <= 4 )
 			return _BitScanReverse( OUT &index, uint(x) ) ? index : INVALID_INDEX;
 		

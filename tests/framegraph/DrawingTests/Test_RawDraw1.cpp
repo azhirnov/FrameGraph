@@ -9,7 +9,7 @@
 namespace FG
 {
 
-#ifdef FG_ENABLE_VULKAN
+#if defined(FG_ENABLE_VULKAN) and defined(FG_ENABLE_GLSLANG)
 	static bool  CreatePipeline (const VulkanDevice &vulkan, const VulkanDrawContext &ctx, const GraphicsPipelineDesc &desc,
 								 OUT VkPipelineLayout &pplnLayout, OUT VkPipeline &pipeline)
 	{
@@ -297,6 +297,6 @@ void main() {
 		return true;
 	}
 
-#endif	// FG_ENABLE_VULKAN
+#endif	// FG_ENABLE_VULKAN and FG_ENABLE_GLSLANG
 
 }	// FG
