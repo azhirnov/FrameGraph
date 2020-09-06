@@ -52,31 +52,31 @@ matrix:
         - ctest --verbose
      
     # Linux x64 Clang 8
-    #- os: linux
-    #  name: Linux64 Clang 8
-    #  dist: xenial
-    #  compiler: clang
-    #  addons:
-    #    apt:
-    #      sources:
-    #        - ubuntu-toolchain-r-test
-    #        - llvm-toolchain-xenial-8
-    #      packages:
-    #        - xorg-dev
-    #        - clang-8
-    #  before_install:
-    #    - eval "CC=clang-8 && CXX=clang++-8"
-    #    # Download and install cmake
-    #    - mkdir $HOME/cmake;
-    #    - export PATH="$HOME/cmake/bin:$PATH";
-    #    - travis_retry wget -q https://cmake.org/files/v3.15/cmake-3.15.1-Linux-x86_64.sh;
-    #    - sh cmake-3.15.1-Linux-x86_64.sh --prefix=$HOME/cmake --exclude-subdir --skip-license;
-    #  script:
-    #    - mkdir -p build
-    #    - cd build
-    #    - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
-    #    - cmake --build . --config Release
-    #    - ctest --verbose
+    - os: linux
+      name: Linux64 Clang 8
+      dist: xenial
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-8
+          packages:
+            - xorg-dev
+            - clang-8
+      before_install:
+        - eval "CC=clang-8 && CXX=clang++-8"
+        # Download and install cmake
+        - mkdir $HOME/cmake;
+        - export PATH="$HOME/cmake/bin:$PATH";
+        - travis_retry wget -q https://cmake.org/files/v3.15/cmake-3.15.1-Linux-x86_64.sh;
+        - sh cmake-3.15.1-Linux-x86_64.sh --prefix=$HOME/cmake --exclude-subdir --skip-license;
+      script:
+        - mkdir -p build
+        - cd build
+        - cmake -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_EXTERNALS_USE_PREBUILD=OFF .. 
+        - cmake --build . --config Release
+        - ctest --verbose
         
     # Windows MSVC x86
     - os: windows

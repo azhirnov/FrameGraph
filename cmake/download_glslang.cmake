@@ -57,14 +57,17 @@ elseif (${FG_ENABLE_GLSLANG})
 		set( FG_SPIRVHEADERS_REPOSITORY "" )
 	endif ()
 	
-	set( ENABLE_HLSL ON CACHE BOOL "glslang option" )
+	set( ENABLE_HLSL OFF CACHE INTERNAL "glslang option" FORCE )
 	set( ENABLE_OPT ON CACHE BOOL "glslang option" )
 	mark_as_advanced( ENABLE_HLSL ENABLE_OPT )
+
+	if (UNIX)
+		set( ENABLE_OPT OFF CACHE INTERNAL "" FORCE )
+	endif ()
 
 	# SPIRV-Tools require Python 3 for building
 	if (${ENABLE_OPT})
 		find_package( PythonInterp 3.7 REQUIRED )
-		find_package( PythonLibs 3.7 REQUIRED )
 	endif ()
 
 	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})

@@ -255,7 +255,7 @@ namespace {
 			_enabledInstances[1] = true;
 		}
 
-		Task	t_build_tlas = cmdbuf->AddTask( build_tlas.DependsOn( t_build_opaque, t_build_translucent ));
+		cmdbuf->AddTask( build_tlas.DependsOn( t_build_opaque, t_build_translucent ));
 		
 		fg->ReleaseResource( opaque );
 		fg->ReleaseResource( translucent );

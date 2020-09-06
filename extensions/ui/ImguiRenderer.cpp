@@ -208,12 +208,9 @@ namespace FG
 	bool  ImguiRenderer::_CreateSampler (const FrameGraph &fg)
 	{
 		SamplerDesc		desc;
-		desc.magFilter		= EFilter::Linear;
-		desc.minFilter		= EFilter::Linear;
-		desc.mipmapMode		= EMipmapFilter::Linear;
-		desc.addressMode	= { EAddressMode::Repeat };
-		desc.minLod			= -1000.0f;
-		desc.maxLod			= 1000.0f;
+		desc.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Linear );
+		desc.SetAddressMode( EAddressMode::Repeat );
+		desc.SetLodRange( -1000.0f, 1000.0f );
 
 		_fontSampler = fg->CreateSampler( desc );
 		CHECK_ERR( _fontSampler );

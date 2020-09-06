@@ -231,7 +231,7 @@ namespace FG
 		auto			lhs_ds		= _descriptorSets.begin();
 		auto			rhs_ds		= rhs._descriptorSets.begin();
 
-		for (size_t i = 0; i < _descriptorSets.size(); ++i, ++lhs_ds, ++rhs_ds)
+		for (size_t i = 0; i < ds_count; ++i, ++lhs_ds, ++rhs_ds)
 		{
 			if ( lhs_ds->second.index != rhs_ds->second.index )
 				return false;

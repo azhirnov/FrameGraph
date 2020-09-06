@@ -232,7 +232,7 @@ namespace FG
 
 		// methods
 			MultisampleState () :
-				sampleMask{},				samples{ 1 },
+				sampleMask{},				samples{ 1u },
 				minSampleShading{},			sampleShading{ false },
 				alphaToCoverage{ false },	alphaToOne{ false }
 			{}

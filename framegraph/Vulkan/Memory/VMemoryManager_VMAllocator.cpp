@@ -37,6 +37,8 @@
 #ifdef COMPILER_CLANG
 #	pragma clang diagnostic push
 #	pragma clang diagnostic ignored "-Wmissing-field-initializers"
+#	pragma clang diagnostic ignored "-Wcast-align"
+#	pragma clang diagnostic ignored "-Wunused-variable"
 #endif
 
 #include "vk_mem_alloc.h"

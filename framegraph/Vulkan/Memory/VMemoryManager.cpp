@@ -35,8 +35,6 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 
-		using MT = EMemoryTypeExt;
-
 		// TODO: use custom mem allocator?
 #	ifdef FG_ENABLE_VULKAN_MEMORY_ALLOCATOR
 		_allocators.push_back( _CreateVMA() );

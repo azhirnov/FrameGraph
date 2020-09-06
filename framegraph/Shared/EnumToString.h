@@ -257,8 +257,6 @@ namespace FGC
 */
 	ND_ inline String  ToString (const EResourceState value)
 	{
-		const auto	mask = EResourceState::_StateMask;
-
 		String	str;
 		switch ( value & EResourceState::_StateMask )
 		{

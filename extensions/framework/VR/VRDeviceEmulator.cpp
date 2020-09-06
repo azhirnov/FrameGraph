@@ -18,8 +18,8 @@ namespace {
 */
 	IVRDevice::Mat3_t  RotateX (float angle)
 	{
-		float	s = sin( angle );
-		float	c = cos( angle );
+		float	s = std::sin( angle );
+		float	c = std::cos( angle );
 
 		return IVRDevice::Mat3_t{
 			1.0f,  0.0f,  0.0f,
@@ -30,8 +30,8 @@ namespace {
 
 	IVRDevice::Mat3_t  RotateY (float angle)
 	{
-		float	s = sin( angle );
-		float	c = cos( angle );
+		float	s = std::sin( angle );
+		float	c = std::cos( angle );
 
 		return IVRDevice::Mat3_t{
 			 c,    0.0f,  -s,
@@ -40,17 +40,17 @@ namespace {
 		};
 	}
 
-	IVRDevice::Mat3_t  RotateZ (float angle)
+	/*IVRDevice::Mat3_t  RotateZ (float angle)
 	{
-		float	s = sin( angle );
-		float	c = cos( angle );
+		float	s = std::sin( angle );
+		float	c = std::cos( angle );
 
 		return IVRDevice::Mat3_t{
 			 c,    0.0f,   s,
 			-s,     c,    0.0f,
 			0.0f,  0.0f,  1.0f
 		};
-	}
+	}*/
 }
 //-----------------------------------------------------------------------------
 
@@ -424,7 +424,7 @@ namespace {
 			
 			const float	fov_y			= 1.0f;
 			const float	aspect			= 1.0f;
-			const float	tan_half_fovy	= tan( fov_y * 0.5f );
+			const float	tan_half_fovy	= std::tan( fov_y * 0.5f );
 
 			Mat4_t	proj;
 			proj[0][0] = 1.0f / (aspect * tan_half_fovy);

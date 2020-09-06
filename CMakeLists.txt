@@ -16,11 +16,11 @@ set( FG_NO_EXCEPTIONS ON CACHE BOOL "disable C++ exceptions" )
 set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
-set( FG_ENABLE_OPENVR ON CACHE BOOL "use OpenVR (optional)" )
+set( FG_ENABLE_OPENVR OFF CACHE BOOL "use OpenVR (optional)" )
 set( FG_ENABLE_SIMPLE_COMPILER_OPTIONS OFF CACHE BOOL "use simplified compiler settings if you have problem with it" )
 set( FG_EXTERNALS_USE_STABLE_VERSIONS ON CACHE BOOL "use last stable version instead of master branch" )
 set( FG_EXTERNALS_USE_PREBUILD OFF CACHE BOOL "use stable prebuild libraries" )
-set( FG_ENABLE_GLSL_TRACE ON CACHE BOOL "used for shader debugging and profiling" )
+set( FG_ENABLE_GLSL_TRACE OFF CACHE BOOL "used for shader debugging and profiling" FORCE )
 set( FG_VULKAN_VERSION "110" CACHE STRING "choose target Vulkan API version" )
 
 
@@ -36,13 +36,20 @@ set( FG_ENABLE_SPIRVREFLECT ON CACHE BOOL "for runtime spirv shader reflection (
 set( FG_ENABLE_IMGUI ON CACHE BOOL "use imgui (optional, required for UI extension)" )
 
 # Scene dependencies
-set( FG_ENABLE_ASSIMP ON CACHE BOOL "use Assimp (optional, required for Scene extension)" )
+set( FG_ENABLE_ASSIMP OFF CACHE BOOL "use Assimp (optional, required for Scene extension)" )
 set( FG_ENABLE_GLM ON CACHE BOOL "use glm (optional, required for Scene extension)" )
-set( FG_ENABLE_DEVIL ON CACHE BOOL "use DevIL (optional, required for Scene extension)" )
+set( FG_ENABLE_DEVIL OFF CACHE BOOL "use DevIL (optional, required for Scene extension)" )
 set( FG_ENABLE_FFMPEG OFF CACHE BOOL "use FFmpeg (optional, LGPL license)" )
 set( FG_ALLOW_GPL OFF CACHE BOOL "allow GNU GPL code and libraries" )
 
 
+if (WIN32)
+	set( FG_ENABLE_OPENVR ON )
+	set( FG_ENABLE_ASSIMP ON )
+	set( FG_ENABLE_DEVIL ON )
+	set( FG_ALLOW_GPL ON )
+	set( FG_ENABLE_FFMPEG ON )
+endif ()
 
 set( MAIN_BINARY_DIR "${CMAKE_BINARY_DIR}/bin" CACHE INTERNAL "" FORCE )
 
@@ -88,7 +95,6 @@ add_subdirectory( "extensions/graphviz" )
 add_subdirectory( "extensions/video" )
 
 if (${FG_ENABLE_TESTS})
-	enable_testing()
 	add_subdirectory( "tests/stl" )
 	add_subdirectory( "tests/framegraph" )
 	add_subdirectory( "tests/framework" )

@@ -44,6 +44,8 @@ static void Matrix_Test3 ()
 	float4 v2 = float3x4_t() * float3();
 
 	float3x3_t m1 = float4x3_t() * float3x4_t();
+
+	Unused( v1, v2, m1 );
 }
 
 
@@ -57,6 +59,8 @@ static void Matrix_Test4 ()
 	float4 v2 = float3() * float3x4_t();
 	
 	float3x3_t m1 = float4x3_t() * float3x4_t();
+
+	Unused( v1, v2, m1 );
 }
 
 
