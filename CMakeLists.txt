@@ -38,7 +38,6 @@ set( FG_ENABLE_IMGUI ON CACHE BOOL "use imgui (optional, required for UI extensi
 set( FG_ENABLE_ASSIMP ON CACHE BOOL "use Assimp (optional, required for Scene extension)" )
 set( FG_ENABLE_GLM ON CACHE BOOL "use glm (optional, required for Scene extension)" )
 set( FG_ENABLE_DEVIL ON CACHE BOOL "use DevIL (optional, required for Scene extension)" )
-set( FG_ENABLE_FREEIMAGE OFF CACHE BOOL "use FreeImage (optional, GPL license)" )
 set( FG_ENABLE_FFMPEG OFF CACHE BOOL "use FFmpeg (optional, LGPL license)" )
 set( FG_ALLOW_GPL OFF CACHE BOOL "allow GNU GPL code and libraries" )
 
