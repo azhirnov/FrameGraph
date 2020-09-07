@@ -26,6 +26,7 @@
 #include "stl/CompileTime/TypeTraits.h"
 #include "stl/CompileTime/Constants.h"
 #include "stl/CompileTime/DefaultType.h"
+#include "stl/Containers/StringView.h"
 
 
 namespace FGC
@@ -87,6 +88,17 @@ namespace FGC
 	static constexpr std::memory_order	memory_order_acq_rel	= std::memory_order_seq_cst;
 	static constexpr std::memory_order	memory_order_relaxed	= std::memory_order_seq_cst;
 #	endif	// FG_OPTIMAL_MEMORY_ORDER
+
+
+#	ifndef FG_NO_EXCEPTIONS
+	class FGException final : public std::runtime_error
+	{
+	public:
+		explicit FGException (StringView sv) : runtime_error{ String{sv} } {}
+		explicit FGException (String str) : runtime_error{ std::move(str) } {}
+		explicit FGException (const char *str) : runtime_error{ String{str} } {}
+	};
+#	endif
 
 	
 /*

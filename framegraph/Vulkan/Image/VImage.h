@@ -6,7 +6,6 @@
 #include "framegraph/Shared/ImageViewDesc.h"
 #include "framegraph/Public/FrameGraph.h"
 #include "VCommon.h"
-#include <shared_mutex>
 
 namespace FG
 {

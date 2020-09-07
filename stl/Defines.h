@@ -390,18 +390,18 @@
 #	undef  FG_PRIVATE_CHECK_ERR
 #	define FG_PRIVATE_CHECK_ERR( _expr_, _ret_ ) \
 		{if ( !(_expr_) ) { \
-			throw std::runtime_error{ FG_PRIVATE_TOSTRING( _expr_ )}; \
+			throw FGC::FGException{ FG_PRIVATE_TOSTRING( _expr_ )}; \
 		}}
 
 #	undef  CHECK_FATAL
 #	define CHECK_FATAL( _expr_ ) \
 		{if ( !(_expr_) ) { \
-			throw std::runtime_error{ FG_PRIVATE_TOSTRING( _expr_ )}; \
+			throw FGC::FGException{ FG_PRIVATE_TOSTRING( _expr_ )}; \
 		}}
 
 #	undef  FG_PRIVATE_RETURN_ERR
 #	define FG_PRIVATE_RETURN_ERR( _text_, _ret_ ) \
-		{throw std::runtime_error{ _text_ };}
+		{throw FGC::FGException{ _text_ };}
 
 #endif
 

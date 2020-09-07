@@ -49,7 +49,6 @@ namespace FG
 			// vulkan 1.1 core
 			bool	bindMemory2				: 1;
 			bool	dedicatedAllocation		: 1;
-			bool	create2DArrayCompatible	: 1;
 			bool	commandPoolTrim			: 1;
 			bool	dispatchBase			: 1;
 			bool	array2DCompatible		: 1;

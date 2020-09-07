@@ -20,7 +20,7 @@ namespace FG
 
 	// types
 	private:
-		using OnRelease_t	= IFrameGraph::OnExternalBufferReleased_t;
+		using OnRelease_t		= IFrameGraph::OnExternalBufferReleased_t;
 		using BufferViewMap_t	= HashMap< BufferViewDesc, VkBufferView >;
 
 

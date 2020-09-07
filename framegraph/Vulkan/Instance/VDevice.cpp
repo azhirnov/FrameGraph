@@ -150,7 +150,6 @@ namespace FG
 		#endif
 		#ifdef VK_KHR_maintenance1
 		const bool	has_maintenance1		= _vkVersion >= EShaderLangFormat::Vulkan_110 or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
-		_features.create2DArrayCompatible	= has_maintenance1;
 		_features.commandPoolTrim			= has_maintenance1;
 		_features.array2DCompatible			= has_maintenance1;
 		#endif

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "stl/Math/Math.h"
-#include "stl/Containers/StringView.h"
 
 namespace FGC
 {

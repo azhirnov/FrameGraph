@@ -2,6 +2,10 @@
 
 #pragma once
 
+#ifndef FG_ENABLE_VULKAN
+#	error Vulkan API is not enabled!
+#endif
+
 #include "framegraph/Public/MipmapLevel.h"
 #include "framegraph/Public/MultiSamples.h"
 #include "framegraph/Public/ImageLayer.h"
@@ -18,6 +22,8 @@
 #include "stl/Containers/InPlace.h"
 #include "stl/Memory/LinearAllocator.h"
 #include "Utils/VEnums.h"
+
+#include <shared_mutex>
 
 #if 0
 #include <foonathan/memory/memory_pool.hpp>

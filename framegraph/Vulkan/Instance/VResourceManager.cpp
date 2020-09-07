@@ -685,7 +685,7 @@ namespace FG
 
 /*
 =================================================
-	_CompileShader
+	_CompileSPIRVShader
 =================================================
 */
 	bool  VResourceManager::_CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module)

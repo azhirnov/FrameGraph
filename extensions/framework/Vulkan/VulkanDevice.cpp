@@ -408,6 +408,9 @@ namespace {
 		CHECK_ERR( _vkInstance );
 		CHECK_ERR( not _vkLogicalDevice );
 
+		if ( deviceName.empty() )
+			return false;
+
 		VkPhysicalDevice	pdev = VK_NULL_HANDLE;
 
 		WithPhysicalDevices( *this,
@@ -1039,7 +1042,6 @@ namespace {
 		#endif
 		#ifdef VK_KHR_maintenance1
 		const bool	has_maintenance1		= _vkVersion >= InstanceVersion{1,1} or HasDeviceExtension( VK_KHR_MAINTENANCE1_EXTENSION_NAME );
-		_features.create2DArrayCompatible	= has_maintenance1;
 		_features.commandPoolTrim			= has_maintenance1;
 		_features.array2DCompatible			= has_maintenance1;
 		#endif
@@ -1352,7 +1354,6 @@ namespace {
 			<< "\n  dedicatedAllocation:      " << ToString( _features.dedicatedAllocation )
 			<< "\n  descriptorUpdateTemplate: " << ToString( _features.descriptorUpdateTemplate )
 			<< "\n  imageViewUsage:           " << ToString( _features.imageViewUsage )
-			<< "\n  create2DArrayCompatible:  " << ToString( _features.create2DArrayCompatible )
 			<< "\n  commandPoolTrim:          " << ToString( _features.commandPoolTrim )
 			<< "\n  dispatchBase:             " << ToString( _features.dispatchBase )
 			<< "\n  array2DCompatible:        " << ToString( _features.array2DCompatible )
