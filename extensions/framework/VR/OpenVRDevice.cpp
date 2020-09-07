@@ -5,10 +5,18 @@
 # include "framework/VR/OpenVRDevice.h"
 # include "stl/Algorithms/StringUtils.h"
 
+# ifdef PLATFORM_WINDOWS
+#	include "stl/Platforms/WindowsHeader.h"
+# else
+#	include <dlfcn.h>
+#   include <linux/limits.h>
+# endif
+
 namespace FGC
 {
 namespace
 {
+
 	static constexpr char*	AxisNames[] = {
 		"dpad",		// X,Y
 		"trigger",	// only X axis
@@ -16,14 +24,14 @@ namespace
 		"axis-3",
 		"axis-4"
 	};
-	STATIC_ASSERT( CountOf(AxisNames) == vr::k_unControllerStateAxisCount );
+	STATIC_ASSERT( CountOf(AxisNames) == k_unControllerStateAxisCount );
 
 /*
 =================================================
 	OpenVRMatToMat4
 =================================================
 */
-	ND_ forceinline IVRDevice::Mat4_t  OpenVRMatToMat4 (const vr::HmdMatrix44_t &mat)
+	ND_ forceinline IVRDevice::Mat4_t  OpenVRMatToMat4 (const HmdMatrix44_t &mat)
 	{
 		return IVRDevice::Mat4_t{
 				mat.m[0][0], mat.m[1][0], mat.m[2][0], mat.m[3][0],
@@ -32,7 +40,7 @@ namespace
 				mat.m[0][3], mat.m[1][3], mat.m[2][3], mat.m[3][3] };
 	}
 	
-	ND_ forceinline IVRDevice::Mat4_t  OpenVRMatToMat4 (const vr::HmdMatrix34_t &mat)
+	ND_ forceinline IVRDevice::Mat4_t  OpenVRMatToMat4 (const HmdMatrix34_t &mat)
 	{
 		return IVRDevice::Mat4_t{
 				mat.m[0][0], mat.m[1][0], mat.m[2][0], 0.0f,
@@ -41,7 +49,7 @@ namespace
 				mat.m[0][3], mat.m[1][3], mat.m[2][3], 1.0f };
 	}
 
-	ND_ forceinline IVRDevice::Mat3_t  OpenVRMatToMat3 (const vr::HmdMatrix34_t &mat)
+	ND_ forceinline IVRDevice::Mat3_t  OpenVRMatToMat3 (const HmdMatrix34_t &mat)
 	{
 		return IVRDevice::Mat3_t{
 				mat.m[0][0], mat.m[1][0], mat.m[2][0],
@@ -77,17 +85,17 @@ namespace
 	
 /*
 =================================================
-	GetTrackedDeviceString
+	_GetTrackedDeviceString
 =================================================
 */
-	ND_ static String  GetTrackedDeviceString (Ptr<vr::IVRSystem> pHmd, vr::TrackedDeviceIndex_t unDevice, vr::TrackedDeviceProperty prop, vr::TrackedPropertyError *peError = null)
+	String  OpenVRDevice::_GetTrackedDeviceString (TrackedDeviceIndex_t unDevice, TrackedDeviceProperty prop, TrackedPropertyError *peError) const
 	{
-		uint32_t unRequiredBufferLen = pHmd->GetStringTrackedDeviceProperty( unDevice, prop, null, 0, peError );
+		uint32_t unRequiredBufferLen = _vrSystem->GetStringTrackedDeviceProperty( unDevice, prop, null, 0, peError );
 		if( unRequiredBufferLen == 0 )
 			return "";
 
 		char *pchBuffer = new char[ unRequiredBufferLen ];
-		unRequiredBufferLen = pHmd->GetStringTrackedDeviceProperty( unDevice, prop, pchBuffer, unRequiredBufferLen, peError );
+		unRequiredBufferLen = _vrSystem->GetStringTrackedDeviceProperty( unDevice, prop, pchBuffer, unRequiredBufferLen, peError );
 		std::string sResult = pchBuffer;
 		delete [] pchBuffer;
 		return sResult;
@@ -100,33 +108,51 @@ namespace
 */
 	bool  OpenVRDevice::Create ()
 	{
-		vr::EVRInitError err = vr::VRInitError_None;
-		_hmd = vr::VR_Init( OUT &err, vr::VRApplication_Scene );
+		if ( _LoadLib() )
+		{
+			FG_LOGI( "failed to load OpenVR library" );
+			return false;
+		}
 
-		if ( err != vr::VRInitError_None )
-			RETURN_ERR( "VR_Init error: "s << vr::VR_GetVRInitErrorAsEnglishDescription( err ));
-		
-		//_renderModels = Cast<vr::IVRRenderModels>(vr::VR_GetGenericInterface( vr::IVRRenderModels_Version, OUT &err ));
-		//if ( !_renderModels )
-		//	RETURN_ERR( "VR_GetGenericInterface error: "s << vr::VR_GetVRInitErrorAsEnglishDescription( err ));
-		
-		FG_LOGI( "driver:  "s << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_TrackingSystemName_String ) <<
-				 "display: " << GetTrackedDeviceString( _hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String ));
-		
-		CHECK_ERR( vr::VRCompositor() );
+		if ( not _ovr.IsHmdPresent() )
+		{
+			FG_LOGI( "VR Headset is not present" );
+			return false;
+		}
 
-		vr::VRCompositor()->SetTrackingSpace( vr::TrackingUniverseStanding );
+		if ( not _ovr.IsRuntimeInstalled() )
+		{
+			FG_LOGI( "VR Runtime is not installed" );
+			return false;
+		}
 
-		vr::EDeviceActivityLevel level = _hmd->GetTrackedDeviceActivityLevel( vr::k_unTrackedDeviceIndex_Hmd );
+		EVRInitError	err = EVRInitError_VRInitError_None;
+		_hmd = _ovr.InitInternal( OUT &err, EVRApplicationType_VRApplication_Scene );
+
+		if ( err != EVRInitError_VRInitError_None )
+			RETURN_ERR( "VR_Init error: "s << _ovr.GetVRInitErrorAsEnglishDescription( err ));
+		
+		FG_LOGI( "driver:  "s << _GetTrackedDeviceString( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_TrackingSystemName_String ) <<
+				 "display: " << _GetTrackedDeviceString( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_TrackingSystemName_String ));
+		
+		_vrSystem = BitCast<IVRSystemTable>( _ovr.GetGenericInterface( ("FnTable:"s << IVRSystem_Version).c_str(), OUT &err ));
+		CHECK_ERR( _vrSystem and err == EVRInitError_VRInitError_None );
+		
+		_vrCompositor = BitCast<IVRCompositorTable>( _ovr.GetGenericInterface( ("FnTable:"s << IVRCompositor_Version).c_str(), OUT &err ));
+		CHECK_ERR( _vrCompositor and err == EVRInitError_VRInitError_None );
+
+		_vrCompositor->SetTrackingSpace( ETrackingUniverseOrigin_TrackingUniverseStanding );
+
+		EDeviceActivityLevel level = _vrSystem->GetTrackedDeviceActivityLevel( k_unTrackedDeviceIndex_Hmd );
 		BEGIN_ENUM_CHECKS();
 		switch ( level )
 		{
-			case vr::k_EDeviceActivityLevel_Unknown :					_hmdStatus = EHmdStatus::PowerOff;	break;
-			case vr::k_EDeviceActivityLevel_Idle :						_hmdStatus = EHmdStatus::Standby;	break;
-			case vr::k_EDeviceActivityLevel_UserInteraction :			_hmdStatus = EHmdStatus::Active;	break;
-			case vr::k_EDeviceActivityLevel_UserInteraction_Timeout :	_hmdStatus = EHmdStatus::Standby;	break;
-			case vr::k_EDeviceActivityLevel_Standby :					_hmdStatus = EHmdStatus::Standby;	break;
-			case vr::k_EDeviceActivityLevel_Idle_Timeout :				_hmdStatus = EHmdStatus::Standby;	break;
+			case EDeviceActivityLevel_k_EDeviceActivityLevel_Unknown :					_hmdStatus = EHmdStatus::PowerOff;	break;
+			case EDeviceActivityLevel_k_EDeviceActivityLevel_Idle :						_hmdStatus = EHmdStatus::Standby;	break;
+			case EDeviceActivityLevel_k_EDeviceActivityLevel_UserInteraction :			_hmdStatus = EHmdStatus::Active;	break;
+			case EDeviceActivityLevel_k_EDeviceActivityLevel_UserInteraction_Timeout :	_hmdStatus = EHmdStatus::Standby;	break;
+			case EDeviceActivityLevel_k_EDeviceActivityLevel_Standby :					_hmdStatus = EHmdStatus::Standby;	break;
+			case EDeviceActivityLevel_k_EDeviceActivityLevel_Idle_Timeout :				_hmdStatus = EHmdStatus::Standby;	break;
 		}
 		END_ENUM_CHECKS();
 
@@ -149,12 +175,12 @@ namespace
 		const auto	now = TimePoint_t::clock::now();
 
 		_controllers.clear();
-		for (vr::TrackedDeviceIndex_t i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+		for (TrackedDeviceIndex_t i = 0; i < k_unMaxTrackedDeviceCount; ++i)
 		{
-			vr::ETrackedDeviceClass	dev_class = _hmd->GetTrackedDeviceClass( i );
+			ETrackedDeviceClass	dev_class = _vrSystem->GetTrackedDeviceClass( i );
 
-			if ( dev_class == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller or
-				 dev_class == vr::ETrackedDeviceClass::TrackedDeviceClass_GenericTracker )
+			if ( dev_class == ETrackedDeviceClass_TrackedDeviceClass_Controller or
+				 dev_class == ETrackedDeviceClass_TrackedDeviceClass_GenericTracker )
 			{
 				Controller	cont;
 				cont.id			= _GetControllerID( i );
@@ -174,17 +200,17 @@ namespace
 */
 	OpenVRDevice::ControllerID  OpenVRDevice::_GetControllerID (uint tdi) const
 	{
-		vr::ETrackedControllerRole	role = _hmd->GetControllerRoleForTrackedDeviceIndex( tdi );
+		ETrackedControllerRole	role = _vrSystem->GetControllerRoleForTrackedDeviceIndex( tdi );
 		
 		BEGIN_ENUM_CHECKS();
 		switch ( role )
 		{
-			case vr::TrackedControllerRole_LeftHand :	return ControllerID::LeftHand;
-			case vr::TrackedControllerRole_RightHand :	return ControllerID::RightHand;
-			case vr::TrackedControllerRole_Invalid :
-			case vr::TrackedControllerRole_OptOut :
-			case vr::TrackedControllerRole_Treadmill :
-			case vr::TrackedControllerRole_Max :		break;
+			case ETrackedControllerRole_TrackedControllerRole_LeftHand :	return ControllerID::LeftHand;
+			case ETrackedControllerRole_TrackedControllerRole_RightHand :	return ControllerID::RightHand;
+			case ETrackedControllerRole_TrackedControllerRole_Invalid :
+			case ETrackedControllerRole_TrackedControllerRole_OptOut :
+			case ETrackedControllerRole_TrackedControllerRole_Treadmill :
+			case ETrackedControllerRole_TrackedControllerRole_Max :			break;
 		}
 		END_ENUM_CHECKS();
 		return ControllerID::Unknown;
@@ -204,7 +230,7 @@ namespace
 		// check is vulkan device supports output to VR device
 		{
 			uint64_t	hmd_physical_device = 0;
-			_hmd->GetOutputDevice( OUT &hmd_physical_device, vr::TextureType_Vulkan, _vkInstance );
+			_vrSystem->GetOutputDevice( OUT &hmd_physical_device, ETextureType_TextureType_Vulkan, _vkInstance );
 
 			if ( hmd_physical_device != 0 )
 			{
@@ -235,9 +261,13 @@ namespace
 
 		if ( _hmd )
 		{
-			vr::VR_Shutdown();
-			_hmd = null;
+			_ovr.ShutdownInternal();
+			_hmd			= Zero;
+			_vrSystem		= null;
+			_vrCompositor	= null;
 		}
+
+		_UnloadLib();
 	}
 	
 /*
@@ -269,13 +299,13 @@ namespace
 */
 	bool  OpenVRDevice::Update ()
 	{
-		if ( not _hmd or not vr::VRCompositor() )
+		if ( not _vrSystem or not _vrCompositor )
 			return false;
 
-		vr::VREvent_t	ev;
-		while ( _hmd->PollNextEvent( OUT &ev, sizeof(ev) ))
+		VREvent_t	ev;
+		while ( _vrSystem->PollNextEvent( OUT &ev, sizeof(ev) ))
 		{
-			if ( ev.trackedDeviceIndex == vr::k_unTrackedDeviceIndex_Hmd )
+			if ( ev.trackedDeviceIndex == k_unTrackedDeviceIndex_Hmd )
 				_ProcessHmdEvents( ev );
 
 			auto	iter = _controllers.find( ev.trackedDeviceIndex );
@@ -287,8 +317,8 @@ namespace
 
 		for (auto& [idx, cont] : _controllers)
 		{
-			vr::VRControllerState_t	state;
-			if ( _hmd->GetControllerState( idx, OUT &state, sizeof(state) ))
+			VRControllerState_t	state;
+			if ( _vrSystem->GetControllerState( idx, OUT &state, sizeof(state) ))
 			{
 				if ( state.unPacketNum == cont.lastPacket )
 					continue;
@@ -326,12 +356,12 @@ namespace
 	_ProcessHmdEvents
 =================================================
 */
-	void  OpenVRDevice::_ProcessHmdEvents (const vr::VREvent_t &ev)
+	void  OpenVRDevice::_ProcessHmdEvents (const VREvent_t &ev)
 	{
 		switch( ev.eventType )
 		{
-			case vr::VREvent_TrackedDeviceActivated :
-			case vr::VREvent_TrackedDeviceUserInteractionStarted :
+			case EVREventType_VREvent_TrackedDeviceActivated :
+			case EVREventType_VREvent_TrackedDeviceUserInteractionStarted :
 				if ( _hmdStatus < EHmdStatus::Active ) {
 					_hmdStatus = EHmdStatus::Active;
 
@@ -341,7 +371,7 @@ namespace
 				}
 				break;
 
-			case vr::VREvent_TrackedDeviceUserInteractionEnded :
+			case EVREventType_VREvent_TrackedDeviceUserInteractionEnded :
 				_hmdStatus = EHmdStatus::Standby;
 
 				for (auto& listener : _listeners) {
@@ -349,8 +379,8 @@ namespace
 				}
 				break;
 
-			case vr::VREvent_ButtonPress :
-				if ( ev.data.controller.button == vr::k_EButton_ProximitySensor ) {
+			case EVREventType_VREvent_ButtonPress :
+				if ( ev.data.controller.button == EVRButtonId_k_EButton_ProximitySensor ) {
 					_hmdStatus = EHmdStatus::Mounted;
 					
 					for (auto& listener : _listeners) {
@@ -359,8 +389,8 @@ namespace
 				}
 				break;
 
-			case vr::VREvent_ButtonUnpress :
-				if ( ev.data.controller.button == vr::k_EButton_ProximitySensor ) {
+			case EVREventType_VREvent_ButtonUnpress :
+				if ( ev.data.controller.button == EVRButtonId_k_EButton_ProximitySensor ) {
 					_hmdStatus = EHmdStatus::Active;
 					
 					for (auto& listener : _listeners) {
@@ -369,7 +399,7 @@ namespace
 				}
 				break;
 
-			case vr::VREvent_Quit :
+			case EVREventType_VREvent_Quit :
 				_hmdStatus = EHmdStatus::PowerOff;
 				
 				for (auto& listener : _listeners) {
@@ -377,12 +407,12 @@ namespace
 				}
 				break;
 
-			case vr::VREvent_LensDistortionChanged :
+			case EVREventType_VREvent_LensDistortionChanged :
 				SetupCamera( _camera.clipPlanes );
 				FG_LOGI( "LensDistortionChanged" );
 				break;
 
-			case vr::VREvent_PropertyChanged :
+			case EVREventType_VREvent_PropertyChanged :
 				//FG_LOGI( "PropertyChanged" );
 				break;
 		}
@@ -397,19 +427,19 @@ namespace
 	{
 		switch ( key )
 		{
-			case vr::k_EButton_System :			return "system";
-			case vr::k_EButton_ApplicationMenu:	return "app menu";
-			case vr::k_EButton_Grip :			return "grip";
-			case vr::k_EButton_DPad_Left :		return "dpad left";
-			case vr::k_EButton_DPad_Up :		return "dpad up";
-			case vr::k_EButton_DPad_Right :		return "dpad right";
-			case vr::k_EButton_DPad_Down :		return "dpad down";
-			case vr::k_EButton_A :				return "A";
-			case vr::k_EButton_Axis0 :			return "Axis 0";
-			case vr::k_EButton_Axis1 :			return "Axis 1";
-			case vr::k_EButton_Axis2 :			return "Axis 2";
-			case vr::k_EButton_Axis3 :			return "Axis 3";
-			case vr::k_EButton_Axis4 :			return "Axis 4";
+			case EVRButtonId_k_EButton_System :			return "system";
+			case EVRButtonId_k_EButton_ApplicationMenu:	return "app menu";
+			case EVRButtonId_k_EButton_Grip :			return "grip";
+			case EVRButtonId_k_EButton_DPad_Left :		return "dpad left";
+			case EVRButtonId_k_EButton_DPad_Up :		return "dpad up";
+			case EVRButtonId_k_EButton_DPad_Right :		return "dpad right";
+			case EVRButtonId_k_EButton_DPad_Down :		return "dpad down";
+			case EVRButtonId_k_EButton_A :				return "A";
+			case EVRButtonId_k_EButton_Axis0 :			return "Axis 0";
+			case EVRButtonId_k_EButton_Axis1 :			return "Axis 1";
+			case EVRButtonId_k_EButton_Axis2 :			return "Axis 2";
+			case EVRButtonId_k_EButton_Axis3 :			return "Axis 3";
+			case EVRButtonId_k_EButton_Axis4 :			return "Axis 4";
 		}
 		return "";
 	}
@@ -419,11 +449,11 @@ namespace
 	_ProcessControllerEvents
 =================================================
 */
-	void  OpenVRDevice::_ProcessControllerEvents (INOUT Controller &cont, const vr::VREvent_t &ev)
+	void  OpenVRDevice::_ProcessControllerEvents (INOUT Controller &cont, const VREvent_t &ev)
 	{
 		switch( ev.eventType )
 		{
-			case vr::VREvent_ButtonPress :
+			case EVREventType_VREvent_ButtonPress :
 			{
 				StringView	key		= MapOpenVRButton( ev.data.controller.button );
 				bool &		curr	= cont.keys[ ev.data.controller.button ];
@@ -436,7 +466,7 @@ namespace
 				break;
 			}
 
-			case vr::VREvent_ButtonUnpress :
+			case EVREventType_VREvent_ButtonUnpress :
 			{
 				StringView	key		= MapOpenVRButton( ev.data.controller.button );
 				cont.keys[ ev.data.controller.button ] = false;
@@ -447,26 +477,26 @@ namespace
 				break;
 			}
 
-			case vr::VREvent_ButtonTouch :
-			case vr::VREvent_ButtonUntouch :
+			case EVREventType_VREvent_ButtonTouch :
+			case EVREventType_VREvent_ButtonUntouch :
 			{
-				uint	idx = ev.data.controller.button - vr::k_EButton_Axis0;
+				uint	idx = ev.data.controller.button - EVRButtonId_k_EButton_Axis0;
 				if ( idx < cont.axis.size() ) {
-					cont.axis[idx].pressed = (ev.eventType == vr::VREvent_ButtonTouch);
+					cont.axis[idx].pressed = (ev.eventType == EVREventType_VREvent_ButtonTouch);
 				}
 				break;
 			}
 
-			case vr::VREvent_MouseMove :
+			case EVREventType_VREvent_MouseMove :
 				FG_LOGI( "MouseMove: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
 				break;
-			case vr::VREvent_MouseButtonDown :
+			case EVREventType_VREvent_MouseButtonDown :
 				FG_LOGI( "MouseButtonDown: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
 				break;
-			case vr::VREvent_MouseButtonUp :
+			case EVREventType_VREvent_MouseButtonUp :
 				FG_LOGI( "MouseButtonUp: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
 				break;
-			case vr::VREvent_TouchPadMove :
+			case EVREventType_VREvent_TouchPadMove :
 				FG_LOGI( "TouchPadMove: " + ToString(ev.data.mouse.button) + ", dev: " + ToString(ev.trackedDeviceIndex) );
 				break;
 		}
@@ -482,15 +512,15 @@ namespace
 */
 	bool  OpenVRDevice::Submit (const VRImage &image, Eye eye)
 	{
-		CHECK_ERR( _hmd and vr::VRCompositor() );
+		CHECK_ERR( _hmd and _vrSystem and _vrCompositor );
 
-		vr::VRTextureBounds_t	bounds;
+		VRTextureBounds_t	bounds;
 		bounds.uMin = image.bounds.left;
 		bounds.uMax = image.bounds.right;
 		bounds.vMin = image.bounds.top;
 		bounds.vMax = image.bounds.bottom;
 
-		vr::VRVulkanTextureData_t	vk_data;
+		VRVulkanTextureData_t	vk_data;
 		vk_data.m_nImage			= BitCast<uint64_t>( image.handle );
 		vk_data.m_pDevice			= reinterpret_cast<VkDevice_T *>( _vkLogicalDevice );
 		vk_data.m_pPhysicalDevice	= reinterpret_cast<VkPhysicalDevice_T *>( _vkPhysicalDevice );
@@ -518,12 +548,12 @@ namespace
 				RETURN_ERR( "unsupported image format for OpenVR" );
 		})
 
-		vr::EVREye				vr_eye		= (eye == Eye::Left ? vr::Eye_Left : vr::Eye_Right);
-		vr::Texture_t			texture		= { &vk_data, vr::TextureType_Vulkan, vr::ColorSpace_Auto };
-		vr::EVRCompositorError	err			= vr::VRCompositor()->Submit( vr_eye, &texture, &bounds );
+		EVREye		vr_eye	= (eye == Eye::Left ? EVREye_Eye_Left : EVREye_Eye_Right);
+		Texture_t	texture	= { &vk_data, ETextureType_TextureType_Vulkan, EColorSpace_ColorSpace_Auto };
+		auto		err		= _vrCompositor->Submit( vr_eye, &texture, &bounds, EVRSubmitFlags_Submit_Default );
 
 		Unused( err );
-		//CHECK_ERR( err == vr::VRCompositorError_None );
+		//CHECK_ERR( err == EVRCompositorError_VRCompositorError_None );
 
 		_submitted[uint(eye)] = true;
 
@@ -544,9 +574,9 @@ namespace
 */
 	void  OpenVRDevice::_UpdateHMDMatrixPose ()
 	{
-		CHECK( vr::VRCompositor()->WaitGetPoses( OUT _trackedDevicePose, uint(CountOf(_trackedDevicePose)), null, 0 ) == vr::VRCompositorError_None );
+		CHECK( _vrCompositor->WaitGetPoses( OUT _trackedDevicePose, uint(CountOf(_trackedDevicePose)), null, 0 ) == EVRCompositorError_VRCompositorError_None );
 
-		auto&	hmd_pose = _trackedDevicePose[ vr::k_unTrackedDeviceIndex_Hmd ];
+		auto&	hmd_pose = _trackedDevicePose[ k_unTrackedDeviceIndex_Hmd ];
 
 		if ( hmd_pose.bPoseIsValid )
 		{
@@ -595,19 +625,19 @@ namespace
 */
 	Array<String>  OpenVRDevice::GetRequiredInstanceExtensions () const
 	{
-		CHECK_ERR( vr::VRCompositor() );
+		CHECK_ERR( _vrCompositor );
 		
 		Array<String>	result;
 		uint			count;
 		String			str;
 		String			extensions;
 		
-		count = vr::VRCompositor()->GetVulkanInstanceExtensionsRequired( null, 0 );
+		count = _vrCompositor->GetVulkanInstanceExtensionsRequired( null, 0 );
 		if ( count == 0 )
 			return result;
 
 		extensions.resize( count );
-		vr::VRCompositor()->GetVulkanInstanceExtensionsRequired( OUT extensions.data(), count );
+		_vrCompositor->GetVulkanInstanceExtensionsRequired( OUT extensions.data(), count );
 
 		for (uint i = 0; extensions[i] != 0 and i < count; ++i)
 		{
@@ -633,22 +663,22 @@ namespace
 */
 	Array<String>  OpenVRDevice::GetRequiredDeviceExtensions (InstanceVk_t instance) const
 	{
-		CHECK_ERR( _hmd and vr::VRCompositor() );
+		CHECK_ERR( _hmd and _vrSystem and _vrCompositor );
 		
 		uint64_t	hmd_physical_device = 0;
-		_hmd->GetOutputDevice( OUT &hmd_physical_device, vr::TextureType_Vulkan, BitCast<VkInstance>(instance) );
+		_vrSystem->GetOutputDevice( OUT &hmd_physical_device, ETextureType_TextureType_Vulkan, BitCast<VkInstance>(instance) );
 
 		Array<String>	result;
 		uint			count;
 		String			str;
 		String			extensions;
 		
-		count = vr::VRCompositor()->GetVulkanDeviceExtensionsRequired( (VkPhysicalDevice_T *)hmd_physical_device, null, 0 );
+		count = _vrCompositor->GetVulkanDeviceExtensionsRequired( (VkPhysicalDevice_T *)hmd_physical_device, null, 0 );
 		if ( count == 0 )
 			return result;
 
 		extensions.resize( count );
-		vr::VRCompositor()->GetVulkanDeviceExtensionsRequired( (VkPhysicalDevice_T *)hmd_physical_device, OUT extensions.data(), count );
+		_vrCompositor->GetVulkanDeviceExtensionsRequired( (VkPhysicalDevice_T *)hmd_physical_device, OUT extensions.data(), count );
 
 		for (uint i = 0; extensions[i] != 0 and i < count; ++i)
 		{
@@ -674,8 +704,10 @@ namespace
 */
 	uint2  OpenVRDevice::GetRenderTargetDimension () const
 	{
+		CHECK_ERR( _vrSystem );
+
 		uint2	result;
-		_hmd->GetRecommendedRenderTargetSize( OUT &result.x, OUT &result.y );
+		_vrSystem->GetRecommendedRenderTargetSize( OUT &result.x, OUT &result.y );
 		return result;
 	}
 
@@ -686,13 +718,13 @@ namespace
 */
 	void  OpenVRDevice::SetupCamera (const float2 &clipPlanes)
 	{
-		CHECK_ERR( _hmd, void());
+		CHECK_ERR( _vrSystem, void());
 
 		_camera.clipPlanes	= clipPlanes;
-		_camera.left.proj	= OpenVRMatToMat4( _hmd->GetProjectionMatrix( vr::Eye_Left, _camera.clipPlanes[0], _camera.clipPlanes[1] ));
-		_camera.right.proj	= OpenVRMatToMat4( _hmd->GetProjectionMatrix( vr::Eye_Right, _camera.clipPlanes[0], _camera.clipPlanes[1] ));
-		_camera.left.view	= OpenVRMatToMat4( _hmd->GetEyeToHeadTransform( vr::Eye_Left )).Inverse();
-		_camera.right.view	= OpenVRMatToMat4( _hmd->GetEyeToHeadTransform( vr::Eye_Right )).Inverse();
+		_camera.left.proj	= OpenVRMatToMat4( _vrSystem->GetProjectionMatrix( EVREye_Eye_Left, _camera.clipPlanes[0], _camera.clipPlanes[1] ));
+		_camera.right.proj	= OpenVRMatToMat4( _vrSystem->GetProjectionMatrix( EVREye_Eye_Right, _camera.clipPlanes[0], _camera.clipPlanes[1] ));
+		_camera.left.view	= OpenVRMatToMat4( _vrSystem->GetEyeToHeadTransform( EVREye_Eye_Left )).Inverse();
+		_camera.right.view	= OpenVRMatToMat4( _vrSystem->GetEyeToHeadTransform( EVREye_Eye_Right )).Inverse();
 	}
 	
 /*
@@ -703,6 +735,69 @@ namespace
 	IVRDevice::EHmdStatus  OpenVRDevice::GetHmdStatus () const
 	{
 		return _hmdStatus;
+	}
+	
+/*
+=================================================
+	_LoadLib
+=================================================
+*/
+	bool OpenVRDevice::_LoadLib ()
+	{
+	#ifdef PLATFORM_WINDOWS
+		_openVRLib = ::LoadLibraryA( "openvr_api.dll" );
+		
+		const auto	Load =	[lib = _openVRLib] (OUT auto& outResult, const char *procName) -> bool
+							{
+								using FN = std::remove_reference_t< decltype(outResult) >;
+								outResult = BitCast<FN>( ::GetProcAddress( BitCast<HMODULE>(lib), procName ));
+								return outResult != null;
+							};
+	#else
+		_openVRLib = ::dlopen( "libopenvr_api.so", RTLD_LAZY | RTLD_LOCAL );
+		
+		const auto	Load =	[lib = _openVRLib] (OUT auto& outResult, const char *procName) -> bool
+							{
+								using FN = std::remove_reference_t< decltype(outResult) >;
+								outResult = BitCast<FN>( ::dlsym( lib, procName ));
+								return outResult != null;
+							};
+	#endif
+	#define VR_LOAD( _name_ )	res &= Load( _ovr._name_, "VR_" #_name_ )
+			
+		if ( _openVRLib == null )
+			return false;
+		
+		bool	res = true;
+		res &= VR_LOAD( InitInternal );
+		res &= VR_LOAD( ShutdownInternal );
+		res &= VR_LOAD( IsHmdPresent );
+		res &= VR_LOAD( GetGenericInterface );
+		res &= VR_LOAD( IsRuntimeInstalled );
+		res &= VR_LOAD( GetVRInitErrorAsSymbol );
+		res &= VR_LOAD( GetVRInitErrorAsEnglishDescription );
+		return res;
+		
+	#undef VR_LOAD
+	}
+	
+/*
+=================================================
+	_UnloadLib
+=================================================
+*/
+	void OpenVRDevice::_UnloadLib ()
+	{
+		if ( _openVRLib == null )
+			return;
+
+	#ifdef PLATFORM_WINDOWS
+		::FreeLibrary( BitCast<HMODULE>(_openVRLib) );
+	#else
+		::dlclose( _openVRLib );
+	#endif
+
+		_openVRLib = null;
 	}
 
 

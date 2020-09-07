@@ -9,7 +9,7 @@
 # include "framework/VR/IVRDevice.h"
 # include "stl/Containers/Ptr.h"
 # include "stl/Containers/FixedMap.h"
-# include "openvr.h"
+# include "openvr_capi.h"
 # include <chrono>
 
 namespace FGC
@@ -32,8 +32,8 @@ namespace FGC
 			float2		value;
 			bool		pressed	= false;
 		};
-		using AxisStates_t	= StaticArray< ControllerAxis, vr::k_unControllerStateAxisCount >;
-		using Keys_t		= StaticArray< bool, vr::k_EButton_Max >;
+		using AxisStates_t	= StaticArray< ControllerAxis, k_unControllerStateAxisCount >;
+		using Keys_t		= StaticArray< bool, EVRButtonId_k_EButton_Max >;
 
 		struct Controller
 		{
@@ -44,24 +44,55 @@ namespace FGC
 			TimePoint_t		lastUpdate;
 		};
 		using Controllers_t	= FixedMap< /*tracked device index*/uint, Controller, 8 >;
+		
+		using IVRSystemPtr			= intptr_t;
+		using IVRSystemTable		= VR_IVRSystem_FnTable *;
+		using IVRCompositorTable	= VR_IVRCompositor_FnTable *;
+
+		struct OpenVRLoader
+		{
+		// types
+			using VR_InitInternal_t							= intptr_t (*) (EVRInitError *peError, EVRApplicationType eType);
+			using VR_ShutdownInternal_t						= void (*) ();
+			using VR_IsHmdPresent_t							= int (*) ();
+			using VR_GetGenericInterface_t					= intptr_t (*) (const char *pchInterfaceVersion, EVRInitError *peError);
+			using VR_IsRuntimeInstalled_t					= int (*) ();
+			using VR_GetVRInitErrorAsSymbol_t				= const char* (*) (EVRInitError error);
+			using VR_GetVRInitErrorAsEnglishDescription_t	= const char* (*) (EVRInitError error);
+
+		// variables
+			VR_InitInternal_t							InitInternal;
+			VR_ShutdownInternal_t						ShutdownInternal;
+			VR_IsHmdPresent_t							IsHmdPresent;
+			VR_GetGenericInterface_t					GetGenericInterface;
+			VR_IsRuntimeInstalled_t						IsRuntimeInstalled;
+			VR_GetVRInitErrorAsSymbol_t					GetVRInitErrorAsSymbol;
+			VR_GetVRInitErrorAsEnglishDescription_t		GetVRInitErrorAsEnglishDescription;
+		};
 
 
 	// variables
 	private:
-		Ptr<vr::IVRSystem>			_hmd;
-		Listeners_t					_listeners;
-		VRCamera					_camera;
+		IVRSystemPtr			_hmd			= Zero;
+		IVRSystemTable			_vrSystem		= null;
+		IVRCompositorTable		_vrCompositor	= null;
 
-		VkInstance					_vkInstance;
-		VkPhysicalDevice			_vkPhysicalDevice;
-		VkDevice					_vkLogicalDevice;
+		Listeners_t				_listeners;
+		VRCamera				_camera;
 
-		BitSet<2>					_submitted;
-		EHmdStatus					_hmdStatus		= EHmdStatus::PowerOff;
+		VkInstance				_vkInstance;
+		VkPhysicalDevice		_vkPhysicalDevice;
+		VkDevice				_vkLogicalDevice;
 
-		Controllers_t				_controllers;
-		VRControllers_t				_vrControllers;
-		vr::TrackedDevicePose_t		_trackedDevicePose [vr::k_unMaxTrackedDeviceCount];
+		BitSet<2>				_submitted;
+		EHmdStatus				_hmdStatus		= EHmdStatus::PowerOff;
+
+		Controllers_t			_controllers;
+		VRControllers_t			_vrControllers;
+		TrackedDevicePose_t		_trackedDevicePose [k_unMaxTrackedDeviceCount];
+		
+		OpenVRLoader			_ovr;
+		void*					_openVRLib		= null;
 
 
 	// methods
@@ -87,12 +118,17 @@ namespace FGC
 		uint2			GetRenderTargetDimension () const override;
 
 	private:
-		void  _ProcessHmdEvents (const vr::VREvent_t &);
-		void  _ProcessControllerEvents (INOUT Controller&, const vr::VREvent_t &);
+		bool _LoadLib ();
+		void _UnloadLib ();
+
+		void  _ProcessHmdEvents (const VREvent_t &);
+		void  _ProcessControllerEvents (INOUT Controller&, const VREvent_t &);
 		void  _UpdateHMDMatrixPose ();
 		void  _InitControllers ();
 
 		ND_ ControllerID  _GetControllerID (uint tdi) const;
+
+		ND_ String  _GetTrackedDeviceString (TrackedDeviceIndex_t unDevice, TrackedDeviceProperty prop, TrackedPropertyError *peError = null) const;
 	};
 
 
