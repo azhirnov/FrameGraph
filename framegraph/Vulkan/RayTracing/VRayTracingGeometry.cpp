@@ -85,7 +85,7 @@ namespace FG
 		CHECK_ERR( desc.triangles.size() or desc.aabbs.size() );
 
 		auto&	dev = resMngr.GetDevice();
-		ASSERT( (desc.triangles.size() + desc.aabbs.size()) <= dev.GetProperties().rayTracingProperties.maxGeometryCount );
+		ASSERT( (desc.triangles.size() + desc.aabbs.size()) <= dev.GetProperties().rayTracingNVProperties.maxGeometryCount );
 
 		CopyAndSortGeometry( desc, OUT _triangles, OUT _aabbs );
 

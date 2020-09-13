@@ -99,6 +99,7 @@ namespace FG
 	class VMemoryManager;
 	class VFrameGraph;
 	class VDebugger;
+	struct VCmdBatchPtr;
 
 
 	struct VPipelineResourceSet

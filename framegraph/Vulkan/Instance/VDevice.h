@@ -69,6 +69,7 @@ namespace FG
 			bool	rayTracingNV			: 1;
 			bool	shadingRateImageNV		: 1;
 			bool	robustness2				: 1;
+			//bool	rayTracing				: 1;
 		};
 
 		struct DeviceProperties
@@ -85,7 +86,7 @@ namespace FG
 			VkPhysicalDeviceShadingRateImagePropertiesNV		shadingRateImageProperties;
 			#endif
 			#ifdef VK_NV_ray_tracing
-			VkPhysicalDeviceRayTracingPropertiesNV				rayTracingProperties;
+			VkPhysicalDeviceRayTracingPropertiesNV				rayTracingNVProperties;
 			#endif
 			#ifdef VK_KHR_depth_stencil_resolve
 			VkPhysicalDeviceDepthStencilResolvePropertiesKHR	depthStencilResolve;
@@ -101,6 +102,10 @@ namespace FG
 			#ifdef VK_EXT_robustness2
 			VkPhysicalDeviceRobustness2FeaturesEXT				robustness2Features;
 			VkPhysicalDeviceRobustness2PropertiesEXT			robustness2Properties;
+			#endif
+			#ifdef VK_KHR_ray_tracing
+			//VkPhysicalDeviceRayTracingFeaturesKHR				rayTracingFeatures;
+			//VkPhysicalDeviceRayTracingPropertiesKHR			rayTracingProperties;
 			#endif
 		};
 

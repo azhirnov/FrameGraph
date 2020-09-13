@@ -586,8 +586,8 @@ namespace FG
 
 		auto&			dev				= fgThread.GetDevice();
 		auto&			res_mngr		= fgThread.GetResourceManager();
-		const BytesU	handle_size		{ dev.GetProperties().rayTracingProperties.shaderGroupHandleSize };
-		const BytesU	alignment		{ dev.GetProperties().rayTracingProperties.shaderGroupBaseAlignment };
+		const BytesU	handle_size		{ dev.GetProperties().rayTracingNVProperties.shaderGroupHandleSize };
+		const BytesU	alignment		{ dev.GetProperties().rayTracingNVProperties.shaderGroupBaseAlignment };
 		auto*			ppln			= fgThread.AcquireTemporary( pipelineId );
 		const uint		geom_stride		= scene_data.hitShadersPerInstance;
 		const uint		max_hit_shaders	= scene_data.maxHitShaderCount;
@@ -651,6 +651,9 @@ namespace FG
 		shaderTable._rayMissStride	= Bytes<uint16_t>{ handle_size };
 		shaderTable._rayHitStride	= Bytes<uint16_t>{ handle_size };
 		shaderTable._callableStride	= Bytes<uint16_t>{ handle_size };
+		shaderTable._availableShaders[0] = miss_shader_count > 0;
+		shaderTable._availableShaders[1] = max_hit_shaders > 0;
+		shaderTable._availableShaders[2] = callable_shader_count > 0;
 
 		ASSERT( shaderTable._rayMissOffset  % alignment == 0 );
 		ASSERT( shaderTable._rayMissOffset  % uint(shaderTable._rayMissStride) == 0 );

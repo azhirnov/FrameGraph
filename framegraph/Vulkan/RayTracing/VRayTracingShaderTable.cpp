@@ -31,6 +31,8 @@ namespace FG
 		EXLOCK( _drCheck );
 		CHECK( not (_bufferId or _pipelineId) );
 
+		_availableShaders.reset();
+
 		_debugName = dbgName;
 		return true;
 	}
@@ -45,7 +47,8 @@ namespace FG
 											  OUT VkDeviceSize &blockSize, OUT VkDeviceSize &rayGenOffset,
 											  OUT VkDeviceSize &rayMissOffset, OUT VkDeviceSize &rayMissStride,
 											  OUT VkDeviceSize &rayHitOffset, OUT VkDeviceSize &rayHitStride,
-											  OUT VkDeviceSize &callableOffset, OUT VkDeviceSize &callableStride) const
+											  OUT VkDeviceSize &callableOffset, OUT VkDeviceSize &callableStride,
+											  OUT BitSet<3> &availableShaders) const
 	{
 		SHAREDLOCK( _drCheck );
 		SHAREDLOCK( _guard );
@@ -64,6 +67,7 @@ namespace FG
 				callableOffset	= VkDeviceSize(_callableOffset + table.bufferOffset);
 				callableStride	= VkDeviceSize(_callableStride);
 				blockSize		= VkDeviceSize(_blockSize + table.bufferOffset);
+				availableShaders= _availableShaders;
 				return true;
 			}
 		}
@@ -94,6 +98,7 @@ namespace FG
 			resMngr.ReleaseResource( _pipelineId.Release() );
 		}
 
+		_availableShaders.reset();
 		_tables.clear();
 		_debugName.clear();
 	}

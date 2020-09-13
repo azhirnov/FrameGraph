@@ -3090,7 +3090,7 @@ namespace FG
 		_CmdDebugMarker( task.Name() );
 		
 		RawImageID	swapchain_image;
-		CHECK( task.swapchain->Acquire( _fgThread, ESwapchainImage::Primary, _fgThread.IsDebugQueueSync(), OUT swapchain_image ));
+		CHECK( task.swapchain->Acquire( _fgThread, _fgThread.IsDebugQueueSync(), OUT swapchain_image ));
 
 		VLocalImage const *		src_image	= task.srcImage;
 		VLocalImage const *		dst_image	= _ToLocal( swapchain_image );
@@ -3298,13 +3298,14 @@ namespace FG
 			VkDeviceSize		callable_offset	= 0;
 			VkDeviceSize		callable_stride	= 0;
 			VkDeviceSize		block_size		= 0;
+			BitSet<3>			available_shaders;
 
 			if ( is_debuggable )
 			{
 				auto&	debugger = _fgThread.GetBatch();
 				auto*	ppln	 = _GetResource( task.shaderTable->GetPipeline() );
 
-				CHECK_ERR( ppln, void());
+				CHECK_ERRV( ppln );
 				CHECK( debugger.GetDebugModeInfo( task.debugModeIndex, OUT dbg_mode, OUT dbg_stages ));
 
 				for (auto& shader : ppln->GetShaderModules())
@@ -3316,7 +3317,7 @@ namespace FG
 
 			CHECK_ERR( task.shaderTable->GetBindings( dbg_mode, OUT layout_id, OUT pipeline, OUT block_size, OUT raygen_offset,
 													  OUT raymiss_offset, OUT raymiss_stride, OUT rayhit_offset, OUT rayhit_stride,
-													  OUT callable_offset, OUT callable_stride ), void());
+													  OUT callable_offset, OUT callable_stride, OUT available_shaders ), void());
 
 			VPipelineLayout const*	layout		= _GetResource( layout_id );
 			VLocalBuffer const*		sbt_buffer	= _ToLocal( task.shaderTable->GetBuffer() );
@@ -3338,9 +3339,9 @@ namespace FG
 		
 			vkCmdTraceRaysNV( _cmdBuffer, 
 								sbt_buffer->Handle(), raygen_offset,
-								sbt_buffer->Handle(), raymiss_offset, raymiss_stride,
-								sbt_buffer->Handle(), rayhit_offset,  rayhit_stride,
-								sbt_buffer->Handle(), callable_offset, callable_stride,
+								available_shaders[0] ? sbt_buffer->Handle() : VK_NULL_HANDLE,  raymiss_offset,   raymiss_stride,
+								available_shaders[1] ? sbt_buffer->Handle() : VK_NULL_HANDLE,  rayhit_offset,    rayhit_stride,
+								available_shaders[2] ? sbt_buffer->Handle() : VK_NULL_HANDLE,  callable_offset,  callable_stride,
 								task.groupCount.x, task.groupCount.y, task.groupCount.z );
 			Stat().traceRaysCalls ++;
 		}

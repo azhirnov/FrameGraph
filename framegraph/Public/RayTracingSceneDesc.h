@@ -1,4 +1,7 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	RayTracingScene is alias for Top Level Acceleration Structure (TLAS).
+*/
 
 #pragma once
 

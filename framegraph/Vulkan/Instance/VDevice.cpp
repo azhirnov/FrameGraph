@@ -260,9 +260,9 @@ namespace FG
 			#ifdef VK_NV_ray_tracing
 			if ( _features.rayTracingNV )
 			{
-				*next_props	= &_properties.rayTracingProperties;
-				next_props	= &_properties.rayTracingProperties.pNext;
-				_properties.rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+				*next_props	= &_properties.rayTracingNVProperties;
+				next_props	= &_properties.rayTracingNVProperties.pNext;
+				_properties.rayTracingNVProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 			}
 			#endif
 			#ifdef VK_KHR_depth_stencil_resolve
