@@ -62,7 +62,7 @@ void main() {
 		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 		CHECK_ERR( cmd );
 
-		RawImageID		image		= cmd->GetSwapchainImage( _swapchainId, ESwapchainImage::Primary );
+		RawImageID		image		= cmd->GetSwapchainImage( _swapchainId );
 		const uint2		view_size	= _frameGraph->GetDescription( image ).dimension.xy();
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )

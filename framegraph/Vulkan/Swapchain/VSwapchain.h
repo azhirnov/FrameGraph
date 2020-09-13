@@ -57,7 +57,7 @@ namespace FG
 		bool  Create (VFrameGraph &, const VulkanSwapchainCreateInfo &, StringView dbgName);
 		void  Destroy (VResourceManager &);
 
-		bool  Acquire (VCommandBuffer &, ESwapchainImage type, bool dbgSync, OUT RawImageID &outImageId) const;
+		bool  Acquire (VCommandBuffer &, bool dbgSync, OUT RawImageID &outImageId) const;
 		bool  Present (const VDevice &) const;
 
 		ND_ VDeviceQueueInfoPtr  GetPresentQueue ()	const	{ SHAREDLOCK( _drCheck );  return _presentQueue; }

@@ -120,7 +120,7 @@ namespace FG
 		
 		FrameGraph	GetFrameGraph () override	{ return _instance.shared_from_this(); }
 
-		RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
+		RawImageID	GetSwapchainImage (RawSwapchainID swapchain) override;
 		bool		AddExternalCommands (const ExternalCmdBatch_t &) override;
 		bool		AddDependency (const CommandBuffer &) override;
 		bool		AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) override;

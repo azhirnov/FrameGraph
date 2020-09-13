@@ -328,7 +328,7 @@ namespace {
 	GetSwapchainImage
 =================================================
 */
-	RawImageID	VCommandBuffer::GetSwapchainImage (RawSwapchainID swapchainId, ESwapchainImage type)
+	RawImageID	VCommandBuffer::GetSwapchainImage (RawSwapchainID swapchainId)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
@@ -337,7 +337,7 @@ namespace {
 		CHECK_ERR( swapchain );
 
 		RawImageID	id;
-		CHECK_ERR( swapchain->Acquire( *this, type, _dbgQueueSync, OUT id ));
+		CHECK_ERR( swapchain->Acquire( *this, _dbgQueueSync, OUT id ));
 
 		// transit to undefined layout
 		AcquireImage( id, true, true );

@@ -96,11 +96,10 @@ namespace FG
 	Acquire
 =================================================
 */
-	bool  VSwapchain::Acquire (VCommandBuffer &fgThread, ESwapchainImage type, bool dbgSync, OUT RawImageID &outImageId) const
+	bool  VSwapchain::Acquire (VCommandBuffer &fgThread, bool dbgSync, OUT RawImageID &outImageId) const
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _vkSwapchain );
-		CHECK_ERR( type == ESwapchainImage::Primary );
 		
 		if ( _IsImageAcquired() )
 		{
