@@ -53,6 +53,9 @@ namespace FG
 			#ifdef VK_KHR_shader_clock
 			auto fpGetPhysicalDeviceFeatures2 = BitCast<PFN_vkGetPhysicalDeviceFeatures2KHR>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures2KHR" ));
 
+			if (fpGetPhysicalDeviceFeatures2 == null)
+				fpGetPhysicalDeviceFeatures2 = BitCast<PFN_vkGetPhysicalDeviceFeatures2KHR>( vkGetInstanceProcAddr( BitCast<VkInstance>(_vkInstance), "vkGetPhysicalDeviceFeatures2" ));
+
 			if ( fpGetPhysicalDeviceFeatures2 )
 			{
 				VkPhysicalDeviceShaderClockFeaturesKHR	clock_feat = {};

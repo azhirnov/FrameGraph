@@ -515,8 +515,6 @@ namespace FG
 
 		auto&	rm  = _frameGraph.GetResourceManager();
 
-		//VK_CHECK( dev.vkDeviceWaitIdle( dev.GetVkDevice() ), void());
-
 		// release descriptor sets
 		for (auto& ds : _shaderDebugger.descCache) {
 			rm.GetDescriptorManager().DeallocDescriptorSet( ds.second );
@@ -555,7 +553,11 @@ namespace FG
 		if ( (not cb) or (dbg.mode == EShaderDebugMode::Timemap) )
 			return true;
 
-		CHECK_ERR( dbg.modules.size() );
+		if ( dbg.modules.empty() )
+		{
+			FG_LOGD( "There are no shaders with debug information to parse trace" );
+			return false;
+		}
 		
 		auto&	rm				= _frameGraph.GetResourceManager();
 		auto	read_back_buf	= _shaderDebugger.buffers[ dbg.sbIndex ].readBackBuffer.Get();

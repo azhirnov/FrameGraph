@@ -13,8 +13,6 @@ namespace FG
 
 	class VSubmitted final
 	{
-		friend class VFrameGraph;
-
 	// types
 	public:
 		static constexpr uint	MaxBatches		= 32;
@@ -41,15 +39,14 @@ namespace FG
 		explicit VSubmitted (uint indexInPool);
 		~VSubmitted ();
 
+		// called by VFrameGraph
+		void  Initialize (const VDevice &, EQueueType queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>);
+		void  Release (const VDevice &, VDebugger &, const IFrameGraph::ShaderDebugCallback_t &, INOUT Statistic_t &);
+		void  Destroy (const VDevice &);
+
 		ND_ VkFence		GetFence ()			const	{ EXLOCK( _drCheck );  return _fence; }
 		ND_ EQueueType	GetQueueType ()		const	{ EXLOCK( _drCheck );  return _queueType; }
 		ND_ uint		GetIndexInPool ()	const	{ return _indexInPool; }
-
-
-	private:
-		void  _Initialize (const VDevice &, EQueueType queue, ArrayView<VCmdBatchPtr>, ArrayView<VkSemaphore>);
-		void  _Release (const VDevice &, VDebugger &, const IFrameGraph::ShaderDebugCallback_t &, INOUT Statistic_t &);
-		void  _Destroy (const VDevice &);
 	};
 
 

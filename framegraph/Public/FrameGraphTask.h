@@ -732,7 +732,7 @@ namespace FG
 		RawBufferID		srcBuffer;
 		BytesU			offset;
 		BytesU			size;
-		Callback_t		callback;
+		Callback_t		callback;	// may be called from any thread
 
 	// methods
 		ReadBuffer () :
@@ -854,7 +854,7 @@ namespace FG
 		ImageLayer		arrayLayer;
 		MipmapLevel		mipmapLevel;
 		EImageAspect	aspectMask	= EImageAspect::Color;	// must only have a single bit set
-		Callback_t		callback;
+		Callback_t		callback;							// may be called from any thread
 
 		
 	// methods
@@ -1125,6 +1125,8 @@ namespace FG
 			RTShaderID			mainShader;			// miss or closest hit shader
 			RTShaderID			anyHitShader;		// optional
 			RTShaderID			intersectionShader;	// only for procedural geometry
+
+			ShaderGroup () = default;
 
 			ShaderGroup (const RTShaderID &missShader, uint missIndex) :
 				type{EGroupType::MissShader}, offset{missIndex}, mainShader{missShader} {}

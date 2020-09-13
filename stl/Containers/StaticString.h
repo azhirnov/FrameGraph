@@ -96,7 +96,7 @@ namespace FGC
 
 			if ( newSize > _length )
 			{
-				memset( &_array[_length], 0, _length - newSize );
+				memset( &_array[_length], 0, newSize - _length );
 			}
 
 			_length = newSize;

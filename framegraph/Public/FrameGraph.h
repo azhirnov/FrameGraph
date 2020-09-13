@@ -178,10 +178,10 @@ namespace FG
 		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName = Default) = 0;
-			virtual bool			InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) = 0;
+			virtual bool			InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) = 0;
+			virtual bool			InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) = 0;
+			virtual bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) = 0;
 
 		ND_ virtual bool			IsSupported (RawImageID image, const ImageViewDesc &desc) const = 0;
 		ND_ virtual bool			IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const = 0;
@@ -256,25 +256,25 @@ namespace FG
 			virtual bool			Execute (INOUT CommandBuffer &) = 0;
 
 			// Wait until all commands complete execution on the GPU or until time runs out.
-			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = Nanoseconds{3600'000'000'000}) = 0;
+			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = MaxTimeout) = 0;
 
 			// Submit all pending command buffers and present all pending swapchain images.
 			virtual bool			Flush (EQueueUsage queues = EQueueUsage::All) = 0;
 
 			// Wait until all commands will complete their work on GPU, trigger events for 'ReadImage' and 'ReadBuffer' tasks.
-			virtual bool			WaitIdle () = 0;
+			virtual bool			WaitIdle (Nanoseconds timeout = MaxTimeout) = 0;
 
 
 		// debugging //
 
 			// Returns framegraph statistics.
-			virtual bool			GetStatistics (OUT Statistics &result) const = 0;
+			virtual bool			GetStatistics (OUT Statistics &result) = 0;
 
 			// Returns serialized tasks, resource usage and barriers, can be used for regression testing.
-			virtual bool			DumpToString (OUT String &result) const = 0;
+			virtual bool			DumpToString (OUT String &result) = 0;
 
 			// Returns graph written on dot language, can be used for graph visualization with graphviz.
-			virtual bool			DumpToGraphViz (OUT String &result) const = 0;
+			virtual bool			DumpToGraphViz (OUT String &result) = 0;
 	};
 
 	

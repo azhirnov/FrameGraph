@@ -56,7 +56,7 @@ namespace FG
 
 	// variables
 	private:
-		Atomic<EState>			_state;
+		Atomic<EState>			_state;				// TODO: remove ?
 
 		VDevice					_device;
 
@@ -111,10 +111,10 @@ namespace FG
 		RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName) override;
 		RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName) override;
-		bool			InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
-		bool			InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
-		bool			InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
-		bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const override;
+		bool			InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) override;
+		bool			InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) override;
+		bool			InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) override;
+		bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) override;
 		bool			CachePipelineResources (INOUT PipelineResources &resources) override;
 		void			ReleaseResource (INOUT PipelineResources &resources) override;
 		bool			ReleaseResource (INOUT GPipelineID &id) override;
@@ -196,13 +196,13 @@ namespace FG
 		bool			Execute (INOUT CommandBuffer &) override;
 		bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout) override;
 		bool			Flush (EQueueUsage queues) override;
-		bool			WaitIdle () override;
+		bool			WaitIdle (Nanoseconds timeout) override;
 
 
 		// debugging //
-		bool			GetStatistics (OUT Statistics &result) const override;
-		bool			DumpToString (OUT String &result) const override;
-		bool			DumpToGraphViz (OUT String &result) const override;
+		bool			GetStatistics (OUT Statistics &result) override;
+		bool			DumpToString (OUT String &result) override;
+		bool			DumpToGraphViz (OUT String &result) override;
 
 
 		// //
