@@ -253,7 +253,7 @@ namespace {
 #		 include "vk_loader/fn_vulkan_inst.h"
 #		undef  VKLOADER_STAGE_GETADDRESS
 	}
-	
+
 /*
 =================================================
 	SetupInstanceBackwardCompatibility
@@ -262,18 +262,23 @@ namespace {
 	void VulkanLoader::SetupInstanceBackwardCompatibility (uint version)
 	{
 		Unused( version );
+		
+	#define VK_COMPAT( _dst_, _src_ ) \
+		ASSERT( _var_##_src_ != null ); \
+		/*ASSERT( _var_##_dst_ == null );*/ \
+		_var_##_dst_ = _var_##_src_
 
 	#ifdef VK_VERSION_1_1
 		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 1) )
 		{
 		// VK_KHR_get_physical_device_properties2
-			_var_vkGetPhysicalDeviceFeatures2KHR					= _var_vkGetPhysicalDeviceFeatures2;
-			_var_vkGetPhysicalDeviceProperties2KHR					= _var_vkGetPhysicalDeviceProperties2;
-			_var_vkGetPhysicalDeviceFormatProperties2KHR			= _var_vkGetPhysicalDeviceFormatProperties2;
-			_var_vkGetPhysicalDeviceImageFormatProperties2KHR		= _var_vkGetPhysicalDeviceImageFormatProperties2;
-			_var_vkGetPhysicalDeviceQueueFamilyProperties2KHR		= _var_vkGetPhysicalDeviceQueueFamilyProperties2;
-			_var_vkGetPhysicalDeviceMemoryProperties2KHR			= _var_vkGetPhysicalDeviceMemoryProperties2;
-			_var_vkGetPhysicalDeviceSparseImageFormatProperties2KHR	= _var_vkGetPhysicalDeviceSparseImageFormatProperties2;
+			VK_COMPAT( vkGetPhysicalDeviceFeatures2KHR,						vkGetPhysicalDeviceFeatures2 );
+			VK_COMPAT( vkGetPhysicalDeviceProperties2KHR,					vkGetPhysicalDeviceProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceFormatProperties2KHR,				vkGetPhysicalDeviceFormatProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceImageFormatProperties2KHR,		vkGetPhysicalDeviceImageFormatProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceQueueFamilyProperties2KHR,		vkGetPhysicalDeviceQueueFamilyProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceMemoryProperties2KHR,				vkGetPhysicalDeviceMemoryProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceSparseImageFormatProperties2KHR,	vkGetPhysicalDeviceSparseImageFormatProperties2 );
 		}
 	#endif
 	#ifdef VK_VERSION_1_2
@@ -281,6 +286,8 @@ namespace {
 		{
 		}
 	#endif
+
+	#undef VK_COMPAT
 	}
 	
 /*
@@ -291,59 +298,66 @@ namespace {
 	void VulkanLoader::SetupDeviceBackwardCompatibility (uint version, INOUT VulkanDeviceFnTable &table)
 	{
 		Unused( version, table );
+		
+	#define VK_COMPAT( _dst_, _src_ ) \
+		ASSERT( table._var_##_src_ != null ); \
+		/*ASSERT( table._var_##_dst_ == null );*/ \
+		table._var_##_dst_ = table._var_##_src_
 
 	#ifdef VK_VERSION_1_1
 		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 1) )
 		{
 		// VK_KHR_maintenance1
-			table._var_vkTrimCommandPoolKHR	= table._var_vkTrimCommandPool;
+			VK_COMPAT( vkTrimCommandPoolKHR, vkTrimCommandPool );
 
 		// VK_KHR_bind_memory2
-			table._var_vkBindBufferMemory2KHR	= table._var_vkBindBufferMemory2;
-			table._var_vkBindImageMemory2KHR	= table._var_vkBindImageMemory2;
+			VK_COMPAT( vkBindBufferMemory2KHR,	vkBindBufferMemory2 );
+			VK_COMPAT( vkBindImageMemory2KHR,	vkBindImageMemory2 );
 
 		// VK_KHR_get_memory_requirements2
-			table._var_vkGetImageMemoryRequirements2KHR			= table._var_vkGetImageMemoryRequirements2;
-			table._var_vkGetBufferMemoryRequirements2KHR		= table._var_vkGetBufferMemoryRequirements2;
-			table._var_vkGetImageSparseMemoryRequirements2KHR	= table._var_vkGetImageSparseMemoryRequirements2;
+			VK_COMPAT( vkGetImageMemoryRequirements2KHR,		vkGetImageMemoryRequirements2 );
+			VK_COMPAT( vkGetBufferMemoryRequirements2KHR,		vkGetBufferMemoryRequirements2 );
+			VK_COMPAT( vkGetImageSparseMemoryRequirements2KHR,	vkGetImageSparseMemoryRequirements2 );
 
 		// VK_KHR_sampler_ycbcr_conversion
-			table._var_vkCreateSamplerYcbcrConversionKHR	= table._var_vkCreateSamplerYcbcrConversion;
-			table._var_vkDestroySamplerYcbcrConversionKHR	= table._var_vkDestroySamplerYcbcrConversion;
+			VK_COMPAT( vkCreateSamplerYcbcrConversionKHR,	vkCreateSamplerYcbcrConversion );
+			VK_COMPAT( vkDestroySamplerYcbcrConversionKHR,	vkDestroySamplerYcbcrConversion );
 
 		// VK_KHR_descriptor_update_template
-			table._var_vkCreateDescriptorUpdateTemplateKHR	= table._var_vkCreateDescriptorUpdateTemplate;
-			table._var_vkDestroyDescriptorUpdateTemplateKHR	= table._var_vkDestroyDescriptorUpdateTemplate;
-			table._var_vkUpdateDescriptorSetWithTemplateKHR	= table._var_vkUpdateDescriptorSetWithTemplate;
+			VK_COMPAT( vkCreateDescriptorUpdateTemplateKHR,		vkCreateDescriptorUpdateTemplate );
+			VK_COMPAT( vkDestroyDescriptorUpdateTemplateKHR,	vkDestroyDescriptorUpdateTemplate );
+			VK_COMPAT( vkUpdateDescriptorSetWithTemplateKHR,	vkUpdateDescriptorSetWithTemplate );
 			
 		// VK_KHR_device_group
-			table._var_vkCmdDispatchBaseKHR	= table._var_vkCmdDispatchBase;
+			VK_COMPAT( vkCmdDispatchBaseKHR, vkCmdDispatchBase );
 		}
 	#endif
 	#ifdef VK_VERSION_1_2
 		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 2) )
 		{
 		// VK_KHR_draw_indirect_count
-			table._var_vkCmdDrawIndirectCountKHR		= table._var_vkCmdDrawIndirectCount;
-			table._var_vkCmdDrawIndexedIndirectCountKHR	= table._var_vkCmdDrawIndexedIndirectCountKHR;
+			VK_COMPAT( vkCmdDrawIndirectCountKHR,		 vkCmdDrawIndirectCount );
+			VK_COMPAT( vkCmdDrawIndexedIndirectCountKHR, vkCmdDrawIndexedIndirectCountKHR );
 
 		// VK_KHR_create_renderpass2
-			table._var_vkCreateRenderPass2KHR	= table._var_vkCreateRenderPass2;
-			table._var_vkCmdBeginRenderPass2KHR	= table._var_vkCmdBeginRenderPass2;
-			table._var_vkCmdNextSubpass2KHR		= table._var_vkCmdNextSubpass2;
-			table._var_vkCmdEndRenderPass2KHR	= table._var_vkCmdEndRenderPass2;
+			VK_COMPAT( vkCreateRenderPass2KHR,		vkCreateRenderPass2 );
+			VK_COMPAT( vkCmdBeginRenderPass2KHR,	vkCmdBeginRenderPass2 );
+			VK_COMPAT( vkCmdNextSubpass2KHR,		vkCmdNextSubpass2 );
+			VK_COMPAT( vkCmdEndRenderPass2KHR,		vkCmdEndRenderPass2 );
 
 		// VK_KHR_timeline_semaphore
-			table._var_vkGetSemaphoreCounterValueKHR	= table._var_vkGetSemaphoreCounterValue;
-			table._var_vkWaitSemaphoresKHR				= table._var_vkWaitSemaphores;
-			table._var_vkSignalSemaphoreKHR				= table._var_vkSignalSemaphore;
+			VK_COMPAT( vkGetSemaphoreCounterValueKHR,	vkGetSemaphoreCounterValue );
+			VK_COMPAT( vkWaitSemaphoresKHR,				vkWaitSemaphores );
+			VK_COMPAT( vkSignalSemaphoreKHR,			vkSignalSemaphore );
 
 		// VK_KHR_buffer_device_address
-			table._var_vkGetBufferDeviceAddressKHR				= table._var_vkGetBufferDeviceAddress;
-			table._var_vkGetBufferOpaqueCaptureAddressKHR		= table._var_vkGetBufferOpaqueCaptureAddress;
-			table._var_vkGetDeviceMemoryOpaqueCaptureAddressKHR	= table._var_vkGetDeviceMemoryOpaqueCaptureAddress;
+			VK_COMPAT( vkGetBufferDeviceAddressKHR,					vkGetBufferDeviceAddress );
+			VK_COMPAT( vkGetBufferOpaqueCaptureAddressKHR,			vkGetBufferOpaqueCaptureAddress );
+			VK_COMPAT( vkGetDeviceMemoryOpaqueCaptureAddressKHR,	vkGetDeviceMemoryOpaqueCaptureAddress );
 		}
 	#endif
+		
+	#undef VK_COMPAT
 	}
 	
 /*

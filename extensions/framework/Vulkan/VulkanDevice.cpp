@@ -512,53 +512,52 @@ namespace {
 		#ifdef VK_NV_mesh_shader
 		VkPhysicalDeviceMeshShaderFeaturesNV					meshShader;
 		#endif
-
+		#ifdef VK_EXT_descriptor_indexing
 		VkPhysicalDeviceDescriptorIndexingFeaturesEXT			descriptorIndexing;
+		#endif
 		//VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT		vertexAttribDivisor;
 		//VkPhysicalDeviceASTCDecodeFeaturesEXT					astcDecode;
-		
 		#ifdef VK_KHR_vulkan_memory_model
 		VkPhysicalDeviceVulkanMemoryModelFeaturesKHR			memoryModel;
 		#endif
-
 		#ifdef VK_EXT_inline_uniform_block
 		VkPhysicalDeviceInlineUniformBlockFeaturesEXT			inlineUniformBlock;
 		#endif
-
 		#ifdef VK_NV_representative_fragment_test
 		VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV	representativeFragmentTest;
 		#endif
-
 		//VkPhysicalDeviceExclusiveScissorFeaturesNV			exclusiveScissorTest;
 		//VkPhysicalDeviceCornerSampledImageFeaturesNV			cornerSampledImage;
 		//VkPhysicalDeviceComputeShaderDerivativesFeaturesNV	computeShaderDerivatives;
-
 		#ifdef VK_NV_fragment_shader_barycentric
 		VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV		fragmentShaderBarycentric;
 		#endif
-
 		#ifdef VK_NV_shader_image_footprint
 		VkPhysicalDeviceShaderImageFootprintFeaturesNV			shaderImageFootprint;
 		#endif
-
 		#ifdef VK_NV_shading_rate_image
 		VkPhysicalDeviceShadingRateImageFeaturesNV				shadingRateImage;
 		#endif
-		
 		#ifdef VK_KHR_shader_float16_int8
 		VkPhysicalDeviceShaderFloat16Int8FeaturesKHR			shaderFloat16Int8;
 		#endif
-
 		#ifdef VK_KHR_timeline_semaphore
 		VkPhysicalDeviceTimelineSemaphoreFeaturesKHR			timelineSemaphore;
 		#endif
-		
 		#ifdef VK_KHR_buffer_device_address
 		VkPhysicalDeviceBufferDeviceAddressFeaturesKHR			bufferDeviceAddress;
 		#endif
-		
 		#ifdef VK_KHR_shader_atomic_int64
 		VkPhysicalDeviceShaderAtomicInt64FeaturesKHR			shaderAtomicInt64;
+		#endif
+		#ifdef VK_KHR_shader_clock
+		VkPhysicalDeviceShaderClockFeaturesKHR					shaderClock;
+		#endif
+		#ifdef VK_EXT_extended_dynamic_state
+		VkPhysicalDeviceExtendedDynamicStateFeaturesEXT			extendedDynamicState;
+		#endif
+		#ifdef VK_KHR_ray_tracing
+		VkPhysicalDeviceRayTracingFeaturesKHR					rayTracing;
 		#endif
 
 		DeviceFeatures () {
@@ -585,6 +584,9 @@ namespace {
 		bool	timelineSemaphore				: 1;
 		bool	bufferDeviceAddress				: 1;
 		bool	shaderAtomicInt64				: 1;
+		bool	shaderClock						: 1;
+		bool	extendedDynamicState			: 1;
+		bool	rayTracing						: 1;
 		
 		EnabledExtensions () {
 			std::memset( this, 0, sizeof(*this) );
@@ -663,6 +665,15 @@ namespace {
 			#endif
 			#ifdef VK_KHR_shader_atomic_int64
 			if ( ext == VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME )			{ enabled.shaderAtomicInt64 = true;				continue; }
+			#endif
+			#ifdef VK_KHR_shader_clock
+			if ( ext == VK_KHR_SHADER_CLOCK_EXTENSION_NAME )				{ enabled.shaderClock = true;					continue; }
+			#endif
+			#ifdef VK_EXT_extended_dynamic_state
+			if ( ext == VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME )		{ enabled.extendedDynamicState = true;			continue; }
+			#endif
+			#ifdef VK_KHR_ray_tracing
+			if ( ext == VK_KHR_RAY_TRACING_EXTENSION_NAME )					{ enabled.rayTracing = true;					continue; }
 			#endif
 		}
 		
@@ -802,7 +813,31 @@ namespace {
 			features.shaderAtomicInt64.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR;
 		}
 		#endif
-		
+		#ifdef VK_KHR_shader_clock
+		if ( enabled.shaderClock )
+		{
+			*next_feat	= *nextExt			= &features.shaderClock;
+			next_feat	= nextExt			= &features.shaderClock.pNext;
+			features.shaderClock.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR;
+		}
+		#endif
+		#ifdef VK_EXT_extended_dynamic_state
+		if ( enabled.extendedDynamicState )
+		{
+			*next_feat	= *nextExt			= &features.extendedDynamicState;
+			next_feat	= nextExt			= &features.extendedDynamicState.pNext;
+			features.extendedDynamicState.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+		}
+		#endif
+		#ifdef VK_KHR_ray_tracing
+		if ( enabled.rayTracing )
+		{
+			*next_feat	= *nextExt			= &features.rayTracing;
+			next_feat	= nextExt			= &features.rayTracing.pNext;
+			features.rayTracing.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR;
+		}
+		#endif
+
 		*next_feat	= *nextExt				= &features.shaderDrawParameters;
 		next_feat	= nextExt				= &features.shaderDrawParameters.pNext;
 		features.shaderDrawParameters.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES;
@@ -1010,12 +1045,6 @@ namespace {
 		vkGetPhysicalDeviceFeatures( _vkPhysicalDevice, OUT &_properties.features );
 		vkGetPhysicalDeviceProperties( _vkPhysicalDevice, OUT &_properties.properties );
 		vkGetPhysicalDeviceMemoryProperties( _vkPhysicalDevice, OUT &_properties.memoryProperties );
-
-		// get api version
-		{
-			_vkVersion.major = VK_VERSION_MAJOR( _properties.properties.apiVersion );
-			_vkVersion.minor = VK_VERSION_MINOR( _properties.properties.apiVersion );
-		}
 		
 		VulkanLoader::SetupInstanceBackwardCompatibility( _properties.properties.apiVersion );
 
@@ -1085,6 +1114,7 @@ namespace {
 		#endif
 		#ifdef VK_KHR_shader_float16_int8
 		_features.float16Arithmetic			= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME );
+		_features.int8Arithmetic			= _features.float16Arithmetic;
 		#endif
 		#ifdef VK_KHR_timeline_semaphore
 		_features.timelineSemaphore			= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME ),
@@ -1112,6 +1142,15 @@ namespace {
 		#endif
 		#ifdef VK_EXT_sampler_filter_minmax
 		_features.samplerFilterMinmax		= _vkVersion >= InstanceVersion{1,2} or HasDeviceExtension( VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME );
+		#endif
+		#ifdef VK_EXT_shader_stencil_export
+		_features.shaderStencilExport		= HasDeviceExtension( VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME );
+		#endif
+		#ifdef VK_EXT_extended_dynamic_state
+		_features.extendedDynamicState		= HasDeviceExtension( VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME );
+		#endif
+		#ifdef VK_KHR_ray_tracing
+		_features.rayTracing				= HasDeviceExtension( VK_KHR_RAY_TRACING_EXTENSION_NAME );
 		#endif
 
 		// load extensions
@@ -1148,14 +1187,14 @@ namespace {
 			#ifdef VK_KHR_shader_clock
 			if ( _features.shaderClock )
 			{
-				*next_feat	= &_properties.shaderClock;
-				next_feat	= &_properties.shaderClock.pNext;
-				_properties.shaderClock.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR;
+				*next_feat	= &_properties.shaderClockFeatures;
+				next_feat	= &_properties.shaderClockFeatures.pNext;
+				_properties.shaderClockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR;
 			}
 			#endif
 			#ifdef VK_KHR_shader_float16_int8
 			VkPhysicalDeviceShaderFloat16Int8FeaturesKHR	shader_float16_int8_feat = {};
-			if ( _features.float16Arithmetic )
+			if ( _features.float16Arithmetic or _features.int8Arithmetic )
 			{
 				*next_feat	= &shader_float16_int8_feat;
 				next_feat	= &shader_float16_int8_feat.pNext;
@@ -1211,6 +1250,22 @@ namespace {
 				_properties.robustness2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
 			}
 			#endif
+			#ifdef VK_EXT_extended_dynamic_state
+			if ( _features.extendedDynamicState )
+			{
+				*next_feat	= &_properties.extendedDynamicStateFeatures;
+				next_feat	= &_properties.extendedDynamicStateFeatures.pNext;
+				_properties.extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+			}
+			#endif
+			#ifdef VK_KHR_ray_tracing
+			if ( _features.rayTracing )
+			{
+				*next_feat	= &_properties.rayTracingFeatures;
+				next_feat	= &_properties.rayTracingFeatures.pNext;
+				_properties.rayTracingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR;
+			}
+			#endif
 			Unused( next_feat );
 
 			vkGetPhysicalDeviceFeatures2KHR( GetVkPhysicalDevice(), OUT &feat2 );
@@ -1225,10 +1280,11 @@ namespace {
 			_features.imageFootprintNV		&= (_properties.shaderImageFootprintFeatures.imageFootprint == VK_TRUE);
 			#endif
 			#ifdef VK_KHR_shader_clock
-			_features.shaderClock			&= !!(_properties.shaderClock.shaderDeviceClock | _properties.shaderClock.shaderSubgroupClock);
+			_features.shaderClock			&= !!(_properties.shaderClockFeatures.shaderDeviceClock | _properties.shaderClockFeatures.shaderSubgroupClock);
 			#endif
 			#ifdef VK_KHR_shader_float16_int8
 			_features.float16Arithmetic		&= (shader_float16_int8_feat.shaderFloat16 == VK_TRUE);
+			_features.int8Arithmetic		&= (shader_float16_int8_feat.shaderInt8 == VK_TRUE);
 			#endif
 			#ifdef VK_KHR_timeline_semaphore
 			_features.timelineSemaphore		&= (timeline_sem_feat.timelineSemaphore == VK_TRUE);
@@ -1244,6 +1300,12 @@ namespace {
 			#endif
 			#ifdef VK_EXT_robustness2
 			_features.robustness2			&= !!(_properties.robustness2Features.robustBufferAccess2 | _properties.robustness2Features.robustImageAccess2 | _properties.robustness2Features.nullDescriptor);
+			#endif
+			#ifdef VK_EXT_extended_dynamic_state
+			_features.extendedDynamicState	&= (_properties.extendedDynamicStateFeatures.extendedDynamicState == VK_TRUE);
+			#endif
+			#ifdef VK_KHR_ray_tracing
+			_features.rayTracing			&= (_properties.rayTracingFeatures.rayTracing == VK_TRUE);
 			#endif
 
 			VkPhysicalDeviceProperties2	props2		= {};
@@ -1269,9 +1331,9 @@ namespace {
 			#ifdef VK_NV_ray_tracing
 			if ( _features.rayTracingNV )
 			{
-				*next_props	= &_properties.rayTracingProperties;
-				next_props	= &_properties.rayTracingProperties.pNext;
-				_properties.rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+				*next_props	= &_properties.rayTracingNVProperties;
+				next_props	= &_properties.rayTracingNVProperties.pNext;
+				_properties.rayTracingNVProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 			}
 			#endif
 			#ifdef VK_KHR_timeline_semaphore
@@ -1342,13 +1404,28 @@ namespace {
 				_properties.samplerFilerMinmaxProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT;
 			}
 			#endif
+			#ifdef VK_KHR_ray_tracing
+			if ( _features.rayTracing )
+			{
+				*next_props	= &_properties.rayTracingProperties;
+				next_props	= &_properties.rayTracingProperties.pNext;
+				_properties.rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_KHR;
+			}
+			#endif
 			Unused( next_props );
 
 			vkGetPhysicalDeviceProperties2KHR( GetVkPhysicalDevice(), OUT &props2 );
 		}
 
-		FG_LOGI( "Created vulkan device on GPU: "s << _properties.properties.deviceName
-			<< "\n  version:                  " << ToString(_vkVersion.major) << '.' << ToString(_vkVersion.minor)
+		FG_LOGI( "Created vulkan device: "s 
+			<< "\n  vendorName:               " << GetVendorNameByID( _properties.properties.vendorID )
+			<< "\n  deviceName:               " << _properties.properties.deviceName
+			<< "\n  apiVersion:               " << ToString(VK_VERSION_MAJOR( _properties.properties.apiVersion )) << '.'
+												<< ToString(VK_VERSION_MINOR( _properties.properties.apiVersion )) << '.'
+												<< ToString(VK_VERSION_PATCH( _properties.properties.apiVersion ))
+			<< "\n  driverVersion:            " << ToString(VK_VERSION_MAJOR( _properties.properties.driverVersion )) << '.'
+												<< ToString(VK_VERSION_MINOR( _properties.properties.driverVersion )) << '.'
+												<< ToString(VK_VERSION_PATCH( _properties.properties.driverVersion ))
 			<< "\n  ---------- 1.1 ----------"
 			<< "\n  bindMemory2:              " << ToString( _features.bindMemory2 )
 			<< "\n  dedicatedAllocation:      " << ToString( _features.dedicatedAllocation )
@@ -1384,6 +1461,9 @@ namespace {
 			<< "\n  timelineSemaphore:        " << ToString( _features.timelineSemaphore )
 			<< "\n  pushDescriptor:           " << ToString( _features.pushDescriptor )
 			<< "\n  robustness2:              " << ToString( _features.robustness2 )
+			<< "\n  shaderStencilExport:      " << ToString( _features.shaderStencilExport )
+			<< "\n  extendedDynamicState:     " << ToString( _features.extendedDynamicState )
+			<< "\n  rayTracing:               " << ToString( _features.rayTracing )
 			<< "\n  ----------"
 		);
 
@@ -2316,15 +2396,11 @@ namespace {
 			#ifdef VK_EXT_depth_range_unrestricted
 				VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME,
 			#endif
-			#ifdef VK_EXT_filter_cubic
-				VK_IMG_FILTER_CUBIC_EXTENSION_NAME,
-				VK_EXT_FILTER_CUBIC_EXTENSION_NAME,
-			#endif
 			#ifdef VK_EXT_sampler_filter_minmax
 				VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,
 			#endif
 			#ifdef VK_EXT_shader_stencil_export
-				VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME,	// TODO
+				VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME,
 			#endif
 		};
 		return device_extensions;
@@ -2392,10 +2468,6 @@ namespace {
 			#endif
 			#ifdef VK_KHR_performance_query
 				VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME,
-			#endif
-			#ifdef VK_EXT_filter_cubic
-				VK_IMG_FILTER_CUBIC_EXTENSION_NAME,
-				VK_EXT_FILTER_CUBIC_EXTENSION_NAME,
 			#endif
 			#ifdef VK_KHR_spirv_1_4
 				VK_KHR_SPIRV_1_4_EXTENSION_NAME,
@@ -2488,18 +2560,17 @@ namespace {
 			#ifdef VK_KHR_performance_query
 				VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME,
 			#endif
-			#ifdef VK_EXT_filter_cubic
-				VK_IMG_FILTER_CUBIC_EXTENSION_NAME,
-				VK_EXT_FILTER_CUBIC_EXTENSION_NAME,
-			#endif
 			#ifdef VK_EXT_depth_range_unrestricted
 				VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME,
 			#endif
 			#ifdef VK_EXT_extended_dynamic_state
-				VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,	// TODO
+				VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 			#endif
 			#ifdef VK_EXT_shader_stencil_export
 				VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME,
+			#endif
+			#ifdef VK_KHR_ray_tracing
+				VK_KHR_RAY_TRACING_EXTENSION_NAME,
 			#endif
 
 			// Vendor specific extensions

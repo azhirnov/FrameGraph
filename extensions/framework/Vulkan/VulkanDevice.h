@@ -74,6 +74,7 @@ namespace FGC
 			bool	samplerMirrorClamp		: 1;
 			bool	shaderAtomicInt64		: 1;	// for uniform/storage buffer, for shared variables check features
 			bool	float16Arithmetic		: 1;
+			bool	int8Arithmetic			: 1;
 			bool	bufferAddress			: 1;
 			bool	descriptorIndexing		: 1;	// to use GL_EXT_nonuniform_qualifier 
 			bool	renderPass2				: 1;
@@ -97,6 +98,9 @@ namespace FGC
 			bool	timelineSemaphore		: 1;
 			bool	pushDescriptor			: 1;
 			bool	robustness2				: 1;
+			bool	shaderStencilExport		: 1;
+			bool	extendedDynamicState	: 1;
+			bool	rayTracing				: 1;
 		};
 
 		struct DeviceProperties
@@ -119,13 +123,13 @@ namespace FGC
 			VkPhysicalDeviceShadingRateImagePropertiesNV		shadingRateImageProperties;
 			#endif
 			#ifdef VK_NV_ray_tracing
-			VkPhysicalDeviceRayTracingPropertiesNV				rayTracingProperties;
+			VkPhysicalDeviceRayTracingPropertiesNV				rayTracingNVProperties;
 			#endif
 			#ifdef VK_NV_shader_image_footprint
 			VkPhysicalDeviceShaderImageFootprintFeaturesNV		shaderImageFootprintFeatures;
 			#endif
 			#ifdef VK_KHR_shader_clock
-			VkPhysicalDeviceShaderClockFeaturesKHR				shaderClock;
+			VkPhysicalDeviceShaderClockFeaturesKHR				shaderClockFeatures;
 			#endif
 			#ifdef VK_KHR_timeline_semaphore
 			VkPhysicalDeviceTimelineSemaphorePropertiesKHR		timelineSemaphoreProps;
@@ -156,6 +160,13 @@ namespace FGC
 			#endif
 			#ifdef VK_EXT_sampler_filter_minmax
 			VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT	samplerFilerMinmaxProperties;
+			#endif
+			#ifdef VK_EXT_extended_dynamic_state
+			VkPhysicalDeviceExtendedDynamicStateFeaturesEXT		extendedDynamicStateFeatures;
+			#endif
+			#ifdef VK_KHR_ray_tracing
+			VkPhysicalDeviceRayTracingFeaturesKHR				rayTracingFeatures;
+			VkPhysicalDeviceRayTracingPropertiesKHR				rayTracingProperties;
 			#endif
 		};
 		
