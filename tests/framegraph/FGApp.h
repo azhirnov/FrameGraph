@@ -21,6 +21,7 @@ namespace FG
 		using TestFunc_t			= bool (FGApp::*) ();
 		using TestQueue_t			= Deque<Pair< TestFunc_t, uint >>;
 		using VPipelineCompilerPtr	= SharedPtr< class VPipelineCompiler >;
+		using DeviceProperties		= IFrameGraph::DeviceProperties;
 
 
 	// variables
@@ -39,16 +40,8 @@ namespace FG
 		uint					_testsPassed		= 0;
 		uint					_testsFailed		= 0;
 
-		struct {
-			bool					hasShaderDebugger	: 1;
-			bool					descriptorIndexing	: 1;
-			bool					meshShaderNV		: 1;
-			bool					rayTracingNV		: 1;
-		}						_features;
-		struct {
-			BytesU					minStorageBufferOffsetAlignment;
-			BytesU					minUniformBufferOffsetAlignment;
-		}						_properties;
+		bool					_hasShaderDebugger;
+		DeviceProperties		_properties;
 
 
 	// methods

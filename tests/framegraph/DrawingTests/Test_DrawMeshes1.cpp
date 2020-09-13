@@ -7,7 +7,7 @@ namespace FG
 
 	bool FGApp::Test_DrawMeshes1 ()
 	{
-		if ( not _features.meshShaderNV or not _pplnCompiler )
+		if ( not _properties.meshShaderNV or not _pplnCompiler )
 		{
 			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;

@@ -92,7 +92,8 @@ namespace FG
 		bool			AddPipelineCompiler (const PipelineCompiler &comp) override;
 		bool			SetShaderDebugCallback (ShaderDebugCallback_t &&) override;
 		DeviceInfo_t	GetDeviceInfo () const override;
-		EQueueUsage		GetAvilableQueues () const override		{ return _queueUsage; }
+		EQueueUsage		GetAvilableQueues () const override;
+		DeviceProperties GetDeviceProperties () const override;
 
 
 		// resource manager //

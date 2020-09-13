@@ -173,6 +173,51 @@ namespace FG
 
 		return result;
 	}
+	
+/*
+=================================================
+	GetAvilableQueues
+=================================================
+*/
+	EQueueUsage  VFrameGraph::GetAvilableQueues () const
+	{
+		// '_queueUsage' initialized in Initialize() so sync is not needed
+		return _queueUsage;
+	}
+
+/*
+=================================================
+	GetDeviceProperties
+=================================================
+*/
+	VFrameGraph::DeviceProperties  VFrameGraph::GetDeviceProperties () const
+	{
+		auto&	feats	= _device.GetFeatures();
+		auto&	props	= _device.GetProperties();
+
+		DeviceProperties	result;
+		result.geometryShader					= props.features.geometryShader == VK_TRUE;
+		result.tessellationShader				= props.features.tessellationShader == VK_TRUE;
+		result.vertexPipelineStoresAndAtomics	= props.features.vertexPipelineStoresAndAtomics == VK_TRUE;
+		result.fragmentStoresAndAtomics			= props.features.fragmentStoresAndAtomics == VK_TRUE;
+		result.dedicatedAllocation				= feats.dedicatedAllocation;
+		result.dispatchBase						= feats.dispatchBase;
+		result.imageCubeArray					= props.features.imageCubeArray;
+		result.array2DCompatible				= feats.array2DCompatible;
+		result.blockTexelView					= feats.blockTexelView;
+		result.samplerMirrorClamp				= feats.samplerMirrorClamp;
+		result.descriptorIndexing				= feats.descriptorIndexing;
+		result.drawIndirectCount				= feats.drawIndirectCount;
+		result.swapchain						= feats.surface and feats.swapchain;
+		result.meshShaderNV						= feats.meshShaderNV;
+		result.rayTracingNV						= feats.rayTracingNV;
+		result.shadingRateImageNV				= feats.shadingRateImageNV;
+		result.minStorageBufferOffsetAlignment	= BytesU{props.properties.limits.minStorageBufferOffsetAlignment};
+		result.minUniformBufferOffsetAlignment	= BytesU{props.properties.limits.minUniformBufferOffsetAlignment};
+		result.maxDrawIndirectCount				= props.properties.limits.maxDrawIndirectCount;
+		result.maxDrawIndexedIndexValue			= props.properties.limits.maxDrawIndexedIndexValue;
+		return result;
+	}
 
 /*
 =================================================

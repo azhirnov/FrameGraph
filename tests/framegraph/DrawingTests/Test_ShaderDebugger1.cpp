@@ -9,7 +9,7 @@ namespace FG
 
 	bool FGApp::Test_ShaderDebugger1 ()
 	{
-		if ( not _features.hasShaderDebugger or not _pplnCompiler )
+		if ( not _hasShaderDebugger or not _pplnCompiler )
 		{
 			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;

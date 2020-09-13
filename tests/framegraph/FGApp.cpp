@@ -51,11 +51,8 @@ namespace {
 		_tests.push_back({ &FGApp::Test_ReadAttachment1,	1 });
 		_tests.push_back({ &FGApp::Test_AsyncCompute1,		1 });
 		_tests.push_back({ &FGApp::Test_AsyncCompute2,		1 });
-		
-		#ifdef FG_ENABLE_GLSL_TRACE
 		_tests.push_back({ &FGApp::Test_ShaderDebugger1,	1 });
 		_tests.push_back({ &FGApp::Test_ShaderDebugger2,	1 });
-		#endif
 
 		_tests.push_back({ &FGApp::Test_ArrayOfTextures1,	1 });
 		_tests.push_back({ &FGApp::Test_ArrayOfTextures2,	1 });
@@ -72,10 +69,7 @@ namespace {
 		_tests.push_back({ &FGApp::Test_TraceRays2,			1 });
 		_tests.push_back({ &FGApp::Test_TraceRays3,			1 });
 		_tests.push_back({ &FGApp::Test_ShadingRate1,		1 });
-		
-		#ifdef FG_ENABLE_GLSL_TRACE
 		_tests.push_back({ &FGApp::Test_RayTracingDebugger1, 1 });
-		#endif
 		
 		// very slow
 		//_tests.push_back({ &FGApp::ImplTest_CacheOverflow1,	1 });
@@ -122,8 +116,6 @@ namespace {
 */
 	bool FGApp::_Initialize (WindowPtr &&wnd)
 	{
-		std::memset( &_features, 0, sizeof(_features) );
-		std::memset( &_properties, 0, sizeof(_properties) );
 
 	#ifdef FG_ENABLE_VULKAN
 		return _InitializeForVulkan( std::move(wnd) );
@@ -163,16 +155,7 @@ namespace {
 
 			// this is a test and the test should fail for any validation error
 			_vulkan.CreateDebugCallback( DefaultDebugMessageSeverity,
-										[] (const VulkanDeviceInitializer::DebugReport &rep) { FG_LOGI(rep.message);  CHECK_FATAL(not rep.isError); });
-		}
-
-		// initialize vulkan features
-		{
-			_features.descriptorIndexing				= _vulkan.GetFeatures().descriptorIndexing;
-			_features.meshShaderNV						= _vulkan.GetFeatures().meshShaderNV;
-			_features.rayTracingNV						= _vulkan.GetFeatures().rayTracingNV;
-			_properties.minStorageBufferOffsetAlignment	= BytesU{ _vulkan.GetProperties().properties.limits.minStorageBufferOffsetAlignment };
-			_properties.minUniformBufferOffsetAlignment	= BytesU{ _vulkan.GetProperties().properties.limits.minUniformBufferOffsetAlignment };
+										 [] (const VulkanDeviceInitializer::DebugReport &rep) { FG_LOGI(rep.message);  CHECK_FATAL(not rep.isError); });
 		}
 
 		// setup device info
@@ -204,6 +187,8 @@ namespace {
 			_frameGraph = IFrameGraph::CreateFrameGraph( vulkan_info );
 			CHECK_ERR( _frameGraph );
 
+			_properties = _frameGraph->GetDeviceProperties();
+
 			_swapchainId = _frameGraph->CreateSwapchain( swapchain_info, Default, "Window" );
 			CHECK_ERR( _swapchainId );
 		}
@@ -220,7 +205,7 @@ namespace {
 			_frameGraph->AddPipelineCompiler( _pplnCompiler );
 
 			#ifdef FG_ENABLE_GLSL_TRACE
-			_features.hasShaderDebugger = _pplnCompiler and FG_EnableShaderDebugging;
+			_hasShaderDebugger = _pplnCompiler and FG_EnableShaderDebugging;
 			#endif
 		}
 		#endif	// FG_ENABLE_GLSLANG

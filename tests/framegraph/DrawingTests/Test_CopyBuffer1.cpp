@@ -12,6 +12,7 @@ namespace FG
 		
 		BufferID		src_buffer	= _frameGraph->CreateBuffer( BufferDesc{ src_buffer_size, EBufferUsage::Transfer }, Default, "SrcBuffer" );
 		BufferID		dst_buffer	= _frameGraph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Transfer }, Default, "DstBuffer" );
+		CHECK_ERR( src_buffer and dst_buffer );
 
 		Array<uint8_t>	src_data;	src_data.resize( size_t(src_buffer_size) );
 

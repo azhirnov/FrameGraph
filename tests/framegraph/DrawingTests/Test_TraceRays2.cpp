@@ -7,7 +7,7 @@ namespace FG
 
 	bool FGApp::Test_TraceRays2 ()
 	{
-		if ( not _features.rayTracingNV or not _pplnCompiler )
+		if ( not _properties.rayTracingNV or not _pplnCompiler )
 		{
 			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;

@@ -39,6 +39,9 @@ namespace FG
 		using OnExternalBufferReleased_t	= std::function< void (const ExternalBuffer_t &) >;
 		using ShaderDebugCallback_t			= std::function< void (StringView taskName, StringView shaderName, EShaderStages, ArrayView<String> output) >;
 
+	//-----------------------------------------------------
+	// statistics
+
 		struct RenderingStatistics
 		{
 			uint		descriptorBinds				= 0;
@@ -84,6 +87,39 @@ namespace FG
 			void Merge (const Statistics &);
 		};
 		
+		
+	//-----------------------------------------------------
+	// device features & properties
+		
+		struct DeviceProperties
+		{
+			bool	geometryShader					: 1;	// for EShader::Geometry.
+			bool	tessellationShader				: 1;	// for EShader::TessControl and EShader::TessEvaluation.
+			bool	vertexPipelineStoresAndAtomics	: 1;	// for EBufferUsage::VertexPplnStore.
+			bool	fragmentStoresAndAtomics		: 1;	// for EBufferUsage::FragmentPplnStore.
+			bool	dedicatedAllocation				: 1;	// for EMemoryType::Dedicated.
+			bool	dispatchBase					: 1;	// DispatchCompute::ComputeCmd::baseGroup can be used.
+			bool	imageCubeArray					: 1;	// for EImage::CubeArray.
+			bool	array2DCompatible				: 1;	// for EImageFlags::Array2DCompatible.
+			bool	blockTexelView					: 1;	// for EImageFlags::BlockTexelViewCompatible.
+			bool	samplerMirrorClamp				: 1;	// for EAddressMode::MirrorClampToEdge.
+			bool	descriptorIndexing				: 1;	// PipelineResources::***::elementCount can be set in runtime.
+			bool	drawIndirectCount				: 1;	// DrawVerticesIndirectCount, DrawIndexedIndirectCount can be used.
+			bool	swapchain						: 1;	// CreateSwapchain() can be used.
+			bool	meshShaderNV					: 1;	// CreatePipeline(MeshPipelineDesc), DrawMeshes*** can be used.
+			bool	rayTracingNV					: 1;	// CreatePipeline(RayTracingPipelineDesc), CreateRayTracingGeometry(), CreateRayTracingScene(), CreateRayTracingShaderTable(),
+															// BuildRayTracingGeometry, BuildRayTracingScene, UpdateRayTracingShaderTable, TraceRays can be used.
+			bool	shadingRateImageNV				: 1;	// RenderPassDesc::SetShadingRateImage(), EImageUsage::ShadingRate can be used.
+		
+			BytesU	minStorageBufferOffsetAlignment;		// alignment of 'offset' argument in PipelineResources::BindBuffer().
+			BytesU	minUniformBufferOffsetAlignment;		// alignment of 'offset' argument in PipelineResources::BindBuffer().
+			uint	maxDrawIndirectCount;					// max value of 'DrawCmd::drawCount' in DrawVerticesIndirect, DrawIndexedIndirect
+															// and max value of 'DrawCmd::maxDrawCount' in DrawVerticesIndirectCount, DrawIndexedIndirectCount.
+			uint	maxDrawIndexedIndexValue;				// max value of 'DrawCmd::indexCount' in draw commands.
+		};
+
+		static constexpr auto	MaxTimeout = Nanoseconds{60'000'000'000};
+
 
 	// interface
 	public:
@@ -117,6 +153,10 @@ namespace FG
 
 			// Returns bitmask for all available queues.
 		ND_ virtual EQueueUsage		GetAvilableQueues () const = 0;
+
+			// Returns device features, properties and limits.
+			// Some parameters in commands must comply with these restrictions.
+		ND_ virtual DeviceProperties GetDeviceProperties () const = 0;
 
 
 		// resource manager //

@@ -91,11 +91,9 @@ void main ()
 		image_desc.SetQueues( EQueueUsage::Graphics | EQueueUsage::AsyncCompute );
 
 		ImageID			image		= _frameGraph->CreateImage( image_desc, Default, "RenderTarget" );
-		CHECK_ERR( image );
-
 		GPipelineID		gpipeline	= _frameGraph->CreatePipeline( gppln );
 		CPipelineID		cpipeline	= _frameGraph->CreatePipeline( cppln );
-		CHECK_ERR( gpipeline and cpipeline );
+		CHECK_ERR( image and gpipeline and cpipeline );
 
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( cpipeline, DescriptorSetID("0"), OUT resources ));
