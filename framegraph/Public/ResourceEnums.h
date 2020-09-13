@@ -155,7 +155,6 @@ namespace FG
 		// special flags for IsSupported() method
 		StorageAtomic			= 1 << 10,		// same as 'Storage', atomic operations on image
 		ColorAttachmentBlend	= 1 << 11,		// same as 'ColorAttachment', blend operations on render target
-		SampledCubic			= 1 << 12,		// same as 'Sampled'
 		SampledMinMax			= 1 << 13,		// same as 'Sampled'
 		_Last,
 

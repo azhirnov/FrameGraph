@@ -654,7 +654,6 @@ namespace FG
 				case EImageUsage::TransferSrc :				flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;				break;
 				case EImageUsage::TransferDst :				flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;				break;
 				case EImageUsage::Sampled :
-				case EImageUsage::SampledCubic :
 				case EImageUsage::SampledMinMax :			flags |= VK_IMAGE_USAGE_SAMPLED_BIT;					break;
 				case EImageUsage::StorageAtomic :
 				case EImageUsage::Storage :					flags |= VK_IMAGE_USAGE_STORAGE_BIT;					break;

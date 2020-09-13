@@ -423,6 +423,9 @@ namespace
 */
 	bool  VImage::IsSupported (const VDevice &dev, const ImageDesc &desc, EMemoryType memType)
 	{
+		const bool		opt_tiling	= not AnyBits( memType, EMemoryType::HostRead | EMemoryType::HostWrite );
+		const VkFormat	format		= VEnumCast( desc.format );
+
 		// check available creation flags
 		{
 			VkImageCreateFlagBits	required	= VEnumCast( desc.flags );
@@ -435,9 +438,8 @@ namespace
 		// check format features
 		{
 			VkFormatProperties	props = {};
-			vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), VEnumCast( desc.format ), OUT &props );
+			vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), format, OUT &props );
 		
-			const bool					opt_tiling	= not AnyBits( memType, EMemoryType::HostRead | EMemoryType::HostWrite );
 			const VkFormatFeatureFlags	available	= opt_tiling ? props.optimalTilingFeatures : props.linearTilingFeatures;
 			VkFormatFeatureFlags		required	= 0;
 
@@ -453,7 +455,6 @@ namespace
 					case EImageUsage::TransferDst :				required |= VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;	break;
 					case EImageUsage::Sampled :					required |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;break;
 					case EImageUsage::Storage :					required |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;					break;
-					case EImageUsage::SampledCubic :			required |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG;	break;
 					case EImageUsage::SampledMinMax :			required |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT;	break;
 					case EImageUsage::StorageAtomic :			required |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;				break;
 					case EImageUsage::ColorAttachment :			required |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;					break;
@@ -473,6 +474,28 @@ namespace
 			}
 
 			if ( not AllBits( available, required ))
+				return false;
+		}
+
+		// check image properties
+		{
+			VkImageFormatProperties	props = {};
+			VK_CHECK( vkGetPhysicalDeviceImageFormatProperties( dev.GetVkPhysicalDevice(), format, VEnumCast( desc.imageType ),
+																opt_tiling ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR,
+																VEnumCast( desc.usage ), VEnumCast( desc.flags ), OUT &props ));
+
+			if ( desc.dimension.x > props.maxExtent.width  or
+			 	 desc.dimension.y > props.maxExtent.height or
+				 desc.dimension.z > props.maxExtent.depth )
+				return false;
+
+			if ( desc.maxLevel.Get() > props.maxMipLevels )
+				return false;
+
+			if ( desc.arrayLayers.Get() > props.maxArrayLayers )
+				return false;
+
+			if ( not AllBits( props.sampleCounts, desc.samples.Get() ))
 				return false;
 		}
 
