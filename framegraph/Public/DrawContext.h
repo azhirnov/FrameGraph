@@ -88,12 +88,26 @@ namespace FG
 		virtual void DrawVerticesIndirect (RawBufferID	indirectBuffer,
 										   BytesU		indirectBufferOffset,
 										   uint			drawCount,
-										   BytesU		stride = 0_b) = 0;
+										   BytesU		indirectBufferStride = 0_b) = 0;
 
 		virtual void DrawIndexedIndirect (RawBufferID	indirectBuffer,
 										  BytesU		indirectBufferOffset,
 										  uint			drawCount,
-										  BytesU		stride = 0_b) = 0;
+										  BytesU		indirectBufferStride = 0_b) = 0;
+		
+		virtual void DrawVerticesIndirectCount (RawBufferID	indirectBuffer,
+												BytesU		indirectBufferOffset,
+												RawBufferID	countBuffer,
+												BytesU		countBufferOffset,
+												uint		maxDrawCount,
+												BytesU		indirectBufferStride = 0_b) = 0;
+
+		virtual void DrawIndexedIndirectCount (RawBufferID	indirectBuffer,
+											   BytesU		indirectBufferOffset,
+											   RawBufferID	countBuffer,
+											   BytesU		countBufferOffset,
+											   uint			maxDrawCount,
+											   BytesU		indirectBufferStride = 0_b) = 0;
 
 		virtual void DrawMeshes (uint	taskCount,
 								 uint	firstTask	= 0) = 0;
@@ -101,7 +115,14 @@ namespace FG
 		virtual void DrawMeshesIndirect (RawBufferID	indirectBuffer,
 										 BytesU			indirectBufferOffset,
 										 uint			drawCount,
-										 BytesU			stride = 0_b) = 0;
+										 BytesU			indirectBufferStride = 0_b) = 0;
+
+		virtual void DrawMeshesIndirectCount (RawBufferID	indirectBuffer,
+											  BytesU		indirectBufferOffset,
+											  RawBufferID	countBuffer,
+											  BytesU		countBufferOffset,
+											  uint			maxDrawCount,
+											  BytesU		indirectBufferStride = 0_b) = 0;
 	};
 
 

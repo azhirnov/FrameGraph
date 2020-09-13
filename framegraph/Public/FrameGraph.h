@@ -52,6 +52,7 @@ namespace FG
 			uint		indexBufferBindings			= 0;
 			uint		vertexBufferBindings		= 0;
 			uint		drawCalls					= 0;
+			uint		indirectDrawCalls			= 0;	// vertex & index count can not be calculated for this draw calls 
 			uint64_t	vertexCount					= 0;	// sum of vertices / indices, indirect draw isn't measured
 			uint64_t	primitiveCount				= 0;	// sum of primitives
 			uint		graphicsPipelineBindings	= 0;

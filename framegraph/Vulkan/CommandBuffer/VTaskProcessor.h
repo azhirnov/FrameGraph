@@ -68,7 +68,10 @@ namespace FG
 		const bool					_drawIndirectCount		: 1;
 		const bool					_meshShaderNV			: 1;
 		const bool					_rayTracingNV			: 1;
-		const uint					_maxDrawIndirectCount;
+		const uint					_maxDrawIndirectCount;		
+		#ifdef VK_NV_mesh_shader
+		const uint					_maxMeshTaskCount;
+		#endif
 
 		PendingResourceBarriers_t	_pendingResourceBarriers;
 

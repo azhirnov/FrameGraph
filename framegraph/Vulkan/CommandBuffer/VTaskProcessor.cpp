@@ -247,6 +247,27 @@ namespace FG
 		void  DrawMeshes (uint taskCount, uint firstTask) override;
 		void  DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride) override;
 		
+		void DrawVerticesIndirectCount (RawBufferID	indirectBuffer,
+										BytesU		indirectBufferOffset,
+										RawBufferID	countBuffer,
+										BytesU		countBufferOffset,
+										uint		maxDrawCount,
+										BytesU		indirectBufferStride) override;
+
+		void DrawIndexedIndirectCount (RawBufferID	indirectBuffer,
+									   BytesU		indirectBufferOffset,
+									   RawBufferID	countBuffer,
+									   BytesU		countBufferOffset,
+									   uint			maxDrawCount,
+									   BytesU		indirectBufferStride) override;
+
+		void DrawMeshesIndirectCount (RawBufferID	indirectBuffer,
+									  BytesU		indirectBufferOffset,
+									  RawBufferID	countBuffer,
+									  BytesU		countBufferOffset,
+									  uint			maxDrawCount,
+									  BytesU		indirectBufferStride) override;
+
 	private:
 		bool  _BindPipeline (uint mask);
 	};
@@ -778,7 +799,7 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+		CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
@@ -808,7 +829,7 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+		CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
@@ -839,7 +860,7 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+		CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
@@ -857,9 +878,8 @@ namespace FG
 									VkDeviceSize(cmd.indirectBufferOffset),
 									cmd.drawCount,
 									uint(cmd.stride) );
-			stat.drawCalls += cmd.drawCount;
-			//stat.vertexCount += unknown
-			//stat.primitiveCount += unknown
+
+			stat.indirectDrawCalls += cmd.drawCount;
 		}
 	}
 	
@@ -875,7 +895,7 @@ namespace FG
 		VPipelineLayout const*	layout	= null;
 		auto&					stat	= _tp.Stat();
 
-		CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+		CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 		_BindPipelineResources( *layout, task );
 		_tp._PushConstants( *layout, task.pushConstants );
@@ -894,9 +914,8 @@ namespace FG
 										   VkDeviceSize(cmd.indirectBufferOffset),
 										   cmd.drawCount,
 										   uint(cmd.stride) );
-			stat.drawCalls += cmd.drawCount;
-			//stat.vertexCount += unknown
-			//stat.primitiveCount += unknown
+
+			stat.indirectDrawCalls += cmd.drawCount;
 		}
 	}
 	
@@ -914,7 +933,7 @@ namespace FG
 			VPipelineLayout const*	layout	= null;
 			auto&					stat	= _tp.Stat();
 
-			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+			CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 			_BindPipelineResources( *layout, task );
 			_tp._PushConstants( *layout, task.pushConstants );
@@ -934,10 +953,8 @@ namespace FG
 												VkDeviceSize(cmd.countBufferOffset),
 												cmd.maxDrawCount,
 												uint(cmd.indirectBufferStride) );
-				//stat.vertexCount += unknown
-				//stat.primitiveCount += unknown
 			}
-			stat.drawCalls += uint(task.commands.size());
+			stat.indirectDrawCalls += uint(task.commands.size());
 		}
 	}
 	
@@ -955,7 +972,7 @@ namespace FG
 			VPipelineLayout const*	layout	= null;
 			auto&					stat	= _tp.Stat();
 
-			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+			CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 			_BindPipelineResources( *layout, task );
 			_tp._PushConstants( *layout, task.pushConstants );
@@ -976,10 +993,8 @@ namespace FG
 													  VkDeviceSize(cmd.countBufferOffset),
 													  cmd.maxDrawCount,
 													  uint(cmd.indirectBufferStride) );
-				//stat.vertexCount += unknown
-				//stat.primitiveCount += unknown
 			}
-			stat.drawCalls += uint(task.commands.size());
+			stat.indirectDrawCalls += uint(task.commands.size());
 		}
 	}
 		
@@ -998,7 +1013,7 @@ namespace FG
 			VPipelineLayout const*	layout	= null;
 			auto&					stat	= _tp.Stat();
 
-			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+			CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 			_BindPipelineResources( *layout, task );
 			_tp._PushConstants( *layout, task.pushConstants );
@@ -1008,6 +1023,8 @@ namespace FG
 
 			for (auto& cmd : task.commands)
 			{
+				ASSERT( cmd.count <= _tp._maxMeshTaskCount );
+
 				_tp.vkCmdDrawMeshTasksNV( _cmdBuffer, cmd.count, cmd.first );
 				//stat.vertexCount += unknown
 				//stat.primitiveCount += unknown
@@ -1034,7 +1051,7 @@ namespace FG
 			VPipelineLayout const*	layout	= null;
 			auto&					stat	= _tp.Stat();
 
-			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+			CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 			_BindPipelineResources( *layout, task );
 			_tp._PushConstants( *layout, task.pushConstants );
@@ -1051,9 +1068,8 @@ namespace FG
 												   VkDeviceSize(cmd.indirectBufferOffset),
 												   cmd.drawCount,
 												   uint(cmd.stride) );
-				stat.drawCalls += cmd.drawCount;
-				//stat.vertexCount += unknown
-				//stat.primitiveCount += unknown
+
+				stat.indirectDrawCalls += cmd.drawCount;
 			}
 		}
 	#else
@@ -1076,7 +1092,7 @@ namespace FG
 			VPipelineLayout const*	layout	= null;
 			auto&					stat	= _tp.Stat();
 
-			CHECK_ERR( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ), void());
+			CHECK_ERRV( _tp._BindPipeline( *_currTask->GetLogicalPass(), task, OUT layout ));
 
 			_BindPipelineResources( *layout, task );
 			_tp._PushConstants( *layout, task.pushConstants );
@@ -1095,10 +1111,8 @@ namespace FG
 														VkDeviceSize(cmd.countBufferOffset),
 														cmd.maxDrawCount,
 														uint(cmd.indirectBufferStride) );
-				//stat.vertexCount += unknown
-				//stat.primitiveCount += unknown
 			}
-			stat.drawCalls += uint(task.commands.size());
+			stat.indirectDrawCalls += uint(task.commands.size());
 		}
 	#else
 		Unused( task );
@@ -1276,7 +1290,7 @@ namespace FG
 	void  VTaskProcessor::DrawContext::BindResources (const DescriptorSetID &id, const PipelineResources &res)
 	{
 		_BindPipeline( ALL_BITS );
-		CHECK_ERR( _pplnLayout, void());
+		CHECK_ERRV( _pplnLayout );
 
 		VPipelineResources const*	ppln_res = _tp._fgThread.CreateDescriptorSet( res );
 		VkDescriptorSet				ds		 = ppln_res->Handle();
@@ -1298,7 +1312,7 @@ namespace FG
 	void  VTaskProcessor::DrawContext::PushConstants (const PushConstantID &id, const void *data, BytesU dataSize)
 	{
 		_BindPipeline( ALL_BITS );
-		CHECK_ERR( _pplnLayout, void());
+		CHECK_ERRV( _pplnLayout );
 
 		auto	iter = _pplnLayout->GetPushConstants().find( id );
 		if ( iter != _pplnLayout->GetPushConstants().end() )
@@ -1361,7 +1375,7 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::SetColorBuffer (RenderTargetID id, const RenderState::ColorBuffer &value)
 	{
-		CHECK_ERR( size_t(id) < _renderState.color.buffers.size(), void());
+		CHECK_ERRV( size_t(id) < _renderState.color.buffers.size() );
 
 		_renderState.color.buffers[ uint(id) ] = value;
 		_changed |= ALL_BITS;
@@ -1514,7 +1528,7 @@ namespace FG
 	{
 	#ifdef VK_NV_shading_rate_image
 		auto*	image = _tp._GetResource( value );
-		CHECK_ERR( image, void());
+		CHECK_ERRV( image );
 		
 		ImageViewDesc	desc;
 		desc.viewType	= EImage_2D;
@@ -1539,8 +1553,8 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::DrawVertices (uint vertexCount, uint instanceCount, uint firstVertex, uint firstInstance)
 	{
-		CHECK( _gpipeline );
-		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
+		CHECK_ERRV( _gpipeline );
+		CHECK_ERRV( _BindPipeline( GRAPHICS_BIT ));
 
 		_tp.vkCmdDraw( _tp._cmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
 		
@@ -1557,8 +1571,8 @@ namespace FG
 */
 	void  VTaskProcessor::DrawContext::DrawIndexed (uint indexCount, uint instanceCount, uint firstIndex, int vertexOffset, uint firstInstance)
 	{
-		CHECK( _gpipeline );
-		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
+		CHECK_ERRV( _gpipeline );
+		CHECK_ERRV( _BindPipeline( GRAPHICS_BIT ));
 
 		_tp.vkCmdDrawIndexed( _tp._cmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
 		
@@ -1573,19 +1587,18 @@ namespace FG
 	DrawVerticesIndirect
 =================================================
 */
-	void  VTaskProcessor::DrawContext::DrawVerticesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
+	void  VTaskProcessor::DrawContext::DrawVerticesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU indirectBufferStride)
 	{
-		auto*	buf = _tp._GetResource( indirectBuffer );
+		auto*	indirect_buf = _tp._GetResource( indirectBuffer );
+		CHECK_ERRV( indirect_buf );
+		CHECK_ERRV( _gpipeline );
 		
-		CHECK_ERR( buf, void());
-		CHECK( _gpipeline );
+		ASSERT( drawCount <= _tp._maxDrawIndirectCount );
 
-		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
-		_tp.vkCmdDrawIndirect( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
+		CHECK_ERRV( _BindPipeline( GRAPHICS_BIT ));
+		_tp.vkCmdDrawIndirect( _tp._cmdBuffer, indirect_buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(indirectBufferStride) );
 
-		_tp.Stat().drawCalls += drawCount;
-		//_tp.Stat().vertexCount += unknown
-		//_tp.Stat().primitiveCount += unknown
+		_tp.Stat().indirectDrawCalls += drawCount;
 	}
 	
 /*
@@ -1593,20 +1606,82 @@ namespace FG
 	DrawIndexedIndirect
 =================================================
 */
-	void  VTaskProcessor::DrawContext::DrawIndexedIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
+	void  VTaskProcessor::DrawContext::DrawIndexedIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU indirectBufferStride)
 	{
-		auto*	buf = _tp._GetResource( indirectBuffer );
-		CHECK_ERR( buf, void());
-		CHECK( _gpipeline );
+		auto*	indirect_buf = _tp._GetResource( indirectBuffer );
+		CHECK_ERRV( indirect_buf );
+		CHECK_ERRV( _gpipeline );
 		
-		CHECK_ERR( _BindPipeline( GRAPHICS_BIT ), void());
-		_tp.vkCmdDrawIndexedIndirect( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
+		ASSERT( drawCount <= _tp._maxDrawIndirectCount );
+
+		CHECK_ERRV( _BindPipeline( GRAPHICS_BIT ));
+		_tp.vkCmdDrawIndexedIndirect( _tp._cmdBuffer, indirect_buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(indirectBufferStride) );
 		
-		_tp.Stat().drawCalls += drawCount;
-		//_tp.Stat().vertexCount += unknown
-		//_tp.Stat().primitiveCount += unknown
+		_tp.Stat().indirectDrawCalls += drawCount;
 	}
 	
+/*
+=================================================
+	DrawVerticesIndirectCount
+=================================================
+*/
+	void VTaskProcessor::DrawContext::DrawVerticesIndirectCount (RawBufferID	indirectBuffer,
+																 BytesU			indirectBufferOffset,
+																 RawBufferID	countBuffer,
+																 BytesU			countBufferOffset,
+																 uint			maxDrawCount,
+																 BytesU			indirectBufferStride)
+	{
+		CHECK_ERRV( _tp._drawIndirectCount );
+		CHECK_ERRV( _gpipeline );
+
+		auto*	indirect_buf = _tp._GetResource( indirectBuffer );
+		CHECK_ERRV( indirect_buf );
+
+		auto*	count_buf = _tp._GetResource( countBuffer );
+		CHECK_ERRV( count_buf );
+
+		ASSERT( maxDrawCount <= _tp._maxDrawIndirectCount );
+
+		CHECK_ERRV( _BindPipeline( GRAPHICS_BIT ));
+		_tp.vkCmdDrawIndirectCountKHR( _tp._cmdBuffer, indirect_buf->Handle(), VkDeviceSize(indirectBufferOffset),
+										count_buf->Handle(), VkDeviceSize(countBufferOffset),
+										maxDrawCount, uint(indirectBufferStride) );
+		
+		_tp.Stat().indirectDrawCalls += maxDrawCount;
+	}
+
+/*
+=================================================
+	DrawIndexedIndirectCount
+=================================================
+*/
+	void VTaskProcessor::DrawContext::DrawIndexedIndirectCount (RawBufferID	indirectBuffer,
+																BytesU		indirectBufferOffset,
+																RawBufferID	countBuffer,
+																BytesU		countBufferOffset,
+																uint		maxDrawCount,
+																BytesU		indirectBufferStride)
+	{
+		CHECK_ERRV( _tp._drawIndirectCount );
+		CHECK_ERRV( _gpipeline );
+
+		auto*	indirect_buf = _tp._GetResource( indirectBuffer );
+		CHECK_ERRV( indirect_buf );
+
+		auto*	count_buf = _tp._GetResource( countBuffer );
+		CHECK_ERRV( count_buf );
+		
+		ASSERT( maxDrawCount <= _tp._maxDrawIndirectCount );
+
+		CHECK_ERRV( _BindPipeline( GRAPHICS_BIT ));
+		_tp.vkCmdDrawIndexedIndirectCountKHR( _tp._cmdBuffer, indirect_buf->Handle(), VkDeviceSize(indirectBufferOffset),
+											  count_buf->Handle(), VkDeviceSize(countBufferOffset),
+											  maxDrawCount, uint(indirectBufferStride) );
+		
+		_tp.Stat().indirectDrawCalls += maxDrawCount;
+	}
+
 /*
 =================================================
 	DrawMeshes
@@ -1615,8 +1690,11 @@ namespace FG
 	void  VTaskProcessor::DrawContext::DrawMeshes (uint taskCount, uint firstTask)
 	{
 	#ifdef VK_NV_mesh_shader
-		CHECK( _mpipeline );
-		CHECK_ERR( _BindPipeline( MESH_BIT ), void());
+		CHECK_ERRV( _tp._meshShaderNV );
+		CHECK_ERRV( _mpipeline );
+		CHECK_ERRV( _BindPipeline( MESH_BIT ));
+		
+		ASSERT( taskCount <= _tp._maxMeshTaskCount );
 
 		_tp.vkCmdDrawMeshTasksNV( _tp._cmdBuffer, taskCount, firstTask );
 		_tp.Stat().drawCalls ++;
@@ -1631,19 +1709,59 @@ namespace FG
 	DrawMeshesIndirect
 =================================================
 */
-	void  VTaskProcessor::DrawContext::DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU stride)
+	void  VTaskProcessor::DrawContext::DrawMeshesIndirect (RawBufferID indirectBuffer, BytesU indirectBufferOffset, uint drawCount, BytesU indirectBufferStride)
 	{
 	#ifdef VK_NV_mesh_shader
-		auto*	buf = _tp._GetResource( indirectBuffer );
-		CHECK_ERR( buf, void());
+		CHECK_ERRV( _tp._meshShaderNV );
+		CHECK_ERRV( _mpipeline );
 
-		CHECK( _mpipeline );
-		CHECK_ERR( _BindPipeline( MESH_BIT ), void());
+		auto*	indirect_buf = _tp._GetResource( indirectBuffer );
+		CHECK_ERRV( indirect_buf );
+		
+		ASSERT( drawCount <= _tp._maxDrawIndirectCount );
 
-		_tp.vkCmdDrawMeshTasksIndirectNV( _tp._cmdBuffer, buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(stride) );
-		_tp.Stat().drawCalls += drawCount;
+		CHECK_ERRV( _BindPipeline( MESH_BIT ));
+		_tp.vkCmdDrawMeshTasksIndirectNV( _tp._cmdBuffer, indirect_buf->Handle(), VkDeviceSize(indirectBufferOffset), drawCount, uint(indirectBufferStride) );
+
+		_tp.Stat().indirectDrawCalls += drawCount;
 	#else
-		Unused( indirectBuffer, indirectBufferOffset, drawCount, stride );
+		Unused( indirectBuffer, indirectBufferOffset, drawCount, indirectBufferStride );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
+	}
+	
+/*
+=================================================
+	DrawMeshesIndirectCount
+=================================================
+*/
+	void  VTaskProcessor::DrawContext::DrawMeshesIndirectCount (RawBufferID	indirectBuffer,
+																BytesU		indirectBufferOffset,
+																RawBufferID	countBuffer,
+																BytesU		countBufferOffset,
+																uint		maxDrawCount,
+																BytesU		indirectBufferStride)
+	{
+	#ifdef VK_NV_mesh_shader
+		CHECK_ERRV( _tp._meshShaderNV );
+		CHECK_ERRV( _mpipeline );
+		
+		auto*	indirect_buf = _tp._GetResource( indirectBuffer );
+		CHECK_ERRV( indirect_buf );
+		
+		auto*	count_buf = _tp._GetResource( countBuffer );
+		CHECK_ERRV( count_buf );
+		
+		ASSERT( maxDrawCount <= _tp._maxDrawIndirectCount );
+
+		CHECK_ERRV( _BindPipeline( MESH_BIT ));
+		_tp.vkCmdDrawMeshTasksIndirectCountNV( _tp._cmdBuffer, indirect_buf->Handle(), VkDeviceSize(indirectBufferOffset),
+											   count_buf->Handle(), VkDeviceSize(countBufferOffset),
+											   maxDrawCount, uint(indirectBufferStride) );
+
+		_tp.Stat().indirectDrawCalls += maxDrawCount;
+	#else
+		Unused( indirectBuffer, indirectBufferOffset, countBuffer, countBufferOffset, maxDrawCount, indirectBufferStride );
 		ASSERT( !"mesh shader is not supported" );
 	#endif
 	}
@@ -1667,6 +1785,9 @@ namespace FG
 		_meshShaderNV{ _fgThread.GetDevice().GetFeatures().meshShaderNV },
 		_rayTracingNV{ _fgThread.GetDevice().GetFeatures().rayTracingNV },
 		_maxDrawIndirectCount{ _fgThread.GetDevice().GetProperties().properties.limits.maxDrawIndirectCount },
+		#ifdef VK_NV_mesh_shader
+		_maxMeshTaskCount{ _fgThread.GetDevice().GetProperties().meshShaderProperties.maxDrawMeshTasksCount },
+		#endif
 		_pendingResourceBarriers{ fgThread.GetAllocator() }
 	{
 		ASSERT( _cmdBuffer );
@@ -2531,7 +2652,7 @@ namespace FG
 
 		VPipelineLayout const*	layout = null;
 
-		CHECK_ERR( _BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout ), void());
+		CHECK_ERRV( _BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, VK_PIPELINE_CREATE_DISPATCH_BASE, OUT layout ));
 
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
@@ -2570,7 +2691,7 @@ namespace FG
 		
 		VPipelineLayout const*	layout = null;
 
-		CHECK_ERR( _BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, 0, OUT layout ), void());
+		CHECK_ERRV( _BindPipeline( task.pipeline, task.localGroupSize, task.debugModeIndex, 0, OUT layout ));
 
 		_BindPipelineResources( *layout, task.GetResources(), VK_PIPELINE_BIND_POINT_COMPUTE, task.debugModeIndex );
 		_PushConstants( *layout, task.pushConstants );
