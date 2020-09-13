@@ -33,7 +33,7 @@ else ()
 endif ()
 
 set( FG_NO_EXCEPTIONS ON CACHE BOOL "disable C++ exceptions" )
-set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
+#set( FG_ENABLE_STDALLOC OFF CACHE BOOL "custom std allocators (optional)" )
 set( FG_ENABLE_GLSLANG ON CACHE BOOL "use glslang (optional, required for glsl compilation)" )
 set( FG_ENABLE_VMA ON CACHE BOOL "use Vulkan Memory Allocator (required)" )
 set( FG_ENABLE_OPENVR ${FG_ENABLE_OPENVR} CACHE BOOL "use OpenVR (optional)" )
