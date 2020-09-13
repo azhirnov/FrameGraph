@@ -1,54 +1,4 @@
 CommandBuffer {
-	name:      "Graphics-1"
-	Image {
-		name:         "RenderTarget"
-		imageType:    1
-		dimension:    ( 800, 600, 1 )
-		format:       RGBA8_UNorm
-		usage:        TransferSrc | Storage | ColorAttachment
-		arrayLayers:  1
-		maxLevel:     1
-		samples:      1
-		barriers = {
-				ImageMemoryBarrier {
-					srcTask:         RenderPass (#2)
-					dstTask:         <final>
-					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    0
-					dependencyFlags: 0
-					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
-					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
-					oldLayout:       ColorAttachmentOptimal
-					newLayout:       ColorAttachmentOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-		}
-	}
-
-	-----------------------------------------------------------
-	Task {
-		name:    "RenderPass (#2)"
-		input =  {  }
-		output = {  }
-		resource_usage = {
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Color-RW, InvalidateBefore
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-}
-===============================================================
-
-CommandBuffer {
 	name:      "Compute-1"
 	Image {
 		name:         "RenderTarget"
@@ -113,7 +63,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    128 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -130,6 +80,7 @@ CommandBuffer {
 		}
 	}
 
+	dependsOn: Graphics-1
 	-----------------------------------------------------------
 	Task {
 		name:    "DispatchCompute (#2)"
@@ -160,56 +111,6 @@ CommandBuffer {
 			ImageUsage {
 				name:           "RenderTarget"
 				usage:          Transfer-R
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-}
-===============================================================
-
-CommandBuffer {
-	name:      "Graphics-2"
-	Image {
-		name:         "RenderTarget"
-		imageType:    1
-		dimension:    ( 800, 600, 1 )
-		format:       RGBA8_UNorm
-		usage:        TransferSrc | Storage | ColorAttachment
-		arrayLayers:  1
-		maxLevel:     1
-		samples:      1
-		barriers = {
-				ImageMemoryBarrier {
-					srcTask:         RenderPass (#2)
-					dstTask:         <final>
-					srcStageMask:    ColorAttachmentOutput
-					dstStageMask:    0
-					dependencyFlags: 0
-					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
-					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
-					oldLayout:       ColorAttachmentOptimal
-					newLayout:       ColorAttachmentOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-		}
-	}
-
-	-----------------------------------------------------------
-	Task {
-		name:    "RenderPass (#2)"
-		input =  {  }
-		output = {  }
-		resource_usage = {
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Color-RW, InvalidateBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0
@@ -285,7 +186,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    128 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -302,6 +203,7 @@ CommandBuffer {
 		}
 	}
 
+	dependsOn: Graphics-2
 	-----------------------------------------------------------
 	Task {
 		name:    "DispatchCompute (#2)"
@@ -332,6 +234,107 @@ CommandBuffer {
 			ImageUsage {
 				name:           "RenderTarget"
 				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+
+CommandBuffer {
+	name:      "Graphics-1"
+	Image {
+		name:         "RenderTarget"
+		imageType:    1
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         RenderPass (#2)
+					dstTask:         <final>
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	-----------------------------------------------------------
+	Task {
+		name:    "RenderPass (#2)"
+		input =  {  }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Color-RW, InvalidateBefore
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+
+CommandBuffer {
+	name:      "Graphics-2"
+	Image {
+		name:         "RenderTarget"
+		imageType:    1
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         RenderPass (#2)
+					dstTask:         <final>
+					srcStageMask:    ColorAttachmentOutput
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
+					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	dependsOn: Compute-1
+	-----------------------------------------------------------
+	Task {
+		name:    "RenderPass (#2)"
+		input =  {  }
+		output = {  }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Color-RW, InvalidateBefore
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

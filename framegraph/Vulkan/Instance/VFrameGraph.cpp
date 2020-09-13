@@ -23,7 +23,7 @@ namespace FG
 */
 	VFrameGraph::VFrameGraph (const VulkanDeviceInfo &vdi) :
 		_state{ EState::Initial },	_device{ vdi },
-		_queueUsage{ Default },		_resourceMngr{ _device },
+		_queueUsage{ Default },		_resourceMngr{ _device, vdi.maxStagingBufferMemory, vdi.stagingBufferSize },
 		_queryPool{ VK_NULL_HANDLE }
 	{
 	}

@@ -165,6 +165,9 @@ namespace {
 			vulkan_info.instance		= BitCast<InstanceVk_t>( _vulkan.GetVkInstance() );
 			vulkan_info.physicalDevice	= BitCast<PhysicalDeviceVk_t>( _vulkan.GetVkPhysicalDevice() );
 			vulkan_info.device			= BitCast<DeviceVk_t>( _vulkan.GetVkDevice() );
+
+			vulkan_info.maxStagingBufferMemory	= ~0_b;
+			vulkan_info.stagingBufferSize		= 8_Mb;
 			
 			swapchain_info.surface		= BitCast<SurfaceVk_t>( _vulkan.GetVkSurface() );
 			swapchain_info.surfaceSize	= _window->GetSize();

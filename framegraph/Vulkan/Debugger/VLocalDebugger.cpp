@@ -39,7 +39,7 @@ namespace {
 	End
 =================================================
 */
-	void VLocalDebugger::End (StringView name, uint cmdBufferUID, OUT String *dump, OUT BatchGraph *graph)
+	void VLocalDebugger::End (StringView name, ArrayView<VCmdBatchPtr> dependencies, uint cmdBufferUID, OUT String *dump, OUT BatchGraph *graph)
 	{
 		constexpr auto	DumpFlags =	EDebugFlags::LogTasks		|
 									EDebugFlags::LogBarriers	|
@@ -50,7 +50,7 @@ namespace {
 			_subBatchUID = ToString<16>( (cmdBufferUID & 0xFFF) | (_counter << 12) );
 
 			if ( dump )
-				_DumpFrame( name, OUT *dump );
+				_DumpFrame( name, dependencies, OUT *dump );
 
 			if ( graph )
 				_DumpGraph( OUT *graph );
@@ -283,14 +283,30 @@ namespace {
 	- dump resources info & pipeline barriers.
 =================================================
 */
-	void VLocalDebugger::_DumpFrame (StringView name, OUT String &str) const
+	void VLocalDebugger::_DumpFrame (StringView name, ArrayView<VCmdBatchPtr> dependsOn, OUT String &str) const
 	{
+		using namespace std::string_view_literals;
+
 		str.clear();
 		str << "CommandBuffer {\n"
 			<< "	name:      \"" << name << "\"\n";
 
 		_DumpImages( INOUT str );
 		_DumpBuffers( INOUT str );
+
+		if ( dependsOn.size() )
+		{
+			str << "	dependsOn: ";
+			for (auto& dep : dependsOn)
+			{
+				if ( not IsFirstElement( dep, dependsOn ))
+					str << ", ";
+
+				StringView	dep_name = dep->GetName();
+				str << (dep_name.size() ? dep_name : "<no-name>"sv);
+			}
+			str << "\n";
+		}
 		
 		str << "	-----------------------------------------------------------\n";
 

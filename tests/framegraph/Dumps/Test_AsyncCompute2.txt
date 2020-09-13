@@ -1,4 +1,373 @@
 CommandBuffer {
+	name:      "Compute-1"
+	Image {
+		name:         "RenderTarget"
+		imageType:    1
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         DispatchCompute (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    ComputeShader
+					dependencyFlags: 0
+					srcAccessMask:   0
+					dstAccessMask:   ShaderRead | ShaderWrite
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         DispatchCompute (#2)
+					dstTask:         ReadImage (#3)
+					srcStageMask:    ComputeShader
+					dstStageMask:    Transfer
+					dependencyFlags: 0
+					srcAccessMask:   ShaderRead | ShaderWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       General
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   TransferRead
+					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
+					oldLayout:       TransferSrcOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "HostReadBuffer"
+		size:    8 Mb
+		usage:   TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   0
+					offset:          0 b
+					size:            1875 Kb
+				}
+		}
+	}
+
+	dependsOn: Graphics-1
+	-----------------------------------------------------------
+	Task {
+		name:    "DispatchCompute (#2)"
+		input =  {  }
+		output = { ReadImage (#3) }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Storage-RW, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#3)"
+		input =  { DispatchCompute (#2) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+
+CommandBuffer {
+	name:      "Compute-2"
+	Image {
+		name:         "RenderTarget"
+		imageType:    1
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         DispatchCompute (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    ComputeShader
+					dependencyFlags: 0
+					srcAccessMask:   0
+					dstAccessMask:   ShaderRead | ShaderWrite
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         DispatchCompute (#2)
+					dstTask:         ReadImage (#3)
+					srcStageMask:    ComputeShader
+					dstStageMask:    Transfer
+					dependencyFlags: 0
+					srcAccessMask:   ShaderRead | ShaderWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       General
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   TransferRead
+					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
+					oldLayout:       TransferSrcOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "HostReadBuffer"
+		size:    8 Mb
+		usage:   TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   0
+					offset:          0 b
+					size:            1875 Kb
+				}
+		}
+	}
+
+	dependsOn: Graphics-2
+	-----------------------------------------------------------
+	Task {
+		name:    "DispatchCompute (#2)"
+		input =  {  }
+		output = { ReadImage (#3) }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Storage-RW, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#3)"
+		input =  { DispatchCompute (#2) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+
+CommandBuffer {
+	name:      "Compute-3"
+	Image {
+		name:         "RenderTarget"
+		imageType:    1
+		dimension:    ( 800, 600, 1 )
+		format:       RGBA8_UNorm
+		usage:        TransferSrc | Storage | ColorAttachment
+		arrayLayers:  1
+		maxLevel:     1
+		samples:      1
+		barriers = {
+				ImageMemoryBarrier {
+					srcTask:         <initial>
+					dstTask:         DispatchCompute (#2)
+					srcStageMask:    TopOfPipe
+					dstStageMask:    ComputeShader
+					dependencyFlags: 0
+					srcAccessMask:   0
+					dstAccessMask:   ShaderRead | ShaderWrite
+					oldLayout:       ColorAttachmentOptimal
+					newLayout:       General
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         DispatchCompute (#2)
+					dstTask:         ReadImage (#3)
+					srcStageMask:    ComputeShader
+					dstStageMask:    Transfer
+					dependencyFlags: 0
+					srcAccessMask:   ShaderRead | ShaderWrite
+					dstAccessMask:   TransferRead
+					oldLayout:       General
+					newLayout:       TransferSrcOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+				ImageMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   TransferRead
+					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
+					oldLayout:       TransferSrcOptimal
+					newLayout:       ColorAttachmentOptimal
+					aspectMask:      Color
+					baseMipLevel:    0
+					levelCount:      1
+					baseArrayLayer:  0
+					layerCount:      1
+				}
+		}
+	}
+
+	Buffer {
+		name:    "HostReadBuffer"
+		size:    8 Mb
+		usage:   TransferDst
+		barriers = {
+				BufferMemoryBarrier {
+					srcTask:         ReadImage (#3)
+					dstTask:         <final>
+					srcStageMask:    Transfer
+					dstStageMask:    0
+					dependencyFlags: 0
+					srcAccessMask:   TransferWrite
+					dstAccessMask:   0
+					offset:          0 b
+					size:            1875 Kb
+				}
+		}
+	}
+
+	dependsOn: Graphics-3
+	-----------------------------------------------------------
+	Task {
+		name:    "DispatchCompute (#2)"
+		input =  {  }
+		output = { ReadImage (#3) }
+		resource_usage = {
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Storage-RW, CS
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+	Task {
+		name:    "ReadImage (#3)"
+		input =  { DispatchCompute (#2) }
+		output = {  }
+		resource_usage = {
+			BufferUsage {
+				name:     "HostReadBuffer"
+				usage:    Transfer-W
+				offset:   0 b
+				size:     1875 Kb
+			}
+			ImageUsage {
+				name:           "RenderTarget"
+				usage:          Transfer-R
+				baseMipLevel:   0
+				levelCount:     1
+				baseArrayLayer: 0
+				layerCount:     1
+			}
+		}
+	}
+}
+===============================================================
+
+CommandBuffer {
 	name:      "Graphics-1"
 	Image {
 		name:         "RenderTarget"
@@ -129,6 +498,7 @@ CommandBuffer {
 		}
 	}
 
+	dependsOn: Compute-1
 	-----------------------------------------------------------
 	Task {
 		name:    "RenderPass (#2)"
@@ -138,372 +508,6 @@ CommandBuffer {
 			ImageUsage {
 				name:           "RenderTarget"
 				usage:          Color-RW, InvalidateBefore
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-}
-===============================================================
-
-CommandBuffer {
-	name:      "Compute-1"
-	Image {
-		name:         "RenderTarget"
-		imageType:    1
-		dimension:    ( 800, 600, 1 )
-		format:       RGBA8_UNorm
-		usage:        TransferSrc | Storage | ColorAttachment
-		arrayLayers:  1
-		maxLevel:     1
-		samples:      1
-		barriers = {
-				ImageMemoryBarrier {
-					srcTask:         <initial>
-					dstTask:         DispatchCompute (#2)
-					srcStageMask:    TopOfPipe
-					dstStageMask:    ComputeShader
-					dependencyFlags: 0
-					srcAccessMask:   0
-					dstAccessMask:   ShaderRead | ShaderWrite
-					oldLayout:       ColorAttachmentOptimal
-					newLayout:       General
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         DispatchCompute (#2)
-					dstTask:         ReadImage (#3)
-					srcStageMask:    ComputeShader
-					dstStageMask:    Transfer
-					dependencyFlags: 0
-					srcAccessMask:   ShaderRead | ShaderWrite
-					dstAccessMask:   TransferRead
-					oldLayout:       General
-					newLayout:       TransferSrcOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         ReadImage (#3)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    0
-					dependencyFlags: 0
-					srcAccessMask:   TransferRead
-					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
-					oldLayout:       TransferSrcOptimal
-					newLayout:       ColorAttachmentOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-		}
-	}
-
-	Buffer {
-		name:    "HostReadBuffer"
-		size:    128 Mb
-		usage:   TransferDst
-		barriers = {
-				BufferMemoryBarrier {
-					srcTask:         ReadImage (#3)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    0
-					dependencyFlags: 0
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   0
-					offset:          0 b
-					size:            1875 Kb
-				}
-		}
-	}
-
-	-----------------------------------------------------------
-	Task {
-		name:    "DispatchCompute (#2)"
-		input =  {  }
-		output = { ReadImage (#3) }
-		resource_usage = {
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Storage-RW, CS
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-	Task {
-		name:    "ReadImage (#3)"
-		input =  { DispatchCompute (#2) }
-		output = {  }
-		resource_usage = {
-			BufferUsage {
-				name:     "HostReadBuffer"
-				usage:    Transfer-W
-				offset:   0 b
-				size:     1875 Kb
-			}
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Transfer-R
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-}
-===============================================================
-
-CommandBuffer {
-	name:      "Compute-2"
-	Image {
-		name:         "RenderTarget"
-		imageType:    1
-		dimension:    ( 800, 600, 1 )
-		format:       RGBA8_UNorm
-		usage:        TransferSrc | Storage | ColorAttachment
-		arrayLayers:  1
-		maxLevel:     1
-		samples:      1
-		barriers = {
-				ImageMemoryBarrier {
-					srcTask:         <initial>
-					dstTask:         DispatchCompute (#2)
-					srcStageMask:    TopOfPipe
-					dstStageMask:    ComputeShader
-					dependencyFlags: 0
-					srcAccessMask:   0
-					dstAccessMask:   ShaderRead | ShaderWrite
-					oldLayout:       ColorAttachmentOptimal
-					newLayout:       General
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         DispatchCompute (#2)
-					dstTask:         ReadImage (#3)
-					srcStageMask:    ComputeShader
-					dstStageMask:    Transfer
-					dependencyFlags: 0
-					srcAccessMask:   ShaderRead | ShaderWrite
-					dstAccessMask:   TransferRead
-					oldLayout:       General
-					newLayout:       TransferSrcOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         ReadImage (#3)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    0
-					dependencyFlags: 0
-					srcAccessMask:   TransferRead
-					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
-					oldLayout:       TransferSrcOptimal
-					newLayout:       ColorAttachmentOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-		}
-	}
-
-	Buffer {
-		name:    "HostReadBuffer"
-		size:    128 Mb
-		usage:   TransferDst
-		barriers = {
-				BufferMemoryBarrier {
-					srcTask:         ReadImage (#3)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    0
-					dependencyFlags: 0
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   0
-					offset:          0 b
-					size:            1875 Kb
-				}
-		}
-	}
-
-	-----------------------------------------------------------
-	Task {
-		name:    "DispatchCompute (#2)"
-		input =  {  }
-		output = { ReadImage (#3) }
-		resource_usage = {
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Storage-RW, CS
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-	Task {
-		name:    "ReadImage (#3)"
-		input =  { DispatchCompute (#2) }
-		output = {  }
-		resource_usage = {
-			BufferUsage {
-				name:     "HostReadBuffer"
-				usage:    Transfer-W
-				offset:   0 b
-				size:     1875 Kb
-			}
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Transfer-R
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-}
-===============================================================
-
-CommandBuffer {
-	name:      "Compute-3"
-	Image {
-		name:         "RenderTarget"
-		imageType:    1
-		dimension:    ( 800, 600, 1 )
-		format:       RGBA8_UNorm
-		usage:        TransferSrc | Storage | ColorAttachment
-		arrayLayers:  1
-		maxLevel:     1
-		samples:      1
-		barriers = {
-				ImageMemoryBarrier {
-					srcTask:         <initial>
-					dstTask:         DispatchCompute (#2)
-					srcStageMask:    TopOfPipe
-					dstStageMask:    ComputeShader
-					dependencyFlags: 0
-					srcAccessMask:   0
-					dstAccessMask:   ShaderRead | ShaderWrite
-					oldLayout:       ColorAttachmentOptimal
-					newLayout:       General
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         DispatchCompute (#2)
-					dstTask:         ReadImage (#3)
-					srcStageMask:    ComputeShader
-					dstStageMask:    Transfer
-					dependencyFlags: 0
-					srcAccessMask:   ShaderRead | ShaderWrite
-					dstAccessMask:   TransferRead
-					oldLayout:       General
-					newLayout:       TransferSrcOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-				ImageMemoryBarrier {
-					srcTask:         ReadImage (#3)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    0
-					dependencyFlags: 0
-					srcAccessMask:   TransferRead
-					dstAccessMask:   ShaderRead | ColorAttachmentRead | TransferRead
-					oldLayout:       TransferSrcOptimal
-					newLayout:       ColorAttachmentOptimal
-					aspectMask:      Color
-					baseMipLevel:    0
-					levelCount:      1
-					baseArrayLayer:  0
-					layerCount:      1
-				}
-		}
-	}
-
-	Buffer {
-		name:    "HostReadBuffer"
-		size:    128 Mb
-		usage:   TransferDst
-		barriers = {
-				BufferMemoryBarrier {
-					srcTask:         ReadImage (#3)
-					dstTask:         <final>
-					srcStageMask:    Transfer
-					dstStageMask:    0
-					dependencyFlags: 0
-					srcAccessMask:   TransferWrite
-					dstAccessMask:   0
-					offset:          0 b
-					size:            1875 Kb
-				}
-		}
-	}
-
-	-----------------------------------------------------------
-	Task {
-		name:    "DispatchCompute (#2)"
-		input =  {  }
-		output = { ReadImage (#3) }
-		resource_usage = {
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Storage-RW, CS
-				baseMipLevel:   0
-				levelCount:     1
-				baseArrayLayer: 0
-				layerCount:     1
-			}
-		}
-	}
-	Task {
-		name:    "ReadImage (#3)"
-		input =  { DispatchCompute (#2) }
-		output = {  }
-		resource_usage = {
-			BufferUsage {
-				name:     "HostReadBuffer"
-				usage:    Transfer-W
-				offset:   0 b
-				size:     1875 Kb
-			}
-			ImageUsage {
-				name:           "RenderTarget"
-				usage:          Transfer-R
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

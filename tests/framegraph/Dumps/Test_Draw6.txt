@@ -75,7 +75,7 @@ CommandBuffer {
 					srcTask:         ClearColorImage (#2)
 					dstTask:         RenderPass (#3)
 					srcStageMask:    Transfer
-					dstStageMask:    VertexShader | TessControlShader | TessEvaluationShader | GeometryShader | FragmentShader
+					dstStageMask:    VertexShader | TessControlShader | TessEvaluationShader | GeometryShader | FragmentShader | TaskShader | MeshShader
 					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   ShaderRead
@@ -92,7 +92,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    128 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -140,7 +140,7 @@ CommandBuffer {
 			}
 			ImageUsage {
 				name:           "Texture"
-				usage:          ShaderSample, VS, TCS, TES, GS, FS
+				usage:          ShaderSample, VS, TCS, TES, GS, FS, MTS, MS
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

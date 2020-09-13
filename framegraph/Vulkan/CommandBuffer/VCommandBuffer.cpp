@@ -58,7 +58,6 @@ namespace {
 		CHECK_ERR( _state == EState::Initial );
 
 		_batch			= batch;
-		_dbgName		= desc.name;
 		_dbgFullBarriers= AllBits( desc.debugFlags, EDebugFlags::FullBarrier );
 		_dbgQueueSync	= AllBits( desc.debugFlags, EDebugFlags::QueueSync );
 		_state			= EState::Recording;
@@ -116,7 +115,7 @@ namespace {
 		CHECK_ERR( _BuildCommandBuffers() );
 		
 		if_unlikely( _debugger )
-			_debugger->End( GetName(), _indexInPool, OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
+			_debugger->End( _batch->GetName(), _batch->GetDependencies(), _indexInPool, OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
 
 		CHECK_ERR( _batch->OnBaked( INOUT _rm.resourceMap ));
 		
@@ -166,7 +165,7 @@ namespace {
 	void  VCommandBuffer::SignalSemaphore (VkSemaphore sem)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
+		CHECK_ERRV( _state == EState::Recording or _state == EState::Compiling );
 
 		_batch->SignalSemaphore( sem );
 	}
@@ -179,7 +178,7 @@ namespace {
 	void  VCommandBuffer::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
+		CHECK_ERRV( _state == EState::Recording or _state == EState::Compiling );
 
 		_batch->WaitSemaphore( sem, stage );
 	}
@@ -1475,12 +1474,12 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVertices &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawVertices> >( 
 						*this, task,
@@ -1496,12 +1495,12 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexed &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawIndexed> >(
 						*this, task,
@@ -1518,13 +1517,13 @@ namespace {
 	{
 	#ifdef VK_NV_mesh_shader
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		ASSERT( GetDevice().GetFeatures().meshShaderNV );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawMeshes> >(
 						*this, task,
@@ -1544,13 +1543,13 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVerticesIndirect &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		ASSERT( task.indirectBuffer );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawVerticesIndirect> >(
 						*this, task,
@@ -1566,13 +1565,13 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexedIndirect &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		ASSERT( task.indirectBuffer );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawIndexedIndirect> >(
 						*this, task,
@@ -1588,13 +1587,13 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVerticesIndirectCount &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		ASSERT( GetDevice().GetFeatures().drawIndirectCount );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawVerticesIndirectCount> >(
 						*this, task,
@@ -1610,13 +1609,13 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexedIndirectCount &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		ASSERT( GetDevice().GetFeatures().drawIndirectCount );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawIndexedIndirectCount> >(
 						*this, task,
@@ -1633,13 +1632,13 @@ namespace {
 	{
 	#ifdef VK_NV_mesh_shader
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		ASSERT( GetDevice().GetFeatures().meshShaderNV );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawMeshesIndirect> >(
 						*this, task,
@@ -1660,13 +1659,13 @@ namespace {
 	{
 	#ifdef VK_NV_mesh_shader
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		ASSERT( GetDevice().GetFeatures().meshShaderNV );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawMeshesIndirectCount> >(
 						*this, task,
@@ -1686,11 +1685,11 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const CustomDraw &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.callback );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<CustomDraw> >(
 						*this, task,

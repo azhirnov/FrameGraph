@@ -101,7 +101,7 @@ namespace FG
 		VLocalDebugger ();
 
 		void Begin (EDebugFlags flags);
-		void End (StringView name, uint cmdBufferUID, OUT String *dump, OUT BatchGraph *graph);
+		void End (StringView name, ArrayView<VCmdBatchPtr> deps, uint cmdBufferUID, OUT String *dump, OUT BatchGraph *graph);
 		
 		void AddBufferBarrier (const VBuffer *				buffer,
 							   ExeOrderIndex				srcIndex,
@@ -151,7 +151,7 @@ namespace FG
 
 	// dump to string
 	private:
-		void _DumpFrame (StringView name, OUT String &str) const;
+		void _DumpFrame (StringView name, ArrayView<VCmdBatchPtr> deps, OUT String &str) const;
 
 		void _DumpImages (INOUT String &str) const;
 		void _DumpImageInfo (const VImage *image, const ImageInfo_t &info, INOUT String &str) const;

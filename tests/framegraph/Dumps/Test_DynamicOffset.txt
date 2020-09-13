@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    128 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -21,7 +21,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "SharedBuffer"
-		size:    640 b
+		size:    256 b
 		usage:   TransferSrc | TransferDst | Uniform | Storage
 		barriers = {
 				BufferMemoryBarrier {
@@ -32,7 +32,7 @@ CommandBuffer {
 					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   UniformRead | ShaderWrite
-					offset:          512 b
+					offset:          128 b
 					size:            64 b
 				}
 				BufferMemoryBarrier {
@@ -43,7 +43,7 @@ CommandBuffer {
 					dependencyFlags: 0
 					srcAccessMask:   ShaderWrite
 					dstAccessMask:   TransferRead
-					offset:          576 b
+					offset:          192 b
 					size:            64 b
 				}
 				BufferMemoryBarrier {
@@ -54,7 +54,7 @@ CommandBuffer {
 					dependencyFlags: 0
 					srcAccessMask:   UniformRead | ShaderWrite
 					dstAccessMask:   UniformRead | ShaderRead | TransferRead
-					offset:          512 b
+					offset:          128 b
 					size:            64 b
 				}
 				BufferMemoryBarrier {
@@ -65,7 +65,7 @@ CommandBuffer {
 					dependencyFlags: 0
 					srcAccessMask:   ShaderWrite
 					dstAccessMask:   UniformRead | ShaderRead | TransferRead
-					offset:          576 b
+					offset:          192 b
 					size:            64 b
 				}
 		}
@@ -86,7 +86,7 @@ CommandBuffer {
 			BufferUsage {
 				name:     "SharedBuffer"
 				usage:    Transfer-W
-				offset:   512 b
+				offset:   128 b
 				size:     64 b
 			}
 		}
@@ -99,13 +99,13 @@ CommandBuffer {
 			BufferUsage {
 				name:     "SharedBuffer"
 				usage:    Uniform, CS, Dynamic
-				offset:   512 b
+				offset:   128 b
 				size:     64 b
 			}
 			BufferUsage {
 				name:     "SharedBuffer"
 				usage:    Storage-W, CS, Dynamic
-				offset:   576 b
+				offset:   192 b
 				size:     64 b
 			}
 		}
@@ -124,7 +124,7 @@ CommandBuffer {
 			BufferUsage {
 				name:     "SharedBuffer"
 				usage:    Transfer-R
-				offset:   576 b
+				offset:   192 b
 				size:     64 b
 			}
 		}

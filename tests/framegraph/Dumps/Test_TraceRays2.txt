@@ -51,7 +51,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    256 b
+		size:    640 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -63,14 +63,14 @@ CommandBuffer {
 					srcAccessMask:   0
 					dstAccessMask:   ShaderRead
 					offset:          0 b
-					size:            256 b
+					size:            640 b
 				}
 		}
 	}
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    768 b
+		size:    1280 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -82,7 +82,7 @@ CommandBuffer {
 					srcAccessMask:   0
 					dstAccessMask:   ShaderRead
 					offset:          0 b
-					size:            768 b
+					size:            1280 b
 				}
 		}
 	}
@@ -97,7 +97,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     256 b
+				size:     640 b
 			}
 		}
 	}
@@ -128,7 +128,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     768 b
+				size:     1280 b
 			}
 		}
 	}
@@ -187,7 +187,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    256 b
+		size:    640 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -199,7 +199,7 @@ CommandBuffer {
 					srcAccessMask:   0
 					dstAccessMask:   ShaderRead
 					offset:          0 b
-					size:            256 b
+					size:            640 b
 				}
 		}
 	}
@@ -214,7 +214,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     256 b
+				size:     640 b
 			}
 		}
 	}
@@ -291,7 +291,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    128 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -310,7 +310,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    256 b
+		size:    640 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -322,7 +322,7 @@ CommandBuffer {
 					srcAccessMask:   0
 					dstAccessMask:   ShaderRead
 					offset:          0 b
-					size:            256 b
+					size:            640 b
 				}
 		}
 	}
@@ -337,7 +337,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     256 b
+				size:     640 b
 			}
 		}
 	}

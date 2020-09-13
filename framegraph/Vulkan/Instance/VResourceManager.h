@@ -136,6 +136,8 @@ namespace FG
 			BytesU						writeBufPageSize;
 			BytesU						readBufPageSize;
 			BytesU						uniformBufPageSize;
+			BytesU						maxStagingBufferMemory;
+			Atomic<uint64_t>			currStagingBufferMemory		{0};
 		}							_staging;
 
 		// cached resources validation
@@ -160,7 +162,7 @@ namespace FG
 
 	// methods
 	public:
-		explicit VResourceManager (const VDevice &dev);
+		VResourceManager (const VDevice &dev, BytesU maxStagingBufferMemory, BytesU stagingBufferSize);
 		~VResourceManager ();
 
 		bool  Initialize ();

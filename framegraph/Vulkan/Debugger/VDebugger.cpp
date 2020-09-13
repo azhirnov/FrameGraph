@@ -14,6 +14,8 @@ namespace FG
 */
 	VDebugger::VDebugger ()
 	{
+		EXLOCK( _drCheck );
+
 		_fullDump.reserve( 8 );
 		_graphs.reserve( 8 );
 	}
@@ -23,10 +25,12 @@ namespace FG
 	AddBatchDump
 =================================================
 */
-	void VDebugger::AddBatchDump (String &&value)
+	void VDebugger::AddBatchDump (StringView name, String &&value)
 	{
+		EXLOCK( _drCheck );
+
 		if ( value.size() )
-			_fullDump.push_back( std::move(value) );
+			_fullDump.emplace_back( name, std::move(value) );
 	}
 
 /*
@@ -36,7 +40,11 @@ namespace FG
 */
 	void VDebugger::GetFrameDump (OUT String &str) const
 	{
-		for (auto& item : _fullDump) {
+		EXLOCK( _drCheck );
+
+		std::sort( _fullDump.begin(), _fullDump.end(), [](auto& lhs, auto& rhs) { return lhs.first < rhs.first; });
+
+		for (auto& [name, item] : _fullDump) {
 			str << item;
 		}
 		_fullDump.clear();
@@ -49,6 +57,8 @@ namespace FG
 */
 	void VDebugger::AddBatchGraph (BatchGraph &&value)
 	{
+		EXLOCK( _drCheck );
+
 		if ( value.body.size() )
 			_graphs.push_back( std::move(value) );
 	}
@@ -60,6 +70,8 @@ namespace FG
 */
 	void VDebugger::GetGraphDump (OUT String &str) const
 	{
+		EXLOCK( _drCheck );
+
 		str.clear();
 		str	<< "digraph FrameGraph {\n"
 			<< "	rankdir = LR;\n"

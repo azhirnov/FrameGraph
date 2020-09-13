@@ -57,12 +57,15 @@ namespace FG
 	constructor
 =================================================
 */
-	VResourceManager::VResourceManager (const VDevice &dev) :
+	VResourceManager::VResourceManager (const VDevice &dev, BytesU maxStagingBufferMemory, BytesU stagingBufferSize) :
 		_device{ dev },
 		_memoryMngr{ dev },
 		_descMngr{ dev },
 		_submissionCounter{ 0 }
 	{
+		_staging.maxStagingBufferMemory = maxStagingBufferMemory < 1_Mb ? ~0_b : maxStagingBufferMemory;
+		_staging.writeBufPageSize		= stagingBufferSize < 1_Kb ? 0_b : stagingBufferSize;
+		_staging.readBufPageSize		= _staging.writeBufPageSize;
 	}
 	
 /*
@@ -1481,19 +1484,26 @@ namespace FG
 				transfer_heap_size += props.memoryHeaps[i].size;
 		}
 
+		_staging.maxStagingBufferMemory = Min( transfer_heap_size * 4 / 5, _staging.maxStagingBufferMemory );
+
 		BytesU	un_size = uniform_heap_size  / StagingBufferfPool_t::Capacity();
-		BytesU	tr_size = transfer_heap_size / StagingBufferfPool_t::Capacity();
+		BytesU	tr_size = _staging.maxStagingBufferMemory / StagingBufferfPool_t::Capacity();
 
 		if ( un_size > 128_Mb )		un_size = 32_Mb;	else
 		if ( un_size > 64_Mb )		un_size = 16_Mb;	else
 									un_size = 8_Mb;
-
-		if ( tr_size > 512_Mb )		tr_size = 256_Mb;	else
-		if ( tr_size > 128_Mb )		tr_size = 128_Mb;	else
-									tr_size = 64_Mb;
-
-		_staging.writeBufPageSize   = _staging.readBufPageSize = tr_size;
 		_staging.uniformBufPageSize = un_size;
+
+		if ( tr_size > 256_Mb )		tr_size = 128_Mb;	else
+		if ( tr_size > 128_Mb )		tr_size = 64_Mb;	else
+									tr_size = 32_Mb;
+
+		if ( _staging.writeBufPageSize == 0_b )
+			_staging.writeBufPageSize = _staging.readBufPageSize = tr_size;
+
+		FG_LOGD( "Uniform buffer size:       "s << ToString( _staging.uniformBufPageSize ));
+		FG_LOGD( "Staging buffer size:       "s << ToString( _staging.writeBufPageSize ));
+		FG_LOGD( "Max staging buffer memory: "s << ToString( _staging.maxStagingBufferMemory ) << ", max available: " << ToString( transfer_heap_size ));
 
 		return true;
 	}
@@ -1544,15 +1554,27 @@ namespace FG
 
 		const auto	ctor = [this, name, mem_type, &desc] (BufferID *ptr, uint)
 		{
+			if ( AnyBits( mem_type, EMemoryType::HostRead | EMemoryType::HostWrite ))
+			{
+				BytesU	total_size = BytesU{ _staging.currStagingBufferMemory.fetch_add( uint64_t(desc.size), memory_order_relaxed )} + desc.size;
+				
+				if ( total_size > _staging.maxStagingBufferMemory )
+					FG_LOGE( "Exceeded the maximum memory size for staging buffer" );
+
+				FG_LOGD( "Used host memory for staging buffers: "s << ToString(total_size) );
+			}
+
 			RawBufferID	id = CreateBuffer( desc, MemoryDesc{ mem_type }, EQueueFamilyMask::Unknown, name );
 			CHECK( id );
 			PlacementNew< BufferID >( ptr, id );
 		};
+		
 
 		uint	index;
 		CHECK_ERR( pool->Assign( OUT index, ctor ));
 		
 		outBufferId = (*pool)[ index ];
+		CHECK_ERR( outBufferId );
 
 		outIndex = StagingBufferIdx(index | idx_mask);
 		return true;

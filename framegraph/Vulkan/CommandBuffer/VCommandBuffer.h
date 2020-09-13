@@ -100,7 +100,6 @@ namespace FG
 		}						_rm;
 		
 		PerQueueArray_t			_perQueue;		// TODO: use global command pool manager to minimize memory usage
-		DebugName_t				_dbgName;
 		bool					_dbgFullBarriers	= false;
 		bool					_dbgQueueSync		= false;
 
@@ -188,7 +187,7 @@ namespace FG
 		ND_ VPipelineResources const* CreateDescriptorSet (const PipelineResources &desc);
 
 		
-		ND_ StringView				GetName ()					const	{ EXLOCK( _drCheck );  return _dbgName; }
+		ND_ StringView				GetName ()					const	{ EXLOCK( _drCheck );  return _batch->GetName(); }
 		ND_ VCmdBatch &				GetBatch ()					const	{ EXLOCK( _drCheck );  return *_batch; }
 		ND_ VCmdBatchPtr const&		GetBatchPtr ()				const	{ EXLOCK( _drCheck );  return _batch; }
 		ND_ Allocator_t &			GetAllocator ()						{ EXLOCK( _drCheck );  return _mainAllocator; }

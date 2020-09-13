@@ -59,6 +59,9 @@ namespace FG
 		PhysicalDeviceVk_t	physicalDevice		= null;
 		DeviceVk_t			device				= null;
 		Queues_t			queues;
+
+		BytesU				maxStagingBufferMemory	= ~0_b;	// you can limit max size of host visible memory that may be used by FrameGraph, by default used max available size.
+		BytesU				stagingBufferSize		= 0_b;	// max size of single staging buffer (needed for tests), 0 - auto
 	};
 
 

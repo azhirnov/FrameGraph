@@ -152,6 +152,13 @@ namespace FG
 		ASSERT( GetState() < EState::Backed );
 		CHECK_ERR( _dependencies.size() < _dependencies.capacity(), void());
 
+		// skip duplicates
+		for (auto& dep : _dependencies)
+		{
+			if ( dep == batch )
+				return;
+		}
+
 		_dependencies.push_back( batch );
 	}
 	
@@ -193,6 +200,7 @@ namespace FG
 		
 		_dbgQueueSync	= AllBits( desc.debugFlags, EDebugFlags::QueueSync );
 		_statistic		= Default;
+		_debugName		= desc.name;
 
 		return true;
 	}
@@ -355,7 +363,7 @@ namespace FG
 		_ReleaseResources();
 		_ReleaseVkObjects();
 
-		debugger.AddBatchDump( std::move(_debugDump) );
+		debugger.AddBatchDump( _debugName, std::move(_debugDump) );
 		debugger.AddBatchGraph( std::move(_debugGraph) );
 
 		_debugDump  = {};
