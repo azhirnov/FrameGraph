@@ -521,7 +521,7 @@ namespace FGC
 		Array< VkPresentModeKHR >	present_modes;
 
 		VK_CALL( vkGetPhysicalDeviceSurfacePresentModesKHR( _vkPhysicalDevice, _vkSurface, OUT &count, null ));
-		CHECK_ERR( count > 0, void() );
+		CHECK_ERRV( count > 0  );
 
 		present_modes.resize( count );
 		VK_CALL( vkGetPhysicalDeviceSurfacePresentModesKHR( _vkPhysicalDevice, _vkSurface, OUT &count, OUT present_modes.data() ));

@@ -9,7 +9,7 @@ namespace FG
 {
 	static constexpr uint		max_count		= 1000;
 	static Barrier				sync			{2};
-	static std::shared_mutex	image_guard;
+	static SharedMutex			image_guard;
 	static GPipelineID			pipeline;
 	static ImageID				image;
 	static CommandBuffer		cmdBuffers[2]	= {};

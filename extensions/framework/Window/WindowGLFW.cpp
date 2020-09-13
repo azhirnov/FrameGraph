@@ -330,7 +330,7 @@ namespace {
 */
 	void WindowGLFW::SetTitle (NtStringView value)
 	{
-		CHECK_ERR( _window, void() );
+		CHECK_ERRV( _window );
 
 		glfwSetWindowTitle( _window, value.c_str() );
 	}
@@ -342,7 +342,7 @@ namespace {
 */
 	void WindowGLFW::SetSize (const uint2 &value)
 	{
-		CHECK_ERR( _window, void() );
+		CHECK_ERRV( _window );
 
 		glfwSetWindowSize( _window, int(value.x), int(value.y) );
 	}
@@ -354,7 +354,7 @@ namespace {
 */
 	void WindowGLFW::SetPosition (const int2 &value)
 	{
-		CHECK_ERR( _window, void() );
+		CHECK_ERRV( _window );
 
 		glfwSetWindowPos( _window, value.x, value.y );
 	}

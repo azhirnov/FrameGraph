@@ -80,8 +80,8 @@ namespace FG
 */
 	void  VFrameGraph::Deinitialize ()
 	{
-		CHECK_ERR( _SetState( EState::Idle, EState::Destroyed ), void());
-		CHECK_ERR( WaitIdle(), void());
+		CHECK_ERRV( _SetState( EState::Idle, EState::Destroyed ));
+		CHECK_ERRV( WaitIdle( MaxTimeout ));
 
 		// delete command buffers
 		{
@@ -547,7 +547,7 @@ namespace FG
 */
 	void VFrameGraph::ReleaseResource (INOUT PipelineResources &resources)
 	{
-		CHECK_ERR( _IsInitialized(), void());
+		CHECK_ERRV( _IsInitialized() );
 		return _resourceMngr.ReleaseResource( INOUT resources );
 	}
 	

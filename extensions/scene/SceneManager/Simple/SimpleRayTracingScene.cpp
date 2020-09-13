@@ -59,7 +59,7 @@ namespace {
 */
 	void SimpleRayTracingScene::Destroy (const FrameGraph &fg)
 	{
-		CHECK_ERR( fg, void());
+		CHECK_ERRV( fg );
 
 		fg->ReleaseResource( _rtScene );
 		fg->ReleaseResource( _shaderTable );

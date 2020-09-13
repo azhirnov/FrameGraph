@@ -38,7 +38,7 @@ namespace FG
 	public:
 		using Index_t			= RawImageID::Index_t;
 		using AssignOpGuard_t	= Mutex;
-		using CacheGuard_t		= std::shared_mutex;
+		using CacheGuard_t		= SharedMutex;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
 		using PoolTmpl			= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, AtomicPtr >;
@@ -117,7 +117,7 @@ namespace FG
 		Mutex						_shaderCacheGuard;
 		ShaderModules_t				_shaderCache;
 
-		std::shared_mutex			_compilersGuard;
+		SharedMutex					_compilersGuard;
 		PipelineCompilers_t			_compilers;
 
 		Atomic<uint>				_submissionCounter;
@@ -156,7 +156,7 @@ namespace FG
 		RawDescriptorSetLayoutID	_emptyDSLayout;
 
 		DEBUG_ONLY(
-			HashCollisionCheck<std::shared_mutex>	_hashCollisionCheck;
+			HashCollisionCheck<SharedMutex>	_hashCollisionCheck;
 		)
 
 

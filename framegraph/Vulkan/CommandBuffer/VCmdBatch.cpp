@@ -99,7 +99,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
-		CHECK_ERR( _batch.signalSemaphores.size() < _batch.signalSemaphores.capacity(), void());
+		CHECK_ERRV( _batch.signalSemaphores.size() < _batch.signalSemaphores.capacity() );
 
 		_batch.signalSemaphores.push_back( sem );
 	}
@@ -113,7 +113,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
-		CHECK_ERR( _batch.waitSemaphores.size() < _batch.waitSemaphores.capacity(), void());
+		CHECK_ERRV( _batch.waitSemaphores.size() < _batch.waitSemaphores.capacity() );
 
 		_batch.waitSemaphores.push_back( sem, stage );
 	}
@@ -127,7 +127,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
-		CHECK_ERR( _batch.commands.size() < _batch.commands.capacity(), void());
+		CHECK_ERRV( _batch.commands.size() < _batch.commands.capacity() );
 
 		_batch.commands.insert( 0, cmd, pool );
 	}
@@ -136,7 +136,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
-		CHECK_ERR( _batch.commands.size() < _batch.commands.capacity(), void());
+		CHECK_ERRV( _batch.commands.size() < _batch.commands.capacity() );
 
 		_batch.commands.push_back( cmd, pool );
 	}
@@ -150,7 +150,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Backed );
-		CHECK_ERR( _dependencies.size() < _dependencies.capacity(), void());
+		CHECK_ERRV( _dependencies.size() < _dependencies.capacity() );
 
 		// skip duplicates
 		for (auto& dep : _dependencies)

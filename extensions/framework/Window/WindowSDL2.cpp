@@ -332,7 +332,7 @@ namespace {
 */
 	void WindowSDL2::SetTitle (NtStringView value)
 	{
-		CHECK_ERR( _window, void() );
+		CHECK_ERRV( _window );
 
 		SDL_SetWindowTitle( _window, value.c_str() );
 	}
@@ -344,7 +344,7 @@ namespace {
 */
 	void WindowSDL2::SetSize (const uint2 &value)
 	{
-		CHECK_ERR( _window, void() );
+		CHECK_ERRV( _window );
 
 		SDL_SetWindowSize( _window, int(value.x), int(value.y) );
 	}
@@ -356,7 +356,7 @@ namespace {
 */
 	void WindowSDL2::SetPosition (const int2 &value)
 	{
-		CHECK_ERR( _window, void() );
+		CHECK_ERRV( _window );
 
 		SDL_SetWindowPosition( _window, value.x, value.y );
 	}

@@ -48,7 +48,7 @@ namespace FG
 	void  VSwapchain::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( not _IsImageAcquired(), void());
+		CHECK_ERRV( not _IsImageAcquired() );
 		
 		auto&	dev = resMngr.GetDevice();
 

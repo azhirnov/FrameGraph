@@ -26,7 +26,7 @@ namespace FG
 */
 	void IntermMesh::CalcAABB ()
 	{
-		CHECK_ERR( _attribs and _vertexStride > 0 and _vertices.size(), void());
+		CHECK_ERRV( _attribs and _vertexStride > 0 and _vertices.size() );
 
 		_boundingBox = AABB{};
 

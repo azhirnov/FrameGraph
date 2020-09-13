@@ -2,6 +2,7 @@
 
 #include "stl/Algorithms/StringUtils.h"
 #include <iostream>
+#include <shared_mutex>
 
 using namespace FGC;
 
@@ -48,7 +49,7 @@ namespace {
 
 /*
 =================================================
-	
+	Info / Error
 =================================================
 */
 	Logger::EResult  FGC::Logger::Info (const char *msg, const char *func, const char *file, int line)
@@ -59,6 +60,37 @@ namespace {
 	Logger::EResult  FGC::Logger::Error (const char *msg, const char *func, const char *file, int line)
 	{
 		return Error( StringView{msg}, StringView{func}, StringView{file}, line );
+	}
+	
+/*
+=================================================
+	ExternalLogger
+=================================================
+*/
+namespace {
+	static FGC::SharedMutex			s_LogCallbackGuard;
+	static FGC::Logger::Callback_t	s_LogCallback			= null;
+	static void *					s_LogCallbackUserData	= null;
+
+	static void  ExternalLogger (const StringView &msg, const StringView &file, int line, bool isError)
+	{
+		SHAREDLOCK( s_LogCallbackGuard );
+
+		if ( s_LogCallback )
+			s_LogCallback( s_LogCallbackUserData, msg, file, line, isError );
+	}
+}
+/*
+=================================================
+	SetCallback
+=================================================
+*/
+
+	void  FGC::Logger::SetCallback (Callback_t cb, void* userData)
+	{
+		EXLOCK( s_LogCallbackGuard );
+		s_LogCallback			= cb;
+		s_LogCallbackUserData	= userData;
 	}
 //-----------------------------------------------------------------------------
 
@@ -80,6 +112,7 @@ namespace {
 */
 	Logger::EResult  FGC::Logger::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
+		ExternalLogger( msg, file, line, false );
 		(void)__android_log_print( ANDROID_LOG_INFO, FG_ANDROID_TAG, "%s (%i): %s", ToShortPath( file ).data(), line, msg.data() );
 		return EResult::Continue;
 	}
@@ -91,6 +124,7 @@ namespace {
 */
 	Logger::EResult  FGC::Logger::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
+		ExternalLogger( msg, file, line, true );
 		(void)__android_log_print( ANDROID_LOG_ERROR, FG_ANDROID_TAG, "%s (%i): %s", ToShortPath( file ).data(), line, msg.data() );
 		return EResult::Continue;
 	}
@@ -127,6 +161,7 @@ namespace {
 	{
 		IDEConsoleMessage( msg, file, line, false );
 		ConsoleOutput( msg, file, line, false );
+		ExternalLogger( msg, file, line, false );
 
 		return EResult::Continue;
 	}
@@ -140,6 +175,7 @@ namespace {
 	{
 		IDEConsoleMessage( msg, file, line, true );
 		ConsoleOutput( msg, file, line, true );
+		ExternalLogger( msg, file, line, true );
 
 		const String	caption	= "Error message";
 
@@ -174,6 +210,7 @@ namespace {
 	Logger::EResult  FGC::Logger::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, false );
+		ExternalLogger( msg, file, line, false );
 		return EResult::Continue;
 	}
 
@@ -185,6 +222,7 @@ namespace {
 	Logger::EResult  FGC::Logger::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, true );
+		ExternalLogger( msg, file, line, true );
 		return EResult::Abort;
 	}
 //-----------------------------------------------------------------------------
@@ -194,10 +232,6 @@ namespace {
 // Linux
 #elif defined(PLATFORM_LINUX)
 
-// sudo apt-get install lesstif2-dev
-//#include <Xm/Xm.h>
-//#include <Xm/PushB.h>
-
 /*
 =================================================
 	Info
@@ -206,6 +240,7 @@ namespace {
 	Logger::EResult  FGC::Logger::Info (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
 		ConsoleOutput( msg, file, line, false );
+		ExternalLogger( msg, file, line, false );
 		return EResult::Continue;
 	}
 	
@@ -216,25 +251,9 @@ namespace {
 */
 	Logger::EResult  FGC::Logger::Error (const StringView &msg, const StringView &func, const StringView &file, int line)
 	{
-		/*Widget top_wid, button;
-		XtAppContext  app;
-
-		top_wid = XtVaAppInitialize(&app, "Push", NULL, 0,
-			&argc, argv, NULL, NULL);
-
-		button = XmCreatePushButton(top_wid, "Push_me", NULL, 0);
-
-		/* tell Xt to manage button * /
-					XtManageChild(button);
-
-					/* attach fn to widget * /
-		XtAddCallback(button, XmNactivateCallback, pushed_fn, NULL);
-
-		XtRealizeWidget(top_wid); /* display widget hierarchy * /
-		XtAppMainLoop(app); /* enter processing loop * /
-	*/
 		ConsoleOutput( msg, file, line, true );
-		return EResult::Break;
+		ExternalLogger( msg, file, line, true );
+		return EResult::Continue;
 	}
 //-----------------------------------------------------------------------------
 

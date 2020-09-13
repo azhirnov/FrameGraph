@@ -29,7 +29,7 @@ namespace FG
 		VkImage						_image				= VK_NULL_HANDLE;
 		ImageDesc					_desc;
 
-		mutable std::shared_mutex	_viewMapLock;
+		mutable SharedMutex			_viewMapLock;
 		mutable ImageViewMap_t		_viewMap;
 
 		MemoryID					_memoryId;

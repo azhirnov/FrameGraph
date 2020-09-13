@@ -46,7 +46,7 @@ namespace {
 */
 	void SimpleScene::Destroy (const FrameGraph &fg)
 	{
-		CHECK_ERR( fg, void());
+		CHECK_ERRV( fg );
 
 		_instances.clear();
 		_modelLODs.clear();

@@ -33,7 +33,7 @@ namespace FG
 
 	// variables
 	private:
-		mutable std::shared_mutex	_guard;
+		mutable SharedMutex			_guard;
 
 		BufferID					_bufferId;
 		RTPipelineID				_pipelineId;

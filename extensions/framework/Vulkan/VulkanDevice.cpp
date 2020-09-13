@@ -330,7 +330,7 @@ namespace {
 		FixedArray< VkPhysicalDevice, 16 >	devices;
 		
 		VK_CALL( vkEnumeratePhysicalDevices( vulkan.GetVkInstance(), OUT &count, null ));
-		CHECK_ERR( count > 0, void());
+		CHECK_ERRV( count > 0 );
 
 		devices.resize( count );
 		count = uint(devices.size());
@@ -1890,7 +1890,7 @@ namespace {
 		FixedArray< VkPhysicalDevice, 16 >	devices;
 		
 		VK_CALL( vkEnumeratePhysicalDevices( GetVkInstance(), OUT &count, null ));
-		CHECK_ERR( count > 0, void());
+		CHECK_ERRV( count > 0 );
 
 		devices.resize( count );
 		count = uint(devices.size());

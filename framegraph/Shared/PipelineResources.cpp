@@ -640,12 +640,12 @@ namespace FG
 	void  PipelineResources::Reset (const UniformID &name)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _dataPtr, void());
+		CHECK_ERRV( _dataPtr );
 		
 		auto*	uniforms = _dataPtr->Uniforms();
 		size_t	index	 = BinarySearch( ArrayView<Uniform>{uniforms, _dataPtr->uniformCount}, name );
 		
-		CHECK_ERR( index < _dataPtr->uniformCount, void())
+		CHECK_ERRV( index < _dataPtr->uniformCount )
 		
 		auto&	un  = uniforms[ index ];
 		void*	ptr = _dataPtr.get() + BytesU{un.offset};
@@ -676,7 +676,7 @@ namespace FG
 	void  PipelineResources::ResetAll ()
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _dataPtr, void());
+		CHECK_ERRV( _dataPtr );
 
 		_dataPtr->ForEachUniform( [](auto&, auto& data) { data.elementCount = 0; });
 		_ResetCachedID();

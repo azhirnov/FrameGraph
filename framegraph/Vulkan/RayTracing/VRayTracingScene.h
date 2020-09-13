@@ -34,7 +34,7 @@ namespace FG
 		
 		struct InstancesData
 		{
-			std::shared_mutex	guard;
+			SharedMutex			guard;
 			Array<Instance>		geometryInstances;
 			uint				hitShadersPerInstance	= 0;
 			uint				maxHitShaderCount		= 0;

@@ -19,8 +19,8 @@
 # define VMA_USE_STL_LIST					1
 # define VMA_USE_STL_SHARED_MUTEX			1
 
-# define VMA_IMPLEMENTATION		1
-# define VMA_ASSERT(expr)		{}
+# define VMA_IMPLEMENTATION					1
+# define VMA_ASSERT(expr)					ASSERT( expr )
 
 # undef Allocate
 
@@ -73,8 +73,9 @@ namespace FG
 
 	// variables
 	private:
-		VDevice const&		_device;
-		VmaAllocator		_allocator;
+		mutable SharedMutex		_guard;
+		VDevice const&			_device;
+		VmaAllocator			_allocator;
 
 
 	// methods
@@ -125,6 +126,7 @@ namespace FG
 	VMemoryManager::VulkanMemoryAllocator::VulkanMemoryAllocator (const VDevice &dev, EMemoryTypeExt) :
 		_device{ dev },		_allocator{ null }
 	{
+		EXLOCK( _guard );
 		CHECK( _CreateAllocator( OUT _allocator ));
 	}
 	
@@ -135,6 +137,8 @@ namespace FG
 */
 	VMemoryManager::VulkanMemoryAllocator::~VulkanMemoryAllocator ()
 	{
+		EXLOCK( _guard );
+
 		if ( _allocator ) {
 			vmaDestroyAllocator( _allocator );
 		}
@@ -174,6 +178,8 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::AllocForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data)
 	{
+		EXLOCK( _guard );
+
 		VmaAllocationCreateInfo		info = {};
 		info.flags			= _ConvertToMemoryFlags( desc.type );
 		info.usage			= _ConvertToMemoryUsage( desc.type );
@@ -221,6 +227,8 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::AllocForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data)
 	{
+		EXLOCK( _guard );
+
 		VmaAllocationCreateInfo		info = {};
 		info.flags			= _ConvertToMemoryFlags( desc.type );
 		info.usage			= _ConvertToMemoryUsage( desc.type );
@@ -269,6 +277,8 @@ namespace FG
 #ifdef VK_NV_ray_tracing
 	bool VMemoryManager::VulkanMemoryAllocator::AllocForAccelStruct (VkAccelerationStructureNV accelStruct, const MemoryDesc &desc, OUT Storage_t &data)
 	{
+		EXLOCK( _guard );
+
 		VkAccelerationStructureMemoryRequirementsInfoNV	mem_info = {};
 		mem_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
 		mem_info.type					= VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
@@ -314,6 +324,8 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::Dealloc (INOUT Storage_t &data)
 	{
+		EXLOCK( _guard );
+
 		VmaAllocation&	mem = _CastStorage( data )->allocation;
 
 		vmaFreeMemory( _allocator, mem );
@@ -329,6 +341,8 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const
 	{
+		SHAREDLOCK( _guard );
+
 		VmaAllocation		mem			= _CastStorage( data )->allocation;
 		VmaAllocationInfo	alloc_info	= {};
 		vmaGetAllocationInfo( _allocator, mem, OUT &alloc_info );

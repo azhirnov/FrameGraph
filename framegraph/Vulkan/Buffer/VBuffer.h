@@ -30,7 +30,7 @@ namespace FG
 		MemoryID					_memoryId;
 		BufferDesc					_desc;
 		
-		mutable std::shared_mutex	_viewMapLock;
+		mutable SharedMutex			_viewMapLock;
 		mutable BufferViewMap_t		_viewMap;
 
 		EQueueFamilyMask			_queueFamilyMask	= Default;

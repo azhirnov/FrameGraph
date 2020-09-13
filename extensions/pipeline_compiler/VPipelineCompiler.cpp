@@ -148,7 +148,7 @@ namespace FG
 			fpath = FS::absolute( fpath );
 
 		fpath.make_preferred();
-		CHECK_ERR( FS::exists( fpath ), void());
+		CHECK_ERRV( FS::exists( fpath ));
 
 		file_path = fpath.string();
 #	else

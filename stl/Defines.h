@@ -142,17 +142,35 @@
 
 
 // branch prediction optimization
-#if 0 // TODO: C++20
+#ifdef COMPILER_MSVC
+#  if 0 //_MSC_VER >= 1926	// TODO: enable C++20
 #	define if_likely( ... )		[[likely]] if ( __VA_ARGS__ )
 #	define if_unlikely( ... )	[[unlikely]] if ( __VA_ARGS__ )
+#  endif
+#endif
 
-#elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
+#if defined(COMPILER_CLANG) or defined(COMPILER_GCC)
 #	define if_likely( ... )		if ( __builtin_expect( !!(__VA_ARGS__), 1 ))
 #	define if_unlikely( ... )	if ( __builtin_expect( !!(__VA_ARGS__), 0 ))
-#else
+#endif
+
+#ifndef if_likely
 	// not supported
 #	define if_likely( ... )		if ( __VA_ARGS__ )
 #	define if_unlikely( ... )	if ( __VA_ARGS__ )
+#endif
+
+
+// no unique address
+#if defined(COMPILER_GCC)
+#  if __has_cpp_attribute( no_unique_address )
+#	define NO_UNIQUE_ADDRESS	[[no_unique_address]]
+#  endif
+#endif
+
+#ifndef NO_UNIQUE_ADDRESS
+	// not supported
+#	define NO_UNIQUE_ADDRESS
 #endif
 
 
@@ -214,7 +232,12 @@
 		}}
 
 #	define CHECK_ERR( ... ) \
-		FG_PRIVATE_CHECK_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ) )
+		FG_PRIVATE_CHECK_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ))
+#endif
+
+#ifndef CHECK_ERRV
+#	define CHECK_ERRV( _expr_ ) \
+		FG_PRIVATE_CHECK_ERR( (_expr_), void() )
 #endif
 
 
@@ -235,7 +258,7 @@
 		{ FG_LOGE( _text_ );  return (_ret_); }
 
 #	define RETURN_ERR( ... ) \
-		FG_PRIVATE_RETURN_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ) )
+		FG_PRIVATE_RETURN_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ))
 #endif
 
 
@@ -243,7 +266,7 @@
 #ifndef STATIC_ASSERT
 #	define STATIC_ASSERT( ... ) \
 		static_assert(	FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_0( __VA_ARGS__ ) ), \
-						FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_1( __VA_ARGS__, FG_PRIVATE_TOSTRING(__VA_ARGS__) ) ) )
+						FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_1( __VA_ARGS__, FG_PRIVATE_TOSTRING(__VA_ARGS__) )))
 #endif
 
 

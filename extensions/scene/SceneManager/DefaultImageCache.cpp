@@ -46,7 +46,7 @@ namespace FG
 */
 	void  DefaultImageCache::Destroy (const FrameGraph &fg)
 	{
-		CHECK_ERR( fg, void());
+		CHECK_ERRV( fg );
 
 		ReleaseUnused( fg );
 
@@ -69,7 +69,7 @@ namespace FG
 */
 	void  DefaultImageCache::ReleaseUnused (const FrameGraph &fg)
 	{
-		CHECK_ERR( fg, void());
+		CHECK_ERRV( fg );
 
 		for (auto& id : _readyToDelete) {
 			fg->ReleaseResource( INOUT id );

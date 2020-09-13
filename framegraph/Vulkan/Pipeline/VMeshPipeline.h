@@ -52,7 +52,7 @@ namespace FG
 
 	// variables
 	private:
-		mutable std::shared_mutex	_instanceGuard;
+		mutable SharedMutex			_instanceGuard;
 		mutable Instances_t			_instances;
 
 		PipelineLayoutID			_baseLayoutId;

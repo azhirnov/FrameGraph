@@ -19,6 +19,7 @@
 #include <cmath>
 #include <atomic>
 #include <mutex>
+#include <shared_mutex>
 #include <algorithm>
 
 #include "stl/Log/Log.h"
@@ -34,7 +35,6 @@ namespace FGC
 	using uint = uint32_t;
 
 							using String		= std::string;
-	template <typename T>	using BasicString	= std::basic_string< T >;
 
 	template <typename T>	using Array			= std::vector< T >;
 
@@ -53,7 +53,13 @@ namespace FGC
 	
 	template <typename T>	using Function		= std::function< T >;
 
-	using Mutex	= std::mutex;
+	using Mutex			= std::mutex;
+	using SharedMutex	= std::shared_mutex;
+	
+
+	template <typename T,
+			  typename A = std::allocator<T>>
+	using BasicString	= std::basic_string< T, std::char_traits<T>, A >;
 
 
 	template <typename T,

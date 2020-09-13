@@ -118,7 +118,7 @@ namespace FG
 			auto				iter	= vertexInput.BufferBindings().find( vb.first );
 			VLocalBuffer const*	buffer	= cb.ToLocal( vb.second.buffer );
 			
-			CHECK_ERR( iter != vertexInput.BufferBindings().end(), void());
+			CHECK_ERRV( iter != vertexInput.BufferBindings().end() );
 
 			ASSERT( buffer and AllBits( buffer->Description().usage, EBufferUsage::Vertex ));
 			

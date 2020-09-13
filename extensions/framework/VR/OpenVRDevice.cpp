@@ -718,7 +718,7 @@ namespace
 */
 	void  OpenVRDevice::SetupCamera (const float2 &clipPlanes)
 	{
-		CHECK_ERR( _vrSystem, void());
+		CHECK_ERRV( _vrSystem );
 
 		_camera.clipPlanes	= clipPlanes;
 		_camera.left.proj	= OpenVRMatToMat4( _vrSystem->GetProjectionMatrix( EVREye_Eye_Left, _camera.clipPlanes[0], _camera.clipPlanes[1] ));
