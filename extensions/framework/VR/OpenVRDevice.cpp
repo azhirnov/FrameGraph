@@ -108,7 +108,7 @@ namespace
 */
 	bool  OpenVRDevice::Create ()
 	{
-		if ( _LoadLib() )
+		if ( not _LoadLib() )
 		{
 			FG_LOGI( "failed to load OpenVR library" );
 			return false;
@@ -132,11 +132,11 @@ namespace
 		if ( err != EVRInitError_VRInitError_None )
 			RETURN_ERR( "VR_Init error: "s << _ovr.GetVRInitErrorAsEnglishDescription( err ));
 		
-		FG_LOGI( "driver:  "s << _GetTrackedDeviceString( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_TrackingSystemName_String ) <<
-				 "display: " << _GetTrackedDeviceString( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_TrackingSystemName_String ));
-		
 		_vrSystem = BitCast<IVRSystemTable>( _ovr.GetGenericInterface( ("FnTable:"s << IVRSystem_Version).c_str(), OUT &err ));
 		CHECK_ERR( _vrSystem and err == EVRInitError_VRInitError_None );
+		
+		FG_LOGI( "driver:  "s << _GetTrackedDeviceString( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_TrackingSystemName_String ) <<
+				 "display: " << _GetTrackedDeviceString( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_TrackingSystemName_String ));
 		
 		_vrCompositor = BitCast<IVRCompositorTable>( _ovr.GetGenericInterface( ("FnTable:"s << IVRCompositor_Version).c_str(), OUT &err ));
 		CHECK_ERR( _vrCompositor and err == EVRInitError_VRInitError_None );
@@ -232,10 +232,8 @@ namespace
 			uint64_t	hmd_physical_device = 0;
 			_vrSystem->GetOutputDevice( OUT &hmd_physical_device, ETextureType_TextureType_Vulkan, _vkInstance );
 
-			if ( hmd_physical_device != 0 )
-			{
-				CHECK_ERR( VkPhysicalDevice(hmd_physical_device) == _vkPhysicalDevice );
-			}
+			CHECK_ERR( hmd_physical_device != 0 );
+			CHECK_ERR( VkPhysicalDevice(hmd_physical_device) == _vkPhysicalDevice );
 		}
 
 		return true;
@@ -529,7 +527,7 @@ namespace
 		vk_data.m_nQueueFamilyIndex	= uint(image.queueFamilyIndex);
 		vk_data.m_nWidth			= image.dimension.x;
 		vk_data.m_nHeight			= image.dimension.y;
-		vk_data.m_nFormat			= image.format;
+		vk_data.m_nFormat			= BitCast<uint32_t>(image.format);
 		vk_data.m_nSampleCount		= image.sampleCount;
 
 		DEBUG_ONLY(
@@ -584,7 +582,7 @@ namespace
 			auto&	vel		= hmd_pose.vVelocity;
 			auto&	avel	= hmd_pose.vAngularVelocity;
 
-			_camera.pose			= OpenVRMatToMat3( mat ).Inverse();
+			_camera.pose			= OpenVRMatToMat4( mat ).Inverse();
 			_camera.position		= { mat.m[0][3], mat.m[1][3], mat.m[2][3] };
 			_camera.velocity		= { vel.v[0], vel.v[1], vel.v[2] };
 			_camera.angularVelocity	= { avel.v[0], avel.v[1], avel.v[2] };

@@ -16,39 +16,42 @@ namespace {
 	Rotate*
 =================================================
 */
-	IVRDevice::Mat3_t  RotateX (float angle)
+	IVRDevice::Mat4_t  RotateX (float angle)
 	{
 		float	s = std::sin( angle );
 		float	c = std::cos( angle );
 
-		return IVRDevice::Mat3_t{
-			1.0f,  0.0f,  0.0f,
-			0.0f,   c,     s,
-			0.0f,  -s,     c
+		return IVRDevice::Mat4_t{
+			1.0f,  0.0f,  0.0f, 0.0f,
+			0.0f,   c,     s,   0.0f,
+			0.0f,  -s,     c,   0.0f,
+			0.0f,  0.0f,  0.0f, 1.0f
 		};
 	}
 
-	IVRDevice::Mat3_t  RotateY (float angle)
+	IVRDevice::Mat4_t  RotateY (float angle)
 	{
 		float	s = std::sin( angle );
 		float	c = std::cos( angle );
 
-		return IVRDevice::Mat3_t{
-			 c,    0.0f,  -s,
-			0.0f,  1.0f,  0.0f,
-			 s,    0.0f,   c
+		return IVRDevice::Mat4_t{
+			 c,    0.0f,  -s,   0.0f,
+			0.0f,  1.0f,  0.0f, 0.0f,
+			 s,    0.0f,   c,   0.0f,
+			0.0f,  0.0f,  0.0f, 1.0f
 		};
 	}
 
-	/*IVRDevice::Mat3_t  RotateZ (float angle)
+	/*IVRDevice::Mat4_t  RotateZ (float angle)
 	{
 		float	s = std::sin( angle );
 		float	c = std::cos( angle );
 
 		return IVRDevice::Mat3_t{
-			 c,    0.0f,   s,
-			-s,     c,    0.0f,
-			0.0f,  0.0f,  1.0f
+			 c,    0.0f,   s,   0.0f,
+			-s,     c,    0.0f, 0.0f,
+			0.0f,  0.0f,  1.0f, 0.0f,
+			0.0f,  0.0f,  0.0f, 1.0f
 		};
 	}*/
 }
@@ -98,7 +101,7 @@ namespace {
 	Update
 =================================================
 */
-	void  VRDeviceEmulator::WindowEventListener::Update (OUT Mat3_t &view, INOUT ControllerEmulator &cont)
+	void  VRDeviceEmulator::WindowEventListener::Update (OUT Mat4_t &view, INOUT ControllerEmulator &cont)
 	{
 		_cameraAngle.x = Wrap( _cameraAngle.x, -Pi<float>, Pi<float> );
 		_cameraAngle.y = Wrap( _cameraAngle.y, -Pi<float>, Pi<float> );
@@ -170,7 +173,7 @@ namespace {
 		VulkanDeviceFn_Init( &_deviceFnTable );
 		_output->AddListener( &_wndListener );
 
-		_camera.pose		= Mat3_t::Identity();
+		_camera.pose		= Mat4_t::Identity();
 		_camera.position	= float3(0.0f);
 
 		_camera.left.view	= Mat4_t{
@@ -450,7 +453,9 @@ namespace {
 	{
 		CHECK_ERR( uint(img.queueFamilyIndex) < _queues.capacity() );
 		CHECK_ERR( _swapchain and _vkLogicalDevice );
-		CHECK_ERR( _wndListener.IsActive() );
+		
+		if ( not _wndListener.IsActive() )
+			return false;
 
 		VkBool32	supports_present = false;
 		VK_CALL( vkGetPhysicalDeviceSurfaceSupportKHR( _vkPhysicalDevice, uint(img.queueFamilyIndex), _swapchain->GetVkSurface(), OUT &supports_present ));

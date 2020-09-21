@@ -278,7 +278,7 @@ namespace FG
 	_VRPresent
 =================================================
 */
-	void  BaseSceneApp::_VRPresent (const VulkanDevice::VQueue &queue, RawImageID leftEyeImage, RawImageID righteyeImage)
+	void  BaseSceneApp::_VRPresent (const VulkanDevice::VQueue &queue, RawImageID leftEyeImage, RawImageID righteyeImage, bool flipY)
 	{
 		const auto&			desc_l 		= _frameGraph->GetApiSpecificDescription( leftEyeImage );
 		const auto&			desc_r		= _frameGraph->GetApiSpecificDescription( righteyeImage );
@@ -289,7 +289,7 @@ namespace FG
 		vr_img.currQueue		= BitCast<IVRDevice::QueueVk_t>(queue.handle);
 		vr_img.queueFamilyIndex	= queue.familyIndex;
 		vr_img.dimension		= vk_desc_l.dimension.xy();
-		vr_img.bounds			= RectF{ 0.0f, 0.0f, 1.0f, 1.0f };
+		vr_img.bounds			= flipY ? RectF{ 0.0f, 1.0f, 1.0f, 0.0f } : RectF{ 0.0f, 0.0f, 1.0f, 1.0f };
 		vr_img.format			= BitCast<IVRDevice::FormatVk_t>(vk_desc_l.format);
 		vr_img.sampleCount		= vk_desc_l.samples;
 

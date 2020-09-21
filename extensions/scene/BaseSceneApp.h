@@ -40,8 +40,8 @@ namespace FG
 			EVRMode			vrMode		        = EVRMode::Disabled;
 			Array<String>	shaderDirectories;
 			String			dbgOutputPath;
-            String          deviceName;
-            bool            enableDebugLayers   = true;
+			String          deviceName;
+			bool            enableDebugLayers   = true;
 			bool			vsync				= true;
 		};
 
@@ -107,7 +107,7 @@ namespace FG
 		void  _SetMouseSens (vec2 value);
 		void  _EnableCameraMovement (bool enable);
 
-		void  _VRPresent (const VulkanDevice::VQueue &queue, RawImageID leftEyeImage, RawImageID righteyeImage);
+		void  _VRPresent (const VulkanDevice::VQueue &queue, RawImageID leftEyeImage, RawImageID righteyeImage, bool flipY);
 
 	private:
 		void  _UpdateFrameStat ();

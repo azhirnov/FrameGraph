@@ -90,7 +90,7 @@ namespace FGC
 			};
 			PerEye		left;
 			PerEye		right;
-			Mat3_t		pose;			// hmd rotation
+			Mat4_t		pose;			// hmd rotation + position
 			float3		position;		// hmd position
 			float2		clipPlanes;
 			float3		velocity;

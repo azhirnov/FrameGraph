@@ -55,12 +55,12 @@ namespace FGC
 		// variables
 		private:
 			ControllerEmulator	_controller;
-			float2			_cameraAngle;
-			float2			_lastMousePos;
-			bool			_mousePressed		= false;
-			const float		_mouseSens			= 0.01f;
-			bool			_isActive			= true;
-			bool			_isVisible			= true;
+			float2				_cameraAngle;
+			float2				_lastMousePos;
+			bool				_mousePressed		= false;
+			const float			_mouseSens			= 0.01f;
+			bool				_isActive			= true;
+			bool				_isVisible			= true;
 
 
 		// methods
@@ -71,7 +71,7 @@ namespace FGC
 			void OnUpdate () override {}
 			void OnKey (StringView key, EKeyAction action) override;
 			void OnMouseMove (const float2 &pos) override;
-			void Update (OUT Mat3_t &pose, INOUT ControllerEmulator &cont);
+			void Update (OUT Mat4_t &pose, INOUT ControllerEmulator &cont);
 			ND_ bool  IsActive ()	const	{ return _isActive; }
 			ND_ bool  IsVisible ()	const	{ return _isVisible; }
 		};
