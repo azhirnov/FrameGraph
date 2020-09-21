@@ -20,10 +20,14 @@ namespace FG
 
 		std::memset( &_properties, 0, sizeof(_properties) );
 
-		StaticArray<VkQueueFamilyProperties, 16>	queue_properties;
-		uint										count = uint(queue_properties.size());
-		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, INOUT &count, null );	// to shutup validation warnings
+		FixedArray<VkQueueFamilyProperties, 16>	queue_properties;
+		uint									count = uint(queue_properties.size());
+
+		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, INOUT &count, null );
+		queue_properties.resize( Min( count, queue_properties.capacity() ));
+
 		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, INOUT &count, OUT queue_properties.data() );
+		queue_properties.resize( Min( count, queue_properties.size() ));
 
 		for (auto& src : vdi.queues)
 		{
@@ -371,6 +375,7 @@ namespace FG
 		inst_ext.resize( count );
 
 		VK_CALL( vkEnumerateInstanceExtensionProperties( null, OUT &count, OUT inst_ext.data() ));
+		inst_ext.resize( Min( count, inst_ext.size()));
 
 		for (auto& ext : inst_ext) {
 			_instanceExtensions.insert( ExtensionName_t(ext.extensionName) );
@@ -400,6 +405,7 @@ namespace FG
 		dev_ext.resize( count );
 
 		VK_CHECK( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, OUT dev_ext.data() ));
+		dev_ext.resize( Min( count, dev_ext.size() ));
 
 		for (auto& ext : dev_ext) {
 			_deviceExtensions.insert( ExtensionName_t(ext.extensionName) );

@@ -335,6 +335,7 @@ namespace {
 		devices.resize( count );
 		count = uint(devices.size());
 		VK_CALL( vkEnumeratePhysicalDevices( vulkan.GetVkInstance(), OUT &count, OUT devices.data() ));
+		devices.resize( Min( count, devices.size() ));
 
 		for (auto& dev : devices)
 		{
@@ -1730,8 +1731,9 @@ namespace {
 		
 		QueueFamilyProperties_t  queue_family_props;
 		queue_family_props.resize( Min( count, queue_family_props.capacity() ));
-		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, OUT queue_family_props.data() );
 
+		vkGetPhysicalDeviceQueueFamilyProperties( _vkPhysicalDevice, OUT &count, OUT queue_family_props.data() );
+		queue_family_props.resize( Min( count, queue_family_props.size() ));
 
 		// setup default queue
 		if ( queues.empty() )
@@ -1825,8 +1827,6 @@ namespace {
 */
 	void  VulkanDeviceInitializer::_ValidateInstanceLayers (INOUT Array<const char*> &layers) const
 	{
-		Array<VkLayerProperties> inst_layers;
-
 		// load supported layers
 		uint	count = 0;
 		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, null ));
@@ -1837,9 +1837,11 @@ namespace {
 			return;
 		}
 
+		Array<VkLayerProperties> inst_layers;
 		inst_layers.resize( count );
-		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, OUT inst_layers.data() ));
 
+		VK_CALL( vkEnumerateInstanceLayerProperties( OUT &count, OUT inst_layers.data() ));
+		inst_layers.resize( Min( count, inst_layers.size() ));
 
 		// validate
 		for (auto iter = layers.begin(); iter != layers.end();)
@@ -1891,6 +1893,7 @@ namespace {
 		inst_ext.resize( count );
 
 		VK_CALL( vkEnumerateInstanceExtensionProperties( null, OUT &count, OUT inst_ext.data() ));
+		inst_ext.resize( Min( count, inst_ext.size() ));
 
 		for (auto& ext : inst_ext) {
 			instance_extensions.insert( StringView(ext.extensionName) );
@@ -1932,6 +1935,7 @@ namespace {
 		dev_ext.resize( count );
 
 		VK_CALL( vkEnumerateDeviceExtensionProperties( _vkPhysicalDevice, null, OUT &count, OUT dev_ext.data() ));
+		dev_ext.resize( Min( count, dev_ext.size() ));
 
 
 		// validate
@@ -1974,7 +1978,9 @@ namespace {
 
 		devices.resize( count );
 		count = uint(devices.size());
+
 		VK_CALL( vkEnumeratePhysicalDevices( GetVkInstance(), OUT &count, OUT devices.data() ));
+		devices.resize( Min( count, devices.size() ));
 
 		for (auto& dev : devices)
 		{
@@ -2042,8 +2048,7 @@ namespace {
 		{
 			const auto&		mem_type = mem_props.memoryTypes[i];
 
-			if ( ((memoryTypeBits >> i) & 1) == 1		and
-				 AllBits( mem_type.propertyFlags, flags ))
+			if ( AllBits( memoryTypeBits, 1u << i ) and AllBits( mem_type.propertyFlags, flags ))
 			{
 				memoryTypeIndex = i;
 				return true;
@@ -2065,11 +2070,9 @@ namespace {
 
 		const auto&		mem_type = mem_props.memoryTypes[ memoryTypeIndex ];
 
-		if ( ((memoryTypeBits >> memoryTypeIndex) & 1) == 1	and
-			 AllBits( mem_type.propertyFlags, flags ))
-		{
+		if ( AllBits( memoryTypeBits, 1u << memoryTypeIndex ) and AllBits( mem_type.propertyFlags, flags ))
 			return true;
-		}
+		
 		return false;
 	}
 
