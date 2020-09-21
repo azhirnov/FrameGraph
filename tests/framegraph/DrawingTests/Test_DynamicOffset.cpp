@@ -103,7 +103,7 @@ void main ()
 		resources.BindBuffer( UniformID("SSB"), buffer, sb_offset, dst_size );
 
 		Task	t_write		= cmd->AddTask( UpdateBuffer{}.SetBuffer( buffer ).AddData( src_data, CountOf(src_data), ub_offset ));
-		Task	t_dispatch	= cmd->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch({ 1, 1 }).DependsOn( t_write ));
+		Task	t_dispatch	= cmd->AddTask( DispatchCompute{}.SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ).Dispatch({ 1, 1 }).DependsOn( t_write ));
 		Task	t_read		= cmd->AddTask( ReadBuffer{}.SetBuffer( buffer, sb_offset, dst_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
 		Unused( t_read );
 

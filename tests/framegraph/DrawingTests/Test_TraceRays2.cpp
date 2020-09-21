@@ -156,7 +156,7 @@ void main ()
 			CHECK_ERR( cmd );
 
 			Task	t_build_geom= cmd->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_trace		= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
+			Task	t_trace		= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), resources ).SetShaderTable( rt_shaders )
 																.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_build_geom ));
 			Unused( t_trace );
 			
@@ -170,7 +170,7 @@ void main ()
 			CHECK_ERR( cmd );
 
 			Task	t_build_geom= cmd->AddTask( BuildRayTracingGeometry{}.SetTarget( rt_geometry ).Add( triangles ));
-			Task	t_trace		= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
+			Task	t_trace		= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), resources ).SetShaderTable( rt_shaders )
 																.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_build_geom ));
 			Task	t_read		= cmd->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
 			Unused( t_read );

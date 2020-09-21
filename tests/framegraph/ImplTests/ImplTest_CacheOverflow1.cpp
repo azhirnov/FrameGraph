@@ -72,8 +72,8 @@ void main() {
 			resources1.BindTexture( UniformID("un_Image"), img, sampler );
 			resources2.BindTexture( UniformID("un_Image"), img, sampler );
 
-			cmd->AddTask( rp1, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ).AddResources( DescriptorSetID("0"), &resources1 ));
-			cmd->AddTask( rp2, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ).AddResources( DescriptorSetID("0"), &resources2 ));
+			cmd->AddTask( rp1, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ).AddResources( DescriptorSetID("0"), resources1 ));
+			cmd->AddTask( rp2, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList ).AddResources( DescriptorSetID("0"), resources2 ));
 
 			Task	t_clear	= cmd->AddTask( ClearColorImage{}.SetImage(img).Clear(RGBA32f{1.0f}).AddRange( 0_mipmap, 1, 0_layer, 1 ));
 			Task	t_draw1	= cmd->AddTask( SubmitRenderPass{ rp1 }.DependsOn( t_clear ));

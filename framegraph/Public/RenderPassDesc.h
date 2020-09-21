@@ -158,6 +158,7 @@ namespace FG
 		RenderPassDesc&  SetShadingRateImage (RawImageID image, ImageLayer layer = Default, MipmapLevel level = Default);
 		
 		RenderPassDesc&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		RenderPassDesc&  AddResources (const DescriptorSetID &id, PipelineResources &res)	{ return AddResources( id, &res ); }
 	};
 
 

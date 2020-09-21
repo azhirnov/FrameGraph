@@ -133,10 +133,10 @@ void main() {
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 											.AddViewport( view_size )
-											.AddResources( DescriptorSetID{"PerPass"}, &resources1 ));
+											.AddResources( DescriptorSetID{"PerPass"}, resources1 ));
 		
 		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
-														 .AddResources( DescriptorSetID{"PerObject"}, &resources0 ));
+														 .AddResources( DescriptorSetID{"PerObject"}, resources0 ));
 
 		Task	t_clear	= cmd->AddTask( ClearColorImage{}.SetImage( texture ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{HtmlColor::White}) );
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass }.DependsOn( t_clear ));

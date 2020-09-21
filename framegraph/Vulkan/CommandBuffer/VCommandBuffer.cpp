@@ -1803,7 +1803,7 @@ namespace {
 
 			DispatchCompute		comp;
 			comp.SetPipeline( ppln );
-			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.AddResources( DescriptorSetID{"0"}, res );
 			comp.SetLocalSize({ 32, 1, 1 });
 			comp.Dispatch({ (ssb_dim.y + 31) / 32, 1, 1 });
 			comp.depends = dependsOn;
@@ -1821,7 +1821,7 @@ namespace {
 
 			DispatchCompute		comp;
 			comp.SetPipeline( ppln );
-			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.AddResources( DescriptorSetID{"0"}, res );
 			comp.SetLocalSize({ 1, 1, 1 });
 			comp.Dispatch({ 1, 1, 1 });
 			comp.DependsOn( task );
@@ -1839,7 +1839,7 @@ namespace {
 
 			DispatchCompute		comp;
 			comp.SetPipeline( ppln );
-			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.AddResources( DescriptorSetID{"0"}, res );
 			comp.SetLocalSize({ 8, 8, 1 });
 			comp.Dispatch( (desc.dimension.xy() + 7) / 8 );
 			comp.DependsOn( task );

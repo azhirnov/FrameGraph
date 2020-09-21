@@ -77,7 +77,7 @@ void main ()
 		
 		resources.BindImage( UniformID("un_OutImage"), image );
 
-		Task	t_run	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("2"), &resources ).Dispatch({ 2, 2 }) );
+		Task	t_run	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("2"), resources ).Dispatch({ 2, 2 }) );
 		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_run ));
 		Unused( t_read );
 		

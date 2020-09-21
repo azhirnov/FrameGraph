@@ -94,7 +94,7 @@ namespace FG
 			sync.wait();
 			cmd->AddDependency( cmdBuffers[0] );
 			
-			Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources )
+			Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), resources )
 														.SetLocalSize( local_size ).Dispatch( IntCeil( view_size, local_size )));
 			Unused( t_comp );
 

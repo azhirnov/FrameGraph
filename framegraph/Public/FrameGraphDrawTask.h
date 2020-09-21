@@ -132,6 +132,7 @@ namespace _fg_hidden_
 		BaseDrawCall (StringView name, RGBA8u color) : BaseDrawTask<TaskType>{ name, color } {}
 		
 		TaskType&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		TaskType&  AddResources (const DescriptorSetID &id, PipelineResources &res)			{ return AddResources( id, &res ); }
 
 		TaskType&  AddScissor (const RectI &rect);
 		TaskType&  AddScissor (const RectU &rect);
@@ -203,7 +204,8 @@ namespace _fg_hidden_
 		TaskType&  SetVertexInput (const VertexInputState &value)	{ vertexInput = value;  return static_cast<TaskType &>( *this ); }
 		TaskType&  SetPrimitiveRestartEnabled (bool value)			{ primitiveRestart = value;  return static_cast<TaskType &>( *this ); }
 
-		TaskType&  AddBuffer (const VertexBufferID &id, RawBufferID vb, BytesU offset = 0_b);
+		TaskType&  AddBuffer (const VertexBufferID &id, RawBufferID vb, BytesU offset = 0_b);	// deprecated
+		TaskType&  AddVertexBuffer (const VertexBufferID &id, RawBufferID vb, BytesU offset = 0_b)	{ return AddBuffer( id, vb, offset ); }
 	};
 
 }	// _fg_hidden_

@@ -140,7 +140,7 @@ namespace {
 				draw_task.vertexInput	= _vertexAttribs[mesh.attribsIndex]->GetVertexInput();
 				draw_task.vertexInput.Bind( Default, _vertexStride, 0 );
 
-				draw_task.AddBuffer( Default, _vertexBuffer )
+				draw_task.AddVertexBuffer( Default, _vertexBuffer )
 						 .SetIndexBuffer( _indexBuffer, 0_b, _indexType )
 						 .SetTopology( mesh.topology ).SetCullMode( mesh.cullMode )
 						 .Draw( mesh.indexCount, 1, mesh.firstIndex, mesh.vertexOffset )

@@ -22,8 +22,8 @@ namespace FG
 	public:
 		constexpr MipmapLevel () : _value{0} {}
 
-		explicit constexpr MipmapLevel (uint value) : _value{ CheckCast<uint16_t>( value )} {}
-		explicit constexpr MipmapLevel (uint64_t value) : _value{ CheckCast<uint16_t>( value )} {}
+		explicit constexpr MipmapLevel (uint value) : _value{ value == UMax ? uint16_t(UMax) : CheckCast<uint16_t>( value )} {}
+		explicit constexpr MipmapLevel (uint64_t value) : _value{ value == UMax ? uint16_t(UMax) : CheckCast<uint16_t>( value )} {}
 
 		ND_ constexpr uint	Get ()								 const		{ return _value; }
 		

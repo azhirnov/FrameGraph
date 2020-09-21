@@ -97,7 +97,7 @@ no source
 		
 		resources.BindImage( UniformID("un_OutImage"), image );
 
-		Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources )
+		Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources )
 																.Dispatch({ 2, 2 }).EnableDebugTrace(uint3{ debug_coord, 0 })
 																.SetName("DebuggableCompute") );
 

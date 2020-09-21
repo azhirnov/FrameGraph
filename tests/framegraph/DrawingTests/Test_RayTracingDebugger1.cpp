@@ -186,7 +186,7 @@ no source
 															.AddHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
 															.DependsOn( t_build_scene ));
 
-		Task	t_trace			= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources )
+		Task	t_trace			= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), resources )
 															.SetShaderTable( rt_shaders )
 															.SetGroupCount( view_size.x, view_size.y )
 															.SetName( "DebuggableRayTracing" )

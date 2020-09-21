@@ -208,8 +208,8 @@ void main() {
 
 				cmd->AddTask( depth_pass,
 					DrawVertices{}.SetName( "Draw_Depth" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
-						.SetPipeline( pipeline2 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetVertexInput( vertex_input ).AddVertexBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
+						.SetPipeline( pipeline2 ).AddResources( DescriptorSetID("0"), resources ).SetTopology(EPrimitive::TriangleList) );
 		
 				Task	t_update_buf0 = cmd->AddTask( UpdateBuffer{ const_buf2, 0_b, CreateData( 256_b ) }.SetName( "update_buf0" ));
 
@@ -224,24 +224,24 @@ void main() {
 
 				cmd->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw1_Opaque" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
-						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetVertexInput( vertex_input ).AddVertexBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, 0_b, cbuf_size );
 
 				cmd->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw2_Opaque" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*1000 )
-						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetVertexInput( vertex_input ).AddVertexBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*1000 )
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf1 );
 
 				cmd->AddTask( opaque_pass,
 					DrawVertices{}.SetName( "Draw0_Opaque" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*2000 )
-						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetVertexInput( vertex_input ).AddVertexBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*2000 )
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				Task	t_update_buf1 = cmd->AddTask( UpdateBuffer{ const_buf1,   0_b, CreateData( 256_b ) }.SetName( "update_buf1" ));
 				Task	t_update_buf2 = cmd->AddTask( UpdateBuffer{ const_buf2, 256_b, CreateData( 256_b ) }.SetName( "update_buf2" ));
@@ -257,24 +257,24 @@ void main() {
 
 				cmd->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw1_Transparent" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*1000 )
-						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetVertexInput( vertex_input ).AddVertexBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*1000 )
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, 0_b, cbuf_size );
 
 				cmd->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw2_Transparent" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
-						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetVertexInput( vertex_input ).AddVertexBuffer( VertexBufferID(), vbuffer1, 0_b ).Draw( 3*1000 )
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), resources ).SetTopology(EPrimitive::TriangleList) );
 		
 				resources.BindTexture( UniformID("un_ColorTexture"), texture1, sampler1 )
 						 .BindBuffer( UniformID("un_ConstBuf"), const_buf2, cbuf_offset, cbuf_size );
 
 				cmd->AddTask( transparent_pass,
 					DrawVertices{}.SetName( "Draw0_Transparent" )
-						.SetVertexInput( vertex_input ).AddBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*2000 )
-						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), &resources ).SetTopology(EPrimitive::TriangleList) );
+						.SetVertexInput( vertex_input ).AddVertexBuffer( VertexBufferID(), vbuffer2, 0_b ).Draw( 3*2000 )
+						.SetPipeline( pipeline1 ).AddResources( DescriptorSetID("0"), resources ).SetTopology(EPrimitive::TriangleList) );
 				
 				Task	update_buf3 = cmd->AddTask( UpdateBuffer{ const_buf3, 0_b, CreateData( 256_b ) }.SetName( "update_buf3" ));
 

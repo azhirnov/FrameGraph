@@ -109,7 +109,7 @@ void main ()
 		}
 
 		Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).Dispatch({ image_dim.x / 8, image_dim.y })
-																.AddResources( DescriptorSetID{"0"}, &resources ).DependsOn( t_update ));
+																.AddResources( DescriptorSetID{"0"}, resources ).DependsOn( t_update ));
 		
 		Task	t_read	= cmd->AddTask( ReadImage().SetImage( dst_image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 		Unused( t_read );

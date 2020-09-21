@@ -147,7 +147,7 @@ void main() {
 
 		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline )
 												.SetTopology( EPrimitive::TriangleList )
-												.AddResources( DescriptorSetID("0"), &resources ));
+												.AddResources( DescriptorSetID("0"), resources ));
 
 		Task	t_clear	= cmd->AddTask( ClearDepthStencilImage{}.SetImage( depth_image ).Clear( 1.0f ).AddRange( 0_mipmap, 1, 0_layer, 1 ));
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass }.DependsOn( t_clear ));

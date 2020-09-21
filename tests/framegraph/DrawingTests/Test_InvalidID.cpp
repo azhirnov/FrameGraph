@@ -61,7 +61,7 @@ void main ()
 		CHECK_ERR( cmd1 );
 		{
 			resources.BindImage( UniformID("un_OutImage"), image0 );
-			Task	t_run	= cmd1->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ));
+			Task	t_run	= cmd1->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ));
 			Task	t_copy	= cmd1->AddTask( CopyImage().From( image0 ).To( image4 ).AddRegion({}, int2(), {}, int2(), image_dim) );
 			Unused( t_run );
 		
@@ -75,7 +75,7 @@ void main ()
 		CommandBuffer	cmd2 = _frameGraph->Begin( CommandBufferDesc{} );
 		CHECK_ERR( cmd2 );
 		{
-			Task	t_run	= cmd2->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ));
+			Task	t_run	= cmd2->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ));
 			Task	t_copy	= cmd2->AddTask( CopyImage().From( image2 ).To( image1 ).AddRegion({}, int2(), {}, int2(), image_dim) );
 			Unused( t_run, t_copy );
 

@@ -276,7 +276,7 @@ namespace FG
 		RenderPassDesc	rp{ desc.dimension.xy() };
 		rp.AddTarget( RenderTargetID::Depth, shadow_map );
 		rp.AddViewport( desc.dimension.xy() );
-		rp.AddResources( DescriptorSetID{"PerPass"}, &_perPassResources );
+		rp.AddResources( DescriptorSetID{"PerPass"}, _perPassResources );
 
 		auto&	res = _shaderOutputResources[uint(ERenderLayer::Shadow)];
 		if ( res.IsInitialized() ) {
@@ -310,7 +310,7 @@ namespace FG
 			rp.AddViewport( dimension );
 			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( true );
 			rp.SetDepthCompareOp( ECompareOp::LEqual );	// for reverse depth buffer
-			rp.AddResources( DescriptorSetID{"PerPass"}, &_perPassResources );
+			rp.AddResources( DescriptorSetID{"PerPass"}, _perPassResources );
 			
 			auto&	res = _shaderOutputResources[uint(ERenderLayer::Opaque_1)];
 			if ( res.IsInitialized() ) {
@@ -330,7 +330,7 @@ namespace FG
 			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( false );
 			rp.SetDepthCompareOp( ECompareOp::GEqual );	// for reverse depth buffer
 			rp.AddColorBuffer( RenderTargetID("out_Color"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add );
-			rp.AddResources( DescriptorSetID{"PerPass"}, &_perPassResources );
+			rp.AddResources( DescriptorSetID{"PerPass"}, _perPassResources );
 			
 			auto&	res = _shaderOutputResources[uint(ERenderLayer::Opaque_1)];
 			if ( res.IsInitialized() ) {

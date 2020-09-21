@@ -156,7 +156,7 @@ void main ()
 			resources.BindImage( UniformID("un_Output"), dst_image );
 			resources.BindRayTracingScene( UniformID("un_RtScene"), rt_scene );
 
-			Task	t_trace	= cmd2->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources )
+			Task	t_trace	= cmd2->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), resources )
 															.SetShaderTable( rt_shaders ).SetGroupCount( view_size.x, view_size.y ));
 
 			Task	t_read	= cmd2->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));

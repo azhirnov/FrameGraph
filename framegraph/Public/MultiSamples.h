@@ -23,6 +23,7 @@ namespace FG
 		constexpr MultiSamples () : _value{0} {}
 
 		explicit MultiSamples (uint samples) : _value{ CheckCast<uint8_t>( IntLog2( samples ))} {}
+		explicit MultiSamples (uint64_t samples) : _value{ CheckCast<uint8_t>( IntLog2( samples ))} {}
 
 		ND_ constexpr uint		Get ()							const		{ return 1u << _value; }
 		ND_ constexpr uint8_t	GetPowerOf2 ()					const		{ return _value; }
@@ -38,7 +39,7 @@ namespace FG
 	};
 	
 
-	ND_ inline MultiSamples operator "" _samples (unsigned long long value)	{ return MultiSamples{ uint(value) }; }
+	ND_ inline MultiSamples operator "" _samples (unsigned long long value)	{ return MultiSamples{ uint64_t(value) }; }
 
 
 }	// FG

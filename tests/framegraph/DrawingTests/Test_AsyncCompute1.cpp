@@ -154,7 +154,7 @@ void main ()
 			// compute queue
 			{
 				resources.BindImage( UniformID("un_Image"), image );
-				Task	t_comp	= cmd2->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
+				Task	t_comp	= cmd2->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), resources ).Dispatch( view_size ));
 				Task	t_read	= cmd2->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 				Unused( t_read );
 
@@ -187,7 +187,7 @@ void main ()
 			// compute queue
 			{
 				resources.BindImage( UniformID("un_Image"), image );
-				Task	t_comp	= cmd4->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch( view_size ));
+				Task	t_comp	= cmd4->AddTask( DispatchCompute().SetPipeline( cpipeline ).AddResources( DescriptorSetID("0"), resources ).Dispatch( view_size ));
 				Task	t_read	= cmd4->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_comp ));
 				Unused( t_read );
 

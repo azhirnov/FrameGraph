@@ -119,8 +119,8 @@ namespace FG
 					scissor.bottom	= int(cmd.ClipRect.w + 0.5f);
 
 					rq.Draw( layer, DrawIndexed{}
-									.SetPipeline( _pipeline ).AddResources( DescriptorSetID{"0"}, &_resources )
-									.AddBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input ).SetTopology( EPrimitive::TriangleList )
+									.SetPipeline( _pipeline ).AddResources( DescriptorSetID{"0"}, _resources )
+									.AddVertexBuffer( VertexBufferID(), _vertexBuffer ).SetVertexInput( vert_input ).SetTopology( EPrimitive::TriangleList )
 									.SetIndexBuffer( _indexBuffer, 0_b, EIndex::UShort )
 									.AddColorBuffer( RenderTargetID::Color_0, EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
 									.SetDepthTestEnabled( false ).SetCullMode( ECullMode::None )

@@ -147,7 +147,7 @@ void main ()
 															.AddHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
 															.DependsOn( t_build_scene ));
 
-		Task	t_trace			= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
+		Task	t_trace			= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), resources ).SetShaderTable( rt_shaders )
 															.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_update_table ));
 
 		Task	t_read			= cmd->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));

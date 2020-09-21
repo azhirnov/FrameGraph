@@ -174,6 +174,7 @@ namespace FG
 		DispatchCompute&  EnableShaderProfiling ()							{ return EnableShaderProfiling( uint3{~0u} ); }
 
 		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		DispatchCompute&  AddResources (const DescriptorSetID &id, PipelineResources &res)	{ return AddResources( id, &res ); }
 
 		template <typename ValueType>
 		DispatchCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value);
@@ -233,6 +234,7 @@ namespace FG
 		DispatchComputeIndirect&  SetIndirectBuffer (RawBufferID buffer)			{ ASSERT( buffer );  indirectBuffer = buffer;  return *this; }
 		
 		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, PipelineResources &res)	{ return AddResources( id, &res ); }
 
 		template <typename ValueType>
 		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const ValueType &value);
@@ -473,10 +475,10 @@ namespace FG
 	{
 	// variables
 		RawImageID		image;
-		MipmapLevel		baseMipLevel;
-		uint			levelCount	= UMax;
-		ImageLayer		baseLayer;
-		uint			layerCount	= UMax;
+		MipmapLevel		baseMipLevel	= 0_mipmap;		// 0 - src level, mipmap generation will start from baseMipLevel + 1
+		uint			levelCount		= UMax;
+		ImageLayer		baseLayer		= 0_layer;		// specify array layers that will be used
+		uint			layerCount		= UMax;
 
 	// methods
 		GenerateMipmaps () :
@@ -731,7 +733,7 @@ namespace FG
 	// variables
 		RawBufferID		srcBuffer;
 		BytesU			offset;
-		BytesU			size;
+		BytesU			size;		// must be valid size
 		Callback_t		callback;	// may be called from any thread
 
 	// methods
@@ -1202,6 +1204,7 @@ namespace FG
 		TraceRays&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
 		
 		TraceRays&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		TraceRays&  AddResources (const DescriptorSetID &id, PipelineResources &res)	{ return AddResources( id, &res ); }
 		TraceRays&  SetShaderTable (RawRTShaderTableID id);
 
 		template <typename ValueType>

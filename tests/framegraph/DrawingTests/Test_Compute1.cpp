@@ -100,13 +100,13 @@ void main ()
 		CHECK_ERR( cmd );
 		
 		resources.BindImage( UniformID("un_OutImage"), image0 );
-		Task	t_run0	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch({ 2, 2 }) );
+		Task	t_run0	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ).Dispatch({ 2, 2 }) );
 
 		resources.BindImage( UniformID("un_OutImage"), image1 );
-		Task	t_run1	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).Dispatch({ 4, 4 }) );
+		Task	t_run1	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ).SetLocalSize( 4, 4 ).Dispatch({ 4, 4 }) );
 		
 		resources.BindImage( UniformID("un_OutImage"), image2 );
-		Task	t_run2	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 8, 8 ).Dispatch({ 2, 2 }) );
+		Task	t_run2	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ).SetLocalSize( 8, 8 ).Dispatch({ 2, 2 }) );
 		
 		Task	t_read0	= cmd->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ));
 		Task	t_read1	= cmd->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ));
