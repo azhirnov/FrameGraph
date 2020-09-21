@@ -390,6 +390,7 @@ namespace FG
 		switch ( value )
 		{
 			case EAttachmentStoreOp::Invalidate :	return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			case EAttachmentStoreOp::Keep :			return VK_ATTACHMENT_STORE_OP_STORE;	// TODO: VK_ATTACHMENT_STORE_OP_NONE_QCOM 
 			case EAttachmentStoreOp::Store :		return VK_ATTACHMENT_STORE_OP_STORE;
 			case EAttachmentStoreOp::Unknown :		break;
 		}

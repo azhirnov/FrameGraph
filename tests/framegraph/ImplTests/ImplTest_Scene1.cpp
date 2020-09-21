@@ -193,7 +193,7 @@ void main() {
 	
 		LogicalPassID	transparent_pass = cmd->CreateRenderPass( RenderPassDesc{ view_size }
 											.AddTarget( RenderTargetID::Color_0, color_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Store )
-											.AddTarget( RenderTargetID::Depth, depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Invalidate )
+											.AddTarget( RenderTargetID::Depth, depth_target, EAttachmentLoadOp::Load, EAttachmentStoreOp::Keep )
 											.AddColorBuffer( RenderTargetID::Color_0, EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add )
 											.SetDepthTestEnabled(true).SetDepthWriteEnabled(false) );
 

@@ -193,6 +193,7 @@ namespace FG
 	{
 		Invalidate,
 		Store,
+		Keep,		// for read-only attachments
 		Unknown		= ~0u,
 	};
 
