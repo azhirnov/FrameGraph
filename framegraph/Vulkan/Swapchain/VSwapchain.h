@@ -72,6 +72,8 @@ namespace FG
 		bool  _CreateFence (const VDevice &dev);
 		bool  _ChoosePresentQueue (const VFrameGraph &);
 		
+		void  _PrintSwapchainParams (StringView dbgName);
+
 		ND_ bool  _IsImageAcquired () const;
 	};
 

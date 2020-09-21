@@ -3,7 +3,7 @@
 #pragma once
 
 #ifndef FG_ENABLE_GLSLANG
-#	error can't compile glsl without glslang library!
+#	error can`t compile glsl without glslang library!
 #endif
 
 #include "EShaderCompilationFlags.h"

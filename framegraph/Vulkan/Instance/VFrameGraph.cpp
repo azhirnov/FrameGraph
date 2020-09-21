@@ -55,6 +55,19 @@ namespace FG
 			_AddAsyncComputeQueue();
 			_AddAsyncTransferQueue();
 			CHECK_ERR( not _queueMap.empty() );
+
+			auto&	gq = _queueMap[uint(EQueueType::Graphics)].ptr;
+			auto&	cq = _queueMap[uint(EQueueType::AsyncCompute)].ptr;
+			auto&	tq = _queueMap[uint(EQueueType::AsyncTransfer)].ptr;
+
+			if ( gq and gq->debugName.empty() )
+				const_cast<VDeviceQueueInfo*>(gq.get())->debugName = "Graphics";
+			
+			if ( cq and cq->debugName.empty() )
+				const_cast<VDeviceQueueInfo*>(cq.get())->debugName = "AsyncCompute";
+			
+			if ( tq and tq->debugName.empty() )
+				const_cast<VDeviceQueueInfo*>(tq.get())->debugName = "AsyncTransfer";
 		}
 		
 		// create query pool

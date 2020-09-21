@@ -44,6 +44,7 @@ namespace FG
 	void  VCmdBatch::Initialize (EQueueType type, ArrayView<CommandBuffer> dependsOn)
 	{
 		EXLOCK( _drCheck );
+		ASSERT( GetState() == EState::Initial );
 
 		ASSERT( _dependencies.empty() );
 		ASSERT( _batch.commands.empty() );
@@ -88,6 +89,8 @@ namespace FG
 		ASSERT( _counter.load( memory_order_relaxed ) == 0 );
 
 		_frameGraph.RecycleBatch( this );
+
+		_state.store( EState::Initial, memory_order_relaxed );
 	}
 	
 /*
@@ -149,7 +152,7 @@ namespace FG
 	void  VCmdBatch::AddDependency (VCmdBatch *batch)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( GetState() < EState::Backed );
+		ASSERT( GetState() == EState::Recording );
 		CHECK_ERRV( _dependencies.size() < _dependencies.capacity() );
 
 		// skip duplicates
@@ -170,7 +173,7 @@ namespace FG
 	void  VCmdBatch::DestroyPostponed (VkObjectType type, uint64_t handle)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( GetState() < EState::Backed );
+		ASSERT( GetState() == EState::Recording );
 
 		_readyToDelete.push_back({ type, handle });
 	}
@@ -183,8 +186,10 @@ namespace FG
 	void  VCmdBatch::_SetState (EState newState)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( uint(newState) > uint(GetState()) );
-
+		DEBUG_ONLY(
+			const EState	curr_state = GetState();
+			ASSERT( uint(newState) > uint(curr_state) or curr_state == EState::Initial );
+		)
 		_state.store( newState, memory_order_relaxed );
 	}
 	
@@ -816,7 +821,7 @@ namespace FG
 		for (auto& buf : staging_buffers)
 		{
 			const BytesU	off	= AlignToLarger( buf.size, offsetAlign );
-			const BytesU	av	= AlignToSmaller( buf.capacity - off, blockAlign );
+			const BytesU	av	= off < buf.capacity ? AlignToSmaller( buf.capacity - off, blockAlign ) : 0_b;
 
 			if ( av >= srcRequiredSize )
 			{

@@ -4,6 +4,9 @@
 #include "VDevice.h"
 #include "VCommandBuffer.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "FGEnumCast.h"
+#include "VEnumToString.h"
+#include "Shared/EnumToString.h"
 
 namespace FG
 {
@@ -231,6 +234,7 @@ namespace FG
 		CHECK_ERR( _CreateFence( dev ));
 		CHECK_ERR( _ChoosePresentQueue( fg ));
 
+		_PrintSwapchainParams( dbgName );
 		return true;
 	}
 	
@@ -795,6 +799,27 @@ namespace FG
 		}
 
 		RETURN_ERR( "can't find suitable format" );
+	}
+	
+/*
+=================================================
+	_PrintSwapchainParams
+=================================================
+*/
+	void  VSwapchain::_PrintSwapchainParams (StringView dbgName)
+	{
+		String	str = "Created swapchain:";
+		str << "\n  name:            " << dbgName;
+		str << "\n  color format:    " << ToString( FGEnumCast( _colorFormat ));
+		str << "\n  color space:     " << VkColorSpaceKHR_ToString( _colorSpace );
+		str << "\n  image count:     " << ToString( _imageIDs.size() );
+		str << "\n  present mode:    " << VkPresentModeKHR_ToString( _presentMode );
+		str << "\n  pre transform:   " << VkSurfaceTransformFlagBitsKHR_ToString( _preTransform );
+		str << "\n  composite alpha: " << VkCompositeAlphaFlagBitsKHR_ToString( _compositeAlpha );
+		str << "\n  image usage:     " << VkImageUsageFlags_ToString( _colorImageUsage );
+		str << "\n  queue family:    " << ToString( _presentQueue->familyIndex );
+		str << "\n  queue name:      " << _presentQueue->debugName.c_str();
+		FG_LOGI( str );
 	}
 
 }	// FG

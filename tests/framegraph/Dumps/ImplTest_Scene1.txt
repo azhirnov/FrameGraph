@@ -140,7 +140,7 @@ CommandBuffer {
 					dependencyFlags: 0
 					srcAccessMask:   DepthStencilAttachmentRead
 					dstAccessMask:   DepthStencilAttachmentRead
-					oldLayout:       Undefined
+					oldLayout:       DepthStencilReadOnlyOptimal
 					newLayout:       DepthStencilAttachmentOptimal
 					aspectMask:      Depth
 					baseMipLevel:    0
@@ -524,7 +524,7 @@ CommandBuffer {
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencil-R, InvalidateAfter, EarlyTests
+				usage:          DepthStencil-R, EarlyTests
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

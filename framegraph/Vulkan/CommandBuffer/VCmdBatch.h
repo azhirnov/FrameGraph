@@ -250,12 +250,12 @@ namespace FG
 	public:
 		enum class EState : uint
 		{
-			Initial,
 			Recording,		// build command buffers
 			Backed,			// command buffers builded, all data locked
 			Ready,			// all dependencies in 'Ready', 'Submitted' or 'Complete' states
 			Submitted,		// commands was submitted to the GPU
 			Complete,		// commands complete execution on the GPU
+			Initial,
 		};
 
 

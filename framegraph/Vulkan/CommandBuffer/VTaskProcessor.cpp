@@ -303,7 +303,7 @@ namespace FG
 
 				if ( (buf.state & EResourceState::_StateMask) == EResourceState::UniformRead )
 				{
-					//ASSERT( size == buf.staticSize );
+					ASSERT( size == buf.staticSize );
 					ASSERT( (offset % limits.minUniformBufferOffsetAlignment) == 0 );
 					ASSERT( size <= limits.maxUniformBufferRange );
 				}else{

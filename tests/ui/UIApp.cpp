@@ -188,7 +188,7 @@ namespace FG
 			ImGui::SameLine();
 			ImGui::Text("counter = %d", counter);
 
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", double(1000.0f / ImGui::GetIO().Framerate), double(ImGui::GetIO().Framerate));
 			ImGui::End();
 		}
 
