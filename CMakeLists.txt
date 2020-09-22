@@ -4,7 +4,7 @@ message( STATUS "===============================================================
 message( STATUS "project 'FrameGraph' generation started" )
 
 project( "FrameGraph"
-		 VERSION 2020.3.0
+		 VERSION 2020.3.1
 		 LANGUAGES C CXX )
 
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
