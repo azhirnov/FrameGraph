@@ -49,13 +49,15 @@ namespace FG
 
 	// methods
 	public:
-		explicit VSwapchain ();
+		VSwapchain ();
+		VSwapchain (VSwapchain &&) = delete;
+		VSwapchain (const VSwapchain &) = delete;
 		~VSwapchain ();
 
 		bool  Create (VFrameGraph &, const VulkanSwapchainCreateInfo &, StringView dbgName);
 		void  Destroy (VResourceManager &);
 
-		bool  Acquire (VCommandBuffer &, ESwapchainImage type, bool dbgSync, OUT RawImageID &outImageId) const;
+		bool  Acquire (VCommandBuffer &, bool dbgSync, OUT RawImageID &outImageId) const;
 		bool  Present (const VDevice &) const;
 
 		ND_ VDeviceQueueInfoPtr  GetPresentQueue ()	const	{ SHAREDLOCK( _drCheck );  return _presentQueue; }
@@ -70,6 +72,8 @@ namespace FG
 		bool  _CreateFence (const VDevice &dev);
 		bool  _ChoosePresentQueue (const VFrameGraph &);
 		
+		void  _PrintSwapchainParams (StringView dbgName);
+
 		ND_ bool  _IsImageAcquired () const;
 	};
 

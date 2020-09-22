@@ -5,6 +5,8 @@
 #include "framegraph/Public/RayTracingGeometryDesc.h"
 #include "VCommon.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -68,6 +70,8 @@ namespace FG
 	// methods
 	public:
 		VRayTracingGeometry () {}
+		VRayTracingGeometry (VRayTracingGeometry &&) = delete;
+		VRayTracingGeometry (const VRayTracingGeometry &) = delete;
 		~VRayTracingGeometry ();
 
 		bool Create (VResourceManager &, const RayTracingGeometryDesc &desc, RawMemoryID memId, VMemoryObj &memObj, StringView dbgName);
@@ -87,3 +91,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

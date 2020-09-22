@@ -7,6 +7,12 @@ namespace FG
 
 	bool FGApp::Test_Draw4 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln;
 
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
@@ -53,12 +59,14 @@ void main() {
 )#" );
 		
 		const uint2		view_size	= {800, 600};
-		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+																Default, "RenderTarget" );
 		
 		const uint2		tex_size	= {128, 128};
-		ImageID			texture		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{tex_size.x, tex_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::Sampled | EImageUsage::TransferDst }, Default, "Texture" );
+		ImageID			texture		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( tex_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::Sampled | EImageUsage::TransferDst ),
+																Default, "Texture" );
 
 		RawSamplerID	sampler		= _frameGraph->CreateSampler( SamplerDesc{}.SetFilter( EFilter::Linear, EFilter::Linear, EMipmapFilter::Nearest )).Release();
 
@@ -69,6 +77,8 @@ void main() {
 																  MemoryDesc{ EMemoryType::HostWrite }, "PositionsUB" );
 		BufferID		colors_ub	 = _frameGraph->CreateBuffer( BufferDesc{ BytesU::SizeOf(colors), EBufferUsage::Uniform },
 																  MemoryDesc{ EMemoryType::HostWrite }, "ColorsUB" );
+
+		CHECK_ERR( image and texture and sampler and positions_ub and colors_ub );
 
 		CHECK_ERR( _frameGraph->UpdateHostBuffer( positions_ub, 0_b, BytesU::SizeOf(positions), positions ));
 		CHECK_ERR( _frameGraph->UpdateHostBuffer( colors_ub, 0_b, BytesU::SizeOf(colors), colors ));
@@ -123,15 +133,15 @@ void main() {
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
 											.AddViewport( view_size )
-											.AddResources( DescriptorSetID{"PerPass"}, &resources1 ));
+											.AddResources( DescriptorSetID{"PerPass"}, resources1 ));
 		
 		cmd->AddTask( render_pass, DrawVertices().Draw( 3 ).SetPipeline( pipeline ).SetTopology( EPrimitive::TriangleList )
-														 .AddResources( DescriptorSetID{"PerObject"}, &resources0 ));
+														 .AddResources( DescriptorSetID{"PerObject"}, resources0 ));
 
 		Task	t_clear	= cmd->AddTask( ClearColorImage{}.SetImage( texture ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{HtmlColor::White}) );
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass }.DependsOn( t_clear ));
-		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
-		FG_UNUSED( t_read );
+		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ));
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

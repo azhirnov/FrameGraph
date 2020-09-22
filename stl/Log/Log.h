@@ -15,7 +15,8 @@ namespace FGC
 
 	struct Logger
 	{
-		enum class EResult {
+		enum class EResult
+		{
 			Continue,
 			Break,
 			Abort,
@@ -26,6 +27,11 @@ namespace FGC
 
 		static EResult  Error (const char *msg, const char *func, const char *file, int line);
 		static EResult  Error (const StringView &msg, const StringView &func, const StringView &file, int line);
+
+
+		using Callback_t = void (*) (void* userData, const StringView &msg, const StringView &file, int line, bool isError);
+
+		static void  SetCallback (Callback_t cb, void* userData);
 	};
 
 }	// FGC

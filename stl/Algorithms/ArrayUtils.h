@@ -91,6 +91,28 @@ namespace FGC
 	
 /*
 =================================================
+	IsFirstElement
+=================================================
+*/
+	template <typename Elem, typename Container>
+	ND_ inline bool  IsFirstElement (const Elem &elem, const Container &arr)
+	{
+		return &arr.front() == &elem;
+	}
+	
+/*
+=================================================
+	IsLastElement
+=================================================
+*/
+	template <typename Elem, typename Container>
+	ND_ inline bool  IsLastElement (const Elem &elem, const Container &arr)
+	{
+		return &arr.back() == &elem;
+	}
+
+/*
+=================================================
 	LowerBound (binary search)
 =================================================
 */

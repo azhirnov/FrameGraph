@@ -50,6 +50,21 @@ namespace FG
 	
 /*
 =================================================
+	StencilFaceState::IsReadOnly
+=================================================
+*/
+	bool  RenderState::StencilFaceState::IsReadOnly () const
+	{
+		if ( compareOp == ECompareOp::Never and failOp == EStencilOp::Keep )
+			return true;
+
+		return failOp		== EStencilOp::Keep	and
+				depthFailOp	== EStencilOp::Keep	and
+				passOp		== EStencilOp::Keep;
+	}
+
+/*
+=================================================
 	StencilBufferState::operator ==
 =================================================
 */
@@ -59,6 +74,17 @@ namespace FG
 				(enabled ? 
 					(front	== rhs.front	and
 					 back	== rhs.back)	: true);
+	}
+	
+/*
+=================================================
+	StencilBufferState::IsReadOnly
+=================================================
+*/
+	bool  RenderState::StencilBufferState::IsReadOnly () const
+	{
+		return	not enabled or
+				(front.IsReadOnly() and back.IsReadOnly());
 	}
 	
 /*

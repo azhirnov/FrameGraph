@@ -58,8 +58,8 @@ void main() {
 	auto ds = FindDescriptorSet( ppln, DescriptorSetID("0") );
 	TEST( ds );
 	
-	TEST( TestTextureUniform( *ds, UniformID("un_Texture1"), EImage::Tex2D, /*binding*/0, EShaderStages::Fragment, /*arraySize*/1 ));
-	TEST( TestTextureUniform( *ds, UniformID("un_Texture2"), EImage::Tex2D, /*binding*/1, EShaderStages::Fragment, /*arraySize*/1 ));
+	TEST( TestTextureUniform( *ds, UniformID("un_Texture1"), EImageSampler::Float2D, /*binding*/0, EShaderStages::Fragment, /*arraySize*/1 ));
+	TEST( TestTextureUniform( *ds, UniformID("un_Texture2"), EImageSampler::Uint2D, /*binding*/1, EShaderStages::Fragment, /*arraySize*/1 ));
 	
 	TEST_PASSED();
 }

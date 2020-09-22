@@ -23,7 +23,7 @@ namespace FG
 */
 	VFrameGraph::VFrameGraph (const VulkanDeviceInfo &vdi) :
 		_state{ EState::Initial },	_device{ vdi },
-		_queueUsage{ Default },		_resourceMngr{ _device },
+		_queueUsage{ Default },		_resourceMngr{ _device, vdi.maxStagingBufferMemory, vdi.stagingBufferSize },
 		_queryPool{ VK_NULL_HANDLE }
 	{
 	}
@@ -55,6 +55,19 @@ namespace FG
 			_AddAsyncComputeQueue();
 			_AddAsyncTransferQueue();
 			CHECK_ERR( not _queueMap.empty() );
+
+			auto&	gq = _queueMap[uint(EQueueType::Graphics)].ptr;
+			auto&	cq = _queueMap[uint(EQueueType::AsyncCompute)].ptr;
+			auto&	tq = _queueMap[uint(EQueueType::AsyncTransfer)].ptr;
+
+			if ( gq and gq->debugName.empty() )
+				const_cast<VDeviceQueueInfo*>(gq.get())->debugName = "Graphics";
+			
+			if ( cq and cq->debugName.empty() )
+				const_cast<VDeviceQueueInfo*>(cq.get())->debugName = "AsyncCompute";
+			
+			if ( tq and tq->debugName.empty() )
+				const_cast<VDeviceQueueInfo*>(tq.get())->debugName = "AsyncTransfer";
 		}
 		
 		// create query pool
@@ -80,8 +93,8 @@ namespace FG
 */
 	void  VFrameGraph::Deinitialize ()
 	{
-		CHECK_ERR( _SetState( EState::Idle, EState::Destroyed ), void());
-		CHECK_ERR( WaitIdle(), void());
+		CHECK_ERRV( _SetState( EState::Idle, EState::Destroyed ));
+		CHECK_ERRV( WaitIdle( MaxTimeout ));
 
 		// delete command buffers
 		{
@@ -91,7 +104,7 @@ namespace FG
 
 			_cmdBufferPool.Release();
 			_cmdBatchPool.Release();
-			_submittedPool.Release([this] (auto& s) { s._Destroy( GetDevice() ); });
+			_submittedPool.Release([this] (auto& s) { s.Destroy( GetDevice() ); });
 		}
 
 		// delete per queue data
@@ -171,6 +184,51 @@ namespace FG
 			dst.debugName	= src.debugName;
 		}
 
+		return result;
+	}
+	
+/*
+=================================================
+	GetAvilableQueues
+=================================================
+*/
+	EQueueUsage  VFrameGraph::GetAvilableQueues () const
+	{
+		// '_queueUsage' initialized in Initialize() so sync is not needed
+		return _queueUsage;
+	}
+
+/*
+=================================================
+	GetDeviceProperties
+=================================================
+*/
+	VFrameGraph::DeviceProperties  VFrameGraph::GetDeviceProperties () const
+	{
+		auto&	feats	= _device.GetFeatures();
+		auto&	props	= _device.GetProperties();
+
+		DeviceProperties	result;
+		result.geometryShader					= props.features.geometryShader == VK_TRUE;
+		result.tessellationShader				= props.features.tessellationShader == VK_TRUE;
+		result.vertexPipelineStoresAndAtomics	= props.features.vertexPipelineStoresAndAtomics == VK_TRUE;
+		result.fragmentStoresAndAtomics			= props.features.fragmentStoresAndAtomics == VK_TRUE;
+		result.dedicatedAllocation				= feats.dedicatedAllocation;
+		result.dispatchBase						= feats.dispatchBase;
+		result.imageCubeArray					= props.features.imageCubeArray;
+		result.array2DCompatible				= feats.array2DCompatible;
+		result.blockTexelView					= feats.blockTexelView;
+		result.samplerMirrorClamp				= feats.samplerMirrorClamp;
+		result.descriptorIndexing				= feats.descriptorIndexing;
+		result.drawIndirectCount				= feats.drawIndirectCount;
+		result.swapchain						= feats.surface and feats.swapchain;
+		result.meshShaderNV						= feats.meshShaderNV;
+		result.rayTracingNV						= feats.rayTracingNV;
+		result.shadingRateImageNV				= feats.shadingRateImageNV;
+		result.minStorageBufferOffsetAlignment	= BytesU{props.properties.limits.minStorageBufferOffsetAlignment};
+		result.minUniformBufferOffsetAlignment	= BytesU{props.properties.limits.minUniformBufferOffsetAlignment};
+		result.maxDrawIndirectCount				= props.properties.limits.maxDrawIndirectCount;
+		result.maxDrawIndexedIndexValue			= props.properties.limits.maxDrawIndexedIndexValue;
 		return result;
 	}
 
@@ -357,7 +415,7 @@ namespace FG
 		RawDescriptorSetLayoutID	layout_id;
 		uint						binding;
 
-		if ( not ppln_layout->GetDescriptorSetLayout( id, OUT layout_id, OUT binding ) )
+		if ( not ppln_layout->GetDescriptorSetLayout( id, OUT layout_id, OUT binding ))
 			return false;
 
 		VDescriptorSetLayout const*	ds_layout = _resourceMngr.GetResource( layout_id );
@@ -372,24 +430,34 @@ namespace FG
 	InitPipelineResources
 =================================================
 */
-	bool  VFrameGraph::InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraph::InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources)
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
 
-	bool  VFrameGraph::InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraph::InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources)
 	{
 		return _InitPipelineResources( pplnId, id, OUT resources );
 	}
 
-	bool  VFrameGraph::InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraph::InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources)
 	{
+	#ifdef VK_NV_mesh_shader
 		return _InitPipelineResources( pplnId, id, OUT resources );
+	#else
+		Unused( pplnId, id, resources );
+		RETURN_ERR( "mesh shader is not supported" );
+	#endif
 	}
 
-	bool  VFrameGraph::InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const
+	bool  VFrameGraph::InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources)
 	{
+	#ifdef VK_NV_ray_tracing
 		return _InitPipelineResources( pplnId, id, OUT resources );
+	#else
+		Unused( pplnId, id, resources );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -462,16 +530,29 @@ namespace FG
 */
 	bool  VFrameGraph::ReleaseResource (INOUT GPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT CPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
-	bool  VFrameGraph::ReleaseResource (INOUT MPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
-	bool  VFrameGraph::ReleaseResource (INOUT RTPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT ImageID &id)			{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT BufferID &id)			{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT SamplerID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT SwapchainID &id)		{ return _ReleaseResource( INOUT id ); }
+
+#ifdef VK_NV_mesh_shader
+	bool  VFrameGraph::ReleaseResource (INOUT MPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
+#else
+	bool  VFrameGraph::ReleaseResource (INOUT MPipelineID &)		{ return false; }
+#endif
+
+#ifdef VK_NV_ray_tracing
+	bool  VFrameGraph::ReleaseResource (INOUT RTPipelineID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT RTGeometryID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT RTSceneID &id)		{ return _ReleaseResource( INOUT id ); }
 	bool  VFrameGraph::ReleaseResource (INOUT RTShaderTableID &id)	{ return _ReleaseResource( INOUT id ); }
-	
+#else
+	bool  VFrameGraph::ReleaseResource (INOUT RTPipelineID &)		{ return false; }
+	bool  VFrameGraph::ReleaseResource (INOUT RTGeometryID &)		{ return false; }
+	bool  VFrameGraph::ReleaseResource (INOUT RTSceneID &)			{ return false; }
+	bool  VFrameGraph::ReleaseResource (INOUT RTShaderTableID &)	{ return false; }
+#endif
+
 /*
 =================================================
 	ReleaseResource
@@ -479,7 +560,7 @@ namespace FG
 */
 	void VFrameGraph::ReleaseResource (INOUT PipelineResources &resources)
 	{
-		CHECK_ERR( _IsInitialized(), void());
+		CHECK_ERRV( _IsInitialized() );
 		return _resourceMngr.ReleaseResource( INOUT resources );
 	}
 	
@@ -576,6 +657,8 @@ namespace FG
 */
 	bool  VFrameGraph::UpdateHostBuffer (RawBufferID id, BytesU offset, BytesU size, const void *data)
 	{
+		ASSERT( _IsInitialized() );
+
 		void*	dst_ptr;
 		CHECK_ERR( MapBufferRange( id, offset, INOUT size, OUT dst_ptr ));
 
@@ -590,6 +673,8 @@ namespace FG
 */
 	bool  VFrameGraph::MapBufferRange (RawBufferID id, BytesU offset, INOUT BytesU &size, OUT void* &dataPtr)
 	{
+		ASSERT( _IsInitialized() );
+
 		VBuffer const*		buffer = _resourceMngr.GetResource( id );
 		CHECK_ERR( buffer );
 
@@ -618,15 +703,17 @@ namespace FG
 */
 	CommandBuffer  VFrameGraph::Begin (const CommandBufferDesc &desc, ArrayView<CommandBuffer> dependsOn)
 	{
+		ASSERT( _IsInitialized() );
 		CHECK_ERR( uint(desc.queueType) < _queueMap.size() );
 		
-		VCommandBuffer*	cmd		= null;
-		VCmdBatch*		batch	= null;
-		auto&			queue	= _GetQueueData( desc.queueType );
+		const uint		max_iter	= 2;
+		VCommandBuffer*	cmd			= null;
+		VCmdBatch*		batch		= null;
+		auto&			queue		= _GetQueueData( desc.queueType );
 		CHECK_ERR( queue.ptr );
-
+		
 		// acquire command buffer
-		for (;;)
+		for (uint i = 0; i < max_iter; ++i)
 		{
 			uint	cmd_index;
 			if ( _cmdBufferPool.Assign( OUT cmd_index,
@@ -635,27 +722,36 @@ namespace FG
 				cmd = &_cmdBufferPool[cmd_index];
 				break;
 			}
-			
-			RETURN_ERR( "command buffer pool overflow!" );
 		}
 
+		if ( cmd == null )
+			RETURN_ERR( "command buffer pool overflow!" );
+
 		// acquire command batch
-		for (;;)
+		for (uint i = 0; i < max_iter; ++i)
 		{
 			uint	batch_index;
 			if ( _cmdBatchPool.Assign( OUT batch_index,
 									   [this](VCmdBatch *ptr, uint idx){ PlacementNew<VCmdBatch>( ptr, *this, idx ); }) )
 			{
 				batch = &_cmdBatchPool[batch_index];
-				batch->Initialize( queue.type, dependsOn );
 				break;
 			}
-			
-			RETURN_ERR( "command batch pool overflow!" );
 		}
 
-		CHECK_ERR( cmd->Begin( desc, batch, queue.ptr ));
+		if ( batch == null )
+			RETURN_ERR( "command batch pool overflow!" );
 
+		batch->Initialize( queue.type, dependsOn );
+
+		if ( not cmd->Begin( desc, batch, queue.ptr ))
+		{
+			_cmdBufferPool.Unassign( cmd->GetIndexInPool() );
+			_cmdBatchPool.Unassign( batch->GetIndexInPool() );
+
+			RETURN_ERR( "failed to begin command buffer recording" );
+		}
+		
 		return CommandBuffer{ cmd, batch };
 	}
 	
@@ -666,6 +762,7 @@ namespace FG
 */
 	bool  VFrameGraph::Execute (INOUT CommandBuffer &cmdBufPtr)
 	{
+		ASSERT( _IsInitialized() );
 		CHECK_ERR( cmdBufPtr.GetCommandBuffer() and cmdBufPtr.GetBatch() );
 
 		VCommandBuffer*	cmd		= Cast<VCommandBuffer>(cmdBufPtr.GetCommandBuffer());
@@ -716,6 +813,8 @@ namespace FG
 */
 	bool  VFrameGraph::Flush (EQueueUsage queues)
 	{
+		ASSERT( _IsInitialized() );
+
 		bool	res;
 		{
 			EXLOCK( _queueGuard );
@@ -742,7 +841,7 @@ namespace FG
 			// for each queue type
 			for (size_t qi = 0; qi < _queueMap.size(); ++qi)
 			{
-				if ( _queueMap[qi].ptr and EnumEq( queues, 1u<<qi ) )
+				if ( _queueMap[qi].ptr and AllBits( queues, 1u<<qi ))
 					changed |= size_t(_FlushQueue( EQueueType(qi), 10u ));
 			}
 		}
@@ -824,7 +923,7 @@ namespace FG
 				continue;
 			
 			// input
-			if ( EnumEq( q_mask, 1u<<qj ) and q2.semaphores[qi] )
+			if ( AllBits( q_mask, 1u<<qj ) and q2.semaphores[qi] )
 			{
 				pending.front()->WaitSemaphore( q2.semaphores[qi], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
 				release_semaphores.push_back( q2.semaphores[qi] );
@@ -851,7 +950,7 @@ namespace FG
 			if ( _submittedPool.Assign( OUT index, [](VSubmitted* ptr, uint idx) { PlacementNew<VSubmitted>( ptr, idx ); }) )
 			{
 				submit = &_submittedPool[index];
-				submit->_Initialize( GetDevice(), EQueueType(qi), pending, release_semaphores );
+				submit->Initialize( GetDevice(), EQueueType(qi), pending, release_semaphores );
 				break;
 			}
 			
@@ -931,7 +1030,7 @@ namespace FG
 			{
 				{
 					EXLOCK( _statisticGuard );
-					submitted->_Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
+					submitted->Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
 				}
 
 				iter = q.submitted.erase( iter );
@@ -956,6 +1055,8 @@ namespace FG
 */
 	bool  VFrameGraph::Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout)
 	{
+		ASSERT( _IsInitialized() );
+
 		const auto	start_time = TimePoint_t::clock::now();
 
 		EXLOCK( _queueGuard );
@@ -974,7 +1075,7 @@ namespace FG
 
 				// release resources
 				for (auto* submitted : tmp_submitted) {
-					submitted->_Release( _device, _debugger, _shaderDebugCallback, INOUT _lastStatistic );
+					submitted->Release( _device, _debugger, _shaderDebugCallback, INOUT _lastStatistic );
 				}
 			}
 			else
@@ -1033,14 +1134,28 @@ namespace FG
 	WaitIdle
 =================================================
 */
-	bool  VFrameGraph::WaitIdle ()
+	bool  VFrameGraph::WaitIdle (Nanoseconds timeout)
 	{
-		const auto	start_time = TimePoint_t::clock::now();
+		const auto		start_time	= TimePoint_t::clock::now();
+		bool			result		= true;
+		TempFences_t	tmp_fences;
+		
+		const auto	WaitAndRelease = [this, &tmp_fences, &result, timeout] ()
+		{
+			auto  res = _device.vkWaitForFences( _device.GetVkDevice(), uint(tmp_fences.size()), tmp_fences.data(), VK_TRUE, uint64_t(timeout.count()) );
 
+			if ( res != VK_SUCCESS )
+			{
+				result = false;
+				CHECK( res == VK_TIMEOUT );
+			}
+
+			tmp_fences.clear();
+		};
+
+		// access to queues must be protected
 		{
 			EXLOCK( _queueGuard );
-
-			TempFences_t	fences;
 
 			CHECK_ERR( _FlushAll( EQueueUsage::All, 10u ));
 		
@@ -1053,31 +1168,39 @@ namespace FG
 				for (auto& s : q.submitted)
 				{
 					if ( auto fence = s->GetFence() )
-						fences.push_back( fence );
+					{
+						tmp_fences.push_back( fence );
+						
+						if ( tmp_fences.size() == tmp_fences.capacity() )
+							WaitAndRelease();
+					}
 				}
 			}
 		
-			if ( fences.size() )
-			{
-				VK_CALL( _device.vkWaitForFences( _device.GetVkDevice(), uint(fences.size()), fences.data(), VK_TRUE, UMax ));
-			}
+			if ( tmp_fences.size() )
+				WaitAndRelease();
 		
-			EXLOCK( _statisticGuard );
+			// clear queues
+			if ( result )
+			{
+				EXLOCK( _statisticGuard );
 
-			for (auto& q : _queueMap)
-			{
-				for (auto* s : q.submitted) {
-					s->_Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
-					_submittedPool.Unassign( s->GetIndexInPool() );
+				for (auto& q : _queueMap)
+				{
+					for (auto* s : q.submitted)
+					{
+						s->Release( GetDevice(), _debugger, _shaderDebugCallback, INOUT _lastStatistic );
+						_submittedPool.Unassign( s->GetIndexInPool() );
+					}
+					q.submitted.clear();
 				}
-				q.submitted.clear();
 			}
 		}
 
 		_resourceMngr.RunValidation( 100 );
 
 		_waitingTime.fetch_add( (TimePoint_t::clock::now() - start_time).count(), memory_order_relaxed );
-		return true;
+		return result;
 	}
 	
 /*
@@ -1116,8 +1239,9 @@ namespace FG
 	GetStatistics
 =================================================
 */
-	bool  VFrameGraph::GetStatistics (OUT Statistics &result) const
+	bool  VFrameGraph::GetStatistics (OUT Statistics &result)
 	{
+		ASSERT( _IsInitialized() );
 		EXLOCK( _statisticGuard );
 
 		result = _lastStatistic;
@@ -1133,8 +1257,9 @@ namespace FG
 	DumpToString
 =================================================
 */
-	bool  VFrameGraph::DumpToString (OUT String &result) const
+	bool  VFrameGraph::DumpToString (OUT String &result)
 	{
+		ASSERT( _IsInitialized() );
 		_debugger.GetFrameDump( OUT result );
 		return true;
 	}
@@ -1144,8 +1269,9 @@ namespace FG
 	DumpToGraphViz
 =================================================
 */
-	bool  VFrameGraph::DumpToGraphViz (OUT String &result) const
+	bool  VFrameGraph::DumpToGraphViz (OUT String &result)
 	{
+		ASSERT( _IsInitialized() );
 		_debugger.GetGraphDump( OUT result );
 		return true;
 	}
@@ -1196,7 +1322,7 @@ namespace FG
 		for (auto& queue : _device.GetVkQueues())
 		{
 			const bool	is_unique		= _IsUnique( &queue );
-			const bool	has_graphics	= EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
+			const bool	has_graphics	= AllBits( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
 
 			if ( has_graphics )
 			{
@@ -1232,8 +1358,8 @@ namespace FG
 		for (auto& queue : _device.GetVkQueues())
 		{
 			const bool	is_unique		= _IsUnique( &queue );
-			const bool	has_compute		= EnumEq( queue.familyFlags, VK_QUEUE_COMPUTE_BIT );
-			const bool	has_graphics	= EnumEq( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
+			const bool	has_compute		= AllBits( queue.familyFlags, VK_QUEUE_COMPUTE_BIT );
+			const bool	has_graphics	= AllBits( queue.familyFlags, VK_QUEUE_GRAPHICS_BIT );
 
 			// compute without graphics
 			if ( has_compute and not has_graphics )
@@ -1281,8 +1407,8 @@ namespace FG
 		for (auto& queue : _device.GetVkQueues())
 		{
 			const bool	is_unique			= _IsUnique( &queue );
-			const bool	has_transfer		= EnumEq( queue.familyFlags, VK_QUEUE_TRANSFER_BIT );
-			const bool	supports_transfer	= EnumAny( queue.familyFlags, VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT );
+			const bool	has_transfer		= AllBits( queue.familyFlags, VK_QUEUE_TRANSFER_BIT );
+			const bool	supports_transfer	= AnyBits( queue.familyFlags, VK_QUEUE_COMPUTE_BIT | VK_QUEUE_GRAPHICS_BIT );
 
 			// transfer without graphics or compute
 			if ( has_transfer and not supports_transfer )
@@ -1337,7 +1463,7 @@ namespace FG
 
 		for (uint i = 0; ((1u<<i) <= uint(types)) and (i < _queueMap.size()); ++i)
 		{
-			if ( not EnumEq( types, 1u<<i ) )
+			if ( not AllBits( types, 1u<<i ))
 				continue;
 
 			if ( _queueMap[i].ptr )
@@ -1387,6 +1513,7 @@ namespace FG
 */
 	void  VFrameGraph::RecycleBatch (const VCmdBatch *batch)
 	{
+		ASSERT( batch );
 		_cmdBatchPool.Unassign( batch->GetIndexInPool() );
 	}
 

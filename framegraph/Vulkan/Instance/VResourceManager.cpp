@@ -57,12 +57,15 @@ namespace FG
 	constructor
 =================================================
 */
-	VResourceManager::VResourceManager (const VDevice &dev) :
+	VResourceManager::VResourceManager (const VDevice &dev, BytesU maxStagingBufferMemory, BytesU stagingBufferSize) :
 		_device{ dev },
 		_memoryMngr{ dev },
 		_descMngr{ dev },
 		_submissionCounter{ 0 }
 	{
+		_staging.maxStagingBufferMemory = maxStagingBufferMemory < 1_Mb ? ~0_b : maxStagingBufferMemory;
+		_staging.writeBufPageSize		= stagingBufferSize < 1_Kb ? 0_b : stagingBufferSize;
+		_staging.readBufPageSize		= _staging.writeBufPageSize;
 	}
 	
 /*
@@ -172,32 +175,6 @@ namespace FG
 			}
 		}
 	}
-
-/*
-=================================================
-	_CreateEmptyDescriptorSetLayout
-=================================================
-*/
-	bool  VResourceManager::_CreateEmptyDescriptorSetLayout ()
-	{
-		auto&		pool	= _GetResourcePool( RawDescriptorSetLayoutID{} );
-		Index_t		index	= UMax;
-		CHECK_ERR( pool.Assign( OUT index ));
-
-		auto&										res			= pool[ index ];
-		PipelineDescription::UniformMapPtr			uniforms	= MakeShared<PipelineDescription::UniformMap_t>();
-		VDescriptorSetLayout::DescriptorBinding_t	binding;
-
-		res.Data().~VDescriptorSetLayout();
-		new (&res.Data()) VDescriptorSetLayout{ uniforms, OUT binding };
-		
-		CHECK_ERR( res.Create( _device, binding ));
-		CHECK_ERR( pool.AddToCache( index ).second );
-		res.AddRef();
-
-		_emptyDSLayout = RawDescriptorSetLayoutID{ index, res.GetInstanceID() };
-		return true;
-	}
 	
 /*
 =================================================
@@ -211,6 +188,31 @@ namespace FG
 	{
 		target.Data().~ResType();
 		new (&target.Data()) ResType{ std::forward<Args &&>(args)... };
+	}
+
+/*
+=================================================
+	_CreateEmptyDescriptorSetLayout
+=================================================
+*/
+	bool  VResourceManager::_CreateEmptyDescriptorSetLayout ()
+	{
+		auto&		pool	= _GetResourcePool( RawDescriptorSetLayoutID{} );
+		Index_t		index	= UMax;
+		CHECK_ERR( pool.Assign( OUT index ));
+
+		auto&										res			= pool[ index ];
+		const PipelineDescription::UniformMapPtr	uniforms	= MakeShared<PipelineDescription::UniformMap_t>();
+		VDescriptorSetLayout::DescriptorBinding_t	binding;
+
+		Replace( res, _device, uniforms, OUT binding );
+		
+		CHECK_ERR( res.Create( _device, binding ));
+		CHECK_ERR( pool.AddToCache( index ).second );
+		res.AddRef();
+
+		_emptyDSLayout = RawDescriptorSetLayoutID{ index, res.GetInstanceID() };
+		return true;
 	}
 	
 /*
@@ -227,13 +229,13 @@ namespace FG
 		else
 		if ( mode == EShaderDebugMode::Trace or mode == EShaderDebugMode::Profiling )
 		{
-			if ( EnumEq( EShaderStages::AllGraphics, stages ))
+			if ( AllBits( EShaderStages::AllGraphics, stages ))
 				return SizeOf<uint> * 4;	// fragcoord, (padding), position
 		
 			if ( stages == EShaderStages::Compute )
 				return SizeOf<uint> * 4;	// global invocation, position
 		
-			if ( EnumEq( EShaderStages::AllRayTracing, stages ))
+			if ( AllBits( EShaderStages::AllRayTracing, stages ))
 				return SizeOf<uint> * 4;	// launch, position
 		}
 
@@ -442,7 +444,7 @@ namespace FG
 
 		auto&	pool		= _GetResourcePool( id );
 		auto&	ds_layout	= pool[ id.Index() ];
-		Replace( ds_layout, uniforms, OUT binding );
+		Replace( ds_layout, _device, uniforms, OUT binding );
 		
 		// search in cache
 		Index_t	temp_id		= pool.Find( &ds_layout );
@@ -524,7 +526,8 @@ namespace FG
 	template <typename DescT>
 	bool  VResourceManager::_CompileShaders (INOUT DescT &desc, const VDevice &dev)
 	{
-		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		const EShaderLangFormat		sm_format	= dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		const EShaderLangFormat		spv_format	= dev.GetVkVersion() | EShaderLangFormat::SPIRV;
 
 		// try to use external compilers
 		{
@@ -532,9 +535,31 @@ namespace FG
 
 			for (auto& comp : _compilers)
 			{
-				if ( comp->IsSupported( desc, req_format ) )
+				if ( comp->IsSupported( desc, sm_format ))
 				{
-					return comp->Compile( INOUT desc, req_format );
+					return comp->Compile( INOUT desc, sm_format );
+				}
+
+				if ( comp->IsSupported( desc, spv_format ))
+				{
+					if ( not comp->Compile( INOUT desc, spv_format ))
+						return false;
+
+					for (auto& sh : desc._shaders)
+					{
+						if ( sh.second.data.empty() )
+							continue;
+
+						auto	iter = sh.second.data.find( spv_format );
+						CHECK_ERR( iter != sh.second.data.end() );
+
+						VkShaderPtr		mod;
+						CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
+						
+						sh.second.data.clear();
+						sh.second.data.insert({ spv_format, mod });
+					}
+					return true;
 				}
 			}
 		}
@@ -557,7 +582,7 @@ namespace FG
 				if ( iter == sh.second.data.end() )
 					continue;
 
-				if ( EnumEq( fmt, EShaderLangFormat::ShaderModule ) )
+				if ( AllBits( fmt, EShaderLangFormat::ShaderModule ))
 				{
 					auto	shader_data = iter->second;
 				
@@ -568,7 +593,7 @@ namespace FG
 					break;
 				}
 			
-				if ( EnumEq( fmt, EShaderLangFormat::SPIRV ) )
+				if ( AllBits( fmt, EShaderLangFormat::SPIRV ))
 				{
 					VkShaderPtr		mod;
 					CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
@@ -596,7 +621,8 @@ namespace FG
 */
 	bool  VResourceManager::_CompileShader (INOUT ComputePipelineDesc &desc, const VDevice &dev)
 	{
-		const EShaderLangFormat		req_format = dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		const EShaderLangFormat		sm_format	= dev.GetVkVersion() | EShaderLangFormat::ShaderModule;
+		const EShaderLangFormat		spv_format	= dev.GetVkVersion() | EShaderLangFormat::SPIRV;
 		
 		// try to use external compilers
 		{
@@ -604,9 +630,25 @@ namespace FG
 
 			for (auto& comp : _compilers)
 			{
-				if ( comp->IsSupported( desc, req_format ) )
+				if ( comp->IsSupported( desc, sm_format ))
 				{
-					return comp->Compile( INOUT desc, req_format );
+					return comp->Compile( INOUT desc, sm_format );
+				}
+
+				if ( comp->IsSupported( desc, spv_format ))
+				{
+					if ( not comp->Compile( INOUT desc, spv_format ))
+						return false;
+					
+					auto	iter = desc._shader.data.find( spv_format );
+					CHECK_ERR( iter != desc._shader.data.end() );
+
+					VkShaderPtr		mod;
+					CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
+
+					desc._shader.data.clear();
+					desc._shader.data.insert({ spv_format, mod });
+					return true;
 				}
 			}
 		}
@@ -621,7 +663,7 @@ namespace FG
 			if ( iter == desc._shader.data.end() )
 				continue;
 
-			if ( EnumEq( fmt, EShaderLangFormat::ShaderModule ) )
+			if ( AllBits( fmt, EShaderLangFormat::ShaderModule ))
 			{
 				auto	shader_data = iter->second;
 				
@@ -630,7 +672,7 @@ namespace FG
 				return true;
 			}
 			
-			if ( EnumEq( fmt, EShaderLangFormat::SPIRV ) )
+			if ( AllBits( fmt, EShaderLangFormat::SPIRV ))
 			{
 				VkShaderPtr		mod;
 				CHECK_ERR( _CompileSPIRVShader( dev, iter->second, OUT mod ));
@@ -646,12 +688,12 @@ namespace FG
 
 /*
 =================================================
-	_CompileShader
+	_CompileSPIRVShader
 =================================================
 */
 	bool  VResourceManager::_CompileSPIRVShader (const VDevice &dev, const PipelineDescription::ShaderDataUnion_t &shaderData, OUT VkShaderPtr &module)
 	{
-		const auto*	shader_data = UnionGetIf< PipelineDescription::SharedShaderPtr<Array<uint>> >( &shaderData );
+		const auto*	shader_data = UnionGetIf< PipelineDescription::SpirvShaderPtr >( &shaderData );
 
 		if ( not (shader_data and *shader_data) )
 			RETURN_ERR( "invalid shader data format!" );
@@ -681,7 +723,8 @@ namespace FG
 */
 	RawMPipelineID  VResourceManager::CreatePipeline (INOUT MeshPipelineDesc &desc, StringView dbgName)
 	{
-		CHECK_ERR( _device.IsMeshShaderEnabled() );
+	#ifdef VK_NV_mesh_shader
+		CHECK_ERR( _device.GetFeatures().meshShaderNV );
 
 		if ( not _CompileShaders( INOUT desc, _device ))
 		{
@@ -709,6 +752,10 @@ namespace FG
 		data.AddRef();
 
 		return id;
+	#else
+		Unused( desc, dbgName );
+		RETURN_ERR( "mesh shader is not supported" );
+	#endif
 	}
 	
 /*
@@ -769,7 +816,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( desc, layout_id, dbgName ) )
+		if ( not data.Create( desc, layout_id, dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating compute pipeline" );
@@ -788,7 +835,8 @@ namespace FG
 */
 	RawRTPipelineID  VResourceManager::CreatePipeline (INOUT RayTracingPipelineDesc &desc, StringView dbgName)
 	{
-		CHECK_ERR( _device.IsRayTracingEnabled() );
+	#ifdef VK_NV_ray_tracing
+		CHECK_ERR( _device.GetFeatures().rayTracingNV );
 
 		if ( not _CompileShaders( INOUT desc, _device ))
 		{
@@ -806,7 +854,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 		
-		if ( not data.Create( desc, layout_id, dbgName ) )
+		if ( not data.Create( desc, layout_id, dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating ray tracing pipeline" );
@@ -816,6 +864,10 @@ namespace FG
 		data.AddRef();
 
 		return id;
+	#else
+		Unused( desc, dbgName );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -830,7 +882,7 @@ namespace FG
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( desc, dbgName ) )
+		if ( not data.Create( desc, dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating memory object" );
@@ -967,7 +1019,7 @@ namespace FG
 		if ( temp_id == UMax )
 		{
 			// create new
-			if ( not fnCreate( data ) )
+			if ( not fnCreate( data ))
 			{
 				_Unassign( id );
 				RETURN_ERR( errorStr );
@@ -1145,7 +1197,8 @@ namespace FG
 */
 	RawRTGeometryID  VResourceManager::CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
-		CHECK_ERR( _device.IsRayTracingEnabled() );
+	#ifdef VK_NV_ray_tracing
+		CHECK_ERR( _device.GetFeatures().rayTracingNV );
 
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -1176,6 +1229,10 @@ namespace FG
 			}
 		})
 		return id;
+	#else
+		Unused( desc, mem, dbgName );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -1185,7 +1242,8 @@ namespace FG
 */
 	RawRTSceneID  VResourceManager::CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem, StringView dbgName)
 	{
-		CHECK_ERR( _device.IsRayTracingEnabled() );
+	#ifdef VK_NV_ray_tracing
+		CHECK_ERR( _device.GetFeatures().rayTracingNV );
 
 		RawMemoryID					mem_id;
 		ResourceBase<VMemoryObj>*	mem_obj	= null;
@@ -1207,6 +1265,10 @@ namespace FG
 		mem_obj->AddRef();
 		data.AddRef();
 		return id;
+	#else
+		Unused( desc, mem, dbgName );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -1216,13 +1278,16 @@ namespace FG
 */
 	RawRTShaderTableID  VResourceManager::CreateRayTracingShaderTable (StringView dbgName)
 	{
+	#ifdef VK_NV_ray_tracing
+		CHECK_ERR( _device.GetFeatures().rayTracingNV );
+
 		RawRTShaderTableID	id;
 		CHECK_ERR( _Assign( OUT id ));
 		
 		auto&	data = _GetResourcePool( id )[ id.Index() ];
 		Replace( data );
 
-		if ( not data.Create( dbgName ) )
+		if ( not data.Create( dbgName ))
 		{
 			_Unassign( id );
 			RETURN_ERR( "failed when creating raytracing shader binding table" );
@@ -1230,6 +1295,10 @@ namespace FG
 
 		data.AddRef();
 		return id;
+	#else
+		Unused( dbgName );
+		RETURN_ERR( "ray tracing is not supported" );
+	#endif
 	}
 	
 /*
@@ -1240,7 +1309,9 @@ namespace FG
 	RawSwapchainID  VResourceManager::CreateSwapchain (const VulkanSwapchainCreateInfo &desc, RawSwapchainID oldSwapchain,
 													   VFrameGraph &fg, StringView dbgName)
 	{
-		if ( auto* swapchain = GetResource( oldSwapchain, false, true ) )
+		CHECK_ERR( _device.GetFeatures().swapchain );
+
+		if ( auto* swapchain = GetResource( oldSwapchain, false, true ))
 		{
 			if ( not const_cast<VSwapchain*>(swapchain)->Create( fg, desc, dbgName ))
 				RETURN_ERR( "failed when recreating swapchain" );
@@ -1271,6 +1342,7 @@ namespace FG
 */
 	void  VResourceManager::CheckTask (const BuildRayTracingScene &task)
 	{
+		Unused( task );
 		DEBUG_ONLY({
 			for (auto& inst : task.instances) {
 				_hashCollisionCheck.Add( inst.instanceId );
@@ -1326,7 +1398,7 @@ namespace FG
 					Index_t	index	= Index_t(j);
 
 					auto&	res = pool [index];
-					if ( res.IsCreated() and not res.Data().IsAllResourcesAlive( *this ) )
+					if ( res.IsCreated() and not res.Data().IsAllResourcesAlive( *this ))
 					{
 						pool.RemoveFromCache( index );
 						res.Destroy( *this );
@@ -1348,7 +1420,7 @@ namespace FG
 	bool  VResourceManager::_CheckHostVisibleMemory ()
 	{
 		auto&	dev		= _device;
-		auto&	props	= dev.GetDeviceMemoryProperties();
+		auto&	props	= dev.GetProperties().memoryProperties;
 		
 		VkMemoryRequirements	transfer_mem_req = {};
 		VkMemoryRequirements	uniform_mem_req  = {};
@@ -1384,17 +1456,17 @@ namespace FG
 		{
 			auto&	mt = props.memoryTypes[i];
 
-			if ( EnumEq( transfer_mem_req.memoryTypeBits, 1u << i ))
+			if ( AllBits( transfer_mem_req.memoryTypeBits, 1u << i ))
 			{
-				if ( EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_CACHED_BIT ))
+				if ( AllBits( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_CACHED_BIT ))
 					cached_heaps[ mt.heapIndex ] = true;
 			
-				if ( EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
+				if ( AllBits( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
 					cocherent_heaps[ mt.heapIndex ] = true;
 			}
 
-			if ( EnumEq( uniform_mem_req.memoryTypeBits, 1u << i ) and
-				 EnumEq( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
+			if ( AllBits( uniform_mem_req.memoryTypeBits, 1u << i ) and
+				 AllBits( mt.propertyFlags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ))
 			{
 				uniform_heaps[ mt.heapIndex ] = true;
 			}
@@ -1412,19 +1484,26 @@ namespace FG
 				transfer_heap_size += props.memoryHeaps[i].size;
 		}
 
+		_staging.maxStagingBufferMemory = Min( transfer_heap_size * 4 / 5, _staging.maxStagingBufferMemory );
+
 		BytesU	un_size = uniform_heap_size  / StagingBufferfPool_t::Capacity();
-		BytesU	tr_size = transfer_heap_size / StagingBufferfPool_t::Capacity();
+		BytesU	tr_size = _staging.maxStagingBufferMemory / StagingBufferfPool_t::Capacity();
 
 		if ( un_size > 128_Mb )		un_size = 32_Mb;	else
 		if ( un_size > 64_Mb )		un_size = 16_Mb;	else
 									un_size = 8_Mb;
-
-		if ( tr_size > 512_Mb )		tr_size = 256_Mb;	else
-		if ( tr_size > 128_Mb )		tr_size = 128_Mb;	else
-									tr_size = 64_Mb;
-
-		_staging.writeBufPageSize   = _staging.readBufPageSize = tr_size;
 		_staging.uniformBufPageSize = un_size;
+
+		if ( tr_size > 256_Mb )		tr_size = 128_Mb;	else
+		if ( tr_size > 128_Mb )		tr_size = 64_Mb;	else
+									tr_size = 32_Mb;
+
+		if ( _staging.writeBufPageSize == 0_b )
+			_staging.writeBufPageSize = _staging.readBufPageSize = tr_size;
+
+		FG_LOGD( "Uniform buffer size:       "s << ToString( _staging.uniformBufPageSize ));
+		FG_LOGD( "Staging buffer size:       "s << ToString( _staging.writeBufPageSize ));
+		FG_LOGD( "Max staging buffer memory: "s << ToString( _staging.maxStagingBufferMemory ) << ", max available: " << ToString( transfer_heap_size ));
 
 		return true;
 	}
@@ -1475,15 +1554,27 @@ namespace FG
 
 		const auto	ctor = [this, name, mem_type, &desc] (BufferID *ptr, uint)
 		{
+			if ( AnyBits( mem_type, EMemoryType::HostRead | EMemoryType::HostWrite ))
+			{
+				BytesU	total_size = BytesU{ _staging.currStagingBufferMemory.fetch_add( uint64_t(desc.size), memory_order_relaxed )} + desc.size;
+				
+				if ( total_size > _staging.maxStagingBufferMemory )
+					FG_LOGE( "Exceeded the maximum memory size for staging buffer" );
+
+				FG_LOGD( "Used host memory for staging buffers: "s << ToString(total_size) );
+			}
+
 			RawBufferID	id = CreateBuffer( desc, MemoryDesc{ mem_type }, EQueueFamilyMask::Unknown, name );
 			CHECK( id );
 			PlacementNew< BufferID >( ptr, id );
 		};
+		
 
 		uint	index;
 		CHECK_ERR( pool->Assign( OUT index, ctor ));
 		
 		outBufferId = (*pool)[ index ];
+		CHECK_ERR( outBufferId );
 
 		outIndex = StagingBufferIdx(index | idx_mask);
 		return true;
@@ -1675,7 +1766,7 @@ vec3 HSVtoRGB (const vec3 hsv)
 	// from http://chilliant.blogspot.ru/2014/04/rgbhsv-in-hlsl-5.html
 	vec3 col = vec3( abs( hsv.x * 6.0 - 3.0 ) - 1.0,
 					 2.0 - abs( hsv.x * 6.0 - 2.0 ),
-					 2.0 - abs( hsv.x * 6.0 - 4.0 ) );
+					 2.0 - abs( hsv.x * 6.0 - 4.0 ));
 	return (( clamp( col, vec3(0.0), vec3(1.0) ) - 1.0 ) * hsv.y + 1.0 ) * hsv.z;
 }
 

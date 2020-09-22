@@ -12,6 +12,7 @@ namespace FG
 		
 		BufferID		src_buffer	= _frameGraph->CreateBuffer( BufferDesc{ src_buffer_size, EBufferUsage::Transfer }, Default, "SrcBuffer" );
 		BufferID		dst_buffer	= _frameGraph->CreateBuffer( BufferDesc{ dst_buffer_size, EBufferUsage::Transfer }, Default, "DstBuffer" );
+		CHECK_ERR( src_buffer and dst_buffer );
 
 		Array<uint8_t>	src_data;	src_data.resize( size_t(src_buffer_size) );
 
@@ -42,7 +43,7 @@ namespace FG
 		Task	t_update	= cmd->AddTask( UpdateBuffer().SetBuffer( src_buffer ).AddData( src_data ));
 		Task	t_copy		= cmd->AddTask( CopyBuffer().From( src_buffer ).To( dst_buffer ).AddRegion( 0_b, 128_b, 256_b ).DependsOn( t_update ));
 		Task	t_read		= cmd->AddTask( ReadBuffer().SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_copy ));
-		FG_UNUSED( t_read );
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		

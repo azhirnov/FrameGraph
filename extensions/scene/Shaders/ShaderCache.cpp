@@ -264,7 +264,7 @@ namespace FG
 		else
 		for (ETextureType t = ETextureType(1); t <= info.textures; t = ETextureType(uint(t) << 1))
 		{
-			if ( not EnumEq( info.textures, t ) )
+			if ( not AllBits( info.textures, t ))
 				continue;
 
 			if ( is_first )
@@ -319,7 +319,7 @@ namespace FG
 		GraphicsPipelineDesc	desc;
 		for (uint i = 0; (1u<<i) <= uint(all_stages); ++i)
 		{
-			if ( not EnumEq( all_stages, 1u<<i ))
+			if ( not AllBits( all_stages, 1u<<i ))
 				continue;
 
 			String	src;

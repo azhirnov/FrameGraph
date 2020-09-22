@@ -1,6 +1,4 @@
-cmake_minimum_required( VERSION 3.10 FATAL_ERROR )
-
-if (${FG_ENABLE_IMGUI})
+if (TARGET "UI")
 	file( GLOB_RECURSE SOURCES "*.*" )
 	if (DEFINED ANDROID)
 		add_library( "Tests.UI" SHARED ${SOURCES} )

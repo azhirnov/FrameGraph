@@ -83,6 +83,7 @@ namespace FG
 
 			BindingIndex		index;
 			EResourceState		state;
+			EImageSampler		imageType;
 			const uint16_t		elementCapacity;
 			uint16_t			elementCount;
 			Element				elements[1];
@@ -101,6 +102,7 @@ namespace FG
 			
 			BindingIndex		index;
 			EResourceState		state;
+			EImageSampler		samplerType;
 			const uint16_t		elementCapacity;
 			uint16_t			elementCount;
 			Element				elements[1];

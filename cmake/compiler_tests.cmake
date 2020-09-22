@@ -1,11 +1,12 @@
 include( CheckCXXSourceCompiles )
 
-if ( ${COMPILER_MSVC} )
-	set( CMAKE_REQUIRED_FLAGS "/std:c++latest" )
+if (${COMPILER_MSVC})
+	set( FG_DEFAULT_CPPFLAGS "/std:c++latest" )
 else()
-	set( CMAKE_REQUIRED_FLAGS "-std=c++17" )
+	set( FG_DEFAULT_CPPFLAGS "-std=c++17" )
 endif ()
 
+set( CMAKE_REQUIRED_FLAGS "${FG_DEFAULT_CPPFLAGS}" )
 message( STATUS "Run compiler tests with flags: ${CMAKE_REQUIRED_FLAGS}" )
 
 set( FG_COMPILER_DEFINITIONS "" )
@@ -61,10 +62,16 @@ else()
 endif ()
 
 #------------------------------------------------------------------------------
+if (${COMPILER_CLANG_ANDROID})
+	set( CMAKE_REQUIRED_LIBRARIES "libc++fs" )
+elseif (${COMPILER_CLANG} OR ${COMPILER_CLANG_APPLE} OR ${COMPILER_GCC})
+	set( CMAKE_REQUIRED_LIBRARIES "stdc++fs" )
+endif()
+
 check_cxx_source_compiles(
 	"#include <filesystem>
-	namespace fs = std::filesystem;
 	int main () {
+		(void)(std::filesystem::current_path());
 		return 0;
 	}"
 	STD_FILESYSTEM_SUPPORTED )
@@ -72,13 +79,16 @@ check_cxx_source_compiles(
 if (STD_FILESYSTEM_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_FILESYSTEM" )
 
-	if (${COMPILER_CLANG} OR ${COMPILER_CLANG_APPLE} OR ${COMPILER_CLANG_ANDROID} OR ${COMPILER_GCC})
+	if (${COMPILER_CLANG_ANDROID})
+		set( FG_LINK_LIBRARIES "${FG_LINK_LIBRARIES}" "libc++fs" )
+	elseif (${COMPILER_CLANG} OR ${COMPILER_CLANG_APPLE} OR ${COMPILER_GCC})
 		set( FG_LINK_LIBRARIES "${FG_LINK_LIBRARIES}" "stdc++fs" )
 	endif()
 	set( STD_FILESYSTEM_SUPPORTED ON CACHE INTERNAL "" FORCE )
 else()
 	set( STD_FILESYSTEM_SUPPORTED OFF CACHE INTERNAL "" FORCE )
 endif ()
+set( CMAKE_REQUIRED_LIBRARIES "" )
 
 #------------------------------------------------------------------------------
 check_cxx_source_compiles(
@@ -107,6 +117,23 @@ check_cxx_source_compiles(
 if (STD_BARRIER_SUPPORTED)
 	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_STD_BARRIER" )
 endif ()
+
+#------------------------------------------------------------------------------
+if (NOT ${COMPILER_MSVC})
+	set( CMAKE_REQUIRED_FLAGS "${FG_DEFAULT_CPPFLAGS} -Werror=unknown-pragmas" )
+endif ()
+
+check_cxx_source_compiles(
+	"#pragma detect_mismatch( \"FG_DEBUG\", \"1\" )
+	int main () {
+		return 0;
+	}"
+	CPP_DETECT_MISMATCH_SUPPORTED )
+
+if (CPP_DETECT_MISMATCH_SUPPORTED)
+	set( FG_COMPILER_DEFINITIONS "${FG_COMPILER_DEFINITIONS}" "FG_CPP_DETECT_MISMATCH" )
+endif ()
+set( CMAKE_REQUIRED_FLAGS "${FG_DEFAULT_CPPFLAGS}" )
 
 #------------------------------------------------------------------------------
 check_cxx_source_compiles(

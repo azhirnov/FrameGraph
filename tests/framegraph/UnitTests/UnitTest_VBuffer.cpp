@@ -1,5 +1,7 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
+#ifdef FG_ENABLE_VULKAN
+
 #include "VLocalBuffer.h"
 #include "VBarrierManager.h"
 #include "framegraph/Public/FrameGraph.h"
@@ -44,7 +46,7 @@ static void VBuffer_Test1 ()
 	VLocalBuffer		local_buffer;
 	VLocalBuffer const*	buf			= &local_buffer;
 
-	TEST( VBufferUnitTest::Create( global_buffer, BufferDesc{ 1024_b, EBufferUsage::All } ));
+	TEST( VBufferUnitTest::Create( global_buffer, BufferDesc{ 1024_b, EBufferUsage::All }));
 
 	TEST( local_buffer.Create( &global_buffer ));
 
@@ -325,3 +327,5 @@ extern void UnitTest_VBuffer ()
 	VBuffer_Test1();
 	FG_LOGI( "UnitTest_VBuffer - passed" );
 }
+
+#endif	// FG_ENABLE_VULKAN

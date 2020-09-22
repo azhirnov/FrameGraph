@@ -60,7 +60,7 @@ namespace FG
 			_pool = VK_NULL_HANDLE;
 			
 			DEBUG_ONLY(
-				FG_LOGD( "Max command buffers: "s << ToString( _cmdBufCount ) );
+				FG_LOGD( "Max command buffers: "s << ToString( _cmdBufCount ));
 				_cmdBufCount = 0;
 			)
 		}
@@ -74,7 +74,7 @@ namespace FG
 	void VCommandPool::ResetAll (const VDevice &dev, VkCommandPoolResetFlags flags)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( IsCreated(), void());
+		CHECK_ERRV( IsCreated() );
 
 		VK_CALL( dev.vkResetCommandPool( dev.GetVkDevice(), _pool, flags ));
 	}
@@ -87,9 +87,11 @@ namespace FG
 	void VCommandPool::TrimAll (const VDevice &dev, VkCommandPoolTrimFlags flags)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( IsCreated(), void());
+		CHECK_ERRV( IsCreated() );
 
-		dev.vkTrimCommandPool( dev.GetVkDevice(), _pool, flags );
+	#ifdef VK_KHR_maintenance1
+		dev.vkTrimCommandPoolKHR( dev.GetVkDevice(), _pool, flags );
+	#endif
 	}
 
 /*
@@ -100,7 +102,7 @@ namespace FG
 	void VCommandPool::Reset (const VDevice &dev, VkCommandBuffer cmd, VkCommandBufferResetFlags flags)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( IsCreated(), void());
+		CHECK_ERRV( IsCreated() );
 
 		VK_CALL( dev.vkResetCommandBuffer( cmd, flags ));
 	}
@@ -200,7 +202,7 @@ namespace FG
 	void  VCommandPool::Deallocate (const VDevice &dev, VkCommandBuffer cmd)
 	{
 		SHAREDLOCK( _drCheck );
-		CHECK_ERR( IsCreated(), void());
+		CHECK_ERRV( IsCreated() );
 
 		dev.vkFreeCommandBuffers( dev.GetVkDevice(), _pool, 1, &cmd );
 

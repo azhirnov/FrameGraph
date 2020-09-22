@@ -20,15 +20,17 @@ namespace FG
 
 	// variables
 	private:
-		mutable Array<String>		_fullDump;
-		mutable Array<BatchGraph>	_graphs;
+		mutable Array<Pair< String, String >>	_fullDump;
+		mutable Array<BatchGraph>				_graphs;
+		
+		DataRaceCheck							_drCheck;
 
 
 	// methods
 	public:
 		VDebugger ();
 
-		void AddBatchDump (String &&);
+		void AddBatchDump (StringView name, String &&value);
 		void GetFrameDump (OUT String &) const;
 
 		void AddBatchGraph (BatchGraph &&);

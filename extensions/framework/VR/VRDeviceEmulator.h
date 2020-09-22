@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "framework/VR/IVRDevice.h"
-#include "framework/Window/IWindow.h"
-#include "framework/Vulkan/VulkanSwapchain.h"
+#ifdef FG_ENABLE_VULKAN
+
+# include "framework/VR/IVRDevice.h"
+# include "framework/Window/IWindow.h"
+# include "framework/Vulkan/VulkanSwapchain.h"
 
 namespace FGC
 {
@@ -53,12 +55,12 @@ namespace FGC
 		// variables
 		private:
 			ControllerEmulator	_controller;
-			float2			_cameraAngle;
-			float2			_lastMousePos;
-			bool			_mousePressed		= false;
-			const float		_mouseSens			= 0.01f;
-			bool			_isActive			= true;
-			bool			_isVisible			= true;
+			float2				_cameraAngle;
+			float2				_lastMousePos;
+			bool				_mousePressed		= false;
+			const float			_mouseSens			= 0.01f;
+			bool				_isActive			= true;
+			bool				_isVisible			= true;
 
 
 		// methods
@@ -69,7 +71,7 @@ namespace FGC
 			void OnUpdate () override {}
 			void OnKey (StringView key, EKeyAction action) override;
 			void OnMouseMove (const float2 &pos) override;
-			void Update (OUT Mat3_t &pose, INOUT ControllerEmulator &cont);
+			void Update (OUT Mat4_t &pose, INOUT ControllerEmulator &cont);
 			ND_ bool  IsActive ()	const	{ return _isActive; }
 			ND_ bool  IsVisible ()	const	{ return _isVisible; }
 		};
@@ -109,7 +111,7 @@ namespace FGC
 		~VRDeviceEmulator () override;
 		
 		bool  Create () override;
-		bool  SetVKDevice (VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice logicalDevice) override;
+		bool  SetVKDevice (InstanceVk_t instance, PhysicalDeviceVk_t physicalDevice, DeviceVk_t logicalDevice) override;
 		void  Destroy () override;
 		void  AddListener (IVRDeviceEventListener *listener) override;
 		void  RemoveListener (IVRDeviceEventListener *listener) override;
@@ -122,8 +124,10 @@ namespace FGC
 		EHmdStatus				GetHmdStatus () const override			{ return _hmdStatus; }
 
 		Array<String>	GetRequiredInstanceExtensions () const override;
-		Array<String>	GetRequiredDeviceExtensions (VkInstance) const override;
+		Array<String>	GetRequiredDeviceExtensions (InstanceVk_t) const override;
 		uint2			GetRenderTargetDimension () const override;
 	};
 
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

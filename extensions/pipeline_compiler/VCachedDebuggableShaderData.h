@@ -3,10 +3,12 @@
 #pragma once
 
 #ifdef FG_ENABLE_GLSL_TRACE
-# include "ShaderTrace.h"
+#	include "ShaderTrace.h"
 #endif
 
-#include "extensions/vulkan_loader/VulkanLoader.h"
+#ifdef FG_ENABLE_VULKAN
+#	include "extensions/vulkan_loader/VulkanLoader.h"
+#endif
 
 namespace FG
 {
@@ -58,7 +60,8 @@ namespace FG
 		{}
 		#endif
 
-		VCachedDebuggableShaderData (VkShaderModule module, const PipelineDescription::SharedShaderPtr<Array<uint>> &spirvCache)
+		#ifdef FG_ENABLE_VULKAN
+		VCachedDebuggableShaderData (VkShaderModule module, const PipelineDescription::SpirvShaderPtr &spirvCache)
 		{
 			if constexpr( IsSameTypes< T, ShaderModuleVk_t > )
 			{
@@ -72,7 +75,7 @@ namespace FG
 				#endif
 			}
 		}
-		
+		#endif
 
 		~VCachedDebuggableShaderData ()
 		{
@@ -82,7 +85,7 @@ namespace FG
 			}
 		}
 
-
+		#ifdef FG_ENABLE_VULKAN
 		void Destroy (PFN_vkDestroyShaderModule fpDestroyShaderModule, VkDevice dev)
 		{
 			if constexpr( IsSameTypes< T, ShaderModuleVk_t > )
@@ -94,7 +97,7 @@ namespace FG
 				}
 			}
 		}
-
+		#endif
 
 		bool ParseDebugOutput (EShaderDebugMode mode, ArrayView<uint8_t> debugOutput, OUT Array<String> &result) const override
 		{
@@ -110,7 +113,7 @@ namespace FG
 						  []  (const NullUnion &)		 { return false; }
 						);
 		#else
-			FG_UNUSED( mode, debugOutput, result );
+			Unused( mode, debugOutput, result );
 			return false;
 		#endif
 		}

@@ -13,10 +13,9 @@ namespace FG
 		const BytesU	bpp				= 4_b;
 		const BytesU	src_row_pitch	= src_dim.x * bpp;
 		
-		ImageID			src_image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{src_dim.x, src_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																				EImageUsage::Transfer }, Default, "SrcImage" );
-		ImageID			dst_image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{dst_dim.x, dst_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																				EImageUsage::Transfer }, Default, "DstImage" );
+		ImageID		src_image	= _frameGraph->CreateImage( ImageDesc{}.SetDimension( src_dim ).SetFormat( EPixelFormat::RGBA8_UNorm ).SetUsage( EImageUsage::Transfer ), Default, "SrcImage" );
+		ImageID		dst_image	= _frameGraph->CreateImage( ImageDesc{}.SetDimension( dst_dim ).SetFormat( EPixelFormat::RGBA8_UNorm ).SetUsage( EImageUsage::Transfer ), Default, "DstImage" );
+		CHECK_ERR( src_image and dst_image );
 
 		Array<uint8_t>	src_data;		src_data.resize( size_t(src_row_pitch * src_dim.y) );
 
@@ -74,7 +73,7 @@ namespace FG
 			Task	t_fill		= cmd1->AddTask( ClearColorImage{}.SetImage( dst_image ).AddRange( 0_mipmap, 1, 0_layer, 1 ).Clear(RGBA32f{ 1.0f }) );
 			Task	t_update	= cmd1->AddTask( UpdateImage{}.SetImage( src_image ).SetData( data, dim ));
 			Task	t_copy		= cmd1->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, int2(), {}, img_offset, dim ).DependsOn( t_update, t_fill ));
-			FG_UNUSED( t_copy );
+			Unused( t_copy );
 
 			CHECK_ERR( _frameGraph->Execute( cmd1 ));
 			CHECK_ERR( _frameGraph->Flush() );
@@ -89,7 +88,7 @@ namespace FG
 			Task	t_update	= cmd2->AddTask( UpdateImage{}.SetImage( src_image, offset ).SetData( data, dim ));
 			Task	t_copy		= cmd2->AddTask( CopyImage{}.From( src_image ).To( dst_image ).AddRegion( {}, offset, {}, offset + img_offset, dim ).DependsOn( t_update ));
 			Task	t_read		= cmd2->AddTask( ReadImage{}.SetImage( dst_image, int2(), dst_dim ).SetCallback( OnLoaded ).DependsOn( t_copy ));
-			FG_UNUSED( t_read );
+			Unused( t_read );
 		
 			CHECK_ERR( _frameGraph->Execute( cmd2 ));
 			CHECK_ERR( _frameGraph->Flush() );

@@ -4,6 +4,9 @@
 #include "VDevice.h"
 #include "VCommandBuffer.h"
 #include "stl/Algorithms/StringUtils.h"
+#include "FGEnumCast.h"
+#include "VEnumToString.h"
+#include "Shared/EnumToString.h"
 
 namespace FG
 {
@@ -48,7 +51,7 @@ namespace FG
 	void  VSwapchain::Destroy (VResourceManager &resMngr)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( not _IsImageAcquired(), void());
+		CHECK_ERRV( not _IsImageAcquired() );
 		
 		auto&	dev = resMngr.GetDevice();
 
@@ -96,11 +99,10 @@ namespace FG
 	Acquire
 =================================================
 */
-	bool  VSwapchain::Acquire (VCommandBuffer &fgThread, ESwapchainImage type, bool dbgSync, OUT RawImageID &outImageId) const
+	bool  VSwapchain::Acquire (VCommandBuffer &fgThread, bool dbgSync, OUT RawImageID &outImageId) const
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _vkSwapchain );
-		CHECK_ERR( type == ESwapchainImage::Primary );
 		
 		if ( _IsImageAcquired() )
 		{
@@ -232,6 +234,7 @@ namespace FG
 		CHECK_ERR( _CreateFence( dev ));
 		CHECK_ERR( _ChoosePresentQueue( fg ));
 
+		_PrintSwapchainParams( dbgName );
 		return true;
 	}
 	
@@ -421,7 +424,7 @@ namespace FG
 		if ( compositeAlpha == 0 )
 			compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-		if ( EnumEq( surfaceCaps.supportedCompositeAlpha, compositeAlpha ) )
+		if ( AllBits( surfaceCaps.supportedCompositeAlpha, compositeAlpha ))
 			return true;	// keep current
 		
 		compositeAlpha = VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR;
@@ -430,7 +433,7 @@ namespace FG
 			 flag < VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR;
 			 flag = VkCompositeAlphaFlagBitsKHR(flag << 1))
 		{
-			if ( EnumEq( surfaceCaps.supportedCompositeAlpha, flag ) )
+			if ( AllBits( surfaceCaps.supportedCompositeAlpha, flag ))
 			{
 				compositeAlpha = flag;
 				return true;
@@ -486,10 +489,10 @@ namespace FG
 		if ( transform == 0 )
 			transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 
-		if ( EnumEq( surfaceCaps.supportedTransforms, transform ) )
+		if ( AllBits( surfaceCaps.supportedTransforms, transform ))
 			return;	// keep current
 		
-		if ( EnumEq( surfaceCaps.supportedTransforms, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR ) )
+		if ( AllBits( surfaceCaps.supportedTransforms, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR ))
 		{
 			transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 		}
@@ -576,7 +579,7 @@ namespace FG
 			return false;
 		}
 
-		ASSERT( EnumEq( imageUsage, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT ) );
+		ASSERT( AllBits( imageUsage, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT ));
 		imageUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		
 
@@ -584,36 +587,36 @@ namespace FG
 		VkFormatProperties	format_props;
 		vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), colorFormat, OUT &format_props );
 
-		CHECK_ERR( EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT ));
-		ASSERT( EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT ));
+		CHECK_ERR( AllBits( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT ));
+		ASSERT( AllBits( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT ));
 		
-		if ( EnumEq( imageUsage, VK_IMAGE_USAGE_TRANSFER_SRC_BIT ) and
-			 (not EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_TRANSFER_SRC_BIT ) or
-			  not EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_BLIT_DST_BIT )) )
+		if ( AllBits( imageUsage, VK_IMAGE_USAGE_TRANSFER_SRC_BIT ) and
+			 (not AllBits( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_TRANSFER_SRC_BIT ) or
+			  not AllBits( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_BLIT_DST_BIT )) )
 		{
 			imageUsage &= ~VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		}
 		
-		if ( EnumEq( imageUsage, VK_IMAGE_USAGE_TRANSFER_DST_BIT ) and
-			 not EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_TRANSFER_DST_BIT ) )
+		if ( AllBits( imageUsage, VK_IMAGE_USAGE_TRANSFER_DST_BIT ) and
+			 not AllBits( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_TRANSFER_DST_BIT ))
 		{
 			imageUsage &= ~VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 		
-		if ( EnumEq( imageUsage, VK_IMAGE_USAGE_STORAGE_BIT ) and
-			 not EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT ) )
+		if ( AllBits( imageUsage, VK_IMAGE_USAGE_STORAGE_BIT ) and
+			 not AllBits( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT ))
 		{
 			imageUsage &= ~VK_IMAGE_USAGE_STORAGE_BIT;
 		}
 
-		if ( EnumEq( imageUsage, VK_IMAGE_USAGE_SAMPLED_BIT ) and
-			 not EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) )
+		if ( AllBits( imageUsage, VK_IMAGE_USAGE_SAMPLED_BIT ) and
+			 not AllBits( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ))
 		{
 			imageUsage &= ~VK_IMAGE_USAGE_SAMPLED_BIT;
 		}
 
-		if ( EnumEq( imageUsage, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT ) and
-			 not EnumEq( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT ) )
+		if ( AllBits( imageUsage, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT ) and
+			 not AllBits( format_props.optimalTilingFeatures, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT ))
 		{
 			imageUsage &= ~VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		}
@@ -633,14 +636,14 @@ namespace FG
 		if ( not GetImageUsage( OUT image_usage, dev, presentMode, colorFormat, surfaceCaps ))
 			return false;
 
-		if ( not EnumAny( image_usage, colorImageUsage ))
+		if ( not AnyBits( image_usage, colorImageUsage ))
 			return false;
 
 		VkImageFormatProperties	image_props = {};
 		VK_CALL( vkGetPhysicalDeviceImageFormatProperties( dev.GetVkPhysicalDevice(), colorFormat, VK_IMAGE_TYPE_2D,
 														   VK_IMAGE_TILING_OPTIMAL, image_usage, 0, OUT &image_props ));
 
-		if ( not EnumEq( image_props.sampleCounts, VK_SAMPLE_COUNT_1_BIT ))
+		if ( not AllBits( image_props.sampleCounts, VK_SAMPLE_COUNT_1_BIT ))
 			return false;
 
 		if ( surfaceSize.x > image_props.maxExtent.width or
@@ -776,14 +779,14 @@ namespace FG
 					_colorFormat = fmt.first;
 					_colorSpace  = fmt.second;
 
-					if ( not IsColorFormatSupported( surf_formats, _colorFormat, _colorSpace ) )
+					if ( not IsColorFormatSupported( surf_formats, _colorFormat, _colorSpace ))
 						continue;
 
 					_colorImageUsage	= required_usage | optional_usage;
 					_presentMode		= mode;
 
 					if ( IsSupported( dev, surf_caps, _surfaceSize, _presentMode, _colorFormat, INOUT _colorImageUsage ) and
-						 (not required_usage or EnumEq( _colorImageUsage, required_usage )) )
+						 (not required_usage or AllBits( _colorImageUsage, required_usage )) )
 					{
 						return _CreateSwapchain( fg, dbgName );
 					}
@@ -796,6 +799,27 @@ namespace FG
 		}
 
 		RETURN_ERR( "can't find suitable format" );
+	}
+	
+/*
+=================================================
+	_PrintSwapchainParams
+=================================================
+*/
+	void  VSwapchain::_PrintSwapchainParams (StringView dbgName)
+	{
+		String	str = "Created swapchain:";
+		str << "\n  name:            " << dbgName;
+		str << "\n  color format:    " << ToString( FGEnumCast( _colorFormat ));
+		str << "\n  color space:     " << VkColorSpaceKHR_ToString( _colorSpace );
+		str << "\n  image count:     " << ToString( _imageIDs.size() );
+		str << "\n  present mode:    " << VkPresentModeKHR_ToString( _presentMode );
+		str << "\n  pre transform:   " << VkSurfaceTransformFlagBitsKHR_ToString( _preTransform );
+		str << "\n  composite alpha: " << VkCompositeAlphaFlagBitsKHR_ToString( _compositeAlpha );
+		str << "\n  image usage:     " << VkImageUsageFlags_ToString( _colorImageUsage );
+		str << "\n  queue family:    " << ToString( _presentQueue->familyIndex );
+		str << "\n  queue name:      " << _presentQueue->debugName.c_str();
+		FG_LOGI( str );
 	}
 
 }	// FG

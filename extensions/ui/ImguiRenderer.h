@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "framegraph/FG.h"
-#include "imgui.h"
+#ifdef FG_ENABLE_IMGUI
+
+#include "ui/Common.h"
 
 namespace FG
 {
@@ -54,3 +55,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// FG_ENABLE_IMGUI

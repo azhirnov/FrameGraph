@@ -43,7 +43,7 @@ namespace _fgc_hidden_
 
 		if constexpr( Power == 0 )
 		{
-			FG_UNUSED( base );
+			Unused( base );
 			return 1;
 		}
 		else

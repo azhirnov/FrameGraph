@@ -545,7 +545,7 @@ namespace {
 		const aiScene *	scene	= _importerPtr->ReadFile( filename.c_str(), sceneLoadFlags );
 		const char*		errStr	= _importerPtr->GetErrorString();
 		CHECK_ERR( scene );
-		FG_UNUSED( errStr );
+		Unused( errStr );
 		
 		SceneData	scene_data;
 		CHECK_ERR( LoadMaterials( scene, OUT scene_data.materials ));

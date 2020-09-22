@@ -7,6 +7,12 @@ namespace FG
 
 	bool FGApp::Test_Compute1 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		ComputePipelineDesc	ppln;
 
 		ppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
@@ -30,14 +36,18 @@ void main ()
 		
 		const uint2		image_dim	= { 16, 16 };
 
-		ImageID			image0		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_0" );
+		ImageID			image0		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( image_dim ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
+															    Default, "MyImage_0" );
 
-		ImageID			image1		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_1" );
+		ImageID			image1		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( image_dim ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
+															    Default, "MyImage_1" );
 
-		ImageID			image2		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::RGBA8_UNorm,
-																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "MyImage_2" );
+		ImageID			image2		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( image_dim ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
+															    Default, "MyImage_2" );
+		CHECK_ERR( image0 and image1 and image2 );
 
 		CPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
 		CHECK_ERR( pipeline );
@@ -82,7 +92,7 @@ void main ()
 			CheckData( imageData, 4, OUT data1_is_correct );
 		};
 		const auto	OnLoaded2 =	[&CheckData, OUT &data2_is_correct] (const ImageView &imageData) {
-			CheckData( imageData, 16, OUT data2_is_correct );
+			CheckData( imageData, 8, OUT data2_is_correct );
 		};
 
 		
@@ -90,19 +100,19 @@ void main ()
 		CHECK_ERR( cmd );
 		
 		resources.BindImage( UniformID("un_OutImage"), image0 );
-		Task	t_run0	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).Dispatch({ 2, 2 }) );
+		Task	t_run0	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ).Dispatch({ 2, 2 }) );
 
 		resources.BindImage( UniformID("un_OutImage"), image1 );
-		Task	t_run1	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 4, 4 ).Dispatch({ 4, 4 }) );
+		Task	t_run1	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ).SetLocalSize( 4, 4 ).Dispatch({ 4, 4 }) );
 		
 		resources.BindImage( UniformID("un_OutImage"), image2 );
-		Task	t_run2	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources ).SetLocalSize( 16, 16 ).Dispatch({ 1, 1 }) );
+		Task	t_run2	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources ).SetLocalSize( 8, 8 ).Dispatch({ 2, 2 }) );
 		
-		Task	t_read0	= cmd->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ) );
-		Task	t_read1	= cmd->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ) );
-		Task	t_read2	= cmd->AddTask( ReadImage().SetImage( image2, int2(), image_dim ).SetCallback( OnLoaded2 ).DependsOn( t_run2 ) );
+		Task	t_read0	= cmd->AddTask( ReadImage().SetImage( image0, int2(), image_dim ).SetCallback( OnLoaded0 ).DependsOn( t_run0 ));
+		Task	t_read1	= cmd->AddTask( ReadImage().SetImage( image1, int2(), image_dim ).SetCallback( OnLoaded1 ).DependsOn( t_run1 ));
+		Task	t_read2	= cmd->AddTask( ReadImage().SetImage( image2, int2(), image_dim ).SetCallback( OnLoaded2 ).DependsOn( t_run2 ));
 		
-		FG_UNUSED( t_read0 and t_read1 and t_read2 );
+		Unused( t_read0 and t_read1 and t_read2 );
 		
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

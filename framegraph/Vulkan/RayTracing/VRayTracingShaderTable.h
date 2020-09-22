@@ -5,6 +5,8 @@
 #include "framegraph/Public/Pipeline.h"
 #include "VCommon.h"
 
+#ifdef VK_NV_ray_tracing
+
 namespace FG
 {
 
@@ -20,10 +22,10 @@ namespace FG
 	private:
 		struct ShaderTable
 		{
-			VkPipeline			pipeline	= VK_NULL_HANDLE;
+			VkPipeline			pipeline		= VK_NULL_HANDLE;
 			PipelineLayoutID	layoutId;
 			BytesU				bufferOffset;
-			EShaderDebugMode	mode		= Default;
+			EShaderDebugMode	mode			= Default;
 		};
 
 		using Tables_t	= FixedArray< ShaderTable, uint(EShaderDebugMode::_Count) >;
@@ -31,7 +33,7 @@ namespace FG
 
 	// variables
 	private:
-		mutable std::shared_mutex	_guard;
+		mutable SharedMutex			_guard;
 
 		BufferID					_bufferId;
 		RTPipelineID				_pipelineId;
@@ -46,6 +48,8 @@ namespace FG
 		Bytes<uint16_t>				_rayMissStride;
 		Bytes<uint16_t>				_rayHitStride;
 		Bytes<uint16_t>				_callableStride;
+		
+		BitSet<3>					_availableShaders;	// ray miss, ray hit, callable
 
 		// in ray gen shader the 'sbtRecordStride' parameter of 'traceNV()' must equal to 'hitShadersPerInstance'
 		// and 'sbtRecordOffset' must be less then 'hitShadersPerInstance'
@@ -60,6 +64,8 @@ namespace FG
 	// methods
 	public:
 		VRayTracingShaderTable () {}
+		VRayTracingShaderTable (VRayTracingShaderTable &&) = delete;
+		VRayTracingShaderTable (const VRayTracingShaderTable &) = delete;
 		~VRayTracingShaderTable ();
 
 		bool Create (StringView dbgName);
@@ -70,7 +76,8 @@ namespace FG
 						  OUT VkDeviceSize &blockSize, OUT VkDeviceSize &rayGenOffset,
 						  OUT VkDeviceSize &rayMissOffset, OUT VkDeviceSize &rayMissStride,
 						  OUT VkDeviceSize &rayHitOffset, OUT VkDeviceSize &rayHitStride,
-						  OUT VkDeviceSize &callableOffset, OUT VkDeviceSize &callableStride) const;
+						  OUT VkDeviceSize &callableOffset, OUT VkDeviceSize &callableStride,
+						  OUT BitSet<3> &availableShaders) const;
 		
 		ND_ RawRTPipelineID	GetPipeline ()	const	{ SHAREDLOCK( _drCheck );  return _pipelineId.Get(); }
 		ND_ RawBufferID		GetBuffer ()	const	{ SHAREDLOCK( _drCheck );  return _bufferId.Get(); }
@@ -79,3 +86,5 @@ namespace FG
 
 
 }	// FG
+
+#endif	// VK_NV_ray_tracing

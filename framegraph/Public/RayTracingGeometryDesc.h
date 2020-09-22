@@ -1,5 +1,9 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
+/*
+	RayTracingGeometry is alias for Bottom Level Acceleration Structure (BLAS).
 
+	Warning: this structure doesn't allocate memory, just store pointers.
+*/
 #pragma once
 
 #include "framegraph/Public/VertexEnums.h"
@@ -70,9 +74,9 @@ namespace FG
 
 	// methods
 		RayTracingGeometryDesc () {}
-		explicit RayTracingGeometryDesc (ArrayView<AABB> aabbs) : aabbs{aabbs} {}
-		explicit RayTracingGeometryDesc (ArrayView<Triangles> triangles) : triangles{triangles} {}
-		RayTracingGeometryDesc (ArrayView<Triangles> triangles, ArrayView<AABB> aabbs) : triangles{triangles}, aabbs{aabbs} {}
+		explicit RayTracingGeometryDesc (ArrayView<AABB> aabbs, ERayTracingFlags flags = Default) : aabbs{aabbs}, flags{flags} {}
+		explicit RayTracingGeometryDesc (ArrayView<Triangles> triangles, ERayTracingFlags flags = Default) : triangles{triangles}, flags{flags} {}
+		RayTracingGeometryDesc (ArrayView<Triangles> triangles, ArrayView<AABB> aabbs, ERayTracingFlags flags = Default) : triangles{triangles}, aabbs{aabbs}, flags{flags} {}
 	};
 
 	

@@ -1,5 +1,11 @@
 file( GLOB_RECURSE SOURCES "*.*" )
-add_executable( "Tests.FrameGraph" ${SOURCES} )
+
+if (DEFINED ANDROID)
+	add_library( "Tests.FrameGraph" STATIC ${SOURCES} )
+else ()
+	add_executable( "Tests.FrameGraph" ${SOURCES} )
+endif ()
+
 source_group( TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} )
 set_property( TARGET "Tests.FrameGraph" PROPERTY FOLDER "Tests" )
 
@@ -23,14 +29,14 @@ target_compile_definitions( "Tests.FrameGraph" PUBLIC "FG_TEST_DUMPS_DIR=\"${CMA
 target_link_libraries( "Tests.FrameGraph" "FrameGraph" )
 target_link_libraries( "Tests.FrameGraph" "Framework" )
 
-if (${FG_ENABLE_GRAPHVIZ})
+if (TARGET "GraphViz")
 	target_link_libraries( "Tests.FrameGraph" "GraphViz" )
 endif()
-target_link_libraries( "Tests.FrameGraph" "PipelineCompiler" )
-if (${FG_ENABLE_LODEPNG})
+if (TARGET "PipelineCompiler")
+	target_link_libraries( "Tests.FrameGraph" "PipelineCompiler" )
+endif ()
+if (TARGET "lodepng-lib")
 	target_link_libraries( "Tests.FrameGraph" "lodepng-lib" )
 endif()
 
-if (NOT FG_CI_BUILD)
-	add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )
-endif ()
+add_test( NAME "Tests.FrameGraph" COMMAND "Tests.FrameGraph" )

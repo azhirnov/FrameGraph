@@ -7,6 +7,12 @@ namespace FG
 
 	bool FGApp::Test_PushConst1 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		ComputePipelineDesc	ppln;
 
 		ppln.AddShader( EShaderLangFormat::VKSL_100, "main", R"#(
@@ -75,17 +81,17 @@ void main ()
 		};
 
 		
-		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ) );
+		CommandBuffer	cmd = _frameGraph->Begin( CommandBufferDesc{}.SetDebugFlags( EDebugFlags::Default ));
 		CHECK_ERR( cmd );
 		
 		resources.BindBuffer( UniformID("SSB"), dst_buffer );
 
 		Task	t_dispatch	= cmd->AddTask( DispatchCompute{}.Dispatch({ 1, 1 }).SetPipeline( pipeline )
-														.AddResources( DescriptorSetID("0"), &resources )
+														.AddResources( DescriptorSetID("0"), resources )
 														.AddPushConstant( PushConstantID("PushConst"), pc ));
 		Task	t_read		= cmd->AddTask( ReadBuffer{}.SetBuffer( dst_buffer, 0_b, dst_buffer_size ).SetCallback( OnLoaded ).DependsOn( t_dispatch ));
 
-		FG_UNUSED( t_read );
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		

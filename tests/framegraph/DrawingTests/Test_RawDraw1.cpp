@@ -1,11 +1,15 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "../FGApp.h"
-#include "pipeline_compiler/VPipelineCompiler.h"
+
+#ifdef FG_ENABLE_GLSLANG
+#	include "pipeline_compiler/VPipelineCompiler.h"
+#endif
 
 namespace FG
 {
 
+#if defined(FG_ENABLE_VULKAN) and defined(FG_ENABLE_GLSLANG)
 	static bool  CreatePipeline (const VulkanDevice &vulkan, const VulkanDrawContext &ctx, const GraphicsPipelineDesc &desc,
 								 OUT VkPipelineLayout &pplnLayout, OUT VkPipeline &pipeline)
 	{
@@ -21,24 +25,33 @@ namespace FG
 			VK_CHECK( vulkan.vkCreatePipelineLayout( vulkan.GetVkDevice(), &info, null, OUT &pplnLayout ));
 		}
 
-		const auto	FindShader = [&desc] (EShader type) -> VkShaderModule
+		const auto	CompileShader = [&vulkan, &desc] (EShader type, OUT VkShaderModule &outSM) -> bool
 		{
 			auto	sh_iter = desc._shaders.find( type );
 			if ( sh_iter != desc._shaders.end() )
 			{
-				auto	m_iter = sh_iter->second.data.find( EShaderLangFormat::VkShader_100 );
+				auto	m_iter = sh_iter->second.data.find( EShaderLangFormat::SPIRV_100 );
 				if ( m_iter != sh_iter->second.data.end() )
 				{
-					if ( auto* module = UnionGetIf< PipelineDescription::VkShaderPtr >( &m_iter->second ))
-						return BitCast<VkShaderModule>( (*module)->GetData() );
+					if ( auto* module = UnionGetIf< PipelineDescription::SpirvShaderPtr >( &m_iter->second ))
+					{
+						VkShaderModuleCreateInfo	shader_info = {};
+						shader_info.sType		= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+						shader_info.codeSize	= size_t(ArraySizeOf( (*module)->GetData() ));
+						shader_info.pCode		= (*module)->GetData().data();
+
+						CHECK_ERR( vulkan.vkCreateShaderModule( vulkan.GetVkDevice(), &shader_info, null, OUT &outSM ) == VK_SUCCESS );
+						return true;
+					}
 				}
 			}
-			return VK_NULL_HANDLE;
+			return false;
 		};
 
-		VkShaderModule	vert_shader = FindShader( EShader::Vertex );
-		VkShaderModule	frag_shader = FindShader( EShader::Fragment );
-		CHECK_ERR( vert_shader and frag_shader );
+		VkShaderModule	vert_shader = VK_NULL_HANDLE;
+		VkShaderModule	frag_shader = VK_NULL_HANDLE;
+		CHECK_ERR( CompileShader( EShader::Vertex, OUT vert_shader ));
+		CHECK_ERR( CompileShader( EShader::Fragment, OUT frag_shader ));
 
 		VkPipelineShaderStageCreateInfo			stages[2] = {};
 		stages[0].sType		= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -114,6 +127,9 @@ namespace FG
 		info.subpass				= 0;
 
 		VK_CHECK( vulkan.vkCreateGraphicsPipelines( vulkan.GetVkDevice(), VK_NULL_HANDLE, 1, &info, null, OUT &pipeline ));
+
+		vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), vert_shader, null );
+		vulkan.vkDestroyShaderModule( vulkan.GetVkDevice(), frag_shader, null );
 		return true;
 	}
 	
@@ -152,6 +168,12 @@ namespace FG
 
 	bool FGApp::Test_RawDraw1 ()
 	{
+		if ( not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
+			return true;
+		}
+
 		GraphicsPipelineDesc	ppln;
 		
 		ppln.AddShader( EShader::Vertex, EShaderLangFormat::VKSL_100, "main", R"#(
@@ -193,11 +215,13 @@ void main() {
 }
 )#" );
 
-		CHECK_ERR( _pplnCompiler->Compile( INOUT ppln, EShaderLangFormat::VkShader_100 ));
+		CHECK_ERR( _pplnCompiler->Compile( INOUT ppln, EShaderLangFormat::SPIRV_100 ));
 		
 		const uint2		view_size	= {800, 600};
-		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::ColorAttachment | EImageUsage::TransferSrc }, Default, "RenderTarget" );
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																		.SetUsage( EImageUsage::ColorAttachment | EImageUsage::TransferSrc ),
+																Default, "RenderTarget" );
+		CHECK_ERR( image );
 
 		VkPipeline			pipeline	= VK_NULL_HANDLE;
 		VkPipelineLayout	ppln_layout	= VK_NULL_HANDLE;
@@ -238,14 +262,15 @@ void main() {
 
 		LogicalPassID	render_pass	= cmd->CreateRenderPass( RenderPassDesc( view_size )
 											.AddTarget( RenderTargetID::Color_0, image, RGBA32f(0.0f), EAttachmentStoreOp::Store )
-											.AddViewport( view_size ) );
+											.AddViewport( view_size ));
+		CHECK_ERR( render_pass );
 		
 		CustomDrawData	draw_data{ _vulkan, pipeline, ppln, ppln_layout, view_size };
 		cmd->AddTask( render_pass, CustomDraw{ &CustomDrawFn, &draw_data });
 
 		Task	t_draw	= cmd->AddTask( SubmitRenderPass{ render_pass });
-		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ) );
-		FG_UNUSED( t_read );
+		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_draw ));
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );
@@ -263,5 +288,15 @@ void main() {
 		FG_LOGI( TEST_NAME << " - passed" );
 		return true;
 	}
+
+#else
+
+	bool FGApp::Test_RawDraw1 ()
+	{
+		FG_LOGI( TEST_NAME << " - skipped" );
+		return true;
+	}
+
+#endif	// FG_ENABLE_VULKAN and FG_ENABLE_GLSLANG
 
 }	// FG

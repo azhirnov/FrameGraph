@@ -7,8 +7,11 @@ namespace FG
 
 	bool FGApp::Test_TraceRays1 ()
 	{
-		if ( not _vulkan.HasDeviceExtension( VK_NV_RAY_TRACING_EXTENSION_NAME ) )
+		if ( not _properties.rayTracingNV or not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;
+		}
 
 		RayTracingPipelineDesc	ppln;
 
@@ -62,12 +65,12 @@ void main ()
 )#");
 
 		const uint2		view_size	= {800, 600};
-		ImageID			dst_image	= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{view_size.x, view_size.y, 1}, EPixelFormat::RGBA8_UNorm,
-																			EImageUsage::Storage | EImageUsage::TransferSrc },
+		ImageID			dst_image	= _frameGraph->CreateImage( ImageDesc{}.SetDimension( view_size ).SetFormat( EPixelFormat::RGBA8_UNorm )
+																	.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
 																Default, "OutputImage" );
 		
 		RTPipelineID	pipeline	= _frameGraph->CreatePipeline( ppln );
-		CHECK_ERR( pipeline );
+		CHECK_ERR( dst_image and pipeline );
 		
 		const auto		vertices	= ArrayView<float3>{ { 0.25f, 0.25f, 0.0f }, { 0.75f, 0.25f, 0.0f }, { 0.50f, 0.75f, 0.0f } };
 		const auto		indices		= ArrayView<uint>{ 0, 1, 2 };
@@ -82,6 +85,8 @@ void main ()
 		RTGeometryID	rt_geometry	= _frameGraph->CreateRayTracingGeometry( RayTracingGeometryDesc{{ triangles_info }} );
 		RTSceneID		rt_scene	= _frameGraph->CreateRayTracingScene( RayTracingSceneDesc{ 1 });
 		RTShaderTableID	rt_shaders	= _frameGraph->CreateRayTracingShaderTable();
+
+		CHECK_ERR( rt_geometry and rt_scene and rt_shaders );
 
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
@@ -142,11 +147,11 @@ void main ()
 															.AddHitShader( InstanceID{"0"}, GeometryID{"Triangle"}, 0, RTShaderID{"PrimaryHit"} )
 															.DependsOn( t_build_scene ));
 
-		Task	t_trace			= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), &resources ).SetShaderTable( rt_shaders )
+		Task	t_trace			= cmd->AddTask( TraceRays{}.AddResources( DescriptorSetID("0"), resources ).SetShaderTable( rt_shaders )
 															.SetGroupCount( view_size.x, view_size.y ).DependsOn( t_update_table ));
 
 		Task	t_read			= cmd->AddTask( ReadImage{}.SetImage( dst_image, int2(), view_size ).SetCallback( OnLoaded ).DependsOn( t_trace ));
-		FG_UNUSED( t_read );
+		Unused( t_read );
 
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

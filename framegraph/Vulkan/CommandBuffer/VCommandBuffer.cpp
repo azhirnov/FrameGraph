@@ -58,9 +58,8 @@ namespace {
 		CHECK_ERR( _state == EState::Initial );
 
 		_batch			= batch;
-		_dbgName		= desc.name;
-		_dbgFullBarriers= EnumEq( desc.debugFlags, EDebugFlags::FullBarrier );
-		_dbgQueueSync	= EnumEq( desc.debugFlags, EDebugFlags::QueueSync );
+		_dbgFullBarriers= AllBits( desc.debugFlags, EDebugFlags::FullBarrier );
+		_dbgQueueSync	= AllBits( desc.debugFlags, EDebugFlags::QueueSync );
 		_state			= EState::Recording;
 		_queueIndex		= queue->familyIndex;
 		
@@ -116,7 +115,7 @@ namespace {
 		CHECK_ERR( _BuildCommandBuffers() );
 		
 		if_unlikely( _debugger )
-			_debugger->End( GetName(), _indexInPool, OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
+			_debugger->End( _batch->GetName(), _batch->GetDependencies(), _indexInPool, OUT &_batch->_debugDump, OUT &_batch->_debugGraph );
 
 		CHECK_ERR( _batch->OnBaked( INOUT _rm.resourceMap ));
 		
@@ -130,7 +129,7 @@ namespace {
 		_state = EState::Initial;
 		return true;
 	}
-	
+
 /*
 =================================================
 	_AfterCompilation
@@ -166,7 +165,7 @@ namespace {
 	void  VCommandBuffer::SignalSemaphore (VkSemaphore sem)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
+		CHECK_ERRV( _state == EState::Recording or _state == EState::Compiling );
 
 		_batch->SignalSemaphore( sem );
 	}
@@ -179,7 +178,7 @@ namespace {
 	void  VCommandBuffer::WaitSemaphore (VkSemaphore sem, VkPipelineStageFlags stage)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _state == EState::Recording or _state == EState::Compiling, void());
+		CHECK_ERRV( _state == EState::Recording or _state == EState::Compiling );
 
 		_batch->WaitSemaphore( sem, stage );
 	}
@@ -328,7 +327,7 @@ namespace {
 	GetSwapchainImage
 =================================================
 */
-	RawImageID	VCommandBuffer::GetSwapchainImage (RawSwapchainID swapchainId, ESwapchainImage type)
+	RawImageID	VCommandBuffer::GetSwapchainImage (RawSwapchainID swapchainId)
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
@@ -337,7 +336,7 @@ namespace {
 		CHECK_ERR( swapchain );
 
 		RawImageID	id;
-		CHECK_ERR( swapchain->Acquire( *this, type, _dbgQueueSync, OUT id ));
+		CHECK_ERR( swapchain->Acquire( *this, _dbgQueueSync, OUT id ));
 
 		// transit to undefined layout
 		AcquireImage( id, true, true );
@@ -458,13 +457,13 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
+		ASSERT( AllBits( GraphicsBit, _GetQueueUsage() ));
 
 		// TODO: add scale to shader timemap
 
 		auto	rp_task = _taskGraph.Add( *this, task );
 		
-		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Fragment ) and _shaderDbg.timemapIndex != Default )
+		if ( AllBits( _shaderDbg.timemapStages, EShaderStages::Fragment ) and _shaderDbg.timemapIndex != Default )
 		{
 			rp_task->GetLogicalPass()->_SetShaderDebugIndex( _shaderDbg.timemapIndex );
 		}
@@ -484,12 +483,12 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+		ASSERT( AllBits( ComputeBit, _GetQueueUsage() ));
 		ASSERT( task.pipeline );
 
 		auto	result = _taskGraph.Add( *this, task );
 		
-		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Compute ) and _shaderDbg.timemapIndex != Default )
+		if ( AllBits( _shaderDbg.timemapStages, EShaderStages::Compute ) and _shaderDbg.timemapIndex != Default )
 		{
 			ASSERT( result->debugModeIndex == Default );
 			result->debugModeIndex = _shaderDbg.timemapIndex;
@@ -507,12 +506,12 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+		ASSERT( AllBits( ComputeBit, _GetQueueUsage() ));
 		ASSERT( task.pipeline );
 		
 		auto	result = _taskGraph.Add( *this, task );
 		
-		if ( EnumEq( _shaderDbg.timemapStages, EShaderStages::Compute ) and _shaderDbg.timemapIndex != Default )
+		if ( AllBits( _shaderDbg.timemapStages, EShaderStages::Compute ) and _shaderDbg.timemapIndex != Default )
 		{
 			ASSERT( result->debugModeIndex == Default );
 			result->debugModeIndex = _shaderDbg.timemapIndex;
@@ -530,7 +529,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
+		ASSERT( AllBits( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -547,7 +546,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
+		ASSERT( AllBits( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -564,7 +563,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
+		ASSERT( AllBits( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -581,7 +580,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
+		ASSERT( AllBits( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -598,7 +597,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
+		ASSERT( AllBits( GraphicsBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -615,7 +614,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
+		ASSERT( AllBits( GraphicsBit, _GetQueueUsage() ));
 		
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -632,7 +631,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
+		ASSERT( AllBits( GraphicsBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -659,7 +658,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+		ASSERT( AllBits( ComputeBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -673,7 +672,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+		ASSERT( AllBits( ComputeBit, _GetQueueUsage() ));
 
 		return _taskGraph.Add( *this, task );
 	}
@@ -687,7 +686,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
+		ASSERT( AllBits( TransferBit, _GetQueueUsage() ));
 
 		if ( task.regions.empty() )
 			return null;	// TODO: is it an error?
@@ -744,7 +743,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
+		ASSERT( AllBits( TransferBit, _GetQueueUsage() ));
 		
 		if ( All( task.imageSize == Zero ))
 			return null;	// TODO: is it an error?
@@ -874,7 +873,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
+		ASSERT( AllBits( TransferBit, _GetQueueUsage() ));
 		
 		if ( task.size == 0 )
 			return null;	// TODO: is it an error?
@@ -937,7 +936,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( TransferBit, _GetQueueUsage() ));
+		ASSERT( AllBits( TransferBit, _GetQueueUsage() ));
 		
 		if ( All( task.imageSize == Zero ))
 			return null;	// TODO: is it an error?
@@ -1122,11 +1121,18 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const UpdateRayTracingShaderTable &task)
 	{
+	#ifdef VK_NV_ray_tracing
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( AllBits( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( GetDevice().GetFeatures().rayTracingNV );
 
 		return _taskGraph.Add( *this, task );
+	#else
+		Unused( task );
+		ASSERT( !"ray tracing is not supported" );
+		return null;
+	#endif
 	}
 
 /*
@@ -1136,9 +1142,11 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const BuildRayTracingGeometry &task)
 	{
+	#ifdef VK_NV_ray_tracing
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( AllBits( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( GetDevice().GetFeatures().rayTracingNV );
 		
 		auto*	result	= _taskGraph.Add( *this, task );
 		auto*	geom	= ToLocal( task.rtGeometry );
@@ -1163,7 +1171,7 @@ namespace {
 		result->_scratchBuffer = ToLocal( buf.Get() );
 		ReleaseResource( buf.Release() );
 		
-		ASSERT( EnumEq( result->_scratchBuffer->Description().usage, EBufferUsage::RayTracing ));
+		ASSERT( AllBits( result->_scratchBuffer->Description().usage, EBufferUsage::RayTracing ));
 		
 		result->_geometryCount	= task.triangles.size() + task.aabbs.size();
 		result->_geometry		= _mainAllocator.Alloc<VkGeometryNV>( result->_geometryCount );
@@ -1306,6 +1314,11 @@ namespace {
 		}
 
 		return result;
+	#else
+		Unused( task );
+		ASSERT( !"ray tracing is not supported" );
+		return null;
+	#endif
 	}
 
 /*
@@ -1315,9 +1328,11 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const BuildRayTracingScene &task)
 	{
+	#ifdef VK_NV_ray_tracing
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( AllBits( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( GetDevice().GetFeatures().rayTracingNV );
 		
 		auto*	result	= _taskGraph.Add( *this, task );
 		auto*	scene	= ToLocal( task.rtScene );
@@ -1355,8 +1370,8 @@ namespace {
 		VkGeometryInstance*  vk_instances;
 		CHECK_ERR( _AllocStorage<VkGeometryInstance>( task.instances.size(), OUT result->_instanceStagingBuffer, OUT result->_instanceStagingBufferOffset, OUT vk_instances ));
 		
-		ASSERT( EnumEq( result->_scratchBuffer->Description().usage, EBufferUsage::RayTracing ));
-		ASSERT( EnumEq( result->_instanceBuffer->Description().usage, EBufferUsage::RayTracing ));
+		ASSERT( AllBits( result->_scratchBuffer->Description().usage, EBufferUsage::RayTracing ));
+		ASSERT( AllBits( result->_instanceBuffer->Description().usage, EBufferUsage::RayTracing ));
 
 		// sort instances by ID
 		Array<uint>	sorted;		// TODO: use temporary allocator
@@ -1400,6 +1415,11 @@ namespace {
 		GetResourceManager().CheckTask( task );
 
 		return result;
+	#else
+		Unused( task );
+		ASSERT( !"ray tracing is not supported" );
+		return null;
+	#endif
 	}
 	
 /*
@@ -1409,20 +1429,27 @@ namespace {
 */
 	Task  VCommandBuffer::AddTask (const TraceRays &task)
 	{
+	#ifdef VK_NV_ray_tracing
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( AllBits( RayTracingBit, _GetQueueUsage() ));
+		ASSERT( GetDevice().GetFeatures().rayTracingNV );
 		ASSERT( task.shaderTable );
 
 		auto	result = _taskGraph.Add( *this, task );
 
-		if ( EnumAny( _shaderDbg.timemapStages, EShaderStages::AllRayTracing ) and _shaderDbg.timemapIndex != Default )
+		if ( AnyBits( _shaderDbg.timemapStages, EShaderStages::AllRayTracing ) and _shaderDbg.timemapIndex != Default )
 		{
 			ASSERT( result->debugModeIndex == Default );
 			result->debugModeIndex = _shaderDbg.timemapIndex;
 		}
 
 		return result;
+	#else
+		Unused( task );
+		ASSERT( !"ray tracing is not supported" );
+		return null;
+	#endif
 	}
 	
 /*
@@ -1447,12 +1474,12 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVertices &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawVertices> >( 
 						*this, task,
@@ -1468,12 +1495,12 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexed &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawIndexed> >(
 						*this, task,
@@ -1488,18 +1515,24 @@ namespace {
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawMeshes &task)
 	{
+	#ifdef VK_NV_mesh_shader
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().meshShaderNV );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawMeshes> >(
 						*this, task,
 						VTaskProcessor::Visit1_DrawMeshes,
 						VTaskProcessor::Visit2_DrawMeshes );
+	#else
+		Unused( renderPass, task );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
 	}
 	
 /*
@@ -1510,12 +1543,13 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVerticesIndirect &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
+		ASSERT( task.indirectBuffer );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawVerticesIndirect> >(
 						*this, task,
@@ -1531,12 +1565,13 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexedIndirect &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
+		ASSERT( task.indirectBuffer );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawIndexedIndirect> >(
 						*this, task,
@@ -1546,25 +1581,102 @@ namespace {
 	
 /*
 =================================================
+	AddTask (DrawVerticesIndirectCount)
+=================================================
+*/
+	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawVerticesIndirectCount &task)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERRV( _IsRecording() );
+		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().drawIndirectCount );
+		
+		auto *	rp  = ToLocal( renderPass );
+		CHECK_ERRV( rp );
+
+		rp->AddTask< VFgDrawTask<DrawVerticesIndirectCount> >(
+						*this, task,
+						VTaskProcessor::Visit1_DrawVerticesIndirectCount,
+						VTaskProcessor::Visit2_DrawVerticesIndirectCount );
+	}
+	
+/*
+=================================================
+	AddTask (DrawIndexedIndirectCount)
+=================================================
+*/
+	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawIndexedIndirectCount &task)
+	{
+		EXLOCK( _drCheck );
+		CHECK_ERRV( _IsRecording() );
+		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().drawIndirectCount );
+		
+		auto *	rp  = ToLocal( renderPass );
+		CHECK_ERRV( rp );
+
+		rp->AddTask< VFgDrawTask<DrawIndexedIndirectCount> >(
+						*this, task,
+						VTaskProcessor::Visit1_DrawIndexedIndirectCount,
+						VTaskProcessor::Visit2_DrawIndexedIndirectCount );
+	}
+
+/*
+=================================================
 	AddTask (DrawMeshesIndirect)
 =================================================
 */
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawMeshesIndirect &task)
 	{
+	#ifdef VK_NV_mesh_shader
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.commands.size() );
 		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().meshShaderNV );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<DrawMeshesIndirect> >(
 						*this, task,
 						VTaskProcessor::Visit1_DrawMeshesIndirect,
 						VTaskProcessor::Visit2_DrawMeshesIndirect );
+	#else
+		Unused( renderPass, task );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
 	}
 	
+/*
+=================================================
+	AddTask (DrawMeshesIndirectCount)
+=================================================
+*/
+	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const DrawMeshesIndirectCount &task)
+	{
+	#ifdef VK_NV_mesh_shader
+		EXLOCK( _drCheck );
+		CHECK_ERRV( _IsRecording() );
+		ASSERT( task.commands.size() );
+		ASSERT( task.pipeline );
+		ASSERT( GetDevice().GetFeatures().meshShaderNV );
+		
+		auto *	rp  = ToLocal( renderPass );
+		CHECK_ERRV( rp );
+
+		rp->AddTask< VFgDrawTask<DrawMeshesIndirectCount> >(
+						*this, task,
+						VTaskProcessor::Visit1_DrawMeshesIndirectCount,
+						VTaskProcessor::Visit2_DrawMeshesIndirectCount );
+	#else
+		Unused( renderPass, task );
+		ASSERT( !"mesh shader is not supported" );
+	#endif
+	}
+
 /*
 =================================================
 	AddTask (CustomDraw)
@@ -1573,11 +1685,11 @@ namespace {
 	void  VCommandBuffer::AddTask (LogicalPassID renderPass, const CustomDraw &task)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _IsRecording(), void());
+		CHECK_ERRV( _IsRecording() );
 		ASSERT( task.callback );
 		
 		auto *	rp  = ToLocal( renderPass );
-		CHECK_ERR( rp, void());
+		CHECK_ERRV( rp );
 
 		rp->AddTask< VFgDrawTask<CustomDraw> >(
 						*this, task,
@@ -1608,7 +1720,7 @@ namespace {
 	{
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
-		ASSERT( EnumEq( GraphicsBit, _GetQueueUsage() ));
+		ASSERT( AllBits( GraphicsBit, _GetQueueUsage() ));
 
 		Index_t		index = 0;
 		CHECK_ERR( _rm.logicalRenderPasses.Assign( OUT index ));
@@ -1616,7 +1728,7 @@ namespace {
 		auto&		data = _rm.logicalRenderPasses[ index ];
 		Replace( data );
 
-		if ( not data.Create( *this, desc ) )
+		if ( not data.Create( *this, desc ))
 		{
 			_rm.logicalRenderPasses.Unassign( index );
 			RETURN_ERR( "failed when creating logical render pass" );
@@ -1637,7 +1749,7 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( _shaderDbg.timemapIndex == Default );	// already started
-		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+		ASSERT( AllBits( ComputeBit, _GetQueueUsage() ));
 
 		_shaderDbg.timemapStages	= stages;
 		_shaderDbg.timemapIndex		= _batch->AppendTimemap( dim, stages );
@@ -1656,21 +1768,21 @@ namespace {
 		EXLOCK( _drCheck );
 		CHECK_ERR( _IsRecording() );
 		CHECK_ERR( _shaderDbg.timemapIndex != Default );	// not started
-		ASSERT( EnumEq( ComputeBit, _GetQueueUsage() ));
+		ASSERT( AllBits( ComputeBit, _GetQueueUsage() ));
 
 		auto&	rm		= GetResourceManager();
 		auto	desc	= rm.GetDescription( dstImage );
 		auto	pplns	= rm.GetShaderTimemapPipelines();
 
-		CHECK_ERR( desc.imageType == EImage::Tex2D or desc.imageType == EImage::Tex2DArray );
+		CHECK_ERR( desc.imageType == EImageDim_2D );
 		//CHECK_ERR( desc.format == EPixelFormat::RGBA8_UNorm );
-		CHECK_ERR( EnumEq( desc.usage, EImageUsage::Storage ));
+		CHECK_ERR( AllBits( desc.usage, EImageUsage::Storage ));
 		CHECK_ERR( std::get<0>(pplns) and std::get<1>(pplns) and std::get<2>(pplns) );
 
 		PipelineResources	res;
 		RawBufferID			ssb;
 		BytesU				ssb_offset, ssb_size, ssb_offset2, ssb_size2;
-		BytesU				ssb_align { _instance.GetDevice().GetDeviceProperties().limits.minStorageBufferOffsetAlignment };
+		BytesU				ssb_align { _instance.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment };
 		uint2				ssb_dim;
 		Task				task;
 
@@ -1691,7 +1803,7 @@ namespace {
 
 			DispatchCompute		comp;
 			comp.SetPipeline( ppln );
-			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.AddResources( DescriptorSetID{"0"}, res );
 			comp.SetLocalSize({ 32, 1, 1 });
 			comp.Dispatch({ (ssb_dim.y + 31) / 32, 1, 1 });
 			comp.depends = dependsOn;
@@ -1709,7 +1821,7 @@ namespace {
 
 			DispatchCompute		comp;
 			comp.SetPipeline( ppln );
-			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.AddResources( DescriptorSetID{"0"}, res );
 			comp.SetLocalSize({ 1, 1, 1 });
 			comp.Dispatch({ 1, 1, 1 });
 			comp.DependsOn( task );
@@ -1723,11 +1835,11 @@ namespace {
 			CHECK_ERR( GetInstance().InitPipelineResources( ppln, DescriptorSetID{"0"}, OUT res ));
 			
 			res.BindBuffer( UniformID{"un_Timemap"}, ssb, ssb_offset, ssb_size );
-			res.BindImage( UniformID{"un_OutImage"}, dstImage, ImageViewDesc{}.SetViewType( EImage::Tex2D ).SetBaseLayer( layer.Get() ).SetBaseLevel( level.Get() ));
+			res.BindImage( UniformID{"un_OutImage"}, dstImage, ImageViewDesc{}.SetType( EImage_2D ).SetArrayLayers( layer.Get(), 1 ).SetBaseMipmap( level.Get() ));
 
 			DispatchCompute		comp;
 			comp.SetPipeline( ppln );
-			comp.AddResources( DescriptorSetID{"0"}, &res );
+			comp.AddResources( DescriptorSetID{"0"}, res );
 			comp.SetLocalSize({ 8, 8, 1 });
 			comp.Dispatch( (desc.dimension.xy() + 7) / 8 );
 			comp.DependsOn( task );
@@ -1775,32 +1887,36 @@ namespace {
 		_rm.buffers.maxLocalIndex = 0;
 	
 		// reset state & destroy local ray tracing geometries
-		for (uint i = 0; i < _rm.rtGeometries.maxLocalIndex; ++i)
-		{
-			auto&	geometry = _rm.rtGeometries.pool[ Index_t(i) ];
-
-			if ( not geometry.IsDestroyed() )
+		#ifdef VK_NV_ray_tracing
+			for (uint i = 0; i < _rm.rtGeometries.maxLocalIndex; ++i)
 			{
-				geometry.Data().ResetState( index, barrierMngr, debugger );
-				geometry.Destroy();
-				_rm.rtGeometries.pool.Unassign( Index_t(i) );
+				auto&	geometry = _rm.rtGeometries.pool[ Index_t(i) ];
+
+				if ( not geometry.IsDestroyed() )
+				{
+					geometry.Data().ResetState( index, barrierMngr, debugger );
+					geometry.Destroy();
+					_rm.rtGeometries.pool.Unassign( Index_t(i) );
+				}
 			}
-		}
-		_rm.rtGeometries.maxLocalIndex = 0;
+			_rm.rtGeometries.maxLocalIndex = 0;
+		#endif
 
 		// merge & destroy ray tracing scenes
-		for (uint i = 0; i < _rm.rtScenes.maxLocalIndex; ++i)
-		{
-			auto&	scene = _rm.rtScenes.pool[ Index_t(i) ];
-
-			if ( not scene.IsDestroyed() )
+		#ifdef VK_NV_ray_tracing
+			for (uint i = 0; i < _rm.rtScenes.maxLocalIndex; ++i)
 			{
-				scene.Data().ResetState( index, barrierMngr, debugger );
-				scene.Destroy();
-				_rm.rtScenes.pool.Unassign( Index_t(i) );
+				auto&	scene = _rm.rtScenes.pool[ Index_t(i) ];
+
+				if ( not scene.IsDestroyed() )
+				{
+					scene.Data().ResetState( index, barrierMngr, debugger );
+					scene.Destroy();
+					_rm.rtScenes.pool.Unassign( Index_t(i) );
+				}
 			}
-		}
-		_rm.rtScenes.maxLocalIndex = 0;
+			_rm.rtScenes.maxLocalIndex = 0;
+		#endif
 		
 		_ResetLocalRemaping();
 	}
@@ -1837,7 +1953,7 @@ namespace {
 		auto&	data = localRes.pool[ local ];
 		Replace( data );
 		
-		if ( not data.Create( res ) )
+		if ( not data.Create( res ))
 		{
 			localRes.pool.Unassign( local );
 			RETURN_ERR( msg );
@@ -1863,7 +1979,8 @@ namespace {
 	{
 		return _ToLocal( id, _rm.images, "failed when creating local image" );
 	}
-
+	
+#ifdef VK_NV_ray_tracing
 	VLocalRTGeometry const*  VCommandBuffer::ToLocal (RawRTGeometryID id)
 	{
 		return _ToLocal( id, _rm.rtGeometries, "failed when creating local ray tracing geometry" );
@@ -1873,6 +1990,7 @@ namespace {
 	{
 		return _ToLocal( id, _rm.rtScenes, "failed when creating local ray tracing scene" );
 	}
+#endif
 	
 	VLogicalRenderPass*  VCommandBuffer::ToLocal (LogicalPassID id)
 	{
@@ -1892,15 +2010,17 @@ namespace {
 */
 	void  VCommandBuffer::_ResetLocalRemaping ()
 	{
-		memset( _rm.images.toLocal.data(), ~0u, sizeof(Index_t)*_rm.images.maxGlobalIndex );
-		memset( _rm.buffers.toLocal.data(), ~0u, sizeof(Index_t)*_rm.buffers.maxGlobalIndex );
-		memset( _rm.rtScenes.toLocal.data(), ~0u, sizeof(Index_t)*_rm.rtScenes.maxGlobalIndex );
-		memset( _rm.rtGeometries.toLocal.data(), ~0u, sizeof(Index_t)*_rm.rtGeometries.maxGlobalIndex );
-
-		_rm.images.maxGlobalIndex		= 0;
-		_rm.buffers.maxGlobalIndex		= 0;
+		std::memset( _rm.images.toLocal.data(), ~0u, sizeof(Index_t)*_rm.images.maxGlobalIndex );
+		std::memset( _rm.buffers.toLocal.data(), ~0u, sizeof(Index_t)*_rm.buffers.maxGlobalIndex );
+		_rm.images.maxGlobalIndex	= 0;
+		_rm.buffers.maxGlobalIndex	= 0;
+		
+		#ifdef VK_NV_ray_tracing
+		std::memset( _rm.rtScenes.toLocal.data(), ~0u, sizeof(Index_t)*_rm.rtScenes.maxGlobalIndex );
+		std::memset( _rm.rtGeometries.toLocal.data(), ~0u, sizeof(Index_t)*_rm.rtGeometries.maxGlobalIndex );
 		_rm.rtScenes.maxGlobalIndex		= 0;
 		_rm.rtGeometries.maxGlobalIndex	= 0;
+		#endif
 	}
 //-----------------------------------------------------------------------------
 

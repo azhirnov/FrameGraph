@@ -1,5 +1,14 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
+#ifdef COMPILER_GCC
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wmissing-braces"
+#endif
+#ifdef COMPILER_CLANG
+#	pragma clang diagnostic push
+#	pragma clang diagnostic ignored "-Wmissing-braces"
+#endif
+
 #include "framegraph/Public/PipelineResources.h"
 #include "PipelineResourcesHelper.h"
 #include "stl/Memory/UntypedAllocator.h"
@@ -57,7 +66,8 @@ namespace {
 */
 	inline HashVal  HashOf (const FG::PipelineResources::Image &img)
 	{
-		HashVal	result = FGC::HashOf( img.index ) + FGC::HashOf( img.state ) + FGC::HashOf( img.elementCount );
+		HashVal	result = FGC::HashOf( img.index ) + FGC::HashOf( img.state ) +
+						 FGC::HashOf( img.imageType ) + FGC::HashOf( img.elementCount );
 
 		for (uint16_t i = 0; i < img.elementCount; ++i)
 		{
@@ -74,7 +84,8 @@ namespace {
 */
 	inline HashVal  HashOf (const FG::PipelineResources::Texture &tex)
 	{
-		HashVal	result = FGC::HashOf( tex.index ) + FGC::HashOf( tex.state ) + FGC::HashOf( tex.elementCount );
+		HashVal	result = FGC::HashOf( tex.index ) + FGC::HashOf( tex.state ) +
+						 FGC::HashOf( tex.samplerType ) + FGC::HashOf( tex.elementCount );
 
 		for (uint16_t i = 0; i < tex.elementCount; ++i)
 		{
@@ -629,12 +640,12 @@ namespace FG
 	void  PipelineResources::Reset (const UniformID &name)
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _dataPtr, void());
+		CHECK_ERRV( _dataPtr );
 		
 		auto*	uniforms = _dataPtr->Uniforms();
 		size_t	index	 = BinarySearch( ArrayView<Uniform>{uniforms, _dataPtr->uniformCount}, name );
 		
-		CHECK_ERR( index < _dataPtr->uniformCount, void())
+		CHECK_ERRV( index < _dataPtr->uniformCount )
 		
 		auto&	un  = uniforms[ index ];
 		void*	ptr = _dataPtr.get() + BytesU{un.offset};
@@ -665,7 +676,7 @@ namespace FG
 	void  PipelineResources::ResetAll ()
 	{
 		EXLOCK( _drCheck );
-		CHECK_ERR( _dataPtr, void());
+		CHECK_ERRV( _dataPtr );
 
 		_dataPtr->ForEachUniform( [](auto&, auto& data) { data.elementCount = 0; });
 		_ResetCachedID();
@@ -729,6 +740,7 @@ namespace {
 	{
 		if ( lhs.index			!= rhs.index		or
 			 lhs.state			!= rhs.state		or
+			 lhs.imageType		!= rhs.imageType	or
 			 lhs.elementCount	!= rhs.elementCount )
 			return false;
 
@@ -751,6 +763,7 @@ namespace {
 	{
 		if ( lhs.index			!= rhs.index		or
 			 lhs.state			!= rhs.state		or
+			 lhs.samplerType	!= rhs.samplerType	or
 			 lhs.elementCount	!= rhs.elementCount	)
 			return false;
 
@@ -934,11 +947,6 @@ namespace {
 	CreateDynamicData
 =================================================
 */
-#ifdef COMPILER_GCC
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wmissing-braces"
-#endif
-
 	PipelineResources::DynamicDataPtr
 		PipelineResourcesHelper::CreateDynamicData (const PipelineDescription::UniformMapPtr &uniforms,
 													uint resourceCount, uint arrayElemCount, uint bufferDynamicOffsetCount)
@@ -980,7 +988,7 @@ namespace {
 					{
 						void* ptr = &mem.EmplaceSized<PRs::Texture>(
 											BytesU{sizeof(PRs::Texture) + sizeof(PRs::Texture::Element) * (array_capacity-1)},
-											un.second.index, tex.state, array_capacity, array_size, Default );
+											un.second.index, tex.state, tex.textureType, array_capacity, array_size, Default );
 
 						curr.resType	= PRs::Texture::TypeId;
 						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
@@ -1000,7 +1008,7 @@ namespace {
 					{
 						void* ptr = &mem.EmplaceSized<PRs::Image>(
 											BytesU{sizeof(PRs::Image) + sizeof(PRs::Image::Element) * (array_capacity-1)},
-											un.second.index, spi.state, array_capacity, array_size, Default );
+											un.second.index, spi.state, Default, array_capacity, array_size, Default );
 
 						curr.resType	= PRs::Image::TypeId;
 						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
@@ -1010,7 +1018,7 @@ namespace {
 					{
 						void* ptr = &mem.EmplaceSized<PRs::Image>(
 											BytesU{sizeof(PRs::Image) + sizeof(PRs::Image::Element) * (array_capacity-1)},
-											un.second.index, img.state, array_capacity, array_size, Default );
+											un.second.index, img.state, img.imageType, array_capacity, array_size, Default );
 
 						curr.resType	= PRs::Image::TypeId;
 						curr.offset		= uint16_t(mem.OffsetOf( ptr, 0_b ));
@@ -1055,14 +1063,17 @@ namespace {
 		}
 
 		std::sort( uniforms_ptr, uniforms_ptr + data->uniformCount,
-				   [] (auto& lhs, auto& rhs) { return lhs.id < rhs.id; } );
+				   [] (auto& lhs, auto& rhs) { return lhs.id < rhs.id; });
 
 		ASSERT( dbo_count == bufferDynamicOffsetCount );
 		return DynamicDataPtr{ data };
 	}
+
+}	// FG
 	
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic pop
 #endif
-
-}	// FG
+#ifdef COMPILER_CLANG
+#	pragma clang diagnostic pop
+#endif

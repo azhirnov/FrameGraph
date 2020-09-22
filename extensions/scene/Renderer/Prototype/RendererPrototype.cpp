@@ -120,7 +120,7 @@ namespace FG
 		AddRenderLayer( layer, INOUT info );
 		info.sourceIDs.push_back( _graphicsShaderSource );
 
-		if ( not _shaderCache.GetPipeline( INOUT info, OUT outPipeline ) )
+		if ( not _shaderCache.GetPipeline( INOUT info, OUT outPipeline ))
 			return false;
 
 		if ( not _perPassResources.IsInitialized() )
@@ -173,7 +173,7 @@ namespace FG
 		//info.constants.emplace_back( "SHADOW_RAY_LOC",  1 );
 		info.constants.emplace_back( "MAX_LIGHT_COUNT", uint(CountOf( &LightsUB::lights )) );
 
-		if ( not _shaderCache.GetPipeline( INOUT info, OUT outPipeline ) )
+		if ( not _shaderCache.GetPipeline( INOUT info, OUT outPipeline ))
 			return false;
 
 		auto&	ppln_res = _shaderOutputResources[ uint(layer) ];
@@ -276,7 +276,7 @@ namespace FG
 		RenderPassDesc	rp{ desc.dimension.xy() };
 		rp.AddTarget( RenderTargetID::Depth, shadow_map );
 		rp.AddViewport( desc.dimension.xy() );
-		rp.AddResources( DescriptorSetID{"PerPass"}, &_perPassResources );
+		rp.AddResources( DescriptorSetID{"PerPass"}, _perPassResources );
 
 		auto&	res = _shaderOutputResources[uint(ERenderLayer::Shadow)];
 		if ( res.IsInitialized() ) {
@@ -310,7 +310,7 @@ namespace FG
 			rp.AddViewport( dimension );
 			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( true );
 			rp.SetDepthCompareOp( ECompareOp::LEqual );	// for reverse depth buffer
-			rp.AddResources( DescriptorSetID{"PerPass"}, &_perPassResources );
+			rp.AddResources( DescriptorSetID{"PerPass"}, _perPassResources );
 			
 			auto&	res = _shaderOutputResources[uint(ERenderLayer::Opaque_1)];
 			if ( res.IsInitialized() ) {
@@ -330,7 +330,7 @@ namespace FG
 			rp.SetDepthTestEnabled( true ).SetDepthWriteEnabled( false );
 			rp.SetDepthCompareOp( ECompareOp::GEqual );	// for reverse depth buffer
 			rp.AddColorBuffer( RenderTargetID("out_Color"), EBlendFactor::SrcAlpha, EBlendFactor::OneMinusSrcAlpha, EBlendOp::Add );
-			rp.AddResources( DescriptorSetID{"PerPass"}, &_perPassResources );
+			rp.AddResources( DescriptorSetID{"PerPass"}, _perPassResources );
 			
 			auto&	res = _shaderOutputResources[uint(ERenderLayer::Opaque_1)];
 			if ( res.IsInitialized() ) {
@@ -419,10 +419,10 @@ namespace FG
 		}
 
 		ImageDesc	desc;
-		desc.imageType	= EImage::Tex2D;
-		desc.dimension	= uint3{ dim, 1 };
-		desc.format		= EPixelFormat::RGBA16F;	// HDR
-		desc.usage		= EImageUsage::ColorAttachment | EImageUsage::Storage | EImageUsage::Transfer;
+		desc.SetView( EImage_2D );
+		desc.SetDimension( dim );
+		desc.SetFormat( EPixelFormat::RGBA16F );	// HDR
+		desc.SetUsage( EImageUsage::ColorAttachment | EImageUsage::Storage | EImageUsage::Transfer );
 
 		_colorTarget = _frameGraph->CreateImage( desc, Default, "ColorTarget" );
 		return _colorTarget;
@@ -446,10 +446,10 @@ namespace FG
 		}
 
 		ImageDesc	desc;
-		desc.imageType	= EImage::Tex2D;
-		desc.dimension	= uint3{ dim, 1 };
-		desc.format		= EPixelFormat::Depth32F;
-		desc.usage		= EImageUsage::DepthStencilAttachment | EImageUsage::Transfer;
+		desc.SetView( EImage_2D );
+		desc.SetDimension( dim );
+		desc.SetFormat( EPixelFormat::Depth32F );
+		desc.SetUsage( EImageUsage::DepthStencilAttachment | EImageUsage::Transfer );
 
 		_depthTarget = _frameGraph->CreateImage( desc, Default, "DepthTarget" );
 		return _depthTarget;

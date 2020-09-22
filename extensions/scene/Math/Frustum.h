@@ -401,7 +401,7 @@ namespace FGC
 		auto	dir = cross( lp.norm, rp.norm );
 		auto	len = length2( dir );
 
-		if ( Equals( len, T(0), _err ) )
+		if ( Equals( len, T(0), _err ))
 			return false;
 
 		result = dir * (T(1) / Sqrt(len));

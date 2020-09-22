@@ -38,7 +38,7 @@ namespace FG
 	public:
 		using Index_t			= RawImageID::Index_t;
 		using AssignOpGuard_t	= Mutex;
-		using CacheGuard_t		= std::shared_mutex;
+		using CacheGuard_t		= SharedMutex;
 
 		template <typename T, size_t ChunkSize, size_t MaxChunks>
 		using PoolTmpl			= ChunkedIndexedPool< T, Index_t, ChunkSize, MaxChunks, UntypedAlignedAllocator, AssignOpGuard_t, AtomicPtr >;
@@ -49,26 +49,26 @@ namespace FG
 		static constexpr uint	MaxImages		= 1u << 10;
 		static constexpr uint	MaxBuffers		= 1u << 10;
 		static constexpr uint	MaxMemoryObjs	= 1u << 10;
-		static constexpr uint	MaxCached		= 1u << 9;
-		static constexpr uint	MaxRTObjects	= 1u << 9;
+		static constexpr uint	MaxCached		= 1u <<  9;
+		static constexpr uint	MaxRTObjects	= 1u <<  9;
 
 		using ImagePool_t			= PoolTmpl<			ResourceBase<VImage>,					MaxImages,		32 >;
 		using BufferPool_t			= PoolTmpl<			ResourceBase<VBuffer>,					MaxBuffers,		32 >;
 		using MemoryPool_t			= PoolTmpl<			ResourceBase<VMemoryObj>,				MaxMemoryObjs,	63 >;
-		using SamplerPool_t			= CachedPoolTmpl<	ResourceBase<VSampler>,					MaxCached,		8 >;
-		using GPipelinePool_t		= PoolTmpl<			ResourceBase<VGraphicsPipeline>,		MaxCached,		8 >;
-		using CPipelinePool_t		= PoolTmpl<			ResourceBase<VComputePipeline>,			MaxCached,		8 >;
-		using MPipelinePool_t		= PoolTmpl<			ResourceBase<VMeshPipeline>,			MaxCached,		8 >;
-		using RTPipelinePool_t		= PoolTmpl<			ResourceBase<VRayTracingPipeline>,		MaxCached,		8 >;
-		using PplnLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VPipelineLayout>,			MaxCached,		8 >;
-		using DSLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VDescriptorSetLayout>,		MaxCached,		8 >;
-		using RenderPassPool_t		= CachedPoolTmpl<	ResourceBase<VRenderPass>,				MaxCached,		8 >;
-		using FramebufferPool_t		= CachedPoolTmpl<	ResourceBase<VFramebuffer>,				MaxCached,		8 >;
-		using PplnResourcesPool_t	= CachedPoolTmpl<	ResourceBase<VPipelineResources>,		MaxCached,		8 >;
+		using SamplerPool_t			= CachedPoolTmpl<	ResourceBase<VSampler>,					MaxCached,		 8 >;
+		using GPipelinePool_t		= PoolTmpl<			ResourceBase<VGraphicsPipeline>,		MaxCached,		 8 >;
+		using CPipelinePool_t		= PoolTmpl<			ResourceBase<VComputePipeline>,			MaxCached,		 8 >;
+		using MPipelinePool_t		= PoolTmpl<			ResourceBase<VMeshPipeline>,			MaxCached,		 8 >;
+		using RTPipelinePool_t		= PoolTmpl<			ResourceBase<VRayTracingPipeline>,		MaxCached,		 8 >;
+		using PplnLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VPipelineLayout>,			MaxCached,		 8 >;
+		using DSLayoutPool_t		= CachedPoolTmpl<	ResourceBase<VDescriptorSetLayout>,		MaxCached,		 8 >;
+		using RenderPassPool_t		= CachedPoolTmpl<	ResourceBase<VRenderPass>,				MaxCached,		 8 >;
+		using FramebufferPool_t		= CachedPoolTmpl<	ResourceBase<VFramebuffer>,				MaxCached,		 8 >;
+		using PplnResourcesPool_t	= CachedPoolTmpl<	ResourceBase<VPipelineResources>,		MaxCached,		 8 >;
 		using RTGeometryPool_t		= PoolTmpl<			ResourceBase<VRayTracingGeometry>,		MaxRTObjects,	16 >;
 		using RTScenePool_t			= PoolTmpl<			ResourceBase<VRayTracingScene>,			MaxRTObjects,	16 >;
 		using RTShaderTablePool_t	= PoolTmpl<			ResourceBase<VRayTracingShaderTable>,	MaxRTObjects,	16 >;
-		using SwapchainPool_t		= PoolTmpl<			ResourceBase<VSwapchain>,				64,				1 >;
+		using SwapchainPool_t		= PoolTmpl<			ResourceBase<VSwapchain>,				8,				 4 >;
 		
 		using PipelineCompilers_t	= HashSet< PipelineCompiler >;
 		using VkShaderPtr			= PipelineDescription::VkShaderPtr;
@@ -93,8 +93,6 @@ namespace FG
 
 		GPipelinePool_t				_graphicsPplnPool;
 		CPipelinePool_t				_computePplnPool;
-		MPipelinePool_t				_meshPplnPool;
-		RTPipelinePool_t			_rayTracingPplnPool;
 
 		PplnLayoutPool_t			_pplnLayoutCache;
 		DSLayoutPool_t				_dsLayoutCache;
@@ -102,17 +100,24 @@ namespace FG
 
 		RenderPassPool_t			_renderPassCache;
 		FramebufferPool_t			_framebufferCache;
+		
+		#ifdef VK_NV_mesh_shader
+		MPipelinePool_t				_meshPplnPool;
+		#endif
 
+		#ifdef VK_NV_ray_tracing
+		RTPipelinePool_t			_rayTracingPplnPool;
 		RTGeometryPool_t			_rtGeometryPool;
 		RTScenePool_t				_rtScenePool;
 		RTShaderTablePool_t			_rtShaderTablePool;
+		#endif
 
 		SwapchainPool_t				_swapchainPool;
 		
 		Mutex						_shaderCacheGuard;
 		ShaderModules_t				_shaderCache;
 
-		std::shared_mutex			_compilersGuard;
+		SharedMutex					_compilersGuard;
 		PipelineCompilers_t			_compilers;
 
 		Atomic<uint>				_submissionCounter;
@@ -131,6 +136,8 @@ namespace FG
 			BytesU						writeBufPageSize;
 			BytesU						readBufPageSize;
 			BytesU						uniformBufPageSize;
+			BytesU						maxStagingBufferMemory;
+			Atomic<uint64_t>			currStagingBufferMemory		{0};
 		}							_staging;
 
 		// cached resources validation
@@ -149,13 +156,13 @@ namespace FG
 		RawDescriptorSetLayoutID	_emptyDSLayout;
 
 		DEBUG_ONLY(
-			HashCollisionCheck<std::shared_mutex>	_hashCollisionCheck;
+			HashCollisionCheck<SharedMutex>	_hashCollisionCheck;
 		)
 
 
 	// methods
 	public:
-		explicit VResourceManager (const VDevice &dev);
+		VResourceManager (const VDevice &dev, BytesU maxStagingBufferMemory, BytesU stagingBufferSize);
 		~VResourceManager ();
 
 		bool  Initialize ();
@@ -274,17 +281,21 @@ namespace FG
 		ND_ auto&  _GetResourcePool (const RawMemoryID &)				{ return _memoryObjPool; }
 		ND_ auto&  _GetResourcePool (const RawGPipelineID &)			{ return _graphicsPplnPool; }
 		ND_ auto&  _GetResourcePool (const RawCPipelineID &)			{ return _computePplnPool; }
-		ND_ auto&  _GetResourcePool (const RawMPipelineID &)			{ return _meshPplnPool; }
-		ND_ auto&  _GetResourcePool (const RawRTPipelineID &)			{ return _rayTracingPplnPool; }
 		ND_ auto&  _GetResourcePool (const RawPipelineLayoutID &)		{ return _pplnLayoutCache; }
 		ND_ auto&  _GetResourcePool (const RawDescriptorSetLayoutID &)	{ return _dsLayoutCache; }
 		ND_ auto&  _GetResourcePool (const RawRenderPassID &)			{ return _renderPassCache; }
 		ND_ auto&  _GetResourcePool (const RawFramebufferID &)			{ return _framebufferCache; }
 		ND_ auto&  _GetResourcePool (const RawPipelineResourcesID &)	{ return _pplnResourcesCache; }
+		ND_ auto&  _GetResourcePool (const RawSwapchainID &)			{ return _swapchainPool; }
+		#ifdef VK_NV_mesh_shader
+		ND_ auto&  _GetResourcePool (const RawMPipelineID &)			{ return _meshPplnPool; }
+		#endif
+		#ifdef VK_NV_ray_tracing
+		ND_ auto&  _GetResourcePool (const RawRTPipelineID &)			{ return _rayTracingPplnPool; }
 		ND_ auto&  _GetResourcePool (const RawRTGeometryID &)			{ return _rtGeometryPool; }
 		ND_ auto&  _GetResourcePool (const RawRTSceneID &)				{ return _rtScenePool; }
 		ND_ auto&  _GetResourcePool (const RawRTShaderTableID &)		{ return _rtShaderTablePool; }
-		ND_ auto&  _GetResourcePool (const RawSwapchainID &)			{ return _swapchainPool; }
+		#endif
 
 		template <typename ID>
 		ND_ const auto&  _GetResourceCPool (const ID &id)		const	{ return const_cast<VResourceManager *>(this)->_GetResourcePool( id ); }
@@ -335,6 +346,7 @@ namespace FG
 			ASSERT( quiet or data.GetInstanceID() == id.InstanceID() );
 		}
 
+		Unused( quiet );
 		ASSERT( quiet and "resource index is out of range" );
 		return static_cast< Result_t >(null);
 	}

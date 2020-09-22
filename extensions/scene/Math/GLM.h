@@ -181,7 +181,7 @@ namespace FGC
 		return dst;
 	}
 	
-	template <typename T, uint I>
+	template <typename T, glm::length_t I>
 	ND_ inline Vec<T,I>  VecCast (const glm::vec<I,T> &src)
 	{
 		Vec<T,I>	dst;
@@ -190,7 +190,16 @@ namespace FGC
 		}
 		return dst;
 	}
-
+	
+	template <typename T>
+	ND_ inline glm::vec<4,T>  VecCast (const RGBAColor<T> &src)
+	{
+		glm::vec<4,T>	dst;
+		for (uint i = 0; i < 4; ++i) {
+			dst[i] = src[i];
+		}
+		return dst;
+	}
 /*
 =================================================
 	MatCast
@@ -207,8 +216,8 @@ namespace FGC
 		return dst;
 	}
 
-	template <typename T, uint C, uint R, size_t Align>
-	ND_ inline void  MatCast (const glm::mat<C, R, T> &src, OUT Matrix<T, C, R, EMatrixOrder::ColumnMajor, Align> &dst)
+	template <typename T, glm::length_t C, glm::length_t R, size_t Align>
+	inline void  MatCast (const glm::mat<C, R, T> &src, OUT Matrix<T, C, R, EMatrixOrder::ColumnMajor, Align> &dst)
 	{
 		for (uint c = 0; c < C; ++c)
 		for (uint r = 0; r < R; ++r) {
@@ -216,8 +225,8 @@ namespace FGC
 		}
 	}
 	
-	template <typename T, uint C, uint R, size_t Align>
-	ND_ inline void  MatCast (const glm::mat<R, C, T> &src, OUT Matrix<T, C, R, EMatrixOrder::RowMajor, Align> &dst)
+	template <typename T, glm::length_t C, glm::length_t R, size_t Align>
+	inline void  MatCast (const glm::mat<R, C, T> &src, OUT Matrix<T, C, R, EMatrixOrder::RowMajor, Align> &dst)
 	{
 		for (uint c = 0; c < C; ++c)
 		for (uint r = 0; r < R; ++r) {
@@ -231,14 +240,14 @@ namespace FGC
 =================================================
 */
 	template <typename T>
-	inline bool2  Equals (const glm::tvec2<T> &lhs, const glm::tvec2<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	ND_ inline bool2  Equals (const glm::tvec2<T> &lhs, const glm::tvec2<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
 	{
 		return {Equals( lhs.x, rhs.x, err ),
 				Equals( lhs.y, rhs.y, err )};
 	}
 
 	template <typename T>
-	inline bool3  Equals (const glm::tvec3<T> &lhs, const glm::tvec3<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	ND_ inline bool3  Equals (const glm::tvec3<T> &lhs, const glm::tvec3<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
 	{
 		return {Equals( lhs.x, rhs.x, err ),
 				Equals( lhs.y, rhs.y, err ),
@@ -246,7 +255,7 @@ namespace FGC
 	}
 	
 	template <typename T>
-	inline bool4  Equals (const glm::tvec4<T> &lhs, const glm::tvec4<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	ND_ inline bool4  Equals (const glm::tvec4<T> &lhs, const glm::tvec4<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
 	{
 		return {Equals( lhs.x, rhs.x, err ),
 				Equals( lhs.y, rhs.y, err ),
@@ -255,7 +264,7 @@ namespace FGC
 	}
 
 	template <typename T>
-	inline bool4  Equals (const glm::qua<T> &lhs, const glm::qua<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
+	ND_ inline bool4  Equals (const glm::qua<T> &lhs, const glm::qua<T> &rhs, const T &err = std::numeric_limits<T>::epsilon())
 	{
 		return {Equals( lhs.x, rhs.x, err ),
 				Equals( lhs.y, rhs.y, err ),
@@ -268,14 +277,14 @@ namespace FGC
 	ToString
 =================================================
 */
-	template <typename T, int length>
-	inline String  ToString (const glm::vec<length, T> &vec)
+	template <typename T, glm::length_t length>
+	ND_ inline String  ToString (const glm::vec<length, T> &vec)
 	{
 		return ToString( VecCast( vec ));
 	}
 
 	template <typename T>
-	inline String  ToString (const glm::tquat<T> &q)
+	ND_ inline String  ToString (const glm::tquat<T> &q)
 	{
 		return ToString( Vec<T,4>{ q.x, q.y, q.z, q.w });
 	}
@@ -293,7 +302,7 @@ namespace _fg_hidden_
 	template <typename T>
 	struct TQuatIdentity;
 	
-	template <length_t C, length_t R, typename T, qualifier Q>
+	template <glm::length_t C, glm::length_t R, typename T, qualifier Q>
 	struct TMatIdentity< mat<C,R,T,Q> >
 	{
 		static constexpr mat<C,R,T,Q>  Get ()

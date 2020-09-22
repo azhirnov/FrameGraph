@@ -2,13 +2,6 @@
 
 #pragma once
 
-
-#if defined(DEBUG) || defined(_DEBUG)
-#	define FG_DEBUG
-#else
-#	define FG_RELEASE
-#endif
-
 #include "stl/Config.h"
 
 
@@ -82,16 +75,6 @@
 #endif
 
 
-// macro for unused variables
-#ifndef FG_UNUSED
-# if 0 // TODO: C++17
-#	define FG_UNUSED( ... )		[[maybe_unused]]( __VA_ARGS__ )
-# else
-#	define FG_UNUSED( ... )		(void)( __VA_ARGS__ )
-# endif
-#endif
-
-
 // debug break
 #ifndef FG_PRIVATE_BREAK_POINT
 # if defined(COMPILER_MSVC) and defined(FG_DEBUG)
@@ -159,17 +142,35 @@
 
 
 // branch prediction optimization
-#if 0 // TODO: C++20
+#ifdef COMPILER_MSVC
+#  if 0 //_MSC_VER >= 1926	// TODO: enable C++20
 #	define if_likely( ... )		[[likely]] if ( __VA_ARGS__ )
 #	define if_unlikely( ... )	[[unlikely]] if ( __VA_ARGS__ )
+#  endif
+#endif
 
-#elif defined(COMPILER_CLANG) or defined(COMPILER_GCC)
+#if defined(COMPILER_CLANG) or defined(COMPILER_GCC)
 #	define if_likely( ... )		if ( __builtin_expect( !!(__VA_ARGS__), 1 ))
 #	define if_unlikely( ... )	if ( __builtin_expect( !!(__VA_ARGS__), 0 ))
-#else
+#endif
+
+#ifndef if_likely
 	// not supported
 #	define if_likely( ... )		if ( __VA_ARGS__ )
 #	define if_unlikely( ... )	if ( __VA_ARGS__ )
+#endif
+
+
+// no unique address
+#if defined(COMPILER_GCC)
+#  if __has_cpp_attribute( no_unique_address )
+#	define NO_UNIQUE_ADDRESS	[[no_unique_address]]
+#  endif
+#endif
+
+#ifndef NO_UNIQUE_ADDRESS
+	// not supported
+#	define NO_UNIQUE_ADDRESS
 #endif
 
 
@@ -231,7 +232,12 @@
 		}}
 
 #	define CHECK_ERR( ... ) \
-		FG_PRIVATE_CHECK_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ) )
+		FG_PRIVATE_CHECK_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ))
+#endif
+
+#ifndef CHECK_ERRV
+#	define CHECK_ERRV( _expr_ ) \
+		FG_PRIVATE_CHECK_ERR( (_expr_), void() )
 #endif
 
 
@@ -252,7 +258,7 @@
 		{ FG_LOGE( _text_ );  return (_ret_); }
 
 #	define RETURN_ERR( ... ) \
-		FG_PRIVATE_RETURN_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ) )
+		FG_PRIVATE_RETURN_ERR( FG_PRIVATE_GETARG_0( __VA_ARGS__ ), FG_PRIVATE_GETARG_1( __VA_ARGS__, ::FGC::Default ))
 #endif
 
 
@@ -260,20 +266,20 @@
 #ifndef STATIC_ASSERT
 #	define STATIC_ASSERT( ... ) \
 		static_assert(	FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_0( __VA_ARGS__ ) ), \
-						FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_1( __VA_ARGS__, FG_PRIVATE_TOSTRING(__VA_ARGS__) ) ) )
+						FG_PRIVATE_GETRAW( FG_PRIVATE_GETARG_1( __VA_ARGS__, FG_PRIVATE_TOSTRING(__VA_ARGS__) )))
 #endif
 
 
 // bit operators
 #define FG_BIT_OPERATORS( _type_ ) \
-	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
-	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
+	ND_ constexpr _type_  operator |  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::ToNearUInt(lhs) | FGC::ToNearUInt(rhs) ); } \
+	ND_ constexpr _type_  operator &  (_type_ lhs, _type_ rhs)	{ return _type_( FGC::ToNearUInt(lhs) & FGC::ToNearUInt(rhs) ); } \
 	\
-	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::EnumToUInt(lhs) | FGC::EnumToUInt(rhs) ); } \
-	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::EnumToUInt(lhs) & FGC::EnumToUInt(rhs) ); } \
+	constexpr _type_&  operator |= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::ToNearUInt(lhs) | FGC::ToNearUInt(rhs) ); } \
+	constexpr _type_&  operator &= (_type_ &lhs, _type_ rhs)	{ return lhs = _type_( FGC::ToNearUInt(lhs) & FGC::ToNearUInt(rhs) ); } \
 	\
-	ND_ constexpr _type_  operator ~ (_type_ lhs)				{ return _type_(~FGC::EnumToUInt(lhs)); } \
-	ND_ constexpr bool   operator ! (_type_ lhs)				{ return not FGC::EnumToUInt(lhs); } \
+	ND_ constexpr _type_  operator ~ (_type_ lhs)				{ return _type_(~FGC::ToNearUInt(lhs)); } \
+	ND_ constexpr bool   operator ! (_type_ lhs)				{ return not FGC::ToNearUInt(lhs); } \
 	
 
 // enable/disable checks for enums
@@ -390,8 +396,41 @@
 #endif
 
 
+// replace assertions by exceptions
+#ifndef FG_NO_EXCEPTIONS
+
+#	include <stdexcept>
+
+#	undef  FG_PRIVATE_BREAK_POINT
+#	define FG_PRIVATE_BREAK_POINT()	{}
+
+#	undef  FG_LOGE
+#	define FG_LOGE	FG_LOGI
+
+	// keep ASSERT and CHECK behaviour because they may be used in destructor
+	// but override CHECK_ERR, CHECK_FATAL and RETURN_ERR to allow user to handle this errors
+
+#	undef  FG_PRIVATE_CHECK_ERR
+#	define FG_PRIVATE_CHECK_ERR( _expr_, _ret_ ) \
+		{if ( !(_expr_) ) { \
+			throw FGC::FGException{ FG_PRIVATE_TOSTRING( _expr_ )}; \
+		}}
+
+#	undef  CHECK_FATAL
+#	define CHECK_FATAL( _expr_ ) \
+		{if ( !(_expr_) ) { \
+			throw FGC::FGException{ FG_PRIVATE_TOSTRING( _expr_ )}; \
+		}}
+
+#	undef  FG_PRIVATE_RETURN_ERR
+#	define FG_PRIVATE_RETURN_ERR( _text_, _ret_ ) \
+		{throw FGC::FGException{ _text_ };}
+
+#endif
+
+
 // check definitions
-#if defined (COMPILER_MSVC) or defined (COMPILER_CLANG)
+#ifdef FG_CPP_DETECT_MISMATCH
 
 #  ifdef FG_OPTIMAL_MEMORY_ORDER
 #	pragma detect_mismatch( "FG_OPTIMAL_MEMORY_ORDER", "1" )
@@ -447,4 +486,10 @@
 #	pragma detect_mismatch( "FG_CI_BUILD", "0" )
 #  endif
 
-#endif	// COMPILER_MSVC or COMPILER_CLANG
+#  ifdef FG_NO_EXCEPTIONS
+#	pragma detect_mismatch( "FG_NO_EXCEPTIONS", "1" )
+#  else
+#	pragma detect_mismatch( "FG_NO_EXCEPTIONS", "0" )
+#  endif
+
+#endif	// FG_CPP_DETECT_MISMATCH

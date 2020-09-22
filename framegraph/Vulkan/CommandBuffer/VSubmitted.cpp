@@ -33,10 +33,10 @@ namespace FG
 	
 /*
 =================================================
-	_Initialize
+	Initialize
 =================================================
 */
-	void  VSubmitted::_Initialize (const VDevice &dev, EQueueType queue, ArrayView<VCmdBatchPtr> batches, ArrayView<VkSemaphore> semaphores)
+	void  VSubmitted::Initialize (const VDevice &dev, EQueueType queue, ArrayView<VCmdBatchPtr> batches, ArrayView<VkSemaphore> semaphores)
 	{
 		EXLOCK( _drCheck );
 
@@ -57,10 +57,10 @@ namespace FG
 
 /*
 =================================================
-	_Release
+	Release
 =================================================
 */
-	void  VSubmitted::_Release (const VDevice &dev, VDebugger &debugger, const IFrameGraph::ShaderDebugCallback_t &shaderDbgCallback, INOUT Statistic_t &outStatistic)
+	void  VSubmitted::Release (const VDevice &dev, VDebugger &debugger, const IFrameGraph::ShaderDebugCallback_t &shaderDbgCallback, INOUT Statistic_t &outStatistic)
 	{
 		EXLOCK( _drCheck );
 
@@ -79,10 +79,10 @@ namespace FG
 	
 /*
 =================================================
-	_Destroy
+	Destroy
 =================================================
 */
-	void  VSubmitted::_Destroy (const VDevice &dev)
+	void  VSubmitted::Destroy (const VDevice &dev)
 	{
 		EXLOCK( _drCheck );
 

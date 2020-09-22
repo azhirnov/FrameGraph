@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "RenderTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | ColorAttachment
@@ -15,7 +15,7 @@ CommandBuffer {
 					dstTask:         ReadImage (#3)
 					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       ColorAttachmentOptimal
@@ -30,8 +30,8 @@ CommandBuffer {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -47,17 +47,17 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    256 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         ReadImage (#3)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            1875 Kb
 				}

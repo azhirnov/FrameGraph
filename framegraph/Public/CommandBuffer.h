@@ -64,7 +64,7 @@ namespace FG
 
 		// Acquire next swapchain image. This image will be presented after command buffer execution.
 		// Do not use this image in any other command buffers.
-		ND_ virtual RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type = ESwapchainImage::Primary) = 0;
+		ND_ virtual RawImageID	GetSwapchainImage (RawSwapchainID swapchain) = 0;
 
 		// External command buffers will be executed in same batch but before internal command buffer.
 		virtual bool		AddExternalCommands (const ExternalCmdBatch_t &) = 0;
@@ -140,8 +140,11 @@ namespace FG
 		virtual void		AddTask (LogicalPassID, const DrawIndexed &) = 0;
 		virtual void		AddTask (LogicalPassID, const DrawVerticesIndirect &) = 0;
 		virtual void		AddTask (LogicalPassID, const DrawIndexedIndirect &) = 0;
+		virtual void		AddTask (LogicalPassID, const DrawVerticesIndirectCount &) = 0;
+		virtual void		AddTask (LogicalPassID, const DrawIndexedIndirectCount &) = 0;
 		virtual void		AddTask (LogicalPassID, const DrawMeshes &) = 0;
 		virtual void		AddTask (LogicalPassID, const DrawMeshesIndirect &) = 0;
+		virtual void		AddTask (LogicalPassID, const DrawMeshesIndirectCount &) = 0;
 		virtual void		AddTask (LogicalPassID, const CustomDraw &) = 0;
 	};
 

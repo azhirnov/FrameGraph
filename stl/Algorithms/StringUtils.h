@@ -2,13 +2,13 @@
 
 #pragma once
 
+#include "stl/Math/BitMath.h"
 #include "stl/Math/Math.h"
 #include "stl/Math/Vec.h"
 #include "stl/Math/Bytes.h"
 #include "stl/Math/Color.h"
-#include "stl/Algorithms/EnumUtils.h"
 #include "stl/Algorithms/ArrayUtils.h"
-#include "stl/Containers/StringView.h"
+#include "stl/Containers/NtStringView.h"
 #include "stl/Memory/MemUtils.h"
 #include <chrono>
 #include <sstream>
@@ -451,34 +451,34 @@ namespace FGC
 =================================================
 	StringTo***
 =================================================
-*
+*/
 	ND_ inline int  StringToInt (StringView str)
 	{
 		int		val = 0;
-		std::from_chars( str.data(), str.data() + str.size(), OUT val, 10 );
+		std::from_chars( str.data(), str.data() + str.size(), OUT val );
 		return val;
 	}
 	
 	ND_ inline uint  StringToUInt (StringView str)
 	{
 		uint	val = 0;
-		std::from_chars( str.data(), str.data() + str.size(), OUT val, 10 );
+		std::from_chars( str.data(), str.data() + str.size(), OUT val );
 		return val;
 	}
 	
-	ND_ inline float  StringToFloat (StringView str)
+	/*ND_ inline float  StringToFloat (StringView str)
 	{
 		float	val = 0.0f;
-		std::from_chars( str.data(), str.data() + str.size(), OUT val, std::chars_format::general );
+		std::from_chars( str.data(), str.data() + str.size(), OUT val );
 		return val;
 	}
 	
 	ND_ inline double  StringToDouble (StringView str)
 	{
 		double	val = 0.0;
-		std::from_chars( str.data(), str.data() + str.size(), OUT val, std::chars_format::general );
+		std::from_chars( str.data(), str.data() + str.size(), OUT val );
 		return val;
-	}
-*/
+	}*/
+
 
 }	// FGC

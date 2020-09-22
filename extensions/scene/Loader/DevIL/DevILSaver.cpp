@@ -62,8 +62,8 @@ namespace
 		CHECK_ERR( image->GetData().size() );
 		CHECK_ERR( image->GetData()[0].size() );
 
-		uint			arr_layers	= uint(image->GetData()[0].size());
-		uint			cube_faces	= 1;
+		uint	arr_layers	= uint(image->GetData()[0].size());
+		uint	cube_faces	= 1;
 
 		InitDevlIL();
 		
@@ -71,39 +71,35 @@ namespace
 		ilBindImage( img );
 
 		
-		BEGIN_ENUM_CHECKS();
 		switch ( image->GetType() )
 		{
-			case EImage::Tex1D :
-			case EImage::Tex2D :
-			case EImage::Tex3D :
+			case EImage_1D :
+			case EImage_2D :
+			case EImage_3D :
 				CHECK_ERR( arr_layers == 1 );
 				break;
 
-			case EImage::TexCube :
+			case EImage_Cube :
 				CHECK_ERR( arr_layers == 6 );
 				cube_faces = 6;
 				arr_layers = 1;
 				break;
 
-			case EImage::TexCubeArray :
+			case EImage_CubeArray :
 				CHECK_ERR( arr_layers % 6 == 0 );
 				arr_layers /= 6;
 				cube_faces  = 6;
 				ilSetInteger( IL_NUM_LAYERS, arr_layers );
 				break;
 
-			case EImage::Tex1DArray :
-			case EImage::Tex2DArray :
+			case EImage_1DArray :
+			case EImage_2DArray :
 				ilSetInteger( IL_NUM_LAYERS, arr_layers );
 				break;
 
-			case EImage::Tex2DMS :
-			case EImage::Tex2DMSArray :
-			case EImage::Unknown :
+			default :
 				RETURN_ERR( "unsupported image type" );
 		}
-		END_ENUM_CHECKS();
 		
 		for (uint layer = 0; layer < arr_layers; ++layer)
 		{

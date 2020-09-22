@@ -25,7 +25,7 @@ namespace {
 
 			img_path.append( name.begin(), name.end() );
 
-			if ( FS::exists( img_path ) )
+			if ( FS::exists( img_path ))
 			{
 				result = img_path.string();
 				return true;
@@ -39,7 +39,7 @@ namespace {
 			
 			img_path.append( name.begin(), name.end() );
 
-			if ( FS::exists( img_path ) )
+			if ( FS::exists( img_path ))
 			{
 				result = img_path.string();
 				return true;
@@ -55,10 +55,10 @@ namespace {
 */
 	bool  IImageLoader::_FindImage (StringView name, ArrayView<StringView> directories, OUT String &result)
 	{
-		if ( FindImage2( name, directories, OUT result ) )
+		if ( FindImage2( name, directories, OUT result ))
 			return true;
 		
-		if ( FindImage2( FS::path{name}.filename().string(), directories, OUT result ) )
+		if ( FindImage2( FS::path{name}.filename().string(), directories, OUT result ))
 			return true;
 
 		RETURN_ERR( "image file not found!" );

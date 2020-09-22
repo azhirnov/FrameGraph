@@ -7,16 +7,6 @@
 namespace FG
 {
 
-	enum class ESwapchainImage : uint
-	{
-		Primary,
-
-		// for VR:
-		LeftEye,
-		RightEye,
-	};
-	
-
 	enum class EDebugFlags : uint
 	{
 		LogTasks						= 1 << 0,	// 

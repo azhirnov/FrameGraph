@@ -127,7 +127,6 @@ namespace FG
 		// combined masks
 		_StorageFormatMask		= _StorageMask | _FormatMask,
 		_ApiStorageFormatMask	= _ApiMask | _StorageMask | _FormatMask,
-		_ApiVersionMask			= _ApiMask | _VersionMask,
 		_VersionModeFlagsMask	= _VersionMask | _FlagsMask,
 
 		// default
@@ -140,7 +139,7 @@ namespace FG
 		VKSL_120		= Vulkan_120 | HighLevel,
 		SPIRV_100		= Vulkan_100 | SPIRV,
 		SPIRV_110		= Vulkan_110 | SPIRV,			// SPIRV 1.3
-		SPIRV_120		= Vulkan_120 | SPIRV,			// SPIRV 1.4
+		SPIRV_120		= Vulkan_120 | SPIRV,			// SPIRV 1.4 and other Vulkan 1.2 extensions
 		VkShader_100	= Vulkan_100 | ShaderModule,
 		VkShader_110	= Vulkan_110 | ShaderModule,
 		VkShader_120	= Vulkan_120 | ShaderModule,

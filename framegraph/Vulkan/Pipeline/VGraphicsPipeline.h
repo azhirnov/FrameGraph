@@ -61,7 +61,7 @@ namespace FG
 
 	// variables
 	private:
-		mutable std::shared_mutex	_instanceGuard;
+		mutable SharedMutex			_instanceGuard;
 		mutable Instances_t			_instances;
 
 		PipelineLayoutID			_baseLayoutId;
@@ -80,7 +80,8 @@ namespace FG
 	// methods
 	public:
 		VGraphicsPipeline () {}
-		VGraphicsPipeline (VGraphicsPipeline &&) = default;
+		VGraphicsPipeline (VGraphicsPipeline &&) = delete;
+		VGraphicsPipeline (const VGraphicsPipeline &) = delete;
 		~VGraphicsPipeline ();
 
 		bool Create (const GraphicsPipelineDesc &desc, RawPipelineLayoutID layoutId, StringView dbgName);

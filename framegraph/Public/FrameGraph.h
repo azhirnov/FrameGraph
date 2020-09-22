@@ -39,6 +39,9 @@ namespace FG
 		using OnExternalBufferReleased_t	= std::function< void (const ExternalBuffer_t &) >;
 		using ShaderDebugCallback_t			= std::function< void (StringView taskName, StringView shaderName, EShaderStages, ArrayView<String> output) >;
 
+	//-----------------------------------------------------
+	// statistics
+
 		struct RenderingStatistics
 		{
 			uint		descriptorBinds				= 0;
@@ -49,6 +52,7 @@ namespace FG
 			uint		indexBufferBindings			= 0;
 			uint		vertexBufferBindings		= 0;
 			uint		drawCalls					= 0;
+			uint		indirectDrawCalls			= 0;	// vertex & index count can not be calculated for this draw calls 
 			uint64_t	vertexCount					= 0;	// sum of vertices / indices, indirect draw isn't measured
 			uint64_t	primitiveCount				= 0;	// sum of primitives
 			uint		graphicsPipelineBindings	= 0;
@@ -84,6 +88,39 @@ namespace FG
 			void Merge (const Statistics &);
 		};
 		
+		
+	//-----------------------------------------------------
+	// device features & properties
+		
+		struct DeviceProperties
+		{
+			bool	geometryShader					: 1;	// for EShader::Geometry.
+			bool	tessellationShader				: 1;	// for EShader::TessControl and EShader::TessEvaluation.
+			bool	vertexPipelineStoresAndAtomics	: 1;	// for EBufferUsage::VertexPplnStore.
+			bool	fragmentStoresAndAtomics		: 1;	// for EBufferUsage::FragmentPplnStore.
+			bool	dedicatedAllocation				: 1;	// for EMemoryType::Dedicated.
+			bool	dispatchBase					: 1;	// DispatchCompute::ComputeCmd::baseGroup can be used.
+			bool	imageCubeArray					: 1;	// for EImage::CubeArray.
+			bool	array2DCompatible				: 1;	// for EImageFlags::Array2DCompatible.
+			bool	blockTexelView					: 1;	// for EImageFlags::BlockTexelViewCompatible.
+			bool	samplerMirrorClamp				: 1;	// for EAddressMode::MirrorClampToEdge.
+			bool	descriptorIndexing				: 1;	// PipelineResources::***::elementCount can be set in runtime.
+			bool	drawIndirectCount				: 1;	// DrawVerticesIndirectCount, DrawIndexedIndirectCount can be used.
+			bool	swapchain						: 1;	// CreateSwapchain() can be used.
+			bool	meshShaderNV					: 1;	// CreatePipeline(MeshPipelineDesc), DrawMeshes*** can be used.
+			bool	rayTracingNV					: 1;	// CreatePipeline(RayTracingPipelineDesc), CreateRayTracingGeometry(), CreateRayTracingScene(), CreateRayTracingShaderTable(),
+															// BuildRayTracingGeometry, BuildRayTracingScene, UpdateRayTracingShaderTable, TraceRays can be used.
+			bool	shadingRateImageNV				: 1;	// RenderPassDesc::SetShadingRateImage(), EImageUsage::ShadingRate can be used.
+		
+			BytesU	minStorageBufferOffsetAlignment;		// alignment of 'offset' argument in PipelineResources::BindBuffer().
+			BytesU	minUniformBufferOffsetAlignment;		// alignment of 'offset' argument in PipelineResources::BindBuffer().
+			uint	maxDrawIndirectCount;					// max value of 'DrawCmd::drawCount' in DrawVerticesIndirect, DrawIndexedIndirect
+															// and max value of 'DrawCmd::maxDrawCount' in DrawVerticesIndirectCount, DrawIndexedIndirectCount.
+			uint	maxDrawIndexedIndexValue;				// max value of 'DrawCmd::indexCount' in draw commands.
+		};
+
+		static constexpr auto	MaxTimeout = Nanoseconds{60'000'000'000};
+
 
 	// interface
 	public:
@@ -118,6 +155,10 @@ namespace FG
 			// Returns bitmask for all available queues.
 		ND_ virtual EQueueUsage		GetAvilableQueues () const = 0;
 
+			// Returns device features, properties and limits.
+			// Some parameters in commands must comply with these restrictions.
+		ND_ virtual DeviceProperties GetDeviceProperties () const = 0;
+
 
 		// resource manager //
 
@@ -137,10 +178,10 @@ namespace FG
 		ND_ virtual RTGeometryID	CreateRayTracingGeometry (const RayTracingGeometryDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTSceneID		CreateRayTracingScene (const RayTracingSceneDesc &desc, const MemoryDesc &mem = Default, StringView dbgName = Default) = 0;
 		ND_ virtual RTShaderTableID	CreateRayTracingShaderTable (StringView dbgName = Default) = 0;
-			virtual bool			InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
-			virtual bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) const = 0;
+			virtual bool			InitPipelineResources (RawGPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) = 0;
+			virtual bool			InitPipelineResources (RawCPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) = 0;
+			virtual bool			InitPipelineResources (RawMPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) = 0;
+			virtual bool			InitPipelineResources (RawRTPipelineID pplnId, const DescriptorSetID &id, OUT PipelineResources &resources) = 0;
 
 		ND_ virtual bool			IsSupported (RawImageID image, const ImageViewDesc &desc) const = 0;
 		ND_ virtual bool			IsSupported (RawBufferID buffer, const BufferViewDesc &desc) const = 0;
@@ -215,25 +256,25 @@ namespace FG
 			virtual bool			Execute (INOUT CommandBuffer &) = 0;
 
 			// Wait until all commands complete execution on the GPU or until time runs out.
-			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = Nanoseconds{3600'000'000'000}) = 0;
+			virtual bool			Wait (ArrayView<CommandBuffer> commands, Nanoseconds timeout = MaxTimeout) = 0;
 
 			// Submit all pending command buffers and present all pending swapchain images.
 			virtual bool			Flush (EQueueUsage queues = EQueueUsage::All) = 0;
 
 			// Wait until all commands will complete their work on GPU, trigger events for 'ReadImage' and 'ReadBuffer' tasks.
-			virtual bool			WaitIdle () = 0;
+			virtual bool			WaitIdle (Nanoseconds timeout = MaxTimeout) = 0;
 
 
 		// debugging //
 
 			// Returns framegraph statistics.
-			virtual bool			GetStatistics (OUT Statistics &result) const = 0;
+			virtual bool			GetStatistics (OUT Statistics &result) = 0;
 
 			// Returns serialized tasks, resource usage and barriers, can be used for regression testing.
-			virtual bool			DumpToString (OUT String &result) const = 0;
+			virtual bool			DumpToString (OUT String &result) = 0;
 
 			// Returns graph written on dot language, can be used for graph visualization with graphviz.
-			virtual bool			DumpToGraphViz (OUT String &result) const = 0;
+			virtual bool			DumpToGraphViz (OUT String &result) = 0;
 	};
 
 	

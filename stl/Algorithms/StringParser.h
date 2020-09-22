@@ -32,6 +32,8 @@ namespace FGC
 			static bool  ReadTo (StringView str, StringView endSymbol, INOUT size_t &pos, OUT StringView &result);
 
 			static bool  ReadString (StringView str, INOUT size_t &pos, OUT StringView &result);
+
+			static void  Tokenize (StringView str, char divisor, OUT Array<StringView> &tokens);
 	};
 
 

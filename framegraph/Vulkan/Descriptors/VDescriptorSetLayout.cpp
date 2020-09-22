@@ -7,7 +7,7 @@
 #include "VDevice.h"
 
 namespace FG
-{	
+{
 
 /*
 =================================================
@@ -18,17 +18,19 @@ namespace FG
 	{
 		CHECK( not _layout );
 	}
-	
+
 /*
 =================================================
 	constructor
 =================================================
 */
-	VDescriptorSetLayout::VDescriptorSetLayout (const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding) :
-		_uniforms{uniforms}
+	VDescriptorSetLayout::VDescriptorSetLayout (const VDevice &dev, const UniformMapPtr &uniforms, OUT DescriptorBinding_t &binding) :
+		_uniforms{ uniforms }
 	{
 		EXLOCK( _drCheck );
 		ASSERT( uniforms );
+
+		const bool	has_desc_indexing_ext = dev.GetFeatures().descriptorIndexing;
 
 		// bind uniforms
 		binding.clear();
@@ -39,6 +41,9 @@ namespace FG
 			ASSERT( un.first.IsDefined() );
 
 			_hash << HashOf( un.first );
+			
+			// requires Vulkan 1.2 or VK_EXT_descriptor_indexing
+			ASSERT( has_desc_indexing_ext or un.second.arraySize != 0 );
 
 			_AddUniform( un.second, INOUT binding );
 		}
@@ -59,7 +64,7 @@ namespace FG
 		descriptor_info.pBindings		= binding.data();
 		descriptor_info.bindingCount	= uint(binding.size());
 
-		VK_CHECK( dev.vkCreateDescriptorSetLayout( dev.GetVkDevice(), &descriptor_info, null, OUT &_layout ) );
+		VK_CHECK( dev.vkCreateDescriptorSetLayout( dev.GetVkDevice(), &descriptor_info, null, OUT &_layout ));
 
 		_resourcesTemplate = PipelineResourcesHelper::CreateDynamicData( _uniforms, _maxIndex+1, _elementCount, _dynamicOffsetCount );
 		return true;
@@ -206,7 +211,6 @@ namespace FG
 	{
 		// calculate hash
 		_hash << HashOf( img.imageType )
-			  << HashOf( img.format )
 			  << HashOf( bindingIndex )
 			  << HashOf( stageFlags )
 			  << HashOf( img.state )
@@ -335,7 +339,7 @@ namespace FG
 			  << HashOf( ub.state )
 			  << HashOf( arraySize );
 		
-		const bool	is_dynamic = EnumEq( ub.state, EResourceState::_BufferDynamicOffset );
+		const bool	is_dynamic = AllBits( ub.state, EResourceState::_BufferDynamicOffset );
 
 		arraySize = (arraySize ? arraySize : FG_MaxElementsInUnsizedDesc);
 		_elementCount		+= arraySize;
@@ -370,7 +374,7 @@ namespace FG
 			  << HashOf( sb.state )
 			  << HashOf( arraySize );
 		
-		const bool	is_dynamic = EnumEq( sb.state, EResourceState::_BufferDynamicOffset );
+		const bool	is_dynamic = AllBits( sb.state, EResourceState::_BufferDynamicOffset );
 
 		arraySize = (arraySize ? arraySize : FG_MaxElementsInUnsizedDesc);
 		_elementCount		+= arraySize;
@@ -397,6 +401,7 @@ namespace FG
 	void VDescriptorSetLayout::_AddRayTracingScene (const PipelineDescription::RayTracingScene &rts, uint bindingIndex,
 													uint arraySize, EShaderStages stageFlags, INOUT DescriptorBinding_t &binding)
 	{
+	#ifdef VK_NV_ray_tracing
 		// calculate hash
 		_hash << HashOf( rts.state )
 			  << HashOf( arraySize );
@@ -415,6 +420,10 @@ namespace FG
 		_IncDescriptorCount( bind.descriptorType );
 
 		binding.push_back( std::move(bind) );
+	#else
+		Unused( rts, bindingIndex, arraySize, stageFlags, binding );
+		ASSERT( !"ray tracing is not supported" );
+	#endif
 	}
 
 /*

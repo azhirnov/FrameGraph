@@ -38,6 +38,7 @@ namespace FGC
 	// variables
 	private:
 		PerEye			_perEye[2];
+		Mat4_t			_devicePose;
 		Vec3_t			_devicePosition;
 		float			_deviceScale	= 1.0f;
 		Vec3_t			_worldPosition;
@@ -50,7 +51,7 @@ namespace FGC
 
 		void SetViewProjection (const Mat4_t &leftProj, const Mat4_t &leftView,
 								const Mat4_t &rightProj, const Mat4_t &rightView,
-								const Mat3_t &orientation, const Vec3_t &position);
+								const Mat4_t &devicePose, const Vec3_t &position);
 		
 		ND_ Mat4Pair_t  ToModelViewProjMatrix () const;
 		ND_ Mat4Pair_t  ToModelViewMatrix () const;
@@ -64,10 +65,12 @@ namespace FGC
 		Self&  Move (const Vec3_t &delta);
 		Self&  Move2 (const Vec3_t &delta);
 
-		ND_ Vec3_t const&  Position ()			const	{ return _transform.position; }
-		ND_ Quat_t const&  Orientation ()		const	{ return _transform.orientation; }
-		ND_ Vec3_t const&  HmdOffset ()			const	{ return _devicePosition; }
-		ND_ Vec3_t const&  PositionInWorld ()	const	{ return _worldPosition; }
+		ND_ Vec3_t const&	Position ()			const	{ return _transform.position; }
+		ND_ Quat_t const&	Orientation ()		const	{ return _transform.orientation; }
+		ND_ Vec3_t const&	HmdOffset ()		const	{ return _devicePosition; }
+		ND_ Vec3_t const&	PositionInWorld ()	const	{ return _worldPosition; }
+		ND_ Mat4_t			ToRotationMatrix () const	{ return _devicePose * _transform.ToRotationMatrix(); }
+		ND_ Mat4_t			ToModelMatrix ()	const	{ return _devicePose * _transform.ToMatrix(); }
 
 		Self&  Rotate (const Quat_t &delta);
 		Self&  Rotate (Radians_t angle, const Vec3_t &normal);
@@ -85,12 +88,10 @@ namespace FGC
 */
 	inline void VRCamera::SetViewProjection (const Mat4_t &leftProj, const Mat4_t &leftView,
 											 const Mat4_t &rightProj, const Mat4_t &rightView,
-											 const Mat3_t &orientation, const Vec3_t &position)
+											 const Mat4_t &devicePose, const Vec3_t &position)
 	{
-		_transform.scale		= 1.0f;
-		_transform.orientation	= quat_cast( orientation );
-		_devicePosition			= position;
-		_transform.position		= _devicePosition * _deviceScale + _worldPosition;
+		_devicePose		= devicePose;
+		_devicePosition	= position;
 
 		_perEye[0].proj		= leftProj;
 		_perEye[0].view		= leftView;
@@ -112,31 +113,31 @@ namespace FGC
 */
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToModelViewProjMatrix () const
 	{
-		return { _perEye[0].viewProj * _transform.ToMatrix(),
-				 _perEye[1].viewProj * _transform.ToMatrix() };
+		const Mat4_t mat = ToModelMatrix();
+		return {{ _perEye[0].viewProj * mat, _perEye[1].viewProj * mat }};
 	}
 
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToModelViewMatrix () const
 	{
-		return { _perEye[0].view * _transform.ToMatrix(),
-				 _perEye[1].view * _transform.ToMatrix() };
+		const Mat4_t mat = ToModelMatrix();
+		return {{ _perEye[0].view * mat, _perEye[1].view * mat }};
 	}
 
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToViewProjMatrix () const
 	{
-		return { _perEye[0].viewProj * _transform.ToRotationMatrix(),
-				 _perEye[1].viewProj * _transform.ToRotationMatrix() };
+		const Mat4_t mat = ToRotationMatrix();
+		return {{ _perEye[0].viewProj * mat, _perEye[1].viewProj * mat }};
 	}
 	
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToViewMatrix () const
 	{
-		return { _perEye[0].view * _transform.ToRotationMatrix(),
-				 _perEye[1].view * _transform.ToRotationMatrix() };
+		const Mat4_t mat = ToRotationMatrix();
+		return {{ _perEye[0].view * mat, _perEye[1].view * mat }};
 	}
 	
 	inline typename VRCamera::Mat4Pair_t  VRCamera::ToProjectionMatrix () const
 	{
-		return { _perEye[0].proj, _perEye[1].proj };
+		return {{ _perEye[0].proj, _perEye[1].proj }};
 	}
 	
 /*
@@ -146,7 +147,7 @@ namespace FGC
 */
 	inline typename VRCamera::FrustumRef_t  VRCamera::GetFrustum () const
 	{
-		return { &_perEye[0].frustum, &_perEye[1].frustum };
+		return {{ &_perEye[0].frustum, &_perEye[1].frustum }};
 	}
 	
 /*
@@ -211,7 +212,7 @@ namespace FGC
 */
 	inline VRCamera&  VRCamera::Move (const vec3 &delta)
 	{
-		const mat4x4	view_mat	= _transform.ToRotationMatrix();
+		const mat4x4	view_mat	= ToRotationMatrix();
 		const vec3		up_dir		{ 0.0f, 1.0f, 0.0f };
 		const vec3		axis_x		{ view_mat[0][0], view_mat[1][0], view_mat[2][0] };
 		const vec3		forwards	= normalize( cross( up_dir, axis_x ));
@@ -235,7 +236,7 @@ namespace FGC
 */
 	inline VRCamera&  VRCamera::Move2 (const vec3 &delta)
 	{
-		const mat4x4	view_mat	= _transform.ToRotationMatrix();
+		const mat4x4	view_mat	= ToRotationMatrix();
 		const vec3		up_dir		{ 0.0f, 1.0f, 0.0f };
 		const vec3		axis_x		{ view_mat[0][0], view_mat[1][0], view_mat[2][0] };
 		const vec3		axis_z		{ view_mat[0][2], view_mat[1][2], view_mat[2][2] };

@@ -9,8 +9,11 @@ namespace FG
 
 	bool FGApp::Test_ShaderDebugger1 ()
 	{
-		if ( not FG_EnableShaderDebugging )
+		if ( not _hasShaderDebugger or not _pplnCompiler )
+		{
+			FG_LOGI( TEST_NAME << " - skipped" );
 			return true;
+		}
 
 		ComputePipelineDesc	ppln;
 
@@ -34,10 +37,11 @@ void main ()
 		const uint2		image_dim	= { 16, 16 };
 		const uint2		debug_coord	= image_dim / 2;
 
-		ImageID			image		= _frameGraph->CreateImage( ImageDesc{ EImage::Tex2D, uint3{image_dim.x, image_dim.y, 1}, EPixelFormat::R32F,
-																		   EImageUsage::Storage | EImageUsage::TransferSrc }, Default, "OutImage" );
+		ImageID			image		= _frameGraph->CreateImage( ImageDesc{}.SetDimension( image_dim ).SetFormat( EPixelFormat::R32F )
+																			.SetUsage( EImageUsage::Storage | EImageUsage::TransferSrc ),
+																Default, "OutImage" );
 		CPipelineID		pipeline	= _frameGraph->CreatePipeline( ppln );
-		CHECK_ERR( pipeline );
+		CHECK_ERR( image and pipeline );
 		
 		PipelineResources	resources;
 		CHECK_ERR( _frameGraph->InitPipelineResources( pipeline, DescriptorSetID("0"), OUT resources ));
@@ -93,12 +97,12 @@ no source
 		
 		resources.BindImage( UniformID("un_OutImage"), image );
 
-		Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), &resources )
+		Task	t_comp	= cmd->AddTask( DispatchCompute().SetPipeline( pipeline ).AddResources( DescriptorSetID("0"), resources )
 																.Dispatch({ 2, 2 }).EnableDebugTrace(uint3{ debug_coord, 0 })
 																.SetName("DebuggableCompute") );
 
 		Task	t_read	= cmd->AddTask( ReadImage().SetImage( image, int2(), image_dim ).SetCallback( OnLoaded ).DependsOn( t_comp ));
-		FG_UNUSED( t_read );
+		Unused( t_read );
 		
 		CHECK_ERR( _frameGraph->Execute( cmd ));
 		CHECK_ERR( _frameGraph->WaitIdle() );

@@ -2,11 +2,13 @@
 
 #pragma once
 
-#include "stl/Math/Vec.h"
-#include "stl/Containers/FixedArray.h"
-#include "extensions/vulkan_loader/VulkanLoader.h"
-#include "extensions/vulkan_loader/VulkanCheckError.h"
-#include <chrono>
+#ifdef FG_ENABLE_VULKAN
+
+# include "stl/Math/Vec.h"
+# include "stl/Containers/FixedArray.h"
+# include "extensions/vulkan_loader/VulkanLoader.h"
+# include "extensions/vulkan_loader/VulkanCheckError.h"
+# include <chrono>
 
 namespace FGC
 {
@@ -133,3 +135,5 @@ namespace FGC
 	using VulkanSwapchainPtr	= UniquePtr< VulkanSwapchain >;
 
 }	// FGC
+
+#endif	// FG_ENABLE_VULKAN

@@ -5,39 +5,52 @@
 
 #ifdef FG_ENABLE_VULKAN_MEMORY_ALLOCATOR
 
-#define VMA_USE_STL_CONTAINERS				0
-#define VMA_STATIC_VULKAN_FUNCTIONS			0
-#define VMA_RECORDING_ENABLED				0
-#define VMA_DEDICATED_ALLOCATION			0	// TODO: set 0 to avoid crash on Intel
-#define VMA_DEBUG_INITIALIZE_ALLOCATIONS	0
-#define VMA_DEBUG_ALWAYS_DEDICATED_MEMORY	0
-#define VMA_DEBUG_DETECT_CORRUPTION			0	// TODO: use for debugging ?
-#define VMA_DEBUG_GLOBAL_MUTEX				0	// will be externally synchronized
-#define VMA_STATIC_VULKAN_FUNCTIONS			0
-#define VMA_DYNAMIC_VULKAN_FUNCTIONS		1
+# define VMA_STATIC_VULKAN_FUNCTIONS		0
+# define VMA_RECORDING_ENABLED				0
+# define VMA_DEDICATED_ALLOCATION			0	// TODO: set 0 to avoid crash on Intel
+# define VMA_DEBUG_INITIALIZE_ALLOCATIONS	0
+# define VMA_DEBUG_ALWAYS_DEDICATED_MEMORY	0
+# define VMA_DEBUG_DETECT_CORRUPTION		0	// TODO: use for debugging ?
+# define VMA_DEBUG_GLOBAL_MUTEX				0	// will be externally synchronized
+
+# define VMA_USE_STL_CONTAINERS				1
+# define VMA_USE_STL_VECTOR					1
+# define VMA_USE_STL_UNORDERED_MAP			1
+# define VMA_USE_STL_LIST					1
+# define VMA_USE_STL_SHARED_MUTEX			1
+
+# define VMA_IMPLEMENTATION					1
+# define VMA_ASSERT(expr)					ASSERT( expr )
+
+# undef Allocate
 
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #   pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-
 #ifdef COMPILER_MSVC
 #	pragma warning (push, 0)
 #	pragma warning (disable: 4701)
 #	pragma warning (disable: 4703)
 #endif
+#ifdef COMPILER_CLANG
+#	pragma clang diagnostic push
+#	pragma clang diagnostic ignored "-Wmissing-field-initializers"
+#	pragma clang diagnostic ignored "-Wcast-align"
+#	pragma clang diagnostic ignored "-Wunused-variable"
+#endif
 
-#define VMA_IMPLEMENTATION	1
-#define VMA_ASSERT(expr)	{}
 #include "vk_mem_alloc.h"
 
 #ifdef COMPILER_GCC
 #   pragma GCC diagnostic pop
 #endif
-
 #ifdef COMPILER_MSVC
 #	pragma warning (pop)
+#endif
+#ifdef COMPILER_CLANG
+#	pragma clang diagnostic pop
 #endif
 
 
@@ -60,8 +73,9 @@ namespace FG
 
 	// variables
 	private:
-		VDevice const&		_device;
-		VmaAllocator		_allocator;
+		mutable SharedMutex		_guard;
+		VDevice const&			_device;
+		VmaAllocator			_allocator;
 
 
 	// methods
@@ -73,7 +87,10 @@ namespace FG
 			
 		bool AllocForImage (VkImage image, const MemoryDesc &mem, OUT Storage_t &data) override;
 		bool AllocForBuffer (VkBuffer buffer, const MemoryDesc &mem, OUT Storage_t &data) override;
+		
+		#ifdef VK_NV_ray_tracing
 		bool AllocForAccelStruct (VkAccelerationStructureNV as, const MemoryDesc &desc, OUT Storage_t &data) override;
+		#endif
 
 		bool Dealloc (INOUT Storage_t &data) override;
 		
@@ -109,7 +126,8 @@ namespace FG
 	VMemoryManager::VulkanMemoryAllocator::VulkanMemoryAllocator (const VDevice &dev, EMemoryTypeExt) :
 		_device{ dev },		_allocator{ null }
 	{
-		CHECK( _CreateAllocator( OUT _allocator ) );
+		EXLOCK( _guard );
+		CHECK( _CreateAllocator( OUT _allocator ));
 	}
 	
 /*
@@ -119,6 +137,8 @@ namespace FG
 */
 	VMemoryManager::VulkanMemoryAllocator::~VulkanMemoryAllocator ()
 	{
+		EXLOCK( _guard );
+
 		if ( _allocator ) {
 			vmaDestroyAllocator( _allocator );
 		}
@@ -158,6 +178,8 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::AllocForImage (VkImage image, const MemoryDesc &desc, OUT Storage_t &data)
 	{
+		EXLOCK( _guard );
+
 		VmaAllocationCreateInfo		info = {};
 		info.flags			= _ConvertToMemoryFlags( desc.type );
 		info.usage			= _ConvertToMemoryUsage( desc.type );
@@ -205,6 +227,8 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::AllocForBuffer (VkBuffer buffer, const MemoryDesc &desc, OUT Storage_t &data)
 	{
+		EXLOCK( _guard );
+
 		VmaAllocationCreateInfo		info = {};
 		info.flags			= _ConvertToMemoryFlags( desc.type );
 		info.usage			= _ConvertToMemoryUsage( desc.type );
@@ -250,8 +274,11 @@ namespace FG
 	AllocForAccelStruct
 =================================================
 */
+#ifdef VK_NV_ray_tracing
 	bool VMemoryManager::VulkanMemoryAllocator::AllocForAccelStruct (VkAccelerationStructureNV accelStruct, const MemoryDesc &desc, OUT Storage_t &data)
 	{
+		EXLOCK( _guard );
+
 		VkAccelerationStructureMemoryRequirementsInfoNV	mem_info = {};
 		mem_info.sType					= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
 		mem_info.type					= VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
@@ -288,6 +315,7 @@ namespace FG
 		_CastStorage( data )->allocation = mem;
 		return true;
 	}
+#endif
 
 /*
 =================================================
@@ -296,6 +324,8 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::Dealloc (INOUT Storage_t &data)
 	{
+		EXLOCK( _guard );
+
 		VmaAllocation&	mem = _CastStorage( data )->allocation;
 
 		vmaFreeMemory( _allocator, mem );
@@ -311,11 +341,13 @@ namespace FG
 */
 	bool VMemoryManager::VulkanMemoryAllocator::GetMemoryInfo (const Storage_t &data, OUT MemoryInfo_t &info) const
 	{
+		SHAREDLOCK( _guard );
+
 		VmaAllocation		mem			= _CastStorage( data )->allocation;
 		VmaAllocationInfo	alloc_info	= {};
 		vmaGetAllocationInfo( _allocator, mem, OUT &alloc_info );
 		
-		const auto&		mem_props = _device.GetDeviceMemoryProperties();
+		const auto&		mem_props = _device.GetProperties().memoryProperties;
 		ASSERT( alloc_info.memoryType < mem_props.memoryTypeCount );
 
 		info.mem		= alloc_info.deviceMemory;
@@ -335,10 +367,10 @@ namespace FG
 	{
 		VmaAllocationCreateFlags	result = 0;
 
-		if ( EnumEq( memType, EMemoryType::Dedicated ))
+		if ( AllBits( memType, EMemoryType::Dedicated ))
 			result |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 		
-		if ( EnumEq( memType, EMemoryTypeExt::HostRead ) or EnumEq( memType, EMemoryTypeExt::HostWrite ))
+		if ( AllBits( memType, EMemoryTypeExt::HostRead ) or AllBits( memType, EMemoryTypeExt::HostWrite ))
 			result |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
 		// TODO: VMA_ALLOCATION_CREATE_NEVER_ALLOCATE_BIT
@@ -353,10 +385,10 @@ namespace FG
 */
 	VmaMemoryUsage  VMemoryManager::VulkanMemoryAllocator::_ConvertToMemoryUsage (EMemoryType memType)
 	{
-		if ( EnumEq( memType, EMemoryTypeExt::HostRead ) )
+		if ( AllBits( memType, EMemoryTypeExt::HostRead ))
 			return VmaMemoryUsage::VMA_MEMORY_USAGE_GPU_TO_CPU;
 
-		if ( EnumEq( memType, EMemoryTypeExt::HostWrite ) )
+		if ( AllBits( memType, EMemoryTypeExt::HostWrite ))
 			return VmaMemoryUsage::VMA_MEMORY_USAGE_CPU_TO_GPU;
 
 		return VmaMemoryUsage::VMA_MEMORY_USAGE_GPU_ONLY;
@@ -374,7 +406,7 @@ namespace FG
 
 		for (EMemoryTypeExt t = EMemoryTypeExt(1 << 0); t < EMemoryTypeExt::_Last; t = EMemoryTypeExt(uint(t) << 1)) 
 		{
-			if ( not EnumEq( values, t ) )
+			if ( not AllBits( values, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();

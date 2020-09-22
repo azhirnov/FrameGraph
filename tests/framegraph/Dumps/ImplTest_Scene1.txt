@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "SwapchainImage-1"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       BGRA8_UNorm
 		usage:        TransferSrc | TransferDst | Sampled | Storage | ColorAttachment | InputAttachment
@@ -47,7 +47,7 @@ CommandBuffer {
 
 	Image {
 		name:         "color_target"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 1024, 1024, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | ColorAttachment
@@ -108,7 +108,7 @@ CommandBuffer {
 
 	Image {
 		name:         "depth_target"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 1024, 1024, 1 )
 		format:       Depth32F
 		usage:        DepthStencilAttachment
@@ -140,7 +140,7 @@ CommandBuffer {
 					dependencyFlags: 0
 					srcAccessMask:   DepthStencilAttachmentRead
 					dstAccessMask:   DepthStencilAttachmentRead
-					oldLayout:       Undefined
+					oldLayout:       DepthStencilReadOnlyOptimal
 					newLayout:       DepthStencilAttachmentOptimal
 					aspectMask:      Depth
 					baseMipLevel:    0
@@ -524,7 +524,7 @@ CommandBuffer {
 			}
 			ImageUsage {
 				name:           "depth_target"
-				usage:          DepthStencil-R, InvalidateAfter, EarlyTests
+				usage:          DepthStencil-R, EarlyTests
 				baseMipLevel:   0
 				levelCount:     1
 				baseArrayLayer: 0

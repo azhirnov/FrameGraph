@@ -44,6 +44,7 @@ namespace FG
 	void  VCmdBatch::Initialize (EQueueType type, ArrayView<CommandBuffer> dependsOn)
 	{
 		EXLOCK( _drCheck );
+		ASSERT( GetState() == EState::Initial );
 
 		ASSERT( _dependencies.empty() );
 		ASSERT( _batch.commands.empty() );
@@ -64,7 +65,7 @@ namespace FG
 
 		if ( auto queue = _frameGraph.FindQueue( type ))
 		{
-			_supportsQuery = EnumAny( queue->familyFlags, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
+			_supportsQuery = AnyBits( queue->familyFlags, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT );
 		}
 
 		_state.store( EState::Initial, memory_order_relaxed );
@@ -88,6 +89,8 @@ namespace FG
 		ASSERT( _counter.load( memory_order_relaxed ) == 0 );
 
 		_frameGraph.RecycleBatch( this );
+
+		_state.store( EState::Initial, memory_order_relaxed );
 	}
 	
 /*
@@ -99,7 +102,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
-		CHECK_ERR( _batch.signalSemaphores.size() < _batch.signalSemaphores.capacity(), void());
+		CHECK_ERRV( _batch.signalSemaphores.size() < _batch.signalSemaphores.capacity() );
 
 		_batch.signalSemaphores.push_back( sem );
 	}
@@ -113,7 +116,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
-		CHECK_ERR( _batch.waitSemaphores.size() < _batch.waitSemaphores.capacity(), void());
+		CHECK_ERRV( _batch.waitSemaphores.size() < _batch.waitSemaphores.capacity() );
 
 		_batch.waitSemaphores.push_back( sem, stage );
 	}
@@ -127,7 +130,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
-		CHECK_ERR( _batch.commands.size() < _batch.commands.capacity(), void());
+		CHECK_ERRV( _batch.commands.size() < _batch.commands.capacity() );
 
 		_batch.commands.insert( 0, cmd, pool );
 	}
@@ -136,7 +139,7 @@ namespace FG
 	{
 		EXLOCK( _drCheck );
 		ASSERT( GetState() < EState::Submitted );
-		CHECK_ERR( _batch.commands.size() < _batch.commands.capacity(), void());
+		CHECK_ERRV( _batch.commands.size() < _batch.commands.capacity() );
 
 		_batch.commands.push_back( cmd, pool );
 	}
@@ -149,8 +152,15 @@ namespace FG
 	void  VCmdBatch::AddDependency (VCmdBatch *batch)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( GetState() < EState::Backed );
-		CHECK_ERR( _dependencies.size() < _dependencies.capacity(), void());
+		ASSERT( GetState() == EState::Recording );
+		CHECK_ERRV( _dependencies.size() < _dependencies.capacity() );
+
+		// skip duplicates
+		for (auto& dep : _dependencies)
+		{
+			if ( dep == batch )
+				return;
+		}
 
 		_dependencies.push_back( batch );
 	}
@@ -163,7 +173,7 @@ namespace FG
 	void  VCmdBatch::DestroyPostponed (VkObjectType type, uint64_t handle)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( GetState() < EState::Backed );
+		ASSERT( GetState() == EState::Recording );
 
 		_readyToDelete.push_back({ type, handle });
 	}
@@ -176,8 +186,10 @@ namespace FG
 	void  VCmdBatch::_SetState (EState newState)
 	{
 		EXLOCK( _drCheck );
-		ASSERT( uint(newState) > uint(GetState()) );
-
+		DEBUG_ONLY(
+			const EState	curr_state = GetState();
+			ASSERT( uint(newState) > uint(curr_state) or curr_state == EState::Initial );
+		)
 		_state.store( newState, memory_order_relaxed );
 	}
 	
@@ -191,8 +203,9 @@ namespace FG
 		EXLOCK( _drCheck );
 		_SetState( EState::Recording );
 		
-		_dbgQueueSync	= EnumEq( desc.debugFlags, EDebugFlags::QueueSync );
+		_dbgQueueSync	= AllBits( desc.debugFlags, EDebugFlags::QueueSync );
 		_statistic		= Default;
+		_debugName		= desc.name;
 
 		return true;
 	}
@@ -355,7 +368,7 @@ namespace FG
 		_ReleaseResources();
 		_ReleaseVkObjects();
 
-		debugger.AddBatchDump( std::move(_debugDump) );
+		debugger.AddBatchDump( _debugName, std::move(_debugDump) );
 		debugger.AddBatchGraph( std::move(_debugGraph) );
 
 		_debugDump  = {};
@@ -507,8 +520,6 @@ namespace FG
 
 		auto&	rm  = _frameGraph.GetResourceManager();
 
-		//VK_CHECK( dev.vkDeviceWaitIdle( dev.GetVkDevice() ), void());
-
 		// release descriptor sets
 		for (auto& ds : _shaderDebugger.descCache) {
 			rm.GetDescriptorManager().DeallocDescriptorSet( ds.second );
@@ -547,7 +558,11 @@ namespace FG
 		if ( (not cb) or (dbg.mode == EShaderDebugMode::Timemap) )
 			return true;
 
-		CHECK_ERR( dbg.modules.size() );
+		if ( dbg.modules.empty() )
+		{
+			FG_LOGD( "There are no shaders with debug information to parse trace" );
+			return false;
+		}
 		
 		auto&	rm				= _frameGraph.GetResourceManager();
 		auto	read_back_buf	= _shaderDebugger.buffers[ dbg.sbIndex ].readBackBuffer.Get();
@@ -588,7 +603,7 @@ namespace FG
 			buf.mappedPtr	= info.mappedPtr;
 			buf.memOffset	= info.offset;
 			buf.mem			= info.mem;
-			buf.isCoherent	= EnumEq( info.flags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
+			buf.isCoherent	= AllBits( info.flags, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
 			return true;
 		}
 		return false;
@@ -610,15 +625,22 @@ namespace FG
 				case RawBufferID::GetUID() :			rm.ReleaseResource( RawBufferID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawImageID::GetUID() :				rm.ReleaseResource( RawImageID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawGPipelineID::GetUID() :			rm.ReleaseResource( RawGPipelineID{ res.Index(), res.InstanceID() }, count );			break;
-				case RawMPipelineID::GetUID() :			rm.ReleaseResource( RawMPipelineID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawCPipelineID::GetUID() :			rm.ReleaseResource( RawCPipelineID{ res.Index(), res.InstanceID() }, count );			break;
-				case RawRTPipelineID::GetUID() :		rm.ReleaseResource( RawRTPipelineID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawSamplerID::GetUID() :			rm.ReleaseResource( RawSamplerID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawDescriptorSetLayoutID::GetUID():rm.ReleaseResource( RawDescriptorSetLayoutID{ res.Index(), res.InstanceID() }, count );	break;
 				case RawPipelineResourcesID::GetUID() :	rm.ReleaseResource( RawPipelineResourcesID{ res.Index(), res.InstanceID() }, count );	break;
+
+				#ifdef VK_NV_mesh_shader
+				case RawMPipelineID::GetUID() :			rm.ReleaseResource( RawMPipelineID{ res.Index(), res.InstanceID() }, count );			break;
+				#endif
+
+				#ifdef VK_NV_ray_tracing
+				case RawRTPipelineID::GetUID() :		rm.ReleaseResource( RawRTPipelineID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawRTSceneID::GetUID() :			rm.ReleaseResource( RawRTSceneID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawRTGeometryID::GetUID() :		rm.ReleaseResource( RawRTGeometryID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawRTShaderTableID::GetUID() :		rm.ReleaseResource( RawRTShaderTableID{ res.Index(), res.InstanceID() }, count );		break;
+				#endif
+
 				case RawSwapchainID::GetUID() :			rm.ReleaseResource( RawSwapchainID{ res.Index(), res.InstanceID() }, count );			break;
 				case RawMemoryID::GetUID() :			rm.ReleaseResource( RawMemoryID{ res.Index(), res.InstanceID() }, count );				break;
 				case RawPipelineLayoutID::GetUID() :	rm.ReleaseResource( RawPipelineLayoutID{ res.Index(), res.InstanceID() }, count );		break;
@@ -709,17 +731,21 @@ namespace FG
 					dev.vkDestroyFramebuffer( vdev, VkFramebuffer(pair.second), null );
 					break;
 
+				#ifdef VK_KHR_sampler_ycbcr_conversion
 				case VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION :
-					dev.vkDestroySamplerYcbcrConversion( vdev, VkSamplerYcbcrConversion(pair.second), null );
+					dev.vkDestroySamplerYcbcrConversionKHR( vdev, VkSamplerYcbcrConversion(pair.second), null );
 					break;
+				#endif
 
 				case VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE :
-					dev.vkDestroyDescriptorUpdateTemplate( vdev, VkDescriptorUpdateTemplate(pair.second), null );
+					dev.vkDestroyDescriptorUpdateTemplateKHR( vdev, VkDescriptorUpdateTemplate(pair.second), null );
 					break;
 
+				#ifdef VK_NV_ray_tracing
 				case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV :
 					dev.vkDestroyAccelerationStructureNV( vdev, VkAccelerationStructureNV(pair.second), null );
 					break;
+				#endif
 
 				case VK_OBJECT_TYPE_UNKNOWN :
 				case VK_OBJECT_TYPE_INSTANCE :
@@ -736,12 +762,32 @@ namespace FG
 				case VK_OBJECT_TYPE_DISPLAY_KHR :
 				case VK_OBJECT_TYPE_DISPLAY_MODE_KHR :
 				case VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT :
-				case VK_OBJECT_TYPE_OBJECT_TABLE_NVX :
-				case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX :
 				case VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT :
 				case VK_OBJECT_TYPE_VALIDATION_CACHE_EXT :
+					
+				#ifdef VK_KHR_deferred_host_operations
+				case VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR :
+				#endif
+
+				#ifdef VK_EXT_private_data
+				case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT_EXT :
+				#endif
+
+				#ifdef VK_NV_device_generated_commands
+				case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NV :
+				#elif defined(VK_NVX_device_generated_commands)
+				case VK_OBJECT_TYPE_OBJECT_TABLE_NVX :
+				case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX :
+				#endif
+
+				#ifdef VK_INTEL_performance_query
 				case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL :
+				#endif
+
+				#ifndef VK_VERSION_1_2
 				case VK_OBJECT_TYPE_RANGE_SIZE :
+				#endif
+
 				case VK_OBJECT_TYPE_MAX_ENUM :
 				default :
 					FG_LOGE( "resource type is not supported" );
@@ -775,7 +821,7 @@ namespace FG
 		for (auto& buf : staging_buffers)
 		{
 			const BytesU	off	= AlignToLarger( buf.size, offsetAlign );
-			const BytesU	av	= AlignToSmaller( buf.capacity - off, blockAlign );
+			const BytesU	av	= off < buf.capacity ? AlignToSmaller( buf.capacity - off, blockAlign ) : 0_b;
 
 			if ( av >= srcRequiredSize )
 			{
@@ -1233,10 +1279,10 @@ namespace FG
 		dbg_mode.mode			= EShaderDebugMode::Timemap;
 		dbg_mode.shaderStages	= stages;
 
-		BytesU		size =	(SizeOf<uint> * 4) +																	// first 4 components
-							(dim.x * dim.y * SizeOf<uint64_t>) +													// output pixels
-							_frameGraph.GetDevice().GetDeviceProperties().limits.minStorageBufferOffsetAlignment +	// align
-							(dim.y * SizeOf<uint64_t>);																// temporary line
+		BytesU		size =	(SizeOf<uint> * 4) +														// first 4 components
+							(dim.x * dim.y * SizeOf<uint64_t>) +										// output pixels
+							_frameGraph.GetDevice().GetDeviceLimits().minStorageBufferOffsetAlignment +	// align
+							(dim.y * SizeOf<uint64_t>);													// temporary line
 		
 		CHECK_ERR( _AllocStorage( INOUT dbg_mode, size ));
 		
@@ -1260,7 +1306,7 @@ namespace FG
 
 		for (EShaderStages s = EShaderStages(1); s <= dbgMode.shaderStages; s = EShaderStages(uint(s) << 1))
 		{
-			if ( not EnumEq( dbgMode.shaderStages, s ))
+			if ( not AllBits( dbgMode.shaderStages, s ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
@@ -1272,14 +1318,31 @@ namespace FG
 				case EShaderStages::Geometry :		stage |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;					break;
 				case EShaderStages::Fragment :		stage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;					break;
 				case EShaderStages::Compute :		stage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;					break;
+
+				#ifdef VK_NV_mesh_shader
 				case EShaderStages::MeshTask :		stage |= VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;					break;
 				case EShaderStages::Mesh :			stage |= VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;					break;
+				#else
+				case EShaderStages::MeshTask :
+				case EShaderStages::Mesh :			break;
+				#endif
+
+				#ifdef VK_NV_ray_tracing
 				case EShaderStages::RayGen :
 				case EShaderStages::RayAnyHit :
 				case EShaderStages::RayClosestHit :
 				case EShaderStages::RayMiss :
 				case EShaderStages::RayIntersection:
 				case EShaderStages::RayCallable :	stage |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;			break;
+				#else
+				case EShaderStages::RayGen :
+				case EShaderStages::RayAnyHit :
+				case EShaderStages::RayClosestHit :
+				case EShaderStages::RayMiss :
+				case EShaderStages::RayIntersection:
+				case EShaderStages::RayCallable :	break;
+				#endif
+
 				case EShaderStages::_Last :
 				case EShaderStages::Unknown :
 				case EShaderStages::AllGraphics :

@@ -20,6 +20,7 @@ Used vulkan features and extensions:
 * specialization constants
 * VK_EXT_debug_utils
 * VK_KHR_dedicated_allocation
+* VK_KHR_sampler_mirror_clamp_to_edge
 * VK_EXT_descriptor_indexing
 * VK_NV_mesh_shader
 * VK_NV_shading_rate_image
@@ -43,12 +44,14 @@ Used vulkan features and extensions:
 
 ## Suported Platforms
 * Windows (with MSVC 2017, 2019)
-* Linux (with GCC 8.2)
+* Linux (with GCC 8.2, Clang 9)
+* Android (Clang)
 
 
 ## Building
 Generate project with CMake and build.<br/>
-Required C++17 standard support and CMake 3.11 and greater.<br/>
+Required C++17 standard support and CMake 3.10.<br/>
+Reequired internet connection to download external dependencies.<br/>
 
 Dependencies:<br/>
 [Vulkan-headers](https://github.com/KhronosGroup/Vulkan-Headers) or [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) - required.<br/>
@@ -61,7 +64,6 @@ Dependencies:<br/>
 [graphviz](https://www.graphviz.org/) - (optional) for graph visualization.<br/>
 [Assimp](https://github.com/assimp/assimp) - (optional) for Scene extension.<br/>
 [DevIL](http://openil.sourceforge.net/) - (optional) for Scene extension.<br/>
-[FreeImage](http://freeimage.sourceforge.net/) - (optional) for Scene extension.<br/>
 [imgui](https://github.com/ocornut/imgui) - (optional) for UI extension.<br/>
 [OpenVR](https://github.com/ValveSoftware/openvr) - (optional) for VR support.<br/>
 [GLM](https://glm.g-truc.net/0.9.9/index.html) - (optional) for Scene extension.<br/>

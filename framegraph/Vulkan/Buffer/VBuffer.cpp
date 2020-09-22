@@ -32,27 +32,37 @@ namespace FG
 
 		for (VkBufferUsageFlags t = 1; t <= usage; t <<= 1)
 		{
-			if ( not EnumEq( usage, t ))
+			if ( not AllBits( usage, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
 			switch ( VkBufferUsageFlagBits(t) )
 			{
-				case VK_BUFFER_USAGE_TRANSFER_SRC_BIT :			result |= VK_ACCESS_TRANSFER_READ_BIT;			break;
-				case VK_BUFFER_USAGE_TRANSFER_DST_BIT :			break;
-				case VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT :	result |= VK_ACCESS_SHADER_READ_BIT;			break;
-				case VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT :	result |= VK_ACCESS_SHADER_READ_BIT;			break;
-				case VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT :		result |= VK_ACCESS_UNIFORM_READ_BIT;			break;
-				case VK_BUFFER_USAGE_STORAGE_BUFFER_BIT :		result |= VK_ACCESS_SHADER_READ_BIT;			break;
-				case VK_BUFFER_USAGE_INDEX_BUFFER_BIT :			result |= VK_ACCESS_INDEX_READ_BIT;				break;
-				case VK_BUFFER_USAGE_VERTEX_BUFFER_BIT :		result |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;	break;
-				case VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT :		result |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;	break;
-				case VK_BUFFER_USAGE_RAY_TRACING_BIT_NV :		break;
-				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT :
-				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT :
-				case VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT :
-				case VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT :
-				case VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM :		break;	// to shutup compiler warnings
+				case VK_BUFFER_USAGE_TRANSFER_SRC_BIT :							result |= VK_ACCESS_TRANSFER_READ_BIT;			break;
+				case VK_BUFFER_USAGE_TRANSFER_DST_BIT :							break;
+				case VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT :					result |= VK_ACCESS_SHADER_READ_BIT;			break;
+				case VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT :					result |= VK_ACCESS_SHADER_READ_BIT;			break;
+				case VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT :						result |= VK_ACCESS_UNIFORM_READ_BIT;			break;
+				case VK_BUFFER_USAGE_STORAGE_BUFFER_BIT :						result |= VK_ACCESS_SHADER_READ_BIT;			break;
+				case VK_BUFFER_USAGE_INDEX_BUFFER_BIT :							result |= VK_ACCESS_INDEX_READ_BIT;				break;
+				case VK_BUFFER_USAGE_VERTEX_BUFFER_BIT :						result |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;	break;
+				case VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT :						result |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;	break;
+
+				#ifdef VK_NV_ray_tracing
+				case VK_BUFFER_USAGE_RAY_TRACING_BIT_NV :						result |= VK_ACCESS_SHADER_READ_BIT;			break;
+				#endif
+				#ifdef VK_KHR_buffer_device_address
+				case VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT :			result |= VK_ACCESS_SHADER_READ_BIT;			break;
+				#endif
+				#ifdef VK_EXT_transform_feedback
+				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT :		break;
+				case VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT:	result |= VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT;	break;
+				#endif
+				#ifdef VK_EXT_conditional_rendering
+				case VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT :			result |= VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT;			break;
+				#endif
+
+				case VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM :						break;	// to shutup compiler warnings
 			}
 			END_ENUM_CHECKS();
 		}
@@ -100,7 +110,7 @@ namespace FG
 				 mask <= uint(queueFamilyMask) and info.queueFamilyIndexCount < queue_family_indices.size();
 				 ++i, mask = (1u<<i))
 			{
-				if ( EnumEq( queueFamilyMask, mask ) )
+				if ( AllBits( queueFamilyMask, mask ))
 					queue_family_indices[ info.queueFamilyIndexCount++ ] = i;
 			}
 		}
@@ -203,7 +213,7 @@ namespace FG
 		_desc				= Default;
 		_queueFamilyMask	= Default;
 		_onRelease			= {};
-
+		
 		_debugName.clear();
 	}
 	
@@ -266,7 +276,7 @@ namespace FG
 	bool VBuffer::IsReadOnly () const
 	{
 		SHAREDLOCK( _drCheck );
-		return not EnumAny( _desc.usage, EBufferUsage::TransferDst | EBufferUsage::StorageTexel | EBufferUsage::Storage | EBufferUsage::RayTracing );
+		return not AnyBits( _desc.usage, EBufferUsage::TransferDst | EBufferUsage::StorageTexel | EBufferUsage::Storage | EBufferUsage::RayTracing );
 	}
 	
 /*
@@ -292,11 +302,11 @@ namespace FG
 */
 	bool  VBuffer::IsSupported (const VDevice &dev, const BufferDesc &desc, EMemoryType memType)
 	{
-		FG_UNUSED( memType );
+		Unused( memType );
 
 		for (EBufferUsage t = EBufferUsage(1); t <= desc.usage; t = EBufferUsage(uint(t) << 1))
 		{
-			if ( not EnumEq( desc.usage, t ))
+			if ( not AllBits( desc.usage, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
@@ -312,9 +322,10 @@ namespace FG
 				case EBufferUsage::Index :				break;
 				case EBufferUsage::Vertex :				break;
 				case EBufferUsage::Indirect :			break;
-				case EBufferUsage::RayTracing :			if ( not dev.IsRayTracingEnabled() ) return false;								break;
-				case EBufferUsage::VertexPplnStore :	if ( not dev.GetDeviceFeatures().vertexPipelineStoresAndAtomics ) return false;	break;
-				case EBufferUsage::FragmentPplnStore :	if ( not dev.GetDeviceFeatures().fragmentStoresAndAtomics ) return false;		break;
+				case EBufferUsage::RayTracing :			if ( not dev.GetFeatures().rayTracingNV ) return false;									break;
+				//case EBufferUsage::ShaderAddress :	if ( not dev.GetFeatures().bufferAddress ) return false;								break;
+				case EBufferUsage::VertexPplnStore :	if ( not dev.GetProperties().features.vertexPipelineStoresAndAtomics ) return false;	break;
+				case EBufferUsage::FragmentPplnStore :	if ( not dev.GetProperties().features.fragmentStoresAndAtomics ) return false;			break;
 				case EBufferUsage::_Last :
 				case EBufferUsage::All :
 				case EBufferUsage::Transfer :
@@ -338,20 +349,20 @@ namespace FG
 		VkFormatProperties	props = {};
 		vkGetPhysicalDeviceFormatProperties( dev.GetVkPhysicalDevice(), VEnumCast( desc.format ), OUT &props );
 		
-		const VkFormatFeatureFlags	dev_flags	= props.bufferFeatures;
-		VkFormatFeatureFlags		buf_flags	= 0;
+		const VkFormatFeatureFlags	available_flags	= props.bufferFeatures;
+		VkFormatFeatureFlags		required_flags	= 0;
 		
 		for (EBufferUsage t = EBufferUsage(1); t <= _desc.usage; t = EBufferUsage(uint(t) << 1))
 		{
-			if ( not EnumEq( _desc.usage, t ))
+			if ( not AllBits( _desc.usage, t ))
 				continue;
 
 			BEGIN_ENUM_CHECKS();
 			switch ( t )
 			{
-				case EBufferUsage::UniformTexel :		buf_flags |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;		break;
-				case EBufferUsage::StorageTexel :		buf_flags |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;		break;
-				case EBufferUsage::StorageTexelAtomic:	buf_flags |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;	break;
+				case EBufferUsage::UniformTexel :		required_flags |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;			break;
+				case EBufferUsage::StorageTexel :		required_flags |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;			break;
+				case EBufferUsage::StorageTexelAtomic:	required_flags |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;	break;
 				case EBufferUsage::TransferSrc :		break;
 				case EBufferUsage::TransferDst :		break;
 				case EBufferUsage::Uniform :			break;
@@ -360,6 +371,7 @@ namespace FG
 				case EBufferUsage::Vertex :				break;
 				case EBufferUsage::Indirect :			break;
 				case EBufferUsage::RayTracing :			break;
+				//case EBufferUsage::ShaderAddress :	break;
 				case EBufferUsage::VertexPplnStore :	break;
 				case EBufferUsage::FragmentPplnStore :	break;
 				case EBufferUsage::_Last :
@@ -371,7 +383,7 @@ namespace FG
 			END_ENUM_CHECKS();
 		}
 
-		return (dev_flags & buf_flags);
+		return AllBits( available_flags, required_flags );
 	}
 
 }	// FG

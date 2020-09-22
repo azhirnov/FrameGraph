@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "DstImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 128, 128, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | TransferDst
@@ -63,7 +63,7 @@ CommandBuffer {
 
 	Image {
 		name:         "SrcImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 64, 64, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | TransferDst
@@ -189,7 +189,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "DstImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 128, 128, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | TransferDst
@@ -250,7 +250,7 @@ CommandBuffer {
 
 	Image {
 		name:         "SrcImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 64, 64, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | TransferDst
@@ -311,7 +311,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    128 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -328,6 +328,7 @@ CommandBuffer {
 		}
 	}
 
+	dependsOn: <no-name>
 	-----------------------------------------------------------
 	Task {
 		name:    "UpdateImage (#2)"

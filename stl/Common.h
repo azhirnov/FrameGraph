@@ -5,20 +5,6 @@
 
 #pragma once
 
-// mem leak check
-#if defined(COMPILER_MSVC) && defined(FG_ENABLE_MEMLEAK_CHECKS) && defined(_DEBUG)
-#	define _CRTDBG_MAP_ALLOC
-#	include <stdlib.h>
-#	include <crtdbg.h>
-
-	// call at exit
-	// returns 'true' if no mem leaks
-#	define FG_DUMP_MEMLEAKS()	(::_CrtDumpMemoryLeaks() != 1)
-#else
-
-#	define FG_DUMP_MEMLEAKS()	(true)
-#endif
-
 #include "stl/Defines.h"
 
 #include <vector>
@@ -33,6 +19,7 @@
 #include <cmath>
 #include <atomic>
 #include <mutex>
+#include <shared_mutex>
 #include <algorithm>
 
 #include "stl/Log/Log.h"
@@ -40,6 +27,7 @@
 #include "stl/CompileTime/TypeTraits.h"
 #include "stl/CompileTime/Constants.h"
 #include "stl/CompileTime/DefaultType.h"
+#include "stl/Containers/StringView.h"
 
 
 namespace FGC
@@ -47,7 +35,6 @@ namespace FGC
 	using uint = uint32_t;
 
 							using String		= std::string;
-	template <typename T>	using BasicString	= std::basic_string< T >;
 
 	template <typename T>	using Array			= std::vector< T >;
 
@@ -63,9 +50,16 @@ namespace FGC
 	template <typename...T>	using Tuple			= std::tuple< T... >;
 
 	template <typename T>	using Atomic		= std::atomic< T >;
+	
+	template <typename T>	using Function		= std::function< T >;
 
+	using Mutex			= std::mutex;
+	using SharedMutex	= std::shared_mutex;
+	
 
-	using Mutex	= std::mutex;
+	template <typename T,
+			  typename A = std::allocator<T>>
+	using BasicString	= std::basic_string< T, std::char_traits<T>, A >;
 
 
 	template <typename T,
@@ -101,5 +95,24 @@ namespace FGC
 	static constexpr std::memory_order	memory_order_relaxed	= std::memory_order_seq_cst;
 #	endif	// FG_OPTIMAL_MEMORY_ORDER
 
+
+#	ifndef FG_NO_EXCEPTIONS
+	class FGException final : public std::runtime_error
+	{
+	public:
+		explicit FGException (StringView sv) : runtime_error{ String{sv} } {}
+		explicit FGException (String str) : runtime_error{ std::move(str) } {}
+		explicit FGException (const char *str) : runtime_error{ String{str} } {}
+	};
+#	endif
+
+	
+/*
+=================================================
+	Unused
+=================================================
+*/
+	template <typename... Args>
+	constexpr void Unused (Args&& ...) {}
 
 }	// FGC

@@ -176,7 +176,49 @@ namespace FG
 		VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawIndexedIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
 	
+	
 
+	//
+	// Draw Vertices Indirect Count
+	//
+	template <>
+	class VFgDrawTask< DrawVerticesIndirectCount > final : public VBaseDrawVerticesTask
+	{
+	public:
+	// variables
+		const DrawVerticesIndirectCount::DrawCommands_t	commands;
+		VLocalBuffer const* const						indirectBuffer;
+		VLocalBuffer const* const						countBuffer;
+
+	// methods
+		VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawVerticesIndirectCount &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+	};
+
+
+
+	//
+	// Draw Indexed Vertices Indirect Count
+	//
+	template <>
+	class VFgDrawTask< DrawIndexedIndirectCount > final : public VBaseDrawVerticesTask
+	{
+	public:
+	// variables
+		const DrawIndexedIndirectCount::DrawCommands_t	commands;
+		VLocalBuffer const* const						indirectBuffer;
+		VLocalBuffer const* const						countBuffer;
+
+		VLocalBuffer const* const						indexBuffer;
+		const BytesU									indexBufferOffset;
+		const EIndex									indexType;
+
+	// methods
+		VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawIndexedIndirectCount &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+	};
+
+	
+
+#ifdef VK_NV_mesh_shader
 
 	//
 	// Base Draw Meshes
@@ -239,6 +281,26 @@ namespace FG
 	// methods
 		VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawMeshesIndirect &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
 	};
+	
+
+
+	//
+	// Draw Meshes Indirect
+	//
+	template <>
+	class VFgDrawTask< DrawMeshesIndirectCount > final : public VBaseDrawMeshes
+	{
+	public:
+	// variables
+		const DrawMeshesIndirectCount::DrawCommands_t	commands;
+		VLocalBuffer const* const						indirectBuffer;
+		VLocalBuffer const* const						countBuffer;
+
+	// methods
+		VFgDrawTask (VLogicalRenderPass &rp, VCommandBuffer &cb, const DrawMeshesIndirectCount &task, ProcessFunc_t pass1, ProcessFunc_t pass2);
+	};
+
+#endif	// VK_NV_mesh_shader
 	
 
 

@@ -38,12 +38,15 @@ namespace FG
 		VCmdBatchPtr&	operator = (VCmdBatchPtr &&rhs)				{ _DecRef();  _ptr = rhs._ptr;  rhs._ptr = null;  return *this; }
 		VCmdBatchPtr&	operator = (std::nullptr_t)					{ _DecRef();  _ptr = null;  return *this; }
 
-		ND_ VCmdBatch*	operator -> ()		const					{ ASSERT( _ptr );  return _ptr; }
-		ND_ VCmdBatch&	operator *  ()		const					{ ASSERT( _ptr );  return *_ptr; }
+		ND_ VCmdBatch*	operator -> ()						const	{ ASSERT( _ptr );  return _ptr; }
+		ND_ VCmdBatch&	operator *  ()						const	{ ASSERT( _ptr );  return *_ptr; }
 
-		ND_ explicit	operator bool ()	const					{ return _ptr != null; }
+		ND_ bool		operator == (VCmdBatch* rhs)		 const	{ return _ptr == rhs; }
+		ND_ bool		operator == (const VCmdBatchPtr &rhs)const	{ return _ptr == rhs._ptr; }
 
-		ND_ VCmdBatch*	get ()				const					{ return _ptr; }
+		ND_ explicit	operator bool ()					const	{ return _ptr != null; }
+
+		ND_ VCmdBatch*	get ()								const	{ return _ptr; }
 
 
 	private:
@@ -207,15 +210,15 @@ namespace FG
 
 		struct DebugMode
 		{
-			ShaderModules_t		modules;
-			VkDescriptorSet		descriptorSet	= VK_NULL_HANDLE;
-			BytesU				offset;
-			BytesU				size;
-			uint				sbIndex			= UMax;
-			EShaderDebugMode	mode			= Default;
-			EShaderStages		shaderStages	= Default;
-			TaskName_t			taskName;
-			uint				data[4]			= {};
+			ShaderModules_t			modules;
+			VkDescriptorSet			descriptorSet	= VK_NULL_HANDLE;
+			BytesU					offset;
+			BytesU					size;
+			uint					sbIndex			= UMax;
+			EShaderDebugMode		mode			= Default;
+			EShaderStages			shaderStages	= Default;
+			TaskName_t				taskName;
+			uint					data[4]			= {};
 		};
 
 		using StorageBuffers_t		= Array< StorageBuffer >;
@@ -226,13 +229,13 @@ namespace FG
 
 		//---------------------------------------------------------------------------
 		
-		static constexpr uint	MaxDependencies	= 16;
-		using Dependencies_t	= FixedArray< VCmdBatchPtr, MaxDependencies >;
+		static constexpr uint		MaxDependencies	= 16;
+		using Dependencies_t		= FixedArray< VCmdBatchPtr, MaxDependencies >;
 
-		static constexpr uint	MaxSwapchains = 8;
-		using Swapchains_t		= FixedArray< VSwapchain const*, MaxSwapchains >;
+		static constexpr uint		MaxSwapchains = 8;
+		using Swapchains_t			= FixedArray< VSwapchain const*, MaxSwapchains >;
 
-		using BatchGraph		= VLocalDebugger::BatchGraph;
+		using BatchGraph			= VLocalDebugger::BatchGraph;
 
 		static constexpr uint		MaxBatchItems = 8;
 		using CmdBuffers_t			= FixedTupleArray< MaxBatchItems, VkCommandBuffer, VCommandPool const* >;
@@ -241,18 +244,18 @@ namespace FG
 		
 		using VkResourceArray_t		= Array<Pair< VkObjectType, uint64_t >>;
 
-		using Statistic_t		= IFrameGraph::Statistics;
+		using Statistic_t			= IFrameGraph::Statistics;
 
 
 	public:
 		enum class EState : uint
 		{
-			Initial,
 			Recording,		// build command buffers
 			Backed,			// command buffers builded, all data locked
 			Ready,			// all dependencies in 'Ready', 'Submitted' or 'Complete' states
 			Submitted,		// commands was submitted to the GPU
 			Complete,		// commands complete execution on the GPU
+			Initial,
 		};
 
 
@@ -301,6 +304,7 @@ namespace FG
 		// frame debugger
 		String								_debugDump;
 		BatchGraph							_debugGraph;
+		DebugName_t							_debugName;
 		
 		Statistic_t							_statistic;
 
@@ -354,7 +358,7 @@ namespace FG
 		bool  AddDataLoadedEvent (OnImageDataLoadedEvent &&);
 		bool  AddDataLoadedEvent (OnBufferDataLoadedEvent &&);
 
-
+		ND_ StringView				GetName ()						const	{ SHAREDLOCK( _drCheck );  return _debugName; }
 		ND_ EQueueType				GetQueueType ()					const	{ SHAREDLOCK( _drCheck );  return _queueType; }
 		ND_ EState					GetState ()								{ return _state.load( memory_order_relaxed ); }
 		ND_ ArrayView<VCmdBatchPtr>	GetDependencies ()				const	{ SHAREDLOCK( _drCheck );  return _dependencies; }

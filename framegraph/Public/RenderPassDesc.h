@@ -60,6 +60,9 @@ namespace FG
 		
 		PipelineResourceSet			perPassResources;	// this resources will be added for all draw tasks
 
+
+		//bool						useSecondaryCmdbuf	= false;	// CPU optimization
+
 		//bool						parallelExecution	= true;		// (optimization) if 'false' all draw and compute tasks will be executed in initial order
 		//bool						canBeMerged			= true;		// (optimization) g-buffer render passes can be merged, but don't merge conditional passes
 		// TODO: push constants, specialization constants
@@ -155,6 +158,7 @@ namespace FG
 		RenderPassDesc&  SetShadingRateImage (RawImageID image, ImageLayer layer = Default, MipmapLevel level = Default);
 		
 		RenderPassDesc&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		RenderPassDesc&  AddResources (const DescriptorSetID &id, PipelineResources &res)	{ return AddResources( id, &res ); }
 	};
 
 
@@ -416,7 +420,7 @@ namespace FG
 	inline RenderPassDesc&  RenderPassDesc::SetDepthBiasClamp (float value)
 	{
 		rasterizationState.depthBiasClamp	= value;
-		//rasterizationState.depthClamp		= true;	// TODO ???
+		rasterizationState.depthBias		= true;
 		return *this;
 	}
 
@@ -431,7 +435,7 @@ namespace FG
 		rasterizationState.depthBiasConstFactor	= constFactor;
 		rasterizationState.depthBiasClamp		= clamp;
 		rasterizationState.depthBiasSlopeFactor	= slopeFactor;
-		//rasterizationState.depthBias			= true;	// TODO ???
+		rasterizationState.depthBias			= true;
 		return *this;
 	}
 

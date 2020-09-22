@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "OutputImage"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 800, 600, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | Storage
@@ -68,7 +68,7 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
 					size:            192 b
 				}
@@ -77,7 +77,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    128 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
@@ -117,7 +117,7 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
 					size:            64 b
 				}
@@ -126,7 +126,7 @@ CommandBuffer {
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    768 b
+		size:    1280 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -136,16 +136,16 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   0
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
-					size:            768 b
+					size:            1280 b
 				}
 		}
 	}
 
 	Buffer {
 		name:    "ScratchBuffer"
-		size:    256 b
+		size:    640 b
 		usage:   RayTracing
 		barriers = {
 				BufferMemoryBarrier {
@@ -155,9 +155,9 @@ CommandBuffer {
 					dstStageMask:    0
 					dependencyFlags: 0
 					srcAccessMask:   0
-					dstAccessMask:   0
+					dstAccessMask:   ShaderRead
 					offset:          0 b
-					size:            256 b
+					size:            640 b
 				}
 		}
 	}
@@ -172,7 +172,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     256 b
+				size:     640 b
 			}
 		}
 	}
@@ -203,7 +203,7 @@ CommandBuffer {
 				name:     "ScratchBuffer"
 				usage:    RTASBuild-Buffer-RW
 				offset:   0 b
-				size:     768 b
+				size:     1280 b
 			}
 		}
 	}

@@ -66,7 +66,7 @@ namespace _fgc_hidden_
 				fn.template operator()<T,I>();
 				_Visit< I+1 >( std::forward<FN>(fn) );
 			}
-			FG_UNUSED( fn );
+			Unused( fn );
 		}
 	};
 

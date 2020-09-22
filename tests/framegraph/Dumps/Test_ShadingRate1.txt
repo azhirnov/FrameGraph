@@ -2,7 +2,7 @@ CommandBuffer {
 	name:      ""
 	Image {
 		name:         "RenderTarget"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 256, 256, 1 )
 		format:       RGBA8_UNorm
 		usage:        TransferSrc | ColorAttachment
@@ -15,7 +15,7 @@ CommandBuffer {
 					dstTask:         ReadImage (#4)
 					srcStageMask:    ColorAttachmentOutput
 					dstStageMask:    Transfer
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   ColorAttachmentRead | ColorAttachmentWrite
 					dstAccessMask:   TransferRead
 					oldLayout:       ColorAttachmentOptimal
@@ -30,8 +30,8 @@ CommandBuffer {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferRead
 					dstAccessMask:   ColorAttachmentRead | TransferRead
 					oldLayout:       TransferSrcOptimal
@@ -47,7 +47,7 @@ CommandBuffer {
 
 	Image {
 		name:         "ShadingRate"
-		iamgeType:    Image2D
+		imageType:    1
 		dimension:    ( 16, 16, 1 )
 		format:       R8U
 		usage:        TransferDst | ShadingRate
@@ -60,8 +60,8 @@ CommandBuffer {
 					dstTask:         UpdateImage (#2)
 					srcStageMask:    TopOfPipe
 					dstStageMask:    Transfer
-					dependencyFlags: 
-					srcAccessMask:   
+					dependencyFlags: 0
+					srcAccessMask:   0
 					dstAccessMask:   TransferWrite
 					oldLayout:       General
 					newLayout:       TransferDstOptimal
@@ -76,7 +76,7 @@ CommandBuffer {
 					dstTask:         RenderPass (#3)
 					srcStageMask:    Transfer
 					dstStageMask:    ShadingRateImage
-					dependencyFlags: 
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
 					dstAccessMask:   ShadingRateImageRead
 					oldLayout:       TransferDstOptimal
@@ -91,8 +91,8 @@ CommandBuffer {
 					srcTask:         RenderPass (#3)
 					dstTask:         <final>
 					srcStageMask:    ShadingRateImage
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   ShadingRateImageRead
 					dstAccessMask:   ShadingRateImageRead
 					oldLayout:       ShadingRateOptimal
@@ -108,17 +108,17 @@ CommandBuffer {
 
 	Buffer {
 		name:    "HostReadBuffer"
-		size:    256 Mb
+		size:    8 Mb
 		usage:   TransferDst
 		barriers = {
 				BufferMemoryBarrier {
 					srcTask:         ReadImage (#4)
 					dstTask:         <final>
 					srcStageMask:    Transfer
-					dstStageMask:    
-					dependencyFlags: 
+					dstStageMask:    0
+					dependencyFlags: 0
 					srcAccessMask:   TransferWrite
-					dstAccessMask:   
+					dstAccessMask:   0
 					offset:          0 b
 					size:            256 Kb
 				}

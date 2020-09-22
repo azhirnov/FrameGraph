@@ -58,7 +58,7 @@ namespace FG
 
 		Self &		Merge (const Self &other)
 		{
-			ASSERT( IsIntersects( other ) );
+			ASSERT( IsIntersects( other ));
 			begin = Min( begin, other.begin );
 			end   = Max( end,   other.end   );
 			return *this;

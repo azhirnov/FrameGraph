@@ -27,7 +27,7 @@ namespace FGC
 	template <typename T, typename ...Types>
 	forceinline T *  PlacementNew (OUT void *ptr, Types&&... args)
 	{
-		ASSERT( CheckPointerAlignment<T>( ptr ) );
+		ASSERT( CheckPointerAlignment<T>( ptr ));
 		return ( new(ptr) T{ std::forward<Types &&>(args)... } );
 	}
 

@@ -140,7 +140,7 @@ namespace FG
 			uint3	baseGroup;
 			uint3	groupCount;
 		};
-		using ComputeCmds_t		= FixedArray< ComputeCmd, 16 >;
+		using ComputeCmds_t		= FixedArray< ComputeCmd, FG_MaxDrawCommands >;
 
 
 	// variables
@@ -174,6 +174,7 @@ namespace FG
 		DispatchCompute&  EnableShaderProfiling ()							{ return EnableShaderProfiling( uint3{~0u} ); }
 
 		DispatchCompute&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		DispatchCompute&  AddResources (const DescriptorSetID &id, PipelineResources &res)	{ return AddResources( id, &res ); }
 
 		template <typename ValueType>
 		DispatchCompute&  AddPushConstant (const PushConstantID &id, const ValueType &value);
@@ -195,7 +196,7 @@ namespace FG
 		{
 			BytesU		indirectBufferOffset;
 		};
-		using ComputeCmds_t		= FixedArray< ComputeCmd, 16 >;
+		using ComputeCmds_t		= FixedArray< ComputeCmd, FG_MaxDrawCommands >;
 
 		struct DispatchIndirectCommand
 		{
@@ -233,6 +234,7 @@ namespace FG
 		DispatchComputeIndirect&  SetIndirectBuffer (RawBufferID buffer)			{ ASSERT( buffer );  indirectBuffer = buffer;  return *this; }
 		
 		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		DispatchComputeIndirect&  AddResources (const DescriptorSetID &id, PipelineResources &res)	{ return AddResources( id, &res ); }
 
 		template <typename ValueType>
 		DispatchComputeIndirect&  AddPushConstant (const PushConstantID &id, const ValueType &value);
@@ -473,15 +475,18 @@ namespace FG
 	{
 	// variables
 		RawImageID		image;
-		MipmapLevel		baseLevel;
-		uint			levelCount	= UMax;
+		MipmapLevel		baseMipLevel	= 0_mipmap;		// 0 - src level, mipmap generation will start from baseMipLevel + 1
+		uint			levelCount		= UMax;
+		ImageLayer		baseLayer		= 0_layer;		// specify array layers that will be used
+		uint			layerCount		= UMax;
 
 	// methods
 		GenerateMipmaps () :
 			BaseTask<GenerateMipmaps>{ "GenerateMipmaps", ColorScheme::DeviceLocalTransfer } {}
 
-		GenerateMipmaps&  SetImage (RawImageID img)					{ ASSERT( img );  image = img;  return *this; }
-		GenerateMipmaps&  SetRange (MipmapLevel base, uint count)	{ baseLevel = base;  levelCount = count;  return *this; }
+		GenerateMipmaps&  SetImage (RawImageID img)					{ ASSERT( img );                     image      = img;    return *this; }
+		GenerateMipmaps&  SetMipmaps (uint base, uint count)		{ baseMipLevel = MipmapLevel{base};  levelCount = count;  return *this; }
+		GenerateMipmaps&  SetArrayLayers (uint base, uint count)	{ baseLayer    = ImageLayer{base};   layerCount = count;  return *this; }
 	};
 
 
@@ -728,8 +733,8 @@ namespace FG
 	// variables
 		RawBufferID		srcBuffer;
 		BytesU			offset;
-		BytesU			size;
-		Callback_t		callback;
+		BytesU			size;		// must be valid size
+		Callback_t		callback;	// may be called from any thread
 
 	// methods
 		ReadBuffer () :
@@ -851,7 +856,7 @@ namespace FG
 		ImageLayer		arrayLayer;
 		MipmapLevel		mipmapLevel;
 		EImageAspect	aspectMask	= EImageAspect::Color;	// must only have a single bit set
-		Callback_t		callback;
+		Callback_t		callback;							// may be called from any thread
 
 		
 	// methods
@@ -1123,6 +1128,8 @@ namespace FG
 			RTShaderID			anyHitShader;		// optional
 			RTShaderID			intersectionShader;	// only for procedural geometry
 
+			ShaderGroup () = default;
+
 			ShaderGroup (const RTShaderID &missShader, uint missIndex) :
 				type{EGroupType::MissShader}, offset{missIndex}, mainShader{missShader} {}
 			
@@ -1197,6 +1204,7 @@ namespace FG
 		TraceRays&  SetGroupCount (uint x, uint y = 1, uint z = 1)					{ groupCount = {x, y, z};  return *this; }
 		
 		TraceRays&  AddResources (const DescriptorSetID &id, const PipelineResources *res);
+		TraceRays&  AddResources (const DescriptorSetID &id, PipelineResources &res)	{ return AddResources( id, &res ); }
 		TraceRays&  SetShaderTable (RawRTShaderTableID id);
 
 		template <typename ValueType>
@@ -1221,7 +1229,7 @@ namespace FG
 		using Context_t		= Union< NullUnion, VulkanContext >;
 		using Callback_t	= std::function< void (const Context_t &) >;
 		using Images_t		= FixedArray< Pair< RawImageID, EResourceState >, 8 >;
-		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;
+		using Buffers_t		= FixedArray< Pair< RawBufferID, EResourceState >, 8 >;	// TODO: use ArrayView
 
 		
 	// variables

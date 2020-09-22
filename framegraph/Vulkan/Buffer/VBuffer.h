@@ -20,7 +20,7 @@ namespace FG
 
 	// types
 	private:
-		using OnRelease_t	= IFrameGraph::OnExternalBufferReleased_t;
+		using OnRelease_t		= IFrameGraph::OnExternalBufferReleased_t;
 		using BufferViewMap_t	= HashMap< BufferViewDesc, VkBufferView >;
 
 
@@ -30,7 +30,7 @@ namespace FG
 		MemoryID					_memoryId;
 		BufferDesc					_desc;
 		
-		mutable std::shared_mutex	_viewMapLock;
+		mutable SharedMutex			_viewMapLock;
 		mutable BufferViewMap_t		_viewMap;
 
 		EQueueFamilyMask			_queueFamilyMask	= Default;
@@ -45,7 +45,8 @@ namespace FG
 	// methods
 	public:
 		VBuffer () {}
-		VBuffer (VBuffer &&) = default;
+		VBuffer (VBuffer &&) = delete;
+		VBuffer (const VBuffer &) = delete;
 		~VBuffer ();
 
 		bool Create (VResourceManager &, const BufferDesc &desc, RawMemoryID memId, VMemoryObj &memObj,

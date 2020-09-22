@@ -3,12 +3,11 @@
 #pragma once
 
 #include "framegraph/Public/Types.h"
-#include "stl/Algorithms/EnumUtils.h"
 
 namespace FG
 {
 	
-	enum class EBlendFactor : uint
+	enum class EBlendFactor : uint8_t
 	{
 		// src - from shader
 		// dst - from render target
@@ -34,11 +33,11 @@ namespace FG
 		Src1Alpha,					// 
 		OneMinusSrc1Alpha,			// 
 
-		Unknown	= ~0u,
+		Unknown						= uint8_t(~0u),
 	};
 
 
-	enum class EBlendOp : uint
+	enum class EBlendOp : uint8_t
 	{
 		// src - from shader
 		// dst - from render target
@@ -48,11 +47,11 @@ namespace FG
 		RevSub,			// D-S
 		Min,			// min(S,D)
 		Max,			// max(S,D)
-		Unknown	= ~0u,
+		Unknown			= uint8_t(~0u),
 	};
 
 
-	enum class ELogicOp : uint
+	enum class ELogicOp : uint8_t
 	{
 		None,				// disabled
 		Clear,				// 0
@@ -71,7 +70,7 @@ namespace FG
 		AndInverted,		// ~S & D
 		OrReverse,			// S | ~D
 		OrInverted,			// ~S | D
-		Unknown	= ~0u,
+		Unknown				= uint8_t(~0u),
 	};
 
 
@@ -85,34 +84,34 @@ namespace FG
 		NotEqual,		// !=
 		GEqual,			// >=
 		Always,			// true
-		Unknown			= uint8_t(~0),
+		Unknown			= uint8_t(~0u),
 	};
 
 
 	enum class EStencilOp : uint8_t
 	{
-		Keep,			// s
-		Zero,			// 0
-		Replace,		// ref
-		Incr,			// min( ++s, 0 )
-		IncrWrap,		// ++s & maxvalue
-		Decr,			// max( --s, 0 )
-		DecrWrap,		// --s & maxvalue
-		Invert,			// ~s
-		Unknown			= uint8_t(~0),
+		Keep,			// s				- Keeps the current value.
+		Zero,			// 0				- Sets the stencil buffer value to 0.
+		Replace,		// ref				- Sets the stencil buffer value to 'StencilFaceState::reference'.
+		Incr,			// min( ++s, 0 )	- Increments the current stencil buffer value. Clamps to the maximum representable unsigned value.
+		IncrWrap,		// ++s & maxvalue	- Increments the current stencil buffer value. Wraps stencil buffer value to zero when incrementing the maximum representable unsigned value.
+		Decr,			// max( --s, 0 )	- Decrements the current stencil buffer value. Clamps to 0.
+		DecrWrap,		// --s & maxvalue	- Decrements the current stencil buffer value. Wraps stencil buffer value to the maximum representable unsigned value when decrementing a stencil buffer value of zero.
+		Invert,			// ~s				- Bitwise inverts the current stencil buffer value.
+		Unknown			= uint8_t(~0u),
 	};
 
 
-	enum class EPolygonMode : uint
+	enum class EPolygonMode : uint8_t
 	{
 		Point,
 		Line,
 		Fill,
-		Unknown	= ~0u,
+		Unknown		= uint8_t(~0u),
 	};
 
 	
-	enum class EPrimitive : uint
+	enum class EPrimitive : uint8_t
 	{
 		Point,
 		
@@ -130,7 +129,7 @@ namespace FG
 		Patch,
 
 		_Count,
-		Unknown		= ~0u,
+		Unknown		= uint8_t(~0u),
 	};
 	
 

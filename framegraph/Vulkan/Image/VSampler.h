@@ -28,18 +28,18 @@ namespace FG
 	// methods
 	public:
 		VSampler () {}
-		VSampler (VSampler &&) = default;
+		VSampler (VSampler &&) = delete;
+		VSampler (const VSampler &) = delete;
 		VSampler (const VDevice &dev, const SamplerDesc &desc);
 		~VSampler ();
 
 		bool Create (const VDevice &dev, StringView dbgName);
 		void Destroy (VResourceManager &);
 
-		ND_ bool	operator == (const VSampler &rhs) const;
+		ND_ bool		operator == (const VSampler &rhs) const;
 
-		ND_ VkSampler					Handle ()		const	{ SHAREDLOCK( _drCheck );  return _sampler; }
-		ND_ HashVal						GetHash ()		const	{ SHAREDLOCK( _drCheck );  return _hash; }
-		//ND_ VkSamplerCreateInfo const&	CreateInfo ()	const	{ SHAREDLOCK( _drCheck );  return _createInfo; }
+		ND_ VkSampler	Handle ()		const	{ SHAREDLOCK( _drCheck );  return _sampler; }
+		ND_ HashVal		GetHash ()		const	{ SHAREDLOCK( _drCheck );  return _hash; }
 
 
 	private:

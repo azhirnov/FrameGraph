@@ -87,9 +87,18 @@ namespace FG
 		struct StencilFaceState
 		{
 		// variables
-			EStencilOp		failOp;				// stencil test failed
-			EStencilOp		depthFailOp;		// depth and stencil tests are passed
-			EStencilOp		passOp;				// stencil test passed and depth test failed
+			EStencilOp		failOp;				// stencil test failed, see 'compareOp'
+			EStencilOp		depthFailOp;		// stencil test passed and depth test failed
+			EStencilOp		passOp;				// depth and stencil tests are passed
+			//	compareOp :
+			//		Never		- Always fails
+			//		Less		- Passes if ( reference & compareMask ) <  ( <stencil_buffer> & compareMask )
+			//		LEqual		- Passes if ( reference & compareMask ) <= ( <stencil_buffer> & compareMask )
+			//		Greater		- Passes if ( reference & compareMask ) >  ( <stencil_buffer> & compareMask )
+			//		GEqual		- Passes if ( reference & compareMask ) >= ( <stencil_buffer> & compareMask )
+			//		Equal		- Passes if ( reference & compareMask ) =  ( <stencil_buffer> & compareMask )
+			//		NotEqual	- Passes if ( reference & compareMask ) != ( <stencil_buffer> & compareMask )
+			//		Always		- Always passes
 			ECompareOp		compareOp;
 			uint			reference;
 			uint			writeMask;
@@ -104,6 +113,7 @@ namespace FG
 			{}
 
 			ND_ bool  operator == (const StencilFaceState &rhs) const;
+			ND_ bool  IsReadOnly () const;
 		};
 
 
@@ -123,6 +133,7 @@ namespace FG
 			{}
 
 			ND_ bool  operator == (const StencilBufferState &rhs) const;
+			ND_ bool  IsReadOnly () const;
 		};
 
 
@@ -221,7 +232,7 @@ namespace FG
 
 		// methods
 			MultisampleState () :
-				sampleMask{},				samples{ 1 },
+				sampleMask{},				samples{ 1u },
 				minSampleShading{},			sampleShading{ false },
 				alphaToCoverage{ false },	alphaToOne{ false }
 			{}

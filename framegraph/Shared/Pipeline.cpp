@@ -48,11 +48,6 @@ namespace FG
 		data.insert_or_assign( fmt, MakeShared<ShaderDataImpl<String>>( std::move(src), entry, dbgName ));
 	}
 	
-	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
-	{
-		data.insert_or_assign( fmt, MakeShared<ShaderDataImpl<Array<uint8_t>>>( std::move(bin), entry, dbgName ));
-	}
-	
 	void PipelineDescription::Shader::AddShaderData (EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
 		data.insert_or_assign( fmt, MakeShared<ShaderDataImpl<Array<uint>>>( std::move(bin), entry, dbgName ));
@@ -87,7 +82,6 @@ namespace FG
 	bool  PipelineDescription::Image::operator == (const PipelineDescription::Image &rhs) const
 	{
 		return	this->imageType		== rhs.imageType	and
-				this->format		== rhs.format		and
 				this->state			== rhs.state;
 	}
 	
@@ -127,7 +121,7 @@ namespace FG
 	_TextureUniform
 =================================================
 */
-	PipelineDescription::_TextureUniform::_TextureUniform (const UniformID &id, EImage textureType, const BindingIndex &index,
+	PipelineDescription::_TextureUniform::_TextureUniform (const UniformID &id, EImageSampler textureType, const BindingIndex &index,
 														   uint arraySize, EShaderStages stageFlags) :
 		id{id}, data{ EResourceState::ShaderSample | EResourceState_FromShaders( stageFlags ), textureType },
 		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
@@ -164,9 +158,9 @@ namespace FG
 	_ImageUniform
 =================================================
 */
-	PipelineDescription::_ImageUniform::_ImageUniform (const UniformID &id, EImage imageType, EPixelFormat format, EShaderAccess access,
+	PipelineDescription::_ImageUniform::_ImageUniform (const UniformID &id, EImageSampler imageType, EShaderAccess access,
 													   const BindingIndex &index, uint arraySize, EShaderStages stageFlags) :
-		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), imageType, format },
+		id{id}, data{ EResourceState_FromShaders( stageFlags ) | EResourceState_FromShaderAccess( access ), imageType },
 		index{index}, arraySize{arraySize}, stageFlags{stageFlags}
 	{
 		ASSERT( id.IsDefined() );
@@ -343,20 +337,6 @@ namespace FG
 	
 /*
 =================================================
-	AddShaderBinary8
-=================================================
-*/
-	static void AddShaderBinary8 (INOUT FixedMap<EShader, PipelineDescription::Shader, 8> &shadersMap, EShader shaderType,
-								  EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
-	{
-		auto&	shader = shadersMap.insert({ shaderType, {} }).first->second;
-		ASSERT( shader.data.count( fmt ) == 0 );
-
-		shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
-	}
-	
-/*
-=================================================
 	AddShaderBinary32
 =================================================
 */
@@ -439,13 +419,6 @@ namespace FG
 		return *this;
 	}
 	
-	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
-	{
-		ASSERT( IsGraphicsShader( shaderType ));
-		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin), dbgName );
-		return *this;
-	}
-	
 	GraphicsPipelineDesc&  GraphicsPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
 		ASSERT( IsGraphicsShader( shaderType ));
@@ -512,13 +485,6 @@ namespace FG
 	{
 		ASSERT( IsMeshProcessingShader( shaderType ));
 		AddShaderSource( INOUT _shaders, shaderType, fmt, entry, std::move(src), dbgName );
-		return *this;
-	}
-	
-	MeshPipelineDesc&  MeshPipelineDesc::AddShader (EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
-	{
-		ASSERT( IsMeshProcessingShader( shaderType ));
-		AddShaderBinary8( INOUT _shaders, shaderType, fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	
@@ -597,18 +563,6 @@ namespace FG
 		return *this;
 	}
 	
-	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
-	{
-		ASSERT( IsRayTracingShader( shaderType ));
-
-		auto&	shader = _shaders.insert({ id, {} }).first->second;
-		ASSERT( shader.data.count( fmt ) == 0 );
-		
-		shader.shaderType = shaderType;
-		shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
-		return *this;
-	}
-	
 	RayTracingPipelineDesc&  RayTracingPipelineDesc::AddShader (const RTShaderID &id, EShader shaderType, EShaderLangFormat fmt, StringView entry, Array<uint> &&bin, StringView dbgName)
 	{
 		ASSERT( IsRayTracingShader( shaderType ));
@@ -669,13 +623,6 @@ namespace FG
 	{
 		ASSERT( _shader.data.count( fmt ) == 0 );
 		_shader.AddShaderData( fmt, entry, std::move(src), dbgName );
-		return *this;
-	}
-	
-	ComputePipelineDesc&  ComputePipelineDesc::AddShader (EShaderLangFormat fmt, StringView entry, Array<uint8_t> &&bin, StringView dbgName)
-	{
-		ASSERT( _shader.data.count( fmt ) == 0 );
-		_shader.AddShaderData( fmt, entry, std::move(bin), dbgName );
 		return *this;
 	}
 	

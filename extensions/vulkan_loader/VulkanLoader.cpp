@@ -1,9 +1,6 @@
 // Copyright (c) 2018-2020,  Zhirnov Andrey. For more information see 'LICENSE'
 
 #include "VulkanLoader.h"
-
-#ifndef FG_VULKAN_STATIC
-
 #include "VulkanCheckError.h"
 #include "stl/Algorithms/Cast.h"
 #include "stl/Algorithms/StringUtils.h"
@@ -31,14 +28,14 @@ namespace FGC
 #	define VK_LOG	FG_LOGD
 
 #	define VKLOADER_STAGE_FNPOINTER
-#	 include "fn_vulkan_lib.h"
-#	 include "fn_vulkan_inst.h"
+#	 include "vk_loader/fn_vulkan_lib.h"
+#	 include "vk_loader/fn_vulkan_inst.h"
 #	undef  VKLOADER_STAGE_FNPOINTER
 
 #	define VKLOADER_STAGE_DUMMYFN
-#	 include "fn_vulkan_lib.h"
-#	 include "fn_vulkan_inst.h"
-#	 include "fn_vulkan_dev.h"
+#	 include "vk_loader/fn_vulkan_lib.h"
+#	 include "vk_loader/fn_vulkan_inst.h"
+#	 include "vk_loader/fn_vulkan_dev.h"
 #	undef  VKLOADER_STAGE_DUMMYFN
 
 /*
@@ -98,13 +95,13 @@ namespace {
 
 #	else
 		if ( not libName.empty() )
-			lib->module = ::dlopen( libName.c_str(), RTLD_NOW | RTLD_LOCAL );
+			lib->module = ::dlopen( libName.c_str(), RTLD_LAZY | RTLD_LOCAL );
 
 		if ( lib->module == null )
-			lib->module = ::dlopen( "libvulkan.so", RTLD_NOW | RTLD_LOCAL );
+			lib->module = ::dlopen( "libvulkan.so", RTLD_LAZY | RTLD_LOCAL );
 		
 		if ( lib->module == null )
-			lib->module = ::dlopen( "libvulkan.so.1", RTLD_NOW | RTLD_LOCAL );
+			lib->module = ::dlopen( "libvulkan.so.1", RTLD_LAZY | RTLD_LOCAL );
 		
 		if ( lib->module == null )
 			return false;
@@ -131,7 +128,7 @@ namespace {
 		
 
 #		define VKLOADER_STAGE_GETADDRESS
-#		 include "fn_vulkan_lib.h"
+#		 include "vk_loader/fn_vulkan_lib.h"
 #		undef  VKLOADER_STAGE_GETADDRESS
 
 		ASSERT( _var_vkCreateInstance != &Dummy_vkCreateInstance );
@@ -145,18 +142,19 @@ namespace {
 	LoadInstance
 ----
 	must be externally synchronized!
+	warning: multiple instances are not supported!
 =================================================
 */
-	void VulkanLoader::LoadInstance (VkInstance instance)
+	bool VulkanLoader::LoadInstance (VkInstance instance)
 	{
 		VulkanLib *		lib = Singleton< VulkanLib >();
 
-		ASSERT( instance );
-		ASSERT( lib->instance == null or lib->instance == instance );
-		ASSERT( _var_vkGetInstanceProcAddr != &Dummy_vkGetInstanceProcAddr );
+		CHECK_ERR( instance );
+		CHECK_ERR( lib->instance == null or lib->instance == instance );
+		CHECK_ERR( _var_vkGetInstanceProcAddr != &Dummy_vkGetInstanceProcAddr );
 
 		if ( lib->instance == instance )
-			return;
+			return true;	// functions already loaded for this instance
 
 		lib->instance = instance;
 
@@ -168,8 +166,10 @@ namespace {
 							};
 		
 #		define VKLOADER_STAGE_GETADDRESS
-#		 include "fn_vulkan_inst.h"
+#		 include "vk_loader/fn_vulkan_inst.h"
 #		undef  VKLOADER_STAGE_GETADDRESS
+
+		return true;
 	}
 	
 /*
@@ -179,9 +179,9 @@ namespace {
 	access to the 'vkGetDeviceProcAddr' must be externally synchronized!
 =================================================
 */
-	void VulkanLoader::LoadDevice (VkDevice device, OUT VulkanDeviceFnTable &table)
+	bool VulkanLoader::LoadDevice (VkDevice device, OUT VulkanDeviceFnTable &table)
 	{
-		ASSERT( _var_vkGetDeviceProcAddr != &Dummy_vkGetDeviceProcAddr );
+		CHECK_ERR( _var_vkGetDeviceProcAddr != &Dummy_vkGetDeviceProcAddr );
 
 		const auto	Load =	[device] (OUT auto& outResult, const char *procName, auto dummy)
 							{
@@ -191,8 +191,10 @@ namespace {
 							};
 
 #		define VKLOADER_STAGE_GETADDRESS
-#		 include "fn_vulkan_dev.h"
+#		 include "vk_loader/fn_vulkan_dev.h"
 #		undef  VKLOADER_STAGE_GETADDRESS
+
+		return true;
 	}
 	
 /*
@@ -207,7 +209,7 @@ namespace {
 							};
 
 #		define VKLOADER_STAGE_GETADDRESS
-#		 include "fn_vulkan_dev.h"
+#		 include "vk_loader/fn_vulkan_dev.h"
 #		undef  VKLOADER_STAGE_GETADDRESS
 	}
 
@@ -247,9 +249,115 @@ namespace {
 							};
 
 #		define VKLOADER_STAGE_GETADDRESS
-#		 include "fn_vulkan_lib.h"
-#		 include "fn_vulkan_inst.h"
+#		 include "vk_loader/fn_vulkan_lib.h"
+#		 include "vk_loader/fn_vulkan_inst.h"
 #		undef  VKLOADER_STAGE_GETADDRESS
+	}
+
+/*
+=================================================
+	SetupInstanceBackwardCompatibility
+=================================================
+*/
+	void VulkanLoader::SetupInstanceBackwardCompatibility (uint version)
+	{
+		Unused( version );
+		
+	#define VK_COMPAT( _dst_, _src_ ) \
+		ASSERT( _var_##_src_ != null ); \
+		/*ASSERT( _var_##_dst_ == null );*/ \
+		_var_##_dst_ = _var_##_src_
+
+	#ifdef VK_VERSION_1_1
+		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 1) )
+		{
+		// VK_KHR_get_physical_device_properties2
+			VK_COMPAT( vkGetPhysicalDeviceFeatures2KHR,						vkGetPhysicalDeviceFeatures2 );
+			VK_COMPAT( vkGetPhysicalDeviceProperties2KHR,					vkGetPhysicalDeviceProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceFormatProperties2KHR,				vkGetPhysicalDeviceFormatProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceImageFormatProperties2KHR,		vkGetPhysicalDeviceImageFormatProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceQueueFamilyProperties2KHR,		vkGetPhysicalDeviceQueueFamilyProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceMemoryProperties2KHR,				vkGetPhysicalDeviceMemoryProperties2 );
+			VK_COMPAT( vkGetPhysicalDeviceSparseImageFormatProperties2KHR,	vkGetPhysicalDeviceSparseImageFormatProperties2 );
+		}
+	#endif
+	#ifdef VK_VERSION_1_2
+		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 2) )
+		{
+		}
+	#endif
+
+	#undef VK_COMPAT
+	}
+	
+/*
+=================================================
+	SetupDeviceBackwardCompatibility
+=================================================
+*/
+	void VulkanLoader::SetupDeviceBackwardCompatibility (uint version, INOUT VulkanDeviceFnTable &table)
+	{
+		Unused( version, table );
+		
+	#define VK_COMPAT( _dst_, _src_ ) \
+		ASSERT( table._var_##_src_ != null ); \
+		/*ASSERT( table._var_##_dst_ == null );*/ \
+		table._var_##_dst_ = table._var_##_src_
+
+	#ifdef VK_VERSION_1_1
+		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 1) )
+		{
+		// VK_KHR_maintenance1
+			VK_COMPAT( vkTrimCommandPoolKHR, vkTrimCommandPool );
+
+		// VK_KHR_bind_memory2
+			VK_COMPAT( vkBindBufferMemory2KHR,	vkBindBufferMemory2 );
+			VK_COMPAT( vkBindImageMemory2KHR,	vkBindImageMemory2 );
+
+		// VK_KHR_get_memory_requirements2
+			VK_COMPAT( vkGetImageMemoryRequirements2KHR,		vkGetImageMemoryRequirements2 );
+			VK_COMPAT( vkGetBufferMemoryRequirements2KHR,		vkGetBufferMemoryRequirements2 );
+			VK_COMPAT( vkGetImageSparseMemoryRequirements2KHR,	vkGetImageSparseMemoryRequirements2 );
+
+		// VK_KHR_sampler_ycbcr_conversion
+			VK_COMPAT( vkCreateSamplerYcbcrConversionKHR,	vkCreateSamplerYcbcrConversion );
+			VK_COMPAT( vkDestroySamplerYcbcrConversionKHR,	vkDestroySamplerYcbcrConversion );
+
+		// VK_KHR_descriptor_update_template
+			VK_COMPAT( vkCreateDescriptorUpdateTemplateKHR,		vkCreateDescriptorUpdateTemplate );
+			VK_COMPAT( vkDestroyDescriptorUpdateTemplateKHR,	vkDestroyDescriptorUpdateTemplate );
+			VK_COMPAT( vkUpdateDescriptorSetWithTemplateKHR,	vkUpdateDescriptorSetWithTemplate );
+			
+		// VK_KHR_device_group
+			VK_COMPAT( vkCmdDispatchBaseKHR, vkCmdDispatchBase );
+		}
+	#endif
+	#ifdef VK_VERSION_1_2
+		if ( VK_VERSION_MAJOR(version) > 1 or (VK_VERSION_MAJOR(version) == 1 and VK_VERSION_MINOR(version) >= 2) )
+		{
+		// VK_KHR_draw_indirect_count
+			VK_COMPAT( vkCmdDrawIndirectCountKHR,		 vkCmdDrawIndirectCount );
+			VK_COMPAT( vkCmdDrawIndexedIndirectCountKHR, vkCmdDrawIndexedIndirectCountKHR );
+
+		// VK_KHR_create_renderpass2
+			VK_COMPAT( vkCreateRenderPass2KHR,		vkCreateRenderPass2 );
+			VK_COMPAT( vkCmdBeginRenderPass2KHR,	vkCmdBeginRenderPass2 );
+			VK_COMPAT( vkCmdNextSubpass2KHR,		vkCmdNextSubpass2 );
+			VK_COMPAT( vkCmdEndRenderPass2KHR,		vkCmdEndRenderPass2 );
+
+		// VK_KHR_timeline_semaphore
+			VK_COMPAT( vkGetSemaphoreCounterValueKHR,	vkGetSemaphoreCounterValue );
+			VK_COMPAT( vkWaitSemaphoresKHR,				vkWaitSemaphores );
+			VK_COMPAT( vkSignalSemaphoreKHR,			vkSignalSemaphore );
+
+		// VK_KHR_buffer_device_address
+			VK_COMPAT( vkGetBufferDeviceAddressKHR,					vkGetBufferDeviceAddress );
+			VK_COMPAT( vkGetBufferOpaqueCaptureAddressKHR,			vkGetBufferOpaqueCaptureAddress );
+			VK_COMPAT( vkGetDeviceMemoryOpaqueCaptureAddressKHR,	vkGetDeviceMemoryOpaqueCaptureAddress );
+		}
+	#endif
+		
+	#undef VK_COMPAT
 	}
 	
 /*
@@ -262,16 +370,9 @@ namespace {
 		_table = other._table;
 	}
 	
-/*
-=================================================
-	VulkanDeviceFn_Init
-=================================================
-*/
 	void VulkanDeviceFn::VulkanDeviceFn_Init (VulkanDeviceFnTable *table)
 	{
 		_table = table;
 	}
 
 }	// FGC
-
-#endif	// not FG_VULKAN_STATIC

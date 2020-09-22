@@ -3,7 +3,6 @@
 #pragma once
 
 #include "stl/Math/Math.h"
-#include "stl/Containers/StringView.h"
 
 namespace FGC
 {
@@ -97,7 +96,7 @@ namespace FGC
 
 			if ( newSize > _length )
 			{
-				memset( &_array[_length], 0, _length - newSize );
+				memset( &_array[_length], 0, newSize - _length );
 			}
 
 			_length = newSize;

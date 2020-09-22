@@ -3,7 +3,7 @@
 #pragma once
 
 #include "framework/Window/IWindow.h"
-#include "framework/Vulkan/VulkanDeviceExt.h"
+#include "framework/Vulkan/VulkanDevice.h"
 #include "framegraph/FG.h"
 #include "stl/Algorithms/StringUtils.h"
 
@@ -20,13 +20,16 @@ namespace FG
 	private:
 		using TestFunc_t			= bool (FGApp::*) ();
 		using TestQueue_t			= Deque<Pair< TestFunc_t, uint >>;
-		using DebugReport			= VulkanDeviceExt::DebugReport;
 		using VPipelineCompilerPtr	= SharedPtr< class VPipelineCompiler >;
+		using DeviceProperties		= IFrameGraph::DeviceProperties;
 
 
 	// variables
 	private:
-		VulkanDeviceExt			_vulkan;
+		#ifdef FG_ENABLE_VULKAN
+		VulkanDeviceInitializer	_vulkan;
+		#endif
+
 		WindowPtr				_window;
 		FrameGraph				_frameGraph;
 		VPipelineCompilerPtr	_pplnCompiler;
@@ -37,13 +40,16 @@ namespace FG
 		uint					_testsPassed		= 0;
 		uint					_testsFailed		= 0;
 
+		bool					_hasShaderDebugger;
+		DeviceProperties		_properties;
+
 
 	// methods
 	public:
 		FGApp ();
 		~FGApp ();
 
-		static void Run ();
+		static void Run (void* nativeHandle);
 
 
 	// IWindowEventListener
@@ -59,6 +65,7 @@ namespace FG
 	// helpers
 	private:
 		bool _Initialize (WindowPtr &&wnd);
+		bool _InitializeForVulkan (WindowPtr &&wnd);
 		bool _Update ();
 		void _Destroy ();
 

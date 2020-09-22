@@ -7,11 +7,11 @@
 namespace FG
 {
 
-	using InstanceVk_t			= struct __VkInstanceType *;
-	using PhysicalDeviceVk_t	= struct __VkPhysicalDeviceType *;
-	using DeviceVk_t			= struct __VkDeviceType *;
-	using QueueVk_t				= struct __VkQueueType *;
-	using CommandBufferVk_t		= struct __VkCommandBufferType *;
+	using InstanceVk_t			= struct __FgVkInstanceType *;
+	using PhysicalDeviceVk_t	= struct __FgVkPhysicalDeviceType *;
+	using DeviceVk_t			= struct __FgVkDeviceType *;
+	using QueueVk_t				= struct __FgVkQueueType *;
+	using CommandBufferVk_t		= struct __FgVkCommandBufferType *;
 
 	enum RenderPassVk_t			: uint64_t {};
 	enum SurfaceVk_t			: uint64_t {};
@@ -59,6 +59,9 @@ namespace FG
 		PhysicalDeviceVk_t	physicalDevice		= null;
 		DeviceVk_t			device				= null;
 		Queues_t			queues;
+
+		BytesU				maxStagingBufferMemory	= ~0_b;	// you can limit max size of host visible memory that may be used by FrameGraph, by default used max available size.
+		BytesU				stagingBufferSize		= 0_b;	// max size of single staging buffer (needed for tests), 0 - auto
 	};
 
 

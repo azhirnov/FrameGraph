@@ -37,8 +37,9 @@ namespace FG
 	{
 		{
 			AppConfig	cfg;
-			cfg.surfaceSize	= uint2(1024, 768);
-			cfg.windowTitle	= "Test";
+			cfg.surfaceSize		= uint2(1024, 768);
+			cfg.windowTitle		= "Test";
+
 			CHECK_ERR( _CreateFrameGraph( cfg ));
 		}
 

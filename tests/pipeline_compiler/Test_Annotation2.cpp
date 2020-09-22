@@ -48,7 +48,7 @@ void main ()
 
 	TEST( TestUniformBuffer( *ds, UniformID("UB"),  64_b, 1, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/UMax ));
 	TEST( TestStorageBuffer( *ds, UniformID("SSB"), 64_b, 0_b, EShaderAccess::WriteDiscard, 0, EShaderStages::Compute, /*arraySize*/1, /*dynamicOffset*/UMax ));
-	TEST( TestImageUniform( *ds, UniformID{"un_Image"}, EImage::Tex2D, EPixelFormat::RGBA8_UNorm, EShaderAccess::WriteDiscard, 2, EShaderStages::Compute ));
+	TEST( TestImageUniform( *ds, UniformID{"un_Image"}, EImageSampler::Float2D | EImageSampler(EPixelFormat::RGBA8_UNorm), EShaderAccess::WriteDiscard, 2, EShaderStages::Compute ));
 
 	TEST(All( ppln._defaultLocalGroupSize == uint3(1, 1, 1) ));
 	

@@ -162,7 +162,7 @@ namespace FG
 		layout_info.pushConstantRangeCount	= uint(vk_ranges.size());
 		layout_info.pPushConstantRanges		= vk_ranges.data();
 
-		VK_CHECK( dev.vkCreatePipelineLayout( dev.GetVkDevice(), &layout_info, null, OUT &_layout ) );
+		VK_CHECK( dev.vkCreatePipelineLayout( dev.GetVkDevice(), &layout_info, null, OUT &_layout ));
 
 		_firstDescSet = min_set;
 		return true;
@@ -205,7 +205,7 @@ namespace FG
 
 		for (auto& ds : _descriptorSets)
 		{
-			if ( not resMngr.IsResourceAlive( ds.second.layoutId ) )
+			if ( not resMngr.IsResourceAlive( ds.second.layoutId ))
 				return false;
 		}
 		return true;
@@ -231,7 +231,7 @@ namespace FG
 		auto			lhs_ds		= _descriptorSets.begin();
 		auto			rhs_ds		= rhs._descriptorSets.begin();
 
-		for (size_t i = 0; i < _descriptorSets.size(); ++i, ++lhs_ds, ++rhs_ds)
+		for (size_t i = 0; i < ds_count; ++i, ++lhs_ds, ++rhs_ds)
 		{
 			if ( lhs_ds->second.index != rhs_ds->second.index )
 				return false;

@@ -40,7 +40,7 @@ namespace FGC
 			explicit VulkanSurface (SDL_Window *wnd);
 
 			ND_ ArrayView<const char*>	GetRequiredExtensions () const override	{ return _extensions; }
-			ND_ VkSurfaceKHR			Create (VkInstance inst) const override;
+			ND_ SurfaceVk_t				Create (InstanceVk_t inst) const override;
 		};
 
 		using Listeners_t	= HashSet< IWindowEventListener *>;
@@ -77,6 +77,8 @@ namespace FGC
 		uint2 GetSize () const override;
 
 		UniquePtr<IVulkanSurface>  GetVulkanSurface () const override;
+		
+		void * GetPlatformHandle () const override;
 
 	private:
 		static StringView  _MapKey (SDL_Scancode code);

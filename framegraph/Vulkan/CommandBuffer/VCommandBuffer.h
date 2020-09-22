@@ -89,14 +89,17 @@ namespace FG
 			ResourceMap_t			resourceMap;
 			LocalImages_t			images;
 			LocalBuffers_t			buffers;
+
+			#ifdef VK_NV_ray_tracing
 			LocalRTScenes_t			rtScenes;
 			LocalRTGeometries_t		rtGeometries;
+			#endif
+			
 			LogicalRenderPasses_t	logicalRenderPasses;
 			uint					logicalRenderPassCount	= 0;
 		}						_rm;
 		
 		PerQueueArray_t			_perQueue;		// TODO: use global command pool manager to minimize memory usage
-		DebugName_t				_dbgName;
 		bool					_dbgFullBarriers	= false;
 		bool					_dbgQueueSync		= false;
 
@@ -116,7 +119,7 @@ namespace FG
 		
 		FrameGraph	GetFrameGraph () override	{ return _instance.shared_from_this(); }
 
-		RawImageID	GetSwapchainImage (RawSwapchainID swapchain, ESwapchainImage type) override;
+		RawImageID	GetSwapchainImage (RawSwapchainID swapchain) override;
 		bool		AddExternalCommands (const ExternalCmdBatch_t &) override;
 		bool		AddDependency (const CommandBuffer &) override;
 		bool		AllocBuffer (BytesU size, BytesU align, OUT RawBufferID &id, OUT BytesU &offset, OUT void* &mapped) override;
@@ -161,8 +164,11 @@ namespace FG
 		void		AddTask (LogicalPassID, const DrawIndexed &) override;
 		void		AddTask (LogicalPassID, const DrawVerticesIndirect &) override;
 		void		AddTask (LogicalPassID, const DrawIndexedIndirect &) override;
+		void		AddTask (LogicalPassID, const DrawVerticesIndirectCount &) override;
+		void		AddTask (LogicalPassID, const DrawIndexedIndirectCount &) override;
 		void		AddTask (LogicalPassID, const DrawMeshes &) override;
 		void		AddTask (LogicalPassID, const DrawMeshesIndirect &) override;
+		void		AddTask (LogicalPassID, const DrawMeshesIndirectCount &) override;
 		void		AddTask (LogicalPassID, const CustomDraw &) override;
 
 
@@ -181,7 +187,7 @@ namespace FG
 		ND_ VPipelineResources const* CreateDescriptorSet (const PipelineResources &desc);
 
 		
-		ND_ StringView				GetName ()					const	{ EXLOCK( _drCheck );  return _dbgName; }
+		ND_ StringView				GetName ()					const	{ EXLOCK( _drCheck );  return _batch->GetName(); }
 		ND_ VCmdBatch &				GetBatch ()					const	{ EXLOCK( _drCheck );  return *_batch; }
 		ND_ VCmdBatchPtr const&		GetBatchPtr ()				const	{ EXLOCK( _drCheck );  return _batch; }
 		ND_ Allocator_t &			GetAllocator ()						{ EXLOCK( _drCheck );  return _mainAllocator; }

@@ -45,9 +45,14 @@ namespace FG
 
 		using ImageUsage_t			= Pair< const VImage *, VLocalImage::ImageState >;
 		using BufferUsage_t			= Pair< const VBuffer *, VLocalBuffer::BufferState >;
+
+	#ifdef VK_NV_ray_tracing
 		using RTSceneUsage_t		= Pair< const VRayTracingScene *, VLocalRTScene::SceneState >;
 		using RTGeometryUsage_t		= Pair< const VRayTracingGeometry *, VLocalRTGeometry::GeometryState >;
 		using ResourceUsage_t		= Union< NullUnion, ImageUsage_t, BufferUsage_t, RTSceneUsage_t, RTGeometryUsage_t >;
+	#else
+		using ResourceUsage_t		= Union< NullUnion, ImageUsage_t, BufferUsage_t >;
+	#endif
 
 		using ImageResources_t		= HashMap< const VImage *, ImageInfo_t >;
 		using BufferResources_t		= HashMap< const VBuffer *, BufferInfo_t >;
@@ -96,7 +101,7 @@ namespace FG
 		VLocalDebugger ();
 
 		void Begin (EDebugFlags flags);
-		void End (StringView name, uint cmdBufferUID, OUT String *dump, OUT BatchGraph *graph);
+		void End (StringView name, ArrayView<VCmdBatchPtr> deps, uint cmdBufferUID, OUT String *dump, OUT BatchGraph *graph);
 		
 		void AddBufferBarrier (const VBuffer *				buffer,
 							   ExeOrderIndex				srcIndex,
@@ -135,15 +140,18 @@ namespace FG
 
 		void AddBufferUsage (const VBuffer* bufferId, const VLocalBuffer::BufferState &state);
 		void AddImageUsage (const VImage* imageId, const VLocalImage::ImageState &state);
+		
+	#ifdef VK_NV_ray_tracing
 		void AddRTGeometryUsage (const VRayTracingGeometry *, const VLocalRTGeometry::GeometryState &state);
 		void AddRTSceneUsage (const VRayTracingScene *, const VLocalRTScene::SceneState &state);
+	#endif
 
 		void AddTask (VTask task);
 
 
 	// dump to string
 	private:
-		void _DumpFrame (StringView name, OUT String &str) const;
+		void _DumpFrame (StringView name, ArrayView<VCmdBatchPtr> deps, OUT String &str) const;
 
 		void _DumpImages (INOUT String &str) const;
 		void _DumpImageInfo (const VImage *image, const ImageInfo_t &info, INOUT String &str) const;
