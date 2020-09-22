@@ -312,6 +312,7 @@ namespace FG
 		switch ( value )
 		{
 			case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR :			return "sRGB Nonlinear";
+			#ifdef VK_EXT_swapchain_colorspace
 			case VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT :		return "Display P3 Nonlinear";
 			case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT :		return "Extended sRGB Linear";
 			case VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT :			return "Display P3 Linear";
@@ -326,7 +327,10 @@ namespace FG
 			case VK_COLOR_SPACE_ADOBERGB_NONLINEAR_EXT :		return "AdobeRGB Nonlinear";
 			case VK_COLOR_SPACE_PASS_THROUGH_EXT :				return "Pass through";
 			case VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT :	return "Extended sRGB Nonlinear";
+			#endif
+			#ifdef VK_AMD_display_native_hdr
 			case VK_COLOR_SPACE_DISPLAY_NATIVE_AMD :			return "Display Native AMD";
+			#endif
 			case VK_COLOR_SPACE_MAX_ENUM_KHR :					break;
 			#ifndef VK_VERSION_1_2
 			case VK_COLOR_SPACE_RANGE_SIZE_KHR :				break;

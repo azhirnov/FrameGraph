@@ -286,7 +286,7 @@ namespace FGC
 		
 		bool						_usedSharedInstance		= false;
 		
-		bool						_breakOnValidationError	= true;
+		bool						_breakOnValidationError	= false;
 		Array<ObjectDbgInfo>		_tempObjectDbgInfos;
 		String						_tempString;
 

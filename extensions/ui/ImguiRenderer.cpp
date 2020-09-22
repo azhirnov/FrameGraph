@@ -25,7 +25,8 @@ namespace FG
 */
 	ImguiRenderer::~ImguiRenderer ()
 	{
-		ImGui::DestroyContext();
+		if (GImGui)
+			ImGui::DestroyContext(GImGui);
 	}
 	
 /*
