@@ -16,12 +16,12 @@ if (${FG_ENABLE_GLSL_TRACE})
 	if (NOT EXISTS "${FG_EXTERNAL_GLSLTRACE_PATH}/CMakeLists.txt")
 		FetchContent_Declare( ExternalGLSLTrace
 			# download
-			URL  				"https://github.com/azhirnov/glsl_trace/archive/master.zip"
+			URL  				"https://github.com/azhirnov/glsl_trace/archive/34f96cd1e1135a8c343409be6193b7313faa43a6.zip"
 			DOWNLOAD_DIR		"${FG_EXTERNAL_GLSLTRACE_PATH}"
 			SOURCE_DIR			"${FG_EXTERNAL_GLSLTRACE_PATH}"
 			LOG_DOWNLOAD		1
 			# build
-			BINARY_DIR			""
+			BINARY_DIR			"${CMAKE_BINARY_DIR}/glsl_trace"
 			BUILD_COMMAND		""
 			LOG_BUILD 			1
 			# install
