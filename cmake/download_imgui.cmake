@@ -26,6 +26,13 @@ elseif (${FG_ENABLE_IMGUI})
 		set( FG_IMGUI_REPOSITORY "" )
 	endif ()
 	
+	# select version
+	if (${FG_EXTERNALS_USE_STABLE_VERSIONS})
+		set( IMGUI_TAG "v1.79" )
+	else ()
+		set( IMGUI_TAG "master" )
+	endif ()
+	
 	set( FG_IMGUI_INSTALL_DIR "${FG_EXTERNALS_INSTALL_PATH}/imgui" )
 
 	ExternalProject_Add( "External.imgui"
@@ -34,7 +41,7 @@ elseif (${FG_ENABLE_IMGUI})
 		# download
 		DOWNLOAD_DIR		"${FG_EXTERNAL_IMGUI_PATH}"
 		GIT_REPOSITORY		${FG_IMGUI_REPOSITORY}
-		GIT_TAG				master
+		GIT_TAG				${IMGUI_TAG}
 		GIT_PROGRESS		1
 		# update
 		PATCH_COMMAND		${CMAKE_COMMAND} -E copy
