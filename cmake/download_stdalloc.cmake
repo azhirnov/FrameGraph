@@ -22,7 +22,7 @@ if (${FG_ENABLE_STDALLOC})
 		
 		FetchContent_GetProperties( ExternalSTDALLOC )
 		if (NOT ExternalSTDALLOC_POPULATED)
-			message( STATUS "downloading foonathan_memory" )
+			message( STATUS "downloading foonathan_memory..." )
 			FetchContent_Populate( ExternalSTDALLOC )
 		endif ()
 	endif ()

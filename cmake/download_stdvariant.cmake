@@ -22,7 +22,7 @@ if (NOT ${STD_VARIANT_SUPPORTED})
 		
 		FetchContent_GetProperties( ExternalStdVar )
 		if (NOT ExternalStdVar_POPULATED)
-			message( STATUS "downloading std::variant" )
+			message( STATUS "downloading std::variant..." )
 			FetchContent_Populate( ExternalStdVar )
 		endif ()
 	endif ()

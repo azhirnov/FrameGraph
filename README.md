@@ -1,4 +1,6 @@
-[![Build Status](https://api.travis-ci.com/azhirnov/FrameGraph.svg?branch=dev)](https://travis-ci.com/azhirnov/FrameGraph)
+[![Build Status](https://github.com/azhirnov/FrameGraph/workflows/Windows/badge.svg?branch=dev)](https://github.com/azhirnov/FrameGraph/actions?query=workflow%3AWindows)
+[![Build Status](https://github.com/azhirnov/FrameGraph/workflows/Linux/badge.svg?branch=dev)](https://github.com/azhirnov/FrameGraph/actions?query=workflow%3ALinux)
+[![Build Status](https://github.com/azhirnov/FrameGraph/workflows/Android/badge.svg?branch=dev)](https://github.com/azhirnov/FrameGraph/actions?query=workflow%3AAndroid)
 [![Discord Chat](https://img.shields.io/discord/651853834246815744.svg)](https://discord.gg/cMW955R)
 
 # FrameGraph

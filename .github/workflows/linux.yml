@@ -1,0 +1,139 @@
+name: Linux
+
+on: [push, pull_request]
+
+jobs:
+  build-debug-gcc-8:
+    runs-on: ubuntu-latest
+    name: Debug GCC 8, x64, Vulkan 1.0
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure dependencies
+      run: |
+        sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
+          libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      env:
+        CC: gcc-8
+        CXX: g++-8
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DFG_CI_BUILD=ON -DFG_VULKAN_VERSION=100 ..
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config Debug
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: ctest -C Debug --verbose
+
+
+  build-release-gcc-8:
+    runs-on: ubuntu-latest
+    name: Release GCC 8, x64, Vulkan 1.1
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure dependencies
+      run: |
+        sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
+          libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    
+    - name: Configure CMake
+      env:
+        CC: gcc-8
+        CXX: g++-8
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_VULKAN_VERSION=110 ..
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config Release
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: ctest -C Release --verbose
+      
+      
+  build-debug-gcc-9:
+    runs-on: ubuntu-latest
+    name: Debug GCC 9, x64, Vulkan 1.0
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure dependencies
+      run: |
+        sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
+          libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      env:
+        CC: gcc-9
+        CXX: g++-9
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DFG_CI_BUILD=ON -DFG_VULKAN_VERSION=100 ..
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config Debug
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: ctest -C Debug --verbose
+
+
+  build-release-gcc-9:
+    runs-on: ubuntu-latest
+    name: Release GCC 9, x64, Vulkan 1.2
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure dependencies
+      run: |
+        sudo apt-get install build-essential pkg-config libx11-dev libxcursor-dev \
+          libxinerama-dev libgl1-mesa-dev libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev libxrandr-dev yasm
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+    
+    - name: Configure CMake
+      env:
+        CC: gcc-9
+        CXX: g++-9
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DFG_CI_BUILD=ON -DFG_VULKAN_VERSION=120 ..
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config Release
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: ctest -C Release --verbose

@@ -15,7 +15,7 @@ int main ()
 	// VR
 	FW_Test3();
 	
-#elif defined(PLATFORM_ANDROID)
+#elif 1 //defined(PLATFORM_ANDROID)
 	// single-threaded
 	FW_Test1();
 #else

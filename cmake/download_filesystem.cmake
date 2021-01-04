@@ -29,7 +29,7 @@ if (NOT ${STD_FILESYSTEM_SUPPORTED})
 		
 		FetchContent_GetProperties( ExternalGFS )
 		if (NOT ExternalGFS_POPULATED)
-			message( STATUS "downloading std::filesystem" )
+			message( STATUS "downloading std::filesystem..." )
 			FetchContent_Populate( ExternalGFS )
 		endif ()
 	endif ()

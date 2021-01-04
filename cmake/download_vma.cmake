@@ -29,7 +29,7 @@ if (${FG_ENABLE_VMA})
 		
 		FetchContent_GetProperties( ExternalVMA )
 		if (NOT ExternalVMA_POPULATED)
-			message( STATUS "downloading VulkanMemoryAllocator" )
+			message( STATUS "downloading VulkanMemoryAllocator..." )
 			FetchContent_Populate( ExternalVMA )
 		endif ()
 	endif ()

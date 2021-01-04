@@ -22,7 +22,7 @@ if (NOT ${STD_OPTIONAL_SUPPORTED})
 		
 		FetchContent_GetProperties( ExternalStdOpt )
 		if (NOT ExternalStdOpt_POPULATED)
-			message( STATUS "downloading std::optional" )
+			message( STATUS "downloading std::optional..." )
 			FetchContent_Populate( ExternalStdOpt )
 		endif ()
 	endif ()

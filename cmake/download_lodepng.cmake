@@ -29,7 +29,7 @@ if (${FG_ENABLE_LODEPNG})
 		
 		FetchContent_GetProperties( ExternalLodePNG )
 		if (NOT ExternalLodePNG_POPULATED)
-			message( STATUS "downloading lodepng" )
+			message( STATUS "downloading lodepng..." )
 			FetchContent_Populate( ExternalLodePNG )
 		endif ()
 	endif ()

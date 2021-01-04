@@ -22,7 +22,7 @@ if (NOT ${STD_STRINGVIEW_SUPPORTED})
 		
 		FetchContent_GetProperties( ExternalStdStrView )
 		if (NOT ExternalStdStrView_POPULATED)
-			message( STATUS "downloading std::string_view" )
+			message( STATUS "downloading std::string_view..." )
 			FetchContent_Populate( ExternalStdStrView )
 		endif ()
 	endif ()

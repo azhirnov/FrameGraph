@@ -15,7 +15,7 @@ android {
             cmake {
                 arguments '-DANDROID_STL=c++_static',
                         '-DANDROID_ARM_NEON=ON',
-                        '-DPYTHON_EXECUTABLE=C:\\Python3\\python.exe',
+                        //'-DPYTHON_EXECUTABLE=C:\\Python\\python.exe', // local settings
                         '-DFG_VULKAN_VERSION=100'
             }
         }
