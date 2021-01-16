@@ -21,7 +21,7 @@ jobs:
     - name: Configure CMake
       env:
         CC: clang-8
-        CXX: clang-8
+        CXX: clang++-8
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DFG_CI_BUILD=ON -DFG_VULKAN_VERSION=100 ..
@@ -55,7 +55,7 @@ jobs:
     - name: Configure CMake
       env:
         CC: clang-9
-        CXX: clang-9
+        CXX: clang++-9
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DFG_CI_BUILD=ON -DFG_VULKAN_VERSION=100 ..
